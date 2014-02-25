@@ -7,6 +7,34 @@ The majority of the Red5 project information continues to reside on Google Code.
 
 The Red5 users list may be found here: https://groups.google.com/forum/#!forum/red5interest
 
+Stack Overflow
+--------------
+If you want answers from a broader audience, Stack Overflow may be your best bet.
+http://stackoverflow.com/tags/red5/info
+
+Build from Source
+-----------------
+
+To build the red5 jars, execute the following on the command line:
+```
+mvn -Dmaven.test.skip=true -Dclassifier=bootstrap install
+```
+This will create the jars in the "target" directory of the workspace; this will also skip the unit tests.
+
+To build and package the server in zip and gz, execute the following:
+```
+mvn dependency:copy-dependencies
+```
+This will download all the dependencies into the "target" directory under "dependency". The next command will package everything up:
+```
+mvn -Dmaven.test.skip=true -Dmaven.buildNumber.doUpdate=false -Dclassifier=bootstrap package
+```
+Right now, this will skip the demos directory but I'm working on a fix. The xml nodes to copy the demos are in the
+```
+trunk/src/main/server/assembly/server.xml
+```
+and may be uncommented for a package build, if you have the entire svn tree checked out.
+
 Eclipse
 ----------
 
@@ -17,19 +45,12 @@ mvn eclipse:eclipse
 
 Then you will be able to import the projects into Eclipse.
 
-Deployment
-------------
+Building in Eclipse
+-------------------
 
-1. Build both the hls-plugin and the example application (or use your own app). 
-2. Place the war in the red5/webapps directory
-3. Place the "hls-plugin-1.1.jar" jar in the red5/plugins directory
-4. Put the "xuggle-xuggler-5.x.jar" and "xuggle-utils-1.22.jar" jars in the red5/plugins directory
-5. Start red5
+Install the maven plugin and it will build automatically.
 
-Stack Overflow
---------------
-If you want answers from a broader audience, Stack Overflow may be your best bet.
-http://stackoverflow.com/tags/red5/info
+[http://screencast.com/t/2sgjMevf9 Screencast]
 
 Donations
 -------------
