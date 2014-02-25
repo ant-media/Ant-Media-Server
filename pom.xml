@@ -143,6 +143,7 @@
 								</manifest>
 								<manifestEntries>
 									<SCM-Revision>${buildNumber}</SCM-Revision>
+									<Implementation-Build>${buildNumber}</Implementation-Build>
 								</manifestEntries>
 							</archive>
 							<excludes>
@@ -168,6 +169,7 @@
 								</manifest>
 								<manifestEntries>
 									<SCM-Revision>${buildNumber}</SCM-Revision>
+									<Implementation-Build>${buildNumber}</Implementation-Build>
 								</manifestEntries>
 							</archive>
 							<includes>
@@ -283,7 +285,7 @@
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>buildnumber-maven-plugin</artifactId>
-				<version>1.1</version>
+				<version>1.2</version>
 				<executions>
 					<execution>
 						<phase>validate</phase>
@@ -294,7 +296,8 @@
 				</executions>
 				<configuration>
 					<doCheck>false</doCheck>
-					<doUpdate>true</doUpdate>
+					<doUpdate>false</doUpdate>
+					<shortRevisionLength>5</shortRevisionLength>
 				</configuration>
 			</plugin>
 			<plugin>
