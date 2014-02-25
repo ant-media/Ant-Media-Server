@@ -171,11 +171,6 @@ public class WarLoaderServlet extends ContextLoaderListener {
 
 	}
 
-	@Deprecated
-	public ContextLoader getContextLoader() {
-		return super.getContextLoader();
-	}
-
 	/**
 	 * Clearing the in-memory configuration parameters, we will receive
 	 * notification that the servlet context is about to be shut down

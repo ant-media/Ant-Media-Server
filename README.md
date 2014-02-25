@@ -38,17 +38,13 @@ and may be uncommented for a package build, if you have the entire svn tree chec
 Eclipse
 ----------
 
-To create the eclipse project files, execute this within the plugin and / or example directories:
+1. Create the eclipse project files, execute this within red5-server directory.
 ```
 mvn eclipse:eclipse
 ```
-
-Then you will be able to import the projects into Eclipse.
-
-Building in Eclipse
--------------------
-
-Install the maven plugin and it will build automatically.
+2. Import the project into Eclipse.
+3. Access the right-click menu and select "Configure" and then "Convert to Maven Project".
+4. Now the project will build automatically, if you have the maven plugin installed.
 
 [http://screencast.com/t/2sgjMevf9 Screencast]
 
