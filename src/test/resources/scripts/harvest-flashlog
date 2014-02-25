@@ -1,0 +1,119 @@
+#!/bin/sh
+# Copyright (C) 2008 Vlideshow Inc., All Rights Reservered
+# http://www.theyard.net/ or http://www.vlideshow.com/
+#
+# This library is free software; you can redistribute it and/or modify it under the 
+# terms of the GNU Lesser General Public License as published by the Free Software 
+# Foundation; either version 2.1 of the License, or (at your option) any later 
+# version. 
+# 
+# This library is distributed in the hope that it will be useful, but WITHOUT ANY 
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
+# PARTICULAR PURPOSE. See the GNU Lesser General Public License for more details.
+# 
+# You should have received a copy of the GNU Lesser General Public License along 
+# with this library; if not, write to the Free Software Foundation, Inc., 
+# 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA 
+#
+#
+# This script finds the flashlog for this particular OS, and then moves it to the given
+# directory, changing the name to include a timestamp in the process
+#
+# Log file locations assume Flash Player 9 or greater, and as of 2008-08-14 are based
+# on the documentation found here:
+# http://livedocs.adobe.com/flex/3/html/index.html?content=Part2_DevApps_1.html
+
+flash_check_cfg()
+{
+  case "$OS" in
+    cygwin6)
+    FLASH_CFG_FILE=`cygpath "$HOMEDRIVE$HOMEPATH"`/mm.cfg
+    ;;
+    cygwin5)
+    FLASH_CFG_FILE=`cygpath "$HOMEDRIVE$HOMEPATH"`/mm.cfg
+    ;;
+    darwin)
+    FLASH_CFG_FILE=/Library/Application\ Support/Macromedia/mm.cfg
+    ;;
+    linux)
+    FLASH_CFG_FILE=$HOME/mm.cfg
+    ;;
+    *)
+    echo "Do not know flash config file location for the OS: $OS"
+    exit 1;
+    ;;
+  esac
+  echo "Flash Config File path: $FLASH_CFG_FILE";
+  if [ ! -r "$FLASH_CFG_FILE" ]; then
+    echo "Could not read file: $FLASH_CFG_FILE";
+    exit 1;
+  fi
+}
+
+flash_check_logfile()
+{
+  case "$OS" in
+    cygwin6)
+    FLASH_LOG_FILE=`cygpath "$HOMEDRIVE$HOMEPATH\\AppData\\Roaming\\Macromedia\\Flash Player\\Logs\\flashlog.txt"`
+    ;;
+    cygwin5)
+    FLASH_LOG_FILE=`cygpath "$HOMEDRIVE$HOMEPATH\\Application Data\\Macromedia\\Flash Player\\Logs\\flashlog.txt"`
+    ;;
+    darwin)
+    FLASH_LOG_FILE=$HOME/Library/Preferences/Macromedia/Flash\ Player/Logs/flashlog.txt
+    ;;
+    linux)
+    FLASH_LOG_FILE=$HOME/.macromedia/Flash_Player/Logs/flashlog.txt
+    ;;
+    *)
+    echo "Do not know flash log file location for the OS: $OS"
+    exit 1;
+    ;;
+  esac
+  echo "Flash Log File path: $FLASH_LOG_FILE";
+  if [ ! -r "$FLASH_LOG_FILE" ]; then
+    echo "Could not read file: $FLASH_LOG_FILE";
+    exit 1;
+  fi
+}
+
+flash_copy_logfile()
+{
+  echo "Copying \"$FLASH_LOG_FILE\" to \"$OUTPUT_FILE\""
+  cp -f "$FLASH_LOG_FILE" "$OUTPUT_FILE"
+}
+
+check_args()
+{
+  USAGE_MSG="Usage: $2 [output_dir] [file_suffix]"
+  if [ $1 -gt 2 ]; then
+    echo $USAGE_MSG
+    exit 1
+  fi
+
+  OUTPUT_TS=`date -u +"%Y%m%d-%H%I%M%S.$$"`
+  OUTPUT_DIR="$3"
+  OUTPUT_FILENAME="$4"
+  if [ -z "$OUTPUT_DIR" ]; then
+    OUTPUT_DIR="."
+    echo "Defaulting output dir to: " $OUTPUT_DIR
+  fi
+  if [ -z "$OUTPUT_FILENAME" ]; then
+    OUTPUT_FILENAME="flashlog-$OUTPUT_TS.txt"
+    echo "Defaulting log file suffix to: " $OUTPUT_FILENAME
+  fi
+  if [ \( ! -d "$OUTPUT_DIR" \) -o \( ! -w "$OUTPUT_DIR" \) ]; then
+    echo "Cannot write to output directory: " $OUTPUT_DIR
+    exit 1
+  fi
+  OUTPUT_FILE="$OUTPUT_DIR/$OUTPUT_FILENAME"
+}
+
+. shell-tools.sh
+
+
+check_args "$#" "$0" "$1" "$2"
+detect_os
+flash_check_cfg
+flash_check_logfile
+flash_copy_logfile

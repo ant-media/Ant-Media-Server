@@ -1,0 +1,261 @@
+// ============================================================================
+// red5.policy - Security Policy Permissions for Red5
+//
+// This file contains a default set of security policies to be enforced (by the
+// JVM) In addition to the permissions granted here, the following additional permissions are
+// granted to the codebase specific to each web application:
+//
+// ============================================================================
+
+
+// ========== SYSTEM CODE PERMISSIONS =========================================
+
+// These permissions apply to javac
+grant codeBase "file:${java.home}/lib/-" {
+  permission java.security.AllPermission;
+};
+
+// These permissions apply to all shared system extensions
+grant codeBase "file:${java.home}/jre/lib/ext/-" {
+  permission java.security.AllPermission;
+};
+
+// These permissions apply to javac when ${java.home] points at $JAVA_HOME/jre
+grant codeBase "file:${java.home}/../lib/-" {
+  permission java.security.AllPermission;
+};
+
+// These permissions apply to all shared system extensions when
+// ${java.home} points at $JAVA_HOME/jre
+grant codeBase "file:${java.home}/lib/ext/-" {
+  permission java.security.AllPermission;
+};
+
+
+// ========== RED5 CODE PERMISSIONS =======================================
+
+
+// These permissions apply to the main code
+grant codeBase "file:boot.jar" {
+  permission java.security.AllPermission;
+};
+
+grant codeBase "file:red5.jar" {
+  permission java.security.AllPermission;
+};
+
+// These permissions apply to the classes
+// and those that are shared across all class loaders
+// located in the "common" directory
+grant codeBase "file:lib/-" {
+  permission java.security.AllPermission;
+};
+
+grant codeBase "file:plugins/-" {
+  permission java.security.AllPermission;
+};
+
+grant principal javax.management.remote.JMXPrincipal "red5user" {
+   permission java.security.AllPermission;
+};
+
+grant principal javax.management.remote.JMXPrincipal "guest" {
+   permission javax.management.MBeanPermission "*", "queryNames";
+   permission javax.management.remote.SubjectDelegationPermission "javax.management.remote.JMXPrincipal.*";
+};
+
+//required for the Admin plugin
+grant codeBase "file:plugins/adminplugin.jar" {
+  permission java.lang.RuntimePermission "getenv.DERBY_HOME";
+  permission java.util.PropertyPermission "derby.*", "read";
+  permission java.io.FilePermission "${derby.system.home}","read";
+  permission java.io.FilePermission "${derby.system.home}${/}*", "read,write,delete";
+  permission java.io.FilePermission "${user.dir}${/}-", "read,write,delete";
+  permission java.io.FilePermission "${derby.system.home}${/}Admin${/}-", "read,write,delete";
+};
+
+//required for the Admin plugin when using derby db
+grant codeBase "file:plugins/derby-10.5.3.0.jar" {
+  permission java.lang.RuntimePermission "createClassLoader";
+  permission java.util.PropertyPermission "derby.*", "read";
+  permission java.io.FilePermission "${derby.system.home}","read";
+  permission java.io.FilePermission "${derby.system.home}${/}*", "read,write,delete";
+  permission java.io.FilePermission "${user.dir}${/}-", "read,write,delete";
+  permission java.io.FilePermission "${derby.system.home}${/}Admin${/}-", "read,write,delete";
+  permission java.util.PropertyPermission "derby.storage.jvmInstanceId", "write"; 
+};
+
+// ========== APPLICATION PERMISSIONS =====================================
+
+// These permissions are granted by default to all applications
+// In addition, an application will be given a read FilePermission
+// and JndiPermission for all files and directories in its document root.
+grant { 
+
+  //Red5 specific properties
+  permission java.util.PropertyPermission "red5.root", "read,write";
+  permission java.util.PropertyPermission "red5.lib_root", "read,write";
+  permission java.util.PropertyPermission "red5.config_root", "read,write";
+  permission java.util.PropertyPermission "red5.plugins_root", "read,write";
+  permission java.util.PropertyPermission "red5.deployment.type", "read,write";
+  permission java.util.PropertyPermission "logback.ContextSelector", "read";
+  permission java.util.PropertyPermission "sun.lang.ClassLoader.allowArraySyntax", "write";
+  permission java.util.PropertyPermission "user.dir", "read";
+  permission java.util.PropertyPermission "user.home", "read";
+  permission java.io.FilePermission "${user.home}", "read";
+  
+  permission javax.management.MBeanPermission "*", "invoke";
+  permission javax.management.MBeanPermission "*", "removeNotificationListener";
+  permission javax.management.MBeanPermission "*", "registerMBean";
+  permission javax.management.MBeanPermission "*", "unregisterMBean";
+  permission javax.management.MBeanPermission "*", "queryNames";
+
+  permission java.lang.RuntimePermission "getenv.RED5_HOME";  
+  permission java.lang.RuntimePermission "exitVM";
+  permission java.lang.RuntimePermission "loadLibrary";
+  permission java.lang.RuntimePermission "getClassLoader";
+  permission java.lang.RuntimePermission "setContextClassLoader";
+
+  //specifically so that tomcat can be shutdown
+  permission java.lang.RuntimePermission "modifyThread";
+
+  permission java.util.PropertyPermission "java.io.tmpdir", "read,write";
+  permission java.io.FilePermission "${java.io.tmpdir}", "read,write,delete";
+  
+  permission javax.security.auth.AuthPermission "doAsPrivileged";
+
+  permission java.net.SocketPermission "127.0.0.1:9999", "connect,resolve";
+  permission java.net.SocketPermission "red5.googlecode.com:80", "connect,resolve";
+  permission java.net.SocketPermission "www.springframework.org:80", "connect,resolve";
+
+  permission java.io.FilePermission "file:red5.jar", "read";
+  permission java.io.FilePermission "file:conf/red5.properties", "read";
+  
+  permission java.io.FilePermission "file:webapps/installer/WEB-INF/cache", "read,write";
+  
+  //permission java.io.FilePermission "file:C:/red5/work/red5Engine/0.0.0.0/oflaDemo/loader", "read,write";
+
+    // Required for JNDI lookup of named JDBC DataSource's and
+    // javamail named MimePart DataSource used to send mail
+    permission java.util.PropertyPermission "java.home", "read";
+    permission java.util.PropertyPermission "java.naming.*", "read";
+    permission java.util.PropertyPermission "javax.sql.*", "read";
+
+    // OS Specific properties to allow read access
+    permission java.util.PropertyPermission "os.name", "read";
+    permission java.util.PropertyPermission "os.version", "read";
+    permission java.util.PropertyPermission "os.arch", "read";
+    permission java.util.PropertyPermission "file.separator", "read";
+    permission java.util.PropertyPermission "path.separator", "read";
+    permission java.util.PropertyPermission "line.separator", "read";
+
+    // JVM properties to allow read access
+    permission java.util.PropertyPermission "java.version", "read";
+    permission java.util.PropertyPermission "java.vendor", "read";
+    permission java.util.PropertyPermission "java.vendor.url", "read";
+    permission java.util.PropertyPermission "java.class.version", "read";
+    permission java.util.PropertyPermission "java.specification.version", "read";
+    permission java.util.PropertyPermission "java.specification.vendor", "read";
+    permission java.util.PropertyPermission "java.specification.name", "read";
+	
+    permission java.util.PropertyPermission "java.vm.specification.version", "read";
+    permission java.util.PropertyPermission "java.vm.specification.vendor", "read";
+    permission java.util.PropertyPermission "java.vm.specification.name", "read";
+    permission java.util.PropertyPermission "java.vm.version", "read";
+    permission java.util.PropertyPermission "java.vm.vendor", "read";
+    permission java.util.PropertyPermission "java.vm.name", "read";
+
+    permission java.util.PropertyPermission "java.security.debug", "read";
+    permission java.util.PropertyPermission "java.security.policy", "read";
+
+  // Required for OpenJMX
+  permission java.lang.RuntimePermission "getAttribute";   
+  // Required by MX4J implementation
+  permission javax.security.auth.AuthPermission "doAsPrivileged";
+
+  // Allow read of JAXP compliant XML parser debug
+  permission java.util.PropertyPermission "jaxp.debug", "read";
+
+  // Precompiled JSPs need access to this package.
+  permission java.lang.RuntimePermission "accessClassInPackage.org.apache.jasper.runtime";
+  permission java.lang.RuntimePermission "accessClassInPackage.org.apache.jasper.runtime.*";
+
+  permission java.lang.RuntimePermission "accessClassInPackage.org.apache.catalina.startup";
+  permission java.lang.RuntimePermission "accessClassInPackage.org.apache.catalina.startup.*";
+    
+  permission java.lang.RuntimePermission "accessClassInPackage.org.apache.catalina.core";
+  permission java.lang.RuntimePermission "accessClassInPackage.org.apache.catalina.core.*";
+
+  permission java.lang.RuntimePermission "accessClassInPackage.org.apache.catalina.connector";
+  permission java.lang.RuntimePermission "accessClassInPackage.org.apache.catalina.connector.*";
+
+  permission java.lang.RuntimePermission "accessClassInPackage.org.apache.catalina.security";
+  permission java.lang.RuntimePermission "accessClassInPackage.org.apache.catalina.security.*";
+
+  permission java.lang.RuntimePermission "accessClassInPackage.org.apache.catalina.session";
+  permission java.lang.RuntimePermission "accessClassInPackage.org.apache.catalina.session.*";
+
+  permission java.lang.RuntimePermission "accessClassInPackage.org.apache.catalina.loader";
+  permission java.lang.RuntimePermission "accessClassInPackage.org.apache.catalina.loader.*";
+
+  permission java.lang.RuntimePermission "accessClassInPackage.org.apache.tomcat.util.modeler";
+  permission java.lang.RuntimePermission "accessClassInPackage.org.apache.tomcat.util.modeler.*";
+
+  permission java.lang.RuntimePermission "accessClassInPackage.sun.misc";
+  permission java.lang.RuntimePermission "accessClassInPackage.sun.misc.*";
+
+  permission java.lang.RuntimePermission "accessClassInPackage.sun.reflect";
+  permission java.lang.RuntimePermission "accessClassInPackage.sun.reflect.*";
+
+  permission java.lang.RuntimePermission "accessClassInPackage.sun.rmi.registry";
+  permission java.lang.RuntimePermission "accessClassInPackage.sun.rmi.registry.*";
+
+  permission java.lang.RuntimePermission "accessClassInPackage.sun.rmi.server";
+  permission java.lang.RuntimePermission "accessClassInPackage.sun.rmi.server.*";
+
+  permission java.lang.RuntimePermission "accessClassInPackage.sun.rmi.transport";
+  permission java.lang.RuntimePermission "accessClassInPackage.sun.rmi.transport.*";
+
+  permission java.lang.RuntimePermission "accessClassInPackage.sun.rmi.transport.tcp";
+  permission java.lang.RuntimePermission "accessClassInPackage.sun.rmi.transport.tcp.*";
+
+};
+
+// The permissions granted to the balancer WEB-INF/classes directory
+//grant codeBase "file:${catalina.home}/webapps/balancer/WEB-INF/classes/-" {
+//        permission java.lang.RuntimePermission "accessClassInPackage.org.apache.tomcat.util.digester";
+//        permission java.lang.RuntimePermission "accessClassInPackage.org.apache.tomcat.util.digester.*";
+//};
+
+// You can assign additional permissions to particular web applications by
+// adding additional "grant" entries here, based on the code base for that
+// application, /WEB-INF/classes/, or /WEB-INF/lib/ jar files.
+//
+// Different permissions can be granted to JSP pages, classes loaded from
+// the /WEB-INF/classes/ directory, all jar files in the /WEB-INF/lib/
+// directory, or even to individual jar files in the /WEB-INF/lib/ directory.
+//
+// For instance, assume that the standard "examples" application
+// included a JDBC driver that needed to establish a network connection to the
+// corresponding database and used the scrape taglib to get the weather from
+// the NOAA web server.  You might create a "grant" entries like this:
+//
+// The permissions granted to the context root directory apply to JSP pages.
+// grant codeBase "file:${red5.home}/webapps/examples/-" {
+//      permission java.net.SocketPermission "dbhost.mycompany.com:5432", "connect";
+//      permission java.net.SocketPermission "*.noaa.gov:80", "connect";
+// };
+//
+// The permissions granted to the context WEB-INF/classes directory
+// grant codeBase "file:${red5.home}/webapps/examples/WEB-INF/classes/-" {
+// };
+//
+// The permission granted to your JDBC driver
+// grant codeBase "jar:file:${red5.home}/webapps/examples/WEB-INF/lib/driver.jar!/-" {
+//      permission java.net.SocketPermission "dbhost.mycompany.com:5432", "connect";
+// };
+// The permission granted to the scrape taglib
+// grant codeBase "jar:file:${red5.home}/webapps/examples/WEB-INF/lib/scrape.jar!/-" {
+//      permission java.net.SocketPermission "*.noaa.gov:80", "connect";
+// };
+

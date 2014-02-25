@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:lang="http://www.springframework.org/schema/lang"
+    xmlns="http://www.springframework.org/schema/beans"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+                           http://www.springframework.org/schema/lang http://www.springframework.org/schema/lang/spring-lang-3.1.xsd" >
+
+    <bean id="placeholderConfig"
+        class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer" >
+        <property name="ignoreResourceNotFound" value="true" />
+        <property name="ignoreUnresolvablePlaceholders" value="true" />
+        <property name="locations" >
+            <list>
+                <value>file:///${user.dir}/bin/conf/red5.properties</value>
+                <value>file:///${user.dir}/conf/red5.properties</value>
+            </list>
+        </property>
+    </bean>
+
+    <!-- Server bean -->
+    <bean id="red5.server" class="org.red5.server.Server" />
+
+    <!-- Handles creation / lookup of shared objects -->
+    <bean id="sharedObjectService" class="org.red5.server.so.SharedObjectService">
+        <property name="persistenceClassName" value="org.red5.server.persistence.RamPersistence"/>
+    </bean>
+	
+    <bean id="providerService" class="org.red5.server.stream.ProviderService" />
+    <bean id="consumerService" class="org.red5.server.stream.ConsumerService" />
+    <bean id="schedulingService" class="org.red5.server.scheduling.QuartzSchedulingService" />
+
+    <!-- Global stuff from red5-default.xml -->
+    <bean id="global.clientRegistry" class="org.red5.server.ClientRegistry" />
+
+    <bean id="global.serviceInvoker" class="org.red5.server.service.ServiceInvoker" >
+        <property name="serviceResolvers" >
+            <list>
+                <bean id="scopeServiceResolver" class="org.red5.server.service.ScopeServiceResolver" />
+                <bean id="handlerServiceResolver" class="org.red5.server.service.HandlerServiceResolver" />
+                <bean id="contextServiceResolver" class="org.red5.server.service.ContextServiceResolver" />
+            </list>
+        </property>
+    </bean>
+
+    <bean id="global.mappingStrategy" class="org.red5.server.MappingStrategy" />
+
+    <bean id="global.context" autowire="byType" class="org.red5.server.Context" >
+        <property name="contextPath" value="test" />
+    </bean>
+
+    <bean id="global.handler" autowire="byType" class="org.red5.server.CoreHandler" />
+
+    <bean id="global.scope" class="org.red5.server.scope.GlobalScope" init-method="register" >
+        <property name="server" ref="red5.server" />
+        <property name="name" value="default" />
+        <property name="context" ref="global.context" />
+        <property name="handler" ref="global.handler" />
+        <property name="persistenceClass" value="org.red5.server.persistence.RamPersistence" />
+    </bean>
+
+    <bean id="red5.scopeResolver" class="org.red5.server.scope.ScopeResolver" >
+        <property name="globalScope" ref="global.scope" />
+    </bean>
+
+    <!-- Application stuff from red5-web.xml -->
+    <bean id="web.context" autowire="byType" class="org.red5.server.Context" />
+
+    <bean id="web.scope" class="org.red5.server.scope.WebScope" init-method="register" >
+        <property name="server" ref="red5.server" />
+        <property name="parent" ref="global.scope" />
+        <property name="context" ref="web.context" />
+        <property name="handler" ref="web.handler" />
+        <!-- 
+        <property name="persistenceClass" value="org.red5.server.persistence.FilePersistence" />
+         -->
+        <property name="persistenceClass" value="org.red5.server.persistence.RamPersistence" />
+        <property name="contextPath" value="/junit" />
+        <property name="virtualHosts" value="*" />
+    </bean>
+
+    <bean id="web.handler" class="org.red5.server.so.SOApplication" />
+
+    <bean id="room1" class="org.red5.server.scope.RoomScope" init-method="init" >
+        <property name="parent" ref="web.scope" />
+        <property name="name" value="room1" />
+        <property name="handler" ref="web.handler" />
+    </bean>
+
+    <bean id="room99" class="org.red5.server.scope.RoomScope" init-method="init" >
+        <property name="parent" ref="web.scope" />
+        <property name="name" value="room99" />
+        <property name="handler" ref="web.handler" />
+    </bean>	
+	
+</beans>

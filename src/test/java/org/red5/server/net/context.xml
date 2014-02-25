@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<beans xmlns="http://www.springframework.org/schema/beans" 
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:lang="http://www.springframework.org/schema/lang" 
+    xmlns:context="http://www.springframework.org/schema/context"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd 
+    http://www.springframework.org/schema/lang http://www.springframework.org/schema/lang/spring-lang-3.1.xsd 
+    http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd">
+
+    <bean id="placeholderConfig"
+        class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+        <property name="ignoreResourceNotFound" value="true" />
+        <property name="ignoreUnresolvablePlaceholders" value="true" />
+        <property name="locations">
+            <list>
+                <value>classpath*:src/main/server/conf/red5.properties</value>
+                <value>classpath*:target/test-classes/conf/red5.properties</value>
+            </list>
+        </property>
+    </bean>
+
+	<bean id="minaEncoder" class="org.red5.server.net.rtmp.codec.RTMPMinaProtocolEncoder" scope="prototype">
+		<property name="baseTolerance" value="5000" />
+		<property name="dropLiveFuture" value="false" />
+	</bean>
+
+	<bean id="minaDecoder" class="org.red5.server.net.rtmp.codec.RTMPMinaProtocolDecoder" scope="prototype">
+	</bean>
+
+    <!-- Server bean -->
+    <bean id="red5.server" class="org.red5.server.Server" />
+    
+	<bean id="statusObjectService" autowire="byType" class="org.red5.server.net.rtmp.status.StatusObjectService" />
+		
+    <!-- RTMP -->
+    <bean id="rtmpScheduler" scope="prototype" class="org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler">
+        <property name="poolSize" value="2" />  
+        <property name="waitForTasksToCompleteOnShutdown" value="true"/>
+        <property name="daemon" value="true"/>
+    </bean>        
+            
+    <bean id="messageExecutor" scope="prototype" class="org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor">  
+      <property name="corePoolSize" value="1" />  
+      <property name="maxPoolSize" value="2" />  
+      <property name="queueCapacity" value="4" /> 
+      <property name="waitForTasksToCompleteOnShutdown" value="true"/>
+      <property name="daemon" value="true"/>
+    </bean>       
+    
+    <bean id="rtmpConnManager" class="org.red5.server.net.rtmp.RTMPConnManager" />
+
+    <bean id="rtmpCodecFactory" class="org.red5.server.net.rtmp.codec.RTMPMinaCodecFactory"/>
+             
+        
+    <!-- RTMP Handler -->
+    <bean id="rtmpHandler" class="org.red5.server.net.rtmp.RTMPHandler">
+        <property name="server" ref="red5.server" />
+        <property name="statusObjectService" ref="statusObjectService" />
+        <property name="globalScopeConnectionAllowed" value="true" />
+    </bean>
+    
+    <!-- RTMP Mina IO Handler -->
+    <bean id="rtmpMinaIoHandler" class="org.red5.server.net.rtmp.RTMPMinaIoHandler">
+        <property name="handler" ref="rtmpHandler" />
+        <property name="codecFactory" ref="rtmpCodecFactory" />
+    </bean>		
+
+    <!-- RTMP Mina Transport -->
+    <bean id="rtmpTransport" class="org.red5.server.net.rtmp.RTMPMinaTransport">
+        <property name="ioHandler" ref="rtmpMinaIoHandler" />
+    </bean>
+
+    <!-- RTMP Mina Connection -->
+    <bean id="rtmpMinaConnection" scope="prototype" class="org.red5.server.net.rtmp.RTMPMinaConnection">
+        <!-- Executor for scheduled tasks -->
+        <property name="scheduler" ref="rtmpScheduler" />
+        <!-- Executor for incoming messages -->
+        <property name="executor" ref="messageExecutor" />
+        <property name="pingInterval" value="1000" />
+        <property name="maxInactivity" value="60000" />
+        <property name="maxHandshakeTimeout" value="5000" />
+        <property name="limitType" value="2" />
+        <property name="bandwidthDetection" value="false" />
+    </bean>
+    
+    <bean id="streamableFileFactory" class="org.red5.server.stream.StreamableFileFactory">
+        <property name="services">
+            <list>
+                <bean id="flvFileService" class="org.red5.server.service.flv.impl.FLVService">
+                    <property name="generateMetadata" value="true"/>
+                </bean>
+                <bean id="mp3FileService" class="org.red5.server.service.mp3.impl.MP3Service"/>
+                <bean id="mp4FileService" class="org.red5.server.service.mp4.impl.MP4Service"/>
+                <bean id="m4aFileService" class="org.red5.server.service.m4a.impl.M4AService"/>
+            </list>
+        </property>
+    </bean>
+
+    <bean id="streamFilenameGenerator" class="org.red5.server.FilenameGenerator" >
+        <property name="playbackPath" value="/target/test-classes/fixtures" />
+        <property name="recordPath" value="/target/test-classes/fixtures" />
+    </bean>
+    
+    <!-- Handles creation / lookup of shared objects -->
+    <bean id="sharedObjectService" class="org.red5.server.so.SharedObjectService">
+        <property name="maximumEventsPerUpdate" value="8"/>
+        <property name="persistenceClassName">
+            <value>org.red5.server.persistence.FilePersistence</value>
+        </property>
+        <property name="scheduler">
+            <bean class="org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler">
+                <property name="poolSize" value="4" />  
+                <property name="waitForTasksToCompleteOnShutdown" value="false"/>
+                <property name="daemon" value="true"/>
+                <property name="threadNamePrefix" value="SharedObjectScheduler-"/>
+            </bean>
+        </property>
+    </bean>
+    
+    <bean id="streamService" class="org.red5.server.stream.StreamService"/>
+    
+    <bean id="providerService" class="org.red5.server.stream.ProviderService" />
+
+    <bean id="consumerService" class="org.red5.server.stream.ConsumerService" />
+
+    <bean id="schedulingService" class="org.red5.server.scheduling.QuartzSchedulingService"> 
+        <property name="threadCount" value="16"/>    
+    </bean>
+
+    <bean id="playlistSubscriberStream" scope="prototype" lazy-init="true" class="org.red5.server.stream.PlaylistSubscriberStream">
+        <property name="bufferCheckInterval" value="5000"/>
+        <property name="underrunTrigger" value="100"/>
+    </bean>
+
+    <!-- Global stuff from red5-default.xml -->
+
+    <bean id="global.clientRegistry" class="org.red5.server.ClientRegistry" />
+
+    <bean id="global.serviceInvoker" class="org.red5.server.service.ServiceInvoker">
+        <property name="serviceResolvers">
+            <list>
+                <bean id="scopeServiceResolver" class="org.red5.server.service.ScopeServiceResolver" />
+                <bean id="handlerServiceResolver" class="org.red5.server.service.HandlerServiceResolver" />
+                <bean id="contextServiceResolver" class="org.red5.server.service.ContextServiceResolver" />
+            </list>
+        </property>
+    </bean>
+
+    <bean id="global.mappingStrategy" class="org.red5.server.MappingStrategy" />
+
+    <bean id="global.context" autowire="byType" class="org.red5.server.Context">
+        <property name="contextPath" value="test" />
+    </bean>
+
+    <bean id="global.handler" autowire="byType" class="org.red5.server.CoreHandler" />
+
+    <bean id="global.scope" class="org.red5.server.scope.GlobalScope"
+        init-method="register">
+        <property name="server" ref="red5.server" />
+        <property name="name" value="default" />
+        <property name="context" ref="global.context" />
+        <property name="handler" ref="global.handler" />
+        <property name="persistenceClass" value="org.red5.server.persistence.RamPersistence" />
+    </bean>
+
+    <bean id="red5.scopeResolver" class="org.red5.server.scope.ScopeResolver">
+        <property name="globalScope" ref="global.scope" />
+    </bean>
+
+    <!-- Application stuff from red5-web.xml -->
+
+    <bean id="web.context" autowire="byType" class="org.red5.server.Context" />
+
+    <bean id="web.scope" class="org.red5.server.scope.WebScope"
+        init-method="register">
+        <property name="server" ref="red5.server" />
+        <property name="parent" ref="global.scope" />
+        <property name="context" ref="web.context" />
+        <property name="handler" ref="web.handler" />
+        <property name="persistenceClass" value="org.red5.server.persistence.RamPersistence" />
+        <property name="contextPath" value="/junit" />
+        <property name="virtualHosts" value="*" />
+    </bean>
+
+<!-- 
+    <bean id="web.handler" class="org.red5.server.adapter.ApplicationAdapter" />
+    <bean id="web.handler" class="org.red5.server.adapter.MultiThreadedApplicationAdapter" />
+     -->
+    <bean id="web.handler" class="org.red5.server.so.SOApplication" />
+    
+</beans>

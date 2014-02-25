@@ -1,0 +1,49 @@
+<?xml version="1.0" ?>
+<configuration>
+  <!-- Uncomment if you are using the logback plugin for eclipse <consolePlugin/> -->
+
+  <appender class="ch.qos.logback.core.ConsoleAppender" name="CONSOLE">
+    <encoder>
+      <pattern>[%p] [%thread] %logger - %msg%n</pattern>
+    </encoder>
+  </appender>
+   
+  <appender class="ch.qos.logback.core.FileAppender" name="FILE">
+    <File>log/red5.log</File>
+    <Append>false</Append>
+    <encoder>
+      <pattern>%d{ISO8601} [%thread] %-5level %logger{35} - %msg%n</pattern>
+    </encoder>
+  </appender>
+   
+  <root>
+    <level value="INFO"/>
+    <appender-ref ref="CONSOLE"/>
+    <appender-ref ref="FILE"/>
+  </root>
+   
+  <logger name="org.springframework">
+    <level value="INFO"/>
+  </logger>
+   
+  <logger name="org.springframework.scheduling">
+    <level value="WARN"/>
+  </logger>
+  
+  <logger name="org.apache">
+    <level value="INFO"/>
+  </logger>
+   
+  <logger name="ch.qos">
+    <level value="WARN"/>
+  </logger>
+  
+  <logger name="org.red5.server.net.rtmpt.RTMPTConnection">
+    <level value="DEBUG"/>
+  </logger>
+  
+  <logger name="org.red5.server.stream.RecordingListener">
+    <level value="DEBUG"/>
+  </logger>
+   
+</configuration>

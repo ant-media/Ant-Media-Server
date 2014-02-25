@@ -1,0 +1,94 @@
+<?xml version="1.0" ?>
+<configuration>
+	<appender class="ch.qos.logback.core.ConsoleAppender" name="CONSOLE">
+		<encoder>
+			<pattern>[%p] [%thread] %logger - %msg%n</pattern>
+		</encoder>
+	</appender>
+
+	<appender class="ch.qos.logback.core.FileAppender" name="FILE">
+		<File>log/red5-test.log</File>
+		<Append>false</Append>
+		<encoder>
+			<pattern>%d{ISO8601} [%thread] %-5level %logger{35} - %msg%n
+			</pattern>
+		</encoder>
+	</appender>
+
+	<root>
+		<level value="TRACE" />
+		<appender-ref ref="CONSOLE" />
+		<appender-ref ref="FILE" />
+	</root>   
+	   
+<!-- 
+    <logger name="org.red5.server.api">
+        <level value="DEBUG" />
+    </logger>
+
+    <logger name="org.red5.server.api.service">
+        <level value="DEBUG" />
+    </logger>
+        
+    <logger name="org.red5.server.scope">
+        <level value="DEBUG" />
+    </logger>
+
+    
+    <logger name="org.red5.server.so">
+        <level value="TRACE" />
+    </logger>
+
+    <logger name="org.red5.io.mp4.impl.MP4Reader">
+        <level value="TRACE" />
+    </logger>   
+    
+    <logger name="org.red5.server.net.rtmp.RTMPMinaIoHandler">
+        <level value="DEBUG" />
+    </logger>
+
+	<logger name="org.red5.server.net.rtmp.message.Packet">
+        <level value="TRACE" />
+    </logger>
+
+	<logger name="org.red5.io">
+		<level value="DEBUG" />
+	</logger>
+
+    <logger name="org.red5.server.persistence">
+        <level value="DEBUG" />
+    </logger>
+    
+	<logger name="org.red5.server.so">
+		<level value="TRACE" />
+	</logger>
+
+	<logger name="org.springframework">
+		<level value="INFO" />
+	</logger>
+
+	<logger name="org.apache">
+		<level value="INFO" />
+	</logger>
+ -->
+    <logger name="org.springframework">
+        <level value="INFO" />
+    </logger>
+ 
+    <logger name="org.apache">
+        <level value="INFO" />
+    </logger>
+
+    <logger name="ch.qos">
+        <level value="WARN" />
+    </logger>
+
+    <logger name="net.sf">
+        <level value="WARN" />
+    </logger>
+
+    <logger name="org.quartz">
+        <level value="OFF" />
+    </logger>
+
+</configuration>

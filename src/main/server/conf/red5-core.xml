@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:lang="http://www.springframework.org/schema/lang"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd                            
+	http://www.springframework.org/schema/lang http://www.springframework.org/schema/lang/spring-lang-3.1.xsd">
+
+	<!-- DO NOT FORMAT THIS FILE IN ECLIPSE -->
+	
+	<bean id="customEditorConfigurer" class="org.springframework.beans.factory.config.CustomEditorConfigurer">
+		<property name="customEditors">
+			<map>
+				<entry key="java.net.SocketAddress" value="org.apache.mina.integration.beans.InetSocketAddressEditor" />
+			</map>
+		</property>
+	</bean>	
+	
+	<bean id="placeholderConfig" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+		<property name="location" value="classpath:/red5.properties" />
+	</bean>
+	
+	<!-- RTMP -->
+    <bean id="rtmpScheduler" scope="prototype" class="org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler">
+        <property name="poolSize" value="${rtmp.scheduler.pool_size}" />  
+        <property name="waitForTasksToCompleteOnShutdown" value="true"/>
+        <property name="daemon" value="true"/>
+	</bean>        
+	        
+	<bean id="messageExecutor" scope="prototype" class="org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor">  
+	  <property name="corePoolSize" value="1" />  
+	  <property name="maxPoolSize" value="1" />  
+	  <property name="queueCapacity" value="16" /> 
+	  <property name="waitForTasksToCompleteOnShutdown" value="true"/>
+	  <property name="daemon" value="true"/>
+	</bean>     
+    
+    <!-- RTMP connection manager --> 
+    <bean id="rtmpConnManager" class="org.red5.server.net.rtmp.RTMPConnManager" />
+    
+    <bean id="rtmpCodecFactory" class="org.red5.server.net.rtmp.codec.RTMPMinaCodecFactory"/>
+	    
+	<!-- RTMP Handler -->
+	<bean id="rtmpHandler" class="org.red5.server.net.rtmp.RTMPHandler">
+		<property name="server" ref="red5.server" />
+		<property name="statusObjectService" ref="statusObjectService" />
+		<!-- Enable this if you want to allow global scope connections
+		<property name="globalScopeConnectionAllowed" value="true" />
+		-->
+	</bean>
+	
+	<!-- RTMP Mina IO Handler -->
+	<bean id="rtmpMinaIoHandler" class="org.red5.server.net.rtmp.RTMPMinaIoHandler">
+		<property name="handler" ref="rtmpHandler" />
+        <property name="codecFactory" ref="rtmpCodecFactory" />
+	</bean>
+	
+	<!-- RTMP Mina Transport -->
+	<bean id="rtmpTransport" class="org.red5.server.net.rtmp.RTMPMinaTransport" init-method="start" destroy-method="stop">
+		<property name="ioHandler" ref="rtmpMinaIoHandler" />
+        <property name="addresses">
+            <list>
+				<value>${rtmp.host}:${rtmp.port}</value>
+                <!-- You can now add additional ports and ip addresses
+				<value>${rtmp.host}:1936</value>
+                 -->
+            </list>
+        </property>
+		<property name="ioThreads" value="${rtmp.io_threads}" />
+        <property name="sendBufferSize" value="${rtmp.send_buffer_size}" />
+        <property name="receiveBufferSize" value="${rtmp.receive_buffer_size}" />		
+        <property name="trafficClass" value="${rtmp.traffic_class}" />
+        <property name="backlog" value="${rtmp.backlog}" />
+        <property name="tcpNoDelay" value="${rtmp.tcp_nodelay}" />
+		<property name="keepAlive" value="${rtmp.tcp_keepalive}" />
+        <property name="thoughputCalcInterval" value="${rtmp.thoughput_calc_interval}" />
+        <property name="enableDefaultAcceptor" value="${rtmp.default_acceptor}" />
+        <!-- Pool settings are used when the default acceptor is disabled -->
+        <property name="initialPoolSize" value="${rtmp.initial_pool_size}" />
+        <property name="maxPoolSize" value="${rtmp.max_pool_size}" />
+        <property name="maxProcessorPoolSize" value="${rtmp.max_processor_pool_size}" />
+        <property name="executorKeepAliveTime" value="${rtmp.executor_keepalive_time}" />
+		<!-- This is the interval at which the sessions are polled for stats. If mina monitoring is not enabled, polling will not occur. -->
+		<property name="minaPollInterval" value="${jmx.mina.poll.interval}" />
+		<property name="enableMinaMonitor" value="${jmx.mina.monitor.enable}" />
+		<property name="enableMinaLogFilter" value="${mina.logfilter.enable}" />
+	</bean>
+	
+	<!-- RTMP Mina Connection -->
+	<bean id="rtmpMinaConnection" scope="prototype"	class="org.red5.server.net.rtmp.RTMPMinaConnection">
+	    <!-- Executor for scheduled tasks -->
+        <property name="scheduler" ref="rtmpScheduler" />
+        <!-- Executor for incoming messages -->
+        <property name="executor" ref="messageExecutor" />
+		<!-- Ping clients every X ms. Set to 0 to disable ghost detection code. -->
+		<property name="pingInterval" value="${rtmp.ping_interval}" />
+		<!-- Disconnect client after X ms of not responding. -->
+		<property name="maxInactivity" value="${rtmp.max_inactivity}" />
+		<!-- Max. time in milliseconds to wait for a valid handshake. -->
+		<property name="maxHandshakeTimeout" value="${rtmp.max_handshake_time}" />
+        <!-- Default server bandwidth per connection -->
+        <property name="defaultServerBandwidth" value="${rtmp.default_server_bandwidth}" />
+        <!-- Default client bandwidth per connection -->
+        <property name="defaultClientBandwidth" value="${rtmp.default_client_bandwidth}" />
+        <!-- Client bandwidth limit type: 0 = hard, 1 = soft, 2 = dynamic -->
+        <property name="limitType" value="${rtmp.client_bandwidth_limit_type}" />
+        <!-- Bandwidth detection. If "false" the server will NOT initiate a check -->
+        <property name="bandwidthDetection" value="${rtmp.bandwidth_detection}" />
+	</bean>
+	
+	<!-- RTMPT -->
+	
+	<!-- RTMPT Handler -->
+	<bean id="rtmptHandler" class="org.red5.server.net.rtmpt.RTMPTHandler" autowire="byType">
+		<property name="codecFactory" ref="rtmptCodecFactory" />
+	</bean>
+	
+	<!-- Use injection to store RTMPT handler in servlet -->
+	<bean id="rtmptServlet"	class="org.red5.server.net.rtmpt.RTMPTServlet">
+        <property name="manager" ref="rtmpConnManager" />
+		<property name="handler" ref="rtmptHandler" />
+		<!-- Increasing this value results in better stream performance, but also increases the latency -->
+		<property name="targetResponseSize" value="${rtmpt.target_reponse_size}" />
+		<!-- Response for /fcs/ident2 requests -->
+		<!--
+		<property name="ident2" value="127.0.0.1" />
+		-->
+	</bean>
+	
+	<!-- RTMPT Connection -->
+	<bean id="rtmptConnection" scope="prototype" class="org.red5.server.net.rtmpt.RTMPTConnection">
+        <!-- Executor for scheduled tasks -->
+        <property name="scheduler" ref="rtmpScheduler" />
+        <!-- Executor for incoming messages -->
+        <property name="executor" ref="messageExecutor" /> 
+		<!-- Ping clients every X ms. Set to 0 to disable ghost detection code. -->
+		<property name="pingInterval" value="${rtmpt.ping_interval}" />
+		<!-- Disconnect client after X ms of not responding. -->
+		<property name="maxInactivity" value="${rtmpt.max_inactivity}" />
+		<!-- Max. time in milliseconds to wait for a valid handshake. -->
+		<property name="maxHandshakeTimeout" value="${rtmpt.max_handshake_time}" />
+		<!-- Maximum incoming messages to process at a time per client -->
+		<property name="maxInMessagesPerProcess" value="${rtmpt.max_in_msg_process}" />
+		<!-- Maximum amount of time in milliseconds to wait before allowing an offer to fail on incoming or outgoing queues -->
+		<property name="maxQueueOfferTime" value="${rtmpt.max_queue_offer_time}" />
+		<!-- Maximum offer attempts before failing on incoming or outgoing queues -->
+		<property name="maxQueueOfferAttempts" value="${rtmpt.max_queue_offer_attempts}" />
+	</bean>
+		
+   <!-- RTMPS -->
+<!--    
+    <bean id="rtmpsMinaIoHandler" class="org.red5.server.net.rtmps.RTMPSMinaIoHandler">
+        <property name="handler" ref="rtmpHandler" />
+        <property name="codecFactory" ref="rtmpCodecFactory" />
+        <property name="rtmpConnManager" ref="rtmpConnManager" />
+        <property name="keyStorePassword" value="${rtmps.keystorepass}" />
+        <property name="keystoreFile" value="conf/keystore" />
+    </bean>
+    
+    <bean id="rtmpsTransport" class="org.red5.server.net.rtmp.RTMPMinaTransport" init-method="start" destroy-method="stop">
+        <property name="ioHandler" ref="rtmpsMinaIoHandler" />
+        <property name="connectors">
+            <list>
+                <bean class="java.net.InetSocketAddress">
+                    <constructor-arg index="0" type="java.lang.String" value="${rtmps.host}" />  
+                    <constructor-arg index="1" type="int" value="${rtmps.port}" />  
+                </bean>
+            </list>
+        </property>
+        <property name="ioThreads" value="${rtmp.io_threads}" />
+        <property name="tcpNoDelay" value="${rtmp.tcp_nodelay}" />
+    </bean>
+-->
+
+   <!-- Enable when you need it. - - >
+        <bean id="rtmpProxyTransport" class="org.red5.server.net.rtmp.RTMPMinaTransport" init-method="start" destroy-method="stop">
+                <property name="ioHandler" ref="debugProxyIoHandler" />
+                <property name="address" value="${proxy.source_host}" />
+                <property name="port" value="${proxy.source_port}" />
+                <property name="ioThreads" value="${rtmp.io_threads}" />
+                <property name="tcpNoDelay" value="${rtmp.tcp_nodelay}" />
+        </bean>
+    
+        <bean id="debugProxyIoHandler"
+                class="org.red5.server.net.proxy.DebugProxyHandler">
+                <property name="codecFactory" ref="rtmpCodecFactory" />
+                <property name="forward" value="${proxy.destination_host}:${proxy.destination_port}" />
+                <property name="dumpTo" value="./webapps/dump/" />
+        </bean>
+-->
+</beans>

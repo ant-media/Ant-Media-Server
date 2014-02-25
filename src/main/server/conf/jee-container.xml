@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:lang="http://www.springframework.org/schema/lang"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+                           http://www.springframework.org/schema/lang http://www.springframework.org/schema/lang/spring-lang-3.1.xsd">
+
+    <!-- 
+    The tomcat connectors may be blocking or non-blocking. Select between either option via the protocol property.
+        Blocking I/O:
+            <property name="protocol" value="org.apache.coyote.http11.Http11Protocol" />
+        Non-blocking I/O:
+            <property name="protocol" value="org.apache.coyote.http11.Http11NioProtocol" />  
+     -->                           
+    
+    <!-- Tomcat without SSL enabled -->   
+    <bean id="tomcat.server" class="org.red5.server.tomcat.TomcatLoader" depends-on="context.loader" init-method="start" lazy-init="true">
+
+        <property name="webappFolder" value="${red5.root}/webapps" />
+        
+        <property name="connectors">
+            <list>
+                <bean name="httpConnector" class="org.red5.server.tomcat.TomcatConnector">
+					<property name="protocol" value="org.apache.coyote.http11.Http11NioProtocol" />
+					<property name="address" value="${http.host}:${http.port}" />
+                    <property name="redirectPort" value="${https.port}" />  
+                </bean>     
+            </list>
+        </property>
+        
+        <property name="baseHost">
+           <bean class="org.apache.catalina.core.StandardHost">
+               <property name="name" value="${http.host}" />
+           </bean>     
+        </property>     
+
+        <property name="valves">
+            <list>
+                <bean id="valve.access" class="org.apache.catalina.valves.AccessLogValve">
+                    <property name="directory" value="log" />
+                    <property name="prefix" value="${http.host}_access." />
+                    <property name="suffix" value=".log" />
+                    <property name="pattern" value="common" />
+                    <property name="resolveHosts" value="false" />
+                    <property name="rotatable" value="true" />
+                </bean>
+            </list>
+        </property>
+        
+    </bean>
+ 
+    <!-- Tomcat with SSL enabled -->
+<!-- 
+    <bean id="tomcat.server" class="org.red5.server.tomcat.TomcatLoader" depends-on="context.loader" init-method="start" lazy-init="true">
+
+        <property name="webappFolder" value="${red5.root}/webapps" />
+        
+        <property name="connectors">
+            <list>
+                <bean name="httpConnector" class="org.red5.server.tomcat.TomcatConnector">
+                    <property name="protocol" value="org.apache.coyote.http11.Http11NioProtocol" />
+                    <property name="address" value="${http.host}:${http.port}" />
+                    <property name="redirectPort" value="${https.port}" />  
+                </bean>
+                <bean name="httpsConnector" class="org.red5.server.tomcat.TomcatConnector">
+                    <property name="secure" value="true" />
+                    <property name="protocol" value="org.apache.coyote.http11.Http11NioProtocol" />
+                    <property name="address" value="${http.host}:${https.port}" />
+                    <property name="redirectPort" value="${http.port}" />  
+                    <property name="connectionProperties">
+                        <map>           
+                            <entry>
+                                <key><value>port</value></key>
+                                <value>${https.port}</value>
+                            </entry>
+                            <entry>
+                                <key><value>redirectPort</value></key>
+                                <value>${http.port}</value>
+                            </entry>
+                            <entry>
+                                <key><value>sslProtocol</value></key>
+                                <value>TLS</value>
+                            </entry>
+                            <entry>
+                                <key><value>clientAuth</value></key>
+                                <value>false</value>
+                            </entry>
+                            <entry>
+                                <key><value>keystoreFile</value></key>
+                                <value>${rtmps.keystorefile}</value>
+                            </entry>
+                            <entry>
+                                <key><value>keystorePass</value></key>
+                                <value>${rtmps.keystorepass}</value>
+                            </entry>
+                            <entry>
+                                <key><value>keystoreType</value></key>
+                                <value>JKS</value>
+                            </entry>
+                            <entry key="maxKeepAliveRequests" value="${http.max_keep_alive_requests}"/>
+                            <entry key="useExecutor" value="true"/>
+                            <entry key="maxThreads" value="${http.max_threads}"/>
+                            <entry key="acceptorThreadCount" value="${http.acceptor_thread_count}"/>
+                            <entry key="processorCache" value="${http.processor_cache}"/>
+                        </map>
+                    </property> 
+                </bean>             
+            </list>
+        </property>
+                        
+        <property name="baseHost">
+            <bean class="org.apache.catalina.core.StandardHost">
+                <property name="name" value="${http.host}" />
+            </bean>     
+        </property>   
+
+        <property name="valves">
+            <list>
+                <bean id="valve.access" class="org.apache.catalina.valves.AccessLogValve">
+                    <property name="directory" value="log" />
+                    <property name="prefix" value="${http.host}_access." />
+                    <property name="suffix" value=".log" />
+                    <property name="pattern" value="common" />
+                    <property name="resolveHosts" value="false" />
+                    <property name="rotatable" value="true" />
+                </bean>
+            </list>
+        </property>
+        
+    </bean>
+-->
+	
+</beans>

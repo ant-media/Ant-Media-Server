@@ -1,0 +1,18 @@
+#!/bin/bash
+# Copyright (C) Vlideshow Inc., All Rights Reserved
+
+usage0="USAGE:"
+usage1="$0 <number-of-tests>"
+
+if [ "$1" = "" ]
+then
+    echo ERROR: missing test count
+    echo 
+    echo "  " $usage0
+    echo "     " $usage1
+    echo 
+    exit 1
+fi
+
+ant compile-tests
+for ((i=0; i < $1; ++i)); do flash-player bin/test/fity.swf ; done

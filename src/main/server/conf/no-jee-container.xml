@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:lang="http://www.springframework.org/schema/lang"
+    xmlns="http://www.springframework.org/schema/beans"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+                           http://www.springframework.org/schema/lang http://www.springframework.org/schema/lang/spring-lang-3.1.xsd" >
+
+    <!--
+This file should be replaced by the container configuration file that you have selected
+If no JEE container is selected, some JEE features will not be available such as Servlets or JSP's.
+Go to this link for more information: http://wiki.red5.org/wiki/AppServer/JEEContainerPlugins
+    -->
+
+</beans>

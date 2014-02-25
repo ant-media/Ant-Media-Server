@@ -1,0 +1,108 @@
+#!/bin/bash
+# Copyright (C) 2008 Vlideshow Inc., All Rights Reservered
+# http://www.theyard.net/ or http://www.vlideshow.com/
+#
+# This library is free software; you can redistribute it and/or modify it under the 
+# terms of the GNU Lesser General Public License as published by the Free Software 
+# Foundation; either version 2.1 of the License, or (at your option) any later 
+# version. 
+# 
+# This library is distributed in the hope that it will be useful, but WITHOUT ANY 
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
+# PARTICULAR PURPOSE. See the GNU Lesser General Public License for more details.
+# 
+# You should have received a copy of the GNU Lesser General Public License along 
+# with this library; if not, write to the Free Software Foundation, Inc., 
+# 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA 
+#
+# Script to start up and shutdown red5 in the background; used by automated build
+# tests
+
+. shell-tools.sh
+init_env()
+{
+  if [ ! -x "$RED5_HOME/$1" ]; then
+    echo `date` "Unable to locate $1; make sure \$RED5_HOME is set and pointed to a valid red5 build"
+    exit 1
+  fi
+  cd "$RED5_HOME"
+  process_status $? "cd $RED5_HOME"
+}
+
+setup_tomcat()
+{
+  # create the plugins directory
+  mkdir -p "$RED5_HOME/plugins"
+  cd "$RED5_HOME/plugins"
+  # get tomcat plugin
+  wget http://red5.googlecode.com/svn/repository/red5/tomcatplugin-1.0.jar
+  wget http://red5.googlecode.com/svn/repository/tomcat/catalina-6.0.26.jar
+  wget http://red5.googlecode.com/svn/repository/tomcat/jasper-6.0.26.jar
+  wget http://red5.googlecode.com/svn/repository/tomcat/jasper-jdt-6.0.26.jar
+  wget http://red5.googlecode.com/svn/repository/tomcat/jasper-el-6.0.26.jar
+  wget http://red5.googlecode.com/svn/repository/tomcat/tomcat-coyote-6.0.26.jar
+  wget http://red5.googlecode.com/svn/repository/tomcat-juli-slf4j-1.5.0.jar
+  # replace default jee container file
+  exec "${JAVA_HOME}/bin/jar" xf tomcatplugin-1.0.jar jee-container.xml 
+  cp -f jee-container.xml "$RED5_HOME/conf"
+}
+
+red5_start()
+{
+  echo -n `date` "Starting Red5"
+  init_env "red5.sh"
+# setup_tomcat
+  echo `date` "START to shutdown Red5" 1>log/stdout.log
+# red5.sh will read JAVA_OPTS; we increase the red5 jvm memory here
+  export JAVA_OPTS="-Xms64M -Xmx256M"
+  ./red5.sh 1>>log/stdout.log 2>>log/stderr.log &
+  echo -n " ($!)..."
+  ensure_background_process_running $! 30 "Red5 process didn't start"
+  sleep 30
+  grep -q "Bootstrap complete" log/stdout.log
+  process_status $? "check_startup not done in 30 seconds"
+  grep -q "	at .*\(.*\)$" log/stdout.log
+  if [ $? -eq 0 ]; then
+    echo ""
+    echo -n `date` "Possible exception detected upon red5 start-up; you might want to check"
+  fi
+  echo ""
+}
+
+red5_stop()
+{
+  RED5_TIMESTAMP=`date -u +"%Y%m%d-%H%I%M%S.$$"`
+  echo -n `date` "Stopping Red5..."
+  init_env "red5-shutdown.sh"
+  echo `date` "START to shutdown Red5" 1>log/shutdown-stdout.log
+  ./red5-shutdown.sh 1>>log/shutdown-stdout.log 2>>log/shutdown-stderr.log
+  if [ -r log/stdout.log ]; then
+    mv -f log/stdout.log log/stdout-$RED5_TIMESTAMP.log
+  fi
+  if [ -r log/stderr.log ]; then
+    mv -f log/stderr.log log/stderr-$RED5_TIMESTAMP.log
+  fi
+  echo `date` "FINISH attempt to shutdown Red5" 1>>log/shutdown-stdout.log
+  echo ""
+}
+
+case "$1" in
+  'start')
+  red5_start
+  process_status $? "red5_start"
+  ;;
+  'stop')
+  red5_stop
+  process_status $? "red5_stop"
+  ;;
+  'restart')
+  red5_stop
+  red5_start
+  process_status $? "red5_restart"
+  ;;
+  *)
+  echo "Usage: $0 { start | stop | restart }"
+  exit 1
+  ;;
+esac
+exit 0

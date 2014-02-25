@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<beans xmlns="http://www.springframework.org/schema/beans" 
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:lang="http://www.springframework.org/schema/lang" 
+    xmlns:context="http://www.springframework.org/schema/context"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd 
+    http://www.springframework.org/schema/lang http://www.springframework.org/schema/lang/spring-lang-3.1.xsd 
+    http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd">
+
+    <bean id="placeholderConfig"
+        class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+        <property name="ignoreResourceNotFound" value="true" />
+        <property name="ignoreUnresolvablePlaceholders" value="true" />
+        <property name="locations">
+            <list>
+                <value>classpath*:src/main/server/conf/red5.properties</value>
+                <value>classpath*:target/test-classes/conf/red5.properties</value>
+            </list>
+        </property>
+    </bean>
+
+	<!-- Serializes objects to AMF binary -->
+	<bean id="serializer" class="org.red5.io.object.Serializer" />
+
+	<!-- Deserializes objects from AMF binary -->
+	<bean id="deserializer" class="org.red5.io.object.Deserializer" />
+
+	<bean id="minaEncoder" class="org.red5.server.net.rtmp.codec.RTMPMinaProtocolEncoder" scope="prototype">
+		<property name="serializer">
+			<ref bean="serializer" />
+		</property>
+		<property name="baseTolerance" value="5000" />
+		<property name="dropLiveFuture" value="false" />
+	</bean>
+
+	<bean id="minaDecoder" class="org.red5.server.net.rtmp.codec.RTMPMinaProtocolDecoder" scope="prototype">
+		<property name="deserializer">
+			<ref bean="deserializer" />
+		</property>
+	</bean>
+
+    <!-- Server bean -->
+    <bean id="red5.server" class="org.red5.server.Server" />
+    
+    <bean id="schedulingService" class="org.red5.server.scheduling.QuartzSchedulingService" /> 
+
+	<bean id="statusObjectService" autowire="byType" class="org.red5.server.net.rtmp.status.StatusObjectService" />
+
+	<bean id="rtmpCodecFactory" autowire="byType"
+		class="org.red5.server.net.rtmp.codec.RTMPMinaCodecFactory" scope="prototype" />
+
+    <!-- Global stuff from red5-default.xml -->
+    <bean id="global.clientRegistry" class="org.red5.server.DummyClientRegistry" />
+
+    <bean id="global.serviceInvoker" class="org.red5.server.service.ServiceInvoker">
+        <property name="serviceResolvers">
+            <list>
+                <bean id="scopeServiceResolver" class="org.red5.server.service.ScopeServiceResolver" />
+                <bean id="handlerServiceResolver" class="org.red5.server.service.HandlerServiceResolver" />
+                <bean id="contextServiceResolver" class="org.red5.server.service.ContextServiceResolver" />
+            </list>
+        </property>
+    </bean>
+
+    <bean id="global.mappingStrategy" class="org.red5.server.MappingStrategy" />
+
+    <bean id="global.context" autowire="byType" class="org.red5.server.Context" />
+
+    <bean id="global.handler" autowire="byType" class="org.red5.server.CoreHandler" />
+
+    <bean id="global.scope" class="org.red5.server.scope.GlobalScope" init-method="register">
+        <property name="server" ref="red5.server" />
+        <property name="name" value="default" />
+        <property name="context" ref="global.context" />
+        <property name="handler" ref="global.handler" />
+        <property name="persistenceClass" value="org.red5.server.persistence.RamPersistence" />
+    </bean>
+
+    <!-- Application stuff from red5-web.xml -->
+    <bean id="web.context" autowire="byType" class="org.red5.server.Context" />
+
+	<bean id="app.default" class="org.red5.server.scope.WebScope" init-method="register">
+        <property name="server" ref="red5.server" />
+        <property name="parent" ref="global.scope" />
+        <property name="context" ref="web.context" />
+        <property name="handler" ref="handler.default" />
+        <property name="contextPath" value="/app" />
+        <property name="virtualHosts" value="*" />
+	</bean>
+
+	<bean id="app.test" class="org.red5.server.scope.RoomScope" init-method="init">
+		<property name="parent" ref="app.default" />
+		<property name="name" value="test" />
+		<property name="handler" ref="handler.default" />
+	</bean>
+
+	<bean id="echoService" class="org.red5.server.service.EchoService" init-method="startUp" />
+
+	<bean id="handler.default" class="org.red5.server.adapter.MultiThreadedApplicationAdapter" />
+
+    <bean id="red5.scopeResolver" class="org.red5.server.scope.ScopeResolver">
+        <property name="globalScope" ref="global.scope" />
+    </bean>
+
+</beans>

@@ -1,0 +1,107 @@
+#!/bin/bash
+# Copyright (C) 2008 Vlideshow Inc., All Rights Reservered
+# http://www.theyard.net/ or http://www.vlideshow.com/
+#
+# This library is free software; you can redistribute it and/or modify it under the 
+# terms of the GNU Lesser General Public License as published by the Free Software 
+# Foundation; either version 2.1 of the License, or (at your option) any later 
+# version. 
+# 
+# This library is distributed in the hope that it will be useful, but WITHOUT ANY 
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
+# PARTICULAR PURPOSE. See the GNU Lesser General Public License for more details.
+# 
+# You should have received a copy of the GNU Lesser General Public License along 
+# with this library; if not, write to the Free Software Foundation, Inc., 
+# 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA 
+#
+# This script starts red5, runs the flash tests, stops red5, harvests
+# logs, and then exits with an error if the flash tests actually failed
+. shell-tools.sh
+
+echo `date` "Using Display: $DISPLAY"
+
+# Clear the red5 log
+if [ -e output ]; then
+  if [ ! -d output ]; then
+    echo `date` "output is not a directory; failing harvest"
+    exit 1
+  fi
+else
+  mkdir -p output
+  mkdir -p output/red5
+fi
+red5 stop
+if [ -d $RED5_HOME/log ]; then
+  rm -rf $RED5_HOME/log/*
+fi
+red5 start
+process_status $? "red5 failed to start"
+
+# Run the flash-player
+flash-player $* &
+FLASH_PID=$!
+echo -n `date` "Checking if flashplayer started with PID: $FLASH_PID ..."
+ensure_background_process_running $! 30 "Flash player did not start"
+echo "done"
+
+if [ -z "$HEADLESS_MAX_RUN_SECONDS" ]; then
+  # set a 10 min default
+  HEADLESS_MAX_RUN_SECONDS=600
+fi
+START_TIME=`date +"%s"`
+NOW_TIME=$START_TIME
+echo -n `date` "Running flash tests (start:$START_TIME): "
+while ((($NOW_TIME-$START_TIME)<=$HEADLESS_MAX_RUN_SECONDS)); do
+  echo -n "."
+  # First take a snap shot
+  take-screenshot output/screenshot-$NOW_TIME.png
+  # Harvest flash log so far
+  harvest-flashlog output flashlog-$$.txt >/dev/null 2>&1
+  # Check if flash is still running
+  ps -ef | grep -v grep | grep -q $FLASH_PID
+  if [ $? -eq 0 ]; then
+    # Flash is still running
+    tail output/flashlog-$$.txt | grep -q "setting exitVal to: [0-9]* and exiting the player"
+    if [ $? -eq 0 ]; then
+      # Flash has actually finished; we should exit
+      break;
+    fi
+  else
+    # Flash has exited; leave the loop and check for doneness
+    break;
+  fi
+  # Sleep for a little
+  sleep 5
+  NOW_TIME=`date +"%s"`
+done
+echo "done (end:$NOW_TIME)"
+
+ps -ef | grep -v grep | grep -q $FLASH_PID
+if [ $? -eq 0 ]; then
+  echo "Killing Zombie Flash Process: $FLASH_PID";
+  # Take one last screenshot before we kill it
+  take-screenshot output/screenshot-$NOW_TIME.png
+  kill -9 $FLASH_PID
+fi
+wait $FLASH_PID
+
+# Final harvest
+harvest-flashlog output flashlog-$$.txt >/dev/null 2>&1
+
+red5 stop
+# Harvest the logs
+cp -r $RED5_HOME/log output/red5
+
+# Now, check the actual status
+tail output/flashlog-$$.txt | grep -q "setting exitVal to: 0 and exiting the player"
+if [ $? -eq 0 ]; then
+  cat output/flashlog-$$.txt
+  echo `date` "All flash tests exited successfully"
+  FLASH_STATUS=0
+else
+  cat output/flashlog-$$.txt
+  echo `date` "Flash tests failed"
+  FLASH_STATUS=255
+fi
+exit $FLASH_STATUS
