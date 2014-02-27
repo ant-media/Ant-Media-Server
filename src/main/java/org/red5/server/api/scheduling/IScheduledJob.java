@@ -24,7 +24,6 @@ package org.red5.server.api.scheduling;
  * 
  * @author The Red5 Project
  * @author Joachim Bauch (jojo@struktur.de)
- *
  */
 public interface IScheduledJob {
 
@@ -32,7 +31,7 @@ public interface IScheduledJob {
 	 * Called each time the job is triggered by the scheduling service.
 	 * 
 	 * @param service the service that called the job
-	 * @throws CloneNotSupportedException throws is Darth Vader attempts to use
+	 * @throws CloneNotSupportedException throws if Darth Vader attempts to use
 	 *   this object for his own nefarious purposes.
 	 */
 	public void execute(ISchedulingService service) throws CloneNotSupportedException;

@@ -19,6 +19,8 @@
 package org.red5.server.scheduling;
 
 import org.quartz.Job;
+import org.quartz.JobDataMap;
+import org.quartz.JobDetail;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 import org.red5.server.api.scheduling.IScheduledJob;
@@ -46,13 +48,43 @@ public class QuartzSchedulingServiceJob implements Job {
 	 */
 	protected static final String SCHEDULED_JOB = "scheduled_job";
 
-	/** {@inheritDoc} */
-	public void execute(JobExecutionContext arg0) throws JobExecutionException {
+	/**
+	 * Job data map
+	 */
+	private JobDataMap jobDataMap;
+	
+	public void setJobDataMap(JobDataMap jobDataMap) {
+		log.debug("Set job data map: {}", jobDataMap);
+		this.jobDataMap = jobDataMap;
+	}
+	
+	public void execute() {
+		log.debug("execute");
 		ISchedulingService service = null;
 		IScheduledJob job = null;
 		try {
-			service = (ISchedulingService) arg0.getJobDetail().getJobDataMap().get(SCHEDULING_SERVICE);
-			job = (IScheduledJob) arg0.getJobDetail().getJobDataMap().get(SCHEDULED_JOB);
+			service = (ISchedulingService) jobDataMap.get(SCHEDULING_SERVICE);
+			job = (IScheduledJob) jobDataMap.get(SCHEDULED_JOB);
+			job.execute(service);
+		} catch (Throwable e) {
+			if (job == null) {
+				log.error("Job not found");
+			} else {
+				log.error("Job {} execution failed", job.toString(), e);
+			}
+		}		
+	}
+	
+	/** {@inheritDoc} */
+	public void execute(JobExecutionContext executionContext) throws JobExecutionException {
+		log.debug("execute: {}", executionContext);
+		ISchedulingService service = null;
+		IScheduledJob job = null;
+		try {
+			JobDetail jobDetail = executionContext.getJobDetail();
+			JobDataMap dataMap = jobDetail.getJobDataMap();
+			service = (ISchedulingService) dataMap.get(SCHEDULING_SERVICE);
+			job = (IScheduledJob) dataMap.get(SCHEDULED_JOB);
 			job.execute(service);
 		} catch (Throwable e) {
 			if (job == null) {
