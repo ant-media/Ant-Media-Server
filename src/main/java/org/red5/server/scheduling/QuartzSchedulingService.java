@@ -45,11 +45,8 @@ import org.red5.server.api.scheduling.IScheduledJob;
 import org.red5.server.api.scheduling.ISchedulingService;
 import org.red5.server.jmx.mxbeans.QuartzSchedulingServiceMXBean;
 import org.slf4j.Logger;
-import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationContextAware;
 import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.scheduling.quartz.JobDetailFactoryBean;
 import org.springframework.scheduling.quartz.SimpleTriggerFactoryBean;
@@ -62,14 +59,9 @@ import org.springframework.scheduling.quartz.SimpleTriggerFactoryBean;
  * @author Paul Gregoire (mondain@gmail.com)
  */
 @ManagedResource(objectName = "org.red5.server:name=schedulingService,type=QuartzSchedulingService")
-public class QuartzSchedulingService implements ISchedulingService, QuartzSchedulingServiceMXBean, ApplicationContextAware, InitializingBean, DisposableBean {
+public class QuartzSchedulingService implements ISchedulingService, QuartzSchedulingServiceMXBean, InitializingBean, DisposableBean {
 
 	private static Logger log = Red5LoggerFactory.getLogger(QuartzSchedulingService.class);
-
-	/**
-	 * Spring application context.
-	 */
-	private ApplicationContext applicationContext;
 	
 	/**
 	 * Quartz configuration properties file
@@ -152,10 +144,6 @@ public class QuartzSchedulingService implements ISchedulingService, QuartzSchedu
 			throw new RuntimeException(ex);
 		}
 	}
-
-	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-		this.applicationContext = applicationContext;		
-	}	
 	
 	public void setFactory(SchedulerFactory factory) {
 		this.factory = factory;
