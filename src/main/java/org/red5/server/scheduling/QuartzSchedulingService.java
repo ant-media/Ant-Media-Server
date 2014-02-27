@@ -254,6 +254,12 @@ public class QuartzSchedulingService implements ISchedulingService, QuartzSchedu
 			    .forJob(jobDetail)
 			    .build();			
 		log.debug("Job key: {} Trigger key: {}", trigger.getJobKey(), trigger.getKey());
+		// store keys by name
+		TriggerKey tKey = trigger.getKey();
+		JobKey jKey = trigger.getJobKey();
+		log.debug("Job key: {} Trigger key: {}", jKey, tKey);
+		ScheduledJobKey key = new ScheduledJobKey(tKey, jKey);
+		keyMap.put(name, key);		
 		// schedule		
 		scheduleJob(trigger, jobDetail);
 		return name;
