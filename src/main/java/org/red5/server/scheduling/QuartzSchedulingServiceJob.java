@@ -18,7 +18,6 @@
 
 package org.red5.server.scheduling;
 
-import org.quartz.Job;
 import org.quartz.JobDataMap;
 import org.quartz.JobDetail;
 import org.quartz.JobExecutionContext;
@@ -27,6 +26,7 @@ import org.red5.server.api.scheduling.IScheduledJob;
 import org.red5.server.api.scheduling.ISchedulingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.quartz.QuartzJobBean;
 
 /**
  * Scheduled job that is registered in the Quartz scheduler. 
@@ -34,7 +34,7 @@ import org.slf4j.LoggerFactory;
  * @author The Red5 Project
  * @author Joachim Bauch (jojo@struktur.de)
  */
-public class QuartzSchedulingServiceJob implements Job {
+public class QuartzSchedulingServiceJob extends QuartzJobBean {
 
 	private Logger log = LoggerFactory.getLogger(QuartzSchedulingServiceJob.class);
 	
@@ -76,7 +76,8 @@ public class QuartzSchedulingServiceJob implements Job {
 	}
 	
 	/** {@inheritDoc} */
-	public void execute(JobExecutionContext executionContext) throws JobExecutionException {
+	@Override
+	protected void executeInternal(JobExecutionContext executionContext) throws JobExecutionException {
 		log.debug("execute: {}", executionContext);
 		ISchedulingService service = null;
 		IScheduledJob job = null;
@@ -92,7 +93,7 @@ public class QuartzSchedulingServiceJob implements Job {
 			} else {
 				log.error("Job {} execution failed", job.toString(), e);
 			}
-		}
+		}		
 	}
 
 }

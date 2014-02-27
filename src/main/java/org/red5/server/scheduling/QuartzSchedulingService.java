@@ -352,7 +352,11 @@ public class QuartzSchedulingService implements ISchedulingService, QuartzSchedu
 	public void removeScheduledJob(String name) {
 		try {
 			ScheduledJobKey key = keyMap.remove(name);
-			scheduler.deleteJob(key.jKey);
+			if (key != null) {
+				scheduler.deleteJob(key.jKey);
+			} else {
+				log.debug("No key found for job: {}", name);
+			}
 		} catch (SchedulerException ex) {
 			throw new RuntimeException(ex);
 		}
