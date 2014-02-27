@@ -34,6 +34,7 @@ import org.quartz.SchedulerException;
 import org.quartz.SchedulerFactory;
 import org.quartz.Trigger;
 import org.quartz.TriggerKey;
+import org.quartz.impl.JobDetailImpl;
 import org.quartz.impl.StdSchedulerFactory;
 import org.red5.logging.Red5LoggerFactory;
 import org.red5.server.api.scheduling.IScheduledJob;
@@ -206,11 +207,7 @@ public class QuartzSchedulingService implements ISchedulingService, QuartzSchedu
 		jobData.put(QuartzSchedulingServiceJob.SCHEDULING_SERVICE, this);
 		jobData.put(QuartzSchedulingServiceJob.SCHEDULED_JOB, job);
 		// detail
-		JobDetailFactoryBean jobDetailfactory = (JobDetailFactoryBean) applicationContext.getBean("simpleJobDetailFactory");
-		jobDetailfactory.setName(name);
-		jobDetailfactory.setJobClass(QuartzSchedulingServiceJob.class);
-		jobDetailfactory.setJobDataMap(jobData);
-		JobDetail jobDetail = jobDetailfactory.getObject();
+		JobDetailImpl jobDetail = (JobDetailImpl) applicationContext.getBean("jobDetailImpl");
 		// create trigger that fires indefinitely every <interval> milliseconds
 		SimpleTriggerFactoryBean triggerfactory = (SimpleTriggerFactoryBean) applicationContext.getBean("simpleTriggerFactory");
 		triggerfactory.setName(String.format("Trigger_%s", name));
@@ -237,11 +234,7 @@ public class QuartzSchedulingService implements ISchedulingService, QuartzSchedu
 		jobData.put(QuartzSchedulingServiceJob.SCHEDULING_SERVICE, this);
 		jobData.put(QuartzSchedulingServiceJob.SCHEDULED_JOB, job);
 		// detail
-		JobDetailFactoryBean jobDetailfactory = (JobDetailFactoryBean) applicationContext.getBean("simpleJobDetailFactory");
-		jobDetailfactory.setName(name);
-		jobDetailfactory.setJobClass(QuartzSchedulingServiceJob.class);
-		jobDetailfactory.setJobDataMap(jobData);
-		JobDetail jobDetail = jobDetailfactory.getObject();
+		JobDetailImpl jobDetail = (JobDetailImpl) applicationContext.getBean("jobDetailImpl");
 		// create trigger that fires once
 		SimpleTriggerFactoryBean triggerfactory = (SimpleTriggerFactoryBean) applicationContext.getBean("simpleTriggerFactory");
 		triggerfactory.setName(String.format("Trigger_%s", name));
@@ -269,11 +262,7 @@ public class QuartzSchedulingService implements ISchedulingService, QuartzSchedu
 		jobData.put(QuartzSchedulingServiceJob.SCHEDULING_SERVICE, this);
 		jobData.put(QuartzSchedulingServiceJob.SCHEDULED_JOB, job);
 		// detail
-		JobDetailFactoryBean jobDetailfactory = (JobDetailFactoryBean) applicationContext.getBean("simpleJobDetailFactory");
-		jobDetailfactory.setName(name);
-		jobDetailfactory.setJobClass(QuartzSchedulingServiceJob.class);
-		jobDetailfactory.setJobDataMap(jobData);
-		JobDetail jobDetail = jobDetailfactory.getObject();
+		JobDetailImpl jobDetail = (JobDetailImpl) applicationContext.getBean("jobDetailImpl");
 		// create trigger that fires indefinitely every <interval> milliseconds
 		SimpleTriggerFactoryBean triggerfactory = (SimpleTriggerFactoryBean) applicationContext.getBean("simpleTriggerFactory");
 		triggerfactory.setName(String.format("Trigger_%s", name));
