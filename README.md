@@ -35,6 +35,13 @@ trunk/src/main/server/assembly/server.xml
 ```
 and may be uncommented for a package build, if you have the entire svn tree checked out.
 
+To manually copy the "demos", go to http://red5.googlecode.com/svn/flash/trunk/deploy/ and collect all the files therein. Create a directory in your red5 install at this location 
+```
+red5/webapps/root/demos
+```
+Place all the files there.
+
+
 Eclipse
 ----------
 
