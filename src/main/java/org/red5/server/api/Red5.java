@@ -112,7 +112,7 @@ public final class Red5 {
 	 * @param connection     Thread local connection
 	 */
 	public static void setConnectionLocal(IConnection connection) {
-		log.info("Set connection: {} with thread: {}", (connection != null ? connection.getSessionId() : null), Thread.currentThread().getName());
+		log.debug("Set connection: {} with thread: {}", (connection != null ? connection.getSessionId() : null), Thread.currentThread().getName());
 		if (connection != null) {
 			connThreadLocal.set(new WeakReference<IConnection>(connection));
 			IScope scope = connection.getScope();
@@ -134,7 +134,7 @@ public final class Red5 {
 	 * @return Connection object
 	 */
 	public static IConnection getConnectionLocal() {
-		log.info("Get connection on thread: {}", Thread.currentThread().getName());
+		log.debug("Get connection on thread: {}", Thread.currentThread().getName());
 		WeakReference<IConnection> ref = connThreadLocal.get();
 		if (ref != null) {
 			return ref.get();

@@ -18,20 +18,14 @@
 
 package org.red5.server.scheduling;
 
-import static org.quartz.DateBuilder.futureDate;
-import static org.quartz.JobBuilder.newJob;
-import static org.quartz.JobKey.jobKey;
-import static org.quartz.SimpleScheduleBuilder.simpleSchedule;
-import static org.quartz.TriggerBuilder.newTrigger;
-import static org.quartz.TriggerKey.triggerKey;
-
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.quartz.DateBuilder.IntervalUnit;
 import org.quartz.JobDataMap;
 import org.quartz.JobDetail;
 import org.quartz.JobKey;
@@ -39,6 +33,7 @@ import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
 import org.quartz.SchedulerFactory;
 import org.quartz.Trigger;
+import org.quartz.TriggerKey;
 import org.quartz.impl.StdSchedulerFactory;
 import org.red5.logging.Red5LoggerFactory;
 import org.red5.server.api.scheduling.IScheduledJob;
@@ -48,6 +43,8 @@ import org.slf4j.Logger;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.jmx.export.annotation.ManagedResource;
+import org.springframework.scheduling.quartz.JobDetailFactoryBean;
+import org.springframework.scheduling.quartz.SimpleTriggerFactoryBean;
 
 /**
  * Scheduling service that uses Quartz as backend.
@@ -77,6 +74,16 @@ public class QuartzSchedulingService implements ISchedulingService, QuartzSchedu
 	protected SchedulerFactory factory;
 
 	/**
+	 * Creates job detail.
+	 */
+	protected JobDetailFactoryBean jobDetailfactory;
+
+	/**
+	 * Creates triggers.
+	 */
+	protected SimpleTriggerFactoryBean triggerfactory;
+	
+	/**
 	 * Service scheduler
 	 */
 	protected Scheduler scheduler;
@@ -90,6 +97,11 @@ public class QuartzSchedulingService implements ISchedulingService, QuartzSchedu
 	 * Default thread count
 	 */
 	protected String threadCount = "10";
+	
+	/**
+	 * Storage for job and trigger keys
+	 */
+	protected ConcurrentMap<String, ScheduledJobKey> keyMap = new ConcurrentHashMap<String, ScheduledJobKey>();
 
 	/** Constructs a new QuartzSchedulingService. */
 	public void afterPropertiesSet() throws Exception {
@@ -130,6 +142,22 @@ public class QuartzSchedulingService implements ISchedulingService, QuartzSchedu
 
 	public void setFactory(SchedulerFactory factory) {
 		this.factory = factory;
+	}
+
+	public SimpleTriggerFactoryBean getTriggerfactory() {
+		return triggerfactory;
+	}
+
+	public void setTriggerfactory(SimpleTriggerFactoryBean triggerfactory) {
+		this.triggerfactory = triggerfactory;
+	}
+
+	public JobDetailFactoryBean getJobDetailfactory() {
+		return jobDetailfactory;
+	}
+
+	public void setJobDetailfactory(JobDetailFactoryBean jobDetailfactory) {
+		this.jobDetailfactory = jobDetailfactory;
 	}
 
 	public void setInstanceId(String instanceId) {
@@ -182,19 +210,23 @@ public class QuartzSchedulingService implements ISchedulingService, QuartzSchedu
 		jobData.put(QuartzSchedulingServiceJob.SCHEDULING_SERVICE, this);
 		jobData.put(QuartzSchedulingServiceJob.SCHEDULED_JOB, job);
 		// detail
-		JobDetail jobDetail = newJob(QuartzSchedulingServiceJob.class)
-	    .withIdentity(name, null)
-	    .usingJobData(jobData)
-	    .build();
+		jobDetailfactory.setName(name);
+		jobDetailfactory.setJobClass(QuartzSchedulingServiceJob.class);
+		jobDetailfactory.setJobDataMap(jobData);
+		JobDetail jobDetail = jobDetailfactory.getObject();
 		// create trigger that fires indefinitely every <interval> milliseconds
-		Trigger trigger = newTrigger()
-			    .withIdentity(String.format("Trigger_%s", name))
-			    .startAt(futureDate(1, IntervalUnit.MILLISECOND))
-			    .forJob(jobDetail)
-			    .withSchedule(simpleSchedule()
-			    		.withIntervalInMilliseconds(interval)
-			    		.repeatForever())
-			    .build();		
+		triggerfactory.setName(String.format("Trigger_%s", name));
+		triggerfactory.setJobDataMap(jobData);
+		triggerfactory.setJobDetail(jobDetail);
+		triggerfactory.setStartDelay(1);
+		triggerfactory.setRepeatInterval(interval);
+		Trigger trigger = triggerfactory.getObject();
+		// store keys by name
+		TriggerKey tKey = trigger.getKey();
+		JobKey jKey = trigger.getJobKey();
+		ScheduledJobKey key = new ScheduledJobKey(tKey, jKey);
+		keyMap.put(name, key);
+		// schedule
 		scheduleJob(trigger, jobDetail);
 		return name;
 	}
@@ -207,16 +239,23 @@ public class QuartzSchedulingService implements ISchedulingService, QuartzSchedu
 		jobData.put(QuartzSchedulingServiceJob.SCHEDULING_SERVICE, this);
 		jobData.put(QuartzSchedulingServiceJob.SCHEDULED_JOB, job);
 		// detail
-		JobDetail jobDetail = newJob(QuartzSchedulingServiceJob.class)
-	    .withIdentity(name, null)
-	    .usingJobData(jobData)
-	    .build();
+		jobDetailfactory.setName(name);
+		jobDetailfactory.setJobClass(QuartzSchedulingServiceJob.class);
+		jobDetailfactory.setJobDataMap(jobData);
+		JobDetail jobDetail = jobDetailfactory.getObject();
 		// create trigger that fires once
-		Trigger trigger = newTrigger()
-			    .withIdentity(String.format("Trigger_%s", name))
-			    .startAt(date)
-			    .forJob(jobDetail)
-			    .build();		
+		triggerfactory.setName(String.format("Trigger_%s", name));
+		triggerfactory.setJobDataMap(jobData);
+		triggerfactory.setJobDetail(jobDetail);
+		triggerfactory.setStartDelay(System.currentTimeMillis() - date.getTime());
+		triggerfactory.setRepeatCount(0);
+		Trigger trigger = triggerfactory.getObject();
+		// store keys by name
+		TriggerKey tKey = trigger.getKey();
+		JobKey jKey = trigger.getJobKey();
+		ScheduledJobKey key = new ScheduledJobKey(tKey, jKey);
+		keyMap.put(name, key);
+		// schedule		
 		scheduleJob(trigger, jobDetail);
 		return name;
 	}
@@ -235,19 +274,23 @@ public class QuartzSchedulingService implements ISchedulingService, QuartzSchedu
 		jobData.put(QuartzSchedulingServiceJob.SCHEDULING_SERVICE, this);
 		jobData.put(QuartzSchedulingServiceJob.SCHEDULED_JOB, job);
 		// detail
-		JobDetail jobDetail = newJob(QuartzSchedulingServiceJob.class)
-	    .withIdentity(name, null)
-	    .usingJobData(jobData)
-	    .build();
-		// Create trigger that fires indefinitely every <interval> milliseconds
-		Trigger trigger = newTrigger()
-			    .withIdentity(String.format("Trigger_%s", name))
-			    .startAt(futureDate(delay, IntervalUnit.MILLISECOND))
-			    .forJob(jobDetail)
-			    .withSchedule(simpleSchedule()
-			    		.withIntervalInMilliseconds(interval)
-			    		.repeatForever())
-			    .build();		
+		jobDetailfactory.setName(name);
+		jobDetailfactory.setJobClass(QuartzSchedulingServiceJob.class);
+		jobDetailfactory.setJobDataMap(jobData);
+		JobDetail jobDetail = jobDetailfactory.getObject();
+		// create trigger that fires indefinitely every <interval> milliseconds
+		triggerfactory.setName(String.format("Trigger_%s", name));
+		triggerfactory.setJobDataMap(jobData);
+		triggerfactory.setJobDetail(jobDetail);
+		triggerfactory.setStartDelay(delay);
+		triggerfactory.setRepeatInterval(interval);
+		Trigger trigger = triggerfactory.getObject();
+		// store keys by name
+		TriggerKey tKey = trigger.getKey();
+		JobKey jKey = trigger.getJobKey();
+		ScheduledJobKey key = new ScheduledJobKey(tKey, jKey);
+		keyMap.put(name, key);
+		// schedule
 		scheduleJob(trigger, jobDetail);
 		return name;		
 	}
@@ -281,7 +324,7 @@ public class QuartzSchedulingService implements ISchedulingService, QuartzSchedu
 	/** {@inheritDoc} */
 	public void pauseScheduledJob(String name) {
 		try {
-			scheduler.pauseJob(jobKey(name, null));
+			scheduler.pauseJob(keyMap.get(name).jKey);
 		} catch (SchedulerException ex) {
 			throw new RuntimeException(ex);
 		}
@@ -290,7 +333,7 @@ public class QuartzSchedulingService implements ISchedulingService, QuartzSchedu
 	/** {@inheritDoc} */
 	public void resumeScheduledJob(String name) {
 		try {
-			scheduler.resumeJob(jobKey(name, null));
+			scheduler.resumeJob(keyMap.get(name).jKey);
 		} catch (SchedulerException ex) {
 			throw new RuntimeException(ex);
 		}
@@ -298,7 +341,7 @@ public class QuartzSchedulingService implements ISchedulingService, QuartzSchedu
 
 	public void pauseScheduledTrigger(String name) {
 		try {
-			scheduler.pauseTrigger(triggerKey(String.format("Trigger_%s", name), null));
+			scheduler.pauseTrigger(keyMap.get(name).tKey);
 		} catch (SchedulerException ex) {
 			throw new RuntimeException(ex);
 		}
@@ -306,7 +349,7 @@ public class QuartzSchedulingService implements ISchedulingService, QuartzSchedu
 
 	public void resumeScheduledTrigger(String name) {
 		try {
-			scheduler.resumeTrigger(triggerKey(String.format("Trigger_%s", name), null));
+			scheduler.resumeTrigger(keyMap.get(name).tKey);
 		} catch (SchedulerException ex) {
 			throw new RuntimeException(ex);
 		}
@@ -315,7 +358,7 @@ public class QuartzSchedulingService implements ISchedulingService, QuartzSchedu
 	/** {@inheritDoc} */
 	public void removeScheduledJob(String name) {
 		try {
-			scheduler.deleteJob(jobKey(name, null));
+			scheduler.deleteJob(keyMap.get(name).jKey);
 		} catch (SchedulerException ex) {
 			throw new RuntimeException(ex);
 		}
@@ -346,4 +389,17 @@ public class QuartzSchedulingService implements ISchedulingService, QuartzSchedu
 		}
 	}
 
+	protected final class ScheduledJobKey {
+
+		TriggerKey tKey;
+		
+		JobKey jKey;
+		
+		public ScheduledJobKey(TriggerKey tKey, JobKey jKey) {
+			this.tKey = tKey;
+			this.jKey = jKey;
+		}
+		
+	}
+	
 }
