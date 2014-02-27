@@ -111,12 +111,6 @@
 	<bean id="schedulingService" class="org.red5.server.scheduling.QuartzSchedulingService">
         <property name="configFile" value="${red5.root}/conf/quartz.properties"/>   
     </bean>
-		 
-	<bean id="simpleJobDetailFactory" class="org.springframework.scheduling.quartz.JobDetailFactoryBean" scope="prototype">
-	    <property name="jobClass" value="org.red5.server.scheduling.QuartzSchedulingServiceJob"/>
-	</bean>
-	
-	<bean id="simpleTriggerFactory" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean" scope="prototype"/>
 		
     <!-- War deployer -->
     <bean id="warDeployService" class="org.red5.server.service.WarDeployer" init-method="init" destroy-method="shutdown">

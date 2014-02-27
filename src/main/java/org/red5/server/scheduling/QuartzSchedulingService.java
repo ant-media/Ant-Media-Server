@@ -26,17 +26,20 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.quartz.DateBuilder;
+import org.quartz.DateBuilder.IntervalUnit;
+import org.quartz.JobBuilder;
 import org.quartz.JobDataMap;
 import org.quartz.JobDetail;
 import org.quartz.JobKey;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
 import org.quartz.SchedulerFactory;
+import org.quartz.SimpleScheduleBuilder;
 import org.quartz.Trigger;
+import org.quartz.TriggerBuilder;
 import org.quartz.TriggerKey;
-import org.quartz.impl.JobDetailImpl;
 import org.quartz.impl.StdSchedulerFactory;
-import org.quartz.impl.triggers.SimpleTriggerImpl;
 import org.red5.logging.Red5LoggerFactory;
 import org.red5.server.api.scheduling.IScheduledJob;
 import org.red5.server.api.scheduling.ISchedulingService;
@@ -208,16 +211,19 @@ public class QuartzSchedulingService implements ISchedulingService, QuartzSchedu
 		jobData.put(QuartzSchedulingServiceJob.SCHEDULING_SERVICE, this);
 		jobData.put(QuartzSchedulingServiceJob.SCHEDULED_JOB, job);
 		// detail
-		JobDetailImpl jobDetail = (JobDetailImpl) applicationContext.getBean("jobDetailImpl");
-		jobDetail.setName(name);
-		jobDetail.setJobDataMap(jobData);
+		JobDetail jobDetail = JobBuilder.newJob(QuartzSchedulingServiceJob.class)
+			    .withIdentity(name)
+			    .usingJobData(jobData)
+			    .build();
 		// create trigger that fires indefinitely every <interval> milliseconds
-		SimpleTriggerImpl trigger = (SimpleTriggerImpl) applicationContext.getBean("simpleTriggerImpl");
-		trigger.setName(String.format("Trigger_%s", name));
-		trigger.setJobDataMap(jobData);
-		trigger.setJobName(name);
-		trigger.setStartTime(new Date());
-		trigger.setRepeatInterval(interval);
+		Trigger trigger = TriggerBuilder.newTrigger()
+			    .withIdentity(String.format("Trigger_%s", name))
+			    .startAt(DateBuilder.futureDate(1, IntervalUnit.MILLISECOND))
+			    .forJob(jobDetail)
+			    .withSchedule(SimpleScheduleBuilder.simpleSchedule()
+			    		.withIntervalInMilliseconds(interval)
+			    		.repeatForever())
+			    .build();		
 		// store keys by name
 		TriggerKey tKey = trigger.getKey();
 		JobKey jKey = trigger.getJobKey();
@@ -237,16 +243,16 @@ public class QuartzSchedulingService implements ISchedulingService, QuartzSchedu
 		jobData.put(QuartzSchedulingServiceJob.SCHEDULING_SERVICE, this);
 		jobData.put(QuartzSchedulingServiceJob.SCHEDULED_JOB, job);
 		// detail
-		JobDetailImpl jobDetail = (JobDetailImpl) applicationContext.getBean("jobDetailImpl");
-		jobDetail.setName(name);
-		jobDetail.setJobDataMap(jobData);
-		// create trigger that fires indefinitely every <interval> milliseconds
-		SimpleTriggerImpl trigger = (SimpleTriggerImpl) applicationContext.getBean("simpleTriggerImpl");
-		trigger.setName(String.format("Trigger_%s", name));
-		trigger.setJobDataMap(jobData);
-		trigger.setJobName(name);
-		trigger.setStartTime(date);
-		trigger.setRepeatCount(0);
+		JobDetail jobDetail = JobBuilder.newJob(QuartzSchedulingServiceJob.class)
+			    .withIdentity(name)
+			    .usingJobData(jobData)
+			    .build();
+		// create trigger that fires once
+		Trigger trigger = TriggerBuilder.newTrigger()
+			    .withIdentity(String.format("Trigger_%s", name))
+			    .startAt(date)
+			    .forJob(jobDetail)
+			    .build();			
 		log.debug("Job key: {} Trigger key: {}", trigger.getJobKey(), trigger.getKey());
 		// schedule		
 		scheduleJob(trigger, jobDetail);
@@ -267,16 +273,19 @@ public class QuartzSchedulingService implements ISchedulingService, QuartzSchedu
 		jobData.put(QuartzSchedulingServiceJob.SCHEDULING_SERVICE, this);
 		jobData.put(QuartzSchedulingServiceJob.SCHEDULED_JOB, job);
 		// detail
-		JobDetailImpl jobDetail = (JobDetailImpl) applicationContext.getBean("jobDetailImpl");
-		jobDetail.setName(name);
-		jobDetail.setJobDataMap(jobData);
-		// create trigger that fires indefinitely every <interval> milliseconds
-		SimpleTriggerImpl trigger = (SimpleTriggerImpl) applicationContext.getBean("simpleTriggerImpl");
-		trigger.setName(String.format("Trigger_%s", name));
-		trigger.setJobDataMap(jobData);
-		trigger.setJobName(name);
-		trigger.setStartTime(new Date(System.currentTimeMillis() + delay));
-		trigger.setRepeatInterval(interval);
+		JobDetail jobDetail = JobBuilder.newJob(QuartzSchedulingServiceJob.class)
+			    .withIdentity(name, null)
+			    .usingJobData(jobData)
+			    .build();
+		// Create trigger that fires indefinitely every <interval> milliseconds
+		Trigger trigger = TriggerBuilder.newTrigger()
+			    .withIdentity(String.format("Trigger_%s", name))
+			    .startAt(DateBuilder.futureDate(delay, IntervalUnit.MILLISECOND))
+			    .forJob(jobDetail)
+			    .withSchedule(SimpleScheduleBuilder.simpleSchedule()
+			    		.withIntervalInMilliseconds(interval)
+			    		.repeatForever())
+			    .build();		
 		// store keys by name
 		TriggerKey tKey = trigger.getKey();
 		JobKey jKey = trigger.getJobKey();
