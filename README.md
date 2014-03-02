@@ -21,7 +21,7 @@ mvn -Dmaven.test.skip=true -Dclassifier=bootstrap install
 ```
 This will create the jars in the "target" directory of the workspace; this will also skip the unit tests.
 
-To build and package the server in zip and gz, execute the following:
+To download the dependencies, execute this:
 ```
 mvn dependency:copy-dependencies
 ```
