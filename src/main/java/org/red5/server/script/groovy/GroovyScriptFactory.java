@@ -122,7 +122,7 @@ public class GroovyScriptFactory implements ScriptFactory, BeanClassLoaderAware 
 	 * hence we don't need to explicitly expose interfaces here.
 	 * @return <code>null</code> always
 	 */
-	@SuppressWarnings({ "rawtypes" })
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public Class[] getScriptInterfaces() {
 		return scriptInterfaces;
 	}

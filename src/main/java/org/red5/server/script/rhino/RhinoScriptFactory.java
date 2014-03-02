@@ -119,7 +119,7 @@ public class RhinoScriptFactory implements ScriptFactory {
 	}
 
 	/** {@inheritDoc} */
-	@SuppressWarnings("rawtypes")
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public Class[] getScriptInterfaces() {
 		return this.scriptInterfaces;
 	}
@@ -147,7 +147,7 @@ public class RhinoScriptFactory implements ScriptFactory {
 		}
 	}
 
-	@SuppressWarnings("rawtypes")
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public Class getScriptedObjectType(ScriptSource src) throws IOException, ScriptCompilationException {
 		return null;
 	}

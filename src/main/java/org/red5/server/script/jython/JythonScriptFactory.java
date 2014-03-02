@@ -88,7 +88,7 @@ public class JythonScriptFactory implements ScriptFactory {
 	}
 
 	/** {@inheritDoc} */
-	@SuppressWarnings({ "rawtypes" })
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public Class[] getScriptInterfaces() {
 		return scriptInterfaces;
 	}
@@ -166,7 +166,7 @@ public class JythonScriptFactory implements ScriptFactory {
 		return null;
 	}
 
-	@SuppressWarnings({ "rawtypes" })
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public Class getScriptedObjectType(ScriptSource src) throws IOException, ScriptCompilationException {
 		return null;
 	}
