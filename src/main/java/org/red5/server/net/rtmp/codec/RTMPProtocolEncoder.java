@@ -618,9 +618,10 @@ public class RTMPProtocolEncoder implements Constants, IEventEncoder {
 		// unknown field
 		out.putInt(0);
 		int mark, len;
-		for (ISharedObjectEvent event : so.getEvents()) {
-			byte type = SharedObjectTypeMapping.toByte(event.getType());
-			switch (event.getType()) {
+		for (final ISharedObjectEvent event : so.getEvents()) {
+			final ISharedObjectEvent.Type eventType = event.getType();
+			byte type = SharedObjectTypeMapping.toByte(eventType);
+			switch (eventType) {
 				case SERVER_CONNECT:
 				case CLIENT_INITIAL_DATA:
 				case CLIENT_CLEAR_DATA:
@@ -700,7 +701,7 @@ public class RTMPProtocolEncoder implements Constants, IEventEncoder {
 					output.putString(status);
 					break;
 				default:
-					log.warn("Unknown event: {}", event.getType());
+					log.warn("Unknown event: {}", eventType);
 					// XXX: need to make this work in server or client mode
 					out.put(type);
 					mark = out.position();

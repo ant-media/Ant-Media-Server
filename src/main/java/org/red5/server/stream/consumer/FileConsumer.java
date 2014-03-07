@@ -344,7 +344,7 @@ public class FileConsumer implements Constants, IPushableConsumer, IPipeConnecti
 					//wait n seconds for a result from the last writer
 					writeResult = writerFuture.get(timeout, TimeUnit.MILLISECONDS);
 				} catch (Exception e) {
-					log.warn("Exception waiting for write result", e);
+					log.warn("Exception waiting for write result. Timeout: {}ms", timeout, e);
 					return false;
 				}
 			}

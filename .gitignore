@@ -2,5 +2,13 @@ target/
 .settings/
 .project
 .classpath
+.DS_Store
+
+*.class
+*.zip
+*.tar.gz
+*~
 
 Thumbs.db
+build.sh
+log/

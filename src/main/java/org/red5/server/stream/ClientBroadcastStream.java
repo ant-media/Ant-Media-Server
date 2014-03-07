@@ -471,7 +471,7 @@ public class ClientBroadcastStream extends AbstractClientStream implements IClie
 	 *  Notifies handler on stream broadcast close
 	 */
 	private void notifyBroadcastClose() {
-		IStreamAwareScopeHandler handler = getStreamAwareHandler();
+		final IStreamAwareScopeHandler handler = getStreamAwareHandler();
 		if (handler != null) {
 			try {
 				handler.streamBroadcastClose(this);

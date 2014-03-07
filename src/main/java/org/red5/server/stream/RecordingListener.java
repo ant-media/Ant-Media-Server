@@ -217,7 +217,7 @@ public class RecordingListener implements IRecordingListener {
 	/** {@inheritDoc} */
 	public void start() {
 		// start the worker
-		eventQueueJobName = scheduler.addScheduledJob(1000, new EventQueueJob());
+		eventQueueJobName = scheduler.addScheduledJob(3000, new EventQueueJob());
 	}
 
 	/** {@inheritDoc} */
@@ -267,52 +267,52 @@ public class RecordingListener implements IRecordingListener {
 			IRTMPEvent event = null;
 			RTMPMessage message = null;
 			// get first event in the queue
-			cachedEvent = queue.take();
-			// get the data type
-			final byte dataType = cachedEvent.getDataType();
-			// get the data
-			IoBuffer buffer = cachedEvent.getData();
-			// get the current size of the buffer / data
-			int bufferLimit = buffer.limit();
-			if (bufferLimit > 0) {
-				// create new RTMP message and push to the consumer
-				switch (dataType) {
-					case Constants.TYPE_AGGREGATE:
-						event = new Aggregate(buffer);
-						event.setTimestamp(cachedEvent.getTimestamp());
-						message = RTMPMessage.build(event);
-						break;
-					case Constants.TYPE_AUDIO_DATA:
-						event = new AudioData(buffer);
-						event.setTimestamp(cachedEvent.getTimestamp());
-						message = RTMPMessage.build(event);
-						break;
-					case Constants.TYPE_VIDEO_DATA:
-						event = new VideoData(buffer);
-						event.setTimestamp(cachedEvent.getTimestamp());
-						message = RTMPMessage.build(event);
-						break;
-					default:
-						event = new Notify(buffer);
-						event.setTimestamp(cachedEvent.getTimestamp());
-						message = RTMPMessage.build(event);
-						break;
-				}
-				// push it down to the recorder
-				recordingConsumer.pushMessage(null, message);
-			} else if (bufferLimit == 0 && dataType == Constants.TYPE_AUDIO_DATA) {
-				log.debug("Stream data size was 0, sending empty audio message");
-				// allow for 0 byte audio packets
-				event = new AudioData(IoBuffer.allocate(0));
-				event.setTimestamp(cachedEvent.getTimestamp());
-				message = RTMPMessage.build(event);
-				// push it down to the recorder
-				recordingConsumer.pushMessage(null, message);
-			} else {
-				log.debug("Stream data size was 0, recording pipe will not be notified");
+			cachedEvent = queue.poll();
+			if (cachedEvent != null) {
+				// get the data type
+				final byte dataType = cachedEvent.getDataType();
+				// get the data
+				IoBuffer buffer = cachedEvent.getData();
+				// get the current size of the buffer / data
+				int bufferLimit = buffer.limit();
+				if (bufferLimit > 0) {
+					// create new RTMP message and push to the consumer
+					switch (dataType) {
+						case Constants.TYPE_AGGREGATE:
+							event = new Aggregate(buffer);
+							event.setTimestamp(cachedEvent.getTimestamp());
+							message = RTMPMessage.build(event);
+							break;
+						case Constants.TYPE_AUDIO_DATA:
+							event = new AudioData(buffer);
+							event.setTimestamp(cachedEvent.getTimestamp());
+							message = RTMPMessage.build(event);
+							break;
+						case Constants.TYPE_VIDEO_DATA:
+							event = new VideoData(buffer);
+							event.setTimestamp(cachedEvent.getTimestamp());
+							message = RTMPMessage.build(event);
+							break;
+						default:
+							event = new Notify(buffer);
+							event.setTimestamp(cachedEvent.getTimestamp());
+							message = RTMPMessage.build(event);
+							break;
+					}
+					// push it down to the recorder
+					recordingConsumer.pushMessage(null, message);
+				} else if (bufferLimit == 0 && dataType == Constants.TYPE_AUDIO_DATA) {
+					log.debug("Stream data size was 0, sending empty audio message");
+					// allow for 0 byte audio packets
+					event = new AudioData(IoBuffer.allocate(0));
+					event.setTimestamp(cachedEvent.getTimestamp());
+					message = RTMPMessage.build(event);
+					// push it down to the recorder
+					recordingConsumer.pushMessage(null, message);
+				} else {
+					log.debug("Stream data size was 0, recording pipe will not be notified");
+				}				
 			}
-		} catch (InterruptedException e) {
-			log.warn("Taking from queue interrupted", e);
 		} catch (Exception e) {
 			log.warn("Exception while pushing to consumer", e);
 		}
