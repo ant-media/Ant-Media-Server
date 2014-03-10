@@ -679,13 +679,27 @@ public class RTMPProtocolEncoder implements Constants, IEventEncoder {
 					out.skip(4);
 					// Serialize name of the handler to call...
 					Serializer.serialize(output, event.getKey());
-					// ...and the arguments
-					for (Object arg : (List<?>) event.getValue()) {
-						if (encoding == Encoding.AMF3) {
-							Serializer.serialize(amf3output, arg);
+					try {
+						List<?> arguments = (List<?>) event.getValue();
+						if (arguments != null) {
+							// ...and the arguments
+							for (Object arg : arguments) {
+								if (encoding == Encoding.AMF3) {
+									Serializer.serialize(amf3output, arg);
+								} else {
+									Serializer.serialize(output, arg);
+								}
+							}
 						} else {
-							Serializer.serialize(output, arg);
+							// serialize a null as the arguments
+							if (encoding == Encoding.AMF3) {
+								Serializer.serialize(amf3output, null);
+							} else {
+								Serializer.serialize(output, null);
+							}
 						}
+					} catch (Exception ex) {
+						log.warn("Exception encoding args for event: {}", event, ex);
 					}
 					len = out.position() - mark - 4;
 					//log.debug(len);

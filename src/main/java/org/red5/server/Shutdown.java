@@ -20,6 +20,7 @@ package org.red5.server;
 
 import java.io.EOFException;
 import java.lang.reflect.UndeclaredThrowableException;
+import java.rmi.UnmarshalException;
 import java.util.HashMap;
 
 import javax.management.JMX;
@@ -114,6 +115,8 @@ public class Shutdown {
 		} catch (UndeclaredThrowableException e) {
 			// ignore
 		} catch (NullPointerException e) {
+			// ignore
+		} catch (UnmarshalException e) {
 			// ignore
 		} catch (EOFException e) {
 			// ignore
