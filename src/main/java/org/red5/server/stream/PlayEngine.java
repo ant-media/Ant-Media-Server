@@ -571,7 +571,7 @@ public final class PlayEngine implements IFilter, IPushableConsumer, IPipeConnec
 					IAudioStreamCodec audioCodec = info.getAudioCodec();
 					log.debug("Audio codec: {}", audioCodec);
 					if (audioCodec != null) {
-						//check for decoder configuration to send
+						// check for decoder configuration to send
 						IoBuffer config = audioCodec.getDecoderConfiguration();
 						if (config != null) {
 							log.debug("Decoder configuration is available for {}", audioCodec.getName());

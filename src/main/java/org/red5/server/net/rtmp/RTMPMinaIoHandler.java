@@ -73,7 +73,7 @@ public class RTMPMinaIoHandler extends IoHandlerAdapter {
 	@Override
 	public void sessionOpened(IoSession session) throws Exception {
 		String sessionId = (String) session.getAttribute(RTMPConnection.RTMP_SESSION_ID);
-		log.info("Session opened: {} id: {}", session.getId(), sessionId);
+		log.debug("Session opened: {} id: {}", session.getId(), sessionId);
 		RTMPMinaConnection conn = (RTMPMinaConnection) RTMPConnManager.getInstance().getConnectionBySessionId(sessionId);
 		handler.connectionOpened(conn);
 	}
@@ -82,7 +82,7 @@ public class RTMPMinaIoHandler extends IoHandlerAdapter {
 	@Override
 	public void sessionClosed(IoSession session) throws Exception {
 		String sessionId = (String) session.getAttribute(RTMPConnection.RTMP_SESSION_ID);
-		log.info("Session closed: {} id: {}", session.getId(), sessionId);
+		log.debug("Session closed: {} id: {}", session.getId(), sessionId);
 		if (log.isTraceEnabled()) {
 			log.trace("Session attributes: {}", session.getAttributeKeys());
 		}
@@ -117,7 +117,9 @@ public class RTMPMinaIoHandler extends IoHandlerAdapter {
 	 *            I/O session, that is, connection between two endpoints
 	 */
 	protected void rawBufferRecieved(IoBuffer in, IoSession session) {
-		log.trace("rawBufferRecieved: {}", in);
+		if (log.isTraceEnabled()) {
+			log.trace("rawBufferRecieved: {}", in);
+		}
 		String sessionId = (String) session.getAttribute(RTMPConnection.RTMP_SESSION_ID);
 		log.trace("Session id: {}", sessionId);
 		RTMPMinaConnection conn = (RTMPMinaConnection) RTMPConnManager.getInstance().getConnectionBySessionId(sessionId);

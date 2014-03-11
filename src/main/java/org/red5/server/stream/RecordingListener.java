@@ -355,12 +355,11 @@ public class RecordingListener implements IRecordingListener {
 
 		public void execute(ISchedulingService service) {
 			if (processing.compareAndSet(false, true)) {
+				if (log.isTraceEnabled()) {
+					log.trace("Event queue size: {}", queue.size());
+				}
 				try {
 					if (!queue.isEmpty()) {
-						if (log.isDebugEnabled()) {
-							log.debug("Event queue size: {}", queue.size());
-						}
-
 						while (!queue.isEmpty()) {
 							if (log.isTraceEnabled()) {
 								log.trace("Taking one more item from queue, size: {}", queue.size());
@@ -368,7 +367,7 @@ public class RecordingListener implements IRecordingListener {
 							processQueue();
 						}
 					} else {
-						log.trace("Nothing to record.");
+						log.trace("Nothing to record");
 					}
 				} catch (Exception e) {
 					log.error("Error processing queue: " + e.getMessage(), e);
