@@ -198,12 +198,10 @@ public class RTMPProtocolEncoder implements Constants, IEventEncoder {
 	 */
 	protected boolean dropMessage(int channelId, IRTMPEvent message) {
 		boolean isLive = message.getSourceType() == Constants.SOURCE_TYPE_LIVE;
-		
-		if(!isLive) return false;
-		
-		log.trace("Connection type: {}", (isLive ? "Live" : "VOD"));
-		
-		
+		log.trace("Connection type: {}", (isLive ? "Live" : "VOD"));		
+		if (!isLive) {
+			return false;
+		}		
 		//whether or not the packet will be dropped
 		boolean drop = false;
 		//whether or not the packet is video data
@@ -277,9 +275,10 @@ public class RTMPProtocolEncoder implements Constants, IEventEncoder {
 
 			//TODO: if we are VOD do we "pause" the provider when we are consistently late?
 
-			if(log.isTraceEnabled())
+			if (log.isTraceEnabled()) {
 				log.trace("Packet timestamp: {}; tardiness: {}; now: {}; message clock time: {}, dropLiveFuture: {}", new Object[] { timestamp, tardiness, now, clockTimeOfMessage,
 					dropLiveFuture });
+			}
 			//anything coming in less than the base will be allowed to pass, it will not be
 			//dropped or manipulated
 			if (tardiness < baseTolerance) {
