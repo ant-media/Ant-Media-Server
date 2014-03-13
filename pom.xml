@@ -6,7 +6,7 @@
 	<name>Red5 :: Server</name>
 	<description>The Red5 server</description>
 	<groupId>org.red5</groupId>
-	<version>1.0.2-RC4</version>
+	<version>1.0.2-M1</version>
 	<url>https://code.google.com/p/red5/</url>
 	<inceptionYear>2005</inceptionYear>
 	<organization>
@@ -51,7 +51,7 @@
 	</developers>
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<red5-io.version>1.0.2</red5-io.version>
+		<red5-io.version>1.0.3</red5-io.version>
 		<spring.version>4.0.0.RELEASE</spring.version>
 		<mina.version>2.0.7</mina.version>
 		<slf4j.version>1.7.5</slf4j.version>
@@ -120,13 +120,12 @@
 			</plugin>
 			<plugin>
 				<artifactId>maven-source-plugin</artifactId>
-				<version>2.1.2</version>
 				<executions>
 					<execution>
 						<id>attach-sources</id>
-						<phase>verify</phase>
+						<phase>package</phase>
 						<goals>
-							<goal>jar-no-fork</goal>
+							<goal>jar</goal>
 						</goals>
 					</execution>
 				</executions>
@@ -235,7 +234,6 @@
 			</plugin>
 			<plugin>
 				<artifactId>maven-javadoc-plugin</artifactId>
-				<version>2.8.1</version>
 				<executions>
 					<execution>
 						<id>javadoc-jar</id>

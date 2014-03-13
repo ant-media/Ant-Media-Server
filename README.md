@@ -7,6 +7,8 @@ The majority of the Red5 project information continues to reside on Google Code.
 
 The Red5 users list may be found here: https://groups.google.com/forum/#!forum/red5interest
 
+Latest version is 1.0.2-M1
+
 Stack Overflow
 --------------
 If you want answers from a broader audience, Stack Overflow may be your best bet.

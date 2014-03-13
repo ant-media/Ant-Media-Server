@@ -106,8 +106,13 @@ public class RTMPConnManager implements IConnectionManager<RTMPConnection>, Appl
 					if (ioTime >= conn.maxInactivity) {
 						log.warn("Connection {} has exceeded the max inactivity threshold", conn.getSessionId());
 						if (session != null) {
-							// clear the write queue
-							session.getWriteRequestQueue().clear(session);
+							if (log.isDebugEnabled()) {
+								log.debug("Prepared to clear write queue, if session is connected: {}; closing? {}", session.isConnected(), session.isClosing());
+							}
+							if (session.isConnected()) {
+								// clear the write queue
+								session.getWriteRequestQueue().clear(session);
+							}
 						}
 						// call onInactive on the connection, this should cleanly close everything out
 						conn.onInactive();
