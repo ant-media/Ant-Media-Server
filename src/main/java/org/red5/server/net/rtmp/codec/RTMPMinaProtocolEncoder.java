@@ -70,6 +70,7 @@ public class RTMPMinaProtocolEncoder extends ProtocolEncoderAdapter {
 						log.trace("Writing output data");
 						out.write(buf);
 					} else {
+						/*
 						LinkedList<IoBuffer> chunks = Chunker.chunk(buf, requestedWriteChunkSize, targetChunkSize);
 						log.trace("Writing output data in {} chunks", chunks.size());
 						for (IoBuffer chunk : chunks) {
@@ -77,6 +78,9 @@ public class RTMPMinaProtocolEncoder extends ProtocolEncoderAdapter {
 						}
 						chunks.clear();
 						chunks = null;
+						*/
+						int sentChunks = Chunker.chunkAndWrite(out, buf, requestedWriteChunkSize, targetChunkSize);
+						log.trace("Wrote {} chunks", sentChunks);
 					}
 				} else {
 					log.trace("Response buffer was null after encoding");
@@ -151,6 +155,7 @@ public class RTMPMinaProtocolEncoder extends ProtocolEncoderAdapter {
 	 */
 	private static final class Chunker {
 
+		@SuppressWarnings("unused")
 		public static LinkedList<IoBuffer> chunk(IoBuffer message, int chunkSize, int desiredSize) {
 			LinkedList<IoBuffer> chunks = new LinkedList<IoBuffer>();
 			int targetSize = desiredSize > chunkSize ? desiredSize : chunkSize;
@@ -163,9 +168,10 @@ public class RTMPMinaProtocolEncoder extends ProtocolEncoderAdapter {
 					length += getDataSize(basicHeader) + chunkSize;
 					pos += length;
 				}
-				log.trace("Length: {} remaining: {} pos+len: {} limit: {}", new Object[] { length, message.remaining(), (message.position() + length), limit });
-				if (length > message.remaining()) {
-					length = message.remaining();
+				int remaining = message.remaining();
+				log.trace("Length: {} remaining: {} pos+len: {} limit: {}", new Object[] { length, remaining, (message.position() + length), limit });
+				if (length > remaining) {
+					length = remaining;
 				}
 				// add a chunk
 				chunks.add(message.getSlice(length));
@@ -173,6 +179,30 @@ public class RTMPMinaProtocolEncoder extends ProtocolEncoderAdapter {
 			return chunks;
 		}
 
+		public static int chunkAndWrite(ProtocolEncoderOutput out, IoBuffer message, int chunkSize, int desiredSize) {
+			int sentChunks = 0;
+			int targetSize = desiredSize > chunkSize ? desiredSize : chunkSize;
+			int limit = message.limit();
+			do {
+				int length = 0;
+				int pos = message.position();
+				while (length < targetSize && pos < limit) {
+					byte basicHeader = message.get(pos);
+					length += getDataSize(basicHeader) + chunkSize;
+					pos += length;
+				}
+				int remaining = message.remaining();
+				log.trace("Length: {} remaining: {} pos+len: {} limit: {}", new Object[] { length, remaining, (message.position() + length), limit });
+				if (length > remaining) {
+					length = remaining;
+				}
+				// send it
+				out.write(message.getSlice(length));
+				sentChunks++;
+			} while (message.hasRemaining());
+			return sentChunks;
+		}
+		
 		private static int getDataSize(byte basicHeader) {
 			final int streamId = basicHeader & 0x0000003F;
 			final int headerType = (basicHeader >> 6) & 0x00000003;

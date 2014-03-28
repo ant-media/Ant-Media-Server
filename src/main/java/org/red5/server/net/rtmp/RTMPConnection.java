@@ -253,12 +253,17 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
 	 * Keep-alive worker flag
 	 */
 	protected final AtomicBoolean running;
-
+	
 	/**
 	 * Timestamp generator
 	 */
 	private final AtomicInteger timer = new AtomicInteger(0);
 
+	/**
+	 * Closing flag
+	 */
+	private final AtomicBoolean closing = new AtomicBoolean(false);	
+	
 	/**
 	 * Creates anonymous RTMP connection without scope.
 	 * 
@@ -696,106 +701,118 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
 	/** {@inheritDoc} */
 	@Override
 	public void close() {
-		log.debug("close: {}", sessionId);
-		// update our state
-		if (state != null) {
-			final byte s = getStateCode();
-			switch (s) {
-				case RTMP.STATE_DISCONNECTED:
-					log.debug("Already disconnected");
-					return;
-				default:
-					log.debug("State: {}", state.states[s]);
-					state.setState(RTMP.STATE_DISCONNECTING);
-			}
-		}
-		Red5.setConnectionLocal(this);
-		IStreamService streamService = (IStreamService) ScopeUtils.getScopeService(scope, IStreamService.class, StreamService.class);
-		if (streamService != null) {
-			for (Map.Entry<Integer, IClientStream> entry : streams.entrySet()) {
-				IClientStream stream = entry.getValue();
-				if (stream != null) {
-					log.debug("Closing stream: {}", stream.getStreamId());
-					streamService.deleteStream(this, stream.getStreamId());
-					usedStreams.decrementAndGet();
+		if (closing.compareAndSet(false, true)) {
+			log.debug("close: {}", sessionId);
+			// update our state
+			if (state != null) {
+				final byte s = getStateCode();
+				switch (s) {
+					case RTMP.STATE_DISCONNECTED:
+						log.debug("Already disconnected");
+						return;
+					default:
+						log.debug("State: {}", state.states[s]);
+						state.setState(RTMP.STATE_DISCONNECTING);
 				}
 			}
-		} else {
-			log.debug("Stream service was not found for scope: {}", (scope != null ? scope.getName() : "null or non-existant"));
-		}
-		// close the base connection - disconnect scopes and unregister client
-		super.close();
-		// kill all the collections etc
-		if (channels != null) {
-			channels.clear();
-		} else {
-			log.trace("Channels collection was null");
-		}
-		if (streams != null) {
-			streams.clear();
-		} else {
-			log.trace("Streams collection was null");
-		}
-		if (pendingCalls != null) {
-			pendingCalls.clear();
-		} else {
-			log.trace("PendingCalls collection was null");
-		}
-		if (deferredResults != null) {
-			deferredResults.clear();
-		} else {
-			log.trace("DeferredResults collection was null");
-		}
-		if (pendingVideos != null) {
-			pendingVideos.clear();
-		} else {
-			log.trace("PendingVideos collection was null");
-		}
-		if (streamBuffers != null) {
-			streamBuffers.clear();
-		} else {
-			log.trace("StreamBuffers collection was null");
-		}
-		if (scheduler != null) {
-			log.debug("Shutting down scheduler");
-			try {
-				ScheduledExecutorService exe = scheduler.getScheduledExecutor();
-				List<Runnable> runables = exe.shutdownNow();
-				log.debug("Scheduler - shutdown: {} queued: {}", exe.isShutdown(), runables.size());
-				scheduler.shutdown();
-				scheduler = null;
-			} catch (NullPointerException e) {
-				// this can happen in a multithreaded env, where close has been called from more than one spot
-				if (log.isDebugEnabled()) {
+			Red5.setConnectionLocal(this);
+			IStreamService streamService = (IStreamService) ScopeUtils.getScopeService(scope, IStreamService.class, StreamService.class);
+			if (streamService != null) {
+				for (Map.Entry<Integer, IClientStream> entry : streams.entrySet()) {
+					IClientStream stream = entry.getValue();
+					if (stream != null) {
+						log.debug("Closing stream: {}", stream.getStreamId());
+						streamService.deleteStream(this, stream.getStreamId());
+						usedStreams.decrementAndGet();
+					}
+				}
+			} else {
+				log.debug("Stream service was not found for scope: {}", (scope != null ? scope.getName() : "null or non-existant"));
+			}
+			// close the base connection - disconnect scopes and unregister client
+			super.close();
+			// kill all the collections etc
+			if (channels != null) {
+				channels.clear();
+			} else {
+				log.trace("Channels collection was null");
+			}
+			if (streams != null) {
+				streams.clear();
+			} else {
+				log.trace("Streams collection was null");
+			}
+			if (pendingCalls != null) {
+				pendingCalls.clear();
+			} else {
+				log.trace("PendingCalls collection was null");
+			}
+			if (deferredResults != null) {
+				deferredResults.clear();
+			} else {
+				log.trace("DeferredResults collection was null");
+			}
+			if (pendingVideos != null) {
+				pendingVideos.clear();
+			} else {
+				log.trace("PendingVideos collection was null");
+			}
+			if (streamBuffers != null) {
+				streamBuffers.clear();
+			} else {
+				log.trace("StreamBuffers collection was null");
+			}
+			if (scheduler != null) {
+				log.debug("Shutting down scheduler");
+				try {
+					ScheduledExecutorService exe = scheduler.getScheduledExecutor();
+					List<Runnable> runables = exe.shutdownNow();
+					log.debug("Scheduler - shutdown: {} queued: {}", exe.isShutdown(), runables.size());
+					if (scheduler != null) {
+						scheduler.shutdown();
+						scheduler = null;
+					} else {
+						return;
+					}
+				} catch (NullPointerException e) {
+					// this can happen in a multithreaded env, where close has been called from more than one spot
+					if (log.isDebugEnabled()) {
+						log.warn("Exception during scheduler shutdown", e);
+					}
+				} catch (Exception e) {
 					log.warn("Exception during scheduler shutdown", e);
 				}
-			} catch (Exception e) {
-				log.warn("Exception during scheduler shutdown", e);
 			}
-		}
-		if (executor != null) {
-			log.debug("Shutting down executor");
-			try {
-				ThreadPoolExecutor exe = executor.getThreadPoolExecutor();
-				List<Runnable> runables = exe.shutdownNow();
-				log.debug("Executor - shutdown: {} queued: {}", exe.isShutdown(), runables.size());
-				executor.shutdown();
-				executor = null;
-			} catch (NullPointerException e) {
-				// this can happen in a multithreaded env, where close has been called from more than one spot
-				if (log.isDebugEnabled()) {
+			if (executor != null) {
+				log.debug("Shutting down executor");
+				try {
+					ThreadPoolExecutor exe = executor.getThreadPoolExecutor();
+					List<Runnable> runables = exe.shutdownNow();
+					log.debug("Executor - shutdown: {} queued: {}", exe.isShutdown(), runables.size());
+					if (executor != null) {
+						executor.shutdown();
+						executor = null;
+					} else {
+						return;
+					}
+				} catch (NullPointerException e) {
+					// this can happen in a multithreaded env, where close has been called from more than one spot
+					if (log.isDebugEnabled()) {
+						log.warn("Exception during executor shutdown", e);
+					}
+				} catch (Exception e) {
 					log.warn("Exception during executor shutdown", e);
 				}
-			} catch (Exception e) {
-				log.warn("Exception during executor shutdown", e);
 			}
-		}
-		// drain permits
-		decoderLock.drainPermits();
-		encoderLock.drainPermits();
-		if (log.isTraceEnabled()) {
-			// dump memory stats
-			log.trace("Memory at close - free: {}K total: {}K", Runtime.getRuntime().freeMemory() / 1024, Runtime.getRuntime().totalMemory() / 1024);
+			// drain permits
+			decoderLock.drainPermits();
+			encoderLock.drainPermits();
+			if (log.isTraceEnabled()) {
+				// dump memory stats
+				log.trace("Memory at close - free: {}K total: {}K", Runtime.getRuntime().freeMemory() / 1024, Runtime.getRuntime().totalMemory() / 1024);
+			}
+		} else {
+			log.debug("Already closing..");
 		}
 	}
 
