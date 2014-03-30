@@ -144,8 +144,17 @@ public class PluginRegistry {
 		//loop through the plugins and stop them
 		pluginReadLock.lock();
 		try {
-			for (Entry<String, IRed5Plugin> plugin : plugins.entrySet()) {
-				plugin.getValue().doStop();
+			for (Entry<String, IRed5Plugin> pluginEntry : plugins.entrySet()) {
+				IRed5Plugin plugin = pluginEntry.getValue();
+				try {
+					plugin.doStop();
+				} catch (Exception ex) {
+					if (plugin != null) {
+						log.warn("Plugin stop failed for: {}", plugin.getName(), ex);
+					} else {
+						log.warn("Plugin stop failed", ex);
+					}
+				}
 			}
 		} finally {
 			pluginReadLock.unlock();
