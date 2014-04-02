@@ -29,7 +29,7 @@
 	<bean id="messageExecutor" scope="prototype" class="org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor">  
 	  <property name="corePoolSize" value="1" />  
 	  <property name="maxPoolSize" value="1" />  
-	  <property name="queueCapacity" value="16" /> 
+	  <property name="queueCapacity" value="${rtmp.executor.queue_capacity}" /> 
 	  <property name="waitForTasksToCompleteOnShutdown" value="true"/>
 	  <property name="daemon" value="true"/>
 	</bean>     

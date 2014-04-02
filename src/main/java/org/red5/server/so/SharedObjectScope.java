@@ -54,7 +54,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Special scope for shared objects
  */
-public class SharedObjectScope extends BasicScope implements ISharedObject, StatusCodes {
+public class SharedObjectScope extends BasicScope implements ISharedObject,	StatusCodes {
 
 	private Logger log = LoggerFactory.getLogger(SharedObjectScope.class);
 
@@ -87,18 +87,24 @@ public class SharedObjectScope extends BasicScope implements ISharedObject, Stat
 	 * Time to linger before checking for disposal
 	 */
 	private long lingerPeriod = 5000L;
-	
+
 	/**
 	 * Linger job name
 	 */
 	private String lingerJobName;
 
 	/**
-	 * Creates shared object with given parent scope, name, persistence flag state and store object
-	 * @param parent                    Parent scope
-	 * @param name                      Name
-	 * @param persistent                Persistence flag state
-	 * @param store                     Persistence store
+	 * Creates shared object with given parent scope, name, persistence flag
+	 * state and store object
+	 * 
+	 * @param parent
+	 *            Parent scope
+	 * @param name
+	 *            Name
+	 * @param persistent
+	 *            Persistence flag state
+	 * @param store
+	 *            Persistence store
 	 */
 	public SharedObjectScope(IScope parent, String name, boolean persistent, IPersistenceStore store) {
 		super(parent, ScopeType.SHARED_OBJECT, name, persistent);
@@ -109,7 +115,8 @@ public class SharedObjectScope extends BasicScope implements ISharedObject, Stat
 		}
 		log.trace("Path+name: {}/{}", path, name);
 		// Load SO
-		so = (SharedObject) store.load(ScopeType.SHARED_OBJECT + path + '/' + name);
+		so = (SharedObject) store.load(ScopeType.SHARED_OBJECT + path + '/'
+				+ name);
 		// Create if it doesn't exist
 		if (so == null) {
 			so = new SharedObject(name, path, persistent, store);
@@ -174,6 +181,7 @@ public class SharedObjectScope extends BasicScope implements ISharedObject, Stat
 	public void beginUpdate(IEventListener listener) {
 		// Make sure only one thread can update the SO
 		lock.lock();
+		// start updates
 		so.beginUpdate(listener);
 	}
 
@@ -182,6 +190,8 @@ public class SharedObjectScope extends BasicScope implements ISharedObject, Stat
 		// end update of SO
 		try {
 			so.endUpdate();
+		} catch (Exception ex) {
+			log.warn("Exception on so.endUpdate", ex);
 		} finally {
 			lock.unlock();
 		}
@@ -194,79 +204,85 @@ public class SharedObjectScope extends BasicScope implements ISharedObject, Stat
 
 	/** {@inheritDoc} */
 	public void sendMessage(String handler, List<?> arguments) {
-		beginUpdate();
-		try {
-			so.sendMessage(handler, arguments);
-		} finally {
-			endUpdate();
-		}
-		// Invoke method on registered handler
-		String serviceName, serviceMethod;
-		// Find out last dot position
-		int dotPos = handler.lastIndexOf('.');
-		// If any, split service name and service method name
-		if (dotPos != -1) {
-			serviceName = handler.substring(0, dotPos);
-			serviceMethod = handler.substring(dotPos + 1);
-		} else {
-			// Otherwise only service method name is available
-			serviceName = "";
-			serviceMethod = handler;
-		}
-		// Get previously registered handler for service
-		Object soHandler = getServiceHandler(serviceName);
-		if (soHandler == null && hasParent()) {
-			// No custom handler, check for service defined in the scope's context
-			IContext context = getParent().getContext();
-			String serviceId = null;
+		if (so != null) {
+			beginUpdate();
 			try {
-				// The bean must have a name of
-				// "<SharedObjectName>.<DottedServiceName>.soservice"
-				serviceId = so.getName() + '.' + serviceName + ".soservice";
-				if (context.hasBean(serviceId)) {
-					soHandler = context.getBean(serviceId);
-				}
-			} catch (Exception err) {
-				log.debug("No such bean: {}", serviceId);
+				so.sendMessage(handler, arguments);
+			} catch (Exception ex) {
+				log.warn("Exception on so.sendMessage", ex);
+			} finally {
+				endUpdate();
 			}
-		}
-		// Once handler is found, find matching method
-		if (soHandler != null) {
-			// With exact params...
-			Object[] methodResult = ReflectionUtils.findMethodWithExactParameters(soHandler, serviceMethod, arguments);
-			// Or at least with suitable list params
-			if (methodResult.length == 0 || methodResult[0] == null) {
-				methodResult = ReflectionUtils.findMethodWithListParameters(soHandler, serviceMethod, arguments);
+			// Invoke method on registered handler
+			String serviceName, serviceMethod;
+			// Find out last dot position
+			int dotPos = handler.lastIndexOf('.');
+			// If any, split service name and service method name
+			if (dotPos != -1) {
+				serviceName = handler.substring(0, dotPos);
+				serviceMethod = handler.substring(dotPos + 1);
+			} else {
+				// Otherwise only service method name is available
+				serviceName = "";
+				serviceMethod = handler;
 			}
-			// If method is found...
-			if (methodResult.length > 0 && methodResult[0] != null) {
-				Method method = (Method) methodResult[0];
-				Object[] params = (Object[]) methodResult[1];
-				//...try to invoke it and handle exceptions
+			// Get previously registered handler for service
+			Object soHandler = getServiceHandler(serviceName);
+			if (soHandler == null && hasParent()) {
+				// No custom handler, check for service defined in the scope's context
+				IContext context = getParent().getContext();
+				String serviceId = null;
 				try {
-					method.invoke(soHandler, params);
+					// The bean must have a name of
+					// "<SharedObjectName>.<DottedServiceName>.soservice"
+					serviceId = so.getName() + '.' + serviceName + ".soservice";
+					if (context.hasBean(serviceId)) {
+						soHandler = context.getBean(serviceId);
+					}
 				} catch (Exception err) {
-					log.error("Error while invoking method {} on shared object handler {}", new Object[] { serviceMethod, handler }, err);
+					log.debug("No such bean: {}", serviceId);
 				}
 			}
-		}
-		// notify server listeners
-		for (ISharedObjectListener listener : serverListeners) {
-			listener.onSharedObjectSend(this, handler, arguments);
+			// Once handler is found, find matching method
+			if (soHandler != null) {
+				// With exact params...
+				Object[] methodResult = ReflectionUtils.findMethodWithExactParameters(soHandler, serviceMethod, arguments);
+				// Or at least with suitable list params
+				if (methodResult.length == 0 || methodResult[0] == null) {
+					methodResult = ReflectionUtils.findMethodWithListParameters(soHandler, serviceMethod, arguments);
+				}
+				// If method is found...
+				if (methodResult.length > 0 && methodResult[0] != null) {
+					Method method = (Method) methodResult[0];
+					Object[] params = (Object[]) methodResult[1];
+					// ...try to invoke it and handle exceptions
+					try {
+						method.invoke(soHandler, params);
+					} catch (Exception err) {
+						log.error("Error while invoking method {} on shared object handler {}", new Object[] { serviceMethod, handler }, err);
+					}
+				}
+			}
+			// notify server listeners
+			for (ISharedObjectListener listener : serverListeners) {
+				listener.onSharedObjectSend(this, handler, arguments);
+			}
 		}
 	}
 
 	/** {@inheritDoc} */
 	@Override
 	public boolean removeAttribute(String name) {
-		boolean success;
+		boolean success = false;
 		// begin update of shared object
 		beginUpdate();
 		try {
 			// try to remove attribute
 			success = so.removeAttribute(name);
+		} catch (Exception ex) {
+			log.warn("Exception on so.removeAttribute", ex);
 		} finally {
-			// End update of SO
+			// end update of SO
 			endUpdate();
 		}
 		// notify listeners on success and return true
@@ -285,6 +301,8 @@ public class SharedObjectScope extends BasicScope implements ISharedObject, Stat
 		try {
 			// remove all attributes
 			so.removeAttributes();
+		} catch (Exception ex) {
+			log.warn("Exception on so.removeAttributes", ex);
 		} finally {
 			endUpdate();
 		}
@@ -314,7 +332,8 @@ public class SharedObjectScope extends BasicScope implements ISharedObject, Stat
 	public boolean removeEventListener(IEventListener listener) {
 		// remove the listener from the so
 		so.unregister(listener);
-		// if we have not been released by all that acquired then keep on disconnection of the last listener
+		// if we have not been released by all that acquired then keep on
+		// disconnection of the last listener
 		if (so.isAcquired()) {
 			log.debug("Shared object has been aquired so setting keep on disconnect");
 			keepOnDisconnect = true;
@@ -364,9 +383,12 @@ public class SharedObjectScope extends BasicScope implements ISharedObject, Stat
 		beginUpdate();
 		try {
 			return so.getAttribute(name, value);
+		} catch (Exception ex) {
+			log.warn("Exception on so.getAttribute", ex);
 		} finally {
 			endUpdate();
 		}
+		return null;
 	}
 
 	/** {@inheritDoc} */
@@ -447,7 +469,8 @@ public class SharedObjectScope extends BasicScope implements ISharedObject, Stat
 	}
 
 	/**
-	 * Return security handlers for this shared object or <code>null</code> if none are found.
+	 * Return security handlers for this shared object or <code>null</code> if
+	 * none are found.
 	 * 
 	 * @return
 	 */
@@ -487,18 +510,20 @@ public class SharedObjectScope extends BasicScope implements ISharedObject, Stat
 	/**
 	 * Call handlers and check if writing to the SO is allowed.
 	 * 
-	 * @param key key
-	 * @param value value
+	 * @param key
+	 *            key
+	 * @param value
+	 *            value
 	 * @return is write allowed
 	 */
 	protected boolean isWriteAllowed(String key, Object value) {
-		// Check internal handlers first
+		// check internal handlers first
 		for (ISharedObjectSecurity handler : securityHandlers) {
 			if (!handler.isWriteAllowed(this, key, value)) {
 				return false;
 			}
 		}
-		// Check global SO handlers next
+		// check global SO handlers next
 		final Set<ISharedObjectSecurity> handlers = getSecurityHandlers();
 		if (handlers == null) {
 			return true;
@@ -514,17 +539,18 @@ public class SharedObjectScope extends BasicScope implements ISharedObject, Stat
 	/**
 	 * Call handlers and check if deleting a property from the SO is allowed.
 	 * 
-	 * @param key key
+	 * @param key
+	 *            key
 	 * @return is delete allowed
 	 */
 	protected boolean isDeleteAllowed(String key) {
-		// Check internal handlers first
+		// check internal handlers first
 		for (ISharedObjectSecurity handler : securityHandlers) {
 			if (!handler.isDeleteAllowed(this, key)) {
 				return false;
 			}
 		}
-		// Check global SO handlers next
+		// check global SO handlers next
 		final Set<ISharedObjectSecurity> handlers = getSecurityHandlers();
 		if (handlers == null) {
 			return true;
@@ -538,21 +564,23 @@ public class SharedObjectScope extends BasicScope implements ISharedObject, Stat
 	}
 
 	/**
-	 * Call handlers and check if sending a message to the clients connected to the
-	 * SO is allowed.
+	 * Call handlers and check if sending a message to the clients connected to
+	 * the SO is allowed.
 	 * 
-	 * @param message message
-	 * @param arguments arguments
+	 * @param message
+	 *            message
+	 * @param arguments
+	 *            arguments
 	 * @return is send allowed
 	 */
 	protected boolean isSendAllowed(String message, List<?> arguments) {
-		// Check internal handlers first
+		// check internal handlers first
 		for (ISharedObjectSecurity handler : securityHandlers) {
 			if (!handler.isSendAllowed(this, message, arguments)) {
 				return false;
 			}
 		}
-		// Check global SO handlers next
+		// check global SO handlers next
 		final Set<ISharedObjectSecurity> handlers = getSecurityHandlers();
 		if (handlers == null) {
 			return true;
@@ -568,7 +596,8 @@ public class SharedObjectScope extends BasicScope implements ISharedObject, Stat
 	/** {@inheritDoc} */
 	@Override
 	public void dispatchEvent(IEvent e) {
-		if (e instanceof ISharedObjectMessage || e.getType() == IEvent.Type.SHARED_OBJECT) {
+		if (e instanceof ISharedObjectMessage
+				|| e.getType() == IEvent.Type.SHARED_OBJECT) {
 			ISharedObjectMessage msg = (ISharedObjectMessage) e;
 			if (msg.hasSource()) {
 				beginUpdate(msg.getSource());
@@ -579,63 +608,67 @@ public class SharedObjectScope extends BasicScope implements ISharedObject, Stat
 				for (ISharedObjectEvent event : msg.getEvents()) {
 					final String key = event.getKey();
 					switch (event.getType()) {
-						case SERVER_CONNECT:
-							if (!isConnectionAllowed()) {
-								so.returnError(SO_NO_READ_ACCESS);
-							} else if (msg.hasSource()) {
-								IEventListener source = msg.getSource();
-								if (source instanceof BaseConnection) {
-									((BaseConnection) source).registerBasicScope(this);
-								} else {
-									addEventListener(source);
-								}
-							}
-							break;
-						case SERVER_DISCONNECT:
-							if (msg.hasSource()) {
-								IEventListener source = msg.getSource();
-								if (source instanceof BaseConnection) {
-									((BaseConnection) source).unregisterBasicScope(this);
-								} else {
-									removeEventListener(source);
-								}
-							}
-							break;
-						case SERVER_SET_ATTRIBUTE:
-							final Object value = event.getValue();
-							if (!isWriteAllowed(key, value)) {
-								so.returnAttributeValue(key);
-								so.returnError(SO_NO_WRITE_ACCESS);
+					case SERVER_CONNECT:
+						if (!isConnectionAllowed()) {
+							so.returnError(SO_NO_READ_ACCESS);
+						} else if (msg.hasSource()) {
+							IEventListener source = msg.getSource();
+							if (source instanceof BaseConnection) {
+								((BaseConnection) source)
+										.registerBasicScope(this);
 							} else {
-								setAttribute(key, value);
+								addEventListener(source);
 							}
-							break;
-						case SERVER_DELETE_ATTRIBUTE:
-							if (!isDeleteAllowed(key)) {
-								so.returnAttributeValue(key);
-								so.returnError(SO_NO_WRITE_ACCESS);
+						}
+						break;
+					case SERVER_DISCONNECT:
+						if (msg.hasSource()) {
+							IEventListener source = msg.getSource();
+							if (source instanceof BaseConnection) {
+								((BaseConnection) source)
+										.unregisterBasicScope(this);
 							} else {
-								removeAttribute(key);
+								removeEventListener(source);
 							}
-							break;
-						case SERVER_SEND_MESSAGE:
-							final List<?> arguments = (List<?>) event.getValue();
-							// Ignore request silently if not allowed
-							if (isSendAllowed(key, arguments)) {
-								sendMessage(key, arguments);
-							} else {
-								log.debug("Send is not allowed for {}", key);
-							}
-							break;
-						default:
-							log.warn("Unknown SO event: {}", event.getType());
+						}
+						break;
+					case SERVER_SET_ATTRIBUTE:
+						final Object value = event.getValue();
+						if (!isWriteAllowed(key, value)) {
+							so.returnAttributeValue(key);
+							so.returnError(SO_NO_WRITE_ACCESS);
+						} else {
+							setAttribute(key, value);
+						}
+						break;
+					case SERVER_DELETE_ATTRIBUTE:
+						if (!isDeleteAllowed(key)) {
+							so.returnAttributeValue(key);
+							so.returnError(SO_NO_WRITE_ACCESS);
+						} else {
+							removeAttribute(key);
+						}
+						break;
+					case SERVER_SEND_MESSAGE:
+						final List<?> arguments = (List<?>) event.getValue();
+						// Ignore request silently if not allowed
+						if (isSendAllowed(key, arguments)) {
+							sendMessage(key, arguments);
+						} else {
+							log.debug("Send is not allowed for {}", key);
+						}
+						break;
+					default:
+						log.warn("Unknown SO event: {}", event.getType());
 					}
 				}
+			} catch (Exception ex) {
+				log.warn("Exception on dispatchEvent", ex);
 			} finally {
 				endUpdate();
 			}
 		} else {
-			// Don't know how to handle this event.
+			// don't know how to handle this event.
 			super.dispatchEvent(e);
 		}
 	}
@@ -643,10 +676,12 @@ public class SharedObjectScope extends BasicScope implements ISharedObject, Stat
 	/** {@inheritDoc} */
 	@Override
 	public boolean setAttribute(String name, Object value) {
-		boolean success;
+		boolean success = false;
 		beginUpdate();
 		try {
 			success = so.setAttribute(name, value);
+		} catch (Exception ex) {
+			log.warn("Exception on so.setAttribute", ex);
 		} finally {
 			endUpdate();
 		}
@@ -665,6 +700,8 @@ public class SharedObjectScope extends BasicScope implements ISharedObject, Stat
 		beginUpdate();
 		try {
 			success = so.setAttributes(values);
+		} catch (Exception ex) {
+			log.warn("Exception on so.setAttributes", ex);
 		} finally {
 			endUpdate();
 		}
@@ -683,6 +720,8 @@ public class SharedObjectScope extends BasicScope implements ISharedObject, Stat
 		beginUpdate();
 		try {
 			success = so.setAttributes(values);
+		} catch (Exception ex) {
+			log.warn("Exception on so.setAttributes", ex);
 		} finally {
 			endUpdate();
 		}
@@ -775,10 +814,12 @@ public class SharedObjectScope extends BasicScope implements ISharedObject, Stat
 
 	/** {@inheritDoc} */
 	public boolean clear() {
-		boolean success;
+		boolean success = false;
 		beginUpdate();
 		try {
 			success = so.clear();
+		} catch (Exception ex) {
+			log.warn("Exception on so.clear", ex);
 		} finally {
 			endUpdate();
 		}
