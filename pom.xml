@@ -52,10 +52,11 @@
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<red5-io.version>1.0.3</red5-io.version>
-		<spring.version>4.0.0.RELEASE</spring.version>
+		<spring.version>4.0.3.RELEASE</spring.version>
 		<mina.version>2.0.7</mina.version>
 		<slf4j.version>1.7.5</slf4j.version>
 		<logback.version>1.0.13</logback.version>
+		<quartz.version>2.1.7</quartz.version>
 		<junit.version>4.11</junit.version>
 	</properties>
 	<scm>
@@ -497,22 +498,6 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- <dependency> <groupId>org.apache.mina</groupId> <artifactId>mina-core</artifactId> 
-			<version>2.0.4</version> <scope>system</scope> <systemPath>${basedir}/lib/mina-core-2.0.4.jar</systemPath> 
-			</dependency> <dependency> <groupId>org.apache.mina</groupId> <artifactId>mina-integration-beans</artifactId> 
-			<version>2.0.4</version> <scope>system</scope> <systemPath>${basedir}/lib/mina-integration-beans-2.0.4.jar</systemPath> 
-			</dependency> <dependency> <groupId>org.apache.mina</groupId> <artifactId>mina-integration-jmx</artifactId> 
-			<version>2.0.4</version> <scope>system</scope> <systemPath>${basedir}/lib/mina-integration-jmx-2.0.4.jar</systemPath> 
-			<exclusions> <exclusion> <groupId>org.apache.mina</groupId> <artifactId>mina-integration-ognl</artifactId> 
-			</exclusion> </exclusions> </dependency> <dependency> <groupId>org.apache.mina</groupId> 
-			<artifactId>mina-core</artifactId> <version>2.0.8-SNAPSHOT</version> <scope>system</scope> 
-			<systemPath>${basedir}/lib/mina-core-2.0.8-SNAPSHOT.jar</systemPath> </dependency> 
-			<dependency> <groupId>org.apache.mina</groupId> <artifactId>mina-integration-beans</artifactId> 
-			<version>2.0.8-SNAPSHOT</version> <scope>system</scope> <systemPath>${basedir}/lib/mina-integration-beans-2.0.8-SNAPSHOT.jar</systemPath> 
-			</dependency> <dependency> <groupId>org.apache.mina</groupId> <artifactId>mina-integration-jmx</artifactId> 
-			<version>2.0.8-SNAPSHOT</version> <scope>system</scope> <systemPath>${basedir}/lib/mina-integration-jmx-2.0.8-SNAPSHOT.jar</systemPath> 
-			<exclusions> <exclusion> <groupId>org.apache.mina</groupId> <artifactId>mina-integration-ognl</artifactId> 
-			</exclusion> </exclusions> </dependency> -->
 		<dependency>
 			<groupId>commons-beanutils</groupId>
 			<artifactId>commons-beanutils</artifactId>
@@ -705,7 +690,7 @@
 		<dependency>
 			<groupId>org.quartz-scheduler</groupId>
 			<artifactId>quartz</artifactId>
-			<version>2.1.6</version>
+			<version>${quartz.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>junit</groupId>

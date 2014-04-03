@@ -161,7 +161,13 @@ public class RTMPMinaIoHandler extends IoHandlerAdapter {
 			log.trace("Session id: {}", sessionId);
 			RTMPMinaConnection conn = (RTMPMinaConnection) RTMPConnManager.getInstance().getConnectionBySessionId(sessionId);
 			if (conn != null) {
-				conn.handleMessageReceived((Packet) message);
+				byte state = conn.getStateCode();
+				// checking the state before allowing a task to be created will hopefully prevent rejected task exceptions
+				if (state != RTMP.STATE_DISCONNECTING && state != RTMP.STATE_DISCONNECTED) {
+					conn.handleMessageReceived((Packet) message);
+				} else {
+					log.info("Ignoring received message on {} due to state: {}", sessionId, conn.getState().states[state]);
+				}
 			} else {
 				log.warn("Connection was not found for {}", sessionId);
 				forceClose(session);
@@ -214,7 +220,7 @@ public class RTMPMinaIoHandler extends IoHandlerAdapter {
 	private void forceClose(final IoSession session) {
 		log.warn("Force close - session: {}", session.getId());
 		if (session.containsAttribute("FORCED_CLOSE")) {
-			log.warn("Close already forced on this session: {}", session.getId());
+			log.info("Close already forced on this session: {}", session.getId());
 		} else {
 			// set flag
 			session.setAttribute("FORCED_CLOSE", Boolean.TRUE);
@@ -226,7 +232,12 @@ public class RTMPMinaIoHandler extends IoHandlerAdapter {
 			final WriteRequestQueue writeQueue = session.getWriteRequestQueue();
 			if (writeQueue != null && !writeQueue.isEmpty(session)) {
 				log.debug("Clearing write queue");
-				writeQueue.clear(session);
+				try {
+					writeQueue.clear(session);
+				} catch (Exception ex) {
+					// clear seems to cause a write to closed session ex in some cases
+					log.warn("Exception clearing write queue for {}", sessionId, ex);
+				}
 			}
 			// force close the session
 			final CloseFuture future = session.close(true);

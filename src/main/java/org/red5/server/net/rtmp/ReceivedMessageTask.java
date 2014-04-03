@@ -1,11 +1,14 @@
 package org.red5.server.net.rtmp;
 
+import java.util.concurrent.Callable;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.red5.server.api.Red5;
 import org.red5.server.net.rtmp.message.Packet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class ReceivedMessageTask implements Runnable {
+public final class ReceivedMessageTask implements Callable<Boolean> {
 
 	private final static Logger log = LoggerFactory.getLogger(ReceivedMessageTask.class);
 	
@@ -17,6 +20,17 @@ public final class ReceivedMessageTask implements Runnable {
 	
 	private Packet message;
 
+	// flag representing handling status
+	private AtomicBoolean done = new AtomicBoolean(false);
+
+	// deadlock guard thread
+	private Thread guard;
+	
+	// maximum time allowed to process received message
+	private long maxHandlingTimeout = 500L;
+
+	//private final long id = System.currentTimeMillis();
+	
 	public ReceivedMessageTask(String sessionId, Packet message, IRTMPHandler handler) {
 		this(sessionId, message, handler, (RTMPConnection) RTMPConnManager.getInstance().getConnectionBySessionId(sessionId));
 	}
@@ -28,18 +42,57 @@ public final class ReceivedMessageTask implements Runnable {
 		this.conn = conn;
 	}	
 
-	public void run() {
+	public Boolean call() throws Exception {
 		// set connection to thread local
 		Red5.setConnectionLocal(conn);
 		try {
+			//log.trace("[{}] run begin {}", sessionId, id);
+			// run a deadlock guard so hanging tasks will be interrupted
+			guard = new Thread(new DeadlockGuard(Thread.currentThread()));
+			guard.start();
 			// pass message to the handler
 			handler.messageReceived(conn, message);
 		} catch (Exception e) {
 			log.error("Error processing received message {}", sessionId, e);
 		} finally {
+			//log.info("[{}] run end {}", sessionId, id);
 			// clear thread local
 			Red5.setConnectionLocal(null);
+			// set done / completed flag
+			done.set(true);
+			// interrupt and join on deadlock guard
+			guard.interrupt();
+			guard.join();
 		}
+		return Boolean.valueOf(done.get());
+	}
+	
+	public void setMaxHandlingTimeout(long maxHandlingTimeout) {
+		this.maxHandlingTimeout = maxHandlingTimeout;
+	}
+
+	/**
+	 * Prevents deadlocked message handling.
+	 */
+	private class DeadlockGuard implements Runnable {
+		
+		Thread thread;
+		
+		DeadlockGuard(Thread thread) {
+			this.thread = thread;
+		}
+		
+		public void run() {
+			try {
+				Thread.sleep(maxHandlingTimeout);
+			} catch (InterruptedException e) {
+			}
+			if (!done.get()) {
+				log.info("Interrupting unfinished task on {}", sessionId);
+				thread.interrupt();
+			}
+		}
+		
 	}
 	
 }

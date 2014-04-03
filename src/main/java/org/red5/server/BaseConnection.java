@@ -24,7 +24,6 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.Semaphore;
@@ -122,7 +121,7 @@ public abstract class BaseConnection extends AttributeStore implements IConnecti
 	/**
 	 * Set of basic scopes. The scopes may be of shared object or broadcast stream type.
 	 */
-	protected Set<IBasicScope> basicScopes = new CopyOnWriteArraySet<IBasicScope>();
+	protected CopyOnWriteArraySet<IBasicScope> basicScopes = new CopyOnWriteArraySet<IBasicScope>();
 
 	/**
 	 * Is the connection closed?

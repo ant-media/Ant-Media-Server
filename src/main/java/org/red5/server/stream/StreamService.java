@@ -114,8 +114,7 @@ public class StreamService implements IStreamService {
 
 	/**
 	 * Close stream.
-	 * This method can close both IClientBroadcastStream (coming from Flash Player to Red5)
-	 * and ISubscriberStream (from Red5 to Flash Player).
+	 * This method can close both IClientBroadcastStream (coming from Flash Player to Red5) and ISubscriberStream (from Red5 to Flash Player).
 	 * Corresponding application handlers (streamSubscriberClose, etc.) are called as if close was initiated by Flash Player.
 	 * 
 	 * It is recommended to remember stream id in application handlers, ex.:
@@ -137,34 +136,34 @@ public class StreamService implements IStreamService {
 	 * When stream is closed, corresponding NetStream status will be sent to stream provider / consumers.
 	 * Implementation is based on Red5's StreamService.close()
 	 * 
-	 * @param connection client connection
+	 * @param conn client connection
 	 * @param streamId stream ID (number: 1,2,...)
 	 */
-	public void closeStream(IConnection connection, int streamId) {
-		log.info("closeStream: streamId={}, connection={}", streamId, connection);
-		if (connection instanceof IStreamCapableConnection) {
-			IStreamCapableConnection scConnection = (IStreamCapableConnection) connection;
-			IClientStream stream = scConnection.getStreamById(streamId);
+	public void closeStream(IConnection conn, int streamId) {
+		log.info("closeStream: streamId={}, connection={}", streamId, conn);
+		if (conn instanceof IStreamCapableConnection) {
+			IStreamCapableConnection scConn = (IStreamCapableConnection) conn;
+			IClientStream stream = scConn.getStreamById(streamId);
 			if (stream != null) {
 				if (stream instanceof IClientBroadcastStream) {
 					// this is a broadcasting stream (from Flash Player to Red5)
 					IClientBroadcastStream bs = (IClientBroadcastStream) stream;
-					IBroadcastScope bsScope = connection.getScope().getBroadcastScope(bs.getPublishedName());
-					if (bsScope != null && connection instanceof BaseConnection) {
-						((BaseConnection) connection).unregisterBasicScope(bsScope);
+					IBroadcastScope bsScope = getBroadcastScope(conn.getScope(), bs.getPublishedName());
+					if (bsScope != null && conn instanceof BaseConnection) {
+						((BaseConnection) conn).unregisterBasicScope(bsScope);
 					}
 				}
 				stream.close();
-				scConnection.deleteStreamById(streamId);
+				scConn.deleteStreamById(streamId);
 				// in case of broadcasting stream, status is sent automatically by Red5
 				if (!(stream instanceof IClientBroadcastStream)) {
-					StreamService.sendNetStreamStatus(connection, StatusCodes.NS_PLAY_STOP, "Stream closed by server", stream.getName(), Status.STATUS, streamId);
+					StreamService.sendNetStreamStatus(conn, StatusCodes.NS_PLAY_STOP, "Stream closed by server", stream.getName(), Status.STATUS, streamId);
 				}
 			} else {
-				log.info("Stream not found: streamId={}, connection={}", streamId, connection);
+				log.info("Stream not found: streamId={}, connection={}", streamId, conn);
 			}
 		} else {
-			log.warn("Connection is not instance of IStreamCapableConnection: {}", connection);
+			log.warn("Connection is not instance of IStreamCapableConnection: {}", conn);
 		}
 	}
 
@@ -689,7 +688,8 @@ public class StreamService implements IStreamService {
 	}
 
 	/**
-	 * Return broadcast scope object for given scope and child scope name
+	 * Return broadcast scope object for given scope and child scope name.
+	 * 
 	 * @param scope          Scope object
 	 * @param name           Child scope name
 	 * @return               Broadcast scope
@@ -699,7 +699,7 @@ public class StreamService implements IStreamService {
 	}
 
 	/**
-	 * Send a <code>NetStream.Play.Failed</code> message to the client.
+	 * Send a <code>NetStream.Play.Failed</code> to the client.
 	 * 
 	 * @param conn
 	 * @param errorCode
@@ -712,7 +712,7 @@ public class StreamService implements IStreamService {
 	}
 
 	/**
-	 * Send <code>NetStream.Status</code> to client (Flash Player)
+	 * Send <code>NetStream.Status</code> to the client.
 	 * @param conn
 	 * @param statusCode see StatusCodes class
 	 * @param description
@@ -724,7 +724,7 @@ public class StreamService implements IStreamService {
 	}
 
 	/**
-	 * Send <code>NetStream.Status</code> to client (Flash Player)
+	 * Send <code>NetStream.Status</code> to the client.
 	 *  
 	 * @param conn connection
 	 * @param statusCode NetStream status code

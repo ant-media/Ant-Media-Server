@@ -142,7 +142,7 @@ public class RTMPTConnection extends BaseRTMPTConnection {
 	public void handleMessageReceived(Packet message) {
 		log.trace("handleMessageReceived - {}", sessionId);
 		try {
-			executor.execute(new ReceivedMessageTask(sessionId, message, handler, this));
+			executor.submit(new ReceivedMessageTask(sessionId, message, handler, this));
 		} catch (Exception e) {
 			log.warn("Incoming message handling failed", e);
 			if (log.isDebugEnabled()) {

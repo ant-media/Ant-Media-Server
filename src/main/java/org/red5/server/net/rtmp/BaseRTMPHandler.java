@@ -141,11 +141,10 @@ public abstract class BaseRTMPHandler implements IRTMPHandler, Constants, Status
 				if (message instanceof Unknown) {
 					log.info("Message type unknown: {}", message);
 				}
-			} catch (RuntimeException e) {
-				log.error("Exception", e);
+			} catch (Throwable t) {
+				log.error("Exception", t);
 			}
-			// XXX this may be causing 'missing' data if previous methods are not making copies
-			// before buffering etc..
+			// XXX this may be causing 'missing' data if previous methods are not making copies before buffering etc..
 			if (message != null) {
 				message.release();
 			}

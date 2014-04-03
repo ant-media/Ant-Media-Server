@@ -26,7 +26,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
-
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import javax.management.StandardMBean;
@@ -35,6 +34,9 @@ import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.mina.core.future.CloseFuture;
 import org.apache.mina.core.future.IoFutureListener;
 import org.apache.mina.core.session.IoSession;
+import org.springframework.util.concurrent.ListenableFuture;
+import org.springframework.util.concurrent.ListenableFutureCallback;
+import org.springframework.util.concurrent.ListenableFutureTask;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.jmx.mxbeans.RTMPMinaConnectionMXBean;
 import org.red5.server.net.rtmp.codec.RTMP;
@@ -73,6 +75,9 @@ public class RTMPMinaConnection extends RTMPConnection implements RTMPMinaConnec
 	protected int defaultClientBandwidth = 10000000;
 
 	protected boolean bandwidthDetection = true;
+	
+	// maximum time allowed to process received message
+	protected long maxHandlingTimeout = 500L;
 
 	/** Constructs a new RTMPMinaConnection. */
 	@ConstructorProperties(value = { "persistent" })
@@ -143,12 +148,24 @@ public class RTMPMinaConnection extends RTMPConnection implements RTMPMinaConnec
 	}
 
 	/** {@inheritDoc} */
+	@SuppressWarnings({ "unchecked" })
 	@Override
 	public void handleMessageReceived(Packet message) {
 		log.trace("handleMessageReceived - {}", sessionId);
 		if (executor != null) {
 			try {
-				executor.execute(new ReceivedMessageTask(sessionId, message, handler, this));
+				ReceivedMessageTask task = new ReceivedMessageTask(sessionId, message, handler, this);
+				task.setMaxHandlingTimeout(maxHandlingTimeout);
+				ListenableFuture<Boolean> future = (ListenableFuture<Boolean>) executor.submitListenable(new ListenableFutureTask<Boolean>(task));
+				future.addCallback(new ListenableFutureCallback<Boolean>() {
+					public void onFailure(Throwable t) {
+						log.warn("[{}] onFailure", sessionId, t);
+					}
+
+					public void onSuccess(Boolean success) {
+						log.debug("[{}] onSuccess: {}", sessionId, success);			
+					}
+				});
 			} catch (Exception e) {
 				log.warn("Incoming message handling failed on {}", getSessionId(), e);
 				if (log.isDebugEnabled()) {
@@ -156,9 +173,9 @@ public class RTMPMinaConnection extends RTMPConnection implements RTMPMinaConnec
 					log.debug("Lock permits - decode: {} encode: {}", decoderLock.availablePermits(), encoderLock.availablePermits());
 				}
 				// ensure the connection is not closing and if it is drop the runnable
-				if (state.getState() == RTMP.STATE_CONNECTED) {
-					onInactive();
-				}
+				//if (state.getState() == RTMP.STATE_CONNECTED) {
+				//	onInactive();
+				//}
 			}
 		} else {
 			log.warn("Executor is null on {} state: {}", getSessionId(), state.states[getStateCode()]);
@@ -219,6 +236,14 @@ public class RTMPMinaConnection extends RTMPConnection implements RTMPMinaConnec
 	@Override
 	public void setExecutor(ThreadPoolTaskExecutor executor) {
 		this.executor = executor;
+	}
+
+	public long getMaxHandlingTimeout() {
+		return maxHandlingTimeout;
+	}
+
+	public void setMaxHandlingTimeout(long maxHandlingTimeout) {
+		this.maxHandlingTimeout = maxHandlingTimeout;
 	}
 
 	/**

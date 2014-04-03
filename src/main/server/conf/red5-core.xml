@@ -22,16 +22,12 @@
 	<!-- RTMP -->
     <bean id="rtmpScheduler" scope="prototype" class="org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler">
         <property name="poolSize" value="${rtmp.scheduler.pool_size}" />  
-        <property name="waitForTasksToCompleteOnShutdown" value="true"/>
-        <property name="daemon" value="true"/>
 	</bean>        
 	        
 	<bean id="messageExecutor" scope="prototype" class="org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor">  
-	  <property name="corePoolSize" value="1" />  
-	  <property name="maxPoolSize" value="1" />  
-	  <property name="queueCapacity" value="${rtmp.executor.queue_capacity}" /> 
-	  <property name="waitForTasksToCompleteOnShutdown" value="true"/>
-	  <property name="daemon" value="true"/>
+        <property name="corePoolSize" value="1" />  
+	    <property name="maxPoolSize" value="1" />  
+	    <property name="queueCapacity" value="${rtmp.executor.queue_capacity}" /> 
 	</bean>     
     
     <!-- RTMP connection manager --> 
@@ -105,6 +101,8 @@
         <property name="limitType" value="${rtmp.client_bandwidth_limit_type}" />
         <!-- Bandwidth detection. If "false" the server will NOT initiate a check -->
         <property name="bandwidthDetection" value="${rtmp.bandwidth_detection}" />
+        <!-- Maximum time allowed for a single RTMP packet to be processed -->
+        <property name="maxHandlingTimeout" value="${rtmp.max_handling_time}" />        
 	</bean>
 	
 	<!-- RTMPT -->

@@ -347,8 +347,12 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
 	 * Opens the connection.
 	 */
 	public void open() {
-		// add the session id to the prefix
+		// add the session id to the prefix		
 		executor.setThreadNamePrefix(String.format("RTMPExecutor#%s-", sessionId));
+		executor.setRejectedExecutionHandler(new ThreadPoolExecutor.DiscardOldestPolicy());
+		executor.setAllowCoreThreadTimeOut(true);
+		executor.setDaemon(true);
+		executor.setWaitForTasksToCompleteOnShutdown(true);
 		if (log.isTraceEnabled()) {
 			// dump memory stats
 			log.trace("Memory at open - free: {}K total: {}K", Runtime.getRuntime().freeMemory() / 1024, Runtime.getRuntime().totalMemory() / 1024);
@@ -1241,6 +1245,8 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
 		this.scheduler = scheduler;
 		// set the prefix
 		this.scheduler.setThreadNamePrefix(String.format("RTMPConnectionExecutor#%d", System.currentTimeMillis()));
+		this.scheduler.setDaemon(true);
+		this.scheduler.setWaitForTasksToCompleteOnShutdown(true);
 	}
 
 	/**
