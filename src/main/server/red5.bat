@@ -21,7 +21,7 @@ set JYTHON_OPTS=-Dpython.home=lib
 REM Combined java options
 set JAVA_OPTS=%LOGGING_OPTS% %SECURITY_OPTS% %JAVA_OPTS% %JVM_OPTS% %JYTHON_OPTS%
 
-set RED5_CLASSPATH=%RED5_HOME%\red5-server-bootstrap.jar;%RED5_HOME%\conf;%CLASSPATH%
+set RED5_CLASSPATH=%RED5_HOME%\red5-service.jar;%RED5_HOME%\conf;%CLASSPATH%
 
 if NOT DEFINED RED5_OPTS set RED5_OPTS= 
 

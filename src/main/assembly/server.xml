@@ -9,14 +9,19 @@
 	</formats>
     <files>
         <file>
-            <source>${project.build.directory}/red5-server-${project.version}-bootstrap.jar</source>
-            <outputDirectory>/</outputDirectory>
-            <destName>red5-server-bootstrap.jar</destName>
-        </file>
-        <file>
             <source>${project.build.directory}/red5-server-${project.version}.jar</source>
             <outputDirectory>/</outputDirectory>
             <destName>red5-server.jar</destName>
+        </file>
+        <file>
+            <source>${project.build.directory}/lib/red5-service-${project.version}.jar</source>
+            <outputDirectory>/</outputDirectory>
+            <destName>red5-service.jar</destName>
+        </file>
+        <file>
+            <source>${project.build.directory}/dependency/red5-service-${project.version}.jar</source>
+            <outputDirectory>/</outputDirectory>
+            <destName>red5-service.jar</destName>
         </file>
     </files>	
 	<fileSets>
@@ -39,6 +44,7 @@
                 <exclude>hamcrest-core-1.1.jar</exclude>
                 <exclude>junit-4.10.jar</exclude>
                 <exclude>groboutils-core-5.jar</exclude>
+                <exclude>red5-service-${project.version}.jar</exclude>
             </excludes>
 		</fileSet>
 		<fileSet>
@@ -53,6 +59,7 @@
                 <exclude>hamcrest-core-1.1.jar</exclude>
                 <exclude>junit-4.10.jar</exclude>
                 <exclude>groboutils-core-5.jar</exclude>
+                <exclude>red5-service-${project.version}.jar</exclude>
 			</excludes>
 		</fileSet>
 		<fileSet>
