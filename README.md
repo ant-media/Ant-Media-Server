@@ -9,6 +9,11 @@ The Red5 users list may be found here: https://groups.google.com/forum/#!forum/r
 
 Latest version is 1.0.2-RELEASE
 
+*Red5 1.0.2 Release (7 April 2014)*
+<a href="https://mega.co.nz/#!IA83nRIZ!R5N2mvTsgKTupdyPq6Ye1k6FTAl15tXpzH1TC_Z5DR8">Windows Java7</a> | 
+<a href="https://mega.co.nz/#!xN0jmSSD!uoqhJ_A-QBtxPmwvsU6edGjokDuUFEbGGQQvAfpa99o">Tarball</a> | 
+<a href="https://mega.co.nz/#!IZkkXCTa!4Y3iuKYh3ibyFcKaQGdSXd6mWaIKx7chxBxEOHMi2gM">ZIP</a>
+
 <i>Note on Bootstrap</i>
 
 The bootstrap and shutdown classes have been moved to the red5-service project; the dependency has been added to this projects pom.
