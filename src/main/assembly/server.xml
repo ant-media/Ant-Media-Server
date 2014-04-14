@@ -18,11 +18,13 @@
             <outputDirectory>/</outputDirectory>
             <destName>red5-service.jar</destName>
         </file>
+<!-- jenkins doesnt like this entry; "dependency" seems useful only to eclipse
         <file>
             <source>${project.build.directory}/dependency/red5-service-${project.version}.jar</source>
             <outputDirectory>/</outputDirectory>
             <destName>red5-service.jar</destName>
         </file>
+-->
     </files>	
 	<fileSets>
 		<fileSet>

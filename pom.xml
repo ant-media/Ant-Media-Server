@@ -155,34 +155,6 @@
 							</excludes>
 						</configuration>
 					</execution>
-<!--
-					<execution>
-						<id>bootstrap</id>
-						<phase>package</phase>
-						<goals>
-							<goal>jar</goal>
-						</goals>
-						<configuration>
-							<classifier>bootstrap</classifier>
-							<archive>
-								<manifest>
-									<addDefaultImplementationEntries>true</addDefaultImplementationEntries>
-									<mainClass>org.red5.server.Bootstrap</mainClass>
-								</manifest>
-								<manifestEntries>
-									<SCM-Revision>${buildNumber}</SCM-Revision>
-									<Implementation-Build>${buildNumber}</Implementation-Build>
-								</manifestEntries>
-							</archive>
-							<includes>
-								<include>**/org/red5/server/Bootstrap.class</include>
-								<include>**/org/red5/server/Shutdown.class</include>
-								<include>**/org/red5/server/jmx/mxbeans/ShutdownMXBean.class</include>
-								<include>**/org/red5/classloading/**</include>
-							</includes>
-						</configuration>
-					</execution>
--->
 				</executions>
 			</plugin>
 			<plugin>
@@ -256,16 +228,13 @@
 						<dependencySourceInclude>org.red5:*</dependencySourceInclude>
 					</dependencySourceIncludes>
 					<detectOfflineLinks>false</detectOfflineLinks>
-					<stylesheetfile>javadoc.css</stylesheetfile>
+					<stylesheetfile>${basedir}/src/main/javadoc/javadoc.css</stylesheetfile>
 					<links>
-						<link>http://download.oracle.com/javase/6/docs/api</link>
-						<link>http://jetty.codehaus.org/jetty/jetty-6/apidocs</link>
-						<link>http://mina.apache.org/report/trunk/apidocs</link>
-						<link>http://static.springsource.org/spring/docs/3.0.x/api</link>
+						<link>http://download.oracle.com/javase/7/docs/api</link>
+						<link>http://docs.spring.io/spring/docs/4.0.3.RELEASE/javadoc-api</link>
 						<link>http://www.slf4j.org/api</link>
 						<link>http://logging.apache.org/log4j/1.2/apidocs</link>
-						<link>http://groovy.codehaus.org/api</link>
-						<link>http://tomcat.apache.org/tomcat-6.0-doc/api</link>
+						<link>http://quartz-scheduler.org/api/2.1.0</link>
 						<link>http://ehcache.org/apidocs</link>
 					</links>
 					<tags>
