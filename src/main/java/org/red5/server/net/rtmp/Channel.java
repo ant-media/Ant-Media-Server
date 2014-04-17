@@ -60,6 +60,7 @@ public class Channel {
 	 * @param channelId           Channel id
 	 */
 	public Channel(RTMPConnection conn, int channelId) {
+		assert(conn != null);
 		connection = conn;
 		id = channelId;
 	}
@@ -68,9 +69,7 @@ public class Channel {
 	 * Closes channel with this id on RTMP connection.
 	 */
 	public void close() {
-		if (connection != null) {
-			connection.closeChannel(id);
-		}
+		connection.closeChannel(id);
 	}
 
 	/**
@@ -97,7 +96,7 @@ public class Channel {
 	 * @param event          Event data
 	 */
 	public void write(IRTMPEvent event) {
-		if (connection != null) {
+		if (!connection.isClosed()) {
 			final IClientStream stream = connection.getStreamByChannelId(id);
 			if (id > 3 && stream == null) {
 				log.warn("Non-existant stream for channel id: {}, connection id: {} discarding: {}", id, connection.getSessionId());
@@ -106,7 +105,7 @@ public class Channel {
 			final int streamId = (stream == null) ? 0 : stream.getStreamId();
 			write(event, streamId);
 		} else {
-			log.trace("Connection is null for channel: {}", id);
+			log.debug("Associated connection {} is closed, cannot write to channel: {}", connection.getSessionId(), id);
 		}
 	}
 

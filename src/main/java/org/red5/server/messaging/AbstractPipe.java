@@ -40,9 +40,7 @@ import org.springframework.scheduling.concurrent.CustomizableThreadFactory;
  * @see     org.red5.server.messaging.IPipe
  */
 public abstract class AbstractPipe implements IPipe {
-	/**
-	 * Logger
-	 */
+
 	private static final Logger log = LoggerFactory.getLogger(AbstractPipe.class);
 
 	/**

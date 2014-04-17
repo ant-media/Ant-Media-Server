@@ -199,8 +199,8 @@ public class RTMPMinaIoHandler extends IoHandlerAdapter {
 	@Override
 	public void exceptionCaught(IoSession session, Throwable cause) throws Exception {
 		String sessionId = (String) session.getAttribute(RTMPConnection.RTMP_SESSION_ID);
-		log.warn("Exception caught on session: {} id: {}", session.getId(), sessionId, cause);
 		if (log.isDebugEnabled()) {
+			log.debug("Exception caught on session: {} id: {}", session.getId(), sessionId, cause);
 			cause.printStackTrace();
 		}
 		if (cause instanceof IOException) {

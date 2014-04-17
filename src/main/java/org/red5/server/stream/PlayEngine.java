@@ -20,6 +20,7 @@ package org.red5.server.stream;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -44,6 +45,7 @@ import org.red5.server.api.stream.OperationNotSupportedException;
 import org.red5.server.api.stream.StreamState;
 import org.red5.server.api.stream.support.DynamicPlayItem;
 import org.red5.server.messaging.AbstractMessage;
+import org.red5.server.messaging.IConsumer;
 import org.red5.server.messaging.IFilter;
 import org.red5.server.messaging.IMessage;
 import org.red5.server.messaging.IMessageComponent;
@@ -54,6 +56,7 @@ import org.red5.server.messaging.IPipe;
 import org.red5.server.messaging.IPipeConnectionListener;
 import org.red5.server.messaging.IProvider;
 import org.red5.server.messaging.IPushableConsumer;
+import org.red5.server.messaging.InMemoryPushPushPipe;
 import org.red5.server.messaging.OOBControlMessage;
 import org.red5.server.messaging.PipeConnectionEvent;
 import org.red5.server.net.rtmp.event.Aggregate;
@@ -806,6 +809,17 @@ public final class PlayEngine implements IFilter, IPushableConsumer, IPipeConnec
 			lastMessageTs = 0;
 			// XXX is clear ping required?
 			//sendClearPing();
+			if (msgOut != null) {
+				List<IConsumer> consumers = ((InMemoryPushPushPipe) msgOut).getConsumers();
+				// i would assume a list of 1 in most cases
+				if (!consumers.isEmpty()) {
+					log.debug("Message out consumers: {}", consumers.size());
+					for (IConsumer consumer : consumers) {
+						((InMemoryPushPushPipe) msgOut).unsubscribe(consumer);
+					}
+				}
+				msgOut = null;
+			}
 		} else {
 			log.debug("Stream is already in closed state");
 		}

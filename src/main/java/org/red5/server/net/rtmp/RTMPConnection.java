@@ -480,7 +480,9 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
 	 * @param channelId Channel id
 	 */
 	public void closeChannel(int channelId) {
-		channels.remove(channelId);
+		Channel chan = channels.remove(channelId);
+		log.debug("Closing / removing channel: {}", chan);
+		chan = null;
 	}
 
 	/**

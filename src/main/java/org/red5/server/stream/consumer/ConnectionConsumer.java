@@ -50,9 +50,6 @@ import org.slf4j.LoggerFactory;
  */
 public class ConnectionConsumer implements IPushableConsumer, IPipeConnectionListener {
 
-	/**
-	 * Logger
-	 */
 	private static final Logger log = LoggerFactory.getLogger(ConnectionConsumer.class);
 
 	/**
@@ -146,7 +143,6 @@ public class ConnectionConsumer implements IPushableConsumer, IPipeConnectionLis
 			// get the data type
 			byte dataType = msg.getDataType();
 			log.trace("Data type: {}", dataType);
-
 			//create a new header for the consumer
 			final Header header = new Header();
 			header.setTimerBase(eventTime);
@@ -217,7 +213,6 @@ public class ConnectionConsumer implements IPushableConsumer, IPipeConnectionLis
 					log.trace("Default: {}", dataType);
 					data.write(msg);
 			}
-
 		} else {
 			log.debug("Unhandled push message: {}", message);
 			if (log.isTraceEnabled()) {
@@ -232,9 +227,7 @@ public class ConnectionConsumer implements IPushableConsumer, IPipeConnectionLis
 		switch (event.getType()) {
 			case PipeConnectionEvent.PROVIDER_DISCONNECT:
 				// XXX should put the channel release code in ConsumerService
-				conn.closeChannel(video.getId());
-				conn.closeChannel(audio.getId());
-				conn.closeChannel(data.getId());
+				closeChannels();
 				break;
 			default:
 		}
@@ -280,4 +273,14 @@ public class ConnectionConsumer implements IPushableConsumer, IPipeConnectionLis
 		conn.getChannel((byte) 2).write(chunkSizeMsg);
 		chunkSizeSent = true;
 	}
+	
+	/**
+	 * Close all the channels
+	 */
+	private void closeChannels() {
+		conn.closeChannel(video.getId());
+		conn.closeChannel(audio.getId());
+		conn.closeChannel(data.getId());
+	}
+	
 }
