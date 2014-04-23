@@ -511,7 +511,7 @@ public final class PlayEngine implements IFilter, IPushableConsumer, IPipeConnec
 		subscriberStream.setState(StreamState.PLAYING);
 		streamOffset = 0;
 		streamStartTS = -1;
-		if (msgIn != null) {
+		if (msgIn != null && msgOut != null) {
 			// get the stream so that we can grab any metadata and decoder configs
 			IBroadcastStream stream = (IBroadcastStream) ((IBroadcastScope) msgIn).getClientBroadcastStream();
 			// prevent an NPE when a play list is created and then immediately flushed
@@ -595,7 +595,7 @@ public final class PlayEngine implements IFilter, IPushableConsumer, IPipeConnec
 				}
 			}			
 		} else {
-			throw new IOException("Message input pipe is null");
+			throw new IOException(String.format("A message pipe is null - in: %b out: %b", (msgIn == null), (msgOut == null)));
 		}		
 	}
 
@@ -1316,7 +1316,13 @@ public final class PlayEngine implements IFilter, IPushableConsumer, IPipeConnec
 	public void onOOBControlMessage(IMessageComponent source, IPipe pipe, OOBControlMessage oobCtrlMsg) {
 		if ("ConnectionConsumer".equals(oobCtrlMsg.getTarget())) {
 			if (source instanceof IProvider) {
-				msgOut.sendOOBControlMessage((IProvider) source, oobCtrlMsg);
+				if (msgOut != null) {
+					msgOut.sendOOBControlMessage((IProvider) source, oobCtrlMsg);
+				} else {
+					// this may occur when a attempts to play and then disconnects
+					log.warn("Output is not available, message cannot be sent");
+					close();
+				}
 			}
 		}
 	}
@@ -1444,15 +1450,18 @@ public final class PlayEngine implements IFilter, IPushableConsumer, IPipeConnec
 	 * @return          Number of pending video messages
 	 */
 	private long pendingVideoMessages() {
-		OOBControlMessage pendingRequest = new OOBControlMessage();
-		pendingRequest.setTarget("ConnectionConsumer");
-		pendingRequest.setServiceName("pendingVideoCount");
-		msgOut.sendOOBControlMessage(this, pendingRequest);
-		if (pendingRequest.getResult() != null) {
-			return (Long) pendingRequest.getResult();
-		} else {
-			return 0;
+		if (msgOut != null) {
+			OOBControlMessage pendingRequest = new OOBControlMessage();
+			pendingRequest.setTarget("ConnectionConsumer");
+			pendingRequest.setServiceName("pendingVideoCount");
+			msgOut.sendOOBControlMessage(this, pendingRequest);
+			if (pendingRequest.getResult() != null) {
+				return (Long) pendingRequest.getResult();
+			} else {
+				return 0;
+			}
 		}
+		return 0;
 	}
 
 	/**

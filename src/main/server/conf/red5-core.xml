@@ -145,25 +145,21 @@
 	</bean>
 		
    <!-- RTMPS -->
-<!--    
+<!-- 
     <bean id="rtmpsMinaIoHandler" class="org.red5.server.net.rtmps.RTMPSMinaIoHandler">
         <property name="handler" ref="rtmpHandler" />
         <property name="codecFactory" ref="rtmpCodecFactory" />
-        <property name="rtmpConnManager" ref="rtmpConnManager" />
         <property name="keyStorePassword" value="${rtmps.keystorepass}" />
         <property name="keystoreFile" value="conf/keystore" />
     </bean>
     
     <bean id="rtmpsTransport" class="org.red5.server.net.rtmp.RTMPMinaTransport" init-method="start" destroy-method="stop">
         <property name="ioHandler" ref="rtmpsMinaIoHandler" />
-        <property name="connectors">
-            <list>
-                <bean class="java.net.InetSocketAddress">
-                    <constructor-arg index="0" type="java.lang.String" value="${rtmps.host}" />  
-                    <constructor-arg index="1" type="int" value="${rtmps.port}" />  
-                </bean>
-            </list>
-        </property>
+		<property name="addresses">
+		    <list>
+		         <value>${rtmps.host}:${rtmps.port}</value>
+		    </list>
+		</property>
         <property name="ioThreads" value="${rtmp.io_threads}" />
         <property name="tcpNoDelay" value="${rtmp.tcp_nodelay}" />
     </bean>
