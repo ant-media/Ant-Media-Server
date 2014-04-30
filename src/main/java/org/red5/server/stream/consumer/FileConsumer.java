@@ -68,6 +68,7 @@ import org.springframework.scheduling.concurrent.CustomizableThreadFactory;
  * @author The Red5 Project
  * @author Paul Gregoire (mondain@gmail.com)
  * @author Vladimir Hmelyoff (vlhm@splitmedialabs.com)
+ * @author Octavian Naicu (naicuoctavian@gmail.com)
  */
 public class FileConsumer implements Constants, IPushableConsumer, IPipeConnectionListener {
 
@@ -311,14 +312,10 @@ public class FileConsumer implements Constants, IPushableConsumer, IPipeConnecti
 		try {
 			// sort the queue
 			log.trace("Queue length: {}", queue.size());
-			
 			if(!queue.isEmpty()) {
-    			QueuedData data;
-    			
-    			do {
-    				data = queue.remove();
-    				slice.add(data);
-    			} while (!queue.isEmpty() && data.getTimestamp() <= timestamp);
+				while (!queue.isEmpty() && queue.peek().getTimestamp() <= timestamp){
+				    slice.add(queue.remove());
+				}
     			log.trace("Queue length (after removal): {}", queue.size());
 			}
 		} finally {
@@ -490,6 +487,9 @@ public class FileConsumer implements Constants, IPushableConsumer, IPipeConnecti
 		} finally {
 			writeLock.unlock();
 		}
+		// sort
+		Arrays.sort(slice);
+		// write
 		doWrites(slice);
 	}
 
