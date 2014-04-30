@@ -233,7 +233,7 @@ public class FileUtil {
 	/**
 	 * Special method for capture of StdOut.
 	 * 
-	 * @return
+	 * @return stdOut thread
 	 */
 	private final static Thread stdOut(final Process p) {
 		final byte[] empty = new byte[128];

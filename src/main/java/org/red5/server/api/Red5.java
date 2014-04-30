@@ -90,6 +90,11 @@ public final class Red5 {
 	private static final long START_TIME = System.currentTimeMillis();
 
 	/**
+	 * Detection of debug mode
+	 */
+	private static boolean debug = java.lang.management.ManagementFactory.getRuntimeMXBean().getInputArguments().toString().indexOf("jdwp") >= 0;
+	
+	/**
 	 * Create a new Red5 object using given connection.
 	 * 
 	 * @param conn Connection object.
@@ -199,6 +204,15 @@ public final class Red5 {
 
 	public static Object getDataVersion() {
 		return DATA_VERSION;
+	}
+
+	/**
+	 * Returns true if java debugging was detected.
+	 * 
+	 * @return true if debugging, false otherwise
+	 */
+	public static boolean isDebug() {
+		return debug;
 	}
 
 	/**

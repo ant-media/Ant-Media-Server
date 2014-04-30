@@ -469,10 +469,9 @@ public class SharedObjectScope extends BasicScope implements ISharedObject,	Stat
 	}
 
 	/**
-	 * Return security handlers for this shared object or <code>null</code> if
-	 * none are found.
+	 * Return security handlers for this shared object or <code>null</code> if none are found.
 	 * 
-	 * @return
+	 * @return set of security handlers
 	 */
 	private Set<ISharedObjectSecurity> getSecurityHandlers() {
 		ISharedObjectSecurityService security = (ISharedObjectSecurityService) ScopeUtils.getScopeService(getParent(), ISharedObjectSecurityService.class);

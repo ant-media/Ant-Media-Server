@@ -21,7 +21,7 @@ public final class UrlQueryStringMap<K, V> extends HashMap<K, V> {
 	 * Parse a given query string and return an instance of this class.
 	 * 
 	 * @param queryString
-	 * @return
+	 * @return query string items as map entries
 	 */
 	public static UrlQueryStringMap<String, String> parse(String queryString) {
 		UrlQueryStringMap<String, String> map = new UrlQueryStringMap<String, String>();

@@ -258,7 +258,7 @@ public class RTMPProtocolDecoder implements Constants, IEventDecoder {
 	 * Decodes an IoBuffer into a Packet.
 	 * 
 	 * @param conn Connection
-	 * @param rtmp RTMP protocol state
+	 * @param state RTMP protocol state
 	 * @param in IoBuffer
 	 * @return Packet
 	 */

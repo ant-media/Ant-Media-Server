@@ -198,7 +198,7 @@ public class RhinoScriptUtils {
 	 * create an instance of the javascript object.
 	 * 
 	 * @param scriptSource
-	 * @return
+	 * @return function name
 	 */
 	private static String getFunctionName(String scriptSource) {
 		String ret = "undefined";
@@ -215,7 +215,7 @@ public class RhinoScriptUtils {
 		} catch (IndexOutOfBoundsException ex) {
 			log.error("Non-existent backreference used the replacement text");
 		}
-		log.debug("Got a function name: " + ret);
+		log.debug("Got a function name: {}", ret);
 		return ret;
 	}
 

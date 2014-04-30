@@ -92,11 +92,10 @@ public class ServletUtils {
 	}
 
 	/**
-	 * Copies information from the input stream to the output stream using the
-	 * specified content length
+	 * Copies information from the http request to the output stream using the specified content length.
 	 * 
-	 * @param input input
-	 * @param output output 
+	 * @param req Request
+	 * @param output Output stream 
 	 * @throws java.io.IOException on error
 	 */
 	public static void copy(HttpServletRequest req, OutputStream output) throws IOException {

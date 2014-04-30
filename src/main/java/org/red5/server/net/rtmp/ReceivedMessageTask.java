@@ -28,8 +28,6 @@ public final class ReceivedMessageTask implements Callable<Boolean> {
 	
 	// maximum time allowed to process received message
 	private long maxHandlingTimeout = 500L;
-
-	//private final long id = System.currentTimeMillis();
 	
 	public ReceivedMessageTask(String sessionId, Packet message, IRTMPHandler handler) {
 		this(sessionId, message, handler, (RTMPConnection) RTMPConnManager.getInstance().getConnectionBySessionId(sessionId));
@@ -46,23 +44,28 @@ public final class ReceivedMessageTask implements Callable<Boolean> {
 		// set connection to thread local
 		Red5.setConnectionLocal(conn);
 		try {
-			//log.trace("[{}] run begin {}", sessionId, id);
-			// run a deadlock guard so hanging tasks will be interrupted
-			guard = new Thread(new DeadlockGuard(Thread.currentThread()));
-			guard.start();
+			//log.trace("[{}] run begin", sessionId);
+			// don't run the deadlock guard if we're in debug mode
+			if (!Red5.isDebug()) {
+				// run a deadlock guard so hanging tasks will be interrupted
+				guard = new Thread(new DeadlockGuard(Thread.currentThread()));
+				guard.start();
+			}
 			// pass message to the handler
 			handler.messageReceived(conn, message);
 		} catch (Exception e) {
 			log.error("Error processing received message {}", sessionId, e);
 		} finally {
-			//log.info("[{}] run end {}", sessionId, id);
+			//log.info("[{}] run end", sessionId);
 			// clear thread local
 			Red5.setConnectionLocal(null);
 			// set done / completed flag
 			done.set(true);
-			// interrupt and join on deadlock guard
-			guard.interrupt();
-			guard.join();
+			if (guard != null) {
+				// interrupt and join on deadlock guard
+				guard.interrupt();
+				guard.join();
+			}
 		}
 		return Boolean.valueOf(done.get());
 	}

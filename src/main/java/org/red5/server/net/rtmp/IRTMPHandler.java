@@ -36,7 +36,7 @@ public interface IRTMPHandler {
 	 * Message received.
 	 * 
 	 * @param conn Connection 
-	 * @param in IoBuffer or Packet containing an RTMP message
+	 * @param packet Packet containing an RTMP message
 	 * @throws Exception   
 	 */
 	public void messageReceived(RTMPConnection conn, Packet packet) throws Exception;
@@ -45,7 +45,7 @@ public interface IRTMPHandler {
 	 * Message sent.
 	 * 
 	 * @param conn Connection
-	 * @param message Message
+	 * @param packet RTMP message
 	 */
 	public void messageSent(RTMPConnection conn, Packet packet);
 

@@ -97,7 +97,10 @@ public class RTMPTConnection extends BaseRTMPTConnection {
 		ioSession.setAttribute(RTMPConnection.RTMP_SESSION_ID, sessionId);
 	}
 
-	/** {@inheritDoc} */
+	/** 
+	 * Returns the IoSession. Note that this is a compatibility item and is not constructed by Mina.
+	 * @return ioSession
+	 */
 	protected IoSession getSession() {
 		return ioSession;
 	}

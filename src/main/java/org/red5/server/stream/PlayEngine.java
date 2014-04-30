@@ -830,7 +830,7 @@ public final class PlayEngine implements IFilter, IPushableConsumer, IPipeConnec
 	 * bandwidth as well as the requested client buffer into account.
 	 * 
 	 * @param message
-	 * @return
+	 * @return true if it is ok to send more, false otherwise
 	 */
 	private boolean okayToSendMessage(IRTMPEvent message) {
 		if (message instanceof IStreamData) {
@@ -1298,7 +1298,7 @@ public final class PlayEngine implements IFilter, IPushableConsumer, IPipeConnec
 	 * Send VOD check video control message
 	 * 
 	 * @param msgIn
-	 * @return
+	 * @return result of oob control message
 	 */
 	private boolean sendCheckVideoCM(IMessageInput msgIn) {
 		OOBControlMessage oobCtrlMsg = new OOBControlMessage();
