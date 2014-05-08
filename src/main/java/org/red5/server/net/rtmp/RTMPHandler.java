@@ -235,6 +235,7 @@ public class RTMPHandler extends BaseRTMPHandler {
 				if (log.isDebugEnabled()) {
 					log.debug("Stream action: {}", streamAction.toString());
 				}
+				// TODO change this to an application scope parameter and / or change to the listener pattern
 				if (dispatchStreamActions) {
 					// pass the stream action event to the handler
 					try {
