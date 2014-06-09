@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<artifactId>red5-server</artifactId>
 	<packaging>jar</packaging>
@@ -58,7 +59,8 @@
 		<slf4j.version>1.7.5</slf4j.version>
 		<logback.version>1.0.13</logback.version>
 		<quartz.version>2.1.7</quartz.version>
-		<junit.version>4.11</junit.version> 
+		<junit.version>4.11</junit.version>
+		<bc.version>1.50</bc.version>
 	</properties>
 	<scm>
 		<connection>scm:git:https://github.com/Red5/red5-server.git</connection>
@@ -112,12 +114,11 @@
 		<plugins>
 			<plugin>
 				<artifactId>maven-compiler-plugin</artifactId>
-				<version>2.3.2</version>
+				<version>3.1</version>
 				<configuration>
-					<compilerVersion>1.6</compilerVersion>
-					<fork>true</fork>
 					<source>1.6</source>
-					<target>1.6</target>
+					<target>1.7</target>
+					<fork>true</fork>
 				</configuration>
 			</plugin>
 			<plugin>
@@ -415,7 +416,7 @@
 		<dependency>
 			<groupId>org.bouncycastle</groupId>
 			<artifactId>bcprov-jdk15on</artifactId>
-			<version>1.47</version>
+			<version>${bc.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.slf4j</groupId>
@@ -558,19 +559,9 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-<!--
-		<dependency>
-			<groupId>org.springframework</groupId>
-			<artifactId>spring-asm</artifactId>
-			<version>${spring.version}</version>
-			<exclusions>
-				<exclusion>
-					<groupId>commons-logging</groupId>
-					<artifactId>commons-logging</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
--->
+		<!-- <dependency> <groupId>org.springframework</groupId> <artifactId>spring-asm</artifactId> 
+			<version>${spring.version}</version> <exclusions> <exclusion> <groupId>commons-logging</groupId> 
+			<artifactId>commons-logging</artifactId> </exclusion> </exclusions> </dependency> -->
 		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-beans</artifactId>
@@ -715,10 +706,7 @@
 			<artifactId>red5-io</artifactId>
 			<version>${red5-io.version}</version>
 			<type>jar</type>
-			<!-- 
-            <scope>system</scope> 
-            <systemPath>${basedir}/lib/red5-io-1.0.2.jar</systemPath>
-             -->
+			<!-- <scope>system</scope> <systemPath>${basedir}/lib/red5-io-1.0.2.jar</systemPath> -->
 		</dependency>
 		<dependency>
 			<groupId>org.red5</groupId>
@@ -735,6 +723,6 @@
 			<groupId>org.aspectj</groupId>
 			<artifactId>aspectjrt</artifactId>
 			<version>1.7.4</version>
-		</dependency>		
+		</dependency>
 	</dependencies>
 </project>
