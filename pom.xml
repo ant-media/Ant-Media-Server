@@ -52,7 +52,7 @@
 	</developers>
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<red5-io.version>1.0.3-SNAPSHOT</red5-io.version>
+		<red5-io.version>1.0.4-SNAPSHOT</red5-io.version>
 		<red5-service.version>1.0.2-RELEASE</red5-service.version>
 		<spring.version>4.0.3.RELEASE</spring.version>
 		<mina.version>2.0.7</mina.version>
