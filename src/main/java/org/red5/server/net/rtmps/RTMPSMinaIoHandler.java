@@ -18,24 +18,16 @@
 
 package org.red5.server.net.rtmps;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.io.NotActiveException;
-import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
 import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.cert.CertificateException;
 
-import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 
-import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.mina.core.session.IoSession;
 import org.apache.mina.filter.codec.ProtocolCodecFilter;
+import org.apache.mina.filter.ssl.KeyStoreFactory;
+import org.apache.mina.filter.ssl.SslContextFactory;
 import org.apache.mina.filter.ssl.SslFilter;
 import org.red5.server.net.rtmp.InboundHandshake;
 import org.red5.server.net.rtmp.RTMPConnection;
@@ -69,35 +61,38 @@ public class RTMPSMinaIoHandler extends RTMPMinaIoHandler {
 	/**
 	 * Password for accessing the keystore.
 	 */
-	private char[] password;
+	private String keystorePassword;
+	
+	/**
+	 * Password for accessing the truststore.
+	 */
+	private String truststorePassword;
 
 	/**
-	 * Stores the keystore file bytes.
+	 * Stores the keystore path.
 	 */
-	private byte[] keystore;
+	private String keystoreFile;
+
+	/**
+	 * Stores the truststore path.
+	 */
+	private String truststoreFile;
 
 	/**
 	 * The keystore type, valid options are JKS and PKCS12
 	 */
+	@SuppressWarnings("unused")
 	private String keyStoreType = "JKS";
 
 	/** {@inheritDoc} */
 	@Override
 	public void sessionCreated(IoSession session) throws Exception {
-		log.debug("Session created");
-		if (password == null || keystore == null) {
-			throw new NotActiveException("Keystore or password are null");
+		log.trace("Session created");
+		if (keystoreFile == null || truststoreFile == null) {
+			throw new NotActiveException("Keystore or truststore are null");
 		}
-		// START OF NATIVE SSL STUFF
-		SSLContext context = SSLContext.getInstance("TLS"); //TLS, TLSv1, TLSv1.1
-		// The reference implementation only supports X.509 keys
-		KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509");
-		//initialize the key manager
-		kmf.init(getKeyStore(), password);
-		// initialize the ssl context
-		context.init(kmf.getKeyManagers(), null, null);
-		//create the ssl filter using server mode
-		SslFilter sslFilter = new SslFilter(context);
+		//create the ssl filter
+		SslFilter sslFilter = getSslFilter();
 		session.getFilterChain().addFirst("sslFilter", sslFilter);
 		// END OF NATIVE SSL STUFF	
 		// add rtmpe filter after ssl
@@ -115,23 +110,44 @@ public class RTMPSMinaIoHandler extends RTMPMinaIoHandler {
 		// add the in-bound handshake
 		session.setAttribute(RTMPConnection.RTMP_HANDSHAKE, new InboundHandshake());
 	}	
-	
-	/**
-	 * Returns a KeyStore.
-	 * @return KeyStore
-	 * @throws IOException 
-	 * @throws CertificateException 
-	 * @throws NoSuchAlgorithmException 
-	 * @throws KeyStoreException 
-	 */
-	private KeyStore getKeyStore() throws NoSuchAlgorithmException, CertificateException, IOException, KeyStoreException {
-		// Sun's default kind of key store
-		KeyStore ks = KeyStore.getInstance(keyStoreType);
-		// For security, every key store is encrypted with a pass phrase that must be provided before we can load
-		// it from disk. The pass phrase is stored as a char[] array so it can be wiped from memory quickly rather than
-		// waiting for a garbage collector. Of course using a string literal here completely defeats that purpose.
-		ks.load(new ByteArrayInputStream(keystore), password);
-		return ks;
+
+	public SslFilter getSslFilter() throws Exception {
+		SSLContext context = getSslContext();
+		// create the ssl filter using server mode
+		SslFilter sslFilter = new SslFilter(context);
+		return sslFilter;
+	}
+
+	private SSLContext getSslContext() {
+		SSLContext sslContext = null;
+		try {
+			File keyStore = new File(keystoreFile);
+			File trustStore = new File(truststoreFile);
+			if (keyStore.exists() && trustStore.exists()) {
+				final KeyStoreFactory keyStoreFactory = new KeyStoreFactory();
+				keyStoreFactory.setDataFile(keyStore);
+				keyStoreFactory.setPassword(keystorePassword);
+
+				final KeyStoreFactory trustStoreFactory = new KeyStoreFactory();
+				trustStoreFactory.setDataFile(trustStore);
+				trustStoreFactory.setPassword(truststorePassword);
+
+				final SslContextFactory sslContextFactory = new SslContextFactory();
+				final KeyStore ks = keyStoreFactory.newInstance();
+				sslContextFactory.setKeyManagerFactoryKeyStore(ks);
+
+				final KeyStore ts = trustStoreFactory.newInstance();
+				sslContextFactory.setTrustManagerFactoryKeyStore(ts);
+				sslContextFactory.setKeyManagerFactoryKeyStorePassword(keystorePassword);
+				sslContext = sslContextFactory.newInstance();
+				log.debug("SSL provider is: {}", sslContext.getProvider());
+			} else {
+				log.warn("Keystore or Truststore file does not exist");
+			}
+		} catch (Exception ex) {
+			log.error("Exception getting SSL context", ex);
+		}
+		return sslContext;
 	}
 
 	/**
@@ -139,50 +155,35 @@ public class RTMPSMinaIoHandler extends RTMPMinaIoHandler {
 	 * 
 	 * @param password
 	 */
-	public void setKeyStorePassword(String password) {
-		this.password = password.toCharArray();
+	public void setKeystorePassword(String password) {
+		this.keystorePassword = password;
 	}
 
+	/**
+	 * Password used to access the truststore file.
+	 * 
+	 * @param password
+	 */
+	public void setTruststorePassword(String password) {
+		this.truststorePassword = password;
+	}	
+	
 	/**
 	 * Set keystore data from a file.
 	 * 
 	 * @param path contains keystore
 	 */
 	public void setKeystoreFile(String path) {
-		FileInputStream fis = null;
-		try {
-			File file = new File(path);
-			if (file.exists()) {
-				fis = new FileInputStream(file);
-				FileChannel fc = fis.getChannel();
-				ByteBuffer fb = ByteBuffer.allocate(Long.valueOf(file.length()).intValue());
-				fc.read(fb);
-				fb.flip();
-				keystore = IoBuffer.wrap(fb).array();
-			} else {
-				log.warn("Keystore file does not exist: {}", path);
-			}
-			file = null;
-		} catch (Exception e) {
-			log.warn("Error setting keystore data", e);
-		} finally {
-			if (fis != null) {
-				try {
-					fis.close();
-				} catch (IOException e) {
-				}
-			}
-		}
+		this.keystoreFile = path;
 	}
 
 	/**
-	 * Set keystore data from a file.
+	 * Set truststore file path.
 	 * 
-	 * @param arr keystore bytes
+	 * @param path contains truststore
 	 */
-	public void setKeystoreBytes(byte[] arr) {
-		keystore = new byte[arr.length];
-		System.arraycopy(arr, 0, keystore, 0, arr.length);
+	public void setTruststoreFile(String path) {
+		this.truststoreFile = path;
 	}
 
 	/**
