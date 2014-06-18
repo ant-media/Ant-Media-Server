@@ -69,34 +69,17 @@
                     <property name="redirectPort" value="${http.port}" />  
                     <property name="connectionProperties">
                         <map>           
-                            <entry>
-                                <key><value>port</value></key>
-                                <value>${https.port}</value>
-                            </entry>
-                            <entry>
-                                <key><value>redirectPort</value></key>
-                                <value>${http.port}</value>
-                            </entry>
-                            <entry>
-                                <key><value>sslProtocol</value></key>
-                                <value>TLS</value>
-                            </entry>
-                            <entry>
-                                <key><value>clientAuth</value></key>
-                                <value>false</value>
-                            </entry>
-                            <entry>
-                                <key><value>keystoreFile</value></key>
-                                <value>${rtmps.keystorefile}</value>
-                            </entry>
-                            <entry>
-                                <key><value>keystorePass</value></key>
-                                <value>${rtmps.keystorepass}</value>
-                            </entry>
-                            <entry>
-                                <key><value>keystoreType</value></key>
-                                <value>JKS</value>
-                            </entry>
+                            <entry key="port" value="${https.port}" />
+                            <entry key="redirectPort" value="${http.port}" />
+                            <entry key="SSLEnabled" value="true" />
+                            <entry key="sslProtocol" value="TLS" />
+                            <entry key="keystoreFile" value="${rtmps.keystorefile}" />
+                            <entry key="keystorePass" value="${rtmps.keystorepass}" />
+                            <entry key="keystoreType" value="JKS" />
+                            <entry key="truststoreFile" value="${rtmps.truststorefile}" />
+                            <entry key="truststorePass" value="${rtmps.truststorepass}" />
+                            <entry key="clientAuth" value="false" />                             
+                            <entry key="allowUnsafeLegacyRenegotiation" value="true" />                             
                             <entry key="maxKeepAliveRequests" value="${http.max_keep_alive_requests}"/>
                             <entry key="useExecutor" value="true"/>
                             <entry key="maxThreads" value="${http.max_threads}"/>
@@ -112,19 +95,6 @@
             <bean class="org.apache.catalina.core.StandardHost">
                 <property name="name" value="${http.host}" />
             </bean>     
-        </property>   
-
-        <property name="valves">
-            <list>
-                <bean id="valve.access" class="org.apache.catalina.valves.AccessLogValve">
-                    <property name="directory" value="log" />
-                    <property name="prefix" value="${http.host}_access." />
-                    <property name="suffix" value=".log" />
-                    <property name="pattern" value="common" />
-                    <property name="resolveHosts" value="false" />
-                    <property name="rotatable" value="true" />
-                </bean>
-            </list>
         </property>
         
     </bean>
