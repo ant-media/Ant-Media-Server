@@ -95,16 +95,14 @@ public class ScopeResolver implements IScopeResolver {
 					// skip empty path elements
 					continue;
 				}
-				if (scope.hasChildScope(child)) {
-					scope = scope.getScope(child);
-				} else if (!scope.equals(root)) {
-					// no need for sync here, scope.children is concurrent
-					if (scope.createChildScope(child)) {
-						scope = scope.getScope(child);
-					}
+				// if scope does not exist and we are not in the root, create a child scope
+				if (!scope.hasChildScope(child) && !scope.equals(root)) {
+					scope.createChildScope(child);
 				}
-				// if the scope is still equal to root then the room was not found
-				if (scope == root) {
+				// get child scope
+				scope = scope.getScope(child);
+				// if the scope is null then the room was not found
+				if (scope == null) {
 					throw new ScopeNotFoundException(scope, child);
 				}
 				// some scopes don't implement IScope, such as SharedObjectScope
