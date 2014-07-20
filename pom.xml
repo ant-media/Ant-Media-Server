@@ -7,7 +7,7 @@
 	<name>Red5 :: Server</name>
 	<description>The Red5 server</description>
 	<groupId>org.red5</groupId>
-	<version>1.0.3-SNAPSHOT</version>
+	<version>1.0.3-RELEASE</version>
 	<url>https://code.google.com/p/red5/</url>
 	<inceptionYear>2005</inceptionYear>
 	<organization>
@@ -53,8 +53,8 @@
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<red5-io.version>1.0.4-SNAPSHOT</red5-io.version>
-		<red5-service.version>1.0.2-RELEASE</red5-service.version>
-		<spring.version>4.0.3.RELEASE</spring.version>
+		<red5-service.version>1.0.3-RELEASE</red5-service.version>
+		<spring.version>4.0.6.RELEASE</spring.version>
 		<mina.version>2.0.7</mina.version>
 		<slf4j.version>1.7.7</slf4j.version>
 		<logback.version>1.1.2</logback.version>
