@@ -7,9 +7,15 @@ The majority of the Red5 project information continues to reside on Google Code.
 
 The Red5 users list may be found here: https://groups.google.com/forum/#!forum/red5interest
 
-Latest version is 1.0.2-RELEASE
+Latest version is <b>1.0.3-RELEASE</b>
 
-*Red5 1.0.2 Release (9 April 2014)*
+<h3>Red5 1.0.3 Release (5 August 2014)</h3>
+<a href="https://mega.co.nz/#!JcNwyKab!Mk7aMIL_bAsRQgReBz0hIuDBs0vfncl901ZtLY3u0dM">Tarball</a> | 
+<a href="https://mega.co.nz/#!1BdigLgY!m_mGoSw5SEPh0Nf8qGGmGaUn3VXpIVrYHpVYCYNsK7Q">ZIP</a>
+
+<i>The Windows installer will be available once my Windows development PC is setup</i>
+
+<h3>Red5 1.0.2 Release (9 April 2014)</h3>
 <a href="https://mega.co.nz/#!FFsV0TIC!eEeGePK30nCv0xF5E7w_6S3b_z8Y9pjzMkp2-UgZTYk">Windows Java7</a> | 
 <a href="https://mega.co.nz/#!8EUFwAxR!qJjgtFCs5tY86ZDqolL_nL9SsWradm4BQeOugffZqqs">Tarball</a> | 
 <a href="https://mega.co.nz/#!QUNEiDoI!RhT8p660eJImIuI3kRhuZHfRWxtnZTSpp0-va2_wyrw">ZIP</a>

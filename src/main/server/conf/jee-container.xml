@@ -99,5 +99,13 @@
         
     </bean>
 -->
-	
+    <!-- This entry enabled websocket support on port 8081 at localhost -->
+    <bean id="webSocketTransport" class="org.red5.net.websocket.WebSocketTransport">
+        <property name="addresses">
+            <list>
+                <value>localhost:8081</value>
+            </list>
+        </property>
+    </bean>
+
 </beans>
