@@ -82,11 +82,13 @@ public class ProviderService implements IProviderService {
 		IBroadcastScope broadcastScope = scope.getBroadcastScope(name);
 		if (broadcastScope == null) {
 			if (needCreate) {
-				// re-check if another thread already created the scope
-				broadcastScope = scope.getBroadcastScope(name);
-				if (broadcastScope == null) {
-					broadcastScope = new BroadcastScope(scope, name);
-					scope.addChildScope(broadcastScope);
+				synchronized(scope) {
+					// re-check if another thread already created the scope
+					broadcastScope = scope.getBroadcastScope(name);
+					if (broadcastScope == null) {
+						broadcastScope = new BroadcastScope(scope, name);
+						scope.addChildScope(broadcastScope);
+					}
 				}
 			} else {
 				return null;
