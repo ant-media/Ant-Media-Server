@@ -7,7 +7,7 @@
 	<name>Red5 :: Server</name>
 	<description>The Red5 server</description>
 	<groupId>org.red5</groupId>
-	<version>1.0.3-RELEASE</version>
+	<version>1.0.4-SNAPSHOT</version>
 	<url>https://code.google.com/p/red5/</url>
 	<inceptionYear>2005</inceptionYear>
 	<organization>
@@ -60,7 +60,7 @@
 		<logback.version>1.1.2</logback.version>
 		<quartz.version>2.1.7</quartz.version>
 		<junit.version>4.11</junit.version>
-		<bc.version>1.50</bc.version>
+		<bc.version>1.51</bc.version>
 	</properties>
 	<scm>
 		<connection>scm:git:https://github.com/Red5/red5-server.git</connection>

@@ -66,7 +66,7 @@ public final class Red5 {
 	/**
 	 * Current server version with revision
 	 */
-	public static final String VERSION = "Red5 Server 1.0.3-SNAPSHOT";
+	public static final String VERSION = "Red5 Server 1.0.4-SNAPSHOT";
 
 	/**
 	 * Current server version for fmsVer requests 
