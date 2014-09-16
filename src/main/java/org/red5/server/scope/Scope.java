@@ -897,13 +897,13 @@ public class Scope extends BasicScope implements IScope, IScopeStatistics, Scope
 	 */
 	public void uninit() {
 		log.debug("Un-init scope");
-		setEnabled(false);
 		for (IBasicScope child : children.keySet()) {
 			if (child instanceof Scope) {
 				((Scope) child).uninit();
 			}
 		}
 		stop();
+		setEnabled(false);
 		if (hasParent()) {
 			if (parent.hasChildScope(name)) {
 				parent.removeChildScope(this);
