@@ -140,8 +140,7 @@ public class GroovyScriptFactory implements ScriptFactory, BeanClassLoaderAware 
 	 * Loads and parses the Groovy script via the GroovyClassLoader.
 	 * @see groovy.lang.GroovyClassLoader
 	 */
-	@SuppressWarnings({ "rawtypes" })
-	public Object getScriptedObject(ScriptSource scriptSource, Class[] actualInterfaces)
+	public Object getScriptedObject(ScriptSource scriptSource, Class<?>... actualInterfaces)
 			throws IOException, ScriptCompilationException {
 
 		try {
