@@ -31,9 +31,9 @@ import javax.management.ObjectName;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.conn.HttpHostConnectException;
-import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.params.CoreProtocolPNames;
 import org.apache.http.util.EntityUtils;
 import org.red5.compatibility.flex.messaging.messages.AcknowledgeMessage;
@@ -104,7 +104,7 @@ public final class Installer {
 	public AsyncMessage getApplicationList() {
 		AcknowledgeMessage result = new AcknowledgeMessage();
 		// create a singular HttpClient object
-		DefaultHttpClient client = HttpConnectionUtil.getClient();
+		HttpClient client = HttpConnectionUtil.getClient();
 		//setup GET
 		HttpGet method = null;
 		try {
@@ -215,7 +215,7 @@ public final class Installer {
 			//if the file was not found then download it
 			if (!result) {
 				// create a singular HttpClient object
-				DefaultHttpClient client = HttpConnectionUtil.getClient();
+				HttpClient client = HttpConnectionUtil.getClient();
 				// set transfer encoding
 				client.getParams().setBooleanParameter(CoreProtocolPNames.STRICT_TRANSFER_ENCODING, Boolean.TRUE);
 				//setup GET
