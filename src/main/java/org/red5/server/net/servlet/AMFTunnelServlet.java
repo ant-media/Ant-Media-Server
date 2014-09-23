@@ -29,10 +29,9 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
+import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.InputStreamEntity;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.params.CoreConnectionPNames;
 import org.apache.http.util.EntityUtils;
 import org.apache.mina.core.buffer.IoBuffer;
 import org.red5.logging.Red5LoggerFactory;
@@ -77,8 +76,7 @@ public class AMFTunnelServlet extends HttpServlet {
 	 */
 	@Override
 	protected void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-		DefaultHttpClient client = HttpConnectionUtil.getClient();
-		client.getParams().setParameter(CoreConnectionPNames.SO_TIMEOUT, connectionTimeout);
+		HttpClient client = HttpConnectionUtil.getClient(connectionTimeout);
 		//setup POST
 		HttpPost post = null;
 		try {
