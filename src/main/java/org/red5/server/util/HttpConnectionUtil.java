@@ -62,7 +62,7 @@ public class HttpConnectionUtil {
 	 * 
 	 * @return client
 	 */
-	public static final DefaultHttpClient getClient() {
+	public static final HttpClient getClient() {
 		return getClient(connectionTimeout);
 	}
 
@@ -72,7 +72,7 @@ public class HttpConnectionUtil {
 	 * @param timeout - socket timeout to set
 	 * @return client
 	 */
-	public static final DefaultHttpClient getClient(int timeout) {
+	public static final HttpClient getClient(int timeout) {
 		HttpClientBuilder client = HttpClientBuilder.create();
 		client.setConnectionManager(connectionManager);
 		// dont retry
