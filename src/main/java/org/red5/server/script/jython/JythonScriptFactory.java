@@ -99,8 +99,7 @@ public class JythonScriptFactory implements ScriptFactory {
 	}
 
 	/** {@inheritDoc} */
-	@SuppressWarnings({ "rawtypes" })
-	public Object getScriptedObject(ScriptSource scriptSourceLocator, Class[] scriptInterfaces) throws IOException,
+	public Object getScriptedObject(ScriptSource scriptSourceLocator, Class<?>... scriptInterfaces) throws IOException,
 			ScriptCompilationException {
 		String basePath = "";
 

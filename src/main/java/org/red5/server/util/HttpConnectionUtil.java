@@ -24,14 +24,11 @@ import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.ParseException;
-import org.apache.http.client.params.ClientPNames;
-import org.apache.http.conn.params.ConnRoutePNames;
-import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.impl.client.DefaultHttpRequestRetryHandler;
-import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
-import org.apache.http.params.CoreConnectionPNames;
-import org.apache.http.params.CoreProtocolPNames;
-import org.apache.http.params.HttpParams;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,22 +39,21 @@ import org.slf4j.LoggerFactory;
  * @author The Red5 Project
  * @author Paul Gregoire (mondain@gmail.com)
  */
-@SuppressWarnings("deprecation")
 public class HttpConnectionUtil {
 
 	private static Logger log = LoggerFactory.getLogger(HttpConnectionUtil.class);
 
 	private static final String userAgent = "Mozilla/4.0 (compatible; Red5 Server)";
 	
-	private static ThreadSafeClientConnManager connectionManager;
+	private static PoolingHttpClientConnectionManager connectionManager;
 	
 	private static int connectionTimeout = 7000;
 	
 	static {
-		// Create an HttpClient with the ThreadSafeClientConnManager.
+		// Create an HttpClient with the PoolingHttpClientConnectionManager.
 		// This connection manager must be used if more than one thread will
 		// be using the HttpClient.
-		connectionManager = new ThreadSafeClientConnManager();
+		connectionManager = new PoolingHttpClientConnectionManager();
 		connectionManager.setMaxTotal(40);
 	}
 
@@ -66,25 +62,35 @@ public class HttpConnectionUtil {
 	 * 
 	 * @return client
 	 */
-	public static final DefaultHttpClient getClient() {
-		// create a singular HttpClient object
-		DefaultHttpClient client = new DefaultHttpClient(connectionManager);
+	public static final HttpClient getClient() {
+		return getClient(connectionTimeout);
+	}
+
+	/**
+	 * Returns a client with all our selected properties / params.
+	 * 
+	 * @param timeout - socket timeout to set
+	 * @return client
+	 */
+	public static final HttpClient getClient(int timeout) {
+		HttpClientBuilder client = HttpClientBuilder.create();
+		client.setConnectionManager(connectionManager);
 		// dont retry
-		client.setHttpRequestRetryHandler(new DefaultHttpRequestRetryHandler(0, false));
-		// get the params for the client
-		HttpParams params = client.getParams();
+		client.setRetryHandler(new DefaultHttpRequestRetryHandler(0, false));
 		// establish a connection within x seconds
-		params.setParameter(CoreConnectionPNames.SO_TIMEOUT, connectionTimeout);
+		RequestConfig config = RequestConfig.custom().setSocketTimeout(timeout).build();
+		client.setDefaultRequestConfig(config);
 		// no redirects
-		params.setParameter(ClientPNames.HANDLE_REDIRECTS, false);
+		client.disableRedirectHandling();
 		// set custom ua
-		params.setParameter(CoreProtocolPNames.USER_AGENT, userAgent);
+		client.setUserAgent(userAgent);
 		// set the proxy if the user has one set
 		if ((System.getProperty("http.proxyHost") != null) && (System.getProperty("http.proxyPort") != null)) {
-            HttpHost proxy = new HttpHost(System.getProperty("http.proxyHost").toString(), Integer.valueOf(System.getProperty("http.proxyPort")));
-            client.getParams().setParameter(ConnRoutePNames.DEFAULT_PROXY, proxy);
+			HttpHost proxy = new HttpHost(System.getProperty("http.proxyHost").toString(), Integer.valueOf(System.getProperty("http.proxyPort")));
+			client.setProxy(proxy);
 		}
-		return client;
+		
+		return client.build();
 	}
 	
 	/**

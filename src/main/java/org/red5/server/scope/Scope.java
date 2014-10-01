@@ -152,12 +152,6 @@ public class Scope extends BasicScope implements IScope, IScopeStatistics, Scope
 	private boolean running;
 
 	/**
-	 * Lock for critical sections, to prevent concurrent modification. 
-	 * A "fairness" policy is used wherein the longest waiting thread will be granted access before others.
-	 */
-	//protected Semaphore lock = new Semaphore(1, true);
-
-	/**
 	 * Registered service handlers for this scope. The map is created on-demand
 	 * only if it's accessed for writing.
 	 */
@@ -897,13 +891,13 @@ public class Scope extends BasicScope implements IScope, IScopeStatistics, Scope
 	 */
 	public void uninit() {
 		log.debug("Un-init scope");
-		setEnabled(false);
 		for (IBasicScope child : children.keySet()) {
 			if (child instanceof Scope) {
 				((Scope) child).uninit();
 			}
 		}
 		stop();
+		setEnabled(false);
 		if (hasParent()) {
 			if (parent.hasChildScope(name)) {
 				parent.removeChildScope(this);

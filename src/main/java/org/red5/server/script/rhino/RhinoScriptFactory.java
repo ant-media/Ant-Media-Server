@@ -137,8 +137,7 @@ public class RhinoScriptFactory implements ScriptFactory {
 	 * Load and parse the Rhino script via RhinoScriptUtils.
 	 *
 	 */
-	@SuppressWarnings("rawtypes")
-	public Object getScriptedObject(ScriptSource actualScriptSource, Class[] actualInterfaces) throws IOException, ScriptCompilationException {
+	public Object getScriptedObject(ScriptSource actualScriptSource, Class<?>... actualInterfaces) throws IOException, ScriptCompilationException {
 		log.debug("Getting scripted object...");
 		try {
 			return RhinoScriptUtils.createRhinoObject(actualScriptSource.getScriptAsString(), actualInterfaces, extendedClass);

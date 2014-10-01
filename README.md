@@ -3,9 +3,11 @@ red5-server
 
 Red5 server core
 
-The majority of the Red5 project information continues to reside on Google Code. Post any issues or wiki entries there, until we post otherwise. https://code.google.com/p/red5/
+Some of the Red5 project information continues to reside on Google Code. Post new issues or wiki entries here. https://code.google.com/p/red5/
 
 The Red5 users list may be found here: https://groups.google.com/forum/#!forum/red5interest
+
+Subreddit: http://www.reddit.com/r/red5
 
 Latest version is <b>1.0.3-RELEASE</b>
 

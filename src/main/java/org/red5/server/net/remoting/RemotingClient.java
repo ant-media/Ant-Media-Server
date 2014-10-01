@@ -27,10 +27,9 @@ import java.util.concurrent.Executors;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.InputStreamEntity;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.params.CoreConnectionPNames;
 import org.apache.http.util.EntityUtils;
 import org.apache.mina.core.buffer.IoBuffer;
 import org.red5.io.amf.Input;
@@ -61,7 +60,7 @@ public class RemotingClient implements IRemotingClient {
 	protected static final String CONTENT_TYPE = "application/x-amf";
 
 	/** HTTP client for remoting calls. */
-	protected DefaultHttpClient client;
+	protected HttpClient client;
 
 	/** Url to connect to. */
 	protected String url;
@@ -102,8 +101,7 @@ public class RemotingClient implements IRemotingClient {
 	 * @param timeout Timeout for one request in milliseconds
 	 */
 	public RemotingClient(String url, int timeout) {
-		client = HttpConnectionUtil.getClient();
-		client.getParams().setParameter(CoreConnectionPNames.SO_TIMEOUT, timeout);
+		client = HttpConnectionUtil.getClient(timeout);
 		this.url = url;
 		log.debug("RemotingClient created  - url: {} timeout: {}", url, timeout);
 	}
