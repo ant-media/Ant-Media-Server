@@ -4,7 +4,6 @@ target/
 .classpath
 .DS_Store
 
-*.class
 *.zip
 *.tar.gz
 *~
