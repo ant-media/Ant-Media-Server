@@ -1,6 +1,5 @@
 <?xml version="1.0" ?>
 <configuration>
-  <!-- Uncomment if you are using the logback plugin for eclipse <consolePlugin/> -->
 
   <appender class="ch.qos.logback.core.ConsoleAppender" name="CONSOLE">
     <encoder>
@@ -36,14 +35,6 @@
    
   <logger name="ch.qos">
     <level value="WARN"/>
-  </logger>
-  
-  <logger name="org.red5.server.net.rtmpt.RTMPTConnection">
-    <level value="DEBUG"/>
-  </logger>
-  
-  <logger name="org.red5.server.stream.RecordingListener">
-    <level value="DEBUG"/>
   </logger>
    
 </configuration>
