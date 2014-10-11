@@ -36,11 +36,11 @@ grant codeBase "file:${java.home}/lib/ext/-" {
 
 
 // These permissions apply to the main code
-grant codeBase "file:boot.jar" {
+grant codeBase "file:red5-server.jar" {
   permission java.security.AllPermission;
 };
 
-grant codeBase "file:red5.jar" {
+grant codeBase "file:red5-service.jar" {
   permission java.security.AllPermission;
 };
 
@@ -128,7 +128,8 @@ grant {
   permission java.net.SocketPermission "red5.googlecode.com:80", "connect,resolve";
   permission java.net.SocketPermission "www.springframework.org:80", "connect,resolve";
 
-  permission java.io.FilePermission "file:red5.jar", "read";
+  permission java.io.FilePermission "file:red5-server.jar", "read";
+  permission java.io.FilePermission "file:red5-service.jar", "read";
   permission java.io.FilePermission "file:conf/red5.properties", "read";
   
   permission java.io.FilePermission "file:webapps/installer/WEB-INF/cache", "read,write";

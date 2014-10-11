@@ -36,15 +36,27 @@ grant codeBase "file:${java.home}/lib/ext/-" {
 
 
 // These permissions apply to the main code
-grant codeBase "file:red5.jar" {
+grant codeBase "file:red5-server.jar" {
   permission java.security.AllPermission;
 };
 
-grant codeBase "file:${red5.home}/red5.jar" {
+grant codeBase "file:${red5.home}/red5-server.jar" {
   permission java.security.AllPermission;
 };
 
-grant codeBase "file:${red5.root}/red5.jar" {
+grant codeBase "file:${red5.root}/red5-server.jar" {
+  permission java.security.AllPermission;
+};
+
+grant codeBase "file:red5-service.jar" {
+  permission java.security.AllPermission;
+};
+
+grant codeBase "file:${red5.home}/red5-service.jar" {
+  permission java.security.AllPermission;
+};
+
+grant codeBase "file:${red5.root}/red5-service.jar" {
   permission java.security.AllPermission;
 };
 
