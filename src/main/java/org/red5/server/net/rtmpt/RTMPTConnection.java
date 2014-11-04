@@ -31,10 +31,14 @@ import org.red5.server.net.rtmp.RTMPConnection;
 import org.red5.server.net.rtmp.RTMPHandshake;
 import org.red5.server.net.rtmp.ReceivedMessageTask;
 import org.red5.server.net.rtmp.codec.RTMP;
+import org.red5.server.net.rtmp.message.Constants;
 import org.red5.server.net.rtmp.message.Packet;
 import org.red5.server.net.servlet.ServletUtils;
 import org.slf4j.Logger;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
+import org.springframework.util.concurrent.ListenableFuture;
+import org.springframework.util.concurrent.ListenableFutureCallback;
+import org.springframework.util.concurrent.ListenableFutureTask;
 
 /**
  * A RTMPT client / session.
@@ -88,17 +92,20 @@ public class RTMPTConnection extends BaseRTMPTConnection {
 	private AtomicLong lastBytesWritten = new AtomicLong(0);
 
 	private IoSession ioSession;
-	
+
 	/** Constructs a new RTMPTConnection */
 	RTMPTConnection() {
 		super(POLLING);
-		// create a DummySession for the HTTP-based connection to allow our Mina based system happy
+		// create a DummySession for the HTTP-based connection to allow our Mina
+		// based system happy
 		ioSession = new DummySession();
 		ioSession.setAttribute(RTMPConnection.RTMP_SESSION_ID, sessionId);
 	}
 
-	/** 
-	 * Returns the IoSession. Note that this is a compatibility item and is not constructed by Mina.
+	/**
+	 * Returns the IoSession. Note that this is a compatibility item and is not
+	 * constructed by Mina.
+	 * 
 	 * @return ioSession
 	 */
 	protected IoSession getSession() {
@@ -130,39 +137,68 @@ public class RTMPTConnection extends BaseRTMPTConnection {
 	/**
 	 * Received message object router.
 	 * 
-	 * @param message an IoBuffer or Packet
+	 * @param message
+	 *            an IoBuffer or Packet
 	 */
 	public void handleMessageReceived(Object message) {
 		if (message instanceof Packet) {
 			handleMessageReceived((Packet) message);
 		} else {
-			handleMessageReceived((IoBuffer) message);			
+			handleMessageReceived((IoBuffer) message);
 		}
-	}	
-	
+	}
+
 	/** {@inheritDoc} */
+	@SuppressWarnings("unchecked")
 	@Override
 	public void handleMessageReceived(Packet message) {
 		log.trace("handleMessageReceived - {}", sessionId);
-		try {
-			executor.submit(new ReceivedMessageTask(sessionId, message, handler, this));
-		} catch (Exception e) {
-			log.warn("Incoming message handling failed", e);
-			if (log.isDebugEnabled()) {
-				log.debug("Execution rejected on {} - {}", getSessionId(), state.states[getStateCode()]);
-				log.debug("Lock permits - decode: {} encode: {}", decoderLock.availablePermits(), encoderLock.availablePermits());
+		// route ping outside of the executor
+		if (message.getHeader().getDataType() == Constants.TYPE_PING) {
+			// pass message to the handler
+			try {
+				handler.messageReceived(this, message);
+			} catch (Exception e) {
+				log.error("Error processing received message {}", sessionId, e);
 			}
-			// ensure the connection is not closing and if it is drop the runnable
-			if (state.getState() == RTMP.STATE_CONNECTED) {
-				onInactive();
-			}
+		} else {
+			if (executor != null) {
+				try {
+					ReceivedMessageTask task = new ReceivedMessageTask(sessionId, message, handler, this);
+					task.setMaxHandlingTimeout(maxHandlingTimeout);
+					ListenableFuture<Boolean> future = (ListenableFuture<Boolean>) executor.submitListenable(new ListenableFutureTask<Boolean>(task));
+					future.addCallback(new ListenableFutureCallback<Boolean>() {
+						public void onFailure(Throwable t) {
+							log.warn("[{}] onFailure", sessionId, t);
+						}
+
+						public void onSuccess(Boolean success) {
+							log.debug("[{}] onSuccess: {}", sessionId, success);
+						}
+					});
+				} catch (Exception e) {
+					log.warn("Incoming message handling failed on {}", getSessionId(), e);
+					if (log.isDebugEnabled()) {
+						log.debug("Execution rejected on {} - {}", getSessionId(), state.states[getStateCode()]);
+						log.debug("Lock permits - decode: {} encode: {}", decoderLock.availablePermits(), encoderLock.availablePermits());
+					}
+					// ensure the connection is not closing and if it is drop
+					// the runnable
+					// if (state.getState() == RTMP.STATE_CONNECTED) {
+					// onInactive();
+					// }
+				}
+			} else {
+				log.warn("Executor is null on {} state: {}", getSessionId(), state.states[getStateCode()]);
+			}			
 		}
-	}		
-	
+	}
+
 	/**
 	 * Handle raw buffer receiving event.
-	 *
-	 * @param message Data buffer
+	 * 
+	 * @param message
+	 *            Data buffer
 	 */
 	public void handleMessageReceived(IoBuffer message) {
 		log.trace("handleMessageReceived (raw buffer) - {}", sessionId);
@@ -200,7 +236,8 @@ public class RTMPTConnection extends BaseRTMPTConnection {
 		long previousBytes = lastBytesRead.get();
 		if (currentBytes > previousBytes) {
 			log.trace("Client (read) is not idle");
-			// client has sent data since last check and thus is not dead. No need to ping
+			// client has sent data since last check and thus is not dead. No
+			// need to ping
 			if (lastBytesRead.compareAndSet(previousBytes, currentBytes)) {
 				return false;
 			}
@@ -251,7 +288,8 @@ public class RTMPTConnection extends BaseRTMPTConnection {
 	/**
 	 * Setter for servlet request.
 	 * 
-	 * @param request Servlet request
+	 * @param request
+	 *            Servlet request
 	 */
 	public void setServletRequest(HttpServletRequest request) {
 		if (request.getLocalPort() == 80) {

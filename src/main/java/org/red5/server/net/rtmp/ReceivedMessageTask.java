@@ -65,7 +65,7 @@ public final class ReceivedMessageTask implements Callable<Boolean> {
 				if (event instanceof Invoke) {
 					IServiceCall call = ((Invoke) event).getCall();
 					if (call.getStatus() == Call.STATUS_ACCESS_DENIED && call instanceof IPendingServiceCall) {
-						log.warn("Connection was denied: {}", sessionId);
+						log.warn("Connection was denied, calling inactive for session id: {}", sessionId);
 						conn.onInactive();
 					}
 				}

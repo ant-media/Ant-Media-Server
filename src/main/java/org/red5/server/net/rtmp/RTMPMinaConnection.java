@@ -42,6 +42,7 @@ import org.red5.server.jmx.mxbeans.RTMPMinaConnectionMXBean;
 import org.red5.server.net.rtmp.codec.RTMP;
 import org.red5.server.net.rtmp.event.ClientBW;
 import org.red5.server.net.rtmp.event.ServerBW;
+import org.red5.server.net.rtmp.message.Constants;
 import org.red5.server.net.rtmp.message.Packet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,9 +76,6 @@ public class RTMPMinaConnection extends RTMPConnection implements RTMPMinaConnec
 	protected int defaultClientBandwidth = 10000000;
 
 	protected boolean bandwidthDetection = true;
-	
-	// maximum time allowed to process received message
-	protected long maxHandlingTimeout = 500L;
 
 	/** Constructs a new RTMPMinaConnection. */
 	@ConstructorProperties(value = { "persistent" })
@@ -91,11 +89,12 @@ public class RTMPMinaConnection extends RTMPConnection implements RTMPMinaConnec
 		log.debug("Connect scope: {}", newScope);
 		boolean success = super.connect(newScope, params);
 		if (success) {
-			// tell the flash player how fast we want data and how fast we shall send it
+			// tell the flash player how fast we want data and how fast we shall
+			// send it
 			getChannel(2).write(new ServerBW(defaultServerBandwidth));
 			// second param is the limit type (0=hard,1=soft,2=dynamic)
 			getChannel(2).write(new ClientBW(defaultClientBandwidth, (byte) limitType));
-			//if the client is null for some reason, skip the jmx registration
+			// if the client is null for some reason, skip the jmx registration
 			if (client != null) {
 				// perform bandwidth detection
 				if (bandwidthDetection && !client.isBandwidthChecked()) {
@@ -118,7 +117,7 @@ public class RTMPMinaConnection extends RTMPConnection implements RTMPMinaConnec
 		log.debug("IO Session closing: {}", (ioSession != null ? ioSession.isClosing() : null));
 		if (ioSession != null && !ioSession.isClosing()) {
 			// accept no further incoming data
-			//ioSession.suspendRead();
+			// ioSession.suspendRead();
 			// close now, no flushing, no waiting
 			final CloseFuture future = ioSession.close(true);
 			log.debug("Connection close future: {}", future);
@@ -143,7 +142,7 @@ public class RTMPMinaConnection extends RTMPConnection implements RTMPMinaConnec
 		if (getStateCode() != RTMP.STATE_DISCONNECTED) {
 			handler.connectionClosed(this);
 		}
-		//de-register with JMX
+		// de-register with JMX
 		unregisterJMX();
 	}
 
@@ -152,39 +151,50 @@ public class RTMPMinaConnection extends RTMPConnection implements RTMPMinaConnec
 	@Override
 	public void handleMessageReceived(Packet message) {
 		log.trace("handleMessageReceived - {}", sessionId);
-		if (executor != null) {
+		// route ping outside of the executor
+		if (message.getHeader().getDataType() == Constants.TYPE_PING) {
+			// pass message to the handler
 			try {
-				ReceivedMessageTask task = new ReceivedMessageTask(sessionId, message, handler, this);
-				task.setMaxHandlingTimeout(maxHandlingTimeout);
-				ListenableFuture<Boolean> future = (ListenableFuture<Boolean>) executor.submitListenable(new ListenableFutureTask<Boolean>(task));
-				future.addCallback(new ListenableFutureCallback<Boolean>() {
-					public void onFailure(Throwable t) {
-						log.warn("[{}] onFailure", sessionId, t);
-					}
-
-					public void onSuccess(Boolean success) {
-						log.debug("[{}] onSuccess: {}", sessionId, success);			
-					}
-				});
+				handler.messageReceived(this, message);
 			} catch (Exception e) {
-				log.warn("Incoming message handling failed on {}", getSessionId(), e);
-				if (log.isDebugEnabled()) {
-					log.debug("Execution rejected on {} - {}", getSessionId(), state.states[getStateCode()]);
-					log.debug("Lock permits - decode: {} encode: {}", decoderLock.availablePermits(), encoderLock.availablePermits());
-				}
-				// ensure the connection is not closing and if it is drop the runnable
-				//if (state.getState() == RTMP.STATE_CONNECTED) {
-				//	onInactive();
-				//}
+				log.error("Error processing received message {}", sessionId, e);
 			}
 		} else {
-			log.warn("Executor is null on {} state: {}", getSessionId(), state.states[getStateCode()]);
+			if (executor != null) {
+				try {
+					ReceivedMessageTask task = new ReceivedMessageTask(sessionId, message, handler, this);
+					task.setMaxHandlingTimeout(maxHandlingTimeout);
+					ListenableFuture<Boolean> future = (ListenableFuture<Boolean>) executor.submitListenable(new ListenableFutureTask<Boolean>(task));
+					future.addCallback(new ListenableFutureCallback<Boolean>() {
+						public void onFailure(Throwable t) {
+							log.warn("[{}] onFailure", sessionId, t);
+						}
+
+						public void onSuccess(Boolean success) {
+							log.debug("[{}] onSuccess: {}", sessionId, success);
+						}
+					});
+				} catch (Exception e) {
+					log.warn("Incoming message handling failed on {}", getSessionId(), e);
+					if (log.isDebugEnabled()) {
+						log.debug("Execution rejected on {} - {}", getSessionId(), state.states[getStateCode()]);
+						log.debug("Lock permits - decode: {} encode: {}", decoderLock.availablePermits(), encoderLock.availablePermits());
+					}
+					// ensure the connection is not closing and if it is drop
+					// the runnable
+					// if (state.getState() == RTMP.STATE_CONNECTED) {
+					// onInactive();
+					// }
+				}
+			} else {
+				log.warn("Executor is null on {} state: {}", getSessionId(), state.states[getStateCode()]);
+			}
 		}
 	}
 
 	/**
 	 * Return MINA I/O session.
-	 *
+	 * 
 	 * @return MINA O/I session, connection between two end-points
 	 */
 	public IoSession getIoSession() {
@@ -199,7 +209,8 @@ public class RTMPMinaConnection extends RTMPConnection implements RTMPMinaConnec
 	}
 
 	/**
-	 * @param defaultServerBandwidth the defaultServerBandwidth to set
+	 * @param defaultServerBandwidth
+	 *            the defaultServerBandwidth to set
 	 */
 	public void setDefaultServerBandwidth(int defaultServerBandwidth) {
 		this.defaultServerBandwidth = defaultServerBandwidth;
@@ -213,7 +224,8 @@ public class RTMPMinaConnection extends RTMPConnection implements RTMPMinaConnec
 	}
 
 	/**
-	 * @param defaultClientBandwidth the defaultClientBandwidth to set
+	 * @param defaultClientBandwidth
+	 *            the defaultClientBandwidth to set
 	 */
 	public void setDefaultClientBandwidth(int defaultClientBandwidth) {
 		this.defaultClientBandwidth = defaultClientBandwidth;
@@ -227,7 +239,8 @@ public class RTMPMinaConnection extends RTMPConnection implements RTMPMinaConnec
 	}
 
 	/**
-	 * @param limitType the limitType to set
+	 * @param limitType
+	 *            the limitType to set
 	 */
 	public void setLimitType(int limitType) {
 		this.limitType = limitType;
@@ -238,14 +251,6 @@ public class RTMPMinaConnection extends RTMPConnection implements RTMPMinaConnec
 		this.executor = executor;
 	}
 
-	public long getMaxHandlingTimeout() {
-		return maxHandlingTimeout;
-	}
-
-	public void setMaxHandlingTimeout(long maxHandlingTimeout) {
-		this.maxHandlingTimeout = maxHandlingTimeout;
-	}
-
 	/**
 	 * @return the bandwidthDetection
 	 */
@@ -254,7 +259,8 @@ public class RTMPMinaConnection extends RTMPConnection implements RTMPMinaConnec
 	}
 
 	/**
-	 * @param bandwidthDetection the bandwidthDetection to set
+	 * @param bandwidthDetection
+	 *            the bandwidthDetection to set
 	 */
 	public void setBandwidthDetection(boolean bandwidthDetection) {
 		this.bandwidthDetection = bandwidthDetection;
@@ -335,8 +341,9 @@ public class RTMPMinaConnection extends RTMPConnection implements RTMPMinaConnec
 
 	/**
 	 * Setter for MINA I/O session (connection).
-	 *
-	 * @param protocolSession  Protocol session
+	 * 
+	 * @param protocolSession
+	 *            Protocol session
 	 */
 	public void setIoSession(IoSession protocolSession) {
 		SocketAddress remote = protocolSession.getRemoteAddress();
@@ -373,7 +380,8 @@ public class RTMPMinaConnection extends RTMPConnection implements RTMPMinaConnec
 				} catch (InterruptedException e) {
 					log.warn("Interrupted while waiting for write lock. State: {}", state.states[state.getState()], e);
 					String exMsg = e.getMessage();
-					// if the exception cause is null break out of here to prevent looping until closed
+					// if the exception cause is null break out of here to
+					// prevent looping until closed
 					if (exMsg == null || exMsg.indexOf("null") >= 0) {
 						log.debug("Exception writing to connection: {}", this);
 						break;
@@ -404,7 +412,8 @@ public class RTMPMinaConnection extends RTMPConnection implements RTMPMinaConnec
 				} catch (InterruptedException e) {
 					log.warn("Interrupted while waiting for write lock (writeRaw). State: {}", state.states[state.getState()], e);
 					String exMsg = e.getMessage();
-					// if the exception cause is null break out of here to prevent looping until closed
+					// if the exception cause is null break out of here to
+					// prevent looping until closed
 					if (exMsg == null || exMsg.indexOf("null") >= 0) {
 						log.debug("Exception writing to connection: {}", this);
 						break;

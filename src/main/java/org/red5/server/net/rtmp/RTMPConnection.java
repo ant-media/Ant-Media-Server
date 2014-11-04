@@ -213,6 +213,9 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
 	 */
 	private int maxHandshakeTimeout = 5000;
 
+	// maximum time allowed to process received message
+	protected long maxHandlingTimeout = 500L;
+
 	/**
 	 * Bandwidth limit type / enforcement. (0=hard,1=soft,2=dynamic)
 	 */
@@ -1296,6 +1299,14 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
 	 */
 	public void setMaxHandshakeTimeout(int maxHandshakeTimeout) {
 		this.maxHandshakeTimeout = maxHandshakeTimeout;
+	}
+
+	public long getMaxHandlingTimeout() {
+		return maxHandlingTimeout;
+	}
+
+	public void setMaxHandlingTimeout(long maxHandlingTimeout) {
+		this.maxHandlingTimeout = maxHandlingTimeout;
 	}
 
 	/** {@inheritDoc} */
