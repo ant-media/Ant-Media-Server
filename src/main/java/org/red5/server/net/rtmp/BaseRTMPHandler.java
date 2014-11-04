@@ -80,7 +80,9 @@ public abstract class BaseRTMPHandler implements IRTMPHandler, Constants, Status
 				// set the source of the message
 				message.setSource(conn);
 				// process based on data type
-				switch (header.getDataType()) {
+				final byte headerDataType = header.getDataType();
+				log.trace("Header / message data type: {}", headerDataType);
+				switch (headerDataType) {
 					case TYPE_CHUNK_SIZE:
 						onChunkSize(conn, channel, header, (ChunkSize) message);
 						break;

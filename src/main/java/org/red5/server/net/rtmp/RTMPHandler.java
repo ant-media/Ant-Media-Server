@@ -335,13 +335,14 @@ public class RTMPHandler extends BaseRTMPHandler {
 							if (scope != null) {
 								if (log.isTraceEnabled()) {
 									log.trace("Connecting to: {}", scope);
-								} else {
+								} 
+								if (log.isDebugEnabled()) {
 									log.debug("Connecting to: {}", scope.getName());
+									log.debug("Conn {}, scope {}, call {}", new Object[] { conn, scope, call });
+									log.debug("Call args {}", call.getArguments());
 								}
 								boolean okayToConnect;
 								try {
-									log.debug("Conn {}, scope {}, call {}", new Object[] { conn, scope, call });
-									log.debug("Call args {}", call.getArguments());
 									if (call.getArguments() != null) {
 										okayToConnect = conn.connect(scope, call.getArguments());
 									} else {

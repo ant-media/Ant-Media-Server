@@ -34,7 +34,6 @@ import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.conn.HttpHostConnectException;
-import org.apache.http.params.CoreProtocolPNames;
 import org.apache.http.util.EntityUtils;
 import org.red5.compatibility.flex.messaging.messages.AcknowledgeMessage;
 import org.red5.compatibility.flex.messaging.messages.AsyncMessage;
@@ -159,6 +158,7 @@ public final class Installer {
 	 * @param applicationWarName app war name
 	 * @return true if installed; false otherwise
 	 */
+	@SuppressWarnings("deprecation")
 	public boolean install(String applicationWarName) {
 		IConnection conn = Red5.getConnectionLocal();
 		boolean result = false;
@@ -216,14 +216,14 @@ public final class Installer {
 			if (!result) {
 				// create a singular HttpClient object
 				HttpClient client = HttpConnectionUtil.getClient();
-				// set transfer encoding
-				client.getParams().setBooleanParameter(CoreProtocolPNames.STRICT_TRANSFER_ENCODING, Boolean.TRUE);
 				//setup GET
 				HttpGet method = null;
 				FileOutputStream fos = null;
 				try {
 					//try the war version first
 					method = new HttpGet(applicationRepositoryUrl + applicationWarName);
+					// set transfer encoding
+					method.getParams().setParameter("http.protocol.strict-transfer-encoding", Boolean.TRUE);
 					//we dont want any transformation - RFC2616
 					method.addHeader("Accept-Encoding", "identity");
 					// execute the method
