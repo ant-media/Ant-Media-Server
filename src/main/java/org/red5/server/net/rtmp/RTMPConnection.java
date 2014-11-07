@@ -352,8 +352,9 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
 	public void open() {
 		// add the session id to the prefix		
 		executor.setThreadNamePrefix(String.format("RTMPExecutor#%s-", sessionId));
-		executor.setRejectedExecutionHandler(new ThreadPoolExecutor.DiscardOldestPolicy());
-		executor.setAllowCoreThreadTimeOut(true);
+		//executor.setRejectedExecutionHandler(new ThreadPoolExecutor.DiscardOldestPolicy());
+		//executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
+		//executor.setAllowCoreThreadTimeOut(true);
 		executor.setDaemon(true);
 		executor.setWaitForTasksToCompleteOnShutdown(true);
 		if (log.isTraceEnabled()) {

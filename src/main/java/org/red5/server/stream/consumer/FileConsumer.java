@@ -282,6 +282,14 @@ public class FileConsumer implements Constants, IPushableConsumer, IPipeConnecti
 					doWrites(slice);
 				}
 			});
+		} else {
+			// since we failed to write, put the sliced data back into the queue
+			writeLock.lock();
+			try {
+				queue.addAll(Arrays.asList(slice));
+			} finally {
+				writeLock.unlock();
+			}
 		}
 	}
 
@@ -338,7 +346,7 @@ public class FileConsumer implements Constants, IPushableConsumer, IPipeConnecti
 			// check for existing future
 			if (writerFuture != null) {
 				try {
-					//wait n seconds for a result from the last writer
+					// wait for a result from the last writer
 					writeResult = writerFuture.get(timeout, TimeUnit.MILLISECONDS);
 				} catch (Exception e) {
 					log.warn("Exception waiting for write result. Timeout: {}ms", timeout, e);

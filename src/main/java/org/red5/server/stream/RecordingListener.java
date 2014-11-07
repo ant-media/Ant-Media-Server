@@ -370,7 +370,7 @@ public class RecordingListener implements IRecordingListener {
 						log.trace("Nothing to record");
 					}
 				} catch (Exception e) {
-					log.error("Error processing queue: " + e.getMessage(), e);
+					log.error("Error processing queue", e);
 				} finally {
 					processing.set(false);
 				}
