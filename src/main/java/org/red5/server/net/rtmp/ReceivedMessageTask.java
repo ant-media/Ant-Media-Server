@@ -4,12 +4,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.red5.server.api.Red5;
-import org.red5.server.api.service.IPendingServiceCall;
-import org.red5.server.api.service.IServiceCall;
-import org.red5.server.net.rtmp.event.IRTMPEvent;
-import org.red5.server.net.rtmp.event.Invoke;
 import org.red5.server.net.rtmp.message.Packet;
-import org.red5.server.service.Call;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,18 +53,6 @@ public final class ReceivedMessageTask implements Callable<Boolean> {
 			}
 			// pass message to the handler
 			handler.messageReceived(conn, message);
-			// if connected status is not yet set check that we aren't being denied
-			if (!conn.isConnected()) {
-				// check for denied / reject
-				IRTMPEvent event = message.getMessage();
-				if (event instanceof Invoke) {
-					IServiceCall call = ((Invoke) event).getCall();
-					if (call.getStatus() == Call.STATUS_ACCESS_DENIED && call instanceof IPendingServiceCall) {
-						log.warn("Connection was denied, calling inactive for session id: {}", sessionId);
-						conn.onInactive();
-					}
-				}
-			}
 		} catch (Exception e) {
 			log.error("Error processing received message {} on {}", message, sessionId, e);
 		} finally {

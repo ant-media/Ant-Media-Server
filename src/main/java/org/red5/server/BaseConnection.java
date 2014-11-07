@@ -320,7 +320,7 @@ public abstract class BaseConnection extends AttributeStore implements IConnecti
 		log.debug("Connected: {}", (scope != null));
 		return scope != null;
 	}
-
+	
 	/**
 	 * Connect to another scope on server
 	 * @param newScope     New scope

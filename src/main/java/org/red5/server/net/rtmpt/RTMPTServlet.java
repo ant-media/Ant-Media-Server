@@ -35,10 +35,18 @@ import org.red5.server.api.Red5;
 import org.red5.server.net.IConnectionManager;
 import org.red5.server.net.rtmp.RTMPConnManager;
 import org.red5.server.net.rtmp.RTMPConnection;
+import org.red5.server.net.rtmp.codec.RTMPProtocolEncoder;
+import org.red5.server.net.rtmp.event.Invoke;
+import org.red5.server.net.rtmp.message.Header;
+import org.red5.server.net.rtmp.message.Packet;
+import org.red5.server.net.rtmp.status.Status;
+import org.red5.server.net.rtmp.status.StatusCodes;
 import org.red5.server.net.servlet.ServletUtils;
+import org.red5.server.service.PendingCall;
 import org.slf4j.Logger;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
+
 
 /**
  * Servlet that handles all RTMPT requests.
@@ -102,17 +110,37 @@ public class RTMPTServlet extends HttpServlet {
 	 * 
 	 * @param message Message
 	 * @param resp Servlet response
-	 * @throws IOException I/O exception
+	 * @throws IOException 
 	 */
 	protected void handleBadRequest(String message, HttpServletResponse resp) throws IOException {
 		log.debug("handleBadRequest {}", message);
-		resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-		resp.setHeader("Connection", "Keep-Alive");
-		resp.setHeader("Cache-Control", "no-cache");
-		resp.setContentType("text/plain");
-		resp.setContentLength(message.length());
-		resp.getWriter().write(message);
-		resp.flushBuffer();
+//		resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+//		resp.setHeader("Connection", "Keep-Alive");
+//		resp.setHeader("Cache-Control", "no-cache");
+//		resp.setContentType("text/plain");
+//		resp.setContentLength(message.length());
+//		resp.getWriter().write(message);
+//		resp.flushBuffer();
+		
+		// create and send a rejected status
+		Status status = new Status(StatusCodes.NC_CONNECT_REJECTED, Status.ERROR, message);
+		PendingCall call = new PendingCall(null, "onStatus", new Object[] { status });
+		Invoke event = new Invoke();
+		event.setCall(call);
+		Header header = new Header();
+		Packet packet = new Packet(header, event);
+		header.setDataType(event.getDataType());
+		// create dummy connection
+		try {
+			Red5.setConnectionLocal(((RTMPConnManager) manager).createConnectionInstance(RTMPConnection.class));
+		} catch (Exception e) {
+		}
+		// encode the data
+		RTMPProtocolEncoder encoder = new RTMPProtocolEncoder();
+		IoBuffer out = encoder.encodePacket(packet);
+		// send the response
+		returnMessage(null, out, resp);
+		Red5.setConnectionLocal(null);
 	}
 
 	/**
@@ -161,18 +189,28 @@ public class RTMPTServlet extends HttpServlet {
 	 */
 	protected void returnMessage(RTMPTConnection conn, IoBuffer buffer, HttpServletResponse resp) throws IOException {
 		log.trace("returnMessage {}", buffer);
-		resp.setStatus(HttpServletResponse.SC_OK);
+		if (conn != null) {
+			resp.setStatus(HttpServletResponse.SC_OK);
+		} else {
+			resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+		}
 		resp.setHeader("Connection", "Keep-Alive");
 		resp.setHeader("Cache-Control", "no-cache");
 		resp.setContentType(CONTENT_TYPE);
 		int contentLength = buffer.limit() + 1;
 		resp.setContentLength(contentLength);
-		byte pollingDelay = conn.getPollingDelay();
-		log.debug("Sending {} bytes; polling delay: {}", buffer.limit(), pollingDelay);
 		ServletOutputStream output = resp.getOutputStream();
-		output.write(pollingDelay);
+		if (conn != null) {
+			byte pollingDelay = conn.getPollingDelay();
+			log.debug("Sending {} bytes; polling delay: {}", buffer.limit(), pollingDelay);
+			output.write(pollingDelay);
+		} else {
+			output.write((byte) 0);
+		}
 		ServletUtils.copy(buffer.asInputStream(), output);
-		conn.updateWrittenBytes(contentLength);
+		if (conn != null) {
+			conn.updateWrittenBytes(contentLength);
+		}
 		buffer.free();
 		buffer = null;
 	}
@@ -497,15 +535,26 @@ public class RTMPTServlet extends HttpServlet {
 		String sessionId = requestInfo.get().getSessionId();
 		RTMPTConnection conn = (RTMPTConnection) manager.getConnectionBySessionId(sessionId);
 		if (conn != null) {
-			// clear thread local reference
-			Red5.setConnectionLocal(conn);
+			// check for non-connected state
+			if (!conn.isDisconnected()) {
+				// clear thread local reference
+				Red5.setConnectionLocal(conn);
+			} else {
+				removeConnection(sessionId);
+			}
 		} else {
 			log.warn("Null connection for session id: {}", sessionId);
 		}
 		return conn;
 	}
 
+	/**
+	 * Removes a connection matching the given session id from the connection manager.
+	 * 
+	 * @param sessionId
+	 */
 	protected void removeConnection(String sessionId) {
+		log.debug("Removing connection for session id: {}", sessionId);
 		RTMPTConnection conn = (RTMPTConnection) manager.getConnectionBySessionId(sessionId);
 		if (conn != null) {
 			manager.removeConnection(conn.getSessionId());

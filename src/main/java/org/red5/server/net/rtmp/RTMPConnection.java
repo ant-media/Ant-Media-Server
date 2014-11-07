@@ -556,6 +556,15 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
 	}
 
 	/**
+	 * Returns whether or not the connection is disconnected.
+	 * 
+	 * @return true if connection state is RTMP.STATE_DISCONNECTED, false otherwise
+	 */
+	public boolean isDisconnected() {
+		return state.getState() == RTMP.STATE_DISCONNECTED;
+	}	
+	
+	/**
 	 * Creates output stream object from stream id. Output stream consists of audio, data and video channels.
 	 * 
 	 * @see org.red5.server.stream.OutputStream
