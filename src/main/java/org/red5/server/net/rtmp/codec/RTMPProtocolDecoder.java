@@ -682,7 +682,7 @@ public class RTMPProtocolDecoder implements Constants, IEventDecoder {
 			String key = null;
 			Object value = null;
 
-			// if(log.isDebugEnabled())
+			// if (log.isDebugEnabled())
 			// log.debug("type: "+SharedObjectTypeMapping.toString(type));
 
 			// SharedObjectEvent event = new SharedObjectEvent(,null,null);

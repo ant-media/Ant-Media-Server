@@ -138,7 +138,7 @@ public class FLVServiceImplTest extends TestCase {
 	 * public void testWriteFLVFileOutputStream() throws IOException { File f =
 	 * new File("fixtures/test_cue2.flv");
 	 * 
-	 * if(f.exists()) { f.delete(); }
+	 * if (f.exists()) { f.delete(); }
 	 *  // Create new file f.createNewFile(); FileOutputStream fos = new
 	 * FileOutputStream(f); //fos.write((byte)0x01); FLV flv =
 	 * service.getFLV(fos); Writer writer = flv.writer();

@@ -45,7 +45,7 @@ public final class ReceivedMessageTask implements Callable<Boolean> {
 		Red5.setConnectionLocal(conn);
 		try {
 			//  // don't run the deadlock guard if timeout is <= 0
-			if(maxHandlingTime <= 0) {
+			if (maxHandlingTime <= 0) {
 				// don't run the deadlock guard if we're in debug mode
 				if (!Red5.isDebug()) {
 					// run a deadlock guard so hanging tasks will be interrupted

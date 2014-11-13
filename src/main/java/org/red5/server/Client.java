@@ -300,7 +300,7 @@ public class Client extends AttributeStore implements IClient {
 
 	/** {@inheritDoc} */
 	public Map<String, Object> checkBandwidthUp(Object[] params) {
-		if(log.isDebugEnabled()){
+		if (log.isDebugEnabled()){
 			log.debug("Check bandwidth: {}", Arrays.toString(params));
 		}
 		

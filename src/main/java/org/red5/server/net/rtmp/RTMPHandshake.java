@@ -232,7 +232,7 @@ public abstract class RTMPHandshake implements IHandshake {
 	    	 System.arraycopy(result, 0, temp, KEY_LENGTH - result.length, result.length);
 	    	 result = temp;
 	    	 log.debug("Padded public key length to 128");
-	     } else if(result.length > KEY_LENGTH){
+	     } else if (result.length > KEY_LENGTH){
 	    	 System.arraycopy(result, result.length - KEY_LENGTH, temp, 0, KEY_LENGTH);
 	    	 result = temp;
 	    	 log.debug("Truncated public key length to 128");

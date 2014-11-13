@@ -59,7 +59,7 @@ public class MidiPlayer {
 			sequencer.start();
 			/*
 			 while(true) {
-			 if(sequencer.isRunning()) {
+			 if (sequencer.isRunning()) {
 			 try {
 			 Thread.sleep(1000); // Check every second
 			 } catch(InterruptedException ignore) {

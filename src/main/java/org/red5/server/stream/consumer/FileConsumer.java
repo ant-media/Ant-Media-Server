@@ -320,7 +320,7 @@ public class FileConsumer implements Constants, IPushableConsumer, IPipeConnecti
 		try {
 			// sort the queue
 			log.trace("Queue length: {}", queue.size());
-			if(!queue.isEmpty()) {
+			if (!queue.isEmpty()) {
 				while (!queue.isEmpty() && queue.peek().getTimestamp() <= timestamp){
 				    slice.add(queue.remove());
 				}

@@ -328,7 +328,7 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
 	}
 
 	public void setStateCode(byte code) {
-		if(log.isTraceEnabled())
+		if (log.isTraceEnabled())
 			log.trace("setStateCode: {} - {}", code, state.states[code]);
 		state.setState(code);
 	}
@@ -390,7 +390,7 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
 
 	@Override
 	public boolean connect(IScope newScope, Object[] params) {
-		if(log.isDebugEnabled())
+		if (log.isDebugEnabled())
 			log.debug("Connect scope: {}", newScope);
 		try {
 			boolean success = super.connect(newScope, params);
@@ -398,7 +398,7 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
 				// once the handshake has completed, start needed jobs start the ping / pong keep-alive
 				startRoundTripMeasurement();
 			} else {
-				if(log.isDebugEnabled())
+				if (log.isDebugEnabled())
 					log.debug("Connect failed");
 			}
 			return success;
@@ -413,7 +413,7 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
 	 * Start waiting for a valid handshake.
 	 */
 	public void startWaitForHandshake() {
-		if(log.isDebugEnabled())
+		if (log.isDebugEnabled())
 			log.debug("startWaitForHandshake - {}", sessionId);
 		// start the handshake waiter
 		scheduler.execute(new WaitForHandshakeTask());
@@ -425,11 +425,11 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
 	public void startRoundTripMeasurement() {
 		if (scheduler != null) {
 			if (pingInterval > 0) {
-				if(log.isDebugEnabled())
+				if (log.isDebugEnabled())
 					log.debug("startRoundTripMeasurement - {}", sessionId);
 				try {
 					scheduler.scheduleAtFixedRate(new KeepAliveTask(), pingInterval);
-					if(log.isDebugEnabled())
+					if (log.isDebugEnabled())
 						log.debug("Keep alive scheduled for: {}", sessionId);
 				} catch (Exception e) {
 					log.error("Error creating keep alive job", e);
@@ -452,7 +452,7 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
 		this.path = path;
 		this.params = params;
 		if (Integer.valueOf(3).equals(params.get("objectEncoding"))) {
-			if(log.isDebugEnabled())
+			if (log.isDebugEnabled())
 				log.debug("Setting object encoding to AMF3");
 			state.setEncoding(Encoding.AMF3);
 		}
@@ -516,7 +516,7 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
 	 */
 	public void closeChannel(int channelId) {
 		Channel chan = channels.remove(channelId);
-		if(log.isDebugEnabled())
+		if (log.isDebugEnabled())
 			log.debug("Closing / removing channel: {}", chan);
 		chan = null;
 	}
@@ -583,7 +583,7 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
 		long lastPingTime = lastPingSentOn.get();
 		long lastPongTime = lastPongReceivedOn.get();
 		boolean idle = (lastPongTime > 0 && (lastPingTime - lastPongTime > maxInactivity));
-		if(log.isTraceEnabled())
+		if (log.isTraceEnabled())
 			log.trace("Connection {} {} idle", getSessionId(), (idle ? "is" : "is not"));
 		return idle;
 	}
@@ -607,7 +607,7 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
 	 */
 	public OutputStream createOutputStream(int streamId) {
 		int channelId = (4 + ((streamId - 1) * 5));
-		if(log.isDebugEnabled())
+		if (log.isDebugEnabled())
 			log.debug("Channel id range start: {}", channelId);
 		final Channel data = getChannel(channelId++);
 		final Channel video = getChannel(channelId++);
@@ -755,18 +755,18 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
 	@Override
 	public void close() {
 		if (closing.compareAndSet(false, true)) {
-			if(log.isDebugEnabled())
+			if (log.isDebugEnabled())
 				log.debug("close: {}", sessionId);
 			// update our state
 			if (state != null) {
 				final byte s = getStateCode();
 				switch (s) {
 					case RTMP.STATE_DISCONNECTED:
-						if(log.isDebugEnabled())
+						if (log.isDebugEnabled())
 							log.debug("Already disconnected");
 						return;
 					default:
-						if(log.isDebugEnabled())
+						if (log.isDebugEnabled())
 							log.debug("State: {}", state.states[s]);
 						state.setState(RTMP.STATE_DISCONNECTING);
 				}
@@ -777,14 +777,14 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
 				for (Map.Entry<Integer, IClientStream> entry : streams.entrySet()) {
 					IClientStream stream = entry.getValue();
 					if (stream != null) {
-						if(log.isDebugEnabled())
+						if (log.isDebugEnabled())
 							log.debug("Closing stream: {}", stream.getStreamId());
 						streamService.deleteStream(this, stream.getStreamId());
 						usedStreams.decrementAndGet();
 					}
 				}
 			} else {
-				if(log.isDebugEnabled())
+				if (log.isDebugEnabled())
 					log.debug("Stream service was not found for scope: {}", (scope != null ? scope.getName() : "null or non-existant"));
 			}
 			// close the base connection - disconnect scopes and unregister client
@@ -793,46 +793,46 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
 			if (channels != null) {
 				channels.clear();
 			} else {
-				if(log.isTraceEnabled())
+				if (log.isTraceEnabled())
 					log.trace("Channels collection was null");
 			}
 			if (streams != null) {
 				streams.clear();
 			} else {
-				if(log.isTraceEnabled())
+				if (log.isTraceEnabled())
 					log.trace("Streams collection was null");
 			}
 			if (pendingCalls != null) {
 				pendingCalls.clear();
 			} else {
-				if(log.isTraceEnabled())
+				if (log.isTraceEnabled())
 					log.trace("PendingCalls collection was null");
 			}
 			if (deferredResults != null) {
 				deferredResults.clear();
 			} else {
-				if(log.isTraceEnabled())
+				if (log.isTraceEnabled())
 					log.trace("DeferredResults collection was null");
 			}
 			if (pendingVideos != null) {
 				pendingVideos.clear();
 			} else {
-				if(log.isTraceEnabled())
+				if (log.isTraceEnabled())
 					log.trace("PendingVideos collection was null");
 			}
 			if (streamBuffers != null) {
 				streamBuffers.clear();
 			} else {
-				if(log.isTraceEnabled())
+				if (log.isTraceEnabled())
 					log.trace("StreamBuffers collection was null");
 			}
 			if (scheduler != null) {
-				if(log.isDebugEnabled())
+				if (log.isDebugEnabled())
 					log.debug("Shutting down scheduler");
 				try {
 					ScheduledExecutorService exe = scheduler.getScheduledExecutor();
 					List<Runnable> runables = exe.shutdownNow();
-					if(log.isDebugEnabled())
+					if (log.isDebugEnabled())
 						log.debug("Scheduler - shutdown: {} queued: {}", exe.isShutdown(), runables.size());
 					if (scheduler != null) {
 						scheduler.shutdown();
@@ -850,12 +850,12 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
 				}
 			}
 			if (executor != null) {
-				if(log.isDebugEnabled())
+				if (log.isDebugEnabled())
 					log.debug("Shutting down executor");
 				try {
 					ThreadPoolExecutor exe = executor.getThreadPoolExecutor();
 					List<Runnable> runables = exe.shutdownNow();
-					if(log.isDebugEnabled())
+					if (log.isDebugEnabled())
 						log.debug("Executor - shutdown: {} queued: {}", exe.isShutdown(), runables.size());
 					if (executor != null) {
 						executor.shutdown();
@@ -877,11 +877,11 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
 			encoderLock.drainPermits();
 			if (log.isTraceEnabled()) {
 				// dump memory stats
-				if(log.isTraceEnabled())
+				if (log.isTraceEnabled())
 					log.trace("Memory at close - free: {}K total: {}K", Runtime.getRuntime().freeMemory() / 1024, Runtime.getRuntime().totalMemory() / 1024);
 			}
 		} else {
-			if(log.isDebugEnabled())
+			if (log.isDebugEnabled())
 				log.debug("Already closing..");
 		}
 	}
@@ -892,7 +892,7 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
 	 */
 	@Override
 	public void dispatchEvent(IEvent event) {
-		if(log.isDebugEnabled())
+		if (log.isDebugEnabled())
 			log.debug("Event notify: {}", event);
 		// determine if its an outgoing invoke or notify
 		switch (event.getType()) {
@@ -921,7 +921,7 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
 	 */
 	public void sendPendingServiceCallsCloseError() {
 		if (pendingCalls != null && !pendingCalls.isEmpty()) {
-			if(log.isDebugEnabled())
+			if (log.isDebugEnabled())
 				log.debug("Connection calls pending: {}", pendingCalls.size());
 			for (IPendingServiceCall call : pendingCalls.values()) {
 				call.setStatus(Call.STATUS_NOT_CONNECTED);
@@ -979,7 +979,7 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
 	 * Update number of bytes to read next value.
 	 */
 	protected void updateBytesRead() {
-		if(log.isTraceEnabled())
+		if (log.isTraceEnabled())
 			log.trace("updateBytesRead");
 		long bytesRead = getReadBytes();
 		if (bytesRead >= nextBytesRead) {
@@ -995,7 +995,7 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
 	 * @param bytes Number of bytes
 	 */
 	public void receivedBytesRead(int bytes) {
-		if(log.isDebugEnabled())
+		if (log.isDebugEnabled())
 			log.debug("Client received {} bytes, written {} bytes, {} messages pending", new Object[] { bytes, getWrittenBytes(), getPendingMessages() });
 		clientBytesRead.addAndGet(bytes);
 	}
@@ -1169,7 +1169,7 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
 	 * Increases number of read messages by one. Updates number of bytes read.
 	 */
 	public void messageReceived() {
-		if(log.isTraceEnabled())
+		if (log.isTraceEnabled())
 			log.trace("messageReceived");
 		readMessages.incrementAndGet();
 		// trigger generation of BytesRead messages
@@ -1225,7 +1225,7 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
 	 */
 	@SuppressWarnings("unchecked")
 	public void handleMessageReceived(Packet message) {
-		if(log.isTraceEnabled())
+		if (log.isTraceEnabled())
 			log.trace("handleMessageReceived - {}", sessionId);
 		final byte dataType = message.getHeader().getDataType();
 		// route these types outside the executor
@@ -1248,8 +1248,8 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
 				try {
 					final long packetNumber = packetSequence.incrementAndGet();
 					
-					if(executorQueueSizeToDropAudioPackets > 0 && currentQueueSize.get() >= executorQueueSizeToDropAudioPackets) {
-						if(message.getHeader().getDataType() == Constants.TYPE_AUDIO_DATA){
+					if (executorQueueSizeToDropAudioPackets > 0 && currentQueueSize.get() >= executorQueueSizeToDropAudioPackets) {
+						if (message.getHeader().getDataType() == Constants.TYPE_AUDIO_DATA){
 							/**
 							* There's a backlog of messages in the queue. Flash might have 
 							* sent a burst of messages after a network congestion.
@@ -1274,13 +1274,13 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
 						public void onFailure(Throwable t) {
 							currentQueueSize.decrementAndGet();
 							
-							if(log.isWarnEnabled())
+							if (log.isWarnEnabled())
 								log.warn("onFailure - session: {}, msgtype: {}, processingTime: {}, packetNum: {}", sessionId, getMessageType(sentMessage), getProcessingTime(), packetNumber);
 						}
 
 						public void onSuccess(Boolean success) {
 							currentQueueSize.decrementAndGet();
-							if(log.isDebugEnabled())
+							if (log.isDebugEnabled())
 								log.debug("onSuccess - session: {}, msgType: {}, processingTime: {}, packetNum: {}", sessionId, getMessageType(sentMessage), getProcessingTime(), packetNumber);
 						}
 					});
@@ -1357,7 +1357,7 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
 		try {
 			// get the channel for so updates
 			Channel channel = getChannel((byte) 3);
-			if(log.isTraceEnabled())
+			if (log.isTraceEnabled())
 				log.trace("Send to channel: {}", channel);
 			channel.write(syncMessage);
 		} catch (Exception e) {
@@ -1368,7 +1368,7 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
 	/** {@inheritDoc} */
 	public void ping() {
 		long newPingTime = System.currentTimeMillis();
-		if(log.isDebugEnabled())
+		if (log.isDebugEnabled())
 			log.debug("Send Ping: session=[{}], currentTime=[{}], lastPingTime=[{}]", new Object[] { getSessionId(), newPingTime, lastPingSentOn.get() });
 		if (lastPingSentOn.get() == 0) {
 			lastPongReceivedOn.set(newPingTime);
@@ -1390,11 +1390,11 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
 	public void pingReceived(Ping pong) {
 		long now = System.currentTimeMillis();
 		long previousPingValue = (int) (lastPingSentOn.get() & 0xffffffff);
-		if(log.isDebugEnabled())
+		if (log.isDebugEnabled())
 			log.debug("Pong Rx: session=[{}] at {} with value {}, previous received at {}", new Object[] { getSessionId(), now, pong.getValue2(), previousPingValue });
 		if (pong.getValue2() == previousPingValue) {
 			lastPingRoundTripTime.set((int) (now & 0xffffffff) - pong.getValue2());
-			if(log.isDebugEnabled())
+			if (log.isDebugEnabled())
 				log.debug("Ping response session=[{}], RTT=[{} ms]", new Object[] { getSessionId(), lastPingRoundTripTime.get() });
 		} else {
 			int pingRtt = (int) (now & 0xffffffff) - pong.getValue2();
@@ -1536,7 +1536,7 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
 			if (state.getState() == RTMP.STATE_CONNECTED) {
 				// ensure the job is not already running
 				if (running.compareAndSet(false, true)) {
-					if(log.isTraceEnabled())
+					if (log.isTraceEnabled())
 						log.trace("Running keep-alive for {}", getSessionId());
 					try {
 						// first check connected
@@ -1547,10 +1547,10 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
 							long currentReadBytes = getReadBytes();
 							// get our last bytes read count
 							long previousReadBytes = lastBytesRead.get();
-							if(log.isTraceEnabled())
+							if (log.isTraceEnabled())
 								log.trace("Time now: {} current read count: {} last read count: {}", new Object[] { now, currentReadBytes, previousReadBytes });
 							if (currentReadBytes > previousReadBytes) {
-								if(log.isTraceEnabled())
+								if (log.isTraceEnabled())
 									log.trace("Client is still alive, no ping needed");
 								// client has sent data since last check and thus is not dead. No need to ping
 								if (lastBytesRead.compareAndSet(previousReadBytes, currentReadBytes)) {
@@ -1578,7 +1578,7 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
 								}
 							}
 						} else {
-							if(log.isDebugEnabled())
+							if (log.isDebugEnabled())
 								log.debug("No longer connected, clean up connection. Connection state: {}", state.states[state.getState()]);
 							onInactive();
 						}
@@ -1599,7 +1599,7 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
 	private class WaitForHandshakeTask implements Runnable {
 
 		public void run() {
-			if(log.isTraceEnabled())
+			if (log.isTraceEnabled())
 				log.trace("Running handshake-wait for {}", getSessionId());
 			try {
 				Thread.sleep(maxHandshakeTimeout);
