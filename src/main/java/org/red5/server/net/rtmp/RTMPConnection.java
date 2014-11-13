@@ -218,7 +218,9 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
 	 */
 	private int maxHandshakeTimeout = 5000;
 
-	// maximum time allowed to process received message
+	/**
+	 * Maximum time in milliseconds allowed to process received message
+	 */
 	protected long maxHandlingTimeout = 500L;
 
 	/**
@@ -271,6 +273,22 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
 	 * Closing flag
 	 */
 	private final AtomicBoolean closing = new AtomicBoolean(false);	
+	
+	/**
+	 * Packet sequence number
+	 * */
+	private AtomicLong packetSequence = new AtomicLong();
+	
+	/**
+	 * Specify the size of queue that will trigger audio packet dropping, disabled if it's 0
+	 * */
+	private Integer executorQueueSizeToDropAudioPackets = 0;
+	
+	/**
+	 * Keep track of current queue size
+	 * */
+	private AtomicInteger currentQueueSize = new AtomicInteger();
+	
 	
 	/**
 	 * Creates anonymous RTMP connection without scope.
@@ -1152,16 +1170,42 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
 		default:
 			if (executor != null) {
 				try {
+					final long packetNumber = packetSequence.incrementAndGet();
+					
+					if(executorQueueSizeToDropAudioPackets > 0 && currentQueueSize.get() >= executorQueueSizeToDropAudioPackets) {
+						if(message.getHeader().getDataType() == Constants.TYPE_AUDIO_DATA){
+							/**
+							* There's a backlog of messages in the queue. Flash might have 
+							* sent a burst of messages after a network congestion.
+							* Throw away packets that we are able to discard.
+							*/
+							log.info("Queue threshold reached. Discarding packet: session=[{}], msgType=[{}], packetNum=[{}]", getSessionId(), message, packetNumber);
+							return ;
+						}
+					}
 					ReceivedMessageTask task = new ReceivedMessageTask(sessionId, message, handler, this);
 					task.setMaxHandlingTimeout(maxHandlingTimeout);
+					packetSequence.incrementAndGet();
+					final Packet sentMessage = message;
+					final Long startTime = System.nanoTime();
 					ListenableFuture<Boolean> future = (ListenableFuture<Boolean>) executor.submitListenable(new ListenableFutureTask<Boolean>(task));
+					currentQueueSize.incrementAndGet();
 					future.addCallback(new ListenableFutureCallback<Boolean>() {
+						private int getProcessingTime() {
+							return (int) ((System.nanoTime() - startTime)/1000);
+						}
+						
 						public void onFailure(Throwable t) {
-							log.warn("[{}] onFailure", sessionId, t);
+							currentQueueSize.decrementAndGet();
+							
+							if(log.isWarnEnabled())
+								log.warn("onFailure - session: {}, msgtype: {}, processingTime: {}, packetNum: {}", sessionId, sentMessage, getProcessingTime(), packetNumber);
 						}
 
 						public void onSuccess(Boolean success) {
-							log.debug("[{}] onSuccess: {}", sessionId, success);
+							currentQueueSize.decrementAndGet();
+							if(log.isDebugEnabled())
+								log.debug("onSuccess - session: {}, msgType: {}, processingTime: {}, packetNum: {}", sessionId, sentMessage, getProcessingTime(), packetNumber);
 						}
 					});
 				} catch (TaskRejectedException tre) {
@@ -1171,7 +1215,7 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
 					}
 					log.info("Rejected message: {} on {}", message, sessionId);
 				} catch (Exception e) {
-					log.warn("Incoming message handling failed on {}", getSessionId(), e);
+					log.info("Incoming message handling failed on session=[{}], messageType=[{}]", getSessionId(), message);
 					if (log.isDebugEnabled()) {
 						log.debug("Execution rejected on {} - {}", getSessionId(), state.states[getStateCode()]);
 						log.debug("Lock permits - decode: {} encode: {}", decoderLock.availablePermits(), encoderLock.availablePermits());
@@ -1384,6 +1428,14 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
 			Object[] args = new Object[] { getClass().getSimpleName(), getRemoteAddress(), getReadBytes(), getWrittenBytes(), getSessionId(), getState().states[getStateCode()] };
 			return String.format("%1$s from %2$s (in: %3$s out: %4$s) session: %5$s state: %6$s", args);
 		}
+	}
+
+	/**
+	 * Specify the size of queue that will trigger audio packet dropping, disabled if it's 0
+	 * */
+	public void setExecutorQueueSizeToDropAudioPackets(
+			Integer executorQueueSizeToDropAudioPackets) {
+		this.executorQueueSizeToDropAudioPackets = executorQueueSizeToDropAudioPackets;
 	}
 
 	/**
