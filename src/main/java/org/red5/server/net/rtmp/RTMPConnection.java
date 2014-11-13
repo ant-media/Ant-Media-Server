@@ -63,6 +63,7 @@ import org.red5.server.net.rtmp.event.Ping;
 import org.red5.server.net.rtmp.event.ServerBW;
 import org.red5.server.net.rtmp.event.VideoData;
 import org.red5.server.net.rtmp.message.Constants;
+import org.red5.server.net.rtmp.message.Header;
 import org.red5.server.net.rtmp.message.Packet;
 import org.red5.server.net.rtmp.status.Status;
 import org.red5.server.service.Call;
@@ -156,17 +157,17 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
 	/**
 	 * Last ping round trip time
 	 */
-	private AtomicInteger lastPingTime = new AtomicInteger(-1);
+	private AtomicInteger lastPingRoundTripTime = new AtomicInteger(-1);
 
 	/**
 	 * Timestamp when last ping command was sent.
 	 */
-	private AtomicLong lastPingSent = new AtomicLong(0);
+	private AtomicLong lastPingSentOn = new AtomicLong(0);
 
 	/**
 	 * Timestamp when last ping result was received.
 	 */
-	private AtomicLong lastPongReceived = new AtomicLong(0);
+	private AtomicLong lastPongReceivedOn = new AtomicLong(0);
 
 	/**
 	 * RTMP events handler
@@ -374,7 +375,7 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
 	 */
 	public void open() {
 		// add the session id to the prefix		
-		executor.setThreadNamePrefix(String.format("RTMPExecutor#%s-", sessionId));
+		executor.setThreadNamePrefix(String.format("RTMPConnectionExecutor#%s-", sessionId));
 		//executor.setRejectedExecutionHandler(new ThreadPoolExecutor.DiscardOldestPolicy());
 		//executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
 		//executor.setAllowCoreThreadTimeOut(true);
@@ -571,8 +572,8 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
 	 * @return true if max idle period has been exceeded, false otherwise
 	 */
 	public boolean isIdle() {
-		long lastPingTime = lastPingSent.get();
-		long lastPongTime = lastPongReceived.get();
+		long lastPingTime = lastPingSentOn.get();
+		long lastPongTime = lastPongReceivedOn.get();
 		boolean idle = (lastPongTime > 0 && (lastPingTime - lastPongTime > maxInactivity));
 		log.trace("Connection {} {} idle", getSessionId(), (idle ? "is" : "is not"));
 		return idle;
@@ -1143,6 +1144,48 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
 		updateBytesRead();
 	}
 
+	private String getMessageType(Packet packet) {
+		final Header header = packet.getHeader();
+		final byte headerDataType = header.getDataType();
+		return	messageTypeToName(headerDataType);
+	}
+	
+    public String messageTypeToName(byte headerDataType) {
+		switch (headerDataType) {
+			case Constants.TYPE_AGGREGATE:
+				return "TYPE_AGGREGATE";
+			case Constants.TYPE_AUDIO_DATA:
+				return "TYPE_AUDIO_DATA";
+			case Constants.TYPE_VIDEO_DATA:
+				return "TYPE_VIDEO_DATA";
+			case Constants.TYPE_FLEX_SHARED_OBJECT:
+				return "TYPE_FLEX_SHARED_OBJECT";
+			case Constants.TYPE_SHARED_OBJECT:
+				return "TYPE_SHARED_OBJECT";
+			case Constants.TYPE_INVOKE:
+				return "TYPE_INVOKE";
+			case Constants.TYPE_FLEX_MESSAGE:
+				return "TYPE_FLEX_MESSAGE";
+			case Constants.TYPE_NOTIFY: 
+				return "TYPE_NOTIFY";
+			case Constants.TYPE_FLEX_STREAM_SEND:
+				return "TYPE_FLEX_STREAM_SEND";
+			case Constants.TYPE_PING:
+				return "TYPE_PING";
+			case Constants.TYPE_BYTES_READ:
+				return "TYPE_BYTES_READ";
+			case Constants.TYPE_CHUNK_SIZE:
+				return "TYPE_CHUNK_SIZE";
+			case Constants.TYPE_CLIENT_BANDWIDTH: 
+				return "TYPE_CLIENT_BANDWIDTH";
+			case Constants.TYPE_SERVER_BANDWIDTH: 
+				return "TYPE_SERVER_BANDWIDTH";				
+    		default:
+    			return "UNKNOWN [" + headerDataType + "]";
+    				
+    	}   	
+    }
+    
 	/**
 	 * Handle the incoming message.
 	 * 
@@ -1179,7 +1222,7 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
 							* sent a burst of messages after a network congestion.
 							* Throw away packets that we are able to discard.
 							*/
-							log.info("Queue threshold reached. Discarding packet: session=[{}], msgType=[{}], packetNum=[{}]", getSessionId(), message, packetNumber);
+							log.info("Queue threshold reached. Discarding packet: session=[{}], msgType=[{}], packetNum=[{}]", getSessionId(), getMessageType(message), packetNumber);
 							return ;
 						}
 					}
@@ -1199,13 +1242,13 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
 							currentQueueSize.decrementAndGet();
 							
 							if(log.isWarnEnabled())
-								log.warn("onFailure - session: {}, msgtype: {}, processingTime: {}, packetNum: {}", sessionId, sentMessage, getProcessingTime(), packetNumber);
+								log.warn("onFailure - session: {}, msgtype: {}, processingTime: {}, packetNum: {}", sessionId, getMessageType(sentMessage), getProcessingTime(), packetNumber);
 						}
 
 						public void onSuccess(Boolean success) {
 							currentQueueSize.decrementAndGet();
 							if(log.isDebugEnabled())
-								log.debug("onSuccess - session: {}, msgType: {}, processingTime: {}, packetNum: {}", sessionId, sentMessage, getProcessingTime(), packetNumber);
+								log.debug("onSuccess - session: {}, msgType: {}, processingTime: {}, packetNum: {}", sessionId, getMessageType(sentMessage), getProcessingTime(), packetNumber);
 						}
 					});
 				} catch (TaskRejectedException tre) {
@@ -1291,13 +1334,13 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
 	/** {@inheritDoc} */
 	public void ping() {
 		long newPingTime = System.currentTimeMillis();
-		log.debug("Pinging {} at {}, last ping sent at {}", new Object[] { getSessionId(), newPingTime, lastPingSent.get() });
-		if (lastPingSent.get() == 0) {
-			lastPongReceived.set(newPingTime);
+		log.debug("Send Ping: session=[{}], currentTime=[{}], lastPingTime=[{}]", new Object[] { getSessionId(), newPingTime, lastPingSentOn.get() });
+		if (lastPingSentOn.get() == 0) {
+			lastPongReceivedOn.set(newPingTime);
 		}
 		Ping pingRequest = new Ping();
 		pingRequest.setEventType(Ping.PING_CLIENT);
-		lastPingSent.set(newPingTime);
+		lastPingSentOn.set(newPingTime);
 		int now = (int) (newPingTime & 0xffffffff);
 		pingRequest.setValue2(now);
 		ping(pingRequest);
@@ -1311,17 +1354,21 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
 	 */
 	public void pingReceived(Ping pong) {
 		long now = System.currentTimeMillis();
-		long previousReceived = (int) (lastPingSent.get() & 0xffffffff);
-		log.debug("Pong from {} at {} with value {}, previous received at {}", new Object[] { getSessionId(), now, pong.getValue2(), previousReceived });
-		if (pong.getValue2() == previousReceived) {
-			lastPingTime.set((int) (now & 0xffffffff) - pong.getValue2());
-		}
-		lastPongReceived.set(now);
+		long previousPingValue = (int) (lastPingSentOn.get() & 0xffffffff);
+		log.debug("Pong Rx: session=[{}] at {} with value {}, previous received at {}", new Object[] { getSessionId(), now, pong.getValue2(), previousPingValue });
+		if (pong.getValue2() == previousPingValue) {
+			lastPingRoundTripTime.set((int) (now & 0xffffffff) - pong.getValue2());
+			log.debug("Ping response session=[{}], RTT=[{} ms]", new Object[] { getSessionId(), lastPingRoundTripTime.get() });
+		} else {
+			int pingRtt = (int) (now & 0xffffffff) - pong.getValue2();
+			log.info("Pong delayed: session=[{}], ping response took [{} ms] to arrive. Connection may be congested.", new Object[] { getSessionId(), pingRtt });
+		 }
+		lastPongReceivedOn.set(now);
 	}
 
 	/** {@inheritDoc} */
 	public int getLastPingTime() {
-		return lastPingTime.get();
+		return lastPingRoundTripTime.get();
 	}
 
 	/**
@@ -1475,29 +1522,24 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
 									onInactive();
 								}
 							} else {
-								// send ping command to client to trigger sending of data
-								ping();
-								// sleep for 1 second
-								Thread.sleep(1000L);
 								// client didn't send response to ping command and didn't sent data for too long, disconnect
-								long lastPingTime = lastPingSent.get();
-								long lastPongTime = lastPongReceived.get();
-								if (lastPongTime > 0 && (lastPingTime - lastPongTime > maxInactivity) && !(now - lastBytesReadTime < maxInactivity)) {
-									log.warn("Closing {}, due to too much inactivity ({} ms), last ping sent {} ms ago", new Object[] { getSessionId(),
-											(lastPingTime - lastPongTime), (now - lastPingTime) });
+								long lastPingTime = lastPingSentOn.get();
+								long lastPongTime = lastPongReceivedOn.get();
+								if (lastPongTime > 0 && (lastPingTime - lastPongTime > maxInactivity) && (now - lastBytesReadTime > maxInactivity)) {
+									log.warn("Closing connection - inactivity timeout: session=[{}}, lastPongReceived=[{} ms ago], lastPingSent=[{} ms ago], lastDataRx=[{} ms ago]", new Object[] { getSessionId(),
+											(lastPingTime - lastPongTime), (now - lastPingTime),  (now - lastBytesReadTime)});
 									// the following line deals with a very common support request
-									log.warn("This often happens if YOUR Red5 application generated an exception on start-up. Check earlier in the log for that exception first!");
+									log.warn("Client on session=[{}] has not responded to our ping for [{} ms] and we haven't received data for [{} ms]",
+											new Object[] { getSessionId(), (lastPingTime - lastPongTime), (now - lastBytesReadTime)});
 									onInactive();
+								} else {
+									// send ping command to client to trigger sending of data
+									ping();									
 								}
 							}
 						} else {
 							log.debug("No longer connected, clean up connection. Connection state: {}", state.states[state.getState()]);
 							onInactive();
-						}
-					} catch (InterruptedException e) {
-						// only interested in this interrupted ex if we are debugging, otherwise its not helpful to most
-						if (log.isDebugEnabled()) {
-							log.warn("Keep alive was interrupted for {}", getSessionId() + " - " + state.states[getStateCode()], e);
 						}
 					} catch (Exception e) {
 						log.warn("Exception in keepalive for {}", getSessionId(), e);
