@@ -48,7 +48,7 @@ public final class ReceivedMessageTask implements Callable<Boolean> {
 			// don't run the deadlock guard if we're in debug mode
 			if (!Red5.isDebug()) {
 				// run a deadlock guard so hanging tasks will be interrupted
-				guard = new DeadlockGuard(Thread.currentThread());
+				guard = new DeadlockGuard();
 				new Thread(guard, String.format("DeadlockGuard#%s", sessionId)).start();
 			}
 			// pass message to the handler
@@ -84,10 +84,10 @@ public final class ReceivedMessageTask implements Callable<Boolean> {
 	private class DeadlockGuard implements Runnable {
 		
 		// executor task thread
-		final Thread taskThread;
+		private Thread taskThread;
 		
 		// deadlock guard thread
-		final Thread ownerThread;
+		private Thread guardThread = null;
 
 		AtomicBoolean sleeping = new AtomicBoolean(false);
 		
@@ -95,34 +95,21 @@ public final class ReceivedMessageTask implements Callable<Boolean> {
 		 * Creates the deadlock guard to prevent a message task from taking too long to process.
 		 * @param thread
 		 */
-		DeadlockGuard(Thread thread) {
+		DeadlockGuard() {
 			// executor thread ref
-			this.taskThread = thread;
-			// deadlock guard thread ref
-			this.ownerThread = Thread.currentThread();
-			if (log.isDebugEnabled()) {
-				log.debug("Threads - task: {} guard: {}", taskThread.getName(), ownerThread.getName());
-			}
+			this.taskThread = Thread.currentThread();
 		}
 		
 		/**
-		 * Joins the deadlock guard thread.
-		 */
-		public void join() {
-			try {
-				// interrupt deadlock guard if sleeping
-				if (sleeping.get()) {
-					ownerThread.interrupt();
-				}
-				// wait only a 1/4 of the max handling time
-				ownerThread.join(maxHandlingTimeout / 4);
-			} catch (InterruptedException e) {
-				log.debug("Deadlock guard interrupted on {} during join", sessionId);	
-			}
-		}
-
+		 * Save the reference to the thread, and wait until the maxHandlingTimeout has elapsed.
+		 * If it elapsed, kill the other thread.
+		 * */
 		public void run() {
 			try {
+				this.guardThread = Thread.currentThread();
+				if (log.isDebugEnabled()) {
+					log.debug("Threads - task: {} guard: {}", taskThread.getName(), guardThread.getName());
+				}
 				sleeping.compareAndSet(false, true);
 				Thread.sleep(maxHandlingTimeout);
 			} catch (InterruptedException e) {
@@ -143,6 +130,20 @@ public final class ReceivedMessageTask implements Callable<Boolean> {
 					log.debug("Unfinished active task on {} already interrupted", sessionId);					
 				}
 			}
+		}
+		
+		/**
+		 * Joins the deadlock guard thread.
+		 * It's called when the task finish before the maxHandlingTimeout
+		 */
+		public void join() {
+			// interrupt deadlock guard if sleeping
+			if (sleeping.get()) {
+				guardThread.interrupt();
+			}
+			// Wait only a 1/4 of the max handling time
+			// TDJ: Not really needed to wait guard die to release taskMessage processing
+			//guardThread.join(maxHandlingTimeout / 4);
 		}
 		
 	}
