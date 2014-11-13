@@ -144,6 +144,10 @@
 		<property name="maxQueueOfferTime" value="${rtmpt.max_queue_offer_time}" />
 		<!-- Maximum offer attempts before failing on incoming or outgoing queues -->
 		<property name="maxQueueOfferAttempts" value="${rtmpt.max_queue_offer_attempts}" />
+		<!-- Maximum time allowed for a single RTMP packet to be processed -->
+        <property name="maxHandlingTimeout" value="${rtmp.max_handling_time}" />
+        <!-- Specify the size of queue that will trigger audio packet dropping, disabled if it's 0 -->
+         <property name="executorQueueSizeToDropAudioPackets" value="${rtmp.executor.queue_size_to_drop_audio_packets}" />
 	</bean>
 		
    <!-- RTMPS -->
