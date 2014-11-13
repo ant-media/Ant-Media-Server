@@ -27,7 +27,7 @@ public final class ReceivedMessageTask implements Callable<Boolean> {
 	private DeadlockGuard guard;
 		
 	// maximum time allowed to process received message
-	private long maxHandlingTimeout = 500L;
+	private long maxHandlingTime = 500L;
 	
 	public ReceivedMessageTask(String sessionId, Packet message, IRTMPHandler handler) {
 		this(sessionId, message, handler, (RTMPConnection) RTMPConnManager.getInstance().getConnectionBySessionId(sessionId));
@@ -44,12 +44,14 @@ public final class ReceivedMessageTask implements Callable<Boolean> {
 		// set connection to thread local
 		Red5.setConnectionLocal(conn);
 		try {
-			//log.trace("[{}] run begin", sessionId);
-			// don't run the deadlock guard if we're in debug mode
-			if (!Red5.isDebug()) {
-				// run a deadlock guard so hanging tasks will be interrupted
-				guard = new DeadlockGuard();
-				new Thread(guard, String.format("DeadlockGuard#%s", sessionId)).start();
+			//  // don't run the deadlock guard if timeout is <= 0
+			if(maxHandlingTime <= 0) {
+				// don't run the deadlock guard if we're in debug mode
+				if (!Red5.isDebug()) {
+					// run a deadlock guard so hanging tasks will be interrupted
+					guard = new DeadlockGuard();
+					new Thread(guard, String.format("DeadlockGuard#%s", sessionId)).start();
+				}
 			}
 			// pass message to the handler
 			handler.messageReceived(conn, message);
@@ -75,7 +77,7 @@ public final class ReceivedMessageTask implements Callable<Boolean> {
 	 * @param maxHandlingTimeout
 	 */
 	public void setMaxHandlingTimeout(long maxHandlingTimeout) {
-		this.maxHandlingTimeout = maxHandlingTimeout;
+		this.maxHandlingTime = maxHandlingTimeout;
 	}
 
 	/**
@@ -111,7 +113,7 @@ public final class ReceivedMessageTask implements Callable<Boolean> {
 					log.debug("Threads - task: {} guard: {}", taskThread.getName(), guardThread.getName());
 				}
 				sleeping.compareAndSet(false, true);
-				Thread.sleep(maxHandlingTimeout);
+				Thread.sleep(maxHandlingTime);
 			} catch (InterruptedException e) {
 				log.debug("Deadlock guard interrupted on {} during sleep", sessionId);	
 			} finally {
