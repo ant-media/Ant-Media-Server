@@ -116,8 +116,10 @@ public abstract class BaseRTMPTConnection extends RTMPConnection {
 	@Override
 	public void close() {
 		closing = true;
-		log.trace("Clearing pending messages out: {}", pendingOutMessages.size());
-		pendingOutMessages.clear();
+		if (pendingOutMessages.size() > 0) {
+			log.trace("Clearing pending messages out: {}", pendingOutMessages.size());
+			pendingOutMessages.clear();
+		}
 		// clean up buffer
 		if (buffer != null) {
 			buffer.free();

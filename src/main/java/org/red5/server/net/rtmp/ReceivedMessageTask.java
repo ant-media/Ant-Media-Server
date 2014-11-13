@@ -49,7 +49,7 @@ public final class ReceivedMessageTask implements Callable<Boolean> {
 			if (!Red5.isDebug()) {
 				// run a deadlock guard so hanging tasks will be interrupted
 				guard = new DeadlockGuard(Thread.currentThread());
-				new Thread(guard).start();
+				new Thread(guard, String.format("DeadlockGuard#%s", sessionId)).start();
 			}
 			// pass message to the handler
 			handler.messageReceived(conn, message);
@@ -62,11 +62,7 @@ public final class ReceivedMessageTask implements Callable<Boolean> {
 			// set done / completed flag
 			done.set(true);
 			if (guard != null) {
-				// interrupt deadlock guard if sleeping
-				if (guard.isSleeping()) {
-					guard.interrupt();
-				}
-				// join it
+				// calls internal to the deadlock guard to join its thread from this executor task thread
 				guard.join();
 			}
 		}
@@ -87,40 +83,58 @@ public final class ReceivedMessageTask implements Callable<Boolean> {
 	 */
 	private class DeadlockGuard implements Runnable {
 		
-		Thread ownerThread;
+		// executor task thread
+		final Thread taskThread;
+		
+		// deadlock guard thread
+		final Thread ownerThread;
 
-		Thread taskThread;
+		AtomicBoolean sleeping = new AtomicBoolean(false);
 		
-		boolean sleeping;
-		
+		/**
+		 * Creates the deadlock guard to prevent a message task from taking too long to process.
+		 * @param thread
+		 */
 		DeadlockGuard(Thread thread) {
+			// executor thread ref
 			this.taskThread = thread;
+			// deadlock guard thread ref
 			this.ownerThread = Thread.currentThread();
+			if (log.isDebugEnabled()) {
+				log.debug("Threads - task: {} guard: {}", taskThread.getName(), ownerThread.getName());
+			}
 		}
 		
+		/**
+		 * Joins the deadlock guard thread.
+		 */
 		public void join() {
 			try {
+				// interrupt deadlock guard if sleeping
+				if (sleeping.get()) {
+					ownerThread.interrupt();
+				}
+				// wait only a 1/4 of the max handling time
 				ownerThread.join(maxHandlingTimeout / 4);
 			} catch (InterruptedException e) {
 				log.debug("Deadlock guard interrupted on {} during join", sessionId);	
 			}
 		}
 
-		public void interrupt() {
-			ownerThread.interrupt();			
-		}
-
 		public void run() {
 			try {
-				sleeping = true;
+				sleeping.compareAndSet(false, true);
 				Thread.sleep(maxHandlingTimeout);
 			} catch (InterruptedException e) {
 				log.debug("Deadlock guard interrupted on {} during sleep", sessionId);	
 			} finally {
-				sleeping = false;
+				sleeping.set(false);
 			}
+			// if the message task is not yet done interrupt
 			if (!done.get()) {
+				// if the task thread hasn't been interrupted check its live-ness
 				if (!taskThread.isInterrupted()) {
+					// if the task thread is alive, interrupt it
 					if (taskThread.isAlive()) {
 						log.warn("Interrupting unfinished active task on {}", sessionId);
 						taskThread.interrupt();
@@ -129,10 +143,6 @@ public final class ReceivedMessageTask implements Callable<Boolean> {
 					log.debug("Unfinished active task on {} already interrupted", sessionId);					
 				}
 			}
-		}
-
-		public boolean isSleeping() {
-			return sleeping;
 		}
 		
 	}

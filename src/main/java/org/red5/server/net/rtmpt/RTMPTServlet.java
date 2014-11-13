@@ -80,7 +80,7 @@ public class RTMPTServlet extends HttpServlet {
 	 * Try to generate responses that contain at least 32768 bytes data.
 	 * Increasing this value results in better stream performance, but also increases the latency.
 	 */
-	private static int targetResponseSize = 32768;
+	private static int targetResponseSize = Short.MAX_VALUE + 1;
 
 	/**
 	 * Reference to RTMPT handler;
@@ -130,16 +130,21 @@ public class RTMPTServlet extends HttpServlet {
 		Header header = new Header();
 		Packet packet = new Packet(header, event);
 		header.setDataType(event.getDataType());
-		// create dummy connection
-		try {
-			Red5.setConnectionLocal(((RTMPConnManager) manager).createConnectionInstance(RTMPConnection.class));
-		} catch (Exception e) {
+		// create dummy connection if local is empty
+		RTMPConnection conn = (RTMPConnection) Red5.getConnectionLocal();
+		if (conn == null) {
+			try {
+				conn = ((RTMPConnManager) manager).createConnectionInstance(RTMPTConnection.class);
+				Red5.setConnectionLocal(conn);
+			} catch (Exception e) {
+			}
 		}
 		// encode the data
 		RTMPProtocolEncoder encoder = new RTMPProtocolEncoder();
 		IoBuffer out = encoder.encodePacket(packet);
 		// send the response
 		returnMessage(null, out, resp);
+		// clear local
 		Red5.setConnectionLocal(null);
 	}
 

@@ -485,6 +485,7 @@ public class RTMPHandler extends BaseRTMPHandler {
 				reply.setTransactionId(command.getTransactionId());
 				channel.write(reply);
 				if (disconnectOnReturn) {
+					log.debug("Close connection due to connect handling exception: {}", conn.getSessionId());
 					conn.close();
 				}
 			}

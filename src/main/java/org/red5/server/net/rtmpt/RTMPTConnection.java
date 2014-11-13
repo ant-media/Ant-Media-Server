@@ -29,17 +29,11 @@ import org.red5.logging.Red5LoggerFactory;
 import org.red5.server.net.rtmp.InboundHandshake;
 import org.red5.server.net.rtmp.RTMPConnection;
 import org.red5.server.net.rtmp.RTMPHandshake;
-import org.red5.server.net.rtmp.ReceivedMessageTask;
 import org.red5.server.net.rtmp.codec.RTMP;
-import org.red5.server.net.rtmp.message.Constants;
 import org.red5.server.net.rtmp.message.Packet;
 import org.red5.server.net.servlet.ServletUtils;
 import org.slf4j.Logger;
-import org.springframework.core.task.TaskRejectedException;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
-import org.springframework.util.concurrent.ListenableFuture;
-import org.springframework.util.concurrent.ListenableFutureCallback;
-import org.springframework.util.concurrent.ListenableFutureTask;
 
 /**
  * A RTMPT client / session.
@@ -125,6 +119,15 @@ public class RTMPTConnection extends BaseRTMPTConnection {
 		log.debug("close {} state: {}", getSessionId(), state.states[state.getState()]);
 		// ensure closing flag is set
 		if (!isClosing()) {
+			// flush by waiting x number of millis for the pending messages to be cleared
+			if (!pendingOutMessages.isEmpty()) {
+				try {
+					log.debug("Going to sleep to allow pending queue a chance to clear");
+					Thread.sleep(256L);
+				} catch (InterruptedException e) {
+				}
+			}
+			// now close
 			super.close();
 			if (servlet != null) {
 				servlet = null;
@@ -146,58 +149,6 @@ public class RTMPTConnection extends BaseRTMPTConnection {
 			handleMessageReceived((Packet) message);
 		} else {
 			handleMessageReceived((IoBuffer) message);
-		}
-	}
-
-	/** {@inheritDoc} */
-	@SuppressWarnings("unchecked")
-	@Override
-	public void handleMessageReceived(Packet message) {
-		log.trace("handleMessageReceived - {}", sessionId);
-		// route ping outside of the executor
-		if (message.getHeader().getDataType() == Constants.TYPE_PING) {
-			// pass message to the handler
-			try {
-				handler.messageReceived(this, message);
-			} catch (Exception e) {
-				log.error("Error processing received message {}", sessionId, e);
-			}
-		} else {
-			if (executor != null) {
-				try {
-					ReceivedMessageTask task = new ReceivedMessageTask(sessionId, message, handler, this);
-					task.setMaxHandlingTimeout(maxHandlingTimeout);
-					ListenableFuture<Boolean> future = (ListenableFuture<Boolean>) executor.submitListenable(new ListenableFutureTask<Boolean>(task));
-					future.addCallback(new ListenableFutureCallback<Boolean>() {
-						public void onFailure(Throwable t) {
-							log.warn("[{}] onFailure", sessionId, t);
-						}
-
-						public void onSuccess(Boolean success) {
-							log.debug("[{}] onSuccess: {}", sessionId, success);
-						}
-					});
-				} catch (TaskRejectedException tre) {
-					Throwable[] suppressed = tre.getSuppressed();
-					for (Throwable t : suppressed) {
-						log.warn("Suppressed exception on {}", sessionId, t);
-					}
-					log.info("Rejected message: {} on {}", message, sessionId);
-				} catch (Exception e) {
-					log.warn("Incoming message handling failed on {}", getSessionId(), e);
-					if (log.isDebugEnabled()) {
-						log.debug("Execution rejected on {} - {}", getSessionId(), state.states[getStateCode()]);
-						log.debug("Lock permits - decode: {} encode: {}", decoderLock.availablePermits(), encoderLock.availablePermits());
-					}
-					// ensure the connection is not closing and if it is drop
-					// the runnable
-					// if (state.getState() == RTMP.STATE_CONNECTED) {
-					// onInactive();
-					// }
-				}
-			} else {
-				log.warn("Executor is null on {} state: {}", getSessionId(), state.states[getStateCode()]);
-			}			
 		}
 	}
 
