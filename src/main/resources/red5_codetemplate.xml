@@ -49,23 +49,19 @@
         description="Comment for created Java files"
         enabled="true" >
 /**&#13;
- * RED5 Open Source Flash Server - http://code.google.com/p/red5&#13;
- * Legacy site url - http://www.osflash.org/red5&#13;
- *&#13;
- * Copyright (c) 2006-2009 by respective authors (see below). All rights reserved.&#13;
- *&#13;
- * This library is free software; you can redistribute it and/or modify it under the&#13;
- * terms of the GNU Lesser General Public License as published by the Free Software&#13;
- * Foundation; either version 2.1 of the License, or (at your option) any later&#13;
- * version.&#13;
- *&#13;
- * This library is distributed in the hope that it will be useful, but WITHOUT ANY&#13;
- * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A&#13;
- * PARTICULAR PURPOSE. See the GNU Lesser General Public License for more details.&#13;
- *&#13;
- * You should have received a copy of the GNU Lesser General Public License along&#13;
- * with this library; if not, write to the Free Software Foundation, Inc.,&#13;
- * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA&#13;
+ * RED5 Open Source Flash Server - https://github/Red5/red5-server/&#13;
+ * &#13;
+ * Copyright 2006-2014 by respective authors (see below). All rights reserved.&#13;
+ * &#13;
+ * Licensed under the Apache License, Version 2.0 (the "License");&#13;
+ * you may not use this file except in compliance with the License.&#13;
+ * You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0&#13;
+ * &#13;
+ * Unless required by applicable law or agreed to in writing, software&#13;
+ * distributed under the License is distributed on an "AS IS" BASIS,&#13;
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.&#13;
+ * See the License for the specific language governing permissions and&#13;
+ * limitations under the License.&#13;
  */
     </template>
 
