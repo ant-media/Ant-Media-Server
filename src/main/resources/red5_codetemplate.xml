@@ -1,0 +1,245 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<templates>
+
+    <template
+        id="org.eclipse.jdt.ui.text.codetemplates.gettercomment"
+        name="gettercomment"
+        autoinsert="true"
+        context="gettercomment_context"
+        deleted="false"
+        description="Comment for getter method"
+        enabled="true" >
+/**
+ * @return the ${bare_field_name}
+ */
+    </template>
+
+    <template
+        id="org.eclipse.jdt.ui.text.codetemplates.settercomment"
+        name="settercomment"
+        autoinsert="true"
+        context="settercomment_context"
+        deleted="false"
+        description="Comment for setter method"
+        enabled="true" >
+/**
+ * @param ${param} the ${bare_field_name} to set
+ */
+    </template>
+
+    <template
+        id="org.eclipse.jdt.ui.text.codetemplates.constructorcomment"
+        name="constructorcomment"
+        autoinsert="true"
+        context="constructorcomment_context"
+        deleted="false"
+        description="Comment for created constructors"
+        enabled="true" >
+/**
+ * ${tags}
+ */
+    </template>
+
+    <template
+        id="org.eclipse.jdt.ui.text.codetemplates.filecomment"
+        name="filecomment"
+        autoinsert="false"
+        context="filecomment_context"
+        deleted="false"
+        description="Comment for created Java files"
+        enabled="true" >
+/**&#13;
+ * RED5 Open Source Flash Server - https://github/Red5/red5-server/&#13;
+ * &#13;
+ * Copyright 2006-2014 by respective authors (see below). All rights reserved.&#13;
+ * &#13;
+ * Licensed under the Apache License, Version 2.0 (the "License");&#13;
+ * you may not use this file except in compliance with the License.&#13;
+ * You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0&#13;
+ * &#13;
+ * Unless required by applicable law or agreed to in writing, software&#13;
+ * distributed under the License is distributed on an "AS IS" BASIS,&#13;
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.&#13;
+ * See the License for the specific language governing permissions and&#13;
+ * limitations under the License.&#13;
+ */
+    </template>
+
+    <template
+        id="org.eclipse.jdt.ui.text.codetemplates.typecomment"
+        name="typecomment"
+        autoinsert="false"
+        context="typecomment_context"
+        deleted="false"
+        description="Comment for created types"
+        enabled="true" >
+/**
+ * ${tags}
+ *
+ * @version $$Revision$$ $$Date$$
+ */
+    </template>
+
+    <template
+        id="org.eclipse.jdt.ui.text.codetemplates.fieldcomment"
+        name="fieldcomment"
+        autoinsert="false"
+        context="fieldcomment_context"
+        deleted="false"
+        description="Comment for fields"
+        enabled="true" />
+
+    <template
+        id="org.eclipse.jdt.ui.text.codetemplates.methodcomment"
+        name="methodcomment"
+        autoinsert="true"
+        context="methodcomment_context"
+        deleted="false"
+        description="Comment for non-overriding methods"
+        enabled="true" >
+/**
+ * ${tags}
+ */
+    </template>
+
+    <template
+        id="org.eclipse.jdt.ui.text.codetemplates.overridecomment"
+        name="overridecomment"
+        autoinsert="true"
+        context="overridecomment_context"
+        deleted="false"
+        description="Comment for overriding methods"
+        enabled="true" >
+/* (non-Javadoc)
+ * ${see_to_overridden}
+ */
+    </template>
+
+    <template
+        id="org.eclipse.jdt.ui.text.codetemplates.delegatecomment"
+        name="delegatecomment"
+        autoinsert="true"
+        context="delegatecomment_context"
+        deleted="false"
+        description="Comment for delegate methods"
+        enabled="true" >
+/**
+ * ${tags}
+ * ${see_to_target}
+ */
+    </template>
+
+    <template
+        id="org.eclipse.jdt.ui.text.codetemplates.newtype"
+        name="newtype"
+        autoinsert="true"
+        context="newtype_context"
+        deleted="false"
+        description="Newly created files"
+        enabled="true" >
+${filecomment}
+${package_declaration}
+
+${typecomment}
+${type_declaration}
+    </template>
+
+    <template
+        id="org.eclipse.jdt.ui.text.codetemplates.classbody"
+        name="classbody"
+        autoinsert="true"
+        context="classbody_context"
+        deleted="false"
+        description="Code in new class type bodies"
+        enabled="true" >
+    </template>
+
+    <template
+        id="org.eclipse.jdt.ui.text.codetemplates.interfacebody"
+        name="interfacebody"
+        autoinsert="true"
+        context="interfacebody_context"
+        deleted="false"
+        description="Code in new interface type bodies"
+        enabled="true" >
+    </template>
+
+    <template
+        id="org.eclipse.jdt.ui.text.codetemplates.enumbody"
+        name="enumbody"
+        autoinsert="true"
+        context="enumbody_context"
+        deleted="false"
+        description="Code in new enum type bodies"
+        enabled="true" >
+    </template>
+
+    <template
+        id="org.eclipse.jdt.ui.text.codetemplates.annotationbody"
+        name="annotationbody"
+        autoinsert="true"
+        context="annotationbody_context"
+        deleted="false"
+        description="Code in new annotation type bodies"
+        enabled="true" >
+    </template>
+
+    <template
+        id="org.eclipse.jdt.ui.text.codetemplates.catchblock"
+        name="catchblock"
+        autoinsert="true"
+        context="catchblock_context"
+        deleted="false"
+        description="Code in new catch blocks"
+        enabled="true" >
+// ${todo} Auto-generated catch block
+${exception_var}.printStackTrace();
+    </template>
+
+    <template
+        id="org.eclipse.jdt.ui.text.codetemplates.methodbody"
+        name="methodbody"
+        autoinsert="true"
+        context="methodbody_context"
+        deleted="false"
+        description="Code in created method stubs"
+        enabled="true" >
+// ${todo} Auto-generated method stub
+${body_statement}
+    </template>
+
+    <template
+        id="org.eclipse.jdt.ui.text.codetemplates.constructorbody"
+        name="constructorbody"
+        autoinsert="true"
+        context="constructorbody_context"
+        deleted="false"
+        description="Code in created constructor stubs"
+        enabled="true" >
+${body_statement}
+// ${todo} Auto-generated constructor stub
+    </template>
+
+    <template
+        id="org.eclipse.jdt.ui.text.codetemplates.getterbody"
+        name="getterbody"
+        autoinsert="true"
+        context="getterbody_context"
+        deleted="false"
+        description="Code in created getters"
+        enabled="true" >
+return ${field};
+    </template>
+
+    <template
+        id="org.eclipse.jdt.ui.text.codetemplates.setterbody"
+        name="setterbody"
+        autoinsert="true"
+        context="setterbody_context"
+        deleted="false"
+        description="Code in created setters"
+        enabled="true" >
+${field} = ${param};
+    </template>
+
+</templates>
