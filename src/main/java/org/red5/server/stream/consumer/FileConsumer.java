@@ -247,16 +247,19 @@ public class FileConsumer implements Constants, IPushableConsumer, IPipeConnecti
 			} else {
 				QueuedData queued = null;
 				if (msg instanceof IStreamData) {
-					log.debug("Stream data, body saved. Data type: {} class type: {}", dataType, msg.getClass().getName());
+					if (log.isTraceEnabled()) {
+						log.trace("Stream data, body saved. Data type: {} class type: {}", dataType, msg.getClass().getName());
+					}
 					try {
 						queued = new QueuedData(timestamp, dataType, ((IStreamData) msg).duplicate());
 					} catch (ClassNotFoundException e) {
 						log.warn("Exception queueing stream data", e);
 					}
 				} else {
-					// XXX what type of message are we saving that has no body
-					// data??
-					log.debug("Non-stream data, body not saved. Data type: {} class type: {}", dataType, msg.getClass().getName());
+					// XXX what type of message are we saving that has no body data??
+					if (log.isTraceEnabled()) {
+						log.trace("Non-stream data, body not saved. Data type: {} class type: {}", dataType, msg.getClass().getName());
+					}
 					queued = new QueuedData(timestamp, dataType);
 				}
 				writeLock.lock();
@@ -317,11 +320,15 @@ public class FileConsumer implements Constants, IPushableConsumer, IPipeConnecti
 		writeLock.lock();
 		try {
 			// sort the queue
-			log.trace("Queue length: {}", queue.size());
+			if (log.isTraceEnabled()) {
+				log.trace("Queue length: {}", queue.size());
+			}
 			for (int q = 0; q < sliceLength; q++) {
 				slice[q] = queue.remove();
 			}
-			log.trace("Queue length (after removal): {}", queue.size());
+			if (log.isTraceEnabled()) {
+				log.trace("Queue length (after removal): {}", queue.size());
+			}
 		} finally {
 			writeLock.unlock();
 		}
@@ -335,12 +342,16 @@ public class FileConsumer implements Constants, IPushableConsumer, IPipeConnecti
 		writeLock.lock();
 		try {
 			// sort the queue
-			log.trace("Queue length: {}", queue.size());
+			if (log.isTraceEnabled()) {
+				log.trace("Queue length: {}", queue.size());
+			}
 			if (!queue.isEmpty()) {
 				while (!queue.isEmpty() && queue.peek().getTimestamp() <= timestamp) {
 					slice.add(queue.remove());
 				}
-				log.trace("Queue length (after removal): {}", queue.size());
+				if (log.isTraceEnabled()) {
+					log.trace("Queue length (after removal): {}", queue.size());
+				}
 			}
 		} finally {
 			writeLock.unlock();
@@ -540,7 +551,9 @@ public class FileConsumer implements Constants, IPushableConsumer, IPipeConnecti
 					// clear the data, because we're done with it
 					queued.dispose();
 				} else {
-					log.warn("Queued data was not available");
+					if (log.isTraceEnabled()) {
+						log.trace("Queued data was not available");
+					}
 				}
 			} else {
 				// clear the data, since its too old
