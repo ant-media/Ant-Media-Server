@@ -64,14 +64,19 @@ public final class Red5 {
 	public IConnection conn;
 
 	/**
-	 * Current server version with revision
+	 * Server version with revision
 	 */
 	public static final String VERSION = "Red5 Server 1.0.4-SNAPSHOT";
 
 	/**
-	 * Current server version for fmsVer requests 
+	 * Server version for fmsVer requests 
 	 */
-	public static final String FMS_VERSION = "RED5/1,0,3,0";
+	public static final String FMS_VERSION = "RED5/1,0,4,0";
+	
+	/**
+	 * Server capabilities
+	 */
+	public static final Integer CAPABILITIES = Integer.valueOf(33); // was 31
 
 	/**
 	 * Data version for NetStatusEvents
@@ -202,6 +207,10 @@ public final class Red5 {
 		return FMS_VERSION;
 	}
 
+	public static Integer getCapabilities() {
+		return CAPABILITIES;
+	}
+	
 	public static Object getDataVersion() {
 		return DATA_VERSION;
 	}
