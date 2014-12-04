@@ -33,6 +33,8 @@ import org.red5.server.api.scope.ScopeType;
 import org.red5.server.jmx.mxbeans.WebScopeMXBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.DisposableBean;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.web.context.ServletContextAware;
 
@@ -48,7 +50,7 @@ import org.springframework.web.context.ServletContextAware;
  * Red5 server implementation instance and ServletContext are injected as well.
  */
 @ManagedResource
-public class WebScope extends Scope implements ServletContextAware, WebScopeMXBean {
+public class WebScope extends Scope implements ServletContextAware, WebScopeMXBean, InitializingBean, DisposableBean {
 
 	/**
 	 * Logger
@@ -103,7 +105,18 @@ public class WebScope extends Scope implements ServletContextAware, WebScopeMXBe
 	{
 		type = ScopeType.APPLICATION;
 	}
+	
+	@Override
+	public void afterPropertiesSet() throws Exception {
+		register();
+	}
 
+	@Override
+	public void destroy() throws Exception {
+		unregister();
+		super.destroy();
+	}	
+	
 	/**
 	 * Setter for global scope. Sets persistence class.
 	 * 
@@ -219,46 +232,48 @@ public class WebScope extends Scope implements ServletContextAware, WebScopeMXBe
 	 * Uninitialize and remove all vhosts from the global scope.
 	 */
 	public void unregister() {
-		if (!registered.get()) {
+		if (!registered.compareAndSet(true, false)) {
 			log.info("Webscope not registered");
 			return;
 		}
 		log.debug("Webscope un-registering: {}", contextPath);
-		shuttingDown.set(true);
-		keepOnDisconnect = false;
-		uninit();
-		// disconnect all clients before unregistering
-		Set<IConnection> conns = getClientConnections();
-		for (IConnection conn : conns) {
-			conn.close();
-		}
-		conns.clear();
-		//
-		if (hostnames != null && hostnames.length > 0) {
-			for (String element : hostnames) {
-				server.removeMapping(element, getName());
+		if (shuttingDown.compareAndSet(false, true)) {
+			keepOnDisconnect = false;
+			uninit();
+			// disconnect all clients before unregistering
+			Set<IConnection> conns = getClientConnections();
+			for (IConnection conn : conns) {
+				conn.close();
 			}
-		}
-		//check for null
-		if (appContext == null) {
-			log.debug("Application context is null, trying retrieve from loader");
-			getAppContext();
-		}
-		//try to stop the app context
-		if (appContext != null) {
-			log.debug("Stopping app context");
-			appContext.stop();
+			conns.clear();
+			//
+			if (hostnames != null && hostnames.length > 0) {
+				for (String element : hostnames) {
+					server.removeMapping(element, getName());
+				}
+			}
+			//check for null
+			if (appContext == null) {
+				log.debug("Application context is null, trying retrieve from loader");
+				getAppContext();
+			}
+			//try to stop the app context
+			if (appContext != null) {
+				log.debug("Stopping app context");
+				appContext.stop();
+			} else {
+				log.debug("Application context is null, could not be stopped");
+			}
+			// Various cleanup tasks
+			store = null;
+			setServletContext(null);
+			setServer(null);
+			setName(null);
+			appContext = null;
+			shuttingDown.set(false);			
 		} else {
-			log.debug("Application context is null, could not be stopped");
+			log.info("Webscope is currently shutting down");
 		}
-		// Various cleanup tasks
-		store = null;
-		setServletContext(null);
-		setServer(null);
-		setName(null);
-		appContext = null;
-		registered.set(false);
-		shuttingDown.set(false);
 	}
 
 	/** {@inheritDoc} */

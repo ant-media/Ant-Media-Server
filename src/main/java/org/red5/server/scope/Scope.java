@@ -312,8 +312,10 @@ public class Scope extends BasicScope implements IScope, IScopeStatistics, Scope
 
 	/**
 	 * Destroys scope
+	 * 
+	 * @throws Exception 
 	 */
-	public void destroy() {
+	public void destroy() throws Exception {
 		log.debug("Destroy scope");
 		if (hasParent()) {
 			parent.removeChildScope(this);

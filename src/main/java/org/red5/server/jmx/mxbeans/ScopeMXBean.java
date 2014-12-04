@@ -75,8 +75,10 @@ public interface ScopeMXBean {
 
 	/**
 	 * Destroys scope
+	 * 
+	 * @throws Exception 
 	 */
-	public void destroy();
+	public void destroy() throws Exception;
 
 	/**
 	 * Set scope persistence class
