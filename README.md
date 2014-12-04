@@ -9,6 +9,8 @@ The Red5 users list may be found here: https://groups.google.com/forum/#!forum/r
 
 Subreddit: http://www.reddit.com/r/red5
 
+Jenkins builds: https://builds.apache.org/view/M-R/view/OpenMeetings/job/Red5-server/ (Courtesy of Apache / OpenMeetings)
+
 Latest version is <b>1.0.3-RELEASE</b>
 
 <h4>Red5 1.0.3 Release (5 August 2014)</h4>
