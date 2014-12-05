@@ -11,13 +11,14 @@ Subreddit: http://www.reddit.com/r/red5
 
 Jenkins builds: https://builds.apache.org/view/M-R/view/OpenMeetings/job/Red5-server/ (Courtesy of Apache / OpenMeetings)
 
-Latest version is <b>1.0.3-RELEASE</b>
+Latest version is <b>1.0.4-SNAPSHOT</b>
+
+Current Releases
+----------------
 
 <h4>Red5 1.0.3 Release (5 August 2014)</h4>
 <a href="https://mega.co.nz/#!JcNwyKab!Mk7aMIL_bAsRQgReBz0hIuDBs0vfncl901ZtLY3u0dM">Tarball</a> | 
 <a href="https://mega.co.nz/#!1BdigLgY!m_mGoSw5SEPh0Nf8qGGmGaUn3VXpIVrYHpVYCYNsK7Q">ZIP</a>
-
-<i>The Windows installer will be available once my Windows development PC is setup</i>
 
 <h4>Red5 1.0.2 Release (9 April 2014)</h4>
 <a href="https://mega.co.nz/#!FFsV0TIC!eEeGePK30nCv0xF5E7w_6S3b_z8Y9pjzMkp2-UgZTYk">Windows Java7</a> | 
