@@ -445,26 +445,26 @@
 			<artifactId>logback-classic</artifactId>
 			<version>${logback.version}</version>
 		</dependency>
-	<dependency>
-		<groupId>org.apache.httpcomponents</groupId>
-		<artifactId>httpcore</artifactId>
-		<version>4.3.2</version>
-	</dependency>
-	<dependency>
-		<groupId>org.apache.httpcomponents</groupId>
-		<artifactId>httpclient</artifactId>
-		<version>4.3.5</version>
-		<exclusions>
-			<exclusion>
-				<groupId>commons-logging</groupId>
-				<artifactId>commons-logging</artifactId>
-			</exclusion>
-			<exclusion>
-				<artifactId>commons-codec</artifactId>
-				<groupId>commons-codec</groupId>
-			</exclusion>
-		</exclusions>
-	</dependency>
+		<dependency>
+			<groupId>org.apache.httpcomponents</groupId>
+			<artifactId>httpcore</artifactId>
+			<version>4.3.2</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.httpcomponents</groupId>
+			<artifactId>httpclient</artifactId>
+			<version>4.3.5</version>
+			<exclusions>
+				<exclusion>
+					<groupId>commons-logging</groupId>
+					<artifactId>commons-logging</artifactId>
+				</exclusion>
+				<exclusion>
+					<artifactId>commons-codec</artifactId>
+					<groupId>commons-codec</groupId>
+				</exclusion>
+			</exclusions>
+		</dependency>
 		<dependency>
 			<groupId>org.antlr</groupId>
 			<artifactId>antlr</artifactId>
@@ -526,6 +526,11 @@
 					<groupId>org.aspectj</groupId>
 				</exclusion>
 			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>org.red5</groupId>
+			<artifactId>red5-server-common</artifactId>
+			<version>${project.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.red5</groupId>
@@ -612,50 +617,50 @@
 			<scope>compile</scope>
 		</dependency>
 		<dependency>
-					<artifactId>bcprov-jdk15on</artifactId>
-					<groupId>org.bouncycastle</groupId>
+			<artifactId>bcprov-jdk15on</artifactId>
+			<groupId>org.bouncycastle</groupId>
 			<version>${bc.version}</version>
-				</dependency>
+		</dependency>
 		<dependency>
-					<artifactId>mina-core</artifactId>
-					<groupId>org.apache.mina</groupId>
+			<artifactId>mina-core</artifactId>
+			<groupId>org.apache.mina</groupId>
 			<version>${mina.version}</version>
-				</dependency>
+		</dependency>
 		<dependency>
-					<artifactId>mina-integration-jmx</artifactId>
-					<groupId>org.apache.mina</groupId>
+			<artifactId>mina-integration-jmx</artifactId>
+			<groupId>org.apache.mina</groupId>
 			<version>${mina.version}</version>
-				</dependency>
+		</dependency>
 		<dependency>
-					<artifactId>mina-integration-beans</artifactId>
-					<groupId>org.apache.mina</groupId>
+			<artifactId>mina-integration-beans</artifactId>
+			<groupId>org.apache.mina</groupId>
 			<version>${mina.version}</version>
-				</dependency>
+		</dependency>
 		<dependency>
-					<artifactId>commons-beanutils</artifactId>
-					<groupId>commons-beanutils</groupId>
+			<artifactId>commons-beanutils</artifactId>
+			<groupId>commons-beanutils</groupId>
 			<version>1.9.2</version>
-				</dependency>
+		</dependency>
 		<dependency>
-					<artifactId>commons-codec</artifactId>
-					<groupId>commons-codec</groupId>
+			<artifactId>commons-codec</artifactId>
+			<groupId>commons-codec</groupId>
 			<version>1.9</version>
-				</dependency>
+		</dependency>
 		<dependency>
-					<artifactId>commons-collections</artifactId>
-					<groupId>commons-collections</groupId>
+			<artifactId>commons-collections</artifactId>
+			<groupId>commons-collections</groupId>
 			<version>3.2.1</version>
-				</dependency>
+		</dependency>
 		<dependency>
-					<artifactId>commons-lang3</artifactId>
-					<groupId>org.apache.commons</groupId>
+			<artifactId>commons-lang3</artifactId>
+			<groupId>org.apache.commons</groupId>
 			<version>3.3.2</version>
-				</dependency>
-<dependency>
-	<groupId>org.quartz-scheduler</groupId>
-	<artifactId>quartz</artifactId>
-	<version>${quartz.version}</version>
-</dependency>
+		</dependency>
+		<dependency>
+			<groupId>org.quartz-scheduler</groupId>
+			<artifactId>quartz</artifactId>
+			<version>${quartz.version}</version>
+		</dependency>
 		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-aop</artifactId>

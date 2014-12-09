@@ -11,3 +11,4 @@ target/
 Thumbs.db
 build.sh
 log/
+temp/
