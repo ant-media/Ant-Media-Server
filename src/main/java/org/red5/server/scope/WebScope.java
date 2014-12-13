@@ -60,12 +60,22 @@ public class WebScope extends Scope implements ServletContextAware, WebScopeMXBe
 	/**
 	 * Server instance
 	 */
-	protected IServer server;
+	protected transient IServer server;
+
+	/**
+	 * The application context this webscope is running in.
+	 */
+	protected transient IApplicationContext appContext;
+
+	/**
+	 * Loader for new applications.
+	 */
+	protected transient IApplicationLoader appLoader;
 
 	/**
 	 * Servlet context
 	 */
-	protected ServletContext servletContext;
+	protected transient ServletContext servletContext;
 
 	/**
 	 * Context path
@@ -86,16 +96,6 @@ public class WebScope extends Scope implements ServletContextAware, WebScopeMXBe
 	 * Has the web scope been registered?
 	 */
 	protected AtomicBoolean registered = new AtomicBoolean(false);
-
-	/**
-	 * The application context this webscope is running in.
-	 */
-	protected IApplicationContext appContext;
-
-	/**
-	 * Loader for new applications.
-	 */
-	protected IApplicationLoader appLoader;
 
 	/**
 	 * Is the scope currently shutting down?

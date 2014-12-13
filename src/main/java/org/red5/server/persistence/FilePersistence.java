@@ -114,7 +114,7 @@ public class FilePersistence extends RamPersistence {
 		if (ctx.hasBean(ISchedulingService.BEAN_NAME)) {
 			schedulingService = (ISchedulingService) ctx.getBean(ISchedulingService.BEAN_NAME);
 		} else {
-			//try the parent
+			// try the parent
 			schedulingService = (ISchedulingService) scope.getParent().getContext().getBean(ISchedulingService.BEAN_NAME);
 		}
 		// add the job

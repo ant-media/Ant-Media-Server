@@ -38,7 +38,7 @@ import org.springframework.jmx.export.annotation.ManagedResource;
 public class GlobalScope extends Scope implements IGlobalScope, GlobalScopeMXBean {
 
 	// Red5 Server instance
-	protected IServer server;
+	protected transient IServer server;
 
 	{
 		type = ScopeType.GLOBAL;
