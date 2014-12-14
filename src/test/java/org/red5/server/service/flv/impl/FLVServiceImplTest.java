@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.red5.server.service.flv;
+package org.red5.server.service.flv.impl;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -29,6 +29,7 @@ import org.red5.io.ITag;
 import org.red5.io.ITagReader;
 import org.red5.io.ITagWriter;
 import org.red5.io.flv.IFLV;
+import org.red5.server.service.flv.IFLVService;
 import org.red5.server.service.flv.impl.FLVService;
 
 /**
@@ -39,6 +40,7 @@ import org.red5.server.service.flv.impl.FLVService;
  * @author Luke Hubbard, Codegent Ltd (luke@codegent.com)
  */
 public class FLVServiceImplTest extends TestCase {
+	
 	private IFLVService service;
 
 	/**
