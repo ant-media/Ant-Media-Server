@@ -136,8 +136,8 @@ public class RTMPMinaTransport implements RTMPMinaTransportMXBean {
 		} else {
 			// simple pool for i/o processors
 			SimpleIoProcessorPool<NioSession> pool = new SimpleIoProcessorPool<NioSession>(NioProcessor.class, maxProcessorPoolSize);
-			// executor for acceptors
-			Executor executor = new ThreadPoolExecutor(initialPoolSize, maxPoolSize, executorKeepAliveTime, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
+			// executor for acceptors, defaults to 32k for work queue
+			Executor executor = new ThreadPoolExecutor(initialPoolSize, maxPoolSize, executorKeepAliveTime, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>(Short.MAX_VALUE));
 			// our adjusted socket acceptor with tweaked executor and pool
 			acceptor = new NioSocketAcceptor(executor, pool);
 		}
