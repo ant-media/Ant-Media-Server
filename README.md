@@ -35,6 +35,7 @@ Maven Artifacts
 -----------------
 
 Releases are available at https://oss.sonatype.org/content/repositories/releases/org/red5/
+
 Snapshots are available at https://oss.sonatype.org/content/repositories/snapshots/org/red5/
 
 Stack Overflow
