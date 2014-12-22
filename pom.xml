@@ -57,7 +57,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <red5-io.version>1.0.4-SNAPSHOT</red5-io.version>
-        <red5-service.version>1.0.3-RELEASE</red5-service.version>
+        <red5-service.version>1.0.4-SNAPSHOT</red5-service.version>
         <spring.version>4.0.7.RELEASE</spring.version>
         <mina.version>2.0.8</mina.version>
         <slf4j.version>1.7.7</slf4j.version>
@@ -258,69 +258,6 @@
             </plugin>            
         </plugins>
     </build>
-    <repositories>
-        <repository>
-            <id>Red5</id>
-            <url>http://red5.googlecode.com/svn/repository</url>
-        </repository>
-        <repository>
-            <id>repo1.maven.org</id>
-            <url>http://repo1.maven.org/maven2</url>
-        </repository>
-        <repository>
-            <id>repository.springsource.release</id>
-            <name>SpringSource GA Repository</name>
-            <url>http://repo.springsource.org/release</url>
-        </repository>
-        <repository>
-            <id>repository.springsource.milestone</id>
-            <name>SpringSource Milestone Repository</name>
-            <url>http://repo.springsource.org/milestone</url>
-        </repository>
-        <repository>
-            <id>repository.springsource.snapshot</id>
-            <name>SpringSource Snapshot Repository</name>
-            <url>http://repo.springsource.org/snapshot</url>
-        </repository>
-        <repository>
-            <id>maven2-repository.dev.java.net</id>
-            <url>http://download.java.net/maven/2</url>
-        </repository>
-        <repository>
-            <id>opensymphony-releases</id>
-            <name>Opensymphony Releases</name>
-            <url>https://oss.sonatype.org/content/repositories/opensymphony-releases</url>
-        </repository>
-        <repository>
-            <id>mp4parser-releases</id>
-            <name>MP4Parser Releases</name>
-            <url>https://oss.sonatype.org/content/repositories/comgooglecodemp4parser-137</url>
-        </repository>
-        <repository>
-            <id>sonatype-snapshots</id>
-            <name>Sonatype Snapshots</name>
-            <url>http://oss.sonatype.org/content/repositories/snapshots</url>
-        </repository>
-        <repository>
-            <id>sonatype-releases</id>
-            <name>Sonatype Releases</name>
-            <url>http://oss.sonatype.org/content/repositories/releases</url>
-        </repository>
-        <repository>
-            <id>jboss-public-repository-group</id>
-            <name>JBoss Public Maven Repository Group</name>
-            <url>https://repository.jboss.org/nexus/content/groups/public-jboss</url>
-            <layout>default</layout>
-            <releases>
-                <enabled>true</enabled>
-                <updatePolicy>never</updatePolicy>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-                <updatePolicy>never</updatePolicy>
-            </snapshots>
-        </repository>
-    </repositories>
     <dependencyManagement>
         <dependencies>
             <dependency>

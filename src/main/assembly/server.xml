@@ -14,7 +14,7 @@
             <destName>red5-server.jar</destName>
         </file>
         <file>
-            <source>${project.build.directory}/lib/red5-service-1.0.3-RELEASE.jar</source>
+            <source>${project.build.directory}/lib/red5-service-${red5-service.version}.jar</source>
             <outputDirectory>/</outputDirectory>
             <destName>red5-service.jar</destName>
         </file>
@@ -46,7 +46,7 @@
                 <exclude>hamcrest-core-1.1.jar</exclude>
                 <exclude>junit-4.10.jar</exclude>
                 <exclude>groboutils-core-5.jar</exclude>
-                <exclude>red5-service-1.0.3-RELEASE.jar</exclude>
+                <exclude>red5-service-${red5-service.version}.jar</exclude>
             </excludes>
 		</fileSet>
 		<fileSet>
@@ -61,7 +61,7 @@
                 <exclude>hamcrest-core-1.1.jar</exclude>
                 <exclude>junit-4.10.jar</exclude>
                 <exclude>groboutils-core-5.jar</exclude>
-                <exclude>red5-service-1.0.3-RELEASE.jar</exclude>
+                <exclude>red5-service-${red5-service.version}.jar</exclude>
 			</excludes>
 		</fileSet>
 		<fileSet>
