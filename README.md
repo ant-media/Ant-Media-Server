@@ -31,6 +31,11 @@ Current Releases
 
 The bootstrap and shutdown classes have been moved to the red5-service project; the dependency has been added to this projects pom.
 
+Snapshot Releases
+-----------------
+
+Build snapshots are available at https://oss.sonatype.org/content/repositories/snapshots/org/red5/
+
 Stack Overflow
 --------------
 If you want answers from a broader audience, Stack Overflow may be your best bet.
