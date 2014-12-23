@@ -68,7 +68,18 @@
     </properties>
     <repositories>
         <repository>
+            <id>sonatype-snapshots</id>
+            <name>Sonatype Snapshots</name>
+            <url>http://oss.sonatype.org/content/repositories/snapshots</url>
+        </repository>
+        <repository>
+            <id>sonatype-releases</id>
+            <name>Sonatype Releases</name>
+            <url>http://oss.sonatype.org/content/repositories/releases</url>
+        </repository>    
+        <repository>
             <id>osgeo</id>
+            <name>OSGeo repo - mainly for groboutils-core resolution</name>
             <url>http://download.osgeo.org/webdav/geotools</url>
         </repository>
     </repositories>
