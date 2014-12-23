@@ -66,6 +66,12 @@
         <junit.version>4.11</junit.version>
         <bc.version>1.51</bc.version>
     </properties>
+    <repositories>
+        <repository>
+            <id>osgeo</id>
+            <url>http://download.osgeo.org/webdav/geotools</url>
+        </repository>
+    </repositories>
     <build>
         <defaultGoal>install</defaultGoal>
         <resources>
