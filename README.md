@@ -1,7 +1,18 @@
-red5-server
+red5-server - Red5 server core
 ===========
 
-Red5 server core
+Red5 is an Open Source Flash Server written in Java that supports:
+
+ * Streaming Video (FLV, F4V, MP4, 3GP)
+ * Streaming Audio (MP3, F4A, M4A, AAC)
+ * Recording Client Streams (FLV and AVC+AAC in FLV container)
+ * Shared Objects
+ * Live Stream Publishing
+ * Remoting
+ * Protocols: RTMP, RTMPT, RTMPS, and RTMPE
+ * WebSocket (ws and wss)
+ * HLS
+ * RTSP (From Axis-type cameras)
 
 Some of the Red5 project information continues to reside on Google Code. Post new issues or wiki entries here. https://code.google.com/p/red5/
 
