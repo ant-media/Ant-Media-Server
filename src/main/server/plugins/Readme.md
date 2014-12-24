@@ -5,9 +5,9 @@ Included plugins:
 
 Support libraries:
 
- * Tomcat 7.0.55
+ * Tomcat 7.0.57
  * ECJ 4.4
 
 
-Updated: 8/5/2014
+Updated: 12/24/2014
 
