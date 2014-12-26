@@ -14,13 +14,15 @@ Red5 is an Open Source Flash Server written in Java that supports:
  * HLS
  * RTSP (From Axis-type cameras)
 
-Some of the Red5 project information continues to reside on Google Code. Post new issues or wiki entries here. https://code.google.com/p/red5/
+Some of the Red5 project information continues to reside on [Google Code](https://code.google.com/p/red5/). Post new issues or wiki entries here. 
 
 The Red5 users list may be found here: https://groups.google.com/forum/#!forum/red5interest
 
 Subreddit: http://www.reddit.com/r/red5
 
-Jenkins builds: https://builds.apache.org/view/M-R/view/OpenMeetings/job/Red5-server/ (Courtesy of Apache / OpenMeetings)
+Automatic builds (Courtesy of Apache / OpenMeetings): 
+ * [Red5](https://builds.apache.org/view/M-R/view/OpenMeetings/job/Red5-server/)
+ * [Windows Installer](https://builds.apache.org/view/M-R/view/OpenMeetings/job/red5-installer/)
 
 Latest version is <b>1.0.4-SNAPSHOT</b>
 
@@ -31,7 +33,7 @@ Current Releases
 <a href="https://mega.co.nz/#!JcNwyKab!Mk7aMIL_bAsRQgReBz0hIuDBs0vfncl901ZtLY3u0dM">Tarball</a> | 
 <a href="https://mega.co.nz/#!1BdigLgY!m_mGoSw5SEPh0Nf8qGGmGaUn3VXpIVrYHpVYCYNsK7Q">ZIP</a>
 
-<a href="https://github.com/Red5/red5-server/blob/master/README.md#previous-releases">Previous releases</a>
+[Previous releases](https://github.com/Red5/red5-server/blob/master/README.md#previous-releases)
 
 <i>Note on Bootstrap</i>
 
