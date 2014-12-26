@@ -26,8 +26,10 @@ Automatic builds (Courtesy of Apache / OpenMeetings):
 
 Latest version is <b>1.0.4-SNAPSHOT</b>
 
-Current Releases
+[Latest Releases](https://github.com/Red5/red5-server/releases/latest)
 ----------------
+<h4>Red5 1.0.4 Release (26 December 2014)</h4>
+[Tarball](https://github.com/Red5/red5-server/releases/download/v1.0.4-RELEASE/red5-server-1.0.4-RELEASE-server.tar.gz) | [ZIP](https://github.com/Red5/red5-server/releases/download/v1.0.4-RELEASE/red5-server-1.0.4-RELEASE-server.zip) | [Windows](https://mega.co.nz/#!pAMnyLRK!IjEUi9Kwn7sdRHkkgQhJf0GDvjJYLhxfXo8uwPclrQo)
 
 <h4>Red5 1.0.3 Release (5 August 2014)</h4>
 <a href="https://mega.co.nz/#!JcNwyKab!Mk7aMIL_bAsRQgReBz0hIuDBs0vfncl901ZtLY3u0dM">Tarball</a> | 
