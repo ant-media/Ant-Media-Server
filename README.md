@@ -60,21 +60,11 @@ mvn -Dmaven.test.skip=true install
 ```
 This will create the jars in the "target" directory of the workspace; this will also skip the unit tests.
 
-To download the dependencies, execute this:
+To package everything up (tarball/zip):
 ```
-mvn dependency:copy-dependencies
+mvn -Dmaven.test.skip=true clean package -P assemble
 ```
-This will download all the dependencies into the "target" directory under "dependency". The next command will package everything up:
-```
-mvn -Dmaven.test.skip=true -Dmaven.buildNumber.doUpdate=false package
-```
-Right now, this will skip the demos directory but I'm working on a fix. The xml nodes to copy the demos are in the
-```
-trunk/src/main/server/assembly/server.xml
-```
-and may be uncommented for a package build, if you have the entire svn tree checked out.
-
-To manually copy the "demos", go to http://red5.googlecode.com/svn/flash/trunk/deploy/ and collect all the files therein. Create a directory in your red5 install at this location 
+To manually copy the "demos" should they not exist in the packages, go to http://red5.googlecode.com/svn/flash/trunk/deploy/ and collect all the files therein. Create a directory in your red5 install at this location 
 ```
 red5/webapps/root/demos
 ```

@@ -17,14 +17,7 @@
             <source>${project.build.directory}/lib/red5-service-${red5-service.version}.jar</source>
             <outputDirectory>/</outputDirectory>
             <destName>red5-service.jar</destName>
-        </file>
-<!-- jenkins doesnt like this entry; "dependency" seems useful only to eclipse
-        <file>
-            <source>${project.build.directory}/dependency/red5-service-${project.version}.jar</source>
-            <outputDirectory>/</outputDirectory>
-            <destName>red5-service.jar</destName>
-        </file>
--->
+        </file>        
     </files>	
 	<fileSets>
 		<fileSet>
@@ -41,28 +34,17 @@
 				<include>*.jar</include>
 			</includes>
             <excludes>
-                <exclude>jboss-servlet-api_3.0_spec-1.0.2.Final.jar</exclude>
+                <exclude>jboss-servlet-api_3.0_spec-1.0.2.Final.jar</exclude>               
                 <exclude>antlr-2.7.7.jar</exclude>
+                <exclude>asm-analysis-4.0.jar</exclude>
+                <exclude>asm-commons-4.0.jar</exclude>
+                <exclude>asm-tree-4.0.jar</exclude>
+                <exclude>asm-util-4.0.jar</exclude>
                 <exclude>hamcrest-core-1.1.jar</exclude>
                 <exclude>junit-4.10.jar</exclude>
                 <exclude>groboutils-core-5.jar</exclude>
                 <exclude>red5-service-${red5-service.version}.jar</exclude>
             </excludes>
-		</fileSet>
-		<fileSet>
-			<directory>${project.build.directory}/dependency</directory>
-			<outputDirectory>/lib</outputDirectory>
-			<includes>
-				<include>*.jar</include>
-			</includes>
-			<excludes>
-			    <exclude>jboss-servlet-api_3.0_spec-1.0.2.Final.jar</exclude>
-                <exclude>antlr-2.7.7.jar</exclude>
-                <exclude>hamcrest-core-1.1.jar</exclude>
-                <exclude>junit-4.10.jar</exclude>
-                <exclude>groboutils-core-5.jar</exclude>
-                <exclude>red5-service-${red5-service.version}.jar</exclude>
-			</excludes>
 		</fileSet>
 		<fileSet>
 			<directory>${project.basedir}/src/main/server</directory>
@@ -90,6 +72,9 @@
 				<include>*.globals</include>
 				<include>*.jmx</include>
 			</includes>
+            <excludes>
+                <exclude>build_standalone.properties</exclude>       			
+            </excludes>
 		</fileSet>
 		<fileSet>
 			<directory>${project.basedir}/src/main/server/plugins</directory>
@@ -127,10 +112,9 @@
 				<include>*.properties</include>
 			</includes>
 		</fileSet>
-		<!-- Uncomment the next two file sets when creating a tarball / zip -->
-		<!--
+		<!-- Demos -->
 		<fileSet>
-			<directory>../../../flash/trunk/deploy</directory>
+			<directory>${project.basedir}/src/main/server/webapps/root/demos</directory>
 			<outputDirectory>/webapps/root/demos</outputDirectory>
 			<includes>
 				<include>*.html</include>
@@ -141,14 +125,13 @@
 			</includes>
 		</fileSet>
 		<fileSet>
-			<directory>../../../flash/trunk/deploy/assets</directory>
+			<directory>${project.basedir}/src/main/server/webapps/root/demos/assets</directory>
 			<outputDirectory>/webapps/root/demos/assets</outputDirectory>
 			<includes>
 				<include>*.js</include>
 				<include>*.swf</include>
 			</includes>
 		</fileSet>
-		-->
 		<!-- Installer -->
 		<fileSet>
 			<directory>${project.basedir}/src/main/server/webapps/installer</directory>
