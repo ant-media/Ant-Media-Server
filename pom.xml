@@ -6,7 +6,7 @@
     <name>Red5 :: Server</name>
     <description>The Red5 server</description>
     <groupId>org.red5</groupId>
-    <version>1.0.4-RELEASE</version>
+    <version>1.0.5-SNAPSHOT</version>
     <url>https://github.com/Red5/red5-server</url>
     <inceptionYear>2005</inceptionYear>
     <organization>
@@ -180,6 +180,7 @@
             </plugin>
             <plugin>
                 <artifactId>maven-jar-plugin</artifactId>
+                <version>2.5</version>
                 <executions>
                     <execution>
                         <id>attach-javadocs</id>

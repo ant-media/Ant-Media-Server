@@ -40,6 +40,7 @@
                 <exclude>asm-commons-4.0.jar</exclude>
                 <exclude>asm-tree-4.0.jar</exclude>
                 <exclude>asm-util-4.0.jar</exclude>
+                <exclude>commons-logging-1.1.1.jar</exclude>
                 <exclude>hamcrest-core-1.1.jar</exclude>
                 <exclude>junit-4.10.jar</exclude>
                 <exclude>groboutils-core-5.jar</exclude>
