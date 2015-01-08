@@ -38,8 +38,7 @@ import org.red5.server.messaging.PipeConnectionEvent;
 import org.red5.server.stream.IProviderService;
 
 /**
- * Scope type for publishing that deals with pipe connection events,
- * like async message listening in JMS
+ * Scope type for publishing that deals with pipe connection events, like async message listening in JMS
  */
 public class BroadcastScope extends BasicScope implements IBroadcastScope, IPipeConnectionListener {
 
@@ -51,7 +50,7 @@ public class BroadcastScope extends BasicScope implements IBroadcastScope, IPipe
 	/**
 	 * Simple in memory push pipe, triggered by an active provider to push messages to consumer
 	 */
-	private transient InMemoryPushPushPipe pipe;
+	private final transient InMemoryPushPushPipe pipe;
 
 	/**
 	 * Number of components.
@@ -65,23 +64,21 @@ public class BroadcastScope extends BasicScope implements IBroadcastScope, IPipe
 	
 	/**
 	 * Creates broadcast scope
+	 * 
 	 * @param parent            Parent scope
 	 * @param name              Scope name
 	 */
 	public BroadcastScope(IScope parent, String name) {
 		super(parent, ScopeType.BROADCAST, name, false);
-		pipe = new InMemoryPushPushPipe();
-		pipe.addPipeConnectionListener(this);
+		pipe = new InMemoryPushPushPipe(this);
 		keepOnDisconnect = true;
 	}
 
 	/**
-	 * Register pipe connection event listener with this scope's pipe.
-	 * A listener that wants to listen to events when
-	 * provider/consumer connects to or disconnects from
-	 * a specific pipe.
+	 * Register pipe connection event listener with this scope's pipe. A listener that wants to listen to events when provider/consumer 
+	 * connects to or disconnects from a specific pipe.
+	 * 
 	 * @param listener         Pipe connection event listener
-	 *
 	 * @see org.red5.server.messaging.IPipeConnectionListener
 	 */
 	public void addPipeConnectionListener(IPipeConnectionListener listener) {
@@ -90,8 +87,8 @@ public class BroadcastScope extends BasicScope implements IBroadcastScope, IPipe
 
 	/**
 	 * Unregisters pipe connection event listener with this scope's pipe
+	 * 
 	 * @param listener         Pipe connection event listener
-	 *
 	 * @see org.red5.server.messaging.IPipeConnectionListener
 	 */
 	public void removePipeConnectionListener(IPipeConnectionListener listener) {
@@ -100,8 +97,8 @@ public class BroadcastScope extends BasicScope implements IBroadcastScope, IPipe
 
 	/**
 	 * Pull message from pipe
+	 * 
 	 * @return      Message object
-	 *
 	 * @see         org.red5.server.messaging.IMessage
 	 */
 	public IMessage pullMessage() {
@@ -110,9 +107,9 @@ public class BroadcastScope extends BasicScope implements IBroadcastScope, IPipe
 
 	/**
 	 * Pull message with timeout
+	 * 
 	 * @param wait  Timeout
 	 * @return      Message object
-	 *
 	 * @see         org.red5.server.messaging.IMessage
 	 */
 	public IMessage pullMessage(long wait) {
@@ -158,11 +155,11 @@ public class BroadcastScope extends BasicScope implements IBroadcastScope, IPipe
 	}
 
 	/**
-	 * Push a message to this output endpoint. May block
-	 * the pusher when output can't handle the message at
+	 * Push a message to this output endpoint. May block the pusher when output can't handle the message at
 	 * the time.
-	 * @param message Message to be pushed.
-	 * @throws IOException If message could not be pushed.
+	 * 
+	 * @param message Message to be pushed
+	 * @throws IOException If message could not be pushed
 	 */
 	public void pushMessage(IMessage message) throws IOException {
 		pipe.pushMessage(message);
@@ -170,6 +167,7 @@ public class BroadcastScope extends BasicScope implements IBroadcastScope, IPipe
 
 	/**
 	 * Connect scope's pipe with given provider
+	 * 
 	 * @param provider         Provider
 	 * @param paramMap         Parameters passed on connection
 	 * @return                 <code>true</code> on success, <code>false</code> otherwise
@@ -180,6 +178,7 @@ public class BroadcastScope extends BasicScope implements IBroadcastScope, IPipe
 
 	/**
 	 * Disconnects scope's pipe from given provider
+	 * 
 	 * @param provider         Provider
 	 * @return                 <code>true</code> on success, <code>false</code> otherwise
 	 */
@@ -189,6 +188,7 @@ public class BroadcastScope extends BasicScope implements IBroadcastScope, IPipe
 
 	/**
 	 * Getter for providers list
+	 * 
 	 * @return    List of providers
 	 */
 	public List<IProvider> getProviders() {
@@ -207,6 +207,7 @@ public class BroadcastScope extends BasicScope implements IBroadcastScope, IPipe
 
 	/**
 	 * Pipe connection event handler
+	 * 
 	 * @param event              Pipe connection event
 	 */
 	public void onPipeConnectionEvent(PipeConnectionEvent event) {
@@ -249,6 +250,9 @@ public class BroadcastScope extends BasicScope implements IBroadcastScope, IPipe
 	 * @param clientBroadcastStream 
 	 */
 	public void setClientBroadcastStream(IClientBroadcastStream clientBroadcastStream) {
+		if (this.clientBroadcastStream != null) {
+			log.info("ClientBroadcastStream already exists: {} new: {}", this.clientBroadcastStream, clientBroadcastStream);
+		}
 		this.clientBroadcastStream = clientBroadcastStream;
 	}
 

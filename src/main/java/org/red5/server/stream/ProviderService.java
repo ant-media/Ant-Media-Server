@@ -29,6 +29,7 @@ import org.red5.server.api.scope.IScope;
 import org.red5.server.api.scope.ScopeType;
 import org.red5.server.api.service.IStreamableFileService;
 import org.red5.server.api.stream.IBroadcastStream;
+import org.red5.server.api.stream.IClientBroadcastStream;
 import org.red5.server.api.stream.IStreamFilenameGenerator;
 import org.red5.server.api.stream.IStreamFilenameGenerator.GenerationType;
 import org.red5.server.api.stream.IStreamableFileFactory;
@@ -80,18 +81,14 @@ public class ProviderService implements IProviderService {
 		log.debug("Get live provider input for {} scope: {}", name, scope);
 		//make sure the create is actually needed
 		IBroadcastScope broadcastScope = scope.getBroadcastScope(name);
-		if (broadcastScope == null) {
-			if (needCreate) {
-				synchronized(scope) {
-					// re-check if another thread already created the scope
-					broadcastScope = scope.getBroadcastScope(name);
-					if (broadcastScope == null) {
-						broadcastScope = new BroadcastScope(scope, name);
-						scope.addChildScope(broadcastScope);
-					}
+		if (broadcastScope == null && needCreate) {
+			synchronized (scope) {
+				// re-check if another thread already created the scope
+				broadcastScope = scope.getBroadcastScope(name);
+				if (broadcastScope == null) {
+					broadcastScope = new BroadcastScope(scope, name);
+					scope.addChildScope(broadcastScope);
 				}
-			} else {
-				return null;
 			}
 		}
 		return broadcastScope;
@@ -126,8 +123,10 @@ public class ProviderService implements IProviderService {
 
 	/** {@inheritDoc} */
 	public boolean registerBroadcastStream(IScope scope, String name, IBroadcastStream bs) {
-		log.debug("Registering - name: {} stream: {} scope: {}", new Object[] { name, bs, scope });
-		((Scope) scope).dump();
+		if (log.isDebugEnabled()) {
+			log.debug("Registering - name: {} stream: {} scope: {}", new Object[] { name, bs, scope });
+			((Scope) scope).dump();
+		}
 		IBroadcastScope broadcastScope = scope.getBroadcastScope(name);
 		if (broadcastScope == null) {
 			log.debug("Creating a new scope");
@@ -137,6 +136,10 @@ public class ProviderService implements IProviderService {
 			} else {
 				log.warn("Broadcast scope was not added to {}", scope);
 			}
+		}
+		// set the client broadcast stream if we have a broadcast scope
+		if (broadcastScope != null && bs instanceof IClientBroadcastStream) {
+			broadcastScope.setClientBroadcastStream((IClientBroadcastStream) bs);
 		}
 		log.debug("Subscribing scope {} to provider {}", broadcastScope, bs.getProvider());
 		return broadcastScope.subscribe(bs.getProvider(), null);
@@ -154,8 +157,10 @@ public class ProviderService implements IProviderService {
 
 	/** {@inheritDoc} */
 	public boolean unregisterBroadcastStream(IScope scope, String name, IBroadcastStream bs) {
-		log.debug("Unregistering - name: {} stream: {} scope: {}", new Object[] { name, bs, scope });
-		((Scope) scope).dump();
+		if (log.isDebugEnabled()) {
+			log.debug("Unregistering - name: {} stream: {} scope: {}", new Object[] { name, bs, scope });
+			((Scope) scope).dump();
+		}
 		IBroadcastScope broadcastScope = scope.getBroadcastScope(name);
 		if (bs != null) {
 			log.debug("Unsubscribing scope {} from provider {}", broadcastScope, bs.getProvider());
@@ -184,8 +189,7 @@ public class ProviderService implements IProviderService {
 			}
 		}
 		// look for a custom filename gen class
-		IStreamFilenameGenerator filenameGenerator = (IStreamFilenameGenerator) ScopeUtils.getScopeService(scope, IStreamFilenameGenerator.class,
-				DefaultStreamFilenameGenerator.class);
+		IStreamFilenameGenerator filenameGenerator = (IStreamFilenameGenerator) ScopeUtils.getScopeService(scope, IStreamFilenameGenerator.class, DefaultStreamFilenameGenerator.class);
 		// get the filename
 		String filename = filenameGenerator.generateFilename(scope, name, GenerationType.PLAYBACK);
 		File file;
