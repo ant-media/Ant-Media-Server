@@ -10,9 +10,12 @@ Red5 is an Open Source Flash Server written in Java that supports:
  * Live Stream Publishing
  * Remoting
  * Protocols: RTMP, RTMPT, RTMPS, and RTMPE
- * WebSocket (ws and wss)
- * HLS
- * RTSP (From Axis-type cameras)
+  
+Support via plugin:
+ 
+ * [WebSocket (ws and wss)](https://github.com/Red5/red5-websocket)
+ * [HLS](https://github.com/Red5/red5-hls-plugin)
+ * [RTSP (From Axis-type cameras)](https://github.com/Red5/red5-rtsp-restreamer)
 
 Some of the Red5 project information continues to reside on [Google Code](https://code.google.com/p/red5/). Post new issues or wiki entries here. 
 
