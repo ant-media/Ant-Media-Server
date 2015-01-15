@@ -268,7 +268,6 @@ public class WebScope extends Scope implements ServletContextAware, WebScopeMXBe
 			store = null;
 			setServletContext(null);
 			setServer(null);
-			setName(null);
 			appContext = null;
 			shuttingDown.set(false);			
 		} else {

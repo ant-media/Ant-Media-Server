@@ -54,7 +54,7 @@ public class Launcher {
 		// get the first logger
 		Logger log = Red5LoggerFactory.getLogger(Launcher.class);
 		// version info banner
-		log.info("{} (http://code.google.com/p/red5/)", Red5.getVersion());
+		log.info("{} (https://github.com/Red5)", Red5.getVersion());
 		// create red5 app context
 		@SuppressWarnings("resource")
 		FileSystemXmlApplicationContext root = new FileSystemXmlApplicationContext(new String[] { "classpath:/red5.xml" }, false);

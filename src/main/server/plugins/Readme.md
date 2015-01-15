@@ -7,7 +7,7 @@ Support libraries:
 
  * Tomcat 7.0.57
  * ECJ 4.4
+ * [juli-over-slf4j](https://github.com/Red5/juli-over-slf4j)
 
-
-Updated: 12/24/2014
+Updated: 01/14/2015
 
