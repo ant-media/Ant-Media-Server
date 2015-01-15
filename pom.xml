@@ -55,6 +55,8 @@
         </developer>
     </developers>
     <properties>
+    	<build.dir>target</build.dir>
+    	<finalName>${project.artifactId}-${project.version}</finalName>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <red5-io.version>1.0.5-SNAPSHOT</red5-io.version>
         <red5-service.version>1.0.5-SNAPSHOT</red5-service.version>
@@ -85,6 +87,8 @@
     </repositories>
     <build>
         <defaultGoal>install</defaultGoal>
+        <directory>${build.dir}</directory>
+         <finalName>${finalName}</finalName>
         <resources>
             <resource>
                 <directory>src/main/resources</directory>
