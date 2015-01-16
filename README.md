@@ -139,6 +139,17 @@ Previous Releases
 <a href="http://red5.org/downloads/red5/0_8/red5-war-0.8.0.zip">WAR</a> | 
 <a href="http://red5.org/downloads/red5/0_8/red5-war-0.8.0-java5.zip">WAR</a> (Java5)
 
+Supporters
+-------------
+[Powerflasher for FDT](http://fdt.powerflasher.com/)
+
+[YourKit](http://www.yourkit.com/) YourKit is kindly supporting open source projects with its full-featured Java Profiler. YourKit, LLC is the creator of innovative and intelligent tools for profiling Java and .NET applications. Take a look at YourKit's leading software products:
+
+[YourKit Java Profiler](http://www.yourkit.com/java/profiler/index.jsp)   
+
+[YourKit .NET Profiler](http://www.yourkit.com/dotnet/index.jsp)
+
+
 Donations
 -------------
 Donate to the cause using Bitcoin: https://coinbase.com/checkouts/2c5f023d24b12245d17f8ff8afe794d3
