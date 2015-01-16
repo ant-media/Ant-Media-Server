@@ -103,7 +103,7 @@
     <bean id="webSocketTransport" class="org.red5.net.websocket.WebSocketTransport">
         <property name="addresses">
             <list>
-                <value>localhost:8081</value>
+                <value>${ws.host}:${ws.port}</value>
             </list>
         </property>
     </bean>
