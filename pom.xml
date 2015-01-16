@@ -78,11 +78,6 @@
             <id>sonatype-releases</id>
             <name>Sonatype Releases</name>
             <url>http://oss.sonatype.org/content/repositories/releases</url>
-        </repository>    
-        <repository>
-            <id>osgeo</id>
-            <name>OSGeo repo - mainly for groboutils-core resolution</name>
-            <url>http://download.osgeo.org/webdav/geotools</url>
         </repository>
     </repositories>
     <build>
@@ -109,17 +104,6 @@
             </testResource>
             <testResource>
                 <directory>src/test/resources</directory>
-            </testResource>
-            <testResource>
-                <directory>src/test/webapp</directory>
-                <includes>
-                    <include>**/*.xml</include>
-                    <include>**/*.properties</include>
-                    <include>**/*.flv</include>
-                    <include>**/*.mp3</include>
-                    <include>**/*.mp4</include>
-                    <include>**/*.m4a</include>
-                </includes>
             </testResource>
         </testResources>
         <plugins>
@@ -343,12 +327,6 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>net.sourceforge.groboutils</groupId>
-            <artifactId>groboutils-core</artifactId>
-            <version>5</version>
-            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>xerces</groupId>
