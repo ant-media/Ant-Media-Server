@@ -9,7 +9,8 @@
 	</formats>
     <files>
         <file>
-            <source>${project.build.directory}/red5-server-${project.version}.jar</source>
+<!--             <source>${project.build.directory}/red5-server-${project.version}.jar</source> -->
+			<source>${project.build.directory}/${finalName}.jar</source>
             <outputDirectory>/</outputDirectory>
             <destName>red5-server.jar</destName>
         </file>
