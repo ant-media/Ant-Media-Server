@@ -32,7 +32,7 @@ Latest version is <b>1.0.5-RELEASE</b>
 [Latest Releases](https://github.com/Red5/red5-server/releases/latest)
 ----------------
 <h4>Red5 1.0.5 Release (7 February 2015)</h4>
-[Tarball](https://github.com/Red5/red5-server/releases/download/v1.0.5-RELEASE/red5-server-1.0.5-RELEASE-server.tar.gz) | [ZIP](https://github.com/Red5/red5-server/releases/download/v1.0.5-RELEASE/red5-server-1.0.5-RELEASE-server.zip) | [Windows] comming soon
+[Tarball](https://github.com/Red5/red5-server/releases/download/v1.0.5-RELEASE/red5-server-1.0.5-RELEASE-server.tar.gz) | [ZIP](https://github.com/Red5/red5-server/releases/download/v1.0.5-RELEASE/red5-server-1.0.5-RELEASE-server.zip) | [Windows] (https://mega.co.nz/#!cAVGCJJR!flZqMKTB9mcD1_nvbQ_xlG88ADTEkFk7-jtuGw2uNOc)
 
 <h4>Red5 1.0.4 Release (26 December 2014)</h4>
 [Tarball](https://github.com/Red5/red5-server/releases/download/v1.0.4-RELEASE/red5-server-1.0.4-RELEASE-server.tar.gz) | [ZIP](https://github.com/Red5/red5-server/releases/download/v1.0.4-RELEASE/red5-server-1.0.4-RELEASE-server.zip) | [Windows](https://mega.co.nz/#!pAMnyLRK!IjEUi9Kwn7sdRHkkgQhJf0GDvjJYLhxfXo8uwPclrQo)
