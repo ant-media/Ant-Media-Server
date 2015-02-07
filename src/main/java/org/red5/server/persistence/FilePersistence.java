@@ -465,7 +465,7 @@ public class FilePersistence extends RamPersistence {
 	/**
 	 * Save persistable object
 	 * @param object           Persistable object
-	 * @return                 <code>true</code> on success, <code>false</code> otherwise
+	 * @return                 <pre>true</pre> on success, <pre>false</pre> otherwise
 	 */
 	protected boolean saveObject(IPersistable object) {
 		log.debug("saveObject - object: {}", object);

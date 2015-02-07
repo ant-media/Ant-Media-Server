@@ -70,7 +70,7 @@ public abstract class ServiceAdapter {
 	 * CommandMessage is routed to the right service, its MessageRefType is set to the 
 	 * string name of the message type for messages handled by that service.
 	 * 
-	 * @param commandMessage
+	 * @param commandMessage message
 	 * @return Exception if not implemented
 	 */
 	public Object manage(CommandMessage commandMessage) {

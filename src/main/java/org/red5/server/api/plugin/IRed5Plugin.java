@@ -38,28 +38,28 @@ public interface IRed5Plugin {
 	/**
 	 * Sets the top-most ApplicationContext within Red5.
 	 * 
-	 * @param context
+	 * @param context application context
 	 */
 	void setApplicationContext(ApplicationContext context);	
 	
 	/**
 	 * Sets a reference to the server.
 	 * 
-	 * @param server
+	 * @param server server
 	 */
 	void setServer(Server server);
 
 	/**
 	 * Lifecycle method called when the plug-in is started.
 	 * 
-	 * @throws Exception 
+	 * @throws Exception on start error
 	 */
 	void doStart() throws Exception;
 		
 	/**
 	 * Lifecycle method called when the plug-in is stopped.
 	 * 
-	 * @throws Exception 
+	 * @throws Exception on stop error
 	 */
 	void doStop() throws Exception;
 

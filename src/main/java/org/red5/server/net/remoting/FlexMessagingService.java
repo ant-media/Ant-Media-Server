@@ -145,7 +145,7 @@ public class FlexMessagingService {
 	}
 
 	/**
-	 * Handle request coming from <code>mx:RemoteObject</code> tags.
+	 * Handle request coming from <pre>mx:RemoteObject</pre> tags.
 	 * 
 	 * @see <a href="http://livedocs.adobe.com/flex/2/langref/mx/rpc/remoting/mxml/RemoteObject.html">Adobe Livedocs (external)</a>
 	 *

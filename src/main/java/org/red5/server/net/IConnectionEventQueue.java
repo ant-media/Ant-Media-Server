@@ -30,7 +30,7 @@ public interface IConnectionEventQueue {
     /**
      * Whether queue has waiting connection events
      * @param conn       Connection
-     * @return           <code>true</code> if queue has waiting events for connection, <code>false</code> otherwise
+     * @return           <pre>true</pre> if queue has waiting events for connection, <pre>false</pre> otherwise
      */
 	public boolean hasEventsWaiting(IConnection conn);
 

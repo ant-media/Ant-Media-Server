@@ -86,9 +86,8 @@ public class ExtendedPropertyPlaceholderConfigurer extends PropertyPlaceholderCo
 	 * String[] of wildcard locations of properties that are converted to
 	 * Resource[] using using {@link PathMatchingResourcePatternResolver}
 	 * 
-	 * @param locations
-	 *            String[]
-	 * @throws IOException
+	 * @param locations String[]
+	 * @throws IOException on IO exception
 	 */
 	public void setWildcardLocations(String[] locations) throws IOException {
 

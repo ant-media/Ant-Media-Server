@@ -123,7 +123,7 @@ public class AMFGatewayServlet extends HttpServlet {
 	/**
 	 * Return the global scope to use for the given request.
 	 * 
-	 * @param req
+	 * @param req http request
 	 * @return scope
 	 */
 	protected IGlobalScope getGlobalScope(HttpServletRequest req) {
@@ -242,11 +242,11 @@ public class AMFGatewayServlet extends HttpServlet {
 	/**
 	 * Handles AMF request by making calls
 	 * 
-	 * @param req
-	 *            Request
-	 * @param message
-	 *            Remoting packet
-	 * @return <code>true</code> on success
+	 * @param req Request
+	 * @param context context
+	 * @param scope scope
+	 * @param message Remoting packet
+	 * @return <pre>true</pre> on success
 	 */
 	protected boolean handleRemotingPacket(HttpServletRequest req, IContext context, IScope scope, RemotingPacket message) {
 		log.debug("Handling remoting packet");

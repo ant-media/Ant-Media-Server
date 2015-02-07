@@ -59,11 +59,11 @@ public class RhinoScriptUtils {
 	 * @param interfaces
 	 *            the interfaces that the scripted Java object is supposed to
 	 *            implement
-	 * @param extendedClass
+	 * @param extendedClass class
 	 * @return the scripted Java object
 	 * @throws ScriptCompilationException
 	 *             in case of Rhino parsing failure
-	 * @throws java.io.IOException
+	 * @throws IOException on IO error
 	 */
 	@SuppressWarnings("rawtypes")
 	public static Object createRhinoObject(String scriptSource, Class[] interfaces, Class extendedClass) throws ScriptCompilationException, IOException, Exception {

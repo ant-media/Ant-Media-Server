@@ -75,7 +75,7 @@ public abstract class Red5Plugin implements IRed5Plugin {
 	/**
 	 * Set the application making use of this plug-in.
 	 * 
-	 * @param application
+	 * @param application application
 	 */
 	public void setApplication(MultiThreadedApplicationAdapter application) {	
 	}

@@ -64,7 +64,7 @@ public class FLVService extends BaseStreamableFileService implements IFLVService
 	/**
 	 * Generate metadata or not
 	 *
-	 * @param generate  <code>true</code> if there's need to generate metadata, <code>false</code> otherwise
+	 * @param generate  <pre>true</pre> if there's need to generate metadata, <pre>false</pre> otherwise
 	 */
 	public void setGenerateMetadata(boolean generate) {
 		generateMetadata = generate;

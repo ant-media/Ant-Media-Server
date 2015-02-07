@@ -41,6 +41,8 @@ public class Launcher {
 
 	/**
 	 * Launch Red5 under it's own classloader
+	 * 
+	 * @throws Exception on error
 	 */
 	public void launch() throws Exception {
 		System.out.printf("Root: %s\nDeploy type: %s\nLogback selector: %s\n", System.getProperty("red5.root"), System.getProperty("red5.deployment.type"),

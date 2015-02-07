@@ -26,7 +26,7 @@ import org.red5.server.api.event.IEvent;
 public interface IStreamSource {
     /**
      * Is there something more to stream?
-     * @return      <code>true</code> if there's streamable data, <code>false</code> otherwise
+     * @return      <pre>true</pre> if there's streamable data, <pre>false</pre> otherwise
      */
 	public abstract boolean hasMore();
 

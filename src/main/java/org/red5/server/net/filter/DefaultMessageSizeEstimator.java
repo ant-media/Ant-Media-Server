@@ -39,7 +39,7 @@ import org.apache.mina.filter.executor.IoEventSizeEstimator;
  * <p>
  * All the estimated sizes of classes are cached for performance improvement.
  * 
- * <br />
+ * <br>
  * This originated from the Mina sandbox.
  */
 public class DefaultMessageSizeEstimator implements IoEventSizeEstimator {

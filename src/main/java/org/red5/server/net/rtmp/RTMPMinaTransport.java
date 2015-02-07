@@ -52,9 +52,9 @@ import org.slf4j.LoggerFactory;
 /**
  * Transport setup class configures socket acceptor and thread pools for RTMP in Mina.
  * 
- * <br />
+ * <br>
  * <i>Note: This code originates from AsyncWeb. Originally modified by Luke Hubbard.</i>
- * <br />
+ * <br>
  * 
  * @author Luke Hubbard
  * @author Paul Gregoire

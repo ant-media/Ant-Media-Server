@@ -36,8 +36,9 @@ public class RtmpSampleAccess implements IRtmpSampleAccess {
 	private boolean videoAllowed = false;
 
 	/**
-	 * Setter audioAllowed
-	 * @param permission
+	 * Setter audioAllowed.
+	 * 
+	 * @param permission permission
 	 */
 	public void setAudioAllowed(boolean permission) {
 		logger.debug("setAudioAllowed: {}", permission);
@@ -46,7 +47,8 @@ public class RtmpSampleAccess implements IRtmpSampleAccess {
 
 	/**
 	 * Setter videoAllowed
-	 * @param permission
+	 * 
+	 * @param permission permission
 	 */
 	public void setVideoAllowed(boolean permission) {
 		logger.debug("setVideoAllowed: {}", permission);

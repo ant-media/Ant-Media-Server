@@ -53,9 +53,9 @@ public class RemotingProtocolEncoder {
 	/**
 	 * Encodes the given buffer.
 	 * 
-	 * @param message
+	 * @param message message
 	 * @return buffer
-	 * @throws Exception
+	 * @throws Exception on exception
 	 */
 	public IoBuffer encode(Object message) throws Exception {
 		RemotingPacket resp = (RemotingPacket) message;

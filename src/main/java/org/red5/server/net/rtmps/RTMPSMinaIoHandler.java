@@ -153,7 +153,7 @@ public class RTMPSMinaIoHandler extends RTMPMinaIoHandler {
 	/**
 	 * Password used to access the keystore file.
 	 * 
-	 * @param password
+	 * @param password keystore password
 	 */
 	public void setKeystorePassword(String password) {
 		this.keystorePassword = password;
@@ -162,7 +162,7 @@ public class RTMPSMinaIoHandler extends RTMPMinaIoHandler {
 	/**
 	 * Password used to access the truststore file.
 	 * 
-	 * @param password
+	 * @param password truststore password
 	 */
 	public void setTruststorePassword(String password) {
 		this.truststorePassword = password;
@@ -189,7 +189,7 @@ public class RTMPSMinaIoHandler extends RTMPMinaIoHandler {
 	/**
 	 * Set the key store type, JKS or PKCS12.
 	 * 
-	 * @param keyStoreType
+	 * @param keyStoreType key store type
 	 */
 	public void setKeyStoreType(String keyStoreType) {
 		this.keyStoreType = keyStoreType;

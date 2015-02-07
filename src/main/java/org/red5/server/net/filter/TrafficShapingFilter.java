@@ -41,7 +41,7 @@ import org.slf4j.LoggerFactory;
  * It is always recommended to add this filter in the first place of the
  * {@link IoFilterChain}.
  * 
- * <br />
+ * <br>
  * This originated from the Mina sandbox.
  */
 public class TrafficShapingFilter extends IoFilterAdapter {

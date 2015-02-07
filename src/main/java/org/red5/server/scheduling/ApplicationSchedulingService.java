@@ -58,7 +58,7 @@ public class ApplicationSchedulingService extends QuartzSchedulingService {
 	/**
 	 * Sets the scheduler factory in the servlet context.
 	 * 
-	 * @param servletContext
+	 * @param servletContext sevlet context
 	 */
 	public void setServletAttribute(ServletContext servletContext) {
 		log.debug("Storing the scheduler factory in the servlet context");

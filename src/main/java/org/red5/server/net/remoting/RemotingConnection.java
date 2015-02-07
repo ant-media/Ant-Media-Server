@@ -124,7 +124,7 @@ public class RemotingConnection implements IRemotingConnection {
 	/**
 	 * Update the current packet.
 	 * 
-	 * @param packet
+	 * @param packet remoting packet
 	 */
 	protected void setPacket(RemotingPacket packet) {
 		this.packet = packet;

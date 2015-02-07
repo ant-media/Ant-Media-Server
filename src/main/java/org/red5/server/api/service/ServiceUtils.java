@@ -43,8 +43,8 @@ public class ServiceUtils {
 	 * 
 	 * @param method name of the method to invoke
 	 * @param params parameters to pass to the method
-	 * @return <code>true</code> if the connection supports method calls,
-	 *         otherwise <code>false</code>
+	 * @return <pre>true</pre> if the connection supports method calls,
+	 *         otherwise <pre>false</pre>
 	 */
 	public static boolean invokeOnConnection(String method, Object[] params) {
 		return invokeOnConnection(method, params, null);
@@ -56,8 +56,8 @@ public class ServiceUtils {
 	 * @param method name of the method to invoke
 	 * @param params parameters to pass to the method
 	 * @param callback object to notify when result is received
-	 * @return <code>true</code> if the connection supports method calls,
-	 *         otherwise <code>false</code>
+	 * @return <pre>true</pre> if the connection supports method calls,
+	 *         otherwise <pre>false</pre>
 	 */
 	public static boolean invokeOnConnection(String method, Object[] params, IPendingServiceCallback callback) {
 		IConnection conn = Red5.getConnectionLocal();
@@ -76,8 +76,8 @@ public class ServiceUtils {
 	 * @param conn connection to invoke method on
 	 * @param method name of the method to invoke
 	 * @param params parameters to pass to the method
-	 * @return <code>true</code> if the connection supports method calls,
-	 *         otherwise <code>false</code>
+	 * @return <pre>true</pre> if the connection supports method calls,
+	 *         otherwise <pre>false</pre>
 	 */
 	public static boolean invokeOnConnection(IConnection conn, String method, Object[] params) {
 		return invokeOnConnection(conn, method, params, null);
@@ -90,8 +90,8 @@ public class ServiceUtils {
 	 * @param method name of the method to invoke
 	 * @param params parameters to pass to the method
 	 * @param callback object to notify when result is received
-	 * @return <code>true</code> if the connection supports method calls,
-	 *         otherwise <code>false</code>
+	 * @return <pre>true</pre> if the connection supports method calls,
+	 *         otherwise <pre>false</pre>
 	 */
 	public static boolean invokeOnConnection(IConnection conn, String method, Object[] params, IPendingServiceCallback callback) {
 		if (conn instanceof IServiceCapableConnection) {
@@ -217,8 +217,8 @@ public class ServiceUtils {
 	 * 
 	 * @param method name of the method to notify
 	 * @param params parameters to pass to the method
-	 * @return <code>true</code> if the connection supports method calls,
-	 *         otherwise <code>false</code>
+	 * @return <pre>true</pre> if the connection supports method calls,
+	 *         otherwise <pre>false</pre>
 	 */
 	public static boolean notifyOnConnection(String method, Object[] params) {
 		IConnection conn = Red5.getConnectionLocal();
@@ -237,8 +237,8 @@ public class ServiceUtils {
 	 * @param conn connection to notify method on
 	 * @param method name of the method to notify
 	 * @param params parameters to pass to the method
-	 * @return <code>true</code> if the connection supports method calls,
-	 *         otherwise <code>false</code>
+	 * @return <pre>true</pre> if the connection supports method calls,
+	 *         otherwise <pre>false</pre>
 	 */
 	public static boolean notifyOnConnection(IConnection conn, String method, Object[] params) {
 		if (conn instanceof IServiceCapableConnection) {

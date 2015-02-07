@@ -37,14 +37,14 @@ public interface IRed5PluginHandler {
 	/**
 	 * Set the application making use of this plug-in handler.
 	 * 
-	 * @param application
+	 * @param application application adapter
 	 */
 	void setApplication(MultiThreadedApplicationAdapter application);
 
 	/**
 	 * Set properties to be used by this handler.
 	 * 
-	 * @param props
+	 * @param props plugin properties map
 	 */
 	void setProperties(Map<String, Object> props);
 	
