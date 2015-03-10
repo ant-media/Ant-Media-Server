@@ -1,7 +1,7 @@
 /*
- * RED5 Open Source Flash Server - http://code.google.com/p/red5/
+ * RED5 Open Source Flash Server - https://github.com/Red5/
  * 
- * Copyright 2006-2014 by respective authors (see below). All rights reserved.
+ * Copyright 2006-2015 by respective authors (see below). All rights reserved.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ public interface IRTMPConnManager {
 	/**
 	 * Returns a connection matching the given client id.
 	 * 
-	 * @param clientId
+	 * @param clientId client id
 	 * @return connection
 	 */	
 	RTMPConnection getConnection(int clientId);
@@ -33,7 +33,7 @@ public interface IRTMPConnManager {
 	/**
 	 * Returns a connection matching the given session id.
 	 * 
-	 * @param sessionId
+	 * @param sessionId session id
 	 * @return connection
 	 */	
 	RTMPConnection getConnectionBySessionId(String sessionId);
@@ -41,7 +41,7 @@ public interface IRTMPConnManager {
 	/**
 	 * Creates a connection based on the given RTMPConnection class.
 	 * 
-	 * @param connCls
+	 * @param connCls class
 	 * @return connection
 	 */
 	RTMPConnection createConnection(Class<?> connCls);
@@ -50,13 +50,14 @@ public interface IRTMPConnManager {
 	 * Removes a connection matching the client id specified. If found, the connection
 	 * will be returned.
 	 * 
-	 * @param clientId
+	 * @param clientId client id
 	 * @return connection
 	 */	
 	RTMPConnection removeConnection(int clientId);
 
 	/**
 	 * Removes all the connections from the set.
+	 * 
 	 * @return connections
 	 */	
 	Collection<RTMPConnection> removeConnections();

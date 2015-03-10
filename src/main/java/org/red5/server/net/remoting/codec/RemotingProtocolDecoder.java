@@ -1,7 +1,7 @@
 /*
- * RED5 Open Source Flash Server - http://code.google.com/p/red5/
+ * RED5 Open Source Flash Server - https://github.com/Red5/
  * 
- * Copyright 2006-2014 by respective authors (see below). All rights reserved.
+ * Copyright 2006-2015 by respective authors (see below). All rights reserved.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,7 +43,7 @@ public class RemotingProtocolDecoder {
 	/**
 	 * Decodes the given buffer.
 	 * 
-	 * @param buffer
+	 * @param buffer input buffer
 	 * @return a List of {@link RemotingPacket} objects.
 	 */
 	public List<Object> decodeBuffer(IoBuffer buffer) {
@@ -64,9 +64,9 @@ public class RemotingProtocolDecoder {
 	/**
 	 * Decodes the buffer and returns a remoting packet.
 	 * 
-	 * @param in
+	 * @param in input buffer
 	 * @return A {@link RemotingPacket}
-	 * @throws Exception
+	 * @throws Exception on exception
 	 */
 	public Object decode(IoBuffer in) throws Exception {
 		Map<String, Object> headers = readHeaders(in);
@@ -78,6 +78,7 @@ public class RemotingProtocolDecoder {
 	 * Read remoting headers.
 	 * 
 	 * @param in         Input data as byte buffer
+	 * @return header map
 	 */
 	@SuppressWarnings("unchecked")
 	protected Map<String, Object> readHeaders(IoBuffer in) {

@@ -6,7 +6,7 @@
     <name>Red5 :: Server</name>
     <description>The Red5 server</description>
     <groupId>org.red5</groupId>
-    <version>1.0.5-SNAPSHOT</version>
+    <version>1.0.5-RELEASE</version>
     <url>https://github.com/Red5/red5-server</url>
     <inceptionYear>2005</inceptionYear>
     <organization>
@@ -58,8 +58,8 @@
     	<build.dir>target</build.dir>
     	<finalName>${project.artifactId}-${project.version}</finalName>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <red5-io.version>1.0.5-SNAPSHOT</red5-io.version>
-        <red5-service.version>1.0.5-SNAPSHOT</red5-service.version>
+        <red5-io.version>1.0.5-RELEASE</red5-io.version>
+        <red5-service.version>1.0.5-RELEASE</red5-service.version>
         <spring.version>4.0.8.RELEASE</spring.version>
         <mina.version>2.0.8</mina.version>
         <slf4j.version>1.7.9</slf4j.version>
@@ -109,11 +109,13 @@
         <plugins>
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.1</version>
+                <version>2.3.2</version>
                 <configuration>
-                    <source>1.6</source>
-                    <target>1.7</target>
+                    <compilerVersion>1.6</compilerVersion>
                     <fork>true</fork>
+                    <source>1.6</source>
+                    <target>1.6</target>
+                    <executable>${maven.compiler.executable}</executable>
                 </configuration>
             </plugin>
             <plugin>

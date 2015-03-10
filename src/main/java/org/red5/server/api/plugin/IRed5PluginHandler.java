@@ -1,7 +1,7 @@
 /*
- * RED5 Open Source Flash Server - http://code.google.com/p/red5/
+ * RED5 Open Source Flash Server - https://github.com/Red5/
  * 
- * Copyright 2006-2014 by respective authors (see below). All rights reserved.
+ * Copyright 2006-2015 by respective authors (see below). All rights reserved.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,14 +37,14 @@ public interface IRed5PluginHandler {
 	/**
 	 * Set the application making use of this plug-in handler.
 	 * 
-	 * @param application
+	 * @param application application adapter
 	 */
 	void setApplication(MultiThreadedApplicationAdapter application);
 
 	/**
 	 * Set properties to be used by this handler.
 	 * 
-	 * @param props
+	 * @param props plugin properties map
 	 */
 	void setProperties(Map<String, Object> props);
 	

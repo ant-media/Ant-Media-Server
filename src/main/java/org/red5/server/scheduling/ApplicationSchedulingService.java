@@ -1,5 +1,5 @@
 /*
- * RED5 Open Source Flash Server - http://code.google.com/p/red5/
+ * RED5 Open Source Flash Server - https://github.com/Red5/
  *
  * Copyright (c) 2006-2011 by respective authors (see below). All rights reserved.
  *
@@ -58,7 +58,7 @@ public class ApplicationSchedulingService extends QuartzSchedulingService {
 	/**
 	 * Sets the scheduler factory in the servlet context.
 	 * 
-	 * @param servletContext
+	 * @param servletContext sevlet context
 	 */
 	public void setServletAttribute(ServletContext servletContext) {
 		log.debug("Storing the scheduler factory in the servlet context");

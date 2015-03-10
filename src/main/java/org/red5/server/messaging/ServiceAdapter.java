@@ -1,7 +1,7 @@
 /*
- * RED5 Open Source Flash Server - http://code.google.com/p/red5/
+ * RED5 Open Source Flash Server - https://github.com/Red5/
  * 
- * Copyright 2006-2014 by respective authors (see below). All rights reserved.
+ * Copyright 2006-2015 by respective authors (see below). All rights reserved.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -70,7 +70,7 @@ public abstract class ServiceAdapter {
 	 * CommandMessage is routed to the right service, its MessageRefType is set to the 
 	 * string name of the message type for messages handled by that service.
 	 * 
-	 * @param commandMessage
+	 * @param commandMessage message
 	 * @return Exception if not implemented
 	 */
 	public Object manage(CommandMessage commandMessage) {

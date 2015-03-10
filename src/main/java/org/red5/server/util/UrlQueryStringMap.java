@@ -4,11 +4,11 @@ import java.util.HashMap;
 
 /**
  * Simple query string to map converter.
+ *
+ * @param <K> key
+ * @param <V> value
  * 
  * @author Paul Gregoire
- *
- * @param <K>
- * @param <V>
  */
 @SuppressWarnings("serial")
 public final class UrlQueryStringMap<K, V> extends HashMap<K, V> {
@@ -20,7 +20,7 @@ public final class UrlQueryStringMap<K, V> extends HashMap<K, V> {
 	/**
 	 * Parse a given query string and return an instance of this class.
 	 * 
-	 * @param queryString
+	 * @param queryString query string
 	 * @return query string items as map entries
 	 */
 	public static UrlQueryStringMap<String, String> parse(String queryString) {

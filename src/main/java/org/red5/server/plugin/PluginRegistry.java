@@ -1,7 +1,7 @@
 /*
- * RED5 Open Source Flash Server - http://code.google.com/p/red5/
+ * RED5 Open Source Flash Server - https://github.com/Red5/
  * 
- * Copyright 2006-2014 by respective authors (see below). All rights reserved.
+ * Copyright 2006-2015 by respective authors (see below). All rights reserved.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -54,7 +54,7 @@ public class PluginRegistry {
 	/**
 	 * Registers a plug-in.
 	 * 
-	 * @param plugin
+	 * @param plugin plugin
 	 */
 	public static void register(IRed5Plugin plugin) {
 		log.debug("Register plugin: {}", plugin);
@@ -86,7 +86,7 @@ public class PluginRegistry {
 	/**
 	 * Unregisters a plug-in.
 	 * 
-	 * @param plugin
+	 * @param plugin plugin
 	 */
 	public static void unregister(IRed5Plugin plugin) {
 		log.debug("Unregister plugin: {}", plugin);
@@ -120,7 +120,7 @@ public class PluginRegistry {
 	/**
 	 * Returns a plug-in.
 	 * 
-	 * @param pluginName
+	 * @param pluginName plugin name
 	 * @return requested plug-in matching the name given or null if not found
 	 */
 	public static IRed5Plugin getPlugin(String pluginName) {
@@ -137,7 +137,7 @@ public class PluginRegistry {
 	/**
 	 * Shuts down the registry and stops any plug-ins that are found.
 	 * 
-	 * @throws Exception
+	 * @throws Exception on exception
 	 */
 	public static void shutdown() throws Exception {
 		log.info("Destroying and cleaning up {} plugins", plugins.size());	

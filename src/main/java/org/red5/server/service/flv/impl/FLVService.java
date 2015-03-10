@@ -1,7 +1,7 @@
 /*
- * RED5 Open Source Flash Server - http://code.google.com/p/red5/
+ * RED5 Open Source Flash Server - https://github.com/Red5/
  * 
- * Copyright 2006-2014 by respective authors (see below). All rights reserved.
+ * Copyright 2006-2015 by respective authors (see below). All rights reserved.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -64,7 +64,7 @@ public class FLVService extends BaseStreamableFileService implements IFLVService
 	/**
 	 * Generate metadata or not
 	 *
-	 * @param generate  <code>true</code> if there's need to generate metadata, <code>false</code> otherwise
+	 * @param generate  <pre>true</pre> if there's need to generate metadata, <pre>false</pre> otherwise
 	 */
 	public void setGenerateMetadata(boolean generate) {
 		generateMetadata = generate;

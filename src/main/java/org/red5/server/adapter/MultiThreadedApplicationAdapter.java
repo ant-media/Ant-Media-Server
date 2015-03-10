@@ -1,7 +1,7 @@
 /*
- * RED5 Open Source Flash Server - http://code.google.com/p/red5/
+ * RED5 Open Source Flash Server - https://github.com/Red5/
  * 
- * Copyright 2006-2014 by respective authors (see below). All rights reserved.
+ * Copyright 2006-2015 by respective authors (see below). All rights reserved.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -83,44 +83,36 @@ import org.slf4j.Logger;
  * ApplicationAdapter class serves as a base class for your Red5 applications.
  * It provides methods to work with SharedObjects and streams, as well as
  * connections and scheduling services.
- * 
+ * <br>
  * ApplicationAdapter is an application level IScope. To handle streaming
  * processes in your application you should implement
  * {@link IStreamAwareScopeHandler} interface and implement handling methods.
- * 
+ * <br>
  * Application adapter provides you with useful event handlers that can be used
  * to intercept streams, authorize users, etc. Also, all methods added in
  * subclasses can be called from client side with NetConnection.call method.
  * Unlike to Flash Media server which requires you to keep methods on Client
  * object at server side, Red5 offers much more convenient way to add methods
- * for remote invocation to your applications.
- * 
- * <p>
+ * <br>
  * <strong>EXAMPLE:</strong>
- * </p>
- * <p>
- * <code>
- * public List&lt;String&gt; getLiveStreams() {<br />
- *   // Implementation goes here, say, use Red5 object to obtain scope and all it's streams<br />
+ * <br>
+ * <pre>
+ * public List&lt;String&gt; getLiveStreams() {
+ *   // Implementation goes here, say, use Red5 object to obtain scope and all it's streams
  * }
- * </code>
- * 
- * <p>
+ * </pre>
+ * <br>
  * This method added to ApplicationAdapter subclass can be called from client
  * side with the following code:
- * </p>
- * 
- * <code>
- * var nc:NetConnection = new NetConnection();<br />
- * nc.connect(...);<br />
- * nc.call("getLiveStreams", resultHandlerObj);<br />
- * </code>
- * 
- * <p>
+ * <br>
+ * <pre>
+ * var nc:NetConnection = new NetConnection();
+ * nc.connect(...);
+ * nc.call("getLiveStreams", resultHandlerObj);
+ * </pre>
+ * <br>
  * If you want to build a server-side framework this is a place to start and
  * wrap it around ApplicationAdapter subclass.
- * </p>
- * </p>
  * 
  * @author The Red5 Project
  * @author Joachim Bauch (jojo@struktur.de)
@@ -295,7 +287,7 @@ public class MultiThreadedApplicationAdapter extends StatefulScopeWrappingAdapte
 	 *            Scope
 	 * @param params
 	 *            List of params passed to connection handler
-	 * @return <code>true</code> if connect is successful, <code>false</code>
+	 * @return <pre>true</pre> if connect is successful, <pre>false</pre>
 	 *         otherwise
 	 */
 	@Override
@@ -333,7 +325,7 @@ public class MultiThreadedApplicationAdapter extends StatefulScopeWrappingAdapte
 	 * 
 	 * @param scope
 	 *            Scope object
-	 * @return <code>true</code> if scope can be started, <code>false</code>
+	 * @return <pre>true</pre> if scope can be started, <pre>false</pre>
 	 *         otherwise. See {@link AbstractScopeAdapter#start(IScope)} for
 	 *         details.
 	 */
@@ -531,7 +523,7 @@ public class MultiThreadedApplicationAdapter extends StatefulScopeWrappingAdapte
 	 * 
 	 * @param app
 	 *            Application scope object
-	 * @return <code>true</code> if scope can be started, <code>false</code>
+	 * @return <pre>true</pre> if scope can be started, <pre>false</pre>
 	 *         otherwise
 	 */
 	public boolean appStart(IScope app) {
@@ -592,31 +584,25 @@ public class MultiThreadedApplicationAdapter extends StatefulScopeWrappingAdapte
 	 * Handler method. Called every time new client connects (that is, new
 	 * IConnection object is created after call from a SWF movie) to the
 	 * application.
-	 * 
+	 * <br>
 	 * You override this method to pass additional data from client to server
-	 * application using <code>NetConnection.connect</code> method.
-	 * 
-	 * <p>
-	 * <strong>EXAMPLE:</strong><br />
+	 * application using <pre>NetConnection.connect</pre> method.
+	 * <br>
+	 * <strong>EXAMPLE:</strong>
+	 * <br>
 	 * In this simple example we pass user's skin of choice identifier from
 	 * client to the server.
-	 * </p>
+	 * <br>
+	 * <strong>Client-side:</strong>
+	 * <br>
+	 * <pre>NetConnection.connect("rtmp://localhost/killerred5app", "silver");</pre>
+	 * <br>
+	 * <strong>Server-side:</strong>
+	 * <br>
+	 * <pre>if (params.length &gt; 0) log.debug("Theme selected: {}", params[0]);</pre>
 	 * 
-	 * <p>
-	 * <strong>Client-side:</strong><br />
-	 * <code>NetConnection.connect("rtmp://localhost/killerred5app", "silver");</code>
-	 * </p>
-	 * 
-	 * <p>
-	 * <strong>Server-side:</strong><br />
-	 * <code>if (params.length > 0) log.debug("Theme selected: {}", params[0]);</code>
-	 * </p>
-	 * 
-	 * @param conn
-	 *            Connection object
-	 * @param params
-	 *            List of parameters after connection URL passed to
-	 *            <code>NetConnection.connect</code> method.
+	 * @param conn Connection object
+	 * @param params List of parameters after connection URL passed to <pre>NetConnection.connect</pre> method.
 	 * @return Boolean value
 	 */
 	public boolean appConnect(IConnection conn, Object[] params) {
@@ -635,7 +621,7 @@ public class MultiThreadedApplicationAdapter extends StatefulScopeWrappingAdapte
 	 * application.
 	 * 
 	 * You override this method to pass additional data from client to server
-	 * application using <code>NetConnection.connect</code> method.
+	 * application using <pre>NetConnection.connect</pre> method.
 	 * 
 	 * See {@link ApplicationAdapter#appConnect(IConnection, Object[])} for code
 	 * example.
@@ -763,10 +749,10 @@ public class MultiThreadedApplicationAdapter extends StatefulScopeWrappingAdapte
 	/**
 	 * Creates a new shared object for given scope. Server-side shared objects (also known as Remote SO) are special kind of 
 	 * objects those variable are synchronized between clients. To get an instance of RSO at client-side, use 
-	 * <code>SharedObject.getRemote()</code>.
+	 * <pre>SharedObject.getRemote()</pre>.
 	 * 
 	 * SharedObjects can be persistent and transient. Persistent RSO are stateful, i.e. store their data between sessions. 
-	 * If you need to store some data on server while clients go back and forth use persistent SO (just use <code>true</code> ),
+	 * If you need to store some data on server while clients go back and forth use persistent SO (just use <pre>true</pre> ),
 	 * otherwise prefer usage of transient for extra performance.
 	 * 
 	 * @param scope
@@ -775,7 +761,7 @@ public class MultiThreadedApplicationAdapter extends StatefulScopeWrappingAdapte
 	 *            Name of SharedObject
 	 * @param persistent
 	 *            Whether SharedObject instance should be persistent or not
-	 * @return <code>true</code> if SO was created, <code>false</code> otherwise
+	 * @return <pre>true</pre> if SO was created, <pre>false</pre> otherwise
 	 */
 	public boolean createSharedObject(IScope scope, String name, boolean persistent) {
 		ISharedObjectService service = (ISharedObjectService) ScopeUtils.getScopeService(scope, ISharedObjectService.class, SharedObjectService.class, false);
@@ -866,7 +852,7 @@ public class MultiThreadedApplicationAdapter extends StatefulScopeWrappingAdapte
 	 * . Broadcast stream name is somewhat different from server stream name.
 	 * Server stream name is just an ID assigned by Red5 to every created
 	 * stream. Broadcast stream name is the name that is being used to subscribe
-	 * to the stream at client side, that is, in <code>NetStream.play</code>
+	 * to the stream at client side, that is, in <pre>NetStream.play</pre>
 	 * call.
 	 * 
 	 * @param scope
@@ -886,8 +872,8 @@ public class MultiThreadedApplicationAdapter extends StatefulScopeWrappingAdapte
 	 * @param name
 	 *            VOD stream name
 	 * 
-	 * @return <code>true</code> if scope has VOD stream with given name,
-	 *         <code>false</code> otherwise.
+	 * @return <pre>true</pre> if scope has VOD stream with given name,
+	 *         <pre>false</pre> otherwise.
 	 */
 	public boolean hasOnDemandStream(IScope scope, String name) {
 		IProviderService service = (IProviderService) ScopeUtils.getScopeService(scope, IProviderService.class, ProviderService.class);
@@ -1174,8 +1160,8 @@ public class MultiThreadedApplicationAdapter extends StatefulScopeWrappingAdapte
 	 * 
 	 * http://help.adobe.com/en_US/flashmediaserver/devguide/WSd391de4d9c7bd609-569139412a3743e78e-8000.html
 	 * 
-	 * @param bool
-	 * @param num
+	 * @param bool boolean
+	 * @param num number
 	 */
 	public void startTransmit(Boolean bool, int num) {		
 	}
@@ -1191,8 +1177,8 @@ public class MultiThreadedApplicationAdapter extends StatefulScopeWrappingAdapte
 	 * Stop transmission notification from Flash Player 11.1+. This command asks the server to suspend transmission until the client sends a 
 	 * startTransmit event because there is enough data in the buffer.
 	 * 
-	 * @param bool
-	 * @param num
+	 * @param bool boolean
+	 * @param num number
 	 */
 	public void stopTransmit(Boolean bool, int num) {		
 	}	
@@ -1200,8 +1186,7 @@ public class MultiThreadedApplicationAdapter extends StatefulScopeWrappingAdapte
 	/**
 	 * Notification method that is sent by FME just before publishing starts.
 	 * 
-	 * @param streamName
-	 *            Name of stream that is about to be published.
+	 * @param streamName Name of stream that is about to be published.
 	 */
 	public void FCPublish(String streamName) {
 	}
@@ -1214,6 +1199,8 @@ public class MultiThreadedApplicationAdapter extends StatefulScopeWrappingAdapte
 
 	/**
 	 * Notification method that is sent by FME when publishing of a stream ends.
+	 * 
+	 * @param streamName Name of stream that is about to be un-published.
 	 */
 	public void FCUnpublish(String streamName) {
 	}
@@ -1221,8 +1208,7 @@ public class MultiThreadedApplicationAdapter extends StatefulScopeWrappingAdapte
 	/**
 	 * Notification method that is sent by some clients just before playback starts.
 	 * 
-	 * @param streamName
-	 *            Name of stream that is about to be played.
+	 * @param streamName Name of stream that is about to be played.
 	 */
 	public void FCSubscribe(String streamName) {
 	}
@@ -1230,7 +1216,7 @@ public class MultiThreadedApplicationAdapter extends StatefulScopeWrappingAdapte
 	/**
 	 * Notification that a broadcasting stream is closing.
 	 * 
-	 * @param stream
+	 * @param stream stream
 	 */
 	public void streamBroadcastClose(IBroadcastStream stream) {
 		// log w3c connect event

@@ -1,7 +1,7 @@
 /*
- * RED5 Open Source Flash Server - http://code.google.com/p/red5/
+ * RED5 Open Source Flash Server - https://github.com/Red5/
  * 
- * Copyright 2006-2014 by respective authors (see below). All rights reserved.
+ * Copyright 2006-2015 by respective authors (see below). All rights reserved.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,7 +30,7 @@ public interface IConnectionEventQueue {
     /**
      * Whether queue has waiting connection events
      * @param conn       Connection
-     * @return           <code>true</code> if queue has waiting events for connection, <code>false</code> otherwise
+     * @return           <pre>true</pre> if queue has waiting events for connection, <pre>false</pre> otherwise
      */
 	public boolean hasEventsWaiting(IConnection conn);
 

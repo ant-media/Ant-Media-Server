@@ -1,7 +1,7 @@
 /*
- * RED5 Open Source Flash Server - http://code.google.com/p/red5/
+ * RED5 Open Source Flash Server - https://github.com/Red5/
  * 
- * Copyright 2006-2014 by respective authors (see below). All rights reserved.
+ * Copyright 2006-2015 by respective authors (see below). All rights reserved.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,9 +30,9 @@ import org.red5.server.exception.SharedObjectException;
  * given elements inside the server. Statistics data will be stored as
  * properties of different shared objects.
  * 
- * Use <code>getScopeStatisticsSO</code> and <code>getSharedObjectStatisticsSO</code>
- * to get these shared objects. The property names are <code>scopeName</code>
- * for scope attributes and <code>scopeName|sharedObjectName</code> for
+ * Use <pre>getScopeStatisticsSO</pre> and <pre>getSharedObjectStatisticsSO</pre>
+ * to get these shared objects. The property names are <pre>scopeName</pre>
+ * for scope attributes and <pre>scopeName|sharedObjectName</pre> for
  * shared object attributes. Each property holds a Map containing key/value
  * mappings of the corresponding attributes.
  * 

@@ -82,10 +82,10 @@ public class RhinoScriptFactory implements ScriptFactory {
 	 *            the Java interfaces that the scripted object is supposed to
 	 *            implement
 	 * @throws IllegalArgumentException
-	 *             if either of the supplied arguments is <code>null</code>;
-	 *             or the supplied <code>scriptSourceLocator</code> argument
+	 *             if either of the supplied arguments is <pre>null</pre>;
+	 *             or the supplied <pre>scriptSourceLocator</pre> argument
 	 *             is composed wholly of whitespace; or if the supplied
-	 *             <code>scriptInterfaces</code> argument array has no
+	 *             <pre>scriptInterfaces</pre> argument array has no
 	 *             elements
 	 */
 	@SuppressWarnings("rawtypes")
@@ -127,7 +127,7 @@ public class RhinoScriptFactory implements ScriptFactory {
 	/**
 	 * Rhino scripts do not require a config interface.
 	 *
-	 * @return <code>false</code> always
+	 * @return <pre>false</pre> always
 	 */
 	public boolean requiresConfigInterface() {
 		return false;

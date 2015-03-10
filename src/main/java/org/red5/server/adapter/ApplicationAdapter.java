@@ -1,7 +1,7 @@
 /*
- * RED5 Open Source Flash Server - http://code.google.com/p/red5/
+ * RED5 Open Source Flash Server - https://github.com/Red5/
  * 
- * Copyright 2006-2014 by respective authors (see below). All rights reserved.
+ * Copyright 2006-2015 by respective authors (see below). All rights reserved.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,8 +27,8 @@ import org.red5.server.api.scope.IScope;
  * If you want to have maximum performance, use {@link MultiThreadedApplicationAdapter}
  * instead.
  * 
- * Using this class may lead to problems if accepting a client in the <code>*Connect</code>
- * or <code>*Join</code> methods takes too long, so using the multi-threaded version is
+ * Using this class may lead to problems if accepting a client in the <pre>*Connect</pre>
+ * or <pre>*Join</pre> methods takes too long, so using the multi-threaded version is
  * preferred.
  * 
  * @author The Red5 Project

@@ -1,7 +1,7 @@
 /*
- * RED5 Open Source Flash Server - http://code.google.com/p/red5/
+ * RED5 Open Source Flash Server - https://github.com/Red5/
  * 
- * Copyright 2006-2014 by respective authors (see below). All rights reserved.
+ * Copyright 2006-2015 by respective authors (see below). All rights reserved.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -121,7 +121,7 @@ public class BroadcastScope extends BasicScope implements IBroadcastScope, IPipe
 	 *
 	 * @param consumer       Consumer
 	 * @param paramMap       Parameters passed with connection
-	 * @return               <code>true</code> on success, <code>false</code> otherwise
+	 * @return               <pre>true</pre> on success, <pre>false</pre> otherwise
 	 */
 	public boolean subscribe(IConsumer consumer, Map<String, Object> paramMap) {
 		return !removed && pipe.subscribe(consumer, paramMap);
@@ -130,7 +130,7 @@ public class BroadcastScope extends BasicScope implements IBroadcastScope, IPipe
 	/**
 	 * Disconnects scope's pipe from given consumer
 	 * @param consumer       Consumer
-	 * @return               <code>true</code> on success, <code>false</code> otherwise
+	 * @return               <pre>true</pre> on success, <pre>false</pre> otherwise
 	 */
 	public boolean unsubscribe(IConsumer consumer) {
 		return pipe.unsubscribe(consumer);
@@ -170,7 +170,7 @@ public class BroadcastScope extends BasicScope implements IBroadcastScope, IPipe
 	 * 
 	 * @param provider         Provider
 	 * @param paramMap         Parameters passed on connection
-	 * @return                 <code>true</code> on success, <code>false</code> otherwise
+	 * @return                 <pre>true</pre> on success, <pre>false</pre> otherwise
 	 */
 	public boolean subscribe(IProvider provider, Map<String, Object> paramMap) {
 		return !removed && pipe.subscribe(provider, paramMap);
@@ -180,7 +180,7 @@ public class BroadcastScope extends BasicScope implements IBroadcastScope, IPipe
 	 * Disconnects scope's pipe from given provider
 	 * 
 	 * @param provider         Provider
-	 * @return                 <code>true</code> on success, <code>false</code> otherwise
+	 * @return                 <pre>true</pre> on success, <pre>false</pre> otherwise
 	 */
 	public boolean unsubscribe(IProvider provider) {
 		return pipe.unsubscribe(provider);
@@ -247,7 +247,7 @@ public class BroadcastScope extends BasicScope implements IBroadcastScope, IPipe
 	/**
 	 * Sets the client broadcast stream
 	 * 
-	 * @param clientBroadcastStream 
+	 * @param clientBroadcastStream stream
 	 */
 	public void setClientBroadcastStream(IClientBroadcastStream clientBroadcastStream) {
 		if (this.clientBroadcastStream != null) {
