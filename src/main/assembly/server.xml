@@ -18,7 +18,12 @@
             <source>${project.build.directory}/lib/red5-service-${red5-service.version}.jar</source>
             <outputDirectory>/</outputDirectory>
             <destName>red5-service.jar</destName>
-        </file>        
+        </file>    
+        <file>
+            <source>${project.build.directory}/lib/red5-server-common-${red5-service.version}.jar</source>
+            <outputDirectory>/</outputDirectory>
+            <destName>red5-server-common.jar</destName>
+        </file>      
     </files>	
 	<fileSets>
 		<fileSet>
