@@ -158,7 +158,6 @@ public final class Installer {
 	 * @param applicationWarName app war name
 	 * @return true if installed; false otherwise
 	 */
-	@SuppressWarnings("deprecation")
 	public boolean install(String applicationWarName) {
 		IConnection conn = Red5.getConnectionLocal();
 		boolean result = false;
@@ -222,8 +221,6 @@ public final class Installer {
 				try {
 					//try the war version first
 					method = new HttpGet(applicationRepositoryUrl + applicationWarName);
-					// set transfer encoding
-					method.getParams().setParameter("http.protocol.strict-transfer-encoding", Boolean.TRUE);
 					//we dont want any transformation - RFC2616
 					method.addHeader("Accept-Encoding", "identity");
 					// execute the method
