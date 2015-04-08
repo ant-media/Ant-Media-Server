@@ -482,7 +482,7 @@
         <dependency>
             <artifactId>commons-lang3</artifactId>
             <groupId>org.apache.commons</groupId>
-            <version>3.3.2</version>
+            <version>3.4</version>
         </dependency>
         <dependency>
             <groupId>org.quartz-scheduler</groupId>
