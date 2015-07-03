@@ -23,7 +23,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.ThreadLocalRandom;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -46,9 +46,6 @@ public class SessionManager {
 			.getLogger(SessionManager.class);
 
 	private static ConcurrentMap<String, ISession> sessions = new ConcurrentHashMap<String, ISession>();
-
-	//thread-safe long provider
-	private static AtomicLong sessionIdGenerator = new AtomicLong();
 	
 	private static String destinationDirectory;
 
@@ -72,7 +69,7 @@ public class SessionManager {
 		//random int from 1 - 100000
 		int part1 = rnd.nextInt(99999) + 1;
 		//thread-safe "long" part
-		long part2 = sessionIdGenerator.incrementAndGet();
+		long part2 = ThreadLocalRandom.current().nextLong();
 		//current time in millis
 		long part3 = System.currentTimeMillis();
 		//generate uuid-type id

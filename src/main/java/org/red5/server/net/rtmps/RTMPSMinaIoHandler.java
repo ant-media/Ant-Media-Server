@@ -84,6 +84,16 @@ public class RTMPSMinaIoHandler extends RTMPMinaIoHandler {
 	@SuppressWarnings("unused")
 	private String keyStoreType = "JKS";
 
+	/**
+	 * Names of the SSL cipher suites which are currently enabled for use.
+	 */
+	private String[] cipherSuites;
+	
+	/**
+	 * Names of the protocol versions which are currently enabled for use.
+	 */
+	private String[] protocols;
+	
 	/** {@inheritDoc} */
 	@Override
 	public void sessionCreated(IoSession session) throws Exception {
@@ -112,9 +122,15 @@ public class RTMPSMinaIoHandler extends RTMPMinaIoHandler {
 	}	
 
 	public SslFilter getSslFilter() throws Exception {
-		SSLContext context = getSslContext();
+		SSLContext context = getSslContext();		
 		// create the ssl filter using server mode
 		SslFilter sslFilter = new SslFilter(context);
+		if (cipherSuites != null) {
+			sslFilter.setEnabledCipherSuites(cipherSuites);
+		}
+		if (protocols != null) {
+			sslFilter.setEnabledProtocols(protocols);		
+		}
 		return sslFilter;
 	}
 
@@ -193,6 +209,22 @@ public class RTMPSMinaIoHandler extends RTMPMinaIoHandler {
 	 */
 	public void setKeyStoreType(String keyStoreType) {
 		this.keyStoreType = keyStoreType;
+	}
+
+	public String[] getCipherSuites() {
+		return cipherSuites;
+	}
+
+	public void setCipherSuites(String[] cipherSuites) {
+		this.cipherSuites = cipherSuites;
+	}
+
+	public String[] getProtocols() {
+		return protocols;
+	}
+
+	public void setProtocols(String[] protocols) {
+		this.protocols = protocols;
 	}
 
 }
