@@ -163,6 +163,8 @@ https://www.sslshopper.com/article-how-to-disable-weak-ciphers-and-ssl-2-in-tomc
         <property name="keystoreFile" value="${rtmps.keystorefile}" />
         <property name="truststorePassword" value="${rtmps.truststorepass}" />
         <property name="truststoreFile" value="${rtmps.truststorefile}" />
+        <property name="useClientMode" value="false" />
+        <property name="needClientAuth" value="false" />
         <property name="cipherSuites">
             <array>
                 <value>TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256</value>

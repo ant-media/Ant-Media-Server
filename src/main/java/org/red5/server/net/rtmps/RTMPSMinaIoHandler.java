@@ -21,6 +21,8 @@ package org.red5.server.net.rtmps;
 import java.io.File;
 import java.io.NotActiveException;
 import java.security.KeyStore;
+import java.security.Provider;
+import java.security.Security;
 
 import javax.net.ssl.SSLContext;
 
@@ -50,6 +52,9 @@ import org.slf4j.LoggerFactory;
  *  http://java.sun.com/j2se/1.5.0/docs/guide/security/CryptoSpec.html#AppA
  *  http://java.sun.com/j2se/1.5.0/docs/api/java/security/KeyStore.html
  *  http://tomcat.apache.org/tomcat-3.3-doc/tomcat-ssl-howto.html
+ *  
+ *  Unexpected exception from SSLEngine.closeInbound()
+ *  https://issues.apache.org/jira/browse/DIRMINA-272
  *  
  * @author Kevin Green (kevygreen@gmail.com)
  * @author Paul Gregoire (mondain@gmail.com)
@@ -94,6 +99,25 @@ public class RTMPSMinaIoHandler extends RTMPMinaIoHandler {
 	 */
 	private String[] protocols;
 	
+	/**
+	 * Use client (or server) mode when handshaking.
+	 */
+	private boolean useClientMode;
+	
+	/**
+	 * Request the need of client authentication.
+	 */
+	private boolean needClientAuth;
+	
+	static {
+		if (log.isDebugEnabled()) {			
+			Provider[] providers = Security.getProviders();
+			for (Provider provider : providers) {
+				log.debug("Provider: {} = {}", provider.getName(), provider.getInfo());
+			}
+		}
+	}
+	
 	/** {@inheritDoc} */
 	@Override
 	public void sessionCreated(IoSession session) throws Exception {
@@ -122,9 +146,11 @@ public class RTMPSMinaIoHandler extends RTMPMinaIoHandler {
 	}	
 
 	public SslFilter getSslFilter() throws Exception {
-		SSLContext context = getSslContext();		
+		SSLContext context = getSslContext();
 		// create the ssl filter using server mode
 		SslFilter sslFilter = new SslFilter(context);
+		sslFilter.setUseClientMode(useClientMode); 
+		sslFilter.setNeedClientAuth(needClientAuth);
 		if (cipherSuites != null) {
 			sslFilter.setEnabledCipherSuites(cipherSuites);
 		}
@@ -149,12 +175,16 @@ public class RTMPSMinaIoHandler extends RTMPMinaIoHandler {
 				trustStoreFactory.setPassword(truststorePassword);
 
 				final SslContextFactory sslContextFactory = new SslContextFactory();
+				//sslContextFactory.setProtocol("SSL");
+				//sslContextFactory.setProtocol("TLSv1.2");
+				
 				final KeyStore ks = keyStoreFactory.newInstance();
 				sslContextFactory.setKeyManagerFactoryKeyStore(ks);
 
 				final KeyStore ts = trustStoreFactory.newInstance();
 				sslContextFactory.setTrustManagerFactoryKeyStore(ts);
 				sslContextFactory.setKeyManagerFactoryKeyStorePassword(keystorePassword);
+				
 				sslContext = sslContextFactory.newInstance();
 				log.debug("SSL provider is: {}", sslContext.getProvider());
 			} else {
@@ -225,6 +255,22 @@ public class RTMPSMinaIoHandler extends RTMPMinaIoHandler {
 
 	public void setProtocols(String[] protocols) {
 		this.protocols = protocols;
+	}
+
+	public boolean isUseClientMode() {
+		return useClientMode;
+	}
+
+	public void setUseClientMode(boolean useClientMode) {
+		this.useClientMode = useClientMode;
+	}
+
+	public boolean isNeedClientAuth() {
+		return needClientAuth;
+	}
+
+	public void setNeedClientAuth(boolean needClientAuth) {
+		this.needClientAuth = needClientAuth;
 	}
 
 }
