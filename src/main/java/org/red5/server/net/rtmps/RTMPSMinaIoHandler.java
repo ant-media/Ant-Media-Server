@@ -23,8 +23,10 @@ import java.io.NotActiveException;
 import java.security.KeyStore;
 import java.security.Provider;
 import java.security.Security;
+import java.util.Arrays;
 
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLParameters;
 
 import org.apache.mina.core.session.IoSession;
 import org.apache.mina.filter.ssl.KeyStoreFactory;
@@ -49,6 +51,11 @@ import org.slf4j.LoggerFactory;
  * http://tomcat.apache.org/tomcat-6.0-doc/ssl-howto.html http://java.sun.com/j2se/1.5.0/docs/guide/security/CryptoSpec.html#AppA http://java.sun.com/j2se/1.5.0/docs/api/java/security/KeyStore.html http://tomcat.apache.org/tomcat-3.3-doc/tomcat-ssl-howto.html
  * 
  * Unexpected exception from SSLEngine.closeInbound() https://issues.apache.org/jira/browse/DIRMINA-272
+ * 
+ * Transport Layer Security (TLS) Renegotiation Issue http://www.oracle.com/technetwork/java/javase/documentation/tlsreadme2-176330.html
+ * Secure renegotiation https://jce.iaik.tugraz.at/sic/Products/Communication-Messaging-Security/iSaSiLk/documentation/Secure-Renegotiation
+ * Troubleshooting a HTTPS TLSv1 handshake http://integr8consulting.blogspot.com/2012/02/troubleshooting-https-tlsv1-handshake.html
+ * How to analyze Java SSL errors http://www.smartjava.org/content/how-analyze-java-ssl-errors
  * 
  * @author Kevin Green (kevygreen@gmail.com)
  * @author Paul Gregoire (mondain@gmail.com)
@@ -116,36 +123,7 @@ public class RTMPSMinaIoHandler extends RTMPMinaIoHandler {
 		if (keystoreFile == null || truststoreFile == null) {
 			throw new NotActiveException("Keystore or truststore are null");
 		}
-		// create the ssl filter
-		SSLContext context = getSslContext();
-		// create the ssl filter using server mode
-		SslFilter sslFilter = new SslFilter(context);
-		sslFilter.setUseClientMode(useClientMode);
-		sslFilter.setNeedClientAuth(needClientAuth);
-		sslFilter.setWantClientAuth(wantClientAuth);
-		if (cipherSuites != null) {
-			sslFilter.setEnabledCipherSuites(cipherSuites);
-		}
-		if (protocols != null) {
-			sslFilter.setEnabledProtocols(protocols);
-		}
-		// add rtmpe filter after ssl
-		session.getFilterChain().addBefore("rtmpeFilter", "sslFilter", sslFilter);
-		session.setAttribute(SslFilter.USE_NOTIFICATION, Boolean.TRUE);
-		log.debug("isSslStarted:", sslFilter.isSslStarted(session));		
-		super.sessionOpened(session);
-	}
-
-	@Override
-	public void messageReceived(IoSession session, Object message) throws Exception {
-		if (message instanceof SslFilterMessage) {
-			log.info(message.toString());
-		} else {
-			super.messageReceived(session, message);
-		}
-	}
-
-	private SSLContext getSslContext() {
+		// create the ssl context
 		SSLContext sslContext = null;
 		try {
 			File keyStore = new File(keystoreFile);
@@ -160,7 +138,7 @@ public class RTMPSMinaIoHandler extends RTMPMinaIoHandler {
 				trustStoreFactory.setPassword(truststorePassword);
 
 				final SslContextFactory sslContextFactory = new SslContextFactory();
-				sslContextFactory.setProtocol("TLS");
+				//sslContextFactory.setProtocol("TLS");
 
 				final KeyStore ks = keyStoreFactory.newInstance();
 				sslContextFactory.setKeyManagerFactoryKeyStore(ks);
@@ -171,13 +149,52 @@ public class RTMPSMinaIoHandler extends RTMPMinaIoHandler {
 
 				sslContext = sslContextFactory.newInstance();
 				log.debug("SSL provider is: {}", sslContext.getProvider());
+
+				SSLParameters params = sslContext.getDefaultSSLParameters();
+				log.debug("SSL context params - need client auth: {} want client auth: {} endpoint id algorithm: {}", params.getNeedClientAuth(), params.getWantClientAuth(), params.getEndpointIdentificationAlgorithm());
+				String[] supportedProtocols = params.getProtocols();
+				for (String protocol : supportedProtocols) {
+					log.debug("SSL context supported protocol: {}", protocol);
+				}
+				// compatibility: remove the SSLv2Hello message in the available protocols - some systems will fail 
+				// to handshake if TSLv1 messages are enwrapped with SSLv2 messages, Java 6 tries to send TSLv1 embedded in SSLv2
+				
 			} else {
 				log.warn("Keystore or Truststore file does not exist");
 			}
 		} catch (Exception ex) {
 			log.error("Exception getting SSL context", ex);
 		}
-		return sslContext;
+		// create the ssl filter using server mode
+		SslFilter sslFilter = new SslFilter(sslContext);
+		sslFilter.setUseClientMode(useClientMode);
+		sslFilter.setNeedClientAuth(needClientAuth);
+		sslFilter.setWantClientAuth(wantClientAuth);
+		if (cipherSuites != null) {
+			sslFilter.setEnabledCipherSuites(cipherSuites);
+		}
+		if (protocols != null) {
+			if (log.isDebugEnabled()) {
+				log.debug("Using these protocols: {}", Arrays.toString(protocols));
+			}
+			sslFilter.setEnabledProtocols(protocols);
+		}
+		// add rtmpe filter after ssl
+		session.getFilterChain().addBefore("rtmpeFilter", "sslFilter", sslFilter);
+		session.setAttribute(SslFilter.USE_NOTIFICATION, Boolean.TRUE);
+		log.debug("isSslStarted:", sslFilter.isSslStarted(session));
+		super.sessionOpened(session);
+	}
+
+	@Override
+	public void messageReceived(IoSession session, Object message) throws Exception {
+		if (message instanceof SslFilterMessage) {
+			String state = message.toString();
+			log.debug("RTMPS state: {}", state);
+			session.setAttribute("rtmps.state", state);
+		} else {
+			super.messageReceived(session, message);
+		}
 	}
 
 	/**
