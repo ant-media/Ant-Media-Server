@@ -27,7 +27,7 @@ Automatic builds (Courtesy of Apache / OpenMeetings):
  * [Red5](https://builds.apache.org/view/M-R/view/OpenMeetings/job/Red5-server/)
  * [Windows Installer](https://builds.apache.org/view/M-R/view/OpenMeetings/job/red5-installer/)
 
-Latest version is <b>1.0.5-RELEASE</b>
+Current version is <b>1.0.6-SNAPSHOT</b>
 
 [Latest Releases](https://github.com/Red5/red5-server/releases/latest)
 ----------------
