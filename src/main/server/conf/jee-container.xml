@@ -41,7 +41,6 @@
                     <property name="prefix" value="${http.host}_access." />
                     <property name="suffix" value=".log" />
                     <property name="pattern" value="common" />
-                    <property name="resolveHosts" value="false" />
                     <property name="rotatable" value="true" />
                 </bean>
             </list>

@@ -19,6 +19,7 @@
 package org.red5.server.jmx.mxbeans;
 
 import javax.management.MXBean;
+import javax.servlet.ServletException;
 
 /**
  * Simple mbean interface for J2EE container loaders.  
@@ -29,7 +30,7 @@ import javax.management.MXBean;
 @MXBean
 public interface LoaderMXBean extends ShutdownMXBean {
 
-	public boolean startWebApplication(String application);
+	public boolean startWebApplication(String application) throws ServletException;
 
 	public void removeContext(String path);
 	
