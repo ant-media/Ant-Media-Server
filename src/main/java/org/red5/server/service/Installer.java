@@ -28,6 +28,7 @@ import java.util.UUID;
 import javax.management.JMX;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
+import javax.servlet.ServletException;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -265,7 +266,11 @@ public final class Installer {
 					//un-archive it to app dir
 					FileUtil.unzip(srcDir + '/' + applicationWarName, contextDir);
 					//load and start the context
-					loader.startWebApplication(application);
+					try {
+						loader.startWebApplication(application);
+					} catch (ServletException e) {
+						log.error("Unexpected error while staring web application...", e);
+					}
 				} else {
 					//just copy the war to the webapps dir
 					try {

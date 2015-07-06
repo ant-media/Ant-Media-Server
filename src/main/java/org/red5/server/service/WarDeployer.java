@@ -26,6 +26,7 @@ import java.lang.management.ManagementFactory;
 import javax.management.JMX;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
+import javax.servlet.ServletException;
 
 import org.red5.server.api.scheduling.IScheduledJob;
 import org.red5.server.api.scheduling.ISchedulingService;
@@ -212,16 +213,20 @@ public final class WarDeployer {
 					LoaderMXBean loader = getLoader();
 					if (loader != null) {
 						//load and start the context
-						loader.startWebApplication(application);
-						//remove the war file
-						File warFile = new File(deploymentDirectory, applicationWarName);
-						if (warFile.delete()) {
-							log.debug("{} was deleted", warFile.getName());
-						} else {
-							log.debug("{} was not deleted", warFile.getName());
-							warFile.deleteOnExit();
+						try {
+							loader.startWebApplication(application);
+							//remove the war file
+							File warFile = new File(deploymentDirectory, applicationWarName);
+							if (warFile.delete()) {
+								log.debug("{} was deleted", warFile.getName());
+							} else {
+								log.debug("{} was not deleted", warFile.getName());
+								warFile.deleteOnExit();
+							}
+							warFile = null;
+						} catch (ServletException e) {
+							log.error("Unexpected error while staring web application...", e);
 						}
-						warFile = null;
 					}
 				}
 				appDir = null;
