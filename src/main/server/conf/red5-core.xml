@@ -20,15 +20,28 @@
 	</bean>
 	
 	<!-- RTMP -->
-    <bean id="rtmpScheduler" scope="prototype" class="org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler">
-        <property name="poolSize" value="${rtmp.scheduler.pool_size}" />  
+    <bean id="rtmpScheduler" class="org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler">
+        <property name="poolSize" value="${rtmp.scheduler.pool_size}" />
+        <property name="daemon" value="true" />
+        <property name="waitForTasksToCompleteOnShutdown" value="true" />
+        <property name="threadNamePrefix" value="RTMPConnectionScheduler-" />
 	</bean>        
 	        
-	<bean id="messageExecutor" scope="prototype" class="org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor">  
-        <property name="corePoolSize" value="1" />  
-	    <property name="maxPoolSize" value="1" />  
-	    <property name="queueCapacity" value="${rtmp.executor.queue_capacity}" /> 
-	</bean>     
+	<bean id="messageExecutor" class="org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor">  
+        <property name="corePoolSize" value="${rtmp.executor.core_pool_size}" />
+	    <property name="maxPoolSize" value="${rtmp.executor.max_pool_size}" />
+	    <property name="queueCapacity" value="${rtmp.executor.queue_capacity}" />
+        <property name="daemon" value="false" />
+        <property name="waitForTasksToCompleteOnShutdown" value="true" />
+        <property name="threadNamePrefix" value="RTMPConnectionExecutor-" />
+	</bean>
+
+    <bean id="deadlockGuardScheduler" class="org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler">
+        <property name="poolSize" value="${rtmp.deadlockguard.sheduler.pool_size}" />
+        <property name="daemon" value="false" />
+        <property name="waitForTasksToCompleteOnShutdown" value="true" />
+        <property name="threadNamePrefix" value="DeadlockGuardScheduler-" />
+    </bean>
     
     <!-- RTMP connection manager --> 
     <bean id="rtmpConnManager" class="org.red5.server.net.rtmp.RTMPConnManager" />
@@ -101,8 +114,10 @@
         <property name="limitType" value="${rtmp.client_bandwidth_limit_type}" />
         <!-- Bandwidth detection. If "false" the server will NOT initiate a check -->
         <property name="bandwidthDetection" value="${rtmp.bandwidth_detection}" />
+        <!-- Deadlock guard executor -->
+        <property name="deadlockGuardScheduler" ref="deadlockGuardScheduler" />
         <!-- Maximum time allowed for a single RTMP packet to be processed -->
-        <property name="maxHandlingTimeout" value="${rtmp.max_handling_time}" />
+        <property name="maxHandlingTimeout" value="${rtmp.deadlockguard.max_handling_time}" />
         <!-- Specify the size of queue that will trigger audio packet dropping, disabled if it's 0 -->
          <property name="executorQueueSizeToDropAudioPackets" value="${rtmp.executor.queue_size_to_drop_audio_packets}" />
 	</bean>
@@ -144,8 +159,10 @@
 		<property name="maxQueueOfferTime" value="${rtmpt.max_queue_offer_time}" />
 		<!-- Maximum offer attempts before failing on incoming or outgoing queues -->
 		<property name="maxQueueOfferAttempts" value="${rtmpt.max_queue_offer_attempts}" />
+        <!-- Deadlock guard executor -->
+        <property name="deadlockGuardScheduler" ref="deadlockGuardScheduler" />
 		<!-- Maximum time allowed for a single RTMP packet to be processed -->
-        <property name="maxHandlingTimeout" value="${rtmp.max_handling_time}" />
+        <property name="maxHandlingTimeout" value="${rtmp.deadlockguard.max_handling_time}" />
         <!-- Specify the size of queue that will trigger audio packet dropping, disabled if it's 0 -->
          <property name="executorQueueSizeToDropAudioPackets" value="${rtmp.executor.queue_size_to_drop_audio_packets}" />
 	</bean>
