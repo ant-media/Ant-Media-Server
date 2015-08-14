@@ -17,8 +17,6 @@ Support via plugin:
  * [HLS](https://github.com/Red5/red5-hls-plugin)
  * [RTSP (From Axis-type cameras)](https://github.com/Red5/red5-rtsp-restreamer)
 
-Some of the Red5 project information continues to reside on [Google Code](https://code.google.com/p/red5/). Post new issues or wiki entries here. 
-
 The Red5 users list may be found here: https://groups.google.com/forum/#!forum/red5interest
 
 Subreddit: http://www.reddit.com/r/red5
