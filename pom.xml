@@ -319,7 +319,13 @@
         <dependency>
             <groupId>org.antlr</groupId>
             <artifactId>antlr</artifactId>
-            <version>3.1.3</version>
+            <version>3.5.2</version>
+            <exclusions>
+            	<exclusion>
+            		<artifactId>ST4</artifactId>
+            		<groupId>org.antlr</groupId>
+            	</exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>cglib</groupId>
@@ -344,6 +350,12 @@
             <groupId>org.codehaus.groovy</groupId>
             <artifactId>groovy</artifactId>
             <version>2.0.4</version>
+            <exclusions>
+            	<exclusion>
+            		<artifactId>antlr</artifactId>
+            		<groupId>antlr</groupId>
+            	</exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.python</groupId>
@@ -458,6 +470,12 @@
             <artifactId>mina-integration-jmx</artifactId>
             <groupId>org.apache.mina</groupId>
             <version>${mina.version}</version>
+            <exclusions>
+                <exclusion>
+                	<artifactId>ognl</artifactId>
+                	<groupId>ognl</groupId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <artifactId>mina-integration-beans</artifactId>
