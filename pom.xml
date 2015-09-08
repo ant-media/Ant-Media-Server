@@ -58,8 +58,8 @@
     	<build.dir>target</build.dir>
     	<finalName>${project.artifactId}-${project.version}</finalName>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <red5-io.version>1.0.6-SNAPSHOT</red5-io.version>
-        <red5-service.version>1.0.6-SNAPSHOT</red5-service.version>
+        <red5-io.version>1.0.6-RELEASE</red5-io.version>
+        <red5-service.version>1.0.6-RELEASE</red5-service.version>
         <spring.version>4.1.7.RELEASE</spring.version>
         <mina.version>2.0.9</mina.version>
         <slf4j.version>1.7.9</slf4j.version>
