@@ -6,7 +6,7 @@
     <name>Red5 :: Server</name>
     <description>The Red5 server</description>
     <groupId>org.red5</groupId>
-    <version>1.0.6-SNAPSHOT</version>
+    <version>1.0.6-RELEASE</version>
     <url>https://github.com/Red5/red5-server</url>
     <inceptionYear>2005</inceptionYear>
     <organization>
