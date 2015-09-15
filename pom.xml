@@ -6,7 +6,7 @@
     <name>Red5 :: Server</name>
     <description>The Red5 server</description>
     <groupId>org.red5</groupId>
-    <version>1.0.6-RELEASE</version>
+    <version>1.0.7-SNAPSHOT</version>
     <url>https://github.com/Red5/red5-server</url>
     <inceptionYear>2005</inceptionYear>
     <organization>
@@ -58,8 +58,8 @@
     	<build.dir>target</build.dir>
     	<finalName>${project.artifactId}-${project.version}</finalName>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <red5-io.version>1.0.6-RELEASE</red5-io.version>
-        <red5-service.version>1.0.6-RELEASE</red5-service.version>
+        <red5-io.version>1.0.7-SNAPSHOT</red5-io.version>
+        <red5-service.version>1.0.7-SNAPSHOT</red5-service.version>
         <spring.version>4.1.7.RELEASE</spring.version>
         <mina.version>2.0.9</mina.version>
         <slf4j.version>1.7.9</slf4j.version>
