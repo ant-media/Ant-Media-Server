@@ -67,6 +67,7 @@
         <quartz.version>2.2.1</quartz.version>
         <bc.version>1.52</bc.version>
         <junit.version>4.12</junit.version>
+        <tomcat.version>8.0.26</tomcat.version>
     </properties>
     <repositories>
         <repository>
@@ -256,11 +257,10 @@
     </dependencyManagement>
     <dependencies>
         <dependency>
-            <groupId>org.jboss.spec.javax.servlet</groupId>
-            <artifactId>jboss-servlet-api_3.0_spec</artifactId>
-            <version>1.0.2.Final</version>
-            <!--$NO-MVN-MAN-VER$ -->
-            <scope>compile</scope>
+            <groupId>org.apache.tomcat</groupId>
+            <artifactId>tomcat-servlet-api</artifactId>
+            <version>${tomcat.version}</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>

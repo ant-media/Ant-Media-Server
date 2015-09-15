@@ -25,10 +25,13 @@ Automatic builds (Courtesy of Apache / OpenMeetings):
  * [Red5](https://builds.apache.org/view/M-R/view/OpenMeetings/job/Red5-server/)
  * [Windows Installer](https://builds.apache.org/view/M-R/view/OpenMeetings/job/red5-installer/)
 
-Current version is <b>1.0.6-SNAPSHOT</b>
+Current version is <b>1.0.6-RELEASE</b>
 
 [Latest Releases](https://github.com/Red5/red5-server/releases/latest)
 ----------------
+<h4>Red5 1.0.6 Release (8 September 2015)</h4>
+[Tarball &amp; ZIP](https://github.com/Red5/red5-server/releases/tag/v1.0.6-RELEASE)
+
 <h4>Red5 1.0.5 Release (7 February 2015)</h4>
 [Tarball &amp; ZIP](https://github.com/Red5/red5-server/releases/tag/v1.0.5-RELEASE) | [Windows] (https://mega.co.nz/#!cAVGCJJR!flZqMKTB9mcD1_nvbQ_xlG88ADTEkFk7-jtuGw2uNOc)
 
@@ -87,7 +90,7 @@ mvn eclipse:eclipse
 3. Access the right-click menu and select "Configure" and then "Convert to Maven Project".
 4. Now the project will build automatically, if you have the maven plugin installed.
 
-[http://screencast.com/t/2sgjMevf9 Screencast]
+[Screencast](http://screencast.com/t/2sgjMevf9)
 
 Previous Releases
 -------------------
