@@ -42,7 +42,7 @@
 				<include>*.jar</include>
 			</includes>
             <excludes>
-            	<exclude>tomcat-servlet-api-8.0.26.jar</exclude>
+            	<exclude>tomcat-servlet-api-${tomcat.version}.jar</exclude>
                 <exclude>antlr-2.7.7.jar</exclude>
                 <exclude>asm-analysis-4.0.jar</exclude>
                 <exclude>asm-commons-4.0.jar</exclude>
