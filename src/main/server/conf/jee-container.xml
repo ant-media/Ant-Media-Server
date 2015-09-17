@@ -6,7 +6,7 @@
                            http://www.springframework.org/schema/lang http://www.springframework.org/schema/lang/spring-lang.xsd">
         
     <!-- War deployer -->
-    <bean id="warDeployer" class="org.red5.server.tomcat.WarDeployer" depends-on="tomcat.server">
+    <bean id="warDeployer" class="org.red5.server.tomcat.WarDeployer">
         <property name="checkInterval" value="${war.deploy.server.check.interval}"/>
         <property name="webappFolder" value="${red5.root}/webapps"/>        
         <!-- Expand war files prior to startup of the remaining services -->
