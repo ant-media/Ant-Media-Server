@@ -111,13 +111,6 @@
 	<bean id="schedulingService" class="org.red5.server.scheduling.QuartzSchedulingService">
         <property name="configFile" value="${red5.root}/conf/quartz.properties"/>   
     </bean>
-		
-    <!-- War deployer -->
-    <bean id="warDeployService" class="org.red5.server.service.WarDeployer" init-method="init" destroy-method="shutdown">
-        <property name="scheduler" ref="schedulingService"/>
-        <property name="checkInterval" value="${war.deploy.server.check.interval}"/>
-        <property name="deploymentDirectory" value="${red5.root}/webapps"/>
-    </bean>		 
 
 	<!-- Use injection to setup thread pool for remoting clients -->
 	<bean id="remotingClient" class="org.red5.server.net.remoting.RemotingClient">

@@ -4,7 +4,15 @@
        xmlns:lang="http://www.springframework.org/schema/lang"
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
                            http://www.springframework.org/schema/lang http://www.springframework.org/schema/lang/spring-lang.xsd">
-
+        
+    <!-- War deployer -->
+    <bean id="warDeployer" class="org.red5.server.tomcat.WarDeployer" depends-on="tomcat.server">
+        <property name="checkInterval" value="${war.deploy.server.check.interval}"/>
+        <property name="webappFolder" value="${red5.root}/webapps"/>        
+        <!-- Expand war files prior to startup of the remaining services -->
+        <property name="expandWars" value="true" />
+    </bean>      
+    
     <!-- 
     The tomcat connectors may be blocking or non-blocking. Select between either option via the protocol property.
         Blocking I/O:
@@ -14,7 +22,7 @@
      -->                           
     
     <!-- Tomcat without SSL enabled -->   
-    <bean id="tomcat.server" class="org.red5.server.tomcat.TomcatLoader" depends-on="context.loader" init-method="start" lazy-init="true">
+    <bean id="tomcat.server" class="org.red5.server.tomcat.TomcatLoader" depends-on="context.loader,warDeployer" lazy-init="true">
 
         <property name="webappFolder" value="${red5.root}/webapps" />
         
@@ -50,7 +58,7 @@
  
     <!-- Tomcat with SSL enabled -->
 <!-- 
-    <bean id="tomcat.server" class="org.red5.server.tomcat.TomcatLoader" depends-on="context.loader" init-method="start" lazy-init="true">
+    <bean id="tomcat.server" class="org.red5.server.tomcat.TomcatLoader" depends-on="context.loader" lazy-init="true">
 
         <property name="webappFolder" value="${red5.root}/webapps" />
         

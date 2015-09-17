@@ -117,7 +117,7 @@
         <!-- Deadlock guard executor -->
         <property name="deadlockGuardScheduler" ref="deadlockGuardScheduler" />
         <!-- Maximum time allowed for a single RTMP packet to be processed -->
-        <property name="maxHandlingTimeout" value="${rtmp.deadlockguard.max_handling_time}" />
+        <property name="maxHandlingTimeout" value="${rtmp.max_handling_time}" />
         <!-- Specify the size of queue that will trigger audio packet dropping, disabled if it's 0 -->
          <property name="executorQueueSizeToDropAudioPackets" value="${rtmp.executor.queue_size_to_drop_audio_packets}" />
 	</bean>
@@ -162,7 +162,7 @@
         <!-- Deadlock guard executor -->
         <property name="deadlockGuardScheduler" ref="deadlockGuardScheduler" />
 		<!-- Maximum time allowed for a single RTMP packet to be processed -->
-        <property name="maxHandlingTimeout" value="${rtmp.deadlockguard.max_handling_time}" />
+        <property name="maxHandlingTimeout" value="${rtmp.max_handling_time}" />
         <!-- Specify the size of queue that will trigger audio packet dropping, disabled if it's 0 -->
          <property name="executorQueueSizeToDropAudioPackets" value="${rtmp.executor.queue_size_to_drop_audio_packets}" />
 	</bean>

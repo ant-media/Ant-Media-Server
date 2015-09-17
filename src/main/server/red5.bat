@@ -17,7 +17,7 @@ REM Set up security options
 REM set SECURITY_OPTS=-Djava.security.debug=failure -Djava.security.manager -Djava.security.policy="%RED5_HOME%/conf/red5.policy"
 set SECURITY_OPTS=-Djava.security.debug=failure
 REM Set up tomcat options
-set TOMCAT_OPTS=-Dcatalina.home="%RED5_HOME%"
+set TOMCAT_OPTS=-Dcatalina.home=%RED5_HOME%
 REM Setup python/jython path
 set JYTHON_OPTS=-Dpython.home=lib
 REM Combined java options
