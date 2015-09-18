@@ -235,13 +235,6 @@
                 <version>${slf4j.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.jboss.spec</groupId>
-                <artifactId>jboss-javaee-6.0</artifactId>
-                <version>3.0.1.Final</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-            <dependency>
                 <groupId>org.apache.mina</groupId>
                 <artifactId>mina-parent</artifactId>
                 <version>${mina.version}</version>
