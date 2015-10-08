@@ -33,14 +33,10 @@ Current version is <b>1.0.6-RELEASE</b>
 [Tarball &amp; ZIP](https://github.com/Red5/red5-server/releases/tag/v1.0.6-RELEASE)
 
 <h4>Red5 1.0.5 Release (7 February 2015)</h4>
-[Tarball &amp; ZIP](https://github.com/Red5/red5-server/releases/tag/v1.0.5-RELEASE) | [Windows] (https://mega.co.nz/#!cAVGCJJR!flZqMKTB9mcD1_nvbQ_xlG88ADTEkFk7-jtuGw2uNOc)
+[Tarball &amp; ZIP](https://github.com/Red5/red5-server/releases/tag/v1.0.5-RELEASE)
 
 <h4>Red5 1.0.4 Release (26 December 2014)</h4>
-[Tarball](https://github.com/Red5/red5-server/releases/download/v1.0.4-RELEASE/red5-server-1.0.4-RELEASE-server.tar.gz) | [ZIP](https://github.com/Red5/red5-server/releases/download/v1.0.4-RELEASE/red5-server-1.0.4-RELEASE-server.zip) | [Windows](https://mega.co.nz/#!pAMnyLRK!IjEUi9Kwn7sdRHkkgQhJf0GDvjJYLhxfXo8uwPclrQo)
-
-<h4>Red5 1.0.3 Release (5 August 2014)</h4>
-<a href="https://mega.co.nz/#!JcNwyKab!Mk7aMIL_bAsRQgReBz0hIuDBs0vfncl901ZtLY3u0dM">Tarball</a> | 
-<a href="https://mega.co.nz/#!1BdigLgY!m_mGoSw5SEPh0Nf8qGGmGaUn3VXpIVrYHpVYCYNsK7Q">ZIP</a>
+[Tarball](https://github.com/Red5/red5-server/releases/download/v1.0.4-RELEASE/red5-server-1.0.4-RELEASE-server.tar.gz) | [ZIP](https://github.com/Red5/red5-server/releases/download/v1.0.4-RELEASE/red5-server-1.0.4-RELEASE-server.zip)
 
 [Previous releases](https://github.com/Red5/red5-server/blob/master/README.md#previous-releases)
 
@@ -95,53 +91,18 @@ mvn eclipse:eclipse
 Previous Releases
 -------------------
 
-<h4>Red5 1.0.2 Release (9 April 2014)</h4>
-<a href="https://mega.co.nz/#!FFsV0TIC!eEeGePK30nCv0xF5E7w_6S3b_z8Y9pjzMkp2-UgZTYk">Windows Java7</a> | 
-<a href="https://mega.co.nz/#!8EUFwAxR!qJjgtFCs5tY86ZDqolL_nL9SsWradm4BQeOugffZqqs">Tarball</a> | 
-<a href="https://mega.co.nz/#!QUNEiDoI!RhT8p660eJImIuI3kRhuZHfRWxtnZTSpp0-va2_wyrw">ZIP</a>
+The artifacts for the following releases are no longer available; if your project requires them, you'll have to build them from source. The listings are here only for historical purposes.
 
-<h4>Red5 1.0.2 Snapshot (18 April 2013)</h4>
-
-<a href="https://mega.co.nz/#!5M0zAKyZ!EajiiQUjjr9N6Lcpi2NTG2JY-e4owoGaUy5ilqxc6Fc">Windows</a> | 
-<a href="https://mega.co.nz/#!gYV0TBjY!H-1RSkcRHbQ-OBFJVXuVkmPIdt8LdZ5cM4OigHRZNE0">ZIP</a> 
-
-<h4>Red5 1.0.1 Final (14 January 2013)</h4>
-
-<a href="http://red5.org/downloads/red5/1_0_1/setup-Red5-1.0.1.exe">Windows</a> _Java 7_ | 
-<a href="http://red5.org/downloads/red5/1_0_1/setup-Red5-1.0.1-java6.exe">Windows</a> _Java 6_ | <a href="http://red5.org/downloads/red5/1_0_1/red5-1.0.1.zip">ZIP</a> | 
-<a href="http://red5.org/downloads/red5/1_0_1/red5-1.0.1.tar.gz">Tarball</a>
-
-<h4>Red5 1.0 Final (03 December 2012)</h4>
-
-<a href="http://red5.org/downloads/red5/1_0/setup-Red5-1.0.0.exe">Windows</a> _Java 7_ | 
-<a href="http://red5.org/downloads/red5/1_0/setup-Red5-1.0.0-java6.exe">Windows</a> _Java 6_ | <a href="http://red5.org/downloads/red5/1_0/red5-1.0.0.zip">ZIP</a> |
-<a href="http://red5.org/downloads/red5/1_0/red5-1.0.0.tar.gz">Tarball</a>
-
-<h4>Red5 0.9.1 Final (21 February 2010)</h4>
-
-<a href="http://red5.org/downloads/red5/0_9/red5-0.9.1.dmg">OSX</a> | 
-<a href="http://red5.org/downloads/red5/0_9/setup-Red5-0.9.1.exe">Windows</a> | 
-<a href="http://red5.org/downloads/red5/0_9/red5-0.9.1.zip">ZIP</a> | 
-<a href="http://red5.org/downloads/red5/0_9/red5-0.9.1.tar.gz">Tarball</a> | 
-<a href="http://red5.org/downloads/red5/0_9/red5-0.9.1.jar">Replacement Jar</a>
-
-<h4>Red5 0.9.0 Final (27 January 2010)</h4>
-
-<a href="http://red5.org/downloads/red5/0_9/red5-0.9.0.dmg">OSX</a> | 
-<a href="http://red5.org/downloads/red5/0_9/setup-Red5-0.9.0.exe">Windows</a> | 
-<a href="http://red5.org/downloads/red5/0_9/red5-0.9.0.zip">ZIP</a> | 
-<a href="http://red5.org/downloads/red5/0_9/red5-0.9.0.tar.gz">Tarball</a> | 
-<a href="http://red5.org/downloads/red5/0_9/red5-src-0.9.0.zip">Source</a>
-
-<h4>Red5 0.8.0 Final</h4>
-
-<a href="http://red5.org/downloads/red5/0_8/setup-red5-0.8.0.dmg">OSX</a> | 
-<a href="http://red5.org/downloads/red5/0_8/setup-Red5-0.8.0.exe">Windows</a> | 
-<a href="http://red5.org/downloads/red5/0_8/setup-Red5-0.8.0-java5.exe">Windows</a> (Java5) | 
-<a href="http://red5.org/downloads/red5/0_8/red5-0.8.0.tar.gz">Tarball</a> | 
-<a href="http://red5.org/downloads/red5/0_8/red5-0.8.0-java5.tar.gz">Tarball</a> (Java5) | 
-<a href="http://red5.org/downloads/red5/0_8/red5-war-0.8.0.zip">WAR</a> | 
-<a href="http://red5.org/downloads/red5/0_8/red5-war-0.8.0-java5.zip">WAR</a> (Java5)
+<ul>
+<li>Red5 1.0.3 Release (5 August 2014)</li>
+<li>Red5 1.0.2 Release (9 April 2014)</li>
+<li>Red5 1.0.2 Snapshot (18 April 2013)</li>
+<li>Red5 1.0.1 Final (14 January 2013)</li>
+<li>Red5 1.0 Final (03 December 2012)</li>
+<li>Red5 0.9.1 Final (21 February 2010)</li>
+<li>Red5 0.9.0 Final (27 January 2010)</li>
+<li>Red5 0.8.0 Final</li>
+</ul>
 
 Supporters
 -------------
