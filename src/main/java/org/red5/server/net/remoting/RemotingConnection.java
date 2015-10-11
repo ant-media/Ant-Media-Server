@@ -579,12 +579,12 @@ public class RemotingConnection implements IRemotingConnection {
 		this.connectionListeners.remove(listener);
 	}
 
-	public int getStreamId() {
+	public Number getStreamId() {
 		notSupported();
 		return -1;
 	}
 
-	public void setStreamId(int id) {
+	public void setStreamId(Number id) {
 		notSupported();
 	}
 
