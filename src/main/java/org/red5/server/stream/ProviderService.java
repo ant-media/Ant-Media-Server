@@ -51,10 +51,10 @@ public class ProviderService implements IProviderService {
 	public INPUT_TYPE lookupProviderInput(IScope scope, String name, int type) {
 		INPUT_TYPE result = INPUT_TYPE.NOT_FOUND;
 		if (scope.getBasicScope(ScopeType.BROADCAST, name) != null) {
-			//we have live input
+			// we have live input
 			result = INPUT_TYPE.LIVE;
 		} else {
-			//"default" to VOD as a missing file will be picked up later on 
+			// "default" to VOD as a missing file will be picked up later on 
 			result = INPUT_TYPE.VOD;
 			File file = getStreamFile(scope, name);
 			if (file == null) {
@@ -108,7 +108,9 @@ public class ProviderService implements IProviderService {
 
 	/** {@inheritDoc} */
 	public File getVODProviderFile(IScope scope, String name) {
-		log.debug("getVODProviderFile - scope: {} name: {}", scope, name);
+		if (log.isDebugEnabled()) {
+			log.debug("getVODProviderFile - scope: {} name: {}", scope, name);
+		}
 		File file = getStreamFile(scope, name);
 		if (file == null || !file.exists()) {
 			//if there is no file extension this is most likely a live stream
@@ -141,7 +143,9 @@ public class ProviderService implements IProviderService {
 		if (broadcastScope != null && bs instanceof IClientBroadcastStream) {
 			broadcastScope.setClientBroadcastStream((IClientBroadcastStream) bs);
 		}
-		log.debug("Subscribing scope {} to provider {}", broadcastScope, bs.getProvider());
+		if (log.isDebugEnabled()) {
+			log.debug("Subscribing scope {} to provider {}", broadcastScope, bs.getProvider());
+		}
 		return broadcastScope.subscribe(bs.getProvider(), null);
 	}
 
@@ -168,7 +172,9 @@ public class ProviderService implements IProviderService {
 		}
 		// if the scope has no listeners try to remove it
 		if (!((BasicScope) broadcastScope).hasEventListeners()) {
-			log.debug("Scope has no event listeners attempting removal");
+			if (log.isDebugEnabled()) {
+				log.debug("Scope has no event listeners attempting removal");
+			}
 			scope.removeChildScope(broadcastScope);
 		}
 		// verify that scope was removed
@@ -176,12 +182,21 @@ public class ProviderService implements IProviderService {
 	}
 
 	private File getStreamFile(IScope scope, String name) {
+		if (log.isDebugEnabled()) {
+			log.debug("getStreamFile - name: {}", name);
+		}
 		IStreamableFileFactory factory = (IStreamableFileFactory) ScopeUtils.getScopeService(scope, IStreamableFileFactory.class);
 		if (name.indexOf(':') == -1 && name.indexOf('.') == -1) {
 			// Default to .flv files if no prefix and no extension is given.
 			name = "flv:" + name;
 		}
-		log.debug("getStreamFile null check - factory: {} name: {}", factory, name);
+		// ams sends an asterisk at the start of the name on mp4, so remove it
+		if (name.charAt(0) == '*') {
+			name = name.substring(1);
+			if (log.isTraceEnabled()) {
+				log.trace("Removed star prefix: {}", name);
+			}
+		}
 		for (IStreamableFileService service : factory.getServices()) {
 			if (name.startsWith(service.getPrefix() + ':')) {
 				name = service.prepareFilename(name);
