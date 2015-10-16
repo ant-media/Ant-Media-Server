@@ -65,15 +65,14 @@ mvn -Dmaven.test.skip=true install
 ```
 This will create the jars in the "target" directory of the workspace; this will also skip the unit tests.
 
-To package everything up (tarball/zip):
+To package everything up in an assembly (tarball/zip):
 ```
 mvn -Dmaven.test.skip=true clean package -P assemble
 ```
-To manually copy the "demos" should they not exist in the packages, go to http://red5.googlecode.com/svn/flash/trunk/deploy/ and collect all the files therein. Create a directory in your red5 install at this location 
+To build a milestone tarball:
+```sh
+mvn -Dmilestone.version=1.0.7-M1 clean package -Pmilestone
 ```
-red5/webapps/root/demos
-```
-Place all the files there.
 
 Eclipse
 ----------
