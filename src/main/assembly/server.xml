@@ -2,14 +2,13 @@
 	xmlns="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.0"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.0 http://maven.apache.org/xsd/assembly-1.1.0.xsd">
-	<id>server</id>
+	<id>${project.version}</id>
 	<formats>
 		<format>tar.gz</format>
 		<format>zip</format>
 	</formats>
     <files>
         <file>
-<!--             <source>${project.build.directory}/red5-server-${project.version}.jar</source> -->
 			<source>${project.build.directory}/${finalName}.jar</source>
             <outputDirectory>/</outputDirectory>
             <destName>red5-server.jar</destName>
@@ -19,13 +18,6 @@
             <outputDirectory>/</outputDirectory>
             <destName>red5-service.jar</destName>
         </file>    
-<!--
-        <file>
-            <source>${project.build.directory}/lib/red5-server-common-${red5-service.version}.jar</source>
-            <outputDirectory>/</outputDirectory>
-            <destName>red5-server-common.jar</destName>
-        </file>      
--->
     </files>	
 	<fileSets>
 		<fileSet>
@@ -50,7 +42,7 @@
                 <exclude>asm-util-4.0.jar</exclude>
                 <exclude>commons-logging-1.1.1.jar</exclude>
                 <exclude>hamcrest-core-1.1.jar</exclude>
-                <exclude>junit-4.10.jar</exclude>
+                <exclude>junit-${junit.version}.jar</exclude>
                 <exclude>groboutils-core-5.jar</exclude>
                 <exclude>red5-service-${red5-service.version}.jar</exclude>
             </excludes>
