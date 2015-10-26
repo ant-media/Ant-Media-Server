@@ -63,12 +63,15 @@ public class RTMPMinaTransport implements RTMPMinaTransportMXBean {
 
 	private static final Logger log = LoggerFactory.getLogger(RTMPMinaTransport.class);
 
+	// utilized when enableDefaultAcceptor is false
+	private ThreadPoolExecutor executor;
+
 	protected SocketAcceptor acceptor;
 
 	protected Set<String> addresses = new HashSet<String>();
 
 	protected IoHandlerAdapter ioHandler;
-
+	
 	protected int ioThreads = Runtime.getRuntime().availableProcessors() * 2;
 
 	/**
@@ -137,7 +140,7 @@ public class RTMPMinaTransport implements RTMPMinaTransportMXBean {
 			// simple pool for i/o processors
 			SimpleIoProcessorPool<NioSession> pool = new SimpleIoProcessorPool<NioSession>(NioProcessor.class, maxProcessorPoolSize);
 			// executor for acceptors, defaults to 32k for work queue
-			Executor executor = new ThreadPoolExecutor(initialPoolSize, maxPoolSize, executorKeepAliveTime, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>(Short.MAX_VALUE));
+			executor = new ThreadPoolExecutor(initialPoolSize, maxPoolSize, executorKeepAliveTime, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>(Short.MAX_VALUE));
 			// our adjusted socket acceptor with tweaked executor and pool
 			acceptor = new NioSocketAcceptor(executor, pool);
 		}
@@ -228,8 +231,15 @@ public class RTMPMinaTransport implements RTMPMinaTransportMXBean {
 	}
 
 	public void stop() {
-		log.info("RTMP Mina Transport unbind");
+		log.info("RTMP Mina Transport stop");
+		// first we unbind to prevent new connections
 		acceptor.unbind();
+		// second we shutdown the customized executor, if we used it
+		if (!enableDefaultAcceptor) {
+			executor.shutdownNow();
+		}
+		// lastly dispose the acceptor without allowing for deadlocks
+		acceptor.dispose(false);
 		// deregister with jmx
 		if (serviceManagerObjectName != null) {
 			MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
