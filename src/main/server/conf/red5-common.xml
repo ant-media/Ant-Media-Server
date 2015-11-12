@@ -199,7 +199,7 @@
     </bean>
 	
 	<!-- Low level access for recording to file -->
-    <bean id="fileConsumer" scope="prototype" lazy-init="true" class="org.red5.server.stream.consumer.FileConsumer">        
+    <bean id="fileConsumer" scope="prototype" lazy-init="true" class="org.red5.server.stream.consumer.FileConsumer">
         <property name="delayWrite" value="${fileconsumer.delayed.write}"/>
         <property name="queueThreshold" value="${fileconsumer.queue.size}"/>
     </bean>

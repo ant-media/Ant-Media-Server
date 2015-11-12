@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <artifactId>red5-server</artifactId>
     <packaging>jar</packaging>
@@ -55,14 +56,14 @@
         </developer>
     </developers>
     <properties>
-    	<build.dir>target</build.dir>
-    	<finalName>${project.artifactId}-${project.version}</finalName>
+        <build.dir>target</build.dir>
+        <finalName>${project.artifactId}-${project.version}</finalName>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <red5-io.version>1.0.7-SNAPSHOT</red5-io.version>
         <red5-service.version>1.0.7-SNAPSHOT</red5-service.version>
         <red5-server-common.version>1.0.7-SNAPSHOT</red5-server-common.version>
         <spring.version>4.1.7.RELEASE</spring.version>
-        <mina.version>2.0.9</mina.version>
+        <mina.version>(2.0.8,2.0.10)</mina.version>
         <slf4j.version>1.7.9</slf4j.version>
         <logback.version>1.1.2</logback.version>
         <quartz.version>2.2.2</quartz.version>
@@ -225,7 +226,7 @@
                     <releaseProfiles>release</releaseProfiles>
                     <goals>deploy</goals>
                 </configuration>
-            </plugin>            
+            </plugin>
         </plugins>
     </build>
     <dependencyManagement>
@@ -315,10 +316,10 @@
             <artifactId>antlr</artifactId>
             <version>3.5.2</version>
             <exclusions>
-            	<exclusion>
-            		<artifactId>ST4</artifactId>
-            		<groupId>org.antlr</groupId>
-            	</exclusion>
+                <exclusion>
+                    <artifactId>ST4</artifactId>
+                    <groupId>org.antlr</groupId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
@@ -345,10 +346,10 @@
             <artifactId>groovy</artifactId>
             <version>2.0.4</version>
             <exclusions>
-            	<exclusion>
-            		<artifactId>antlr</artifactId>
-            		<groupId>antlr</groupId>
-            	</exclusion>
+                <exclusion>
+                    <artifactId>antlr</artifactId>
+                    <groupId>antlr</groupId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
@@ -466,8 +467,8 @@
             <version>${mina.version}</version>
             <exclusions>
                 <exclusion>
-                	<artifactId>ognl</artifactId>
-                	<groupId>ognl</groupId>
+                    <artifactId>ognl</artifactId>
+                    <groupId>ognl</groupId>
                 </exclusion>
             </exclusions>
         </dependency>
@@ -614,7 +615,7 @@
                                 </configuration>
                             </execution>
                         </executions>
-                    </plugin>  
+                    </plugin>
                     <plugin>
                         <artifactId>maven-assembly-plugin</artifactId>
                         <version>2.6</version>
@@ -633,11 +634,11 @@
                                     <goal>single</goal>
                                 </goals>
                                 <configuration>
-                                    <finalName>${project.artifactId}</finalName> 
+                                    <finalName>${project.artifactId}</finalName>
                                 </configuration>
                             </execution>
                         </executions>
-                    </plugin>                  
+                    </plugin>
                 </plugins>
             </build>
         </profile>
@@ -663,7 +664,7 @@
                                 </configuration>
                             </execution>
                         </executions>
-                    </plugin>  
+                    </plugin>
                     <plugin>
                         <artifactId>maven-assembly-plugin</artifactId>
                         <version>2.6</version>
@@ -682,14 +683,14 @@
                                     <goal>single</goal>
                                 </goals>
                                 <configuration>
-                                    <finalName>${project.artifactId}</finalName> 
+                                    <finalName>${project.artifactId}</finalName>
                                 </configuration>
                             </execution>
                         </executions>
-                    </plugin>                  
+                    </plugin>
                 </plugins>
             </build>
-        </profile>        
+        </profile>
         <profile>
             <id>release</id>
             <build>
