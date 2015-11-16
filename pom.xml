@@ -490,7 +490,7 @@
         <dependency>
             <artifactId>commons-collections</artifactId>
             <groupId>commons-collections</groupId>
-            <version>3.2.1</version>
+            <version>3.2.2</version>
         </dependency>
         <dependency>
             <artifactId>commons-lang3</artifactId>
