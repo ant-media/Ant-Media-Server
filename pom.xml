@@ -69,7 +69,7 @@
         <quartz.version>2.2.2</quartz.version>
         <bc.version>1.53</bc.version>
         <junit.version>4.12</junit.version>
-        <tomcat.version>8.0.28</tomcat.version>
+        <tomcat.version>8.0.29</tomcat.version>
     </properties>
     <repositories>
         <repository>
@@ -372,7 +372,6 @@
             <artifactId>red5-io</artifactId>
             <version>${red5-io.version}</version>
             <type>jar</type>
-            <!-- <scope>system</scope> <systemPath>${basedir}/lib/red5-io-1.0.2.jar</systemPath> -->
             <exclusions>
                 <exclusion>
                     <artifactId>bcprov-jdk15on</artifactId>
