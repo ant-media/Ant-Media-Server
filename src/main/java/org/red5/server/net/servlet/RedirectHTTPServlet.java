@@ -33,25 +33,25 @@ import javax.servlet.http.HttpServletResponse;
  */
 public class RedirectHTTPServlet extends HttpServlet {
 
-	private static final long serialVersionUID = -3543614516289102090L;
+    private static final long serialVersionUID = -3543614516289102090L;
 
-	/**
-	 * Redirect to HTTP port.
-	 */
-	@Override
-	protected void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-		String host = System.getProperty("http.host");
-		String port = System.getProperty("http.port");
-		if ("0.0.0.0".equals(host)) {
-			host = "127.0.0.1";
-		}
-		resp.setStatus(HttpServletResponse.SC_MOVED_TEMPORARILY);
-		resp.addHeader("Location", "http://" + host + ":" + port);
-		resp.setContentType("text/plain");
-		String message = "Relocated to http://" + host + ":" + port;
-		resp.setContentLength(message.length());
-		resp.getWriter().write(message);
-		resp.flushBuffer();
-	}
+    /**
+     * Redirect to HTTP port.
+     */
+    @Override
+    protected void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        String host = System.getProperty("http.host");
+        String port = System.getProperty("http.port");
+        if ("0.0.0.0".equals(host)) {
+            host = "127.0.0.1";
+        }
+        resp.setStatus(HttpServletResponse.SC_MOVED_TEMPORARILY);
+        resp.addHeader("Location", "http://" + host + ":" + port);
+        resp.setContentType("text/plain");
+        String message = "Relocated to http://" + host + ":" + port;
+        resp.setContentLength(message.length());
+        resp.getWriter().write(message);
+        resp.flushBuffer();
+    }
 
 }

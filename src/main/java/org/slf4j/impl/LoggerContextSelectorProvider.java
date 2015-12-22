@@ -26,7 +26,7 @@ import ch.qos.logback.classic.selector.ContextSelector;
  * @author Paul Gregoire (mondain@gmail.com)
  */
 public interface LoggerContextSelectorProvider {
-	
-	public ContextSelector getContextSelector();
-	
+
+    public ContextSelector getContextSelector();
+
 }

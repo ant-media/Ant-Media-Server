@@ -27,11 +27,11 @@ package org.red5.server.api.service;
  */
 public interface IServiceHandlerProviderAware {
 
-	/**
-	 * Return object that knows about service handlers.
-	 * 
-	 * @return service handler provider
-	 */
-	public IServiceHandlerProvider getServiceHandlerProvider();
+    /**
+     * Return object that knows about service handlers.
+     * 
+     * @return service handler provider
+     */
+    public IServiceHandlerProvider getServiceHandlerProvider();
 
 }

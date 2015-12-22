@@ -30,76 +30,79 @@ import org.slf4j.LoggerFactory;
 
 public class Test {
 
-	// Initialize Logging
-	protected static Logger log = LoggerFactory.getLogger(Test.class);
+    // Initialize Logging
+    protected static Logger log = LoggerFactory.getLogger(Test.class);
 
-	public static void main(String[] args) throws Exception {
-		@SuppressWarnings("unused") 
-		Test t = new Test();
-	}
+    public static void main(String[] args) throws Exception {
+        @SuppressWarnings("unused")
+        Test t = new Test();
+    }
 
-	public static MidiDevice getMidiDevice(String name) {
+    public static MidiDevice getMidiDevice(String name) {
 
-		MidiDevice.Info[] info = MidiSystem.getMidiDeviceInfo();
+        MidiDevice.Info[] info = MidiSystem.getMidiDeviceInfo();
 
-		for (Info element : info) {
-			if (element.getName().equals(name)) {
-				try {
-					return MidiSystem.getMidiDevice(element);
-				} catch (MidiUnavailableException e) {
-					log.error("{}", e);
-				}
-			}
-		}
+        for (Info element : info) {
+            if (element.getName().equals(name)) {
+                try {
+                    return MidiSystem.getMidiDevice(element);
+                } catch (MidiUnavailableException e) {
+                    log.error("{}", e);
+                }
+            }
+        }
 
-		return null;
+        return null;
 
-	}
+    }
 
-	/** Constructs a new Test. 
-	 * @throws Exception if it feels like it.
-	 */
+    /**
+     * Constructs a new Test.
+     * 
+     * @throws Exception
+     *             if it feels like it.
+     */
     public Test() throws Exception {
 
-		String MIDI_NAME = "USB Uno MIDI  In";
-		MidiDevice dev = getMidiDevice(MIDI_NAME);
-		dev.open();
-		MyReceiver rec = new MyReceiver();
-		dev.getTransmitter().setReceiver(rec);
-		Thread.sleep(20000);
-		dev.close();
+        String MIDI_NAME = "USB Uno MIDI  In";
+        MidiDevice dev = getMidiDevice(MIDI_NAME);
+        dev.open();
+        MyReceiver rec = new MyReceiver();
+        dev.getTransmitter().setReceiver(rec);
+        Thread.sleep(20000);
+        dev.close();
 
-	}
+    }
 
-	public static class MyReceiver extends Object implements Receiver {
+    public static class MyReceiver extends Object implements Receiver {
 
-		/** {@inheritDoc} */
+        /** {@inheritDoc} */
         public void send(MidiMessage midi, long time) {
-			byte[] msg = midi.getMessage();
-			int len = midi.getLength();
-			if (len <= 1) {
-				return;
-			}
-			StringBuilder out = new StringBuilder("Status: ");
-			out.append(msg[0]);
-			out.append(" Data: [");
-			for (int i = 1; i < len; i++) {
-				out.append(msg[i]);
-				if (i == len - 1) {
-					out.append("");
-				} else {
-					out.append(',');
-				}
-			}
-			out.append(']');
-			
-			log.debug(out.toString());
-		}
+            byte[] msg = midi.getMessage();
+            int len = midi.getLength();
+            if (len <= 1) {
+                return;
+            }
+            StringBuilder out = new StringBuilder("Status: ");
+            out.append(msg[0]);
+            out.append(" Data: [");
+            for (int i = 1; i < len; i++) {
+                out.append(msg[i]);
+                if (i == len - 1) {
+                    out.append("");
+                } else {
+                    out.append(',');
+                }
+            }
+            out.append(']');
 
-		/** {@inheritDoc} */
+            log.debug(out.toString());
+        }
+
+        /** {@inheritDoc} */
         public void close() {
-			log.debug("Closing");
-		}
-	}
+            log.debug("Closing");
+        }
+    }
 
 }

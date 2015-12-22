@@ -32,51 +32,51 @@ import org.springframework.context.support.FileSystemXmlApplicationContext;
  */
 public class Launcher {
 
-	/*
-	static {
-		ClassLoader tcl = Thread.currentThread().getContextClassLoader();		
-		System.out.printf("[Launcher] Classloaders:\nSystem %s\nParent %s\nThis class %s\nTCL %s\n\n", ClassLoader.getSystemClassLoader(), tcl.getParent(), Launcher.class.getClassLoader(), tcl);
-	}
-	*/
+    /*
+    static {
+    	ClassLoader tcl = Thread.currentThread().getContextClassLoader();		
+    	System.out.printf("[Launcher] Classloaders:\nSystem %s\nParent %s\nThis class %s\nTCL %s\n\n", ClassLoader.getSystemClassLoader(), tcl.getParent(), Launcher.class.getClassLoader(), tcl);
+    }
+    */
 
-	/**
-	 * Launch Red5 under it's own classloader
-	 * 
-	 * @throws Exception on error
-	 */
-	public void launch() throws Exception {
-		System.out.printf("Root: %s\nDeploy type: %s\nLogback selector: %s\n", System.getProperty("red5.root"), System.getProperty("red5.deployment.type"),
-				System.getProperty("logback.ContextSelector"));
-		// install the slf4j bridge (mostly for JUL logging)
-		SLF4JBridgeHandler.install();
-		// we create the logger here so that it is instanced inside the expected classloader
-		// check for the logback disable flag
-		boolean useLogback = Boolean.valueOf(System.getProperty("useLogback", "true"));
-		Red5LoggerFactory.setUseLogback(useLogback);
-		// get the first logger
-		Logger log = Red5LoggerFactory.getLogger(Launcher.class);
-		// version info banner
-		log.info("{} (https://github.com/Red5)", Red5.getVersion());
-		// create red5 app context
-		@SuppressWarnings("resource")
-		FileSystemXmlApplicationContext root = new FileSystemXmlApplicationContext(new String[] { "classpath:/red5.xml" }, false);
-		// set the current threads classloader as the loader for the factory/appctx
-		root.setClassLoader(Thread.currentThread().getContextClassLoader());
-		root.setId("red5.root");
-		root.setBeanName("red5.root");
-		// refresh must be called before accessing the bean factory
-		log.trace("Refreshing root server context");
-		root.refresh();
-		log.trace("Root server context refreshed");
-		/*
-		if (log.isTraceEnabled()) {
-			String[] names = ctx.getBeanDefinitionNames();
-			for (String name : names) {
-				log.trace("Bean name: {}", name);
-			}
-		}
-		*/
-		log.debug("Launcher exit");
-	}
+    /**
+     * Launch Red5 under it's own classloader
+     * 
+     * @throws Exception
+     *             on error
+     */
+    public void launch() throws Exception {
+        System.out.printf("Root: %s\nDeploy type: %s\nLogback selector: %s\n", System.getProperty("red5.root"), System.getProperty("red5.deployment.type"), System.getProperty("logback.ContextSelector"));
+        // install the slf4j bridge (mostly for JUL logging)
+        SLF4JBridgeHandler.install();
+        // we create the logger here so that it is instanced inside the expected classloader
+        // check for the logback disable flag
+        boolean useLogback = Boolean.valueOf(System.getProperty("useLogback", "true"));
+        Red5LoggerFactory.setUseLogback(useLogback);
+        // get the first logger
+        Logger log = Red5LoggerFactory.getLogger(Launcher.class);
+        // version info banner
+        log.info("{} (https://github.com/Red5)", Red5.getVersion());
+        // create red5 app context
+        @SuppressWarnings("resource")
+        FileSystemXmlApplicationContext root = new FileSystemXmlApplicationContext(new String[] { "classpath:/red5.xml" }, false);
+        // set the current threads classloader as the loader for the factory/appctx
+        root.setClassLoader(Thread.currentThread().getContextClassLoader());
+        root.setId("red5.root");
+        root.setBeanName("red5.root");
+        // refresh must be called before accessing the bean factory
+        log.trace("Refreshing root server context");
+        root.refresh();
+        log.trace("Root server context refreshed");
+        /*
+        if (log.isTraceEnabled()) {
+        	String[] names = ctx.getBeanDefinitionNames();
+        	for (String name : names) {
+        		log.trace("Bean name: {}", name);
+        	}
+        }
+        */
+        log.debug("Launcher exit");
+    }
 
 }

@@ -32,28 +32,28 @@ import org.red5.server.api.scope.IScope;
 @MXBean
 public interface ApplicationMXBean {
 
-	public boolean appStart(IScope app);
+    public boolean appStart(IScope app);
 
-	public boolean appConnect(IConnection conn, Object[] params);
+    public boolean appConnect(IConnection conn, Object[] params);
 
-	public boolean appJoin(IClient client, IScope app);
+    public boolean appJoin(IClient client, IScope app);
 
-	public void appDisconnect(IConnection conn);
+    public void appDisconnect(IConnection conn);
 
-	public void appLeave(IClient client, IScope app);
+    public void appLeave(IClient client, IScope app);
 
-	public void appStop(IScope app);
+    public void appStop(IScope app);
 
-	public boolean roomStart(IScope room);
+    public boolean roomStart(IScope room);
 
-	public boolean roomConnect(IConnection conn, Object[] params);
+    public boolean roomConnect(IConnection conn, Object[] params);
 
-	public boolean roomJoin(IClient client, IScope room);
+    public boolean roomJoin(IClient client, IScope room);
 
-	public void roomDisconnect(IConnection conn);
+    public void roomDisconnect(IConnection conn);
 
-	public void roomLeave(IClient client, IScope room);
+    public void roomLeave(IClient client, IScope room);
 
-	public void roomStop(IScope room);
+    public void roomStop(IScope room);
 
 }

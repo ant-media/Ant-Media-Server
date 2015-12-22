@@ -30,40 +30,41 @@ import org.red5.server.api.IConnection;
  */
 public interface IRemotingConnection extends IConnection {
 
-	/**
-	 * Tell the client to add a header with all further requests. This is
-	 * returned to the client as response for the next request received.
-	 * 
-	 * @param name name of the header to add
-	 * @param value value of the header to add
-	 */
-	public void addHeader(String name, Object value);
+    /**
+     * Tell the client to add a header with all further requests. This is returned to the client as response for the next request received.
+     * 
+     * @param name
+     *            name of the header to add
+     * @param value
+     *            value of the header to add
+     */
+    public void addHeader(String name, Object value);
 
-	/**
-	 * Tell the client to add a header with all further requests. This is
-	 * returned to the client as response for the next request received.
-	 *  
-	 * @param name name of the header to add
-	 * @param value value of the header to add
-	 * @param mustUnderstand a boolean flag specifying if the server must pocess this header
-	 * 				before handling following headers or messages
-	 */
-	public void addHeader(String name, Object value, boolean mustUnderstand);
-	
-	/**
-	 * Tell the client to no longer send a header with all further requests.
-	 * This is returned to the client as response for the next request
-	 * received.
-	 * 
-	 * @param name name of the header to remove
-	 */
-	public void removeHeader(String name);
+    /**
+     * Tell the client to add a header with all further requests. This is returned to the client as response for the next request received.
+     * 
+     * @param name
+     *            name of the header to add
+     * @param value
+     *            value of the header to add
+     * @param mustUnderstand
+     *            a boolean flag specifying if the server must pocess this header before handling following headers or messages
+     */
+    public void addHeader(String name, Object value, boolean mustUnderstand);
 
-	/**
-	 * Return headers to send.
-	 * 
-	 * @return headers to send
-	 */
-	public Collection<IRemotingHeader> getHeaders();
-	
+    /**
+     * Tell the client to no longer send a header with all further requests. This is returned to the client as response for the next request received.
+     * 
+     * @param name
+     *            name of the header to remove
+     */
+    public void removeHeader(String name);
+
+    /**
+     * Return headers to send.
+     * 
+     * @return headers to send
+     */
+    public Collection<IRemotingHeader> getHeaders();
+
 }

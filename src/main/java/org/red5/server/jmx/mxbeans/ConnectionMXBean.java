@@ -28,12 +28,9 @@ import javax.management.openmbean.CompositeData;
 /**
  * The connection object.
  *
- * Each connection has an associated client and scope. Connections may be
- * persistent, polling, or transient. The aim of this interface is to provide
- * basic connection methods shared between different types of connections
+ * Each connection has an associated client and scope. Connections may be persistent, polling, or transient. The aim of this interface is to provide basic connection methods shared between different types of connections
  *
- * Future subclasses: RTMPConnection, RemotingConnection, AJAXConnection,
- * HttpConnection, etc
+ * Future subclasses: RTMPConnection, RemotingConnection, AJAXConnection, HttpConnection, etc
  *
  * @author The Red5 Project
  * @author Paul Gregoire (mondain@gmail.com)
@@ -41,46 +38,46 @@ import javax.management.openmbean.CompositeData;
 @MXBean
 public interface ConnectionMXBean {
 
-	public String getType();
+    public String getType();
 
-	public boolean isConnected();
+    public boolean isConnected();
 
-	public void close();
+    public void close();
 
-	public Map<String, Object> getConnectParams();
+    public Map<String, Object> getConnectParams();
 
-	public CompositeData getClient();
+    public CompositeData getClient();
 
-	public String getHost();
+    public String getHost();
 
-	public String getRemoteAddress();
+    public String getRemoteAddress();
 
-	public List<String> getRemoteAddresses();
+    public List<String> getRemoteAddresses();
 
-	public int getRemotePort();
+    public int getRemotePort();
 
-	public String getPath();
+    public String getPath();
 
-	public String getSessionId();
+    public String getSessionId();
 
-	public long getReadBytes();
+    public long getReadBytes();
 
-	public long getWrittenBytes();
+    public long getWrittenBytes();
 
-	public long getReadMessages();
+    public long getReadMessages();
 
-	public long getWrittenMessages();
+    public long getWrittenMessages();
 
-	public long getDroppedMessages();
+    public long getDroppedMessages();
 
-	public long getPendingMessages();
+    public long getPendingMessages();
 
-	public void ping();
+    public void ping();
 
-	public int getLastPingTime();
+    public int getLastPingTime();
 
-	public CompositeData getScope();
+    public CompositeData getScope();
 
-	public Iterator<CompositeData> getBasicScopes();
+    public Iterator<CompositeData> getBasicScopes();
 
 }

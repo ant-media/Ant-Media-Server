@@ -36,130 +36,136 @@ import org.slf4j.Logger;
  */
 public class PluginRegistry {
 
-	private static Logger log = Red5LoggerFactory.getLogger(PluginRegistry.class, "plugins");
+    private static Logger log = Red5LoggerFactory.getLogger(PluginRegistry.class, "plugins");
 
-	//keeps track of plug-ins, keyed by plug-in name
-	private static volatile ConcurrentMap<String, IRed5Plugin> plugins = new ConcurrentHashMap<String, IRed5Plugin>(3, 0.9f, 1);
-	
-	//locks for guarding plug-ins
-	private final static ReadWriteLock pluginLock = new ReentrantReadWriteLock(); 
-    private final static Lock pluginReadLock; 
-    private final static Lock pluginWriteLock; 	
-	
-	static {
-		pluginReadLock = pluginLock.readLock(); 
-		pluginWriteLock = pluginLock.writeLock(); 
-	}
-    
-	/**
-	 * Registers a plug-in.
-	 * 
-	 * @param plugin plugin
-	 */
-	public static void register(IRed5Plugin plugin) {
-		log.debug("Register plugin: {}", plugin);
-		String pluginName = plugin.getName();
-		//get a write lock
-		pluginWriteLock.lock();
-		try {
-			if (plugins.containsKey(pluginName)) {
-				//get old plugin
-				IRed5Plugin oldPlugin = plugins.get(pluginName);
-				//if they are not the same shutdown the older one
-				if (!plugin.equals(oldPlugin)) {			
-					try {
-						oldPlugin.doStop();
-					} catch (Exception e) {
-						log.warn("Exception caused when stopping old plugin", e);
-					}
-					//replace old one
-					plugins.replace(pluginName, plugin);
-				}
-			} else {
-				plugins.put(pluginName, plugin);
-			}
-		} finally {
-			pluginWriteLock.unlock();
-		}		
-	}
-	
-	/**
-	 * Unregisters a plug-in.
-	 * 
-	 * @param plugin plugin
-	 */
-	public static void unregister(IRed5Plugin plugin) {
-		log.debug("Unregister plugin: {}", plugin);
-		//get a write lock
-		pluginWriteLock.lock();
-		try {
-			if (plugins.containsValue(plugin)) {
-				boolean removed = false;
-				for (Entry<String, IRed5Plugin> f : plugins.entrySet()) {
-					if (plugin.equals(f.getValue())) {
-						log.debug("Removing {}", plugin);
-						plugins.remove(f.getKey());
-						removed = true;
-						break;
-					} else {
-						log.debug("Not equal - {} {}", plugin, f.getValue());
-					}
-				}
-				if (!removed) {
-					log.debug("Last try to remove the plugin");
-					plugins.remove(plugin.getName());
-				}
-			} else {
-				log.warn("Plugin is not registered {}", plugin);
-			}
-		} finally {
-			pluginWriteLock.unlock();
-		}			
-	}
-	
-	/**
-	 * Returns a plug-in.
-	 * 
-	 * @param pluginName plugin name
-	 * @return requested plug-in matching the name given or null if not found
-	 */
-	public static IRed5Plugin getPlugin(String pluginName) {
-		IRed5Plugin plugin = null;
-		pluginReadLock.lock();
-		try {
-			plugin = plugins.get(pluginName);
-		} finally {
-			pluginReadLock.unlock();
-		}
-		return plugin;
-	}	
-	
-	/**
-	 * Shuts down the registry and stops any plug-ins that are found.
-	 * 
-	 * @throws Exception on exception
-	 */
-	public static void shutdown() throws Exception {
-		log.info("Destroying and cleaning up {} plugins", plugins.size());	
-		//loop through the plugins and stop them
-		pluginReadLock.lock();
-		try {
-			for (Entry<String, IRed5Plugin> pluginEntry : plugins.entrySet()) {
-				IRed5Plugin plugin = pluginEntry.getValue();
-				try {
-					plugin.doStop();
-				} catch (Exception ex) {
-					if (plugin != null) {
-						log.warn("Plugin stop failed for: {}", plugin.getName(), ex);
-					} else {
-						log.warn("Plugin stop failed", ex);
-					}
-				}
-			}
-		} finally {
-			pluginReadLock.unlock();
-		}
-		plugins.clear();
-	}
-	
+    //keeps track of plug-ins, keyed by plug-in name
+    private static volatile ConcurrentMap<String, IRed5Plugin> plugins = new ConcurrentHashMap<String, IRed5Plugin>(3, 0.9f, 1);
+
+    //locks for guarding plug-ins
+    private final static ReadWriteLock pluginLock = new ReentrantReadWriteLock();
+
+    private final static Lock pluginReadLock;
+
+    private final static Lock pluginWriteLock;
+
+    static {
+        pluginReadLock = pluginLock.readLock();
+        pluginWriteLock = pluginLock.writeLock();
+    }
+
+    /**
+     * Registers a plug-in.
+     * 
+     * @param plugin
+     *            plugin
+     */
+    public static void register(IRed5Plugin plugin) {
+        log.debug("Register plugin: {}", plugin);
+        String pluginName = plugin.getName();
+        //get a write lock
+        pluginWriteLock.lock();
+        try {
+            if (plugins.containsKey(pluginName)) {
+                //get old plugin
+                IRed5Plugin oldPlugin = plugins.get(pluginName);
+                //if they are not the same shutdown the older one
+                if (!plugin.equals(oldPlugin)) {
+                    try {
+                        oldPlugin.doStop();
+                    } catch (Exception e) {
+                        log.warn("Exception caused when stopping old plugin", e);
+                    }
+                    //replace old one
+                    plugins.replace(pluginName, plugin);
+                }
+            } else {
+                plugins.put(pluginName, plugin);
+            }
+        } finally {
+            pluginWriteLock.unlock();
+        }
+    }
+
+    /**
+     * Unregisters a plug-in.
+     * 
+     * @param plugin
+     *            plugin
+     */
+    public static void unregister(IRed5Plugin plugin) {
+        log.debug("Unregister plugin: {}", plugin);
+        //get a write lock
+        pluginWriteLock.lock();
+        try {
+            if (plugins.containsValue(plugin)) {
+                boolean removed = false;
+                for (Entry<String, IRed5Plugin> f : plugins.entrySet()) {
+                    if (plugin.equals(f.getValue())) {
+                        log.debug("Removing {}", plugin);
+                        plugins.remove(f.getKey());
+                        removed = true;
+                        break;
+                    } else {
+                        log.debug("Not equal - {} {}", plugin, f.getValue());
+                    }
+                }
+                if (!removed) {
+                    log.debug("Last try to remove the plugin");
+                    plugins.remove(plugin.getName());
+                }
+            } else {
+                log.warn("Plugin is not registered {}", plugin);
+            }
+        } finally {
+            pluginWriteLock.unlock();
+        }
+    }
+
+    /**
+     * Returns a plug-in.
+     * 
+     * @param pluginName
+     *            plugin name
+     * @return requested plug-in matching the name given or null if not found
+     */
+    public static IRed5Plugin getPlugin(String pluginName) {
+        IRed5Plugin plugin = null;
+        pluginReadLock.lock();
+        try {
+            plugin = plugins.get(pluginName);
+        } finally {
+            pluginReadLock.unlock();
+        }
+        return plugin;
+    }
+
+    /**
+     * Shuts down the registry and stops any plug-ins that are found.
+     * 
+     * @throws Exception
+     *             on exception
+     */
+    public static void shutdown() throws Exception {
+        log.info("Destroying and cleaning up {} plugins", plugins.size());
+        //loop through the plugins and stop them
+        pluginReadLock.lock();
+        try {
+            for (Entry<String, IRed5Plugin> pluginEntry : plugins.entrySet()) {
+                IRed5Plugin plugin = pluginEntry.getValue();
+                try {
+                    plugin.doStop();
+                } catch (Exception ex) {
+                    if (plugin != null) {
+                        log.warn("Plugin stop failed for: {}", plugin.getName(), ex);
+                    } else {
+                        log.warn("Plugin stop failed", ex);
+                    }
+                }
+            }
+        } finally {
+            pluginReadLock.unlock();
+        }
+        plugins.clear();
+    }
+
 }

@@ -25,20 +25,24 @@ package org.red5.server.stream;
  * @author Steven Gong (steven.gong@gmail.com)
  */
 public interface ITokenBucketService {
-	public static final String KEY = "TokenBucketService";
+    public static final String KEY = "TokenBucketService";
 
-	/**
-	 * Create a token bucket.
-	 * @param capacity Capacity of the bucket.
-	 * @param speed Speed of the bucket. Bytes per millisecond.
-	 * @return <tt>null</tt> if fail to create.
-	 */
-	ITokenBucket createTokenBucket(long capacity, long speed);
+    /**
+     * Create a token bucket.
+     * 
+     * @param capacity
+     *            Capacity of the bucket.
+     * @param speed
+     *            Speed of the bucket. Bytes per millisecond.
+     * @return <tt>null</tt> if fail to create.
+     */
+    ITokenBucket createTokenBucket(long capacity, long speed);
 
-	/**
-	 * Remove this bucket.
-	 * 
-	 * @param bucket      Bucket to remove
-	 */
-	void removeTokenBucket(ITokenBucket bucket);
+    /**
+     * Remove this bucket.
+     * 
+     * @param bucket
+     *            Bucket to remove
+     */
+    void removeTokenBucket(ITokenBucket bucket);
 }

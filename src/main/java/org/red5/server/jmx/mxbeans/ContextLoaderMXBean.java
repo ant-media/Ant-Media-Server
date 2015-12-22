@@ -26,18 +26,18 @@ import javax.management.MXBean;
 @MXBean
 public interface ContextLoaderMXBean extends ShutdownMXBean {
 
-	public void setContextsConfig(String contextsConfig);
+    public void setContextsConfig(String contextsConfig);
 
-	public void init() throws Exception;
+    public void init() throws Exception;
 
-	public void shutdown();	
-	
-	public void setParentContext(String parentContextKey, String appContextId);
+    public void shutdown();
 
-	public String getContextsConfig();
+    public void setParentContext(String parentContextKey, String appContextId);
 
-	public void loadContext(String name, String config);
-	
-	public void unloadContext(String name);
-	
+    public String getContextsConfig();
+
+    public void loadContext(String name, String config);
+
+    public void unloadContext(String name);
+
 }

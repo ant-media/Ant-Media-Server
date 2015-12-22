@@ -35,93 +35,93 @@ import org.slf4j.LoggerFactory;
  */
 public class IoEventQueueThrottler implements IoEventQueueHandler {
 
-	/** A logger for this class */
-	private final static Logger logger = LoggerFactory.getLogger(IoEventQueueThrottler.class);
+    /** A logger for this class */
+    private final static Logger logger = LoggerFactory.getLogger(IoEventQueueThrottler.class);
 
-	/** The event size estimator instance */
-	private final IoEventSizeEstimator eventSizeEstimator;
+    /** The event size estimator instance */
+    private final IoEventSizeEstimator eventSizeEstimator;
 
-	private volatile int threshold;
+    private volatile int threshold;
 
-	private final Semaphore lock;
+    private final Semaphore lock;
 
-	private final AtomicInteger counter;
+    private final AtomicInteger counter;
 
-	public IoEventQueueThrottler(int threshold, int permits) {
-		this(new DefaultIoEventSizeEstimator(), threshold, permits);
-		logger.info("IoEventQueueThrottle created");
-	}
+    public IoEventQueueThrottler(int threshold, int permits) {
+        this(new DefaultIoEventSizeEstimator(), threshold, permits);
+        logger.info("IoEventQueueThrottle created");
+    }
 
-	public IoEventQueueThrottler(IoEventSizeEstimator eventSizeEstimator, int threshold, int permits) {
-		if (eventSizeEstimator == null) {
-			throw new IllegalArgumentException("eventSizeEstimator");
-		}
-		this.eventSizeEstimator = eventSizeEstimator;
-		setThreshold(threshold);
-		lock = new Semaphore(permits, true);
-		counter = new AtomicInteger();
-	}
+    public IoEventQueueThrottler(IoEventSizeEstimator eventSizeEstimator, int threshold, int permits) {
+        if (eventSizeEstimator == null) {
+            throw new IllegalArgumentException("eventSizeEstimator");
+        }
+        this.eventSizeEstimator = eventSizeEstimator;
+        setThreshold(threshold);
+        lock = new Semaphore(permits, true);
+        counter = new AtomicInteger();
+    }
 
-	public IoEventSizeEstimator getEventSizeEstimator() {
-		return eventSizeEstimator;
-	}
+    public IoEventSizeEstimator getEventSizeEstimator() {
+        return eventSizeEstimator;
+    }
 
-	public int getThreshold() {
-		return threshold;
-	}
+    public int getThreshold() {
+        return threshold;
+    }
 
-	public int getCounter() {
-		return counter.get();
-	}
+    public int getCounter() {
+        return counter.get();
+    }
 
-	public void setThreshold(int threshold) {
-		if (threshold <= 0) {
-			throw new IllegalArgumentException("threshold: " + threshold);
-		}
-		this.threshold = threshold;
-	}
+    public void setThreshold(int threshold) {
+        if (threshold <= 0) {
+            throw new IllegalArgumentException("threshold: " + threshold);
+        }
+        this.threshold = threshold;
+    }
 
-	public boolean accept(Object source, IoEvent event) {
-		return true;
-	}
+    public boolean accept(Object source, IoEvent event) {
+        return true;
+    }
 
-	public void offered(Object source, IoEvent event) {
-		logger.debug("offered: {}", source.getClass().getName());	
-		int eventSize = estimateSize(event);
-		int currentCounter = counter.addAndGet(eventSize);
-		logState();
-		if (currentCounter >= threshold) {
-			try {
-				lock.acquire();
-				Thread.sleep(1000L);
-			} catch (InterruptedException e) {
-			} finally {
-				lock.release();				
-			}
-		}
-	}
+    public void offered(Object source, IoEvent event) {
+        logger.debug("offered: {}", source.getClass().getName());
+        int eventSize = estimateSize(event);
+        int currentCounter = counter.addAndGet(eventSize);
+        logState();
+        if (currentCounter >= threshold) {
+            try {
+                lock.acquire();
+                Thread.sleep(1000L);
+            } catch (InterruptedException e) {
+            } finally {
+                lock.release();
+            }
+        }
+    }
 
-	public void polled(Object source, IoEvent event) {
-		logger.debug("polled: {}", source.getClass().getName());	
-		int eventSize = estimateSize(event);
-		@SuppressWarnings("unused")
-		int currentCounter = counter.addAndGet(-eventSize);
-		logState();
-//		if (currentCounter < threshold) {
-//			lock.release();
-//		}
-	}
+    public void polled(Object source, IoEvent event) {
+        logger.debug("polled: {}", source.getClass().getName());
+        int eventSize = estimateSize(event);
+        @SuppressWarnings("unused")
+        int currentCounter = counter.addAndGet(-eventSize);
+        logState();
+        //		if (currentCounter < threshold) {
+        //			lock.release();
+        //		}
+    }
 
-	private int estimateSize(IoEvent event) {
-		int size = getEventSizeEstimator().estimateSize(event);
-		if (size < 0) {
-			throw new IllegalStateException(IoEventSizeEstimator.class.getSimpleName() + " returned a negative value (" + size + "): " + event);
-		}
-		return size;
-	}
+    private int estimateSize(IoEvent event) {
+        int size = getEventSizeEstimator().estimateSize(event);
+        if (size < 0) {
+            throw new IllegalStateException(IoEventSizeEstimator.class.getSimpleName() + " returned a negative value (" + size + "): " + event);
+        }
+        return size;
+    }
 
-	private void logState() {
-		logger.debug("Available permits: {} thread queue: {} state: {} threshold: {}", new Object[] {lock.availablePermits(), lock.getQueueLength(), counter.get(), getThreshold()});
-	}
+    private void logState() {
+        logger.debug("Available permits: {} thread queue: {} state: {} threshold: {}", new Object[] { lock.availablePermits(), lock.getQueueLength(), counter.get(), getThreshold() });
+    }
 
 }

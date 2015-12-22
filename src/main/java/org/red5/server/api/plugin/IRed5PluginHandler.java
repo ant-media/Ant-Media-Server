@@ -29,23 +29,25 @@ import org.red5.server.adapter.MultiThreadedApplicationAdapter;
  */
 public interface IRed5PluginHandler {
 
-	/**
-	 * Initialize the plug-in handler.
-	 */
-	void init();
-	
-	/**
-	 * Set the application making use of this plug-in handler.
-	 * 
-	 * @param application application adapter
-	 */
-	void setApplication(MultiThreadedApplicationAdapter application);
+    /**
+     * Initialize the plug-in handler.
+     */
+    void init();
 
-	/**
-	 * Set properties to be used by this handler.
-	 * 
-	 * @param props plugin properties map
-	 */
-	void setProperties(Map<String, Object> props);
-	
+    /**
+     * Set the application making use of this plug-in handler.
+     * 
+     * @param application
+     *            application adapter
+     */
+    void setApplication(MultiThreadedApplicationAdapter application);
+
+    /**
+     * Set properties to be used by this handler.
+     * 
+     * @param props
+     *            plugin properties map
+     */
+    void setProperties(Map<String, Object> props);
+
 }

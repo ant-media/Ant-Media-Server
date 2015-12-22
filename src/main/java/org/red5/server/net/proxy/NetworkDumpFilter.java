@@ -33,7 +33,7 @@ public class NetworkDumpFilter extends IoFilterAdapter {
     /**
      * Logger
      */
-	protected static Logger log = LoggerFactory.getLogger(ProxyFilter.class);
+    protected static Logger log = LoggerFactory.getLogger(ProxyFilter.class);
 
     /**
      * Raw data byte channel
@@ -47,46 +47,46 @@ public class NetworkDumpFilter extends IoFilterAdapter {
 
     /**
      * Create network dump filter from given dump channels
-     * @param headers           Channel to dump headers
-     * @param raw               Channel to dump raw data
+     * 
+     * @param headers
+     *            Channel to dump headers
+     * @param raw
+     *            Channel to dump raw data
      */
-    public NetworkDumpFilter(WritableByteChannel headers,
-			WritableByteChannel raw) {
-		this.raw = raw;
-		this.headers = headers;
-	}
+    public NetworkDumpFilter(WritableByteChannel headers, WritableByteChannel raw) {
+        this.raw = raw;
+        this.headers = headers;
+    }
 
-	/** {@inheritDoc} */
+    /** {@inheritDoc} */
     @Override
-	public void messageReceived(NextFilter next, IoSession session,
-			Object message) throws Exception {
-		if (message instanceof IoBuffer) {
-			IoBuffer out = (IoBuffer) message;
-			if (headers != null) {
-				IoBuffer header = IoBuffer.allocate(12);
-				header.putLong(System.currentTimeMillis());
-				header.putInt(out.limit() - out.position());
-				header.flip();
-				headers.write(header.buf());
-			}
-			if (raw != null) {
-				raw.write(out.asReadOnlyBuffer().buf());
-			}
-		}
-		next.messageReceived(session, message);
-	}
+    public void messageReceived(NextFilter next, IoSession session, Object message) throws Exception {
+        if (message instanceof IoBuffer) {
+            IoBuffer out = (IoBuffer) message;
+            if (headers != null) {
+                IoBuffer header = IoBuffer.allocate(12);
+                header.putLong(System.currentTimeMillis());
+                header.putInt(out.limit() - out.position());
+                header.flip();
+                headers.write(header.buf());
+            }
+            if (raw != null) {
+                raw.write(out.asReadOnlyBuffer().buf());
+            }
+        }
+        next.messageReceived(session, message);
+    }
 
-	/** {@inheritDoc} */
+    /** {@inheritDoc} */
     @Override
-	public void sessionClosed(NextFilter next, IoSession session)
-			throws Exception {
-		if (headers.isOpen()) {
-			headers.close();
-		}
-		if (raw.isOpen()) {
-			raw.close();
-		}
-		next.sessionClosed(session);
-	}
+    public void sessionClosed(NextFilter next, IoSession session) throws Exception {
+        if (headers.isOpen()) {
+            headers.close();
+        }
+        if (raw.isOpen()) {
+            raw.close();
+        }
+        next.sessionClosed(session);
+    }
 
 }

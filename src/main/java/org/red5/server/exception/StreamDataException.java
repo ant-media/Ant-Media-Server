@@ -23,9 +23,9 @@ package org.red5.server.exception;
  */
 public class StreamDataException extends RuntimeException {
 
-	/**
+    /**
 	 * 
 	 */
-	private static final long serialVersionUID = 5529626622367065317L;
+    private static final long serialVersionUID = 5529626622367065317L;
 
 }

@@ -31,19 +31,19 @@ import org.red5.server.stream.consumer.ConnectionConsumer;
  */
 public class ConsumerService implements IConsumerService {
 
-	/** {@inheritDoc} */
+    /** {@inheritDoc} */
     public IMessageOutput getConsumerOutput(IClientStream stream) {
-		IStreamCapableConnection streamConn = stream.getConnection();
-		if (streamConn != null && streamConn instanceof RTMPConnection) {
-			RTMPConnection conn = (RTMPConnection) streamConn;
-			// TODO Better manage channels.
-			// now we use OutputStream as a channel wrapper.
-			OutputStream o = conn.createOutputStream(stream.getStreamId());
-			IPipe pipe = new InMemoryPushPushPipe();
-			pipe.subscribe(new ConnectionConsumer(conn, o.getVideo(), o.getAudio(), o.getData()), null);
-			return pipe;
-		}
-		return null;
-	}
+        IStreamCapableConnection streamConn = stream.getConnection();
+        if (streamConn != null && streamConn instanceof RTMPConnection) {
+            RTMPConnection conn = (RTMPConnection) streamConn;
+            // TODO Better manage channels.
+            // now we use OutputStream as a channel wrapper.
+            OutputStream o = conn.createOutputStream(stream.getStreamId());
+            IPipe pipe = new InMemoryPushPushPipe();
+            pipe.subscribe(new ConnectionConsumer(conn, o.getVideo(), o.getAudio(), o.getData()), null);
+            return pipe;
+        }
+        return null;
+    }
 
 }

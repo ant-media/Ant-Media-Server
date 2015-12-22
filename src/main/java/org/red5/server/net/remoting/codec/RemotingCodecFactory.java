@@ -23,40 +23,40 @@ package org.red5.server.net.remoting.codec;
  */
 public class RemotingCodecFactory {
 
-	/**
-	 * Remoting protocol decoder
-	 */
-	protected RemotingProtocolDecoder decoder;
+    /**
+     * Remoting protocol decoder
+     */
+    protected RemotingProtocolDecoder decoder;
 
-	/**
-	 * Remoting protocol encoder
-	 */
-	protected RemotingProtocolEncoder encoder;
+    /**
+     * Remoting protocol encoder
+     */
+    protected RemotingProtocolEncoder encoder;
 
-	/**
-	 * Initialization, creates and binds encoder and decoder
-	 */
-	public void init() {
-		decoder = new RemotingProtocolDecoder();
-		encoder = new RemotingProtocolEncoder();
-	}
+    /**
+     * Initialization, creates and binds encoder and decoder
+     */
+    public void init() {
+        decoder = new RemotingProtocolDecoder();
+        encoder = new RemotingProtocolEncoder();
+    }
 
-	/**
-	 * Returns the remoting decoder.
-	 * 
-	 * @return decoder
-	 */
-	public RemotingProtocolDecoder getRemotingDecoder() {
-		return decoder;
-	}
+    /**
+     * Returns the remoting decoder.
+     * 
+     * @return decoder
+     */
+    public RemotingProtocolDecoder getRemotingDecoder() {
+        return decoder;
+    }
 
-	/**
-	 * Returns the remoting encoder.
-	 * 
-	 * @return encoder
-	 */
-	public RemotingProtocolEncoder getRemotingEncoder() {
-		return encoder;
-	}
+    /**
+     * Returns the remoting encoder.
+     * 
+     * @return encoder
+     */
+    public RemotingProtocolEncoder getRemotingEncoder() {
+        return encoder;
+    }
 
 }

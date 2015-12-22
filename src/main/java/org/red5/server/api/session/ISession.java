@@ -21,71 +21,73 @@ package org.red5.server.api.session;
 import java.io.Serializable;
 
 /**
- * Represents the most basic type of "Session", loosely modeled after the HTTP Session used
- * in J2EE applications.
+ * Represents the most basic type of "Session", loosely modeled after the HTTP Session used in J2EE applications.
  *
  *
- * @author The Red5 Project 
- * @author Paul Gregoire (mondain@gmail.com)   
- */ 
+ * @author The Red5 Project
+ * @author Paul Gregoire (mondain@gmail.com)
+ */
 public interface ISession extends Serializable {
 
-	/**
-	 * Returns creation time in milliseconds.
-	 * 
-	 * @return creation time
-	 */
-	public long getCreated();
+    /**
+     * Returns creation time in milliseconds.
+     * 
+     * @return creation time
+     */
+    public long getCreated();
 
-	/**
-	 * Returns the session's identifier.
-	 * 
-	 * @return session id
-	 */
-	public String getSessionId();
-	
-	/**
-	 * Resets a specified set of internal parameters.
-	 */
-	public void reset();
-	
-	/**
-	 * Returns the active state of the session.
-	 * @return is active
-	 */
-	public boolean isActive();
-	
-	/**
-	 * Ends the session, no further modifications should be allowed.
-	 */
-	public void end();
-	
-	/**
-	 * Sets the associated client id.
-	 * 
-	 * @param clientId client id
-	 */
-	public void setClientId(String clientId);
+    /**
+     * Returns the session's identifier.
+     * 
+     * @return session id
+     */
+    public String getSessionId();
 
-	/**
-	 * Returns the client id associated with this session.
-	 * 
-	 * @return client id
-	 */
-	public String getClientId();
-	
-	/**
-	 * Sets where session resources will be located if persisted to disk.
-	 * 
-	 * @param destinationDirectory destination directory
-	 */
-	public void setDestinationDirectory(String destinationDirectory);
+    /**
+     * Resets a specified set of internal parameters.
+     */
+    public void reset();
+
+    /**
+     * Returns the active state of the session.
+     * 
+     * @return is active
+     */
+    public boolean isActive();
+
+    /**
+     * Ends the session, no further modifications should be allowed.
+     */
+    public void end();
+
+    /**
+     * Sets the associated client id.
+     * 
+     * @param clientId
+     *            client id
+     */
+    public void setClientId(String clientId);
+
+    /**
+     * Returns the client id associated with this session.
+     * 
+     * @return client id
+     */
+    public String getClientId();
+
+    /**
+     * Sets where session resources will be located if persisted to disk.
+     * 
+     * @param destinationDirectory
+     *            destination directory
+     */
+    public void setDestinationDirectory(String destinationDirectory);
 
     /**
      * Returns the directory used to store session resources.
      *
      * @return destination directory
-     */	
-	public String getDestinationDirectory();
-	
+     */
+    public String getDestinationDirectory();
+
 }

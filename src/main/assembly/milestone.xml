@@ -51,6 +51,13 @@
                 <exclude>red5-server-common-${red5-server-common.version}.jar</exclude>
             </excludes>
 		</fileSet>
+		<fileSet>
+			<directory>${project.basedir}/src/main/server</directory>
+			<outputDirectory>/</outputDirectory>
+			<includes>
+				<include>*.bat</include>
+			</includes>
+		</fileSet>
         <fileSet>
             <directory>${project.basedir}/src/main/server</directory>
             <outputDirectory>/</outputDirectory>

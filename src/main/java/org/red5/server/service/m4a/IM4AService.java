@@ -21,8 +21,7 @@ package org.red5.server.service.m4a;
 import org.red5.server.api.service.IStreamableFileService;
 
 /**
- * A M4AService sets up the service and hands out M4A objects to 
- * its callers
+ * A M4AService sets up the service and hands out M4A objects to its callers
  * 
  * @author The Red5 Project
  * @author Paul Gregoire (mondain@gmail.com)

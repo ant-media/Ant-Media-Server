@@ -29,9 +29,9 @@ import org.red5.server.api.scope.IScope;
  */
 public class ScopeServiceResolver implements IServiceResolver {
 
-	/** {@inheritDoc} */
-	public Object resolveService(IScope scope, String serviceName) {
-		return scope.getServiceHandler(serviceName);
-	}
+    /** {@inheritDoc} */
+    public Object resolveService(IScope scope, String serviceName) {
+        return scope.getServiceHandler(serviceName);
+    }
 
 }

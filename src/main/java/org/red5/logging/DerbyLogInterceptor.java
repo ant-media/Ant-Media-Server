@@ -26,44 +26,44 @@ import org.slf4j.LoggerFactory;
 
 public class DerbyLogInterceptor {
 
-	protected static Logger log = LoggerFactory.getLogger(DerbyLogInterceptor.class);
-	
-	private static ThreadLocal<StringBuilder> local = new ThreadLocal<StringBuilder>();
-	
-	public static OutputStream handleDerbyLogFile(){
-	    return new OutputStream() {
-	    	
-	        @Override
-			public void write(byte[] b) throws IOException {
-	        	log.info("Derby log: {}", new String(b));
-			}
+    protected static Logger log = LoggerFactory.getLogger(DerbyLogInterceptor.class);
 
-	        @Override
-			public void write(int i) throws IOException {
-				StringBuilder sb = local.get();
-				if (sb == null) {
-					sb = new StringBuilder();
-				}
-				//look for LF
-				if (i == 10) {
-					log.info("Derby log: {}", sb.toString());
-					sb.delete(0, sb.length() - 1);
-				} else {
-					log.trace("Derby log: {}", i); 
-					sb.append(new String(intToDWord(i)));
-				}				
-				local.set(sb);
-	        }
-	    };
-	}
-	
-	private static byte[] intToDWord(int i) {
-		byte[] dword = new byte[4];
-		dword[0] = (byte) (i & 0x00FF);
-		dword[1] = (byte) ((i >> 8) & 0x000000FF);
-		dword[2] = (byte) ((i >> 16) & 0x000000FF);
-		dword[3] = (byte) ((i >> 24) & 0x000000FF);
-		return dword;
-	}
-	
+    private static ThreadLocal<StringBuilder> local = new ThreadLocal<StringBuilder>();
+
+    public static OutputStream handleDerbyLogFile() {
+        return new OutputStream() {
+
+            @Override
+            public void write(byte[] b) throws IOException {
+                log.info("Derby log: {}", new String(b));
+            }
+
+            @Override
+            public void write(int i) throws IOException {
+                StringBuilder sb = local.get();
+                if (sb == null) {
+                    sb = new StringBuilder();
+                }
+                //look for LF
+                if (i == 10) {
+                    log.info("Derby log: {}", sb.toString());
+                    sb.delete(0, sb.length() - 1);
+                } else {
+                    log.trace("Derby log: {}", i);
+                    sb.append(new String(intToDWord(i)));
+                }
+                local.set(sb);
+            }
+        };
+    }
+
+    private static byte[] intToDWord(int i) {
+        byte[] dword = new byte[4];
+        dword[0] = (byte) (i & 0x00FF);
+        dword[1] = (byte) ((i >> 8) & 0x000000FF);
+        dword[2] = (byte) ((i >> 16) & 0x000000FF);
+        dword[3] = (byte) ((i >> 24) & 0x000000FF);
+        return dword;
+    }
+
 }

@@ -30,54 +30,55 @@ import org.springframework.context.ApplicationContext;
  */
 public abstract class Red5Plugin implements IRed5Plugin {
 
-	protected ApplicationContext context;
-	
-	protected Server server;
-	
-	/** {@inheritDoc} */
-	public void doStart() throws Exception {
-	}
-	
-	/** {@inheritDoc} */
-	public void doStop() throws Exception {
-	}
+    protected ApplicationContext context;
 
-	/**
-	 * Initialize the plug-in
-	 */
-	public void init() {
-	}
-	
-	/** {@inheritDoc} */
-	public String getName() {
-		return null;
-	}
+    protected Server server;
 
-	/** {@inheritDoc} */
-	public void setApplicationContext(ApplicationContext context) {
-		this.context = context;
-	}
+    /** {@inheritDoc} */
+    public void doStart() throws Exception {
+    }
 
-	/**
-	 * Return the server reference.
-	 * 
-	 * @return server
-	 */
-	public Server getServer() {
-		return server;
-	}
-	
-	/** {@inheritDoc} */
-	public void setServer(Server server) {
-		this.server = server;
-	}
+    /** {@inheritDoc} */
+    public void doStop() throws Exception {
+    }
 
-	/**
-	 * Set the application making use of this plug-in.
-	 * 
-	 * @param application application
-	 */
-	public void setApplication(MultiThreadedApplicationAdapter application) {	
-	}
-	
+    /**
+     * Initialize the plug-in
+     */
+    public void init() {
+    }
+
+    /** {@inheritDoc} */
+    public String getName() {
+        return null;
+    }
+
+    /** {@inheritDoc} */
+    public void setApplicationContext(ApplicationContext context) {
+        this.context = context;
+    }
+
+    /**
+     * Return the server reference.
+     * 
+     * @return server
+     */
+    public Server getServer() {
+        return server;
+    }
+
+    /** {@inheritDoc} */
+    public void setServer(Server server) {
+        this.server = server;
+    }
+
+    /**
+     * Set the application making use of this plug-in.
+     * 
+     * @param application
+     *            application
+     */
+    public void setApplication(MultiThreadedApplicationAdapter application) {
+    }
+
 }

@@ -30,89 +30,93 @@ import org.red5.server.api.IConnection.Encoding;
  * Packet of remote calls. Used by RemoteProtocolDecoder.
  */
 public class RemotingPacket {
-	/**
-	 * HTTP request object
-	 */
-	protected HttpServletRequest request;
+    /**
+     * HTTP request object
+     */
+    protected HttpServletRequest request;
 
-	/**
-	 * Byte buffer data
-	 */
-	protected ByteBuffer data;
+    /**
+     * Byte buffer data
+     */
+    protected ByteBuffer data;
 
-	/**
-	 * Headers sent with request.
-	 */
-	protected Map<String, Object> headers;
+    /**
+     * Headers sent with request.
+     */
+    protected Map<String, Object> headers;
 
-	/**
-	 * List of calls
-	 */
-	protected List<RemotingCall> calls;
+    /**
+     * List of calls
+     */
+    protected List<RemotingCall> calls;
 
-	/**
-	 * Scope path
-	 */
-	protected String scopePath;
+    /**
+     * Scope path
+     */
+    protected String scopePath;
 
-	/**
-	 * Create remoting packet from list of pending calls
-	 * @param headers headers
-	 * @param calls              List of call objects
-	 */
-	public RemotingPacket(Map<String, Object> headers, List<RemotingCall> calls) {
-		this.headers = headers;
-		this.calls = calls;
-	}
+    /**
+     * Create remoting packet from list of pending calls
+     * 
+     * @param headers
+     *            headers
+     * @param calls
+     *            List of call objects
+     */
+    public RemotingPacket(Map<String, Object> headers, List<RemotingCall> calls) {
+        this.headers = headers;
+        this.calls = calls;
+    }
 
-	/**
-	 * Get the headers sent with the request.
-	 * 
-	 * @return headers
-	 */
-	public Map<String, Object> getHeaders() {
-		return headers;
-	}
+    /**
+     * Get the headers sent with the request.
+     * 
+     * @return headers
+     */
+    public Map<String, Object> getHeaders() {
+        return headers;
+    }
 
-	/**
-	 * Getter for calls.
-	 *
-	 * @return   List of remote calls
-	 */
-	public List<RemotingCall> getCalls() {
-		return calls;
-	}
+    /**
+     * Getter for calls.
+     *
+     * @return List of remote calls
+     */
+    public List<RemotingCall> getCalls() {
+        return calls;
+    }
 
-	/**
-	 * Setter for scope path.
-	 *
-	 * @param path Value to set for property 'scopePath'.
-	 */
-	public void setScopePath(String path) {
-		scopePath = path;
-	}
+    /**
+     * Setter for scope path.
+     *
+     * @param path
+     *            Value to set for property 'scopePath'.
+     */
+    public void setScopePath(String path) {
+        scopePath = path;
+    }
 
-	/**
-	 * Getter for property scope path.
-	 *
-	 * @return  Scope path to set
-	 */
-	public String getScopePath() {
-		return scopePath;
-	}
+    /**
+     * Getter for property scope path.
+     *
+     * @return Scope path to set
+     */
+    public String getScopePath() {
+        return scopePath;
+    }
 
-	/**
-	 * Return the encoding of the included calls.
-	 * 
-	 * @return encoding
-	 */
-	public Encoding getEncoding() {
-		List<RemotingCall> calls = getCalls();
-		if (calls == null || calls.isEmpty()) {
-			return Encoding.AMF0;
-		}
-		RemotingCall call = calls.get(0);
-		return call.isAMF3 ? Encoding.AMF3 : Encoding.AMF0;
-	}
+    /**
+     * Return the encoding of the included calls.
+     * 
+     * @return encoding
+     */
+    public Encoding getEncoding() {
+        List<RemotingCall> calls = getCalls();
+        if (calls == null || calls.isEmpty()) {
+            return Encoding.AMF0;
+        }
+        RemotingCall call = calls.get(0);
+        return call.isAMF3 ? Encoding.AMF3 : Encoding.AMF0;
+    }
 
 }

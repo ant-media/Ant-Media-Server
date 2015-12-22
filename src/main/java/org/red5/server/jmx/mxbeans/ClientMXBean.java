@@ -34,14 +34,14 @@ import org.red5.server.api.IConnection;
 @MXBean
 public interface ClientMXBean {
 
-	public String getId();
+    public String getId();
 
-	public long getCreationTime();
+    public long getCreationTime();
 
-	public Set<IConnection> getConnections();
+    public Set<IConnection> getConnections();
 
-	public List<String> iterateScopeNameList();
+    public List<String> iterateScopeNameList();
 
-	public void disconnect();
+    public void disconnect();
 
 }

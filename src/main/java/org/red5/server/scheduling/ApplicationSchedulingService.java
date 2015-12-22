@@ -41,93 +41,94 @@ import org.springframework.jmx.export.annotation.ManagedResource;
 @ManagedResource(objectName = "org.red5.server:type=ApplicationSchedulingService,name=default")
 public class ApplicationSchedulingService extends QuartzSchedulingService {
 
-	private static Logger log = Red5LoggerFactory.getLogger(ApplicationSchedulingService.class);
+    private static Logger log = Red5LoggerFactory.getLogger(ApplicationSchedulingService.class);
 
-	public static final String QUARTZ_FACTORY_KEY = "org.quartz.impl.StdSchedulerFactory.KEY";
+    public static final String QUARTZ_FACTORY_KEY = "org.quartz.impl.StdSchedulerFactory.KEY";
 
-	private String applicationName;
+    private String applicationName;
 
-	public String getApplicationName() {
-		return applicationName;
-	}
+    public String getApplicationName() {
+        return applicationName;
+    }
 
-	public void setApplicationName(String applicationName) {
-		this.applicationName = applicationName;
-	}
+    public void setApplicationName(String applicationName) {
+        this.applicationName = applicationName;
+    }
 
-	/**
-	 * Sets the scheduler factory in the servlet context.
-	 * 
-	 * @param servletContext sevlet context
-	 */
-	public void setServletAttribute(ServletContext servletContext) {
-		log.debug("Storing the scheduler factory in the servlet context");
-		servletContext.setAttribute(QUARTZ_FACTORY_KEY, factory);
-	}
+    /**
+     * Sets the scheduler factory in the servlet context.
+     * 
+     * @param servletContext
+     *            sevlet context
+     */
+    public void setServletAttribute(ServletContext servletContext) {
+        log.debug("Storing the scheduler factory in the servlet context");
+        servletContext.setAttribute(QUARTZ_FACTORY_KEY, factory);
+    }
 
-	/**
-	 * Getter for job name.
-	 *
-	 * @return  Job name
-	 */
-	@Override
-	public String getJobName() {
-		return String.format("%s_ScheduledJob_%d", applicationName, jobDetailCounter.getAndIncrement());
-	}	
-	
-	@Override
-	public void afterPropertiesSet() throws Exception {
-		log.info("Application scheduler initializing...");
-		try {
-			//set properties
-			if (configFile != null) {
-				factory = new StdSchedulerFactory(configFile);
-			} else {
-				Properties props = new Properties();
-				props.put("org.quartz.scheduler.instanceName", applicationName + "_Scheduler");
-				props.put("org.quartz.scheduler.instanceId", "AUTO");
-				props.put("org.quartz.threadPool.class", "org.quartz.simpl.SimpleThreadPool");
-				props.put("org.quartz.threadPool.threadCount", "2");
-				props.put("org.quartz.threadPool.threadPriority", "5");
-				props.put("org.quartz.jobStore.misfireThreshold", "60000");
-				props.put("org.quartz.jobStore.class", "org.quartz.simpl.RAMJobStore");
-				factory = new StdSchedulerFactory(props);
-			}
-			super.afterPropertiesSet();
-		} catch (Exception e) {
-			log.error("Quartz Scheduler failed to initialize", e);
-		}
-	}
+    /**
+     * Getter for job name.
+     *
+     * @return Job name
+     */
+    @Override
+    public String getJobName() {
+        return String.format("%s_ScheduledJob_%d", applicationName, jobDetailCounter.getAndIncrement());
+    }
 
-	protected void registerJMX() {
-		//register with jmx server
-		MBeanServer mbeanServer = ManagementFactory.getPlatformMBeanServer();
-		try {
-			ObjectName oName = null;
-			if (instanceId == null) {
-				oName = new ObjectName("org.red5.server:type=ApplicationSchedulingService,applicationName=" + applicationName);
-			} else {
-				oName = new ObjectName("org.red5.server:type=ApplicationSchedulingService,applicationName=" + applicationName + ",instanceId=" + instanceId);
-			}
-			mbeanServer.registerMBean(new StandardMBean(this, QuartzSchedulingServiceMXBean.class, true), oName);
-		} catch (Exception e) {
-			log.warn("Error on jmx registration", e);
-		}
-	}
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        log.info("Application scheduler initializing...");
+        try {
+            //set properties
+            if (configFile != null) {
+                factory = new StdSchedulerFactory(configFile);
+            } else {
+                Properties props = new Properties();
+                props.put("org.quartz.scheduler.instanceName", applicationName + "_Scheduler");
+                props.put("org.quartz.scheduler.instanceId", "AUTO");
+                props.put("org.quartz.threadPool.class", "org.quartz.simpl.SimpleThreadPool");
+                props.put("org.quartz.threadPool.threadCount", "2");
+                props.put("org.quartz.threadPool.threadPriority", "5");
+                props.put("org.quartz.jobStore.misfireThreshold", "60000");
+                props.put("org.quartz.jobStore.class", "org.quartz.simpl.RAMJobStore");
+                factory = new StdSchedulerFactory(props);
+            }
+            super.afterPropertiesSet();
+        } catch (Exception e) {
+            log.error("Quartz Scheduler failed to initialize", e);
+        }
+    }
 
-	protected void unregisterJMX() {
-		MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
-		try {
-			ObjectName oName = null;
-			if (instanceId == null) {
-				oName = new ObjectName("org.red5.server:type=ApplicationSchedulingService,applicationName=" + applicationName);
-			} else {
-				oName = new ObjectName("org.red5.server:type=ApplicationSchedulingService,applicationName=" + applicationName + ",instanceId=" + instanceId);
-			}
-			mbs.unregisterMBean(oName);
-		} catch (Exception e) {
-			log.warn("Exception unregistering", e);
-		}
-	}
+    protected void registerJMX() {
+        //register with jmx server
+        MBeanServer mbeanServer = ManagementFactory.getPlatformMBeanServer();
+        try {
+            ObjectName oName = null;
+            if (instanceId == null) {
+                oName = new ObjectName("org.red5.server:type=ApplicationSchedulingService,applicationName=" + applicationName);
+            } else {
+                oName = new ObjectName("org.red5.server:type=ApplicationSchedulingService,applicationName=" + applicationName + ",instanceId=" + instanceId);
+            }
+            mbeanServer.registerMBean(new StandardMBean(this, QuartzSchedulingServiceMXBean.class, true), oName);
+        } catch (Exception e) {
+            log.warn("Error on jmx registration", e);
+        }
+    }
+
+    protected void unregisterJMX() {
+        MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
+        try {
+            ObjectName oName = null;
+            if (instanceId == null) {
+                oName = new ObjectName("org.red5.server:type=ApplicationSchedulingService,applicationName=" + applicationName);
+            } else {
+                oName = new ObjectName("org.red5.server:type=ApplicationSchedulingService,applicationName=" + applicationName + ",instanceId=" + instanceId);
+            }
+            mbs.unregisterMBean(oName);
+        } catch (Exception e) {
+            log.warn("Exception unregistering", e);
+        }
+    }
 
 }

@@ -18,7 +18,7 @@
  */
 
 package org.red5.server.session;
- 
+
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
@@ -37,125 +37,124 @@ import org.slf4j.LoggerFactory;
 /**
  * Manages sessions.
  *
- * @author The Red5 Project 
- * @author Paul Gregoire (mondain@gmail.com)   
+ * @author The Red5 Project
+ * @author Paul Gregoire (mondain@gmail.com)
  */
 public class SessionManager {
 
-	private static final Logger log = LoggerFactory
-			.getLogger(SessionManager.class);
+    private static final Logger log = LoggerFactory.getLogger(SessionManager.class);
 
-	private static ConcurrentMap<String, ISession> sessions = new ConcurrentHashMap<String, ISession>();
-	
-	private static String destinationDirectory;
+    private static ConcurrentMap<String, ISession> sessions = new ConcurrentHashMap<String, ISession>();
 
-	private static Long maxLifetime;
+    private static String destinationDirectory;
 
-	private static ISchedulingService schedulingService;
+    private static Long maxLifetime;
+
+    private static ISchedulingService schedulingService;
 
     // Create a random generator
-	public static Random rnd = new Random();	
-	
-	public void init() {
-		if (schedulingService != null) {
-			// set to run once per hour
-			schedulingService.addScheduledJob(3600000, new ReaperJob());
-		} else {
-			log.warn("Session reaper job was not scheduled");
-		}
-	}
+    public static Random rnd = new Random();
 
-	public static String getSessionId() {
-		//random int from 1 - 100000
-		int part1 = rnd.nextInt(99999) + 1;
-		//thread-safe "long" part
-		long part2 = ThreadLocalRandom.current().nextLong();
-		//current time in millis
-		long part3 = System.currentTimeMillis();
-		//generate uuid-type id
-		String sessionId = createHash(part1 + "-" + part2 + "-" + part3);
-    	log.debug("Session id created: {}", sessionId);
-    	return sessionId;
-	}
-	
-	public static ISession createSession() {
-		// create a new session
-    	return createSession(getSessionId());
-	}	
-	
-	public static ISession createSession(String sessionId) {
-		// create a new session
-		Session session = new Session(sessionId);
-		session.setDestinationDirectory(destinationDirectory);
-		// add to list
-		sessions.put(sessionId, session);
-		return session;
-	}
+    public void init() {
+        if (schedulingService != null) {
+            // set to run once per hour
+            schedulingService.addScheduledJob(3600000, new ReaperJob());
+        } else {
+            log.warn("Session reaper job was not scheduled");
+        }
+    }
 
-	public static ISession getSession(String sessionId) {
-		return sessions.get(sessionId);
-	}
+    public static String getSessionId() {
+        //random int from 1 - 100000
+        int part1 = rnd.nextInt(99999) + 1;
+        //thread-safe "long" part
+        long part2 = ThreadLocalRandom.current().nextLong();
+        //current time in millis
+        long part3 = System.currentTimeMillis();
+        //generate uuid-type id
+        String sessionId = createHash(part1 + "-" + part2 + "-" + part3);
+        log.debug("Session id created: {}", sessionId);
+        return sessionId;
+    }
 
-	public static ISession removeSession(String sessionId) {
-		return sessions.remove(sessionId);
-	}
+    public static ISession createSession() {
+        // create a new session
+        return createSession(getSessionId());
+    }
 
-	public String getDestinationDirectory() {
-		return destinationDirectory;
-	}
+    public static ISession createSession(String sessionId) {
+        // create a new session
+        Session session = new Session(sessionId);
+        session.setDestinationDirectory(destinationDirectory);
+        // add to list
+        sessions.put(sessionId, session);
+        return session;
+    }
 
-	public void setDestinationDirectory(String destinationDir) {
-		log.debug("Setting session destination directory {}", destinationDir);
-		SessionManager.destinationDirectory = destinationDir;
-	}
+    public static ISession getSession(String sessionId) {
+        return sessions.get(sessionId);
+    }
 
-	public void setMaxLifetime(String maxLifetime) {
-		if (StringUtils.isNumeric(maxLifetime)) {
-			SessionManager.maxLifetime = Long.valueOf(maxLifetime);
-		} else {
-			SessionManager.maxLifetime = PropertyConverter.convertStringToTimeMillis(maxLifetime);	
-		}
-		log.debug("Max lifetime set to {} ms", SessionManager.maxLifetime);
-	}
+    public static ISession removeSession(String sessionId) {
+        return sessions.remove(sessionId);
+    }
 
-	public void setSchedulingService(ISchedulingService schedulingService) {
-		SessionManager.schedulingService = schedulingService;
-	}
+    public String getDestinationDirectory() {
+        return destinationDirectory;
+    }
 
-	public static String createHash(String str) {
+    public void setDestinationDirectory(String destinationDir) {
+        log.debug("Setting session destination directory {}", destinationDir);
+        SessionManager.destinationDirectory = destinationDir;
+    }
+
+    public void setMaxLifetime(String maxLifetime) {
+        if (StringUtils.isNumeric(maxLifetime)) {
+            SessionManager.maxLifetime = Long.valueOf(maxLifetime);
+        } else {
+            SessionManager.maxLifetime = PropertyConverter.convertStringToTimeMillis(maxLifetime);
+        }
+        log.debug("Max lifetime set to {} ms", SessionManager.maxLifetime);
+    }
+
+    public void setSchedulingService(ISchedulingService schedulingService) {
+        SessionManager.schedulingService = schedulingService;
+    }
+
+    public static String createHash(String str) {
         return DigestUtils.md5Hex(str.getBytes());
-	}		
-	
-	/**
-	 * Quartz job to kill off old sessions
-	 */
-	private final static class ReaperJob implements IScheduledJob {
+    }
 
-		public ReaperJob() {
-			log.debug("Creating job to remove stale sessions");
-		}
+    /**
+     * Quartz job to kill off old sessions
+     */
+    private final static class ReaperJob implements IScheduledJob {
 
-		public void execute(ISchedulingService service) {
-			log.debug("Reaper running...");
-			if (sessions != null) {
-				if (!sessions.isEmpty()) {
-					long now = System.currentTimeMillis();
-					for (Map.Entry<String, ISession> entry : sessions.entrySet()) {
-						ISession session = entry.getValue();
-						long creationTime = session.getCreated();
-						// check if session life exceeds max lifetime
-						if (now - creationTime > SessionManager.maxLifetime) {
-							String key = session.getSessionId();
-							log.info("Reaper killing stale session: {}", key);
-							sessions.remove(key);
-							session.reset();
-							session = null;
-						}
-					}
-				}
-			}
-		}
+        public ReaperJob() {
+            log.debug("Creating job to remove stale sessions");
+        }
 
-	}
+        public void execute(ISchedulingService service) {
+            log.debug("Reaper running...");
+            if (sessions != null) {
+                if (!sessions.isEmpty()) {
+                    long now = System.currentTimeMillis();
+                    for (Map.Entry<String, ISession> entry : sessions.entrySet()) {
+                        ISession session = entry.getValue();
+                        long creationTime = session.getCreated();
+                        // check if session life exceeds max lifetime
+                        if (now - creationTime > SessionManager.maxLifetime) {
+                            String key = session.getSessionId();
+                            log.info("Reaper killing stale session: {}", key);
+                            sessions.remove(key);
+                            session.reset();
+                            session = null;
+                        }
+                    }
+                }
+            }
+        }
+
+    }
 
 }

@@ -46,84 +46,84 @@ import org.slf4j.Logger;
  */
 public class AMFTunnelServlet extends HttpServlet {
 
-	private static final long serialVersionUID = -35436145164322090L;
+    private static final long serialVersionUID = -35436145164322090L;
 
-	protected Logger log = Red5LoggerFactory.getLogger(AMFTunnelServlet.class);
+    protected Logger log = Red5LoggerFactory.getLogger(AMFTunnelServlet.class);
 
-	private static final String REQUEST_TYPE = "application/x-amf";
+    private static final String REQUEST_TYPE = "application/x-amf";
 
-	private static String postAcceptorURL = "http://localhost:8080/gateway";
+    private static String postAcceptorURL = "http://localhost:8080/gateway";
 
-	private static int connectionTimeout = 30000;
+    private static int connectionTimeout = 30000;
 
-	@Override
-	public void init(ServletConfig config) throws ServletException {
-		super.init(config);
-		//get the url for posting
-		if (config.getInitParameter("tunnel.acceptor.url") != null) {
-			postAcceptorURL = config.getInitParameter("tunnel.acceptor.url");
-		}
-		log.debug("POST acceptor URL: {}", postAcceptorURL);
-		//get the connection timeout
-		if (config.getInitParameter("tunnel.timeout") != null) {
-			connectionTimeout = Integer.valueOf(config.getInitParameter("tunnel.timeout"));
-		}
-		log.debug("POST connection timeout: {}", postAcceptorURL);
-	}
+    @Override
+    public void init(ServletConfig config) throws ServletException {
+        super.init(config);
+        //get the url for posting
+        if (config.getInitParameter("tunnel.acceptor.url") != null) {
+            postAcceptorURL = config.getInitParameter("tunnel.acceptor.url");
+        }
+        log.debug("POST acceptor URL: {}", postAcceptorURL);
+        //get the connection timeout
+        if (config.getInitParameter("tunnel.timeout") != null) {
+            connectionTimeout = Integer.valueOf(config.getInitParameter("tunnel.timeout"));
+        }
+        log.debug("POST connection timeout: {}", postAcceptorURL);
+    }
 
-	/**
-	 * Redirect to HTTP port.
-	 */
-	@Override
-	protected void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-		HttpClient client = HttpConnectionUtil.getClient(connectionTimeout);
-		//setup POST
-		HttpPost post = null;
-		try {
-			post = new HttpPost(postAcceptorURL);
-			String path = req.getContextPath();
-			if (path == null) {
-				path = "";
-			}
-			log.debug("Path: {}", path);
-			if (req.getPathInfo() != null) {
-				path += req.getPathInfo();
-			}
-			log.debug("Path 2: {}", path);
-			int reqContentLength = req.getContentLength();
-			if (reqContentLength > 0) {
-				log.debug("Request content length: {}", reqContentLength);
-				IoBuffer reqBuffer = IoBuffer.allocate(reqContentLength);
-				ServletUtils.copy(req, reqBuffer.asOutputStream());
-				reqBuffer.flip();
-				post.setEntity(new InputStreamEntity(reqBuffer.asInputStream(), reqContentLength));
-				post.addHeader("Content-Type", REQUEST_TYPE);
-				// get.setPath(path);
-				post.addHeader("Tunnel-request", path);
-				// execute the method
-				HttpResponse response = client.execute(post);
-				int code = response.getStatusLine().getStatusCode();
-				log.debug("HTTP response code: {}", code);
-				if (code == HttpStatus.SC_OK) {
-					HttpEntity entity = response.getEntity();
-					if (entity != null) {
-						resp.setContentType(REQUEST_TYPE);
-						// get the response as bytes
-						byte[] bytes = EntityUtils.toByteArray(entity);
-						IoBuffer resultBuffer = IoBuffer.wrap(bytes);
-						resultBuffer.flip();
-						ServletUtils.copy(resultBuffer.asInputStream(), resp.getOutputStream());
-						resp.flushBuffer();
-					}
-				} else {
-					resp.sendError(code);
-				}
-			} else {
-				resp.sendError(HttpStatus.SC_BAD_REQUEST);
-			}
-		} catch (Exception ex) {
-			log.error("", ex);
-			post.abort();
-		}
-	}
+    /**
+     * Redirect to HTTP port.
+     */
+    @Override
+    protected void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        HttpClient client = HttpConnectionUtil.getClient(connectionTimeout);
+        //setup POST
+        HttpPost post = null;
+        try {
+            post = new HttpPost(postAcceptorURL);
+            String path = req.getContextPath();
+            if (path == null) {
+                path = "";
+            }
+            log.debug("Path: {}", path);
+            if (req.getPathInfo() != null) {
+                path += req.getPathInfo();
+            }
+            log.debug("Path 2: {}", path);
+            int reqContentLength = req.getContentLength();
+            if (reqContentLength > 0) {
+                log.debug("Request content length: {}", reqContentLength);
+                IoBuffer reqBuffer = IoBuffer.allocate(reqContentLength);
+                ServletUtils.copy(req, reqBuffer.asOutputStream());
+                reqBuffer.flip();
+                post.setEntity(new InputStreamEntity(reqBuffer.asInputStream(), reqContentLength));
+                post.addHeader("Content-Type", REQUEST_TYPE);
+                // get.setPath(path);
+                post.addHeader("Tunnel-request", path);
+                // execute the method
+                HttpResponse response = client.execute(post);
+                int code = response.getStatusLine().getStatusCode();
+                log.debug("HTTP response code: {}", code);
+                if (code == HttpStatus.SC_OK) {
+                    HttpEntity entity = response.getEntity();
+                    if (entity != null) {
+                        resp.setContentType(REQUEST_TYPE);
+                        // get the response as bytes
+                        byte[] bytes = EntityUtils.toByteArray(entity);
+                        IoBuffer resultBuffer = IoBuffer.wrap(bytes);
+                        resultBuffer.flip();
+                        ServletUtils.copy(resultBuffer.asInputStream(), resp.getOutputStream());
+                        resp.flushBuffer();
+                    }
+                } else {
+                    resp.sendError(code);
+                }
+            } else {
+                resp.sendError(HttpStatus.SC_BAD_REQUEST);
+            }
+        } catch (Exception ex) {
+            log.error("", ex);
+            post.abort();
+        }
+    }
 }

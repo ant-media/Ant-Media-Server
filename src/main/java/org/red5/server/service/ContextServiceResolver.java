@@ -28,19 +28,19 @@ import org.red5.server.api.scope.IScope;
  */
 public class ContextServiceResolver implements IServiceResolver {
 
-	/** {@inheritDoc} */
-	public Object resolveService(IScope scope, String serviceName) {
-		Object service;
-		try {
-			service = scope.getContext().lookupService(serviceName);
-		} catch (ServiceNotFoundException err) {
-			return null;
-		}
-		if (service != null) {
-			return service;
-		}
+    /** {@inheritDoc} */
+    public Object resolveService(IScope scope, String serviceName) {
+        Object service;
+        try {
+            service = scope.getContext().lookupService(serviceName);
+        } catch (ServiceNotFoundException err) {
+            return null;
+        }
+        if (service != null) {
+            return service;
+        }
 
-		return null;
-	}
+        return null;
+    }
 
 }

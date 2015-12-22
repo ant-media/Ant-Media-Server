@@ -28,20 +28,24 @@ import org.springframework.context.ApplicationContext;
  */
 public interface IApplicationLoader {
 
-	/**
-	 * Load a new application for the given context path from a directory.
-	 * 
-	 * @param contextPath context path
-	 * @param virtualHosts virtual hosts
-	 * @param directory directory
-	 * @throws Exception for fun
-	 */
-	public void loadApplication(String contextPath, String virtualHosts, String directory) throws Exception;
-	
-	/**
-	 * Return the root {@link ApplicationContext}.
-	 * 
-	 * @return application context
-	 */
-	public ApplicationContext getRootContext();
+    /**
+     * Load a new application for the given context path from a directory.
+     * 
+     * @param contextPath
+     *            context path
+     * @param virtualHosts
+     *            virtual hosts
+     * @param directory
+     *            directory
+     * @throws Exception
+     *             for fun
+     */
+    public void loadApplication(String contextPath, String virtualHosts, String directory) throws Exception;
+
+    /**
+     * Return the root {@link ApplicationContext}.
+     * 
+     * @return application context
+     */
+    public ApplicationContext getRootContext();
 }

@@ -29,17 +29,17 @@ import java.util.List;
 @SuppressWarnings("unchecked")
 public final class Config {
 
-	/**
-	 * Holder for classes implementing IoFilter.
-	 */
-	private List<String> filterNames = Collections.EMPTY_LIST;
+    /**
+     * Holder for classes implementing IoFilter.
+     */
+    private List<String> filterNames = Collections.EMPTY_LIST;
 
-	public List<String> getFilterNames() {
-		return filterNames;
-	}
+    public List<String> getFilterNames() {
+        return filterNames;
+    }
 
-	public void setFilterNames(List<String> filterNames) {
-		this.filterNames = filterNames;
-	}
+    public void setFilterNames(List<String> filterNames) {
+        this.filterNames = filterNames;
+    }
 
 }

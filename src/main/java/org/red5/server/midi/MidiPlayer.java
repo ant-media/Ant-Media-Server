@@ -32,60 +32,60 @@ import org.slf4j.Logger;
 /** Plays a midi file provided on command line */
 public class MidiPlayer {
 
-	protected static Logger log = Red5LoggerFactory.getLogger(MidiPlayer.class);
-	
-	public static void main(String args[]) {
-		// Argument check
-		if (args.length == 0) {
-			helpAndExit();
-		}
-		String file = args[0];
-		if (!file.endsWith(".mid")) {
-			helpAndExit();
-		}
-		File midiFile = new File(file);
-		if (!midiFile.exists() || midiFile.isDirectory() || !midiFile.canRead()) {
-			helpAndExit();
-		}
-	}
+    protected static Logger log = Red5LoggerFactory.getLogger(MidiPlayer.class);
 
-	public MidiPlayer(File midiFile) {
+    public static void main(String args[]) {
+        // Argument check
+        if (args.length == 0) {
+            helpAndExit();
+        }
+        String file = args[0];
+        if (!file.endsWith(".mid")) {
+            helpAndExit();
+        }
+        File midiFile = new File(file);
+        if (!midiFile.exists() || midiFile.isDirectory() || !midiFile.canRead()) {
+            helpAndExit();
+        }
+    }
 
-		// Play once
-		try {
-			Sequencer sequencer = MidiSystem.getSequencer();
-			sequencer.setSequence(MidiSystem.getSequence(midiFile));
-			sequencer.open();
-			sequencer.start();
-			/*
-			 while(true) {
-			 if (sequencer.isRunning()) {
-			 try {
-			 Thread.sleep(1000); // Check every second
-			 } catch(InterruptedException ignore) {
-			 break;
-			 }
-			 } else {
-			 break;
-			 }
-			 }
-			 // Close the MidiDevice & free resources
-			 sequencer.stop();
-			 sequencer.close();
-			 */
-		} catch (MidiUnavailableException mue) {
-			log.error("Midi device unavailable!", mue);
-		} catch (InvalidMidiDataException imde) {
-			log.error("Invalid Midi data!", imde);
-		} catch (IOException ioe) {
-			log.error("I/O Error!", ioe);
-		}
+    public MidiPlayer(File midiFile) {
 
-	}
+        // Play once
+        try {
+            Sequencer sequencer = MidiSystem.getSequencer();
+            sequencer.setSequence(MidiSystem.getSequence(midiFile));
+            sequencer.open();
+            sequencer.start();
+            /*
+             while(true) {
+             if (sequencer.isRunning()) {
+             try {
+             Thread.sleep(1000); // Check every second
+             } catch(InterruptedException ignore) {
+             break;
+             }
+             } else {
+             break;
+             }
+             }
+             // Close the MidiDevice & free resources
+             sequencer.stop();
+             sequencer.close();
+             */
+        } catch (MidiUnavailableException mue) {
+            log.error("Midi device unavailable!", mue);
+        } catch (InvalidMidiDataException imde) {
+            log.error("Invalid Midi data!", imde);
+        } catch (IOException ioe) {
+            log.error("I/O Error!", ioe);
+        }
 
-	/** Provides help message and exits the program */
-	private static void helpAndExit() {
-		log.error("Usage: java MidiPlayer midifile.mid");
-		//System.exit(1);
-	}
+    }
+
+    /** Provides help message and exits the program */
+    private static void helpAndExit() {
+        log.error("Usage: java MidiPlayer midifile.mid");
+        //System.exit(1);
+    }
 }

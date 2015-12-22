@@ -27,8 +27,7 @@ import org.red5.server.jmx.mxbeans.GlobalScopeMXBean;
 import org.springframework.jmx.export.annotation.ManagedResource;
 
 /**
- * Global scope is a top level scope. Server instance is meant to be injected
- * with Spring before initialization (otherwise NullPointerException is thrown).
+ * Global scope is a top level scope. Server instance is meant to be injected with Spring before initialization (otherwise NullPointerException is thrown).
  * 
  * @see org.red5.server.api.scope.IGlobalScope
  * @see org.red5.server.api.scope.IScope
@@ -37,65 +36,68 @@ import org.springframework.jmx.export.annotation.ManagedResource;
 @ManagedResource
 public class GlobalScope extends Scope implements IGlobalScope, GlobalScopeMXBean {
 
-	// Red5 Server instance
-	protected transient IServer server;
+    // Red5 Server instance
+    protected transient IServer server;
 
-	{
-		type = ScopeType.GLOBAL;
-		name = "default";
-	}
+    {
+        type = ScopeType.GLOBAL;
+        name = "default";
+    }
 
-	/**
-	 * 
-	 * @param persistenceClass Persistent class name
-	 * @throws Exception Exception
-	 */
-	@Override
-	public void setPersistenceClass(String persistenceClass) throws Exception {
-		this.persistenceClass = persistenceClass;
-		// We'll have to wait for creation of the store object
-		// until all classes have been initialized.
-	}
+    /**
+     * 
+     * @param persistenceClass
+     *            Persistent class name
+     * @throws Exception
+     *             Exception
+     */
+    @Override
+    public void setPersistenceClass(String persistenceClass) throws Exception {
+        this.persistenceClass = persistenceClass;
+        // We'll have to wait for creation of the store object
+        // until all classes have been initialized.
+    }
 
-	/**
-	 * Get persistence store for scope
-	 * 
-	 * @return Persistence store
-	 */
-	@Override
-	public IPersistenceStore getStore() {
-		if (store == null) {
-			try {
-				store = PersistenceUtils.getPersistenceStore(this, this.persistenceClass);
-			} catch (Exception error) {
-				log.error("Could not create persistence store.", error);
-				store = null;
-			}
-		}
-		return store;
-	}
+    /**
+     * Get persistence store for scope
+     * 
+     * @return Persistence store
+     */
+    @Override
+    public IPersistenceStore getStore() {
+        if (store == null) {
+            try {
+                store = PersistenceUtils.getPersistenceStore(this, this.persistenceClass);
+            } catch (Exception error) {
+                log.error("Could not create persistence store.", error);
+                store = null;
+            }
+        }
+        return store;
+    }
 
-	/**
-	 * Setter for server
-	 * 
-	 * @param server Server
-	 */
-	public void setServer(IServer server) {
-		this.server = server;
-	}
+    /**
+     * Setter for server
+     * 
+     * @param server
+     *            Server
+     */
+    public void setServer(IServer server) {
+        this.server = server;
+    }
 
-	/** {@inheritDoc} */
-	@Override
-	public IServer getServer() {
-		return server;
-	}
+    /** {@inheritDoc} */
+    @Override
+    public IServer getServer() {
+        return server;
+    }
 
-	/**
-	 * Register global scope in server instance, then call initialization
-	 */
-	public void register() {
-		server.registerGlobal(this);
-		init();
-	}
+    /**
+     * Register global scope in server instance, then call initialization
+     */
+    public void register() {
+        server.registerGlobal(this);
+        init();
+    }
 
 }

@@ -32,36 +32,36 @@ import org.springframework.context.ApplicationContextAware;
  */
 public class RTMPMinaCodecFactory implements ProtocolCodecFactory, ApplicationContextAware, InitializingBean {
 
-	protected ApplicationContext appCtx;
-	
+    protected ApplicationContext appCtx;
+
     /**
      * RTMP Mina protocol decoder.
      */
-	protected RTMPMinaProtocolDecoder decoder;
-	
+    protected RTMPMinaProtocolDecoder decoder;
+
     /**
      * RTMP Mina protocol encoder.
      */
-	protected RTMPMinaProtocolEncoder encoder;
+    protected RTMPMinaProtocolEncoder encoder;
 
-	public void afterPropertiesSet() throws Exception {
-		decoder = (RTMPMinaProtocolDecoder) appCtx.getBean("minaDecoder");
-		encoder = (RTMPMinaProtocolEncoder) appCtx.getBean("minaEncoder");
-	}
-	
-	/** {@inheritDoc} */
+    public void afterPropertiesSet() throws Exception {
+        decoder = (RTMPMinaProtocolDecoder) appCtx.getBean("minaDecoder");
+        encoder = (RTMPMinaProtocolEncoder) appCtx.getBean("minaEncoder");
+    }
+
+    /** {@inheritDoc} */
     public ProtocolDecoder getDecoder(IoSession session) {
-		return decoder;
-	}
+        return decoder;
+    }
 
-	/** {@inheritDoc} */
+    /** {@inheritDoc} */
     public ProtocolEncoder getEncoder(IoSession session) {
-		return encoder;
-	}
+        return encoder;
+    }
 
-	@Override
-	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-		appCtx = applicationContext;
-	}
-	
+    @Override
+    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+        appCtx = applicationContext;
+    }
+
 }

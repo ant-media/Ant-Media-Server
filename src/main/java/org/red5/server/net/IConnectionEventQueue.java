@@ -29,15 +29,29 @@ import org.red5.server.api.event.IEvent;
 public interface IConnectionEventQueue {
     /**
      * Whether queue has waiting connection events
-     * @param conn       Connection
-     * @return           <pre>true</pre> if queue has waiting events for connection, <pre>false</pre> otherwise
+     * 
+     * @param conn
+     *            Connection
+     * @return <pre>
+     * true
+     * </pre>
+     * 
+     *         if queue has waiting events for connection,
+     * 
+     *         <pre>
+     * false
+     * </pre>
+     * 
+     *         otherwise
      */
-	public boolean hasEventsWaiting(IConnection conn);
+    public boolean hasEventsWaiting(IConnection conn);
 
     /**
      * Return iterator over waiting events
-     * @param conn       Connection
-     * @return           Iterator over events
+     * 
+     * @param conn
+     *            Connection
+     * @return Iterator over events
      */
     public Iterator<IEvent> pickupEvents(IConnection conn);
 

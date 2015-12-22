@@ -9,52 +9,52 @@ import org.springframework.context.support.FileSystemXmlApplicationContext;
 
 public class Red5ApplicationContext extends FileSystemXmlApplicationContext implements ApplicationContextAware {
 
-	private static final Logger log = Red5LoggerFactory.getLogger(Red5ApplicationContext.class);
-	
-	// parent context
-	private ApplicationContext parentContext;
+    private static final Logger log = Red5LoggerFactory.getLogger(Red5ApplicationContext.class);
 
-	// creating context
-	private ApplicationContext applicationContext;
-	
-	// to refresh or not
-	private boolean refresh = true;
+    // parent context
+    private ApplicationContext parentContext;
 
-	@Override
-	public void afterPropertiesSet() {
-		log.info("Red5ApplicationContext init");
-		if (parentContext == null) {
-			log.debug("Setting application context as parent");
-			super.setParent(applicationContext);
-		}
-		super.afterPropertiesSet();
-	}
-	
-	@Override
-	public void refresh() throws BeansException, IllegalStateException {
-		if (refresh) {
-			super.refresh();
-		}
-	}
+    // creating context
+    private ApplicationContext applicationContext;
 
-	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-		log.info("setApplicationContext: {}", applicationContext);
-		this.applicationContext = applicationContext;
-	}
+    // to refresh or not
+    private boolean refresh = true;
 
-	@Override
-	public void setConfigLocation(String location) {
-		super.setConfigLocation(location);
-	}
-	
-	@Override
-	public void setParent(ApplicationContext parent) {
-		super.setParent(parent);
-		parentContext = parent;
-	}
-	
-	public void setRefresh(boolean refresh) {
-		this.refresh = refresh;
-	}
-	
+    @Override
+    public void afterPropertiesSet() {
+        log.info("Red5ApplicationContext init");
+        if (parentContext == null) {
+            log.debug("Setting application context as parent");
+            super.setParent(applicationContext);
+        }
+        super.afterPropertiesSet();
+    }
+
+    @Override
+    public void refresh() throws BeansException, IllegalStateException {
+        if (refresh) {
+            super.refresh();
+        }
+    }
+
+    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+        log.info("setApplicationContext: {}", applicationContext);
+        this.applicationContext = applicationContext;
+    }
+
+    @Override
+    public void setConfigLocation(String location) {
+        super.setConfigLocation(location);
+    }
+
+    @Override
+    public void setParent(ApplicationContext parent) {
+        super.setParent(parent);
+        parentContext = parent;
+    }
+
+    public void setRefresh(boolean refresh) {
+        this.refresh = refresh;
+    }
+
 }

@@ -27,9 +27,9 @@ import java.io.IOException;
  * @author Steven Gong (steven.gong@gmail.com)
  */
 public interface IPullableProvider extends IProvider {
-	public static final String KEY = IPullableProvider.class.getName();
+    public static final String KEY = IPullableProvider.class.getName();
 
-	IMessage pullMessage(IPipe pipe) throws IOException;
+    IMessage pullMessage(IPipe pipe) throws IOException;
 
-	IMessage pullMessage(IPipe pipe, long wait) throws IOException;
+    IMessage pullMessage(IPipe pipe, long wait) throws IOException;
 }

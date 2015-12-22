@@ -34,101 +34,101 @@ import org.slf4j.LoggerFactory;
 
 public class SharedMidiObject {
 
-	private static final Logger log = LoggerFactory.getLogger(SharedMidiObject.class);
+    private static final Logger log = LoggerFactory.getLogger(SharedMidiObject.class);
 
-	protected String deviceName;
+    protected String deviceName;
 
-	protected ISharedObject so;
+    protected ISharedObject so;
 
-	protected MidiDevice dev;
+    protected MidiDevice dev;
 
-	public SharedMidiObject(String deviceName, ISharedObject so) {
-		this.deviceName = deviceName;
-		this.so = so;
-	}
+    public SharedMidiObject(String deviceName, ISharedObject so) {
+        this.deviceName = deviceName;
+        this.so = so;
+    }
 
-	public boolean connect() {
-		try {
-			dev = getMidiDevice(deviceName);
-			if (dev == null) {
-				log.error("Midi device not found: " + deviceName);
-				return false;
-			}
-			if (!dev.isOpen()) {
-				dev.open();
-			}
-			dev.getTransmitter().setReceiver(new MidiReceiver());
-			return true;
-		} catch (MidiUnavailableException e) {
-			log.error("Error connecting to midi device", e);
-		}
-		return false;
-	}
+    public boolean connect() {
+        try {
+            dev = getMidiDevice(deviceName);
+            if (dev == null) {
+                log.error("Midi device not found: " + deviceName);
+                return false;
+            }
+            if (!dev.isOpen()) {
+                dev.open();
+            }
+            dev.getTransmitter().setReceiver(new MidiReceiver());
+            return true;
+        } catch (MidiUnavailableException e) {
+            log.error("Error connecting to midi device", e);
+        }
+        return false;
+    }
 
-	public void close() {
-		if (dev != null && dev.isOpen()) {
-			dev.close();
-		}
-	}
+    public void close() {
+        if (dev != null && dev.isOpen()) {
+            dev.close();
+        }
+    }
 
-	public static MidiDevice getMidiDevice(String name) {
+    public static MidiDevice getMidiDevice(String name) {
 
-		MidiDevice.Info[] info = MidiSystem.getMidiDeviceInfo();
+        MidiDevice.Info[] info = MidiSystem.getMidiDeviceInfo();
 
-		for (Info element : info) {
-			if (element.getName().equals(name)) {
-				try {
-					return MidiSystem.getMidiDevice(element);
-				} catch (MidiUnavailableException e) {
-					log.error("{}", e);
-				}
-			}
-		}
+        for (Info element : info) {
+            if (element.getName().equals(name)) {
+                try {
+                    return MidiSystem.getMidiDevice(element);
+                } catch (MidiUnavailableException e) {
+                    log.error("{}", e);
+                }
+            }
+        }
 
-		return null;
+        return null;
 
-	}
+    }
 
-	public class MidiReceiver extends Object implements Receiver {
+    public class MidiReceiver extends Object implements Receiver {
 
-		/** {@inheritDoc} */
+        /** {@inheritDoc} */
         public void send(MidiMessage midi, long time) {
 
-			byte[] msg = midi.getMessage();
-			int len = midi.getLength();
-			if (len <= 1) {
-				return;
-			}
+            byte[] msg = midi.getMessage();
+            int len = midi.getLength();
+            if (len <= 1) {
+                return;
+            }
 
-			List<Object> list = new ArrayList<Object>(3);
-			list.add(time);
-			list.add(len);
-			list.add(msg);
-			so.beginUpdate();
-			so.sendMessage("midi", list);
-			so.endUpdate();
+            List<Object> list = new ArrayList<Object>(3);
+            list.add(time);
+            list.add(len);
+            list.add(msg);
+            so.beginUpdate();
+            so.sendMessage("midi", list);
+            so.endUpdate();
 
-			StringBuilder out = new StringBuilder("Midi >> Status: ");
-			out.append(msg[0]);
-			out.append(" Data: [");
-			for (int i = 1; i < len; i++) {
-				out.append(msg[i]);
-				if (i == len - 1) {
-					out.append("");
-				} else {
-					out.append(',');
-				}
-			}
-			out.append(']');
+            StringBuilder out = new StringBuilder("Midi >> Status: ");
+            out.append(msg[0]);
+            out.append(" Data: [");
+            for (int i = 1; i < len; i++) {
+                out.append(msg[i]);
+                if (i == len - 1) {
+                    out.append("");
+                } else {
+                    out.append(',');
+                }
+            }
+            out.append(']');
 
-			log.debug(out.toString());
-		}
+            log.debug(out.toString());
+        }
 
-		/** {@inheritDoc} */
+        /** {@inheritDoc} */
         public void close() {
-			log.debug("Midi device closed");
-		}
+            log.debug("Midi device closed");
+        }
 
-	}
+    }
 
 }

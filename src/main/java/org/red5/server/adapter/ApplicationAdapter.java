@@ -23,53 +23,61 @@ import org.red5.server.api.IConnection;
 import org.red5.server.api.scope.IScope;
 
 /**
- * Base class for applications, takes care that callbacks are executed single-threaded.
- * If you want to have maximum performance, use {@link MultiThreadedApplicationAdapter}
- * instead.
+ * Base class for applications, takes care that callbacks are executed single-threaded. If you want to have maximum performance, use {@link MultiThreadedApplicationAdapter} instead.
  * 
- * Using this class may lead to problems if accepting a client in the <pre>*Connect</pre>
- * or <pre>*Join</pre> methods takes too long, so using the multi-threaded version is
- * preferred.
+ * Using this class may lead to problems if accepting a client in the
+ * 
+ * <pre>
+ * *Connect
+ * </pre>
+ * 
+ * or
+ * 
+ * <pre>
+ * *Join
+ * </pre>
+ * 
+ * methods takes too long, so using the multi-threaded version is preferred.
  * 
  * @author The Red5 Project
  * @author Joachim Bauch (jojo@struktur.de)
  */
 public class ApplicationAdapter extends MultiThreadedApplicationAdapter {
 
-	/** {@inheritDoc} */
-	@Override
-	public synchronized boolean connect(IConnection conn, IScope scope, Object[] params) {
-		return super.connect(conn, scope, params);
-	}
+    /** {@inheritDoc} */
+    @Override
+    public synchronized boolean connect(IConnection conn, IScope scope, Object[] params) {
+        return super.connect(conn, scope, params);
+    }
 
-	/** {@inheritDoc} */
-	@Override
-	public synchronized void disconnect(IConnection conn, IScope scope) {
-		super.disconnect(conn, scope);
-	}
+    /** {@inheritDoc} */
+    @Override
+    public synchronized void disconnect(IConnection conn, IScope scope) {
+        super.disconnect(conn, scope);
+    }
 
-	/** {@inheritDoc} */
-	@Override
-	public synchronized boolean start(IScope scope) {
-		return super.start(scope);
-	}
+    /** {@inheritDoc} */
+    @Override
+    public synchronized boolean start(IScope scope) {
+        return super.start(scope);
+    }
 
-	/** {@inheritDoc} */
-	@Override
-	public synchronized void stop(IScope scope) {
-		super.stop(scope);
-	}
+    /** {@inheritDoc} */
+    @Override
+    public synchronized void stop(IScope scope) {
+        super.stop(scope);
+    }
 
-	/** {@inheritDoc} */
-	@Override
-	public synchronized boolean join(IClient client, IScope scope) {
-		return super.join(client, scope);
-	}
+    /** {@inheritDoc} */
+    @Override
+    public synchronized boolean join(IClient client, IScope scope) {
+        return super.join(client, scope);
+    }
 
-	/** {@inheritDoc} */
-	@Override
-	public synchronized void leave(IClient client, IScope scope) {
-		super.leave(client, scope);
-	}
+    /** {@inheritDoc} */
+    @Override
+    public synchronized void leave(IClient client, IScope scope) {
+        super.leave(client, scope);
+    }
 
 }

@@ -26,15 +26,10 @@ import org.springframework.scripting.ScriptSource;
 import org.springframework.util.Assert;
 
 /**
- * {@link org.springframework.scripting.ScriptFactory} implementation for a
- * Rhino / Javascript script.
+ * {@link org.springframework.scripting.ScriptFactory} implementation for a Rhino / Javascript script.
  *
  * <p>
- * Typically used in combination with a
- * {@link org.springframework.scripting.support.ScriptFactoryPostProcessor};
- * see the latter's
- * {@link org.springframework.scripting.support.ScriptFactoryPostProcessor Javadoc}
- * for a configuration example.
+ * Typically used in combination with a {@link org.springframework.scripting.support.ScriptFactoryPostProcessor}; see the latter's {@link org.springframework.scripting.support.ScriptFactoryPostProcessor Javadoc} for a configuration example.
  *
  * @author Paul Gregoire
  * @since 0.6
@@ -43,116 +38,132 @@ import org.springframework.util.Assert;
  */
 public class RhinoScriptFactory implements ScriptFactory {
 
-	static Logger log = LoggerFactory.getLogger(RhinoScriptFactory.class);
+    static Logger log = LoggerFactory.getLogger(RhinoScriptFactory.class);
 
-	private final String scriptSourceLocator;
+    private final String scriptSourceLocator;
 
-	@SuppressWarnings("rawtypes")
-	private final Class[] scriptInterfaces;
+    @SuppressWarnings("rawtypes")
+    private final Class[] scriptInterfaces;
 
-	@SuppressWarnings("rawtypes")
-	private final Class extendedClass;
+    @SuppressWarnings("rawtypes")
+    private final Class extendedClass;
 
-	public RhinoScriptFactory(String scriptSourceLocator) {
-		Assert.hasText(scriptSourceLocator);
-		this.scriptSourceLocator = scriptSourceLocator;
-		this.scriptInterfaces = new Class[] {};
-		this.extendedClass = null;
-	}
-	
-	@SuppressWarnings("rawtypes")
-	public RhinoScriptFactory(String scriptSourceLocator, Class scriptInterface) {
-		Assert.hasText(scriptSourceLocator);
-		this.scriptSourceLocator = scriptSourceLocator;
-		this.extendedClass = null;
-		if (null == scriptInterface) {
-			this.scriptInterfaces = new Class[] {};
-		} else {
-			this.scriptInterfaces = new Class[] { scriptInterface };
-		}
-	}
+    public RhinoScriptFactory(String scriptSourceLocator) {
+        Assert.hasText(scriptSourceLocator);
+        this.scriptSourceLocator = scriptSourceLocator;
+        this.scriptInterfaces = new Class[] {};
+        this.extendedClass = null;
+    }
 
-	/**
-	 * Create a new RhinoScriptFactory for the given script source.
-	 *
-	 * @param scriptSourceLocator
-	 *            a locator that points to the source of the script. Interpreted
-	 *            by the post-processor that actually creates the script.
-	 * @param scriptInterfaces
-	 *            the Java interfaces that the scripted object is supposed to
-	 *            implement
-	 * @throws IllegalArgumentException
-	 *             if either of the supplied arguments is <pre>null</pre>;
-	 *             or the supplied <pre>scriptSourceLocator</pre> argument
-	 *             is composed wholly of whitespace; or if the supplied
-	 *             <pre>scriptInterfaces</pre> argument array has no
-	 *             elements
-	 */
-	@SuppressWarnings("rawtypes")
-	public RhinoScriptFactory(String scriptSourceLocator, Class[] scriptInterfaces) {
-		Assert.hasText(scriptSourceLocator);
-		this.scriptSourceLocator = scriptSourceLocator;
-		this.extendedClass = null;
-		if (null == scriptInterfaces || scriptInterfaces.length < 1) {
-			this.scriptInterfaces = new Class[] {};
-		} else {
-			this.scriptInterfaces = scriptInterfaces;
-		}
-	}
+    @SuppressWarnings("rawtypes")
+    public RhinoScriptFactory(String scriptSourceLocator, Class scriptInterface) {
+        Assert.hasText(scriptSourceLocator);
+        this.scriptSourceLocator = scriptSourceLocator;
+        this.extendedClass = null;
+        if (null == scriptInterface) {
+            this.scriptInterfaces = new Class[] {};
+        } else {
+            this.scriptInterfaces = new Class[] { scriptInterface };
+        }
+    }
 
-	@SuppressWarnings("rawtypes")
-	public RhinoScriptFactory(String scriptSourceLocator, Class[] scriptInterfaces, Class extendedClass) {
-		Assert.hasText(scriptSourceLocator);
-		Assert.notNull(extendedClass);
-		this.scriptSourceLocator = scriptSourceLocator;
-		this.extendedClass = extendedClass;
-		if (null == scriptInterfaces || scriptInterfaces.length < 1) {
-			this.scriptInterfaces = new Class[] {};
-		} else {
-			this.scriptInterfaces = scriptInterfaces;
-		}
-	}
+    /**
+     * Create a new RhinoScriptFactory for the given script source.
+     *
+     * @param scriptSourceLocator
+     *            a locator that points to the source of the script. Interpreted by the post-processor that actually creates the script.
+     * @param scriptInterfaces
+     *            the Java interfaces that the scripted object is supposed to implement
+     * @throws IllegalArgumentException
+     *             if either of the supplied arguments is
+     * 
+     *             <pre>
+     * null
+     * </pre>
+     * 
+     *             ; or the supplied
+     * 
+     *             <pre>
+     * scriptSourceLocator
+     * </pre>
+     * 
+     *             argument is composed wholly of whitespace; or if the supplied
+     * 
+     *             <pre>
+     * scriptInterfaces
+     * </pre>
+     * 
+     *             argument array has no elements
+     */
+    @SuppressWarnings("rawtypes")
+    public RhinoScriptFactory(String scriptSourceLocator, Class[] scriptInterfaces) {
+        Assert.hasText(scriptSourceLocator);
+        this.scriptSourceLocator = scriptSourceLocator;
+        this.extendedClass = null;
+        if (null == scriptInterfaces || scriptInterfaces.length < 1) {
+            this.scriptInterfaces = new Class[] {};
+        } else {
+            this.scriptInterfaces = scriptInterfaces;
+        }
+    }
 
-	/** {@inheritDoc} */
-	public String getScriptSourceLocator() {
-		return this.scriptSourceLocator;
-	}
+    @SuppressWarnings("rawtypes")
+    public RhinoScriptFactory(String scriptSourceLocator, Class[] scriptInterfaces, Class extendedClass) {
+        Assert.hasText(scriptSourceLocator);
+        Assert.notNull(extendedClass);
+        this.scriptSourceLocator = scriptSourceLocator;
+        this.extendedClass = extendedClass;
+        if (null == scriptInterfaces || scriptInterfaces.length < 1) {
+            this.scriptInterfaces = new Class[] {};
+        } else {
+            this.scriptInterfaces = scriptInterfaces;
+        }
+    }
 
-	/** {@inheritDoc} */
-	@SuppressWarnings({ "rawtypes", "unchecked" })
-	public Class[] getScriptInterfaces() {
-		return this.scriptInterfaces;
-	}
+    /** {@inheritDoc} */
+    public String getScriptSourceLocator() {
+        return this.scriptSourceLocator;
+    }
 
-	/**
-	 * Rhino scripts do not require a config interface.
-	 *
-	 * @return <pre>false</pre> always
-	 */
-	public boolean requiresConfigInterface() {
-		return false;
-	}
+    /** {@inheritDoc} */
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    public Class[] getScriptInterfaces() {
+        return this.scriptInterfaces;
+    }
 
-	/**
-	 * Load and parse the Rhino script via RhinoScriptUtils.
-	 *
-	 */
-	public Object getScriptedObject(ScriptSource actualScriptSource, Class<?>... actualInterfaces) throws IOException, ScriptCompilationException {
-		log.debug("Getting scripted object...");
-		try {
-			return RhinoScriptUtils.createRhinoObject(actualScriptSource.getScriptAsString(), actualInterfaces, extendedClass);
-		} catch (Exception ex) {
-			throw new ScriptCompilationException("Could not compile Rhino script: " + actualScriptSource, ex);
-		}
-	}
+    /**
+     * Rhino scripts do not require a config interface.
+     *
+     * @return <pre>
+     * false
+     * </pre>
+     * 
+     *         always
+     */
+    public boolean requiresConfigInterface() {
+        return false;
+    }
 
-	@SuppressWarnings({ "rawtypes", "unchecked" })
-	public Class getScriptedObjectType(ScriptSource src) throws IOException, ScriptCompilationException {
-		return null;
-	}
+    /**
+     * Load and parse the Rhino script via RhinoScriptUtils.
+     *
+     */
+    public Object getScriptedObject(ScriptSource actualScriptSource, Class<?>... actualInterfaces) throws IOException, ScriptCompilationException {
+        log.debug("Getting scripted object...");
+        try {
+            return RhinoScriptUtils.createRhinoObject(actualScriptSource.getScriptAsString(), actualInterfaces, extendedClass);
+        } catch (Exception ex) {
+            throw new ScriptCompilationException("Could not compile Rhino script: " + actualScriptSource, ex);
+        }
+    }
 
-	public boolean requiresScriptedObjectRefresh(ScriptSource src) {
-		return false;
-	}
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    public Class getScriptedObjectType(ScriptSource src) throws IOException, ScriptCompilationException {
+        return null;
+    }
+
+    public boolean requiresScriptedObjectRefresh(ScriptSource src) {
+        return false;
+    }
 
 }

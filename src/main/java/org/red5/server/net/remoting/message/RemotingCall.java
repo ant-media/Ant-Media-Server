@@ -22,7 +22,7 @@ import org.red5.compatibility.flex.messaging.messages.ErrorMessage;
 import org.red5.server.service.PendingCall;
 
 /**
- * Remoting method call, specific pending call. 
+ * Remoting method call, specific pending call.
  *
  * @author The Red5 Project
  * @author Luke Hubbard, Codegent Ltd (luke@codegent.com)
@@ -31,73 +31,81 @@ public class RemotingCall extends PendingCall {
     /**
      * Handler success posfix constant
      */
-	public static final String HANDLER_SUCCESS = "/onResult";
+    public static final String HANDLER_SUCCESS = "/onResult";
+
     /**
      * Handler error posfix constant
      */
-	public static final String HANDLER_ERROR = "/onStatus";
+    public static final String HANDLER_ERROR = "/onStatus";
+
     /**
      * Client callback name
      */
-	public String clientCallback;
+    public String clientCallback;
 
-	public boolean isAMF3;
-	
-	public boolean isMessaging;
-	
-	/**
-	 * Default / void constructor to prevent runtime exception. 
-	 */
-	public RemotingCall() {	
-	}
-	
+    public boolean isAMF3;
+
+    public boolean isMessaging;
+
+    /**
+     * Default / void constructor to prevent runtime exception.
+     */
+    public RemotingCall() {
+    }
+
     /**
      * Create remoting call from service name, method name, list of arguments and callback name.
-	 *
-     * @param serviceName                Service name
-     * @param serviceMethod              Service method name
-     * @param args                       Parameters passed to method
-     * @param callback                   Name of client callback
-     * @param isAMF3                     Does the client support AMF3?
-     * @param isMessaging				 Is this a Flex messaging request?
+     *
+     * @param serviceName
+     *            Service name
+     * @param serviceMethod
+     *            Service method name
+     * @param args
+     *            Parameters passed to method
+     * @param callback
+     *            Name of client callback
+     * @param isAMF3
+     *            Does the client support AMF3?
+     * @param isMessaging
+     *            Is this a Flex messaging request?
      */
     public RemotingCall(String serviceName, String serviceMethod, Object[] args, String callback, boolean isAMF3, boolean isMessaging) {
-		super(serviceName, serviceMethod, args);
-		setClientCallback(callback);
-		this.isAMF3 = isAMF3;
-		this.isMessaging = isMessaging;
-	}
+        super(serviceName, serviceMethod, args);
+        setClientCallback(callback);
+        this.isAMF3 = isAMF3;
+        this.isMessaging = isMessaging;
+    }
 
-	/**
+    /**
      * Setter for client callback.
      *
-     * @param clientCallback  Client callback
+     * @param clientCallback
+     *            Client callback
      */
     public void setClientCallback(String clientCallback) {
-		this.clientCallback = clientCallback;
-	}
+        this.clientCallback = clientCallback;
+    }
 
-	/**
+    /**
      * Getter for client response.
      *
-     * @return  Client response
+     * @return Client response
      */
     public String getClientResponse() {
-		if (clientCallback != null) {
-			return clientCallback
-					+ (isSuccess() && !(getClientResult() instanceof ErrorMessage) ? HANDLER_SUCCESS : HANDLER_ERROR);
-		} else {
-			return null;
-		}
-	}
+        if (clientCallback != null) {
+            return clientCallback + (isSuccess() && !(getClientResult() instanceof ErrorMessage) ? HANDLER_SUCCESS : HANDLER_ERROR);
+        } else {
+            return null;
+        }
+    }
 
-	/**
+    /**
      * Getter for client result.
      *
      * @return Client result
      */
     public Object getClientResult() {
-		return isSuccess() ? getResult() : getException();
-	}
+        return isSuccess() ? getResult() : getException();
+    }
 
 }

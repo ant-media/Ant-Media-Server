@@ -747,13 +747,17 @@ public class MultiThreadedApplicationAdapter extends StatefulScopeWrappingAdapte
 
     /**
      * Creates a new shared object for given scope. Server-side shared objects (also known as Remote SO) are special kind of objects those variable are synchronized between clients. To get an instance of RSO at client-side, use
+     * 
      * <pre>
      * SharedObject.getRemote()
-     * </pre>.
-     * SharedObjects can be persistent and transient. Persistent RSO are stateful, i.e. store their data between sessions. If you need to store some data on server while clients go back and forth use persistent SO (just use
+     * </pre>
+     * 
+     * . SharedObjects can be persistent and transient. Persistent RSO are stateful, i.e. store their data between sessions. If you need to store some data on server while clients go back and forth use persistent SO (just use
+     * 
      * <pre>
      * true
      * </pre>
+     * 
      * ), otherwise prefer usage of transient for extra performance.
      * 
      * @param scope
@@ -845,9 +849,11 @@ public class MultiThreadedApplicationAdapter extends StatefulScopeWrappingAdapte
 
     /**
      * Returns list of stream names broadcasted in scope. Broadcast stream name is somewhat different from server stream name. Server stream name is just an ID assigned by Red5 to every created stream. Broadcast stream name is the name that is being used to subscribe to the stream at client side, that is, in
+     * 
      * <pre>
      * NetStream.play
      * </pre>
+     * 
      * call.
      * 
      * @param scope

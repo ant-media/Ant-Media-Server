@@ -52,217 +52,219 @@ import org.slf4j.LoggerFactory;
  * 
  * Unexpected exception from SSLEngine.closeInbound() https://issues.apache.org/jira/browse/DIRMINA-272
  * 
- * Transport Layer Security (TLS) Renegotiation Issue http://www.oracle.com/technetwork/java/javase/documentation/tlsreadme2-176330.html
- * Secure renegotiation https://jce.iaik.tugraz.at/sic/Products/Communication-Messaging-Security/iSaSiLk/documentation/Secure-Renegotiation
- * Troubleshooting a HTTPS TLSv1 handshake http://integr8consulting.blogspot.com/2012/02/troubleshooting-https-tlsv1-handshake.html
- * How to analyze Java SSL errors http://www.smartjava.org/content/how-analyze-java-ssl-errors
+ * Transport Layer Security (TLS) Renegotiation Issue http://www.oracle.com/technetwork/java/javase/documentation/tlsreadme2-176330.html Secure renegotiation https://jce.iaik.tugraz.at/sic/Products/Communication-Messaging-Security/iSaSiLk/documentation/Secure-Renegotiation Troubleshooting a HTTPS TLSv1 handshake http://integr8consulting.blogspot.com/2012/02/troubleshooting-https-tlsv1-handshake.html How to analyze
+ * Java SSL errors http://www.smartjava.org/content/how-analyze-java-ssl-errors
  * 
  * @author Kevin Green (kevygreen@gmail.com)
  * @author Paul Gregoire (mondain@gmail.com)
  */
 public class RTMPSMinaIoHandler extends RTMPMinaIoHandler {
 
-	private static Logger log = LoggerFactory.getLogger(RTMPSMinaIoHandler.class);
+    private static Logger log = LoggerFactory.getLogger(RTMPSMinaIoHandler.class);
 
-	/**
-	 * Password for accessing the keystore.
-	 */
-	private String keystorePassword;
+    /**
+     * Password for accessing the keystore.
+     */
+    private String keystorePassword;
 
-	/**
-	 * Password for accessing the truststore.
-	 */
-	private String truststorePassword;
+    /**
+     * Password for accessing the truststore.
+     */
+    private String truststorePassword;
 
-	/**
-	 * Stores the keystore path.
-	 */
-	private String keystoreFile;
+    /**
+     * Stores the keystore path.
+     */
+    private String keystoreFile;
 
-	/**
-	 * Stores the truststore path.
-	 */
-	private String truststoreFile;
+    /**
+     * Stores the truststore path.
+     */
+    private String truststoreFile;
 
-	/**
-	 * Names of the SSL cipher suites which are currently enabled for use.
-	 */
-	private String[] cipherSuites;
+    /**
+     * Names of the SSL cipher suites which are currently enabled for use.
+     */
+    private String[] cipherSuites;
 
-	/**
-	 * Names of the protocol versions which are currently enabled for use.
-	 */
-	private String[] protocols;
+    /**
+     * Names of the protocol versions which are currently enabled for use.
+     */
+    private String[] protocols;
 
-	/**
-	 * Use client (or server) mode when handshaking.
-	 */
-	private boolean useClientMode;
+    /**
+     * Use client (or server) mode when handshaking.
+     */
+    private boolean useClientMode;
 
-	/**
-	 * Request the need of client authentication.
-	 */
-	private boolean needClientAuth;
+    /**
+     * Request the need of client authentication.
+     */
+    private boolean needClientAuth;
 
-	/**
-	 * Indicates that we would like to authenticate the client but if client certificates are self-signed or have no certificate chain then we are still good
-	 */
-	private boolean wantClientAuth;
+    /**
+     * Indicates that we would like to authenticate the client but if client certificates are self-signed or have no certificate chain then we are still good
+     */
+    private boolean wantClientAuth;
 
-	static {
-		if (log.isDebugEnabled()) {
-			Provider[] providers = Security.getProviders();
-			for (Provider provider : providers) {
-				log.debug("Provider: {} = {}", provider.getName(), provider.getInfo());
-			}
-		}
-	}
+    static {
+        if (log.isDebugEnabled()) {
+            Provider[] providers = Security.getProviders();
+            for (Provider provider : providers) {
+                log.debug("Provider: {} = {}", provider.getName(), provider.getInfo());
+            }
+        }
+    }
 
-	@Override
-	public void sessionOpened(IoSession session) throws Exception {
-		if (keystoreFile == null || truststoreFile == null) {
-			throw new NotActiveException("Keystore or truststore are null");
-		}
-		// create the ssl context
-		SSLContext sslContext = null;
-		try {
-			File keyStore = new File(keystoreFile);
-			File trustStore = new File(truststoreFile);
-			if (keyStore.exists() && trustStore.exists()) {
-				final KeyStoreFactory keyStoreFactory = new KeyStoreFactory();
-				keyStoreFactory.setDataFile(keyStore);
-				keyStoreFactory.setPassword(keystorePassword);
+    @Override
+    public void sessionOpened(IoSession session) throws Exception {
+        if (keystoreFile == null || truststoreFile == null) {
+            throw new NotActiveException("Keystore or truststore are null");
+        }
+        // create the ssl context
+        SSLContext sslContext = null;
+        try {
+            log.debug("Keystore: {}", keystoreFile);
+            File keyStore = new File(keystoreFile);
+            log.trace("Keystore - read: {} path: {}", keyStore.canRead(), keyStore.getCanonicalPath());
+            log.debug("Truststore: {}", truststoreFile);
+            File trustStore = new File(truststoreFile);
+            log.trace("Truststore - read: {} path: {}", trustStore.canRead(), trustStore.getCanonicalPath());
+            if (keyStore.exists() && trustStore.exists()) {
+                final KeyStoreFactory keyStoreFactory = new KeyStoreFactory();
+                keyStoreFactory.setDataFile(keyStore);
+                keyStoreFactory.setPassword(keystorePassword);
 
-				final KeyStoreFactory trustStoreFactory = new KeyStoreFactory();
-				trustStoreFactory.setDataFile(trustStore);
-				trustStoreFactory.setPassword(truststorePassword);
+                final KeyStoreFactory trustStoreFactory = new KeyStoreFactory();
+                trustStoreFactory.setDataFile(trustStore);
+                trustStoreFactory.setPassword(truststorePassword);
 
-				final SslContextFactory sslContextFactory = new SslContextFactory();
-				//sslContextFactory.setProtocol("TLS");
+                final SslContextFactory sslContextFactory = new SslContextFactory();
+                //sslContextFactory.setProtocol("TLS");
 
-				final KeyStore ks = keyStoreFactory.newInstance();
-				sslContextFactory.setKeyManagerFactoryKeyStore(ks);
+                final KeyStore ks = keyStoreFactory.newInstance();
+                sslContextFactory.setKeyManagerFactoryKeyStore(ks);
 
-				final KeyStore ts = trustStoreFactory.newInstance();
-				sslContextFactory.setTrustManagerFactoryKeyStore(ts);
-				sslContextFactory.setKeyManagerFactoryKeyStorePassword(keystorePassword);
+                final KeyStore ts = trustStoreFactory.newInstance();
+                sslContextFactory.setTrustManagerFactoryKeyStore(ts);
+                sslContextFactory.setKeyManagerFactoryKeyStorePassword(keystorePassword);
 
-				sslContext = sslContextFactory.newInstance();
-				log.debug("SSL provider is: {}", sslContext.getProvider());
+                sslContext = sslContextFactory.newInstance();
+                log.debug("SSL provider is: {}", sslContext.getProvider());
 
-				SSLParameters params = sslContext.getDefaultSSLParameters();
-				log.debug("SSL context params - need client auth: {} want client auth: {} endpoint id algorithm: {}", params.getNeedClientAuth(), params.getWantClientAuth(), params.getEndpointIdentificationAlgorithm());
-				String[] supportedProtocols = params.getProtocols();
-				for (String protocol : supportedProtocols) {
-					log.debug("SSL context supported protocol: {}", protocol);
-				}
-				// compatibility: remove the SSLv2Hello message in the available protocols - some systems will fail 
-				// to handshake if TSLv1 messages are enwrapped with SSLv2 messages, Java 6 tries to send TSLv1 embedded in SSLv2
-				
-			} else {
-				log.warn("Keystore or Truststore file does not exist");
-			}
-		} catch (Exception ex) {
-			log.error("Exception getting SSL context", ex);
-		}
-		// create the ssl filter using server mode
-		SslFilter sslFilter = new SslFilter(sslContext);
-		sslFilter.setUseClientMode(useClientMode);
-		sslFilter.setNeedClientAuth(needClientAuth);
-		sslFilter.setWantClientAuth(wantClientAuth);
-		if (cipherSuites != null) {
-			sslFilter.setEnabledCipherSuites(cipherSuites);
-		}
-		if (protocols != null) {
-			if (log.isDebugEnabled()) {
-				log.debug("Using these protocols: {}", Arrays.toString(protocols));
-			}
-			sslFilter.setEnabledProtocols(protocols);
-		}
-		// add rtmpe filter after ssl
-		session.getFilterChain().addBefore("rtmpeFilter", "sslFilter", sslFilter);
-		session.setAttribute(SslFilter.USE_NOTIFICATION, Boolean.TRUE);
-		log.debug("isSslStarted:", sslFilter.isSslStarted(session));
-		super.sessionOpened(session);
-	}
+                SSLParameters params = sslContext.getDefaultSSLParameters();
+                log.debug("SSL context params - need client auth: {} want client auth: {} endpoint id algorithm: {}", params.getNeedClientAuth(), params.getWantClientAuth(), params.getEndpointIdentificationAlgorithm());
+                String[] supportedProtocols = params.getProtocols();
+                for (String protocol : supportedProtocols) {
+                    log.debug("SSL context supported protocol: {}", protocol);
+                }
+                // compatibility: remove the SSLv2Hello message in the available protocols - some systems will fail 
+                // to handshake if TSLv1 messages are enwrapped with SSLv2 messages, Java 6 tries to send TSLv1 embedded in SSLv2
 
-	@Override
-	public void messageReceived(IoSession session, Object message) throws Exception {
-		if (message instanceof SslFilterMessage) {
-			String state = message.toString();
-			log.debug("RTMPS state: {}", state);
-			session.setAttribute("rtmps.state", state);
-		} else {
-			super.messageReceived(session, message);
-		}
-	}
+            } else {
+                log.warn("Keystore or Truststore file does not exist");
+            }
+        } catch (Exception ex) {
+            log.error("Exception getting SSL context", ex);
+        }
+        // create the ssl filter using server mode
+        SslFilter sslFilter = new SslFilter(sslContext);
+        sslFilter.setUseClientMode(useClientMode);
+        sslFilter.setNeedClientAuth(needClientAuth);
+        sslFilter.setWantClientAuth(wantClientAuth);
+        if (cipherSuites != null) {
+            sslFilter.setEnabledCipherSuites(cipherSuites);
+        }
+        if (protocols != null) {
+            if (log.isDebugEnabled()) {
+                log.debug("Using these protocols: {}", Arrays.toString(protocols));
+            }
+            sslFilter.setEnabledProtocols(protocols);
+        }
+        // add rtmpe filter after ssl
+        session.getFilterChain().addBefore("rtmpeFilter", "sslFilter", sslFilter);
+        session.setAttribute(SslFilter.USE_NOTIFICATION, Boolean.TRUE);
+        log.debug("isSslStarted:", sslFilter.isSslStarted(session));
+        super.sessionOpened(session);
+    }
 
-	/**
-	 * Password used to access the keystore file.
-	 * 
-	 * @param password
-	 *            keystore password
-	 */
-	public void setKeystorePassword(String password) {
-		this.keystorePassword = password;
-	}
+    @Override
+    public void messageReceived(IoSession session, Object message) throws Exception {
+        if (message instanceof SslFilterMessage) {
+            String state = message.toString();
+            log.debug("RTMPS state: {}", state);
+            session.setAttribute("rtmps.state", state);
+        } else {
+            super.messageReceived(session, message);
+        }
+    }
 
-	/**
-	 * Password used to access the truststore file.
-	 * 
-	 * @param password
-	 *            truststore password
-	 */
-	public void setTruststorePassword(String password) {
-		this.truststorePassword = password;
-	}
+    /**
+     * Password used to access the keystore file.
+     * 
+     * @param password
+     *            keystore password
+     */
+    public void setKeystorePassword(String password) {
+        this.keystorePassword = password;
+    }
 
-	/**
-	 * Set keystore data from a file.
-	 * 
-	 * @param path
-	 *            contains keystore
-	 */
-	public void setKeystoreFile(String path) {
-		this.keystoreFile = path;
-	}
+    /**
+     * Password used to access the truststore file.
+     * 
+     * @param password
+     *            truststore password
+     */
+    public void setTruststorePassword(String password) {
+        this.truststorePassword = password;
+    }
 
-	/**
-	 * Set truststore file path.
-	 * 
-	 * @param path
-	 *            contains truststore
-	 */
-	public void setTruststoreFile(String path) {
-		this.truststoreFile = path;
-	}
+    /**
+     * Set keystore data from a file.
+     * 
+     * @param path
+     *            contains keystore
+     */
+    public void setKeystoreFile(String path) {
+        this.keystoreFile = path;
+    }
 
-	public String[] getCipherSuites() {
-		return cipherSuites;
-	}
+    /**
+     * Set truststore file path.
+     * 
+     * @param path
+     *            contains truststore
+     */
+    public void setTruststoreFile(String path) {
+        this.truststoreFile = path;
+    }
 
-	public void setCipherSuites(String[] cipherSuites) {
-		this.cipherSuites = cipherSuites;
-	}
+    public String[] getCipherSuites() {
+        return cipherSuites;
+    }
 
-	public String[] getProtocols() {
-		return protocols;
-	}
+    public void setCipherSuites(String[] cipherSuites) {
+        this.cipherSuites = cipherSuites;
+    }
 
-	public void setProtocols(String[] protocols) {
-		this.protocols = protocols;
-	}
+    public String[] getProtocols() {
+        return protocols;
+    }
 
-	public void setUseClientMode(boolean useClientMode) {
-		this.useClientMode = useClientMode;
-	}
+    public void setProtocols(String[] protocols) {
+        this.protocols = protocols;
+    }
 
-	public void setNeedClientAuth(boolean needClientAuth) {
-		this.needClientAuth = needClientAuth;
-	}
+    public void setUseClientMode(boolean useClientMode) {
+        this.useClientMode = useClientMode;
+    }
 
-	public void setWantClientAuth(boolean wantClientAuth) {
-		this.wantClientAuth = wantClientAuth;
-	}
+    public void setNeedClientAuth(boolean needClientAuth) {
+        this.needClientAuth = needClientAuth;
+    }
+
+    public void setWantClientAuth(boolean wantClientAuth) {
+        this.wantClientAuth = wantClientAuth;
+    }
 
 }

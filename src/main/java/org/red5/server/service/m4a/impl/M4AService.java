@@ -27,8 +27,7 @@ import org.red5.server.service.BaseStreamableFileService;
 import org.red5.server.service.m4a.IM4AService;
 
 /**
- * A M4AServiceImpl sets up the service and hands out M4A objects to 
- * its callers.
+ * A M4AServiceImpl sets up the service and hands out M4A objects to its callers.
  * 
  * @author The Red5 Project
  * @author Paul Gregoire, (mondain@gmail.com)
@@ -36,42 +35,42 @@ import org.red5.server.service.m4a.IM4AService;
 public class M4AService extends BaseStreamableFileService implements IM4AService {
 
     /**
-     * File extensions handled by this service. If there are more than one, they
-     * are comma separated.
+     * File extensions handled by this service. If there are more than one, they are comma separated.
      */
     private static String extension = ".f4a,.m4a,.aac";
-    
+
     private static String prefix = "f4a";
-    
-	/** {@inheritDoc} */
+
+    /** {@inheritDoc} */
     @Override
     public void setPrefix(String prefix) {
-    	M4AService.prefix = prefix;
-	}    
-    
-	/** {@inheritDoc} */
-    @Override
-	public String getPrefix() {
-		return prefix;
-	}
+        M4AService.prefix = prefix;
+    }
 
-	/** {@inheritDoc} */
+    /** {@inheritDoc} */
+    @Override
+    public String getPrefix() {
+        return prefix;
+    }
+
+    /** {@inheritDoc} */
     @Override
     public void setExtension(String extension) {
-    	M4AService.extension = extension;
-	}
-	
-	/** {@inheritDoc} */
-    @Override
-	public String getExtension() {
-		return extension;
-	}
+        M4AService.extension = extension;
+    }
 
-	/** {@inheritDoc}
-	 */
-	@Override
-	public IStreamableFile getStreamableFile(File file) throws IOException {
-		return new M4A(file);
-	}
+    /** {@inheritDoc} */
+    @Override
+    public String getExtension() {
+        return extension;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public IStreamableFile getStreamableFile(File file) throws IOException {
+        return new M4A(file);
+    }
 
 }

@@ -53,239 +53,248 @@ import org.springframework.web.context.support.WebApplicationContextUtils;
  */
 public class AMFGatewayServlet extends HttpServlet {
 
-	private static final long serialVersionUID = 7174018823796785619L;
+    private static final long serialVersionUID = 7174018823796785619L;
 
-	/**
-	 * Logger
-	 */
-	protected Logger log = Red5LoggerFactory.getLogger(AMFGatewayServlet.class);
+    /**
+     * Logger
+     */
+    protected Logger log = Red5LoggerFactory.getLogger(AMFGatewayServlet.class);
 
-	/**
-	 * AMF MIME type
-	 */
-	public static final String APPLICATION_AMF = "application/x-amf";
+    /**
+     * AMF MIME type
+     */
+    public static final String APPLICATION_AMF = "application/x-amf";
 
-	/**
-	 * Web app context
-	 */
-	protected transient WebApplicationContext webAppCtx;
+    /**
+     * Web app context
+     */
+    protected transient WebApplicationContext webAppCtx;
 
-	/**
-	 * Red5 server instance
-	 */
-	protected transient IServer server;
+    /**
+     * Red5 server instance
+     */
+    protected transient IServer server;
 
-	/**
-	 * Remoting codec factory
-	 */
-	protected transient RemotingCodecFactory codecFactory;
+    /**
+     * Remoting codec factory
+     */
+    protected transient RemotingCodecFactory codecFactory;
 
-	/**
-	 * Request attribute holding the Red5 connection object
-	 */
-	private static final String CONNECTION = "red5.remotingConnection";
+    /**
+     * Request attribute holding the Red5 connection object
+     */
+    private static final String CONNECTION = "red5.remotingConnection";
 
-	/** {@inheritDoc} */
-	@Override
-	public void init() throws ServletException {
-	}
+    /** {@inheritDoc} */
+    @Override
+    public void init() throws ServletException {
+    }
 
-	/** {@inheritDoc} */
-	@Override
-	public void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-		log.debug("Servicing Request");
-		if (codecFactory == null) {
-			ServletContext ctx = getServletContext();
-			log.debug("Context path: {}", ctx.getContextPath());
-			//attempt to lookup the webapp context		
-			webAppCtx = WebApplicationContextUtils.getRequiredWebApplicationContext(ctx);
-			//now try to look it up as an attribute
-			if (webAppCtx == null) {
-				log.debug("Webapp context was null, trying lookup as attr.");
-				webAppCtx = (WebApplicationContext) ctx.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
-			}
-			//lookup the server and codec factory
-			if (webAppCtx != null) {
-				server = (IServer) webAppCtx.getBean("red5.server");
-				codecFactory = (RemotingCodecFactory) webAppCtx.getBean("remotingCodecFactory");
-			} else {
-				log.debug("No web context");
-			}
-		}
-		log.debug("Remoting request {} {}", req.getContextPath(), req.getServletPath());
-		if (APPLICATION_AMF.equals(req.getContentType())) {
-			serviceAMF(req, resp);
-		} else {
-			resp.getWriter().write("Red5 : Remoting Gateway");
-		}
-	}
+    /** {@inheritDoc} */
+    @Override
+    public void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        log.debug("Servicing Request");
+        if (codecFactory == null) {
+            ServletContext ctx = getServletContext();
+            log.debug("Context path: {}", ctx.getContextPath());
+            //attempt to lookup the webapp context		
+            webAppCtx = WebApplicationContextUtils.getRequiredWebApplicationContext(ctx);
+            //now try to look it up as an attribute
+            if (webAppCtx == null) {
+                log.debug("Webapp context was null, trying lookup as attr.");
+                webAppCtx = (WebApplicationContext) ctx.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
+            }
+            //lookup the server and codec factory
+            if (webAppCtx != null) {
+                server = (IServer) webAppCtx.getBean("red5.server");
+                codecFactory = (RemotingCodecFactory) webAppCtx.getBean("remotingCodecFactory");
+            } else {
+                log.debug("No web context");
+            }
+        }
+        log.debug("Remoting request {} {}", req.getContextPath(), req.getServletPath());
+        if (APPLICATION_AMF.equals(req.getContentType())) {
+            serviceAMF(req, resp);
+        } else {
+            resp.getWriter().write("Red5 : Remoting Gateway");
+        }
+    }
 
-	/**
-	 * Return the global scope to use for the given request.
-	 * 
-	 * @param req http request
-	 * @return scope
-	 */
-	protected IGlobalScope getGlobalScope(HttpServletRequest req) {
-		String path = req.getContextPath() + req.getServletPath();
-		log.debug("getGlobalScope path: {}", path);
-		if (path.startsWith("/")) {
-			path = path.substring(1);
-		} else {
-			log.debug("Path length: {} Servlet name length: {}", path.length(), getServletName().length());
-			path = path.substring(0, path.length() - getServletName().length() - 1);
-		}
-		IGlobalScope global = server.lookupGlobal(req.getServerName(), path);
-		if (global == null) {
-			global = server.lookupGlobal(req.getLocalName(), path);
-			if (global == null) {
-				global = server.lookupGlobal(req.getLocalAddr(), path);
-			}
-		}
-		return global;
-	}
+    /**
+     * Return the global scope to use for the given request.
+     * 
+     * @param req
+     *            http request
+     * @return scope
+     */
+    protected IGlobalScope getGlobalScope(HttpServletRequest req) {
+        String path = req.getContextPath() + req.getServletPath();
+        log.debug("getGlobalScope path: {}", path);
+        if (path.startsWith("/")) {
+            path = path.substring(1);
+        } else {
+            log.debug("Path length: {} Servlet name length: {}", path.length(), getServletName().length());
+            path = path.substring(0, path.length() - getServletName().length() - 1);
+        }
+        IGlobalScope global = server.lookupGlobal(req.getServerName(), path);
+        if (global == null) {
+            global = server.lookupGlobal(req.getLocalName(), path);
+            if (global == null) {
+                global = server.lookupGlobal(req.getLocalAddr(), path);
+            }
+        }
+        return global;
+    }
 
-	/**
-	 * Works out AMF request
-	 * 
-	 * @param req
-	 *            Request
-	 * @param resp
-	 *            Response
-	 * @throws ServletException
-	 *             Servlet exception
-	 * @throws IOException
-	 *             I/O exception
-	 */
-	protected void serviceAMF(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-		log.debug("Servicing AMF");
-		IRemotingConnection conn = null;
-		try {
-			RemotingPacket packet = decodeRequest(req);
-			if (packet == null) {
-				log.error("Packet should not be null");
-				return;
-			}
-			// Provide a valid IConnection in the Red5 object
-			final IGlobalScope global = getGlobalScope(req);
-			final IContext context = global.getContext();
-			final IScope scope = context.resolveScope(global, packet.getScopePath());
-			conn = new RemotingConnection(req, scope, packet);
-			// Make sure the connection object isn't garbage collected
-			req.setAttribute(CONNECTION, conn);
-			// set thread local reference
-			Red5.setConnectionLocal(conn);
-			//fixed so that true is not returned for calls that have failed
-			boolean passed = handleRemotingPacket(req, context, scope, packet);
-			if (passed) {
-				resp.setStatus(HttpServletResponse.SC_OK);
-			} else {
-				log.warn("At least one invocation failed to execute");
-				resp.setStatus(HttpServletResponse.SC_EXPECTATION_FAILED);
-			}
-			//send our response
-			resp.setContentType(APPLICATION_AMF);
-			sendResponse(resp, packet);
-		} catch (Exception e) {
-			log.error("Error handling remoting call", e);
-			resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-		} finally {
-			//ensure the conn attr gets removed
-			req.removeAttribute(CONNECTION);
-			//unregister the remote connection client
-			if (conn != null) {
-				((RemotingConnection) conn).cleanup();
-			}
-			// clear thread local reference
-			Red5.setConnectionLocal(null);
-		}
-	}
+    /**
+     * Works out AMF request
+     * 
+     * @param req
+     *            Request
+     * @param resp
+     *            Response
+     * @throws ServletException
+     *             Servlet exception
+     * @throws IOException
+     *             I/O exception
+     */
+    protected void serviceAMF(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        log.debug("Servicing AMF");
+        IRemotingConnection conn = null;
+        try {
+            RemotingPacket packet = decodeRequest(req);
+            if (packet == null) {
+                log.error("Packet should not be null");
+                return;
+            }
+            // Provide a valid IConnection in the Red5 object
+            final IGlobalScope global = getGlobalScope(req);
+            final IContext context = global.getContext();
+            final IScope scope = context.resolveScope(global, packet.getScopePath());
+            conn = new RemotingConnection(req, scope, packet);
+            // Make sure the connection object isn't garbage collected
+            req.setAttribute(CONNECTION, conn);
+            // set thread local reference
+            Red5.setConnectionLocal(conn);
+            //fixed so that true is not returned for calls that have failed
+            boolean passed = handleRemotingPacket(req, context, scope, packet);
+            if (passed) {
+                resp.setStatus(HttpServletResponse.SC_OK);
+            } else {
+                log.warn("At least one invocation failed to execute");
+                resp.setStatus(HttpServletResponse.SC_EXPECTATION_FAILED);
+            }
+            //send our response
+            resp.setContentType(APPLICATION_AMF);
+            sendResponse(resp, packet);
+        } catch (Exception e) {
+            log.error("Error handling remoting call", e);
+            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        } finally {
+            //ensure the conn attr gets removed
+            req.removeAttribute(CONNECTION);
+            //unregister the remote connection client
+            if (conn != null) {
+                ((RemotingConnection) conn).cleanup();
+            }
+            // clear thread local reference
+            Red5.setConnectionLocal(null);
+        }
+    }
 
-	/**
-	 * Decode request
-	 * 
-	 * @param req
-	 *            Request
-	 * @return Remoting packet
-	 * @throws Exception
-	 *             General exception
-	 */
-	protected RemotingPacket decodeRequest(HttpServletRequest req) throws Exception {
-		log.debug("Decoding request");
-		IoBuffer reqBuffer = IoBuffer.allocate(req.getContentLength());
-		ServletUtils.copy(req, reqBuffer.asOutputStream());
-		reqBuffer.flip();
-		RemotingPacket packet = (RemotingPacket) codecFactory.getRemotingDecoder().decode(reqBuffer);
-		String path = req.getContextPath();
-		if (path == null) {
-			path = "";
-		}
-		if (req.getPathInfo() != null) {
-			path += req.getPathInfo();
-		}
-		// check for header path, this is used by the AMF tunnel servlet
-		String headerPath = req.getHeader("Tunnel-request");
-		// it is only used if the path is set to root
-		if (headerPath != null && path.length() < 1) {
-			path = headerPath;
-		}
-		if (path.length() > 0 && path.charAt(0) == '/') {
-			path = path.substring(1);
-		}
-		log.debug("Path: {} Scope path: {}", path, packet.getScopePath());
-		packet.setScopePath(path);
-		reqBuffer.free();
-		reqBuffer = null;
-		return packet;
-	}
+    /**
+     * Decode request
+     * 
+     * @param req
+     *            Request
+     * @return Remoting packet
+     * @throws Exception
+     *             General exception
+     */
+    protected RemotingPacket decodeRequest(HttpServletRequest req) throws Exception {
+        log.debug("Decoding request");
+        IoBuffer reqBuffer = IoBuffer.allocate(req.getContentLength());
+        ServletUtils.copy(req, reqBuffer.asOutputStream());
+        reqBuffer.flip();
+        RemotingPacket packet = (RemotingPacket) codecFactory.getRemotingDecoder().decode(reqBuffer);
+        String path = req.getContextPath();
+        if (path == null) {
+            path = "";
+        }
+        if (req.getPathInfo() != null) {
+            path += req.getPathInfo();
+        }
+        // check for header path, this is used by the AMF tunnel servlet
+        String headerPath = req.getHeader("Tunnel-request");
+        // it is only used if the path is set to root
+        if (headerPath != null && path.length() < 1) {
+            path = headerPath;
+        }
+        if (path.length() > 0 && path.charAt(0) == '/') {
+            path = path.substring(1);
+        }
+        log.debug("Path: {} Scope path: {}", path, packet.getScopePath());
+        packet.setScopePath(path);
+        reqBuffer.free();
+        reqBuffer = null;
+        return packet;
+    }
 
-	/**
-	 * Handles AMF request by making calls
-	 * 
-	 * @param req Request
-	 * @param context context
-	 * @param scope scope
-	 * @param message Remoting packet
-	 * @return <pre>true</pre> on success
-	 */
-	protected boolean handleRemotingPacket(HttpServletRequest req, IContext context, IScope scope, RemotingPacket message) {
-		log.debug("Handling remoting packet");
-		boolean result = true;
-		final IServiceInvoker invoker = context.getServiceInvoker();
-		for (RemotingCall call : message.getCalls()) {
-			result = invoker.invoke(call, scope);
-			//if we encounter a failure break out
-			if (!result) {
-				break;
-			}
-		}
-		return result;
-	}
+    /**
+     * Handles AMF request by making calls
+     * 
+     * @param req
+     *            Request
+     * @param context
+     *            context
+     * @param scope
+     *            scope
+     * @param message
+     *            Remoting packet
+     * @return <pre>
+     * true
+     * </pre>
+     * 
+     *         on success
+     */
+    protected boolean handleRemotingPacket(HttpServletRequest req, IContext context, IScope scope, RemotingPacket message) {
+        log.debug("Handling remoting packet");
+        boolean result = true;
+        final IServiceInvoker invoker = context.getServiceInvoker();
+        for (RemotingCall call : message.getCalls()) {
+            result = invoker.invoke(call, scope);
+            //if we encounter a failure break out
+            if (!result) {
+                break;
+            }
+        }
+        return result;
+    }
 
-	/**
-	 * Sends response to client
-	 * 
-	 * @param resp
-	 *            Response
-	 * @param packet
-	 *            Remoting packet
-	 * @throws Exception
-	 *             General exception
-	 */
-	protected void sendResponse(HttpServletResponse resp, RemotingPacket packet) throws Exception {
-		log.debug("Sending response");
-		IoBuffer respBuffer = codecFactory.getRemotingEncoder().encode(packet);
-		if (respBuffer != null) {
-			final ServletOutputStream out = resp.getOutputStream();
-			resp.setContentLength(respBuffer.limit());
-			ServletUtils.copy(respBuffer.asInputStream(), out);
-			out.flush();
-			out.close();
-			respBuffer.free();
-			respBuffer = null;
-		} else {
-			log.info("Response buffer was null after encoding");
-		}
-	}
+    /**
+     * Sends response to client
+     * 
+     * @param resp
+     *            Response
+     * @param packet
+     *            Remoting packet
+     * @throws Exception
+     *             General exception
+     */
+    protected void sendResponse(HttpServletResponse resp, RemotingPacket packet) throws Exception {
+        log.debug("Sending response");
+        IoBuffer respBuffer = codecFactory.getRemotingEncoder().encode(packet);
+        if (respBuffer != null) {
+            final ServletOutputStream out = resp.getOutputStream();
+            resp.setContentLength(respBuffer.limit());
+            ServletUtils.copy(respBuffer.asInputStream(), out);
+            out.flush();
+            out.close();
+            respBuffer.free();
+            respBuffer = null;
+        } else {
+            log.info("Response buffer was null after encoding");
+        }
+    }
 
 }

@@ -32,14 +32,10 @@ import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 
 /**
- * {@link org.springframework.scripting.ScriptFactory} implementation
- * for a Groovy script.
+ * {@link org.springframework.scripting.ScriptFactory} implementation for a Groovy script.
  * 
- * <p>Typically used in combination with a
- * {@link org.springframework.scripting.support.ScriptFactoryPostProcessor};
- * see the latter's
- * {@link org.springframework.scripting.support.ScriptFactoryPostProcessor Javadoc}
- * for a configuration example.
+ * <p>
+ * Typically used in combination with a {@link org.springframework.scripting.support.ScriptFactoryPostProcessor}; see the latter's {@link org.springframework.scripting.support.ScriptFactoryPostProcessor Javadoc} for a configuration example.
  * 
  * @author Juergen Hoeller
  * @author Rob Harrop
@@ -49,190 +45,189 @@ import org.springframework.util.ClassUtils;
  */
 public class GroovyScriptFactory implements ScriptFactory, BeanClassLoaderAware {
 
-	private final String scriptSourceLocator;
-	
-	private final GroovyObjectCustomizer groovyObjectCustomizer;
+    private final String scriptSourceLocator;
 
-	private GroovyClassLoader groovyClassLoader = new GroovyClassLoader(ClassUtils.getDefaultClassLoader());
+    private final GroovyObjectCustomizer groovyObjectCustomizer;
 
-	private Class<?> scriptClass;
+    private GroovyClassLoader groovyClassLoader = new GroovyClassLoader(ClassUtils.getDefaultClassLoader());
 
-	private Class<?> scriptResultClass;
+    private Class<?> scriptClass;
 
-	private final Object scriptClassMonitor = new Object();
+    private Class<?> scriptResultClass;
 
-	@SuppressWarnings({ "rawtypes" })
-	private Class[] scriptInterfaces;
+    private final Object scriptClassMonitor = new Object();
 
-	/**
-	 * Create a new GroovyScriptFactory for the given script source.
-	 * <p>We don't need to specify script interfaces here, since
-	 * a Groovy script defines its Java interfaces itself.
-	 * @param scriptSourceLocator a locator that points to the source of the script.
-	 * Interpreted by the post-processor that actually creates the script.
-	 */
-	public GroovyScriptFactory(String scriptSourceLocator) {
-		Assert.hasText(scriptSourceLocator, "'scriptSourceLocator' must not be empty");
-		this.scriptSourceLocator = scriptSourceLocator;
-		this.groovyObjectCustomizer = null;
-//		this(scriptSourceLocator, null);
-	}
+    @SuppressWarnings({ "rawtypes" })
+    private Class[] scriptInterfaces;
 
-	/**
-	 * Create a new GroovyScriptFactory for the given script source,
-	 * specifying a strategy interface that can create a custom MetaClass
-	 * to supply missing methods and otherwise change the behavior of the object.
-	 * <p>We don't need to specify script interfaces here, since
-	 * a Groovy script defines its Java interfaces itself.
-	 * @param scriptSourceLocator a locator that points to the source of the script.
-	 * Interpreted by the post-processor that actually creates the script.
-	 * @param groovyObjectCustomizer a customizer that can set a custom metaclass
-	 * or make other changes to the GroovyObject created by this factory
-	 * (may be <pre>null</pre>)
-	 */
-	public GroovyScriptFactory(String scriptSourceLocator, GroovyObjectCustomizer groovyObjectCustomizer) {
-		Assert.hasText(scriptSourceLocator, "'scriptSourceLocator' must not be empty");
-		this.scriptSourceLocator = scriptSourceLocator;
-		this.groovyObjectCustomizer = groovyObjectCustomizer;
-	}
+    /**
+     * Create a new GroovyScriptFactory for the given script source.
+     * <p>
+     * We don't need to specify script interfaces here, since a Groovy script defines its Java interfaces itself.
+     * 
+     * @param scriptSourceLocator
+     *            a locator that points to the source of the script. Interpreted by the post-processor that actually creates the script.
+     */
+    public GroovyScriptFactory(String scriptSourceLocator) {
+        Assert.hasText(scriptSourceLocator, "'scriptSourceLocator' must not be empty");
+        this.scriptSourceLocator = scriptSourceLocator;
+        this.groovyObjectCustomizer = null;
+        //		this(scriptSourceLocator, null);
+    }
 
-	@SuppressWarnings({ "rawtypes" })
-	public GroovyScriptFactory(String scriptSourceLocator, Class[] scriptInterfaces) {
-		Assert.hasText(scriptSourceLocator, "'scriptSourceLocator' must not be empty");
-		this.scriptSourceLocator = scriptSourceLocator;
-		this.groovyObjectCustomizer = null;
-		//		this(scriptSourceLocator, null);
-		if (null == scriptInterfaces || scriptInterfaces.length < 1) {
-			this.scriptInterfaces = new Class[] {};
-		} else {
-			this.scriptInterfaces = scriptInterfaces;
-		}
-	}	
+    /**
+     * Create a new GroovyScriptFactory for the given script source, specifying a strategy interface that can create a custom MetaClass to supply missing methods and otherwise change the behavior of the object.
+     * <p>
+     * We don't need to specify script interfaces here, since a Groovy script defines its Java interfaces itself.
+     * 
+     * @param scriptSourceLocator
+     *            a locator that points to the source of the script. Interpreted by the post-processor that actually creates the script.
+     * @param groovyObjectCustomizer
+     *            a customizer that can set a custom metaclass or make other changes to the GroovyObject created by this factory (may be
+     * 
+     *            <pre>
+     * null
+     * </pre>
+     * 
+     *            )
+     */
+    public GroovyScriptFactory(String scriptSourceLocator, GroovyObjectCustomizer groovyObjectCustomizer) {
+        Assert.hasText(scriptSourceLocator, "'scriptSourceLocator' must not be empty");
+        this.scriptSourceLocator = scriptSourceLocator;
+        this.groovyObjectCustomizer = groovyObjectCustomizer;
+    }
 
-	public void setBeanClassLoader(ClassLoader classLoader) {
-		this.groovyClassLoader = new GroovyClassLoader(classLoader);
-	}
+    @SuppressWarnings({ "rawtypes" })
+    public GroovyScriptFactory(String scriptSourceLocator, Class[] scriptInterfaces) {
+        Assert.hasText(scriptSourceLocator, "'scriptSourceLocator' must not be empty");
+        this.scriptSourceLocator = scriptSourceLocator;
+        this.groovyObjectCustomizer = null;
+        //		this(scriptSourceLocator, null);
+        if (null == scriptInterfaces || scriptInterfaces.length < 1) {
+            this.scriptInterfaces = new Class[] {};
+        } else {
+            this.scriptInterfaces = scriptInterfaces;
+        }
+    }
 
-	public String getScriptSourceLocator() {
-		return this.scriptSourceLocator;
-	}
+    public void setBeanClassLoader(ClassLoader classLoader) {
+        this.groovyClassLoader = new GroovyClassLoader(classLoader);
+    }
 
-	/**
-	 * Groovy scripts determine their interfaces themselves,
-	 * hence we don't need to explicitly expose interfaces here.
-	 * @return <pre>null</pre> always
-	 */
-	@SuppressWarnings({ "rawtypes", "unchecked" })
-	public Class[] getScriptInterfaces() {
-		return scriptInterfaces;
-	}
+    public String getScriptSourceLocator() {
+        return this.scriptSourceLocator;
+    }
 
-	/**
-	 * Groovy scripts do not need a config interface,
-	 * since they expose their setters as public methods.
-	 */
-	public boolean requiresConfigInterface() {
-		return false;
-	}
+    /**
+     * Groovy scripts determine their interfaces themselves, hence we don't need to explicitly expose interfaces here.
+     * 
+     * @return <pre>
+     * null
+     * </pre>
+     * 
+     *         always
+     */
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    public Class[] getScriptInterfaces() {
+        return scriptInterfaces;
+    }
 
+    /**
+     * Groovy scripts do not need a config interface, since they expose their setters as public methods.
+     */
+    public boolean requiresConfigInterface() {
+        return false;
+    }
 
-	/**
-	 * Loads and parses the Groovy script via the GroovyClassLoader.
-	 * @see groovy.lang.GroovyClassLoader
-	 */
-	public Object getScriptedObject(ScriptSource scriptSource, Class<?>... actualInterfaces)
-			throws IOException, ScriptCompilationException {
+    /**
+     * Loads and parses the Groovy script via the GroovyClassLoader.
+     * 
+     * @see groovy.lang.GroovyClassLoader
+     */
+    public Object getScriptedObject(ScriptSource scriptSource, Class<?>... actualInterfaces) throws IOException, ScriptCompilationException {
 
-		try {
-			Class<?> scriptClassToExecute = null;
+        try {
+            Class<?> scriptClassToExecute = null;
 
-			synchronized (this.scriptClassMonitor) {
-				if (this.scriptClass == null || scriptSource.isModified()) {
-					this.scriptClass = this.groovyClassLoader.parseClass(scriptSource.getScriptAsString());
+            synchronized (this.scriptClassMonitor) {
+                if (this.scriptClass == null || scriptSource.isModified()) {
+                    this.scriptClass = this.groovyClassLoader.parseClass(scriptSource.getScriptAsString());
 
-					if (Script.class.isAssignableFrom(this.scriptClass)) {
-						// A Groovy script, probably creating an instance: let's execute it.
-						Object result = executeScript(this.scriptClass);
-						this.scriptResultClass = (result != null ? result.getClass() : null);
-						return result;
-					}
-					else {
-						this.scriptResultClass = this.scriptClass;
-					}
-				}
-				scriptClassToExecute = this.scriptClass;
-			}
+                    if (Script.class.isAssignableFrom(this.scriptClass)) {
+                        // A Groovy script, probably creating an instance: let's execute it.
+                        Object result = executeScript(this.scriptClass);
+                        this.scriptResultClass = (result != null ? result.getClass() : null);
+                        return result;
+                    } else {
+                        this.scriptResultClass = this.scriptClass;
+                    }
+                }
+                scriptClassToExecute = this.scriptClass;
+            }
 
-			// Process re-execution outside of the synchronized block.
-			return executeScript(scriptClassToExecute);
-		}
-		catch (CompilationFailedException ex) {
-			throw new ScriptCompilationException(
-					"Could not compile Groovy script: " + scriptSource, ex);
-		}
-	}
+            // Process re-execution outside of the synchronized block.
+            return executeScript(scriptClassToExecute);
+        } catch (CompilationFailedException ex) {
+            throw new ScriptCompilationException("Could not compile Groovy script: " + scriptSource, ex);
+        }
+    }
 
-	public Class<?> getScriptedObjectType(ScriptSource scriptSource)
-			throws IOException, ScriptCompilationException {
+    public Class<?> getScriptedObjectType(ScriptSource scriptSource) throws IOException, ScriptCompilationException {
 
-		synchronized (this.scriptClassMonitor) {
-			if (this.scriptClass == null || scriptSource.isModified()) {
-				this.scriptClass = this.groovyClassLoader.parseClass(scriptSource.getScriptAsString());
+        synchronized (this.scriptClassMonitor) {
+            if (this.scriptClass == null || scriptSource.isModified()) {
+                this.scriptClass = this.groovyClassLoader.parseClass(scriptSource.getScriptAsString());
 
-				if (Script.class.isAssignableFrom(this.scriptClass)) {
-					// A Groovy script, probably creating an instance: let's execute it.
-					Object result = executeScript(this.scriptClass);
-					this.scriptResultClass = (result != null ? result.getClass() : null);
-				}
-				else {
-					this.scriptResultClass = this.scriptClass;
-				}
-			}
-			return this.scriptResultClass;
-		}
-	}
+                if (Script.class.isAssignableFrom(this.scriptClass)) {
+                    // A Groovy script, probably creating an instance: let's execute it.
+                    Object result = executeScript(this.scriptClass);
+                    this.scriptResultClass = (result != null ? result.getClass() : null);
+                } else {
+                    this.scriptResultClass = this.scriptClass;
+                }
+            }
+            return this.scriptResultClass;
+        }
+    }
 
-	/**
-	 * Instantiate the given Groovy script class and run it if necessary.
-	 * @param scriptClass the Groovy script class
-	 * @return the result object (either an instance of the script class
-	 * or the result of running the script instance)
-	 * @throws ScriptCompilationException in case of instantiation failure
-	 */
-	protected Object executeScript(Class<?> scriptClass) throws ScriptCompilationException {
-		try {
-			GroovyObject goo = (GroovyObject) scriptClass.newInstance();
+    /**
+     * Instantiate the given Groovy script class and run it if necessary.
+     * 
+     * @param scriptClass
+     *            the Groovy script class
+     * @return the result object (either an instance of the script class or the result of running the script instance)
+     * @throws ScriptCompilationException
+     *             in case of instantiation failure
+     */
+    protected Object executeScript(Class<?> scriptClass) throws ScriptCompilationException {
+        try {
+            GroovyObject goo = (GroovyObject) scriptClass.newInstance();
 
-			if (this.groovyObjectCustomizer != null) {
-				// Allow metaclass and other customization.
-				this.groovyObjectCustomizer.customize(goo);
-			}
+            if (this.groovyObjectCustomizer != null) {
+                // Allow metaclass and other customization.
+                this.groovyObjectCustomizer.customize(goo);
+            }
 
-			if (goo instanceof Script) {
-				// A Groovy script, probably creating an instance: let's execute it.
-				return ((Script) goo).run();
-			}
-			else {
-				// An instance of the scripted class: let's return it as-is.
-				return goo;
-			}
-		}
-		catch (InstantiationException ex) {
-			throw new ScriptCompilationException(
-					"Could not instantiate Groovy script class: " + scriptClass.getName(), ex);
-		}
-		catch (IllegalAccessException ex) {
-			throw new ScriptCompilationException(
-					"Could not access Groovy script constructor: " + scriptClass.getName(), ex);
-		}
-	}
-	
-	public boolean requiresScriptedObjectRefresh(ScriptSource src) {
-		return false;
-	}
+            if (goo instanceof Script) {
+                // A Groovy script, probably creating an instance: let's execute it.
+                return ((Script) goo).run();
+            } else {
+                // An instance of the scripted class: let's return it as-is.
+                return goo;
+            }
+        } catch (InstantiationException ex) {
+            throw new ScriptCompilationException("Could not instantiate Groovy script class: " + scriptClass.getName(), ex);
+        } catch (IllegalAccessException ex) {
+            throw new ScriptCompilationException("Could not access Groovy script constructor: " + scriptClass.getName(), ex);
+        }
+    }
 
-	public String toString() {
-		return "GroovyScriptFactory: script source locator [" + this.scriptSourceLocator + "]";
-	}
+    public boolean requiresScriptedObjectRefresh(ScriptSource src) {
+        return false;
+    }
+
+    public String toString() {
+        return "GroovyScriptFactory: script source locator [" + this.scriptSourceLocator + "]";
+    }
 
 }

@@ -36,97 +36,100 @@ import org.slf4j.LoggerFactory;
  * Represents stream source that is file
  */
 public class FileStreamSource implements ISeekableStreamSource, Constants {
-	/**
-	 * Logger
-	 */
-	protected static Logger log = LoggerFactory.getLogger(FileStreamSource.class);
+    /**
+     * Logger
+     */
+    protected static Logger log = LoggerFactory.getLogger(FileStreamSource.class);
 
-	/**
-	 * Tag reader
-	 */
-	private ITagReader reader;
+    /**
+     * Tag reader
+     */
+    private ITagReader reader;
 
-	/**
-	 * Key frame metadata
-	 */
-	private KeyFrameMeta keyFrameMeta;
+    /**
+     * Key frame metadata
+     */
+    private KeyFrameMeta keyFrameMeta;
 
-	/**
-	 * Creates file stream source with tag reader
-	 * @param reader    Tag reader
-	 */
-	public FileStreamSource(ITagReader reader) {
-		this.reader = reader;
-	}
+    /**
+     * Creates file stream source with tag reader
+     * 
+     * @param reader
+     *            Tag reader
+     */
+    public FileStreamSource(ITagReader reader) {
+        this.reader = reader;
+    }
 
-	/**
-	 * Closes tag reader
-	 */
-	public void close() {
-		reader.close();
-	}
+    /**
+     * Closes tag reader
+     */
+    public void close() {
+        reader.close();
+    }
 
-	/**
-	 * Get tag from queue and convert to message
-	 * @return  RTMP event
-	 */
-	public IRTMPEvent dequeue() {
-		if (reader.hasMoreTags()) {
-			ITag tag = reader.readTag();
-			IRTMPEvent msg;
-			switch (tag.getDataType()) {
-				case TYPE_AUDIO_DATA:
-					msg = new AudioData(tag.getBody());
-					break;
-				case TYPE_VIDEO_DATA:
-					msg = new VideoData(tag.getBody());
-					break;
-				case TYPE_INVOKE:
-					msg = new Invoke(tag.getBody());
-					break;
-				case TYPE_NOTIFY:
-					msg = new Notify(tag.getBody());
-					break;
-				default:
-					log.warn("Unexpected type? {}", tag.getDataType());
-					msg = new Unknown(tag.getDataType(), tag.getBody());
-					break;
-			}
-			msg.setTimestamp(tag.getTimestamp());
-			//msg.setSealed(true);
-			return msg;
-		}
-		return null;
-	}
+    /**
+     * Get tag from queue and convert to message
+     * 
+     * @return RTMP event
+     */
+    public IRTMPEvent dequeue() {
+        if (reader.hasMoreTags()) {
+            ITag tag = reader.readTag();
+            IRTMPEvent msg;
+            switch (tag.getDataType()) {
+                case TYPE_AUDIO_DATA:
+                    msg = new AudioData(tag.getBody());
+                    break;
+                case TYPE_VIDEO_DATA:
+                    msg = new VideoData(tag.getBody());
+                    break;
+                case TYPE_INVOKE:
+                    msg = new Invoke(tag.getBody());
+                    break;
+                case TYPE_NOTIFY:
+                    msg = new Notify(tag.getBody());
+                    break;
+                default:
+                    log.warn("Unexpected type? {}", tag.getDataType());
+                    msg = new Unknown(tag.getDataType(), tag.getBody());
+                    break;
+            }
+            msg.setTimestamp(tag.getTimestamp());
+            //msg.setSealed(true);
+            return msg;
+        }
+        return null;
+    }
 
-	/** {@inheritDoc} */
-	public boolean hasMore() {
-		return reader.hasMoreTags();
-	}
+    /** {@inheritDoc} */
+    public boolean hasMore() {
+        return reader.hasMoreTags();
+    }
 
-	/** {@inheritDoc} */
-	public int seek(int ts) {
-		log.trace("Seek ts: {}", ts);
-		if (keyFrameMeta == null) {
-			if (!(reader instanceof IKeyFrameDataAnalyzer)) {
-				// Seeking not supported
-				return ts;
-			}
-			keyFrameMeta = ((IKeyFrameDataAnalyzer) reader).analyzeKeyFrames();
-		}
-		if (keyFrameMeta.positions.length == 0) {
-			// no video keyframe metainfo, it's an audio-only FLV we skip the seek for now.
-			// TODO add audio-seek capability
-			return ts;
-		}
-		int frame = 0;
-		for (int i = 0; i < keyFrameMeta.positions.length; i++) {
-			if (keyFrameMeta.timestamps[i] > ts) {
-				break;
-			}
-			frame = i;
-		}
-		reader.position(keyFrameMeta.positions[frame]);
-		return keyFrameMeta.timestamps[frame];
-	}
+    /** {@inheritDoc} */
+    public int seek(int ts) {
+        log.trace("Seek ts: {}", ts);
+        if (keyFrameMeta == null) {
+            if (!(reader instanceof IKeyFrameDataAnalyzer)) {
+                // Seeking not supported
+                return ts;
+            }
+            keyFrameMeta = ((IKeyFrameDataAnalyzer) reader).analyzeKeyFrames();
+        }
+        if (keyFrameMeta.positions.length == 0) {
+            // no video keyframe metainfo, it's an audio-only FLV we skip the seek for now.
+            // TODO add audio-seek capability
+            return ts;
+        }
+        int frame = 0;
+        for (int i = 0; i < keyFrameMeta.positions.length; i++) {
+            if (keyFrameMeta.timestamps[i] > ts) {
+                break;
+            }
+            frame = i;
+        }
+        reader.position(keyFrameMeta.positions[frame]);
+        return keyFrameMeta.timestamps[frame];
+    }
 }

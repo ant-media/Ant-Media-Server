@@ -34,26 +34,26 @@ public class ConnectionProvider implements IProvider, IPipeConnectionListener {
      */
     private IPipe pipe;
 
-	/** {@inheritDoc} */
-	public void onOOBControlMessage(IMessageComponent source, IPipe pipe, OOBControlMessage oobCtrlMsg) {
-	}
+    /** {@inheritDoc} */
+    public void onOOBControlMessage(IMessageComponent source, IPipe pipe, OOBControlMessage oobCtrlMsg) {
+    }
 
-	/** {@inheritDoc} */
+    /** {@inheritDoc} */
     public void onPipeConnectionEvent(PipeConnectionEvent event) {
-		switch (event.getType()) {
-			case PipeConnectionEvent.PROVIDER_CONNECT_PUSH:
-				if (event.getProvider() == this) {
-					this.pipe = (IPipe) event.getSource();
-				}
-				break;
-			case PipeConnectionEvent.PROVIDER_DISCONNECT:
-				if (this.pipe == event.getSource()) {
-					this.pipe = null;
-				}
-				break;
-			default:
-				break;
-		}
-	}
+        switch (event.getType()) {
+            case PipeConnectionEvent.PROVIDER_CONNECT_PUSH:
+                if (event.getProvider() == this) {
+                    this.pipe = (IPipe) event.getSource();
+                }
+                break;
+            case PipeConnectionEvent.PROVIDER_DISCONNECT:
+                if (this.pipe == event.getSource()) {
+                    this.pipe = null;
+                }
+                break;
+            default:
+                break;
+        }
+    }
 
 }

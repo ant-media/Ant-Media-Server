@@ -31,63 +31,65 @@ public class ProxyFilter extends IoFilterAdapter {
     /**
      * Forwarding key constant
      */
-	public static final String FORWARD_KEY = "proxy_forward_key";
+    public static final String FORWARD_KEY = "proxy_forward_key";
+
     /**
      * Logger
      */
-	protected static Logger log = LoggerFactory.getLogger(ProxyFilter.class);
+    protected static Logger log = LoggerFactory.getLogger(ProxyFilter.class);
+
     /**
      * Filter name
      */
-	protected String name;
+    protected String name;
 
     /**
      * Create proxy filter with given name
-     * @param name name
+     * 
+     * @param name
+     *            name
      */
-	public ProxyFilter(String name) {
-		this.name = name;
-	}
+    public ProxyFilter(String name) {
+        this.name = name;
+    }
 
-	/** {@inheritDoc} */
+    /** {@inheritDoc} */
     @Override
-	public void messageReceived(NextFilter next, IoSession session,
-			Object message) throws Exception {
+    public void messageReceived(NextFilter next, IoSession session, Object message) throws Exception {
         // Create forwarding IO session
         IoSession forward = (IoSession) session.getAttribute(FORWARD_KEY);
-		if (forward != null && forward.isConnected()) {
+        if (forward != null && forward.isConnected()) {
 
-			if (message instanceof IoBuffer) {
-				final IoBuffer buf = (IoBuffer) message;
-				if (log.isDebugEnabled()) {
-					log.debug("[{}] RAW >> {}", name, buf.getHexDump());
-				}
-				IoBuffer copy = IoBuffer.allocate(buf.limit());
-				int limit = buf.limit();
-				copy.put(buf);
-				copy.flip();
-				forward.write(copy);
-				buf.flip();
-				buf.position(0);
-				buf.limit(limit);
-			}
+            if (message instanceof IoBuffer) {
+                final IoBuffer buf = (IoBuffer) message;
+                if (log.isDebugEnabled()) {
+                    log.debug("[{}] RAW >> {}", name, buf.getHexDump());
+                }
+                IoBuffer copy = IoBuffer.allocate(buf.limit());
+                int limit = buf.limit();
+                copy.put(buf);
+                copy.flip();
+                forward.write(copy);
+                buf.flip();
+                buf.position(0);
+                buf.limit(limit);
+            }
 
-		}
-		next.messageReceived(session, message);
-	}
+        }
+        next.messageReceived(session, message);
+    }
 
-	/** {@inheritDoc} */
+    /** {@inheritDoc} */
     @Override
-	public void sessionClosed(NextFilter next, IoSession session)
-			throws Exception {
-		IoSession forward = (IoSession) session.getAttribute(FORWARD_KEY);
-		if (forward != null && forward.isConnected() && !forward.isClosing()) {
-			if (log.isDebugEnabled()) {
-				log.debug("[{}] Closing: {}", name, forward);
-			}
-			forward.close(true);
-		}
-		next.sessionClosed(session);
-	}
+    public void sessionClosed(NextFilter next, IoSession session) throws Exception {
+        IoSession forward = (IoSession) session.getAttribute(FORWARD_KEY);
+        if (forward != null && forward.isConnected() && !forward.isClosing()) {
+            if (log.isDebugEnabled()) {
+                log.debug("[{}] Closing: {}", name, forward);
+            }
+            forward.close(true);
+        }
+        next.sessionClosed(session);
+    }
 
 }

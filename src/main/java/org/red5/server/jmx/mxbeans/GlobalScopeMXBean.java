@@ -29,6 +29,6 @@ import javax.management.MXBean;
 @MXBean
 public interface GlobalScopeMXBean extends ScopeMXBean {
 
-	public void register();
-	
+    public void register();
+
 }

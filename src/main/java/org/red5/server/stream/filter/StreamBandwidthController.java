@@ -33,108 +33,108 @@ import org.slf4j.LoggerFactory;
  */
 public class StreamBandwidthController implements IFilter, IPipeConnectionListener, Runnable {
 
-	/**
-	 * Logger
-	 */
-	private static final Logger log = LoggerFactory.getLogger(StreamBandwidthController.class);
+    /**
+     * Logger
+     */
+    private static final Logger log = LoggerFactory.getLogger(StreamBandwidthController.class);
 
-	/**
-	 * Class name
-	 */
-	public static final String KEY = StreamBandwidthController.class.getName();
+    /**
+     * Class name
+     */
+    public static final String KEY = StreamBandwidthController.class.getName();
 
-	/**
-	 * Stream provider pipe
-	 */
-	private IPipe providerPipe;
+    /**
+     * Stream provider pipe
+     */
+    private IPipe providerPipe;
 
-	/**
-	 * Stream consumer pipe
-	 */
-	private IPipe consumerPipe;
+    /**
+     * Stream consumer pipe
+     */
+    private IPipe consumerPipe;
 
-	/**
-	 * Daemon thread that pulls data from provider and pushes to consumer, using this controller
-	 */
-	private Thread puller;
+    /**
+     * Daemon thread that pulls data from provider and pushes to consumer, using this controller
+     */
+    private Thread puller;
 
-	/**
-	 * Start state
-	 */
-	private volatile boolean isStarted;
+    /**
+     * Start state
+     */
+    private volatile boolean isStarted;
 
-	/** {@inheritDoc} */
-	public void onPipeConnectionEvent(PipeConnectionEvent event) {
-		switch (event.getType()) {
-			case PipeConnectionEvent.PROVIDER_CONNECT_PULL:
-				if (event.getProvider() != this && providerPipe == null) {
-					providerPipe = (IPipe) event.getSource();
-				}
-				break;
-			case PipeConnectionEvent.PROVIDER_DISCONNECT:
-				if (event.getSource() == providerPipe) {
-					providerPipe = null;
-				}
-				break;
-			case PipeConnectionEvent.CONSUMER_CONNECT_PUSH:
-				if (event.getConsumer() != this && consumerPipe == null) {
-					consumerPipe = (IPipe) event.getSource();
-				}
-				break;
-			case PipeConnectionEvent.CONSUMER_DISCONNECT:
-				if (event.getSource() == consumerPipe) {
-					consumerPipe = null;
-				}
-				break;
-			default:
-				break;
-		}
-	}
+    /** {@inheritDoc} */
+    public void onPipeConnectionEvent(PipeConnectionEvent event) {
+        switch (event.getType()) {
+            case PipeConnectionEvent.PROVIDER_CONNECT_PULL:
+                if (event.getProvider() != this && providerPipe == null) {
+                    providerPipe = (IPipe) event.getSource();
+                }
+                break;
+            case PipeConnectionEvent.PROVIDER_DISCONNECT:
+                if (event.getSource() == providerPipe) {
+                    providerPipe = null;
+                }
+                break;
+            case PipeConnectionEvent.CONSUMER_CONNECT_PUSH:
+                if (event.getConsumer() != this && consumerPipe == null) {
+                    consumerPipe = (IPipe) event.getSource();
+                }
+                break;
+            case PipeConnectionEvent.CONSUMER_DISCONNECT:
+                if (event.getSource() == consumerPipe) {
+                    consumerPipe = null;
+                }
+                break;
+            default:
+                break;
+        }
+    }
 
-	/** {@inheritDoc} */
-	public void onOOBControlMessage(IMessageComponent source, IPipe pipe, OOBControlMessage oobCtrlMsg) {
-	}
+    /** {@inheritDoc} */
+    public void onOOBControlMessage(IMessageComponent source, IPipe pipe, OOBControlMessage oobCtrlMsg) {
+    }
 
-	/** {@inheritDoc} */
-	public void run() {
-		while (isStarted && providerPipe != null && consumerPipe != null) {
-			try {
-				IMessage message = providerPipe.pullMessage();
-				if (log.isDebugEnabled()) {
-					log.debug("got message: {}", message);
-				}
-				consumerPipe.pushMessage(message);
-			} catch (Exception e) {
-				log.warn("Exception in pull and push", e);
-				break;
-			}
-		}
-		isStarted = false;
-	}
+    /** {@inheritDoc} */
+    public void run() {
+        while (isStarted && providerPipe != null && consumerPipe != null) {
+            try {
+                IMessage message = providerPipe.pullMessage();
+                if (log.isDebugEnabled()) {
+                    log.debug("got message: {}", message);
+                }
+                consumerPipe.pushMessage(message);
+            } catch (Exception e) {
+                log.warn("Exception in pull and push", e);
+                break;
+            }
+        }
+        isStarted = false;
+    }
 
-	/**
-	 * Start pulling (streaming)
-	 */
-	public void start() {
-		startThread();
-	}
+    /**
+     * Start pulling (streaming)
+     */
+    public void start() {
+        startThread();
+    }
 
-	/**
-	 * Stop pulling, close stream
-	 */
-	public void close() {
-		isStarted = false;
-	}
+    /**
+     * Stop pulling, close stream
+     */
+    public void close() {
+        isStarted = false;
+    }
 
-	/**
-	 * Start puller thread
-	 */
-	private void startThread() {
-		if (!isStarted && providerPipe != null && consumerPipe != null) {
-			puller = new Thread(this, KEY);
-			puller.setDaemon(true);
-			isStarted = true;
-			puller.start();
-		}
-	}
+    /**
+     * Start puller thread
+     */
+    private void startThread() {
+        if (!isStarted && providerPipe != null && consumerPipe != null) {
+            puller = new Thread(this, KEY);
+            puller.setDaemon(true);
+            isStarted = true;
+            puller.start();
+        }
+    }
 }
