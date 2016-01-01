@@ -40,6 +40,9 @@ Current version is <b>1.0.6-RELEASE</b>
 
 [Previous releases](https://github.com/Red5/red5-server/blob/master/README.md#previous-releases)
 
+##Chat Room
+[Gitter](https://gitter.im/Red5?utm_source=share-link&utm_medium=link&utm_campaign=share-link)
+
 <i>Note on Bootstrap</i>
 
 The bootstrap and shutdown classes have been moved to the red5-service project; the dependency has been added to this projects pom.
