@@ -1,7 +1,7 @@
 /*
  * RED5 Open Source Flash Server - https://github.com/Red5/
  * 
- * Copyright 2006-2015 by respective authors (see below). All rights reserved.
+ * Copyright 2006-2016 by respective authors (see below). All rights reserved.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,8 @@ import org.red5.server.api.Red5;
 import org.slf4j.Logger;
 import org.slf4j.bridge.SLF4JBridgeHandler;
 import org.springframework.context.support.FileSystemXmlApplicationContext;
+
+import uk.org.lidalia.sysoutslf4j.context.SysOutOverSLF4J;
 
 /**
  * Launches Red5.
@@ -49,6 +51,8 @@ public class Launcher {
         System.out.printf("Root: %s\nDeploy type: %s\nLogback selector: %s\n", System.getProperty("red5.root"), System.getProperty("red5.deployment.type"), System.getProperty("logback.ContextSelector"));
         // install the slf4j bridge (mostly for JUL logging)
         SLF4JBridgeHandler.install();
+        // log stdout and stderr to slf4j
+        SysOutOverSLF4J.sendSystemOutAndErrToSLF4J();
         // we create the logger here so that it is instanced inside the expected classloader
         // check for the logback disable flag
         boolean useLogback = Boolean.valueOf(System.getProperty("useLogback", "true"));

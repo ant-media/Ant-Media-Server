@@ -1,7 +1,7 @@
 /*
  * RED5 Open Source Flash Server - https://github.com/Red5/
  * 
- * Copyright 2006-2015 by respective authors (see below). All rights reserved.
+ * Copyright 2006-2016 by respective authors (see below). All rights reserved.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,12 +28,21 @@ import java.util.Arrays;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLParameters;
 
+import org.apache.mina.core.buffer.IoBuffer;
+import org.apache.mina.core.filterchain.IoFilterChain;
 import org.apache.mina.core.session.IoSession;
+import org.apache.mina.filter.codec.ProtocolCodecFilter;
+import org.apache.mina.filter.logging.LoggingFilter;
 import org.apache.mina.filter.ssl.KeyStoreFactory;
 import org.apache.mina.filter.ssl.SslContextFactory;
 import org.apache.mina.filter.ssl.SslFilter;
 import org.apache.mina.filter.ssl.SslFilter.SslFilterMessage;
+import org.red5.server.net.rtmp.InboundHandshake;
+import org.red5.server.net.rtmp.RTMPConnection;
+import org.red5.server.net.rtmp.RTMPHandshake;
+import org.red5.server.net.rtmp.RTMPMinaConnection;
 import org.red5.server.net.rtmp.RTMPMinaIoHandler;
+import org.red5.server.net.rtmpe.RTMPEIoFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,14 +55,13 @@ import org.slf4j.LoggerFactory;
  * nc.connect("rtmps:\\localhost\app");
  * </pre>
  * 
- * Originally created by: Kevin Green
+ * https://issues.apache.org/jira/browse/DIRMINA-272
+ * https://issues.apache.org/jira/browse/DIRMINA-997
  * 
- * http://tomcat.apache.org/tomcat-6.0-doc/ssl-howto.html http://java.sun.com/j2se/1.5.0/docs/guide/security/CryptoSpec.html#AppA http://java.sun.com/j2se/1.5.0/docs/api/java/security/KeyStore.html http://tomcat.apache.org/tomcat-3.3-doc/tomcat-ssl-howto.html
- * 
- * Unexpected exception from SSLEngine.closeInbound() https://issues.apache.org/jira/browse/DIRMINA-272
- * 
- * Transport Layer Security (TLS) Renegotiation Issue http://www.oracle.com/technetwork/java/javase/documentation/tlsreadme2-176330.html Secure renegotiation https://jce.iaik.tugraz.at/sic/Products/Communication-Messaging-Security/iSaSiLk/documentation/Secure-Renegotiation Troubleshooting a HTTPS TLSv1 handshake http://integr8consulting.blogspot.com/2012/02/troubleshooting-https-tlsv1-handshake.html How to analyze
- * Java SSL errors http://www.smartjava.org/content/how-analyze-java-ssl-errors
+ * Transport Layer Security (TLS) Renegotiation Issue http://www.oracle.com/technetwork/java/javase/documentation/tlsreadme2-176330.html 
+ * Secure renegotiation https://jce.iaik.tugraz.at/sic/Products/Communication-Messaging-Security/iSaSiLk/documentation/Secure-Renegotiation 
+ * Troubleshooting a HTTPS TLSv1 handshake http://integr8consulting.blogspot.com/2012/02/troubleshooting-https-tlsv1-handshake.html 
+ * How to analyze Java SSL errors http://www.smartjava.org/content/how-analyze-java-ssl-errors
  * 
  * @author Kevin Green (kevygreen@gmail.com)
  * @author Paul Gregoire (mondain@gmail.com)
@@ -108,16 +116,18 @@ public class RTMPSMinaIoHandler extends RTMPMinaIoHandler {
     private boolean wantClientAuth;
 
     static {
-        if (log.isDebugEnabled()) {
+        if (log.isTraceEnabled()) {
             Provider[] providers = Security.getProviders();
             for (Provider provider : providers) {
-                log.debug("Provider: {} = {}", provider.getName(), provider.getInfo());
+                log.trace("Provider: {} = {}", provider.getName(), provider.getInfo());
             }
         }
     }
 
+    /** {@inheritDoc} */
     @Override
-    public void sessionOpened(IoSession session) throws Exception {
+    public void sessionCreated(IoSession session) throws Exception {
+        log.debug("Session created");
         if (keystoreFile == null || truststoreFile == null) {
             throw new NotActiveException("Keystore or truststore are null");
         }
@@ -131,36 +141,38 @@ public class RTMPSMinaIoHandler extends RTMPMinaIoHandler {
             File trustStore = new File(truststoreFile);
             log.trace("Truststore - read: {} path: {}", trustStore.canRead(), trustStore.getCanonicalPath());
             if (keyStore.exists() && trustStore.exists()) {
+                // keystore
                 final KeyStoreFactory keyStoreFactory = new KeyStoreFactory();
                 keyStoreFactory.setDataFile(keyStore);
                 keyStoreFactory.setPassword(keystorePassword);
-
+                // truststore
                 final KeyStoreFactory trustStoreFactory = new KeyStoreFactory();
                 trustStoreFactory.setDataFile(trustStore);
                 trustStoreFactory.setPassword(truststorePassword);
-
+                // ssl context factory
                 final SslContextFactory sslContextFactory = new SslContextFactory();
                 //sslContextFactory.setProtocol("TLS");
-
+                // get keystore
                 final KeyStore ks = keyStoreFactory.newInstance();
                 sslContextFactory.setKeyManagerFactoryKeyStore(ks);
-
+                // get truststore
                 final KeyStore ts = trustStoreFactory.newInstance();
                 sslContextFactory.setTrustManagerFactoryKeyStore(ts);
                 sslContextFactory.setKeyManagerFactoryKeyStorePassword(keystorePassword);
-
+                // get ssl context
                 sslContext = sslContextFactory.newInstance();
                 log.debug("SSL provider is: {}", sslContext.getProvider());
-
+                // get ssl context parameters
                 SSLParameters params = sslContext.getDefaultSSLParameters();
-                log.debug("SSL context params - need client auth: {} want client auth: {} endpoint id algorithm: {}", params.getNeedClientAuth(), params.getWantClientAuth(), params.getEndpointIdentificationAlgorithm());
-                String[] supportedProtocols = params.getProtocols();
-                for (String protocol : supportedProtocols) {
-                    log.debug("SSL context supported protocol: {}", protocol);
+                if (log.isDebugEnabled()) {
+                    log.debug("SSL context params - need client auth: {} want client auth: {} endpoint id algorithm: {}", params.getNeedClientAuth(), params.getWantClientAuth(), params.getEndpointIdentificationAlgorithm());
+                    String[] supportedProtocols = params.getProtocols();
+                    for (String protocol : supportedProtocols) {
+                        log.debug("SSL context supported protocol: {}", protocol);
+                    }
                 }
                 // compatibility: remove the SSLv2Hello message in the available protocols - some systems will fail 
                 // to handshake if TSLv1 messages are enwrapped with SSLv2 messages, Java 6 tries to send TSLv1 embedded in SSLv2
-
             } else {
                 log.warn("Keystore or Truststore file does not exist");
             }
@@ -181,21 +193,56 @@ public class RTMPSMinaIoHandler extends RTMPMinaIoHandler {
             }
             sslFilter.setEnabledProtocols(protocols);
         }
-        // add rtmpe filter after ssl
-        session.getFilterChain().addBefore("rtmpeFilter", "sslFilter", sslFilter);
+        // the filter chain for this session
+        IoFilterChain chain = session.getFilterChain();
+        // add ssl first
+        chain.addFirst("sslFilter", sslFilter);
         session.setAttribute(SslFilter.USE_NOTIFICATION, Boolean.TRUE);
-        log.debug("isSslStarted:", sslFilter.isSslStarted(session));
-        super.sessionOpened(session);
+        log.debug("isSslStarted: {}", sslFilter.isSslStarted(session));
+        // add rtmpe filter
+        chain.addAfter("sslFilter", "rtmpeFilter", new RTMPEIoFilter());
+        // add protocol filter next
+        chain.addAfter("rtmpeFilter", "protocolFilter", new ProtocolCodecFilter(codecFactory));
+        if (log.isTraceEnabled()) {
+            chain.addLast("logger", new LoggingFilter());
+        }
+        // set the state as unsecured
+        session.setAttribute(RTMPConnection.RTMPS_STATE, "SESSION_UNSECURED");
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void sessionOpened(IoSession session) throws Exception {
+        // NO-OP since we're not technically opened until we are secured
     }
 
     @Override
     public void messageReceived(IoSession session, Object message) throws Exception {
+        log.debug("messageReceived: {}", message.toString());
         if (message instanceof SslFilterMessage) {
             String state = message.toString();
-            log.debug("RTMPS state: {}", state);
-            session.setAttribute("rtmps.state", state);
+            session.replaceAttribute(RTMPConnection.RTMPS_STATE, "SESSION_UNSECURED", state);
+            // create the session with super after we get the SESSION_SECURED message
+            if ("SESSION_SECURED".equals(state)) {
+                // set the handshake on the session
+                session.setAttribute(RTMPConnection.RTMP_HANDSHAKE, new InboundHandshake());
+                // create a connection
+                RTMPMinaConnection conn = createRTMPMinaConnection();
+                // add session to the connection
+                conn.setIoSession(session);
+                // add the handler
+                conn.setHandler(handler);
+                // add the connections session id for look up using the connection manager
+                session.setAttribute(RTMPConnection.RTMP_SESSION_ID, conn.getSessionId());
+                // set open on the handler
+                handler.connectionOpened(conn);
+            } else if ("SESSION_UNSECURED".equals(state)) {
+                sessionClosed(session);
+            }
+        } else if ("SESSION_SECURED".equals(session.getAttribute(RTMPConnection.RTMPS_STATE, "SESSION_UNSECURED"))) {
+            log.debug("message received on secured session");
         } else {
-            super.messageReceived(session, message);
+            log.warn("Session is unsecure, message will not be received. Message: {}", message, new Exception("Unsecure session"));
         }
     }
 
