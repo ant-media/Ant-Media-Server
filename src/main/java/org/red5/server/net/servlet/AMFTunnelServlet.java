@@ -123,7 +123,9 @@ public class AMFTunnelServlet extends HttpServlet {
             }
         } catch (Exception ex) {
             log.error("", ex);
-            post.abort();
+            if (post != null) {
+                post.abort();
+            }
         }
     }
 }

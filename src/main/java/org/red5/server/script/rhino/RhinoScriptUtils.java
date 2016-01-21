@@ -74,6 +74,7 @@ public class RhinoScriptUtils {
         ScriptEngine engine = mgr.getEngineByExtension("js");
         if (null == engine) {
             log.warn("Javascript is not supported in this build");
+            return null;
         }
         // set engine scope namespace
         Bindings nameSpace = engine.getBindings(ScriptContext.ENGINE_SCOPE);
