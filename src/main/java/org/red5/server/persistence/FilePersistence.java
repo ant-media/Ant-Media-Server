@@ -380,7 +380,6 @@ public class FilePersistence extends RamPersistence {
             }
             filename = fp.getAbsolutePath();
             input = new FileInputStream(filename);
-            input.close();
         } catch (FileNotFoundException e) {
             log.error("The file at {} does not exist", data.getFilename());
             return null;
