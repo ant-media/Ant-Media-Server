@@ -59,7 +59,7 @@ public class ContextLoggingListener implements ServletContextListener {
     public void contextInitialized(ServletContextEvent event) {
         System.out.println("Context init...");
         String contextName = pathToName(event);
-        System.out.printf("Logger name for context: %s\n", contextName);
+        System.out.printf("Logger name for context: %s%n", contextName);
         LoggingContextSelector selector = null;
         try {
             selector = (LoggingContextSelector) Red5LoggerFactory.getContextSelector();
@@ -73,7 +73,7 @@ public class ContextLoggingListener implements ServletContextListener {
                 System.err.printf("No context named %s was found", contextName);
             }
         } catch (Exception e) {
-            System.err.printf("LoggingContextSelector is not the correct type", e);
+            System.err.printf("LoggingContextSelector is not the correct type: %s", e.getMessage());
         } finally {
             //reset the name
             if (selector != null) {

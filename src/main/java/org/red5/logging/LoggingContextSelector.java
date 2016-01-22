@@ -105,7 +105,7 @@ public class LoggingContextSelector implements ContextSelector {
                         contextConfigFile = String.format(overrideProperty, contextName);
                     }
                     if (debug) {
-                        System.out.printf("Context logger config file: %s\n", contextConfigFile);
+                        System.out.printf("Context logger config file: %s%n", contextConfigFile);
                     }
                     ClassLoader classloader = Thread.currentThread().getContextClassLoader();
                     //System.out.printf("Thread context cl: %s\n", classloader);
@@ -131,7 +131,7 @@ public class LoggingContextSelector implements ContextSelector {
                         }
                     }
                     if (debug) {
-                        System.out.printf("Adding logger context: %s to map for context: %s\n", loggerContext.getName(), contextName);
+                        System.out.printf("Adding logger context: %s to map for context: %s%n", loggerContext.getName(), contextName);
                     }
                     contextMap.put(contextName, loggerContext);
                 }
@@ -146,7 +146,7 @@ public class LoggingContextSelector implements ContextSelector {
 
     public LoggerContext getLoggerContext(String name) {
         if (debug) {
-            System.out.printf("getLoggerContext request for %s in context map %s\n", name, contextMap.containsKey(name));
+            System.out.printf("getLoggerContext request for %s in context map %s%n", name, contextMap.containsKey(name));
         }
         return contextMap.get(name);
     }
