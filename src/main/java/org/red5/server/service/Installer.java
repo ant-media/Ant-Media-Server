@@ -145,10 +145,14 @@ public final class Installer {
             }
         } catch (HttpHostConnectException he) {
             log.error("Http error connecting to {}", applicationRepositoryUrl, he);
-            method.abort();
+            if (method != null) {
+                method.abort();
+            }
         } catch (IOException ioe) {
             log.error("Unable to connect to {}", applicationRepositoryUrl, ioe);
-            method.abort();
+            if (method != null) {
+                method.abort();
+            }
         }
         return result;
     }
@@ -245,10 +249,14 @@ public final class Installer {
                     }
                 } catch (HttpHostConnectException he) {
                     log.error("Http error connecting to {}", applicationRepositoryUrl, he);
-                    method.abort();
+                    if (method != null) {
+                        method.abort();
+                    }
                 } catch (IOException ioe) {
                     log.error("Unable to connect to {}", applicationRepositoryUrl, ioe);
-                    method.abort();
+                    if (method != null) {
+                        method.abort();
+                    }
                 } finally {
                     if (fos != null) {
                         try {

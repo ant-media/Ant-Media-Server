@@ -78,7 +78,9 @@ public class PluginLauncher implements ApplicationContextAware, InitializingBean
                 } catch (Exception e1) {
                     log.warn("Error loading plugin manifest: {}", plugin);
                 } finally {
-                    jar.close();
+                    if (jar != null) {
+                        jar.close();
+                    }
                 }
                 if (manifest == null) {
                     continue;
