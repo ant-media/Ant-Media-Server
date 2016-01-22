@@ -53,7 +53,7 @@ public class SessionManager {
     private static ISchedulingService schedulingService;
 
     // Create a random generator
-    public static Random rnd = new Random();
+    public static final Random rnd = new Random();
 
     public void init() {
         if (schedulingService != null) {
