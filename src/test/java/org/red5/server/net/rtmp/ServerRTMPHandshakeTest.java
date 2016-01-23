@@ -104,4 +104,17 @@ public class ServerRTMPHandshakeTest {
         Assert.assertTrue(chrome && firefox && !ffmpeg);
     }
 
+
+    @Test
+    public void testOutgoingPublicKey() {
+        log.info("\ntestOutgoingPublicKey");
+        byte[] sharedSecret = IOUtils.hexStringToByteArray("04cde275ff2d72113cfac0e914bf4dab3bc747dfb63c23314b470181e7260a1f37ae3ef259f3bd3fe80ec5ebf99d501e4cce69d224268e6d5304cbfb94bc71d59f15564f96a089f9a93b5e08d9ea0c45ca5934ff2c9729cc73856fd130cb6bfe29f14a0ec36e0eee0cd5c21c1d08f6f9979adc162d24831318a3b9145d835222");
+        byte[] outgoingPublicKey = IOUtils.hexStringToByteArray("d5055cd576014c41fc91811a7f6aaaacc8f5bef9383cabb3c91afd392448255ef14a38e8c985197652a47a31e2852d7923dae7c2c10df3b325556c4f2fbc14b04e244570c42526e67d2c5c3e75fcd1732c7b915839653274df15d887c10852dae81d54e52fe26946fd7936fc69926e7a33c9e3aba7ae2a93cbbd4c481cde3f90");
+        InboundHandshake in = new InboundHandshake();
+        byte[] rc4keyOut = new byte[32];
+        in.calculateHMAC_SHA256(outgoingPublicKey, 0, outgoingPublicKey.length, sharedSecret, RTMPHandshake.KEY_LENGTH, rc4keyOut, 0);
+        log.debug("rc4keyOut: {}", rc4keyOut);
+        Assert.assertNotEquals(IOUtils.hexStringToByteArray("0000000000000000000000000000000000000000000000000000000000000000"), rc4keyOut);
+    }
+
 }

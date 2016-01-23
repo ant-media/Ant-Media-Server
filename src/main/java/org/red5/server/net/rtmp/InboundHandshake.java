@@ -71,10 +71,9 @@ public class InboundHandshake extends RTMPHandshake {
      * C1 = 1536 bytes from the client
      * S0 = 0x03 (server handshake type - 0x03, 0x06, 0x08, or 0x09)
      * S1 = 1536 bytes from server
-     * S2 = Copy of C1 bytes
      * </pre>
-     * @param in incoming handshake C0+C1
-     * @return server response S0+S1+S2
+     * @param in incoming handshake C1
+     * @return server response S0+S1
      */
     public IoBuffer decodeClientRequest1(IoBuffer in) {
         if (log.isTraceEnabled()) {
@@ -182,16 +181,15 @@ public class InboundHandshake extends RTMPHandshake {
         calculateSwfVerification(handshakeBytes, swfHash, DIGEST_LENGTH);
         log.debug("swfVerification: {}", Hex.encodeHexString(swfVerificationBytes));
         // create output buffer
-        IoBuffer s1s2 = IoBuffer.allocate(HANDSHAKE_SIZE_SERVER); // 3073
+        IoBuffer s0s1 = IoBuffer.allocate(Constants.HANDSHAKE_SIZE + 1); // 1537
         // set handshake with encryption type 
-        s1s2.put(handshakeType); // 1
-        s1s2.put(s1); // 1536
-        s1s2.put(c1); // 1536
-        s1s2.flip();
+        s0s1.put(handshakeType); // 1
+        s0s1.put(s1); // 1536
+        s0s1.flip();
         if (log.isTraceEnabled()) {
-            log.trace("S1+S2 size: {}", s1s2.limit());
+            log.trace("S0+S1 size: {}", s0s1.limit());
         }
-        return s1s2;
+        return s0s1;
     }
 
     /**
@@ -207,7 +205,7 @@ public class InboundHandshake extends RTMPHandshake {
         // just send back c1
         IoBuffer s2 = IoBuffer.allocate(Constants.HANDSHAKE_SIZE);
         // set handshake with encryption type 
-        s2.put(c1);
+        s2.put(c1); // 1536
         s2.flip();
         if (log.isTraceEnabled()) {
             log.trace("S2 size: {}", s2.limit());

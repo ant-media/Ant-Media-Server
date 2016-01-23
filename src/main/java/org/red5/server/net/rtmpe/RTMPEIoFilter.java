@@ -18,14 +18,11 @@
 
 package org.red5.server.net.rtmpe;
 
-import java.nio.ByteBuffer;
-
 import javax.crypto.Cipher;
 
 import org.apache.commons.codec.binary.Hex;
 import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.mina.core.filterchain.IoFilterAdapter;
-import org.apache.mina.core.future.ConnectFuture;
 import org.apache.mina.core.future.IoFutureListener;
 import org.apache.mina.core.future.WriteFuture;
 import org.apache.mina.core.session.IoSession;
@@ -35,7 +32,6 @@ import org.apache.mina.filter.codec.ProtocolCodecFilter;
 import org.red5.server.net.rtmp.InboundHandshake;
 import org.red5.server.net.rtmp.RTMPConnManager;
 import org.red5.server.net.rtmp.RTMPConnection;
-import org.red5.server.net.rtmp.RTMPHandshake;
 import org.red5.server.net.rtmp.RTMPMinaConnection;
 import org.red5.server.net.rtmp.codec.RTMP;
 import org.red5.server.net.rtmp.codec.RTMPMinaCodecFactory;
@@ -160,48 +156,29 @@ public class RTMPEIoFilter extends IoFilterAdapter {
                         remaining += remainder.length;
                         log.trace("Remainder: {}", Hex.encodeHexString(remainder));
                     }
+                    // no connection type byte is supposed to be in C2 data
                     log.trace("Incoming C2 size: {}", remaining);
                     if (remaining >= Constants.HANDSHAKE_SIZE) {
                         // create array for decode
                         byte[] dst;
-                        // check the connection type byte, we may not have valid data here
-                        byte connectionType = 0;
                         // check for remaining stored bytes left over from C0C1 and prepend to the dst array
                         if (remainder != null) {
-                            // get connection type
-                            connectionType = remainder[0];
                             // ensure there is space for remainder bytes and message bytes
                             dst = new byte[remainder.length + message.remaining()];
                             // copy into dst
-                            System.arraycopy(remainder, 1, dst, 0, remainder.length - 1);
+                            System.arraycopy(remainder, 0, dst, 0, remainder.length);
                             // copy
                             message.get(dst, remainder.length, message.remaining());
                             // remove buffer
                             session.removeAttribute("buffer");
                         } else {
-                            // get connection type
-                            connectionType = message.get();
                             // ensure there is space for remainder bytes and message bytes
                             dst = new byte[message.remaining()];
                             // copy
                             message.get(dst);
                         }
-                        if (RTMPHandshake.validHandshakeType(connectionType)) {
-                            log.trace("Incoming C2 connection type: {}", connectionType);
-                            log.debug("C2 - buffer: {}", Hex.encodeHexString(dst));
-                            // are there extra bytes?
-                            remaining = message.remaining();
-                            if (log.isTraceEnabled()) {
-                                log.trace("Incoming C2 remaining size: {}", remaining);
-                            }
-                        } else {
-                            log.trace("Incoming C2 connection type was unrecognized: {}", connectionType);
-                            // assume connection type is not included
-                            ByteBuffer tmp = ByteBuffer.allocate(dst.length + 1);
-                            tmp.put(connectionType);
-                            tmp.put(dst);
-                            tmp.flip();
-                            dst = tmp.array();
+                        if (log.isTraceEnabled()) {
+                            log.trace("C2 - buffer: {}", Hex.encodeHexString(dst));
                         }
                         IoBuffer s2 = handshake.decodeClientRequest2(IoBuffer.wrap(dst));
                         if (s2 != null) {
