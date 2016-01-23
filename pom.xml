@@ -112,18 +112,16 @@
         <plugins>
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>2.3.2</version>
                 <configuration>
-                    <compilerVersion>1.6</compilerVersion>
+                    <compilerVersion>1.7</compilerVersion>
                     <fork>true</fork>
-                    <source>1.6</source>
-                    <target>1.6</target>
+                    <source>1.7</source>
+                    <target>1.7</target>
                     <executable>${maven.compiler.executable}</executable>
                 </configuration>
             </plugin>
             <plugin>
                 <artifactId>maven-source-plugin</artifactId>
-                <version>2.4</version>
                 <executions>
                     <execution>
                         <id>attach-sources</id>
@@ -135,7 +133,6 @@
             </plugin>
             <plugin>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <version>2.10.1</version>
                 <executions>
                     <execution>
                         <id>javadoc-jar</id>
@@ -173,7 +170,6 @@
             </plugin>
             <plugin>
                 <artifactId>maven-jar-plugin</artifactId>
-                <version>2.5</version>
                 <executions>
                     <execution>
                         <id>attach-javadocs</id>
@@ -202,24 +198,20 @@
             </plugin>
             <plugin>
                 <artifactId>maven-project-info-reports-plugin</artifactId>
-                <version>2.4</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
-                <version>2.3.7</version>
                 <extensions>true</extensions>
             </plugin>
             <plugin>
                 <artifactId>maven-scm-plugin</artifactId>
-                <version>1.8.1</version>
                 <configuration>
                     <connectionType>connection</connectionType>
                 </configuration>
             </plugin>
             <plugin>
                 <artifactId>maven-release-plugin</artifactId>
-                <version>2.5</version>
                 <configuration>
                     <autoVersionSubmodules>true</autoVersionSubmodules>
                     <useReleaseProfile>false</useReleaseProfile>

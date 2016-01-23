@@ -28,10 +28,8 @@ import java.util.Arrays;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLParameters;
 
-import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.mina.core.filterchain.IoFilterChain;
 import org.apache.mina.core.session.IoSession;
-import org.apache.mina.filter.codec.ProtocolCodecFilter;
 import org.apache.mina.filter.logging.LoggingFilter;
 import org.apache.mina.filter.ssl.KeyStoreFactory;
 import org.apache.mina.filter.ssl.SslContextFactory;
@@ -39,7 +37,6 @@ import org.apache.mina.filter.ssl.SslFilter;
 import org.apache.mina.filter.ssl.SslFilter.SslFilterMessage;
 import org.red5.server.net.rtmp.InboundHandshake;
 import org.red5.server.net.rtmp.RTMPConnection;
-import org.red5.server.net.rtmp.RTMPHandshake;
 import org.red5.server.net.rtmp.RTMPMinaConnection;
 import org.red5.server.net.rtmp.RTMPMinaIoHandler;
 import org.red5.server.net.rtmpe.RTMPEIoFilter;
@@ -201,8 +198,6 @@ public class RTMPSMinaIoHandler extends RTMPMinaIoHandler {
         log.debug("isSslStarted: {}", sslFilter.isSslStarted(session));
         // add rtmpe filter
         chain.addAfter("sslFilter", "rtmpeFilter", new RTMPEIoFilter());
-        // add protocol filter next
-        chain.addAfter("rtmpeFilter", "protocolFilter", new ProtocolCodecFilter(codecFactory));
         if (log.isTraceEnabled()) {
             chain.addLast("logger", new LoggingFilter());
         }
@@ -249,8 +244,7 @@ public class RTMPSMinaIoHandler extends RTMPMinaIoHandler {
     /**
      * Password used to access the keystore file.
      * 
-     * @param password
-     *            keystore password
+     * @param password keystore password
      */
     public void setKeystorePassword(String password) {
         this.keystorePassword = password;
@@ -259,8 +253,7 @@ public class RTMPSMinaIoHandler extends RTMPMinaIoHandler {
     /**
      * Password used to access the truststore file.
      * 
-     * @param password
-     *            truststore password
+     * @param password truststore password
      */
     public void setTruststorePassword(String password) {
         this.truststorePassword = password;
@@ -269,8 +262,7 @@ public class RTMPSMinaIoHandler extends RTMPMinaIoHandler {
     /**
      * Set keystore data from a file.
      * 
-     * @param path
-     *            contains keystore
+     * @param path contains keystore
      */
     public void setKeystoreFile(String path) {
         this.keystoreFile = path;
@@ -279,8 +271,7 @@ public class RTMPSMinaIoHandler extends RTMPMinaIoHandler {
     /**
      * Set truststore file path.
      * 
-     * @param path
-     *            contains truststore
+     * @param path contains truststore
      */
     public void setTruststoreFile(String path) {
         this.truststoreFile = path;

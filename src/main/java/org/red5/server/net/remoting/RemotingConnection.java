@@ -588,4 +588,9 @@ public class RemotingConnection implements IRemotingConnection {
         notSupported();
     }
 
+    @Override
+    public String getProtocol() {
+        return "http";
+    }
+
 }

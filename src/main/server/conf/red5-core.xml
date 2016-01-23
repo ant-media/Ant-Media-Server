@@ -42,12 +42,10 @@
         <property name="waitForTasksToCompleteOnShutdown" value="true" />
         <property name="threadNamePrefix" value="DeadlockGuardScheduler-" />
     </bean>
-    
+
     <!-- RTMP connection manager -->
     <bean id="rtmpConnManager" class="org.red5.server.net.rtmp.RTMPConnManager" />
-    
-    <bean id="rtmpCodecFactory" class="org.red5.server.net.rtmp.codec.RTMPMinaCodecFactory" />
-    
+
     <!-- RTMP Handler -->
     <bean id="rtmpHandler" class="org.red5.server.net.rtmp.RTMPHandler">
         <property name="server" ref="red5.server" />
@@ -60,7 +58,6 @@
     <!-- RTMP Mina IO Handler -->
     <bean id="rtmpMinaIoHandler" class="org.red5.server.net.rtmp.RTMPMinaIoHandler">
         <property name="handler" ref="rtmpHandler" />
-        <property name="codecFactory" ref="rtmpCodecFactory" />
     </bean>
     
     <!-- RTMP Mina Transport -->
@@ -191,7 +188,6 @@
 
     <bean id="rtmpsMinaIoHandler" class="org.red5.server.net.rtmps.RTMPSMinaIoHandler">
         <property name="handler" ref="rtmpHandler" />
-        <property name="codecFactory" ref="rtmpCodecFactory" />
         <property name="keystorePassword" value="${rtmps.keystorepass}" />
         <property name="keystoreFile" value="${rtmps.keystorefile}" />
         <property name="truststorePassword" value="${rtmps.truststorepass}" />

@@ -125,7 +125,7 @@ grant {
   permission javax.security.auth.AuthPermission "doAsPrivileged";
 
   permission java.net.SocketPermission "127.0.0.1:9999", "connect,resolve";
-  permission java.net.SocketPermission "red5.googlecode.com:80", "connect,resolve";
+  permission java.net.SocketPermission "github.com:80", "connect,resolve";
   permission java.net.SocketPermission "www.springframework.org:80", "connect,resolve";
 
   permission java.io.FilePermission "file:red5-server.jar", "read";

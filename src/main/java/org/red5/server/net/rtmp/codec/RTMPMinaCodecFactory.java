@@ -37,12 +37,12 @@ public class RTMPMinaCodecFactory implements ProtocolCodecFactory, ApplicationCo
     /**
      * RTMP Mina protocol decoder.
      */
-    protected RTMPMinaProtocolDecoder decoder;
+    protected RTMPMinaProtocolDecoder decoder = new RTMPMinaProtocolDecoder();
 
     /**
      * RTMP Mina protocol encoder.
      */
-    protected RTMPMinaProtocolEncoder encoder;
+    protected RTMPMinaProtocolEncoder encoder = new RTMPMinaProtocolEncoder();
 
     public void afterPropertiesSet() throws Exception {
         decoder = (RTMPMinaProtocolDecoder) appCtx.getBean("minaDecoder");

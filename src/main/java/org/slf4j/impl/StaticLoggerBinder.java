@@ -103,7 +103,6 @@ public class StaticLoggerBinder implements LoggerFactoryBinder, LoggerContextSel
         if (!initialized) {
             return defaultLoggerContext;
         }
-
         if (contextSelectorBinder.getContextSelector() == null) {
             throw new IllegalStateException("contextSelector cannot be null. See also " + NULL_CS_URL);
         }
