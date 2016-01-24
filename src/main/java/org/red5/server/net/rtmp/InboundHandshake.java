@@ -138,17 +138,6 @@ public class InboundHandshake extends RTMPHandshake {
             System.arraycopy(incomingPublicKey, 0, handshakeBytes, serverDHOffset, KEY_LENGTH);
             // create the RC4 ciphers
             initRC4Encryption(getSharedSecret(outgoingPublicKey, keyAgreement));
-            switch (handshakeType) {
-                case RTMPConnection.RTMP_ENCRYPTED:
-                    
-                    break;
-                case RTMPConnection.RTMP_ENCRYPTED_XTEA:
-                    
-                    break;
-                case RTMPConnection.RTMP_ENCRYPTED_BLOWFISH:
-                    
-                    break;
-            }
         }
         // create the server digest
         digestPosServer = getDigestOffset(algorithm, handshakeBytes, 0);
@@ -158,9 +147,6 @@ public class InboundHandshake extends RTMPHandshake {
         // calculate the server hash and add to the handshake bytes (S1)
         calculateDigest(digestPosServer, handshakeBytes, 0, GENUINE_FMS_KEY, 36, s1, digestPosServer);
         log.debug("Server digest: {}", Hex.encodeHexString(Arrays.copyOfRange(s1, digestPosServer, digestPosServer + DIGEST_LENGTH)));
-        // S1 is ready to be sent to the client, copy it before we proceed, since swfhash generation may overwrite the server digest
-//        byte[] s1 = new byte[Constants.HANDSHAKE_SIZE];
-//        System.arraycopy(handshakeBytes, 0, s1, 0, Constants.HANDSHAKE_SIZE);
         // get the client digest
         log.trace("Trying algorithm: {}", algorithm);
         int digestPosClient = getDigestOffset(algorithm, c1, 0);
@@ -217,6 +203,8 @@ public class InboundHandshake extends RTMPHandshake {
         s0s1s2.put(s1); // 1536
         s0s1s2.put(c1); // 1536
         s0s1s2.flip();
+        // clear original base bytes
+        handshakeBytes = null;
         if (log.isTraceEnabled()) {
             log.trace("S0+S1+S2 size: {}", s0s1s2.limit());
         }
@@ -393,6 +381,10 @@ public class InboundHandshake extends RTMPHandshake {
             }
         }
         return result;
+    }
+
+    public byte[] getHandshakeBytes() {
+        return s1;
     }
 
 }

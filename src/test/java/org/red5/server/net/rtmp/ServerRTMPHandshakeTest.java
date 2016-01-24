@@ -52,7 +52,11 @@ public class ServerRTMPHandshakeTest {
     @Test
     public void testServerDigest() throws InterruptedException {
         log.info("\ntestServerDigest");
+        IoBuffer r5c1 = IoBuffer.allocate(1536);
+        r5c1.put(IOUtils.hexStringToByteArray(red5clientC1));
+        r5c1.flip();
         InboundHandshake in = new InboundHandshake();
+        in.decodeClientRequest1(r5c1);
         int algorithm = 0;
         byte[] handshakeBytes = in.getHandshakeBytes();
         // get the handshake digest
