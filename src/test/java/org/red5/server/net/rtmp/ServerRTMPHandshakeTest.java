@@ -12,6 +12,15 @@ import org.red5.io.utils.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Tests for server side handshaking.
+ * Test command for using rtmpdump 
+ * <pre>
+ * ./rtmpdump -V -z -r "rtmp://localhost/live" -a "live" -W "http://localhost:5080/demos/publisher.swf" -p "http://localhost:5080/live" -y "test" -v -o t.flv
+ * ./rtmpdump -V -z -r "rtmpe://localhost/live" -a "live" -W "http://localhost:5080/demos/publisher.swf" -p "http://localhost:5080/live" -y "test" -v -o t.flv
+ * </pre>
+ * @author Paul Gregoire (mondain@gmail.com)
+ */
 public class ServerRTMPHandshakeTest {
 
     private Logger log = LoggerFactory.getLogger(ServerRTMPHandshakeTest.class);

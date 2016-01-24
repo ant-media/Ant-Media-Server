@@ -34,8 +34,14 @@ import org.slf4j.LoggerFactory;
  */
 public class InboundHandshake extends RTMPHandshake {
 
-    /** Client initial request C1 */
+    // server initial response S1
+    private byte[] s1;
+
+    // client initial request C1
     private byte[] c1 = null;
+
+    // position for the server digest in S1
+    private int digestPosServer;
 
     public InboundHandshake() {
         super(RTMPConnection.RTMP_NON_ENCRYPTED);
@@ -92,8 +98,8 @@ public class InboundHandshake extends RTMPHandshake {
             log.debug("Flash player version {}", Hex.encodeHexString(Arrays.copyOfRange(c1, 4, 8)));
         }
         // check for un-versioned handshake
-        int clientVersionByte = (c1[4] & 0xff);
-        if (clientVersionByte == 0) {
+        fp9Handshake = (c1[4] & 0xff) != 0;
+        if (!fp9Handshake) {
             return generateUnversionedHandshake(c1);
         }
         // make sure this is a client we can communicate with
@@ -109,9 +115,9 @@ public class InboundHandshake extends RTMPHandshake {
                 // start off with algorithm 1 if we're type 6 or 8
                 algorithm = 1;
                 // set to xtea type 8 if client is fp10 capable
-                if (clientVersionByte == 128) {
-                    handshakeType = 8;
-                }
+                //if (clientVersionByte == 128) {
+                //    handshakeType = 8;
+                //}
             }
             // get the DH offset in the handshake bytes, generates DH keypair, and adds the public key to handshake bytes
             int clientDHOffset = getDHOffset(algorithm, c1, 0);
@@ -145,14 +151,16 @@ public class InboundHandshake extends RTMPHandshake {
             }
         }
         // create the server digest
-        int digestPosServer = getDigestOffset(algorithm, handshakeBytes, 0);
+        digestPosServer = getDigestOffset(algorithm, handshakeBytes, 0);
         log.debug("Server digest position offset: {} algorithm: {}", digestPosServer, algorithm);
-        // calculate the server hash and add to the handshake bytes (S1)
-        calculateDigest(digestPosServer, handshakeBytes, 0, GENUINE_FMS_KEY, 36, handshakeBytes, digestPosServer);
-        log.debug("Server digest: {}", Hex.encodeHexString(Arrays.copyOfRange(handshakeBytes, digestPosServer, digestPosServer + DIGEST_LENGTH)));
-        // S1 is ready to be sent to the client, copy it before we proceed, since swfhash generation may overwrite the server digest
-        byte[] s1 = new byte[Constants.HANDSHAKE_SIZE];
+        s1 = new byte[Constants.HANDSHAKE_SIZE];
         System.arraycopy(handshakeBytes, 0, s1, 0, Constants.HANDSHAKE_SIZE);
+        // calculate the server hash and add to the handshake bytes (S1)
+        calculateDigest(digestPosServer, handshakeBytes, 0, GENUINE_FMS_KEY, 36, s1, digestPosServer);
+        log.debug("Server digest: {}", Hex.encodeHexString(Arrays.copyOfRange(s1, digestPosServer, digestPosServer + DIGEST_LENGTH)));
+        // S1 is ready to be sent to the client, copy it before we proceed, since swfhash generation may overwrite the server digest
+//        byte[] s1 = new byte[Constants.HANDSHAKE_SIZE];
+//        System.arraycopy(handshakeBytes, 0, s1, 0, Constants.HANDSHAKE_SIZE);
         // get the client digest
         log.trace("Trying algorithm: {}", algorithm);
         int digestPosClient = getDigestOffset(algorithm, c1, 0);
@@ -168,28 +176,51 @@ public class InboundHandshake extends RTMPHandshake {
                 return null;
             }
         }
-        // how in the heck do we generate a hash for a swf when we dont know which one is requested
-        byte[] swfHash = new byte[DIGEST_LENGTH];
-        // calculate the client hash
-        byte[] clientDigestHash = new byte[DIGEST_LENGTH];
-        calculateDigest(digestPosClient, c1, 0, GENUINE_FP_KEY, 30, clientDigestHash, 0);
-        log.debug("Client digest: {}", Hex.encodeHexString(clientDigestHash));
-        // compute key
-        calculateHMAC_SHA256(clientDigestHash, 0, DIGEST_LENGTH, GENUINE_FMS_KEY, 68, swfHash, 0);
-        log.debug("Key: {}", Hex.encodeHexString(swfHash));
-        // calculate swf hash. what should swf size be?
-        calculateSwfVerification(handshakeBytes, swfHash, DIGEST_LENGTH);
-        log.debug("swfVerification: {}", Hex.encodeHexString(swfVerificationBytes));
-        // create output buffer
-        IoBuffer s0s1 = IoBuffer.allocate(Constants.HANDSHAKE_SIZE + 1); // 1537
-        // set handshake with encryption type 
-        s0s1.put(handshakeType); // 1
-        s0s1.put(s1); // 1536
-        s0s1.flip();
-        if (log.isTraceEnabled()) {
-            log.trace("S0+S1 size: {}", s0s1.limit());
+        // digest verification passed
+        log.debug("Client digest: {}", Hex.encodeHexString(Arrays.copyOfRange(c1, digestPosClient, digestPosClient + DIGEST_LENGTH)));
+        // swfVerification bytes are the sha256 hmac hash of the decompressed swf, the key is the last 32 bytes of the server handshake
+        if (swfSize > 0) {
+            // how in the heck do we generate a hash for a swf when we dont know which one is requested
+            byte[] swfHash = new byte[DIGEST_LENGTH];
+            calculateSwfVerification(s1, swfHash, swfSize);
         }
-        return s0s1;
+        // calculate the response
+        byte[] digestResp = new byte[DIGEST_LENGTH];
+        byte[] signatureResponse = new byte[DIGEST_LENGTH];
+        // compute digest key
+        calculateHMAC_SHA256(c1, digestPosClient, DIGEST_LENGTH, GENUINE_FMS_KEY, GENUINE_FMS_KEY.length, digestResp, 0);
+        log.debug("Digest response (key): {}", Hex.encodeHexString(digestResp));
+        calculateHMAC_SHA256(c1, Constants.HANDSHAKE_SIZE - DIGEST_LENGTH, DIGEST_LENGTH, digestResp, DIGEST_LENGTH, signatureResponse, 0);
+        log.debug("Signature response: {}", Hex.encodeHexString(signatureResponse));
+        if (useEncryption()) {
+            switch (handshakeType) {
+                case RTMPConnection.RTMP_ENCRYPTED_XTEA:
+                    log.debug("RTMPE type 8 XTEA");
+                    // encrypt signatureResp
+                    for (int i = 0; i < DIGEST_LENGTH; i += 8) {
+                        //encryptXtea(signatureResp, i, digestResp[i] % 15);
+                    }
+                    break;
+                case RTMPConnection.RTMP_ENCRYPTED_BLOWFISH:
+                    log.debug("RTMPE type 9 Blowfish");
+                    // encrypt signatureResp
+                    for (int i = 0; i < DIGEST_LENGTH; i += 8) {
+                        //encryptBlowfish(signatureResp, i, digestResp[i] % 15);
+                    }
+                    break;
+            }
+        }
+        // create output buffer for S0+S1+S2
+        IoBuffer s0s1s2 = IoBuffer.allocate(Constants.HANDSHAKE_SIZE * 2 + 1); // 3073
+        // set handshake with encryption type 
+        s0s1s2.put(handshakeType); // 1
+        s0s1s2.put(s1); // 1536
+        s0s1s2.put(c1); // 1536
+        s0s1s2.flip();
+        if (log.isTraceEnabled()) {
+            log.trace("S0+S1+S2 size: {}", s0s1s2.limit());
+        }
+        return s0s1s2;
     }
 
     /**
@@ -199,18 +230,71 @@ public class InboundHandshake extends RTMPHandshake {
      * S2 = Copy of C1 bytes
      * </pre>
      * @param in incoming handshake C2
-     * @return server response S2
+     * @return true if C2 was processed successfully and false otherwise
      */
-    public IoBuffer decodeClientRequest2(IoBuffer in) {
-        // just send back c1
-        IoBuffer s2 = IoBuffer.allocate(Constants.HANDSHAKE_SIZE);
-        // set handshake with encryption type 
-        s2.put(c1); // 1536
-        s2.flip();
+    public boolean decodeClientRequest2(IoBuffer in) {
         if (log.isTraceEnabled()) {
-            log.trace("S2 size: {}", s2.limit());
+            log.debug("decodeClientRequest2: {}", Hex.encodeHexString(in.array()));
         }
-        return s2;
+        byte[] c2;
+        if (in.hasArray()) {
+            c2 = in.array();
+        } else {
+            c2 = new byte[Constants.HANDSHAKE_SIZE];
+            in.get(c2);
+        }
+        if (fp9Handshake) {
+            // client signature c2[HANDSHAKE_SIZE - DIGEST_LENGTH]
+            byte[] digest = new byte[DIGEST_LENGTH];
+            byte[] signature = new byte[DIGEST_LENGTH];
+            log.debug("Client sent signature: {}", Hex.encodeHexString(Arrays.copyOfRange(c2, (Constants.HANDSHAKE_SIZE - DIGEST_LENGTH), (Constants.HANDSHAKE_SIZE - DIGEST_LENGTH) + DIGEST_LENGTH)));
+            // verify client response
+            calculateHMAC_SHA256(s1, digestPosServer, DIGEST_LENGTH, GENUINE_FP_KEY, GENUINE_FP_KEY.length, digest, 0);
+            calculateHMAC_SHA256(c2, Constants.HANDSHAKE_SIZE - DIGEST_LENGTH, DIGEST_LENGTH, digest, DIGEST_LENGTH, signature, 0);
+            if (useEncryption()) {
+                switch (handshakeType) {
+                    case RTMPConnection.RTMP_ENCRYPTED_XTEA:
+                        log.debug("RTMPE type 8 XTEA");
+                        // encrypt signature
+                        for (int i = 0; i < DIGEST_LENGTH; i += 8) {
+                            //encryptXtea(signature, i, digest[i] % 15);
+                        }
+                        break;
+                    case RTMPConnection.RTMP_ENCRYPTED_BLOWFISH:
+                        log.debug("RTMPE type 9 Blowfish");
+                        // encrypt signature
+                        for (int i = 0; i < DIGEST_LENGTH; i += 8) {
+                            //encryptBlowfish(signature, i, digest[i] % 15);
+                        }
+                        break;
+                }
+                // update 'encoder / decoder state' for the RC4 keys both parties *pretend* as if handshake part 2 (1536 bytes) was encrypted
+                // effectively this hides / discards the first few bytes of encrypted session which is known to increase the secure-ness of RC4
+                // RC4 state is just a function of number of bytes processed so far that's why we just run 1536 arbitrary bytes through the keys below
+                byte[] dummyBytes = new byte[Constants.HANDSHAKE_SIZE];
+                cipherIn.update(dummyBytes);
+                cipherOut.update(dummyBytes);
+            }
+            // show some information
+            log.debug("Digest key: {}", Hex.encodeHexString(digest));
+            log.debug("Signature calculated: {}", Hex.encodeHexString(signature));
+            //if (memcmp(signature, c2[Constants.HANDSHAKE_SIZE - DIGEST_LENGTH], DIGEST_LENGTH) != 0) {
+            if (!Arrays.equals(signature, Arrays.copyOfRange(c2, (Constants.HANDSHAKE_SIZE - DIGEST_LENGTH), (Constants.HANDSHAKE_SIZE - DIGEST_LENGTH) + DIGEST_LENGTH))) {
+              log.debug("Client not genuine Adobe!");
+              //return false;
+            } else {
+              log.debug("Genuine Adobe Flash Player");
+            }
+       } else {
+           //if (memcmp(serversig, clientsig, RTMP_SIG_SIZE) != 0)
+           for (int i = 0; i < Constants.HANDSHAKE_SIZE; i++) {
+               if (c2[i] != handshakeBytes[i]) {
+                   log.info("Client signature doesn't match!");
+                   break;
+               }
+           }
+       }
+       return true;
     }
 
     /**

@@ -180,24 +180,24 @@ public class RTMPEIoFilter extends IoFilterAdapter {
                         if (log.isTraceEnabled()) {
                             log.trace("C2 - buffer: {}", Hex.encodeHexString(dst));
                         }
-                        IoBuffer s2 = handshake.decodeClientRequest2(IoBuffer.wrap(dst));
-                        if (s2 != null) {
+                        if (handshake.decodeClientRequest2(IoBuffer.wrap(dst))) {
                             // send response to c2
-                            log.trace("S2 byte order: {}", s2.order());
-                            WriteFuture write = session.write(s2);
-                            // wait for for the s2 to go out
-                            write.addListener(new IoFutureListener<WriteFuture>() {
-                                @Override
-                                public void operationComplete(WriteFuture future) {
-                                    if (future.isWritten()) {
-                                        log.debug("S2 says it was sent..");
-                                    }
-                                    // continue in a connected state
-                                    connected(future.getSession());
-                                }
-                            });
-                            // pass the now empty message to the next filter
-                            nextFilter.messageReceived(session, message);
+//                            log.trace("S2 byte order: {}", s2.order());
+//                            WriteFuture write = session.write(s2);
+//                            // wait for for the s2 to go out
+//                            write.addListener(new IoFutureListener<WriteFuture>() {
+//                                @Override
+//                                public void operationComplete(WriteFuture future) {
+//                                    if (future.isWritten()) {
+//                                        log.debug("S2 says it was sent..");
+//                                    }
+//                                    // continue in a connected state
+//                                    connected(future.getSession());
+//                                }
+//                            });
+//                            // pass the now empty message to the next filter
+//                            nextFilter.messageReceived(session, message);
+                            connected(session);
                         } else {
                             log.warn("Client was rejected due to invalid handshake");
                             conn.close();
