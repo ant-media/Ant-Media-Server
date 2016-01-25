@@ -38,7 +38,7 @@ public class InboundHandshake extends RTMPHandshake {
     private byte[] s1;
 
     // client initial request C1
-    private byte[] c1 = null;
+    private byte[] c1;
 
     // position for the server digest in S1
     private int digestPosServer;
@@ -94,6 +94,8 @@ public class InboundHandshake extends RTMPHandshake {
         //if (log.isTraceEnabled()) {
         //    log.trace("C1: {}", Hex.encodeHexString(c1));
         //}
+        // holder for S1
+        s1 = new byte[Constants.HANDSHAKE_SIZE];
         if (log.isDebugEnabled()) {
             log.debug("Flash player version {}", Hex.encodeHexString(Arrays.copyOfRange(c1, 4, 8)));
         }
@@ -142,7 +144,6 @@ public class InboundHandshake extends RTMPHandshake {
         // create the server digest
         digestPosServer = getDigestOffset(algorithm, handshakeBytes, 0);
         log.debug("Server digest position offset: {} algorithm: {}", digestPosServer, algorithm);
-        s1 = new byte[Constants.HANDSHAKE_SIZE];
         System.arraycopy(handshakeBytes, 0, s1, 0, Constants.HANDSHAKE_SIZE);
         // calculate the server hash and add to the handshake bytes (S1)
         calculateDigest(digestPosServer, handshakeBytes, 0, GENUINE_FMS_KEY, 36, s1, digestPosServer);
@@ -176,7 +177,7 @@ public class InboundHandshake extends RTMPHandshake {
         // compute digest key
         calculateHMAC_SHA256(c1, digestPosClient, DIGEST_LENGTH, GENUINE_FMS_KEY, GENUINE_FMS_KEY.length, digestResp, 0);
         log.debug("Digest response (key): {}", Hex.encodeHexString(digestResp));
-        calculateHMAC_SHA256(c1, Constants.HANDSHAKE_SIZE - DIGEST_LENGTH, DIGEST_LENGTH, digestResp, DIGEST_LENGTH, signatureResponse, 0);
+        calculateHMAC_SHA256(c1, (Constants.HANDSHAKE_SIZE - DIGEST_LENGTH), DIGEST_LENGTH, digestResp, DIGEST_LENGTH, signatureResponse, 0);
         log.debug("Signature response: {}", Hex.encodeHexString(signatureResponse));
         if (useEncryption()) {
             switch (handshakeType) {
@@ -196,6 +197,8 @@ public class InboundHandshake extends RTMPHandshake {
                     break;
             }
         }
+        // copy signature into C1 as S2
+        System.arraycopy(signatureResponse, 0, c1, (Constants.HANDSHAKE_SIZE - DIGEST_LENGTH), DIGEST_LENGTH);
         // create output buffer for S0+S1+S2
         IoBuffer s0s1s2 = IoBuffer.allocate(Constants.HANDSHAKE_SIZE * 2 + 1); // 3073
         // set handshake with encryption type 
@@ -274,12 +277,10 @@ public class InboundHandshake extends RTMPHandshake {
               log.debug("Genuine Adobe Flash Player");
             }
        } else {
-           //if (memcmp(serversig, clientsig, RTMP_SIG_SIZE) != 0)
-           for (int i = 0; i < Constants.HANDSHAKE_SIZE; i++) {
-               if (c2[i] != handshakeBytes[i]) {
-                   log.info("Client signature doesn't match!");
-                   break;
-               }
+           //log.trace("s1: {}", Hex.encodeHexString(s1));
+           //log.trace("c2: {}", Hex.encodeHexString(c2));
+           if (!Arrays.equals(s1, c2)) {
+               log.info("Client signature doesn't match!");
            }
        }
        return true;
@@ -293,20 +294,19 @@ public class InboundHandshake extends RTMPHandshake {
      */
     private IoBuffer generateUnversionedHandshake(byte[] input) {
         log.debug("Using old style (un-versioned) handshake");
-        // save resource by only doing this after the first request
-        if (HANDSHAKE_PAD_BYTES == null) {
-            HANDSHAKE_PAD_BYTES = new byte[Constants.HANDSHAKE_SIZE - 4];
-            // fill pad bytes
-            Arrays.fill(HANDSHAKE_PAD_BYTES, (byte) 0x00);
-        }
         IoBuffer output = IoBuffer.allocate(HANDSHAKE_SIZE_SERVER);
         // non-encrypted
         output.put(RTMPConnection.RTMP_NON_ENCRYPTED);
         // set server uptime in seconds
         output.putInt((int) Red5.getUpTime() / 1000); //0x01
-        output.put(RTMPHandshake.HANDSHAKE_PAD_BYTES);
+        output.position(Constants.HANDSHAKE_SIZE + 1);
         output.put(input);
         output.flip();
+        // fill S1 with handshake data (nearly all 0's)
+        output.mark();
+        output.position(1);
+        output.get(s1);
+        output.reset();
         return output;
     }
 

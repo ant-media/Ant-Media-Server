@@ -23,8 +23,6 @@ import javax.crypto.Cipher;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.mina.core.filterchain.IoFilterAdapter;
-import org.apache.mina.core.future.IoFutureListener;
-import org.apache.mina.core.future.WriteFuture;
 import org.apache.mina.core.session.IoSession;
 import org.apache.mina.core.write.WriteRequest;
 import org.apache.mina.core.write.WriteRequestWrapper;
@@ -89,7 +87,7 @@ public class RTMPEIoFilter extends IoFilterAdapter {
                     break;
                 case RTMP.STATE_CONNECT:
                     // we're expecting C0+C1 here
-                    log.trace("C0C1 byte order: {}", message.order());
+                    //log.trace("C0C1 byte order: {}", message.order());
                     // get the handshake from the session
                     handshake = (InboundHandshake) session.getAttribute(RTMPConnection.RTMP_HANDSHAKE);
                     // set handshake to match client requested type
@@ -110,7 +108,7 @@ public class RTMPEIoFilter extends IoFilterAdapter {
                         byte[] dst = new byte[Constants.HANDSHAKE_SIZE];
                         // copy out 1536 bytes
                         message.get(dst);
-                        log.debug("C1 - buffer: {}", Hex.encodeHexString(dst));
+                        //log.debug("C1 - buffer: {}", Hex.encodeHexString(dst));
                         // set state to indicate we're waiting for C2
                         conn.getState().setState(RTMP.STATE_HANDSHAKE);
                         // buffer any extra bytes
@@ -127,7 +125,7 @@ public class RTMPEIoFilter extends IoFilterAdapter {
                         }
                         IoBuffer s1 = handshake.decodeClientRequest1(IoBuffer.wrap(dst));
                         if (s1 != null) {
-                            log.trace("S1 byte order: {}", s1.order());
+                            //log.trace("S1 byte order: {}", s1.order());
                             session.write(s1);
                             if (handshake.useEncryption()) {
                                 // set encryption flag the rtmp state
@@ -144,7 +142,7 @@ public class RTMPEIoFilter extends IoFilterAdapter {
                     break;
                 case RTMP.STATE_HANDSHAKE:
                     // we're expecting C2 here
-                    log.trace("C2 byte order: {}", message.order());
+                    //log.trace("C2 byte order: {}", message.order());
                     // get the handshake from the session
                     handshake = (InboundHandshake) session.getAttribute(RTMPConnection.RTMP_HANDSHAKE);
                     log.debug("decodeHandshakeC2 - buffer: {}", message);
@@ -160,44 +158,43 @@ public class RTMPEIoFilter extends IoFilterAdapter {
                     log.trace("Incoming C2 size: {}", remaining);
                     if (remaining >= Constants.HANDSHAKE_SIZE) {
                         // create array for decode
-                        byte[] dst;
+                        byte[] dst = new byte[Constants.HANDSHAKE_SIZE];
                         // check for remaining stored bytes left over from C0C1 and prepend to the dst array
                         if (remainder != null) {
-                            // ensure there is space for remainder bytes and message bytes
-                            dst = new byte[remainder.length + message.remaining()];
                             // copy into dst
                             System.arraycopy(remainder, 0, dst, 0, remainder.length);
+                            log.trace("Copied {} from buffer {}", remainder.length, Hex.encodeHexString(dst));
                             // copy
-                            message.get(dst, remainder.length, message.remaining());
+                            message.get(dst, remainder.length, (Constants.HANDSHAKE_SIZE - remainder.length));
+                            log.trace("Copied {} from message {}", (Constants.HANDSHAKE_SIZE - remainder.length), Hex.encodeHexString(dst));
                             // remove buffer
                             session.removeAttribute("buffer");
                         } else {
-                            // ensure there is space for remainder bytes and message bytes
-                            dst = new byte[message.remaining()];
                             // copy
                             message.get(dst);
+                            log.trace("Copied {}", Hex.encodeHexString(dst));
                         }
-                        if (log.isTraceEnabled()) {
-                            log.trace("C2 - buffer: {}", Hex.encodeHexString(dst));
+                        log.trace("Message - pos: {} {}", message.position(), message);
+                        int index = message.indexOf(handshake.getHandshakeType());
+                        if (index != -1) {
+                            log.trace("Connection type index in message: {}", index);
+                            message.position(index);
                         }
+                        log.trace("Message - pos: {} {}", message.position(), message);
+                        //if (log.isTraceEnabled()) {
+                        //    log.trace("C2 - buffer: {}", Hex.encodeHexString(dst));
+                        //}
                         if (handshake.decodeClientRequest2(IoBuffer.wrap(dst))) {
-                            // send response to c2
-//                            log.trace("S2 byte order: {}", s2.order());
-//                            WriteFuture write = session.write(s2);
-//                            // wait for for the s2 to go out
-//                            write.addListener(new IoFutureListener<WriteFuture>() {
-//                                @Override
-//                                public void operationComplete(WriteFuture future) {
-//                                    if (future.isWritten()) {
-//                                        log.debug("S2 says it was sent..");
-//                                    }
-//                                    // continue in a connected state
-//                                    connected(future.getSession());
-//                                }
-//                            });
-//                            // pass the now empty message to the next filter
-//                            nextFilter.messageReceived(session, message);
-                            connected(session);
+                            log.debug("Connected, removing handshake data and adding rtmp protocol filter");
+                            // set state to indicate we're connected
+                            conn.getState().setState(RTMP.STATE_CONNECTED);
+                            // remove handshake from session now that we are connected
+                            session.removeAttribute(RTMPConnection.RTMP_HANDSHAKE);
+                            // add protocol filter as the last one in the chain
+                            log.debug("Adding RTMP protocol filter");
+                            session.getFilterChain().addAfter("rtmpeFilter", "protocolFilter", new ProtocolCodecFilter(new RTMPMinaCodecFactory()));
+                            // pass the now empty message to the next filter
+                            nextFilter.messageReceived(session, message);
                         } else {
                             log.warn("Client was rejected due to invalid handshake");
                             conn.close();
@@ -214,24 +211,6 @@ public class RTMPEIoFilter extends IoFilterAdapter {
                     throw new IllegalStateException("Invalid RTMP state: " + connectionState);
             }
         }
-    }
-
-    /**
-     * Sets the connected state on the connection, removes the handshake.
-     * 
-     * @param session
-     */
-    private void connected(IoSession session) {
-        log.debug("Connected, removing handshake data and adding rtmp protocol filter");
-        String sessionId = (String) session.getAttribute(RTMPConnection.RTMP_SESSION_ID);
-        RTMPMinaConnection conn = (RTMPMinaConnection) RTMPConnManager.getInstance().getConnectionBySessionId(sessionId);
-        // set state to indicate we're connected
-        conn.getState().setState(RTMP.STATE_CONNECTED);
-        // remove handshake from session now that we are connected
-        session.removeAttribute(RTMPConnection.RTMP_HANDSHAKE);
-        // add protocol filter as the last one in the chain
-        log.debug("Adding RTMP protocol filter");
-        session.getFilterChain().addAfter("rtmpeFilter", "protocolFilter", new ProtocolCodecFilter(new RTMPMinaCodecFactory()));
     }
 
     @Override
