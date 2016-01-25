@@ -123,9 +123,8 @@ public class DebugProxyHandler extends IoHandlerAdapter implements ResourceLoade
         File rawFile = loader.getResource(dumpTo + fileName + ".raw").getFile();
         rawFile.createNewFile();
 
-        FileOutputStream headersFos = new FileOutputStream(headersFile);
-        FileOutputStream rawFos = new FileOutputStream(rawFile);
-        try {
+        try (FileOutputStream headersFos = new FileOutputStream(headersFile);
+             FileOutputStream rawFos = new FileOutputStream(rawFile)) {
             WritableByteChannel headers = headersFos.getChannel();
             WritableByteChannel raw = rawFos.getChannel();
 
