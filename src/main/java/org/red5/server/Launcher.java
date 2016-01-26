@@ -48,7 +48,7 @@ public class Launcher {
      *             on error
      */
     public void launch() throws Exception {
-        System.out.printf("Root: %s\nDeploy type: %s\nLogback selector: %s\n", System.getProperty("red5.root"), System.getProperty("red5.deployment.type"), System.getProperty("logback.ContextSelector"));
+        System.out.printf("Root: %s%nDeploy type: %s%nLogback selector: %s%n", System.getProperty("red5.root"), System.getProperty("red5.deployment.type"), System.getProperty("logback.ContextSelector"));
         // install the slf4j bridge (mostly for JUL logging)
         SLF4JBridgeHandler.install();
         // log stdout and stderr to slf4j

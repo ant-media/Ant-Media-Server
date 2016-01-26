@@ -115,20 +115,17 @@ public class DebugProxyHandler extends IoHandlerAdapter implements ResourceLoade
 
         session.getFilterChain().addFirst("proxy", new ProxyFilter(isClient ? "client" : "server"));
 
-        if (true) {
+        String fileName = System.currentTimeMillis() + '_' + forward.getHostName() + '_' + forward.getPort() + '_' + (isClient ? "DOWNSTREAM" : "UPSTREAM");
 
-            String fileName = System.currentTimeMillis() + '_' + forward.getHostName() + '_' + forward.getPort() + '_' + (isClient ? "DOWNSTREAM" : "UPSTREAM");
+        File headersFile = loader.getResource(dumpTo + fileName + ".cap").getFile();
+        headersFile.createNewFile();
 
-            File headersFile = loader.getResource(dumpTo + fileName + ".cap").getFile();
-            headersFile.createNewFile();
+        File rawFile = loader.getResource(dumpTo + fileName + ".raw").getFile();
+        rawFile.createNewFile();
 
-            File rawFile = loader.getResource(dumpTo + fileName + ".raw").getFile();
-            rawFile.createNewFile();
-
-            FileOutputStream headersFos = new FileOutputStream(headersFile);
+        try (FileOutputStream headersFos = new FileOutputStream(headersFile);
+             FileOutputStream rawFos = new FileOutputStream(rawFile)) {
             WritableByteChannel headers = headersFos.getChannel();
-
-            FileOutputStream rawFos = new FileOutputStream(rawFile);
             WritableByteChannel raw = rawFos.getChannel();
 
             IoBuffer header = IoBuffer.allocate(1);
@@ -137,6 +134,9 @@ public class DebugProxyHandler extends IoHandlerAdapter implements ResourceLoade
             headers.write(header.buf());
 
             session.getFilterChain().addFirst("dump", new NetworkDumpFilter(headers, raw));
+        } finally {
+            headersFos.close();
+            rawFos.close();
         }
 
         //session.getFilterChain().addLast("logger", new LoggingFilter() );

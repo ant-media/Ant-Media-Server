@@ -51,7 +51,7 @@ import org.springframework.core.io.Resource;
  */
 public class Context implements IContext, ApplicationContextAware, ContextMXBean {
 
-    public static Logger logger = LoggerFactory.getLogger(Context.class);
+    public static final Logger logger = LoggerFactory.getLogger(Context.class);
 
     /**
      * Spring application context
