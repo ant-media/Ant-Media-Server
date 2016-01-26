@@ -297,7 +297,7 @@ public class InboundHandshake extends RTMPHandshake {
      */
     private IoBuffer generateUnversionedHandshake(byte[] input) {
         log.debug("Using old style (un-versioned) handshake");
-        IoBuffer output = IoBuffer.allocate(HANDSHAKE_SIZE_SERVER);
+        IoBuffer output = IoBuffer.allocate((Constants.HANDSHAKE_SIZE * 2) + 1); // 3073
         // non-encrypted
         output.put(RTMPConnection.RTMP_NON_ENCRYPTED);
         // set server uptime in seconds

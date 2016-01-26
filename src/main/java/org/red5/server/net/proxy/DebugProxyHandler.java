@@ -102,45 +102,40 @@ public class DebugProxyHandler extends IoHandlerAdapter implements ResourceLoade
     }
 
     /** {@inheritDoc} */
-    @SuppressWarnings("resource")
     @Override
     public void sessionCreated(IoSession session) throws Exception {
-
         boolean isClient = session.getRemoteAddress().equals(forward);
-
         if (log.isDebugEnabled()) {
             log.debug("Is downstream: " + isClient);
             session.getFilterChain().addFirst("protocol", new ProtocolCodecFilter(codecFactory));
         }
-
         session.getFilterChain().addFirst("proxy", new ProxyFilter(isClient ? "client" : "server"));
-
         String fileName = System.currentTimeMillis() + '_' + forward.getHostName() + '_' + forward.getPort() + '_' + (isClient ? "DOWNSTREAM" : "UPSTREAM");
-
         File headersFile = loader.getResource(dumpTo + fileName + ".cap").getFile();
         headersFile.createNewFile();
-
         File rawFile = loader.getResource(dumpTo + fileName + ".raw").getFile();
         rawFile.createNewFile();
-
-        try (FileOutputStream headersFos = new FileOutputStream(headersFile);
-             FileOutputStream rawFos = new FileOutputStream(rawFile)) {
+        FileOutputStream headersFos = null;
+        FileOutputStream rawFos = null;
+        try {
+            headersFos = new FileOutputStream(headersFile);
+            rawFos = new FileOutputStream(rawFile);
             WritableByteChannel headers = headersFos.getChannel();
             WritableByteChannel raw = rawFos.getChannel();
-
             IoBuffer header = IoBuffer.allocate(1);
             header.put((byte) (isClient ? 0x00 : 0x01));
             header.flip();
             headers.write(header.buf());
-
             session.getFilterChain().addFirst("dump", new NetworkDumpFilter(headers, raw));
         } finally {
-            headersFos.close();
-            rawFos.close();
+            if (headersFos != null) {
+                headersFos.close();
+            }
+            if (rawFos != null) {
+                rawFos.close();
+            }
         }
-
         //session.getFilterChain().addLast("logger", new LoggingFilter() );
-
         if (!isClient) {
             log.debug("Connecting..");
             IoConnector connector = new NioSocketConnector();
@@ -171,7 +166,6 @@ public class DebugProxyHandler extends IoHandlerAdapter implements ResourceLoade
                 final Packet packet = (Packet) in;
                 final Object message = packet.getMessage();
                 final Header source = packet.getHeader();
-
                 log.debug("{}", source);
                 log.debug("{}", message);
             } catch (RuntimeException e) {
