@@ -110,6 +110,9 @@ public class InboundHandshake extends RTMPHandshake {
         //} else {
         //    log.info("Invalid RTMP connection data detected, you may experience errors");
         //}
+        if (log.isTraceEnabled()) {
+            log.debug("Server handshake bytes: {}", Hex.encodeHexString(handshakeBytes));
+        }
         // handle encryption setup
         if (useEncryption()) {
             // configure based on type and fp version
@@ -271,7 +274,7 @@ public class InboundHandshake extends RTMPHandshake {
             log.debug("Signature calculated: {}", Hex.encodeHexString(signature));
             //if (memcmp(signature, c2[Constants.HANDSHAKE_SIZE - DIGEST_LENGTH], DIGEST_LENGTH) != 0) {
             if (!Arrays.equals(signature, Arrays.copyOfRange(c2, (Constants.HANDSHAKE_SIZE - DIGEST_LENGTH), (Constants.HANDSHAKE_SIZE - DIGEST_LENGTH) + DIGEST_LENGTH))) {
-              log.debug("Client not genuine Adobe!");
+              log.debug("Client not genuine Adobe");
               //return false;
             } else {
               log.debug("Genuine Adobe Flash Player");
@@ -381,6 +384,10 @@ public class InboundHandshake extends RTMPHandshake {
             }
         }
         return result;
+    }
+
+    public void setHandshakeBytes(byte[] handshake) {
+        this.handshakeBytes = handshake;
     }
 
     public byte[] getHandshakeBytes() {

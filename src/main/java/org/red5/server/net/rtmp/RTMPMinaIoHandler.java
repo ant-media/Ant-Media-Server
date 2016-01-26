@@ -114,17 +114,16 @@ public class RTMPMinaIoHandler extends IoHandlerAdapter {
         log.trace("Message received on session: {} id: {}", session.getId(), sessionId);
         RTMPMinaConnection conn = (RTMPMinaConnection) RTMPConnManager.getInstance().getConnectionBySessionId(sessionId);
         if (conn != null) {
-            if (message instanceof Packet) {
-                byte state = conn.getStateCode();
-                // checking the state before allowing a task to be created will hopefully prevent rejected task exceptions
-                if (state != RTMP.STATE_DISCONNECTING && state != RTMP.STATE_DISCONNECTED) {
-                    conn.handleMessageReceived((Packet) message);
-                } else {
-                    log.info("Ignoring received message on {} due to state: {}", sessionId, RTMP.states[state]);
+            if (message != null) {
+                if (message instanceof Packet) {
+                    byte state = conn.getStateCode();
+                    // checking the state before allowing a task to be created will hopefully prevent rejected task exceptions
+                    if (state != RTMP.STATE_DISCONNECTING && state != RTMP.STATE_DISCONNECTED) {
+                        conn.handleMessageReceived((Packet) message);
+                    } else {
+                        log.info("Ignoring received message on {} due to state: {}", sessionId, RTMP.states[state]);
+                    }
                 }
-            } else if (log.isTraceEnabled()) {
-                //IoBuffer buf = (IoBuffer) message;
-                //log.trace("rawBufferRecieved - pos: {} remaining: {} {}", buf.position(), buf.remaining(), Hex.encodeHexString(buf.array()));
             }
         } else {
             log.warn("Connection was not found for {}, force closing", sessionId);
@@ -148,10 +147,8 @@ public class RTMPMinaIoHandler extends IoHandlerAdapter {
                     case RTMP.STATE_CONNECTED:
                         if (message instanceof Packet) {
                             handler.messageSent(conn, (Packet) message);
-                        } else {
-                            if (log.isDebugEnabled()) {
-                                log.debug("Message was not of Packet type; its type: {}", message != null ? message.getClass().getName() : "null");
-                            }
+                        } else if (log.isDebugEnabled()) {
+                            log.debug("Message was not of Packet type; its type: {}", message != null ? message.getClass().getName() : "null");
                         }
                         break;
                     case RTMP.STATE_CONNECT:
@@ -176,8 +173,7 @@ public class RTMPMinaIoHandler extends IoHandlerAdapter {
         log.debug("Filter chain: {}", session.getFilterChain());
         String sessionId = (String) session.getAttribute(RTMPConnection.RTMP_SESSION_ID);
         if (log.isDebugEnabled()) {
-            log.debug("Exception caught on session: {} id: {}", session.getId(), sessionId, cause);
-            cause.printStackTrace();
+            log.warn("Exception caught on session: {} id: {}", session.getId(), sessionId, cause);
         }
         if (cause instanceof IOException) {
             // Mina states that the connection will be automatically closed when an IOException is caught

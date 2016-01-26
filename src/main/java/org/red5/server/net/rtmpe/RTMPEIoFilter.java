@@ -149,8 +149,8 @@ public class RTMPEIoFilter extends IoFilterAdapter {
                     remaining = message.remaining();
                     // check for remaining stored bytes left over from C0C1
                     byte[] remainder = null;
-                    if (session.containsAttribute("buffer")) {
-                        remainder = (byte[]) session.getAttribute("buffer");
+                    if (session.containsAttribute("handshake.buffer")) {
+                        remainder = (byte[]) session.getAttribute("handshake.buffer");
                         remaining += remainder.length;
                         log.trace("Remainder: {}", Hex.encodeHexString(remainder));
                     }
@@ -193,8 +193,13 @@ public class RTMPEIoFilter extends IoFilterAdapter {
                             // add protocol filter as the last one in the chain
                             log.debug("Adding RTMP protocol filter");
                             session.getFilterChain().addAfter("rtmpeFilter", "protocolFilter", new ProtocolCodecFilter(new RTMPMinaCodecFactory()));
-                            // pass the now empty message to the next filter
-                            nextFilter.messageReceived(session, message);
+                            if (message.remaining() > 0) {
+                                // pass the now empty message to the next filter
+                                nextFilter.messageReceived(session, message);
+                            } else {
+                                message.free();
+                                nextFilter.messageReceived(session, null);
+                            }
                         } else {
                             log.warn("Client was rejected due to invalid handshake");
                             conn.close();
