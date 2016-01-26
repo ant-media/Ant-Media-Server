@@ -61,7 +61,7 @@ import ch.qos.logback.classic.LoggerContext;
 public class WarLoaderServlet extends ContextLoaderListener {
 
     // Initialize Logging
-    public static Logger logger = Red5LoggerFactory.getLogger(WarLoaderServlet.class);
+    public static final Logger logger = Red5LoggerFactory.getLogger(WarLoaderServlet.class);
 
     private static ArrayList<ServletContext> registeredContexts = new ArrayList<ServletContext>(3);
 
