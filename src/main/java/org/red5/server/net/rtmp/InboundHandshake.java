@@ -18,11 +18,13 @@
 
 package org.red5.server.net.rtmp;
 
+import java.math.BigInteger;
 import java.security.KeyPair;
 import java.util.Arrays;
 
 import org.apache.commons.codec.binary.Hex;
 import org.apache.mina.core.buffer.IoBuffer;
+import org.bouncycastle.util.BigIntegers;
 import org.red5.server.api.Red5;
 import org.red5.server.net.rtmp.message.Constants;
 import org.slf4j.LoggerFactory;
@@ -115,15 +117,12 @@ public class InboundHandshake extends RTMPHandshake {
         }
         // handle encryption setup
         if (useEncryption()) {
-            // configure based on type and fp version
-            if (handshakeType == 6 || handshakeType == 8) {
-                // start off with algorithm 1 if we're type 6 or 8
-                algorithm = 1;
-                // set to xtea type 8 if client is fp10 capable
-                //if (clientVersionByte == 128) {
-                //    handshakeType = 8;
-                //}
-            }
+            // start off with algorithm 1 if we're type 6, 8, or 9
+            algorithm = 1;
+            // set to xtea type 8 if client is fp10 capable
+            //if (clientVersionByte == 128) {
+            //    handshakeType = 8;
+            //}
             // get the DH offset in the handshake bytes, generates DH keypair, and adds the public key to handshake bytes
             int clientDHOffset = getDHOffset(algorithm, c1, 0);
             log.trace("Incoming DH offset: {}", clientDHOffset);
@@ -173,6 +172,7 @@ public class InboundHandshake extends RTMPHandshake {
             // how in the heck do we generate a hash for a swf when we dont know which one is requested
             byte[] swfHash = new byte[DIGEST_LENGTH];
             calculateSwfVerification(s1, swfHash, swfSize);
+            log.debug("Swf digest: {}", Hex.encodeHexString(swfHash));
         }
         // calculate the response
         byte[] digestResp = new byte[DIGEST_LENGTH];
@@ -180,7 +180,7 @@ public class InboundHandshake extends RTMPHandshake {
         // compute digest key
         calculateHMAC_SHA256(c1, digestPosClient, DIGEST_LENGTH, GENUINE_FMS_KEY, GENUINE_FMS_KEY.length, digestResp, 0);
         log.debug("Digest response (key): {}", Hex.encodeHexString(digestResp));
-        calculateHMAC_SHA256(c1, (Constants.HANDSHAKE_SIZE - DIGEST_LENGTH), DIGEST_LENGTH, digestResp, DIGEST_LENGTH, signatureResponse, 0);
+        calculateHMAC_SHA256(c1, 0, (Constants.HANDSHAKE_SIZE - DIGEST_LENGTH), digestResp, DIGEST_LENGTH, signatureResponse, 0);
         log.debug("Signature response: {}", Hex.encodeHexString(signatureResponse));
         if (useEncryption()) {
             switch (handshakeType) {
@@ -244,7 +244,7 @@ public class InboundHandshake extends RTMPHandshake {
             log.debug("Client sent signature: {}", Hex.encodeHexString(Arrays.copyOfRange(c2, (Constants.HANDSHAKE_SIZE - DIGEST_LENGTH), (Constants.HANDSHAKE_SIZE - DIGEST_LENGTH) + DIGEST_LENGTH)));
             // verify client response
             calculateHMAC_SHA256(s1, digestPosServer, DIGEST_LENGTH, GENUINE_FP_KEY, GENUINE_FP_KEY.length, digest, 0);
-            calculateHMAC_SHA256(c2, Constants.HANDSHAKE_SIZE - DIGEST_LENGTH, DIGEST_LENGTH, digest, DIGEST_LENGTH, signature, 0);
+            calculateHMAC_SHA256(c2, 0, Constants.HANDSHAKE_SIZE - DIGEST_LENGTH, digest, DIGEST_LENGTH, signature, 0);
             if (useEncryption()) {
                 switch (handshakeType) {
                     case RTMPConnection.RTMP_ENCRYPTED_XTEA:
@@ -270,18 +270,21 @@ public class InboundHandshake extends RTMPHandshake {
                 cipherOut.update(dummyBytes);
             }
             // show some information
-            log.debug("Digest key: {}", Hex.encodeHexString(digest));
-            log.debug("Signature calculated: {}", Hex.encodeHexString(signature));
-            //if (memcmp(signature, c2[Constants.HANDSHAKE_SIZE - DIGEST_LENGTH], DIGEST_LENGTH) != 0) {
-            if (!Arrays.equals(signature, Arrays.copyOfRange(c2, (Constants.HANDSHAKE_SIZE - DIGEST_LENGTH), (Constants.HANDSHAKE_SIZE - DIGEST_LENGTH) + DIGEST_LENGTH))) {
-              log.debug("Client not genuine Adobe");
-              //return false;
+            if (log.isDebugEnabled()) {
+                log.debug("Digest key: {}", Hex.encodeHexString(digest));
+                log.debug("Signature calculated: {}", Hex.encodeHexString(signature));
+            }
+            byte[] sentSignature = Arrays.copyOfRange(c2, (Constants.HANDSHAKE_SIZE - DIGEST_LENGTH), (Constants.HANDSHAKE_SIZE - DIGEST_LENGTH) + DIGEST_LENGTH);
+            if (log.isDebugEnabled()) {
+                log.debug("Client sent signature: {}", Hex.encodeHexString(sentSignature));
+            }
+            if (!Arrays.equals(signature, sentSignature)) {
+              log.warn("Client not compatible");
+              return false;
             } else {
-              log.debug("Genuine Adobe Flash Player");
+              log.debug("Compatible client, handshake complete");
             }
        } else {
-           //log.trace("s1: {}", Hex.encodeHexString(s1));
-           //log.trace("c2: {}", Hex.encodeHexString(c2));
            if (!Arrays.equals(s1, c2)) {
                log.info("Client signature doesn't match!");
            }
@@ -331,8 +334,8 @@ public class InboundHandshake extends RTMPHandshake {
         handshakeBytes[6] = 0;
         handshakeBytes[7] = 1;
         // fill the rest with random bytes
-        byte[] rndBytes = new byte[Constants.HANDSHAKE_SIZE - 8];
-        random.nextBytes(rndBytes);
+        BigInteger bi = new BigInteger(((Constants.HANDSHAKE_SIZE - 8) * 8), random);
+        byte[] rndBytes = BigIntegers.asUnsignedByteArray(bi);
         // copy random bytes into our handshake array
         System.arraycopy(rndBytes, 0, handshakeBytes, 8, (Constants.HANDSHAKE_SIZE - 8));
     }
