@@ -77,11 +77,11 @@ public class RTMPEIoFilter extends IoFilterAdapter {
                         byte[] plain = cipher.update(encrypted);
                         IoBuffer messageDecrypted = IoBuffer.wrap(plain);
                         if (log.isDebugEnabled()) {
-                            log.debug("Decrypted buffer: {}", messageDecrypted);
+                            log.debug("Receiving decrypted message: {}", messageDecrypted);
                         }
                         nextFilter.messageReceived(session, messageDecrypted);
                     } else {
-                        log.trace("Not decrypting message: {}", obj);
+                        log.trace("Receiving message: {}", obj);
                         nextFilter.messageReceived(session, obj);
                     }
                     break;
@@ -94,8 +94,6 @@ public class RTMPEIoFilter extends IoFilterAdapter {
                     message.mark();
                     handshake.setHandshakeType(message.get());
                     message.reset();
-                    // set encryption flag the rtmp state
-                    rtmp.setEncrypted(handshake.useEncryption());
                     log.debug("decodeHandshakeC0C1 - buffer: {}", message);
                     // we want 1537 bytes for C0C1
                     remaining = message.remaining();
@@ -110,7 +108,7 @@ public class RTMPEIoFilter extends IoFilterAdapter {
                         message.get(dst);
                         //log.debug("C1 - buffer: {}", Hex.encodeHexString(dst));
                         // set state to indicate we're waiting for C2
-                        conn.getState().setState(RTMP.STATE_HANDSHAKE);
+                        rtmp.setState(RTMP.STATE_HANDSHAKE);
                         // buffer any extra bytes
                         remaining = message.remaining();
                         if (log.isTraceEnabled()) {
@@ -127,13 +125,6 @@ public class RTMPEIoFilter extends IoFilterAdapter {
                         if (s1 != null) {
                             //log.trace("S1 byte order: {}", s1.order());
                             session.write(s1);
-                            if (handshake.useEncryption()) {
-                                // set encryption flag the rtmp state
-                                rtmp.setEncrypted(true);
-                                log.debug("Using encrypted communications, adding ciphers to the session");
-                                session.setAttribute(RTMPConnection.RTMPE_CIPHER_IN, handshake.getCipherIn());
-                                session.setAttribute(RTMPConnection.RTMPE_CIPHER_OUT, handshake.getCipherOut());
-                            }
                         } else {
                             log.warn("Client was rejected due to invalid handshake");
                             conn.close();
@@ -168,42 +159,48 @@ public class RTMPEIoFilter extends IoFilterAdapter {
                             message.get(dst, remainder.length, (Constants.HANDSHAKE_SIZE - remainder.length));
                             log.trace("Copied {} from message {}", (Constants.HANDSHAKE_SIZE - remainder.length), Hex.encodeHexString(dst));
                             // remove buffer
-                            session.removeAttribute("buffer");
+                            session.removeAttribute("handshake.buffer");
                         } else {
                             // copy
                             message.get(dst);
                             log.trace("Copied {}", Hex.encodeHexString(dst));
                         }
-                        log.trace("Message - pos: {} {}", message.position(), message);
-                        int index = message.indexOf(handshake.getHandshakeType());
-                        if (index != -1) {
-                            log.trace("Connection type index in message: {}", index);
-                            message.position(index);
-                        }
-                        log.trace("Message - pos: {} {}", message.position(), message);
                         //if (log.isTraceEnabled()) {
                         //    log.trace("C2 - buffer: {}", Hex.encodeHexString(dst));
                         //}
                         if (handshake.decodeClientRequest2(IoBuffer.wrap(dst))) {
                             log.debug("Connected, removing handshake data and adding rtmp protocol filter");
                             // set state to indicate we're connected
-                            conn.getState().setState(RTMP.STATE_CONNECTED);
+                            rtmp.setState(RTMP.STATE_CONNECTED);
+                            // set encryption flag the rtmp state
+                            if (handshake.useEncryption()) {
+                                log.debug("Using encrypted communications, adding ciphers to the session");
+                                rtmp.setEncrypted(true);
+                                session.setAttribute(RTMPConnection.RTMPE_CIPHER_IN, handshake.getCipherIn());
+                                session.setAttribute(RTMPConnection.RTMPE_CIPHER_OUT, handshake.getCipherOut());
+                            } 
                             // remove handshake from session now that we are connected
                             session.removeAttribute(RTMPConnection.RTMP_HANDSHAKE);
                             // add protocol filter as the last one in the chain
                             log.debug("Adding RTMP protocol filter");
                             session.getFilterChain().addAfter("rtmpeFilter", "protocolFilter", new ProtocolCodecFilter(new RTMPMinaCodecFactory()));
                             if (message.remaining() > 0) {
+                                log.trace("Message - pos: {} {}", message.position(), message);
+                                int index = message.indexOf(handshake.getHandshakeType());
+                                if (index != -1) {
+                                    log.trace("Connection type index in message: {}", index);
+                                    message.position(index);
+                                    log.trace("Message - pos: {} {}", message.position(), message);
+                                }
                                 // pass the now empty message to the next filter
-                                nextFilter.messageReceived(session, message);
-                            } else {
-                                message.free();
-                                nextFilter.messageReceived(session, null);
+                                nextFilter.messageReceived(session, obj);
                             }
                         } else {
                             log.warn("Client was rejected due to invalid handshake");
                             conn.close();
                         }
+                        message.clear();
+                        message.free();
                     }
                     break;
                 case RTMP.STATE_ERROR:
@@ -220,9 +217,9 @@ public class RTMPEIoFilter extends IoFilterAdapter {
 
     @Override
     public void filterWrite(NextFilter nextFilter, IoSession session, WriteRequest request) throws Exception {
+        log.trace("filterWrite nextFilter: {} session: {} request: {}", nextFilter, session, request);
         RTMPMinaConnection conn = (RTMPMinaConnection) RTMPConnManager.getInstance().getConnectionBySessionId((String) session.getAttribute(RTMPConnection.RTMP_SESSION_ID));
-        // filter based on current connection state
-        if (conn.getState().getState() == RTMP.STATE_CONNECTED && session.containsAttribute(RTMPConnection.RTMPE_CIPHER_OUT)) {
+        if (conn.getState().isEncrypted()) {
             Cipher cipher = (Cipher) session.getAttribute(RTMPConnection.RTMPE_CIPHER_OUT);
             IoBuffer message = (IoBuffer) request.getMessage();
             if (!message.hasRemaining()) {
@@ -241,12 +238,12 @@ public class RTMPEIoFilter extends IoFilterAdapter {
                 byte[] encrypted = cipher.update(plain);
                 IoBuffer messageEncrypted = IoBuffer.wrap(encrypted);
                 if (log.isDebugEnabled()) {
-                    log.debug("Encrypted message: {}", messageEncrypted);
+                    log.debug("Writing encrypted message: {}", messageEncrypted);
                 }
                 nextFilter.filterWrite(session, new EncryptedWriteRequest(request, messageEncrypted));
             }
         } else {
-            log.trace("Non-encrypted message");
+            log.trace("Writing message");
             nextFilter.filterWrite(session, request);
         }
     }

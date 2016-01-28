@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
  * <pre>
  * rtmpdump -V -z -r "rtmp://localhost/live" -a "live" -W "http://localhost:5080/demos/publisher.swf" -p "http://localhost:5080/live" -y "test" -v -o t.flv
  * rtmpdump -V -z -r "rtmpe://localhost/live" -a "live" -W "http://localhost:5080/demos/publisher.swf" -p "http://localhost:5080/live" -y "test" -v -o t.flv
+ * rtmpdump -V -z -r "rtmp://localhost/oflaDemo" -a "oflaDemo" -W "http://localhost:5080/demos/publisher.swf" -p "http://localhost:5080/oflaDemo" -y "test" -v -o t.flv -f "WIN 10,0,7,2"
  * </pre>
  *
  * Test server

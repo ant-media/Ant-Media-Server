@@ -196,8 +196,6 @@ public class RTMPSMinaIoHandler extends RTMPMinaIoHandler {
         chain.addFirst("sslFilter", sslFilter);
         session.setAttribute(SslFilter.USE_NOTIFICATION, Boolean.TRUE);
         log.debug("isSslStarted: {}", sslFilter.isSslStarted(session));
-        // add rtmpe filter
-        chain.addAfter("sslFilter", "rtmpeFilter", new RTMPEIoFilter());
         if (log.isTraceEnabled()) {
             chain.addLast("logger", new LoggingFilter());
         }
@@ -219,6 +217,8 @@ public class RTMPSMinaIoHandler extends RTMPMinaIoHandler {
             session.replaceAttribute(RTMPConnection.RTMPS_STATE, "SESSION_UNSECURED", state);
             // create the session with super after we get the SESSION_SECURED message
             if ("SESSION_SECURED".equals(state)) {
+                // add rtmpe filter
+                session.getFilterChain().addAfter("sslFilter", "rtmpeFilter", new RTMPEIoFilter());
                 // set the handshake on the session
                 session.setAttribute(RTMPConnection.RTMP_HANDSHAKE, new InboundHandshake());
                 // create a connection
@@ -235,7 +235,7 @@ public class RTMPSMinaIoHandler extends RTMPMinaIoHandler {
                 sessionClosed(session);
             }
         } else if ("SESSION_SECURED".equals(session.getAttribute(RTMPConnection.RTMPS_STATE, "SESSION_UNSECURED"))) {
-            log.debug("message received on secured session");
+            log.debug("Message received on secured session");
         } else {
             log.warn("Session is unsecure, message will not be received. Message: {}", message, new Exception("Unsecure session"));
         }
