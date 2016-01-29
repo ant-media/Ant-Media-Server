@@ -19,6 +19,7 @@
 package org.red5.server.net.rtmp;
 
 import java.io.IOException;
+import java.lang.ref.WeakReference;
 
 import org.apache.commons.codec.binary.Hex;
 import org.apache.mina.core.buffer.IoBuffer;
@@ -29,6 +30,7 @@ import org.apache.mina.core.service.IoProcessor;
 import org.apache.mina.core.session.IoSession;
 import org.apache.mina.core.write.WriteRequestQueue;
 import org.apache.mina.filter.codec.ProtocolCodecFactory;
+import org.red5.server.net.IConnectionManager;
 import org.red5.server.net.rtmp.codec.RTMP;
 import org.red5.server.net.rtmp.message.Packet;
 import org.red5.server.net.rtmpe.RTMPEIoFilter;
@@ -70,7 +72,9 @@ public class RTMPMinaIoHandler extends IoHandlerAdapter {
     public void sessionOpened(IoSession session) throws Exception {
         String sessionId = (String) session.getAttribute(RTMPConnection.RTMP_SESSION_ID);
         log.debug("Session opened: {} id: {}", session.getId(), sessionId);
-        RTMPMinaConnection conn = (RTMPMinaConnection) RTMPConnManager.getInstance().getConnectionBySessionId(sessionId);
+        RTMPConnManager connManager = (RTMPConnManager) RTMPConnManager.getInstance();
+        session.setAttribute(RTMPConnection.RTMP_CONN_MANAGER, new WeakReference<IConnectionManager<RTMPConnection>>(connManager));
+        RTMPMinaConnection conn = (RTMPMinaConnection) connManager.getConnectionBySessionId(sessionId);
         handler.connectionOpened(conn);
     }
 

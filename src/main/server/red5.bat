@@ -10,7 +10,7 @@ if NOT DEFINED JAVA_HOME goto err
 
 REM JAVA options
 REM You can set JVM additional options here if you want
-if NOT DEFINED JVM_OPTS set JVM_OPTS=-Xverify:none -XX:+TieredCompilation -XX:+UseBiasedLocking -XX:+UseStringCache -XX:+UseParNewGC -XX:InitialCodeCacheSize=8m -XX:ReservedCodeCacheSize=32m -Dorg.terracotta.quartz.skipUpdateCheck=true
+if NOT DEFINED JVM_OPTS set JVM_OPTS=-Xverify:none -XX:+TieredCompilation -XX:+UseBiasedLocking -XX:+UseParNewGC -XX:InitialCodeCacheSize=8m -XX:ReservedCodeCacheSize=32m -Dorg.terracotta.quartz.skipUpdateCheck=true
 REM Set up logging options
 set LOGGING_OPTS=-Dlogback.ContextSelector=org.red5.logging.LoggingContextSelector -Dcatalina.useNaming=true
 REM Set up security options

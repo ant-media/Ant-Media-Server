@@ -29,14 +29,19 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.commons.codec.binary.Hex;
 import org.apache.mina.core.buffer.IoBuffer;
+import org.apache.mina.core.session.IoSession;
 import org.red5.logging.Red5LoggerFactory;
 import org.red5.server.api.Red5;
 import org.red5.server.net.IConnectionManager;
+import org.red5.server.net.rtmp.InboundHandshake;
 import org.red5.server.net.rtmp.RTMPConnManager;
 import org.red5.server.net.rtmp.RTMPConnection;
+import org.red5.server.net.rtmp.codec.RTMP;
 import org.red5.server.net.rtmp.codec.RTMPProtocolEncoder;
 import org.red5.server.net.rtmp.event.Invoke;
+import org.red5.server.net.rtmp.message.Constants;
 import org.red5.server.net.rtmp.message.Header;
 import org.red5.server.net.rtmp.message.Packet;
 import org.red5.server.net.rtmp.status.Status;
@@ -391,23 +396,102 @@ public class RTMPTServlet extends HttpServlet {
         log.debug("handleSend");
         final RTMPTConnection conn = getConnection();
         if (conn != null) {
+            IoSession session = conn.getSession();
+            // get the handshake from the session
+            InboundHandshake handshake = null; 
             // put the received data in a ByteBuffer
             int length = req.getContentLength();
             log.trace("Request content length: {}", length);
-            final IoBuffer data = IoBuffer.allocate(length);
-            ServletUtils.copy(req, data.asOutputStream());
-            data.flip();
-            // decode the objects in the data
-            final List<?> messages = conn.decode(data);
-            // clear the buffer
-            data.free();
-            // messages are either of IoBuffer or Packet type
-            // handshaking uses IoBuffer and everything else should be Packet
-            for (Object message : messages) {
-                conn.handleMessageReceived(message);
+            final IoBuffer message = IoBuffer.allocate(length);
+            ServletUtils.copy(req, message.asOutputStream());
+            message.flip();
+            RTMP rtmp = conn.getState();
+            int connectionState = rtmp.getState();
+            switch (connectionState) {
+                case RTMP.STATE_CONNECTED:
+                    // decode the objects in the data
+                    final List<?> decodedObjects = conn.decode(message);
+                    // clear the buffer
+                    message.free();
+                    // messages are either of IoBuffer or Packet type
+                    // handshaking uses IoBuffer and everything else should be Packet
+                    for (Object obj : decodedObjects) {
+                        conn.handleMessageReceived(obj);
+                    }
+                    conn.dataReceived();
+                    conn.updateReadBytes(length);
+                    break;
+                case RTMP.STATE_CONNECT:
+                    // we're expecting C0+C1 here
+                    //log.trace("C0C1 byte order: {}", message.order());
+                    log.debug("decodeHandshakeC0C1 - buffer: {}", message);
+                    // we want 1537 bytes for C0C1
+                    if (message.remaining() >= (Constants.HANDSHAKE_SIZE + 1)) {
+                        // get the connection type byte, may want to set this on the conn in the future
+                        byte connectionType = message.get();
+                        log.trace("Incoming C0 connection type: {}", connectionType);
+                        // add the in-bound handshake, defaults to non-encrypted mode
+                        handshake = new InboundHandshake(connectionType);
+                        session.setAttribute(RTMPConnection.RTMP_HANDSHAKE, handshake);
+                        // create array for decode
+                        byte[] dst = new byte[Constants.HANDSHAKE_SIZE];
+                        // copy out 1536 bytes
+                        message.get(dst);
+                        //log.debug("C1 - buffer: {}", Hex.encodeHexString(dst));
+                        // set state to indicate we're waiting for C2
+                        rtmp.setState(RTMP.STATE_HANDSHAKE);
+                        IoBuffer s1 = handshake.decodeClientRequest1(IoBuffer.wrap(dst));
+                        if (s1 != null) {
+                            //log.trace("S1 byte order: {}", s1.order());
+                            conn.writeRaw(s1);
+                        } else {
+                            log.warn("Client was rejected due to invalid handshake");
+                            conn.close();
+                        }
+                        message.clear();
+                        message.free();
+                    }
+                    break;
+                case RTMP.STATE_HANDSHAKE:
+                    // we're expecting C2 here
+                    //log.trace("C2 byte order: {}", message.order());
+                    log.debug("decodeHandshakeC2 - buffer: {}", message);
+                    // check for remaining stored bytes left over from C0C1
+                    // no connection type byte is supposed to be in C2 data
+                    if (message.remaining() >= Constants.HANDSHAKE_SIZE) {
+                        // get the handshake
+                        handshake = (InboundHandshake) session.getAttribute(RTMPConnection.RTMP_HANDSHAKE);
+                        // create array for decode
+                        byte[] dst = new byte[Constants.HANDSHAKE_SIZE];
+                        // copy
+                        message.get(dst);
+                        log.trace("Copied {}", Hex.encodeHexString(dst));
+                        //if (log.isTraceEnabled()) {
+                        //    log.trace("C2 - buffer: {}", Hex.encodeHexString(dst));
+                        //}
+                        if (handshake.decodeClientRequest2(IoBuffer.wrap(dst))) {
+                            log.debug("Connected, removing handshake data and adding rtmp protocol filter");
+                            // set state to indicate we're connected
+                            rtmp.setState(RTMP.STATE_CONNECTED);
+                            // remove handshake from session now that we are connected
+                            session.removeAttribute(RTMPConnection.RTMP_HANDSHAKE);
+                        } else {
+                            log.warn("Client was rejected due to invalid handshake");
+                            conn.close();
+                        }
+                        message.clear();
+                        message.free();
+                    }
+                    break;
+                case RTMP.STATE_ERROR:
+                case RTMP.STATE_DISCONNECTING:
+                case RTMP.STATE_DISCONNECTED:
+                    // do nothing, really
+                    log.debug("Nothing to do, connection state: {}", RTMP.states[connectionState]);
+                    break;
+                default:
+                    throw new IllegalStateException("Invalid RTMP state: " + connectionState);
             }
-            conn.dataReceived();
-            conn.updateReadBytes(length);
             // return pending messages
             returnPendingMessages(conn, resp);
         } else {

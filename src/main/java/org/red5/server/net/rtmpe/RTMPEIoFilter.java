@@ -50,13 +50,12 @@ public class RTMPEIoFilter extends IoFilterAdapter {
     @Override
     public void messageReceived(NextFilter nextFilter, IoSession session, Object obj) throws Exception {
         log.trace("messageReceived nextFilter: {} session: {} message: {}", nextFilter, session, obj);
-        RTMP rtmp = null;
         String sessionId = (String) session.getAttribute(RTMPConnection.RTMP_SESSION_ID);
         if (sessionId != null) {
             log.trace("Session id: {}", sessionId);
             RTMPMinaConnection conn = (RTMPMinaConnection) RTMPConnManager.getInstance().getConnectionBySessionId(sessionId);
             // filter based on current connection state
-            rtmp = conn.getState();
+            RTMP rtmp = conn.getState();
             final byte connectionState = conn.getStateCode();
             // assume message is an IoBuffer
             IoBuffer message = (IoBuffer) obj;

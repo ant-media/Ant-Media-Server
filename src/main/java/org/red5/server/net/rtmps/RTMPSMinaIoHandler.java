@@ -30,16 +30,13 @@ import javax.net.ssl.SSLParameters;
 
 import org.apache.mina.core.filterchain.IoFilterChain;
 import org.apache.mina.core.session.IoSession;
-import org.apache.mina.filter.logging.LoggingFilter;
 import org.apache.mina.filter.ssl.KeyStoreFactory;
 import org.apache.mina.filter.ssl.SslContextFactory;
 import org.apache.mina.filter.ssl.SslFilter;
-import org.apache.mina.filter.ssl.SslFilter.SslFilterMessage;
 import org.red5.server.net.rtmp.InboundHandshake;
 import org.red5.server.net.rtmp.RTMPConnection;
 import org.red5.server.net.rtmp.RTMPMinaConnection;
 import org.red5.server.net.rtmp.RTMPMinaIoHandler;
-import org.red5.server.net.rtmpe.RTMPEIoFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,12 +49,11 @@ import org.slf4j.LoggerFactory;
  * nc.connect("rtmps:\\localhost\app");
  * </pre>
  * 
- * https://issues.apache.org/jira/browse/DIRMINA-272
- * https://issues.apache.org/jira/browse/DIRMINA-997
+ * https://issues.apache.org/jira/browse/DIRMINA-272 https://issues.apache.org/jira/browse/DIRMINA-997
  * 
- * Transport Layer Security (TLS) Renegotiation Issue http://www.oracle.com/technetwork/java/javase/documentation/tlsreadme2-176330.html 
- * Secure renegotiation https://jce.iaik.tugraz.at/sic/Products/Communication-Messaging-Security/iSaSiLk/documentation/Secure-Renegotiation 
- * Troubleshooting a HTTPS TLSv1 handshake http://integr8consulting.blogspot.com/2012/02/troubleshooting-https-tlsv1-handshake.html 
+ * Transport Layer Security (TLS) Renegotiation Issue http://www.oracle.com/technetwork/java/javase/documentation/tlsreadme2-176330.html
+ * Secure renegotiation https://jce.iaik.tugraz.at/sic/Products/Communication-Messaging-Security/iSaSiLk/documentation/Secure-Renegotiation
+ * Troubleshooting a HTTPS TLSv1 handshake http://integr8consulting.blogspot.com/2012/02/troubleshooting-https-tlsv1-handshake.html
  * How to analyze Java SSL errors http://www.smartjava.org/content/how-analyze-java-ssl-errors
  * 
  * @author Kevin Green (kevygreen@gmail.com)
@@ -108,7 +104,8 @@ public class RTMPSMinaIoHandler extends RTMPMinaIoHandler {
     private boolean needClientAuth;
 
     /**
-     * Indicates that we would like to authenticate the client but if client certificates are self-signed or have no certificate chain then we are still good
+     * Indicates that we would like to authenticate the client but if client certificates are self-signed or have no certificate chain then
+     * we are still good
      */
     private boolean wantClientAuth;
 
@@ -196,55 +193,28 @@ public class RTMPSMinaIoHandler extends RTMPMinaIoHandler {
         chain.addFirst("sslFilter", sslFilter);
         session.setAttribute(SslFilter.USE_NOTIFICATION, Boolean.TRUE);
         log.debug("isSslStarted: {}", sslFilter.isSslStarted(session));
-        if (log.isTraceEnabled()) {
-            chain.addLast("logger", new LoggingFilter());
-        }
-        // set the state as unsecured
-        session.setAttribute(RTMPConnection.RTMPS_STATE, "SESSION_UNSECURED");
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public void sessionOpened(IoSession session) throws Exception {
-        // NO-OP since we're not technically opened until we are secured
-    }
-
-    @Override
-    public void messageReceived(IoSession session, Object message) throws Exception {
-        log.debug("messageReceived: {}", message.toString());
-        if (message instanceof SslFilterMessage) {
-            String state = message.toString();
-            session.replaceAttribute(RTMPConnection.RTMPS_STATE, "SESSION_UNSECURED", state);
-            // create the session with super after we get the SESSION_SECURED message
-            if ("SESSION_SECURED".equals(state)) {
-                // add rtmpe filter
-                session.getFilterChain().addAfter("sslFilter", "rtmpeFilter", new RTMPEIoFilter());
-                // set the handshake on the session
-                session.setAttribute(RTMPConnection.RTMP_HANDSHAKE, new InboundHandshake());
-                // create a connection
-                RTMPMinaConnection conn = createRTMPMinaConnection();
-                // add session to the connection
-                conn.setIoSession(session);
-                // add the handler
-                conn.setHandler(handler);
-                // add the connections session id for look up using the connection manager
-                session.setAttribute(RTMPConnection.RTMP_SESSION_ID, conn.getSessionId());
-                // set open on the handler
-                handler.connectionOpened(conn);
-            } else if ("SESSION_UNSECURED".equals(state)) {
-                sessionClosed(session);
-            }
-        } else if ("SESSION_SECURED".equals(session.getAttribute(RTMPConnection.RTMPS_STATE, "SESSION_UNSECURED"))) {
-            log.debug("Message received on secured session");
-        } else {
-            log.warn("Session is unsecure, message will not be received. Message: {}", message, new Exception("Unsecure session"));
-        }
+        //if (log.isTraceEnabled()) {
+        //    chain.addLast("logger", new LoggingFilter());
+        //}
+        // add rtmps filter
+        session.getFilterChain().addAfter("sslFilter", "rtmpsFilter", new RTMPSIoFilter());
+        // create a connection
+        RTMPMinaConnection conn = createRTMPMinaConnection();
+        // add session to the connection
+        conn.setIoSession(session);
+        // add the handler
+        conn.setHandler(handler);
+        // add the connections session id for look up using the connection manager
+        session.setAttribute(RTMPConnection.RTMP_SESSION_ID, conn.getSessionId());
+        // set the handshake on the session
+        session.setAttribute(RTMPConnection.RTMP_HANDSHAKE, new InboundHandshake());
     }
 
     /**
      * Password used to access the keystore file.
      * 
-     * @param password keystore password
+     * @param password
+     *            keystore password
      */
     public void setKeystorePassword(String password) {
         this.keystorePassword = password;
@@ -253,7 +223,8 @@ public class RTMPSMinaIoHandler extends RTMPMinaIoHandler {
     /**
      * Password used to access the truststore file.
      * 
-     * @param password truststore password
+     * @param password
+     *            truststore password
      */
     public void setTruststorePassword(String password) {
         this.truststorePassword = password;
@@ -262,7 +233,8 @@ public class RTMPSMinaIoHandler extends RTMPMinaIoHandler {
     /**
      * Set keystore data from a file.
      * 
-     * @param path contains keystore
+     * @param path
+     *            contains keystore
      */
     public void setKeystoreFile(String path) {
         this.keystoreFile = path;
@@ -271,7 +243,8 @@ public class RTMPSMinaIoHandler extends RTMPMinaIoHandler {
     /**
      * Set truststore file path.
      * 
-     * @param path contains truststore
+     * @param path
+     *            contains truststore
      */
     public void setTruststoreFile(String path) {
         this.truststoreFile = path;

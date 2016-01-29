@@ -26,7 +26,6 @@ import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.mina.core.session.DummySession;
 import org.apache.mina.core.session.IoSession;
 import org.red5.logging.Red5LoggerFactory;
-import org.red5.server.net.rtmp.InboundHandshake;
 import org.red5.server.net.rtmp.RTMPConnection;
 import org.red5.server.net.rtmp.codec.RTMP;
 import org.red5.server.net.rtmp.message.Packet;
@@ -144,26 +143,8 @@ public class RTMPTConnection extends BaseRTMPTConnection {
         if (message instanceof Packet) {
             handleMessageReceived((Packet) message);
         } else {
-            handleMessageReceived((IoBuffer) message);
+            log.warn("Incoming type: {} cannot be handled here", message.getClass().getName());
         }
-    }
-
-    /**
-     * Handle raw buffer receiving event.
-     * 
-     * @param message Data buffer
-     */
-    public void handleMessageReceived(IoBuffer message) {
-        log.trace("handleMessageReceived (raw buffer) - {}", sessionId);
-        if (getStateCode() != RTMP.STATE_HANDSHAKE) {
-            log.warn("Raw buffer after handshake, something odd going on");
-        }
-        log.debug("Writing handshake reply, handskake size: {}", message.remaining());
-        InboundHandshake handshake = new InboundHandshake();
-        writeRaw(handshake.doHandshake(message));
-        // clean up
-        message.free();
-        message = null;
     }
 
     /** {@inheritDoc} */
