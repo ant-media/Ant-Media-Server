@@ -47,6 +47,7 @@ public class RTMPSIoFilter extends RTMPEIoFilter {
     public void messageReceived(NextFilter nextFilter, IoSession session, Object obj) throws Exception {
         log.trace("messageReceived nextFilter: {} session: {} message: {}", nextFilter, session, obj);
         if (obj instanceof SslFilterMessage || !session.isSecured()) {
+            log.trace("Either ssl message or un-secured session: {}", session.isSecured());
             nextFilter.messageReceived(session, obj);
         } else {
             String sessionId = (String) session.getAttribute(RTMPConnection.RTMP_SESSION_ID);

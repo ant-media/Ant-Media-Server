@@ -24,8 +24,6 @@ import org.slf4j.Logger;
 import org.slf4j.bridge.SLF4JBridgeHandler;
 import org.springframework.context.support.FileSystemXmlApplicationContext;
 
-import uk.org.lidalia.sysoutslf4j.context.SysOutOverSLF4J;
-
 /**
  * Launches Red5.
  *
@@ -52,7 +50,7 @@ public class Launcher {
         // install the slf4j bridge (mostly for JUL logging)
         SLF4JBridgeHandler.install();
         // log stdout and stderr to slf4j
-        SysOutOverSLF4J.sendSystemOutAndErrToSLF4J();
+        //SysOutOverSLF4J.sendSystemOutAndErrToSLF4J();
         // we create the logger here so that it is instanced inside the expected classloader
         // check for the logback disable flag
         boolean useLogback = Boolean.valueOf(System.getProperty("useLogback", "true"));
@@ -72,14 +70,6 @@ public class Launcher {
         log.trace("Refreshing root server context");
         root.refresh();
         log.trace("Root server context refreshed");
-        /*
-        if (log.isTraceEnabled()) {
-        	String[] names = ctx.getBeanDefinitionNames();
-        	for (String name : names) {
-        		log.trace("Bean name: {}", name);
-        	}
-        }
-        */
         log.debug("Launcher exit");
     }
 
