@@ -1,7 +1,7 @@
 Included plugins:
 
  * Red5 Tomcat 1.11
- * Red5 WebSocket 1.2
+ * Red5 WebSocket 1.3
 
 Support libraries:
 
