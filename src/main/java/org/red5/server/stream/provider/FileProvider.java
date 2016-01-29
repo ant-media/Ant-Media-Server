@@ -275,7 +275,7 @@ public class FileProvider implements IPassive, ISeekableProvider, IPullableProvi
         }
         int frame = -1;
         for (int i = 0; i < keyFrameMeta.positions.length; i++) {
-            if (keyFrameMeta.timestamps[i] > ts) {
+            if (keyFrameMeta.timestamps[i] >= ts) {
                 frame = i;
                 break;
             }
