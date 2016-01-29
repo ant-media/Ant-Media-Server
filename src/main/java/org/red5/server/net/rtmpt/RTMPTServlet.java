@@ -21,7 +21,6 @@ package org.red5.server.net.rtmpt;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.List;
 
 import javax.servlet.ServletContext;
 import javax.servlet.ServletOutputStream;
@@ -344,7 +343,7 @@ public class RTMPTServlet extends HttpServlet {
             Red5.setConnectionLocal(conn);
             if (conn.getId() != 0) {
                 // return session id to client
-                returnMessage(conn.getSessionId() + "\n", resp);
+                returnMessage(String.format("%s\n", conn.getSessionId()), resp);
             } else {
                 // no more clients are available for serving
                 returnMessage((byte) 0, resp);
@@ -396,7 +395,7 @@ public class RTMPTServlet extends HttpServlet {
         log.debug("handleSend");
         final RTMPTConnection conn = getConnection();
         if (conn != null) {
-            IoSession session = conn.getSession();
+            IoSession session = conn.getIoSession();
             // get the handshake from the session
             InboundHandshake handshake = null; 
             // put the received data in a ByteBuffer
@@ -409,13 +408,8 @@ public class RTMPTServlet extends HttpServlet {
             int connectionState = rtmp.getState();
             switch (connectionState) {
                 case RTMP.STATE_CONNECTED:
-                    // decode the objects in the data
-                    final List<?> decodedObjects = conn.decode(message);
-                    // clear the buffer
-                    message.free();
-                    // messages are either of IoBuffer or Packet type
-                    // handshaking uses IoBuffer and everything else should be Packet
-                    for (Object obj : decodedObjects) {
+                    // decode the objects and pass to received; messages should all be Packet type
+                    for (Object obj : conn.decode(message)) {
                         conn.handleMessageReceived(obj);
                     }
                     conn.dataReceived();
@@ -448,8 +442,6 @@ public class RTMPTServlet extends HttpServlet {
                             log.warn("Client was rejected due to invalid handshake");
                             conn.close();
                         }
-                        message.clear();
-                        message.free();
                     }
                     break;
                 case RTMP.STATE_HANDSHAKE:
@@ -479,8 +471,6 @@ public class RTMPTServlet extends HttpServlet {
                             log.warn("Client was rejected due to invalid handshake");
                             conn.close();
                         }
-                        message.clear();
-                        message.free();
                     }
                     break;
                 case RTMP.STATE_ERROR:
@@ -492,6 +482,8 @@ public class RTMPTServlet extends HttpServlet {
                 default:
                     throw new IllegalStateException("Invalid RTMP state: " + connectionState);
             }
+            message.clear();
+            message.free();
             // return pending messages
             returnPendingMessages(conn, resp);
         } else {

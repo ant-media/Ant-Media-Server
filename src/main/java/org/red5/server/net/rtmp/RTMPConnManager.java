@@ -94,17 +94,18 @@ public class RTMPConnManager implements IConnectionManager<RTMPConnection>, Appl
                         }
                     }
                     long ioTime = 0L;
-                    IoSession session = null;
+                    IoSession session = conn.getIoSession();
                     if (conn instanceof RTMPMinaConnection) {
-                        session = ((RTMPMinaConnection) conn).getIoSession();
                         // get io time
                         ioTime = System.currentTimeMillis() - session.getLastIoTime();
                         if (log.isTraceEnabled()) {
-                            log.trace("Session - write queue: {} last io time: {} ms", session.getWriteRequestQueue().size(), ioTime);
-                            log.trace("Managed session count: {}", session.getService().getManagedSessionCount());
+                            log.trace("Session - write queue: {} session count: {}", session.getWriteRequestQueue().size(), session.getService().getManagedSessionCount());
                         }
                     } else if (conn instanceof RTMPTConnection) {
                         ioTime = System.currentTimeMillis() - ((RTMPTConnection) conn).getLastDataReceived();
+                    }
+                    if (log.isDebugEnabled()) {
+                        log.debug("Session last io time: {} ms", ioTime);
                     }
                     // if exceeds max inactivity kill and clean up
                     if (ioTime >= conn.maxInactivity) {

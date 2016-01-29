@@ -98,7 +98,8 @@ public class RTMPTConnection extends BaseRTMPTConnection {
      * 
      * @return ioSession
      */
-    protected IoSession getSession() {
+    @Override
+    public IoSession getIoSession() {
         return ioSession;
     }
 
@@ -111,7 +112,9 @@ public class RTMPTConnection extends BaseRTMPTConnection {
     /** {@inheritDoc} */
     @Override
     public void close() {
-        log.debug("close {} state: {}", getSessionId(), RTMP.states[state.getState()]);
+        if (log.isDebugEnabled()) {
+            log.debug("close {} state: {}", getSessionId(), RTMP.states[state.getState()]);
+        }
         // ensure closing flag is set
         if (!isClosing()) {
             // flush by waiting x number of millis for the pending messages to be cleared
@@ -240,8 +243,10 @@ public class RTMPTConnection extends BaseRTMPTConnection {
      * @return the polling delay
      */
     public byte getPollingDelay() {
-        log.trace("getPollingDelay {}", pollingDelay);
-        log.trace("Polling delay: {} loops without messages: {}", pollingDelay, noPendingMessages);
+        if (log.isTraceEnabled()) {
+            log.trace("getPollingDelay {}", pollingDelay);
+            log.trace("Polling delay: {} loops without messages: {}", pollingDelay, noPendingMessages);
+        }
         return (byte) (pollingDelay + 1);
     }
 
@@ -250,7 +255,9 @@ public class RTMPTConnection extends BaseRTMPTConnection {
      */
     @Override
     public IoBuffer getPendingMessages(int targetSize) {
-        log.debug("Pending messages out: {}", pendingOutMessages.size());
+        if (log.isTraceEnabled()) {
+            log.trace("Pending messages out: {}", pendingOutMessages.size());
+        }
         if (!pendingOutMessages.isEmpty()) {
             pollingDelay = INITIAL_POLLING_DELAY;
             noPendingMessages = 0;

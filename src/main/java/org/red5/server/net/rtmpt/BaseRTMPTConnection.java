@@ -200,7 +200,9 @@ public abstract class BaseRTMPTConnection extends RTMPConnection {
      */
     @Override
     public void write(final Packet packet) {
-        log.debug("write - packet: {}", packet);
+        if (log.isDebugEnabled()) {
+            log.debug("write - packet: {}", packet);
+        }
         //log.trace("state: {}", state);
         if (closing || state.getState() == RTMP.STATE_DISCONNECTED) {
             // connection is being closed, don't send any new packets
@@ -209,7 +211,9 @@ public abstract class BaseRTMPTConnection extends RTMPConnection {
             IoBuffer data = null;
             try {
                 // set the connection local before attempting to encode
-                log.debug("Local: {} this: {}", Red5.getConnectionLocal(), this);
+                if (log.isDebugEnabled()) {
+                    log.debug("Local: {} this: {}", Red5.getConnectionLocal(), this);
+                }
                 Red5.setConnectionLocal(this);
                 // encode the data
                 data = encoder.encodePacket(packet);
@@ -246,7 +250,9 @@ public abstract class BaseRTMPTConnection extends RTMPConnection {
      */
     @Override
     public void writeRaw(IoBuffer packet) {
-        log.debug("write - io buffer: {}", packet);
+        if (log.isDebugEnabled()) {
+            log.debug("write - io buffer: {}", packet);
+        }
         PendingData pendingData = new PendingData(packet);
         try {
             int attempt = 0;
@@ -289,7 +295,9 @@ public abstract class BaseRTMPTConnection extends RTMPConnection {
             sendList.clear();
             result.flip();
             // send byte length
-            log.debug("Send size: {}", result.limit());
+            if (log.isDebugEnabled()) {
+                log.debug("Send size: {}", result.limit());
+            }
         }
         return result;
     }
