@@ -63,10 +63,6 @@ public class RTMPSIoFilter extends RTMPEIoFilter {
                 InboundHandshake handshake = null;
                 int remaining = 0;
                 switch (connectionState) {
-                    case RTMP.STATE_CONNECTED:
-                        log.trace("Receiving message: {}", obj);
-                        nextFilter.messageReceived(session, obj);
-                        break;
                     case RTMP.STATE_CONNECT:
                         // we're expecting C0+C1 here
                         //log.trace("C0C1 byte order: {}", message.order());
@@ -174,9 +170,10 @@ public class RTMPSIoFilter extends RTMPEIoFilter {
                                 log.warn("Client was rejected due to invalid handshake");
                                 conn.close();
                             }
-                            message.clear();
-                            message.free();
                         }
+                    case RTMP.STATE_CONNECTED:
+                        log.trace("Receiving message: {}", message);
+                        nextFilter.messageReceived(session, message);
                         break;
                     case RTMP.STATE_ERROR:
                     case RTMP.STATE_DISCONNECTING:

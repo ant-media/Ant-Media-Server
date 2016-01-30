@@ -63,27 +63,6 @@ public class RTMPEIoFilter extends IoFilterAdapter {
             InboundHandshake handshake = null;
             int remaining = 0;
             switch (connectionState) {
-                case RTMP.STATE_CONNECTED:
-                    Cipher cipher = (Cipher) session.getAttribute(RTMPConnection.RTMPE_CIPHER_IN);
-                    if (cipher != null) {
-                        if (log.isDebugEnabled()) {
-                            log.debug("Decrypting message: {}", message);
-                        }
-                        byte[] encrypted = new byte[message.remaining()];
-                        message.get(encrypted);
-                        message.clear();
-                        message.free();
-                        byte[] plain = cipher.update(encrypted);
-                        IoBuffer messageDecrypted = IoBuffer.wrap(plain);
-                        if (log.isDebugEnabled()) {
-                            log.debug("Receiving decrypted message: {}", messageDecrypted);
-                        }
-                        nextFilter.messageReceived(session, messageDecrypted);
-                    } else {
-                        log.trace("Receiving message: {}", obj);
-                        nextFilter.messageReceived(session, obj);
-                    }
-                    break;
                 case RTMP.STATE_CONNECT:
                     // we're expecting C0+C1 here
                     //log.trace("C0C1 byte order: {}", message.order());
@@ -198,8 +177,29 @@ public class RTMPEIoFilter extends IoFilterAdapter {
                             log.warn("Client was rejected due to invalid handshake");
                             conn.close();
                         }
-                        message.clear();
-                        message.free();
+                    }
+                case RTMP.STATE_CONNECTED:
+                    // assuming majority of connections will not be encrypted
+                    if (!rtmp.isEncrypted()) {
+                        log.trace("Receiving message: {}", message);
+                        nextFilter.messageReceived(session, message);
+                    } else {
+                        Cipher cipher = (Cipher) session.getAttribute(RTMPConnection.RTMPE_CIPHER_IN);
+                        if (cipher != null) {
+                            if (log.isDebugEnabled()) {
+                                log.debug("Decrypting message: {}", message);
+                            }
+                            byte[] encrypted = new byte[message.remaining()];
+                            message.get(encrypted);
+                            message.clear();
+                            message.free();
+                            byte[] plain = cipher.update(encrypted);
+                            IoBuffer messageDecrypted = IoBuffer.wrap(plain);
+                            if (log.isDebugEnabled()) {
+                                log.debug("Receiving decrypted message: {}", messageDecrypted);
+                            }
+                            nextFilter.messageReceived(session, messageDecrypted);
+                        }
                     }
                     break;
                 case RTMP.STATE_ERROR:
