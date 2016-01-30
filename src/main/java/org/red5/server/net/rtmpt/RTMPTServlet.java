@@ -407,14 +407,6 @@ public class RTMPTServlet extends HttpServlet {
             RTMP rtmp = conn.getState();
             int connectionState = rtmp.getState();
             switch (connectionState) {
-                case RTMP.STATE_CONNECTED:
-                    // decode the objects and pass to received; messages should all be Packet type
-                    for (Object obj : conn.decode(message)) {
-                        conn.handleMessageReceived(obj);
-                    }
-                    conn.dataReceived();
-                    conn.updateReadBytes(length);
-                    break;
                 case RTMP.STATE_CONNECT:
                     // we're expecting C0+C1 here
                     //log.trace("C0C1 byte order: {}", message.order());
@@ -448,7 +440,6 @@ public class RTMPTServlet extends HttpServlet {
                     // we're expecting C2 here
                     //log.trace("C2 byte order: {}", message.order());
                     log.debug("decodeHandshakeC2 - buffer: {}", message);
-                    // check for remaining stored bytes left over from C0C1
                     // no connection type byte is supposed to be in C2 data
                     if (message.remaining() >= Constants.HANDSHAKE_SIZE) {
                         // get the handshake
@@ -472,6 +463,13 @@ public class RTMPTServlet extends HttpServlet {
                             conn.close();
                         }
                     }
+                    // let the logic flow into connected to catch the remaining bytes that probably contain
+                    // the connect call
+                case RTMP.STATE_CONNECTED:
+                    // decode the objects and pass to received; messages should all be Packet type
+                    for (Object obj : conn.decode(message)) {
+                        conn.handleMessageReceived(obj);
+                    }
                     break;
                 case RTMP.STATE_ERROR:
                 case RTMP.STATE_DISCONNECTING:
@@ -482,6 +480,8 @@ public class RTMPTServlet extends HttpServlet {
                 default:
                     throw new IllegalStateException("Invalid RTMP state: " + connectionState);
             }
+            conn.dataReceived();
+            conn.updateReadBytes(length);
             message.clear();
             message.free();
             // return pending messages

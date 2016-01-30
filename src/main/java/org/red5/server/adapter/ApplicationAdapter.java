@@ -18,66 +18,110 @@
 
 package org.red5.server.adapter;
 
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
+
 import org.red5.server.api.IClient;
 import org.red5.server.api.IConnection;
 import org.red5.server.api.scope.IScope;
 
 /**
- * Base class for applications, takes care that callbacks are executed single-threaded. If you want to have maximum performance, use {@link MultiThreadedApplicationAdapter} instead.
+ * Base class for applications, takes care that callbacks are executed single-threaded. If you want to have maximum performance, use
+ * {@link MultiThreadedApplicationAdapter} instead.
  * 
- * Using this class may lead to problems if accepting a client in the
- * 
- * <pre>
- * *Connect
- * </pre>
- * 
- * or
- * 
- * <pre>
- * *Join
- * </pre>
- * 
- * methods takes too long, so using the multi-threaded version is preferred.
+ * Using this class may lead to problems if accepting a client in the <code>Connect</code> or <code>Join</code> methods takes too
+ * long, so using the multi-threaded version is preferred.
  * 
  * @author The Red5 Project
  * @author Joachim Bauch (jojo@struktur.de)
+ * @author Paul Gregoire (mondain@gmail.com)
  */
 public class ApplicationAdapter extends MultiThreadedApplicationAdapter {
 
+    private Semaphore lock;
+
     /** {@inheritDoc} */
     @Override
-    public synchronized boolean connect(IConnection conn, IScope scope, Object[] params) {
-        return super.connect(conn, scope, params);
+    public boolean start(IScope scope) {
+        if (lock == null) {
+            lock = new Semaphore(1, true);
+        }
+        try {
+            lock.tryAcquire(1, TimeUnit.SECONDS);
+            return super.start(scope);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } finally {
+            lock.release();
+        }
+        return false;
     }
 
     /** {@inheritDoc} */
     @Override
-    public synchronized void disconnect(IConnection conn, IScope scope) {
-        super.disconnect(conn, scope);
+    public void stop(IScope scope) {
+        try {
+            lock.tryAcquire(1, TimeUnit.SECONDS);
+            super.stop(scope);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } finally {
+            lock.release();
+        }
     }
 
     /** {@inheritDoc} */
     @Override
-    public synchronized boolean start(IScope scope) {
-        return super.start(scope);
+    public boolean connect(IConnection conn, IScope scope, Object[] params) {
+        try {
+            lock.tryAcquire(1, TimeUnit.SECONDS);
+            return super.connect(conn, scope, params);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } finally {
+            lock.release();
+        }
+        return false;
     }
 
     /** {@inheritDoc} */
     @Override
-    public synchronized void stop(IScope scope) {
-        super.stop(scope);
+    public void disconnect(IConnection conn, IScope scope) {
+        try {
+            lock.tryAcquire(1, TimeUnit.SECONDS);
+            super.disconnect(conn, scope);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } finally {
+            lock.release();
+        }
     }
 
     /** {@inheritDoc} */
     @Override
-    public synchronized boolean join(IClient client, IScope scope) {
-        return super.join(client, scope);
+    public boolean join(IClient client, IScope scope) {
+        try {
+            lock.tryAcquire(1, TimeUnit.SECONDS);
+            return super.join(client, scope);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } finally {
+            lock.release();
+        }
+        return false;
     }
 
     /** {@inheritDoc} */
     @Override
-    public synchronized void leave(IClient client, IScope scope) {
-        super.leave(client, scope);
+    public void leave(IClient client, IScope scope) {
+        try {
+            lock.tryAcquire(1, TimeUnit.SECONDS);
+            super.leave(client, scope);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } finally {
+            lock.release();
+        }
     }
 
 }

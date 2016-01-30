@@ -29,8 +29,8 @@
         <property name="connectors">
             <list>
                 <bean name="httpConnector" class="org.red5.server.tomcat.TomcatConnector">
-					<property name="protocol" value="org.apache.coyote.http11.Http11NioProtocol" />
-					<property name="address" value="${http.host}:${http.port}" />
+                    <property name="protocol" value="org.apache.coyote.http11.Http11NioProtocol" />
+                    <property name="address" value="${http.host}:${http.port}" />
                     <property name="redirectPort" value="${https.port}" />  
                 </bean>     
             </list>

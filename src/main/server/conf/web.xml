@@ -335,10 +335,10 @@
         <url-pattern>/</url-pattern>
     </servlet-mapping>
 <!--
-	<servlet-mapping> 
-    	<servlet-name>gateway</servlet-name> 
-    	<url-pattern>/gateway</url-pattern> 
-  	</servlet-mapping>
+  <servlet-mapping> 
+      <servlet-name>gateway</servlet-name> 
+      <url-pattern>/gateway</url-pattern> 
+    </servlet-mapping>
 -->
     <!-- The mapping for the invoker servlet -->
 <!--

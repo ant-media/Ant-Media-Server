@@ -6,9 +6,7 @@
     <!--
 This file should be replaced by the container configuration file that you have selected
 If no JEE container is selected, some JEE features will not be available such as Servlets or JSP's.
-Go to this link for more information: http://wiki.red5.org/wiki/AppServer/JEEContainerPlugins
-
-
+Go to this link for more information: https://github.com/Red5/red5-server/wiki/JEEContainerPlugins
     -->
 
 </beans>

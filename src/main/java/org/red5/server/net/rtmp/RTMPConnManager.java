@@ -33,6 +33,7 @@ import javax.management.JMX;
 import javax.management.ObjectName;
 
 import org.apache.mina.core.session.IoSession;
+import org.red5.server.api.IConnection;
 import org.red5.server.api.Red5;
 import org.red5.server.api.scope.IBasicScope;
 import org.red5.server.jmx.mxbeans.RTMPMinaTransportMXBean;
@@ -93,38 +94,60 @@ public class RTMPConnManager implements IConnectionManager<RTMPConnection>, Appl
                             log.trace("Scope: {}", scope);
                         }
                     }
-                    long ioTime = 0L;
-                    IoSession session = conn.getIoSession();
-                    if (conn instanceof RTMPMinaConnection) {
-                        // get io time
-                        ioTime = System.currentTimeMillis() - session.getLastIoTime();
-                        if (log.isTraceEnabled()) {
-                            log.trace("Session - write queue: {} session count: {}", session.getWriteRequestQueue().size(), session.getService().getManagedSessionCount());
-                        }
-                    } else if (conn instanceof RTMPTConnection) {
-                        ioTime = System.currentTimeMillis() - ((RTMPTConnection) conn).getLastDataReceived();
-                    }
-                    if (log.isDebugEnabled()) {
-                        log.debug("Session last io time: {} ms", ioTime);
-                    }
-                    // if exceeds max inactivity kill and clean up
-                    if (ioTime >= conn.maxInactivity) {
-                        log.warn("Connection {} has exceeded the max inactivity threshold of {} ms", conn.getSessionId(), conn.maxInactivity);
-                        if (session != null) {
+                    String sessionId = conn.getSessionId();
+                    RTMP rtmp = conn.getState();
+                    switch (rtmp.getState()) {
+                        case RTMP.STATE_DISCONNECTED:
+                        case RTMP.STATE_DISCONNECTING:
+                            removeConnection(sessionId);
+                            break;
+                        default:
+                            // XXX implement as a task and fix logic
+                            // ghost clean up 
+//                            if (max time allowed for no response from client exceeded, ping)
+//                                // Ping client
+//                                conn.ping();
+//                                // FIXME: getLastPingTime doesn't get updated right after ping
+//                                // wait x time for lastPingTime and if exceeded, disconnect
+//                                if (conn.getLastPingTime() > clientTTL * 1000) {
+//                                    log.info("TTL exceeded, disconnecting {}", conn);
+//                                    conn.close();
+//                                }
+//                            }
+                            long ioTime = 0L;
+                            IoSession session = conn.getIoSession();
+                            if (conn instanceof RTMPMinaConnection) {
+                                // get io time
+                                ioTime = System.currentTimeMillis() - session.getLastIoTime();
+                                if (log.isTraceEnabled()) {
+                                    log.trace("Session - write queue: {} session count: {}", session.getWriteRequestQueue().size(), session.getService().getManagedSessionCount());
+                                }
+                            } else if (conn instanceof RTMPTConnection) {
+                                ioTime = System.currentTimeMillis() - ((RTMPTConnection) conn).getLastDataReceived();
+                            }
                             if (log.isDebugEnabled()) {
-                                log.debug("Prepared to clear write queue, if session is connected: {}; closing? {}", session.isConnected(), session.isClosing());
+                                log.debug("Session last io time: {} ms", ioTime);
                             }
-                            if (session.isConnected()) {
-                                // clear the write queue
-                                session.getWriteRequestQueue().clear(session);
+                            // if exceeds max inactivity kill and clean up
+                            if (ioTime >= conn.maxInactivity) {
+                                log.warn("Connection {} has exceeded the max inactivity threshold of {} ms", conn.getSessionId(), conn.maxInactivity);
+                                if (session != null) {
+                                    if (log.isDebugEnabled()) {
+                                        log.debug("Prepared to clear write queue, if session is connected: {}; closing? {}", session.isConnected(), session.isClosing());
+                                    }
+                                    if (session.isConnected()) {
+                                        // clear the write queue
+                                        session.getWriteRequestQueue().clear(session);
+                                    }
+                                }
+                                // call onInactive on the connection, this should cleanly close everything out
+                                conn.onInactive();
+                                if (!conn.isClosed()) {
+                                    log.debug("Connection {} is not closed", conn.getSessionId());
+                                } else {
+                                    closedConnections++;
+                                }
                             }
-                        }
-                        // call onInactive on the connection, this should cleanly close everything out
-                        conn.onInactive();
-                        if (!conn.isClosed()) {
-                            log.debug("Connection {} is not closed", conn.getSessionId());
-                        }
-                        closedConnections++;
                     }
                 }
                 // if there is more than one connection that needed to be closed, request a GC to clean up memory.
