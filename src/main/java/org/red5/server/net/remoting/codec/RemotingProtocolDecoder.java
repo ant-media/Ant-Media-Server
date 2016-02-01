@@ -122,21 +122,18 @@ public class RemotingProtocolDecoder {
         log.debug("Decode calls");
         //in.getInt();
         List<RemotingCall> calls = new LinkedList<RemotingCall>();
-        org.red5.io.amf.Input input;
+        org.red5.io.amf.Input input = new org.red5.io.amf.Input(in);
         int count = in.getUnsignedShort();
         log.debug("Calls: {}", count);
         int limit = in.limit();
         // Loop over all the body elements
         for (int i = 0; i < count; i++) {
             in.limit(limit);
-
-            String serviceString = org.red5.io.amf.Input.getString(in);
-            String clientCallback = org.red5.io.amf.Input.getString(in);
+            String serviceString = input.getString();
+            String clientCallback = input.getString();
             log.debug("callback: {}", clientCallback);
-
             Object[] args = null;
             boolean isAMF3 = false;
-
             @SuppressWarnings("unused")
             int length = in.getInt();
             // Set the limit and deserialize
@@ -176,14 +173,11 @@ public class RemotingProtocolDecoder {
                         log.debug("> " + element);
                     }
                 }
-
             } else if (type == AMF.TYPE_NULL) {
                 log.debug("Got null amf type");
-
             } else if (type != AMF.TYPE_ARRAY) {
                 throw new RuntimeException("AMF0 array type expected but found " + type);
             }
-
             String serviceName;
             String serviceMethod;
             int dotPos = serviceString.lastIndexOf('.');
@@ -194,7 +188,6 @@ public class RemotingProtocolDecoder {
                 serviceName = "";
                 serviceMethod = serviceString;
             }
-
             boolean isMessaging = false;
             if ("".equals(serviceName) && "null".equals(serviceMethod)) {
                 // Use fixed service and method name for Flex messaging requests,
@@ -204,7 +197,6 @@ public class RemotingProtocolDecoder {
                 isMessaging = true;
             }
             log.debug("Service: {} Method: {}", serviceName, serviceMethod);
-
             // Add the call to the list
             calls.add(new RemotingCall(serviceName, serviceMethod, args, clientCallback, isAMF3, isMessaging));
         }

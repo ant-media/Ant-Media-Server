@@ -162,22 +162,12 @@ public class RTMPEIoFilter extends IoFilterAdapter {
                             // add protocol filter as the last one in the chain
                             log.debug("Adding RTMP protocol filter");
                             session.getFilterChain().addAfter("rtmpeFilter", "protocolFilter", new ProtocolCodecFilter(new RTMPMinaCodecFactory()));
-                            if (message.remaining() > 0) {
-                                log.trace("Message - pos: {} {}", message.position(), message);
-                                int index = message.indexOf(handshake.getHandshakeType());
-                                if (index != -1) {
-                                    log.trace("Connection type index in message: {}", index);
-                                    message.position(index);
-                                    log.trace("Message - pos: {} {}", message.position(), message);
-                                }
-                                // pass the now empty message to the next filter
-                                nextFilter.messageReceived(session, obj);
-                            }
                         } else {
                             log.warn("Client was rejected due to invalid handshake");
                             conn.close();
                         }
                     }
+                    // no break here to all the message to flow into connected case
                 case RTMP.STATE_CONNECTED:
                     // assuming majority of connections will not be encrypted
                     if (!rtmp.isEncrypted()) {

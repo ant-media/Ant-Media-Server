@@ -33,7 +33,6 @@ import javax.management.JMX;
 import javax.management.ObjectName;
 
 import org.apache.mina.core.session.IoSession;
-import org.red5.server.api.IConnection;
 import org.red5.server.api.Red5;
 import org.red5.server.api.scope.IBasicScope;
 import org.red5.server.jmx.mxbeans.RTMPMinaTransportMXBean;
