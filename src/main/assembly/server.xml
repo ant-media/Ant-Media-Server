@@ -1,7 +1,7 @@
 <assembly
-	xmlns="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.0"
+	xmlns="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.3"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.0 http://maven.apache.org/xsd/assembly-1.1.0.xsd">
+	xsi:schemaLocation="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.3 http://maven.apache.org/xsd/assembly-1.1.3.xsd">
 	<id>${project.version}</id>
 	<formats>
 		<format>tar.gz</format>
@@ -10,26 +10,26 @@
     <files>
         <file>
 			<source>${project.build.directory}/${finalName}.jar</source>
-            <outputDirectory>/</outputDirectory>
+            <outputDirectory></outputDirectory>
             <destName>red5-server.jar</destName>
         </file>
         <file>
             <source>${project.build.directory}/lib/red5-service-${red5-service.version}.jar</source>
-            <outputDirectory>/</outputDirectory>
+            <outputDirectory></outputDirectory>
             <destName>red5-service.jar</destName>
         </file>    
     </files>	
 	<fileSets>
 		<fileSet>
 			<directory>${project.basedir}</directory>
-			<outputDirectory>/</outputDirectory>
+			<outputDirectory></outputDirectory>
 			<includes>
 				<include>license.txt</include>
 			</includes>
 		</fileSet>
 		<fileSet>
 			<directory>${project.build.directory}/lib</directory>
-			<outputDirectory>/lib</outputDirectory>
+			<outputDirectory>lib</outputDirectory>
 			<includes>
 				<include>*.jar</include>
 			</includes>
@@ -49,14 +49,14 @@
 		</fileSet>
 		<fileSet>
 			<directory>${project.basedir}/src/main/server</directory>
-			<outputDirectory>/</outputDirectory>
+			<outputDirectory></outputDirectory>
 			<includes>
 				<include>*.bat</include>
 			</includes>
 		</fileSet>
         <fileSet>
             <directory>${project.basedir}/src/main/server</directory>
-            <outputDirectory>/</outputDirectory>
+            <outputDirectory></outputDirectory>
             <fileMode>0755</fileMode>
             <includes>
                 <include>*.sh</include>
@@ -65,7 +65,7 @@
         </fileSet>
 		<fileSet>
 			<directory>${project.basedir}/src/main/server/conf</directory>
-			<outputDirectory>/conf</outputDirectory>
+			<outputDirectory>conf</outputDirectory>
 			<includes>
 				<include>*.xml</include>
 				<include>*.properties</include>
@@ -79,7 +79,7 @@
 		</fileSet>
 		<fileSet>
 			<directory>${project.basedir}/src/main/server/plugins</directory>
-			<outputDirectory>/plugins</outputDirectory>
+			<outputDirectory>plugins</outputDirectory>
 			<includes>
 				<include>*.xml</include>
 				<include>*.properties</include>
@@ -88,7 +88,7 @@
 		</fileSet>
 		<fileSet>
 			<directory>${project.basedir}/src/main/server/webapps</directory>
-			<outputDirectory>/webapps</outputDirectory>
+			<outputDirectory>webapps</outputDirectory>
 			<includes>
 				<include>*.xml</include>
 			</includes>
@@ -96,7 +96,7 @@
 		<!-- ROOT -->
 		<fileSet>
 			<directory>${project.basedir}/src/main/server/webapps/root</directory>
-			<outputDirectory>/webapps/root</outputDirectory>
+			<outputDirectory>webapps/root</outputDirectory>
 			<includes>
 				<include>*.xml</include>
 				<include>*.jsp</include>
@@ -107,7 +107,7 @@
 		</fileSet>
 		<fileSet>
 			<directory>${project.basedir}/src/main/server/webapps/root/WEB-INF</directory>
-			<outputDirectory>/webapps/root/WEB-INF</outputDirectory>
+			<outputDirectory>webapps/root/WEB-INF</outputDirectory>
 			<includes>
 				<include>*.xml</include>
 				<include>*.properties</include>
@@ -116,7 +116,7 @@
 		<!-- Demos -->
 		<fileSet>
 			<directory>${project.basedir}/src/main/server/webapps/root/demos</directory>
-			<outputDirectory>/webapps/root/demos</outputDirectory>
+			<outputDirectory>webapps/root/demos</outputDirectory>
 			<includes>
 				<include>*.html</include>
 				<include>*.xml</include>
@@ -127,7 +127,7 @@
 		</fileSet>
 		<fileSet>
 			<directory>${project.basedir}/src/main/server/webapps/root/demos/assets</directory>
-			<outputDirectory>/webapps/root/demos/assets</outputDirectory>
+			<outputDirectory>webapps/root/demos/assets</outputDirectory>
 			<includes>
 				<include>*.js</include>
 				<include>*.swf</include>
@@ -136,7 +136,7 @@
 		<!-- Installer -->
 		<fileSet>
 			<directory>${project.basedir}/src/main/server/webapps/installer</directory>
-			<outputDirectory>/webapps/installer</outputDirectory>
+			<outputDirectory>webapps/installer</outputDirectory>
 			<includes>
 				<include>*.html</include>
 				<include>*.js</include>
@@ -145,7 +145,7 @@
 		</fileSet>
 		<fileSet>
 			<directory>${project.basedir}/src/main/server/webapps/installer/WEB-INF</directory>
-			<outputDirectory>/webapps/installer/WEB-INF</outputDirectory>
+			<outputDirectory>webapps/installer/WEB-INF</outputDirectory>
 			<includes>
 				<include>*.xml</include>
 				<include>*.properties</include>
@@ -153,7 +153,7 @@
 		</fileSet>
 		<fileSet>
 			<directory>${project.basedir}/src/main/server/webapps/installer/history</directory>
-			<outputDirectory>/webapps/installer/history</outputDirectory>
+			<outputDirectory>webapps/installer/history</outputDirectory>
 			<includes>
 				<include>*.html</include>
 				<include>*.js</include>
@@ -163,7 +163,7 @@
 		<!-- Live -->
 		<fileSet>
 			<directory>${project.basedir}/src/main/server/webapps/live/WEB-INF</directory>
-			<outputDirectory>/webapps/live/WEB-INF</outputDirectory>
+			<outputDirectory>webapps/live/WEB-INF</outputDirectory>
 			<includes>
 				<include>*.xml</include>
 				<include>*.properties</include>
@@ -172,7 +172,7 @@
 		<!-- VOD -->
 		<fileSet>
 			<directory>${project.basedir}/src/main/server/webapps/vod</directory>
-			<outputDirectory>/webapps/vod</outputDirectory>
+			<outputDirectory>webapps/vod</outputDirectory>
 			<includes>
 				<include>*.html</include>
 				<include>*.js</include>
@@ -181,7 +181,7 @@
 		</fileSet>
 		<fileSet>
 			<directory>${project.basedir}/src/main/server/webapps/vod/WEB-INF</directory>
-			<outputDirectory>/webapps/vod/WEB-INF</outputDirectory>
+			<outputDirectory>webapps/vod/WEB-INF</outputDirectory>
 			<includes>
 				<include>*.xml</include>
 				<include>*.properties</include>
@@ -189,7 +189,7 @@
 		</fileSet>
 		<fileSet>
 			<directory>${project.basedir}/src/main/server/webapps/vod/streams</directory>
-			<outputDirectory>/webapps/vod/streams</outputDirectory>
+			<outputDirectory>webapps/vod/streams</outputDirectory>
 			<includes>
 				<include>*.flv</include>
 			</includes>
@@ -197,7 +197,7 @@
 		<!-- Websocket chat -->
 		<fileSet>
 			<directory>${project.basedir}/src/main/server/webapps/chat</directory>
-			<outputDirectory>/webapps/chat</outputDirectory>
+			<outputDirectory>webapps/chat</outputDirectory>
 			<includes>
 				<include>*.html</include>
 				<include>*.js</include>
@@ -205,7 +205,7 @@
 		</fileSet>
 		<fileSet>
 			<directory>${project.basedir}/src/main/server/webapps/chat/WEB-INF</directory>
-			<outputDirectory>/webapps/chat/WEB-INF</outputDirectory>
+			<outputDirectory>webapps/chat/WEB-INF</outputDirectory>
 			<includes>
 				<include>*.xml</include>
 				<include>*.properties</include>
@@ -213,14 +213,14 @@
 		</fileSet>
 		<fileSet>
 			<directory>${project.basedir}/src/main/server/webapps/chat/WEB-INF/lib</directory>
-			<outputDirectory>/webapps/chat/WEB-INF/lib</outputDirectory>
+			<outputDirectory>webapps/chat/WEB-INF/lib</outputDirectory>
 			<includes>
 				<include>*.jar</include>
 			</includes>
 		</fileSet>
 		<fileSet>
 			<directory>${project.basedir}/src/main/server/webapps/chat/WEB-INF/classes</directory>
-			<outputDirectory>/webapps/chat/WEB-INF/classes</outputDirectory>
+			<outputDirectory>webapps/chat/WEB-INF/classes</outputDirectory>
 			<includes>
 				<include>*.xml</include>
 				<include>*.class</include>
