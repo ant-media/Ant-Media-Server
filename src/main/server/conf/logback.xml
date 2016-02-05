@@ -9,8 +9,7 @@
         <File>log/red5.log</File>
         <Append>false</Append>
         <encoder>
-            <pattern>%d{ISO8601} [%thread] %-5level %logger{35} - %msg%n
-            </pattern>
+            <pattern>%d{ISO8601} [%thread] %-5level %logger{35} - %msg%n</pattern>
         </encoder>
     </appender>
     <root level="INFO">

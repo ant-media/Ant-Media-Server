@@ -251,21 +251,7 @@ public class MultiThreadedApplicationAdapter extends StatefulScopeWrappingAdapte
      * 
      * @param conn
      *            Connection object
-     * @param scope
-     *            Scope
-     * @param params
-     *            List of params passed to connection handler
-     * @return <code>
-     * true
-     * </code>
-     * 
-     *         if connect is successful,
-     * 
-     *         <code>
-     * false
-     * </code>
-     * 
-     *         otherwise
+     * @return <code>true</code> if connect is successful, <code>false</code> otherwise
      */
     public boolean connect(IConnection conn) {
         // ensure the log is not null at this point

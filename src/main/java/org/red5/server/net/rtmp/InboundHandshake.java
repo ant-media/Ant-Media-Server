@@ -63,7 +63,7 @@ public class InboundHandshake extends RTMPHandshake {
     /**
      * Generates response for versioned connections.
      * 
-     * @param input incoming RTMP handshake bytes
+     * @param in incoming RTMP handshake bytes
      * @return outgoing handshake
      */
     public IoBuffer doHandshake(IoBuffer in) {
@@ -343,7 +343,7 @@ public class InboundHandshake extends RTMPHandshake {
     /**
      * Determines the validation scheme for given input.
      * 
-     * @param input handshake bytes from the client
+     * @param handshake handshake bytes from the client
      * @return true if client used a supported validation scheme, false if unsupported
      */
     @Override
