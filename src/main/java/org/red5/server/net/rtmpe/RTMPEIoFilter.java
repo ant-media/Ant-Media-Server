@@ -165,9 +165,13 @@ public class RTMPEIoFilter extends IoFilterAdapter {
                         } else {
                             log.warn("Client was rejected due to invalid handshake");
                             conn.close();
+                            break;
                         }
                     }
-                    // no break here to all the message to flow into connected case
+                    // no break here if there are still message bytes
+                    if (!message.hasRemaining()) {
+                        break;
+                    }
                 case RTMP.STATE_CONNECTED:
                     // assuming majority of connections will not be encrypted
                     if (!rtmp.isEncrypted()) {
