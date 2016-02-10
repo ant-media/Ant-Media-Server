@@ -111,7 +111,7 @@
         <plugins>
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.5</version>
+                <version>3.5.1</version>
                 <configuration>
                     <compilerVersion>1.7</compilerVersion>
                     <fork>true</fork>
