@@ -67,7 +67,7 @@
         <quartz.version>2.2.2</quartz.version>
         <bc.version>1.53</bc.version>
         <junit.version>4.12</junit.version>
-        <tomcat.version>8.0.30</tomcat.version>
+        <tomcat.version>8.0.32</tomcat.version>
         <ehcache.version>2.6.11</ehcache.version>
     </properties>
     <repositories>
