@@ -43,11 +43,6 @@ public class Red5ApplicationContext extends FileSystemXmlApplicationContext impl
     }
 
     @Override
-    public void setConfigLocation(String location) {
-        super.setConfigLocation(location);
-    }
-
-    @Override
     public void setParent(ApplicationContext parent) {
         super.setParent(parent);
         parentContext = parent;
