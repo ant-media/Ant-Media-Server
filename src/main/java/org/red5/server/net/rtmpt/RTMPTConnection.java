@@ -206,12 +206,6 @@ public class RTMPTConnection extends BaseRTMPTConnection {
         this.remotePort = remotePort;
     }
 
-    /** {@inheritDoc} */
-    @Override
-    public void setScheduler(ThreadPoolTaskScheduler scheduler) {
-        super.setScheduler(scheduler);
-    }
-
     /**
      * Set the servlet that created the connection.
      * 
