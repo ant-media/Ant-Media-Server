@@ -44,11 +44,11 @@ public class LoggingContextSelector implements ContextSelector {
 
     private static boolean debug = false;
 
-    private static final ConcurrentMap<String, LoggerContext> contextMap = new ConcurrentHashMap<String, LoggerContext>(6, 0.9f, 1);
+    private static final ConcurrentMap<String, LoggerContext> contextMap = new ConcurrentHashMap<>(6, 0.9f, 1);
 
     private static final Semaphore lock = new Semaphore(1, true);
 
-    private final ThreadLocal<LoggerContext> threadLocal = new ThreadLocal<LoggerContext>();
+    private final ThreadLocal<LoggerContext> threadLocal = new ThreadLocal<>();
 
     private final LoggerContext defaultContext;
 
@@ -164,7 +164,7 @@ public class LoggingContextSelector implements ContextSelector {
     }
 
     public List<String> getContextNames() {
-        List<String> list = new ArrayList<String>();
+        List<String> list = new ArrayList<>();
         list.addAll(contextMap.keySet());
         return list;
     }
