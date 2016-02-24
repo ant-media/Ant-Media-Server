@@ -92,7 +92,6 @@ public class LoggingContextSelector implements ContextSelector {
                 lock.acquire();
                 // Let's see if we already know such a context
                 loggerContext = contextMap.get(contextName);
-                //System.out.printf("Logger context for %s is %s\n", contextName, loggerContext);
                 if (loggerContext == null) {
                     // We have to create a new LoggerContext
                     loggerContext = new LoggerContext();
@@ -108,10 +107,6 @@ public class LoggingContextSelector implements ContextSelector {
                         System.out.printf("Context logger config file: %s%n", contextConfigFile);
                     }
                     ClassLoader classloader = Thread.currentThread().getContextClassLoader();
-                    //System.out.printf("Thread context cl: %s\n", classloader);
-                    //ClassLoader classloader2 = Loader.class.getClassLoader();
-                    //System.out.printf("Loader tcl: %s\n", classloader2);
-                    //URL url = Loader.getResourceBySelfClassLoader(contextConfigFile);
                     URL url = Loader.getResource(contextConfigFile, classloader);
                     if (url != null) {
                         try {

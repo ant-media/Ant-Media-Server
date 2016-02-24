@@ -115,8 +115,6 @@ public class W3CAppender extends FileAppender<LoggingEvent> {
                 sb.append(' ');
             }
             sb.append('\n');
-            //String header = sb.toString();
-            //System.out.print(header);
             sbuf.append(sb.toString());
             headerWritten = true;
             sb = null;
@@ -130,7 +128,6 @@ public class W3CAppender extends FileAppender<LoggingEvent> {
             if ((i = s.indexOf(':')) != -1) {
                 String key = s.substring(0, i);
                 String value = s.substring(i + 1);
-                //System.out.println("Key: " + key + " Value: " + value);
                 elements.put(key, value);
             }
         }
@@ -156,7 +153,6 @@ public class W3CAppender extends FileAppender<LoggingEvent> {
         //filter based on event type - asterik allows all events
         if (!events.equals("*")) {
             if (!eventsList.contains(elements.get("x-event"))) {
-                //System.err.println("Filtered out - event: "+elements.get("x-event")+" event list: "+eventsList);
                 elements.clear();
                 elements = null;
                 sbuf = null;
@@ -247,7 +243,6 @@ public class W3CAppender extends FileAppender<LoggingEvent> {
             sbuf.append(' ');
         }
         sbuf.append('\n');
-        //System.out.println(sbuf.toString());		
         try {
             //switch out the message
             event.setMessage(sbuf.toString());

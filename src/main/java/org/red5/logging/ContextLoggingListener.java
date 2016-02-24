@@ -44,7 +44,6 @@ public class ContextLoggingListener implements ServletContextListener {
     public void contextDestroyed(ServletContextEvent event) {
         System.out.println("Context destroying...");
         String contextName = pathToName(event);
-        //System.out.printf("About to detach context named %s\n", contextName);
         ContextSelector selector = Red5LoggerFactory.getContextSelector();
         LoggerContext context = selector.detachLoggerContext(contextName);
         if (context != null) {
