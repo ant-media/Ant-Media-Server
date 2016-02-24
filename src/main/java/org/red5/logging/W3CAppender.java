@@ -53,13 +53,13 @@ public class W3CAppender extends FileAppender<LoggingEvent> {
     private static String events;
 
     //linked list to preserve order
-    private static List<String> eventsList = new ArrayList<String>();
+    private static List<String> eventsList = new ArrayList<>();
 
     //fields that are to be logged
     private static String fields;
 
     //linked list to preserve order
-    private static LinkedList<String> fieldList = new LinkedList<String>();
+    private static LinkedList<String> fieldList = new LinkedList<>();
 
     public W3CAppender() {
         setPrudent(true);
@@ -122,7 +122,7 @@ public class W3CAppender extends FileAppender<LoggingEvent> {
         //break the message into pieces
         String[] arr = message.split(" ");
         //create a map
-        Map<String, String> elements = new HashMap<String, String>(arr.length);
+        Map<String, String> elements = new HashMap<>(arr.length);
         int i = 0;
         for (String s : arr) {
             if ((i = s.indexOf(':')) != -1) {
