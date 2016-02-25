@@ -59,20 +59,16 @@ public class LoggerContextFilter implements Filter {
     }
 
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
-        //System.out.printf("Context name: %s\n", contextName);
         LoggingContextSelector selector = (LoggingContextSelector) Red5LoggerFactory.getContextSelector();
-        //System.out.printf("Context select type: %s\n", selector.getClass().getName());
         LoggerContext ctx = selector.getLoggerContext(contextName);
         //load default logger context if its null
         if (ctx == null) {
-            //System.out.println("Logger context was null, getting default");
             ctx = (LoggerContext) LoggerFactory.getILoggerFactory();
         }
         //evaluate context name against logger context name
         if (!contextName.equals(ctx.getName())) {
             System.err.printf("Logger context name and context name dont match (%s != %s)\n", contextName, ctx.getName());
         }
-        //System.out.printf("Logger context name: %s\n", ctx.getName());
         selector.setLocalContext(ctx);
         try {
             chain.doFilter(request, response);

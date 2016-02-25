@@ -28,7 +28,7 @@ public class DerbyLogInterceptor {
 
     protected static Logger log = LoggerFactory.getLogger(DerbyLogInterceptor.class);
 
-    private static ThreadLocal<StringBuilder> local = new ThreadLocal<StringBuilder>();
+    private static ThreadLocal<StringBuilder> local = new ThreadLocal<>();
 
     public static OutputStream handleDerbyLogFile() {
         return new OutputStream() {
