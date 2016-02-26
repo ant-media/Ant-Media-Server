@@ -31,7 +31,6 @@ import org.red5.server.net.rtmp.codec.RTMP;
 import org.red5.server.net.rtmp.message.Packet;
 import org.red5.server.net.servlet.ServletUtils;
 import org.slf4j.Logger;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 
 /**
  * A RTMPT client / session.
