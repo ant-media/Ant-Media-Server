@@ -173,7 +173,7 @@ public class ServerStream extends AbstractStream implements IServerStream, IFilt
     private RTMPMessage nextRTMPMessage;
 
     /** Listeners to get notified about received packets. */
-    private CopyOnWriteArraySet<IStreamListener> listeners = new CopyOnWriteArraySet<IStreamListener>();
+    private CopyOnWriteArraySet<IStreamListener> listeners = new CopyOnWriteArraySet<>();
 
     /**
      * Recording listener
@@ -183,7 +183,7 @@ public class ServerStream extends AbstractStream implements IServerStream, IFilt
     /** Constructs a new ServerStream. */
     public ServerStream() {
         defaultController = new SimplePlaylistController();
-        items = new CopyOnWriteArrayList<IPlayItem>();
+        items = new CopyOnWriteArrayList<>();
     }
 
     /** {@inheritDoc} */
@@ -384,7 +384,7 @@ public class ServerStream extends AbstractStream implements IServerStream, IFilt
                     }
                 }
                 // set as primary listener
-                recordingListener = new WeakReference<IRecordingListener>(listener);
+                recordingListener = new WeakReference<>(listener);
                 // add as a listener
                 addStreamListener(listener);
                 // start the listener thread
@@ -832,7 +832,7 @@ public class ServerStream extends AbstractStream implements IServerStream, IFilt
             // Set service name of init
             oobCtrlMsg.setServiceName("init");
             // Create map for parameters
-            Map<String, Object> paramMap = new HashMap<String, Object>(1);
+            Map<String, Object> paramMap = new HashMap<>(1);
             // Put start timestamp into Map of params
             paramMap.put("startTS", start);
             // Attach to OOB control message and send it
@@ -853,7 +853,7 @@ public class ServerStream extends AbstractStream implements IServerStream, IFilt
         OOBControlMessage oobCtrlMsg = new OOBControlMessage();
         oobCtrlMsg.setTarget(ISeekableProvider.KEY);
         oobCtrlMsg.setServiceName("seek");
-        Map<String, Object> paramMap = new HashMap<String, Object>(1);
+        Map<String, Object> paramMap = new HashMap<>(1);
         paramMap.put("position", Integer.valueOf(position));
         oobCtrlMsg.setServiceParamMap(paramMap);
         msgIn.sendOOBControlMessage(this, oobCtrlMsg);
