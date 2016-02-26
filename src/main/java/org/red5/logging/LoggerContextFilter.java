@@ -39,14 +39,14 @@ import ch.qos.logback.classic.LoggerContext;
  * To use it, add the following lines to a web.xml file
  *
  * <pre>
- * 	&lt;filter&gt;
- * 		&lt;filter-name&gt;LoggerContextFilter&lt;/filter-name&gt;
- * 		&lt;filter-class&gt;org.red5.logging.LoggerContextFilter&lt;/filter-class&gt;
- * 	&lt;/filter&gt;
- * 	&lt;filter-mapping&gt;
- * 		&lt;filter-name&gt;LoggerContextFilter&lt;/filter-name&gt;
- * 		&lt;url-pattern&gt;/*&lt;/url-pattern&gt;
- * 	&lt;/filter-mapping&gt;
+ *     &lt;filter&gt;
+ *         &lt;filter-name&gt;LoggerContextFilter&lt;/filter-name&gt;
+ *         &lt;filter-class&gt;org.red5.logging.LoggerContextFilter&lt;/filter-class&gt;
+ *     &lt;/filter&gt;
+ *     &lt;filter-mapping&gt;
+ *         &lt;filter-name&gt;LoggerContextFilter&lt;/filter-name&gt;
+ *         &lt;url-pattern&gt;/*&lt;/url-pattern&gt;
+ *     &lt;/filter-mapping&gt;
  * </pre>
  *
  * @author Paul Gregoire (mondain@gmail.com)
