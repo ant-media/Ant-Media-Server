@@ -32,9 +32,9 @@ import ch.qos.logback.classic.selector.ContextSelector;
  * To use it, add the following line to a web.xml file
  *
  * <pre>
- * 	&lt;listener&gt;
- * 		&lt;listener-class&gt;org.red5.logging.ContextLoggingListener&lt;/listener-class&gt;
- * 	&lt;/listener&gt;
+ *     &lt;listener&gt;
+ *         &lt;listener-class&gt;org.red5.logging.ContextLoggingListener&lt;/listener-class&gt;
+ *     &lt;/listener&gt;
  * </pre>
  *
  * @author Paul Gregoire (mondain@gmail.com)
