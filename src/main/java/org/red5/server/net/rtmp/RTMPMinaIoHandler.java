@@ -230,7 +230,7 @@ public class RTMPMinaIoHandler extends IoHandlerAdapter {
             }
         }
         // force close the session
-        final CloseFuture future = session.close(immediately);
+        final CloseFuture future = immediately ? session.closeNow() : session.closeOnFlush();
         IoFutureListener<CloseFuture> listener = new IoFutureListener<CloseFuture>() {
             @SuppressWarnings({ "unchecked", "rawtypes" })
             public void operationComplete(CloseFuture future) {
