@@ -112,10 +112,8 @@ public class ScopeResolver implements IScopeResolver {
                     throw new ScopeNotFoundException(scope, child);
                 }
                 // some scopes don't implement IScope, such as SharedObjectScope
-                if (scope instanceof IScope) {
-                    if (scope.getType().equals(ScopeType.APPLICATION) && ((WebScope) scope).isShuttingDown()) {
-                        throw new ScopeShuttingDownException(scope);
-                    }
+                if (scope instanceof IScope && scope.getType().equals(ScopeType.APPLICATION) && ((WebScope) scope).isShuttingDown()) {
+                    throw new ScopeShuttingDownException(scope);
                 }
             }
         }
