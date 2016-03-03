@@ -81,3 +81,4 @@ public class LoggerContextFilter implements Filter {
         contextName = config.getServletContext().getContextPath().replaceAll("/", "");
     }
 }
+

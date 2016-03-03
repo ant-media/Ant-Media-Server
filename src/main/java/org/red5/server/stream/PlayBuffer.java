@@ -45,7 +45,7 @@ public class PlayBuffer {
     /**
      * Queue of RTMP messages
      */
-    private Queue<RTMPMessage> messageQueue = new LinkedList<RTMPMessage>();
+    private Queue<RTMPMessage> messageQueue = new LinkedList<>();
 
     /**
      * Create play buffer with given capacity

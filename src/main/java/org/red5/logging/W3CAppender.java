@@ -188,9 +188,9 @@ public class W3CAppender extends FileAppender<LoggingEvent> {
         //c-connect-type   	type of connection received by the server       
         //x-sname          	stream name                                     
         //x-sname-query    	query portion of stream uri                     
-        //x-suri-query		same as x-sname-query						               	
-        //x-suri-stem		cs-uri-stem + x-sname + x-file-ext			       	
-        //x-suri			x-suri-stem + x-suri-query						          
+        //x-suri-query		same as x-sname-query              	
+        //x-suri-stem		cs-uri-stem + x-sname + x-file-ext       	
+        //x-suri			x-suri-stem + x-suri-query         
         //x-file-name      	full file path of recorded stream               
         //x-file-ext       	stream type (flv or mp3)                        
         //x-file-size      	stream size in bytes                            
@@ -199,8 +199,8 @@ public class W3CAppender extends FileAppender<LoggingEvent> {
         //cs-stream-bytes  	stream bytes transferred from client to server  
         //sc-stream-bytes  	stream bytes transferred from server to client  
         //x-service-name   	name of the service providing the connection    
-        //x-sc-qos-bytes	bytes transferred from server to client for quality of service	
-        //x-comment	      	comments		
+        //x-sc-qos-bytes	bytes transferred from server to client for quality of service
+        //x-comment	      	comments
         //we may need date and/or time
         Calendar cal = GregorianCalendar.getInstance();
         cal.clear();

@@ -31,7 +31,6 @@ import org.red5.server.net.rtmp.codec.RTMP;
 import org.red5.server.net.rtmp.message.Packet;
 import org.red5.server.net.servlet.ServletUtils;
 import org.slf4j.Logger;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 
 /**
  * A RTMPT client / session.
@@ -209,7 +208,8 @@ public class RTMPTConnection extends BaseRTMPTConnection {
     /**
      * Set the servlet that created the connection.
      * 
-     * @param servlet rtmp servlet
+     * @param servlet
+     *            rtmp servlet
      */
     protected void setServlet(RTMPTServlet servlet) {
         this.servlet = servlet;
@@ -218,7 +218,8 @@ public class RTMPTConnection extends BaseRTMPTConnection {
     /**
      * Setter for servlet request.
      * 
-     * @param request Servlet request
+     * @param request
+     *            Servlet request
      */
     public void setServletRequest(HttpServletRequest request) {
         if (request.getLocalPort() == 80) {
