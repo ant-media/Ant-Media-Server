@@ -59,10 +59,22 @@
     <properties>
         <build.dir>target</build.dir>
         <finalName>${project.artifactId}-${project.version}</finalName>
-        <red5-io.version>1.0.7-SNAPSHOT</red5-io.version>
-        <red5-service.version>1.0.7-SNAPSHOT</red5-service.version>
-        <red5-server-common.version>1.0.7-SNAPSHOT</red5-server-common.version>
+        <red5-io.version>${project.version}</red5-io.version>
+        <red5-service.version>${project.version}</red5-service.version>
+        <red5-server-common.version>${project.version}</red5-server-common.version>
     </properties>
+    <repositories>
+        <repository>
+            <id>sonatype-snapshots</id>
+            <name>Sonatype Snapshots</name>
+            <url>http://oss.sonatype.org/content/repositories/snapshots</url>
+        </repository>
+        <repository>
+            <id>sonatype-releases</id>
+            <name>Sonatype Releases</name>
+            <url>http://oss.sonatype.org/content/repositories/releases</url>
+        </repository>
+    </repositories>
     <build>
         <defaultGoal>install</defaultGoal>
         <directory>${build.dir}</directory>
