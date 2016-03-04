@@ -207,23 +207,10 @@
 			<directory>${project.basedir}/src/main/server/webapps/chat/WEB-INF</directory>
 			<outputDirectory>webapps/chat/WEB-INF</outputDirectory>
 			<includes>
-				<include>*.xml</include>
-				<include>*.properties</include>
-			</includes>
-		</fileSet>
-		<fileSet>
-			<directory>${project.basedir}/src/main/server/webapps/chat/WEB-INF/lib</directory>
-			<outputDirectory>webapps/chat/WEB-INF/lib</outputDirectory>
-			<includes>
-				<include>*.jar</include>
-			</includes>
-		</fileSet>
-		<fileSet>
-			<directory>${project.basedir}/src/main/server/webapps/chat/WEB-INF/classes</directory>
-			<outputDirectory>webapps/chat/WEB-INF/classes</outputDirectory>
-			<includes>
-				<include>*.xml</include>
-				<include>*.class</include>
+				<include>**/*.xml</include>
+				<include>**/*.properties</include>
+				<include>**/*.jar</include>
+				<include>**/*.class</include>
 			</includes>
 		</fileSet>
 	</fileSets>

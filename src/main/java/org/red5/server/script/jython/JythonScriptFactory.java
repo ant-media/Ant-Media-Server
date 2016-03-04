@@ -129,6 +129,7 @@ public class JythonScriptFactory implements ScriptFactory {
                         }
                     }
                 }
+                @SuppressWarnings("resource")
                 PythonInterpreter interp = new PythonInterpreter(null, state);
                 interp.exec(strScript);
                 PyObject getInstance = interp.get("getInstance");
