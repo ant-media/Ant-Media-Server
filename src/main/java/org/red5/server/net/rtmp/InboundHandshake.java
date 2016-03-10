@@ -19,6 +19,7 @@
 package org.red5.server.net.rtmp;
 
 import java.math.BigInteger;
+import java.nio.ByteBuffer;
 import java.security.KeyPair;
 import java.util.Arrays;
 
@@ -334,10 +335,22 @@ public class InboundHandshake extends RTMPHandshake {
         handshakeBytes[6] = 0;
         handshakeBytes[7] = 1;
         // fill the rest with random bytes
-        BigInteger bi = new BigInteger(((Constants.HANDSHAKE_SIZE - 8) * 8), random);
+        int randomHandshakeLength = (Constants.HANDSHAKE_SIZE - 8);
+        BigInteger bi = new BigInteger((randomHandshakeLength * 8), random);
         byte[] rndBytes = BigIntegers.asUnsignedByteArray(bi);
-        // copy random bytes into our handshake array
-        System.arraycopy(rndBytes, 0, handshakeBytes, 8, (Constants.HANDSHAKE_SIZE - 8));
+        // prevent AOOB error that can occur, sometimes
+        if (rndBytes.length == randomHandshakeLength) {
+            // copy random bytes into our handshake array
+            System.arraycopy(rndBytes, 0, handshakeBytes, 8, randomHandshakeLength);
+        } else {
+            // copy random bytes into our handshake array
+            ByteBuffer b = ByteBuffer.allocate(randomHandshakeLength);
+            b.put(rndBytes);
+            b.put((byte) 0x69);
+            b.flip();
+            // copy mostly random bytes into our handshake array
+            System.arraycopy(b.array(), 0, handshakeBytes, 8, randomHandshakeLength);
+        }
     }
 
     /**
