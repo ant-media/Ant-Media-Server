@@ -53,6 +53,9 @@ public class RTMPEIoFilter extends IoFilterAdapter {
         if (sessionId != null) {
             log.trace("Session id: {}", sessionId);
             RTMPMinaConnection conn = (RTMPMinaConnection) RTMPConnManager.getInstance().getConnectionBySessionId(sessionId);
+            if (conn == null) {
+                throw new Exception("Receive on unavailable connection - session id: " + sessionId);
+            }
             // filter based on current connection state
             RTMP rtmp = conn.getState();
             final byte connectionState = conn.getStateCode();
@@ -62,33 +65,33 @@ public class RTMPEIoFilter extends IoFilterAdapter {
             InboundHandshake handshake = null;
             switch (connectionState) {
                 case RTMP.STATE_CONNECT:
-                    // we're expecting C0+C1 here
-                    // get the handshake from the session
+                    // get the handshake from the session and process C0+C1 if we have enough bytes
                     handshake = (InboundHandshake) session.getAttribute(RTMPConnection.RTMP_HANDSHAKE);
-                    // set handshake to match client requested type
-                    message.mark();
-                    handshake.setHandshakeType(message.get());
-                    message.reset();
-                    log.debug("decodeHandshakeC0C1 - buffer: {}", message);
-                    // we want 1537 bytes for C0C1
-                    int c0c1Size = message.remaining();
+                    // buffer the incoming message or part of message
+                    handshake.addBuffer(message);
+                    // check the size, we want 1537 bytes for C0C1
+                    int c0c1Size = handshake.getBufferSize();
                     log.trace("Incoming C0C1 size: {}", c0c1Size);
                     if (c0c1Size >= (Constants.HANDSHAKE_SIZE + 1)) {
-                        // get the connection type byte, may want to set this on the conn in the future
-                        byte connectionType = message.get();
+                        log.debug("decodeHandshakeC0C1");
+                        // get the buffered bytes
+                        IoBuffer buf = handshake.getBufferAsIoBuffer();
+                        // set handshake to match client requested type
+                        byte connectionType = buf.get();
+                        handshake.setHandshakeType(connectionType);
                         log.trace("Incoming C0 connection type: {}", connectionType);
                         // create array for decode
                         byte[] dst = new byte[Constants.HANDSHAKE_SIZE];
                         // copy out 1536 bytes
-                        message.get(dst);
+                        buf.get(dst);
                         //log.debug("C1 - buffer: {}", Hex.encodeHexString(dst));
                         // set state to indicate we're waiting for C2
                         rtmp.setState(RTMP.STATE_HANDSHAKE);
                         // buffer any extra bytes
-                        int remaining = message.remaining();
+                        int remaining = buf.remaining();
                         if (remaining > 0) {
                             // store the remaining bytes in a thread local for use by C2 decoding
-                            handshake.addBuffer(message);
+                            handshake.addBuffer(buf);
                             log.trace("Stored {} bytes for later decoding", remaining);
                         }
                         IoBuffer s1 = handshake.decodeClientRequest1(IoBuffer.wrap(dst));
@@ -102,16 +105,15 @@ public class RTMPEIoFilter extends IoFilterAdapter {
                     }
                     break;
                 case RTMP.STATE_HANDSHAKE:
-                    // we're expecting C2 here
-                    // get the handshake from the session
+                    // get the handshake from the session and process C2 if we have enough bytes
                     handshake = (InboundHandshake) session.getAttribute(RTMPConnection.RTMP_HANDSHAKE);
-                    log.debug("decodeHandshakeC2 - buffer: {}", message);
                     // buffer the incoming message
                     handshake.addBuffer(message);
                     // no connection type byte is supposed to be in C2 data
                     int c2Size = handshake.getBufferSize();
                     log.trace("Incoming C2 size: {}", c2Size);
                     if (c2Size >= Constants.HANDSHAKE_SIZE) {
+                        log.debug("decodeHandshakeC2");
                         // get the buffered bytes
                         IoBuffer buf = handshake.getBufferAsIoBuffer();
                         // create array for decode
