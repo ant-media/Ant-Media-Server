@@ -29,10 +29,11 @@ Automatic builds (Courtesy of Apache / OpenMeetings):
  * [Windows Installer](https://builds.apache.org/view/M-R/view/OpenMeetings/job/red5-installer/)
 
 # Releases
-Current version is *1.0.6-RELEASE*
+Stable release version is [1.0.6-RELEASE](https://github.com/Red5/red5-server/releases/tag/v1.0.6-RELEASE)
 
-## Latest
-[Latest Releases](https://github.com/Red5/red5-server/releases/latest)
+Pre-release version is [1.0.7-M8](https://github.com/Red5/red5-server/releases/tag/v1.0.7-M8)
+
+[Releases](https://github.com/Red5/red5-server/releases/latest)
 ----------------
 ### Red5 1.0.6 Release (8 September 2015)
 [Tarball &amp; ZIP](https://github.com/Red5/red5-server/releases/tag/v1.0.6-RELEASE)
@@ -48,16 +49,38 @@ Current version is *1.0.6-RELEASE*
 
 <i>Note on Bootstrap</i>
 
-The bootstrap and shutdown classes have been moved to the red5-service project; the dependency has been added to this projects pom.
+The bootstrap and shutdown classes have been moved to the [red5-service](https://github.com/Red5/red5-service) project; the dependency has been added to this projects pom.
 
 # StackOverflow
-If you want answers from a broader audience, Stack Overflow may be your best bet.
-http://stackoverflow.com/tags/red5/info
+If you want answers from a broader audience, [Stack Overflow](http://stackoverflow.com/tags/red5/info) may be your best bet.
 
 # Maven
-Releases are available at https://oss.sonatype.org/content/repositories/releases/org/red5/
+Releases are available at [Sonatype - Releases](https://oss.sonatype.org/content/repositories/releases/org/red5/)
 
-Snapshots are available at https://oss.sonatype.org/content/repositories/snapshots/org/red5/
+Snapshots are available at [Sonatype - Snapshots](https://oss.sonatype.org/content/repositories/snapshots/org/red5/)
+
+Include the red5-parent in your __pom.xml__  in the __dependencyManagement__ section
+```xml
+<dependencyManagement>
+    <dependencies>
+      <dependency>
+          <groupId>org.red5</groupId>
+          <artifactId>red5-parent</artifactId>
+          <version>${red5.version}</version>
+          <type>pom</type>
+      </dependency>
+    </dependencies>
+</dependencyManagement>  
+```
+in addition to any other Red5 projects in the __dependencies__ section
+```xml
+  <dependency>
+      <groupId>org.red5</groupId>
+      <artifactId>red5-server</artifactId>
+      <version>${red5.version}</version>
+      <type>jar</type>
+  </dependency>
+```
 
 ## Build from Source
 
