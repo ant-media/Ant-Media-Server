@@ -53,6 +53,8 @@
         <!-- Enable this if you want to allow global scope connections
         <property name="globalScopeConnectionAllowed" value="true" />
         -->
+        <!-- Enable this to allow unvalidated connections -->
+        <property name="unvalidatedConnectionAllowed" value="true" />
     </bean>
     
     <!-- RTMP Mina IO Handler -->

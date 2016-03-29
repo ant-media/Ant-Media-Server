@@ -459,8 +459,12 @@ public class RTMPTServlet extends HttpServlet {
                             // remove handshake from session now that we are connected
                             session.removeAttribute(RTMPConnection.RTMP_HANDSHAKE);
                         } else {
-                            log.warn("Client was rejected due to invalid handshake");
-                            conn.close();
+                            if (handler.isUnvalidatedConnectionAllowed()) {
+                                log.debug("Unvalidated client allowed to proceed");
+                            } else {
+                                log.warn("Client was rejected due to invalid handshake");
+                                conn.close();
+                            }
                         }
                     }
                     // let the logic flow into connected to catch the remaining bytes that probably contain
