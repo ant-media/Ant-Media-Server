@@ -26,7 +26,6 @@ import org.apache.mina.filter.ssl.SslFilter.SslFilterMessage;
 import org.red5.server.net.rtmp.InboundHandshake;
 import org.red5.server.net.rtmp.RTMPConnManager;
 import org.red5.server.net.rtmp.RTMPConnection;
-import org.red5.server.net.rtmp.RTMPHandler;
 import org.red5.server.net.rtmp.RTMPMinaConnection;
 import org.red5.server.net.rtmp.codec.RTMP;
 import org.red5.server.net.rtmp.codec.RTMPMinaCodecFactory;
@@ -157,13 +156,8 @@ public class RTMPSIoFilter extends RTMPEIoFilter {
                                 log.debug("Adding RTMP protocol filter");
                                 session.getFilterChain().addAfter("rtmpsFilter", "protocolFilter", new ProtocolCodecFilter(new RTMPMinaCodecFactory()));
                             } else {
-                                RTMPHandler handler = (RTMPHandler) conn.getHandler();
-                                if (handler.isUnvalidatedConnectionAllowed()) {
-                                    log.debug("Unvalidated client allowed to proceed");
-                                } else {
-                                    log.warn("Client was rejected due to invalid handshake");
-                                    conn.close();
-                                }
+                                log.warn("Client was rejected due to invalid handshake");
+                                conn.close();
                             }
                         }
                         // no break here to all the message to flow into connected case

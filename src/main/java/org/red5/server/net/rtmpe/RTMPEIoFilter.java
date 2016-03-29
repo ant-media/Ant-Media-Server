@@ -29,7 +29,6 @@ import org.apache.mina.filter.codec.ProtocolCodecFilter;
 import org.red5.server.net.rtmp.InboundHandshake;
 import org.red5.server.net.rtmp.RTMPConnManager;
 import org.red5.server.net.rtmp.RTMPConnection;
-import org.red5.server.net.rtmp.RTMPHandler;
 import org.red5.server.net.rtmp.RTMPMinaConnection;
 import org.red5.server.net.rtmp.codec.RTMP;
 import org.red5.server.net.rtmp.codec.RTMPMinaCodecFactory;
@@ -143,14 +142,9 @@ public class RTMPEIoFilter extends IoFilterAdapter {
                                 nextFilter.messageReceived(session, buf);
                             }
                         } else {
-                            RTMPHandler handler = (RTMPHandler) conn.getHandler();
-                            if (handler.isUnvalidatedConnectionAllowed()) {
-                                log.debug("Unvalidated client allowed to proceed");
-                            } else {
-                                log.warn("Client was rejected due to invalid handshake");
-                                conn.close();
-                                break;
-                            }
+                            log.warn("Client was rejected due to invalid handshake");
+                            conn.close();
+                            break;
                         }
                     }
                     break;

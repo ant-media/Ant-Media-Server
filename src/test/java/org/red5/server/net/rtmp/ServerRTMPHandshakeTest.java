@@ -129,6 +129,8 @@ public class ServerRTMPHandshakeTest {
         log.info("\n testValidateFromFFMpeg");
         // server side handshake handler
         InboundHandshake in = new InboundHandshake((byte) 0x03);
+        // set whether or not unverified will be allowed
+        in.setUnvalidatedConnectionAllowed(true);
         // FFMPEG
         IoBuffer cc = IoBuffer.allocate(1536);
         // C1

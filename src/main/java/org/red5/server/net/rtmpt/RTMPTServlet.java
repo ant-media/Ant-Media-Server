@@ -80,7 +80,8 @@ public class RTMPTServlet extends HttpServlet {
     private static IConnectionManager<RTMPConnection> manager;
 
     /**
-     * Try to generate responses that contain at least 32768 bytes data. Increasing this value results in better stream performance, but also increases the latency.
+     * Try to generate responses that contain at least 32768 bytes data. Increasing this value results in better stream performance, but
+     * also increases the latency.
      */
     private static int targetResponseSize = Short.MAX_VALUE + 1;
 
@@ -236,7 +237,8 @@ public class RTMPTServlet extends HttpServlet {
     }
 
     /**
-     * Sets the request info for the current request. Request info contains the session id and request number gathered from the incoming request. The URI is in this form /[method]/[session id]/[request number] ie. /send/CAFEBEEF01/7
+     * Sets the request info for the current request. Request info contains the session id and request number gathered from the incoming
+     * request. The URI is in this form /[method]/[session id]/[request number] ie. /send/CAFEBEEF01/7
      *
      * @param req
      *            Servlet request
@@ -397,7 +399,7 @@ public class RTMPTServlet extends HttpServlet {
         if (conn != null) {
             IoSession session = conn.getIoSession();
             // get the handshake from the session
-            InboundHandshake handshake = null; 
+            InboundHandshake handshake = null;
             // put the received data in a ByteBuffer
             int length = req.getContentLength();
             log.trace("Request content length: {}", length);
@@ -418,6 +420,7 @@ public class RTMPTServlet extends HttpServlet {
                         log.trace("Incoming C0 connection type: {}", connectionType);
                         // add the in-bound handshake, defaults to non-encrypted mode
                         handshake = new InboundHandshake(connectionType);
+                        handshake.setUnvalidatedConnectionAllowed(handler.isUnvalidatedConnectionAllowed());
                         session.setAttribute(RTMPConnection.RTMP_HANDSHAKE, handshake);
                         // create array for decode
                         byte[] dst = new byte[Constants.HANDSHAKE_SIZE];
@@ -459,12 +462,8 @@ public class RTMPTServlet extends HttpServlet {
                             // remove handshake from session now that we are connected
                             session.removeAttribute(RTMPConnection.RTMP_HANDSHAKE);
                         } else {
-                            if (handler.isUnvalidatedConnectionAllowed()) {
-                                log.debug("Unvalidated client allowed to proceed");
-                            } else {
-                                log.warn("Client was rejected due to invalid handshake");
-                                conn.close();
-                            }
+                            log.warn("Client was rejected due to invalid handshake");
+                            conn.close();
                         }
                     }
                     // let the logic flow into connected to catch the remaining bytes that probably contain

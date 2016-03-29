@@ -63,8 +63,12 @@ public class RTMPMinaIoHandler extends IoHandlerAdapter {
         conn.setHandler(handler);
         // add the connections session id for look up using the connection manager
         session.setAttribute(RTMPConnection.RTMP_SESSION_ID, conn.getSessionId());
+        // create an inbound handshake
+        InboundHandshake handshake = new InboundHandshake();
+        // set whether or not unverified will be allowed
+        handshake.setUnvalidatedConnectionAllowed(((RTMPHandler) handler).isUnvalidatedConnectionAllowed()); 
         // add the in-bound handshake, defaults to non-encrypted mode
-        session.setAttribute(RTMPConnection.RTMP_HANDSHAKE, new InboundHandshake());
+        session.setAttribute(RTMPConnection.RTMP_HANDSHAKE, handshake);
     }
 
     /** {@inheritDoc} */

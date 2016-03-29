@@ -46,6 +46,8 @@ public class InboundHandshake extends RTMPHandshake {
     // position for the server digest in S1
     private int digestPosServer;
 
+    private boolean unvalidatedConnectionAllowed;
+
     public InboundHandshake() {
         super(RTMPConnection.RTMP_NON_ENCRYPTED);
         log = LoggerFactory.getLogger(InboundHandshake.class);
@@ -64,7 +66,8 @@ public class InboundHandshake extends RTMPHandshake {
     /**
      * Generates response for versioned connections.
      * 
-     * @param in incoming RTMP handshake bytes
+     * @param in
+     *            incoming RTMP handshake bytes
      * @return outgoing handshake
      */
     public IoBuffer doHandshake(IoBuffer in) {
@@ -76,12 +79,15 @@ public class InboundHandshake extends RTMPHandshake {
 
     /**
      * Decodes the first client request (C1) and returns a server response (S0S1).
+     * 
      * <pre>
      * C1 = 1536 bytes from the client
      * S0 = 0x03 (server handshake type - 0x03, 0x06, 0x08, or 0x09)
      * S1 = 1536 bytes from server
      * </pre>
-     * @param in incoming handshake C1
+     * 
+     * @param in
+     *            incoming handshake C1
      * @return server response S0+S1
      */
     public IoBuffer decodeClientRequest1(IoBuffer in) {
@@ -220,11 +226,14 @@ public class InboundHandshake extends RTMPHandshake {
 
     /**
      * Decodes the second client request (C2) and returns a server response (S2).
+     * 
      * <pre>
      * C2 = Copy of S1 bytes
      * S2 = Copy of C1 bytes
      * </pre>
-     * @param in incoming handshake C2
+     * 
+     * @param in
+     *            incoming handshake C2
      * @return true if C2 was processed successfully and false otherwise
      */
     public boolean decodeClientRequest2(IoBuffer in) {
@@ -280,23 +289,30 @@ public class InboundHandshake extends RTMPHandshake {
                 log.debug("Client sent signature: {}", Hex.encodeHexString(sentSignature));
             }
             if (!Arrays.equals(signature, sentSignature)) {
-              log.warn("Client not compatible");
-              return false;
+                log.warn("Client not compatible");
+                if (unvalidatedConnectionAllowed) {
+                    // accept and unvalidated handshake; used to deal with ffmpeg
+                    log.debug("Unvalidated client allowed to proceed");
+                    return true;
+                } else {
+                    return false;
+                }
             } else {
-              log.debug("Compatible client, handshake complete");
+                log.debug("Compatible client, handshake complete");
             }
-       } else {
-           if (!Arrays.equals(s1, c2)) {
-               log.info("Client signature doesn't match!");
-           }
-       }
-       return true;
+        } else {
+            if (!Arrays.equals(s1, c2)) {
+                log.info("Client signature doesn't match!");
+            }
+        }
+        return true;
     }
 
     /**
      * Generates response for non-versioned connections, such as those before FP9.
      * 
-     * @param input incoming RTMP bytes
+     * @param input
+     *            incoming RTMP bytes
      * @return outgoing handshake
      */
     private IoBuffer generateUnversionedHandshake(byte[] input) {
@@ -356,7 +372,8 @@ public class InboundHandshake extends RTMPHandshake {
     /**
      * Determines the validation scheme for given input.
      * 
-     * @param handshake handshake bytes from the client
+     * @param handshake
+     *            handshake bytes from the client
      * @return true if client used a supported validation scheme, false if unsupported
      */
     @Override
@@ -408,6 +425,10 @@ public class InboundHandshake extends RTMPHandshake {
 
     public byte[] getHandshakeBytes() {
         return s1;
+    }
+
+    public void setUnvalidatedConnectionAllowed(boolean unvalidatedConnectionAllowed) {
+        this.unvalidatedConnectionAllowed = unvalidatedConnectionAllowed;
     }
 
 }
