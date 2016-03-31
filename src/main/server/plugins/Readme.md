@@ -5,9 +5,9 @@ Included plugins:
 
 Support libraries:
 
- * [Tomcat 8.0.32](http://tomcat.apache.org/download-80.cgi)
- * ECJ 4.4.2
+ * [Tomcat 8.0.33](http://tomcat.apache.org/download-80.cgi)
+ * ECJ 4.5
  * [juli-over-slf4j](https://github.com/Red5/juli-over-slf4j)
 
-Updated: 2/11/2016
+Updated: 3/30/2016
 
