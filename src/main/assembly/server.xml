@@ -74,7 +74,7 @@
                 <include>*.jmx</include>
             </includes>
             <excludes>
-                <exclude>build_standalone.properties</exclude>                  
+                <exclude>build_standalone.properties</exclude>
             </excludes>
         </fileSet>
         <fileSet>
