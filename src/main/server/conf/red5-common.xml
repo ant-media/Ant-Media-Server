@@ -26,6 +26,7 @@
 
     <bean id="mbeanServer" class="org.springframework.jmx.support.MBeanServerFactoryBean">
         <property name="locateExistingServerIfPossible" value="${jmx.reuse.existing.server}"/>  
+        <property name="registerWithFactory" value="${jmx.register.factory}"/> 
     </bean>
 
     <bean class="org.springframework.jmx.support.ConnectorServerFactoryBean" depends-on="rmiRegistry">
@@ -45,6 +46,8 @@
                  -->
             </map>
         </property>
+        <property name="daemon" value="${jmx.daemon}" />
+        <property name="threaded" value="${jmx.threaded}" />
     </bean>
    
     <context:mbean-export registration="replaceExisting" default-domain="org.red5.server"/>
