@@ -126,17 +126,7 @@ public class BroadcastScope extends BasicScope implements IBroadcastScope, IPipe
      *            Consumer
      * @param paramMap
      *            Parameters passed with connection
-     * @return <pre>
-     * true
-     * </pre>
-     * 
-     *         on success,
-     * 
-     *         <pre>
-     * false
-     * </pre>
-     * 
-     *         otherwise
+     * @return true on success, false otherwise
      */
     public boolean subscribe(IConsumer consumer, Map<String, Object> paramMap) {
         return !removed && pipe.subscribe(consumer, paramMap);
@@ -147,17 +137,7 @@ public class BroadcastScope extends BasicScope implements IBroadcastScope, IPipe
      * 
      * @param consumer
      *            Consumer
-     * @return <pre>
-     * true
-     * </pre>
-     * 
-     *         on success,
-     * 
-     *         <pre>
-     * false
-     * </pre>
-     * 
-     *         otherwise
+     * @return true on success, false otherwise
      */
     public boolean unsubscribe(IConsumer consumer) {
         return pipe.unsubscribe(consumer);
@@ -203,17 +183,7 @@ public class BroadcastScope extends BasicScope implements IBroadcastScope, IPipe
      *            Provider
      * @param paramMap
      *            Parameters passed on connection
-     * @return <pre>
-     * true
-     * </pre>
-     * 
-     *         on success,
-     * 
-     *         <pre>
-     * false
-     * </pre>
-     * 
-     *         otherwise
+     * @return true on success, false otherwise
      */
     public boolean subscribe(IProvider provider, Map<String, Object> paramMap) {
         return !removed && pipe.subscribe(provider, paramMap);
@@ -224,17 +194,7 @@ public class BroadcastScope extends BasicScope implements IBroadcastScope, IPipe
      * 
      * @param provider
      *            Provider
-     * @return <pre>
-     * true
-     * </pre>
-     * 
-     *         on success,
-     * 
-     *         <pre>
-     * false
-     * </pre>
-     * 
-     *         otherwise
+     * @return true on success, false otherwise
      */
     public boolean unsubscribe(IProvider provider) {
         return pipe.unsubscribe(provider);
