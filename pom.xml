@@ -246,6 +246,14 @@
             <groupId>org.red5</groupId>
             <artifactId>red5-service</artifactId>
             <version>${project.version}</version>
+            <type>jar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.red5</groupId>
+            <artifactId>red5-service</artifactId>
+            <version>${project.version}</version>
+            <type>tar.gz</type>
+            <classifier>daemon</classifier>
         </dependency>
         <dependency>
             <artifactId>mina-integration-beans</artifactId>
@@ -265,7 +273,7 @@
                 <plugins>
                     <plugin>
                         <artifactId>maven-dependency-plugin</artifactId>
-                        <version>2.8</version>
+                        <version>2.10</version>
                         <executions>
                             <execution>
                                 <id>copy-dependencies</id>
@@ -280,8 +288,28 @@
                                     <excludeTransitive>false</excludeTransitive>
                                 </configuration>
                             </execution>
+                            <execution>
+                                <id>unpack-red5-service</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>unpack</goal>
+                                </goals>
+                                <configuration>
+                                    <artifactItems>
+                                        <artifactItem>
+                                          <groupId>org.red5</groupId>
+                                          <artifactId>red5-service</artifactId>
+                                          <version>${project.version}</version>
+                                          <type>tar.gz</type>
+                                          <classifier>daemon</classifier>
+                                          <overWrite>true</overWrite>
+                                          <outputDirectory>${project.build.directory}</outputDirectory>
+                                        </artifactItem>
+                                    </artifactItems>
+                                </configuration>
+                            </execution>
                         </executions>
-                    </plugin>
+                   </plugin>
                     <plugin>
                         <artifactId>maven-assembly-plugin</artifactId>
                         <version>2.6</version>
