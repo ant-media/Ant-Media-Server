@@ -22,27 +22,24 @@ Additional features supported via plugin:
 
 The Red5 users list may be found here: [red5interest](https://groups.google.com/forum/#!forum/red5interest)
 
-Subreddit: http://www.reddit.com/r/red5
+Subreddit: [r/red5](http://www.reddit.com/r/red5)
 
 Automatic builds (Courtesy of Apache / OpenMeetings): 
  * [Red5](https://builds.apache.org/view/M-R/view/OpenMeetings/job/Red5-server/)
  * [Windows Installer](https://builds.apache.org/view/M-R/view/OpenMeetings/job/red5-installer/)
 
 # Releases
-Stable release version is [1.0.6-RELEASE](https://github.com/Red5/red5-server/releases/tag/v1.0.6-RELEASE)
+Stable release version is [1.0.7-RELEASE](https://github.com/Red5/red5-server/releases/tag/v1.0.7-RELEASE)
 
 Pre-release version is [1.0.7-M10](https://github.com/Red5/red5-server/releases/tag/v1.0.7-M10)
 
 [Releases](https://github.com/Red5/red5-server/releases/latest)
 ----------------
+### Red5 1.0.7 Release (12 May 2016)
+[Tarball &amp; ZIP](https://github.com/Red5/red5-server/releases/tag/v1.0.7-RELEASE)
+
 ### Red5 1.0.6 Release (8 September 2015)
 [Tarball &amp; ZIP](https://github.com/Red5/red5-server/releases/tag/v1.0.6-RELEASE)
-
-### Red5 1.0.5 Release (7 February 2015)
-[Tarball &amp; ZIP](https://github.com/Red5/red5-server/releases/tag/v1.0.5-RELEASE)
-
-### Red5 1.0.4 Release (26 December 2014)
-[Tarball](https://github.com/Red5/red5-server/releases/download/v1.0.4-RELEASE/red5-server-1.0.4-RELEASE-server.tar.gz) | [ZIP](https://github.com/Red5/red5-server/releases/download/v1.0.4-RELEASE/red5-server-1.0.4-RELEASE-server.zip)
 
 ## Previous
 [Previous releases](https://github.com/Red5/red5-server/blob/master/README.md#previous-releases)
@@ -114,16 +111,16 @@ mvn eclipse:eclipse
 # Older Releases
 The artifacts for the following releases are no longer available; if your project requires them, you'll have to build them from source. The listings are here only for historical purposes.
 
-<ul>
-<li>Red5 1.0.3 Release (5 August 2014)</li>
-<li>Red5 1.0.2 Release (9 April 2014)</li>
-<li>Red5 1.0.2 Snapshot (18 April 2013)</li>
-<li>Red5 1.0.1 Final (14 January 2013)</li>
-<li>Red5 1.0 Final (03 December 2012)</li>
-<li>Red5 0.9.1 Final (21 February 2010)</li>
-<li>Red5 0.9.0 Final (27 January 2010)</li>
-<li>Red5 0.8.0 Final</li>
-</ul>
+ * [Red5 1.0.5 Release](https://github.com/Red5/red5-server/releases/tag/v1.0.5-RELEASE) (7 February 2015)
+ * [Red5 1.0.4 Release](https://github.com/Red5/red5-server/releases/tag/v1.0.4-RELEASE) (26 December 2014)
+ * [Red5 1.0.3 Release](https://github.com/Red5/red5-server/releases/tag/v1.0.3-RELEASE) (5 August 2014)
+ * Red5 1.0.2 Release (9 April 2014)
+ * Red5 1.0.2 Snapshot (18 April 2013)
+ * Red5 1.0.1 Final (14 January 2013)
+ * Red5 1.0 Final (03 December 2012)
+ * Red5 0.9.1 Final (21 February 2010)
+ * Red5 0.9.0 Final (27 January 2010)
+ * Red5 0.8.0 Final
 
 ### Donations
 Donate to the cause using [Bitcoin](https://coinbase.com/checkouts/2c5f023d24b12245d17f8ff8afe794d3)
