@@ -1,5 +1,5 @@
 /*
- * RED5 Open Source Flash Server - https://github.com/Red5/
+ * RED5 Open Source Media Server - https://github.com/Red5/
  * 
  * Copyright 2006-2016 by respective authors (see below). All rights reserved.
  * 
@@ -34,7 +34,6 @@ import javax.management.StandardMBean;
 
 import org.red5.logging.Red5LoggerFactory;
 import org.red5.server.jmx.mxbeans.ContextLoaderMXBean;
-import org.red5.server.plugin.PluginRegistry;
 import org.slf4j.Logger;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanFactoryUtils;
@@ -45,7 +44,6 @@ import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.ConfigurableApplicationContext;
-import org.springframework.context.support.AbstractApplicationContext;
 import org.springframework.context.support.FileSystemXmlApplicationContext;
 import org.springframework.core.io.Resource;
 import org.springframework.jmx.export.annotation.ManagedResource;
@@ -89,11 +87,6 @@ public class ContextLoader implements ApplicationContextAware, InitializingBean,
     protected ConcurrentMap<String, ApplicationContext> contextMap;
 
     /**
-     * Whether or not a JVM shutdown hook should be added to the Spring application context.
-     */
-    private boolean useShutdownHook;
-
-    /**
      * Registers with JMX and registers a shutdown hook.
      * 
      * @throws Exception
@@ -105,18 +98,6 @@ public class ContextLoader implements ApplicationContextAware, InitializingBean,
         registerJMX();
         // initialize
         init();
-        // check to see if we should add a shutdown hook
-        if (useShutdownHook) {
-            // register a jvm shutdown hook
-            ((AbstractApplicationContext) applicationContext).registerShutdownHook();
-        }
-        LoaderBase jeeServer = applicationContext.getBean(LoaderBase.class);
-        // lookup the jee container
-        if (jeeServer == null) {
-            log.info("JEE server was not found");
-        } else {
-            log.info("JEE server was found: {}", jeeServer.toString());
-        }
     }
 
     /**
@@ -125,7 +106,6 @@ public class ContextLoader implements ApplicationContextAware, InitializingBean,
     public void destroy() throws Exception {
         log.info("ContextLoader un-init");
         shutdown();
-        System.exit(0);
     }
 
     /**
@@ -180,7 +160,7 @@ public class ContextLoader implements ApplicationContextAware, InitializingBean,
      */
     public void loadContext(String name, String config) {
         log.debug("Load context - name: {} config: {}", name, config);
-        //check the existence of the config file
+        // check the existence of the config file
         try {
             File configFile = new File(config);
             if (!configFile.exists()) {
@@ -217,7 +197,7 @@ public class ContextLoader implements ApplicationContextAware, InitializingBean,
         ApplicationContext context = new FileSystemXmlApplicationContext(new String[] { config }, parentContext);
         log.debug("Adding to context map - name: {} context: {}", name, context);
         if (contextMap == null) {
-            contextMap = new ConcurrentHashMap<String, ApplicationContext>(3, 0.9f, 1);
+            contextMap = new ConcurrentHashMap<>(3, 0.9f, 1);
         }
         contextMap.put(name, context);
         // Register context in parent bean factory
@@ -273,28 +253,25 @@ public class ContextLoader implements ApplicationContextAware, InitializingBean,
      * Shut server down.
      */
     public void shutdown() {
-        log.info("Shutting down server");
-        unregisterJMX();
-        //shutdown the plug-in launcher here
-        try {
-            PluginRegistry.shutdown();
-        } catch (Exception e) {
-            log.warn("Exception shutting down plugin registry", e);
-        }
+        log.info("Shutting down");
         if (contextMap != null) {
             log.debug("Context map: {}", contextMap);
             try {
-                //unload all the contexts in the map
+                // unload all the contexts in the map
                 for (Map.Entry<String, ApplicationContext> entry : contextMap.entrySet()) {
                     String contextName = entry.getKey();
-                    log.debug("Unloading context {} on uninit", contextName);
+                    log.info("Unloading context {} on shutdown", contextName);
                     unloadContext(contextName);
                 }
                 contextMap.clear();
             } catch (Exception e) {
                 log.warn("Exception shutting down contexts", e);
+            } finally {
+                contextMap = null;
             }
         }
+        unregisterJMX();
+        log.info("Shutdown complete");
     }
 
     /**
@@ -402,25 +379,6 @@ public class ContextLoader implements ApplicationContextAware, InitializingBean,
 
     public String getContextsConfig() {
         return contextsConfig;
-    }
-
-    /**
-     * Whether or not the shutdown hook is enabled.
-     * 
-     * @return true if enabled, false otherwise
-     */
-    public boolean isUseShutdownHook() {
-        return useShutdownHook;
-    }
-
-    /**
-     * Enables or disables the shutdown hook.
-     * 
-     * @param useShutdownHook
-     *            true to enable, false to disable
-     */
-    public void setUseShutdownHook(boolean useShutdownHook) {
-        this.useShutdownHook = useShutdownHook;
     }
 
 }

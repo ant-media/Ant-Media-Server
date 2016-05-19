@@ -1,5 +1,5 @@
 /*
- * RED5 Open Source Flash Server - https://github.com/Red5/
+ * RED5 Open Source Media Server - https://github.com/Red5/
  * 
  * Copyright 2006-2016 by respective authors (see below). All rights reserved.
  * 
@@ -38,10 +38,10 @@ public class PluginRegistry {
 
     private static Logger log = Red5LoggerFactory.getLogger(PluginRegistry.class, "plugins");
 
-    //keeps track of plug-ins, keyed by plug-in name
-    private static volatile ConcurrentMap<String, IRed5Plugin> plugins = new ConcurrentHashMap<String, IRed5Plugin>(3, 0.9f, 1);
+    // keeps track of plug-ins, keyed by plug-in name
+    private static volatile ConcurrentMap<String, IRed5Plugin> plugins = new ConcurrentHashMap<>(3, 0.9f, 1);
 
-    //locks for guarding plug-ins
+    // locks for guarding plug-ins
     private final static ReadWriteLock pluginLock = new ReentrantReadWriteLock();
 
     private final static Lock pluginReadLock;

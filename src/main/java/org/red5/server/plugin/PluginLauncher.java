@@ -1,5 +1,5 @@
 /*
- * RED5 Open Source Flash Server - https://github.com/Red5/
+ * RED5 Open Source Media Server - https://github.com/Red5/
  * 
  * Copyright 2006-2016 by respective authors (see below). All rights reserved.
  * 
@@ -30,7 +30,6 @@ import org.red5.server.api.plugin.IRed5Plugin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
-import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
@@ -40,7 +39,7 @@ import org.springframework.context.ApplicationContextAware;
  * 
  * @author Paul Gregoire (mondain@gmail.com)
  */
-public class PluginLauncher implements ApplicationContextAware, InitializingBean, DisposableBean {
+public class PluginLauncher implements ApplicationContextAware, InitializingBean {
 
     protected static Logger log = LoggerFactory.getLogger(PluginLauncher.class);
 
@@ -136,10 +135,6 @@ public class PluginLauncher implements ApplicationContextAware, InitializingBean
             log.info("Plugins directory cannot be accessed or doesnt exist");
         }
 
-    }
-
-    public void destroy() throws Exception {
-        PluginRegistry.shutdown();
     }
 
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {

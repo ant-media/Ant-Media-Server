@@ -1,5 +1,5 @@
 /*
- * RED5 Open Source Flash Server - https://github.com/Red5/
+ * RED5 Open Source Media Server - https://github.com/Red5/
  * 
  * Copyright 2006-2016 by respective authors (see below). All rights reserved.
  * 
@@ -44,7 +44,7 @@ public abstract class LoaderBase implements ApplicationContextAware {
     /**
      * We store the application context so we can access it later.
      */
-    protected static ApplicationContext applicationContext = null;
+    protected static ApplicationContext applicationContext;
 
     /**
      * Current Red5 application context, set by the different loaders.

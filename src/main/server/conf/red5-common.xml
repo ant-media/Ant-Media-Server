@@ -19,37 +19,11 @@
     <bean id="red5.server" class="org.red5.server.Server" />
     
     <!-- JMX -->
-    <bean id="rmiRegistry" class="org.springframework.remoting.rmi.RmiRegistryFactoryBean">
-        <property name="port" value="${jmx.rmi.port}" />
-        <property name="alwaysCreate" value="${jmx.registry.create}" />
-    </bean>
-
     <bean id="mbeanServer" class="org.springframework.jmx.support.MBeanServerFactoryBean">
         <property name="locateExistingServerIfPossible" value="${jmx.reuse.existing.server}"/>  
         <property name="registerWithFactory" value="${jmx.register.factory}"/> 
     </bean>
 
-    <bean class="org.springframework.jmx.support.ConnectorServerFactoryBean" depends-on="rmiRegistry">
-        <property name="objectName" value="org.red5.server:name=rmi" />
-        <property name="serviceUrl"
-            value="service:jmx:rmi://${jmx.rmi.host}:${jmx.rmi.sport}/jndi/rmi://${jmx.rmi.host}:${jmx.rmi.port}/red5" />
-        <property name="environment">
-            <!-- the following is only valid when the sun jmx implementation is used -->
-            <map>
-                <entry key="java.rmi.server.hostname" value="${jmx.rmi.host}" />
-                <entry key="jmx.remote.x.access.file" value="${red5.config_root}/access.properties" />
-                <entry key="jmx.remote.x.password.file" value="${red5.config_root}/password.properties" />
-                <!-- Un-comment these next two nodes to enable SSL -->
-                <!-- 
-                <entry key="javax.net.ssl.keyStore" value="${red5.config_root}/keystore.jmx" />
-                <entry key="javax.net.ssl.keyStorePassword" value="${jmx.keystorepass}" />
-                 -->
-            </map>
-        </property>
-        <property name="daemon" value="${jmx.daemon}" />
-        <property name="threaded" value="${jmx.threaded}" />
-    </bean>
-   
     <context:mbean-export registration="replaceExisting" default-domain="org.red5.server"/>
 
     <!-- Deals with StatusObjects representing statuses like NetConnection.Connect.Success status -->

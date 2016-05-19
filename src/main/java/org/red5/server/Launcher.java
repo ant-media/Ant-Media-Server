@@ -1,5 +1,5 @@
 /*
- * RED5 Open Source Flash Server - https://github.com/Red5/
+ * RED5 Open Source Media Server - https://github.com/Red5/
  * 
  * Copyright 2006-2016 by respective authors (see below). All rights reserved.
  * 
@@ -31,13 +31,6 @@ import org.springframework.context.support.FileSystemXmlApplicationContext;
  * @author Paul Gregoire (mondain@gmail.com)
  */
 public class Launcher {
-
-    /*
-    static {
-    	ClassLoader tcl = Thread.currentThread().getContextClassLoader();		
-    	System.out.printf("[Launcher] Classloaders:\nSystem %s\nParent %s\nThis class %s\nTCL %s\n\n", ClassLoader.getSystemClassLoader(), tcl.getParent(), Launcher.class.getClassLoader(), tcl);
-    }
-    */
 
     /**
      * Launch Red5 under it's own classloader
