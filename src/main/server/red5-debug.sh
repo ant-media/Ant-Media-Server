@@ -1,6 +1,8 @@
 #!/bin/bash
 
-if [ -z "$RED5_HOME" ]; then export RED5_HOME=.; fi
+if [ -z "$RED5_HOME" ]; then 
+  export RED5_HOME=.; 
+fi
 
 # Debug options
 # http://docs.oracle.com/javase/8/docs/technotes/guides/jpda/conninv.html#Invocation

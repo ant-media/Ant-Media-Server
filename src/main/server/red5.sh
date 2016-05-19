@@ -45,6 +45,10 @@ if [ -z "$RED5_MAINCLASS" ]; then
   export RED5_MAINCLASS=org.red5.server.Bootstrap
 fi
 
+if [ -z "$RED5_OPTS" ]; then
+  export RED5_OPTS=9999
+fi
+
 for JAVA in "${JAVA_HOME}/bin/java" "${JAVA_HOME}/Home/bin/java" "/usr/bin/java" "/usr/local/bin/java"
 do
   if [ -x "$JAVA" ]
