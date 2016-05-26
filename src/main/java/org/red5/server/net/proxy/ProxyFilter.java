@@ -87,7 +87,7 @@ public class ProxyFilter extends IoFilterAdapter {
             if (log.isDebugEnabled()) {
                 log.debug("[{}] Closing: {}", name, forward);
             }
-            forward.closeNow();
+            forward.close(true);
         }
         next.sessionClosed(session);
     }

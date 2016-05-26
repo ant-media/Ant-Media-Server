@@ -33,7 +33,10 @@
                 <include>*.jar</include>
             </includes>
             <excludes>
-                <exclude>tomcat-servlet-api-${tomcat.version}.jar</exclude>
+                <exclude>ecj-*.jar</exclude>
+                <exclude>tomcat-*.jar</exclude>
+                <exclude>tomcatplugin-*.jar</exclude>
+                <exclude>websocket-*.jar</exclude>
                 <exclude>antlr-2.7.7.jar</exclude>
                 <exclude>asm-analysis-4.0.jar</exclude>
                 <exclude>asm-commons-4.0.jar</exclude>
@@ -43,6 +46,23 @@
                 <exclude>hamcrest-core-1.1.jar</exclude>
                 <exclude>junit-${junit.version}.jar</exclude>
                 <exclude>red5-service-${red5-service.version}.jar</exclude>
+                <exclude>red5-server-1.0.7-SNAPSHOT.jar</exclude>
+            </excludes>
+        </fileSet>
+        <fileSet>
+            <directory>${project.build.directory}/plugins</directory>
+            <outputDirectory>plugins</outputDirectory>
+            <includes>
+                <include>*.jar</include>
+            </includes>
+            <excludes>
+                <exclude>red5-server-*.jar</exclude>
+                <exclude>servlet-api-*.jar</exclude>
+                <exclude>javassist-*.jar</exclude>
+                <exclude>mina-*.jar</exclude>
+                <exclude>ognl-*.jar</exclude>
+                <exclude>sysout-over-*.jar</exclude>
+                <exclude>tomcat-embed-logging-log4j-*.jar</exclude>
             </excludes>
         </fileSet>
         <fileSet>
@@ -74,15 +94,6 @@
             <excludes>
                 <exclude>build_standalone.properties</exclude>
             </excludes>
-        </fileSet>
-        <fileSet>
-            <directory>${project.basedir}/src/main/server/plugins</directory>
-            <outputDirectory>plugins</outputDirectory>
-            <includes>
-                <include>*.xml</include>
-                <include>*.properties</include>
-                <include>*.jar</include>
-            </includes>
         </fileSet>
         <fileSet>
             <directory>${project.basedir}/src/main/server/webapps</directory>
