@@ -46,8 +46,9 @@
                 <exclude>hamcrest-core-1.1.jar</exclude>
                 <exclude>servlet-api-*.jar</exclude>
                 <exclude>junit-${junit.version}.jar</exclude>
+                <exclude>logback-access-*.jar</exclude>
                 <exclude>red5-service-${red5-service.version}.jar</exclude>
-                <exclude>red5-server-1.0.7-SNAPSHOT.jar</exclude>
+                <exclude>red5-server-1*.jar</exclude>
             </excludes>
         </fileSet>
         <fileSet>
@@ -63,6 +64,7 @@
                 <exclude>mina-*.jar</exclude>
                 <exclude>ognl-*.jar</exclude>
                 <exclude>sysout-over-*.jar</exclude>
+                <exclude>spring-webmvc-*.jar</exclude>
                 <exclude>tomcat-embed-logging-log4j-*.jar</exclude>
             </excludes>
         </fileSet>

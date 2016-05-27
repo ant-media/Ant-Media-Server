@@ -30,16 +30,14 @@ echo "Running on " $OS
 if [ -z "$JVM_OPTS" ]; then 
     JVM_OPTS="-Xverify:none -XX:+TieredCompilation -XX:+UseBiasedLocking -XX:InitialCodeCacheSize=8m -XX:ReservedCodeCacheSize=32m -Dorg.terracotta.quartz.skipUpdateCheck=true"
 fi
-# Set up logging options
-LOGGING_OPTS="-Dlogback.ContextSelector=org.red5.logging.LoggingContextSelector -Dcatalina.useNaming=true"
 # Set up security options
 SECURITY_OPTS="-Djava.security.debug=failure"
 # Set up tomcat options
-TOMCAT_OPTS="-Dcatalina.home=$RED5_HOME"
+TOMCAT_OPTS="-Dcatalina.home=$RED5_HOME -Dcatalina.useNaming=true"
 # Jython options
 JYTHON="-Dpython.home=lib"
 
-export JAVA_OPTS="$LOGGING_OPTS $SECURITY_OPTS $JAVA_OPTS $JVM_OPTS $TOMCAT_OPTS $JYTHON"
+export JAVA_OPTS="$SECURITY_OPTS $JAVA_OPTS $JVM_OPTS $TOMCAT_OPTS $JYTHON"
 
 if [ -z "$RED5_MAINCLASS" ]; then
   export RED5_MAINCLASS=org.red5.server.Bootstrap
