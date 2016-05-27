@@ -62,7 +62,7 @@
         <red5-io.version>${project.version}</red5-io.version>
         <red5-service.version>${project.version}</red5-service.version>
         <red5-server-common.version>${project.version}</red5-server-common.version>
-        <tomcatplugin.version>1.12</tomcatplugin.version>
+        <tomcatplugin.version>1.13</tomcatplugin.version>
         <websocket.version>1.5</websocket.version>
     </properties>
     <repositories>

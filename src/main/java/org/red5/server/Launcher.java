@@ -39,15 +39,21 @@ public class Launcher {
      *             on error
      */
     public void launch() throws Exception {
-        System.out.printf("Root: %s%nDeploy type: %s%nLogback selector: %s%n", System.getProperty("red5.root"), System.getProperty("red5.deployment.type"), System.getProperty("logback.ContextSelector"));
+        System.out.printf("Root: %s%nDeploy type: %s%n", System.getProperty("red5.root"), System.getProperty("red5.deployment.type"));
+        // check for the logback disable flag
+        boolean useLogback = Boolean.valueOf(System.getProperty("useLogback", "true"));
+        if (useLogback) {
+            // check for context selector in system properties
+            if (System.getProperty("logback.ContextSelector") == null) {
+                // set our selector
+                System.setProperty("logback.ContextSelector", "org.red5.logging.LoggingContextSelector");
+            }
+        }
+        Red5LoggerFactory.setUseLogback(useLogback);
         // install the slf4j bridge (mostly for JUL logging)
         SLF4JBridgeHandler.install();
         // log stdout and stderr to slf4j
         //SysOutOverSLF4J.sendSystemOutAndErrToSLF4J();
-        // we create the logger here so that it is instanced inside the expected classloader
-        // check for the logback disable flag
-        boolean useLogback = Boolean.valueOf(System.getProperty("useLogback", "true"));
-        Red5LoggerFactory.setUseLogback(useLogback);
         // get the first logger
         Logger log = Red5LoggerFactory.getLogger(Launcher.class);
         // version info banner
