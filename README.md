@@ -31,7 +31,7 @@ Automatic builds (Courtesy of Apache / OpenMeetings):
 # Releases
 Stable release version is [1.0.7-RELEASE](https://github.com/Red5/red5-server/releases/tag/v1.0.7-RELEASE)
 
-Pre-release version is [1.0.7-M10](https://github.com/Red5/red5-server/releases/tag/v1.0.7-M10)
+Pre-release version is [1.0.8-M2](https://github.com/Red5/red5-server/releases/tag/v1.0.8-M2)
 
 [Releases](https://github.com/Red5/red5-server/releases/latest)
 ----------------
