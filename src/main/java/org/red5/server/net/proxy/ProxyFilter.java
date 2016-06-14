@@ -80,6 +80,7 @@ public class ProxyFilter extends IoFilterAdapter {
     }
 
     /** {@inheritDoc} */
+    @SuppressWarnings("deprecation")
     @Override
     public void sessionClosed(NextFilter next, IoSession session) throws Exception {
         IoSession forward = (IoSession) session.getAttribute(FORWARD_KEY);

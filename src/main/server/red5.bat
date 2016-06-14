@@ -16,10 +16,12 @@ REM set SECURITY_OPTS=-Djava.security.debug=failure -Djava.security.manager -Dja
 set SECURITY_OPTS=-Djava.security.debug=failure
 REM Set up tomcat options
 set TOMCAT_OPTS=-Dcatalina.home=%RED5_HOME%
+REM Native path
+set NATIVE=-Djava.library.path="%RED5_HOME%\lib\native"
 REM Setup python/jython path
 set JYTHON_OPTS=-Dpython.home=lib
 REM Combined java options
-set JAVA_OPTS=%LOGGING_OPTS% %SECURITY_OPTS% %JAVA_OPTS% %JVM_OPTS% %TOMCAT_OPTS% %JYTHON_OPTS%
+set JAVA_OPTS=%LOGGING_OPTS% %SECURITY_OPTS% %JAVA_OPTS% %JVM_OPTS% %TOMCAT_OPTS% %NATIVE% %JYTHON_OPTS%
 
 set RED5_CLASSPATH=%RED5_HOME%\red5-service.jar;%RED5_HOME%\conf;%CLASSPATH%
 

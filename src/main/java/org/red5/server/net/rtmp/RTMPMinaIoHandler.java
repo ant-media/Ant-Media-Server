@@ -215,6 +215,7 @@ public class RTMPMinaIoHandler extends IoHandlerAdapter {
      * @param session
      * @param immediately close without waiting for the write queue to flush
      */
+    @SuppressWarnings("deprecation")
     private void cleanSession(final IoSession session, boolean immediately) {
         // clean up
         final String sessionId = (String) session.getAttribute(RTMPConnection.RTMP_SESSION_ID);

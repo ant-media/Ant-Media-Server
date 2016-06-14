@@ -10,8 +10,17 @@ case "$OS" in
   CYGWIN*|MINGW*) # Windows Cygwin or Windows MinGW
   P=";" # Since these are actually Windows, let Java know
   ;;
+  Linux*)
+      LD_LIBRARY_PATH=$RED5_HOME/lib/native
+      export LD_LIBRARY_PATH
+      # Native path
+      NATIVE="-Djava.library.path=$LD_LIBRARY_PATH"
+  ;;
   Darwin*)
-
+      DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:$RED5_HOME/lib/native
+      export DYLD_LIBRARY_PATH
+      # Native path
+      NATIVE="-Djava.library.path=$DYLD_LIBRARY_PATH"
   ;;
   SunOS*)
       if [ -z "$JAVA_HOME" ]; then 
@@ -37,7 +46,7 @@ TOMCAT_OPTS="-Dcatalina.home=$RED5_HOME -Dcatalina.useNaming=true"
 # Jython options
 JYTHON="-Dpython.home=lib"
 
-export JAVA_OPTS="$SECURITY_OPTS $JAVA_OPTS $JVM_OPTS $TOMCAT_OPTS $JYTHON"
+export JAVA_OPTS="$SECURITY_OPTS $JAVA_OPTS $JVM_OPTS $TOMCAT_OPTS $NATIVE $JYTHON"
 
 if [ -z "$RED5_MAINCLASS" ]; then
   export RED5_MAINCLASS=org.red5.server.Bootstrap
