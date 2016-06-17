@@ -67,8 +67,20 @@ public class RTMPSIoFilter extends RTMPEIoFilter {
                         // we're expecting C0+C1 here
                         //log.trace("C0C1 byte order: {}", message.order());
                         if (message.indexOf("P".getBytes()[0]) == 0) {
+                            log.debug("Non-native RTMPS connection requested for: {}", sessionId);
                             // indicates that the FP sent "POST" for a non-native rtmps connection, reject it
-                            throw new Exception("Client requested non-native RTMPS connection");
+//                            Status status = ((RTMPHandler) conn.getHandler()).getStatus(StatusCodes.NC_CONNECT_REJECTED).asStatus();
+//                            status.setDescription("RTMPS tunneling not supported on this port");
+//                            Invoke event = new Invoke();
+//                            event.setCall(new Call(null, "onStatus", new Object[] { status }));
+//                            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+//                            ObjectOutputStream oos = new ObjectOutputStream(baos);
+//                            event.writeExternal(oos);
+//                            oos.close();
+//                            session.write(IoBuffer.wrap(baos.toByteArray()));
+                            break;
+                            // throw the error to close the connection
+                            //throw new Exception("Client requested non-native RTMPS connection");
                         }
                         // get the handshake from the session
                         handshake = (InboundHandshake) session.getAttribute(RTMPConnection.RTMP_HANDSHAKE);

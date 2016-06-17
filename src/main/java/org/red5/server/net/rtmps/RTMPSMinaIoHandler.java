@@ -33,6 +33,7 @@ import org.apache.mina.core.session.IoSession;
 import org.apache.mina.filter.ssl.KeyStoreFactory;
 import org.apache.mina.filter.ssl.SslContextFactory;
 import org.apache.mina.filter.ssl.SslFilter;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.red5.server.net.rtmp.InboundHandshake;
 import org.red5.server.net.rtmp.RTMPConnection;
 import org.red5.server.net.rtmp.RTMPMinaConnection;
@@ -110,6 +111,8 @@ public class RTMPSMinaIoHandler extends RTMPMinaIoHandler {
     private boolean wantClientAuth;
 
     static {
+        // add bouncycastle security provider
+        Security.addProvider(new BouncyCastleProvider());
         if (log.isTraceEnabled()) {
             Provider[] providers = Security.getProviders();
             for (Provider provider : providers) {
