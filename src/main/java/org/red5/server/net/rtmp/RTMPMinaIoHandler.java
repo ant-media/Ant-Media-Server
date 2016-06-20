@@ -52,7 +52,7 @@ public class RTMPMinaIoHandler extends IoHandlerAdapter {
     /** {@inheritDoc} */
     @Override
     public void sessionCreated(IoSession session) throws Exception {
-        log.debug("Session created");
+        log.debug("Session created RTMP");
         // add rtmpe filter, rtmp protocol filter is added upon successful handshake
         session.getFilterChain().addFirst("rtmpeFilter", new RTMPEIoFilter());
         // create a connection
@@ -116,10 +116,14 @@ public class RTMPMinaIoHandler extends IoHandlerAdapter {
     /** {@inheritDoc} */
     @Override
     public void messageReceived(IoSession session, Object message) throws Exception {
-        log.trace("messageReceived session: {} message: {}", session, message);
-        log.trace("Filter chain: {}", session.getFilterChain());
+        if (log.isTraceEnabled()) {
+            log.trace("messageReceived session: {} message: {}", session, message);
+            log.trace("Filter chain: {}", session.getFilterChain());
+        }
         String sessionId = (String) session.getAttribute(RTMPConnection.RTMP_SESSION_ID);
-        log.trace("Message received on session: {} id: {}", session.getId(), sessionId);
+        if (log.isTraceEnabled()) {
+            log.trace("Message received on session: {} id: {}", session.getId(), sessionId);
+        }
         RTMPMinaConnection conn = (RTMPMinaConnection) RTMPConnManager.getInstance().getConnectionBySessionId(sessionId);
         if (conn != null) {
             if (message != null) {
