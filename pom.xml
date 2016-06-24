@@ -108,10 +108,6 @@
                 <artifactId>maven-jar-plugin</artifactId>
                 <executions>
                     <execution>
-                        <id>attach-javadocs</id>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
                         <configuration>
                             <archive>
                                 <manifest>
@@ -122,12 +118,6 @@
                                     <Implementation-Build>${buildNumber}</Implementation-Build>
                                 </manifestEntries>
                             </archive>
-                            <excludes>
-                                <exclude>**/org/red5/server/Bootstrap.class</exclude>
-                                <exclude>**/org/red5/server/Shutdown.class</exclude>
-                                <exclude>**/org/red5/server/jmx/mxbeans/ShutdownMXBean.class</exclude>
-                                <exclude>**/org/red5/classloading/**</exclude>
-                            </excludes>
                         </configuration>
                     </execution>
                 </executions>
