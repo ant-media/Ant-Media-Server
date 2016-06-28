@@ -40,6 +40,7 @@
     <!-- Internal shutdown mechanism -->
     <bean id="shutdownServer" class="org.red5.server.service.ShutdownServer">
         <property name="port" value="${jmx.rmi.port}" />
+        <property name="shutdownDelay" value="30" />
         <property name="coreContext" ref="red5.core" />
         <property name="commonContext" ref="red5.common" />
         <property name="contextLoader" ref="context.loader" />

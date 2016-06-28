@@ -65,6 +65,11 @@ public class ShutdownServer implements ApplicationContextAware, InitializingBean
     private int port = 9999;
 
     /**
+     * Delay or wait time in seconds before exiting.
+     */
+    private int shutdownDelay = 30;
+
+    /**
      * Name for the file containing the shutdown token
      */
     private String shutdownTokenFileName = "shutdown.token";
@@ -228,7 +233,7 @@ public class ShutdownServer implements ApplicationContextAware, InitializingBean
             }
         }).start();
         try {
-            if (latch.await(30, TimeUnit.SECONDS)) {
+            if (latch.await(shutdownDelay, TimeUnit.SECONDS)) {
                 log.info("Application contexts are closed");
             } else {
                 log.info("One or more contexts didn't close in the allotted time");
@@ -242,6 +247,10 @@ public class ShutdownServer implements ApplicationContextAware, InitializingBean
 
     public void setPort(int port) {
         this.port = port;
+    }
+
+    public void setShutdownDelay(int shutdownDelay) {
+        this.shutdownDelay = shutdownDelay;
     }
 
     public void setShutdownTokenFileName(String shutdownTokenFileName) {
