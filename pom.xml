@@ -182,7 +182,7 @@
             <artifactId>sysout-over-slf4j</artifactId>
             <version>1.0.2</version>
         </dependency>
-    	-->
+        -->
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
@@ -259,7 +259,19 @@
             <artifactId>quartz</artifactId>
             <version>${quartz.version}</version>
         </dependency>
-        <!-- Runtime plugins and their deps -->
+        <!-- Runtime plugin deps -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>websocket</artifactId>
+            <version>${websocket.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>tomcatplugin</artifactId>
+            <version>${tomcatplugin.version}</version>
+            <scope>provided</scope>
+        </dependency>
         <dependency>
             <groupId>org.apache.tomcat.embed</groupId>
             <artifactId>tomcat-embed-core</artifactId>
@@ -276,18 +288,6 @@
             <groupId>org.apache.tomcat.embed</groupId>
             <artifactId>tomcat-embed-el</artifactId>
             <version>${tomcat.version}</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.red5</groupId>
-            <artifactId>tomcatplugin</artifactId>
-            <version>${tomcatplugin.version}</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.red5</groupId>
-            <artifactId>websocket</artifactId>
-            <version>${websocket.version}</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>
