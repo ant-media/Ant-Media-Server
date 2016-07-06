@@ -27,22 +27,13 @@ import org.red5.server.api.event.IEvent;
  * Queue of connection events
  */
 public interface IConnectionEventQueue {
+
     /**
      * Whether queue has waiting connection events
      * 
      * @param conn
      *            Connection
-     * @return <pre>
-     * true
-     * </pre>
-     * 
-     *         if queue has waiting events for connection,
-     * 
-     *         <pre>
-     * false
-     * </pre>
-     * 
-     *         otherwise
+     * @return true if queue has waiting events for connection, false otherwise
      */
     public boolean hasEventsWaiting(IConnection conn);
 

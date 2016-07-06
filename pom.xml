@@ -59,9 +59,9 @@
     <properties>
         <build.dir>target</build.dir>
         <finalName>${project.artifactId}-${project.version}</finalName>
-        <red5-io.version>${project.version}</red5-io.version>
-        <red5-service.version>${project.version}</red5-service.version>
-        <red5-server-common.version>${project.version}</red5-server-common.version>
+        <red5-io.version>${project.parent.version}</red5-io.version>
+        <red5-service.version>${project.parent.version}</red5-service.version>
+        <red5-server-common.version>${project.parent.version}</red5-server-common.version>
         <tomcatplugin.version>1.13</tomcatplugin.version>
         <websocket.version>1.6</websocket.version>
     </properties>
@@ -106,21 +106,21 @@
         <plugins>
             <plugin>
                 <artifactId>maven-jar-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <configuration>
-                            <archive>
-                                <manifest>
-                                    <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
-                                </manifest>
-                                <manifestEntries>
-                                    <SCM-Revision>${buildNumber}</SCM-Revision>
-                                    <Implementation-Build>${buildNumber}</Implementation-Build>
-                                </manifestEntries>
-                            </archive>
-                        </configuration>
-                    </execution>
-                </executions>
+                <configuration>
+                    <excludes>
+                        <exclude>**/red5_codeformat_eclipse.xml</exclude>
+                        <exclude>**/red5_codetemplate.xml</exclude>
+                    </excludes>
+                    <archive>
+                        <manifestEntries>
+                            <Build-OS>${os.name} ${os.version}</Build-OS>
+                            <Build-Java>Java ${java.version}</Build-Java>
+                            <Build-Number>${buildNumber}</Build-Number>
+                            <Main-Class>Version</Main-Class>
+                            <Class-Path>lib/slf4j-api-${slf4j.version}.jar lib/logback-classic-${logback.version}.jar lib/logback-core-${logback.version}.jar lib/red5-server-common-${project.parent.version}.jar</Class-Path>
+                        </manifestEntries>
+                    </archive>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.felix</groupId>
@@ -186,6 +186,13 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-test</artifactId>
+            <version>${spring.version}</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.red5</groupId>

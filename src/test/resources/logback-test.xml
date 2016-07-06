@@ -6,11 +6,10 @@
         </encoder>
     </appender>
     <appender class="ch.qos.logback.core.FileAppender" name="FILE">
-        <File>target/test.log</File>
-        <Append>false</Append>
+        <file>target/test.log</file>
+        <append>false</append>
         <encoder>
-            <pattern>%d{ISO8601} [%thread] %-5level %logger{35} - %msg%n
-            </pattern>
+            <pattern>%d{ISO8601} [%thread] %-5level %logger{35} - %msg%n</pattern>
         </encoder>
     </appender>
     <root level="WARN">
@@ -20,6 +19,9 @@
  -->
     </root>
 <!-- 
+    <logger name="org.red5.server" level="TRACE">
+        <appender-ref ref="FILE"/>
+    </logger>
     <logger name="org.red5.server.net.rtmp" level="TRACE" />
     <logger name="org.springframework" level="INFO" />
     <logger name="org.apache" level="INFO" />

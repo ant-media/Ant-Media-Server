@@ -94,11 +94,7 @@ public class DebugProxyHandler extends IoHandlerAdapter implements ResourceLoade
     public void sessionOpened(IoSession session) throws Exception {
         SocketSessionConfig ssc = (SocketSessionConfig) session.getConfig();
         ssc.setTcpNoDelay(true);
-        //ssc.setReceiveBufferSize(2048);
-        //ssc.setSendBufferSize(2048);
-
         super.sessionOpened(session);
-
     }
 
     /** {@inheritDoc} */
