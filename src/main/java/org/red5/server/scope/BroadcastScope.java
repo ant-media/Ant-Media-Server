@@ -230,14 +230,14 @@ public class BroadcastScope extends BasicScope implements IBroadcastScope, IPipe
     public void onPipeConnectionEvent(PipeConnectionEvent event) {
         // Switch event type
         switch (event.getType()) {
-            case PipeConnectionEvent.CONSUMER_CONNECT_PULL:
-            case PipeConnectionEvent.CONSUMER_CONNECT_PUSH:
-            case PipeConnectionEvent.PROVIDER_CONNECT_PULL:
-            case PipeConnectionEvent.PROVIDER_CONNECT_PUSH:
+            case CONSUMER_CONNECT_PULL:
+            case CONSUMER_CONNECT_PUSH:
+            case PROVIDER_CONNECT_PULL:
+            case PROVIDER_CONNECT_PUSH:
                 compCounter.incrementAndGet();
                 break;
-            case PipeConnectionEvent.CONSUMER_DISCONNECT:
-            case PipeConnectionEvent.PROVIDER_DISCONNECT:
+            case CONSUMER_DISCONNECT:
+            case PROVIDER_DISCONNECT:
                 if (compCounter.decrementAndGet() <= 0) {
                     // XXX should we synchronize parent before removing?
                     if (hasParent()) {

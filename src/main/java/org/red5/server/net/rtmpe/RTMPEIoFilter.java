@@ -48,10 +48,14 @@ public class RTMPEIoFilter extends IoFilterAdapter {
 
     @Override
     public void messageReceived(NextFilter nextFilter, IoSession session, Object obj) throws Exception {
-        log.trace("messageReceived nextFilter: {} session: {} message: {}", nextFilter, session, obj);
+        if (log.isTraceEnabled()) {
+            log.trace("messageReceived nextFilter: {} session: {} message: {}", nextFilter, session, obj);
+        }
         String sessionId = (String) session.getAttribute(RTMPConnection.RTMP_SESSION_ID);
         if (sessionId != null) {
-            log.info("RTMP Session id: {}", sessionId);
+            if (log.isTraceEnabled()) {
+                log.trace("RTMP Session id: {}", sessionId);
+            }
             RTMPMinaConnection conn = (RTMPMinaConnection) RTMPConnManager.getInstance().getConnectionBySessionId(sessionId);
             if (conn == null) {
                 throw new Exception("Receive on unavailable connection - session id: " + sessionId);

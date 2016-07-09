@@ -13,32 +13,27 @@
   distributed under the License is distributed on an "AS IS" BASIS,
   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
   See the License for the specific language governing permissions and
-  limitations under the License.
+  limitations under the License.
+
 -->
 <!-- The contents of this file will be loaded for each web application -->
+<!--
+<Context processTlds="false">
+-->
 <Context>
-
-    <!-- Default set of monitored resources -->
-
-    <WatchedResource>
-WEB-INF/web.xml
-    </WatchedResource>
-
-    <WatchedResource>
-META-INF/context.xml
-    </WatchedResource>
-
-    <!-- Uncomment this to disable session persistence across Tomcat restarts -->
-    <!-- <Manager pathname="" /> -->
-
-
-    <!--
-         Uncomment this to enable Comet connection tacking (provides events
-         on session expiration as well as webapp lifecycle)
+    <!-- 
+        Scanner https://tomcat.apache.org/tomcat-8.0-doc/config/jar-scanner.html 
+        Filter https://tomcat.apache.org/tomcat-8.0-doc/config/jar-scan-filter.html
     -->
-    <!-- <Valve className="org.apache.catalina.valves.CometConnectionManagerValve" /> -->
-
-
+    <JarScanner scanBootstrapClassPath="false" scanClassPath="false">
+        <JarScanFilter
+            defaultPluggabilityScan="false"
+            pluggabilityScan="${tomcat.util.scan.StandardJarScanFilter.jarsToScan}"
+            defaultTldScan="false"
+            tldScan="${tomcat.util.scan.StandardJarScanFilter.jarsToScan}"/>
+    </JarScanner>
+    <!-- Default set of monitored resources -->
+    <WatchedResource>WEB-INF/web.xml</WatchedResource>
+    <WatchedResource>META-INF/context.xml</WatchedResource>
     <!-- <Loader loaderClass="org.red5.server.tomcat.WebappClassLoader" useSystemClassLoaderAsParent="false" /> -->
-
 </Context>

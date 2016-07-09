@@ -66,22 +66,22 @@ public class StreamBandwidthController implements IFilter, IPipeConnectionListen
     /** {@inheritDoc} */
     public void onPipeConnectionEvent(PipeConnectionEvent event) {
         switch (event.getType()) {
-            case PipeConnectionEvent.PROVIDER_CONNECT_PULL:
+            case PROVIDER_CONNECT_PULL:
                 if (event.getProvider() != this && providerPipe == null) {
                     providerPipe = (IPipe) event.getSource();
                 }
                 break;
-            case PipeConnectionEvent.PROVIDER_DISCONNECT:
+            case PROVIDER_DISCONNECT:
                 if (event.getSource() == providerPipe) {
                     providerPipe = null;
                 }
                 break;
-            case PipeConnectionEvent.CONSUMER_CONNECT_PUSH:
+            case CONSUMER_CONNECT_PUSH:
                 if (event.getConsumer() != this && consumerPipe == null) {
                     consumerPipe = (IPipe) event.getSource();
                 }
                 break;
-            case PipeConnectionEvent.CONSUMER_DISCONNECT:
+            case CONSUMER_DISCONNECT:
                 if (event.getSource() == consumerPipe) {
                     consumerPipe = null;
                 }
