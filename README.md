@@ -17,21 +17,21 @@ Red5 is an Open Source Flash Server written in Java that supports:
 Additional features supported via plugin:
  
  * [WebSocket (ws and wss)](https://github.com/Red5/red5-websocket)
- * [HLS](https://github.com/Red5/red5-hls-plugin)
+ * ~[HLS](https://github.com/Red5/red5-hls-plugin)~
  * [RTSP (From Axis-type cameras)](https://github.com/Red5/red5-rtsp-restreamer)
 
 The Red5 users list may be found here: [red5interest](https://groups.google.com/forum/#!forum/red5interest)
 
 Subreddit: [r/red5](http://www.reddit.com/r/red5)
 
-Automatic builds (Courtesy of Apache / OpenMeetings): 
+Automatic builds (Courtesy of Apache [OpenMeetings](http://openmeetings.apache.org/)): 
  * [Red5](https://builds.apache.org/view/M-R/view/OpenMeetings/job/Red5-server/)
  * [Windows Installer](https://builds.apache.org/view/M-R/view/OpenMeetings/job/red5-installer/)
 
 # Releases
 Stable release version is [1.0.7-RELEASE](https://github.com/Red5/red5-server/releases/tag/v1.0.7-RELEASE)
 
-Pre-release version is [1.0.8-M2](https://github.com/Red5/red5-server/releases/tag/v1.0.8-M2)
+Pre-release version is [1.0.8-M5](https://github.com/Red5/red5-server/releases/tag/v1.0.8-M5)
 
 [Releases](https://github.com/Red5/red5-server/releases/latest)
 ----------------
