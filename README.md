@@ -17,8 +17,8 @@ Red5 is an Open Source Flash Server written in Java that supports:
 Additional features supported via plugin:
  
  * [WebSocket (ws and wss)](https://github.com/Red5/red5-websocket)
- * ~[HLS](https://github.com/Red5/red5-hls-plugin)~
  * [RTSP (From Axis-type cameras)](https://github.com/Red5/red5-rtsp-restreamer)
+ * [HLS](https://github.com/Red5/red5-hls-plugin)
 
 The Red5 users list may be found here: [red5interest](https://groups.google.com/forum/#!forum/red5interest)
 
