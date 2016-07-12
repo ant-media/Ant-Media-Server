@@ -17,9 +17,6 @@
 
 -->
 <!-- The contents of this file will be loaded for each web application -->
-<!--
-<Context processTlds="false">
--->
 <Context>
     <!-- 
         Scanner https://tomcat.apache.org/tomcat-8.0-doc/config/jar-scanner.html 
@@ -27,7 +24,7 @@
     -->
     <JarScanner scanBootstrapClassPath="false" scanClassPath="false">
         <JarScanFilter
-            defaultPluggabilityScan="false"
+            defaultPluggabilityScan="true"
             pluggabilityScan="${tomcat.util.scan.StandardJarScanFilter.jarsToScan}"
             defaultTldScan="false"
             tldScan="${tomcat.util.scan.StandardJarScanFilter.jarsToScan}"/>
@@ -35,5 +32,4 @@
     <!-- Default set of monitored resources -->
     <WatchedResource>WEB-INF/web.xml</WatchedResource>
     <WatchedResource>META-INF/context.xml</WatchedResource>
-    <!-- <Loader loaderClass="org.red5.server.tomcat.WebappClassLoader" useSystemClassLoaderAsParent="false" /> -->
 </Context>
