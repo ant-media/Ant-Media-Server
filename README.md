@@ -2,6 +2,7 @@ red5-server - Red5 server core
 ===========
 
 ![TravisCI](https://travis-ci.org/Red5/red5-server.svg?branch=master) 
+[![Maven Central](https://img.shields.io/maven-central/v/org.red5/red5-server.svg)](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.red5%22)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
 
 Red5 is an Open Source Flash Server written in Java that supports:
