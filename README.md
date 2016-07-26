@@ -2,6 +2,7 @@ red5-server - Red5 server core
 ===========
 
 ![TravisCI](https://travis-ci.org/Red5/red5-server.svg?branch=master) 
+[![Maven Central](https://img.shields.io/maven-central/v/org.red5/red5-server.svg)](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.red5%22)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
 
 Red5 is an Open Source Flash Server written in Java that supports:
@@ -17,21 +18,21 @@ Red5 is an Open Source Flash Server written in Java that supports:
 Additional features supported via plugin:
  
  * [WebSocket (ws and wss)](https://github.com/Red5/red5-websocket)
- * [HLS](https://github.com/Red5/red5-hls-plugin)
  * [RTSP (From Axis-type cameras)](https://github.com/Red5/red5-rtsp-restreamer)
+ * [HLS](https://github.com/Red5/red5-hls-plugin)
 
 The Red5 users list may be found here: [red5interest](https://groups.google.com/forum/#!forum/red5interest)
 
 Subreddit: [r/red5](http://www.reddit.com/r/red5)
 
-Automatic builds (Courtesy of Apache / OpenMeetings): 
+Automatic builds (Courtesy of Apache [OpenMeetings](http://openmeetings.apache.org/)): 
  * [Red5](https://builds.apache.org/view/M-R/view/OpenMeetings/job/Red5-server/)
  * [Windows Installer](https://builds.apache.org/view/M-R/view/OpenMeetings/job/red5-installer/)
 
 # Releases
 Stable release version is [1.0.7-RELEASE](https://github.com/Red5/red5-server/releases/tag/v1.0.7-RELEASE)
 
-Pre-release version is [1.0.8-M2](https://github.com/Red5/red5-server/releases/tag/v1.0.8-M2)
+Pre-release version is [1.0.8-M5](https://github.com/Red5/red5-server/releases/tag/v1.0.8-M5)
 
 [Releases](https://github.com/Red5/red5-server/releases/latest)
 ----------------
