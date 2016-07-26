@@ -195,7 +195,6 @@
             <array>
                 <value>TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256</value>
                 <value>TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384</value>
-                
                 <value>TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA</value>
                 <value>TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384</value>
                 <value>TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA</value>
@@ -228,19 +227,18 @@
     </bean>
 -->
     <!-- Enable when you need it. - - >
-        <bean id="rtmpProxyTransport" class="org.red5.server.net.rtmp.RTMPMinaTransport" init-method="start" destroy-method="stop">
-                <property name="ioHandler" ref="debugProxyIoHandler" />
-                <property name="address" value="${proxy.source_host}" />
-                <property name="port" value="${proxy.source_port}" />
-                <property name="ioThreads" value="${rtmp.io_threads}" />
-                <property name="tcpNoDelay" value="${rtmp.tcp_nodelay}" />
-        </bean>
+    <bean id="rtmpProxyTransport" class="org.red5.server.net.rtmp.RTMPMinaTransport" init-method="start" destroy-method="stop">
+        <property name="ioHandler" ref="debugProxyIoHandler" />
+        <property name="address" value="${proxy.source_host}" />
+        <property name="port" value="${proxy.source_port}" />
+        <property name="ioThreads" value="${rtmp.io_threads}" />
+        <property name="tcpNoDelay" value="${rtmp.tcp_nodelay}" />
+    </bean>
     
-        <bean id="debugProxyIoHandler"
-                class="org.red5.server.net.proxy.DebugProxyHandler">
-                <property name="codecFactory" ref="rtmpCodecFactory" />
-                <property name="forward" value="${proxy.destination_host}:${proxy.destination_port}" />
-                <property name="dumpTo" value="./webapps/dump/" />
-        </bean>
+    <bean id="debugProxyIoHandler" class="org.red5.server.net.proxy.DebugProxyHandler">
+        <property name="codecFactory" ref="rtmpCodecFactory" />
+        <property name="forward" value="${proxy.destination_host}:${proxy.destination_port}" />
+        <property name="dumpTo" value="./webapps/dump/" />
+    </bean>
 -->
 </beans>
