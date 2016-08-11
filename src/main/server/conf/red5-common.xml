@@ -12,12 +12,12 @@
     <bean id="placeholderConfig" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
         <property name="location" value="classpath:/red5.properties" />
     </bean>
-    
+
     <!-- This context is shared between all child contexts. -->
     
     <!-- Server bean -->
     <bean id="red5.server" class="org.red5.server.Server" />
-    
+
     <!-- JMX -->
     <bean id="mbeanServer" class="org.springframework.jmx.support.MBeanServerFactoryBean">
         <property name="locateExistingServerIfPossible" value="${jmx.reuse.existing.server}"/>  
@@ -28,16 +28,16 @@
 
     <!-- Deals with StatusObjects representing statuses like NetConnection.Connect.Success status -->
     <bean id="statusObjectService" class="org.red5.server.net.rtmp.status.StatusObjectService" autowire="byType" /> 
-    
+
     <!-- RTMPT codec factory -->
     <bean id="rtmptCodecFactory" class="org.red5.server.net.rtmpt.codec.RTMPTCodecFactory" autowire="byType" init-method="init">
         <property name="baseTolerance" value="${rtmpt.encoder_base_tolerance}" />
         <property name="dropLiveFuture" value="${rtmpt.encoder_drop_live_future}" />
-    </bean>     
-        
+    </bean>
+
     <!-- Remoting calls codec factory -->
     <bean id="remotingCodecFactory" class="org.red5.server.net.remoting.codec.RemotingCodecFactory" autowire="byType" init-method="init"/>
-        
+
     <!-- Streamable file factory -->
     <bean id="streamableFileFactory" class="org.red5.server.stream.StreamableFileFactory">
         <property name="services">
@@ -51,7 +51,7 @@
             </list>
         </property>
     </bean>
-    
+
     <!-- Handles creation / lookup of shared objects -->
     <bean id="sharedObjectService" class="org.red5.server.so.SharedObjectService">
         <property name="maximumEventsPerUpdate" value="${so.max.events.per.update}"/>
@@ -116,9 +116,7 @@
     </bean>
 -->
 
-    <!--
-        Cache to use for keyframe metadata.
-    -->
+    <!-- Cache to use for keyframe metadata. -->
     <bean id="keyframe.cache" class="org.red5.io.CachingFileKeyFrameMetaCache">
         <property name="maxCacheEntry" value="${keyframe.cache.entry.max}" />
     </bean>
@@ -131,15 +129,17 @@
         <property name="cache">
             <ref bean="object.cache"/>
         </property>
+        <!-- Writer post-process example -->
+        <property name="writerPostProcessors" value="org.red5.media.processor.GenericWriterPostProcessor" />
     </bean>
-    
+
     <!-- Use injection to set the keyframe cache for FLV files -->
     <bean id="flvreader.impl" class="org.red5.io.flv.impl.FLVReader">
         <property name="keyFrameCache">
             <ref bean="keyframe.cache"/>
         </property>
     </bean>
-    
+
     <!-- Use injection to set the keyframe cache for MP4 files -->
     <bean id="mp4reader.impl" class="org.red5.io.mp4.impl.MP4Reader"/>
     
@@ -149,7 +149,7 @@
             <ref bean="keyframe.cache"/>
         </property>
     </bean> 
-    
+
     <!-- Use injection to set the buffer type for reading FLV files -->
     <bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
         <property name="staticMethod">
@@ -158,7 +158,7 @@
         <!-- Three buffer types are available 'auto', 'heap', and 'direct' -->
         <property name="arguments" value="auto"/>
     </bean>
-        
+
     <!-- Use injection to set the buffer size for reading FLV files -->
     <bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
         <property name="staticMethod">
@@ -167,13 +167,13 @@
         <!-- Three buffer types are available 'auto', 'heap', and 'direct' -->
         <property name="arguments" value="4096"/>
     </bean>
-    
+
     <!-- Low level access for recording to file -->
     <bean id="fileConsumer" scope="prototype" lazy-init="true" class="org.red5.server.stream.consumer.FileConsumer">
         <property name="delayWrite" value="${fileconsumer.delayed.write}"/>
         <property name="queueThreshold" value="${fileconsumer.queue.size}"/>
     </bean>
-    
+
     <!-- ClientBroadcastStream and PlaylistSubscriberStream
         that will be used by RTMPConnection and maybe other classes.
         These beans are lazy-init because most likely server will need
