@@ -30,10 +30,6 @@ Automatic builds (Courtesy of Apache [OpenMeetings](http://openmeetings.apache.o
  * [Windows Installer](https://builds.apache.org/view/M-R/view/OpenMeetings/job/red5-installer/)
 
 # Releases
-Stable release version is [1.0.7-RELEASE](https://github.com/Red5/red5-server/releases/tag/v1.0.7-RELEASE)
-
-Pre-release version is [1.0.8-M5](https://github.com/Red5/red5-server/releases/tag/v1.0.8-M5)
-
 [Releases](https://github.com/Red5/red5-server/releases/latest)
 ----------------
 ### Red5 1.0.7 Release (12 May 2016)
@@ -124,6 +120,10 @@ The artifacts for the following releases are no longer available; if your projec
  * Red5 0.8.0 Final
 
 ### Donations
-Donate to the cause using [Bitcoin](https://coinbase.com/checkouts/2c5f023d24b12245d17f8ff8afe794d3)
+Donate to the cause using
+<table>
+  <tr><td>BTC</td><td>19AUgJuVzC8jg16bSLJDcM6Nfouh9JvwKA</td></tr>
+  <tr><td>ETH</td><td>0x099F9DE7B799C0Dd0bE2E93Ed9BeA7CB1Fe989d2</td></tr>
+</table>
 <i>Donations are used for beer and snacks</i>
 
