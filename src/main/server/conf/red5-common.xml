@@ -130,7 +130,7 @@
             <ref bean="object.cache"/>
         </property>
         <!-- Writer post-process example -->
-        <property name="writerPostProcessors" value="org.red5.media.processor.GenericWriterPostProcessor" />
+        <property name="writerPostProcessor" value="org.red5.media.processor.GenericWriterPostProcessor" />
     </bean>
 
     <!-- Use injection to set the keyframe cache for FLV files -->
