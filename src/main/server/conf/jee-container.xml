@@ -32,6 +32,12 @@
                     <property name="protocol" value="org.apache.coyote.http11.Http11NioProtocol" />
                     <property name="address" value="${http.host}:${http.port}" />
                     <property name="redirectPort" value="${https.port}" />  
+                    <property name="connectionProperties">
+                        <map>
+                            <entry key="maxKeepAliveRequests" value="-1"/>
+                            <entry key="keepAliveTimout" value="-1"/>
+                        </map>
+                    </property>
                 </bean>     
             </list>
         </property>
