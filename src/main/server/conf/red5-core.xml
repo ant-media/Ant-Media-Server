@@ -194,15 +194,10 @@
         <property name="cipherSuites">
             <array>
                 <value>TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256</value>
-                <value>TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384</value>
                 <value>TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA</value>
-                <value>TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384</value>
-                <value>TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA</value>
                 <value>TLS_ECDHE_RSA_WITH_RC4_128_SHA</value>
                 <value>TLS_RSA_WITH_AES_128_CBC_SHA256</value>
                 <value>TLS_RSA_WITH_AES_128_CBC_SHA</value>
-                <value>TLS_RSA_WITH_AES_256_CBC_SHA256</value>
-                <value>TLS_RSA_WITH_AES_256_CBC_SHA</value>
                 <value>SSL_RSA_WITH_RC4_128_SHA</value>
             </array>
         </property>
