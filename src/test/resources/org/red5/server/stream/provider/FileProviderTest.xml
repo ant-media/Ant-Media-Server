@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:lang="http://www.springframework.org/schema/lang"
+    xmlns="http://www.springframework.org/schema/beans"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+                           http://www.springframework.org/schema/lang http://www.springframework.org/schema/lang/spring-lang.xsd" >
+    <!-- Server bean -->
+    <bean id="red5.server" class="org.red5.server.Server" />
+    <bean id="schedulingService" class="org.red5.server.scheduling.QuartzSchedulingService" />
+    <!-- Streamable file factory -->
+    <bean id="streamableFileFactory" class="org.red5.server.stream.StreamableFileFactory">
+        <property name="services">
+            <list>
+                <bean id="flvFileService" class="org.red5.server.service.flv.impl.FLVService">
+                    <property name="generateMetadata" value="true"/>
+                </bean>
+            </list>
+        </property>
+    </bean>    
+    <!-- Global stuff from red5-default.xml -->
+    <bean id="global.clientRegistry" class="org.red5.server.ClientRegistry" />
+    <bean id="global.serviceInvoker" class="org.red5.server.service.ServiceInvoker" >
+        <property name="serviceResolvers" >
+            <list>
+                <bean id="scopeServiceResolver" class="org.red5.server.service.ScopeServiceResolver" />
+                <bean id="handlerServiceResolver" class="org.red5.server.service.HandlerServiceResolver" />
+                <bean id="contextServiceResolver" class="org.red5.server.service.ContextServiceResolver" />
+            </list>
+        </property>
+    </bean>
+    <bean id="global.mappingStrategy" class="org.red5.server.MappingStrategy" />
+    <bean id="global.context" autowire="byType" class="org.red5.server.Context" >
+        <property name="contextPath" value="test" />
+    </bean>
+    <bean id="global.handler" autowire="byType" class="org.red5.server.CoreHandler" />
+    <bean id="global.scope" class="org.red5.server.scope.GlobalScope" init-method="register" >
+        <property name="server" ref="red5.server" />
+        <property name="name" value="default" />
+        <property name="context" ref="global.context" />
+        <property name="handler" ref="global.handler" />
+        <property name="persistenceClass" value="org.red5.server.persistence.RamPersistence" />
+    </bean>
+    <!-- Application stuff from red5-web.xml -->
+    <bean id="web.context" autowire="byType" class="org.red5.server.Context" />
+    <bean id="web.scope" class="org.red5.server.scope.WebScope">
+        <property name="server" ref="red5.server" />
+        <property name="parent" ref="global.scope" />
+        <property name="context" ref="web.context" />
+        <property name="handler" ref="web.handler" />
+        <property name="persistenceClass" value="org.red5.server.persistence.RamPersistence" />
+        <property name="contextPath" value="/junit" />
+        <property name="virtualHosts" value="*" />
+    </bean>
+    <bean id="web.handler" class="org.red5.server.adapter.MultiThreadedApplicationAdapter"/>
+</beans>
