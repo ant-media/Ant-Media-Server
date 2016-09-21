@@ -64,6 +64,7 @@
         <red5-server-common.version>${project.parent.version}</red5-server-common.version>
         <tomcatplugin.version>1.16</tomcatplugin.version>
         <websocket.version>1.6</websocket.version>
+        <cors-filter.version>2.5</cors-filter.version>
     </properties>
     <repositories>
         <repository>
@@ -307,6 +308,13 @@
             <groupId>org.apache.tomcat.embed</groupId>
             <artifactId>tomcat-embed-el</artifactId>
             <version>${tomcat.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <!-- Provides CORS functionality http://software.dzhuvinov.com/cors-filter.html -->
+        <dependency>
+            <groupId>com.thetransactioncompany</groupId>
+            <artifactId>cors-filter</artifactId>
+            <version>${cors-filter.version}</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>
