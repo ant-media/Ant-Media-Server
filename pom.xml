@@ -250,11 +250,7 @@
                     <artifactId>commons-lang3</artifactId>
                     <groupId>org.apache.commons</groupId>
                 </exclusion>
-                <exclusion>
-                    <artifactId>quartz</artifactId>
-                    <groupId>org.quartz-scheduler</groupId>
-                </exclusion>
-            </exclusions>
+             </exclusions>
         </dependency>
         <dependency>
             <groupId>org.red5</groupId>
@@ -278,6 +274,12 @@
             <groupId>org.quartz-scheduler</groupId>
             <artifactId>quartz</artifactId>
             <version>${quartz.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>c3p0</groupId>
+                    <artifactId>c3p0</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <!-- Runtime plugin deps -->
         <dependency>
