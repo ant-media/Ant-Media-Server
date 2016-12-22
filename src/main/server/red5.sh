@@ -37,7 +37,7 @@ echo "Running on " $OS
 # JAVA options
 # You can set JVM additional options here if you want
 if [ -z "$JVM_OPTS" ]; then 
-    JVM_OPTS="-Xverify:none -XX:+TieredCompilation -XX:+UseBiasedLocking -XX:InitialCodeCacheSize=8m -XX:ReservedCodeCacheSize=32m -Dorg.terracotta.quartz.skipUpdateCheck=true"
+    JVM_OPTS="-Xms256m -Xmx1g -Xverify:none -XX:+TieredCompilation -XX:+UseBiasedLocking -XX:InitialCodeCacheSize=8m -XX:ReservedCodeCacheSize=32m -Dorg.terracotta.quartz.skipUpdateCheck=true -XX:MaxMetaspaceSize=128m  -XX:+DisableExplicitGC -XX:+UseParNewGC -XX:+UseConcMarkSweepGC -XX:ParallelGCThreads=2"
 fi
 # Set up security options
 SECURITY_OPTS="-Djava.security.debug=failure"
