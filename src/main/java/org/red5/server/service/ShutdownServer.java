@@ -105,16 +105,23 @@ public class ShutdownServer implements ApplicationContextAware, InitializingBean
 
     // reference to the runnable
     private Future<?> future;
+    
+    // reference to the jee server
+    private LoaderBase jeeServer;
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        // check for an embedded jee server
-        LoaderBase jeeServer = applicationContext.getBean(LoaderBase.class);
-        // lookup the jee container
-        if (jeeServer == null) {
-            log.info("JEE server was not found");
-        } else {
-            log.info("JEE server was found: {}", jeeServer.toString());
+        try {
+            // check for an embedded jee server
+            jeeServer = applicationContext.getBean(LoaderBase.class);
+            // lookup the jee container
+            if (jeeServer == null) {
+                log.info("JEE server was not found");
+            } else {
+                log.info("JEE server was found: {}", jeeServer.toString());
+            }
+        } catch (Exception e) {
+            
         }
         // start blocks, so it must be on its own thread
         future = executor.submit(new Runnable(){
@@ -191,7 +198,6 @@ public class ShutdownServer implements ApplicationContextAware, InitializingBean
             contextLoader = null;
         }
         // shutdown the jee server
-        LoaderBase jeeServer = applicationContext.getBean(LoaderBase.class);
         if (jeeServer != null) {
             // destroy is a DisposibleBean method not LoaderBase
             // jeeServer.destroy();

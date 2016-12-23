@@ -49,12 +49,12 @@ public abstract class LoaderBase implements ApplicationContextAware {
     /**
      * Current Red5 application context, set by the different loaders.
      */
-    public static final Map<String, IApplicationContext> red5AppCtx = new HashMap<String, IApplicationContext>();
+    public static final Map<String, IApplicationContext> red5AppCtx = new HashMap<>();
 
     /**
      * Loader for new applications.
      */
-    protected static ThreadLocal<IApplicationLoader> loader = new ThreadLocal<IApplicationLoader>();
+    protected static ThreadLocal<IApplicationLoader> loader = new ThreadLocal<>();
 
     /**
      * Folder containing the webapps.
