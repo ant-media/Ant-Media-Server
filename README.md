@@ -32,6 +32,9 @@ Automatic builds (Courtesy of Apache [OpenMeetings](http://openmeetings.apache.o
 # Releases
 [Releases](https://github.com/Red5/red5-server/releases/latest)
 ----------------
+### Red5 1.0.8 Release (23 December 2016)
+[Tarball &amp; ZIP](https://github.com/Red5/red5-server/releases/tag/v1.0.8-RELEASE)
+
 ### Red5 1.0.7 Release (12 May 2016)
 [Tarball &amp; ZIP](https://github.com/Red5/red5-server/releases/tag/v1.0.7-RELEASE)
 
