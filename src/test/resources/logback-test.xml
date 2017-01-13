@@ -21,13 +21,13 @@
         <appender-ref ref="FILE" />
  -->
     </root>
-<!-- 
+ 
     <logger name="org.red5.server" level="TRACE">
         <appender-ref ref="FILE"/>
     </logger>
     <logger name="org.red5.server.net.rtmp" level="TRACE" />
     <logger name="org.springframework" level="INFO" />
     <logger name="org.apache" level="INFO" />
--->
+
     <logger name="org.quartz" level="OFF" />
 </configuration>

@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" 
+    xmlns:lang="http://www.springframework.org/schema/lang" 
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+    xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+    http://www.springframework.org/schema/lang http://www.springframework.org/schema/lang/spring-lang.xsd">
+    
+    <!-- DO NOT FORMAT THIS FILE IN ECLIPSE -->
+    
+    <bean id="customEditorConfigurer" class="org.springframework.beans.factory.config.CustomEditorConfigurer">
+        <property name="customEditors">
+            <map>
+                <entry key="java.net.SocketAddress" value="org.apache.mina.integration.beans.InetSocketAddressEditor" />
+            </map>
+        </property>
+    </bean>
+    
+    <bean id="placeholderConfig" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+        <property name="location" value="classpath:/red5-rtsp.properties" />
+    </bean>
+    
+     <!-- RTsP Mina IO Handler -->
+    <bean id="rtspMinaIoHandler" class="com.antstreaming.rtsp.RtspMinaIoHandler">
+         <property name="server" ref="red5.server" />
+    </bean>
+    
+    <bean id="rtspConnectionManager" class="com.antstreaming.rtsp.RtspConnectionManager" >
+    	<property name="taskScheduler" ref="rtmpScheduler"/>
+    </bean>
+    
+    
+    <!-- RTMP Mina Transport -->
+    <bean id="rtspTransport" class="com.antstreaming.rtsp.RtspMinaTransport" init-method="start" destroy-method="stop">
+        <property name="ioHandler" ref="rtspMinaIoHandler" />
+        <property name="addresses">
+            <list>
+                <value>${rtsp.host}:${rtsp.port}</value>
+                <!-- You can now add additional ports and ip addresses
+                <value>${rtmp.host}:1936</value>
+                 -->
+            </list>
+        </property>
+        <!-- 
+        <property name="ioThreads" value="${rtmp.io_threads}" />
+        <property name="sendBufferSize" value="${rtmp.send_buffer_size}" />
+        <property name="receiveBufferSize" value="${rtmp.receive_buffer_size}" />
+        <property name="trafficClass" value="${rtmp.traffic_class}" />
+        <property name="backlog" value="${rtmp.backlog}" />
+        <property name="tcpNoDelay" value="${rtmp.tcp_nodelay}" />
+        <property name="keepAlive" value="${rtmp.tcp_keepalive}" />
+        <property name="thoughputCalcInterval" value="${rtmp.thoughput_calc_interval}" />
+        <property name="enableDefaultAcceptor" value="${rtmp.default_acceptor}" />
+         -->
+         
+        <!-- Pool settings are used when the default acceptor is disabled 
+        <property name="initialPoolSize" value="${rtmp.initial_pool_size}" />
+        <property name="maxPoolSize" value="${rtmp.max_pool_size}" />
+        <property name="maxProcessorPoolSize" value="${rtmp.max_processor_pool_size}" />
+        <property name="executorKeepAliveTime" value="${rtmp.executor_keepalive_time}" />
+        -->
+        <!-- This is the interval at which the sessions are polled for stats. If mina monitoring is not enabled, polling will not occur
+        <property name="minaPollInterval" value="${jmx.mina.poll.interval}" />
+        <property name="enableMinaMonitor" value="${jmx.mina.monitor.enable}" />
+        <property name="enableMinaLogFilter" value="${mina.logfilter.enable}" />
+         -->
+    </bean>
+    
+   
+    
+    
+    
+</beans>

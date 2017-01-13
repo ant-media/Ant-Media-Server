@@ -21,4 +21,6 @@
     <logger name="org.apache" level="INFO" />
     <logger name="org.apache.jasper.servlet" level="WARN" />
     <logger name="ch.qos" level="WARN" />
+    <logger name="com.antstreaming" level="DEBUG"/>
+    <logger name="org.quartz" level="WARN"/>
 </configuration>

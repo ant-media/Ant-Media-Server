@@ -18,6 +18,9 @@
 
 package org.red5.server;
 
+import static org.bytedeco.javacpp.avformat.av_register_all;
+
+import org.bytedeco.javacpp.avformat;
 import org.red5.logging.Red5LoggerFactory;
 import org.red5.server.api.Red5;
 import org.slf4j.Logger;
@@ -39,6 +42,9 @@ public class Launcher {
      *             on error
      */
     public void launch() throws Exception {
+    	
+    	av_register_all();
+    	avformat.avformat_network_init();
         System.out.printf("Root: %s%nDeploy type: %s%n", System.getProperty("red5.root"), System.getProperty("red5.deployment.type"));
         // check for the logback disable flag
         boolean useLogback = Boolean.valueOf(System.getProperty("useLogback", "true"));

@@ -45,5 +45,10 @@
         <property name="commonContext" ref="red5.common" />
         <property name="contextLoader" ref="context.loader" />
     </bean>
+    
+    <bean id="ant.rtsp" class="org.red5.spring.Red5ApplicationContext">
+       <property name="configLocation" value="classpath:/red5-rtsp.xml" />
+       <property name="parent" ref="red5.core" />
+    </bean>
 
 </beans>
