@@ -29,9 +29,11 @@ Automatic builds (Courtesy of Apache [OpenMeetings](http://openmeetings.apache.o
  * [Red5](https://builds.apache.org/view/M-R/view/OpenMeetings/job/Red5-server/)
  * [Windows Installer](https://builds.apache.org/view/M-R/view/OpenMeetings/job/red5-installer/)
 
-# Releases
-[Releases](https://github.com/Red5/red5-server/releases/latest)
+# [Releases](https://github.com/Red5/red5-server/releases/latest)
 ----------------
+### Red5 1.0.8 Release (23 December 2016)
+[Tarball &amp; ZIP](https://github.com/Red5/red5-server/releases/tag/v1.0.8-RELEASE)
+
 ### Red5 1.0.7 Release (12 May 2016)
 [Tarball &amp; ZIP](https://github.com/Red5/red5-server/releases/tag/v1.0.7-RELEASE)
 
