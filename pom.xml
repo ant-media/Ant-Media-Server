@@ -3,7 +3,7 @@
     <parent>
         <groupId>org.red5</groupId>
         <artifactId>red5-parent</artifactId>
-        <version>1.0.9-SNAPSHOT</version>
+        <version>1.0.9-M1</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>red5-server</artifactId>
@@ -63,7 +63,7 @@
         <red5-service.version>${project.parent.version}</red5-service.version>
         <red5-server-common.version>${project.parent.version}</red5-server-common.version>
         <tomcatplugin.version>1.18</tomcatplugin.version>
-        <websocket.version>1.8</websocket.version>
+        <websocket.version>1.9</websocket.version>
         <cors-filter.version>2.5</cors-filter.version>
     </properties>
     <repositories>
