@@ -90,10 +90,6 @@ import com.antstreaming.rtsp.session.DateUtil;
 
 public class RtspConnection  extends RTMPMinaConnection {
 
-	private static final int UDP_PORT_MIN = 5000;
-
-	private static final int UDP_PORT_MAX = 65000;
-
 	private Logger logger = LoggerFactory.getLogger(RtspConnection.class);
 
 	protected static final String SLASH = "/";
@@ -101,17 +97,19 @@ public class RtspConnection  extends RTMPMinaConnection {
 	private static final String REQUIRE_VALUE_NGOD_R2 = "com.comcast.ngod.r2";
 	private static final String REQUIRE_VALUE_NGOD_C1 = "com.comcast.ngod.c1";
 
+	public static final int UDP_PORT_MIN = 5000;
+
+	public static final int UDP_PORT_MAX = 65000;
+
+	public static AtomicInteger PORT_NUMBER = new AtomicInteger(UDP_PORT_MIN);
+
+
 	private ThreadPoolTaskScheduler mTaskScheduler;
 	private IoSession mSession;
 
 	private IServer mServer;
 
-	protected static AtomicInteger portNum = new AtomicInteger(5000);
-
-	private AVFormatContext inputFormatContext;
-	private AVFormatContext[] outputFormatContext;
-
-	private ScheduledFuture<?> mPacketSendScheduledFuture;
+	private ScheduledFuture<?> mPacketSenderScheduledFuture;
 
 	private String mSessionKey = RandomStringUtils.randomAlphanumeric(17).toUpperCase();;
 
@@ -125,17 +123,19 @@ public class RtspConnection  extends RTMPMinaConnection {
 
 	private ApplicationContext mApplicationContext;
 
-//	private File streamFile;
+	//	private File streamFile;
 
-	private File sdpFile;
+	private ScheduledFuture<?> mPacketReceiverScheduledFuture;
 
-	private ScheduledFuture<?> frameReceiverScheduledFuture;
+	private PacketReceiverRunnable frameReceiver;
 
-	private FrameReceiverRunnable frameReceiver;
+	private PacketSenderRunnable frameSender;
 
 	private IScope scope;
 
 	private String announcedStreamName;
+
+	private String mode;
 
 	//private ClientBroadcastStream bs;
 
@@ -144,165 +144,63 @@ public class RtspConnection  extends RTMPMinaConnection {
 		//get RTSP connection in here and let rtsp connection receive this message
 		//rtsp connection should receive this message from a task queue
 		//do not forget to add this job to a task queue as rtmp conn does
-		logger.debug("RTSP Server Receive Message: \n{}", message);
 
 		RtspRequest request = (RtspRequest) message;
 		String cseq = request.getHeader(RtspHeaderCode.CSeq);
 		session.setAttribute(CSEQ, cseq);
 		switch (request.getVerb()) {
 		case OPTIONS:
-			onRequestOptions(session, request);
+			onOptions(session, request);
 			break;
 		case DESCRIBE:
-			onRequestDescribe(session, request);
+			onDescribe(session, request);
 			break;
 		case SETUP:
-			onRequestSetup(session, request);
+			onSetup(session, request);
 			break;
 		case TEARDOWN:
-			onRequestTeardown(session, request);
+			onTeardown(session, request);
 			break;
 		case PLAY:
-			onRequestPlay(session, request);
+			onPlay(session, request);
 			break;
 		case PAUSE:
-			onRequestPause(session, request);
+			onPause(session, request);
 			break;
 		case GET_PARAMETER:
-			onRequestGP(session, request);
+			onGP(session, request);
 			break;
 		case ANNOUNCE:
-			onRequestAnnounce(session, request);
+			onAnnounce(session, request);
 			break;
 		case RECORD:
-			onRequestRecord(session, request);
+			onRecord(session, request);
 			break;
 		default:
 			onDefaultRequest(session, request, request.getHeader(RtspHeaderCode.CSeq));
 		}
 	}
-	
-	private void onRequestRecord(IoSession session, RtspRequest request) {
+
+	private void onRecord(IoSession session, RtspRequest request) {
 		String cseq = request.getHeader(RtspHeaderCode.CSeq);
 		if (cseq == null || "".equals(cseq)) {
 			cseq = "0";
 		}
-		//bs.start();
-		//bs.startPublishing();
 
-		prepare_input_context(session, cseq, request);
-		logger.debug("sdp content is:" + liveStreamSdpDef);
-		
-	}
-
-
-
-	private boolean prepare_input_context(final IoSession session, final String cseq, RtspRequest request) {
-		try {
-			sdpFile = new File(announcedStreamName + ".sdp");
-			FileOutputStream fos = new FileOutputStream(sdpFile);
-			fos.write(liveStreamSdpDef.toString().getBytes());
-			fos.close();
-
-
-			AVFormatContext inputFormatCtx = new AVFormatContext(null);
-
-			AVDictionary options = new AVDictionary();
-			int ret = av_dict_set(options, "protocol_whitelist", "file,crypto,udp,rtp", 0);
-
-			AVInputFormat sdpFormat = av_find_input_format("sdp");
-
-			mTaskScheduler.schedule(new Runnable() {
-
-				@Override
-				public void run() {
-					RtspResponse rtspResponse = new RtspResponse();
-					rtspResponse.setHeader(RtspHeaderCode.CSeq, cseq);
-					session.write(rtspResponse);
-				}
-			}, new Date());
-
-
-			if (avformat_open_input(inputFormatCtx, sdpFile.getAbsolutePath(), sdpFormat, options) != 0) {
-				logger.debug("Could not open rtp for demuxing");
-				return false;
-			}
-
-			if (avformat_find_stream_info(inputFormatCtx, (PointerPointer)null) < 0) {
-				logger.debug("Could not get stream info");
-				return false;
-			}
-
-			//AVFormatContext outputFormatContext = new AVFormatContext(null);
-			//ret = avformat_alloc_output_context2(outputFormatContext, null, "mp4", streamFile.getAbsolutePath());
-			AVFormatContext outputRTMPFormatContext = new AVFormatContext(null);
-			
-			ret = avformat_alloc_output_context2(outputRTMPFormatContext, null, "flv", null);
+		String sessionKey = request.getHeader(RtspHeaderCode.Session);
+		if (null == sessionKey || "".equals(sessionKey) || mSessionKey == null || !mSessionKey.equals(sessionKey)) {
+			logger.error("sessionKey is null...................");
+			handleError(session, cseq, RtspCode.SessionNotFound);
+			return;
+		}
 
 		
-			for (int i=0; i < inputFormatCtx.nb_streams(); i++) {
-				AVStream in_stream = inputFormatCtx.streams(i);
-				AVStream out_stream = avformat_new_stream(outputRTMPFormatContext, in_stream.codec().codec());
-				AVCodecParameters avCodecParameters = new AVCodecParameters();
+		frameReceiver = new PacketReceiverRunnable(mTaskScheduler, cseq, sessionKey, session, announcedStreamName, liveStreamSdpDef, request.getUrl());
+		mPacketReceiverScheduledFuture = mTaskScheduler.schedule(frameReceiver, new Date());
 
-				ret = avcodec_parameters_from_context(avCodecParameters,  in_stream.codec());
-				if (ret < 0) {
-					logger.debug("Cannot get codec parameters\n");
-					return false;
-				}
-				ret  = avcodec_parameters_to_context(out_stream.codec(), avCodecParameters);
-				if (ret < 0) {
-					logger.debug("Cannot set codec parameters\n");
-					return false;
-				}
-				out_stream.codec().codec_tag(0);
-			}
-			
-
-			if ((outputRTMPFormatContext.oformat().flags() & AVFMT_GLOBALHEADER) != 0) {
-				//out_stream->codec->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
-				outputRTMPFormatContext.oformat().flags(outputRTMPFormatContext.oformat().flags() | AV_CODEC_FLAG_GLOBAL_HEADER);
-			}
-			
-			
-			if ((outputRTMPFormatContext.flags() & AVFMT_NOFILE) == 0) 
-			{
-				AVIOContext pb = new AVIOContext(null);
-				
-				URI url = new URI(request.getUrl());
-				String urlStr = "rtmp://" + url.getHost() + "/" + url.getPath();
-				logger.debug("rtmp url: " + urlStr);
-				
-				ret = avformat.avio_open(pb,  urlStr, AVIO_FLAG_WRITE);
-				outputRTMPFormatContext.pb(pb);
-				
-				logger.debug("51");
-				ret = avformat_write_header(outputRTMPFormatContext, (AVDictionary)null);
-				if (ret < 0) {
-					logger.debug("Cannot write header to rtmp\n");
-					return false;
-				}
-			}
-			
-			logger.debug("6");
-
-
-			//start frame receiver
-			frameReceiver = new FrameReceiverRunnable(inputFormatCtx, outputRTMPFormatContext);
-			frameReceiverScheduledFuture = mTaskScheduler.scheduleAtFixedRate(frameReceiver, 10);
-			
-			logger.debug("7");
-		}
-		catch (Exception e) {
-			e.printStackTrace();
-		}
-		return true;
 	}
 
-
-
-
-	private void onRequestAnnounce(IoSession session, RtspRequest request) {
+	private void onAnnounce(IoSession session, RtspRequest request) {
 		// TODO: execute scope publish security function
 
 		String contentType = request.getHeader(RtspHeaderCode.ContentType);
@@ -328,7 +226,7 @@ public class RtspConnection  extends RTMPMinaConnection {
 				handleError(session, cseq, RtspCode.DestinationUnreachable);
 				return;
 			}
-/*
+			/*
 			INPUT_TYPE type = getProviderService(scope).lookupProviderInput(scope, streamName, -2);
 			//TODO: test case try to resend the same  file and check that server returns error
 			logger.debug("input type: " + type , " live input:" + INPUT_TYPE.LIVE + " vod type:" + INPUT_TYPE.VOD);
@@ -345,12 +243,12 @@ public class RtspConnection  extends RTMPMinaConnection {
 					return;
 				}
 			}
-*/
+			 */
 			IStreamFilenameGenerator generator = (IStreamFilenameGenerator) ScopeUtils.getScopeService(scope, IStreamFilenameGenerator.class, DefaultStreamFilenameGenerator.class);
 			String fileName = generator.generateFilename(scope, announcedStreamName, ".mp4", GenerationType.RECORD);
 
 
-	//		streamFile = scope.getContext().getResource(fileName).getFile();
+			//		streamFile = scope.getContext().getResource(fileName).getFile();
 
 			liveStreamSdpDef = request.getBuffer();
 
@@ -362,7 +260,7 @@ public class RtspConnection  extends RTMPMinaConnection {
 			if (liveStreamSdpDef.indexOf("m=audio") != -1) {
 				streamCount++;
 			}
-			
+
 			/*
 			{
 				IBroadcastScope bsScope = scope.getBroadcastScope(streamName); 
@@ -370,12 +268,12 @@ public class RtspConnection  extends RTMPMinaConnection {
 				reserveStreamId(session.getId());
 				bs = (ClientBroadcastStream) newBroadcastStream(session.getId());
 				bs.setPublishedName(streamName);
-				
+
 				// set stream parameters if they exist
 				IContext context = scope.getContext();
-				
+
 				ProviderService providerService = (ProviderService) mApplicationContext.getBean(IProviderService.BEAN_NAME);
-				
+
 				// TODO handle registration failure
 				if (providerService.registerBroadcastStream(scope, streamName, bs)) {
 					bsScope = scope.getBroadcastScope(streamName); 
@@ -386,9 +284,7 @@ public class RtspConnection  extends RTMPMinaConnection {
 					}
 				}
 			}
-			*/
-			
-			
+			 */
 
 
 			serverPort = new int[streamCount][2];
@@ -419,7 +315,7 @@ public class RtspConnection  extends RTMPMinaConnection {
 	}
 
 
-	private void onRequestPlay(IoSession session, RtspRequest request) {
+	private void onPlay(IoSession session, RtspRequest request) {
 		// get cesq
 		String cseq = request.getHeader(RtspHeaderCode.CSeq);
 		if (null == cseq || "".equals(cseq)) {
@@ -443,7 +339,8 @@ public class RtspConnection  extends RTMPMinaConnection {
 
 
 		String rangeValue = request.getHeader(RtspHeaderCode.Range);
-		float durationInSeconds =  inputFormatContext.duration()/1000000;
+		long duration = frameSender.getDuration();
+		float durationInSeconds =  duration/1000000;
 
 
 		long seekTime = 0; //should in micro seconds
@@ -457,9 +354,9 @@ public class RtspConnection  extends RTMPMinaConnection {
 				if (durationInSeconds < 0) {
 					response.setHeader(RtspHeaderCode.Range, "npt=0.000-");
 				}
-				else if (seekTime <= inputFormatContext.duration()) {
+				else if (seekTime <= duration) {
 					//duration in 
-					int ret = avformat.av_seek_frame(inputFormatContext, -1, seekTime, avformat.AVSEEK_FLAG_FRAME);
+					int ret = frameSender.seek(seekTime);
 					if (ret >= 0) {
 						response.setHeader(RtspHeaderCode.Range, "npt=" + startTime + "-" + durationInSeconds);
 					}
@@ -467,13 +364,13 @@ public class RtspConnection  extends RTMPMinaConnection {
 						logger.debug("cannot seek the file to specified timestamp" + seekTime);
 						response.setCode(RtspCode.InternalServerError);
 					}
-					
+
 				}
 				else {
 					response.setCode(RtspCode.InvalidRange);
 				}
 			}
-			
+
 		} else {
 			response.setHeader(RtspHeaderCode.Range, "npt=0.000-" + durationInSeconds);
 		}
@@ -490,7 +387,7 @@ public class RtspConnection  extends RTMPMinaConnection {
 
 		if (response.getCode() == RtspCode.OK) {
 			logger.debug("starting to play");
-			mPacketSendScheduledFuture = mTaskScheduler.scheduleAtFixedRate(new FrameSenderRunnable(), 10);
+			mPacketSenderScheduledFuture = mTaskScheduler.scheduleAtFixedRate(frameSender, 10);
 			//convert seektime from micro seconds to nano seconds
 		}
 		else {
@@ -500,265 +397,16 @@ public class RtspConnection  extends RTMPMinaConnection {
 	}
 
 
-	public class FrameReceiverRunnable implements Runnable {
-
-		private AVFormatContext inputFormatCtx;
-		//private AVFormatContext outputFormatContext;
-		private AtomicBoolean isRunning = new AtomicBoolean(false);
-		private long[] lastDTS;
-		private AVFormatContext outputRTMPFormatContext;
-
-		public FrameReceiverRunnable(AVFormatContext inputFormatCtx, AVFormatContext outputRTMPFormatContext) {
-			this.inputFormatCtx = inputFormatCtx;
-		//	this.outputFormatContext = outputFormatContext;
-			this.outputRTMPFormatContext = outputRTMPFormatContext;
-			lastDTS = new long[this.inputFormatCtx.nb_streams()];
-		}
-
-		@Override
-		public void run() {
-
-			if (!isRunning.compareAndSet(false, true)) {
-				return;
-			}
-
-			AVPacket pkt = new AVPacket();
-
-			int ret = av_read_frame(inputFormatCtx, pkt);
-			if (ret<0) {
-				logger.debug("close file...");
-				closeMuxer();
-				return;
-			}
-			int packetIndex = pkt.stream_index();
-			AVStream in_stream = inputFormatCtx.streams(packetIndex);
-			//AVStream out_stream = outputFormatContext.streams(packetIndex);
-			AVStream out_stream2 = outputRTMPFormatContext.streams(packetIndex);
-
-			if (lastDTS[packetIndex] > pkt.dts()) {
-				logger.warn("dts timestamps are not in correct order last dts:"  + lastDTS[packetIndex] 
-						+ " current dts:" + pkt.dts() + " fixing problem by adding offset");
-				long newDTS = lastDTS[packetIndex] + 1;
-				if (newDTS > pkt.pts()) {
-					pkt.pts(newDTS);
-				}
-				pkt.dts(newDTS);
-			}
-			lastDTS[packetIndex] = pkt.dts();
-
-			/*
-			logger.trace("before packet index:"+ packetIndex +" packet dts:" + pkt.dts() + " paket pts:" + pkt.pts());
-
-			pkt.pts(av_rescale_q_rnd(pkt.pts(), in_stream.time_base(), out_stream.time_base(), AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
-			pkt.dts(av_rescale_q_rnd(pkt.dts(), in_stream.time_base(), out_stream.time_base(), AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
-			pkt.duration(av_rescale_q(pkt.duration(), in_stream.time_base(), out_stream.time_base()));
-			pkt.pos(-1);
-			//bs.dispatchEvent(event);
-
-			//System.out.println("packet dts 2:" + pkt.dts());
-
-			ret = av_interleaved_write_frame(outputFormatContext, pkt);
-			if (ret < 0) {
-				logger.debug("Error muxing packet\n");
-			}
-			*/
-			
-			//sending rtmp
-			pkt.pts(av_rescale_q_rnd(pkt.pts(), in_stream.time_base(), out_stream2.time_base(), AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
-			pkt.dts(av_rescale_q_rnd(pkt.dts(), in_stream.time_base(), out_stream2.time_base(), AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
-			pkt.duration(av_rescale_q(pkt.duration(), in_stream.time_base(), out_stream2.time_base()));
-			pkt.pos(-1);
-			
-			
-			ret = av_interleaved_write_frame(outputRTMPFormatContext, pkt);
-			if (ret < 0) {
-				logger.debug("Error muxing rtmp packet\n");
-			}
-			
-			av_packet_unref(pkt);
-
-			isRunning.compareAndSet(true, false);
-
-
-		}
-
-		public synchronized void closeMuxer() {
-
-			/*
-			if (outputFormatContext != null) {
-				av_write_trailer(outputFormatContext);
-				// close output 
-				if (outputFormatContext != null && ((outputFormatContext.oformat().flags() & AVFMT_NOFILE) == 0)) {
-					avio_closep(outputFormatContext.pb());
-				}
-				avformat_free_context(outputFormatContext);
-				outputFormatContext = null;
-			}
-			*/
-			
-			if (outputRTMPFormatContext != null) {
-				av_write_trailer(outputRTMPFormatContext);
-				/* close output */
-				if (outputRTMPFormatContext != null && ((outputRTMPFormatContext.oformat().flags() & AVFMT_NOFILE) == 0)) {
-					avio_closep(outputRTMPFormatContext.pb());
-				}
-				avformat_free_context(outputRTMPFormatContext);
-				outputRTMPFormatContext = null;
-			}
-
-			// Close the video file
-			if (inputFormatContext == null) {
-				avformat_close_input(inputFormatCtx);
-				inputFormatContext = null;
-			}
-
-			if (sdpFile != null && sdpFile.exists()) {
-				sdpFile.delete();
-				sdpFile = null;
-			}
-		}
-
-	}
-
-
-	public class FrameSenderRunnable implements Runnable {
-
-		AVPacket pkt = new AVPacket();
-		int packetIndex = 0;
-
-		long packetSentTime = 0;
-		long firstPacketSentTime = 0;
-
-		long startTime = 0;
-		boolean bufferFree = true;
-		boolean endOfFile = false;
-		private AtomicBoolean isRunning = new AtomicBoolean(false);
-
-		@Override
-		public void run() {
-			try {
-				if (!isRunning.compareAndSet(false, true)) {
-					return;
-				}
-
-				AVStream in_stream, out_stream;
-
-				if (bufferFree) 
-				{
-					int ret = av_read_frame(inputFormatContext, pkt);
-					if (ret < 0) {
-						closeMuxer(true);
-						return;
-					}
-					packetIndex = pkt.stream_index();
-					in_stream  = inputFormatContext.streams(packetIndex);
-					out_stream = outputFormatContext[packetIndex].streams(0);
-
-					/* copy packet */
-					AVRational avRational = new AVRational();
-					avRational.num(1);
-					avRational.den(AV_TIME_BASE);
-					packetSentTime = av_rescale_q(pkt.dts(), in_stream.time_base(), avRational); // + pkt.duration(); 
-					if (firstPacketSentTime == 0) {
-						firstPacketSentTime = packetSentTime;
-					}
+	
 
 
 
 
-					//pkt.dts() + pkt.duration();
-					pkt.pts(av_rescale_q_rnd(pkt.pts(), in_stream.time_base(), out_stream.time_base(), AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
-					pkt.dts(av_rescale_q_rnd(pkt.dts(), in_stream.time_base(), out_stream.time_base(), AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
-					pkt.duration(av_rescale_q(pkt.duration(), in_stream.time_base(), out_stream.time_base()));
-					pkt.pos(-1);
-
-					logger.debug("packet index:"+ pkt.stream_index() + " packet.pts:" + pkt.dts() + " packet.pts:" + pkt.pts()  
-					+" in_stream time base:"+ in_stream.time_base().num() +"/" + in_stream.time_base().den() 
-					+" out_stream time base:"+ out_stream.time_base().num() +"/" + out_stream.time_base().den() 
-
-					+ " packet duration: " + pkt.duration());
-
-					//stream index is always zero because rtp can contain one stream
-					pkt.stream_index(0);
-
-				}
 
 
-				if (startTime == 0) {
-					startTime = System.currentTimeMillis(); 
-					//logger.debug("start time :" + startTime + " offset:" + offset);
-				}
-
-				long timeDiff = (System.currentTimeMillis() - startTime) * 1000; // convert milli seconds to micro seconds
-
-				//long time = (System.nanoTime() - startTime + offset);
-
-				//logger.debug("packet sent time:" + packetSentTime + " time:" + time);
-
-				if (packetSentTime <= (firstPacketSentTime + timeDiff)) 
-				{
-
-					int ret = av_write_frame(outputFormatContext[packetIndex], pkt);
-					if (ret < 0) {
-						System.out.println("Error muxing packet\n");
-					}
-					av_packet_unref(pkt);
-					bufferFree = true;
-				}
-				else {
-					//logger.debug("waiting to send");
-					bufferFree = false;
-				}	
-			}
-			catch (Exception e) {
-				e.printStackTrace();
-			}finally {
-				isRunning.compareAndSet(true, false);
-			}
-		}
-
-	}
 
 
-	private void closeMuxer(boolean finishProcess) {
-
-		synchronized (this) {
-			//this is end of file or a problem
-			//close the muxers
-			if (mPacketSendScheduledFuture != null && !mPacketSendScheduledFuture.isDone()) {
-				mPacketSendScheduledFuture.cancel(false);
-				mPacketSendScheduledFuture = null;
-			}
-
-			if (outputFormatContext != null) {
-				for (AVFormatContext avFormatContext : outputFormatContext) {
-					if (avFormatContext == null) {
-						continue;
-					}
-					//if (finishProcess) 
-					{
-						av_write_trailer(avFormatContext);
-					}
-					/* close output */
-					if (avFormatContext != null && ((avFormatContext.oformat().flags() & AVFMT_NOFILE) == 0)) {
-
-						avio_closep(avFormatContext.pb());
-					}
-					avformat_free_context(avFormatContext);
-					avFormatContext = null;
-				}
-				outputFormatContext = null;
-			}
-			if (inputFormatContext != null && finishProcess) {
-				avformat_close_input(inputFormatContext);
-				inputFormatContext = null;
-			}
-		}
-
-	}
-
-
-	private void onRequestOptions(IoSession session, RtspRequest request) {
+	private void onOptions(IoSession session, RtspRequest request) {
 		RtspResponse response = new RtspResponse();
 		response.setHeader(RtspHeaderCode.CSeq, request.getHeader(RtspHeaderCode.CSeq));
 		response.setHeader(RtspHeaderCode.Public, "DESCRIBE, SETUP, TEARDOWN, PLAY, PAUSE, ANNOUNCE");
@@ -768,7 +416,7 @@ public class RtspConnection  extends RTMPMinaConnection {
 	}
 
 
-	private void onRequestDescribe(IoSession session, RtspRequest request) {
+	private void onDescribe(IoSession session, RtspRequest request) {
 		//TODO: call context playback security here
 		RtspResponse response = new RtspResponse();
 		String cseq = request.getHeader(RtspHeaderCode.CSeq);
@@ -779,13 +427,13 @@ public class RtspConnection  extends RTMPMinaConnection {
 		URI url;
 		try {
 			url = new URI(request.getUrl());
-			
+
 			String rtmpUrl = "rtmp://" + url.getHost() + "/" + url.getPath();
 
 			logger.debug("rtmp url is: " + rtmpUrl);
 			logger.debug("on request describe host: " + url.getHost() + " path:" + url.getPath());
 
-			
+
 			String streamName = getStreamName(url.getPath());
 			String app = getAppName(url.getPath());
 
@@ -793,12 +441,12 @@ public class RtspConnection  extends RTMPMinaConnection {
 
 			IScope scope = getScope(url, app);
 
-		//	IStreamService streamService = (IStreamService) ScopeUtils.getScopeService(scope, IStreamService.class, StreamService.class);
+			//	IStreamService streamService = (IStreamService) ScopeUtils.getScopeService(scope, IStreamService.class, StreamService.class);
 
 			IProviderService providerService = getProviderService(scope);
 
 
-	//		streamFile = providerService.getVODProviderFile(scope, streamName);
+			//		streamFile = providerService.getVODProviderFile(scope, streamName);
 
 			INPUT_TYPE input = providerService.lookupProviderInput(scope, streamName, -2);
 			logger.debug("input type is " + input + " live wait is:" + INPUT_TYPE.LIVE_WAIT);
@@ -810,7 +458,7 @@ public class RtspConnection  extends RTMPMinaConnection {
 				response.setHeader(RtspHeaderCode.Server, "RtspServer");
 
 				//TODO: do this job with a task in an executor
-				inputFormatContext = new AVFormatContext(null);
+				AVFormatContext inputFormatContext = new AVFormatContext(null);
 				int ret = avformat_open_input(inputFormatContext, rtmpUrl, null, null);
 				if (ret == 0) {
 					byte[] sdpData = new byte[16384];
@@ -824,6 +472,7 @@ public class RtspConnection  extends RTMPMinaConnection {
 							sdp.append(new String(sdpData));
 							response.setHeader(RtspHeaderCode.ContentLength, String.valueOf(sdp.length()));
 							response.setBuffer(sdp);
+							frameSender = new PacketSenderRunnable(inputFormatContext);
 						}
 						else {
 							response.setCode(RtspCode.InternalServerError);
@@ -892,7 +541,7 @@ public class RtspConnection  extends RTMPMinaConnection {
 	}
 
 
-	private void onRequestSetup(IoSession session, RtspRequest request) 
+	private void onSetup(IoSession session, RtspRequest request) 
 	{
 		RtspResponse response = new RtspResponse();
 		// get cesq
@@ -920,12 +569,12 @@ public class RtspConnection  extends RTMPMinaConnection {
 			return;
 		}
 		clientPort[streamId] = rtspTransport.getClientPort();
-		String mode = rtspTransport.getMode();
+		mode = rtspTransport.getMode();
 
 		if (mode != null && mode.equals("record")) {
 			//TODO check the url and do this operation according to the control parameter in the sdp
 
-			int portNo = portNum.getAndAdd(2);
+			int portNo = PORT_NUMBER.getAndAdd(2);
 			serverPort[streamId][0] = portNo;
 			serverPort[streamId][1] = portNo + 1;
 
@@ -947,14 +596,6 @@ public class RtspConnection  extends RTMPMinaConnection {
 		else {
 			//then assume that it is a play request
 
-			/*
-			if (streamFile == null) {
-				handleError(session, cseq, RtspCode.BadRequest);
-				return;
-			}
-			*/
-
-
 			SocketAddress remote = session.getRemoteAddress();
 			if (remote instanceof InetSocketAddress) {
 				remoteAddress = ((InetSocketAddress) remote).getAddress().getHostAddress();
@@ -963,7 +604,7 @@ public class RtspConnection  extends RTMPMinaConnection {
 			}
 
 
-			if (prepare_output_context(streamId, remoteAddress, clientPort[streamId], serverPort[streamId])) {
+			if (frameSender.prepare_output_context(streamId, remoteAddress, clientPort[streamId], serverPort[streamId])) {
 				response.setCode(RtspCode.OK);
 				response.setHeader(RtspHeaderCode.CSeq, cseq);
 				response.setHeader(RtspHeaderCode.Session, mSessionKey);
@@ -972,10 +613,6 @@ public class RtspConnection  extends RTMPMinaConnection {
 				rtspTransport.setLowerTransport(LowerTransport.UDP);
 
 				response.setHeader(RtspHeaderCode.Transport, rtspTransport.toString());
-
-				//avformat_write_header(outputFormatContext[streamId], (PointerPointer)null);
-
-				logger.debug("out_stream time base after header:" + outputFormatContext[streamId].streams(0).time_base().num() +"/" + outputFormatContext[streamId].streams(0).time_base().den());
 
 			}
 			else {
@@ -987,85 +624,10 @@ public class RtspConnection  extends RTMPMinaConnection {
 	}
 
 
-	private boolean prepare_output_context(int streamId, String remoteAddress, int[] clientPort, int[] serverPort) {
-		if (outputFormatContext == null) {
-			outputFormatContext = new AVFormatContext[inputFormatContext.nb_streams()];
-		}
-		outputFormatContext[streamId] = new AVFormatContext(null);
-
-		int ret = avformat_alloc_output_context2(outputFormatContext[streamId], null, "rtp", null);
-		if (ret < 0) {
-			logger.debug("Could not create output context\n");
-			return false;
-		}
-		AVOutputFormat ofmt = outputFormatContext[streamId].oformat();
-		AVStream in_stream = inputFormatContext.streams(streamId);
-		AVStream out_stream = avformat_new_stream(outputFormatContext[streamId], in_stream.codec().codec());
-		AVCodecParameters avCodecParameters = new AVCodecParameters();
-
-		avcodec_parameters_from_context(avCodecParameters,  in_stream.codec());
-		ret  = avcodec_parameters_to_context(out_stream.codec(), avCodecParameters);
-
-		logger.debug("out_stream time base:" + out_stream.time_base().num() +"/" + out_stream.time_base().den());
-
-		if (ret<0){
-			logger.debug("Failed to copy context from input to output stream codec context\n");
-			return false;
-		}
-
-		out_stream.codec().codec_tag(0);
-		if ((outputFormatContext[streamId].oformat().flags() & AVFMT_GLOBALHEADER) != 0) {
-			//out_stream->codec->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
-			outputFormatContext[streamId].oformat().flags(outputFormatContext[streamId].oformat().flags() | AV_CODEC_FLAG_GLOBAL_HEADER);
-		}
-
-		if ((ofmt.flags() & AVFMT_NOFILE) == 0) {
-			AVIOContext pb = new AVIOContext(null);
-
-			String rtpUrl = null;
-			if (serverPort[0] == 0) 
-			{
-				while (portNum.get() <= UDP_PORT_MAX) 
-				{
-					serverPort[0] = portNum.getAndAdd(2);
-					// need to +2 because rtp port must be even and rtcp port must be odd
-					//rtcp port is automatically set to rtp port + 1
-
-					rtpUrl = "rtp://"+ remoteAddress +":" + clientPort[0] + "?localrtpport=" + serverPort[0]; // + "&localrtcpport=" + rtcpLocalPort; // + "&connect=1";
-
-					ret = avformat.avio_open(pb, rtpUrl, AVIO_FLAG_WRITE);
-
-					if (ret < 0) {
-						logger.debug("Could not open url " + rtpUrl);
-						continue;
-					}
-					else {
-						logger.debug("Opened url " + rtpUrl);
-						outputFormatContext[streamId].pb(pb);
-						logger.debug("out_stream time base 1:" + out_stream.time_base().num() +"/" + out_stream.time_base().den());
-						break;
-					}
-				}
-				if (portNum.get() >= UDP_PORT_MAX) {
-					portNum.set(UDP_PORT_MIN);
-				}
-			}
-			else {
-				rtpUrl = "rtp://"+ remoteAddress +":" + clientPort[0] + "?localrtpport=" + serverPort[0]; // + "&localrtcpport=" + rtcpLocalPort; // + "&connect=1";
-				ret = avformat.avio_open(pb, rtpUrl, AVIO_FLAG_WRITE);
-				if (ret < 0) {
-					logger.debug("Could not open url returning " + rtpUrl);
-					return false;
-				}
-				outputFormatContext[streamId].pb(pb);
-			}
-		}
-		avformat_write_header(outputFormatContext[streamId], (PointerPointer)null);
-		return true;
-	}
 
 
-	private void onRequestPause(IoSession session, RtspRequest request) {
+
+	private void onPause(IoSession session, RtspRequest request) {
 		// get cesq
 		String cseq = request.getHeader(RtspHeaderCode.CSeq);
 		if (null == cseq || "".equals(cseq)) {
@@ -1090,10 +652,12 @@ public class RtspConnection  extends RTMPMinaConnection {
 			response.setHeader(RtspHeaderCode.Session, sessionKey);
 			response.setHeader(RtspHeaderCode.Scale, "1.00");
 
-			closeMuxer(false);
 
-			for (int i = 0; i < inputFormatContext.nb_streams(); i++) {
-				if (!prepare_output_context(i, remoteAddress, clientPort[i], serverPort[i])) {
+			frameSender.closeMuxer(false);
+			mPacketSenderScheduledFuture.cancel(true);
+			int streamCount = frameSender.getStreamCount();
+			for (int i = 0; i < streamCount; i++) {
+				if (!frameSender.prepare_output_context(i, remoteAddress, clientPort[i], serverPort[i])) {
 					logger.debug("prepare output context failed...");
 				}
 				else {
@@ -1118,7 +682,7 @@ public class RtspConnection  extends RTMPMinaConnection {
 		}
 	}
 
-	private void onRequestGP(IoSession session, RtspRequest request) {
+	private void onGP(IoSession session, RtspRequest request) {
 		// get cesq
 		String cseq = request.getHeader(RtspHeaderCode.CSeq);
 		if (null == cseq || "".equals(cseq)) {
@@ -1175,7 +739,7 @@ public class RtspConnection  extends RTMPMinaConnection {
 	}
 
 
-	private void onRequestTeardown(IoSession session, RtspRequest request) {
+	private void onTeardown(IoSession session, RtspRequest request) {
 
 		// get cesq
 		String cseq = request.getHeader(RtspHeaderCode.CSeq);
@@ -1187,10 +751,28 @@ public class RtspConnection  extends RTMPMinaConnection {
 
 		// get sessionKey
 		String sessionKey = request.getHeader(RtspHeaderCode.Session);
-		if (null == sessionKey || "".equals(sessionKey) || mSessionKey == null || !mSessionKey.equals(sessionKey)) {
-			logger.error("sessionKey is null...................");
-			if (frameReceiverScheduledFuture != null && frameReceiverScheduledFuture.isDone() == false) {
-				frameReceiverScheduledFuture.cancel(true);
+		if (null == sessionKey || "".equals(sessionKey) || mSessionKey == null || !mSessionKey.equals(sessionKey))
+		{
+			handleError(session, "0", RtspCode.SessionNotFound);
+			return;
+		}
+
+
+		
+		RtspResponse response = new RtspResponse();
+		response.setCode(RtspCode.OK);
+		response.setHeader(RtspHeaderCode.CSeq, cseq);
+		response.setHeader(RtspHeaderCode.Date, DateUtil.getGmtDate());
+		response.setHeader(RtspHeaderCode.Session, sessionKey);
+		session.write(response);
+		logger.debug("tear down called");
+		close();
+		
+		/*
+		if (mode != null && mode.equals("record")) 
+		{
+			if (mPacketReceiverScheduledFuture != null && mPacketReceiverScheduledFuture.isDone() == false) {
+				mPacketReceiverScheduledFuture.cancel(false);
 				if (frameReceiver != null) {
 					logger.debug("closing framereceiver muxer");
 					frameReceiver.closeMuxer();
@@ -1198,7 +780,6 @@ public class RtspConnection  extends RTMPMinaConnection {
 				RtspResponse response = new RtspResponse();
 				response.setHeader(RtspHeaderCode.CSeq, cseq);
 				session.write(response);
-				RtspConnectionManager.getInstance().removeConnection(sessionId);
 			}
 			else {
 				handleError(session, cseq, RtspCode.SessionNotFound);
@@ -1206,9 +787,7 @@ public class RtspConnection  extends RTMPMinaConnection {
 
 		}
 		else {
-			close();
 
-			RtspConnectionManager.getInstance().removeConnection(sessionId);
 
 			RtspResponse response = new RtspResponse();
 			response.setCode(RtspCode.OK);
@@ -1218,6 +797,7 @@ public class RtspConnection  extends RTMPMinaConnection {
 			session.write(response);
 
 		}
+		 */
 	}
 
 	public ThreadPoolTaskScheduler getScheduler() {
@@ -1238,7 +818,28 @@ public class RtspConnection  extends RTMPMinaConnection {
 	}
 
 	public void close() {
-		closeMuxer(true);
+
+		if (frameSender != null) {
+			frameSender.closeMuxer(true);
+			frameSender = null;
+		}
+		
+		if (mPacketSenderScheduledFuture != null && mPacketSenderScheduledFuture.isDone() == false) {
+			logger.debug("cancelling packet sender scheduledFuture");
+			mPacketSenderScheduledFuture.cancel(true);
+		}
+	
+
+		if (frameReceiver != null) {
+			frameReceiver.closeMuxer();
+			frameReceiver = null;
+		}
+
+		if (mPacketReceiverScheduledFuture != null && mPacketReceiverScheduledFuture.isDone() == false) {
+			logger.debug("cancelling packet receiver scheduledFuture");
+			mPacketReceiverScheduledFuture.cancel(true);
+		}
+
 	}
 
 

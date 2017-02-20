@@ -96,37 +96,36 @@ public class RtspMinaIoHandler extends IoHandlerAdapter {
 
 	@Override
 	public void messageSent(IoSession session, Object message) throws Exception {
-		// TODO Auto-generated method stub
 		super.messageSent(session, message);
 		logger.debug("sent message: "  + message.toString());
 	}
-	
+
 	@Override
 	public void sessionCreated(IoSession session) throws Exception {
 		RtspConnection conn = (RtspConnection) RtspConnectionManager.getInstance().createConnection(RtspConnection.class);
 		// add session to the connection
-        conn.setIoSession(session);
-        conn.setSession(session);
-        conn.setServer(server);
-        // add the handler
-        //conn.setHandler();
-        // add the connections session id for look up using the connection manager
-        session.setAttribute(RTMPConnection.RTMP_SESSION_ID, conn.getSessionId());
-        logger.debug("connection session id:" + conn.getSessionId());
+		conn.setIoSession(session);
+		conn.setSession(session);
+		conn.setServer(server);
+		// add the handler
+		//conn.setHandler();
+		// add the connections session id for look up using the connection manager
+		session.setAttribute(RTMPConnection.RTMP_SESSION_ID, conn.getSessionId());
+		logger.debug("connection session id:" + conn.getSessionId());
 	}
-	
-	
+
+
 	@Override
 	public void sessionOpened(IoSession session) throws Exception {
 		super.sessionOpened(session);
 		logger.debug("session opened with id " + session.getId());
 		//RtspConnection rtspConnection = RtspConnectionManager.getInstance().createConnection(RtspConnection.class);
 		//ogger.debug("rtsp connection is created " + rtspConnection);
-		
+
 		//rtspConnection.setSessionId(session.getId());
 		//rtspConnection.setSession(session);
 	}
-	
+
 	@Override
 	public void sessionClosed(IoSession session) throws Exception {
 		super.sessionClosed(session);
@@ -136,13 +135,13 @@ public class RtspMinaIoHandler extends IoHandlerAdapter {
 		session.closeNow();
 		rtspConnection.close();
 	}
-	
+
 	public void exceptionCaught(IoSession session, Throwable cause) {
 		logger.error(cause.getMessage(), cause);
 		handleError(session, "0", RtspCode.InternalServerError);
 		// session.close(true);
 	}
-	
+
 	private void handleError(IoSession session, String cseq, RtspCode code) {
 		RtspResponse response = new RtspResponse();
 		response.setCode(code);
@@ -156,8 +155,12 @@ public class RtspMinaIoHandler extends IoHandlerAdapter {
 		logger.debug("message received from sessiong with id " + session.getId());
 		String sessionId = (String) session.getAttribute(RTMPConnection.RTMP_SESSION_ID);
 		logger.debug("connection session id: " + sessionId);
-		
-		RtspConnectionManager.getInstance().getConnectionBySessionId(sessionId).handleMessage(session, message);
+		logger.debug("RTSP Server Receive Message: \n{}", message);
+
+		RtspConnection rtspConnection = RtspConnectionManager.getInstance().getConnectionBySessionId(sessionId);
+		if (rtspConnection != null) {
+			rtspConnection.handleMessage(session, message);
+		}
 	}
 
 

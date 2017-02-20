@@ -58,6 +58,10 @@ public class Mp4MuxerTest extends AbstractJUnit4SpringContextTests{
 		System.setProperty("red5.root", ".");
 	}
 
+	//TODO: rtsp ile yayın yapılacak, rtmp ile hls ile ve rtsp ile izlenecek
+	//TODO: rtsp yayını bitince mp4 dosyası kontrol edilecek
+	//TODO: desteklenmeyen bir codec ile rtsp datası gelince muxer bunu kontrol edecek
+		
 
 	@BeforeClass
 	public static void beforeClass() {
@@ -172,7 +176,7 @@ public class Mp4MuxerTest extends AbstractJUnit4SpringContextTests{
 	@Test
 	public void testMuxingSimultaneously()  {
 		
-		MuxAdaptor muxAdaptor = new MuxAdaptor();
+		MuxAdaptor muxAdaptor = new MuxAdaptor(null);
 		muxAdaptor.addMuxer(new Mp4Muxer());
 		muxAdaptor.addMuxer(new HLSMuxer());
 
@@ -237,7 +241,7 @@ public class Mp4MuxerTest extends AbstractJUnit4SpringContextTests{
 	@Test
 	public void testMp4Muxing()  {
 
-		MuxAdaptor muxAdaptor = new MuxAdaptor();
+		MuxAdaptor muxAdaptor = new MuxAdaptor(null);
 		muxAdaptor.addMuxer(new Mp4Muxer());
 
 		if (appScope == null) {
@@ -308,7 +312,7 @@ public class Mp4MuxerTest extends AbstractJUnit4SpringContextTests{
 	@Test
 	public void testHLSMuxing()  {
 
-		MuxAdaptor muxAdaptor = new MuxAdaptor();
+		MuxAdaptor muxAdaptor = new MuxAdaptor(null);
 		muxAdaptor.addMuxer(new HLSMuxer());
 
 		if (appScope == null) {
