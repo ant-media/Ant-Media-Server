@@ -191,6 +191,8 @@ public class PacketReceiverRunnable implements Runnable {
 
 		return true;
 	}
+	
+	//TODO: check that if process interrupts soomehow, there is no memory leakage
 
 	@Override
 	public void run() {

@@ -75,7 +75,51 @@ public class MuxingTest {
 			e.printStackTrace();
 		}
 	}
+	
+	//TODO: check that if there is memory leak, if muxing is stopped by somehow
 
+	
+	@Test
+	public void testSupportVideoCodecUnSupportedAudioCodec() {
+		String streamName = "bug_test2";
+
+
+		//make sure that ffmpeg is installed and in path
+		Process rtmpSendingProcess = execute(FULL_FFMPEG_BIN_PATH + "/ffmpeg -re -i src/test/resources/test.flv -acodec pcm_alaw -vcodec copy -f flv rtmp://localhost/vod/" + streamName);
+
+		try {
+			Thread.sleep(10000);
+			
+			//TODO: check that when live stream is requested with rtsp, server should not be shutdown
+
+			//stop rtmp streaming 
+			rtmpSendingProcess.destroy();
+			
+			Thread.sleep(2000);
+
+			boolean testResult = testFile("rtmp://localhost/vod/" + streamName);
+			assertTrue(testResult);
+
+			//check that mp4 is not created
+			testResult = testFile("http://localhost:5080/vod/streams/" + streamName + ".mp4");
+			assertTrue(testResult);
+			
+			//check that stream is not created by hls muxer
+			testResult = testFile("http://localhost:5080/vod/streams/" + streamName + ".m3u8");
+			assertTrue(testResult);
+			
+			//TODO: check that when stream is requested with rtsp, server should not be shutdown
+			testResult = testFile("rtsp://127.0.0.1:5554/vod/" + streamName);
+			assertTrue(testResult);
+
+		}
+		catch (Exception e) {
+			fail(e.getMessage());
+			e.printStackTrace();
+		}
+
+	}
+	
 
 	@Test
 	public void testUnsupportedCodecForMp4() {
@@ -104,11 +148,12 @@ public class MuxingTest {
 
 			//check that mp4 is not created
 			testResult = testFile("http://localhost:5080/vod/streams/" + streamName + ".mp4");
-			assertFalse(testResult);
+			assertTrue(testResult);
 			
 			//TODO: check that when stream is requested with rtsp, server should not be shutdown
 			testResult = testFile("rtsp://127.0.0.1:5554/vod/" + streamName);
-			assertTrue(testResult);
+			//assert false because rtp does not support flv1 
+			assertFalse(testResult);
 
 		}
 		catch (Exception e) {
@@ -228,7 +273,7 @@ public class MuxingTest {
 		int streamCount = inputFormatContext.nb_streams();
 
 		for (int i = 0; i < streamCount; i++) {
-			AVCodecContext codecContext = inputFormatContext.streams(0).codec();
+			AVCodecContext codecContext = inputFormatContext.streams(i).codec();
 			if (codecContext.codec_type() ==  AVMEDIA_TYPE_VIDEO) {
 				assertTrue(codecContext.width() != 0);
 				assertTrue(codecContext.height() != 0);
