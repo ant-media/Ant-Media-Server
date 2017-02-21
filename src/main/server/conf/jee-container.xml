@@ -88,7 +88,6 @@
                             <entry key="sslProtocol" value="TLS" />
                             <entry key="keystoreFile" value="${rtmps.keystorefile}" />
                             <entry key="keystorePass" value="${rtmps.keystorepass}" />
-                            <entry key="keystoreType" value="JKS" />
                             <entry key="truststoreFile" value="${rtmps.truststorefile}" />
                             <entry key="truststorePass" value="${rtmps.truststorepass}" />
                             <entry key="clientAuth" value="false" />
