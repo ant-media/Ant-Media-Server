@@ -397,15 +397,6 @@ public class RtspConnection  extends RTMPMinaConnection {
 	}
 
 
-	
-
-
-
-
-
-
-
-
 	private void onOptions(IoSession session, RtspRequest request) {
 		RtspResponse response = new RtspResponse();
 		response.setHeader(RtspHeaderCode.CSeq, request.getHeader(RtspHeaderCode.CSeq));

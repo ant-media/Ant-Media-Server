@@ -110,6 +110,12 @@ public class PacketReceiverRunnable implements Runnable {
 			
 			AVInputFormat sdpFormat = av_find_input_format("sdp");
 
+
+			if (avformat_open_input(inputFormatCtx, sdpFile.getAbsolutePath(), sdpFormat, options) != 0) {
+				logger.debug("Could not open rtp for demuxing");
+				return false;
+			}
+			
 			mTaskScheduler.schedule(new Runnable() {
 				@Override
 				public void run() {
@@ -122,12 +128,6 @@ public class PacketReceiverRunnable implements Runnable {
 
 				}
 			}, new Date());
-
-
-			if (avformat_open_input(inputFormatCtx, sdpFile.getAbsolutePath(), sdpFormat, options) != 0) {
-				logger.debug("Could not open rtp for demuxing");
-				return false;
-			}
 
 			if (avformat_find_stream_info(inputFormatCtx, (PointerPointer)null) < 0) {
 				logger.debug("Could not get stream info");
@@ -219,64 +219,7 @@ public class PacketReceiverRunnable implements Runnable {
 
 			//logger.warn("timestamps pts: " +  pkt.pts() + " dts:" + pkt.dts() + " duration:" + pkt.duration());
 			
-			/*
-			in_stream.codec().max_b_frames();
-	
-			
-			int delay = in_stream.codecpar().video_delay();
-			if (delay == 0 && in_stream.codec().max_b_frames() > 0) {
-				delay = 1;
-			}
-			
-
-			if (pkt.pts() == avutil.AV_NOPTS_VALUE || pkt.dts() == avutil.AV_NOPTS_VALUE) {
-				logger.warn("unset timestamps pts: " +  pkt.pts() + " dts:" + pkt.dts() + " duration:" + pkt.duration() + " stream index: " + pkt.stream_index());
-				if (pkt.dts() != avutil.AV_NOPTS_VALUE && delay == 0) {
-					pkt.pts(pkt.dts());
-				}
-			}
-			
-//			 if ((pkt.pts() == 0 || pkt.pts() == avutil.AV_NOPTS_VALUE) && pkt.dts() == avutil.AV_NOPTS_VALUE && delay == 0) {
-//			        pkt.pts(in_stream.priv_pts().)
-//			        pkt->dts() =
-////			        pkt->pts= st->cur_dts;
-//			            pkt->pts = st->priv_pts->val;
-//			    }
-			
-			
-		    //calculate dts from pts
-		    if (pkt.pts() != avutil.AV_NOPTS_VALUE && pkt.dts() == avutil.AV_NOPTS_VALUE && 
-		    		delay <= avformat.AVStream.MAX_REORDER_DELAY) {
-		    	in_stream.pts_buffer(0, pkt.pts());  // st->pts_buffer[0] = pkt->pts;
-		    	
-		        for (int i = 1; i < delay + 1 && in_stream.pts_buffer(i) == avutil.AV_NOPTS_VALUE; i++)
-		            in_stream.pts_buffer(i, pkt.pts() + (i - delay - 1) * pkt.duration());  //st->pts_buffer[i] = pkt->pts + (i - delay - 1) * pkt->duration;
-		        for (int i = 0; i<delay && in_stream.pts_buffer(i) > in_stream.pts_buffer(i + 1); i++) {
-		        	long pts_buffer = in_stream.pts_buffer(i);
-		        	in_stream.pts_buffer(i, in_stream.pts_buffer(i+1));
-		        	in_stream.pts_buffer(i+1, pts_buffer);
-		        	//FFSWAP(int64_t, st->pts_buffer[i], st->pts_buffer[i + 1]);
-		        }
-		            
-
-		        pkt.dts(in_stream.pts_buffer(0));
-		    }
-
-		   
-			if (lastDTS[packetIndex] >= pkt.dts()) {
-				logger.warn("dts timestamps are not in correct order last dts:"  + lastDTS[packetIndex] 
-						+ " current dts:" + pkt.dts() + " fixing problem by adding offset");
-
-				pkt.dts(lastDTS[packetIndex] + 1);
-			}
-
-			lastDTS[packetIndex] = pkt.dts();
-			if (pkt.dts() > pkt.pts()) {
-				pkt.pts(pkt.dts());
-			}
-			*/
-			
-			 logger.warn("pkt.pts: " + pkt.pts() + " pkt.dts:" + pkt.dts() + " stream index:" + pkt.stream_index());
+			// logger.warn("pkt.pts: " + pkt.pts() + " pkt.dts:" + pkt.dts() + " stream index:" + pkt.stream_index());
 
 
 			//sending rtmp

@@ -48,6 +48,8 @@ public class MuxingTest {
 
 			//stop rtmp streaming 
 			rtmpSendingProcess.destroy();
+			
+			Thread.sleep(5000);
 
 			boolean testResult = testFile("rtmp://localhost/vod/" + streamName);
 			assertTrue(testResult);
@@ -138,6 +140,8 @@ public class MuxingTest {
 
 			//stop rtmp streaming 
 			rtmpSendingProcess.destroy();
+			
+			Thread.sleep(5000);
 
 			boolean testResult = testFile("rtmp://localhost/vod/" + streamName);
 			assertTrue(testResult);
