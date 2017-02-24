@@ -21,6 +21,7 @@ import static org.bytedeco.javacpp.avutil.AV_ROUND_PASS_MINMAX;
 import static org.bytedeco.javacpp.avutil.AV_TIME_BASE;
 import static org.bytedeco.javacpp.avutil.av_rescale_q;
 import static org.bytedeco.javacpp.avutil.av_rescale_q_rnd;
+import static org.bytedeco.javacpp.avcodec.*;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -52,6 +53,8 @@ public class PacketSenderRunnable implements Runnable {
 	private AVFormatContext inputFormatContext;
 	private AVFormatContext[] outputFormatContext;
 	private Logger logger = LoggerFactory.getLogger(PacketSenderRunnable.class);
+	private boolean closeRequest = false;
+	private boolean finish;
 	
 	
 
@@ -83,10 +86,12 @@ public class PacketSenderRunnable implements Runnable {
 		AVOutputFormat ofmt = outputFormatContext[streamId].oformat();
 		AVStream in_stream = inputFormatContext.streams(streamId);
 		AVStream out_stream = avformat_new_stream(outputFormatContext[streamId], in_stream.codec().codec());
-		AVCodecParameters avCodecParameters = new AVCodecParameters();
+		//AVCodecParameters avCodecParameters = new AVCodecParameters();
 
-		avcodec_parameters_from_context(avCodecParameters,  in_stream.codec());
-		ret  = avcodec_parameters_to_context(out_stream.codec(), avCodecParameters);
+		//avcodec_parameters_from_context(avCodecParameters,  in_stream.codec());
+		//ret  = avcodec_parameters_to_context(out_stream.codec(), avCodecParameters);
+		
+		ret = avcodec_parameters_copy(out_stream.codecpar(), in_stream.codecpar());
 
 		logger.debug("out_stream time base:" + out_stream.time_base().num() +"/" + out_stream.time_base().den());
 
@@ -98,7 +103,7 @@ public class PacketSenderRunnable implements Runnable {
 		out_stream.codec().codec_tag(0);
 		if ((outputFormatContext[streamId].oformat().flags() & AVFMT_GLOBALHEADER) != 0) {
 			//out_stream->codec->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
-			outputFormatContext[streamId].oformat().flags(outputFormatContext[streamId].oformat().flags() | AV_CODEC_FLAG_GLOBAL_HEADER);
+			out_stream.codec().flags(out_stream.codec().flags() | AV_CODEC_FLAG_GLOBAL_HEADER);
 		}
 
 		if ((ofmt.flags() & AVFMT_NOFILE) == 0) {
@@ -219,7 +224,12 @@ public class PacketSenderRunnable implements Runnable {
 			else {
 				//logger.debug("waiting to send");
 				bufferFree = false;
-			}	
+			}
+			
+			if (closeRequest) {
+				closeInternal(finish);
+				closeRequest = false;
+			}
 		}
 		catch (Exception e) {
 			e.printStackTrace();
@@ -227,11 +237,9 @@ public class PacketSenderRunnable implements Runnable {
 			isRunning.compareAndSet(true, false);
 		}
 	}
-
-	public synchronized void closeMuxer(boolean finishProcess) {
-
-		//this is end of file or a problem
-		//close the muxers
+	
+	public void closeInternal(boolean finishProcess) 
+	{
 		if (outputFormatContext != null) {
 			for (AVFormatContext avFormatContext : outputFormatContext) {
 				if (avFormatContext == null) {
@@ -255,6 +263,15 @@ public class PacketSenderRunnable implements Runnable {
 			avformat_close_input(inputFormatContext);
 			inputFormatContext = null;
 		}
+	}
+
+	public synchronized void closeMuxer(boolean finishProcess) {
+
+		closeRequest  = true;
+		finish = finishProcess;
+		//this is end of file or a problem
+		//close the muxers
+		
 	}
 
 

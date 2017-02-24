@@ -2,6 +2,7 @@ package com.antstreaming.rtsp;
 
 import static org.bytedeco.javacpp.avcodec.AV_CODEC_FLAG_GLOBAL_HEADER;
 import static org.bytedeco.javacpp.avcodec.av_packet_unref;
+import static org.bytedeco.javacpp.avcodec.avcodec_parameters_copy;
 import static org.bytedeco.javacpp.avcodec.avcodec_parameters_from_context;
 import static org.bytedeco.javacpp.avcodec.avcodec_parameters_to_context;
 import static org.bytedeco.javacpp.avformat.AVFMT_GLOBALHEADER;
@@ -96,17 +97,6 @@ public class PacketReceiverRunnable implements Runnable {
 				logger.debug("cannot set protocol_whitelist");
 				return false;
 			}
-			ret = av_dict_set(options, "reorder_queue_size", "100400", 0);
-			if (ret < 0) {
-				logger.debug("cannot set reorder queue size");
-				return false;
-			}
-			
-			ret = av_dict_set(options, "buffer_size", "102400", 0);
-			if (ret < 0) {
-				logger.debug("cannot set buffer size");
-				return false;
-			}
 			
 			AVInputFormat sdpFormat = av_find_input_format("sdp");
 
@@ -125,7 +115,6 @@ public class PacketReceiverRunnable implements Runnable {
 					response.setHeader(RtspHeaderCode.Date, DateUtil.getGmtDate());
 					response.setHeader(RtspHeaderCode.Session, sessionKey);
 					session.write(response);
-
 				}
 			}, new Date());
 
@@ -143,27 +132,23 @@ public class PacketReceiverRunnable implements Runnable {
 			for (int i=0; i < inputFormatCtx.nb_streams(); i++) {
 				AVStream in_stream = inputFormatCtx.streams(i);
 				AVStream out_stream = avformat_new_stream(outputRTMPFormatContext, in_stream.codec().codec());
-				AVCodecParameters avCodecParameters = new AVCodecParameters();
 
-				ret = avcodec_parameters_from_context(avCodecParameters,  in_stream.codec());
+				
+				ret = avcodec_parameters_copy(out_stream.codecpar(), in_stream.codecpar());
+				
 				if (ret < 0) {
 					logger.debug("Cannot get codec parameters\n");
 					return false;
 				}
-				ret  = avcodec_parameters_to_context(out_stream.codec(), avCodecParameters);
-				if (ret < 0) {
-					logger.debug("Cannot set codec parameters\n");
-					return false;
-				}
+
 				out_stream.codec().codec_tag(0);
+				
+				if ((outputRTMPFormatContext.oformat().flags() & AVFMT_GLOBALHEADER) != 0) {
+					out_stream.codec().flags(out_stream.codec().flags() | AV_CODEC_FLAG_GLOBAL_HEADER);
+				}
+				
 				//initialize last decoding time stamp reference value
 				lastDTS[i] = -1;
-			}
-
-
-			if ((outputRTMPFormatContext.oformat().flags() & AVFMT_GLOBALHEADER) != 0) {
-				//out_stream->codec->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
-				outputRTMPFormatContext.oformat().flags(outputRTMPFormatContext.oformat().flags() | AV_CODEC_FLAG_GLOBAL_HEADER);
 			}
 
 

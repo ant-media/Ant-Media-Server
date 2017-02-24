@@ -817,7 +817,7 @@ public class RtspConnection  extends RTMPMinaConnection {
 		
 		if (mPacketSenderScheduledFuture != null && mPacketSenderScheduledFuture.isDone() == false) {
 			logger.debug("cancelling packet sender scheduledFuture");
-			mPacketSenderScheduledFuture.cancel(true);
+			mPacketSenderScheduledFuture.cancel(false);
 		}
 	
 
@@ -828,7 +828,7 @@ public class RtspConnection  extends RTMPMinaConnection {
 
 		if (mPacketReceiverScheduledFuture != null && mPacketReceiverScheduledFuture.isDone() == false) {
 			logger.debug("cancelling packet receiver scheduledFuture");
-			mPacketReceiverScheduledFuture.cancel(true);
+			mPacketReceiverScheduledFuture.cancel(false);
 		}
 
 	}

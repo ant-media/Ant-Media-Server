@@ -187,15 +187,17 @@ public class MuxingTest {
 			assertTrue(testResult);
 			
 
-			testResult = testFile("rtmp://localhost/vod/" + streamName + " live=1");
-			assertTrue(testResult);
-
 			//check that stream can be watchable by hls
 			testResult = testFile("http://localhost:5080/vod/streams/" + streamName + ".m3u8");
 			assertTrue(testResult);
 //
 //			//stop rtsp streaming 
 			rtspSendingProcess.destroy();
+			
+			
+			testResult = testFile("rtmp://localhost/vod/" + streamName);
+			assertTrue(testResult);
+			
 //
 			Thread.sleep(15000);
 //
