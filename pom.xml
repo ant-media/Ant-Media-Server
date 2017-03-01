@@ -3,7 +3,7 @@
     <parent>
         <groupId>org.red5</groupId>
         <artifactId>red5-parent</artifactId>
-        <version>1.0.8-RELEASE</version>
+        <version>1.0.9-M2</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>red5-server</artifactId>
@@ -62,8 +62,6 @@
         <red5-io.version>${project.parent.version}</red5-io.version>
         <red5-service.version>${project.parent.version}</red5-service.version>
         <red5-server-common.version>${project.parent.version}</red5-server-common.version>
-        <tomcatplugin.version>1.18</tomcatplugin.version>
-        <websocket.version>1.7</websocket.version>
         <cors-filter.version>2.5</cors-filter.version>
         <javacpp.ffmpeg.version>3.2.1-1.3</javacpp.ffmpeg.version>
     </properties>
@@ -285,12 +283,6 @@
         <!-- Runtime plugin deps -->
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>websocket</artifactId>
-            <version>${websocket.version}</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
             <artifactId>tomcatplugin</artifactId>
             <version>${tomcatplugin.version}</version>
             <scope>provided</scope>
@@ -363,6 +355,25 @@
                                     <outputDirectory>${project.build.directory}/plugins</outputDirectory>
                                     <includeScope>provided</includeScope>
                                     <excludeTransitive>false</excludeTransitive>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>copy-dependency-websocket-plugin</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>copy</goal>
+                                </goals>
+                                <configuration>
+                                    <artifactItems>
+                                        <artifactItem>
+                                          <groupId>org.red5</groupId>
+                                          <artifactId>websocket</artifactId>
+                                          <version>${websocket.version}</version>
+                                          <type>jar</type>
+                                          <overWrite>true</overWrite>
+                                          <outputDirectory>${project.build.directory}/plugins</outputDirectory>
+                                        </artifactItem>
+                                    </artifactItems>
                                 </configuration>
                             </execution>
                             <execution>

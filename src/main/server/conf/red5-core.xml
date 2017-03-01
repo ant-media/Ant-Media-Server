@@ -46,6 +46,15 @@
     <!-- RTMP connection manager -->
     <bean id="rtmpConnManager" class="org.red5.server.net.rtmp.RTMPConnManager" />
 
+    <!-- RTMP Decoding -->
+    <!-- Use injection to set the max packet size -->
+    <bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+        <property name="staticMethod">
+            <value>org.red5.server.net.rtmp.codec.RTMPProtocolDecoder.setMaxPacketSize</value>
+        </property>
+        <property name="arguments" value="${rtmp.max_packet_size}"/>
+    </bean>
+
     <!-- RTMP Handler -->
     <bean id="rtmpHandler" class="org.red5.server.net.rtmp.RTMPHandler">
         <property name="server" ref="red5.server" />
