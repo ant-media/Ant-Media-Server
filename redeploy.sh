@@ -4,7 +4,7 @@ mvn install -Dmaven.javadoc.skip=true -Dmaven.test.skip=true
 
 RED5_DIR=/Users/mekya/softwares/red5-server
 
-RED5_JAR=/Users/mekya/git/red5-server/target/red5-server-1.0.8-RELEASE.jar
+RED5_JAR=/Users/mekya/git/red5-server/target/red5-server-1.0.9-M2.jar
 
 SRC_CONF_DIR=/Users/mekya/git/red5-server/src/main/server/conf/
 
