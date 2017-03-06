@@ -61,7 +61,7 @@ public class ProviderService implements IProviderService {
                 if (type == -2) {
                     result = INPUT_TYPE.LIVE_WAIT;
                 }
-                log.debug("Requested stream: {} does not appear to be of VOD type", name);
+                log.warn("Requested stream: {} does not appear to be of VOD type", name);
             }
         }
         return result;
@@ -186,9 +186,11 @@ public class ProviderService implements IProviderService {
             log.debug("getStreamFile - name: {}", name);
         }
         IStreamableFileFactory factory = (IStreamableFileFactory) ScopeUtils.getScopeService(scope, IStreamableFileFactory.class);
+        String flvName = null;
         if (name.indexOf(':') == -1 && name.indexOf('.') == -1) {
-            // Default to .flv files if no prefix and no extension is given.
-            name = "flv:" + name;
+            // Default to .mp4 files if no prefix and no extension is given.
+            name = "mp4:" + name;
+            flvName = "flv:" + name;
         }
         // ams sends an asterisk at the start of the name on mp4, so remove it
         if (name.charAt(0) == '*') {
@@ -232,6 +234,11 @@ public class ProviderService implements IProviderService {
             }
             // null out the file (fix for issue #238)
             file = null;
+        }
+        
+        if (file == null) {
+        	//if file is null and flvName is not null, look up if flv file exists
+        	file = getStreamFile(scope, flvName);
         }
         return file;
     }
