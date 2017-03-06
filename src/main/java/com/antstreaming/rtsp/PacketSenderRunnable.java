@@ -55,8 +55,8 @@ public class PacketSenderRunnable implements Runnable {
 	private Logger logger = LoggerFactory.getLogger(PacketSenderRunnable.class);
 	private boolean closeRequest = false;
 	private boolean finish;
-	
-	
+
+
 
 	public PacketSenderRunnable(AVFormatContext inputFormatContext) {
 		this.inputFormatContext = inputFormatContext;
@@ -86,11 +86,7 @@ public class PacketSenderRunnable implements Runnable {
 		AVOutputFormat ofmt = outputFormatContext[streamId].oformat();
 		AVStream in_stream = inputFormatContext.streams(streamId);
 		AVStream out_stream = avformat_new_stream(outputFormatContext[streamId], in_stream.codec().codec());
-		//AVCodecParameters avCodecParameters = new AVCodecParameters();
 
-		//avcodec_parameters_from_context(avCodecParameters,  in_stream.codec());
-		//ret  = avcodec_parameters_to_context(out_stream.codec(), avCodecParameters);
-		
 		ret = avcodec_parameters_copy(out_stream.codecpar(), in_stream.codecpar());
 
 		logger.debug("out_stream time base:" + out_stream.time_base().num() +"/" + out_stream.time_base().den());
@@ -128,7 +124,7 @@ public class PacketSenderRunnable implements Runnable {
 						continue;
 					}
 					else {
-						logger.debug("Opened url " + rtpUrl);
+						logger.warn("Opened url " + rtpUrl);
 						outputFormatContext[streamId].pb(pb);
 						logger.debug("out_stream time base 1:" + out_stream.time_base().num() +"/" + out_stream.time_base().den());
 						break;
@@ -164,82 +160,96 @@ public class PacketSenderRunnable implements Runnable {
 				return;
 			}
 
-			AVStream in_stream, out_stream;
+			synchronized (this) {
 
-			if (bufferFree) 
-			{
-				int ret = av_read_frame(inputFormatContext, pkt);
-				if (ret < 0) {
-					logger.debug("cannot read frame, closing muxer");
-					closeMuxer(true);
-					return;
+				AVStream in_stream, out_stream;
+
+				if (bufferFree) 
+				{
+					int ret = av_read_frame(inputFormatContext, pkt);
+					if (ret < 0) {
+						logger.warn("cannot read frame, closing muxer");
+						closeMuxer(true);
+						return;
+					}
+					packetIndex = pkt.stream_index();
+
+					in_stream  = inputFormatContext.streams(packetIndex);
+
+
+					if (outputFormatContext[packetIndex] == null) {
+						//pass this packet, stream is likely not supported in rtp
+						return;
+					}
+					out_stream = outputFormatContext[packetIndex].streams(0);
+
+
+					/* copy packet */
+					AVRational avRational = new AVRational();
+					avRational.num(1);
+					avRational.den(AV_TIME_BASE);
+					packetSentTime = av_rescale_q(pkt.dts(), in_stream.time_base(), avRational); // + pkt.duration(); 
+					if (firstPacketSentTime == 0) {
+						firstPacketSentTime = packetSentTime;
+					}
+
+
+					//pkt.dts() + pkt.duration();
+					pkt.pts(av_rescale_q_rnd(pkt.pts(), in_stream.time_base(), out_stream.time_base(), AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
+					pkt.dts(av_rescale_q_rnd(pkt.dts(), in_stream.time_base(), out_stream.time_base(), AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
+					pkt.duration(av_rescale_q(pkt.duration(), in_stream.time_base(), out_stream.time_base()));
+					pkt.pos(-1);
+
+					// logger.trace("packet index:"+ pkt.stream_index() + " packet.dts:" + pkt.dts() + " packet.pts:" + pkt.pts()  
+					//+" in_stream time base:"+ in_stream.time_base().num() +"/" + in_stream.time_base().den() 
+					//+" out_stream time base:"+ out_stream.time_base().num() +"/" + out_stream.time_base().den() 
+					//+ " packet duration: " + pkt.duration());
+
+					//stream index is always zero because rtp can contain one stream
+					pkt.stream_index(0);
+
 				}
-				packetIndex = pkt.stream_index();
-				in_stream  = inputFormatContext.streams(packetIndex);
-				out_stream = outputFormatContext[packetIndex].streams(0);
 
-				/* copy packet */
-				AVRational avRational = new AVRational();
-				avRational.num(1);
-				avRational.den(AV_TIME_BASE);
-				packetSentTime = av_rescale_q(pkt.dts(), in_stream.time_base(), avRational); // + pkt.duration(); 
-				if (firstPacketSentTime == 0) {
-					firstPacketSentTime = packetSentTime;
+
+				if (startTime == 0) {
+					startTime = System.currentTimeMillis(); 
+					//logger.debug("start time :" + startTime + " offset:" + offset);
 				}
 
-				//pkt.dts() + pkt.duration();
-				pkt.pts(av_rescale_q_rnd(pkt.pts(), in_stream.time_base(), out_stream.time_base(), AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
-				pkt.dts(av_rescale_q_rnd(pkt.dts(), in_stream.time_base(), out_stream.time_base(), AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
-				pkt.duration(av_rescale_q(pkt.duration(), in_stream.time_base(), out_stream.time_base()));
-				pkt.pos(-1);
+				long timeDiff = (System.currentTimeMillis() - startTime) * 1000; // convert milli seconds to micro seconds
 
-				// logger.trace("packet index:"+ pkt.stream_index() + " packet.dts:" + pkt.dts() + " packet.pts:" + pkt.pts()  
-				//+" in_stream time base:"+ in_stream.time_base().num() +"/" + in_stream.time_base().den() 
-				//+" out_stream time base:"+ out_stream.time_base().num() +"/" + out_stream.time_base().den() 
-				//+ " packet duration: " + pkt.duration());
+				if (packetSentTime <= (firstPacketSentTime + timeDiff)) 
+				{
 
-				//stream index is always zero because rtp can contain one stream
-				pkt.stream_index(0);
-
-			}
-
-
-			if (startTime == 0) {
-				startTime = System.currentTimeMillis(); 
-				//logger.debug("start time :" + startTime + " offset:" + offset);
-			}
-
-			long timeDiff = (System.currentTimeMillis() - startTime) * 1000; // convert milli seconds to micro seconds
-
-			if (packetSentTime <= (firstPacketSentTime + timeDiff)) 
-			{
-
-				int ret = av_write_frame(outputFormatContext[packetIndex], pkt);
-				if (ret < 0) {
-					System.out.println("Error muxing packet with error: " + ret);
+					int ret = av_write_frame(outputFormatContext[packetIndex], pkt);
+					if (ret < 0) {
+						System.out.println("Error muxing packet with error: " + ret);
+					}
+					av_packet_unref(pkt);
+					bufferFree = true;
 				}
-				av_packet_unref(pkt);
-				bufferFree = true;
-			}
-			else {
-				//logger.debug("waiting to send");
-				bufferFree = false;
-			}
-			
-			if (closeRequest) {
-				closeInternal(finish);
-				closeRequest = false;
+				else {
+					//logger.debug("waiting to send");
+					bufferFree = false;
+				}
+
+				if (closeRequest) {
+					closeInternal(finish);
+					closeRequest = false;
+				}
 			}
 		}
 		catch (Exception e) {
+			logger.warn("exception");
 			e.printStackTrace();
 		}finally {
 			isRunning.compareAndSet(true, false);
 		}
 	}
-	
+
 	public void closeInternal(boolean finishProcess) 
 	{
+		logger.warn("closeInternal called.");
 		if (outputFormatContext != null) {
 			for (AVFormatContext avFormatContext : outputFormatContext) {
 				if (avFormatContext == null) {
@@ -247,11 +257,12 @@ public class PacketSenderRunnable implements Runnable {
 				}
 				//if (finishProcess) 
 				{
+					logger.warn("close internal av_write_trailer(avFormatContext);");
 					av_write_trailer(avFormatContext);
 				}
 				/* close output */
 				if (avFormatContext != null && ((avFormatContext.oformat().flags() & AVFMT_NOFILE) == 0)) {
-
+					logger.warn(" avio_closep(avFormatContext.pb()); ");
 					avio_closep(avFormatContext.pb());
 				}
 				avformat_free_context(avFormatContext);
@@ -260,18 +271,23 @@ public class PacketSenderRunnable implements Runnable {
 			outputFormatContext = null;
 		}
 		if (inputFormatContext != null && finishProcess) {
+			logger.warn("avformat_close_input finish process");
 			avformat_close_input(inputFormatContext);
 			inputFormatContext = null;
 		}
 	}
 
-	public synchronized void closeMuxer(boolean finishProcess) {
+	public void closeMuxer(boolean finishProcess) {
+		synchronized (this) {
+			logger.warn("close muxer called with finish process: " + finishProcess);
+			closeRequest  = true;
+			finish = finishProcess;
+			closeInternal(finishProcess);
+			closeRequest = false;
+			//this is end of file or a problem
+			//close the muxers
+		}
 
-		closeRequest  = true;
-		finish = finishProcess;
-		//this is end of file or a problem
-		//close the muxers
-		
 	}
 
 

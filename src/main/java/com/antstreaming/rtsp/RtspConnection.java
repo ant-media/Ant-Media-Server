@@ -194,7 +194,7 @@ public class RtspConnection  extends RTMPMinaConnection {
 			return;
 		}
 
-		
+
 		frameReceiver = new PacketReceiverRunnable(mTaskScheduler, cseq, sessionKey, session, announcedStreamName, liveStreamSdpDef, request.getUrl());
 		mPacketReceiverScheduledFuture = mTaskScheduler.schedule(frameReceiver, new Date());
 
@@ -386,7 +386,7 @@ public class RtspConnection  extends RTMPMinaConnection {
 		session.write(response);
 
 		if (response.getCode() == RtspCode.OK) {
-			logger.debug("starting to play");
+			logger.warn("starting to play");
 			mPacketSenderScheduledFuture = mTaskScheduler.scheduleAtFixedRate(frameSender, 10);
 			//convert seektime from micro seconds to nano seconds
 		}
@@ -454,25 +454,36 @@ public class RtspConnection  extends RTMPMinaConnection {
 				if (ret == 0) {
 					byte[] sdpData = new byte[16384];
 					//pFormatCtx.nb_streams()
+
 					if (avformat_find_stream_info(inputFormatContext, (PointerPointer)null) >= 0) {
+						logger.warn("avformat_find_stream_info for " + rtmpUrl);
 						if (av_sdp_create(inputFormatContext, inputFormatContext.nb_streams(), sdpData, sdpData.length) == 0) 
 						{
-							serverPort = new int[inputFormatContext.nb_streams()][2];
-							clientPort = new int[inputFormatContext.nb_streams()][2];
-							StringBuffer sdp = new StringBuffer();
-							sdp.append(new String(sdpData));
-							response.setHeader(RtspHeaderCode.ContentLength, String.valueOf(sdp.length()));
-							response.setBuffer(sdp);
-							frameSender = new PacketSenderRunnable(inputFormatContext);
+							String sdpString = new String(sdpData);
+							logger.warn("sdp description is " + sdpString);
+							if (sdpString.indexOf("rtpmap") != -1) {
+
+								serverPort = new int[inputFormatContext.nb_streams()][2];
+								clientPort = new int[inputFormatContext.nb_streams()][2];
+								StringBuffer sdp = new StringBuffer();
+								sdp.append(new String(sdpData));
+								response.setHeader(RtspHeaderCode.ContentLength, String.valueOf(sdp.length()));
+								response.setBuffer(sdp);
+								frameSender = new PacketSenderRunnable(inputFormatContext);
+							}
+							else {
+								response.setCode(RtspCode.NoSuchContent);
+								logger.warn("cannot find stream info correctly in the context");
+							}
 						}
 						else {
 							response.setCode(RtspCode.InternalServerError);
-							logger.debug("cannot find stream info in the context");
+							logger.warn("cannot find stream info in the context");
 						}
 					}
 					else {
 						response.setCode(RtspCode.InternalServerError);
-						logger.debug("could not get sdp info of " + rtmpUrl);
+						logger.warn("could not get sdp info of " + rtmpUrl);
 					}
 				}
 				else {
@@ -749,7 +760,7 @@ public class RtspConnection  extends RTMPMinaConnection {
 		}
 
 
-		
+
 		RtspResponse response = new RtspResponse();
 		response.setCode(RtspCode.OK);
 		response.setHeader(RtspHeaderCode.CSeq, cseq);
@@ -758,7 +769,7 @@ public class RtspConnection  extends RTMPMinaConnection {
 		session.write(response);
 		logger.debug("tear down called");
 		close();
-		
+
 		/*
 		if (mode != null && mode.equals("record")) 
 		{
@@ -810,16 +821,16 @@ public class RtspConnection  extends RTMPMinaConnection {
 
 	public void close() {
 
-		if (frameSender != null) {
-			frameSender.closeMuxer(true);
-			frameSender = null;
-		}
-		
 		if (mPacketSenderScheduledFuture != null && mPacketSenderScheduledFuture.isDone() == false) {
 			logger.debug("cancelling packet sender scheduledFuture");
 			mPacketSenderScheduledFuture.cancel(false);
 		}
-	
+		
+		if (frameSender != null) {
+			frameSender.closeMuxer(true);
+			frameSender = null;
+		}
+
 
 		if (frameReceiver != null) {
 			frameReceiver.closeMuxer();

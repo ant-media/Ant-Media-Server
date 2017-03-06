@@ -35,6 +35,7 @@ public class MuxingTest {
 
 
 
+
 	@Test
 	public void testVODStreaming() {
 
@@ -53,7 +54,7 @@ public class MuxingTest {
 
 			Thread.sleep(5000);
 
-			boolean testResult = testFile("rtmp://localhost/vod/" + streamName);
+			boolean testResult = testFile("rtmp://localhost/vod/" + streamName + ".mp4");
 			assertTrue(testResult);
 
 			//check that stream can be watchable by hls
@@ -69,7 +70,7 @@ public class MuxingTest {
 			assertTrue(testResult);
 
 
-			testResult = testFile("rtsp://127.0.0.1:5554/vod/" + streamName);
+			testResult = testFile("rtsp://127.0.0.1:5554/vod/" + streamName + ".mp4");
 			assertTrue(testResult);
 
 
@@ -99,9 +100,13 @@ public class MuxingTest {
 			//stop rtmp streaming 
 			rtmpSendingProcess.destroy();
 
-			Thread.sleep(2000);
+			Thread.sleep(5000);
 
-			boolean testResult = testFile("rtmp://localhost/vod/" + streamName);
+			//TODO: check that when stream is requested with rtsp, server should not be shutdown
+			boolean testResult = testFile("rtsp://127.0.0.1:5554/vod/" + streamName + ".mp4");
+			assertTrue(testResult);
+
+			testResult = testFile("rtmp://localhost/vod/" + streamName + ".mp4");
 			assertTrue(testResult);
 
 			//check that mp4 is not created
@@ -112,9 +117,7 @@ public class MuxingTest {
 			testResult = testFile("http://localhost:5080/vod/streams/" + streamName + ".m3u8");
 			assertTrue(testResult);
 
-			//TODO: check that when stream is requested with rtsp, server should not be shutdown
-			testResult = testFile("rtsp://127.0.0.1:5554/vod/" + streamName);
-			assertTrue(testResult);
+
 
 		}
 		catch (Exception e) {
@@ -145,7 +148,7 @@ public class MuxingTest {
 
 			Thread.sleep(5000);
 
-			boolean testResult = testFile("rtmp://localhost/vod/" + streamName);
+			boolean testResult = testFile("rtmp://localhost/vod/" + streamName + ".mp4");
 			assertTrue(testResult);
 
 			//check that stream is not created by hls muxer
@@ -157,9 +160,9 @@ public class MuxingTest {
 			assertTrue(testResult);
 
 			//TODO: check that when stream is requested with rtsp, server should not be shutdown
-			testResult = testFile("rtsp://127.0.0.1:5554/vod/" + streamName);
+	
+			assertFalse(testFile("rtsp://127.0.0.1:5554/vod/" + streamName));
 			//assert false because rtp does not support flv1 
-			assertFalse(testResult);
 
 		}
 		catch (Exception e) {
@@ -198,15 +201,15 @@ public class MuxingTest {
 			rtspSendingProcess.destroy();
 
 
-			testResult = testFile("rtmp://localhost/vod/" + streamName);
-			assertTrue(testResult);
-
-			//
 			Thread.sleep(15000);
-			//
+
+			assertTrue(testFile("rtmp://localhost/vod/" + streamName ));
+			
+			
+			assertTrue(testFile("rtsp://127.0.0.1:5554/vod/" + streamName + ".mp4"));
+
 			//check that mp4 is created successfully and can be playable
-			testResult = testFile("http://localhost:5080/vod/streams/" + streamName + ".mp4");
-			assertTrue(testResult);
+			assertTrue(testFile("http://localhost:5080/vod/streams/" + streamName + ".mp4"));
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -222,35 +225,40 @@ public class MuxingTest {
 	@Test
 	public void testSetFLVRecordingFalseAndMP4RecordingTrue() {
 		try {
-			
+
 			//change settings from auto record true to false
 			File  confFile = new File(FULL_RED5_PATH + "/conf/red5.properties");
 
 			String fileContent = FileUtils.readFileToString(confFile, Charset.defaultCharset());
-			
+
 			String searchStr = "broadcaststream.auto.record=true";
 			int indexOf = fileContent.indexOf(searchStr);
+			boolean restart = false;
 			if (indexOf != -1) {
 				fileContent.replaceAll(searchStr, "broadcaststream.auto.record=false");
+				restart = true;
 			}
 			else {
-				 searchStr = "broadcaststream.auto.record= true";
-				 indexOf = fileContent.indexOf(searchStr);
-				 if (indexOf != -1) {
-					 fileContent.replaceAll(searchStr, "broadcaststream.auto.record=false");
-				 }
+				searchStr = "broadcaststream.auto.record= true";
+				indexOf = fileContent.indexOf(searchStr);
+				if (indexOf != -1) {
+					fileContent.replaceAll(searchStr, "broadcaststream.auto.record=false");
+					restart = true;
+				}
 			}
-			
-			FileUtils.writeStringToFile(confFile, fileContent, Charset.defaultCharset());
-			
-			//restart the red5
-			afterClass();
-			
-			beforeClass();
-			
-			before();
-			
-			
+
+			if (restart) {
+				FileUtils.writeStringToFile(confFile, fileContent, Charset.defaultCharset());
+
+				//restart the red5
+				afterClass();
+
+				beforeClass();
+
+				before();
+			}
+
+
 			//send rtmp stream with ffmpeg to red5
 			String streamName = "live_rtsp_test2";
 
@@ -268,19 +276,28 @@ public class MuxingTest {
 			//check that stream can be watchable by hls
 			testResult = testFile("http://localhost:5080/vod/streams/" + streamName + ".m3u8");
 			assertTrue(testResult);
-			//
-			//			//stop rtsp streaming 
+			
+			//stop rtsp streaming 
 			rtspSendingProcess.destroy();
 
+			Thread.sleep(15000);
 
-			testResult = testFile("rtmp://localhost/vod/" + streamName);
+			testResult = testFile("rtmp://localhost/vod/" + streamName + ".mp4");
 			assertTrue(testResult);
 
 			//
-			Thread.sleep(15000);
-			//
 			//check that mp4 is created successfully and can be playable
 			testResult = testFile("http://localhost:5080/vod/streams/" + streamName + ".mp4");
+			assertTrue(testResult);
+
+			
+			System.out.println("getting rtmp://localhost/vod/" + streamName);
+			//check that if flv does not exists, but mp4 exists, it should play
+			testResult = testFile("rtmp://localhost/vod/" + streamName);
+			assertTrue(testResult);
+
+			System.out.println("getting rtsp://localhost:5554/vod/" + streamName);
+			testResult = testFile("rtsp://127.0.0.1:5554/vod/" + streamName);
 			assertTrue(testResult);
 
 		} catch (IOException e) {
@@ -315,15 +332,12 @@ public class MuxingTest {
 
 
 			testResult = testFile("rtmp://localhost/vod/" + streamName + " live=1");
-			assertTrue(testResult);
-
-			Thread.sleep(3000);
+			assertTrue(testResult);	
 
 			//check that stream can be watchable by hls
 			testResult = testFile("http://localhost:5080/vod/streams/" + streamName + ".m3u8");
 			assertTrue(testResult);
 
-			Thread.sleep(3000);
 
 			//stop rtmp streaming 
 			rtmpSendingProcess.destroy();

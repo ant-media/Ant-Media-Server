@@ -202,11 +202,6 @@ public class PacketReceiverRunnable implements Runnable {
 			AVStream in_stream = inputFormatCtx.streams(packetIndex);
 			AVStream out_stream2 = outputRTMPFormatContext.streams(packetIndex);
 
-			//logger.warn("timestamps pts: " +  pkt.pts() + " dts:" + pkt.dts() + " duration:" + pkt.duration());
-			
-			// logger.warn("pkt.pts: " + pkt.pts() + " pkt.dts:" + pkt.dts() + " stream index:" + pkt.stream_index());
-
-
 			//sending rtmp
 			pkt.pts(av_rescale_q_rnd(pkt.pts(), in_stream.time_base(), out_stream2.time_base(), AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
 			pkt.dts(av_rescale_q_rnd(pkt.dts(), in_stream.time_base(), out_stream2.time_base(), AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
@@ -229,11 +224,11 @@ public class PacketReceiverRunnable implements Runnable {
 	}
 
 	public void closeInternal() {
-		logger.debug("closing rtmp format context");
+		logger.warn("closing rtmp format context");
 		av_write_trailer(outputRTMPFormatContext);
 
 
-		logger.debug("closing rtsp input format context");
+		logger.warn("closing rtsp input format context");
 		// Close the video file
 		if (inputFormatCtx != null) {
 			avformat_close_input(inputFormatCtx);
@@ -242,6 +237,7 @@ public class PacketReceiverRunnable implements Runnable {
 
 		// close output 
 		if (outputRTMPFormatContext != null && ((outputRTMPFormatContext.oformat().flags() & AVFMT_NOFILE) == 0)) {
+			logger.warn("closing rtmp format context pb");
 			avio_closep(outputRTMPFormatContext.pb());
 		}
 		avformat_free_context(outputRTMPFormatContext);
