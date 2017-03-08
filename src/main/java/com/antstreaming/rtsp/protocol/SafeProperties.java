@@ -210,11 +210,8 @@ public class SafeProperties extends Properties {
   }
 
   /**
-   * 按照添加、读入的原始顺序输出。
    * 
-   * @param sb
-   * @param header
-   * @throws IOException
+   * @return the string 
    */
   @SuppressWarnings("rawtypes")
   public synchronized String getString() {
@@ -301,11 +298,7 @@ public class SafeProperties extends Properties {
     return theString;
   }
 
-  /**
-   * Convert a nibble to a hex character
-   * 
-   * @param nibble the nibble to convert.
-   */
+
   // private static char toHex(int nibble) {
   // return hexDigit[(nibble & 0xF)];
   // }

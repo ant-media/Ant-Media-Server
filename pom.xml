@@ -312,16 +312,14 @@
             <version>${cors-filter.version}</version>
             <scope>provided</scope>
         </dependency>
+        <!--  
         <dependency>
 			<groupId>org.bytedeco.javacpp-presets</groupId>
 			<artifactId>ffmpeg-platform</artifactId>
 			<version>${javacpp.ffmpeg.version}</version>
+			<scope>provided</scope>
 		</dependency>
-		<dependency>
-			<groupId>commons-lang</groupId>
-			<artifactId>commons-lang</artifactId>
-			<version>2.5</version>
-		</dependency>
+		-->
     </dependencies>
     <profiles>
         <profile>
@@ -342,6 +340,7 @@
                                     <outputDirectory>${project.build.directory}/lib</outputDirectory>
                                     <includeScope>compile</includeScope>
                                     <excludeScope>test</excludeScope>
+                                    
                                     <excludeTransitive>false</excludeTransitive>
                                 </configuration>
                             </execution>

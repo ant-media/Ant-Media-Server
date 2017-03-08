@@ -120,9 +120,11 @@ public class RTSPTransport {
 
 	String source;
 
+
 	/**
 	 * Constructor. Creates a RTSPTransport object from a transport header
 	 * string.
+	 * @param transport transport type
 	 */
 	public RTSPTransport(String transport) {
 		transportProtocol = TransportProtocol.None;

@@ -1,19 +1,21 @@
 package com.antstreaming.rtsp;
 
-import static org.bytedeco.javacpp.avcodec.AV_CODEC_FLAG_GLOBAL_HEADER;
-import static org.bytedeco.javacpp.avcodec.av_packet_unref;
-import static org.bytedeco.javacpp.avcodec.avcodec_parameters_from_context;
-import static org.bytedeco.javacpp.avcodec.avcodec_parameters_to_context;
 import static org.bytedeco.javacpp.avformat.AVFMT_GLOBALHEADER;
 import static org.bytedeco.javacpp.avformat.AVFMT_NOFILE;
 import static org.bytedeco.javacpp.avformat.AVIO_FLAG_WRITE;
+import static org.bytedeco.javacpp.avformat.av_interleaved_write_frame;
 import static org.bytedeco.javacpp.avformat.av_read_frame;
+import static org.bytedeco.javacpp.avformat.av_register_all;
+import static org.bytedeco.javacpp.avformat.av_sdp_create;
 import static org.bytedeco.javacpp.avformat.av_write_frame;
 import static org.bytedeco.javacpp.avformat.av_write_trailer;
 import static org.bytedeco.javacpp.avformat.avformat_alloc_output_context2;
 import static org.bytedeco.javacpp.avformat.avformat_close_input;
+import static org.bytedeco.javacpp.avformat.avformat_find_stream_info;
 import static org.bytedeco.javacpp.avformat.avformat_free_context;
+import static org.bytedeco.javacpp.avformat.avformat_network_init;
 import static org.bytedeco.javacpp.avformat.avformat_new_stream;
+import static org.bytedeco.javacpp.avformat.avformat_open_input;
 import static org.bytedeco.javacpp.avformat.avformat_write_header;
 import static org.bytedeco.javacpp.avformat.avio_closep;
 import static org.bytedeco.javacpp.avutil.AV_ROUND_NEAR_INF;
@@ -28,19 +30,23 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.bytedeco.javacpp.PointerPointer;
 import org.bytedeco.javacpp.avformat;
+import org.bytedeco.javacpp.avutil;
 import org.bytedeco.javacpp.avcodec.AVCodecParameters;
 import org.bytedeco.javacpp.avcodec.AVPacket;
 import org.bytedeco.javacpp.avformat.AVFormatContext;
 import org.bytedeco.javacpp.avformat.AVIOContext;
 import org.bytedeco.javacpp.avformat.AVOutputFormat;
 import org.bytedeco.javacpp.avformat.AVStream;
+import org.bytedeco.javacpp.avutil.AVDictionary;
 import org.bytedeco.javacpp.avutil.AVRational;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class PacketSenderRunnable implements Runnable {
 
+	
 	AVPacket pkt = new AVPacket();
+	
 	int packetIndex = 0;
 
 	long packetSentTime = 0;
@@ -52,15 +58,10 @@ public class PacketSenderRunnable implements Runnable {
 	private AtomicBoolean isRunning = new AtomicBoolean(false);
 	private AVFormatContext inputFormatContext;
 	private AVFormatContext[] outputFormatContext;
-	private Logger logger = LoggerFactory.getLogger(PacketSenderRunnable.class);
+	private static Logger logger = LoggerFactory.getLogger(PacketSenderRunnable.class);
 	private boolean closeRequest = false;
 	private boolean finish;
-
-
-
-	public PacketSenderRunnable(AVFormatContext inputFormatContext) {
-		this.inputFormatContext = inputFormatContext;
-	}
+	private String rtmpUrl;
 
 
 	public int seek(long seekTime) {
@@ -89,10 +90,8 @@ public class PacketSenderRunnable implements Runnable {
 
 		ret = avcodec_parameters_copy(out_stream.codecpar(), in_stream.codecpar());
 
-		logger.debug("out_stream time base:" + out_stream.time_base().num() +"/" + out_stream.time_base().den());
-
 		if (ret<0){
-			logger.debug("Failed to copy context from input to output stream codec context\n");
+			logger.warn("Failed to copy context from input to output stream codec context\n");
 			return false;
 		}
 
@@ -126,7 +125,6 @@ public class PacketSenderRunnable implements Runnable {
 					else {
 						logger.warn("Opened url " + rtpUrl);
 						outputFormatContext[streamId].pb(pb);
-						logger.debug("out_stream time base 1:" + out_stream.time_base().num() +"/" + out_stream.time_base().den());
 						break;
 					}
 				}
@@ -146,12 +144,132 @@ public class PacketSenderRunnable implements Runnable {
 		}
 		ret = avformat_write_header(outputFormatContext[streamId], (PointerPointer)null);
 		if (ret < 0) {
-			logger.debug("cannot write header with error: " + ret);
+			logger.warn("cannot write header with error: " + ret);
 			return false;
 		}
 		return true;
 	}
+/*
+	public void getRtspStream() {
 
+		AVFormatContext pFormatCtx = new AVFormatContext(null);
+
+		String sdpFile = "rtmp://127.0.0.1//vod/bug_test2.mp4";
+		//"rtp://127.0.0.1:5577"
+		;
+		//AVDictionary options = new AVDictionary();
+		//int ret = av_dict_set(options, "protocol_whitelist", "file,crypto,udp,rtp", 0);
+		//System.out.println("options dict ret:" + ret);
+
+		//ByteBuffer wrap = ByteBuffer.wrap("file,crypto,rtp,udp".getBytes());
+		//pFormatCtx.protocol_whitelist(new BytePointer(wrap));
+
+		if (avformat_open_input(pFormatCtx, sdpFile, null, null) != 0) {
+			System.out.println("Could not open rtp for demuxing");
+			return;
+		}
+
+
+		System.out.println("waiting for stream ..." + pFormatCtx.nb_streams());
+//		if (avformat_find_stream_info(pFormatCtx, (PointerPointer)null) < 0) {
+//			System.out.println("Could not get stream info");
+//			return;
+//		}
+
+//		byte[] sdpData = new byte[16384];
+//		if (av_sdp_create(pFormatCtx, pFormatCtx.nb_streams(), sdpData, sdpData.length) != 0)  {
+//			System.out.println("Could not get sdp description");
+//			return;
+//		}
+		System.out.println("get stream info... stream count:" + pFormatCtx.nb_streams());
+
+		//AVFormatContext outputFormatContext = new AVFormatContext(null);
+
+		//int ret = avformat_alloc_output_context2(outputFormatContext, null, "rtp", null);
+
+		//if (ret < 0) {
+		//	System.out.println("Could not create output context\n");
+		//	return;
+		//}
+
+//		for (int i=0; i < pFormatCtx.nb_streams(); i++) {
+//			AVStream in_stream = pFormatCtx.streams(i);
+//			AVStream out_stream = avformat_new_stream(outputFormatContext[0], in_stream.codec().codec());
+//
+//
+//			ret = avcodec_parameters_copy(out_stream.codecpar(), in_stream.codecpar());
+//			
+//			logger.debug("getRtspStream time base:" + out_stream.time_base().num() +"/" + out_stream.time_base().den());
+//
+//			if (ret < 0) {
+//				System.out.println("Cannot set codec parameters\n");
+//				return;
+//			}
+//			out_stream.codec().codec_tag(0);
+//		}
+//		
+//		
+//		
+//
+//
+//		if ((outputFormatContext.oformat().flags() & AVFMT_GLOBALHEADER) != 0) {
+//			//out_stream->codec->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+//			outputFormatContext.oformat().flags(outputFormatContext.oformat().flags() | AV_CODEC_FLAG_GLOBAL_HEADER);
+//		}
+//
+//		if ((outputFormatContext.flags() & AVFMT_NOFILE) == 0) {
+//			AVIOContext pb = new AVIOContext(null);
+//			ret = avformat.avio_open(pb, "rtp://127.0.0.1:56442", AVIO_FLAG_WRITE);
+//			outputFormatContext.pb(pb);
+//
+//			ret = avformat_write_header(outputFormatContext, (PointerPointer)null);
+//			if (ret < 0) {
+//				System.out.println("Cannot write header\n");
+//				return;
+//			}
+//		}
+
+		AVPacket pkt = new AVPacket();
+
+		while (true) {
+			logger.warn("av read frame 1");
+			int ret = av_read_frame(pFormatCtx, pkt);
+			if (ret<0) {
+				System.out.println("close file...");
+				break;
+			}
+			logger.warn("av read frame 2");
+			int packetIndex = pkt.stream_index();
+			AVStream in_stream = pFormatCtx.streams(packetIndex);
+			AVStream out_stream = outputFormatContext[0].streams(packetIndex);
+
+			System.out.println("packet dts:" + pkt.dts() + " paket pts:" + pkt.pts());
+
+			pkt.pts(av_rescale_q_rnd(pkt.pts(), in_stream.time_base(), out_stream.time_base(), AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
+			pkt.dts(av_rescale_q_rnd(pkt.dts(), in_stream.time_base(), out_stream.time_base(), AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
+			pkt.duration(av_rescale_q(pkt.duration(), in_stream.time_base(), out_stream.time_base()));
+			pkt.pos(-1);
+
+			//System.out.println("packet dts 2:" + pkt.dts());
+
+			ret = av_interleaved_write_frame(outputFormatContext[0], pkt);
+			if (ret < 0) {
+				System.out.println("Error muxing packet\n");
+			}
+			av_packet_unref(pkt);
+		}
+
+		av_write_trailer(outputFormatContext[0]);
+		// close output 
+		if (outputFormatContext != null && ((outputFormatContext[0].oformat().flags() & AVFMT_NOFILE) == 0)) {
+			avio_closep(outputFormatContext[0].pb());
+		}
+		avformat_free_context(outputFormatContext[0]);
+
+		// Close the video file
+		avformat_close_input(pFormatCtx);
+	}
+*/
 
 	@Override
 	public void run() {
@@ -161,9 +279,9 @@ public class PacketSenderRunnable implements Runnable {
 			}
 
 			synchronized (this) {
+				
 
 				AVStream in_stream, out_stream;
-
 				if (bufferFree) 
 				{
 					int ret = av_read_frame(inputFormatContext, pkt);
@@ -183,7 +301,6 @@ public class PacketSenderRunnable implements Runnable {
 					}
 					out_stream = outputFormatContext[packetIndex].streams(0);
 
-
 					/* copy packet */
 					AVRational avRational = new AVRational();
 					avRational.num(1);
@@ -193,21 +310,15 @@ public class PacketSenderRunnable implements Runnable {
 						firstPacketSentTime = packetSentTime;
 					}
 
-
 					//pkt.dts() + pkt.duration();
 					pkt.pts(av_rescale_q_rnd(pkt.pts(), in_stream.time_base(), out_stream.time_base(), AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
 					pkt.dts(av_rescale_q_rnd(pkt.dts(), in_stream.time_base(), out_stream.time_base(), AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
 					pkt.duration(av_rescale_q(pkt.duration(), in_stream.time_base(), out_stream.time_base()));
 					pkt.pos(-1);
 
-					// logger.trace("packet index:"+ pkt.stream_index() + " packet.dts:" + pkt.dts() + " packet.pts:" + pkt.pts()  
-					//+" in_stream time base:"+ in_stream.time_base().num() +"/" + in_stream.time_base().den() 
-					//+" out_stream time base:"+ out_stream.time_base().num() +"/" + out_stream.time_base().den() 
-					//+ " packet duration: " + pkt.duration());
-
 					//stream index is always zero because rtp can contain one stream
 					pkt.stream_index(0);
-
+					
 				}
 
 
@@ -293,6 +404,51 @@ public class PacketSenderRunnable implements Runnable {
 
 	public int getStreamCount() {
 		return inputFormatContext.nb_streams();
+	}
+
+
+	public String getSdpDescription(String rtmpUrl) {
+		this.rtmpUrl = rtmpUrl;
+		inputFormatContext = new AVFormatContext(null);
+		int ret = avformat_open_input(inputFormatContext, rtmpUrl, null, null);
+		if (ret < 0) {
+			byte[] data = new byte[4096];
+			avutil.av_strerror(ret, data, data.length);
+			logger.warn("could not open input " + rtmpUrl + " error code:" + ret
+					+ " description: " + new String(data));
+			return null;
+		}
+
+		byte[] sdpData = new byte[16384];
+
+		
+		ret = avformat_find_stream_info(inputFormatContext, (PointerPointer)null); 
+		if (ret < 0) {
+			byte[] data = new byte[4096];
+			avutil.av_strerror(ret, data, data.length);
+			logger.warn("could not find stream info " + rtmpUrl + " error code:" + ret
+					+ " description: " + new String(data));
+			return null;
+		}
+
+		ret = av_sdp_create(inputFormatContext, inputFormatContext.nb_streams(), sdpData, sdpData.length) ;
+		if (ret < 0) {
+			byte[] data = new byte[4096];
+			avutil.av_strerror(ret, data, data.length);
+			logger.warn("could not create sdp " + rtmpUrl + " error code:" + ret
+					+ " description: " + new String(data));
+			return null;
+		}
+
+		String sdpString = new String(sdpData);
+
+		if (sdpString.indexOf("rtpmap") == -1) {
+			logger.warn("sdp description does not have rtpmap field");
+			return null;
+		}
+
+		return sdpString;
+
 	}
 
 }

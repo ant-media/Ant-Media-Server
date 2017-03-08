@@ -50,6 +50,8 @@
                 <exclude>logback-access-*.jar</exclude>
                 <exclude>red5-service-${red5-service.version}.jar</exclude>
                 <exclude>red5-server-1*.jar</exclude>
+                <exclude>ffmpeg-*.jar</exclude>
+                <exclude>javacpp-*.jar</exclude>
             </excludes>
         </fileSet>
         <fileSet>

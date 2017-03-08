@@ -21,4 +21,4 @@ cd $RED5_DIR
 
 
 #start red5
-./red5.sh
+./red5-debug.sh

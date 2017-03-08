@@ -388,6 +388,7 @@ public class RtspConnection  extends RTMPMinaConnection {
 		if (response.getCode() == RtspCode.OK) {
 			logger.warn("starting to play");
 			mPacketSenderScheduledFuture = mTaskScheduler.scheduleAtFixedRate(frameSender, 10);
+			
 			//convert seektime from micro seconds to nano seconds
 		}
 		else {
@@ -419,7 +420,7 @@ public class RtspConnection  extends RTMPMinaConnection {
 		try {
 			url = new URI(request.getUrl());
 
-			String rtmpUrl = "rtmp://" + url.getHost() + "/" + url.getPath();
+			String rtmpUrl = "rtmp://" + url.getHost() + url.getPath();
 
 			logger.debug("rtmp url is: " + rtmpUrl);
 			logger.debug("on request describe host: " + url.getHost() + " path:" + url.getPath());
@@ -449,48 +450,21 @@ public class RtspConnection  extends RTMPMinaConnection {
 				response.setHeader(RtspHeaderCode.Server, "RtspServer");
 
 				//TODO: do this job with a task in an executor
-				AVFormatContext inputFormatContext = new AVFormatContext(null);
-				int ret = avformat_open_input(inputFormatContext, rtmpUrl, null, null);
-				if (ret == 0) {
-					byte[] sdpData = new byte[16384];
-					//pFormatCtx.nb_streams()
+				
+				frameSender = new PacketSenderRunnable();
+				String sdpDescription = frameSender.getSdpDescription(rtmpUrl);
+				if (sdpDescription != null) 
+				{
+					int streamCount = frameSender.getStreamCount();
+					serverPort = new int[streamCount][2];
+					clientPort = new int[streamCount][2];
+					StringBuffer sdp = new StringBuffer();
+					sdp.append(new String(sdpDescription));
+					response.setHeader(RtspHeaderCode.ContentLength, String.valueOf(sdp.length()));
+					response.setBuffer(sdp);
 
-					if (avformat_find_stream_info(inputFormatContext, (PointerPointer)null) >= 0) {
-						logger.warn("avformat_find_stream_info for " + rtmpUrl);
-						if (av_sdp_create(inputFormatContext, inputFormatContext.nb_streams(), sdpData, sdpData.length) == 0) 
-						{
-							String sdpString = new String(sdpData);
-							logger.warn("sdp description is " + sdpString);
-							if (sdpString.indexOf("rtpmap") != -1) {
-
-								serverPort = new int[inputFormatContext.nb_streams()][2];
-								clientPort = new int[inputFormatContext.nb_streams()][2];
-								StringBuffer sdp = new StringBuffer();
-								sdp.append(new String(sdpData));
-								response.setHeader(RtspHeaderCode.ContentLength, String.valueOf(sdp.length()));
-								response.setBuffer(sdp);
-								frameSender = new PacketSenderRunnable(inputFormatContext);
-							}
-							else {
-								response.setCode(RtspCode.NoSuchContent);
-								logger.warn("cannot find stream info correctly in the context");
-							}
-						}
-						else {
-							response.setCode(RtspCode.InternalServerError);
-							logger.warn("cannot find stream info in the context");
-						}
-					}
-					else {
-						response.setCode(RtspCode.InternalServerError);
-						logger.warn("could not get sdp info of " + rtmpUrl);
-					}
 				}
 				else {
-					byte[] data = new byte[4096];
-					avutil.av_strerror(ret, data, data.length);
-					logger.warn("could not opened file " + rtmpUrl + " error code:" + ret
-							+ " description: " + new String(data));
 					response.setCode(RtspCode.InternalServerError);
 				}
 			}
