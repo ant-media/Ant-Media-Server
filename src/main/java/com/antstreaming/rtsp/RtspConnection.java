@@ -88,7 +88,7 @@ import com.antstreaming.rtsp.protocol.RTSPTransport.LowerTransport;
 import com.antstreaming.rtsp.protocol.RtspRequest.Verb;
 import com.antstreaming.rtsp.session.DateUtil;
 
-public class RtspConnection  extends RTMPMinaConnection {
+public class RtspConnection  extends RTMPMinaConnection implements IMuxerListener {
 
 	private Logger logger = LoggerFactory.getLogger(RtspConnection.class);
 
@@ -387,7 +387,15 @@ public class RtspConnection  extends RTMPMinaConnection {
 
 		if (response.getCode() == RtspCode.OK) {
 			logger.warn("starting to play");
-			mPacketSenderScheduledFuture = mTaskScheduler.scheduleAtFixedRate(frameSender, 10);
+			mTaskScheduler.schedule(new Runnable() {
+				
+				@Override
+				public void run() {
+					frameSender.reinitialize();
+					mPacketSenderScheduledFuture = mTaskScheduler.scheduleAtFixedRate(frameSender, 10);
+					
+				}
+			}, new Date());
 			
 			//convert seektime from micro seconds to nano seconds
 		}
@@ -408,9 +416,9 @@ public class RtspConnection  extends RTMPMinaConnection {
 	}
 
 
-	private void onDescribe(IoSession session, RtspRequest request) {
+	private void onDescribe(final IoSession session, RtspRequest request) {
 		//TODO: call context playback security here
-		RtspResponse response = new RtspResponse();
+		final RtspResponse response = new RtspResponse();
 		String cseq = request.getHeader(RtspHeaderCode.CSeq);
 		if (null != cseq && !"".equals(cseq)) {
 			response.setHeader(RtspHeaderCode.CSeq, cseq);
@@ -420,7 +428,7 @@ public class RtspConnection  extends RTMPMinaConnection {
 		try {
 			url = new URI(request.getUrl());
 
-			String rtmpUrl = "rtmp://" + url.getHost() + url.getPath();
+			final String rtmpUrl = "rtmp://" + url.getHost() + url.getPath();
 
 			logger.debug("rtmp url is: " + rtmpUrl);
 			logger.debug("on request describe host: " + url.getHost() + " path:" + url.getPath());
@@ -450,29 +458,38 @@ public class RtspConnection  extends RTMPMinaConnection {
 				response.setHeader(RtspHeaderCode.Server, "RtspServer");
 
 				//TODO: do this job with a task in an executor
+				frameSender = new PacketSenderRunnable(this);
 				
-				frameSender = new PacketSenderRunnable();
-				String sdpDescription = frameSender.getSdpDescription(rtmpUrl);
-				if (sdpDescription != null) 
-				{
-					int streamCount = frameSender.getStreamCount();
-					serverPort = new int[streamCount][2];
-					clientPort = new int[streamCount][2];
-					StringBuffer sdp = new StringBuffer();
-					sdp.append(new String(sdpDescription));
-					response.setHeader(RtspHeaderCode.ContentLength, String.valueOf(sdp.length()));
-					response.setBuffer(sdp);
-
-				}
-				else {
-					response.setCode(RtspCode.InternalServerError);
-				}
+				mPacketSenderScheduledFuture = mTaskScheduler.schedule(new Runnable() {
+					
+					@Override
+					public void run() {
+						
+						String sdpDescription = frameSender.getSdpDescription(rtmpUrl);
+						if (sdpDescription != null) 
+						{
+							int streamCount = frameSender.getStreamCount();
+							serverPort = new int[streamCount][2];
+							clientPort = new int[streamCount][2];
+							StringBuffer sdp = new StringBuffer();
+							sdp.append(new String(sdpDescription));
+							response.setHeader(RtspHeaderCode.ContentLength, String.valueOf(sdp.length()));
+							response.setBuffer(sdp);
+							session.write(response);
+						}
+						else {
+							response.setCode(RtspCode.InternalServerError);
+							session.write(response);
+						}
+						
+					}
+				}, new Date());
+				
 			}
 			else {
 				response.setCode(RtspCode.NotFound);
+				session.write(response);
 			}
-			session.write(response);
-
 
 		} catch (URISyntaxException e) {
 			e.printStackTrace();
@@ -816,6 +833,13 @@ public class RtspConnection  extends RTMPMinaConnection {
 			mPacketReceiverScheduledFuture.cancel(false);
 		}
 
+	}
+	
+	public void muxingFinished(Runnable runnable) {
+		if (mPacketSenderScheduledFuture != null && mPacketSenderScheduledFuture.isDone() == false) {
+			logger.debug("cancelling packet sender scheduledFuture");
+			mPacketSenderScheduledFuture.cancel(false);
+		}
 	}
 
 

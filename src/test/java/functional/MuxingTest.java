@@ -20,6 +20,11 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.red5.server.scope.WebScope;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
+
+import com.antstreaming.rtsp.PacketSenderRunnable;
+
 import org.apache.commons.io.FileUtils;
 import org.bytedeco.javacpp.avcodec.*;
 import static org.bytedeco.javacpp.avcodec.*;
@@ -27,7 +32,7 @@ import static org.bytedeco.javacpp.avcodec.*;
 public class MuxingTest {
 
 
-	private static final String FULL_RED5_PATH = "/Users/mekya/softwares/red5-server";
+	private static final String FULL_RED5_PATH = "/home/faraklit/softwares/red5-server";
 	private static final String FULL_FFMPEG_BIN_PATH = "/usr/local/bin";
 
 	private static Process red5Process;
@@ -63,11 +68,14 @@ public class MuxingTest {
 			assertTrue(testFile("http://localhost:5080/vod/streams/" + streamName + ".mp4", 10000));
 
 			//check that stream can be playable with rtsp
-			assertTrue(testFile("rtsp://127.0.0.1:5554/vod/" + streamName + ".mp4", 10000));
+			assertTrue(testFile("rtsp://127.0.0.1:5554/vod/" + streamName + ".mp4", true));
 
 
-			assertTrue(testFile("rtsp://127.0.0.1:5554/vod/" + streamName + ".mp4", 10000));
+			assertTrue(testFile("rtsp://127.0.0.1:5554/vod/" + streamName + ".mp4"));
 
+			
+			Thread.sleep(1000);
+			
 
 		}
 		catch (Exception e) {
@@ -95,7 +103,7 @@ public class MuxingTest {
 			//stop rtmp streaming 
 			rtmpSendingProcess.destroy();
 
-			Thread.sleep(5000);
+			Thread.sleep(8000);
 
 			//TODO: check that when stream is requested with rtsp, server should not be shutdown
 			boolean testResult = testFile("rtsp://127.0.0.1:5554/vod/" + streamName + ".mp4");
@@ -184,24 +192,23 @@ public class MuxingTest {
 
 			//check that stream can be watchable by rtsp
 			//use ipv4 address to play rtsp stream
-			boolean testResult = testFile("rtsp://127.0.0.1:5554/vod/" + streamName);
-			assertTrue(testResult);
+			assertTrue(testFile("rtsp://127.0.0.1:5554/vod/" + streamName));
 
 
 			//check that stream can be watchable by hls
-			testResult = testFile("http://localhost:5080/vod/streams/" + streamName + ".m3u8");
-			assertTrue(testResult);
+			assertTrue(testFile("http://localhost:5080/vod/streams/" + streamName + ".m3u8"));
 			//
 			//			//stop rtsp streaming 
 			rtspSendingProcess.destroy();
 
 
+			
 			Thread.sleep(15000);
 
 			assertTrue(testFile("rtmp://localhost/vod/" + streamName ));
 
 
-			assertTrue(testFile("rtsp://127.0.0.1:5554/vod/" + streamName + ".mp4"));
+			assertTrue(testFile("rtsp://127.0.0.1:5554/vod/" + streamName + ".mp4", true));
 
 			//check that mp4 is created successfully and can be playable
 			assertTrue(testFile("http://localhost:5080/vod/streams/" + streamName + ".mp4"));
@@ -302,10 +309,8 @@ public class MuxingTest {
 			fail(e.getMessage());
 			e.printStackTrace();
 		}
-
-
 	}
-
+	
 
 
 	@Test
@@ -326,7 +331,7 @@ public class MuxingTest {
 			assertTrue(testResult);
 
 
-			testResult = testFile("rtmp://localhost/vod/" + streamName + " live=1");
+			testResult = testFile("rtmp://localhost/vod/" + streamName);
 			assertTrue(testResult);	
 
 			//check that stream can be watchable by hls
@@ -353,10 +358,17 @@ public class MuxingTest {
 
 
 	private boolean testFile(String absolutePath) {
-		return testFile(absolutePath, 0);
+		return testFile(absolutePath, 0, false);
+	}
+	
+	private boolean testFile(String absolutePath, boolean fullRead) {
+		return testFile(absolutePath, 0, fullRead);
 	}
 
 	private boolean testFile(String absolutePath, int expectedDurationInMS) {
+		return testFile(absolutePath, expectedDurationInMS, false);
+	}
+	private boolean testFile(String absolutePath, int expectedDurationInMS, boolean fullRead) {
 		int ret;
 
 		AVFormatContext inputFormatContext = avformat.avformat_alloc_context();
@@ -378,28 +390,40 @@ public class MuxingTest {
 		}
 
 		int streamCount = inputFormatContext.nb_streams();
-
+		
+		if (streamCount == 0) {
+			return false;
+		}
+		
+		boolean streamExists = false;
 		for (int i = 0; i < streamCount; i++) {
 			AVCodecContext codecContext = inputFormatContext.streams(i).codec();
 			if (codecContext.codec_type() ==  AVMEDIA_TYPE_VIDEO) {
 				assertTrue(codecContext.width() != 0);
 				assertTrue(codecContext.height() != 0);
 				assertTrue(codecContext.pix_fmt() != AV_PIX_FMT_NONE);
+				streamExists = true;
 			}
 			else if (codecContext.codec_type() ==  AVMEDIA_TYPE_AUDIO) {
 				//TODO:
 				assertTrue(codecContext.sample_rate() != 0);
+				streamExists = true;
 			}
 		}
+		if (!streamExists) {
+			return streamExists;
+		}
 
-		for(int i = 0; i< 3; i++) {
+		int i = 0;
+		while (fullRead || i < 3){
 			AVPacket pkt = new AVPacket();
 			ret = av_read_frame(inputFormatContext, pkt);
 
 			if (ret < 0) {
-				System.out.println("Could not read packet\n");
-				return false;
+				break;
+				
 			}
+			i++;
 			av_packet_unref(pkt);
 		}
 
@@ -408,9 +432,9 @@ public class MuxingTest {
 			long durationInMS = inputFormatContext.duration() / 1000;
 
 			if (expectedDurationInMS != 0) {
-				if ((durationInMS < (expectedDurationInMS - 1000)) || 
-						(durationInMS > (expectedDurationInMS + 1000))) {
-					System.out.println("duration of the stream: " + durationInMS);
+				if ((durationInMS < (expectedDurationInMS - 2000)) || 
+						(durationInMS > (expectedDurationInMS + 2000))) {
+					System.out.println("Failed: duration of the stream: " + durationInMS);
 					return false;
 				}
 			}
@@ -461,7 +485,7 @@ public class MuxingTest {
 		av_register_all();
 		avformat_network_init();
 
-		String path = "./red5.sh";
+		String path = "./red5-debug.sh";
 		String osName = System.getProperty("os.name").toLowerCase(Locale.ENGLISH);
 
 		try {

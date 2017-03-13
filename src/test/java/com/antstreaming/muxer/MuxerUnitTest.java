@@ -37,19 +37,21 @@ import org.red5.io.mp4.impl.MP4Reader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 import org.springframework.util.ResourceUtils;
 
 import com.antstreaming.muxer.MuxAdaptor.ReadCallback;
+import com.antstreaming.rtsp.PacketSenderRunnable;
 
 @ContextConfiguration(locations = { 
 		"test.xml" 
 })
 //@ContextConfiguration(classes = {AppConfig.class})
-public class Mp4MuxerTest extends AbstractJUnit4SpringContextTests{
+public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
-	protected static Logger logger = LoggerFactory.getLogger(Mp4MuxerTest.class);
+	protected static Logger logger = LoggerFactory.getLogger(MuxerUnitTest.class);
 
 	private WebScope appScope;
 
@@ -66,7 +68,7 @@ public class Mp4MuxerTest extends AbstractJUnit4SpringContextTests{
 	@BeforeClass
 	public static void beforeClass() {
 		avformat.av_register_all();
-		//	avformat.avformat_network_init();
+		avformat.avformat_network_init();
 
 		File webApps = new File("webapps");
 		if (!webApps.exists()) {
@@ -162,15 +164,7 @@ public class Mp4MuxerTest extends AbstractJUnit4SpringContextTests{
 		}
 	};
 
-
-	//TODO: write production test code for mp4 and hls
-	//check that red5.properties autorecording mp4 is set correctly
-	//check that red5.properties autorecording hls is set correctly
-	//start a live stream and check that mp4 and hls is working correclyt
-
 	//TODO: when prepare fails, there is memorly leak or thread leak?
-
-
 	
 	
 	@Test
@@ -371,6 +365,65 @@ public class Mp4MuxerTest extends AbstractJUnit4SpringContextTests{
 		}
 
 	}
+	
+	@Test
+	public void testRTSPMuxing() {
+		
+		if (appScope == null) {
+			appScope = (WebScope) applicationContext.getBean("web.scope");
+			logger.debug("Application / web scope: {}", appScope);
+			assertTrue(appScope.getDepth() == 1);
+		}
+		
+		try {
+			
+			File file = new File("target/test-classes/test.flv"); //ResourceUtils.getFile(this.getClass().getResource("test.flv"));
+			PacketSenderRunnable rtspPacketSender = new PacketSenderRunnable(null);
+			
+			String sdpDescription = rtspPacketSender.getSdpDescription(file.getAbsolutePath());
+			assertNotNull(sdpDescription);
+			assertTrue(sdpDescription.length() > 0 );
+			int[] clientPort = new int[2];
+			clientPort[0] = 23458;
+			clientPort[1] = 45567;
+			int[] serverPort = new int[2];
+			boolean result = rtspPacketSender.prepare_output_context(0, "127.0.0.1", clientPort, serverPort);
+			assertTrue(result);
+			
+			int[] clientPort2 = new int[2];
+			clientPort2[0] = 23452;
+			clientPort2[1] = 44557;
+			int[] serverPort2 = new int[2];
+			result = rtspPacketSender.prepare_output_context(1, "127.0.0.1", clientPort2, serverPort2);
+			assertTrue(result);
+			
+			ThreadPoolTaskScheduler scheduler = (ThreadPoolTaskScheduler) applicationContext.getBean("scheduler");
+			assertNotNull(scheduler);
+			
+			scheduler.scheduleAtFixedRate(rtspPacketSender, 10);
+			
+			Thread.sleep(10000);
+			
+			
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
+	@Test
+	public void testSDPCreateBug() 
+	{
+		String file = "target/test-classes/test.flv";
+		PacketSenderRunnable packetSender = new PacketSenderRunnable(null);
+		String sdpDescription = packetSender.getSdpDescription(file);
+		assertNotNull(sdpDescription);
+		assertTrue(sdpDescription.length() > 0 );
+		System.out.println(sdpDescription);
+		
+	}
+	
+	
 
 	private void testFile(String absolutePath) {
 		int ret;

@@ -201,6 +201,25 @@ public class PacketReceiverRunnable implements Runnable {
 
 			AVStream in_stream = inputFormatCtx.streams(packetIndex);
 			AVStream out_stream2 = outputRTMPFormatContext.streams(packetIndex);
+			
+		//	if (pkt.dts() != avutil.AV_NOPTS_VALUE && lastDTS[packetIndex] == -1) {
+		//		lastDTS[packetIndex] = pkt.dts();
+		//	}
+			if (pkt.dts() < 0) {
+				continue;
+			}
+			
+			if (lastDTS[packetIndex] >= pkt.dts()) {
+				logger.warn("dts timestamps are not in correct order last dts:"  + lastDTS[packetIndex] 
+						+ " current dts:" + pkt.dts() + " fixing problem by adding offset");
+
+				pkt.dts(lastDTS[packetIndex] + 1);
+			}
+
+			lastDTS[packetIndex] = pkt.dts();
+			if (pkt.dts() > pkt.pts()) {
+				pkt.pts(pkt.dts());
+			}
 
 			//sending rtmp
 			pkt.pts(av_rescale_q_rnd(pkt.pts(), in_stream.time_base(), out_stream2.time_base(), AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));

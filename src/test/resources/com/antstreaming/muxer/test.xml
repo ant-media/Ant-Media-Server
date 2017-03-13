@@ -105,6 +105,13 @@
 		<property name="configFile"
 			value="${user.dir}/src/main/server/conf/quartz.properties" />
 	</bean>
+	
+    <bean id="scheduler" class="org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler">
+        <property name="poolSize" value="20" />
+        <property name="daemon" value="true" />
+        <property name="waitForTasksToCompleteOnShutdown" value="true" />
+        <property name="threadNamePrefix" value="ConnectionScheduler-" />
+    </bean>
 
 
 	<bean id="muxerScheduler"

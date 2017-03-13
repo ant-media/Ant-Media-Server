@@ -25,12 +25,16 @@ import static org.bytedeco.javacpp.avutil.av_rescale_q;
 import static org.bytedeco.javacpp.avutil.av_rescale_q_rnd;
 import static org.bytedeco.javacpp.avcodec.*;
 
+import java.lang.annotation.Annotation;
+import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.bytedeco.javacpp.BytePointer;
 import org.bytedeco.javacpp.PointerPointer;
 import org.bytedeco.javacpp.avformat;
 import org.bytedeco.javacpp.avutil;
+import org.bytedeco.javacpp.annotation.ByPtrPtr;
 import org.bytedeco.javacpp.avcodec.AVCodecParameters;
 import org.bytedeco.javacpp.avcodec.AVPacket;
 import org.bytedeco.javacpp.avformat.AVFormatContext;
@@ -42,11 +46,12 @@ import org.bytedeco.javacpp.avutil.AVRational;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+
 public class PacketSenderRunnable implements Runnable {
 
-	
+
 	AVPacket pkt = new AVPacket();
-	
+
 	int packetIndex = 0;
 
 	long packetSentTime = 0;
@@ -63,6 +68,12 @@ public class PacketSenderRunnable implements Runnable {
 	private boolean finish;
 	private String rtmpUrl;
 
+	private IMuxerListener muxerListener;
+
+
+	public PacketSenderRunnable(IMuxerListener muxerListener) {
+		this.muxerListener = muxerListener;
+	}
 
 	public int seek(long seekTime) {
 		return avformat.av_seek_frame(inputFormatContext, -1, seekTime, avformat.AVSEEK_FLAG_FRAME);
@@ -149,7 +160,7 @@ public class PacketSenderRunnable implements Runnable {
 		}
 		return true;
 	}
-/*
+	/*
 	public void getRtspStream() {
 
 		AVFormatContext pFormatCtx = new AVFormatContext(null);
@@ -269,31 +280,32 @@ public class PacketSenderRunnable implements Runnable {
 		// Close the video file
 		avformat_close_input(pFormatCtx);
 	}
-*/
+	 */
 
 	@Override
 	public void run() {
 		try {
-			if (!isRunning.compareAndSet(false, true)) {
+			if (!isRunning.compareAndSet(false, true) || inputFormatContext == null) {
 				return;
 			}
 
 			synchronized (this) {
-				
 
 				AVStream in_stream, out_stream;
 				if (bufferFree) 
 				{
 					int ret = av_read_frame(inputFormatContext, pkt);
 					if (ret < 0) {
-						logger.warn("cannot read frame, closing muxer");
+						byte[] data = new byte[4096];
+						avutil.av_strerror(ret, data, data.length);
+						logger.warn("cannot read frame, closing muxer. Error: " + new String(data));
+
 						closeMuxer(true);
 						return;
 					}
 					packetIndex = pkt.stream_index();
 
 					in_stream  = inputFormatContext.streams(packetIndex);
-
 
 					if (outputFormatContext[packetIndex] == null) {
 						//pass this packet, stream is likely not supported in rtp
@@ -318,7 +330,7 @@ public class PacketSenderRunnable implements Runnable {
 
 					//stream index is always zero because rtp can contain one stream
 					pkt.stream_index(0);
-					
+
 				}
 
 
@@ -331,10 +343,9 @@ public class PacketSenderRunnable implements Runnable {
 
 				if (packetSentTime <= (firstPacketSentTime + timeDiff)) 
 				{
-
 					int ret = av_write_frame(outputFormatContext[packetIndex], pkt);
 					if (ret < 0) {
-						System.out.println("Error muxing packet with error: " + ret);
+						logger.warn("Error muxing packet with error: " + ret);
 					}
 					av_packet_unref(pkt);
 					bufferFree = true;
@@ -382,9 +393,11 @@ public class PacketSenderRunnable implements Runnable {
 			outputFormatContext = null;
 		}
 		if (inputFormatContext != null && finishProcess) {
-			logger.warn("avformat_close_input finish process");
 			avformat_close_input(inputFormatContext);
 			inputFormatContext = null;
+		}
+		if (this.muxerListener != null) {
+			this.muxerListener.muxingFinished(this);
 		}
 	}
 
@@ -406,10 +419,13 @@ public class PacketSenderRunnable implements Runnable {
 		return inputFormatContext.nb_streams();
 	}
 
-
 	public String getSdpDescription(String rtmpUrl) {
+		return getSdpDescription(rtmpUrl, true);
+	}
+
+	public String getSdpDescription(String rtmpUrl, boolean createSDP) {
 		this.rtmpUrl = rtmpUrl;
-		inputFormatContext = new AVFormatContext(null);
+		inputFormatContext = avformat.avformat_alloc_context();
 		int ret = avformat_open_input(inputFormatContext, rtmpUrl, null, null);
 		if (ret < 0) {
 			byte[] data = new byte[4096];
@@ -419,9 +435,7 @@ public class PacketSenderRunnable implements Runnable {
 			return null;
 		}
 
-		byte[] sdpData = new byte[16384];
 
-		
 		ret = avformat_find_stream_info(inputFormatContext, (PointerPointer)null); 
 		if (ret < 0) {
 			byte[] data = new byte[4096];
@@ -431,23 +445,36 @@ public class PacketSenderRunnable implements Runnable {
 			return null;
 		}
 
-		ret = av_sdp_create(inputFormatContext, inputFormatContext.nb_streams(), sdpData, sdpData.length) ;
-		if (ret < 0) {
-			byte[] data = new byte[4096];
-			avutil.av_strerror(ret, data, data.length);
-			logger.warn("could not create sdp " + rtmpUrl + " error code:" + ret
-					+ " description: " + new String(data));
-			return null;
+		if (createSDP) {
+			byte[] sdpData = new byte[16384];
+
+			ret = av_sdp_create(inputFormatContext, 1, sdpData, 2048) ;
+			if (ret < 0) {
+				byte[] data = new byte[4096];
+				avutil.av_strerror(ret, data, data.length);
+				logger.warn("could not create sdp " + rtmpUrl + " error code:" + ret
+						+ " description: " + new String(data));
+				return null;
+			}
+
+			String sdpString = new String(sdpData);
+
+			if (sdpString.indexOf("rtpmap") == -1) {
+				logger.warn("sdp description does not have rtpmap field");
+				return null;
+			}
+
+			return sdpString.trim();
 		}
+		return null;
+	}
 
-		String sdpString = new String(sdpData);
-
-		if (sdpString.indexOf("rtpmap") == -1) {
-			logger.warn("sdp description does not have rtpmap field");
-			return null;
+	public void reinitialize() {
+		if (inputFormatContext != null) {
+			avformat_close_input(inputFormatContext);
+			inputFormatContext = null;
 		}
-
-		return sdpString;
+		getSdpDescription(rtmpUrl, false);
 
 	}
 

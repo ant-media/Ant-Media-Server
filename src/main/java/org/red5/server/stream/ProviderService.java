@@ -236,7 +236,7 @@ public class ProviderService implements IProviderService {
             file = null;
         }
         
-        if (file == null) {
+        if (file == null && flvName != null) {
         	//if file is null and flvName is not null, look up if flv file exists
         	file = getStreamFile(scope, flvName);
         }
