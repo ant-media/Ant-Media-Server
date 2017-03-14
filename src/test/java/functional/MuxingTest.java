@@ -32,7 +32,7 @@ import static org.bytedeco.javacpp.avcodec.*;
 public class MuxingTest {
 
 
-	private static final String FULL_RED5_PATH = "/home/faraklit/softwares/red5-server";
+	private static final String FULL_RED5_PATH = "/Users/mekya/softwares/red5-server";
 	private static final String FULL_FFMPEG_BIN_PATH = "/usr/local/bin";
 
 	private static Process red5Process;
