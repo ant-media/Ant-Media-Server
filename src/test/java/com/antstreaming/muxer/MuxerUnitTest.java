@@ -11,6 +11,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -30,6 +31,8 @@ import org.red5.server.api.stream.IStreamPacket;
 import org.red5.server.scheduling.QuartzSchedulingService;
 import org.red5.server.scope.WebScope;
 import org.junit.Test;
+import org.red5.codec.AudioCodec;
+import org.red5.codec.VideoCodec;
 import org.red5.io.ITag;
 import org.red5.io.flv.impl.FLVReader;
 import org.red5.io.flv.impl.FLVWriter;
@@ -42,8 +45,9 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 import org.springframework.util.ResourceUtils;
 
-import com.antstreaming.muxer.MuxAdaptor.ReadCallback;
 import com.antstreaming.rtsp.PacketSenderRunnable;
+
+import functional.MuxingTest;
 
 @ContextConfiguration(locations = { 
 		"test.xml" 
@@ -63,7 +67,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 	//TODO: rtsp ile yayın yapılacak, rtmp ile hls ile ve rtsp ile izlenecek
 	//TODO: rtsp yayını bitince mp4 dosyası kontrol edilecek
 	//TODO: desteklenmeyen bir codec ile rtsp datası gelince muxer bunu kontrol edecek
-		
+
 
 	@BeforeClass
 	public static void beforeClass() {
@@ -87,11 +91,11 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 	@AfterClass
 	public static void afterClass() {
-		try {
-			delete(new File("webapps"));
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+		//		try {
+		//			delete(new File("webapps"));
+		//		} catch (IOException e) {
+		//			e.printStackTrace();
+		//		}
 	}
 
 	public static void delete(File file)
@@ -158,18 +162,18 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 		public IoBuffer getData() {
 			return data;
 		}
-		
+
 		public void setData(IoBuffer data) {
 			this.data = data;
 		}
 	};
 
 	//TODO: when prepare fails, there is memorly leak or thread leak?
-	
-	
+
+
 	@Test
 	public void testMuxingSimultaneously()  {
-		
+
 		MuxAdaptor muxAdaptor = new MuxAdaptor(null);
 		muxAdaptor.addMuxer(new Mp4Muxer());
 		muxAdaptor.addMuxer(new HLSMuxer());
@@ -197,9 +201,9 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 			boolean result = muxAdaptor.init(appScope, "test", false);
 			assertTrue(result);
-			
+
 			muxAdaptor.start();
-			
+
 			int i = 0;
 			while (flvReader.hasMoreTags()) 
 			{
@@ -207,7 +211,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 				StreamPacket streamPacket = new StreamPacket(readTag);
 				muxAdaptor.packetReceived(null, streamPacket);
 			}
-			
+
 			assertTrue(muxAdaptor.isRecording());
 
 			muxAdaptor.stop();
@@ -221,8 +225,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 			assertFalse(muxAdaptor.isRecording());
 
-			testFile(muxAdaptor.getMuxerList().get(0).getFile().getAbsolutePath());
-			testFile(muxAdaptor.getMuxerList().get(1).getFile().getAbsolutePath());
+			assertTrue(MuxingTest.testFile(muxAdaptor.getMuxerList().get(0).getFile().getAbsolutePath()));
+			assertTrue(MuxingTest.testFile(muxAdaptor.getMuxerList().get(1).getFile().getAbsolutePath()));
 
 		}
 		catch (Exception e) {
@@ -230,13 +234,87 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 		}
 
 	}
-	
-	
+
+
 	@Test
-	public void testMp4Muxing()  {
+	public void testStressMp4Muxing() {
+
+		if (appScope == null) {
+			appScope = (WebScope) applicationContext.getBean("web.scope");
+			logger.debug("Application / web scope: {}", appScope);
+			assertTrue(appScope.getDepth() == 1);
+		}
+
+		try {
+
+			ArrayList<String> fileList = new ArrayList();
+			int i = 0;
+			while (true) {
+				System.out.println("Starting mp4 muxing " + i);
+				File file = new File("target/test-classes/test.flv"); //ResourceUtils.getFile(this.getClass().getResource("test.flv"));
+				final FLVReader flvReader = new FLVReader(file);
+
+				MuxAdaptor muxAdaptor = new MuxAdaptor(null);
+				Mp4Muxer mp4Muxer = new Mp4Muxer();
+				mp4Muxer.setAddDateTimeToFileNames(true);
+				muxAdaptor.addMuxer(mp4Muxer);
+
+				logger.debug("f path: " + file.getAbsolutePath());
+				assertTrue(file.exists());
+
+				boolean result = muxAdaptor.init(appScope, "test", false);
+				assertTrue(result);
+
+
+				muxAdaptor.start();
+
+				while (flvReader.hasMoreTags()) 
+				{
+					ITag readTag = flvReader.readTag();
+					StreamPacket streamPacket = new StreamPacket(readTag);
+					muxAdaptor.packetReceived(null, streamPacket);
+
+				}
+
+
+				//		assertTrue(muxAdaptor.isRecording());
+
+				muxAdaptor.stop();
+
+				flvReader.close();
+
+				muxAdaptor = null;
+
+				fileList.add(mp4Muxer.getFile().getAbsolutePath());
+				i++;
+				if (i == 2) {
+					break;
+				}
+			}
+
+			Thread.sleep(5000);
+
+			for(String filePath : fileList) {
+				logger.info("testing file: " + filePath);
+				assertTrue(MuxingTest.testFile(filePath, 697000));
+			}
+
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+		}
+
+
+
+	}
+
+	@Test
+	public void testMp4Muxing() {
 
 		MuxAdaptor muxAdaptor = new MuxAdaptor(null);
-		muxAdaptor.addMuxer(new Mp4Muxer());
+		Mp4Muxer muxer = new Mp4Muxer();
+		muxer.setAddDateTimeToFileNames(true);
+		muxAdaptor.addMuxer(muxer);
 
 		if (appScope == null) {
 			appScope = (WebScope) applicationContext.getBean("web.scope");
@@ -274,6 +352,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 			}
 
+			Thread.sleep(100);
+
 			assertEquals(scheduler.getScheduledJobNames().size(), 1);
 			assertTrue(muxAdaptor.isRecording());
 
@@ -286,19 +366,20 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 			}
 
 			assertFalse(muxAdaptor.isRecording());
-			
+
 			assertEquals(scheduler.getScheduledJobNames().size(), 0);
-			
-			testFile(muxAdaptor.getMuxerList().get(0).getFile().getAbsolutePath());
+
+			assertTrue(MuxingTest.testFile(muxAdaptor.getMuxerList().get(0).getFile().getAbsolutePath()));
 
 		}
 		catch (Exception e) {
+			e.printStackTrace();
 			fail("exception:" + e );
 		}
 
 	}
 
-	
+
 
 
 
@@ -353,11 +434,11 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 			assertFalse(muxAdaptor.isRecording());
 			assertEquals(scheduler.getScheduledJobNames().size(), 0);
-			
+
 			File hlsFile = muxAdaptor.getMuxerList().get(0).getFile();
-			
-			testFile(hlsFile.getAbsolutePath());
-			
+
+			assertTrue(MuxingTest.testFile(hlsFile.getAbsolutePath()));
+
 
 		}
 		catch (Exception e) {
@@ -365,21 +446,21 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 		}
 
 	}
-	
+
 	@Test
 	public void testRTSPMuxing() {
-		
+
 		if (appScope == null) {
 			appScope = (WebScope) applicationContext.getBean("web.scope");
 			logger.debug("Application / web scope: {}", appScope);
 			assertTrue(appScope.getDepth() == 1);
 		}
-		
+
 		try {
-			
+
 			File file = new File("target/test-classes/test.flv"); //ResourceUtils.getFile(this.getClass().getResource("test.flv"));
 			PacketSenderRunnable rtspPacketSender = new PacketSenderRunnable(null);
-			
+
 			String sdpDescription = rtspPacketSender.getSdpDescription(file.getAbsolutePath());
 			assertNotNull(sdpDescription);
 			assertTrue(sdpDescription.length() > 0 );
@@ -389,28 +470,28 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 			int[] serverPort = new int[2];
 			boolean result = rtspPacketSender.prepare_output_context(0, "127.0.0.1", clientPort, serverPort);
 			assertTrue(result);
-			
+
 			int[] clientPort2 = new int[2];
 			clientPort2[0] = 23452;
 			clientPort2[1] = 44557;
 			int[] serverPort2 = new int[2];
 			result = rtspPacketSender.prepare_output_context(1, "127.0.0.1", clientPort2, serverPort2);
 			assertTrue(result);
-			
+
 			ThreadPoolTaskScheduler scheduler = (ThreadPoolTaskScheduler) applicationContext.getBean("scheduler");
 			assertNotNull(scheduler);
-			
+
 			scheduler.scheduleAtFixedRate(rtspPacketSender, 10);
-			
+
 			Thread.sleep(10000);
-			
-			
+
+
 		}
 		catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
-	
+
 	@Test
 	public void testSDPCreateBug() 
 	{
@@ -420,31 +501,13 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 		assertNotNull(sdpDescription);
 		assertTrue(sdpDescription.length() > 0 );
 		System.out.println(sdpDescription);
-		
-	}
-	
-	
 
-	private void testFile(String absolutePath) {
-		int ret;
-		AVFormatContext inputFormatContext = avformat.avformat_alloc_context();
-		if (inputFormatContext == null) {
-			fail("cannot allocate input context");
-		}
-		
-		if ((ret = avformat_open_input(inputFormatContext, absolutePath, null, (AVDictionary)null)) < 0) {
-			fail("cannot open input context");
-		}
-		
-		ret = avformat_find_stream_info(inputFormatContext, (AVDictionary)null);
-		if (ret < 0) {
-			fail("Could not find stream information\n");
-		}
-		
-		avformat_close_input(inputFormatContext);
-		
 	}
-	
+
+
+
+
+
 
 
 }

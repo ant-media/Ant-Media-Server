@@ -357,18 +357,18 @@ public class MuxingTest {
 
 
 
-	private boolean testFile(String absolutePath) {
+	public static boolean testFile(String absolutePath) {
 		return testFile(absolutePath, 0, false);
 	}
 	
-	private boolean testFile(String absolutePath, boolean fullRead) {
+	public static boolean testFile(String absolutePath, boolean fullRead) {
 		return testFile(absolutePath, 0, fullRead);
 	}
 
-	private boolean testFile(String absolutePath, int expectedDurationInMS) {
+	public static boolean  testFile(String absolutePath, int expectedDurationInMS) {
 		return testFile(absolutePath, expectedDurationInMS, false);
 	}
-	private boolean testFile(String absolutePath, int expectedDurationInMS, boolean fullRead) {
+	public static boolean testFile(String absolutePath, int expectedDurationInMS, boolean fullRead) {
 		int ret;
 
 		AVFormatContext inputFormatContext = avformat.avformat_alloc_context();
