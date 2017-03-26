@@ -12,10 +12,13 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CopyOnWriteArraySet;
 
+import org.apache.jasper.tagplugins.jstl.core.ForEach;
 import org.apache.mina.core.buffer.IoBuffer;
 import org.bytedeco.javacpp.BytePointer;
 import org.bytedeco.javacpp.avformat;
@@ -24,8 +27,11 @@ import org.bytedeco.javacpp.avformat.AVFormatContext;
 import org.bytedeco.javacpp.avformat.AVIOContext;
 import org.bytedeco.javacpp.avutil.AVDictionary;
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.red5.io.utils.IOUtils;
+import org.red5.server.api.scheduling.IScheduledJob;
+import org.red5.server.api.scheduling.ISchedulingService;
 import org.red5.server.api.stream.IStreamListener;
 import org.red5.server.api.stream.IStreamPacket;
 import org.red5.server.scheduling.QuartzSchedulingService;
@@ -91,11 +97,11 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 	@AfterClass
 	public static void afterClass() {
-		//		try {
-		//			delete(new File("webapps"));
-		//		} catch (IOException e) {
-		//			e.printStackTrace();
-		//		}
+		try {
+			delete(new File("webapps"));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
 	public static void delete(File file)
@@ -235,7 +241,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 	}
 
-
 	@Test
 	public void testStressMp4Muxing() {
 
@@ -247,66 +252,71 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 		try {
 
-			ArrayList<String> fileList = new ArrayList();
-			int i = 0;
-			while (true) {
-				System.out.println("Starting mp4 muxing " + i);
-				File file = new File("target/test-classes/test.flv"); //ResourceUtils.getFile(this.getClass().getResource("test.flv"));
-				final FLVReader flvReader = new FLVReader(file);
-
+			List<MuxAdaptor> muxAdaptorList = new ArrayList();
+			for (int j = 0; j < 20; j++) {
 				MuxAdaptor muxAdaptor = new MuxAdaptor(null);
 				Mp4Muxer mp4Muxer = new Mp4Muxer();
 				mp4Muxer.setAddDateTimeToFileNames(true);
+				
 				muxAdaptor.addMuxer(mp4Muxer);
+				muxAdaptorList.add(muxAdaptor);
+			}
+			{
+				
+				File file = new File("target/test-classes/test.flv"); //ResourceUtils.getFile(this.getClass().getResource("test.flv"));
+				final FLVReader flvReader = new FLVReader(file);
 
 				logger.debug("f path: " + file.getAbsolutePath());
 				assertTrue(file.exists());
 
-				boolean result = muxAdaptor.init(appScope, "test", false);
-				assertTrue(result);
-
-
-				muxAdaptor.start();
-
+				for (Iterator iterator = muxAdaptorList.iterator(); iterator.hasNext();) {
+					MuxAdaptor muxAdaptor = (MuxAdaptor) iterator.next();
+					boolean result = muxAdaptor.init(appScope, "test" + (int)(Math.random() * 100), false);
+					assertTrue(result);
+					muxAdaptor.start();
+					logger.info("Mux adaptor instance " + muxAdaptor);
+				}
+			
+				
 				while (flvReader.hasMoreTags()) 
 				{
 					ITag readTag = flvReader.readTag();
 					StreamPacket streamPacket = new StreamPacket(readTag);
-					muxAdaptor.packetReceived(null, streamPacket);
-
+					for (MuxAdaptor muxAdaptor : muxAdaptorList) {
+						muxAdaptor.packetReceived(null, streamPacket);
+						streamPacket.getData().rewind();
+					}
+					
 				}
 
-
-				//		assertTrue(muxAdaptor.isRecording());
-
-				muxAdaptor.stop();
+				for (MuxAdaptor muxAdaptor : muxAdaptorList) {
+					muxAdaptor.stop();
+				}
+				
 
 				flvReader.close();
+			}
 
-				muxAdaptor = null;
+			Thread.sleep(15000);
 
-				fileList.add(mp4Muxer.getFile().getAbsolutePath());
-				i++;
-				if (i == 2) {
-					break;
+			for (MuxAdaptor muxAdaptor : muxAdaptorList) {
+				List<AbstractMuxer> muxerList = muxAdaptor.getMuxerList();
+				for (AbstractMuxer abstractMuxer : muxerList) {
+					assertTrue(MuxingTest.testFile(abstractMuxer.getFile().getAbsolutePath(), 697000));
 				}
+				
 			}
 
-			Thread.sleep(5000);
-
-			for(String filePath : fileList) {
-				logger.info("testing file: " + filePath);
-				assertTrue(MuxingTest.testFile(filePath, 697000));
-			}
 
 		}
 		catch (Exception e) {
+			
 			e.printStackTrace();
+			fail(e.getMessage());
 		}
 
-
-
 	}
+
 
 	@Test
 	public void testMp4Muxing() {
@@ -369,7 +379,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 			assertEquals(scheduler.getScheduledJobNames().size(), 0);
 
-			assertTrue(MuxingTest.testFile(muxAdaptor.getMuxerList().get(0).getFile().getAbsolutePath()));
+			assertTrue(MuxingTest.testFile(muxAdaptor.getMuxerList().get(0).getFile().getAbsolutePath(), 697000));
 
 		}
 		catch (Exception e) {
