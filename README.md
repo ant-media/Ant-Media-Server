@@ -26,6 +26,7 @@ Features comes with Red5+
 Red5+ server consists of new features resolving the content constraints as well as it uses the basic features of a media server. It can transform broadcasts into HLS format in order to solve the displaying problems of flash-based contents in browsers. In this way, live broadcasts can be played even in web browsers that do not support flash (Android and iOS). Another important feature of Red5+ media server is the capability of recording MP4. Therefore, recorded live broadcasts can be played in web browsers without loading any add-ons. Recording operations can be easily enabled or disabled with the commands shown below which is located in the conf/red5.properties file:
 
 broadcastream.auto.record.mp4=true
+
 broadcastream.auto.record.hls=true
 
 It can also broadcast and play RTSP. Broadcasts stream on the default RTSP port number 5554 and UDP.
