@@ -32,7 +32,7 @@ import static org.bytedeco.javacpp.avcodec.*;
 public class MuxingTest {
 
 
-	private static final String FULL_RED5_PATH = "/Users/mekya/softwares/red5-server";
+	private static final String FULL_RED5_PATH = "../../softwares/red5-server";
 	private static final String FULL_FFMPEG_BIN_PATH = "/usr/local/bin";
 
 	private static Process red5Process;
@@ -342,7 +342,7 @@ public class MuxingTest {
 			//stop rtmp streaming 
 			rtmpSendingProcess.destroy();
 
-			Thread.sleep(2000);
+			Thread.sleep(5000);
 
 			//check that mp4 is created successfully and can be playable
 			testResult = testFile("http://localhost:5080/vod/streams/" + streamName + ".mp4");
