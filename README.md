@@ -41,13 +41,11 @@ Automatic builds (Courtesy of Apache [OpenMeetings](http://openmeetings.apache.o
 
 # [Releases](https://github.com/ant-media/red5-plus-server/releases)
 
-
 ### Red5+ 1.0.1 Release (27 March 2017)
 [Tarball &amp; ZIP](https://github.com/ant-media/red5-plus-server/releases/tag/v1.0.1_red5_plus)
 
 ### Red5+ 1.0M Release (14 March 2017)
 [Tarball &amp; ZIP](https://github.com/ant-media/red5-plus-server/releases/tag/red5%2B_1.0)
-----------------
 ### Red5 1.0.8 Release (23 December 2016)
 [Tarball &amp; ZIP](https://github.com/Red5/red5-server/releases/tag/v1.0.8-RELEASE)
 
