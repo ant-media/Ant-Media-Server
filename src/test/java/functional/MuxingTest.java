@@ -342,7 +342,7 @@ public class MuxingTest {
 			//stop rtmp streaming 
 			rtmpSendingProcess.destroy();
 
-			Thread.sleep(2000);
+			Thread.sleep(5000);
 
 			//check that mp4 is created successfully and can be playable
 			testResult = testFile("http://localhost:5080/vod/streams/" + streamName + ".mp4");

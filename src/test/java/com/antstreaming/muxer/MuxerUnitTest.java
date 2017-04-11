@@ -9,6 +9,7 @@ import static org.junit.Assert.*;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -448,7 +449,18 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 			File hlsFile = muxAdaptor.getMuxerList().get(0).getFile();
 
 			assertTrue(MuxingTest.testFile(hlsFile.getAbsolutePath()));
-
+			
+			File dir = new File(hlsFile.getAbsolutePath()).getParentFile();
+		    File[] files = dir.listFiles(new FilenameFilter() {
+		        @Override
+		        public boolean accept(File dir, String name) {
+		            return name.endsWith(".ts");
+		        }
+		    });
+		    
+		    System.out.println("ts file count:" + files.length);
+			
+		    assertTrue(files.length == Integer.valueOf(HLSMuxer.HLS_LIST_SIZE));
 
 		}
 		catch (Exception e) {
