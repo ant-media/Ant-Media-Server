@@ -20,6 +20,16 @@ Additional features supported via plugin:
  * [WebSocket (ws and wss)](https://github.com/Red5/red5-websocket)
  * [RTSP (From Axis-type cameras)](https://github.com/Red5/red5-rtsp-restreamer)
  * [HLS](https://github.com/Red5/red5-hls-plugin)
+ 
+##### Features comes with Red5+
+
+Red5+ server consists of new features resolving the content constraints as well as it uses the basic features of a media server. It can transform broadcasts into HLS format in order to solve the displaying problems of flash-based contents in browsers. In this way, live broadcasts can be played even in web browsers that do not support flash (Android and iOS). Another important feature of Red5+ media server is the capability of recording MP4. Therefore, recorded live broadcasts can be played in web browsers without loading any add-ons. Recording operations can be easily enabled or disabled with the commands shown below which is located in the conf/red5.properties file:
+
+broadcastream.auto.record.mp4=true
+
+broadcastream.auto.record.hls=true
+
+It can also broadcast and play RTSP. Broadcasts stream on the default RTSP port number 5554 and UDP.
 
 The Red5 users list may be found here: [red5interest](https://groups.google.com/forum/#!forum/red5interest)
 
@@ -29,8 +39,13 @@ Automatic builds (Courtesy of Apache [OpenMeetings](http://openmeetings.apache.o
  * [Red5](https://builds.apache.org/view/M-R/view/OpenMeetings/job/Red5-server/)
  * [Windows Installer](https://builds.apache.org/view/M-R/view/OpenMeetings/job/red5-installer/)
 
-# [Releases](https://github.com/Red5/red5-server/releases/latest)
-----------------
+# [Releases](https://github.com/ant-media/red5-plus-server/releases)
+
+### Red5+ 1.0.1 Release (27 March 2017)
+[Tarball &amp; ZIP](https://github.com/ant-media/red5-plus-server/releases/tag/v1.0.1_red5_plus)
+
+### Red5+ 1.0M Release (14 March 2017)
+[Tarball &amp; ZIP](https://github.com/ant-media/red5-plus-server/releases/tag/red5%2B_1.0)
 ### Red5 1.0.8 Release (23 December 2016)
 [Tarball &amp; ZIP](https://github.com/Red5/red5-server/releases/tag/v1.0.8-RELEASE)
 

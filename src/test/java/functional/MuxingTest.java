@@ -32,7 +32,7 @@ import static org.bytedeco.javacpp.avcodec.*;
 public class MuxingTest {
 
 
-	private static final String FULL_RED5_PATH = "/Users/mekya/softwares/red5-server";
+	private static final String FULL_RED5_PATH = "../../softwares/red5-server";
 	private static final String FULL_FFMPEG_BIN_PATH = "/usr/local/bin";
 
 	private static Process red5Process;
@@ -73,9 +73,9 @@ public class MuxingTest {
 
 			assertTrue(testFile("rtsp://127.0.0.1:5554/vod/" + streamName + ".mp4"));
 
-			
+
 			Thread.sleep(1000);
-			
+
 
 		}
 		catch (Exception e) {
@@ -125,6 +125,33 @@ public class MuxingTest {
 		}
 		catch (Exception e) {
 			fail(e.getMessage());
+			e.printStackTrace();
+		}
+
+	}
+
+	@Test
+	public void testConcurrentStreaming() {
+		try {
+			String streamName1 = "conccurent" + (int)(Math.random() * 1000);
+			//make sure that ffmpeg is installed and in path
+			Process rtmpSendingProcess = execute(FULL_FFMPEG_BIN_PATH + "/ffmpeg -re -i src/test/resources/test.flv -acodec pcm_alaw -vcodec copy -f flv rtmp://localhost/vod/" + streamName1);
+
+			String streamName2 = "conccurent" + (int)(Math.random() * 1000);
+			Process rtmpSendingProcess2 = execute(FULL_FFMPEG_BIN_PATH + "/ffmpeg -re -i src/test/resources/test.flv -acodec pcm_alaw -vcodec copy -f flv rtmp://localhost/vod/" + streamName2);
+
+			Thread.sleep(15000);
+
+			rtmpSendingProcess.destroy();
+			rtmpSendingProcess2.destroy();
+			
+			Thread.sleep(7000);
+			
+			assertTrue(testFile("http://localhost:5080/vod/streams/" + streamName1 + ".mp4", 15000));
+			assertTrue(testFile("http://localhost:5080/vod/streams/" + streamName2 + ".mp4", 15000));
+			
+		}
+		catch (Exception e) {
 			e.printStackTrace();
 		}
 
@@ -202,7 +229,7 @@ public class MuxingTest {
 			rtspSendingProcess.destroy();
 
 
-			
+
 			Thread.sleep(15000);
 
 			assertTrue(testFile("rtmp://localhost/vod/" + streamName ));
@@ -310,7 +337,7 @@ public class MuxingTest {
 			e.printStackTrace();
 		}
 	}
-	
+
 
 
 	@Test
@@ -360,7 +387,7 @@ public class MuxingTest {
 	public static boolean testFile(String absolutePath) {
 		return testFile(absolutePath, 0, false);
 	}
-	
+
 	public static boolean testFile(String absolutePath, boolean fullRead) {
 		return testFile(absolutePath, 0, fullRead);
 	}
@@ -390,11 +417,11 @@ public class MuxingTest {
 		}
 
 		int streamCount = inputFormatContext.nb_streams();
-		
+
 		if (streamCount == 0) {
 			return false;
 		}
-		
+
 		boolean streamExists = false;
 		for (int i = 0; i < streamCount; i++) {
 			AVCodecContext codecContext = inputFormatContext.streams(i).codec();
@@ -421,7 +448,7 @@ public class MuxingTest {
 
 			if (ret < 0) {
 				break;
-				
+
 			}
 			i++;
 			av_packet_unref(pkt);
