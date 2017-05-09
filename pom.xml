@@ -6,14 +6,14 @@
         <version>1.0.9-M2</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
-    <artifactId>red5-server</artifactId>
-    <name>Red5 :: Server</name>
-    <description>The Red5 server</description>
+    <artifactId>ant-media-server</artifactId>
+    <name>Ant Media Server</name>
+    <description>Ant Media Server supports RTMP, RTSP, MP4, HLS and WebRTC based on Red5</description>
     <packaging>jar</packaging>
-    <url>https://github.com/Red5/red5-server</url>
+    <url>https://github.com/ant-media/Ant-Media-Server</url>
     <organization>
-        <name>Red5</name>
-        <url>https://github.com/Red5</url>
+        <name>Ant Media</name>
+        <url>https://github.com/ant-media/</url>
     </organization>
     <licenses>
         <license>
@@ -31,31 +31,13 @@
     </mailingLists>
     <issueManagement>
         <system>github</system>
-        <url>https://github.com/Red5/red5-server/issues</url>
+        <url>https://github.com/ant-media/Ant-Media-Server/issues</url>
     </issueManagement>
     <scm>
-        <url>https://github.com/Red5/red5-server.git</url>
-        <connection>scm:git:git@github.com:Red5/red5-server.git</connection>
-        <developerConnection>scm:git:git@github.com:Red5/red5-server.git</developerConnection>
+        <url>https://github.com/ant-media/Ant-Media-Server.git</url>
+        <connection>git@github.com:ant-media/Ant-Media-Server.git</connection>
+        <developerConnection>git@github.com:ant-media/Ant-Media-Server.git</developerConnection>
     </scm>
-    <developers>
-        <developer>
-            <id>Dominick Accattato</id>
-            <email>dominick@red5.org</email>
-        </developer>
-        <developer>
-            <id>Paul Gregoire</id>
-            <email>mondain@gmail.com</email>
-        </developer>
-        <developer>
-            <id>Dan Rossi</id>
-            <email>electroteque@gmail.com</email>
-        </developer>
-        <developer>
-            <id>Tiago Jacobs</id>
-            <email>tiago.jacobs@gmail.com</email>
-        </developer>
-    </developers>
     <properties>
         <build.dir>target</build.dir>
         <finalName>${project.artifactId}-${project.version}</finalName>
@@ -252,14 +234,14 @@
              </exclusions>
         </dependency>
         <dependency>
-            <groupId>org.red5</groupId>
-            <artifactId>red5-service</artifactId>
+            <groupId>io.antmedia</groupId>
+            <artifactId>ant-media-server-service</artifactId>
             <version>${project.version}</version>
             <type>jar</type>
         </dependency>
         <dependency>
-            <groupId>org.red5</groupId>
-            <artifactId>red5-service</artifactId>
+            <groupId>io.antmedia</groupId>
+            <artifactId>ant-media-server-service</artifactId>
             <version>${project.version}</version>
             <type>tar.gz</type>
             <classifier>daemon</classifier>
@@ -282,7 +264,7 @@
         </dependency>
         <!-- Runtime plugin deps -->
         <dependency>
-            <groupId>${project.groupId}</groupId>
+            <groupId>${project.parent.groupId}</groupId>
             <artifactId>tomcatplugin</artifactId>
             <version>${tomcatplugin.version}</version>
             <scope>provided</scope>
@@ -382,8 +364,8 @@
                                 <configuration>
                                     <artifactItems>
                                         <artifactItem>
-                                          <groupId>org.red5</groupId>
-                                          <artifactId>red5-service</artifactId>
+                                          <groupId>io.antmedia</groupId>
+                                          <artifactId>ant-media-server-service</artifactId>
                                           <version>${project.version}</version>
                                           <type>tar.gz</type>
                                           <classifier>daemon</classifier>
@@ -456,4 +438,5 @@
             </build>
         </profile>
     </profiles>
+    <groupId>io.antmedia</groupId>
 </project>

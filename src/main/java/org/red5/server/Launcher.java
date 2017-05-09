@@ -63,7 +63,7 @@ public class Launcher {
         // get the first logger
         Logger log = Red5LoggerFactory.getLogger(Launcher.class);
         // version info banner
-        log.info("{} (https://github.com/Red5)", Red5.getVersion());
+        log.info("{} (https://github.com/ant-media)", Red5.getVersion());
         if (log.isDebugEnabled()) {
             log.debug("fmsVer: {}", Red5.getFMSVersion());
         }
