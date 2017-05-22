@@ -52,6 +52,8 @@
 				<exclude>logback-access-*.jar</exclude>
 				<exclude>ant-media-server-service-${red5-service.version}.jar</exclude>
 				<exclude>red5-server-${red5-service.version}.jar</exclude>
+				<exclude>red5-server-1*.jar</exclude>
+				<exclude>red5-service-*.jar</exclude>
 				<exclude>ant-media-server-*.jar</exclude>
 				<exclude>ffmpeg-*.jar</exclude>
 				<exclude>javacpp-*.jar</exclude>

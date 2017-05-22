@@ -13,6 +13,7 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -55,6 +56,11 @@ import org.springframework.util.ResourceUtils;
 import com.antstreaming.rtsp.PacketSenderRunnable;
 
 import functional.MuxingTest;
+import io.antmedia.muxer.Muxer;
+//import io.antmedia.enterprise.ant_media_adaptive.TransraterAdaptor;
+import io.antmedia.muxer.HLSMuxer;
+import io.antmedia.muxer.Mp4Muxer;
+import io.antmedia.muxer.MuxAdaptor;
 
 @ContextConfiguration(locations = { 
 		"test.xml" 
@@ -182,8 +188,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 	public void testMuxingSimultaneously()  {
 
 		MuxAdaptor muxAdaptor = new MuxAdaptor(null);
-		muxAdaptor.addMuxer(new Mp4Muxer());
-		muxAdaptor.addMuxer(new HLSMuxer());
+		muxAdaptor.setMp4MuxingEnabled(true,false);
+		muxAdaptor.setHLSMuxingEnabled(true);
 
 		if (appScope == null) {
 			appScope = (WebScope) applicationContext.getBean("web.scope");
@@ -256,10 +262,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 			List<MuxAdaptor> muxAdaptorList = new ArrayList();
 			for (int j = 0; j < 20; j++) {
 				MuxAdaptor muxAdaptor = new MuxAdaptor(null);
-				Mp4Muxer mp4Muxer = new Mp4Muxer();
-				mp4Muxer.setAddDateTimeToFileNames(true);
-				
-				muxAdaptor.addMuxer(mp4Muxer);
+				muxAdaptor.setMp4MuxingEnabled(true, true);
 				muxAdaptorList.add(muxAdaptor);
 			}
 			{
@@ -301,8 +304,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 			Thread.sleep(15000);
 
 			for (MuxAdaptor muxAdaptor : muxAdaptorList) {
-				List<AbstractMuxer> muxerList = muxAdaptor.getMuxerList();
-				for (AbstractMuxer abstractMuxer : muxerList) {
+				List<Muxer> muxerList = muxAdaptor.getMuxerList();
+				for (Muxer abstractMuxer : muxerList) {
 					assertTrue(MuxingTest.testFile(abstractMuxer.getFile().getAbsolutePath(), 697000));
 				}
 				
@@ -317,15 +320,111 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 		}
 
 	}
+	
+	/*
+	@Test
+	public void testTransraterAdaptor() {
+		TransraterAdaptor adaptor = new TransraterAdaptor(null, Arrays.asList(720, 480, 360, 240));
+		adaptor.setMp4MuxingEnabled(true, false);
+		adaptor.setHLSMuxingEnabled(true);
+
+		
+		if (appScope == null) {
+			appScope = (WebScope) applicationContext.getBean("web.scope");
+			logger.debug("Application / web scope: {}", appScope);
+			assertTrue(appScope.getDepth() == 1);
+		}
+		
+		//File file = new File(getResource("test.mp4").getFile());
+		File file = null;
+
+		try {
+
+			QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
+			assertNotNull(scheduler);
+			assertEquals(scheduler.getScheduledJobNames().size(), 0);
+
+			file = new File("target/test-classes/test.flv"); //ResourceUtils.getFile(this.getClass().getResource("test.flv"));
+			final FLVReader flvReader = new FLVReader(file);
+
+			logger.debug("f path:" + file.getAbsolutePath());
+			assertTrue(file.exists());
+
+			boolean result = adaptor.init(appScope, "test", false);
+			assertTrue(result);
+
+
+			adaptor.start();
+
+			int i = 0;
+			while (flvReader.hasMoreTags()) 
+			{
+				ITag readTag = flvReader.readTag();
+				StreamPacket streamPacket = new StreamPacket(readTag);
+				adaptor.packetReceived(null, streamPacket);
+
+			}
+
+			Thread.sleep(5000);
+
+			//one is reader and the other one is adaptive hls writer
+			assertEquals(scheduler.getScheduledJobNames().size(), 2);
+		//	assertTrue(adaptor.isRecording());
+
+			adaptor.stop();
+
+			flvReader.close();
+
+			while (adaptor.isRecording()) {
+				Thread.sleep(50);
+			}
+
+			assertFalse(adaptor.isRecording());
+
+			assertEquals(scheduler.getScheduledJobNames().size(), 0);
+			
+			
+			File f720mp4 = new File("webapps/junit/streams/test_720p.mp4");
+			assertFalse(f720mp4.exists()); 
+			//because we know that test.flv res is 480x360 and 720p should not be created
+			File f720hls = new File("webapps/junit/streams/test_720p.m3u8");
+			assertFalse(f720hls.exists()); 
+			//because we know that test.flv res is 480x360 and 720p should not be created
+			
+			
+			File fmp4 = new File("webapps/junit/streams/test.mp4");
+			assertTrue(fmp4.exists());
+			assertTrue(MuxingTest.testFile(fmp4.getAbsolutePath(), 697000));
+
+			File fhls = new File("webapps/junit/streams/test.m3u8");
+			assertTrue(fhls.exists());
+			assertTrue(MuxingTest.testFile(fhls.getAbsolutePath(), 46900));
+			
+			File f240mp4 = new File("webapps/junit/streams/test_240p.mp4");
+			assertTrue(f240mp4.exists());
+			assertTrue(MuxingTest.testFile(f240mp4.getAbsolutePath(), 697000));
+			
+			File f240hls = new File("webapps/junit/streams/test_240p.m3u8");
+			assertTrue(f240hls.exists());
+			assertTrue(MuxingTest.testFile(f240hls.getAbsolutePath(), 46900));
+			
+			
+	
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			fail("exception:" + e );
+		}
+		
+	}
+	*/
 
 
 	@Test
 	public void testMp4Muxing() {
 
 		MuxAdaptor muxAdaptor = new MuxAdaptor(null);
-		Mp4Muxer muxer = new Mp4Muxer();
-		muxer.setAddDateTimeToFileNames(true);
-		muxAdaptor.addMuxer(muxer);
+		muxAdaptor.setMp4MuxingEnabled(true, true);
 
 		if (appScope == null) {
 			appScope = (WebScope) applicationContext.getBean("web.scope");
@@ -399,7 +498,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 	public void testHLSMuxing()  {
 
 		MuxAdaptor muxAdaptor = new MuxAdaptor(null);
-		muxAdaptor.addMuxer(new HLSMuxer());
+		muxAdaptor.setHLSMuxingEnabled(true);
 
 		if (appScope == null) {
 			appScope = (WebScope) applicationContext.getBean("web.scope");
@@ -433,6 +532,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 				muxAdaptor.packetReceived(null, streamPacket);
 			}
 
+			//Thread.sleep(1000);
 			assertTrue(muxAdaptor.isRecording());
 
 			muxAdaptor.stop();
@@ -460,7 +560,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 		    
 		    System.out.println("ts file count:" + files.length);
 			
-		    assertTrue(files.length == Integer.valueOf(HLSMuxer.HLS_LIST_SIZE));
+		    assertTrue(files.length < (int)Integer.valueOf(HLSMuxer.HLS_LIST_SIZE) * (Integer.valueOf(HLSMuxer.HLS_TIME) + 1));
 
 		}
 		catch (Exception e) {
