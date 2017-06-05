@@ -12,23 +12,18 @@ Ant Media Server is an Open Source Media Server that supports:
  * Remoting
  * Protocols: RTMP, RTMPT, RTMPS, RTMPE, RTSP, HTTP
  
-  
-Additional features supported via plugin:
  
- * [WebSocket (ws and wss)](https://github.com/Red5/red5-websocket)
- * [RTSP (From Axis-type cameras)](https://github.com/Red5/red5-rtsp-restreamer)
- * [HLS](https://github.com/Red5/red5-hls-plugin)
- 
-##### Features comes with Ant Media Server
+### Features comes with Ant Media Server
 
-Ant Media Server server consists of new features resolving the content constraints as well as it uses the basic features of a media server. It can transform broadcasts into HLS format in order to solve the displaying problems of flash-based contents in browsers. In this way, live broadcasts can be played even in web browsers that do not support flash (Android and iOS). Another important feature of Ant media server is the capability of recording MP4. Therefore, recorded live broadcasts can be played in any web browsers without loading any add-ons. Recording operations can be easily enabled or disabled with the commands shown below which is located in the conf/red5.properties file:
+* **HLS and MP4 Muxing**: Live broadcasts can be played with HLS even in web browsers that do not support flash (Android and iOS). In addition recorded live broadcasts can be played in any web browsers without loading any add-ons with MP4 Recording. Recording operations can be easily enabled or disabled with the commands shown below which is located in the conf/red5.properties file:
 
 broadcastream.auto.record.mp4=true
 
 broadcastream.auto.record.hls=true
 
-It can also broadcast and play RTSP. Broadcasts stream on the default RTSP port number 5554 and UDP.
-
+* **RTSP**: Publish and Play live and vod streams with RTSP (UDP). Default RTSP port number 5554.
+* **WebRTC**: Publish and Play live and vod streams with WebRTC
+* **Adaptive Bitrate Conversion**: Lower down the resolution of the live streams on the play to let stream play seamlessly in any internet speed.
 
 
 ### Ant Media Server 1.0RC
@@ -36,6 +31,12 @@ It can also broadcast and play RTSP. Broadcasts stream on the default RTSP port 
 ### Red5+ 1.0.1 Release (27 March 2017)
 [Tarball &amp; ZIP](https://github.com/ant-media/red5-plus-server/releases/tag/v1.0.1_red5_plus)
 
+Additional features supported via plugin:
+ 
+ * [WebSocket (ws and wss)](https://github.com/Red5/red5-websocket)
+ * [RTSP (From Axis-type cameras)](https://github.com/Red5/red5-rtsp-restreamer)
+ * [HLS](https://github.com/Red5/red5-hls-plugin)
+ 
 
 ## Build from Source
 
