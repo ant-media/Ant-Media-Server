@@ -14,7 +14,7 @@ Ant Media Server is an Open Source Media Server that supports:
  
 Ant Media Server is based on Red5
 
-### Features comes with Ant Media Server
+## Features comes with Ant Media Server
 
 * **HLS and MP4 Muxing**: Live broadcasts can be played with HLS even in web browsers that do not support flash (Android and iOS). In addition recorded live broadcasts can be played in any web browsers without loading any add-ons with MP4 Recording. Recording operations can be easily enabled or disabled with the commands shown below which is located in the conf/red5.properties file:
 
