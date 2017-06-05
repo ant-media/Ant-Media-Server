@@ -18,9 +18,9 @@ Ant Media Server is based on Red5
 
 * **HLS and MP4 Muxing**: Live broadcasts can be played with HLS even in web browsers that do not support flash (Android and iOS). In addition recorded live broadcasts can be played in any web browsers without loading any add-ons with MP4 Recording. Recording operations can be easily enabled or disabled with the commands shown below which is located in the conf/red5.properties file:
 
-`broadcastream.auto.record.mp4=true`
+   `broadcastream.auto.record.mp4=true`
 
-`broadcastream.auto.record.hls=true`
+   `broadcastream.auto.record.hls=true`
 
 * **RTSP**: Publish and Play live and vod streams with RTSP (UDP). Default RTSP port number 5554.
 * **WebRTC**: Publish and Play live and vod streams with WebRTC
@@ -63,7 +63,7 @@ mvn eclipse:eclipse
 
 
 
-## Additional features supported via plugin:
+## Additional features supported via plugin
  
  * [WebSocket (ws and wss)](https://github.com/Red5/red5-websocket)
  * [RTSP (From Axis-type cameras)](https://github.com/Red5/red5-rtsp-restreamer)
