@@ -32,7 +32,7 @@ import static org.bytedeco.javacpp.avcodec.*;
 public class MuxingTest {
 
 
-	private static final String FULL_RED5_PATH = "../../softwares/red5-server";
+	private static final String FULL_RED5_PATH = "../../softwares/ant-media-server";
 	private static final String FULL_FFMPEG_BIN_PATH = "/usr/local/bin";
 
 	private static Process red5Process;
@@ -512,7 +512,7 @@ public class MuxingTest {
 		av_register_all();
 		avformat_network_init();
 
-		String path = "./red5-debug.sh";
+		String path = "./start.sh";
 		String osName = System.getProperty("os.name").toLowerCase(Locale.ENGLISH);
 
 		try {
@@ -525,7 +525,7 @@ public class MuxingTest {
 			System.out.println("You can get exception if red5 is not started fully after this while. \n So arrange this time according to your red5 startup time in your machine");
 
 
-			Thread.sleep(20000);
+			Thread.sleep(30000);
 
 		} catch (IOException e) {
 			e.printStackTrace();
