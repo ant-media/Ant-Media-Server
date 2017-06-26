@@ -78,7 +78,7 @@
 		<property name="virtualHosts" value="*" />
 	</bean>
 
-	<bean id="web.handler" class="com.antstreaming.muxer.Application" />
+	<bean id="web.handler" class="io.antmedia.test.Application" />
 
 	<!-- Streamable file factory -->
 	<bean id="streamableFileFactory" class="org.red5.server.stream.StreamableFileFactory">

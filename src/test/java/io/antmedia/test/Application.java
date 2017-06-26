@@ -1,4 +1,4 @@
-package com.antstreaming.muxer;
+package io.antmedia.test;
 
 import org.red5.server.adapter.MultiThreadedApplicationAdapter;
 
