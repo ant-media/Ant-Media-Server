@@ -444,7 +444,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 			assertFalse(muxAdaptor.isRecording());
 			assertEquals(scheduler.getScheduledJobNames().size(), 0);
 
-			File hlsFile = muxAdaptor.getMuxerList().get(0).getFile();
+			HLSMuxer hlsMuxer = (HLSMuxer) muxAdaptor.getMuxerList().get(0);
+			File hlsFile = hlsMuxer.getFile();
 
 			assertTrue(MuxingTest.testFile(hlsFile.getAbsolutePath()));
 			
@@ -458,7 +459,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 		    
 		    System.out.println("ts file count:" + files.length);
 			
-		    assertTrue(files.length < (int)Integer.valueOf(HLSMuxer.HLS_LIST_SIZE) * (Integer.valueOf(HLSMuxer.HLS_TIME) + 1));
+		    assertTrue(files.length < (int)Integer.valueOf(hlsMuxer.getHlsListSize()) * (Integer.valueOf(hlsMuxer.getHlsTime()) + 1));
 
 		}
 		catch (Exception e) {
