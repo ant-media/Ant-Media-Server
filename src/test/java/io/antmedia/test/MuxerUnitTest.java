@@ -321,12 +321,25 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 	}
 	
-
+	
 	@Test
-	public void testMp4Muxing() {
+	public void testMp4MuxingWithSameName() {
+		File file = testMp4Muxing("test");
+		assertEquals("test.mp4", file.getName());
+		
+		file = testMp4Muxing("test");
+		assertEquals("test_1.mp4", file.getName());
+		
+		file = testMp4Muxing("test");
+		assertEquals("test_2.mp4", file.getName());
+	}
+	
+
+	
+	public File testMp4Muxing(String name) {
 
 		MuxAdaptor muxAdaptor = new MuxAdaptor(null);
-		muxAdaptor.setMp4MuxingEnabled(true, true);
+		muxAdaptor.setMp4MuxingEnabled(true, false);
 
 		if (appScope == null) {
 			appScope = (WebScope) applicationContext.getBean("web.scope");
@@ -349,7 +362,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 			logger.debug("f path:" + file.getAbsolutePath());
 			assertTrue(file.exists());
 
-			boolean result = muxAdaptor.init(appScope, "test", false);
+			boolean result = muxAdaptor.init(appScope, name, false);
 			assertTrue(result);
 
 
@@ -382,13 +395,13 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 			assertEquals(scheduler.getScheduledJobNames().size(), 0);
 
 			assertTrue(MuxingTest.testFile(muxAdaptor.getMuxerList().get(0).getFile().getAbsolutePath(), 697000));
-
+			return muxAdaptor.getMuxerList().get(0).getFile();
 		}
 		catch (Exception e) {
 			e.printStackTrace();
 			fail("exception:" + e );
 		}
-
+		return null;
 	}
 
 
