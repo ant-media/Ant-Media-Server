@@ -58,7 +58,7 @@ public abstract class BaseStreamableFileService implements IStreamableFileServic
             name = name.substring(prefix.length());
             // if there is no extension on the file add the first one
             log.debug("prepareFilename - lastIndexOf: {} length: {}", name.lastIndexOf('.'), name.length());
-            if (name.lastIndexOf('.') != name.length() - 4) {
+            if ((name.lastIndexOf('.') == -1) || (name.lastIndexOf('.') != name.length() - 4)) {
                 name = name + getExtension().split(",")[0];
             }
         }

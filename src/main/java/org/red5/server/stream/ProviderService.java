@@ -189,8 +189,9 @@ public class ProviderService implements IProviderService {
         String flvName = null;
         if (name.indexOf(':') == -1 && name.indexOf('.') == -1) {
             // Default to .mp4 files if no prefix and no extension is given.
-            name = "mp4:" + name;
-            flvName = "flv:" + name;
+        	String origName = name;
+            name = "mp4:" + origName;
+            flvName = "flv:" + origName;
         }
         // ams sends an asterisk at the start of the name on mp4, so remove it
         if (name.charAt(0) == '*') {
