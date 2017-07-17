@@ -42,7 +42,7 @@ fi
 # Set up security options
 SECURITY_OPTS="-Djava.security.debug=failure"
 # Set up tomcat options
-TOMCAT_OPTS="-Dcatalina.home=$RED5_HOME -Dcatalina.useNaming=true"
+TOMCAT_OPTS="-Dcatalina.home=$RED5_HOME -Dcatalina.useNaming=true -Djava.net.preferIPv4Stack=true"
 # Jython options
 JYTHON="-Dpython.home=lib"
 
