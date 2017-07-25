@@ -11,6 +11,8 @@ import io.antmedia.datastore.preference.PreferenceStore;
  */
 public abstract class VideoServiceEndpoint {
 	
+	protected static final String AUTH_TIME = ".authTime";
+
 	protected static final String EXPIRE_TIME_SECONDS = ".expireTimeSeconds";
 
 	protected static final String REFRESH_TOKEN = ".refreshToken";
@@ -18,6 +20,8 @@ public abstract class VideoServiceEndpoint {
 	protected static final String ACCESS_TOKEN = ".accessToken";
 
 	protected static final String TOKEN_TYPE = ".tokenType";
+	
+	public static final Long THREE_DAYS_IN_MS = 1000 * 60 * 60 * 24 * 3L; 
 
 	public static class DeviceAuthParameters {
 		/**
@@ -36,7 +40,7 @@ public abstract class VideoServiceEndpoint {
 		public String verification_url;
 
 		/**
-		 * The length of time, in seconds, that the device_code and user_code are valid.
+		 * The time in milliseconds, that the device_code and user_code are valid.
 		 */
 		public int expires_in;
 
@@ -46,9 +50,9 @@ public abstract class VideoServiceEndpoint {
 		public int interval;
 	}
 
-	private String clientId;
+	protected String clientId;
 
-	private String clientSecret;
+	protected String clientSecret;
 
 	private PreferenceStore dataStore;
 
@@ -64,22 +68,35 @@ public abstract class VideoServiceEndpoint {
 		String refreshToken = dataStore.get(getName() + REFRESH_TOKEN);
 		String expireTimeSeconds = dataStore.get(getName() + EXPIRE_TIME_SECONDS);
 		String tokenType = dataStore.get(getName() + TOKEN_TYPE);
+		String authtimeMilliSeconds = dataStore.get(getName() + AUTH_TIME);
 		Long expireTime = null;
+		Long authTime = null;
 		if (expireTimeSeconds != null) 
 		{
 			expireTime = Long.valueOf(expireTimeSeconds);
 		}
+		if (authtimeMilliSeconds != null) {
+			authTime = Long.valueOf(authtimeMilliSeconds);
+		}
 		try {
-			init(accessToken, refreshToken, expireTime, tokenType);
+			init(accessToken, refreshToken, expireTime, tokenType, authTime);
 		}
 		catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
 
-	public abstract void init(String accessToken, String refreshToken, Long expireTime, String tokenType);
+	/**
+	 * 
+	 * @param accessToken
+	 * @param refreshToken
+	 * @param expireTime in seconds
+	 * @param tokenType
+	 * @param authtimeInMilliSeconds System.currenTimeMillis value of the authentication time
+	 */
+	public abstract void init(String accessToken, String refreshToken, Long expireTime, String tokenType, Long authtimeInMilliSeconds);
 
-	protected void saveCredentials(String accessToken, String refreshToken, String expireTimeInSeconds, String token_type) {
+	public void saveCredentials(String accessToken, String refreshToken, String expireTimeInSeconds, String token_type) {
 		if (refreshToken != null) {
 			dataStore.put(getName() + REFRESH_TOKEN, refreshToken);
 		}
@@ -92,7 +109,17 @@ public abstract class VideoServiceEndpoint {
 		if (token_type != null) {
 			dataStore.put(getName() + TOKEN_TYPE, token_type);
 		}
+		dataStore.put(getName()+ AUTH_TIME, String.valueOf(System.currentTimeMillis()));
 		dataStore.save();
+	}
+	
+	public void resetCredentials() {
+		dataStore.put(getName() + REFRESH_TOKEN, "");
+		dataStore.put(getName() + ACCESS_TOKEN, "");
+		dataStore.put(getName() + EXPIRE_TIME_SECONDS, "0");
+		dataStore.put(getName() + TOKEN_TYPE, "");
+		dataStore.save();
+		
 	}
 
 	/**

@@ -9,6 +9,7 @@ import io.antmedia.periscope.AuthorizationEndpoints;
 import io.antmedia.periscope.BroadcastEndpoints;
 import io.antmedia.periscope.PeriscopeEndpointFactory;
 import io.antmedia.periscope.RegionEndpoints;
+import io.antmedia.periscope.response.AuthorizationResponse;
 import io.antmedia.periscope.response.CheckDeviceCodeResponse;
 import io.antmedia.periscope.response.CreateBroadcastResponse;
 import io.antmedia.periscope.response.CreateDeviceCodeResponse;
@@ -23,6 +24,7 @@ public class PeriscopeEndpoint extends VideoServiceEndpoint {
 	private RegionEndpoints regionEndpoint;
 	private String accessToken;
 	private String region;
+	private long expireTimeMS;
 
 	protected static Logger logger = LoggerFactory.getLogger(PeriscopeEndpoint.class);
 
@@ -73,7 +75,7 @@ public class PeriscopeEndpoint extends VideoServiceEndpoint {
 		boolean result = false;
 		if ( checkDeviceCode.state.equals("associated")) {
 			saveCredentials(checkDeviceCode.access_token, checkDeviceCode.refresh_token, String.valueOf(checkDeviceCode.expires_in), checkDeviceCode.token_type);
-			init(checkDeviceCode.access_token, checkDeviceCode.refresh_token, (long)checkDeviceCode.expires_in, checkDeviceCode.token_type);
+			init(checkDeviceCode.access_token, checkDeviceCode.refresh_token, (long)checkDeviceCode.expires_in, checkDeviceCode.token_type, System.currentTimeMillis());
 			result = true;
 		}
 		return result;
@@ -90,9 +92,10 @@ public class PeriscopeEndpoint extends VideoServiceEndpoint {
 		if (broadcastEndpoint == null) {
 			throw new Exception("First authenticated the server");
 		}
-		
+
+		updateTokenIfRequired();
 		CreateBroadcastResponse createBroadcastResponse = broadcastEndpoint.createBroadcast(getRegion(), is360);
-		
+
 		String rtmpUrl = createBroadcastResponse.encoder.rtmp_url + "/" + createBroadcastResponse.encoder.stream_key;
 		return new Endpoint(createBroadcastResponse.broadcast.id, null, name, rtmpUrl, getName());
 	}
@@ -117,6 +120,7 @@ public class PeriscopeEndpoint extends VideoServiceEndpoint {
 		if (endpoint.broadcastId == null) {
 			throw new Exception("No broadcast is available, call createBroadcast function before calling publish broadcast");
 		}
+		updateTokenIfRequired();
 		broadcastEndpoint.publishBroadcast(endpoint.broadcastId, endpoint.name, true, "en_US");
 	}
 
@@ -128,15 +132,26 @@ public class PeriscopeEndpoint extends VideoServiceEndpoint {
 		if (endpoint.broadcastId == null) {
 			throw new Exception("No broadcast is available");
 		}
+		updateTokenIfRequired();
 		broadcastEndpoint.stopBroadcast(endpoint.broadcastId);
 	}
 
+	private void updateTokenIfRequired() {
+		if (expireTimeMS < (System.currentTimeMillis() + THREE_DAYS_IN_MS)) {
+			AuthorizationResponse token = periscopeEndpointFactory.refreshToken(clientId, clientSecret);
+			saveCredentials(token.access_token, token.refresh_token, String.valueOf(token.expires_in), token.token_type);
+			init(token.access_token, token.refresh_token, Long.valueOf(token.expires_in), token.token_type, System.currentTimeMillis());
+		}
+	}
+
 	@Override
-	public void init(String accessToken, String refreshToken, Long expireTime, String tokenType) {
+	public void init(String accessToken, String refreshToken, Long expireTime, String tokenType, Long authTimeInMS) {
 		this.accessToken = accessToken;
 		periscopeEndpointFactory = new PeriscopeEndpointFactory(tokenType, accessToken, refreshToken);
+		expireTimeMS = authTimeInMS + expireTime * 1000;
 		broadcastEndpoint = periscopeEndpointFactory.getBroadcastEndpoints();
-	    regionEndpoint = periscopeEndpointFactory.getRegionEndpoints();
+		regionEndpoint = periscopeEndpointFactory.getRegionEndpoints();
+		
 
 	}
 
