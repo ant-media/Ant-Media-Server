@@ -1,8 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:lang="http://www.springframework.org/schema/lang"
-	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
-                           http://www.springframework.org/schema/lang http://www.springframework.org/schema/lang/spring-lang.xsd">
+	xsi:schemaLocation="http://www.springframework.org/schema/beans 
+	http://www.springframework.org/schema/beans/spring-beans.xsd 
+	http://www.springframework.org/schema/lang 
+	http://www.springframework.org/schema/lang/spring-lang.xsd
+	http://www.springframework.org/schema/context 
+	http://www.springframework.org/schema/context/spring-context.xsd">
+
+	<context:annotation-config></context:annotation-config>
 
 	<!-- War deployer -->
 	<bean id="warDeployer" class="org.red5.server.tomcat.WarDeployer">
@@ -17,7 +24,7 @@
 		value="org.apache.coyote.http11.Http11Protocol" /> Non-blocking I/O: <property 
 		name="protocol" value="org.apache.coyote.http11.Http11NioProtocol" /> -->
 
-<!--  
+<!-- 
 	<bean id="tomcat.cluster" class="io.antmedia.enterprise.cluster.TcpCluster">
 		<constructor-arg>
 			<list>
@@ -91,15 +98,14 @@
 			</bean>
 		</property>
 	</bean>
-	
--->
+	-->
+
+
 
 	<!-- Tomcat without SSL enabled -->
 	<bean id="tomcat.server" class="org.red5.server.tomcat.TomcatLoader"
 		depends-on="context.loader,warDeployer" lazy-init="true">
-<!-- 
-		<property name="cluster" ref="tomcat.cluster" />
-  --> 
+		<!-- <property name="cluster" ref="tomcat.cluster" /> -->
 		<property name="webappFolder" value="${red5.root}/webapps" />
 
 		<property name="connectors">
@@ -134,16 +140,17 @@
 					<property name="pattern" value="common" />
 					<property name="rotatable" value="true" />
 				</bean>
-		<!-- 		
-				<bean id="valve.cluster" class="io.antmedia.enterprise.cluster.HttpLiveStreamValve">
-					<property name="cluster" ref="tomcat.cluster" />
-				</bean>
-		 -->		
+				<!-- 
+				<bean id="valve.cluster" class="io.antmedia.enterprise.cluster.HttpLiveStreamValve"> 
+					<property name="cluster" ref="tomcat.cluster" /> </bean>
+					
+				-->
+					
 			</list>
 		</property>
 
 	</bean>
-
+	
 	<!-- Tomcat with SSL enabled -->
 	<!-- <bean id="tomcat.server" class="org.red5.server.tomcat.TomcatLoader" 
 		depends-on="context.loader" lazy-init="true"> <property name="webappFolder" 

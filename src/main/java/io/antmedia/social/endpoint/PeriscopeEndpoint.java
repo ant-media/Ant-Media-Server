@@ -145,7 +145,7 @@ public class PeriscopeEndpoint extends VideoServiceEndpoint {
 	}
 
 	@Override
-	public void init(String accessToken, String refreshToken, Long expireTime, String tokenType, Long authTimeInMS) {
+	public void init(String accessToken, String refreshToken, long expireTime, String tokenType, long authTimeInMS) {
 		this.accessToken = accessToken;
 		periscopeEndpointFactory = new PeriscopeEndpointFactory(tokenType, accessToken, refreshToken);
 		expireTimeMS = authTimeInMS + expireTime * 1000;

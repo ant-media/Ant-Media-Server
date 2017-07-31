@@ -69,8 +69,8 @@ public abstract class VideoServiceEndpoint {
 		String expireTimeSeconds = dataStore.get(getName() + EXPIRE_TIME_SECONDS);
 		String tokenType = dataStore.get(getName() + TOKEN_TYPE);
 		String authtimeMilliSeconds = dataStore.get(getName() + AUTH_TIME);
-		Long expireTime = null;
-		Long authTime = null;
+		long expireTime = 0;
+		long authTime = 0;
 		if (expireTimeSeconds != null) 
 		{
 			expireTime = Long.valueOf(expireTimeSeconds);
@@ -94,7 +94,7 @@ public abstract class VideoServiceEndpoint {
 	 * @param tokenType
 	 * @param authtimeInMilliSeconds System.currenTimeMillis value of the authentication time
 	 */
-	public abstract void init(String accessToken, String refreshToken, Long expireTime, String tokenType, Long authtimeInMilliSeconds);
+	public abstract void init(String accessToken, String refreshToken, long expireTime, String tokenType, long authtimeInMilliSeconds);
 
 	public void saveCredentials(String accessToken, String refreshToken, String expireTimeInSeconds, String token_type) {
 		if (refreshToken != null) {

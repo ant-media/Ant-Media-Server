@@ -33,10 +33,10 @@ public class MuxingTest {
 
 
 	private static final String FULL_RED5_PATH = "../../softwares/ant-media-server";
-	private static final String FULL_FFMPEG_BIN_PATH = "/usr/local/bin";
+	public static final String FULL_FFMPEG_BIN_PATH = "/usr/local/bin";
 
 	private static Process red5Process;
-	private Process tmpExec;
+	private static Process tmpExec;
 
 
 
@@ -473,7 +473,7 @@ public class MuxingTest {
 	}
 
 
-	private Process execute(final String command) {
+	public static Process execute(final String command) {
 		tmpExec = null;
 		new Thread() {
 			public void run() {

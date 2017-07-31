@@ -125,6 +125,12 @@
 			<version>${tomcat.version}</version>
 			<scope>compile</scope>
 		</dependency>
+		  <dependency>
+            <groupId>org.apache.tomcat</groupId>
+            <artifactId>tomcat-catalina-ha</artifactId>
+            <version>${tomcat.version}</version>
+            <scope>provided</scope>
+        </dependency>
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
@@ -283,12 +289,6 @@
 			<version>${tomcat.version}</version>
 			<scope>provided</scope>
 		</dependency>
-		 <dependency>
-            <groupId>org.apache.tomcat</groupId>
-            <artifactId>tomcat-catalina-ha</artifactId>
-            <version>${tomcat.version}</version>
-            <scope>provided</scope>
-        </dependency>
 		<!-- Provides CORS functionality http://software.dzhuvinov.com/cors-filter.html -->
 		<dependency>
 			<groupId>com.thetransactioncompany</groupId>
