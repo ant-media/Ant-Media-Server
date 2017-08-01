@@ -556,8 +556,10 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 		// get Transport
 		String transport = request.getHeader(RtspHeaderCode.Transport);
 		RTSPTransport rtspTransport = new RTSPTransport(transport);
-
-		if (rtspTransport.getLowerTransport() != LowerTransport.UDP) {
+		if (rtspTransport.getLowerTransport() == LowerTransport.None) {
+			rtspTransport.setLowerTransport(LowerTransport.UDP);
+		}
+		else if (rtspTransport.getLowerTransport() != LowerTransport.UDP) {
 			handleError(session, cseq, RtspCode.UnsupportedTransport);
 			return;
 		}
