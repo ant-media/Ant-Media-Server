@@ -40,7 +40,6 @@ import io.antmedia.storage.StorageClient.FileType;
 @Path("/")
 public class BroadcastRestService {
 
-
 	public static class Result {
 		public boolean success = false;
 		public String message;
@@ -74,7 +73,7 @@ public class BroadcastRestService {
 	{
 		if (broadcast == null) {
 			broadcast = new Broadcast();
-		}
+		}	
 		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
 		broadcast.setDate(System.currentTimeMillis());
 
@@ -196,7 +195,7 @@ public class BroadcastRestService {
 	}
 
 
-	private Broadcast lookupBroadcast(String id) {
+	protected Broadcast lookupBroadcast(String id) {
 		Broadcast broadcast = null;
 		try {
 			broadcast = getDataStore().get(id);
@@ -342,7 +341,7 @@ public class BroadcastRestService {
 		return getDataStore().getBroadcastCount();
 	}
 
-	private List<VideoServiceEndpoint> getEndpointList() {
+	protected List<VideoServiceEndpoint> getEndpointList() {
 		return ((AntMediaApplicationAdapter)getApplication()).getVideoServiceEndpoints();
 	}
 	private ApplicationContext getAppContext() {
@@ -364,12 +363,13 @@ public class BroadcastRestService {
 		this.dataStore = dataStore;
 	}
 
-	private AntMediaApplicationAdapter getApplication() {
+	protected AntMediaApplicationAdapter getApplication() {
 		if (app == null) {
 			app = (AntMediaApplicationAdapter) getAppContext().getBean("web.handler");
 		}
 		return app;
 	}
+	
 	private IScope getScope() {
 		if (scope == null) {
 			scope = getApplication().getScope();

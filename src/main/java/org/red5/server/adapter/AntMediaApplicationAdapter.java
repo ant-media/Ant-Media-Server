@@ -1,8 +1,24 @@
 package org.red5.server.adapter;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
+import org.apache.http.HttpEntity;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.message.BasicNameValuePair;
 import org.red5.server.api.scheduling.IScheduledJob;
 import org.red5.server.api.scheduling.ISchedulingService;
 import org.red5.server.api.stream.IBroadcastStream;
@@ -19,6 +35,8 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	public static final String BROADCAST_STATUS_CREATED = "created";
 	public static final String BROADCAST_STATUS_BROADCASTING = "broadcasting";
 	public static final String BROADCAST_STATUS_FINISHED = "finished";
+	public static final String HOOK_ACTION_END_LIVE_STREAM = "endLiveStream";
+	
 
 	private List<VideoServiceEndpoint> videoServiceEndpoints;
 	private IDataStore dataStore;
@@ -38,13 +56,35 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 				Broadcast broadcast = dataStore.get(streamName);
 
 				if (broadcast != null) {
+					final String listenerHookURL = broadcast.getListenerHookURL();
+					final String streamId = broadcast.getStreamId();
+					if (listenerHookURL != null && listenerHookURL.length() > 0) 
+					{
+						addScheduledOnceJob(100, new IScheduledJob() {
+							
+							@Override
+							public void execute(ISchedulingService service) throws CloneNotSupportedException {
+								notifyHook(listenerHookURL, streamId, HOOK_ACTION_END_LIVE_STREAM);
+							}
+						});
+					}
+								
 					List<Endpoint> endPointList = broadcast.getEndPointList();
-					for (Endpoint endpoint : endPointList) {
-						VideoServiceEndpoint videoServiceEndPoint = getVideoServiceEndPoint(endpoint.type);
-						if (videoServiceEndPoint != null) {
-							videoServiceEndPoint.stopBroadcast(endpoint);
+					if (endPointList != null) {
+						for (Endpoint endpoint : endPointList) {
+							VideoServiceEndpoint videoServiceEndPoint = getVideoServiceEndPoint(stream, endpoint.type);
+							if (videoServiceEndPoint != null) {
+								try {
+									videoServiceEndPoint.stopBroadcast(endpoint);
+								}
+								catch (Exception e) {
+									e.printStackTrace();
+								}
+							}
 						}
 					}
+					
+					
 				}
 
 			}
@@ -65,10 +105,12 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 				Broadcast broadcast = dataStore.get(streamName);
 				if (broadcast != null) {
 					List<Endpoint> endPointList = broadcast.getEndPointList();
-					for (Endpoint endpoint : endPointList) {
-						VideoServiceEndpoint videoServiceEndPoint = getVideoServiceEndPoint(endpoint.type);
-						if (videoServiceEndPoint != null) {
-							videoServiceEndPoint.publishBroadcast(endpoint);
+					if (endPointList != null) {
+						for (Endpoint endpoint : endPointList) {
+							VideoServiceEndpoint videoServiceEndPoint = getVideoServiceEndPoint(stream, endpoint.type);
+							if (videoServiceEndPoint != null) {
+								videoServiceEndPoint.publishBroadcast(endpoint);
+							}
 						}
 					}
 				}
@@ -81,7 +123,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	}
 
 	//TODO: make video serviceEndpoinst HashMap
-	private VideoServiceEndpoint getVideoServiceEndPoint(String type) {
+	protected VideoServiceEndpoint getVideoServiceEndPoint(IBroadcastStream stream, String type) {
 		if (videoServiceEndpoints != null) {
 			for (VideoServiceEndpoint serviceEndpoint : videoServiceEndpoints) {
 				if (serviceEndpoint.getName().equals(type)) {
@@ -120,7 +162,8 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 		@Override
 		public void execute(ISchedulingService service) throws CloneNotSupportedException {
-
+			
+			
 			try {
 				if (!videoServiceEndpoint.askIfDeviceAuthenticated()) {
 					count++;
@@ -146,6 +189,59 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 	public void setVideoServiceEndpoints(List<VideoServiceEndpoint> videoServiceEndpoints) {
 		this.videoServiceEndpoints = videoServiceEndpoints;
+	}
+	
+	
+	public static StringBuffer notifyHook(String url, String id, String action) {
+		Map<String, String> variables = new HashMap<>();
+		variables.put("id", id);
+		variables.put("action", action);
+		StringBuffer response = null;
+		try {
+			response = sendPOST(url, variables);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return response;
+	}
+	
+	public static StringBuffer sendPOST(String url, Map<String, String> variables) throws IOException {
+
+		CloseableHttpClient httpClient = HttpClients.createDefault();
+		HttpPost httpPost = new HttpPost(url);
+		httpPost.addHeader("User-Agent", "Daaavuuuuuttttt https://www.youtube.com/watch?v=cbyTDRgW4Jg");
+
+		List<NameValuePair> urlParameters = new ArrayList<NameValuePair>();
+		Set<Entry<String,String>> entrySet = variables.entrySet();
+		for (Entry<String, String> entry : entrySet) {
+			urlParameters.add(new BasicNameValuePair(entry.getKey(), entry.getValue()));
+		}
+		
+
+		HttpEntity postParams = new UrlEncodedFormEntity(urlParameters);
+		httpPost.setEntity(postParams);
+
+		CloseableHttpResponse httpResponse = httpClient.execute(httpPost);
+
+		System.out.println("POST Response Status:: "
+				+ httpResponse.getStatusLine().getStatusCode());
+
+		BufferedReader reader = new BufferedReader(new InputStreamReader(
+				httpResponse.getEntity().getContent()));
+
+		String inputLine;
+		StringBuffer response = new StringBuffer();
+
+		while ((inputLine = reader.readLine()) != null) {
+			response.append(inputLine);
+		}
+		reader.close();
+
+		// print result
+		httpClient.close();
+		
+		return response;
+
 	}
 
 }
