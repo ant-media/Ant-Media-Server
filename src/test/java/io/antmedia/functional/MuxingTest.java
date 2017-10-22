@@ -1,4 +1,4 @@
-package functional;
+package io.antmedia.functional;
 
 import static org.junit.Assert.*;
 import static org.bytedeco.javacpp.avformat.*;

@@ -3,16 +3,16 @@ package io.antmedia.social.endpoint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.antmedia.api.periscope.AuthorizationEndpoints;
+import io.antmedia.api.periscope.BroadcastEndpoints;
+import io.antmedia.api.periscope.PeriscopeEndpointFactory;
+import io.antmedia.api.periscope.RegionEndpoints;
+import io.antmedia.api.periscope.response.AuthorizationResponse;
+import io.antmedia.api.periscope.response.CheckDeviceCodeResponse;
+import io.antmedia.api.periscope.response.CreateBroadcastResponse;
+import io.antmedia.api.periscope.response.CreateDeviceCodeResponse;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.preference.PreferenceStore;
-import io.antmedia.periscope.AuthorizationEndpoints;
-import io.antmedia.periscope.BroadcastEndpoints;
-import io.antmedia.periscope.PeriscopeEndpointFactory;
-import io.antmedia.periscope.RegionEndpoints;
-import io.antmedia.periscope.response.AuthorizationResponse;
-import io.antmedia.periscope.response.CheckDeviceCodeResponse;
-import io.antmedia.periscope.response.CreateBroadcastResponse;
-import io.antmedia.periscope.response.CreateDeviceCodeResponse;
 
 public class PeriscopeEndpoint extends VideoServiceEndpoint {
 
@@ -27,7 +27,6 @@ public class PeriscopeEndpoint extends VideoServiceEndpoint {
 	private long expireTimeMS;
 
 	protected static Logger logger = LoggerFactory.getLogger(PeriscopeEndpoint.class);
-
 
 	public PeriscopeEndpoint(String clientId, String clientSecret, PreferenceStore dataStore) {
 		super(clientId, clientSecret, dataStore);
@@ -86,6 +85,13 @@ public class PeriscopeEndpoint extends VideoServiceEndpoint {
 		return periscopeEndpointFactory != null && accessToken != null && (accessToken.length() > 0);
 	}
 
+	@Override
+	public void resetCredentials() {
+		super.resetCredentials();
+		accessToken = null;
+		
+	}
+	
 	@Override
 	public Endpoint createBroadcast(String name, String description, boolean is360, boolean isPublic,
 			int videoHeight) throws Exception {

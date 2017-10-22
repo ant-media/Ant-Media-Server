@@ -45,7 +45,11 @@
 		<red5-service.version>${project.parent.version}</red5-service.version>
 		<red5-server-common.version>${project.parent.version}</red5-server-common.version>
 		<cors-filter.version>2.5</cors-filter.version>
+		 
 		<javacpp.ffmpeg.version>3.2.1-1.3</javacpp.ffmpeg.version>
+		<!--
+		<javacpp.ffmpeg.version>3.3.2-1.3.4-SNAPSHOT</javacpp.ffmpeg.version>
+		-->
 		<jersey.version>1.19.1</jersey.version>
 	</properties>
 	<repositories>
@@ -303,7 +307,7 @@
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
-			<groupId>io.antmedia.plugins</groupId>
+			<groupId>io.antmedia.api.periscope</groupId>
 			<artifactId>PeriscopeAPI</artifactId>
 			<version>1.0.0</version>
 		</dependency>

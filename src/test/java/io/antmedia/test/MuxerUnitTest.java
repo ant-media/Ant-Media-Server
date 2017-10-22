@@ -60,8 +60,8 @@ import org.springframework.util.ResourceUtils;
 
 import com.antstreaming.rtsp.PacketSenderRunnable;
 
-import functional.MuxingTest;
 import io.antmedia.muxer.Muxer;
+import io.antmedia.functional.MuxingTest;
 //import io.antmedia.enterprise.ant_media_adaptive.TransraterAdaptor;
 import io.antmedia.muxer.HLSMuxer;
 import io.antmedia.muxer.Mp4Muxer;
@@ -319,7 +319,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 			}
 			{
 
-				File file = new File("target/test-classes/test.flv"); //ResourceUtils.getFile(this.getClass().getResource("test.flv"));
+				File file = new File("src/test/resources/test.flv"); //ResourceUtils.getFile(this.getClass().getResource("test.flv"));
 				final FLVReader flvReader = new FLVReader(file);
 
 				logger.debug("f path: " + file.getAbsolutePath());
@@ -408,6 +408,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 		file = testMp4Muxing("test_test");
 		assertEquals("test_test_1.mp4", file.getName());
+		
+	
 
 		file = testMp4Muxing("test_test");
 		assertEquals("test_test_2.mp4", file.getName());
@@ -519,15 +521,30 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 		}
 		return null;
 	}
+	
+	@Test
+	public void testChangeAppSettingsMP4andHLS() {
+		fail("implement this test");
+	}
+	
+	@Test
+	public void testCheckDefaultAppSettings(){
+		fail("implement this test");
+	}
 
 
 	@Test
 	public void testHLSMuxing()  {
 
-		av_log_set_level (40);
+		//av_log_set_level (40);
 
 		MuxAdaptor muxAdaptor = new MuxAdaptor(null);
 		muxAdaptor.setHLSMuxingEnabled(true);
+		muxAdaptor.setMp4MuxingEnabled(false, false);
+		int hlsListSize = 5;
+		muxAdaptor.setHlsListSize(hlsListSize + "");
+		int hlsTime = 2;
+		muxAdaptor.setHlsTime(hlsTime + "");
 
 
 		if (appScope == null) {
@@ -562,7 +579,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 				muxAdaptor.packetReceived(null, streamPacket);
 			}
 
-			//Thread.sleep(1000000);
+			Thread.sleep(1000);
 			assertTrue(muxAdaptor.isRecording());
 
 			muxAdaptor.stop();
@@ -574,11 +591,30 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 			}
 
 			assertFalse(muxAdaptor.isRecording());
-			assertEquals(scheduler.getScheduledJobNames().size(), 0);
+			//delete file job should be in scheduler
+			assertEquals(1, scheduler.getScheduledJobNames().size());
 
-			HLSMuxer hlsMuxer = (HLSMuxer) muxAdaptor.getMuxerList().get(0);
+			
+			List<Muxer> muxerList = muxAdaptor.getMuxerList();
+			HLSMuxer hlsMuxer = null;
+			for (Muxer muxer : muxerList) {
+				if (muxer instanceof HLSMuxer) {
+					hlsMuxer = (HLSMuxer) muxer;
+					break;
+				}
+			}
+			assertNotNull(hlsMuxer);
 			File hlsFile = hlsMuxer.getFile();
+			
+			String hlsFilePath = hlsFile.getAbsolutePath();
+			int lastIndex =  hlsFilePath.lastIndexOf(".m3u8");
+			
+			String mp4Filename = hlsFilePath.substring(0, lastIndex) + ".mp4";
 
+			//just check mp4 file is not created
+			File mp4File = new File(mp4Filename);
+			assertFalse(mp4File.exists());
+			
 			assertTrue(MuxingTest.testFile(hlsFile.getAbsolutePath()));
 
 			File dir = new File(hlsFile.getAbsolutePath()).getParentFile();
@@ -593,6 +629,22 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 			assertTrue(files.length < (int)Integer.valueOf(hlsMuxer.getHlsListSize()) * (Integer.valueOf(hlsMuxer.getHlsTime()) + 1));
 
+			
+			Thread.sleep(hlsListSize*hlsTime * 1000 + 3000);
+			
+			
+			assertFalse(hlsFile.exists());
+			
+			files = dir.listFiles(new FilenameFilter() {
+				@Override
+				public boolean accept(File dir, String name) {
+					return name.endsWith(".ts");
+				}
+			});
+			
+			assertEquals(0, files.length);
+			
+			
 		}
 		catch (Exception e) {
 			e.printStackTrace();
