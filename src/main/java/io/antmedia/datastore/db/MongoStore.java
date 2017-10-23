@@ -6,6 +6,7 @@ import org.bson.types.ObjectId;
 import org.mongodb.morphia.Datastore;
 import org.mongodb.morphia.Key;
 import org.mongodb.morphia.Morphia;
+import org.mongodb.morphia.query.FindOptions;
 import org.mongodb.morphia.query.Query;
 import org.mongodb.morphia.query.UpdateOperations;
 import org.mongodb.morphia.query.UpdateResults;
@@ -24,7 +25,7 @@ public class MongoStore implements IDataStore {
 
 	public MongoStore(String dbName) {
 		morphia = new Morphia();
-		morphia.mapPackage("io.antmedia.serverapp.pscp.datastore.types");
+		morphia.mapPackage("io.antmedia.datastore.db.types");
 		datastore = morphia.createDatastore(new MongoClient(), dbName);
 		datastore.ensureIndexes();
 	}
@@ -155,18 +156,20 @@ public class MongoStore implements IDataStore {
 	@Override
 	public boolean addEndpoint(String id, Endpoint endpoint) 
 	{
-		try {
-			Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("dbId").equal(new ObjectId(id));
+		if (id != null && endpoint != null) {
+			try {
+				Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("dbId").equal(new ObjectId(id));
 
-			UpdateOperations<Broadcast> ops = datastore
-					.createUpdateOperations(Broadcast.class)
-					.push("endPointList", endpoint);
+				UpdateOperations<Broadcast> ops = datastore
+						.createUpdateOperations(Broadcast.class)
+						.push("endPointList", endpoint);
 
-			UpdateResults update = datastore.update(query, ops);
-			return update.getUpdatedCount() == 1;
-		}
-		catch (Exception e) {
-			e.printStackTrace();
+				UpdateResults update = datastore.update(query, ops);
+				return update.getUpdatedCount() == 1;
+			}
+			catch (Exception e) {
+				e.printStackTrace();
+			}
 		}
 		return false;
 	}
@@ -199,8 +202,12 @@ public class MongoStore implements IDataStore {
 
 	@Override
 	public List<Broadcast> getBroadcastList(int offset, int size) {
-		// TODO Auto-generated method stub
-		return null;
+		return datastore.find(Broadcast.class).asList(
+				new FindOptions().skip(offset).limit(size)); 
+	}
+	
+	public Datastore getDataStore() {
+		return datastore;
 	}
 
 

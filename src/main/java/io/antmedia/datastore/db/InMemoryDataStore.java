@@ -16,21 +16,24 @@ import io.antmedia.datastore.db.types.Endpoint;
 public class InMemoryDataStore implements IDataStore {
 
 	public LinkedHashMap<String, Broadcast> broadcastMap = new LinkedHashMap();
-	
+
 	public InMemoryDataStore(String dbName) {
 	}
 	@Override
 	public String save(Broadcast broadcast) {
-		
-		String streamId = RandomStringUtils.randomNumeric(24);
-		broadcast.setStreamId(streamId);
-		broadcastMap.put(streamId, broadcast);
-		return null;
+
+		String streamId = null;
+		if (broadcast != null) {
+			streamId = RandomStringUtils.randomNumeric(24);
+			broadcast.setStreamId(streamId);
+			broadcastMap.put(streamId, broadcast);
+		}
+		return streamId;
 	}
 
 	@Override
 	public Broadcast get(String id) {
-		
+
 		return broadcastMap.get(id);
 	}
 
@@ -87,7 +90,7 @@ public class InMemoryDataStore implements IDataStore {
 	public boolean addEndpoint(String id, Endpoint endpoint) {
 		Broadcast broadcast = broadcastMap.get(id);
 		boolean result = false;
-		if (broadcast != null) {
+		if (broadcast != null && endpoint != null) {
 			List<Endpoint> endPointList = broadcast.getEndPointList();
 			if (endPointList == null) {
 				endPointList = new ArrayList<>();
@@ -115,7 +118,7 @@ public class InMemoryDataStore implements IDataStore {
 		}
 		return result;
 	}
-	
+
 	@Override
 	public List<Broadcast> getBroadcastList(int offset, int size) {
 		Collection<Broadcast> values = broadcastMap.values();
@@ -135,11 +138,11 @@ public class InMemoryDataStore implements IDataStore {
 			}
 			list.add(broadcast);
 			itemCount++;
-			
+
 			if (itemCount >= size) {
 				break;
 			}
-			
+
 		}
 		return list;
 	}

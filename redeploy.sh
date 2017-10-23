@@ -1,6 +1,6 @@
 #!/bin/bash
 
-mvn install -Dmaven.javadoc.skip=true -Dmaven.test.skip=true
+mvn clean install -Dmaven.javadoc.skip=true -Dmaven.test.skip=true
 
 RED5_DIR=~/softwares/ant-media-server
 
@@ -21,4 +21,4 @@ cd $RED5_DIR
 
 
 #start red5
-./start.sh
+./start-debug.sh
