@@ -2,6 +2,7 @@ package io.antmedia.datastore.db;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 
 import org.apache.commons.lang3.RandomStringUtils;
@@ -159,6 +160,40 @@ public class MapDBStore implements IDataStore {
 	}
 
 	@Override
+	public boolean removeEndpoint(String id, Endpoint endpoint) {
+		boolean result = false;
+
+		if (id != null && endpoint != null) {
+			String jsonString = map.get(id);
+			if (jsonString != null) {
+				Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
+				List<Endpoint> endPointList = broadcast.getEndPointList();
+				if (endPointList != null) 
+				{
+					for (Iterator iterator = endPointList.iterator(); iterator.hasNext();) 
+					{
+						Endpoint endpointItem = (Endpoint) iterator.next();
+						if (endpointItem.rtmpUrl.equals(endpoint.rtmpUrl)) 
+						{
+							iterator.remove();
+							result = true;
+							break;
+						}
+					}
+					
+					if (result) {
+						broadcast.setEndPointList(endPointList);
+						map.replace(id, gson.toJson(broadcast));
+						db.commit();
+					}
+				}
+			}
+		}
+		return result;
+	}
+
+
+	@Override
 	public long getBroadcastCount() {
 		return map.getSize();
 	}
@@ -199,5 +234,7 @@ public class MapDBStore implements IDataStore {
 		}
 		return list;
 	}
+
+
 
 }

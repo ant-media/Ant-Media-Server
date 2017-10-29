@@ -3,6 +3,7 @@ package io.antmedia.datastore.db;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.UUID;
@@ -99,6 +100,30 @@ public class InMemoryDataStore implements IDataStore {
 			broadcast.setEndPointList(endPointList);
 			broadcastMap.put(id, broadcast);
 			result = true;
+		}
+		return result;
+	}
+	
+	
+	@Override
+	public boolean removeEndpoint(String id, Endpoint endpoint) {
+		boolean result = false;
+		Broadcast broadcast = broadcastMap.get(id);
+		if (broadcast != null && endpoint != null) {
+			List<Endpoint> endPointList = broadcast.getEndPointList();
+			if (endPointList != null) {
+				for (Iterator iterator = endPointList.iterator(); iterator.hasNext();) 
+				{
+					Endpoint endpointItem = (Endpoint) iterator.next();
+					if (endpointItem.rtmpUrl.equals(endpoint.rtmpUrl)) 
+					{
+						iterator.remove();
+						result = true;
+						break;
+					}
+				}
+			
+			}
 		}
 		return result;
 	}
