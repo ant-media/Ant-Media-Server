@@ -201,6 +201,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 		MuxAdaptor muxAdaptor = new MuxAdaptor(null);
 		muxAdaptor.setMp4MuxingEnabled(true,false);
 		muxAdaptor.setHLSMuxingEnabled(true);
+		muxAdaptor.setHLSFilesDeleteOnExit(false);
 
 		if (appScope == null) {
 			appScope = (WebScope) applicationContext.getBean("web.scope");
@@ -314,7 +315,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 			for (int j = 0; j < 20; j++) {
 				MuxAdaptor muxAdaptor = new MuxAdaptor(null);
 				muxAdaptor.setMp4MuxingEnabled(true, true);
-				muxAdaptor.setHLSMuxingEnabled(true);
+				muxAdaptor.setHLSMuxingEnabled(false);
 				muxAdaptorList.add(muxAdaptor);
 			}
 			{
@@ -540,6 +541,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 		MuxAdaptor muxAdaptor = new MuxAdaptor(null);
 		muxAdaptor.setHLSMuxingEnabled(true);
+		
 		muxAdaptor.setMp4MuxingEnabled(false, false);
 		int hlsListSize = 5;
 		muxAdaptor.setHlsListSize(hlsListSize + "");
@@ -591,7 +593,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 			}
 
 			assertFalse(muxAdaptor.isRecording());
-			//delete file job should be in scheduler
+		// delete job in the list
 			assertEquals(1, scheduler.getScheduledJobNames().size());
 
 			

@@ -84,6 +84,11 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 						}
 					}
 					
+					//recreate endpoints for social media
+					if (endPointList != null) {
+						recreateEndpointsForSocialMedia(broadcast, endPointList);
+					}
+					
 					
 				}
 
@@ -93,6 +98,26 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 			e.printStackTrace();
 		}
 		super.streamBroadcastClose(stream);
+	}
+	
+	public void recreateEndpointsForSocialMedia(Broadcast broadcast, List<Endpoint> endPointList) {
+		for (Endpoint endpoint : endPointList) {
+			
+			if (endpoint.type != null && !endpoint.type.equals("")) {
+				VideoServiceEndpoint videoServiceEndPoint = getVideoServiceEndPoint(null, endpoint.type);
+				if (videoServiceEndPoint != null) {
+					Endpoint newEndpoint;
+					try {
+						newEndpoint = videoServiceEndPoint.createBroadcast(broadcast.getName(), broadcast.getDescription(), broadcast.isIs360(), broadcast.isPublicStream(), 720);
+						getDataStore().removeEndpoint(broadcast.getStreamId(), endpoint);
+						getDataStore().addEndpoint(broadcast.getStreamId(), newEndpoint);
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+					
+				}
+			}
+		}
 	}
 
 	@Override

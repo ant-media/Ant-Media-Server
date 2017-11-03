@@ -42,7 +42,7 @@ public class PreferenceStore implements ServletContextAware{
 			try {
 				input = new FileInputStream(fullPath);
 				prop.load(input);
-			} catch (IOException e) {
+			} catch (Exception e) {
 				e.printStackTrace();
 			}
 			finally {

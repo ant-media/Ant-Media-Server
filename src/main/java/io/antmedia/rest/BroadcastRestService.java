@@ -183,11 +183,11 @@ public class BroadcastRestService {
 		String message = null;
 		Broadcast broadcast = lookupBroadcast(id);
 		if (broadcast != null) {
-			List<VideoServiceEndpoint> endPoint = getEndpointList();
+			List<VideoServiceEndpoint> endPointServiceList = getEndpointList();
 
-			if (endPoint != null) {
+			if (endPointServiceList != null) {
 				boolean serviceFound = false;
-				for (VideoServiceEndpoint videoServiceEndpoint : endPoint) {
+				for (VideoServiceEndpoint videoServiceEndpoint : endPointServiceList) {
 					if (videoServiceEndpoint.getName().equals(serviceName)) {
 						serviceFound = true;
 						boolean authenticated = videoServiceEndpoint.isInitialized() && 
