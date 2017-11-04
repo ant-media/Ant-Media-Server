@@ -57,7 +57,7 @@ and change the line from
 to ```JAVA_HOME="/usr/lib/jvm/java-8-oracle/"```
 
 
-Copy antmedia folder to /etc/init.d and install the service
+Copy antmedia file to /etc/init.d and install the service
 ```
 $ sudo cp antmedia /etc/init.d/
 $ sudo update-rc.d antmedia defaults
