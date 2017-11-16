@@ -11,7 +11,10 @@ Of course there is a JavaScript SDK in order to make using signalling server str
 There is a sample peer.html file in the sample app, you can also try it to understand how to use JavaScript SDK 
 
 ### How to use JavaScript SDK
-Firstly, just load the below scripts in head element of the html file. 
+JavaScript SDK is so easy, just create `WebRTCAdaptor` object and call `join(roomName)` function. 
+Let's see how to make it step by step
+
+#### Load the below scripts in head element of the html file. 
 
 ```
 <head>
@@ -22,7 +25,7 @@ Firstly, just load the below scripts in head element of the html file.
 </head>
 ```
 
-Create video elements somewhere in the body tag
+#### Create video elements somewhere in the body tag
 ```
 <video id="localVideo" autoplay muted width="480"></video>
 <video id="remoteVideo" autoplay controls width="480"></video>
@@ -30,7 +33,7 @@ Create video elements somewhere in the body tag
 
 First video tag is for local video and the second video tag for remote video.
 
-After that initialize the WebRTCAdaptor object in script tag
+#### Initialize the `WebRTCAdaptor object in script tag
 ```
 <script>
     var pc_config = null;
@@ -52,7 +55,8 @@ After that initialize the WebRTCAdaptor object in script tag
 		  sdp_constraints: sdpConstraints,
 		  localVideoId: "localVideo",   // id of the local video tag
 		  remoteVideoId: "remoteVideo",  // id of the remote video tag
-		  callback: function(info) {     //callback function
+		  
+		  callback: function(info) {     // *success callback function*
 			  
                     if (info == "initialized")  
                     {  
@@ -81,10 +85,30 @@ After that initialize the WebRTCAdaptor object in script tag
 </script>
 ```
 
+#### Call `join` function
+In order to create a connection between peers, each peer should join the same room by calling `join(roomName)` function of
+the WebRTCAdaptor. When there are two peers in the same room, signalling starts automatically and peer to peer connection
+is established.
+
+For instance, you can call join function in *success callback function* when the info parameter is having value "initialized" 
+
+```
+ if (info == "initialized")  
+ {  
+  // it is called with this parameter when it connects to                            
+  // signalling server and everything is ok 
+  console.log("initialized");
+  webRTCAdaptor.join("room1");
+ }
+```
+
+According to code above, when peer.html file is opened by two peers, they will joined the "room1" and peer to peer connection will be established. 
+
+
 #### Functions 
 As shown above, main object is WebRTCAdaptor so that let's look at its functions
 
-* `join(value)` :
+* `join(roomName)` :
 
     Lets peer join to a room specified in the parameter, if operation is successfull then callback function is called with
 info parameter having "joined" value. When there are two people in the same room, signalling starts automatically 
@@ -107,6 +131,9 @@ with info parameter having "leaved" value
    Lets the local mic mute and remove the audio stream from peer connection
 
 
+
+#### Sample
+Please take a look at the WebRTCApp4/peer.html file in order to see JavaScript SDK can be used
 
 
 
