@@ -133,7 +133,7 @@ with info parameter having "leaved" value
 
 
 #### Sample
-Please take a look at the WebRTCApp4/peer.html file in order to see JavaScript SDK can be used
+Please take a look at the WebRTCApp4/peer.html file in order to see How JavaScript SDK can be used
 
 
 
