@@ -63,23 +63,20 @@ Move the ant-media-server directory to /usr/local/antmedia
 $ sudo mv ant-media-server /usr/local/antmedia
 ```
 
-Go to /usr/local/antmedia 
-```
-$ cd /usr/local/antmedia
-```
-Edit the antmedia file by a text editor like nano, vim, etc.
-and change the line from
-
-```JAVA_HOME="/usr/lib/jvm/default-java"```
-to ```JAVA_HOME="/usr/lib/jvm/java-8-oracle/"```
-
-
 Copy antmedia file to /etc/init.d and install the service
 ```
-$ sudo cp antmedia /etc/init.d/
+$ sudo cp /usr/local/antmedia/antmedia /etc/init.d/
 $ sudo update-rc.d antmedia defaults
 $ sudo update-rc.d antmedia enable
 ```
+
+Create antmedia user to system
+
+```
+sudo useradd -d /usr/local/antmedia/ -s /bin/false -r antmedia
+sudo chown -R antmedia:antmedia /usr/local/antmedia/
+```
+
 
 It is time to start the server
 ```
