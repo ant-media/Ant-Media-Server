@@ -28,8 +28,12 @@ Ant Media Server is based on Red5
 
 ## Releases 
 
+### Ant Media Server 1.1.1 Release (August 3, 2017)
+[ZIP](https://github.com/ant-media/Ant-Media-Server/releases/download/ams-v1.1.1/ant-media-server-1.1.1.zip)
+
 ### Ant Media Server 1.0RC Release (June 5, 2017)
 [ZIP](https://github.com/ant-media/Ant-Media-Server/releases/download/ams-v.1.0RC/ant-media-server-1.0RC.zip)
+
 ### Red5+ 1.0.1 Release (27 March 2017)
 [Tarball &amp; ZIP](https://github.com/ant-media/red5-plus-server/releases/tag/v1.0.1_red5_plus)
 
