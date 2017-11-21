@@ -12,8 +12,8 @@ import org.junit.Test;
 import org.junit.internal.runners.statements.Fail;
 import org.mongodb.morphia.Datastore;
 import org.mongodb.morphia.query.Query;
-import org.red5.server.adapter.AntMediaApplicationAdapter;
 
+import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.MapDBStore;

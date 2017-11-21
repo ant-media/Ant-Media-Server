@@ -1,4 +1,4 @@
-package org.red5.server.adapter;
+package io.antmedia;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -19,6 +19,7 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
+import org.red5.server.adapter.MultiThreadedApplicationAdapter;
 import org.red5.server.api.scheduling.IScheduledJob;
 import org.red5.server.api.scheduling.ISchedulingService;
 import org.red5.server.api.stream.IBroadcastStream;
@@ -35,8 +36,10 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	public static final String BROADCAST_STATUS_CREATED = "created";
 	public static final String BROADCAST_STATUS_BROADCASTING = "broadcasting";
 	public static final String BROADCAST_STATUS_FINISHED = "finished";
-	public static final String HOOK_ACTION_END_LIVE_STREAM = "endLiveStream";
-	
+	public static final String HOOK_ACTION_END_LIVE_STREAM = "liveStreamEnded";
+	public static final String HOOK_ACTION_START_LIVE_STREAM = "liveStreamStarted";
+	public static final String HOOK_ACTION_VOD_READY = "vodReady";
+
 
 	private List<VideoServiceEndpoint> videoServiceEndpoints;
 	private IDataStore dataStore;
@@ -60,15 +63,17 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 					final String streamId = broadcast.getStreamId();
 					if (listenerHookURL != null && listenerHookURL.length() > 0) 
 					{
+						final String name = broadcast.getName();
+						final String category = broadcast.getCategory();
 						addScheduledOnceJob(100, new IScheduledJob() {
-							
+
 							@Override
 							public void execute(ISchedulingService service) throws CloneNotSupportedException {
-								notifyHook(listenerHookURL, streamId, HOOK_ACTION_END_LIVE_STREAM);
+								notifyHook(listenerHookURL, streamId, HOOK_ACTION_END_LIVE_STREAM, name, category, null);
 							}
 						});
 					}
-								
+
 					List<Endpoint> endPointList = broadcast.getEndPointList();
 					if (endPointList != null) {
 						for (Endpoint endpoint : endPointList) {
@@ -83,13 +88,13 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 							}
 						}
 					}
-					
+
 					//recreate endpoints for social media
 					if (endPointList != null) {
 						recreateEndpointsForSocialMedia(broadcast, endPointList);
 					}
-					
-					
+
+
 				}
 
 			}
@@ -99,10 +104,10 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		}
 		super.streamBroadcastClose(stream);
 	}
-	
+
 	public void recreateEndpointsForSocialMedia(Broadcast broadcast, List<Endpoint> endPointList) {
 		for (Endpoint endpoint : endPointList) {
-			
+
 			if (endpoint.type != null && !endpoint.type.equals("")) {
 				VideoServiceEndpoint videoServiceEndPoint = getVideoServiceEndPoint(null, endpoint.type);
 				if (videoServiceEndPoint != null) {
@@ -114,7 +119,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
-					
+
 				}
 			}
 		}
@@ -129,6 +134,23 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 				Broadcast broadcast = dataStore.get(streamName);
 				if (broadcast != null) {
+					final String listenerHookURL = broadcast.getListenerHookURL();
+					final String streamId = broadcast.getStreamId();
+					if (listenerHookURL != null && listenerHookURL.length() > 0) 
+					{
+						final String name = broadcast.getName();
+						final String category = broadcast.getCategory();
+						addScheduledOnceJob(100, new IScheduledJob() {
+
+							@Override
+							public void execute(ISchedulingService service) throws CloneNotSupportedException {
+								notifyHook(listenerHookURL, streamId, HOOK_ACTION_START_LIVE_STREAM, name, category, null);
+							}
+						});
+					}
+
+
+
 					List<Endpoint> endPointList = broadcast.getEndPointList();
 					if (endPointList != null) {
 						for (Endpoint endpoint : endPointList) {
@@ -160,15 +182,35 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	}
 
 	@Override
-	public void muxingFinished(File file, long duration) {
+	public void muxingFinished(final String streamId, File file, long duration) {
 		String name = file.getName();
 		if (dataStore != null) {
 			int index;
 			// reg expression of a translated file, kdjf03030_240p.mp4
-			String regularExp = "^.*_{1}[0-9]{3}p{1}\\.mp4{1}$"; 
+			String regularExp = "^.*_{1}[0-9]{3}p{1}\\.mp4{1}$";
+			
 			if (!name.matches(regularExp) && (index = name.lastIndexOf(".mp4")) != -1) {
-				name = name.substring(0, index);
-				dataStore.updateDuration(name, duration);
+				final String baseName = name.substring(0, index);
+				dataStore.updateDuration(streamId, duration);
+
+				Broadcast broadcast = dataStore.get(streamId);
+				if (broadcast != null) {
+					final String listenerHookURL = broadcast.getListenerHookURL();
+					
+					if (listenerHookURL != null && listenerHookURL.length() > 0) 
+					{
+						addScheduledOnceJob(100, new IScheduledJob() {
+
+							@Override
+							public void execute(ISchedulingService service) throws CloneNotSupportedException {
+								notifyHook(listenerHookURL, streamId, HOOK_ACTION_VOD_READY, null, null, baseName);
+							}
+						});
+					}
+				}
+
+
+
 			}
 		}
 	}
@@ -187,8 +229,8 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 		@Override
 		public void execute(ISchedulingService service) throws CloneNotSupportedException {
-			
-			
+
+
 			try {
 				if (!videoServiceEndpoint.askIfDeviceAuthenticated()) {
 					count++;
@@ -215,12 +257,41 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	public void setVideoServiceEndpoints(List<VideoServiceEndpoint> videoServiceEndpoints) {
 		this.videoServiceEndpoints = videoServiceEndpoints;
 	}
-	
-	
-	public static StringBuffer notifyHook(String url, String id, String action) {
+
+
+	/**
+	 * Notify hook with parameters below
+	 * @param url is the  url of the service to be called
+	 * 
+	 * @param id is the stream id that is unique for each stream
+	 * 
+	 * @param action is the name of the action to be notified, it has values such as
+	 * {@link #HOOK_ACTION_END_LIVE_STREAM}
+	 * {@link #HOOK_ACTION_START_LIVE_STREAM}
+	 * 
+	 * @param streamName, name of the stream. It is not the name of the file. It is just a user friendly name 
+	 * 
+	 * @param category, category of the stream
+	 * 
+	 * 
+	 * @return
+	 */
+	public StringBuffer notifyHook(String url, String id, String action, String streamName, String category, String vodName) {
 		Map<String, String> variables = new HashMap<>();
+
 		variables.put("id", id);
 		variables.put("action", action);
+		if (streamName != null) {
+			variables.put("streamName", streamName);
+		}
+		if (category != null) {
+			variables.put("category", category);
+		}
+		
+		if (vodName != null) {
+			variables.put("vodName", vodName);
+		}
+		
 		StringBuffer response = null;
 		try {
 			response = sendPOST(url, variables);
@@ -229,7 +300,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		}
 		return response;
 	}
-	
+
 	public static StringBuffer sendPOST(String url, Map<String, String> variables) throws IOException {
 
 		CloseableHttpClient httpClient = HttpClients.createDefault();
@@ -241,7 +312,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		for (Entry<String, String> entry : entrySet) {
 			urlParameters.add(new BasicNameValuePair(entry.getKey(), entry.getValue()));
 		}
-		
+
 
 		HttpEntity postParams = new UrlEncodedFormEntity(urlParameters);
 		httpPost.setEntity(postParams);
@@ -264,7 +335,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 		// print result
 		httpClient.close();
-		
+
 		return response;
 
 	}

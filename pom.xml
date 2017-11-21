@@ -339,6 +339,14 @@
 			<version>${org.mapdb.version}</version>
 			<type>bundle</type>
 		</dependency>
+		<dependency>
+			<groupId>org.red5</groupId>
+			<artifactId>websocket</artifactId>
+			<version>${websocket.version}</version>
+			<scope>provided</scope>
+		</dependency>
+		
+		
 	</dependencies>
 	<profiles>
 		<profile>

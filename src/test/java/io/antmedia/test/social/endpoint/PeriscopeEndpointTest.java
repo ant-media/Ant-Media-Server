@@ -118,7 +118,7 @@ public class PeriscopeEndpointTest {
 		endPoint.start();
 		try {
 			String name = "evet name";
-			Endpoint endpoint = endPoint.createBroadcast(null, null, false, false, 720);
+			Endpoint endpoint = endPoint.createBroadcast(name, null, false, false, 720);
 
 			System.out.println("rtmp url is:" + endpoint.rtmpUrl);
 

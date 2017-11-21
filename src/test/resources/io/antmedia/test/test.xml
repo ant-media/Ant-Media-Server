@@ -77,8 +77,14 @@
 		<property name="contextPath" value="/junit" />
 		<property name="virtualHosts" value="*" />
 	</bean>
+	
+	<bean id="db.datastore" class="io.antmedia.datastore.db.InMemoryDataStore">
+		<constructor-arg value="junit.db" />
+	</bean>
 
-	<bean id="web.handler" class="io.antmedia.test.Application" />
+	<bean id="web.handler" class="io.antmedia.test.Application" >
+		<property name="dataStore" ref="db.datastore" />
+	</bean>
 
 	<!-- Streamable file factory -->
 	<bean id="streamableFileFactory" class="org.red5.server.stream.StreamableFileFactory">

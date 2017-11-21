@@ -16,7 +16,6 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
-import org.red5.server.adapter.AntMediaApplicationAdapter;
 import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,6 +25,7 @@ import org.springframework.web.context.WebApplicationContext;
 
 import com.google.gson.Gson;
 
+import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.EncoderSettings;
 import io.antmedia.datastore.db.IDataStore;
