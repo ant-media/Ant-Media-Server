@@ -384,6 +384,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 	@Test
 	public void testMp4MuxingWithSameName() 
 	{
+		Application.resetFields();
+		
 		assertEquals(Application.id, null);
 		assertEquals(Application.file, null);
 		assertEquals(Application.duration, 0);
