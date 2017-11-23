@@ -182,7 +182,7 @@ Above command will install iptables-persistent package, after that just run the 
 you make a change and want it to be persistent
 
 ```
-iptables-save > /etc/iptables/rules.v4
+sudo sh -c "iptables-save > /etc/iptables/rules.v4"
 ```
 
 
