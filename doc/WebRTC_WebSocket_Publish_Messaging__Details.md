@@ -32,9 +32,9 @@ to the server with takeConfiguration command
 ```json
 {
    command : "takeConfiguration",
-	 streamName : "stream1",
-	 type : "offer",  
-	 sdp : SDP_PARAMETER
+   streamName : "stream1",
+   type : "offer",  
+   sdp : SDP_PARAMETER
 }
 ```
 
@@ -42,19 +42,19 @@ to the server with takeConfiguration command
 ```json
 {
    command : "takeConfiguration",
-	 streamName : "stream1",
-	 type : "answer",  
-	 sdp : SDP_PARAMETER
+   streamName : "stream1",
+   type : "answer",  
+   sdp : SDP_PARAMETER
 }
 ```
 6. Client and Server get ice candidates several times and sends to each other with takeCandidate command
 ```json
 {
     command : "takeCandidate",
-		streamName : "stream1",
-		label : CANDIDATE.SDP_MLINE_INDEX,
-		id : CANDIDATE.SDP_MID,
-		candidate :CANDIDATE.CANDIDATE
+    streamName : "stream1",
+    label : CANDIDATE.SDP_MLINE_INDEX,
+    id : CANDIDATE.SDP_MID,
+    candidate :CANDIDATE.CANDIDATE
 }
 
 ```
