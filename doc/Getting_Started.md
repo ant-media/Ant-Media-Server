@@ -158,6 +158,33 @@ Here are the ports server uses
 * UDP:5000-65000 (RTP in RTSP)
 * TCP: 8081-8082 (WebSocket)
 
+### Forward a Port to an Another
+
+Generally port forwarding is used to forward default ports to the server's ports in order to have easy of use.
+For instance let's forward 80 to 5080, just type the command below.
+
+```
+sudo iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 5080
+```
+
+After running the command above, the request goes to 80 is being forwarded to 5080
+
+**Make Port Forwarding Persistent**
+
+If you want the server to reload port forwarding after reboot, we need to install iptables-persistent package and 
+save rules like below
+
+```
+sudo apt-get install iptables-persistent
+```
+
+Above command will install iptables-persistent package, after that just run the command below everytime 
+you make a change and want it to be persistent
+
+```
+sudo sh -c "iptables-save > /etc/iptables/rules.v4"
+```
+
 
 
 
