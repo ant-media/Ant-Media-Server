@@ -603,6 +603,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 	@Test
 	public void testChangeAppSettingsMP4andHLS() {
 		fail("implement this test");
+		
+		//change appsettings and make sure that mp4 and hls whether relavant files are created properly
 	}
 	
 	@Test
@@ -706,9 +708,12 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 			System.out.println("ts file count:" + files.length);
 
+			assertTrue(files.length > 0);
 			assertTrue(files.length < (int)Integer.valueOf(hlsMuxer.getHlsListSize()) * (Integer.valueOf(hlsMuxer.getHlsTime()) + 1));
 
 			
+			
+			//wait to let hls muxer delete ts and m3u8 file
 			Thread.sleep(hlsListSize*hlsTime * 1000 + 3000);
 			
 			
@@ -717,11 +722,13 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 			files = dir.listFiles(new FilenameFilter() {
 				@Override
 				public boolean accept(File dir, String name) {
-					return name.endsWith(".ts");
+					return name.endsWith(".ts") || name.endsWith(".m3u8");
 				}
 			});
 			
 			assertEquals(0, files.length);
+			
+			
 			
 			
 		}

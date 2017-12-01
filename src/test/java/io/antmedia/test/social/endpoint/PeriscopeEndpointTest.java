@@ -117,12 +117,12 @@ public class PeriscopeEndpointTest {
 		PeriscopeEndpoint endPoint = new PeriscopeEndpoint(CLIENT_ID, CLIENT_SECRET, dataStore);
 		endPoint.start();
 		try {
-			String name = "evet name";
+			String name = "Event name";
 			Endpoint endpoint = endPoint.createBroadcast(name, null, false, false, 720);
 
 			System.out.println("rtmp url is:" + endpoint.rtmpUrl);
 
-			MuxingTest.execute("/usr/local/bin/ffmpeg -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv " + endpoint.rtmpUrl);
+			MuxingTest.execute("/usr/local/bin/ffmpeg -re -i src/test/resources/test_video_360p.flv -acodec copy -vcodec copy -f flv " + endpoint.rtmpUrl);
 
 			LiveStreamStatus streamStatus = null;
 

@@ -127,7 +127,7 @@ public class PeriscopeEndpoint extends VideoServiceEndpoint {
 			throw new Exception("No broadcast is available, call createBroadcast function before calling publish broadcast");
 		}
 		updateTokenIfRequired();
-		broadcastEndpoint.publishBroadcast(endpoint.broadcastId, endpoint.name, true, "en_US");
+		broadcastEndpoint.publishBroadcast(endpoint.broadcastId, endpoint.name, false, "en_US");
 	}
 
 	@Override
