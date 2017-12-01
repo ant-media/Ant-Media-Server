@@ -43,9 +43,9 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 
 	private int audioBitrate;
 
-	protected int videoStreamIndex;
+	protected int videoStreamIndex = -1;
 
-	protected int audioStreamIndex;
+	protected int audioStreamIndex = -1;
 
 	private boolean videoConfParsed = false;
 
