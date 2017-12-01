@@ -63,6 +63,8 @@ public class BroadcastRestService {
 
 	private IDataStore dataStore;
 
+	private AppSettings appSettings;
+
 	protected static Logger logger = LoggerFactory.getLogger(BroadcastRestService.class);
 
 	@POST
@@ -76,6 +78,18 @@ public class BroadcastRestService {
 		}	
 		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
 		broadcast.setDate(System.currentTimeMillis());
+		
+		String listenerHookURL = broadcast.getListenerHookURL();
+		if (listenerHookURL == null || listenerHookURL.length() == 0) 
+		{
+			AppSettings settings = getAppSettings();
+			if (settings != null) {
+				String settingsListenerHookURL = settings.getListenerHookURL();
+				if (settingsListenerHookURL != null && settingsListenerHookURL.length() > 0) {
+					broadcast.setListenerHookURL(settingsListenerHookURL);
+				}
+			}
+		}
 
 		getDataStore().save(broadcast);
 		return broadcast;
@@ -463,11 +477,26 @@ public class BroadcastRestService {
 		return app;
 	}
 	
+	private AppSettings getAppSettings() {
+		if (appSettings == null) {
+			appSettings = (AppSettings)getAppContext().getBean(AppSettings.BEAN_NAME);
+		}
+		return appSettings;
+	}
+	
 	private IScope getScope() {
 		if (scope == null) {
 			scope = getApplication().getScope();
 		}
 		return scope;
+	}
+
+	public void setAppCtx(ApplicationContext appCtx) {
+		this.appCtx = appCtx;
+	}
+
+	public void setAppSettings(AppSettings appSettings) {
+		this.appSettings = appSettings;
 	}
 
 }
