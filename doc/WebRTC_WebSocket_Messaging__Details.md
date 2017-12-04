@@ -191,5 +191,6 @@ Server relays the answer sdp to the first peer
 ```json
 {
     command : "leave",
+    streamName: "stream1"
 }
 ```
