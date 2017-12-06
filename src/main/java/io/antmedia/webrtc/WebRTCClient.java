@@ -3,6 +3,8 @@ package io.antmedia.webrtc;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import org.json.simple.JSONObject;
 import org.red5.net.websocket.WebSocketConnection;
@@ -50,6 +52,8 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 	private IWebRTCMuxer webRTCMuxer;
 
 	private static Logger logger = LoggerFactory.getLogger(WebRTCClient.class);
+
+	private ExecutorService executor = Executors.newSingleThreadExecutor();
 
 
 	private static final String DTLS_SRTP_KEY_AGREEMENT_CONSTRAINT = "DtlsSrtpKeyAgreement";
@@ -110,26 +114,35 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 	}
 
 	public void start() {
-		List<IceServer> iceServers = new ArrayList();
-		iceServers.add(new IceServer("stun:stun.l.google.com:19302"));
-		PeerConnection.RTCConfiguration rtcConfig = new PeerConnection.RTCConfiguration(iceServers);
-		createMediaConstraintsInternal();
 
-		factory = createPeerConnectionFactory();
+		executor.execute(new Runnable() {
 
-		peerConnection = factory.createPeerConnection(rtcConfig, pcConstraints, this);
+			@Override
+			public void run() {
+				List<IceServer> iceServers = new ArrayList();
+				iceServers.add(new IceServer("stun:stun.l.google.com:19302"));
+				PeerConnection.RTCConfiguration rtcConfig = new PeerConnection.RTCConfiguration(iceServers);
+				createMediaConstraintsInternal();
 
-		MediaStream mediaStream = factory.createLocalMediaStream("local_stream");
+				factory = createPeerConnectionFactory();
 
-		audioSource = factory.createAudioSource(pcConstraints);
-		mediaStream.addTrack(factory.createAudioTrack("audio", audioSource));
+				peerConnection = factory.createPeerConnection(rtcConfig, pcConstraints, WebRTCClient.this);
 
-		videoSource = factory.createVideoSource();
-		mediaStream.addTrack(factory.createVideoTrack("video", videoSource));
+				MediaStream mediaStream = factory.createLocalMediaStream("local_stream");
 
-		peerConnection.addStream(mediaStream);
+				audioSource = factory.createAudioSource(pcConstraints);
+				mediaStream.addTrack(factory.createAudioTrack("audio", audioSource));
 
-		peerConnection.createOffer(this, sdpMediaConstraints);
+				videoSource = factory.createVideoSource();
+				mediaStream.addTrack(factory.createVideoTrack("video", videoSource));
+
+				peerConnection.addStream(mediaStream);
+
+				peerConnection.createOffer(WebRTCClient.this, sdpMediaConstraints);
+
+			}
+		});
+
 
 
 	}
@@ -152,13 +165,10 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 		sdpMediaConstraints = new MediaConstraints();
 		sdpMediaConstraints.mandatory.add(
 				new MediaConstraints.KeyValuePair("OfferToReceiveAudio", "false"));
-		//		    if (videoCallEnabled || peerConnectionParameters.loopback) {
+
 		sdpMediaConstraints.mandatory.add(
 				new MediaConstraints.KeyValuePair("OfferToReceiveVideo", "false"));
-		//		    } else {
-		//		      sdpMediaConstraints.mandatory.add(
-		//		          new MediaConstraints.KeyValuePair("OfferToReceiveVideo", "false"));
-		//		    }
+
 	}
 
 	@Override
@@ -247,27 +257,36 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 	}
 
 	@Override
-	public void onCreateSuccess(SessionDescription sdp) {
-		peerConnection.setLocalDescription(this, sdp);
+	public void onCreateSuccess(final SessionDescription sdp) {
 
-		JSONObject jsonObject = new JSONObject();
-		jsonObject.put("command", "takeConfiguration");
-		jsonObject.put("sdp", sdp.description);
-		String type;
-		if (sdp.type == Type.ANSWER) {
-			type = "answer";
-		}
-		else  {
-			type = "offer";
-		}
-		jsonObject.put("type", type);
+		executor.execute(new Runnable() {
 
-		try {
-			wsConnection.send(jsonObject.toJSONString());
-		} catch (UnsupportedEncodingException e) {
-			e.printStackTrace();
-		}
+			@Override
+			public void run() {
+				// TODO Auto-generated method stub
 
+
+				peerConnection.setLocalDescription(WebRTCClient.this, sdp);
+
+				JSONObject jsonObject = new JSONObject();
+				jsonObject.put("command", "takeConfiguration");
+				jsonObject.put("sdp", sdp.description);
+				String type;
+				if (sdp.type == Type.ANSWER) {
+					type = "answer";
+				}
+				else  {
+					type = "offer";
+				}
+				jsonObject.put("type", type);
+
+				try {
+					wsConnection.send(jsonObject.toJSONString());
+				} catch (UnsupportedEncodingException e) {
+					e.printStackTrace();
+				}
+			}
+		});
 
 	}
 
@@ -288,23 +307,37 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 
 
 	@Override
-	public void setRemoteDescription(SessionDescription sdp) {
-		if (this.peerConnection != null) {
-			this.peerConnection.setRemoteDescription(this, sdp);
-		}
-		else {
-			logger.warn("Peer connection is null. It cannot add ice candidate");
-		}	
+	public void setRemoteDescription(final SessionDescription sdp) {
+		executor.execute(new Runnable() {
+
+			@Override
+			public void run() {
+
+				if (peerConnection != null) {
+					peerConnection.setRemoteDescription(WebRTCClient.this, sdp);
+				}
+				else {
+					logger.warn("Peer connection is null. It cannot add ice candidate");
+				}	
+
+			}
+		});
 	}
 
 
-	public void addIceCandidate(IceCandidate iceCandidate) {
-		if (this.peerConnection != null) {
-			this.peerConnection.addIceCandidate(iceCandidate);
-		}
-		else {
-			logger.warn("Peer connection is null. It cannot set remote description");
-		}
+	public void addIceCandidate(final IceCandidate iceCandidate) {
+		executor.execute(new Runnable() {
+
+			@Override
+			public void run() {
+				if (peerConnection != null) {
+					peerConnection.addIceCandidate(iceCandidate);
+				}
+				else {
+					logger.warn("Peer connection is null. It cannot set remote description");
+				}
+			}
+		});
 	}
 
 
@@ -327,18 +360,42 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 
 
 	public void stop() {
-		if (peerConnection != null) {
-			this.peerConnection.close();
-			this.peerConnection = null;
-		}
-		try {
-			JSONObject jsonObject = new JSONObject();
-			jsonObject.put("command", "notification");
-			jsonObject.put("definition", "play_finished");
-			wsConnection.send(jsonObject.toJSONString());
-		} catch (UnsupportedEncodingException e) {
-			e.printStackTrace();
-		}	
+		executor.execute(new Runnable() {
+
+			@Override
+			public void run() {
+
+				if (peerConnection != null) {
+					peerConnection.close();
+					peerConnection.dispose();
+					peerConnection = null;
+				}
+				if (audioSource != null) {
+					audioSource.dispose();
+					audioSource = null;
+				}
+				if (videoSource != null ) {
+					videoSource.dispose();
+					videoSource = null;
+				}
+				
+				if (factory != null) {
+					factory.dispose();
+					factory = null;
+				}
+				
+				
+				try {
+					JSONObject jsonObject = new JSONObject();
+					jsonObject.put("command", "notification");
+					jsonObject.put("definition", "play_finished");
+					wsConnection.send(jsonObject.toJSONString());
+				} catch (UnsupportedEncodingException e) {
+					e.printStackTrace();
+				}	
+
+			}
+		});
 	}
 
 }

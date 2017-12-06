@@ -164,7 +164,7 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 					iterator.remove();
 					adaptedWebRTCMuxer.registerWebRTCClient(iWebRTCClient);
 				}
-				//webRTCAdaptor.adaptWebRTCClient(streamId, iWebRTCClient);		
+				
 			}
 		}
 		
