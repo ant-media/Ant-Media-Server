@@ -83,11 +83,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 		if (!junit.exists()) {
 			junit.mkdirs();
 		}
-
-		File streams = new File(junit, "streams");
-		if (!streams.exists()) {
-			streams.mkdirs();
-		}
 	}
 
 	@After
@@ -378,6 +373,24 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 		}
 
 	}
+	
+	@Test
+	public void testMp4MuxingWithWithMultipleDepth() {
+		File file = testMp4Muxing("test_test/test");
+		assertEquals("test.mp4", file.getName());
+		
+		file = testMp4Muxing("dir1/dir2/file");
+		assertTrue(file.exists());
+		
+		file = testMp4Muxing("dir1/dir2/dir3/file");
+		assertTrue(file.exists());
+		
+		file = testMp4Muxing("dir1/dir2/dir3/dir4/file");
+		assertTrue(file.exists());
+	}
+	
+
+
 
 	
 
@@ -473,7 +486,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 		broadcast.setListenerHookURL(hookUrl);
 		String streamId = appAdaptor.getDataStore().save(broadcast);
 		
-		testMp4Muxing(streamId, false);
+		testMp4Muxing(streamId, false, true);
 		
 		assertEquals(Application.id, streamId);
 		assertEquals(Application.file.getName(), streamId + ".mp4");
@@ -493,7 +506,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 		
 		Application.resetFields();
 		//test with same id again
-		testMp4Muxing(streamId, true);
+		testMp4Muxing(streamId, true, true);
 		
 		assertEquals(Application.id, streamId);
 		assertEquals(Application.file.getName(), streamId + "_1.mp4");
@@ -516,10 +529,11 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 	
 	
 	public File testMp4Muxing(String name) {
-		return testMp4Muxing(name, false);
+		return testMp4Muxing(name, false, true);
 	}
+	
 
-	public File testMp4Muxing(String name, boolean shortVersion) {
+	public File testMp4Muxing(String name, boolean shortVersion, boolean checkDuration) {
 
 		MuxAdaptor muxAdaptor = new MuxAdaptor(null);
 		muxAdaptor.setMp4MuxingEnabled(true, false);
@@ -590,7 +604,9 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 				duration = 10080;
 			}
 				
-			assertTrue(MuxingTest.testFile(muxAdaptor.getMuxerList().get(0).getFile().getAbsolutePath(), duration));
+			if (checkDuration) {
+				assertTrue(MuxingTest.testFile(muxAdaptor.getMuxerList().get(0).getFile().getAbsolutePath(), duration));
+			}
 			return muxAdaptor.getMuxerList().get(0).getFile();
 		}
 		catch (Exception e) {
@@ -611,10 +627,22 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 	public void testCheckDefaultAppSettings(){
 		fail("implement this test");
 	}
-
-
+	
 	@Test
-	public void testHLSMuxing()  {
+	public void testHLSMuxingTests() {
+		testHLSMuxing("hlsmuxing_test");
+		
+		testHLSMuxing("directory/hls_test");
+		
+		testHLSMuxing("directory/dir2/hls_test");
+		
+		testHLSMuxing("directory/dir2/dir3/hls_test");
+		
+		testHLSMuxing("directory/dir2/dir3/dir4/hls_test");
+	}
+
+
+	public void testHLSMuxing(String name)  {
 
 		//av_log_set_level (40);
 
@@ -647,7 +675,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 			logger.debug("f path:" + file.getAbsolutePath());
 			assertTrue(file.exists());
 
-			boolean result = muxAdaptor.init(appScope, "testhls", false);
+			boolean result = muxAdaptor.init(appScope, name, false);
 			assert(result);
 
 			muxAdaptor.start();
