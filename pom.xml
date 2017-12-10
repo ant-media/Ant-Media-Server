@@ -45,11 +45,15 @@
 		<red5-service.version>${project.parent.version}</red5-service.version>
 		<red5-server-common.version>${project.parent.version}</red5-server-common.version>
 		<cors-filter.version>2.5</cors-filter.version>
+		<io-antmedia.enterprise.version>1.0</io-antmedia.enterprise.version>
+		<periscope-api.version>1.0.0</periscope-api.version>
+		<restfb.version>1.43.0</restfb.version>
+		<webrtcApp.version>1.2.0-SNAPSHOT</webrtcApp.version>
+		<liveApp.version>1.2.0-SNAPSHOT</liveApp.version>
+		<consoleApp.version>1.2.0-SNAPSHOT</consoleApp.version>
 		 
 		<javacpp.ffmpeg.version>3.2.1-1.3</javacpp.ffmpeg.version>
-		<!--
-		<javacpp.ffmpeg.version>3.3.2-1.3.4-SNAPSHOT</javacpp.ffmpeg.version>
-		-->
+		
 		<jersey.version>1.19.1</jersey.version>
 		<org.mapdb.version>3.0.2</org.mapdb.version>
 	</properties>
@@ -310,13 +314,13 @@
 		<dependency>
 			<groupId>io.antmedia.api.periscope</groupId>
 			<artifactId>PeriscopeAPI</artifactId>
-			<version>1.0.0</version>
+			<version>${periscope-api.version}</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/com.restfb/restfb -->
 		<dependency>
 			<groupId>com.restfb</groupId>
 			<artifactId>restfb</artifactId>
-			<version>1.43.0</version>
+			<version>${restfb.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>com.google.apis</groupId>
@@ -403,6 +407,30 @@
 											<overWrite>true</overWrite>
 											<outputDirectory>${project.build.directory}/plugins</outputDirectory>
 										</artifactItem>
+										<artifactItem>
+											<groupId>io.antmedia.webrtc</groupId>
+											<artifactId>WebRTCApp</artifactId>
+											<version>${webrtcApp.version}</version>
+											<type>war</type>
+											<overWrite>true</overWrite>
+											<outputDirectory>${project.build.directory}/webapps</outputDirectory>
+										</artifactItem>
+										<artifactItem>
+											<groupId>io.antmedia.app</groupId>
+											<artifactId>LiveApp</artifactId>
+											<version>${liveApp.version}</version>
+											<type>war</type>
+											<overWrite>true</overWrite>
+											<outputDirectory>${project.build.directory}/webapps</outputDirectory>
+										</artifactItem>
+											<artifactItem>
+											<groupId>io.antmedia.app</groupId>
+											<artifactId>ConsoleApp</artifactId>
+											<version>${consoleApp.version}</version>
+											<type>war</type>
+											<overWrite>true</overWrite>
+											<outputDirectory>${project.build.directory}/webapps</outputDirectory>
+										</artifactItem>
 									</artifactItems>
 								</configuration>
 							</execution>
@@ -434,6 +462,126 @@
 						<configuration>
 							<descriptors>
 								<descriptor>src/main/assembly/server.xml</descriptor>
+							</descriptors>
+						</configuration>
+						<executions>
+							<execution>
+								<id>make-assembly</id>
+								<!-- this is used for inheritance merges -->
+								<phase>package</phase>
+								<!-- bind to the packaging phase -->
+								<goals>
+									<goal>single</goal>
+								</goals>
+								<configuration>
+									<finalName>${project.artifactId}</finalName>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+		<profile>
+			<id>assemble_enterprise</id>
+			<build>
+				<plugins>
+					<plugin>
+						<artifactId>maven-dependency-plugin</artifactId>
+						<version>2.10</version>
+						<executions>
+							<execution>
+								<id>copy-dependencies</id>
+								<phase>package</phase>
+								<goals>
+									<goal>copy-dependencies</goal>
+								</goals>
+								<configuration>
+									<outputDirectory>${project.build.directory}/lib</outputDirectory>
+									<includeScope>compile</includeScope>
+									<excludeScope>test</excludeScope>
+
+									<excludeTransitive>false</excludeTransitive>
+								</configuration>
+							</execution>
+							<execution>
+								<id>copy-dependencies-plugin</id>
+								<phase>package</phase>
+								<goals>
+									<goal>copy-dependencies</goal>
+								</goals>
+								<configuration>
+									<outputDirectory>${project.build.directory}/plugins</outputDirectory>
+									<includeScope>provided</includeScope>
+									<excludeTransitive>false</excludeTransitive>
+								</configuration>
+							</execution>
+							<execution>
+								<id>copy-dependency-enterprise-plugin</id>
+								<phase>package</phase>
+								<goals>
+									<goal>copy</goal>
+								</goals>
+								<configuration>
+									<artifactItems>
+										<artifactItem>
+											<groupId>io.antmedia.enterprise</groupId>
+											<artifactId>ant-media-enterprise</artifactId>
+											<version>${io-antmedia.enterprise.version}</version>
+											<type>jar</type>
+											<overWrite>true</overWrite>
+											<outputDirectory>${project.build.directory}/plugins</outputDirectory>
+										</artifactItem>
+									</artifactItems>
+								</configuration>
+							</execution>
+							<execution>
+								<id>copy-dependency-websocket-plugin</id>
+								<phase>package</phase>
+								<goals>
+									<goal>copy</goal>
+								</goals>
+								<configuration>
+									<artifactItems>
+										<artifactItem>
+											<groupId>org.red5</groupId>
+											<artifactId>websocket</artifactId>
+											<version>${websocket.version}</version>
+											<type>jar</type>
+											<overWrite>true</overWrite>
+											<outputDirectory>${project.build.directory}/plugins</outputDirectory>
+										</artifactItem>
+									</artifactItems>
+								</configuration>
+							</execution>
+							<execution>
+								<id>unpack-red5-service</id>
+								<phase>package</phase>
+								<goals>
+									<goal>unpack</goal>
+								</goals>
+								<configuration>
+									<artifactItems>
+										<artifactItem>
+											<groupId>io.antmedia</groupId>
+											<artifactId>ant-media-server-service</artifactId>
+											<version>${project.version}</version>
+											<type>tar.gz</type>
+											<classifier>daemon</classifier>
+											<overWrite>true</overWrite>
+											<outputDirectory>${project.build.directory}</outputDirectory>
+										</artifactItem>
+									</artifactItems>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<artifactId>maven-assembly-plugin</artifactId>
+						<version>2.6</version>
+						<configuration>
+							<descriptors>
+								<descriptor>src/main/assembly/server_enterprise.xml</descriptor>
 							</descriptors>
 						</configuration>
 						<executions>

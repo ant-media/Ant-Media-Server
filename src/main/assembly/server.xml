@@ -131,13 +131,6 @@
 		<fileSet>
 			<directory>${project.basedir}/src/main/server/webapps/root</directory>
 			<outputDirectory>webapps/root</outputDirectory>
-			<includes>
-				<include>*.xml</include>
-				<include>*.jsp</include>
-				<include>*.html</include>
-				<include>*.ico</include>
-				<include>*.png</include>
-			</includes>
 		</fileSet>
 		<fileSet>
 			<directory>${project.basedir}/src/main/server/webapps/root/WEB-INF</directory>
@@ -147,59 +140,25 @@
 				<include>*.properties</include>
 			</includes>
 		</fileSet>
-		<!-- Demos -->
+		
+		<!-- Copy War files -->
 		<fileSet>
-			<directory>${project.basedir}/src/main/server/webapps/root/demos</directory>
-			<outputDirectory>webapps/root/demos</outputDirectory>
+			<directory>${project.build.directory}/webapps</directory>
+			<outputDirectory>webapps</outputDirectory>
 			<includes>
-				<include>*.html</include>
-				<include>*.xml</include>
-				<include>*.js</include>
-				<include>*.swf</include>
-				<include>*.air</include>
+				<include>*.war</include>
 			</includes>
 		</fileSet>
-		<fileSet>
-			<directory>${project.basedir}/src/main/server/webapps/root/demos/assets</directory>
-			<outputDirectory>webapps/root/demos/assets</outputDirectory>
-			<includes>
-				<include>*.js</include>
-				<include>*.swf</include>
-			</includes>
-		</fileSet>
-		<!-- WebRTC -->
+		
+		<!-- WebRTC
 		<fileSet>
 			<directory>${project.basedir}/src/main/server/webapps/WebRTCApp</directory>
 			<outputDirectory>webapps/WebRTCApp</outputDirectory>
 		</fileSet>
-		<!-- Installer -->
-		<fileSet>
-			<directory>${project.basedir}/src/main/server/webapps/installer</directory>
-			<outputDirectory>webapps/installer</outputDirectory>
-			<includes>
-				<include>*.html</include>
-				<include>*.js</include>
-				<include>*.swf</include>
-			</includes>
-		</fileSet>
-		<fileSet>
-			<directory>${project.basedir}/src/main/server/webapps/installer/WEB-INF</directory>
-			<outputDirectory>webapps/installer/WEB-INF</outputDirectory>
-			<includes>
-				<include>*.xml</include>
-				<include>*.properties</include>
-			</includes>
-		</fileSet>
-		<fileSet>
-			<directory>${project.basedir}/src/main/server/webapps/installer/history</directory>
-			<outputDirectory>webapps/installer/history</outputDirectory>
-			<includes>
-				<include>*.html</include>
-				<include>*.js</include>
-				<include>*.css</include>
-			</includes>
-		</fileSet>
-		<!-- Live -->
+		
+		 -->
+
+		<!-- Live 
 		<fileSet>
 			<directory>${project.basedir}/src/main/server/webapps/live/WEB-INF</directory>
 			<outputDirectory>webapps/live/WEB-INF</outputDirectory>
@@ -208,54 +167,8 @@
 				<include>*.properties</include>
 			</includes>
 		</fileSet>
-		<!-- VOD -->
-		<fileSet>
-			<directory>${project.basedir}/src/main/server/webapps/vod</directory>
-			<outputDirectory>webapps/vod</outputDirectory>
-			<includes>
-				<include>*.html</include>
-				<include>*.js</include>
-				<include>*.swf</include>
-			</includes>
-		</fileSet>
-		<fileSet>
-			<directory>${project.basedir}/src/main/server/webapps/vod/WEB-INF</directory>
-			<outputDirectory>webapps/vod/WEB-INF</outputDirectory>
-			<includes>
-				<include>*.xml</include>
-				<include>*.properties</include>
-			</includes>
-		</fileSet>
-		<fileSet>
-			<directory>${project.basedir}/src/main/server/webapps/vod/streams</directory>
-			<outputDirectory>webapps/vod/streams</outputDirectory>
-			<includes>
-				<include>*.flv</include>
-			</includes>
-		</fileSet>
-		<!-- oflaDemo -->
-		<fileSet>
-			<directory>${project.basedir}/src/main/server/webapps/oflaDemo</directory>
-			<outputDirectory>webapps/oflaDemo</outputDirectory>
-		</fileSet>
-		<!-- Websocket chat -->
-		<fileSet>
-			<directory>${project.basedir}/src/main/server/webapps/chat</directory>
-			<outputDirectory>webapps/chat</outputDirectory>
-			<includes>
-				<include>*.html</include>
-				<include>*.js</include>
-			</includes>
-		</fileSet>
-		<fileSet>
-			<directory>${project.basedir}/src/main/server/webapps/chat/WEB-INF</directory>
-			<outputDirectory>webapps/chat/WEB-INF</outputDirectory>
-			<includes>
-				<include>**/*.xml</include>
-				<include>**/*.properties</include>
-				<include>**/*.jar</include>
-				<include>**/*.class</include>
-			</includes>
-		</fileSet>
+		
+		-->
+
 	</fileSets>
 </assembly>
