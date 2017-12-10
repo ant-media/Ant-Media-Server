@@ -78,6 +78,14 @@
 				<exclude>cors-filter-*.jar</exclude>
 				<exclude>java-property-utils-*.jar</exclude>
 				<exclude>red5-service-*.jar</exclude>
+				
+				<!-- Below libs are generic we need custom builds which are under src/main/server/plugins 
+				and they will copied later in this file -->
+				<exclude>ffmpeg*linux*.jar</exclude>
+				<exclude>ffmpeg*android*.jar</exclude>
+				<exclude>ffmpeg*macosx*.jar</exclude>
+				<exclude>ffmpeg*ppc64le.jar</exclude>
+				<exclude>ffmpeg*windows*.jar</exclude>
 			</excludes>
 		</fileSet>
 		<fileSet>
@@ -110,6 +118,16 @@
 				<exclude>build_standalone.properties</exclude>
 			</excludes>
 		</fileSet>
+		
+		<!--  Copy Custom Build Plugins  -->
+		<fileSet>
+			<directory>${project.basedir}/src/main/server/plugins</directory>
+			<outputDirectory>plugins</outputDirectory>
+			<includes>
+				<include>*.jar</include>
+			</includes>
+		</fileSet>
+		
 		<!-- NATIVE LIBRARIES -->
 		<fileSet>
 			<directory>${project.basedir}/src/main/server/lib/native</directory>
@@ -127,6 +145,7 @@
 				<include>*.xml</include>
 			</includes>
 		</fileSet>
+		
 		<!-- ROOT -->
 		<fileSet>
 			<directory>${project.basedir}/src/main/server/webapps/root</directory>
@@ -149,26 +168,5 @@
 				<include>*.war</include>
 			</includes>
 		</fileSet>
-		
-		<!-- WebRTC
-		<fileSet>
-			<directory>${project.basedir}/src/main/server/webapps/WebRTCApp</directory>
-			<outputDirectory>webapps/WebRTCApp</outputDirectory>
-		</fileSet>
-		
-		 -->
-
-		<!-- Live 
-		<fileSet>
-			<directory>${project.basedir}/src/main/server/webapps/live/WEB-INF</directory>
-			<outputDirectory>webapps/live/WEB-INF</outputDirectory>
-			<includes>
-				<include>*.xml</include>
-				<include>*.properties</include>
-			</includes>
-		</fileSet>
-		
-		-->
-
 	</fileSets>
 </assembly>
