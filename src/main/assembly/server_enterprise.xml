@@ -2,7 +2,7 @@
 	xmlns="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.3"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.3 http://maven.apache.org/xsd/assembly-1.1.3.xsd">
-	<id>${project.version}</id>
+	<id>enterprise</id>
 	<formats>
 	<!-- 
 		<format>tar.gz</format>
@@ -25,7 +25,7 @@
 			</includes>
 		</fileSet>
 		<fileSet>
-			<directory>${project.build.directory}/ant-media-server-service-${red5-service.version}</directory>
+			<directory>${project.build.directory}/ant-media-server-service-${project.version}</directory>
 			<outputDirectory></outputDirectory>
 		</fileSet>
 		<fileSet>
@@ -78,6 +78,14 @@
 				<exclude>cors-filter-*.jar</exclude>
 				<exclude>java-property-utils-*.jar</exclude>
 				<exclude>red5-service-*.jar</exclude>
+				
+				<!-- Below libs are generic we need custom builds which are under src/main/server/plugins 
+				and they will copied later in this file -->
+				<exclude>ffmpeg*linux*.jar</exclude>
+				<exclude>ffmpeg*android*.jar</exclude>
+				<exclude>ffmpeg*macosx*.jar</exclude>
+				<exclude>ffmpeg*ppc64le.jar</exclude>
+				<exclude>ffmpeg*windows*.jar</exclude>
 			</excludes>
 		</fileSet>
 		<fileSet>
@@ -110,6 +118,16 @@
 				<exclude>build_standalone.properties</exclude>
 			</excludes>
 		</fileSet>
+		
+		<!--  Copy Custom Build Plugins  -->
+		<fileSet>
+			<directory>${project.basedir}/src/main/server/plugins</directory>
+			<outputDirectory>plugins</outputDirectory>
+			<includes>
+				<include>*.jar</include>
+			</includes>
+		</fileSet>
+		
 		<!-- NATIVE LIBRARIES -->
 		<fileSet>
 			<directory>${project.basedir}/src/main/server/lib/native</directory>
@@ -133,17 +151,22 @@
 			<directory>${project.basedir}/src/main/server/webapps/root</directory>
 			<outputDirectory>webapps/root</outputDirectory>
 		</fileSet>
-
-		<!-- WebRTC -->
 		<fileSet>
-			<directory>${project.basedir}/src/main/server/webapps/WebRTCApp4</directory>
-			<outputDirectory>webapps/WebRTCApp4</outputDirectory>
+			<directory>${project.basedir}/src/main/server/webapps/root/WEB-INF</directory>
+			<outputDirectory>webapps/root/WEB-INF</outputDirectory>
+			<includes>
+				<include>*.xml</include>
+				<include>*.properties</include>
+			</includes>
 		</fileSet>
 		
-		<!-- Live -->
+		<!-- Copy War files -->
 		<fileSet>
-			<directory>${project.basedir}/src/main/server/webapps/live</directory>
-			<outputDirectory>webapps/live</outputDirectory>
+			<directory>${project.build.directory}/webapps</directory>
+			<outputDirectory>webapps</outputDirectory>
+			<includes>
+				<include>*.war</include>
+			</includes>
 		</fileSet>
 	</fileSets>
 </assembly>
