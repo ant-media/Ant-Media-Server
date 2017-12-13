@@ -1,24 +1,45 @@
 #!/bin/bash
 
-mvn clean install -Dmaven.javadoc.skip=true -Dmaven.test.skip=true
+mvn clean install -Dmaven.javadoc.skip=true -Dmaven.test.skip=true -Dgpg.skip=true
 
-RED5_DIR=~/softwares/ant-media-server
+OUT=$?
 
-RED5_JAR=./target/ant-media-server-1.0.9-M2.jar
+if [ $OUT -ne 0 ]; then
+    exit $OUT
+fi
+
+ANT_MEDIA_SERVER_DIR=~/softwares/ant-media-server
+
+ANT_MEDIA_SERVER_JAR=./target/ant-media-server-1.2.0-SNAPSHOT.jar
 
 SRC_CONF_DIR=./src/main/server/conf/
 
 #copy red5 jar from target dir to red5 dir
-cp  $RED5_JAR  $RED5_DIR/ant-media-server.jar
+cp  $ANT_MEDIA_SERVER_JAR  $ANT_MEDIA_SERVER_DIR/ant-media-server.jar
 
-cp -rf $SRC_CONF_DIR   $RED5_DIR/conf/
+OUT=$?
 
-#go to red5 dir
-cd $RED5_DIR
+if [ $OUT -ne 0 ]; then
+    exit $OUT
+fi
 
-#shutdown red5 
+
+cp -rf $SRC_CONF_DIR   $ANT_MEDIA_SERVER_DIR/conf/
+
+OUT=$?
+
+if [ $OUT -ne 0 ]; then
+    exit $OUT
+fi
+
+
+
+#go to ant media server dir
+cd $ANT_MEDIA_SERVER_DIR
+
+#shutdown ant media server
 ./shutdown.sh
 
 
-#start red5
+#start ant media server
 ./start-debug.sh
