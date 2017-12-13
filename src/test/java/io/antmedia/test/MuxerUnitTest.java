@@ -231,7 +231,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 		}
 		catch (Exception e) {
-			fail("exception:" + e );
+			fail("excsereption:" + e );
 		}
 
 	}

@@ -29,7 +29,7 @@ public interface IWebRTCMuxer extends IStreamInfo {
 	 * video or audio packet to this WebRTCClient
 	 * @param webRTCClient
 	 */
-	public boolean deregisterWebRTCClient(IWebRTCClient webRTCClient);
+	public boolean unRegisterWebRTCClient(IWebRTCClient webRTCClient);
 	
 	
 	/**

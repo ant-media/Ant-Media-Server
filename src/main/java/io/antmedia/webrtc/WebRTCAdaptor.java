@@ -40,7 +40,7 @@ public class WebRTCAdaptor implements IWebRTCAdaptor {
 	 * @see io.antmedia.enterprise.webrtc.IWebRTCAdaptor#deregisterMuxer(java.lang.String, io.antmedia.enterprise.webrtc.api.IWebRTCMuxer)
 	 */
 	@Override
-	public void deregisterMuxer(String streamId, IWebRTCMuxer webRTCMuxer) {
+	public void unRegisterMuxer(String streamId, IWebRTCMuxer webRTCMuxer) {
 		List<IWebRTCMuxer> list = muxerMap.get(streamId);
 		if (list != null) {
 			list.remove(webRTCMuxer);
@@ -82,6 +82,7 @@ public class WebRTCAdaptor implements IWebRTCAdaptor {
 	/* (non-Javadoc)
 	 * @see io.antmedia.enterprise.webrtc.IWebRTCAdaptor#deregisterWebRTCClient(java.lang.String, io.antmedia.enterprise.webrtc.api.IWebRTCClient)
 	 */
+	/*
 	@Override
 	public boolean deregisterWebRTCClient(String streamId, IWebRTCClient webRTCClient) {
 		
@@ -89,6 +90,7 @@ public class WebRTCAdaptor implements IWebRTCAdaptor {
 		return webRTCMuxer.deregisterWebRTCClient(webRTCClient);
 	
 	}
+	*/
 
 
 	/* (non-Javadoc)

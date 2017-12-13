@@ -192,7 +192,7 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 			}	
 		}
 		else if (newState == IceConnectionState.DISCONNECTED) {
-			webRTCAdaptor.deregisterWebRTCClient(streamId, this);
+			//webRTCAdaptor.deregisterWebRTCClient(streamId, this);
 			stop();
 
 		}
@@ -348,6 +348,7 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 
 	}
 
+	
 	@Override
 	public void setWebRTCMuxer(IWebRTCMuxer webRTCMuxer) {
 		this.webRTCMuxer = webRTCMuxer;	
@@ -360,10 +361,12 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 
 
 	public void stop() {
+		webRTCMuxer.unRegisterWebRTCClient(this);
 		executor.execute(new Runnable() {
 
 			@Override
 			public void run() {
+				logger.info("Disposing peerconnection objects");
 
 				if (peerConnection != null) {
 					peerConnection.close();
@@ -384,12 +387,12 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 					factory = null;
 				}
 				
-				
 				try {
 					JSONObject jsonObject = new JSONObject();
 					jsonObject.put("command", "notification");
 					jsonObject.put("definition", "play_finished");
 					wsConnection.send(jsonObject.toJSONString());
+					logger.info("leaving from disposing peerconnection objects");
 				} catch (UnsupportedEncodingException e) {
 					e.printStackTrace();
 				}	

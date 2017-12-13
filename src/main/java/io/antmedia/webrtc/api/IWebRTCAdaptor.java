@@ -11,11 +11,11 @@ public interface IWebRTCAdaptor extends IScopeService {
 
 	void registerMuxer(String streamId, IWebRTCMuxer webRTCMuxer);
 
-	void deregisterMuxer(String streamId, IWebRTCMuxer webRTCMuxer);
+	void unRegisterMuxer(String streamId, IWebRTCMuxer webRTCMuxer);
 
 	boolean registerWebRTCClient(String streamId, IWebRTCClient webRTCClient);
 
-	boolean deregisterWebRTCClient(String streamId, IWebRTCClient webRTCClient);
+	//boolean deregisterWebRTCClient(String streamId, IWebRTCClient webRTCClient);
 
 	boolean streamExists(String streamId);
 	
