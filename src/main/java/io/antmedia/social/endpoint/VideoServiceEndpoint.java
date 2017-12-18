@@ -1,6 +1,9 @@
 package io.antmedia.social.endpoint;
 
+import java.util.List;
+
 import io.antmedia.datastore.db.types.Endpoint;
+import io.antmedia.datastore.db.types.SocialEndpointChannel;
 import io.antmedia.datastore.preference.PreferenceStore;
 
 /**
@@ -54,7 +57,7 @@ public abstract class VideoServiceEndpoint {
 
 	protected String clientSecret;
 
-	private PreferenceStore dataStore;
+	protected PreferenceStore dataStore;
 
 	public VideoServiceEndpoint(String clientId, String clientSecret, PreferenceStore dataStore) {
 		this.clientId = clientId;
@@ -201,6 +204,32 @@ public abstract class VideoServiceEndpoint {
 
 	public boolean isInitialized() {
 		return (clientId != null) && (clientSecret != null) && (clientId.length() > 0) && (clientSecret.length() > 0);
+	}
+
+	/**
+	 * Implement this function, it social media supports different channels
+	 * @return
+	 */
+	public SocialEndpointChannel getChannel() {
+		return null;
+	}
+	
+	/**
+	 * Get channel list from social media
+	 * @param type of the channel if exists like page, event, group
+	 * @return
+	 */
+	public List<SocialEndpointChannel> getChannelList(String type) {
+		return null;
+	}
+	
+	/**
+	 * Set the active channel
+	 * @param type
+	 * @param id
+	 */
+	public boolean setActiveChannel(String type, String id) {
+		return false;
 	}
 
 

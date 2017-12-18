@@ -49,8 +49,8 @@
 		<build.dir>target</build.dir>
 		<finalName>${project.artifactId}-${project.version}</finalName>
 		<red5-io.version>${project.parent.version}</red5-io.version>
-		<red5-service.version>${project.parent.version}</red5-service.version>
-		<red5-server-common.version>${project.parent.version}</red5-server-common.version>
+		<red5-service.version>${project.version}</red5-service.version>
+		<red5-server-common.version>${project.version}</red5-server-common.version>
 		<cors-filter.version>2.5</cors-filter.version>
 		<io-antmedia.enterprise.version>1.2.0-SNAPSHOT</io-antmedia.enterprise.version>
 		<periscope-api.version>1.0.0</periscope-api.version>
