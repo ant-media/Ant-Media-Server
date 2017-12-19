@@ -90,6 +90,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 	@After
 	public void after() {
+	
 		try {
 			delete(new File("webapps"));
 		} catch (IOException e) {
@@ -620,6 +621,84 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 	}
 	
 	@Test
+	public void testMp4MuxingSubtitledVideo() {
+
+		MuxAdaptor muxAdaptor = new MuxAdaptor(null);
+		muxAdaptor.setMp4MuxingEnabled(true, false);
+		muxAdaptor.setHLSMuxingEnabled(true);
+		muxAdaptor.setHLSFilesDeleteOnExit(false);
+
+		if (appScope == null) {
+			appScope = (WebScope) applicationContext.getBean("web.scope");
+			logger.debug("Application / web scope: {}", appScope);
+			assertTrue(appScope.getDepth() == 1);
+		}
+
+		//File file = new File(getResource("test.mp4").getFile());
+		File file = null;
+
+		try {
+
+			QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
+			assertNotNull(scheduler);
+			assertEquals(scheduler.getScheduledJobNames().size(), 0);
+			
+			
+			file = new File("target/test-classes/test_video_360p_subtitle.flv"); //ResourceUtils.getFile(this.getClass().getResource("test.flv"));
+			
+			
+			final FLVReader flvReader = new FLVReader(file);
+
+			logger.debug("f path:" + file.getAbsolutePath());
+			assertTrue(file.exists());
+
+			boolean result = muxAdaptor.init(appScope, "video_with_subtitle_stream", false);
+			assertTrue(result);
+
+
+			muxAdaptor.start();
+
+			int i = 0;
+			while (flvReader.hasMoreTags()) 
+			{
+				ITag readTag = flvReader.readTag();
+				StreamPacket streamPacket = new StreamPacket(readTag);
+				muxAdaptor.packetReceived(null, streamPacket);
+
+			}
+
+			Thread.sleep(500);
+
+			assertEquals(scheduler.getScheduledJobNames().size(), 1);
+			assertTrue(muxAdaptor.isRecording());
+
+			muxAdaptor.stop();
+
+			flvReader.close();
+
+			while (muxAdaptor.isRecording()) {
+				Thread.sleep(50);
+			}
+
+			assertFalse(muxAdaptor.isRecording());
+			
+			// if there is listenerHookURL, a task will be scheduled, so wait a little to make the call happen
+			Thread.sleep(200);
+
+			assertEquals(scheduler.getScheduledJobNames().size(), 0);
+			int duration = 146401;
+			
+			assertTrue(MuxingTest.testFile(muxAdaptor.getMuxerList().get(0).getFile().getAbsolutePath(), duration));
+			assertTrue(MuxingTest.testFile(muxAdaptor.getMuxerList().get(1).getFile().getAbsolutePath()));
+			
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			fail("exception:" + e );
+		}
+	}
+	
+	@Test
 	public void testChangeAppSettingsMP4andHLS() {
 		fail("implement this test");
 		
@@ -889,6 +968,128 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 			
 			
 			
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+
+	}
+	
+	@Test
+	public void testHLSMuxingWithSubtitle()  {
+
+		//av_log_set_level (40);
+
+		MuxAdaptor muxAdaptor = new MuxAdaptor(null);
+		muxAdaptor.setHLSMuxingEnabled(true);
+		
+		muxAdaptor.setMp4MuxingEnabled(false, false);
+		int hlsListSize = 5;
+		muxAdaptor.setHlsListSize(hlsListSize + "");
+		int hlsTime = 2;
+		muxAdaptor.setHlsTime(hlsTime + "");
+
+
+		if (appScope == null) {
+			appScope = (WebScope) applicationContext.getBean("web.scope");
+			logger.debug("Application / web scope: {}", appScope);
+			assertTrue(appScope.getDepth() == 1);
+		}
+
+		File file = null;
+		try {
+
+			QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
+			assertNotNull(scheduler);
+			assertEquals(scheduler.getScheduledJobNames().size(), 0);
+
+			file = new File("target/test-classes/test_video_360p_subtitle.flv"); //ResourceUtils.getFile(this.getClass().getResource("test.flv"));
+			final FLVReader flvReader = new FLVReader(file);
+
+			logger.info("f path:" + file.getAbsolutePath());
+			assertTrue(file.exists());
+
+			boolean result = muxAdaptor.init(appScope, "hls_video_subtitle", false);
+			assert(result);
+
+			muxAdaptor.start();
+
+			int i = 0;
+			while (flvReader.hasMoreTags()) 
+			{
+				ITag readTag = flvReader.readTag();
+				StreamPacket streamPacket = new StreamPacket(readTag);
+				muxAdaptor.packetReceived(null, streamPacket);
+			}
+
+			Thread.sleep(1000);
+			assertTrue(muxAdaptor.isRecording());
+
+			muxAdaptor.stop();
+
+			flvReader.close();
+
+			while (muxAdaptor.isRecording()) {
+				Thread.sleep(50);
+			}
+
+			assertFalse(muxAdaptor.isRecording());
+		// delete job in the list
+			assertEquals(1, scheduler.getScheduledJobNames().size());
+
+			
+			List<Muxer> muxerList = muxAdaptor.getMuxerList();
+			HLSMuxer hlsMuxer = null;
+			for (Muxer muxer : muxerList) {
+				if (muxer instanceof HLSMuxer) {
+					hlsMuxer = (HLSMuxer) muxer;
+					break;
+				}
+			}
+			assertNotNull(hlsMuxer);
+			File hlsFile = hlsMuxer.getFile();
+			
+			String hlsFilePath = hlsFile.getAbsolutePath();
+			int lastIndex =  hlsFilePath.lastIndexOf(".m3u8");
+			
+			String mp4Filename = hlsFilePath.substring(0, lastIndex) + ".mp4";
+
+			//just check mp4 file is not created
+			File mp4File = new File(mp4Filename);
+			assertFalse(mp4File.exists());
+			
+			assertTrue(MuxingTest.testFile(hlsFile.getAbsolutePath()));
+
+			File dir = new File(hlsFile.getAbsolutePath()).getParentFile();
+			File[] files = dir.listFiles(new FilenameFilter() {
+				@Override
+				public boolean accept(File dir, String name) {
+					return name.endsWith(".ts");
+				}
+			});
+
+			System.out.println("ts file count:" + files.length);
+
+			assertTrue(files.length > 0);
+			assertTrue(files.length < (int)Integer.valueOf(hlsMuxer.getHlsListSize()) * (Integer.valueOf(hlsMuxer.getHlsTime()) + 1));
+
+			
+			
+			//wait to let hls muxer delete ts and m3u8 file
+			Thread.sleep(hlsListSize*hlsTime * 1000 + 3000);
+			
+			
+			assertFalse(hlsFile.exists());
+			
+			files = dir.listFiles(new FilenameFilter() {
+				@Override
+				public boolean accept(File dir, String name) {
+					return name.endsWith(".ts") || name.endsWith(".m3u8");
+				}
+			});
+			
+			assertEquals(0, files.length);	
 		}
 		catch (Exception e) {
 			e.printStackTrace();
