@@ -158,6 +158,7 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 
 		videoAdaptiveResetCounter++;
 
+		
 		if ((videoAdaptiveResetCounter % ADAPTIVE_RESET_COUNT) == 0) {
 			videoAdaptiveResetCounter = 0;
 			for (Iterator<IWebRTCClient> iterator = webRTCClientList.iterator(); iterator.hasNext();) {
@@ -170,6 +171,7 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 
 			}
 		}
+		
 
 	}
 
@@ -212,8 +214,11 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 		return true;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
-	public boolean prepareIO() {	
+	public synchronized boolean prepareIO() {	
 		if (!isPrepareIOCalled ) {
 			isPrepareIOCalled = true;
 			registerToAdaptor();
@@ -221,8 +226,11 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 		return true;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
-	public void writeTrailer() {
+	public synchronized void writeTrailer() {
 		webRTCAdaptor.unRegisterMuxer(streamId, this);
 
 		for (Iterator<IWebRTCClient> iterator = webRTCClientList.iterator(); iterator.hasNext();) {
@@ -298,8 +306,11 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 	}
 
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
-	public void writePacket(AVPacket pkt) {
+	public synchronized void writePacket(AVPacket pkt) {
 
 
 		if (pkt.stream_index() == this.videoStreamIndex) 
