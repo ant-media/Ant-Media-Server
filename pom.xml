@@ -64,6 +64,8 @@
 
 		<jersey.version>1.19.1</jersey.version>
 		<mapdb.version>3.0.5</mapdb.version>
+    	    <maven.build.timestamp.format>yyMMdd_HHmm</maven.build.timestamp.format>
+        <buildNumber>${maven.build.timestamp}</buildNumber>
 	</properties>
 
 	<build>
