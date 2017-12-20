@@ -80,5 +80,6 @@ so that we can improve and let you try and use.
 You can use contact form at [antmedia.io](https://antmedia.io) or `contact at antmedia dot io` e-mail to send your feedbacks
 
 Thank you
-(Ant Media)[https://antmedia.io]
+
+[Ant Media](https://antmedia.io)
 
