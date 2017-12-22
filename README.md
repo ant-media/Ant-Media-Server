@@ -21,8 +21,6 @@ Ant Media Server is an Open Source Media Server that supports:
 #### [Red5+ 1.0.1 Release (27 March 2017)](https://github.com/ant-media/red5-plus-server/releases/tag/v1.0.1_red5_plus)
 
 
-<br/>
-
 ## Contact 
 
  For more information and blog posts visit [antmedia.io](https://antmedia.io)
