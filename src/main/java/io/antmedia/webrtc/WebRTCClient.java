@@ -2,9 +2,12 @@ package io.antmedia.webrtc;
 
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import org.json.simple.JSONObject;
 import org.red5.net.websocket.WebSocketConnection;
@@ -53,16 +56,22 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 
 	private static Logger logger = LoggerFactory.getLogger(WebRTCClient.class);
 
-	private ExecutorService executor = Executors.newSingleThreadExecutor();
-
-
+	private ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
+	
+	public static final int ADAPTIVE_RESET_COUNT = 90;  //frames
+	
+	public static final int ADAPTIVE_QUALITY_CHECK_TIME_MS = 5000;
+	
+	int bufferSize = 480 * 2 * 2; // 480 sample, 2 byte per sample, stereo
+	byte[] dataSegmented = new byte[bufferSize];
+	
 	private static final String DTLS_SRTP_KEY_AGREEMENT_CONSTRAINT = "DtlsSrtpKeyAgreement";
 
 
-	//TODO: clear resources when connection drop or live stream ended
 	public WebRTCClient(WebSocketConnection wsConnection, String streamId) {
 		this.wsConnection = wsConnection;
 		this.streamId = streamId;
+		
 	}
 
 
@@ -87,15 +96,11 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 		factory.addVideoPacket(videoPacket, videoPacket.length, width, height, isKeyFrame, timestamp);
 		videoSource.writeMockFrame(width, height);
 
-
-
 	}
 
 	@Override
 	public void sendAudioPacket(byte[] audioPacket, long timestamp) {
 		factory.addAudioPacket(audioPacket, audioPacket.length, timestamp);
-		int bufferSize = 480 * 2 * 2; // 480 sample, 2 byte per sample, stereo
-		byte[] dataSegmented = new byte[bufferSize];
 
 		audioSource.writeAudioFrame(dataSegmented, 480);
 		audioSource.writeAudioFrame(dataSegmented, 480);
@@ -179,7 +184,7 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 
 	@Override
 	public void onIceConnectionChange(IceConnectionState newState) {
-		if (newState == IceConnectionState.CONNECTED) {
+		if (newState == IceConnectionState.COMPLETED) {
 			//TODO: start sending live stream
 			webRTCAdaptor.registerWebRTCClient(streamId, this);
 			try {
@@ -190,6 +195,15 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 			} catch (UnsupportedEncodingException e) {
 				e.printStackTrace();
 			}	
+			
+			executor.scheduleWithFixedDelay(new Runnable() {
+				
+				@Override
+				public void run() {
+						webRTCAdaptor.adaptStreamingQuality(streamId, WebRTCClient.this);
+				}
+			}, ADAPTIVE_QUALITY_CHECK_TIME_MS, ADAPTIVE_QUALITY_CHECK_TIME_MS, TimeUnit.MILLISECONDS);
+			
 		}
 		else if (newState == IceConnectionState.DISCONNECTED) {
 			//webRTCAdaptor.deregisterWebRTCClient(streamId, this);
@@ -201,16 +215,17 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 
 	@Override
 	public void onIceConnectionReceivingChange(boolean receiving) {
-
+		logger.info("onIceConnectionReceivingChange : " + receiving);
 	}
 
 	@Override
 	public void onIceGatheringChange(IceGatheringState newState) {
-
+		logger.info("onIceGatheringChange : " + newState);
 	}
 
 	@Override
 	public void onIceCandidate(IceCandidate candidate) {
+		logger.info("onIceCandidate : " + candidate);
 		JSONObject jsonObject = new JSONObject();
 		jsonObject.put("command", "takeCandidate");
 		jsonObject.put("label", candidate.sdpMLineIndex);
@@ -228,37 +243,37 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 
 	@Override
 	public void onIceCandidatesRemoved(IceCandidate[] candidates) {
-
+		logger.info("onIceCandidatesRemoved : " + candidates);
 	}
 
 	@Override
 	public void onAddStream(MediaStream stream) {
-
+		logger.info("onAddStream : " + stream);
 	}
 
 	@Override
 	public void onRemoveStream(MediaStream stream) {
-
+		logger.info("onRemoveStream : " + stream);
 	}
 
 	@Override
 	public void onDataChannel(DataChannel dataChannel) {
-
+		logger.info("onDataChannel : " + dataChannel);
 	}
 
 	@Override
 	public void onRenegotiationNeeded() {
-
+		logger.info("onRenegotiationNeeded");
 	}
 
 	@Override
 	public void onAddTrack(RtpReceiver receiver, MediaStream[] mediaStreams) {
-
+		logger.info("onAddTrack : " + receiver);
 	}
 
 	@Override
 	public void onCreateSuccess(final SessionDescription sdp) {
-
+		logger.info("onCreateSuccess : " + sdp);
 		executor.execute(new Runnable() {
 
 			@Override
@@ -292,22 +307,23 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 
 	@Override
 	public void onSetSuccess() {
-
+		logger.info("onSetSuccess");
 	}
 
 	@Override
 	public void onCreateFailure(String error) {
-
+		logger.info("onCreateFailure : " + error);
 	}
 
 	@Override
 	public void onSetFailure(String error) {
-
+		logger.info("onSetFailure : " + error);
 	}
 
 
 	@Override
 	public void setRemoteDescription(final SessionDescription sdp) {
+		logger.info("setRemoteDescription : " + sdp);
 		executor.execute(new Runnable() {
 
 			@Override
@@ -326,6 +342,7 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 
 
 	public void addIceCandidate(final IceCandidate iceCandidate) {
+		logger.info("addIceCandidate : " + iceCandidate);
 		executor.execute(new Runnable() {
 
 			@Override
@@ -399,6 +416,7 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 
 			}
 		});
+		executor.shutdown();
 	}
 
 }

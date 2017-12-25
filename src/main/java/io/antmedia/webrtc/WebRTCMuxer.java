@@ -62,18 +62,13 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 
 	private boolean isPrepareIOCalled = false;
 
-	private int videoAdaptiveResetCounter = 0;
-
 	protected AVRational videoTimebase;
 
 	protected AVRational audioTimebase;
-	public static final int ADAPTIVE_RESET_COUNT = 90;  //frames
 
 	protected static Logger logger = LoggerFactory.getLogger(WebRTCMuxer.class);
 
-
 	private AVRational timeBaseForMS;
-
 
 	public WebRTCMuxer(QuartzSchedulingService scheduler, IWebRTCAdaptor webRTCAdaptor) {
 		super(scheduler);
@@ -155,23 +150,6 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 			IWebRTCClient iWebRTCClient = iterator.next();
 			iWebRTCClient.sendVideoPacket(videoPacket, isKeyFrame, timestamp);	
 		}
-
-		videoAdaptiveResetCounter++;
-
-		
-		if ((videoAdaptiveResetCounter % ADAPTIVE_RESET_COUNT) == 0) {
-			videoAdaptiveResetCounter = 0;
-			for (Iterator<IWebRTCClient> iterator = webRTCClientList.iterator(); iterator.hasNext();) {
-				IWebRTCClient iWebRTCClient = iterator.next();
-				IWebRTCMuxer adaptedWebRTCMuxer = webRTCAdaptor.getAdaptedWebRTCMuxer(streamId, iWebRTCClient);
-				if (adaptedWebRTCMuxer != null) {
-					iterator.remove();
-					adaptedWebRTCMuxer.registerWebRTCClient(iWebRTCClient);
-				}
-
-			}
-		}
-		
 
 	}
 

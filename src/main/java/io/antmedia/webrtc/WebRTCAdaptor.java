@@ -109,7 +109,7 @@ public class WebRTCAdaptor implements IWebRTCAdaptor {
 	}
 
 	@Override
-	public IWebRTCMuxer getAdaptedWebRTCMuxer(String streamId, IWebRTCClient webRTCClient) {
+	public void adaptStreamingQuality(String streamId, IWebRTCClient webRTCClient) {
 		List<IWebRTCMuxer> list = muxerMap.get(streamId);
 		IWebRTCMuxer currentlyRegisteredMuxer = webRTCClient.getWebRTCMuxer();
 		IWebRTCMuxer adaptedMuxer = null;
@@ -132,15 +132,14 @@ public class WebRTCAdaptor implements IWebRTCAdaptor {
 		if (adaptedMuxer != null && !currentlyRegisteredMuxer.equals(adaptedMuxer)) {
 			// switch muxer if current registered muxer and adaptedMuxer are different
 			logger.info(" switching muxer for the stream id: " + streamId);
-			return adaptedMuxer;
-			//currentlyRegisteredMuxer.deregisterWebRTCClient(webRTCClient);
-			// adaptedMuxer.registerWebRTCClient(webRTCClient);
+			currentlyRegisteredMuxer.unRegisterWebRTCClient(webRTCClient);
+			adaptedMuxer.registerWebRTCClient(webRTCClient);
 		}
 		else {
 			//same muxer, do not switch
 			logger.info("not switching muxer because they are same with stream id: " + streamId);
 		}
-		return null;
+		
 
 	}
 

@@ -15,12 +15,10 @@ public interface IWebRTCAdaptor extends IScopeService {
 
 	boolean registerWebRTCClient(String streamId, IWebRTCClient webRTCClient);
 
-	//boolean deregisterWebRTCClient(String streamId, IWebRTCClient webRTCClient);
-
 	boolean streamExists(String streamId);
 	
 	List<IStreamInfo> getStreamOptions(String streamId);
 
-	IWebRTCMuxer getAdaptedWebRTCMuxer(String streamId, IWebRTCClient webRTCClient);
+	void adaptStreamingQuality(String streamId, IWebRTCClient webRTCClient);
 
 }
