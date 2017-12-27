@@ -154,7 +154,7 @@ Here are the ports server uses
 
 * TCP:1935 (RTMP)
 * TCP:5080 (HTTP)
-* TCP:5443 (RTSP)
+* TCP:5554 (RTSP)
 * UDP:5000-65000 (RTP in RTSP)
 * TCP: 8081-8082 (WebSocket)
 
