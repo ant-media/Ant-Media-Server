@@ -86,24 +86,28 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 
 	@Override
 	public void sendVideoConfPacket(byte[] videoConfData, byte[] videoPacket, long timestamp) {
-		int result = factory.addVideoConfPacket(videoConfData, videoConfData.length, videoPacket, videoPacket.length, width, height, true, timestamp);
-		videoSource.writeMockFrame(width, height);		
+		if (factory != null) {
+			factory.addVideoConfPacket(videoConfData, videoConfData.length, videoPacket, videoPacket.length, width, height, true, timestamp);
+			videoSource.writeMockFrame(width, height);
+		}
 	}
 
 	@Override
 	public void sendVideoPacket(byte[] videoPacket, boolean isKeyFrame, long timestamp) {
-
-		factory.addVideoPacket(videoPacket, videoPacket.length, width, height, isKeyFrame, timestamp);
-		videoSource.writeMockFrame(width, height);
-
+		if (factory != null && videoSource != null) {
+			factory.addVideoPacket(videoPacket, videoPacket.length, width, height, isKeyFrame, timestamp);
+			videoSource.writeMockFrame(width, height);
+		}
 	}
 
 	@Override
 	public void sendAudioPacket(byte[] audioPacket, long timestamp) {
-		factory.addAudioPacket(audioPacket, audioPacket.length, timestamp);
+		if (factory != null && audioSource != null) {
+			factory.addAudioPacket(audioPacket, audioPacket.length, timestamp);
 
-		audioSource.writeAudioFrame(dataSegmented, 480);
-		audioSource.writeAudioFrame(dataSegmented, 480);
+			audioSource.writeAudioFrame(dataSegmented, 480);
+			audioSource.writeAudioFrame(dataSegmented, 480);
+		}
 
 	}
 
@@ -178,14 +182,13 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 
 	@Override
 	public void onSignalingChange(SignalingState newState) {
-		// TODO Auto-generated method stub
+		logger.info("onSignalingChange : " + newState);
 
 	}
 
 	@Override
 	public void onIceConnectionChange(IceConnectionState newState) {
 		if (newState == IceConnectionState.COMPLETED) {
-			//TODO: start sending live stream
 			webRTCAdaptor.registerWebRTCClient(streamId, this);
 			try {
 				JSONObject jsonObject = new JSONObject();
@@ -197,11 +200,12 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 			}	
 			
 			executor.scheduleWithFixedDelay(new Runnable() {
-				
+		
 				@Override
 				public void run() {
-						webRTCAdaptor.adaptStreamingQuality(streamId, WebRTCClient.this);
+					webRTCAdaptor.adaptStreamingQuality(streamId, WebRTCClient.this);
 				}
+				
 			}, ADAPTIVE_QUALITY_CHECK_TIME_MS, ADAPTIVE_QUALITY_CHECK_TIME_MS, TimeUnit.MILLISECONDS);
 			
 		}
@@ -225,6 +229,7 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 
 	@Override
 	public void onIceCandidate(IceCandidate candidate) {
+		
 		logger.info("onIceCandidate : " + candidate);
 		JSONObject jsonObject = new JSONObject();
 		jsonObject.put("command", "takeCandidate");
@@ -378,7 +383,10 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 
 
 	public void stop() {
-		webRTCMuxer.unRegisterWebRTCClient(this);
+		
+		if (webRTCMuxer != null) {
+			webRTCMuxer.unRegisterWebRTCClient(this);
+		}
 		executor.execute(new Runnable() {
 
 			@Override
