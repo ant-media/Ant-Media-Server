@@ -114,15 +114,14 @@ public class WebRTCAdaptor implements IWebRTCAdaptor {
 		IWebRTCMuxer currentlyRegisteredMuxer = webRTCClient.getWebRTCMuxer();
 		IWebRTCMuxer adaptedMuxer = null;
 		int bitrate = webRTCClient.getTargetBitrate();
-		int currentBitrateDiff = bitrate - currentlyRegisteredMuxer.getVideoBitrate();;
+		int currentBitrateDiff = bitrate - (currentlyRegisteredMuxer.getVideoBitrate() + currentlyRegisteredMuxer.getAudioBitrate());
 
-		
 		for (Iterator<IWebRTCMuxer> iterator = list.iterator(); iterator.hasNext();) {
 			IWebRTCMuxer iWebRTCMuxer = iterator.next();
 
-			int bitrate_diff = bitrate - iWebRTCMuxer.getVideoBitrate();
+			int bitrate_diff = bitrate - (iWebRTCMuxer.getVideoBitrate() + iWebRTCMuxer.getAudioBitrate());
 			
-			if (bitrate_diff > 0 && bitrate_diff < currentBitrateDiff) {
+			if (bitrate_diff > 0 && ((bitrate_diff < currentBitrateDiff) || currentBitrateDiff < 0)) {
 				currentBitrateDiff = bitrate_diff;
 				adaptedMuxer = iWebRTCMuxer;
 			}
@@ -131,13 +130,19 @@ public class WebRTCAdaptor implements IWebRTCAdaptor {
 		
 		if (adaptedMuxer != null && !currentlyRegisteredMuxer.equals(adaptedMuxer)) {
 			// switch muxer if current registered muxer and adaptedMuxer are different
-			logger.info(" switching muxer for the stream id: " + streamId);
+			logger.info(" switching muxer for the stream id: " + streamId 
+									+ " adapted muxer video bitrate: " + adaptedMuxer.getVideoBitrate()
+									+ " audio bitrate: " + adaptedMuxer.getAudioBitrate()
+									+ " webrtc client target bitrate: " + bitrate);
 			currentlyRegisteredMuxer.unRegisterWebRTCClient(webRTCClient);
 			adaptedMuxer.registerWebRTCClient(webRTCClient);
 		}
 		else {
 			//same muxer, do not switch
-			logger.info("not switching muxer because they are same with stream id: " + streamId);
+			logger.info("not found a more suitable adapted muxer for " + streamId
+							+ " current muxer video bitrate: " + currentlyRegisteredMuxer.getVideoBitrate()
+							+ " audio bitrate: " + currentlyRegisteredMuxer.getAudioBitrate()
+							+ " webrtc client target bitrate: " + bitrate);
 		}
 		
 
