@@ -203,5 +203,23 @@
 			</list>
 		</property>
 	</bean>
+	
+	<!--  
+	<bean id="webSocketTransportSecure" class="org.red5.net.websocket.WebSocketTransport">
+        <property name="secureConfig">
+            <bean id="webSocketSecureConfig" class="org.red5.net.websocket.SecureWebSocketConfiguration">
+                <property name="keystoreFile" value="${rtmps.keystorefile}"/>
+                <property name="keystorePassword" value="${rtmps.keystorepass}"/>
+                <property name="truststoreFile" value="${rtmps.truststorefile}"/>
+                <property name="truststorePassword" value="${rtmps.truststorepass}"/>
+            </bean>
+        </property>
+        <property name="addresses">
+            <list>
+                <value>${wss.host}:${wss.port}</value>
+            </list>
+        </property>
+    </bean>
+    -->
 
 </beans>
