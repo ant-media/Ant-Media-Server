@@ -33,7 +33,7 @@ public class PeriscopeEndpointTest {
 
 
 
-	@Test
+	//@Test
 	public void testAccessToken() {
 
 		try {
@@ -89,7 +89,7 @@ public class PeriscopeEndpointTest {
 		} 
 	}
 
-	@Test
+	//@Test
 	public void testCreateBroadcastNoName() {
 		PreferenceStore dataStore = new PreferenceStore(TARGET_TEST_PROPERTIES);
 		dataStore.setFullPath(TARGET_TEST_PROPERTIES);
@@ -110,7 +110,7 @@ public class PeriscopeEndpointTest {
 	}
 
 
-	@Test
+	//@Test
 	public void testCreateBroadcast() {
 		PreferenceStore dataStore = new PreferenceStore(TARGET_TEST_PROPERTIES);
 		dataStore.setFullPath(TARGET_TEST_PROPERTIES);

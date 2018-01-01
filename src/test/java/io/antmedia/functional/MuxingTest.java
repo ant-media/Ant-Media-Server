@@ -43,7 +43,7 @@ public class MuxingTest {
 
 
 
-	@Test
+	//@Test
 	public void testVODStreaming() {
 
 		//send rtmp stream with ffmpeg to red5
@@ -89,7 +89,7 @@ public class MuxingTest {
 	//TODO: check that if there is memory leak, if muxing is stopped by somehow
 
 
-	@Test
+	//@Test
 	public void testSupportVideoCodecUnSupportedAudioCodec() {
 		String streamName = "bug_test2";
 
@@ -133,7 +133,7 @@ public class MuxingTest {
 
 	}
 
-	@Test
+	//@Test
 	public void testConcurrentStreaming() {
 		try {
 			String streamName1 = "conccurent" + (int)(Math.random() * 1000);
@@ -161,7 +161,7 @@ public class MuxingTest {
 	}
 
 
-	@Test
+	//@Test
 	public void testUnsupportedCodecForMp4() {
 
 		//send rtmp stream with ffmpeg to red5
@@ -208,7 +208,7 @@ public class MuxingTest {
 
 	//TODO: check if rtsp failed in some state, how it can be free resources
 
-	@Test
+	//@Test
 	public void testRTSPSending(){
 		try {
 
@@ -254,7 +254,7 @@ public class MuxingTest {
 	/**
 	 * @Bug
 	 */
-	@Test
+	//@Test
 	public void testSetFLVRecordingFalseAndMP4RecordingTrue() {
 		try {
 
@@ -343,7 +343,7 @@ public class MuxingTest {
 
 
 
-	@Test
+	//@Test
 	public void testRTMPSending() {
 
 		try {
