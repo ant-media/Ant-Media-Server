@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 import org.json.simple.JSONObject;
@@ -23,6 +24,8 @@ import org.webrtc.PeerConnection.Observer;
 import org.webrtc.PeerConnection.SignalingState;
 
 import org.webrtc.SessionDescription.Type;
+
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.antmedia.webrtc.api.IWebRTCClient;
@@ -56,14 +59,16 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 
 	private static Logger logger = LoggerFactory.getLogger(WebRTCClient.class);
 
-	private ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
+	private ScheduledExecutorService executor;
 	
 	public static final int ADAPTIVE_RESET_COUNT = 90;  //frames
 	
 	public static final int ADAPTIVE_QUALITY_CHECK_TIME_MS = 5000;
 	
-	int bufferSize = 480 * 2 * 2; // 480 sample, 2 byte per sample, stereo
-	byte[] dataSegmented = new byte[bufferSize];
+	//int bufferSize = 480 * 2 * 2; // 480 sample, 2 byte per sample, stereo
+	//byte[] dataSegmented = new byte[bufferSize];
+
+	private volatile boolean isRunning = false;
 	
 	private static final String DTLS_SRTP_KEY_AGREEMENT_CONSTRAINT = "DtlsSrtpKeyAgreement";
 
@@ -71,6 +76,9 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 	public WebRTCClient(WebSocketConnection wsConnection, String streamId) {
 		this.wsConnection = wsConnection;
 		this.streamId = streamId;
+		ThreadFactory namedThreadFactory = new ThreadFactoryBuilder()
+						.setNameFormat("webrtc-client-"+streamId+"-%d").build();
+		executor = Executors.newSingleThreadScheduledExecutor(namedThreadFactory);
 		
 	}
 
@@ -86,7 +94,7 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 
 	@Override
 	public void sendVideoConfPacket(byte[] videoConfData, byte[] videoPacket, long timestamp) {
-		if (factory != null) {
+		if (isRunning) {
 			factory.addVideoConfPacket(videoConfData, videoConfData.length, videoPacket, videoPacket.length, width, height, true, timestamp);
 			videoSource.writeMockFrame(width, height);
 		}
@@ -94,7 +102,7 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 
 	@Override
 	public void sendVideoPacket(byte[] videoPacket, boolean isKeyFrame, long timestamp) {
-		if (factory != null && videoSource != null) {
+		if (isRunning) {
 			factory.addVideoPacket(videoPacket, videoPacket.length, width, height, isKeyFrame, timestamp);
 			videoSource.writeMockFrame(width, height);
 		}
@@ -102,11 +110,15 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 
 	@Override
 	public void sendAudioPacket(byte[] audioPacket, long timestamp) {
-		if (factory != null && audioSource != null) {
+		if (isRunning) {
 			factory.addAudioPacket(audioPacket, audioPacket.length, timestamp);
+			
+			
+			audioSource.writeMockFrame(480);
+			audioSource.writeMockFrame(480);
 
-			audioSource.writeAudioFrame(dataSegmented, 480);
-			audioSource.writeAudioFrame(dataSegmented, 480);
+			//audioSource.writeAudioFrame(dataSegmented, 480);
+			//audioSource.writeAudioFrame(dataSegmented, 480);
 		}
 
 	}
@@ -148,6 +160,9 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 				peerConnection.addStream(mediaStream);
 
 				peerConnection.createOffer(WebRTCClient.this, sdpMediaConstraints);
+				
+				isRunning = true;
+				
 
 			}
 		});
@@ -383,7 +398,11 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 
 
 	public void stop() {
-		
+		if (!isRunning) {
+			return;
+		}
+		//make isRunning false immediately to not let other threads enter this function
+		isRunning = false;
 		if (webRTCMuxer != null) {
 			webRTCMuxer.unRegisterWebRTCClient(this);
 		}

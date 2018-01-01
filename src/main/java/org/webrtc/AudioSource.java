@@ -30,10 +30,16 @@ public class AudioSource extends MediaSource {
 		nativeWriteAudioFrame(nativeFactory, data, length);
 	}
 	
+	public void writeMockFrame(int length) {
+		  nativeWriteMockAudioFrame(nativeFactory, length);
+	 }
+	
 	/**
 	 * Write 48K Hz stereo data
 	 * @param data
 	 * @param length
 	 */
 	private native void nativeWriteAudioFrame(long nativeFactory, byte[] data, int length);
+	
+	private native void nativeWriteMockAudioFrame(long nativeFactory, int length);
 }

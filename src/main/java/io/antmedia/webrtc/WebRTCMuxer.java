@@ -167,6 +167,7 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 			IWebRTCClient iWebRTCClient = iterator.next();
 			iWebRTCClient.sendAudioPacket(audioPacket, timestamp);
 		}
+		
 	}
 
 	@Override
@@ -291,9 +292,12 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 	public synchronized void writePacket(AVPacket pkt) {
 
 
+		long now = System.currentTimeMillis();
+		
 		if (pkt.stream_index() == this.videoStreamIndex) 
 		{
 			long pts = av_rescale_q(pkt.pts(), videoTimebase, timeBaseForMS);
+			logger.info("send video packet pts: " + pts + " System current time millis: " + now);
 			BytePointer data = pkt.data();
 			byte[] byteArray = new byte[pkt.size()];
 			data.get(byteArray, 0, byteArray.length);
@@ -310,6 +314,8 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 				System.arraycopy(pps, 0, videoConf, sps.length, pps.length);
 
 				sendVideoConfPacket(keyFrame, pts);
+				long diff = System.currentTimeMillis() - now;
+				logger.info("sent video conf packet after " + diff + " ms" );
 
 			}
 			else {
@@ -317,17 +323,24 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 					keyFrame = byteArray;
 				}
 				sendVideoPacket(byteArray, isKeyFrame, pts);
+				long diff = System.currentTimeMillis() - now;
+				logger.info("sent video packet after " + diff + " ms" );
 			}
 
 		}
 		else  if (pkt.stream_index() == this.audioStreamIndex) 
 		{
 			long pts = av_rescale_q(pkt.pts(), audioTimebase, timeBaseForMS);
+			logger.info("send audio packet pts: " + pts + " System current time millis: " + System.currentTimeMillis());
+			
 			BytePointer data = pkt.data();
 			byte[] byteArray = new byte[pkt.size()];
 			data.get(byteArray, 0, byteArray.length);
 
 			sendAudioPacket(byteArray, pts);
+			
+			long diff = System.currentTimeMillis() - now;
+			logger.info("sent audio packet after " + diff + " ms" );
 		}
 	}
 
