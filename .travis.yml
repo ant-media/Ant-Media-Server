@@ -2,3 +2,6 @@ language: java
 jdk:
   - oraclejdk8
 
+before_install: 
+  - git clone https://github.com/ant-media/Ant-Media-Server-Common.git && cd Ant-Media-Server-Common && mvn clean install -DskipTests && cd ..
+  
