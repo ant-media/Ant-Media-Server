@@ -1,0 +1,1062 @@
+#
+# A fatal error has been detected by the Java Runtime Environment:
+#
+#  SIGSEGV (0xb) at pc=0x00007f1c04133dad, pid=32014, tid=0x00007f1be39f9700
+#
+# JRE version: Java(TM) SE Runtime Environment (8.0_131-b11) (build 1.8.0_131-b11)
+# Java VM: Java HotSpot(TM) 64-Bit Server VM (25.131-b11 mixed mode linux-amd64 compressed oops)
+# Problematic frame:
+# C  [libjniavutil.so+0x45dad]  Java_org_bytedeco_javacpp_avutil_av_1rescale_1q_1rnd+0xad
+#
+# Failed to write core dump. Core dumps have been disabled. To enable core dumping, try "ulimit -c unlimited" before starting Java again
+#
+# If you would like to submit a bug report, please visit:
+#   http://bugreport.java.com/bugreport/crash.jsp
+# The crash happened outside the Java Virtual Machine in native code.
+# See problematic frame for where to report the bug.
+#
+
+---------------  T H R E A D  ---------------
+
+Current thread (0x00007f1c58e69800):  JavaThread "Red5_Scheduler_Worker-14" [_thread_in_native, id=32050, stack(0x00007f1be38f9000,0x00007f1be39fa000)]
+
+siginfo: si_signo: 11 (SIGSEGV), si_code: 1 (SEGV_MAPERR), si_addr: 0x0000000000000050
+
+Registers:
+RAX=0x0000000000000000, RBX=0x00007f1c58e699f8, RCX=0x00007f1be39f85c8, RDX=0x0000000000000062
+RSP=0x00007f1be39f8570, RBP=0x0000000000000017, RSI=0x00007f1be39f85d0, RDI=0x00007f1c58e699f8
+R8 =0x00007f1be39f85d0, R9 =0x00000000e2e6cd08, R10=0x0000000000000084, R11=0x00007f1c61210cc8
+R12=0x0000000000000050, R13=0x00007f1be39f85d0, R14=0x00007f1bc800be30, R15=0x0000000000002005
+RIP=0x00007f1c04133dad, EFLAGS=0x0000000000010246, CSGSFS=0x0000000000000033, ERR=0x0000000000000004
+  TRAPNO=0x000000000000000e
+
+Top of Stack: (sp=0x00007f1be39f8570)
+0x00007f1be39f8570:   00007f1c58e69800 0000000000000000
+0x00007f1be39f8580:   00007f1be39f85e0 00007f1c0463daa0
+0x00007f1be39f8590:   00007f1be39f8600 0000000000000000
+0x00007f1be39f85a0:   00007f1be39f8618 00007f1be39f85f0
+0x00007f1be39f85b0:   00007f1c58e69800 00007f1c49773f26
+0x00007f1be39f85c0:   00007f1c046d7d50 00000000e2e6ccd8
+0x00007f1be39f85d0:   00000000e2e6cd08 00007f1c49774626
+0x00007f1be39f85e0:   00000000f4e061b8 00007f1c497b655c
+0x00007f1be39f85f0:   00000000852681e0 00000000f5ee3470
+0x00007f1be39f8600:   00007f1be39f8688 00007f1c49007dd0
+0x00007f1be39f8610:   00007f1c49007dd0 0000000000002005
+0x00007f1be39f8620:   00000000e2e6cd08 00000000e2e6ccd8
+0x00007f1be39f8630:   0000000000000017 00000000f4e061b8
+0x00007f1be39f8640:   00000000f4e061b8 00007f1be39f8648
+0x00007f1be39f8650:   00007f1be2582824 00007f1be39f8708
+0x00007f1be39f8660:   00007f1be2266028 00007f1be2267938
+0x00007f1be39f8670:   00007f1be2582a30 00007f1be39f8618
+0x00007f1be39f8680:   00007f1be39f8710 00000000f4e06118
+0x00007f1be39f8690:   00007f1c49b87900 0000000000000000
+0x00007f1be39f86a0:   0000000000000222 0000000000000000
+0x00007f1be39f86b0:   0000000000000028 0000000000000000
+0x00007f1be39f86c0:   0000000000000017 0000000000000000
+0x00007f1be39f86d0:   0000000000000017 0000000000000000
+0x00007f1be39f86e0:   0000000000000002 00007f1c00000000
+0x00007f1be39f86f0:   00000000e2e6cd08 00000000e2e6ccd8
+0x00007f1be39f8700:   00000000f4e061b8 00000000f5ee33b0
+0x00007f1be39f8710:   0000000100011338 0000000100228c60
+0x00007f1be39f8720:   00000000f4e061b8 00000000e2e6cd08
+0x00007f1be39f8730:   00000000e2e6ccd8 000000008555b028
+0x00007f1be39f8740:   00000000e2e67448 00000000e2e671d8
+0x00007f1be39f8750:   d83572d0f4e061b8 00000000d83572d0
+0x00007f1be39f8760:   00000000d8357608 00000000d83571a8 
+
+Instructions: (pc=0x00007f1c04133dad)
+0x00007f1c04133d8d:   00 00 48 85 c0 49 89 c4 74 59 48 8b 03 4c 89 ee
+0x00007f1c04133d9d:   48 89 df 48 8b 15 01 45 23 00 ff 90 28 03 00 00
+0x00007f1c04133dad:   49 8b 14 c4 48 8b 44 24 08 44 89 f9 48 89 ef 48
+0x00007f1c04133dbd:   8b 5c 24 18 48 8b 6c 24 20 4c 8b 64 24 28 4c 8b 
+
+Register to memory mapping:
+
+RAX=0x0000000000000000 is an unknown value
+RBX=0x00007f1c58e699f8 is an unknown value
+RCX=0x00007f1be39f85c8 is pointing into the stack for thread: 0x00007f1c58e69800
+RDX=0x0000000000000062 is an unknown value
+RSP=0x00007f1be39f8570 is pointing into the stack for thread: 0x00007f1c58e69800
+RBP=0x0000000000000017 is an unknown value
+RSI=0x00007f1be39f85d0 is pointing into the stack for thread: 0x00007f1c58e69800
+RDI=0x00007f1c58e699f8 is an unknown value
+R8 =0x00007f1be39f85d0 is pointing into the stack for thread: 0x00007f1c58e69800
+R9 =0x00000000e2e6cd08 is an oop
+org.bytedeco.javacpp.avutil$AVRational 
+ - klass: 'org/bytedeco/javacpp/avutil$AVRational'
+R10=0x0000000000000084 is an unknown value
+R11=0x00007f1c61210cc8: <offset 0xfc6cc8> in /home/karinca/space/jdk1.8.0_131/jre/lib/amd64/server/libjvm.so at 0x00007f1c6024a000
+R12=0x0000000000000050 is an unknown value
+R13=0x00007f1be39f85d0 is pointing into the stack for thread: 0x00007f1c58e69800
+R14=0x00007f1bc800be30 is an unknown value
+R15=0x0000000000002005 is an unknown value
+
+
+Stack: [0x00007f1be38f9000,0x00007f1be39fa000],  sp=0x00007f1be39f8570,  free space=1021k
+Native frames: (J=compiled Java code, j=interpreted, Vv=VM code, C=native code)
+C  [libjniavutil.so+0x45dad]  Java_org_bytedeco_javacpp_avutil_av_1rescale_1q_1rnd+0xad
+
+Java frames: (J=compiled Java code, j=interpreted, Vv=VM code)
+J 2321  org.bytedeco.javacpp.avutil.av_rescale_q_rnd(JLorg/bytedeco/javacpp/avutil$AVRational;Lorg/bytedeco/javacpp/avutil$AVRational;I)J (0 bytes) @ 0x00007f1c49773eac [0x00007f1c49773e40+0x6c]
+j  io.antmedia.muxer.HLSMuxer.writePacket(Lorg/bytedeco/javacpp/avcodec$AVPacket;Lorg/bytedeco/javacpp/avutil$AVRational;Lorg/bytedeco/javacpp/avutil$AVRational;I)V+196
+J 3350 C2 org.quartz.core.JobRunShell.run()V (711 bytes) @ 0x00007f1c49b87900 [0x00007f1c49b84ea0+0x2a60]
+j  org.quartz.simpl.SimpleThreadPool$WorkerThread.run()V+62
+v  ~StubRoutines::call_stub
+
+---------------  P R O C E S S  ---------------
+
+Java Threads: ( => current thread )
+  0x00007f1c40019000 JavaThread "ConnectionScheduler-20" daemon [_thread_blocked, id=32093, stack(0x00007f1be0dd2000,0x00007f1be0ed3000)]
+  0x00007f1c20003000 JavaThread "ConnectionScheduler-19" daemon [_thread_blocked, id=32092, stack(0x00007f1be0ed3000,0x00007f1be0fd4000)]
+  0x00007f1c34016000 JavaThread "ConnectionScheduler-18" daemon [_thread_blocked, id=32091, stack(0x00007f1be0fd4000,0x00007f1be10d5000)]
+  0x00007f1c10008800 JavaThread "ConnectionScheduler-17" daemon [_thread_blocked, id=32090, stack(0x00007f1be10d5000,0x00007f1be11d6000)]
+  0x00007f1c30001800 JavaThread "ConnectionScheduler-16" daemon [_thread_blocked, id=32089, stack(0x00007f1be11d6000,0x00007f1be12d7000)]
+  0x00007f1c2439f000 JavaThread "ConnectionScheduler-15" daemon [_thread_blocked, id=32088, stack(0x00007f1be12d7000,0x00007f1be13d8000)]
+  0x00007f1c28006800 JavaThread "ConnectionScheduler-14" daemon [_thread_blocked, id=32087, stack(0x00007f1be13d8000,0x00007f1be14d9000)]
+  0x00007f1c1c281000 JavaThread "ConnectionScheduler-13" daemon [_thread_blocked, id=32086, stack(0x00007f1be14d9000,0x00007f1be15da000)]
+  0x00007f1c2c001800 JavaThread "ConnectionScheduler-12" daemon [_thread_blocked, id=32085, stack(0x00007f1be15da000,0x00007f1be16db000)]
+  0x00007f1c182c1800 JavaThread "ConnectionScheduler-11" daemon [_thread_blocked, id=32084, stack(0x00007f1be16db000,0x00007f1be17dc000)]
+  0x00007f1c20001000 JavaThread "ConnectionScheduler-10" daemon [_thread_blocked, id=32083, stack(0x00007f1be17dc000,0x00007f1be18dd000)]
+  0x00007f1c10006800 JavaThread "ConnectionScheduler-9" daemon [_thread_blocked, id=32082, stack(0x00007f1be18dd000,0x00007f1be19de000)]
+  0x00007f1c24306000 JavaThread "ConnectionScheduler-8" daemon [_thread_blocked, id=32081, stack(0x00007f1be19de000,0x00007f1be1adf000)]
+  0x00007f1c1c2a7800 JavaThread "ConnectionScheduler-7" daemon [_thread_blocked, id=32080, stack(0x00007f1be1adf000,0x00007f1be1be0000)]
+  0x00007f1c182c0000 JavaThread "ConnectionScheduler-6" daemon [_thread_blocked, id=32079, stack(0x00007f1be1be0000,0x00007f1be1ce1000)]
+  0x00007f1c10004800 JavaThread "ConnectionScheduler-5" daemon [_thread_blocked, id=32078, stack(0x00007f1be1ce1000,0x00007f1be1de2000)]
+  0x00007f1c1c174000 JavaThread "ConnectionScheduler-4" daemon [_thread_blocked, id=32077, stack(0x00007f1be1de2000,0x00007f1be1ee3000)]
+  0x00007f1c10003000 JavaThread "ConnectionScheduler-3" daemon [_thread_blocked, id=32076, stack(0x00007f1be1ee3000,0x00007f1be1fe4000)]
+  0x00007f1c10001000 JavaThread "ConnectionScheduler-2" daemon [_thread_blocked, id=32075, stack(0x00007f1be1fe4000,0x00007f1be20e5000)]
+  0x00007f1c589fc800 JavaThread "ConnectionScheduler-1" daemon [_thread_blocked, id=32074, stack(0x00007f1be20e5000,0x00007f1be21e6000)]
+  0x00007f1c58e8f000 JavaThread "Red5_Scheduler_QuartzSchedulerThread" [_thread_blocked, id=32069, stack(0x00007f1be25e6000,0x00007f1be26e7000)]
+  0x00007f1c58e8c800 JavaThread "Red5_Scheduler_Worker-32" [_thread_blocked, id=32068, stack(0x00007f1be26e7000,0x00007f1be27e8000)]
+  0x00007f1c58e8a800 JavaThread "Red5_Scheduler_Worker-31" [_thread_blocked, id=32067, stack(0x00007f1be27e8000,0x00007f1be28e9000)]
+  0x00007f1c58e88800 JavaThread "Red5_Scheduler_Worker-30" [_thread_blocked, id=32066, stack(0x00007f1be28e9000,0x00007f1be29ea000)]
+  0x00007f1c58e86800 JavaThread "Red5_Scheduler_Worker-29" [_thread_blocked, id=32065, stack(0x00007f1be29ea000,0x00007f1be2aeb000)]
+  0x00007f1c58e84800 JavaThread "Red5_Scheduler_Worker-28" [_thread_blocked, id=32064, stack(0x00007f1be2aeb000,0x00007f1be2bec000)]
+  0x00007f1c58e82800 JavaThread "Red5_Scheduler_Worker-27" [_thread_blocked, id=32063, stack(0x00007f1be2bec000,0x00007f1be2ced000)]
+  0x00007f1c58e81000 JavaThread "Red5_Scheduler_Worker-26" [_thread_blocked, id=32062, stack(0x00007f1be2ced000,0x00007f1be2dee000)]
+  0x00007f1c58e7f000 JavaThread "Red5_Scheduler_Worker-25" [_thread_blocked, id=32061, stack(0x00007f1be2dee000,0x00007f1be2eef000)]
+  0x00007f1c58e7d000 JavaThread "Red5_Scheduler_Worker-24" [_thread_blocked, id=32060, stack(0x00007f1be2eef000,0x00007f1be2ff0000)]
+  0x00007f1c58e7b000 JavaThread "Red5_Scheduler_Worker-23" [_thread_blocked, id=32059, stack(0x00007f1be2ff0000,0x00007f1be30f1000)]
+  0x00007f1c58e79000 JavaThread "Red5_Scheduler_Worker-22" [_thread_blocked, id=32058, stack(0x00007f1be30f1000,0x00007f1be31f2000)]
+  0x00007f1c58e77000 JavaThread "Red5_Scheduler_Worker-21" [_thread_blocked, id=32057, stack(0x00007f1be31f2000,0x00007f1be32f3000)]
+  0x00007f1c58e75000 JavaThread "Red5_Scheduler_Worker-20" [_thread_blocked, id=32056, stack(0x00007f1be32f3000,0x00007f1be33f4000)]
+  0x00007f1c58e73000 JavaThread "Red5_Scheduler_Worker-19" [_thread_blocked, id=32055, stack(0x00007f1be33f4000,0x00007f1be34f5000)]
+  0x00007f1c58e71000 JavaThread "Red5_Scheduler_Worker-18" [_thread_blocked, id=32054, stack(0x00007f1be34f5000,0x00007f1be35f6000)]
+  0x00007f1c58e6f000 JavaThread "Red5_Scheduler_Worker-17" [_thread_blocked, id=32053, stack(0x00007f1be35f6000,0x00007f1be36f7000)]
+  0x00007f1c58e6d000 JavaThread "Red5_Scheduler_Worker-16" [_thread_blocked, id=32052, stack(0x00007f1be36f7000,0x00007f1be37f8000)]
+  0x00007f1c58e6b000 JavaThread "Red5_Scheduler_Worker-15" [_thread_blocked, id=32051, stack(0x00007f1be37f8000,0x00007f1be38f9000)]
+=>0x00007f1c58e69800 JavaThread "Red5_Scheduler_Worker-14" [_thread_in_native, id=32050, stack(0x00007f1be38f9000,0x00007f1be39fa000)]
+  0x00007f1c58e67800 JavaThread "Red5_Scheduler_Worker-13" [_thread_blocked, id=32049, stack(0x00007f1be39fa000,0x00007f1be3afb000)]
+  0x00007f1c58e65800 JavaThread "Red5_Scheduler_Worker-12" [_thread_blocked, id=32048, stack(0x00007f1be3afb000,0x00007f1be3bfc000)]
+  0x00007f1c58e64000 JavaThread "Red5_Scheduler_Worker-11" [_thread_blocked, id=32047, stack(0x00007f1be3bfc000,0x00007f1be3cfd000)]
+  0x00007f1c58e62000 JavaThread "Red5_Scheduler_Worker-10" [_thread_blocked, id=32046, stack(0x00007f1be3cfd000,0x00007f1be3dfe000)]
+  0x00007f1c58e60800 JavaThread "Red5_Scheduler_Worker-9" [_thread_blocked, id=32045, stack(0x00007f1be3dfe000,0x00007f1be3eff000)]
+  0x00007f1c58e51800 JavaThread "Red5_Scheduler_Worker-8" [_thread_blocked, id=32044, stack(0x00007f1bdbdfe000,0x00007f1bdbeff000)]
+  0x00007f1c58e4f800 JavaThread "Red5_Scheduler_Worker-7" [_thread_blocked, id=32043, stack(0x00007f1be3eff000,0x00007f1be4000000)]
+  0x00007f1c58e4e000 JavaThread "Red5_Scheduler_Worker-6" [_thread_blocked, id=32042, stack(0x00007f1c000ca000,0x00007f1c001cb000)]
+  0x00007f1c58e4c000 JavaThread "Red5_Scheduler_Worker-5" [_thread_blocked, id=32041, stack(0x00007f1c001cb000,0x00007f1c002cc000)]
+  0x00007f1c58e4a800 JavaThread "Red5_Scheduler_Worker-4" [_thread_blocked, id=32040, stack(0x00007f1c002cc000,0x00007f1c003cd000)]
+  0x00007f1c58e49000 JavaThread "Red5_Scheduler_Worker-3" [_thread_blocked, id=32039, stack(0x00007f1c003cd000,0x00007f1c004ce000)]
+  0x00007f1c58e47800 JavaThread "Red5_Scheduler_Worker-2" [_thread_blocked, id=32038, stack(0x00007f1c004ce000,0x00007f1c005cf000)]
+  0x00007f1c58e41000 JavaThread "Red5_Scheduler_Worker-1" [_thread_blocked, id=32037, stack(0x00007f1c005cf000,0x00007f1c006d0000)]
+  0x00007f1c58c54000 JavaThread "JavaCPP Deallocator" daemon [_thread_blocked, id=32036, stack(0x00007f1c38035000,0x00007f1c38136000)]
+  0x00007f1c581cc800 JavaThread "surefire-forkedjvm-command-thread" daemon [_thread_in_native, id=32033, stack(0x00007f1c482c0000,0x00007f1c483c1000)]
+  0x00007f1c581bf000 JavaThread "last-ditch-daemon-shutdown-thread-30sec" daemon [_thread_blocked, id=32032, stack(0x00007f1c483c1000,0x00007f1c484c2000)]
+  0x00007f1c58188800 JavaThread "Service Thread" daemon [_thread_blocked, id=32030, stack(0x00007f1c485c3000,0x00007f1c486c4000)]
+  0x00007f1c58185000 JavaThread "C1 CompilerThread2" daemon [_thread_blocked, id=32029, stack(0x00007f1c486c4000,0x00007f1c487c5000)]
+  0x00007f1c58183800 JavaThread "C2 CompilerThread1" daemon [_thread_blocked, id=32028, stack(0x00007f1c487c5000,0x00007f1c488c6000)]
+  0x00007f1c58180800 JavaThread "C2 CompilerThread0" daemon [_thread_blocked, id=32027, stack(0x00007f1c488c6000,0x00007f1c489c7000)]
+  0x00007f1c5817f000 JavaThread "Signal Dispatcher" daemon [_thread_blocked, id=32026, stack(0x00007f1c489c7000,0x00007f1c48ac8000)]
+  0x00007f1c5814b000 JavaThread "Finalizer" daemon [_thread_blocked, id=32025, stack(0x00007f1c48eff000,0x00007f1c49000000)]
+  0x00007f1c58146800 JavaThread "Reference Handler" daemon [_thread_blocked, id=32024, stack(0x00007f1c5c0f0000,0x00007f1c5c1f1000)]
+  0x00007f1c58009800 JavaThread "main" [_thread_in_Java, id=32018, stack(0x00007f1c61d30000,0x00007f1c61e31000)]
+
+Other Threads:
+  0x00007f1c5813e800 VMThread [stack: 0x00007f1c5c1f1000,0x00007f1c5c2f2000] [id=32023]
+  0x00007f1c5818b000 WatcherThread [stack: 0x00007f1c484c2000,0x00007f1c485c3000] [id=32031]
+
+VM state:not at safepoint (normal execution)
+
+VM Mutex/Monitor currently owned by a thread: None
+
+Heap:
+ PSYoungGen      total 659456K, used 533160K [0x00000000d7000000, 0x0000000100000000, 0x0000000100000000)
+  eden space 647168K, 82% used [0x00000000d7000000,0x00000000f77f7258,0x00000000fe800000)
+  from space 12288K, 5% used [0x00000000ff400000,0x00000000ff4b2f50,0x0000000100000000)
+  to   space 12288K, 0% used [0x00000000fe800000,0x00000000fe800000,0x00000000ff400000)
+ ParOldGen       total 46080K, used 16800K [0x0000000085000000, 0x0000000087d00000, 0x00000000d7000000)
+  object space 46080K, 36% used [0x0000000085000000,0x00000000860681c0,0x0000000087d00000)
+ Metaspace       used 24477K, capacity 24672K, committed 24832K, reserved 1071104K
+  class space    used 3222K, capacity 3248K, committed 3328K, reserved 1048576K
+
+Card table byte_map: [0x00007f1c5e70b000,0x00007f1c5eae4000] byte_map_base: 0x00007f1c5e2e3000
+
+Marking Bits: (ParMarkBitMap*) 0x00007f1c6120ff60
+ Begin Bits: [0x00007f1c38280000, 0x00007f1c3a140000)
+ End Bits:   [0x00007f1c3a140000, 0x00007f1c3c000000)
+
+Polling page: 0x00007f1c61e60000
+
+CodeCache: size=245760Kb used=10110Kb max_used=11512Kb free=235649Kb
+ bounds [0x00007f1c49000000, 0x00007f1c49bb0000, 0x00007f1c58000000]
+ total_blobs=3178 nmethods=2745 adapters=346
+ compilation: enabled
+
+Compilation events (10 events):
+Event: 62,728 Thread 0x00007f1c58185000 3437       1       org.springframework.context.support.GenericApplicationContext::getBeanFactory (5 bytes)
+Event: 62,728 Thread 0x00007f1c58185000 nmethod 3437 0x00007f1c498ca290 code [0x00007f1c498ca3e0, 0x00007f1c498ca4f0]
+Event: 62,731 Thread 0x00007f1c58180800 nmethod 3435 0x00007f1c499539d0 code [0x00007f1c49953b20, 0x00007f1c49953cd8]
+Event: 62,731 Thread 0x00007f1c58183800 nmethod 3434 0x00007f1c4971fa10 code [0x00007f1c4971fb80, 0x00007f1c4971fd68]
+Event: 62,734 Thread 0x00007f1c58185000 3438 % !   3       org.red5.io.flv.impl.FLVReader::analyzeKeyFrames @ 210 (973 bytes)
+Event: 62,739 Thread 0x00007f1c58185000 nmethod 3438% 0x00007f1c49a77b10 code [0x00007f1c49a784c0, 0x00007f1c49a80bc8]
+Event: 62,741 Thread 0x00007f1c58185000 3439   !   3       org.red5.io.flv.impl.FLVReader::analyzeKeyFrames (973 bytes)
+Event: 62,746 Thread 0x00007f1c58185000 nmethod 3439 0x00007f1c49b9f850 code [0x00007f1c49ba02a0, 0x00007f1c49ba8028]
+Event: 62,775 Thread 0x00007f1c58180800 3440       4       ch.qos.logback.classic.Logger::debug (15 bytes)
+Event: 62,778 Thread 0x00007f1c58180800 nmethod 3440 0x00007f1c49765950 code [0x00007f1c49765ac0, 0x00007f1c49765cc8]
+
+GC Heap History (10 events):
+Event: 4,239 GC heap before
+{Heap before GC invocations=9 (full 1):
+ PSYoungGen      total 256512K, used 251136K [0x00000000d7000000, 0x00000000f0700000, 0x0000000100000000)
+  eden space 248320K, 100% used [0x00000000d7000000,0x00000000e6280000,0x00000000e6280000)
+  from space 8192K, 34% used [0x00000000e6280000,0x00000000e6540020,0x00000000e6a80000)
+  to   space 8192K, 0% used [0x00000000eff00000,0x00000000eff00000,0x00000000f0700000)
+ ParOldGen       total 46080K, used 5297K [0x0000000085000000, 0x0000000087d00000, 0x00000000d7000000)
+  object space 46080K, 11% used [0x0000000085000000,0x000000008552c5f8,0x0000000087d00000)
+ Metaspace       used 23914K, capacity 24064K, committed 24320K, reserved 1071104K
+  class space    used 3166K, capacity 3216K, committed 3328K, reserved 1048576K
+Event: 4,261 GC heap after
+Heap after GC invocations=9 (full 1):
+ PSYoungGen      total 409088K, used 4288K [0x00000000d7000000, 0x00000000f2980000, 0x0000000100000000)
+  eden space 400896K, 0% used [0x00000000d7000000,0x00000000d7000000,0x00000000ef780000)
+  from space 8192K, 52% used [0x00000000eff00000,0x00000000f0330020,0x00000000f0700000)
+  to   space 7680K, 0% used [0x00000000ef780000,0x00000000ef780000,0x00000000eff00000)
+ ParOldGen       total 46080K, used 5305K [0x0000000085000000, 0x0000000087d00000, 0x00000000d7000000)
+  object space 46080K, 11% used [0x0000000085000000,0x000000008552e5f8,0x0000000087d00000)
+ Metaspace       used 23914K, capacity 24064K, committed 24320K, reserved 1071104K
+  class space    used 3166K, capacity 3216K, committed 3328K, reserved 1048576K
+}
+Event: 5,128 GC heap before
+{Heap before GC invocations=10 (full 1):
+ PSYoungGen      total 409088K, used 405184K [0x00000000d7000000, 0x00000000f2980000, 0x0000000100000000)
+  eden space 400896K, 100% used [0x00000000d7000000,0x00000000ef780000,0x00000000ef780000)
+  from space 8192K, 52% used [0x00000000eff00000,0x00000000f0330020,0x00000000f0700000)
+  to   space 7680K, 0% used [0x00000000ef780000,0x00000000ef780000,0x00000000eff00000)
+ ParOldGen       total 46080K, used 5305K [0x0000000085000000, 0x0000000087d00000, 0x00000000d7000000)
+  object space 46080K, 11% used [0x0000000085000000,0x000000008552e5f8,0x0000000087d00000)
+ Metaspace       used 23930K, capacity 24128K, committed 24320K, reserved 1071104K
+  class space    used 3166K, capacity 3216K, committed 3328K, reserved 1048576K
+Event: 5,138 GC heap after
+Heap after GC invocations=10 (full 1):
+ PSYoungGen      total 408576K, used 3648K [0x00000000d7000000, 0x00000000faf80000, 0x0000000100000000)
+  eden space 400896K, 0% used [0x00000000d7000000,0x00000000d7000000,0x00000000ef780000)
+  from space 7680K, 47% used [0x00000000ef780000,0x00000000efb10000,0x00000000eff00000)
+  to   space 7680K, 0% used [0x00000000fa800000,0x00000000fa800000,0x00000000faf80000)
+ ParOldGen       total 46080K, used 7226K [0x0000000085000000, 0x0000000087d00000, 0x00000000d7000000)
+  object space 46080K, 15% used [0x0000000085000000,0x000000008570ebb0,0x0000000087d00000)
+ Metaspace       used 23930K, capacity 24128K, committed 24320K, reserved 1071104K
+  class space    used 3166K, capacity 3216K, committed 3328K, reserved 1048576K
+}
+Event: 5,970 GC heap before
+{Heap before GC invocations=11 (full 1):
+ PSYoungGen      total 408576K, used 404544K [0x00000000d7000000, 0x00000000faf80000, 0x0000000100000000)
+  eden space 400896K, 100% used [0x00000000d7000000,0x00000000ef780000,0x00000000ef780000)
+  from space 7680K, 47% used [0x00000000ef780000,0x00000000efb10000,0x00000000eff00000)
+  to   space 7680K, 0% used [0x00000000fa800000,0x00000000fa800000,0x00000000faf80000)
+ ParOldGen       total 46080K, used 7226K [0x0000000085000000, 0x0000000087d00000, 0x00000000d7000000)
+  object space 46080K, 15% used [0x0000000085000000,0x000000008570ebb0,0x0000000087d00000)
+ Metaspace       used 23930K, capacity 24128K, committed 24320K, reserved 1071104K
+  class space    used 3166K, capacity 3216K, committed 3328K, reserved 1048576K
+Event: 5,999 GC heap after
+Heap after GC invocations=11 (full 1):
+ PSYoungGen      total 577536K, used 7680K [0x00000000d7000000, 0x00000000fb800000, 0x0000000100000000)
+  eden space 569856K, 0% used [0x00000000d7000000,0x00000000d7000000,0x00000000f9c80000)
+  from space 7680K, 100% used [0x00000000fa800000,0x00000000faf80000,0x00000000faf80000)
+  to   space 11776K, 0% used [0x00000000f9c80000,0x00000000f9c80000,0x00000000fa800000)
+ ParOldGen       total 46080K, used 16728K [0x0000000085000000, 0x0000000087d00000, 0x00000000d7000000)
+  object space 46080K, 36% used [0x0000000085000000,0x00000000860561c0,0x0000000087d00000)
+ Metaspace       used 23930K, capacity 24128K, committed 24320K, reserved 1071104K
+  class space    used 3166K, capacity 3216K, committed 3328K, reserved 1048576K
+}
+Event: 24,596 GC heap before
+{Heap before GC invocations=12 (full 1):
+ PSYoungGen      total 577536K, used 577536K [0x00000000d7000000, 0x00000000fb800000, 0x0000000100000000)
+  eden space 569856K, 100% used [0x00000000d7000000,0x00000000f9c80000,0x00000000f9c80000)
+  from space 7680K, 100% used [0x00000000fa800000,0x00000000faf80000,0x00000000faf80000)
+  to   space 11776K, 0% used [0x00000000f9c80000,0x00000000f9c80000,0x00000000fa800000)
+ ParOldGen       total 46080K, used 16728K [0x0000000085000000, 0x0000000087d00000, 0x00000000d7000000)
+  object space 46080K, 36% used [0x0000000085000000,0x00000000860561c0,0x0000000087d00000)
+ Metaspace       used 24007K, capacity 24192K, committed 24576K, reserved 1071104K
+  class space    used 3174K, capacity 3216K, committed 3328K, reserved 1048576K
+Event: 24,598 GC heap after
+Heap after GC invocations=12 (full 1):
+ PSYoungGen      total 581632K, used 160K [0x00000000d7000000, 0x0000000100000000, 0x0000000100000000)
+  eden space 569856K, 0% used [0x00000000d7000000,0x00000000d7000000,0x00000000f9c80000)
+  from space 11776K, 1% used [0x00000000f9c80000,0x00000000f9ca8000,0x00000000fa800000)
+  to   space 12288K, 0% used [0x00000000ff400000,0x00000000ff400000,0x0000000100000000)
+ ParOldGen       total 46080K, used 16752K [0x0000000085000000, 0x0000000087d00000, 0x00000000d7000000)
+  object space 46080K, 36% used [0x0000000085000000,0x000000008605c1c0,0x0000000087d00000)
+ Metaspace       used 24007K, capacity 24192K, committed 24576K, reserved 1071104K
+  class space    used 3174K, capacity 3216K, committed 3328K, reserved 1048576K
+}
+Event: 60,764 GC heap before
+{Heap before GC invocations=13 (full 1):
+ PSYoungGen      total 581632K, used 570016K [0x00000000d7000000, 0x0000000100000000, 0x0000000100000000)
+  eden space 569856K, 100% used [0x00000000d7000000,0x00000000f9c80000,0x00000000f9c80000)
+  from space 11776K, 1% used [0x00000000f9c80000,0x00000000f9ca8000,0x00000000fa800000)
+  to   space 12288K, 0% used [0x00000000ff400000,0x00000000ff400000,0x0000000100000000)
+ ParOldGen       total 46080K, used 16752K [0x0000000085000000, 0x0000000087d00000, 0x00000000d7000000)
+  object space 46080K, 36% used [0x0000000085000000,0x000000008605c1c0,0x0000000087d00000)
+ Metaspace       used 24463K, capacity 24608K, committed 24832K, reserved 1071104K
+  class space    used 3222K, capacity 3248K, committed 3328K, reserved 1048576K
+Event: 60,768 GC heap after
+Heap after GC invocations=13 (full 1):
+ PSYoungGen      total 659456K, used 715K [0x00000000d7000000, 0x0000000100000000, 0x0000000100000000)
+  eden space 647168K, 0% used [0x00000000d7000000,0x00000000d7000000,0x00000000fe800000)
+  from space 12288K, 5% used [0x00000000ff400000,0x00000000ff4b2f50,0x0000000100000000)
+  to   space 12288K, 0% used [0x00000000fe800000,0x00000000fe800000,0x00000000ff400000)
+ ParOldGen       total 46080K, used 16800K [0x0000000085000000, 0x0000000087d00000, 0x00000000d7000000)
+  object space 46080K, 36% used [0x0000000085000000,0x00000000860681c0,0x0000000087d00000)
+ Metaspace       used 24463K, capacity 24608K, committed 24832K, reserved 1071104K
+  class space    used 3222K, capacity 3248K, committed 3328K, reserved 1048576K
+}
+
+Deoptimization events (10 events):
+Event: 35,280 Thread 0x00007f1c58009800 Uncommon trap: reason=unstable_if action=reinterpret pc=0x00007f1c49b14c50 method=org.slf4j.helpers.MessageFormatter.deeplyAppendParameter(Ljava/lang/StringBuilder;Ljava/lang/Object;Ljava/util/Map;)V @ 1
+Event: 35,280 Thread 0x00007f1c58009800 Uncommon trap: reason=unstable_if action=reinterpret pc=0x00007f1c4991a838 method=ch.qos.logback.core.pattern.FormattingConverter.write(Ljava/lang/StringBuilder;Ljava/lang/Object;)V @ 114
+Event: 35,308 Thread 0x00007f1c58e4e000 Uncommon trap: reason=speculate_class_check action=maybe_recompile pc=0x00007f1c49705e18 method=ch.qos.logback.classic.spi.EventArgUtil.extractThrowable([Ljava/lang/Object;)Ljava/lang/Throwable; @ 19
+Event: 35,312 Thread 0x00007f1c58e4e000 Uncommon trap: reason=speculate_class_check action=maybe_recompile pc=0x00007f1c49705e18 method=ch.qos.logback.classic.spi.EventArgUtil.extractThrowable([Ljava/lang/Object;)Ljava/lang/Throwable; @ 19
+Event: 42,149 Thread 0x00007f1c58e4a800 Uncommon trap: reason=null_check action=make_not_entrant pc=0x00007f1c499f1684 method=ch.qos.logback.classic.LoggerContext.getLogger(Ljava/lang/String;)Lch/qos/logback/classic/Logger; @ 45
+Event: 45,289 Thread 0x00007f1c58009800 Uncommon trap: reason=unstable_if action=reinterpret pc=0x00007f1c491928b0 method=org.slf4j.helpers.MessageFormatter.isEscapedDelimeter(Ljava/lang/String;I)Z @ 1
+Event: 45,291 Thread 0x00007f1c58009800 Uncommon trap: reason=unstable_if action=reinterpret pc=0x00007f1c49b567d8 method=org.slf4j.helpers.MessageFormatter.isEscapedDelimeter(Ljava/lang/String;I)Z @ 1
+Event: 45,293 Thread 0x00007f1c58009800 Uncommon trap: reason=unstable_if action=reinterpret pc=0x00007f1c49b768e0 method=org.slf4j.helpers.MessageFormatter.isEscapedDelimeter(Ljava/lang/String;I)Z @ 1
+Event: 62,729 Thread 0x00007f1c58009800 Uncommon trap: reason=unstable_if action=reinterpret pc=0x00007f1c49af45b0 method=org.red5.io.flv.impl.FLVReader.analyzeKeyFrames()Lorg/red5/io/flv/IKeyFrameDataAnalyzer$KeyFrameMeta; @ 475
+Event: 62,787 Thread 0x00007f1c58e69800 Uncommon trap: reason=unstable_if action=reinterpret pc=0x00007f1c49afd020 method=io.antmedia.muxer.HLSMuxer.writePacket(Lorg/bytedeco/javacpp/avcodec$AVPacket;Lorg/bytedeco/javacpp/avutil$AVRational;Lorg/bytedeco/javacpp/avutil$AVRational;I)V @ 459
+
+Internal exceptions (10 events):
+Event: 35,280 Thread 0x00007f1c58009800 Implicit null exception at 0x00007f1c49963555 to 0x00007f1c499636f5
+Event: 35,280 Thread 0x00007f1c58009800 Implicit null exception at 0x00007f1c49139944 to 0x00007f1c491399c5
+Event: 35,280 Thread 0x00007f1c58009800 Implicit null exception at 0x00007f1c49b0bf26 to 0x00007f1c49b14c21
+Event: 35,298 Thread 0x00007f1c58e4e000 Implicit null exception at 0x00007f1c49b35cb7 to 0x00007f1c49b36023
+Event: 35,298 Thread 0x00007f1c58e4e000 Exception <a 'java/lang/NullPointerException'> (0x00000000e25fe0d8) thrown at [/HUDSON/workspace/8-2-build-linux-amd64/jdk8u131/8869/hotspot/src/share/vm/runtime/sharedRuntime.cpp, line 605]
+Event: 60,066 Thread 0x00007f1c58e7b000 Exception <a 'sun/nio/fs/UnixException'> (0x00000000f89930b8) thrown at [/HUDSON/workspace/8-2-build-linux-amd64/jdk8u131/8869/hotspot/src/share/vm/prims/jni.cpp, line 709]
+Event: 60,456 Thread 0x00007f1c58e6f000 Exception <a 'sun/nio/fs/UnixException'> (0x00000000e433c908) thrown at [/HUDSON/workspace/8-2-build-linux-amd64/jdk8u131/8869/hotspot/src/share/vm/prims/jni.cpp, line 709]
+Event: 61,091 Thread 0x00007f1c58e65800 Exception <a 'sun/nio/fs/UnixException'> (0x00000000e0a8a990) thrown at [/HUDSON/workspace/8-2-build-linux-amd64/jdk8u131/8869/hotspot/src/share/vm/prims/jni.cpp, line 709]
+Event: 61,798 Thread 0x00007f1c58e6b000 Exception <a 'sun/nio/fs/UnixException'> (0x00000000ebefebf8) thrown at [/HUDSON/workspace/8-2-build-linux-amd64/jdk8u131/8869/hotspot/src/share/vm/prims/jni.cpp, line 709]
+Event: 62,447 Thread 0x00007f1c58e8c800 Exception <a 'sun/nio/fs/UnixException'> (0x00000000f5c67870) thrown at [/HUDSON/workspace/8-2-build-linux-amd64/jdk8u131/8869/hotspot/src/share/vm/prims/jni.cpp, line 709]
+
+Events (10 events):
+Event: 61,509 Thread 0x00007f1c58009800 DEOPT PACKING pc=0x00007f1c49744aac sp=0x00007f1c61e2e060
+Event: 61,509 Thread 0x00007f1c58009800 DEOPT UNPACKING pc=0x00007f1c49047633 sp=0x00007f1c61e2dfb0 mode 0
+Event: 62,428 Executing VM operation: RevokeBias
+Event: 62,428 Executing VM operation: RevokeBias done
+Event: 62,729 Thread 0x00007f1c58009800 Uncommon trap: trap_request=0xffffff65 fr.pc=0x00007f1c49af45b0
+Event: 62,729 Thread 0x00007f1c58009800 DEOPT PACKING pc=0x00007f1c49af45b0 sp=0x00007f1c61e2e0e0
+Event: 62,729 Thread 0x00007f1c58009800 DEOPT UNPACKING pc=0x00007f1c49005229 sp=0x00007f1c61e2e0c8 mode 2
+Event: 62,787 Thread 0x00007f1c58e69800 Uncommon trap: trap_request=0xffffff65 fr.pc=0x00007f1c49afd020
+Event: 62,787 Thread 0x00007f1c58e69800 DEOPT PACKING pc=0x00007f1c49afd020 sp=0x00007f1be39f86a0
+Event: 62,787 Thread 0x00007f1c58e69800 DEOPT UNPACKING pc=0x00007f1c49005229 sp=0x00007f1be39f8630 mode 2
+
+
+Dynamic libraries:
+00400000-00401000 r-xp 00000000 08:02 26351921                           /home/karinca/space/jdk1.8.0_131/jre/bin/java
+00600000-00601000 rw-p 00000000 08:02 26351921                           /home/karinca/space/jdk1.8.0_131/jre/bin/java
+01662000-01b21000 rw-p 00000000 00:00 0                                  [heap]
+85000000-87d00000 rw-p 00000000 00:00 0 
+87d00000-d7000000 ---p 00000000 00:00 0 
+d7000000-100000000 rw-p 00000000 00:00 0 
+100000000-100340000 rw-p 00000000 00:00 0 
+100340000-140000000 ---p 00000000 00:00 0 
+7f1bbc000000-7f1bbc5df000 rw-p 00000000 00:00 0 
+7f1bbc5df000-7f1bc0000000 ---p 00000000 00:00 0 
+7f1bc0000000-7f1bc0612000 rw-p 00000000 00:00 0 
+7f1bc0612000-7f1bc4000000 ---p 00000000 00:00 0 
+7f1bc4000000-7f1bc45fd000 rw-p 00000000 00:00 0 
+7f1bc45fd000-7f1bc8000000 ---p 00000000 00:00 0 
+7f1bc8000000-7f1bc88a7000 rw-p 00000000 00:00 0 
+7f1bc88a7000-7f1bcc000000 ---p 00000000 00:00 0 
+7f1bcc000000-7f1bcc712000 rw-p 00000000 00:00 0 
+7f1bcc712000-7f1bd0000000 ---p 00000000 00:00 0 
+7f1bd0000000-7f1bd07ad000 rw-p 00000000 00:00 0 
+7f1bd07ad000-7f1bd4000000 ---p 00000000 00:00 0 
+7f1bd4000000-7f1bd48e7000 rw-p 00000000 00:00 0 
+7f1bd48e7000-7f1bd8000000 ---p 00000000 00:00 0 
+7f1bdbdfe000-7f1bdbe01000 ---p 00000000 00:00 0 
+7f1bdbe01000-7f1bdbeff000 rw-p 00000000 00:00 0 
+7f1bdc000000-7f1bdc85a000 rw-p 00000000 00:00 0 
+7f1bdc85a000-7f1be0000000 ---p 00000000 00:00 0 
+7f1be0dd2000-7f1be0dd5000 ---p 00000000 00:00 0 
+7f1be0dd5000-7f1be0ed3000 rw-p 00000000 00:00 0 
+7f1be0ed3000-7f1be0ed6000 ---p 00000000 00:00 0 
+7f1be0ed6000-7f1be0fd4000 rw-p 00000000 00:00 0 
+7f1be0fd4000-7f1be0fd7000 ---p 00000000 00:00 0 
+7f1be0fd7000-7f1be10d5000 rw-p 00000000 00:00 0 
+7f1be10d5000-7f1be10d8000 ---p 00000000 00:00 0 
+7f1be10d8000-7f1be11d6000 rw-p 00000000 00:00 0 
+7f1be11d6000-7f1be11d9000 ---p 00000000 00:00 0 
+7f1be11d9000-7f1be12d7000 rw-p 00000000 00:00 0 
+7f1be12d7000-7f1be12da000 ---p 00000000 00:00 0 
+7f1be12da000-7f1be13d8000 rw-p 00000000 00:00 0 
+7f1be13d8000-7f1be13db000 ---p 00000000 00:00 0 
+7f1be13db000-7f1be14d9000 rw-p 00000000 00:00 0 
+7f1be14d9000-7f1be14dc000 ---p 00000000 00:00 0 
+7f1be14dc000-7f1be15da000 rw-p 00000000 00:00 0 
+7f1be15da000-7f1be15dd000 ---p 00000000 00:00 0 
+7f1be15dd000-7f1be16db000 rw-p 00000000 00:00 0 
+7f1be16db000-7f1be16de000 ---p 00000000 00:00 0 
+7f1be16de000-7f1be17dc000 rw-p 00000000 00:00 0 
+7f1be17dc000-7f1be17df000 ---p 00000000 00:00 0 
+7f1be17df000-7f1be18dd000 rw-p 00000000 00:00 0 
+7f1be18dd000-7f1be18e0000 ---p 00000000 00:00 0 
+7f1be18e0000-7f1be19de000 rw-p 00000000 00:00 0 
+7f1be19de000-7f1be19e1000 ---p 00000000 00:00 0 
+7f1be19e1000-7f1be1adf000 rw-p 00000000 00:00 0 
+7f1be1adf000-7f1be1ae2000 ---p 00000000 00:00 0 
+7f1be1ae2000-7f1be1be0000 rw-p 00000000 00:00 0 
+7f1be1be0000-7f1be1be3000 ---p 00000000 00:00 0 
+7f1be1be3000-7f1be1ce1000 rw-p 00000000 00:00 0 
+7f1be1ce1000-7f1be1ce4000 ---p 00000000 00:00 0 
+7f1be1ce4000-7f1be1de2000 rw-p 00000000 00:00 0 
+7f1be1de2000-7f1be1de5000 ---p 00000000 00:00 0 
+7f1be1de5000-7f1be1ee3000 rw-p 00000000 00:00 0 
+7f1be1ee3000-7f1be1ee6000 ---p 00000000 00:00 0 
+7f1be1ee6000-7f1be1fe4000 rw-p 00000000 00:00 0 
+7f1be1fe4000-7f1be1fe7000 ---p 00000000 00:00 0 
+7f1be1fe7000-7f1be20e5000 rw-p 00000000 00:00 0 
+7f1be20e5000-7f1be20e8000 ---p 00000000 00:00 0 
+7f1be20e8000-7f1be22e6000 rw-p 00000000 00:00 0 
+7f1be22e6000-7f1be23e6000 ---p 00000000 00:00 0 
+7f1be23e6000-7f1be25e6000 rw-p 00000000 00:00 0 
+7f1be25e6000-7f1be25e9000 ---p 00000000 00:00 0 
+7f1be25e9000-7f1be26e7000 rw-p 00000000 00:00 0 
+7f1be26e7000-7f1be26ea000 ---p 00000000 00:00 0 
+7f1be26ea000-7f1be27e8000 rw-p 00000000 00:00 0 
+7f1be27e8000-7f1be27eb000 ---p 00000000 00:00 0 
+7f1be27eb000-7f1be28e9000 rw-p 00000000 00:00 0 
+7f1be28e9000-7f1be28ec000 ---p 00000000 00:00 0 
+7f1be28ec000-7f1be29ea000 rw-p 00000000 00:00 0 
+7f1be29ea000-7f1be29ed000 ---p 00000000 00:00 0 
+7f1be29ed000-7f1be2aeb000 rw-p 00000000 00:00 0 
+7f1be2aeb000-7f1be2aee000 ---p 00000000 00:00 0 
+7f1be2aee000-7f1be2bec000 rw-p 00000000 00:00 0 
+7f1be2bec000-7f1be2bef000 ---p 00000000 00:00 0 
+7f1be2bef000-7f1be2ced000 rw-p 00000000 00:00 0 
+7f1be2ced000-7f1be2cf0000 ---p 00000000 00:00 0 
+7f1be2cf0000-7f1be2dee000 rw-p 00000000 00:00 0 
+7f1be2dee000-7f1be2df1000 ---p 00000000 00:00 0 
+7f1be2df1000-7f1be2eef000 rw-p 00000000 00:00 0 
+7f1be2eef000-7f1be2ef2000 ---p 00000000 00:00 0 
+7f1be2ef2000-7f1be2ff0000 rw-p 00000000 00:00 0 
+7f1be2ff0000-7f1be2ff3000 ---p 00000000 00:00 0 
+7f1be2ff3000-7f1be30f1000 rw-p 00000000 00:00 0 
+7f1be30f1000-7f1be30f4000 ---p 00000000 00:00 0 
+7f1be30f4000-7f1be31f2000 rw-p 00000000 00:00 0 
+7f1be31f2000-7f1be31f5000 ---p 00000000 00:00 0 
+7f1be31f5000-7f1be32f3000 rw-p 00000000 00:00 0 
+7f1be32f3000-7f1be32f6000 ---p 00000000 00:00 0 
+7f1be32f6000-7f1be33f4000 rw-p 00000000 00:00 0 
+7f1be33f4000-7f1be33f7000 ---p 00000000 00:00 0 
+7f1be33f7000-7f1be34f5000 rw-p 00000000 00:00 0 
+7f1be34f5000-7f1be34f8000 ---p 00000000 00:00 0 
+7f1be34f8000-7f1be35f6000 rw-p 00000000 00:00 0 
+7f1be35f6000-7f1be35f9000 ---p 00000000 00:00 0 
+7f1be35f9000-7f1be36f7000 rw-p 00000000 00:00 0 
+7f1be36f7000-7f1be36fa000 ---p 00000000 00:00 0 
+7f1be36fa000-7f1be37f8000 rw-p 00000000 00:00 0 
+7f1be37f8000-7f1be37fb000 ---p 00000000 00:00 0 
+7f1be37fb000-7f1be38f9000 rw-p 00000000 00:00 0 
+7f1be38f9000-7f1be38fc000 ---p 00000000 00:00 0 
+7f1be38fc000-7f1be39fa000 rw-p 00000000 00:00 0 
+7f1be39fa000-7f1be39fd000 ---p 00000000 00:00 0 
+7f1be39fd000-7f1be3afb000 rw-p 00000000 00:00 0 
+7f1be3afb000-7f1be3afe000 ---p 00000000 00:00 0 
+7f1be3afe000-7f1be3bfc000 rw-p 00000000 00:00 0 
+7f1be3bfc000-7f1be3bff000 ---p 00000000 00:00 0 
+7f1be3bff000-7f1be3cfd000 rw-p 00000000 00:00 0 
+7f1be3cfd000-7f1be3d00000 ---p 00000000 00:00 0 
+7f1be3d00000-7f1be3dfe000 rw-p 00000000 00:00 0 
+7f1be3dfe000-7f1be3e01000 ---p 00000000 00:00 0 
+7f1be3e01000-7f1be3eff000 rw-p 00000000 00:00 0 
+7f1be3eff000-7f1be3f02000 ---p 00000000 00:00 0 
+7f1be3f02000-7f1be4000000 rw-p 00000000 00:00 0 
+7f1be4000000-7f1be4a39000 rw-p 00000000 00:00 0 
+7f1be4a39000-7f1be8000000 ---p 00000000 00:00 0 
+7f1be8000000-7f1be89af000 rw-p 00000000 00:00 0 
+7f1be89af000-7f1bec000000 ---p 00000000 00:00 0 
+7f1bec000000-7f1bec9d3000 rw-p 00000000 00:00 0 
+7f1bec9d3000-7f1bf0000000 ---p 00000000 00:00 0 
+7f1bf0000000-7f1bf08c5000 rw-p 00000000 00:00 0 
+7f1bf08c5000-7f1bf4000000 ---p 00000000 00:00 0 
+7f1bf4000000-7f1bf4430000 rw-p 00000000 00:00 0 
+7f1bf4430000-7f1bf8000000 ---p 00000000 00:00 0 
+7f1bf8000000-7f1bf8621000 rw-p 00000000 00:00 0 
+7f1bf8621000-7f1bfc000000 ---p 00000000 00:00 0 
+7f1bfc000000-7f1bfc3fe000 rw-p 00000000 00:00 0 
+7f1bfc3fe000-7f1c00000000 ---p 00000000 00:00 0 
+7f1c000ca000-7f1c000cd000 ---p 00000000 00:00 0 
+7f1c000cd000-7f1c001cb000 rw-p 00000000 00:00 0 
+7f1c001cb000-7f1c001ce000 ---p 00000000 00:00 0 
+7f1c001ce000-7f1c002cc000 rw-p 00000000 00:00 0 
+7f1c002cc000-7f1c002cf000 ---p 00000000 00:00 0 
+7f1c002cf000-7f1c003cd000 rw-p 00000000 00:00 0 
+7f1c003cd000-7f1c003d0000 ---p 00000000 00:00 0 
+7f1c003d0000-7f1c004ce000 rw-p 00000000 00:00 0 
+7f1c004ce000-7f1c004d1000 ---p 00000000 00:00 0 
+7f1c004d1000-7f1c005cf000 rw-p 00000000 00:00 0 
+7f1c005cf000-7f1c005d2000 ---p 00000000 00:00 0 
+7f1c005d2000-7f1c008d0000 rw-p 00000000 00:00 0 
+7f1c008d0000-7f1c00ad0000 rw-p 00000000 00:00 0 
+7f1c00ad0000-7f1c00b59000 r-xp 00000000 08:02 26610678                   /home/karinca/.javacpp/cache/ffmpeg-3.2.1-1.3-linux-x86_64.jar/org/bytedeco/javacpp/linux-x86_64/libjniavformat.so
+7f1c00b59000-7f1c00d59000 ---p 00089000 08:02 26610678                   /home/karinca/.javacpp/cache/ffmpeg-3.2.1-1.3-linux-x86_64.jar/org/bytedeco/javacpp/linux-x86_64/libjniavformat.so
+7f1c00d59000-7f1c00d5a000 rw-p 00089000 08:02 26610678                   /home/karinca/.javacpp/cache/ffmpeg-3.2.1-1.3-linux-x86_64.jar/org/bytedeco/javacpp/linux-x86_64/libjniavformat.so
+7f1c00d5a000-7f1c00d5b000 rw-p 00000000 00:00 0 
+7f1c00d5b000-7f1c0112c000 r-xp 00000000 08:02 26610677                   /home/karinca/.javacpp/cache/ffmpeg-3.2.1-1.3-linux-x86_64.jar/org/bytedeco/javacpp/linux-x86_64/libavformat.so.57
+7f1c0112c000-7f1c0132b000 ---p 003d1000 08:02 26610677                   /home/karinca/.javacpp/cache/ffmpeg-3.2.1-1.3-linux-x86_64.jar/org/bytedeco/javacpp/linux-x86_64/libavformat.so.57
+7f1c0132b000-7f1c01386000 rw-p 003d0000 08:02 26610677                   /home/karinca/.javacpp/cache/ffmpeg-3.2.1-1.3-linux-x86_64.jar/org/bytedeco/javacpp/linux-x86_64/libavformat.so.57
+7f1c01386000-7f1c0138a000 rw-p 00000000 00:00 0 
+7f1c0138a000-7f1c01426000 r-xp 00000000 08:02 26610676                   /home/karinca/.javacpp/cache/ffmpeg-3.2.1-1.3-linux-x86_64.jar/org/bytedeco/javacpp/linux-x86_64/libjniavcodec.so
+7f1c01426000-7f1c01625000 ---p 0009c000 08:02 26610676                   /home/karinca/.javacpp/cache/ffmpeg-3.2.1-1.3-linux-x86_64.jar/org/bytedeco/javacpp/linux-x86_64/libjniavcodec.so
+7f1c01625000-7f1c01627000 rw-p 0009b000 08:02 26610676                   /home/karinca/.javacpp/cache/ffmpeg-3.2.1-1.3-linux-x86_64.jar/org/bytedeco/javacpp/linux-x86_64/libjniavcodec.so
+7f1c01627000-7f1c02ab8000 r-xp 00000000 08:02 26610674                   /home/karinca/.javacpp/cache/ffmpeg-3.2.1-1.3-linux-x86_64.jar/org/bytedeco/javacpp/linux-x86_64/libavcodec.so.57
+7f1c02ab8000-7f1c02cb8000 ---p 01491000 08:02 26610674                   /home/karinca/.javacpp/cache/ffmpeg-3.2.1-1.3-linux-x86_64.jar/org/bytedeco/javacpp/linux-x86_64/libavcodec.so.57
+7f1c02cb8000-7f1c02d2a000 rw-p 01491000 08:02 26610674                   /home/karinca/.javacpp/cache/ffmpeg-3.2.1-1.3-linux-x86_64.jar/org/bytedeco/javacpp/linux-x86_64/libavcodec.so.57
+7f1c02d2a000-7f1c0351a000 rw-p 00000000 00:00 0 
+7f1c0351a000-7f1c03527000 r-xp 00000000 08:02 26610673                   /home/karinca/.javacpp/cache/ffmpeg-3.2.1-1.3-linux-x86_64.jar/org/bytedeco/javacpp/linux-x86_64/libjniswresample.so
+7f1c03527000-7f1c03727000 ---p 0000d000 08:02 26610673                   /home/karinca/.javacpp/cache/ffmpeg-3.2.1-1.3-linux-x86_64.jar/org/bytedeco/javacpp/linux-x86_64/libjniswresample.so
+7f1c03727000-7f1c03728000 rw-p 0000d000 08:02 26610673                   /home/karinca/.javacpp/cache/ffmpeg-3.2.1-1.3-linux-x86_64.jar/org/bytedeco/javacpp/linux-x86_64/libjniswresample.so
+7f1c03728000-7f1c03743000 r-xp 00000000 08:02 26610671                   /home/karinca/.javacpp/cache/ffmpeg-3.2.1-1.3-linux-x86_64.jar/org/bytedeco/javacpp/linux-x86_64/libswresample.so.2
+7f1c03743000-7f1c03943000 ---p 0001b000 08:02 26610671                   /home/karinca/.javacpp/cache/ffmpeg-3.2.1-1.3-linux-x86_64.jar/org/bytedeco/javacpp/linux-x86_64/libswresample.so.2
+7f1c03943000-7f1c03945000 rw-p 0001b000 08:02 26610671                   /home/karinca/.javacpp/cache/ffmpeg-3.2.1-1.3-linux-x86_64.jar/org/bytedeco/javacpp/linux-x86_64/libswresample.so.2
+7f1c03945000-7f1c03956000 r-xp 00000000 08:02 26352239                   /home/karinca/space/jdk1.8.0_131/jre/lib/amd64/libnio.so
+7f1c03956000-7f1c03b55000 ---p 00011000 08:02 26352239                   /home/karinca/space/jdk1.8.0_131/jre/lib/amd64/libnio.so
+7f1c03b55000-7f1c03b56000 rw-p 00010000 08:02 26352239                   /home/karinca/space/jdk1.8.0_131/jre/lib/amd64/libnio.so
+7f1c03b56000-7f1c03b6c000 r-xp 00000000 08:02 12321337                   /lib/x86_64-linux-gnu/libgcc_s.so.1
+7f1c03b6c000-7f1c03d6b000 ---p 00016000 08:02 12321337                   /lib/x86_64-linux-gnu/libgcc_s.so.1
+7f1c03d6b000-7f1c03d6c000 rw-p 00015000 08:02 12321337                   /lib/x86_64-linux-gnu/libgcc_s.so.1
+7f1c03d6c000-7f1c03ede000 r-xp 00000000 08:02 13372310                   /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.21
+7f1c03ede000-7f1c040de000 ---p 00172000 08:02 13372310                   /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.21
+7f1c040de000-7f1c040e8000 r--p 00172000 08:02 13372310                   /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.21
+7f1c040e8000-7f1c040ea000 rw-p 0017c000 08:02 13372310                   /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.21
+7f1c040ea000-7f1c040ee000 rw-p 00000000 00:00 0 
+7f1c040ee000-7f1c04168000 r-xp 00000000 08:02 26610544                   /home/karinca/.javacpp/cache/ffmpeg-3.2.1-1.3-linux-x86_64.jar/org/bytedeco/javacpp/linux-x86_64/libjniavutil.so
+7f1c04168000-7f1c04367000 ---p 0007a000 08:02 26610544                   /home/karinca/.javacpp/cache/ffmpeg-3.2.1-1.3-linux-x86_64.jar/org/bytedeco/javacpp/linux-x86_64/libjniavutil.so
+7f1c04367000-7f1c04369000 rw-p 00079000 08:02 26610544                   /home/karinca/.javacpp/cache/ffmpeg-3.2.1-1.3-linux-x86_64.jar/org/bytedeco/javacpp/linux-x86_64/libjniavutil.so
+7f1c04369000-7f1c043bb000 r-xp 00000000 08:02 26607931                   /home/karinca/.javacpp/cache/ffmpeg-3.2.1-1.3-linux-x86_64.jar/org/bytedeco/javacpp/linux-x86_64/libavutil.so.55
+7f1c043bb000-7f1c045ba000 ---p 00052000 08:02 26607931                   /home/karinca/.javacpp/cache/ffmpeg-3.2.1-1.3-linux-x86_64.jar/org/bytedeco/javacpp/linux-x86_64/libavutil.so.55
+7f1c045ba000-7f1c045cb000 rw-p 00051000 08:02 26607931                   /home/karinca/.javacpp/cache/ffmpeg-3.2.1-1.3-linux-x86_64.jar/org/bytedeco/javacpp/linux-x86_64/libavutil.so.55
+7f1c045cb000-7f1c047df000 rw-p 00000000 00:00 0 
+7f1c047df000-7f1c047e8000 r-xp 00000000 08:02 26352244                   /home/karinca/space/jdk1.8.0_131/jre/lib/amd64/libmanagement.so
+7f1c047e8000-7f1c049e7000 ---p 00009000 08:02 26352244                   /home/karinca/space/jdk1.8.0_131/jre/lib/amd64/libmanagement.so
+7f1c049e7000-7f1c049e8000 rw-p 00008000 08:02 26352244                   /home/karinca/space/jdk1.8.0_131/jre/lib/amd64/libmanagement.so
+7f1c049e8000-7f1c04be8000 rw-p 00000000 00:00 0 
+7f1c04be8000-7f1c04de8000 rw-p 00000000 00:00 0 
+7f1c04de8000-7f1c07de9000 rw-p 00000000 00:00 0 
+7f1c07de9000-7f1c07dff000 r-xp 00000000 08:02 26352236                   /home/karinca/space/jdk1.8.0_131/jre/lib/amd64/libnet.so
+7f1c07dff000-7f1c07fff000 ---p 00016000 08:02 26352236                   /home/karinca/space/jdk1.8.0_131/jre/lib/amd64/libnet.so
+7f1c07fff000-7f1c08000000 rw-p 00016000 08:02 26352236                   /home/karinca/space/jdk1.8.0_131/jre/lib/amd64/libnet.so
+7f1c08000000-7f1c087e4000 rw-p 00000000 00:00 0 
+7f1c087e4000-7f1c0c000000 ---p 00000000 00:00 0 
+7f1c0c000000-7f1c0c021000 rw-p 00000000 00:00 0 
+7f1c0c021000-7f1c10000000 ---p 00000000 00:00 0 
+7f1c10000000-7f1c10021000 rw-p 00000000 00:00 0 
+7f1c10021000-7f1c14000000 ---p 00000000 00:00 0 
+7f1c14000000-7f1c14021000 rw-p 00000000 00:00 0 
+7f1c14021000-7f1c18000000 ---p 00000000 00:00 0 
+7f1c18000000-7f1c193ae000 rw-p 00000000 00:00 0 
+7f1c193ae000-7f1c1c000000 ---p 00000000 00:00 0 
+7f1c1c000000-7f1c1c5c2000 rw-p 00000000 00:00 0 
+7f1c1c5c2000-7f1c20000000 ---p 00000000 00:00 0 
+7f1c20000000-7f1c20021000 rw-p 00000000 00:00 0 
+7f1c20021000-7f1c24000000 ---p 00000000 00:00 0 
+7f1c24000000-7f1c2580f000 rw-p 00000000 00:00 0 
+7f1c2580f000-7f1c28000000 ---p 00000000 00:00 0 
+7f1c28000000-7f1c28021000 rw-p 00000000 00:00 0 
+7f1c28021000-7f1c2c000000 ---p 00000000 00:00 0 
+7f1c2c000000-7f1c2c021000 rw-p 00000000 00:00 0 
+7f1c2c021000-7f1c30000000 ---p 00000000 00:00 0 
+7f1c30000000-7f1c3002c000 rw-p 00000000 00:00 0 
+7f1c3002c000-7f1c34000000 ---p 00000000 00:00 0 
+7f1c34000000-7f1c34021000 rw-p 00000000 00:00 0 
+7f1c34021000-7f1c38000000 ---p 00000000 00:00 0 
+7f1c38022000-7f1c38035000 r--s 00345000 08:02 26352065                   /home/karinca/space/jdk1.8.0_131/jre/lib/resources.jar
+7f1c38035000-7f1c38038000 ---p 00000000 00:00 0 
+7f1c38038000-7f1c38136000 rw-p 00000000 00:00 0 
+7f1c38136000-7f1c3813b000 r--s 0009a000 08:02 26352079                   /home/karinca/space/jdk1.8.0_131/jre/lib/jsse.jar
+7f1c3813b000-7f1c3813e000 r--s 00010000 08:02 6816057                    /home/karinca/.m2/repository/org/apache/maven/surefire/surefire-junit4/2.19.1/surefire-junit4-2.19.1.jar
+7f1c3813e000-7f1c3817a000 r--s 0027f000 08:02 27267410                   /home/karinca/.m2/repository/net/bytebuddy/byte-buddy/1.7.4/byte-buddy-1.7.4.jar
+7f1c3817a000-7f1c38189000 r--s 00075000 08:02 27267408                   /home/karinca/.m2/repository/org/mockito/mockito-core/2.11.0/mockito-core-2.11.0.jar
+7f1c38189000-7f1c38193000 r--s 000ae000 08:02 26871012                   /home/karinca/.m2/repository/org/javassist/javassist/3.20.0-GA/javassist-3.20.0-GA.jar
+7f1c38193000-7f1c381bf000 r--s 00208000 08:02 26870256                   /home/karinca/.m2/repository/com/google/guava/guava/19.0/guava-19.0.jar
+7f1c381bf000-7f1c3825d000 r--s 00896000 08:02 26870252                   /home/karinca/.m2/repository/org/eclipse/collections/eclipse-collections/7.1.1/eclipse-collections-7.1.1.jar
+7f1c3825d000-7f1c38280000 r--s 000a0000 08:02 26870248                   /home/karinca/.m2/repository/org/eclipse/collections/eclipse-collections-api/7.1.1/eclipse-collections-api-7.1.1.jar
+7f1c38280000-7f1c3c000000 rw-p 00000000 00:00 0 
+7f1c3c000000-7f1c3c021000 rw-p 00000000 00:00 0 
+7f1c3c021000-7f1c40000000 ---p 00000000 00:00 0 
+7f1c40000000-7f1c40024000 rw-p 00000000 00:00 0 
+7f1c40024000-7f1c44000000 ---p 00000000 00:00 0 
+7f1c44000000-7f1c44021000 rw-p 00000000 00:00 0 
+7f1c44021000-7f1c48000000 ---p 00000000 00:00 0 
+7f1c48000000-7f1c48002000 r--s 0000c000 08:02 27267414                   /home/karinca/.m2/repository/org/objenesis/objenesis/2.6/objenesis-2.6.jar
+7f1c48002000-7f1c48004000 r--s 00009000 08:02 27267412                   /home/karinca/.m2/repository/net/bytebuddy/byte-buddy-agent/1.7.4/byte-buddy-agent-1.7.4.jar
+7f1c48004000-7f1c48008000 r--s 00036000 08:02 26871009                   /home/karinca/.m2/repository/ognl/ognl/3.1.11/ognl-3.1.11.jar
+7f1c48008000-7f1c4800a000 r--s 00006000 08:02 26871008                   /home/karinca/.m2/repository/org/apache/mina/mina-integration-jmx/2.0.16/mina-integration-jmx-2.0.16.jar
+7f1c4800a000-7f1c4800c000 r--s 0000b000 08:02 26740801                   /home/karinca/.m2/repository/org/red5/websocket/1.9/websocket-1.9.jar
+7f1c4800c000-7f1c48010000 r--s 0001a000 08:02 26870260                   /home/karinca/.m2/repository/org/mapdb/elsa/3.0.0-M5/elsa-3.0.0-M5.jar
+7f1c48010000-7f1c48012000 r--s 00038000 08:02 26870258                   /home/karinca/.m2/repository/net/jpountz/lz4/lz4/1.3.0/lz4-1.3.0.jar
+7f1c48012000-7f1c48014000 r--s 00009000 08:02 26870254                   /home/karinca/.m2/repository/org/eclipse/collections/eclipse-collections-forkjoin/7.1.1/eclipse-collections-forkjoin-7.1.1.jar
+7f1c48014000-7f1c48015000 r--s 00000000 08:02 26870250                   /home/karinca/.m2/repository/net/jcip/jcip-annotations/1.0/jcip-annotations-1.0.jar
+7f1c48015000-7f1c4801b000 r--s 00026000 08:02 1850769                    /home/karinca/.m2/repository/org/jetbrains/kotlin/kotlin-runtime/1.0.7/kotlin-runtime-1.0.7.jar
+7f1c4801b000-7f1c48023000 r--s 00086000 08:02 1850767                    /home/karinca/.m2/repository/org/jetbrains/kotlin/kotlin-stdlib/1.0.7/kotlin-stdlib-1.0.7.jar
+7f1c48023000-7f1c4802c000 r--s 000ab000 08:02 1850765                    /home/karinca/.m2/repository/org/mapdb/mapdb/3.0.5/mapdb-3.0.5.jar
+7f1c4802c000-7f1c4802d000 r--s 00006000 08:02 26870286                   /home/karinca/.m2/repository/org/codehaus/jackson/jackson-xc/1.9.2/jackson-xc-1.9.2.jar
+7f1c4802d000-7f1c4802e000 r--s 00004000 08:02 26870284                   /home/karinca/.m2/repository/org/codehaus/jackson/jackson-jaxrs/1.9.2/jackson-jaxrs-1.9.2.jar
+7f1c4802e000-7f1c4803c000 r--s 000ad000 08:02 26870282                   /home/karinca/.m2/repository/org/codehaus/jackson/jackson-mapper-asl/1.9.2/jackson-mapper-asl-1.9.2.jar
+7f1c4803c000-7f1c48040000 r--s 00034000 08:02 26870280                   /home/karinca/.m2/repository/org/codehaus/jackson/jackson-core-asl/1.9.2/jackson-core-asl-1.9.2.jar
+7f1c48040000-7f1c48042000 r--s 0000e000 08:02 26870278                   /home/karinca/.m2/repository/javax/activation/activation/1.1/activation-1.1.jar
+7f1c48042000-7f1c48044000 r--s 00004000 08:02 26870276                   /home/karinca/.m2/repository/javax/xml/stream/stax-api/1.0-2/stax-api-1.0-2.jar
+7f1c48044000-7f1c48047000 r--s 00017000 08:02 26870274                   /home/karinca/.m2/repository/javax/xml/bind/jaxb-api/2.2.2/jaxb-api-2.2.2.jar
+7f1c48047000-7f1c4805a000 r--s 000c7000 08:02 26870272                   /home/karinca/.m2/repository/com/sun/xml/bind/jaxb-impl/2.2.3-1/jaxb-impl-2.2.3-1.jar
+7f1c4805a000-7f1c4805c000 r--s 0000f000 08:02 26870270                   /home/karinca/.m2/repository/org/codehaus/jettison/jettison/1.1/jettison-1.1.jar
+7f1c4805c000-7f1c48060000 r--s 00025000 08:02 26870268                   /home/karinca/.m2/repository/com/sun/jersey/jersey-json/1.19.1/jersey-json-1.19.1.jar
+7f1c48060000-7f1c48062000 r--s 0000a000 08:02 26870266                   /home/karinca/.m2/repository/javax/ws/rs/jsr311-api/1.1.1/jsr311-api-1.1.1.jar
+7f1c48062000-7f1c4806c000 r--s 00061000 08:02 26870264                   /home/karinca/.m2/repository/com/sun/jersey/jersey-core/1.19.1/jersey-core-1.19.1.jar
+7f1c4806c000-7f1c4807c000 r--s 0009d000 08:02 26870262                   /home/karinca/.m2/repository/com/sun/jersey/jersey-server/1.19.1/jersey-server-1.19.1.jar
+7f1c4807c000-7f1c480a4000 r--s 001cf000 08:02 28837464                   /home/karinca/.m2/repository/com/google/guava/guava-jdk5/17.0/guava-jdk5-17.0.jar
+7f1c480a4000-7f1c480a5000 r--s 00001000 08:02 28837462                   /home/karinca/.m2/repository/com/google/http-client/google-http-client-jackson2/1.22.0/google-http-client-jackson2-1.22.0.jar
+7f1c480a5000-7f1c480a8000 r--s 00006000 08:02 28837474                   /home/karinca/.m2/repository/com/google/code/findbugs/jsr305/1.3.9/jsr305-1.3.9.jar
+7f1c480a8000-7f1c480b1000 r--s 0004f000 08:02 28837460                   /home/karinca/.m2/repository/com/google/http-client/google-http-client/1.22.0/google-http-client-1.22.0.jar
+7f1c480b1000-7f1c480b3000 r--s 0000d000 08:02 28837458                   /home/karinca/.m2/repository/com/google/oauth-client/google-oauth-client/1.22.0/google-oauth-client-1.22.0.jar
+7f1c480b3000-7f1c480b8000 r--s 0002c000 08:02 28837456                   /home/karinca/.m2/repository/com/google/api-client/google-api-client/1.22.0/google-api-client-1.22.0.jar
+7f1c480b8000-7f1c480c1000 r--s 00047000 08:02 28837454                   /home/karinca/.m2/repository/com/google/apis/google-api-services-youtube/v3-rev183-1.22.0/google-api-services-youtube-v3-rev183-1.22.0.jar
+7f1c480c1000-7f1c480ce000 r--s 00073000 08:02 28837452                   /home/karinca/.m2/repository/com/restfb/restfb/1.43.0/restfb-1.43.0.jar
+7f1c480ce000-7f1c480d3000 r--s 00034000 08:02 26870288                   /home/karinca/.m2/repository/com/google/code/gson/gson/2.8.0/gson-2.8.0.jar
+7f1c480d3000-7f1c480d4000 r--s 00005000 08:02 26870996                   /home/karinca/.m2/repository/com/googlecode/json-simple/json-simple/1.1.1/json-simple-1.1.1.jar
+7f1c480d4000-7f1c480d5000 r--s 00004000 08:02 6160808                    /home/karinca/.m2/repository/io/antmedia/api/periscope/PeriscopeAPI/1.0.0/PeriscopeAPI-1.0.0.jar
+7f1c480d5000-7f1c480d6000 r--s 00bdb000 08:02 26870316                   /home/karinca/.m2/repository/org/bytedeco/javacpp-presets/ffmpeg/3.2.1-1.3/ffmpeg-3.2.1-1.3-windows-x86_64.jar
+7f1c480d6000-7f1c480d8000 r--s 00b6f000 08:02 26870314                   /home/karinca/.m2/repository/org/bytedeco/javacpp-presets/ffmpeg/3.2.1-1.3/ffmpeg-3.2.1-1.3-windows-x86.jar
+7f1c480d8000-7f1c480d9000 r--s 00a78000 08:02 26870312                   /home/karinca/.m2/repository/org/bytedeco/javacpp-presets/ffmpeg/3.2.1-1.3/ffmpeg-3.2.1-1.3-macosx-x86_64.jar
+7f1c480d9000-7f1c480db000 r--s 00cf7000 08:02 26870310                   /home/karinca/.m2/repository/org/bytedeco/javacpp-presets/ffmpeg/3.2.1-1.3/ffmpeg-3.2.1-1.3-linux-ppc64le.jar
+7f1c480db000-7f1c480dd000 r--s 00a12000 08:02 26870308                   /home/karinca/.m2/repository/org/bytedeco/javacpp-presets/ffmpeg/3.2.1-1.3/ffmpeg-3.2.1-1.3-linux-armhf.jar
+7f1c480dd000-7f1c480df000 r--s 00b72000 08:02 26870306                   /home/karinca/.m2/repository/org/bytedeco/javacpp-presets/ffmpeg/3.2.1-1.3/ffmpeg-3.2.1-1.3-linux-x86_64.jar
+7f1c480df000-7f1c480e1000 r--s 00aa6000 08:02 26870304                   /home/karinca/.m2/repository/org/bytedeco/javacpp-presets/ffmpeg/3.2.1-1.3/ffmpeg-3.2.1-1.3-linux-x86.jar
+7f1c480e1000-7f1c480e3000 r--s 00c3e000 08:02 26870302                   /home/karinca/.m2/repository/org/bytedeco/javacpp-presets/ffmpeg/3.2.1-1.3/ffmpeg-3.2.1-1.3-android-x86.jar
+7f1c480e3000-7f1c480e4000 r--s 00b15000 08:02 26870300                   /home/karinca/.m2/repository/org/bytedeco/javacpp-presets/ffmpeg/3.2.1-1.3/ffmpeg-3.2.1-1.3-android-arm.jar
+7f1c480e4000-7f1c480e9000 r--s 00048000 08:02 26870298                   /home/karinca/.m2/repository/org/bytedeco/javacpp/1.3/javacpp-1.3.jar
+7f1c480e9000-7f1c480f0000 r--s 00033000 08:02 26870296                   /home/karinca/.m2/repository/org/bytedeco/javacpp-presets/ffmpeg/3.2.1-1.3/ffmpeg-3.2.1-1.3.jar
+7f1c480f0000-7f1c480f1000 r--s 00000000 08:02 26870294                   /home/karinca/.m2/repository/org/bytedeco/javacpp-presets/ffmpeg-platform/3.2.1-1.3/ffmpeg-platform-3.2.1-1.3.jar
+7f1c480f1000-7f1c480f2000 r--s 00001000 08:02 28837450                   /home/karinca/.m2/repository/com/thetransactioncompany/java-property-utils/1.9.1/java-property-utils-1.9.1.jar
+7f1c480f2000-7f1c480f3000 r--s 00007000 08:02 28837448                   /home/karinca/.m2/repository/com/thetransactioncompany/cors-filter/2.5/cors-filter-2.5.jar
+7f1c480f3000-7f1c480f8000 r--s 00036000 08:02 28837472                   /home/karinca/.m2/repository/org/apache/tomcat/embed/tomcat-embed-el/8.5.11/tomcat-embed-el-8.5.11.jar
+7f1c480f8000-7f1c4810b000 r--s 00236000 08:02 28837470                   /home/karinca/.m2/repository/org/eclipse/jdt/core/compiler/ecj/4.5.1/ecj-4.5.1.jar
+7f1c4810b000-7f1c48114000 r--s 00095000 08:02 28837468                   /home/karinca/.m2/repository/org/apache/tomcat/embed/tomcat-embed-jasper/8.5.11/tomcat-embed-jasper-8.5.11.jar
+7f1c48114000-7f1c4813d000 r--s 002b8000 08:02 28837466                   /home/karinca/.m2/repository/org/apache/tomcat/embed/tomcat-embed-core/8.5.11/tomcat-embed-core-8.5.11.jar
+7f1c4813d000-7f1c4813e000 r--s 00004000 08:02 28837444                   /home/karinca/.m2/repository/org/red5/red5-service/1.0.8-RELEASE/red5-service-1.0.8-RELEASE.jar
+7f1c4813e000-7f1c48144000 r--s 0003f000 08:02 28708838                   /home/karinca/.m2/repository/org/red5/red5-server/1.0.8-RELEASE/red5-server-1.0.8-RELEASE.jar
+7f1c48144000-7f1c48146000 r--s 0000c000 08:02 28837442                   /home/karinca/.m2/repository/org/red5/tomcatplugin/1.18/tomcatplugin-1.18.jar
+7f1c48146000-7f1c48150000 r--s 00098000 08:02 26871033                   /home/karinca/.m2/repository/org/quartz-scheduler/quartz/2.2.3/quartz-2.2.3.jar
+7f1c48150000-7f1c48152000 r--s 00009000 08:02 26871006                   /home/karinca/.m2/repository/org/apache/mina/mina-integration-beans/2.0.16/mina-integration-beans-2.0.16.jar
+7f1c48152000-7f1c48153000 r--s 00005000 08:02 26740728                   /home/karinca/.m2/repository/commons-daemon/commons-daemon/1.0.15/commons-daemon-1.0.15.jar
+7f1c48153000-7f1c48155000 r--s 00004000 08:02 2362015                    /home/karinca/.m2/repository/io/antmedia/ant-media-server-service/1.2.0-SNAPSHOT/ant-media-server-service-1.2.0-SNAPSHOT.jar
+7f1c48155000-7f1c48168000 r--s 000f1000 08:02 26871025                   /home/karinca/.m2/repository/com/googlecode/mp4parser/isoparser/1.1.21/isoparser-1.1.21.jar
+7f1c48168000-7f1c48183000 r--s 0012e000 08:02 26740722                   /home/karinca/.m2/repository/net/sf/ehcache/ehcache-core/2.6.11/ehcache-core-2.6.11.jar
+7f1c48183000-7f1c48187000 r--s 00041000 08:02 26871059                   /home/karinca/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.8.1/jackson-core-2.8.1.jar
+7f1c48187000-7f1c4818b000 r--s 0002f000 08:02 26740141                   /home/karinca/.m2/repository/commons-io/commons-io/2.5/commons-io-2.5.jar
+7f1c4818b000-7f1c4818e000 r--s 00033000 08:02 26740714                   /home/karinca/.m2/repository/com/googlecode/juniversalchardet/juniversalchardet/1.0.3/juniversalchardet-1.0.3.jar
+7f1c4818e000-7f1c4818f000 r--s 00001000 08:02 26871056                   /home/karinca/.m2/repository/com/rometools/rome-utils/1.5.1/rome-utils-1.5.1.jar
+7f1c4818f000-7f1c48193000 r--s 00038000 08:02 26871091                   /home/karinca/.m2/repository/com/rometools/rome/1.5.1/rome-1.5.1.jar
+7f1c48193000-7f1c48196000 r--s 00014000 08:02 26740712                   /home/karinca/.m2/repository/de/l3s/boilerpipe/boilerpipe/1.1.0/boilerpipe-1.1.0.jar
+7f1c48196000-7f1c48198000 r--s 0001b000 08:02 26740710                   /home/karinca/.m2/repository/com/adobe/xmp/xmpcore/5.1.2/xmpcore-5.1.2.jar
+7f1c48198000-7f1c4819e000 r--s 00057000 08:02 26871089                   /home/karinca/.m2/repository/com/drewnoakes/metadata-extractor/2.9.1/metadata-extractor-2.9.1.jar
+7f1c4819e000-7f1c481a0000 r--s 0000c000 08:02 26740706                   /home/karinca/.m2/repository/org/ow2/asm/asm/5.0.4/asm-5.0.4.jar
+7f1c481a0000-7f1c481a2000 r--s 00015000 08:02 26740704                   /home/karinca/.m2/repository/org/ccil/cowan/tagsoup/tagsoup/1.2.1/tagsoup-1.2.1.jar
+7f1c481a2000-7f1c481a4000 r--s 0000b000 08:02 26871013                   /home/karinca/.m2/repository/org/apache/pdfbox/jempbox/1.8.12/jempbox-1.8.12.jar
+7f1c481a4000-7f1c481a9000 r--s 00033000 08:02 26871047                   /home/karinca/.m2/repository/org/apache/pdfbox/pdfbox-debugger/2.0.3/pdfbox-debugger-2.0.3.jar
+7f1c481a9000-7f1c481ab000 r--s 00010000 08:02 26871011                   /home/karinca/.m2/repository/org/apache/pdfbox/pdfbox-tools/2.0.3/pdfbox-tools-2.0.3.jar
+7f1c481ab000-7f1c481b4000 r--s 00064000 08:02 26871043                   /home/karinca/.m2/repository/org/apache/commons/commons-compress/1.12/commons-compress-1.12.jar
+7f1c481b4000-7f1c481bb000 r--s 00044000 08:02 26740700                   /home/karinca/.m2/repository/org/apache/james/apache-mime4j-dom/0.7.2/apache-mime4j-dom-0.7.2.jar
+7f1c481bb000-7f1c481be000 r--s 00015000 08:02 26740698                   /home/karinca/.m2/repository/org/apache/james/apache-mime4j-core/0.7.2/apache-mime4j-core-0.7.2.jar
+7f1c481be000-7f1c481c0000 r--s 00010000 08:02 26871005                   /home/karinca/.m2/repository/org/tallison/jmatio/1.2/jmatio-1.2.jar
+7f1c481c0000-7f1c481cd000 r--s 000c9000 08:02 26871040                   /home/karinca/.m2/repository/org/apache/tika/tika-parsers/1.14/tika-parsers-1.14.jar
+7f1c481cd000-7f1c481d6000 r--s 0008f000 08:02 26871036                   /home/karinca/.m2/repository/org/apache/tika/tika-core/1.14/tika-core-1.14.jar
+7f1c481d6000-7f1c481dc000 r--s 0004c000 08:02 26871069                   /home/karinca/.m2/repository/org/red5/red5-io/1.0.9-M2/red5-io-1.0.9-M2.jar
+7f1c481dc000-7f1c481e0000 r--s 00016000 08:02 28708802                   /home/karinca/.m2/repository/com/thoughtworks/proxytoys/proxytoys/1.0/proxytoys-1.0.jar
+7f1c481e0000-7f1c481e6000 r--s 0004a000 08:02 28708798                   /home/karinca/.m2/repository/cglib/cglib-nodep/2.2.2/cglib-nodep-2.2.2.jar
+7f1c481e6000-7f1c48204000 r--s 0017b000 08:02 28708796                   /home/karinca/.m2/repository/org/mongodb/mongo-java-driver/3.4.0/mongo-java-driver-3.4.0.jar
+7f1c48204000-7f1c4820d000 r--s 0005c000 08:02 28708794                   /home/karinca/.m2/repository/org/mongodb/morphia/morphia/1.3.1/morphia-1.3.1.jar
+7f1c4820d000-7f1c48258000 r--s 002ff000 08:02 28835883                   /home/karinca/.m2/repository/org/bouncycastle/bcprov-jdk15on/1.56/bcprov-jdk15on-1.56.jar
+7f1c48258000-7f1c4825f000 r--s 0003f000 08:02 26740688                   /home/karinca/.m2/repository/commons-codec/commons-codec/1.10/commons-codec-1.10.jar
+7f1c4825f000-7f1c4826c000 r--s 00083000 08:02 26871032                   /home/karinca/.m2/repository/commons-collections/commons-collections/3.2.2/commons-collections-3.2.2.jar
+7f1c4826c000-7f1c4826e000 r--s 0000e000 08:02 26740756                   /home/karinca/.m2/repository/commons-logging/commons-logging/1.2/commons-logging-1.2.jar
+7f1c4826e000-7f1c48273000 r--s 00038000 08:02 26871031                   /home/karinca/.m2/repository/commons-beanutils/commons-beanutils/1.9.3/commons-beanutils-1.9.3.jar
+7f1c48273000-7f1c4827b000 r--s 0006e000 08:02 26871027                   /home/karinca/.m2/repository/org/apache/commons/commons-lang3/3.5/commons-lang3-3.5.jar
+7f1c4827b000-7f1c48283000 r--s 00048000 08:02 26871026                   /home/karinca/.m2/repository/org/apache/httpcomponents/httpcore/4.4.6/httpcore-4.4.6.jar
+7f1c48283000-7f1c48290000 r--s 000aa000 08:02 26871023                   /home/karinca/.m2/repository/org/apache/httpcomponents/httpclient/4.5.3/httpclient-4.5.3.jar
+7f1c48290000-7f1c4829d000 r--s 00093000 08:02 26871077                   /home/karinca/.m2/repository/org/apache/mina/mina-core/2.0.16/mina-core-2.0.16.jar
+7f1c4829d000-7f1c4829f000 r--s 00005000 08:02 28708790                   /home/karinca/.m2/repository/com/amazonaws/jmespath-java/1.11.154/jmespath-java-1.11.154.jar
+7f1c4829f000-7f1c482af000 r--s 00088000 08:02 28708788                   /home/karinca/.m2/repository/joda-time/joda-time/2.8.1/joda-time-2.8.1.jar
+7f1c482af000-7f1c482c0000 r--s 0010d000 08:02 28708782                   /home/karinca/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.6.6/jackson-databind-2.6.6.jar
+7f1c482c0000-7f1c482c3000 ---p 00000000 00:00 0 
+7f1c482c3000-7f1c483c1000 rw-p 00000000 00:00 0 
+7f1c483c1000-7f1c483c4000 ---p 00000000 00:00 0 
+7f1c483c4000-7f1c484c2000 rw-p 00000000 00:00 0 
+7f1c484c2000-7f1c484c3000 ---p 00000000 00:00 0 
+7f1c484c3000-7f1c485c3000 rw-p 00000000 00:00 0 
+7f1c485c3000-7f1c485c6000 ---p 00000000 00:00 0 
+7f1c485c6000-7f1c486c4000 rw-p 00000000 00:00 0 
+7f1c486c4000-7f1c486c7000 ---p 00000000 00:00 0 
+7f1c486c7000-7f1c487c5000 rw-p 00000000 00:00 0 
+7f1c487c5000-7f1c487c8000 ---p 00000000 00:00 0 
+7f1c487c8000-7f1c488c6000 rw-p 00000000 00:00 0 
+7f1c488c6000-7f1c488c9000 ---p 00000000 00:00 0 
+7f1c488c9000-7f1c489c7000 rw-p 00000000 00:00 0 
+7f1c489c7000-7f1c489ca000 ---p 00000000 00:00 0 
+7f1c489ca000-7f1c48ac8000 rw-p 00000000 00:00 0 
+7f1c48ac8000-7f1c48eff000 r--p 00000000 08:02 13381382                   /usr/lib/locale/locale-archive
+7f1c48eff000-7f1c48f02000 ---p 00000000 00:00 0 
+7f1c48f02000-7f1c49000000 rw-p 00000000 00:00 0 
+7f1c49000000-7f1c49bb0000 rwxp 00000000 00:00 0 
+7f1c49bb0000-7f1c58000000 ---p 00000000 00:00 0 
+7f1c58000000-7f1c59937000 rw-p 00000000 00:00 0 
+7f1c59937000-7f1c5c000000 ---p 00000000 00:00 0 
+7f1c5c000000-7f1c5c001000 r--s 0000b000 08:02 28708786                   /home/karinca/.m2/repository/com/fasterxml/jackson/dataformat/jackson-dataformat-cbor/2.6.6/jackson-dataformat-cbor-2.6.6.jar
+7f1c5c001000-7f1c5c004000 r--s 00009000 08:02 28708784                   /home/karinca/.m2/repository/com/fasterxml/jackson/core/jackson-annotations/2.6.0/jackson-annotations-2.6.0.jar
+7f1c5c004000-7f1c5c00e000 r--s 00081000 08:02 28708780                   /home/karinca/.m2/repository/software/amazon/ion/ion-java/1.0.2/ion-java-1.0.2.jar
+7f1c5c00e000-7f1c5c023000 r--s 000ba000 08:02 28708778                   /home/karinca/.m2/repository/com/amazonaws/aws-java-sdk-core/1.11.154/aws-java-sdk-core-1.11.154.jar
+7f1c5c023000-7f1c5c02c000 r--s 0005a000 08:02 28708776                   /home/karinca/.m2/repository/com/amazonaws/aws-java-sdk-kms/1.11.154/aws-java-sdk-kms-1.11.154.jar
+7f1c5c02c000-7f1c5c03e000 r--s 000ab000 08:02 28708774                   /home/karinca/.m2/repository/com/amazonaws/aws-java-sdk-s3/1.11.154/aws-java-sdk-s3-1.11.154.jar
+7f1c5c03e000-7f1c5c049000 r--s 0008c000 08:02 6291806                    /home/karinca/.m2/repository/org/red5/red5-server-common/1.2.0-SNAPSHOT/red5-server-common-1.2.0-SNAPSHOT.jar
+7f1c5c049000-7f1c5c058000 r--s 00084000 08:02 26871010                   /home/karinca/.m2/repository/org/springframework/spring-test/4.3.6.RELEASE/spring-test-4.3.6.RELEASE.jar
+7f1c5c058000-7f1c5c05a000 r--s 00009000 08:02 28708394                   /home/karinca/.m2/repository/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar
+7f1c5c05a000-7f1c5c062000 r--s 00045000 08:02 28708800                   /home/karinca/.m2/repository/junit/junit/4.12/junit-4.12.jar
+7f1c5c062000-7f1c5c074000 r--s 000b6000 08:02 26871020                   /home/karinca/.m2/repository/org/springframework/spring-web/4.3.6.RELEASE/spring-web-4.3.6.RELEASE.jar
+7f1c5c074000-7f1c5c085000 r--s 000cf000 08:02 26871019                   /home/karinca/.m2/repository/org/springframework/spring-webmvc/4.3.6.RELEASE/spring-webmvc-4.3.6.RELEASE.jar
+7f1c5c085000-7f1c5c08a000 r--s 00029000 08:02 26871007                   /home/karinca/.m2/repository/org/springframework/spring-context-support/4.3.6.RELEASE/spring-context-support-4.3.6.RELEASE.jar
+7f1c5c08a000-7f1c5c08f000 r--s 0003c000 08:02 26871017                   /home/karinca/.m2/repository/org/springframework/spring-expression/4.3.6.RELEASE/spring-expression-4.3.6.RELEASE.jar
+7f1c5c08f000-7f1c5c09d000 r--s 000ad000 08:02 26871003                   /home/karinca/.m2/repository/org/springframework/spring-beans/4.3.6.RELEASE/spring-beans-4.3.6.RELEASE.jar
+7f1c5c09d000-7f1c5c0a6000 r--s 00054000 08:02 26871054                   /home/karinca/.m2/repository/org/springframework/spring-aop/4.3.6.RELEASE/spring-aop-4.3.6.RELEASE.jar
+7f1c5c0a6000-7f1c5c0bf000 r--s 000fd000 08:02 26871048                   /home/karinca/.m2/repository/org/springframework/spring-context/4.3.6.RELEASE/spring-context-4.3.6.RELEASE.jar
+7f1c5c0bf000-7f1c5c0d5000 r--s 000fb000 08:02 26871015                   /home/karinca/.m2/repository/org/springframework/spring-core/4.3.6.RELEASE/spring-core-4.3.6.RELEASE.jar
+7f1c5c0d5000-7f1c5c0db000 r--s 00045000 08:02 26873038                   /home/karinca/.m2/repository/ch/qos/logback/logback-classic/1.1.9/logback-classic-1.1.9.jar
+7f1c5c0db000-7f1c5c0e6000 r--s 00069000 08:02 26873036                   /home/karinca/.m2/repository/ch/qos/logback/logback-core/1.1.9/logback-core-1.1.9.jar
+7f1c5c0e6000-7f1c5c0ea000 r--s 00017000 08:02 26871018                   /home/karinca/.m2/repository/ch/qos/logback/logback-access/1.1.9/logback-access-1.1.9.jar
+7f1c5c0ea000-7f1c5c0ec000 r--s 00004000 08:02 26871039                   /home/karinca/.m2/repository/org/slf4j/log4j-over-slf4j/1.7.22/log4j-over-slf4j-1.7.22.jar
+7f1c5c0ec000-7f1c5c0ee000 r--s 00000000 08:02 26871073                   /home/karinca/.m2/repository/org/slf4j/jul-to-slf4j/1.7.22/jul-to-slf4j-1.7.22.jar
+7f1c5c0ee000-7f1c5c0f0000 r--s 00003000 08:02 26871001                   /home/karinca/.m2/repository/org/slf4j/jcl-over-slf4j/1.7.22/jcl-over-slf4j-1.7.22.jar
+7f1c5c0f0000-7f1c5c0f3000 ---p 00000000 00:00 0 
+7f1c5c0f3000-7f1c5c1f1000 rw-p 00000000 00:00 0 
+7f1c5c1f1000-7f1c5c1f2000 ---p 00000000 00:00 0 
+7f1c5c1f2000-7f1c5d250000 rw-p 00000000 00:00 0 
+7f1c5d250000-7f1c5d429000 r--s 03d40000 08:02 26352027                   /home/karinca/space/jdk1.8.0_131/jre/lib/rt.jar
+7f1c5d429000-7f1c5e077000 rw-p 00000000 00:00 0 
+7f1c5e077000-7f1c5e078000 ---p 00000000 00:00 0 
+7f1c5e078000-7f1c5e178000 rw-p 00000000 00:00 0 
+7f1c5e178000-7f1c5e179000 ---p 00000000 00:00 0 
+7f1c5e179000-7f1c5e279000 rw-p 00000000 00:00 0 
+7f1c5e279000-7f1c5e27a000 ---p 00000000 00:00 0 
+7f1c5e27a000-7f1c5e37a000 rw-p 00000000 00:00 0 
+7f1c5e37a000-7f1c5e37b000 ---p 00000000 00:00 0 
+7f1c5e37b000-7f1c5e492000 rw-p 00000000 00:00 0 
+7f1c5e492000-7f1c5e70b000 ---p 00000000 00:00 0 
+7f1c5e70b000-7f1c5e722000 rw-p 00000000 00:00 0 
+7f1c5e722000-7f1c5e99b000 ---p 00000000 00:00 0 
+7f1c5e99b000-7f1c5eae3000 rw-p 00000000 00:00 0 
+7f1c5eae3000-7f1c5eb13000 rw-p 00000000 00:00 0 
+7f1c5eb13000-7f1c5eea4000 ---p 00000000 00:00 0 
+7f1c5eea4000-7f1c5eebe000 r-xp 00000000 08:02 26352232                   /home/karinca/space/jdk1.8.0_131/jre/lib/amd64/libzip.so
+7f1c5eebe000-7f1c5f0be000 ---p 0001a000 08:02 26352232                   /home/karinca/space/jdk1.8.0_131/jre/lib/amd64/libzip.so
+7f1c5f0be000-7f1c5f0bf000 rw-p 0001a000 08:02 26352232                   /home/karinca/space/jdk1.8.0_131/jre/lib/amd64/libzip.so
+7f1c5f0bf000-7f1c5f0ca000 r-xp 00000000 08:02 12321056                   /lib/x86_64-linux-gnu/libnss_files-2.23.so
+7f1c5f0ca000-7f1c5f2c9000 ---p 0000b000 08:02 12321056                   /lib/x86_64-linux-gnu/libnss_files-2.23.so
+7f1c5f2c9000-7f1c5f2ca000 r--p 0000a000 08:02 12321056                   /lib/x86_64-linux-gnu/libnss_files-2.23.so
+7f1c5f2ca000-7f1c5f2cb000 rw-p 0000b000 08:02 12321056                   /lib/x86_64-linux-gnu/libnss_files-2.23.so
+7f1c5f2cb000-7f1c5f2d1000 rw-p 00000000 00:00 0 
+7f1c5f2d1000-7f1c5f2dc000 r-xp 00000000 08:02 12321059                   /lib/x86_64-linux-gnu/libnss_nis-2.23.so
+7f1c5f2dc000-7f1c5f4db000 ---p 0000b000 08:02 12321059                   /lib/x86_64-linux-gnu/libnss_nis-2.23.so
+7f1c5f4db000-7f1c5f4dc000 r--p 0000a000 08:02 12321059                   /lib/x86_64-linux-gnu/libnss_nis-2.23.so
+7f1c5f4dc000-7f1c5f4dd000 rw-p 0000b000 08:02 12321059                   /lib/x86_64-linux-gnu/libnss_nis-2.23.so
+7f1c5f4dd000-7f1c5f4f3000 r-xp 00000000 08:02 12321044                   /lib/x86_64-linux-gnu/libnsl-2.23.so
+7f1c5f4f3000-7f1c5f6f2000 ---p 00016000 08:02 12321044                   /lib/x86_64-linux-gnu/libnsl-2.23.so
+7f1c5f6f2000-7f1c5f6f3000 r--p 00015000 08:02 12321044                   /lib/x86_64-linux-gnu/libnsl-2.23.so
+7f1c5f6f3000-7f1c5f6f4000 rw-p 00016000 08:02 12321044                   /lib/x86_64-linux-gnu/libnsl-2.23.so
+7f1c5f6f4000-7f1c5f6f6000 rw-p 00000000 00:00 0 
+7f1c5f6f6000-7f1c5f6fe000 r-xp 00000000 08:02 12321065                   /lib/x86_64-linux-gnu/libnss_compat-2.23.so
+7f1c5f6fe000-7f1c5f8fd000 ---p 00008000 08:02 12321065                   /lib/x86_64-linux-gnu/libnss_compat-2.23.so
+7f1c5f8fd000-7f1c5f8fe000 r--p 00007000 08:02 12321065                   /lib/x86_64-linux-gnu/libnss_compat-2.23.so
+7f1c5f8fe000-7f1c5f8ff000 rw-p 00008000 08:02 12321065                   /lib/x86_64-linux-gnu/libnss_compat-2.23.so
+7f1c5f8ff000-7f1c5f92a000 r-xp 00000000 08:02 26352226                   /home/karinca/space/jdk1.8.0_131/jre/lib/amd64/libjava.so
+7f1c5f92a000-7f1c5fb29000 ---p 0002b000 08:02 26352226                   /home/karinca/space/jdk1.8.0_131/jre/lib/amd64/libjava.so
+7f1c5fb29000-7f1c5fb2b000 rw-p 0002a000 08:02 26352226                   /home/karinca/space/jdk1.8.0_131/jre/lib/amd64/libjava.so
+7f1c5fb2b000-7f1c5fb38000 r-xp 00000000 08:02 26352231                   /home/karinca/space/jdk1.8.0_131/jre/lib/amd64/libverify.so
+7f1c5fb38000-7f1c5fd37000 ---p 0000d000 08:02 26352231                   /home/karinca/space/jdk1.8.0_131/jre/lib/amd64/libverify.so
+7f1c5fd37000-7f1c5fd39000 rw-p 0000c000 08:02 26352231                   /home/karinca/space/jdk1.8.0_131/jre/lib/amd64/libverify.so
+7f1c5fd39000-7f1c5fd40000 r-xp 00000000 08:02 12321061                   /lib/x86_64-linux-gnu/librt-2.23.so
+7f1c5fd40000-7f1c5ff3f000 ---p 00007000 08:02 12321061                   /lib/x86_64-linux-gnu/librt-2.23.so
+7f1c5ff3f000-7f1c5ff40000 r--p 00006000 08:02 12321061                   /lib/x86_64-linux-gnu/librt-2.23.so
+7f1c5ff40000-7f1c5ff41000 rw-p 00007000 08:02 12321061                   /lib/x86_64-linux-gnu/librt-2.23.so
+7f1c5ff41000-7f1c60049000 r-xp 00000000 08:02 12321070                   /lib/x86_64-linux-gnu/libm-2.23.so
+7f1c60049000-7f1c60248000 ---p 00108000 08:02 12321070                   /lib/x86_64-linux-gnu/libm-2.23.so
+7f1c60248000-7f1c60249000 r--p 00107000 08:02 12321070                   /lib/x86_64-linux-gnu/libm-2.23.so
+7f1c60249000-7f1c6024a000 rw-p 00108000 08:02 12321070                   /lib/x86_64-linux-gnu/libm-2.23.so
+7f1c6024a000-7f1c60f19000 r-xp 00000000 08:02 26352209                   /home/karinca/space/jdk1.8.0_131/jre/lib/amd64/server/libjvm.so
+7f1c60f19000-7f1c61119000 ---p 00ccf000 08:02 26352209                   /home/karinca/space/jdk1.8.0_131/jre/lib/amd64/server/libjvm.so
+7f1c61119000-7f1c611f2000 rw-p 00ccf000 08:02 26352209                   /home/karinca/space/jdk1.8.0_131/jre/lib/amd64/server/libjvm.so
+7f1c611f2000-7f1c6123d000 rw-p 00000000 00:00 0 
+7f1c6123d000-7f1c613fd000 r-xp 00000000 08:02 12321075                   /lib/x86_64-linux-gnu/libc-2.23.so
+7f1c613fd000-7f1c615fd000 ---p 001c0000 08:02 12321075                   /lib/x86_64-linux-gnu/libc-2.23.so
+7f1c615fd000-7f1c61601000 r--p 001c0000 08:02 12321075                   /lib/x86_64-linux-gnu/libc-2.23.so
+7f1c61601000-7f1c61603000 rw-p 001c4000 08:02 12321075                   /lib/x86_64-linux-gnu/libc-2.23.so
+7f1c61603000-7f1c61607000 rw-p 00000000 00:00 0 
+7f1c61607000-7f1c6160a000 r-xp 00000000 08:02 12321064                   /lib/x86_64-linux-gnu/libdl-2.23.so
+7f1c6160a000-7f1c61809000 ---p 00003000 08:02 12321064                   /lib/x86_64-linux-gnu/libdl-2.23.so
+7f1c61809000-7f1c6180a000 r--p 00002000 08:02 12321064                   /lib/x86_64-linux-gnu/libdl-2.23.so
+7f1c6180a000-7f1c6180b000 rw-p 00003000 08:02 12321064                   /lib/x86_64-linux-gnu/libdl-2.23.so
+7f1c6180b000-7f1c61820000 r-xp 00000000 08:02 26352204                   /home/karinca/space/jdk1.8.0_131/jre/lib/amd64/jli/libjli.so
+7f1c61820000-7f1c61a20000 ---p 00015000 08:02 26352204                   /home/karinca/space/jdk1.8.0_131/jre/lib/amd64/jli/libjli.so
+7f1c61a20000-7f1c61a21000 rw-p 00015000 08:02 26352204                   /home/karinca/space/jdk1.8.0_131/jre/lib/amd64/jli/libjli.so
+7f1c61a21000-7f1c61a39000 r-xp 00000000 08:02 12321058                   /lib/x86_64-linux-gnu/libpthread-2.23.so
+7f1c61a39000-7f1c61c38000 ---p 00018000 08:02 12321058                   /lib/x86_64-linux-gnu/libpthread-2.23.so
+7f1c61c38000-7f1c61c39000 r--p 00017000 08:02 12321058                   /lib/x86_64-linux-gnu/libpthread-2.23.so
+7f1c61c39000-7f1c61c3a000 rw-p 00018000 08:02 12321058                   /lib/x86_64-linux-gnu/libpthread-2.23.so
+7f1c61c3a000-7f1c61c3e000 rw-p 00000000 00:00 0 
+7f1c61c3e000-7f1c61c64000 r-xp 00000000 08:02 12321053                   /lib/x86_64-linux-gnu/ld-2.23.so
+7f1c61c64000-7f1c61c66000 r--s 00009000 08:02 26871035                   /home/karinca/.m2/repository/org/slf4j/slf4j-api/1.7.22/slf4j-api-1.7.22.jar
+7f1c61c66000-7f1c61c6b000 r--s 0002d000 08:02 28708828                   /home/karinca/.m2/repository/org/apache/tomcat/tomcat-util-scan/8.5.11/tomcat-util-scan-8.5.11.jar
+7f1c61c6b000-7f1c61c6e000 r--s 0001d000 08:02 28708826                   /home/karinca/.m2/repository/org/apache/tomcat/tomcat-util/8.5.11/tomcat-util-8.5.11.jar
+7f1c61c6e000-7f1c61c70000 r--s 00005000 08:02 28708824                   /home/karinca/.m2/repository/org/apache/tomcat/tomcat-jaspic-api/8.5.11/tomcat-jaspic-api-8.5.11.jar
+7f1c61c70000-7f1c61c71000 r--s 00002000 08:02 28708822                   /home/karinca/.m2/repository/org/apache/tomcat/tomcat-api/8.5.11/tomcat-api-8.5.11.jar
+7f1c61c71000-7f1c61c73000 r--s 00003000 08:02 28708820                   /home/karinca/.m2/repository/org/apache/tomcat/tomcat-annotations-api/8.5.11/tomcat-annotations-api-8.5.11.jar
+7f1c61c73000-7f1c61c75000 r--s 00012000 08:02 28708818                   /home/karinca/.m2/repository/org/apache/tomcat/tomcat-el-api/8.5.11/tomcat-el-api-8.5.11.jar
+7f1c61c75000-7f1c61c78000 r--s 0000d000 08:02 28708816                   /home/karinca/.m2/repository/org/apache/tomcat/tomcat-jsp-api/8.5.11/tomcat-jsp-api-8.5.11.jar
+7f1c61c78000-7f1c61c8b000 r--s 00172000 08:02 28708814                   /home/karinca/.m2/repository/org/apache/tomcat/tomcat-catalina/8.5.11/tomcat-catalina-8.5.11.jar
+7f1c61c8b000-7f1c61cae000 r--s 00125000 08:02 2236209                    /home/karinca/git/Ant-Media-Server/src/main/resources/onvif-2016-03-16.jar
+7f1c61cae000-7f1c61d30000 rw-p 00000000 00:00 0 
+7f1c61d30000-7f1c61d33000 ---p 00000000 00:00 0 
+7f1c61d33000-7f1c61e35000 rw-p 00000000 00:00 0 
+7f1c61e35000-7f1c61e3a000 r--s 0003d000 08:02 28708812                   /home/karinca/.m2/repository/org/apache/tomcat/tomcat-tribes/8.5.11/tomcat-tribes-8.5.11.jar
+7f1c61e3a000-7f1c61e3c000 r--s 00009000 08:02 28708810                   /home/karinca/.m2/repository/org/apache/tomcat/tomcat-juli/8.5.11/tomcat-juli-8.5.11.jar
+7f1c61e3c000-7f1c61e3e000 r--s 00007000 08:02 28708808                   /home/karinca/.m2/repository/org/apache/tomcat/tomcat-jni/8.5.11/tomcat-jni-8.5.11.jar
+7f1c61e3e000-7f1c61e49000 r--s 000b0000 08:02 28708806                   /home/karinca/.m2/repository/org/apache/tomcat/tomcat-coyote/8.5.11/tomcat-coyote-8.5.11.jar
+7f1c61e49000-7f1c61e4b000 r--s 0001b000 08:02 28708804                   /home/karinca/.m2/repository/org/apache/tomcat/tomcat-catalina-ha/8.5.11/tomcat-catalina-ha-8.5.11.jar
+7f1c61e4b000-7f1c61e4f000 r--s 00038000 08:02 26871016                   /home/karinca/.m2/repository/org/apache/tomcat/tomcat-servlet-api/8.5.11/tomcat-servlet-api-8.5.11.jar
+7f1c61e4f000-7f1c61e54000 r--s 0002b000 08:02 29230449                   /home/karinca/.m2/repository/org/apache/maven/surefire/surefire-api/2.19.1/surefire-api-2.19.1.jar
+7f1c61e54000-7f1c61e56000 r--s 0000a000 08:02 29365597                   /home/karinca/.m2/repository/org/apache/maven/surefire/surefire-booter/2.19.1/surefire-booter-2.19.1.jar
+7f1c61e56000-7f1c61e57000 r--s 00003000 08:02 7079078                    /home/karinca/git/Ant-Media-Server/target/surefire/surefirebooter6495533634626183823.jar
+7f1c61e57000-7f1c61e5f000 rw-s 00000000 08:02 16262978                   /tmp/hsperfdata_karinca/32014
+7f1c61e5f000-7f1c61e60000 rw-p 00000000 00:00 0 
+7f1c61e60000-7f1c61e61000 r--p 00000000 00:00 0 
+7f1c61e61000-7f1c61e63000 rw-p 00000000 00:00 0 
+7f1c61e63000-7f1c61e64000 r--p 00025000 08:02 12321053                   /lib/x86_64-linux-gnu/ld-2.23.so
+7f1c61e64000-7f1c61e65000 rw-p 00026000 08:02 12321053                   /lib/x86_64-linux-gnu/ld-2.23.so
+7f1c61e65000-7f1c61e66000 rw-p 00000000 00:00 0 
+7ffda0403000-7ffda0425000 rw-p 00000000 00:00 0                          [stack]
+7ffda0593000-7ffda0595000 r--p 00000000 00:00 0                          [vvar]
+7ffda0595000-7ffda0597000 r-xp 00000000 00:00 0                          [vdso]
+ffffffffff600000-ffffffffff601000 r-xp 00000000 00:00 0                  [vsyscall]
+
+VM Arguments:
+java_command: /home/karinca/git/Ant-Media-Server/target/surefire/surefirebooter6495533634626183823.jar /home/karinca/git/Ant-Media-Server/target/surefire/surefire1512780758858288270tmp /home/karinca/git/Ant-Media-Server/target/surefire/surefire_03052723428391797575tmp
+java_class_path (initial): /home/karinca/git/Ant-Media-Server/target/surefire/surefirebooter6495533634626183823.jar
+Launcher Type: SUN_STANDARD
+
+Environment Variables:
+JAVA_HOME=/home/karinca/space/jdk1.8.0_131
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/home/karinca/space/node-v6.10.3-linux-x64/bin:/snap/bin:/usr/lib/jvm/java-8-oracle/bin:/usr/lib/jvm/java-8-oracle/db/bin:/usr/lib/jvm/java-8-oracle/jre/bin:/home/karinca/bin:/home/karinca/space/jdk1.8.0_131/bin
+SHELL=/bin/bash
+DISPLAY=:0
+
+Signal Handlers:
+SIGSEGV: [libjvm.so+0xac8af0], sa_mask[0]=11111111011111111101111111111110, sa_flags=SA_RESTART|SA_SIGINFO
+SIGBUS: [libjvm.so+0xac8af0], sa_mask[0]=11111111011111111101111111111110, sa_flags=SA_RESTART|SA_SIGINFO
+SIGFPE: [libjvm.so+0x921dd0], sa_mask[0]=11111111011111111101111111111110, sa_flags=SA_RESTART|SA_SIGINFO
+SIGPIPE: [libjvm.so+0x921dd0], sa_mask[0]=11111111011111111101111111111110, sa_flags=SA_RESTART|SA_SIGINFO
+SIGXFSZ: [libjvm.so+0x921dd0], sa_mask[0]=11111111011111111101111111111110, sa_flags=SA_RESTART|SA_SIGINFO
+SIGILL: [libjvm.so+0x921dd0], sa_mask[0]=11111111011111111101111111111110, sa_flags=SA_RESTART|SA_SIGINFO
+SIGUSR1: SIG_DFL, sa_mask[0]=00000000000000000000000000000000, sa_flags=none
+SIGUSR2: [libjvm.so+0x923610], sa_mask[0]=00100000000000000000000000000000, sa_flags=SA_RESTART|SA_SIGINFO
+SIGHUP: [libjvm.so+0x924a10], sa_mask[0]=11111111011111111101111111111110, sa_flags=SA_RESTART|SA_SIGINFO
+SIGINT: [libjvm.so+0x924a10], sa_mask[0]=11111111011111111101111111111110, sa_flags=SA_RESTART|SA_SIGINFO
+SIGTERM: [libjvm.so+0x924a10], sa_mask[0]=11111111011111111101111111111110, sa_flags=SA_RESTART|SA_SIGINFO
+SIGQUIT: [libjvm.so+0x924a10], sa_mask[0]=11111111011111111101111111111110, sa_flags=SA_RESTART|SA_SIGINFO
+
+
+---------------  S Y S T E M  ---------------
+
+OS:DISTRIB_ID=Ubuntu
+DISTRIB_RELEASE=16.04
+DISTRIB_CODENAME=xenial
+DISTRIB_DESCRIPTION="Ubuntu 16.04.3 LTS"
+
+uname:Linux 4.4.0-104-generic #127-Ubuntu SMP Mon Dec 11 12:16:42 UTC 2017 x86_64
+libc:glibc 2.23 NPTL 2.23 
+rlimit: STACK 8192k, CORE 0k, NPROC 31170, NOFILE 1048576, AS infinity
+load average:2,14 1,29 1,11
+
+/proc/meminfo:
+MemTotal:        8052856 kB
+MemFree:          196084 kB
+MemAvailable:     463800 kB
+Buffers:          104560 kB
+Cached:           247364 kB
+SwapCached:       214788 kB
+Active:          6102020 kB
+Inactive:        1182160 kB
+Active(anon):    5921172 kB
+Inactive(anon):  1061516 kB
+Active(file):     180848 kB
+Inactive(file):   120644 kB
+Unevictable:        1336 kB
+Mlocked:            1336 kB
+SwapTotal:       8265724 kB
+SwapFree:        6475996 kB
+Dirty:                 0 kB
+Writeback:             0 kB
+AnonPages:       6878668 kB
+Mapped:           235136 kB
+Shmem:             49880 kB
+Slab:             338112 kB
+SReclaimable:     275192 kB
+SUnreclaim:        62920 kB
+KernelStack:       17600 kB
+PageTables:        75436 kB
+NFS_Unstable:          0 kB
+Bounce:                0 kB
+WritebackTmp:          0 kB
+CommitLimit:    12292152 kB
+Committed_AS:   14989672 kB
+VmallocTotal:   34359738367 kB
+VmallocUsed:           0 kB
+VmallocChunk:          0 kB
+HardwareCorrupted:     0 kB
+AnonHugePages:   3123200 kB
+CmaTotal:              0 kB
+CmaFree:               0 kB
+HugePages_Total:       0
+HugePages_Free:        0
+HugePages_Rsvd:        0
+HugePages_Surp:        0
+Hugepagesize:       2048 kB
+DirectMap4k:      404244 kB
+DirectMap2M:     6813696 kB
+DirectMap1G:     1048576 kB
+
+
+CPU:total 4 (initial active 4) (2 cores per cpu, 2 threads per core) family 6 model 142 stepping 9, cmov, cx8, fxsr, mmx, sse, sse2, sse3, ssse3, sse4.1, sse4.2, popcnt, avx, avx2, aes, clmul, erms, 3dnowpref, lzcnt, ht, tsc, tscinvbit, bmi1, bmi2, adx
+
+/proc/cpuinfo:
+processor	: 0
+vendor_id	: GenuineIntel
+cpu family	: 6
+model		: 142
+model name	: Intel(R) Core(TM) i7-7500U CPU @ 2.70GHz
+stepping	: 9
+microcode	: 0x38
+cpu MHz		: 3351.992
+cache size	: 4096 KB
+physical id	: 0
+siblings	: 4
+core id		: 0
+cpu cores	: 2
+apicid		: 0
+initial apicid	: 0
+fpu		: yes
+fpu_exception	: yes
+cpuid level	: 22
+wp		: yes
+flags		: fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx pdpe1gb rdtscp lm constant_tsc art arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc aperfmperf eagerfpu pni pclmulqdq dtes64 monitor ds_cpl vmx est tm2 ssse3 sdbg fma cx16 xtpr pdcm pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand lahf_lm abm 3dnowprefetch epb intel_pt tpr_shadow vnmi flexpriority ept vpid fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid mpx rdseed adx smap clflushopt xsaveopt xsavec xgetbv1 dtherm ida arat pln pts hwp hwp_notify hwp_act_window hwp_epp
+bugs		:
+bogomips	: 5807.84
+clflush size	: 64
+cache_alignment	: 64
+address sizes	: 39 bits physical, 48 bits virtual
+power management:
+
+processor	: 1
+vendor_id	: GenuineIntel
+cpu family	: 6
+model		: 142
+model name	: Intel(R) Core(TM) i7-7500U CPU @ 2.70GHz
+stepping	: 9
+microcode	: 0x38
+cpu MHz		: 1976.304
+cache size	: 4096 KB
+physical id	: 0
+siblings	: 4
+core id		: 1
+cpu cores	: 2
+apicid		: 2
+initial apicid	: 2
+fpu		: yes
+fpu_exception	: yes
+cpuid level	: 22
+wp		: yes
+flags		: fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx pdpe1gb rdtscp lm constant_tsc art arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc aperfmperf eagerfpu pni pclmulqdq dtes64 monitor ds_cpl vmx est tm2 ssse3 sdbg fma cx16 xtpr pdcm pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand lahf_lm abm 3dnowprefetch epb intel_pt tpr_shadow vnmi flexpriority ept vpid fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid mpx rdseed adx smap clflushopt xsaveopt xsavec xgetbv1 dtherm ida arat pln pts hwp hwp_notify hwp_act_window hwp_epp
+bugs		:
+bogomips	: 5807.84
+clflush size	: 64
+cache_alignment	: 64
+address sizes	: 39 bits physical, 48 bits virtual
+power management:
+
+processor	: 2
+vendor_id	: GenuineIntel
+cpu family	: 6
+model		: 142
+model name	: Intel(R) Core(TM) i7-7500U CPU @ 2.70GHz
+stepping	: 9
+microcode	: 0x38
+cpu MHz		: 2807.562
+cache size	: 4096 KB
+physical id	: 0
+siblings	: 4
+core id		: 0
+cpu cores	: 2
+apicid		: 1
+initial apicid	: 1
+fpu		: yes
+fpu_exception	: yes
+cpuid level	: 22
+wp		: yes
+flags		: fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx pdpe1gb rdtscp lm constant_tsc art arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc aperfmperf eagerfpu pni pclmulqdq dtes64 monitor ds_cpl vmx est tm2 ssse3 sdbg fma cx16 xtpr pdcm pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand lahf_lm abm 3dnowprefetch epb intel_pt tpr_shadow vnmi flexpriority ept vpid fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid mpx rdseed adx smap clflushopt xsaveopt xsavec xgetbv1 dtherm ida arat pln pts hwp hwp_notify hwp_act_window hwp_epp
+bugs		:
+bogomips	: 5807.84
+clflush size	: 64
+cache_alignment	: 64
+address sizes	: 39 bits physical, 48 bits virtual
+power management:
+
+processor	: 3
+vendor_id	: GenuineIntel
+cpu family	: 6
+model		: 142
+model name	: Intel(R) Core(TM) i7-7500U CPU @ 2.70GHz
+stepping	: 9
+microcode	: 0x38
+cpu MHz		: 3331.601
+cache size	: 4096 KB
+physical id	: 0
+siblings	: 4
+core id		: 1
+cpu cores	: 2
+apicid		: 3
+initial apicid	: 3
+fpu		: yes
+fpu_exception	: yes
+cpuid level	: 22
+wp		: yes
+flags		: fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx pdpe1gb rdtscp lm constant_tsc art arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc aperfmperf eagerfpu pni pclmulqdq dtes64 monitor ds_cpl vmx est tm2 ssse3 sdbg fma cx16 xtpr pdcm pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand lahf_lm abm 3dnowprefetch epb intel_pt tpr_shadow vnmi flexpriority ept vpid fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid mpx rdseed adx smap clflushopt xsaveopt xsavec xgetbv1 dtherm ida arat pln pts hwp hwp_notify hwp_act_window hwp_epp
+bugs		:
+bogomips	: 5807.84
+clflush size	: 64
+cache_alignment	: 64
+address sizes	: 39 bits physical, 48 bits virtual
+power management:
+
+
+
+Memory: 4k page, physical 8052856k(196084k free), swap 8265724k(6475996k free)
+
+vm_info: Java HotSpot(TM) 64-Bit Server VM (25.131-b11) for linux-amd64 JRE (1.8.0_131-b11), built on Mar 15 2017 01:23:40 by "java_re" with gcc 4.3.0 20080428 (Red Hat 4.3.0-8)
+
+time: Wed Jan  3 19:24:32 2018
+elapsed time: 62 seconds (0d 0h 1m 2s)
+
