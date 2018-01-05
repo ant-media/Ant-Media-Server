@@ -25,66 +25,32 @@ import org.apache.commons.io.filefilter.FileFileFilter;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
 
-import io.antmedia.ipcamera.Application;
 import io.antmedia.ipcamera.ArchivedVideo;
+import io.antmedia.ipcamera.IPCameraApplicationAdapter;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.ipcamera.onvifdiscovery.OnvifDiscovery;
 import io.antmedia.ipcamera.utils.Camera;
 import io.antmedia.ipcamera.utils.CameraStore;
+import io.antmedia.rest.BroadcastRestService.Result;
 
 @Component
 @Path("/camera")
 public class IPCameraRestService {
 
-	public static class OperationResult {
-		public boolean success = false;
-
-		public OperationResult(boolean success) {
-			this.success = success;
-		}
-
-		// use if required
-		public int id = -1;
-
-		public int errorId = -1;
-
-		public boolean isSuccess() {
-			return success;
-		}
-
-		public void setSuccess(boolean success) {
-			this.success = success;
-		}
-
-		public int getId() {
-			return id;
-		}
-
-		public void setId(int id) {
-			this.id = id;
-		}
-
-		public int getErrorId() {
-			return errorId;
-		}
-
-		public void setErrorId(int errorId) {
-			this.errorId = errorId;
-		}
-
-	}
-
 	@Context
 	private ServletContext servletContext;
 
 	private CameraStore cameraStore;
+	private ApplicationContext appCtx;
 
-	private Application appInstance;
-	protected static Logger logger = LoggerFactory.getLogger(Application.class);
+	private IPCameraApplicationAdapter app;
+
+	protected static Logger logger = LoggerFactory.getLogger(IPCameraApplicationAdapter.class);
 
 	@GET
 	@Path("/getList")
@@ -96,7 +62,7 @@ public class IPCameraRestService {
 	@GET
 	@Path("/add")
 	@Produces(MediaType.APPLICATION_JSON)
-	public OperationResult addCamera(@QueryParam("name") String name, @QueryParam("ipAddr") String ipAddr,
+	public Result addCamera(@QueryParam("name") String name, @QueryParam("ipAddr") String ipAddr,
 			@QueryParam("username") String username, @QueryParam("password") String password) {
 		boolean result = false;
 		if (name != null && name.length() > 0) {
@@ -121,26 +87,28 @@ public class IPCameraRestService {
 			}
 		}
 
-		return new OperationResult(result);
+		return new Result(result);
 	}
 
 	@GET
 	@Path("/deleteCamera")
 	@Produces(MediaType.APPLICATION_JSON)
-	public OperationResult deleteCamera(@QueryParam("ipAddr") String ipAddr) {
+	public Result deleteCamera(@QueryParam("ipAddr") String ipAddr) {
 		boolean result = false;
-		logger.warn("inside of rest service");
+		logger.warn("inside of rest service" + ipAddr);
 		Camera cam = getCameraStore().getCamera(ipAddr);
-		getApplicationInstance().stopCameraStreaming(cam);
-		result = getCameraStore().deleteCamera(ipAddr);
 
-		return new OperationResult(result);
+		if (cam != null) {
+			getApplicationInstance().stopCameraStreaming(cam);
+			result = getCameraStore().deleteCamera(ipAddr);
+		}
+		return new Result(result);
 	}
 
 	@GET
 	@Path("/updateCamInfo")
 	@Produces(MediaType.APPLICATION_JSON)
-	public OperationResult updateCamInfo(@QueryParam("name") String name, @QueryParam("ipAddr") String ipAddr,
+	public Result updateCamInfo(@QueryParam("name") String name, @QueryParam("ipAddr") String ipAddr,
 			@QueryParam("username") String username, @QueryParam("password") String password,
 			@QueryParam("rtspUrl") String rtspUrl) {
 		boolean result = false;
@@ -157,7 +125,7 @@ public class IPCameraRestService {
 
 		}
 
-		return new OperationResult(result);
+		return new Result(result);
 	}
 
 	@GET
@@ -244,84 +212,54 @@ public class IPCameraRestService {
 	@GET
 	@Path("/moveUp")
 	@Produces(MediaType.APPLICATION_JSON)
-	public OperationResult moveUp(@QueryParam("ipAddr") String ipAddr) {
+	public Result moveUp(@QueryParam("ipAddr") String ipAddr) {
 		boolean result = false;
 		OnvifCamera camera = getApplicationInstance().getOnvifCamera(ipAddr);
 		if (camera != null) {
 			camera.MoveUp();
 			result = true;
 		}
-		return new OperationResult(result);
+		return new Result(result);
 	}
 
 	@GET
 	@Path("/moveDown")
 	@Produces(MediaType.APPLICATION_JSON)
-	public OperationResult moveDown(@QueryParam("ipAddr") String ipAddr) {
+	public Result moveDown(@QueryParam("ipAddr") String ipAddr) {
 		boolean result = false;
 		OnvifCamera camera = getApplicationInstance().getOnvifCamera(ipAddr);
 		if (camera != null) {
 			camera.MoveDown();
 			result = true;
 		}
-		return new OperationResult(result);
+		return new Result(result);
 	}
 
 	@GET
 	@Path("/moveLeft")
 	@Produces(MediaType.APPLICATION_JSON)
-	public OperationResult moveLeft(@QueryParam("ipAddr") String ipAddr) {
+	public Result moveLeft(@QueryParam("ipAddr") String ipAddr) {
 		boolean result = false;
 		OnvifCamera camera = getApplicationInstance().getOnvifCamera(ipAddr);
 		if (camera != null) {
 			camera.MoveLeft();
 			result = true;
 		}
-		return new OperationResult(result);
+		return new Result(result);
 	}
 
 	@GET
 	@Path("/moveRight")
 	@Produces(MediaType.APPLICATION_JSON)
-	public OperationResult moveRight(@QueryParam("ipAddr") String ipAddr) {
+	public Result moveRight(@QueryParam("ipAddr") String ipAddr) {
 		boolean result = false;
 		OnvifCamera camera = getApplicationInstance().getOnvifCamera(ipAddr);
 		if (camera != null) {
 			camera.MoveRight();
 			result = true;
 		}
-		return new OperationResult(result);
+		return new Result(result);
 	}
-
-	/*
-	 * 
-	 * 
-	 * @GET
-	 * 
-	 * @Path("/getArchive")
-	 * 
-	 * @Produces(MediaType.APPLICATION_JSON) public ArchiveItem[] getArchive() {
-	 * File folder = new File("webapps/IPCamera/streams"); ArchiveItem[]
-	 * archiveItems = null;
-	 * 
-	 * if (folder.exists()) { String[] listOfFiles = folder.list(new
-	 * FilenameFilter() { public boolean accept(File directory, String fileName)
-	 * { return fileName.endsWith(".flv") || fileName.endsWith(".mp4");
-	 * 
-	 * } });
-	 * 
-	 * archiveItems = new ArchiveItem[listOfFiles.length];
-	 * 
-	 * for (int i = 0; i < listOfFiles.length; i++) { archiveItems[i] = new
-	 * ArchiveItem(listOfFiles[i]); } }
-	 * 
-	 * return archiveItems;
-	 * 
-	 * }
-	 * 
-	 * 
-	 * 
-	 */
 
 	@GET
 	@Path("/getArchiveDate")
@@ -368,13 +306,19 @@ public class IPCameraRestService {
 
 	}
 
-	public Application getApplicationInstance() {
-		if (appInstance == null) {
-			WebApplicationContext ctxt = WebApplicationContextUtils.getWebApplicationContext(servletContext);
-			appInstance = (Application) ctxt.getBean("web.handler1");
+	private ApplicationContext getAppContext() {
+		if (appCtx == null && servletContext != null) {
+			appCtx = (ApplicationContext) servletContext
+					.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
 		}
-		return appInstance;
+		return appCtx;
+	}
 
+	protected IPCameraApplicationAdapter getApplicationInstance() {
+		if (app == null) {
+			app = (IPCameraApplicationAdapter) getAppContext().getBean("web.handler");
+		}
+		return app;
 	}
 
 	public CameraStore getCameraStore() {

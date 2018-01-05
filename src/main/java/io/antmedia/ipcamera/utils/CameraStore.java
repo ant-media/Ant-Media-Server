@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-import io.antmedia.ipcamera.Application;
+import io.antmedia.ipcamera.IPCameraApplicationAdapter;
 
 public class CameraStore implements ICameraStore {
 
@@ -20,9 +20,9 @@ public class CameraStore implements ICameraStore {
 	private DB db;
 	private HTreeMap<String, String> map;
 	private Gson gson;
-	protected static Logger logger = LoggerFactory.getLogger(Application.class);
+	protected static Logger logger = LoggerFactory.getLogger(IPCameraApplicationAdapter.class);
 
-	CameraStore() {
+	public CameraStore() {
 		db = DBMaker.fileDB(CAMERA_STORAGE_FILE).fileMmapEnableIfSupported().closeOnJvmShutdown().make();
 		map = db.hashMap(CAMERA_STORAGE_MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
 				.counterEnable().createOrOpen();
@@ -62,14 +62,21 @@ public class CameraStore implements ICameraStore {
 		return result;
 	}
 
+	/**
+	 * Delete camera from camera store
+	 * 
+	 * @returns true if camera exists, otherwise return false
+	 */
 	public boolean deleteCamera(String ipAddr) {
 		boolean result = false;
 		try {
 
-			logger.warn("inside of deleteCamera");
-			map.remove(ipAddr);
-			db.commit();
-			result = true;
+			if (map.containsKey(ipAddr)) {
+				logger.warn("inside of deleteCamera");
+				map.remove(ipAddr);
+				db.commit();
+				result = true;
+			}
 
 		} catch (Exception e) {
 			result = false;

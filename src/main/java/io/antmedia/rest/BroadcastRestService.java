@@ -1,6 +1,5 @@
 package io.antmedia.rest;
 
-
 import java.io.File;
 import java.util.List;
 
@@ -27,7 +26,6 @@ import com.google.gson.Gson;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
-import io.antmedia.EncoderSettings;
 import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
@@ -44,11 +42,15 @@ public class BroadcastRestService {
 
 	public static class Result {
 		public boolean success = false;
-		public String message;
+		public String message = null;
 
 		public Result(boolean success, String message) {
 			this.success = success;
 			this.message = message;
+		}
+
+		public Result(boolean success) {
+			this.success = success;
 		}
 	}
 
@@ -69,20 +71,18 @@ public class BroadcastRestService {
 	protected static Logger logger = LoggerFactory.getLogger(BroadcastRestService.class);
 
 	@POST
-	@Consumes({MediaType.APPLICATION_JSON})
+	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/broadcast/create")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Broadcast createBroadcast(Broadcast broadcast) 
-	{
+	public Broadcast createBroadcast(Broadcast broadcast) {
 		if (broadcast == null) {
 			broadcast = new Broadcast();
-		}	
+		}
 		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
 		broadcast.setDate(System.currentTimeMillis());
 
 		String listenerHookURL = broadcast.getListenerHookURL();
-		if (listenerHookURL == null || listenerHookURL.length() == 0) 
-		{
+		if (listenerHookURL == null || listenerHookURL.length() == 0) {
 			AppSettings settings = getAppSettings();
 			if (settings != null) {
 				String settingsListenerHookURL = settings.getListenerHookURL();
@@ -100,8 +100,8 @@ public class BroadcastRestService {
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/broadcast/createWithSocial")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Broadcast createWithSocial(Broadcast broadcast, @QueryParam("socialNetworks") String socialNetworksToPublish) 
-	{
+	public Broadcast createWithSocial(Broadcast broadcast,
+			@QueryParam("socialNetworks") String socialNetworksToPublish) {
 		broadcast = createBroadcast(broadcast);
 		if (broadcast.getStreamId() != null && socialNetworksToPublish != null) {
 			String[] socialNetworks = socialNetworksToPublish.split(",");
@@ -113,18 +113,17 @@ public class BroadcastRestService {
 		return getBroadcast(broadcast.getStreamId());
 	}
 
-
-
-
 	/**
 	 * Updates broadcast name or status
+	 * 
 	 * @param broadcast
 	 */
 	@POST
 	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	@Path("/broadcast/updateInfo")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result updateInfo(@FormParam("id") String id, @FormParam("name") String name, @FormParam("description") String description) {
+	public Result updateInfo(@FormParam("id") String id, @FormParam("name") String name,
+			@FormParam("description") String description) {
 
 		boolean success = false;
 		String message = null;
@@ -136,13 +135,11 @@ public class BroadcastRestService {
 		return new Result(success, message);
 	}
 
-
 	@POST
 	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	@Path("/broadcast/updatePublishStatus")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result updatePublishInfo(@FormParam("id") String id, @FormParam("publish") boolean publish) {
-
 
 		boolean success = false;
 		String message = null;
@@ -170,8 +167,7 @@ public class BroadcastRestService {
 					try {
 						videoServiceEndpoint.resetCredentials();
 						result = true;
-					}
-					catch (Exception e) {
+					} catch (Exception e) {
 						e.printStackTrace();
 					}
 				}
@@ -179,20 +175,17 @@ public class BroadcastRestService {
 			if (!serviceFound) {
 				message = "Service with the name specified is not found in this app";
 			}
-		}
-		else {
+		} else {
 			message = "No endpoint is defined for this app";
 		}
 		return new Result(result, message);
 	}
 
-
 	@POST
 	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	@Path("/broadcast/addSocialEndpoint")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result addSocialEndpoint(@FormParam("id") String id, @FormParam("serviceName") String serviceName) 
-	{
+	public Result addSocialEndpoint(@FormParam("id") String id, @FormParam("serviceName") String serviceName) {
 
 		boolean success = false;
 		String message = null;
@@ -205,20 +198,21 @@ public class BroadcastRestService {
 				for (VideoServiceEndpoint videoServiceEndpoint : endPointServiceList) {
 					if (videoServiceEndpoint.getName().equals(serviceName)) {
 						serviceFound = true;
-						boolean authenticated = videoServiceEndpoint.isInitialized() && 
-								videoServiceEndpoint.isAuthenticated();
+						boolean authenticated = videoServiceEndpoint.isInitialized()
+								&& videoServiceEndpoint.isAuthenticated();
 						if (authenticated) {
 							Endpoint endpoint;
 							try {
-								endpoint = videoServiceEndpoint.createBroadcast(broadcast.getName(), broadcast.getDescription(), broadcast.isIs360(), broadcast.isPublicStream(), 720);
+								endpoint = videoServiceEndpoint.createBroadcast(broadcast.getName(),
+										broadcast.getDescription(), broadcast.isIs360(), broadcast.isPublicStream(),
+										720);
 								success = getDataStore().addEndpoint(id, endpoint);
 
 							} catch (Exception e) {
 								e.printStackTrace();
 								message = e.getMessage();
 							}
-						}
-						else {
+						} else {
 							message = serviceName + " is not authenticated. Authenticate first";
 						}
 					}
@@ -226,12 +220,10 @@ public class BroadcastRestService {
 				if (!serviceFound) {
 					message = serviceName + " endpoint does not exist in this app.";
 				}
-			}
-			else {
+			} else {
 				message = "No social endpoint is defined for this app. Consult your app developer";
 			}
-		}
-		else {
+		} else {
 			message = "No broadcast exist with the id specified";
 		}
 
@@ -253,21 +245,18 @@ public class BroadcastRestService {
 			endpoint.type = "generic";
 
 			success = getDataStore().addEndpoint(id, endpoint);
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 
 		return new Result(success, message);
 	}
 
-
 	protected Broadcast lookupBroadcast(String id) {
 		Broadcast broadcast = null;
 		try {
 			broadcast = getDataStore().get(id);
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		return broadcast;
@@ -281,8 +270,7 @@ public class BroadcastRestService {
 	@GET
 	@Path("/broadcast/get")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Broadcast getBroadcast(@QueryParam("id") String id) 
-	{
+	public Broadcast getBroadcast(@QueryParam("id") String id) {
 		Broadcast broadcast = null;
 		if (id != null) {
 			broadcast = lookupBroadcast(id);
@@ -293,7 +281,6 @@ public class BroadcastRestService {
 		return broadcast;
 	}
 
-
 	@GET
 	@Path("/broadcast/getList/{offset}/{size}")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -301,23 +288,21 @@ public class BroadcastRestService {
 		return getDataStore().getBroadcastList(offset, size);
 	}
 
-
-	@POST 
-	@Consumes({MediaType.APPLICATION_JSON})
+	@POST
+	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/broadcast/deleteVoDFile/{id}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result deleteVoDFile(@PathParam("id") String fileName) {
 		boolean success = false;
 		String message = "";
 		if (getAppContext() != null) {
-			//TODO: write test code for this function
+			// TODO: write test code for this function
 			File recordFile = Muxer.getRecordFile(getScope(), fileName, ".mp4");
 			System.out.println("recordfile : " + recordFile.getAbsolutePath());
 			if (recordFile.exists()) {
 				success = true;
 				recordFile.delete();
-			}
-			else {
+			} else {
 				message = "No file to delete";
 			}
 			File previewFile = Muxer.getPreviewFile(getScope(), fileName, ".png");
@@ -325,8 +310,7 @@ public class BroadcastRestService {
 				previewFile.delete();
 			}
 
-			if (getAppContext().containsBean("app.storageClient")) 
-			{
+			if (getAppContext().containsBean("app.storageClient")) {
 				StorageClient storageClient = (StorageClient) getAppContext().getBean("app.storageClient");
 
 				storageClient.delete(fileName + ".mp4", FileType.TYPE_STREAM);
@@ -337,54 +321,55 @@ public class BroadcastRestService {
 		return new Result(success, message);
 	}
 
-
-	@POST 
-	@Consumes({MediaType.APPLICATION_JSON})
+	@POST
+	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/broadcast/delete/{id}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result deleteBroadcast(@PathParam("id") String id) {
 		boolean success = false;
 		String message = null;
 
-		if (getDataStore().delete(id)) 
-		{
+		if (getDataStore().delete(id)) {
 			success = true;
 
-			//			if (getAppContext() != null) 
-			//			{
-			//				File recordFile = Muxer.getRecordFile(getScope(), id, "mp4");
-			//				if (recordFile.exists()) {
-			//					recordFile.delete();
-			//				}
-			//				File previewFile = Muxer.getPreviewFile(getScope(), id, "png");
-			//				if (previewFile.exists()) {
-			//					previewFile.delete();
-			//				}
+			// if (getAppContext() != null)
+			// {
+			// File recordFile = Muxer.getRecordFile(getScope(), id, "mp4");
+			// if (recordFile.exists()) {
+			// recordFile.delete();
+			// }
+			// File previewFile = Muxer.getPreviewFile(getScope(), id, "png");
+			// if (previewFile.exists()) {
+			// previewFile.delete();
+			// }
 			//
-			//				if (getAppContext().containsBean("app.storageClient")) 
-			//				{
-			//					StorageClient storageClient = (StorageClient) getAppContext().getBean("app.storageClient");
+			// if (getAppContext().containsBean("app.storageClient"))
+			// {
+			// StorageClient storageClient = (StorageClient)
+			// getAppContext().getBean("app.storageClient");
 			//
-			//					storageClient.delete(id + ".mp4", FileType.TYPE_STREAM);
-			//					storageClient.delete(id + ".png", FileType.TYPE_PREVIEW);
+			// storageClient.delete(id + ".mp4", FileType.TYPE_STREAM);
+			// storageClient.delete(id + ".png", FileType.TYPE_PREVIEW);
 			//
-			//					ApplicationContext appContext = getAppContext();
-			//					if (appContext.containsBean("app.settings")) {
-			//						AppSettings bean = (AppSettings) appContext.getBean("app.settings");
-			//						List<EncoderSettings> encoderSettingsList = bean.getAdaptiveResolutionList();
-			//						if (encoderSettingsList != null) {
-			//							for (EncoderSettings settings : encoderSettingsList) {
-			//								storageClient.delete(id + "_" +settings.getHeight() +"p.mp4", FileType.TYPE_STREAM);
-			//							}
-			//						}
-			//					}
-			//				}
-			//			}
+			// ApplicationContext appContext = getAppContext();
+			// if (appContext.containsBean("app.settings")) {
+			// AppSettings bean = (AppSettings)
+			// appContext.getBean("app.settings");
+			// List<EncoderSettings> encoderSettingsList =
+			// bean.getAdaptiveResolutionList();
+			// if (encoderSettingsList != null) {
+			// for (EncoderSettings settings : encoderSettingsList) {
+			// storageClient.delete(id + "_" +settings.getHeight() +"p.mp4",
+			// FileType.TYPE_STREAM);
+			// }
+			// }
+			// }
+			// }
+			// }
 		}
 
 		return new Result(success, message);
 	}
-
 
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
@@ -400,16 +385,16 @@ public class BroadcastRestService {
 					serviceFound = true;
 					try {
 						if (videoServiceEndpoint.isInitialized()) {
-							DeviceAuthParameters askDeviceAuthParameters = videoServiceEndpoint.askDeviceAuthParameters();
-							getApplication().startDeviceAuthStatusPolling(videoServiceEndpoint, askDeviceAuthParameters);
+							DeviceAuthParameters askDeviceAuthParameters = videoServiceEndpoint
+									.askDeviceAuthParameters();
+							getApplication().startDeviceAuthStatusPolling(videoServiceEndpoint,
+									askDeviceAuthParameters);
 							return askDeviceAuthParameters;
-						}
-						else {
+						} else {
 							message = "Please enter service client id and client secret in app configuration";
 						}
 
-					}
-					catch (Exception e) {
+					} catch (Exception e) {
 						e.printStackTrace();
 					}
 				}
@@ -417,26 +402,23 @@ public class BroadcastRestService {
 			if (!serviceFound) {
 				message = "Service with the name specified is not found in this app";
 			}
-		}
-		else {
+		} else {
 			message = "No endpoint is defined for this app";
 		}
 		return new Result(false, message);
 	}
 
 	@POST
-	@Consumes({MediaType.APPLICATION_JSON})
+	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/broadcast/checkDeviceAuthStatus/{serviceName}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result checkDeviceAuthStatus(@PathParam("serviceName") String serviceName) 
-	{
+	public Result checkDeviceAuthStatus(@PathParam("serviceName") String serviceName) {
 		List<VideoServiceEndpoint> endPoint = getEndpointList();
 		boolean authenticated = false;
 		if (endPoint != null) {
 			for (VideoServiceEndpoint videoServiceEndpoint : endPoint) {
 				if (videoServiceEndpoint.getName().equals(serviceName)) {
-					authenticated = videoServiceEndpoint.isInitialized() && 
-							videoServiceEndpoint.isAuthenticated();
+					authenticated = videoServiceEndpoint.isInitialized() && videoServiceEndpoint.isAuthenticated();
 				}
 			}
 		}
@@ -444,11 +426,10 @@ public class BroadcastRestService {
 	}
 
 	@GET
-	@Consumes({MediaType.APPLICATION_JSON})
+	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/broadcast/getSocialNetworkChannel/{serviceName}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public SocialEndpointChannel getSocialNetworkChannel(@PathParam("serviceName") String serviceName) 
-	{
+	public SocialEndpointChannel getSocialNetworkChannel(@PathParam("serviceName") String serviceName) {
 		List<VideoServiceEndpoint> endPoint = getEndpointList();
 		SocialEndpointChannel channel = null;
 		if (endPoint != null) {
@@ -462,15 +443,13 @@ public class BroadcastRestService {
 		}
 		return channel;
 	}
-	
-	
+
 	@GET
-	@Consumes({MediaType.APPLICATION_JSON})
+	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/broadcast/getSocialNetworkChannelList/{serviceName}/{type}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public List<SocialEndpointChannel> getSocialNetworkChannelList(@PathParam("serviceName") String serviceName,
-			@PathParam("type") String type) 
-	{
+			@PathParam("type") String type) {
 		List<VideoServiceEndpoint> endPoint = getEndpointList();
 		List<SocialEndpointChannel> channelList = null;
 		if (endPoint != null) {
@@ -484,21 +463,18 @@ public class BroadcastRestService {
 		}
 		return channelList;
 	}
-	
+
 	@POST
-	@Consumes({MediaType.APPLICATION_JSON})
+	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/broadcast/setSocialNetworkChannel/{serviceName}/{type}/{id}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result setSocialNetworkChannelList(@PathParam("serviceName") String serviceName,
-			@PathParam("type") String type, @PathParam("id") String id) 
-	{
+			@PathParam("type") String type, @PathParam("id") String id) {
 		boolean result = false;
 		List<VideoServiceEndpoint> endPoint = getEndpointList();
-		
-		if (endPoint != null) 
-		{
-			for (VideoServiceEndpoint videoServiceEndpoint : endPoint) 
-			{
+
+		if (endPoint != null) {
+			for (VideoServiceEndpoint videoServiceEndpoint : endPoint) {
 				if (videoServiceEndpoint.getName().equals(serviceName)) {
 					result = videoServiceEndpoint.setActiveChannel(type, id);
 					break;
@@ -508,31 +484,31 @@ public class BroadcastRestService {
 		}
 		return new Result(result, null);
 	}
-	
 
 	public long getRecordCount() {
 		return getDataStore().getBroadcastCount();
 	}
 
 	protected List<VideoServiceEndpoint> getEndpointList() {
-		return ((AntMediaApplicationAdapter)getApplication()).getVideoServiceEndpoints();
+		return ((AntMediaApplicationAdapter) getApplication()).getVideoServiceEndpoints();
 	}
+
 	private ApplicationContext getAppContext() {
 		if (appCtx == null && servletContext != null) {
-			appCtx = (ApplicationContext) servletContext.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
+			appCtx = (ApplicationContext) servletContext
+					.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
 		}
 		return appCtx;
 	}
 
-	public IDataStore getDataStore() 
-	{
+	public IDataStore getDataStore() {
 		if (dataStore == null) {
 			dataStore = (IDataStore) getAppContext().getBean("db.datastore");
 		}
 		return dataStore;
 	}
 
-	public void setDataStore(IDataStore dataStore){
+	public void setDataStore(IDataStore dataStore) {
 		this.dataStore = dataStore;
 	}
 
@@ -545,7 +521,7 @@ public class BroadcastRestService {
 
 	private AppSettings getAppSettings() {
 		if (appSettings == null) {
-			appSettings = (AppSettings)getAppContext().getBean(AppSettings.BEAN_NAME);
+			appSettings = (AppSettings) getAppContext().getBean(AppSettings.BEAN_NAME);
 		}
 		return appSettings;
 	}
