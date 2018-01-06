@@ -68,21 +68,27 @@ public class IPCameraRestService {
 		if (name != null && name.length() > 0) {
 
 			if (ipAddr != null && ipAddr.length() > 0) {
-				OnvifCamera onvif = new OnvifCamera();
-				onvif.connect(ipAddr, username, password);
-				String rtspURL = onvif.getRTSPStreamURI();
 
-				if (rtspURL != "no") {
+				Camera cam = getCameraStore().getCamera(ipAddr);
 
-					String authparam = username + ":" + password + "@";
-					String rtspURLWithAuth = "rtsp://" + authparam + rtspURL.substring("rtsp://".length());
-					System.out.println("rtsp url with auth:" + rtspURLWithAuth);
-					result = getCameraStore().addCamera(name, ipAddr, username, password, rtspURLWithAuth);
-					if (result) {
-						Camera cam = getCameraStore().getCamera(ipAddr);
-						getApplicationInstance().startCameraStreaming(cam);
+				if (cam == null) {
+
+					OnvifCamera onvif = new OnvifCamera();
+					onvif.connect(ipAddr, username, password);
+					String rtspURL = onvif.getRTSPStreamURI();
+
+					if (rtspURL != "no") {
+
+						String authparam = username + ":" + password + "@";
+						String rtspURLWithAuth = "rtsp://" + authparam + rtspURL.substring("rtsp://".length());
+						System.out.println("rtsp url with auth:" + rtspURLWithAuth);
+						result = getCameraStore().addCamera(name, ipAddr, username, password, rtspURLWithAuth);
+						if (result) {
+
+							getApplicationInstance().startCameraStreaming(cam);
+						}
+						onvif.disconnect();
 					}
-					onvif.disconnect();
 				}
 			}
 		}
