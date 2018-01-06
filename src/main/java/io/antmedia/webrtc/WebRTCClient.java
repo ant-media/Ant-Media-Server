@@ -30,6 +30,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.antmedia.webrtc.api.IWebRTCClient;
 import io.antmedia.webrtc.api.IWebRTCMuxer;
+import javassist.bytecode.analysis.Executor;
 
 
 public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
@@ -61,6 +62,8 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 
 	private ScheduledExecutorService executor;
 	
+	private ExecutorService streamExecutor;
+	
 	public static final int ADAPTIVE_RESET_COUNT = 90;  //frames
 	
 	public static final int ADAPTIVE_QUALITY_CHECK_TIME_MS = 5000;
@@ -69,6 +72,8 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 	//byte[] dataSegmented = new byte[bufferSize];
 
 	private volatile boolean isRunning = false;
+	
+	
 	
 	private static final String DTLS_SRTP_KEY_AGREEMENT_CONSTRAINT = "DtlsSrtpKeyAgreement";
 
@@ -79,6 +84,11 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 		ThreadFactory namedThreadFactory = new ThreadFactoryBuilder()
 						.setNameFormat("webrtc-client-"+streamId+"-%d").build();
 		executor = Executors.newSingleThreadScheduledExecutor(namedThreadFactory);
+		
+		namedThreadFactory = new ThreadFactoryBuilder()
+				.setNameFormat("webrtc-streamer-"+streamId+"-%d").build();
+		
+		streamExecutor = Executors.newScheduledThreadPool(2, namedThreadFactory);
 		
 	}
 
@@ -93,32 +103,45 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 	}
 
 	@Override
-	public void sendVideoConfPacket(byte[] videoConfData, byte[] videoPacket, long timestamp) {
+	public void sendVideoConfPacket(final byte[] videoConfData, final byte[] videoPacket, final long timestamp) {
 		if (isRunning) {
-			factory.addVideoConfPacket(videoConfData, videoConfData.length, videoPacket, videoPacket.length, width, height, true, timestamp);
-			videoSource.writeMockFrame(width, height);
+			streamExecutor.execute(new Runnable() {
+				
+				@Override
+				public void run() {
+					factory.addVideoConfPacket(videoConfData, videoConfData.length, videoPacket, videoPacket.length, width, height, true, timestamp);
+					
+				}
+			});
 		}
 	}
 
 	@Override
-	public void sendVideoPacket(byte[] videoPacket, boolean isKeyFrame, long timestamp) {
+	public void sendVideoPacket(final byte[] videoPacket, final boolean isKeyFrame, final long timestamp) {
 		if (isRunning) {
-			factory.addVideoPacket(videoPacket, videoPacket.length, width, height, isKeyFrame, timestamp);
-			videoSource.writeMockFrame(width, height);
+			streamExecutor.execute(new Runnable() {
+				
+				@Override
+				public void run() {
+					factory.addVideoPacket(videoPacket, videoPacket.length, width, height, isKeyFrame, timestamp);
+				}
+			});
 		}
 	}
 
 	@Override
-	public void sendAudioPacket(byte[] audioPacket, long timestamp) {
+	public void sendAudioPacket(final byte[] audioPacket, final long timestamp) {
 		if (isRunning) {
-			factory.addAudioPacket(audioPacket, audioPacket.length, timestamp);
+			streamExecutor.execute(new Runnable() {
+				
+				@Override
+				public void run() {
+					factory.addAudioPacket(audioPacket, audioPacket.length, timestamp, 960);
+					//960 is 20ms audio data which can be send by webrtc
+					
+				}
+			});
 			
-			
-			audioSource.writeMockFrame(480);
-			audioSource.writeMockFrame(480);
-
-			//audioSource.writeAudioFrame(dataSegmented, 480);
-			//audioSource.writeAudioFrame(dataSegmented, 480);
 		}
 
 	}
@@ -444,6 +467,7 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 			}
 		});
 		executor.shutdown();
+		streamExecutor.shutdown();
 	}
 
 }
