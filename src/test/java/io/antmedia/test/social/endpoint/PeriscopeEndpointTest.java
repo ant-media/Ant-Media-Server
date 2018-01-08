@@ -89,7 +89,7 @@ public class PeriscopeEndpointTest {
 		} 
 	}
 
-	//@Test
+	@Test
 	public void testCreateBroadcastNoName() {
 		PreferenceStore dataStore = new PreferenceStore(TARGET_TEST_PROPERTIES);
 		dataStore.setFullPath(TARGET_TEST_PROPERTIES);
@@ -110,7 +110,7 @@ public class PeriscopeEndpointTest {
 	}
 
 
-	//@Test
+	@Test
 	public void testCreateBroadcast() {
 		PreferenceStore dataStore = new PreferenceStore(TARGET_TEST_PROPERTIES);
 		dataStore.setFullPath(TARGET_TEST_PROPERTIES);
@@ -122,7 +122,8 @@ public class PeriscopeEndpointTest {
 
 			System.out.println("rtmp url is:" + endpoint.rtmpUrl);
 
-			MuxingTest.execute("/usr/local/bin/ffmpeg -re -i src/test/resources/test_video_360p.flv -acodec copy -vcodec copy -f flv " + endpoint.rtmpUrl);
+			///usr/local/bin/
+			MuxingTest.execute("ffmpeg -re -i src/test/resources/test_video_360p.flv -acodec copy -vcodec copy -f flv " + endpoint.rtmpUrl);
 
 			LiveStreamStatus streamStatus = null;
 
