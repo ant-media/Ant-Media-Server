@@ -3,7 +3,7 @@ jdk:
   - oraclejdk8
 
 before_install: 
-  - git clone https://github.com/ant-media/Ant-Media-Server-Common.git && cd Ant-Media-Server-Common && mvn clean install -DskipTests && cd ..
-  - sudo add-apt-repository ppa:mc3man/trusty-media
+  - sudo add-apt-repository ppa:mc3man/trusty-media -y
   - sudo apt-get update -qq
   - sudo apt-get install ffmpeg -qq
+  - git clone https://github.com/ant-media/Ant-Media-Server-Common.git && cd Ant-Media-Server-Common && mvn clean install -DskipTests && cd ..
