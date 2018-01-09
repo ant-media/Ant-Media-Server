@@ -2,8 +2,15 @@ language: java
 jdk:
   - oraclejdk8
 
+
+#travis running on ubuntu 14.04
+
 before_install: 
-  - sudo add-apt-repository ppa:mc3man/trusty-media -y
+  - sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 2930ADAE8CAF5059EE73BB4B58712A2291FA4AD5
+  - echo "deb [ arch=amd64 ] https://repo.mongodb.org/apt/ubuntu trusty/mongodb-org/3.6 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-3.6.list
+  - sudo add-apt-repository ppa:mc3man/trusty-media -y  # this for ffmpeg
   - sudo apt-get update -qq
-  - sudo apt-get install ffmpeg -qq
+  - sudo apt-get install -y mongodb-org #install mongodb
+  - sudo apt-get install ffmpeg -qq # start ffmpeg
+  - sudo service mongod start  # start mongo db
   - git clone https://github.com/ant-media/Ant-Media-Server-Common.git && cd Ant-Media-Server-Common && mvn clean install -DskipTests && cd ..

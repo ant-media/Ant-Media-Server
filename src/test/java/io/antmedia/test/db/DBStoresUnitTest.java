@@ -71,8 +71,7 @@ public class DBStoresUnitTest {
 
 	}
 
-	//TODO: open this functional test
-	//@Test
+	@Test
 	public void testMongoStore() {
 
 		IDataStore dataStore = new MongoStore("testdb");
