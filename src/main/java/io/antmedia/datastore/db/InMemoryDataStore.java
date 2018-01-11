@@ -2,15 +2,12 @@ package io.antmedia.datastore.db;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.UUID;
 
 import org.apache.commons.lang3.RandomStringUtils;
 
-import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 
@@ -20,6 +17,7 @@ public class InMemoryDataStore implements IDataStore {
 
 	public InMemoryDataStore(String dbName) {
 	}
+
 	@Override
 	public String save(Broadcast broadcast) {
 
@@ -103,8 +101,7 @@ public class InMemoryDataStore implements IDataStore {
 		}
 		return result;
 	}
-	
-	
+
 	@Override
 	public boolean removeEndpoint(String id, Endpoint endpoint) {
 		boolean result = false;
@@ -112,17 +109,15 @@ public class InMemoryDataStore implements IDataStore {
 		if (broadcast != null && endpoint != null) {
 			List<Endpoint> endPointList = broadcast.getEndPointList();
 			if (endPointList != null) {
-				for (Iterator iterator = endPointList.iterator(); iterator.hasNext();) 
-				{
+				for (Iterator iterator = endPointList.iterator(); iterator.hasNext();) {
 					Endpoint endpointItem = (Endpoint) iterator.next();
-					if (endpointItem.rtmpUrl.equals(endpoint.rtmpUrl)) 
-					{
+					if (endpointItem.rtmpUrl.equals(endpoint.rtmpUrl)) {
 						iterator.remove();
 						result = true;
 						break;
 					}
 				}
-			
+
 			}
 		}
 		return result;
@@ -152,7 +147,7 @@ public class InMemoryDataStore implements IDataStore {
 		if (size > 50) {
 			size = 50;
 		}
-		if (offset < 0){
+		if (offset < 0) {
 			offset = 0;
 		}
 		List<Broadcast> list = new ArrayList();
@@ -170,6 +165,43 @@ public class InMemoryDataStore implements IDataStore {
 
 		}
 		return list;
+	}
+
+	@Override
+	public boolean addCamera(String name, String ipAddr, String username, String password, String rtspUrl,
+			String type) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean editCameraInfo(String name, String ipAddr, String username, String password, String rtspUrl) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean deleteCamera(String ipAddr) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public Broadcast getCamera(String ip) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Broadcast[] getCameraList() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public void close() {
+		// TODO Auto-generated method stub
+
 	}
 
 }

@@ -32,8 +32,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.ipcamera.utils.Camera;
-import io.antmedia.ipcamera.utils.CameraStore;
+import io.antmedia.datastore.db.MapDBStore;
+import io.antmedia.datastore.db.types.Broadcast;
 
 /**
  * Sample application that uses the client manager.
@@ -61,7 +61,7 @@ public class IPCameraApplicationAdapter extends AntMediaApplicationAdapter {
 			(byte) (0 & 0xff) };
 	private final static int TAG_HEADER_LENGTH = 11;
 
-	private CameraStore cameradb;
+	private MapDBStore cameradb;
 
 	private HashMap<String, OnvifCamera> onvifCameraList = new HashMap();
 
@@ -83,7 +83,7 @@ public class IPCameraApplicationAdapter extends AntMediaApplicationAdapter {
 		super.disconnect(conn, scope);
 	}
 
-	public void startCameraStreaming(Camera camera) {
+	public void startCameraStreaming(Broadcast camera) {
 
 		CameraScheduler camScheduler = new CameraScheduler(camera, this);
 		camScheduler.startStream();
@@ -91,11 +91,11 @@ public class IPCameraApplicationAdapter extends AntMediaApplicationAdapter {
 
 	}
 
-	public void stopCameraStreaming(Camera camera) {
+	public void stopCameraStreaming(Broadcast cam) {
 		logger.warn("inside of stopCameraStreaming");
 
 		for (CameraScheduler camScheduler : camSchedulerList) {
-			if (camScheduler.getCamera().ipAddr.equals(camera.ipAddr)) {
+			if (camScheduler.getCamera().getIpAddr().equals(cam.getIpAddr())) {
 				camScheduler.stopStream();
 				camSchedulerList.remove(camScheduler);
 				break;
@@ -109,7 +109,7 @@ public class IPCameraApplicationAdapter extends AntMediaApplicationAdapter {
 	public boolean appStart(IScope app) {
 		// addScheduledJob(RECORD_INTERVAL_IN_MS, cameraScheduler);
 
-		Camera[] cameras = cameradb.getCameraList();
+		Broadcast[] cameras = getDataStore().getCameraList();
 
 		for (int i = 0; i < cameras.length; i++) {
 			startCameraStreaming(cameras[i]);
@@ -152,21 +152,21 @@ public class IPCameraApplicationAdapter extends AntMediaApplicationAdapter {
 		super.appStop(app);
 	}
 
-	public CameraStore getCameradb() {
+	public MapDBStore getCameradb() {
 		return cameradb;
 	}
 
-	public void setCameradb(CameraStore cameradb) {
+	public void setCameradb(MapDBStore cameradb) {
 		this.cameradb = cameradb;
 	}
 
 	public OnvifCamera getOnvifCamera(String ipAddr) {
 		OnvifCamera onvifCamera = onvifCameraList.get(ipAddr);
 		if (onvifCamera == null) {
-			Camera camera = cameradb.getCamera(ipAddr);
+			Broadcast camera = cameradb.getCamera(ipAddr);
 			if (camera != null) {
 				onvifCamera = new OnvifCamera();
-				onvifCamera.connect(ipAddr, camera.username, camera.password);
+				onvifCamera.connect(ipAddr, camera.getUsername(), camera.getPassword());
 				onvifCameraList.put(ipAddr, onvifCamera);
 			}
 		}

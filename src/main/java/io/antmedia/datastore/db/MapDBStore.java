@@ -18,9 +18,9 @@ import com.google.gson.GsonBuilder;
 
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
+import io.antmedia.ipcamera.utils.Camera;
 
 public class MapDBStore implements IDataStore {
-
 
 	private DB db;
 	private HTreeMap<String, String> map;
@@ -28,21 +28,16 @@ public class MapDBStore implements IDataStore {
 	protected static Logger logger = LoggerFactory.getLogger(MapDBStore.class);
 	private static final String MAP_NAME = "broadcast";
 
-
 	public MapDBStore(String dbName) {
 
 		db = DBMaker.fileDB(dbName).transactionEnable().make();
-		map = db.hashMap(MAP_NAME)
-				.keySerializer(Serializer.STRING)
-				.valueSerializer(Serializer.STRING)
-				.counterEnable()
+		map = db.hashMap(MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING).counterEnable()
 				.createOrOpen();
 
 		GsonBuilder builder = new GsonBuilder();
 		gson = builder.create();
 
 	}
-
 
 	@Override
 	public String save(Broadcast broadcast) {
@@ -51,10 +46,10 @@ public class MapDBStore implements IDataStore {
 			try {
 				streamId = RandomStringUtils.randomNumeric(24);
 				broadcast.setStreamId(streamId);
+
 				map.put(streamId, gson.toJson(broadcast));
 				db.commit();
-			}
-			catch (Exception e) {
+			} catch (Exception e) {
 				e.printStackTrace();
 				streamId = null;
 			}
@@ -94,8 +89,7 @@ public class MapDBStore implements IDataStore {
 	@Override
 	public boolean updateStatus(String id, String status) {
 		boolean result = false;
-		if (id != null) 
-		{
+		if (id != null) {
 			String jsonString = map.get(id);
 			if (jsonString != null) {
 				Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
@@ -168,19 +162,16 @@ public class MapDBStore implements IDataStore {
 			if (jsonString != null) {
 				Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
 				List<Endpoint> endPointList = broadcast.getEndPointList();
-				if (endPointList != null) 
-				{
-					for (Iterator iterator = endPointList.iterator(); iterator.hasNext();) 
-					{
+				if (endPointList != null) {
+					for (Iterator iterator = endPointList.iterator(); iterator.hasNext();) {
 						Endpoint endpointItem = (Endpoint) iterator.next();
-						if (endpointItem.rtmpUrl.equals(endpoint.rtmpUrl)) 
-						{
+						if (endpointItem.rtmpUrl.equals(endpoint.rtmpUrl)) {
 							iterator.remove();
 							result = true;
 							break;
 						}
 					}
-					
+
 					if (result) {
 						broadcast.setEndPointList(endPointList);
 						map.replace(id, gson.toJson(broadcast));
@@ -191,7 +182,6 @@ public class MapDBStore implements IDataStore {
 		}
 		return result;
 	}
-
 
 	@Override
 	public long getBroadcastCount() {
@@ -215,7 +205,7 @@ public class MapDBStore implements IDataStore {
 		if (size > 50) {
 			size = 50;
 		}
-		if (offset < 0){
+		if (offset < 0) {
 			offset = 0;
 		}
 		List<Broadcast> list = new ArrayList();
@@ -235,6 +225,90 @@ public class MapDBStore implements IDataStore {
 		return list;
 	}
 
+	/*
+	 * IP Camera Operations
+	 */
 
+	@Override
+	public boolean addCamera(String name, String ipAddr, String username, String password, String rtspUrl,
+			String type) {
+		boolean result = false;
+		try {
+
+			// IP Address is primary key
+			Broadcast camera = new Broadcast(name, ipAddr, username, password, rtspUrl, type);
+			map.put(ipAddr, gson.toJson(camera));
+			db.commit();
+			result = true;
+		} catch (Exception e) {
+			result = false;
+		}
+		return result;
+	}
+
+	@Override
+	public boolean editCameraInfo(String name, String ipAddr, String username, String password, String rtspUrl) {
+		boolean result = false;
+		try {
+
+			logger.warn("inside of editCameraInfo");
+			Camera camera = new Camera(name, ipAddr, username, password, rtspUrl);
+			map.replace(ipAddr, gson.toJson(camera));
+			db.commit();
+			result = true;
+		} catch (Exception e) {
+			result = false;
+		}
+		return result;
+	}
+
+	/**
+	 * Delete camera from camera store
+	 * 
+	 * @returns true if camera exists, otherwise return false
+	 */
+	@Override
+	public boolean deleteCamera(String ipAddr) {
+		boolean result = false;
+		try {
+
+			if (map.containsKey(ipAddr)) {
+				logger.warn("inside of deleteCamera");
+				map.remove(ipAddr);
+				db.commit();
+				result = true;
+			}
+
+		} catch (Exception e) {
+			result = false;
+		}
+		return result;
+	}
+
+	@Override
+	public Broadcast getCamera(String ip) {
+		if (map.containsKey(ip)) {
+			return gson.fromJson(map.get(ip), Broadcast.class);
+		}
+		return null;
+	}
+
+	@Override
+	public Broadcast[] getCameraList() {
+
+		Object[] objectArray = map.getValues().toArray();
+
+		Broadcast[] cameraArray = new Broadcast[objectArray.length];
+
+		for (int i = 0; i < cameraArray.length; i++) {
+			cameraArray[i] = gson.fromJson((String) objectArray[i], Broadcast.class);
+		}
+		return cameraArray;
+	}
+
+	@Override
+	public void close() {
+		db.close();
+	}
 
 }

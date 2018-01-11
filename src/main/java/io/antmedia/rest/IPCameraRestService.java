@@ -30,12 +30,12 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
 
+import io.antmedia.datastore.db.MapDBStore;
+import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.ipcamera.ArchivedVideo;
 import io.antmedia.ipcamera.IPCameraApplicationAdapter;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.ipcamera.onvifdiscovery.OnvifDiscovery;
-import io.antmedia.ipcamera.utils.Camera;
-import io.antmedia.ipcamera.utils.CameraStore;
 import io.antmedia.rest.BroadcastRestService.Result;
 
 @Component
@@ -45,7 +45,7 @@ public class IPCameraRestService {
 	@Context
 	private ServletContext servletContext;
 
-	private CameraStore cameraStore;
+	private MapDBStore cameraStore;
 	private ApplicationContext appCtx;
 
 	private IPCameraApplicationAdapter app;
@@ -55,7 +55,7 @@ public class IPCameraRestService {
 	@GET
 	@Path("/getList")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Camera[] getCameraList() {
+	public Broadcast[] getCameraList() {
 		return getCameraStore().getCameraList();
 	}
 
@@ -69,7 +69,7 @@ public class IPCameraRestService {
 
 			if (ipAddr != null && ipAddr.length() > 0) {
 
-				Camera cam = getCameraStore().getCamera(ipAddr);
+				Broadcast cam = getCameraStore().getCamera(ipAddr);
 
 				if (cam == null) {
 
@@ -82,10 +82,11 @@ public class IPCameraRestService {
 						String authparam = username + ":" + password + "@";
 						String rtspURLWithAuth = "rtsp://" + authparam + rtspURL.substring("rtsp://".length());
 						System.out.println("rtsp url with auth:" + rtspURLWithAuth);
-						result = getCameraStore().addCamera(name, ipAddr, username, password, rtspURLWithAuth);
+						result = getCameraStore().addCamera(name, ipAddr, username, password, rtspURLWithAuth,
+								"ipCamera");
 						if (result) {
-
-							getApplicationInstance().startCameraStreaming(cam);
+							Broadcast newCam = getCameraStore().getCamera(ipAddr);
+							getApplicationInstance().startCameraStreaming(newCam);
 						}
 						onvif.disconnect();
 					}
@@ -102,7 +103,7 @@ public class IPCameraRestService {
 	public Result deleteCamera(@QueryParam("ipAddr") String ipAddr) {
 		boolean result = false;
 		logger.warn("inside of rest service" + ipAddr);
-		Camera cam = getCameraStore().getCamera(ipAddr);
+		Broadcast cam = getCameraStore().getCamera(ipAddr);
 
 		if (cam != null) {
 			getApplicationInstance().stopCameraStreaming(cam);
@@ -119,14 +120,14 @@ public class IPCameraRestService {
 			@QueryParam("rtspUrl") String rtspUrl) {
 		boolean result = false;
 		logger.warn("inside of rest service");
-		Camera cam = getCameraStore().getCamera(ipAddr);
+		Broadcast cam = getCameraStore().getCamera(ipAddr);
 		getApplicationInstance().stopCameraStreaming(cam);
 
 		result = getCameraStore().editCameraInfo(name, ipAddr, username, password, rtspUrl);
 
 		if (result = true) {
 
-			Camera newCam = getCameraStore().getCamera(ipAddr);
+			Broadcast newCam = getCameraStore().getCamera(ipAddr);
 			getApplicationInstance().startCameraStreaming(newCam);
 
 		}
@@ -207,10 +208,10 @@ public class IPCameraRestService {
 	@GET
 	@Path("/get")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Camera getCamera(@QueryParam("ipAddr") String ipAddr) {
-		Camera camera = getCameraStore().getCamera(ipAddr);
+	public Broadcast getCamera(@QueryParam("ipAddr") String ipAddr) {
+		Broadcast camera = getCameraStore().getCamera(ipAddr);
 		if (camera == null) {
-			camera = new Camera("null", "null", "null", "null", "null");
+			camera = new Broadcast("null", "null", "null", "null", "null", "null");
 		}
 		return camera;
 	}
@@ -327,15 +328,15 @@ public class IPCameraRestService {
 		return app;
 	}
 
-	public CameraStore getCameraStore() {
+	public MapDBStore getCameraStore() {
 		if (cameraStore == null) {
 			WebApplicationContext ctxt = WebApplicationContextUtils.getWebApplicationContext(servletContext);
-			cameraStore = (CameraStore) ctxt.getBean("cameraStore");
+			cameraStore = (MapDBStore) ctxt.getBean("db.datastore");
 		}
 		return cameraStore;
 	}
 
-	public void setCameraStore(CameraStore cameraStore) {
+	public void setCameraStore(MapDBStore cameraStore) {
 		this.cameraStore = cameraStore;
 	}
 

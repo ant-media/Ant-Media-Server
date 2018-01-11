@@ -1,5 +1,11 @@
 package io.antmedia.test.db;
-import static org.junit.Assert.*;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
@@ -9,7 +15,6 @@ import java.util.List;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.internal.runners.statements.Fail;
 import org.mongodb.morphia.Datastore;
 import org.mongodb.morphia.query.Query;
 
@@ -21,21 +26,19 @@ import io.antmedia.datastore.db.MongoStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 
-
 public class DBStoresUnitTest {
-
 
 	@Before
 	public void before() {
 		deleteMapDBFile();
-		
+
 	}
-	
+
 	@After
 	public void after() {
 		deleteMapDBFile();
 	}
-	
+
 	public void deleteMapDBFile() {
 		File f = new File("testdb");
 		if (f.exists()) {
@@ -48,14 +51,13 @@ public class DBStoresUnitTest {
 		}
 	}
 
-
 	@Test
 	public void testMapDBStore() {
 
 		IDataStore dataStore = new MapDBStore("testdb");
-		testGetPagination(dataStore);	
+		testGetPagination(dataStore);
 		testNullCheck(dataStore);
-		testSimpleOperations(dataStore);  
+		testSimpleOperations(dataStore);
 		testRemoveEndpoint(dataStore);
 
 	}
@@ -64,31 +66,30 @@ public class DBStoresUnitTest {
 	public void testMemoryDataStore() {
 
 		IDataStore dataStore = new InMemoryDataStore("testdb");
-		testGetPagination(dataStore);	
+		testGetPagination(dataStore);
 		testNullCheck(dataStore);
-		testSimpleOperations(dataStore);  
+		testSimpleOperations(dataStore);
 		testRemoveEndpoint(dataStore);
 
 	}
 
-	//TODO: open this functional test
-	//@Test
+	// TODO: open this functional test
+	// @Test
 	public void testMongoStore() {
 
 		IDataStore dataStore = new MongoStore("testdb");
-		Datastore store = ((MongoStore)dataStore).getDataStore();
+		Datastore store = ((MongoStore) dataStore).getDataStore();
 		Query<Broadcast> deleteQuery = store.find(Broadcast.class);
 		store.delete(deleteQuery);
 
-		testGetPagination(dataStore);	
+		testGetPagination(dataStore);
 		testNullCheck(dataStore);
-		testSimpleOperations(dataStore);  
+		testSimpleOperations(dataStore);
 		testRemoveEndpoint(dataStore);
 
 	}
 
 	public void testNullCheck(IDataStore dataStore) {
-
 
 		try {
 			String save = dataStore.save(null);
@@ -104,8 +105,7 @@ public class DBStoresUnitTest {
 			assertFalse(dataStore.updateStatus(null, "created"));
 
 			assertFalse(dataStore.addEndpoint(null, null));
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
@@ -113,14 +113,14 @@ public class DBStoresUnitTest {
 
 	public void testGetPagination(IDataStore dataStore) {
 
-		for (int i = 0; i < 36;i++) {
-			Broadcast broadcast = new Broadcast();
-			broadcast.setName(i+"");
+		for (int i = 0; i < 36; i++) {
+			Broadcast broadcast = new Broadcast(null, null);
+			broadcast.setName(i + "");
 			String key = dataStore.save(broadcast);
 			assertNotNull(key);
 			assertNotNull(broadcast.getStreamId());
 
-			assertEquals(dataStore.get(key).getName(), i+"");
+			assertEquals(dataStore.get(key).getName(), i + "");
 		}
 
 		List<Broadcast> broadcastList = dataStore.getBroadcastList(0, 10);
@@ -133,25 +133,24 @@ public class DBStoresUnitTest {
 			assertTrue(36 > Integer.valueOf(broadcastList.get(i).getName()));
 		}
 
-
 		broadcastList = dataStore.getBroadcastList(10, 10);
 		assertNotNull(broadcastList);
 		assertEquals(10, broadcastList.size());
 		for (int i = 0; i < broadcastList.size(); i++) {
-			//int count = 10 + i;
-			//assertEquals(count +"", broadcastList.get(i).getName());
+			// int count = 10 + i;
+			// assertEquals(count +"", broadcastList.get(i).getName());
 			assertTrue(0 <= Integer.valueOf(broadcastList.get(i).getName()));
 
 			assertTrue(36 > Integer.valueOf(broadcastList.get(i).getName()));
 		}
 
-
 		broadcastList = dataStore.getBroadcastList(20, 10);
 		assertNotNull(broadcastList);
 		assertEquals(10, broadcastList.size());
 		for (int i = 0; i < broadcastList.size(); i++) {
-			/*int count = 20 + i;
-			assertEquals(count +"", broadcastList.get(i).getName());
+			/*
+			 * int count = 20 + i; assertEquals(count +"",
+			 * broadcastList.get(i).getName());
 			 */
 
 			assertTrue(0 <= Integer.valueOf(broadcastList.get(i).getName()));
@@ -164,8 +163,8 @@ public class DBStoresUnitTest {
 		assertEquals(6, broadcastList.size());
 		for (int i = 0; i < broadcastList.size(); i++) {
 			/*
-			int count = 30 + i;
-			assertEquals(count +"", broadcastList.get(i).getName());
+			 * int count = 30 + i; assertEquals(count +"",
+			 * broadcastList.get(i).getName());
 			 */
 
 			assertTrue(0 <= Integer.valueOf(broadcastList.get(i).getName()));
@@ -175,7 +174,7 @@ public class DBStoresUnitTest {
 	}
 
 	public void testRemoveEndpoint(IDataStore dataStore) {
-		Broadcast broadcast = new Broadcast();
+		Broadcast broadcast = new Broadcast(null, null);
 		String name = "name 1";
 		String description = "description 2";
 		broadcast.setName(name);
@@ -198,7 +197,8 @@ public class DBStoresUnitTest {
 
 		rtmpUrl = "rtmp:(sdfsfsf(ksklasjflakjflaskjflsadfkjsal";
 		String endpointStreamId = "stream id 2";
-		Endpoint endPoint2 = new Endpoint("broacdast id 2", endpointStreamId, broadcast2.getName(), rtmpUrl, "facebook");
+		Endpoint endPoint2 = new Endpoint("broacdast id 2", endpointStreamId, broadcast2.getName(), rtmpUrl,
+				"facebook");
 
 		result = dataStore.addEndpoint(broadcast2.getStreamId().toString(), endPoint2);
 		assertTrue(result);
@@ -207,34 +207,33 @@ public class DBStoresUnitTest {
 		assertNotNull(broadcast2.getEndPointList());
 		assertEquals(broadcast2.getEndPointList().size(), 2);
 
-		//remove end point
+		// remove end point
 		result = dataStore.removeEndpoint(broadcast2.getStreamId(), endPoint);
 		assertTrue(result);
 		broadcast2 = dataStore.get(key);
 		assertNotNull(broadcast2.getEndPointList());
-		//its size should be 1
+		// its size should be 1
 		assertEquals(broadcast2.getEndPointList().size(), 1);
 
-
-		//endpoint2 should be in the list, check stream id
+		// endpoint2 should be in the list, check stream id
 		assertEquals(broadcast2.getEndPointList().get(0).streamId, endpointStreamId);
 
 		//
-		Endpoint endPoint3Clone = new Endpoint(endPoint2.broadcastId, endPoint2.streamId, endPoint2.name, endPoint2.rtmpUrl, endPoint2.type);
+		Endpoint endPoint3Clone = new Endpoint(endPoint2.broadcastId, endPoint2.streamId, endPoint2.name,
+				endPoint2.rtmpUrl, endPoint2.type);
 
-		//remove end point2
+		// remove end point2
 		result = dataStore.removeEndpoint(broadcast2.getStreamId(), endPoint3Clone);
 		assertTrue(result);
 		broadcast2 = dataStore.get(key);
 		assertTrue(broadcast2.getEndPointList() == null || broadcast2.getEndPointList().size() == 0);
-		
+
 	}
 
 	public void testSimpleOperations(IDataStore dataStore) {
 		try {
 
-
-			Broadcast broadcast = new Broadcast();
+			Broadcast broadcast = new Broadcast(null, null);
 			String key = dataStore.save(broadcast);
 
 			assertNotNull(key);
@@ -263,28 +262,28 @@ public class DBStoresUnitTest {
 
 			assertEquals(name, broadcast2.getName());
 			assertEquals(description, broadcast2.getDescription());
-			assertEquals(100000, (long)broadcast2.getDuration());
+			assertEquals(100000, (long) broadcast2.getDuration());
 
-
-			result = dataStore.updateStatus(broadcast.getStreamId().toString(), AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
+			result = dataStore.updateStatus(broadcast.getStreamId().toString(),
+					AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
 			assertTrue(result);
 
 			broadcast2 = dataStore.get(key);
 
 			assertEquals(name, broadcast2.getName());
 			assertEquals(description, broadcast2.getDescription());
-			assertEquals(100000, (long)broadcast2.getDuration());
+			assertEquals(100000, (long) broadcast2.getDuration());
 			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, broadcast2.getStatus());
 
-
-			result = dataStore.updateStatus(broadcast.getStreamId().toString(), AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+			result = dataStore.updateStatus(broadcast.getStreamId().toString(),
+					AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
 			assertTrue(result);
 
 			broadcast2 = dataStore.get(key);
 
 			assertEquals(name, broadcast2.getName());
 			assertEquals(description, broadcast2.getDescription());
-			assertEquals(100000, (long)broadcast2.getDuration());
+			assertEquals(100000, (long) broadcast2.getDuration());
 			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, broadcast2.getStatus());
 
 			assertEquals(null, broadcast2.getEndPointList());
@@ -304,7 +303,6 @@ public class DBStoresUnitTest {
 			assertEquals(broadcast2.getEndPointList().get(0).name, broadcast2.getName());
 			assertEquals(broadcast2.getEndPointList().get(0).rtmpUrl, rtmpUrl);
 
-
 			rtmpUrl = "rtmp:(sdfsfsf(ksklasjflakjflaskjflsadfkjsal";
 			endPoint = new Endpoint("broacdast id 2", "stream id 2", broadcast2.getName(), rtmpUrl, "facebook");
 
@@ -317,17 +315,14 @@ public class DBStoresUnitTest {
 			assertEquals(broadcast2.getEndPointList().get(1).name, broadcast2.getName());
 			assertEquals(broadcast2.getEndPointList().get(1).rtmpUrl, rtmpUrl);
 
-
 			result = dataStore.delete(key);
 			assertTrue(result);
 
 			assertNull(dataStore.get(key));
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-
 
 	}
 

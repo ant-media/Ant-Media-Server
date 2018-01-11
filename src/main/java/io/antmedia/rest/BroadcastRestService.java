@@ -76,11 +76,11 @@ public class BroadcastRestService {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Broadcast createBroadcast(Broadcast broadcast) {
 		if (broadcast == null) {
-			broadcast = new Broadcast();
+			broadcast = new Broadcast("null", "");
 		}
 		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
 		broadcast.setDate(System.currentTimeMillis());
-
+		logger.info(broadcast.getType());
 		String listenerHookURL = broadcast.getListenerHookURL();
 		if (listenerHookURL == null || listenerHookURL.length() == 0) {
 			AppSettings settings = getAppSettings();
@@ -276,7 +276,7 @@ public class BroadcastRestService {
 			broadcast = lookupBroadcast(id);
 		}
 		if (broadcast == null) {
-			broadcast = new Broadcast();
+			broadcast = new Broadcast(null, null);
 		}
 		return broadcast;
 	}

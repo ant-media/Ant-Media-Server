@@ -35,13 +35,13 @@ import org.red5.server.adapter.MultiThreadedApplicationAdapter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.antmedia.ipcamera.utils.Camera;
+import io.antmedia.datastore.db.types.Broadcast;
 
 class CameraScheduler implements ICameraStream {
 
 	protected static Logger logger = LoggerFactory.getLogger(CameraScheduler.class);
 
-	private Camera camera;
+	private Broadcast camera;
 
 	private MultiThreadedApplicationAdapter appAdaptor;
 
@@ -51,7 +51,7 @@ class CameraScheduler implements ICameraStream {
 
 	private long[] lastDTS;
 
-	CameraScheduler(Camera camera, MultiThreadedApplicationAdapter appAdaptor) {
+	CameraScheduler(Broadcast camera, MultiThreadedApplicationAdapter appAdaptor) {
 		this.camera = camera;
 		this.appAdaptor = appAdaptor;
 	}
@@ -67,7 +67,9 @@ class CameraScheduler implements ICameraStream {
 
 		av_dict_set(optionsDictionary, "rtsp_transport", "tcp", 0);
 		int ret;
-		if ((ret = avformat_open_input(inputFormatContext, camera.rtspUrl, null, optionsDictionary)) < 0) {
+		logger.info("camera rtsp url" + camera.getRtspUrl());
+
+		if ((ret = avformat_open_input(inputFormatContext, camera.getRtspUrl(), null, optionsDictionary)) < 0) {
 
 			byte[] data = new byte[1024];
 			avutil.av_strerror(ret, data, data.length);
@@ -130,7 +132,7 @@ class CameraScheduler implements ICameraStream {
 
 			// TODO: get application name from red5 context, do not use embedded
 			// url
-			String urlStr = "rtmp://localhost/LiveApp/" + camera.name;
+			String urlStr = "rtmp://localhost/LiveApp/" + camera.getName();
 			// logger.debug("rtmp url: " + urlStr);
 			//
 			ret = avformat.avio_open(pb, urlStr, AVIO_FLAG_WRITE);
@@ -176,7 +178,7 @@ class CameraScheduler implements ICameraStream {
 					avformat_free_context(outputRTMPFormatContext);
 				}
 
-				logger.warn("Prepare for " + camera.name + " returned false");
+				logger.warn("Prepare for " + camera.getName() + " returned false");
 				return;
 			}
 
@@ -289,7 +291,7 @@ class CameraScheduler implements ICameraStream {
 		return thread.isStopRequestReceived();
 	}
 
-	public Camera getCamera() {
+	public Broadcast getCamera() {
 		return camera;
 	}
 
