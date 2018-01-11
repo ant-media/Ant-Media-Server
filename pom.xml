@@ -11,7 +11,7 @@
 	<artifactId>ant-media-server</artifactId>
 	<version>1.2.0-SNAPSHOT</version>
 	<name>Ant Media Server</name>
-	<description>Ant Media Server supports RTMP, RTSP, MP4, HLS and WebRTC based on Red5</description>
+	<description>Ant Media Server supports RTMP, RTSP, MP4, HLS, WebRTC, Adaptive Streaming, etc.</description>
 	<packaging>jar</packaging>
 	<url>https://github.com/ant-media/Ant-Media-Server</url>
 	<organization>
@@ -66,6 +66,7 @@
 		<mapdb.version>3.0.5</mapdb.version>
     	    <maven.build.timestamp.format>yyMMdd_HHmm</maven.build.timestamp.format>
         <buildNumber>${maven.build.timestamp}</buildNumber>
+        <enunciate.version>2.10.0</enunciate.version>
 	</properties>
 
 	<build>
@@ -125,7 +126,7 @@
           		<artifactId>maven-surefire-plugin</artifactId>
        			<version>2.19.1</version>
           		<configuration>
-            		<skipTests>false</skipTests>
+            		<skipTests>true</skipTests>
           		</configuration>
         	</plugin>
 			<plugin>
@@ -155,6 +156,22 @@
 						</goals>
 					</execution>
 				</executions>
+			</plugin>
+			<plugin>
+		        <groupId>com.webcohesion.enunciate</groupId>
+		        <artifactId>enunciate-maven-plugin</artifactId>
+		        <version>${enunciate.version}</version>
+		        <executions>
+		           <execution>
+		                  <goals>
+		                    <goal>docs</goal>
+		                  </goals>
+		                  <configuration>
+		                    <configFile>enunciate.xml</configFile>
+		                    <docsDir>${project.build.directory}</docsDir>
+		                  </configuration>
+		           </execution>
+		        </executions>
 			</plugin>
 		</plugins>
 	</build>

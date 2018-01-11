@@ -43,9 +43,26 @@ import io.antmedia.storage.StorageClient.FileType;
 public class BroadcastRestService {
 
 	public static class Result {
+		
+		/**
+		 * Gives information about the operation. 
+		 * If it is true, operation is successfull
+		 * if it is false, operation is failed
+		 */
 		public boolean success = false;
+		
+		/**
+		 * Message may be filled when error happens so that developer may
+		 * understand what the problem is
+		 */
 		public String message;
 
+		/**
+		 * Constructor for the object
+		 * 
+		 * @param success
+		 * @param message
+		 */
 		public Result(boolean success, String message) {
 			this.success = success;
 			this.message = message;
@@ -68,6 +85,17 @@ public class BroadcastRestService {
 
 	protected static Logger logger = LoggerFactory.getLogger(BroadcastRestService.class);
 
+	/**
+	 * Creates a broadcast and returns the full broadcast object with rtmp address
+	 * and other information.
+	 * 
+	 * @param broadcast
+	 * Broadcast object only related information should be set, it may be null as well.
+	 * 
+	 * @return
+	 * {@link io.antmedia.datastore.db.types.Broadcast}
+	 * 
+	 */
 	@POST
 	@Consumes({MediaType.APPLICATION_JSON})
 	@Path("/broadcast/create")
@@ -96,6 +124,23 @@ public class BroadcastRestService {
 		return broadcast;
 	}
 
+	/**
+	 * Create broadcast and bind social networks at the same time
+	 * Server should be authorized in advance to make this service return success
+	 * 
+	 * @param broadcast
+	 * Broadcast 
+	 * {@link io.antmedia.datastore.db.types.Broadcast}
+	 * 
+	 * @param socialNetworksToPublish
+	 * Comma separated social network names
+	 * Social network names must in comma separated and names must match with the defined names
+	 * like facebook,periscope,youtube etc.
+	 * 
+	 * @return
+	 * {@link  io.antmedia.rest.BroadcastRestService.Result}
+	 * 
+	 */
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/broadcast/createWithSocial")
@@ -113,12 +158,22 @@ public class BroadcastRestService {
 		return getBroadcast(broadcast.getStreamId());
 	}
 
-
-
-
+	
 	/**
-	 * Updates broadcast name or status
-	 * @param broadcast
+	 * Updates broadcast name and description
+	 * 
+	 * @param id
+	 * id of the broadcast that is given when creating broadcast
+	 * 
+	 * @param name
+	 * New name of the broadcast
+	 * 
+	 * @param description
+	 * New description of the broadcast
+	 * 
+	 * @return
+	 * {@link  io.antmedia.rest.BroadcastRestService.Result}
+	 *  
 	 */
 	@POST
 	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
@@ -137,6 +192,19 @@ public class BroadcastRestService {
 	}
 
 
+	/**
+	 * Updates broadcast publishing field
+	 *  
+	 * @param id
+	 * id of the brodcast
+	 * 
+	 * @param publish
+	 * publish field true/false 
+	 * 
+	 * @return
+	 *  {@link  io.antmedia.rest.BroadcastRestService.Result}
+	 *  
+	 */
 	@POST
 	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	@Path("/broadcast/updatePublishStatus")
@@ -154,6 +222,16 @@ public class BroadcastRestService {
 		return new Result(success, message);
 	}
 
+	/**
+	 * Revoke authorization from a social network account that is authorized before
+	 * 
+	 * @param serviceName
+	 * Name of the service
+	 * 
+	 * @return
+	 * {@link  io.antmedia.rest.BroadcastRestService.Result}
+	 *  
+	 */
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/broadcast/revokeSocialNetwork/{serviceName}")
@@ -187,6 +265,19 @@ public class BroadcastRestService {
 	}
 
 
+	/**
+	 * Add social endpoint to a stream 
+	 * 
+	 * @param id of the broadcast
+	 * 
+	 * @param serviceName 
+	 * name of the service like facebook, youtube, periscope
+	 * in order to have successfull operation. Social network must be authorized in advance
+	 * 
+	 * @return
+	 * {@link  io.antmedia.rest.BroadcastRestService.Result}
+	 *  
+	 */
 	@POST
 	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	@Path("/broadcast/addSocialEndpoint")
@@ -238,6 +329,20 @@ public class BroadcastRestService {
 		return new Result(success, message);
 	}
 
+	/**
+	 * Add a third pary rtmp end point to the stream. When broadcast is started, it will send 
+	 * rtmp stream to this rtmp url as well.
+	 * 
+	 * @param id 
+	 * This is the id of broadcast
+	 * 
+	 * @param rtmpUrl 
+	 * rtmp url of the endpoint that stream will be republished
+	 * 
+	 * @return
+	 * {@link  io.antmedia.rest.BroadcastRestService.Result}
+	 * 
+	 */
 	@POST
 	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	@Path("/broadcast/addEndpoint")
@@ -274,9 +379,14 @@ public class BroadcastRestService {
 	}
 
 	/**
+	 * Get broadcast object 
 	 * 
 	 * @param id
-	 * @return nothing if broadcast is not found
+	 * id of the broadcast
+	 * 
+	 * @return broadcast object
+	 * nothing if broadcast is not found
+	 * 
 	 */
 	@GET
 	@Path("/broadcast/get")
@@ -294,6 +404,20 @@ public class BroadcastRestService {
 	}
 
 
+	/**
+	 * Gets the broadcast list from database
+	 * 
+	 * @param offset 
+	 * This is the offset of the list, it is useful for pagination,
+	 * 
+	 * @param size
+	 * Number of items that will be fetched. If there is not enough item in the datastore, 
+	 * returned list size may less then this value
+	 * 
+	 * @return
+	 * JSON broadcast list
+	 * 
+	 */
 	@GET
 	@Path("/broadcast/getList/{offset}/{size}")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -302,6 +426,15 @@ public class BroadcastRestService {
 	}
 
 
+	/**
+	 * Deletes vod file in the file system
+	 * 
+	 * @param fileName name of the file
+	 * 
+	 * @return
+	 * {@link  io.antmedia.rest.BroadcastRestService.Result}
+	 * 
+	 */
 	@POST 
 	@Consumes({MediaType.APPLICATION_JSON})
 	@Path("/broadcast/deleteVoDFile/{id}")
@@ -338,6 +471,21 @@ public class BroadcastRestService {
 	}
 
 
+	/**
+	 * Delete broadcast from data store
+	 * 
+	 * TODO: 
+	 * Stop publishing if it is being published
+	 * Delete all stream if it is vod
+	 * Delete all stream if vod is stored some under storage 
+	 *  
+	 * @param id
+	 * Id of the braodcast
+	 * 
+	 * @return
+	 * Result object with success field true or false
+	 * 
+	 */
 	@POST 
 	@Consumes({MediaType.APPLICATION_JSON})
 	@Path("/broadcast/delete/{id}")
@@ -386,6 +534,21 @@ public class BroadcastRestService {
 	}
 
 
+	/**
+	 * Get device parameters for social network authrozation. 
+	 * 
+	 * @param serviceName
+	 * Name of the service, like facebook,youtube,periscope
+	 * 
+	 * @return
+	 * If operation is successfull, DeviceAuthParameters is returned with related information.
+	 * 
+	 * User should go to {@link io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters#verification_url}
+	 * and enter {@link io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters#user_code} in a minute
+	 * 
+	 * If not successfull, it returns with Result object with message 
+	 * 
+	 */
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/broadcast/getDeviceAuthParameters/{serviceName}")
@@ -424,6 +587,22 @@ public class BroadcastRestService {
 		return new Result(false, message);
 	}
 
+	
+	/**
+	 * Check if device is authenticated in the social network. 
+	 * In authorization phase, this function may be polled periodically until it returns success.
+	 * Server checks social network service for about 1 minute so that if user does not enter DeviceAuthParameters in a 1 minute,
+	 * this function will never return true
+	 * 
+	 * @param serviceName
+	 * Name of the service facebook,youtube,periscope
+	 * 
+	 * @return
+	 * Result object with success field.
+	 * If success field is true, it is authenticated
+	 * if false, not authenticated
+	 * 
+	 */
 	@POST
 	@Consumes({MediaType.APPLICATION_JSON})
 	@Path("/broadcast/checkDeviceAuthStatus/{serviceName}")
@@ -443,6 +622,18 @@ public class BroadcastRestService {
 		return new Result(authenticated, null);
 	}
 
+	/**
+	 * Some social networks have different channels especially for facebook,
+	 * Live stream can be published on Facebook Page or Personal account, this service
+	 * returns the related information about that.
+	 * 
+	 * @param serviceName
+	 * Name of the social network (facebook,youtube,periscope)
+	 * 
+	 * @return
+	 * {@link  io.antmedia.datastore.db.types.SocialEndpointChannel}
+	 * 
+	 */
 	@GET
 	@Consumes({MediaType.APPLICATION_JSON})
 	@Path("/broadcast/getSocialNetworkChannel/{serviceName}")
@@ -464,6 +655,19 @@ public class BroadcastRestService {
 	}
 	
 	
+	/**
+	 * Returns available social network channels for the specific service
+	 * 
+	 * @param serviceName
+	 * Name of the social network
+	 * 
+	 * @param type
+	 * This is very service specific, it may be page for Facebook
+	 * 
+	 * @return
+	 * List of {@link  io.antmedia.datastore.db.types.SocialEndpointChannel}
+	 * 
+	 */
 	@GET
 	@Consumes({MediaType.APPLICATION_JSON})
 	@Path("/broadcast/getSocialNetworkChannelList/{serviceName}/{type}")
@@ -485,6 +689,22 @@ public class BroadcastRestService {
 		return channelList;
 	}
 	
+	/**
+	 * Sets channel that live stream will be published on specific social network channel
+	 * 
+	 * @param serviceName
+	 * Name of the social network service
+	 * 
+	 * @param type
+	 * Type of the channel
+	 * 
+	 * @param id
+	 * id of the channel 
+	 * 
+	 * @return
+	 * {@link  io.antmedia.rest.BroadcastRestService.Result}
+	 * 
+	 */
 	@POST
 	@Consumes({MediaType.APPLICATION_JSON})
 	@Path("/broadcast/setSocialNetworkChannel/{serviceName}/{type}/{id}")
