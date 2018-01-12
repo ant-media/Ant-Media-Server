@@ -14,7 +14,9 @@ import java.util.Enumeration;
 import java.util.List;
 
 import javax.servlet.ServletContext;
+import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
@@ -55,37 +57,36 @@ public class IPCameraRestService {
 	@GET
 	@Path("/getList")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Broadcast[] getCameraList() {
+	public List<Broadcast> getCameraList() {
 		return getCameraStore().getCameraList();
 	}
 
-	@GET
+	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/add")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result addCamera(@QueryParam("name") String name, @QueryParam("ipAddr") String ipAddr,
-			@QueryParam("username") String username, @QueryParam("password") String password) {
+	public Result addCamera(Broadcast camera) {
 		boolean result = false;
-		if (name != null && name.length() > 0) {
+		if (camera.getName() != null && camera.getName().length() > 0) {
 
-			if (ipAddr != null && ipAddr.length() > 0) {
+			if (camera.getIpAddr() != null && camera.getIpAddr().length() > 0) {
 
-				Broadcast cam = getCameraStore().getCamera(ipAddr);
-
-				if (cam == null) {
+				if (camera.getStreamId() == null) {
 
 					OnvifCamera onvif = new OnvifCamera();
-					onvif.connect(ipAddr, username, password);
+					onvif.connect(camera.getIpAddr(), camera.getUsername(), camera.getPassword());
 					String rtspURL = onvif.getRTSPStreamURI();
 
 					if (rtspURL != "no") {
 
-						String authparam = username + ":" + password + "@";
+						String authparam = camera.getUsername() + ":" + camera.getPassword() + "@";
 						String rtspURLWithAuth = "rtsp://" + authparam + rtspURL.substring("rtsp://".length());
 						System.out.println("rtsp url with auth:" + rtspURLWithAuth);
-						result = getCameraStore().addCamera(name, ipAddr, username, password, rtspURLWithAuth,
-								"ipCamera");
+						camera.setRtspUrl(rtspURLWithAuth);
+						result = getCameraStore().addCamera(camera);
+
 						if (result) {
-							Broadcast newCam = getCameraStore().getCamera(ipAddr);
+							Broadcast newCam = getCameraStore().getCamera(camera.getStreamId());
 							getApplicationInstance().startCameraStreaming(newCam);
 						}
 						onvif.disconnect();

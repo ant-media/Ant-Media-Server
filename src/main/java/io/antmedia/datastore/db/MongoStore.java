@@ -224,8 +224,7 @@ public class MongoStore implements IDataStore {
 	}
 
 	@Override
-	public boolean addCamera(String name, String ipAddr, String username, String password, String rtspUrl,
-			String type) {
+	public boolean addCamera(Broadcast camera) {
 		// TODO Auto-generated method stub
 		return false;
 	}
@@ -249,9 +248,10 @@ public class MongoStore implements IDataStore {
 	}
 
 	@Override
-	public Broadcast[] getCameraList() {
-		// TODO Auto-generated method stub
+	public List<Broadcast> getCameraList() {
+
 		return null;
+
 	}
 
 	@Override

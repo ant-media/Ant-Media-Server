@@ -132,7 +132,7 @@ class CameraScheduler implements ICameraStream {
 
 			// TODO: get application name from red5 context, do not use embedded
 			// url
-			String urlStr = "rtmp://localhost/LiveApp/" + camera.getName();
+			String urlStr = "rtmp://localhost/LiveApp/" + camera.getStreamId();
 			// logger.debug("rtmp url: " + urlStr);
 			//
 			ret = avformat.avio_open(pb, urlStr, AVIO_FLAG_WRITE);

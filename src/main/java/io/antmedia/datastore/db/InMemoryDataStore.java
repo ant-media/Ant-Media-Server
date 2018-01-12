@@ -168,8 +168,7 @@ public class InMemoryDataStore implements IDataStore {
 	}
 
 	@Override
-	public boolean addCamera(String name, String ipAddr, String username, String password, String rtspUrl,
-			String type) {
+	public boolean addCamera(Broadcast camera) {
 		// TODO Auto-generated method stub
 		return false;
 	}
@@ -193,7 +192,7 @@ public class InMemoryDataStore implements IDataStore {
 	}
 
 	@Override
-	public Broadcast[] getCameraList() {
+	public List<Broadcast> getCameraList() {
 		// TODO Auto-generated method stub
 		return null;
 	}

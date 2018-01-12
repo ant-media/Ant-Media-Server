@@ -1,14 +1,11 @@
 package io.antmedia.ipcamera.utils;
 
 import org.mapdb.DB;
-import org.mapdb.DBMaker;
 import org.mapdb.HTreeMap;
-import org.mapdb.Serializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 
 import io.antmedia.ipcamera.IPCameraApplicationAdapter;
 
@@ -23,12 +20,14 @@ public class CameraStore implements ICameraStore {
 	protected static Logger logger = LoggerFactory.getLogger(IPCameraApplicationAdapter.class);
 
 	public CameraStore() {
-		db = DBMaker.fileDB(CAMERA_STORAGE_FILE).fileMmapEnableIfSupported().closeOnJvmShutdown().make();
-		map = db.hashMap(CAMERA_STORAGE_MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
-				.counterEnable().createOrOpen();
-
-		GsonBuilder builder = new GsonBuilder();
-		gson = builder.create();
+		// db =
+		// DBMaker.fileDB(CAMERA_STORAGE_FILE).fileMmapEnableIfSupported().closeOnJvmShutdown().make();
+		// map =
+		// db.hashMap(CAMERA_STORAGE_MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
+		// .counterEnable().createOrOpen();
+		//
+		// GsonBuilder builder = new GsonBuilder();
+		// gson = builder.create();
 
 	}
 

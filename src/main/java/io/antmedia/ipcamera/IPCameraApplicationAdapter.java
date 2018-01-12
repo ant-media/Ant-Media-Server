@@ -83,9 +83,9 @@ public class IPCameraApplicationAdapter extends AntMediaApplicationAdapter {
 		super.disconnect(conn, scope);
 	}
 
-	public void startCameraStreaming(Broadcast camera) {
+	public void startCameraStreaming(Broadcast broadcast) {
 
-		CameraScheduler camScheduler = new CameraScheduler(camera, this);
+		CameraScheduler camScheduler = new CameraScheduler(broadcast, this);
 		camScheduler.startStream();
 		camSchedulerList.add(camScheduler);
 
@@ -109,10 +109,10 @@ public class IPCameraApplicationAdapter extends AntMediaApplicationAdapter {
 	public boolean appStart(IScope app) {
 		// addScheduledJob(RECORD_INTERVAL_IN_MS, cameraScheduler);
 
-		Broadcast[] cameras = getDataStore().getCameraList();
+		List<Broadcast> cameras = getDataStore().getCameraList();
 
-		for (int i = 0; i < cameras.length; i++) {
-			startCameraStreaming(cameras[i]);
+		for (int i = 0; i < cameras.size(); i++) {
+			startCameraStreaming(cameras.get(i));
 		}
 
 		addScheduledJobAfterDelay(60000, new IScheduledJob() {

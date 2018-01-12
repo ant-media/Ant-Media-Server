@@ -30,6 +30,7 @@ import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointChannel;
+import io.antmedia.ipcamera.IPCameraApplicationAdapter;
 import io.antmedia.muxer.Muxer;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
@@ -329,8 +330,30 @@ public class BroadcastRestService {
 		boolean success = false;
 		String message = null;
 
-		if (getDataStore().delete(id)) {
+		Broadcast cam = getDataStore().getCamera(id);
+
+		if (cam.getType().equals("ipCamera")) {
+
+			AntMediaApplicationAdapter application = getApplication();
+
+			if (application instanceof IPCameraApplicationAdapter) {
+				((IPCameraApplicationAdapter) application).stopCameraStreaming(cam);
+				success = getDataStore().deleteCamera(id);
+				message = "ip camera is deleted";
+				logger.info("ipcam is deleted");
+
+			} else {
+
+				logger.info("broadcast is not an IP Camera");
+			}
+
+		}
+
+		else if (getDataStore().delete(id)) {
 			success = true;
+			message = "broadcast is deleted";
+
+			logger.info("broadcast is deleted");
 
 			// if (getAppContext() != null)
 			// {
