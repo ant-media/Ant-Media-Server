@@ -16,7 +16,13 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
+import org.red5.server.api.scope.IBroadcastScope;
 import org.red5.server.api.scope.IScope;
+import org.red5.server.api.stream.IBroadcastStream;
+import org.red5.server.api.stream.IClientBroadcastStream;
+import org.red5.server.api.stream.IStreamService;
+import org.red5.server.stream.StreamService;
+import org.red5.server.util.ScopeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -156,6 +162,31 @@ public class BroadcastRestService {
 		}
 
 		return getBroadcast(broadcast.getStreamId());
+	}
+	
+	
+	
+	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/broadcast/stop/{streamId}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result stopBroadcast(@PathParam("streamId") String streamId) {
+		
+		boolean result = false;
+		String message = "";
+		IBroadcastStream broadcastStream = getApplication().getBroadcastStream(getScope(), streamId);
+		if (broadcastStream != null) {
+			((IClientBroadcastStream) broadcastStream).getConnection().close();
+			result = true;
+		}
+		else {
+			message = "No active broadcast found with id " + streamId;
+		}
+		
+		
+		
+		return new Result(result, message);
+		
 	}
 
 	

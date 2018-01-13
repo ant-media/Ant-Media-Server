@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -22,7 +23,9 @@ import org.apache.http.message.BasicNameValuePair;
 import org.red5.server.adapter.MultiThreadedApplicationAdapter;
 import org.red5.server.api.scheduling.IScheduledJob;
 import org.red5.server.api.scheduling.ISchedulingService;
+import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IBroadcastStream;
+import org.red5.server.api.stream.IStreamPublishSecurity;
 
 import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
@@ -42,6 +45,9 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 
 	private List<VideoServiceEndpoint> videoServiceEndpoints;
+	private List<IStreamPublishSecurity> streamPublishSecurityList;
+	
+	
 	private IDataStore dataStore;
 	public IDataStore getDataStore() {
 		return dataStore;
@@ -49,6 +55,19 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	public void setDataStore(IDataStore dataStore) {
 		this.dataStore = dataStore;
 	}
+	
+	
+	@Override
+	public boolean appStart(IScope app) {
+		if (getStreamPublishSecurityList() != null) 
+		{
+			for (IStreamPublishSecurity streamPublishSecurity : getStreamPublishSecurityList()) {
+				registerStreamPublishSecurity(streamPublishSecurity);
+			}
+		}
+		return super.appStart(app);
+	}
+	
 
 	@Override
 	public void streamBroadcastClose(IBroadcastStream stream) {
@@ -180,7 +199,8 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		}
 		return null;
 	}
-
+	
+	
 	@Override
 	public void muxingFinished(final String streamId, File file, long duration) {
 		String name = file.getName();
@@ -338,6 +358,12 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 		return response;
 
+	}
+	public List<IStreamPublishSecurity> getStreamPublishSecurityList() {
+		return streamPublishSecurityList;
+	}
+	public void setStreamPublishSecurityList(List<IStreamPublishSecurity> streamPublishSecurityList) {
+		this.streamPublishSecurityList = streamPublishSecurityList;
 	}
 
 }
