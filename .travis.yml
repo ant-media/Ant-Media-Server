@@ -23,5 +23,3 @@ deploy:
   api_key: $GITHUB_OAUTH_TOKEN
   file: "target/ant-media-server-community-1.2.0-SNAPSHOT.zip"
   skip_cleanup: true
-  on:
-    tags: true
