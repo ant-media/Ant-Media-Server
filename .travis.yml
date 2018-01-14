@@ -14,3 +14,14 @@ before_install:
   - sudo apt-get install ffmpeg -qq # start ffmpeg
   - sudo service mongod start  # start mongo db
   - git clone https://github.com/ant-media/Ant-Media-Server-Common.git && cd Ant-Media-Server-Common && mvn clean install -DskipTests && cd ..
+
+after_success:
+  - mvn clean package -P assemble
+
+deploy:
+  provider: releases
+  api_key: $GITHUB_OAUTH_TOKEN
+  file: "target/ant-media-server-community-1.2.0-SNAPSHOT.zip"
+  skip_cleanup: true
+  on:
+    tags: true
