@@ -26,4 +26,5 @@ deploy:
   name: "Ant Media Server Community 1.2.0-SNAPSHOT $(date +'%F-%T')"
   prerelease: true
   on:
+    tags: true
     branch: master
