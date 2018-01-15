@@ -64,6 +64,7 @@
           <li><a href="#resource_BroadcastRestService_getDeviceAuthParameters_POST"><abbr title="POST /broadcast/getDeviceAuthParameters/{serviceName}"><span class="sideoverflow">POST /broadcast/getDeviceAuthParameters/{serviceName}</span></abbr></a></li>
           <li><a href="#resource_BroadcastRestService_getSocialNetworkChannel_GET"><abbr title="GET /broadcast/getSocialNetworkChannel/{serviceName}"><span class="sideoverflow">GET /broadcast/getSocialNetworkChannel/{serviceName}</span></abbr></a></li>
           <li><a href="#resource_BroadcastRestService_revokeSocialNetwork_POST"><abbr title="POST /broadcast/revokeSocialNetwork/{serviceName}"><span class="sideoverflow">POST /broadcast/revokeSocialNetwork/{serviceName}</span></abbr></a></li>
+          <li><a href="#resource_BroadcastRestService_stopBroadcast_POST"><abbr title="POST /broadcast/stop/{streamId}"><span class="sideoverflow">POST /broadcast/stop/{streamId}</span></abbr></a></li>
           <li><a href="#resource_BroadcastRestService_getBroadcastList_GET"><abbr title="GET /broadcast/getList/{offset}/{size}"><span class="sideoverflow">GET /broadcast/getList/{offset}/{size}</span></abbr></a></li>
           <li><a href="#resource_BroadcastRestService_getSocialNetworkChannelList_GET"><abbr title="GET /broadcast/getSocialNetworkChannelList/{serviceName}/{type}"><span class="sideoverflow">GET /broadcast/getSocialNetworkChannelList/{serviceName}/{type}</span></abbr></a></li>
           <li><a href="#resource_BroadcastRestService_setSocialNetworkChannelList_POST"><abbr title="POST /broadcast/setSocialNetworkChannel/{serviceName}/{type}/{id}"><span class="sideoverflow">POST /broadcast/setSocialNetworkChannel/{serviceName}/{type}/{id}</span></abbr></a></li>
@@ -313,31 +314,32 @@ Accept: application/json
 
                 <code class="prettyprint language-js">
 {
-  &quot;description&quot; : &quot;...&quot;,
-  &quot;status&quot; : &quot;...&quot;,
-  &quot;streamId&quot; : &quot;...&quot;,
-  &quot;endPointList&quot; : [ {
-    &quot;broadcastId&quot; : &quot;...&quot;,
-    &quot;streamId&quot; : &quot;...&quot;,
-    &quot;type&quot; : &quot;...&quot;,
-    &quot;rtmpUrl&quot; : &quot;...&quot;,
-    &quot;name&quot; : &quot;...&quot;
-  }, {
-    &quot;broadcastId&quot; : &quot;...&quot;,
-    &quot;streamId&quot; : &quot;...&quot;,
-    &quot;type&quot; : &quot;...&quot;,
-    &quot;rtmpUrl&quot; : &quot;...&quot;,
-    &quot;name&quot; : &quot;...&quot;
-  } ],
-  &quot;name&quot; : &quot;...&quot;,
-  &quot;is360&quot; : true,
-  &quot;plannedStartDate&quot; : 12345,
-  &quot;duration&quot; : 12345,
-  &quot;listenerHookURL&quot; : &quot;...&quot;,
-  &quot;publish&quot; : true,
   &quot;publicStream&quot; : true,
+  &quot;duration&quot; : 12345,
+  &quot;date&quot; : 12345,
   &quot;category&quot; : &quot;...&quot;,
-  &quot;date&quot; : 12345
+  &quot;streamId&quot; : &quot;...&quot;,
+  &quot;name&quot; : &quot;...&quot;,
+  &quot;expireDurationMS&quot; : 12345,
+  &quot;description&quot; : &quot;...&quot;,
+  &quot;is360&quot; : true,
+  &quot;endPointList&quot; : [ {
+    &quot;streamId&quot; : &quot;...&quot;,
+    &quot;name&quot; : &quot;...&quot;,
+    &quot;broadcastId&quot; : &quot;...&quot;,
+    &quot;type&quot; : &quot;...&quot;,
+    &quot;rtmpUrl&quot; : &quot;...&quot;
+  }, {
+    &quot;streamId&quot; : &quot;...&quot;,
+    &quot;name&quot; : &quot;...&quot;,
+    &quot;broadcastId&quot; : &quot;...&quot;,
+    &quot;type&quot; : &quot;...&quot;,
+    &quot;rtmpUrl&quot; : &quot;...&quot;
+  } ],
+  &quot;plannedStartDate&quot; : 12345,
+  &quot;publish&quot; : true,
+  &quot;status&quot; : &quot;...&quot;,
+  &quot;listenerHookURL&quot; : &quot;...&quot;
 }
                 </code>
               </pre>
@@ -350,31 +352,32 @@ Content-Type: application/json
 
                 <code class="prettyprint language-js">
 {
-  &quot;description&quot; : &quot;...&quot;,
-  &quot;status&quot; : &quot;...&quot;,
-  &quot;streamId&quot; : &quot;...&quot;,
-  &quot;endPointList&quot; : [ {
-    &quot;broadcastId&quot; : &quot;...&quot;,
-    &quot;streamId&quot; : &quot;...&quot;,
-    &quot;type&quot; : &quot;...&quot;,
-    &quot;rtmpUrl&quot; : &quot;...&quot;,
-    &quot;name&quot; : &quot;...&quot;
-  }, {
-    &quot;broadcastId&quot; : &quot;...&quot;,
-    &quot;streamId&quot; : &quot;...&quot;,
-    &quot;type&quot; : &quot;...&quot;,
-    &quot;rtmpUrl&quot; : &quot;...&quot;,
-    &quot;name&quot; : &quot;...&quot;
-  } ],
-  &quot;name&quot; : &quot;...&quot;,
-  &quot;is360&quot; : true,
-  &quot;plannedStartDate&quot; : 12345,
-  &quot;duration&quot; : 12345,
-  &quot;listenerHookURL&quot; : &quot;...&quot;,
-  &quot;publish&quot; : true,
   &quot;publicStream&quot; : true,
+  &quot;duration&quot; : 12345,
+  &quot;date&quot; : 12345,
   &quot;category&quot; : &quot;...&quot;,
-  &quot;date&quot; : 12345
+  &quot;streamId&quot; : &quot;...&quot;,
+  &quot;name&quot; : &quot;...&quot;,
+  &quot;expireDurationMS&quot; : 12345,
+  &quot;description&quot; : &quot;...&quot;,
+  &quot;is360&quot; : true,
+  &quot;endPointList&quot; : [ {
+    &quot;streamId&quot; : &quot;...&quot;,
+    &quot;name&quot; : &quot;...&quot;,
+    &quot;broadcastId&quot; : &quot;...&quot;,
+    &quot;type&quot; : &quot;...&quot;,
+    &quot;rtmpUrl&quot; : &quot;...&quot;
+  }, {
+    &quot;streamId&quot; : &quot;...&quot;,
+    &quot;name&quot; : &quot;...&quot;,
+    &quot;broadcastId&quot; : &quot;...&quot;,
+    &quot;type&quot; : &quot;...&quot;,
+    &quot;rtmpUrl&quot; : &quot;...&quot;
+  } ],
+  &quot;plannedStartDate&quot; : 12345,
+  &quot;publish&quot; : true,
+  &quot;status&quot; : &quot;...&quot;,
+  &quot;listenerHookURL&quot; : &quot;...&quot;
 }
                 </code>
               </pre>
@@ -470,31 +473,32 @@ Accept: application/json
 
                 <code class="prettyprint language-js">
 {
-  &quot;description&quot; : &quot;...&quot;,
-  &quot;status&quot; : &quot;...&quot;,
-  &quot;streamId&quot; : &quot;...&quot;,
-  &quot;endPointList&quot; : [ {
-    &quot;broadcastId&quot; : &quot;...&quot;,
-    &quot;streamId&quot; : &quot;...&quot;,
-    &quot;type&quot; : &quot;...&quot;,
-    &quot;rtmpUrl&quot; : &quot;...&quot;,
-    &quot;name&quot; : &quot;...&quot;
-  }, {
-    &quot;broadcastId&quot; : &quot;...&quot;,
-    &quot;streamId&quot; : &quot;...&quot;,
-    &quot;type&quot; : &quot;...&quot;,
-    &quot;rtmpUrl&quot; : &quot;...&quot;,
-    &quot;name&quot; : &quot;...&quot;
-  } ],
-  &quot;name&quot; : &quot;...&quot;,
-  &quot;is360&quot; : true,
-  &quot;plannedStartDate&quot; : 12345,
-  &quot;duration&quot; : 12345,
-  &quot;listenerHookURL&quot; : &quot;...&quot;,
-  &quot;publish&quot; : true,
   &quot;publicStream&quot; : true,
+  &quot;duration&quot; : 12345,
+  &quot;date&quot; : 12345,
   &quot;category&quot; : &quot;...&quot;,
-  &quot;date&quot; : 12345
+  &quot;streamId&quot; : &quot;...&quot;,
+  &quot;name&quot; : &quot;...&quot;,
+  &quot;expireDurationMS&quot; : 12345,
+  &quot;description&quot; : &quot;...&quot;,
+  &quot;is360&quot; : true,
+  &quot;endPointList&quot; : [ {
+    &quot;streamId&quot; : &quot;...&quot;,
+    &quot;name&quot; : &quot;...&quot;,
+    &quot;broadcastId&quot; : &quot;...&quot;,
+    &quot;type&quot; : &quot;...&quot;,
+    &quot;rtmpUrl&quot; : &quot;...&quot;
+  }, {
+    &quot;streamId&quot; : &quot;...&quot;,
+    &quot;name&quot; : &quot;...&quot;,
+    &quot;broadcastId&quot; : &quot;...&quot;,
+    &quot;type&quot; : &quot;...&quot;,
+    &quot;rtmpUrl&quot; : &quot;...&quot;
+  } ],
+  &quot;plannedStartDate&quot; : 12345,
+  &quot;publish&quot; : true,
+  &quot;status&quot; : &quot;...&quot;,
+  &quot;listenerHookURL&quot; : &quot;...&quot;
 }
                 </code>
               </pre>
@@ -507,31 +511,32 @@ Content-Type: application/json
 
                 <code class="prettyprint language-js">
 {
-  &quot;description&quot; : &quot;...&quot;,
-  &quot;status&quot; : &quot;...&quot;,
-  &quot;streamId&quot; : &quot;...&quot;,
-  &quot;endPointList&quot; : [ {
-    &quot;broadcastId&quot; : &quot;...&quot;,
-    &quot;streamId&quot; : &quot;...&quot;,
-    &quot;type&quot; : &quot;...&quot;,
-    &quot;rtmpUrl&quot; : &quot;...&quot;,
-    &quot;name&quot; : &quot;...&quot;
-  }, {
-    &quot;broadcastId&quot; : &quot;...&quot;,
-    &quot;streamId&quot; : &quot;...&quot;,
-    &quot;type&quot; : &quot;...&quot;,
-    &quot;rtmpUrl&quot; : &quot;...&quot;,
-    &quot;name&quot; : &quot;...&quot;
-  } ],
-  &quot;name&quot; : &quot;...&quot;,
-  &quot;is360&quot; : true,
-  &quot;plannedStartDate&quot; : 12345,
-  &quot;duration&quot; : 12345,
-  &quot;listenerHookURL&quot; : &quot;...&quot;,
-  &quot;publish&quot; : true,
   &quot;publicStream&quot; : true,
+  &quot;duration&quot; : 12345,
+  &quot;date&quot; : 12345,
   &quot;category&quot; : &quot;...&quot;,
-  &quot;date&quot; : 12345
+  &quot;streamId&quot; : &quot;...&quot;,
+  &quot;name&quot; : &quot;...&quot;,
+  &quot;expireDurationMS&quot; : 12345,
+  &quot;description&quot; : &quot;...&quot;,
+  &quot;is360&quot; : true,
+  &quot;endPointList&quot; : [ {
+    &quot;streamId&quot; : &quot;...&quot;,
+    &quot;name&quot; : &quot;...&quot;,
+    &quot;broadcastId&quot; : &quot;...&quot;,
+    &quot;type&quot; : &quot;...&quot;,
+    &quot;rtmpUrl&quot; : &quot;...&quot;
+  }, {
+    &quot;streamId&quot; : &quot;...&quot;,
+    &quot;name&quot; : &quot;...&quot;,
+    &quot;broadcastId&quot; : &quot;...&quot;,
+    &quot;type&quot; : &quot;...&quot;,
+    &quot;rtmpUrl&quot; : &quot;...&quot;
+  } ],
+  &quot;plannedStartDate&quot; : 12345,
+  &quot;publish&quot; : true,
+  &quot;status&quot; : &quot;...&quot;,
+  &quot;listenerHookURL&quot; : &quot;...&quot;
 }
                 </code>
               </pre>
@@ -607,31 +612,32 @@ Content-Type: application/json
 
                 <code class="prettyprint language-js">
 {
-  &quot;description&quot; : &quot;...&quot;,
-  &quot;status&quot; : &quot;...&quot;,
-  &quot;streamId&quot; : &quot;...&quot;,
-  &quot;endPointList&quot; : [ {
-    &quot;broadcastId&quot; : &quot;...&quot;,
-    &quot;streamId&quot; : &quot;...&quot;,
-    &quot;type&quot; : &quot;...&quot;,
-    &quot;rtmpUrl&quot; : &quot;...&quot;,
-    &quot;name&quot; : &quot;...&quot;
-  }, {
-    &quot;broadcastId&quot; : &quot;...&quot;,
-    &quot;streamId&quot; : &quot;...&quot;,
-    &quot;type&quot; : &quot;...&quot;,
-    &quot;rtmpUrl&quot; : &quot;...&quot;,
-    &quot;name&quot; : &quot;...&quot;
-  } ],
-  &quot;name&quot; : &quot;...&quot;,
-  &quot;is360&quot; : true,
-  &quot;plannedStartDate&quot; : 12345,
-  &quot;duration&quot; : 12345,
-  &quot;listenerHookURL&quot; : &quot;...&quot;,
-  &quot;publish&quot; : true,
   &quot;publicStream&quot; : true,
+  &quot;duration&quot; : 12345,
+  &quot;date&quot; : 12345,
   &quot;category&quot; : &quot;...&quot;,
-  &quot;date&quot; : 12345
+  &quot;streamId&quot; : &quot;...&quot;,
+  &quot;name&quot; : &quot;...&quot;,
+  &quot;expireDurationMS&quot; : 12345,
+  &quot;description&quot; : &quot;...&quot;,
+  &quot;is360&quot; : true,
+  &quot;endPointList&quot; : [ {
+    &quot;streamId&quot; : &quot;...&quot;,
+    &quot;name&quot; : &quot;...&quot;,
+    &quot;broadcastId&quot; : &quot;...&quot;,
+    &quot;type&quot; : &quot;...&quot;,
+    &quot;rtmpUrl&quot; : &quot;...&quot;
+  }, {
+    &quot;streamId&quot; : &quot;...&quot;,
+    &quot;name&quot; : &quot;...&quot;,
+    &quot;broadcastId&quot; : &quot;...&quot;,
+    &quot;type&quot; : &quot;...&quot;,
+    &quot;rtmpUrl&quot; : &quot;...&quot;
+  } ],
+  &quot;plannedStartDate&quot; : 12345,
+  &quot;publish&quot; : true,
+  &quot;status&quot; : &quot;...&quot;,
+  &quot;listenerHookURL&quot; : &quot;...&quot;
 }
                 </code>
               </pre>
@@ -1194,8 +1200,8 @@ Content-Type: application/json
 
                 <code class="prettyprint language-js">
 {
-  &quot;name&quot; : &quot;...&quot;,
   &quot;id&quot; : &quot;...&quot;,
+  &quot;name&quot; : &quot;...&quot;,
   &quot;type&quot; : &quot;...&quot;
 }
                 </code>
@@ -1259,6 +1265,82 @@ Content-Type: application/json
               <h5>Request</h5>
               <pre>
 POST /broadcast/revokeSocialNetwork/{serviceName}
+Accept: application/json
+
+              </pre>
+            </div>
+            <div class="col-md-6">
+              <h5>Response</h5>
+              <pre>
+HTTP/1.1 201 Created
+Content-Type: application/json
+
+                <code class="prettyprint language-js">
+{
+  &quot;success&quot; : true,
+  &quot;message&quot; : &quot;...&quot;
+}
+                </code>
+              </pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="resource_BroadcastRestService_stopBroadcast_POST">
+        <h3><span class="label label-default resource-method">POST</span> <span class="resource-path">/broadcast/stop/{streamId} <a href="../broadcast/stop/{streamId}" class="glyphicon glyphicon-new-window" target="_blank"></a></span></h3>
+
+        <p></p>
+
+        <table class="table resource-parameters">
+          <caption>Request Parameters</caption>
+          <thead>
+          <tr>
+            <th>name</th>
+            <th>type</th>
+            <th>description</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td><span class="parameter-name">streamId</span></td>
+            <td>path</td>
+            <td><span class="parameter-description"></span></td>
+          </tr>
+          </tbody>
+        </table>
+
+        <table class="table resource-response-body">
+          <caption>Response Body</caption>
+          <thead>
+          <tr>
+            <th>media type</th>
+            <th>data type</th>
+            <th>description</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td><abbr data-toggle="tooltip" data-placement="top" title="Use the &quot;Accept: application/json&quot; HTTP header to request that this media type be provided by the server."><span class="response-type">application/json</span></abbr></td>
+            <td><span class="datatype-reference"><a href="json_Result.html">Result</a>
+ (JSON)</span></td>
+            <td rowspan="2" class="multi-row-description"><span class="response-description"></span></td>
+          </tr>
+          <tr>
+            <td><abbr data-toggle="tooltip" data-placement="top" title="Use the &quot;Accept: application/json&quot; HTTP header to request that this media type be provided by the server."><span class="response-type">application/json</span></abbr></td>
+            <td><span class="datatype-reference"><a href="json_Result.html">Result</a>
+ (JSON)</span></td>
+          </tr>
+          </tbody>
+        </table>
+        <h4>Example</h4>
+
+        <div class="container-fluid example panel">
+          <div class="row panel-body">
+            <div class="col-md-6">
+              <h5>Request</h5>
+              <pre>
+POST /broadcast/stop/{streamId}
 Accept: application/json
 
               </pre>
@@ -1356,31 +1438,32 @@ Content-Type: application/json
 
                 <code class="prettyprint language-js">
 [ {
-  &quot;description&quot; : &quot;...&quot;,
-  &quot;status&quot; : &quot;...&quot;,
-  &quot;streamId&quot; : &quot;...&quot;,
-  &quot;endPointList&quot; : [ {
-    &quot;broadcastId&quot; : &quot;...&quot;,
-    &quot;streamId&quot; : &quot;...&quot;,
-    &quot;type&quot; : &quot;...&quot;,
-    &quot;rtmpUrl&quot; : &quot;...&quot;,
-    &quot;name&quot; : &quot;...&quot;
-  }, {
-    &quot;broadcastId&quot; : &quot;...&quot;,
-    &quot;streamId&quot; : &quot;...&quot;,
-    &quot;type&quot; : &quot;...&quot;,
-    &quot;rtmpUrl&quot; : &quot;...&quot;,
-    &quot;name&quot; : &quot;...&quot;
-  } ],
-  &quot;name&quot; : &quot;...&quot;,
-  &quot;is360&quot; : true,
-  &quot;plannedStartDate&quot; : 12345,
-  &quot;duration&quot; : 12345,
-  &quot;listenerHookURL&quot; : &quot;...&quot;,
-  &quot;publish&quot; : true,
   &quot;publicStream&quot; : true,
+  &quot;duration&quot; : 12345,
+  &quot;date&quot; : 12345,
   &quot;category&quot; : &quot;...&quot;,
-  &quot;date&quot; : 12345
+  &quot;streamId&quot; : &quot;...&quot;,
+  &quot;name&quot; : &quot;...&quot;,
+  &quot;expireDurationMS&quot; : 12345,
+  &quot;description&quot; : &quot;...&quot;,
+  &quot;is360&quot; : true,
+  &quot;endPointList&quot; : [ {
+    &quot;streamId&quot; : &quot;...&quot;,
+    &quot;name&quot; : &quot;...&quot;,
+    &quot;broadcastId&quot; : &quot;...&quot;,
+    &quot;type&quot; : &quot;...&quot;,
+    &quot;rtmpUrl&quot; : &quot;...&quot;
+  }, {
+    &quot;streamId&quot; : &quot;...&quot;,
+    &quot;name&quot; : &quot;...&quot;,
+    &quot;broadcastId&quot; : &quot;...&quot;,
+    &quot;type&quot; : &quot;...&quot;,
+    &quot;rtmpUrl&quot; : &quot;...&quot;
+  } ],
+  &quot;plannedStartDate&quot; : 12345,
+  &quot;publish&quot; : true,
+  &quot;status&quot; : &quot;...&quot;,
+  &quot;listenerHookURL&quot; : &quot;...&quot;
 } ]
                 </code>
               </pre>
@@ -1460,8 +1543,8 @@ Content-Type: application/json
 
                 <code class="prettyprint language-js">
 [ {
-  &quot;name&quot; : &quot;...&quot;,
   &quot;id&quot; : &quot;...&quot;,
+  &quot;name&quot; : &quot;...&quot;,
   &quot;type&quot; : &quot;...&quot;
 } ]
                 </code>

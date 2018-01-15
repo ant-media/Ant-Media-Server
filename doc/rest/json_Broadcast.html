@@ -64,6 +64,7 @@
           <li><a href="#resource_BroadcastRestService_getDeviceAuthParameters_POST"><abbr title="POST /broadcast/getDeviceAuthParameters/{serviceName}"><span class="sideoverflow">POST /broadcast/getDeviceAuthParameters/{serviceName}</span></abbr></a></li>
           <li><a href="#resource_BroadcastRestService_getSocialNetworkChannel_GET"><abbr title="GET /broadcast/getSocialNetworkChannel/{serviceName}"><span class="sideoverflow">GET /broadcast/getSocialNetworkChannel/{serviceName}</span></abbr></a></li>
           <li><a href="#resource_BroadcastRestService_revokeSocialNetwork_POST"><abbr title="POST /broadcast/revokeSocialNetwork/{serviceName}"><span class="sideoverflow">POST /broadcast/revokeSocialNetwork/{serviceName}</span></abbr></a></li>
+          <li><a href="#resource_BroadcastRestService_stopBroadcast_POST"><abbr title="POST /broadcast/stop/{streamId}"><span class="sideoverflow">POST /broadcast/stop/{streamId}</span></abbr></a></li>
           <li><a href="#resource_BroadcastRestService_getBroadcastList_GET"><abbr title="GET /broadcast/getList/{offset}/{size}"><span class="sideoverflow">GET /broadcast/getList/{offset}/{size}</span></abbr></a></li>
           <li><a href="#resource_BroadcastRestService_getSocialNetworkChannelList_GET"><abbr title="GET /broadcast/getSocialNetworkChannelList/{serviceName}/{type}"><span class="sideoverflow">GET /broadcast/getSocialNetworkChannelList/{serviceName}/{type}</span></abbr></a></li>
           <li><a href="#resource_BroadcastRestService_setSocialNetworkChannelList_POST"><abbr title="POST /broadcast/setSocialNetworkChannel/{serviceName}/{type}/{id}"><span class="sideoverflow">POST /broadcast/setSocialNetworkChannel/{serviceName}/{type}/{id}</span></abbr></a></li>
@@ -97,60 +98,6 @@
         </thead>
         <tbody>
         <tr>
-          <td>  <span class="property-name">date</span>
-</td>
-          <td>  <span class="datatype-reference">number
-</span>
-</td>
-          <td>  <span class="property-description"></span>
-</td>
-        </tr>
-        <tr>
-          <td>  <span class="property-name">publish</span>
-</td>
-          <td>  <span class="datatype-reference">boolean
-</span>
-</td>
-          <td>  <span class="property-description"></span>
-</td>
-        </tr>
-        <tr>
-          <td>  <span class="property-name">publicStream</span>
-</td>
-          <td>  <span class="datatype-reference">boolean
-</span>
-</td>
-          <td>  <span class="property-description"></span>
-</td>
-        </tr>
-        <tr>
-          <td>  <span class="property-name">category</span>
-</td>
-          <td>  <span class="datatype-reference">string
-</span>
-</td>
-          <td>  <span class="property-description"></span>
-</td>
-        </tr>
-        <tr>
-          <td>  <span class="property-name">status</span>
-</td>
-          <td>  <span class="datatype-reference">string
-</span>
-</td>
-          <td>  <span class="property-description"></span>
-</td>
-        </tr>
-        <tr>
-          <td>  <span class="property-name">streamId</span>
-</td>
-          <td>  <span class="datatype-reference">string
-</span>
-</td>
-          <td>  <span class="property-description"></span>
-</td>
-        </tr>
-        <tr>
           <td>  <span class="property-name">description</span>
 </td>
           <td>  <span class="datatype-reference">string
@@ -160,7 +107,16 @@
 </td>
         </tr>
         <tr>
-          <td>  <span class="property-name">is360</span>
+          <td>  <span class="property-name">name</span>
+</td>
+          <td>  <span class="datatype-reference">string
+</span>
+</td>
+          <td>  <span class="property-description"></span>
+</td>
+        </tr>
+        <tr>
+          <td>  <span class="property-name">publish</span>
 </td>
           <td>  <span class="datatype-reference">boolean
 </span>
@@ -178,7 +134,70 @@
 </td>
         </tr>
         <tr>
+          <td>  <span class="property-name">status</span>
+</td>
+          <td>  <span class="datatype-reference">string
+</span>
+</td>
+          <td>  <span class="property-description"></span>
+</td>
+        </tr>
+        <tr>
+          <td>  <span class="property-name">category</span>
+</td>
+          <td>  <span class="datatype-reference">string
+</span>
+</td>
+          <td>  <span class="property-description"></span>
+</td>
+        </tr>
+        <tr>
+          <td>  <span class="property-name">publicStream</span>
+</td>
+          <td>  <span class="datatype-reference">boolean
+</span>
+</td>
+          <td>  <span class="property-description"></span>
+</td>
+        </tr>
+        <tr>
+          <td>  <span class="property-name">expireDurationMS</span>
+</td>
+          <td>  <span class="datatype-reference">number
+</span>
+</td>
+          <td>  <span class="property-description"></span>
+</td>
+        </tr>
+        <tr>
           <td>  <span class="property-name">duration</span>
+</td>
+          <td>  <span class="datatype-reference">number
+</span>
+</td>
+          <td>  <span class="property-description"></span>
+</td>
+        </tr>
+        <tr>
+          <td>  <span class="property-name">is360</span>
+</td>
+          <td>  <span class="datatype-reference">boolean
+</span>
+</td>
+          <td>  <span class="property-description"></span>
+</td>
+        </tr>
+        <tr>
+          <td>  <span class="property-name">listenerHookURL</span>
+</td>
+          <td>  <span class="datatype-reference">string
+</span>
+</td>
+          <td>  <span class="property-description"></span>
+</td>
+        </tr>
+        <tr>
+          <td>  <span class="property-name">date</span>
 </td>
           <td>  <span class="datatype-reference">number
 </span>
@@ -196,16 +215,7 @@
 </td>
         </tr>
         <tr>
-          <td>  <span class="property-name">name</span>
-</td>
-          <td>  <span class="datatype-reference">string
-</span>
-</td>
-          <td>  <span class="property-description"></span>
-</td>
-        </tr>
-        <tr>
-          <td>  <span class="property-name">listenerHookURL</span>
+          <td>  <span class="property-name">streamId</span>
 </td>
           <td>  <span class="datatype-reference">string
 </span>
@@ -219,31 +229,32 @@
       <p class="lead">Example</p>
       
       <pre class="prettyprint language-js example">{
-  &quot;date&quot; : 12345,
-  &quot;publish&quot; : true,
-  &quot;publicStream&quot; : true,
-  &quot;category&quot; : &quot;...&quot;,
-  &quot;status&quot; : &quot;...&quot;,
-  &quot;streamId&quot; : &quot;...&quot;,
   &quot;description&quot; : &quot;...&quot;,
-  &quot;is360&quot; : true,
+  &quot;name&quot; : &quot;...&quot;,
+  &quot;publish&quot; : true,
   &quot;endPointList&quot; : [ {
-    &quot;streamId&quot; : &quot;...&quot;,
     &quot;rtmpUrl&quot; : &quot;...&quot;,
-    &quot;broadcastId&quot; : &quot;...&quot;,
     &quot;name&quot; : &quot;...&quot;,
+    &quot;streamId&quot; : &quot;...&quot;,
+    &quot;broadcastId&quot; : &quot;...&quot;,
     &quot;type&quot; : &quot;...&quot;
   }, {
-    &quot;streamId&quot; : &quot;...&quot;,
     &quot;rtmpUrl&quot; : &quot;...&quot;,
-    &quot;broadcastId&quot; : &quot;...&quot;,
     &quot;name&quot; : &quot;...&quot;,
+    &quot;streamId&quot; : &quot;...&quot;,
+    &quot;broadcastId&quot; : &quot;...&quot;,
     &quot;type&quot; : &quot;...&quot;
   } ],
+  &quot;status&quot; : &quot;...&quot;,
+  &quot;category&quot; : &quot;...&quot;,
+  &quot;publicStream&quot; : true,
+  &quot;expireDurationMS&quot; : 12345,
   &quot;duration&quot; : 12345,
+  &quot;is360&quot; : true,
+  &quot;listenerHookURL&quot; : &quot;...&quot;,
+  &quot;date&quot; : 12345,
   &quot;plannedStartDate&quot; : 12345,
-  &quot;name&quot; : &quot;...&quot;,
-  &quot;listenerHookURL&quot; : &quot;...&quot;
+  &quot;streamId&quot; : &quot;...&quot;
 }</pre>
 
         <footer class="footer">

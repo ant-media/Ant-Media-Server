@@ -64,6 +64,7 @@
           <li><a href="#resource_BroadcastRestService_getDeviceAuthParameters_POST"><abbr title="POST /broadcast/getDeviceAuthParameters/{serviceName}"><span class="sideoverflow">POST /broadcast/getDeviceAuthParameters/{serviceName}</span></abbr></a></li>
           <li><a href="#resource_BroadcastRestService_getSocialNetworkChannel_GET"><abbr title="GET /broadcast/getSocialNetworkChannel/{serviceName}"><span class="sideoverflow">GET /broadcast/getSocialNetworkChannel/{serviceName}</span></abbr></a></li>
           <li><a href="#resource_BroadcastRestService_revokeSocialNetwork_POST"><abbr title="POST /broadcast/revokeSocialNetwork/{serviceName}"><span class="sideoverflow">POST /broadcast/revokeSocialNetwork/{serviceName}</span></abbr></a></li>
+          <li><a href="#resource_BroadcastRestService_stopBroadcast_POST"><abbr title="POST /broadcast/stop/{streamId}"><span class="sideoverflow">POST /broadcast/stop/{streamId}</span></abbr></a></li>
           <li><a href="#resource_BroadcastRestService_getBroadcastList_GET"><abbr title="GET /broadcast/getList/{offset}/{size}"><span class="sideoverflow">GET /broadcast/getList/{offset}/{size}</span></abbr></a></li>
           <li><a href="#resource_BroadcastRestService_getSocialNetworkChannelList_GET"><abbr title="GET /broadcast/getSocialNetworkChannelList/{serviceName}/{type}"><span class="sideoverflow">GET /broadcast/getSocialNetworkChannelList/{serviceName}/{type}</span></abbr></a></li>
           <li><a href="#resource_BroadcastRestService_setSocialNetworkChannelList_POST"><abbr title="POST /broadcast/setSocialNetworkChannel/{serviceName}/{type}/{id}"><span class="sideoverflow">POST /broadcast/setSocialNetworkChannel/{serviceName}/{type}/{id}</span></abbr></a></li>
@@ -106,7 +107,7 @@
 </td>
         </tr>
         <tr>
-          <td>  <span class="property-name">id</span>
+          <td>  <span class="property-name">name</span>
 </td>
           <td>  <span class="datatype-reference">string
 </span>
@@ -115,7 +116,7 @@
 </td>
         </tr>
         <tr>
-          <td>  <span class="property-name">name</span>
+          <td>  <span class="property-name">id</span>
 </td>
           <td>  <span class="datatype-reference">string
 </span>
@@ -130,8 +131,8 @@
       
       <pre class="prettyprint language-js example">{
   &quot;type&quot; : &quot;...&quot;,
-  &quot;id&quot; : &quot;...&quot;,
-  &quot;name&quot; : &quot;...&quot;
+  &quot;name&quot; : &quot;...&quot;,
+  &quot;id&quot; : &quot;...&quot;
 }</pre>
 
         <footer class="footer">

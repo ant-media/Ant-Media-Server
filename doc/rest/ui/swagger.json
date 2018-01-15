@@ -1,7 +1,7 @@
 {
   "swagger": "2.0",
   "info" : {
-    "description" : "<h1>Ant Media Server<\/h1><p>Ant Media Server supports RTMP, RTSP, MP4, HLS and WebRTC based on Red5<\/p>",
+    "description" : "<h1>Ant Media Server<\/h1><p>Ant Media Server supports RTMP, RTSP, MP4, HLS, WebRTC, Adaptive Streaming, etc.<\/p>",
     "license" : {
       "url" : "http://www.apache.org/licenses/LICENSE-2.0.txt",
       "name" : "Apache 2"
@@ -21,12 +21,22 @@
       "type" : "object",
       "title" : "Broadcast",
           "properties" : {
-            "description" : {
+            "publicStream" : {
             "readOnly" : false,
 "description" : "",
-"type" : "string"
+"type" : "boolean"
             },
-            "status" : {
+            "duration" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "number"
+            },
+            "date" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "number"
+            },
+            "category" : {
             "readOnly" : false,
 "description" : "",
 "type" : "string"
@@ -36,15 +46,17 @@
 "description" : "",
 "type" : "string"
             },
-            "endPointList" : {
+            "name" : {
             "readOnly" : false,
 "description" : "",
-"type" : "array",
-"items" : {
-  "$ref" : "#/definitions/json_Endpoint"
-}
+"type" : "string"
             },
-            "name" : {
+            "expireDurationMS" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "number"
+            },
+            "description" : {
             "readOnly" : false,
 "description" : "",
 "type" : "string"
@@ -54,260 +66,61 @@
 "description" : "",
 "type" : "boolean"
             },
+            "endPointList" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "array",
+"items" : {
+  "$ref" : "#/definitions/json_Endpoint"
+}
+            },
             "plannedStartDate" : {
             "readOnly" : false,
 "description" : "",
 "type" : "number"
-            },
-            "duration" : {
-            "readOnly" : false,
-"description" : "",
-"type" : "number"
-            },
-            "listenerHookURL" : {
-            "readOnly" : false,
-"description" : "",
-"type" : "string"
             },
             "publish" : {
             "readOnly" : false,
 "description" : "",
 "type" : "boolean"
             },
-            "publicStream" : {
-            "readOnly" : false,
-"description" : "",
-"type" : "boolean"
-            },
-            "category" : {
+            "status" : {
             "readOnly" : false,
 "description" : "",
 "type" : "string"
             },
-            "date" : {
+            "listenerHookURL" : {
             "readOnly" : false,
 "description" : "",
-"type" : "number"
+"type" : "string"
             }
           },
       "example" : {
-  "description" : "...",
-  "status" : "...",
-  "streamId" : "...",
-  "endPointList" : [ {
-    "broadcastId" : "...",
-    "streamId" : "...",
-    "type" : "...",
-    "rtmpUrl" : "...",
-    "name" : "..."
-  }, {
-    "broadcastId" : "...",
-    "streamId" : "...",
-    "type" : "...",
-    "rtmpUrl" : "...",
-    "name" : "..."
-  } ],
-  "name" : "...",
-  "is360" : true,
-  "plannedStartDate" : 12345,
-  "duration" : 12345,
-  "listenerHookURL" : "...",
-  "publish" : true,
   "publicStream" : true,
-  "category" : "...",
-  "date" : 12345
-},
-      "description" : ""
-    }
-    ,
-    "json_Endpoint" : {
-      "type" : "object",
-      "title" : "Endpoint",
-          "properties" : {
-            "broadcastId" : {
-            "readOnly" : false,
-"description" : "",
-"type" : "string"
-            },
-            "streamId" : {
-            "readOnly" : false,
-"description" : "",
-"type" : "string"
-            },
-            "type" : {
-            "readOnly" : false,
-"description" : "",
-"type" : "string"
-            },
-            "rtmpUrl" : {
-            "readOnly" : false,
-"description" : "",
-"type" : "string"
-            },
-            "name" : {
-            "readOnly" : false,
-"description" : "",
-"type" : "string"
-            }
-          },
-      "example" : {
-  "broadcastId" : "...",
-  "streamId" : "...",
-  "type" : "...",
-  "rtmpUrl" : "...",
-  "name" : "..."
-},
-      "description" : ""
-    }
-    ,
-    "json_Result" : {
-      "type" : "object",
-      "title" : "Result",
-          "properties" : {
-            "success" : {
-            "readOnly" : false,
-"description" : "Gives information about the operation.\nIf it is true, operation is successfull\nif it is false, operation is failed",
-"type" : "boolean"
-            },
-            "message" : {
-            "readOnly" : false,
-"description" : "Message may be filled when error happens so that developer may\nunderstand what the problem is",
-"type" : "string"
-            }
-          },
-      "example" : {
-  "success" : true,
-  "message" : "..."
-},
-      "description" : ""
-    }
-    ,
-    "json_SocialEndpointChannel" : {
-      "type" : "object",
-      "title" : "SocialEndpointChannel",
-          "properties" : {
-            "name" : {
-            "readOnly" : false,
-"description" : "",
-"type" : "string"
-            },
-            "id" : {
-            "readOnly" : false,
-"description" : "",
-"type" : "string"
-            },
-            "type" : {
-            "readOnly" : false,
-"description" : "",
-"type" : "string"
-            }
-          },
-      "example" : {
-  "name" : "...",
-  "id" : "...",
-  "type" : "..."
-},
-      "description" : ""
-    }
-    ,
-    "json_Broadcast" : {
-      "type" : "object",
-      "title" : "Broadcast",
-          "properties" : {
-            "date" : {
-            "readOnly" : false,
-"description" : "",
-"type" : "number"
-            },
-            "publish" : {
-            "readOnly" : false,
-"description" : "",
-"type" : "boolean"
-            },
-            "publicStream" : {
-            "readOnly" : false,
-"description" : "",
-"type" : "boolean"
-            },
-            "category" : {
-            "readOnly" : false,
-"description" : "",
-"type" : "string"
-            },
-            "status" : {
-            "readOnly" : false,
-"description" : "",
-"type" : "string"
-            },
-            "streamId" : {
-            "readOnly" : false,
-"description" : "",
-"type" : "string"
-            },
-            "description" : {
-            "readOnly" : false,
-"description" : "",
-"type" : "string"
-            },
-            "is360" : {
-            "readOnly" : false,
-"description" : "",
-"type" : "boolean"
-            },
-            "endPointList" : {
-            "readOnly" : false,
-"description" : "",
-"type" : "array",
-"items" : {
-  "$ref" : "#/definitions/json_Endpoint"
-}
-            },
-            "duration" : {
-            "readOnly" : false,
-"description" : "",
-"type" : "number"
-            },
-            "plannedStartDate" : {
-            "readOnly" : false,
-"description" : "",
-"type" : "number"
-            },
-            "name" : {
-            "readOnly" : false,
-"description" : "",
-"type" : "string"
-            },
-            "listenerHookURL" : {
-            "readOnly" : false,
-"description" : "",
-"type" : "string"
-            }
-          },
-      "example" : {
+  "duration" : 12345,
   "date" : 12345,
-  "publish" : true,
-  "publicStream" : true,
   "category" : "...",
-  "status" : "...",
   "streamId" : "...",
+  "name" : "...",
+  "expireDurationMS" : 12345,
   "description" : "...",
   "is360" : true,
   "endPointList" : [ {
     "streamId" : "...",
-    "rtmpUrl" : "...",
-    "broadcastId" : "...",
     "name" : "...",
-    "type" : "..."
+    "broadcastId" : "...",
+    "type" : "...",
+    "rtmpUrl" : "..."
   }, {
     "streamId" : "...",
-    "rtmpUrl" : "...",
-    "broadcastId" : "...",
     "name" : "...",
-    "type" : "..."
+    "broadcastId" : "...",
+    "type" : "...",
+    "rtmpUrl" : "..."
   } ],
-  "duration" : 12345,
   "plannedStartDate" : 12345,
-  "name" : "...",
+  "publish" : true,
+  "status" : "...",
   "listenerHookURL" : "..."
 },
       "description" : ""
@@ -322,12 +135,64 @@
 "description" : "",
 "type" : "string"
             },
-            "rtmpUrl" : {
+            "name" : {
             "readOnly" : false,
 "description" : "",
 "type" : "string"
             },
             "broadcastId" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "string"
+            },
+            "type" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "string"
+            },
+            "rtmpUrl" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "string"
+            }
+          },
+      "example" : {
+  "streamId" : "...",
+  "name" : "...",
+  "broadcastId" : "...",
+  "type" : "...",
+  "rtmpUrl" : "..."
+},
+      "description" : ""
+    }
+    ,
+    "json_Result" : {
+      "type" : "object",
+      "title" : "Result",
+          "properties" : {
+            "success" : {
+            "readOnly" : false,
+"description" : "Gives information about the operation.\nIf it is true, operation is successfull\nif it is false, operation is failed",
+"type" : "boolean"
+            },
+            "message" : {
+            "readOnly" : false,
+"description" : "Message may be filled when error happens so that developer may\nunderstand what the problem is",
+"type" : "string"
+            }
+          },
+      "example" : {
+  "success" : true,
+  "message" : "..."
+},
+      "description" : ""
+    }
+    ,
+    "json_SocialEndpointChannel" : {
+      "type" : "object",
+      "title" : "SocialEndpointChannel",
+          "properties" : {
+            "id" : {
             "readOnly" : false,
 "description" : "",
 "type" : "string"
@@ -344,10 +209,157 @@
             }
           },
       "example" : {
-  "streamId" : "...",
-  "rtmpUrl" : "...",
-  "broadcastId" : "...",
+  "id" : "...",
   "name" : "...",
+  "type" : "..."
+},
+      "description" : ""
+    }
+    ,
+    "json_Broadcast" : {
+      "type" : "object",
+      "title" : "Broadcast",
+          "properties" : {
+            "description" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "string"
+            },
+            "name" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "string"
+            },
+            "publish" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "boolean"
+            },
+            "endPointList" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "array",
+"items" : {
+  "$ref" : "#/definitions/json_Endpoint"
+}
+            },
+            "status" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "string"
+            },
+            "category" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "string"
+            },
+            "publicStream" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "boolean"
+            },
+            "expireDurationMS" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "number"
+            },
+            "duration" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "number"
+            },
+            "is360" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "boolean"
+            },
+            "listenerHookURL" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "string"
+            },
+            "date" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "number"
+            },
+            "plannedStartDate" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "number"
+            },
+            "streamId" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "string"
+            }
+          },
+      "example" : {
+  "description" : "...",
+  "name" : "...",
+  "publish" : true,
+  "endPointList" : [ {
+    "rtmpUrl" : "...",
+    "name" : "...",
+    "streamId" : "...",
+    "broadcastId" : "...",
+    "type" : "..."
+  }, {
+    "rtmpUrl" : "...",
+    "name" : "...",
+    "streamId" : "...",
+    "broadcastId" : "...",
+    "type" : "..."
+  } ],
+  "status" : "...",
+  "category" : "...",
+  "publicStream" : true,
+  "expireDurationMS" : 12345,
+  "duration" : 12345,
+  "is360" : true,
+  "listenerHookURL" : "...",
+  "date" : 12345,
+  "plannedStartDate" : 12345,
+  "streamId" : "..."
+},
+      "description" : ""
+    }
+    ,
+    "json_Endpoint" : {
+      "type" : "object",
+      "title" : "Endpoint",
+          "properties" : {
+            "rtmpUrl" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "string"
+            },
+            "name" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "string"
+            },
+            "streamId" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "string"
+            },
+            "broadcastId" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "string"
+            },
+            "type" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "string"
+            }
+          },
+      "example" : {
+  "rtmpUrl" : "...",
+  "name" : "...",
+  "streamId" : "...",
+  "broadcastId" : "...",
   "type" : "..."
 },
       "description" : ""
@@ -384,12 +396,12 @@
 "description" : "",
 "type" : "string"
             },
-            "id" : {
+            "name" : {
             "readOnly" : false,
 "description" : "",
 "type" : "string"
             },
-            "name" : {
+            "id" : {
             "readOnly" : false,
 "description" : "",
 "type" : "string"
@@ -397,8 +409,8 @@
           },
       "example" : {
   "type" : "...",
-  "id" : "...",
-  "name" : "..."
+  "name" : "...",
+  "id" : "..."
 },
       "description" : ""
     }
@@ -531,31 +543,32 @@
 "$ref" : "#/definitions/json_Broadcast"
             },
             "example" : {
-  "date" : 12345,
-  "publish" : true,
-  "publicStream" : true,
-  "category" : "...",
-  "status" : "...",
-  "streamId" : "...",
   "description" : "...",
-  "is360" : true,
+  "name" : "...",
+  "publish" : true,
   "endPointList" : [ {
-    "streamId" : "...",
     "rtmpUrl" : "...",
-    "broadcastId" : "...",
     "name" : "...",
+    "streamId" : "...",
+    "broadcastId" : "...",
     "type" : "..."
   }, {
-    "streamId" : "...",
     "rtmpUrl" : "...",
-    "broadcastId" : "...",
     "name" : "...",
+    "streamId" : "...",
+    "broadcastId" : "...",
     "type" : "..."
   } ],
+  "status" : "...",
+  "category" : "...",
+  "publicStream" : true,
+  "expireDurationMS" : 12345,
   "duration" : 12345,
+  "is360" : true,
+  "listenerHookURL" : "...",
+  "date" : 12345,
   "plannedStartDate" : 12345,
-  "name" : "...",
-  "listenerHookURL" : "..."
+  "streamId" : "..."
 },
             "description" : "io.antmedia.datastore.db.types.Broadcast"
           }
@@ -593,31 +606,32 @@
 "$ref" : "#/definitions/json_Broadcast"
             },
             "example" : {
-  "date" : 12345,
-  "publish" : true,
-  "publicStream" : true,
-  "category" : "...",
-  "status" : "...",
-  "streamId" : "...",
   "description" : "...",
-  "is360" : true,
+  "name" : "...",
+  "publish" : true,
   "endPointList" : [ {
-    "streamId" : "...",
     "rtmpUrl" : "...",
-    "broadcastId" : "...",
     "name" : "...",
+    "streamId" : "...",
+    "broadcastId" : "...",
     "type" : "..."
   }, {
-    "streamId" : "...",
     "rtmpUrl" : "...",
-    "broadcastId" : "...",
     "name" : "...",
+    "streamId" : "...",
+    "broadcastId" : "...",
     "type" : "..."
   } ],
+  "status" : "...",
+  "category" : "...",
+  "publicStream" : true,
+  "expireDurationMS" : 12345,
   "duration" : 12345,
+  "is360" : true,
+  "listenerHookURL" : "...",
+  "date" : 12345,
   "plannedStartDate" : 12345,
-  "name" : "...",
-  "listenerHookURL" : "..."
+  "streamId" : "..."
 },
             "description" : "io.antmedia.rest.BroadcastRestService.Result"
           }
@@ -708,31 +722,32 @@
 "$ref" : "#/definitions/json_Broadcast"
             },
             "example" : {
-  "date" : 12345,
-  "publish" : true,
-  "publicStream" : true,
-  "category" : "...",
-  "status" : "...",
-  "streamId" : "...",
   "description" : "...",
-  "is360" : true,
+  "name" : "...",
+  "publish" : true,
   "endPointList" : [ {
-    "streamId" : "...",
     "rtmpUrl" : "...",
-    "broadcastId" : "...",
     "name" : "...",
+    "streamId" : "...",
+    "broadcastId" : "...",
     "type" : "..."
   }, {
-    "streamId" : "...",
     "rtmpUrl" : "...",
-    "broadcastId" : "...",
     "name" : "...",
+    "streamId" : "...",
+    "broadcastId" : "...",
     "type" : "..."
   } ],
+  "status" : "...",
+  "category" : "...",
+  "publicStream" : true,
+  "expireDurationMS" : 12345,
   "duration" : 12345,
+  "is360" : true,
+  "listenerHookURL" : "...",
+  "date" : 12345,
   "plannedStartDate" : 12345,
-  "name" : "...",
-  "listenerHookURL" : "..."
+  "streamId" : "..."
 },
             "description" : "broadcast object\nnothing if broadcast is not found"
           }
@@ -803,31 +818,32 @@
 }
             },
             "example" : {
-  "date" : 12345,
-  "publish" : true,
-  "publicStream" : true,
-  "category" : "...",
-  "status" : "...",
-  "streamId" : "...",
   "description" : "...",
-  "is360" : true,
+  "name" : "...",
+  "publish" : true,
   "endPointList" : [ {
-    "streamId" : "...",
     "rtmpUrl" : "...",
-    "broadcastId" : "...",
     "name" : "...",
+    "streamId" : "...",
+    "broadcastId" : "...",
     "type" : "..."
   }, {
-    "streamId" : "...",
     "rtmpUrl" : "...",
-    "broadcastId" : "...",
     "name" : "...",
+    "streamId" : "...",
+    "broadcastId" : "...",
     "type" : "..."
   } ],
+  "status" : "...",
+  "category" : "...",
+  "publicStream" : true,
+  "expireDurationMS" : 12345,
   "duration" : 12345,
+  "is360" : true,
+  "listenerHookURL" : "...",
+  "date" : 12345,
   "plannedStartDate" : 12345,
-  "name" : "...",
-  "listenerHookURL" : "..."
+  "streamId" : "..."
 },
             "description" : "JSON broadcast list"
           }
@@ -858,8 +874,8 @@
             },
             "example" : {
   "type" : "...",
-  "id" : "...",
-  "name" : "..."
+  "name" : "...",
+  "id" : "..."
 },
             "description" : "io.antmedia.datastore.db.types.SocialEndpointChannel"
           }
@@ -901,8 +917,8 @@
             },
             "example" : {
   "type" : "...",
-  "id" : "...",
-  "name" : "..."
+  "name" : "...",
+  "id" : "..."
 },
             "description" : "List of io.antmedia.datastore.db.types.SocialEndpointChannel"
           }
@@ -981,6 +997,36 @@
   "message" : "..."
 },
             "description" : "io.antmedia.rest.BroadcastRestService.Result"
+          }
+        }
+      }
+    }
+    ,
+    "\/broadcast/stop/{streamId}" : {
+      "post" : {
+        "tags" : [ "BroadcastRestService" ],
+        "description" : "",
+        "operationId" : "stopBroadcast",
+        "produces" : [ "application/json" ],
+        "parameters" : [
+          {
+            "name" : "streamId",
+            "in" : "path",
+            "required" : true,
+            "type" : "string",
+            "description" : ""
+          }
+        ],
+        "responses" : {
+          "201" : {
+            "schema" : {
+"$ref" : "#/definitions/json_Result"
+            },
+            "example" : {
+  "success" : true,
+  "message" : "..."
+},
+            "description" : ""
           }
         }
       }

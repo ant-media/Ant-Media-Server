@@ -236,6 +236,22 @@ returns the related information about that.]]></wadl:doc>
       </wadl:param>
     </wadl:resource>
 
+    <wadl:resource path="broadcast/stop/{streamId}">
+      <wadl:method name="POST">
+        <wadl:doc><![CDATA[]]></wadl:doc>
+        <wadl:request>
+        </wadl:request>
+        <wadl:response>
+          <wadl:doc><![CDATA[]]></wadl:doc>
+          <wadl:representation mediaType="application/json"/>
+          <wadl:representation mediaType="application/json"/>
+        </wadl:response>
+      </wadl:method>
+      <wadl:param name="streamId" style="template">
+        <wadl:doc><![CDATA[]]></wadl:doc>
+      </wadl:param>
+    </wadl:resource>
+
     <wadl:resource path="broadcast/getList/{offset}/{size}">
       <wadl:method name="GET">
         <wadl:doc><![CDATA[Gets the broadcast list from database]]></wadl:doc>

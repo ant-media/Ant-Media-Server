@@ -179,17 +179,17 @@ module Types
   class SocialEndpointChannel 
 
     # (no documentation provided)
-    attr_accessor :name
-    # (no documentation provided)
     attr_accessor :id
+    # (no documentation provided)
+    attr_accessor :name
     # (no documentation provided)
     attr_accessor :type
 
     # the json hash for this SocialEndpointChannel
     def to_jaxb_json_hash
       _h = {}
-      _h['name'] = name.to_jaxb_json_hash unless name.nil?
       _h['id'] = id.to_jaxb_json_hash unless id.nil?
+      _h['name'] = name.to_jaxb_json_hash unless name.nil?
       _h['type'] = type.to_jaxb_json_hash unless type.nil?
       return _h
     end
@@ -201,25 +201,6 @@ module Types
 
     #initializes this SocialEndpointChannel with a json hash
     def init_jaxb_json_hash(_o)
-        if !_o['name'].nil?
-          _oa = _o['name']
-            if(_oa.is_a? Hash)
-              @name = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
-              @name =  String.from_json(_oa) unless _oa['@class']
-            elsif (_oa.is_a? Array)
-              #an array(of hashes hopefully) or scalar
-              @name = Array.new
-              _oa.each { | _item | 
-                 if ((_item.nil? || _item['@class'].nil?)rescue true)
-                   @name.push String.from_json(_item)
-                 else
-                   @name.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
-                 end
-               }
-            else
-                @name = _oa
-            end
-          end
         if !_o['id'].nil?
           _oa = _o['id']
             if(_oa.is_a? Hash)
@@ -237,6 +218,25 @@ module Types
                }
             else
                 @id = _oa
+            end
+          end
+        if !_o['name'].nil?
+          _oa = _o['name']
+            if(_oa.is_a? Hash)
+              @name = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
+              @name =  String.from_json(_oa) unless _oa['@class']
+            elsif (_oa.is_a? Array)
+              #an array(of hashes hopefully) or scalar
+              @name = Array.new
+              _oa.each { | _item | 
+                 if ((_item.nil? || _item['@class'].nil?)rescue true)
+                   @name.push String.from_json(_item)
+                 else
+                   @name.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
+                 end
+               }
+            else
+                @name = _oa
             end
           end
         if !_o['type'].nil?
@@ -296,24 +296,24 @@ module Types
   class Endpoint 
 
     # (no documentation provided)
-    attr_accessor :broadcastId
-    # (no documentation provided)
     attr_accessor :streamId
+    # (no documentation provided)
+    attr_accessor :name
+    # (no documentation provided)
+    attr_accessor :broadcastId
     # (no documentation provided)
     attr_accessor :type
     # (no documentation provided)
     attr_accessor :rtmpUrl
-    # (no documentation provided)
-    attr_accessor :name
 
     # the json hash for this Endpoint
     def to_jaxb_json_hash
       _h = {}
-      _h['broadcastId'] = broadcastId.to_jaxb_json_hash unless broadcastId.nil?
       _h['streamId'] = streamId.to_jaxb_json_hash unless streamId.nil?
+      _h['name'] = name.to_jaxb_json_hash unless name.nil?
+      _h['broadcastId'] = broadcastId.to_jaxb_json_hash unless broadcastId.nil?
       _h['type'] = type.to_jaxb_json_hash unless type.nil?
       _h['rtmpUrl'] = rtmpUrl.to_jaxb_json_hash unless rtmpUrl.nil?
-      _h['name'] = name.to_jaxb_json_hash unless name.nil?
       return _h
     end
 
@@ -324,25 +324,6 @@ module Types
 
     #initializes this Endpoint with a json hash
     def init_jaxb_json_hash(_o)
-        if !_o['broadcastId'].nil?
-          _oa = _o['broadcastId']
-            if(_oa.is_a? Hash)
-              @broadcastId = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
-              @broadcastId =  String.from_json(_oa) unless _oa['@class']
-            elsif (_oa.is_a? Array)
-              #an array(of hashes hopefully) or scalar
-              @broadcastId = Array.new
-              _oa.each { | _item | 
-                 if ((_item.nil? || _item['@class'].nil?)rescue true)
-                   @broadcastId.push String.from_json(_item)
-                 else
-                   @broadcastId.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
-                 end
-               }
-            else
-                @broadcastId = _oa
-            end
-          end
         if !_o['streamId'].nil?
           _oa = _o['streamId']
             if(_oa.is_a? Hash)
@@ -360,6 +341,44 @@ module Types
                }
             else
                 @streamId = _oa
+            end
+          end
+        if !_o['name'].nil?
+          _oa = _o['name']
+            if(_oa.is_a? Hash)
+              @name = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
+              @name =  String.from_json(_oa) unless _oa['@class']
+            elsif (_oa.is_a? Array)
+              #an array(of hashes hopefully) or scalar
+              @name = Array.new
+              _oa.each { | _item | 
+                 if ((_item.nil? || _item['@class'].nil?)rescue true)
+                   @name.push String.from_json(_item)
+                 else
+                   @name.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
+                 end
+               }
+            else
+                @name = _oa
+            end
+          end
+        if !_o['broadcastId'].nil?
+          _oa = _o['broadcastId']
+            if(_oa.is_a? Hash)
+              @broadcastId = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
+              @broadcastId =  String.from_json(_oa) unless _oa['@class']
+            elsif (_oa.is_a? Array)
+              #an array(of hashes hopefully) or scalar
+              @broadcastId = Array.new
+              _oa.each { | _item | 
+                 if ((_item.nil? || _item['@class'].nil?)rescue true)
+                   @broadcastId.push String.from_json(_item)
+                 else
+                   @broadcastId.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
+                 end
+               }
+            else
+                @broadcastId = _oa
             end
           end
         if !_o['type'].nil?
@@ -400,25 +419,6 @@ module Types
                 @rtmpUrl = _oa
             end
           end
-        if !_o['name'].nil?
-          _oa = _o['name']
-            if(_oa.is_a? Hash)
-              @name = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
-              @name =  String.from_json(_oa) unless _oa['@class']
-            elsif (_oa.is_a? Array)
-              #an array(of hashes hopefully) or scalar
-              @name = Array.new
-              _oa.each { | _item | 
-                 if ((_item.nil? || _item['@class'].nil?)rescue true)
-                   @name.push String.from_json(_item)
-                 else
-                   @name.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
-                 end
-               }
-            else
-                @name = _oa
-            end
-          end
     end
 
     # constructs a Endpoint from a (parsed) JSON hash
@@ -457,52 +457,55 @@ module Types
   class Broadcast 
 
     # (no documentation provided)
-    attr_accessor :description
-    # (no documentation provided)
-    attr_accessor :status
-    # (no documentation provided)
-    attr_accessor :streamId
-    # (no documentation provided)
-    attr_accessor :endPointList
-    # (no documentation provided)
-    attr_accessor :name
-    # (no documentation provided)
-    attr_accessor :is360
-    # (no documentation provided)
-    attr_accessor :plannedStartDate
+    attr_accessor :publicStream
     # (no documentation provided)
     attr_accessor :duration
     # (no documentation provided)
-    attr_accessor :listenerHookURL
-    # (no documentation provided)
-    attr_accessor :publish
-    # (no documentation provided)
-    attr_accessor :publicStream
+    attr_accessor :date
     # (no documentation provided)
     attr_accessor :category
     # (no documentation provided)
-    attr_accessor :date
+    attr_accessor :streamId
+    # (no documentation provided)
+    attr_accessor :name
+    # (no documentation provided)
+    attr_accessor :expireDurationMS
+    # (no documentation provided)
+    attr_accessor :description
+    # (no documentation provided)
+    attr_accessor :is360
+    # (no documentation provided)
+    attr_accessor :endPointList
+    # (no documentation provided)
+    attr_accessor :plannedStartDate
+    # (no documentation provided)
+    attr_accessor :publish
+    # (no documentation provided)
+    attr_accessor :status
+    # (no documentation provided)
+    attr_accessor :listenerHookURL
 
     # the json hash for this Broadcast
     def to_jaxb_json_hash
       _h = {}
-      _h['description'] = description.to_jaxb_json_hash unless description.nil?
-      _h['status'] = status.to_jaxb_json_hash unless status.nil?
+      _h['publicStream'] = publicStream.to_jaxb_json_hash unless publicStream.nil?
+      _h['duration'] = duration.to_jaxb_json_hash unless duration.nil?
+      _h['date'] = date.to_jaxb_json_hash unless date.nil?
+      _h['category'] = category.to_jaxb_json_hash unless category.nil?
       _h['streamId'] = streamId.to_jaxb_json_hash unless streamId.nil?
+      _h['name'] = name.to_jaxb_json_hash unless name.nil?
+      _h['expireDurationMS'] = expireDurationMS.to_jaxb_json_hash unless expireDurationMS.nil?
+      _h['description'] = description.to_jaxb_json_hash unless description.nil?
+      _h['is360'] = is360.to_jaxb_json_hash unless is360.nil?
       if !endPointList.nil?
         _ha = Array.new
         endPointList.each { | _item | _ha.push _item.to_jaxb_json_hash }
         _h['endPointList'] = _ha
       end
-      _h['name'] = name.to_jaxb_json_hash unless name.nil?
-      _h['is360'] = is360.to_jaxb_json_hash unless is360.nil?
       _h['plannedStartDate'] = plannedStartDate.to_jaxb_json_hash unless plannedStartDate.nil?
-      _h['duration'] = duration.to_jaxb_json_hash unless duration.nil?
-      _h['listenerHookURL'] = listenerHookURL.to_jaxb_json_hash unless listenerHookURL.nil?
       _h['publish'] = publish.to_jaxb_json_hash unless publish.nil?
-      _h['publicStream'] = publicStream.to_jaxb_json_hash unless publicStream.nil?
-      _h['category'] = category.to_jaxb_json_hash unless category.nil?
-      _h['date'] = date.to_jaxb_json_hash unless date.nil?
+      _h['status'] = status.to_jaxb_json_hash unless status.nil?
+      _h['listenerHookURL'] = listenerHookURL.to_jaxb_json_hash unless listenerHookURL.nil?
       return _h
     end
 
@@ -513,137 +516,23 @@ module Types
 
     #initializes this Broadcast with a json hash
     def init_jaxb_json_hash(_o)
-        if !_o['description'].nil?
-          _oa = _o['description']
+        if !_o['publicStream'].nil?
+          _oa = _o['publicStream']
             if(_oa.is_a? Hash)
-              @description = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
-              @description =  String.from_json(_oa) unless _oa['@class']
+              @publicStream = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
+              @publicStream =  Boolean.from_json(_oa) unless _oa['@class']
             elsif (_oa.is_a? Array)
               #an array(of hashes hopefully) or scalar
-              @description = Array.new
+              @publicStream = Array.new
               _oa.each { | _item | 
                  if ((_item.nil? || _item['@class'].nil?)rescue true)
-                   @description.push String.from_json(_item)
+                   @publicStream.push Boolean.from_json(_item)
                  else
-                   @description.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
+                   @publicStream.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
                  end
                }
             else
-                @description = _oa
-            end
-          end
-        if !_o['status'].nil?
-          _oa = _o['status']
-            if(_oa.is_a? Hash)
-              @status = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
-              @status =  String.from_json(_oa) unless _oa['@class']
-            elsif (_oa.is_a? Array)
-              #an array(of hashes hopefully) or scalar
-              @status = Array.new
-              _oa.each { | _item | 
-                 if ((_item.nil? || _item['@class'].nil?)rescue true)
-                   @status.push String.from_json(_item)
-                 else
-                   @status.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
-                 end
-               }
-            else
-                @status = _oa
-            end
-          end
-        if !_o['streamId'].nil?
-          _oa = _o['streamId']
-            if(_oa.is_a? Hash)
-              @streamId = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
-              @streamId =  String.from_json(_oa) unless _oa['@class']
-            elsif (_oa.is_a? Array)
-              #an array(of hashes hopefully) or scalar
-              @streamId = Array.new
-              _oa.each { | _item | 
-                 if ((_item.nil? || _item['@class'].nil?)rescue true)
-                   @streamId.push String.from_json(_item)
-                 else
-                   @streamId.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
-                 end
-               }
-            else
-                @streamId = _oa
-            end
-          end
-        if !_o['endPointList'].nil?
-          _oa = _o['endPointList']
-            if(_oa.is_a? Hash)
-              @endPointList = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
-              @endPointList =  Io::Antmedia::Datastore::Db::Types::Endpoint.from_json(_oa) unless _oa['@class']
-            elsif (_oa.is_a? Array)
-              #an array(of hashes hopefully) or scalar
-              @endPointList = Array.new
-              _oa.each { | _item | 
-                 if ((_item.nil? || _item['@class'].nil?)rescue true)
-                   @endPointList.push Io::Antmedia::Datastore::Db::Types::Endpoint.from_json(_item)
-                 else
-                   @endPointList.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
-                 end
-               }
-            else
-                @endPointList = _oa
-            end
-          end
-        if !_o['name'].nil?
-          _oa = _o['name']
-            if(_oa.is_a? Hash)
-              @name = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
-              @name =  String.from_json(_oa) unless _oa['@class']
-            elsif (_oa.is_a? Array)
-              #an array(of hashes hopefully) or scalar
-              @name = Array.new
-              _oa.each { | _item | 
-                 if ((_item.nil? || _item['@class'].nil?)rescue true)
-                   @name.push String.from_json(_item)
-                 else
-                   @name.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
-                 end
-               }
-            else
-                @name = _oa
-            end
-          end
-        if !_o['is360'].nil?
-          _oa = _o['is360']
-            if(_oa.is_a? Hash)
-              @is360 = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
-              @is360 =  Boolean.from_json(_oa) unless _oa['@class']
-            elsif (_oa.is_a? Array)
-              #an array(of hashes hopefully) or scalar
-              @is360 = Array.new
-              _oa.each { | _item | 
-                 if ((_item.nil? || _item['@class'].nil?)rescue true)
-                   @is360.push Boolean.from_json(_item)
-                 else
-                   @is360.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
-                 end
-               }
-            else
-                @is360 = _oa
-            end
-          end
-        if !_o['plannedStartDate'].nil?
-          _oa = _o['plannedStartDate']
-            if(_oa.is_a? Hash)
-              @plannedStartDate = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
-              @plannedStartDate =  Bignum.from_json(_oa) unless _oa['@class']
-            elsif (_oa.is_a? Array)
-              #an array(of hashes hopefully) or scalar
-              @plannedStartDate = Array.new
-              _oa.each { | _item | 
-                 if ((_item.nil? || _item['@class'].nil?)rescue true)
-                   @plannedStartDate.push Bignum.from_json(_item)
-                 else
-                   @plannedStartDate.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
-                 end
-               }
-            else
-                @plannedStartDate = _oa
+                @publicStream = _oa
             end
           end
         if !_o['duration'].nil?
@@ -665,61 +554,23 @@ module Types
                 @duration = _oa
             end
           end
-        if !_o['listenerHookURL'].nil?
-          _oa = _o['listenerHookURL']
+        if !_o['date'].nil?
+          _oa = _o['date']
             if(_oa.is_a? Hash)
-              @listenerHookURL = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
-              @listenerHookURL =  String.from_json(_oa) unless _oa['@class']
+              @date = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
+              @date =  Bignum.from_json(_oa) unless _oa['@class']
             elsif (_oa.is_a? Array)
               #an array(of hashes hopefully) or scalar
-              @listenerHookURL = Array.new
+              @date = Array.new
               _oa.each { | _item | 
                  if ((_item.nil? || _item['@class'].nil?)rescue true)
-                   @listenerHookURL.push String.from_json(_item)
+                   @date.push Bignum.from_json(_item)
                  else
-                   @listenerHookURL.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
+                   @date.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
                  end
                }
             else
-                @listenerHookURL = _oa
-            end
-          end
-        if !_o['publish'].nil?
-          _oa = _o['publish']
-            if(_oa.is_a? Hash)
-              @publish = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
-              @publish =  Boolean.from_json(_oa) unless _oa['@class']
-            elsif (_oa.is_a? Array)
-              #an array(of hashes hopefully) or scalar
-              @publish = Array.new
-              _oa.each { | _item | 
-                 if ((_item.nil? || _item['@class'].nil?)rescue true)
-                   @publish.push Boolean.from_json(_item)
-                 else
-                   @publish.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
-                 end
-               }
-            else
-                @publish = _oa
-            end
-          end
-        if !_o['publicStream'].nil?
-          _oa = _o['publicStream']
-            if(_oa.is_a? Hash)
-              @publicStream = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
-              @publicStream =  Boolean.from_json(_oa) unless _oa['@class']
-            elsif (_oa.is_a? Array)
-              #an array(of hashes hopefully) or scalar
-              @publicStream = Array.new
-              _oa.each { | _item | 
-                 if ((_item.nil? || _item['@class'].nil?)rescue true)
-                   @publicStream.push Boolean.from_json(_item)
-                 else
-                   @publicStream.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
-                 end
-               }
-            else
-                @publicStream = _oa
+                @date = _oa
             end
           end
         if !_o['category'].nil?
@@ -741,23 +592,194 @@ module Types
                 @category = _oa
             end
           end
-        if !_o['date'].nil?
-          _oa = _o['date']
+        if !_o['streamId'].nil?
+          _oa = _o['streamId']
             if(_oa.is_a? Hash)
-              @date = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
-              @date =  Bignum.from_json(_oa) unless _oa['@class']
+              @streamId = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
+              @streamId =  String.from_json(_oa) unless _oa['@class']
             elsif (_oa.is_a? Array)
               #an array(of hashes hopefully) or scalar
-              @date = Array.new
+              @streamId = Array.new
               _oa.each { | _item | 
                  if ((_item.nil? || _item['@class'].nil?)rescue true)
-                   @date.push Bignum.from_json(_item)
+                   @streamId.push String.from_json(_item)
                  else
-                   @date.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
+                   @streamId.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
                  end
                }
             else
-                @date = _oa
+                @streamId = _oa
+            end
+          end
+        if !_o['name'].nil?
+          _oa = _o['name']
+            if(_oa.is_a? Hash)
+              @name = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
+              @name =  String.from_json(_oa) unless _oa['@class']
+            elsif (_oa.is_a? Array)
+              #an array(of hashes hopefully) or scalar
+              @name = Array.new
+              _oa.each { | _item | 
+                 if ((_item.nil? || _item['@class'].nil?)rescue true)
+                   @name.push String.from_json(_item)
+                 else
+                   @name.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
+                 end
+               }
+            else
+                @name = _oa
+            end
+          end
+        if !_o['expireDurationMS'].nil?
+          _oa = _o['expireDurationMS']
+            if(_oa.is_a? Hash)
+              @expireDurationMS = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
+              @expireDurationMS =  Fixnum.from_json(_oa) unless _oa['@class']
+            elsif (_oa.is_a? Array)
+              #an array(of hashes hopefully) or scalar
+              @expireDurationMS = Array.new
+              _oa.each { | _item | 
+                 if ((_item.nil? || _item['@class'].nil?)rescue true)
+                   @expireDurationMS.push Fixnum.from_json(_item)
+                 else
+                   @expireDurationMS.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
+                 end
+               }
+            else
+                @expireDurationMS = _oa
+            end
+          end
+        if !_o['description'].nil?
+          _oa = _o['description']
+            if(_oa.is_a? Hash)
+              @description = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
+              @description =  String.from_json(_oa) unless _oa['@class']
+            elsif (_oa.is_a? Array)
+              #an array(of hashes hopefully) or scalar
+              @description = Array.new
+              _oa.each { | _item | 
+                 if ((_item.nil? || _item['@class'].nil?)rescue true)
+                   @description.push String.from_json(_item)
+                 else
+                   @description.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
+                 end
+               }
+            else
+                @description = _oa
+            end
+          end
+        if !_o['is360'].nil?
+          _oa = _o['is360']
+            if(_oa.is_a? Hash)
+              @is360 = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
+              @is360 =  Boolean.from_json(_oa) unless _oa['@class']
+            elsif (_oa.is_a? Array)
+              #an array(of hashes hopefully) or scalar
+              @is360 = Array.new
+              _oa.each { | _item | 
+                 if ((_item.nil? || _item['@class'].nil?)rescue true)
+                   @is360.push Boolean.from_json(_item)
+                 else
+                   @is360.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
+                 end
+               }
+            else
+                @is360 = _oa
+            end
+          end
+        if !_o['endPointList'].nil?
+          _oa = _o['endPointList']
+            if(_oa.is_a? Hash)
+              @endPointList = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
+              @endPointList =  Io::Antmedia::Datastore::Db::Types::Endpoint.from_json(_oa) unless _oa['@class']
+            elsif (_oa.is_a? Array)
+              #an array(of hashes hopefully) or scalar
+              @endPointList = Array.new
+              _oa.each { | _item | 
+                 if ((_item.nil? || _item['@class'].nil?)rescue true)
+                   @endPointList.push Io::Antmedia::Datastore::Db::Types::Endpoint.from_json(_item)
+                 else
+                   @endPointList.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
+                 end
+               }
+            else
+                @endPointList = _oa
+            end
+          end
+        if !_o['plannedStartDate'].nil?
+          _oa = _o['plannedStartDate']
+            if(_oa.is_a? Hash)
+              @plannedStartDate = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
+              @plannedStartDate =  Bignum.from_json(_oa) unless _oa['@class']
+            elsif (_oa.is_a? Array)
+              #an array(of hashes hopefully) or scalar
+              @plannedStartDate = Array.new
+              _oa.each { | _item | 
+                 if ((_item.nil? || _item['@class'].nil?)rescue true)
+                   @plannedStartDate.push Bignum.from_json(_item)
+                 else
+                   @plannedStartDate.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
+                 end
+               }
+            else
+                @plannedStartDate = _oa
+            end
+          end
+        if !_o['publish'].nil?
+          _oa = _o['publish']
+            if(_oa.is_a? Hash)
+              @publish = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
+              @publish =  Boolean.from_json(_oa) unless _oa['@class']
+            elsif (_oa.is_a? Array)
+              #an array(of hashes hopefully) or scalar
+              @publish = Array.new
+              _oa.each { | _item | 
+                 if ((_item.nil? || _item['@class'].nil?)rescue true)
+                   @publish.push Boolean.from_json(_item)
+                 else
+                   @publish.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
+                 end
+               }
+            else
+                @publish = _oa
+            end
+          end
+        if !_o['status'].nil?
+          _oa = _o['status']
+            if(_oa.is_a? Hash)
+              @status = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
+              @status =  String.from_json(_oa) unless _oa['@class']
+            elsif (_oa.is_a? Array)
+              #an array(of hashes hopefully) or scalar
+              @status = Array.new
+              _oa.each { | _item | 
+                 if ((_item.nil? || _item['@class'].nil?)rescue true)
+                   @status.push String.from_json(_item)
+                 else
+                   @status.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
+                 end
+               }
+            else
+                @status = _oa
+            end
+          end
+        if !_o['listenerHookURL'].nil?
+          _oa = _o['listenerHookURL']
+            if(_oa.is_a? Hash)
+              @listenerHookURL = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
+              @listenerHookURL =  String.from_json(_oa) unless _oa['@class']
+            elsif (_oa.is_a? Array)
+              #an array(of hashes hopefully) or scalar
+              @listenerHookURL = Array.new
+              _oa.each { | _item | 
+                 if ((_item.nil? || _item['@class'].nil?)rescue true)
+                   @listenerHookURL.push String.from_json(_item)
+                 else
+                   @listenerHookURL.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
+                 end
+               }
+            else
+                @listenerHookURL = _oa
             end
           end
     end
@@ -798,52 +820,55 @@ module Types
   class Broadcast 
 
     # (no documentation provided)
-    attr_accessor :date
-    # (no documentation provided)
-    attr_accessor :publish
-    # (no documentation provided)
-    attr_accessor :publicStream
-    # (no documentation provided)
-    attr_accessor :category
-    # (no documentation provided)
-    attr_accessor :status
-    # (no documentation provided)
-    attr_accessor :streamId
-    # (no documentation provided)
     attr_accessor :description
-    # (no documentation provided)
-    attr_accessor :is360
-    # (no documentation provided)
-    attr_accessor :endPointList
-    # (no documentation provided)
-    attr_accessor :duration
-    # (no documentation provided)
-    attr_accessor :plannedStartDate
     # (no documentation provided)
     attr_accessor :name
     # (no documentation provided)
+    attr_accessor :publish
+    # (no documentation provided)
+    attr_accessor :endPointList
+    # (no documentation provided)
+    attr_accessor :status
+    # (no documentation provided)
+    attr_accessor :category
+    # (no documentation provided)
+    attr_accessor :publicStream
+    # (no documentation provided)
+    attr_accessor :expireDurationMS
+    # (no documentation provided)
+    attr_accessor :duration
+    # (no documentation provided)
+    attr_accessor :is360
+    # (no documentation provided)
     attr_accessor :listenerHookURL
+    # (no documentation provided)
+    attr_accessor :date
+    # (no documentation provided)
+    attr_accessor :plannedStartDate
+    # (no documentation provided)
+    attr_accessor :streamId
 
     # the json hash for this Broadcast
     def to_jaxb_json_hash
       _h = {}
-      _h['date'] = date.to_jaxb_json_hash unless date.nil?
-      _h['publish'] = publish.to_jaxb_json_hash unless publish.nil?
-      _h['publicStream'] = publicStream.to_jaxb_json_hash unless publicStream.nil?
-      _h['category'] = category.to_jaxb_json_hash unless category.nil?
-      _h['status'] = status.to_jaxb_json_hash unless status.nil?
-      _h['streamId'] = streamId.to_jaxb_json_hash unless streamId.nil?
       _h['description'] = description.to_jaxb_json_hash unless description.nil?
-      _h['is360'] = is360.to_jaxb_json_hash unless is360.nil?
+      _h['name'] = name.to_jaxb_json_hash unless name.nil?
+      _h['publish'] = publish.to_jaxb_json_hash unless publish.nil?
       if !endPointList.nil?
         _ha = Array.new
         endPointList.each { | _item | _ha.push _item.to_jaxb_json_hash }
         _h['endPointList'] = _ha
       end
+      _h['status'] = status.to_jaxb_json_hash unless status.nil?
+      _h['category'] = category.to_jaxb_json_hash unless category.nil?
+      _h['publicStream'] = publicStream.to_jaxb_json_hash unless publicStream.nil?
+      _h['expireDurationMS'] = expireDurationMS.to_jaxb_json_hash unless expireDurationMS.nil?
       _h['duration'] = duration.to_jaxb_json_hash unless duration.nil?
-      _h['plannedStartDate'] = plannedStartDate.to_jaxb_json_hash unless plannedStartDate.nil?
-      _h['name'] = name.to_jaxb_json_hash unless name.nil?
+      _h['is360'] = is360.to_jaxb_json_hash unless is360.nil?
       _h['listenerHookURL'] = listenerHookURL.to_jaxb_json_hash unless listenerHookURL.nil?
+      _h['date'] = date.to_jaxb_json_hash unless date.nil?
+      _h['plannedStartDate'] = plannedStartDate.to_jaxb_json_hash unless plannedStartDate.nil?
+      _h['streamId'] = streamId.to_jaxb_json_hash unless streamId.nil?
       return _h
     end
 
@@ -854,120 +879,6 @@ module Types
 
     #initializes this Broadcast with a json hash
     def init_jaxb_json_hash(_o)
-        if !_o['date'].nil?
-          _oa = _o['date']
-            if(_oa.is_a? Hash)
-              @date = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
-              @date =  Bignum.from_json(_oa) unless _oa['@class']
-            elsif (_oa.is_a? Array)
-              #an array(of hashes hopefully) or scalar
-              @date = Array.new
-              _oa.each { | _item | 
-                 if ((_item.nil? || _item['@class'].nil?)rescue true)
-                   @date.push Bignum.from_json(_item)
-                 else
-                   @date.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
-                 end
-               }
-            else
-                @date = _oa
-            end
-          end
-        if !_o['publish'].nil?
-          _oa = _o['publish']
-            if(_oa.is_a? Hash)
-              @publish = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
-              @publish =  Boolean.from_json(_oa) unless _oa['@class']
-            elsif (_oa.is_a? Array)
-              #an array(of hashes hopefully) or scalar
-              @publish = Array.new
-              _oa.each { | _item | 
-                 if ((_item.nil? || _item['@class'].nil?)rescue true)
-                   @publish.push Boolean.from_json(_item)
-                 else
-                   @publish.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
-                 end
-               }
-            else
-                @publish = _oa
-            end
-          end
-        if !_o['publicStream'].nil?
-          _oa = _o['publicStream']
-            if(_oa.is_a? Hash)
-              @publicStream = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
-              @publicStream =  Boolean.from_json(_oa) unless _oa['@class']
-            elsif (_oa.is_a? Array)
-              #an array(of hashes hopefully) or scalar
-              @publicStream = Array.new
-              _oa.each { | _item | 
-                 if ((_item.nil? || _item['@class'].nil?)rescue true)
-                   @publicStream.push Boolean.from_json(_item)
-                 else
-                   @publicStream.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
-                 end
-               }
-            else
-                @publicStream = _oa
-            end
-          end
-        if !_o['category'].nil?
-          _oa = _o['category']
-            if(_oa.is_a? Hash)
-              @category = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
-              @category =  String.from_json(_oa) unless _oa['@class']
-            elsif (_oa.is_a? Array)
-              #an array(of hashes hopefully) or scalar
-              @category = Array.new
-              _oa.each { | _item | 
-                 if ((_item.nil? || _item['@class'].nil?)rescue true)
-                   @category.push String.from_json(_item)
-                 else
-                   @category.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
-                 end
-               }
-            else
-                @category = _oa
-            end
-          end
-        if !_o['status'].nil?
-          _oa = _o['status']
-            if(_oa.is_a? Hash)
-              @status = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
-              @status =  String.from_json(_oa) unless _oa['@class']
-            elsif (_oa.is_a? Array)
-              #an array(of hashes hopefully) or scalar
-              @status = Array.new
-              _oa.each { | _item | 
-                 if ((_item.nil? || _item['@class'].nil?)rescue true)
-                   @status.push String.from_json(_item)
-                 else
-                   @status.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
-                 end
-               }
-            else
-                @status = _oa
-            end
-          end
-        if !_o['streamId'].nil?
-          _oa = _o['streamId']
-            if(_oa.is_a? Hash)
-              @streamId = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
-              @streamId =  String.from_json(_oa) unless _oa['@class']
-            elsif (_oa.is_a? Array)
-              #an array(of hashes hopefully) or scalar
-              @streamId = Array.new
-              _oa.each { | _item | 
-                 if ((_item.nil? || _item['@class'].nil?)rescue true)
-                   @streamId.push String.from_json(_item)
-                 else
-                   @streamId.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
-                 end
-               }
-            else
-                @streamId = _oa
-            end
-          end
         if !_o['description'].nil?
           _oa = _o['description']
             if(_oa.is_a? Hash)
@@ -985,82 +896,6 @@ module Types
                }
             else
                 @description = _oa
-            end
-          end
-        if !_o['is360'].nil?
-          _oa = _o['is360']
-            if(_oa.is_a? Hash)
-              @is360 = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
-              @is360 =  Boolean.from_json(_oa) unless _oa['@class']
-            elsif (_oa.is_a? Array)
-              #an array(of hashes hopefully) or scalar
-              @is360 = Array.new
-              _oa.each { | _item | 
-                 if ((_item.nil? || _item['@class'].nil?)rescue true)
-                   @is360.push Boolean.from_json(_item)
-                 else
-                   @is360.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
-                 end
-               }
-            else
-                @is360 = _oa
-            end
-          end
-        if !_o['endPointList'].nil?
-          _oa = _o['endPointList']
-            if(_oa.is_a? Hash)
-              @endPointList = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
-              @endPointList =  Io::Antmedia::Datastore::Db::Types::Endpoint.from_json(_oa) unless _oa['@class']
-            elsif (_oa.is_a? Array)
-              #an array(of hashes hopefully) or scalar
-              @endPointList = Array.new
-              _oa.each { | _item | 
-                 if ((_item.nil? || _item['@class'].nil?)rescue true)
-                   @endPointList.push Io::Antmedia::Datastore::Db::Types::Endpoint.from_json(_item)
-                 else
-                   @endPointList.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
-                 end
-               }
-            else
-                @endPointList = _oa
-            end
-          end
-        if !_o['duration'].nil?
-          _oa = _o['duration']
-            if(_oa.is_a? Hash)
-              @duration = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
-              @duration =  Bignum.from_json(_oa) unless _oa['@class']
-            elsif (_oa.is_a? Array)
-              #an array(of hashes hopefully) or scalar
-              @duration = Array.new
-              _oa.each { | _item | 
-                 if ((_item.nil? || _item['@class'].nil?)rescue true)
-                   @duration.push Bignum.from_json(_item)
-                 else
-                   @duration.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
-                 end
-               }
-            else
-                @duration = _oa
-            end
-          end
-        if !_o['plannedStartDate'].nil?
-          _oa = _o['plannedStartDate']
-            if(_oa.is_a? Hash)
-              @plannedStartDate = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
-              @plannedStartDate =  Bignum.from_json(_oa) unless _oa['@class']
-            elsif (_oa.is_a? Array)
-              #an array(of hashes hopefully) or scalar
-              @plannedStartDate = Array.new
-              _oa.each { | _item | 
-                 if ((_item.nil? || _item['@class'].nil?)rescue true)
-                   @plannedStartDate.push Bignum.from_json(_item)
-                 else
-                   @plannedStartDate.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
-                 end
-               }
-            else
-                @plannedStartDate = _oa
             end
           end
         if !_o['name'].nil?
@@ -1082,6 +917,158 @@ module Types
                 @name = _oa
             end
           end
+        if !_o['publish'].nil?
+          _oa = _o['publish']
+            if(_oa.is_a? Hash)
+              @publish = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
+              @publish =  Boolean.from_json(_oa) unless _oa['@class']
+            elsif (_oa.is_a? Array)
+              #an array(of hashes hopefully) or scalar
+              @publish = Array.new
+              _oa.each { | _item | 
+                 if ((_item.nil? || _item['@class'].nil?)rescue true)
+                   @publish.push Boolean.from_json(_item)
+                 else
+                   @publish.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
+                 end
+               }
+            else
+                @publish = _oa
+            end
+          end
+        if !_o['endPointList'].nil?
+          _oa = _o['endPointList']
+            if(_oa.is_a? Hash)
+              @endPointList = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
+              @endPointList =  Io::Antmedia::Datastore::Db::Types::Endpoint.from_json(_oa) unless _oa['@class']
+            elsif (_oa.is_a? Array)
+              #an array(of hashes hopefully) or scalar
+              @endPointList = Array.new
+              _oa.each { | _item | 
+                 if ((_item.nil? || _item['@class'].nil?)rescue true)
+                   @endPointList.push Io::Antmedia::Datastore::Db::Types::Endpoint.from_json(_item)
+                 else
+                   @endPointList.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
+                 end
+               }
+            else
+                @endPointList = _oa
+            end
+          end
+        if !_o['status'].nil?
+          _oa = _o['status']
+            if(_oa.is_a? Hash)
+              @status = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
+              @status =  String.from_json(_oa) unless _oa['@class']
+            elsif (_oa.is_a? Array)
+              #an array(of hashes hopefully) or scalar
+              @status = Array.new
+              _oa.each { | _item | 
+                 if ((_item.nil? || _item['@class'].nil?)rescue true)
+                   @status.push String.from_json(_item)
+                 else
+                   @status.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
+                 end
+               }
+            else
+                @status = _oa
+            end
+          end
+        if !_o['category'].nil?
+          _oa = _o['category']
+            if(_oa.is_a? Hash)
+              @category = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
+              @category =  String.from_json(_oa) unless _oa['@class']
+            elsif (_oa.is_a? Array)
+              #an array(of hashes hopefully) or scalar
+              @category = Array.new
+              _oa.each { | _item | 
+                 if ((_item.nil? || _item['@class'].nil?)rescue true)
+                   @category.push String.from_json(_item)
+                 else
+                   @category.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
+                 end
+               }
+            else
+                @category = _oa
+            end
+          end
+        if !_o['publicStream'].nil?
+          _oa = _o['publicStream']
+            if(_oa.is_a? Hash)
+              @publicStream = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
+              @publicStream =  Boolean.from_json(_oa) unless _oa['@class']
+            elsif (_oa.is_a? Array)
+              #an array(of hashes hopefully) or scalar
+              @publicStream = Array.new
+              _oa.each { | _item | 
+                 if ((_item.nil? || _item['@class'].nil?)rescue true)
+                   @publicStream.push Boolean.from_json(_item)
+                 else
+                   @publicStream.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
+                 end
+               }
+            else
+                @publicStream = _oa
+            end
+          end
+        if !_o['expireDurationMS'].nil?
+          _oa = _o['expireDurationMS']
+            if(_oa.is_a? Hash)
+              @expireDurationMS = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
+              @expireDurationMS =  Fixnum.from_json(_oa) unless _oa['@class']
+            elsif (_oa.is_a? Array)
+              #an array(of hashes hopefully) or scalar
+              @expireDurationMS = Array.new
+              _oa.each { | _item | 
+                 if ((_item.nil? || _item['@class'].nil?)rescue true)
+                   @expireDurationMS.push Fixnum.from_json(_item)
+                 else
+                   @expireDurationMS.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
+                 end
+               }
+            else
+                @expireDurationMS = _oa
+            end
+          end
+        if !_o['duration'].nil?
+          _oa = _o['duration']
+            if(_oa.is_a? Hash)
+              @duration = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
+              @duration =  Bignum.from_json(_oa) unless _oa['@class']
+            elsif (_oa.is_a? Array)
+              #an array(of hashes hopefully) or scalar
+              @duration = Array.new
+              _oa.each { | _item | 
+                 if ((_item.nil? || _item['@class'].nil?)rescue true)
+                   @duration.push Bignum.from_json(_item)
+                 else
+                   @duration.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
+                 end
+               }
+            else
+                @duration = _oa
+            end
+          end
+        if !_o['is360'].nil?
+          _oa = _o['is360']
+            if(_oa.is_a? Hash)
+              @is360 = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
+              @is360 =  Boolean.from_json(_oa) unless _oa['@class']
+            elsif (_oa.is_a? Array)
+              #an array(of hashes hopefully) or scalar
+              @is360 = Array.new
+              _oa.each { | _item | 
+                 if ((_item.nil? || _item['@class'].nil?)rescue true)
+                   @is360.push Boolean.from_json(_item)
+                 else
+                   @is360.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
+                 end
+               }
+            else
+                @is360 = _oa
+            end
+          end
         if !_o['listenerHookURL'].nil?
           _oa = _o['listenerHookURL']
             if(_oa.is_a? Hash)
@@ -1099,6 +1086,63 @@ module Types
                }
             else
                 @listenerHookURL = _oa
+            end
+          end
+        if !_o['date'].nil?
+          _oa = _o['date']
+            if(_oa.is_a? Hash)
+              @date = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
+              @date =  Bignum.from_json(_oa) unless _oa['@class']
+            elsif (_oa.is_a? Array)
+              #an array(of hashes hopefully) or scalar
+              @date = Array.new
+              _oa.each { | _item | 
+                 if ((_item.nil? || _item['@class'].nil?)rescue true)
+                   @date.push Bignum.from_json(_item)
+                 else
+                   @date.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
+                 end
+               }
+            else
+                @date = _oa
+            end
+          end
+        if !_o['plannedStartDate'].nil?
+          _oa = _o['plannedStartDate']
+            if(_oa.is_a? Hash)
+              @plannedStartDate = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
+              @plannedStartDate =  Bignum.from_json(_oa) unless _oa['@class']
+            elsif (_oa.is_a? Array)
+              #an array(of hashes hopefully) or scalar
+              @plannedStartDate = Array.new
+              _oa.each { | _item | 
+                 if ((_item.nil? || _item['@class'].nil?)rescue true)
+                   @plannedStartDate.push Bignum.from_json(_item)
+                 else
+                   @plannedStartDate.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
+                 end
+               }
+            else
+                @plannedStartDate = _oa
+            end
+          end
+        if !_o['streamId'].nil?
+          _oa = _o['streamId']
+            if(_oa.is_a? Hash)
+              @streamId = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
+              @streamId =  String.from_json(_oa) unless _oa['@class']
+            elsif (_oa.is_a? Array)
+              #an array(of hashes hopefully) or scalar
+              @streamId = Array.new
+              _oa.each { | _item | 
+                 if ((_item.nil? || _item['@class'].nil?)rescue true)
+                   @streamId.push String.from_json(_item)
+                 else
+                   @streamId.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
+                 end
+               }
+            else
+                @streamId = _oa
             end
           end
     end
@@ -1139,23 +1183,23 @@ module Types
   class Endpoint 
 
     # (no documentation provided)
-    attr_accessor :streamId
-    # (no documentation provided)
     attr_accessor :rtmpUrl
     # (no documentation provided)
-    attr_accessor :broadcastId
-    # (no documentation provided)
     attr_accessor :name
+    # (no documentation provided)
+    attr_accessor :streamId
+    # (no documentation provided)
+    attr_accessor :broadcastId
     # (no documentation provided)
     attr_accessor :type
 
     # the json hash for this Endpoint
     def to_jaxb_json_hash
       _h = {}
-      _h['streamId'] = streamId.to_jaxb_json_hash unless streamId.nil?
       _h['rtmpUrl'] = rtmpUrl.to_jaxb_json_hash unless rtmpUrl.nil?
-      _h['broadcastId'] = broadcastId.to_jaxb_json_hash unless broadcastId.nil?
       _h['name'] = name.to_jaxb_json_hash unless name.nil?
+      _h['streamId'] = streamId.to_jaxb_json_hash unless streamId.nil?
+      _h['broadcastId'] = broadcastId.to_jaxb_json_hash unless broadcastId.nil?
       _h['type'] = type.to_jaxb_json_hash unless type.nil?
       return _h
     end
@@ -1167,25 +1211,6 @@ module Types
 
     #initializes this Endpoint with a json hash
     def init_jaxb_json_hash(_o)
-        if !_o['streamId'].nil?
-          _oa = _o['streamId']
-            if(_oa.is_a? Hash)
-              @streamId = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
-              @streamId =  String.from_json(_oa) unless _oa['@class']
-            elsif (_oa.is_a? Array)
-              #an array(of hashes hopefully) or scalar
-              @streamId = Array.new
-              _oa.each { | _item | 
-                 if ((_item.nil? || _item['@class'].nil?)rescue true)
-                   @streamId.push String.from_json(_item)
-                 else
-                   @streamId.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
-                 end
-               }
-            else
-                @streamId = _oa
-            end
-          end
         if !_o['rtmpUrl'].nil?
           _oa = _o['rtmpUrl']
             if(_oa.is_a? Hash)
@@ -1205,25 +1230,6 @@ module Types
                 @rtmpUrl = _oa
             end
           end
-        if !_o['broadcastId'].nil?
-          _oa = _o['broadcastId']
-            if(_oa.is_a? Hash)
-              @broadcastId = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
-              @broadcastId =  String.from_json(_oa) unless _oa['@class']
-            elsif (_oa.is_a? Array)
-              #an array(of hashes hopefully) or scalar
-              @broadcastId = Array.new
-              _oa.each { | _item | 
-                 if ((_item.nil? || _item['@class'].nil?)rescue true)
-                   @broadcastId.push String.from_json(_item)
-                 else
-                   @broadcastId.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
-                 end
-               }
-            else
-                @broadcastId = _oa
-            end
-          end
         if !_o['name'].nil?
           _oa = _o['name']
             if(_oa.is_a? Hash)
@@ -1241,6 +1247,44 @@ module Types
                }
             else
                 @name = _oa
+            end
+          end
+        if !_o['streamId'].nil?
+          _oa = _o['streamId']
+            if(_oa.is_a? Hash)
+              @streamId = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
+              @streamId =  String.from_json(_oa) unless _oa['@class']
+            elsif (_oa.is_a? Array)
+              #an array(of hashes hopefully) or scalar
+              @streamId = Array.new
+              _oa.each { | _item | 
+                 if ((_item.nil? || _item['@class'].nil?)rescue true)
+                   @streamId.push String.from_json(_item)
+                 else
+                   @streamId.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
+                 end
+               }
+            else
+                @streamId = _oa
+            end
+          end
+        if !_o['broadcastId'].nil?
+          _oa = _o['broadcastId']
+            if(_oa.is_a? Hash)
+              @broadcastId = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
+              @broadcastId =  String.from_json(_oa) unless _oa['@class']
+            elsif (_oa.is_a? Array)
+              #an array(of hashes hopefully) or scalar
+              @broadcastId = Array.new
+              _oa.each { | _item | 
+                 if ((_item.nil? || _item['@class'].nil?)rescue true)
+                   @broadcastId.push String.from_json(_item)
+                 else
+                   @broadcastId.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
+                 end
+               }
+            else
+                @broadcastId = _oa
             end
           end
         if !_o['type'].nil?
@@ -1392,16 +1436,16 @@ module Types
     # (no documentation provided)
     attr_accessor :type
     # (no documentation provided)
-    attr_accessor :id
-    # (no documentation provided)
     attr_accessor :name
+    # (no documentation provided)
+    attr_accessor :id
 
     # the json hash for this SocialEndpointChannel
     def to_jaxb_json_hash
       _h = {}
       _h['type'] = type.to_jaxb_json_hash unless type.nil?
-      _h['id'] = id.to_jaxb_json_hash unless id.nil?
       _h['name'] = name.to_jaxb_json_hash unless name.nil?
+      _h['id'] = id.to_jaxb_json_hash unless id.nil?
       return _h
     end
 
@@ -1431,25 +1475,6 @@ module Types
                 @type = _oa
             end
           end
-        if !_o['id'].nil?
-          _oa = _o['id']
-            if(_oa.is_a? Hash)
-              @id = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
-              @id =  String.from_json(_oa) unless _oa['@class']
-            elsif (_oa.is_a? Array)
-              #an array(of hashes hopefully) or scalar
-              @id = Array.new
-              _oa.each { | _item | 
-                 if ((_item.nil? || _item['@class'].nil?)rescue true)
-                   @id.push String.from_json(_item)
-                 else
-                   @id.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
-                 end
-               }
-            else
-                @id = _oa
-            end
-          end
         if !_o['name'].nil?
           _oa = _o['name']
             if(_oa.is_a? Hash)
@@ -1467,6 +1492,25 @@ module Types
                }
             else
                 @name = _oa
+            end
+          end
+        if !_o['id'].nil?
+          _oa = _o['id']
+            if(_oa.is_a? Hash)
+              @id = EnunciateHelpers::LAMB_CLASS_AWARE.call(_oa) if _oa['@class']
+              @id =  String.from_json(_oa) unless _oa['@class']
+            elsif (_oa.is_a? Array)
+              #an array(of hashes hopefully) or scalar
+              @id = Array.new
+              _oa.each { | _item | 
+                 if ((_item.nil? || _item['@class'].nil?)rescue true)
+                   @id.push String.from_json(_item)
+                 else
+                   @id.push EnunciateHelpers::LAMB_CLASS_AWARE.call(_item)
+                 end
+               }
+            else
+                @id = _oa
             end
           end
     end
