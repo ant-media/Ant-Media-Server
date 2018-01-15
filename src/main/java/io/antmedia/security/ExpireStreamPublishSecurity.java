@@ -1,5 +1,6 @@
 package io.antmedia.security;
 
+import org.red5.server.api.Red5;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IStreamPublishSecurity;
 
@@ -34,6 +35,10 @@ public class ExpireStreamPublishSecurity implements IStreamPublishSecurity {
 		}
 		else {
 			result = true;
+		}
+		
+		if (!result) {
+			Red5.getConnectionLocal().close();
 		}
 
 		return result;

@@ -1,5 +1,6 @@
 package io.antmedia.security;
 
+import org.red5.server.api.Red5;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IStreamPublishSecurity;
 
@@ -19,6 +20,10 @@ public class AcceptOnlyStreamsInDataStore implements IStreamPublishSecurity  {
 		{
 			result = true;
 		}
+		else {
+			Red5.getConnectionLocal().close();
+		}
+		
 		
 		return result;
 	}
