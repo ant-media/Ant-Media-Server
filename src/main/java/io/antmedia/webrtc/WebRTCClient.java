@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
@@ -49,6 +50,8 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 	private int width;
 
 	private int height;
+	
+	private MediaStream mediaStream;
 
 	private WebSocketConnection wsConnection;
 
@@ -61,35 +64,45 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 	private static Logger logger = LoggerFactory.getLogger(WebRTCClient.class);
 
 	private ScheduledExecutorService executor;
-	
-	private ExecutorService streamExecutor;
-	
+
+	private ExecutorService audioStreamExecutor;
+
+	private ExecutorService videoStreamExecutor;
+
 	public static final int ADAPTIVE_RESET_COUNT = 90;  //frames
-	
+
 	public static final int ADAPTIVE_QUALITY_CHECK_TIME_MS = 5000;
-	
+
 	//int bufferSize = 480 * 2 * 2; // 480 sample, 2 byte per sample, stereo
 	//byte[] dataSegmented = new byte[bufferSize];
 
-	private volatile boolean isRunning = false;
-	
-	
-	
+	private volatile boolean isInitialized = false;
+
+	private volatile boolean isStreaming = false;
+
+
+
 	private static final String DTLS_SRTP_KEY_AGREEMENT_CONSTRAINT = "DtlsSrtpKeyAgreement";
 
+	private ScheduledFuture<?> adaptStreamScheduledFuture;
+
+	protected boolean settingRemoteDescription = false;
+
+	private boolean remoteDescriptionSet = false;
 
 	public WebRTCClient(WebSocketConnection wsConnection, String streamId) {
 		this.wsConnection = wsConnection;
 		this.streamId = streamId;
 		ThreadFactory namedThreadFactory = new ThreadFactoryBuilder()
-						.setNameFormat("webrtc-client-"+streamId+"-%d").build();
+				.setNameFormat("webrtc-client-"+streamId+"-%d").build();
 		executor = Executors.newSingleThreadScheduledExecutor(namedThreadFactory);
-		
+
 		namedThreadFactory = new ThreadFactoryBuilder()
 				.setNameFormat("webrtc-streamer-"+streamId+"-%d").build();
-		
-		streamExecutor = Executors.newScheduledThreadPool(2, namedThreadFactory);
-		
+
+		audioStreamExecutor =  Executors.newSingleThreadExecutor(namedThreadFactory);
+		videoStreamExecutor = Executors.newSingleThreadExecutor(namedThreadFactory);
+
 	}
 
 
@@ -104,13 +117,12 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 
 	@Override
 	public void sendVideoConfPacket(final byte[] videoConfData, final byte[] videoPacket, final long timestamp) {
-		if (isRunning) {
-			streamExecutor.execute(new Runnable() {
-				
+		if (isStreaming) {
+			videoStreamExecutor.execute(new Runnable() {
+
 				@Override
 				public void run() {
 					factory.addVideoConfPacket(videoConfData, videoConfData.length, videoPacket, videoPacket.length, width, height, true, timestamp);
-					
 				}
 			});
 		}
@@ -118,9 +130,9 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 
 	@Override
 	public void sendVideoPacket(final byte[] videoPacket, final boolean isKeyFrame, final long timestamp) {
-		if (isRunning) {
-			streamExecutor.execute(new Runnable() {
-				
+		if (isStreaming) {
+			videoStreamExecutor.execute(new Runnable() {
+
 				@Override
 				public void run() {
 					factory.addVideoPacket(videoPacket, videoPacket.length, width, height, isKeyFrame, timestamp);
@@ -131,17 +143,17 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 
 	@Override
 	public void sendAudioPacket(final byte[] audioPacket, final long timestamp) {
-		if (isRunning) {
-			streamExecutor.execute(new Runnable() {
-				
+		if (isStreaming) {
+			audioStreamExecutor.execute(new Runnable() {
+
 				@Override
 				public void run() {
 					factory.addAudioPacket(audioPacket, audioPacket.length, timestamp, 960);
 					//960 is 20ms audio data which can be send by webrtc
-					
+
 				}
 			});
-			
+
 		}
 
 	}
@@ -161,6 +173,8 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 
 		executor.execute(new Runnable() {
 
+			
+
 			@Override
 			public void run() {
 				List<IceServer> iceServers = new ArrayList();
@@ -172,7 +186,7 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 
 				peerConnection = factory.createPeerConnection(rtcConfig, pcConstraints, WebRTCClient.this);
 
-				MediaStream mediaStream = factory.createLocalMediaStream("local_stream");
+				mediaStream = factory.createLocalMediaStream("local_stream");
 
 				audioSource = factory.createAudioSource(pcConstraints);
 				mediaStream.addTrack(factory.createAudioTrack("audio", audioSource));
@@ -183,9 +197,9 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 				peerConnection.addStream(mediaStream);
 
 				peerConnection.createOffer(WebRTCClient.this, sdpMediaConstraints);
-				
-				isRunning = true;
-				
+
+				isInitialized = true;
+
 
 			}
 		});
@@ -197,62 +211,87 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 	private void createMediaConstraintsInternal() {
 		// Create peer connection constraints.
 		pcConstraints = new MediaConstraints();
-		// Enable DTLS for normal calls and disable for loopback calls.
-		//if (peerConnectionParameters.loopback) {
-		//  pcConstraints.optional.add(
-		//      new MediaConstraints.KeyValuePair(DTLS_SRTP_KEY_AGREEMENT_CONSTRAINT, "false"));
-		//} 
-		//else 
-		{
-			pcConstraints.optional.add(
-					new MediaConstraints.KeyValuePair(DTLS_SRTP_KEY_AGREEMENT_CONSTRAINT, "true"));
-		}
+
+		pcConstraints.optional.add(
+				new MediaConstraints.KeyValuePair(DTLS_SRTP_KEY_AGREEMENT_CONSTRAINT, "true"));
+
 
 		// Create SDP constraints.
 		sdpMediaConstraints = new MediaConstraints();
+
 		sdpMediaConstraints.mandatory.add(
 				new MediaConstraints.KeyValuePair("OfferToReceiveAudio", "false"));
 
 		sdpMediaConstraints.mandatory.add(
 				new MediaConstraints.KeyValuePair("OfferToReceiveVideo", "false"));
 
+
 	}
 
 	@Override
 	public void onSignalingChange(SignalingState newState) {
 		logger.info("onSignalingChange : " + newState);
-
 	}
 
 	@Override
-	public void onIceConnectionChange(IceConnectionState newState) {
-		if (newState == IceConnectionState.COMPLETED) {
-			webRTCAdaptor.registerWebRTCClient(streamId, this);
-			try {
-				JSONObject jsonObject = new JSONObject();
-				jsonObject.put("command", "notification");
-				jsonObject.put("definition", "play_started");
-				wsConnection.send(jsonObject.toJSONString());
-			} catch (UnsupportedEncodingException e) {
-				e.printStackTrace();
-			}	
-			
-			executor.scheduleWithFixedDelay(new Runnable() {
-		
-				@Override
-				public void run() {
-					webRTCAdaptor.adaptStreamingQuality(streamId, WebRTCClient.this);
-				}
-				
-			}, ADAPTIVE_QUALITY_CHECK_TIME_MS, ADAPTIVE_QUALITY_CHECK_TIME_MS, TimeUnit.MILLISECONDS);
-			
+	public void onIceConnectionChange(IceConnectionState newState) 
+	{
+		logger.info("IceConnectionState: " + newState );
+
+		if (newState == IceConnectionState.CONNECTED) 
+		{
+
+			logger.info("Signalling state: " + peerConnection.signalingState());
+
+			if (remoteDescriptionSet) {
+				startStreaming();
+			}
+
 		}
-		else if (newState == IceConnectionState.DISCONNECTED) {
+		else if (newState == IceConnectionState.FAILED || newState == IceConnectionState.CLOSED) {
+			// newState == IceConnectionState.DISCONNECTED ||
 			//webRTCAdaptor.deregisterWebRTCClient(streamId, this);
 			stop();
-
 		}
 
+	}
+
+	private void startStreaming() {
+		if (isStreaming) {
+			return;
+		}
+
+		logger.info("Starting streaming....");
+		isStreaming = true;
+
+		executor.schedule(new Runnable() {
+
+			@Override
+			public void run() {
+				webRTCAdaptor.registerWebRTCClient(streamId, WebRTCClient.this);
+
+				try {
+					JSONObject jsonObject = new JSONObject();
+					jsonObject.put("command", "notification");
+					jsonObject.put("definition", "play_started");
+					wsConnection.send(jsonObject.toJSONString());
+				} catch (UnsupportedEncodingException e) {
+					e.printStackTrace();
+				}	
+
+			}
+		}, 0, TimeUnit.MILLISECONDS);
+
+
+		adaptStreamScheduledFuture = executor.scheduleWithFixedDelay(new Runnable() {
+
+			@Override
+			public void run() {
+				webRTCAdaptor.adaptStreamingQuality(streamId, WebRTCClient.this);
+
+			}
+
+		}, ADAPTIVE_QUALITY_CHECK_TIME_MS, ADAPTIVE_QUALITY_CHECK_TIME_MS, TimeUnit.MILLISECONDS);
 	}
 
 	@Override
@@ -267,7 +306,7 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 
 	@Override
 	public void onIceCandidate(IceCandidate candidate) {
-		
+
 		logger.info("onIceCandidate : " + candidate);
 		JSONObject jsonObject = new JSONObject();
 		jsonObject.put("command", "takeCandidate");
@@ -321,10 +360,10 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 
 			@Override
 			public void run() {
-				// TODO Auto-generated method stub
 
-
+				logger.info("setting local description");
 				peerConnection.setLocalDescription(WebRTCClient.this, sdp);
+
 
 				JSONObject jsonObject = new JSONObject();
 				jsonObject.put("command", "takeConfiguration");
@@ -351,6 +390,17 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 	@Override
 	public void onSetSuccess() {
 		logger.info("onSetSuccess");
+		if (settingRemoteDescription) {
+			remoteDescriptionSet = true;
+
+			switch (peerConnection.iceConnectionState()) {
+			case CONNECTED:
+			case COMPLETED:
+				startStreaming();
+				break;
+			}
+		}
+
 	}
 
 	@Override
@@ -366,13 +416,14 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 
 	@Override
 	public void setRemoteDescription(final SessionDescription sdp) {
-		logger.info("setRemoteDescription : " + sdp);
 		executor.execute(new Runnable() {
 
 			@Override
 			public void run() {
 
 				if (peerConnection != null) {
+					settingRemoteDescription = true;
+					logger.info("setting remote description ");
 					peerConnection.setRemoteDescription(WebRTCClient.this, sdp);
 				}
 				else {
@@ -385,6 +436,7 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 
 
 	public void addIceCandidate(final IceCandidate iceCandidate) {
+
 		logger.info("addIceCandidate : " + iceCandidate);
 		executor.execute(new Runnable() {
 
@@ -398,6 +450,8 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 				}
 			}
 		});
+
+
 	}
 
 
@@ -408,7 +462,7 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 
 	}
 
-	
+
 	@Override
 	public void setWebRTCMuxer(IWebRTCMuxer webRTCMuxer) {
 		this.webRTCMuxer = webRTCMuxer;	
@@ -421,53 +475,96 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 
 
 	public void stop() {
-		if (!isRunning) {
+		if (!isInitialized) {
+			logger.info("Stop is already called");
 			return;
 		}
+		logger.info("Stopping webrtc client");
 		//make isRunning false immediately to not let other threads enter this function
-		isRunning = false;
-		if (webRTCMuxer != null) {
-			webRTCMuxer.unRegisterWebRTCClient(this);
-		}
-		executor.execute(new Runnable() {
+		isInitialized = false;
+		isStreaming = false;
 
+		executor.execute(new Runnable() {
 			@Override
 			public void run() {
-				logger.info("Disposing peerconnection objects");
-
-				if (peerConnection != null) {
-					peerConnection.close();
-					peerConnection.dispose();
-					peerConnection = null;
-				}
-				if (audioSource != null) {
-					audioSource.dispose();
-					audioSource = null;
-				}
-				if (videoSource != null ) {
-					videoSource.dispose();
-					videoSource = null;
+				if (webRTCMuxer != null) {
+					webRTCMuxer.unRegisterWebRTCClient(WebRTCClient.this);
 				}
 				
-				if (factory != null) {
-					factory.dispose();
-					factory = null;
-				}
+				audioStreamExecutor.shutdownNow();
+				videoStreamExecutor.shutdownNow();
 				
 				try {
 					JSONObject jsonObject = new JSONObject();
 					jsonObject.put("command", "notification");
 					jsonObject.put("definition", "play_finished");
 					wsConnection.send(jsonObject.toJSONString());
-					logger.info("leaving from disposing peerconnection objects");
 				} catch (UnsupportedEncodingException e) {
 					e.printStackTrace();
 				}	
+				
+				
+				try {
+					audioStreamExecutor.awaitTermination(10, TimeUnit.SECONDS);
+					videoStreamExecutor.awaitTermination(10, TimeUnit.SECONDS);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+				
+				
+				peerConnection.removeStream(mediaStream);
+				
+				if (adaptStreamScheduledFuture != null) {
+					adaptStreamScheduledFuture.cancel(false);
+					adaptStreamScheduledFuture = null;
+				}
+				
+				
+
+				logger.info("Disposing peerconnection objects");
+
+
+
+
+
+				if (audioSource != null) {
+					logger.info("Disposing audio source");
+					audioSource.dispose();
+					audioSource = null;
+				}
+
+				if (videoSource != null ) {
+					logger.info("Disposing video source");
+					videoSource.dispose();
+					videoSource = null;
+				}
+				
+				
+
+				if (peerConnection != null) {
+					logger.info("Closing peer connection: " + peerConnection.iceConnectionState());
+					
+					peerConnection.close();
+					
+
+					logger.info("Disposing peer connection");
+					peerConnection.dispose();
+					peerConnection = null;
+				}
+
+				if (factory != null) {
+					logger.info("Closing peer connection factory ");
+					factory.dispose();
+					factory = null;
+				}
+				
+
+
 
 			}
 		});
 		executor.shutdown();
-		streamExecutor.shutdown();
+
 	}
 
 }
