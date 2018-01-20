@@ -57,9 +57,11 @@ public class DBStoresUnitTest {
 		testNullCheck(dataStore);
 		testSimpleOperations(dataStore);  
 		testRemoveEndpoint(dataStore);
+		testRTMPURL(dataStore);
 
 	}
 
+	
 	@Test
 	public void testMemoryDataStore() {
 
@@ -68,6 +70,7 @@ public class DBStoresUnitTest {
 		testNullCheck(dataStore);
 		testSimpleOperations(dataStore);  
 		testRemoveEndpoint(dataStore);
+		testRTMPURL(dataStore);
 
 	}
 
@@ -79,12 +82,48 @@ public class DBStoresUnitTest {
 		Query<Broadcast> deleteQuery = store.find(Broadcast.class);
 		store.delete(deleteQuery);
 
+		
 		testGetPagination(dataStore);	
 		testNullCheck(dataStore);
 		testSimpleOperations(dataStore);  
 		testRemoveEndpoint(dataStore);
+		
+		testRTMPURL(dataStore);
 
 	}
+	
+	
+	public void testRTMPURL(IDataStore dataStore) {
+		Broadcast broadcast = new Broadcast();
+		broadcast.setName("test");
+		String key = dataStore.save(broadcast);
+		
+		assertNull(dataStore.get(key).getRtmpURL());
+		
+		broadcast = new Broadcast();
+		broadcast.setName("test2");
+		broadcast.setRtmpURL(null);
+		
+		String key2 = dataStore.save(broadcast);
+		
+		assertNotEquals(key, key2);
+		
+		assertNull(dataStore.get(key2).getRtmpURL());
+		
+		
+		broadcast = new Broadcast();
+		broadcast.setName("test3");
+		String rtmpURL = "content_is_not_important";
+		broadcast.setRtmpURL(rtmpURL);
+		
+		String key3 = dataStore.save(broadcast);
+		
+		assertEquals(dataStore.get(key3).getRtmpURL(), rtmpURL+key3);
+		
+		
+		
+	}
+
 
 	public void testNullCheck(IDataStore dataStore) {
 

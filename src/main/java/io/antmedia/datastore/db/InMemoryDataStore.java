@@ -27,6 +27,11 @@ public class InMemoryDataStore implements IDataStore {
 		if (broadcast != null) {
 			streamId = RandomStringUtils.randomNumeric(24);
 			broadcast.setStreamId(streamId);
+			String rtmpURL = broadcast.getRtmpURL();
+			if (rtmpURL != null) {
+				rtmpURL += streamId; 
+			}
+			broadcast.setRtmpURL(rtmpURL);
 			broadcastMap.put(streamId, broadcast);
 		}
 		return streamId;

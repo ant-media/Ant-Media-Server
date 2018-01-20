@@ -2,6 +2,8 @@ package io.antmedia.rest;
 
 
 import java.io.File;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.List;
 
 import javax.servlet.ServletContext;
@@ -49,14 +51,14 @@ import io.antmedia.storage.StorageClient.FileType;
 public class BroadcastRestService {
 
 	public static class Result {
-		
+
 		/**
 		 * Gives information about the operation. 
 		 * If it is true, operation is successfull
 		 * if it is false, operation is failed
 		 */
 		public boolean success = false;
-		
+
 		/**
 		 * Message may be filled when error happens so that developer may
 		 * understand what the problem is
@@ -115,16 +117,34 @@ public class BroadcastRestService {
 		broadcast.setDate(System.currentTimeMillis());
 
 		String listenerHookURL = broadcast.getListenerHookURL();
-		if (listenerHookURL == null || listenerHookURL.length() == 0) 
-		{
-			AppSettings settings = getAppSettings();
-			if (settings != null) {
+
+		AppSettings settings = getAppSettings();
+
+		if (settings != null) {
+			if (listenerHookURL == null || listenerHookURL.length() == 0) 
+			{
 				String settingsListenerHookURL = settings.getListenerHookURL();
 				if (settingsListenerHookURL != null && settingsListenerHookURL.length() > 0) {
 					broadcast.setListenerHookURL(settingsListenerHookURL);
 				}
 			}
+			
+			String fqdn = settings.getServerName();
+			if (fqdn == null || fqdn.length() == 0) 
+			{
+				try {
+					fqdn = InetAddress.getLocalHost().getHostAddress();
+				} catch (UnknownHostException e) {
+					e.printStackTrace();
+				}
+			}
+			
+			if (fqdn != null && fqdn.length() >= 0) {
+				broadcast.setRtmpURL("rtmp://" + fqdn + "/" + getScope().getName() + "/");
+			}
+			
 		}
+
 
 		getDataStore().save(broadcast);
 		return broadcast;
@@ -163,15 +183,15 @@ public class BroadcastRestService {
 
 		return getBroadcast(broadcast.getStreamId());
 	}
-	
-	
-	
+
+
+
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/broadcast/stop/{streamId}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result stopBroadcast(@PathParam("streamId") String streamId) {
-		
+
 		boolean result = false;
 		String message = "";
 		IBroadcastStream broadcastStream = getApplication().getBroadcastStream(getScope(), streamId);
@@ -182,14 +202,14 @@ public class BroadcastRestService {
 		else {
 			message = "No active broadcast found with id " + streamId;
 		}
-		
-		
-		
+
+
+
 		return new Result(result, message);
-		
+
 	}
 
-	
+
 	/**
 	 * Updates broadcast name and description
 	 * 
@@ -618,7 +638,7 @@ public class BroadcastRestService {
 		return new Result(false, message);
 	}
 
-	
+
 	/**
 	 * Check if device is authenticated in the social network. 
 	 * In authorization phase, this function may be polled periodically until it returns success.
@@ -684,8 +704,8 @@ public class BroadcastRestService {
 		}
 		return channel;
 	}
-	
-	
+
+
 	/**
 	 * Returns available social network channels for the specific service
 	 * 
@@ -719,7 +739,7 @@ public class BroadcastRestService {
 		}
 		return channelList;
 	}
-	
+
 	/**
 	 * Sets channel that live stream will be published on specific social network channel
 	 * 
@@ -745,7 +765,7 @@ public class BroadcastRestService {
 	{
 		boolean result = false;
 		List<VideoServiceEndpoint> endPoint = getEndpointList();
-		
+
 		if (endPoint != null) 
 		{
 			for (VideoServiceEndpoint videoServiceEndpoint : endPoint) 
@@ -759,7 +779,7 @@ public class BroadcastRestService {
 		}
 		return new Result(result, null);
 	}
-	
+
 
 	public long getRecordCount() {
 		return getDataStore().getBroadcastCount();
@@ -801,11 +821,15 @@ public class BroadcastRestService {
 		return appSettings;
 	}
 
-	private IScope getScope() {
+	public IScope getScope() {
 		if (scope == null) {
 			scope = getApplication().getScope();
 		}
 		return scope;
+	}
+	
+	public void setScope(IScope scope) {
+		this.scope = scope;
 	}
 
 	public void setAppCtx(ApplicationContext appCtx) {

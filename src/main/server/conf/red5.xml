@@ -50,5 +50,11 @@
        <property name="configLocation" value="classpath:/red5-rtsp.xml" />
        <property name="parent" ref="red5.core" />
     </bean>
+    
+    <bean id="ant.media.server.settings" class="io.antmedia.settings.ServerSettings">
+    		<property name="serverName" value="${ant.media.server.name}" />
+    </bean>
+    
+    
 
 </beans>

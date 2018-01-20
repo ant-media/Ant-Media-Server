@@ -2,6 +2,7 @@ package io.antmedia.datastore.db;
 
 import java.util.List;
 
+import org.apache.commons.lang.RandomStringUtils;
 import org.bson.types.ObjectId;
 import org.mongodb.morphia.Datastore;
 import org.mongodb.morphia.Key;
@@ -37,8 +38,15 @@ public class MongoStore implements IDataStore {
 	@Override
 	public String save(Broadcast broadcast) {
 		try {
+			String streamId = RandomStringUtils.randomAlphanumeric(12) + System.currentTimeMillis();
+			broadcast.setStreamId(streamId);
+			String rtmpURL = broadcast.getRtmpURL();
+			if (rtmpURL != null) {
+				rtmpURL += streamId; 
+			}
+			broadcast.setRtmpURL(rtmpURL);
 			Key<Broadcast> key = datastore.save(broadcast);
-			return key.getId().toString();
+			return streamId;
 		}
 		catch (Exception e) {
 			e.printStackTrace();
@@ -53,7 +61,7 @@ public class MongoStore implements IDataStore {
 	public Broadcast get(String id) 
 	{
 		try {
-			return datastore.find(Broadcast.class).field("dbId").equal(new ObjectId(id)).get();
+			return datastore.find(Broadcast.class).field("streamId").equal(id).get();
 		}
 		catch (Exception e) {
 			e.printStackTrace();
@@ -68,7 +76,7 @@ public class MongoStore implements IDataStore {
 	public boolean updateName(String id, String name, String description) 
 	{
 		try {
-			Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("dbId").equal(new ObjectId(id));
+			Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(id);
 			UpdateOperations<Broadcast> ops = datastore
 					.createUpdateOperations(Broadcast.class)
 					.set("name", name).set("description", description);
@@ -90,7 +98,7 @@ public class MongoStore implements IDataStore {
 	{
 
 		try {
-			Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("dbId").equal(new ObjectId(id));
+			Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(id);
 
 			UpdateOperations<Broadcast> ops = datastore
 					.createUpdateOperations(Broadcast.class)
@@ -113,7 +121,7 @@ public class MongoStore implements IDataStore {
 	public boolean updateDuration(String id, long duration) 
 	{
 		try {
-			Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("dbId").equal(new ObjectId(id));
+			Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(id);
 
 			UpdateOperations<Broadcast> ops = datastore
 					.createUpdateOperations(Broadcast.class)
@@ -158,7 +166,7 @@ public class MongoStore implements IDataStore {
 	{
 		if (id != null && endpoint != null) {
 			try {
-				Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("dbId").equal(new ObjectId(id));
+				Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(id);
 
 				UpdateOperations<Broadcast> ops = datastore
 						.createUpdateOperations(Broadcast.class)
@@ -180,7 +188,7 @@ public class MongoStore implements IDataStore {
 		
 		if (id != null && endpoint != null) 
 		{
-			Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("dbId").equal(new ObjectId(id));
+			Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(id);
 			UpdateOperations<Broadcast> ops = datastore
 					.createUpdateOperations(Broadcast.class)
 					.removeAll("endPointList", endpoint);
@@ -205,7 +213,7 @@ public class MongoStore implements IDataStore {
 	@Override
 	public boolean delete(String id) {
 		try {
-			Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("dbId").equal(new ObjectId(id));
+			Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(id);
 			WriteResult delete = datastore.delete(query);
 			return delete.getN() == 1;
 		}

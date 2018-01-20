@@ -1,6 +1,7 @@
 package io.antmedia.test.rest;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -9,6 +10,7 @@ import static org.junit.Assert.fail;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.red5.server.scope.Scope;
 import org.springframework.test.context.ContextConfiguration;
 
 import com.google.gson.Gson;
@@ -23,6 +25,9 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.BroadcastRestService.Result;
 import static org.mockito.Mockito.*;
+
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 
 public class RestServiceUnitTest  {
 
@@ -46,6 +51,10 @@ public class RestServiceUnitTest  {
 		AppSettings settings = mock(AppSettings.class);
 		String hookURL = "http://url_hook";
 		when(settings.getListenerHookURL()).thenReturn(hookURL);
+		
+		String serverName = "fually.qualified.domain.name";
+		when(settings.getServerName()).thenReturn(serverName);
+		
 		restService.setAppSettings(settings);
 		
 		Broadcast broadcast = new Broadcast(null, "name");
@@ -58,6 +67,53 @@ public class RestServiceUnitTest  {
 		Broadcast broadcastTmp = restService.getBroadcast(createBroadcast.getStreamId());
 		
 		assertEquals(hookURL, broadcastTmp.getListenerHookURL());
+		
+	}
+	
+	@Test
+	public void testServerNameAndRtmpURL() {
+		AppSettings settings = mock(AppSettings.class);
+		String serverName = "fually.qualified.domain.name";
+		when(settings.getServerName()).thenReturn(serverName);
+		
+		Scope scope = mock(Scope.class);
+		String scopeName = "scope";
+		when(scope.getName()).thenReturn(scopeName);
+		
+		restService.setScope(scope);
+		restService.setAppSettings(settings);
+		
+		Broadcast broadcast = new Broadcast(null, "name");
+		IDataStore store = new InMemoryDataStore("testdb");
+		restService.setDataStore(store);
+		Broadcast createBroadcast = restService.createBroadcast(broadcast);
+		
+		assertEquals("rtmp://" + serverName + "/" + scopeName + "/" + broadcast.getStreamId() , createBroadcast.getRtmpURL());
+		
+		when(settings.getServerName()).thenReturn(null);
+		
+		Broadcast createBroadcast2 = restService.createBroadcast(broadcast);
+		
+		try {
+			assertEquals("rtmp://" + InetAddress.getLocalHost().getHostAddress() + "/" + scopeName + "/" + broadcast.getStreamId() , createBroadcast2.getRtmpURL());
+		} catch (UnknownHostException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		
+		when(settings.getServerName()).thenReturn("");
+		
+		Broadcast createBroadcast3 = restService.createBroadcast(broadcast);
+		
+		try {
+			assertEquals("rtmp://" + InetAddress.getLocalHost().getHostAddress() + "/" + scopeName + "/" + broadcast.getStreamId() , createBroadcast3.getRtmpURL());
+		} catch (UnknownHostException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		
+		
+		
 		
 	}
 
