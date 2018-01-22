@@ -31,19 +31,16 @@ import org.bytedeco.javacpp.avformat.AVIOContext;
 import org.bytedeco.javacpp.avformat.AVStream;
 import org.bytedeco.javacpp.avutil;
 import org.bytedeco.javacpp.avutil.AVDictionary;
-import org.red5.server.adapter.MultiThreadedApplicationAdapter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.antmedia.datastore.db.types.Broadcast;
 
-class CameraScheduler implements ICameraStream {
+public class CameraScheduler implements ICameraStream {
 
 	protected static Logger logger = LoggerFactory.getLogger(CameraScheduler.class);
 
 	private Broadcast camera;
-
-	private MultiThreadedApplicationAdapter appAdaptor;
 
 	private WorkerThread thread;
 
@@ -51,9 +48,8 @@ class CameraScheduler implements ICameraStream {
 
 	private long[] lastDTS;
 
-	CameraScheduler(Broadcast camera, MultiThreadedApplicationAdapter appAdaptor) {
+	public CameraScheduler(Broadcast camera) {
 		this.camera = camera;
-		this.appAdaptor = appAdaptor;
 	}
 
 	public boolean prepareInput(AVFormatContext inputFormatContext) {
@@ -279,6 +275,10 @@ class CameraScheduler implements ICameraStream {
 
 	public boolean isRunning() {
 		return thread.isAlive();
+	}
+
+	public boolean isStopped() {
+		return thread.isInterrupted();
 	}
 
 	@Override

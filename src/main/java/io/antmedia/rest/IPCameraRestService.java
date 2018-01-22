@@ -98,6 +98,9 @@ public class IPCameraRestService {
 		return new Result(result);
 	}
 
+	/*
+	 * This function is not used anymore, use BroadcastRestservice/delete
+	 */
 	@GET
 	@Path("/deleteCamera")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -322,7 +325,7 @@ public class IPCameraRestService {
 		return appCtx;
 	}
 
-	protected IPCameraApplicationAdapter getApplicationInstance() {
+	public IPCameraApplicationAdapter getApplicationInstance() {
 		if (app == null) {
 			app = (IPCameraApplicationAdapter) getAppContext().getBean("web.handler");
 		}

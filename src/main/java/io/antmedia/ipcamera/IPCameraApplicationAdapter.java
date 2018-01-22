@@ -69,6 +69,16 @@ public class IPCameraApplicationAdapter extends AntMediaApplicationAdapter {
 
 	private List<CameraScheduler> camSchedulerList = new ArrayList<>();
 
+	private int cameraCheckerInterval = 60000;
+
+	public int getCameraCheckerInterval() {
+		return cameraCheckerInterval;
+	}
+
+	public void setCameraCheckerInterval(int cameraCheckerInterval) {
+		this.cameraCheckerInterval = cameraCheckerInterval;
+	}
+
 	/** {@inheritDoc} */
 	@Override
 	public boolean connect(IConnection conn, IScope scope, Object[] params) {
@@ -85,17 +95,21 @@ public class IPCameraApplicationAdapter extends AntMediaApplicationAdapter {
 
 	public void startCameraStreaming(Broadcast broadcast) {
 
-		CameraScheduler camScheduler = new CameraScheduler(broadcast, this);
+		CameraScheduler camScheduler = new CameraScheduler(broadcast);
 		camScheduler.startStream();
 		camSchedulerList.add(camScheduler);
 
+	}
+
+	public List<CameraScheduler> getCamSchedulerList() {
+		return camSchedulerList;
 	}
 
 	public void stopCameraStreaming(Broadcast cam) {
 		logger.warn("inside of stopCameraStreaming");
 
 		for (CameraScheduler camScheduler : camSchedulerList) {
-			if (camScheduler.getCamera().getIpAddr().equals(cam.getIpAddr())) {
+			if (camScheduler.getCamera().getStreamId().equals(cam.getStreamId())) {
 				camScheduler.stopStream();
 				camSchedulerList.remove(camScheduler);
 				break;
@@ -111,11 +125,20 @@ public class IPCameraApplicationAdapter extends AntMediaApplicationAdapter {
 
 		List<Broadcast> cameras = getDataStore().getCameraList();
 
+		if (cameras != null) {
+			startCameras(cameras);
+		}
+		return super.appStart(app);
+
+	}
+
+	public void startCameras(List<Broadcast> cameras) {
+
 		for (int i = 0; i < cameras.size(); i++) {
 			startCameraStreaming(cameras.get(i));
 		}
 
-		addScheduledJobAfterDelay(60000, new IScheduledJob() {
+		addScheduledJobAfterDelay(cameraCheckerInterval, new IScheduledJob() {
 
 			@Override
 			public void execute(ISchedulingService service) throws CloneNotSupportedException {
@@ -142,9 +165,8 @@ public class IPCameraApplicationAdapter extends AntMediaApplicationAdapter {
 				}
 
 			}
-		}, 65000);
+		}, 5000);
 
-		return super.appStart(app);
 	}
 
 	@Override

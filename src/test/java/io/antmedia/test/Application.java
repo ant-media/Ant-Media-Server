@@ -2,18 +2,15 @@ package io.antmedia.test;
 
 import java.io.File;
 
-import org.red5.server.adapter.MultiThreadedApplicationAdapter;
-
-import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.ipcamera.IPCameraApplicationAdapter;
 import io.antmedia.muxer.IMuxerListener;
 
-
-public class Application extends AntMediaApplicationAdapter implements IMuxerListener{
+public class Application extends IPCameraApplicationAdapter implements IMuxerListener {
 
 	public static String id = null;
 	public static File file = null;
 	public static long duration = 0;
-	
+
 	public static String notifyHookAction = null;
 	public static String notitfyURL = null;
 	public static String notifyId = null;
@@ -26,10 +23,9 @@ public class Application extends AntMediaApplicationAdapter implements IMuxerLis
 		super.muxingFinished(id, file, duration);
 		Application.id = id;
 		Application.file = file;
-		Application.duration = duration;	
+		Application.duration = duration;
 	}
-	
-	
+
 	public static void resetFields() {
 		Application.id = null;
 		Application.file = null;
@@ -40,10 +36,9 @@ public class Application extends AntMediaApplicationAdapter implements IMuxerLis
 		notifyStreamName = null;
 		notifyCategory = null;
 		notifyVodName = null;
-		
+
 	}
-	
-	@Override
+
 	public StringBuffer notifyHook(String url, String id, String action, String streamName, String category,
 			String vodName) {
 		notifyHookAction = action;
@@ -52,7 +47,7 @@ public class Application extends AntMediaApplicationAdapter implements IMuxerLis
 		notifyStreamName = streamName;
 		notifyCategory = category;
 		notifyVodName = vodName;
-		
+
 		return null;
 	}
 }
