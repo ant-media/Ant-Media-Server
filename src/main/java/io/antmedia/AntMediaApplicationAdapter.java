@@ -27,6 +27,7 @@ import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IBroadcastStream;
 import org.red5.server.api.stream.IStreamPublishSecurity;
 
+import ch.qos.logback.classic.Logger;
 import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
@@ -46,8 +47,8 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 	private List<VideoServiceEndpoint> videoServiceEndpoints;
 	private List<IStreamPublishSecurity> streamPublishSecurityList;
-	
-	
+
+
 	private IDataStore dataStore;
 	public IDataStore getDataStore() {
 		return dataStore;
@@ -55,8 +56,8 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	public void setDataStore(IDataStore dataStore) {
 		this.dataStore = dataStore;
 	}
-	
-	
+
+
 	@Override
 	public boolean appStart(IScope app) {
 		if (getStreamPublishSecurityList() != null) 
@@ -67,7 +68,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		}
 		return super.appStart(app);
 	}
-	
+
 
 	@Override
 	public void streamBroadcastClose(IBroadcastStream stream) {
@@ -145,45 +146,66 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	}
 
 	@Override
-	public void streamPublishStart(IBroadcastStream stream) {
-		try {
-			String streamName = stream.getPublishedName();
-			if (dataStore != null) {
-				dataStore.updateStatus(streamName, BROADCAST_STATUS_BROADCASTING);
+	public void streamPublishStart(final IBroadcastStream stream) {
 
-				Broadcast broadcast = dataStore.get(streamName);
-				if (broadcast != null) {
-					final String listenerHookURL = broadcast.getListenerHookURL();
-					final String streamId = broadcast.getStreamId();
-					if (listenerHookURL != null && listenerHookURL.length() > 0) 
-					{
-						final String name = broadcast.getName();
-						final String category = broadcast.getCategory();
-						addScheduledOnceJob(100, new IScheduledJob() {
+		addScheduledOnceJob(0, new IScheduledJob() {
 
-							@Override
-							public void execute(ISchedulingService service) throws CloneNotSupportedException {
-								notifyHook(listenerHookURL, streamId, HOOK_ACTION_START_LIVE_STREAM, name, category, null);
+			@Override
+			public void execute(ISchedulingService service) throws CloneNotSupportedException {
+				String streamName = stream.getPublishedName();
+				try {
+
+					if (dataStore != null) {
+						dataStore.updateStatus(streamName, BROADCAST_STATUS_BROADCASTING);
+
+						Broadcast broadcast = dataStore.get(streamName);
+						if (broadcast != null) {
+							final String listenerHookURL = broadcast.getListenerHookURL();
+							final String streamId = broadcast.getStreamId();
+							if (listenerHookURL != null && listenerHookURL.length() > 0) 
+							{
+								final String name = broadcast.getName();
+								final String category = broadcast.getCategory();
+								addScheduledOnceJob(100, new IScheduledJob() {
+
+									@Override
+									public void execute(ISchedulingService service) throws CloneNotSupportedException {
+										notifyHook(listenerHookURL, streamId, HOOK_ACTION_START_LIVE_STREAM, name, category, null);
+									}
+								});
 							}
-						});
-					}
 
 
-
-					List<Endpoint> endPointList = broadcast.getEndPointList();
-					if (endPointList != null) {
-						for (Endpoint endpoint : endPointList) {
-							VideoServiceEndpoint videoServiceEndPoint = getVideoServiceEndPoint(stream, endpoint.type);
-							if (videoServiceEndPoint != null) {
-								videoServiceEndPoint.publishBroadcast(endpoint);
+							List<Endpoint> endPointList = broadcast.getEndPointList();
+							if (endPointList != null) {
+								for (Endpoint endpoint : endPointList) {
+									VideoServiceEndpoint videoServiceEndPoint = getVideoServiceEndPoint(stream, endpoint.type);
+									if (videoServiceEndPoint != null) {
+										try {
+											videoServiceEndPoint.publishBroadcast(endpoint);
+											log.info("publish broadcast called for " + videoServiceEndPoint.getName());
+										}
+										catch (Exception e) {
+											e.printStackTrace();
+										}
+										
+										
+									}
+								}
 							}
 						}
 					}
 				}
+				catch (Exception e) {
+					e.printStackTrace();
+				}
+
 			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+		});
+
+
+
+
 
 		super.streamPublishStart(stream);
 	}
@@ -199,8 +221,8 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		}
 		return null;
 	}
-	
-	
+
+
 	@Override
 	public void muxingFinished(final String streamId, File file, long duration) {
 		String name = file.getName();
@@ -208,7 +230,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 			int index;
 			// reg expression of a translated file, kdjf03030_240p.mp4
 			String regularExp = "^.*_{1}[0-9]{3}p{1}\\.mp4{1}$";
-			
+
 			if (!name.matches(regularExp) && (index = name.lastIndexOf(".mp4")) != -1) {
 				final String baseName = name.substring(0, index);
 				dataStore.updateDuration(streamId, duration);
@@ -216,7 +238,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 				Broadcast broadcast = dataStore.get(streamId);
 				if (broadcast != null) {
 					final String listenerHookURL = broadcast.getListenerHookURL();
-					
+
 					if (listenerHookURL != null && listenerHookURL.length() > 0) 
 					{
 						addScheduledOnceJob(100, new IScheduledJob() {
@@ -307,11 +329,11 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		if (category != null) {
 			variables.put("category", category);
 		}
-		
+
 		if (vodName != null) {
 			variables.put("vodName", vodName);
 		}
-		
+
 		StringBuffer response = null;
 		try {
 			response = sendPOST(url, variables);
