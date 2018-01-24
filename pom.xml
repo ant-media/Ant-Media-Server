@@ -46,6 +46,7 @@
 		</repository>
 	</distributionManagement>
 	<properties>
+	 	<skipTests>false</skipTests>
 		<build.dir>target</build.dir>
 		<finalName>${project.artifactId}-${project.version}</finalName>
 		<red5-io.version>${project.parent.version}</red5-io.version>
@@ -126,9 +127,10 @@
           		<artifactId>maven-surefire-plugin</artifactId>
        			<version>2.19.1</version>
           		<configuration>
-            		<skipTests>false</skipTests>
+            		<skipTests>${skipTests}</skipTests>
           		</configuration>
         	</plugin>
+        	
 			<plugin>
 				<groupId>org.sonatype.plugins</groupId>
 				<artifactId>nexus-staging-maven-plugin</artifactId>
