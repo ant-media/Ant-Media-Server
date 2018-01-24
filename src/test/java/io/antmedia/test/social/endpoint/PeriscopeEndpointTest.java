@@ -155,7 +155,7 @@ public class PeriscopeEndpointTest {
 			
 
 			///usr/local/bin/
-			MuxingTest.execute(ffmpegPath + " -re -i src/test/resources/test_video_360p.flv -acodec copy -vcodec copy -f flv " + endpoint.rtmpUrl);
+			Process execute = MuxingTest.execute(ffmpegPath + " -re -i src/test/resources/test_video_360p.flv -acodec copy -vcodec copy -f flv " + endpoint.rtmpUrl);
 
 			LiveStreamStatus streamStatus = null;
 
@@ -165,10 +165,13 @@ public class PeriscopeEndpointTest {
 			endPoint.publishBroadcast(endpoint);
 
 
-			Thread.sleep(40000);
+			Thread.sleep(20000);
 
 
+			
 			endPoint.stopBroadcast(endpoint);
+			
+			execute.destroy();
 
 		} catch (Exception e) {
 			e.printStackTrace();

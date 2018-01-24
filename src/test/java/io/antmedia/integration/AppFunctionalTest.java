@@ -23,7 +23,7 @@ import io.antmedia.rest.BroadcastRestService.Result;
 import io.antmedia.test.Application;
 
 
-public class AppFunctionalIT {
+public class AppFunctionalTest {
 
 
 	private BroadcastRestService restService = null;
@@ -76,7 +76,7 @@ public class AppFunctionalIT {
 	
 	@Test
 	public void testCreateBroadcast() {
-		RestServiceIT restService = new RestServiceIT();
+		RestServiceTest restService = new RestServiceTest();
 
 
 		Broadcast broadcast = restService.createBroadcast("TOBB Demo");
@@ -106,7 +106,7 @@ public class AppFunctionalIT {
 		try {
 			//call web service to create stream
 
-			RestServiceIT restService = new RestServiceIT();
+			RestServiceTest restService = new RestServiceTest();
 
 
 			Broadcast broadcast = restService.createBroadcast("name");
@@ -131,7 +131,7 @@ public class AppFunctionalIT {
 
 			executeProcess(ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/" + broadcast.getStreamId());
 
-			Thread.sleep(40000);
+			Thread.sleep(20000);
 
 			//call web service to get stream info and check status
 			broadcast = restService.getBroadcast(broadcast.getStreamId().toString());
@@ -164,7 +164,7 @@ public class AppFunctionalIT {
 			public void run() {
 				try {
 
-					AppFunctionalIT.process = Runtime.getRuntime().exec(command);
+					AppFunctionalTest.process = Runtime.getRuntime().exec(command);
 					InputStream errorStream = process.getErrorStream();
 					byte[] data = new byte[1024];
 					int length = 0;

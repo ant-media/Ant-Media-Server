@@ -262,7 +262,7 @@ public class MuxingTest {
 			assertTrue(testFile("rtmp://"+SERVER_ADDR+"/LiveApp/" + streamName ));
 
 
-			assertTrue(testFile("rtsp://"+SERVER_ADDR+":5554/LiveApp/" + streamName + ".mp4", true));
+			//assertTrue(testFile("rtsp://"+SERVER_ADDR+":5554/LiveApp/" + streamName + ".mp4", true));
 
 			//check that mp4 is created successfully and can be playable
 			assertTrue(testFile("http://"+SERVER_ADDR+":5080/LiveApp/streams/" + streamName + ".mp4"));

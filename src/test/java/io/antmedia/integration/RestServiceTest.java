@@ -51,7 +51,7 @@ import io.antmedia.rest.BroadcastRestService.Result;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
 
 
-public class RestServiceIT {
+public class RestServiceTest {
 
 
 	private static final String ROOT_APP_URL = "http://localhost:5080/LiveApp";
@@ -558,7 +558,7 @@ public class RestServiceIT {
 			//let mp4 file to be created
 			Thread.sleep(2000);
 
-			boolean vodExists = AppFunctionalIT.exists(ROOT_APP_URL + "/streams/" + broadcast.getStreamId() + ".mp4", false);
+			boolean vodExists = AppFunctionalTest.exists(ROOT_APP_URL + "/streams/" + broadcast.getStreamId() + ".mp4", false);
 
 			assertTrue(vodExists);
 
