@@ -55,6 +55,12 @@ public class RestServiceUnitTest  {
 		String serverName = "fually.qualified.domain.name";
 		when(settings.getServerName()).thenReturn(serverName);
 		
+		Scope scope = mock(Scope.class);
+		String scopeName = "scope";
+		when(scope.getName()).thenReturn(scopeName);
+		
+		restService.setScope(scope);
+		
 		restService.setAppSettings(settings);
 		
 		Broadcast broadcast = new Broadcast(null, "name");
@@ -122,6 +128,12 @@ public class RestServiceUnitTest  {
 		AppSettings settings = mock(AppSettings.class);
 		when(settings.getListenerHookURL()).thenReturn(null);
 		restService.setAppSettings(settings);
+		
+		Scope scope = mock(Scope.class);
+		String scopeName = "scope";
+		when(scope.getName()).thenReturn(scopeName);
+		
+		restService.setScope(scope);
 		
 		
 		Broadcast broadcast = new Broadcast(null, "name");

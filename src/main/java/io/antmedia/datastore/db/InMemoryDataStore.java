@@ -20,19 +20,26 @@ public class InMemoryDataStore implements IDataStore {
 
 	public InMemoryDataStore(String dbName) {
 	}
+
 	@Override
 	public String save(Broadcast broadcast) {
 
 		String streamId = null;
 		if (broadcast != null) {
-			streamId = RandomStringUtils.randomNumeric(24);
-			broadcast.setStreamId(streamId);
-			String rtmpURL = broadcast.getRtmpURL();
-			if (rtmpURL != null) {
-				rtmpURL += streamId; 
+			try {
+				streamId = RandomStringUtils.randomNumeric(24);
+				broadcast.setStreamId(streamId);
+				String rtmpURL = broadcast.getRtmpURL();
+				if (rtmpURL != null) {
+					rtmpURL += streamId; 
+				}
+				broadcast.setRtmpURL(rtmpURL);
+				broadcastMap.put(streamId, broadcast);
 			}
-			broadcast.setRtmpURL(rtmpURL);
-			broadcastMap.put(streamId, broadcast);
+			catch (Exception e) {
+				e.printStackTrace();
+				streamId = null;
+			}
 		}
 		return streamId;
 	}
@@ -108,8 +115,8 @@ public class InMemoryDataStore implements IDataStore {
 		}
 		return result;
 	}
-	
-	
+
+
 	@Override
 	public boolean removeEndpoint(String id, Endpoint endpoint) {
 		boolean result = false;
@@ -127,7 +134,7 @@ public class InMemoryDataStore implements IDataStore {
 						break;
 					}
 				}
-			
+
 			}
 		}
 		return result;
