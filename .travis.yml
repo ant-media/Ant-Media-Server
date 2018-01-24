@@ -16,7 +16,7 @@ before_install:
   - git clone https://github.com/ant-media/Ant-Media-Server-Common.git && cd Ant-Media-Server-Common && mvn clean install -DskipTests && cd ..
   - mvn clean package -P assemble  --quiet
   - wget https://gist.githubusercontent.com/mekya/f5955a75a25eb3148f88cc2b466d0b4d/raw -o target/install_ant-media-server.sh  # install script
-  - chmod 755 install_ant-media-server.sh
+  - chmod 755 target/install_ant-media-server.sh
   - cd target 
   - ./install_ant-media-server.sh ant-media-server-community*.zip
   - cd ..
