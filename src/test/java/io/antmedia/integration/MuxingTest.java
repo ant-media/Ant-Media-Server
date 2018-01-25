@@ -240,7 +240,7 @@ public class MuxingTest {
 			String streamName = "live_rtsp_test";
 
 			//make sure that ffmpeg is installed and in path
-			Process rtspSendingProcess = execute(ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f rtsp rtsp://"+SERVER_ADDR+":5554/LiveApp/" + streamName);
+			Process rtspSendingProcess = execute(ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -rtsp_transport udp -f rtsp rtsp://"+SERVER_ADDR+":5554/LiveApp/" + streamName);
 
 			Thread.sleep(10000);
 
