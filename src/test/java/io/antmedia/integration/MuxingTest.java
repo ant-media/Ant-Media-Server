@@ -232,7 +232,8 @@ public class MuxingTest {
 
 	//TODO: check if rtsp failed in some state, how it can be free resources
 
-	@Test
+	//TODO: make rtsp send with tcp and open this test
+	//@Test
 	public void testRTSPSending(){
 		try {
 
@@ -246,12 +247,12 @@ public class MuxingTest {
 
 			//check that stream can be watchable by rtsp
 			//use ipv4 address to play rtsp stream
+			
 			assertTrue(testFile("rtsp://"+SERVER_ADDR+":5554/LiveApp/" + streamName));
 
 
 			//check that stream can be watchable by hls
-			//TODO: make rtsp send with tcp and open this test
-			//assertTrue(testFile("http://"+SERVER_ADDR+":5080/LiveApp/streams/" + streamName + ".m3u8"));
+			assertTrue(testFile("http://"+SERVER_ADDR+":5080/LiveApp/streams/" + streamName + ".m3u8"));
 			//
 			//			//stop rtsp streaming 
 			rtspSendingProcess.destroy();
@@ -260,13 +261,11 @@ public class MuxingTest {
 
 			Thread.sleep(15000);
 
-			//TODO: make rtsp send with tcp and open this test
 			assertTrue(testFile("rtmp://"+SERVER_ADDR+"/LiveApp/" + streamName ));
 
 
-			//assertTrue(testFile("rtsp://"+SERVER_ADDR+":5554/LiveApp/" + streamName + ".mp4", true));
+			assertTrue(testFile("rtsp://"+SERVER_ADDR+":5554/LiveApp/" + streamName + ".mp4", true));
 
-			//TODO: make rtsp send with tcp and open this test
 			assertTrue(testFile("http://"+SERVER_ADDR+":5080/LiveApp/streams/" + streamName + ".mp4"));
 
 		} catch (Exception e) {
