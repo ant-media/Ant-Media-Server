@@ -289,6 +289,14 @@ public class BroadcastRestService {
 		return getDataStore().getBroadcastList(offset, size);
 	}
 
+	@GET
+	@Path("/broadcast/filterList/{offset}/{size}/{type}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public List<Broadcast> filterBroadcastList(@PathParam("offset") int offset, @PathParam("size") int size,
+			@PathParam("type") String type) {
+		return getDataStore().filterBroadcastList(offset, size, type);
+	}
+
 	@POST
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/broadcast/deleteVoDFile/{id}")

@@ -203,4 +203,10 @@ public class InMemoryDataStore implements IDataStore {
 
 	}
 
+	@Override
+	public List<Broadcast> filterBroadcastList(int offset, int size, String type) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 }

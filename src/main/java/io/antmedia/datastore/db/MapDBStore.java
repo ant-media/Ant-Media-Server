@@ -226,6 +226,58 @@ public class MapDBStore implements IDataStore {
 		return list;
 	}
 
+	@Override
+	public List<Broadcast> filterBroadcastList(int offset, int size, String type) {
+
+		int t = 0;
+		int itemCount = 0;
+		if (size > 50) {
+			size = 50;
+		}
+		if (offset < 0) {
+			offset = 0;
+		}
+
+		Object[] objectArray = map.getValues().toArray();
+
+		Broadcast[] broadcastArray = new Broadcast[objectArray.length];
+
+		List<Broadcast> filterList = new ArrayList<Broadcast>();
+
+		for (int i = 0; i < objectArray.length; i++) {
+
+			broadcastArray[i] = gson.fromJson((String) objectArray[i], Broadcast.class);
+
+		}
+
+		for (int i = 0; i < broadcastArray.length; i++) {
+
+			if (broadcastArray[i].getType().equals(type)) {
+
+				filterList.add(gson.fromJson((String) objectArray[i], Broadcast.class));
+
+			}
+
+		}
+
+		List<Broadcast> list = new ArrayList();
+		for (Broadcast broadcast : filterList) {
+			if (t < offset) {
+				t++;
+				continue;
+			}
+			list.add(broadcast);
+			itemCount++;
+
+			if (itemCount >= size) {
+				break;
+			}
+
+		}
+		return list;
+
+	}
+
 	/*
 	 * IP Camera Operations
 	 */
