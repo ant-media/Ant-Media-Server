@@ -28,6 +28,8 @@ before_install:
   - sudo service antmedia start
   - sleep 10
 
+after_success:
+mvn deploy -DskipTests --settings mvn-settings.xml
 
 deploy:
   provider: releases
