@@ -34,9 +34,9 @@ after_success:
 deploy:
   provider: releases
   api_key: $GITHUB_OAUTH_TOKEN
-  file: "target/ant-media-server-community-1.2.0-SNAPSHOT.zip"
+  file: "target/ant-media-server-community*.zip"
   skip_cleanup: true
-  name: "Ant Media Server Community 1.2.0-SNAPSHOT $(date +'%F-%T')"
+  name: "Ant Media Server Community $(date +'%F-%T')"
   prerelease: true
   on:
     tags: true

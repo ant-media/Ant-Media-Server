@@ -9,14 +9,14 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>io.antmedia</groupId>
 	<artifactId>ant-media-server</artifactId>
-	<version>1.2.0-SNAPSHOT</version>
+	<version>1.2.0</version>
 	<name>Ant Media Server</name>
 	<description>Ant Media Server supports RTMP, RTSP, MP4, HLS, WebRTC, Adaptive Streaming, etc.</description>
 	<packaging>jar</packaging>
 	<url>https://github.com/ant-media/Ant-Media-Server</url>
 	<organization>
 		<name>Ant Media</name>
-		<url>https://github.com/ant-media/</url>
+		<url>http://antmedia.io</url>
 	</organization>
 	<licenses>
 		<license>
@@ -53,14 +53,9 @@
 		<red5-service.version>${project.version}</red5-service.version>
 		<red5-server-common.version>${project.version}</red5-server-common.version>
 		<cors-filter.version>2.5</cors-filter.version>
-		<io-antmedia.enterprise.version>1.2.0-SNAPSHOT</io-antmedia.enterprise.version>
 		<periscope-api.version>1.0.0</periscope-api.version>
 		<restfb.version>1.43.0</restfb.version>
-		<webrtcApp.version>1.2.0-SNAPSHOT</webrtcApp.version>
-		<liveApp.version>1.2.0-SNAPSHOT</liveApp.version>
-		<consoleApp.version>1.2.0-SNAPSHOT</consoleApp.version>
-		<webrtcAppEE.version>1.2.0-SNAPSHOT</webrtcAppEE.version>
-
+		
 		<javacpp.ffmpeg.version>3.2.1-1.3</javacpp.ffmpeg.version>
 
 		<jersey.version>2.26</jersey.version>
@@ -138,7 +133,6 @@
 				<extensions>true</extensions>
 				<configuration>
 					<serverId>ossrh</serverId>
-					<nexusUrl>https://oss.sonatype.org/</nexusUrl>
 					<autoReleaseAfterClose>true</autoReleaseAfterClose>
 				</configuration>
 			</plugin>
@@ -261,27 +255,7 @@
 			<artifactId>red5-server-common</artifactId>
 			<version>${red5-server-common.version}</version>
 		</dependency>
-		<dependency>
-			<groupId>io.antmedia.webrtc</groupId>
-			<artifactId>WebRTCApp</artifactId>
-			<version>${webrtcApp.version}</version>
-			<type>war</type>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>io.antmedia.app</groupId>
-			<artifactId>LiveApp</artifactId>
-			<version>${liveApp.version}</version>
-			<type>war</type>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>io.antmedia.app</groupId>
-			<artifactId>ConsoleApp</artifactId>
-			<version>${consoleApp.version}</version>
-			<type>war</type>
-			<scope>provided</scope>
-		</dependency>
+
 		<dependency>
 			<groupId>org.red5</groupId>
 			<artifactId>red5-io</artifactId>
@@ -434,10 +408,39 @@
 			<version>2.11.0</version>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>io.antmedia.webrtc</groupId>
+			<artifactId>WebRTCApp</artifactId>
+			<version>${project.version}</version>
+			<type>war</type>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>io.antmedia.app</groupId>
+			<artifactId>ConsoleApp</artifactId>
+			<version>${project.version}</version>
+			<type>war</type>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>io.antmedia.app</groupId>
+			<artifactId>LiveApp</artifactId>
+			<version>${project.version}</version>
+			<type>war</type>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>io.antmedia.webrtc</groupId>
+			<artifactId>WebRTCAppEE</artifactId>
+			<version>${project.version}</version>
+			<type>war</type>
+			<scope>provided</scope>
+		</dependency>
 	</dependencies>
 	<profiles>
 		<profile>
 			<id>assemble</id>
+
 			<build>
 				<plugins>
 					<plugin>
@@ -481,7 +484,7 @@
 										<artifactItem>
 											<groupId>io.antmedia.webrtc</groupId>
 											<artifactId>WebRTCApp</artifactId>
-											<version>${webrtcApp.version}</version>
+											<version>${project.version}</version>
 											<type>war</type>
 											<overWrite>true</overWrite>
 											<outputDirectory>${project.build.directory}/webapps</outputDirectory>
@@ -489,7 +492,7 @@
 										<artifactItem>
 											<groupId>io.antmedia.app</groupId>
 											<artifactId>LiveApp</artifactId>
-											<version>${liveApp.version}</version>
+											<version>${project.version}</version>
 											<type>war</type>
 											<overWrite>true</overWrite>
 											<outputDirectory>${project.build.directory}/webapps</outputDirectory>
@@ -497,7 +500,7 @@
 										<artifactItem>
 											<groupId>io.antmedia.app</groupId>
 											<artifactId>ConsoleApp</artifactId>
-											<version>${consoleApp.version}</version>
+											<version>${project.version}</version>
 											<type>war</type>
 											<overWrite>true</overWrite>
 											<outputDirectory>${project.build.directory}/webapps</outputDirectory>
@@ -617,7 +620,7 @@
 										<artifactItem>
 											<groupId>io.antmedia.webrtc</groupId>
 											<artifactId>WebRTCAppEE</artifactId>
-											<version>${webrtcAppEE.version}</version>
+											<version>${project.version}</version>
 											<type>war</type>
 											<overWrite>true</overWrite>
 											<outputDirectory>${project.build.directory}/webapps</outputDirectory>
@@ -625,7 +628,7 @@
 										<artifactItem>
 											<groupId>io.antmedia.app</groupId>
 											<artifactId>LiveApp</artifactId>
-											<version>${liveApp.version}</version>
+											<version>${project.version}</version>
 											<type>war</type>
 											<overWrite>true</overWrite>
 											<outputDirectory>${project.build.directory}/webapps</outputDirectory>
@@ -633,7 +636,7 @@
 										<artifactItem>
 											<groupId>io.antmedia.app</groupId>
 											<artifactId>ConsoleApp</artifactId>
-											<version>${consoleApp.version}</version>
+											<version>${project.version}</version>
 											<type>war</type>
 											<overWrite>true</overWrite>
 											<outputDirectory>${project.build.directory}/webapps</outputDirectory>
@@ -652,7 +655,7 @@
 										<artifactItem>
 											<groupId>io.antmedia.enterprise</groupId>
 											<artifactId>ant-media-enterprise</artifactId>
-											<version>${io-antmedia.enterprise.version}</version>
+											<version>${project.version}</version>
 											<type>jar</type>
 											<overWrite>true</overWrite>
 											<outputDirectory>${project.build.directory}/plugins</outputDirectory>
