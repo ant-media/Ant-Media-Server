@@ -32,9 +32,6 @@ before_install:
 install:
   - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -Dgpg.skip=true -B -V
 
-after_success:
-  - mvn deploy -P assemble -DskipTests --settings mvn-settings.xml
-
 deploy:
   - provider: releases
     api_key: $GITHUB_OAUTH_TOKEN
