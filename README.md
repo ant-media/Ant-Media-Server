@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/ant-media/Ant-Media-Server.svg?branch=master)](https://travis-ci.org/ant-media/Ant-Media-Server)
+
 Ant Media Server 
 ===========
 
