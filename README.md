@@ -14,6 +14,12 @@ Ant Media Server is an Open Source Media Server that supports:
 
 ## Releases 
 
+#### [Ant Media Server 1.2.0 Release (Jan 27, 2018)](https://github.com/ant-media/Ant-Media-Server/releases/tag/ams-v1.2.0)
+* Web Management Interface
+* Infrastructure for WebRTC low latency
+* Bug fixes
+* Documentation
+
 #### [Ant Media Server 1.2.0 SNAPSHOT Release (January 14, 2018)](https://github.com/ant-media/Ant-Media-Server/releases/tag/untagged-e09c2795e299b44bcb86)
 
 #### [Ant Media Server 1.1.1 Release (August 3, 2017)](https://github.com/ant-media/Ant-Media-Server/releases/download/ams-v1.1.1/ant-media-server-1.1.1.zip)
