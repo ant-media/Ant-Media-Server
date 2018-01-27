@@ -28,7 +28,7 @@ before_install:
   - sudo service antmedia start
   - sleep 10
 
-script:
+install:
   - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -Dgpg.skip=true -B -V
 
 after_success:
