@@ -9,7 +9,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>io.antmedia</groupId>
 	<artifactId>ant-media-server</artifactId>
-	<version>1.2.0</version>
+	<version>1.2.1</version>
 	<name>Ant Media Server</name>
 	<description>Ant Media Server supports RTMP, RTSP, MP4, HLS, WebRTC, Adaptive Streaming, etc.</description>
 	<packaging>jar</packaging>
@@ -51,7 +51,7 @@
 		<finalName>${project.artifactId}-${project.version}</finalName>
 		<red5-io.version>${project.parent.version}</red5-io.version>
 		<red5-service.version>${project.version}</red5-service.version>
-		<red5-server-common.version>${project.version}</red5-server-common.version>
+		<red5-server-common.version>1.2.0</red5-server-common.version>
 		<cors-filter.version>2.5</cors-filter.version>
 		<periscope-api.version>1.0.0</periscope-api.version>
 		<restfb.version>1.43.0</restfb.version>
@@ -63,6 +63,11 @@
     	    <maven.build.timestamp.format>yyMMdd_HHmm</maven.build.timestamp.format>
         <buildNumber>${maven.build.timestamp}</buildNumber>
         <enunciate.version>2.10.0</enunciate.version>
+        <webrtcapp.version>1.2.1-SNAPSHOT</webrtcapp.version>
+        <consoleapp.version>1.2.0</consoleapp.version>
+		<liveapp.version>1.2.0</liveapp.version>
+		<webrtcappee.version>1.2.1-SNAPSHOT</webrtcappee.version>	
+		<ant-media-server-service.version>1.2.0</ant-media-server-service.version>
 	</properties>
 
 	<build>
@@ -295,13 +300,13 @@
 		<dependency>
 			<groupId>io.antmedia</groupId>
 			<artifactId>ant-media-server-service</artifactId>
-			<version>${project.version}</version>
+			<version>${ant-media-server-service.version}</version>
 			<type>jar</type>
 		</dependency>
 		<dependency>
 			<groupId>io.antmedia</groupId>
 			<artifactId>ant-media-server-service</artifactId>
-			<version>${project.version}</version>
+			<version>${ant-media-server-service.version}</version>
 			<type>tar.gz</type>
 			<classifier>daemon</classifier>
 		</dependency>
@@ -411,28 +416,28 @@
 		<dependency>
 			<groupId>io.antmedia.webrtc</groupId>
 			<artifactId>WebRTCApp</artifactId>
-			<version>${project.version}</version>
+			<version>${webrtcapp.version}</version>
 			<type>war</type>
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>io.antmedia.app</groupId>
 			<artifactId>ConsoleApp</artifactId>
-			<version>${project.version}</version>
+			<version>${consoleapp.version}</version>
 			<type>war</type>
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>io.antmedia.app</groupId>
 			<artifactId>LiveApp</artifactId>
-			<version>${project.version}</version>
+			<version>${liveapp.version}</version>
 			<type>war</type>
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>io.antmedia.webrtc</groupId>
 			<artifactId>WebRTCAppEE</artifactId>
-			<version>${project.version}</version>
+			<version>${webrtcappee.version}</version>
 			<type>war</type>
 			<scope>provided</scope>
 		</dependency>
