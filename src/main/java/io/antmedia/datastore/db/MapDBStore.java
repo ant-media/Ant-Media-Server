@@ -6,9 +6,10 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.apache.commons.lang3.RandomStringUtils;
+import org.mapdb.BTreeMap;
 import org.mapdb.DB;
+import org.mapdb.DB.TreeMapMaker;
 import org.mapdb.DBMaker;
-import org.mapdb.HTreeMap;
 import org.mapdb.Serializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,23 +19,30 @@ import com.google.gson.GsonBuilder;
 
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
+import io.antmedia.datastore.db.types.Vod;
 
 public class MapDBStore implements IDataStore {
 
 	private DB db;
-	private HTreeMap<String, String> map;
+	private BTreeMap<String, String> map;
+	private BTreeMap<String, String> vodMap;
 	private Gson gson;
 	protected static Logger logger = LoggerFactory.getLogger(MapDBStore.class);
 	private static final String MAP_NAME = "broadcast";
+	private static final String VOD_MAP_NAME = "vod";
 
 	public MapDBStore(String dbName) {
 
 		db = DBMaker.fileDB(dbName).transactionEnable().make();
-		map = db.hashMap(MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING).counterEnable()
+		map = db.treeMap(MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING).counterEnable()
 				.createOrOpen();
+		vodMap = db.treeMap(VOD_MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
+				.counterEnable().createOrOpen();
 
 		GsonBuilder builder = new GsonBuilder();
 		gson = builder.create();
+
+		TreeMapMaker<Integer, String> map = (TreeMapMaker<Integer, String>) db.treeMap("collectionName");
 
 	}
 
@@ -227,6 +235,34 @@ public class MapDBStore implements IDataStore {
 	}
 
 	@Override
+	public List<Vod> getVodList(int offset, int size) {
+		Collection<String> values = vodMap.values();
+		int t = 0;
+		int itemCount = 0;
+		if (size > 50) {
+			size = 50;
+		}
+		if (offset < 0) {
+			offset = 0;
+		}
+		List<Vod> list = new ArrayList();
+		for (String vodString : values) {
+			if (t < offset) {
+				t++;
+				continue;
+			}
+			list.add(gson.fromJson(vodString, Vod.class));
+			itemCount++;
+
+			if (itemCount >= size) {
+				break;
+			}
+
+		}
+		return list;
+	}
+
+	@Override
 	public List<Broadcast> filterBroadcastList(int offset, int size, String type) {
 
 		int t = 0;
@@ -276,6 +312,117 @@ public class MapDBStore implements IDataStore {
 		}
 		return list;
 
+	}
+
+	@SuppressWarnings("null")
+	@Override
+	public List<Vod> filterVoDList(int offset, int size, String keyword, long startdate, long endDate) {
+
+		List<Vod> list = new ArrayList();
+		int t = 0;
+		int itemCount = 0;
+		if (size > 50) {
+			size = 50;
+		}
+		if (offset < 0) {
+			offset = 0;
+		}
+
+		Object[] objectArray = vodMap.getValues().toArray();
+
+		Vod[] vodArray = new Vod[objectArray.length];
+
+		List<Vod> filterList = new ArrayList<Vod>();
+
+		for (int i = 0; i < objectArray.length; i++) {
+
+			vodArray[i] = gson.fromJson((String) objectArray[i], Vod.class);
+
+		}
+
+		if (endDate == 0) {
+
+			for (int i = 0; i < vodArray.length; i++) {
+
+				if (vodArray[i].getStreamName().contains(keyword) && startdate < vodArray[i].getCreationDate()) {
+
+					filterList.add(gson.fromJson((String) objectArray[i], Vod.class));
+
+				}
+
+			}
+
+		}
+
+		else if (keyword != null && keyword.length() > 0) {
+
+			for (int i = 0; i < vodArray.length; i++) {
+
+				if (vodArray[i].getStreamName().contains(keyword) && startdate < vodArray[i].getCreationDate()
+						&& endDate > vodArray[i].getCreationDate()) {
+
+					filterList.add(gson.fromJson((String) objectArray[i], Vod.class));
+
+				}
+
+			}
+
+		} else if (keyword == null || keyword.length() < 0) {
+
+			for (int i = 0; i < vodArray.length; i++) {
+
+				if (startdate < vodArray[i].getCreationDate() && endDate > vodArray[i].getCreationDate()) {
+
+					filterList.add(gson.fromJson((String) objectArray[i], Vod.class));
+
+				}
+
+			}
+
+		}
+
+		for (Vod broadcast : filterList) {
+			if (t < offset) {
+				t++;
+				continue;
+			}
+			list.add(broadcast);
+			itemCount++;
+
+			if (itemCount >= size) {
+				break;
+			}
+
+		}
+
+		return list;
+
+	}
+
+	@Override
+	public boolean addVod(String id, Vod vod) {
+		String vodId = null;
+		boolean result = false;
+
+		if (id != null) {
+			try {
+				vodId = RandomStringUtils.randomNumeric(24);
+				vod.setVodId(vodId);
+
+				Object[] keyList = new Object[3];
+
+				vodMap.put(vodId, gson.toJson(vod));
+				db.commit();
+
+				result = true;
+				logger.warn(Long.toString(vod.getCreationDate()));
+
+			} catch (Exception e) {
+				e.printStackTrace();
+				id = null;
+			}
+		}
+		return result;
 	}
 
 	/*

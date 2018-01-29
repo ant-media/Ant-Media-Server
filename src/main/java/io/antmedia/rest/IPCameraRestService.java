@@ -10,6 +10,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.Enumeration;
 import java.util.List;
 
@@ -83,6 +84,10 @@ public class IPCameraRestService {
 						String rtspURLWithAuth = "rtsp://" + authparam + rtspURL.substring("rtsp://".length());
 						System.out.println("rtsp url with auth:" + rtspURLWithAuth);
 						camera.setRtspUrl(rtspURLWithAuth);
+						Date currentDate = new Date();
+						long unixTime = currentDate.getTime() / 1000;
+
+						camera.setDate(unixTime);
 						result = getCameraStore().addCamera(camera);
 
 						if (result) {

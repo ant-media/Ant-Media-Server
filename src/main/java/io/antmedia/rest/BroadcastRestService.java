@@ -30,6 +30,7 @@ import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointChannel;
+import io.antmedia.datastore.db.types.Vod;
 import io.antmedia.ipcamera.IPCameraApplicationAdapter;
 import io.antmedia.muxer.Muxer;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
@@ -109,6 +110,21 @@ public class BroadcastRestService {
 			for (String networkName : socialNetworks) {
 				addSocialEndpoint(broadcast.getStreamId(), networkName);
 			}
+		}
+
+		return getBroadcast(broadcast.getStreamId());
+	}
+
+	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/broadcast/addVODtoBroadcast")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Broadcast addVODtoBroadcast(Broadcast broadcast, Vod vod) {
+
+		if (broadcast.getStreamId() != null && vod != null) {
+
+			getDataStore().addVod(broadcast.getStreamId(), vod);
+
 		}
 
 		return getBroadcast(broadcast.getStreamId());
@@ -290,11 +306,27 @@ public class BroadcastRestService {
 	}
 
 	@GET
+	@Path("/broadcast/getVodList/{offset}/{size}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public List<Vod> getVodList(@PathParam("offset") int offset, @PathParam("size") int size) {
+		return getDataStore().getVodList(offset, size);
+	}
+
+	@GET
 	@Path("/broadcast/filterList/{offset}/{size}/{type}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public List<Broadcast> filterBroadcastList(@PathParam("offset") int offset, @PathParam("size") int size,
 			@PathParam("type") String type) {
 		return getDataStore().filterBroadcastList(offset, size, type);
+	}
+
+	@GET
+	@Path("/broadcast/filterVoD/{offset}/{size}/{keyword}/{startDate}/{endDate}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public List<Vod> filterVoDList(@PathParam("offset") int offset, @PathParam("size") int size,
+			@PathParam("keyword") String keyword, @PathParam("startDate") long startdate,
+			@PathParam("endDate") long endDate) {
+		return getDataStore().filterVoDList(offset, size, keyword, startdate, endDate);
 	}
 
 	@POST

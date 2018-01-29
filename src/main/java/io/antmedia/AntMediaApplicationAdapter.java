@@ -23,10 +23,13 @@ import org.red5.server.adapter.MultiThreadedApplicationAdapter;
 import org.red5.server.api.scheduling.IScheduledJob;
 import org.red5.server.api.scheduling.ISchedulingService;
 import org.red5.server.api.stream.IBroadcastStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
+import io.antmedia.datastore.db.types.Vod;
 import io.antmedia.muxer.IMuxerListener;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
@@ -39,7 +42,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	public static final String HOOK_ACTION_END_LIVE_STREAM = "liveStreamEnded";
 	public static final String HOOK_ACTION_START_LIVE_STREAM = "liveStreamStarted";
 	public static final String HOOK_ACTION_VOD_READY = "vodReady";
-
+	protected static Logger logger = LoggerFactory.getLogger(AntMediaApplicationAdapter.class);
 	public static final String LIVE_STREAM = "live_stream";
 	public static final String IP_CAMERA = "ipCamera";
 	public static final String STREAM_SOURCE = "streamSource";
@@ -185,6 +188,12 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	@Override
 	public void muxingFinished(final String streamId, File file, long duration) {
 		String name = file.getName();
+		String filePath = file.getPath();
+		long fileSize = file.length();
+		long unixTime = System.currentTimeMillis() / 1000L;
+
+		String streamName = "";
+
 		if (dataStore != null) {
 			int index;
 			// reg expression of a translated file, kdjf03030_240p.mp4
@@ -195,6 +204,19 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 				dataStore.updateDuration(streamId, duration);
 
 				Broadcast broadcast = dataStore.get(streamId);
+
+				if (broadcast != null) {
+
+					streamName = broadcast.getName();
+
+				} else {
+					streamName = "deleted stream";
+				}
+
+				Vod newVod = new Vod(streamName, streamId, filePath, name, unixTime, duration, fileSize);
+
+				getDataStore().addVod(streamId, newVod);
+
 				if (broadcast != null) {
 					final String listenerHookURL = broadcast.getListenerHookURL();
 

@@ -10,6 +10,7 @@ import org.apache.commons.lang3.RandomStringUtils;
 
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
+import io.antmedia.datastore.db.types.Vod;
 
 public class InMemoryDataStore implements IDataStore {
 
@@ -26,6 +27,7 @@ public class InMemoryDataStore implements IDataStore {
 			streamId = RandomStringUtils.randomNumeric(24);
 			broadcast.setStreamId(streamId);
 			broadcastMap.put(streamId, broadcast);
+
 		}
 		return streamId;
 	}
@@ -205,6 +207,24 @@ public class InMemoryDataStore implements IDataStore {
 
 	@Override
 	public List<Broadcast> filterBroadcastList(int offset, int size, String type) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public boolean addVod(String id, Vod vod) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public List<Vod> getVodList(int offset, int size) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public List<Vod> filterVoDList(int offset, int size, String keyword, long startdate, long endDate) {
 		// TODO Auto-generated method stub
 		return null;
 	}
