@@ -9,6 +9,8 @@ import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.ShortBuffer;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -16,13 +18,17 @@ import java.util.concurrent.TimeUnit;
 import org.json.simple.JSONObject;
 import org.webrtc.AudioSink;
 import org.webrtc.AudioTrack;
+import org.webrtc.IceCandidate;
 import org.webrtc.MediaConstraints;
 import org.webrtc.MediaStream;
 import org.webrtc.PeerConnection;
+import org.webrtc.PeerConnectionFactory;
+import org.webrtc.SessionDescription;
 import org.webrtc.VideoRenderer;
 import org.webrtc.VideoRenderer.Callbacks;
 import org.webrtc.VideoRenderer.I420Frame;
 import org.webrtc.VideoTrack;
+import org.webrtc.PeerConnection.IceServer;
 
 import io.antmedia.recorder.FFmpegFrameRecorder;
 import io.antmedia.recorder.Frame;
@@ -37,7 +43,10 @@ public class RTMPAdaptor extends Adaptor {
 	private ExecutorService videoEncoderExecutor; 
 
 	private ExecutorService audioEncoderExecutor;
-	private boolean isStopped = false; 
+	private volatile boolean isStopped = false;
+	private ExecutorService signallingExecutor; 
+
+	public static final String DTLS_SRTP_KEY_AGREEMENT_CONSTRAINT = "DtlsSrtpKeyAgreement";
 
 	public RTMPAdaptor(FFmpegFrameRecorder recorder) {
 		this.recorder = recorder;
@@ -49,10 +58,45 @@ public class RTMPAdaptor extends Adaptor {
 				new MediaConstraints.KeyValuePair("OfferToReceiveVideo", "true"));
 	}
 
+	public static PeerConnectionFactory createPeerConnectionFactory(){
+		PeerConnectionFactory.Options options = new PeerConnectionFactory.Options();
+		options.networkIgnoreMask = 0;
+		return new PeerConnectionFactory(options);
+
+	}
+
 	@Override
 	public void start() {
 		videoEncoderExecutor = Executors.newSingleThreadExecutor();
 		audioEncoderExecutor = Executors.newSingleThreadExecutor();
+		signallingExecutor = Executors.newSingleThreadExecutor();
+
+		signallingExecutor.execute(new Runnable() {
+
+			@Override
+			public void run() {
+
+				List<IceServer> iceServers = new ArrayList();
+				iceServers.add(new IceServer("stun:stun.l.google.com:19302"));
+				PeerConnection.RTCConfiguration rtcConfig = new PeerConnection.RTCConfiguration(iceServers);
+
+				MediaConstraints pcConstraints = new MediaConstraints();
+				pcConstraints.optional.add(
+						new MediaConstraints.KeyValuePair(DTLS_SRTP_KEY_AGREEMENT_CONSTRAINT, "true"));
+
+				peerConnectionFactory = createPeerConnectionFactory();
+				peerConnection = peerConnectionFactory.createPeerConnection(rtcConfig, pcConstraints, RTMPAdaptor.this);
+
+				try {
+					JSONObject jsonResponse = new JSONObject();
+					jsonResponse.put("command", "start");
+					getWsConnection().send(jsonResponse.toJSONString());
+				} catch (UnsupportedEncodingException e) {
+					e.printStackTrace();
+				}
+			}
+		});
+
 	}
 
 	@Override
@@ -62,36 +106,44 @@ public class RTMPAdaptor extends Adaptor {
 		}
 		isStopped  = true;
 
-		JSONObject jsonObject = new JSONObject();
-		jsonObject.put("command", "notification");
-		jsonObject.put("definition", "publish_finished");
+		signallingExecutor.execute(new Runnable() {
 
-		try {
-			getWsConnection().send(jsonObject.toJSONString());
-		} catch (UnsupportedEncodingException e) {
-			e.printStackTrace();
-		}
+			@Override
+			public void run() {
 
-		
-		audioEncoderExecutor.shutdown();
-		videoEncoderExecutor.shutdown();
-		
-		try {
-			videoEncoderExecutor.awaitTermination(10, TimeUnit.SECONDS);
-		} catch (InterruptedException e1) {
-			e1.printStackTrace();
-		}
-		try {
-			if (peerConnection != null) {
-				this.peerConnection.close();
-				recorder.stop();
-				this.peerConnection.dispose();
-				this.peerConnectionFactory.dispose();
-				peerConnection = null;
+				JSONObject jsonObject = new JSONObject();
+				jsonObject.put("command", "notification");
+				jsonObject.put("definition", "publish_finished");
+
+				try {
+					getWsConnection().send(jsonObject.toJSONString());
+				} catch (UnsupportedEncodingException e) {
+					e.printStackTrace();
+				}
+
+
+				audioEncoderExecutor.shutdownNow();
+				videoEncoderExecutor.shutdownNow();
+
+				try {
+					videoEncoderExecutor.awaitTermination(10, TimeUnit.SECONDS);
+				} catch (InterruptedException e1) {
+					e1.printStackTrace();
+				}
+				try {
+					if (peerConnection != null) {
+						peerConnection.close();
+						recorder.stop();
+						peerConnection.dispose();
+						peerConnectionFactory.dispose();
+						peerConnection = null;
+					}
+				} catch (FrameRecorder.Exception e) {
+					e.printStackTrace();
+				}
 			}
-		} catch (FrameRecorder.Exception e) {
-			e.printStackTrace();
-		}
+		});
+		signallingExecutor.shutdown();
 	}
 
 
@@ -101,7 +153,7 @@ public class RTMPAdaptor extends Adaptor {
 		log.warn("onAddStream");
 
 		if (stream.getAudioTracks().size() > 0) {
-			
+
 			AudioTrack audioTrack = stream.getAudioTracks().getFirst();
 			if (audioTrack != null) {
 				audioTrack.addSink(new AudioSink() {
@@ -115,7 +167,7 @@ public class RTMPAdaptor extends Adaptor {
 						if (startTime == 0) {
 							startTime = System.currentTimeMillis();
 						}
-						
+
 						if (audioEncoderExecutor == null || audioEncoderExecutor.isShutdown()) {
 							return;
 						}
@@ -164,13 +216,13 @@ public class RTMPAdaptor extends Adaptor {
 							startTime = System.currentTimeMillis();
 						}
 
-						
+
 
 						if (videoEncoderExecutor == null || videoEncoderExecutor.isShutdown()) {
 							VideoRenderer.renderFrameDone(frame);
 							return;
 						}
-						
+
 						frameCount++;
 						videoEncoderExecutor.execute(new Runnable() {
 
@@ -187,7 +239,7 @@ public class RTMPAdaptor extends Adaptor {
 
 								try {
 									//boolean result = recorder.recordImage(frame.width, frame.height, 2, Frame.DEPTH_UBYTE, frame.yuvStrides[0], AV_PIX_FMT_YUV420P, frame.yuvPlanes);
-								
+
 									recorder.recordImage(frameCV.imageWidth, frameCV.imageHeight, frameCV.imageDepth,
 											frameCV.imageChannels, frameCV.imageStride, AV_PIX_FMT_YUV420P, pts, frameCV.image);
 
@@ -217,6 +269,32 @@ public class RTMPAdaptor extends Adaptor {
 	@Override
 	public void onSetSuccess() {
 		peerConnection.createAnswer(this, getSdpMediaConstraints());
+	}
+
+	public void setRemoteDescription(final SessionDescription sdp) {
+		signallingExecutor.execute(new Runnable() {
+
+			@Override
+			public void run() {
+				peerConnection.setRemoteDescription(RTMPAdaptor.this, sdp);
+
+			}
+		});
+
+	}
+
+	public void addIceCandidate(final IceCandidate iceCandidate) {
+		signallingExecutor.execute(new Runnable() {
+
+			@Override
+			public void run() {
+				if (!peerConnection.addIceCandidate(iceCandidate))
+				{
+					log.error("Add ice candidate failed");
+				}
+
+			}
+		});
 	}
 
 }
