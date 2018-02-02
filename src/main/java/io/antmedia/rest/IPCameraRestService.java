@@ -85,12 +85,13 @@ public class IPCameraRestService {
 						System.out.println("rtsp url with auth:" + rtspURLWithAuth);
 						camera.setRtspUrl(rtspURLWithAuth);
 						Date currentDate = new Date();
-						long unixTime = currentDate.getTime() / 1000;
+						long unixTime = currentDate.getTime();
 
 						camera.setDate(unixTime);
-						result = getCameraStore().addCamera(camera);
 
-						if (result) {
+						String key = getCameraStore().save(camera);
+
+						if (key.length() > 0) {
 							Broadcast newCam = getCameraStore().getCamera(camera.getStreamId());
 							getApplicationInstance().startCameraStreaming(newCam);
 						}

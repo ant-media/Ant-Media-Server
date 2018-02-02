@@ -56,6 +56,48 @@ public class BroadcastRestService {
 		}
 	}
 
+	public static class SearchParam {
+		public String keyword = null;
+
+		public String getKeyword() {
+			return keyword;
+		}
+
+		public void setKeyword(String keyword) {
+			this.keyword = keyword;
+		}
+
+		public long getStartDate() {
+			return startDate;
+		}
+
+		public void setStartDate(long startDate) {
+			this.startDate = startDate;
+		}
+
+		public long getEndDate() {
+			return endDate;
+		}
+
+		public void setEndDate(long endDate) {
+			this.endDate = endDate;
+		}
+
+		public long startDate = 0;
+		public long endDate = 0;
+
+		public SearchParam(String keyword, long startDate, long endDate) {
+			this.keyword = keyword;
+			this.startDate = startDate;
+			this.endDate = endDate;
+		}
+
+		public SearchParam() {
+			super();
+		}
+
+	}
+
 	@Context
 	private ServletContext servletContext;
 
@@ -320,20 +362,22 @@ public class BroadcastRestService {
 		return getDataStore().filterBroadcastList(offset, size, type);
 	}
 
-	@GET
-	@Path("/broadcast/filterVoD/{offset}/{size}/{keyword}/{startDate}/{endDate}")
+	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/broadcast/filterVoD")
 	@Produces(MediaType.APPLICATION_JSON)
-	public List<Vod> filterVoDList(@PathParam("offset") int offset, @PathParam("size") int size,
-			@PathParam("keyword") String keyword, @PathParam("startDate") long startdate,
-			@PathParam("endDate") long endDate) {
-		return getDataStore().filterVoDList(offset, size, keyword, startdate, endDate);
+	public List<Vod> filterVoDList(SearchParam searchparam, @QueryParam("offset") int offset,
+			@QueryParam("size") int size) {
+
+		return getDataStore().filterVoDList(offset, size, searchparam.getKeyword(), searchparam.getStartDate(),
+				searchparam.getEndDate());
 	}
 
 	@POST
 	@Consumes({ MediaType.APPLICATION_JSON })
-	@Path("/broadcast/deleteVoDFile/{id}")
+	@Path("/broadcast/deleteVoDFile/{name}/{id}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result deleteVoDFile(@PathParam("id") String fileName) {
+	public Result deleteVoDFile(@PathParam("name") String fileName, @PathParam("id") String id) {
 		boolean success = false;
 		String message = "";
 		if (getAppContext() != null) {
@@ -343,6 +387,7 @@ public class BroadcastRestService {
 			if (recordFile.exists()) {
 				success = true;
 				recordFile.delete();
+				getDataStore().deleteVod(id);
 			} else {
 				message = "No file to delete";
 			}

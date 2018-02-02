@@ -25,6 +25,7 @@ import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.MongoStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
+import io.antmedia.datastore.db.types.Vod;
 
 public class DBStoresUnitTest {
 
@@ -59,6 +60,7 @@ public class DBStoresUnitTest {
 		testNullCheck(dataStore);
 		testSimpleOperations(dataStore);
 		testRemoveEndpoint(dataStore);
+		testFilterSearchOperations(dataStore);
 
 	}
 
@@ -324,6 +326,67 @@ public class DBStoresUnitTest {
 			fail(e.getMessage());
 		}
 
+	}
+
+	private void testFilterSearchOperations(IDataStore dataStore) {
+
+		Broadcast cameraBroadcast = new Broadcast("test", "192.168.1.100", "admin", "admin", "rtspUrl", "ipCamera");
+		Broadcast liveBroadcast = new Broadcast("live_test");
+		liveBroadcast.setType("liveStream");
+
+		assertNotNull(dataStore.save(cameraBroadcast));
+		assertNotNull(dataStore.save(liveBroadcast));
+
+		assertNotNull(cameraBroadcast.getType());
+		assertNotNull(liveBroadcast.getStreamId());
+
+		String type = dataStore.get(cameraBroadcast.getStreamId()).getType();
+		String live_type = dataStore.get(liveBroadcast.getStreamId()).getType();
+
+		assertEquals(type, "ipCamera");
+		assertEquals(live_type, "liveStream");
+
+		List<Broadcast> returnList = dataStore.filterBroadcastList(0, 10, "ipCamera");
+
+		assertEquals(returnList.size(), 1);
+
+		Vod newVod = new Vod("streamName", "1112233", "path", "vod", 1517239908, 17933, 1190425);
+		Vod newVod2 = new Vod("davut", "1112233", "path", "vod", 1517239808, 17933, 1190525);
+		Vod newVod3 = new Vod("oguz", "1112233", "path", "vod", 1517239708, 17933, 1190625);
+		Vod newVod4 = new Vod("ahmet", "1112233", "path", "vod", 1517239608, 17933, 1190725);
+		Vod newVod5 = new Vod("mehmet", "1112233", "path", "vod", 1517239508, 17933, 1190825);
+
+		boolean result = dataStore.addVod(newVod.getStreamId(), newVod);
+		boolean result2 = dataStore.addVod(newVod2.getStreamId(), newVod2);
+		boolean result3 = dataStore.addVod(newVod3.getStreamId(), newVod3);
+		boolean result4 = dataStore.addVod(newVod4.getStreamId(), newVod4);
+		boolean result5 = dataStore.addVod(newVod5.getStreamId(), newVod5);
+
+		assertTrue(result);
+		assertTrue(result2);
+		assertTrue(result3);
+		assertTrue(result4);
+		assertTrue(result5);
+
+		List<Vod> vodList = dataStore.filterVoDList(0, 10, null, 1517239907, 1517239909);
+
+		assertEquals(vodList.size(), 1);
+
+		List<Vod> vodList2 = dataStore.filterVoDList(0, 10, "str", 0, 0);
+
+		assertEquals(vodList2.size(), 1);
+
+		List<Vod> vodList3 = dataStore.filterVoDList(0, 10, "st5r", 0, 1517239909);
+
+		assertEquals(vodList3.size(), 0);
+
+		List<Vod> vodList4 = dataStore.filterVoDList(0, 10, "str", 1517239907, 0);
+
+		assertEquals(vodList4.size(), 1);
+
+		List<Vod> vodList6 = dataStore.filterVoDList(0, 10, null, 0, 1517239909);
+
+		assertEquals(vodList6.size(), 5);
 	}
 
 }

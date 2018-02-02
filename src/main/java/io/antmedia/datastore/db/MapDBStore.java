@@ -49,6 +49,7 @@ public class MapDBStore implements IDataStore {
 	@Override
 	public String save(Broadcast broadcast) {
 		String streamId = null;
+		boolean result = false;
 		if (broadcast != null) {
 			try {
 				streamId = RandomStringUtils.randomNumeric(24);
@@ -56,6 +57,7 @@ public class MapDBStore implements IDataStore {
 
 				map.put(streamId, gson.toJson(broadcast));
 				db.commit();
+				result = true;
 			} catch (Exception e) {
 				e.printStackTrace();
 				streamId = null;
@@ -278,14 +280,13 @@ public class MapDBStore implements IDataStore {
 
 		Broadcast[] broadcastArray = new Broadcast[objectArray.length];
 
-		List<Broadcast> filterList = new ArrayList<Broadcast>();
-
 		for (int i = 0; i < objectArray.length; i++) {
 
 			broadcastArray[i] = gson.fromJson((String) objectArray[i], Broadcast.class);
 
 		}
 
+		List<Broadcast> filterList = new ArrayList<Broadcast>();
 		for (int i = 0; i < broadcastArray.length; i++) {
 
 			if (broadcastArray[i].getType().equals(type)) {
@@ -314,7 +315,6 @@ public class MapDBStore implements IDataStore {
 
 	}
 
-	@SuppressWarnings("null")
 	@Override
 	public List<Vod> filterVoDList(int offset, int size, String keyword, long startdate, long endDate) {
 
@@ -340,21 +340,7 @@ public class MapDBStore implements IDataStore {
 
 		}
 
-		if (endDate == 0) {
-
-			for (int i = 0; i < vodArray.length; i++) {
-
-				if (vodArray[i].getStreamName().contains(keyword) && startdate < vodArray[i].getCreationDate()) {
-
-					filterList.add(gson.fromJson((String) objectArray[i], Vod.class));
-
-				}
-
-			}
-
-		}
-
-		else if (keyword != null && keyword.length() > 0) {
+		if (keyword != null && keyword.length() > 0) {
 
 			for (int i = 0; i < vodArray.length; i++) {
 
@@ -404,12 +390,10 @@ public class MapDBStore implements IDataStore {
 		String vodId = null;
 		boolean result = false;
 
-		if (id != null) {
+		if (vod != null) {
 			try {
 				vodId = RandomStringUtils.randomNumeric(24);
 				vod.setVodId(vodId);
-
-				Object[] keyList = new Object[3];
 
 				vodMap.put(vodId, gson.toJson(vod));
 				db.commit();
@@ -531,6 +515,16 @@ public class MapDBStore implements IDataStore {
 	@Override
 	public void close() {
 		db.close();
+	}
+
+	@Override
+	public boolean deleteVod(String id) {
+		boolean result = vodMap.remove(id) != null;
+		if (result) {
+			db.commit();
+		}
+
+		return result;
 	}
 
 }

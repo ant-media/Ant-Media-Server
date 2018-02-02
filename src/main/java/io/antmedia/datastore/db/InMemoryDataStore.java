@@ -229,4 +229,10 @@ public class InMemoryDataStore implements IDataStore {
 		return null;
 	}
 
+	@Override
+	public boolean deleteVod(String id) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
 }

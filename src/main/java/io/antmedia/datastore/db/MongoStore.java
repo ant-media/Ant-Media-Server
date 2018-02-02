@@ -285,4 +285,10 @@ public class MongoStore implements IDataStore {
 		return null;
 	}
 
+	@Override
+	public boolean deleteVod(String id) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
 }

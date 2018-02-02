@@ -190,7 +190,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		String name = file.getName();
 		String filePath = file.getPath();
 		long fileSize = file.length();
-		long unixTime = System.currentTimeMillis() / 1000L;
+		long unixTime = System.currentTimeMillis();
 
 		String streamName = "";
 
