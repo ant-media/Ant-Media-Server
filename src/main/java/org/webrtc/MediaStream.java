@@ -15,7 +15,7 @@ import java.util.LinkedList;
 /** Java wrapper for a C++ MediaStreamInterface. */
 public class MediaStream {
   private final LinkedList<AudioTrack> audioTracks;
-  public final LinkedList<VideoTrack> videoTracks;
+  private final LinkedList<VideoTrack> videoTracks;
   public final LinkedList<VideoTrack> preservedVideoTracks;
   // Package-protected for PeerConnection.
   final long nativeStream;
@@ -106,5 +106,9 @@ public class MediaStream {
 
 public LinkedList<AudioTrack> getAudioTracks() {
 	return audioTracks;
+}
+
+public LinkedList<VideoTrack> getVideoTracks(){
+	return videoTracks;
 }
 }
