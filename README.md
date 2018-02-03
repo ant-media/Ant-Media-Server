@@ -14,6 +14,11 @@ Ant Media Server is an Open Source Media Server that supports:
 
 ## Releases 
 
+#### [Ant Media Server 1.2.1 SNAPSHOT Release (Feb 3, 2018)](https://oss.sonatype.org/service/local/repositories/snapshots/content/io/antmedia/ant-media-server/1.2.1-SNAPSHOT/ant-media-server-1.2.1-20180203.094349-1-community-1.2.1-SNAPSHOT-180203_0943.zip)
+* Enable SSL script [Blog post](https://antmedia.io/enable-ssl-on-ant-media-server/)
+* Fix No Audio or No Video issue in WebRTC Streams
+* Use specific threads for audio, video and signalling in WebRTC Community Edition
+
 #### [Ant Media Server 1.2.0 Release (Jan 27, 2018)](https://github.com/ant-media/Ant-Media-Server/releases/tag/ams-v1.2.0)
 * Web Management Interface
 * Infrastructure for WebRTC low latency
