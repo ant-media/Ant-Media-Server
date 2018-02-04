@@ -2,13 +2,13 @@
 
 There are many ways to publish Live Stream with RTMP to Ant Media server. Here are the some of the ways
 
-* Publish with a Desktop Software like OBS, XSplit, Wirecast, etc. 
-* Publish with a Hardware Encoder (Teradek, Tricaster, Gosolo, etc)
+* <a href="#publish_with_desktop_software">Publish with a Desktop Software like OBS, XSplit, Wirecast, etc.</a> 
+* <a href="#publish_with_hardware_encoder">Publish with a Hardware Encoder (Teradek, Tricaster, Gosolo, etc)</a>
 * Publish with a Mobile App
 
 For each case we are going to give an example how to publish live stream with RTMP to Ant Media Server
 
-## Publish with a Desktop Software - Open Broadcaster Software
+## <div id="publish_with_desktop_software">Publish with a Desktop Software - Open Broadcaster Software</div>
 
 OBS(Open Broadcaster Softeware) is Free and open source software for video recording and live streaming.
 You can use either your PC’s embedded camera or externally connected one as a video source with OBS. 
@@ -57,7 +57,7 @@ Stream Key field not to the URL.
 You can watch stream from either Ant Media Management console or other platforms such as VLC player with same RTMP URL or with
 http://<SERVER_NAME>/LiveApp/streams/<STREAM_ID>.m3u8 HLS
 
-## Publish with a Hardware Encoder - Teradek Vidiu Pro
+## <div id="publish_with_hardware_encoder">Publish with a Hardware Encoder - Teradek Vidiu Pro</div>
 
 Teradek Vidiu Pro is fully compatible with Ant Media Server 1.2.0+ 
 
