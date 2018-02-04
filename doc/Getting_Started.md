@@ -14,34 +14,18 @@ records live videos in several formats like HLS, MP4, etc.
 
 ### Linux (Ubuntu)
 
-Firstly, start installing Oracle Java 8
 
-Run the below commands to install Oracle's PPA
-```
-$ sudo add-apt-repository ppa:webupd8team/java
-$ sudo apt-get update
-```
+Download and save the Ant Media Server Community/Enterprise Edition from http://antmedia.io to your disk.
 
-It is time to install Java 8
-```
-$ sudo apt-get install oracle-java8-installer
-```
-
-Download the Ant Media Server Community Edition from http://antmedia.io 
-
-Extract the zip folder. In order to do that first install unzip
-```
-$ sudo apt-get install unzip
-$ unzip ant-media-server.zip     
-```
 
 Now, there are two methods to run the server,
 * **Quick Start** is for testing and debugging issues.
 * **Running as a Service** is for production
 
 #### Quick Start
-###### If you want to run the server as a service, skip to Running as a Service section below 
-After you completed above instructions, open a terminal, go to the folder where you extracted the Ant Media Server and run start.sh
+
+Unzip the downloaded zip file somehow
+Open a terminal, go to the folder where you extracted the Ant Media Server and run start.sh
 type 
 
 ```
@@ -52,46 +36,37 @@ The server should start a few seconds later.
 
 #### Running as a Service
 
-If you want to run server as a service in linux machine, the next step is installing Jsvc in order to run media server as a service
+Open a terminal and go to the directory where you have downloaded Ant Media Server Zip file
 
 ```
-$ sudo apt-get install jsvc
-```
-
-Move the ant-media-server directory to /usr/local/antmedia 
-```
-$ sudo mv ant-media-server /usr/local/antmedia
-```
-
-Copy antmedia file to /etc/init.d and install the service
-```
-$ sudo cp /usr/local/antmedia/antmedia /etc/init.d/
-$ sudo update-rc.d antmedia defaults
-$ sudo update-rc.d antmedia enable
-```
-
-Create antmedia user to system
-
-```
-sudo useradd -d /usr/local/antmedia/ -s /bin/false -r antmedia
-sudo chown -R antmedia:antmedia /usr/local/antmedia/
+$ cd path/to/where/ant-media-server....zip/exists
 ```
 
 
-It is time to start the server
+Download the `install_ant-media-server.sh` shell script 
+
 ```
-$ sudo service antmedia start
+$ wget https://raw.githubusercontent.com/ant-media/Scripts/master/install_ant-media-server.sh
+$ chmod 755 install_ant-media-server.sh
 ```
 
-To stop the service run the command below
+Call the download script file by giving ant-media-server zip file. The command below installs Ant Media Server and starts the service
 ```
-$ sudo service antmedia stop
+$ sudo ./install_ant-media-server.sh ant-media-server-.....zip 
 ```
 
-To see the status of the service, run
+
+You can check the service if it is running
 ```
 $ sudo service antmedia status
 ```
+
+You can stop/start the service anytime you want 
+```
+$ sudo service antmedia stop
+$ sudo service antmedia start
+```
+
 
 ## Build from Source
 
@@ -113,15 +88,6 @@ $ cd ..
 ```
 $ git clone https://github.com/ant-media/Ant-Media-Server-Service.git
 $ cd Ant-Media-Server-Service
-$ mvn clean install -Dmaven.javadoc.skip=true -Dmaven.test.skip=true
-$ cd ..
-```
-
-* Clone and build the Periscope-Producer-API 
-
-```
-$ git clone https://github.com/ant-media/Periscope-Producer-API.git
-$ cd Periscope-Producer-API/
 $ mvn clean install -Dmaven.javadoc.skip=true -Dmaven.test.skip=true
 $ cd ..
 ```
@@ -154,11 +120,13 @@ Here are the ports server uses
 
 * TCP:1935 (RTMP)
 * TCP:5080 (HTTP)
+* TCP:5443 (HTTPS)
 * TCP:5554 (RTSP)
 * UDP:5000-65000 (RTP in RTSP)
-* TCP: 8081-8082 (WebSocket)
+* TCP: 8081 (WebSocket)
+* TCP: 8082 (WebSocket Secure)
 
-### Forward a Port to an Another
+### Forward Default 80 Port to 5080 
 
 Generally port forwarding is used to forward default ports to the server's ports in order to have easy of use.
 For instance let's forward 80 to 5080, just type the command below.
