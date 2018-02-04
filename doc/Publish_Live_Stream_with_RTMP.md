@@ -4,7 +4,7 @@ There are many ways to publish Live Stream with RTMP to Ant Media server. Here a
 
 * <a href="#publish_with_desktop_software">Publish with a Desktop Software like OBS, XSplit, Wirecast, etc.</a> 
 * <a href="#publish_with_hardware_encoder">Publish with a Hardware Encoder (Teradek, Tricaster, Gosolo, etc)</a>
-* Publish with a Mobile App
+* <a href="#publish_with_mobile_app">Publish with a Mobile App - (Android, iOS, etc.)</a>
 
 For each case we are going to give an example how to publish live stream with RTMP to Ant Media Server
 
@@ -59,9 +59,7 @@ http://<SERVER_NAME>/LiveApp/streams/<STREAM_ID>.m3u8 HLS
 
 ## <div id="publish_with_hardware_encoder">Publish with a Hardware Encoder - Teradek Vidiu Pro</div>
 
-Teradek Vidiu Pro is fully compatible with Ant Media Server 1.2.0+ 
-
-Let’s have a look at step by step how to use Teradek Vidiu Pro for streaming, firstly start by powering the Teradek Vidiu Pro
+Teradek Vidiu Pro is fully compatible with Ant Media Server 1.2.0+ Let’s have a look at step by step how to use Teradek Vidiu Pro for streaming, firstly start by powering the Teradek Vidiu Pro
 
 ### Step 1 : Connect to Teradek Vidiu Pro WiFi Network. 
 It creates a WiFi network with name VidiU−XXXXX. Connect that network with your computer and go to the 172.16.1.1 on your browser.
@@ -112,5 +110,40 @@ Wait until to see the “Ready” text appears on the right top of Teradek Vidiu
 Ant Media Server accepts that broadcast and can perform adaptive streaming, recording and publishing to any other 3rd party RTMP server as usual.
 
 When you are done about broadcasting, you can press “Start/Stop” button again to stop the broadcasting
+
+## <div id="publish_with_mobile_app">Publish with a Mobile App - Android </div>
+
+Let’s again have a look at step by step manner to make live broadcast from Android App
+
+### Step 1 : Clone Git Repository 
+
+```
+git clone https://github.com/ant-media/LiveVideoBroadcaster.git
+```
+
+### Step 2 : Open the Project in Android Studio
+
+Open MainActivity.java file and assing the Server URL to `RTMP_BASE_URL`. It should be in the format like
+ `rtmp://<SERVER_NAME>/LiveApp/` . `LiveApp` is one of the default apps in Ant Media Server. Change it if you have something different. 
+ 
+### Step 3: Run the App
+When you run the app on an Android device, below screen should appear. Click Live Video Broadcaster button
+<br/>
+![Live Video broadcaster Main Activity](https://ant-media.github.io/Ant-Media-Server/doc/images/android_live_broadcaster_main_activity.png)
+
+You should see the below screen
+<br/>
+![Open Video Broadcaster](https://ant-media.github.io/Ant-Media-Server/doc/images/android_mobile_live_video_broadcaster.png)
+
+
+Write a live stream name like “test” to edit text and press the button. Screen should be like below
+<br/>
+![Android Live Broadcasting with RTMP](https://ant-media.github.io/Ant-Media-Server/doc/images/android_mobile_broadcasting.png)
+
+
+Ant Media Server accepts again that broadcast and can perform adaptive streaming, recording and publishing to any other 3rd party RTMP server as usual.
+
+
+
 
 
