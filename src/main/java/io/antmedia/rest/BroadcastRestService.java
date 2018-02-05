@@ -4,7 +4,9 @@ package io.antmedia.rest;
 import java.io.File;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import javax.servlet.ServletContext;
 import javax.ws.rs.Consumes;
@@ -20,6 +22,7 @@ import javax.ws.rs.core.MediaType;
 
 import org.red5.server.api.scope.IBroadcastScope;
 import org.red5.server.api.scope.IScope;
+import org.red5.server.api.scope.ScopeType;
 import org.red5.server.api.stream.IBroadcastStream;
 import org.red5.server.api.stream.IClientBroadcastStream;
 import org.red5.server.api.stream.IStreamService;
@@ -76,6 +79,33 @@ public class BroadcastRestService {
 			this.message = message;
 		}
 	}
+	
+	public static class BroadcastStatistics 
+	{
+		public final int totalRTMPWatchersCount;
+		public final int totalHLSWatchersCount;
+		public final int totalWebRTCWatchersCount;
+		
+		public BroadcastStatistics(int totalRTMPWatchersCount, int totalHLSWatchersCount, int totalWebRTCWatchersCount) 
+		{
+			this.totalRTMPWatchersCount = totalRTMPWatchersCount;
+			this.totalHLSWatchersCount = totalHLSWatchersCount;
+			this.totalWebRTCWatchersCount = totalWebRTCWatchersCount;
+		}
+	}
+	
+	public static class LiveStatistics extends BroadcastStatistics {
+
+		public final int totalLiveStreamCount;
+		public LiveStatistics(int totalLiveStreamCount, int totalRTMPWatchersCount, int totalHLSWatchersCount,
+				int totalWebRTCWatchersCount) 
+		{
+			super(totalRTMPWatchersCount, totalHLSWatchersCount, totalWebRTCWatchersCount);
+			this.totalLiveStreamCount = totalLiveStreamCount;
+			
+		}
+		
+	}
 
 	@Context
 	private ServletContext servletContext;
@@ -110,15 +140,23 @@ public class BroadcastRestService {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Broadcast createBroadcast(Broadcast broadcast) 
 	{
+		if (broadcast != null) {
+			//make sure stream id is not set on rest service
+			broadcast.resetStreamId();
+		}
+		return saveBroadcast(broadcast, AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, getScope().getName(), getDataStore(), getAppSettings());
+	}
+
+
+	public static Broadcast saveBroadcast(Broadcast broadcast, String status, String scopeName, IDataStore dataStore, AppSettings settings ) {
+
 		if (broadcast == null) {
 			broadcast = new Broadcast();
 		}	
-		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
+		broadcast.setStatus(status);
 		broadcast.setDate(System.currentTimeMillis());
 
 		String listenerHookURL = broadcast.getListenerHookURL();
-
-		AppSettings settings = getAppSettings();
 
 		if (settings != null) {
 			if (listenerHookURL == null || listenerHookURL.length() == 0) 
@@ -128,7 +166,7 @@ public class BroadcastRestService {
 					broadcast.setListenerHookURL(settingsListenerHookURL);
 				}
 			}
-			
+
 			String fqdn = settings.getServerName();
 			if (fqdn == null || fqdn.length() == 0) 
 			{
@@ -138,17 +176,18 @@ public class BroadcastRestService {
 					e.printStackTrace();
 				}
 			}
-			
+
 			if (fqdn != null && fqdn.length() >= 0) {
-				broadcast.setRtmpURL("rtmp://" + fqdn + "/" + getScope().getName() + "/");
+				broadcast.setRtmpURL("rtmp://" + fqdn + "/" + scopeName + "/");
 			}
-			
+
 		}
 
-
-		getDataStore().save(broadcast);
+		dataStore.save(broadcast);
 		return broadcast;
 	}
+
+
 
 	/**
 	 * Create broadcast and bind social networks at the same time
@@ -203,10 +242,7 @@ public class BroadcastRestService {
 			message = "No active broadcast found with id " + streamId;
 		}
 
-
-
 		return new Result(result, message);
-
 	}
 
 
@@ -474,6 +510,49 @@ public class BroadcastRestService {
 	@Produces(MediaType.APPLICATION_JSON)
 	public List<Broadcast> getBroadcastList(@PathParam("offset") int offset, @PathParam("size") int size) {
 		return getDataStore().getBroadcastList(offset, size);
+	}
+
+	/**
+	 * Returns total live streams, total rtmp watchers, total hls and total webrtc watchers
+	 *  
+	 * @return {@link LiveStatistics}
+	 */
+	@GET
+	@Path("/broadcast/getAppLiveStatistics")
+	@Produces(MediaType.APPLICATION_JSON)
+	public LiveStatistics getAppLiveStatistics() 
+	{
+		Set<String> basicBroadcastScopes = getScope().getBasicScopeNames(ScopeType.BROADCAST);
+
+		int totalLiveStreamCount = getScope().getBasicScopeNames(ScopeType.BROADCAST).size();
+		int totalRTMPWatcherCount = getScope().getStatistics().getActiveClients() - totalLiveStreamCount;
+		
+		return new LiveStatistics(totalLiveStreamCount, totalRTMPWatcherCount, 0, 0);
+	}
+	
+	/**
+	 * Get the broadcast live statistics
+	 * total rtmp watcher count, total hls watcher count, total webrtc watcher count
+	 * 
+	 * @param streamId
+	 * @return {@link BroadcastStatistics} if broadcast exists
+	 * null or 204(no content) if no broacdast exists with that id
+	 */
+	@GET
+	@Path("/broadcast/getBroadcastLiveStatistics")
+	@Produces(MediaType.APPLICATION_JSON)
+	public BroadcastStatistics getBroadcastStatistics(@QueryParam("id") String id) 
+	{
+		IBroadcastScope broadcastScope = getScope().getBroadcastScope(id);
+		BroadcastStatistics broadcastStatistics = null;
+		
+		if (broadcastScope != null) {
+			broadcastStatistics = new BroadcastStatistics(broadcastScope.getConsumers().size(), 0, 0);
+		}
+		else {
+			broadcastStatistics = new BroadcastStatistics(-1,-1,-1);
+		}
+		return broadcastStatistics;
 	}
 
 
@@ -781,6 +860,8 @@ public class BroadcastRestService {
 	}
 
 
+
+
 	public long getRecordCount() {
 		return getDataStore().getBroadcastCount();
 	}
@@ -827,7 +908,7 @@ public class BroadcastRestService {
 		}
 		return scope;
 	}
-	
+
 	public void setScope(IScope scope) {
 		this.scope = scope;
 	}

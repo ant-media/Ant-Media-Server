@@ -28,14 +28,14 @@ public class DBStoresUnitTest {
 	@Before
 	public void before() {
 		deleteMapDBFile();
-		
+
 	}
-	
+
 	@After
 	public void after() {
 		deleteMapDBFile();
 	}
-	
+
 	public void deleteMapDBFile() {
 		File f = new File("testdb");
 		if (f.exists()) {
@@ -58,10 +58,11 @@ public class DBStoresUnitTest {
 		testSimpleOperations(dataStore);  
 		testRemoveEndpoint(dataStore);
 		testRTMPURL(dataStore);
+		testStreamWithId(dataStore);
 
 	}
 
-	
+
 	@Test
 	public void testMemoryDataStore() {
 
@@ -71,6 +72,7 @@ public class DBStoresUnitTest {
 		testSimpleOperations(dataStore);  
 		testRemoveEndpoint(dataStore);
 		testRTMPURL(dataStore);
+		testStreamWithId(dataStore);
 
 	}
 
@@ -82,46 +84,66 @@ public class DBStoresUnitTest {
 		Query<Broadcast> deleteQuery = store.find(Broadcast.class);
 		store.delete(deleteQuery);
 
-		
+
 		testGetPagination(dataStore);	
 		testNullCheck(dataStore);
 		testSimpleOperations(dataStore);  
 		testRemoveEndpoint(dataStore);
-		
+
 		testRTMPURL(dataStore);
+		testStreamWithId(dataStore);
 
 	}
-	
-	
+
+
+	public void testStreamWithId(IDataStore dataStore) {
+		try {
+			Broadcast broadcast = new Broadcast();
+			broadcast.setName("stream_having_id");
+			String streamId = "stream_id";
+			broadcast.setStreamId(streamId);
+			
+			String streamIdReturn = dataStore.save(broadcast);
+			
+			assertEquals(streamId, streamIdReturn);
+			
+			assertEquals(streamId, broadcast.getStreamId());
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+
 	public void testRTMPURL(IDataStore dataStore) {
 		Broadcast broadcast = new Broadcast();
 		broadcast.setName("test");
 		String key = dataStore.save(broadcast);
-		
+
 		assertNull(dataStore.get(key).getRtmpURL());
-		
+
 		broadcast = new Broadcast();
 		broadcast.setName("test2");
 		broadcast.setRtmpURL(null);
-		
+
 		String key2 = dataStore.save(broadcast);
-		
+
 		assertNotEquals(key, key2);
-		
+
 		assertNull(dataStore.get(key2).getRtmpURL());
-		
-		
+
+
 		broadcast = new Broadcast();
 		broadcast.setName("test3");
 		String rtmpURL = "content_is_not_important";
 		broadcast.setRtmpURL(rtmpURL);
-		
+
 		String key3 = dataStore.save(broadcast);
-		
+
 		assertEquals(dataStore.get(key3).getRtmpURL(), rtmpURL+key3);
-		
-		
-		
+
+
+
 	}
 
 
@@ -265,7 +287,7 @@ public class DBStoresUnitTest {
 		assertTrue(result);
 		broadcast2 = dataStore.get(key);
 		assertTrue(broadcast2.getEndPointList() == null || broadcast2.getEndPointList().size() == 0);
-		
+
 	}
 
 	public void testSimpleOperations(IDataStore dataStore) {

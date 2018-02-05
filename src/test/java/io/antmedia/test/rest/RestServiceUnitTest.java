@@ -117,8 +117,36 @@ public class RestServiceUnitTest  {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+	}
+	
+	@Test
+	public void testWithStreamId() {
+		AppSettings settings = mock(AppSettings.class);
+		when(settings.getListenerHookURL()).thenReturn(null);
+		restService.setAppSettings(settings);
 		
+		Scope scope = mock(Scope.class);
+		String scopeName = "scope";
+		when(scope.getName()).thenReturn(scopeName);
+		restService.setScope(scope);
 		
+		Broadcast broadcast = new Broadcast(null, "name");
+		String streamId = "streamId";
+		try {
+			broadcast.setStreamId(streamId);
+		} 
+		catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		IDataStore store = new InMemoryDataStore("testdb");
+		restService.setDataStore(store);
+		
+		Broadcast createdBroadcast = restService.createBroadcast(broadcast);
+		assertNotNull(createdBroadcast.getStreamId());
+		assertNotEquals(createdBroadcast.getStreamId(), streamId);
+		
+		assertFalse(createdBroadcast.isZombi());
 		
 		
 	}
@@ -215,9 +243,6 @@ public class RestServiceUnitTest  {
 		}
 		deleteBroadcast = restService.deleteBroadcast(null);
 		assertFalse(deleteBroadcast.success);
-
-
-
 	}
 
 }

@@ -38,8 +38,12 @@ public class MongoStore implements IDataStore {
 	@Override
 	public String save(Broadcast broadcast) {
 		try {
-			String streamId = RandomStringUtils.randomAlphanumeric(12) + System.currentTimeMillis();
-			broadcast.setStreamId(streamId);
+			String streamId = null;
+			if (broadcast.getStreamId() == null) {
+				streamId = RandomStringUtils.randomAlphanumeric(12) + System.currentTimeMillis();
+				broadcast.setStreamId(streamId);
+			}
+			streamId = broadcast.getStreamId();
 			String rtmpURL = broadcast.getRtmpURL();
 			if (rtmpURL != null) {
 				rtmpURL += streamId; 
