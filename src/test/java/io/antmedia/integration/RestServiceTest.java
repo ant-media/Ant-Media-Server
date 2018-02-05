@@ -449,7 +449,7 @@ public class RestServiceTest {
 	public List<Broadcast> callGetBroadcastList() {
 		try {
 
-			String url = ROOT_SERVICE_URL + "/broadcast/getList/0/10";
+			String url = ROOT_SERVICE_URL + "/broadcast/getList/0/50";
 
 			CloseableHttpClient client = HttpClients.custom()
 					.setRedirectStrategy(new LaxRedirectStrategy())

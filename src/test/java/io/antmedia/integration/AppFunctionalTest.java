@@ -104,35 +104,46 @@ public class AppFunctionalTest {
 
 	@Test
 	public void testZombiStream() {
-		//just create RestServiceTest, do not create broadcast through rest service
-		RestServiceTest restService = new RestServiceTest();
-
-		List<Broadcast> broadcastList = restService.callGetBroadcastList();
-		int size = broadcastList.size();
-		//publish live stream to the server
-		String streamId = "zombiStreamId";
-		executeProcess(ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/" + streamId);
 
 		try {
+			//just create RestServiceTest, do not create broadcast through rest service
+			RestServiceTest restService = new RestServiceTest();
+
+			List<Broadcast> broadcastList = restService.callGetBroadcastList();
+			int size = broadcastList.size();
+			//publish live stream to the server
+			String streamId = "zombiStreamId";
+			executeProcess(ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/" + streamId);
+
 			Thread.sleep(5000);
+
+
+			//getLiveStreams from server and check that zombi stream exists and status is broadcasting
+			broadcastList = restService.callGetBroadcastList();
+			assertNotNull(broadcastList);
+			assertEquals(broadcastList.size(), size+1);
+			Broadcast broadcast = restService.callGetBroadcast(streamId);
+			
+			assertEquals(broadcast.getStatus(), AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+
+			//stop publishing live stream
+			destroyProcess();
+
+
+			Thread.sleep(3000);
+
+
+			//getLiveStream from server and check that zombi stream not exists 
+			broadcastList = restService.callGetBroadcastList();
+			assertNotNull(broadcastList);
+			assertEquals(broadcastList.size(), size);
+
 		} catch (InterruptedException e) {
 			e.printStackTrace();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
-
-		//getLiveStreams from server and check that zombi stream exists and status is broadcasting
-		broadcastList = restService.callGetBroadcastList();
-		assertNotNull(broadcastList);
-		assertEquals(broadcastList.size(), size+1);
-		assertEquals(broadcastList.get(0).getStreamId(), streamId);
-		assertEquals(broadcastList.get(0).getStatus(), AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
-
-		//stop publishing live stream
-		destroyProcess();
-
-		//getLiveStream from server and check that zombi stream not exists 
-		broadcastList = restService.callGetBroadcastList();
-		assertNotNull(broadcastList);
-		assertEquals(broadcastList.size(), size);
 
 	}
 
@@ -181,7 +192,7 @@ public class AppFunctionalTest {
 
 
 			destroyProcess();
-			
+
 			Thread.sleep(1000);
 
 			broadcastStatistics = restService.callGetBroadcastStatistics(streamId);
