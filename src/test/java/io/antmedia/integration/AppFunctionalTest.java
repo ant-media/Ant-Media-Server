@@ -107,6 +107,8 @@ public class AppFunctionalTest {
 		//just create RestServiceTest, do not create broadcast through rest service
 		RestServiceTest restService = new RestServiceTest();
 
+		List<Broadcast> broadcastList = restService.callGetBroadcastList();
+		int size = broadcastList.size();
 		//publish live stream to the server
 		String streamId = "zombiStreamId";
 		executeProcess(ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/" + streamId);
@@ -118,9 +120,9 @@ public class AppFunctionalTest {
 		}
 
 		//getLiveStreams from server and check that zombi stream exists and status is broadcasting
-		List<Broadcast> broadcastList = restService.callGetBroadcastList();
+		broadcastList = restService.callGetBroadcastList();
 		assertNotNull(broadcastList);
-		assertEquals(broadcastList.size(), 1);
+		assertEquals(broadcastList.size(), size+1);
 		assertEquals(broadcastList.get(0).getStreamId(), streamId);
 		assertEquals(broadcastList.get(0).getStatus(), AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 
@@ -130,7 +132,7 @@ public class AppFunctionalTest {
 		//getLiveStream from server and check that zombi stream not exists 
 		broadcastList = restService.callGetBroadcastList();
 		assertNotNull(broadcastList);
-		assertEquals(broadcastList.size(), 0);
+		assertEquals(broadcastList.size(), size);
 
 	}
 
