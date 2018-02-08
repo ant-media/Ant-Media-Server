@@ -8,7 +8,7 @@ import org.red5.server.api.Red5;
 public class Version {
 
     public static void main(String[] args) {
-        System.out.printf("Red5 version: %s %s%n", Red5.getVersion(), Red5.getFMSVersion());
+        System.out.printf("Ant Media Server Version: %s %s%n", io.antmedia.Version.class.getPackage().getImplementationVersion());
     }
 
 }

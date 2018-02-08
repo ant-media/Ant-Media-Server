@@ -99,6 +99,14 @@
 		</testResources>
 		<plugins>
 			<plugin>
+            		<artifactId>maven-compiler-plugin</artifactId>                  
+                	<configuration>
+                		<compilerVersion>1.8</compilerVersion>
+                     <source>1.8</source>
+                     <target>1.8</target>
+                 </configuration>
+         	</plugin>
+			<plugin>
 				<artifactId>maven-jar-plugin</artifactId>
 				<configuration>
 					<excludes>
@@ -106,11 +114,15 @@
 						<exclude>**/red5_codetemplate.xml</exclude>
 					</excludes>
 					<archive>
+						<manifest>
+							<mainClass>io.antmedia.Version</mainClass>
+							<addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+						</manifest>
 						<manifestEntries>
 							<Build-OS>${os.name} ${os.version}</Build-OS>
 							<Build-Java>Java ${java.version}</Build-Java>
 							<Build-Number>${buildNumber}</Build-Number>
-							<Main-Class>Version</Main-Class>
+							<Main-Class>io.antmedia.Version</Main-Class>
 							<Class-Path>lib/slf4j-api-${slf4j.version}.jar lib/logback-classic-${logback.version}.jar lib/logback-core-${logback.version}.jar lib/red5-server-common-${project.parent.version}.jar</Class-Path>
 						</manifestEntries>
 					</archive>
@@ -375,6 +387,11 @@
 			<groupId>com.restfb</groupId>
 			<artifactId>restfb</artifactId>
 			<version>${restfb.version}</version>
+		</dependency>
+		<dependency>
+    			<groupId>com.brsanthu</groupId>
+    			<artifactId>google-analytics-java</artifactId>
+    			<version>2.0.0</version>
 		</dependency>
 		<dependency>
 			<groupId>com.google.apis</groupId>

@@ -2,12 +2,20 @@ package io.antmedia.test;
 
 import static org.junit.Assert.*;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.Test;
+import org.red5.server.Launcher;
+
+import com.brsanthu.googleanalytics.GoogleAnalytics;
 
 import io.antmedia.AppSettings;
 import io.antmedia.EncoderSettings;
+import io.antmedia.rest.BroadcastRestService;
 
 public class AppSettingsUnitTest {
 	
@@ -46,6 +54,30 @@ public class AppSettingsUnitTest {
 		assertEquals(32000, list.get(2).getAudioBitrate());
 		
 		assertEquals(encoderSettingString, appSettings.getEncoderSettingsString(list));
+	}
+	
+	
+	@Test
+	public void testReadWriteSimple() {
+			Launcher launcher = new Launcher();
+			File f = new File("testFile");
+			String content = "contentntntnt";
+			launcher.writeToFile(f.getAbsolutePath(), content);
+			
+			String fileContent = launcher.getFileContent(f.getAbsolutePath());
+			
+			assertEquals(fileContent, content);
+			
+			try {
+				Files.delete(f.toPath());
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+	}
+	
+	@Test
+	public void isCommunity() {
+		assertFalse(BroadcastRestService.isEnterprise());
 	}
 
 }

@@ -860,6 +860,14 @@ public class BroadcastRestService {
 	}
 
 
+	public static boolean isEnterprise() {
+		try  {
+			Class.forName("io.antmedia.enterprise.adaptive.EncoderAdaptor");
+			return true;
+		}  catch (ClassNotFoundException e) {
+			return false;
+		}
+	}
 
 
 	public long getRecordCount() {
