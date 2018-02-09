@@ -1,7 +1,51 @@
 language: java
 jdk:
-  - oraclejdk8
+  - openjdk8
+
+
+#travis running on ubuntu 14.04
 
 before_install: 
-  - git clone https://github.com/ant-media/Ant-Media-Server-Common.git && cd Ant-Media-Server-Common && mvn clean install -DskipTests && cd ..
-  
+  - openssl aes-256-cbc -K $encrypted_5fef4fa28306_key -iv $encrypted_5fef4fa28306_iv -in codesigning.asc.enc -out codesigning.asc -d
+  - gpg --fast-import codesigning.asc
+  - sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 2930ADAE8CAF5059EE73BB4B58712A2291FA4AD5
+  - echo "deb [ arch=amd64 ] https://repo.mongodb.org/apt/ubuntu trusty/mongodb-org/3.6 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-3.6.list
+  - sudo add-apt-repository ppa:mc3man/trusty-media -y  # this for ffmpeg
+  - sudo apt-get update -qq
+  - sudo apt-get install -y mongodb-org #install mongodb
+  - sudo apt-get install ffmpeg -qq # start ffmpeg
+  - sudo service mongod start  # start mongo db
+  - git clone https://github.com/ant-media/Ant-Media-Server-Common.git && cd Ant-Media-Server-Common && mvn clean install -DskipTests -Dmaven.javadoc.skip=true --quiet && cd ..
+  - mvn clean package -P assemble  --quiet -Dmaven.test.skip=true -DskipTests=true
+  - wget https://gist.githubusercontent.com/mekya/f5955a75a25eb3148f88cc2b466d0b4d/raw -O target/install_ant-media-server.sh  # install script
+  - chmod 755 target/install_ant-media-server.sh
+  - cd target 
+  - ./install_ant-media-server.sh ant-media-server-community*.zip
+  - cd ..
+  - echo "Waiting a little to make sure server is started "
+  - sleep 20
+  - sudo cp src/test/resources/preset-red5-web.properties  /usr/local/antmedia/webapps/LiveApp/WEB-INF/red5-web.properties
+  - sudo service antmedia stop
+  - sudo service antmedia start
+  - sleep 10
+
+install:
+  - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -Dgpg.skip=true -B -V
+
+deploy:
+  - provider: releases
+    api_key: $GITHUB_OAUTH_TOKEN
+    file_glob: true
+    file: "target/ant-media-server-community*.zip"
+    skip_cleanup: true
+    name: "Ant Media Server Community $(date +'%F-%T')"
+    prerelease: true
+    on:
+      tags: true
+      branch: master
+  - provider: script
+    script: "mvn deploy -P assemble -DskipTests --settings mvn-settings.xml"
+    skip_cleanup: true
+    on:
+      tags: true
+      branch: master

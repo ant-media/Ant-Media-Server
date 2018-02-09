@@ -292,7 +292,7 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 	public synchronized void writePacket(AVPacket pkt) {
 
 
-		long now = System.currentTimeMillis();
+		//long now = System.currentTimeMillis();
 		
 		if (pkt.stream_index() == this.videoStreamIndex) 
 		{
@@ -314,7 +314,7 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 				System.arraycopy(pps, 0, videoConf, sps.length, pps.length);
 
 				sendVideoConfPacket(keyFrame, pts);
-				long diff = System.currentTimeMillis() - now;
+				//long diff = System.currentTimeMillis() - now;
 				//logger.info("sent video conf packet after " + diff + " ms" );
 
 			}
@@ -323,7 +323,7 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 					keyFrame = byteArray;
 				}
 				sendVideoPacket(byteArray, isKeyFrame, pts);
-				long diff = System.currentTimeMillis() - now;
+				//long diff = System.currentTimeMillis() - now;
 				//logger.info("sent video packet after " + diff + " ms" );
 			}
 
@@ -339,7 +339,7 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 
 			sendAudioPacket(byteArray, pts);
 			
-			long diff = System.currentTimeMillis() - now;
+			//long diff = System.currentTimeMillis() - now;
 			//logger.info("sent audio packet after " + diff + " ms" );
 		}
 	}

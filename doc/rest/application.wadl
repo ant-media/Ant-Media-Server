@@ -1,0 +1,316 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<?enunciate-assumed-base-uri /rest/?>
+<wadl:application xmlns:wadl="http://wadl.dev.java.net/2009/02" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+  <wadl:doc xmlns:enunciate="http://enunciate.webcohesion.com/" enunciate:generatedBy="Enunciate-2.0"/>
+  
+  <wadl:grammars>
+  </wadl:grammars>
+
+  <wadl:resources base="/rest/">
+
+    <wadl:resource path="broadcast/addEndpoint">
+      <wadl:method name="POST">
+        <wadl:doc><![CDATA[Add a third pary rtmp end point to the stream. When broadcast is started, it will send
+rtmp stream to this rtmp url as well.]]></wadl:doc>
+        <wadl:request>
+        </wadl:request>
+        <wadl:response>
+          <wadl:doc><![CDATA[io.antmedia.rest.BroadcastRestService.Result]]></wadl:doc>
+          <wadl:representation mediaType="application/json"/>
+          <wadl:representation mediaType="application/json"/>
+        </wadl:response>
+      </wadl:method>
+    </wadl:resource>
+
+    <wadl:resource path="broadcast/addSocialEndpoint">
+      <wadl:method name="POST">
+        <wadl:doc><![CDATA[Add social endpoint to a stream]]></wadl:doc>
+        <wadl:request>
+        </wadl:request>
+        <wadl:response>
+          <wadl:doc><![CDATA[io.antmedia.rest.BroadcastRestService.Result]]></wadl:doc>
+          <wadl:representation mediaType="application/json"/>
+          <wadl:representation mediaType="application/json"/>
+        </wadl:response>
+      </wadl:method>
+    </wadl:resource>
+
+    <wadl:resource path="broadcast/create">
+      <wadl:method name="POST">
+        <wadl:doc><![CDATA[Creates a broadcast and returns the full broadcast object with rtmp address
+and other information.]]></wadl:doc>
+        <wadl:request>
+          <wadl:doc><![CDATA[Broadcast object only related information should be set, it may be null as well.]]></wadl:doc>
+          <wadl:representation mediaType="application/json">
+          </wadl:representation>
+          <wadl:representation mediaType="application/json">
+          </wadl:representation>
+        </wadl:request>
+        <wadl:response>
+          <wadl:doc><![CDATA[io.antmedia.datastore.db.types.Broadcast]]></wadl:doc>
+          <wadl:representation mediaType="application/json"/>
+          <wadl:representation mediaType="application/json"/>
+        </wadl:response>
+      </wadl:method>
+    </wadl:resource>
+
+    <wadl:resource path="broadcast/createWithSocial">
+      <wadl:method name="POST">
+        <wadl:doc><![CDATA[Create broadcast and bind social networks at the same time
+Server should be authorized in advance to make this service return success]]></wadl:doc>
+        <wadl:request>
+          <wadl:doc><![CDATA[Broadcast
+io.antmedia.datastore.db.types.Broadcast]]></wadl:doc>
+          <wadl:representation mediaType="application/json">
+          </wadl:representation>
+          <wadl:representation mediaType="application/json">
+          </wadl:representation>
+          <wadl:param name="socialNetworks" style="query">
+            <wadl:doc><![CDATA[Comma separated social network names
+Social network names must in comma separated and names must match with the defined names
+like facebook,periscope,youtube etc.]]></wadl:doc>
+          </wadl:param>
+        </wadl:request>
+        <wadl:response>
+          <wadl:doc><![CDATA[io.antmedia.rest.BroadcastRestService.Result]]></wadl:doc>
+          <wadl:representation mediaType="application/json"/>
+          <wadl:representation mediaType="application/json"/>
+        </wadl:response>
+      </wadl:method>
+    </wadl:resource>
+
+    <wadl:resource path="broadcast/get">
+      <wadl:method name="GET">
+        <wadl:doc><![CDATA[Get broadcast object]]></wadl:doc>
+        <wadl:request>
+          <wadl:param name="id" style="query">
+            <wadl:doc><![CDATA[id of the broadcast]]></wadl:doc>
+          </wadl:param>
+        </wadl:request>
+        <wadl:response>
+          <wadl:doc><![CDATA[broadcast object
+nothing if broadcast is not found]]></wadl:doc>
+          <wadl:representation mediaType="application/json"/>
+          <wadl:representation mediaType="application/json"/>
+        </wadl:response>
+      </wadl:method>
+    </wadl:resource>
+
+    <wadl:resource path="broadcast/updateInfo">
+      <wadl:method name="POST">
+        <wadl:doc><![CDATA[Updates broadcast name and description]]></wadl:doc>
+        <wadl:request>
+        </wadl:request>
+        <wadl:response>
+          <wadl:doc><![CDATA[io.antmedia.rest.BroadcastRestService.Result]]></wadl:doc>
+          <wadl:representation mediaType="application/json"/>
+          <wadl:representation mediaType="application/json"/>
+        </wadl:response>
+      </wadl:method>
+    </wadl:resource>
+
+    <wadl:resource path="broadcast/updatePublishStatus">
+      <wadl:method name="POST">
+        <wadl:doc><![CDATA[Updates broadcast publishing field]]></wadl:doc>
+        <wadl:request>
+        </wadl:request>
+        <wadl:response>
+          <wadl:doc><![CDATA[io.antmedia.rest.BroadcastRestService.Result]]></wadl:doc>
+          <wadl:representation mediaType="application/json"/>
+          <wadl:representation mediaType="application/json"/>
+        </wadl:response>
+      </wadl:method>
+    </wadl:resource>
+
+    <wadl:resource path="broadcast/checkDeviceAuthStatus/{serviceName}">
+      <wadl:method name="POST">
+        <wadl:doc><![CDATA[Check if device is authenticated in the social network.
+In authorization phase, this function may be polled periodically until it returns success.
+Server checks social network service for about 1 minute so that if user does not enter DeviceAuthParameters in a 1 minute,
+this function will never return true]]></wadl:doc>
+        <wadl:request>
+        </wadl:request>
+        <wadl:response>
+          <wadl:doc><![CDATA[Result object with success field.
+If success field is true, it is authenticated
+if false, not authenticated]]></wadl:doc>
+          <wadl:representation mediaType="application/json"/>
+          <wadl:representation mediaType="application/json"/>
+        </wadl:response>
+      </wadl:method>
+      <wadl:param name="serviceName" style="template">
+        <wadl:doc><![CDATA[Name of the service facebook,youtube,periscope]]></wadl:doc>
+      </wadl:param>
+    </wadl:resource>
+
+    <wadl:resource path="broadcast/delete/{id}">
+      <wadl:method name="POST">
+        <wadl:doc><![CDATA[Delete broadcast from data store
+
+TODO:
+Stop publishing if it is being published
+Delete all stream if it is vod
+Delete all stream if vod is stored some under storage]]></wadl:doc>
+        <wadl:request>
+        </wadl:request>
+        <wadl:response>
+          <wadl:doc><![CDATA[Result object with success field true or false]]></wadl:doc>
+          <wadl:representation mediaType="application/json"/>
+          <wadl:representation mediaType="application/json"/>
+        </wadl:response>
+      </wadl:method>
+      <wadl:param name="id" style="template">
+        <wadl:doc><![CDATA[Id of the braodcast]]></wadl:doc>
+      </wadl:param>
+    </wadl:resource>
+
+    <wadl:resource path="broadcast/deleteVoDFile/{id}">
+      <wadl:method name="POST">
+        <wadl:doc><![CDATA[Deletes vod file in the file system]]></wadl:doc>
+        <wadl:request>
+        </wadl:request>
+        <wadl:response>
+          <wadl:doc><![CDATA[io.antmedia.rest.BroadcastRestService.Result]]></wadl:doc>
+          <wadl:representation mediaType="application/json"/>
+          <wadl:representation mediaType="application/json"/>
+        </wadl:response>
+      </wadl:method>
+      <wadl:param name="id" style="template">
+        <wadl:doc><![CDATA[name of the file]]></wadl:doc>
+      </wadl:param>
+    </wadl:resource>
+
+    <wadl:resource path="broadcast/getDeviceAuthParameters/{serviceName}">
+      <wadl:method name="POST">
+        <wadl:doc><![CDATA[Get device parameters for social network authrozation.]]></wadl:doc>
+        <wadl:request>
+        </wadl:request>
+        <wadl:response>
+          <wadl:doc><![CDATA[If operation is successfull, DeviceAuthParameters is returned with related information.
+
+User should go to io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters#verification_url
+and enter io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters#user_code in a minute
+
+If not successfull, it returns with Result object with message]]></wadl:doc>
+          <wadl:representation mediaType="application/json"/>
+          <wadl:representation mediaType="application/json"/>
+        </wadl:response>
+      </wadl:method>
+      <wadl:param name="serviceName" style="template">
+        <wadl:doc><![CDATA[Name of the service, like facebook,youtube,periscope]]></wadl:doc>
+      </wadl:param>
+    </wadl:resource>
+
+    <wadl:resource path="broadcast/getSocialNetworkChannel/{serviceName}">
+      <wadl:method name="GET">
+        <wadl:doc><![CDATA[Some social networks have different channels especially for facebook,
+Live stream can be published on Facebook Page or Personal account, this service
+returns the related information about that.]]></wadl:doc>
+        <wadl:request>
+        </wadl:request>
+        <wadl:response>
+          <wadl:doc><![CDATA[io.antmedia.datastore.db.types.SocialEndpointChannel]]></wadl:doc>
+          <wadl:representation mediaType="application/json"/>
+          <wadl:representation mediaType="application/json"/>
+        </wadl:response>
+      </wadl:method>
+      <wadl:param name="serviceName" style="template">
+        <wadl:doc><![CDATA[Name of the social network (facebook,youtube,periscope)]]></wadl:doc>
+      </wadl:param>
+    </wadl:resource>
+
+    <wadl:resource path="broadcast/revokeSocialNetwork/{serviceName}">
+      <wadl:method name="POST">
+        <wadl:doc><![CDATA[Revoke authorization from a social network account that is authorized before]]></wadl:doc>
+        <wadl:request>
+        </wadl:request>
+        <wadl:response>
+          <wadl:doc><![CDATA[io.antmedia.rest.BroadcastRestService.Result]]></wadl:doc>
+          <wadl:representation mediaType="application/json"/>
+          <wadl:representation mediaType="application/json"/>
+        </wadl:response>
+      </wadl:method>
+      <wadl:param name="serviceName" style="template">
+        <wadl:doc><![CDATA[Name of the service]]></wadl:doc>
+      </wadl:param>
+    </wadl:resource>
+
+    <wadl:resource path="broadcast/stop/{streamId}">
+      <wadl:method name="POST">
+        <wadl:doc><![CDATA[]]></wadl:doc>
+        <wadl:request>
+        </wadl:request>
+        <wadl:response>
+          <wadl:doc><![CDATA[]]></wadl:doc>
+          <wadl:representation mediaType="application/json"/>
+          <wadl:representation mediaType="application/json"/>
+        </wadl:response>
+      </wadl:method>
+      <wadl:param name="streamId" style="template">
+        <wadl:doc><![CDATA[]]></wadl:doc>
+      </wadl:param>
+    </wadl:resource>
+
+    <wadl:resource path="broadcast/getList/{offset}/{size}">
+      <wadl:method name="GET">
+        <wadl:doc><![CDATA[Gets the broadcast list from database]]></wadl:doc>
+        <wadl:request>
+        </wadl:request>
+        <wadl:response>
+          <wadl:doc><![CDATA[JSON broadcast list]]></wadl:doc>
+          <wadl:representation mediaType="application/json"/>
+          <wadl:representation mediaType="application/json"/>
+        </wadl:response>
+      </wadl:method>
+      <wadl:param name="offset" style="template">
+        <wadl:doc><![CDATA[This is the offset of the list, it is useful for pagination,]]></wadl:doc>
+      </wadl:param>
+      <wadl:param name="size" style="template">
+        <wadl:doc><![CDATA[Number of items that will be fetched. If there is not enough item in the datastore,
+returned list size may less then this value]]></wadl:doc>
+      </wadl:param>
+    </wadl:resource>
+
+    <wadl:resource path="broadcast/getSocialNetworkChannelList/{serviceName}/{type}">
+      <wadl:method name="GET">
+        <wadl:doc><![CDATA[Returns available social network channels for the specific service]]></wadl:doc>
+        <wadl:request>
+        </wadl:request>
+        <wadl:response>
+          <wadl:doc><![CDATA[List of io.antmedia.datastore.db.types.SocialEndpointChannel]]></wadl:doc>
+          <wadl:representation mediaType="application/json"/>
+          <wadl:representation mediaType="application/json"/>
+        </wadl:response>
+      </wadl:method>
+      <wadl:param name="serviceName" style="template">
+        <wadl:doc><![CDATA[Name of the social network]]></wadl:doc>
+      </wadl:param>
+      <wadl:param name="type" style="template">
+        <wadl:doc><![CDATA[This is very service specific, it may be page for Facebook]]></wadl:doc>
+      </wadl:param>
+    </wadl:resource>
+
+    <wadl:resource path="broadcast/setSocialNetworkChannel/{serviceName}/{type}/{id}">
+      <wadl:method name="POST">
+        <wadl:doc><![CDATA[Sets channel that live stream will be published on specific social network channel]]></wadl:doc>
+        <wadl:request>
+        </wadl:request>
+        <wadl:response>
+          <wadl:doc><![CDATA[io.antmedia.rest.BroadcastRestService.Result]]></wadl:doc>
+          <wadl:representation mediaType="application/json"/>
+          <wadl:representation mediaType="application/json"/>
+        </wadl:response>
+      </wadl:method>
+      <wadl:param name="id" style="template">
+        <wadl:doc><![CDATA[id of the channel]]></wadl:doc>
+      </wadl:param>
+      <wadl:param name="serviceName" style="template">
+        <wadl:doc><![CDATA[Name of the social network service]]></wadl:doc>
+      </wadl:param>
+      <wadl:param name="type" style="template">
+        <wadl:doc><![CDATA[Type of the channel]]></wadl:doc>
+      </wadl:param>
+    </wadl:resource>
+  </wadl:resources>
+</wadl:application>

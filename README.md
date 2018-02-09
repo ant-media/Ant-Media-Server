@@ -1,18 +1,33 @@
+[![Build Status](https://travis-ci.org/ant-media/Ant-Media-Server.svg?branch=master)](https://travis-ci.org/ant-media/Ant-Media-Server)
+
 Ant Media Server 
-===========
+====
 
 Ant Media Server is an Open Source Media Server that supports:
 
  * Live Stream Publishing with RTMP, RTSP and WebRTC
  * WebRTC to RTMP Adapter
  * Recording Live Streams (FLV, MP4 and HLS Containers)
- * **Low Latency 1:N WebRTC Streaming in Enterprise Edition**
- * **Adaptive Bitrate Conversion for Live Streams (FLV, MP4, HLS) in Enterprise Edition**
+ * Low Latency 1:N WebRTC Live Streaming in **Enterprise Edition**
+ * Adaptive Bitrate Conversion for Live Streams (FLV, MP4, HLS) in **Enterprise Edition**
 
+
+[Documentation](https://antmedia.io/documentation) & [Enterprise Edition](https://antmedia.io)
 
 ## Releases 
 
-#### [Ant Media Server 1.2.0 SNAPSHOT Release (December 22, 2017)](https://github.com/ant-media/Ant-Media-Server/releases/tag/ams-v1.2.0-SNAPSHOT)
+#### [Ant Media Server 1.2.1 SNAPSHOT Release (Feb 3, 2018)](https://oss.sonatype.org/service/local/repositories/snapshots/content/io/antmedia/ant-media-server/1.2.1-SNAPSHOT/ant-media-server-1.2.1-20180203.094349-1-community-1.2.1-SNAPSHOT-180203_0943.zip)
+* Enable SSL script [Blog post](https://antmedia.io/enable-ssl-on-ant-media-server/)
+* Fix No Audio or No Video issue in WebRTC Streams
+* Use specific threads for audio, video and signalling in WebRTC Community Edition
+
+#### [Ant Media Server 1.2.0 Release (Jan 27, 2018)](https://github.com/ant-media/Ant-Media-Server/releases/tag/ams-v1.2.0)
+* Web Management Interface
+* Infrastructure for WebRTC low latency
+* Bug fixes
+* Documentation
+
+#### [Ant Media Server 1.2.0 SNAPSHOT Release (January 14, 2018)](https://github.com/ant-media/Ant-Media-Server/releases/tag/untagged-e09c2795e299b44bcb86)
 
 #### [Ant Media Server 1.1.1 Release (August 3, 2017)](https://github.com/ant-media/Ant-Media-Server/releases/download/ams-v1.1.1/ant-media-server-1.1.1.zip)
 

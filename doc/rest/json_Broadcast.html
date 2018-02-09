@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+
+  <title>Ant Media Server: Broadcast</title>
+
+  <!-- Mobile viewport optimized: j.mp/bplateviewport -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Bootstrap core CSS -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
+
+  <!--custom css for these pages-->
+  <link rel="stylesheet" href="css/enunciate.css">
+
+  <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+  <!--[if lt IE 9]>
+  <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+  <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+  <![endif]-->
+</head>
+
+<body data-spy="scroll" data-target="#apinav">
+
+  <nav class="navbar navbar-inverse navbar-fixed-top">
+    <div class="container-fluid">
+      <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar">
+          <span class="sr-only">Toggle navigation</span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="index.html">Ant Media Server: Broadcast</a>
+      </div>
+      <div id="navbar" class="navbar-collapse collapse">
+        <ul class="nav navbar-nav navbar-right">
+          <li><a href="resources.html">Resources</a></li>
+          <li><a href="data.html">Data Types</a></li>
+          <li><a href="downloads.html">Files and Libraries</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-sm-3 col-md-2 sidebar" id="apinav">
+        <ul class="nav nav-sidebar">
+          <li><a href="#resource_BroadcastRestService_addEndpoint_POST"><abbr title="POST /broadcast/addEndpoint"><span class="sideoverflow">POST /broadcast/addEndpoint</span></abbr></a></li>
+          <li><a href="#resource_BroadcastRestService_addSocialEndpoint_POST"><abbr title="POST /broadcast/addSocialEndpoint"><span class="sideoverflow">POST /broadcast/addSocialEndpoint</span></abbr></a></li>
+          <li><a href="#resource_BroadcastRestService_createBroadcast_POST"><abbr title="POST /broadcast/create"><span class="sideoverflow">POST /broadcast/create</span></abbr></a></li>
+          <li><a href="#resource_BroadcastRestService_createWithSocial_POST"><abbr title="POST /broadcast/createWithSocial"><span class="sideoverflow">POST /broadcast/createWithSocial</span></abbr></a></li>
+          <li><a href="#resource_BroadcastRestService_getBroadcast_GET"><abbr title="GET /broadcast/get"><span class="sideoverflow">GET /broadcast/get</span></abbr></a></li>
+          <li><a href="#resource_BroadcastRestService_updateInfo_POST"><abbr title="POST /broadcast/updateInfo"><span class="sideoverflow">POST /broadcast/updateInfo</span></abbr></a></li>
+          <li><a href="#resource_BroadcastRestService_updatePublishInfo_POST"><abbr title="POST /broadcast/updatePublishStatus"><span class="sideoverflow">POST /broadcast/updatePublishStatus</span></abbr></a></li>
+          <li><a href="#resource_BroadcastRestService_checkDeviceAuthStatus_POST"><abbr title="POST /broadcast/checkDeviceAuthStatus/{serviceName}"><span class="sideoverflow">POST /broadcast/checkDeviceAuthStatus/{serviceName}</span></abbr></a></li>
+          <li><a href="#resource_BroadcastRestService_deleteBroadcast_POST"><abbr title="POST /broadcast/delete/{id}"><span class="sideoverflow">POST /broadcast/delete/{id}</span></abbr></a></li>
+          <li><a href="#resource_BroadcastRestService_deleteVoDFile_POST"><abbr title="POST /broadcast/deleteVoDFile/{id}"><span class="sideoverflow">POST /broadcast/deleteVoDFile/{id}</span></abbr></a></li>
+          <li><a href="#resource_BroadcastRestService_getDeviceAuthParameters_POST"><abbr title="POST /broadcast/getDeviceAuthParameters/{serviceName}"><span class="sideoverflow">POST /broadcast/getDeviceAuthParameters/{serviceName}</span></abbr></a></li>
+          <li><a href="#resource_BroadcastRestService_getSocialNetworkChannel_GET"><abbr title="GET /broadcast/getSocialNetworkChannel/{serviceName}"><span class="sideoverflow">GET /broadcast/getSocialNetworkChannel/{serviceName}</span></abbr></a></li>
+          <li><a href="#resource_BroadcastRestService_revokeSocialNetwork_POST"><abbr title="POST /broadcast/revokeSocialNetwork/{serviceName}"><span class="sideoverflow">POST /broadcast/revokeSocialNetwork/{serviceName}</span></abbr></a></li>
+          <li><a href="#resource_BroadcastRestService_stopBroadcast_POST"><abbr title="POST /broadcast/stop/{streamId}"><span class="sideoverflow">POST /broadcast/stop/{streamId}</span></abbr></a></li>
+          <li><a href="#resource_BroadcastRestService_getBroadcastList_GET"><abbr title="GET /broadcast/getList/{offset}/{size}"><span class="sideoverflow">GET /broadcast/getList/{offset}/{size}</span></abbr></a></li>
+          <li><a href="#resource_BroadcastRestService_getSocialNetworkChannelList_GET"><abbr title="GET /broadcast/getSocialNetworkChannelList/{serviceName}/{type}"><span class="sideoverflow">GET /broadcast/getSocialNetworkChannelList/{serviceName}/{type}</span></abbr></a></li>
+          <li><a href="#resource_BroadcastRestService_setSocialNetworkChannelList_POST"><abbr title="POST /broadcast/setSocialNetworkChannel/{serviceName}/{type}/{id}"><span class="sideoverflow">POST /broadcast/setSocialNetworkChannel/{serviceName}/{type}/{id}</span></abbr></a></li>
+          <li class="divider"></li>
+          <li class="text-right"><a href="#top"><small>Back to Top</small></a></li>
+        </ul>
+      </div>
+
+      <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+        <ol class="breadcrumb" id="top">
+          <li class="active dropdown"><a href="index.html">Home</a></li>
+          <li class="active dropdown"><a href="syntax_json.html">JSON</a></li>
+          <li class="dropdown"><a href="json_Broadcast.html">Broadcast</a></li>
+        </ol>
+
+      <h1 class="page-header">Broadcast <small>Data Type</small></h1>
+
+      <p></p>
+
+      <dl class="dl-horizontal">
+      </dl>
+
+      <table class="table datatype-properties">
+        <caption>Properties</caption>
+        <thead>
+        <tr>
+          <th>name</th>
+          <th>data type</th>
+          <th>description</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+          <td>  <span class="property-name">description</span>
+</td>
+          <td>  <span class="datatype-reference">string
+</span>
+</td>
+          <td>  <span class="property-description"></span>
+</td>
+        </tr>
+        <tr>
+          <td>  <span class="property-name">name</span>
+</td>
+          <td>  <span class="datatype-reference">string
+</span>
+</td>
+          <td>  <span class="property-description"></span>
+</td>
+        </tr>
+        <tr>
+          <td>  <span class="property-name">publish</span>
+</td>
+          <td>  <span class="datatype-reference">boolean
+</span>
+</td>
+          <td>  <span class="property-description"></span>
+</td>
+        </tr>
+        <tr>
+          <td>  <span class="property-name">endPointList</span>
+</td>
+          <td>  <span class="datatype-reference">array of <a href="json_Endpoint.html">Endpoint</a>
+</span>
+</td>
+          <td>  <span class="property-description"></span>
+</td>
+        </tr>
+        <tr>
+          <td>  <span class="property-name">status</span>
+</td>
+          <td>  <span class="datatype-reference">string
+</span>
+</td>
+          <td>  <span class="property-description"></span>
+</td>
+        </tr>
+        <tr>
+          <td>  <span class="property-name">category</span>
+</td>
+          <td>  <span class="datatype-reference">string
+</span>
+</td>
+          <td>  <span class="property-description"></span>
+</td>
+        </tr>
+        <tr>
+          <td>  <span class="property-name">publicStream</span>
+</td>
+          <td>  <span class="datatype-reference">boolean
+</span>
+</td>
+          <td>  <span class="property-description"></span>
+</td>
+        </tr>
+        <tr>
+          <td>  <span class="property-name">expireDurationMS</span>
+</td>
+          <td>  <span class="datatype-reference">number
+</span>
+</td>
+          <td>  <span class="property-description"></span>
+</td>
+        </tr>
+        <tr>
+          <td>  <span class="property-name">duration</span>
+</td>
+          <td>  <span class="datatype-reference">number
+</span>
+</td>
+          <td>  <span class="property-description"></span>
+</td>
+        </tr>
+        <tr>
+          <td>  <span class="property-name">is360</span>
+</td>
+          <td>  <span class="datatype-reference">boolean
+</span>
+</td>
+          <td>  <span class="property-description"></span>
+</td>
+        </tr>
+        <tr>
+          <td>  <span class="property-name">listenerHookURL</span>
+</td>
+          <td>  <span class="datatype-reference">string
+</span>
+</td>
+          <td>  <span class="property-description"></span>
+</td>
+        </tr>
+        <tr>
+          <td>  <span class="property-name">date</span>
+</td>
+          <td>  <span class="datatype-reference">number
+</span>
+</td>
+          <td>  <span class="property-description"></span>
+</td>
+        </tr>
+        <tr>
+          <td>  <span class="property-name">plannedStartDate</span>
+</td>
+          <td>  <span class="datatype-reference">number
+</span>
+</td>
+          <td>  <span class="property-description"></span>
+</td>
+        </tr>
+        <tr>
+          <td>  <span class="property-name">streamId</span>
+</td>
+          <td>  <span class="datatype-reference">string
+</span>
+</td>
+          <td>  <span class="property-description"></span>
+</td>
+        </tr>
+        </tbody>
+      </table>
+
+      <p class="lead">Example</p>
+      
+      <pre class="prettyprint language-js example">{
+  &quot;description&quot; : &quot;...&quot;,
+  &quot;name&quot; : &quot;...&quot;,
+  &quot;publish&quot; : true,
+  &quot;endPointList&quot; : [ {
+    &quot;rtmpUrl&quot; : &quot;...&quot;,
+    &quot;name&quot; : &quot;...&quot;,
+    &quot;streamId&quot; : &quot;...&quot;,
+    &quot;broadcastId&quot; : &quot;...&quot;,
+    &quot;type&quot; : &quot;...&quot;
+  }, {
+    &quot;rtmpUrl&quot; : &quot;...&quot;,
+    &quot;name&quot; : &quot;...&quot;,
+    &quot;streamId&quot; : &quot;...&quot;,
+    &quot;broadcastId&quot; : &quot;...&quot;,
+    &quot;type&quot; : &quot;...&quot;
+  } ],
+  &quot;status&quot; : &quot;...&quot;,
+  &quot;category&quot; : &quot;...&quot;,
+  &quot;publicStream&quot; : true,
+  &quot;expireDurationMS&quot; : 12345,
+  &quot;duration&quot; : 12345,
+  &quot;is360&quot; : true,
+  &quot;listenerHookURL&quot; : &quot;...&quot;,
+  &quot;date&quot; : 12345,
+  &quot;plannedStartDate&quot; : 12345,
+  &quot;streamId&quot; : &quot;...&quot;
+}</pre>
+
+        <footer class="footer">
+          <div class="container">
+            <p class="text-muted">Generated by <a href="http://enunciate.webcohesion.com">Enunciate</a>.</p>
+          </div>
+        </footer>
+
+      </div>
+    </div>
+  </div>
+
+
+  <!-- JavaScript placed at the end of the document so the pages load faster. -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+
+  <!-- Bootstrap core JavaScript
+  ================================================== -->
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+
+  <!-- prettify code blocks. see http://code.google.com/p/google-code-prettify/ -->
+  <script src="https://cdn.rawgit.com/google/code-prettify/master/loader/run_prettify.js" type="text/javascript"></script>
+  <script>
+    $(function() {
+      $(".clickable-row").click(function() {
+        window.document.location = $(this).data("href");
+      });
+
+      $('[data-toggle="tooltip"]').tooltip()
+    });
+  </script>
+
+</body>
+</html>

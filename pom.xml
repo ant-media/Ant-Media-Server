@@ -9,14 +9,14 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>io.antmedia</groupId>
 	<artifactId>ant-media-server</artifactId>
-	<version>1.2.0-SNAPSHOT</version>
+	<version>1.2.1-SNAPSHOT</version>
 	<name>Ant Media Server</name>
-	<description>Ant Media Server supports RTMP, RTSP, MP4, HLS and WebRTC based on Red5</description>
+	<description>Ant Media Server supports RTMP, RTSP, MP4, HLS, WebRTC, Adaptive Streaming, etc.</description>
 	<packaging>jar</packaging>
 	<url>https://github.com/ant-media/Ant-Media-Server</url>
 	<organization>
 		<name>Ant Media</name>
-		<url>https://github.com/ant-media/</url>
+		<url>http://antmedia.io</url>
 	</organization>
 	<licenses>
 		<license>
@@ -46,26 +46,30 @@
 		</repository>
 	</distributionManagement>
 	<properties>
+	 	<skipTests>false</skipTests>
 		<build.dir>target</build.dir>
 		<finalName>${project.artifactId}-${project.version}</finalName>
 		<red5-io.version>${project.parent.version}</red5-io.version>
 		<red5-service.version>${project.version}</red5-service.version>
-		<red5-server-common.version>${project.version}</red5-server-common.version>
+		<red5-server-common.version>1.2.1-SNAPSHOT</red5-server-common.version>
 		<cors-filter.version>2.5</cors-filter.version>
-		<io-antmedia.enterprise.version>1.2.0-SNAPSHOT</io-antmedia.enterprise.version>
 		<periscope-api.version>1.0.0</periscope-api.version>
 		<restfb.version>1.43.0</restfb.version>
-		<webrtcApp.version>1.2.0-SNAPSHOT</webrtcApp.version>
-		<liveApp.version>1.2.0-SNAPSHOT</liveApp.version>
-		<consoleApp.version>1.2.0-SNAPSHOT</consoleApp.version>
-		<webrtcAppEE.version>1.2.0-SNAPSHOT</webrtcAppEE.version>
-
+		
 		<javacpp.ffmpeg.version>3.2.1-1.3</javacpp.ffmpeg.version>
 
-		<jersey.version>1.19.1</jersey.version>
+		<jersey.version>2.26</jersey.version>
 		<mapdb.version>3.0.5</mapdb.version>
-		<maven.build.timestamp.format>yyMMdd_HHmm</maven.build.timestamp.format>
-		<buildNumber>${maven.build.timestamp}</buildNumber>
+    	<maven.build.timestamp.format>yyMMdd_HHmm</maven.build.timestamp.format>
+        <buildNumber>${maven.build.timestamp}</buildNumber>
+        <enunciate.version>2.10.0</enunciate.version>
+        <webrtcapp.version>1.2.1-SNAPSHOT</webrtcapp.version>
+        <consoleapp.version>1.2.1-SNAPSHOT</consoleapp.version>
+		<liveapp.version>1.2.1-SNAPSHOT</liveapp.version>
+		<webrtcappee.version>1.2.1-SNAPSHOT</webrtcappee.version>	
+		<ant-media-server-service.version>1.2.0</ant-media-server-service.version>
+		<ant-media-server-enterprise.version>1.2.1-SNAPSHOT</ant-media-server-enterprise.version>
+
 	</properties>
 
 	<build>
@@ -105,6 +109,14 @@
 				</configuration>
 			</plugin>
 			<plugin>
+            		<artifactId>maven-compiler-plugin</artifactId>                  
+                	<configuration>
+                		<compilerVersion>1.8</compilerVersion>
+                     <source>1.8</source>
+                     <target>1.8</target>
+                 </configuration>
+         	</plugin>
+			<plugin>
 				<artifactId>maven-jar-plugin</artifactId>
 				<configuration>
 					<excludes>
@@ -112,15 +124,22 @@
 						<exclude>**/red5_codetemplate.xml</exclude>
 					</excludes>
 					<archive>
+						<manifest>
+							<mainClass>io.antmedia.Version</mainClass>
+							<addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+						</manifest>
 						<manifestEntries>
 							<Build-OS>${os.name} ${os.version}</Build-OS>
 							<Build-Java>Java ${java.version}</Build-Java>
 							<Build-Number>${buildNumber}</Build-Number>
-							<Main-Class>Version</Main-Class>
+							<Main-Class>io.antmedia.Version</Main-Class>
 							<Class-Path>lib/slf4j-api-${slf4j.version}.jar lib/logback-classic-${logback.version}.jar lib/logback-core-${logback.version}.jar lib/red5-server-common-${project.parent.version}.jar</Class-Path>
 						</manifestEntries>
 					</archive>
 				</configuration>
+			</plugin>
+			<plugin>
+				<artifactId>maven-javadoc-plugin</artifactId>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.felix</groupId>
@@ -131,40 +150,57 @@
 				<artifactId>maven-source-plugin</artifactId>
 			</plugin>
 			<plugin>
-				<artifactId>maven-surefire-plugin</artifactId>
-				<version>2.19.1</version>
-				<configuration>
-					<skipTests>true</skipTests>
-				</configuration>
-			</plugin>
+
+          		<artifactId>maven-surefire-plugin</artifactId>
+       			<version>2.19.1</version>
+          		<configuration>
+            		<skipTests>${skipTests}</skipTests>
+          		</configuration>
+        	</plugin>
+		<plugin>
+			<groupId>org.sonatype.plugins</groupId>
+			<artifactId>nexus-staging-maven-plugin</artifactId>
+			<version>1.6.7</version>
+			<extensions>true</extensions>
+			<configuration>
+			   <serverId>ossrh</serverId>
+			   <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+				<autoReleaseAfterClose>true</autoReleaseAfterClose>
+			</configuration>
+		</plugin>
+		<plugin>
+			<groupId>org.apache.maven.plugins</groupId>
+			<artifactId>maven-gpg-plugin</artifactId>
+			<version>1.6</version>
+			<executions>
+				<execution>
+					<id>sign-artifacts</id>
+					<phase>verify</phase>
+					<goals>
+						<goal>sign</goal>
+					</goals>
+				</execution>
+			</executions>
+		</plugin>
+			<!--  
+>>>>>>> master
 			<plugin>
-				<groupId>org.sonatype.plugins</groupId>
-				<artifactId>nexus-staging-maven-plugin</artifactId>
-				<version>1.6.7</version>
-				<extensions>true</extensions>
-				<configuration>
-					<serverId>ossrh</serverId>
-					<nexusUrl>https://oss.sonatype.org/</nexusUrl>
-					<autoReleaseAfterClose>true</autoReleaseAfterClose>
-				</configuration>
+		        <groupId>com.webcohesion.enunciate</groupId>
+		        <artifactId>enunciate-maven-plugin</artifactId>
+		        <version>${enunciate.version}</version>
+		        <executions>
+		           <execution>
+		                  <goals>
+		                    <goal>docs</goal>
+		                  </goals>
+		                  <configuration>
+		                    <configFile>enunciate.xml</configFile>
+		                    <docsDir>${project.build.directory}</docsDir>
+		                  </configuration>
+		           </execution>
+		        </executions>
 			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-gpg-plugin</artifactId>
-				<version>1.5</version>
-				<configuration>
-					<skip>true</skip>
-				</configuration>
-				<executions>
-					<execution>
-						<id>sign-artifacts</id>
-						<phase>verify</phase>
-						<goals>
-							<goal>sign</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
+			-->
 		</plugins>
 	</build>
 	<dependencies>
@@ -257,27 +293,7 @@
 			<artifactId>red5-server-common</artifactId>
 			<version>${red5-server-common.version}</version>
 		</dependency>
-		<dependency>
-			<groupId>io.antmedia.webrtc</groupId>
-			<artifactId>WebRTCApp</artifactId>
-			<version>${webrtcApp.version}</version>
-			<type>war</type>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>io.antmedia.app</groupId>
-			<artifactId>LiveApp</artifactId>
-			<version>${liveApp.version}</version>
-			<type>war</type>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>io.antmedia.app</groupId>
-			<artifactId>ConsoleApp</artifactId>
-			<version>${consoleApp.version}</version>
-			<type>war</type>
-			<scope>provided</scope>
-		</dependency>
+
 		<dependency>
 			<groupId>org.red5</groupId>
 			<artifactId>red5-io</artifactId>
@@ -317,13 +333,13 @@
 		<dependency>
 			<groupId>io.antmedia</groupId>
 			<artifactId>ant-media-server-service</artifactId>
-			<version>${project.version}</version>
+			<version>${ant-media-server-service.version}</version>
 			<type>jar</type>
 		</dependency>
 		<dependency>
 			<groupId>io.antmedia</groupId>
 			<artifactId>ant-media-server-service</artifactId>
-			<version>${project.version}</version>
+			<version>${ant-media-server-service.version}</version>
 			<type>tar.gz</type>
 			<classifier>daemon</classifier>
 		</dependency>
@@ -393,19 +409,29 @@
 			<version>${restfb.version}</version>
 		</dependency>
 		<dependency>
+    			<groupId>com.brsanthu</groupId>
+    			<artifactId>google-analytics-java</artifactId>
+    			<version>2.0.0</version>
+		</dependency>
+		<dependency>
 			<groupId>com.google.apis</groupId>
 			<artifactId>google-api-services-youtube</artifactId>
 			<version>v3-rev183-1.22.0</version>
 		</dependency>
 		<dependency>
-			<groupId>com.sun.jersey</groupId>
-			<artifactId>jersey-server</artifactId>
-			<version>${jersey.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>com.sun.jersey</groupId>
-			<artifactId>jersey-json</artifactId>
-			<version>${jersey.version}</version>
+            <groupId>org.glassfish.jersey.containers</groupId>
+            <artifactId>jersey-container-servlet</artifactId>
+            <version>${jersey.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.glassfish.jersey.media</groupId>
+            <artifactId>jersey-media-json-jackson</artifactId>
+            <version>${jersey.version}</version>
+        </dependency>
+        <dependency>
+    			<groupId>org.glassfish.jersey.ext</groupId>
+    			<artifactId>jersey-spring4</artifactId>
+    			<version>${jersey.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.mapdb</groupId>
@@ -426,10 +452,40 @@
 			<scope>test</scope>
 		</dependency>
 
+		<dependency>
+			<groupId>io.antmedia.webrtc</groupId>
+			<artifactId>WebRTCApp</artifactId>
+			<version>${webrtcapp.version}</version>
+			<type>war</type>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>io.antmedia.app</groupId>
+			<artifactId>ConsoleApp</artifactId>
+			<version>${consoleapp.version}</version>
+			<type>war</type>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>io.antmedia.app</groupId>
+			<artifactId>LiveApp</artifactId>
+			<version>${liveapp.version}</version>
+			<type>war</type>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>io.antmedia.webrtc</groupId>
+			<artifactId>WebRTCAppEE</artifactId>
+			<version>${webrtcappee.version}</version>
+			<type>war</type>
+			<scope>provided</scope>
+		</dependency>
+
 	</dependencies>
 	<profiles>
 		<profile>
 			<id>assemble</id>
+
 			<build>
 				<plugins>
 					<plugin>
@@ -473,7 +529,7 @@
 										<artifactItem>
 											<groupId>io.antmedia.webrtc</groupId>
 											<artifactId>WebRTCApp</artifactId>
-											<version>${webrtcApp.version}</version>
+											<version>${webrtcapp.version}</version>
 											<type>war</type>
 											<overWrite>true</overWrite>
 											<outputDirectory>${project.build.directory}/webapps</outputDirectory>
@@ -481,7 +537,7 @@
 										<artifactItem>
 											<groupId>io.antmedia.app</groupId>
 											<artifactId>LiveApp</artifactId>
-											<version>${liveApp.version}</version>
+											<version>${liveapp.version}</version>
 											<type>war</type>
 											<overWrite>true</overWrite>
 											<outputDirectory>${project.build.directory}/webapps</outputDirectory>
@@ -489,7 +545,7 @@
 										<artifactItem>
 											<groupId>io.antmedia.app</groupId>
 											<artifactId>ConsoleApp</artifactId>
-											<version>${consoleApp.version}</version>
+											<version>${consoleapp.version}</version>
 											<type>war</type>
 											<overWrite>true</overWrite>
 											<outputDirectory>${project.build.directory}/webapps</outputDirectory>
@@ -527,7 +583,7 @@
 										<artifactItem>
 											<groupId>io.antmedia</groupId>
 											<artifactId>ant-media-server-service</artifactId>
-											<version>${project.version}</version>
+											<version>${ant-media-server-service.version}</version>
 											<type>tar.gz</type>
 											<classifier>daemon</classifier>
 											<overWrite>true</overWrite>
@@ -609,7 +665,7 @@
 										<artifactItem>
 											<groupId>io.antmedia.webrtc</groupId>
 											<artifactId>WebRTCAppEE</artifactId>
-											<version>${webrtcAppEE.version}</version>
+											<version>${webrtcappee.version}</version>
 											<type>war</type>
 											<overWrite>true</overWrite>
 											<outputDirectory>${project.build.directory}/webapps</outputDirectory>
@@ -617,7 +673,7 @@
 										<artifactItem>
 											<groupId>io.antmedia.app</groupId>
 											<artifactId>LiveApp</artifactId>
-											<version>${liveApp.version}</version>
+											<version>${liveapp.version}</version>
 											<type>war</type>
 											<overWrite>true</overWrite>
 											<outputDirectory>${project.build.directory}/webapps</outputDirectory>
@@ -625,7 +681,7 @@
 										<artifactItem>
 											<groupId>io.antmedia.app</groupId>
 											<artifactId>ConsoleApp</artifactId>
-											<version>${consoleApp.version}</version>
+											<version>${consoleapp.version}</version>
 											<type>war</type>
 											<overWrite>true</overWrite>
 											<outputDirectory>${project.build.directory}/webapps</outputDirectory>
@@ -644,7 +700,7 @@
 										<artifactItem>
 											<groupId>io.antmedia.enterprise</groupId>
 											<artifactId>ant-media-enterprise</artifactId>
-											<version>${io-antmedia.enterprise.version}</version>
+											<version>${ant-media-server-enterprise.version}</version>
 											<type>jar</type>
 											<overWrite>true</overWrite>
 											<outputDirectory>${project.build.directory}/plugins</outputDirectory>
@@ -682,7 +738,7 @@
 										<artifactItem>
 											<groupId>io.antmedia</groupId>
 											<artifactId>ant-media-server-service</artifactId>
-											<version>${project.version}</version>
+											<version>${ant-media-server-service.version}</version>
 											<type>tar.gz</type>
 											<classifier>daemon</classifier>
 											<overWrite>true</overWrite>

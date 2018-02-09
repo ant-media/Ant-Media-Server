@@ -42,7 +42,7 @@ import com.antstreaming.rtsp.PacketSenderRunnable;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.functional.MuxingTest;
+import io.antmedia.integration.MuxingTest;
 //import io.antmedia.enterprise.adaptive.TransraterAdaptor;
 import io.antmedia.muxer.HLSMuxer;
 import io.antmedia.muxer.Mp4Muxer;

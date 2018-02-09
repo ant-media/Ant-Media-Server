@@ -1,5 +1,5 @@
 
-# How to Try Low Latency 1:N WebRTC Streaming
+# Try Low Latency WebRTC Live Streaming
 
 Ant Media Server 1.2.0+ Enterprise Edition supports adaptive low latency WebRTC streaming. 
 
@@ -11,7 +11,7 @@ In addition, Ant Media Server can
 ## Download
 
 Firstly, you need to have Ant Media Server Enterprise Edition. If you are a personal user and just want to try,
-contact with us at [antmedia.io](https://antmedia.io). We will reply back with a link to download Ant Media Server Enterprise. 
+contact with us at [antmedia.io](https://antmedia.io). We will reply back by providing Ant Media Server Enterprise Edition to try. 
 
 If you are a professional user and need support, you can buy support at [antmedia.io](https://antmedia.io) as well
 
@@ -71,6 +71,8 @@ Let's start, we assume that you have got Enterprise Edition somehow and download
 9. Open `http://localhost:5080/WebRTCAppEE/player.html` in other tabs and Press `Start Playing` button again 
    to check how it plays and what the latency is. 
    
+## Running on Remote Instances - Enable SSL For Ant Media Server Enterprise
+If you are running the Ant Media Server Enterprise Edition in remote computer/instances, you may need SSL. If so, please follow the Enable SSL doc or [this blog post](https://antmedia.io/enable-ssl-on-ant-media-server/).
 
 ## Feedbacks
 

@@ -1,0 +1,1113 @@
+{
+  "swagger": "2.0",
+  "info" : {
+    "description" : "<h1>Ant Media Server<\/h1><p>Ant Media Server supports RTMP, RTSP, MP4, HLS, WebRTC, Adaptive Streaming, etc.<\/p>",
+    "license" : {
+      "url" : "http://www.apache.org/licenses/LICENSE-2.0.txt",
+      "name" : "Apache 2"
+    },
+    "version" : "1.2.0-SNAPSHOT",
+    "title" : "Ant Media Server"
+  },
+  "basePath" : "/rest",
+  "schemes" : [],
+  "tags" : [
+    {
+      "name" : "BroadcastRestService"
+    }
+  ],
+  "definitions" : {
+    "json_Broadcast" : {
+      "type" : "object",
+      "title" : "Broadcast",
+          "properties" : {
+            "publicStream" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "boolean"
+            },
+            "duration" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "number"
+            },
+            "date" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "number"
+            },
+            "category" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "string"
+            },
+            "streamId" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "string"
+            },
+            "name" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "string"
+            },
+            "expireDurationMS" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "number"
+            },
+            "description" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "string"
+            },
+            "is360" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "boolean"
+            },
+            "endPointList" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "array",
+"items" : {
+  "$ref" : "#/definitions/json_Endpoint"
+}
+            },
+            "plannedStartDate" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "number"
+            },
+            "publish" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "boolean"
+            },
+            "status" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "string"
+            },
+            "listenerHookURL" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "string"
+            }
+          },
+      "example" : {
+  "publicStream" : true,
+  "duration" : 12345,
+  "date" : 12345,
+  "category" : "...",
+  "streamId" : "...",
+  "name" : "...",
+  "expireDurationMS" : 12345,
+  "description" : "...",
+  "is360" : true,
+  "endPointList" : [ {
+    "streamId" : "...",
+    "name" : "...",
+    "broadcastId" : "...",
+    "type" : "...",
+    "rtmpUrl" : "..."
+  }, {
+    "streamId" : "...",
+    "name" : "...",
+    "broadcastId" : "...",
+    "type" : "...",
+    "rtmpUrl" : "..."
+  } ],
+  "plannedStartDate" : 12345,
+  "publish" : true,
+  "status" : "...",
+  "listenerHookURL" : "..."
+},
+      "description" : ""
+    }
+    ,
+    "json_Endpoint" : {
+      "type" : "object",
+      "title" : "Endpoint",
+          "properties" : {
+            "streamId" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "string"
+            },
+            "name" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "string"
+            },
+            "broadcastId" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "string"
+            },
+            "type" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "string"
+            },
+            "rtmpUrl" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "string"
+            }
+          },
+      "example" : {
+  "streamId" : "...",
+  "name" : "...",
+  "broadcastId" : "...",
+  "type" : "...",
+  "rtmpUrl" : "..."
+},
+      "description" : ""
+    }
+    ,
+    "json_Result" : {
+      "type" : "object",
+      "title" : "Result",
+          "properties" : {
+            "success" : {
+            "readOnly" : false,
+"description" : "Gives information about the operation.\nIf it is true, operation is successfull\nif it is false, operation is failed",
+"type" : "boolean"
+            },
+            "message" : {
+            "readOnly" : false,
+"description" : "Message may be filled when error happens so that developer may\nunderstand what the problem is",
+"type" : "string"
+            }
+          },
+      "example" : {
+  "success" : true,
+  "message" : "..."
+},
+      "description" : ""
+    }
+    ,
+    "json_SocialEndpointChannel" : {
+      "type" : "object",
+      "title" : "SocialEndpointChannel",
+          "properties" : {
+            "id" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "string"
+            },
+            "name" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "string"
+            },
+            "type" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "string"
+            }
+          },
+      "example" : {
+  "id" : "...",
+  "name" : "...",
+  "type" : "..."
+},
+      "description" : ""
+    }
+    ,
+    "json_Broadcast" : {
+      "type" : "object",
+      "title" : "Broadcast",
+          "properties" : {
+            "description" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "string"
+            },
+            "name" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "string"
+            },
+            "publish" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "boolean"
+            },
+            "endPointList" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "array",
+"items" : {
+  "$ref" : "#/definitions/json_Endpoint"
+}
+            },
+            "status" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "string"
+            },
+            "category" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "string"
+            },
+            "publicStream" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "boolean"
+            },
+            "expireDurationMS" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "number"
+            },
+            "duration" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "number"
+            },
+            "is360" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "boolean"
+            },
+            "listenerHookURL" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "string"
+            },
+            "date" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "number"
+            },
+            "plannedStartDate" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "number"
+            },
+            "streamId" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "string"
+            }
+          },
+      "example" : {
+  "description" : "...",
+  "name" : "...",
+  "publish" : true,
+  "endPointList" : [ {
+    "rtmpUrl" : "...",
+    "name" : "...",
+    "streamId" : "...",
+    "broadcastId" : "...",
+    "type" : "..."
+  }, {
+    "rtmpUrl" : "...",
+    "name" : "...",
+    "streamId" : "...",
+    "broadcastId" : "...",
+    "type" : "..."
+  } ],
+  "status" : "...",
+  "category" : "...",
+  "publicStream" : true,
+  "expireDurationMS" : 12345,
+  "duration" : 12345,
+  "is360" : true,
+  "listenerHookURL" : "...",
+  "date" : 12345,
+  "plannedStartDate" : 12345,
+  "streamId" : "..."
+},
+      "description" : ""
+    }
+    ,
+    "json_Endpoint" : {
+      "type" : "object",
+      "title" : "Endpoint",
+          "properties" : {
+            "rtmpUrl" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "string"
+            },
+            "name" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "string"
+            },
+            "streamId" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "string"
+            },
+            "broadcastId" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "string"
+            },
+            "type" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "string"
+            }
+          },
+      "example" : {
+  "rtmpUrl" : "...",
+  "name" : "...",
+  "streamId" : "...",
+  "broadcastId" : "...",
+  "type" : "..."
+},
+      "description" : ""
+    }
+    ,
+    "json_Result" : {
+      "type" : "object",
+      "title" : "Result",
+          "properties" : {
+            "success" : {
+            "readOnly" : false,
+"description" : "Gives information about the operation.\nIf it is true, operation is successfull\nif it is false, operation is failed",
+"type" : "boolean"
+            },
+            "message" : {
+            "readOnly" : false,
+"description" : "Message may be filled when error happens so that developer may\nunderstand what the problem is",
+"type" : "string"
+            }
+          },
+      "example" : {
+  "success" : true,
+  "message" : "..."
+},
+      "description" : ""
+    }
+    ,
+    "json_SocialEndpointChannel" : {
+      "type" : "object",
+      "title" : "SocialEndpointChannel",
+          "properties" : {
+            "type" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "string"
+            },
+            "name" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "string"
+            },
+            "id" : {
+            "readOnly" : false,
+"description" : "",
+"type" : "string"
+            }
+          },
+      "example" : {
+  "type" : "...",
+  "name" : "...",
+  "id" : "..."
+},
+      "description" : ""
+    }
+  },
+  "paths": {
+    "\/broadcast/addEndpoint" : {
+      "post" : {
+        "tags" : [ "BroadcastRestService" ],
+        "summary" : "Add a third pary rtmp end point to the stream.",
+        "description" : "Add a third pary rtmp end point to the stream. When broadcast is started, it will send\nrtmp stream to this rtmp url as well.",
+        "operationId" : "addEndpoint",
+        "produces" : [ "application/json" ],
+        "parameters" : [
+          {
+            "name" : "id",
+            "in" : "formData",
+            "type" : "string",
+            "description" : "This is the id of broadcast"
+          },
+          {
+            "name" : "rtmpUrl",
+            "in" : "formData",
+            "type" : "string",
+            "description" : "rtmp url of the endpoint that stream will be republished"
+          }
+        ],
+        "responses" : {
+          "201" : {
+            "schema" : {
+"$ref" : "#/definitions/json_Result"
+            },
+            "example" : {
+  "success" : true,
+  "message" : "..."
+},
+            "description" : "io.antmedia.rest.BroadcastRestService.Result"
+          }
+        }
+      }
+    }
+    ,
+    "\/broadcast/addSocialEndpoint" : {
+      "post" : {
+        "tags" : [ "BroadcastRestService" ],
+        "summary" : "Add social endpoint to a stream.",
+        "description" : "Add social endpoint to a stream",
+        "operationId" : "addSocialEndpoint",
+        "produces" : [ "application/json" ],
+        "parameters" : [
+          {
+            "name" : "id",
+            "in" : "formData",
+            "type" : "string",
+            "description" : "of the broadcast"
+          },
+          {
+            "name" : "serviceName",
+            "in" : "formData",
+            "type" : "string",
+            "description" : "name of the service like facebook, youtube, periscope\nin order to have successfull operation. Social network must be authorized in advance"
+          }
+        ],
+        "responses" : {
+          "201" : {
+            "schema" : {
+"$ref" : "#/definitions/json_Result"
+            },
+            "example" : {
+  "success" : true,
+  "message" : "..."
+},
+            "description" : "io.antmedia.rest.BroadcastRestService.Result"
+          }
+        }
+      }
+    }
+    ,
+    "\/broadcast/checkDeviceAuthStatus/{serviceName}" : {
+      "post" : {
+        "tags" : [ "BroadcastRestService" ],
+        "summary" : "Check if device is authenticated in the social network.",
+        "description" : "Check if device is authenticated in the social network.\nIn authorization phase, this function may be polled periodically until it returns success.\nServer checks social network service for about 1 minute so that if user does not enter DeviceAuthParameters in a 1 minute,\nthis function will never return true",
+        "operationId" : "checkDeviceAuthStatus",
+        "produces" : [ "application/json" ],
+        "parameters" : [
+          {
+            "name" : "serviceName",
+            "in" : "path",
+            "required" : true,
+            "type" : "string",
+            "description" : "Name of the service facebook,youtube,periscope"
+          }
+        ],
+        "responses" : {
+          "201" : {
+            "schema" : {
+"$ref" : "#/definitions/json_Result"
+            },
+            "example" : {
+  "success" : true,
+  "message" : "..."
+},
+            "description" : "Result object with success field.\nIf success field is true, it is authenticated\nif false, not authenticated"
+          }
+        }
+      }
+    }
+    ,
+    "\/broadcast/create" : {
+      "post" : {
+        "tags" : [ "BroadcastRestService" ],
+        "summary" : "Creates a broadcast and returns the full broadcast object with rtmp address\nand other information.",
+        "description" : "Creates a broadcast and returns the full broadcast object with rtmp address\nand other information.",
+        "operationId" : "createBroadcast",
+        "consumes" : [ "application/json" ],
+        "produces" : [ "application/json" ],
+        "parameters" : [
+          {
+            "name" : "body",
+            "in" : "body",
+            "schema" : {
+"$ref" : "#/definitions/json_Broadcast"
+            },
+            "description" : "Broadcast object only related information should be set, it may be null as well."
+          }
+        ],
+        "responses" : {
+          "201" : {
+            "schema" : {
+"$ref" : "#/definitions/json_Broadcast"
+            },
+            "example" : {
+  "description" : "...",
+  "name" : "...",
+  "publish" : true,
+  "endPointList" : [ {
+    "rtmpUrl" : "...",
+    "name" : "...",
+    "streamId" : "...",
+    "broadcastId" : "...",
+    "type" : "..."
+  }, {
+    "rtmpUrl" : "...",
+    "name" : "...",
+    "streamId" : "...",
+    "broadcastId" : "...",
+    "type" : "..."
+  } ],
+  "status" : "...",
+  "category" : "...",
+  "publicStream" : true,
+  "expireDurationMS" : 12345,
+  "duration" : 12345,
+  "is360" : true,
+  "listenerHookURL" : "...",
+  "date" : 12345,
+  "plannedStartDate" : 12345,
+  "streamId" : "..."
+},
+            "description" : "io.antmedia.datastore.db.types.Broadcast"
+          }
+        }
+      }
+    }
+    ,
+    "\/broadcast/createWithSocial" : {
+      "post" : {
+        "tags" : [ "BroadcastRestService" ],
+        "summary" : "Create broadcast and bind social networks at the same time\nServer should be authorized in advance to make this service return success.",
+        "description" : "Create broadcast and bind social networks at the same time\nServer should be authorized in advance to make this service return success",
+        "operationId" : "createWithSocial",
+        "consumes" : [ "application/json" ],
+        "produces" : [ "application/json" ],
+        "parameters" : [
+          {
+            "name" : "socialNetworks",
+            "in" : "query",
+            "type" : "string",
+            "description" : "Comma separated social network names\nSocial network names must in comma separated and names must match with the defined names\nlike facebook,periscope,youtube etc."
+          },
+          {
+            "name" : "body",
+            "in" : "body",
+            "schema" : {
+"$ref" : "#/definitions/json_Broadcast"
+            },
+            "description" : "Broadcast\nio.antmedia.datastore.db.types.Broadcast"
+          }
+        ],
+        "responses" : {
+          "201" : {
+            "schema" : {
+"$ref" : "#/definitions/json_Broadcast"
+            },
+            "example" : {
+  "description" : "...",
+  "name" : "...",
+  "publish" : true,
+  "endPointList" : [ {
+    "rtmpUrl" : "...",
+    "name" : "...",
+    "streamId" : "...",
+    "broadcastId" : "...",
+    "type" : "..."
+  }, {
+    "rtmpUrl" : "...",
+    "name" : "...",
+    "streamId" : "...",
+    "broadcastId" : "...",
+    "type" : "..."
+  } ],
+  "status" : "...",
+  "category" : "...",
+  "publicStream" : true,
+  "expireDurationMS" : 12345,
+  "duration" : 12345,
+  "is360" : true,
+  "listenerHookURL" : "...",
+  "date" : 12345,
+  "plannedStartDate" : 12345,
+  "streamId" : "..."
+},
+            "description" : "io.antmedia.rest.BroadcastRestService.Result"
+          }
+        }
+      }
+    }
+    ,
+    "\/broadcast/delete/{id}" : {
+      "post" : {
+        "tags" : [ "BroadcastRestService" ],
+        "summary" : "Delete broadcast from data store\n\nTODO:\nStop publishing if it is being published\nDelete all stream if it is vod\nDelete all stream if vod is stored some under storage.",
+        "description" : "Delete broadcast from data store\n\nTODO:\nStop publishing if it is being published\nDelete all stream if it is vod\nDelete all stream if vod is stored some under storage",
+        "operationId" : "deleteBroadcast",
+        "produces" : [ "application/json" ],
+        "parameters" : [
+          {
+            "name" : "id",
+            "in" : "path",
+            "required" : true,
+            "type" : "string",
+            "description" : "Id of the braodcast"
+          }
+        ],
+        "responses" : {
+          "201" : {
+            "schema" : {
+"$ref" : "#/definitions/json_Result"
+            },
+            "example" : {
+  "success" : true,
+  "message" : "..."
+},
+            "description" : "Result object with success field true or false"
+          }
+        }
+      }
+    }
+    ,
+    "\/broadcast/deleteVoDFile/{id}" : {
+      "post" : {
+        "tags" : [ "BroadcastRestService" ],
+        "summary" : "Deletes vod file in the file system.",
+        "description" : "Deletes vod file in the file system",
+        "operationId" : "deleteVoDFile",
+        "produces" : [ "application/json" ],
+        "parameters" : [
+          {
+            "name" : "id",
+            "in" : "path",
+            "required" : true,
+            "type" : "string",
+            "description" : "name of the file"
+          }
+        ],
+        "responses" : {
+          "201" : {
+            "schema" : {
+"$ref" : "#/definitions/json_Result"
+            },
+            "example" : {
+  "success" : true,
+  "message" : "..."
+},
+            "description" : "io.antmedia.rest.BroadcastRestService.Result"
+          }
+        }
+      }
+    }
+    ,
+    "\/broadcast/get" : {
+      "get" : {
+        "tags" : [ "BroadcastRestService" ],
+        "summary" : "Get broadcast object.",
+        "description" : "Get broadcast object",
+        "operationId" : "getBroadcast",
+        "produces" : [ "application/json" ],
+        "parameters" : [
+          {
+            "name" : "id",
+            "in" : "query",
+            "type" : "string",
+            "description" : "id of the broadcast"
+          }
+        ],
+        "responses" : {
+          "200" : {
+            "schema" : {
+"$ref" : "#/definitions/json_Broadcast"
+            },
+            "example" : {
+  "description" : "...",
+  "name" : "...",
+  "publish" : true,
+  "endPointList" : [ {
+    "rtmpUrl" : "...",
+    "name" : "...",
+    "streamId" : "...",
+    "broadcastId" : "...",
+    "type" : "..."
+  }, {
+    "rtmpUrl" : "...",
+    "name" : "...",
+    "streamId" : "...",
+    "broadcastId" : "...",
+    "type" : "..."
+  } ],
+  "status" : "...",
+  "category" : "...",
+  "publicStream" : true,
+  "expireDurationMS" : 12345,
+  "duration" : 12345,
+  "is360" : true,
+  "listenerHookURL" : "...",
+  "date" : 12345,
+  "plannedStartDate" : 12345,
+  "streamId" : "..."
+},
+            "description" : "broadcast object\nnothing if broadcast is not found"
+          }
+        }
+      }
+    }
+    ,
+    "\/broadcast/getDeviceAuthParameters/{serviceName}" : {
+      "post" : {
+        "tags" : [ "BroadcastRestService" ],
+        "summary" : "Get device parameters for social network authrozation.",
+        "description" : "Get device parameters for social network authrozation.",
+        "operationId" : "getDeviceAuthParameters",
+        "produces" : [ "application/json" ],
+        "parameters" : [
+          {
+            "name" : "serviceName",
+            "in" : "path",
+            "required" : true,
+            "type" : "string",
+            "description" : "Name of the service, like facebook,youtube,periscope"
+          }
+        ],
+        "responses" : {
+          "201" : {
+            "schema" : {
+"description" : "If operation is successfull, DeviceAuthParameters is returned with related information.\n\nUser should go to io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters#verification_url\nand enter io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters#user_code in a minute\n\nIf not successfull, it returns with Result object with message",
+"type" : "file"
+            },
+            "description" : "If operation is successfull, DeviceAuthParameters is returned with related information.\n\nUser should go to io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters#verification_url\nand enter io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters#user_code in a minute\n\nIf not successfull, it returns with Result object with message"
+          }
+        }
+      }
+    }
+    ,
+    "\/broadcast/getList/{offset}/{size}" : {
+      "get" : {
+        "tags" : [ "BroadcastRestService" ],
+        "summary" : "Gets the broadcast list from database.",
+        "description" : "Gets the broadcast list from database",
+        "operationId" : "getBroadcastList",
+        "produces" : [ "application/json" ],
+        "parameters" : [
+          {
+            "name" : "offset",
+            "in" : "path",
+            "required" : true,
+            "type" : "integer",
+            "format" : "int32",
+            "description" : "This is the offset of the list, it is useful for pagination,"
+          },
+          {
+            "name" : "size",
+            "in" : "path",
+            "required" : true,
+            "type" : "integer",
+            "format" : "int32",
+            "description" : "Number of items that will be fetched. If there is not enough item in the datastore,\nreturned list size may less then this value"
+          }
+        ],
+        "responses" : {
+          "200" : {
+            "schema" : {
+"description" : "JSON broadcast list",
+"type" : "array",
+"items" : {
+  "$ref" : "#/definitions/json_Broadcast"
+}
+            },
+            "example" : {
+  "description" : "...",
+  "name" : "...",
+  "publish" : true,
+  "endPointList" : [ {
+    "rtmpUrl" : "...",
+    "name" : "...",
+    "streamId" : "...",
+    "broadcastId" : "...",
+    "type" : "..."
+  }, {
+    "rtmpUrl" : "...",
+    "name" : "...",
+    "streamId" : "...",
+    "broadcastId" : "...",
+    "type" : "..."
+  } ],
+  "status" : "...",
+  "category" : "...",
+  "publicStream" : true,
+  "expireDurationMS" : 12345,
+  "duration" : 12345,
+  "is360" : true,
+  "listenerHookURL" : "...",
+  "date" : 12345,
+  "plannedStartDate" : 12345,
+  "streamId" : "..."
+},
+            "description" : "JSON broadcast list"
+          }
+        }
+      }
+    }
+    ,
+    "\/broadcast/getSocialNetworkChannel/{serviceName}" : {
+      "get" : {
+        "tags" : [ "BroadcastRestService" ],
+        "summary" : "Some social networks have different channels especially for facebook,\nLive stream can be published on Facebook Page or Personal account, this service\nreturns the related information about that.",
+        "description" : "Some social networks have different channels especially for facebook,\nLive stream can be published on Facebook Page or Personal account, this service\nreturns the related information about that.",
+        "operationId" : "getSocialNetworkChannel",
+        "produces" : [ "application/json" ],
+        "parameters" : [
+          {
+            "name" : "serviceName",
+            "in" : "path",
+            "required" : true,
+            "type" : "string",
+            "description" : "Name of the social network (facebook,youtube,periscope)"
+          }
+        ],
+        "responses" : {
+          "200" : {
+            "schema" : {
+"$ref" : "#/definitions/json_SocialEndpointChannel"
+            },
+            "example" : {
+  "type" : "...",
+  "name" : "...",
+  "id" : "..."
+},
+            "description" : "io.antmedia.datastore.db.types.SocialEndpointChannel"
+          }
+        }
+      }
+    }
+    ,
+    "\/broadcast/getSocialNetworkChannelList/{serviceName}/{type}" : {
+      "get" : {
+        "tags" : [ "BroadcastRestService" ],
+        "summary" : "Returns available social network channels for the specific service.",
+        "description" : "Returns available social network channels for the specific service",
+        "operationId" : "getSocialNetworkChannelList",
+        "produces" : [ "application/json" ],
+        "parameters" : [
+          {
+            "name" : "serviceName",
+            "in" : "path",
+            "required" : true,
+            "type" : "string",
+            "description" : "Name of the social network"
+          },
+          {
+            "name" : "type",
+            "in" : "path",
+            "required" : true,
+            "type" : "string",
+            "description" : "This is very service specific, it may be page for Facebook"
+          }
+        ],
+        "responses" : {
+          "200" : {
+            "schema" : {
+"description" : "List of io.antmedia.datastore.db.types.SocialEndpointChannel",
+"type" : "array",
+"items" : {
+  "$ref" : "#/definitions/json_SocialEndpointChannel"
+}
+            },
+            "example" : {
+  "type" : "...",
+  "name" : "...",
+  "id" : "..."
+},
+            "description" : "List of io.antmedia.datastore.db.types.SocialEndpointChannel"
+          }
+        }
+      }
+    }
+    ,
+    "\/broadcast/revokeSocialNetwork/{serviceName}" : {
+      "post" : {
+        "tags" : [ "BroadcastRestService" ],
+        "summary" : "Revoke authorization from a social network account that is authorized before.",
+        "description" : "Revoke authorization from a social network account that is authorized before",
+        "operationId" : "revokeSocialNetwork",
+        "produces" : [ "application/json" ],
+        "parameters" : [
+          {
+            "name" : "serviceName",
+            "in" : "path",
+            "required" : true,
+            "type" : "string",
+            "description" : "Name of the service"
+          }
+        ],
+        "responses" : {
+          "201" : {
+            "schema" : {
+"$ref" : "#/definitions/json_Result"
+            },
+            "example" : {
+  "success" : true,
+  "message" : "..."
+},
+            "description" : "io.antmedia.rest.BroadcastRestService.Result"
+          }
+        }
+      }
+    }
+    ,
+    "\/broadcast/setSocialNetworkChannel/{serviceName}/{type}/{id}" : {
+      "post" : {
+        "tags" : [ "BroadcastRestService" ],
+        "summary" : "Sets channel that live stream will be published on specific social network channel.",
+        "description" : "Sets channel that live stream will be published on specific social network channel",
+        "operationId" : "setSocialNetworkChannelList",
+        "produces" : [ "application/json" ],
+        "parameters" : [
+          {
+            "name" : "id",
+            "in" : "path",
+            "required" : true,
+            "type" : "string",
+            "description" : "id of the channel"
+          },
+          {
+            "name" : "serviceName",
+            "in" : "path",
+            "required" : true,
+            "type" : "string",
+            "description" : "Name of the social network service"
+          },
+          {
+            "name" : "type",
+            "in" : "path",
+            "required" : true,
+            "type" : "string",
+            "description" : "Type of the channel"
+          }
+        ],
+        "responses" : {
+          "201" : {
+            "schema" : {
+"$ref" : "#/definitions/json_Result"
+            },
+            "example" : {
+  "success" : true,
+  "message" : "..."
+},
+            "description" : "io.antmedia.rest.BroadcastRestService.Result"
+          }
+        }
+      }
+    }
+    ,
+    "\/broadcast/stop/{streamId}" : {
+      "post" : {
+        "tags" : [ "BroadcastRestService" ],
+        "description" : "",
+        "operationId" : "stopBroadcast",
+        "produces" : [ "application/json" ],
+        "parameters" : [
+          {
+            "name" : "streamId",
+            "in" : "path",
+            "required" : true,
+            "type" : "string",
+            "description" : ""
+          }
+        ],
+        "responses" : {
+          "201" : {
+            "schema" : {
+"$ref" : "#/definitions/json_Result"
+            },
+            "example" : {
+  "success" : true,
+  "message" : "..."
+},
+            "description" : ""
+          }
+        }
+      }
+    }
+    ,
+    "\/broadcast/updateInfo" : {
+      "post" : {
+        "tags" : [ "BroadcastRestService" ],
+        "summary" : "Updates broadcast name and description.",
+        "description" : "Updates broadcast name and description",
+        "operationId" : "updateInfo",
+        "produces" : [ "application/json" ],
+        "parameters" : [
+          {
+            "name" : "description",
+            "in" : "formData",
+            "type" : "string",
+            "description" : "New description of the broadcast"
+          },
+          {
+            "name" : "id",
+            "in" : "formData",
+            "type" : "string",
+            "description" : "id of the broadcast that is given when creating broadcast"
+          },
+          {
+            "name" : "name",
+            "in" : "formData",
+            "type" : "string",
+            "description" : "New name of the broadcast"
+          }
+        ],
+        "responses" : {
+          "201" : {
+            "schema" : {
+"$ref" : "#/definitions/json_Result"
+            },
+            "example" : {
+  "success" : true,
+  "message" : "..."
+},
+            "description" : "io.antmedia.rest.BroadcastRestService.Result"
+          }
+        }
+      }
+    }
+    ,
+    "\/broadcast/updatePublishStatus" : {
+      "post" : {
+        "tags" : [ "BroadcastRestService" ],
+        "summary" : "Updates broadcast publishing field.",
+        "description" : "Updates broadcast publishing field",
+        "operationId" : "updatePublishInfo",
+        "produces" : [ "application/json" ],
+        "parameters" : [
+          {
+            "name" : "id",
+            "in" : "formData",
+            "type" : "string",
+            "description" : "id of the brodcast"
+          },
+          {
+            "name" : "publish",
+            "in" : "formData",
+            "type" : "boolean",
+            "description" : "publish field true/false"
+          }
+        ],
+        "responses" : {
+          "201" : {
+            "schema" : {
+"$ref" : "#/definitions/json_Result"
+            },
+            "example" : {
+  "success" : true,
+  "message" : "..."
+},
+            "description" : "io.antmedia.rest.BroadcastRestService.Result"
+          }
+        }
+      }
+    }
+  }
+}

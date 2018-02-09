@@ -24,6 +24,7 @@ import org.red5.server.api.scheduling.IScheduledJob;
 import org.red5.server.api.scheduling.ISchedulingService;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IBroadcastStream;
+import org.red5.server.api.stream.IStreamPublishSecurity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,6 +33,7 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.Vod;
 import io.antmedia.muxer.IMuxerListener;
+import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
 
@@ -49,6 +51,8 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	public static final String STREAM_SOURCE = "streamSource";
 
 	private List<VideoServiceEndpoint> videoServiceEndpoints;
+	private List<IStreamPublishSecurity> streamPublishSecurityList;
+
 	private IDataStore dataStore;
 
 	public IDataStore getDataStore() {
@@ -59,12 +63,18 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		this.dataStore = dataStore;
 	}
 
+	private AppSettings appSettings;
+
 	@Override
 	public boolean appStart(IScope app) {
 
 		getDataStore().resetBroadcastStatus();
-
-		return true;
+		if (getStreamPublishSecurityList() != null) {
+			for (IStreamPublishSecurity streamPublishSecurity : getStreamPublishSecurityList()) {
+				registerStreamPublishSecurity(streamPublishSecurity);
+			}
+		}
+		return super.appStart(app);
 	}
 
 	@Override
@@ -106,8 +116,13 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 					}
 
 					// recreate endpoints for social media
+
 					if (endPointList != null) {
 						recreateEndpointsForSocialMedia(broadcast, endPointList);
+					}
+
+					if (broadcast.isZombi()) {
+						dataStore.delete(streamName);
 					}
 
 				}
@@ -141,45 +156,83 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	}
 
 	@Override
-	public void streamPublishStart(IBroadcastStream stream) {
-		try {
-			String streamName = stream.getPublishedName();
-			if (dataStore != null) {
-				dataStore.updateStatus(streamName, BROADCAST_STATUS_BROADCASTING);
+	public void streamPublishStart(final IBroadcastStream stream) {
 
-				Broadcast broadcast = dataStore.get(streamName);
-				if (broadcast != null) {
-					final String listenerHookURL = broadcast.getListenerHookURL();
-					final String streamId = broadcast.getStreamId();
-					if (listenerHookURL != null && listenerHookURL.length() > 0) {
-						final String name = broadcast.getName();
-						final String category = broadcast.getCategory();
-						addScheduledOnceJob(100, new IScheduledJob() {
+		addScheduledOnceJob(0, new IScheduledJob() {
 
-							@Override
-							public void execute(ISchedulingService service) throws CloneNotSupportedException {
-								notifyHook(listenerHookURL, streamId, HOOK_ACTION_START_LIVE_STREAM, name, category,
-										null);
-							}
-						});
-					}
+			@Override
+			public void execute(ISchedulingService service) throws CloneNotSupportedException {
+				String streamName = stream.getPublishedName();
+				try {
 
-					List<Endpoint> endPointList = broadcast.getEndPointList();
-					if (endPointList != null) {
-						for (Endpoint endpoint : endPointList) {
-							VideoServiceEndpoint videoServiceEndPoint = getVideoServiceEndPoint(stream, endpoint.type);
-							if (videoServiceEndPoint != null) {
-								videoServiceEndPoint.publishBroadcast(endpoint);
+					if (dataStore != null) {
+
+						Broadcast broadcast = dataStore.get(streamName);
+
+						if (broadcast == null) {
+							broadcast = saveZombiBroadcast(streamName);
+
+						} else {
+							dataStore.updateStatus(streamName, BROADCAST_STATUS_BROADCASTING);
+						}
+
+						final String listenerHookURL = broadcast.getListenerHookURL();
+						final String streamId = broadcast.getStreamId();
+						if (listenerHookURL != null && listenerHookURL.length() > 0) {
+							final String name = broadcast.getName();
+							final String category = broadcast.getCategory();
+							addScheduledOnceJob(100, new IScheduledJob() {
+
+								@Override
+								public void execute(ISchedulingService service) throws CloneNotSupportedException {
+									notifyHook(listenerHookURL, streamId, HOOK_ACTION_START_LIVE_STREAM, name, category,
+											null);
+								}
+							});
+						}
+
+						List<Endpoint> endPointList = broadcast.getEndPointList();
+						if (endPointList != null) {
+							for (Endpoint endpoint : endPointList) {
+								VideoServiceEndpoint videoServiceEndPoint = getVideoServiceEndPoint(stream,
+										endpoint.type);
+								if (videoServiceEndPoint != null) {
+									try {
+										videoServiceEndPoint.publishBroadcast(endpoint);
+										log.info("publish broadcast called for " + videoServiceEndPoint.getName());
+									} catch (Exception e) {
+										e.printStackTrace();
+									}
+								}
+
 							}
 						}
 					}
+				} catch (Exception e) {
+					e.printStackTrace();
 				}
 			}
+
+		});
+
+		super.streamPublishStart(stream);
+	}
+
+	private Broadcast saveZombiBroadcast(String streamName) {
+		Broadcast newBroadcast = new Broadcast();
+		newBroadcast.setDate(System.currentTimeMillis());
+		newBroadcast.setZombi(true);
+		try {
+			newBroadcast.setStreamId(streamName);
+
+			return BroadcastRestService.saveBroadcast(newBroadcast,
+					AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, getScope().getName(), dataStore,
+					appSettings);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 
-		super.streamPublishStart(stream);
+		return null;
 	}
 
 	// TODO: make video serviceEndpoinst HashMap
@@ -230,6 +283,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 					final String listenerHookURL = broadcast.getListenerHookURL();
 
 					if (listenerHookURL != null && listenerHookURL.length() > 0) {
+
 						addScheduledOnceJob(100, new IScheduledJob() {
 
 							@Override
@@ -370,6 +424,22 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 		return response;
 
+	}
+
+	public List<IStreamPublishSecurity> getStreamPublishSecurityList() {
+		return streamPublishSecurityList;
+	}
+
+	public void setStreamPublishSecurityList(List<IStreamPublishSecurity> streamPublishSecurityList) {
+		this.streamPublishSecurityList = streamPublishSecurityList;
+	}
+
+	public AppSettings getAppSettings() {
+		return appSettings;
+	}
+
+	public void setAppSettings(AppSettings appSettings) {
+		this.appSettings = appSettings;
 	}
 
 }

@@ -215,8 +215,8 @@ public class PeerConnectionFactory {
 		return nativeAddVideoPacket(nativeFactory, packet, packetLength, width, height, isKeyFrame, timestamp); 
 	}
 
-	public void addAudioPacket(byte[] packet, int packetLength, long timestamp) {
-		nativeAddAudioPacket(nativeFactory, packet, packetLength, timestamp);
+	public void addAudioPacket(byte[] packet, int packetLength, long timestamp, int totalSampleCount) {
+		nativeAddAudioPacket(nativeFactory, packet, packetLength, timestamp, totalSampleCount);
 	}
 	
 	public long getTargetedBitrate() {
@@ -268,5 +268,5 @@ public class PeerConnectionFactory {
 
 	private native int nativeAddVideoPacket(long factory_pointer, byte[] packet, int packetLength, int width, int height, boolean isKeyFrame, long timestamp);
 
-	private native void nativeAddAudioPacket(long factory_pointer, byte[] packet, int packetLength, long timestamp);
+	private native void nativeAddAudioPacket(long factory_pointer, byte[] packet, int packetLength, long timestamp, int totalSampleCount);
 }

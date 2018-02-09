@@ -1,0 +1,1674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+
+  <title>Ant Media Server: BroadcastRestService</title>
+
+  <!-- Mobile viewport optimized: j.mp/bplateviewport -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Bootstrap core CSS -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
+
+  <!--custom css for these pages-->
+  <link rel="stylesheet" href="css/enunciate.css">
+
+  <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+  <!--[if lt IE 9]>
+  <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+  <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+  <![endif]-->
+</head>
+
+<body data-spy="scroll" data-target="#apinav">
+
+  <nav class="navbar navbar-inverse navbar-fixed-top">
+    <div class="container-fluid">
+      <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar">
+          <span class="sr-only">Toggle navigation</span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="index.html">Ant Media Server: BroadcastRestService</a>
+      </div>
+      <div id="navbar" class="navbar-collapse collapse">
+        <ul class="nav navbar-nav navbar-right">
+          <li><a href="resources.html">Resources</a></li>
+          <li><a href="data.html">Data Types</a></li>
+          <li><a href="downloads.html">Files and Libraries</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-sm-3 col-md-2 sidebar" id="apinav">
+        <ul class="nav nav-sidebar">
+          <li><a href="#resource_BroadcastRestService_addEndpoint_POST"><abbr title="POST /broadcast/addEndpoint"><span class="sideoverflow">POST /broadcast/addEndpoint</span></abbr></a></li>
+          <li><a href="#resource_BroadcastRestService_addSocialEndpoint_POST"><abbr title="POST /broadcast/addSocialEndpoint"><span class="sideoverflow">POST /broadcast/addSocialEndpoint</span></abbr></a></li>
+          <li><a href="#resource_BroadcastRestService_createBroadcast_POST"><abbr title="POST /broadcast/create"><span class="sideoverflow">POST /broadcast/create</span></abbr></a></li>
+          <li><a href="#resource_BroadcastRestService_createWithSocial_POST"><abbr title="POST /broadcast/createWithSocial"><span class="sideoverflow">POST /broadcast/createWithSocial</span></abbr></a></li>
+          <li><a href="#resource_BroadcastRestService_getBroadcast_GET"><abbr title="GET /broadcast/get"><span class="sideoverflow">GET /broadcast/get</span></abbr></a></li>
+          <li><a href="#resource_BroadcastRestService_updateInfo_POST"><abbr title="POST /broadcast/updateInfo"><span class="sideoverflow">POST /broadcast/updateInfo</span></abbr></a></li>
+          <li><a href="#resource_BroadcastRestService_updatePublishInfo_POST"><abbr title="POST /broadcast/updatePublishStatus"><span class="sideoverflow">POST /broadcast/updatePublishStatus</span></abbr></a></li>
+          <li><a href="#resource_BroadcastRestService_checkDeviceAuthStatus_POST"><abbr title="POST /broadcast/checkDeviceAuthStatus/{serviceName}"><span class="sideoverflow">POST /broadcast/checkDeviceAuthStatus/{serviceName}</span></abbr></a></li>
+          <li><a href="#resource_BroadcastRestService_deleteBroadcast_POST"><abbr title="POST /broadcast/delete/{id}"><span class="sideoverflow">POST /broadcast/delete/{id}</span></abbr></a></li>
+          <li><a href="#resource_BroadcastRestService_deleteVoDFile_POST"><abbr title="POST /broadcast/deleteVoDFile/{id}"><span class="sideoverflow">POST /broadcast/deleteVoDFile/{id}</span></abbr></a></li>
+          <li><a href="#resource_BroadcastRestService_getDeviceAuthParameters_POST"><abbr title="POST /broadcast/getDeviceAuthParameters/{serviceName}"><span class="sideoverflow">POST /broadcast/getDeviceAuthParameters/{serviceName}</span></abbr></a></li>
+          <li><a href="#resource_BroadcastRestService_getSocialNetworkChannel_GET"><abbr title="GET /broadcast/getSocialNetworkChannel/{serviceName}"><span class="sideoverflow">GET /broadcast/getSocialNetworkChannel/{serviceName}</span></abbr></a></li>
+          <li><a href="#resource_BroadcastRestService_revokeSocialNetwork_POST"><abbr title="POST /broadcast/revokeSocialNetwork/{serviceName}"><span class="sideoverflow">POST /broadcast/revokeSocialNetwork/{serviceName}</span></abbr></a></li>
+          <li><a href="#resource_BroadcastRestService_stopBroadcast_POST"><abbr title="POST /broadcast/stop/{streamId}"><span class="sideoverflow">POST /broadcast/stop/{streamId}</span></abbr></a></li>
+          <li><a href="#resource_BroadcastRestService_getBroadcastList_GET"><abbr title="GET /broadcast/getList/{offset}/{size}"><span class="sideoverflow">GET /broadcast/getList/{offset}/{size}</span></abbr></a></li>
+          <li><a href="#resource_BroadcastRestService_getSocialNetworkChannelList_GET"><abbr title="GET /broadcast/getSocialNetworkChannelList/{serviceName}/{type}"><span class="sideoverflow">GET /broadcast/getSocialNetworkChannelList/{serviceName}/{type}</span></abbr></a></li>
+          <li><a href="#resource_BroadcastRestService_setSocialNetworkChannelList_POST"><abbr title="POST /broadcast/setSocialNetworkChannel/{serviceName}/{type}/{id}"><span class="sideoverflow">POST /broadcast/setSocialNetworkChannel/{serviceName}/{type}/{id}</span></abbr></a></li>
+          <li class="divider"></li>
+          <li class="text-right"><a href="#top"><small>Back to Top</small></a></li>
+        </ul>
+      </div>
+
+      <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+        <ol class="breadcrumb" id="top">
+          <li class="active dropdown"><a href="index.html">Home</a></li>
+          <li class="active dropdown"><a href="resources.html">Resources</a></li>
+          <li class="dropdown"><a href="resource_BroadcastRestService.html">BroadcastRestService</a></li>
+        </ol>
+
+      <h1 class="page-header">BroadcastRestService <small>Resource</small></h1>
+
+      <p></p>
+
+      <div id="resource_BroadcastRestService_addEndpoint_POST">
+        <h3><span class="label label-default resource-method">POST</span> <span class="resource-path">/broadcast/addEndpoint <a href="../broadcast/addEndpoint" class="glyphicon glyphicon-new-window" target="_blank"></a></span></h3>
+
+        <p>Add a third pary rtmp end point to the stream. When broadcast is started, it will send
+rtmp stream to this rtmp url as well.</p>
+
+        <table class="table resource-parameters">
+          <caption>Request Parameters</caption>
+          <thead>
+          <tr>
+            <th>name</th>
+            <th>type</th>
+            <th>description</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td><span class="parameter-name">id</span></td>
+            <td>form</td>
+            <td><span class="parameter-description">This is the id of broadcast</span></td>
+          </tr>
+          <tr>
+            <td><span class="parameter-name">rtmpUrl</span></td>
+            <td>form</td>
+            <td><span class="parameter-description">rtmp url of the endpoint that stream will be republished</span></td>
+          </tr>
+          </tbody>
+        </table>
+
+        <table class="table resource-response-body">
+          <caption>Response Body</caption>
+          <thead>
+          <tr>
+            <th>media type</th>
+            <th>data type</th>
+            <th>description</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td><abbr data-toggle="tooltip" data-placement="top" title="Use the &quot;Accept: application/json&quot; HTTP header to request that this media type be provided by the server."><span class="response-type">application/json</span></abbr></td>
+            <td><span class="datatype-reference"><a href="json_Result.html">Result</a>
+ (JSON)</span></td>
+            <td rowspan="2" class="multi-row-description"><span class="response-description"><a href="json_Result.html">Result</a></span></td>
+          </tr>
+          <tr>
+            <td><abbr data-toggle="tooltip" data-placement="top" title="Use the &quot;Accept: application/json&quot; HTTP header to request that this media type be provided by the server."><span class="response-type">application/json</span></abbr></td>
+            <td><span class="datatype-reference"><a href="json_Result.html">Result</a>
+ (JSON)</span></td>
+          </tr>
+          </tbody>
+        </table>
+        <h4>Example</h4>
+
+        <div class="container-fluid example panel">
+          <div class="row panel-body">
+            <div class="col-md-6">
+              <h5>Request</h5>
+              <pre>
+POST /broadcast/addEndpoint
+Accept: application/json
+
+              </pre>
+            </div>
+            <div class="col-md-6">
+              <h5>Response</h5>
+              <pre>
+HTTP/1.1 201 Created
+Content-Type: application/json
+
+                <code class="prettyprint language-js">
+{
+  &quot;success&quot; : true,
+  &quot;message&quot; : &quot;...&quot;
+}
+                </code>
+              </pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="resource_BroadcastRestService_addSocialEndpoint_POST">
+        <h3><span class="label label-default resource-method">POST</span> <span class="resource-path">/broadcast/addSocialEndpoint <a href="../broadcast/addSocialEndpoint" class="glyphicon glyphicon-new-window" target="_blank"></a></span></h3>
+
+        <p>Add social endpoint to a stream</p>
+
+        <table class="table resource-parameters">
+          <caption>Request Parameters</caption>
+          <thead>
+          <tr>
+            <th>name</th>
+            <th>type</th>
+            <th>description</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td><span class="parameter-name">id</span></td>
+            <td>form</td>
+            <td><span class="parameter-description">of the broadcast</span></td>
+          </tr>
+          <tr>
+            <td><span class="parameter-name">serviceName</span></td>
+            <td>form</td>
+            <td><span class="parameter-description">name of the service like facebook, youtube, periscope
+in order to have successfull operation. Social network must be authorized in advance</span></td>
+          </tr>
+          </tbody>
+        </table>
+
+        <table class="table resource-response-body">
+          <caption>Response Body</caption>
+          <thead>
+          <tr>
+            <th>media type</th>
+            <th>data type</th>
+            <th>description</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td><abbr data-toggle="tooltip" data-placement="top" title="Use the &quot;Accept: application/json&quot; HTTP header to request that this media type be provided by the server."><span class="response-type">application/json</span></abbr></td>
+            <td><span class="datatype-reference"><a href="json_Result.html">Result</a>
+ (JSON)</span></td>
+            <td rowspan="2" class="multi-row-description"><span class="response-description"><a href="json_Result.html">Result</a></span></td>
+          </tr>
+          <tr>
+            <td><abbr data-toggle="tooltip" data-placement="top" title="Use the &quot;Accept: application/json&quot; HTTP header to request that this media type be provided by the server."><span class="response-type">application/json</span></abbr></td>
+            <td><span class="datatype-reference"><a href="json_Result.html">Result</a>
+ (JSON)</span></td>
+          </tr>
+          </tbody>
+        </table>
+        <h4>Example</h4>
+
+        <div class="container-fluid example panel">
+          <div class="row panel-body">
+            <div class="col-md-6">
+              <h5>Request</h5>
+              <pre>
+POST /broadcast/addSocialEndpoint
+Accept: application/json
+
+              </pre>
+            </div>
+            <div class="col-md-6">
+              <h5>Response</h5>
+              <pre>
+HTTP/1.1 201 Created
+Content-Type: application/json
+
+                <code class="prettyprint language-js">
+{
+  &quot;success&quot; : true,
+  &quot;message&quot; : &quot;...&quot;
+}
+                </code>
+              </pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="resource_BroadcastRestService_createBroadcast_POST">
+        <h3><span class="label label-default resource-method">POST</span> <span class="resource-path">/broadcast/create <a href="../broadcast/create" class="glyphicon glyphicon-new-window" target="_blank"></a></span></h3>
+
+        <p>Creates a broadcast and returns the full broadcast object with rtmp address
+and other information.</p>
+
+        <table class="table resource-request-body">
+          <caption>Request Body</caption>
+          <thead>
+          <tr>
+            <th>media type</th>
+            <th>data type</th>
+            <th>description</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td><abbr data-toggle="tooltip" data-placement="top" title="Use the &quot;Content-Type: application/json&quot; HTTP header to specify this media type to the server."><span class="request-type">application/json</span></abbr></td>
+            <td><span class="datatype-reference"><a href="json_Broadcast.html">Broadcast</a>
+ (JSON)</span></td>
+            <td rowspan="2" class="multi-row-description"><span class="request-description">Broadcast object only related information should be set, it may be null as well.</span></td>
+          </tr>
+          <tr>
+            <td><abbr data-toggle="tooltip" data-placement="top" title="Use the &quot;Content-Type: application/json&quot; HTTP header to specify this media type to the server."><span class="request-type">application/json</span></abbr></td>
+            <td><span class="datatype-reference"><a href="json_Broadcast.html">Broadcast</a>
+ (JSON)</span></td>
+          </tr>
+          </tbody>
+        </table>
+
+        <table class="table resource-response-body">
+          <caption>Response Body</caption>
+          <thead>
+          <tr>
+            <th>media type</th>
+            <th>data type</th>
+            <th>description</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td><abbr data-toggle="tooltip" data-placement="top" title="Use the &quot;Accept: application/json&quot; HTTP header to request that this media type be provided by the server."><span class="response-type">application/json</span></abbr></td>
+            <td><span class="datatype-reference"><a href="json_Broadcast.html">Broadcast</a>
+ (JSON)</span></td>
+            <td rowspan="2" class="multi-row-description"><span class="response-description"><a href="json_Broadcast.html">Broadcast</a></span></td>
+          </tr>
+          <tr>
+            <td><abbr data-toggle="tooltip" data-placement="top" title="Use the &quot;Accept: application/json&quot; HTTP header to request that this media type be provided by the server."><span class="response-type">application/json</span></abbr></td>
+            <td><span class="datatype-reference"><a href="json_Broadcast.html">Broadcast</a>
+ (JSON)</span></td>
+          </tr>
+          </tbody>
+        </table>
+        <h4>Example</h4>
+
+        <div class="container-fluid example panel">
+          <div class="row panel-body">
+            <div class="col-md-6">
+              <h5>Request</h5>
+              <pre>
+POST /broadcast/create
+Content-Type: application/json
+Accept: application/json
+
+                <code class="prettyprint language-js">
+{
+  &quot;publicStream&quot; : true,
+  &quot;duration&quot; : 12345,
+  &quot;date&quot; : 12345,
+  &quot;category&quot; : &quot;...&quot;,
+  &quot;streamId&quot; : &quot;...&quot;,
+  &quot;name&quot; : &quot;...&quot;,
+  &quot;expireDurationMS&quot; : 12345,
+  &quot;description&quot; : &quot;...&quot;,
+  &quot;is360&quot; : true,
+  &quot;endPointList&quot; : [ {
+    &quot;streamId&quot; : &quot;...&quot;,
+    &quot;name&quot; : &quot;...&quot;,
+    &quot;broadcastId&quot; : &quot;...&quot;,
+    &quot;type&quot; : &quot;...&quot;,
+    &quot;rtmpUrl&quot; : &quot;...&quot;
+  }, {
+    &quot;streamId&quot; : &quot;...&quot;,
+    &quot;name&quot; : &quot;...&quot;,
+    &quot;broadcastId&quot; : &quot;...&quot;,
+    &quot;type&quot; : &quot;...&quot;,
+    &quot;rtmpUrl&quot; : &quot;...&quot;
+  } ],
+  &quot;plannedStartDate&quot; : 12345,
+  &quot;publish&quot; : true,
+  &quot;status&quot; : &quot;...&quot;,
+  &quot;listenerHookURL&quot; : &quot;...&quot;
+}
+                </code>
+              </pre>
+            </div>
+            <div class="col-md-6">
+              <h5>Response</h5>
+              <pre>
+HTTP/1.1 201 Created
+Content-Type: application/json
+
+                <code class="prettyprint language-js">
+{
+  &quot;publicStream&quot; : true,
+  &quot;duration&quot; : 12345,
+  &quot;date&quot; : 12345,
+  &quot;category&quot; : &quot;...&quot;,
+  &quot;streamId&quot; : &quot;...&quot;,
+  &quot;name&quot; : &quot;...&quot;,
+  &quot;expireDurationMS&quot; : 12345,
+  &quot;description&quot; : &quot;...&quot;,
+  &quot;is360&quot; : true,
+  &quot;endPointList&quot; : [ {
+    &quot;streamId&quot; : &quot;...&quot;,
+    &quot;name&quot; : &quot;...&quot;,
+    &quot;broadcastId&quot; : &quot;...&quot;,
+    &quot;type&quot; : &quot;...&quot;,
+    &quot;rtmpUrl&quot; : &quot;...&quot;
+  }, {
+    &quot;streamId&quot; : &quot;...&quot;,
+    &quot;name&quot; : &quot;...&quot;,
+    &quot;broadcastId&quot; : &quot;...&quot;,
+    &quot;type&quot; : &quot;...&quot;,
+    &quot;rtmpUrl&quot; : &quot;...&quot;
+  } ],
+  &quot;plannedStartDate&quot; : 12345,
+  &quot;publish&quot; : true,
+  &quot;status&quot; : &quot;...&quot;,
+  &quot;listenerHookURL&quot; : &quot;...&quot;
+}
+                </code>
+              </pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="resource_BroadcastRestService_createWithSocial_POST">
+        <h3><span class="label label-default resource-method">POST</span> <span class="resource-path">/broadcast/createWithSocial <a href="../broadcast/createWithSocial" class="glyphicon glyphicon-new-window" target="_blank"></a></span></h3>
+
+        <p>Create broadcast and bind social networks at the same time
+Server should be authorized in advance to make this service return success</p>
+
+        <table class="table resource-parameters">
+          <caption>Request Parameters</caption>
+          <thead>
+          <tr>
+            <th>name</th>
+            <th>type</th>
+            <th>description</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td><span class="parameter-name">socialNetworks</span></td>
+            <td>query</td>
+            <td><span class="parameter-description">Comma separated social network names
+Social network names must in comma separated and names must match with the defined names
+like facebook,periscope,youtube etc.</span></td>
+          </tr>
+          </tbody>
+        </table>
+
+        <table class="table resource-request-body">
+          <caption>Request Body</caption>
+          <thead>
+          <tr>
+            <th>media type</th>
+            <th>data type</th>
+            <th>description</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td><abbr data-toggle="tooltip" data-placement="top" title="Use the &quot;Content-Type: application/json&quot; HTTP header to specify this media type to the server."><span class="request-type">application/json</span></abbr></td>
+            <td><span class="datatype-reference"><a href="json_Broadcast.html">Broadcast</a>
+ (JSON)</span></td>
+            <td rowspan="2" class="multi-row-description"><span class="request-description">Broadcast
+io.antmedia.datastore.db.types.Broadcast</span></td>
+          </tr>
+          <tr>
+            <td><abbr data-toggle="tooltip" data-placement="top" title="Use the &quot;Content-Type: application/json&quot; HTTP header to specify this media type to the server."><span class="request-type">application/json</span></abbr></td>
+            <td><span class="datatype-reference"><a href="json_Broadcast.html">Broadcast</a>
+ (JSON)</span></td>
+          </tr>
+          </tbody>
+        </table>
+
+        <table class="table resource-response-body">
+          <caption>Response Body</caption>
+          <thead>
+          <tr>
+            <th>media type</th>
+            <th>data type</th>
+            <th>description</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td><abbr data-toggle="tooltip" data-placement="top" title="Use the &quot;Accept: application/json&quot; HTTP header to request that this media type be provided by the server."><span class="response-type">application/json</span></abbr></td>
+            <td><span class="datatype-reference"><a href="json_Broadcast.html">Broadcast</a>
+ (JSON)</span></td>
+            <td rowspan="2" class="multi-row-description"><span class="response-description"><a href="json_Result.html">Result</a></span></td>
+          </tr>
+          <tr>
+            <td><abbr data-toggle="tooltip" data-placement="top" title="Use the &quot;Accept: application/json&quot; HTTP header to request that this media type be provided by the server."><span class="response-type">application/json</span></abbr></td>
+            <td><span class="datatype-reference"><a href="json_Broadcast.html">Broadcast</a>
+ (JSON)</span></td>
+          </tr>
+          </tbody>
+        </table>
+        <h4>Example</h4>
+
+        <div class="container-fluid example panel">
+          <div class="row panel-body">
+            <div class="col-md-6">
+              <h5>Request</h5>
+              <pre>
+POST /broadcast/createWithSocial
+Content-Type: application/json
+Accept: application/json
+
+                <code class="prettyprint language-js">
+{
+  &quot;publicStream&quot; : true,
+  &quot;duration&quot; : 12345,
+  &quot;date&quot; : 12345,
+  &quot;category&quot; : &quot;...&quot;,
+  &quot;streamId&quot; : &quot;...&quot;,
+  &quot;name&quot; : &quot;...&quot;,
+  &quot;expireDurationMS&quot; : 12345,
+  &quot;description&quot; : &quot;...&quot;,
+  &quot;is360&quot; : true,
+  &quot;endPointList&quot; : [ {
+    &quot;streamId&quot; : &quot;...&quot;,
+    &quot;name&quot; : &quot;...&quot;,
+    &quot;broadcastId&quot; : &quot;...&quot;,
+    &quot;type&quot; : &quot;...&quot;,
+    &quot;rtmpUrl&quot; : &quot;...&quot;
+  }, {
+    &quot;streamId&quot; : &quot;...&quot;,
+    &quot;name&quot; : &quot;...&quot;,
+    &quot;broadcastId&quot; : &quot;...&quot;,
+    &quot;type&quot; : &quot;...&quot;,
+    &quot;rtmpUrl&quot; : &quot;...&quot;
+  } ],
+  &quot;plannedStartDate&quot; : 12345,
+  &quot;publish&quot; : true,
+  &quot;status&quot; : &quot;...&quot;,
+  &quot;listenerHookURL&quot; : &quot;...&quot;
+}
+                </code>
+              </pre>
+            </div>
+            <div class="col-md-6">
+              <h5>Response</h5>
+              <pre>
+HTTP/1.1 201 Created
+Content-Type: application/json
+
+                <code class="prettyprint language-js">
+{
+  &quot;publicStream&quot; : true,
+  &quot;duration&quot; : 12345,
+  &quot;date&quot; : 12345,
+  &quot;category&quot; : &quot;...&quot;,
+  &quot;streamId&quot; : &quot;...&quot;,
+  &quot;name&quot; : &quot;...&quot;,
+  &quot;expireDurationMS&quot; : 12345,
+  &quot;description&quot; : &quot;...&quot;,
+  &quot;is360&quot; : true,
+  &quot;endPointList&quot; : [ {
+    &quot;streamId&quot; : &quot;...&quot;,
+    &quot;name&quot; : &quot;...&quot;,
+    &quot;broadcastId&quot; : &quot;...&quot;,
+    &quot;type&quot; : &quot;...&quot;,
+    &quot;rtmpUrl&quot; : &quot;...&quot;
+  }, {
+    &quot;streamId&quot; : &quot;...&quot;,
+    &quot;name&quot; : &quot;...&quot;,
+    &quot;broadcastId&quot; : &quot;...&quot;,
+    &quot;type&quot; : &quot;...&quot;,
+    &quot;rtmpUrl&quot; : &quot;...&quot;
+  } ],
+  &quot;plannedStartDate&quot; : 12345,
+  &quot;publish&quot; : true,
+  &quot;status&quot; : &quot;...&quot;,
+  &quot;listenerHookURL&quot; : &quot;...&quot;
+}
+                </code>
+              </pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="resource_BroadcastRestService_getBroadcast_GET">
+        <h3><span class="label label-default resource-method">GET</span> <span class="resource-path">/broadcast/get <a href="../broadcast/get" class="glyphicon glyphicon-new-window" target="_blank"></a></span></h3>
+
+        <p>Get broadcast object</p>
+
+        <table class="table resource-parameters">
+          <caption>Request Parameters</caption>
+          <thead>
+          <tr>
+            <th>name</th>
+            <th>type</th>
+            <th>description</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td><span class="parameter-name">id</span></td>
+            <td>query</td>
+            <td><span class="parameter-description">id of the broadcast</span></td>
+          </tr>
+          </tbody>
+        </table>
+
+        <table class="table resource-response-body">
+          <caption>Response Body</caption>
+          <thead>
+          <tr>
+            <th>media type</th>
+            <th>data type</th>
+            <th>description</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td><abbr data-toggle="tooltip" data-placement="top" title="Use the &quot;Accept: application/json&quot; HTTP header to request that this media type be provided by the server."><span class="response-type">application/json</span></abbr></td>
+            <td><span class="datatype-reference"><a href="json_Broadcast.html">Broadcast</a>
+ (JSON)</span></td>
+            <td rowspan="2" class="multi-row-description"><span class="response-description">broadcast object
+nothing if broadcast is not found</span></td>
+          </tr>
+          <tr>
+            <td><abbr data-toggle="tooltip" data-placement="top" title="Use the &quot;Accept: application/json&quot; HTTP header to request that this media type be provided by the server."><span class="response-type">application/json</span></abbr></td>
+            <td><span class="datatype-reference"><a href="json_Broadcast.html">Broadcast</a>
+ (JSON)</span></td>
+          </tr>
+          </tbody>
+        </table>
+        <h4>Example</h4>
+
+        <div class="container-fluid example panel">
+          <div class="row panel-body">
+            <div class="col-md-6">
+              <h5>Request</h5>
+              <pre>
+GET /broadcast/get
+Accept: application/json
+
+              </pre>
+            </div>
+            <div class="col-md-6">
+              <h5>Response</h5>
+              <pre>
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+                <code class="prettyprint language-js">
+{
+  &quot;publicStream&quot; : true,
+  &quot;duration&quot; : 12345,
+  &quot;date&quot; : 12345,
+  &quot;category&quot; : &quot;...&quot;,
+  &quot;streamId&quot; : &quot;...&quot;,
+  &quot;name&quot; : &quot;...&quot;,
+  &quot;expireDurationMS&quot; : 12345,
+  &quot;description&quot; : &quot;...&quot;,
+  &quot;is360&quot; : true,
+  &quot;endPointList&quot; : [ {
+    &quot;streamId&quot; : &quot;...&quot;,
+    &quot;name&quot; : &quot;...&quot;,
+    &quot;broadcastId&quot; : &quot;...&quot;,
+    &quot;type&quot; : &quot;...&quot;,
+    &quot;rtmpUrl&quot; : &quot;...&quot;
+  }, {
+    &quot;streamId&quot; : &quot;...&quot;,
+    &quot;name&quot; : &quot;...&quot;,
+    &quot;broadcastId&quot; : &quot;...&quot;,
+    &quot;type&quot; : &quot;...&quot;,
+    &quot;rtmpUrl&quot; : &quot;...&quot;
+  } ],
+  &quot;plannedStartDate&quot; : 12345,
+  &quot;publish&quot; : true,
+  &quot;status&quot; : &quot;...&quot;,
+  &quot;listenerHookURL&quot; : &quot;...&quot;
+}
+                </code>
+              </pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="resource_BroadcastRestService_updateInfo_POST">
+        <h3><span class="label label-default resource-method">POST</span> <span class="resource-path">/broadcast/updateInfo <a href="../broadcast/updateInfo" class="glyphicon glyphicon-new-window" target="_blank"></a></span></h3>
+
+        <p>Updates broadcast name and description</p>
+
+        <table class="table resource-parameters">
+          <caption>Request Parameters</caption>
+          <thead>
+          <tr>
+            <th>name</th>
+            <th>type</th>
+            <th>description</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td><span class="parameter-name">description</span></td>
+            <td>form</td>
+            <td><span class="parameter-description">New description of the broadcast</span></td>
+          </tr>
+          <tr>
+            <td><span class="parameter-name">id</span></td>
+            <td>form</td>
+            <td><span class="parameter-description">id of the broadcast that is given when creating broadcast</span></td>
+          </tr>
+          <tr>
+            <td><span class="parameter-name">name</span></td>
+            <td>form</td>
+            <td><span class="parameter-description">New name of the broadcast</span></td>
+          </tr>
+          </tbody>
+        </table>
+
+        <table class="table resource-response-body">
+          <caption>Response Body</caption>
+          <thead>
+          <tr>
+            <th>media type</th>
+            <th>data type</th>
+            <th>description</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td><abbr data-toggle="tooltip" data-placement="top" title="Use the &quot;Accept: application/json&quot; HTTP header to request that this media type be provided by the server."><span class="response-type">application/json</span></abbr></td>
+            <td><span class="datatype-reference"><a href="json_Result.html">Result</a>
+ (JSON)</span></td>
+            <td rowspan="2" class="multi-row-description"><span class="response-description"><a href="json_Result.html">Result</a></span></td>
+          </tr>
+          <tr>
+            <td><abbr data-toggle="tooltip" data-placement="top" title="Use the &quot;Accept: application/json&quot; HTTP header to request that this media type be provided by the server."><span class="response-type">application/json</span></abbr></td>
+            <td><span class="datatype-reference"><a href="json_Result.html">Result</a>
+ (JSON)</span></td>
+          </tr>
+          </tbody>
+        </table>
+        <h4>Example</h4>
+
+        <div class="container-fluid example panel">
+          <div class="row panel-body">
+            <div class="col-md-6">
+              <h5>Request</h5>
+              <pre>
+POST /broadcast/updateInfo
+Accept: application/json
+
+              </pre>
+            </div>
+            <div class="col-md-6">
+              <h5>Response</h5>
+              <pre>
+HTTP/1.1 201 Created
+Content-Type: application/json
+
+                <code class="prettyprint language-js">
+{
+  &quot;success&quot; : true,
+  &quot;message&quot; : &quot;...&quot;
+}
+                </code>
+              </pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="resource_BroadcastRestService_updatePublishInfo_POST">
+        <h3><span class="label label-default resource-method">POST</span> <span class="resource-path">/broadcast/updatePublishStatus <a href="../broadcast/updatePublishStatus" class="glyphicon glyphicon-new-window" target="_blank"></a></span></h3>
+
+        <p>Updates broadcast publishing field</p>
+
+        <table class="table resource-parameters">
+          <caption>Request Parameters</caption>
+          <thead>
+          <tr>
+            <th>name</th>
+            <th>type</th>
+            <th>description</th>
+            <th>constraints</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td><span class="parameter-name">id</span></td>
+            <td>form</td>
+            <td><span class="parameter-description">id of the brodcast</span></td>
+            <td><span class="parameter-constraints">&nbsp;</span></td>
+          </tr>
+          <tr>
+            <td><span class="parameter-name">publish</span></td>
+            <td>form</td>
+            <td><span class="parameter-description">publish field true/false</span></td>
+            <td><span class="parameter-constraints">boolean</span></td>
+          </tr>
+          </tbody>
+        </table>
+
+        <table class="table resource-response-body">
+          <caption>Response Body</caption>
+          <thead>
+          <tr>
+            <th>media type</th>
+            <th>data type</th>
+            <th>description</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td><abbr data-toggle="tooltip" data-placement="top" title="Use the &quot;Accept: application/json&quot; HTTP header to request that this media type be provided by the server."><span class="response-type">application/json</span></abbr></td>
+            <td><span class="datatype-reference"><a href="json_Result.html">Result</a>
+ (JSON)</span></td>
+            <td rowspan="2" class="multi-row-description"><span class="response-description"><a href="json_Result.html">Result</a></span></td>
+          </tr>
+          <tr>
+            <td><abbr data-toggle="tooltip" data-placement="top" title="Use the &quot;Accept: application/json&quot; HTTP header to request that this media type be provided by the server."><span class="response-type">application/json</span></abbr></td>
+            <td><span class="datatype-reference"><a href="json_Result.html">Result</a>
+ (JSON)</span></td>
+          </tr>
+          </tbody>
+        </table>
+        <h4>Example</h4>
+
+        <div class="container-fluid example panel">
+          <div class="row panel-body">
+            <div class="col-md-6">
+              <h5>Request</h5>
+              <pre>
+POST /broadcast/updatePublishStatus
+Accept: application/json
+
+              </pre>
+            </div>
+            <div class="col-md-6">
+              <h5>Response</h5>
+              <pre>
+HTTP/1.1 201 Created
+Content-Type: application/json
+
+                <code class="prettyprint language-js">
+{
+  &quot;success&quot; : true,
+  &quot;message&quot; : &quot;...&quot;
+}
+                </code>
+              </pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="resource_BroadcastRestService_checkDeviceAuthStatus_POST">
+        <h3><span class="label label-default resource-method">POST</span> <span class="resource-path">/broadcast/checkDeviceAuthStatus/{serviceName} <a href="../broadcast/checkDeviceAuthStatus/{serviceName}" class="glyphicon glyphicon-new-window" target="_blank"></a></span></h3>
+
+        <p>Check if device is authenticated in the social network.
+In authorization phase, this function may be polled periodically until it returns success.
+Server checks social network service for about 1 minute so that if user does not enter DeviceAuthParameters in a 1 minute,
+this function will never return true</p>
+
+        <table class="table resource-parameters">
+          <caption>Request Parameters</caption>
+          <thead>
+          <tr>
+            <th>name</th>
+            <th>type</th>
+            <th>description</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td><span class="parameter-name">serviceName</span></td>
+            <td>path</td>
+            <td><span class="parameter-description">Name of the service facebook,youtube,periscope</span></td>
+          </tr>
+          </tbody>
+        </table>
+
+        <table class="table resource-response-body">
+          <caption>Response Body</caption>
+          <thead>
+          <tr>
+            <th>media type</th>
+            <th>data type</th>
+            <th>description</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td><abbr data-toggle="tooltip" data-placement="top" title="Use the &quot;Accept: application/json&quot; HTTP header to request that this media type be provided by the server."><span class="response-type">application/json</span></abbr></td>
+            <td><span class="datatype-reference"><a href="json_Result.html">Result</a>
+ (JSON)</span></td>
+            <td rowspan="2" class="multi-row-description"><span class="response-description">Result object with success field.
+If success field is true, it is authenticated
+if false, not authenticated</span></td>
+          </tr>
+          <tr>
+            <td><abbr data-toggle="tooltip" data-placement="top" title="Use the &quot;Accept: application/json&quot; HTTP header to request that this media type be provided by the server."><span class="response-type">application/json</span></abbr></td>
+            <td><span class="datatype-reference"><a href="json_Result.html">Result</a>
+ (JSON)</span></td>
+          </tr>
+          </tbody>
+        </table>
+        <h4>Example</h4>
+
+        <div class="container-fluid example panel">
+          <div class="row panel-body">
+            <div class="col-md-6">
+              <h5>Request</h5>
+              <pre>
+POST /broadcast/checkDeviceAuthStatus/{serviceName}
+Accept: application/json
+
+              </pre>
+            </div>
+            <div class="col-md-6">
+              <h5>Response</h5>
+              <pre>
+HTTP/1.1 201 Created
+Content-Type: application/json
+
+                <code class="prettyprint language-js">
+{
+  &quot;success&quot; : true,
+  &quot;message&quot; : &quot;...&quot;
+}
+                </code>
+              </pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="resource_BroadcastRestService_deleteBroadcast_POST">
+        <h3><span class="label label-default resource-method">POST</span> <span class="resource-path">/broadcast/delete/{id} <a href="../broadcast/delete/{id}" class="glyphicon glyphicon-new-window" target="_blank"></a></span></h3>
+
+        <p>Delete broadcast from data store
+
+TODO:
+Stop publishing if it is being published
+Delete all stream if it is vod
+Delete all stream if vod is stored some under storage</p>
+
+        <table class="table resource-parameters">
+          <caption>Request Parameters</caption>
+          <thead>
+          <tr>
+            <th>name</th>
+            <th>type</th>
+            <th>description</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td><span class="parameter-name">id</span></td>
+            <td>path</td>
+            <td><span class="parameter-description">Id of the braodcast</span></td>
+          </tr>
+          </tbody>
+        </table>
+
+        <table class="table resource-response-body">
+          <caption>Response Body</caption>
+          <thead>
+          <tr>
+            <th>media type</th>
+            <th>data type</th>
+            <th>description</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td><abbr data-toggle="tooltip" data-placement="top" title="Use the &quot;Accept: application/json&quot; HTTP header to request that this media type be provided by the server."><span class="response-type">application/json</span></abbr></td>
+            <td><span class="datatype-reference"><a href="json_Result.html">Result</a>
+ (JSON)</span></td>
+            <td rowspan="2" class="multi-row-description"><span class="response-description">Result object with success field true or false</span></td>
+          </tr>
+          <tr>
+            <td><abbr data-toggle="tooltip" data-placement="top" title="Use the &quot;Accept: application/json&quot; HTTP header to request that this media type be provided by the server."><span class="response-type">application/json</span></abbr></td>
+            <td><span class="datatype-reference"><a href="json_Result.html">Result</a>
+ (JSON)</span></td>
+          </tr>
+          </tbody>
+        </table>
+        <h4>Example</h4>
+
+        <div class="container-fluid example panel">
+          <div class="row panel-body">
+            <div class="col-md-6">
+              <h5>Request</h5>
+              <pre>
+POST /broadcast/delete/{id}
+Accept: application/json
+
+              </pre>
+            </div>
+            <div class="col-md-6">
+              <h5>Response</h5>
+              <pre>
+HTTP/1.1 201 Created
+Content-Type: application/json
+
+                <code class="prettyprint language-js">
+{
+  &quot;success&quot; : true,
+  &quot;message&quot; : &quot;...&quot;
+}
+                </code>
+              </pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="resource_BroadcastRestService_deleteVoDFile_POST">
+        <h3><span class="label label-default resource-method">POST</span> <span class="resource-path">/broadcast/deleteVoDFile/{id} <a href="../broadcast/deleteVoDFile/{id}" class="glyphicon glyphicon-new-window" target="_blank"></a></span></h3>
+
+        <p>Deletes vod file in the file system</p>
+
+        <table class="table resource-parameters">
+          <caption>Request Parameters</caption>
+          <thead>
+          <tr>
+            <th>name</th>
+            <th>type</th>
+            <th>description</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td><span class="parameter-name">id</span></td>
+            <td>path</td>
+            <td><span class="parameter-description">name of the file</span></td>
+          </tr>
+          </tbody>
+        </table>
+
+        <table class="table resource-response-body">
+          <caption>Response Body</caption>
+          <thead>
+          <tr>
+            <th>media type</th>
+            <th>data type</th>
+            <th>description</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td><abbr data-toggle="tooltip" data-placement="top" title="Use the &quot;Accept: application/json&quot; HTTP header to request that this media type be provided by the server."><span class="response-type">application/json</span></abbr></td>
+            <td><span class="datatype-reference"><a href="json_Result.html">Result</a>
+ (JSON)</span></td>
+            <td rowspan="2" class="multi-row-description"><span class="response-description"><a href="json_Result.html">Result</a></span></td>
+          </tr>
+          <tr>
+            <td><abbr data-toggle="tooltip" data-placement="top" title="Use the &quot;Accept: application/json&quot; HTTP header to request that this media type be provided by the server."><span class="response-type">application/json</span></abbr></td>
+            <td><span class="datatype-reference"><a href="json_Result.html">Result</a>
+ (JSON)</span></td>
+          </tr>
+          </tbody>
+        </table>
+        <h4>Example</h4>
+
+        <div class="container-fluid example panel">
+          <div class="row panel-body">
+            <div class="col-md-6">
+              <h5>Request</h5>
+              <pre>
+POST /broadcast/deleteVoDFile/{id}
+Accept: application/json
+
+              </pre>
+            </div>
+            <div class="col-md-6">
+              <h5>Response</h5>
+              <pre>
+HTTP/1.1 201 Created
+Content-Type: application/json
+
+                <code class="prettyprint language-js">
+{
+  &quot;success&quot; : true,
+  &quot;message&quot; : &quot;...&quot;
+}
+                </code>
+              </pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="resource_BroadcastRestService_getDeviceAuthParameters_POST">
+        <h3><span class="label label-default resource-method">POST</span> <span class="resource-path">/broadcast/getDeviceAuthParameters/{serviceName} <a href="../broadcast/getDeviceAuthParameters/{serviceName}" class="glyphicon glyphicon-new-window" target="_blank"></a></span></h3>
+
+        <p>Get device parameters for social network authrozation.</p>
+
+        <table class="table resource-parameters">
+          <caption>Request Parameters</caption>
+          <thead>
+          <tr>
+            <th>name</th>
+            <th>type</th>
+            <th>description</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td><span class="parameter-name">serviceName</span></td>
+            <td>path</td>
+            <td><span class="parameter-description">Name of the service, like facebook,youtube,periscope</span></td>
+          </tr>
+          </tbody>
+        </table>
+
+        <table class="table resource-response-body">
+          <caption>Response Body</caption>
+          <thead>
+          <tr>
+            <th>media type</th>
+            <th>data type</th>
+            <th>description</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td><abbr data-toggle="tooltip" data-placement="top" title="Use the &quot;Accept: application/json&quot; HTTP header to request that this media type be provided by the server."><span class="response-type">application/json</span></abbr></td>
+            <td><span class="datatype-reference">object
+ (JSON)</span></td>
+            <td rowspan="2" class="multi-row-description"><span class="response-description">If operation is successfull, DeviceAuthParameters is returned with related information.
+
+User should go to io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters#verification_url
+and enter io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters#user_code in a minute
+
+If not successfull, it returns with Result object with message</span></td>
+          </tr>
+          <tr>
+            <td><abbr data-toggle="tooltip" data-placement="top" title="Use the &quot;Accept: application/json&quot; HTTP header to request that this media type be provided by the server."><span class="response-type">application/json</span></abbr></td>
+            <td><span class="datatype-reference">object
+ (JSON)</span></td>
+          </tr>
+          </tbody>
+        </table>
+        <h4>Example</h4>
+
+        <div class="container-fluid example panel">
+          <div class="row panel-body">
+            <div class="col-md-6">
+              <h5>Request</h5>
+              <pre>
+POST /broadcast/getDeviceAuthParameters/{serviceName}
+Accept: application/json
+
+              </pre>
+            </div>
+            <div class="col-md-6">
+              <h5>Response</h5>
+              <pre>
+HTTP/1.1 201 Created
+Content-Type: application/json
+
+                <code class="prettyprint language-txt">
+...
+                </code>
+              </pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="resource_BroadcastRestService_getSocialNetworkChannel_GET">
+        <h3><span class="label label-default resource-method">GET</span> <span class="resource-path">/broadcast/getSocialNetworkChannel/{serviceName} <a href="../broadcast/getSocialNetworkChannel/{serviceName}" class="glyphicon glyphicon-new-window" target="_blank"></a></span></h3>
+
+        <p>Some social networks have different channels especially for facebook,
+Live stream can be published on Facebook Page or Personal account, this service
+returns the related information about that.</p>
+
+        <table class="table resource-parameters">
+          <caption>Request Parameters</caption>
+          <thead>
+          <tr>
+            <th>name</th>
+            <th>type</th>
+            <th>description</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td><span class="parameter-name">serviceName</span></td>
+            <td>path</td>
+            <td><span class="parameter-description">Name of the social network (facebook,youtube,periscope)</span></td>
+          </tr>
+          </tbody>
+        </table>
+
+        <table class="table resource-response-body">
+          <caption>Response Body</caption>
+          <thead>
+          <tr>
+            <th>media type</th>
+            <th>data type</th>
+            <th>description</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td><abbr data-toggle="tooltip" data-placement="top" title="Use the &quot;Accept: application/json&quot; HTTP header to request that this media type be provided by the server."><span class="response-type">application/json</span></abbr></td>
+            <td><span class="datatype-reference"><a href="json_SocialEndpointChannel.html">SocialEndpointChannel</a>
+ (JSON)</span></td>
+            <td rowspan="2" class="multi-row-description"><span class="response-description"><a href="json_SocialEndpointChannel.html">SocialEndpointChannel</a></span></td>
+          </tr>
+          <tr>
+            <td><abbr data-toggle="tooltip" data-placement="top" title="Use the &quot;Accept: application/json&quot; HTTP header to request that this media type be provided by the server."><span class="response-type">application/json</span></abbr></td>
+            <td><span class="datatype-reference"><a href="json_SocialEndpointChannel.html">SocialEndpointChannel</a>
+ (JSON)</span></td>
+          </tr>
+          </tbody>
+        </table>
+        <h4>Example</h4>
+
+        <div class="container-fluid example panel">
+          <div class="row panel-body">
+            <div class="col-md-6">
+              <h5>Request</h5>
+              <pre>
+GET /broadcast/getSocialNetworkChannel/{serviceName}
+Accept: application/json
+
+              </pre>
+            </div>
+            <div class="col-md-6">
+              <h5>Response</h5>
+              <pre>
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+                <code class="prettyprint language-js">
+{
+  &quot;id&quot; : &quot;...&quot;,
+  &quot;name&quot; : &quot;...&quot;,
+  &quot;type&quot; : &quot;...&quot;
+}
+                </code>
+              </pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="resource_BroadcastRestService_revokeSocialNetwork_POST">
+        <h3><span class="label label-default resource-method">POST</span> <span class="resource-path">/broadcast/revokeSocialNetwork/{serviceName} <a href="../broadcast/revokeSocialNetwork/{serviceName}" class="glyphicon glyphicon-new-window" target="_blank"></a></span></h3>
+
+        <p>Revoke authorization from a social network account that is authorized before</p>
+
+        <table class="table resource-parameters">
+          <caption>Request Parameters</caption>
+          <thead>
+          <tr>
+            <th>name</th>
+            <th>type</th>
+            <th>description</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td><span class="parameter-name">serviceName</span></td>
+            <td>path</td>
+            <td><span class="parameter-description">Name of the service</span></td>
+          </tr>
+          </tbody>
+        </table>
+
+        <table class="table resource-response-body">
+          <caption>Response Body</caption>
+          <thead>
+          <tr>
+            <th>media type</th>
+            <th>data type</th>
+            <th>description</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td><abbr data-toggle="tooltip" data-placement="top" title="Use the &quot;Accept: application/json&quot; HTTP header to request that this media type be provided by the server."><span class="response-type">application/json</span></abbr></td>
+            <td><span class="datatype-reference"><a href="json_Result.html">Result</a>
+ (JSON)</span></td>
+            <td rowspan="2" class="multi-row-description"><span class="response-description"><a href="json_Result.html">Result</a></span></td>
+          </tr>
+          <tr>
+            <td><abbr data-toggle="tooltip" data-placement="top" title="Use the &quot;Accept: application/json&quot; HTTP header to request that this media type be provided by the server."><span class="response-type">application/json</span></abbr></td>
+            <td><span class="datatype-reference"><a href="json_Result.html">Result</a>
+ (JSON)</span></td>
+          </tr>
+          </tbody>
+        </table>
+        <h4>Example</h4>
+
+        <div class="container-fluid example panel">
+          <div class="row panel-body">
+            <div class="col-md-6">
+              <h5>Request</h5>
+              <pre>
+POST /broadcast/revokeSocialNetwork/{serviceName}
+Accept: application/json
+
+              </pre>
+            </div>
+            <div class="col-md-6">
+              <h5>Response</h5>
+              <pre>
+HTTP/1.1 201 Created
+Content-Type: application/json
+
+                <code class="prettyprint language-js">
+{
+  &quot;success&quot; : true,
+  &quot;message&quot; : &quot;...&quot;
+}
+                </code>
+              </pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="resource_BroadcastRestService_stopBroadcast_POST">
+        <h3><span class="label label-default resource-method">POST</span> <span class="resource-path">/broadcast/stop/{streamId} <a href="../broadcast/stop/{streamId}" class="glyphicon glyphicon-new-window" target="_blank"></a></span></h3>
+
+        <p></p>
+
+        <table class="table resource-parameters">
+          <caption>Request Parameters</caption>
+          <thead>
+          <tr>
+            <th>name</th>
+            <th>type</th>
+            <th>description</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td><span class="parameter-name">streamId</span></td>
+            <td>path</td>
+            <td><span class="parameter-description"></span></td>
+          </tr>
+          </tbody>
+        </table>
+
+        <table class="table resource-response-body">
+          <caption>Response Body</caption>
+          <thead>
+          <tr>
+            <th>media type</th>
+            <th>data type</th>
+            <th>description</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td><abbr data-toggle="tooltip" data-placement="top" title="Use the &quot;Accept: application/json&quot; HTTP header to request that this media type be provided by the server."><span class="response-type">application/json</span></abbr></td>
+            <td><span class="datatype-reference"><a href="json_Result.html">Result</a>
+ (JSON)</span></td>
+            <td rowspan="2" class="multi-row-description"><span class="response-description"></span></td>
+          </tr>
+          <tr>
+            <td><abbr data-toggle="tooltip" data-placement="top" title="Use the &quot;Accept: application/json&quot; HTTP header to request that this media type be provided by the server."><span class="response-type">application/json</span></abbr></td>
+            <td><span class="datatype-reference"><a href="json_Result.html">Result</a>
+ (JSON)</span></td>
+          </tr>
+          </tbody>
+        </table>
+        <h4>Example</h4>
+
+        <div class="container-fluid example panel">
+          <div class="row panel-body">
+            <div class="col-md-6">
+              <h5>Request</h5>
+              <pre>
+POST /broadcast/stop/{streamId}
+Accept: application/json
+
+              </pre>
+            </div>
+            <div class="col-md-6">
+              <h5>Response</h5>
+              <pre>
+HTTP/1.1 201 Created
+Content-Type: application/json
+
+                <code class="prettyprint language-js">
+{
+  &quot;success&quot; : true,
+  &quot;message&quot; : &quot;...&quot;
+}
+                </code>
+              </pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="resource_BroadcastRestService_getBroadcastList_GET">
+        <h3><span class="label label-default resource-method">GET</span> <span class="resource-path">/broadcast/getList/{offset}/{size} <a href="../broadcast/getList/{offset}/{size}" class="glyphicon glyphicon-new-window" target="_blank"></a></span></h3>
+
+        <p>Gets the broadcast list from database</p>
+
+        <table class="table resource-parameters">
+          <caption>Request Parameters</caption>
+          <thead>
+          <tr>
+            <th>name</th>
+            <th>type</th>
+            <th>description</th>
+            <th>constraints</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td><span class="parameter-name">offset</span></td>
+            <td>path</td>
+            <td><span class="parameter-description">This is the offset of the list, it is useful for pagination,</span></td>
+            <td><span class="parameter-constraints">int</span></td>
+          </tr>
+          <tr>
+            <td><span class="parameter-name">size</span></td>
+            <td>path</td>
+            <td><span class="parameter-description">Number of items that will be fetched. If there is not enough item in the datastore,
+returned list size may less then this value</span></td>
+            <td><span class="parameter-constraints">int</span></td>
+          </tr>
+          </tbody>
+        </table>
+
+        <table class="table resource-response-body">
+          <caption>Response Body</caption>
+          <thead>
+          <tr>
+            <th>media type</th>
+            <th>data type</th>
+            <th>description</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td><abbr data-toggle="tooltip" data-placement="top" title="Use the &quot;Accept: application/json&quot; HTTP header to request that this media type be provided by the server."><span class="response-type">application/json</span></abbr></td>
+            <td><span class="datatype-reference">array of <a href="json_Broadcast.html">Broadcast</a>
+ (JSON)</span></td>
+            <td rowspan="2" class="multi-row-description"><span class="response-description">JSON broadcast list</span></td>
+          </tr>
+          <tr>
+            <td><abbr data-toggle="tooltip" data-placement="top" title="Use the &quot;Accept: application/json&quot; HTTP header to request that this media type be provided by the server."><span class="response-type">application/json</span></abbr></td>
+            <td><span class="datatype-reference">array of <a href="json_Broadcast.html">Broadcast</a>
+ (JSON)</span></td>
+          </tr>
+          </tbody>
+        </table>
+        <h4>Example</h4>
+
+        <div class="container-fluid example panel">
+          <div class="row panel-body">
+            <div class="col-md-6">
+              <h5>Request</h5>
+              <pre>
+GET /broadcast/getList/{offset}/{size}
+Accept: application/json
+
+              </pre>
+            </div>
+            <div class="col-md-6">
+              <h5>Response</h5>
+              <pre>
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+                <code class="prettyprint language-js">
+[ {
+  &quot;publicStream&quot; : true,
+  &quot;duration&quot; : 12345,
+  &quot;date&quot; : 12345,
+  &quot;category&quot; : &quot;...&quot;,
+  &quot;streamId&quot; : &quot;...&quot;,
+  &quot;name&quot; : &quot;...&quot;,
+  &quot;expireDurationMS&quot; : 12345,
+  &quot;description&quot; : &quot;...&quot;,
+  &quot;is360&quot; : true,
+  &quot;endPointList&quot; : [ {
+    &quot;streamId&quot; : &quot;...&quot;,
+    &quot;name&quot; : &quot;...&quot;,
+    &quot;broadcastId&quot; : &quot;...&quot;,
+    &quot;type&quot; : &quot;...&quot;,
+    &quot;rtmpUrl&quot; : &quot;...&quot;
+  }, {
+    &quot;streamId&quot; : &quot;...&quot;,
+    &quot;name&quot; : &quot;...&quot;,
+    &quot;broadcastId&quot; : &quot;...&quot;,
+    &quot;type&quot; : &quot;...&quot;,
+    &quot;rtmpUrl&quot; : &quot;...&quot;
+  } ],
+  &quot;plannedStartDate&quot; : 12345,
+  &quot;publish&quot; : true,
+  &quot;status&quot; : &quot;...&quot;,
+  &quot;listenerHookURL&quot; : &quot;...&quot;
+} ]
+                </code>
+              </pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="resource_BroadcastRestService_getSocialNetworkChannelList_GET">
+        <h3><span class="label label-default resource-method">GET</span> <span class="resource-path">/broadcast/getSocialNetworkChannelList/{serviceName}/{type} <a href="../broadcast/getSocialNetworkChannelList/{serviceName}/{type}" class="glyphicon glyphicon-new-window" target="_blank"></a></span></h3>
+
+        <p>Returns available social network channels for the specific service</p>
+
+        <table class="table resource-parameters">
+          <caption>Request Parameters</caption>
+          <thead>
+          <tr>
+            <th>name</th>
+            <th>type</th>
+            <th>description</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td><span class="parameter-name">serviceName</span></td>
+            <td>path</td>
+            <td><span class="parameter-description">Name of the social network</span></td>
+          </tr>
+          <tr>
+            <td><span class="parameter-name">type</span></td>
+            <td>path</td>
+            <td><span class="parameter-description">This is very service specific, it may be page for Facebook</span></td>
+          </tr>
+          </tbody>
+        </table>
+
+        <table class="table resource-response-body">
+          <caption>Response Body</caption>
+          <thead>
+          <tr>
+            <th>media type</th>
+            <th>data type</th>
+            <th>description</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td><abbr data-toggle="tooltip" data-placement="top" title="Use the &quot;Accept: application/json&quot; HTTP header to request that this media type be provided by the server."><span class="response-type">application/json</span></abbr></td>
+            <td><span class="datatype-reference">array of <a href="json_SocialEndpointChannel.html">SocialEndpointChannel</a>
+ (JSON)</span></td>
+            <td rowspan="2" class="multi-row-description"><span class="response-description">List of <a href="json_SocialEndpointChannel.html">SocialEndpointChannel</a></span></td>
+          </tr>
+          <tr>
+            <td><abbr data-toggle="tooltip" data-placement="top" title="Use the &quot;Accept: application/json&quot; HTTP header to request that this media type be provided by the server."><span class="response-type">application/json</span></abbr></td>
+            <td><span class="datatype-reference">array of <a href="json_SocialEndpointChannel.html">SocialEndpointChannel</a>
+ (JSON)</span></td>
+          </tr>
+          </tbody>
+        </table>
+        <h4>Example</h4>
+
+        <div class="container-fluid example panel">
+          <div class="row panel-body">
+            <div class="col-md-6">
+              <h5>Request</h5>
+              <pre>
+GET /broadcast/getSocialNetworkChannelList/{serviceName}/{type}
+Accept: application/json
+
+              </pre>
+            </div>
+            <div class="col-md-6">
+              <h5>Response</h5>
+              <pre>
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+                <code class="prettyprint language-js">
+[ {
+  &quot;id&quot; : &quot;...&quot;,
+  &quot;name&quot; : &quot;...&quot;,
+  &quot;type&quot; : &quot;...&quot;
+} ]
+                </code>
+              </pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="resource_BroadcastRestService_setSocialNetworkChannelList_POST">
+        <h3><span class="label label-default resource-method">POST</span> <span class="resource-path">/broadcast/setSocialNetworkChannel/{serviceName}/{type}/{id} <a href="../broadcast/setSocialNetworkChannel/{serviceName}/{type}/{id}" class="glyphicon glyphicon-new-window" target="_blank"></a></span></h3>
+
+        <p>Sets channel that live stream will be published on specific social network channel</p>
+
+        <table class="table resource-parameters">
+          <caption>Request Parameters</caption>
+          <thead>
+          <tr>
+            <th>name</th>
+            <th>type</th>
+            <th>description</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td><span class="parameter-name">id</span></td>
+            <td>path</td>
+            <td><span class="parameter-description">id of the channel</span></td>
+          </tr>
+          <tr>
+            <td><span class="parameter-name">serviceName</span></td>
+            <td>path</td>
+            <td><span class="parameter-description">Name of the social network service</span></td>
+          </tr>
+          <tr>
+            <td><span class="parameter-name">type</span></td>
+            <td>path</td>
+            <td><span class="parameter-description">Type of the channel</span></td>
+          </tr>
+          </tbody>
+        </table>
+
+        <table class="table resource-response-body">
+          <caption>Response Body</caption>
+          <thead>
+          <tr>
+            <th>media type</th>
+            <th>data type</th>
+            <th>description</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td><abbr data-toggle="tooltip" data-placement="top" title="Use the &quot;Accept: application/json&quot; HTTP header to request that this media type be provided by the server."><span class="response-type">application/json</span></abbr></td>
+            <td><span class="datatype-reference"><a href="json_Result.html">Result</a>
+ (JSON)</span></td>
+            <td rowspan="2" class="multi-row-description"><span class="response-description"><a href="json_Result.html">Result</a></span></td>
+          </tr>
+          <tr>
+            <td><abbr data-toggle="tooltip" data-placement="top" title="Use the &quot;Accept: application/json&quot; HTTP header to request that this media type be provided by the server."><span class="response-type">application/json</span></abbr></td>
+            <td><span class="datatype-reference"><a href="json_Result.html">Result</a>
+ (JSON)</span></td>
+          </tr>
+          </tbody>
+        </table>
+        <h4>Example</h4>
+
+        <div class="container-fluid example panel">
+          <div class="row panel-body">
+            <div class="col-md-6">
+              <h5>Request</h5>
+              <pre>
+POST /broadcast/setSocialNetworkChannel/{serviceName}/{type}/{id}
+Accept: application/json
+
+              </pre>
+            </div>
+            <div class="col-md-6">
+              <h5>Response</h5>
+              <pre>
+HTTP/1.1 201 Created
+Content-Type: application/json
+
+                <code class="prettyprint language-js">
+{
+  &quot;success&quot; : true,
+  &quot;message&quot; : &quot;...&quot;
+}
+                </code>
+              </pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+        <footer class="footer">
+          <div class="container">
+            <p class="text-muted">Generated by <a href="http://enunciate.webcohesion.com">Enunciate</a>.</p>
+          </div>
+        </footer>
+
+      </div>
+    </div>
+  </div>
+
+
+  <!-- JavaScript placed at the end of the document so the pages load faster. -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+
+  <!-- Bootstrap core JavaScript
+  ================================================== -->
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+
+  <!-- prettify code blocks. see http://code.google.com/p/google-code-prettify/ -->
+  <script src="https://cdn.rawgit.com/google/code-prettify/master/loader/run_prettify.js" type="text/javascript"></script>
+  <script>
+    $(function() {
+      $(".clickable-row").click(function() {
+        window.document.location = $(this).data("href");
+      });
+
+      $('[data-toggle="tooltip"]').tooltip()
+    });
+  </script>
+
+</body>
+</html>

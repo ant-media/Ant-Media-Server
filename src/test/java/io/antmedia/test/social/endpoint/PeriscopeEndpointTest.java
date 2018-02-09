@@ -13,11 +13,14 @@ import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.services.youtube.model.LiveStreamStatus;
 
+import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.preference.PreferenceStore;
-import io.antmedia.functional.MuxingTest;
+import io.antmedia.integration.MuxingTest;
 import io.antmedia.social.endpoint.PeriscopeEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
 
@@ -31,6 +34,32 @@ public class PeriscopeEndpointTest {
 	public String CLIENT_SECRET = "tYHjmoe42iD1FX0wSLgF7-4kdnM9mabgznuSdaSkVDFFflYomK";
 
 
+	
+	public static final int MAC_OS_X = 0;
+	public static final int LINUX = 1;
+	public static final int WINDOWS = 2;
+	private static int OS_TYPE;
+	static {
+		String osName = System.getProperty("os.name", "").toLowerCase();
+		if (osName.startsWith("mac os x") || osName.startsWith("darwin"))  {
+			OS_TYPE = MAC_OS_X;
+		}
+		else if (osName.startsWith("windows"))  {
+			OS_TYPE = WINDOWS;
+		}
+		else if (osName.startsWith("linux"))  {
+			OS_TYPE = LINUX;
+		}
+	}
+
+	private static String ffmpegPath = "ffmpeg";
+	
+	@BeforeClass
+	public static void beforeClass() {
+		if (OS_TYPE == MAC_OS_X) {
+			ffmpegPath = "/usr/local/bin/ffmpeg";
+		}
+	}
 
 
 	//@Test
@@ -89,7 +118,7 @@ public class PeriscopeEndpointTest {
 		} 
 	}
 
-	//@Test
+	@Test
 	public void testCreateBroadcastNoName() {
 		PreferenceStore dataStore = new PreferenceStore(TARGET_TEST_PROPERTIES);
 		dataStore.setFullPath(TARGET_TEST_PROPERTIES);
@@ -109,8 +138,9 @@ public class PeriscopeEndpointTest {
 		}
 	}
 
+	
 
-	//@Test
+	@Test
 	public void testCreateBroadcast() {
 		PreferenceStore dataStore = new PreferenceStore(TARGET_TEST_PROPERTIES);
 		dataStore.setFullPath(TARGET_TEST_PROPERTIES);
@@ -121,8 +151,11 @@ public class PeriscopeEndpointTest {
 			Endpoint endpoint = endPoint.createBroadcast(name, null, false, false, 720);
 
 			System.out.println("rtmp url is:" + endpoint.rtmpUrl);
+			
+			
 
-			MuxingTest.execute("/usr/local/bin/ffmpeg -re -i src/test/resources/test_video_360p.flv -acodec copy -vcodec copy -f flv " + endpoint.rtmpUrl);
+			///usr/local/bin/
+			Process execute = MuxingTest.execute(ffmpegPath + " -re -i src/test/resources/test_video_360p.flv -acodec copy -vcodec copy -f flv " + endpoint.rtmpUrl);
 
 			LiveStreamStatus streamStatus = null;
 
@@ -132,10 +165,13 @@ public class PeriscopeEndpointTest {
 			endPoint.publishBroadcast(endpoint);
 
 
-			Thread.sleep(40000);
+			Thread.sleep(10000);
 
 
+			
 			endPoint.stopBroadcast(endpoint);
+			
+			execute.destroy();
 
 		} catch (Exception e) {
 			e.printStackTrace();

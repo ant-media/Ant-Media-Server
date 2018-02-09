@@ -2,6 +2,7 @@ package io.antmedia.test.db;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -60,7 +61,11 @@ public class DBStoresUnitTest {
 		testNullCheck(dataStore);
 		testSimpleOperations(dataStore);
 		testRemoveEndpoint(dataStore);
+
 		testFilterSearchOperations(dataStore);
+
+		testRTMPURL(dataStore);
+		testStreamWithId(dataStore);
 
 	}
 
@@ -72,11 +77,13 @@ public class DBStoresUnitTest {
 		testNullCheck(dataStore);
 		testSimpleOperations(dataStore);
 		testRemoveEndpoint(dataStore);
+		testRTMPURL(dataStore);
+		testStreamWithId(dataStore);
 
 	}
 
-	// TODO: open this functional test
-	// @Test
+	@Test
+
 	public void testMongoStore() {
 
 		IDataStore dataStore = new MongoStore("testdb");
@@ -85,9 +92,59 @@ public class DBStoresUnitTest {
 		store.delete(deleteQuery);
 
 		testGetPagination(dataStore);
+
 		testNullCheck(dataStore);
 		testSimpleOperations(dataStore);
 		testRemoveEndpoint(dataStore);
+
+		testRTMPURL(dataStore);
+		testStreamWithId(dataStore);
+
+	}
+
+	public void testStreamWithId(IDataStore dataStore) {
+		try {
+			Broadcast broadcast = new Broadcast();
+			broadcast.setName("stream_having_id");
+			String streamId = "stream_id";
+			broadcast.setStreamId(streamId);
+
+			String streamIdReturn = dataStore.save(broadcast);
+
+			assertEquals(streamId, streamIdReturn);
+
+			assertEquals(streamId, broadcast.getStreamId());
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	public void testRTMPURL(IDataStore dataStore) {
+		Broadcast broadcast = new Broadcast();
+		broadcast.setName("test");
+		String key = dataStore.save(broadcast);
+
+		assertNull(dataStore.get(key).getRtmpURL());
+
+		broadcast = new Broadcast();
+		broadcast.setName("test2");
+		broadcast.setRtmpURL(null);
+
+		String key2 = dataStore.save(broadcast);
+
+		assertNotEquals(key, key2);
+
+		assertNull(dataStore.get(key2).getRtmpURL());
+
+		broadcast = new Broadcast();
+		broadcast.setName("test3");
+		String rtmpURL = "content_is_not_important";
+		broadcast.setRtmpURL(rtmpURL);
+
+		String key3 = dataStore.save(broadcast);
+
+		assertEquals(dataStore.get(key3).getRtmpURL(), rtmpURL + key3);
 
 	}
 
