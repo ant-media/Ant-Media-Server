@@ -415,14 +415,14 @@ public class BroadcastRestService {
 		boolean success = false;
 		String message = null;
 
-		Broadcast cam = getDataStore().getCamera(id);
+		Broadcast broacast = getDataStore().get(id);
 
-		if (cam.getType().equals("ipCamera")) {
+		if (broacast.getType().equals("ipCamera")) {
 
 			AntMediaApplicationAdapter application = getApplication();
 
 			if (application instanceof IPCameraApplicationAdapter) {
-				((IPCameraApplicationAdapter) application).stopCameraStreaming(cam);
+				((IPCameraApplicationAdapter) application).stopCameraStreaming(broacast);
 				success = getDataStore().deleteCamera(id);
 				message = "ip camera is deleted";
 				logger.info("ipcam is deleted");

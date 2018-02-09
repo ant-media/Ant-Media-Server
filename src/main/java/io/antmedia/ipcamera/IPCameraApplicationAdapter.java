@@ -182,14 +182,16 @@ public class IPCameraApplicationAdapter extends AntMediaApplicationAdapter {
 		this.cameradb = cameradb;
 	}
 
-	public OnvifCamera getOnvifCamera(String ipAddr) {
-		OnvifCamera onvifCamera = onvifCameraList.get(ipAddr);
+	public OnvifCamera getOnvifCamera(String id) {
+		OnvifCamera onvifCamera = onvifCameraList.get(id);
 		if (onvifCamera == null) {
-			Broadcast camera = cameradb.getCamera(ipAddr);
+
+			Broadcast camera = getDataStore().get(id);
 			if (camera != null) {
 				onvifCamera = new OnvifCamera();
-				onvifCamera.connect(ipAddr, camera.getUsername(), camera.getPassword());
-				onvifCameraList.put(ipAddr, onvifCamera);
+				onvifCamera.connect(camera.getIpAddr(), camera.getUsername(), camera.getPassword());
+
+				onvifCameraList.put(id, onvifCamera);
 			}
 		}
 		return onvifCamera;

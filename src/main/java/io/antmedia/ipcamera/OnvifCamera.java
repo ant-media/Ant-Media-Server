@@ -125,7 +125,7 @@ public class OnvifCamera implements IOnvifCamera {
 
 	@Override
 	public boolean MoveRight() {
-		ptzDevices.continuousMove(profileToken, 1f, 0f, 0f);
+		ptzDevices.relativeMove(profileToken, 1f, 0f, 0f);
 
 		try {
 			Thread.sleep(500);
@@ -141,7 +141,7 @@ public class OnvifCamera implements IOnvifCamera {
 
 	@Override
 	public boolean MoveLeft() {
-		ptzDevices.continuousMove(profileToken, -1f, 0f, 0f);
+		ptzDevices.relativeMove(profileToken, -1f, 0f, 0f);
 		try {
 			Thread.sleep(500);
 

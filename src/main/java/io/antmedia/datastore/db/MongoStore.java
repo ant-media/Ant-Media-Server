@@ -231,7 +231,7 @@ public class MongoStore implements IDataStore {
 	}
 
 	@Override
-	public boolean editCameraInfo(String name, String ipAddr, String username, String password, String rtspUrl) {
+	public boolean editCameraInfo(Broadcast camera) {
 		// TODO Auto-generated method stub
 		return false;
 	}
@@ -287,6 +287,12 @@ public class MongoStore implements IDataStore {
 
 	@Override
 	public boolean deleteVod(String id) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean resetBroadcastStatus() {
 		// TODO Auto-generated method stub
 		return false;
 	}

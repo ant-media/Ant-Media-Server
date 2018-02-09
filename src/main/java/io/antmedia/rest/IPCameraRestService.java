@@ -92,7 +92,7 @@ public class IPCameraRestService {
 						String key = getCameraStore().save(camera);
 
 						if (key.length() > 0) {
-							Broadcast newCam = getCameraStore().getCamera(camera.getStreamId());
+							Broadcast newCam = getCameraStore().get(camera.getStreamId());
 							getApplicationInstance().startCameraStreaming(newCam);
 						}
 						onvif.disconnect();
@@ -122,25 +122,44 @@ public class IPCameraRestService {
 		return new Result(result);
 	}
 
-	@GET
+	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/updateCamInfo")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result updateCamInfo(@QueryParam("name") String name, @QueryParam("ipAddr") String ipAddr,
-			@QueryParam("username") String username, @QueryParam("password") String password,
-			@QueryParam("rtspUrl") String rtspUrl) {
+	public Result updateCamInfo(Broadcast camera) {
 		boolean result = false;
 		logger.warn("inside of rest service");
-		Broadcast cam = getCameraStore().getCamera(ipAddr);
-		getApplicationInstance().stopCameraStreaming(cam);
 
-		result = getCameraStore().editCameraInfo(name, ipAddr, username, password, rtspUrl);
+		logger.warn(camera.getStatus());
 
-		if (result = true) {
+		if (camera.getStatus().equals("broadcasting")) {
+			getApplicationInstance().stopCameraStreaming(camera);
+		}
+		result = getCameraStore().editCameraInfo(camera);
 
-			Broadcast newCam = getCameraStore().getCamera(ipAddr);
+		OnvifCamera onvif = new OnvifCamera();
+		onvif.connect(camera.getIpAddr(), camera.getUsername(), camera.getPassword());
+		String rtspURL = onvif.getRTSPStreamURI();
+
+		logger.warn("camera starting poing inside camera edit:  " + camera.getStreamId());
+
+		if (result = true && rtspURL != "no") {
+
+			String authparam = camera.getUsername() + ":" + camera.getPassword() + "@";
+			String rtspURLWithAuth = "rtsp://" + authparam + rtspURL.substring("rtsp://".length());
+			System.out.println("rtsp url with auth:" + rtspURLWithAuth);
+			camera.setRtspUrl(rtspURLWithAuth);
+
+			Broadcast newCam = getCameraStore().get(camera.getStreamId());
 			getApplicationInstance().startCameraStreaming(newCam);
 
+		} else {
+
+			logger.warn("camera couldnot started");
+			camera.setStatus("finished");
+			getCameraStore().editCameraInfo(camera);
 		}
+		onvif.disconnect();
 
 		return new Result(result);
 	}
@@ -203,6 +222,7 @@ public class IPCameraRestService {
 					logger.warn("inside of for loop" + onvifDevices.get(i).toString());
 
 					list[i] = StringUtils.substringBetween(onvifDevices.get(i).toString(), "http://", "/");
+
 				}
 			}
 
@@ -229,9 +249,9 @@ public class IPCameraRestService {
 	@GET
 	@Path("/moveUp")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result moveUp(@QueryParam("ipAddr") String ipAddr) {
+	public Result moveUp(@QueryParam("id") String id) {
 		boolean result = false;
-		OnvifCamera camera = getApplicationInstance().getOnvifCamera(ipAddr);
+		OnvifCamera camera = getApplicationInstance().getOnvifCamera(id);
 		if (camera != null) {
 			camera.MoveUp();
 			result = true;
@@ -242,9 +262,9 @@ public class IPCameraRestService {
 	@GET
 	@Path("/moveDown")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result moveDown(@QueryParam("ipAddr") String ipAddr) {
+	public Result moveDown(@QueryParam("id") String id) {
 		boolean result = false;
-		OnvifCamera camera = getApplicationInstance().getOnvifCamera(ipAddr);
+		OnvifCamera camera = getApplicationInstance().getOnvifCamera(id);
 		if (camera != null) {
 			camera.MoveDown();
 			result = true;
@@ -255,9 +275,9 @@ public class IPCameraRestService {
 	@GET
 	@Path("/moveLeft")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result moveLeft(@QueryParam("ipAddr") String ipAddr) {
+	public Result moveLeft(@QueryParam("id") String id) {
 		boolean result = false;
-		OnvifCamera camera = getApplicationInstance().getOnvifCamera(ipAddr);
+		OnvifCamera camera = getApplicationInstance().getOnvifCamera(id);
 		if (camera != null) {
 			camera.MoveLeft();
 			result = true;
@@ -268,9 +288,9 @@ public class IPCameraRestService {
 	@GET
 	@Path("/moveRight")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result moveRight(@QueryParam("ipAddr") String ipAddr) {
+	public Result moveRight(@QueryParam("id") String id) {
 		boolean result = false;
-		OnvifCamera camera = getApplicationInstance().getOnvifCamera(ipAddr);
+		OnvifCamera camera = getApplicationInstance().getOnvifCamera(id);
 		if (camera != null) {
 			camera.MoveRight();
 			result = true;

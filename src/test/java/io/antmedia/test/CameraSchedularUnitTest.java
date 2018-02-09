@@ -9,6 +9,7 @@ import java.io.IOException;
 import javax.servlet.ServletContext;
 import javax.ws.rs.core.Context;
 
+import org.bytedeco.javacpp.avformat.AVFormatContext;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -96,6 +97,10 @@ public class CameraSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	@Test
 	public void testCameraSchedular() throws InterruptedException {
 
+		long size = 1232132132;
+
+		AVFormatContext inputFormatContext = new AVFormatContext(size);
+
 		Broadcast newCam = new Broadcast("test", "10.2.40.63:8080", "admin", "admin",
 				"rtsp://10.2.40.63:8554/live1.sdp", "ipCamera");
 
@@ -109,6 +114,27 @@ public class CameraSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		Thread.sleep(1000);
 
 		assertFalse(camScheduler.isRunning());
+
+	}
+
+	@Test
+	public void testPrepareInput() throws InterruptedException {
+
+		long size = 1232;
+
+		AVFormatContext inputFormatContext = new AVFormatContext(size);
+
+		Broadcast newCam = null;
+
+		CameraScheduler camScheduler = new CameraScheduler(newCam);
+
+		assertFalse(camScheduler.prepareInput(inputFormatContext));
+
+		Broadcast newCam2 = new Broadcast("test", "10.2.40.63:8080", "admin", "admin", null, "ipCamera");
+
+		CameraScheduler camScheduler2 = new CameraScheduler(newCam2);
+
+		assertFalse(camScheduler2.prepareInput(inputFormatContext));
 
 	}
 

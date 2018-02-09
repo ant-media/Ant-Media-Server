@@ -46,6 +46,14 @@ public class MapDBStore implements IDataStore {
 
 	}
 
+	public BTreeMap<String, String> getMap() {
+		return map;
+	}
+
+	public void setMap(BTreeMap<String, String> map) {
+		this.map = map;
+	}
+
 	@Override
 	public String save(Broadcast broadcast) {
 		String streamId = null;
@@ -438,13 +446,25 @@ public class MapDBStore implements IDataStore {
 	}
 
 	@Override
-	public boolean editCameraInfo(String name, String ipAddr, String username, String password, String rtspUrl) {
+	public boolean editCameraInfo(Broadcast camera) {
 		boolean result = false;
 		try {
 
 			logger.warn("inside of editCameraInfo");
-			Broadcast camera = new Broadcast(name, ipAddr, username, password, rtspUrl, "ipCamera");
-			map.replace(ipAddr, gson.toJson(camera));
+
+			logger.warn("gelen camera:  " + camera.getStreamId());
+
+			Broadcast oldCam = get(camera.getStreamId());
+
+			oldCam.setName(camera.getName());
+			oldCam.setUsername(camera.getUsername());
+			oldCam.setPassword(camera.getPassword());
+			oldCam.setIpAddr(camera.getIpAddr());
+
+			logger.warn(oldCam.getName());
+
+			map.replace(oldCam.getStreamId(), gson.toJson(oldCam));
+
 			db.commit();
 			result = true;
 		} catch (Exception e) {
@@ -477,11 +497,36 @@ public class MapDBStore implements IDataStore {
 	}
 
 	@Override
-	public Broadcast getCamera(String streamId) {
-		if (map.containsKey(streamId)) {
-			return gson.fromJson(map.get(streamId), Broadcast.class);
+	public Broadcast getCamera(String ipAddr) {
+
+		Object[] objectArray = map.getValues().toArray();
+
+		Broadcast[] broadcastArray = new Broadcast[objectArray.length];
+
+		for (int i = 0; i < objectArray.length; i++) {
+
+			broadcastArray[i] = gson.fromJson((String) objectArray[i], Broadcast.class);
+
 		}
-		return null;
+
+		Broadcast camera = new Broadcast();
+
+		for (int i = 0; i < broadcastArray.length; i++) {
+
+			if (broadcastArray[i].getType() == "ipCamera") {
+
+				if (broadcastArray[i].getIpAddr().equals(ipAddr)) {
+
+					camera = broadcastArray[i];
+
+					break;
+
+				}
+			}
+
+		}
+
+		return camera;
 	}
 
 	@Override
@@ -525,6 +570,30 @@ public class MapDBStore implements IDataStore {
 		}
 
 		return result;
+	}
+
+	@Override
+	public boolean resetBroadcastStatus() {
+
+		Object[] objectArray = map.getValues().toArray();
+
+		Broadcast[] broadcastArray = new Broadcast[objectArray.length];
+
+		for (int i = 0; i < objectArray.length; i++) {
+
+			broadcastArray[i] = gson.fromJson((String) objectArray[i], Broadcast.class);
+
+		}
+
+		for (int i = 0; i < broadcastArray.length; i++) {
+			if (broadcastArray[i].getStatus().equals("broadcasting")) {
+				broadcastArray[i].setStatus("created");
+				map.replace(broadcastArray[i].getStreamId(), gson.toJson(broadcastArray[i]));
+			}
+
+		}
+
+		return false;
 	}
 
 }

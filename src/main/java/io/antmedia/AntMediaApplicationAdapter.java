@@ -22,6 +22,7 @@ import org.apache.http.message.BasicNameValuePair;
 import org.red5.server.adapter.MultiThreadedApplicationAdapter;
 import org.red5.server.api.scheduling.IScheduledJob;
 import org.red5.server.api.scheduling.ISchedulingService;
+import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IBroadcastStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,6 +57,14 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 	public void setDataStore(IDataStore dataStore) {
 		this.dataStore = dataStore;
+	}
+
+	@Override
+	public boolean appStart(IScope app) {
+
+		getDataStore().resetBroadcastStatus();
+
+		return true;
 	}
 
 	@Override

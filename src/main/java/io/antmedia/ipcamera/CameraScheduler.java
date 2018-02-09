@@ -59,10 +59,16 @@ public class CameraScheduler implements ICameraStream {
 			return false;
 		}
 
+		if (camera == null || camera.getRtspUrl() == null) {
+			logger.info("camera is null");
+			return false;
+		}
+
 		AVDictionary optionsDictionary = new AVDictionary();
 
 		av_dict_set(optionsDictionary, "rtsp_transport", "tcp", 0);
 		int ret;
+
 		logger.info("camera rtsp url" + camera.getRtspUrl());
 
 		if ((ret = avformat_open_input(inputFormatContext, camera.getRtspUrl(), null, optionsDictionary)) < 0) {
@@ -86,6 +92,7 @@ public class CameraScheduler implements ICameraStream {
 			lastDTS[i] = -1;
 		}
 		return true;
+
 	}
 
 	public boolean prepare(AVFormatContext inputFormatContext, AVFormatContext outputRTMPFormatContext) {
