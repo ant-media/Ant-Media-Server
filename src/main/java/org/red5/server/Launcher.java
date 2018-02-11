@@ -51,6 +51,8 @@ public class Launcher {
 
 	private GoogleAnalytics ga;
 	private String instanceId;
+	
+	
 
 	/**
 	 * Launch Red5 under it's own classloader
@@ -138,7 +140,7 @@ public class Launcher {
 					.send();
 				
 			}
-		}, 60000, 60000);
+		}, 300000, 300000);
 		
 
 		

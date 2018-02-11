@@ -44,6 +44,7 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointChannel;
 import io.antmedia.muxer.Muxer;
+import io.antmedia.rest.model.Result;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
 import io.antmedia.storage.StorageClient;
@@ -53,33 +54,6 @@ import io.antmedia.storage.StorageClient.FileType;
 @Path("/")
 public class BroadcastRestService {
 
-	public static class Result {
-
-		/**
-		 * Gives information about the operation. 
-		 * If it is true, operation is successfull
-		 * if it is false, operation is failed
-		 */
-		public boolean success = false;
-
-		/**
-		 * Message may be filled when error happens so that developer may
-		 * understand what the problem is
-		 */
-		public String message;
-
-		/**
-		 * Constructor for the object
-		 * 
-		 * @param success
-		 * @param message
-		 */
-		public Result(boolean success, String message) {
-			this.success = success;
-			this.message = message;
-		}
-	}
-	
 	public static class BroadcastStatistics 
 	{
 		public final int totalRTMPWatchersCount;

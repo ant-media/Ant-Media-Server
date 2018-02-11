@@ -23,7 +23,8 @@ import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.MongoStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.rest.BroadcastRestService;
-import io.antmedia.rest.BroadcastRestService.Result;
+import io.antmedia.rest.model.Result;
+
 import static org.mockito.Mockito.*;
 
 import java.net.InetAddress;
@@ -225,14 +226,14 @@ public class RestServiceUnitTest  {
 		assertEquals(broadcastTmp.getName(), createBroadcast.getName());
 
 		Result deleteBroadcast = restService.deleteBroadcast(createBroadcast.getStreamId());
-		assertTrue(deleteBroadcast.success);
+		assertTrue(deleteBroadcast.isSuccess());
 
 
 		deleteBroadcast = restService.deleteBroadcast(createBroadcast.getStreamId());
-		assertFalse(deleteBroadcast.success);
+		assertFalse(deleteBroadcast.isSuccess());
 
 		deleteBroadcast = restService.deleteBroadcast(null);
-		assertFalse(deleteBroadcast.success);
+		assertFalse(deleteBroadcast.isSuccess());
 
 		try {
 			createBroadcast.setStreamId(null);
@@ -242,7 +243,7 @@ public class RestServiceUnitTest  {
 			e.printStackTrace();
 		}
 		deleteBroadcast = restService.deleteBroadcast(null);
-		assertFalse(deleteBroadcast.success);
+		assertFalse(deleteBroadcast.isSuccess());
 	}
 
 }

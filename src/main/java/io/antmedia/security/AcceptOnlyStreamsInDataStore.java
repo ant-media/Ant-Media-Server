@@ -3,25 +3,41 @@ package io.antmedia.security;
 import org.red5.server.api.Red5;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IStreamPublishSecurity;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.rest.BroadcastRestService;
 
 public class AcceptOnlyStreamsInDataStore implements IStreamPublishSecurity  {
 	
 	private IDataStore dataStore;
+	
+	private boolean enabled = true;
+	
+	public static final String BEAN_NAME = "acceptOnlyStreamsInDataStore"; 
+	
+	protected static Logger logger = LoggerFactory.getLogger(AcceptOnlyStreamsInDataStore.class);
 
 	@Override
 	public boolean isPublishAllowed(IScope scope, String name, String mode) {
-		boolean result = false;
-		Broadcast broadcast = dataStore.get(name);
 		
-		if (broadcast != null) 
-		{
-			result = true;
+		boolean result = false;
+		if (enabled) {
+			Broadcast broadcast = dataStore.get(name);
+			if (broadcast != null) 
+			{
+				result = true;
+			}
+			else {
+				logger.info("No stream in data store not allowing");
+				Red5.getConnectionLocal().close();
+			}
 		}
 		else {
-			Red5.getConnectionLocal().close();
+			logger.info("AcceptOnlyStreamsInDataStore is not activated accepting all streams");
+			result = true;
 		}
 		
 		
@@ -36,6 +52,16 @@ public class AcceptOnlyStreamsInDataStore implements IStreamPublishSecurity  {
 	
 	public void setDataStore(IDataStore dataStore) {
 		this.dataStore = dataStore;
+	}
+
+
+	public boolean isEnabled() {
+		return enabled;
+	}
+
+
+	public void setEnabled(boolean enabled) {
+		this.enabled = enabled;
 	}
 
 }

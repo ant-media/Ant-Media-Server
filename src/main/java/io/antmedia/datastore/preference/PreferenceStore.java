@@ -34,6 +34,10 @@ public class PreferenceStore implements ServletContextAware{
 		Properties properties = getProperties();
 		return properties.getProperty(key);
 	}
+	
+	public void remove(String key) {
+		getProperties().remove(key);
+	}
 
 	private Properties getProperties() {
 		if (prop == null) {
@@ -43,7 +47,8 @@ public class PreferenceStore implements ServletContextAware{
 				input = new FileInputStream(fullPath);
 				prop.load(input);
 			} catch (Exception e) {
-				e.printStackTrace();
+				//e.printStackTrace();
+				//this exception may appear if file does not exist so not to log
 			}
 			finally {
 				if (input != null) {
