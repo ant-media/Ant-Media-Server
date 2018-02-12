@@ -59,9 +59,6 @@ public class ConsoleAppRestServiceTest {
 		if (AppFunctionalTest.getOS() == AppFunctionalTest.MAC_OS_X) {
 			ffmpegPath = "/usr/local/bin/ffmpeg";
 		}
-		
-		
-
 	}
 	
 	@Before
@@ -72,6 +69,7 @@ public class ConsoleAppRestServiceTest {
 	@After
 	public void teardown() {
 		httpCookieStore = null;
+		
 	}
 
 
@@ -301,6 +299,16 @@ public class ConsoleAppRestServiceTest {
 				assertEquals(broadcast.getStatus(), Application.BROADCAST_STATUS_BROADCASTING);
 
 				AppFunctionalTest.destroyProcess();
+			}
+			
+			{
+				//change settings and accept only streams to false, because it effects other tests in data store
+				appSettingsModel.acceptOnlyStreamsInDataStore = false;
+				result = callSetAppSettings("LiveApp", appSettingsModel);
+				assertTrue(result.isSuccess());
+
+				callGetAppSettings = callGetAppSettings("LiveApp");
+				assertFalse(appSettingsModel.acceptOnlyStreamsInDataStore);
 			}
 
 
