@@ -60,8 +60,13 @@ public class ConsoleAppRestServiceTest {
 			ffmpegPath = "/usr/local/bin/ffmpeg";
 		}
 		
-		httpCookieStore = new BasicCookieStore();
+		
 
+	}
+	
+	@Before
+	public void before() {
+		httpCookieStore = new BasicCookieStore();
 	}
 
 	@After
