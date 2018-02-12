@@ -14,10 +14,12 @@ import java.io.UnsupportedEncodingException;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.CookieStore;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.methods.RequestBuilder;
 import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.client.LaxRedirectStrategy;
 import org.junit.After;
@@ -49,18 +51,22 @@ public class ConsoleAppRestServiceTest {
 	private static String TEST_USER_EMAIL= "ci@antmedia.io";
 	private static String TEST_USER_PASS = "ci@ant";
 
+	private static BasicCookieStore httpCookieStore;
+
 
 	@BeforeClass
 	public static void beforeClass() {
 		if (AppFunctionalTest.getOS() == AppFunctionalTest.MAC_OS_X) {
 			ffmpegPath = "/usr/local/bin/ffmpeg";
 		}
+		
+		httpCookieStore = new BasicCookieStore();
 
 	}
 
 	@After
 	public void teardown() {
-
+		httpCookieStore = null;
 	}
 
 
@@ -358,6 +364,7 @@ public class ConsoleAppRestServiceTest {
 		String url = ROOT_SERVICE_URL + "/authenticateUser";
 		HttpClient client = HttpClients.custom()
 				.setRedirectStrategy(new LaxRedirectStrategy())
+				.setDefaultCookieStore(httpCookieStore)
 				.build();
 		Gson gson = new Gson();
 		HttpUriRequest post = RequestBuilder.post()
@@ -385,6 +392,7 @@ public class ConsoleAppRestServiceTest {
 		String url = ROOT_SERVICE_URL + "/changeSettings/" + appName;
 		HttpClient client = HttpClients.custom()
 				.setRedirectStrategy(new LaxRedirectStrategy())
+				.setDefaultCookieStore(httpCookieStore)
 				.build();
 		Gson gson = new Gson();
 
@@ -414,6 +422,7 @@ public class ConsoleAppRestServiceTest {
 
 		HttpClient client = HttpClients.custom()
 				.setRedirectStrategy(new LaxRedirectStrategy())
+				.setDefaultCookieStore(httpCookieStore)
 				.build();
 		Gson gson = new Gson();
 
