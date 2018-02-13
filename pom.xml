@@ -9,7 +9,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>io.antmedia</groupId>
 	<artifactId>ant-media-server</artifactId>
-	<version>1.2.1-SNAPSHOT</version>
+	<version>1.2.2</version>
 	<name>Ant Media Server</name>
 	<description>Ant Media Server supports RTMP, RTSP, MP4, HLS, WebRTC, Adaptive Streaming, etc.</description>
 	<packaging>jar</packaging>
@@ -51,7 +51,7 @@
 		<finalName>${project.artifactId}-${project.version}</finalName>
 		<red5-io.version>${project.parent.version}</red5-io.version>
 		<red5-service.version>${project.version}</red5-service.version>
-		<red5-server-common.version>1.2.1-SNAPSHOT</red5-server-common.version>
+		<red5-server-common.version>1.2.2</red5-server-common.version>
 		<cors-filter.version>2.5</cors-filter.version>
 		<periscope-api.version>1.0.0</periscope-api.version>
 		<restfb.version>1.43.0</restfb.version>
@@ -63,12 +63,12 @@
     	    <maven.build.timestamp.format>yyMMdd_HHmm</maven.build.timestamp.format>
         <buildNumber>${maven.build.timestamp}</buildNumber>
         <enunciate.version>2.10.0</enunciate.version>
-        <webrtcapp.version>1.2.1-SNAPSHOT</webrtcapp.version>
-        <consoleapp.version>1.2.1-SNAPSHOT</consoleapp.version>
-		<liveapp.version>1.2.1-SNAPSHOT</liveapp.version>
-		<webrtcappee.version>1.2.1-SNAPSHOT</webrtcappee.version>	
+        <webrtcapp.version>1.2.2</webrtcapp.version>
+        <consoleapp.version>1.2.2</consoleapp.version>
+		<liveapp.version>1.2.2</liveapp.version>
+		<webrtcappee.version>1.2.2</webrtcappee.version>	
 		<ant-media-server-service.version>1.2.0</ant-media-server-service.version>
-		<ant-media-server-enterprise.version>1.2.1-SNAPSHOT</ant-media-server-enterprise.version>
+		<ant-media-server-enterprise.version>1.2.2</ant-media-server-enterprise.version>
 	</properties>
 
 	<build>
