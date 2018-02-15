@@ -16,6 +16,16 @@ Ant Media Server is an Open Source Media Server that supports:
 
 ## Releases 
 
+#### [Ant Media Server 1.2.2 Release (Feb 13, 2018)](https://github.com/ant-media/Ant-Media-Server/releases/tag/ams-v1.2.2)
+* Add Publish Security Handler:
+  "Allow Only Streams in Datastore" or "Allow all" can be configured via Management Console UI
+* Show non-registered live streams on Management Console when "Allow all" is active
+* Fix the problem when there is no audio in WebRTC stream while publishing
+* Add google analytic for just measure how many instances are alive
+* Publish Live Stream to Facebook Pages
+* Add new rest service endpoints that returns viewer count
+* Minor bug fixes & improvement on Management Console UI & Refactor codes
+
 #### [Ant Media Server 1.2.1 SNAPSHOT Release (Feb 3, 2018)](https://oss.sonatype.org/service/local/repositories/snapshots/content/io/antmedia/ant-media-server/1.2.1-SNAPSHOT/ant-media-server-1.2.1-20180203.094349-1-community-1.2.1-SNAPSHOT-180203_0943.zip)
 * Enable SSL script [Blog post](https://antmedia.io/enable-ssl-on-ant-media-server/)
 * Fix No Audio or No Video issue in WebRTC Streams
