@@ -10,6 +10,8 @@ import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
@@ -33,6 +35,7 @@ import com.google.gson.Gson;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
+import io.antmedia.EncoderSettings;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.rest.model.AppSettingsModel;
 import io.antmedia.rest.model.Result;
@@ -60,7 +63,7 @@ public class ConsoleAppRestServiceTest {
 			ffmpegPath = "/usr/local/bin/ffmpeg";
 		}
 	}
-	
+
 	@Before
 	public void before() {
 		httpCookieStore = new BasicCookieStore();
@@ -69,7 +72,7 @@ public class ConsoleAppRestServiceTest {
 	@After
 	public void teardown() {
 		httpCookieStore = null;
-		
+
 	}
 
 
@@ -152,6 +155,79 @@ public class ConsoleAppRestServiceTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+	}
+
+	/**
+	 * This may be a bug, just check it out, it is working as expectes
+	 */
+	@Test
+	public void testMuxingDisableCheckStreamStatus() {
+
+		try {
+			//Get App Settings
+			User user = new User();
+			user.email = TEST_USER_EMAIL;
+			user.password = TEST_USER_PASS;
+			Result authenticatedUserResult = callAuthenticateUser(user);
+			assertTrue(authenticatedUserResult.isSuccess());
+			
+			AppSettingsModel appSettingsModel = callGetAppSettings("LiveApp");
+
+			//Change app settings and make mp4 and hls muxing false
+			appSettingsModel.mp4MuxingEnabled = false;
+			appSettingsModel.hlsMuxingEnabled = false;
+			List<EncoderSettings> encoderSettings = new ArrayList();
+			for(int i = 0; i < appSettingsModel.encoderSettings.size(); i++) {
+				encoderSettings.add(appSettingsModel.encoderSettings.get(i));
+			}
+			appSettingsModel.encoderSettings.clear();
+			
+			Result result = callSetAppSettings("LiveApp", appSettingsModel);
+			assertTrue(result.isSuccess());
+
+			//send stream
+			Broadcast broadcastCreated = RestServiceTest.callCreateBroadcast(10000);
+			assertNotNull(broadcastCreated.getStreamId());
+			assertEquals(broadcastCreated.getStatus(), Application.BROADCAST_STATUS_CREATED);
+			
+			AppFunctionalTest.executeProcess(ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/" + broadcastCreated.getStreamId());
+
+			Thread.sleep(5000);
+			
+			//check stream status is broadcasting
+			Broadcast broadcast = RestServiceTest.callGetBroadcast(broadcastCreated.getStreamId());
+			
+			assertEquals(broadcast.getStatus(), AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+
+			//stop stream
+			AppFunctionalTest.destroyProcess();
+			
+			Thread.sleep(3000);
+			
+			//check stream status is finished
+			broadcast = RestServiceTest.callGetBroadcast(broadcastCreated.getStreamId());
+		
+			assertEquals(broadcast.getStatus(), AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+			
+			
+			//restore settings
+			appSettingsModel.mp4MuxingEnabled = true;
+			appSettingsModel.hlsMuxingEnabled = true;
+			appSettingsModel.encoderSettings = encoderSettings;
+			
+			result = callSetAppSettings("LiveApp", appSettingsModel);
+			assertTrue(result.isSuccess());
+			
+			AppSettingsModel callGetAppSettings = callGetAppSettings("LiveApp");
+			assertTrue(callGetAppSettings.encoderSettings.size() > 0);
+			
+			
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+
 	}
 
 	@Test
@@ -267,7 +343,7 @@ public class ConsoleAppRestServiceTest {
 				callGetAppSettings = callGetAppSettings("LiveApp");
 				assertTrue(appSettingsModel.acceptOnlyStreamsInDataStore);
 			}
-			
+
 			//send anonymous stream
 			//check that it is not accepted
 			{
@@ -281,7 +357,7 @@ public class ConsoleAppRestServiceTest {
 				assertNull(broadcast.getStreamId());
 				AppFunctionalTest.destroyProcess();
 			}
-			
+
 			//create a stream through rest service
 			//check that it is accepted
 			{
@@ -300,7 +376,7 @@ public class ConsoleAppRestServiceTest {
 
 				AppFunctionalTest.destroyProcess();
 			}
-			
+
 			{
 				//change settings and accept only streams to false, because it effects other tests in data store
 				appSettingsModel.acceptOnlyStreamsInDataStore = false;
