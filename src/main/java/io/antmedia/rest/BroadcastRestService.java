@@ -81,6 +81,10 @@ public class BroadcastRestService {
 		
 	}
 
+	private static final int ERROR_SOCIAL_ENDPOINT_UNDEFINED_CLIENT_ID = -1;
+	private static final int ERROR_SOCIAL_ENDPOINT_UNDEFINED_ENDPOINT = -2;
+	private static final int ERROR_SOCIAL_ENDPOINT_NO_ENDPOINT = -3;
+
 	@Context
 	private ServletContext servletContext;
 
@@ -680,6 +684,7 @@ public class BroadcastRestService {
 	public Object getDeviceAuthParameters(@PathParam("serviceName") String serviceName) {
 		List<VideoServiceEndpoint> endPoint = getEndpointList();
 		String message = null;
+		int errorId = 0;
 		boolean serviceFound = false;
 		if (endPoint != null) {
 			for (VideoServiceEndpoint videoServiceEndpoint : endPoint) {
@@ -693,6 +698,7 @@ public class BroadcastRestService {
 						}
 						else {
 							message = "Please enter service client id and client secret in app configuration";
+							errorId = ERROR_SOCIAL_ENDPOINT_UNDEFINED_CLIENT_ID;
 						}
 
 					}
@@ -703,12 +709,14 @@ public class BroadcastRestService {
 			}
 			if (!serviceFound) {
 				message = "Service with the name specified is not found in this app";
+				errorId = ERROR_SOCIAL_ENDPOINT_UNDEFINED_ENDPOINT;
 			}
 		}
 		else {
 			message = "No endpoint is defined for this app";
+			errorId = ERROR_SOCIAL_ENDPOINT_NO_ENDPOINT;
 		}
-		return new Result(false, message);
+		return new Result(false, message, errorId);
 	}
 
 

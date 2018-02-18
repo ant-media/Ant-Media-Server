@@ -65,7 +65,7 @@
         <enunciate.version>2.10.0</enunciate.version>
         <webrtcapp.version>1.2.2</webrtcapp.version>
         <consoleapp.version>1.2.3</consoleapp.version>
-		<liveapp.version>1.2.3</liveapp.version>
+		<liveapp.version>1.2.4</liveapp.version>
 		<webrtcappee.version>1.2.3</webrtcappee.version>	
 		<ant-media-server-service.version>1.2.0</ant-media-server-service.version>
 		<ant-media-server-enterprise.version>1.2.4</ant-media-server-enterprise.version>
