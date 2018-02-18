@@ -187,4 +187,16 @@ public class InMemoryDataStore implements IDataStore {
 		return list;
 	}
 
+	@Override
+	public boolean removeAllEndpoints(String id) 
+	{
+		boolean result = false;
+		Broadcast broadcast = broadcastMap.get(id);
+		if (broadcast != null) {
+			broadcast.setEndPointList(null);
+			result = true;
+		}
+		return result;
+	}
+
 }

@@ -198,7 +198,6 @@ public class BroadcastRestService {
 	}
 
 
-
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/broadcast/stop/{streamId}")
@@ -235,21 +234,40 @@ public class BroadcastRestService {
 	 * @return
 	 * {@link  io.antmedia.rest.BroadcastRestService.Result}
 	 *  
-	 */
+	 */	
 	@POST
-	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-	@Path("/broadcast/updateInfo")
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/broadcast/update")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result updateInfo(@FormParam("id") String id, @FormParam("name") String name, @FormParam("description") String description) {
-
-		boolean success = false;
-		String message = null;
-		if (getDataStore().updateName(id, name, description)) {
-			success = true;
-			message = "Modified count is not equal to 1";
+	public Result updateBroadcast(Broadcast broadcast, @QueryParam("socialNetworks") String socialNetworksToPublish) {
+		boolean result = getDataStore().updateName(broadcast.getStreamId(), broadcast.getName(), broadcast.getDescription());
+		String message = "";
+		int errorId = 0;
+		if (result != false) 
+		{
+			Broadcast fetchedBroadcast = getDataStore().get(broadcast.getStreamId());
+			getDataStore().removeAllEndpoints(fetchedBroadcast.getStreamId());
+			
+			if (socialNetworksToPublish != null && socialNetworksToPublish.length() > 0) 
+			{
+				String[] socialNetworks = socialNetworksToPublish.split(",");
+				
+				for (String networkName : socialNetworks) 
+				{
+					Result addSocialEndpoint = addSocialEndpoint(broadcast.getStreamId(), networkName);
+					if (!addSocialEndpoint.isSuccess()) {
+						result = false;
+						message += networkName + " ";
+						errorId = -1;
+						break;
+					}
+				}
+			}
 		}
-
-		return new Result(success, message);
+		if (message.length() > 0) {
+			message += " endpoint cannot be added";
+		}
+		return new Result(result, message, errorId);
 	}
 
 
@@ -282,6 +300,8 @@ public class BroadcastRestService {
 
 		return new Result(success, message);
 	}
+	
+	
 
 	/**
 	 * Revoke authorization from a social network account that is authorized before

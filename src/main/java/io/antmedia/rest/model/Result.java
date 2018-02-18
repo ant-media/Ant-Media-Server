@@ -32,6 +32,12 @@ public class Result {
 		this.success = success;
 	}
 
+	public Result(boolean result, String message, int errorId) {
+		this.success = result;
+		this.message = message;
+		this.errorId = errorId;
+	}
+
 	public boolean isSuccess() {
 		return success;
 	}

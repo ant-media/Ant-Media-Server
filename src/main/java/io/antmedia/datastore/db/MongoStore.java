@@ -201,6 +201,21 @@ public class MongoStore implements IDataStore {
 		}
 		return result;
 	}
+	
+	@Override
+	public boolean removeAllEndpoints(String id) {
+		boolean result = false;
+		
+		if (id != null) 
+		{
+			Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(id);
+			UpdateOperations<Broadcast> ops = datastore
+					.createUpdateOperations(Broadcast.class).unset("endPointList");
+			UpdateResults update = datastore.update(query, ops);
+			return update.getUpdatedCount() == 1;	
+		}
+		return result;
+	}
 
 
 	/* (non-Javadoc)
@@ -237,7 +252,5 @@ public class MongoStore implements IDataStore {
 	public Datastore getDataStore() {
 		return datastore;
 	}
-
-
 
 }

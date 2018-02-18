@@ -54,7 +54,7 @@ public class MapDBStore implements IDataStore {
 					broadcast.setStreamId(streamId);
 				}
 				streamId = broadcast.getStreamId();
-				
+
 				String rtmpURL = broadcast.getRtmpURL();
 				if (rtmpURL != null) {
 					rtmpURL += streamId; 
@@ -189,13 +189,29 @@ public class MapDBStore implements IDataStore {
 							break;
 						}
 					}
-					
+
 					if (result) {
 						broadcast.setEndPointList(endPointList);
 						map.replace(id, gson.toJson(broadcast));
 						db.commit();
 					}
 				}
+			}
+		}
+		return result;
+	}
+	
+	@Override
+	public boolean removeAllEndpoints(String id) {
+		boolean result = false;
+		if (id != null) {
+			String jsonString = map.get(id);
+			if (jsonString != null) {
+				Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
+				broadcast.setEndPointList(null);
+				map.replace(id, gson.toJson(broadcast));
+				db.commit();
+				result = true;
 			}
 		}
 		return result;
@@ -243,7 +259,6 @@ public class MapDBStore implements IDataStore {
 		}
 		return list;
 	}
-
 
 
 }

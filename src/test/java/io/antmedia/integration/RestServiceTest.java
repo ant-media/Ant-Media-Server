@@ -107,6 +107,8 @@ public class RestServiceTest {
 		createBroadcast("name");
 	}
 
+	
+	
 	public Broadcast createBroadcast(String name) {
 		String url = ROOT_SERVICE_URL + "/broadcast/create";
 
@@ -147,7 +149,50 @@ public class RestServiceTest {
 		return null;
 	}
 
+	public Result updateBroadcast(String id, String name, String description, String socialNetworks) {
+		String url = ROOT_SERVICE_URL + "/broadcast/update";
 
+		HttpClient client = HttpClients.custom()
+				.setRedirectStrategy(new LaxRedirectStrategy())
+				.build();
+		Gson gson = new Gson();
+		Broadcast broadcast = new Broadcast();
+		try {
+			broadcast.setStreamId(id);
+		} catch (Exception e1) {
+			e1.printStackTrace();
+			fail(e1.getMessage());
+		}
+		broadcast.setName(name);
+		broadcast.setDescription(description);
+		
+
+		try {
+
+			HttpUriRequest post = RequestBuilder.post()
+					.setUri(url +"?socialNetworks=" + socialNetworks)
+					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+					.setEntity(new StringEntity(gson.toJson(broadcast)))
+					.build();
+
+			HttpResponse response = client.execute(post);
+
+			StringBuffer result = readResponse(response);
+
+			if (response.getStatusLine().getStatusCode() != 200) {
+				throw new Exception(result.toString());
+			}
+			System.out.println("result string: " + result.toString());
+			Result tmp = gson.fromJson(result.toString(), Result.class);
+
+			return tmp;
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		return null;
+	}
 
 
 
@@ -798,6 +843,7 @@ public class RestServiceTest {
 	}
 
 
+	/*
 	public Result updateNameAndDescription(String broadcastId, String name,	String description ) throws Exception {
 		CloseableHttpClient httpclient = HttpClients.createDefault();
 
@@ -823,7 +869,7 @@ public class RestServiceTest {
 		Result tmp = gson.fromJson(result.toString(), Result.class);
 
 		return tmp;
-	}
+	}*/
 
 	public Result updatePublish(String broadcastId, boolean publish) throws Exception {
 		CloseableHttpClient httpclient = HttpClients.createDefault();
@@ -853,7 +899,7 @@ public class RestServiceTest {
 
 	@Test
 	public void testUpdate() {
-
+		
 		//create broadcast
 		Broadcast broadcast = createBroadcast(null);
 
@@ -861,9 +907,11 @@ public class RestServiceTest {
 		String description = "String descriptio";
 		//update name and description
 		try {
-			Result result = updateNameAndDescription(broadcast.getStreamId().toString(), name, description);
+			//update broadcast just name no social network
+			Result result = updateBroadcast(broadcast.getStreamId(), name, description, "");
 			assertTrue(result.isSuccess());
 
+			//check that name is updated
 			//get broadcast
 			broadcast = getBroadcast(broadcast.getStreamId().toString());
 
@@ -884,6 +932,39 @@ public class RestServiceTest {
 			assertEquals(broadcast.getName(), name);
 			assertEquals(broadcast.getDescription(), description);
 			assertEquals(broadcast.isPublish(), publish);
+			
+			
+			name = "name 2";
+			description = " description 2";
+			//update broadcast name and add social network
+			 result = updateBroadcast(broadcast.getStreamId(), name, description, "periscope");
+			assertTrue(result.isSuccess());
+			
+			broadcast = getBroadcast(broadcast.getStreamId().toString());
+			assertEquals(broadcast.getName(), name);
+			assertEquals(broadcast.getDescription(), description);
+			
+			//update broadcast name					
+			name = "name 3";
+			description = " description 3";
+			result = updateBroadcast(broadcast.getStreamId(), name, description, "periscope");
+			assertTrue(result.isSuccess());
+			
+			//check that name is updated on stream name and social end point stream name
+			broadcast = getBroadcast(broadcast.getStreamId().toString());
+			assertEquals(broadcast.getName(), name);
+			assertEquals(broadcast.getDescription(), description);
+			
+			assertEquals(broadcast.getEndPointList().get(0).name, name);
+			
+			
+			//update broadcast name and remove social endpoint
+			result = updateBroadcast(broadcast.getStreamId(), name, description, "");
+			
+			//check that social endpoint is removed
+			broadcast = getBroadcast(broadcast.getStreamId().toString());
+			assertNull(broadcast.getEndPointList());
+			
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -1018,7 +1099,7 @@ public class RestServiceTest {
 		}
 	}
 
-
+	
 	@Test
 	public void testCheckSocialEndpointRecreated() {
 		Result result;
@@ -1027,6 +1108,8 @@ public class RestServiceTest {
 			Broadcast broadcast = createBroadcast("social_endpoint_check");
 			//add facebook endpoint
 
+			
+		
 			/*
 
 			in enterprise edition
@@ -1058,7 +1141,6 @@ public class RestServiceTest {
 			//check that 1 element exist
 			assertNotNull(broadcast.getEndPointList());
 			assertEquals(broadcast.getEndPointList().size(), 1);
-
 
 
 			broadcast = getBroadcast(broadcast.getStreamId().toString());
