@@ -10,6 +10,8 @@ import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -46,7 +48,7 @@ import io.antmedia.test.Application;
 public class ConsoleAppRestServiceTest {
 
 
-	private static final String ROOT_SERVICE_URL = "http://localhost:5080/ConsoleApp/rest";
+	private static  String ROOT_SERVICE_URL;
 
 	private static String ffmpegPath = "ffmpeg";
 
@@ -55,7 +57,18 @@ public class ConsoleAppRestServiceTest {
 	private static String TEST_USER_PASS = "ci@ant";
 
 	private static BasicCookieStore httpCookieStore;
-
+	
+	static {
+		
+		try {
+			ROOT_SERVICE_URL = "http://"+ InetAddress.getLocalHost().getHostAddress() +":5080/ConsoleApp/rest";
+		} catch (UnknownHostException e) {
+			e.printStackTrace();
+		}
+		
+		System.out.println("ROOT SERVICE URL: " + ROOT_SERVICE_URL);
+		
+	}
 
 	@BeforeClass
 	public static void beforeClass() {
