@@ -149,6 +149,7 @@ public class Launcher {
 
 			@Override
 			public void run() {
+				System.out.println("Shutting down just a sec");
 				getGoogleAnalytic(implementationVersion, type).screenView()
 					.clientId(instanceId)
 					.sessionControl("end")
