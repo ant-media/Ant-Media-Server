@@ -258,21 +258,6 @@ public class BroadcastRestService {
 		return getBroadcast(broadcast.getStreamId());
 	}
 
-	@POST
-	@Consumes(MediaType.APPLICATION_JSON)
-	@Path("/broadcast/addVODtoBroadcast")
-	@Produces(MediaType.APPLICATION_JSON)
-	public Broadcast addVODtoBroadcast(Broadcast broadcast, Vod vod) {
-
-		if (broadcast.getStreamId() != null && vod != null) {
-
-			getDataStore().addVod(broadcast.getStreamId(), vod);
-
-		}
-
-		return getBroadcast(broadcast.getStreamId());
-	}
-
 	/**
 	 * Updates broadcast name or status
 	 * 
@@ -561,6 +546,14 @@ public class BroadcastRestService {
 	 * 
 	 * @return {@link LiveStatistics}
 	 */
+
+	@GET
+	@Path("/broadcast/getVodList/{offset}/{size}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public List<Vod> getVodList(@PathParam("offset") int offset, @PathParam("size") int size) {
+		return getDataStore().getVodList(offset, size);
+	}
+
 	@GET
 	@Path("/broadcast/getAppLiveStatistics")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -605,10 +598,10 @@ public class BroadcastRestService {
 	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
 	 * 
 	 */
-	@POST
-	@Consumes({ MediaType.APPLICATION_JSON })
-	@Path("/broadcast/deleteVoDFile/{id}")
 
+	@GET
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/broadcast/filterList/{offset}/{size}/{type}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public List<Broadcast> filterBroadcastList(@PathParam("offset") int offset, @PathParam("size") int size,
 			@PathParam("type") String type) {
@@ -622,8 +615,15 @@ public class BroadcastRestService {
 	public List<Vod> filterVoDList(SearchParam searchparam, @QueryParam("offset") int offset,
 			@QueryParam("size") int size) {
 
-		return getDataStore().filterVoDList(offset, size, searchparam.getKeyword(), searchparam.getStartDate(),
-				searchparam.getEndDate());
+		if (searchparam != null) {
+
+			logger.warn(" vod filter operation");
+
+			return getDataStore().filterVoDList(offset, size, searchparam.getKeyword(), searchparam.getStartDate(),
+					searchparam.getEndDate());
+
+		}
+		return null;
 	}
 
 	@POST
@@ -637,10 +637,15 @@ public class BroadcastRestService {
 			// TODO: write test code for this function
 			File recordFile = Muxer.getRecordFile(getScope(), fileName, ".mp4");
 			System.out.println("recordfile : " + recordFile.getAbsolutePath());
+
+			success = getDataStore().deleteVod(id);
+
 			if (recordFile.exists()) {
 				success = true;
 				recordFile.delete();
 				getDataStore().deleteVod(id);
+				message = "file is found and deleted";
+
 			} else {
 				message = "No file to delete";
 			}

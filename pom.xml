@@ -210,7 +210,7 @@
 			<artifactId>onvif-2016-03-16</artifactId>
 			<version>1.0</version>
 			<scope>system</scope>
-			<systemPath>${basedir}${file.separator}src${file.separator}main${file.separator}resources${file.separator}onvif-2016-03-16.jar</systemPath>
+			<systemPath>/home/karinca/git/Ant-Media-Server/src/main/resources/onvif-2016-03-16.jar</systemPath>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.tomcat</groupId>

@@ -132,14 +132,17 @@ public class DeviceDiscovery {
 		}
 
 		ExecutorService executorService = Executors.newCachedThreadPool();
+		int port = 63454;
 		for (final InetAddress address : addressList) {
 			if (useIpv4 && address instanceof Inet6Address)
 				continue;
 			if (!useIpv4 && address instanceof Inet4Address)
 				continue;
-			final int port = random.nextInt(20000) + 40000;
+
 			try {
+
 				DatagramSocket socket = new DatagramSocket(port);
+				port = port + 1;
 				Thread probeReceiver = new ProbeReceiverThread(addresses, serverStarted, socket, serverFinished);
 				Thread probeSender = new ProbeSenderThread(address, socket, probeMsgTemplate, serverStarted,
 						serverFinished, probeReceiver);
