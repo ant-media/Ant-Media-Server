@@ -59,6 +59,22 @@
 							class="org.apache.catalina.tribes.group.interceptors.MessageDispatchInterceptor" />
 						<bean
 							class="org.apache.catalina.tribes.group.interceptors.ThroughputInterceptor" />
+							
+							<!-- 
+						<bean class="io.antmedia.enterprise.cluster.EasyStaticMemberInterceptor" >
+							<constructor-arg>
+									<list>
+											<bean class="org.apache.catalina.tribes.membership.StaticMember" >
+												<property name="port" value="5000" />
+												<property name="securePort" value="-1" />
+												<property name="hostname" value="localhost" />
+												<property name="domain" value="cluster-antmedia" />
+												<property name="uniqueId" value="{10,0,10,227}" />
+											</bean>
+									</list>
+							</constructor-arg>
+						</bean>	
+						-->
 					</list>
 				</constructor-arg>
 				<constructor-arg>
