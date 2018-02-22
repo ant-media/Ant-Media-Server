@@ -60,7 +60,9 @@
 						<bean
 							class="org.apache.catalina.tribes.group.interceptors.ThroughputInterceptor" />
 							
+							
 							<!-- 
+					    <bean class="org.apache.catalina.tribes.group.interceptors.TcpPingInterceptor" />
 						<bean class="io.antmedia.enterprise.cluster.EasyStaticMemberInterceptor" >
 							<constructor-arg>
 									<list>
