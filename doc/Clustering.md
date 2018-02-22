@@ -43,7 +43,13 @@ In static clustering, all nodes should know what the other nodes' IP addresses a
 
 * Open the `conf/jee-container.xml`file which it is moved from `conf/jee-container-cluster.xml`
 
-* Uncomment the below block in `conf/jee-container.xml`
+* Uncomment the below blocks in `conf/jee-container.xml` . The order of Interceptors are criticial please do not change them.
+```xml
+<!-- 
+<bean class="org.apache.catalina.tribes.group.interceptors.TcpPingInterceptor" />
+-->
+
+```
 ```xml
 <!-- 
 <bean class="io.antmedia.enterprise.cluster.EasyStaticMemberInterceptor" >
