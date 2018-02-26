@@ -211,6 +211,22 @@ public class MapDBStore implements IDataStore {
 	}
 
 	@Override
+	public boolean removeAllEndpoints(String id) {
+		boolean result = false;
+		if (id != null) {
+			String jsonString = map.get(id);
+			if (jsonString != null) {
+				Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
+				broadcast.setEndPointList(null);
+				map.replace(id, gson.toJson(broadcast));
+				db.commit();
+				result = true;
+			}
+		}
+		return result;
+	}
+
+	@Override
 	public long getBroadcastCount() {
 		return map.getSize();
 	}

@@ -184,6 +184,7 @@ public class InMemoryDataStore implements IDataStore {
 	}
 
 	@Override
+
 	public boolean addCamera(Broadcast camera) {
 		// TODO Auto-generated method stub
 		return false;
@@ -253,6 +254,17 @@ public class InMemoryDataStore implements IDataStore {
 	public boolean resetBroadcastStatus() {
 		// TODO Auto-generated method stub
 		return false;
+	}
+
+	public boolean removeAllEndpoints(String id) {
+		boolean result = false;
+		Broadcast broadcast = broadcastMap.get(id);
+		if (broadcast != null) {
+			broadcast.setEndPointList(null);
+			result = true;
+		}
+		return result;
+
 	}
 
 }

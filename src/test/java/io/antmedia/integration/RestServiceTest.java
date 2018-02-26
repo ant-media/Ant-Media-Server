@@ -51,7 +51,7 @@ import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.BroadcastRestService.BroadcastStatistics;
 import io.antmedia.rest.BroadcastRestService.LiveStatistics;
-import io.antmedia.rest.BroadcastRestService.Result;
+import io.antmedia.rest.model.Result;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
 
 
@@ -82,7 +82,7 @@ public class RestServiceTest {
 	}
 
 	private static String ffmpegPath = "ffmpeg";
-	Gson gson = new Gson();
+	private static Gson gson = new Gson();
 
 
 	@BeforeClass
@@ -107,6 +107,8 @@ public class RestServiceTest {
 		createBroadcast("name");
 	}
 
+	
+	
 	public Broadcast createBroadcast(String name) {
 		String url = ROOT_SERVICE_URL + "/broadcast/create";
 
@@ -147,7 +149,50 @@ public class RestServiceTest {
 		return null;
 	}
 
+	public Result updateBroadcast(String id, String name, String description, String socialNetworks) {
+		String url = ROOT_SERVICE_URL + "/broadcast/update";
 
+		HttpClient client = HttpClients.custom()
+				.setRedirectStrategy(new LaxRedirectStrategy())
+				.build();
+		Gson gson = new Gson();
+		Broadcast broadcast = new Broadcast();
+		try {
+			broadcast.setStreamId(id);
+		} catch (Exception e1) {
+			e1.printStackTrace();
+			fail(e1.getMessage());
+		}
+		broadcast.setName(name);
+		broadcast.setDescription(description);
+		
+
+		try {
+
+			HttpUriRequest post = RequestBuilder.post()
+					.setUri(url +"?socialNetworks=" + socialNetworks)
+					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+					.setEntity(new StringEntity(gson.toJson(broadcast)))
+					.build();
+
+			HttpResponse response = client.execute(post);
+
+			StringBuffer result = readResponse(response);
+
+			if (response.getStatusLine().getStatusCode() != 200) {
+				throw new Exception(result.toString());
+			}
+			System.out.println("result string: " + result.toString());
+			Result tmp = gson.fromJson(result.toString(), Result.class);
+
+			return tmp;
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		return null;
+	}
 
 
 
@@ -326,7 +371,7 @@ public class RestServiceTest {
 	}
 
 
-	public Broadcast callCreateBroadcast(int expireTimeMS) throws Exception {
+	public static Broadcast callCreateBroadcast(int expireTimeMS) throws Exception {
 
 		String url = ROOT_SERVICE_URL + "/broadcast/create";
 
@@ -485,7 +530,7 @@ public class RestServiceTest {
 		return null;
 	}
 
-	public Broadcast callGetBroadcast(String streamId) throws Exception {
+	public static Broadcast callGetBroadcast(String streamId) throws Exception {
 		String url = ROOT_SERVICE_URL + "/broadcast/get";
 
 		CloseableHttpClient client = HttpClients.custom()
@@ -544,7 +589,7 @@ public class RestServiceTest {
 		Result result2 = deleteBroadcast(null);
 
 		assertNotNull(result2);
-		assertFalse(result2.success);
+		assertFalse(result2.isSuccess());
 	}
 
 
@@ -571,7 +616,7 @@ public class RestServiceTest {
 		System.out.println("result string: " + result.toString());
 		Result responseResult = gson.fromJson(result.toString(), Result.class);
 		assertNotNull(responseResult);
-		return responseResult.success;
+		return responseResult.isSuccess();
 	}
 
 	@Test
@@ -662,8 +707,6 @@ public class RestServiceTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-
-
 	}
 
 
@@ -697,7 +740,7 @@ public class RestServiceTest {
 			String response = makePOSTRequest(url, null);
 
 			Result deleteVoDResponse = gson.fromJson(response.toString(), Result.class);
-			assertTrue(deleteVoDResponse.success);
+			assertTrue(deleteVoDResponse.isSuccess());
 
 
 			try {
@@ -800,6 +843,7 @@ public class RestServiceTest {
 	}
 
 
+	/*
 	public Result updateNameAndDescription(String broadcastId, String name,	String description ) throws Exception {
 		CloseableHttpClient httpclient = HttpClients.createDefault();
 
@@ -825,7 +869,7 @@ public class RestServiceTest {
 		Result tmp = gson.fromJson(result.toString(), Result.class);
 
 		return tmp;
-	}
+	}*/
 
 	public Result updatePublish(String broadcastId, boolean publish) throws Exception {
 		CloseableHttpClient httpclient = HttpClients.createDefault();
@@ -855,7 +899,7 @@ public class RestServiceTest {
 
 	@Test
 	public void testUpdate() {
-
+		
 		//create broadcast
 		Broadcast broadcast = createBroadcast(null);
 
@@ -863,9 +907,11 @@ public class RestServiceTest {
 		String description = "String descriptio";
 		//update name and description
 		try {
-			Result result = updateNameAndDescription(broadcast.getStreamId().toString(), name, description);
-			assertTrue(result.success);
+			//update broadcast just name no social network
+			Result result = updateBroadcast(broadcast.getStreamId(), name, description, "");
+			assertTrue(result.isSuccess());
 
+			//check that name is updated
 			//get broadcast
 			broadcast = getBroadcast(broadcast.getStreamId().toString());
 
@@ -877,7 +923,7 @@ public class RestServiceTest {
 			//update publish info
 			boolean publish = false;
 			result = updatePublish(broadcast.getStreamId().toString(), publish);
-			assertTrue(result.success);
+			assertTrue(result.isSuccess());
 
 			//get broacdast
 			broadcast = getBroadcast(broadcast.getStreamId().toString());
@@ -886,6 +932,39 @@ public class RestServiceTest {
 			assertEquals(broadcast.getName(), name);
 			assertEquals(broadcast.getDescription(), description);
 			assertEquals(broadcast.isPublish(), publish);
+			
+			
+			name = "name 2";
+			description = " description 2";
+			//update broadcast name and add social network
+			 result = updateBroadcast(broadcast.getStreamId(), name, description, "periscope");
+			assertTrue(result.isSuccess());
+			
+			broadcast = getBroadcast(broadcast.getStreamId().toString());
+			assertEquals(broadcast.getName(), name);
+			assertEquals(broadcast.getDescription(), description);
+			
+			//update broadcast name					
+			name = "name 3";
+			description = " description 3";
+			result = updateBroadcast(broadcast.getStreamId(), name, description, "periscope");
+			assertTrue(result.isSuccess());
+			
+			//check that name is updated on stream name and social end point stream name
+			broadcast = getBroadcast(broadcast.getStreamId().toString());
+			assertEquals(broadcast.getName(), name);
+			assertEquals(broadcast.getDescription(), description);
+			
+			assertEquals(broadcast.getEndPointList().get(0).name, name);
+			
+			
+			//update broadcast name and remove social endpoint
+			result = updateBroadcast(broadcast.getStreamId(), name, description, "");
+			
+			//check that social endpoint is removed
+			broadcast = getBroadcast(broadcast.getStreamId().toString());
+			assertNull(broadcast.getEndPointList());
+			
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -1020,7 +1099,7 @@ public class RestServiceTest {
 		}
 	}
 
-
+	
 	@Test
 	public void testCheckSocialEndpointRecreated() {
 		Result result;
@@ -1029,6 +1108,8 @@ public class RestServiceTest {
 			Broadcast broadcast = createBroadcast("social_endpoint_check");
 			//add facebook endpoint
 
+			
+		
 			/*
 
 			in enterprise edition
@@ -1052,7 +1133,7 @@ public class RestServiceTest {
 			result = addSocialEndpoint(broadcast.getStreamId().toString(), "periscope");
 
 			//check that it is succes full
-			assertTrue(result.success);
+			assertTrue(result.isSuccess());
 
 			//get endpoint list
 			broadcast = getBroadcast(broadcast.getStreamId().toString());
@@ -1060,7 +1141,6 @@ public class RestServiceTest {
 			//check that 1 element exist
 			assertNotNull(broadcast.getEndPointList());
 			assertEquals(broadcast.getEndPointList().size(), 1);
-
 
 
 			broadcast = getBroadcast(broadcast.getStreamId().toString());
@@ -1164,12 +1244,12 @@ public class RestServiceTest {
 
 				Thread.sleep(deviceAuthParameters.interval * 1000);
 				result = checkDeviceAuthStatus("facebook");
-				System.out.println("auth status is " + result.success);
+				System.out.println("auth status is " + result.isSuccess());
 
-			} while (!result.success);
+			} while (!result.isSuccess());
 
 
-			assertTrue(result.success);
+			assertTrue(result.isSuccess());
 
 
 
@@ -1187,11 +1267,11 @@ public class RestServiceTest {
 
 				Thread.sleep(deviceAuthParameters.interval * 1000);
 				result = checkDeviceAuthStatus("periscope");
-				System.out.println("auth status is " + result.success);
+				System.out.println("auth status is " + result.isSuccess());
 
-			} while (!result.success);
+			} while (!result.isSuccess());
 
-			assertTrue(result.success);
+			assertTrue(result.isSuccess());
 
 			//authenticate youtube
 			deviceAuthParameters = getDeviceAuthParameters("youtube");
@@ -1207,9 +1287,9 @@ public class RestServiceTest {
 
 				Thread.sleep(deviceAuthParameters.interval * 1000);
 				result = checkDeviceAuthStatus("youtube");
-				System.out.println("auth status is " + result.success);
+				System.out.println("auth status is " + result.isSuccess());
 
-			} while (!result.success);
+			} while (!result.isSuccess());
 
 
 		}
@@ -1277,7 +1357,7 @@ public class RestServiceTest {
 			Result result = addSocialEndpoint(broadcast.getStreamId().toString(), "periscope");
 
 			//check that it is succes full
-			assertTrue(result.success);
+			assertTrue(result.isSuccess());
 
 			/*
 			//add youtube endpoint
@@ -1292,7 +1372,7 @@ public class RestServiceTest {
 			result = addEndpoint(broadcast.getStreamId().toString(), "rtmp://dfjdksafjlaskfjalkfj");
 
 			//check that it is successfull
-			assertTrue(result.success);
+			assertTrue(result.isSuccess());
 
 			//get endpoint list
 			broadcast = getBroadcast(broadcast.getStreamId().toString());
@@ -1401,7 +1481,7 @@ public class RestServiceTest {
 			System.out.println("result string: " + result.toString());
 			Result result2 = gson.fromJson(result.toString(), Result.class);
 			assertNotNull(result2);
-			assertTrue(result2.success);
+			assertTrue(result2.isSuccess());
 
 
 			//get the same object
@@ -1444,7 +1524,7 @@ public class RestServiceTest {
 
 
 
-	protected StringBuffer readResponse(HttpResponse response) throws IOException {
+	public static StringBuffer readResponse(HttpResponse response) throws IOException {
 		BufferedReader rd = new BufferedReader(
 				new InputStreamReader(response.getEntity().getContent()));
 

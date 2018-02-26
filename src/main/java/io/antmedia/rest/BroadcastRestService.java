@@ -26,6 +26,8 @@ import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.red5.server.api.scope.IBroadcastScope;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.scope.ScopeType;
+import org.red5.server.api.stream.IBroadcastStream;
+import org.red5.server.api.stream.IClientBroadcastStream;
 import org.red5.server.util.ScopeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,6 +46,7 @@ import io.antmedia.datastore.db.types.SocialEndpointChannel;
 import io.antmedia.datastore.db.types.Vod;
 import io.antmedia.ipcamera.IPCameraApplicationAdapter;
 import io.antmedia.muxer.Muxer;
+import io.antmedia.rest.model.Result;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
 import io.antmedia.storage.StorageClient;
@@ -52,36 +55,6 @@ import io.antmedia.storage.StorageClient.FileType;
 @Component
 @Path("/")
 public class BroadcastRestService {
-
-	public static class Result {
-
-		/**
-		 * Gives information about the operation. If it is true, operation is
-		 * successfull if it is false, operation is failed
-		 */
-		public boolean success = false;
-
-		/**
-		 * Message may be filled when error happens so that developer may
-		 * understand what the problem is
-		 */
-		public String message;
-
-		/**
-		 * Constructor for the object
-		 * 
-		 * @param success
-		 * @param message
-		 */
-		public Result(boolean success, String message) {
-			this.success = success;
-			this.message = message;
-		}
-
-		public Result(boolean success) {
-			this.success = success;
-		}
-	}
 
 	public static class SearchParam {
 		public String keyword = null;
@@ -126,6 +99,7 @@ public class BroadcastRestService {
 	}
 
 	public static class BroadcastStatistics {
+
 		public final int totalRTMPWatchersCount;
 		public final int totalHLSWatchersCount;
 		public final int totalWebRTCWatchersCount;
@@ -150,6 +124,10 @@ public class BroadcastRestService {
 		}
 
 	}
+
+	private static final int ERROR_SOCIAL_ENDPOINT_UNDEFINED_CLIENT_ID = -1;
+	private static final int ERROR_SOCIAL_ENDPOINT_UNDEFINED_ENDPOINT = -2;
+	private static final int ERROR_SOCIAL_ENDPOINT_NO_ENDPOINT = -3;
 
 	@Context
 	private ServletContext servletContext;
@@ -199,14 +177,12 @@ public class BroadcastRestService {
 			broadcast = new Broadcast();
 		}
 		broadcast.setStatus(status);
-
 		broadcast.setDate(System.currentTimeMillis());
-		logger.info(broadcast.getType());
+
 		String listenerHookURL = broadcast.getListenerHookURL();
 
 		if (settings != null) {
 			if (listenerHookURL == null || listenerHookURL.length() == 0) {
-
 				String settingsListenerHookURL = settings.getListenerHookURL();
 				if (settingsListenerHookURL != null && settingsListenerHookURL.length() > 0) {
 					broadcast.setListenerHookURL(settingsListenerHookURL);
@@ -264,6 +240,25 @@ public class BroadcastRestService {
 		return getBroadcast(broadcast.getStreamId());
 	}
 
+	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/broadcast/stop/{streamId}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result stopBroadcast(@PathParam("streamId") String streamId) {
+
+		boolean result = false;
+		String message = "";
+		IBroadcastStream broadcastStream = getApplication().getBroadcastStream(getScope(), streamId);
+		if (broadcastStream != null) {
+			((IClientBroadcastStream) broadcastStream).getConnection().close();
+			result = true;
+		} else {
+			message = "No active broadcast found with id " + streamId;
+		}
+
+		return new Result(result, message);
+	}
+
 	/**
 	 * Updates broadcast name or status
 	 * 
@@ -304,23 +299,39 @@ public class BroadcastRestService {
 	 * 
 	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
 	 * 
-	 *         >>>>>>> master
 	 */
 	@POST
-	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-	@Path("/broadcast/updateInfo")
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/broadcast/update")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result updateInfo(@FormParam("id") String id, @FormParam("name") String name,
-			@FormParam("description") String description) {
 
-		boolean success = false;
-		String message = null;
-		if (getDataStore().updateName(id, name, description)) {
-			success = true;
-			message = "Modified count is not equal to 1";
+	public Result updateBroadcast(Broadcast broadcast, @QueryParam("socialNetworks") String socialNetworksToPublish) {
+		boolean result = getDataStore().updateName(broadcast.getStreamId(), broadcast.getName(),
+				broadcast.getDescription());
+		String message = "";
+		int errorId = 0;
+		if (result != false) {
+			Broadcast fetchedBroadcast = getDataStore().get(broadcast.getStreamId());
+			getDataStore().removeAllEndpoints(fetchedBroadcast.getStreamId());
+
+			if (socialNetworksToPublish != null && socialNetworksToPublish.length() > 0) {
+				String[] socialNetworks = socialNetworksToPublish.split(",");
+
+				for (String networkName : socialNetworks) {
+					Result addSocialEndpoint = addSocialEndpoint(broadcast.getStreamId(), networkName);
+					if (!addSocialEndpoint.isSuccess()) {
+						result = false;
+						message += networkName + " ";
+						errorId = -1;
+						break;
+					}
+				}
+			}
 		}
-
-		return new Result(success, message);
+		if (message.length() > 0) {
+			message += " endpoint cannot be added";
+		}
+		return new Result(result, message, errorId);
 	}
 
 	/**
@@ -358,8 +369,6 @@ public class BroadcastRestService {
 	 * 
 	 * @param serviceName
 	 *            Name of the service
-	 * 
-	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
 	 * 
 	 */
 	@POST

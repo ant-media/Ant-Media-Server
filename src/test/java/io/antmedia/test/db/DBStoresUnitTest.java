@@ -286,6 +286,27 @@ public class DBStoresUnitTest {
 		assertTrue(result);
 		broadcast2 = dataStore.get(key);
 		assertTrue(broadcast2.getEndPointList() == null || broadcast2.getEndPointList().size() == 0);
+		
+		
+		// add new enpoints
+		rtmpUrl = "rtmp:(sdfsfsf(ksklasjflakjflaskjflsadfkjsal";
+		endpointStreamId = "stream id 2";
+		endPoint = new Endpoint("broacdast id 2", endpointStreamId, broadcast2.getName(), rtmpUrl, "facebook");
+
+		assertTrue(dataStore.addEndpoint(broadcast2.getStreamId(), endPoint));
+		
+		String rtmpUrl2 = "rtmp:(sdfsfskmkmkmkmf(ksklasjflakjflaskjflsadfkjsal";
+		endpointStreamId = "stream id 2";
+		endPoint2 = new Endpoint("broacdast id 2", endpointStreamId, broadcast2.getName(), rtmpUrl2, "facebook");
+
+		assertTrue(dataStore.addEndpoint(broadcast2.getStreamId(), endPoint2));
+		
+		
+		assertTrue(dataStore.removeAllEndpoints(broadcast2.getStreamId()));
+		
+		
+		broadcast2 = dataStore.get(broadcast2.getStreamId());
+		assertTrue(broadcast2.getEndPointList() == null || broadcast2.getEndPointList().size() == 0);
 
 	}
 

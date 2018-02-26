@@ -23,7 +23,7 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.BroadcastRestService.BroadcastStatistics;
 import io.antmedia.rest.BroadcastRestService.LiveStatistics;
-import io.antmedia.rest.BroadcastRestService.Result;
+import io.antmedia.rest.model.Result;
 import io.antmedia.test.Application;
 
 
@@ -51,6 +51,10 @@ public class AppFunctionalTest {
 		}
 	}
 
+	public static int getOS() {
+		return OS_TYPE;
+	}
+	
 	@BeforeClass
 	public static void beforeClass() {
 		if (OS_TYPE == MAC_OS_X) {
@@ -242,7 +246,7 @@ public class AppFunctionalTest {
 			 */
 
 			Result result = restService.addSocialEndpoint(broadcast.getStreamId(), "periscope");
-			assertTrue(result.success);
+			assertTrue(result.isSuccess());
 
 
 			executeProcess(ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/" + broadcast.getStreamId());
@@ -289,10 +293,15 @@ public class AppFunctionalTest {
 						System.out.println(new String(data, 0, length));
 					}
 				} catch (IOException e) {
+					
 					e.printStackTrace();
 				}
 			};
 		}.start();
+	}
+	
+	public static boolean isProcessAlive() {
+		return process.isAlive();
 	}
 
 	public static void destroyProcess() {

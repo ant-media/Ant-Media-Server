@@ -49,8 +49,9 @@ import io.antmedia.rest.BroadcastRestService;
 public class Launcher {
 
 
-	private GoogleAnalytics ga;
 	private String instanceId;
+	
+	
 
 	/**
 	 * Launch Red5 under it's own classloader
@@ -106,20 +107,13 @@ public class Launcher {
 			writeToFile(idFile.getAbsolutePath(), instanceId);
 		}
 
-		
-		ga = GoogleAnalytics.builder()
-				.withAppVersion(implementationVersion)
-				.withAppName(type)
-				.withTrackingId("UA-93263926-3").build();
-		
-		
 
 		Timer heartbeat = new Timer("heartbeat", true);
 		heartbeat.schedule(new TimerTask() {
 			
 			@Override
 			public void run() {
-				ga.screenView()
+				getGoogleAnalytic(implementationVersion, type).screenView()
 			    		.sessionControl("start")
 			    		.clientId(instanceId)
 			    		.send();
@@ -130,7 +124,9 @@ public class Launcher {
 			
 			@Override
 			public void run() {
-				ga.event()
+				
+				System.out.println("-Heartbeat-");
+				getGoogleAnalytic(implementationVersion, type).event()
 					.eventCategory("server_status")
 					.eventAction("heartbeat")
 					.eventLabel("")
@@ -138,7 +134,7 @@ public class Launcher {
 					.send();
 				
 			}
-		}, 60000, 60000);
+		}, 300000, 300000);
 		
 
 		
@@ -153,13 +149,22 @@ public class Launcher {
 
 			@Override
 			public void run() {
-				ga.screenView()
+				System.out.println("Shutting down just a sec");
+				getGoogleAnalytic(implementationVersion, type).screenView()
 					.clientId(instanceId)
 					.sessionControl("end")
 					.send();
 
 			}
 		});
+	}
+
+	private GoogleAnalytics getGoogleAnalytic(String implementationVersion, String type) {
+		return GoogleAnalytics.builder()
+		.withAppVersion(implementationVersion)
+		.withAppName(type)
+		.withTrackingId("UA-93263926-3").build();
+		
 	}
 
 	public void writeToFile(String absolutePath, String content) {
