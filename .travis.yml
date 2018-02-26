@@ -1,7 +1,11 @@
+sudo: required
+
 language: java
 jdk:
   - openjdk8
 
+services:
+  - docker 
 
 #travis running on ubuntu 14.04
 

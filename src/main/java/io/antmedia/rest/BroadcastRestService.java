@@ -1,6 +1,10 @@
 package io.antmedia.rest;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.List;
@@ -18,9 +22,11 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
+import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.red5.server.api.scope.IBroadcastScope;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.scope.ScopeType;
+import org.red5.server.util.ScopeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -662,6 +668,58 @@ public class BroadcastRestService {
 			}
 
 		}
+		return new Result(success, message);
+	}
+
+	@POST
+	@Consumes({ MediaType.MULTIPART_FORM_DATA })
+	@Path("/broadcast/uploadVoDFile/{name}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result uploadVoDFile(@PathParam("name") String fileName, @FormDataParam("file") InputStream fis) {
+		boolean success = true;
+		String message = "";
+
+		String appScopeName = ScopeUtils.findApplication(getScope()).getName();
+		// String name = fileMeta.getFileName();
+		OutputStream outpuStream = null;
+
+		File savedFile = new File(
+				String.format("%s/webapps/%s/%s", System.getProperty("red5.root"), appScopeName, fileName));
+
+		try {
+			int read = 0;
+			byte[] bytes = new byte[4096];
+			outpuStream = new FileOutputStream(savedFile);
+			while ((read = fis.read(bytes)) != -1) {
+				outpuStream.write(bytes, 0, read);
+			}
+			outpuStream.flush();
+			outpuStream.close();
+		} catch (IOException iox) {
+			iox.printStackTrace();
+		} finally {
+			if (outpuStream != null) {
+				try {
+					outpuStream.close();
+				} catch (Exception ex) {
+				}
+			}
+		}
+
+		// FileInputStream fin = new FileInputStream(file);
+		// byte bytes[] = new byte[(int) 1024];
+		// fin.read(bytes);
+		//
+		// File savedFile = new File(
+		// String.format("%s/webapps/%s/%s", System.getProperty("red5.root"),
+		// appScopeName, fileName));
+		//
+		// FileOutputStream fw = new FileOutputStream(savedFile);
+		//
+		// fw.write(bytes);
+		// fw.flush();
+		// fw.close();
+
 		return new Result(success, message);
 	}
 
