@@ -16,6 +16,13 @@ Ant Media Server is an Open Source Media Server that supports:
 
 ## Releases 
 
+#### [Ant Media Server 1.2.6 Release (Feb 23, 2018)](https://github.com/ant-media/Ant-Media-Server/releases/tag/ams-v1.2.6)
+* Security Improvement on accessing Rest Services
+* Static Cluster Support
+* Load Balancer Documentation
+* No need to change XML files for enabling Facebook and Youtube in Enterprise
+* Edit Live Streams
+* Bug fixes
 
 #### [Ant Media Server 1.2.3 Release (Feb 16, 2018)](https://github.com/ant-media/Ant-Media-Server/releases/tag/ams-v1.2.3)
 * Video is enabled by default for WebRTC apps
