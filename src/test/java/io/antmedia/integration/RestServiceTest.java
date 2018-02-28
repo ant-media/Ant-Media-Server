@@ -698,6 +698,8 @@ public class RestServiceTest {
 
 			//It should return false again because it is already closed
 			assertFalse(callStopBroadcastService(broadcast.getStreamId()));
+			
+			Thread.sleep(3000);
 
 			broadcastReturned = callGetBroadcast(broadcast.getStreamId());
 
