@@ -1,5 +1,6 @@
 package io.antmedia.datastore.db;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.lang3.RandomStringUtils;
@@ -13,6 +14,8 @@ import org.mongodb.morphia.query.UpdateOperations;
 import org.mongodb.morphia.query.UpdateResults;
 
 import com.mongodb.MongoClient;
+import com.mongodb.MongoCredential;
+import com.mongodb.ServerAddress;
 import com.mongodb.WriteResult;
 
 import io.antmedia.datastore.db.types.Broadcast;
@@ -28,6 +31,15 @@ public class MongoStore implements IDataStore {
 		morphia = new Morphia();
 		morphia.mapPackage("io.antmedia.datastore.db.types");
 		datastore = morphia.createDatastore(new MongoClient(), dbName);
+		datastore.ensureIndexes();
+	}
+	
+	public MongoStore(String host, String username, String password, String dbName) {
+		morphia = new Morphia();
+		morphia.mapPackage("io.antmedia.datastore.db.types");
+		List<MongoCredential> credentialList = new ArrayList();
+		credentialList.add(MongoCredential.createCredential(username, dbName, password.toCharArray()));
+		datastore = morphia.createDatastore(new MongoClient(new ServerAddress(host), credentialList), dbName);
 		datastore.ensureIndexes();
 	}
 
