@@ -62,9 +62,9 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 
 	private boolean isPrepareIOCalled = false;
 
-	protected AVRational videoTimebase;
+	private AVRational videoTimebase;
 
-	protected AVRational audioTimebase;
+	private AVRational audioTimebase;
 
 	protected static Logger logger = LoggerFactory.getLogger(WebRTCMuxer.class);
 
@@ -290,9 +290,6 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 	 */
 	@Override
 	public synchronized void writePacket(AVPacket pkt) {
-
-
-		//long now = System.currentTimeMillis();
 		
 		if (pkt.stream_index() == this.videoStreamIndex) 
 		{
@@ -394,6 +391,46 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 	public void setStreamId(String streamId) {
 		this.streamId = streamId;
 
+	}
+
+	public int getWidth() {
+		return width;
+	}
+
+	public void setWidth(int width) {
+		this.width = width;
+	}
+
+	public int getHeight() {
+		return height;
+	}
+
+	public void setHeight(int height) {
+		this.height = height;
+	}
+
+	public void setVideoBitrate(int videoBitrate) {
+		this.videoBitrate = videoBitrate;
+	}
+
+	public AVRational getVideoTimebase() {
+		return videoTimebase;
+	}
+
+	public void setVideoTimebase(AVRational videoTimebase) {
+		this.videoTimebase = videoTimebase;
+	}
+
+	public void setAudioBitrate(int audioBitrate) {
+		this.audioBitrate = audioBitrate;
+	}
+
+	public AVRational getAudioTimebase() {
+		return audioTimebase;
+	}
+
+	public void setAudioTimebase(AVRational audioTimebase) {
+		this.audioTimebase = audioTimebase;
 	}
 
 }
