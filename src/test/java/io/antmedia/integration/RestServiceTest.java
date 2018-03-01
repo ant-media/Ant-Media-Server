@@ -1,4 +1,5 @@
 package io.antmedia.integration;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -7,22 +8,18 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
-import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -38,8 +35,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.quartz.spi.InstanceIdGenerator;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -54,9 +49,7 @@ import io.antmedia.rest.BroadcastRestService.LiveStatistics;
 import io.antmedia.rest.model.Result;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
 
-
 public class RestServiceTest {
-
 
 	private static final String ROOT_APP_URL = "http://localhost:5080/LiveApp";
 
@@ -70,20 +63,17 @@ public class RestServiceTest {
 	private static int OS_TYPE;
 	static {
 		String osName = System.getProperty("os.name", "").toLowerCase();
-		if (osName.startsWith("mac os x") || osName.startsWith("darwin"))  {
+		if (osName.startsWith("mac os x") || osName.startsWith("darwin")) {
 			OS_TYPE = MAC_OS_X;
-		}
-		else if (osName.startsWith("windows"))  {
+		} else if (osName.startsWith("windows")) {
 			OS_TYPE = WINDOWS;
-		}
-		else if (osName.startsWith("linux"))  {
+		} else if (osName.startsWith("linux")) {
 			OS_TYPE = LINUX;
 		}
 	}
 
 	private static String ffmpegPath = "ffmpeg";
 	private static Gson gson = new Gson();
-
 
 	@BeforeClass
 	public static void beforeClass() {
@@ -107,14 +97,10 @@ public class RestServiceTest {
 		createBroadcast("name");
 	}
 
-	
-	
 	public Broadcast createBroadcast(String name) {
 		String url = ROOT_SERVICE_URL + "/broadcast/create";
 
-		HttpClient client = HttpClients.custom()
-				.setRedirectStrategy(new LaxRedirectStrategy())
-				.build();
+		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 		Gson gson = new Gson();
 		Broadcast broadcast = new Broadcast();
 		if (name != null) {
@@ -123,11 +109,9 @@ public class RestServiceTest {
 
 		try {
 
-			HttpUriRequest post = RequestBuilder.post()
-					.setUri(url)
+			HttpUriRequest post = RequestBuilder.post().setUri(url)
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
-					.setEntity(new StringEntity(gson.toJson(broadcast)))
-					.build();
+					.setEntity(new StringEntity(gson.toJson(broadcast))).build();
 
 			HttpResponse response = client.execute(post);
 
@@ -141,8 +125,7 @@ public class RestServiceTest {
 			assertNotNull(tmp);
 			assertEquals(tmp.getName(), broadcast.getName());
 			return tmp;
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
@@ -152,9 +135,7 @@ public class RestServiceTest {
 	public Result updateBroadcast(String id, String name, String description, String socialNetworks) {
 		String url = ROOT_SERVICE_URL + "/broadcast/update";
 
-		HttpClient client = HttpClients.custom()
-				.setRedirectStrategy(new LaxRedirectStrategy())
-				.build();
+		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 		Gson gson = new Gson();
 		Broadcast broadcast = new Broadcast();
 		try {
@@ -165,15 +146,12 @@ public class RestServiceTest {
 		}
 		broadcast.setName(name);
 		broadcast.setDescription(description);
-		
 
 		try {
 
-			HttpUriRequest post = RequestBuilder.post()
-					.setUri(url +"?socialNetworks=" + socialNetworks)
+			HttpUriRequest post = RequestBuilder.post().setUri(url + "?socialNetworks=" + socialNetworks)
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
-					.setEntity(new StringEntity(gson.toJson(broadcast)))
-					.build();
+					.setEntity(new StringEntity(gson.toJson(broadcast))).build();
 
 			HttpResponse response = client.execute(post);
 
@@ -186,15 +164,12 @@ public class RestServiceTest {
 			Result tmp = gson.fromJson(result.toString(), Result.class);
 
 			return tmp;
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
 		return null;
 	}
-
-
 
 	@Test
 	public void testBroadcastCreateFunctionalWithoutName() {
@@ -208,20 +183,16 @@ public class RestServiceTest {
 
 		String url = ROOT_SERVICE_URL + "/broadcast/create";
 
-		HttpClient client = HttpClients.custom()
-				.setRedirectStrategy(new LaxRedirectStrategy())
-				.build();
+		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 		Gson gson = new Gson();
-		Broadcast broadcast = null; //new Broadcast();
-		//broadcast.name = "name";
+		Broadcast broadcast = null; // new Broadcast();
+		// broadcast.name = "name";
 
 		try {
 
-			HttpUriRequest post = RequestBuilder.post()
-					.setUri(url)
+			HttpUriRequest post = RequestBuilder.post().setUri(url)
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
-					.setEntity(new StringEntity(gson.toJson(broadcast)))
-					.build();
+					.setEntity(new StringEntity(gson.toJson(broadcast))).build();
 
 			HttpResponse response = client.execute(post);
 
@@ -234,33 +205,26 @@ public class RestServiceTest {
 			Broadcast tmp = gson.fromJson(result.toString(), Broadcast.class);
 			assertNotNull(tmp);
 
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
 	}
 
-
 	@Test
 	public void testBroadcasGetUndefined() {
 		try {
-			/// get broadcast 
+			/// get broadcast
 			String url = ROOT_SERVICE_URL + "/broadcast/get";
 
-			CloseableHttpClient client = HttpClients.custom()
-					.setRedirectStrategy(new LaxRedirectStrategy())
-					.build();
+			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 			Gson gson = new Gson();
-			//Broadcast broadcast = null; //new Broadcast();
-			//broadcast.name = "name";
+			// Broadcast broadcast = null; //new Broadcast();
+			// broadcast.name = "name";
 
-
-
-			HttpUriRequest get = RequestBuilder.get()
-					.setUri(url)
+			HttpUriRequest get = RequestBuilder.get().setUri(url)
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
-					//	.setEntity(new StringEntity(gson.toJson(broadcast)))
+					// .setEntity(new StringEntity(gson.toJson(broadcast)))
 					.build();
 
 			CloseableHttpResponse response = client.execute(get);
@@ -275,8 +239,7 @@ public class RestServiceTest {
 			assertNotNull(tmp2);
 			assertEquals(tmp2.getStreamId(), null);
 
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
@@ -292,22 +255,17 @@ public class RestServiceTest {
 
 	public Broadcast getBroadcast(String streamId) {
 		try {
-			/// get broadcast 
+			/// get broadcast
 			String url = ROOT_SERVICE_URL + "/broadcast/get";
 
-			CloseableHttpClient client = HttpClients.custom()
-					.setRedirectStrategy(new LaxRedirectStrategy())
-					.build();
+			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 			Gson gson = new Gson();
-			//Broadcast broadcast = null; //new Broadcast();
-			//broadcast.name = "name";
+			// Broadcast broadcast = null; //new Broadcast();
+			// broadcast.name = "name";
 
-
-
-			HttpUriRequest get = RequestBuilder.get()
-					.setUri(url + "?id=" + streamId)
+			HttpUriRequest get = RequestBuilder.get().setUri(url + "?id=" + streamId)
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
-					//	.setEntity(new StringEntity(gson.toJson(broadcast)))
+					// .setEntity(new StringEntity(gson.toJson(broadcast)))
 					.build();
 
 			CloseableHttpResponse response = client.execute(get);
@@ -321,34 +279,27 @@ public class RestServiceTest {
 			assertFalse(result.toString().contains("dbId"));
 			Broadcast tmp2 = gson.fromJson(result.toString(), Broadcast.class);
 			return tmp2;
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
 		return null;
 	}
 
-
 	@Test
 	public void testBroadcasGetFree() {
 		try {
-			/// get broadcast 
+			/// get broadcast
 			String url = ROOT_SERVICE_URL + "/broadcast/get";
 
-			CloseableHttpClient client = HttpClients.custom()
-					.setRedirectStrategy(new LaxRedirectStrategy())
-					.build();
+			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 			Gson gson = new Gson();
-			//Broadcast broadcast = null; //new Broadcast();
-			//broadcast.name = "name";
+			// Broadcast broadcast = null; //new Broadcast();
+			// broadcast.name = "name";
 
-
-
-			HttpUriRequest get = RequestBuilder.get()
-					.setUri(url + "?id=")
+			HttpUriRequest get = RequestBuilder.get().setUri(url + "?id=")
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
-					//	.setEntity(new StringEntity(gson.toJson(broadcast)))
+					// .setEntity(new StringEntity(gson.toJson(broadcast)))
 					.build();
 
 			CloseableHttpResponse response = client.execute(get);
@@ -363,33 +314,24 @@ public class RestServiceTest {
 			assertNotNull(tmp2);
 			assertEquals(tmp2.getStreamId(), null);
 
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
 	}
 
-
 	public static Broadcast callCreateBroadcast(int expireTimeMS) throws Exception {
 
 		String url = ROOT_SERVICE_URL + "/broadcast/create";
 
-		HttpClient client = HttpClients.custom()
-				.setRedirectStrategy(new LaxRedirectStrategy())
-				.build();
+		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 		Gson gson = new Gson();
 		Broadcast broadcast = new Broadcast();
 		broadcast.setExpireDurationMS(expireTimeMS);
 		broadcast.setName("namesdfsf");
 
-
-
-		HttpUriRequest post = RequestBuilder.post()
-				.setUri(url)
-				.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
-				.setEntity(new StringEntity(gson.toJson(broadcast)))
-				.build();
+		HttpUriRequest post = RequestBuilder.post().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+				.setEntity(new StringEntity(gson.toJson(broadcast))).build();
 
 		HttpResponse response = client.execute(post);
 
@@ -406,26 +348,20 @@ public class RestServiceTest {
 		return tmp;
 
 	}
-	
-	
+
 	public LiveStatistics callGetLiveStatistics() {
 		try {
 
 			String url = ROOT_SERVICE_URL + "/broadcast/getAppLiveStatistics";
 
-			CloseableHttpClient client = HttpClients.custom()
-					.setRedirectStrategy(new LaxRedirectStrategy())
-					.build();
-			//Gson gson = new Gson();
-			//Broadcast broadcast = null; //new Broadcast();
-			//broadcast.name = "name";
+			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+			// Gson gson = new Gson();
+			// Broadcast broadcast = null; //new Broadcast();
+			// broadcast.name = "name";
 
-
-
-			HttpUriRequest get = RequestBuilder.get()
-					.setUri(url)
+			HttpUriRequest get = RequestBuilder.get().setUri(url)
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
-					//	.setEntity(new StringEntity(gson.toJson(broadcast)))
+					// .setEntity(new StringEntity(gson.toJson(broadcast)))
 					.build();
 
 			CloseableHttpResponse response = client.execute(get);
@@ -436,36 +372,28 @@ public class RestServiceTest {
 				throw new Exception(result.toString());
 			}
 			System.out.println("result string: " + result.toString());
-			
 
-			return  gson.fromJson(result.toString(), LiveStatistics.class);
+			return gson.fromJson(result.toString(), LiveStatistics.class);
 
-		}
-		catch(Exception e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		return null;
 	}
-	
-	
+
 	public BroadcastStatistics callGetBroadcastStatistics(String streamId) {
 		try {
 
 			String url = ROOT_SERVICE_URL + "/broadcast/getBroadcastLiveStatistics";
 
-			CloseableHttpClient client = HttpClients.custom()
-					.setRedirectStrategy(new LaxRedirectStrategy())
-					.build();
-			//Gson gson = new Gson();
-			//Broadcast broadcast = null; //new Broadcast();
-			//broadcast.name = "name";
+			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+			// Gson gson = new Gson();
+			// Broadcast broadcast = null; //new Broadcast();
+			// broadcast.name = "name";
 
-
-
-			HttpUriRequest get = RequestBuilder.get()
-					.setUri(url+"?id="+streamId)
+			HttpUriRequest get = RequestBuilder.get().setUri(url + "?id=" + streamId)
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
-					//	.setEntity(new StringEntity(gson.toJson(broadcast)))
+					// .setEntity(new StringEntity(gson.toJson(broadcast)))
 					.build();
 
 			CloseableHttpResponse response = client.execute(get);
@@ -476,39 +404,29 @@ public class RestServiceTest {
 				throw new Exception(result.toString());
 			}
 			System.out.println("result string: " + result.toString());
-			
 
-			return  gson.fromJson(result.toString(), BroadcastStatistics.class);
+			return gson.fromJson(result.toString(), BroadcastStatistics.class);
 
-		}
-		catch(Exception e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
 		return null;
 	}
-	
-	
-	
 
 	public List<Broadcast> callGetBroadcastList() {
 		try {
 
 			String url = ROOT_SERVICE_URL + "/broadcast/getList/0/50";
 
-			CloseableHttpClient client = HttpClients.custom()
-					.setRedirectStrategy(new LaxRedirectStrategy())
-					.build();
-			//Gson gson = new Gson();
-			//Broadcast broadcast = null; //new Broadcast();
-			//broadcast.name = "name";
+			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+			// Gson gson = new Gson();
+			// Broadcast broadcast = null; //new Broadcast();
+			// broadcast.name = "name";
 
-
-
-			HttpUriRequest get = RequestBuilder.get()
-					.setUri(url)
+			HttpUriRequest get = RequestBuilder.get().setUri(url)
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
-					//	.setEntity(new StringEntity(gson.toJson(broadcast)))
+					// .setEntity(new StringEntity(gson.toJson(broadcast)))
 					.build();
 
 			CloseableHttpResponse response = client.execute(get);
@@ -519,12 +437,12 @@ public class RestServiceTest {
 				throw new Exception(result.toString());
 			}
 			System.out.println("result string: " + result.toString());
-			Type listType = new TypeToken<List<Broadcast>>(){}.getType();
+			Type listType = new TypeToken<List<Broadcast>>() {
+			}.getType();
 
-			return  gson.fromJson(result.toString(), listType);
+			return gson.fromJson(result.toString(), listType);
 
-		}
-		catch(Exception e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		return null;
@@ -533,19 +451,14 @@ public class RestServiceTest {
 	public static Broadcast callGetBroadcast(String streamId) throws Exception {
 		String url = ROOT_SERVICE_URL + "/broadcast/get";
 
-		CloseableHttpClient client = HttpClients.custom()
-				.setRedirectStrategy(new LaxRedirectStrategy())
-				.build();
-		//Gson gson = new Gson();
-		//Broadcast broadcast = null; //new Broadcast();
-		//broadcast.name = "name";
+		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+		// Gson gson = new Gson();
+		// Broadcast broadcast = null; //new Broadcast();
+		// broadcast.name = "name";
 
-
-
-		HttpUriRequest get = RequestBuilder.get()
-				.setUri(url + "?id="+streamId)
+		HttpUriRequest get = RequestBuilder.get().setUri(url + "?id=" + streamId)
 				.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
-				//	.setEntity(new StringEntity(gson.toJson(broadcast)))
+				// .setEntity(new StringEntity(gson.toJson(broadcast)))
 				.build();
 
 		CloseableHttpResponse response = client.execute(get);
@@ -557,10 +470,8 @@ public class RestServiceTest {
 		}
 		System.out.println("result string: " + result.toString());
 
-		return  gson.fromJson(result.toString(), Broadcast.class);
+		return gson.fromJson(result.toString(), Broadcast.class);
 	}
-	
-	
 
 	@Test
 	public void testBroadcasGet() {
@@ -568,16 +479,14 @@ public class RestServiceTest {
 
 			Broadcast tmp = callCreateBroadcast(0);
 
-
-			/// get broadcast 
+			/// get broadcast
 
 			Broadcast tmp2 = callGetBroadcast(tmp.getStreamId());
 			assertNotNull(tmp);
 			assertEquals(tmp.getStreamId(), tmp2.getStreamId());
 			assertEquals(tmp.getName(), tmp2.getName());
 
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
@@ -592,19 +501,14 @@ public class RestServiceTest {
 		assertFalse(result2.isSuccess());
 	}
 
-
 	public boolean callStopBroadcastService(String streamId) throws Exception {
 		String url = ROOT_SERVICE_URL + "/broadcast/stop";
 
-		HttpClient client = HttpClients.custom()
-				.setRedirectStrategy(new LaxRedirectStrategy())
-				.build();
+		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 		Gson gson = new Gson();
 
-		HttpUriRequest post = RequestBuilder.post()
-				.setUri(url + "/" + streamId)
-				.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
-				.build();
+		HttpUriRequest post = RequestBuilder.post().setUri(url + "/" + streamId)
+				.setHeader(HttpHeaders.CONTENT_TYPE, "application/json").build();
 
 		HttpResponse response = client.execute(post);
 
@@ -631,24 +535,19 @@ public class RestServiceTest {
 			Process execute = execute(ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy "
 					+ "	-vcodec copy -f flv rtmp://localhost/LiveApp/" + broadcast.getStreamId());
 
-
 			Thread.sleep(5000);
 
 			broadcast = callGetBroadcast(broadcast.getStreamId());
-
 
 			assertEquals(broadcast.getStatus(), "created");
 
 			execute.destroy();
 
-
 			broadcast = callCreateBroadcast(5000);
 			System.out.println("broadcast stream id: " + broadcast.getStreamId());
 
-
 			execute = execute(ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy "
 					+ "	-vcodec copy -f flv rtmp://localhost/LiveApp/" + broadcast.getStreamId());
-
 
 			Thread.sleep(5000);
 
@@ -668,12 +567,11 @@ public class RestServiceTest {
 	@Test
 	public void testStopBroadcast() {
 		try {
-			//call stop broadcast and check result is false
+			// call stop broadcast and check result is false
 
-			assertFalse(callStopBroadcastService(String.valueOf((int)(Math.random()*1000))));
+			assertFalse(callStopBroadcastService(String.valueOf((int) (Math.random() * 1000))));
 
-
-			//create stream
+			// create stream
 			Broadcast broadcast = callCreateBroadcast(0);
 
 			assertFalse(callStopBroadcastService(broadcast.getStreamId()));
@@ -682,7 +580,7 @@ public class RestServiceTest {
 
 			assertEquals(broadcastReturned.getStatus(), "created");
 
-			//publish stream 
+			// publish stream
 			Process execute = execute(ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy "
 					+ "	-vcodec copy -f flv rtmp://localhost/LiveApp/" + broadcast.getStreamId());
 
@@ -695,20 +593,19 @@ public class RestServiceTest {
 			// It should return true this time
 			assertTrue(callStopBroadcastService(broadcast.getStreamId()));
 
-
-			//It should return false again because it is already closed
+			// It should return false again because it is already closed
 			assertFalse(callStopBroadcastService(broadcast.getStreamId()));
+
+			Thread.sleep(3000);
 
 			broadcastReturned = callGetBroadcast(broadcast.getStreamId());
 
 			assertEquals(broadcastReturned.getStatus(), "finished");
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
 	}
-
 
 	@Test
 	public void testDeleteVoDFile() {
@@ -722,29 +619,28 @@ public class RestServiceTest {
 			Process execute = execute(ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy "
 					+ "	-vcodec copy -f flv rtmp://localhost/LiveApp/" + broadcast.getStreamId());
 
-
 			Thread.sleep(20000);
 
 			execute.destroy();
 
-			//let mp4 file to be created
+			// let mp4 file to be created
 			Thread.sleep(2000);
 
-			boolean vodExists = AppFunctionalTest.exists(ROOT_APP_URL + "/streams/" + broadcast.getStreamId() + ".mp4", false);
+			boolean vodExists = AppFunctionalTest.exists(ROOT_APP_URL + "/streams/" + broadcast.getStreamId() + ".mp4",
+					false);
 
 			assertTrue(vodExists);
 
-
-			String url = ROOT_SERVICE_URL + "/broadcast/deleteVoDFile/"+ broadcast.getStreamId();
+			String url = ROOT_SERVICE_URL + "/broadcast/deleteVoDFile/" + broadcast.getStreamId();
 
 			String response = makePOSTRequest(url, null);
 
 			Result deleteVoDResponse = gson.fromJson(response.toString(), Result.class);
 			assertTrue(deleteVoDResponse.isSuccess());
 
-
 			try {
-				Process process = Runtime.getRuntime().exec("./src/test/resources/scripts/check_file_deleted.sh " + broadcast.getStreamId());
+				Process process = Runtime.getRuntime()
+						.exec("./src/test/resources/scripts/check_file_deleted.sh " + broadcast.getStreamId());
 				InputStream errorStream = process.getInputStream();
 				byte[] data = new byte[1024];
 				int length = 0;
@@ -752,16 +648,14 @@ public class RestServiceTest {
 
 				try {
 					while ((length = errorStream.read(data, 0, data.length)) > 0) {
-						errorStr  = new String(data, 0, length);
+						errorStr = new String(data, 0, length);
 						System.out.println("errorstr:" + errorStr);
 					}
-				}
-				catch (Exception e) {
+				} catch (Exception e) {
 					e.printStackTrace();
 				}
 
 				assertTrue(errorStr == null || errorStr.length() == 0);
-
 
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -775,17 +669,12 @@ public class RestServiceTest {
 
 	}
 
-
 	public String makePOSTRequest(String url, String entity) {
 		try {
-			CloseableHttpClient client = HttpClients.custom()
-					.setRedirectStrategy(new LaxRedirectStrategy())
-					.build();
+			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 
-
-			RequestBuilder builder = RequestBuilder.post()
-					.setUri(url)
-					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json");
+			RequestBuilder builder = RequestBuilder.post().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE,
+					"application/json");
 
 			if (entity != null) {
 				builder.setEntity(new StringEntity(entity));
@@ -800,29 +689,22 @@ public class RestServiceTest {
 				throw new Exception(result.toString());
 			}
 			return result.toString();
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
 		return null;
 	}
 
-
 	public Result deleteBroadcast(String id) {
 		try {
-			//delete broadcast
-			String url = ROOT_SERVICE_URL + "/broadcast/delete/"+ id;
+			// delete broadcast
+			String url = ROOT_SERVICE_URL + "/broadcast/delete/" + id;
 
-			CloseableHttpClient client = HttpClients.custom()
-					.setRedirectStrategy(new LaxRedirectStrategy())
-					.build();
+			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 
-
-			HttpUriRequest post = RequestBuilder.post()
-					.setUri(url)
-					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
-					.build();
+			HttpUriRequest post = RequestBuilder.post().setUri(url)
+					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json").build();
 
 			CloseableHttpResponse response = client.execute(post);
 
@@ -834,54 +716,51 @@ public class RestServiceTest {
 			System.out.println("result string: " + result.toString());
 			Result result2 = gson.fromJson(result.toString(), Result.class);
 			return result2;
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
 		return null;
 	}
 
-
 	/*
-	public Result updateNameAndDescription(String broadcastId, String name,	String description ) throws Exception {
-		CloseableHttpClient httpclient = HttpClients.createDefault();
-
-
-		HttpPost httppost = new HttpPost(ROOT_SERVICE_URL + "/broadcast/updateInfo");
-		List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
-		nameValuePairs.add(new BasicNameValuePair("Content-Type","application/x-www-form-urlencoded;"));
-		nameValuePairs.add(new BasicNameValuePair("id", broadcastId));
-		nameValuePairs.add(new BasicNameValuePair("name", name));
-		nameValuePairs.add(new BasicNameValuePair("description", description));
-		httppost.setEntity(new UrlEncodedFormEntity(nameValuePairs, StandardCharsets.UTF_8));
-
-
-		CloseableHttpResponse response = httpclient.execute(httppost);
-
-		StringBuffer result = readResponse(response);
-
-		if (response.getStatusLine().getStatusCode() != 200) {
-			throw new Exception(result.toString());
-		}
-		Gson gson = new Gson();
-		System.out.println("result string: " + result.toString());
-		Result tmp = gson.fromJson(result.toString(), Result.class);
-
-		return tmp;
-	}*/
+	 * public Result updateNameAndDescription(String broadcastId, String name,
+	 * String description ) throws Exception { CloseableHttpClient httpclient =
+	 * HttpClients.createDefault();
+	 * 
+	 * 
+	 * HttpPost httppost = new HttpPost(ROOT_SERVICE_URL +
+	 * "/broadcast/updateInfo"); List<NameValuePair> nameValuePairs = new
+	 * ArrayList<NameValuePair>(); nameValuePairs.add(new
+	 * BasicNameValuePair("Content-Type","application/x-www-form-urlencoded;"));
+	 * nameValuePairs.add(new BasicNameValuePair("id", broadcastId));
+	 * nameValuePairs.add(new BasicNameValuePair("name", name));
+	 * nameValuePairs.add(new BasicNameValuePair("description", description));
+	 * httppost.setEntity(new UrlEncodedFormEntity(nameValuePairs,
+	 * StandardCharsets.UTF_8));
+	 * 
+	 * 
+	 * CloseableHttpResponse response = httpclient.execute(httppost);
+	 * 
+	 * StringBuffer result = readResponse(response);
+	 * 
+	 * if (response.getStatusLine().getStatusCode() != 200) { throw new
+	 * Exception(result.toString()); } Gson gson = new Gson();
+	 * System.out.println("result string: " + result.toString()); Result tmp =
+	 * gson.fromJson(result.toString(), Result.class);
+	 * 
+	 * return tmp; }
+	 */
 
 	public Result updatePublish(String broadcastId, boolean publish) throws Exception {
 		CloseableHttpClient httpclient = HttpClients.createDefault();
 
-
 		HttpPost httppost = new HttpPost(ROOT_SERVICE_URL + "/broadcast/updatePublishStatus");
 		List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
-		nameValuePairs.add(new BasicNameValuePair("Content-Type","application/x-www-form-urlencoded;"));
+		nameValuePairs.add(new BasicNameValuePair("Content-Type", "application/x-www-form-urlencoded;"));
 		nameValuePairs.add(new BasicNameValuePair("id", broadcastId));
 		nameValuePairs.add(new BasicNameValuePair("publish", String.valueOf(publish)));
 		httppost.setEntity(new UrlEncodedFormEntity(nameValuePairs, StandardCharsets.UTF_8));
-
 
 		CloseableHttpResponse response = httpclient.execute(httppost);
 
@@ -896,75 +775,72 @@ public class RestServiceTest {
 		return tmp;
 	}
 
-
 	@Test
 	public void testUpdate() {
-		
-		//create broadcast
+
+		// create broadcast
 		Broadcast broadcast = createBroadcast(null);
 
 		String name = "string name";
 		String description = "String descriptio";
-		//update name and description
+		// update name and description
 		try {
-			//update broadcast just name no social network
+			// update broadcast just name no social network
 			Result result = updateBroadcast(broadcast.getStreamId(), name, description, "");
 			assertTrue(result.isSuccess());
 
-			//check that name is updated
-			//get broadcast
+			// check that name is updated
+			// get broadcast
 			broadcast = getBroadcast(broadcast.getStreamId().toString());
 
-			//check name and description
+			// check name and description
 			assertEquals(broadcast.getName(), name);
 			assertEquals(broadcast.getDescription(), description);
 			assertTrue(broadcast.isPublish());
 
-			//update publish info
+			// update publish info
 			boolean publish = false;
 			result = updatePublish(broadcast.getStreamId().toString(), publish);
 			assertTrue(result.isSuccess());
 
-			//get broacdast
+			// get broacdast
 			broadcast = getBroadcast(broadcast.getStreamId().toString());
 
-			//check publish info
+			// check publish info
 			assertEquals(broadcast.getName(), name);
 			assertEquals(broadcast.getDescription(), description);
 			assertEquals(broadcast.isPublish(), publish);
-			
-			
+
 			name = "name 2";
 			description = " description 2";
-			//update broadcast name and add social network
-			 result = updateBroadcast(broadcast.getStreamId(), name, description, "periscope");
+			// update broadcast name and add social network
+			result = updateBroadcast(broadcast.getStreamId(), name, description, "periscope");
 			assertTrue(result.isSuccess());
-			
+
 			broadcast = getBroadcast(broadcast.getStreamId().toString());
 			assertEquals(broadcast.getName(), name);
 			assertEquals(broadcast.getDescription(), description);
-			
-			//update broadcast name					
+
+			// update broadcast name
 			name = "name 3";
 			description = " description 3";
 			result = updateBroadcast(broadcast.getStreamId(), name, description, "periscope");
 			assertTrue(result.isSuccess());
-			
-			//check that name is updated on stream name and social end point stream name
+
+			// check that name is updated on stream name and social end point
+			// stream name
 			broadcast = getBroadcast(broadcast.getStreamId().toString());
 			assertEquals(broadcast.getName(), name);
 			assertEquals(broadcast.getDescription(), description);
-			
+
 			assertEquals(broadcast.getEndPointList().get(0).name, name);
-			
-			
-			//update broadcast name and remove social endpoint
+
+			// update broadcast name and remove social endpoint
 			result = updateBroadcast(broadcast.getStreamId(), name, description, "");
-			
-			//check that social endpoint is removed
+
+			// check that social endpoint is removed
 			broadcast = getBroadcast(broadcast.getStreamId().toString());
 			assertNull(broadcast.getEndPointList());
-			
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -973,18 +849,15 @@ public class RestServiceTest {
 
 	}
 
-	public Result addEndpoint(String broadcastId, String rtmpUrl) throws Exception 
-	{
+	public Result addEndpoint(String broadcastId, String rtmpUrl) throws Exception {
 		CloseableHttpClient httpclient = HttpClients.createDefault();
-
 
 		HttpPost httppost = new HttpPost(ROOT_SERVICE_URL + "/broadcast/addEndpoint");
 		List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
-		nameValuePairs.add(new BasicNameValuePair("Content-Type","application/x-www-form-urlencoded;"));
+		nameValuePairs.add(new BasicNameValuePair("Content-Type", "application/x-www-form-urlencoded;"));
 		nameValuePairs.add(new BasicNameValuePair("id", broadcastId));
 		nameValuePairs.add(new BasicNameValuePair("rtmpUrl", rtmpUrl));
 		httppost.setEntity(new UrlEncodedFormEntity(nameValuePairs, StandardCharsets.UTF_8));
-
 
 		CloseableHttpResponse response = httpclient.execute(httppost);
 
@@ -1003,14 +876,12 @@ public class RestServiceTest {
 	public Result addSocialEndpoint(String broadcastId, String name) throws Exception {
 		CloseableHttpClient httpclient = HttpClients.createDefault();
 
-
 		HttpPost httppost = new HttpPost(ROOT_SERVICE_URL + "/broadcast/addSocialEndpoint");
 		List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
-		nameValuePairs.add(new BasicNameValuePair("Content-Type","application/x-www-form-urlencoded;"));
+		nameValuePairs.add(new BasicNameValuePair("Content-Type", "application/x-www-form-urlencoded;"));
 		nameValuePairs.add(new BasicNameValuePair("id", broadcastId));
 		nameValuePairs.add(new BasicNameValuePair("serviceName", name));
 		httppost.setEntity(new UrlEncodedFormEntity(nameValuePairs, StandardCharsets.UTF_8));
-
 
 		CloseableHttpResponse response = httpclient.execute(httppost);
 
@@ -1029,13 +900,14 @@ public class RestServiceTest {
 	private DeviceAuthParameters getDeviceAuthParameters(String serviceName) throws Exception {
 		CloseableHttpClient httpclient = HttpClients.createDefault();
 
-
 		HttpPost httppost = new HttpPost(ROOT_SERVICE_URL + "/broadcast/getDeviceAuthParameters/" + serviceName);
-		//	List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
-		//	nameValuePairs.add(new BasicNameValuePair("Content-Type","application/x-www-form-urlencoded;"));
-		//	nameValuePairs.add(new BasicNameValuePair("serviceName", serviceName));
-		//	httppost.setEntity(new UrlEncodedFormEntity(nameValuePairs, StandardCharsets.UTF_8));
-
+		// List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
+		// nameValuePairs.add(new
+		// BasicNameValuePair("Content-Type","application/x-www-form-urlencoded;"));
+		// nameValuePairs.add(new BasicNameValuePair("serviceName",
+		// serviceName));
+		// httppost.setEntity(new UrlEncodedFormEntity(nameValuePairs,
+		// StandardCharsets.UTF_8));
 
 		CloseableHttpResponse response = httpclient.execute(httppost);
 
@@ -1044,7 +916,6 @@ public class RestServiceTest {
 		if (response.getStatusLine().getStatusCode() != 200) {
 			throw new Exception(result.toString());
 		}
-
 
 		Gson gson = new Gson();
 		System.out.println("result string: " + result.toString());
@@ -1057,13 +928,14 @@ public class RestServiceTest {
 	private Result checkDeviceAuthStatus(String serviceName) throws Exception {
 		CloseableHttpClient httpclient = HttpClients.createDefault();
 
-
 		HttpPost httppost = new HttpPost(ROOT_SERVICE_URL + "/broadcast/checkDeviceAuthStatus/" + serviceName);
-		//	List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
-		//	nameValuePairs.add(new BasicNameValuePair("Content-Type","application/x-www-form-urlencoded;"));
-		//	nameValuePairs.add(new BasicNameValuePair("serviceName", serviceName));
-		//	httppost.setEntity(new UrlEncodedFormEntity(nameValuePairs, StandardCharsets.UTF_8));
-
+		// List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
+		// nameValuePairs.add(new
+		// BasicNameValuePair("Content-Type","application/x-www-form-urlencoded;"));
+		// nameValuePairs.add(new BasicNameValuePair("serviceName",
+		// serviceName));
+		// httppost.setEntity(new UrlEncodedFormEntity(nameValuePairs,
+		// StandardCharsets.UTF_8));
 
 		CloseableHttpResponse response = httpclient.execute(httppost);
 
@@ -1080,8 +952,8 @@ public class RestServiceTest {
 
 	}
 
-	//TODO: restart server after testAddEndpoint and 
-	// check that social endpoints are added correctly 
+	// TODO: restart server after testAddEndpoint and
+	// check that social endpoints are added correctly
 
 	@Test
 	public void testJSONIgnore() {
@@ -1090,7 +962,7 @@ public class RestServiceTest {
 
 		try {
 			String serializedStr = new ObjectMapper().writeValueAsString(broadcast);
-			//check that this field exist
+			// check that this field exist
 			assertNull(broadcast.getDbId());
 			System.out.println("json result: " + serializedStr);
 			assertFalse(serializedStr.toString().contains("dbId"));
@@ -1099,64 +971,61 @@ public class RestServiceTest {
 		}
 	}
 
-	
 	@Test
 	public void testCheckSocialEndpointRecreated() {
 		Result result;
 		try {
-			//create broadcast
+			// create broadcast
 			Broadcast broadcast = createBroadcast("social_endpoint_check");
-			//add facebook endpoint
+			// add facebook endpoint
 
-			
-		
 			/*
-
-			in enterprise edition
-			result = addSocialEndpoint(broadcast.getStreamId().toString(), "facebook");
-
-			//check that it is successfull
-			assertTrue(result.success);
+			 * 
+			 * in enterprise edition result =
+			 * addSocialEndpoint(broadcast.getStreamId().toString(),
+			 * "facebook");
+			 * 
+			 * //check that it is successfull assertTrue(result.success);
 			 */
 
 			/*
-			 * in enterprise edition
-			//add youtube endpoint
-			result = addSocialEndpoint(broadcast.getStreamId().toString(), "youtube");
-
-			//check that it is succes full
-			assertTrue(result.success);
+			 * in enterprise edition //add youtube endpoint result =
+			 * addSocialEndpoint(broadcast.getStreamId().toString(), "youtube");
+			 * 
+			 * //check that it is succes full assertTrue(result.success);
 			 */
 
-
-			//add twitter endpoint
+			// add twitter endpoint
 			result = addSocialEndpoint(broadcast.getStreamId().toString(), "periscope");
 
-			//check that it is succes full
+			// check that it is succes full
 			assertTrue(result.isSuccess());
 
-			//get endpoint list
+			// get endpoint list
 			broadcast = getBroadcast(broadcast.getStreamId().toString());
 
-			//check that 1 element exist
+			// check that 1 element exist
 			assertNotNull(broadcast.getEndPointList());
 			assertEquals(broadcast.getEndPointList().size(), 1);
-
 
 			broadcast = getBroadcast(broadcast.getStreamId().toString());
 			List<Endpoint> endpointList = broadcast.getEndPointList();
 
 			for (Endpoint endpoint : endpointList) {
-				System.out.println("endpoint url: " + endpoint.rtmpUrl + " broadcast.id=" + endpoint.broadcastId + " stream id: " + endpoint.streamId);
+				System.out.println("endpoint url: " + endpoint.rtmpUrl + " broadcast.id=" + endpoint.broadcastId
+						+ " stream id: " + endpoint.streamId);
 			}
 
-			Process execute = execute(ffmpegPath + " -re -i src/test/resources/test.flv -codec copy -f flv rtmp://localhost/LiveApp/" + broadcast.getStreamId());
+			Process execute = execute(
+					ffmpegPath + " -re -i src/test/resources/test.flv -codec copy -f flv rtmp://localhost/LiveApp/"
+							+ broadcast.getStreamId());
 
 			Thread.sleep(20000);
 
 			execute.destroy();
 
-			//this value is critical because server creates endpoints on social networks
+			// this value is critical because server creates endpoints on social
+			// networks
 			Thread.sleep(15000);
 
 			broadcast = getBroadcast(broadcast.getStreamId().toString());
@@ -1164,16 +1033,17 @@ public class RestServiceTest {
 			assertEquals(endpointList2.size(), 1);
 
 			for (Endpoint endpoint : endpointList2) {
-				System.out.println("new endpoint url: " + endpoint.rtmpUrl + " broadcast.id=" + endpoint.broadcastId + " stream id: " + endpoint.streamId);
+				System.out.println("new endpoint url: " + endpoint.rtmpUrl + " broadcast.id=" + endpoint.broadcastId
+						+ " stream id: " + endpoint.streamId);
 
 			}
 
 			for (Endpoint endpoint : endpointList2) {
 				for (Endpoint endpointFirst : endpointList) {
-					assertTrue(!endpoint.rtmpUrl.equals(endpointFirst.rtmpUrl) || !endpoint.broadcastId.equals(endpointFirst.broadcastId));
+					assertTrue(!endpoint.rtmpUrl.equals(endpointFirst.rtmpUrl)
+							|| !endpoint.broadcastId.equals(endpointFirst.broadcastId));
 				}
 			}
-
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -1204,7 +1074,6 @@ public class RestServiceTest {
 					}
 					System.out.println("Leaving thread");
 
-
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
@@ -1223,23 +1092,22 @@ public class RestServiceTest {
 		return tmpExec;
 	}
 
-
-	//@Test
+	// @Test
 	public void authenticateSocialEndpoints() {
 		Result result;
 		try {
-			//authenticate facebook
-			//get parameters
+			// authenticate facebook
+			// get parameters
 			DeviceAuthParameters deviceAuthParameters = getDeviceAuthParameters("facebook");
-			System.out.println(" url: " + deviceAuthParameters.verification_url );
-			System.out.println(" user code: " + deviceAuthParameters.user_code );
+			System.out.println(" url: " + deviceAuthParameters.verification_url);
+			System.out.println(" user code: " + deviceAuthParameters.user_code);
 			assertNotNull(deviceAuthParameters.verification_url);
 			assertNotNull(deviceAuthParameters.user_code);
 
-			//ask if authenticated
+			// ask if authenticated
 			do {
-				System.out.println("You should enter this code: " + deviceAuthParameters.user_code +
-						" to this url: " + deviceAuthParameters.verification_url);
+				System.out.println("You should enter this code: " + deviceAuthParameters.user_code + " to this url: "
+						+ deviceAuthParameters.verification_url);
 				System.out.println("Waiting before asking auth status");
 
 				Thread.sleep(deviceAuthParameters.interval * 1000);
@@ -1248,22 +1116,19 @@ public class RestServiceTest {
 
 			} while (!result.isSuccess());
 
-
 			assertTrue(result.isSuccess());
 
-
-
-			//authenticate twitter
+			// authenticate twitter
 			deviceAuthParameters = getDeviceAuthParameters("periscope");
-			System.out.println(" url: " + deviceAuthParameters.verification_url );
-			System.out.println(" user code: " + deviceAuthParameters.user_code );
+			System.out.println(" url: " + deviceAuthParameters.verification_url);
+			System.out.println(" user code: " + deviceAuthParameters.user_code);
 			assertNotNull(deviceAuthParameters.verification_url);
 			assertNotNull(deviceAuthParameters.user_code);
 
 			do {
-				System.out.println("You should enter this code: " + deviceAuthParameters.user_code +
-						" to this url: " + deviceAuthParameters.verification_url);
-				System.out.println("Waiting "+ deviceAuthParameters.interval + " seconds before asking auth status");
+				System.out.println("You should enter this code: " + deviceAuthParameters.user_code + " to this url: "
+						+ deviceAuthParameters.verification_url);
+				System.out.println("Waiting " + deviceAuthParameters.interval + " seconds before asking auth status");
 
 				Thread.sleep(deviceAuthParameters.interval * 1000);
 				result = checkDeviceAuthStatus("periscope");
@@ -1273,17 +1138,17 @@ public class RestServiceTest {
 
 			assertTrue(result.isSuccess());
 
-			//authenticate youtube
+			// authenticate youtube
 			deviceAuthParameters = getDeviceAuthParameters("youtube");
-			System.out.println(" url: " + deviceAuthParameters.verification_url );
-			System.out.println(" user code: " + deviceAuthParameters.user_code );
+			System.out.println(" url: " + deviceAuthParameters.verification_url);
+			System.out.println(" user code: " + deviceAuthParameters.user_code);
 			assertNotNull(deviceAuthParameters.verification_url);
 			assertNotNull(deviceAuthParameters.user_code);
 
 			do {
-				System.out.println("You should enter this code: " + deviceAuthParameters.user_code +
-						" to this url: " + deviceAuthParameters.verification_url);
-				System.out.println("Waiting "+ deviceAuthParameters.interval + " seconds before asking auth status");
+				System.out.println("You should enter this code: " + deviceAuthParameters.user_code + " to this url: "
+						+ deviceAuthParameters.verification_url);
+				System.out.println("Waiting " + deviceAuthParameters.interval + " seconds before asking auth status");
 
 				Thread.sleep(deviceAuthParameters.interval * 1000);
 				result = checkDeviceAuthStatus("youtube");
@@ -1291,9 +1156,7 @@ public class RestServiceTest {
 
 			} while (!result.isSuccess());
 
-
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
@@ -1305,90 +1168,87 @@ public class RestServiceTest {
 
 		try {
 			/*
-			//create broadcast
-
-
-			System.out.println("broadcast id string: " + broadcast.getStreamId().toString());
-
-			//get broadcast
-			broadcast = getBroadcast(broadcast.getStreamId().toString());
-
-			//checek there no endpoint
-			assertNull(broadcast.getEndPointList());
-
-			//add facebook end point
-			Result result = addSocialEndpoint(broadcast.getStreamId().toString(), "facebook");
-
-			//check that error returns because it is not authenticated
-			assertFalse(result.success);
-			assertNotNull(result.message);
-
-			//add twitter end point
-			result = addSocialEndpoint(broadcast.getStreamId().toString(), "twitter");
-
-			//check that error returns
-			assertFalse(result.success);
-			assertNotNull(result.message);
-
-			//add youtube end point
-			result = addSocialEndpoint(broadcast.getStreamId().toString(), "youtube");
-
-			//check that error returns
-			assertFalse(result.success);
-			assertNotNull(result.message);
+			 * //create broadcast
+			 * 
+			 * 
+			 * System.out.println("broadcast id string: " +
+			 * broadcast.getStreamId().toString());
+			 * 
+			 * //get broadcast broadcast =
+			 * getBroadcast(broadcast.getStreamId().toString());
+			 * 
+			 * //checek there no endpoint
+			 * assertNull(broadcast.getEndPointList());
+			 * 
+			 * //add facebook end point Result result =
+			 * addSocialEndpoint(broadcast.getStreamId().toString(),
+			 * "facebook");
+			 * 
+			 * //check that error returns because it is not authenticated
+			 * assertFalse(result.success); assertNotNull(result.message);
+			 * 
+			 * //add twitter end point result =
+			 * addSocialEndpoint(broadcast.getStreamId().toString(), "twitter");
+			 * 
+			 * //check that error returns assertFalse(result.success);
+			 * assertNotNull(result.message);
+			 * 
+			 * //add youtube end point result =
+			 * addSocialEndpoint(broadcast.getStreamId().toString(), "youtube");
+			 * 
+			 * //check that error returns assertFalse(result.success);
+			 * assertNotNull(result.message);
 			 */
 
 			/*
-
-
-			updateNameAndDescription(broadcast.getStreamId().toString(), "name", "description");
-
-			//add facebook endpoint
-			Result result = addSocialEndpoint(broadcast.getStreamId().toString(), "facebook");
-
-			//check that it is successfull
-			assertTrue(result.success);
-
+			 * 
+			 * 
+			 * updateNameAndDescription(broadcast.getStreamId().toString(),
+			 * "name", "description");
+			 * 
+			 * //add facebook endpoint Result result =
+			 * addSocialEndpoint(broadcast.getStreamId().toString(),
+			 * "facebook");
+			 * 
+			 * //check that it is successfull assertTrue(result.success);
+			 * 
 			 */
 
 			Broadcast broadcast = createBroadcast(null);
 
-			//add twitter endpoint
+			// add twitter endpoint
 			Result result = addSocialEndpoint(broadcast.getStreamId().toString(), "periscope");
 
-			//check that it is succes full
+			// check that it is succes full
 			assertTrue(result.isSuccess());
 
 			/*
-			//add youtube endpoint
-			result = addSocialEndpoint(broadcast.getStreamId().toString(), "youtube");
-
-			//check that it is succes full
-			assertTrue(result.success);
-
+			 * //add youtube endpoint result =
+			 * addSocialEndpoint(broadcast.getStreamId().toString(), "youtube");
+			 * 
+			 * //check that it is succes full assertTrue(result.success);
+			 * 
 			 */
 
-			//add generic endpoint
+			// add generic endpoint
 			result = addEndpoint(broadcast.getStreamId().toString(), "rtmp://dfjdksafjlaskfjalkfj");
 
-			//check that it is successfull
+			// check that it is successfull
 			assertTrue(result.isSuccess());
 
-			//get endpoint list
+			// get endpoint list
 			broadcast = getBroadcast(broadcast.getStreamId().toString());
 
-			//check that 4 element exist
+			// check that 4 element exist
 			assertNotNull(broadcast.getEndPointList());
 			assertEquals(broadcast.getEndPointList().size(), 2);
 
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
 
 	}
-
 
 	@Test
 	public void testBroadcastDelete() {
@@ -1396,20 +1256,14 @@ public class RestServiceTest {
 
 			String url = ROOT_SERVICE_URL + "/broadcast/create";
 
-			HttpClient client = HttpClients.custom()
-					.setRedirectStrategy(new LaxRedirectStrategy())
-					.build();
+			HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 			Gson gson = new Gson();
 			Broadcast broadcast = new Broadcast();
 			broadcast.setName("namesdfsf");
 
-
-
-			HttpUriRequest post = RequestBuilder.post()
-					.setUri(url)
+			HttpUriRequest post = RequestBuilder.post().setUri(url)
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
-					.setEntity(new StringEntity(gson.toJson(broadcast)))
-					.build();
+					.setEntity(new StringEntity(gson.toJson(broadcast))).build();
 
 			HttpResponse response = client.execute(post);
 
@@ -1423,24 +1277,17 @@ public class RestServiceTest {
 			assertNotNull(tmp);
 			assertNotSame(tmp.getDate(), 0L);
 
-
-
-			/// get broadcast 
+			/// get broadcast
 			url = ROOT_SERVICE_URL + "/broadcast/get";
 
-			client = HttpClients.custom()
-					.setRedirectStrategy(new LaxRedirectStrategy())
-					.build();
-			//Gson gson = new Gson();
-			//Broadcast broadcast = null; //new Broadcast();
-			//broadcast.name = "name";
+			client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+			// Gson gson = new Gson();
+			// Broadcast broadcast = null; //new Broadcast();
+			// broadcast.name = "name";
 
-
-
-			HttpUriRequest get = RequestBuilder.get()
-					.setUri(url + "?id="+tmp.getStreamId())
+			HttpUriRequest get = RequestBuilder.get().setUri(url + "?id=" + tmp.getStreamId())
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
-					//	.setEntity(new StringEntity(gson.toJson(broadcast)))
+					// .setEntity(new StringEntity(gson.toJson(broadcast)))
 					.build();
 
 			response = client.execute(get);
@@ -1456,19 +1303,13 @@ public class RestServiceTest {
 			assertEquals(tmp.getStreamId(), tmp2.getStreamId());
 			assertEquals(tmp.getName(), tmp2.getName());
 
+			// delete broadcast
+			url = ROOT_SERVICE_URL + "/broadcast/delete/" + tmp2.getStreamId().toString();
 
-			//delete broadcast
-			url = ROOT_SERVICE_URL + "/broadcast/delete/"+ tmp2.getStreamId().toString();
+			client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 
-			client = HttpClients.custom()
-					.setRedirectStrategy(new LaxRedirectStrategy())
-					.build();
-
-
-			post = RequestBuilder.post()
-					.setUri(url)
-					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
-					//.setEntity(new StringEntity(gson.toJson(tmp2)))
+			post = RequestBuilder.post().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+					// .setEntity(new StringEntity(gson.toJson(tmp2)))
 					.build();
 
 			response = client.execute(post);
@@ -1483,22 +1324,18 @@ public class RestServiceTest {
 			assertNotNull(result2);
 			assertTrue(result2.isSuccess());
 
-
-			//get the same object
-			/// get broadcast 
+			// get the same object
+			/// get broadcast
 			url = ROOT_SERVICE_URL + "/broadcast/get";
 
-			client = HttpClients.custom()
-					.setRedirectStrategy(new LaxRedirectStrategy())
-					.build();
-			//Gson gson = new Gson();
-			//Broadcast broadcast = null; //new Broadcast();
-			//broadcast.name = "name";
+			client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+			// Gson gson = new Gson();
+			// Broadcast broadcast = null; //new Broadcast();
+			// broadcast.name = "name";
 
-			get = RequestBuilder.get()
-					.setUri(url + "?id="+tmp.getStreamId())
+			get = RequestBuilder.get().setUri(url + "?id=" + tmp.getStreamId())
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
-					//	.setEntity(new StringEntity(gson.toJson(broadcast)))
+					// .setEntity(new StringEntity(gson.toJson(broadcast)))
 					.build();
 
 			response = client.execute(get);
@@ -1514,19 +1351,14 @@ public class RestServiceTest {
 			assertEquals(tmp2.getStreamId(), null);
 			assertEquals(tmp2.getName(), null);
 
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
 	}
 
-
-
-
 	public static StringBuffer readResponse(HttpResponse response) throws IOException {
-		BufferedReader rd = new BufferedReader(
-				new InputStreamReader(response.getEntity().getContent()));
+		BufferedReader rd = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
 
 		StringBuffer result = new StringBuffer();
 		String line = "";

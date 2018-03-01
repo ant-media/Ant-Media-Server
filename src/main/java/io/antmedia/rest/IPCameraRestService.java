@@ -39,7 +39,7 @@ import io.antmedia.ipcamera.ArchivedVideo;
 import io.antmedia.ipcamera.IPCameraApplicationAdapter;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.ipcamera.onvifdiscovery.OnvifDiscovery;
-import io.antmedia.rest.BroadcastRestService.Result;
+import io.antmedia.rest.model.Result;
 
 @Component
 @Path("/camera")
@@ -128,39 +128,47 @@ public class IPCameraRestService {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result updateCamInfo(Broadcast camera) {
 		boolean result = false;
+		OnvifCamera onvif = null;
 		logger.warn("inside of rest service");
 
 		logger.warn(camera.getStatus());
 
 		if (camera.getStatus().equals("broadcasting")) {
 			getApplicationInstance().stopCameraStreaming(camera);
-		}
-		result = getCameraStore().editCameraInfo(camera);
 
-		OnvifCamera onvif = new OnvifCamera();
-		onvif.connect(camera.getIpAddr(), camera.getUsername(), camera.getPassword());
-		String rtspURL = onvif.getRTSPStreamURI();
+			result = getCameraStore().editCameraInfo(camera);
 
-		logger.warn("camera starting poing inside camera edit:  " + camera.getStreamId());
+			logger.warn("after edit:" + result);
 
-		if (result = true && rtspURL != "no") {
+			onvif = new OnvifCamera();
+			onvif.connect(camera.getIpAddr(), camera.getUsername(), camera.getPassword());
+			String rtspURL = onvif.getRTSPStreamURI();
 
-			String authparam = camera.getUsername() + ":" + camera.getPassword() + "@";
-			String rtspURLWithAuth = "rtsp://" + authparam + rtspURL.substring("rtsp://".length());
-			System.out.println("rtsp url with auth:" + rtspURLWithAuth);
-			camera.setRtspUrl(rtspURLWithAuth);
+			logger.warn("camera starting point inside camera edit:  " + camera.getStreamId());
 
-			Broadcast newCam = getCameraStore().get(camera.getStreamId());
-			getApplicationInstance().startCameraStreaming(newCam);
+			if (result = true && rtspURL != "no") {
 
+				String authparam = camera.getUsername() + ":" + camera.getPassword() + "@";
+				String rtspURLWithAuth = "rtsp://" + authparam + rtspURL.substring("rtsp://".length());
+				System.out.println("rtsp url with auth:" + rtspURLWithAuth);
+				camera.setRtspUrl(rtspURLWithAuth);
+
+				Broadcast newCam = getCameraStore().get(camera.getStreamId());
+				getApplicationInstance().startCameraStreaming(newCam);
+
+			}
 		} else {
 
 			logger.warn("camera couldnot started");
 			camera.setStatus("finished");
-			getCameraStore().editCameraInfo(camera);
-		}
-		onvif.disconnect();
+			result = getCameraStore().editCameraInfo(camera);
 
+		}
+
+		logger.warn("final result:" + result);
+		if (onvif != null) {
+			onvif.disconnect();
+		}
 		return new Result(result);
 	}
 

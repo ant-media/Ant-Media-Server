@@ -60,18 +60,7 @@
 
 		<jersey.version>2.26</jersey.version>
 		<mapdb.version>3.0.5</mapdb.version>
-<<<<<<< HEAD
-		<maven.build.timestamp.format>yyMMdd_HHmm</maven.build.timestamp.format>
-		<buildNumber>${maven.build.timestamp}</buildNumber>
-		<enunciate.version>2.10.0</enunciate.version>
-		<webrtcapp.version>1.2.1-SNAPSHOT</webrtcapp.version>
-		<consoleapp.version>1.2.1-SNAPSHOT</consoleapp.version>
-		<liveapp.version>1.2.1-SNAPSHOT</liveapp.version>
-		<webrtcappee.version>1.2.1-SNAPSHOT</webrtcappee.version>
-		<ant-media-server-service.version>1.2.0</ant-media-server-service.version>
-		<ant-media-server-enterprise.version>1.2.1-SNAPSHOT</ant-media-server-enterprise.version>
 
-=======
     	    <maven.build.timestamp.format>yyMMdd_HHmm</maven.build.timestamp.format>
         <buildNumber>${maven.build.timestamp}</buildNumber>
         <enunciate.version>2.10.0</enunciate.version>
@@ -81,7 +70,7 @@
 		<webrtcappee.version>1.2.3</webrtcappee.version>	
 		<ant-media-server-service.version>1.2.0</ant-media-server-service.version>
 		<ant-media-server-enterprise.version>1.2.6</ant-media-server-enterprise.version>
->>>>>>> master
+
 	</properties>
 
 	<build>
@@ -426,11 +415,13 @@
 			<artifactId>jersey-media-json-jackson</artifactId>
 			<version>${jersey.version}</version>
 		</dependency>
+	
 		<dependency>
 			<groupId>org.glassfish.jersey.media</groupId>
 			<artifactId>jersey-media-multipart</artifactId>
 			<version>${jersey.version}</version>
 		</dependency>
+		
 		<dependency>
 			<groupId>org.glassfish.jersey.ext</groupId>
 			<artifactId>jersey-spring4</artifactId>

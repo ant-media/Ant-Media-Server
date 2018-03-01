@@ -489,13 +489,15 @@ public class MapDBStore implements IDataStore {
 
 			logger.warn(oldCam.getName());
 
-			map.replace(oldCam.getStreamId(), gson.toJson(oldCam));
+			getMap().replace(oldCam.getStreamId(), gson.toJson(oldCam));
 
 			db.commit();
 			result = true;
 		} catch (Exception e) {
 			result = false;
 		}
+
+		logger.warn("result inside edit camera: " + result);
 		return result;
 	}
 

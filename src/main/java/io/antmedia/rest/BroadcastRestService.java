@@ -22,6 +22,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
+import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.red5.server.api.scope.IBroadcastScope;
 import org.red5.server.api.scope.IScope;
@@ -263,30 +264,7 @@ public class BroadcastRestService {
 	 * Updates broadcast name or status
 	 * 
 	 * @param broadcast
-	 *            =======
-	 * @POST
-	 * @Consumes(MediaType.APPLICATION_JSON) @Path("/broadcast/stop/{streamId}") @Produces(MediaType.APPLICATION_JSON)
-	 *                                       public Result
-	 *                                       stopBroadcast(@PathParam("streamId")
-	 *                                       String streamId) {
 	 * 
-	 *                                       boolean result = false; String
-	 *                                       message = ""; IBroadcastStream
-	 *                                       broadcastStream =
-	 *                                       getApplication().getBroadcastStream(getScope(),
-	 *                                       streamId); if (broadcastStream !=
-	 *                                       null) { ((IClientBroadcastStream)
-	 *                                       broadcastStream).getConnection().close();
-	 *                                       result = true; } else { message =
-	 *                                       "No active broadcast found with id
-	 *                                       " + streamId; }
-	 * 
-	 *                                       return new Result(result, message);
-	 *                                       }
-	 * 
-	 * 
-	 *                                       /** Updates broadcast name and
-	 *                                       description
 	 * 
 	 * @param id
 	 *            id of the broadcast that is given when creating broadcast
@@ -304,7 +282,6 @@ public class BroadcastRestService {
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/broadcast/update")
 	@Produces(MediaType.APPLICATION_JSON)
-
 	public Result updateBroadcast(Broadcast broadcast, @QueryParam("socialNetworks") String socialNetworksToPublish) {
 		boolean result = getDataStore().updateName(broadcast.getStreamId(), broadcast.getName(),
 				broadcast.getDescription());
@@ -684,16 +661,17 @@ public class BroadcastRestService {
 	@Consumes({ MediaType.MULTIPART_FORM_DATA })
 	@Path("/broadcast/uploadVoDFile/{name}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result uploadVoDFile(@PathParam("name") String fileName, @FormDataParam("file") InputStream fis) {
+	public Result uploadVoDFile(@PathParam("name") String fileName, @FormDataParam("file") InputStream fis,
+			@FormDataParam("file") FormDataContentDisposition fileMetaData) throws Exception {
 		boolean success = true;
 		String message = "";
 
 		String appScopeName = ScopeUtils.findApplication(getScope()).getName();
-		// String name = fileMeta.getFileName();
+		String name = fileMetaData.getFileName();
 		OutputStream outpuStream = null;
 
 		File savedFile = new File(
-				String.format("%s/webapps/%s/%s", System.getProperty("red5.root"), appScopeName, fileName));
+				String.format("%s/webapps/%s/%s", System.getProperty("red5.root"), appScopeName, name));
 
 		try {
 			int read = 0;
