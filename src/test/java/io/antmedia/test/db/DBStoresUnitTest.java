@@ -286,25 +286,22 @@ public class DBStoresUnitTest {
 		assertTrue(result);
 		broadcast2 = dataStore.get(key);
 		assertTrue(broadcast2.getEndPointList() == null || broadcast2.getEndPointList().size() == 0);
-		
-		
+
 		// add new enpoints
 		rtmpUrl = "rtmp:(sdfsfsf(ksklasjflakjflaskjflsadfkjsal";
 		endpointStreamId = "stream id 2";
 		endPoint = new Endpoint("broacdast id 2", endpointStreamId, broadcast2.getName(), rtmpUrl, "facebook");
 
 		assertTrue(dataStore.addEndpoint(broadcast2.getStreamId(), endPoint));
-		
+
 		String rtmpUrl2 = "rtmp:(sdfsfskmkmkmkmf(ksklasjflakjflaskjflsadfkjsal";
 		endpointStreamId = "stream id 2";
 		endPoint2 = new Endpoint("broacdast id 2", endpointStreamId, broadcast2.getName(), rtmpUrl2, "facebook");
 
 		assertTrue(dataStore.addEndpoint(broadcast2.getStreamId(), endPoint2));
-		
-		
+
 		assertTrue(dataStore.removeAllEndpoints(broadcast2.getStreamId()));
-		
-		
+
 		broadcast2 = dataStore.get(broadcast2.getStreamId());
 		assertTrue(broadcast2.getEndPointList() == null || broadcast2.getEndPointList().size() == 0);
 
@@ -428,11 +425,11 @@ public class DBStoresUnitTest {
 
 		assertEquals(returnList.size(), 1);
 
-		Vod newVod = new Vod("streamName", "1112233", "path", "vod", 1517239908, 17933, 1190425);
-		Vod newVod2 = new Vod("davut", "1112233", "path", "vod", 1517239808, 17933, 1190525);
-		Vod newVod3 = new Vod("oguz", "1112233", "path", "vod", 1517239708, 17933, 1190625);
-		Vod newVod4 = new Vod("ahmet", "1112233", "path", "vod", 1517239608, 17933, 1190725);
-		Vod newVod5 = new Vod("mehmet", "1112233", "path", "vod", 1517239508, 17933, 1190825);
+		Vod newVod = new Vod("streamName", "1112233", "path", "vod", 1517239908, 17933, 1190425, "streamVod");
+		Vod newVod2 = new Vod("davut", "1112233", "path", "vod", 1517239808, 17933, 1190525, "streamVod");
+		Vod newVod3 = new Vod("oguz", "1112233", "path", "vod", 1517239708, 17933, 1190625, "streamVod");
+		Vod newVod4 = new Vod("ahmet", "1112233", "path", "vod", 1517239608, 17933, 1190725, "streamVod");
+		Vod newVod5 = new Vod("mehmet", "1112233", "path", "vod", 1517239508, 17933, 1190825, "streamVod");
 
 		boolean result = dataStore.addVod(newVod.getStreamId(), newVod);
 		boolean result2 = dataStore.addVod(newVod2.getStreamId(), newVod2);

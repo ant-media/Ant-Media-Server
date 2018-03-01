@@ -22,6 +22,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
+import org.apache.commons.io.FilenameUtils;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.red5.server.api.scope.IBroadcastScope;
@@ -667,51 +668,61 @@ public class BroadcastRestService {
 	@Consumes({ MediaType.MULTIPART_FORM_DATA })
 	@Path("/broadcast/uploadVoDFile/{name}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result uploadVoDFile(@PathParam("name") String fileName, @FormDataParam("file") InputStream fis,
-			@FormDataParam("file") FormDataContentDisposition fileMetaData) throws Exception {
-		boolean success = true;
+	public Result uploadVoDFile(@PathParam("name") String fileName, @FormDataParam("file") InputStream inputStream,
+			@FormDataParam("file") FormDataContentDisposition fileInfo) throws Exception {
+		boolean success = false;
 		String message = "";
 
 		String appScopeName = ScopeUtils.findApplication(getScope()).getName();
-		String name = fileMetaData.getFileName();
+		String uploadedFileName = fileInfo.getFileName();
 		OutputStream outpuStream = null;
 
-		File savedFile = new File(
-				String.format("%s/webapps/%s/%s", System.getProperty("red5.root"), appScopeName, name));
+		String fileExtension = FilenameUtils.getExtension(uploadedFileName);
 
-		try {
-			int read = 0;
-			byte[] bytes = new byte[4096];
-			outpuStream = new FileOutputStream(savedFile);
-			while ((read = fis.read(bytes)) != -1) {
-				outpuStream.write(bytes, 0, read);
-			}
-			outpuStream.flush();
-			outpuStream.close();
-		} catch (IOException iox) {
-			iox.printStackTrace();
-		} finally {
-			if (outpuStream != null) {
-				try {
-					outpuStream.close();
-				} catch (Exception ex) {
+		if (fileExtension.equals("mp4")) {
+
+			// logger.warn("file extenstion of uploaded file: " + ext2);
+
+			File savedFile = new File(String.format("%s/webapps/%s/%s", System.getProperty("red5.root"), appScopeName,
+					"streams/" + fileName));
+
+			try {
+				int read = 0;
+				byte[] bytes = new byte[2048];
+				outpuStream = new FileOutputStream(savedFile);
+				while ((read = inputStream.read(bytes)) != -1) {
+					outpuStream.write(bytes, 0, read);
+				}
+				outpuStream.flush();
+				outpuStream.close();
+
+			} catch (IOException iox) {
+				iox.printStackTrace();
+			} finally {
+
+				success = true;
+
+				long fileSize = savedFile.length();
+				long unixTime = System.currentTimeMillis();
+
+				Vod newVod = new Vod(fileName, "vodFile", savedFile.getPath(), fileName, unixTime, 0, fileSize,
+						"uploadedVod");
+
+				success = getDataStore().addVod("vodFile", newVod);
+
+				if (outpuStream != null) {
+					try {
+						outpuStream.close();
+					} catch (Exception ex) {
+					}
 				}
 			}
-		}
+		} else {
 
-		// FileInputStream fin = new FileInputStream(file);
-		// byte bytes[] = new byte[(int) 1024];
-		// fin.read(bytes);
-		//
-		// File savedFile = new File(
-		// String.format("%s/webapps/%s/%s", System.getProperty("red5.root"),
-		// appScopeName, fileName));
-		//
-		// FileOutputStream fw = new FileOutputStream(savedFile);
-		//
-		// fw.write(bytes);
-		// fw.flush();
-		// fw.close();
+			success = false;
+			message = "notMp4File";
+
+		}
 
 		return new Result(success, message);
 	}
