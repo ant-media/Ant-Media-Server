@@ -532,13 +532,6 @@ public class BroadcastRestService {
 		return getDataStore().getBroadcastList(offset, size);
 	}
 
-	/**
-	 * Returns total live streams, total rtmp watchers, total hls and total
-	 * webrtc watchers
-	 * 
-	 * @return {@link LiveStatistics}
-	 */
-
 	@GET
 	@Path("/broadcast/getVodList/{offset}/{size}")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -546,6 +539,19 @@ public class BroadcastRestService {
 		return getDataStore().getVodList(offset, size);
 	}
 
+	@GET
+	@Path("/broadcast/getTotalVodNumber")
+	@Produces(MediaType.APPLICATION_JSON)
+	public long getTotalVodNumber() {
+		return getDataStore().getTotalVodNumber();
+	}
+
+	/**
+	 * Returns total live streams, total rtmp watchers, total hls and total
+	 * webrtc watchers
+	 * 
+	 * @return {@link LiveStatistics}
+	 */
 	@GET
 	@Path("/broadcast/getAppLiveStatistics")
 	@Produces(MediaType.APPLICATION_JSON)

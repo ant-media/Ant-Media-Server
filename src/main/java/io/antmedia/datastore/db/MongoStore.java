@@ -339,4 +339,10 @@ public class MongoStore implements IDataStore {
 		return false;
 	}
 
+	@Override
+	public long getTotalVodNumber() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
 }

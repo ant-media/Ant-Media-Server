@@ -89,9 +89,9 @@ public class IPCameraRestService {
 
 						camera.setDate(unixTime);
 
-						String key = getCameraStore().save(camera);
+						String id = getCameraStore().save(camera);
 
-						if (key.length() > 0) {
+						if (id.length() > 0) {
 							Broadcast newCam = getCameraStore().get(camera.getStreamId());
 							getApplicationInstance().startCameraStreaming(newCam);
 						}

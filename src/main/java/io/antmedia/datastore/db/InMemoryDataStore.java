@@ -267,4 +267,10 @@ public class InMemoryDataStore implements IDataStore {
 
 	}
 
+	@Override
+	public long getTotalVodNumber() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
 }

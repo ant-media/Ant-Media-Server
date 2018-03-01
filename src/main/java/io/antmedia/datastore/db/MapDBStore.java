@@ -46,6 +46,14 @@ public class MapDBStore implements IDataStore {
 
 	}
 
+	public BTreeMap<String, String> getVodMap() {
+		return vodMap;
+	}
+
+	public void setVodMap(BTreeMap<String, String> vodMap) {
+		this.vodMap = vodMap;
+	}
+
 	public BTreeMap<String, String> getMap() {
 		return map;
 	}
@@ -622,6 +630,12 @@ public class MapDBStore implements IDataStore {
 		}
 
 		return false;
+	}
+
+	@Override
+	public long getTotalVodNumber() {
+
+		return getVodMap().size();
 	}
 
 }
