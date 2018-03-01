@@ -681,7 +681,17 @@ public class BroadcastRestService {
 
 		if (fileExtension.equals("mp4")) {
 
-			// logger.warn("file extenstion of uploaded file: " + ext2);
+			File streamsDirectory = new File(
+					String.format("%s/webapps/%s/%s", System.getProperty("red5.root"), appScopeName, "streams"));
+
+			// if the directory does not exist, create it
+			if (!streamsDirectory.exists()) {
+				try {
+					streamsDirectory.mkdir();
+				} catch (SecurityException se) {
+
+				}
+			}
 
 			File savedFile = new File(String.format("%s/webapps/%s/%s", System.getProperty("red5.root"), appScopeName,
 					"streams/" + fileName));
