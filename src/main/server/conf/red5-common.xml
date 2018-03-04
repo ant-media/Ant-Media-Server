@@ -211,5 +211,11 @@
         <property name="scheduler" ref="rtmpScheduler" />
         -->
     </bean>
+    
+    
+    <bean id="vertxCore" 
+    		class="io.vertx.core.Vertx" 
+   		factory-method="vertx" />
+    
 
 </beans>

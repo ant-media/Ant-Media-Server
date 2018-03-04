@@ -1,13 +1,9 @@
 package io.antmedia.webrtc;
 
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
+
 import java.util.Iterator;
-import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.bytedeco.javacpp.BytePointer;
 import org.bytedeco.javacpp.avcodec.AVCodec;
@@ -16,7 +12,6 @@ import org.bytedeco.javacpp.avcodec.AVPacket;
 import org.bytedeco.javacpp.avformat.AVFormatContext;
 import org.bytedeco.javacpp.avformat.AVStream;
 import org.bytedeco.javacpp.avutil.AVRational;
-import org.red5.io.utils.IOUtils;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.scheduling.QuartzSchedulingService;
 import org.slf4j.Logger;
@@ -49,6 +44,8 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 	protected int videoStreamIndex = -1;
 
 	protected int audioStreamIndex = -1;
+	
+	private AtomicInteger clientCount = new AtomicInteger(0);
 
 	private boolean videoConfParsed = false;
 
@@ -79,9 +76,10 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 	}
 
 	@Override
-	public void init(IScope scope, String name, int resolution) {
+	public void init(IScope scope, String name, int resolutionHeight) {
 		if (!isInitialized) {
 			isInitialized = true;
+			this.height = resolutionHeight;
 			this.streamId = name;
 		}
 
@@ -131,6 +129,7 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 	@Override
 	public void registerWebRTCClient(IWebRTCClient webRTCClient) {
 		webRTCClientList.add(webRTCClient);
+		clientCount.incrementAndGet();
 		webRTCClient.setWebRTCMuxer(this);
 		webRTCClient.setVideoResolution(width, height);
 		if (videoConfParsed) {
@@ -140,20 +139,21 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 
 	@Override
 	public boolean unRegisterWebRTCClient(IWebRTCClient webRTCClient) {
+		clientCount.decrementAndGet();
 		return webRTCClientList.remove(webRTCClient);
 	}
 
 	@Override
-	public void sendVideoPacket(byte[] videoPacket, boolean isKeyFrame, long timestamp) {
-
+	public void sendVideoPacket(byte[] videoPacket, boolean isKeyFrame, long timestamp) 
+	{
 		for (Iterator<IWebRTCClient> iterator = webRTCClientList.iterator(); iterator.hasNext();) {
 			IWebRTCClient iWebRTCClient = iterator.next();
 			iWebRTCClient.sendVideoPacket(videoPacket, isKeyFrame, timestamp);	
 		}
-
 	}
 
-	public void sendVideoConfPacket(byte[] videoPacket, long timestamp){
+	public void sendVideoConfPacket(byte[] videoPacket, long timestamp)
+	{
 		for (Iterator<IWebRTCClient> iterator = webRTCClientList.iterator(); iterator.hasNext();) {
 			IWebRTCClient iWebRTCClient = iterator.next();
 			iWebRTCClient.sendVideoConfPacket(videoConf, videoPacket, timestamp);	
@@ -313,7 +313,6 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 				sendVideoConfPacket(keyFrame, pts);
 				//long diff = System.currentTimeMillis() - now;
 				//logger.info("sent video conf packet after " + diff + " ms" );
-
 			}
 			else {
 				if (isKeyFrame) {
@@ -432,5 +431,20 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 	public void setAudioTimebase(AVRational audioTimebase) {
 		this.audioTimebase = audioTimebase;
 	}
+
+	public void setVideoConfData(byte[] videoConfData) {
+		this.videoConf = videoConfData;
+		
+	}
+
+	public ConcurrentLinkedQueue<IWebRTCClient> getWebRTCClientList() {
+		return webRTCClientList;
+	}
+
+
+	public int getClientCount() {
+		return clientCount.intValue();
+	}
+
 
 }
