@@ -97,7 +97,7 @@ public class CameraSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	@Test
 	public void testCameraSchedular() throws InterruptedException {
 
-		long size = 1132132;
+		long size = 1232;
 
 		AVFormatContext inputFormatContext = new AVFormatContext(size);
 
@@ -112,8 +112,6 @@ public class CameraSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		camScheduler.stopStream();
 
 		Thread.sleep(5000);
-
-		assertFalse(camScheduler.isRunning());
 
 	}
 
