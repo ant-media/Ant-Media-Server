@@ -3,6 +3,7 @@ package io.antmedia.test;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -73,45 +74,12 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 	@Test
 	public void testCameraCheckerStartStop() {
 
-		// Add port forwarding rule for reaching virtual box onvif emulator
-		// from local
-		String[] argsPortFwRtsp = new String[] { "/bin/bash", "-c",
-				"VBoxManage modifyvm onvifemulator --natpf1 'rule,tcp,,27500,,8554'" };
-		try {
-			Process proc1 = new ProcessBuilder(argsPortFwRtsp).start();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-		try {
-			Thread.sleep(1000);
-		} catch (InterruptedException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
-
-		String[] argsPortFwOnvif = new String[] { "/bin/bash", "-c",
-				"VBoxManage modifyvm onvifemulator --natpf1 'rule2,tcp,,27600,,8080'" };
-
-		try {
-			Process proc2 = new ProcessBuilder(argsPortFwOnvif).start();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-		try {
-			Thread.sleep(1000);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		BufferedWriter writer = null;
 
 		// define camera according to onvif emulator parameters
 
-		Broadcast newCam = new Broadcast("test", "127.0.0.1:27600", "admin", "admin",
-				"rtsp://127.0.0.1:27500/live1.sdp", "ipCamera");
+		Broadcast newCam = new Broadcast("test", "127.0.0.1:8080", "admin", "admin", "rtsp://127.0.0.1:6554/test.flv",
+				"ipCamera");
 
 		List<Broadcast> cameras = new ArrayList<>();
 
@@ -138,13 +106,13 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 
 		assertTrue(flag3);
 
-		// start onvif virtual box emulator
-		String[] args = new String[] { "/bin/bash", "-c", "VBoxManage startvm onvifemulator" };
+		ProcessBuilder pb = new ProcessBuilder("/onvifEmulator/happytime-rtsp-server/runme.sh", "myArg1", "myArg2");
+		Process p = null;
 		try {
-			Process proc = new ProcessBuilder(args).start();
-		} catch (IOException e) {
+			p = pb.start();
+		} catch (IOException e1) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			e1.printStackTrace();
 		}
 
 		try {
@@ -173,9 +141,13 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 			e.printStackTrace();
 		}
 		// close emulator in order to simulate cut-off
-		String[] argsStop = new String[] { "/bin/bash", "-c", "VBoxManage controlvm onvifemulator poweroff" };
+		String[] argsStop = new String[] { "/bin/bash", "-c",
+				"kill -9 $(ps aux | grep 'onvifser' | awk '{print $2}')" };
+		String[] argsStop2 = new String[] { "/bin/bash", "-c",
+				"kill -9 $(ps aux | grep 'rtspserve' | awk '{print $2}')" };
 		try {
-			Process proc3 = new ProcessBuilder(argsStop).start();
+			Process procStop = new ProcessBuilder(argsStop).start();
+			Process procStop2 = new ProcessBuilder(argsStop2).start();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -199,12 +171,13 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 		assertTrue(flag2);
 		// after some time, emulator has been started so connection is back
-		String[] argsStart = new String[] { "/bin/bash", "-c", "VBoxManage startvm onvifemulator" };
+		ProcessBuilder pb2 = new ProcessBuilder("/onvifEmulator/happytime-rtsp-server/runme.sh", "myArg1", "myArg2");
+		Process p2 = null;
 		try {
-			Process proc = new ProcessBuilder(argsStart).start();
-		} catch (IOException e) {
+			p2 = pb2.start();
+		} catch (IOException e1) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			e1.printStackTrace();
 		}
 
 		try {
@@ -226,161 +199,13 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 		assertTrue(flag5);
 
-		String[] argsStop2 = new String[] { "/bin/bash", "-c", "VBoxManage controlvm onvifemulator poweroff" };
+		String[] argsStop3 = new String[] { "/bin/bash", "-c",
+				"kill -9 $(ps aux | grep 'onvifser' | awk '{print $2}')" };
+		String[] argsStop4 = new String[] { "/bin/bash", "-c",
+				"kill -9 $(ps aux | grep 'rtspserve' | awk '{print $2}')" };
 		try {
-			Process proc3 = new ProcessBuilder(argsStop2).start();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-	}
-
-	@Test
-	public void testCameraChecker() {
-
-		// Add port forwarding rule for reaching virtual box onvif emulator
-		// from local
-		String[] argsPortFwRtsp = new String[] { "/bin/bash", "-c",
-				"VBoxManage modifyvm onvifemulator --natpf1 'rule,tcp,,27500,,8554'" };
-		try {
-			Process proc1 = new ProcessBuilder(argsPortFwRtsp).start();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-		try {
-			Thread.sleep(1000);
-		} catch (InterruptedException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
-
-		String[] argsPortFwOnvif = new String[] { "/bin/bash", "-c",
-				"VBoxManage modifyvm onvifemulator --natpf1 'rule2,tcp,,27600,,8080'" };
-
-		try {
-			Process proc2 = new ProcessBuilder(argsPortFwOnvif).start();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-		try {
-			Thread.sleep(1000);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-		// start onvif virtual box emulator
-		String[] args = new String[] { "/bin/bash", "-c", "VBoxManage startvm onvifemulator" };
-		try {
-			Process proc = new ProcessBuilder(args).start();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-		// define onvif camera according to emulator parameters
-
-		Broadcast newCam = new Broadcast("test", "127.0.0.1:27600", "admin", "admin",
-				"rtsp://127.0.0.1:27500/live1.sdp", "ipCamera");
-
-		List<Broadcast> cameras = new ArrayList<>();
-
-		cameras.add(newCam);
-
-		try {
-			Thread.sleep(10000);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-		cameraChecker(cameras);
-
-		try {
-			Thread.sleep(35000);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-		boolean flag = false;
-		for (CameraScheduler camScheduler : app.getCamSchedulerList()) {
-			if (camScheduler.getCamera().getIpAddr().equals(newCam.getIpAddr())) {
-				// it should be true, because emulator has been started
-				assertTrue(camScheduler.isRunning());
-				flag = true;
-
-			}
-		}
-
-		assertTrue(flag);
-
-		try {
-			Thread.sleep(10000);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-		String[] argsStop = new String[] { "/bin/bash", "-c", "VBoxManage controlvm onvifemulator poweroff" };
-		try {
-			Process proc3 = new ProcessBuilder(argsStop).start();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-		try {
-			Thread.sleep(15000);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		boolean flag2 = false;
-		for (CameraScheduler camScheduler : app.getCamSchedulerList()) {
-			if (camScheduler.getCamera().getIpAddr().equals(newCam.getIpAddr())) {
-				// it should be false, because emulator is down
-				assertFalse(camScheduler.isRunning());
-				flag2 = true;
-			}
-
-		}
-		assertTrue(flag2);
-
-		String[] argsStart = new String[] { "/bin/bash", "-c", "VBoxManage startvm onvifemulator" };
-		try {
-			Process proc = new ProcessBuilder(argsStart).start();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-		try {
-			Thread.sleep(35000);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-		boolean flag5 = false;
-		for (CameraScheduler camScheduler : app.getCamSchedulerList()) {
-			if (camScheduler.getCamera().getIpAddr().equals(newCam.getIpAddr())) {
-				// it should be true, because emulator has been started
-				assertTrue(camScheduler.isRunning());
-				flag5 = true;
-			}
-
-		}
-		assertTrue(flag5);
-
-		String[] argsStop2 = new String[] { "/bin/bash", "-c", "VBoxManage controlvm onvifemulator poweroff" };
-		try {
-			Process proc3 = new ProcessBuilder(argsStop2).start();
+			Process procStop3 = new ProcessBuilder(argsStop3).start();
+			Process procStop4 = new ProcessBuilder(argsStop4).start();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

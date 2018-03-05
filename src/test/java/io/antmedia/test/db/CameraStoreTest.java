@@ -1,9 +1,5 @@
 package io.antmedia.test.db;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.File;
@@ -14,7 +10,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.antmedia.ipcamera.utils.Camera;
 import io.antmedia.ipcamera.utils.CameraStore;
 
 public class CameraStoreTest {
@@ -49,28 +44,33 @@ public class CameraStoreTest {
 	@Test
 	public void testDeleteCameraBug() {
 
-		CameraStore cameraStore = new CameraStore();
-
-		Camera[] cameraList = cameraStore.getCameraList();
-		assertNotNull(cameraList);
-
-		assertEquals(0, cameraList.length);
-
-		boolean deleteCamera = cameraStore.deleteCamera("1212");
-		assertFalse(deleteCamera);
-
-		String ipAddr = "123.334.344.33";
-		boolean addCamera = cameraStore.addCamera("name", ipAddr, "username", "password", "rtspUrl");
-		assertTrue(addCamera);
-
-		cameraList = cameraStore.getCameraList();
-		assertEquals(1, cameraList.length);
-
-		deleteCamera = cameraStore.deleteCamera(ipAddr);
-		assertTrue(deleteCamera);
-
-		cameraList = cameraStore.getCameraList();
-		assertEquals(0, cameraList.length);
+		// These tests are avoided because, there is no seperated camera store
+		// and camera db anymore, they are also saved in same db
+		/*
+		 * CameraStore cameraStore = new CameraStore();
+		 * 
+		 * Camera[] cameraList = cameraStore.getCameraList();
+		 * assertNotNull(cameraList);
+		 * 
+		 * assertEquals(0, cameraList.length);
+		 * 
+		 * boolean deleteCamera = cameraStore.deleteCamera("1212");
+		 * assertFalse(deleteCamera);
+		 * 
+		 * String ipAddr = "123.334.344.33"; boolean addCamera =
+		 * cameraStore.addCamera("name", ipAddr, "username", "password",
+		 * "rtspUrl"); assertTrue(addCamera);
+		 * 
+		 * cameraList = cameraStore.getCameraList(); assertEquals(1,
+		 * cameraList.length);
+		 * 
+		 * deleteCamera = cameraStore.deleteCamera(ipAddr);
+		 * assertTrue(deleteCamera);
+		 * 
+		 * cameraList = cameraStore.getCameraList(); assertEquals(0,
+		 * cameraList.length);
+		 * 
+		 */
 
 	}
 

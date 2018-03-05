@@ -757,65 +757,37 @@ public class BroadcastRestService {
 		boolean success = false;
 		String message = null;
 
-		Broadcast broacast = getDataStore().get(id);
+		if (id != null) {
+			Broadcast broacast = getDataStore().get(id);
 
-		if (broacast.getType().equals("ipCamera")) {
+			if (broacast != null) {
 
-			AntMediaApplicationAdapter application = getApplication();
+				if (broacast.getType().equals("ipCamera")) {
 
-			if (application instanceof IPCameraApplicationAdapter) {
-				((IPCameraApplicationAdapter) application).stopCameraStreaming(broacast);
-				success = getDataStore().deleteCamera(id);
-				message = "ip camera is deleted";
-				logger.info("ipcam is deleted");
+					AntMediaApplicationAdapter application = getApplication();
 
-			} else {
+					if (application instanceof IPCameraApplicationAdapter) {
+						((IPCameraApplicationAdapter) application).stopCameraStreaming(broacast);
+						success = getDataStore().deleteCamera(id);
+						message = "ip camera is deleted";
+						logger.info("ipcam is deleted");
 
-				logger.info("broadcast is not an IP Camera");
+					} else {
+
+						logger.info("broadcast is not an IP Camera");
+					}
+
+				}
+
+				else if (getDataStore().delete(id)) {
+					success = true;
+					message = "broadcast is deleted";
+
+					logger.info("broadcast is deleted");
+
+				}
 			}
 
-		}
-
-		else if (getDataStore().delete(id)) {
-			success = true;
-			message = "broadcast is deleted";
-
-			logger.info("broadcast is deleted");
-
-			// if (getAppContext() != null)
-			// {
-			// File recordFile = Muxer.getRecordFile(getScope(), id, "mp4");
-			// if (recordFile.exists()) {
-			// recordFile.delete();
-			// }
-			// File previewFile = Muxer.getPreviewFile(getScope(), id, "png");
-			// if (previewFile.exists()) {
-			// previewFile.delete();
-			// }
-			//
-			// if (getAppContext().containsBean("app.storageClient"))
-			// {
-			// StorageClient storageClient = (StorageClient)
-			// getAppContext().getBean("app.storageClient");
-			//
-			// storageClient.delete(id + ".mp4", FileType.TYPE_STREAM);
-			// storageClient.delete(id + ".png", FileType.TYPE_PREVIEW);
-			//
-			// ApplicationContext appContext = getAppContext();
-			// if (appContext.containsBean("app.settings")) {
-			// AppSettings bean = (AppSettings)
-			// appContext.getBean("app.settings");
-			// List<EncoderSettings> encoderSettingsList =
-			// bean.getAdaptiveResolutionList();
-			// if (encoderSettingsList != null) {
-			// for (EncoderSettings settings : encoderSettingsList) {
-			// storageClient.delete(id + "_" +settings.getHeight() +"p.mp4",
-			// FileType.TYPE_STREAM);
-			// }
-			// }
-			// }
-			// }
-			// }
 		}
 
 		return new Result(success, message);

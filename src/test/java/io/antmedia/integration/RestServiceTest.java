@@ -607,68 +607,56 @@ public class RestServiceTest {
 		}
 	}
 
-	@Test
-	public void testDeleteVoDFile() {
-
-		try {
-			String streamName = "vod_delete_test";
-			Broadcast broadcast = createBroadcast(streamName);
-			assertNotNull(broadcast);
-			assertNotNull(broadcast.getStreamId());
-
-			Process execute = execute(ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy "
-					+ "	-vcodec copy -f flv rtmp://localhost/LiveApp/" + broadcast.getStreamId());
-
-			Thread.sleep(20000);
-
-			execute.destroy();
-
-			// let mp4 file to be created
-			Thread.sleep(2000);
-
-			boolean vodExists = AppFunctionalTest.exists(ROOT_APP_URL + "/streams/" + broadcast.getStreamId() + ".mp4",
-					false);
-
-			assertTrue(vodExists);
-
-			String url = ROOT_SERVICE_URL + "/broadcast/deleteVoDFile/" + broadcast.getStreamId();
-
-			String response = makePOSTRequest(url, null);
-
-			Result deleteVoDResponse = gson.fromJson(response.toString(), Result.class);
-			assertTrue(deleteVoDResponse.isSuccess());
-
-			try {
-				Process process = Runtime.getRuntime()
-						.exec("./src/test/resources/scripts/check_file_deleted.sh " + broadcast.getStreamId());
-				InputStream errorStream = process.getInputStream();
-				byte[] data = new byte[1024];
-				int length = 0;
-				String errorStr = null;
-
-				try {
-					while ((length = errorStream.read(data, 0, data.length)) > 0) {
-						errorStr = new String(data, 0, length);
-						System.out.println("errorstr:" + errorStr);
-					}
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-
-				assertTrue(errorStr == null || errorStr.length() == 0);
-
-			} catch (IOException e) {
-				e.printStackTrace();
-				fail(e.getMessage());
-			}
-
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
-
-	}
-
+	/*
+	 * @Test public void testDeleteVoDFile() {
+	 * 
+	 * try { String streamName = "vod_delete_test"; Broadcast broadcast =
+	 * createBroadcast(streamName); assertNotNull(broadcast);
+	 * assertNotNull(broadcast.getStreamId());
+	 * 
+	 * Process execute = execute(ffmpegPath +
+	 * " -re -i src/test/resources/test.flv -acodec copy " +
+	 * "	-vcodec copy -f flv rtmp://localhost/LiveApp/" +
+	 * broadcast.getStreamId());
+	 * 
+	 * Thread.sleep(20000);
+	 * 
+	 * execute.destroy();
+	 * 
+	 * // let mp4 file to be created Thread.sleep(2000);
+	 * 
+	 * boolean vodExists = AppFunctionalTest.exists(ROOT_APP_URL + "/streams/" +
+	 * broadcast.getStreamId() + ".mp4", false);
+	 * 
+	 * assertTrue(vodExists);
+	 * 
+	 * String url = ROOT_SERVICE_URL + "/broadcast/deleteVoDFile/" +
+	 * broadcast.getStreamId();
+	 * 
+	 * String response = makePOSTRequest(url, null);
+	 * 
+	 * Result deleteVoDResponse = gson.fromJson(response.toString(),
+	 * Result.class); assertTrue(deleteVoDResponse.isSuccess());
+	 * 
+	 * try { Process process = Runtime.getRuntime()
+	 * .exec("./src/test/resources/scripts/check_file_deleted.sh " +
+	 * broadcast.getStreamId()); InputStream errorStream =
+	 * process.getInputStream(); byte[] data = new byte[1024]; int length = 0;
+	 * String errorStr = null;
+	 * 
+	 * try { while ((length = errorStream.read(data, 0, data.length)) > 0) {
+	 * errorStr = new String(data, 0, length); System.out.println("errorstr:" +
+	 * errorStr); } } catch (Exception e) { e.printStackTrace(); }
+	 * 
+	 * assertTrue(errorStr == null || errorStr.length() == 0);
+	 * 
+	 * } catch (IOException e) { e.printStackTrace(); fail(e.getMessage()); }
+	 * 
+	 * } catch (InterruptedException e) { e.printStackTrace();
+	 * fail(e.getMessage()); }
+	 * 
+	 * }
+	 */
 	public String makePOSTRequest(String url, String entity) {
 		try {
 			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
@@ -1219,7 +1207,7 @@ public class RestServiceTest {
 			// add twitter endpoint
 			Result result = addSocialEndpoint(broadcast.getStreamId().toString(), "periscope");
 
-			// check that it is succes full
+			// check that it is succesfull
 			assertTrue(result.isSuccess());
 
 			/*

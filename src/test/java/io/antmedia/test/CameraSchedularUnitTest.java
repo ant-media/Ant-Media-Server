@@ -97,11 +97,11 @@ public class CameraSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	@Test
 	public void testCameraSchedular() throws InterruptedException {
 
-		long size = 1232132132;
+		long size = 1132132;
 
 		AVFormatContext inputFormatContext = new AVFormatContext(size);
 
-		Broadcast newCam = new Broadcast("test", "10.2.40.63:8080", "admin", "admin",
+		Broadcast newCam = new Broadcast("testSchedular", "10.2.40.63:8080", "admin", "admin",
 				"rtsp://10.2.40.63:8554/live1.sdp", "ipCamera");
 
 		CameraScheduler camScheduler = new CameraScheduler(newCam);

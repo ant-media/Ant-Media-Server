@@ -102,7 +102,6 @@ public class DeviceDiscovery {
 		final CountDownLatch serverStarted = new CountDownLatch(1);
 		final CountDownLatch serverFinished = new CountDownLatch(1);
 		final Collection<InetAddress> addressList = new ArrayList<>();
-
 		if (targetAddresses != null && targetAddresses.size() > 0) {
 			for (String addressStr : targetAddresses) {
 				try {

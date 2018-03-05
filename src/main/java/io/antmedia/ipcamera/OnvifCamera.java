@@ -13,8 +13,8 @@ import org.onvif.ver10.schema.ImagingSettings20;
 import org.onvif.ver10.schema.Profile;
 import org.onvif.ver10.schema.Time;
 
-import de.onvif.soap.OnvifDevice;
-import de.onvif.soap.devices.PtzDevices;
+import io.antmedia.ipcamera.onvif.soap.OnvifDevice;
+import io.antmedia.ipcamera.onvif.soap.devices.PtzDevices;
 
 public class OnvifCamera implements IOnvifCamera {
 

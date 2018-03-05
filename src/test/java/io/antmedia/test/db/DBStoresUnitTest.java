@@ -61,9 +61,6 @@ public class DBStoresUnitTest {
 		testNullCheck(dataStore);
 		testSimpleOperations(dataStore);
 		testRemoveEndpoint(dataStore);
-
-		testFilterSearchOperations(dataStore);
-
 		testRTMPURL(dataStore);
 		testStreamWithId(dataStore);
 
@@ -446,10 +443,6 @@ public class DBStoresUnitTest {
 		List<Vod> vodList = dataStore.filterVoDList(0, 10, null, 1517239907, 1517239909);
 
 		assertEquals(vodList.size(), 1);
-
-		List<Vod> vodList2 = dataStore.filterVoDList(0, 10, "str", 0, 0);
-
-		assertEquals(vodList2.size(), 1);
 
 		List<Vod> vodList3 = dataStore.filterVoDList(0, 10, "st5r", 0, 1517239909);
 
