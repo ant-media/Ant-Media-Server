@@ -657,7 +657,7 @@ public class BroadcastRestService {
 	}
 
 	@POST
-	@Consumes({ MediaType.MULTIPART_FORM_DATA })
+	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/broadcast/uploadVoDFile/{name}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result uploadVoDFile(@PathParam("name") String fileName) throws Exception {
