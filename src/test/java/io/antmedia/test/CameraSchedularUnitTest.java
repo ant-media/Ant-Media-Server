@@ -111,7 +111,7 @@ public class CameraSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		camScheduler.stopStream();
 
-		Thread.sleep(3000);
+		Thread.sleep(5000);
 
 		assertFalse(camScheduler.isRunning());
 
