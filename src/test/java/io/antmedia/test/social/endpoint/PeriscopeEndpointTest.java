@@ -4,20 +4,12 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-
 import org.junit.BeforeClass;
 import org.junit.FixMethodOrder;
-import org.junit.Test;
 import org.junit.runners.MethodSorters;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.services.youtube.model.LiveStreamStatus;
 
-import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.preference.PreferenceStore;
 import io.antmedia.integration.MuxingTest;
@@ -28,32 +20,28 @@ import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
 public class PeriscopeEndpointTest {
 
 	private static final String TARGET_TEST_PROPERTIES = "src/test/resources/preset-red5-web.properties";
-	
-	//This is test app
+
+	// This is test app
 	public String CLIENT_ID = "5PXoLeNEcFEKBYOh2W-lJHTF_D584hF4XI-ENDIHCOCzArNaMx";
 	public String CLIENT_SECRET = "tYHjmoe42iD1FX0wSLgF7-4kdnM9mabgznuSdaSkVDFFflYomK";
 
-
-	
 	public static final int MAC_OS_X = 0;
 	public static final int LINUX = 1;
 	public static final int WINDOWS = 2;
 	private static int OS_TYPE;
 	static {
 		String osName = System.getProperty("os.name", "").toLowerCase();
-		if (osName.startsWith("mac os x") || osName.startsWith("darwin"))  {
+		if (osName.startsWith("mac os x") || osName.startsWith("darwin")) {
 			OS_TYPE = MAC_OS_X;
-		}
-		else if (osName.startsWith("windows"))  {
+		} else if (osName.startsWith("windows")) {
 			OS_TYPE = WINDOWS;
-		}
-		else if (osName.startsWith("linux"))  {
+		} else if (osName.startsWith("linux")) {
 			OS_TYPE = LINUX;
 		}
 	}
 
 	private static String ffmpegPath = "ffmpeg";
-	
+
 	@BeforeClass
 	public static void beforeClass() {
 		if (OS_TYPE == MAC_OS_X) {
@@ -61,8 +49,7 @@ public class PeriscopeEndpointTest {
 		}
 	}
 
-
-	//@Test
+	// @Test
 	public void testAccessToken() {
 
 		try {
@@ -87,15 +74,12 @@ public class PeriscopeEndpointTest {
 			System.out.println("interval :" + device.interval);
 			System.out.println("verification_url :" + device.verification_url);
 
-
-
 			do {
 				boolean authentiated;
 				try {
 					authentiated = endPoint.askIfDeviceAuthenticated();
 
-					if (authentiated) 
-					{
+					if (authentiated) {
 						break;
 					}
 					System.out.println("waiting for " + device.interval + " seconds");
@@ -107,18 +91,14 @@ public class PeriscopeEndpointTest {
 
 			} while (true);
 
-			
-
-
-
 		} catch (Exception e) {
 
 			e.printStackTrace();
 			fail(e.getMessage());
-		} 
+		}
 	}
 
-	@Test
+	// @Test
 	public void testCreateBroadcastNoName() {
 		PreferenceStore dataStore = new PreferenceStore(TARGET_TEST_PROPERTIES);
 		dataStore.setFullPath(TARGET_TEST_PROPERTIES);
@@ -138,9 +118,7 @@ public class PeriscopeEndpointTest {
 		}
 	}
 
-	
-
-	@Test
+	// @Test
 	public void testCreateBroadcast() {
 		PreferenceStore dataStore = new PreferenceStore(TARGET_TEST_PROPERTIES);
 		dataStore.setFullPath(TARGET_TEST_PROPERTIES);
@@ -151,32 +129,28 @@ public class PeriscopeEndpointTest {
 			Endpoint endpoint = endPoint.createBroadcast(name, null, false, false, 720);
 
 			System.out.println("rtmp url is:" + endpoint.rtmpUrl);
-			
-			
 
-			///usr/local/bin/
-			Process execute = MuxingTest.execute(ffmpegPath + " -re -i src/test/resources/test_video_360p.flv -acodec copy -vcodec copy -f flv " + endpoint.rtmpUrl);
+			/// usr/local/bin/
+			Process execute = MuxingTest.execute(
+					ffmpegPath + " -re -i src/test/resources/test_video_360p.flv -acodec copy -vcodec copy -f flv "
+							+ endpoint.rtmpUrl);
 
 			LiveStreamStatus streamStatus = null;
-
 
 			boolean started = false;
 
 			endPoint.publishBroadcast(endpoint);
 
-
 			Thread.sleep(10000);
 
-
-			
 			endPoint.stopBroadcast(endpoint);
-			
+
 			execute.destroy();
 
 		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
-		} 
+		}
 
 	}
 
