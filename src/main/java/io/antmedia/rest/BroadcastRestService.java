@@ -1,7 +1,6 @@
 package io.antmedia.rest;
 
 import java.io.File;
-import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.List;
@@ -19,8 +18,6 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
-import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
-import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.red5.server.api.scope.IBroadcastScope;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.scope.ScopeType;
@@ -663,10 +660,13 @@ public class BroadcastRestService {
 	@Consumes({ MediaType.MULTIPART_FORM_DATA })
 	@Path("/broadcast/uploadVoDFile/{name}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result uploadVoDFile(@PathParam("name") String fileName, @FormDataParam("file") InputStream inputStream,
-			@FormDataParam("file") FormDataContentDisposition fileInfo) throws Exception {
+	public Result uploadVoDFile(@PathParam("name") String fileName) throws Exception {
 		boolean success = false;
 		String message = "";
+
+		// @FormDataParam("file") InputStream inputStream,
+		// @FormDataParam("file") FormDataContentDisposition fileInfo
+
 		/*
 		 * String appScopeName =
 		 * ScopeUtils.findApplication(getScope()).getName(); String
