@@ -763,7 +763,6 @@ public class RestServiceTest {
 		return tmp;
 	}
 
-	@Test
 	public void testUpdate() {
 
 		// create broadcast
@@ -959,7 +958,6 @@ public class RestServiceTest {
 		}
 	}
 
-	@Test
 	public void testCheckSocialEndpointRecreated() {
 		Result result;
 		try {
@@ -1151,7 +1149,6 @@ public class RestServiceTest {
 
 	}
 
-	@Test
 	public void testAddEndpoint() {
 
 		try {
