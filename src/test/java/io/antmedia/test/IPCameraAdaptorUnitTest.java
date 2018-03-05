@@ -106,7 +106,7 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 
 		assertTrue(flag3);
 
-		ProcessBuilder pb = new ProcessBuilder("home/travis/onvifEmulator/happytime-rtsp-server/runme.sh", "myArg1",
+		ProcessBuilder pb = new ProcessBuilder("/home/travis/utilities/happytime-rtsp-server/runme.sh", "myArg1",
 				"myArg2");
 		Process p = null;
 		try {
@@ -172,7 +172,7 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 		assertTrue(flag2);
 		// after some time, emulator has been started so connection is back
-		ProcessBuilder pb2 = new ProcessBuilder("/home/travis/onvifEmulator/happytime-rtsp-server/runme.sh", "myArg1",
+		ProcessBuilder pb2 = new ProcessBuilder("/home/travis/utilities/happytime-rtsp-server/runme.sh", "myArg1",
 				"myArg2");
 		Process p2 = null;
 		try {

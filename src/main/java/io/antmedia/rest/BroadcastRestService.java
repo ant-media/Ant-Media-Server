@@ -1,10 +1,7 @@
 package io.antmedia.rest;
 
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.List;
@@ -22,7 +19,6 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
-import org.apache.commons.io.FilenameUtils;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.red5.server.api.scope.IBroadcastScope;
@@ -30,7 +26,6 @@ import org.red5.server.api.scope.IScope;
 import org.red5.server.api.scope.ScopeType;
 import org.red5.server.api.stream.IBroadcastStream;
 import org.red5.server.api.stream.IClientBroadcastStream;
-import org.red5.server.util.ScopeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -672,67 +667,54 @@ public class BroadcastRestService {
 			@FormDataParam("file") FormDataContentDisposition fileInfo) throws Exception {
 		boolean success = false;
 		String message = "";
-
-		String appScopeName = ScopeUtils.findApplication(getScope()).getName();
-		String uploadedFileName = fileInfo.getFileName();
-		OutputStream outpuStream = null;
-
-		String fileExtension = FilenameUtils.getExtension(uploadedFileName);
-
-		if (fileExtension.equals("mp4")) {
-
-			File streamsDirectory = new File(
-					String.format("%s/webapps/%s/%s", System.getProperty("red5.root"), appScopeName, "streams"));
-
-			// if the directory does not exist, create it
-			if (!streamsDirectory.exists()) {
-				try {
-					streamsDirectory.mkdir();
-				} catch (SecurityException se) {
-
-				}
-			}
-
-			File savedFile = new File(String.format("%s/webapps/%s/%s", System.getProperty("red5.root"), appScopeName,
-					"streams/" + fileName));
-
-			try {
-				int read = 0;
-				byte[] bytes = new byte[2048];
-				outpuStream = new FileOutputStream(savedFile);
-				while ((read = inputStream.read(bytes)) != -1) {
-					outpuStream.write(bytes, 0, read);
-				}
-				outpuStream.flush();
-				outpuStream.close();
-
-			} catch (IOException iox) {
-				iox.printStackTrace();
-			} finally {
-
-				success = true;
-
-				long fileSize = savedFile.length();
-				long unixTime = System.currentTimeMillis();
-
-				Vod newVod = new Vod(fileName, "vodFile", savedFile.getPath(), fileName, unixTime, 0, fileSize,
-						"uploadedVod");
-
-				success = getDataStore().addVod("vodFile", newVod);
-
-				if (outpuStream != null) {
-					try {
-						outpuStream.close();
-					} catch (Exception ex) {
-					}
-				}
-			}
-		} else {
-
-			success = false;
-			message = "notMp4File";
-
-		}
+		/*
+		 * String appScopeName =
+		 * ScopeUtils.findApplication(getScope()).getName(); String
+		 * uploadedFileName = fileInfo.getFileName(); OutputStream outpuStream =
+		 * null;
+		 * 
+		 * String fileExtension = FilenameUtils.getExtension(uploadedFileName);
+		 * 
+		 * if (fileExtension.equals("mp4")) {
+		 * 
+		 * File streamsDirectory = new File( String.format("%s/webapps/%s/%s",
+		 * System.getProperty("red5.root"), appScopeName, "streams"));
+		 * 
+		 * // if the directory does not exist, create it if
+		 * (!streamsDirectory.exists()) { try { streamsDirectory.mkdir(); }
+		 * catch (SecurityException se) {
+		 * 
+		 * } }
+		 * 
+		 * File savedFile = new File(String.format("%s/webapps/%s/%s",
+		 * System.getProperty("red5.root"), appScopeName, "streams/" +
+		 * fileName));
+		 * 
+		 * try { int read = 0; byte[] bytes = new byte[2048]; outpuStream = new
+		 * FileOutputStream(savedFile); while ((read = inputStream.read(bytes))
+		 * != -1) { outpuStream.write(bytes, 0, read); } outpuStream.flush();
+		 * outpuStream.close();
+		 * 
+		 * } catch (IOException iox) { iox.printStackTrace(); } finally {
+		 * 
+		 * success = true;
+		 * 
+		 * long fileSize = savedFile.length(); long unixTime =
+		 * System.currentTimeMillis();
+		 * 
+		 * Vod newVod = new Vod(fileName, "vodFile", savedFile.getPath(),
+		 * fileName, unixTime, 0, fileSize, "uploadedVod");
+		 * 
+		 * success = getDataStore().addVod("vodFile", newVod);
+		 * 
+		 * if (outpuStream != null) { try { outpuStream.close(); } catch
+		 * (Exception ex) { } } } } else {
+		 * 
+		 * success = false; message = "notMp4File";
+		 * 
+		 * }
+		 * 
+		 */
 
 		return new Result(success, message);
 	}
