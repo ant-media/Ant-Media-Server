@@ -208,7 +208,7 @@ public class AppFunctionalTest {
 	}
 
 	// Before running test all endpoints should be authenticated
-	@Test
+
 	public void testBroadcastStream() {
 		try {
 			// call web service to create stream
