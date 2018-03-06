@@ -50,7 +50,7 @@ public class ConsoleAppRestServiceTest {
 
 	static {
 
-		ROOT_SERVICE_URL = "http://127.0.0.1:5080/ConsoleApp/rest";
+		ROOT_SERVICE_URL = "http://localhost:5080/ConsoleApp/rest";
 
 		System.out.println("ROOT SERVICE URL: " + ROOT_SERVICE_URL);
 
