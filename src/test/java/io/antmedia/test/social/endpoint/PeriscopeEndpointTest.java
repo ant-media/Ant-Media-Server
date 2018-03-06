@@ -23,8 +23,8 @@ public class PeriscopeEndpointTest {
 	private static final String TARGET_TEST_PROPERTIES = "src/test/resources/preset-red5-web.properties";
 
 	// This is test app
-	public String CLIENT_ID = "Q90cMeG2gUzC6fImXcp2SvyVqwVSvGDlsFsRF4Uia9NR1M-Zru";
-	public String CLIENT_SECRET = "dBCjxFbawo436VSWMvuD5SDSZoSdhew_-Fvrh5QhrBXuKoelV";
+	public String CLIENT_ID = "5PXoLeNEcFEKBYOh2W-lJHTF_D584hF4XI-ENDIHCOCzArNaMx";
+	public String CLIENT_SECRET = "tYHjmoe42iD1FX0wSLgF7-4kdnM9mabgznuSdaSkVDFFflYomK";
 
 	public static final int MAC_OS_X = 0;
 	public static final int LINUX = 1;
