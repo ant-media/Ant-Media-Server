@@ -51,7 +51,7 @@
 		<finalName>${project.artifactId}-${project.version}</finalName>
 		<red5-io.version>${project.parent.version}</red5-io.version>
 		<red5-service.version>${project.version}</red5-service.version>
-		<red5-server-common.version>1.2.4</red5-server-common.version>
+		<red5-server-common.version>1.2.5</red5-server-common.version>
 		<cors-filter.version>2.5</cors-filter.version>
 		<periscope-api.version>1.0.0</periscope-api.version>
 		<restfb.version>1.43.0</restfb.version>
@@ -64,10 +64,10 @@
     	    <maven.build.timestamp.format>yyMMdd_HHmm</maven.build.timestamp.format>
         <buildNumber>${maven.build.timestamp}</buildNumber>
         <enunciate.version>2.10.0</enunciate.version>
-        <webrtcapp.version>1.2.2</webrtcapp.version>
-        <consoleapp.version>1.2.4</consoleapp.version>
-		<liveapp.version>1.2.4</liveapp.version>
-		<webrtcappee.version>1.2.3</webrtcappee.version>	
+        <webrtcapp.version>1.2.4</webrtcapp.version>
+        <consoleapp.version>1.2.5</consoleapp.version>
+		<liveapp.version>1.2.5</liveapp.version>
+		<webrtcappee.version>1.2.4</webrtcappee.version>	
 		<ant-media-server-service.version>1.2.0</ant-media-server-service.version>
 		<ant-media-server-enterprise.version>1.2.6</ant-media-server-enterprise.version>
 
