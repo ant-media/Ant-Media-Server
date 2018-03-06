@@ -1149,54 +1149,34 @@ public class RestServiceTest {
 
 	}
 
+	@Test
 	public void testAddEndpoint() {
 
 		try {
 			/*
-			 * //create broadcast
-			 * 
-			 * 
-			 * System.out.println("broadcast id string: " +
-			 * broadcast.getStreamId().toString());
-			 * 
-			 * //get broadcast broadcast =
-			 * getBroadcast(broadcast.getStreamId().toString());
-			 * 
-			 * //checek there no endpoint
-			 * assertNull(broadcast.getEndPointList());
-			 * 
-			 * //add facebook end point Result result =
+			 * //create broadcast System.out.println("broadcast id string: " +
+			 * broadcast.getStreamId().toString()); //get broadcast broadcast =
+			 * getBroadcast(broadcast.getStreamId().toString()); //checek there
+			 * no endpoint assertNull(broadcast.getEndPointList()); //add
+			 * facebook end point Result result =
 			 * addSocialEndpoint(broadcast.getStreamId().toString(),
-			 * "facebook");
-			 * 
-			 * //check that error returns because it is not authenticated
-			 * assertFalse(result.success); assertNotNull(result.message);
-			 * 
-			 * //add twitter end point result =
+			 * "facebook"); //check that error returns because it is not
+			 * authenticated assertFalse(result.success);
+			 * assertNotNull(result.message); //add twitter end point result =
 			 * addSocialEndpoint(broadcast.getStreamId().toString(), "twitter");
-			 * 
 			 * //check that error returns assertFalse(result.success);
-			 * assertNotNull(result.message);
-			 * 
-			 * //add youtube end point result =
+			 * assertNotNull(result.message); //add youtube end point result =
 			 * addSocialEndpoint(broadcast.getStreamId().toString(), "youtube");
-			 * 
 			 * //check that error returns assertFalse(result.success);
 			 * assertNotNull(result.message);
 			 */
 
 			/*
-			 * 
-			 * 
 			 * updateNameAndDescription(broadcast.getStreamId().toString(),
-			 * "name", "description");
-			 * 
-			 * //add facebook endpoint Result result =
+			 * "name", "description"); //add facebook endpoint Result result =
 			 * addSocialEndpoint(broadcast.getStreamId().toString(),
-			 * "facebook");
-			 * 
-			 * //check that it is successfull assertTrue(result.success);
-			 * 
+			 * "facebook"); //check that it is successfull
+			 * assertTrue(result.success);
 			 */
 
 			Broadcast broadcast = createBroadcast(null);
@@ -1204,15 +1184,13 @@ public class RestServiceTest {
 			// add twitter endpoint
 			Result result = addSocialEndpoint(broadcast.getStreamId().toString(), "periscope");
 
-			// check that it is succesfull
+			// check that it is succes full
 			assertTrue(result.isSuccess());
 
 			/*
 			 * //add youtube endpoint result =
 			 * addSocialEndpoint(broadcast.getStreamId().toString(), "youtube");
-			 * 
 			 * //check that it is succes full assertTrue(result.success);
-			 * 
 			 */
 
 			// add generic endpoint
