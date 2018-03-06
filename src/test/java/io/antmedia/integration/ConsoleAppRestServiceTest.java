@@ -7,8 +7,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -52,11 +50,7 @@ public class ConsoleAppRestServiceTest {
 
 	static {
 
-		try {
-			ROOT_SERVICE_URL = "http://" + InetAddress.getLocalHost().getHostAddress() + ":5080/ConsoleApp/rest";
-		} catch (UnknownHostException e) {
-			e.printStackTrace();
-		}
+		ROOT_SERVICE_URL = "http://127.0.0.1:5080/ConsoleApp/rest";
 
 		System.out.println("ROOT SERVICE URL: " + ROOT_SERVICE_URL);
 
