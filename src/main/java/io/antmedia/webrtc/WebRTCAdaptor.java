@@ -78,6 +78,29 @@ public class WebRTCAdaptor implements IWebRTCAdaptor {
 		}
 		return result;
 	}
+	
+	
+	@Override
+	public boolean registerWebRTCClient(String streamId, IWebRTCClient webRTCClient, int resolutionHeight) {
+		boolean result = false;
+		List<IWebRTCMuxer> list = muxerMap.get(streamId);
+		if (list != null && list.size() > 0 ) 
+		{
+			for (IWebRTCMuxer iWebRTCMuxer : list) 
+			{	
+				int videoHeight = iWebRTCMuxer.getVideoHeight();
+
+				if (videoHeight == resolutionHeight) {
+					iWebRTCMuxer.registerWebRTCClient(webRTCClient);
+					result = true;
+					break;
+				}
+			}
+
+		}
+		return result;
+		
+	}
 
 	/* (non-Javadoc)
 	 * @see io.antmedia.enterprise.webrtc.IWebRTCAdaptor#deregisterWebRTCClient(java.lang.String, io.antmedia.enterprise.webrtc.api.IWebRTCClient)
@@ -110,6 +133,9 @@ public class WebRTCAdaptor implements IWebRTCAdaptor {
 
 	@Override
 	public void adaptStreamingQuality(String streamId, IWebRTCClient webRTCClient) {
+		if (webRTCClient instanceof WebRTCClient) {
+			
+		}
 		List<IWebRTCMuxer> list = muxerMap.get(streamId);
 		IWebRTCMuxer currentlyRegisteredMuxer = webRTCClient.getWebRTCMuxer();
 		IWebRTCMuxer adaptedMuxer = null;

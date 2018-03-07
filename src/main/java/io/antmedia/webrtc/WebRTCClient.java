@@ -50,7 +50,7 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 	private int width;
 
 	private int height;
-	
+
 	private MediaStream mediaStream;
 
 	private WebSocketConnection wsConnection;
@@ -118,8 +118,8 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 	@Override
 	public void sendVideoConfPacket(final byte[] videoConfData, final byte[] videoPacket, final long timestamp) {
 		if (isStreaming) {
-			videoStreamExecutor.execute(new Runnable() {
-
+			videoStreamExecutor.execute(new Runnable() 
+			{
 				@Override
 				public void run() {
 					factory.addVideoConfPacket(videoConfData, videoConfData.length, videoPacket, videoPacket.length, width, height, true, timestamp);
@@ -173,34 +173,37 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 
 		executor.execute(new Runnable() {
 
-			
-
 			@Override
 			public void run() {
-				List<IceServer> iceServers = new ArrayList();
-				iceServers.add(new IceServer("stun:stun.l.google.com:19302"));
-				PeerConnection.RTCConfiguration rtcConfig = new PeerConnection.RTCConfiguration(iceServers);
-				createMediaConstraintsInternal();
+				try {
+					List<IceServer> iceServers = new ArrayList();
+					iceServers.add(new IceServer("stun:stun.l.google.com:19302"));
+					PeerConnection.RTCConfiguration rtcConfig = new PeerConnection.RTCConfiguration(iceServers);
+					createMediaConstraintsInternal();
 
-				factory = createPeerConnectionFactory();
+					factory = createPeerConnectionFactory();
 
-				peerConnection = factory.createPeerConnection(rtcConfig, pcConstraints, WebRTCClient.this);
+					peerConnection = factory.createPeerConnection(rtcConfig, pcConstraints, WebRTCClient.this);
 
-				mediaStream = factory.createLocalMediaStream("local_stream");
+					mediaStream = factory.createLocalMediaStream("local_stream");
 
-				audioSource = factory.createAudioSource(pcConstraints);
-				mediaStream.addTrack(factory.createAudioTrack("audio", audioSource));
+					audioSource = factory.createAudioSource(pcConstraints);
+					mediaStream.addTrack(factory.createAudioTrack("audio", audioSource));
 
-				videoSource = factory.createVideoSource();
-				mediaStream.addTrack(factory.createVideoTrack("video", videoSource));
+					videoSource = factory.createVideoSource();
+					mediaStream.addTrack(factory.createVideoTrack("video", videoSource));
 
-				peerConnection.addStream(mediaStream);
+					peerConnection.addStream(mediaStream);
 
-				peerConnection.createOffer(WebRTCClient.this, sdpMediaConstraints);
+					peerConnection.createOffer(WebRTCClient.this, sdpMediaConstraints);
 
-				isInitialized = true;
-
-
+					isInitialized = true;
+					
+					logger.info("... Start Initialized...");
+				}
+				catch (Exception e) {
+					e.printStackTrace();
+				}
 			}
 		});
 
@@ -490,10 +493,10 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 				if (webRTCMuxer != null) {
 					webRTCMuxer.unRegisterWebRTCClient(WebRTCClient.this);
 				}
-				
+
 				audioStreamExecutor.shutdownNow();
 				videoStreamExecutor.shutdownNow();
-				
+
 				try {
 					JSONObject jsonObject = new JSONObject();
 					jsonObject.put("command", "notification");
@@ -502,30 +505,24 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 				} catch (UnsupportedEncodingException e) {
 					e.printStackTrace();
 				}	
-				
-				
+
+
 				try {
 					audioStreamExecutor.awaitTermination(10, TimeUnit.SECONDS);
 					videoStreamExecutor.awaitTermination(10, TimeUnit.SECONDS);
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
-				
-				
+
+
 				peerConnection.removeStream(mediaStream);
-				
+
 				if (adaptStreamScheduledFuture != null) {
 					adaptStreamScheduledFuture.cancel(false);
 					adaptStreamScheduledFuture = null;
 				}
-				
-				
 
 				logger.info("Disposing peerconnection objects");
-
-
-
-
 
 				if (audioSource != null) {
 					logger.info("Disposing audio source");
@@ -538,14 +535,14 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 					videoSource.dispose();
 					videoSource = null;
 				}
-				
-				
+
+
 
 				if (peerConnection != null) {
 					logger.info("Closing peer connection: " + peerConnection.iceConnectionState());
-					
+
 					peerConnection.close();
-					
+
 
 					logger.info("Disposing peer connection");
 					peerConnection.dispose();
@@ -557,7 +554,7 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 					factory.dispose();
 					factory = null;
 				}
-				
+
 
 
 
@@ -565,6 +562,26 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 		});
 		executor.shutdown();
 
+	}
+
+
+	public boolean isInitialized() {
+		return isInitialized;
+	}
+
+
+	public void setInitialized(boolean isInitialized) {
+		this.isInitialized = isInitialized;
+	}
+
+
+	public boolean isStreaming() {
+		return isStreaming;
+	}
+
+
+	public void setStreaming(boolean isStreaming) {
+		this.isStreaming = isStreaming;
 	}
 
 }

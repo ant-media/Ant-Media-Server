@@ -21,4 +21,15 @@ public interface IWebRTCAdaptor extends IScopeService {
 
 	void adaptStreamingQuality(String streamId, IWebRTCClient webRTCClient);
 
+	/**
+	 * Register to specific resolution
+	 * 
+	 * It is used in clustering
+	 * 
+	 * @param streamId
+	 * @param webRTCClusterClient
+	 * @param resolutionHeight
+	 */
+	boolean registerWebRTCClient(String streamId, IWebRTCClient webRTCClusterClient, int resolutionHeight);
+
 }
