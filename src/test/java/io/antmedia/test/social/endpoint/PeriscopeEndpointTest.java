@@ -50,7 +50,7 @@ public class PeriscopeEndpointTest {
 		}
 	}
 
-	@Test
+	//@Test
 	public void testAccessToken() {
 
 		try {
