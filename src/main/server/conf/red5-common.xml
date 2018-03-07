@@ -212,10 +212,5 @@
         -->
     </bean>
     
-    
-    <bean id="vertxCore" 
-    		class="io.vertx.core.Vertx" 
-   		factory-method="vertx" />
-    
 
 </beans>

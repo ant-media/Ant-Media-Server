@@ -64,10 +64,10 @@
     	    <maven.build.timestamp.format>yyMMdd_HHmm</maven.build.timestamp.format>
         <buildNumber>${maven.build.timestamp}</buildNumber>
         <enunciate.version>2.10.0</enunciate.version>
-        <webrtcapp.version>1.2.4</webrtcapp.version>
-        <consoleapp.version>1.2.6</consoleapp.version>
-		<liveapp.version>1.2.5</liveapp.version>
-		<webrtcappee.version>1.2.4</webrtcappee.version>	
+        <webrtcapp.version>1.2.5</webrtcapp.version>
+        <consoleapp.version>1.2.7</consoleapp.version>
+		<liveapp.version>1.2.6</liveapp.version>
+		<webrtcappee.version>1.2.5</webrtcappee.version>	
 		<ant-media-server-service.version>1.2.0</ant-media-server-service.version>
 		<ant-media-server-enterprise.version>1.3.0-SNAPSHOT</ant-media-server-enterprise.version>
 

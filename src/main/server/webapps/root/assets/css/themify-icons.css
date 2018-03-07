@@ -70,6 +70,7 @@
 }
 .ti-settings:before {
 	content: "\e60f";
+	font-size: 1.2em;
 }
 .ti-search:before {
 	content: "\e610";
@@ -235,6 +236,7 @@
 }
 .ti-close:before {
 	content: "\e646";
+
 }
 .ti-clip:before {
 	content: "\e647";
@@ -299,17 +301,28 @@
 .ti-arrow-top-left:before {
 	content: "\e65b";
 }
+
+
+
 .ti-arrow-circle-up:before {
 	content: "\e65c";
+	color: #da2016;
+	font-size: 2em;
 }
 .ti-arrow-circle-right:before {
 	content: "\e65d";
+	color: #da2016;
+	font-size: 2em;
 }
 .ti-arrow-circle-left:before {
 	content: "\e65e";
+	color: #da2016;
+	font-size: 2em;
 }
 .ti-arrow-circle-down:before {
 	content: "\e65f";
+	color: #da2016;
+	font-size: 2em;
 }
 .ti-angle-double-up:before {
 	content: "\e660";

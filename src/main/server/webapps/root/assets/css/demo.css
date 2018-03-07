@@ -73,3 +73,70 @@
 body.nude{
     background-color: #f4f3ef;
 }
+
+.ptz-buttons {
+    align-content: center;
+    position: relative;
+    width: 110px;
+    float: right;
+    top: -140px;
+}
+
+
+
+
+
+.embed-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; }
+.embed-container iframe, .embed-container object, .embed-container embed { position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    border: none;}
+
+.mat-container {
+    display: flex;
+    flex-direction: column;
+    min-width: 300px;
+}
+
+.mat-header {
+    min-height: 64px;
+    padding: 8px 12px 0;
+
+
+}
+
+.mat-form-field {
+    font-size: 14px;
+    width: 100%;
+}
+
+.mat-table {
+    overflow: auto;
+    max-height: 500px;
+}
+
+.upload-card {
+    max-width: 400px;
+}
+
+.example-header-image {
+    background-image: url('https://material.angular.io/assets/img/examples/shiba1.jpg');
+    background-size: cover;
+}
+
+.fileUpload {
+    position: relative;
+    overflow: hidden;
+    text-align: center;
+
+}
+
+.fileUpload input.upload {
+    position: absolute;
+    top: 0;
+    right: 0;
+    margin: 0;
+    padding: 0;
+    font-size: 20px;
+    cursor: pointer;
+    opacity: 0;
+    filter: alpha(opacity=0);
+}
