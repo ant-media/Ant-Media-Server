@@ -16,7 +16,7 @@ Ant Media Server is an Open Source Media Server that supports:
 
 ## Releases 
 
-#### [Ant Media Server Community 1.3.0-SNAPSHOT (March 07,2018)] (https://github.com/ant-media/Ant-Media-Server/releases/tag/ams-v1.3.0-SNAPSHOT)
+#### [Ant Media Server Community 1.3.0-SNAPSHOT (March 07,2018)](https://github.com/ant-media/Ant-Media-Server/releases/tag/ams-v1.3.0-SNAPSHOT)
 
 * IP Camera Streaming Support
 * ONVIF Standard Features (Ptz etc.).
