@@ -28,6 +28,8 @@ import static org.bytedeco.javacpp.avutil.av_rescale_q_rnd;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.net.URI;
 import java.util.Date;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -82,11 +84,12 @@ public class PacketReceiverRunnable implements Runnable {
 	}
 
 	public boolean prepare_input_context(ThreadPoolTaskScheduler mTaskScheduler, final String cseq, final String sessionKey, final IoSession session, String announcedStreamName, StringBuffer liveStreamSdpDef, String streamUrl) {
+		OutputStream fos = null;
 		try {
 			sdpFile = new File(announcedStreamName + ".sdp");
-			FileOutputStream fos = new FileOutputStream(sdpFile);
+			fos = new FileOutputStream(sdpFile);
 			fos.write(liveStreamSdpDef.toString().getBytes());
-			fos.close();
+			
 
 			inputFormatCtx = new AVFormatContext(null);
 			
@@ -172,6 +175,13 @@ public class PacketReceiverRunnable implements Runnable {
 		}
 		catch (Exception e) {
 			e.printStackTrace();
+		}
+		finally {
+			try {
+				fos.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 
 		return true;

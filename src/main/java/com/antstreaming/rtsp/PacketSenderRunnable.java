@@ -100,7 +100,7 @@ public class PacketSenderRunnable implements Runnable {
 		AVOutputFormat ofmt = outputFormatContext[streamId].oformat();
 		AVStream in_stream = inputFormatContext.streams(streamId);
 		AVStream out_stream = avformat_new_stream(outputFormatContext[streamId], in_stream.codec().codec());
-		
+
 		streamTimeBase[streamId] = in_stream.time_base();
 
 		ret = avcodec_parameters_copy(out_stream.codecpar(), in_stream.codecpar());
@@ -198,22 +198,27 @@ public class PacketSenderRunnable implements Runnable {
 
 					AVRational inStreamTimeBase = streamTimeBase[packetIndex]; 
 					/* copy packet */
-					AVRational avRational = new AVRational();
-					avRational.num(1);
-					avRational.den(AV_TIME_BASE);
-					packetSentTime = av_rescale_q(pkt.dts(), inStreamTimeBase, avRational); // + pkt.duration(); 
-					if (firstPacketSentTime == 0) {
-						firstPacketSentTime = packetSentTime;
+					try (AVRational avRational = new AVRational()) {
+						avRational.num(1);
+						avRational.den(AV_TIME_BASE);
+
+						packetSentTime = av_rescale_q(pkt.dts(), inStreamTimeBase, avRational); // + pkt.duration(); 
+						if (firstPacketSentTime == 0) {
+							firstPacketSentTime = packetSentTime;
+						}
+
+						//pkt.dts() + pkt.duration();
+						pkt.pts(av_rescale_q_rnd(pkt.pts(), inStreamTimeBase, out_stream.time_base(), AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
+						pkt.dts(av_rescale_q_rnd(pkt.dts(), inStreamTimeBase, out_stream.time_base(), AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
+						pkt.duration(av_rescale_q(pkt.duration(), inStreamTimeBase, out_stream.time_base()));
+						pkt.pos(-1);
+
+						//stream index is always zero because rtp can contain one stream
+						pkt.stream_index(0);
 					}
-
-					//pkt.dts() + pkt.duration();
-					pkt.pts(av_rescale_q_rnd(pkt.pts(), inStreamTimeBase, out_stream.time_base(), AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
-					pkt.dts(av_rescale_q_rnd(pkt.dts(), inStreamTimeBase, out_stream.time_base(), AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
-					pkt.duration(av_rescale_q(pkt.duration(), inStreamTimeBase, out_stream.time_base()));
-					pkt.pos(-1);
-
-					//stream index is always zero because rtp can contain one stream
-					pkt.stream_index(0);
+					catch (Exception e) {
+						e.printStackTrace();
+					}
 
 				}
 
@@ -322,7 +327,7 @@ public class PacketSenderRunnable implements Runnable {
 
 		if (createSDP) 
 		{
-		
+
 			ret = avformat_find_stream_info(inputFormatContext, (PointerPointer)null); 
 			if (ret < 0) {
 				byte[] data = new byte[4096];
@@ -349,7 +354,7 @@ public class PacketSenderRunnable implements Runnable {
 				logger.warn("sdp description does not have rtpmap field");
 				return null;
 			}
-			
+
 			streamTimeBase = new AVRational[inputFormatContext.nb_streams()];
 
 			return sdpString.trim();
