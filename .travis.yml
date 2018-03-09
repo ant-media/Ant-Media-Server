@@ -8,7 +8,7 @@ addons:
   sonarcloud:
     organization: "ant-media"
     token:
-      secure: "$SONAR_TOKEN"
+      secure: $SONAR_TOKEN
 
 #travis running on ubuntu 14.04
 
