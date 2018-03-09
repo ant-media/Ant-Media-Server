@@ -84,12 +84,13 @@ public class PacketReceiverRunnable implements Runnable {
 	}
 
 	public boolean prepare_input_context(ThreadPoolTaskScheduler mTaskScheduler, final String cseq, final String sessionKey, final IoSession session, String announcedStreamName, StringBuffer liveStreamSdpDef, String streamUrl) {
-		OutputStream fos = null;
+		
 		try {
 			sdpFile = new File(announcedStreamName + ".sdp");
-			fos = new FileOutputStream(sdpFile);
-			fos.write(liveStreamSdpDef.toString().getBytes());
 			
+			try (OutputStream fos = new FileOutputStream(sdpFile)) {
+				fos.write(liveStreamSdpDef.toString().getBytes());
+			}
 
 			inputFormatCtx = new AVFormatContext(null);
 			
@@ -176,13 +177,7 @@ public class PacketReceiverRunnable implements Runnable {
 		catch (Exception e) {
 			e.printStackTrace();
 		}
-		finally {
-			try {
-				fos.close();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
+		
 
 		return true;
 	}

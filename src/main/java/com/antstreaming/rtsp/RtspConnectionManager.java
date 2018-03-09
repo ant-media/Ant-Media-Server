@@ -116,7 +116,6 @@ public class RtspConnectionManager implements IConnectionManager<RtspConnection>
 			logger.debug("applicationContext.containsBean(rtmpScheduler) : " + applicationContext.containsBean("rtmpScheduler"));
 			logger.debug("connection scheduler : "  + conn.getScheduler() + " manager scheduler:" + getTaskScheduler());
 			conn.setScheduler(getTaskScheduler());
-			conn.setApplicationContext(applicationContext);
 			logger.trace("Connection created: {}", conn);
 		} catch (Exception ex) {
 			logger.warn("Exception creating connection", ex);
