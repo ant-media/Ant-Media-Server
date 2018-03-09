@@ -4,6 +4,11 @@ jdk:
 
 sudo: required
 
+addons:
+  sonarcloud:
+    organization: "ant-media"
+    token:
+      secure: "$SONAR_TOKEN"
 
 #travis running on ubuntu 14.04
 
@@ -34,14 +39,14 @@ before_install:
   - sleep 10
 
 
-install:
-  - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -Dgpg.skip=true -B -V
+script:
+  - mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent install sonar:sonar -DskipTests=true -Dmaven.javadoc.skip=true -Dgpg.skip=true -B -V
 
-script: "mvn cobertura:cobertura"
+cache:
+  directories:
+    - '$HOME/.m2/repository'
+    - '$HOME/.sonar/cache'
 
-after_success:
-  - bash <(curl -s https://codecov.io/bash)
-  
 deploy:
   - provider: releases
     api_key: $GITHUB_OAUTH_TOKEN
