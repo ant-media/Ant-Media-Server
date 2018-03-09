@@ -39,8 +39,11 @@ before_install:
   - sleep 10
 
 
-script:
-  - mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent install sonar:sonar -DskipTests=true -Dmaven.javadoc.skip=true -Dgpg.skip=true -B -V
+-install:
+  - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -Dgpg.skip=true -B -V
+
+-script:
+  - mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent install sonar:sonar
 
 cache:
   directories:
