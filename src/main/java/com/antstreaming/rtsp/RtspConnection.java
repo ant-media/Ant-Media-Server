@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.red5.server.scope.Scope;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.mina.core.buffer.IoBuffer;
@@ -117,11 +118,7 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 
 	private int[][] clientPort;
 
-	private String remoteAddress;
-
 	private StringBuffer liveStreamSdpDef;
-
-	private ApplicationContext mApplicationContext;
 
 	//	private File streamFile;
 
@@ -130,8 +127,6 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 	private PacketReceiverRunnable frameReceiver;
 
 	private PacketSenderRunnable frameSender;
-
-	private IScope scope;
 
 	private String announcedStreamName;
 
@@ -307,7 +302,7 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 			if (global != null) {
 				IContext context = global.getContext();
 				if (context != null) {
-					scope = context.resolveScope(global, app);
+					scope = (Scope)context.resolveScope(global, app);
 				}
 			}
 		}
@@ -848,16 +843,5 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 	public void setServer(IServer server) {
 		this.mServer = server;
 	}
-
-
-	public void setApplicationContext(ApplicationContext applicationContext) {
-		this.mApplicationContext = applicationContext;
-	}
-
-
-
-
-
-
 
 }

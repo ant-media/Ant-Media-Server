@@ -392,35 +392,37 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 	public static StringBuffer sendPOST(String url, Map<String, String> variables) throws IOException {
 
-		CloseableHttpClient httpClient = HttpClients.createDefault();
-		HttpPost httpPost = new HttpPost(url);
-		httpPost.addHeader("User-Agent", "Daaavuuuuuttttt https://www.youtube.com/watch?v=cbyTDRgW4Jg");
+		StringBuffer response = null;
+		try (CloseableHttpClient httpClient = HttpClients.createDefault()) 
+		{
+			HttpPost httpPost = new HttpPost(url);
+			httpPost.addHeader("User-Agent", "Daaavuuuuuttttt https://www.youtube.com/watch?v=cbyTDRgW4Jg");
 
-		List<NameValuePair> urlParameters = new ArrayList<NameValuePair>();
-		Set<Entry<String, String>> entrySet = variables.entrySet();
-		for (Entry<String, String> entry : entrySet) {
-			urlParameters.add(new BasicNameValuePair(entry.getKey(), entry.getValue()));
+			List<NameValuePair> urlParameters = new ArrayList<NameValuePair>();
+			Set<Entry<String, String>> entrySet = variables.entrySet();
+			for (Entry<String, String> entry : entrySet) {
+				urlParameters.add(new BasicNameValuePair(entry.getKey(), entry.getValue()));
+			}
+
+			HttpEntity postParams = new UrlEncodedFormEntity(urlParameters);
+			httpPost.setEntity(postParams);
+
+			CloseableHttpResponse httpResponse = httpClient.execute(httpPost);
+
+			System.out.println("POST Response Status:: " + httpResponse.getStatusLine().getStatusCode());
+
+			BufferedReader reader = new BufferedReader(new InputStreamReader(httpResponse.getEntity().getContent()));
+
+			String inputLine;
+			response = new StringBuffer();
+
+			while ((inputLine = reader.readLine()) != null) {
+				response.append(inputLine);
+			}
+			reader.close();
+
 		}
 
-		HttpEntity postParams = new UrlEncodedFormEntity(urlParameters);
-		httpPost.setEntity(postParams);
-
-		CloseableHttpResponse httpResponse = httpClient.execute(httpPost);
-
-		System.out.println("POST Response Status:: " + httpResponse.getStatusLine().getStatusCode());
-
-		BufferedReader reader = new BufferedReader(new InputStreamReader(httpResponse.getEntity().getContent()));
-
-		String inputLine;
-		StringBuffer response = new StringBuffer();
-
-		while ((inputLine = reader.readLine()) != null) {
-			response.append(inputLine);
-		}
-		reader.close();
-
-		// print result
-		httpClient.close();
 
 		return response;
 

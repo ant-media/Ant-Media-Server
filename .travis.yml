@@ -2,8 +2,13 @@ language: java
 jdk:
   - openjdk8
 
-sudo: required
+sudo: false
 
+addons:
+  sonarcloud:
+    organization: "ant-media"
+    token:
+      secure: $SONAR_TOKEN
 
 #travis running on ubuntu 14.04
 
@@ -33,8 +38,17 @@ before_install:
   - sudo service antmedia start
   - sleep 10
 
+
 install:
   - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -Dgpg.skip=true -B -V
+
+script:
+  - mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent package sonar:sonar
+
+cache:
+  directories:
+    - '$HOME/.m2/repository'
+    - '$HOME/.sonar/cache'
 
 deploy:
   - provider: releases
