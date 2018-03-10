@@ -291,7 +291,7 @@ public class MongoStore implements IDataStore {
 	}
 
 	@Override
-	public List<Broadcast> getCameraList() {
+	public List<Broadcast> getExternalStreamsList() {
 
 		return null;
 

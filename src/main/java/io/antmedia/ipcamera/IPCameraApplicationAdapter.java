@@ -1,6 +1,5 @@
 package io.antmedia.ipcamera;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
@@ -24,16 +23,13 @@ import java.util.List;
  */
 
 import org.red5.logging.Red5LoggerFactory;
-import org.red5.server.api.IConnection;
-import org.red5.server.api.scheduling.IScheduledJob;
-import org.red5.server.api.scheduling.ISchedulingService;
 import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.streamsource.StreamSources;
 
 /**
  * Sample application that uses the client manager.
@@ -42,144 +38,36 @@ import io.antmedia.datastore.db.types.Broadcast;
  */
 public class IPCameraApplicationAdapter extends AntMediaApplicationAdapter {
 
-	private static final int RECORD_INTERVAL_IN_MS = 24 * 3600000; // 3600 000
-																	// -> one
-																	// hour in
-																	// milliseconds
-
-	private static final long ONE_GIGABYTE = 1024 * 1024 * 1024;
-
 	protected static Logger logger = LoggerFactory.getLogger(IPCameraApplicationAdapter.class);
-
-	private int cameraCheckerCount = 0;
-
-	private static final String STREAMS_DIRECTORY = "webapps/IPCamera/streams/";
-	private static final String PREVIEW_DIRECTORY = "webapps/IPCamera/";
-
-	private final static int HEADER_LENGTH = 9;
-	private final static byte[] DEFAULT_STREAM_ID = new byte[] { (byte) (0 & 0xff), (byte) (0 & 0xff),
-			(byte) (0 & 0xff) };
-	private final static int TAG_HEADER_LENGTH = 11;
-
-	private MapDBStore cameradb;
 
 	private HashMap<String, OnvifCamera> onvifCameraList = new HashMap();
 
+	StreamSources sources;
+
 	private static Logger log = Red5LoggerFactory.getLogger(IPCameraApplicationAdapter.class);
-
-	private List<CameraScheduler> camSchedulerList = new ArrayList<>();
-
-	private int cameraCheckerInterval = 60000;
-
-	public int getCameraCheckerInterval() {
-		return cameraCheckerInterval;
-	}
-
-	public void setCameraCheckerInterval(int cameraCheckerInterval) {
-		this.cameraCheckerInterval = cameraCheckerInterval;
-	}
-
-	/** {@inheritDoc} */
-	@Override
-	public boolean connect(IConnection conn, IScope scope, Object[] params) {
-		// log.info("appConnect");
-		return true;
-	}
-
-	/** {@inheritDoc} */
-	@Override
-	public void disconnect(IConnection conn, IScope scope) {
-		// log.info("disconnect");
-		super.disconnect(conn, scope);
-	}
-
-	public void startCameraStreaming(Broadcast broadcast) {
-
-		CameraScheduler camScheduler = new CameraScheduler(broadcast);
-		camScheduler.startStream();
-		camSchedulerList.add(camScheduler);
-
-	}
-
-	public List<CameraScheduler> getCamSchedulerList() {
-		return camSchedulerList;
-	}
-
-	public void stopCameraStreaming(Broadcast cam) {
-		logger.warn("inside of stopCameraStreaming");
-
-		for (CameraScheduler camScheduler : camSchedulerList) {
-			if (camScheduler.getCamera().getStreamId().equals(cam.getStreamId())) {
-				camScheduler.stopStream();
-				camSchedulerList.remove(camScheduler);
-				break;
-			}
-
-		}
-
-	}
 
 	@Override
 	public boolean appStart(IScope app) {
-		// addScheduledJob(RECORD_INTERVAL_IN_MS, cameraScheduler);
 
-		List<Broadcast> cameras = getDataStore().getCameraList();
+		this.sources = new StreamSources(app);
 
-		if (cameras != null) {
-			startCameras(cameras);
-		}
+		List<Broadcast> streams = getDataStore().getExternalStreamsList();
+
+		sources.startStreams(streams);
+
 		return super.appStart(app);
 
 	}
 
-	public void startCameras(List<Broadcast> cameras) {
+	public void startStreaming(Broadcast broadcast) {
 
-		for (int i = 0; i < cameras.size(); i++) {
-			startCameraStreaming(cameras.get(i));
-		}
-
-		addScheduledJobAfterDelay(cameraCheckerInterval, new IScheduledJob() {
-
-			@Override
-			public void execute(ISchedulingService service) throws CloneNotSupportedException {
-
-				cameraCheckerCount++;
-
-				logger.warn("inside of cameracheckercount control...cameraCheckerCount is  :" + cameraCheckerCount);
-
-				if (cameraCheckerCount % 60 == 0) {
-
-					for (CameraScheduler camScheduler : camSchedulerList) {
-						if (camScheduler.isRunning()) {
-							camScheduler.stopStream();
-						}
-						camScheduler.startStream();
-					}
-
-				} else {
-					for (CameraScheduler camScheduler : camSchedulerList) {
-						if (!camScheduler.isRunning()) {
-							camScheduler.startStream();
-						}
-					}
-				}
-
-			}
-		}, 5000);
+		sources.startStreaming(broadcast);
 
 	}
 
-	@Override
-	public void appStop(IScope app) {
-		super.appStop(app);
-	}
+	public void stopStreaming(Broadcast cam) {
+		sources.stopStreaming(cam);
 
-	public MapDBStore getCameradb() {
-		return cameradb;
-	}
-
-	public void setCameradb(MapDBStore cameradb) {
-		this.cameradb = cameradb;
 	}
 
 	public OnvifCamera getOnvifCamera(String id) {

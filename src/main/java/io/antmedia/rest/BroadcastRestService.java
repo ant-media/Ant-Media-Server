@@ -767,7 +767,7 @@ public class BroadcastRestService {
 					AntMediaApplicationAdapter application = getApplication();
 
 					if (application instanceof IPCameraApplicationAdapter) {
-						((IPCameraApplicationAdapter) application).stopCameraStreaming(broacast);
+						((IPCameraApplicationAdapter) application).stopStreaming(broacast);
 						success = getDataStore().deleteCamera(id);
 						message = "ip camera is deleted";
 						logger.info("ipcam is deleted");

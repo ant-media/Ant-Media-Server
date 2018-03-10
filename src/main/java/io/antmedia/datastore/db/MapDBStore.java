@@ -566,13 +566,13 @@ public class MapDBStore implements IDataStore {
 	}
 
 	@Override
-	public List<Broadcast> getCameraList() {
+	public List<Broadcast> getExternalStreamsList() {
 
 		Object[] objectArray = map.getValues().toArray();
 
 		Broadcast[] broadcastArray = new Broadcast[objectArray.length];
 
-		List<Broadcast> cameraList = new ArrayList<Broadcast>();
+		List<Broadcast> streamsList = new ArrayList<Broadcast>();
 
 		for (int i = 0; i < objectArray.length; i++) {
 
@@ -582,15 +582,15 @@ public class MapDBStore implements IDataStore {
 
 		for (int i = 0; i < broadcastArray.length; i++) {
 
-			if (broadcastArray[i].getType().equals("ipCamera")) {
+			if (broadcastArray[i].getType().equals("ipCamera") || broadcastArray[i].getType().equals("streamSource")) {
 
-				cameraList.add(gson.fromJson((String) objectArray[i], Broadcast.class));
+				streamsList.add(gson.fromJson((String) objectArray[i], Broadcast.class));
 
 			}
 
 		}
 
-		return cameraList;
+		return streamsList;
 	}
 
 	@Override

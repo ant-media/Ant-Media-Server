@@ -1,15 +1,10 @@
 package io.antmedia.rest;
 
-import java.io.File;
-import java.io.FileFilter;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.URL;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.List;
@@ -24,7 +19,6 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
-import org.apache.commons.io.filefilter.FileFileFilter;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,23 +29,25 @@ import org.springframework.web.context.support.WebApplicationContextUtils;
 
 import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.ipcamera.ArchivedVideo;
 import io.antmedia.ipcamera.IPCameraApplicationAdapter;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.ipcamera.onvifdiscovery.OnvifDiscovery;
 import io.antmedia.rest.model.Result;
+import io.antmedia.streamsource.StreamSources;
 
 @Component
-@Path("/camera")
-public class IPCameraRestService {
+@Path("/streamSource")
+public class StreamsSourceRestService {
 
 	@Context
 	private ServletContext servletContext;
 
-	private MapDBStore cameraStore;
+	private MapDBStore dbStore;
 	private ApplicationContext appCtx;
 
-	private IPCameraApplicationAdapter app;
+	private StreamSources app;
+
+	private IPCameraApplicationAdapter appInstance;
 
 	protected static Logger logger = LoggerFactory.getLogger(IPCameraApplicationAdapter.class);
 
@@ -59,49 +55,70 @@ public class IPCameraRestService {
 	@Path("/getList")
 	@Produces(MediaType.APPLICATION_JSON)
 	public List<Broadcast> getCameraList() {
-		return getCameraStore().getCameraList();
+		return getStore().getExternalStreamsList();
 	}
 
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
-	@Path("/add")
+	@Path("/addStreamSource")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result addCamera(Broadcast camera) {
+	public Result addStreamSource(Broadcast stream) {
 		boolean result = false;
-		if (camera.getName() != null && camera.getName().length() > 0) {
+		String message = "";
 
-			if (camera.getIpAddr() != null && camera.getIpAddr().length() > 0) {
+		if (stream.getName() != null && stream.getName().length() > 0) {
 
-				if (camera.getStreamId() == null) {
+			if (stream.getType().equals("ipCamera")) {
 
-					OnvifCamera onvif = new OnvifCamera();
-					onvif.connect(camera.getIpAddr(), camera.getUsername(), camera.getPassword());
-					String rtspURL = onvif.getRTSPStreamURI();
+				OnvifCamera onvif = new OnvifCamera();
+				onvif.connect(stream.getIpAddr(), stream.getUsername(), stream.getPassword());
+				String rtspURL = onvif.getRTSPStreamURI();
 
-					if (rtspURL != "no") {
+				if (rtspURL != "no") {
 
-						String authparam = camera.getUsername() + ":" + camera.getPassword() + "@";
-						String rtspURLWithAuth = "rtsp://" + authparam + rtspURL.substring("rtsp://".length());
-						System.out.println("rtsp url with auth:" + rtspURLWithAuth);
-						camera.setRtspUrl(rtspURLWithAuth);
-						Date currentDate = new Date();
-						long unixTime = currentDate.getTime();
+					String authparam = stream.getUsername() + ":" + stream.getPassword() + "@";
+					String rtspURLWithAuth = "rtsp://" + authparam + rtspURL.substring("rtsp://".length());
+					System.out.println("rtsp url with auth:" + rtspURLWithAuth);
+					stream.setstreamUrl(rtspURLWithAuth);
+					Date currentDate = new Date();
+					long unixTime = currentDate.getTime();
 
-						camera.setDate(unixTime);
+					stream.setDate(unixTime);
 
-						String id = getCameraStore().save(camera);
+					String id = getStore().save(stream);
 
-						if (id.length() > 0) {
-							Broadcast newCam = getCameraStore().get(camera.getStreamId());
-							getApplicationInstance().startCameraStreaming(newCam);
-						}
-						onvif.disconnect();
+					if (id.length() > 0) {
+						Broadcast newCam = getStore().get(stream.getStreamId());
+						getInstance().startStreaming(newCam);
 					}
+					onvif.disconnect();
+					result = true;
+					message = "IP Camera successfully added";
 				}
+
+			}
+
+			else if (stream.getType().equals("streamSource")) {
+
+				Date currentDate = new Date();
+				long unixTime = currentDate.getTime();
+
+				stream.setDate(unixTime);
+
+				String id = getStore().save(stream);
+
+				if (id.length() > 0) {
+					Broadcast newSource = getStore().get(stream.getStreamId());
+					getInstance().startStreaming(newSource);
+				}
+
+				result = true;
+				message = "StreamSource successfully added";
+
 			}
 		}
 
-		return new Result(result);
+		return new Result(result, message);
 	}
 
 	/*
@@ -113,11 +130,11 @@ public class IPCameraRestService {
 	public Result deleteCamera(@QueryParam("ipAddr") String ipAddr) {
 		boolean result = false;
 		logger.warn("inside of rest service" + ipAddr);
-		Broadcast cam = getCameraStore().getCamera(ipAddr);
+		Broadcast cam = getStore().getCamera(ipAddr);
 
 		if (cam != null) {
-			getApplicationInstance().stopCameraStreaming(cam);
-			result = getCameraStore().deleteCamera(ipAddr);
+			getInstance().stopStreaming(cam);
+			result = getStore().deleteCamera(ipAddr);
 		}
 		return new Result(result);
 	}
@@ -134,9 +151,9 @@ public class IPCameraRestService {
 		logger.warn(camera.getStatus());
 
 		if (camera.getStatus().equals("broadcasting")) {
-			getApplicationInstance().stopCameraStreaming(camera);
+			getInstance().stopStreaming(camera);
 
-			result = getCameraStore().editCameraInfo(camera);
+			result = getStore().editCameraInfo(camera);
 
 			logger.warn("after edit:" + result);
 
@@ -151,17 +168,17 @@ public class IPCameraRestService {
 				String authparam = camera.getUsername() + ":" + camera.getPassword() + "@";
 				String rtspURLWithAuth = "rtsp://" + authparam + rtspURL.substring("rtsp://".length());
 				System.out.println("rtsp url with auth:" + rtspURLWithAuth);
-				camera.setRtspUrl(rtspURLWithAuth);
+				camera.setstreamUrl(rtspURLWithAuth);
 
-				Broadcast newCam = getCameraStore().get(camera.getStreamId());
-				getApplicationInstance().startCameraStreaming(newCam);
+				Broadcast newCam = getStore().get(camera.getStreamId());
+				getInstance().startStreaming(newCam);
 
 			}
 		} else {
 
 			logger.warn("camera couldnot started");
 			camera.setStatus("finished");
-			result = getCameraStore().editCameraInfo(camera);
+			result = getStore().editCameraInfo(camera);
 
 		}
 
@@ -247,7 +264,7 @@ public class IPCameraRestService {
 	@Path("/get")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Broadcast getCamera(@QueryParam("ipAddr") String ipAddr) {
-		Broadcast camera = getCameraStore().getCamera(ipAddr);
+		Broadcast camera = getStore().getCamera(ipAddr);
 		if (camera == null) {
 			camera = new Broadcast("null", "null", "null", "null", "null", "null");
 		}
@@ -259,7 +276,7 @@ public class IPCameraRestService {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result moveUp(@QueryParam("id") String id) {
 		boolean result = false;
-		OnvifCamera camera = getApplicationInstance().getOnvifCamera(id);
+		OnvifCamera camera = getInstance().getOnvifCamera(id);
 		if (camera != null) {
 			camera.MoveUp();
 			result = true;
@@ -272,7 +289,7 @@ public class IPCameraRestService {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result moveDown(@QueryParam("id") String id) {
 		boolean result = false;
-		OnvifCamera camera = getApplicationInstance().getOnvifCamera(id);
+		OnvifCamera camera = getInstance().getOnvifCamera(id);
 		if (camera != null) {
 			camera.MoveDown();
 			result = true;
@@ -285,7 +302,7 @@ public class IPCameraRestService {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result moveLeft(@QueryParam("id") String id) {
 		boolean result = false;
-		OnvifCamera camera = getApplicationInstance().getOnvifCamera(id);
+		OnvifCamera camera = getInstance().getOnvifCamera(id);
 		if (camera != null) {
 			camera.MoveLeft();
 			result = true;
@@ -298,57 +315,12 @@ public class IPCameraRestService {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result moveRight(@QueryParam("id") String id) {
 		boolean result = false;
-		OnvifCamera camera = getApplicationInstance().getOnvifCamera(id);
+		OnvifCamera camera = getInstance().getOnvifCamera(id);
 		if (camera != null) {
 			camera.MoveRight();
 			result = true;
 		}
 		return new Result(result);
-	}
-
-	@GET
-	@Path("/getArchiveDate")
-	@Produces(MediaType.APPLICATION_JSON)
-	public ArchivedVideo[] getArchiveDate(@QueryParam("camName") String camName, @QueryParam("date") String date) {
-		File folder = new File("webapps/IPCamera/streams");
-		ArchivedVideo[] archiveItems = null;
-		ArchivedVideo[] archiveItemsResult = null;
-		int j = 0;
-
-		if (folder.exists()) {
-			File[] files = folder.listFiles((FileFilter) FileFileFilter.FILE);
-
-			SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy HH:mm");
-			SimpleDateFormat sdfSelected = new SimpleDateFormat("dd.MM.yyyy");
-
-			archiveItems = new ArchivedVideo[files.length];
-
-			Arrays.sort(files, Comparator.comparingLong(File::lastModified));
-
-			for (int i = 0; i < files.length; i++) {
-
-				String dateModified = sdfSelected.format(files[i].lastModified());
-				String cname = StringUtils.substringBefore(files[i].getName().toString(), "-");
-
-				if (camName.equals(cname) && date.equals(dateModified)
-						&& files[i].getName().toString().endsWith(".mp4")) {
-
-					archiveItems[j] = new ArchivedVideo(cname, sdf.format(files[i].lastModified()), files[i].getName());
-					j++;
-
-				}
-			}
-			archiveItemsResult = new ArchivedVideo[j];
-
-			for (int i = 0; i < archiveItemsResult.length; i++) {
-
-				archiveItemsResult[i] = archiveItems[i];
-			}
-
-		}
-
-		return archiveItemsResult;
-
 	}
 
 	private ApplicationContext getAppContext() {
@@ -359,23 +331,23 @@ public class IPCameraRestService {
 		return appCtx;
 	}
 
-	public IPCameraApplicationAdapter getApplicationInstance() {
-		if (app == null) {
-			app = (IPCameraApplicationAdapter) getAppContext().getBean("web.handler");
+	public IPCameraApplicationAdapter getInstance() {
+		if (appInstance == null) {
+			appInstance = (IPCameraApplicationAdapter) getAppContext().getBean("web.handler");
 		}
-		return app;
+		return appInstance;
 	}
 
-	public MapDBStore getCameraStore() {
-		if (cameraStore == null) {
+	public MapDBStore getStore() {
+		if (dbStore == null) {
 			WebApplicationContext ctxt = WebApplicationContextUtils.getWebApplicationContext(servletContext);
-			cameraStore = (MapDBStore) ctxt.getBean("db.datastore");
+			dbStore = (MapDBStore) ctxt.getBean("db.datastore");
 		}
-		return cameraStore;
+		return dbStore;
 	}
 
 	public void setCameraStore(MapDBStore cameraStore) {
-		this.cameraStore = cameraStore;
+		this.dbStore = cameraStore;
 	}
 
 }

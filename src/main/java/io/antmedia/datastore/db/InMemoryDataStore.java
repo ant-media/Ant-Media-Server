@@ -209,7 +209,7 @@ public class InMemoryDataStore implements IDataStore {
 	}
 
 	@Override
-	public List<Broadcast> getCameraList() {
+	public List<Broadcast> getExternalStreamsList() {
 		// TODO Auto-generated method stub
 		return null;
 	}

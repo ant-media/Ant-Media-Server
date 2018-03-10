@@ -1,4 +1,4 @@
-package io.antmedia.ipcamera;
+package io.antmedia.streamsource;
 
 import static org.bytedeco.javacpp.avcodec.AV_CODEC_FLAG_GLOBAL_HEADER;
 import static org.bytedeco.javacpp.avcodec.av_packet_unref;
@@ -36,11 +36,11 @@ import org.slf4j.LoggerFactory;
 
 import io.antmedia.datastore.db.types.Broadcast;
 
-public class CameraScheduler implements ICameraStream {
+public class StreamFetcher {
 
-	protected static Logger logger = LoggerFactory.getLogger(CameraScheduler.class);
+	protected static Logger logger = LoggerFactory.getLogger(StreamFetcher.class);
 
-	private Broadcast camera;
+	private Broadcast stream;
 
 	private WorkerThread thread;
 
@@ -48,8 +48,8 @@ public class CameraScheduler implements ICameraStream {
 
 	private long[] lastDTS;
 
-	public CameraScheduler(Broadcast camera) {
-		this.camera = camera;
+	public StreamFetcher(Broadcast stream) {
+		this.stream = stream;
 	}
 
 	public boolean prepareInput(AVFormatContext inputFormatContext) {
@@ -59,8 +59,8 @@ public class CameraScheduler implements ICameraStream {
 			return false;
 		}
 
-		if (camera == null || camera.getstreamUrl() == null) {
-			logger.info("camera is null");
+		if (stream == null || stream.getstreamUrl() == null) {
+			logger.info("stream is null");
 			return false;
 		}
 
@@ -69,9 +69,9 @@ public class CameraScheduler implements ICameraStream {
 		av_dict_set(optionsDictionary, "rtsp_transport", "tcp", 0);
 		int ret;
 
-		logger.info("camera rtsp url" + camera.getstreamUrl());
+		logger.info("camera rtsp url" + stream.getstreamUrl());
 
-		if ((ret = avformat_open_input(inputFormatContext, camera.getstreamUrl(), null, optionsDictionary)) < 0) {
+		if ((ret = avformat_open_input(inputFormatContext, stream.getstreamUrl(), null, optionsDictionary)) < 0) {
 
 			byte[] data = new byte[1024];
 			avutil.av_strerror(ret, data, data.length);
@@ -135,7 +135,7 @@ public class CameraScheduler implements ICameraStream {
 
 			// TODO: get application name from red5 context, do not use embedded
 			// url
-			String urlStr = "rtmp://localhost/LiveApp/" + camera.getStreamId();
+			String urlStr = "rtmp://localhost/LiveApp/" + stream.getStreamId();
 			// logger.debug("rtmp url: " + urlStr);
 			//
 			ret = avformat.avio_open(pb, urlStr, AVIO_FLAG_WRITE);
@@ -181,7 +181,7 @@ public class CameraScheduler implements ICameraStream {
 					avformat_free_context(outputRTMPFormatContext);
 				}
 
-				logger.warn("Prepare for " + camera.getName() + " returned false");
+				logger.warn("Prepare for " + stream.getName() + " returned false");
 				return;
 			}
 
@@ -271,7 +271,6 @@ public class CameraScheduler implements ICameraStream {
 		}
 	}
 
-	@Override
 	public void startStream() {
 
 		thread = new WorkerThread();
@@ -288,7 +287,6 @@ public class CameraScheduler implements ICameraStream {
 		return thread.isInterrupted();
 	}
 
-	@Override
 	public void stopStream() {
 		logger.warn("stop stream called");
 		thread.setStopRequestReceived();
@@ -298,8 +296,8 @@ public class CameraScheduler implements ICameraStream {
 		return thread.isStopRequestReceived();
 	}
 
-	public Broadcast getCamera() {
-		return camera;
+	public Broadcast getStream() {
+		return stream;
 	}
 
 	public void restart() {
@@ -324,33 +322,5 @@ public class CameraScheduler implements ICameraStream {
 		}.start();
 
 	}
-
-	/*
-	 * @Override public void execute(ISchedulingService arg0) throws
-	 * CloneNotSupportedException { SimpleDateFormat dtFormat = new
-	 * SimpleDateFormat("yyyy-MM-dd_HH-mm"); Date dt = new Date(); String[]
-	 * command = new String[8]; command[0] = "ffmpeg"; command[1] = "-i";
-	 * command[2] = camera.rtspUrl; //
-	 * "rtsp://10.10.31.58:554/user=admin&password=tlJwpbo6&channel=1&stream=0.sdp?real_stream";
-	 * command[3] = "-codec"; command[4] = "copy"; command[5] = "-f"; command[6]
-	 * = "flv"; command[7] = "rtmp://localhost/IPCamera/" + camera.name + "-" +
-	 * dtFormat.format(dt); try { process = Runtime.getRuntime().exec(command);
-	 * 
-	 * Thread thread = new Thread() { public void run() { InputStream
-	 * errorStream = process.getErrorStream(); byte[] data = new byte[2056]; int
-	 * length;
-	 * 
-	 * try { while ((length = errorStream.read(data, 0, data.length))>0) {
-	 * //System.err.println(new String(data, 0, length)); } } catch (IOException
-	 * e) { e.printStackTrace(); }
-	 * 
-	 * 
-	 * }; }; thread.setDaemon(true);
-	 * 
-	 * thread.setName(dtFormat.format(dt)); thread.start(); } catch (IOException
-	 * e1) { // TODO Auto-generated catch block e1.printStackTrace(); }
-	 * 
-	 * }
-	 */
 
 }

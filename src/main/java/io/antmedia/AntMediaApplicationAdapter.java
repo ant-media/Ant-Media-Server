@@ -68,7 +68,6 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	@Override
 	public boolean appStart(IScope app) {
 
-		getDataStore().resetBroadcastStatus();
 		if (getStreamPublishSecurityList() != null) {
 			for (IStreamPublishSecurity streamPublishSecurity : getStreamPublishSecurityList()) {
 				registerStreamPublishSecurity(streamPublishSecurity);
