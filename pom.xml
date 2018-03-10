@@ -151,14 +151,6 @@
 				<artifactId>maven-source-plugin</artifactId>
 			</plugin>
 			<plugin>
-
-				<artifactId>maven-surefire-plugin</artifactId>
-				<version>2.19.1</version>
-				<configuration>
-					<skipTests>${skipTests}</skipTests>
-				</configuration>
-			</plugin>
-			<plugin>
 				<groupId>org.sonatype.plugins</groupId>
 				<artifactId>nexus-staging-maven-plugin</artifactId>
 				<version>1.6.7</version>
@@ -188,7 +180,7 @@
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>2.20.1</version>
                     <configuration>
-        				<argLine>-Xmx750M -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -Djava.library.path=${project.basedir}/../Ant-Media-Server/src/main/server/lib/native</argLine>
+        				<argLine>@{argLine} -Xmx750M -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -Djava.library.path=${project.basedir}/../Ant-Media-Server/src/main/server/lib/native</argLine>
     				</configuration>
              </plugin>
 			
