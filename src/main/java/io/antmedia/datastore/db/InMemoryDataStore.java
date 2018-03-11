@@ -197,7 +197,7 @@ public class InMemoryDataStore implements IDataStore {
 	}
 
 	@Override
-	public boolean deleteCamera(String ipAddr) {
+	public boolean deleteStream(String ipAddr) {
 		// TODO Auto-generated method stub
 		return false;
 	}

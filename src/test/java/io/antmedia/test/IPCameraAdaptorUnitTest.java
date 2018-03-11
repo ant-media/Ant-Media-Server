@@ -37,8 +37,7 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 	private WebScope appScope;
 	protected static Logger logger = LoggerFactory.getLogger(IPCameraAdaptorUnitTest.class);
 	public IPCameraApplicationAdapter app = null;
-	private StreamSources sources;
-	private IScope scope;
+
 
 	static {
 		System.setProperty("red5.deployment.type", "junit");
@@ -68,7 +67,7 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 			assertTrue(appScope.getDepth() == 1);
 		}
 		
-	sources=new StreamSources(app.getAppScope());
+
 
 	}
 
@@ -80,7 +79,6 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 	@Test
 	public void testCameraCheckerStartStop() {
 
-		BufferedWriter writer = null;
 
 		// define camera according to onvif emulator parameters
 

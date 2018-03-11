@@ -762,19 +762,19 @@ public class BroadcastRestService {
 
 			if (broacast != null) {
 
-				if (broacast.getType().equals("ipCamera")) {
+				if (broacast.getType().equals("ipCamera")||broacast.getType().equals("streamSource")) {
 
 					AntMediaApplicationAdapter application = getApplication();
 
 					if (application instanceof IPCameraApplicationAdapter) {
 						((IPCameraApplicationAdapter) application).stopStreaming(broacast);
-						success = getDataStore().deleteCamera(id);
-						message = "ip camera is deleted";
-						logger.info("ipcam is deleted");
+						success = getDataStore().deleteStream(id);
+						message = "streamSource is deleted";
+						logger.info("streamSource is deleted");
 
 					} else {
 
-						logger.info("broadcast is not an IP Camera");
+						logger.info("is not streamSource");
 					}
 
 				}

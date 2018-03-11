@@ -515,12 +515,12 @@ public class MapDBStore implements IDataStore {
 	 * @returns true if camera exists, otherwise return false
 	 */
 	@Override
-	public boolean deleteCamera(String id) {
+	public boolean deleteStream(String id) {
 		boolean result = false;
 		try {
 
 			if (map.containsKey(id)) {
-				logger.warn("inside of deleteCamera");
+				logger.warn("inside of deleteStream");
 				map.remove(id);
 				db.commit();
 				result = true;

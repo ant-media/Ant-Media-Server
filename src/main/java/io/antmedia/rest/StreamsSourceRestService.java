@@ -134,7 +134,7 @@ public class StreamsSourceRestService {
 
 		if (cam != null) {
 			getInstance().stopStreaming(cam);
-			result = getStore().deleteCamera(ipAddr);
+			result = getStore().deleteStream(ipAddr);
 		}
 		return new Result(result);
 	}
