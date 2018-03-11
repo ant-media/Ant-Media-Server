@@ -17,6 +17,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.red5.server.api.scope.IScope;
 import org.red5.server.scope.WebScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +25,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.ipcamera.IPCameraApplicationAdapter;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamSources;
 
@@ -34,7 +36,9 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 	private ServletContext servletContext;
 	private WebScope appScope;
 	protected static Logger logger = LoggerFactory.getLogger(IPCameraAdaptorUnitTest.class);
-	public StreamSources app = null;
+	public IPCameraApplicationAdapter app = null;
+	private StreamSources sources;
+	private IScope scope;
 
 	static {
 		System.setProperty("red5.deployment.type", "junit");
@@ -59,10 +63,12 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 
 		if (app == null) {
-			app = (StreamSources) applicationContext.getBean("web.handler");
+			app = (IPCameraApplicationAdapter) applicationContext.getBean("web.handler");
 			logger.debug("Application / web scope: {}", appScope);
 			assertTrue(appScope.getDepth() == 1);
 		}
+		
+	sources=new StreamSources(app.getAppScope());
 
 	}
 
@@ -95,7 +101,7 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 
 		boolean flag3 = false;
-		for (StreamFetcher camScheduler : app.getCamSchedulerList()) {
+		for (StreamFetcher camScheduler : sources.getCamSchedulerList()) {
 			if (camScheduler.getStream().getIpAddr().equals(newCam.getIpAddr())) {
 				// it should be false because emulator has not been started yet
 				assertFalse(camScheduler.isRunning());
@@ -123,7 +129,7 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 
 		boolean flag = false;
-		for (StreamFetcher camScheduler : app.getCamSchedulerList()) {
+		for (StreamFetcher camScheduler : sources.getCamSchedulerList()) {
 			if (camScheduler.getStream().getIpAddr().equals(newCam.getIpAddr())) {
 				// it should be true because emulater has been started
 				assertTrue(camScheduler.isRunning());
@@ -160,7 +166,7 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 			e.printStackTrace();
 		}
 		boolean flag2 = false;
-		for (StreamFetcher camScheduler : app.getCamSchedulerList()) {
+		for (StreamFetcher camScheduler : sources.getCamSchedulerList()) {
 			if (camScheduler.getStream().getIpAddr().equals(newCam.getIpAddr())) {
 				// it should be false because connection is down between
 				// emulator and server
@@ -188,7 +194,7 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 
 		boolean flag5 = false;
-		for (StreamFetcher camScheduler : app.getCamSchedulerList()) {
+		for (StreamFetcher camScheduler : sources.getCamSchedulerList()) {
 			if (camScheduler.getStream().getIpAddr().equals(newCam.getIpAddr())) {
 				// after 30 seconds, adaptor should check and start because
 				// thread was not working
@@ -215,9 +221,9 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 
 	public void cameraChecker(List<Broadcast> cameras) {
 
-		app.setCameraCheckerInterval(30000);
+		sources.setCameraCheckerInterval(30000);
 
-		app.startStreams(cameras);
+		sources.startStreams(cameras);
 
 	}
 

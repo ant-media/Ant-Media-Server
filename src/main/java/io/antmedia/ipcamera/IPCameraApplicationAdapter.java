@@ -45,6 +45,16 @@ public class IPCameraApplicationAdapter extends AntMediaApplicationAdapter {
 	StreamSources sources;
 
 	private static Logger log = Red5LoggerFactory.getLogger(IPCameraApplicationAdapter.class);
+	
+	private IScope appScope;
+
+	public IScope getAppScope() {
+		return appScope;
+	}
+
+	public void setAppScope(IScope appScope) {
+		this.appScope = appScope;
+	}
 
 	@Override
 	public boolean appStart(IScope app) {
@@ -54,8 +64,11 @@ public class IPCameraApplicationAdapter extends AntMediaApplicationAdapter {
 		List<Broadcast> streams = getDataStore().getExternalStreamsList();
 
 		sources.startStreams(streams);
+		
+		this.appScope=app;
 
 		return super.appStart(app);
+		
 
 	}
 

@@ -36,6 +36,7 @@ public class StreamSources {
 
 	}
 
+
 	public int getCameraCheckerInterval() {
 		return streamCheckerInterval;
 	}
