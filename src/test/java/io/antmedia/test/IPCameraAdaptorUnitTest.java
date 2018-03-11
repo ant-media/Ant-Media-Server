@@ -101,7 +101,7 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 
 		boolean flag3 = false;
-		for (StreamFetcher camScheduler : sources.getCamSchedulerList()) {
+		for (StreamFetcher camScheduler : app.getSources().getCamSchedulerList()) {
 			if (camScheduler.getStream().getIpAddr().equals(newCam.getIpAddr())) {
 				// it should be false because emulator has not been started yet
 				assertFalse(camScheduler.isRunning());
@@ -129,7 +129,7 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 
 		boolean flag = false;
-		for (StreamFetcher camScheduler : sources.getCamSchedulerList()) {
+		for (StreamFetcher camScheduler : app.getSources().getCamSchedulerList()) {
 			if (camScheduler.getStream().getIpAddr().equals(newCam.getIpAddr())) {
 				// it should be true because emulater has been started
 				assertTrue(camScheduler.isRunning());
@@ -166,7 +166,7 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 			e.printStackTrace();
 		}
 		boolean flag2 = false;
-		for (StreamFetcher camScheduler : sources.getCamSchedulerList()) {
+		for (StreamFetcher camScheduler : app.getSources().getCamSchedulerList()) {
 			if (camScheduler.getStream().getIpAddr().equals(newCam.getIpAddr())) {
 				// it should be false because connection is down between
 				// emulator and server
@@ -194,7 +194,7 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 
 		boolean flag5 = false;
-		for (StreamFetcher camScheduler : sources.getCamSchedulerList()) {
+		for (StreamFetcher camScheduler : app.getSources().getCamSchedulerList()) {
 			if (camScheduler.getStream().getIpAddr().equals(newCam.getIpAddr())) {
 				// after 30 seconds, adaptor should check and start because
 				// thread was not working
@@ -221,10 +221,9 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 
 	public void cameraChecker(List<Broadcast> cameras) {
 
-		sources.setCameraCheckerInterval(30000);
+		app.getSources().setCameraCheckerInterval(30000);
 
-		sources.startStreams(cameras);
-
+		app.getSources().startStreams(cameras);
 	}
 
 }
