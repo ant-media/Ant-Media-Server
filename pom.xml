@@ -48,7 +48,7 @@
 	<properties>
 		<skipTests>false</skipTests>
 		<build.dir>target</build.dir>
-		<finalName>${project.artifactId}-${project.version}</finalName>
+		<finalName>${project.artifactId}</finalName>
 		<red5-io.version>${project.parent.version}</red5-io.version>
 		<red5-service.version>${project.version}</red5-service.version>
 		<red5-server-common.version>1.3.0-SNAPSHOT</red5-server-common.version>

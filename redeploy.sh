@@ -10,7 +10,7 @@ fi
 
 ANT_MEDIA_SERVER_DIR=~/softwares/ant-media-server
 
-ANT_MEDIA_SERVER_JAR=./target/ant-media-server-1.3.0-SNAPSHOT.jar
+ANT_MEDIA_SERVER_JAR=target/ant-media-server.jar
 
 SRC_CONF_DIR=./src/main/server/conf/
 
@@ -20,6 +20,7 @@ cp  $ANT_MEDIA_SERVER_JAR  $ANT_MEDIA_SERVER_DIR/ant-media-server.jar
 OUT=$?
 
 if [ $OUT -ne 0 ]; then
+    echo "Cannot copy ant-media-server.jar"
     exit $OUT
 fi
 
