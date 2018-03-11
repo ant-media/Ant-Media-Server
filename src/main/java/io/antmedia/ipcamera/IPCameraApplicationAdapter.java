@@ -48,13 +48,7 @@ public class IPCameraApplicationAdapter extends AntMediaApplicationAdapter {
 	
 	private IScope appScope;
 
-	public IScope getAppScope() {
-		return appScope;
-	}
 
-	public void setAppScope(IScope appScope) {
-		this.appScope = appScope;
-	}
 
 	@Override
 	public boolean appStart(IScope app) {
@@ -70,6 +64,14 @@ public class IPCameraApplicationAdapter extends AntMediaApplicationAdapter {
 		return super.appStart(app);
 		
 
+	}
+	
+	public IScope getAppScope() {
+		return appScope;
+	}
+
+	public void setAppScope(IScope appScope) {
+		this.appScope = appScope;
 	}
 
 	public void startStreaming(Broadcast broadcast) {
