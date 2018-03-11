@@ -1,5 +1,6 @@
 package io.antmedia.rest;
 
+import java.io.File;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
@@ -20,6 +21,8 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
 import org.apache.commons.lang3.StringUtils;
+import org.red5.server.api.scope.IScope;
+import org.red5.server.util.ScopeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -29,6 +32,7 @@ import org.springframework.web.context.support.WebApplicationContextUtils;
 
 import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.Vod;
 import io.antmedia.ipcamera.IPCameraApplicationAdapter;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.ipcamera.onvifdiscovery.OnvifDiscovery;
@@ -46,6 +50,7 @@ public class StreamsSourceRestService {
 	private ApplicationContext appCtx;
 
 	private StreamSources app;
+	private IScope scope;
 
 	private IPCameraApplicationAdapter appInstance;
 
@@ -137,6 +142,33 @@ public class StreamsSourceRestService {
 			result = getStore().deleteStream(ipAddr);
 		}
 		return new Result(result);
+	}
+	
+	
+	@GET
+	@Path("/getUserVodList")
+	@Produces(MediaType.APPLICATION_JSON)
+	public List<Vod>  getUserVodList() {
+		List<Vod> result = null;
+		
+		String appScopeName = ScopeUtils.findApplication(getScope()).getName();
+		
+		
+		File directory = new File(
+				String.format("%s/webapps/%s/%s", System.getProperty("red5.root"), appScopeName, "uploads"));
+		
+		// if the directory does not exist, create it
+		if (!directory.exists()) {
+			try {
+				directory.mkdir();
+			} catch (SecurityException se) {
+
+			}
+		}
+		
+		result=getStore().fetchUserVodList(directory);
+		
+		return result;
 	}
 
 	@POST
@@ -336,6 +368,13 @@ public class StreamsSourceRestService {
 			appInstance = (IPCameraApplicationAdapter) getAppContext().getBean("web.handler");
 		}
 		return appInstance;
+	}
+	
+	public IScope getScope() {
+		if (scope == null) {
+			scope = getInstance().getScope();
+		}
+		return scope;
 	}
 
 	public MapDBStore getStore() {

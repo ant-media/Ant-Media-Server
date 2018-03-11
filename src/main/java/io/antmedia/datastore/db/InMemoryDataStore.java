@@ -1,5 +1,6 @@
 package io.antmedia.datastore.db;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -271,6 +272,25 @@ public class InMemoryDataStore implements IDataStore {
 	public long getTotalVodNumber() {
 		// TODO Auto-generated method stub
 		return 0;
+	}
+
+	@Override
+	public List<Vod> fetchUserVodList(File file) {
+		return null;
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public boolean addUserVod(String id, Vod vod) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public List<Vod> getUserVodList(int offset, int size) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

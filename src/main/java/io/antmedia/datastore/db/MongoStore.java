@@ -1,5 +1,6 @@
 package io.antmedia.datastore.db;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -344,5 +345,24 @@ public class MongoStore implements IDataStore {
 		// TODO Auto-generated method stub
 		return 0;
 	}
+
+	@Override
+	public List<Vod> fetchUserVodList(File file) {
+		return null;
+
+	}
+
+	@Override
+	public boolean addUserVod(String id, Vod vod) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public List<Vod> getUserVodList(int offset, int size) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 
 }

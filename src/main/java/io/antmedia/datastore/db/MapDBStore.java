@@ -1,10 +1,12 @@
 package io.antmedia.datastore.db;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.mapdb.BTreeMap;
 import org.mapdb.DB;
@@ -26,17 +28,26 @@ public class MapDBStore implements IDataStore {
 	private DB db;
 	private BTreeMap<String, String> map;
 	private BTreeMap<String, String> vodMap;
+	private BTreeMap<String, String> userVodMap;
+
+
 	private Gson gson;
 	protected static Logger logger = LoggerFactory.getLogger(MapDBStore.class);
 	private static final String MAP_NAME = "broadcast";
 	private static final String VOD_MAP_NAME = "vod";
+	private static final String USER_MAP_NAME = "userVod";
+	
 
 	public MapDBStore(String dbName) {
 
 		db = DBMaker.fileDB(dbName).transactionEnable().make();
+		
 		map = db.treeMap(MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING).counterEnable()
 				.createOrOpen();
 		vodMap = db.treeMap(VOD_MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
+				.counterEnable().createOrOpen();
+		
+		userVodMap = db.treeMap(USER_MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
 				.counterEnable().createOrOpen();
 
 		GsonBuilder builder = new GsonBuilder();
@@ -44,6 +55,14 @@ public class MapDBStore implements IDataStore {
 
 		TreeMapMaker<Integer, String> map = (TreeMapMaker<Integer, String>) db.treeMap("collectionName");
 
+	}
+	
+	public BTreeMap<String, String> getUserVodMap() {
+		return userVodMap;
+	}
+
+	public void setUserVodMap(BTreeMap<String, String> userVodMap) {
+		this.userVodMap = userVodMap;
 	}
 
 	public BTreeMap<String, String> getVodMap() {
@@ -305,6 +324,36 @@ public class MapDBStore implements IDataStore {
 		}
 		return list;
 	}
+	
+	@Override
+	public List<Vod> getUserVodList(int offset, int size) {
+		Collection<String> values = userVodMap.values();
+		int t = 0;
+		int itemCount = 0;
+		if (size > 50) {
+			size = 50;
+		}
+		if (offset < 0) {
+			offset = 0;
+		}
+		List<Vod> list = new ArrayList();
+		for (String vodString : values) {
+			if (t < offset) {
+				t++;
+				continue;
+			}
+			list.add(gson.fromJson(vodString, Vod.class));
+			itemCount++;
+
+			if (itemCount >= size) {
+				break;
+			}
+
+		}
+		return list;
+	}
+	
+	
 
 	@Override
 	public List<Broadcast> filterBroadcastList(int offset, int size, String type) {
@@ -450,6 +499,30 @@ public class MapDBStore implements IDataStore {
 		}
 		return result;
 	}
+	@Override
+	public boolean addUserVod(String id, Vod vod) {
+		String vodId = null;
+		boolean result = false;
+
+		if (vod != null) {
+			try {
+				vodId = RandomStringUtils.randomNumeric(24);
+				vod.setVodId(vodId);
+
+				userVodMap.put(vodId, gson.toJson(vod));
+				db.commit();
+
+				result = true;
+		
+
+			} catch (Exception e) {
+				e.printStackTrace();
+				id = null;
+			}
+		}
+		return result;
+	}
+	
 
 	/*
 	 * IP Camera Operations
@@ -636,6 +709,35 @@ public class MapDBStore implements IDataStore {
 	public long getTotalVodNumber() {
 
 		return getVodMap().size();
+	}
+
+	@Override
+	public List<Vod> fetchUserVodList(File userfile) {
+		
+		userVodMap.clear();
+	
+		File[] listOfFiles = userfile.listFiles();
+
+		for (File file : listOfFiles) {
+			
+			String fileExtension = FilenameUtils.getExtension(file.getName());
+			
+		    if (file.isFile()&&fileExtension.equals("mp4")) {
+		
+				long fileSize = file.length();
+				long unixTime = System.currentTimeMillis();
+
+				Vod newVod = new Vod("vodFile", "vodFile", file.getPath(), file.getName(), unixTime, 0, fileSize,
+						"userVod");
+		    	addUserVod("vodFile", newVod);
+		    }
+		}
+		
+		
+		return getUserVodList(0, userVodMap.size());
+
+
+		
 	}
 
 }

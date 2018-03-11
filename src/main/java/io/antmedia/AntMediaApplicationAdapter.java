@@ -46,7 +46,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	public static final String HOOK_ACTION_START_LIVE_STREAM = "liveStreamStarted";
 	public static final String HOOK_ACTION_VOD_READY = "vodReady";
 	protected static Logger logger = LoggerFactory.getLogger(AntMediaApplicationAdapter.class);
-	public static final String LIVE_STREAM = "live_stream";
+	public static final String LIVE_STREAM = "liveStream";
 	public static final String IP_CAMERA = "ipCamera";
 	public static final String STREAM_SOURCE = "streamSource";
 
