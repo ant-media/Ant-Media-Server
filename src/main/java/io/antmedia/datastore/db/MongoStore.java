@@ -347,7 +347,7 @@ public class MongoStore implements IDataStore {
 	}
 
 	@Override
-	public List<Vod> fetchUserVodList(File file) {
+	public List<Vod> fetchUserVodList(File userfile,int offset,int size) {
 		return null;
 
 	}
@@ -362,6 +362,12 @@ public class MongoStore implements IDataStore {
 	public List<Vod> getUserVodList(int offset, int size) {
 		// TODO Auto-generated method stub
 		return null;
+	}
+
+	@Override
+	public long getTotalUserVodNumber() {
+		// TODO Auto-generated method stub
+		return 0;
 	}
 
 

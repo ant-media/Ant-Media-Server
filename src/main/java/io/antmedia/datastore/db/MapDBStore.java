@@ -710,9 +710,15 @@ public class MapDBStore implements IDataStore {
 
 		return getVodMap().size();
 	}
+	
+	@Override
+	public long getTotalUserVodNumber() {
+
+		return getUserVodMap().size();
+	}
 
 	@Override
-	public List<Vod> fetchUserVodList(File userfile) {
+	public List<Vod> fetchUserVodList(File userfile,int offset,int size) {
 		
 		userVodMap.clear();
 	
@@ -734,7 +740,7 @@ public class MapDBStore implements IDataStore {
 		}
 		
 		
-		return getUserVodList(0, userVodMap.size());
+		return getUserVodList(offset, size);
 
 
 		

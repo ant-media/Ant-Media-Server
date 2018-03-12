@@ -15,6 +15,7 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
@@ -144,11 +145,13 @@ public class StreamsSourceRestService {
 		return new Result(result);
 	}
 	
+
+	
 	
 	@GET
-	@Path("/getUserVodList")
+	@Path("/getUserVodList/{offset}/{size}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public List<Vod>  getUserVodList() {
+	public List<Vod>  getUserVodList(@PathParam("offset") int offset,@PathParam("size") int size) {
 		List<Vod> result = null;
 		
 		String appScopeName = ScopeUtils.findApplication(getScope()).getName();
@@ -157,7 +160,7 @@ public class StreamsSourceRestService {
 		File directory = new File(
 				String.format("%s/webapps/%s/%s", System.getProperty("red5.root"), appScopeName, "uploads"));
 		
-		// if the directory does not exist, create it
+		// if the directory does not exist, create it first
 		if (!directory.exists()) {
 			try {
 				directory.mkdir();
@@ -166,11 +169,18 @@ public class StreamsSourceRestService {
 			}
 		}
 		
-		result=getStore().fetchUserVodList(directory);
+		result=getStore().fetchUserVodList(directory,offset,size);
 		
 		return result;
 	}
 
+	@GET
+	@Path("/getTotalUserVodNumber")
+	@Produces(MediaType.APPLICATION_JSON)
+	public long getTotalVodNumber() {
+		return getStore().getTotalUserVodNumber();
+	}
+	
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/updateCamInfo")
