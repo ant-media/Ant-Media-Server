@@ -28,6 +28,9 @@ public class StreamSources {
 
 	private int streamCheckerInterval = 60000;
 
+
+
+
 	public StreamSources(IScope app) {
 
 		adaptor = new MultiThreadedApplicationAdapter();
@@ -36,14 +39,15 @@ public class StreamSources {
 
 	}
 
-
-	public int getCameraCheckerInterval() {
+	public int getStreamCheckerInterval() {
 		return streamCheckerInterval;
 	}
 
-	public void setCameraCheckerInterval(int cameraCheckerInterval) {
-		this.streamCheckerInterval = cameraCheckerInterval;
+
+	public void setStreamCheckerInterval(int streamCheckerInterval) {
+		this.streamCheckerInterval = streamCheckerInterval;
 	}
+
 
 	public void startStreaming(Broadcast broadcast) {
 

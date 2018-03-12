@@ -219,7 +219,7 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 
 	public void cameraChecker(List<Broadcast> cameras) {
 
-		app.getSources().setCameraCheckerInterval(30000);
+		app.getSources().setStreamCheckerInterval(30000);
 
 		app.getSources().startStreams(cameras);
 	}
