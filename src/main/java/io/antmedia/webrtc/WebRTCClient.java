@@ -31,6 +31,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.antmedia.webrtc.api.IWebRTCClient;
 import io.antmedia.webrtc.api.IWebRTCMuxer;
+import io.antmedia.websocket.IWebSocketListener;
 import javassist.bytecode.analysis.Executor;
 
 
@@ -185,7 +186,7 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 
 					peerConnection = factory.createPeerConnection(rtcConfig, pcConstraints, WebRTCClient.this);
 
-					mediaStream = factory.createLocalMediaStream("local_stream");
+					mediaStream = factory.createLocalMediaStream(streamId);
 
 					audioSource = factory.createAudioSource(pcConstraints);
 					mediaStream.addTrack(factory.createAudioTrack("audio", audioSource));
@@ -275,8 +276,9 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 
 				try {
 					JSONObject jsonObject = new JSONObject();
-					jsonObject.put("command", "notification");
-					jsonObject.put("definition", "play_started");
+					jsonObject.put(IWebSocketListener.COMMAND, IWebSocketListener.NOTIFICATION_COMMAND);
+					jsonObject.put(IWebSocketListener.DEFINITION, IWebSocketListener.PLAY_STARTED);
+					jsonObject.put(IWebSocketListener.STREAM_ID, streamId);
 					wsConnection.send(jsonObject.toJSONString());
 				} catch (UnsupportedEncodingException e) {
 					e.printStackTrace();
@@ -310,12 +312,13 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 	@Override
 	public void onIceCandidate(IceCandidate candidate) {
 
-		logger.info("onIceCandidate : " + candidate);
+		logger.info("onIceCandidate {} ", candidate);
 		JSONObject jsonObject = new JSONObject();
-		jsonObject.put("command", "takeCandidate");
-		jsonObject.put("label", candidate.sdpMLineIndex);
-		jsonObject.put("id", candidate.sdpMid);
-		jsonObject.put("candidate", candidate.sdp);
+		jsonObject.put(IWebSocketListener.COMMAND, IWebSocketListener.TAKE_CANDIDATE_COMMAND);
+		jsonObject.put(IWebSocketListener.CANDIDATE_LABEL, candidate.sdpMLineIndex);
+		jsonObject.put(IWebSocketListener.CANDIDATE_ID, candidate.sdpMid);
+		jsonObject.put(IWebSocketListener.CANDIDATE_SDP, candidate.sdp);
+		jsonObject.put(IWebSocketListener.STREAM_ID, streamId);
 
 		try {
 			wsConnection.send(jsonObject.toJSONString());
@@ -369,8 +372,9 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 
 
 				JSONObject jsonObject = new JSONObject();
-				jsonObject.put("command", "takeConfiguration");
-				jsonObject.put("sdp", sdp.description);
+				jsonObject.put(IWebSocketListener.COMMAND, IWebSocketListener.TAKE_CONFIGURATION_COMMAND);
+				jsonObject.put(IWebSocketListener.SDP, sdp.description);
+				jsonObject.put(IWebSocketListener.STREAM_ID, streamId);
 				String type;
 				if (sdp.type == Type.ANSWER) {
 					type = "answer";
@@ -378,7 +382,7 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 				else  {
 					type = "offer";
 				}
-				jsonObject.put("type", type);
+				jsonObject.put(IWebSocketListener.TYPE, type);
 
 				try {
 					wsConnection.send(jsonObject.toJSONString());
@@ -499,8 +503,9 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 
 				try {
 					JSONObject jsonObject = new JSONObject();
-					jsonObject.put("command", "notification");
-					jsonObject.put("definition", "play_finished");
+					jsonObject.put(IWebSocketListener.COMMAND, IWebSocketListener.NOTIFICATION_COMMAND);
+					jsonObject.put(IWebSocketListener.DEFINITION, IWebSocketListener.PLAY_FINISHED);
+					jsonObject.put(IWebSocketListener.STREAM_ID, streamId);
 					wsConnection.send(jsonObject.toJSONString());
 				} catch (UnsupportedEncodingException e) {
 					e.printStackTrace();
