@@ -45,6 +45,7 @@ import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointChannel;
+import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Vod;
 import io.antmedia.ipcamera.IPCameraApplicationAdapter;
 import io.antmedia.muxer.Muxer;
@@ -510,6 +511,29 @@ public class BroadcastRestService {
 		}
 		return broadcast;
 	}
+	
+	/**
+	 * Get Detected objects
+	 * 
+	 * @param id
+	 *            id of the stream
+	 * 
+	 * @return List of detected objects
+	 * 
+	 */
+	@GET
+	@Path("/detection/get")
+	@Produces(MediaType.APPLICATION_JSON)
+	public List<TensorFlowObject> getDetectedObjects(@QueryParam("id") String id) {
+		List<TensorFlowObject> list = null;
+		
+		if (id != null) {
+			list = getDataStore().getDetectionList(id);
+		}
+		return list;
+	}
+	
+	
 
 	/**
 	 * Gets the broadcast list from database

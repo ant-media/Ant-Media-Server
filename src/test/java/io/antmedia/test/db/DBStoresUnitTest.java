@@ -11,6 +11,7 @@ import static org.junit.Assert.fail;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.After;
@@ -26,6 +27,7 @@ import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.MongoStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
+import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Vod;
 
 public class DBStoresUnitTest {
@@ -63,6 +65,7 @@ public class DBStoresUnitTest {
 		testRemoveEndpoint(dataStore);
 		testRTMPURL(dataStore);
 		testStreamWithId(dataStore);
+		testSaveDetection(dataStore);
 
 	}
 
@@ -80,7 +83,6 @@ public class DBStoresUnitTest {
 	}
 
 	@Test
-
 	public void testMongoStore() {
 
 		IDataStore dataStore = new MongoStore("testdb");
@@ -455,6 +457,22 @@ public class DBStoresUnitTest {
 		List<Vod> vodList6 = dataStore.filterVoDList(0, 10, null, 0, 1517239909);
 
 		assertEquals(vodList6.size(), 5);
+	}
+	
+	public void testSaveDetection(IDataStore dataStore){
+		String item1 = "item1";
+		long detectionTime = 434234L;
+		float probability1 = 0.1f;
+		
+		List<TensorFlowObject> detectedObjects = new ArrayList<>();
+		detectedObjects.add(new TensorFlowObject(item1, probability1));
+		dataStore.saveDetection("id", detectionTime, detectedObjects);
+		
+		List<TensorFlowObject> list = dataStore.getDetectionList("id");
+		assertEquals(1,list.size());
+		assertEquals(item1, list.get(0).objectName);
+		assertEquals(probability1, list.get(0).probability,0.1F);
+		assertEquals(detectionTime, list.get(0).detectionTime);	
 	}
 
 }

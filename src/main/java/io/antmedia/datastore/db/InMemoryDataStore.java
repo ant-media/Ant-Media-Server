@@ -10,6 +10,7 @@ import org.apache.commons.lang3.RandomStringUtils;
 
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
+import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Vod;
 
 public class InMemoryDataStore implements IDataStore {
@@ -271,6 +272,18 @@ public class InMemoryDataStore implements IDataStore {
 	public long getTotalVodNumber() {
 		// TODO Auto-generated method stub
 		return 0;
+	}
+
+	@Override
+	public void saveDetection(String id, long timeElapsed, List<TensorFlowObject> detectedObjects) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public List<TensorFlowObject> getDetectionList(String id) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }
