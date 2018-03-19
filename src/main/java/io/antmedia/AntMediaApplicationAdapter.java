@@ -440,5 +440,15 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	public void setAppSettings(AppSettings appSettings) {
 		this.appSettings = appSettings;
 	}
+	@Override
+	public void sourceQualityChanged(String id,String quality) {
+		
+		log.info("source stream quality changed, new quality is: "+quality);
+
+		
+		getDataStore().updateSourceQuality(id, quality);
+		
+		
+	}
 
 }

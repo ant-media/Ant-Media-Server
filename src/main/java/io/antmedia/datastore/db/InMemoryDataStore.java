@@ -299,4 +299,10 @@ public class InMemoryDataStore implements IDataStore {
 		return 0;
 	}
 
+	@Override
+	public boolean updateSourceQuality(String id, String quality) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
 }

@@ -284,6 +284,7 @@ public class BroadcastRestService {
 	@Path("/broadcast/update")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result updateBroadcast(Broadcast broadcast, @QueryParam("socialNetworks") String socialNetworksToPublish) {
+		
 		boolean result = getDataStore().updateName(broadcast.getStreamId(), broadcast.getName(),
 				broadcast.getDescription());
 		String message = "";
