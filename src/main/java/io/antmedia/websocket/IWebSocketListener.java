@@ -47,4 +47,58 @@ public interface IWebSocketListener {
 	
 	public static final String STREAM_JOINED = "streamJoined";
 
+	public static final String PUBLISH_COMMAND = "publish";
+
+	public static final String PUBLISH_STARTED = "publish_started";
+
+	public static final String PUBLISH_FINISHED = "publish_finished";
+
+	public static final String ERROR_CODE = "error_code";
+
+	public static final String NO_STREAM_EXIST = "no_stream_exist";
+
+	public static final String JOIN_ROOM_COMMAND = "joinRoom";
+
+	public static final String ROOM = "room";
+
+	public static final String JOIN_COMMAND = "join";
+
+	public static final String JOINED_THE_ROOM = "joinedTheRoom";
+
+	/**
+	 * This is peer to peer connection error definition.
+	 * It is sent back to the user when there is no peer associated with the stream
+	 */
+	public static final String NO_PEER_ASSOCIATED = "no_peer_associated_before";
+
+	/**
+	 * This is peer to peer connection notification.
+	 * It is sent back to the user when it is joined to a stream
+	 */
+	public static final String JOINED_THE_STREAM = "joined";
+
+	/**
+	 * This is p2p connection command
+	 * Peer send it to leave the room
+	 */
+	public static final String LEAVE_COMMAND = "leave";
+
+	/**
+	 * This is peer to peer connection notification
+	 * ıt is sent back to the suser when it is leaved from the stream
+	 */
+	public static final String LEAVED_STREAM = "leaved";
+
+	/**
+	 * This is sent back to the user when there is no encoder settings available
+	 * in publishing the stream
+	 */
+	public static final String NO_ENCODER_SETTINGS = "no_encoder_settings";
+
+	/**
+	 * This is sent back to the user when there is no room specified in 
+	 * joining the video conference
+	 */
+	public static final String NO_ROOM_SPECIFIED = "no_room_specified";
+
 }

@@ -47,7 +47,7 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 	
 	private AtomicInteger clientCount = new AtomicInteger(0);
 
-	private boolean videoConfParsed = false;
+	private boolean videoConfSent = false;
 
 	private byte[] sps;
 
@@ -132,7 +132,7 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 		clientCount.incrementAndGet();
 		webRTCClient.setWebRTCMuxer(this);
 		webRTCClient.setVideoResolution(width, height);
-		if (videoConfParsed) {
+		if (videoConfSent) {
 			webRTCClient.sendVideoConfPacket(videoConf, keyFrame, 0);
 		}
 	}
@@ -303,14 +303,20 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 				isKeyFrame = true;
 			}
 
-			if (!videoConfParsed) {
-				videoConfParsed = true;
-				parseVideoConfData(byteArray);
-				videoConf = new byte[sps.length + pps.length];
-				System.arraycopy(sps, 0, videoConf, 0, sps.length);
-				System.arraycopy(pps, 0, videoConf, sps.length, pps.length);
-
-				sendVideoConfPacket(keyFrame, pts);
+			if (!videoConfSent) {
+				videoConfSent = true;
+				
+				if (videoConf == null) {
+					parseVideoConfData(byteArray);
+					videoConf = new byte[sps.length + pps.length];
+					System.arraycopy(sps, 0, videoConf, 0, sps.length);
+					System.arraycopy(pps, 0, videoConf, sps.length, pps.length);
+					
+					sendVideoConfPacket(keyFrame, pts);
+				}
+				else {
+					sendVideoConfPacket(byteArray, pts);
+				}
 				//long diff = System.currentTimeMillis() - now;
 				//logger.info("sent video conf packet after " + diff + " ms" );
 			}
@@ -332,7 +338,7 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 			BytePointer data = pkt.data();
 			byte[] byteArray = new byte[pkt.size()];
 			data.get(byteArray, 0, byteArray.length);
-
+			
 			sendAudioPacket(byteArray, pts);
 			
 			//long diff = System.currentTimeMillis() - now;
@@ -341,11 +347,11 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 	}
 
 	public boolean isExtradata_parsed() {
-		return videoConfParsed;
+		return videoConfSent;
 	}
 
 	public void setExtradata_parsed(boolean extradata_parsed) {
-		this.videoConfParsed = extradata_parsed;
+		this.videoConfSent = extradata_parsed;
 	}
 
 	public byte[] getKeyFrame() {
