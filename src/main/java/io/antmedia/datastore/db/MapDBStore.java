@@ -325,33 +325,7 @@ public class MapDBStore implements IDataStore {
 		return list;
 	}
 	
-	@Override
-	public List<Vod> getUserVodList(int offset, int size) {
-		Collection<String> values = userVodMap.values();
-		int t = 0;
-		int itemCount = 0;
-		if (size > 50) {
-			size = 50;
-		}
-		if (offset < 0) {
-			offset = 0;
-		}
-		List<Vod> list = new ArrayList();
-		for (String vodString : values) {
-			if (t < offset) {
-				t++;
-				continue;
-			}
-			list.add(gson.fromJson(vodString, Vod.class));
-			itemCount++;
 
-			if (itemCount >= size) {
-				break;
-			}
-
-		}
-		return list;
-	}
 	
 	
 
@@ -406,6 +380,7 @@ public class MapDBStore implements IDataStore {
 
 	}
 
+	/*
 	@Override
 	public List<Vod> filterVoDList(int offset, int size, String keyword, long startdate, long endDate) {
 
@@ -475,6 +450,8 @@ public class MapDBStore implements IDataStore {
 		return list;
 
 	}
+	
+	*/
 
 	@Override
 	public boolean addVod(String id, Vod vod) {
@@ -509,7 +486,7 @@ public class MapDBStore implements IDataStore {
 				vodId = RandomStringUtils.randomNumeric(24);
 				vod.setVodId(vodId);
 
-				userVodMap.put(vodId, gson.toJson(vod));
+				vodMap.put(vodId, gson.toJson(vod));
 				db.commit();
 
 				result = true;
@@ -528,6 +505,11 @@ public class MapDBStore implements IDataStore {
 	 * IP Camera Operations
 	 */
 
+	
+	
+	
+	/*
+	 * Save method is used for this one.
 	@Override
 	public boolean addCamera(Broadcast camera) {
 		boolean result = false;
@@ -551,7 +533,7 @@ public class MapDBStore implements IDataStore {
 
 		return result;
 	}
-
+*/
 	@Override
 	public boolean editCameraInfo(Broadcast camera) {
 		boolean result = false;
@@ -559,7 +541,6 @@ public class MapDBStore implements IDataStore {
 
 			logger.warn("inside of editCameraInfo");
 
-			logger.warn("gelen camera:  " + camera.getStreamId());
 
 			Broadcast oldCam = get(camera.getStreamId());
 
@@ -568,7 +549,6 @@ public class MapDBStore implements IDataStore {
 			oldCam.setPassword(camera.getPassword());
 			oldCam.setIpAddr(camera.getIpAddr());
 
-			logger.warn(oldCam.getName());
 
 			getMap().replace(oldCam.getStreamId(), gson.toJson(oldCam));
 
@@ -585,7 +565,7 @@ public class MapDBStore implements IDataStore {
 	/**
 	 * Delete camera from camera store
 	 * 
-	 * @returns true if camera exists, otherwise return false
+	 * @returns true if stream exists, otherwise return false
 	 */
 	@Override
 	public boolean deleteStream(String id) {
@@ -680,7 +660,7 @@ public class MapDBStore implements IDataStore {
 
 		return result;
 	}
-
+/*
 	@Override
 	public boolean resetBroadcastStatus() {
 
@@ -704,6 +684,8 @@ public class MapDBStore implements IDataStore {
 
 		return false;
 	}
+	
+	*/
 
 	@Override
 	public long getTotalVodNumber() {
@@ -711,17 +693,31 @@ public class MapDBStore implements IDataStore {
 		return getVodMap().size();
 	}
 	
-	@Override
-	public long getTotalUserVodNumber() {
 
-		return getUserVodMap().size();
-	}
 
 	@Override
-	public List<Vod> fetchUserVodList(File userfile,int offset,int size) {
+	public boolean fetchUserVodList(File userfile) {
 		
-		userVodMap.clear();
-	
+		Object[] objectArray = vodMap.getValues().toArray();
+
+		Vod[] vodtArray = new Vod[objectArray.length];
+
+		for (int i = 0; i < objectArray.length; i++) {
+
+			vodtArray[i] = gson.fromJson((String) objectArray[i], Vod.class);
+		}
+
+		for (int i = 0; i < vodtArray.length; i++) {
+
+			if (vodtArray[i].getType().equals("userVod")) {
+
+				vodMap.remove(vodtArray[i].getVodId());
+
+			}
+
+		}
+		
+		
 		File[] listOfFiles = userfile.listFiles();
 
 		for (File file : listOfFiles) {
@@ -738,9 +734,9 @@ public class MapDBStore implements IDataStore {
 		    	addUserVod("vodFile", newVod);
 		    }
 		}
+	
 		
-		
-		return getUserVodList(offset, size);
+		return true;
 
 
 		

@@ -63,6 +63,7 @@ public class DBStoresUnitTest {
 		testRemoveEndpoint(dataStore);
 		testRTMPURL(dataStore);
 		testStreamWithId(dataStore);
+		testFilterSearchOperations(dataStore);
 
 	}
 
@@ -76,6 +77,7 @@ public class DBStoresUnitTest {
 		testRemoveEndpoint(dataStore);
 		testRTMPURL(dataStore);
 		testStreamWithId(dataStore);
+		testFilterSearchOperations(dataStore);
 
 	}
 
@@ -89,13 +91,12 @@ public class DBStoresUnitTest {
 		store.delete(deleteQuery);
 
 		testGetPagination(dataStore);
-
 		testNullCheck(dataStore);
 		testSimpleOperations(dataStore);
 		testRemoveEndpoint(dataStore);
-
 		testRTMPURL(dataStore);
 		testStreamWithId(dataStore);
+		testFilterSearchOperations(dataStore);
 
 	}
 
@@ -388,17 +389,38 @@ public class DBStoresUnitTest {
 			assertEquals(broadcast2.getEndPointList().size(), 2);
 			assertEquals(broadcast2.getEndPointList().get(1).name, broadcast2.getName());
 			assertEquals(broadcast2.getEndPointList().get(1).rtmpUrl, rtmpUrl);
+			
+			Broadcast broadcast3=new Broadcast("test3");
+			
+			broadcast3.setQuality("poor");
+			
+			assertNotNull(broadcast3.getQuality());
+			
+			dataStore.save(broadcast3);
+			
+			result=dataStore.updateSourceQuality(broadcast3.getStreamId(), "good");
+			
+		
+			
+			assertTrue(result);
+			
+			assertEquals(dataStore.get(broadcast3.getStreamId()).getQuality(),"good");
 
 			result = dataStore.delete(key);
 			assertTrue(result);
 
 			assertNull(dataStore.get(key));
+			
+			
+			
+			
 		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
 
 	}
+	
 
 	private void testFilterSearchOperations(IDataStore dataStore) {
 
@@ -440,21 +462,7 @@ public class DBStoresUnitTest {
 		assertTrue(result4);
 		assertTrue(result5);
 
-		List<Vod> vodList = dataStore.filterVoDList(0, 10, null, 1517239907, 1517239909);
 
-		assertEquals(vodList.size(), 1);
-
-		List<Vod> vodList3 = dataStore.filterVoDList(0, 10, "st5r", 0, 1517239909);
-
-		assertEquals(vodList3.size(), 0);
-
-		List<Vod> vodList4 = dataStore.filterVoDList(0, 10, "str", 1517239907, 0);
-
-		assertEquals(vodList4.size(), 1);
-
-		List<Vod> vodList6 = dataStore.filterVoDList(0, 10, null, 0, 1517239909);
-
-		assertEquals(vodList6.size(), 5);
 	}
 
 }

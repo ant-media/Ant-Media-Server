@@ -7,7 +7,12 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.gson.Gson;
 
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
@@ -15,7 +20,13 @@ import io.antmedia.datastore.db.types.Vod;
 
 public class InMemoryDataStore implements IDataStore {
 
+	protected static Logger logger = LoggerFactory.getLogger(InMemoryDataStore.class);
+
+	private Gson gson;
+
 	public LinkedHashMap<String, Broadcast> broadcastMap = new LinkedHashMap();
+
+	public LinkedHashMap<String, Vod> vodMap = new LinkedHashMap();
 
 	public InMemoryDataStore(String dbName) {
 	}
@@ -169,12 +180,16 @@ public class InMemoryDataStore implements IDataStore {
 		}
 		List<Broadcast> list = new ArrayList();
 		for (Broadcast broadcast : values) {
+
+
+
 			if (t < offset) {
 				t++;
 				continue;
 			}
 			list.add(broadcast);
 			itemCount++;
+
 
 			if (itemCount >= size) {
 				break;
@@ -184,35 +199,107 @@ public class InMemoryDataStore implements IDataStore {
 		return list;
 	}
 
-	@Override
 
-	public boolean addCamera(Broadcast camera) {
-		// TODO Auto-generated method stub
-		return false;
-	}
 
 	@Override
 	public boolean editCameraInfo(Broadcast camera) {
-		// TODO Auto-generated method stub
-		return false;
+		boolean result = false;
+		try {
+
+			logger.warn("inside of editCameraInfo");
+
+
+			Broadcast oldCam = get(camera.getStreamId());
+
+			oldCam.setName(camera.getName());
+			oldCam.setUsername(camera.getUsername());
+			oldCam.setPassword(camera.getPassword());
+			oldCam.setIpAddr(camera.getIpAddr());
+
+
+			broadcastMap.replace(oldCam.getStreamId(), oldCam);
+
+
+			result = true;
+		} catch (Exception e) {
+			result = false;
+		}
+
+		return result;
 	}
 
 	@Override
-	public boolean deleteStream(String ipAddr) {
-		// TODO Auto-generated method stub
-		return false;
+	public boolean deleteStream(String id) {
+		boolean result = false;
+		try {
+
+			if (broadcastMap.containsKey(id)) {
+				logger.warn("inside of deleteStream");
+				broadcastMap.remove(id);
+				result = true;
+			}
+
+		} catch (Exception e) {
+			result = false;
+		}
+		return result;
 	}
 
 	@Override
 	public Broadcast getCamera(String ip) {
-		// TODO Auto-generated method stub
-		return null;
+		Object[] objectArray = broadcastMap.values().toArray();
+
+		Broadcast[] broadcastArray = new Broadcast[objectArray.length];
+
+		for (int i = 0; i < objectArray.length; i++) {
+
+			broadcastArray[i] = gson.fromJson((String) objectArray[i], Broadcast.class);
+
+		}
+
+		Broadcast camera = new Broadcast();
+
+		for (int i = 0; i < broadcastArray.length; i++) {
+
+			if (broadcastArray[i].getType() == "ipCamera") {
+
+				if (broadcastArray[i].getIpAddr().equals(ip)) {
+
+					camera = broadcastArray[i];
+
+					break;
+
+				}
+			}
+
+		}
+
+		return camera;
 	}
 
 	@Override
 	public List<Broadcast> getExternalStreamsList() {
-		// TODO Auto-generated method stub
-		return null;
+		Object[] objectArray = broadcastMap.values().toArray();
+
+		Broadcast[] broadcastArray = new Broadcast[objectArray.length];
+
+		List<Broadcast> streamsList = new ArrayList<Broadcast>();
+
+		for (int i = 0; i < objectArray.length; i++) {
+
+			broadcastArray[i] = gson.fromJson((String) objectArray[i], Broadcast.class);
+
+		}
+
+		for (int i = 0; i < broadcastArray.length; i++) {
+
+			if (broadcastArray[i].getType().equals("ipCamera") || broadcastArray[i].getType().equals("streamSource")) {
+
+				streamsList.add(gson.fromJson((String) objectArray[i], Broadcast.class));
+			}
+		}
+
+		return streamsList;
 	}
 
 	@Override
@@ -223,45 +310,114 @@ public class InMemoryDataStore implements IDataStore {
 
 	@Override
 	public List<Broadcast> filterBroadcastList(int offset, int size, String type) {
-		// TODO Auto-generated method stub
-		return null;
+
+
+		int t = 0;
+		int itemCount = 0;
+		if (size > 50) {
+			size = 50;
+		}
+		if (offset < 0) {
+			offset = 0;
+		}
+
+		Collection<Broadcast> values =broadcastMap.values();
+
+
+		List<Broadcast> list = new ArrayList();
+
+
+
+		for (Broadcast broadcast : values) {
+
+			if(broadcast.getType().equals("ipCamera")) {
+				if (t < offset) {
+					t++;
+					continue;
+				}
+				list.add(broadcast);
+
+				itemCount++;
+
+				if (itemCount >= size) {
+					break;
+				}
+			}
+		}
+
+
+		return list;
+
+
+
 	}
 
 	@Override
 	public boolean addVod(String id, Vod vod) {
-		// TODO Auto-generated method stub
-		return false;
+		String vodId = null;
+		boolean result = false;
+
+		if (vod != null) {
+			try {
+				vodId = RandomStringUtils.randomNumeric(24);
+				vod.setVodId(vodId);
+
+				vodMap.put(vodId,vod);
+				result = true;
+
+			} catch (Exception e) {
+				e.printStackTrace();
+				id = null;
+			}
+		}
+		return result;
 	}
 
 	@Override
 	public List<Vod> getVodList(int offset, int size) {
-		// TODO Auto-generated method stub
-		return null;
+		Collection<Vod> values = vodMap.values();
+		int t = 0;
+		int itemCount = 0;
+		if (size > 50) {
+			size = 50;
+		}
+		if (offset < 0) {
+			offset = 0;
+		}
+		List<Vod> list = new ArrayList();
+		for (Vod vodString : values) {
+			if (t < offset) {
+				t++;
+				continue;
+			}
+			list.add(vodString);
+			itemCount++;
+
+			if (itemCount >= size) {
+				break;
+			}
+
+		}
+		return list;
 	}
 
-	@Override
-	public List<Vod> filterVoDList(int offset, int size, String keyword, long startdate, long endDate) {
-		// TODO Auto-generated method stub
-		return null;
-	}
+
 
 	@Override
 	public boolean deleteVod(String id) {
-		// TODO Auto-generated method stub
-		return false;
+		boolean result = vodMap.remove(id) != null;
+
+		return result;
 	}
 
-	@Override
-	public boolean resetBroadcastStatus() {
-		// TODO Auto-generated method stub
-		return false;
-	}
+
 
 	public boolean removeAllEndpoints(String id) {
 		boolean result = false;
 		Broadcast broadcast = broadcastMap.get(id);
 		if (broadcast != null) {
 			broadcast.setEndPointList(null);
+			broadcastMap.replace(id, broadcast);
 			result = true;
 		}
 		return result;
@@ -270,39 +426,93 @@ public class InMemoryDataStore implements IDataStore {
 
 	@Override
 	public long getTotalVodNumber() {
-		// TODO Auto-generated method stub
-		return 0;
+
+		return vodMap.size();
+
 	}
 
 	@Override
-	public List<Vod> fetchUserVodList(File userfile,int offset,int size) {
-		return null;
-		// TODO Auto-generated method stub
+	public boolean fetchUserVodList(File userfile) {
+
+
+
+		Object[] objectArray = vodMap.values().toArray();
+
+		Vod[] vodtArray = new Vod[objectArray.length];
+
+		for (int i = 0; i < objectArray.length; i++) {
+
+			vodtArray[i] = gson.fromJson((String) objectArray[i], Vod.class);
+		}
+
+		for (int i = 0; i < vodtArray.length; i++) {
+
+			if (vodtArray[i].getType().equals("userVod")) {
+
+				vodMap.remove(vodtArray[i].getVodId());
+			}
+		}
+
+
+		File[] listOfFiles = userfile.listFiles();
+
+		for (File file : listOfFiles) {
+
+			String fileExtension = FilenameUtils.getExtension(file.getName());
+
+			if (file.isFile()&&fileExtension.equals("mp4")) {
+
+				long fileSize = file.length();
+				long unixTime = System.currentTimeMillis();
+
+				Vod newVod = new Vod("vodFile", "vodFile", file.getPath(), file.getName(), unixTime, 0, fileSize,
+						"userVod");
+
+				addUserVod("vodFile", newVod);
+			}
+		}
+
+
+		return true;
+
+
 
 	}
 
 	@Override
 	public boolean addUserVod(String id, Vod vod) {
-		// TODO Auto-generated method stub
-		return false;
+		String vodId = null;
+		boolean result = false;
+
+		if (vod != null) {
+			try {
+				vodId = RandomStringUtils.randomNumeric(24);
+				vod.setVodId(vodId);
+				vodMap.put(vodId, vod);
+				result = true;
+
+			} catch (Exception e) {
+				e.printStackTrace();
+				id = null;
+			}
+		}
+		return result;
 	}
 
-	@Override
-	public List<Vod> getUserVodList(int offset, int size) {
-		// TODO Auto-generated method stub
-		return null;
-	}
 
-	@Override
-	public long getTotalUserVodNumber() {
-		// TODO Auto-generated method stub
-		return 0;
-	}
 
 	@Override
 	public boolean updateSourceQuality(String id, String quality) {
-		// TODO Auto-generated method stub
-		return false;
+		boolean result = false;
+		if (id != null) {
+			Broadcast broadcast = broadcastMap.get(id);
+			if (broadcast != null) {
+				broadcast.setQuality(quality);
+				broadcastMap.replace(id, broadcast);
+				result = true;
+			}
+		}
+		return result;
 	}
 
 }

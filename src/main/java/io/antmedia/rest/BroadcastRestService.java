@@ -607,7 +607,7 @@ public class BroadcastRestService {
 			@PathParam("type") String type) {
 		return getDataStore().filterBroadcastList(offset, size, type);
 	}
-
+/*
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/broadcast/filterVoD")
@@ -625,7 +625,7 @@ public class BroadcastRestService {
 		}
 		return null;
 	}
-
+*/
 	@POST
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/broadcast/deleteVoDFile/{name}/{id}")
@@ -635,19 +635,29 @@ public class BroadcastRestService {
 		String message = "";
 		if (getAppContext() != null) {
 			// TODO: write test code for this function
+			
 			File recordFile = Muxer.getRecordFile(getScope(), fileName, ".mp4");
+			File uploadedFile = Muxer.getUploadRecordFile(getScope(), fileName, ".mp4");
+			
 			System.out.println("recordfile : " + recordFile.getAbsolutePath());
 
-			success = getDataStore().deleteVod(id);
+			
 
 			if (recordFile.exists()) {
 				success = true;
 				recordFile.delete();
+				message = "streamvod found and deleted";
 				getDataStore().deleteVod(id);
-				message = "file is found and deleted";
 
-			} else {
-				message = "No file to delete";
+			} else if (uploadedFile.exists()) {
+				success = true;
+				uploadedFile.delete();
+				message = "uploadedVod is found and deleted";
+				getDataStore().deleteVod(id);
+
+			}else {
+				success = getDataStore().deleteVod(id);
+				
 			}
 			File previewFile = Muxer.getPreviewFile(getScope(), fileName, ".png");
 			if (previewFile.exists()) {

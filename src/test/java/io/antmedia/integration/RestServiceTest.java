@@ -114,7 +114,7 @@ public class RestServiceTest {
 					.setEntity(new StringEntity(gson.toJson(broadcast))).build();
 
 			HttpResponse response = client.execute(post);
-
+			
 			StringBuffer result = readResponse(response);
 
 			if (response.getStatusLine().getStatusCode() != 200) {
@@ -607,56 +607,7 @@ public class RestServiceTest {
 		}
 	}
 
-	/*
-	 * @Test public void testDeleteVoDFile() {
-	 * 
-	 * try { String streamName = "vod_delete_test"; Broadcast broadcast =
-	 * createBroadcast(streamName); assertNotNull(broadcast);
-	 * assertNotNull(broadcast.getStreamId());
-	 * 
-	 * Process execute = execute(ffmpegPath +
-	 * " -re -i src/test/resources/test.flv -acodec copy " +
-	 * "	-vcodec copy -f flv rtmp://localhost/LiveApp/" +
-	 * broadcast.getStreamId());
-	 * 
-	 * Thread.sleep(20000);
-	 * 
-	 * execute.destroy();
-	 * 
-	 * // let mp4 file to be created Thread.sleep(2000);
-	 * 
-	 * boolean vodExists = AppFunctionalTest.exists(ROOT_APP_URL + "/streams/" +
-	 * broadcast.getStreamId() + ".mp4", false);
-	 * 
-	 * assertTrue(vodExists);
-	 * 
-	 * String url = ROOT_SERVICE_URL + "/broadcast/deleteVoDFile/" +
-	 * broadcast.getStreamId();
-	 * 
-	 * String response = makePOSTRequest(url, null);
-	 * 
-	 * Result deleteVoDResponse = gson.fromJson(response.toString(),
-	 * Result.class); assertTrue(deleteVoDResponse.isSuccess());
-	 * 
-	 * try { Process process = Runtime.getRuntime()
-	 * .exec("./src/test/resources/scripts/check_file_deleted.sh " +
-	 * broadcast.getStreamId()); InputStream errorStream =
-	 * process.getInputStream(); byte[] data = new byte[1024]; int length = 0;
-	 * String errorStr = null;
-	 * 
-	 * try { while ((length = errorStream.read(data, 0, data.length)) > 0) {
-	 * errorStr = new String(data, 0, length); System.out.println("errorstr:" +
-	 * errorStr); } } catch (Exception e) { e.printStackTrace(); }
-	 * 
-	 * assertTrue(errorStr == null || errorStr.length() == 0);
-	 * 
-	 * } catch (IOException e) { e.printStackTrace(); fail(e.getMessage()); }
-	 * 
-	 * } catch (InterruptedException e) { e.printStackTrace();
-	 * fail(e.getMessage()); }
-	 * 
-	 * }
-	 */
+	
 	public String makePOSTRequest(String url, String entity) {
 		try {
 			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
@@ -711,34 +662,7 @@ public class RestServiceTest {
 		return null;
 	}
 
-	/*
-	 * public Result updateNameAndDescription(String broadcastId, String name,
-	 * String description ) throws Exception { CloseableHttpClient httpclient =
-	 * HttpClients.createDefault();
-	 * 
-	 * 
-	 * HttpPost httppost = new HttpPost(ROOT_SERVICE_URL +
-	 * "/broadcast/updateInfo"); List<NameValuePair> nameValuePairs = new
-	 * ArrayList<NameValuePair>(); nameValuePairs.add(new
-	 * BasicNameValuePair("Content-Type","application/x-www-form-urlencoded;"));
-	 * nameValuePairs.add(new BasicNameValuePair("id", broadcastId));
-	 * nameValuePairs.add(new BasicNameValuePair("name", name));
-	 * nameValuePairs.add(new BasicNameValuePair("description", description));
-	 * httppost.setEntity(new UrlEncodedFormEntity(nameValuePairs,
-	 * StandardCharsets.UTF_8));
-	 * 
-	 * 
-	 * CloseableHttpResponse response = httpclient.execute(httppost);
-	 * 
-	 * StringBuffer result = readResponse(response);
-	 * 
-	 * if (response.getStatusLine().getStatusCode() != 200) { throw new
-	 * Exception(result.toString()); } Gson gson = new Gson();
-	 * System.out.println("result string: " + result.toString()); Result tmp =
-	 * gson.fromJson(result.toString(), Result.class);
-	 * 
-	 * return tmp; }
-	 */
+
 
 	public Result updatePublish(String broadcastId, boolean publish) throws Exception {
 		CloseableHttpClient httpclient = HttpClients.createDefault();

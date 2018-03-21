@@ -4,6 +4,8 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.collections.ListUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.bson.types.ObjectId;
 import org.mongodb.morphia.Datastore;
@@ -13,7 +15,12 @@ import org.mongodb.morphia.query.FindOptions;
 import org.mongodb.morphia.query.Query;
 import org.mongodb.morphia.query.UpdateOperations;
 import org.mongodb.morphia.query.UpdateResults;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import com.mongodb.BasicDBObject;
+import com.mongodb.DBCollection;
+import com.mongodb.DBCursor;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoCredential;
 import com.mongodb.ServerAddress;
@@ -27,12 +34,18 @@ public class MongoStore implements IDataStore {
 
 	private Morphia morphia;
 	private Datastore datastore;
+	private Datastore vodDatastore;
+	
+	protected static Logger logger = LoggerFactory.getLogger(MongoStore.class);
 
 	public MongoStore(String dbName) {
 		morphia = new Morphia();
 		morphia.mapPackage("io.antmedia.datastore.db.types");
 		datastore = morphia.createDatastore(new MongoClient(), dbName);
+		vodDatastore=morphia.createDatastore(new MongoClient(), dbName+"Vod");
 		datastore.ensureIndexes();
+		vodDatastore.ensureIndexes();
+		
 	}
 
 	public MongoStore(String host, String username, String password, String dbName) {
@@ -41,7 +54,10 @@ public class MongoStore implements IDataStore {
 		List<MongoCredential> credentialList = new ArrayList();
 		credentialList.add(MongoCredential.createCredential(username, dbName, password.toCharArray()));
 		datastore = morphia.createDatastore(new MongoClient(new ServerAddress(host), credentialList), dbName);
+		vodDatastore=morphia.createDatastore(new MongoClient(new ServerAddress(host), credentialList), dbName+"Vod");
 		datastore.ensureIndexes();
+		vodDatastore.ensureIndexes();
+	
 	}
 
 	/*
@@ -260,6 +276,8 @@ public class MongoStore implements IDataStore {
 
 	@Override
 	public List<Broadcast> getBroadcastList(int offset, int size) {
+		
+		
 		return datastore.find(Broadcast.class).asList(new FindOptions().skip(offset).limit(size));
 	}
 
@@ -267,112 +285,227 @@ public class MongoStore implements IDataStore {
 		return datastore;
 	}
 
-	@Override
-	public boolean addCamera(Broadcast camera) {
-		// TODO Auto-generated method stub
-		return false;
-	}
 
 	@Override
 	public boolean editCameraInfo(Broadcast camera) {
-		// TODO Auto-generated method stub
+
+		
+		boolean result = false;
+
+		try {
+			logger.warn("result inside edit camera: " + result);
+			Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(camera.getStreamId());
+			
+
+			UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set("name", camera.getName())
+					.set("username", camera.getUsername()).set("password", camera.getPassword()).set("ipAddr", camera.getIpAddr());
+
+			UpdateResults update = datastore.update(query, ops);
+			return update.getUpdatedCount() == 1;
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		return false;
+			
+	
 	}
 
 	@Override
-	public boolean deleteStream(String ipAddr) {
-		// TODO Auto-generated method stub
+	public boolean deleteStream(String id) {
+	
+		try {
+			Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(id);
+			WriteResult delete = datastore.delete(query);
+			return delete.getN() == 1;
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		return false;
+
 	}
 
 	@Override
 	public Broadcast getCamera(String ip) {
-		// TODO Auto-generated method stub
+		try {
+			return datastore.find(Broadcast.class).field("ipAddr").equal(ip).get();
+		} catch (Exception e) {
+
+			e.printStackTrace();
+		}
 		return null;
 	}
 
 	@Override
 	public List<Broadcast> getExternalStreamsList() {
+		
 
+		try {
+			
+			List<Broadcast> ipCameraList=datastore.find(Broadcast.class).field("type").equal("ipCamera").asList();
+			List<Broadcast> streamSourceList=datastore.find(Broadcast.class).field("type").equal("streamSource").asList();
+			
+			List<Broadcast> newList = new ArrayList<Broadcast>(ipCameraList);
+			
+			newList.addAll(streamSourceList);
+			
+			return newList;
+					
+		} catch (Exception e) {
+
+			e.printStackTrace();
+		}
 		return null;
 
+		
+	
+	
 	}
 
 	@Override
 	public void close() {
-		// TODO Auto-generated method stub
+		
+		
+		datastore.getMongo().close();
 
 	}
 
 	@Override
 	public List<Broadcast> filterBroadcastList(int offset, int size, String type) {
-		// TODO Auto-generated method stub
+		
+		try {
+			return datastore.find(Broadcast.class).field("type").equal(type).asList(new FindOptions().skip(offset).limit(size));
+		} catch (Exception e) {
+
+			e.printStackTrace();
+		}
 		return null;
+		
+
+	
+	
 	}
 
 	@Override
 	public boolean addVod(String id, Vod vod) {
-		// TODO Auto-generated method stub
-		return false;
+		String vodId = null;
+		boolean result = false;
+		try {
+		
+			if (vod.getStreamId() == null) {
+				vodId = RandomStringUtils.randomAlphanumeric(12) + System.currentTimeMillis();
+				vod.setStreamId(vodId);
+			}
+			vodId = vod.getStreamId();
+
+			Key<Vod> key = vodDatastore.save(vod);
+			result = true;
+			return result;
+		} catch (Exception e) {
+
+			e.printStackTrace();
+		}
+		return result;
+	
+		
+		
 	}
 
 	@Override
 	public List<Vod> getVodList(int offset, int size) {
-		// TODO Auto-generated method stub
-		return null;
+		
+		return vodDatastore.find(Vod.class).asList(new FindOptions().skip(offset).limit(size));
 	}
 
-	@Override
-	public List<Vod> filterVoDList(int offset, int size, String keyword, long startdate, long endDate) {
-		// TODO Auto-generated method stub
-		return null;
-	}
 
 	@Override
 	public boolean deleteVod(String id) {
-		// TODO Auto-generated method stub
+		try {
+			Query<Broadcast> query = vodDatastore.createQuery(Broadcast.class).field("vodId").equal(id);
+			WriteResult delete = vodDatastore.delete(query);
+			return delete.getN() == 1;
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		return false;
 	}
 
-	@Override
-	public boolean resetBroadcastStatus() {
-		// TODO Auto-generated method stub
-		return false;
-	}
+
 
 	@Override
 	public long getTotalVodNumber() {
-		// TODO Auto-generated method stub
-		return 0;
+		return vodDatastore.getCount(Broadcast.class);
+	
 	}
 
 	@Override
-	public List<Vod> fetchUserVodList(File userfile,int offset,int size) {
-		return null;
+	public boolean fetchUserVodList(File userfile) {
+		
+		boolean result=false;
+		try {
+			Query<Vod> query = vodDatastore.createQuery(Vod.class).field("type").equal("userVod");
+			WriteResult delete = vodDatastore.delete(query);
+			result=true;
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		File[] listOfFiles = userfile.listFiles();
+
+		for (File file : listOfFiles) {
+			
+			String fileExtension = FilenameUtils.getExtension(file.getName());
+			
+		    if (file.isFile()&&fileExtension.equals("mp4")) {
+		
+				long fileSize = file.length();
+				long unixTime = System.currentTimeMillis();
+
+				Vod newVod = new Vod("vodFile", "vodFile", file.getPath(), file.getName(), unixTime, 0, fileSize,
+						"userVod");
+		    	addUserVod("vodFile", newVod);
+		    }
+		}
+		
+		
+		return result;
 
 	}
 
 	@Override
 	public boolean addUserVod(String id, Vod vod) {
-		// TODO Auto-generated method stub
+		try {
+			String vodId = null;
+			if (vod.getVodId() == null) {
+				vodId = RandomStringUtils.randomAlphanumeric(12) + System.currentTimeMillis();
+				vod.setVodId(vodId);
+			}
+			vodId = vod.getStreamId();
+		
+
+			Key<Vod> key = vodDatastore.save(vod);
+
+			return true;
+		} catch (Exception e) {
+
+			e.printStackTrace();
+		}
 		return false;
 	}
 
-	@Override
-	public List<Vod> getUserVodList(int offset, int size) {
-		// TODO Auto-generated method stub
-		return null;
-	}
 
-	@Override
-	public long getTotalUserVodNumber() {
-		// TODO Auto-generated method stub
-		return 0;
-	}
 
 	@Override
 	public boolean updateSourceQuality(String id, String quality) {
-		// TODO Auto-generated method stub
+		try {
+
+			Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(id);
+			UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set("quality", quality);
+
+			UpdateResults update = datastore.update(query, ops);
+			return update.getUpdatedCount() == 1;
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		return false;
 	}
 

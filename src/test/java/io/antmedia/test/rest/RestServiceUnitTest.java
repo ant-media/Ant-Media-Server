@@ -80,7 +80,7 @@ public class RestServiceUnitTest  {
 	@Test
 	public void testServerNameAndRtmpURL() {
 		AppSettings settings = mock(AppSettings.class);
-		String serverName = "fually.qualified.domain.name";
+		String serverName = "fully.qualified.domain.name";
 		when(settings.getServerName()).thenReturn(serverName);
 		
 		Scope scope = mock(Scope.class);

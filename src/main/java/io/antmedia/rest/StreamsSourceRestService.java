@@ -57,12 +57,6 @@ public class StreamsSourceRestService {
 
 	protected static Logger logger = LoggerFactory.getLogger(IPCameraApplicationAdapter.class);
 
-	@GET
-	@Path("/getList")
-	@Produces(MediaType.APPLICATION_JSON)
-	public List<Broadcast> getCameraList() {
-		return getStore().getExternalStreamsList();
-	}
 
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
@@ -121,6 +115,10 @@ public class StreamsSourceRestService {
 				result = true;
 				message = "StreamSource successfully added";
 
+			}else {
+				
+				message = "No stream added";
+				
 			}
 		}
 
@@ -151,8 +149,8 @@ public class StreamsSourceRestService {
 	@GET
 	@Path("/getUserVodList/{offset}/{size}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public List<Vod>  getUserVodList(@PathParam("offset") int offset,@PathParam("size") int size) {
-		List<Vod> result = null;
+	public boolean  getUserVodList(@PathParam("offset") int offset,@PathParam("size") int size) {
+		boolean result = false;
 		
 		String appScopeName = ScopeUtils.findApplication(getScope()).getName();
 		
@@ -169,18 +167,18 @@ public class StreamsSourceRestService {
 			}
 		}
 		
-		result=getStore().fetchUserVodList(directory,offset,size);
+		result=getStore().fetchUserVodList(directory);
 		
 		return result;
 	}
-
+/*
 	@GET
 	@Path("/getTotalUserVodNumber")
 	@Produces(MediaType.APPLICATION_JSON)
 	public long getTotalVodNumber() {
 		return getStore().getTotalUserVodNumber();
 	}
-	
+	*/
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/updateCamInfo")

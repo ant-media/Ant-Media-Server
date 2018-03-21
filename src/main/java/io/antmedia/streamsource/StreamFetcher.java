@@ -51,6 +51,10 @@ public class StreamFetcher {
 	public StreamFetcher(Broadcast stream) {
 		this.stream = stream;
 	}
+	
+	public StreamFetcher() {
+		
+	}
 
 	public boolean prepareInput(AVFormatContext inputFormatContext) {
 
@@ -69,7 +73,7 @@ public class StreamFetcher {
 		av_dict_set(optionsDictionary, "rtsp_transport", "tcp", 0);
 		int ret;
 
-		logger.info("camera rtsp url" + stream.getstreamUrl());
+		logger.info("stream url" + stream.getstreamUrl());
 
 		if ((ret = avformat_open_input(inputFormatContext, stream.getstreamUrl(), null, optionsDictionary)) < 0) {
 
