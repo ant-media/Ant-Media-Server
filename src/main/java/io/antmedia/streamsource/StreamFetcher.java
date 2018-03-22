@@ -48,6 +48,10 @@ public class StreamFetcher {
 
 	private long[] lastDTS;
 
+	private int timeout;
+
+	public boolean exceptionInThread = false;
+
 	public StreamFetcher(Broadcast stream) {
 		this.stream = stream;
 	}
@@ -57,6 +61,8 @@ public class StreamFetcher {
 	}
 
 	public boolean prepareInput(AVFormatContext inputFormatContext) {
+		
+		setConnectionTimeout(5000);
 
 		if (inputFormatContext == null) {
 			logger.info("cannot allocate input context");
@@ -67,18 +73,15 @@ public class StreamFetcher {
 			logger.info("stream is null");
 			return false;
 		}
-		
-		if(isStopRequestReceived()) {
-			return false;
-		}
 
 		AVDictionary optionsDictionary = new AVDictionary();
-		
+
 
 		av_dict_set(optionsDictionary, "rtsp_transport", "tcp", 0);
-		av_dict_set(optionsDictionary, "timeout", "100000", 0);
-		av_dict_set(optionsDictionary, "stimeout", "100000", 0);
-		
+
+		String timeout = String.valueOf(this.timeout);
+		av_dict_set(optionsDictionary, "stimeout", timeout, 0);
+
 
 		int ret;
 
@@ -150,6 +153,7 @@ public class StreamFetcher {
 
 			// TODO: get application name from red5 context, do not use embedded
 			// url
+			
 			String urlStr = "rtmp://localhost/LiveApp/" + stream.getStreamId();
 			// logger.debug("rtmp url: " + urlStr);
 			//
@@ -183,25 +187,28 @@ public class StreamFetcher {
 			AVFormatContext outputRTMPFormatContext = new AVFormatContext(null);
 
 
-			System.out.println("before prepare....................");
-
-			if (!prepare(inputFormatContext, outputRTMPFormatContext)) {
-				if (inputFormatContext != null) {
-					avformat_close_input(inputFormatContext);
-				}
-
-				if (outputRTMPFormatContext != null) {
-					if (outputRTMPFormatContext.pb() != null) {
-						avio_closep(outputRTMPFormatContext.pb());
-					}
-					avformat_free_context(outputRTMPFormatContext);
-				}
-
-				logger.warn("Prepare for " + stream.getName() + " returned false");
-				return;
-			}
+			logger.info("before prepare");
 
 			try {
+				if (!prepare(inputFormatContext, outputRTMPFormatContext)) {
+					if (inputFormatContext != null) {
+						avformat_close_input(inputFormatContext);
+					}
+
+					if (outputRTMPFormatContext != null && !outputRTMPFormatContext.isNull()) {
+						if (outputRTMPFormatContext.pb() != null) {
+							avio_closep(outputRTMPFormatContext.pb());
+						}
+
+						avformat_free_context(outputRTMPFormatContext);
+					}
+
+					logger.warn("Prepare for " + stream.getName() + " returned false");
+
+					return;
+				}
+
+
 
 				while (true) {
 					int ret = av_read_frame(inputFormatContext, pkt);
@@ -254,24 +261,27 @@ public class StreamFetcher {
 					}
 
 				}
+
+
+				avformat_close_input(inputFormatContext);
+				inputFormatContext = null;
+
+				av_write_trailer(outputRTMPFormatContext);
+
+				if ((outputRTMPFormatContext.flags() & AVFMT_NOFILE) == 0) {
+					logger.warn("before avio_closep(outputRTMPFormatContext.pb());");
+					avio_closep(outputRTMPFormatContext.pb());
+					outputRTMPFormatContext.pb(null);
+				}
+
+				logger.warn("before avformat_free_context(outputRTMPFormatContext);");
+				avformat_free_context(outputRTMPFormatContext);
+				outputRTMPFormatContext = null;
 			} catch (Exception e) {
+				logger.info("---Exception in thread---");
 				e.printStackTrace();
+				exceptionInThread  = true;
 			}
-
-			avformat_close_input(inputFormatContext);
-			inputFormatContext = null;
-
-			av_write_trailer(outputRTMPFormatContext);
-
-			if ((outputRTMPFormatContext.flags() & AVFMT_NOFILE) == 0) {
-				logger.warn("before avio_closep(outputRTMPFormatContext.pb());");
-				avio_closep(outputRTMPFormatContext.pb());
-				outputRTMPFormatContext.pb(null);
-			}
-
-			logger.warn("before avformat_free_context(outputRTMPFormatContext);");
-			avformat_free_context(outputRTMPFormatContext);
-			outputRTMPFormatContext = null;
 
 		}
 
@@ -289,6 +299,7 @@ public class StreamFetcher {
 
 	public void startStream() {
 
+		exceptionInThread = false;
 		thread = new WorkerThread();
 		thread.start();
 
@@ -337,6 +348,18 @@ public class StreamFetcher {
 			};
 		}.start();
 
+	}
+
+	/**
+	 * Set timetout when establishing connection
+	 * @param timeout in ms
+	 */
+	public void setConnectionTimeout(int timeout) {
+		this.timeout = timeout * 1000;
+	}
+
+	public boolean isExceptionInThread() {
+		return exceptionInThread;
 	}
 
 }

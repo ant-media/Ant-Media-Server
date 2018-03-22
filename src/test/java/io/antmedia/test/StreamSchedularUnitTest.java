@@ -139,8 +139,14 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 				"rtsp://11.2.40.63:8554/live1.sdp", "ipCamera");
 
 		
+		
 		StreamFetcher streamScheduler = new StreamFetcher(newCam);
+		
+		assertFalse(streamScheduler.isExceptionInThread());
+		
 		streamScheduler.startStream();
+		
+		streamScheduler.setConnectionTimeout(3000);
 
 		assertTrue(streamScheduler.isRunning());
 
@@ -150,6 +156,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		assertFalse(streamScheduler.isRunning());
 
+		assertFalse(streamScheduler.isExceptionInThread());
 	}
 
 	@Test
