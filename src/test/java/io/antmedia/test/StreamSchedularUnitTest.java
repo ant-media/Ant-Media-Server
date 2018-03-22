@@ -9,18 +9,22 @@ import java.io.IOException;
 import javax.servlet.ServletContext;
 import javax.ws.rs.core.Context;
 
+import org.bytedeco.javacpp.avformat;
+import org.bytedeco.javacpp.avutil;
 import org.bytedeco.javacpp.avformat.AVFormatContext;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.ipcamera.CameraScheduler;
+import io.antmedia.streamsource.StreamFetcher;
 
 @ContextConfiguration(locations = { "test.xml" })
-public class CameraSchedularUnitTest extends AbstractJUnit4SpringContextTests {
+public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 	@Context
 	private ServletContext servletContext;
@@ -28,6 +32,14 @@ public class CameraSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	static {
 		System.setProperty("red5.deployment.type", "junit");
 		System.setProperty("red5.root", ".");
+		
+		
+	}
+	
+	@BeforeClass
+	public static void beforeClass() {
+		avformat.av_register_all();
+		avformat.avformat_network_init();
 	}
 
 	@Before
@@ -95,11 +107,11 @@ public class CameraSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 	@Test
-	public void testCameraSchedular() throws InterruptedException {
+	public void testStreamSchedular() throws InterruptedException {
 
 		long size = 1232;
 
-		AVFormatContext inputFormatContext = new AVFormatContext(size);
+		AVFormatContext inputFormatContext = new AVFormatContext();
 
 		Broadcast newCam = new Broadcast("testSchedular", "10.2.40.63:8080", "admin", "admin",
 				"rtsp://10.2.40.63:8554/live1.sdp", "ipCamera");
@@ -112,6 +124,32 @@ public class CameraSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		camScheduler.stopStream();
 
 		Thread.sleep(5000);
+		
+		assertFalse(camScheduler.isRunning());
+
+	}
+	
+	@Test
+	public void testStreamSchedularConnectionTimeout() throws InterruptedException {
+
+		long size = 1232;
+
+		AVFormatContext inputFormatContext = new AVFormatContext();
+
+		Broadcast newCam = new Broadcast("testSchedular", "10.2.40.63:8080", "admin", "admin",
+				"rtsp://11.2.40.63:8554/live1.sdp", "ipCamera");
+
+		
+		StreamFetcher streamScheduler = new StreamFetcher(newCam);
+		streamScheduler.startStream();
+
+		assertTrue(streamScheduler.isRunning());
+
+		streamScheduler.stopStream();
+
+		Thread.sleep(5000);
+		
+		assertFalse(streamScheduler.isRunning());
 
 	}
 
@@ -120,19 +158,19 @@ public class CameraSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		long size = 1232;
 
-		AVFormatContext inputFormatContext = new AVFormatContext(size);
+		AVFormatContext inputFormatContext = new AVFormatContext();
 
 		Broadcast newCam = null;
 
-		CameraScheduler camScheduler = new CameraScheduler(newCam);
+		StreamFetcher streamScheduler = new StreamFetcher(newCam);
 
-		assertFalse(camScheduler.prepareInput(inputFormatContext));
+		assertFalse(streamScheduler.prepareInput(inputFormatContext));
 
 		Broadcast newCam2 = new Broadcast("test", "10.2.40.63:8080", "admin", "admin", null, "ipCamera");
 
-		CameraScheduler camScheduler2 = new CameraScheduler(newCam2);
+		StreamFetcher streamScheduler2 = new StreamFetcher(newCam2);
 
-		assertFalse(camScheduler2.prepareInput(inputFormatContext));
+		assertFalse(streamScheduler2.prepareInput(inputFormatContext));
 
 	}
 
