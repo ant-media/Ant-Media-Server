@@ -238,7 +238,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 	}
 	
-	@Test
+
 	public void testRemoteBroadcastStreamStartStop() 
 	{
 		if (appScope == null) {
