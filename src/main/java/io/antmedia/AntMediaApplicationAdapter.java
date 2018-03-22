@@ -32,10 +32,12 @@ import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.Vod;
+import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.muxer.IMuxerListener;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
+import io.antmedia.streamsource.StreamSources;
 
 public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter implements IMuxerListener {
 
@@ -52,6 +54,10 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 	private List<VideoServiceEndpoint> videoServiceEndpoints;
 	private List<IStreamPublishSecurity> streamPublishSecurityList;
+	
+	private HashMap<String, OnvifCamera> onvifCameraList = new HashMap();
+	
+	private StreamSources sources;
 
 	private IDataStore dataStore;
 
@@ -73,6 +79,20 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 				registerStreamPublishSecurity(streamPublishSecurity);
 			}
 		}
+		addScheduledOnceJob(0, new IScheduledJob() {
+			
+			@Override
+			public void execute(ISchedulingService service) throws CloneNotSupportedException {
+				sources = new StreamSources(AntMediaApplicationAdapter.this);
+
+				List<Broadcast> streams = getDataStore().getExternalStreamsList();
+
+				sources.startStreams(streams);
+				
+			}
+		});
+				
+		
 		return super.appStart(app);
 	}
 
@@ -442,13 +462,40 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	}
 	@Override
 	public void sourceQualityChanged(String id,String quality) {
-		
 		log.info("source stream quality changed, new quality is: "+quality);
 
-		
 		getDataStore().updateSourceQuality(id, quality);
-		
-		
+	}
+	
+	public StreamSources getSources() {
+		return sources;
+	}
+
+	public void setSources(StreamSources sources) {
+		this.sources = sources;
+	}
+	
+	public void startStreaming(Broadcast broadcast) {
+		sources.startStreaming(broadcast);
+	}
+
+	public void stopStreaming(Broadcast cam) {
+		sources.stopStreaming(cam);
+	}
+	
+	public OnvifCamera getOnvifCamera(String id) {
+		OnvifCamera onvifCamera = onvifCameraList.get(id);
+		if (onvifCamera == null) {
+
+			Broadcast camera = getDataStore().get(id);
+			if (camera != null) {
+				onvifCamera = new OnvifCamera();
+				onvifCamera.connect(camera.getIpAddr(), camera.getUsername(), camera.getPassword());
+
+				onvifCameraList.put(id, onvifCamera);
+			}
+		}
+		return onvifCamera;
 	}
 
 }

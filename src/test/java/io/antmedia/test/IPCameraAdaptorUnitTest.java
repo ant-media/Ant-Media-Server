@@ -3,7 +3,6 @@ package io.antmedia.test;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import java.io.BufferedWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -17,17 +16,15 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.red5.server.api.scope.IScope;
 import org.red5.server.scope.WebScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 
+import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.ipcamera.IPCameraApplicationAdapter;
 import io.antmedia.streamsource.StreamFetcher;
-import io.antmedia.streamsource.StreamSources;
 
 @ContextConfiguration(locations = { "test.xml" })
 public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
@@ -36,7 +33,7 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 	private ServletContext servletContext;
 	private WebScope appScope;
 	protected static Logger logger = LoggerFactory.getLogger(IPCameraAdaptorUnitTest.class);
-	public IPCameraApplicationAdapter app = null;
+	public AntMediaApplicationAdapter app = null;
 
 
 	static {
@@ -62,7 +59,7 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 
 		if (app == null) {
-			app = (IPCameraApplicationAdapter) applicationContext.getBean("web.handler");
+			app = (AntMediaApplicationAdapter) applicationContext.getBean("web.handler");
 			logger.debug("Application / web scope: {}", appScope);
 			assertTrue(appScope.getDepth() == 1);
 		}

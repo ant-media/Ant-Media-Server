@@ -12,31 +12,22 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.ipcamera.IPCameraApplicationAdapter;
 
 public class StreamSources {
 
-	private MultiThreadedApplicationAdapter adaptor;
 
 	protected static Logger logger = LoggerFactory.getLogger(StreamSources.class);
 
 	private int streamCheckerCount = 0;
 
-	private static Logger log = Red5LoggerFactory.getLogger(IPCameraApplicationAdapter.class);
-
 	private List<StreamFetcher> schedulerList = new ArrayList<>();
 
 	private int streamCheckerInterval = 60000;
 
-
-
-
-	public StreamSources(IScope app) {
-
-		adaptor = new MultiThreadedApplicationAdapter();
-
-		adaptor.setScope(app);
-
+	private ISchedulingService schedulingService;
+	
+	public StreamSources(ISchedulingService schedulingService) {
+		this.schedulingService = schedulingService;
 	}
 
 	public int getStreamCheckerInterval() {
@@ -81,7 +72,7 @@ public class StreamSources {
 			startStreaming(streams.get(i));
 		}
 
-		adaptor.addScheduledJobAfterDelay(streamCheckerInterval, new IScheduledJob() {
+		schedulingService.addScheduledJobAfterDelay(streamCheckerInterval, new IScheduledJob() {
 
 			@Override
 			public void execute(ISchedulingService service) throws CloneNotSupportedException {
@@ -109,7 +100,6 @@ public class StreamSources {
 							}
 						}
 					}
-
 				}
 			}
 		}, 5000);

@@ -560,7 +560,9 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 			QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
 			assertNotNull(scheduler);
-			assertEquals(scheduler.getScheduledJobNames().size(), 0);
+			
+			//by default, stream source job is schedule
+			assertEquals(scheduler.getScheduledJobNames().size(), 1);
 			
 			if (shortVersion) {
 				file = new File("target/test-classes/test_short.flv"); //ResourceUtils.getFile(this.getClass().getResource("test.flv"));
@@ -591,7 +593,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 			Thread.sleep(100);
 
-			assertEquals(scheduler.getScheduledJobNames().size(), 1);
+			assertEquals(scheduler.getScheduledJobNames().size(), 2);
 			assertTrue(muxAdaptor.isRecording());
 
 			muxAdaptor.stop();
@@ -607,7 +609,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 			// if there is listenerHookURL, a task will be scheduled, so wait a little to make the call happen
 			Thread.sleep(200);
 
-			assertEquals(scheduler.getScheduledJobNames().size(), 0);
+			assertEquals(scheduler.getScheduledJobNames().size(), 1);
 			int duration = 697000;
 			if (shortVersion) {
 				duration = 10080;

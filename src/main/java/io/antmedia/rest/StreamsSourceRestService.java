@@ -31,10 +31,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
 
+import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Vod;
-import io.antmedia.ipcamera.IPCameraApplicationAdapter;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.ipcamera.onvifdiscovery.OnvifDiscovery;
 import io.antmedia.rest.model.Result;
@@ -53,9 +53,9 @@ public class StreamsSourceRestService {
 	private StreamSources app;
 	private IScope scope;
 
-	private IPCameraApplicationAdapter appInstance;
+	private AntMediaApplicationAdapter appInstance;
 
-	protected static Logger logger = LoggerFactory.getLogger(IPCameraApplicationAdapter.class);
+	protected static Logger logger = LoggerFactory.getLogger(StreamsSourceRestService.class);
 
 
 	@POST
@@ -371,9 +371,9 @@ public class StreamsSourceRestService {
 		return appCtx;
 	}
 
-	public IPCameraApplicationAdapter getInstance() {
+	public AntMediaApplicationAdapter getInstance() {
 		if (appInstance == null) {
-			appInstance = (IPCameraApplicationAdapter) getAppContext().getBean("web.handler");
+			appInstance = (AntMediaApplicationAdapter) getAppContext().getBean("web.handler");
 		}
 		return appInstance;
 	}

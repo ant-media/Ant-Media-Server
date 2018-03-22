@@ -46,7 +46,6 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointChannel;
 import io.antmedia.datastore.db.types.Vod;
-import io.antmedia.ipcamera.IPCameraApplicationAdapter;
 import io.antmedia.muxer.Muxer;
 import io.antmedia.rest.model.Result;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
@@ -284,7 +283,7 @@ public class BroadcastRestService {
 	@Path("/broadcast/update")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result updateBroadcast(Broadcast broadcast, @QueryParam("socialNetworks") String socialNetworksToPublish) {
-		
+
 		boolean result = getDataStore().updateName(broadcast.getStreamId(), broadcast.getName(),
 				broadcast.getDescription());
 		String message = "";
@@ -607,7 +606,7 @@ public class BroadcastRestService {
 			@PathParam("type") String type) {
 		return getDataStore().filterBroadcastList(offset, size, type);
 	}
-/*
+	/*
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/broadcast/filterVoD")
@@ -625,7 +624,7 @@ public class BroadcastRestService {
 		}
 		return null;
 	}
-*/
+	 */
 	@POST
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/broadcast/deleteVoDFile/{name}/{id}")
@@ -635,13 +634,13 @@ public class BroadcastRestService {
 		String message = "";
 		if (getAppContext() != null) {
 			// TODO: write test code for this function
-			
+
 			File recordFile = Muxer.getRecordFile(getScope(), fileName, ".mp4");
 			File uploadedFile = Muxer.getUploadRecordFile(getScope(), fileName, ".mp4");
-			
+
 			System.out.println("recordfile : " + recordFile.getAbsolutePath());
 
-			
+
 
 			if (recordFile.exists()) {
 				success = true;
@@ -657,7 +656,7 @@ public class BroadcastRestService {
 
 			}else {
 				success = getDataStore().deleteVod(id);
-				
+
 			}
 			File previewFile = Muxer.getPreviewFile(getScope(), fileName, ".png");
 			if (previewFile.exists()) {
@@ -775,18 +774,10 @@ public class BroadcastRestService {
 
 				if (broacast.getType().equals("ipCamera")||broacast.getType().equals("streamSource")) {
 
-					AntMediaApplicationAdapter application = getApplication();
-
-					if (application instanceof IPCameraApplicationAdapter) {
-						((IPCameraApplicationAdapter) application).stopStreaming(broacast);
-						success = getDataStore().deleteStream(id);
-						message = "streamSource is deleted";
-						logger.info("streamSource is deleted");
-
-					} else {
-
-						logger.info("is not streamSource");
-					}
+					getApplication().stopStreaming(broacast);
+					success = getDataStore().deleteStream(id);
+					message = "streamSource is deleted";
+					logger.info("streamSource is deleted");
 
 				}
 
