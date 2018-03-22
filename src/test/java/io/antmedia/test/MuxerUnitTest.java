@@ -196,7 +196,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 			assertNotNull(scheduler);
 			logger.info("name    "+String.valueOf(scheduler.getJobName().toCharArray()));
 			
-			assertEquals(scheduler.getScheduledJobNames().size(), 0);
+			assertEquals(scheduler.getScheduledJobNames().size(),1);
 
 			file = new File("target/test-classes/test.flv"); //ResourceUtils.getFile(this.getClass().getResource("test.flv"));
 			final FLVReader flvReader = new FLVReader(file);
@@ -267,7 +267,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 		
 	
 		
-		while(scheduler.getScheduledJobNames().size() != 0) {
+		while(scheduler.getScheduledJobNames().size() != 1) {
 			try {
 				Thread.sleep(5000);
 			} catch (InterruptedException e) {
@@ -648,7 +648,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 			QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
 			assertNotNull(scheduler);
-			assertEquals(scheduler.getScheduledJobNames().size(), 0);
+			assertEquals(scheduler.getScheduledJobNames().size(), 1);
 			
 			
 			file = new File("target/test-classes/test_video_360p_subtitle.flv"); //ResourceUtils.getFile(this.getClass().getResource("test.flv"));
@@ -676,7 +676,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 			Thread.sleep(500);
 
-			assertEquals(scheduler.getScheduledJobNames().size(), 1);
+			assertEquals(scheduler.getScheduledJobNames().size(), 2);
 			assertTrue(muxAdaptor.isRecording());
 
 			muxAdaptor.stop();
@@ -692,7 +692,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 			// if there is listenerHookURL, a task will be scheduled, so wait a little to make the call happen
 			Thread.sleep(200);
 
-			assertEquals(scheduler.getScheduledJobNames().size(), 0);
+			assertEquals(scheduler.getScheduledJobNames().size(), 1);
 			int duration = 146401;
 			
 			assertTrue(MuxingTest.testFile(muxAdaptor.getMuxerList().get(0).getFile().getAbsolutePath(), duration));
@@ -756,7 +756,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 			QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
 			assertNotNull(scheduler);
-			//assertEquals(scheduler.getScheduledJobNames().size(), 0);
+			//assertEquals(scheduler.getScheduledJobNames().size(),1);
 
 			file = new File("target/test-classes/test.flv"); //ResourceUtils.getFile(this.getClass().getResource("test.flv"));
 			final FLVReader flvReader = new FLVReader(file);
@@ -790,7 +790,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 			assertFalse(muxAdaptor.isRecording());
 		// delete job in the list
-			assertEquals(1, scheduler.getScheduledJobNames().size());
+			assertEquals(2, scheduler.getScheduledJobNames().size());
 
 			
 			List<Muxer> muxerList = muxAdaptor.getMuxerList();
@@ -883,7 +883,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 			QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
 			assertNotNull(scheduler);
-			assertEquals(scheduler.getScheduledJobNames().size(), 0);
+			assertEquals(scheduler.getScheduledJobNames().size(), 1);
 
 			file = new File("target/test-classes/test.flv"); //ResourceUtils.getFile(this.getClass().getResource("test.flv"));
 			final FLVReader flvReader = new FLVReader(file);
@@ -917,7 +917,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 			assertFalse(muxAdaptor.isRecording());
 		// delete job in the list
-			assertEquals(1, scheduler.getScheduledJobNames().size());
+			assertEquals(2, scheduler.getScheduledJobNames().size());
 
 			
 			List<Muxer> muxerList = muxAdaptor.getMuxerList();
@@ -1009,7 +1009,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 			QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
 			assertNotNull(scheduler);
-			assertEquals(scheduler.getScheduledJobNames().size(), 0);
+			assertEquals(scheduler.getScheduledJobNames().size(),1);
 
 			file = new File("target/test-classes/test_video_360p_subtitle.flv"); //ResourceUtils.getFile(this.getClass().getResource("test.flv"));
 			final FLVReader flvReader = new FLVReader(file);
@@ -1043,7 +1043,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 			assertFalse(muxAdaptor.isRecording());
 		// delete job in the list
-			assertEquals(1, scheduler.getScheduledJobNames().size());
+			assertEquals(2, scheduler.getScheduledJobNames().size());
 
 			
 			List<Muxer> muxerList = muxAdaptor.getMuxerList();
