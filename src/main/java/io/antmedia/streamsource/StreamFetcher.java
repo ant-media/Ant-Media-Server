@@ -51,9 +51,9 @@ public class StreamFetcher {
 	public StreamFetcher(Broadcast stream) {
 		this.stream = stream;
 	}
-	
+
 	public StreamFetcher() {
-		
+
 	}
 
 	public boolean prepareInput(AVFormatContext inputFormatContext) {
@@ -67,13 +67,22 @@ public class StreamFetcher {
 			logger.info("stream is null");
 			return false;
 		}
+		
+		if(isStopRequestReceived()) {
+			return false;
+		}
 
 		AVDictionary optionsDictionary = new AVDictionary();
+		
 
 		av_dict_set(optionsDictionary, "rtsp_transport", "tcp", 0);
+		av_dict_set(optionsDictionary, "timeout", "100000", 0);
+		av_dict_set(optionsDictionary, "stimeout", "100000", 0);
+		
+
 		int ret;
 
-		logger.info("stream url" + stream.getstreamUrl());
+		logger.info("stream url:  " + stream.getstreamUrl());
 
 		if ((ret = avformat_open_input(inputFormatContext, stream.getstreamUrl(), null, optionsDictionary)) < 0) {
 
@@ -89,6 +98,8 @@ public class StreamFetcher {
 			logger.info("Could not find stream information\n");
 			return false;
 		}
+
+
 
 		lastDTS = new long[inputFormatContext.nb_streams()];
 
@@ -131,7 +142,7 @@ public class StreamFetcher {
 		if ((outputRTMPFormatContext.oformat().flags() & AVFMT_GLOBALHEADER) != 0) {
 			// out_stream->codec->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
 			outputRTMPFormatContext.oformat()
-					.flags(outputRTMPFormatContext.oformat().flags() | AV_CODEC_FLAG_GLOBAL_HEADER);
+			.flags(outputRTMPFormatContext.oformat().flags() | AV_CODEC_FLAG_GLOBAL_HEADER);
 		}
 
 		if ((outputRTMPFormatContext.flags() & AVFMT_NOFILE) == 0) {
@@ -170,9 +181,10 @@ public class StreamFetcher {
 
 			AVFormatContext inputFormatContext = new AVFormatContext(null); // avformat.avformat_alloc_context();
 			AVFormatContext outputRTMPFormatContext = new AVFormatContext(null);
-			;
+
 
 			System.out.println("before prepare....................");
+
 			if (!prepare(inputFormatContext, outputRTMPFormatContext)) {
 				if (inputFormatContext != null) {
 					avformat_close_input(inputFormatContext);
