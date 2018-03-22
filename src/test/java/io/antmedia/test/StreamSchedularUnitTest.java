@@ -152,7 +152,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		streamScheduler.stopStream();
 
-		Thread.sleep(5000);
+		Thread.sleep(6000);
 		
 		assertFalse(streamScheduler.isRunning());
 

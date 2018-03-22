@@ -194,6 +194,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 			QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
 			assertNotNull(scheduler);
+			logger.info("name    "+String.valueOf(scheduler.getJobName().toCharArray()));
+			
 			assertEquals(scheduler.getScheduledJobNames().size(), 0);
 
 			file = new File("target/test-classes/test.flv"); //ResourceUtils.getFile(this.getClass().getResource("test.flv"));
@@ -238,7 +240,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 	}
 	
-
+	@Test
 	public void testRemoteBroadcastStreamStartStop() 
 	{
 		if (appScope == null) {
@@ -263,6 +265,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 		
 		rbs.start();
 		
+	
 		
 		while(scheduler.getScheduledJobNames().size() != 0) {
 			try {
@@ -279,7 +282,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 	@Test
 	public void testStressMp4Muxing() {
-
+		
 		long startTime = System.nanoTime();
 		if (appScope == null) {
 			appScope = (WebScope) applicationContext.getBean("web.scope");
@@ -402,6 +405,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 	@Test
 	public void testMp4MuxingWithSameName() 
 	{
+		
 		Application.resetFields();
 		
 		assertEquals(Application.id, null);
