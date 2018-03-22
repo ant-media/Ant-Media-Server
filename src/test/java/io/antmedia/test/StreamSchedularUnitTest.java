@@ -20,7 +20,6 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 
 import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.ipcamera.CameraScheduler;
 import io.antmedia.streamsource.StreamFetcher;
 
 @ContextConfiguration(locations = { "test.xml" })
@@ -116,7 +115,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		Broadcast newCam = new Broadcast("testSchedular", "10.2.40.63:8080", "admin", "admin",
 				"rtsp://10.2.40.63:8554/live1.sdp", "ipCamera");
 
-		CameraScheduler camScheduler = new CameraScheduler(newCam);
+		StreamFetcher camScheduler = new StreamFetcher(newCam);
 		camScheduler.startStream();
 
 		assertTrue(camScheduler.isRunning());
