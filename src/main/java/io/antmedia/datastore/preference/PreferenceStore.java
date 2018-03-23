@@ -1,19 +1,13 @@
 package io.antmedia.datastore.preference;
 
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Properties;
 
 import javax.servlet.ServletContext;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.core.io.Resource;
 import org.springframework.web.context.ServletContextAware;
-import org.springframework.web.context.support.ServletContextResource;
-import org.springframework.web.context.support.ServletContextResourceLoader;
 
 public class PreferenceStore implements ServletContextAware{
 

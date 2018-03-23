@@ -2,9 +2,6 @@ package io.antmedia.webrtc.adaptor;
 
 import static org.bytedeco.javacpp.avutil.AV_PIX_FMT_YUV420P;
 
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -22,13 +19,13 @@ import org.webrtc.IceCandidate;
 import org.webrtc.MediaConstraints;
 import org.webrtc.MediaStream;
 import org.webrtc.PeerConnection;
+import org.webrtc.PeerConnection.IceServer;
 import org.webrtc.PeerConnectionFactory;
 import org.webrtc.SessionDescription;
 import org.webrtc.VideoRenderer;
 import org.webrtc.VideoRenderer.Callbacks;
 import org.webrtc.VideoRenderer.I420Frame;
 import org.webrtc.VideoTrack;
-import org.webrtc.PeerConnection.IceServer;
 
 import io.antmedia.recorder.FFmpegFrameRecorder;
 import io.antmedia.recorder.Frame;

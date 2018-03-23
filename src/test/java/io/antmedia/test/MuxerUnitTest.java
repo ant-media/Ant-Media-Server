@@ -27,8 +27,6 @@ import org.red5.io.flv.impl.FLVReader;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IStreamPacket;
 import org.red5.server.scheduling.QuartzSchedulingService;
-import org.red5.server.scope.BroadcastScope;
-import org.red5.server.scope.RoomScope;
 import org.red5.server.scope.WebScope;
 import org.red5.server.service.mp4.impl.MP4Service;
 import org.red5.server.stream.RemoteBroadcastStream;

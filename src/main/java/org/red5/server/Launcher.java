@@ -36,7 +36,6 @@ import org.slf4j.bridge.SLF4JBridgeHandler;
 import org.springframework.context.support.FileSystemXmlApplicationContext;
 
 import com.brsanthu.googleanalytics.GoogleAnalytics;
-import com.brsanthu.googleanalytics.GoogleAnalyticsConfig;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.rest.BroadcastRestService;
