@@ -80,7 +80,7 @@ public class StreamFetcher {
 		av_dict_set(optionsDictionary, "rtsp_transport", "tcp", 0);
 
 		String timeout = String.valueOf(this.timeout);
-		av_dict_set(optionsDictionary, "stimeout", timeout, 0);
+		//av_dict_set(optionsDictionary, "stimeout", timeout, 0);
 
 
 		int ret;
