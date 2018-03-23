@@ -163,7 +163,7 @@ public class StreamsSourceRestService {
 			try {
 				directory.mkdir();
 			} catch (SecurityException se) {
-
+				se.printStackTrace();
 			}
 		}
 		
@@ -171,14 +171,7 @@ public class StreamsSourceRestService {
 		
 		return result;
 	}
-/*
-	@GET
-	@Path("/getTotalUserVodNumber")
-	@Produces(MediaType.APPLICATION_JSON)
-	public long getTotalVodNumber() {
-		return getStore().getTotalUserVodNumber();
-	}
-	*/
+
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/updateCamInfo")

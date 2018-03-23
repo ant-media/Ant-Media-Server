@@ -162,7 +162,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 					Endpoint newEndpoint;
 					try {
 						newEndpoint = videoServiceEndPoint.createBroadcast(broadcast.getName(),
-								broadcast.getDescription(), broadcast.isIs360(), broadcast.isPublicStream(), 720);
+								broadcast.getDescription(), broadcast.isIs360(), broadcast.isPublicStream(), 720, true);
 						getDataStore().removeEndpoint(broadcast.getStreamId(), endpoint);
 						getDataStore().addEndpoint(broadcast.getStreamId(), newEndpoint);
 					} catch (Exception e) {

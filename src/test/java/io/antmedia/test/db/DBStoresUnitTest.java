@@ -26,6 +26,7 @@ import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.MongoStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
+import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.Vod;
 
 public class DBStoresUnitTest {
@@ -64,6 +65,7 @@ public class DBStoresUnitTest {
 		testRTMPURL(dataStore);
 		testStreamWithId(dataStore);
 		testFilterSearchOperations(dataStore);
+		testAddSocialEndpointCredentials(dataStore);
 
 	}
 
@@ -78,6 +80,7 @@ public class DBStoresUnitTest {
 		testRTMPURL(dataStore);
 		testStreamWithId(dataStore);
 		testFilterSearchOperations(dataStore);
+		testAddSocialEndpointCredentials(dataStore);
 
 	}
 
@@ -97,6 +100,7 @@ public class DBStoresUnitTest {
 		testRTMPURL(dataStore);
 		testStreamWithId(dataStore);
 		testFilterSearchOperations(dataStore);
+		testAddSocialEndpointCredentials(dataStore);
 
 	}
 
@@ -389,38 +393,38 @@ public class DBStoresUnitTest {
 			assertEquals(broadcast2.getEndPointList().size(), 2);
 			assertEquals(broadcast2.getEndPointList().get(1).name, broadcast2.getName());
 			assertEquals(broadcast2.getEndPointList().get(1).rtmpUrl, rtmpUrl);
-			
+
 			Broadcast broadcast3=new Broadcast("test3");
-			
+
 			broadcast3.setQuality("poor");
-			
+
 			assertNotNull(broadcast3.getQuality());
-			
+
 			dataStore.save(broadcast3);
-			
+
 			result=dataStore.updateSourceQuality(broadcast3.getStreamId(), "good");
-			
-		
-			
+
+
+
 			assertTrue(result);
-			
+
 			assertEquals(dataStore.get(broadcast3.getStreamId()).getQuality(),"good");
 
 			result = dataStore.delete(key);
 			assertTrue(result);
 
 			assertNull(dataStore.get(key));
-			
-			
-			
-			
+
+
+
+
 		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
 
 	}
-	
+
 
 	private void testFilterSearchOperations(IDataStore dataStore) {
 
@@ -463,6 +467,150 @@ public class DBStoresUnitTest {
 		assertTrue(result5);
 
 
+	}
+
+
+	public void testAddSocialEndpointCredentials(IDataStore dataStore) 
+	{
+		// add social endpoint credential 
+
+		assertNull(dataStore.addSocialEndpointCredentials(null));
+		
+		String name = "name" + (int)(Math.random()*10000000);
+		String serviceName = "serviceName"  + (int)(Math.random()*10000000);
+		String authTime = "authtime" + (int)(Math.random()*10000000);
+		String expireTimeInSeconds = "expireTimeInSeconds" + (int)(Math.random()*10000000);
+		String tokenType = "tokenType" + (int)(Math.random()*10000000);
+		String accessToken = "accessToken" + (int)(Math.random()*10000000);
+		String refreshToken = "refreshToken" + (int)(Math.random()*10000000);
+		SocialEndpointCredentials credentials = new SocialEndpointCredentials(name, serviceName, authTime, expireTimeInSeconds, tokenType, accessToken, refreshToken);
+
+
+		SocialEndpointCredentials addedCredential = dataStore.addSocialEndpointCredentials(credentials);
+
+		assertNotNull(addedCredential);
+		assertNotNull(addedCredential.getId());
+		assertTrue(addedCredential.getId().length() >= 6);
+		
+		credentials.setServiceName(null);
+		assertNull(dataStore.addSocialEndpointCredentials(credentials));
+		//restore service name because it is used below to check values
+		credentials.setServiceName(serviceName);
+		
+		// get id of the social endpoint
+		SocialEndpointCredentials socialEndpointCredentials = dataStore.getSocialEndpointCredentials(addedCredential.getId());
+
+		assertNotNull(socialEndpointCredentials);
+		// check fields
+		assertEquals(socialEndpointCredentials.getAccountName(), credentials.getAccountName());
+		assertEquals(socialEndpointCredentials.getServiceName(), credentials.getServiceName());
+		assertEquals(socialEndpointCredentials.getId(), addedCredential.getId());
+		assertEquals(socialEndpointCredentials.getAccessToken(), credentials.getAccessToken());
+		assertEquals(socialEndpointCredentials.getRefreshToken(), credentials.getRefreshToken());
+		assertEquals(socialEndpointCredentials.getTokenType(), credentials.getTokenType());
+		assertEquals(socialEndpointCredentials.getExpireTimeInSeconds(), credentials.getExpireTimeInSeconds());
+		assertEquals(socialEndpointCredentials.getAuthTimeInMillisecoonds(), credentials.getAuthTimeInMillisecoonds());
+
+		// add social endpoint 
+		name = "name" + (int)(Math.random()*10000000);
+		serviceName = "serviceName"  + (int)(Math.random()*10000000);
+		authTime = "authtime" + (int)(Math.random()*10000000);
+		expireTimeInSeconds = "expireTimeInSeconds" + (int)(Math.random()*10000000);
+		tokenType = null;
+		accessToken = "accessToken" + (int)(Math.random()*10000000);
+		refreshToken = null;
+		credentials = new SocialEndpointCredentials(name, serviceName, authTime, expireTimeInSeconds, tokenType, accessToken, refreshToken);
+
+		addedCredential = dataStore.addSocialEndpointCredentials(credentials);
+
+		assertNotNull(addedCredential);
+		assertNotNull(addedCredential.getId());
+		assertTrue(addedCredential.getId().length() >= 6);
+
+		//get credentials
+		socialEndpointCredentials = dataStore.getSocialEndpointCredentials(addedCredential.getId());
+
+		// check fields
+		assertEquals(socialEndpointCredentials.getAccountName(), credentials.getAccountName());
+		assertEquals(socialEndpointCredentials.getServiceName(), credentials.getServiceName());
+		assertEquals(socialEndpointCredentials.getId(), addedCredential.getId());
+		assertEquals(socialEndpointCredentials.getAccessToken(), credentials.getAccessToken());
+		assertEquals(socialEndpointCredentials.getRefreshToken(), credentials.getRefreshToken());
+		assertEquals(socialEndpointCredentials.getTokenType(), credentials.getTokenType());
+		assertEquals(socialEndpointCredentials.getExpireTimeInSeconds(), credentials.getExpireTimeInSeconds());
+		assertEquals(socialEndpointCredentials.getAuthTimeInMillisecoonds(), credentials.getAuthTimeInMillisecoonds());
+
+		// add other social endpoint
+		name = "name" + (int)(Math.random()*10000000);
+		serviceName = "serviceName"  + (int)(Math.random()*10000000);
+		authTime = "authtime" + (int)(Math.random()*10000000);
+		expireTimeInSeconds = "expireTimeInSeconds" + (int)(Math.random()*10000000);
+		tokenType = "tokenType" + (int)(Math.random()*10000000);
+		accessToken = "accessToken" + (int)(Math.random()*10000000);
+		refreshToken = "refreshToken" + (int)(Math.random()*10000000);
+		credentials = new SocialEndpointCredentials(name, serviceName, authTime, expireTimeInSeconds, tokenType, accessToken, refreshToken);
+
+		addedCredential = dataStore.addSocialEndpointCredentials(credentials);
+
+		assertNotNull(addedCredential);
+		assertNotNull(addedCredential.getId());
+		assertTrue(addedCredential.getId().length() >= 6);
+		
+		//it should  accept credential having id because there is already one in the db
+		assertNotNull(dataStore.addSocialEndpointCredentials(credentials));
+		
+		//get credentials
+		socialEndpointCredentials = dataStore.getSocialEndpointCredentials(addedCredential.getId());
+
+		// check fields
+		assertEquals(socialEndpointCredentials.getAccountName(), credentials.getAccountName());
+		assertEquals(socialEndpointCredentials.getServiceName(), credentials.getServiceName());
+		assertEquals(socialEndpointCredentials.getId(), addedCredential.getId());
+		assertEquals(socialEndpointCredentials.getAccessToken(), credentials.getAccessToken());
+		assertEquals(socialEndpointCredentials.getRefreshToken(), credentials.getRefreshToken());
+		assertEquals(socialEndpointCredentials.getTokenType(), credentials.getTokenType());
+		assertEquals(socialEndpointCredentials.getExpireTimeInSeconds(), credentials.getExpireTimeInSeconds());
+		assertEquals(socialEndpointCredentials.getAuthTimeInMillisecoonds(), credentials.getAuthTimeInMillisecoonds());
+
+		//it should not save
+		credentials = new SocialEndpointCredentials(name, serviceName, authTime, expireTimeInSeconds, tokenType, accessToken, refreshToken);
+		credentials.setId("not_id_in_db");
+		assertNull(dataStore.addSocialEndpointCredentials(credentials));
+
+
+		// get list of the social endpoint
+		List<SocialEndpointCredentials> socialEndpoints = dataStore.getSocialEndpoints(0, 10);
+
+		// check the count
+		assertEquals(socialEndpoints.size(), 3);
+
+		// remove social endpoint
+		assertTrue(dataStore.removeSocialEndpointCredentials(socialEndpoints.get(0).getId()));
+		
+		//remove same social endpoint
+		assertFalse(dataStore.removeSocialEndpointCredentials(socialEndpoints.get(0).getId()));
+		
+		assertFalse(dataStore.removeSocialEndpointCredentials("any_id_not_exist"));
+
+		// get list of the social endpoint
+		socialEndpoints = dataStore.getSocialEndpoints(0, 10);
+
+		// check that the count
+		assertEquals(socialEndpoints.size(), 2);
+		
+		// remove social endpoint
+		assertTrue(dataStore.removeSocialEndpointCredentials(socialEndpoints.get(0).getId()));
+		// get list of the social endpoint
+		socialEndpoints = dataStore.getSocialEndpoints(0, 10);
+		// check that the count
+		assertEquals(socialEndpoints.size(), 1);
+		
+		// remove social endpoint
+		assertTrue(dataStore.removeSocialEndpointCredentials(socialEndpoints.get(0).getId()));
+		// get list of the social endpoint
+		socialEndpoints = dataStore.getSocialEndpoints(0, 10);
+		// check that the count
+		assertEquals(socialEndpoints.size(), 0);
 	}
 
 }

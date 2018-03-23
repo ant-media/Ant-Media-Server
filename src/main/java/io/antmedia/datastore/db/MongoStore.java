@@ -28,6 +28,7 @@ import com.mongodb.WriteResult;
 
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
+import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.Vod;
 
 public class MongoStore implements IDataStore {
@@ -507,6 +508,30 @@ public class MongoStore implements IDataStore {
 			e.printStackTrace();
 		}
 		return false;
+	}
+
+	@Override
+	public SocialEndpointCredentials addSocialEndpointCredentials(SocialEndpointCredentials credentials) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public List<SocialEndpointCredentials> getSocialEndpoints(int offset, int size) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public boolean removeSocialEndpointCredentials(String id) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public SocialEndpointCredentials getSocialEndpointCredentials(String id) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 

@@ -418,7 +418,7 @@ public class BroadcastRestService {
 							try {
 								endpoint = videoServiceEndpoint.createBroadcast(broadcast.getName(),
 										broadcast.getDescription(), broadcast.isIs360(), broadcast.isPublicStream(),
-										720);
+										720, true);
 								success = getDataStore().addEndpoint(id, endpoint);
 
 							} catch (Exception e) {
