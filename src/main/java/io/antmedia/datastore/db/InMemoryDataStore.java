@@ -504,18 +504,6 @@ public class InMemoryDataStore implements IDataStore {
 				socialEndpointCredentialsMap.put(id, credentials);
 				addedCredential = credentials;
 			}
-			else {
-				
-				 if(socialEndpointCredentialsMap.get(credentials.getId()) != null) 
-				 {
-					 //replace the field if id exists
-					socialEndpointCredentialsMap.put(credentials.getId(), credentials);
-					addedCredential = credentials;
-				 }
-				 //if id is not matched with any value, do not record
-			}
-			
-			
 		}
 		return addedCredential;
 	}

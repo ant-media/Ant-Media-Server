@@ -85,7 +85,6 @@ public class DBStoresUnitTest {
 	}
 
 	@Test
-
 	public void testMongoStore() {
 
 		IDataStore dataStore = new MongoStore("testdb");
@@ -93,6 +92,12 @@ public class DBStoresUnitTest {
 		Query<Broadcast> deleteQuery = store.find(Broadcast.class);
 		store.delete(deleteQuery);
 
+		store = ((MongoStore) dataStore).getEndpointCredentialsDS();
+		Query<SocialEndpointCredentials> deleteQuery2 = store.find(SocialEndpointCredentials.class);
+		store.delete(deleteQuery2);
+
+		
+		
 		testGetPagination(dataStore);
 		testNullCheck(dataStore);
 		testSimpleOperations(dataStore);
@@ -556,8 +561,8 @@ public class DBStoresUnitTest {
 		assertNotNull(addedCredential.getId());
 		assertTrue(addedCredential.getId().length() >= 6);
 		
-		//it should  accept credential having id because there is already one in the db
-		assertNotNull(dataStore.addSocialEndpointCredentials(credentials));
+		//it should not accept credential having id because there is already one in the db
+		assertNull(dataStore.addSocialEndpointCredentials(credentials));
 		
 		//get credentials
 		socialEndpointCredentials = dataStore.getSocialEndpointCredentials(addedCredential.getId());
