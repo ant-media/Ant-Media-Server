@@ -62,7 +62,7 @@ public class StreamFetcher {
 
 	public boolean prepareInput(AVFormatContext inputFormatContext) {
 		
-		setConnectionTimeout(5000);
+		setConnectionTimeout(4000);
 
 		if (inputFormatContext == null) {
 			logger.info("cannot allocate input context");
@@ -351,7 +351,7 @@ public class StreamFetcher {
 	}
 
 	/**
-	 * Set timetout when establishing connection
+	 * Set timeout when establishing connection
 	 * @param timeout in ms
 	 */
 	public void setConnectionTimeout(int timeout) {
