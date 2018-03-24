@@ -13,6 +13,7 @@ import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointChannel;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.preference.PreferenceStore;
+import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
 
 /**
  * This is inteface that is used to integrate
@@ -60,24 +61,16 @@ public abstract class VideoServiceEndpoint {
 
 	protected IDataStore dataStore;
 
-	/**
-	 * id that is saved in db
-	 */
-	private String id;
-	
 	private SocialEndpointCredentials credentials;
+	
+	protected DeviceAuthParameters authParameters;
 
-	public VideoServiceEndpoint(String clientId, String clientSecret, IDataStore dataStore, String id) {
+	public VideoServiceEndpoint(String clientId, String clientSecret, IDataStore dataStore, SocialEndpointCredentials endpointCredentials) {
 		this.clientId = clientId;
 		this.clientSecret = clientSecret;
 		this.dataStore = dataStore;
-		this.id = id;
-		credentials = dataStore.getSocialEndpointCredentials(this.id);
-
-	}
-
-	public void start() {
-		credentials = dataStore.getSocialEndpointCredentials(this.id);
+		credentials = endpointCredentials;
+		
 		if (credentials != null) {
 			//throw new NullPointerException("There is not a credential in datastore having id: " + this.id);
 
@@ -105,6 +98,7 @@ public abstract class VideoServiceEndpoint {
 		else {
 			init(null, null, null, 0, null, 0);
 		}
+
 	}
 
 	/**
@@ -119,20 +113,23 @@ public abstract class VideoServiceEndpoint {
 
 	public void saveCredentials(String accountName, String accessToken, String refreshToken, String expireTimeInSeconds, String token_type, String accountId) throws Exception {
 
-		SocialEndpointCredentials credentials = new SocialEndpointCredentials(accountName, getName(), String.valueOf(System.currentTimeMillis()), expireTimeInSeconds, token_type, accessToken, refreshToken);
-		credentials.setId(this.id);
-		credentials.setAccountId(accountId);
-		SocialEndpointCredentials addedCredential = dataStore.addSocialEndpointCredentials(credentials);
+		SocialEndpointCredentials tmpCredentials = new SocialEndpointCredentials(accountName, getName(), String.valueOf(System.currentTimeMillis()), expireTimeInSeconds, token_type, accessToken, refreshToken);
+		if (this.credentials != null) {
+			tmpCredentials.setId(this.credentials.getId());
+		}
+		tmpCredentials.setAccountId(accountId);
+		SocialEndpointCredentials addedCredential = dataStore.addSocialEndpointCredentials(tmpCredentials);
 		if (addedCredential == null) {
 			throw new Exception("Social endpoint credential cannot be added for account name: " + accountName + " and service name " + getName() );
 		}
+		setCredentials(addedCredential);
 
 	}
 
 	public void resetCredentials() {
-		boolean removeSocialEndpointCredentials = dataStore.removeSocialEndpointCredentials(this.id);
+		boolean removeSocialEndpointCredentials = dataStore.removeSocialEndpointCredentials(this.credentials.getId());
 		if (!removeSocialEndpointCredentials) {
-			logger.warn("Social endpoint is not deleted having id: " + this.id + " and service name: " + getName());
+			logger.warn("Social endpoint is not deleted having id: " + this.credentials.getId() + " and service name: " + getName());
 		}
 		this.credentials = null;
 	}
@@ -234,7 +231,7 @@ public abstract class VideoServiceEndpoint {
 	 * @param type of the channel if exists like page, event, group
 	 * @return
 	 */
-	public List<SocialEndpointChannel> getChannelList(String type) {
+	public List<SocialEndpointChannel> getChannelList() {
 		return null;
 	}
 
@@ -247,20 +244,20 @@ public abstract class VideoServiceEndpoint {
 		return false;
 	}
 
-	public String getId() {
-		return id;
-	}
-
-	public void setId(String id) {
-		this.id = id;
-	}
-
 	public SocialEndpointCredentials getCredentials() {
 		return credentials;
 	}
 
 	public void setCredentials(SocialEndpointCredentials credentials) {
 		this.credentials = credentials;
+	}
+
+	public DeviceAuthParameters getAuthParameters() {
+		return authParameters;
+	}
+
+	public void setAuthParameters(DeviceAuthParameters authParameters) {
+		this.authParameters = authParameters;
 	}
 
 

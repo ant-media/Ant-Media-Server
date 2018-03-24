@@ -23,4 +23,5 @@
     <logger name="ch.qos" level="WARN" />
     <logger name="com.antstreaming" level="DEBUG"/>
     <logger name="org.quartz" level="WARN"/>
+    <logger name="org.mitre.dsmiley" level="WARN" />
 </configuration>

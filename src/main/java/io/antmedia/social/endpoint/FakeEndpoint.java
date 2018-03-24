@@ -4,12 +4,13 @@ import io.antmedia.api.periscope.type.Broadcast;
 import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.types.BroadcastStatus;
 import io.antmedia.datastore.db.types.Endpoint;
+import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.preference.PreferenceStore;
 
 public class FakeEndpoint extends VideoServiceEndpoint {
 
-	public FakeEndpoint(String clientId, String clientSecret, IDataStore dataStore, String id) {
-		super(clientId, clientSecret, dataStore, id);
+	public FakeEndpoint(String clientId, String clientSecret, IDataStore dataStore, SocialEndpointCredentials credentials) {
+		super(clientId, clientSecret, dataStore, credentials);
 	}
 
 	@Override

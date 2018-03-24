@@ -3,6 +3,7 @@ package io.antmedia.social.endpoint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.api.periscope.AuthorizationEndpoints;
 import io.antmedia.api.periscope.BroadcastEndpoints;
 import io.antmedia.api.periscope.PeriscopeEndpointFactory;
@@ -18,11 +19,11 @@ import io.antmedia.api.periscope.type.User;
 import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.types.BroadcastStatus;
 import io.antmedia.datastore.db.types.Endpoint;
+import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.preference.PreferenceStore;
 
 public class PeriscopeEndpoint extends VideoServiceEndpoint {
 
-	private static final String serviceName = "periscope";
 	private AuthorizationEndpoints authorizationEndpoint;
 	private String device_code;
 	private PeriscopeEndpointFactory periscopeEndpointFactory;
@@ -32,24 +33,24 @@ public class PeriscopeEndpoint extends VideoServiceEndpoint {
 	private String region;
 	private long expireTimeMS;
 	private UserEndpoints userEndpoint;
+	
 
 	protected static Logger logger = LoggerFactory.getLogger(PeriscopeEndpoint.class);
 
-	public PeriscopeEndpoint(String clientId, String clientSecret, IDataStore dataStore, String id) {
-		super(clientId, clientSecret, dataStore, id);
+	public PeriscopeEndpoint(String clientId, String clientSecret, IDataStore dataStore, SocialEndpointCredentials endpointCredentials) {
+		super(clientId, clientSecret, dataStore, endpointCredentials);
 	}
 
 
 	@Override
 	public String getName() {
-		return serviceName;
+		return AntMediaApplicationAdapter.PERISCOPE;
 	}
 
 	@Override
 	public DeviceAuthParameters askDeviceAuthParameters() throws Exception {
 		AuthorizationEndpoints authorizationEndpoint = getAuthorizationEndpoint();
 		CreateDeviceCodeResponse response = authorizationEndpoint.createDeviceCode(getClientId());
-		DeviceAuthParameters authParameters = null;
 		if (response != null) {
 			authParameters = new DeviceAuthParameters();
 			authParameters.device_code = response.device_code;
@@ -60,7 +61,7 @@ public class PeriscopeEndpoint extends VideoServiceEndpoint {
 			authParameters.verification_url = response.associate_url;
 		}
 
-		return authParameters;
+		return getAuthParameters();
 	}
 
 	private AuthorizationEndpoints getAuthorizationEndpoint() {
@@ -93,7 +94,6 @@ public class PeriscopeEndpoint extends VideoServiceEndpoint {
 				//even if throw exception, catch here and save the record below lines
 				e.printStackTrace();
 			}
-			this.setAccountName(accountName);
 			saveCredentials(accountName, checkDeviceCode.access_token, checkDeviceCode.refresh_token, String.valueOf(checkDeviceCode.expires_in), checkDeviceCode.token_type, accountId);
 			result = true;
 		}
@@ -123,7 +123,7 @@ public class PeriscopeEndpoint extends VideoServiceEndpoint {
 		CreateBroadcastResponse createBroadcastResponse = broadcastEndpoint.createBroadcast(getRegion(), is360, is_low_latency);
 
 		String rtmpUrl = createBroadcastResponse.encoder.rtmp_url + "/" + createBroadcastResponse.encoder.stream_key;
-		return new Endpoint(createBroadcastResponse.broadcast.id, null, name, rtmpUrl, getName());
+		return new Endpoint(createBroadcastResponse.broadcast.id, null, name, rtmpUrl, getName(), getCredentials().getId());
 	}
 
 	private String getRegion() {

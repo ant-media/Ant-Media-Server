@@ -485,6 +485,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 		
 		AntMediaApplicationAdapter appAdaptor = (AntMediaApplicationAdapter) applicationContext.getBean("web.handler");
 		assertNotNull(appAdaptor);
+		//just check below value that it is not null, this is not related to this case but it should be tested
+		assertNotNull(appAdaptor.getVideoServiceEndpoints());
 		String hookUrl = "hook_url";
 		String name = "namer123";
 		Broadcast broadcast = new Broadcast(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, name);

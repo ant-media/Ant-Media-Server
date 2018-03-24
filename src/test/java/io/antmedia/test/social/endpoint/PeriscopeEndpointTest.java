@@ -72,7 +72,6 @@ public class PeriscopeEndpointTest {
 			
 			PeriscopeEndpoint endPoint = new PeriscopeEndpoint(CLIENT_ID, CLIENT_SECRET, dataStore, null);
 			DeviceAuthParameters device = null;
-			endPoint.start();
 
 			device = endPoint.askDeviceAuthParameters();
 			assertNotNull(device);
@@ -105,6 +104,14 @@ public class PeriscopeEndpointTest {
 
 			} while (true);
 			
+			assertNotNull(endPoint.getCredentials());
+			assertNotNull(endPoint.getCredentials().getAccountName());
+			assertTrue(endPoint.getCredentials().getAccountName().length() > 3 );
+			assertNotNull(endPoint.getCredentials().getAccountId());
+			
+			assertEquals("periscope", endPoint.getCredentials().getServiceName());
+			
+			
 			assertNotNull(endPoint.getAccountName());
 			
 			assertTrue(endPoint.getAccountName().length() > 0);
@@ -122,8 +129,7 @@ public class PeriscopeEndpointTest {
 		List<SocialEndpointCredentials> socialEndpoints = dataStore.getSocialEndpoints(0, 10);
 		assertEquals(1, socialEndpoints.size());
 		
-		PeriscopeEndpoint endPoint = new PeriscopeEndpoint(CLIENT_ID, CLIENT_SECRET, dataStore, socialEndpoints.get(0).getId());
-		endPoint.start();
+		PeriscopeEndpoint endPoint = new PeriscopeEndpoint(CLIENT_ID, CLIENT_SECRET, dataStore, socialEndpoints.get(0));
 
 		try {
 			Endpoint endpoint = endPoint.createBroadcast("", "", false, false, 720, true);
@@ -144,8 +150,7 @@ public class PeriscopeEndpointTest {
 		List<SocialEndpointCredentials> socialEndpoints = dataStore.getSocialEndpoints(0, 10);
 		assertEquals(1, socialEndpoints.size());
 		
-		PeriscopeEndpoint endPoint = new PeriscopeEndpoint(CLIENT_ID, CLIENT_SECRET, dataStore, socialEndpoints.get(0).getId());
-		endPoint.start();
+		PeriscopeEndpoint endPoint = new PeriscopeEndpoint(CLIENT_ID, CLIENT_SECRET, dataStore, socialEndpoints.get(0));
 		try {
 			String name = "Event name";
 			Endpoint endpoint = endPoint.createBroadcast(name, null, false, false, 720, true);
