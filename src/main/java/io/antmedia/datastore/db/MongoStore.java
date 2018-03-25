@@ -503,6 +503,40 @@ public class MongoStore implements IDataStore {
 				endpointCredentialsDS.save(credentials);
 				addedCredential = credentials;
 			}
+			else {
+				SocialEndpointCredentials endpointCredentials = getSocialEndpointCredentials(credentials.getId());
+				if (endpointCredentials != null) {
+					UpdateOperations<SocialEndpointCredentials> ops = endpointCredentialsDS
+														.createUpdateOperations(SocialEndpointCredentials.class)
+														.set("accessToken", credentials.getAccessToken());
+					if (credentials.getAccountId() != null) {
+						ops.set("accountId", credentials.getAccountId());
+					}
+					if (credentials.getAccountName() != null) {
+						ops.set("accountName", credentials.getAccountName());
+					}
+					if (credentials.getAccountType() != null) {
+						ops.set("accountType", credentials.getAccountType());
+					}
+					if (credentials.getAuthTimeInMilliseconds() != null) {
+						ops.set("authTimeInMilliseconds", credentials.getAuthTimeInMilliseconds());
+					}
+					if (credentials.getExpireTimeInSeconds() != null) {
+						ops.set("expireTimeInSeconds", credentials.getExpireTimeInSeconds());
+					}
+					if (credentials.getRefreshToken() != null) {
+						ops.set("refreshToken", credentials.getRefreshToken());
+					}
+					if (credentials.getTokenType() != null) {
+						ops.set("tokenType", credentials.getTokenType());
+					}
+					
+													
+
+					UpdateResults update = endpointCredentialsDS.update(endpointCredentials, ops);
+					addedCredential = credentials;
+				}
+			}
 			
 		}
 		return addedCredential;

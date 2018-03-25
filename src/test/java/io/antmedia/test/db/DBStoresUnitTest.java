@@ -514,7 +514,7 @@ public class DBStoresUnitTest {
 		assertEquals(socialEndpointCredentials.getRefreshToken(), credentials.getRefreshToken());
 		assertEquals(socialEndpointCredentials.getTokenType(), credentials.getTokenType());
 		assertEquals(socialEndpointCredentials.getExpireTimeInSeconds(), credentials.getExpireTimeInSeconds());
-		assertEquals(socialEndpointCredentials.getAuthTimeInMillisecoonds(), credentials.getAuthTimeInMillisecoonds());
+		assertEquals(socialEndpointCredentials.getAuthTimeInMilliseconds(), credentials.getAuthTimeInMilliseconds());
 
 		// add social endpoint 
 		name = "name" + (int)(Math.random()*10000000);
@@ -543,7 +543,7 @@ public class DBStoresUnitTest {
 		assertEquals(socialEndpointCredentials.getRefreshToken(), credentials.getRefreshToken());
 		assertEquals(socialEndpointCredentials.getTokenType(), credentials.getTokenType());
 		assertEquals(socialEndpointCredentials.getExpireTimeInSeconds(), credentials.getExpireTimeInSeconds());
-		assertEquals(socialEndpointCredentials.getAuthTimeInMillisecoonds(), credentials.getAuthTimeInMillisecoonds());
+		assertEquals(socialEndpointCredentials.getAuthTimeInMilliseconds(), credentials.getAuthTimeInMilliseconds());
 
 		// add other social endpoint
 		name = "name" + (int)(Math.random()*10000000);
@@ -562,7 +562,7 @@ public class DBStoresUnitTest {
 		assertTrue(addedCredential.getId().length() >= 6);
 		
 		//it should not accept credential having id because there is already one in the db
-		assertNull(dataStore.addSocialEndpointCredentials(credentials));
+		assertNotNull(dataStore.addSocialEndpointCredentials(credentials));
 		
 		//get credentials
 		socialEndpointCredentials = dataStore.getSocialEndpointCredentials(addedCredential.getId());
@@ -575,7 +575,7 @@ public class DBStoresUnitTest {
 		assertEquals(socialEndpointCredentials.getRefreshToken(), credentials.getRefreshToken());
 		assertEquals(socialEndpointCredentials.getTokenType(), credentials.getTokenType());
 		assertEquals(socialEndpointCredentials.getExpireTimeInSeconds(), credentials.getExpireTimeInSeconds());
-		assertEquals(socialEndpointCredentials.getAuthTimeInMillisecoonds(), credentials.getAuthTimeInMillisecoonds());
+		assertEquals(socialEndpointCredentials.getAuthTimeInMilliseconds(), credentials.getAuthTimeInMilliseconds());
 
 		//it should not save
 		credentials = new SocialEndpointCredentials(name, serviceName, authTime, expireTimeInSeconds, tokenType, accessToken, refreshToken);

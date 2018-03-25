@@ -769,7 +769,18 @@ public class MapDBStore implements IDataStore {
 				socialEndpointsCredentialsMap.put(id, gson.toJson(credentials));
 				db.commit();
 				addedCredential = credentials;
-			}		
+			}	
+			else {
+				
+				 if(socialEndpointsCredentialsMap.get(credentials.getId()) != null) 
+				 {
+					 //replace the field if id exists
+					socialEndpointsCredentialsMap.put(credentials.getId(), gson.toJson(credentials));
+					db.commit();
+					addedCredential = credentials;
+				 }
+				 //if id is not matched with any value, do not record
+			}
 		}
 		return addedCredential;
 	}

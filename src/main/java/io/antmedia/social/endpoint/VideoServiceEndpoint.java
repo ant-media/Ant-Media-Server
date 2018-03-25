@@ -75,7 +75,7 @@ public abstract class VideoServiceEndpoint {
 			//throw new NullPointerException("There is not a credential in datastore having id: " + this.id);
 
 			String expireTimeSeconds = credentials.getExpireTimeInSeconds();
-			String authtimeMilliSeconds = credentials.getAuthTimeInMillisecoonds();
+			String authtimeMilliSeconds = credentials.getAuthTimeInMilliseconds();
 			long expireTime = 0;
 			long authTime = 0;
 			if (expireTimeSeconds != null) 
