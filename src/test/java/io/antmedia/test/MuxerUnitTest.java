@@ -205,7 +205,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 			muxAdaptor.start();
 
-			int i = 0;
 			while (flvReader.hasMoreTags()) 
 			{
 				ITag readTag = flvReader.readTag();
@@ -287,7 +286,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 		try {
 
-			List<MuxAdaptor> muxAdaptorList = new ArrayList();
+			List<MuxAdaptor> muxAdaptorList = new ArrayList<MuxAdaptor>();
 			for (int j = 0; j < 20; j++) {
 				MuxAdaptor muxAdaptor = new MuxAdaptor(null);
 				muxAdaptor.setMp4MuxingEnabled(true, true);
@@ -302,7 +301,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 				logger.debug("f path: " + file.getAbsolutePath());
 				assertTrue(file.exists());
 
-				for (Iterator iterator = muxAdaptorList.iterator(); iterator.hasNext();) {
+				for (Iterator<MuxAdaptor> iterator = muxAdaptorList.iterator(); iterator.hasNext();) {
 					MuxAdaptor muxAdaptor = (MuxAdaptor) iterator.next();
 					boolean result = muxAdaptor.init(appScope, "test" + (int)(Math.random() * 1000), false);
 					assertTrue(result);
@@ -574,7 +573,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 			muxAdaptor.start();
 
-			int i = 0;
 			while (flvReader.hasMoreTags()) 
 			{
 				ITag readTag = flvReader.readTag();
@@ -657,7 +655,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 			muxAdaptor.start();
 
-			int i = 0;
 			while (flvReader.hasMoreTags()) 
 			{
 				ITag readTag = flvReader.readTag();
@@ -761,7 +758,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 			muxAdaptor.start();
 
-			int i = 0;
 			while (flvReader.hasMoreTags()) 
 			{
 				ITag readTag = flvReader.readTag();
@@ -888,7 +884,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 			muxAdaptor.start();
 
-			int i = 0;
 			while (flvReader.hasMoreTags()) 
 			{
 				ITag readTag = flvReader.readTag();
@@ -1014,7 +1009,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 			muxAdaptor.start();
 
-			int i = 0;
 			while (flvReader.hasMoreTags()) 
 			{
 				ITag readTag = flvReader.readTag();
@@ -1118,14 +1112,14 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 			clientPort[0] = 23458;
 			clientPort[1] = 45567;
 			int[] serverPort = new int[2];
-			boolean result = rtspPacketSender.prepare_output_context(0, "127.0.0.1", clientPort, serverPort);
+			boolean result = rtspPacketSender.prepareOutputContext(0, "127.0.0.1", clientPort, serverPort);
 			assertTrue(result);
 
 			int[] clientPort2 = new int[2];
 			clientPort2[0] = 23452;
 			clientPort2[1] = 44557;
 			int[] serverPort2 = new int[2];
-			result = rtspPacketSender.prepare_output_context(1, "127.0.0.1", clientPort2, serverPort2);
+			result = rtspPacketSender.prepareOutputContext(1, "127.0.0.1", clientPort2, serverPort2);
 			assertTrue(result);
 
 			ThreadPoolTaskScheduler scheduler = (ThreadPoolTaskScheduler) applicationContext.getBean("scheduler");

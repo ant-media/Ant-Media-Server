@@ -181,7 +181,7 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 			@Override
 			public void run() {
 				try {
-					List<IceServer> iceServers = new ArrayList();
+					List<IceServer> iceServers = new ArrayList<IceServer>();
 					iceServers.add(new IceServer("stun:stun.l.google.com:19302"));
 					PeerConnection.RTCConfiguration rtcConfig = new PeerConnection.RTCConfiguration(iceServers);
 					createMediaConstraintsInternal();

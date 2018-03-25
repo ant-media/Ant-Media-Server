@@ -116,7 +116,7 @@ public class PacketReceiverRunnable implements Runnable {
 				}
 			}, new Date());
 
-			if (avformat_find_stream_info(inputFormatCtx, (PointerPointer)null) < 0) {
+			if (avformat_find_stream_info(inputFormatCtx, (PointerPointer<?>)null) < 0) {
 				logger.debug("Could not get stream info");
 				return false;
 			}
@@ -128,21 +128,21 @@ public class PacketReceiverRunnable implements Runnable {
 
 			lastDTS = new long[this.inputFormatCtx.nb_streams()];
 			for (int i=0; i < inputFormatCtx.nb_streams(); i++) {
-				AVStream in_stream = inputFormatCtx.streams(i);
-				AVStream out_stream = avformat_new_stream(outputRTMPFormatContext, in_stream.codec().codec());
+				AVStream inStream = inputFormatCtx.streams(i);
+				AVStream outStream = avformat_new_stream(outputRTMPFormatContext, inStream.codec().codec());
 
 				
-				ret = avcodec_parameters_copy(out_stream.codecpar(), in_stream.codecpar());
+				ret = avcodec_parameters_copy(outStream.codecpar(), inStream.codecpar());
 				
 				if (ret < 0) {
 					logger.debug("Cannot get codec parameters\n");
 					return false;
 				}
 
-				out_stream.codec().codec_tag(0);
+				outStream.codec().codec_tag(0);
 				
 				if ((outputRTMPFormatContext.oformat().flags() & AVFMT_GLOBALHEADER) != 0) {
-					out_stream.codec().flags(out_stream.codec().flags() | AV_CODEC_FLAG_GLOBAL_HEADER);
+					outStream.codec().flags(outStream.codec().flags() | AV_CODEC_FLAG_GLOBAL_HEADER);
 				}
 				
 				//initialize last decoding time stamp reference value
@@ -157,7 +157,7 @@ public class PacketReceiverRunnable implements Runnable {
 				URI url = new URI(streamUrl);
 				String urlStr = "rtmp://" + url.getHost() + "/" + url.getPath();
 				//				logger.debug("rtmp url: " + urlStr);
-				//
+				
 				ret = avformat.avio_open(pb,  urlStr, AVIO_FLAG_WRITE);
 				outputRTMPFormatContext.pb(pb);
 

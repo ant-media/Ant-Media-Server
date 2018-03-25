@@ -539,7 +539,7 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 			}
 
 
-			if (frameSender.prepare_output_context(streamId, remoteAddress, clientPort[streamId], serverPort[streamId])) {
+			if (frameSender.prepareOutputContext(streamId, remoteAddress, clientPort[streamId], serverPort[streamId])) {
 				response.setCode(RtspCode.OK);
 				response.setHeader(RtspHeaderCode.CSeq, cseq);
 				response.setHeader(RtspHeaderCode.Session, mSessionKey);
@@ -592,7 +592,7 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 			mPacketSenderScheduledFuture.cancel(true);
 			int streamCount = frameSender.getStreamCount();
 			for (int i = 0; i < streamCount; i++) {
-				if (!frameSender.prepare_output_context(i, remoteAddress, clientPort[i], serverPort[i])) {
+				if (!frameSender.prepareOutputContext(i, remoteAddress, clientPort[i], serverPort[i])) {
 					logger.debug("prepare output context failed...");
 				}
 				else {

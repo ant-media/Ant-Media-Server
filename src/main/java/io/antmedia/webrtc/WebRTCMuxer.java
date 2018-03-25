@@ -1,6 +1,11 @@
 package io.antmedia.webrtc;
 
 
+import static org.bytedeco.javacpp.avcodec.AV_PKT_FLAG_KEY;
+import static org.bytedeco.javacpp.avutil.AVMEDIA_TYPE_AUDIO;
+import static org.bytedeco.javacpp.avutil.AVMEDIA_TYPE_VIDEO;
+import static org.bytedeco.javacpp.avutil.av_rescale_q;
+
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -17,9 +22,6 @@ import org.red5.server.scheduling.QuartzSchedulingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.bytedeco.javacpp.avutil.*;
-import static org.bytedeco.javacpp.avcodec.*;
-
 import io.antmedia.muxer.Muxer;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.antmedia.webrtc.api.IWebRTCClient;
@@ -29,7 +31,7 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 
 	private IWebRTCAdaptor webRTCAdaptor;
 
-	private ConcurrentLinkedQueue<IWebRTCClient> webRTCClientList =  new ConcurrentLinkedQueue();
+	private ConcurrentLinkedQueue<IWebRTCClient> webRTCClientList =  new ConcurrentLinkedQueue<IWebRTCClient>();
 
 	private String streamId;
 

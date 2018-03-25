@@ -14,7 +14,7 @@ import io.antmedia.datastore.db.types.Vod;
 
 public class InMemoryDataStore implements IDataStore {
 
-	public LinkedHashMap<String, Broadcast> broadcastMap = new LinkedHashMap();
+	public LinkedHashMap<String, Broadcast> broadcastMap = new LinkedHashMap<String, Broadcast>();
 
 	public InMemoryDataStore(String dbName) {
 	}
@@ -125,7 +125,7 @@ public class InMemoryDataStore implements IDataStore {
 		if (broadcast != null && endpoint != null) {
 			List<Endpoint> endPointList = broadcast.getEndPointList();
 			if (endPointList != null) {
-				for (Iterator iterator = endPointList.iterator(); iterator.hasNext();) {
+				for (Iterator<Endpoint> iterator = endPointList.iterator(); iterator.hasNext();) {
 					Endpoint endpointItem = (Endpoint) iterator.next();
 					if (endpointItem.rtmpUrl.equals(endpoint.rtmpUrl)) {
 						iterator.remove();
@@ -166,7 +166,7 @@ public class InMemoryDataStore implements IDataStore {
 		if (offset < 0) {
 			offset = 0;
 		}
-		List<Broadcast> list = new ArrayList();
+		List<Broadcast> list = new ArrayList<Broadcast>();
 		for (Broadcast broadcast : values) {
 			if (t < offset) {
 				t++;

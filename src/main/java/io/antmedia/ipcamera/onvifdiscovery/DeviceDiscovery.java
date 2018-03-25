@@ -51,7 +51,7 @@ public class DeviceDiscovery {
 		try {
 			File probeMsgFile = new File(
 					Thread.currentThread().getContextClassLoader().getResource("probe-template.xml").toURI());
-			probeMsgTemplate = FileUtils.readFileToString(probeMsgFile);
+			probeMsgTemplate = FileUtils.readFileToString(probeMsgFile,"UTF-8");
 		} catch (IOException | URISyntaxException e) {
 			e.printStackTrace();
 			return null;

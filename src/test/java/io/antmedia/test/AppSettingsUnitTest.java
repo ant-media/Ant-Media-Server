@@ -34,7 +34,7 @@ public class AppSettingsUnitTest {
 		String encoderSettingString = height1+"," + videoBitrate1 + "," + audioBitrate1
 				+ "," + height2 +"," + videoBitrate2 + "," + audioBitrate2
 				+ "," + height3 +"," + videoBitrate3 + "," + audioBitrate3;
-		List<EncoderSettings> list = appSettings.getEncoderSettingsList(encoderSettingString);
+		List<EncoderSettings> list = AppSettings.getEncoderSettingsList(encoderSettingString);
 		
 	
 		

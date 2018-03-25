@@ -78,7 +78,7 @@ public class PacketSenderRunnable implements Runnable {
 		return inputFormatContext.duration();
 	}
 
-	public boolean prepare_output_context(int streamId, String remoteAddress, int[] clientPort, int[] serverPort) {
+	public boolean prepareOutputContext(int streamId, String remoteAddress, int[] clientPort, int[] serverPort) {
 		if (outputFormatContext == null) {
 			outputFormatContext = new AVFormatContext[inputFormatContext.nb_streams()];
 		}
@@ -149,7 +149,7 @@ public class PacketSenderRunnable implements Runnable {
 				outputFormatContext[streamId].pb(pb);
 			}
 		}
-		ret = avformat_write_header(outputFormatContext[streamId], (PointerPointer)null);
+		ret = avformat_write_header(outputFormatContext[streamId], (PointerPointer<?>)null);
 		if (ret < 0) {
 			logger.warn("cannot write header with error: " + ret);
 			return false;
@@ -320,7 +320,7 @@ public class PacketSenderRunnable implements Runnable {
 		if (createSDP) 
 		{
 
-			ret = avformat_find_stream_info(inputFormatContext, (PointerPointer)null); 
+			ret = avformat_find_stream_info(inputFormatContext, (PointerPointer<?>)null); 
 			if (ret < 0) {
 				byte[] data = new byte[4096];
 				avutil.av_strerror(ret, data, data.length);

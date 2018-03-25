@@ -16,7 +16,7 @@
 	<url>https://github.com/ant-media/Ant-Media-Server</url>
 	<organization>
 		<name>Ant Media</name>
-		<url>http://antmedia.io</url>
+		<url>https://antmedia.io</url>
 	</organization>
 	<licenses>
 		<license>
@@ -34,6 +34,7 @@
 		<url>https://github.com/ant-media/Ant-Media-Server.git</url>
 		<connection>git@github.com:ant-media/Ant-Media-Server.git</connection>
 		<developerConnection>git@github.com:ant-media/Ant-Media-Server.git</developerConnection>
+		<tag>media-server,webrtc,rtmp,rtsp,mp4-hls,stream,broadcast,hls,ip-camera,mp4,flv</tag>
 	</scm>
 	<distributionManagement>
 		<snapshotRepository>

@@ -63,7 +63,7 @@ public class IPCameraApplicationAdapter extends AntMediaApplicationAdapter {
 
 	private MapDBStore cameradb;
 
-	private HashMap<String, OnvifCamera> onvifCameraList = new HashMap();
+	private HashMap<String, OnvifCamera> onvifCameraList = new HashMap<String, OnvifCamera>();
 
 	private static Logger log = Red5LoggerFactory.getLogger(IPCameraApplicationAdapter.class);
 
