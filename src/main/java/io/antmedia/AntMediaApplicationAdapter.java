@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -25,17 +26,23 @@ import org.red5.server.api.scheduling.ISchedulingService;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IBroadcastStream;
 import org.red5.server.api.stream.IStreamPublishSecurity;
+import org.red5.server.stream.ClientBroadcastStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
+import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.Vod;
+import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.muxer.IMuxerListener;
+import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.rest.BroadcastRestService;
+import io.antmedia.social.endpoint.PeriscopeEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
+import io.antmedia.streamsource.StreamSources;
 
 public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter implements IMuxerListener {
 
@@ -46,12 +53,25 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	public static final String HOOK_ACTION_START_LIVE_STREAM = "liveStreamStarted";
 	public static final String HOOK_ACTION_VOD_READY = "vodReady";
 	protected static Logger logger = LoggerFactory.getLogger(AntMediaApplicationAdapter.class);
-	public static final String LIVE_STREAM = "live_stream";
+	public static final String LIVE_STREAM = "liveStream";
 	public static final String IP_CAMERA = "ipCamera";
 	public static final String STREAM_SOURCE = "streamSource";
+	protected static final int END_POINT_LIMIT = 20;
+	public static final String FACEBOOK = "facebook";
+	public static final String PERISCOPE = "periscope";
+	public static final String YOUTUBE = "youtube";
 
-	private List<VideoServiceEndpoint> videoServiceEndpoints;
+	public static final String FACEBOOK_ENDPOINT_CLASS = "io.antmedia.enterprise.social.endpoint.FacebookEndpoint";
+	public static final String YOUTUBE_ENDPOINT_CLASS = "io.antmedia.enterprise.social.endpoint.YoutubeEndpoint";
+
+
+
+	private List<VideoServiceEndpoint> videoServiceEndpoints = new ArrayList<>();
 	private List<IStreamPublishSecurity> streamPublishSecurityList;
+
+	private HashMap<String, OnvifCamera> onvifCameraList = new HashMap<String, OnvifCamera>();
+
+	private StreamSources sources;
 
 	private IDataStore dataStore;
 
@@ -68,12 +88,49 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	@Override
 	public boolean appStart(IScope app) {
 
-		getDataStore().resetBroadcastStatus();
 		if (getStreamPublishSecurityList() != null) {
 			for (IStreamPublishSecurity streamPublishSecurity : getStreamPublishSecurityList()) {
 				registerStreamPublishSecurity(streamPublishSecurity);
 			}
 		}
+		addScheduledOnceJob(0, new IScheduledJob() {
+
+			@Override
+			public void execute(ISchedulingService service) throws CloneNotSupportedException {
+				sources = new StreamSources(AntMediaApplicationAdapter.this);
+				List<Broadcast> streams = getDataStore().getExternalStreamsList();
+				sources.startStreams(streams);
+
+				List<SocialEndpointCredentials> socialEndpoints = dataStore.getSocialEndpoints(0, END_POINT_LIMIT);
+
+				for (SocialEndpointCredentials socialEndpointCredentials : socialEndpoints) 
+				{
+					VideoServiceEndpoint endPointService = null;
+					if (socialEndpointCredentials.getServiceName().equals(FACEBOOK)) 
+					{
+						endPointService = getEndpointService(FACEBOOK_ENDPOINT_CLASS, socialEndpointCredentials, appSettings.getFacebookClientId(), appSettings.getFacebookClientSecret());
+					}
+					else if (socialEndpointCredentials.getServiceName().equals(PERISCOPE)) 
+					{
+						endPointService = new PeriscopeEndpoint(appSettings.getPeriscopeClientId(), 
+								appSettings.getPeriscopeClientSecret(), dataStore, socialEndpointCredentials);
+					}
+					else if (socialEndpointCredentials.getServiceName().equals(YOUTUBE)) 
+					{
+						endPointService = getEndpointService(YOUTUBE_ENDPOINT_CLASS, socialEndpointCredentials, appSettings.getYoutubeClientId(), appSettings.getYoutubeClientSecret());
+					}
+
+					if (endPointService != null) {
+						videoServiceEndpoints.add(endPointService);
+					}
+				}
+
+			}
+
+
+		});
+
+
 		return super.appStart(app);
 	}
 
@@ -143,7 +200,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 					Endpoint newEndpoint;
 					try {
 						newEndpoint = videoServiceEndPoint.createBroadcast(broadcast.getName(),
-								broadcast.getDescription(), broadcast.isIs360(), broadcast.isPublicStream(), 720);
+								broadcast.getDescription(), broadcast.isIs360(), broadcast.isPublicStream(), 720, true);
 						getDataStore().removeEndpoint(broadcast.getStreamId(), endpoint);
 						getDataStore().addEndpoint(broadcast.getStreamId(), newEndpoint);
 					} catch (Exception e) {
@@ -153,6 +210,23 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 				}
 			}
 		}
+	}
+
+	public VideoServiceEndpoint getEndpointService(String className, 
+			SocialEndpointCredentials socialEndpointCredentials, String clientId, String clientSecret)
+	{
+		try {
+			VideoServiceEndpoint endPointService;
+			Class endpointClass = Class.forName(className);
+
+			endPointService = (VideoServiceEndpoint) endpointClass.getConstructor(String.class, String.class, IDataStore.class, SocialEndpointCredentials.class)
+					.newInstance(clientId, clientSecret, dataStore, socialEndpointCredentials);
+			return endPointService;
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+		}
+		return null;
 	}
 
 	@Override
@@ -303,11 +377,13 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		private int count;
 		private VideoServiceEndpoint videoServiceEndpoint;
 		private int interval;
+		private AntMediaApplicationAdapter appAdapter;
 
-		public AuthCheckJob(int count, int interval, VideoServiceEndpoint videoServiceEndpoint) {
+		public AuthCheckJob(int count, int interval, VideoServiceEndpoint videoServiceEndpoint, AntMediaApplicationAdapter adapter) {
 			this.count = count;
 			this.videoServiceEndpoint = videoServiceEndpoint;
 			this.interval = interval;
+			this.appAdapter = adapter;
 		}
 
 		@Override
@@ -317,8 +393,17 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 				if (!videoServiceEndpoint.askIfDeviceAuthenticated()) {
 					count++;
 					if (count < 10) {
-						service.addScheduledOnceJob(interval, new AuthCheckJob(count, interval, videoServiceEndpoint));
+						service.addScheduledOnceJob(interval, new AuthCheckJob(count, interval, videoServiceEndpoint, appAdapter));
+						logger.info("Asking authetnication for {}", videoServiceEndpoint.getName());
 					}
+					else {
+						logger.info("Not authenticated for {} and will not try again", videoServiceEndpoint.getName());
+					}
+				}
+				else {
+					logger.info("Authenticated, adding video service endpoint {} to the app", videoServiceEndpoint.getName());
+					this.appAdapter.getVideoServiceEndpoints().add(videoServiceEndpoint);
+					
 				}
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -329,7 +414,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	public void startDeviceAuthStatusPolling(VideoServiceEndpoint videoServiceEndpoint,
 			DeviceAuthParameters askDeviceAuthParameters) {
 		int timeDelta = askDeviceAuthParameters.interval * 1000;
-		addScheduledOnceJob(timeDelta, new AuthCheckJob(0, timeDelta, videoServiceEndpoint));
+		addScheduledOnceJob(timeDelta, new AuthCheckJob(0, timeDelta, videoServiceEndpoint, this));
 	}
 
 	public List<VideoServiceEndpoint> getVideoServiceEndpoints() {
@@ -442,6 +527,43 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 	public void setAppSettings(AppSettings appSettings) {
 		this.appSettings = appSettings;
+	}
+	@Override
+	public void sourceQualityChanged(String id,String quality) {
+		log.info("source stream quality changed, new quality is: "+quality);
+
+		getDataStore().updateSourceQuality(id, quality);
+	}
+
+	public StreamSources getSources() {
+		return sources;
+	}
+
+	public void setSources(StreamSources sources) {
+		this.sources = sources;
+	}
+
+	public void startStreaming(Broadcast broadcast) {
+		sources.startStreaming(broadcast);
+	}
+
+	public void stopStreaming(Broadcast cam) {
+		sources.stopStreaming(cam);
+	}
+
+	public OnvifCamera getOnvifCamera(String id) {
+		OnvifCamera onvifCamera = onvifCameraList.get(id);
+		if (onvifCamera == null) {
+
+			Broadcast camera = getDataStore().get(id);
+			if (camera != null) {
+				onvifCamera = new OnvifCamera();
+				onvifCamera.connect(camera.getIpAddr(), camera.getUsername(), camera.getPassword());
+
+				onvifCameraList.put(id, onvifCamera);
+			}
+		}
+		return onvifCamera;
 	}
 
 }

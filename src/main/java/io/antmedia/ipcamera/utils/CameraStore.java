@@ -7,8 +7,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
 
-import io.antmedia.ipcamera.IPCameraApplicationAdapter;
-
 public class CameraStore implements ICameraStore {
 
 	public final static String CAMERA_STORAGE_FILE = "camera.db";
@@ -17,7 +15,7 @@ public class CameraStore implements ICameraStore {
 	private DB db;
 	private HTreeMap<String, String> map;
 	private Gson gson;
-	protected static Logger logger = LoggerFactory.getLogger(IPCameraApplicationAdapter.class);
+	protected static Logger logger = LoggerFactory.getLogger(CameraStore.class);
 
 	public CameraStore() {
 		// db =

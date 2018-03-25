@@ -7,6 +7,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -45,10 +46,11 @@ import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointChannel;
+import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.Vod;
-import io.antmedia.ipcamera.IPCameraApplicationAdapter;
 import io.antmedia.muxer.Muxer;
 import io.antmedia.rest.model.Result;
+import io.antmedia.social.endpoint.PeriscopeEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
 import io.antmedia.storage.StorageClient;
@@ -230,12 +232,12 @@ public class BroadcastRestService {
 	@Path("/broadcast/createWithSocial")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Broadcast createWithSocial(Broadcast broadcast,
-			@QueryParam("socialNetworks") String socialNetworksToPublish) {
+			@QueryParam("socialNetworks") String socialEndpointIds) {
 		broadcast = createBroadcast(broadcast);
-		if (broadcast.getStreamId() != null && socialNetworksToPublish != null) {
-			String[] socialNetworks = socialNetworksToPublish.split(",");
-			for (String networkName : socialNetworks) {
-				addSocialEndpoint(broadcast.getStreamId(), networkName);
+		if (broadcast.getStreamId() != null && socialEndpointIds != null) {
+			String[] endpointIds = socialEndpointIds.split(",");
+			for (String endpointId : endpointIds) {
+				addSocialEndpoint(broadcast.getStreamId(), endpointId);
 			}
 		}
 
@@ -284,6 +286,7 @@ public class BroadcastRestService {
 	@Path("/broadcast/update")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result updateBroadcast(Broadcast broadcast, @QueryParam("socialNetworks") String socialNetworksToPublish) {
+
 		boolean result = getDataStore().updateName(broadcast.getStreamId(), broadcast.getName(),
 				broadcast.getDescription());
 		String message = "";
@@ -351,23 +354,24 @@ public class BroadcastRestService {
 	 */
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
-	@Path("/broadcast/revokeSocialNetwork/{serviceName}")
+	@Path("/broadcast/revokeSocialNetwork/{endpointId}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result revokeSocialNetwork(@PathParam("serviceName") String serviceName) {
+	public Result revokeSocialNetwork(@PathParam("endpointId") String endpointId) {
 		List<VideoServiceEndpoint> endPoint = getEndpointList();
 		String message = null;
 		boolean serviceFound = false;
 		boolean result = false;
 		if (endPoint != null) {
-			for (VideoServiceEndpoint videoServiceEndpoint : endPoint) {
-				if (videoServiceEndpoint.getName().equals(serviceName)) {
+			for (VideoServiceEndpoint videoServiceEndpoint : endPoint) 
+			{
+				SocialEndpointCredentials credentials = videoServiceEndpoint.getCredentials();
+				if (credentials.getId().equals(endpointId)) {
 					serviceFound = true;
-					try {
-						videoServiceEndpoint.resetCredentials();
-						result = true;
-					} catch (Exception e) {
-						e.printStackTrace();
-					}
+					videoServiceEndpoint.resetCredentials();
+					endPoint.remove(videoServiceEndpoint);
+					result = true;
+					break;
+
 				}
 			}
 			if (!serviceFound) {
@@ -397,9 +401,7 @@ public class BroadcastRestService {
 	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	@Path("/broadcast/addSocialEndpoint")
 	@Produces(MediaType.APPLICATION_JSON)
-
-	public Result addSocialEndpoint(@FormParam("id") String id, @FormParam("serviceName") String serviceName) {
-
+	public Result addSocialEndpoint(@FormParam("id") String id, @FormParam("serviceName") String endpointServiceId) {
 		boolean success = false;
 		String message = null;
 		Broadcast broadcast = lookupBroadcast(id);
@@ -409,29 +411,27 @@ public class BroadcastRestService {
 			if (endPointServiceList != null) {
 				boolean serviceFound = false;
 				for (VideoServiceEndpoint videoServiceEndpoint : endPointServiceList) {
-					if (videoServiceEndpoint.getName().equals(serviceName)) {
-						serviceFound = true;
-						boolean authenticated = videoServiceEndpoint.isInitialized()
-								&& videoServiceEndpoint.isAuthenticated();
-						if (authenticated) {
-							Endpoint endpoint;
-							try {
-								endpoint = videoServiceEndpoint.createBroadcast(broadcast.getName(),
-										broadcast.getDescription(), broadcast.isIs360(), broadcast.isPublicStream(),
-										720);
-								success = getDataStore().addEndpoint(id, endpoint);
 
-							} catch (Exception e) {
-								e.printStackTrace();
-								message = e.getMessage();
-							}
-						} else {
-							message = serviceName + " is not authenticated. Authenticate first";
+					SocialEndpointCredentials credentials = videoServiceEndpoint.getCredentials();
+					if (credentials != null && credentials.getId().equals(endpointServiceId)) {
+						serviceFound = true;
+
+						Endpoint endpoint;
+						try {
+							endpoint = videoServiceEndpoint.createBroadcast(broadcast.getName(),
+									broadcast.getDescription(), broadcast.isIs360(), broadcast.isPublicStream(),
+									720, true);
+							success = getDataStore().addEndpoint(id, endpoint);
+
+						} catch (Exception e) {
+							e.printStackTrace();
+							message = e.getMessage();
 						}
+
 					}
 				}
 				if (!serviceFound) {
-					message = serviceName + " endpoint does not exist in this app.";
+					message = endpointServiceId + " endpoint does not exist in this app.";
 				}
 			} else {
 				message = "No social endpoint is defined for this app. Consult your app developer";
@@ -606,7 +606,7 @@ public class BroadcastRestService {
 			@PathParam("type") String type) {
 		return getDataStore().filterBroadcastList(offset, size, type);
 	}
-
+	/*
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/broadcast/filterVoD")
@@ -624,7 +624,7 @@ public class BroadcastRestService {
 		}
 		return null;
 	}
-
+	 */
 	@POST
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/broadcast/deleteVoDFile/{name}/{id}")
@@ -634,19 +634,29 @@ public class BroadcastRestService {
 		String message = "";
 		if (getAppContext() != null) {
 			// TODO: write test code for this function
+
 			File recordFile = Muxer.getRecordFile(getScope(), fileName, ".mp4");
+			File uploadedFile = Muxer.getUploadRecordFile(getScope(), fileName, ".mp4");
+
 			System.out.println("recordfile : " + recordFile.getAbsolutePath());
 
-			success = getDataStore().deleteVod(id);
+
 
 			if (recordFile.exists()) {
 				success = true;
 				recordFile.delete();
+				message = "streamvod found and deleted";
 				getDataStore().deleteVod(id);
-				message = "file is found and deleted";
 
-			} else {
-				message = "No file to delete";
+			} else if (uploadedFile.exists()) {
+				success = true;
+				uploadedFile.delete();
+				message = "uploadedVod is found and deleted";
+				getDataStore().deleteVod(id);
+
+			}else {
+				success = getDataStore().deleteVod(id);
+
 			}
 			File previewFile = Muxer.getPreviewFile(getScope(), fileName, ".png");
 			if (previewFile.exists()) {
@@ -762,20 +772,12 @@ public class BroadcastRestService {
 
 			if (broacast != null) {
 
-				if (broacast.getType().equals("ipCamera")) {
+				if (broacast.getType().equals("ipCamera")||broacast.getType().equals("streamSource")) {
 
-					AntMediaApplicationAdapter application = getApplication();
-
-					if (application instanceof IPCameraApplicationAdapter) {
-						((IPCameraApplicationAdapter) application).stopCameraStreaming(broacast);
-						success = getDataStore().deleteCamera(id);
-						message = "ip camera is deleted";
-						logger.info("ipcam is deleted");
-
-					} else {
-
-						logger.info("broadcast is not an IP Camera");
-					}
+					getApplication().stopStreaming(broacast);
+					success = getDataStore().deleteStream(id);
+					message = "streamSource is deleted";
+					logger.info("streamSource is deleted");
 
 				}
 
@@ -815,37 +817,76 @@ public class BroadcastRestService {
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/broadcast/getDeviceAuthParameters/{serviceName}")
 	@Produces(MediaType.APPLICATION_JSON)
-
 	public Object getDeviceAuthParameters(@PathParam("serviceName") String serviceName) {
-		List<VideoServiceEndpoint> endPoint = getEndpointList();
 		String message = null;
-		boolean serviceFound = false;
-		if (endPoint != null) {
-			for (VideoServiceEndpoint videoServiceEndpoint : endPoint) {
-				if (videoServiceEndpoint.getName().equals(serviceName)) {
-					serviceFound = true;
-					try {
-						if (videoServiceEndpoint.isInitialized()) {
-							DeviceAuthParameters askDeviceAuthParameters = videoServiceEndpoint
-									.askDeviceAuthParameters();
-							getApplication().startDeviceAuthStatusPolling(videoServiceEndpoint,
-									askDeviceAuthParameters);
-							return askDeviceAuthParameters;
-						} else {
-							message = "Please enter service client id and client secret in app configuration";
-						}
+		boolean missingClientIdAndSecret = false;
 
-					} catch (Exception e) {
-						e.printStackTrace();
-					}
+		VideoServiceEndpoint videoServiceEndpoint = null;
+		if (serviceName.equals(AntMediaApplicationAdapter.FACEBOOK)) 
+		{
+			String clientId = getAppSettings().getFacebookClientId();
+			String clientSecret = getAppSettings().getFacebookClientSecret();
+
+			if (clientId != null && clientSecret != null && 
+					clientId.length() > 0 && clientSecret.length() > 0) {
+				videoServiceEndpoint = getApplication().getEndpointService(AntMediaApplicationAdapter.FACEBOOK_ENDPOINT_CLASS, null, clientId, clientSecret);
+
+			}
+			else {
+				missingClientIdAndSecret = true;
+			}
+		}
+		else if (serviceName.equals(AntMediaApplicationAdapter.YOUTUBE)) 
+		{
+
+			String clientId = getAppSettings().getYoutubeClientId();
+			String clientSecret = getAppSettings().getYoutubeClientSecret();
+
+			if (clientId != null && clientSecret != null && 
+					clientId.length() > 0 && clientSecret.length() > 0) {
+				videoServiceEndpoint = getApplication().getEndpointService(AntMediaApplicationAdapter.YOUTUBE_ENDPOINT_CLASS, null, clientId, clientSecret);
+			}
+			else {
+				missingClientIdAndSecret = true;
+			}
+
+		}
+		else if (serviceName.equals(AntMediaApplicationAdapter.PERISCOPE)) 
+		{
+			String clientId = getAppSettings().getPeriscopeClientId();
+			String clientSecret = getAppSettings().getPeriscopeClientSecret();
+			if (clientId != null && clientSecret != null && 
+					clientId.length() > 0 && clientSecret.length() > 0) {
+				videoServiceEndpoint = new PeriscopeEndpoint(clientId,
+						clientSecret, getDataStore(), null);
+			}
+			else {
+				missingClientIdAndSecret = true;
+			}
+		}
+
+		try {
+			if (videoServiceEndpoint != null) 
+			{
+				DeviceAuthParameters askDeviceAuthParameters = videoServiceEndpoint.askDeviceAuthParameters();
+
+				getApplication().startDeviceAuthStatusPolling(videoServiceEndpoint,
+						askDeviceAuthParameters);
+				return askDeviceAuthParameters;
+			}
+			else {
+				if (missingClientIdAndSecret) {
+					message = "Please enter service client id and client secret in app configuration";
+				}
+				else {
+					message = "Service with the name specified is not found in this app";
 				}
 			}
-			if (!serviceFound) {
-				message = "Service with the name specified is not found in this app";
-			}
-		} else {
-			message = "No endpoint is defined for this app";
 		}
+		catch (Exception e) {
+			e.printStackTrace();
+		}
+
 		return new Result(false, message);
 	}
 
@@ -865,20 +906,45 @@ public class BroadcastRestService {
 	 */
 	@POST
 	@Consumes({ MediaType.APPLICATION_JSON })
-	@Path("/broadcast/checkDeviceAuthStatus/{serviceName}")
+	@Path("/broadcast/checkDeviceAuthStatus/{userCode}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result checkDeviceAuthStatus(@PathParam("serviceName") String serviceName) {
+	public Result checkDeviceAuthStatus(@PathParam("userCode") String userCode) {
 		List<VideoServiceEndpoint> endPoint = getEndpointList();
 		boolean authenticated = false;
+		String endpointId = null;
 		if (endPoint != null) {
 			for (VideoServiceEndpoint videoServiceEndpoint : endPoint) {
-				if (videoServiceEndpoint.getName().equals(serviceName)) {
-					authenticated = videoServiceEndpoint.isInitialized() && videoServiceEndpoint.isAuthenticated();
+				//if there is an endpoint added to the list with same user code,
+				//it means it is authenticated
+				DeviceAuthParameters authParameters = videoServiceEndpoint.getAuthParameters();
+				if (authParameters != null) {
+					if (authParameters.user_code.equals(userCode)) {
+						authenticated = true;
+						endpointId = videoServiceEndpoint.getCredentials().getId();
+						break;
+					}
 				}
 			}
 		}
-		return new Result(authenticated, null);
+		return new Result(authenticated, endpointId, null);
 	}
+
+
+	@GET
+	@Consumes({ MediaType.APPLICATION_JSON })
+	@Path("/broadcast/getSocialEndpoints/{offset}/{size}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public List<SocialEndpointCredentials> getSocialEndpoints(@PathParam("offset") int offset, @PathParam("size") int size) {
+		List<VideoServiceEndpoint> endPoint = getEndpointList();
+		List<SocialEndpointCredentials> endPointCredentials = new ArrayList();
+		if (endPoint != null) {
+			for (VideoServiceEndpoint videoServiceEndpoint : endPoint) {
+				endPointCredentials.add(videoServiceEndpoint.getCredentials());
+			}
+		}
+		return endPointCredentials;
+	}
+
 
 	/**
 	 * Some social networks have different channels especially for facebook,
@@ -893,18 +959,19 @@ public class BroadcastRestService {
 	 */
 	@GET
 	@Consumes({ MediaType.APPLICATION_JSON })
-	@Path("/broadcast/getSocialNetworkChannel/{serviceName}")
+	@Path("/broadcast/getSocialNetworkChannel/{endpointId}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public SocialEndpointChannel getSocialNetworkChannel(@PathParam("serviceName") String serviceName) {
+	public SocialEndpointChannel getSocialNetworkChannel(@PathParam("endpointId") String endpointId) {
 		List<VideoServiceEndpoint> endPoint = getEndpointList();
 		SocialEndpointChannel channel = null;
 		if (endPoint != null) {
 			for (VideoServiceEndpoint videoServiceEndpoint : endPoint) {
-				if (videoServiceEndpoint.getName().equals(serviceName)) {
+
+				SocialEndpointCredentials credentials = videoServiceEndpoint.getCredentials();
+				if (credentials != null && credentials.getId().equals(endpointId)) {
 					channel = videoServiceEndpoint.getChannel();
 					break;
 				}
-
 			}
 		}
 		return channel;
@@ -925,20 +992,20 @@ public class BroadcastRestService {
 	 */
 	@GET
 	@Consumes({ MediaType.APPLICATION_JSON })
-	@Path("/broadcast/getSocialNetworkChannelList/{serviceName}/{type}")
+	@Path("/broadcast/getSocialNetworkChannelList/{endpointId}/{type}")
 	@Produces(MediaType.APPLICATION_JSON)
-
-	public List<SocialEndpointChannel> getSocialNetworkChannelList(@PathParam("serviceName") String serviceName,
+	public List<SocialEndpointChannel> getSocialNetworkChannelList(@PathParam("endpointId") String endpointId,
 			@PathParam("type") String type) {
 		List<VideoServiceEndpoint> endPoint = getEndpointList();
 		List<SocialEndpointChannel> channelList = null;
 		if (endPoint != null) {
+
 			for (VideoServiceEndpoint videoServiceEndpoint : endPoint) {
-				if (videoServiceEndpoint.getName().equals(serviceName)) {
-					channelList = videoServiceEndpoint.getChannelList(type);
+				SocialEndpointCredentials credentials = videoServiceEndpoint.getCredentials();
+				if (credentials != null && credentials.getId().equals(endpointId)) {
+					channelList = videoServiceEndpoint.getChannelList();
 					break;
 				}
-
 			}
 		}
 		return channelList;
@@ -962,10 +1029,10 @@ public class BroadcastRestService {
 	 */
 	@POST
 	@Consumes({ MediaType.APPLICATION_JSON })
-	@Path("/broadcast/setSocialNetworkChannel/{serviceName}/{type}/{id}")
+	@Path("/broadcast/setSocialNetworkChannel/{endpointId}/{type}/{id}")
 	@Produces(MediaType.APPLICATION_JSON)
 
-	public Result setSocialNetworkChannelList(@PathParam("serviceName") String serviceName,
+	public Result setSocialNetworkChannelList(@PathParam("endpointId") String endpointId,
 			@PathParam("type") String type, @PathParam("id") String id) {
 		boolean result = false;
 		List<VideoServiceEndpoint> endPoint = getEndpointList();
@@ -973,7 +1040,8 @@ public class BroadcastRestService {
 		if (endPoint != null) {
 			for (VideoServiceEndpoint videoServiceEndpoint : endPoint) {
 
-				if (videoServiceEndpoint.getName().equals(serviceName)) {
+				SocialEndpointCredentials credentials = videoServiceEndpoint.getCredentials();
+				if (credentials != null && credentials.getId().equals(endpointId)) {
 					result = videoServiceEndpoint.setActiveChannel(type, id);
 					break;
 				}

@@ -1,10 +1,12 @@
 package io.antmedia.datastore.db;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.mapdb.BTreeMap;
 import org.mapdb.DB;
@@ -19,6 +21,7 @@ import com.google.gson.GsonBuilder;
 
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
+import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.Vod;
 
 public class MapDBStore implements IDataStore {
@@ -26,24 +29,44 @@ public class MapDBStore implements IDataStore {
 	private DB db;
 	private BTreeMap<String, String> map;
 	private BTreeMap<String, String> vodMap;
+	private BTreeMap<String, String> userVodMap;
+
+
 	private Gson gson;
+	private BTreeMap<String, String> socialEndpointsCredentialsMap;
 	protected static Logger logger = LoggerFactory.getLogger(MapDBStore.class);
 	private static final String MAP_NAME = "broadcast";
 	private static final String VOD_MAP_NAME = "vod";
+	private static final String USER_MAP_NAME = "userVod";
+	private static final String SOCIAL_ENDPONT_CREDENTIALS_MAP_NAME = "SOCIAL_ENDPONT_CREDENTIALS_MAP_NAME";
+	
 
 	public MapDBStore(String dbName) {
 
 		db = DBMaker.fileDB(dbName).transactionEnable().make();
+		
 		map = db.treeMap(MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING).counterEnable()
 				.createOrOpen();
 		vodMap = db.treeMap(VOD_MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
+				.counterEnable().createOrOpen();
+		
+		userVodMap = db.treeMap(USER_MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
+				.counterEnable().createOrOpen();
+		
+		socialEndpointsCredentialsMap = db.treeMap(SOCIAL_ENDPONT_CREDENTIALS_MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
 				.counterEnable().createOrOpen();
 
 		GsonBuilder builder = new GsonBuilder();
 		gson = builder.create();
 
-		TreeMapMaker<Integer, String> map = (TreeMapMaker<Integer, String>) db.treeMap("collectionName");
+	}
+	
+	public BTreeMap<String, String> getUserVodMap() {
+		return userVodMap;
+	}
 
+	public void setUserVodMap(BTreeMap<String, String> userVodMap) {
+		this.userVodMap = userVodMap;
 	}
 
 	public BTreeMap<String, String> getVodMap() {
@@ -305,6 +328,10 @@ public class MapDBStore implements IDataStore {
 		}
 		return list;
 	}
+	
+
+	
+	
 
 	@Override
 	public List<Broadcast> filterBroadcastList(int offset, int size, String type) {
@@ -357,6 +384,7 @@ public class MapDBStore implements IDataStore {
 
 	}
 
+	/*
 	@Override
 	public List<Vod> filterVoDList(int offset, int size, String keyword, long startdate, long endDate) {
 
@@ -426,6 +454,8 @@ public class MapDBStore implements IDataStore {
 		return list;
 
 	}
+	
+	*/
 
 	@Override
 	public boolean addVod(String id, Vod vod) {
@@ -450,11 +480,40 @@ public class MapDBStore implements IDataStore {
 		}
 		return result;
 	}
+	@Override
+	public boolean addUserVod(String id, Vod vod) {
+		String vodId = null;
+		boolean result = false;
+
+		if (vod != null) {
+			try {
+				vodId = RandomStringUtils.randomNumeric(24);
+				vod.setVodId(vodId);
+
+				vodMap.put(vodId, gson.toJson(vod));
+				db.commit();
+
+				result = true;
+		
+
+			} catch (Exception e) {
+				e.printStackTrace();
+				id = null;
+			}
+		}
+		return result;
+	}
+	
 
 	/*
 	 * IP Camera Operations
 	 */
 
+	
+	
+	
+	/*
+	 * Save method is used for this one.
 	@Override
 	public boolean addCamera(Broadcast camera) {
 		boolean result = false;
@@ -478,7 +537,7 @@ public class MapDBStore implements IDataStore {
 
 		return result;
 	}
-
+*/
 	@Override
 	public boolean editCameraInfo(Broadcast camera) {
 		boolean result = false;
@@ -486,7 +545,6 @@ public class MapDBStore implements IDataStore {
 
 			logger.warn("inside of editCameraInfo");
 
-			logger.warn("gelen camera:  " + camera.getStreamId());
 
 			Broadcast oldCam = get(camera.getStreamId());
 
@@ -495,7 +553,6 @@ public class MapDBStore implements IDataStore {
 			oldCam.setPassword(camera.getPassword());
 			oldCam.setIpAddr(camera.getIpAddr());
 
-			logger.warn(oldCam.getName());
 
 			getMap().replace(oldCam.getStreamId(), gson.toJson(oldCam));
 
@@ -512,15 +569,15 @@ public class MapDBStore implements IDataStore {
 	/**
 	 * Delete camera from camera store
 	 * 
-	 * @returns true if camera exists, otherwise return false
+	 * @returns true if stream exists, otherwise return false
 	 */
 	@Override
-	public boolean deleteCamera(String id) {
+	public boolean deleteStream(String id) {
 		boolean result = false;
 		try {
 
 			if (map.containsKey(id)) {
-				logger.warn("inside of deleteCamera");
+				logger.warn("inside of deleteStream");
 				map.remove(id);
 				db.commit();
 				result = true;
@@ -540,39 +597,32 @@ public class MapDBStore implements IDataStore {
 		Broadcast[] broadcastArray = new Broadcast[objectArray.length];
 
 		for (int i = 0; i < objectArray.length; i++) {
-
 			broadcastArray[i] = gson.fromJson((String) objectArray[i], Broadcast.class);
-
 		}
 
 		Broadcast camera = new Broadcast();
 
-		for (int i = 0; i < broadcastArray.length; i++) {
-
+		for (int i = 0; i < broadcastArray.length; i++) 
+		{
 			if (broadcastArray[i].getType() == "ipCamera") {
-
 				if (broadcastArray[i].getIpAddr().equals(ipAddr)) {
-
 					camera = broadcastArray[i];
-
 					break;
-
 				}
 			}
-
 		}
 
 		return camera;
 	}
 
 	@Override
-	public List<Broadcast> getCameraList() {
+	public List<Broadcast> getExternalStreamsList() {
 
 		Object[] objectArray = map.getValues().toArray();
 
 		Broadcast[] broadcastArray = new Broadcast[objectArray.length];
 
-		List<Broadcast> cameraList = new ArrayList<Broadcast>();
+		List<Broadcast> streamsList = new ArrayList<Broadcast>();
 
 		for (int i = 0; i < objectArray.length; i++) {
 
@@ -582,15 +632,15 @@ public class MapDBStore implements IDataStore {
 
 		for (int i = 0; i < broadcastArray.length; i++) {
 
-			if (broadcastArray[i].getType().equals("ipCamera")) {
+			if (broadcastArray[i].getType().equals("ipCamera") || broadcastArray[i].getType().equals("streamSource")) {
 
-				cameraList.add(gson.fromJson((String) objectArray[i], Broadcast.class));
+				streamsList.add(gson.fromJson((String) objectArray[i], Broadcast.class));
 
 			}
 
 		}
 
-		return cameraList;
+		return streamsList;
 	}
 
 	@Override
@@ -607,7 +657,7 @@ public class MapDBStore implements IDataStore {
 
 		return result;
 	}
-
+/*
 	@Override
 	public boolean resetBroadcastStatus() {
 
@@ -631,11 +681,157 @@ public class MapDBStore implements IDataStore {
 
 		return false;
 	}
+	
+	*/
 
 	@Override
 	public long getTotalVodNumber() {
 
 		return getVodMap().size();
+	}
+	
+
+
+	@Override
+	public boolean fetchUserVodList(File userfile) {
+		
+		Object[] objectArray = vodMap.getValues().toArray();
+
+		Vod[] vodtArray = new Vod[objectArray.length];
+
+		for (int i = 0; i < objectArray.length; i++) {
+
+			vodtArray[i] = gson.fromJson((String) objectArray[i], Vod.class);
+		}
+
+		for (int i = 0; i < vodtArray.length; i++) {
+
+			if (vodtArray[i].getType().equals("userVod")) {
+
+				vodMap.remove(vodtArray[i].getVodId());
+
+			}
+
+		}
+		
+		
+		File[] listOfFiles = userfile.listFiles();
+
+		for (File file : listOfFiles) {
+			
+			String fileExtension = FilenameUtils.getExtension(file.getName());
+			
+		    if (file.isFile()&&fileExtension.equals("mp4")) {
+		
+				long fileSize = file.length();
+				long unixTime = System.currentTimeMillis();
+
+				Vod newVod = new Vod("vodFile", "vodFile", file.getPath(), file.getName(), unixTime, 0, fileSize,
+						"userVod");
+		    	addUserVod("vodFile", newVod);
+		    }
+		}
+	
+		
+		return true;
+
+
+		
+	}
+
+	@Override
+	public boolean updateSourceQuality(String id, String quality) {
+		boolean result = false;
+		if (id != null) {
+			String jsonString = map.get(id);
+			if (jsonString != null) {
+				Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
+				broadcast.setQuality(quality);
+			
+				map.replace(id, gson.toJson(broadcast));
+				db.commit();
+				result = true;
+			}
+		}
+		return result;
+	}
+
+	@Override
+	public SocialEndpointCredentials addSocialEndpointCredentials(SocialEndpointCredentials credentials) {
+		SocialEndpointCredentials addedCredential = null;
+		if (credentials != null && credentials.getAccountName() != null && credentials.getAccessToken() != null
+				 && credentials.getServiceName() != null) 
+		{
+			if (credentials.getId() == null) {
+				//create new id if id is not set
+				String id = RandomStringUtils.randomAlphanumeric(6);
+				credentials.setId(id);
+				socialEndpointsCredentialsMap.put(id, gson.toJson(credentials));
+				db.commit();
+				addedCredential = credentials;
+			}	
+			else {
+				
+				 if(socialEndpointsCredentialsMap.get(credentials.getId()) != null) 
+				 {
+					 //replace the field if id exists
+					socialEndpointsCredentialsMap.put(credentials.getId(), gson.toJson(credentials));
+					db.commit();
+					addedCredential = credentials;
+				 }
+				 //if id is not matched with any value, do not record
+			}
+		}
+		return addedCredential;
+	}
+
+	@Override
+	public List<SocialEndpointCredentials> getSocialEndpoints(int offset, int size) {
+		Collection<String> values = socialEndpointsCredentialsMap.values();
+		int t = 0;
+		int itemCount = 0;
+		if (size > 50) {
+			size = 50;
+		}
+		if (offset < 0) {
+			offset = 0;
+		}
+		List<SocialEndpointCredentials> list = new ArrayList();
+		for (String credentialString : values) {
+			if (t < offset) {
+				t++;
+				continue;
+			}
+			list.add(gson.fromJson(credentialString, SocialEndpointCredentials.class));
+			itemCount++;
+
+			if (itemCount >= size) {
+				break;
+			}
+
+		}
+		return list;
+	}
+
+	@Override
+	public boolean removeSocialEndpointCredentials(String id) {
+		boolean result = socialEndpointsCredentialsMap.remove(id) != null;
+		if (result) {
+			db.commit();
+		}
+		return result;
+	}
+
+	@Override
+	public SocialEndpointCredentials getSocialEndpointCredentials(String id) {
+		SocialEndpointCredentials credential = null;
+		if (id != null) {
+			String jsonString = socialEndpointsCredentialsMap.get(id);
+			if (jsonString != null) {
+				credential = gson.fromJson(jsonString, SocialEndpointCredentials.class);
+			}
+		}
+		return credential;
 	}
 
 }

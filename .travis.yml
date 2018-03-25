@@ -34,6 +34,7 @@ before_install:
   - echo "Waiting a little to make sure server is started "
   - sleep 20
   - sudo cp src/test/resources/preset-red5-web.properties  /usr/local/antmedia/webapps/LiveApp/WEB-INF/red5-web.properties
+  - sudo cp src/test/resources/preset-red5-web.db  /usr/local/antmedia/liveapp.db
   - sudo service antmedia stop
   - sudo service antmedia start
   - sleep 10
