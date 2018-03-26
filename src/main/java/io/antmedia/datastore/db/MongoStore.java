@@ -18,6 +18,7 @@ import org.mongodb.morphia.query.UpdateResults;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
@@ -28,6 +29,7 @@ import com.mongodb.WriteResult;
 
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
+import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.Vod;
 
 public class MongoStore implements IDataStore {
@@ -35,6 +37,7 @@ public class MongoStore implements IDataStore {
 	private Morphia morphia;
 	private Datastore datastore;
 	private Datastore vodDatastore;
+	private Datastore endpointCredentialsDS;
 	
 	protected static Logger logger = LoggerFactory.getLogger(MongoStore.class);
 
@@ -42,10 +45,11 @@ public class MongoStore implements IDataStore {
 		morphia = new Morphia();
 		morphia.mapPackage("io.antmedia.datastore.db.types");
 		datastore = morphia.createDatastore(new MongoClient(), dbName);
-		vodDatastore=morphia.createDatastore(new MongoClient(), dbName+"Vod");
+		vodDatastore = morphia.createDatastore(new MongoClient(), dbName+"Vod");
+		endpointCredentialsDS = morphia.createDatastore(new MongoClient(), dbName+"_endpointCredentials");
 		datastore.ensureIndexes();
 		vodDatastore.ensureIndexes();
-		
+		endpointCredentialsDS.ensureIndexes();
 	}
 
 	public MongoStore(String host, String username, String password, String dbName) {
@@ -55,9 +59,11 @@ public class MongoStore implements IDataStore {
 		credentialList.add(MongoCredential.createCredential(username, dbName, password.toCharArray()));
 		datastore = morphia.createDatastore(new MongoClient(new ServerAddress(host), credentialList), dbName);
 		vodDatastore=morphia.createDatastore(new MongoClient(new ServerAddress(host), credentialList), dbName+"Vod");
+		endpointCredentialsDS = morphia.createDatastore(new MongoClient(new ServerAddress(host), credentialList), dbName+"_endpointCredentials");
+		
 		datastore.ensureIndexes();
 		vodDatastore.ensureIndexes();
-	
+		endpointCredentialsDS.ensureIndexes();
 	}
 
 	/*
@@ -137,7 +143,6 @@ public class MongoStore implements IDataStore {
 	 */
 	@Override
 	public boolean updateStatus(String id, String status) {
-
 		try {
 			Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(id);
 
@@ -276,8 +281,6 @@ public class MongoStore implements IDataStore {
 
 	@Override
 	public List<Broadcast> getBroadcastList(int offset, int size) {
-		
-		
 		return datastore.find(Broadcast.class).asList(new FindOptions().skip(offset).limit(size));
 	}
 
@@ -288,8 +291,6 @@ public class MongoStore implements IDataStore {
 
 	@Override
 	public boolean editCameraInfo(Broadcast camera) {
-
-		
 		boolean result = false;
 
 		try {
@@ -337,10 +338,7 @@ public class MongoStore implements IDataStore {
 
 	@Override
 	public List<Broadcast> getExternalStreamsList() {
-		
-
 		try {
-			
 			List<Broadcast> ipCameraList=datastore.find(Broadcast.class).field("type").equal("ipCamera").asList();
 			List<Broadcast> streamSourceList=datastore.find(Broadcast.class).field("type").equal("streamSource").asList();
 			
@@ -355,42 +353,28 @@ public class MongoStore implements IDataStore {
 			e.printStackTrace();
 		}
 		return null;
-
-		
-	
-	
 	}
 
 	@Override
 	public void close() {
-		
-		
 		datastore.getMongo().close();
-
 	}
 
 	@Override
 	public List<Broadcast> filterBroadcastList(int offset, int size, String type) {
-		
 		try {
 			return datastore.find(Broadcast.class).field("type").equal(type).asList(new FindOptions().skip(offset).limit(size));
 		} catch (Exception e) {
-
 			e.printStackTrace();
 		}
-		return null;
-		
-
-	
-	
+		return null;	
 	}
 
 	@Override
 	public boolean addVod(String id, Vod vod) {
 		String vodId = null;
 		boolean result = false;
-		try {
-		
+		try {	
 			if (vod.getStreamId() == null) {
 				vodId = RandomStringUtils.randomAlphanumeric(12) + System.currentTimeMillis();
 				vod.setStreamId(vodId);
@@ -405,14 +389,11 @@ public class MongoStore implements IDataStore {
 			e.printStackTrace();
 		}
 		return result;
-	
-		
 		
 	}
 
 	@Override
-	public List<Vod> getVodList(int offset, int size) {
-		
+	public List<Vod> getVodList(int offset, int size) {	
 		return vodDatastore.find(Vod.class).asList(new FindOptions().skip(offset).limit(size));
 	}
 
@@ -510,6 +491,7 @@ public class MongoStore implements IDataStore {
 	}
 
 	@Override
+
 	public boolean updateSourceSpeed(String id, String speed) {
 		try {
 
@@ -522,6 +504,95 @@ public class MongoStore implements IDataStore {
 			e.printStackTrace();
 		}
 		return false;
+	}
+
+
+	public SocialEndpointCredentials addSocialEndpointCredentials(SocialEndpointCredentials credentials) {
+		SocialEndpointCredentials addedCredential = null;
+		if (credentials != null && credentials.getAccountName() != null && credentials.getAccessToken() != null
+				 && credentials.getServiceName() != null) 
+		{
+			if (credentials.getId() == null) {
+				//create new id if id is not set
+				//String id = RandomStringUtils.randomAlphanumeric(6);
+				//credentials.setId(id);
+				endpointCredentialsDS.save(credentials);
+				addedCredential = credentials;
+			}
+			else {
+				SocialEndpointCredentials endpointCredentials = getSocialEndpointCredentials(credentials.getId());
+				if (endpointCredentials != null) {
+					UpdateOperations<SocialEndpointCredentials> ops = endpointCredentialsDS
+														.createUpdateOperations(SocialEndpointCredentials.class)
+														.set("accessToken", credentials.getAccessToken());
+					if (credentials.getAccountId() != null) {
+						ops.set("accountId", credentials.getAccountId());
+					}
+					if (credentials.getAccountName() != null) {
+						ops.set("accountName", credentials.getAccountName());
+					}
+					if (credentials.getAccountType() != null) {
+						ops.set("accountType", credentials.getAccountType());
+					}
+					if (credentials.getAuthTimeInMilliseconds() != null) {
+						ops.set("authTimeInMilliseconds", credentials.getAuthTimeInMilliseconds());
+					}
+					if (credentials.getExpireTimeInSeconds() != null) {
+						ops.set("expireTimeInSeconds", credentials.getExpireTimeInSeconds());
+					}
+					if (credentials.getRefreshToken() != null) {
+						ops.set("refreshToken", credentials.getRefreshToken());
+					}
+					if (credentials.getTokenType() != null) {
+						ops.set("tokenType", credentials.getTokenType());
+					}
+					
+													
+
+					UpdateResults update = endpointCredentialsDS.update(endpointCredentials, ops);
+					addedCredential = credentials;
+				}
+			}
+			
+		}
+		return addedCredential;
+	}
+
+	@Override
+	public List<SocialEndpointCredentials> getSocialEndpoints(int offset, int size) {
+		return endpointCredentialsDS.find(SocialEndpointCredentials.class).asList(new FindOptions().skip(offset).limit(size));
+	}
+
+	@Override
+	public boolean removeSocialEndpointCredentials(String id) {
+		try {
+			Query<SocialEndpointCredentials> query = endpointCredentialsDS
+														.createQuery(SocialEndpointCredentials.class)
+														.field("id").equal(new ObjectId(id));
+			WriteResult delete = endpointCredentialsDS.delete(query);
+			return delete.getN() == 1;
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return false;
+	}
+
+	@Override
+	public SocialEndpointCredentials getSocialEndpointCredentials(String id) {
+		try {
+			return endpointCredentialsDS.get(SocialEndpointCredentials.class, new ObjectId(id));
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+
+	public Datastore getEndpointCredentialsDS() {
+		return endpointCredentialsDS;
+	}
+
+	public void setEndpointCredentialsDS(Datastore endpointCredentialsDS) {
+		this.endpointCredentialsDS = endpointCredentialsDS;
 	}
 
 

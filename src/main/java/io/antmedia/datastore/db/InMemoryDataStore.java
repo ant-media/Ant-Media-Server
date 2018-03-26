@@ -16,6 +16,7 @@ import com.google.gson.Gson;
 
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
+import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.Vod;
 
 public class InMemoryDataStore implements IDataStore {
@@ -24,9 +25,11 @@ public class InMemoryDataStore implements IDataStore {
 
 	private Gson gson;
 
-	public LinkedHashMap<String, Broadcast> broadcastMap = new LinkedHashMap();
+	public LinkedHashMap<String, Broadcast> broadcastMap = new LinkedHashMap<String, Broadcast>();
 
-	public LinkedHashMap<String, Vod> vodMap = new LinkedHashMap();
+	public LinkedHashMap<String, Vod> vodMap = new LinkedHashMap<String, Vod>();
+	
+	public LinkedHashMap<String, SocialEndpointCredentials> socialEndpointCredentialsMap = new LinkedHashMap<String, SocialEndpointCredentials>();
 
 	public InMemoryDataStore(String dbName) {
 	}
@@ -181,15 +184,12 @@ public class InMemoryDataStore implements IDataStore {
 		List<Broadcast> list = new ArrayList();
 		for (Broadcast broadcast : values) {
 
-
-
 			if (t < offset) {
 				t++;
 				continue;
 			}
 			list.add(broadcast);
 			itemCount++;
-
 
 			if (itemCount >= size) {
 				break;
@@ -205,9 +205,7 @@ public class InMemoryDataStore implements IDataStore {
 	public boolean editCameraInfo(Broadcast camera) {
 		boolean result = false;
 		try {
-
 			logger.warn("inside of editCameraInfo");
-
 
 			Broadcast oldCam = get(camera.getStreamId());
 
@@ -215,7 +213,6 @@ public class InMemoryDataStore implements IDataStore {
 			oldCam.setUsername(camera.getUsername());
 			oldCam.setPassword(camera.getPassword());
 			oldCam.setIpAddr(camera.getIpAddr());
-
 
 			broadcastMap.replace(oldCam.getStreamId(), oldCam);
 
@@ -252,23 +249,18 @@ public class InMemoryDataStore implements IDataStore {
 		Broadcast[] broadcastArray = new Broadcast[objectArray.length];
 
 		for (int i = 0; i < objectArray.length; i++) {
-
 			broadcastArray[i] = gson.fromJson((String) objectArray[i], Broadcast.class);
-
 		}
 
 		Broadcast camera = new Broadcast();
 
-		for (int i = 0; i < broadcastArray.length; i++) {
-
-			if (broadcastArray[i].getType() == "ipCamera") {
-
+		for (int i = 0; i < broadcastArray.length; i++) 
+		{
+			if (broadcastArray[i].getType() == "ipCamera") 
+			{
 				if (broadcastArray[i].getIpAddr().equals(ip)) {
-
 					camera = broadcastArray[i];
-
 					break;
-
 				}
 			}
 
@@ -310,8 +302,6 @@ public class InMemoryDataStore implements IDataStore {
 
 	@Override
 	public List<Broadcast> filterBroadcastList(int offset, int size, String type) {
-
-
 		int t = 0;
 		int itemCount = 0;
 		if (size > 50) {
@@ -323,14 +313,12 @@ public class InMemoryDataStore implements IDataStore {
 
 		Collection<Broadcast> values =broadcastMap.values();
 
-
 		List<Broadcast> list = new ArrayList();
 
-
-
-		for (Broadcast broadcast : values) {
-
-			if(broadcast.getType().equals("ipCamera")) {
+		for (Broadcast broadcast : values) 
+		{
+			if(broadcast.getType().equals("ipCamera")) 
+			{
 				if (t < offset) {
 					t++;
 					continue;
@@ -345,11 +333,7 @@ public class InMemoryDataStore implements IDataStore {
 			}
 		}
 
-
 		return list;
-
-
-
 	}
 
 	@Override
@@ -434,25 +418,18 @@ public class InMemoryDataStore implements IDataStore {
 	@Override
 	public boolean fetchUserVodList(File userfile) {
 
-
-
 		Object[] objectArray = vodMap.values().toArray();
 
 		Vod[] vodtArray = new Vod[objectArray.length];
-
 		for (int i = 0; i < objectArray.length; i++) {
-
 			vodtArray[i] = gson.fromJson((String) objectArray[i], Vod.class);
 		}
 
 		for (int i = 0; i < vodtArray.length; i++) {
-
 			if (vodtArray[i].getType().equals("userVod")) {
-
 				vodMap.remove(vodtArray[i].getVodId());
 			}
 		}
-
 
 		File[] listOfFiles = userfile.listFiles();
 
@@ -460,8 +437,7 @@ public class InMemoryDataStore implements IDataStore {
 
 			String fileExtension = FilenameUtils.getExtension(file.getName());
 
-			if (file.isFile()&&fileExtension.equals("mp4")) {
-
+			if (file.isFile() && fileExtension.equals("mp4")) {
 				long fileSize = file.length();
 				long unixTime = System.currentTimeMillis();
 
@@ -516,6 +492,7 @@ public class InMemoryDataStore implements IDataStore {
 	}
 
 	@Override
+
 	public boolean updateSourceSpeed(String id, String speed) {
 		boolean result = false;
 		if (id != null) {
@@ -527,6 +504,73 @@ public class InMemoryDataStore implements IDataStore {
 			}
 		}
 		return result;
+	}
+	public SocialEndpointCredentials addSocialEndpointCredentials(SocialEndpointCredentials credentials) {
+		SocialEndpointCredentials addedCredential = null;
+		if (credentials != null && credentials.getAccountName() != null && credentials.getAccessToken() != null
+				 && credentials.getServiceName() != null) 
+		{
+			if (credentials.getId() == null) {
+				//create new id if id is not set
+				String id = RandomStringUtils.randomAlphanumeric(6);
+				credentials.setId(id);
+				socialEndpointCredentialsMap.put(id, credentials);
+				addedCredential = credentials;
+			}
+			else {
+				
+				 if(socialEndpointCredentialsMap.get(credentials.getId()) != null) 
+				 {
+					 //replace the field if id exists
+					socialEndpointCredentialsMap.put(credentials.getId(), credentials);
+					addedCredential = credentials;
+				 }
+				 //if id is not matched with any value, do not record
+			}
+		}
+		return addedCredential;
+	}
+
+	@Override
+	public List<SocialEndpointCredentials> getSocialEndpoints(int offset, int size) 
+	{
+		Collection<SocialEndpointCredentials> values = socialEndpointCredentialsMap.values();
+		int t = 0;
+		int itemCount = 0;
+		if (size > 50) {
+			size = 50;
+		}
+		if (offset < 0) {
+			offset = 0;
+		}
+		List<SocialEndpointCredentials> list = new ArrayList();
+		for (SocialEndpointCredentials credential : values) {
+			if (t < offset) {
+				t++;
+				continue;
+			}
+			list.add(credential);
+			itemCount++;
+
+			if (itemCount >= size) {
+				break;
+			}
+		}
+		return list;
+	}
+
+	@Override
+	public boolean removeSocialEndpointCredentials(String id) {
+		return socialEndpointCredentialsMap.remove(id) != null;
+	}
+
+	@Override
+	public SocialEndpointCredentials getSocialEndpointCredentials(String id) {
+		SocialEndpointCredentials credential = null;
+		if (id != null) {
+			credential = socialEndpointCredentialsMap.get(id);
+		}
+		return credential;
 	}
 
 }

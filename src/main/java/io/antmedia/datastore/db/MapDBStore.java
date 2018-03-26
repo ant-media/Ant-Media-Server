@@ -21,6 +21,7 @@ import com.google.gson.GsonBuilder;
 
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
+import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.Vod;
 
 public class MapDBStore implements IDataStore {
@@ -32,10 +33,12 @@ public class MapDBStore implements IDataStore {
 
 
 	private Gson gson;
+	private BTreeMap<String, String> socialEndpointsCredentialsMap;
 	protected static Logger logger = LoggerFactory.getLogger(MapDBStore.class);
 	private static final String MAP_NAME = "broadcast";
 	private static final String VOD_MAP_NAME = "vod";
 	private static final String USER_MAP_NAME = "userVod";
+	private static final String SOCIAL_ENDPONT_CREDENTIALS_MAP_NAME = "SOCIAL_ENDPONT_CREDENTIALS_MAP_NAME";
 	
 
 	public MapDBStore(String dbName) {
@@ -49,11 +52,12 @@ public class MapDBStore implements IDataStore {
 		
 		userVodMap = db.treeMap(USER_MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
 				.counterEnable().createOrOpen();
+		
+		socialEndpointsCredentialsMap = db.treeMap(SOCIAL_ENDPONT_CREDENTIALS_MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
+				.counterEnable().createOrOpen();
 
 		GsonBuilder builder = new GsonBuilder();
 		gson = builder.create();
-
-		TreeMapMaker<Integer, String> map = (TreeMapMaker<Integer, String>) db.treeMap("collectionName");
 
 	}
 	
@@ -593,26 +597,19 @@ public class MapDBStore implements IDataStore {
 		Broadcast[] broadcastArray = new Broadcast[objectArray.length];
 
 		for (int i = 0; i < objectArray.length; i++) {
-
 			broadcastArray[i] = gson.fromJson((String) objectArray[i], Broadcast.class);
-
 		}
 
 		Broadcast camera = new Broadcast();
 
-		for (int i = 0; i < broadcastArray.length; i++) {
-
+		for (int i = 0; i < broadcastArray.length; i++) 
+		{
 			if (broadcastArray[i].getType() == "ipCamera") {
-
 				if (broadcastArray[i].getIpAddr().equals(ipAddr)) {
-
 					camera = broadcastArray[i];
-
 					break;
-
 				}
 			}
-
 		}
 
 		return camera;
@@ -760,6 +757,7 @@ public class MapDBStore implements IDataStore {
 	}
 
 	@Override
+
 	public boolean updateSourceSpeed(String id, String speed) {
 		boolean result = false;
 		if (id != null) {
@@ -773,6 +771,83 @@ public class MapDBStore implements IDataStore {
 			}
 		}
 		return result;
+	}
+	public SocialEndpointCredentials addSocialEndpointCredentials(SocialEndpointCredentials credentials) {
+		SocialEndpointCredentials addedCredential = null;
+		if (credentials != null && credentials.getAccountName() != null && credentials.getAccessToken() != null
+				 && credentials.getServiceName() != null) 
+		{
+			if (credentials.getId() == null) {
+				//create new id if id is not set
+				String id = RandomStringUtils.randomAlphanumeric(6);
+				credentials.setId(id);
+				socialEndpointsCredentialsMap.put(id, gson.toJson(credentials));
+				db.commit();
+				addedCredential = credentials;
+			}	
+			else {
+				
+				 if(socialEndpointsCredentialsMap.get(credentials.getId()) != null) 
+				 {
+					 //replace the field if id exists
+					socialEndpointsCredentialsMap.put(credentials.getId(), gson.toJson(credentials));
+					db.commit();
+					addedCredential = credentials;
+				 }
+				 //if id is not matched with any value, do not record
+			}
+		}
+		return addedCredential;
+	}
+
+	@Override
+	public List<SocialEndpointCredentials> getSocialEndpoints(int offset, int size) {
+		Collection<String> values = socialEndpointsCredentialsMap.values();
+		int t = 0;
+		int itemCount = 0;
+		if (size > 50) {
+			size = 50;
+		}
+		if (offset < 0) {
+			offset = 0;
+		}
+		List<SocialEndpointCredentials> list = new ArrayList();
+		for (String credentialString : values) {
+			if (t < offset) {
+				t++;
+				continue;
+			}
+			list.add(gson.fromJson(credentialString, SocialEndpointCredentials.class));
+			itemCount++;
+
+			if (itemCount >= size) {
+				break;
+			}
+
+		}
+		return list;
+	}
+
+	@Override
+	public boolean removeSocialEndpointCredentials(String id) {
+		boolean result = socialEndpointsCredentialsMap.remove(id) != null;
+		if (result) {
+			db.commit();
+		}
+		return result;
+	}
+
+	@Override
+	public SocialEndpointCredentials getSocialEndpointCredentials(String id) {
+		SocialEndpointCredentials credential = null;
+		if (id != null) {
+			String jsonString = socialEndpointsCredentialsMap.get(id);
+			if (jsonString != null) {
+				credential = gson.fromJson(jsonString, SocialEndpointCredentials.class);
+			}
+		}
+		return credential;
+
 	}
 
 }
