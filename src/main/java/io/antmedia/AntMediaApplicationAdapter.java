@@ -161,7 +161,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 					List<Endpoint> endPointList = broadcast.getEndPointList();
 					if (endPointList != null) {
 						for (Endpoint endpoint : endPointList) {
-							VideoServiceEndpoint videoServiceEndPoint = getVideoServiceEndPoint(stream, endpoint.type);
+							VideoServiceEndpoint videoServiceEndPoint = getVideoServiceEndPoint(endpoint.endpointServiceId);
 							if (videoServiceEndPoint != null) {
 								try {
 									videoServiceEndPoint.stopBroadcast(endpoint);
@@ -195,7 +195,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		for (Endpoint endpoint : endPointList) {
 
 			if (endpoint.type != null && !endpoint.type.equals("")) {
-				VideoServiceEndpoint videoServiceEndPoint = getVideoServiceEndPoint(null, endpoint.type);
+				VideoServiceEndpoint videoServiceEndPoint = getVideoServiceEndPoint(endpoint.endpointServiceId);
 				if (videoServiceEndPoint != null) {
 					Endpoint newEndpoint;
 					try {
@@ -268,8 +268,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 						List<Endpoint> endPointList = broadcast.getEndPointList();
 						if (endPointList != null) {
 							for (Endpoint endpoint : endPointList) {
-								VideoServiceEndpoint videoServiceEndPoint = getVideoServiceEndPoint(stream,
-										endpoint.type);
+								VideoServiceEndpoint videoServiceEndPoint = getVideoServiceEndPoint(endpoint.endpointServiceId);
 								if (videoServiceEndPoint != null) {
 									try {
 										videoServiceEndPoint.publishBroadcast(endpoint);
@@ -309,11 +308,10 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		return null;
 	}
 
-	// TODO: make video serviceEndpoinst HashMap
-	protected VideoServiceEndpoint getVideoServiceEndPoint(IBroadcastStream stream, String type) {
+	public VideoServiceEndpoint getVideoServiceEndPoint(String id) {
 		if (videoServiceEndpoints != null) {
 			for (VideoServiceEndpoint serviceEndpoint : videoServiceEndpoints) {
-				if (serviceEndpoint.getName().equals(type)) {
+				if (serviceEndpoint.getCredentials().getId().equals(id)) {
 					return serviceEndpoint;
 				}
 			}
