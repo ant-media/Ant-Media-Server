@@ -509,5 +509,20 @@ public class MongoStore implements IDataStore {
 		return false;
 	}
 
+	@Override
+	public boolean updateSourceSpeed(String id, String speed) {
+		try {
+
+			Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(id);
+			UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set("speed", speed);
+
+			UpdateResults update = datastore.update(query, ops);
+			return update.getUpdatedCount() == 1;
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return false;
+	}
+
 
 }

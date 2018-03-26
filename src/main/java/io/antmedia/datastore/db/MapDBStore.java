@@ -759,4 +759,20 @@ public class MapDBStore implements IDataStore {
 		return result;
 	}
 
+	@Override
+	public boolean updateSourceSpeed(String id, String speed) {
+		boolean result = false;
+		if (id != null) {
+			String jsonString = map.get(id);
+			if (jsonString != null) {
+				Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
+				broadcast.setSpeed(speed);
+				map.replace(id, gson.toJson(broadcast));
+				db.commit();
+				result = true;
+			}
+		}
+		return result;
+	}
+
 }
