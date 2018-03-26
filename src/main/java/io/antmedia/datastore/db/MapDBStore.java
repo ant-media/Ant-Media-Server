@@ -758,7 +758,9 @@ public class MapDBStore implements IDataStore {
 
 	@Override
 
-	public boolean updateSourceSpeed(String id, String speed) {
+	public boolean updateSourceSpeed(String id, double speed) {
+		
+		
 		boolean result = false;
 		if (id != null) {
 			String jsonString = map.get(id);

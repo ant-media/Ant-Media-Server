@@ -492,7 +492,7 @@ public class MongoStore implements IDataStore {
 
 	@Override
 
-	public boolean updateSourceSpeed(String id, String speed) {
+	public boolean updateSourceSpeed(String id, double speed) {
 		try {
 
 			Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(id);

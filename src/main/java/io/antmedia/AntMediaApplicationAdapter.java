@@ -533,7 +533,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 	
 	@Override
-	public void sourceSpeedChanged(String id,String speed) {
+	public void sourceSpeedChanged(String id,double speed) {
 		// log.info("source stream quality changed, new quality is: "+speed);
 
 		getDataStore().updateSourceSpeed(id, speed);
