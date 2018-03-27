@@ -83,7 +83,7 @@ public class StreamSources {
 
 					logger.warn("checkerCount is  :" + streamCheckerCount);
 
-					if (streamCheckerCount % 360 == 0) {
+					if (streamCheckerCount % 180 == 0) {
 
 						for (StreamFetcher streamScheduler : schedulerList) {
 							if (streamScheduler.isRunning()) {
