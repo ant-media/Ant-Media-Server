@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:lang="http://www.springframework.org/schema/lang"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+    http://www.springframework.org/schema/lang http://www.springframework.org/schema/lang/spring-lang.xsd">
+
+    <!-- DEFAULT GLOBAL CONTEXT -->
+
+    <bean id="global.clientRegistry" class="org.red5.server.ClientRegistry" />
+
+    <bean id="global.serviceInvoker" class="org.red5.server.service.ServiceInvoker">
+        <property name="serviceResolvers">
+            <list>
+                <bean id="scopeServiceResolver" class="org.red5.server.service.ScopeServiceResolver" />
+                <bean id="handlerServiceResolver" class="org.red5.server.service.HandlerServiceResolver" />
+                <bean id="contextServiceResolver" class="org.red5.server.service.ContextServiceResolver" />
+            </list>
+        </property>
+    </bean>
+
+    <bean id="global.mappingStrategy" class="org.red5.server.MappingStrategy" />
+
+    <bean id="global.context" class="org.red5.server.Context" autowire="byType" />
+
+    <bean id="global.handler" class="org.red5.server.CoreHandler" autowire="byType" />
+
+    <bean id="global.scope" class="org.red5.server.scope.GlobalScope" init-method="register">
+        <property name="server" ref="red5.server" />
+        <property name="context" ref="global.context" />
+        <property name="handler" ref="global.handler" />
+        <property name="persistenceClass">
+            <value>org.red5.server.persistence.FilePersistence</value>
+        </property>
+        <property name="securityHandlers">
+            <set>
+                <bean class="org.red5.server.scope.ScopeSecurityHandler">
+                    <!-- By default, connections to global scope are denied -->
+                    <property name="connectionAllowed" value="false" />
+                </bean>
+            </set>
+        </property>
+    </bean>
+
+    <bean id="red5.scopeResolver" class="org.red5.server.scope.ScopeResolver">
+        <property name="globalScope" ref="global.scope" />
+    </bean>
+
+</beans>
