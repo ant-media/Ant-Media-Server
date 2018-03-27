@@ -543,6 +543,7 @@ public class BroadcastRestService {
 	@GET
 	@Path("/broadcast/getTotalVodNumber")
 	@Produces(MediaType.APPLICATION_JSON)
+	
 	public long getTotalVodNumber() {
 		return getDataStore().getTotalVodNumber();
 	}

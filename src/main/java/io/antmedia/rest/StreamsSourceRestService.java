@@ -84,6 +84,7 @@ public class StreamsSourceRestService {
 					long unixTime = currentDate.getTime();
 
 					stream.setDate(unixTime);
+					stream.setStatus("created");
 
 					String id = getStore().save(stream);
 
@@ -104,6 +105,7 @@ public class StreamsSourceRestService {
 				long unixTime = currentDate.getTime();
 
 				stream.setDate(unixTime);
+				stream.setStatus("created");
 
 				String id = getStore().save(stream);
 

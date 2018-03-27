@@ -493,7 +493,7 @@ public class InMemoryDataStore implements IDataStore {
 
 	@Override
 
-	public boolean updateSourceSpeed(String id, String speed) {
+	public boolean updateSourceSpeed(String id, double speed) {
 		boolean result = false;
 		if (id != null) {
 			Broadcast broadcast = broadcastMap.get(id);
