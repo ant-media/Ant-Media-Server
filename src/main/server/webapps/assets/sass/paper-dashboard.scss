@@ -1,0 +1,69 @@
+/*!
+
+  =========================================================
+  * Paper Dashboard PRO Angular - V1.0.0
+  =========================================================
+
+  * Product Page: https://www.creative-tim.com/product/paper-dashboard-pro-angular
+  * Available with purchase of license from https://www.creative-tim.com/product/paper-dashboard-pro-angular
+  * Copyright 2017 Creative Tim (https://www.creative-tim.com)
+  * License Creative Tim (https://www.creative-tim.com/license)
+
+  =========================================================
+
+*/
+
+@import "paper/variables";
+@import "paper/mixins";
+
+//plugins css
+@import "paper/plugins/animate";
+@import "paper/plugins/sweetalert2";
+@import "paper/plugins/bootstrap-table";
+@import "paper/plugins/datatables.net";
+@import "paper/plugins/fullcalendar";
+@import "paper/plugins/chartist";
+@import "paper/plugins/perfect-scrollbar";
+@import "paper/plugins/jquery.jvectormap";
+@import "paper/plugins/bootstrap-select";
+@import "paper/plugins/datetime-picker";
+@import "paper/plugins/nouislider";
+@import "paper/plugins/fixed-plugin";
+
+
+// Core CSS
+@import "paper/typography";
+@import "paper/sidebar-and-main-panel";
+@import "paper/buttons";
+@import "paper/misc";
+@import "paper/inputs";
+@import "paper/progress-bars";
+@import "paper/sliders";
+@import "paper/forms";
+@import "paper/alerts";
+@import "paper/tables";
+@import "paper/tooltips-and-popovers";
+@import "paper/navbars";
+@import "paper/footers";
+@import "paper/cards";
+@import "paper/timeline";
+@import "paper/labels";
+@import "paper/chat-message";
+@import "paper/checkbox-radio";
+
+// Fancy Stuff
+@import "paper/dropdown";
+@import "paper/social";
+@import "paper/tags";
+@import "paper/collapse";
+@import "paper/carousel";
+@import "paper/animated-buttons";
+@import "paper/switch";
+
+//SCSS for Pages
+@import "paper/pages";
+
+@import "paper/tabs-navs-pagination";
+@import "paper/circlechart";
+
+@import "paper/responsive";

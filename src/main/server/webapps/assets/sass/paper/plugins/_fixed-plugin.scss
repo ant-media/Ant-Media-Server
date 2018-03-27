@@ -1,0 +1,294 @@
+
+/* fixed plugin on the right */
+.fixed-plugin li > a,
+.fixed-plugin .badge{
+    transition: all .34s;
+    -webkit-transition: all .34s;
+    -moz-transition: all .34s;
+}
+
+.fixed-plugin{
+    position: absolute;
+    top: 180px;
+    right: 0;
+    width: 64px;
+    background: rgba(0,0,0,.3);
+    z-index: 1031;
+    border-radius: 8px 0 0 8px;
+    text-align: center;
+}
+.fixed-plugin .fa-cog{
+    color: #FFFFFF;
+    padding: 10px;
+    border-radius: 0 0 6px 6px;
+    width: auto;
+}
+.fixed-plugin .dropdown-menu{
+    right: 80px;
+    left: auto;
+    width: 290px;
+    border-radius: 10px;
+    padding: 10px;
+}
+.fixed-plugin .dropdown-menu:after, .fixed-plugin .dropdown-menu:before{
+    right: 10px;
+    margin-left: auto;
+    left: auto;
+}
+.fixed-plugin .fa-circle-thin{
+    color: #FFFFFF;
+}
+.fixed-plugin .active .fa-circle-thin{
+    color: #00bbff;
+}
+
+.fixed-plugin .dropdown-menu > .active > a,
+.fixed-plugin .dropdown-menu > .active > a:hover,
+.fixed-plugin .dropdown-menu > .active > a:focus{
+    color: #777777;
+    text-align: center;
+}
+
+.fixed-plugin img{
+    border-radius: 0;
+    width: auto;
+    height: 100px;
+    transform: translateX(-30%);
+    -webkit-transform: translateX(-30%);
+    margin: 0 auto;
+}
+
+.fixed-plugin .badge{
+    border: 3px solid #FFFFFF;
+    border-radius: 50%;
+    cursor: pointer;
+    display: inline-block;
+    height: 28px;
+    margin-right: 5px;
+    position: relative;
+    width: 28px;
+}
+
+.fixed-plugin .badge.active,
+.fixed-plugin .badge:hover{
+    border-color: #00bbff;
+}
+
+.fixed-plugin .badge-white{
+    background-color: #EBEBEB;
+}
+.fixed-plugin .badge-black{
+    background-color: #212120;
+}
+.fixed-plugin .badge-primary{
+    background-color: #7A9E9F;
+}
+.fixed-plugin .badge-info{
+    background-color: #68B3C8;
+}
+.fixed-plugin .badge-success{
+    background-color: #7AC29A;
+}
+.fixed-plugin .badge-warning{
+    background-color: #F3BB45;
+}
+.fixed-plugin .badge-danger{
+    background-color: #DD0330;
+}
+.fixed-plugin .badge-brown{
+    background-color: #66615B;
+}
+.fixed-plugin .badge-black{
+    background-color: $black-background-color;
+}
+
+.fixed-plugin h5{
+    font-size: 14px;
+    margin: 10px;
+}
+.fixed-plugin .dropdown-menu li{
+    display: block;
+    padding: 10px 5px;
+    width: 25%;
+    float: left;
+}
+
+.fixed-plugin li.adjustments-line,
+.fixed-plugin li.header-title,
+.fixed-plugin li.button-container{
+    width: 100%;
+    min-height: inherit;
+}
+
+.fixed-plugin li.button-container{
+    height: auto;
+}
+.fixed-plugin li.button-container div{
+    margin-bottom: 5px;
+}
+
+.fixed-plugin #sharrreTitle{
+    text-align: center;
+    padding: 10px 0;
+    height: 50px;
+}
+
+.fixed-plugin li.header-title{
+    height: 30px;
+    line-height: 35px;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+    text-transform: uppercase;
+}
+
+.fixed-plugin .adjustments-line p{
+    float: left;
+    display: inline-block;
+    margin-bottom: 0;
+    font-size: 1em;
+}
+.fixed-plugin .adjustments-line .switch{
+    float: right;
+}
+.fixed-plugin .dropdown-menu > li.adjustments-line > a{
+      padding-right: 0;
+      padding-left: 0;
+      border-bottom: 1px solid #ddd;
+      margin: 0;
+}
+
+.fixed-plugin .dropdown-menu > li > a.switch-trigger:hover,
+.fixed-plugin .dropdown-menu > li > a.switch-trigger:focus{
+    background-color: transparent;
+}
+
+.fixed-plugin .dropdown-menu > li > a img{
+    margin-top: auto;
+}
+
+.fixed-plugin .btn-social{
+    width: 50%;
+    display: block;
+    width: 48%;
+    float: left;
+    font-weight: 600;
+}
+.fixed-plugin .btn-social i{
+    margin-right: 5px;
+}
+.fixed-plugin .btn-social:first-child{
+    margin-right: 2%;
+}
+
+.fixed-plugin .dropdown-menu{
+    background: #FFFFFF;
+}
+
+@media (min-width: 992px){
+    .fixed-plugin .dropdown .dropdown-menu{
+         -webkit-transform: translateY(-15%);
+         -moz-transform: translateY(-15%);
+         -o-transform: translateY(-15%);
+         -ms-transform: translateY(-15%);
+         transform: translateY(-15%);
+         top: 27px;
+         opacity: 0;
+
+         transform-origin: 0 0;
+    }
+    .fixed-plugin .dropdown.open .dropdown-menu{
+         opacity: 1;
+
+         -webkit-transform: translateY(-15%);
+         -moz-transform: translateY(-15%);
+         -o-transform: translateY(-15%);
+         -ms-transform: translateY(-15%);
+         transform: translateY(-15%);
+
+         transform-origin: 0 0;
+    }
+
+    .fixed-plugin .dropdown-menu:before,
+    .fixed-plugin .dropdown-menu:after{
+        content: "";
+        display: inline-block;
+        position: absolute;
+        top: 33px;
+        width: 16px;
+        transform: translateY(-50%);
+        -webkit-transform: translateY(-50%);
+        -moz-transform: translateY(-50%);
+
+    }
+    .fixed-plugin .dropdown-menu:before{
+        border-bottom: 16px solid rgba(0, 0, 0, 0);
+        border-left: 16px solid #F1EAE0;
+        border-top: 16px solid rgba(0,0,0,0);
+        right: -16px;
+    }
+
+    .fixed-plugin .dropdown-menu:after{
+        border-bottom: 16px solid rgba(0, 0, 0, 0);
+        border-left: 16px solid #FFFFFF;
+        border-top: 16px solid rgba(0,0,0,0);
+        right: -15px;
+    }
+
+    .typo-line{
+        padding-left: 140px;
+        margin-bottom: 40px;
+        position: relative;
+    }
+
+    .typo-line .category{
+        transform: translateY(-50%);
+        top: 50%;
+        left: 0px;
+        position: absolute;
+    }
+
+    .fixed-plugin{
+        top: 120px;
+    }
+
+}
+
+@media (max-width: 991px){
+    .fixed-plugin .dropdown-menu{
+        right: 60px;
+        width: 220px;
+    }
+    .fixed-plugin .dropdown-menu li{
+        width: 50%;
+    }
+
+    .fixed-plugin li.adjustments-line,
+    .fixed-plugin li.header-title,
+    .fixed-plugin li.button-container{
+        width: 100%;
+        height: 55px;
+        min-height: inherit;
+    }
+
+    .fixed-plugin li.button-container{
+        height: auto;
+    }
+
+    .fixed-plugin .adjustments-line .switch{
+        float: right;
+        margin: 0 0px;
+    }
+
+    .fixed-plugin li.header-title{
+        height: 40px;
+    }
+    .fixed-plugin .dropdown .dropdown-menu{
+        top: -170px;
+    }
+
+    .fixed-plugin .dropdown-menu:before,
+    .fixed-plugin .dropdown-menu:after{
+        display: none;
+    }
+}

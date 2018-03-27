@@ -1,0 +1,375 @@
+/**
+ * @author zhixin wen <wenzhixin2010@gmail.com>
+ * version: 1.8.1
+ * https://github.com/wenzhixin/bootstrap-table/
+ */
+
+.bootstrap-table .table {
+    margin-bottom: 0 !important;
+    border-bottom: 1px solid $medium-gray;
+    border-collapse: collapse !important;
+    border-radius: 1px;
+}
+
+.bootstrap-table .table,
+.bootstrap-table .table > tbody > tr > th,
+.bootstrap-table .table > tfoot > tr > th,
+.bootstrap-table .table > thead > tr > td,
+.bootstrap-table .table > tbody > tr > td,
+.bootstrap-table .table > tfoot > tr > td {
+    padding: 8px !important;
+}
+
+.bootstrap-table .table > tbody > .selected{
+    background-color: $light-blue;
+}
+.bootstrap-table .table.table-no-bordered > thead > tr > th,
+.bootstrap-table .table.table-no-bordered > tbody > tr > td {
+    border-right: 2px solid transparent;
+}
+
+.fixed-table-container {
+    position: relative;
+    clear: both;
+}
+
+.fixed-table-container.table-no-bordered {
+    border: 1px solid transparent;
+}
+
+.fixed-table-footer,
+.fixed-table-header {
+    overflow: hidden;
+}
+
+.fixed-table-footer {
+    border-top: 1px solid $medium-gray;
+}
+
+.fixed-table-body {
+    height: 100%;
+    overflow: auto;
+}
+
+.fixed-table-container table {
+    width: 100%;
+}
+
+.fixed-table-container thead th {
+    height: 0;
+    padding: 0;
+    margin: 0;
+}
+
+.fixed-table-container thead th:first-child {
+    border-left: none;
+}
+
+.fixed-table-container thead th .th-inner {
+    padding: 0 8px;
+    line-height: 24px;
+    vertical-align: top;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fixed-table-container thead th .sortable {
+    cursor: pointer;
+    background-repeat: no-repeat;
+    padding-right: 30px;
+}
+
+.fixed-table-container thead th .both {
+    background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABMAAAATCAQAAADYWf5HAAAAkElEQVQoz7X QMQ5AQBCF4dWQSJxC5wwax1Cq1e7BAdxD5SL+Tq/QCM1oNiJidwox0355mXnG/DrEtIQ6azioNZQxI0ykPhTQIwhCR+BmBYtlK7kLJYwWCcJA9M4qdrZrd8pPjZWPtOqdRQy320YSV17OatFC4euts6z39GYMKRPCTKY9UnPQ6P+GtMRfGtPnBCiqhAeJPmkqAAAAAElFTkSuQmCC');
+    background-position: right 2px;
+}
+
+.fixed-table-container thead th .asc {
+    background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABMAAAATCAYAAAByUDbMAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAIGNIUk0AAG2YAABzjgAA+swAAIT6AAB5gQAA/RMAADBtAAASKQ0eJk4AAACASURBVHja7NKhDcJQFIbRV1MSEqaoYwYMYyARR6HZowzAHqguUolHYEgxD9MmTYPpA1JEb/KZK476Q4wxfKvwc6x/WKJE3v+nYkc8cfgIwxpXRNQokjBkOLdQ1wlZCrbFbYDdsRmFYYVqAHVdsBiD7dHg8aYGu2l2NmMz9s/YawDpU8qkYQTHqgAAAABJRU5ErkJggg==');
+    background-position: right 5px;
+}
+
+.fixed-table-container thead th .desc {
+    background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABMAAAATCAYAAAByUDbMAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAIGNIUk0AAG2YAABzjgAA+swAAIT6AAB5gQAA/RMAADBtAAASKQ0eJk4AAACFSURBVHja7NKhDcJQFIbRWwMJCVPgmKGGMZCIo9DsAQOwRxWLIPEIDCnmYR4JaSp4DYKQis/8NznqRkopvlWM2Ij9BYY1Wtx7arEpwaZokHo6Yf4xFhGBGrcOdMUqIqIUq3DoYEdUxVgGFzhn6ILl61aMZXCLB3bv+1Bsgj1mg7CfeNrnAMXSyqQtsCNeAAAAAElFTkSuQmCC');
+    background-position: right 0px;
+}
+
+
+.fixed-table-container th.detail {
+    width: 30px;
+}
+
+.fixed-table-container tbody tr:first-child td {
+    border-top: none;
+}
+
+.fixed-table-container tbody td:first-child {
+    border-left: none;
+}
+
+/* the same color with .active */
+.fixed-table-container tbody .selected td {
+    background-color: rgba(245, 245, 245, 0.34);
+}
+
+.fixed-table-container .bs-checkbox {
+    text-align: center;
+}
+
+.fixed-table-container .bs-checkbox .th-inner {
+    padding: 8px 0;
+}
+
+.fixed-table-container input[type="radio"],
+.fixed-table-container input[type="checkbox"] {
+    margin: 0 auto !important;
+    cursor: pointer;
+}
+
+.fixed-table-container .no-records-found {
+    text-align: center;
+    background-color: $white-color !important;
+    height: 340px;
+    border-radius: 10px;
+    width: 100%;
+    vertical-align: middle;
+}
+.fixed-table-container .no-records-found td{
+    font-weight: $font-weight-light;
+    font-size: $font-size-h4;
+}
+.fixed-table-pagination div.pagination,
+.fixed-table-pagination .pagination-detail {
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.fixed-table-pagination div.pagination .pagination {
+    margin: 0;
+}
+
+.fixed-table-pagination .pagination a {
+    padding: 6px 12px;
+    line-height: 1.428571429;
+}
+
+.fixed-table-pagination .pagination-info {
+    line-height: 34px;
+}
+
+.fixed-table-pagination .btn-group {
+    position: relative;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.fixed-table-pagination .page-list {
+    display: inline-block;
+}
+
+.fixed-table-toolbar{
+    padding: 5px 0;
+}
+
+.fixed-table-toolbar .columns-left {
+    margin-right: 5px;
+}
+
+.fixed-table-toolbar .columns-right {
+    margin-left: 5px;
+}
+
+.fixed-table-toolbar .columns .btn{
+    margin: 0 2px;
+    border-radius: $btn-round-radius;
+}
+
+.columns-right{
+    .btn-group{
+        .btn {
+            margin-right: 0;
+        }
+    }
+}
+
+.columns-left{
+        .btn:first-child{
+            margin-left: 0;
+        }
+}
+
+.pull-right{
+    .pagination{
+        .page-last{
+            a{
+                margin-right: 0;
+            }
+        }
+    }
+
+}
+
+.pull-left{
+    .pagination{
+        .page-first{
+            a{
+                margin-left: 0;
+            }
+        }
+    }
+}
+
+.bootstrap-table{
+    .td-actions{
+        .th-inner{
+            padding-right: 17px;
+        }
+    }
+}
+
+.fixed-table-toolbar .columns label {
+    display: block;
+    padding: 10px 20px;
+    border-bottom: 1px solid $light-gray;
+    clear: both;
+    margin-bottom: 0;
+    font-weight: normal;
+    line-height: 1.428571429;
+}
+.fixed-table-toolbar .columns li:last-child label{
+    border-bottom: none;
+}
+
+.fixed-table-toolbar .bars,
+.fixed-table-toolbar .search,
+.fixed-table-toolbar .columns {
+    position: relative;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    line-height: 34px;
+}
+
+.fixed-table-toolbar .search{
+    margin-left: 0;
+}
+
+.fixed-table-pagination li.disabled a {
+    pointer-events: none;
+    cursor: default;
+}
+
+.fixed-table-loading {
+    display: none;
+    position: absolute;
+    top: 42px;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 99;
+    background-color: $white-color;
+    text-align: center;
+}
+
+.fixed-table-body .card-view .title {
+    font-weight: bold;
+    display: inline-block;
+    min-width: 30%;
+    text-align: left !important;
+}
+
+/* support bootstrap 2 */
+.fixed-table-body thead th .th-inner {
+    box-sizing: border-box;
+}
+
+.table th, .table td {
+    vertical-align: middle;
+    box-sizing: border-box;
+}
+
+.fixed-table-toolbar .btn-group > .btn-group {
+    display: inline-block;
+    margin-left: -1px !important;
+}
+
+.fixed-table-toolbar .dropdown-menu label{
+    cursor: pointer;
+}
+
+.fixed-table-toolbar .btn-group > .btn-group > .btn {
+    border-radius: 0;
+}
+
+.fixed-table-toolbar .btn-group > .btn-group:first-child > .btn {
+    border-top-left-radius: 4px;
+    border-bottom-left-radius: 4px;
+}
+
+.fixed-table-toolbar .btn-group > .btn-group:last-child > .btn {
+    border-top-right-radius: 4px;
+    border-bottom-right-radius: 4px;
+}
+
+/* support bootstrap 3 */
+.bootstrap-table .table thead > tr > th {
+    padding: 0;
+    margin: 0;
+}
+
+.pull-right .dropdown-menu {
+    right: 0;
+    left: auto;
+}
+
+/* calculate scrollbar width */
+p.fixed-table-scroll-inner {
+    width: 100%;
+    height: 200px;
+}
+
+div.fixed-table-scroll-outer {
+    top: 0;
+    left: 0;
+    visibility: hidden;
+    width: 200px;
+    height: 150px;
+    overflow: hidden;
+}
+
+
+.bootstrap-table{
+    .fixed-table-pagination{
+
+
+        &:after{
+            display: table;
+            content: "";
+            clear: both;
+        }
+
+        .page-list{
+            .btn{
+                border-radius: $btn-round-radius;
+            }
+            .btn-group{
+                margin-right: 5px;
+            }
+        }
+        div.pagination,
+        .pagination-detail{
+            margin-top: 15px;
+            margin-bottom: 15px;
+        }
+    }
+
+    .table{
+        &.table-striped > thead > tr > td,
+        &.table-striped > tbody > tr >td,
+        &.table-striped > tfoot > tr >td{
+            border: none;
+        }
+
+    }
+
+}
