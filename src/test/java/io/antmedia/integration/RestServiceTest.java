@@ -922,6 +922,7 @@ public class RestServiceTest {
 		}
 	}
 
+	@Test
 	public void testCheckSocialEndpointRecreated() {
 		Result result;
 		try {
@@ -945,8 +946,11 @@ public class RestServiceTest {
 			 * //check that it is succes full assertTrue(result.success);
 			 */
 
+			List<SocialEndpointCredentials> socialEndpointServices = getSocialEndpointServices();
+			assertTrue(socialEndpointServices.size() > 0);
+			
 			// add twitter endpoint
-			result = addSocialEndpoint(broadcast.getStreamId().toString(), "periscope");
+			result = addSocialEndpoint(broadcast.getStreamId().toString(), socialEndpointServices.get(0).getId());
 
 			// check that it is succes full
 			assertTrue(result.isSuccess());
@@ -1042,7 +1046,7 @@ public class RestServiceTest {
 		return tmpExec;
 	}
 
-	// @Test
+	//@Test
 	public void authenticateSocialEndpoints() {
 		Result result;
 		try {

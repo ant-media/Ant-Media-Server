@@ -22,7 +22,7 @@ public class StreamSources {
 
 	private List<StreamFetcher> schedulerList = new ArrayList<>();
 
-	private int streamCheckerInterval = 60000;
+	private int streamCheckerInterval = 10000;
 
 	private ISchedulingService schedulingService;
 	
@@ -83,7 +83,7 @@ public class StreamSources {
 
 					logger.warn("checkerCount is  :" + streamCheckerCount);
 
-					if (streamCheckerCount % 60 == 0) {
+					if (streamCheckerCount % 180 == 0) {
 
 						for (StreamFetcher streamScheduler : schedulerList) {
 							if (streamScheduler.isRunning()) {

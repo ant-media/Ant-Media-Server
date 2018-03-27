@@ -1,0 +1,60 @@
+.alert{
+    border: 0;
+    border-radius: $border-radius-base;
+    color: #FFFFFF;
+    padding: 12px 15px;
+    font-size: 14px;
+    position: relative;
+
+    .container &{
+        border-radius: 4px;
+
+    }
+    .navbar &{
+        border-radius: 0;
+        left: 0;
+        position: absolute;
+        right: 0;
+        top: 85px;
+        width: 100%;
+        z-index: 3;
+    }
+    .navbar:not(.navbar-transparent) &{
+        top: 70px;
+    }
+
+    span[data-notify="icon"]{
+        font-size: 30px;
+        display: block;
+        left: 15px;
+        position: absolute;
+        top: 50%;
+        margin-top: -20px;
+        line-height: 1.42857;
+    }
+
+    .close ~ span{
+        display: block;
+        max-width: 89%;
+    }
+
+    [data-notify="icon"][class*="ti-"] ~ [data-notify="message"]{
+        padding-left: 50px;
+    }
+}
+.alert-info{
+    background-color: $bg-info;
+    color: $info-states-color;
+}
+.alert-success {
+    background-color: $bg-success;
+    color: $success-states-color;
+}
+.alert-warning {
+    background-color: $bg-warning;
+    color: $warning-states-color;
+}
+.alert-danger {
+    background-color: $bg-danger;
+    color: $danger-states-color;
+}

@@ -22,6 +22,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mockito.Mockito;
 import org.red5.io.ITag;
 import org.red5.io.flv.impl.FLVReader;
 import org.red5.server.api.scope.IScope;
@@ -42,12 +43,14 @@ import com.antstreaming.rtsp.PacketSenderRunnable;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.integration.MuxingTest;
 //import io.antmedia.enterprise.adaptive.TransraterAdaptor;
 import io.antmedia.muxer.HLSMuxer;
 import io.antmedia.muxer.Mp4Muxer;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.Muxer;
+import io.antmedia.social.endpoint.VideoServiceEndpoint;
 
 @ContextConfiguration(locations = { 
 		"test.xml" 
@@ -475,6 +478,39 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 		fileName = mp4Service.prepareFilename("mp4:123456789.mp4");
 		assertEquals(fileName, "123456789.mp4");
 
+	}
+	
+	@Test
+	public void testVideoServiceEndpoint() {
+		AntMediaApplicationAdapter appAdaptor = (AntMediaApplicationAdapter) applicationContext.getBean("web.handler");
+		assertNotNull(appAdaptor);
+		
+		VideoServiceEndpoint endpointService = Mockito.mock(VideoServiceEndpoint.class);
+		SocialEndpointCredentials credentials = Mockito.mock(SocialEndpointCredentials.class);
+		String id = "" + (Math.random()*10000);
+		Mockito.when(credentials.getId()).thenReturn(id);
+				
+		appAdaptor.getVideoServiceEndpoints().add(endpointService);
+		
+		Mockito.when(endpointService.getCredentials()).thenReturn(credentials);
+		
+		String id2 = "" + (Math.random()*10000);
+		VideoServiceEndpoint endpointService2 = Mockito.mock(VideoServiceEndpoint.class);
+		SocialEndpointCredentials credentials2 = Mockito.mock(SocialEndpointCredentials.class);
+		Mockito.when(credentials2.getId()).thenReturn(id2);
+		Mockito.when(endpointService2.getCredentials()).thenReturn(credentials2);
+		
+		appAdaptor.getVideoServiceEndpoints().add(endpointService2);
+		
+		VideoServiceEndpoint videoServiceEndPoint = appAdaptor.getVideoServiceEndPoint(id);
+		assertNotNull(videoServiceEndPoint);
+		assertEquals(endpointService, videoServiceEndPoint);
+		
+		videoServiceEndPoint = appAdaptor.getVideoServiceEndPoint(id2);
+		assertNotNull(videoServiceEndPoint);
+		assertEquals(endpointService2, videoServiceEndPoint);
+		
+		
 	}
 
 	@Test

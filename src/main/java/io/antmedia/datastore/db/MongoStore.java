@@ -491,6 +491,22 @@ public class MongoStore implements IDataStore {
 	}
 
 	@Override
+
+	public boolean updateSourceSpeed(String id, double speed) {
+		try {
+
+			Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(id);
+			UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set("speed", speed);
+
+			UpdateResults update = datastore.update(query, ops);
+			return update.getUpdatedCount() == 1;
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return false;
+	}
+
+
 	public SocialEndpointCredentials addSocialEndpointCredentials(SocialEndpointCredentials credentials) {
 		SocialEndpointCredentials addedCredential = null;
 		if (credentials != null && credentials.getAccountName() != null && credentials.getAccessToken() != null
@@ -578,5 +594,6 @@ public class MongoStore implements IDataStore {
 	public void setEndpointCredentialsDS(Datastore endpointCredentialsDS) {
 		this.endpointCredentialsDS = endpointCredentialsDS;
 	}
+
 
 }

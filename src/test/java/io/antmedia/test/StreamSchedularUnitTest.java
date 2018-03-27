@@ -1,5 +1,11 @@
 package io.antmedia.test;
 
+import static org.bytedeco.javacpp.avcodec.av_packet_unref;
+import static org.bytedeco.javacpp.avformat.av_read_frame;
+import static org.bytedeco.javacpp.avformat.avformat_alloc_context;
+import static org.bytedeco.javacpp.avformat.avformat_close_input;
+import static org.bytedeco.javacpp.avformat.avformat_find_stream_info;
+import static org.bytedeco.javacpp.avformat.avformat_open_input;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -9,9 +15,11 @@ import java.io.IOException;
 import javax.servlet.ServletContext;
 import javax.ws.rs.core.Context;
 
+import org.bytedeco.javacpp.avcodec.AVPacket;
 import org.bytedeco.javacpp.avformat;
-import org.bytedeco.javacpp.avutil;
 import org.bytedeco.javacpp.avformat.AVFormatContext;
+import org.bytedeco.javacpp.avutil;
+import org.bytedeco.javacpp.avutil.AVDictionary;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -178,6 +186,67 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		assertFalse(streamScheduler2.prepareInput(inputFormatContext));
 
+	}
+	
+	
+	@Test
+	public void testIPTVStream() {
+		
+		AVFormatContext inputFormatContext = avformat_alloc_context();
+		int ret;
+		String url = "http://kaptaniptv.com:8000/live/oguzmermer2/jNwNLK1VLk/10476.ts";
+		
+		AVDictionary optionsDictionary = new AVDictionary();
+		
+		
+		if ((ret = avformat_open_input(inputFormatContext, url, null, optionsDictionary)) < 0) {
+
+			byte[] data = new byte[1024];
+			avutil.av_strerror(ret, data, data.length);
+			logger.error("cannot open input context with error: " + new String(data, 0, data.length) + "ret value = "+ String.valueOf(ret));
+			return;
+		}
+		
+		ret = avformat_find_stream_info(inputFormatContext, (AVDictionary) null);
+		if (ret < 0) {
+			logger.error("Could not find stream information\n");
+			return;
+		}
+		
+		AVPacket pkt = new AVPacket();
+		
+		long startTime = System.currentTimeMillis();
+		
+		int i = 0;
+		while (true) {
+			 ret = av_read_frame(inputFormatContext, pkt);
+			if (ret < 0) {
+				byte[] data = new byte[1024];
+				avutil.av_strerror(ret, data, data.length);
+				
+				logger.error("cannot read frame from input context: " + new String(data, 0, data.length));	
+			}
+			
+			av_packet_unref(pkt);
+			i++;
+			if (i % 150 == 0) {
+				long duration = System.currentTimeMillis() - startTime;
+				
+				logger.info("running duration: " + (duration/1000));
+			}
+		}
+		/*
+		long duration = System.currentTimeMillis() - startTime;
+		
+		logger.info("total duration: " + (duration/1000));
+		avformat_close_input(inputFormatContext);
+		inputFormatContext = null;
+		
+		*/
+
+		
+		
+		
 	}
 
 }

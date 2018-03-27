@@ -492,6 +492,19 @@ public class InMemoryDataStore implements IDataStore {
 	}
 
 	@Override
+
+	public boolean updateSourceSpeed(String id, double speed) {
+		boolean result = false;
+		if (id != null) {
+			Broadcast broadcast = broadcastMap.get(id);
+			if (broadcast != null) {
+				broadcast.setSpeed(speed);
+				broadcastMap.replace(id, broadcast);
+				result = true;
+			}
+		}
+		return result;
+	}
 	public SocialEndpointCredentials addSocialEndpointCredentials(SocialEndpointCredentials credentials) {
 		SocialEndpointCredentials addedCredential = null;
 		if (credentials != null && credentials.getAccountName() != null && credentials.getAccessToken() != null
