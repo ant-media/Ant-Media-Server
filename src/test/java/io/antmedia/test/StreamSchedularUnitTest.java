@@ -203,7 +203,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 			byte[] data = new byte[1024];
 			avutil.av_strerror(ret, data, data.length);
-			logger.error("cannot open input context with error: " + new String(data, 0, data.length));
+			logger.error("cannot open input context with error: " + new String(data, 0, data.length) + "ret value = "+ String.valueOf(ret));
 			return;
 		}
 		
@@ -224,7 +224,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 				byte[] data = new byte[1024];
 				avutil.av_strerror(ret, data, data.length);
 				
-				logger.error("cannot read frame from input context: " + new String(data, 0, data.length) + "ret value = "+ String.valueOf(ret));	
+				logger.error("cannot read frame from input context: " + new String(data, 0, data.length));	
 			}
 			
 			av_packet_unref(pkt);
