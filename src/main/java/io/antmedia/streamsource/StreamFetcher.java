@@ -247,8 +247,11 @@ public class StreamFetcher {
 							AV_ROUND_NEAR_INF | AV_ROUND_PASS_MINMAX));
 					pkt.duration(av_rescale_q(pkt.duration(), in_stream.time_base(), out_stream.time_base()));
 					pkt.pos(-1);
+					
 
 					ret = av_interleaved_write_frame(outputRTMPFormatContext, pkt);
+					
+					
 					if (ret < 0) {
 						logger.info("cannot write frame to muxer");
 						break;
@@ -301,6 +304,14 @@ public class StreamFetcher {
 
 		exceptionInThread = false;
 		thread = new WorkerThread();
+		
+		while(thread.isAlive()) {
+			try {
+				Thread.sleep(3000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
 		thread.start();
 
 		// this.appAdaptor.addScheduledOnceJob(10, this);
