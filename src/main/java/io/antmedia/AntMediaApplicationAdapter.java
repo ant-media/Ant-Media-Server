@@ -67,6 +67,8 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 
 	private List<VideoServiceEndpoint> videoServiceEndpoints = new ArrayList<>();
+	private List<VideoServiceEndpoint> videoServiceEndpointsHavingError = new ArrayList<>();
+	
 	private List<IStreamPublishSecurity> streamPublishSecurityList;
 
 	private HashMap<String, OnvifCamera> onvifCameraList = new HashMap<String, OnvifCamera>();
@@ -84,6 +86,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	}
 
 	private AppSettings appSettings;
+	
 
 	@Override
 	public boolean appStart(IScope app) {
@@ -340,10 +343,9 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 				Broadcast broadcast = dataStore.get(streamId);
 
 				if (broadcast != null) {
-
 					streamName = broadcast.getName();
-
-				} else {
+				} 
+				else {
 					streamName = "deleted stream";
 				}
 
@@ -391,10 +393,18 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 				if (!videoServiceEndpoint.askIfDeviceAuthenticated()) {
 					count++;
 					if (count < 10) {
-						service.addScheduledOnceJob(interval, new AuthCheckJob(count, interval, videoServiceEndpoint, appAdapter));
-						logger.info("Asking authetnication for {}", videoServiceEndpoint.getName());
+						if (videoServiceEndpoint.getError() == null) {
+							service.addScheduledOnceJob(interval, new AuthCheckJob(count, interval, videoServiceEndpoint, appAdapter));
+							logger.info("Asking authetnication for {}", videoServiceEndpoint.getName());
+						}
+						else {
+							//there is an error so do not ask again
+							this.appAdapter.getVideoServiceEndpointsHavingError().add(videoServiceEndpoint);
+						}
 					}
 					else {
+						videoServiceEndpoint.setError(VideoServiceEndpoint.AUTHENTICATION_TIMEOUT);
+						this.appAdapter.getVideoServiceEndpointsHavingError().add(videoServiceEndpoint);
 						logger.info("Not authenticated for {} and will not try again", videoServiceEndpoint.getName());
 					}
 				}
@@ -419,6 +429,10 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		return videoServiceEndpoints;
 	}
 
+	public List<VideoServiceEndpoint> getVideoServiceEndpointsHavingError(){
+		return videoServiceEndpointsHavingError ;
+	}
+	
 	public void setVideoServiceEndpoints(List<VideoServiceEndpoint> videoServiceEndpoints) {
 		this.videoServiceEndpoints = videoServiceEndpoints;
 	}

@@ -24,6 +24,9 @@ import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
 public abstract class VideoServiceEndpoint {
 
 	public static final Long THREE_DAYS_IN_MS = 1000 * 60 * 60 * 24 * 3L; 
+	
+	public static final String LIVE_STREAMING_NOT_ENABLED = "LIVE_STREAMING_NOT_ENABLED";
+	public static final String AUTHENTICATION_TIMEOUT = "AUTHENTICATION_TIMEOUT";
 
 
 	protected static Logger logger = LoggerFactory.getLogger(VideoServiceEndpoint.class);
@@ -64,6 +67,9 @@ public abstract class VideoServiceEndpoint {
 	private SocialEndpointCredentials credentials;
 	
 	protected DeviceAuthParameters authParameters;
+	
+	private String error;
+	
 
 	public VideoServiceEndpoint(String clientId, String clientSecret, IDataStore dataStore, SocialEndpointCredentials endpointCredentials) {
 		this.clientId = clientId;
@@ -258,6 +264,14 @@ public abstract class VideoServiceEndpoint {
 
 	public void setAuthParameters(DeviceAuthParameters authParameters) {
 		this.authParameters = authParameters;
+	}
+
+	public String getError() {
+		return error;
+	}
+
+	public void setError(String error) {
+		this.error = error;
 	}
 
 

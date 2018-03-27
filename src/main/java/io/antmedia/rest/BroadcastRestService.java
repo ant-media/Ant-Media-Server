@@ -911,6 +911,7 @@ public class BroadcastRestService {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result checkDeviceAuthStatus(@PathParam("userCode") String userCode) {
 		List<VideoServiceEndpoint> endPoint = getEndpointList();
+		String message = null;
 		boolean authenticated = false;
 		String endpointId = null;
 		if (endPoint != null) {
@@ -927,7 +928,22 @@ public class BroadcastRestService {
 				}
 			}
 		}
-		return new Result(authenticated, endpointId, null);
+		if (!authenticated) {
+			endPoint = getEndpointsHavingErrorList();
+			for (VideoServiceEndpoint videoServiceEndpoint : endPoint) {
+				DeviceAuthParameters authParameters = videoServiceEndpoint.getAuthParameters();
+				if (authParameters != null) {
+					if (authParameters.user_code.equals(userCode)) {
+						authenticated = false;
+						message = videoServiceEndpoint.getError();
+						endPoint.remove(videoServiceEndpoint);
+						break;
+					}
+				}
+			}
+			
+		}
+		return new Result(authenticated, endpointId, message);
 	}
 
 
@@ -1067,6 +1083,10 @@ public class BroadcastRestService {
 
 	protected List<VideoServiceEndpoint> getEndpointList() {
 		return ((AntMediaApplicationAdapter) getApplication()).getVideoServiceEndpoints();
+	}
+	
+	protected List<VideoServiceEndpoint> getEndpointsHavingErrorList(){
+		return ((AntMediaApplicationAdapter) getApplication()).getVideoServiceEndpointsHavingError();
 	}
 
 	private ApplicationContext getAppContext() {
