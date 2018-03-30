@@ -189,7 +189,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 	
 	
-	@Test
+	
 	public void testIPTVStream() {
 		
 		AVFormatContext inputFormatContext = avformat_alloc_context();
