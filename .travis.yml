@@ -16,6 +16,7 @@ before_install:
   - sudo apt-get update -qq
   - sudo apt-get install -y mongodb-org #install mongodb
   - sudo apt-get install ffmpeg -qq # start ffmpeg
+  - sudo apt-get install wondershaper 
   - sudo service mongod start  # start mongo db
   - sudo git clone https://github.com/ant-media/utilities.git /usr/local/onvif
   - git clone https://github.com/ant-media/Ant-Media-Server-Common.git && cd Ant-Media-Server-Common && git checkout dev && mvn clean install -DskipTests -Dmaven.javadoc.skip=true --quiet && cd ..

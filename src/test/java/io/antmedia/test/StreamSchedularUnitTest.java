@@ -6,11 +6,15 @@ import static org.bytedeco.javacpp.avformat.avformat_alloc_context;
 import static org.bytedeco.javacpp.avformat.avformat_close_input;
 import static org.bytedeco.javacpp.avformat.avformat_find_stream_info;
 import static org.bytedeco.javacpp.avformat.avformat_open_input;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.servlet.ServletContext;
 import javax.ws.rs.core.Context;
@@ -24,14 +28,33 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.red5.server.api.scope.IScope;
+import org.red5.server.scope.WebScope;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
+import org.springframework.web.context.WebApplicationContext;
+import org.springframework.web.context.support.WebApplicationContextUtils;
 
+import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.integration.RestServiceTest;
+import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.streamsource.StreamFetcher;
 
 @ContextConfiguration(locations = { "test.xml" })
 public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
+	
+	public AntMediaApplicationAdapter app = null;
+	private WebScope appScope;
+	private MapDBStore dbStore;
+	private ApplicationContext appCtx;
+	private IScope scope;
+	protected static Logger logger = LoggerFactory.getLogger(StreamSchedularUnitTest.class);
+	private BroadcastRestService rest;
 
 	@Context
 	private ServletContext servletContext;
@@ -59,6 +82,21 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		if (!junit.exists()) {
 			junit.mkdirs();
 		}
+		
+		if (appScope == null) {
+			appScope = (WebScope) applicationContext.getBean("web.scope");
+			logger.debug("Application / web scope: {}", appScope);
+			assertTrue(appScope.getDepth() == 1);
+		}
+
+		if (app == null) {
+			app = (AntMediaApplicationAdapter) applicationContext.getBean("web.handler");
+			logger.debug("Application / web scope: {}", appScope);
+			assertTrue(appScope.getDepth() == 1);
+		}
+		
+		
+		
 	}
 
 	@After
@@ -243,10 +281,77 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		inputFormatContext = null;
 		
 		*/
+		
+	}
+	
+	@Test
+	public void testBandwidth() {
+		
+		RestServiceTest restService = new RestServiceTest();
+		
+		Broadcast newSource = new Broadcast("test1", "10.2.40.63:8080", "admin", "admin", "rtsp://184.72.239.149/vod/mp4:BigBuckBunny_115k.mov",
+				"streamSource");
+		
+		restService.save(newSource);
 
+		List<Broadcast> streams = new ArrayList<>();
+
+		streams.add(newSource);
+		
+		app.getSources().startStreams(streams);
+		
+
+		
+		
+		try {
+			Thread.sleep(20000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		
+		assertEquals("good", restService.getBroadcast(newSource.getStreamId()).getQuality());	
+		
+		
+
+	
+		
+		ProcessBuilder pb = new ProcessBuilder("/usr/bin/wondershaper -a eth0 -d 1000 -u 1000" , "myArg1", "myArg2");
+		Process p = null;
+		try {
+			p = pb.start();
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		
+		try {
+			Thread.sleep(20000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		assertNotEquals("good", restService.getBroadcast(newSource.getStreamId()).getQuality());
+		
+		
+		ProcessBuilder pb2 = new ProcessBuilder("sudo /usr/bin/wondershaper -c -a eth0" , "myArg1", "myArg2");
+		Process p2 = null;
+		try {
+			p2 = pb2.start();
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
 		
 		
 		
 	}
 
+	
+
+	
 }
+	
+
