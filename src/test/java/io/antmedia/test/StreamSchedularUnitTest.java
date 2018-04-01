@@ -317,7 +317,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 	
 		
-		ProcessBuilder pb = new ProcessBuilder("/usr/bin/wondershaper -a eth0 -d 1000 -u 1000" , "myArg1", "myArg2");
+		ProcessBuilder pb = new ProcessBuilder("/usr/local/wondershaper/limit.sh" , "myArg1", "myArg2");
 		Process p = null;
 		try {
 			p = pb.start();
@@ -336,7 +336,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		assertNotEquals("good", restService.getBroadcast(newSource.getStreamId()).getQuality());
 		
 		
-		ProcessBuilder pb2 = new ProcessBuilder("sudo /usr/bin/wondershaper -c -a eth0" , "myArg1", "myArg2");
+		ProcessBuilder pb2 = new ProcessBuilder("/usr/local/wondershaper/reset.sh" , "myArg1", "myArg2");
 		Process p2 = null;
 		try {
 			p2 = pb2.start();
