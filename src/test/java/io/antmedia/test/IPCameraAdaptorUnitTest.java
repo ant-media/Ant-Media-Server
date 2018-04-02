@@ -79,7 +79,7 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 
 		// define camera according to onvif emulator parameters
 
-		Broadcast newCam = new Broadcast("test", "127.0.0.1:8080", "admin", "admin", "rtsp://127.0.0.1:6554/test.flv",
+		Broadcast newCam = new Broadcast("testOnvif", "127.0.0.1:8080", "admin", "admin", "rtsp://127.0.0.1:6554/test.flv",
 				"ipCamera");
 
 		List<Broadcast> cameras = new ArrayList<>();
