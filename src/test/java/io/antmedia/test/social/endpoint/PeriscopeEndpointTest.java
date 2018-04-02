@@ -181,7 +181,7 @@ public class PeriscopeEndpointTest {
 
 			execute.destroy();
 			
-			Thread.sleep(10000);
+			Thread.sleep(15000);
 			
 			status = endPoint.getBroadcast(endpoint);
 			assertEquals(BroadcastStatus.UNPUBLISHED, status);
