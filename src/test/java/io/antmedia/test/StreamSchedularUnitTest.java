@@ -304,7 +304,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 		try {
-			Thread.sleep(15000);
+			Thread.sleep(20000);
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -385,11 +385,27 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		String[] argsStop8 = new String[] { "/bin/bash", "-c",
+		"sudo wondershaper -a vmnet0 -d 100 -u 100" };
+		try {
+			Process procStop = new ProcessBuilder(argsStop8).start();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		String[] argsStop9 = new String[] { "/bin/bash", "-c",
+		"sudo wondershaper -a vmnet1 -d 100 -u 100" };
+		try {
+			Process procStop = new ProcessBuilder(argsStop9).start();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		
 
 
 		try {
-			Thread.sleep(20000);
+			Thread.sleep(40000);
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -462,6 +478,22 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		"sudo wondershaper -c -a nic4" };
 		try {
 			Process procStop = new ProcessBuilder(argsReset7).start();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		String[] argsReset8= new String[] { "/bin/bash", "-c",
+		"sudo wondershaper -c -a vmnet0" };
+		try {
+			Process procStop = new ProcessBuilder(argsReset8).start();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		String[] argsReset9= new String[] { "/bin/bash", "-c",
+		"sudo wondershaper -c -a vmnet1" };
+		try {
+			Process procStop = new ProcessBuilder(argsReset9).start();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
