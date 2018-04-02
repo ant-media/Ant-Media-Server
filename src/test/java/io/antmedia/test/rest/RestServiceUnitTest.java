@@ -6,29 +6,26 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.red5.server.scope.Scope;
-import org.springframework.test.context.ContextConfiguration;
 
 import com.google.gson.Gson;
-import com.restfb.types.Application.ApplicationContext;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
-import io.antmedia.datastore.db.MongoStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.model.Result;
-
-import static org.mockito.Mockito.*;
-
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 
 public class RestServiceUnitTest  {
 

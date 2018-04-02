@@ -593,7 +593,7 @@ public class MuxingTest {
 			urlConnection.setRequestMethod("GET");
 			urlConnection.setDoInput(true);
 
-			urlConnection.setFollowRedirects(true);
+			HttpURLConnection.setFollowRedirects(true);
 			urlConnection.connect();
 
 			InputStream in = urlConnection.getInputStream(); // getAssets().open("kralfmtop10.htm");

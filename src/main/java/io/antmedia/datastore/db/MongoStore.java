@@ -55,7 +55,7 @@ public class MongoStore implements IDataStore {
 	public MongoStore(String host, String username, String password, String dbName) {
 		morphia = new Morphia();
 		morphia.mapPackage("io.antmedia.datastore.db.types");
-		List<MongoCredential> credentialList = new ArrayList();
+		List<MongoCredential> credentialList = new ArrayList<MongoCredential>();
 		credentialList.add(MongoCredential.createCredential(username, dbName, password.toCharArray()));
 		datastore = morphia.createDatastore(new MongoClient(new ServerAddress(host), credentialList), dbName);
 		vodDatastore=morphia.createDatastore(new MongoClient(new ServerAddress(host), credentialList), dbName+"Vod");

@@ -36,8 +36,8 @@ import org.slf4j.bridge.SLF4JBridgeHandler;
 import org.springframework.context.support.FileSystemXmlApplicationContext;
 
 import com.brsanthu.googleanalytics.GoogleAnalytics;
-import com.brsanthu.googleanalytics.GoogleAnalyticsConfig;
 
+import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.rest.BroadcastRestService;
 
 /**
@@ -83,7 +83,7 @@ public class Launcher {
 		// get the first logger
 		Logger log = Red5LoggerFactory.getLogger(Launcher.class);
 		// version info banner
-		String implementationVersion = io.antmedia.Version.class.getPackage().getImplementationVersion();
+		String implementationVersion = AntMediaApplicationAdapter.class.getPackage().getImplementationVersion();
 		String type = BroadcastRestService.isEnterprise() ? "Enterprise" : "Community";
 		log.info("Ant Media Server {} {}", type, implementationVersion);
 		if (log.isDebugEnabled()) {

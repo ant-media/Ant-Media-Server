@@ -1,6 +1,5 @@
 package com.antstreaming.rtsp;
 
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.HashSet;
 import java.util.List;
@@ -13,8 +12,6 @@ import org.apache.mina.filter.codec.ProtocolCodecFilter;
 import org.apache.mina.filter.executor.ExecutorFilter;
 import org.apache.mina.transport.socket.nio.NioSocketAcceptor;
 import org.red5.server.jmx.mxbeans.RTMPMinaTransportMXBean;
-import org.red5.server.net.rtmp.RTMPMinaIoHandler;
-import org.red5.server.net.rtmp.RTMPMinaTransport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

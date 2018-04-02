@@ -1,91 +1,37 @@
 package com.antstreaming.rtsp;
 
-import static org.bytedeco.javacpp.avcodec.AV_CODEC_FLAG_GLOBAL_HEADER;
-import static org.bytedeco.javacpp.avcodec.av_packet_unref;
-import static org.bytedeco.javacpp.avcodec.avcodec_parameters_from_context;
-import static org.bytedeco.javacpp.avcodec.avcodec_parameters_to_context;
-import static org.bytedeco.javacpp.avformat.*;
-import static org.bytedeco.javacpp.avutil.AV_ROUND_NEAR_INF;
-import static org.bytedeco.javacpp.avutil.AV_ROUND_PASS_MINMAX;
-import static org.bytedeco.javacpp.avutil.AV_TIME_BASE;
-import static org.bytedeco.javacpp.avutil.av_dict_set;
-import static org.bytedeco.javacpp.avutil.av_rescale_q;
-import static org.bytedeco.javacpp.avutil.av_rescale_q_rnd;
-
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Date;
-import java.util.Map;
 import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.mina.core.session.IoSession;
-import org.bytedeco.javacpp.PointerPointer;
-import org.bytedeco.javacpp.avformat;
-import org.bytedeco.javacpp.avutil;
-import org.bytedeco.javacpp.avcodec.AVCodecParameters;
-import org.bytedeco.javacpp.avcodec.AVPacket;
-import org.bytedeco.javacpp.avformat.AVFormatContext;
-import org.bytedeco.javacpp.avformat.AVIOContext;
-import org.bytedeco.javacpp.avformat.AVOutputFormat;
-import org.bytedeco.javacpp.avformat.AVStream;
-import org.bytedeco.javacpp.avutil.AVDictionary;
-import org.bytedeco.javacpp.avutil.AVRational;
-import org.red5.server.BaseConnection;
-import org.red5.server.api.IConnection;
 import org.red5.server.api.IContext;
 import org.red5.server.api.IServer;
-import org.red5.server.api.scope.IBroadcastScope;
 import org.red5.server.api.scope.IGlobalScope;
 import org.red5.server.api.scope.IScope;
-import org.red5.server.api.service.IPendingServiceCallback;
-import org.red5.server.api.service.IServiceCall;
-import org.red5.server.api.service.IServiceCapableConnection;
-import org.red5.server.api.stream.IClientBroadcastStream;
-import org.red5.server.api.stream.IClientStream;
-import org.red5.server.api.stream.IPlaylistSubscriberStream;
-import org.red5.server.api.stream.ISingleItemSubscriberStream;
-import org.red5.server.api.stream.IStreamCapableConnection;
 import org.red5.server.api.stream.IStreamFilenameGenerator;
-import org.red5.server.api.stream.IStreamService;
-import org.red5.server.messaging.IMessageInput;
-import org.red5.server.net.rtmp.IReceivedMessageTaskQueueListener;
-import org.red5.server.net.rtmp.RTMPConnection;
-import org.red5.server.net.rtmp.RTMPMinaConnection;
-import org.red5.server.net.rtmp.ReceivedMessageTaskQueue;
-import org.red5.server.net.rtmp.message.Packet;
-import org.red5.server.net.rtmp.status.Status;
 import org.red5.server.api.stream.IStreamFilenameGenerator.GenerationType;
-import org.red5.server.stream.AbstractClientStream;
-import org.red5.server.stream.ClientBroadcastStream;
+import org.red5.server.net.rtmp.RTMPMinaConnection;
+import org.red5.server.scope.Scope;
 import org.red5.server.stream.DefaultStreamFilenameGenerator;
 import org.red5.server.stream.IProviderService;
 import org.red5.server.stream.IProviderService.INPUT_TYPE;
-import org.red5.server.stream.ProviderService;
-import org.red5.server.stream.StreamService;
 import org.red5.server.util.ScopeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationContext;
-import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 
 import com.antstreaming.rtsp.protocol.RTSPTransport;
+import com.antstreaming.rtsp.protocol.RTSPTransport.LowerTransport;
 import com.antstreaming.rtsp.protocol.RtspCode;
 import com.antstreaming.rtsp.protocol.RtspHeaderCode;
 import com.antstreaming.rtsp.protocol.RtspRequest;
 import com.antstreaming.rtsp.protocol.RtspResponse;
-import com.antstreaming.rtsp.protocol.RTSPTransport.LowerTransport;
-import com.antstreaming.rtsp.protocol.RtspRequest.Verb;
 import com.antstreaming.rtsp.session.DateUtil;
 
 public class RtspConnection  extends RTMPMinaConnection implements IMuxerListener {
@@ -117,11 +63,7 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 
 	private int[][] clientPort;
 
-	private String remoteAddress;
-
 	private StringBuffer liveStreamSdpDef;
-
-	private ApplicationContext mApplicationContext;
 
 	//	private File streamFile;
 
@@ -130,8 +72,6 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 	private PacketReceiverRunnable frameReceiver;
 
 	private PacketSenderRunnable frameSender;
-
-	private IScope scope;
 
 	private String announcedStreamName;
 
@@ -307,7 +247,7 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 			if (global != null) {
 				IContext context = global.getContext();
 				if (context != null) {
-					scope = context.resolveScope(global, app);
+					scope = (Scope)context.resolveScope(global, app);
 				}
 			}
 		}
@@ -599,7 +539,7 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 			}
 
 
-			if (frameSender.prepare_output_context(streamId, remoteAddress, clientPort[streamId], serverPort[streamId])) {
+			if (frameSender.prepareOutputContext(streamId, remoteAddress, clientPort[streamId], serverPort[streamId])) {
 				response.setCode(RtspCode.OK);
 				response.setHeader(RtspHeaderCode.CSeq, cseq);
 				response.setHeader(RtspHeaderCode.Session, mSessionKey);
@@ -652,7 +592,7 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 			mPacketSenderScheduledFuture.cancel(true);
 			int streamCount = frameSender.getStreamCount();
 			for (int i = 0; i < streamCount; i++) {
-				if (!frameSender.prepare_output_context(i, remoteAddress, clientPort[i], serverPort[i])) {
+				if (!frameSender.prepareOutputContext(i, remoteAddress, clientPort[i], serverPort[i])) {
 					logger.debug("prepare output context failed...");
 				}
 				else {
@@ -848,16 +788,5 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 	public void setServer(IServer server) {
 		this.mServer = server;
 	}
-
-
-	public void setApplicationContext(ApplicationContext applicationContext) {
-		this.mApplicationContext = applicationContext;
-	}
-
-
-
-
-
-
 
 }

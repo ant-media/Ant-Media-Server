@@ -1,17 +1,15 @@
 package io.antmedia.test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.List;
-import java.util.UUID;
 
 import org.junit.Test;
 import org.red5.server.Launcher;
-
-import com.brsanthu.googleanalytics.GoogleAnalytics;
 
 import io.antmedia.AppSettings;
 import io.antmedia.EncoderSettings;
@@ -36,7 +34,7 @@ public class AppSettingsUnitTest {
 		String encoderSettingString = height1+"," + videoBitrate1 + "," + audioBitrate1
 				+ "," + height2 +"," + videoBitrate2 + "," + audioBitrate2
 				+ "," + height3 +"," + videoBitrate3 + "," + audioBitrate3;
-		List<EncoderSettings> list = appSettings.getEncoderSettingsList(encoderSettingString);
+		List<EncoderSettings> list = AppSettings.getEncoderSettingsList(encoderSettingString);
 		
 	
 		

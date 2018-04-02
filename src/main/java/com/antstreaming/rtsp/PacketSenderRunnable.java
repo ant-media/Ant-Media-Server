@@ -1,11 +1,12 @@
 package com.antstreaming.rtsp;
 
+import static org.bytedeco.javacpp.avcodec.AV_CODEC_FLAG_GLOBAL_HEADER;
+import static org.bytedeco.javacpp.avcodec.av_packet_unref;
+import static org.bytedeco.javacpp.avcodec.avcodec_parameters_copy;
 import static org.bytedeco.javacpp.avformat.AVFMT_GLOBALHEADER;
 import static org.bytedeco.javacpp.avformat.AVFMT_NOFILE;
 import static org.bytedeco.javacpp.avformat.AVIO_FLAG_WRITE;
-import static org.bytedeco.javacpp.avformat.av_interleaved_write_frame;
 import static org.bytedeco.javacpp.avformat.av_read_frame;
-import static org.bytedeco.javacpp.avformat.av_register_all;
 import static org.bytedeco.javacpp.avformat.av_sdp_create;
 import static org.bytedeco.javacpp.avformat.av_write_frame;
 import static org.bytedeco.javacpp.avformat.av_write_trailer;
@@ -13,7 +14,6 @@ import static org.bytedeco.javacpp.avformat.avformat_alloc_output_context2;
 import static org.bytedeco.javacpp.avformat.avformat_close_input;
 import static org.bytedeco.javacpp.avformat.avformat_find_stream_info;
 import static org.bytedeco.javacpp.avformat.avformat_free_context;
-import static org.bytedeco.javacpp.avformat.avformat_network_init;
 import static org.bytedeco.javacpp.avformat.avformat_new_stream;
 import static org.bytedeco.javacpp.avformat.avformat_open_input;
 import static org.bytedeco.javacpp.avformat.avformat_write_header;
@@ -23,25 +23,17 @@ import static org.bytedeco.javacpp.avutil.AV_ROUND_PASS_MINMAX;
 import static org.bytedeco.javacpp.avutil.AV_TIME_BASE;
 import static org.bytedeco.javacpp.avutil.av_rescale_q;
 import static org.bytedeco.javacpp.avutil.av_rescale_q_rnd;
-import static org.bytedeco.javacpp.avcodec.*;
 
-import java.lang.annotation.Annotation;
-import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
-import org.bytedeco.javacpp.BytePointer;
 import org.bytedeco.javacpp.PointerPointer;
-import org.bytedeco.javacpp.avformat;
-import org.bytedeco.javacpp.avutil;
-import org.bytedeco.javacpp.annotation.ByPtrPtr;
-import org.bytedeco.javacpp.avcodec.AVCodecParameters;
 import org.bytedeco.javacpp.avcodec.AVPacket;
+import org.bytedeco.javacpp.avformat;
 import org.bytedeco.javacpp.avformat.AVFormatContext;
 import org.bytedeco.javacpp.avformat.AVIOContext;
 import org.bytedeco.javacpp.avformat.AVOutputFormat;
 import org.bytedeco.javacpp.avformat.AVStream;
-import org.bytedeco.javacpp.avutil.AVDictionary;
+import org.bytedeco.javacpp.avutil;
 import org.bytedeco.javacpp.avutil.AVRational;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -86,7 +78,7 @@ public class PacketSenderRunnable implements Runnable {
 		return inputFormatContext.duration();
 	}
 
-	public boolean prepare_output_context(int streamId, String remoteAddress, int[] clientPort, int[] serverPort) {
+	public boolean prepareOutputContext(int streamId, String remoteAddress, int[] clientPort, int[] serverPort) {
 		if (outputFormatContext == null) {
 			outputFormatContext = new AVFormatContext[inputFormatContext.nb_streams()];
 		}
@@ -100,7 +92,7 @@ public class PacketSenderRunnable implements Runnable {
 		AVOutputFormat ofmt = outputFormatContext[streamId].oformat();
 		AVStream in_stream = inputFormatContext.streams(streamId);
 		AVStream out_stream = avformat_new_stream(outputFormatContext[streamId], in_stream.codec().codec());
-		
+
 		streamTimeBase[streamId] = in_stream.time_base();
 
 		ret = avcodec_parameters_copy(out_stream.codecpar(), in_stream.codecpar());
@@ -157,7 +149,7 @@ public class PacketSenderRunnable implements Runnable {
 				outputFormatContext[streamId].pb(pb);
 			}
 		}
-		ret = avformat_write_header(outputFormatContext[streamId], (PointerPointer)null);
+		ret = avformat_write_header(outputFormatContext[streamId], (PointerPointer<?>)null);
 		if (ret < 0) {
 			logger.warn("cannot write header with error: " + ret);
 			return false;
@@ -198,22 +190,27 @@ public class PacketSenderRunnable implements Runnable {
 
 					AVRational inStreamTimeBase = streamTimeBase[packetIndex]; 
 					/* copy packet */
-					AVRational avRational = new AVRational();
-					avRational.num(1);
-					avRational.den(AV_TIME_BASE);
-					packetSentTime = av_rescale_q(pkt.dts(), inStreamTimeBase, avRational); // + pkt.duration(); 
-					if (firstPacketSentTime == 0) {
-						firstPacketSentTime = packetSentTime;
+					try (AVRational avRational = new AVRational()) {
+						avRational.num(1);
+						avRational.den(AV_TIME_BASE);
+
+						packetSentTime = av_rescale_q(pkt.dts(), inStreamTimeBase, avRational); // + pkt.duration(); 
+						if (firstPacketSentTime == 0) {
+							firstPacketSentTime = packetSentTime;
+						}
+
+						//pkt.dts() + pkt.duration();
+						pkt.pts(av_rescale_q_rnd(pkt.pts(), inStreamTimeBase, out_stream.time_base(), AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
+						pkt.dts(av_rescale_q_rnd(pkt.dts(), inStreamTimeBase, out_stream.time_base(), AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
+						pkt.duration(av_rescale_q(pkt.duration(), inStreamTimeBase, out_stream.time_base()));
+						pkt.pos(-1);
+
+						//stream index is always zero because rtp can contain one stream
+						pkt.stream_index(0);
 					}
-
-					//pkt.dts() + pkt.duration();
-					pkt.pts(av_rescale_q_rnd(pkt.pts(), inStreamTimeBase, out_stream.time_base(), AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
-					pkt.dts(av_rescale_q_rnd(pkt.dts(), inStreamTimeBase, out_stream.time_base(), AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
-					pkt.duration(av_rescale_q(pkt.duration(), inStreamTimeBase, out_stream.time_base()));
-					pkt.pos(-1);
-
-					//stream index is always zero because rtp can contain one stream
-					pkt.stream_index(0);
+					catch (Exception e) {
+						e.printStackTrace();
+					}
 
 				}
 
@@ -322,8 +319,8 @@ public class PacketSenderRunnable implements Runnable {
 
 		if (createSDP) 
 		{
-		
-			ret = avformat_find_stream_info(inputFormatContext, (PointerPointer)null); 
+
+			ret = avformat_find_stream_info(inputFormatContext, (PointerPointer<?>)null); 
 			if (ret < 0) {
 				byte[] data = new byte[4096];
 				avutil.av_strerror(ret, data, data.length);
@@ -349,7 +346,7 @@ public class PacketSenderRunnable implements Runnable {
 				logger.warn("sdp description does not have rtpmap field");
 				return null;
 			}
-			
+
 			streamTimeBase = new AVRational[inputFormatContext.nb_streams()];
 
 			return sdpString.trim();

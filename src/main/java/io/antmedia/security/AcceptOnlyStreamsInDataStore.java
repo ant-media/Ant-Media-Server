@@ -8,7 +8,6 @@ import org.slf4j.LoggerFactory;
 
 import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.rest.BroadcastRestService;
 
 public class AcceptOnlyStreamsInDataStore implements IStreamPublishSecurity  {
 	

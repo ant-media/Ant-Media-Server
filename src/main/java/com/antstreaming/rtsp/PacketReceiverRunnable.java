@@ -3,8 +3,6 @@ package com.antstreaming.rtsp;
 import static org.bytedeco.javacpp.avcodec.AV_CODEC_FLAG_GLOBAL_HEADER;
 import static org.bytedeco.javacpp.avcodec.av_packet_unref;
 import static org.bytedeco.javacpp.avcodec.avcodec_parameters_copy;
-import static org.bytedeco.javacpp.avcodec.avcodec_parameters_from_context;
-import static org.bytedeco.javacpp.avcodec.avcodec_parameters_to_context;
 import static org.bytedeco.javacpp.avformat.AVFMT_GLOBALHEADER;
 import static org.bytedeco.javacpp.avformat.AVFMT_NOFILE;
 import static org.bytedeco.javacpp.avformat.AVIO_FLAG_WRITE;
@@ -28,20 +26,18 @@ import static org.bytedeco.javacpp.avutil.av_rescale_q_rnd;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.OutputStream;
 import java.net.URI;
 import java.util.Date;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.mina.core.session.IoSession;
 import org.bytedeco.javacpp.PointerPointer;
-import org.bytedeco.javacpp.avformat;
-import org.bytedeco.javacpp.avcodec.AVCodecParameters;
 import org.bytedeco.javacpp.avcodec.AVPacket;
+import org.bytedeco.javacpp.avformat;
 import org.bytedeco.javacpp.avformat.AVFormatContext;
 import org.bytedeco.javacpp.avformat.AVIOContext;
 import org.bytedeco.javacpp.avformat.AVInputFormat;
 import org.bytedeco.javacpp.avformat.AVStream;
-import org.bytedeco.javacpp.avutil;
 import org.bytedeco.javacpp.avutil.AVDictionary;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -82,11 +78,13 @@ public class PacketReceiverRunnable implements Runnable {
 	}
 
 	public boolean prepare_input_context(ThreadPoolTaskScheduler mTaskScheduler, final String cseq, final String sessionKey, final IoSession session, String announcedStreamName, StringBuffer liveStreamSdpDef, String streamUrl) {
+		
 		try {
 			sdpFile = new File(announcedStreamName + ".sdp");
-			FileOutputStream fos = new FileOutputStream(sdpFile);
-			fos.write(liveStreamSdpDef.toString().getBytes());
-			fos.close();
+			
+			try (OutputStream fos = new FileOutputStream(sdpFile)) {
+				fos.write(liveStreamSdpDef.toString().getBytes());
+			}
 
 			inputFormatCtx = new AVFormatContext(null);
 			
@@ -118,7 +116,7 @@ public class PacketReceiverRunnable implements Runnable {
 				}
 			}, new Date());
 
-			if (avformat_find_stream_info(inputFormatCtx, (PointerPointer)null) < 0) {
+			if (avformat_find_stream_info(inputFormatCtx, (PointerPointer<?>)null) < 0) {
 				logger.debug("Could not get stream info");
 				return false;
 			}
@@ -130,21 +128,21 @@ public class PacketReceiverRunnable implements Runnable {
 
 			lastDTS = new long[this.inputFormatCtx.nb_streams()];
 			for (int i=0; i < inputFormatCtx.nb_streams(); i++) {
-				AVStream in_stream = inputFormatCtx.streams(i);
-				AVStream out_stream = avformat_new_stream(outputRTMPFormatContext, in_stream.codec().codec());
+				AVStream inStream = inputFormatCtx.streams(i);
+				AVStream outStream = avformat_new_stream(outputRTMPFormatContext, inStream.codec().codec());
 
 				
-				ret = avcodec_parameters_copy(out_stream.codecpar(), in_stream.codecpar());
+				ret = avcodec_parameters_copy(outStream.codecpar(), inStream.codecpar());
 				
 				if (ret < 0) {
 					logger.debug("Cannot get codec parameters\n");
 					return false;
 				}
 
-				out_stream.codec().codec_tag(0);
+				outStream.codec().codec_tag(0);
 				
 				if ((outputRTMPFormatContext.oformat().flags() & AVFMT_GLOBALHEADER) != 0) {
-					out_stream.codec().flags(out_stream.codec().flags() | AV_CODEC_FLAG_GLOBAL_HEADER);
+					outStream.codec().flags(outStream.codec().flags() | AV_CODEC_FLAG_GLOBAL_HEADER);
 				}
 				
 				//initialize last decoding time stamp reference value
@@ -159,7 +157,7 @@ public class PacketReceiverRunnable implements Runnable {
 				URI url = new URI(streamUrl);
 				String urlStr = "rtmp://" + url.getHost() + "/" + url.getPath();
 				//				logger.debug("rtmp url: " + urlStr);
-				//
+				
 				ret = avformat.avio_open(pb,  urlStr, AVIO_FLAG_WRITE);
 				outputRTMPFormatContext.pb(pb);
 
@@ -173,6 +171,7 @@ public class PacketReceiverRunnable implements Runnable {
 		catch (Exception e) {
 			e.printStackTrace();
 		}
+		
 
 		return true;
 	}
