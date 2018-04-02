@@ -1092,7 +1092,7 @@ public class BroadcastRestService {
 	
 	@Nullable
 	private ApplicationContext getAppContext() {
-		if (appCtx == null && servletContext != null) {
+		if (servletContext != null) {
 			appCtx = (ApplicationContext) servletContext
 					.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
 			
