@@ -311,6 +311,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 
 		logger.info("before first control");
+		
 		assertEquals("good", restService.getBroadcast(newSource.getStreamId()).getQuality());	
 
 
@@ -428,7 +429,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 
 		logger.info("before second control");
-		assertNotEquals("good", restService.getBroadcast(newSource.getStreamId()).getQuality());
+		assertNotEquals("poor", restService.getBroadcast(newSource.getStreamId()).getQuality());
 
 		/*
 		ProcessBuilder pb2 = new ProcessBuilder("/usr/local/wondershaper/reset.sh" , "myArg1", "myArg2");
