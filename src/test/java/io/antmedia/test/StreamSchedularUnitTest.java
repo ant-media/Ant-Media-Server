@@ -401,6 +401,22 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		String[] argsStop10 = new String[] { "/bin/bash", "-c",
+		"sudo wondershaper -a em1 -d 100 -u 100" };
+		try {
+			Process procStop = new ProcessBuilder(argsStop10).start();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		String[] argsStop11 = new String[] { "/bin/bash", "-c",
+		"sudo wondershaper -a em0 -d 100 -u 100" };
+		try {
+			Process procStop = new ProcessBuilder(argsStop11).start();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		
 
 
@@ -494,6 +510,22 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		"sudo wondershaper -c -a vmnet1" };
 		try {
 			Process procStop = new ProcessBuilder(argsReset9).start();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		String[] argsReset10= new String[] { "/bin/bash", "-c",
+		"sudo wondershaper -c -a em1" };
+		try {
+			Process procStop = new ProcessBuilder(argsReset10).start();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		String[] argsReset11= new String[] { "/bin/bash", "-c",
+		"sudo wondershaper -c -a em0" };
+		try {
+			Process procStop = new ProcessBuilder(argsReset11).start();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
