@@ -69,7 +69,7 @@ public class StreamFetcher {
 			return false;
 		}
 
-		if (stream == null || stream.getstreamUrl() == null) {
+		if (stream == null || stream.getStreamUrl() == null) {
 			logger.info("stream is null");
 			return false;
 		}
@@ -85,9 +85,9 @@ public class StreamFetcher {
 
 		int ret;
 
-		logger.info("stream url:  " + stream.getstreamUrl());
+		logger.info("stream url:  " + stream.getStreamUrl());
 
-		if ((ret = avformat_open_input(inputFormatContext, stream.getstreamUrl(), null, optionsDictionary)) < 0) {
+		if ((ret = avformat_open_input(inputFormatContext, stream.getStreamUrl(), null, optionsDictionary)) < 0) {
 
 			byte[] data = new byte[1024];
 			avutil.av_strerror(ret, data, data.length);

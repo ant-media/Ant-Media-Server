@@ -79,7 +79,7 @@ public class StreamsSourceRestService {
 					String authparam = stream.getUsername() + ":" + stream.getPassword() + "@";
 					String rtspURLWithAuth = "rtsp://" + authparam + rtspURL.substring("rtsp://".length());
 					System.out.println("rtsp url with auth:" + rtspURLWithAuth);
-					stream.setstreamUrl(rtspURLWithAuth);
+					stream.setStreamUrl(rtspURLWithAuth);
 					Date currentDate = new Date();
 					long unixTime = currentDate.getTime();
 
@@ -205,7 +205,7 @@ public class StreamsSourceRestService {
 					String authparam = camera.getUsername() + ":" + camera.getPassword() + "@";
 					String rtspURLWithAuth = "rtsp://" + authparam + rtspURL.substring("rtsp://".length());
 					System.out.println("rtsp url with auth:" + rtspURLWithAuth);
-					camera.setstreamUrl(rtspURLWithAuth);
+					camera.setStreamUrl(rtspURLWithAuth);
 
 					Broadcast newCam = getStore().get(camera.getStreamId());
 					getInstance().startStreaming(newCam);
