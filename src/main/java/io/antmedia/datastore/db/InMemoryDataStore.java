@@ -353,7 +353,7 @@ public class InMemoryDataStore implements IDataStore {
 
 			} catch (Exception e) {
 				e.printStackTrace();
-				id = null;
+				
 			}
 		}
 		return result;
@@ -471,7 +471,7 @@ public class InMemoryDataStore implements IDataStore {
 
 			} catch (Exception e) {
 				e.printStackTrace();
-				id = null;
+				
 			}
 		}
 		return result;

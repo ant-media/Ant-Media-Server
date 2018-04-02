@@ -310,6 +310,7 @@ public class StreamFetcher {
 				Thread.sleep(3000);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
+				 Thread.currentThread().interrupt();
 			}
 		}
 		thread.start();
@@ -352,6 +353,7 @@ public class StreamFetcher {
 					Thread.sleep(2000);
 				} catch (InterruptedException e) {
 					e.printStackTrace();
+					 Thread.currentThread().interrupt();
 				}
 
 				startStream();

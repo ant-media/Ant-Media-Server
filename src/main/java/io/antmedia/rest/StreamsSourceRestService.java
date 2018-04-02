@@ -10,6 +10,7 @@ import java.util.Date;
 import java.util.Enumeration;
 import java.util.List;
 
+import javax.annotation.Nullable;
 import javax.servlet.ServletContext;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -361,7 +362,7 @@ public class StreamsSourceRestService {
 		}
 		return new Result(result);
 	}
-
+	@Nullable
 	private ApplicationContext getAppContext() {
 		if (appCtx == null && servletContext != null) {
 			appCtx = (ApplicationContext) servletContext

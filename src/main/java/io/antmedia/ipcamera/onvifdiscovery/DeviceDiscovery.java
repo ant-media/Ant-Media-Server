@@ -155,6 +155,10 @@ public class DeviceDiscovery {
 			executorService.shutdown();
 			executorService.awaitTermination(WS_DISCOVERY_TIMEOUT + 2000, TimeUnit.MILLISECONDS);
 		} catch (InterruptedException ignored) {
+			
+
+			    Thread.currentThread().interrupt();
+			
 		}
 		return addresses;
 	}

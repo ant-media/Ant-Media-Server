@@ -103,6 +103,7 @@ public class OnvifCamera implements IOnvifCamera {
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+			Thread.currentThread().interrupt();
 		}
 		return true;
 	}
@@ -118,6 +119,7 @@ public class OnvifCamera implements IOnvifCamera {
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+			Thread.currentThread().interrupt();
 		}
 
 		return true;
@@ -134,6 +136,7 @@ public class OnvifCamera implements IOnvifCamera {
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+			Thread.currentThread().interrupt();
 		}
 
 		return true;
@@ -149,6 +152,7 @@ public class OnvifCamera implements IOnvifCamera {
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+			Thread.currentThread().interrupt();
 		}
 
 		return true;

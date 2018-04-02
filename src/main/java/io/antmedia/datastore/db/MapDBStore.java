@@ -475,7 +475,7 @@ public class MapDBStore implements IDataStore {
 
 			} catch (Exception e) {
 				e.printStackTrace();
-				id = null;
+
 			}
 		}
 		return result;
@@ -498,7 +498,7 @@ public class MapDBStore implements IDataStore {
 
 			} catch (Exception e) {
 				e.printStackTrace();
-				id = null;
+		
 			}
 		}
 		return result;

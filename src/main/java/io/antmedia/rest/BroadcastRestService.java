@@ -38,6 +38,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.WebApplicationContext;
 
+import com.drew.lang.annotations.Nullable;
 import com.google.gson.Gson;
 
 import io.antmedia.AntMediaApplicationAdapter;
@@ -543,7 +544,7 @@ public class BroadcastRestService {
 	@GET
 	@Path("/broadcast/getTotalVodNumber")
 	@Produces(MediaType.APPLICATION_JSON)
-	
+
 	public long getTotalVodNumber() {
 		return getDataStore().getTotalVodNumber();
 	}
@@ -941,7 +942,7 @@ public class BroadcastRestService {
 					}
 				}
 			}
-			
+
 		}
 		return new Result(authenticated, endpointId, message);
 	}
@@ -1084,16 +1085,19 @@ public class BroadcastRestService {
 	protected List<VideoServiceEndpoint> getEndpointList() {
 		return ((AntMediaApplicationAdapter) getApplication()).getVideoServiceEndpoints();
 	}
-	
+
 	protected List<VideoServiceEndpoint> getEndpointsHavingErrorList(){
 		return ((AntMediaApplicationAdapter) getApplication()).getVideoServiceEndpointsHavingError();
 	}
-
+	
+	@Nullable
 	private ApplicationContext getAppContext() {
 		if (appCtx == null && servletContext != null) {
 			appCtx = (ApplicationContext) servletContext
 					.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
+			
 		}
+
 		return appCtx;
 	}
 
