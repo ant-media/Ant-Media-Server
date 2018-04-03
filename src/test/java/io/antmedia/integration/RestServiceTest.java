@@ -133,6 +133,41 @@ public class RestServiceTest {
 		return null;
 	}
 
+	
+	public Broadcast save(Broadcast broadcast) {
+		String url = ROOT_SERVICE_URL + "/broadcast/create";
+
+		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+		Gson gson = new Gson();
+		
+
+		try {
+
+			HttpUriRequest post = RequestBuilder.post().setUri(url)
+					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+					.setEntity(new StringEntity(gson.toJson(broadcast))).build();
+
+			HttpResponse response = client.execute(post);
+			
+			StringBuffer result = readResponse(response);
+
+			if (response.getStatusLine().getStatusCode() != 200) {
+				throw new Exception(result.toString());
+			}
+			System.out.println("result string: " + result.toString());
+			Broadcast tmp = gson.fromJson(result.toString(), Broadcast.class);
+			assertNotNull(tmp);
+			assertEquals(tmp.getName(), broadcast.getName());
+			return tmp;
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		return null;
+	}
+	
+	
+	
 	public Result updateBroadcast(String id, String name, String description, String socialNetworks) {
 		String url = ROOT_SERVICE_URL + "/broadcast/update";
 

@@ -175,7 +175,7 @@ public class ConsoleAppRestServiceTest {
 			// Change app settings and make mp4 and hls muxing false
 			appSettingsModel.mp4MuxingEnabled = false;
 			appSettingsModel.hlsMuxingEnabled = false;
-			List<EncoderSettings> encoderSettings = new ArrayList();
+			List<EncoderSettings> encoderSettings = new ArrayList<EncoderSettings>();
 			for (int i = 0; i < appSettingsModel.encoderSettings.size(); i++) {
 				encoderSettings.add(appSettingsModel.encoderSettings.get(i));
 			}

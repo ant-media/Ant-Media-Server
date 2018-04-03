@@ -2,17 +2,12 @@ package com.antstreaming.rtsp;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.red5.server.api.Red5;
 import org.red5.server.net.IConnectionManager;
-import org.red5.server.net.rtmp.RTMPConnManager;
-import org.red5.server.net.rtmp.RTMPConnection;
-import org.red5.server.net.rtmp.RTMPMinaConnection;
-import org.red5.server.net.rtmpt.RTMPTConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;

@@ -9,14 +9,14 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>io.antmedia</groupId>
 	<artifactId>ant-media-server</artifactId>
-	<version>1.3.0-SNAPSHOT</version>
+	<version>1.3.0</version>
 	<name>Ant Media Server</name>
 	<description>Ant Media Server supports RTMP, RTSP, MP4, HLS, WebRTC, Adaptive Streaming, etc.</description>
 	<packaging>jar</packaging>
 	<url>https://github.com/ant-media/Ant-Media-Server</url>
 	<organization>
 		<name>Ant Media</name>
-		<url>http://antmedia.io</url>
+		<url>https://antmedia.io</url>
 	</organization>
 	<licenses>
 		<license>
@@ -34,6 +34,7 @@
 		<url>https://github.com/ant-media/Ant-Media-Server.git</url>
 		<connection>git@github.com:ant-media/Ant-Media-Server.git</connection>
 		<developerConnection>git@github.com:ant-media/Ant-Media-Server.git</developerConnection>
+		<tag>media-server,webrtc,rtmp,rtsp,mp4-hls,stream,broadcast,hls,ip-camera,mp4,flv</tag>
 	</scm>
 	<distributionManagement>
 		<snapshotRepository>
@@ -51,7 +52,7 @@
 		<finalName>${project.artifactId}</finalName>
 		<red5-io.version>${project.parent.version}</red5-io.version>
 		<red5-service.version>${project.version}</red5-service.version>
-		<red5-server-common.version>1.3.0-SNAPSHOT</red5-server-common.version>
+		<red5-server-common.version>1.3.0</red5-server-common.version>
 		<cors-filter.version>2.5</cors-filter.version>
 		<periscope-api.version>1.1.0</periscope-api.version>
 		<restfb.version>1.43.0</restfb.version>
@@ -64,12 +65,13 @@
     	    <maven.build.timestamp.format>yyMMdd_HHmm</maven.build.timestamp.format>
         <buildNumber>${maven.build.timestamp}</buildNumber>
         <enunciate.version>2.10.0</enunciate.version>
-        <webrtcapp.version>1.2.6-SNAPSHOT</webrtcapp.version>
-        <consoleapp.version>1.2.7</consoleapp.version>
-		<liveapp.version>1.2.8</liveapp.version>
-		<webrtcappee.version>1.2.9</webrtcappee.version>	
-		<ant-media-server-service.version>1.2.0</ant-media-server-service.version>
-		<ant-media-server-enterprise.version>1.3.0-SNAPSHOT</ant-media-server-enterprise.version>
+		
+        <webrtcapp.version>1.2.6</webrtcapp.version>
+        <consoleapp.version>1.3.2</consoleapp.version>
+		<liveapp.version>1.3.1</liveapp.version>
+		<webrtcappee.version>1.3.0</webrtcappee.version>	
+		<ant-media-server-service.version>1.2.1</ant-media-server-service.version>
+		<ant-media-server-enterprise.version>1.3.0</ant-media-server-enterprise.version>
 		<vertx-core.version>3.4.2</vertx-core.version>
 
 	</properties>

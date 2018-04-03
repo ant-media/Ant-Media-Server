@@ -10,6 +10,7 @@ import java.util.Date;
 import java.util.Enumeration;
 import java.util.List;
 
+import javax.annotation.Nullable;
 import javax.servlet.ServletContext;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -79,7 +80,7 @@ public class StreamsSourceRestService {
 					String authparam = stream.getUsername() + ":" + stream.getPassword() + "@";
 					String rtspURLWithAuth = "rtsp://" + authparam + rtspURL.substring("rtsp://".length());
 					System.out.println("rtsp url with auth:" + rtspURLWithAuth);
-					stream.setstreamUrl(rtspURLWithAuth);
+					stream.setStreamUrl(rtspURLWithAuth);
 					Date currentDate = new Date();
 					long unixTime = currentDate.getTime();
 
@@ -149,16 +150,16 @@ public class StreamsSourceRestService {
 
 
 	@GET
-	@Path("/getUserVodList/{offset}/{size}")
+	@Path("/getUserVodList/{folderPath}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public boolean  getUserVodList(@PathParam("offset") int offset,@PathParam("size") int size) {
+	public boolean  getUserVodList(@PathParam("folderPath") String folderPath) {
 		boolean result = false;
 
 		String appScopeName = ScopeUtils.findApplication(getScope()).getName();
 
 
 		File directory = new File(
-				String.format("%s/webapps/%s/%s", System.getProperty("red5.root"), appScopeName, "uploads"));
+				String.format("%s/webapps/%s/%s", System.getProperty("red5.root"), appScopeName, folderPath));
 
 		// if the directory does not exist, create it first
 		if (!directory.exists()) {
@@ -205,7 +206,7 @@ public class StreamsSourceRestService {
 					String authparam = camera.getUsername() + ":" + camera.getPassword() + "@";
 					String rtspURLWithAuth = "rtsp://" + authparam + rtspURL.substring("rtsp://".length());
 					System.out.println("rtsp url with auth:" + rtspURLWithAuth);
-					camera.setstreamUrl(rtspURLWithAuth);
+					camera.setStreamUrl(rtspURLWithAuth);
 
 					Broadcast newCam = getStore().get(camera.getStreamId());
 					getInstance().startStreaming(newCam);
@@ -361,9 +362,9 @@ public class StreamsSourceRestService {
 		}
 		return new Result(result);
 	}
-
+	@Nullable
 	private ApplicationContext getAppContext() {
-		if (appCtx == null && servletContext != null) {
+		if (servletContext != null) {
 			appCtx = (ApplicationContext) servletContext
 					.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
 		}

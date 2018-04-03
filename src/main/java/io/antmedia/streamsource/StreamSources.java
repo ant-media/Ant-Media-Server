@@ -17,6 +17,7 @@ public class StreamSources {
 
 
 	protected static Logger logger = LoggerFactory.getLogger(StreamSources.class);
+	public static final String BROADCAST_STATUS_FINISHED = "finished";
 
 	private int streamCheckerCount = 0;
 
@@ -95,7 +96,7 @@ public class StreamSources {
 					} else {
 						for (StreamFetcher streamScheduler : schedulerList) {
 							if (!streamScheduler.isRunning()) {
-								streamScheduler.getStream().setStatus("finished");
+								streamScheduler.getStream().setStatus(BROADCAST_STATUS_FINISHED);
 								streamScheduler.startStream();
 							}
 						}

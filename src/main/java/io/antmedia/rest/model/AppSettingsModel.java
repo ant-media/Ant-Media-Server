@@ -24,4 +24,6 @@ public class AppSettingsModel {
 	public boolean acceptOnlyStreamsInDataStore;
 
 	public List<EncoderSettings> encoderSettings;
+	
+	public String vodFolder;
 }

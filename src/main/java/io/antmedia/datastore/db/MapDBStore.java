@@ -199,7 +199,7 @@ public class MapDBStore implements IDataStore {
 				Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
 				List<Endpoint> endPointList = broadcast.getEndPointList();
 				if (endPointList == null) {
-					endPointList = new ArrayList();
+					endPointList = new ArrayList<Endpoint>();
 				}
 				endPointList.add(endpoint);
 				broadcast.setEndPointList(endPointList);
@@ -221,8 +221,8 @@ public class MapDBStore implements IDataStore {
 				Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
 				List<Endpoint> endPointList = broadcast.getEndPointList();
 				if (endPointList != null) {
-					for (Iterator iterator = endPointList.iterator(); iterator.hasNext();) {
-						Endpoint endpointItem = (Endpoint) iterator.next();
+					for (Iterator<Endpoint> iterator = endPointList.iterator(); iterator.hasNext();) {
+						Endpoint endpointItem = iterator.next();
 						if (endpointItem.rtmpUrl.equals(endpoint.rtmpUrl)) {
 							iterator.remove();
 							result = true;
@@ -284,7 +284,7 @@ public class MapDBStore implements IDataStore {
 		if (offset < 0) {
 			offset = 0;
 		}
-		List<Broadcast> list = new ArrayList();
+		List<Broadcast> list = new ArrayList<Broadcast>();
 		for (String broadcastString : values) {
 			if (t < offset) {
 				t++;
@@ -312,7 +312,7 @@ public class MapDBStore implements IDataStore {
 		if (offset < 0) {
 			offset = 0;
 		}
-		List<Vod> list = new ArrayList();
+		List<Vod> list = new ArrayList<Vod>();
 		for (String vodString : values) {
 			if (t < offset) {
 				t++;
@@ -366,7 +366,7 @@ public class MapDBStore implements IDataStore {
 
 		}
 
-		List<Broadcast> list = new ArrayList();
+		List<Broadcast> list = new ArrayList<Broadcast>();
 		for (Broadcast broadcast : filterList) {
 			if (t < offset) {
 				t++;
@@ -388,7 +388,7 @@ public class MapDBStore implements IDataStore {
 	@Override
 	public List<Vod> filterVoDList(int offset, int size, String keyword, long startdate, long endDate) {
 
-		List<Vod> list = new ArrayList();
+		List<Vod> list = new ArrayList<Vod>();
 		int t = 0;
 		int itemCount = 0;
 		if (size > 50) {
@@ -475,7 +475,7 @@ public class MapDBStore implements IDataStore {
 
 			} catch (Exception e) {
 				e.printStackTrace();
-				id = null;
+
 			}
 		}
 		return result;
@@ -498,7 +498,7 @@ public class MapDBStore implements IDataStore {
 
 			} catch (Exception e) {
 				e.printStackTrace();
-				id = null;
+		
 			}
 		}
 		return result;
