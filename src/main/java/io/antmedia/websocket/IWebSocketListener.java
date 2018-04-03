@@ -101,4 +101,40 @@ public interface IWebSocketListener {
 	 */
 	public static final String NO_ROOM_SPECIFIED = "no_room_specified";
 
+	/**
+	 * Command that let server returns information about a specific stream.
+	 * This info includes height, bitrates, etc.
+	 */
+	public static final String GET_STREAM_INFO_COMMAND = "getStreamInfo";
+
+	/**
+	 * Notification field used when returning stream information
+	 */
+	public static final String STREAM_INFORMATION_NOTIFICATION = "streamInformation";
+
+	/**
+	 * Field in messaging to specify the stream info 
+	 */
+	public static final String STREAM_INFO = "streamInfo";
+
+	/**
+	 * Field to specify the stream width
+	 */
+	public static final String STREAM_WIDTH = "streamWidth";
+
+	/**
+	 * Field to specify the stream height
+	 */
+	public static final String STREAM_HEIGHT = "streamHeight";
+
+	/**
+	 * Field to specify the stream video bitrate
+	 */
+	public static final String VIDEO_BITRATE = "videoBitrate";
+
+	/**
+	 * Field to specify the stream audio bitrate
+	 */
+	public static final String AUDIO_BITRATE = "audioBitrate";
+
 }
