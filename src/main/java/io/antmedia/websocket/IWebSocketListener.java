@@ -137,4 +137,14 @@ public interface IWebSocketListener {
 	 */
 	public static final String AUDIO_BITRATE = "audioBitrate";
 
+	/**
+	 * video field that defines if there is video
+	 */
+	public static final String VIDEO = "video";
+	
+	/**
+	 * audio field that defines if there is audio
+	 */
+	public static final String AUDIO = "audio";
+
 }
