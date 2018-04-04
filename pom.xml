@@ -71,7 +71,7 @@
 		<liveapp.version>1.3.1</liveapp.version>
 		<webrtcappee.version>1.4.0-SNAPSHOT</webrtcappee.version>	
 		<ant-media-server-service.version>1.2.1</ant-media-server-service.version>
-		<ant-media-server-enterprise.version>1.3.0</ant-media-server-enterprise.version>
+		<ant-media-server-enterprise.version>1.4.0-SNAPSHOT</ant-media-server-enterprise.version>
 		<vertx-core.version>3.4.2</vertx-core.version>
 
 	</properties>
