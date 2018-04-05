@@ -1,4 +1,4 @@
-package io.antmedia.ipcamera;
+package io.antmedia.streamsource;
 
 import static org.bytedeco.javacpp.avcodec.AV_CODEC_FLAG_GLOBAL_HEADER;
 import static org.bytedeco.javacpp.avcodec.av_packet_unref;
@@ -36,11 +36,11 @@ import org.slf4j.LoggerFactory;
 
 import io.antmedia.datastore.db.types.Broadcast;
 
-public class CameraScheduler implements ICameraStream {
+public class StreamFetcher {
 
-	protected static Logger logger = LoggerFactory.getLogger(CameraScheduler.class);
+	protected static Logger logger = LoggerFactory.getLogger(StreamFetcher.class);
 
-	private Broadcast camera;
+	private Broadcast stream;
 
 	private WorkerThread thread;
 
@@ -48,30 +48,46 @@ public class CameraScheduler implements ICameraStream {
 
 	private long[] lastDTS;
 
-	public CameraScheduler(Broadcast camera) {
-		this.camera = camera;
+	private int timeout;
+
+	public boolean exceptionInThread = false;
+
+	public StreamFetcher(Broadcast stream) {
+		this.stream = stream;
+	}
+
+	public StreamFetcher() {
+
 	}
 
 	public boolean prepareInput(AVFormatContext inputFormatContext) {
+		
+		setConnectionTimeout(4000);
 
 		if (inputFormatContext == null) {
 			logger.info("cannot allocate input context");
 			return false;
 		}
 
-		if (camera == null || camera.getRtspUrl() == null) {
-			logger.info("camera is null");
+		if (stream == null || stream.getStreamUrl() == null) {
+			logger.info("stream is null");
 			return false;
 		}
 
 		AVDictionary optionsDictionary = new AVDictionary();
 
+
 		av_dict_set(optionsDictionary, "rtsp_transport", "tcp", 0);
+
+		String timeout = String.valueOf(this.timeout);
+		av_dict_set(optionsDictionary, "stimeout", timeout, 0);
+
+
 		int ret;
 
-		logger.info("camera rtsp url" + camera.getRtspUrl());
+		logger.info("stream url:  " + stream.getStreamUrl());
 
-		if ((ret = avformat_open_input(inputFormatContext, camera.getRtspUrl(), null, optionsDictionary)) < 0) {
+		if ((ret = avformat_open_input(inputFormatContext, stream.getStreamUrl(), null, optionsDictionary)) < 0) {
 
 			byte[] data = new byte[1024];
 			avutil.av_strerror(ret, data, data.length);
@@ -85,6 +101,8 @@ public class CameraScheduler implements ICameraStream {
 			logger.info("Could not find stream information\n");
 			return false;
 		}
+
+
 
 		lastDTS = new long[inputFormatContext.nb_streams()];
 
@@ -127,7 +145,7 @@ public class CameraScheduler implements ICameraStream {
 		if ((outputRTMPFormatContext.oformat().flags() & AVFMT_GLOBALHEADER) != 0) {
 			// out_stream->codec->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
 			outputRTMPFormatContext.oformat()
-					.flags(outputRTMPFormatContext.oformat().flags() | AV_CODEC_FLAG_GLOBAL_HEADER);
+			.flags(outputRTMPFormatContext.oformat().flags() | AV_CODEC_FLAG_GLOBAL_HEADER);
 		}
 
 		if ((outputRTMPFormatContext.flags() & AVFMT_NOFILE) == 0) {
@@ -135,7 +153,8 @@ public class CameraScheduler implements ICameraStream {
 
 			// TODO: get application name from red5 context, do not use embedded
 			// url
-			String urlStr = "rtmp://localhost/LiveApp/" + camera.getStreamId();
+			
+			String urlStr = "rtmp://localhost/LiveApp/" + stream.getStreamId();
 			// logger.debug("rtmp url: " + urlStr);
 			//
 			ret = avformat.avio_open(pb, urlStr, AVIO_FLAG_WRITE);
@@ -166,26 +185,30 @@ public class CameraScheduler implements ICameraStream {
 
 			AVFormatContext inputFormatContext = new AVFormatContext(null); // avformat.avformat_alloc_context();
 			AVFormatContext outputRTMPFormatContext = new AVFormatContext(null);
-			;
 
-			System.out.println("before prepare....................");
-			if (!prepare(inputFormatContext, outputRTMPFormatContext)) {
-				if (inputFormatContext != null) {
-					avformat_close_input(inputFormatContext);
-				}
 
-				if (outputRTMPFormatContext != null) {
-					if (outputRTMPFormatContext.pb() != null) {
-						avio_closep(outputRTMPFormatContext.pb());
-					}
-					avformat_free_context(outputRTMPFormatContext);
-				}
-
-				logger.warn("Prepare for " + camera.getName() + " returned false");
-				return;
-			}
+			logger.info("before prepare");
 
 			try {
+				if (!prepare(inputFormatContext, outputRTMPFormatContext)) {
+					if (inputFormatContext != null) {
+						avformat_close_input(inputFormatContext);
+					}
+
+					if (outputRTMPFormatContext != null && !outputRTMPFormatContext.isNull()) {
+						if (outputRTMPFormatContext.pb() != null) {
+							avio_closep(outputRTMPFormatContext.pb());
+						}
+
+						avformat_free_context(outputRTMPFormatContext);
+					}
+
+					logger.warn("Prepare for " + stream.getName() + " returned false");
+
+					return;
+				}
+
+
 
 				while (true) {
 					int ret = av_read_frame(inputFormatContext, pkt);
@@ -224,8 +247,11 @@ public class CameraScheduler implements ICameraStream {
 							AV_ROUND_NEAR_INF | AV_ROUND_PASS_MINMAX));
 					pkt.duration(av_rescale_q(pkt.duration(), in_stream.time_base(), out_stream.time_base()));
 					pkt.pos(-1);
+					
 
 					ret = av_interleaved_write_frame(outputRTMPFormatContext, pkt);
+					
+					
 					if (ret < 0) {
 						logger.info("cannot write frame to muxer");
 						break;
@@ -238,24 +264,27 @@ public class CameraScheduler implements ICameraStream {
 					}
 
 				}
+
+
+				avformat_close_input(inputFormatContext);
+				inputFormatContext = null;
+
+				av_write_trailer(outputRTMPFormatContext);
+
+				if ((outputRTMPFormatContext.flags() & AVFMT_NOFILE) == 0) {
+					logger.warn("before avio_closep(outputRTMPFormatContext.pb());");
+					avio_closep(outputRTMPFormatContext.pb());
+					outputRTMPFormatContext.pb(null);
+				}
+
+				logger.warn("before avformat_free_context(outputRTMPFormatContext);");
+				avformat_free_context(outputRTMPFormatContext);
+				outputRTMPFormatContext = null;
 			} catch (Exception e) {
+				logger.info("---Exception in thread---");
 				e.printStackTrace();
+				exceptionInThread  = true;
 			}
-
-			avformat_close_input(inputFormatContext);
-			inputFormatContext = null;
-
-			av_write_trailer(outputRTMPFormatContext);
-
-			if ((outputRTMPFormatContext.flags() & AVFMT_NOFILE) == 0) {
-				logger.warn("before avio_closep(outputRTMPFormatContext.pb());");
-				avio_closep(outputRTMPFormatContext.pb());
-				outputRTMPFormatContext.pb(null);
-			}
-
-			logger.warn("before avformat_free_context(outputRTMPFormatContext);");
-			avformat_free_context(outputRTMPFormatContext);
-			outputRTMPFormatContext = null;
 
 		}
 
@@ -271,10 +300,19 @@ public class CameraScheduler implements ICameraStream {
 		}
 	}
 
-	@Override
 	public void startStream() {
 
+		exceptionInThread = false;
 		thread = new WorkerThread();
+		
+		while(thread.isAlive()) {
+			try {
+				Thread.sleep(3000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+				 Thread.currentThread().interrupt();
+			}
+		}
 		thread.start();
 
 		// this.appAdaptor.addScheduledOnceJob(10, this);
@@ -288,7 +326,6 @@ public class CameraScheduler implements ICameraStream {
 		return thread.isInterrupted();
 	}
 
-	@Override
 	public void stopStream() {
 		logger.warn("stop stream called");
 		thread.setStopRequestReceived();
@@ -298,8 +335,8 @@ public class CameraScheduler implements ICameraStream {
 		return thread.isStopRequestReceived();
 	}
 
-	public Broadcast getCamera() {
-		return camera;
+	public Broadcast getStream() {
+		return stream;
 	}
 
 	public void restart() {
@@ -316,6 +353,7 @@ public class CameraScheduler implements ICameraStream {
 					Thread.sleep(2000);
 				} catch (InterruptedException e) {
 					e.printStackTrace();
+					 Thread.currentThread().interrupt();
 				}
 
 				startStream();
@@ -325,32 +363,16 @@ public class CameraScheduler implements ICameraStream {
 
 	}
 
-	/*
-	 * @Override public void execute(ISchedulingService arg0) throws
-	 * CloneNotSupportedException { SimpleDateFormat dtFormat = new
-	 * SimpleDateFormat("yyyy-MM-dd_HH-mm"); Date dt = new Date(); String[]
-	 * command = new String[8]; command[0] = "ffmpeg"; command[1] = "-i";
-	 * command[2] = camera.rtspUrl; //
-	 * "rtsp://10.10.31.58:554/user=admin&password=tlJwpbo6&channel=1&stream=0.sdp?real_stream";
-	 * command[3] = "-codec"; command[4] = "copy"; command[5] = "-f"; command[6]
-	 * = "flv"; command[7] = "rtmp://localhost/IPCamera/" + camera.name + "-" +
-	 * dtFormat.format(dt); try { process = Runtime.getRuntime().exec(command);
-	 * 
-	 * Thread thread = new Thread() { public void run() { InputStream
-	 * errorStream = process.getErrorStream(); byte[] data = new byte[2056]; int
-	 * length;
-	 * 
-	 * try { while ((length = errorStream.read(data, 0, data.length))>0) {
-	 * //System.err.println(new String(data, 0, length)); } } catch (IOException
-	 * e) { e.printStackTrace(); }
-	 * 
-	 * 
-	 * }; }; thread.setDaemon(true);
-	 * 
-	 * thread.setName(dtFormat.format(dt)); thread.start(); } catch (IOException
-	 * e1) { // TODO Auto-generated catch block e1.printStackTrace(); }
-	 * 
-	 * }
+	/**
+	 * Set timeout when establishing connection
+	 * @param timeout in ms
 	 */
+	public void setConnectionTimeout(int timeout) {
+		this.timeout = timeout * 1000;
+	}
+
+	public boolean isExceptionInThread() {
+		return exceptionInThread;
+	}
 
 }

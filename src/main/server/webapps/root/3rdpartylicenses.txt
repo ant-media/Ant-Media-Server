@@ -1,16 +1,16 @@
-@angular/core@5.2.7
+@angular/core@5.2.9
 MIT
 MIT
 
-@angular/router@5.2.7
+@angular/router@5.2.9
 MIT
 MIT
 
-@angular/common@5.2.7
+@angular/common@5.2.9
 MIT
 MIT
 
-@angular/forms@5.2.7
+@angular/forms@5.2.9
 MIT
 MIT
 
@@ -39,10 +39,6 @@ MIT License
     SOFTWARE
 
 @ngui/map@0.20.2
-MIT
-MIT
-
-@angular/platform-browser@5.2.7
 MIT
 MIT
 
@@ -94,7 +90,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
-css-loader@0.28.10
+css-loader@0.28.11
 MIT
 Copyright JS Foundation and other contributors
 
@@ -117,15 +113,19 @@ CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
 TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-@angular/http@5.2.7
+@angular/platform-browser@5.2.9
 MIT
 MIT
 
-@angular/animations@5.2.7
+@angular/http@5.2.9
 MIT
 MIT
 
-@angular/platform-browser-dynamic@5.2.7
+@angular/animations@5.2.9
+MIT
+MIT
+
+@angular/platform-browser-dynamic@5.2.9
 MIT
 MIT
 

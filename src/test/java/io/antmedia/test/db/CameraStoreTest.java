@@ -46,6 +46,10 @@ public class CameraStoreTest {
 
 		// These tests are avoided because, there is no seperated camera store
 		// and camera db anymore, they are also saved in same db
+		
+		
+		
+		
 		/*
 		 * CameraStore cameraStore = new CameraStore();
 		 * 

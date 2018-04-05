@@ -14,6 +14,11 @@ public class Result {
 	 * understand what the problem is
 	 */
 	private String message;
+	
+	/**
+	 * If operation is about adding a record, then the below field have the id of the record 
+	 */
+	private String dataId;
 
 	private int errorId;
 
@@ -24,12 +29,17 @@ public class Result {
 	 * @param message
 	 */
 	public Result(boolean success, String message) {
-		this.success = success;
-		this.message = message;
+		this(success, null, message);
 	}
 	
 	public Result(boolean success) {
+		this(success, null, null);
+	}
+	
+	public Result(boolean success, String dataId, String message) {
 		this.success = success;
+		this.message = message;
+		this.dataId = dataId;
 	}
 
 	public Result(boolean result, String message, int errorId) {
@@ -60,5 +70,13 @@ public class Result {
 
 	public void setErrorId(int errorId) {
 		this.errorId = errorId;
+	}
+
+	public String getDataId() {
+		return dataId;
+	}
+
+	public void setDataId(String dataId) {
+		this.dataId = dataId;
 	}
 }

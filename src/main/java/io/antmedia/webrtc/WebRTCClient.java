@@ -2,7 +2,6 @@ package io.antmedia.webrtc;
 
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -15,23 +14,29 @@ import org.json.simple.JSONObject;
 import org.red5.net.websocket.WebSocketConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.webrtc.*;
-
-
+import org.webrtc.AudioSource;
+import org.webrtc.DataChannel;
+import org.webrtc.IceCandidate;
+import org.webrtc.MediaConstraints;
+import org.webrtc.MediaStream;
+import org.webrtc.PeerConnection;
 import org.webrtc.PeerConnection.IceConnectionState;
 import org.webrtc.PeerConnection.IceGatheringState;
 import org.webrtc.PeerConnection.IceServer;
 import org.webrtc.PeerConnection.Observer;
 import org.webrtc.PeerConnection.SignalingState;
-
+import org.webrtc.PeerConnectionFactory;
+import org.webrtc.RtpReceiver;
+import org.webrtc.SdpObserver;
+import org.webrtc.SessionDescription;
 import org.webrtc.SessionDescription.Type;
+import org.webrtc.VideoSource;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.antmedia.webrtc.api.IWebRTCClient;
 import io.antmedia.webrtc.api.IWebRTCMuxer;
-import javassist.bytecode.analysis.Executor;
 
 
 public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
@@ -176,7 +181,7 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 			@Override
 			public void run() {
 				try {
-					List<IceServer> iceServers = new ArrayList();
+					List<IceServer> iceServers = new ArrayList<IceServer>();
 					iceServers.add(new IceServer("stun:stun.l.google.com:19302"));
 					PeerConnection.RTCConfiguration rtcConfig = new PeerConnection.RTCConfiguration(iceServers);
 					createMediaConstraintsInternal();

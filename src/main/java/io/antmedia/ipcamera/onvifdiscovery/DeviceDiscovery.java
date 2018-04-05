@@ -51,7 +51,7 @@ public class DeviceDiscovery {
 		try {
 			File probeMsgFile = new File(
 					Thread.currentThread().getContextClassLoader().getResource("probe-template.xml").toURI());
-			probeMsgTemplate = FileUtils.readFileToString(probeMsgFile);
+			probeMsgTemplate = FileUtils.readFileToString(probeMsgFile,"UTF-8");
 		} catch (IOException | URISyntaxException e) {
 			e.printStackTrace();
 			return null;
@@ -155,6 +155,10 @@ public class DeviceDiscovery {
 			executorService.shutdown();
 			executorService.awaitTermination(WS_DISCOVERY_TIMEOUT + 2000, TimeUnit.MILLISECONDS);
 		} catch (InterruptedException ignored) {
+			
+
+			    Thread.currentThread().interrupt();
+			
 		}
 		return addresses;
 	}

@@ -2,9 +2,18 @@ package io.antmedia.social.endpoint;
 
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.api.periscope.type.Broadcast;
+import io.antmedia.datastore.db.IDataStore;
+import io.antmedia.datastore.db.types.BroadcastStatus;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointChannel;
+import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.preference.PreferenceStore;
+import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
 
 /**
  * This is inteface that is used to integrate
@@ -13,18 +22,14 @@ import io.antmedia.datastore.preference.PreferenceStore;
  *
  */
 public abstract class VideoServiceEndpoint {
-	
-	protected static final String AUTH_TIME = ".authTime";
 
-	protected static final String EXPIRE_TIME_SECONDS = ".expireTimeSeconds";
-
-	protected static final String REFRESH_TOKEN = ".refreshToken";
-
-	protected static final String ACCESS_TOKEN = ".accessToken";
-
-	protected static final String TOKEN_TYPE = ".tokenType";
-	
 	public static final Long THREE_DAYS_IN_MS = 1000 * 60 * 60 * 24 * 3L; 
+	
+	public static final String LIVE_STREAMING_NOT_ENABLED = "LIVE_STREAMING_NOT_ENABLED";
+	public static final String AUTHENTICATION_TIMEOUT = "AUTHENTICATION_TIMEOUT";
+
+
+	protected static Logger logger = LoggerFactory.getLogger(VideoServiceEndpoint.class);
 
 	public static class DeviceAuthParameters {
 		/**
@@ -57,36 +62,49 @@ public abstract class VideoServiceEndpoint {
 
 	protected String clientSecret;
 
-	protected PreferenceStore dataStore;
+	protected IDataStore dataStore;
 
-	public VideoServiceEndpoint(String clientId, String clientSecret, PreferenceStore dataStore) {
+	private SocialEndpointCredentials credentials;
+	
+	protected DeviceAuthParameters authParameters;
+	
+	private String error;
+	
+
+	public VideoServiceEndpoint(String clientId, String clientSecret, IDataStore dataStore, SocialEndpointCredentials endpointCredentials) {
 		this.clientId = clientId;
 		this.clientSecret = clientSecret;
 		this.dataStore = dataStore;
+		credentials = endpointCredentials;
 		
-	}
-	
-	public void start() {
-		String accessToken = dataStore.get(getName() + ACCESS_TOKEN);
-		String refreshToken = dataStore.get(getName() + REFRESH_TOKEN);
-		String expireTimeSeconds = dataStore.get(getName() + EXPIRE_TIME_SECONDS);
-		String tokenType = dataStore.get(getName() + TOKEN_TYPE);
-		String authtimeMilliSeconds = dataStore.get(getName() + AUTH_TIME);
-		long expireTime = 0;
-		long authTime = 0;
-		if (expireTimeSeconds != null) 
-		{
-			expireTime = Long.valueOf(expireTimeSeconds);
+		if (credentials != null) {
+			//throw new NullPointerException("There is not a credential in datastore having id: " + this.id);
+
+			String expireTimeSeconds = credentials.getExpireTimeInSeconds();
+			String authtimeMilliSeconds = credentials.getAuthTimeInMilliseconds();
+			long expireTime = 0;
+			long authTime = 0;
+			if (expireTimeSeconds != null) 
+			{
+				expireTime = Long.valueOf(expireTimeSeconds);
+			}
+			if (authtimeMilliSeconds != null) {
+				authTime = Long.valueOf(authtimeMilliSeconds);
+			}
+			try {
+				init(credentials.getAccountName(), credentials.getAccessToken(), credentials.getRefreshToken(), 
+						expireTime, credentials.getTokenType(),
+						authTime);
+
+			}
+			catch (Exception e) {
+				e.printStackTrace();
+			}
 		}
-		if (authtimeMilliSeconds != null) {
-			authTime = Long.valueOf(authtimeMilliSeconds);
+		else {
+			init(null, null, null, 0, null, 0);
 		}
-		try {
-			init(accessToken, refreshToken, expireTime, tokenType, authTime);
-		}
-		catch (Exception e) {
-			e.printStackTrace();
-		}
+
 	}
 
 	/**
@@ -97,32 +115,29 @@ public abstract class VideoServiceEndpoint {
 	 * @param tokenType
 	 * @param authtimeInMilliSeconds System.currenTimeMillis value of the authentication time
 	 */
-	public abstract void init(String accessToken, String refreshToken, long expireTime, String tokenType, long authtimeInMilliSeconds);
+	public abstract void init(String accountName, String accessToken, String refreshToken, long expireTime, String tokenType, long authtimeInMilliSeconds);
 
-	public void saveCredentials(String accessToken, String refreshToken, String expireTimeInSeconds, String token_type) {
-		if (refreshToken != null) {
-			dataStore.put(getName() + REFRESH_TOKEN, refreshToken);
+	public void saveCredentials(String accountName, String accessToken, String refreshToken, String expireTimeInSeconds, String token_type, String accountId) throws Exception {
+
+		SocialEndpointCredentials tmpCredentials = new SocialEndpointCredentials(accountName, getName(), String.valueOf(System.currentTimeMillis()), expireTimeInSeconds, token_type, accessToken, refreshToken);
+		if (this.credentials != null) {
+			tmpCredentials.setId(this.credentials.getId());
 		}
-		if (accessToken != null) {
-			dataStore.put(getName() + ACCESS_TOKEN, accessToken);
+		tmpCredentials.setAccountId(accountId);
+		SocialEndpointCredentials addedCredential = dataStore.addSocialEndpointCredentials(tmpCredentials);
+		if (addedCredential == null) {
+			throw new Exception("Social endpoint credential cannot be added for account name: " + accountName + " and service name " + getName() );
 		}
-		if (expireTimeInSeconds != null) {
-			dataStore.put(getName() + EXPIRE_TIME_SECONDS, expireTimeInSeconds);
-		}
-		if (token_type != null) {
-			dataStore.put(getName() + TOKEN_TYPE, token_type);
-		}
-		dataStore.put(getName()+ AUTH_TIME, String.valueOf(System.currentTimeMillis()));
-		dataStore.save();
+		setCredentials(addedCredential);
+
 	}
-	
+
 	public void resetCredentials() {
-		dataStore.put(getName() + REFRESH_TOKEN, "");
-		dataStore.put(getName() + ACCESS_TOKEN, "");
-		dataStore.put(getName() + EXPIRE_TIME_SECONDS, "0");
-		dataStore.put(getName() + TOKEN_TYPE, "");
-		dataStore.save();
-		
+		boolean removeSocialEndpointCredentials = dataStore.removeSocialEndpointCredentials(this.credentials.getId());
+		if (!removeSocialEndpointCredentials) {
+			logger.warn("Social endpoint is not deleted having id: " + this.credentials.getId() + " and service name: " + getName());
+		}
+		this.credentials = null;
 	}
 
 	/**
@@ -166,7 +181,7 @@ public abstract class VideoServiceEndpoint {
 	 * 
 	 * @return the Endpoint which includes rtmp url
 	 */
-	public abstract Endpoint createBroadcast(String name, String description, boolean is360, boolean isPublic, int videoHeight) throws Exception;
+	public abstract Endpoint createBroadcast(String name, String description, boolean is360, boolean isPublic, int videoHeight, boolean is_low_latency) throws Exception;
 
 
 	/**
@@ -185,6 +200,9 @@ public abstract class VideoServiceEndpoint {
 	 * @throws Exception if it is not successful
 	 */
 	public abstract void stopBroadcast(Endpoint endpoint) throws Exception;
+
+
+	public abstract String getBroadcast(Endpoint endpoint) throws Exception;
 
 	protected String getClientId() {
 		return clientId;
@@ -213,16 +231,16 @@ public abstract class VideoServiceEndpoint {
 	public SocialEndpointChannel getChannel() {
 		return null;
 	}
-	
+
 	/**
 	 * Get channel list from social media
 	 * @param type of the channel if exists like page, event, group
 	 * @return
 	 */
-	public List<SocialEndpointChannel> getChannelList(String type) {
+	public List<SocialEndpointChannel> getChannelList() {
 		return null;
 	}
-	
+
 	/**
 	 * Set the active channel
 	 * @param type
@@ -230,6 +248,30 @@ public abstract class VideoServiceEndpoint {
 	 */
 	public boolean setActiveChannel(String type, String id) {
 		return false;
+	}
+
+	public SocialEndpointCredentials getCredentials() {
+		return credentials;
+	}
+
+	public void setCredentials(SocialEndpointCredentials credentials) {
+		this.credentials = credentials;
+	}
+
+	public DeviceAuthParameters getAuthParameters() {
+		return authParameters;
+	}
+
+	public void setAuthParameters(DeviceAuthParameters authParameters) {
+		this.authParameters = authParameters;
+	}
+
+	public String getError() {
+		return error;
+	}
+
+	public void setError(String error) {
+		this.error = error;
 	}
 
 

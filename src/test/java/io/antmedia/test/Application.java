@@ -2,10 +2,10 @@ package io.antmedia.test;
 
 import java.io.File;
 
-import io.antmedia.ipcamera.IPCameraApplicationAdapter;
+import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.muxer.IMuxerListener;
 
-public class Application extends IPCameraApplicationAdapter implements IMuxerListener {
+public class Application extends AntMediaApplicationAdapter implements IMuxerListener {
 
 	public static String id = null;
 	public static File file = null;

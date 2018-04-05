@@ -22,6 +22,7 @@ before_install:
   - sudo apt-get install -y mongodb-org #install mongodb
   - sudo apt-get install ffmpeg -qq # start ffmpeg
   - sudo service mongod start  # start mongo db
+  - sudo apt-get install wondershaper
   - sudo git clone https://github.com/ant-media/utilities.git /usr/local/onvif
   - git clone https://github.com/ant-media/Ant-Media-Server-Common.git && cd Ant-Media-Server-Common && mvn clean install -DskipTests -Dmaven.javadoc.skip=true --quiet && cd ..
   - git clone https://github.com/ant-media/red5-plugins.git && cd red5-plugins/tomcat/ && mvn clean install -Dmaven.javadoc.skip=true -Dmaven.test.skip=true && cd ../..
@@ -34,6 +35,7 @@ before_install:
   - echo "Waiting a little to make sure server is started "
   - sleep 20
   - sudo cp src/test/resources/preset-red5-web.properties  /usr/local/antmedia/webapps/LiveApp/WEB-INF/red5-web.properties
+  - sudo cp src/test/resources/preset-red5-web.db  /usr/local/antmedia/liveapp.db
   - sudo service antmedia stop
   - sudo service antmedia start
   - sleep 10
