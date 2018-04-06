@@ -82,6 +82,7 @@ public class DBStoresUnitTest {
 		testRemoveEndpoint(dataStore);
 		testRTMPURL(dataStore);
 		testStreamWithId(dataStore);
+		testSaveDetection(dataStore);
 		testFilterSearchOperations(dataStore);
 		testAddSocialEndpointCredentials(dataStore);
 
@@ -107,6 +108,7 @@ public class DBStoresUnitTest {
 		testRemoveEndpoint(dataStore);
 		testRTMPURL(dataStore);
 		testStreamWithId(dataStore);
+		testSaveDetection(dataStore);
 		testFilterSearchOperations(dataStore);
 		testAddSocialEndpointCredentials(dataStore);
 
@@ -621,16 +623,17 @@ public class DBStoresUnitTest {
 		assertEquals(socialEndpoints.size(), 0);
 	}
 	
+	
 	public void testSaveDetection(IDataStore dataStore){
 		String item1 = "item1";
 		long detectionTime = 434234L;
 		float probability1 = 0.1f;
 		
 		List<TensorFlowObject> detectedObjects = new ArrayList<>();
-		detectedObjects.add(new TensorFlowObject(item1, probability1));
+		detectedObjects.add(new TensorFlowObject(item1, probability1, "imageId"));
 		dataStore.saveDetection("id", detectionTime, detectedObjects);
 		
-		List<TensorFlowObject> list = dataStore.getDetectionList("id");
+		List<TensorFlowObject> list = dataStore.getDetectionList("id", 0, 10);
 		assertEquals(1,list.size());
 		assertEquals(item1, list.get(0).objectName);
 		assertEquals(probability1, list.get(0).probability,0.1F);

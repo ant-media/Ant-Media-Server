@@ -362,20 +362,15 @@ public class MapDBStore implements IDataStore {
 		Broadcast[] broadcastArray = new Broadcast[objectArray.length];
 
 		for (int i = 0; i < objectArray.length; i++) {
-
 			broadcastArray[i] = gson.fromJson((String) objectArray[i], Broadcast.class);
-
 		}
 
 		List<Broadcast> filterList = new ArrayList<Broadcast>();
 		for (int i = 0; i < broadcastArray.length; i++) {
 
 			if (broadcastArray[i].getType().equals(type)) {
-
 				filterList.add(gson.fromJson((String) objectArray[i], Broadcast.class));
-
 			}
-
 		}
 
 		List<Broadcast> list = new ArrayList<Broadcast>();
@@ -880,14 +875,41 @@ public class MapDBStore implements IDataStore {
 	}
 	
 	@Override
-	public List<TensorFlowObject> getDetectionList(String id) {
-		Type listType = new TypeToken<ArrayList<TensorFlowObject>>(){}.getType();
-		String jsonString = detectionMap.get(id);
-		if (jsonString != null) {
-			List<TensorFlowObject> list = gson.fromJson(jsonString, listType);
-			return list;
+	public List<TensorFlowObject> getDetection(String id) 
+	{
+		if (id != null) {
+			String jsonString = detectionMap.get(id);
+			if (jsonString != null) {
+				Type listType = new TypeToken<ArrayList<TensorFlowObject>>(){}.getType();
+				return gson.fromJson(jsonString, listType);
+			}
 		}
 		return null;
+	}
+	
+	@Override
+	public List<TensorFlowObject> getDetectionList(String idFilter, int offsetSize, int batchSize) 
+	{
+		Type listType = new TypeToken<ArrayList<TensorFlowObject>>(){}.getType();
+		int offsetCount=0, batchCount=0;
+		List<TensorFlowObject> list = new ArrayList<>();
+		for (Iterator<String> keyIterator = detectionMap.keyIterator(); keyIterator.hasNext();) {
+			String keyValue = keyIterator.next();
+			if (keyValue.startsWith(idFilter)) 
+			{
+				if (offsetCount < offsetSize) {
+					offsetCount++;
+					continue;
+				}
+				if (batchCount > batchSize) {
+					break;
+				}
+				batchCount++;
+				List<TensorFlowObject> detectedList = gson.fromJson(detectionMap.get(keyValue), listType);
+				list.addAll(detectedList);
+			}
+		}
+		return list;
 	}
 
 }

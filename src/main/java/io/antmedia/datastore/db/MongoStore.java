@@ -603,9 +603,17 @@ public class MongoStore implements IDataStore {
 	}
 
 	@Override
-	public List<TensorFlowObject> getDetectionList(String id) {
+	public List<TensorFlowObject> getDetectionList(String idFilter, int offsetSize, int batchSize) {
 		// TODO Auto-generated method stub
 		return null;
 	}
+
+	@Override
+	public List<TensorFlowObject> getDetection(String id) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
 
 }

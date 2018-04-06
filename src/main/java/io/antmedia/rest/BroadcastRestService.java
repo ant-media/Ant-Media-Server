@@ -8,6 +8,9 @@ import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 
@@ -529,8 +532,34 @@ public class BroadcastRestService {
 		List<TensorFlowObject> list = null;
 		
 		if (id != null) {
-			list = getDataStore().getDetectionList(id);
+			list = getDataStore().getDetection(id);
 		}
+		
+		if (list == null) {
+			//do not return null in rest service
+			list = new ArrayList<TensorFlowObject>();
+		}
+		
+		return list;
+	}
+	
+	
+	@GET
+	@Path("/detection/getList/{offset}/{size}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public List<TensorFlowObject> getDetectionList(@QueryParam("id") String id, @PathParam("offset") int offset, @PathParam("size") int size) {
+		List<TensorFlowObject> list = null;
+		
+		if (id != null) {
+			list = getDataStore().getDetectionList(id, offset, size);	
+		}
+		
+		if (list == null) {
+			//do not return null in rest service
+			list = new ArrayList<TensorFlowObject>();
+		}
+		
+		
 		return list;
 	}
 	
@@ -553,7 +582,6 @@ public class BroadcastRestService {
 	@GET
 	@Path("/broadcast/getList/{offset}/{size}")
 	@Produces(MediaType.APPLICATION_JSON)
-
 	public List<Broadcast> getBroadcastList(@PathParam("offset") int offset, @PathParam("size") int size) {
 		return getDataStore().getBroadcastList(offset, size);
 	}
