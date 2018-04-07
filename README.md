@@ -7,6 +7,7 @@ Ant Media Server is an Open Source Media Server that supports:
 
  * Live Stream Publishing with RTMP, RTSP and WebRTC
  * WebRTC to RTMP Adapter
+ * IP Camera Support
  * Recording Live Streams (FLV, MP4 and HLS Containers)
  * Low Latency 1:N WebRTC Live Streaming in **Enterprise Edition**
  * Adaptive Bitrate Conversion for Live Streams (FLV, MP4, HLS) in **Enterprise Edition**
@@ -16,15 +17,16 @@ Ant Media Server is an Open Source Media Server that supports:
 
 ## Releases 
 
-#### [Ant Media Server Community 1.3.0-SNAPSHOT (March 07,2018)](https://github.com/ant-media/Ant-Media-Server/releases/tag/ams-v1.3.0-SNAPSHOT)
+#### [Ant Media Server Community 1.3.1 (Apr 05, 2018)](https://github.com/ant-media/Ant-Media-Server/releases/tag/ams-v1.3.1)
 
 * IP Camera Streaming Support
 * ONVIF Standard Features (Ptz etc.).
 * Auto Discovery of IP Cameras.
 * Creating and Saving VoDs from IP Cameras.
-* Upload VoD Feature.
-* Enhanced UI Elements.
-* Bug fixes.
+* Upload VoD Feature, Dynamic VoD Folder Selection,
+* Enhanced UI Elements.(Stream source quality, stream source speed, etc.)
+* Performance Improvements,
+* Bug Fixes.
 
 #### [Ant Media Server 1.2.6 Release (Feb 23, 2018)](https://github.com/ant-media/Ant-Media-Server/releases/tag/ams-v1.2.6)
 * Security Improvement on accessing Rest Services
