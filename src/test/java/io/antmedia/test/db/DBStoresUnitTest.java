@@ -95,6 +95,9 @@ public class DBStoresUnitTest {
 		Datastore store = ((MongoStore) dataStore).getDataStore();
 		Query<Broadcast> deleteQuery = store.find(Broadcast.class);
 		store.delete(deleteQuery);
+		
+		Query<TensorFlowObject> detectedObjects = store.find(TensorFlowObject.class);
+		store.delete(detectedObjects);
 
 		store = ((MongoStore) dataStore).getEndpointCredentialsDS();
 		Query<SocialEndpointCredentials> deleteQuery2 = store.find(SocialEndpointCredentials.class);

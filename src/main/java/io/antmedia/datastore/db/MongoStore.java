@@ -4,7 +4,6 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.commons.collections.ListUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.bson.types.ObjectId;
@@ -18,10 +17,6 @@ import org.mongodb.morphia.query.UpdateResults;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.mongodb.BasicDBObject;
-import com.mongodb.DBCollection;
-import com.mongodb.DBCursor;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoCredential;
 import com.mongodb.ServerAddress;
@@ -29,8 +24,8 @@ import com.mongodb.WriteResult;
 
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
-import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
+import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Vod;
 
 public class MongoStore implements IDataStore {
@@ -598,20 +593,34 @@ public class MongoStore implements IDataStore {
 
 	@Override
 	public void saveDetection(String id, long timeElapsed, List<TensorFlowObject> detectedObjects) {
-		// TODO Auto-generated method stub
+		if (detectedObjects != null) {
+			for (TensorFlowObject tensorFlowObject : detectedObjects) {
+				tensorFlowObject.setDetectionTime(timeElapsed);
+				tensorFlowObject.setImageId(id);
+				datastore.save(tensorFlowObject);
+			}
+		}
 		
 	}
 
 	@Override
 	public List<TensorFlowObject> getDetectionList(String idFilter, int offsetSize, int batchSize) {
-		// TODO Auto-generated method stub
-		return null;
+		try {
+			return datastore.find(TensorFlowObject.class).field("imageId").startsWith(idFilter).asList(new FindOptions().skip(offsetSize).limit(batchSize));
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return null;	
 	}
 
 	@Override
 	public List<TensorFlowObject> getDetection(String id) {
-		// TODO Auto-generated method stub
-		return null;
+		try {
+			return datastore.find(TensorFlowObject.class).field("imageId").equal(id).asList();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return null;	
 	}
 
 
