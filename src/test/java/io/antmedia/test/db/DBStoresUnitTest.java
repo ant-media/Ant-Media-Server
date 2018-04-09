@@ -66,6 +66,7 @@ public class DBStoresUnitTest {
 		testStreamWithId(dataStore);
 		testFilterSearchOperations(dataStore);
 		testAddSocialEndpointCredentials(dataStore);
+		testVoDFunction(dataStore);
 
 	}
 
@@ -81,6 +82,7 @@ public class DBStoresUnitTest {
 		testStreamWithId(dataStore);
 		testFilterSearchOperations(dataStore);
 		testAddSocialEndpointCredentials(dataStore);
+		testVoDFunction(dataStore);
 
 	}
 
@@ -106,6 +108,7 @@ public class DBStoresUnitTest {
 		testStreamWithId(dataStore);
 		testFilterSearchOperations(dataStore);
 		testAddSocialEndpointCredentials(dataStore);
+		testVoDFunction(dataStore);
 
 	}
 
@@ -175,6 +178,14 @@ public class DBStoresUnitTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+	}
+	
+	public void testVoDFunction(IDataStore datastore) {
+		fail("Write test codes about saveVod, AddVod, fetchVoDList, AddUserVod, delete vod ");
+	}
+	
+	public void testEditCameraInfo(IDataStore datastore) {
+		fail("Write test codes about getCamera, getExternalStreamList ");
 	}
 
 	public void testGetPagination(IDataStore dataStore) {
