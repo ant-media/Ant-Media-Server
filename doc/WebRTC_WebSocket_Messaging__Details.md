@@ -7,16 +7,16 @@ for publishing & playing streams. Let's make it step by step
 1. Client connects to Ant Media Server through WebSocket. URL of the WebSocket interface is something like
 
 ```
-ws://SERVER_NAME:8081/WebRTCApp4
+ws://SERVER_NAME:8081/WebRTCAppEE
 ```
-8081 is the port number of WebSocket and `WebRTCApp4` is the name of the app on the server.
+8081 is the port number of WebSocket and `WebRTCAppEE` is the name of the app on the server.
 
 2. Client sends publish JSON command to the server with stream name parameter. 
 
 ```json
 {
     command : "publish",
-    streamName : "stream1",
+    streamId : "stream1",
 }
 ```
 
@@ -24,6 +24,7 @@ ws://SERVER_NAME:8081/WebRTCApp4
 ```json
 {
     command : "start",
+    streamId : "stream1",
 }
 ```
 
@@ -32,7 +33,7 @@ to the server with takeConfiguration command
 ```json
 {
    command : "takeConfiguration",
-   streamName : "stream1",
+   streamId : "stream1",
    type : "offer",  
    sdp : "${SDP_PARAMETER}"
 }
@@ -42,7 +43,7 @@ to the server with takeConfiguration command
 ```json
 {
    command : "takeConfiguration",
-   streamName : "stream1",
+   streamId : "stream1",
    type : "answer",  
    sdp : "${SDP_PARAMETER}"
 }
@@ -51,7 +52,7 @@ to the server with takeConfiguration command
 ```json
 {
     command : "takeCandidate",
-    streamName : "stream1",
+    streamId : "stream1",
     label : "${CANDIDATE.SDP_MLINE_INDEX}",
     id : "${CANDIDATE.SDP_MID}",
     candidate : "${CANDIDATE.CANDIDATE}"
@@ -63,6 +64,7 @@ to the server with takeConfiguration command
 ```json
 {
     command : "stop",
+    streamId: "stream1"
 }
 ```
 
@@ -81,7 +83,7 @@ ws://SERVER_NAME:8081/WebRTCApp4
 ```json
 {
     command : "play",
-    streamName : "stream1",
+    streamId : "stream1",
 }
 ```
 
@@ -89,7 +91,7 @@ ws://SERVER_NAME:8081/WebRTCApp4
 ```json
 {
    command : "takeConfiguration",
-   streamName : "stream1",
+   streamId : "stream1",
    type : "offer",  
    sdp : "${SDP_PARAMETER}"
 }
@@ -99,7 +101,7 @@ ws://SERVER_NAME:8081/WebRTCApp4
 ```json
 {
    command : "takeConfiguration",
-   streamName : "stream1",
+   streamId : "stream1",
    type : "answer",  
    sdp : "${SDP_PARAMETER}"
 }
@@ -108,7 +110,7 @@ ws://SERVER_NAME:8081/WebRTCApp4
 ```json
 {
     command : "takeCandidate",
-    streamName : "stream1",
+    streamId : "stream1",
     label : "${CANDIDATE.SDP_MLINE_INDEX}",
     id : "${CANDIDATE.SDP_MID}",
     candidate : "${CANDIDATE.CANDIDATE}"
@@ -120,25 +122,27 @@ ws://SERVER_NAME:8081/WebRTCApp4
 ```json
 {
     command : "stop",
+    streamId: "stream1",
 }
 ```
+
 
 ## Peer to Peer WebRTC Stream
 
 1. Peers connects to Ant Media Server through WebSocket.
 
 ```
-ws://SERVER_NAME:8081/WebRTCApp4
+ws://SERVER_NAME:8081/WebRTCAppEE
 ```
 
-8081 is the port number of WebSocket and `WebRTCApp4` is the name of the app on the server.
+8081 is the port number of WebSocket and `WebRTCAppEE` is the name of the app on the server.
 
 2. Client sends join JSON command to the server with stream name parameter. 
 
 ```json
 {
     command : "join",
-    streamName : "stream1",
+    streamId : "stream1",
 }
 ```
 
@@ -149,6 +153,7 @@ If there is only one peer in the stream1, server waits for the other peer to joi
 ```json
 {
     command : "start",
+    streamId : "stream1",
 }
 ```
 
@@ -157,7 +162,7 @@ If there is only one peer in the stream1, server waits for the other peer to joi
 ```json
 {
    command : "takeConfiguration",
-   streamName : "stream1",
+   streamId : "stream1",
    type : "offer",  
    sdp : "${SDP_PARAMETER}"
 }
@@ -168,7 +173,7 @@ Server relays the offer sdp to the second peer
 ```json
 {
    command : "takeConfiguration",
-   streamName : "stream1",
+   streamId : "stream1",
    type : "answer",  
    sdp : "${SDP_PARAMETER}"
 }
@@ -179,7 +184,7 @@ Server relays the answer sdp to the first peer
 ```json
 {
     command : "takeCandidate",
-    streamName : "stream1",
+    streamId : "stream1",
     label : "${CANDIDATE.SDP_MLINE_INDEX}",
     id : "${CANDIDATE.SDP_MID}",
     candidate : "${CANDIDATE.CANDIDATE}"
@@ -191,6 +196,71 @@ Server relays the answer sdp to the first peer
 ```json
 {
     command : "leave",
-    streamName: "stream1"
+    streamId: "stream1"
+}
+```
+
+## Conference WebRTC Stream
+
+1. Peers connects to Ant Media Server through WebSocket.
+
+```
+ws://SERVER_NAME:8081/WebRTCAppEE
+```
+
+8081 is the port number of WebSocket and `WebRTCAppEE` is the name of the app on the server.
+
+2. Client sends join JSON command to the server with room name parameter. 
+
+```json
+{
+    command : "joinRoom",
+    room : "room1",
+}
+```
+3. Server notifies the client with available streams in the room
+```json
+{
+    command : "notification",
+    definition : "joinedTheRoom",
+    streamId: "unique_stream_id_returned_by_the_server"
+    streams: [
+        "stream1_in_the_room",
+        "stream2_in_the_room",
+        .
+        .
+        .
+    ]
+}
+```
+```streamId``` returned by the server is the stream id client uses to publish stream to the room. 
+```streams``` is the json array which client can play via WebRTC. Client can play each stream by play method above. This strams array can be empty if there is no stream in the room.
+
+4. When there is a new guy joined the room, server sends below message to each peer in the room.
+```json
+{
+    command : "notification",
+    definition : "streamJoined",
+    streamId: "new_stream_id_joined_the_room"
+    
+}
+```
+Client can play the new joined stream with the streamId by the play method above.
+
+5. When someone leaves the room, server sends the below message to each peer in the room. 
+```json
+{
+    command : "notification",
+    definition : "streamLeaved",
+    streamId: "stream_id_leaved_the_room"
+}
+```
+Client can update/remove the related video views from UI. 
+
+6. Any user can leave the room by sending below message
+```json
+{
+    command : "stop",
+    streamId: "the_id_of_the_user_stream"
 }
 ```
