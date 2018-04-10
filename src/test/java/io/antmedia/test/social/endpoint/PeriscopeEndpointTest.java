@@ -190,6 +190,8 @@ public class PeriscopeEndpointTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+		
+		dataStore.close();
 	}
 
 	@Test
