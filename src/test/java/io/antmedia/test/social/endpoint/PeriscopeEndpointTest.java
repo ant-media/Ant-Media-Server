@@ -60,7 +60,7 @@ public class PeriscopeEndpointTest {
 		}
 	}
 
-	@Test
+	//@Test
 	public void testAccessToken() {
 
 		IDataStore dataStore = null;
