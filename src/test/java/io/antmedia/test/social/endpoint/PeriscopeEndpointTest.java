@@ -60,7 +60,7 @@ public class PeriscopeEndpointTest {
 		}
 	}
 
-	//@Test
+	@Test
 	public void testAccessToken() {
 
 		IDataStore dataStore = null;
@@ -133,9 +133,12 @@ public class PeriscopeEndpointTest {
 			dataStore.close();
 		}
 		
+		
+		testUpdateToken();
+		
 	}
 	
-	@Test
+	//this function is called in testAccessToken
 	public void testUpdateToken() {
 		IDataStore dataStore = new MapDBStore(TARGET_TEST_PROPERTIES);
 		
