@@ -1,6 +1,7 @@
 package io.antmedia.webrtc.api;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.red5.server.api.scope.IScopeService;
 
@@ -31,5 +32,17 @@ public interface IWebRTCAdaptor extends IScopeService {
 	 * @param resolutionHeight
 	 */
 	boolean registerWebRTCClient(String streamId, IWebRTCClient webRTCClusterClient, int resolutionHeight);
+	
+	/**
+	 * Returns number of active live streams 
+	 * @return
+	 */
+	int getNumberOfLiveStreams();
+	
+	/**
+	 * Returns total number of viewers
+	 * @return
+	 */
+	int getNumberOfTotalViewers();
 
 }

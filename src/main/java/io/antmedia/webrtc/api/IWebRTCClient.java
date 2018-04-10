@@ -46,5 +46,22 @@ public interface IWebRTCClient {
 	
 	public void stop();
 
+
+	/**
+	 * Returns the time in milliseconds between the time when start function is called 
+	 * and the time when streaming is started
+	 * @return the time in milliseconds
+	 * or -1 if timing is not available yet
+	 */
+	long getTimeToStartStreaming();
+	
+	/**
+	 * Returns the time in milliseconds between the time when stop function is called 
+	 * and the time when streaming is fully stopped
+	 * @return the time in milliseconds
+	 * or -1 if timing is not available yet
+	 */
+	long getTimeToStop();
+
 	
 }

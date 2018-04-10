@@ -46,6 +46,11 @@ public interface IWebRTCMuxer extends IStreamInfo {
 	 */
 	public void sendAudioPacket(byte[] audioPacket, long timestamp);
 	
+	/**
+	 * Returns number of WebRTCClients registered to the muxer
+	 */
+	public int getClientCount();
+	
 	
 	public boolean contains(IWebRTCClient webRTCClient);
 	
