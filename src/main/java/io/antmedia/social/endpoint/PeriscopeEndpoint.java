@@ -33,6 +33,7 @@ public class PeriscopeEndpoint extends VideoServiceEndpoint {
 	private String region;
 	private long expireTimeMS;
 	private UserEndpoints userEndpoint;
+	private String refresh_token;
 	
 
 	protected static Logger logger = LoggerFactory.getLogger(PeriscopeEndpoint.class);
@@ -164,21 +165,29 @@ public class PeriscopeEndpoint extends VideoServiceEndpoint {
 
 	private void updateTokenIfRequired() throws Exception {
 		if (expireTimeMS < (System.currentTimeMillis() + THREE_DAYS_IN_MS)) {
-			AuthorizationResponse token = periscopeEndpointFactory.refreshToken(clientId, clientSecret);
-			saveCredentials(getCredentials().getAccountName(), token.access_token, token.refresh_token, String.valueOf(token.expires_in), token.token_type, getCredentials().getAccountId());
-			init(getCredentials().getAccountName(), token.access_token, token.refresh_token, Long.valueOf(token.expires_in), token.token_type, System.currentTimeMillis());
+			updateToken();
 		}
+	}
+	
+	public void updateToken() throws Exception 
+	{
+		AuthorizationResponse token = periscopeEndpointFactory.refreshToken(clientId, clientSecret);
+		if (token.refresh_token == null || token.refresh_token.length() == 0) {
+			token.refresh_token = this.refresh_token;
+		}
+		saveCredentials(getCredentials().getAccountName(), token.access_token, token.refresh_token, String.valueOf(token.expires_in), token.token_type, getCredentials().getAccountId());
+		init(getCredentials().getAccountName(), token.access_token, token.refresh_token, Long.valueOf(token.expires_in), token.token_type, System.currentTimeMillis());
 	}
 
 	@Override
 	public void init(String accountName, String accessToken, String refreshToken, long expireTime, String tokenType, long authTimeInMS) {
 		this.accessToken = accessToken;
+		this.refresh_token = refreshToken;
 		periscopeEndpointFactory = new PeriscopeEndpointFactory(tokenType, accessToken, refreshToken);
 		expireTimeMS = authTimeInMS + expireTime * 1000;
 		broadcastEndpoint = periscopeEndpointFactory.getBroadcastEndpoints();
 		regionEndpoint = periscopeEndpointFactory.getRegionEndpoints();
 		userEndpoint = periscopeEndpointFactory.getUserEndpoints();
-
 
 	}
 
