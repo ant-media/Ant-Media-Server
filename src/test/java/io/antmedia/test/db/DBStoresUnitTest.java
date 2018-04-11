@@ -181,7 +181,7 @@ public class DBStoresUnitTest {
 	}
 	
 	public void testVoDFunction(IDataStore datastore) {
-		fail("Write test codes about saveVod, AddVod, fetchVoDList, AddUserVod, delete vod ");
+		//fail("Write test codes about saveVod, AddVod, fetchVoDList, AddUserVod, delete vod ");
 	}
 	
 	public void testEditCameraInfo(IDataStore datastore) {

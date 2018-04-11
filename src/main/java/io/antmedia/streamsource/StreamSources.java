@@ -62,9 +62,7 @@ public class StreamSources {
 				schedulerList.remove(streamScheduler);
 				break;
 			}
-
 		}
-
 	}
 
 	public void startStreams(List<Broadcast> streams) {

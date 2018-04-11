@@ -715,6 +715,7 @@ public class BroadcastRestService {
 				while ((read = inputStream.read(bytes)) != -1) {
 					outpuStream.write(bytes, 0, read);
 				}
+				
 				outpuStream.flush();
 				outpuStream.close();
 

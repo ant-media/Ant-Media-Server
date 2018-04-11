@@ -131,6 +131,7 @@ public class StreamsSourceRestService {
 	/*
 	 * This function is not used anymore, use BroadcastRestservice/delete
 	 */
+	
 	@GET
 	@Path("/deleteCamera")
 	@Produces(MediaType.APPLICATION_JSON)

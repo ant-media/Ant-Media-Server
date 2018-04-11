@@ -35,6 +35,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.muxer.MuxAdaptor;
 
 public class StreamFetcher {
 
@@ -128,9 +129,10 @@ public class StreamFetcher {
 		// outputRTMPFormatContext = new AVFormatContext(null);
 
 		int ret = avformat_alloc_output_context2(outputRTMPFormatContext, null, "flv", null);
-
 		for (int i = 0; i < inputFormatContext.nb_streams(); i++) {
+			
 			AVStream in_stream = inputFormatContext.streams(i);
+			
 			AVStream out_stream = avformat_new_stream(outputRTMPFormatContext, in_stream.codec().codec());
 
 			ret = avcodec_parameters_copy(out_stream.codecpar(), in_stream.codecpar());
@@ -141,7 +143,8 @@ public class StreamFetcher {
 
 			out_stream.codec().codec_tag(0);
 		}
-
+		
+	
 		if ((outputRTMPFormatContext.oformat().flags() & AVFMT_GLOBALHEADER) != 0) {
 			// out_stream->codec->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
 			outputRTMPFormatContext.oformat()
@@ -194,7 +197,6 @@ public class StreamFetcher {
 					if (inputFormatContext != null) {
 						avformat_close_input(inputFormatContext);
 					}
-
 					if (outputRTMPFormatContext != null && !outputRTMPFormatContext.isNull()) {
 						if (outputRTMPFormatContext.pb() != null) {
 							avio_closep(outputRTMPFormatContext.pb());
@@ -248,8 +250,15 @@ public class StreamFetcher {
 					pkt.duration(av_rescale_q(pkt.duration(), in_stream.time_base(), out_stream.time_base()));
 					pkt.pos(-1);
 					
-
-					ret = av_interleaved_write_frame(outputRTMPFormatContext, pkt);
+					/*
+					 * Use Mux adaptor writePacket method
+					 * 
+					 */
+					
+					
+					//ret = av_interleaved_write_frame(outputRTMPFormatContext, pkt);
+					
+					
 					
 					
 					if (ret < 0) {
