@@ -60,6 +60,9 @@ public class PeriscopeEndpointTest {
 		}
 	}
 
+	/**
+	 * This function should not be enabled in CI because it requires manual interaction with PSCP service
+	 */
 	//@Test
 	public void testAccessToken() {
 
@@ -133,12 +136,11 @@ public class PeriscopeEndpointTest {
 			dataStore.close();
 		}
 		
-		
 		testUpdateToken();
 		
 	}
 	
-	//this function is called in testAccessToken
+	//@Test This function should not be called as a test funciton. It is called in testAccessToken
 	public void testUpdateToken() {
 		IDataStore dataStore = new MapDBStore(TARGET_TEST_PROPERTIES);
 		

@@ -42,7 +42,7 @@ import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.social.endpoint.PeriscopeEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
-import io.antmedia.streamsource.StreamSources;
+import io.antmedia.streamsource.StreamFetcherManager;
 
 public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter implements IMuxerListener {
 
@@ -73,7 +73,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 	private HashMap<String, OnvifCamera> onvifCameraList = new HashMap<String, OnvifCamera>();
 
-	private StreamSources sources;
+	private StreamFetcherManager streamFetcherManager;
 
 	private IDataStore dataStore;
 
@@ -100,9 +100,9 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 			@Override
 			public void execute(ISchedulingService service) throws CloneNotSupportedException {
-				sources = new StreamSources(AntMediaApplicationAdapter.this);
+				streamFetcherManager = new StreamFetcherManager(AntMediaApplicationAdapter.this, dataStore);
 				List<Broadcast> streams = getDataStore().getExternalStreamsList();
-				sources.startStreams(streams);
+				streamFetcherManager.startStreams(streams);
 
 				List<SocialEndpointCredentials> socialEndpoints = dataStore.getSocialEndpoints(0, END_POINT_LIMIT);
 
@@ -556,20 +556,20 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	}
 	
 
-	public StreamSources getSources() {
-		return sources;
+	public StreamFetcherManager getSources() {
+		return streamFetcherManager;
 	}
 
-	public void setSources(StreamSources sources) {
-		this.sources = sources;
+	public void setSources(StreamFetcherManager sources) {
+		this.streamFetcherManager = sources;
 	}
 
 	public void startStreaming(Broadcast broadcast) {
-		sources.startStreaming(broadcast);
+		streamFetcherManager.startStreaming(broadcast);
 	}
 
 	public void stopStreaming(Broadcast cam) {
-		sources.stopStreaming(cam);
+		streamFetcherManager.stopStreaming(cam);
 	}
 
 	public OnvifCamera getOnvifCamera(String id) {
@@ -585,6 +585,10 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 			}
 		}
 		return onvifCamera;
+	}
+
+	public StreamFetcherManager getStreamFetcherManager() {
+		return streamFetcherManager;
 	}
 
 }

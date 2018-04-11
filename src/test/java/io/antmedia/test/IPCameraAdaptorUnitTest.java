@@ -1,10 +1,13 @@
 package io.antmedia.test;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import javax.servlet.ServletContext;
@@ -23,6 +26,8 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.datastore.db.IDataStore;
+import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.streamsource.StreamFetcher;
 
@@ -72,6 +77,62 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 	public void after() {
 
 	}
+	
+	
+	@Test
+	public void testBugUpdateStreamFetcherStatus() {
+		
+		//create ip camera broadcast
+		IDataStore dataStore = new MapDBStore("target/testbug.db"); //applicationContext.getBean(IDataStore.BEAN_NAME);
+		
+		assertNotNull(dataStore);
+		app.setDataStore(dataStore);
+		
+		//set mapdb datastore to stream fetcher because in memory datastore just have references and updating broadcst
+		// object updates the reference in inmemorydatastore
+		app.getStreamFetcherManager().setDatastore(dataStore);
+		
+		//save it data store
+		Broadcast newCam = new Broadcast("testOnvif", "127.0.0.1:8080", "admin", "admin", "rtsp://127.0.0.1:6554/test.flv",
+				"ipCamera");
+		String id = dataStore.save(newCam);
+		
+		
+		//set status to broadcasting
+		dataStore.updateStatus(id, AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+		Broadcast broadcast = dataStore.get(id);
+		logger.info("broadcast stream id {}" , id);
+		assertEquals(broadcast.getStatus(), AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+		
+		//start StreamFetcher
+		app.getSources().startStreams(Arrays.asList(broadcast));
+		
+		//wait 5seconds because connectivity time out is 4sec by default
+		try {
+			Thread.sleep(5000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		
+		
+		//check that it is not started
+		boolean flag3 = false;
+		for (StreamFetcher camScheduler : app.getSources().getCamSchedulerList()) {
+			if (camScheduler.getStream().getIpAddr().equals(newCam.getIpAddr())) {
+				// it should be false because emulator has not been started yet
+				assertFalse(camScheduler.isStreamAlive());
+				flag3 = true;
+
+			}
+		}
+
+		assertTrue(flag3);
+		
+		//check that broadcast status in datastore in finished or not broadcasting
+		broadcast = dataStore.get(id);
+		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, broadcast.getStatus());
+		
+	}
 
 	@Test
 	public void testCameraCheckerStartStop() {
@@ -85,11 +146,12 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 		List<Broadcast> cameras = new ArrayList<>();
 
 		cameras.add(newCam);
-
-		cameraChecker(cameras);
+		
+		//sets stream fetcher configuration, it checks streams in every 30sec
+		cameraChecker(cameras, 30000);
 
 		try {
-			Thread.sleep(10000);
+			Thread.sleep(5000);
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -99,7 +161,7 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 		for (StreamFetcher camScheduler : app.getSources().getCamSchedulerList()) {
 			if (camScheduler.getStream().getIpAddr().equals(newCam.getIpAddr())) {
 				// it should be false because emulator has not been started yet
-				assertFalse(camScheduler.isRunning());
+				assertFalse(camScheduler.isStreamAlive());
 				flag3 = true;
 
 			}
@@ -112,14 +174,12 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 		try {
 			p = pb.start();
 		} catch (IOException e1) {
-			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
 
 		try {
-			Thread.sleep(45000);
+			Thread.sleep(10000);
 		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 
@@ -127,9 +187,8 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 		for (StreamFetcher camScheduler : app.getSources().getCamSchedulerList()) {
 			if (camScheduler.getStream().getIpAddr().equals(newCam.getIpAddr())) {
 				// it should be true because emulater has been started
-				assertTrue(camScheduler.isRunning());
+				assertTrue(camScheduler.isStreamAlive());
 				flag = true;
-
 			}
 		}
 
@@ -138,7 +197,6 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 		try {
 			Thread.sleep(10000);
 		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		// close emulator in order to simulate cut-off
@@ -150,14 +208,12 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 			Process procStop = new ProcessBuilder(argsStop).start();
 			Process procStop2 = new ProcessBuilder(argsStop2).start();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 
 		try {
 			Thread.sleep(15000);
 		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		boolean flag2 = false;
@@ -165,7 +221,7 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 			if (camScheduler.getStream().getIpAddr().equals(newCam.getIpAddr())) {
 				// it should be false because connection is down between
 				// emulator and server
-				assertFalse(camScheduler.isRunning());
+				assertFalse(camScheduler.isStreamAlive());
 				flag2 = true;
 			}
 
@@ -184,7 +240,6 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 		try {
 			Thread.sleep(35000);
 		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 
@@ -193,7 +248,7 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 			if (camScheduler.getStream().getIpAddr().equals(newCam.getIpAddr())) {
 				// after 30 seconds, adaptor should check and start because
 				// thread was not working
-				assertTrue(camScheduler.isRunning());
+				assertTrue(camScheduler.isStreamAlive());
 				flag5 = true;
 			}
 
@@ -208,15 +263,14 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 			Process procStop3 = new ProcessBuilder(argsStop3).start();
 			Process procStop4 = new ProcessBuilder(argsStop4).start();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 
 	}
 
-	public void cameraChecker(List<Broadcast> cameras) {
+	public void cameraChecker(List<Broadcast> cameras, int interval) {
 
-		app.getSources().setStreamCheckerInterval(30000);
+		app.getSources().setStreamCheckerInterval(interval);
 
 		app.getSources().startStreams(cameras);
 	}

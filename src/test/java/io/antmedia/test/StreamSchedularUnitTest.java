@@ -164,13 +164,13 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		StreamFetcher camScheduler = new StreamFetcher(newCam);
 		camScheduler.startStream();
 
-		assertTrue(camScheduler.isRunning());
+		assertTrue(camScheduler.isStreamAlive());
 
 		camScheduler.stopStream();
 
 		Thread.sleep(5000);
 
-		assertFalse(camScheduler.isRunning());
+		assertFalse(camScheduler.isStreamAlive());
 
 	}
 
@@ -194,13 +194,13 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		streamScheduler.setConnectionTimeout(3000);
 
-		assertTrue(streamScheduler.isRunning());
+		assertTrue(streamScheduler.isStreamAlive());
 
 		streamScheduler.stopStream();
 
 		Thread.sleep(6000);
 
-		assertFalse(streamScheduler.isRunning());
+		assertFalse(streamScheduler.isStreamAlive());
 
 		assertFalse(streamScheduler.isExceptionInThread());
 	}
