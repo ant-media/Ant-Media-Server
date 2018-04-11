@@ -326,17 +326,6 @@ public class MongoStore implements IDataStore {
 	}
 
 	@Override
-	public Broadcast getCamera(String ip) {
-		try {
-			return datastore.find(Broadcast.class).field("ipAddr").equal(ip).get();
-		} catch (Exception e) {
-
-			e.printStackTrace();
-		}
-		return null;
-	}
-
-	@Override
 	public List<Broadcast> getExternalStreamsList() {
 		try {
 			List<Broadcast> ipCameraList=datastore.find(Broadcast.class).field("type").equal("ipCamera").asList();

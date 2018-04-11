@@ -48,9 +48,19 @@ public class StreamFetcher {
 
 	private long[] lastDTS;
 
+	/**
+	 * Connection setup timeout value
+	 */
 	private int timeout;
 
 	public boolean exceptionInThread = false;
+	
+	/**
+	 * Last packet received time
+	 */
+	private long lastPacketReceivedTime = 0;
+	
+	private static final int PACKET_RECEIVED_INTERVAL_TIMEOUT = 3000;
 
 	public StreamFetcher(Broadcast stream) {
 		this.stream = stream;
@@ -179,13 +189,13 @@ public class StreamFetcher {
 	public class WorkerThread extends Thread {
 
 		private volatile boolean stopRequestReceived = false;
+	
 
 		@Override
 		public void run() {
 
 			AVFormatContext inputFormatContext = new AVFormatContext(null); // avformat.avformat_alloc_context();
 			AVFormatContext outputRTMPFormatContext = new AVFormatContext(null);
-
 
 			logger.info("before prepare");
 
@@ -209,7 +219,6 @@ public class StreamFetcher {
 				}
 
 
-
 				while (true) {
 					int ret = av_read_frame(inputFormatContext, pkt);
 					if (ret < 0) {
@@ -218,6 +227,8 @@ public class StreamFetcher {
 						break;
 					}
 
+					lastPacketReceivedTime = System.currentTimeMillis();
+					
 					int packetIndex = pkt.stream_index();
 					AVStream in_stream = inputFormatContext.streams(packetIndex);
 					AVStream out_stream = outputRTMPFormatContext.streams(packetIndex);
@@ -289,7 +300,6 @@ public class StreamFetcher {
 		}
 
 		public void setStopRequestReceived() {
-
 			logger.warn("inside of setStopRequestReceived");
 			stopRequestReceived = true;
 
@@ -318,8 +328,13 @@ public class StreamFetcher {
 		// this.appAdaptor.addScheduledOnceJob(10, this);
 	}
 
-	public boolean isRunning() {
-		return thread.isAlive();
+	/**
+	 * If thread is alive and receiving packet with in the {@link PACKET_RECEIVED_INTERVAL_TIMEOUT} time
+	 * mean it is running
+	 * @return true if it is running and false it is not
+	 */
+	public boolean isStreamAlive() {
+		return ((System.currentTimeMillis() - lastPacketReceivedTime) < PACKET_RECEIVED_INTERVAL_TIMEOUT);
 	}
 
 	public boolean isStopped() {
@@ -344,7 +359,7 @@ public class StreamFetcher {
 		new Thread() {
 			public void run() {
 				try {
-					while (isRunning()) {
+					while (isStreamAlive()) {
 						logger.warn("thread isRunning");
 						Thread.sleep(100);
 
