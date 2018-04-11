@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -50,7 +51,7 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 	public static void beforeClass() {
 		avformat.av_register_all();
 		avformat.avformat_network_init();
-		avutil.av_log_set_level(avutil.AV_LOG_ERROR);
+		avutil.av_log_set_level(avutil.AV_LOG_INFO);
 
 	}
 
@@ -142,6 +143,13 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 
 		Broadcast newCam = new Broadcast("testOnvif", "127.0.0.1:8080", "admin", "admin", "rtsp://127.0.0.1:6554/test.flv",
 				"ipCamera");
+		
+		try {
+			newCam.setStreamId("stream_" + (int)(Math.random() * 10000));
+		} catch (Exception e2) {
+			e2.printStackTrace();
+			fail(e2.getMessage());
+		}
 
 		List<Broadcast> cameras = new ArrayList<>();
 
@@ -262,6 +270,7 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		
 		
 
 	}
