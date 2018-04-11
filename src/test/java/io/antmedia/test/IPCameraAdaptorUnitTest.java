@@ -117,7 +117,7 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 
 		try {
-			Thread.sleep(45000);
+			Thread.sleep(10000);
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
