@@ -60,7 +60,10 @@ public class PeriscopeEndpointTest {
 		}
 	}
 
-	@Test
+	/**
+	 * This function should not be enabled in CI because it requires manual interaction with PSCP service
+	 */
+	//@Test
 	public void testAccessToken() {
 
 		IDataStore dataStore = null;
