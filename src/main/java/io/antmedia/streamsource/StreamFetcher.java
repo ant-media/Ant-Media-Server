@@ -171,14 +171,14 @@ public class StreamFetcher {
 			if (ret < 0) {
 				byte[] data = new byte[1024];
 				avutil.av_strerror(ret, data, data.length);
-				logger.debug("Cannot open url: " + urlStr + " error is " + new String(data, 0, data.length));
+				logger.info("Cannot open url: " + urlStr + " error is " + new String(data, 0, data.length));
 				return false;
 			}
 			outputRTMPFormatContext.pb(pb);
 
 			ret = avformat_write_header(outputRTMPFormatContext, (AVDictionary) null);
 			if (ret < 0) {
-				logger.debug("Cannot write header to rtmp\n");
+				logger.info("Cannot write header to rtmp\n");
 				return false;
 			}
 		}

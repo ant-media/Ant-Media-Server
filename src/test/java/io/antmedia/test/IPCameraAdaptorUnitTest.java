@@ -178,7 +178,8 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 
 		try {
-			Thread.sleep(10000);
+			//wait more than 30sec to make sure scheduler start the stream again
+			Thread.sleep(35000);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
@@ -194,11 +195,6 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 
 		assertTrue(flag);
 
-		try {
-			Thread.sleep(10000);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
 		// close emulator in order to simulate cut-off
 		String[] argsStop = new String[] { "/bin/bash", "-c",
 				"kill -9 $(ps aux | grep 'onvifser' | awk '{print $2}')" };
@@ -212,7 +208,8 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 
 		try {
-			Thread.sleep(15000);
+			//waiting 5 sec is ok. Because stream is not alive if last packet time is older than 3 secs.
+			Thread.sleep(5000);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
@@ -233,11 +230,11 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 		try {
 			p2 = pb2.start();
 		} catch (IOException e1) {
-			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
 
 		try {
+			//wait more than 30sec to make sure stream is started again
 			Thread.sleep(35000);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
@@ -265,6 +262,7 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		
 
 	}
 
