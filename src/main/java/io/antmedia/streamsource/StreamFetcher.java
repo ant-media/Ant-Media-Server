@@ -267,7 +267,7 @@ public class StreamFetcher {
 					 */
 					
 					
-					//ret = av_interleaved_write_frame(outputRTMPFormatContext, pkt);
+					ret = av_interleaved_write_frame(outputRTMPFormatContext, pkt);
 					
 					
 					
