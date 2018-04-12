@@ -96,9 +96,9 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 		avformat.avformat_network_init();
 		avutil.av_log_set_level(avutil.	AV_LOG_ERROR);
 
-
+		
 	}
-
+	
 	@Before
 	public void before() {
 		File webApps = new File("webapps");
@@ -113,18 +113,13 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 	@After
 	public void after() {
-		/*
-		File file=new File("webapps");
-
+	
 		try {
-			delete(file);
+			delete(new File("webapps"));
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
-		*/
-
 	}
 
 	public static void delete(File file)
@@ -1270,6 +1265,12 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 			System.out.println("ts file count:" + files.length);
 
 			assertTrue(files.length > 0);
+			
+			System.out.println("hls list:" + (int)Integer.valueOf(hlsMuxer.getHlsListSize()));
+			
+			System.out.println("hls time:" + (int)Integer.valueOf(hlsMuxer.getHlsTime()));
+			
+			
 			assertTrue(files.length < (int)Integer.valueOf(hlsMuxer.getHlsListSize()) * (Integer.valueOf(hlsMuxer.getHlsTime()) + 1));
 
 
