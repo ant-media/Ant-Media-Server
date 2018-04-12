@@ -105,10 +105,11 @@ public class StreamFetcherManager {
 					} else {
 						for (StreamFetcher streamScheduler : streamFetcherList) {
 							if (!streamScheduler.isStreamAlive()) {
-								if (datastore != null) {
+								String streamId = streamScheduler.getStream().getStreamId();
+								if (datastore != null && streamId != null) {
 									logger.info("Updating stream status to finished, updating status of stream {}", streamScheduler.getStream().getStreamId());
 									
-									datastore.updateStatus(streamScheduler.getStream().getStreamId(), 
+									datastore.updateStatus(streamId, 
 											AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
 								}
 								streamScheduler.startStream();

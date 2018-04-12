@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -50,7 +51,7 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 	public static void beforeClass() {
 		avformat.av_register_all();
 		avformat.avformat_network_init();
-		avutil.av_log_set_level(avutil.AV_LOG_ERROR);
+		avutil.av_log_set_level(avutil.AV_LOG_INFO);
 
 	}
 
@@ -142,6 +143,13 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 
 		Broadcast newCam = new Broadcast("testOnvif", "127.0.0.1:8080", "admin", "admin", "rtsp://127.0.0.1:6554/test.flv",
 				"ipCamera");
+		
+		try {
+			newCam.setStreamId("stream_" + (int)(Math.random() * 10000));
+		} catch (Exception e2) {
+			e2.printStackTrace();
+			fail(e2.getMessage());
+		}
 
 		List<Broadcast> cameras = new ArrayList<>();
 
@@ -178,7 +186,8 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 
 		try {
-			Thread.sleep(10000);
+			//wait more than 30sec to make sure scheduler start the stream again
+			Thread.sleep(35000);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
@@ -194,11 +203,6 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 
 		assertTrue(flag);
 
-		try {
-			Thread.sleep(10000);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
 		// close emulator in order to simulate cut-off
 		String[] argsStop = new String[] { "/bin/bash", "-c",
 				"kill -9 $(ps aux | grep 'onvifser' | awk '{print $2}')" };
@@ -212,7 +216,8 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 
 		try {
-			Thread.sleep(15000);
+			//waiting 5 sec is ok. Because stream is not alive if last packet time is older than 3 secs.
+			Thread.sleep(5000);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
@@ -233,11 +238,11 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 		try {
 			p2 = pb2.start();
 		} catch (IOException e1) {
-			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
 
 		try {
+			//wait more than 30sec to make sure stream is started again
 			Thread.sleep(35000);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
@@ -265,6 +270,8 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		
+		
 
 	}
 
