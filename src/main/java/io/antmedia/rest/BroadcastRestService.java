@@ -174,6 +174,25 @@ public class BroadcastRestService {
 		return saveBroadcast(broadcast, AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, getScope().getName(),
 				getDataStore(), getAppSettings());
 	}
+	
+	
+	@POST
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED )
+	@Path("/broadcast/createPortalBroadcast")
+	@Produces(MediaType.APPLICATION_JSON)
+
+	public Broadcast createPortalBroadcast(@FormParam("name") String name, @FormParam("listenerHookURL") String listenerHookURL) {
+
+		Broadcast broadcast=new Broadcast();
+		
+		broadcast.setName(name);
+		broadcast.setListenerHookURL(listenerHookURL);
+	
+		return saveBroadcast(broadcast, AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, getScope().getName(),
+				getDataStore(), getAppSettings());
+	}
+	
+
 
 	public static Broadcast saveBroadcast(Broadcast broadcast, String status, String scopeName, IDataStore dataStore,
 			AppSettings settings) {
