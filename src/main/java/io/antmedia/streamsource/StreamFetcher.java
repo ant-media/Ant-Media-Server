@@ -315,14 +315,6 @@ public class StreamFetcher {
 		exceptionInThread = false;
 		thread = new WorkerThread();
 		
-		while(thread.isAlive()) {
-			try {
-				Thread.sleep(3000);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-				 Thread.currentThread().interrupt();
-			}
-		}
 		thread.start();
 
 		// this.appAdaptor.addScheduledOnceJob(10, this);
