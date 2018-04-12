@@ -292,7 +292,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		RestServiceTest restService = new RestServiceTest();
 
-		Broadcast newSource = new Broadcast("test1", "10.2.40.63:8080", "admin", "admin", "rtsp://184.72.239.149/vod/mp4:BigBuckBunny_115k.mov",
+		Broadcast newSource = new Broadcast("testBandwidth", "10.2.40.63:8080", "admin", "admin", "rtsp://184.72.239.149/vod/mp4:BigBuckBunny_115k.mov",
 				"streamSource");
 
 		restService.save(newSource);
@@ -307,7 +307,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 		try {
-			Thread.sleep(15000);
+			Thread.sleep(20000);
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -315,9 +315,20 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		logger.info("before first control");
 		
-		assertEquals("good", restService.getBroadcast(newSource.getStreamId()).getQuality());	
+		Broadcast stream=restService.getBroadcast(newSource.getStreamId());
 		
-		assertTrue(1 < restService.getBroadcast(newSource.getStreamId()).getSpeed());
+		try {
+			Thread.sleep(2000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		assertEquals("good", stream.getQuality());	
+
+		logger.info("speed{}" + stream.getSpeed()) ;
+		
+		assertTrue(1 < stream.getSpeed());
 		
 	
 

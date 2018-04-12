@@ -799,12 +799,12 @@ public class BroadcastRestService {
 	}
 
 	/**
-	 * Get device parameters for social network authrozation.
+	 * Get device parameters for social network authorization.
 	 * 
 	 * @param serviceName
-	 *            Name of the service, like facebook,youtube,periscope
+	 *            Name of the service, like Facebook, Youtube, Periscope
 	 * 
-	 * @return If operation is successfull, DeviceAuthParameters is returned
+	 * @return If operation is successful, DeviceAuthParameters is returned
 	 *         with related information.
 	 * 
 	 *         User should go to
@@ -813,7 +813,7 @@ public class BroadcastRestService {
 	 *         {@link io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters#user_code}
 	 *         in a minute
 	 * 
-	 *         If not successfull, it returns with Result object with message
+	 *         If not successful, it returns with Result object with message
 	 * 
 	 */
 	@POST
