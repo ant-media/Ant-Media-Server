@@ -39,7 +39,7 @@ import io.antmedia.datastore.db.types.Vod;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.ipcamera.onvifdiscovery.OnvifDiscovery;
 import io.antmedia.rest.model.Result;
-import io.antmedia.streamsource.StreamSources;
+import io.antmedia.streamsource.StreamFetcherManager;
 
 @Component
 @Path("/streamSource")
@@ -51,7 +51,7 @@ public class StreamsSourceRestService {
 	private MapDBStore dbStore;
 	private ApplicationContext appCtx;
 
-	private StreamSources app;
+	private StreamFetcherManager app;
 	private IScope scope;
 
 	private AntMediaApplicationAdapter appInstance;
@@ -127,27 +127,6 @@ public class StreamsSourceRestService {
 
 		return new Result(result, message);
 	}
-
-	/*
-	 * This function is not used anymore, use BroadcastRestservice/delete
-	 */
-	
-	@GET
-	@Path("/deleteCamera")
-	@Produces(MediaType.APPLICATION_JSON)
-	public Result deleteCamera(@QueryParam("ipAddr") String ipAddr) {
-		boolean result = false;
-		logger.warn("inside of rest service" + ipAddr);
-		Broadcast cam = getStore().getCamera(ipAddr);
-
-		if (cam != null) {
-			getInstance().stopStreaming(cam);
-			result = getStore().deleteStream(ipAddr);
-		}
-		return new Result(result);
-	}
-
-
 
 
 	@GET
@@ -299,17 +278,6 @@ public class StreamsSourceRestService {
 			logger.warn("IP Address is not found");
 		}
 		return list;
-	}
-
-	@GET
-	@Path("/get")
-	@Produces(MediaType.APPLICATION_JSON)
-	public Broadcast getCamera(@QueryParam("ipAddr") String ipAddr) {
-		Broadcast camera = getStore().getCamera(ipAddr);
-		if (camera == null) {
-			camera = new Broadcast("null", "null", "null", "null", "null", "null");
-		}
-		return camera;
 	}
 
 	@GET

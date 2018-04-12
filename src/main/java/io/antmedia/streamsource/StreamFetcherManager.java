@@ -11,24 +11,33 @@ import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 
-public class StreamSources {
 
+/**
+ * Organizes and checks stream fetcher and restarts them if it is required
+ * @author davut
+ *
+ */
+public class StreamFetcherManager {
 
-	protected static Logger logger = LoggerFactory.getLogger(StreamSources.class);
-	public static final String BROADCAST_STATUS_FINISHED = "finished";
+	protected static Logger logger = LoggerFactory.getLogger(StreamFetcherManager.class);
 
 	private int streamCheckerCount = 0;
 
-	private List<StreamFetcher> schedulerList = new ArrayList<>();
+	private List<StreamFetcher> streamFetcherList = new ArrayList<>();
 
 	private int streamCheckerInterval = 10000;
 
 	private ISchedulingService schedulingService;
+
+	private IDataStore datastore;
 	
-	public StreamSources(ISchedulingService schedulingService) {
+	public StreamFetcherManager(ISchedulingService schedulingService, IDataStore datastore) {
 		this.schedulingService = schedulingService;
+		this.datastore = datastore;
 	}
 
 	public int getStreamCheckerInterval() {
@@ -45,24 +54,26 @@ public class StreamSources {
 
 		StreamFetcher streamScheduler = new StreamFetcher(broadcast);
 		streamScheduler.startStream();
-		schedulerList.add(streamScheduler);
+		streamFetcherList.add(streamScheduler);
 
 	}
 
 	public List<StreamFetcher> getCamSchedulerList() {
-		return schedulerList;
+		return streamFetcherList;
 	}
 
 	public void stopStreaming(Broadcast stream) {
 		logger.warn("inside of stopStreaming");
 
-		for (StreamFetcher streamScheduler : schedulerList) {
+		for (StreamFetcher streamScheduler : streamFetcherList) {
 			if (streamScheduler.getStream().getStreamId().equals(stream.getStreamId())) {
 				streamScheduler.stopStream();
-				schedulerList.remove(streamScheduler);
+				streamFetcherList.remove(streamScheduler);
 				break;
 			}
+
 		}
+
 	}
 
 	public void startStreams(List<Broadcast> streams) {
@@ -76,7 +87,7 @@ public class StreamSources {
 			@Override
 			public void execute(ISchedulingService service) throws CloneNotSupportedException {
 
-				if (schedulerList.size() > 0) {
+				if (streamFetcherList.size() > 0) {
 
 					streamCheckerCount++;
 
@@ -84,17 +95,23 @@ public class StreamSources {
 
 					if (streamCheckerCount % 180 == 0) {
 
-						for (StreamFetcher streamScheduler : schedulerList) {
-							if (streamScheduler.isRunning()) {
+						for (StreamFetcher streamScheduler : streamFetcherList) {
+							if (streamScheduler.isStreamAlive()) {
 								streamScheduler.stopStream();
 							}
 							streamScheduler.startStream();
 						}
 
 					} else {
-						for (StreamFetcher streamScheduler : schedulerList) {
-							if (!streamScheduler.isRunning()) {
-								streamScheduler.getStream().setStatus(BROADCAST_STATUS_FINISHED);
+						for (StreamFetcher streamScheduler : streamFetcherList) {
+							if (!streamScheduler.isStreamAlive()) {
+								String streamId = streamScheduler.getStream().getStreamId();
+								if (datastore != null && streamId != null) {
+									logger.info("Updating stream status to finished, updating status of stream {}", streamScheduler.getStream().getStreamId());
+									
+									datastore.updateStatus(streamId, 
+											AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+								}
 								streamScheduler.startStream();
 							}
 						}
@@ -103,6 +120,14 @@ public class StreamSources {
 			}
 		}, 5000);
 
+	}
+
+	public IDataStore getDatastore() {
+		return datastore;
+	}
+
+	public void setDatastore(IDataStore datastore) {
+		this.datastore = datastore;
 	}
 
 }
