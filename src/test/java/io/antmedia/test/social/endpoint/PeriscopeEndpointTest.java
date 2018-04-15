@@ -60,15 +60,21 @@ public class PeriscopeEndpointTest {
 		}
 	}
 
+	/**
+	 * This function should not be enabled in CI because it requires manual interaction with PSCP service
+	 */
 	//@Test
 	public void testAccessToken() {
 
+		IDataStore dataStore = null;
 		try {
+			
 			File f = new File(TARGET_TEST_PROPERTIES);
 			if (f.exists()) {
 				f.delete();
 			}
-			IDataStore dataStore = new MapDBStore(TARGET_TEST_PROPERTIES);
+			
+			dataStore = new MapDBStore(TARGET_TEST_PROPERTIES);
 			
 			PeriscopeEndpoint endPoint = new PeriscopeEndpoint(CLIENT_ID, CLIENT_SECRET, dataStore, null);
 			DeviceAuthParameters device = null;
@@ -115,13 +121,60 @@ public class PeriscopeEndpointTest {
 			assertNotNull(endPoint.getAccountName());
 			
 			assertTrue(endPoint.getAccountName().length() > 0);
-
+			
+			List<SocialEndpointCredentials> socialEndpoints = dataStore.getSocialEndpoints(0, 100);
+			assertEquals(1, socialEndpoints.size());
+			
+			
 		} catch (Exception e) {
 
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+		finally 
+		{
+			dataStore.close();
+		}
+		
+		testUpdateToken();
+		
 	}
+	
+	//@Test This function should not be called as a test funciton. It is called in testAccessToken
+	public void testUpdateToken() {
+		IDataStore dataStore = new MapDBStore(TARGET_TEST_PROPERTIES);
+		
+		List<SocialEndpointCredentials> socialEndpoints = dataStore.getSocialEndpoints(0, 10);
+		assertEquals(1, socialEndpoints.size());
+		
+		PeriscopeEndpoint endPoint = new PeriscopeEndpoint(CLIENT_ID, CLIENT_SECRET, dataStore, socialEndpoints.get(0));
+
+		try {
+			endPoint.updateToken();
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		
+		dataStore.close();
+		
+		dataStore = new MapDBStore(TARGET_TEST_PROPERTIES);
+			
+		socialEndpoints = dataStore.getSocialEndpoints(0, 10);
+		assertEquals(1, socialEndpoints.size());
+		
+		endPoint = new PeriscopeEndpoint(CLIENT_ID, CLIENT_SECRET, dataStore, socialEndpoints.get(0));
+
+		try {
+			endPoint.updateToken();
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		
+		dataStore.close();
+	}
+	
 
 	@Test
 	public void testCreateBroadcastNoName() {
@@ -142,6 +195,8 @@ public class PeriscopeEndpointTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+		
+		dataStore.close();
 	}
 
 	@Test
@@ -190,8 +245,11 @@ public class PeriscopeEndpointTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+		finally {
+			dataStore.close();
+		}
 		
-		dataStore.close();
+		
 
 	}
 

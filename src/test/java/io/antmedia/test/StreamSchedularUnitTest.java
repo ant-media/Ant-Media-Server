@@ -154,25 +154,27 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	@Test
 	public void testStreamSchedular() throws InterruptedException {
 
-		long size = 1232;
-
 		AVFormatContext inputFormatContext = new AVFormatContext();
 
 		Broadcast newCam = new Broadcast("testSchedular", "10.2.40.63:8080", "admin", "admin",
 				"rtsp://10.2.40.63:8554/live1.sdp", "ipCamera");
 
 		StreamFetcher camScheduler = new StreamFetcher(newCam);
+		
 		camScheduler.startStream();
 
-		assertTrue(camScheduler.isRunning());
+		//this should be false becase this rtsp url cannot be used
+		
+		assertFalse(camScheduler.isStreamAlive());
 
 		camScheduler.stopStream();
 
 		Thread.sleep(5000);
 
-		assertFalse(camScheduler.isRunning());
+		assertFalse(camScheduler.isStreamAlive());
 
 	}
+	
 
 	@Test
 	public void testStreamSchedularConnectionTimeout() throws InterruptedException {
@@ -194,13 +196,14 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		streamScheduler.setConnectionTimeout(3000);
 
-		assertTrue(streamScheduler.isRunning());
+		//this should be false because stream is not alive 
+		assertFalse(streamScheduler.isStreamAlive());
 
 		streamScheduler.stopStream();
 
 		Thread.sleep(6000);
 
-		assertFalse(streamScheduler.isRunning());
+		assertFalse(streamScheduler.isStreamAlive());
 
 		assertFalse(streamScheduler.isExceptionInThread());
 	}

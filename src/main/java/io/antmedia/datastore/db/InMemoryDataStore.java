@@ -248,32 +248,6 @@ public class InMemoryDataStore implements IDataStore {
 		return result;
 	}
 
-	@Override
-	public Broadcast getCamera(String ip) {
-		Object[] objectArray = broadcastMap.values().toArray();
-
-		Broadcast[] broadcastArray = new Broadcast[objectArray.length];
-
-		for (int i = 0; i < objectArray.length; i++) {
-			broadcastArray[i] = gson.fromJson((String) objectArray[i], Broadcast.class);
-		}
-
-		Broadcast camera = new Broadcast();
-
-		for (int i = 0; i < broadcastArray.length; i++) 
-		{
-			if (broadcastArray[i].getType() == "ipCamera") 
-			{
-				if (broadcastArray[i].getIpAddr().equals(ip)) {
-					camera = broadcastArray[i];
-					break;
-				}
-			}
-
-		}
-
-		return camera;
-	}
 
 	@Override
 	public List<Broadcast> getExternalStreamsList() {

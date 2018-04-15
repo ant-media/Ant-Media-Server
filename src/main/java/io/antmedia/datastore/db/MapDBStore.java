@@ -596,31 +596,6 @@ public class MapDBStore implements IDataStore {
 		return result;
 	}
 
-	@Override
-	public Broadcast getCamera(String ipAddr) {
-
-		Object[] objectArray = map.getValues().toArray();
-
-		Broadcast[] broadcastArray = new Broadcast[objectArray.length];
-
-		for (int i = 0; i < objectArray.length; i++) {
-			broadcastArray[i] = gson.fromJson((String) objectArray[i], Broadcast.class);
-		}
-
-		Broadcast camera = new Broadcast();
-
-		for (int i = 0; i < broadcastArray.length; i++) 
-		{
-			if (broadcastArray[i].getType() == "ipCamera") {
-				if (broadcastArray[i].getIpAddr().equals(ipAddr)) {
-					camera = broadcastArray[i];
-					break;
-				}
-			}
-		}
-
-		return camera;
-	}
 
 	@Override
 	public List<Broadcast> getExternalStreamsList() {
