@@ -17,7 +17,7 @@ There should be a `enable_ssl.sh` file in the installation directory.
 Call the enable_ssl.sh with your domain name
 
 ```
-sudo ./enable_ssl.sh  www.example.com
+sudo ./enable_ssl.sh  example.com
 ```
 
 Make sure that your domain points to your server public IP address in the DNS records 
@@ -26,7 +26,7 @@ If the above scripts returns successfully, SSL will be installed your server,
 you can use https through 5443, wss through 8082 ports. Like below
 
 ```
-https://www.example.com:5443
+https://example.com:5443
 ```
 
 
