@@ -53,6 +53,12 @@ cache:
     - '$HOME/.sonar/cache'
 
 deploy:
+  - provider: script
+    script: "mvn deploy -P assemble -DskipTests -Dmaven.javadoc.skip=true --settings mvn-settings.xml"
+    skip_cleanup: true
+    on:
+      tags: true
+      branch: master
   - provider: releases
     api_key: $GITHUB_OAUTH_TOKEN
     file_glob: true
@@ -60,12 +66,6 @@ deploy:
     skip_cleanup: true
     name: "Ant Media Server Community $(date +'%F-%T')"
     prerelease: true
-    on:
-      tags: true
-      branch: master
-  - provider: script
-    script: "mvn deploy -P assemble -DskipTests --settings mvn-settings.xml"
-    skip_cleanup: true
     on:
       tags: true
       branch: master

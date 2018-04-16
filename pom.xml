@@ -52,7 +52,7 @@
 		<finalName>${project.artifactId}</finalName>
 		<red5-io.version>${project.parent.version}</red5-io.version>
 		<red5-service.version>${project.version}</red5-service.version>
-		<red5-server-common.version>1.3.1</red5-server-common.version>
+		<red5-server-common.version>1.3.2</red5-server-common.version>
 		<cors-filter.version>2.5</cors-filter.version>
 		<periscope-api.version>1.1.0</periscope-api.version>
 		<restfb.version>1.43.0</restfb.version>
@@ -74,8 +74,6 @@
 		<ant-media-server-service.version>1.2.1</ant-media-server-service.version>
 		<ant-media-server-enterprise.version>1.4.0-SNAPSHOT</ant-media-server-enterprise.version>
 		<vertx-core.version>3.4.2</vertx-core.version>
-
-
 	</properties>
 
 	<build>

@@ -174,6 +174,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		assertFalse(camScheduler.isStreamAlive());
 
 	}
+	
 
 	@Test
 	public void testStreamSchedularConnectionTimeout() throws InterruptedException {
