@@ -26,4 +26,6 @@ public class AppSettingsModel {
 	public List<EncoderSettings> encoderSettings;
 	
 	public String vodFolder;
+	
+	public boolean previewOverwrite;
 }
