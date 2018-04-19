@@ -43,6 +43,7 @@ import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.integration.RestServiceTest;
 import io.antmedia.rest.BroadcastRestService;
+import io.antmedia.rest.model.Result;
 import io.antmedia.streamsource.StreamFetcher;
 
 @ContextConfiguration(locations = { "test.xml" })
@@ -218,14 +219,18 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		Broadcast newCam = null;
 
 		StreamFetcher streamScheduler = new StreamFetcher(newCam);
+		
+		Result result= streamScheduler.prepareInput(inputFormatContext);
 
-		assertFalse(streamScheduler.prepareInput(inputFormatContext));
+		assertFalse(result.isSuccess());
 
 		Broadcast newCam2 = new Broadcast("test", "10.2.40.63:8080", "admin", "admin", null, "ipCamera");
 
 		StreamFetcher streamScheduler2 = new StreamFetcher(newCam2);
+		
+		Result result2= streamScheduler2.prepareInput(inputFormatContext);
 
-		assertFalse(streamScheduler2.prepareInput(inputFormatContext));
+		assertFalse(result.isSuccess());
 
 	}
 
@@ -555,7 +560,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 
-
+	
 
 }
 

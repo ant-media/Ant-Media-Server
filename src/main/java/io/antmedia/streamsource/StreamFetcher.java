@@ -36,6 +36,7 @@ import org.slf4j.LoggerFactory;
 
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.muxer.MuxAdaptor;
+import io.antmedia.rest.model.Result;
 
 public class StreamFetcher {
 
@@ -55,34 +56,33 @@ public class StreamFetcher {
 	private int timeout;
 
 	public boolean exceptionInThread = false;
-	
+
 	/**
 	 * Last packet received time
 	 */
 	private long lastPacketReceivedTime = 0;
-	
+
+	private boolean threadActive = false;
+
 	private static final int PACKET_RECEIVED_INTERVAL_TIMEOUT = 3000;
 
 	public StreamFetcher(Broadcast stream) {
 		this.stream = stream;
 	}
 
-	public StreamFetcher() {
+	public Result prepareInput(AVFormatContext inputFormatContext) {
 
-	}
-
-	public boolean prepareInput(AVFormatContext inputFormatContext) {
-		
 		setConnectionTimeout(4000);
 
+		Result result = new Result(false);
 		if (inputFormatContext == null) {
 			logger.info("cannot allocate input context");
-			return false;
+			return result;
 		}
 
 		if (stream == null || stream.getStreamUrl() == null) {
 			logger.info("stream is null");
-			return false;
+			return result;
 		}
 
 		AVDictionary optionsDictionary = new AVDictionary();
@@ -102,30 +102,49 @@ public class StreamFetcher {
 
 			byte[] data = new byte[1024];
 			avutil.av_strerror(ret, data, data.length);
-			logger.info("cannot open input context with error: " + new String(data, 0, data.length));
-			return false;
+
+			String errorStr=new String(data, 0, data.length);
+			logger.info("cannot open input context with error: " + errorStr);
+
+
+			String errorUnauthorized="Server returned 401 Unauthorized (authorization failed)";
+
+			logger.info("Error:" +errorStr);
+			logger.info(errorUnauthorized);
+
+
+			if (errorStr.equals(errorUnauthorized)) {				
+				logger.info("Unauthorized access");
+			}
+
+			result.setMessage(errorStr);
+			return result;
 		}
+
+
 		av_dict_free(optionsDictionary);
 
 		ret = avformat_find_stream_info(inputFormatContext, (AVDictionary) null);
 		if (ret < 0) {
 			logger.info("Could not find stream information\n");
-			return false;
+			return result;
 		}
-
-
 
 		lastDTS = new long[inputFormatContext.nb_streams()];
 
 		for (int i = 0; i < lastDTS.length; i++) {
 			lastDTS[i] = -1;
 		}
-		return true;
+		result.setSuccess(true);
+		return result;
 
 	}
 
 	public boolean prepare(AVFormatContext inputFormatContext, AVFormatContext outputRTMPFormatContext) {
-		if (prepareInput(inputFormatContext)) {
+
+		Result result=prepareInput(inputFormatContext);
+
+		if (result.isSuccess()) {
 			return prepareOutput(inputFormatContext, outputRTMPFormatContext);
 		}
 		return false;
@@ -140,9 +159,9 @@ public class StreamFetcher {
 
 		int ret = avformat_alloc_output_context2(outputRTMPFormatContext, null, "flv", null);
 		for (int i = 0; i < inputFormatContext.nb_streams(); i++) {
-			
+
 			AVStream in_stream = inputFormatContext.streams(i);
-			
+
 			AVStream out_stream = avformat_new_stream(outputRTMPFormatContext, in_stream.codec().codec());
 
 			ret = avcodec_parameters_copy(out_stream.codecpar(), in_stream.codecpar());
@@ -153,8 +172,8 @@ public class StreamFetcher {
 
 			out_stream.codec().codec_tag(0);
 		}
-		
-	
+
+
 		if ((outputRTMPFormatContext.oformat().flags() & AVFMT_GLOBALHEADER) != 0) {
 			// out_stream->codec->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
 			outputRTMPFormatContext.oformat()
@@ -166,7 +185,7 @@ public class StreamFetcher {
 
 			// TODO: get application name from red5 context, do not use embedded
 			// url
-			
+
 			String urlStr = "rtmp://localhost/LiveApp/" + stream.getStreamId();
 			// logger.debug("rtmp url: " + urlStr);
 			//
@@ -192,11 +211,13 @@ public class StreamFetcher {
 	public class WorkerThread extends Thread {
 
 		private volatile boolean stopRequestReceived = false;
-	
+
 
 		@Override
 		public void run() {
 
+
+			setThreadActive(true);
 			AVFormatContext inputFormatContext = new AVFormatContext(null); // avformat.avformat_alloc_context();
 			AVFormatContext outputRTMPFormatContext = new AVFormatContext(null);
 
@@ -230,7 +251,7 @@ public class StreamFetcher {
 					}
 
 					lastPacketReceivedTime = System.currentTimeMillis();
-					
+
 					int packetIndex = pkt.stream_index();
 					AVStream in_stream = inputFormatContext.streams(packetIndex);
 					AVStream out_stream = outputRTMPFormatContext.streams(packetIndex);
@@ -260,18 +281,18 @@ public class StreamFetcher {
 							AV_ROUND_NEAR_INF | AV_ROUND_PASS_MINMAX));
 					pkt.duration(av_rescale_q(pkt.duration(), in_stream.time_base(), out_stream.time_base()));
 					pkt.pos(-1);
-					
+
 					/*
 					 * Use Mux adaptor writePacket method
 					 * 
 					 */
-					
-					
+
+
 					ret = av_interleaved_write_frame(outputRTMPFormatContext, pkt);
-					
-					
-					
-					
+
+
+
+
 					if (ret < 0) {
 						logger.info("cannot write frame to muxer");
 						break;
@@ -306,6 +327,8 @@ public class StreamFetcher {
 				exceptionInThread  = true;
 			}
 
+			setThreadActive(false);
+
 		}
 
 		public void setStopRequestReceived() {
@@ -320,13 +343,24 @@ public class StreamFetcher {
 	}
 
 	public void startStream() {
+		new Thread() {
+			public void run() {
+				try {
+					while (threadActive) {
+						logger.warn("thread isRunning");
+						Thread.sleep(100);
+					}
+					Thread.sleep(2000);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+				
+				exceptionInThread = false;
+				thread = new WorkerThread();
+				thread.start();
+			};
+		}.start();
 
-		exceptionInThread = false;
-		thread = new WorkerThread();
-		
-		thread.start();
-
-		// this.appAdaptor.addScheduledOnceJob(10, this);
 	}
 
 	/**
@@ -335,6 +369,7 @@ public class StreamFetcher {
 	 * @return true if it is running and false it is not
 	 */
 	public boolean isStreamAlive() {
+
 		return ((System.currentTimeMillis() - lastPacketReceivedTime) < PACKET_RECEIVED_INTERVAL_TIMEOUT);
 	}
 
@@ -349,6 +384,14 @@ public class StreamFetcher {
 
 	public boolean isStopRequestReceived() {
 		return thread.isStopRequestReceived();
+	}
+
+	public WorkerThread getThread() {
+		return thread;
+	}
+
+	public void setThread(WorkerThread thread) {
+		this.thread = thread;
 	}
 
 	public Broadcast getStream() {
@@ -369,7 +412,6 @@ public class StreamFetcher {
 					Thread.sleep(2000);
 				} catch (InterruptedException e) {
 					e.printStackTrace();
-					 Thread.currentThread().interrupt();
 				}
 
 				startStream();
@@ -390,5 +432,14 @@ public class StreamFetcher {
 	public boolean isExceptionInThread() {
 		return exceptionInThread;
 	}
+
+	public void setThreadActive(boolean threadActive) {
+		this.threadActive = threadActive;
+	}
+
+	public boolean isThreadActive() {
+		return threadActive;
+	}
+
 
 }
