@@ -177,16 +177,16 @@ public class BroadcastRestService {
 	
 	
 	@POST
-	@Consumes(MediaType.APPLICATION_FORM_URLENCODED )
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	@Path("/broadcast/createPortalBroadcast")
 	@Produces(MediaType.APPLICATION_JSON)
-
 	public Broadcast createPortalBroadcast(@FormParam("name") String name, @FormParam("listenerHookURL") String listenerHookURL) {
 
 		Broadcast broadcast=new Broadcast();
 		
 		broadcast.setName(name);
 		broadcast.setListenerHookURL(listenerHookURL);
+
 	
 		return saveBroadcast(broadcast, AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, getScope().getName(),
 				getDataStore(), getAppSettings());
@@ -563,9 +563,15 @@ public class BroadcastRestService {
 	@GET
 	@Path("/broadcast/getTotalVodNumber")
 	@Produces(MediaType.APPLICATION_JSON)
-
 	public long getTotalVodNumber() {
 		return getDataStore().getTotalVodNumber();
+	}
+	
+	@GET
+	@Path("/broadcast/getTotalBroadcastNumber")
+	@Produces(MediaType.APPLICATION_JSON)
+	public long getTotalBroadcastNumber() {
+		return getDataStore().getTotalBroadcastNumber();
 	}
 
 	/**
@@ -919,8 +925,8 @@ public class BroadcastRestService {
 	 * does not enter DeviceAuthParameters in a 1 minute, this function will
 	 * never return true
 	 * 
-	 * @param serviceName
-	 *            Name of the service facebook,youtube,periscope
+	 * @param userCode Code of social media account
+	 *          
 	 * 
 	 * @return Result object with success field. If success field is true, it is
 	 *         authenticated if false, not authenticated
