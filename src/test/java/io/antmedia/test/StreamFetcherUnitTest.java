@@ -33,12 +33,12 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.streamsource.StreamFetcher;
 
 @ContextConfiguration(locations = { "test.xml" })
-public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
+public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 	@Context
 	private ServletContext servletContext;
 	private WebScope appScope;
-	protected static Logger logger = LoggerFactory.getLogger(IPCameraAdaptorUnitTest.class);
+	protected static Logger logger = LoggerFactory.getLogger(StreamFetcherUnitTest.class);
 	public AntMediaApplicationAdapter app = null;
 
 
@@ -69,7 +69,7 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 			logger.debug("Application / web scope: {}", appScope);
 			assertTrue(appScope.getDepth() == 1);
 		}
-		
+
 
 
 	}
@@ -78,44 +78,44 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 	public void after() {
 
 	}
-	
-	
+
+
 	@Test
 	public void testBugUpdateStreamFetcherStatus() {
-		
+
 		//create ip camera broadcast
 		IDataStore dataStore = new MapDBStore("target/testbug.db"); //applicationContext.getBean(IDataStore.BEAN_NAME);
-		
+
 		assertNotNull(dataStore);
 		app.setDataStore(dataStore);
-		
+
 		//set mapdb datastore to stream fetcher because in memory datastore just have references and updating broadcst
 		// object updates the reference in inmemorydatastore
 		app.getStreamFetcherManager().setDatastore(dataStore);
-		
+
 		//save it data store
 		Broadcast newCam = new Broadcast("testOnvif", "127.0.0.1:8080", "admin", "admin", "rtsp://127.0.0.1:6554/test.flv",
 				"ipCamera");
 		String id = dataStore.save(newCam);
-		
-		
+
+
 		//set status to broadcasting
 		dataStore.updateStatus(id, AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 		Broadcast broadcast = dataStore.get(id);
 		logger.info("broadcast stream id {}" , id);
 		assertEquals(broadcast.getStatus(), AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
-		
+
 		//start StreamFetcher
 		app.getSources().startStreams(Arrays.asList(broadcast));
-		
+
 		//wait 5seconds because connectivity time out is 4sec by default
 		try {
 			Thread.sleep(5000);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
-		
-		
+
+
 		//check that it is not started
 		boolean flag3 = false;
 		for (StreamFetcher camScheduler : app.getSources().getCamSchedulerList()) {
@@ -128,11 +128,86 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 
 		assertTrue(flag3);
-		
+
 		//check that broadcast status in datastore in finished or not broadcasting
 		broadcast = dataStore.get(id);
 		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, broadcast.getStatus());
-		
+
+	}
+
+	@Test
+	public void testThreadStopStart() {
+		try {
+
+			// start stream fetcher
+
+			Broadcast newCam = new Broadcast("onvifCam", "127.0.0.1:8080", "admin", "admin", "rtsp://127.0.0.1:6554/test.flv",
+					"ipCamera");
+			StreamFetcher fetcher = new StreamFetcher(newCam);
+
+
+			ProcessBuilder pb = new ProcessBuilder("/usr/local/onvif/runme.sh");
+			Process p = null;
+			try {
+				p = pb.start();
+			} catch (IOException e1) {
+				e1.printStackTrace();
+			}
+
+			// thread start 
+			fetcher.startStream();
+
+			Thread.sleep(4000);
+			
+			//check that thread is running
+			assertTrue(fetcher.isThreadActive());
+			assertTrue(fetcher.isStreamAlive());
+			
+
+			//stop thread
+			fetcher.stopStream();
+
+			Thread.sleep(4000);
+			
+			assertFalse(fetcher.isStreamAlive());
+			assertFalse(fetcher.isThreadActive());
+			
+			//change the flag that shows thread is still running
+			fetcher.setThreadActive(true);
+
+			//start thread
+			fetcher.startStream();
+
+			Thread.sleep(2000);
+			//check that thread is not started because thread active is true
+			assertFalse(fetcher.isStreamAlive());
+			assertTrue(fetcher.isThreadActive());
+			
+
+			//change the flag that previous thread is stopped
+			fetcher.setThreadActive(false);
+
+			//wait a little
+			Thread.sleep(4000);
+
+			//check that thread is started
+			assertTrue(fetcher.isStreamAlive());
+			assertTrue(fetcher.isThreadActive());
+			
+			fetcher.stopStream();
+			
+			Thread.sleep(4000);
+			assertFalse(fetcher.isStreamAlive());
+			assertFalse(fetcher.isThreadActive());
+			
+			stopCameraEmulator();
+			
+			Thread.sleep(2000);
+				
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+
 	}
 
 	@Test
@@ -143,7 +218,7 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 
 		Broadcast newCam = new Broadcast("testOnvif", "127.0.0.1:8080", "admin", "admin", "rtsp://127.0.0.1:6554/test.flv",
 				"ipCamera");
-		
+
 		try {
 			newCam.setStreamId("stream_" + (int)(Math.random() * 10000));
 		} catch (Exception e2) {
@@ -154,7 +229,7 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 		List<Broadcast> cameras = new ArrayList<>();
 
 		cameras.add(newCam);
-		
+
 		//sets stream fetcher configuration, it checks streams in every 30sec
 		cameraChecker(cameras, 30000);
 
@@ -177,7 +252,7 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 
 		assertTrue(flag3);
 
-		ProcessBuilder pb = new ProcessBuilder("/usr/local/onvif/runme.sh", "myArg1", "myArg2");
+		ProcessBuilder pb = new ProcessBuilder("/usr/local/onvif/runme.sh");
 		Process p = null;
 		try {
 			p = pb.start();
@@ -205,17 +280,7 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 
 		assertTrue(flag);
 
-		// close emulator in order to simulate cut-off
-		String[] argsStop = new String[] { "/bin/bash", "-c",
-				"kill -9 $(ps aux | grep 'onvifser' | awk '{print $2}')" };
-		String[] argsStop2 = new String[] { "/bin/bash", "-c",
-				"kill -9 $(ps aux | grep 'rtspserve' | awk '{print $2}')" };
-		try {
-			Process procStop = new ProcessBuilder(argsStop).start();
-			Process procStop2 = new ProcessBuilder(argsStop2).start();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+		stopCameraEmulator();
 
 		try {
 			//waiting 5 sec is ok. Because stream is not alive if last packet time is older than 3 secs.
@@ -261,28 +326,29 @@ public class IPCameraAdaptorUnitTest extends AbstractJUnit4SpringContextTests {
 
 		}
 		assertTrue(flag5);
+		stopCameraEmulator();
 
-		String[] argsStop3 = new String[] { "/bin/bash", "-c",
-				"kill -9 $(ps aux | grep 'onvifser' | awk '{print $2}')" };
-		String[] argsStop4 = new String[] { "/bin/bash", "-c",
-				"kill -9 $(ps aux | grep 'rtspserve' | awk '{print $2}')" };
+	}
+
+	private void stopCameraEmulator() {
+		// close emulator in order to simulate cut-off
+		String[] argsStop = new String[] { "/bin/bash", "-c",
+		"kill -9 $(ps aux | grep 'onvifser' | awk '{print $2}')" };
+		String[] argsStop2 = new String[] { "/bin/bash", "-c",
+		"kill -9 $(ps aux | grep 'rtspserve' | awk '{print $2}')" };
 		try {
-			Process procStop3 = new ProcessBuilder(argsStop3).start();
-			Process procStop4 = new ProcessBuilder(argsStop4).start();
+			Process procStop = new ProcessBuilder(argsStop).start();
+			Process procStop2 = new ProcessBuilder(argsStop2).start();
+			
+			
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		
-		
-
 	}
 
 	public void cameraChecker(List<Broadcast> cameras, int interval) {
 
-
 		app.getSources().setStreamCheckerInterval(interval);
-
-
 		app.getSources().startStreams(cameras);
 	}
 
