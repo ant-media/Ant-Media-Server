@@ -827,4 +827,10 @@ public class MapDBStore implements IDataStore {
 
 	}
 
+	@Override
+	public long getTotalBroadcastNumber() {
+		
+		return getMap().size();
+	}
+
 }

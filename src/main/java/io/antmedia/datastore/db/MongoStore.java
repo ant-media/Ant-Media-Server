@@ -403,7 +403,7 @@ public class MongoStore implements IDataStore {
 
 	@Override
 	public long getTotalVodNumber() {
-		return vodDatastore.getCount(Broadcast.class);
+		return vodDatastore.getCount(Vod.class);
 	
 	}
 
@@ -582,6 +582,14 @@ public class MongoStore implements IDataStore {
 
 	public void setEndpointCredentialsDS(Datastore endpointCredentialsDS) {
 		this.endpointCredentialsDS = endpointCredentialsDS;
+	}
+
+	@Override
+	public long getTotalBroadcastNumber() {
+	
+		return datastore.getCount(Broadcast.class);
+		
+		
 	}
 
 

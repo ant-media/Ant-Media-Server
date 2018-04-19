@@ -549,4 +549,11 @@ public class InMemoryDataStore implements IDataStore {
 		return credential;
 	}
 
+	@Override
+	public long getTotalBroadcastNumber() {
+	
+		return broadcastMap.size();
+		
+	}
+
 }
