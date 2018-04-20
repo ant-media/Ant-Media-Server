@@ -67,7 +67,7 @@
         <enunciate.version>2.10.0</enunciate.version>
 
         <webrtcapp.version>1.2.7</webrtcapp.version>
-        <consoleapp.version>1.3.4</consoleapp.version>
+        <consoleapp.version>1.4.0-SNAPSHOT</consoleapp.version>
 		<liveapp.version>1.3.2</liveapp.version>
 		<webrtcappee.version>1.4.0-SNAPSHOT</webrtcappee.version>	
 
