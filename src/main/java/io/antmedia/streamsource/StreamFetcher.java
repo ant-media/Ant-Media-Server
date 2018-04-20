@@ -70,6 +70,15 @@ public class StreamFetcher {
 		this.stream = stream;
 	}
 
+
+	/*
+	 * This default constructor is needed for test cases
+	 * 
+	 */
+	public StreamFetcher() {
+
+	}
+
 	public Result prepareInput(AVFormatContext inputFormatContext) {
 
 		setConnectionTimeout(4000);
@@ -110,7 +119,7 @@ public class StreamFetcher {
 			String errorUnauthorized="Server returned 401 Unauthorized (authorization failed)";
 
 			logger.info("Error:" +errorStr);
-			logger.info(errorUnauthorized);
+			//logger.info(errorUnauthorized);
 
 
 			if (errorStr.equals(errorUnauthorized)) {				
@@ -224,7 +233,85 @@ public class StreamFetcher {
 			logger.info("before prepare");
 
 			try {
-				if (!prepare(inputFormatContext, outputRTMPFormatContext)) {
+				if (prepare(inputFormatContext, outputRTMPFormatContext)) {
+
+					while (true) {
+						int ret = av_read_frame(inputFormatContext, pkt);
+						if (ret < 0) {
+							logger.info("cannot read frame from input context");
+
+							break;
+						}
+
+						lastPacketReceivedTime = System.currentTimeMillis();
+
+						int packetIndex = pkt.stream_index();
+						AVStream in_stream = inputFormatContext.streams(packetIndex);
+						AVStream out_stream = outputRTMPFormatContext.streams(packetIndex);
+
+						if (pkt.dts() < 0) {
+							av_packet_unref(pkt);
+							continue;
+						}
+
+						if (lastDTS[packetIndex] >= pkt.dts()) {
+							// logger.warn("dts timestamps are not in correct order
+							// last dts:" + lastDTS[packetIndex]
+							// + " current dts:" + pkt.dts() + " fixing problem by
+							// adding offset");
+
+							pkt.dts(lastDTS[packetIndex] + 1);
+						}
+
+						lastDTS[packetIndex] = pkt.dts();
+						if (pkt.dts() > pkt.pts()) {
+							pkt.pts(pkt.dts());
+						}
+
+						pkt.pts(av_rescale_q_rnd(pkt.pts(), in_stream.time_base(), out_stream.time_base(),
+								AV_ROUND_NEAR_INF | AV_ROUND_PASS_MINMAX));
+						pkt.dts(av_rescale_q_rnd(pkt.dts(), in_stream.time_base(), out_stream.time_base(),
+								AV_ROUND_NEAR_INF | AV_ROUND_PASS_MINMAX));
+						pkt.duration(av_rescale_q(pkt.duration(), in_stream.time_base(), out_stream.time_base()));
+						pkt.pos(-1);
+
+						/*
+						 * Use Mux adaptor writePacket method
+						 * 
+						 */
+
+						ret = av_interleaved_write_frame(outputRTMPFormatContext, pkt);
+
+						if (ret < 0) {
+							logger.info("cannot write frame to muxer");
+							break;
+						}
+						av_packet_unref(pkt);
+
+						if (stopRequestReceived) {
+							logger.warn("breaking the loop");
+							break;
+						}
+
+					}
+					
+					avformat_close_input(inputFormatContext);
+					inputFormatContext = null;
+					
+					av_write_trailer(outputRTMPFormatContext);
+
+					if ((outputRTMPFormatContext.flags() & AVFMT_NOFILE) == 0) {
+						logger.warn("before avio_closep(outputRTMPFormatContext.pb());");
+						avio_closep(outputRTMPFormatContext.pb());
+						outputRTMPFormatContext.pb(null);
+					}
+
+					logger.warn("before avformat_free_context(outputRTMPFormatContext);");
+					avformat_free_context(outputRTMPFormatContext);
+					outputRTMPFormatContext = null;
+
+				}else {
+
 					if (inputFormatContext != null) {
 						avformat_close_input(inputFormatContext);
 					}
@@ -238,97 +325,16 @@ public class StreamFetcher {
 
 					logger.warn("Prepare for " + stream.getName() + " returned false");
 
-					return;
 				}
 
+				
+				setThreadActive(false);
 
-				while (true) {
-					int ret = av_read_frame(inputFormatContext, pkt);
-					if (ret < 0) {
-						logger.info("cannot read frame from input context");
-
-						break;
-					}
-
-					lastPacketReceivedTime = System.currentTimeMillis();
-
-					int packetIndex = pkt.stream_index();
-					AVStream in_stream = inputFormatContext.streams(packetIndex);
-					AVStream out_stream = outputRTMPFormatContext.streams(packetIndex);
-
-					if (pkt.dts() < 0) {
-						av_packet_unref(pkt);
-						continue;
-					}
-
-					if (lastDTS[packetIndex] >= pkt.dts()) {
-						// logger.warn("dts timestamps are not in correct order
-						// last dts:" + lastDTS[packetIndex]
-						// + " current dts:" + pkt.dts() + " fixing problem by
-						// adding offset");
-
-						pkt.dts(lastDTS[packetIndex] + 1);
-					}
-
-					lastDTS[packetIndex] = pkt.dts();
-					if (pkt.dts() > pkt.pts()) {
-						pkt.pts(pkt.dts());
-					}
-
-					pkt.pts(av_rescale_q_rnd(pkt.pts(), in_stream.time_base(), out_stream.time_base(),
-							AV_ROUND_NEAR_INF | AV_ROUND_PASS_MINMAX));
-					pkt.dts(av_rescale_q_rnd(pkt.dts(), in_stream.time_base(), out_stream.time_base(),
-							AV_ROUND_NEAR_INF | AV_ROUND_PASS_MINMAX));
-					pkt.duration(av_rescale_q(pkt.duration(), in_stream.time_base(), out_stream.time_base()));
-					pkt.pos(-1);
-
-					/*
-					 * Use Mux adaptor writePacket method
-					 * 
-					 */
-
-
-					ret = av_interleaved_write_frame(outputRTMPFormatContext, pkt);
-
-
-
-
-					if (ret < 0) {
-						logger.info("cannot write frame to muxer");
-						break;
-					}
-					av_packet_unref(pkt);
-
-					if (stopRequestReceived) {
-						logger.warn("breaking the loop");
-						break;
-					}
-
-				}
-
-
-				avformat_close_input(inputFormatContext);
-				inputFormatContext = null;
-
-				av_write_trailer(outputRTMPFormatContext);
-
-				if ((outputRTMPFormatContext.flags() & AVFMT_NOFILE) == 0) {
-					logger.warn("before avio_closep(outputRTMPFormatContext.pb());");
-					avio_closep(outputRTMPFormatContext.pb());
-					outputRTMPFormatContext.pb(null);
-				}
-
-				logger.warn("before avformat_free_context(outputRTMPFormatContext);");
-				avformat_free_context(outputRTMPFormatContext);
-				outputRTMPFormatContext = null;
 			} catch (Exception e) {
 				logger.info("---Exception in thread---");
 				e.printStackTrace();
 				exceptionInThread  = true;
 			}
-
-			setThreadActive(false);
-
 		}
 
 		public void setStopRequestReceived() {
@@ -347,14 +353,13 @@ public class StreamFetcher {
 			public void run() {
 				try {
 					while (threadActive) {
-						logger.warn("thread isRunning");
 						Thread.sleep(100);
 					}
 					Thread.sleep(2000);
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
-				
+
 				exceptionInThread = false;
 				thread = new WorkerThread();
 				thread.start();
@@ -378,12 +383,19 @@ public class StreamFetcher {
 	}
 
 	public void stopStream() {
-		logger.warn("stop stream called");
-		thread.setStopRequestReceived();
+
+		if(getThread()!=null) {
+			logger.warn("stop stream called");
+			getThread().setStopRequestReceived();
+
+		}else {
+
+			logger.warn("thread is null");
+		}
 	}
 
 	public boolean isStopRequestReceived() {
-		return thread.isStopRequestReceived();
+		return getThread().isStopRequestReceived();
 	}
 
 	public WorkerThread getThread() {
@@ -404,7 +416,6 @@ public class StreamFetcher {
 			public void run() {
 				try {
 					while (isStreamAlive()) {
-						logger.warn("thread isRunning");
 						Thread.sleep(100);
 
 					}

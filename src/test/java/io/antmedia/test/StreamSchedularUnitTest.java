@@ -152,21 +152,26 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
+	/*
+	 *@Test This test is commented out, because isStreamAlive is controlled instead of just controlling thread aliveness in {@link testThreadStopStart}
+	 */
 	public void testStreamSchedular() throws InterruptedException {
 
 		AVFormatContext inputFormatContext = new AVFormatContext();
 
 		Broadcast newCam = new Broadcast("testSchedular", "10.2.40.63:8080", "admin", "admin",
-				"rtsp://10.2.40.63:8554/live1.sdp", "ipCamera");
+				"rtsp://184.72.239.149/vod/mp4:BigBuckBunny_115k.mov", "streamSource");
 
 		StreamFetcher camScheduler = new StreamFetcher(newCam);
 		
-		camScheduler.startStream();
-
-		//this should be false becase this rtsp url cannot be used
+		camScheduler.setConnectionTimeout(10000);
 		
-		assertFalse(camScheduler.isStreamAlive());
+		camScheduler.startStream();
+		Thread.sleep(7000);
+
+		//this should be false because this rtsp url cannot be used
+		
+		assertTrue(camScheduler.isStreamAlive());
 
 		camScheduler.stopStream();
 
@@ -184,7 +189,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		AVFormatContext inputFormatContext = new AVFormatContext();
 
-		Broadcast newCam = new Broadcast("testSchedular", "10.2.40.63:8080", "admin", "admin",
+		Broadcast newCam = new Broadcast("testSchedular2", "10.2.40.64:8080", "admin", "admin",
 				"rtsp://11.2.40.63:8554/live1.sdp", "ipCamera");
 
 
@@ -199,6 +204,8 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		//this should be false because stream is not alive 
 		assertFalse(streamScheduler.isStreamAlive());
+		
+		Thread.sleep(2500);
 
 		streamScheduler.stopStream();
 
@@ -312,7 +319,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 		try {
-			Thread.sleep(20000);
+			Thread.sleep(24000);
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -494,7 +501,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 		String[] argsReset4= new String[] { "/bin/bash", "-c",
 		"sudo wondershaper -c -a nic1" };
-		try {
+		try {		logger.warn("thread isRunning");
 			Process procStop = new ProcessBuilder(argsReset4).start();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block

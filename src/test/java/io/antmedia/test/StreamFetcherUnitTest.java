@@ -158,20 +158,20 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			fetcher.startStream();
 
 			Thread.sleep(4000);
-			
+
 			//check that thread is running
 			assertTrue(fetcher.isThreadActive());
 			assertTrue(fetcher.isStreamAlive());
-			
+
 
 			//stop thread
 			fetcher.stopStream();
 
 			Thread.sleep(4000);
-			
+
 			assertFalse(fetcher.isStreamAlive());
 			assertFalse(fetcher.isThreadActive());
-			
+
 			//change the flag that shows thread is still running
 			fetcher.setThreadActive(true);
 
@@ -182,7 +182,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			//check that thread is not started because thread active is true
 			assertFalse(fetcher.isStreamAlive());
 			assertTrue(fetcher.isThreadActive());
-			
+
 
 			//change the flag that previous thread is stopped
 			fetcher.setThreadActive(false);
@@ -193,17 +193,17 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			//check that thread is started
 			assertTrue(fetcher.isStreamAlive());
 			assertTrue(fetcher.isThreadActive());
-			
+
 			fetcher.stopStream();
-			
+
 			Thread.sleep(4000);
 			assertFalse(fetcher.isStreamAlive());
 			assertFalse(fetcher.isThreadActive());
-			
+
 			stopCameraEmulator();
-			
-			Thread.sleep(2000);
-				
+
+			Thread.sleep(3000);
+
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
@@ -234,7 +234,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		cameraChecker(cameras, 30000);
 
 		try {
-			Thread.sleep(5000);
+			Thread.sleep(2000);
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -245,6 +245,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			if (camScheduler.getStream().getIpAddr().equals(newCam.getIpAddr())) {
 				// it should be false because emulator has not been started yet
 				assertFalse(camScheduler.isStreamAlive());
+				assertFalse(camScheduler.isThreadActive());
 				flag3 = true;
 
 			}
@@ -259,6 +260,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		} catch (IOException e1) {
 			e1.printStackTrace();
 		}
+		
+		logger.warn("emulater has been started");
 
 		try {
 
@@ -272,7 +275,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		boolean flag = false;
 		for (StreamFetcher camScheduler : app.getSources().getCamSchedulerList()) {
 			if (camScheduler.getStream().getIpAddr().equals(newCam.getIpAddr())) {
-				// it should be true because emulater has been started
+				// it should be true because emulator has been started
 				assertTrue(camScheduler.isStreamAlive());
 				flag = true;
 			}
@@ -327,6 +330,12 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 		assertTrue(flag5);
 		stopCameraEmulator();
+		try {
+			Thread.sleep(2000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 
 	}
 
@@ -339,8 +348,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		try {
 			Process procStop = new ProcessBuilder(argsStop).start();
 			Process procStop2 = new ProcessBuilder(argsStop2).start();
-			
-			
+
+
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

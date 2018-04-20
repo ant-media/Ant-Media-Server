@@ -105,6 +105,10 @@ public class StreamFetcherManager {
 					} else {
 						for (StreamFetcher streamScheduler : streamFetcherList) {
 							if (!streamScheduler.isStreamAlive()) {
+								
+								//streamScheduler.setThreadActive(false);
+								//streamScheduler.getThread().interrupt();
+							
 								String streamId = streamScheduler.getStream().getStreamId();
 								if (datastore != null && streamId != null) {
 									logger.info("Updating stream status to finished, updating status of stream {}", streamScheduler.getStream().getStreamId());
