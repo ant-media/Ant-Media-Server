@@ -34,7 +34,7 @@ public class StreamFetcherManager {
 	private ISchedulingService schedulingService;
 
 	private IDataStore datastore;
-	
+
 	public StreamFetcherManager(ISchedulingService schedulingService, IDataStore datastore) {
 		this.schedulingService = schedulingService;
 		this.datastore = datastore;
@@ -105,16 +105,14 @@ public class StreamFetcherManager {
 					} else {
 						for (StreamFetcher streamScheduler : streamFetcherList) {
 							if (!streamScheduler.isStreamAlive()) {
-								
-								//streamScheduler.setThreadActive(false);
-								//streamScheduler.getThread().interrupt();
-							
-								String streamId = streamScheduler.getStream().getStreamId();
-								if (datastore != null && streamId != null) {
-									logger.info("Updating stream status to finished, updating status of stream {}", streamScheduler.getStream().getStreamId());
+
+								Broadcast stream = streamScheduler.getStream();
+								if (datastore != null && stream.getStreamId() != null) {
+
+										logger.info("Updating stream status to finished, updating status of stream {}", stream.getStreamId() );
+										datastore.updateStatus(stream.getStreamId() , 
+												AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
 									
-									datastore.updateStatus(streamId, 
-											AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
 								}
 								streamScheduler.startStream();
 							}

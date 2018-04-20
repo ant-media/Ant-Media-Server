@@ -157,7 +157,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			// thread start 
 			fetcher.startStream();
 
-			Thread.sleep(6000);
+			Thread.sleep(8000);
 
 			//check that thread is running
 			assertTrue(fetcher.isThreadActive());
@@ -178,7 +178,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			//start thread
 			fetcher.startStream();
 
-			Thread.sleep(6000);
+			Thread.sleep(8000);
 			//check that thread is not started because thread active is true
 			assertFalse(fetcher.isStreamAlive());
 			assertTrue(fetcher.isThreadActive());
@@ -188,7 +188,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			fetcher.setThreadActive(false);
 
 			//wait a little
-			Thread.sleep(6000);
+			Thread.sleep(8000);
 
 			//check that thread is started
 			assertTrue(fetcher.isStreamAlive());
