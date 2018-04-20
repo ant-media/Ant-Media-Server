@@ -363,6 +363,7 @@ public class StreamFetcher {
 				exceptionInThread = false;
 				thread = new WorkerThread();
 				thread.start();
+				logger.info("StartStream called, new thread is started");
 			};
 		}.start();
 
