@@ -141,7 +141,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			// start stream fetcher
 
-			Broadcast newCam = new Broadcast("onvifCam", "127.0.0.1:8080", "admin", "admin", "rtsp://127.0.0.1:6554/test.flv",
+			Broadcast newCam = new Broadcast("onvifCam1", "127.0.0.1:8080", "admin", "admin", "rtsp://127.0.0.1:6554/test.flv",
 					"ipCamera");
 			StreamFetcher fetcher = new StreamFetcher(newCam);
 
@@ -157,7 +157,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			// thread start 
 			fetcher.startStream();
 
-			Thread.sleep(8000);
+			Thread.sleep(10000);
 
 			//check that thread is running
 			assertTrue(fetcher.isThreadActive());
