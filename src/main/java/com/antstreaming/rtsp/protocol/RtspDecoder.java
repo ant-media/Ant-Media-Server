@@ -55,7 +55,7 @@ public class RtspDecoder extends CumulativeProtocolDecoder {
 		in.mark();
 		// logger.debug("markvalue ==> " + in.markValue());
 		BufferedReader reader = null;
-		StringBuffer originMsg = new StringBuffer();
+		StringBuilder originMsg = new StringBuilder();
 		try {
 			reader = new BufferedReader(new InputStreamReader(in.asInputStream(), "US-ASCII"));
 		} catch (UnsupportedEncodingException e) {

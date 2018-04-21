@@ -51,8 +51,8 @@ import org.slf4j.LoggerFactory;
  *                             |    &quot;;&quot; &quot;ttl&quot; &quot;=&quot; ttl
  *                             |    &quot;;&quot; &quot;layers&quot; &quot;=&quot; 1*DIGIT
  *                             |    &quot;;&quot; &quot;port&quot; &quot;=&quot; port [ &quot;-&quot; port ]
- *                             |    &quot;;&quot; &quot;client_port&quot; &quot;=&quot; port [ &quot;-&quot; port ]
- *                             |    &quot;;&quot; &quot;server_port&quot; &quot;=&quot; port [ &quot;-&quot; port ]
+ *                             |    &quot;;&quot; &quot;clientPort&quot; &quot;=&quot; port [ &quot;-&quot; port ]
+ *                             |    &quot;;&quot; &quot;serverPort&quot; &quot;=&quot; port [ &quot;-&quot; port ]
  *                             |    &quot;;&quot; &quot;ssrc&quot; &quot;=&quot; ssrc
  *                             |    &quot;;&quot; &quot;mode&quot; = &lt;&quot;&gt; 1\#mode &lt;&quot;&gt;
  *         ttl                 =    1*3(DIGIT)
@@ -65,7 +65,7 @@ import org.slf4j.LoggerFactory;
  *      
  *         Example:
  *           Transport: RTP/AVP;multicast;ttl=127;mode=&quot;PLAY&quot;,
- *                      RTP/AVP;unicast;client_port=3456-3457;mode=&quot;PLAY&quot;
+ *                      RTP/AVP;unicast;clientPort=3456-3457;mode=&quot;PLAY&quot;
  * </pre>
  * 
  * @author Matteo Merli (matteo.merli@gmail.com)
@@ -75,19 +75,19 @@ public class RTSPTransport {
 	private static Logger log = LoggerFactory.getLogger(RTSPTransport.class);
 
 	public enum TransportProtocol {
-		None, RTP, RDT, RAW
+		NONE, RTP, RDT, RAW
 	}
 
 	public enum Profile {
-		None, AVP
+		NONE, AVP
 	}
 
 	public enum LowerTransport {
-		None, TCP, UDP
+		NONE, TCP, UDP
 	}
 
 	public enum DeliveryType {
-		None, unicast, multicast
+		NONE, UNICAST, MULTICAST
 	}
 
 	TransportProtocol transportProtocol;
@@ -110,9 +110,9 @@ public class RTSPTransport {
 
 	int[] port = new int[2];
 
-	int[] client_port = new int[2];
+	int[] clientPort = new int[2];
 
-	int[] server_port = new int[2];
+	int[] serverPort = new int[2];
 
 	String ssrc;
 
@@ -127,10 +127,10 @@ public class RTSPTransport {
 	 * @param transport transport type
 	 */
 	public RTSPTransport(String transport) {
-		transportProtocol = TransportProtocol.None;
-		profile = Profile.None;
-		lowerTransport = LowerTransport.None;
-		deliveryType = DeliveryType.None;
+		transportProtocol = TransportProtocol.NONE;
+		profile = Profile.NONE;
+		lowerTransport = LowerTransport.NONE;
+		deliveryType = DeliveryType.NONE;
 		destination = null;
 		interleaved = null;
 		layers = 0;
@@ -138,10 +138,10 @@ public class RTSPTransport {
 		ttl = 0;
 		port[0] = 0;
 		port[1] = 0;
-		client_port[0] = 0;
-		client_port[1] = 0;
-		server_port[0] = 0;
-		server_port[1] = 0;
+		clientPort[0] = 0;
+		clientPort[1] = 0;
+		serverPort[0] = 0;
+		serverPort[1] = 0;
 		ssrc = null;
 		mode = null;
 		source = null;
@@ -167,9 +167,9 @@ public class RTSPTransport {
 			}
 
 			if (tok.compareToIgnoreCase("unicast") == 0)
-				deliveryType = DeliveryType.unicast;
+				deliveryType = DeliveryType.UNICAST;
 			else if (tok.compareToIgnoreCase("multicast") == 0)
-				deliveryType = DeliveryType.multicast;
+				deliveryType = DeliveryType.MULTICAST;
 			else if (tok.startsWith("destination"))
 				setDestination(_getStrValue(tok));
 			else if (tok.startsWith("interleaved"))
@@ -182,9 +182,9 @@ public class RTSPTransport {
 				setTTL(Integer.valueOf(_getStrValue(tok)));
 			else if (tok.startsWith("port"))
 				setPort(_getPairValue(tok));
-			else if (tok.startsWith("client_port"))
+			else if (tok.startsWith("clientPort"))
 				setClientPort(_getPairValue(tok));
-			else if (tok.startsWith("server_port"))
+			else if (tok.startsWith("serverPort"))
 				setServerPort(_getPairValue(tok));
 			else if (tok.startsWith("ssrc"))
 				setSSRC(_getStrValue(tok));
@@ -198,12 +198,12 @@ public class RTSPTransport {
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
 		sb.append(transportProtocol);
-		if (profile != Profile.None) {
+		if (profile != Profile.NONE) {
 			sb.append("/").append(profile);
-			if (lowerTransport != LowerTransport.None)
+			if (lowerTransport != LowerTransport.NONE)
 				sb.append("/").append(lowerTransport);
 		}
-		if (deliveryType != DeliveryType.None)
+		if (deliveryType != DeliveryType.NONE)
 			sb.append(";").append(deliveryType);
 		if (destination != null)
 			sb.append(";destination=").append(destination);
@@ -217,12 +217,12 @@ public class RTSPTransport {
 			sb.append(";ttl=").append(ttl);
 		if (port[0] > 0)
 			sb.append(";port=").append(port[0]).append("-").append(port[1]);
-		if (client_port[0] > 0)
-			sb.append(";client_port=").append(client_port[0]).append("-")
-					.append(client_port[1]);
-		if (server_port[0] > 0)
-			sb.append(";server_port=").append(server_port[0]).append("-")
-					.append(server_port[1]);
+		if (clientPort[0] > 0)
+			sb.append(";clientPort=").append(clientPort[0]).append("-")
+					.append(clientPort[1]);
+		if (serverPort[0] > 0)
+			sb.append(";serverPort=").append(serverPort[0]).append("-")
+					.append(serverPort[1]);
 		if (ssrc != null)
 			sb.append(";ssrc=").append(ssrc);
 		if (source != null)
@@ -248,18 +248,18 @@ public class RTSPTransport {
 	}
 
 	/**
-	 * @return Returns the client_port.
+	 * @return Returns the clientPort.
 	 */
 	public int[] getClientPort() {
-		return client_port;
+		return clientPort;
 	}
 
 	/**
-	 * @param client_port
-	 *        The client_port to set.
+	 * @param clientPort
+	 *        The clientPort to set.
 	 */
-	public void setClientPort(int[] client_port) {
-		this.client_port = client_port;
+	public void setClientPort(int[] clientPort) {
+		this.clientPort = clientPort;
 	}
 
 	/**
@@ -383,18 +383,18 @@ public class RTSPTransport {
 	}
 
 	/**
-	 * @return Returns the server_port.
+	 * @return Returns the serverPort.
 	 */
 	public int[] getServerPort() {
-		return server_port;
+		return serverPort;
 	}
 
 	/**
-	 * @param server_port
-	 *        The server_port to set.
+	 * @param serverPort
+	 *        The serverPort to set.
 	 */
-	public void setServerPort(int[] server_port) {
-		this.server_port = server_port;
+	public void setServerPort(int[] serverPort) {
+		this.serverPort = serverPort;
 	}
 
 	/**
