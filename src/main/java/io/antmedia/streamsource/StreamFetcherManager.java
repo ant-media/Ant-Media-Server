@@ -34,10 +34,13 @@ public class StreamFetcherManager {
 	private ISchedulingService schedulingService;
 
 	private IDataStore datastore;
+	
+	private IScope scope;
 
-	public StreamFetcherManager(ISchedulingService schedulingService, IDataStore datastore) {
+	public StreamFetcherManager(ISchedulingService schedulingService, IDataStore datastore,IScope scope) {
 		this.schedulingService = schedulingService;
 		this.datastore = datastore;
+		this.scope=scope;
 	}
 
 	public int getStreamCheckerInterval() {
@@ -52,7 +55,7 @@ public class StreamFetcherManager {
 
 	public void startStreaming(Broadcast broadcast) {
 
-		StreamFetcher streamScheduler = new StreamFetcher(broadcast);
+		StreamFetcher streamScheduler = new StreamFetcher(broadcast,scope);
 		streamScheduler.startStream();
 		streamFetcherList.add(streamScheduler);
 

@@ -100,7 +100,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 			@Override
 			public void execute(ISchedulingService service) throws CloneNotSupportedException {
-				streamFetcherManager = new StreamFetcherManager(AntMediaApplicationAdapter.this, dataStore);
+				streamFetcherManager = new StreamFetcherManager(AntMediaApplicationAdapter.this, dataStore,app);
 				List<Broadcast> streams = getDataStore().getExternalStreamsList();
 				streamFetcherManager.startStreams(streams);
 

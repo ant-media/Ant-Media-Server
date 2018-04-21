@@ -31,6 +31,7 @@ import org.bytedeco.javacpp.avformat.AVIOContext;
 import org.bytedeco.javacpp.avformat.AVStream;
 import org.bytedeco.javacpp.avutil;
 import org.bytedeco.javacpp.avutil.AVDictionary;
+import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,11 +66,19 @@ public class StreamFetcher {
 	private boolean threadActive = false;
 
 	private static final int PACKET_RECEIVED_INTERVAL_TIMEOUT = 3000;
+	
+	private IScope scope;
+
+	public StreamFetcher(Broadcast stream, IScope scope) {
+		this.stream = stream;
+		this.scope=scope;
+
+	}
 
 	public StreamFetcher(Broadcast stream) {
 		this.stream = stream;
-	}
 
+	}
 
 	/*
 	 * This default constructor is needed for test cases
@@ -149,12 +158,15 @@ public class StreamFetcher {
 
 	}
 
-	public boolean prepare(AVFormatContext inputFormatContext, AVFormatContext outputRTMPFormatContext) {
+	public boolean prepare(AVFormatContext inputFormatContext) {
 
 		Result result=prepareInput(inputFormatContext);
 
+
 		if (result.isSuccess()) {
-			return prepareOutput(inputFormatContext, outputRTMPFormatContext);
+			//return prepareOutput(inputFormatContext, outputRTMPFormatContext);
+			
+			return true;
 		}
 		return false;
 	}
@@ -222,18 +234,31 @@ public class StreamFetcher {
 		private volatile boolean stopRequestReceived = false;
 
 
+
+
 		@Override
 		public void run() {
 
 
 			setThreadActive(true);
 			AVFormatContext inputFormatContext = new AVFormatContext(null); // avformat.avformat_alloc_context();
-			AVFormatContext outputRTMPFormatContext = new AVFormatContext(null);
-
+			//AVFormatContext outputRTMPFormatContext = new AVFormatContext(null);
+	
 			logger.info("before prepare");
+			
+			
+	
 
 			try {
-				if (prepare(inputFormatContext, outputRTMPFormatContext)) {
+				if (prepare(inputFormatContext)) {
+					
+					MuxAdaptor muxAdaptor = new MuxAdaptor(null);
+					muxAdaptor.setHLSMuxingEnabled(true);
+					muxAdaptor.init(scope, "streamFetcher", false);
+					
+					muxAdaptor.prepareStreamFetcher(inputFormatContext);
+					
+					//muxAdaptor.start();
 
 					while (true) {
 						int ret = av_read_frame(inputFormatContext, pkt);
@@ -247,7 +272,6 @@ public class StreamFetcher {
 
 						int packetIndex = pkt.stream_index();
 						AVStream in_stream = inputFormatContext.streams(packetIndex);
-						AVStream out_stream = outputRTMPFormatContext.streams(packetIndex);
 
 						if (pkt.dts() < 0) {
 							av_packet_unref(pkt);
@@ -268,19 +292,29 @@ public class StreamFetcher {
 							pkt.pts(pkt.dts());
 						}
 
+						/*
+						
+						
 						pkt.pts(av_rescale_q_rnd(pkt.pts(), in_stream.time_base(), out_stream.time_base(),
 								AV_ROUND_NEAR_INF | AV_ROUND_PASS_MINMAX));
 						pkt.dts(av_rescale_q_rnd(pkt.dts(), in_stream.time_base(), out_stream.time_base(),
 								AV_ROUND_NEAR_INF | AV_ROUND_PASS_MINMAX));
 						pkt.duration(av_rescale_q(pkt.duration(), in_stream.time_base(), out_stream.time_base()));
 						pkt.pos(-1);
+						
+						*/
 
 						/*
 						 * Use Mux adaptor writePacket method
 						 * 
 						 */
+						
+						
+						
+						muxAdaptor.writePackets(inputFormatContext,pkt);
+						
 
-						ret = av_interleaved_write_frame(outputRTMPFormatContext, pkt);
+						//ret = av_interleaved_write_frame(outputRTMPFormatContext, pkt);
 
 						if (ret < 0) {
 							logger.info("cannot write frame to muxer");
@@ -298,6 +332,8 @@ public class StreamFetcher {
 					avformat_close_input(inputFormatContext);
 					inputFormatContext = null;
 					
+					/*
+					
 					av_write_trailer(outputRTMPFormatContext);
 
 					if ((outputRTMPFormatContext.flags() & AVFMT_NOFILE) == 0) {
@@ -309,12 +345,15 @@ public class StreamFetcher {
 					logger.warn("before avformat_free_context(outputRTMPFormatContext);");
 					avformat_free_context(outputRTMPFormatContext);
 					outputRTMPFormatContext = null;
+					*/
 
 				}else {
 
 					if (inputFormatContext != null) {
 						avformat_close_input(inputFormatContext);
 					}
+					
+					/*
 					if (outputRTMPFormatContext != null && !outputRTMPFormatContext.isNull()) {
 						if (outputRTMPFormatContext.pb() != null) {
 							avio_closep(outputRTMPFormatContext.pb());
@@ -322,6 +361,7 @@ public class StreamFetcher {
 
 						avformat_free_context(outputRTMPFormatContext);
 					}
+					*/
 
 					logger.warn("Prepare for " + stream.getName() + " returned false");
 
@@ -416,7 +456,7 @@ public class StreamFetcher {
 		new Thread() {
 			public void run() {
 				try {
-					while (isStreamAlive()) {
+					while (threadActive) {
 						Thread.sleep(100);
 
 					}
