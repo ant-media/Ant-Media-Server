@@ -51,8 +51,8 @@ import org.slf4j.LoggerFactory;
  *                             |    &quot;;&quot; &quot;ttl&quot; &quot;=&quot; ttl
  *                             |    &quot;;&quot; &quot;layers&quot; &quot;=&quot; 1*DIGIT
  *                             |    &quot;;&quot; &quot;port&quot; &quot;=&quot; port [ &quot;-&quot; port ]
- *                             |    &quot;;&quot; &quot;clientPort&quot; &quot;=&quot; port [ &quot;-&quot; port ]
- *                             |    &quot;;&quot; &quot;serverPort&quot; &quot;=&quot; port [ &quot;-&quot; port ]
+ *                             |    &quot;;&quot; &quot;client_port&quot; &quot;=&quot; port [ &quot;-&quot; port ]
+ *                             |    &quot;;&quot; &quot;server_port&quot; &quot;=&quot; port [ &quot;-&quot; port ]
  *                             |    &quot;;&quot; &quot;ssrc&quot; &quot;=&quot; ssrc
  *                             |    &quot;;&quot; &quot;mode&quot; = &lt;&quot;&gt; 1\#mode &lt;&quot;&gt;
  *         ttl                 =    1*3(DIGIT)
@@ -65,7 +65,7 @@ import org.slf4j.LoggerFactory;
  *      
  *         Example:
  *           Transport: RTP/AVP;multicast;ttl=127;mode=&quot;PLAY&quot;,
- *                      RTP/AVP;unicast;clientPort=3456-3457;mode=&quot;PLAY&quot;
+ *                      RTP/AVP;unicast;client_port=3456-3457;mode=&quot;PLAY&quot;
  * </pre>
  * 
  * @author Matteo Merli (matteo.merli@gmail.com)
@@ -182,9 +182,9 @@ public class RTSPTransport {
 				setTTL(Integer.valueOf(_getStrValue(tok)));
 			else if (tok.startsWith("port"))
 				setPort(_getPairValue(tok));
-			else if (tok.startsWith("clientPort"))
+			else if (tok.startsWith("client_port"))
 				setClientPort(_getPairValue(tok));
-			else if (tok.startsWith("serverPort"))
+			else if (tok.startsWith("server_port"))
 				setServerPort(_getPairValue(tok));
 			else if (tok.startsWith("ssrc"))
 				setSSRC(_getStrValue(tok));
