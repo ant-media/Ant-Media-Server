@@ -9,6 +9,7 @@ import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.io.File;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
@@ -24,6 +25,7 @@ import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.Vod;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.model.Result;
 
@@ -41,6 +43,76 @@ public class RestServiceUnitTest  {
 	@After
 	public void after() {
 		restService = null;
+	}
+	
+	
+	@Test
+	public void testImportLiveStreams2Stalker()  {
+		AppSettings settings = mock(AppSettings.class);
+		
+		
+		when(settings.getStalkerDBServer()).thenReturn("192.168.1.29");
+		when(settings.getStalkerDBUsername()).thenReturn("stalker");
+		when(settings.getStalkerDBPassword()).thenReturn("1");
+		when(settings.getServerName()).thenReturn("localhost");
+		
+		Scope scope = mock(Scope.class);
+		String scopeName = "scope";
+		when(scope.getName()).thenReturn(scopeName);
+		
+		restService.setScope(scope);
+		
+		restService.setAppSettings(settings);
+		
+		Broadcast broadcast = new Broadcast(null, "name");
+		IDataStore store = new InMemoryDataStore("testdb");
+		restService.setDataStore(store);
+		Broadcast createBroadcast = restService.createBroadcast(broadcast);
+		
+		
+		Result result = restService.importLiveStreams2Stalker();
+		assertTrue(result.isSuccess());
+	}
+	
+	@Test
+	public void testImportVoD2Stalker() {
+		AppSettings settings = mock(AppSettings.class);
+		
+		when(settings.getStalkerDBServer()).thenReturn("192.168.1.29");
+		when(settings.getStalkerDBUsername()).thenReturn("stalker");
+		when(settings.getStalkerDBPassword()).thenReturn("1");
+		when(settings.getServerName()).thenReturn("localhost");
+		
+		Scope scope = mock(Scope.class);
+		String scopeName = "scope";
+		when(scope.getName()).thenReturn(scopeName);
+		
+		restService.setScope(scope);
+		
+		restService.setAppSettings(settings);
+		
+		//Vod vod = new Vod();
+		File file = new File("test_file");
+		Vod newVod = new Vod("vodFile", "vodFile", file.getPath(), file.getName(), System.currentTimeMillis(), 0, 6000,
+				Vod.USER_VOD);
+		IDataStore store = new InMemoryDataStore("testdb");
+		restService.setDataStore(store);
+		
+		assertTrue(store.addUserVod(newVod));
+		
+		
+		Result result = restService.importUserVoDsToStalker();
+		
+		assertTrue(result.isSuccess());
+		
+	}
+	
+	
+	
+	
+	@Test
+	public void testImportVoDFiles2Stalker() {
+		
 	}
 	
 	

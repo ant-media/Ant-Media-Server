@@ -36,6 +36,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
+import org.springframework.test.jdbc.JdbcTestUtils;
 import org.springframework.web.context.WebApplicationContext;
 
 import com.drew.lang.annotations.Nullable;
@@ -133,6 +134,7 @@ public class BroadcastRestService {
 	private static final int ERROR_SOCIAL_ENDPOINT_UNDEFINED_CLIENT_ID = -1;
 	private static final int ERROR_SOCIAL_ENDPOINT_UNDEFINED_ENDPOINT = -2;
 	private static final int ERROR_SOCIAL_ENDPOINT_NO_ENDPOINT = -3;
+	private static final String MYSQL_CLIENT_PATH = "/usr/local/mysql/bin/mysql";
 
 	@Context
 	private ServletContext servletContext;
@@ -548,10 +550,135 @@ public class BroadcastRestService {
 	@GET
 	@Path("/broadcast/getList/{offset}/{size}")
 	@Produces(MediaType.APPLICATION_JSON)
-
 	public List<Broadcast> getBroadcastList(@PathParam("offset") int offset, @PathParam("size") int size) {
 		return getDataStore().getBroadcastList(offset, size);
 	}
+	
+	
+	@POST
+	@Path("/importLiveStreamsToStalker")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result importLiveStreams2Stalker() 
+	{
+		long broadcastCount = getDataStore().getBroadcastCount();
+		int pageCount = (int) broadcastCount/IDataStore.MAX_ITEM_IN_ONE_LIST
+							+ ((broadcastCount % IDataStore.MAX_ITEM_IN_ONE_LIST != 0) ? 1 : 0);;
+		
+		List<Broadcast> broadcastList = new ArrayList<>();
+		for (int i = 0; i < pageCount; i++) {
+			broadcastList.addAll(getDataStore().getBroadcastList(i*IDataStore.MAX_ITEM_IN_ONE_LIST, IDataStore.MAX_ITEM_IN_ONE_LIST));
+		}
+		
+		
+		
+		StringBuilder insertQueryString = new StringBuilder();
+		
+		insertQueryString.append("DELETE FROM stalker_db.ch_links;");
+		insertQueryString.append("DELETE FROM stalker_db.itv;");
+		
+		for (Broadcast broadcast : broadcastList) {
+			String cmd = "ffmpeg http://"+getAppSettings().getServerName() + ":5080/" 
+					+ getScope().getName() + "/streams/"+broadcast.getStreamId()+".m3u8";
+			insertQueryString.append("INSERT INTO stalker_db.itv(name, number, tv_genre_id, base_ch, cmd, languages)"
+									+ " VALUES ('"+broadcast.getName()+"' , 1, 2, 1, '"+ cmd +"', '');");
+			
+			insertQueryString.append("SET @last_id=LAST_INSERT_ID();"
+									  + "INSERT INTO stalker_db.ch_links(ch_id, url)"
+										+ " VALUES(@last_id, '"+ cmd +"');");
+		}
+		
+		
+		
+		
+		return new Result(runStalkerImportQuery(insertQueryString.toString()));
+	}
+	
+	private boolean runStalkerImportQuery(String query) {
+		String stalkerDBServer = getAppSettings().getStalkerDBServer();
+		String stalkerDBUsername = getAppSettings().getStalkerDBUsername();
+		String stalkerDBPassword = getAppSettings().getStalkerDBPassword();
+		
+		boolean result = false;
+		try {
+			ProcessBuilder pb = new ProcessBuilder(
+			        new String[]{
+			            MYSQL_CLIENT_PATH, 
+			            "-h", stalkerDBServer,
+			            "-u", stalkerDBUsername,
+			            "-p"+stalkerDBPassword,
+			            "-e",   query  ,
+			           
+			        }
+			);
+			pb.redirectErrorStream(true);
+
+			Process p = pb.start();
+			
+			InputStream is = p.getInputStream();
+		    byte[] data = new byte[1024];
+		    int length;
+		    while ((length = is.read(data, 0, data.length)) != -1) {
+		        logger.info(new String(data, 0, length));
+		    }
+		    
+		   
+		    int exitWith = p.waitFor();
+		    
+		    if (exitWith == 0) {
+				result = true;
+			}	
+			
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		} 
+		return result;
+	}
+	
+	@POST
+	@Path("importUserVoDsToStalker")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result importUserVoDsToStalker() {
+		String vodFolder = getAppSettings().getVodFolder();
+		boolean result = true;
+		
+		
+		long totalVodNumber = getDataStore().getTotalVodNumber();
+		int pageCount = (int) totalVodNumber/IDataStore.MAX_ITEM_IN_ONE_LIST 
+								+ ((totalVodNumber % IDataStore.MAX_ITEM_IN_ONE_LIST != 0) ? 1 : 0);
+		
+		List<Vod> vodList = new ArrayList<>();
+		for (int i = 0; i < pageCount; i++) {
+			vodList.addAll(getDataStore().getVodList(i*IDataStore.MAX_ITEM_IN_ONE_LIST, IDataStore.MAX_ITEM_IN_ONE_LIST));
+		}
+		
+		StringBuilder insertQueryString = new StringBuilder();
+		
+		insertQueryString.append("DELETE FROM stalker_db.video_series_files;");
+		insertQueryString.append("DELETE FROM stalker_db.video;");
+		
+		for (Vod vod : vodList) {
+			if (vod.getType().equals(Vod.USER_VOD)) {
+				insertQueryString.append("INSERT INTO stalker_db.video(name, o_name, protocol, category_id, cat_genre_id_1, status, cost, path, accessed) "
+						+ "values('"+ vod.getVodName() + "', '"+vod.getVodName()+"', '', 1, 0, 1, 1, '"+vod.getVodName()+"', 1);");
+				
+				String cmd = "ffmpeg http://"+getAppSettings().getServerName() + ":5080/" 
+						+ getScope().getName() + "/streams/"+vod.getFilePath();
+				
+				insertQueryString.append("SET @last_id=LAST_INSERT_ID();");
+				
+				insertQueryString.append("INSERT INTO stalker_db.video_series_files"
+												+ "(video_id, file_type, protocol, url, languages, quality, date_add, date_modify, status)"
+												+ "VALUES(@last_id, 'video', 'custom', '"+cmd+"', '', 5, NOW(), NOW(),1);");
+			}
+			
+		}
+	
+		return new Result(runStalkerImportQuery(insertQueryString.toString()));
+	}
+	
+	
 
 	@GET
 	@Path("/broadcast/getVodList/{offset}/{size}")
@@ -665,7 +792,7 @@ public class BroadcastRestService {
 			File recordFile = Muxer.getRecordFile(getScope(), fileName, ".mp4");
 			File uploadedFile = Muxer.getUploadRecordFile(getScope(), fileName, ".mp4");
 
-			System.out.println("recordfile : " + recordFile.getAbsolutePath());
+			logger.info("recordfile : " + recordFile.getAbsolutePath());
 
 
 
@@ -754,7 +881,7 @@ public class BroadcastRestService {
 				long unixTime = System.currentTimeMillis();
 
 				Vod newVod = new Vod(fileName, "vodFile", savedFile.getPath(), fileName, unixTime, 0, fileSize,
-						"uploadedVod");
+						Vod.UPLOADED_VOD);
 
 				success = getDataStore().addVod("vodFile", newVod);
 
@@ -1170,5 +1297,6 @@ public class BroadcastRestService {
 	public void setAppSettings(AppSettings appSettings) {
 		this.appSettings = appSettings;
 	}
+	
 
 }

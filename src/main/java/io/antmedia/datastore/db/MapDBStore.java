@@ -278,8 +278,8 @@ public class MapDBStore implements IDataStore {
 		Collection<String> values = map.values();
 		int t = 0;
 		int itemCount = 0;
-		if (size > 50) {
-			size = 50;
+		if (size > MAX_ITEM_IN_ONE_LIST) {
+			size = MAX_ITEM_IN_ONE_LIST;
 		}
 		if (offset < 0) {
 			offset = 0;
@@ -306,8 +306,8 @@ public class MapDBStore implements IDataStore {
 		Collection<String> values = vodMap.values();
 		int t = 0;
 		int itemCount = 0;
-		if (size > 50) {
-			size = 50;
+		if (size > MAX_ITEM_IN_ONE_LIST) {
+			size = MAX_ITEM_IN_ONE_LIST;
 		}
 		if (offset < 0) {
 			offset = 0;
@@ -338,8 +338,8 @@ public class MapDBStore implements IDataStore {
 
 		int t = 0;
 		int itemCount = 0;
-		if (size > 50) {
-			size = 50;
+		if (size > MAX_ITEM_IN_ONE_LIST) {
+			size = MAX_ITEM_IN_ONE_LIST;
 		}
 		if (offset < 0) {
 			offset = 0;
@@ -481,7 +481,7 @@ public class MapDBStore implements IDataStore {
 		return result;
 	}
 	@Override
-	public boolean addUserVod(String id, Vod vod) {
+	public boolean addUserVod(Vod vod) {
 		String vodId = null;
 		boolean result = false;
 
@@ -680,13 +680,9 @@ public class MapDBStore implements IDataStore {
 		}
 
 		for (int i = 0; i < vodtArray.length; i++) {
-
-			if (vodtArray[i].getType().equals("userVod")) {
-
+			if (vodtArray[i].getType().equals(Vod.USER_VOD)) {
 				vodMap.remove(vodtArray[i].getVodId());
-
 			}
-
 		}
 		
 		
@@ -703,7 +699,7 @@ public class MapDBStore implements IDataStore {
 
 				Vod newVod = new Vod("vodFile", "vodFile", file.getPath(), file.getName(), unixTime, 0, fileSize,
 						"userVod");
-		    	addUserVod("vodFile", newVod);
+		    	addUserVod(newVod);
 		    }
 		}
 	
@@ -782,8 +778,8 @@ public class MapDBStore implements IDataStore {
 		Collection<String> values = socialEndpointsCredentialsMap.values();
 		int t = 0;
 		int itemCount = 0;
-		if (size > 50) {
-			size = 50;
+		if (size > MAX_ITEM_IN_ONE_LIST) {
+			size = MAX_ITEM_IN_ONE_LIST;
 		}
 		if (offset < 0) {
 			offset = 0;

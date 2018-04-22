@@ -38,7 +38,7 @@ public class MongoStore implements IDataStore {
 	private Datastore datastore;
 	private Datastore vodDatastore;
 	private Datastore endpointCredentialsDS;
-	
+
 	protected static Logger logger = LoggerFactory.getLogger(MongoStore.class);
 
 	public MongoStore(String dbName) {
@@ -60,7 +60,7 @@ public class MongoStore implements IDataStore {
 		datastore = morphia.createDatastore(new MongoClient(new ServerAddress(host), credentialList), dbName);
 		vodDatastore=morphia.createDatastore(new MongoClient(new ServerAddress(host), credentialList), dbName+"Vod");
 		endpointCredentialsDS = morphia.createDatastore(new MongoClient(new ServerAddress(host), credentialList), dbName+"_endpointCredentials");
-		
+
 		datastore.ensureIndexes();
 		vodDatastore.ensureIndexes();
 		endpointCredentialsDS.ensureIndexes();
@@ -296,7 +296,7 @@ public class MongoStore implements IDataStore {
 		try {
 			logger.warn("result inside edit camera: " + result);
 			Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(camera.getStreamId());
-			
+
 
 			UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set("name", camera.getName())
 					.set("username", camera.getUsername()).set("password", camera.getPassword()).set("ipAddr", camera.getIpAddr());
@@ -307,13 +307,13 @@ public class MongoStore implements IDataStore {
 			e.printStackTrace();
 		}
 		return false;
-			
-	
+
+
 	}
 
 	@Override
 	public boolean deleteStream(String id) {
-	
+
 		try {
 			Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(id);
 			WriteResult delete = datastore.delete(query);
@@ -330,13 +330,13 @@ public class MongoStore implements IDataStore {
 		try {
 			List<Broadcast> ipCameraList=datastore.find(Broadcast.class).field("type").equal("ipCamera").asList();
 			List<Broadcast> streamSourceList=datastore.find(Broadcast.class).field("type").equal("streamSource").asList();
-			
+
 			List<Broadcast> newList = new ArrayList<Broadcast>(ipCameraList);
-			
+
 			newList.addAll(streamSourceList);
-			
+
 			return newList;
-					
+
 		} catch (Exception e) {
 
 			e.printStackTrace();
@@ -378,7 +378,7 @@ public class MongoStore implements IDataStore {
 			e.printStackTrace();
 		}
 		return result;
-		
+
 	}
 
 	@Override
@@ -404,12 +404,12 @@ public class MongoStore implements IDataStore {
 	@Override
 	public long getTotalVodNumber() {
 		return vodDatastore.getCount(Vod.class);
-	
+
 	}
 
 	@Override
 	public boolean fetchUserVodList(File userfile) {
-		
+
 		boolean result=false;
 		try {
 			Query<Vod> query = vodDatastore.createQuery(Vod.class).field("type").equal("userVod");
@@ -418,31 +418,32 @@ public class MongoStore implements IDataStore {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		
+
 		File[] listOfFiles = userfile.listFiles();
 
 		for (File file : listOfFiles) {
-			
+
 			String fileExtension = FilenameUtils.getExtension(file.getName());
-			
-		    if (file.isFile()&&fileExtension.equals("mp4")) {
-		
+
+			if (file.isFile()&&fileExtension.equals("mp4")) {
+
 				long fileSize = file.length();
 				long unixTime = System.currentTimeMillis();
 
 				Vod newVod = new Vod("vodFile", "vodFile", file.getPath(), file.getName(), unixTime, 0, fileSize,
-						"userVod");
-		    	addUserVod("vodFile", newVod);
-		    }
+						Vod.USER_VOD);
+				
+				addUserVod(newVod);
+			}
 		}
-		
-		
+
+
 		return result;
 
 	}
 
 	@Override
-	public boolean addUserVod(String id, Vod vod) {
+	public boolean addUserVod(Vod vod) {
 		try {
 			String vodId = null;
 			if (vod.getVodId() == null) {
@@ -450,7 +451,7 @@ public class MongoStore implements IDataStore {
 				vod.setVodId(vodId);
 			}
 			vodId = vod.getStreamId();
-		
+
 
 			Key<Vod> key = vodDatastore.save(vod);
 
@@ -499,7 +500,7 @@ public class MongoStore implements IDataStore {
 	public SocialEndpointCredentials addSocialEndpointCredentials(SocialEndpointCredentials credentials) {
 		SocialEndpointCredentials addedCredential = null;
 		if (credentials != null && credentials.getAccountName() != null && credentials.getAccessToken() != null
-				 && credentials.getServiceName() != null) 
+				&& credentials.getServiceName() != null) 
 		{
 			if (credentials.getId() == null) {
 				//create new id if id is not set
@@ -512,8 +513,8 @@ public class MongoStore implements IDataStore {
 				SocialEndpointCredentials endpointCredentials = getSocialEndpointCredentials(credentials.getId());
 				if (endpointCredentials != null) {
 					UpdateOperations<SocialEndpointCredentials> ops = endpointCredentialsDS
-														.createUpdateOperations(SocialEndpointCredentials.class)
-														.set("accessToken", credentials.getAccessToken());
+							.createUpdateOperations(SocialEndpointCredentials.class)
+							.set("accessToken", credentials.getAccessToken());
 					if (credentials.getAccountId() != null) {
 						ops.set("accountId", credentials.getAccountId());
 					}
@@ -535,14 +536,14 @@ public class MongoStore implements IDataStore {
 					if (credentials.getTokenType() != null) {
 						ops.set("tokenType", credentials.getTokenType());
 					}
-					
-													
+
+
 
 					UpdateResults update = endpointCredentialsDS.update(endpointCredentials, ops);
 					addedCredential = credentials;
 				}
 			}
-			
+
 		}
 		return addedCredential;
 	}
@@ -556,8 +557,8 @@ public class MongoStore implements IDataStore {
 	public boolean removeSocialEndpointCredentials(String id) {
 		try {
 			Query<SocialEndpointCredentials> query = endpointCredentialsDS
-														.createQuery(SocialEndpointCredentials.class)
-														.field("id").equal(new ObjectId(id));
+					.createQuery(SocialEndpointCredentials.class)
+					.field("id").equal(new ObjectId(id));
 			WriteResult delete = endpointCredentialsDS.delete(query);
 			return delete.getN() == 1;
 		} catch (Exception e) {
@@ -586,10 +587,10 @@ public class MongoStore implements IDataStore {
 
 	@Override
 	public long getTotalBroadcastNumber() {
-	
+
 		return datastore.getCount(Broadcast.class);
-		
-		
+
+
 	}
 
 

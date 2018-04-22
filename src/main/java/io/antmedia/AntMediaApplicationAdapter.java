@@ -349,7 +349,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 					streamName = "deleted stream";
 				}
 
-				Vod newVod = new Vod(streamName, streamId, filePath, name, unixTime, duration, fileSize, "streamVod");
+				Vod newVod = new Vod(streamName, streamId, filePath, name, unixTime, duration, fileSize, Vod.STREAM_VOD);
 
 				getDataStore().addVod(streamId, newVod);
 

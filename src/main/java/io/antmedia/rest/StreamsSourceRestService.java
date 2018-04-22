@@ -80,7 +80,7 @@ public class StreamsSourceRestService {
 
 					String authparam = stream.getUsername() + ":" + stream.getPassword() + "@";
 					String rtspURLWithAuth = "rtsp://" + authparam + rtspURL.substring("rtsp://".length());
-					System.out.println("rtsp url with auth:" + rtspURLWithAuth);
+					logger.info("rtsp url with auth: {}", rtspURLWithAuth);
 					stream.setStreamUrl(rtspURLWithAuth);
 					Date currentDate = new Date();
 					long unixTime = currentDate.getTime();
@@ -133,11 +133,10 @@ public class StreamsSourceRestService {
 	@GET
 	@Path("/getUserVodList/{folderPath}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public boolean  getUserVodList(@PathParam("folderPath") String folderPath) {
+	public boolean getUserVodList(@PathParam("folderPath") String folderPath) {
 		boolean result = false;
 
 		String appScopeName = ScopeUtils.findApplication(getScope()).getName();
-
 
 		File directory = new File(
 				String.format("%s/webapps/%s/%s", System.getProperty("red5.root"), appScopeName, folderPath));
@@ -151,7 +150,7 @@ public class StreamsSourceRestService {
 			}
 		}
 
-		result=getStore().fetchUserVodList(directory);
+		result = getStore().fetchUserVodList(directory);
 
 		return result;
 	}
@@ -332,6 +331,7 @@ public class StreamsSourceRestService {
 		}
 		return new Result(result);
 	}
+	
 	@Nullable
 	private ApplicationContext getAppContext() {
 		if (servletContext != null) {
@@ -340,7 +340,7 @@ public class StreamsSourceRestService {
 		}
 		return appCtx;
 	}
-
+	
 	public AntMediaApplicationAdapter getInstance() {
 		if (appInstance == null) {
 			appInstance = (AntMediaApplicationAdapter) getAppContext().getBean("web.handler");

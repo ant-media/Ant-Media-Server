@@ -177,8 +177,8 @@ public class InMemoryDataStore implements IDataStore {
 		Collection<Broadcast> values = broadcastMap.values();
 		int t = 0;
 		int itemCount = 0;
-		if (size > 50) {
-			size = 50;
+		if (size > MAX_ITEM_IN_ONE_LIST) {
+			size = MAX_ITEM_IN_ONE_LIST;
 		}
 		if (offset < 0) {
 			offset = 0;
@@ -280,8 +280,8 @@ public class InMemoryDataStore implements IDataStore {
 	public List<Broadcast> filterBroadcastList(int offset, int size, String type) {
 		int t = 0;
 		int itemCount = 0;
-		if (size > 50) {
-			size = 50;
+		if (size > MAX_ITEM_IN_ONE_LIST) {
+			size = MAX_ITEM_IN_ONE_LIST;
 		}
 		if (offset < 0) {
 			offset = 0;
@@ -338,13 +338,13 @@ public class InMemoryDataStore implements IDataStore {
 		Collection<Vod> values = vodMap.values();
 		int t = 0;
 		int itemCount = 0;
-		if (size > 50) {
-			size = 50;
+		if (size > MAX_ITEM_IN_ONE_LIST) {
+			size = MAX_ITEM_IN_ONE_LIST;
 		}
 		if (offset < 0) {
 			offset = 0;
 		}
-		List<Vod> list = new ArrayList();
+		List<Vod> list = new ArrayList<>();
 		for (Vod vodString : values) {
 			if (t < offset) {
 				t++;
@@ -393,19 +393,22 @@ public class InMemoryDataStore implements IDataStore {
 
 	@Override
 	public boolean fetchUserVodList(File userfile) {
-
+		
+		/*
+		 * Delete all user vod in db
+		 */
 		Object[] objectArray = vodMap.values().toArray();
-
 		Vod[] vodtArray = new Vod[objectArray.length];
 		for (int i = 0; i < objectArray.length; i++) {
 			vodtArray[i] = gson.fromJson((String) objectArray[i], Vod.class);
 		}
-
 		for (int i = 0; i < vodtArray.length; i++) {
-			if (vodtArray[i].getType().equals("userVod")) {
+			if (vodtArray[i].getType().equals(Vod.USER_VOD)) {
 				vodMap.remove(vodtArray[i].getVodId());
 			}
 		}
+		
+		
 
 		File[] listOfFiles = userfile.listFiles();
 
@@ -418,9 +421,9 @@ public class InMemoryDataStore implements IDataStore {
 				long unixTime = System.currentTimeMillis();
 
 				Vod newVod = new Vod("vodFile", "vodFile", file.getPath(), file.getName(), unixTime, 0, fileSize,
-						"userVod");
+						Vod.USER_VOD);
 
-				addUserVod("vodFile", newVod);
+				addUserVod(newVod);
 			}
 		}
 
@@ -432,7 +435,7 @@ public class InMemoryDataStore implements IDataStore {
 	}
 
 	@Override
-	public boolean addUserVod(String id, Vod vod) {
+	public boolean addUserVod(Vod vod) {
 		String vodId = null;
 		boolean result = false;
 
@@ -513,8 +516,8 @@ public class InMemoryDataStore implements IDataStore {
 		Collection<SocialEndpointCredentials> values = socialEndpointCredentialsMap.values();
 		int t = 0;
 		int itemCount = 0;
-		if (size > 50) {
-			size = 50;
+		if (size > MAX_ITEM_IN_ONE_LIST) {
+			size = MAX_ITEM_IN_ONE_LIST;
 		}
 		if (offset < 0) {
 			offset = 0;

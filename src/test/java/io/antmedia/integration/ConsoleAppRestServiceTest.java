@@ -46,8 +46,8 @@ public class ConsoleAppRestServiceTest {
 
 	private static String ffmpegPath = "ffmpeg";
 
-	private static String TEST_USER_EMAIL = "ci@antmedia.io";
-	private static String TEST_USER_PASS = "ci@ant";
+	private static String TEST_USER_EMAIL = "test@antmedia.io";
+	private static String TEST_USER_PASS = "testtest";
 
 	private static BasicCookieStore httpCookieStore;
 
@@ -144,10 +144,13 @@ public class ConsoleAppRestServiceTest {
 			// get LiveApp default settings and check the default values
 			// get settings from the app
 			AppSettingsModel appSettingsModel = callGetAppSettings("LiveApp");
-			//TODO: 
+			
+			System.out.println(appSettingsModel.vodFolder);
 			
 			// change app settings - change vod folder
-			
+			appSettingsModel.vodFolder = "vod_folder";
+			Result result = callSetAppSettings("LiveApp", appSettingsModel);
+			assertTrue(result.isSuccess());
 
 			// get app settings and assert settings has changed - check vod folder has changed
 
