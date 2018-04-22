@@ -107,15 +107,6 @@ public class RestServiceUnitTest  {
 		
 	}
 	
-	
-	
-	
-	@Test
-	public void testImportVoDFiles2Stalker() {
-		
-	}
-	
-	
 	@Test
 	public void testSettingsListenerHookURL() {
 		AppSettings settings = mock(AppSettings.class);

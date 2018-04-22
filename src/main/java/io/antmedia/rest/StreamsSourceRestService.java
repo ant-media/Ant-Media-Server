@@ -130,6 +130,7 @@ public class StreamsSourceRestService {
 	}
 
 
+	/*
 	@GET
 	@Path("/getUserVodList/{folderPath}")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -154,6 +155,9 @@ public class StreamsSourceRestService {
 
 		return result;
 	}
+	*/
+	
+	
 	
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)

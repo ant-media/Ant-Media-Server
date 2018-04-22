@@ -313,7 +313,7 @@ public class InMemoryDataStore implements IDataStore {
 	}
 
 	@Override
-	public boolean addVod(String id, Vod vod) {
+	public boolean addVod(Vod vod) {
 		String vodId = null;
 		boolean result = false;
 
@@ -409,14 +409,15 @@ public class InMemoryDataStore implements IDataStore {
 		}
 		
 		
-
 		File[] listOfFiles = userfile.listFiles();
 
 		for (File file : listOfFiles) {
 
 			String fileExtension = FilenameUtils.getExtension(file.getName());
 
-			if (file.isFile() && fileExtension.equals("mp4")) {
+			if (file.isFile() && 
+					(fileExtension.equals("mp4") || fileExtension.equals("flv") || fileExtension.equals("mkv"))) 
+			{
 				long fileSize = file.length();
 				long unixTime = System.currentTimeMillis();
 

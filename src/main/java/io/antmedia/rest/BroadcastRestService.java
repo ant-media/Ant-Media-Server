@@ -36,7 +36,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
-import org.springframework.test.jdbc.JdbcTestUtils;
 import org.springframework.web.context.WebApplicationContext;
 
 import com.drew.lang.annotations.Nullable;
@@ -871,9 +870,11 @@ public class BroadcastRestService {
 				outpuStream.flush();
 				outpuStream.close();
 
-			} catch (IOException iox) {
+			} 
+			catch (IOException iox) {
 				iox.printStackTrace();
-			} finally {
+			} 
+			finally {
 
 				success = true;
 
@@ -883,7 +884,7 @@ public class BroadcastRestService {
 				Vod newVod = new Vod(fileName, "vodFile", savedFile.getPath(), fileName, unixTime, 0, fileSize,
 						Vod.UPLOADED_VOD);
 
-				success = getDataStore().addVod("vodFile", newVod);
+				success = getDataStore().addVod(newVod);
 
 				if (outpuStream != null) {
 					try {
@@ -892,11 +893,10 @@ public class BroadcastRestService {
 					}
 				}
 			}
-		} else {
-
+		} 
+		else {
 			success = false;
 			message = "notMp4File";
-
 		}
 
 		return new Result(success, message);

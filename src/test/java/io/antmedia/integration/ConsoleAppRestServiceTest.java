@@ -2,6 +2,7 @@ package io.antmedia.integration;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -143,20 +144,37 @@ public class ConsoleAppRestServiceTest {
 
 			// get LiveApp default settings and check the default values
 			// get settings from the app
-			AppSettingsModel appSettingsModel = callGetAppSettings("LiveApp");
+			Result result = callIsEnterpriseEdition();
+			String appName = "WebRTCApp";
+			if (result.isSuccess()) {
+				appName = "WebRTCAppEE";
+			}
 			
-			System.out.println(appSettingsModel.vodFolder);
-			
+			AppSettingsModel appSettingsModel = callGetAppSettings(appName);
+			assertEquals(null, appSettingsModel.vodFolder);
+			 
+			appSettingsModel = callGetAppSettings("LiveApp");
+				
 			// change app settings - change vod folder
-			appSettingsModel.vodFolder = "vod_folder";
-			Result result = callSetAppSettings("LiveApp", appSettingsModel);
+			String new_vod_folder = "vod_folder";
+			assertNotEquals(new_vod_folder, appSettingsModel.vodFolder);
+			String defaultValue = appSettingsModel.vodFolder;
+			
+						
+			appSettingsModel.vodFolder = new_vod_folder;
+			result = callSetAppSettings("LiveApp", appSettingsModel);
 			assertTrue(result.isSuccess());
 
 			// get app settings and assert settings has changed - check vod folder has changed
+			appSettingsModel = callGetAppSettings("LiveApp");
+			assertEquals(new_vod_folder, appSettingsModel.vodFolder);
 
 			// check the related file to make sure settings changed for restart
-
 			// return back to default values
+			appSettingsModel.vodFolder = defaultValue;
+			result = callSetAppSettings("LiveApp", appSettingsModel);
+			assertTrue(result.isSuccess());
+			
 			
 		} catch (Exception e) {
 			e.printStackTrace();

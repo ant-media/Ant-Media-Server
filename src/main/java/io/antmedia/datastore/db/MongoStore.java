@@ -360,7 +360,7 @@ public class MongoStore implements IDataStore {
 	}
 
 	@Override
-	public boolean addVod(String id, Vod vod) {
+	public boolean addVod(Vod vod) {
 		String vodId = null;
 		boolean result = false;
 		try {	

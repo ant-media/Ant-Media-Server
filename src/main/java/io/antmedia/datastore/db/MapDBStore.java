@@ -458,7 +458,7 @@ public class MapDBStore implements IDataStore {
 	*/
 
 	@Override
-	public boolean addVod(String id, Vod vod) {
+	public boolean addVod(Vod vod) {
 		String vodId = null;
 		boolean result = false;
 
@@ -698,8 +698,8 @@ public class MapDBStore implements IDataStore {
 				long unixTime = System.currentTimeMillis();
 
 				Vod newVod = new Vod("vodFile", "vodFile", file.getPath(), file.getName(), unixTime, 0, fileSize,
-						"userVod");
-		    	addUserVod(newVod);
+									Vod.USER_VOD);
+				addUserVod(newVod);
 		    }
 		}
 	

@@ -126,6 +126,15 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 					if (endPointService != null) {
 						videoServiceEndpoints.add(endPointService);
 					}
+					
+					String vodFolderPath = appSettings.getVodFolder();
+					if (vodFolderPath != null && vodFolderPath.length() > 0) {
+						File f = new File(vodFolderPath);
+						if (f.exists()) {
+							dataStore.fetchUserVodList(f);
+						}
+					}
+					
 				}
 
 			}
@@ -351,7 +360,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 				Vod newVod = new Vod(streamName, streamId, filePath, name, unixTime, duration, fileSize, Vod.STREAM_VOD);
 
-				getDataStore().addVod(streamId, newVod);
+				getDataStore().addVod(newVod);
 
 				if (broadcast != null) {
 					final String listenerHookURL = broadcast.getListenerHookURL();

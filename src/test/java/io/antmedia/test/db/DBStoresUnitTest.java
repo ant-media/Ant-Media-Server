@@ -83,6 +83,7 @@ public class DBStoresUnitTest {
 		testFilterSearchOperations(dataStore);
 		testAddSocialEndpointCredentials(dataStore);
 		testVoDFunction(dataStore);
+		testSaveStreamInDirectory(dataStore);
 
 	}
 
@@ -110,6 +111,32 @@ public class DBStoresUnitTest {
 		testAddSocialEndpointCredentials(dataStore);
 		testVoDFunction(dataStore);
 
+	}
+	
+	
+	public void testSaveStreamInDirectory(IDataStore datastore) {
+		
+		File f = new File("src/test/resources");
+		
+		long totalVodCount = datastore.getTotalVodNumber();
+		assertEquals(0, totalVodCount);
+		datastore.fetchUserVodList(f);
+		
+		//we know there are 4 files there
+		//test_short.flv
+		//test_video_360p_subtitle.flv
+		//test_Video_360p.flv
+		//test.flv
+		
+		totalVodCount = datastore.getTotalVodNumber();
+		assertEquals(4, totalVodCount);
+		
+		List<Vod> vodList = datastore.getVodList(0, 10);
+		
+		
+		
+		
+		
 	}
 
 	public void testStreamWithId(IDataStore dataStore) {
@@ -464,25 +491,39 @@ public class DBStoresUnitTest {
 
 		assertEquals(returnList.size(), 1);
 
-		Vod newVod = new Vod("streamName", "1112233", "path", "vod", 1517239908, 17933, 1190425, "streamVod");
+		Vod newVod =  new Vod("streamName", "1112233", "path", "vod", 1517239908, 17933, 1190425, "streamVod");
 		Vod newVod2 = new Vod("davut", "1112233", "path", "vod", 1517239808, 17933, 1190525, "streamVod");
 		Vod newVod3 = new Vod("oguz", "1112233", "path", "vod", 1517239708, 17933, 1190625, "streamVod");
 		Vod newVod4 = new Vod("ahmet", "1112233", "path", "vod", 1517239608, 17933, 1190725, "streamVod");
 		Vod newVod5 = new Vod("mehmet", "1112233", "path", "vod", 1517239508, 17933, 1190825, "streamVod");
 
-		boolean result = dataStore.addVod(newVod.getStreamId(), newVod);
-		boolean result2 = dataStore.addVod(newVod2.getStreamId(), newVod2);
-		boolean result3 = dataStore.addVod(newVod3.getStreamId(), newVod3);
-		boolean result4 = dataStore.addVod(newVod4.getStreamId(), newVod4);
-		boolean result5 = dataStore.addVod(newVod5.getStreamId(), newVod5);
+		boolean result = dataStore.addVod(newVod);
+		boolean result2 = dataStore.addVod(newVod2);
+		boolean result3 = dataStore.addVod(newVod3);
+		boolean result4 = dataStore.addVod(newVod4);
+		boolean result5 = dataStore.addVod(newVod5);
 
 		assertTrue(result);
 		assertTrue(result2);
 		assertTrue(result3);
 		assertTrue(result4);
 		assertTrue(result5);
-
-
+		
+		long totalVodNumber = dataStore.getTotalVodNumber();
+		assertEquals(5, totalVodNumber);
+		
+		assertTrue(dataStore.deleteVod(newVod.getVodId()));
+		assertTrue(dataStore.deleteVod(newVod2.getVodId()));
+		totalVodNumber = dataStore.getTotalVodNumber();
+		assertEquals(3, totalVodNumber);
+		assertTrue(dataStore.deleteVod(newVod3.getVodId()));
+		assertTrue(dataStore.deleteVod(newVod4.getVodId()));
+		assertTrue(dataStore.deleteVod(newVod5.getVodId()));
+		
+		totalVodNumber = dataStore.getTotalVodNumber();
+		assertEquals(0, totalVodNumber);
+		
+		
 	}
 
 
