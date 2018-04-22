@@ -386,9 +386,7 @@ public class InMemoryDataStore implements IDataStore {
 
 	@Override
 	public long getTotalVodNumber() {
-
 		return vodMap.size();
-
 	}
 
 	@Override
@@ -408,11 +406,10 @@ public class InMemoryDataStore implements IDataStore {
 			}
 		}
 		
-		
 		File[] listOfFiles = userfile.listFiles();
 
-		for (File file : listOfFiles) {
-
+		for (File file : listOfFiles) 
+		{
 			String fileExtension = FilenameUtils.getExtension(file.getName());
 
 			if (file.isFile() && 

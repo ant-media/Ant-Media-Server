@@ -425,7 +425,8 @@ public class MongoStore implements IDataStore {
 
 			String fileExtension = FilenameUtils.getExtension(file.getName());
 
-			if (file.isFile()&&fileExtension.equals("mp4")) {
+			if (file.isFile() &&
+					(fileExtension.equals("mp4") || fileExtension.equals("flv") || fileExtension.equals("mkv"))) {
 
 				long fileSize = file.length();
 				long unixTime = System.currentTimeMillis();

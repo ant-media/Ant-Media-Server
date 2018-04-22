@@ -39,20 +39,20 @@ public class MapDBStore implements IDataStore {
 	private static final String VOD_MAP_NAME = "vod";
 	private static final String USER_MAP_NAME = "userVod";
 	private static final String SOCIAL_ENDPONT_CREDENTIALS_MAP_NAME = "SOCIAL_ENDPONT_CREDENTIALS_MAP_NAME";
-	
+
 
 	public MapDBStore(String dbName) {
 
 		db = DBMaker.fileDB(dbName).transactionEnable().make();
-		
+
 		map = db.treeMap(MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING).counterEnable()
 				.createOrOpen();
 		vodMap = db.treeMap(VOD_MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
 				.counterEnable().createOrOpen();
-		
+
 		userVodMap = db.treeMap(USER_MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
 				.counterEnable().createOrOpen();
-		
+
 		socialEndpointsCredentialsMap = db.treeMap(SOCIAL_ENDPONT_CREDENTIALS_MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
 				.counterEnable().createOrOpen();
 
@@ -60,7 +60,7 @@ public class MapDBStore implements IDataStore {
 		gson = builder.create();
 
 	}
-	
+
 	public BTreeMap<String, String> getUserVodMap() {
 		return userVodMap;
 	}
@@ -328,10 +328,10 @@ public class MapDBStore implements IDataStore {
 		}
 		return list;
 	}
-	
 
-	
-	
+
+
+
 
 	@Override
 	public List<Broadcast> filterBroadcastList(int offset, int size, String type) {
@@ -454,8 +454,8 @@ public class MapDBStore implements IDataStore {
 		return list;
 
 	}
-	
-	*/
+
+	 */
 
 	@Override
 	public boolean addVod(Vod vod) {
@@ -494,24 +494,24 @@ public class MapDBStore implements IDataStore {
 				db.commit();
 
 				result = true;
-		
+
 
 			} catch (Exception e) {
 				e.printStackTrace();
-		
+
 			}
 		}
 		return result;
 	}
-	
+
 
 	/*
 	 * IP Camera Operations
 	 */
 
-	
-	
-	
+
+
+
 	/*
 	 * Save method is used for this one.
 	@Override
@@ -537,7 +537,7 @@ public class MapDBStore implements IDataStore {
 
 		return result;
 	}
-*/
+	 */
 	@Override
 	public boolean editCameraInfo(Broadcast camera) {
 		boolean result = false;
@@ -632,7 +632,7 @@ public class MapDBStore implements IDataStore {
 
 		return result;
 	}
-/*
+	/*
 	@Override
 	public boolean resetBroadcastStatus() {
 
@@ -656,20 +656,20 @@ public class MapDBStore implements IDataStore {
 
 		return false;
 	}
-	
-	*/
+
+	 */
 
 	@Override
 	public long getTotalVodNumber() {
 
 		return getVodMap().size();
 	}
-	
+
 
 
 	@Override
 	public boolean fetchUserVodList(File userfile) {
-		
+
 		Object[] objectArray = vodMap.getValues().toArray();
 
 		Vod[] vodtArray = new Vod[objectArray.length];
@@ -684,30 +684,34 @@ public class MapDBStore implements IDataStore {
 				vodMap.remove(vodtArray[i].getVodId());
 			}
 		}
-		
-		
+
+
 		File[] listOfFiles = userfile.listFiles();
 
-		for (File file : listOfFiles) {
-			
-			String fileExtension = FilenameUtils.getExtension(file.getName());
-			
-		    if (file.isFile()&&fileExtension.equals("mp4")) {
-		
-				long fileSize = file.length();
-				long unixTime = System.currentTimeMillis();
+		if (listOfFiles != null) 
+		{
+			for (File file : listOfFiles) {
 
-				Vod newVod = new Vod("vodFile", "vodFile", file.getPath(), file.getName(), unixTime, 0, fileSize,
-									Vod.USER_VOD);
-				addUserVod(newVod);
-		    }
+				String fileExtension = FilenameUtils.getExtension(file.getName());
+
+				if (file.isFile() && 
+						(fileExtension.equals("mp4") || fileExtension.equals("flv") || fileExtension.equals("mkv"))) {
+
+					long fileSize = file.length();
+					long unixTime = System.currentTimeMillis();
+
+					Vod newVod = new Vod("vodFile", "vodFile", file.getPath(), file.getName(), unixTime, 0, fileSize,
+							Vod.USER_VOD);
+					addUserVod(newVod);
+				}
+			}
 		}
-	
-		
+
+
 		return true;
 
 
-		
+
 	}
 
 	@Override
@@ -718,7 +722,7 @@ public class MapDBStore implements IDataStore {
 			if (jsonString != null) {
 				Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
 				broadcast.setQuality(quality);
-			
+
 				map.replace(id, gson.toJson(broadcast));
 				db.commit();
 				result = true;
@@ -730,8 +734,8 @@ public class MapDBStore implements IDataStore {
 	@Override
 
 	public boolean updateSourceSpeed(String id, double speed) {
-		
-		
+
+
 		boolean result = false;
 		if (id != null) {
 			String jsonString = map.get(id);
@@ -748,7 +752,7 @@ public class MapDBStore implements IDataStore {
 	public SocialEndpointCredentials addSocialEndpointCredentials(SocialEndpointCredentials credentials) {
 		SocialEndpointCredentials addedCredential = null;
 		if (credentials != null && credentials.getAccountName() != null && credentials.getAccessToken() != null
-				 && credentials.getServiceName() != null) 
+				&& credentials.getServiceName() != null) 
 		{
 			if (credentials.getId() == null) {
 				//create new id if id is not set
@@ -759,15 +763,15 @@ public class MapDBStore implements IDataStore {
 				addedCredential = credentials;
 			}	
 			else {
-				
-				 if(socialEndpointsCredentialsMap.get(credentials.getId()) != null) 
-				 {
-					 //replace the field if id exists
+
+				if(socialEndpointsCredentialsMap.get(credentials.getId()) != null) 
+				{
+					//replace the field if id exists
 					socialEndpointsCredentialsMap.put(credentials.getId(), gson.toJson(credentials));
 					db.commit();
 					addedCredential = credentials;
-				 }
-				 //if id is not matched with any value, do not record
+				}
+				//if id is not matched with any value, do not record
 			}
 		}
 		return addedCredential;
@@ -825,7 +829,7 @@ public class MapDBStore implements IDataStore {
 
 	@Override
 	public long getTotalBroadcastNumber() {
-		
+
 		return getMap().size();
 	}
 

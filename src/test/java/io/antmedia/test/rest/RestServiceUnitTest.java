@@ -101,7 +101,7 @@ public class RestServiceUnitTest  {
 		assertTrue(store.addUserVod(newVod));
 		
 		
-		Result result = restService.importUserVoDsToStalker();
+		Result result = restService.importVoDsToStalker();
 		
 		assertTrue(result.isSuccess());
 		

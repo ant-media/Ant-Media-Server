@@ -5,6 +5,9 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.InvocationTargetException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -68,7 +71,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 	private List<VideoServiceEndpoint> videoServiceEndpoints = new ArrayList<>();
 	private List<VideoServiceEndpoint> videoServiceEndpointsHavingError = new ArrayList<>();
-	
+
 	private List<IStreamPublishSecurity> streamPublishSecurityList;
 
 	private HashMap<String, OnvifCamera> onvifCameraList = new HashMap<String, OnvifCamera>();
@@ -86,7 +89,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	}
 
 	private AppSettings appSettings;
-	
+
 
 	@Override
 	public boolean appStart(IScope app) {
@@ -126,15 +129,10 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 					if (endPointService != null) {
 						videoServiceEndpoints.add(endPointService);
 					}
-					
-					String vodFolderPath = appSettings.getVodFolder();
-					if (vodFolderPath != null && vodFolderPath.length() > 0) {
-						File f = new File(vodFolderPath);
-						if (f.exists()) {
-							dataStore.fetchUserVodList(f);
-						}
-					}
-					
+				}
+				
+				if (appSettings != null) {
+					synchUserVoDFolder(null, appSettings.getVodFolder());
 				}
 
 			}
@@ -144,6 +142,50 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 
 		return super.appStart(app);
+	}
+
+
+	public boolean synchUserVoDFolder(String oldFolderPath, String vodFolderPath) 
+	{
+		boolean result = false;
+		File streamsFolder = new File("webapps/" + getScope().getName() + "/streams");
+
+		if (oldFolderPath != null) 
+		{
+			File f = new File(oldFolderPath);
+			File linkFile = new File(streamsFolder.getAbsolutePath() + "/" + f.getName());
+			if (linkFile.exists()) {
+				try {
+					Files.delete(linkFile.toPath());
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+
+		File f = new File(vodFolderPath == null ? "" : vodFolderPath);
+		try {
+			if (!streamsFolder.exists()) {
+				streamsFolder.mkdir();
+			}
+			if (f.exists() && f.isDirectory()) {
+				String newLinkPath = streamsFolder.getAbsolutePath() + "/" + f.getName();
+				File newLinkFile = new File(newLinkPath);
+				if (!f.exists()) {
+					Path target = f.toPath();
+					Files.createSymbolicLink(newLinkFile.toPath(), target);
+				}
+			}
+			//if file does not exists, it means reset the vod
+			dataStore.fetchUserVodList(f);
+			result = true;
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+
+
+		return result;
 	}
 
 	@Override
@@ -420,7 +462,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 				else {
 					logger.info("Authenticated, adding video service endpoint {} to the app", videoServiceEndpoint.getName());
 					this.appAdapter.getVideoServiceEndpoints().add(videoServiceEndpoint);
-					
+
 				}
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -441,7 +483,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	public List<VideoServiceEndpoint> getVideoServiceEndpointsHavingError(){
 		return videoServiceEndpointsHavingError ;
 	}
-	
+
 	public void setVideoServiceEndpoints(List<VideoServiceEndpoint> videoServiceEndpoints) {
 		this.videoServiceEndpoints = videoServiceEndpoints;
 	}
@@ -556,14 +598,14 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		getDataStore().updateSourceQuality(id, quality);
 	}
 
-	
+
 	@Override
 	public void sourceSpeedChanged(String id,double speed) {
 		// log.info("source stream quality changed, new quality is: "+speed);
 
 		getDataStore().updateSourceSpeed(id, speed);
 	}
-	
+
 
 	public StreamFetcherManager getSources() {
 		return streamFetcherManager;

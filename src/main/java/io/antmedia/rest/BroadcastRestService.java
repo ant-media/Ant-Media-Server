@@ -175,8 +175,8 @@ public class BroadcastRestService {
 		return saveBroadcast(broadcast, AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, getScope().getName(),
 				getDataStore(), getAppSettings());
 	}
-	
-	
+
+
 	@POST
 	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	@Path("/broadcast/createPortalBroadcast")
@@ -184,15 +184,15 @@ public class BroadcastRestService {
 	public Broadcast createPortalBroadcast(@FormParam("name") String name, @FormParam("listenerHookURL") String listenerHookURL) {
 
 		Broadcast broadcast=new Broadcast();
-		
+
 		broadcast.setName(name);
 		broadcast.setListenerHookURL(listenerHookURL);
 
-	
+
 		return saveBroadcast(broadcast, AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, getScope().getName(),
 				getDataStore(), getAppSettings());
 	}
-	
+
 
 
 	public static Broadcast saveBroadcast(Broadcast broadcast, String status, String scopeName, IDataStore dataStore,
@@ -552,81 +552,103 @@ public class BroadcastRestService {
 	public List<Broadcast> getBroadcastList(@PathParam("offset") int offset, @PathParam("size") int size) {
 		return getDataStore().getBroadcastList(offset, size);
 	}
-	
-	
+
+
 	@POST
 	@Path("/importLiveStreamsToStalker")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result importLiveStreams2Stalker() 
 	{
-		long broadcastCount = getDataStore().getBroadcastCount();
-		int pageCount = (int) broadcastCount/IDataStore.MAX_ITEM_IN_ONE_LIST
-							+ ((broadcastCount % IDataStore.MAX_ITEM_IN_ONE_LIST != 0) ? 1 : 0);;
-		
-		List<Broadcast> broadcastList = new ArrayList<>();
-		for (int i = 0; i < pageCount; i++) {
-			broadcastList.addAll(getDataStore().getBroadcastList(i*IDataStore.MAX_ITEM_IN_ONE_LIST, IDataStore.MAX_ITEM_IN_ONE_LIST));
-		}
-		
-		
-		
-		StringBuilder insertQueryString = new StringBuilder();
-		
-		insertQueryString.append("DELETE FROM stalker_db.ch_links;");
-		insertQueryString.append("DELETE FROM stalker_db.itv;");
-		
-		for (Broadcast broadcast : broadcastList) {
-			String cmd = "ffmpeg http://"+getAppSettings().getServerName() + ":5080/" 
-					+ getScope().getName() + "/streams/"+broadcast.getStreamId()+".m3u8";
-			insertQueryString.append("INSERT INTO stalker_db.itv(name, number, tv_genre_id, base_ch, cmd, languages)"
-									+ " VALUES ('"+broadcast.getName()+"' , 1, 2, 1, '"+ cmd +"', '');");
-			
-			insertQueryString.append("SET @last_id=LAST_INSERT_ID();"
-									  + "INSERT INTO stalker_db.ch_links(ch_id, url)"
-										+ " VALUES(@last_id, '"+ cmd +"');");
-		}
-		
-		
-		
-		
-		return new Result(runStalkerImportQuery(insertQueryString.toString()));
-	}
-	
-	private boolean runStalkerImportQuery(String query) {
+
 		String stalkerDBServer = getAppSettings().getStalkerDBServer();
 		String stalkerDBUsername = getAppSettings().getStalkerDBUsername();
 		String stalkerDBPassword = getAppSettings().getStalkerDBPassword();
-		
+
+		boolean result = false;
+		String message = "";
+		int errorId = -1;
+		if (stalkerDBServer != null && stalkerDBUsername != null && stalkerDBPassword != null) {
+
+
+			long broadcastCount = getDataStore().getBroadcastCount();
+			int pageCount = (int) broadcastCount/IDataStore.MAX_ITEM_IN_ONE_LIST
+					+ ((broadcastCount % IDataStore.MAX_ITEM_IN_ONE_LIST != 0) ? 1 : 0);;
+
+					List<Broadcast> broadcastList = new ArrayList<>();
+					for (int i = 0; i < pageCount; i++) {
+						broadcastList.addAll(getDataStore().getBroadcastList(i*IDataStore.MAX_ITEM_IN_ONE_LIST, IDataStore.MAX_ITEM_IN_ONE_LIST));
+					}
+
+					StringBuilder insertQueryString = new StringBuilder();
+
+					insertQueryString.append("DELETE FROM stalker_db.ch_links;");
+					insertQueryString.append("DELETE FROM stalker_db.itv;");
+
+					String fqdn = getAppSettings().getServerName();
+					if (fqdn == null || fqdn.length() == 0) {
+						try {
+							fqdn = InetAddress.getLocalHost().getHostAddress();
+						} catch (UnknownHostException e) {
+							e.printStackTrace();
+						}
+					}
+					
+					int number = 1;
+					for (Broadcast broadcast : broadcastList) {
+						String cmd = "ffmpeg http://"+ fqdn + ":5080/" 
+								+ getScope().getName() + "/streams/"+broadcast.getStreamId()+".m3u8";
+						
+						insertQueryString.append("INSERT INTO stalker_db.itv(name, number, tv_genre_id, base_ch, cmd, languages)"
+								+ " VALUES ('"+broadcast.getName()+"' , "+ number +", 2, 1, '"+ cmd +"', '');");
+
+						insertQueryString.append("SET @last_id=LAST_INSERT_ID();"
+								+ "INSERT INTO stalker_db.ch_links(ch_id, url)"
+								+ " VALUES(@last_id, '"+ cmd +"');");
+						number++;
+					}
+					result = runStalkerImportQuery(insertQueryString.toString(), stalkerDBServer, stalkerDBUsername, stalkerDBPassword);
+		}
+		else {
+			message = "Portal DB info is missing";
+			errorId = 404;
+		}
+
+
+		return new Result(result, message, errorId);
+	}
+
+	private boolean runStalkerImportQuery(String query, String stalkerDBServer, String stalkerDBUsername, String stalkerDBPassword) {
+
 		boolean result = false;
 		try {
 			ProcessBuilder pb = new ProcessBuilder(
-			        new String[]{
-			            MYSQL_CLIENT_PATH, 
-			            "-h", stalkerDBServer,
-			            "-u", stalkerDBUsername,
-			            "-p"+stalkerDBPassword,
-			            "-e",   query  ,
-			           
-			        }
-			);
+					new String[]{
+							MYSQL_CLIENT_PATH, 
+							"-h", stalkerDBServer,
+							"-u", stalkerDBUsername,
+							"-p"+stalkerDBPassword,
+							"-e",   query  ,
+
+					}
+					);
 			pb.redirectErrorStream(true);
 
 			Process p = pb.start();
-			
+
 			InputStream is = p.getInputStream();
-		    byte[] data = new byte[1024];
-		    int length;
-		    while ((length = is.read(data, 0, data.length)) != -1) {
-		        logger.info(new String(data, 0, length));
-		    }
-		    
-		   
-		    int exitWith = p.waitFor();
-		    
-		    if (exitWith == 0) {
+			byte[] data = new byte[1024];
+			int length;
+			while ((length = is.read(data, 0, data.length)) != -1) {
+				logger.info(new String(data, 0, length));
+			}
+
+
+			int exitWith = p.waitFor();
+
+			if (exitWith == 0) {
 				result = true;
 			}	
-			
+
 		} catch (IOException e) {
 			e.printStackTrace();
 		} catch (InterruptedException e) {
@@ -634,50 +656,79 @@ public class BroadcastRestService {
 		} 
 		return result;
 	}
-	
+
 	@POST
-	@Path("importUserVoDsToStalker")
+	@Path("/importVoDsToStalker")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result importUserVoDsToStalker() {
-		String vodFolder = getAppSettings().getVodFolder();
-		boolean result = true;
-		
-		
-		long totalVodNumber = getDataStore().getTotalVodNumber();
-		int pageCount = (int) totalVodNumber/IDataStore.MAX_ITEM_IN_ONE_LIST 
-								+ ((totalVodNumber % IDataStore.MAX_ITEM_IN_ONE_LIST != 0) ? 1 : 0);
-		
-		List<Vod> vodList = new ArrayList<>();
-		for (int i = 0; i < pageCount; i++) {
-			vodList.addAll(getDataStore().getVodList(i*IDataStore.MAX_ITEM_IN_ONE_LIST, IDataStore.MAX_ITEM_IN_ONE_LIST));
-		}
-		
-		StringBuilder insertQueryString = new StringBuilder();
-		
-		insertQueryString.append("DELETE FROM stalker_db.video_series_files;");
-		insertQueryString.append("DELETE FROM stalker_db.video;");
-		
-		for (Vod vod : vodList) {
-			if (vod.getType().equals(Vod.USER_VOD)) {
-				insertQueryString.append("INSERT INTO stalker_db.video(name, o_name, protocol, category_id, cat_genre_id_1, status, cost, path, accessed) "
-						+ "values('"+ vod.getVodName() + "', '"+vod.getVodName()+"', '', 1, 0, 1, 1, '"+vod.getVodName()+"', 1);");
-				
-				String cmd = "ffmpeg http://"+getAppSettings().getServerName() + ":5080/" 
-						+ getScope().getName() + "/streams/"+vod.getFilePath();
-				
-				insertQueryString.append("SET @last_id=LAST_INSERT_ID();");
-				
-				insertQueryString.append("INSERT INTO stalker_db.video_series_files"
-												+ "(video_id, file_type, protocol, url, languages, quality, date_add, date_modify, status)"
-												+ "VALUES(@last_id, 'video', 'custom', '"+cmd+"', '', 5, NOW(), NOW(),1);");
+	public Result importVoDsToStalker() 
+	{
+
+		String stalkerDBServer = getAppSettings().getStalkerDBServer();
+		String stalkerDBUsername = getAppSettings().getStalkerDBUsername();
+		String stalkerDBPassword = getAppSettings().getStalkerDBPassword();
+
+		boolean result = false;
+		String message = "";
+		int errorId = -1;
+		if (stalkerDBServer != null && stalkerDBUsername != null && stalkerDBPassword != null) {
+
+
+			long totalVodNumber = getDataStore().getTotalVodNumber();
+			int pageCount = (int) totalVodNumber/IDataStore.MAX_ITEM_IN_ONE_LIST 
+					+ ((totalVodNumber % IDataStore.MAX_ITEM_IN_ONE_LIST != 0) ? 1 : 0);
+
+			List<Vod> vodList = new ArrayList<>();
+			for (int i = 0; i < pageCount; i++) {
+				vodList.addAll(getDataStore().getVodList(i*IDataStore.MAX_ITEM_IN_ONE_LIST, IDataStore.MAX_ITEM_IN_ONE_LIST));
 			}
 			
+			
+			String fqdn = getAppSettings().getServerName();
+			if (fqdn == null || fqdn.length() == 0) {
+				try {
+					fqdn = InetAddress.getLocalHost().getHostAddress();
+				} catch (UnknownHostException e) {
+					e.printStackTrace();
+				}
+			}
+
+			StringBuilder insertQueryString = new StringBuilder();
+
+			insertQueryString.append("DELETE FROM stalker_db.video_series_files;");
+			insertQueryString.append("DELETE FROM stalker_db.video;");
+
+			for (Vod vod : vodList) {
+				if (vod.getType().equals(Vod.USER_VOD)) {
+					insertQueryString.append("INSERT INTO stalker_db.video(name, o_name, protocol, category_id, cat_genre_id_1, status, cost, path, accessed) "
+							+ "values('"+ vod.getVodName() + "', '"+vod.getVodName()+"', '', 1, 1, 1, 0, '"+vod.getVodName()+"', 1);");
+
+					String vodFolderPath = getAppSettings().getVodFolder();
+					File vodFolder = new File(vodFolderPath);
+					int lastIndexOf = vod.getFilePath().lastIndexOf(vodFolder.getName());
+					String filePath = vod.getFilePath().substring(lastIndexOf);
+					String cmd = "ffmpeg http://"+ fqdn + ":5080/" 
+							+ getScope().getName() + "/streams/" + filePath;
+
+					insertQueryString.append("SET @last_id=LAST_INSERT_ID();");
+
+					insertQueryString.append("INSERT INTO stalker_db.video_series_files"
+							+ "(video_id, file_type, protocol, url, languages, quality, date_add, date_modify, status, accessed)"
+							+ "VALUES(@last_id, 'video', 'custom', '"+cmd+"', 'a:1:{i:0;s:2:\"en\";}', 5, NOW(), NOW(), 1, 1);");
+				}
+
+			}
+			result = runStalkerImportQuery(insertQueryString.toString(), stalkerDBServer, stalkerDBUsername, stalkerDBPassword );
 		}
-	
-		return new Result(runStalkerImportQuery(insertQueryString.toString()));
+		else {
+			message = "Portal DB info is missing";
+			errorId = 404;
+		}
+
+		return new Result(result, message, errorId);
+
 	}
-	
-	
+
+
 
 	@GET
 	@Path("/broadcast/getVodList/{offset}/{size}")
@@ -692,7 +743,7 @@ public class BroadcastRestService {
 	public long getTotalVodNumber() {
 		return getDataStore().getTotalVodNumber();
 	}
-	
+
 	@GET
 	@Path("/broadcast/getTotalBroadcastNumber")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -866,7 +917,7 @@ public class BroadcastRestService {
 				while ((read = inputStream.read(bytes)) != -1) {
 					outpuStream.write(bytes, 0, read);
 				}
-				
+
 				outpuStream.flush();
 				outpuStream.close();
 
@@ -1242,13 +1293,13 @@ public class BroadcastRestService {
 	protected List<VideoServiceEndpoint> getEndpointsHavingErrorList(){
 		return ((AntMediaApplicationAdapter) getApplication()).getVideoServiceEndpointsHavingError();
 	}
-	
+
 	@Nullable
 	private ApplicationContext getAppContext() {
 		if (servletContext != null) {
 			appCtx = (ApplicationContext) servletContext
 					.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
-			
+
 		}
 
 		return appCtx;
@@ -1297,6 +1348,6 @@ public class BroadcastRestService {
 	public void setAppSettings(AppSettings appSettings) {
 		this.appSettings = appSettings;
 	}
-	
+
 
 }

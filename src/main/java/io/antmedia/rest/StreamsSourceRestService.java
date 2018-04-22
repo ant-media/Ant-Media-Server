@@ -52,7 +52,6 @@ public class StreamsSourceRestService {
 	private IDataStore dbStore;
 	private ApplicationContext appCtx;
 
-	private StreamFetcherManager app;
 	private IScope scope;
 
 	private AntMediaApplicationAdapter appInstance;
@@ -128,34 +127,30 @@ public class StreamsSourceRestService {
 
 		return new Result(result, message);
 	}
-
-
-	/*
+	
 	@GET
-	@Path("/getUserVodList/{folderPath}")
+	@Path("/synchUserVoDList")
 	@Produces(MediaType.APPLICATION_JSON)
-	public boolean getUserVodList(@PathParam("folderPath") String folderPath) {
+	public Result synchUserVodList() {
 		boolean result = false;
-
-		String appScopeName = ScopeUtils.findApplication(getScope()).getName();
-
-		File directory = new File(
-				String.format("%s/webapps/%s/%s", System.getProperty("red5.root"), appScopeName, folderPath));
-
-		// if the directory does not exist, create it first
-		if (!directory.exists()) {
-			try {
-				directory.mkdir();
-			} catch (SecurityException se) {
-				se.printStackTrace();
-			}
+		int errorId = -1;
+		String message = "";
+		
+		String vodFolder = getInstance().getAppSettings().getVodFolder();
+		
+		logger.info("synch user vod list vod folder is {}", vodFolder);
+		
+		if (vodFolder != null && vodFolder.length() > 0) {
+			result = getInstance().synchUserVoDFolder(null, vodFolder);
+		}
+		else {
+			errorId = 404;
+			message = "no vod folder defined";
 		}
 
-		result = getStore().fetchUserVodList(directory);
-
-		return result;
+		return new Result(result, message, errorId);
 	}
-	*/
+	
 	
 	
 	

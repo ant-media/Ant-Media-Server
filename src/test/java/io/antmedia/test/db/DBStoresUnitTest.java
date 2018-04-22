@@ -116,6 +116,7 @@ public class DBStoresUnitTest {
 	
 	public void testSaveStreamInDirectory(IDataStore datastore) {
 		
+		
 		File f = new File("src/test/resources");
 		
 		long totalVodCount = datastore.getTotalVodNumber();
@@ -131,9 +132,13 @@ public class DBStoresUnitTest {
 		totalVodCount = datastore.getTotalVodNumber();
 		assertEquals(4, totalVodCount);
 		
-		List<Vod> vodList = datastore.getVodList(0, 10);
+		//List<Vod> vodList = datastore.getVodList(0, 10);
 		
-		
+		/*
+		for (Vod vod : vodList) {
+			System.out.println("File path: " + vod.getFilePath());
+		}
+		*/
 		
 		
 		
