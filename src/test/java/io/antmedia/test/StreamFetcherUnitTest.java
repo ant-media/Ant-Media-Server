@@ -269,6 +269,9 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		List<Broadcast> cameras = new ArrayList<>();
 
 		cameras.add(newCam);
+		
+		assertEquals(0, app.getStreamFetcherManager().getCamSchedulerList().size());
+
 
 		//sets stream fetcher configuration, it checks streams in every 30sec
 		app.getStreamFetcherManager().setStreamCheckerInterval(30000);
@@ -278,7 +281,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		
 
 		try {
-			Thread.sleep(2000);
+			Thread.sleep(5000);
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -378,6 +381,16 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			Thread.sleep(2000);
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		app.getStreamFetcherManager().stopStreaming(newCam);
+		assertEquals(0, app.getStreamFetcherManager().getCamSchedulerList().size());
+
+		
+		try {
+			Thread.sleep(2000);
+		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
 		
