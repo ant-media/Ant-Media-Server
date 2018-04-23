@@ -397,7 +397,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 					streamName = broadcast.getName();
 				} 
 				else {
-					streamName = "deleted stream";
+					streamName = file.getName();
 				}
 
 				Vod newVod = new Vod(streamName, streamId, filePath, name, unixTime, duration, fileSize, Vod.STREAM_VOD);

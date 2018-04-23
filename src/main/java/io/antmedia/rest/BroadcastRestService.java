@@ -10,6 +10,7 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import javax.servlet.ServletContext;
 import javax.ws.rs.Consumes;
@@ -931,8 +932,18 @@ public class BroadcastRestService {
 
 				long fileSize = savedFile.length();
 				long unixTime = System.currentTimeMillis();
+				
+				String path=savedFile.getPath();
+				
+				String[] subDirs = path.split(Pattern.quote(File.separator));
+				
+				int pathLength=Integer.valueOf(subDirs.length);
+				
+				String relativePath=subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
+				
+				
 
-				Vod newVod = new Vod(fileName, "vodFile", savedFile.getPath(), fileName, unixTime, 0, fileSize,
+				Vod newVod = new Vod(fileName, "vodFile", relativePath, fileName, unixTime, 0, fileSize,
 						Vod.UPLOADED_VOD);
 
 				success = getDataStore().addVod(newVod);
