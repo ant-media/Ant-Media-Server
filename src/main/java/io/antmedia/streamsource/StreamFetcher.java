@@ -329,6 +329,8 @@ public class StreamFetcher {
 
 				
 				setThreadActive(false);
+				
+				logger.info("Leaving StreamFetcher Thread");
 
 			} catch (Exception e) {
 				logger.info("---Exception in thread---");

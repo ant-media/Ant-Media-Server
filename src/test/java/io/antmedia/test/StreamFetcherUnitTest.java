@@ -143,6 +143,17 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			Broadcast newCam = new Broadcast("onvifCam1", "127.0.0.1:8080", "admin", "admin", "rtsp://127.0.0.1:6554/test.flv",
 					"ipCamera");
+			assertNotNull(newCam.getStreamUrl());
+			
+			try {
+				newCam.setStreamId((int)Math.random()*100000 + "");
+			} catch (Exception e) {
+				e.printStackTrace();
+				fail(e.getMessage());
+			}
+			
+			assertNotNull(newCam.getStreamId());
+			
 			StreamFetcher fetcher = new StreamFetcher(newCam);
 
 
