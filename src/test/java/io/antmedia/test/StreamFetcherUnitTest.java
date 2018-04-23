@@ -9,6 +9,7 @@ import static org.junit.Assert.fail;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 
 import javax.servlet.ServletContext;
@@ -96,6 +97,19 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		//set mapdb datastore to stream fetcher because in memory datastore just have references and updating broadcst
 		// object updates the reference in inmemorydatastore
 		app.getStreamFetcherManager().setDatastore(dataStore);
+		
+		List<StreamFetcher> camSchedulerList = app.getStreamFetcherManager().getCamSchedulerList();
+		for (Iterator iterator = camSchedulerList.iterator(); iterator.hasNext();) {
+			StreamFetcher streamFetcher = (StreamFetcher) iterator.next();
+			app.getStreamFetcherManager().stopStreaming(streamFetcher.getStream());
+			
+		}
+		
+		try {
+			Thread.sleep(1000);
+		} catch (InterruptedException e2) {
+			e2.printStackTrace();
+		}
 		
 		assertEquals(0, app.getStreamFetcherManager().getCamSchedulerList().size());
 
@@ -269,6 +283,19 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		List<Broadcast> cameras = new ArrayList<>();
 
 		cameras.add(newCam);
+		
+		List<StreamFetcher> camSchedulerList = app.getStreamFetcherManager().getCamSchedulerList();
+		for (Iterator iterator = camSchedulerList.iterator(); iterator.hasNext();) {
+			StreamFetcher streamFetcher = (StreamFetcher) iterator.next();
+			app.getStreamFetcherManager().stopStreaming(streamFetcher.getStream());
+			
+		}
+		
+		try {
+			Thread.sleep(1000);
+		} catch (InterruptedException e2) {
+			e2.printStackTrace();
+		}
 		
 		assertEquals(0, app.getStreamFetcherManager().getCamSchedulerList().size());
 
