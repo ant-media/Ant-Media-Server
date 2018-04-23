@@ -502,10 +502,10 @@ public class DBStoresUnitTest {
 		assertEquals(returnList.size(), 1);
 
 		Vod newVod =  new Vod("streamName", "1112233" + (int)(Math.random() * 1000), "path", "vod", 1517239908, 17933, 1190425, "streamVod");
-		Vod newVod2 = new Vod("davut", "1112233" + (int)(Math.random() * 1000),  "path", "vod", 1517239808, 17933, 1190525, "streamVod");
-		Vod newVod3 = new Vod("oguz", "1112233" + (int)(Math.random() * 1000),  "path", "vod", 1517239708, 17933, 1190625, "streamVod");
-		Vod newVod4 = new Vod("ahmet", "1112233" + (int)(Math.random() * 1000),  "path", "vod", 1517239608, 17933, 1190725, "streamVod");
-		Vod newVod5 = new Vod("mehmet", "1112233" + (int)(Math.random() * 1000), "path", "vod", 1517239508, 17933, 1190825, "streamVod");
+		Vod newVod2 = new Vod("davut", "111223" + (int)(Math.random() * 1000),  "path", "vod", 1517239808, 17933, 1190525, "streamVod");
+		Vod newVod3 = new Vod("oguz", "11122" + (int)(Math.random() * 1000),  "path", "vod", 1517239708, 17933, 1190625, "streamVod");
+		Vod newVod4 = new Vod("ahmet", "111" + (int)(Math.random() * 1000),  "path", "vod", 1517239608, 17933, 1190725, "streamVod");
+		Vod newVod5 = new Vod("mehmet", "11" + (int)(Math.random() * 1000), "path", "vod", 1517239508, 17933, 1190825, "streamVod");
 
 		assertTrue(dataStore.addVod(newVod));
 		assertTrue(dataStore.addVod(newVod2));

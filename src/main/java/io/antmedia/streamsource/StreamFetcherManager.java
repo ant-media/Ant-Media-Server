@@ -60,10 +60,6 @@ public class StreamFetcherManager {
 
 	}
 
-	public List<StreamFetcher> getCamSchedulerList() {
-		return streamFetcherList;
-	}
-
 	public void stopStreaming(Broadcast stream) {
 		logger.warn("inside of stopStreaming");
 
@@ -97,7 +93,7 @@ public class StreamFetcherManager {
 
 					streamCheckerCount++;
 
-					logger.warn("checkerCount is  :" + streamCheckerCount);
+					logger.warn("StreamFetcher Check Count  :" + streamCheckerCount);
 
 					if (streamCheckerCount % 180 == 0) {
 
@@ -134,6 +130,14 @@ public class StreamFetcherManager {
 
 	public void setDatastore(IDataStore datastore) {
 		this.datastore = datastore;
+	}
+
+	public List<StreamFetcher> getStreamFetcherList() {
+		return streamFetcherList;
+	}
+
+	public void setStreamFetcherList(List<StreamFetcher> streamFetcherList) {
+		this.streamFetcherList = streamFetcherList;
 	}
 
 }
