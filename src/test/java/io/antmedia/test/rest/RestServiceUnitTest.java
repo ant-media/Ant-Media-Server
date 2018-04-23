@@ -46,7 +46,10 @@ public class RestServiceUnitTest  {
 	}
 	
 	
-	@Test
+	/**
+	 * These tests should be run with stalker db
+	 */
+	//@Test
 	public void testImportLiveStreams2Stalker()  {
 		AppSettings settings = mock(AppSettings.class);
 		
@@ -74,7 +77,10 @@ public class RestServiceUnitTest  {
 		assertTrue(result.isSuccess());
 	}
 	
-	@Test
+	/**
+	 * These tests should be run with stalker db
+	 */
+	//@Test
 	public void testImportVoD2Stalker() {
 		AppSettings settings = mock(AppSettings.class);
 		

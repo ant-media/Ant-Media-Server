@@ -76,6 +76,9 @@ public class MongoStore implements IDataStore {
 	 */
 	@Override
 	public String save(Broadcast broadcast) {
+		if (broadcast == null) {
+			return null;
+		}
 		try {
 			String streamId = null;
 			if (broadcast.getStreamId() == null) {
@@ -92,7 +95,6 @@ public class MongoStore implements IDataStore {
 
 			return streamId;
 		} catch (Exception e) {
-
 			e.printStackTrace();
 		}
 		return null;
@@ -370,7 +372,7 @@ public class MongoStore implements IDataStore {
 				vod.setStreamId(vodId);
 			}
 			vodId = vod.getStreamId();
-
+			vod.setVodId(vodId);
 			Key<Vod> key = vodDatastore.save(vod);
 			result = true;
 			return result;
@@ -391,7 +393,7 @@ public class MongoStore implements IDataStore {
 	@Override
 	public boolean deleteVod(String id) {
 		try {
-			Query<Broadcast> query = vodDatastore.createQuery(Broadcast.class).field("vodId").equal(id);
+			Query<Vod> query = vodDatastore.createQuery(Vod.class).field("vodId").equal(id);
 			WriteResult delete = vodDatastore.delete(query);
 			return delete.getN() == 1;
 		} catch (Exception e) {
@@ -602,6 +604,14 @@ public class MongoStore implements IDataStore {
 		return datastore.getCount(Broadcast.class);
 
 
+	}
+
+	public Datastore getVodDatastore() {
+		return vodDatastore;
+	}
+
+	public void setVodDatastore(Datastore vodDatastore) {
+		this.vodDatastore = vodDatastore;
 	}
 
 
