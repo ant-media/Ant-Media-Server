@@ -568,7 +568,10 @@ public class BroadcastRestService {
 		boolean result = false;
 		String message = "";
 		int errorId = -1;
-		if (stalkerDBServer != null && stalkerDBUsername != null && stalkerDBPassword != null) {
+		if (stalkerDBServer != null && stalkerDBServer.length() > 0
+				&& stalkerDBUsername != null && stalkerDBUsername.length() > 0
+				&& stalkerDBPassword != null && stalkerDBPassword.length() > 0) 
+		{
 
 
 			long broadcastCount = getDataStore().getBroadcastCount();
