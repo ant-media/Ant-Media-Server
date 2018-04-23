@@ -3,6 +3,7 @@ package io.antmedia.datastore.db;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import org.apache.commons.collections.ListUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -430,8 +431,17 @@ public class MongoStore implements IDataStore {
 
 				long fileSize = file.length();
 				long unixTime = System.currentTimeMillis();
+				
+				
+				String filePath=file.getPath();
+				
+				String[] subDirs = filePath.split(Pattern.quote(File.separator));
+				
+				int pathLength=Integer.valueOf(subDirs.length);
+				
+				String relativePath=subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
 
-				Vod newVod = new Vod("vodFile", "vodFile", file.getPath(), file.getName(), unixTime, 0, fileSize,
+				Vod newVod = new Vod("vodFile", "vodFile", relativePath, file.getName(), unixTime, 0, fileSize,
 						Vod.USER_VOD);
 				
 				addUserVod(newVod);

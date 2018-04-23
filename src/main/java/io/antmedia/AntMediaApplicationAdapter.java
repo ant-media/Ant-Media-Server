@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.regex.Pattern;
 import java.util.Set;
 
 import org.apache.http.HttpEntity;
@@ -400,7 +401,15 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 					streamName = file.getName();
 				}
 
-				Vod newVod = new Vod(streamName, streamId, filePath, name, unixTime, duration, fileSize, Vod.STREAM_VOD);
+				
+				String[] subDirs = filePath.split(Pattern.quote(File.separator));
+				
+				int pathLength=Integer.valueOf(subDirs.length);
+				
+				String relativePath=subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
+				
+				
+				Vod newVod = new Vod(streamName, streamId, relativePath, name, unixTime, duration, fileSize, Vod.STREAM_VOD);
 
 				getDataStore().addVod(newVod);
 

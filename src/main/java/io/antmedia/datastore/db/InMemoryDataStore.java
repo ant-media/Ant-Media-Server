@@ -6,6 +6,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -417,8 +418,17 @@ public class InMemoryDataStore implements IDataStore {
 			{
 				long fileSize = file.length();
 				long unixTime = System.currentTimeMillis();
+				
+				String filePath=file.getPath();
+				
+				String[] subDirs = filePath.split(Pattern.quote(File.separator));
+				
+				int pathLength=Integer.valueOf(subDirs.length);
+				
+				String relativePath=subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
+				
 
-				Vod newVod = new Vod("vodFile", "vodFile", file.getPath(), file.getName(), unixTime, 0, fileSize,
+				Vod newVod = new Vod("vodFile", "vodFile", relativePath, file.getName(), unixTime, 0, fileSize,
 						Vod.USER_VOD);
 
 				addUserVod(newVod);
