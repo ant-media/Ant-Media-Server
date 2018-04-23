@@ -313,7 +313,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		streams.add(newSource);
 
-		app.getSources().startStreams(streams);
+		app.getStreamFetcherManager().startStreams(streams);
 
 
 

@@ -35,6 +35,8 @@ public class StreamFetcherManager {
 
 	private IDataStore datastore;
 
+	private String streamFetcherScheduleJobName;
+
 	public StreamFetcherManager(ISchedulingService schedulingService, IDataStore datastore) {
 		this.schedulingService = schedulingService;
 		this.datastore = datastore;
@@ -82,7 +84,11 @@ public class StreamFetcherManager {
 			startStreaming(streams.get(i));
 		}
 
-		schedulingService.addScheduledJobAfterDelay(streamCheckerInterval, new IScheduledJob() {
+		if (streamFetcherScheduleJobName != null) {
+			schedulingService.removeScheduledJob(streamFetcherScheduleJobName);
+		}
+		
+		streamFetcherScheduleJobName = schedulingService.addScheduledJobAfterDelay(streamCheckerInterval, new IScheduledJob() {
 
 			@Override
 			public void execute(ISchedulingService service) throws CloneNotSupportedException {

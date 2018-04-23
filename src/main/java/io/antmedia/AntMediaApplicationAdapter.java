@@ -616,14 +616,6 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	}
 
 
-	public StreamFetcherManager getSources() {
-		return streamFetcherManager;
-	}
-
-	public void setSources(StreamFetcherManager sources) {
-		this.streamFetcherManager = sources;
-	}
-
 	public void startStreaming(Broadcast broadcast) {
 		streamFetcherManager.startStreaming(broadcast);
 	}
