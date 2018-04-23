@@ -39,6 +39,7 @@ before_install:
   - sudo service antmedia stop
   - sudo service antmedia start
   - sleep 10
+  - sudo cat /usr/local/antmedia/log/red5.log
 
 
 install:
