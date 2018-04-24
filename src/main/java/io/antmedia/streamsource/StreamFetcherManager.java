@@ -34,7 +34,9 @@ public class StreamFetcherManager {
 	private ISchedulingService schedulingService;
 
 	private IDataStore datastore;
-	
+
+	private String streamFetcherScheduleJobName;
+
 	public StreamFetcherManager(ISchedulingService schedulingService, IDataStore datastore) {
 		this.schedulingService = schedulingService;
 		this.datastore = datastore;
@@ -58,10 +60,6 @@ public class StreamFetcherManager {
 
 	}
 
-	public List<StreamFetcher> getCamSchedulerList() {
-		return streamFetcherList;
-	}
-
 	public void stopStreaming(Broadcast stream) {
 		logger.warn("inside of stopStreaming");
 
@@ -82,7 +80,11 @@ public class StreamFetcherManager {
 			startStreaming(streams.get(i));
 		}
 
-		schedulingService.addScheduledJobAfterDelay(streamCheckerInterval, new IScheduledJob() {
+		if (streamFetcherScheduleJobName != null) {
+			schedulingService.removeScheduledJob(streamFetcherScheduleJobName);
+		}
+		
+		streamFetcherScheduleJobName = schedulingService.addScheduledJobAfterDelay(streamCheckerInterval, new IScheduledJob() {
 
 			@Override
 			public void execute(ISchedulingService service) throws CloneNotSupportedException {
@@ -91,7 +93,7 @@ public class StreamFetcherManager {
 
 					streamCheckerCount++;
 
-					logger.warn("checkerCount is  :" + streamCheckerCount);
+					logger.warn("StreamFetcher Check Count  :" + streamCheckerCount);
 
 					if (streamCheckerCount % 180 == 0) {
 
@@ -105,12 +107,12 @@ public class StreamFetcherManager {
 					} else {
 						for (StreamFetcher streamScheduler : streamFetcherList) {
 							if (!streamScheduler.isStreamAlive()) {
-								String streamId = streamScheduler.getStream().getStreamId();
-								if (datastore != null && streamId != null) {
-									logger.info("Updating stream status to finished, updating status of stream {}", streamScheduler.getStream().getStreamId());
-									
-									datastore.updateStatus(streamId, 
-											AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+
+								Broadcast stream = streamScheduler.getStream();
+								if (datastore != null && stream.getStreamId() != null) {
+										logger.info("Updating stream status to finished, updating status of stream {}", stream.getStreamId() );
+										datastore.updateStatus(stream.getStreamId() , 
+												AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
 								}
 								streamScheduler.startStream();
 							}
@@ -128,6 +130,14 @@ public class StreamFetcherManager {
 
 	public void setDatastore(IDataStore datastore) {
 		this.datastore = datastore;
+	}
+
+	public List<StreamFetcher> getStreamFetcherList() {
+		return streamFetcherList;
+	}
+
+	public void setStreamFetcherList(List<StreamFetcher> streamFetcherList) {
+		this.streamFetcherList = streamFetcherList;
 	}
 
 }

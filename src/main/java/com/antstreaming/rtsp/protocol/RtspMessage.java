@@ -24,8 +24,8 @@ public abstract class RtspMessage {
 
   private Long sequenceNumber;
   private SafeProperties headers;
-  private StringBuffer buffer;
-  private StringBuffer originRequest;
+  private StringBuilder buffer;
+  private StringBuilder originRequest;
 
   /**
    * Constructor.
@@ -33,8 +33,8 @@ public abstract class RtspMessage {
   public RtspMessage() {
     sequenceNumber = 0L;
     headers = new SafeProperties();
-    buffer = new StringBuffer();
-    originRequest = new StringBuffer();
+    buffer = new StringBuilder();
+    originRequest = new StringBuilder();
   }
 
   /**
@@ -154,23 +154,23 @@ public abstract class RtspMessage {
 
   /**
    * 
-   * @param buffer StringBuffer containing the contents
+   * @param buffer StringBuilder containing the contents
    */
-  public void setBuffer(StringBuffer buffer) {
+  public void setBuffer(StringBuilder buffer) {
     this.buffer = buffer;
   }
 
   /**
    * @return the content buffer
    */
-  public StringBuffer getBuffer() {
+  public StringBuilder getBuffer() {
     return buffer;
   }
 
   /**
    * @param other buffer with content to be appended
    */
-  public void appendToBuffer(StringBuffer other) {
+  public void appendToBuffer(StringBuilder other) {
     this.buffer.append(other);
   }
 
@@ -185,7 +185,6 @@ public abstract class RtspMessage {
    * @return the size of the content buffer
    */
   public int getBufferSize() {
-    // return buffer.length();
     return buffer.toString().length();
   }
 
@@ -207,11 +206,11 @@ public abstract class RtspMessage {
     originRequest.append(line);
   }
 
-  public void saveOriginRequest(StringBuffer body) {
+  public void saveOriginRequest(StringBuilder body) {
     originRequest.append(body);
   }
 
-  public StringBuffer getOriginRequest() {
+  public StringBuilder getOriginRequest() {
     return originRequest;
   }
 }

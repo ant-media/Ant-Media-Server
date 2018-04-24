@@ -2,6 +2,7 @@ package io.antmedia.integration;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -33,6 +34,7 @@ import com.google.gson.Gson;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.EncoderSettings;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.model.AppSettingsModel;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.User;
@@ -45,8 +47,8 @@ public class ConsoleAppRestServiceTest {
 
 	private static String ffmpegPath = "ffmpeg";
 
-	private static String TEST_USER_EMAIL = "ci@antmedia.io";
-	private static String TEST_USER_PASS = "ci@ant";
+	private static String TEST_USER_EMAIL = "test@antmedia.io";
+	private static String TEST_USER_PASS = "testtest";
 
 	private static BasicCookieStore httpCookieStore;
 
@@ -142,14 +144,38 @@ public class ConsoleAppRestServiceTest {
 
 			// get LiveApp default settings and check the default values
 			// get settings from the app
+			Result result = callIsEnterpriseEdition();
+			String appName = "WebRTCApp";
+			if (result.isSuccess()) {
+				appName = "WebRTCAppEE";
+			}
+			
+			AppSettingsModel appSettingsModel = callGetAppSettings(appName);
+			assertEquals(null, appSettingsModel.vodFolder);
+			 
+			appSettingsModel = callGetAppSettings("LiveApp");
+				
+			// change app settings - change vod folder
+			String new_vod_folder = "vod_folder";
+			assertNotEquals(new_vod_folder, appSettingsModel.vodFolder);
+			String defaultValue = appSettingsModel.vodFolder;
+			
+						
+			appSettingsModel.vodFolder = new_vod_folder;
+			result = callSetAppSettings("LiveApp", appSettingsModel);
+			assertTrue(result.isSuccess());
 
-			// change app settings
-
-			// get app settings and assert settings has changed
+			// get app settings and assert settings has changed - check vod folder has changed
+			appSettingsModel = callGetAppSettings("LiveApp");
+			assertEquals(new_vod_folder, appSettingsModel.vodFolder);
 
 			// check the related file to make sure settings changed for restart
-
 			// return back to default values
+			appSettingsModel.vodFolder = defaultValue;
+			result = callSetAppSettings("LiveApp", appSettingsModel);
+			assertTrue(result.isSuccess());
+			
+			
 		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
@@ -221,6 +247,119 @@ public class ConsoleAppRestServiceTest {
 			AppSettingsModel callGetAppSettings = callGetAppSettings("LiveApp");
 			assertTrue(callGetAppSettings.encoderSettings.size() > 0);
 
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+	}
+
+	@Test
+	public void testChangePreviewOverwriteSettings() {
+		//check if enterprise edition, if it is enterprise run the test
+		//if not skip this test
+
+		Result result;
+		try {
+			
+
+			// first authenticate user
+			User user = new User();
+			user.email = TEST_USER_EMAIL;
+			user.password = TEST_USER_PASS;
+			Result authenticatedUserResult = callAuthenticateUser(user);
+			assertTrue(authenticatedUserResult.isSuccess());
+			
+			
+			result = callIsEnterpriseEdition();
+			if (!result.isSuccess()) {
+				//if it is not enterprise return
+				return ;
+			}
+
+			//get app settings
+			AppSettingsModel appSettingsModel = callGetAppSettings("LiveApp");
+			
+
+			//check that preview overwrite is false by default
+			assertFalse(appSettingsModel.previewOverwrite);
+
+			//send a short stream
+			String streamId = "test_stream_" + (int)(Math.random() * 1000);
+			AppFunctionalTest.executeProcess(ffmpegPath
+					+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
+					+ streamId);
+
+			Thread.sleep(5000);
+
+			//stop it
+			AppFunctionalTest.destroyProcess();
+
+			//check that preview is created
+			assertTrue(checkURLExist("http://localhost:5080/LiveApp/previews/"+streamId+".png"));
+			
+
+			//send a short stream with same name again
+			AppFunctionalTest.executeProcess(ffmpegPath
+					+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
+					+ streamId);
+
+			Thread.sleep(5000);
+
+			//stop it
+			AppFunctionalTest.destroyProcess();
+
+			//let the muxing finish
+			Thread.sleep(3000);
+			//check that second preview is created
+			assertTrue(checkURLExist("http://localhost:5080/LiveApp/previews/"+streamId+"_1.png"));
+
+			//change settings and make preview overwrite true
+			appSettingsModel.previewOverwrite = true;
+			
+			result = callSetAppSettings("LiveApp", appSettingsModel);
+			assertTrue(result.isSuccess());
+			
+			appSettingsModel = callGetAppSettings("LiveApp");
+			assertTrue(appSettingsModel.previewOverwrite);
+
+			streamId = "test_stream_" + (int)(Math.random() * 1000);
+			AppFunctionalTest.executeProcess(ffmpegPath
+					+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
+					+ streamId);
+
+			Thread.sleep(5000);
+
+			//stop it
+			AppFunctionalTest.destroyProcess();
+
+			//check that preview is created
+			assertTrue(checkURLExist("http://localhost:5080/LiveApp/previews/"+streamId+".png"));
+
+			//send a short stream with same name again
+			AppFunctionalTest.executeProcess(ffmpegPath
+					+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
+					+ streamId);
+
+			//let the muxing finish
+			Thread.sleep(5000);
+
+			//stop it
+			AppFunctionalTest.destroyProcess();
+			
+			Thread.sleep(3000);
+
+			//check that second preview with the same created.
+			assertTrue(checkURLExist("http://localhost:5080/LiveApp/previews/"+streamId+".png"));
+			
+			
+			appSettingsModel.previewOverwrite = false;
+			result = callSetAppSettings("LiveApp", appSettingsModel);
+			assertTrue(result.isSuccess());
+
+			
+			appSettingsModel = callGetAppSettings("LiveApp");
+			assertFalse(appSettingsModel.previewOverwrite);
+			
 		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
@@ -399,6 +538,23 @@ public class ConsoleAppRestServiceTest {
 		}
 
 	}
+	
+	private boolean checkURLExist(String url) throws Exception {
+		
+		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
+				.setDefaultCookieStore(httpCookieStore).build();
+		Gson gson = new Gson();
+
+		HttpUriRequest post = RequestBuilder.get().setUri(url).build();
+
+		HttpResponse response = client.execute(post);
+
+		StringBuffer result = RestServiceTest.readResponse(response);
+		if (response.getStatusLine().getStatusCode() == 200) {
+			return true;
+		}
+		return false;
+	}
 
 	private Result callisFirstLogin() throws Exception {
 		String url = ROOT_SERVICE_URL + "/isFirstLogin";
@@ -476,6 +632,28 @@ public class ConsoleAppRestServiceTest {
 
 		StringBuffer result = RestServiceTest.readResponse(response);
 
+		if (response.getStatusLine().getStatusCode() != 200) {
+			throw new Exception(result.toString());
+		}
+		System.out.println("result string: " + result.toString());
+		Result tmp = gson.fromJson(result.toString(), Result.class);
+		assertNotNull(tmp);
+		return tmp;
+
+	}
+
+	public Result callIsEnterpriseEdition() throws Exception {
+		String url = ROOT_SERVICE_URL + "/isEnterpriseEdition";
+
+		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
+				.setDefaultCookieStore(httpCookieStore).build();
+		Gson gson = new Gson();
+
+		HttpUriRequest post = RequestBuilder.get().setUri(url).build();
+
+		HttpResponse response = client.execute(post);
+
+		StringBuffer result = RestServiceTest.readResponse(response);
 		if (response.getStatusLine().getStatusCode() != 200) {
 			throw new Exception(result.toString());
 		}

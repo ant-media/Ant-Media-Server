@@ -33,6 +33,7 @@ import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Vod;
@@ -48,10 +49,9 @@ public class StreamsSourceRestService {
 	@Context
 	private ServletContext servletContext;
 
-	private MapDBStore dbStore;
+	private IDataStore dbStore;
 	private ApplicationContext appCtx;
 
-	private StreamFetcherManager app;
 	private IScope scope;
 
 	private AntMediaApplicationAdapter appInstance;
@@ -79,7 +79,7 @@ public class StreamsSourceRestService {
 
 					String authparam = stream.getUsername() + ":" + stream.getPassword() + "@";
 					String rtspURLWithAuth = "rtsp://" + authparam + rtspURL.substring("rtsp://".length());
-					System.out.println("rtsp url with auth:" + rtspURLWithAuth);
+					logger.info("rtsp url with auth: {}", rtspURLWithAuth);
 					stream.setStreamUrl(rtspURLWithAuth);
 					Date currentDate = new Date();
 					long unixTime = currentDate.getTime();
@@ -127,32 +127,32 @@ public class StreamsSourceRestService {
 
 		return new Result(result, message);
 	}
-
+	
 	@GET
-	@Path("/getUserVodList/{folderPath}")
+	@Path("/synchUserVoDList")
 	@Produces(MediaType.APPLICATION_JSON)
-	public boolean  getUserVodList(@PathParam("folderPath") String folderPath) {
+	public Result synchUserVodList() {
 		boolean result = false;
-
-		String appScopeName = ScopeUtils.findApplication(getScope()).getName();
-
-
-		File directory = new File(
-				String.format("%s/webapps/%s/%s", System.getProperty("red5.root"), appScopeName, folderPath));
-
-		// if the directory does not exist, create it first
-		if (!directory.exists()) {
-			try {
-				directory.mkdir();
-			} catch (SecurityException se) {
-				se.printStackTrace();
-			}
+		int errorId = -1;
+		String message = "";
+		
+		String vodFolder = getInstance().getAppSettings().getVodFolder();
+		
+		logger.info("synch user vod list vod folder is {}", vodFolder);
+		
+		if (vodFolder != null && vodFolder.length() > 0) {
+			result = getInstance().synchUserVoDFolder(null, vodFolder);
+		}
+		else {
+			errorId = 404;
+			message = "no vod folder defined";
 		}
 
-		result=getStore().fetchUserVodList(directory);
-
-		return result;
+		return new Result(result, message, errorId);
 	}
+	
+	
+	
 	
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
@@ -330,6 +330,7 @@ public class StreamsSourceRestService {
 		}
 		return new Result(result);
 	}
+	
 	@Nullable
 	private ApplicationContext getAppContext() {
 		if (servletContext != null) {
@@ -338,7 +339,7 @@ public class StreamsSourceRestService {
 		}
 		return appCtx;
 	}
-
+	
 	public AntMediaApplicationAdapter getInstance() {
 		if (appInstance == null) {
 			appInstance = (AntMediaApplicationAdapter) getAppContext().getBean("web.handler");
@@ -353,10 +354,10 @@ public class StreamsSourceRestService {
 		return scope;
 	}
 
-	public MapDBStore getStore() {
+	public IDataStore getStore() {
 		if (dbStore == null) {
 			WebApplicationContext ctxt = WebApplicationContextUtils.getWebApplicationContext(servletContext);
-			dbStore = (MapDBStore) ctxt.getBean("db.datastore");
+			dbStore = (IDataStore) ctxt.getBean("db.datastore");
 		}
 		return dbStore;
 	}

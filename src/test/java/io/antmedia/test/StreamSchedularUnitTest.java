@@ -43,6 +43,7 @@ import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.integration.RestServiceTest;
 import io.antmedia.rest.BroadcastRestService;
+import io.antmedia.rest.model.Result;
 import io.antmedia.streamsource.StreamFetcher;
 
 @ContextConfiguration(locations = { "test.xml" })
@@ -151,21 +152,26 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
+	/*
+	 *@Test This test is commented out, because isStreamAlive is controlled instead of just controlling thread aliveness in {@link testThreadStopStart}
+	 */
 	public void testStreamSchedular() throws InterruptedException {
 
 		AVFormatContext inputFormatContext = new AVFormatContext();
 
 		Broadcast newCam = new Broadcast("testSchedular", "10.2.40.63:8080", "admin", "admin",
-				"rtsp://10.2.40.63:8554/live1.sdp", "ipCamera");
+				"rtsp://184.72.239.149/vod/mp4:BigBuckBunny_115k.mov", "streamSource");
 
 		StreamFetcher camScheduler = new StreamFetcher(newCam);
 		
-		camScheduler.startStream();
-
-		//this should be false becase this rtsp url cannot be used
+		camScheduler.setConnectionTimeout(10000);
 		
-		assertFalse(camScheduler.isStreamAlive());
+		camScheduler.startStream();
+		Thread.sleep(7000);
+
+		//this should be false because this rtsp url cannot be used
+		
+		assertTrue(camScheduler.isStreamAlive());
 
 		camScheduler.stopStream();
 
@@ -183,7 +189,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		AVFormatContext inputFormatContext = new AVFormatContext();
 
-		Broadcast newCam = new Broadcast("testSchedular", "10.2.40.63:8080", "admin", "admin",
+		Broadcast newCam = new Broadcast("testSchedular2", "10.2.40.64:8080", "admin", "admin",
 				"rtsp://11.2.40.63:8554/live1.sdp", "ipCamera");
 
 
@@ -198,6 +204,8 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		//this should be false because stream is not alive 
 		assertFalse(streamScheduler.isStreamAlive());
+		
+		Thread.sleep(2500);
 
 		streamScheduler.stopStream();
 
@@ -218,14 +226,18 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		Broadcast newCam = null;
 
 		StreamFetcher streamScheduler = new StreamFetcher(newCam);
+		
+		Result result= streamScheduler.prepareInput(inputFormatContext);
 
-		assertFalse(streamScheduler.prepareInput(inputFormatContext));
+		assertFalse(result.isSuccess());
 
 		Broadcast newCam2 = new Broadcast("test", "10.2.40.63:8080", "admin", "admin", null, "ipCamera");
 
 		StreamFetcher streamScheduler2 = new StreamFetcher(newCam2);
+		
+		Result result2= streamScheduler2.prepareInput(inputFormatContext);
 
-		assertFalse(streamScheduler2.prepareInput(inputFormatContext));
+		assertFalse(result.isSuccess());
 
 	}
 
@@ -292,7 +304,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		RestServiceTest restService = new RestServiceTest();
 
-		Broadcast newSource = new Broadcast("test1", "10.2.40.63:8080", "admin", "admin", "rtsp://184.72.239.149/vod/mp4:BigBuckBunny_115k.mov",
+		Broadcast newSource = new Broadcast("testBandwidth", "10.2.40.63:8080", "admin", "admin", "rtsp://184.72.239.149/vod/mp4:BigBuckBunny_115k.mov",
 				"streamSource");
 
 		restService.save(newSource);
@@ -301,13 +313,13 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		streams.add(newSource);
 
-		app.getSources().startStreams(streams);
+		app.getStreamFetcherManager().startStreams(streams);
 
 
 
 
 		try {
-			Thread.sleep(20000);
+			Thread.sleep(24000);
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -315,9 +327,20 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		logger.info("before first control");
 		
-		assertEquals("good", restService.getBroadcast(newSource.getStreamId()).getQuality());	
+		Broadcast stream=restService.getBroadcast(newSource.getStreamId());
 		
-		assertTrue(1 < restService.getBroadcast(newSource.getStreamId()).getSpeed());
+		try {
+			Thread.sleep(2000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		assertEquals("good", stream.getQuality());	
+
+		logger.info("speed{}" + stream.getSpeed()) ;
+		
+		assertTrue(1 < stream.getSpeed());
 		
 	
 
@@ -429,7 +452,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 		try {
-			Thread.sleep(40000);
+			Thread.sleep(10000);
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -478,7 +501,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 		String[] argsReset4= new String[] { "/bin/bash", "-c",
 		"sudo wondershaper -c -a nic1" };
-		try {
+		try {		logger.warn("thread isRunning");
 			Process procStop = new ProcessBuilder(argsReset4).start();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -541,10 +564,12 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			e.printStackTrace();
 		}
 
+		
+		
 	}
 
 
-
+	
 
 }
 

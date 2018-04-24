@@ -58,7 +58,7 @@ public class PacketReceiverRunnable implements Runnable {
 
 	private Logger logger = LoggerFactory.getLogger(PacketReceiverRunnable.class);
 	private String url;
-	private StringBuffer liveStreamSdpDef;
+	private StringBuilder liveStreamSdpDef;
 	private String announcedStreamName;
 	private IoSession session;
 	private String sessionKey;
@@ -67,7 +67,7 @@ public class PacketReceiverRunnable implements Runnable {
 
 
 	public PacketReceiverRunnable(ThreadPoolTaskScheduler mTaskScheduler, String cseq, String sessionKey,
-			IoSession session, String announcedStreamName, StringBuffer liveStreamSdpDef, String url) {
+			IoSession session, String announcedStreamName, StringBuilder liveStreamSdpDef, String url) {
 		this.mTaskScheduler = mTaskScheduler;
 		this.cseq = cseq;
 		this.sessionKey = sessionKey;
@@ -77,7 +77,7 @@ public class PacketReceiverRunnable implements Runnable {
 		this.url = url;
 	}
 
-	public boolean prepare_input_context(ThreadPoolTaskScheduler mTaskScheduler, final String cseq, final String sessionKey, final IoSession session, String announcedStreamName, StringBuffer liveStreamSdpDef, String streamUrl) {
+	public boolean prepare_input_context(ThreadPoolTaskScheduler mTaskScheduler, final String cseq, final String sessionKey, final IoSession session, String announcedStreamName, StringBuilder liveStreamSdpDef, String streamUrl) {
 		
 		try {
 			sdpFile = new File(announcedStreamName + ".sdp");

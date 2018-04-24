@@ -10,8 +10,8 @@ fi
 
 ANT_MEDIA_SERVER_DIR=~/softwares/ant-media-server
 
-
 ANT_MEDIA_SERVER_JAR=./target/ant-media-server.jar
+
 
 SRC_CONF_DIR=./src/main/server/conf/
 

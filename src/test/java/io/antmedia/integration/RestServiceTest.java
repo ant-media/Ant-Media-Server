@@ -677,6 +677,13 @@ public class RestServiceTest {
 			fail(e.getMessage());
 		}
 	}
+	
+	
+	@Test
+	public void testUploadVoDFile() {
+		//TODO: write test for uploading file
+	}
+	
 
 	
 	public String makePOSTRequest(String url, String entity) {
