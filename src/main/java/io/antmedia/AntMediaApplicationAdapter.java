@@ -43,6 +43,7 @@ import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.muxer.IMuxerListener;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.rest.BroadcastRestService;
+import io.antmedia.rest.model.Result;
 import io.antmedia.social.endpoint.PeriscopeEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
@@ -616,8 +617,13 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	}
 
 
-	public void startStreaming(Broadcast broadcast) {
-		streamFetcherManager.startStreaming(broadcast);
+	public Result startStreaming(Broadcast broadcast) {
+		
+		Result result=new Result(false);
+		
+		result=streamFetcherManager.startStreaming(broadcast);
+		
+		return result;
 	}
 
 	public void stopStreaming(Broadcast cam) {

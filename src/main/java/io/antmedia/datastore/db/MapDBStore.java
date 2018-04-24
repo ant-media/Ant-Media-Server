@@ -20,10 +20,12 @@ import org.slf4j.LoggerFactory;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.Vod;
+import io.antmedia.ipcamera.OnvifCamera;
 
 public class MapDBStore implements IDataStore {
 
@@ -553,6 +555,8 @@ public class MapDBStore implements IDataStore {
 			oldCam.setUsername(camera.getUsername());
 			oldCam.setPassword(camera.getPassword());
 			oldCam.setIpAddr(camera.getIpAddr());
+			oldCam.setStreamUrl(camera.getStreamUrl());
+			
 
 
 			getMap().replace(oldCam.getStreamId(), gson.toJson(oldCam));
@@ -608,7 +612,7 @@ public class MapDBStore implements IDataStore {
 
 		for (int i = 0; i < broadcastArray.length; i++) {
 
-			if (broadcastArray[i].getType().equals("ipCamera") || broadcastArray[i].getType().equals("streamSource")) {
+			if (broadcastArray[i].getType().equals(AntMediaApplicationAdapter.IP_CAMERA) || broadcastArray[i].getType().equals(AntMediaApplicationAdapter.LIVE_STREAM)) {
 
 				streamsList.add(gson.fromJson((String) objectArray[i], Broadcast.class));
 

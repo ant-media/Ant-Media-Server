@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.rest.model.Result;
 
 
 /**
@@ -52,12 +53,25 @@ public class StreamFetcherManager {
 	}
 
 
-	public void startStreaming(Broadcast broadcast) {
+	public Result startStreaming(Broadcast broadcast) {	
+		
+		Result result=new Result(true);
 
 		StreamFetcher streamScheduler = new StreamFetcher(broadcast);
-		streamScheduler.startStream();
 		streamFetcherList.add(streamScheduler);
-
+		streamScheduler.startStream();
+		
+		try {
+			Thread.sleep(4000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		
+		if(!streamScheduler.getCameraError().isSuccess()) {
+			result=streamScheduler.getCameraError();
+		}
+		
+		return result;
 	}
 
 	public void stopStreaming(Broadcast stream) {
@@ -110,9 +124,9 @@ public class StreamFetcherManager {
 
 								Broadcast stream = streamScheduler.getStream();
 								if (datastore != null && stream.getStreamId() != null) {
-										logger.info("Updating stream status to finished, updating status of stream {}", stream.getStreamId() );
-										datastore.updateStatus(stream.getStreamId() , 
-												AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+									logger.info("Updating stream status to finished, updating status of stream {}", stream.getStreamId() );
+									datastore.updateStatus(stream.getStreamId() , 
+											AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
 								}
 								streamScheduler.startStream();
 							}
