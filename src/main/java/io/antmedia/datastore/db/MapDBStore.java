@@ -673,8 +673,13 @@ public class MapDBStore implements IDataStore {
 
 
 	@Override
-	public boolean fetchUserVodList(File userfile) {
+	public int fetchUserVodList(File userfile) {
+		
+		if(userfile==null) {
+			return 0;
+		}
 
+		int numberOfSavedFiles = 0;
 		Object[] objectArray = vodMap.getValues().toArray();
 
 		Vod[] vodtArray = new Vod[objectArray.length];
@@ -716,15 +721,13 @@ public class MapDBStore implements IDataStore {
 					Vod newVod = new Vod("vodFile", "vodFile", relativePath, file.getName(), unixTime, 0, fileSize,
 							Vod.USER_VOD);
 					addUserVod(newVod);
+					
+					numberOfSavedFiles++;
 				}
 			}
 		}
 
-
-		return true;
-
-
-
+		return numberOfSavedFiles;
 	}
 
 	@Override

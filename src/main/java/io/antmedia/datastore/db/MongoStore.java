@@ -28,6 +28,7 @@ import com.mongodb.MongoCredential;
 import com.mongodb.ServerAddress;
 import com.mongodb.WriteResult;
 
+import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
@@ -331,8 +332,8 @@ public class MongoStore implements IDataStore {
 	@Override
 	public List<Broadcast> getExternalStreamsList() {
 		try {
-			List<Broadcast> ipCameraList=datastore.find(Broadcast.class).field("type").equal("ipCamera").asList();
-			List<Broadcast> streamSourceList=datastore.find(Broadcast.class).field("type").equal("streamSource").asList();
+			List<Broadcast> ipCameraList=datastore.find(Broadcast.class).field("type").equal(AntMediaApplicationAdapter.IP_CAMERA).asList();
+			List<Broadcast> streamSourceList=datastore.find(Broadcast.class).field("type").equal(AntMediaApplicationAdapter.STREAM_SOURCE).asList();
 
 			List<Broadcast> newList = new ArrayList<Broadcast>(ipCameraList);
 
@@ -411,47 +412,52 @@ public class MongoStore implements IDataStore {
 	}
 
 	@Override
-	public boolean fetchUserVodList(File userfile) {
+	public int fetchUserVodList(File userfile) {
 
-		boolean result=false;
+		if(userfile==null) {
+			return 0;
+		}
+
+		int numberOfSavedFiles = 0;
 		try {
 			Query<Vod> query = vodDatastore.createQuery(Vod.class).field("type").equal("userVod");
 			WriteResult delete = vodDatastore.delete(query);
-			result=true;
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 
 		File[] listOfFiles = userfile.listFiles();
 
-		for (File file : listOfFiles) {
+		if (listOfFiles != null) {
 
-			String fileExtension = FilenameUtils.getExtension(file.getName());
+			for (File file : listOfFiles) {
 
-			if (file.isFile() &&
-					(fileExtension.equals("mp4") || fileExtension.equals("flv") || fileExtension.equals("mkv"))) {
+				String fileExtension = FilenameUtils.getExtension(file.getName());
 
-				long fileSize = file.length();
-				long unixTime = System.currentTimeMillis();
-				
-				
-				String filePath=file.getPath();
-				
-				String[] subDirs = filePath.split(Pattern.quote(File.separator));
-				
-				int pathLength=Integer.valueOf(subDirs.length);
-				
-				String relativePath=subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
+				if (file.isFile() &&
+						(fileExtension.equals("mp4") || fileExtension.equals("flv") || fileExtension.equals("mkv"))) {
 
-				Vod newVod = new Vod("vodFile", "vodFile", relativePath, file.getName(), unixTime, 0, fileSize,
-						Vod.USER_VOD);
-				
-				addUserVod(newVod);
+					long fileSize = file.length();
+					long unixTime = System.currentTimeMillis();
+
+
+					String filePath=file.getPath();
+
+					String[] subDirs = filePath.split(Pattern.quote(File.separator));
+
+					int pathLength=Integer.valueOf(subDirs.length);
+
+					String relativePath=subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
+
+					Vod newVod = new Vod("vodFile", "vodFile", relativePath, file.getName(), unixTime, 0, fileSize,
+							Vod.USER_VOD);
+
+					addUserVod(newVod);
+					numberOfSavedFiles++;
+				}
 			}
 		}
-
-
-		return result;
+		return numberOfSavedFiles;
 
 	}
 
