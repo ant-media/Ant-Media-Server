@@ -133,7 +133,6 @@ public class BroadcastRestService {
 
 	private static final int ERROR_SOCIAL_ENDPOINT_UNDEFINED_CLIENT_ID = -1;
 	private static final int ERROR_SOCIAL_ENDPOINT_UNDEFINED_ENDPOINT = -2;
-	private static final int ERROR_SOCIAL_ENDPOINT_NO_ENDPOINT = -3;
 	private static final String MYSQL_CLIENT_PATH = "/usr/local/mysql/bin/mysql";
 
 	@Context
@@ -1041,20 +1040,23 @@ public class BroadcastRestService {
 		String message = null;
 		boolean missingClientIdAndSecret = false;
 
+		int errorId = -1;
 		VideoServiceEndpoint videoServiceEndpoint = null;
 		if (serviceName.equals(AntMediaApplicationAdapter.FACEBOOK)) 
 		{
 			String clientId = getAppSettings().getFacebookClientId();
 			String clientSecret = getAppSettings().getFacebookClientSecret();
 
-			if (clientId != null && clientSecret != null && 
-					clientId.length() > 0 && clientSecret.length() > 0) {
-				videoServiceEndpoint = getApplication().getEndpointService(AntMediaApplicationAdapter.FACEBOOK_ENDPOINT_CLASS, null, clientId, clientSecret);
+			videoServiceEndpoint = getApplication().getEndpointService(AntMediaApplicationAdapter.FACEBOOK_ENDPOINT_CLASS, null, clientId, clientSecret);
+			
+			if (videoServiceEndpoint != null) 
+			{
+				if (clientId == null || clientSecret == null || 
+						clientId.length() == 0 || clientSecret.length() == 0) {
+					missingClientIdAndSecret = true;
+				}
+			}
 
-			}
-			else {
-				missingClientIdAndSecret = true;
-			}
 		}
 		else if (serviceName.equals(AntMediaApplicationAdapter.YOUTUBE)) 
 		{
@@ -1062,12 +1064,14 @@ public class BroadcastRestService {
 			String clientId = getAppSettings().getYoutubeClientId();
 			String clientSecret = getAppSettings().getYoutubeClientSecret();
 
-			if (clientId != null && clientSecret != null && 
-					clientId.length() > 0 && clientSecret.length() > 0) {
-				videoServiceEndpoint = getApplication().getEndpointService(AntMediaApplicationAdapter.YOUTUBE_ENDPOINT_CLASS, null, clientId, clientSecret);
-			}
-			else {
-				missingClientIdAndSecret = true;
+			videoServiceEndpoint = getApplication().getEndpointService(AntMediaApplicationAdapter.YOUTUBE_ENDPOINT_CLASS, null, clientId, clientSecret);
+			
+			if (videoServiceEndpoint != null) 
+			{
+				if (clientId == null || clientSecret == null || 
+						clientId.length() == 0 || clientSecret.length() == 0) {
+					missingClientIdAndSecret = true;
+				}
 			}
 
 		}
@@ -1086,28 +1090,28 @@ public class BroadcastRestService {
 		}
 
 		try {
-			if (videoServiceEndpoint != null) 
-			{
+			
+			if (missingClientIdAndSecret) {
+				errorId = ERROR_SOCIAL_ENDPOINT_UNDEFINED_CLIENT_ID;
+				message = "Please enter service client id and client secret in app configuration";
+			}
+			else if (videoServiceEndpoint == null) {
+				errorId = ERROR_SOCIAL_ENDPOINT_UNDEFINED_ENDPOINT;
+				message = "Service with the name specified is not found in this app";
+			}
+			else {
 				DeviceAuthParameters askDeviceAuthParameters = videoServiceEndpoint.askDeviceAuthParameters();
 
 				getApplication().startDeviceAuthStatusPolling(videoServiceEndpoint,
 						askDeviceAuthParameters);
 				return askDeviceAuthParameters;
 			}
-			else {
-				if (missingClientIdAndSecret) {
-					message = "Please enter service client id and client secret in app configuration";
-				}
-				else {
-					message = "Service with the name specified is not found in this app";
-				}
-			}
 		}
 		catch (Exception e) {
 			e.printStackTrace();
 		}
 
-		return new Result(false, message);
+		return new Result(false, message, errorId);
 	}
 
 	/**
