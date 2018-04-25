@@ -98,6 +98,10 @@ public class StreamsSourceRestService {
 						result=getInstance().startStreaming(newCam);
 						String str = String.valueOf(result.isSuccess());
 						logger.info("reply from startstreaming " + str);
+						
+						if(!result.isSuccess()) {
+							getStore().delete(stream.getStreamId());
+						}
 					}
 					onvif.disconnect();
 				
