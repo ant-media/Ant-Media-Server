@@ -67,6 +67,7 @@ public class DBStoresUnitTest {
 		testFilterSearchOperations(dataStore);
 		testAddSocialEndpointCredentials(dataStore);
 		testVoDFunction(dataStore);
+		testSaveStreamInDirectory(dataStore);
 
 	}
 
@@ -115,6 +116,7 @@ public class DBStoresUnitTest {
 		testFilterSearchOperations(dataStore);
 		testAddSocialEndpointCredentials(dataStore);
 		testVoDFunction(dataStore);
+		testSaveStreamInDirectory(dataStore);
 
 	}
 	
@@ -126,7 +128,7 @@ public class DBStoresUnitTest {
 		
 		long totalVodCount = datastore.getTotalVodNumber();
 		assertEquals(0, totalVodCount);
-		datastore.fetchUserVodList(f);
+		assertEquals(4, datastore.fetchUserVodList(f));
 		
 		//we know there are 4 files there
 		//test_short.flv
@@ -144,7 +146,13 @@ public class DBStoresUnitTest {
 			System.out.println("File path: " + vod.getFilePath());
 		}
 		*/
+	
 		
+		f = new File("not_exist");
+		assertEquals(0, datastore.fetchUserVodList(f));
+		
+		
+		assertEquals(0, datastore.fetchUserVodList(null));
 		
 		
 	}

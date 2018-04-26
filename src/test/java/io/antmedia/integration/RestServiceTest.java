@@ -41,6 +41,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
+import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
@@ -610,7 +611,7 @@ public class RestServiceTest {
 
 			broadcast = callGetBroadcast(broadcast.getStreamId());
 
-			assertEquals(broadcast.getStatus(), "created");
+			assertEquals(broadcast.getStatus(), AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
 
 			execute.destroy();
 
@@ -624,7 +625,7 @@ public class RestServiceTest {
 
 			broadcast = callGetBroadcast(broadcast.getStreamId());
 
-			assertEquals(broadcast.getStatus(), "broadcasting");
+			assertEquals(broadcast.getStatus(), AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 
 			execute.destroy();
 

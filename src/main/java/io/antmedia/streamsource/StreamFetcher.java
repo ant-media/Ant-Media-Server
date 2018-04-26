@@ -63,6 +63,10 @@ public class StreamFetcher {
 	private long lastPacketReceivedTime = 0;
 
 	private boolean threadActive = false;
+	
+	private Result cameraError=new Result(false,"");
+
+
 
 	private static final int PACKET_RECEIVED_INTERVAL_TIMEOUT = 3000;
 
@@ -81,7 +85,7 @@ public class StreamFetcher {
 
 	public Result prepareInput(AVFormatContext inputFormatContext) {
 
-		setConnectionTimeout(4000);
+		setConnectionTimeout(5000);
 
 		Result result = new Result(false);
 		if (inputFormatContext == null) {
@@ -113,29 +117,22 @@ public class StreamFetcher {
 			avutil.av_strerror(ret, data, data.length);
 
 			String errorStr=new String(data, 0, data.length);
-			logger.info("cannot open input context with error: " + errorStr);
-
-
-			String errorUnauthorized="Server returned 401 Unauthorized (authorization failed)";
-
-			logger.info("Error:" +errorStr);
-			//logger.info(errorUnauthorized);
-
-
-			if (errorStr.equals(errorUnauthorized)) {				
-				logger.info("Unauthorized access");
-			}
-
-			result.setMessage(errorStr);
+			
+			result.setMessage(errorStr);		
+			
+			logger.info("cannot open input context with error::" +result.getMessage());
 			return result;
 		}
-
-
+		
+		
+		
 		av_dict_free(optionsDictionary);
 
 		ret = avformat_find_stream_info(inputFormatContext, (AVDictionary) null);
 		if (ret < 0) {
-			logger.info("Could not find stream information\n");
+			
+			result.setMessage("Could not find stream information\n");
+			logger.info(result.getMessage());
 			return result;
 		}
 
@@ -149,22 +146,27 @@ public class StreamFetcher {
 
 	}
 
-	public boolean prepare(AVFormatContext inputFormatContext, AVFormatContext outputRTMPFormatContext) {
+	public Result prepare(AVFormatContext inputFormatContext, AVFormatContext outputRTMPFormatContext) {
 
 		Result result=prepareInput(inputFormatContext);
+		
+		setCameraError(result);
 
 		if (result.isSuccess()) {
 			return prepareOutput(inputFormatContext, outputRTMPFormatContext);
-		}
-		return false;
+		} 
+		
+		return result;
 	}
 
 	/*
 	 * public AVFormatContext getInputContext() { return inputFormatContext; }
 	 */
 
-	private boolean prepareOutput(AVFormatContext inputFormatContext, AVFormatContext outputRTMPFormatContext) {
+	private Result prepareOutput(AVFormatContext inputFormatContext, AVFormatContext outputRTMPFormatContext) {
 		// outputRTMPFormatContext = new AVFormatContext(null);
+		
+		Result result=new Result(false);
 
 		int ret = avformat_alloc_output_context2(outputRTMPFormatContext, null, "flv", null);
 		for (int i = 0; i < inputFormatContext.nb_streams(); i++) {
@@ -176,7 +178,7 @@ public class StreamFetcher {
 			ret = avcodec_parameters_copy(out_stream.codecpar(), in_stream.codecpar());
 			if (ret < 0) {
 				logger.warn("Cannot get codec parameters\n");
-				return false;
+				return result;
 			}
 
 			out_stream.codec().codec_tag(0);
@@ -203,37 +205,41 @@ public class StreamFetcher {
 				byte[] data = new byte[1024];
 				avutil.av_strerror(ret, data, data.length);
 				logger.info("Cannot open url: " + urlStr + " error is " + new String(data, 0, data.length));
-				return false;
+				return result;
 			}
 			outputRTMPFormatContext.pb(pb);
 
 			ret = avformat_write_header(outputRTMPFormatContext, (AVDictionary) null);
 			if (ret < 0) {
 				logger.info("Cannot write header to rtmp\n");
-				return false;
+				return result;
 			}
 		}
 
-		return true;
+		result.setSuccess(true);
+		return result;
 	}
 
 	public class WorkerThread extends Thread {
 
 		private volatile boolean stopRequestReceived = false;
+		
+		
 
 
 		@Override
 		public void run() {
-
-
+		
 			setThreadActive(true);
 			AVFormatContext inputFormatContext = new AVFormatContext(null); // avformat.avformat_alloc_context();
 			AVFormatContext outputRTMPFormatContext = new AVFormatContext(null);
 
 			logger.info("before prepare");
+			
+			Result result=prepare(inputFormatContext, outputRTMPFormatContext);
 
 			try {
-				if (prepare(inputFormatContext, outputRTMPFormatContext)) {
+				if (result.isSuccess()) {
 
 					while (true) {
 						int ret = av_read_frame(inputFormatContext, pkt);
@@ -309,7 +315,8 @@ public class StreamFetcher {
 					logger.warn("before avformat_free_context(outputRTMPFormatContext);");
 					avformat_free_context(outputRTMPFormatContext);
 					outputRTMPFormatContext = null;
-
+					
+					setCameraError(result);
 				}else {
 
 					if (inputFormatContext != null) {
@@ -324,7 +331,10 @@ public class StreamFetcher {
 					}
 
 					logger.warn("Prepare for " + stream.getName() + " returned false");
-
+					
+					
+					setCameraError(result);
+					
 				}
 
 				
@@ -454,6 +464,13 @@ public class StreamFetcher {
 	public boolean isThreadActive() {
 		return threadActive;
 	}
+	public Result getCameraError() {
+		return cameraError;
+	}
 
+
+	public void setCameraError(Result cameraError) {
+		this.cameraError = cameraError;
+	}
 
 }

@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
 
+import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
@@ -25,12 +26,10 @@ public class InMemoryDataStore implements IDataStore {
 
 	protected static Logger logger = LoggerFactory.getLogger(InMemoryDataStore.class);
 
-	private Gson gson;
-
 	public LinkedHashMap<String, Broadcast> broadcastMap = new LinkedHashMap<String, Broadcast>();
 
 	public LinkedHashMap<String, Vod> vodMap = new LinkedHashMap<String, Vod>();
-	
+
 	public LinkedHashMap<String, SocialEndpointCredentials> socialEndpointCredentialsMap = new LinkedHashMap<String, SocialEndpointCredentials>();
 
 
@@ -248,26 +247,16 @@ public class InMemoryDataStore implements IDataStore {
 
 	@Override
 	public List<Broadcast> getExternalStreamsList() {
-		Object[] objectArray = broadcastMap.values().toArray();
-
-		Broadcast[] broadcastArray = new Broadcast[objectArray.length];
+		Collection<Broadcast> values = broadcastMap.values();
 
 		List<Broadcast> streamsList = new ArrayList<Broadcast>();
+		for (Broadcast broadcast : values) {
+			String type = broadcast.getType();
 
-		for (int i = 0; i < objectArray.length; i++) {
-
-			broadcastArray[i] = gson.fromJson((String) objectArray[i], Broadcast.class);
-
-		}
-
-		for (int i = 0; i < broadcastArray.length; i++) {
-
-			if (broadcastArray[i].getType().equals("ipCamera") || broadcastArray[i].getType().equals("streamSource")) {
-
-				streamsList.add(gson.fromJson((String) objectArray[i], Broadcast.class));
+			if (type.equals(AntMediaApplicationAdapter.IP_CAMERA) || type.equals(AntMediaApplicationAdapter.STREAM_SOURCE)) {
+				streamsList.add(broadcast);
 			}
 		}
-
 		return streamsList;
 	}
 
@@ -328,7 +317,7 @@ public class InMemoryDataStore implements IDataStore {
 
 			} catch (Exception e) {
 				e.printStackTrace();
-				
+
 			}
 		}
 		return result;
@@ -391,55 +380,62 @@ public class InMemoryDataStore implements IDataStore {
 	}
 
 	@Override
-	public boolean fetchUserVodList(File userfile) {
-		
+	public int fetchUserVodList(File userfile) {
+
+		if (userfile == null) {
+			return 0;
+		}
+
+
 		/*
 		 * Delete all user vod in db
 		 */
-		Object[] objectArray = vodMap.values().toArray();
-		Vod[] vodtArray = new Vod[objectArray.length];
-		for (int i = 0; i < objectArray.length; i++) {
-			vodtArray[i] = gson.fromJson((String) objectArray[i], Vod.class);
-		}
-		for (int i = 0; i < vodtArray.length; i++) {
-			if (vodtArray[i].getType().equals(Vod.USER_VOD)) {
-				vodMap.remove(vodtArray[i].getVodId());
+		int numberOfSavedFiles = 0;
+		Collection<Vod> vodCollection = vodMap.values();
+
+		for (Iterator iterator = vodCollection.iterator(); iterator.hasNext();) {
+			Vod vod = (Vod) iterator.next();
+			if (vod.getType().equals(Vod.USER_VOD)) {
+				iterator.remove();
 			}
 		}
-		
+
+
+
+
 		File[] listOfFiles = userfile.listFiles();
 
-		for (File file : listOfFiles) 
-		{
-			String fileExtension = FilenameUtils.getExtension(file.getName());
+		if (listOfFiles != null) {
 
-			if (file.isFile() && 
-					(fileExtension.equals("mp4") || fileExtension.equals("flv") || fileExtension.equals("mkv"))) 
+			for (File file : listOfFiles) 
 			{
-				long fileSize = file.length();
-				long unixTime = System.currentTimeMillis();
-				
-				String filePath=file.getPath();
-				
-				String[] subDirs = filePath.split(Pattern.quote(File.separator));
-				
-				int pathLength=Integer.valueOf(subDirs.length);
-				
-				String relativePath=subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
-				
+				String fileExtension = FilenameUtils.getExtension(file.getName());
 
-				Vod newVod = new Vod("vodFile", "vodFile", relativePath, file.getName(), unixTime, 0, fileSize,
-						Vod.USER_VOD);
+				if (file.isFile() && 
+						(fileExtension.equals("mp4") || fileExtension.equals("flv") || fileExtension.equals("mkv"))) 
+				{
+					long fileSize = file.length();
+					long unixTime = System.currentTimeMillis();
 
-				addUserVod(newVod);
+					String filePath=file.getPath();
+
+					String[] subDirs = filePath.split(Pattern.quote(File.separator));
+
+					int pathLength=Integer.valueOf(subDirs.length);
+
+					String relativePath=subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
+
+
+					Vod newVod = new Vod("vodFile", "vodFile", relativePath, file.getName(), unixTime, 0, fileSize,
+							Vod.USER_VOD);
+
+					addUserVod(newVod);
+					numberOfSavedFiles++;
+				}
 			}
 		}
 
-
-		return true;
-
-
-
+		return numberOfSavedFiles;
 	}
 
 	@Override
@@ -456,7 +452,7 @@ public class InMemoryDataStore implements IDataStore {
 
 			} catch (Exception e) {
 				e.printStackTrace();
-				
+
 			}
 		}
 		return result;
@@ -495,7 +491,7 @@ public class InMemoryDataStore implements IDataStore {
 	public SocialEndpointCredentials addSocialEndpointCredentials(SocialEndpointCredentials credentials) {
 		SocialEndpointCredentials addedCredential = null;
 		if (credentials != null && credentials.getAccountName() != null && credentials.getAccessToken() != null
-				 && credentials.getServiceName() != null) 
+				&& credentials.getServiceName() != null) 
 		{
 			if (credentials.getId() == null) {
 				//create new id if id is not set
@@ -505,14 +501,14 @@ public class InMemoryDataStore implements IDataStore {
 				addedCredential = credentials;
 			}
 			else {
-				
-				 if(socialEndpointCredentialsMap.get(credentials.getId()) != null) 
-				 {
-					 //replace the field if id exists
+
+				if(socialEndpointCredentialsMap.get(credentials.getId()) != null) 
+				{
+					//replace the field if id exists
 					socialEndpointCredentialsMap.put(credentials.getId(), credentials);
 					addedCredential = credentials;
-				 }
-				 //if id is not matched with any value, do not record
+				}
+				//if id is not matched with any value, do not record
 			}
 		}
 		return addedCredential;
@@ -562,9 +558,9 @@ public class InMemoryDataStore implements IDataStore {
 
 	@Override
 	public long getTotalBroadcastNumber() {
-	
+
 		return broadcastMap.size();
-		
+
 	}
 
 }
