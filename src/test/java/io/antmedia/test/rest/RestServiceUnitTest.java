@@ -28,6 +28,8 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Vod;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.model.Result;
+import io.antmedia.social.endpoint.PeriscopeEndpoint;
+import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
 
 public class RestServiceUnitTest  {
 
@@ -111,6 +113,84 @@ public class RestServiceUnitTest  {
 		
 		assertTrue(result.isSuccess());
 		
+	}
+	
+	
+	@Test
+	public void testGetDeviceAuthparameters() {
+		//this is community edition
+		
+		//make client id and client secret null for facebook
+		AppSettings settings = mock(AppSettings.class);
+		when(settings.getFacebookClientId()).thenReturn(null);
+		when(settings.getFacebookClientSecret()).thenReturn(null);
+		
+		Scope scope = mock(Scope.class);
+		String scopeName = "scope";
+		when(scope.getName()).thenReturn(scopeName);
+		
+		AntMediaApplicationAdapter app = new AntMediaApplicationAdapter();
+		
+		
+		restService.setApplication(app);
+		restService.setScope(scope);
+		restService.setDataStore(new InMemoryDataStore("testdb"));
+		
+		restService.setAppSettings(settings);
+		
+		//get device auth parameters for facebook
+		Result object = (Result)restService.getDeviceAuthParameters("facebook");
+		
+		// it should be facebook is not defined in this scope
+		assertFalse(object.isSuccess());
+		assertEquals(BroadcastRestService.ERROR_SOCIAL_ENDPOINT_UNDEFINED_ENDPOINT, object.getErrorId());
+		
+		//make client id and client secret has value for facebook
+		when(settings.getFacebookClientId()).thenReturn("12313");
+		when(settings.getFacebookClientSecret()).thenReturn("sdfsfsf");
+		
+		// get device auth parameter for facebook
+		 object = (Result)restService.getDeviceAuthParameters("facebook");
+		
+		//it should be again facebook is not defined in this scope
+		assertFalse(object.isSuccess());
+		assertEquals(BroadcastRestService.ERROR_SOCIAL_ENDPOINT_UNDEFINED_ENDPOINT, object.getErrorId());
+		
+		//make the same test for youtube and expect same results
+		when(settings.getYoutubeClientId()).thenReturn(null);
+		when(settings.getYoutubeClientSecret()).thenReturn(null);
+		object = (Result)restService.getDeviceAuthParameters("youtube");
+		
+		assertFalse(object.isSuccess());
+		assertEquals(BroadcastRestService.ERROR_SOCIAL_ENDPOINT_UNDEFINED_ENDPOINT, object.getErrorId());
+		
+		when(settings.getYoutubeClientId()).thenReturn("121212");
+		when(settings.getYoutubeClientSecret()).thenReturn("1212121");
+		
+		object = (Result)restService.getDeviceAuthParameters("youtube");
+		
+		assertFalse(object.isSuccess());
+		assertEquals(BroadcastRestService.ERROR_SOCIAL_ENDPOINT_UNDEFINED_ENDPOINT, object.getErrorId());
+		
+		//make client id and clien secret null for periscope
+		when(settings.getPeriscopeClientId()).thenReturn(null);
+		when(settings.getPeriscopeClientSecret()).thenReturn(null);
+		
+		//get device auth parameter for periscope
+		object = (Result)restService.getDeviceAuthParameters("periscope");
+		
+		//it should be client id and client secret missing
+		assertFalse(object.isSuccess());
+		assertEquals(BroadcastRestService.ERROR_SOCIAL_ENDPOINT_UNDEFINED_CLIENT_ID, object.getErrorId());
+		
+		//make client id and client secret have value for periscope
+		when(settings.getPeriscopeClientId()).thenReturn("121212");
+		when(settings.getPeriscopeClientSecret()).thenReturn("121212");
+		
+		//it should be different error because client id and cleint secret is not correct
+		object  = (Result) restService.getDeviceAuthParameters("periscope");
+		assertFalse(object.isSuccess());
+		assertEquals(BroadcastRestService.ERROR_SOCIAL_ENDPOINT_EXCEPTION_IN_ASKING_AUTHPARAMS, object.getErrorId());
 	}
 	
 	@Test

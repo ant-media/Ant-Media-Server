@@ -55,7 +55,7 @@ cache:
 
 deploy:
   - provider: script
-    script: "mvn deploy -P assemble -DskipTests -Dmaven.javadoc.skip=true --settings mvn-settings.xml"
+    script: "mvn deploy -P assemble -DskipTests --settings mvn-settings.xml"
     skip_cleanup: true
     on:
       tags: true

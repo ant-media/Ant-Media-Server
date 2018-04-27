@@ -131,8 +131,9 @@ public class BroadcastRestService {
 
 	}
 
-	private static final int ERROR_SOCIAL_ENDPOINT_UNDEFINED_CLIENT_ID = -1;
-	private static final int ERROR_SOCIAL_ENDPOINT_UNDEFINED_ENDPOINT = -2;
+	public static final int ERROR_SOCIAL_ENDPOINT_UNDEFINED_CLIENT_ID = -1;
+	public static final int ERROR_SOCIAL_ENDPOINT_UNDEFINED_ENDPOINT = -2;
+	public static final int ERROR_SOCIAL_ENDPOINT_EXCEPTION_IN_ASKING_AUTHPARAMS = -3;
 	private static final String MYSQL_CLIENT_PATH = "/usr/local/mysql/bin/mysql";
 
 	@Context
@@ -1108,6 +1109,8 @@ public class BroadcastRestService {
 			}
 		}
 		catch (Exception e) {
+			errorId = ERROR_SOCIAL_ENDPOINT_EXCEPTION_IN_ASKING_AUTHPARAMS;
+			message = "Exception in asking parameters";
 			e.printStackTrace();
 		}
 
@@ -1339,6 +1342,14 @@ public class BroadcastRestService {
 			app = (AntMediaApplicationAdapter) getAppContext().getBean("web.handler");
 		}
 		return app;
+	}
+	
+	/**
+	 * this is for testing
+	 * @param app
+	 */
+	public void setApplication(AntMediaApplicationAdapter app) {
+		this.app = app;
 	}
 
 	private AppSettings getAppSettings() {
