@@ -51,6 +51,7 @@ public class ApplicationAdapter extends MultiThreadedApplicationAdapter {
             return super.start(scope);
         } catch (InterruptedException e) {
             e.printStackTrace();
+			Thread.currentThread().interrupt();
         } finally {
             lock.release();
         }
@@ -65,6 +66,7 @@ public class ApplicationAdapter extends MultiThreadedApplicationAdapter {
             super.stop(scope);
         } catch (InterruptedException e) {
             e.printStackTrace();
+			Thread.currentThread().interrupt();
         } finally {
             lock.release();
         }
@@ -78,6 +80,7 @@ public class ApplicationAdapter extends MultiThreadedApplicationAdapter {
             return super.connect(conn, scope, params);
         } catch (InterruptedException e) {
             e.printStackTrace();
+			Thread.currentThread().interrupt();
         } finally {
             lock.release();
         }
@@ -92,6 +95,7 @@ public class ApplicationAdapter extends MultiThreadedApplicationAdapter {
             super.disconnect(conn, scope);
         } catch (InterruptedException e) {
             e.printStackTrace();
+			Thread.currentThread().interrupt();
         } finally {
             lock.release();
         }
@@ -105,6 +109,7 @@ public class ApplicationAdapter extends MultiThreadedApplicationAdapter {
             return super.join(client, scope);
         } catch (InterruptedException e) {
             e.printStackTrace();
+			Thread.currentThread().interrupt();
         } finally {
             lock.release();
         }
@@ -119,6 +124,7 @@ public class ApplicationAdapter extends MultiThreadedApplicationAdapter {
             super.leave(client, scope);
         } catch (InterruptedException e) {
             e.printStackTrace();
+			Thread.currentThread().interrupt();
         } finally {
             lock.release();
         }
