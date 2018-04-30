@@ -11,6 +11,7 @@ import static org.junit.Assert.fail;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.Iterator;
 import java.util.List;
 
 import org.junit.After;
@@ -58,6 +59,7 @@ public class DBStoresUnitTest {
 	public void testMapDBStore() {
 
 		IDataStore dataStore = new MapDBStore("testdb");
+		testBugAddIPCameraAndGet(dataStore);
 		testGetPagination(dataStore);
 		testNullCheck(dataStore);
 		testSimpleOperations(dataStore);
@@ -75,6 +77,7 @@ public class DBStoresUnitTest {
 	public void testMemoryDataStore() {
 
 		IDataStore dataStore = new InMemoryDataStore("testdb");
+		testBugAddIPCameraAndGet(dataStore);
 		testGetPagination(dataStore);
 		testNullCheck(dataStore);
 		testSimpleOperations(dataStore);
@@ -85,6 +88,7 @@ public class DBStoresUnitTest {
 		testAddSocialEndpointCredentials(dataStore);
 		testVoDFunction(dataStore);
 		testSaveStreamInDirectory(dataStore);
+		
 
 	}
 
@@ -105,8 +109,7 @@ public class DBStoresUnitTest {
 		store.delete(deleteVodQuery);
 		
 
-		
-		
+		testBugAddIPCameraAndGet(dataStore);
 		testGetPagination(dataStore);
 		testNullCheck(dataStore);
 		testSimpleOperations(dataStore);
@@ -117,9 +120,35 @@ public class DBStoresUnitTest {
 		testAddSocialEndpointCredentials(dataStore);
 		testVoDFunction(dataStore);
 		testSaveStreamInDirectory(dataStore);
+		
 
 	}
 	
+	
+	
+	public void testBugAddIPCameraAndGet(IDataStore datastore) {
+		
+		
+		// add ip camera 
+		Broadcast broadcast = new Broadcast("name", "ipAddr", "username", "password", "rtspUrl", AntMediaApplicationAdapter.IP_CAMERA);
+		datastore.save(broadcast);
+		
+		//add stream source 
+		Broadcast streamSource = new Broadcast("name_stream_source");
+		streamSource.setStreamUrl("rtsp urdfdfdl");
+		streamSource.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
+		datastore.save(streamSource);
+		
+		//get external list
+		List<Broadcast> streamsList = datastore.getExternalStreamsList();
+		assertNotNull(streamsList);
+		
+		assertEquals(2, streamsList.size());
+		
+		//check that there are two streams and values are same as added above
+		
+		
+	}
 	
 	public void testSaveStreamInDirectory(IDataStore datastore) {
 		
@@ -234,6 +263,13 @@ public class DBStoresUnitTest {
 	}
 
 	public void testGetPagination(IDataStore dataStore) {
+		
+		List<Broadcast> broadcastList2 = dataStore.getBroadcastList(0, 50);
+		for (Iterator iterator = broadcastList2.iterator(); iterator.hasNext();) {
+			Broadcast broadcast = (Broadcast) iterator.next();
+			dataStore.delete(broadcast.getStreamId());
+			
+		}
 
 		for (int i = 0; i < 36; i++) {
 			Broadcast broadcast = new Broadcast(null, null);
