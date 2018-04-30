@@ -445,7 +445,8 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 		
 	}
 
-	public ConcurrentLinkedQueue<IWebRTCClient> getWebRTCClientList() {
+	@Override
+	public ConcurrentLinkedQueue<IWebRTCClient> getClientList() {
 		return webRTCClientList;
 	}
 

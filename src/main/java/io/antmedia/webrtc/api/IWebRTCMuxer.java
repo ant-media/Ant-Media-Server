@@ -1,5 +1,7 @@
 package io.antmedia.webrtc.api;
 
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 public interface IWebRTCMuxer extends IStreamInfo {
 	
@@ -55,5 +57,10 @@ public interface IWebRTCMuxer extends IStreamInfo {
 	public boolean contains(IWebRTCClient webRTCClient);
 	
 	
-
+	/**
+	 * Return the list of webrtc clients receiving data from webrtc muxer 
+	 * @return
+	 */
+	public Queue<IWebRTCClient> getClientList();
+	
 }

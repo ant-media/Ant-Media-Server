@@ -730,34 +730,17 @@ public class MapDBStore implements IDataStore {
 		return numberOfSavedFiles;
 	}
 
+	
 	@Override
-	public boolean updateSourceQuality(String id, String quality) {
-		boolean result = false;
-		if (id != null) {
-			String jsonString = map.get(id);
-			if (jsonString != null) {
-				Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
-				broadcast.setQuality(quality);
-
-				map.replace(id, gson.toJson(broadcast));
-				db.commit();
-				result = true;
-			}
-		}
-		return result;
-	}
-
-	@Override
-
-	public boolean updateSourceSpeed(String id, double speed) {
-
-
+	public boolean updateSourceQualityParameters(String id, String quality, double speed, int pendingPacketQueue) {
 		boolean result = false;
 		if (id != null) {
 			String jsonString = map.get(id);
 			if (jsonString != null) {
 				Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
 				broadcast.setSpeed(speed);
+				broadcast.setQuality(quality);
+				broadcast.setPendingPacketSize(pendingPacketQueue);
 				map.replace(id, gson.toJson(broadcast));
 				db.commit();
 				result = true;
@@ -765,6 +748,7 @@ public class MapDBStore implements IDataStore {
 		}
 		return result;
 	}
+	
 	public SocialEndpointCredentials addSocialEndpointCredentials(SocialEndpointCredentials credentials) {
 		SocialEndpointCredentials addedCredential = null;
 		if (credentials != null && credentials.getAccountName() != null && credentials.getAccessToken() != null

@@ -5,6 +5,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.red5.server.api.scope.IScopeService;
 
+import io.antmedia.rest.WebRTCClientStats;
+
+
 public interface IWebRTCAdaptor extends IScopeService {
 	
 	
@@ -20,6 +23,11 @@ public interface IWebRTCAdaptor extends IScopeService {
 	
 	List<IStreamInfo> getStreamOptions(String streamId);
 
+	/**
+	 * Try to find the best bitrate for the client
+	 * @param streamId
+	 * @param webRTCClient
+	 */
 	void adaptStreamingQuality(String streamId, IWebRTCClient webRTCClient);
 
 	/**
@@ -44,5 +52,19 @@ public interface IWebRTCAdaptor extends IScopeService {
 	 * @return
 	 */
 	int getNumberOfTotalViewers();
+	
+	/**
+	 * Returns total number of viewer of a specific stream
+	 * @param streamId
+	 * @return
+	 */
+	int getNumberOfViewers(String streamId);
+	
+	/**
+	 * Return webrtc client stats
+	 * @param streamId
+	 * @return
+	 */
+	List<WebRTCClientStats> getWebRTCClientStats(String streamId);
 
 }

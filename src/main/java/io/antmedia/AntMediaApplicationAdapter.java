@@ -40,7 +40,7 @@ import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.Vod;
 import io.antmedia.ipcamera.OnvifCamera;
-import io.antmedia.muxer.IMuxerListener;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.model.Result;
@@ -49,7 +49,7 @@ import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
 import io.antmedia.streamsource.StreamFetcherManager;
 
-public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter implements IMuxerListener {
+public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter implements IAntMediaStreamHandler {
 
 	public static final String BROADCAST_STATUS_CREATED = "created";
 	public static final String BROADCAST_STATUS_BROADCASTING = "broadcasting";
@@ -300,7 +300,8 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 						Broadcast broadcast = dataStore.get(streamName);
 
 						if (broadcast == null) {
-							broadcast = saveZombiBroadcast(streamName);
+							
+							broadcast = saveUndefinedBroadcast(streamName, getScope().getName(), dataStore, appSettings);
 
 						} else {
 							dataStore.updateStatus(streamName, BROADCAST_STATUS_BROADCASTING);
@@ -347,16 +348,23 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		super.streamPublishStart(stream);
 	}
 
-	private Broadcast saveZombiBroadcast(String streamName) {
+	public static Broadcast saveUndefinedBroadcast(String streamName, String scopeName, IDataStore dataStore, AppSettings appSettings) {
 		Broadcast newBroadcast = new Broadcast();
 		newBroadcast.setDate(System.currentTimeMillis());
 		newBroadcast.setZombi(true);
 		try {
 			newBroadcast.setStreamId(streamName);
 
+			String settingsListenerHookURL = null; 
+			String fqdn = null;
+			if (appSettings != null) {
+				settingsListenerHookURL = appSettings.getListenerHookURL();
+				fqdn = appSettings.getServerName();
+			}
+			
 			return BroadcastRestService.saveBroadcast(newBroadcast,
-					AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, getScope().getName(), dataStore,
-					appSettings);
+					AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, scopeName, dataStore,
+					settingsListenerHookURL, fqdn);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -601,22 +609,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	public void setAppSettings(AppSettings appSettings) {
 		this.appSettings = appSettings;
 	}
-	@Override
-	public void sourceQualityChanged(String id,String quality) {
-		log.info("source stream quality changed, new quality is: "+quality);
-
-		getDataStore().updateSourceQuality(id, quality);
-	}
-
-
-	@Override
-	public void sourceSpeedChanged(String id,double speed) {
-		// log.info("source stream quality changed, new quality is: "+speed);
-
-		getDataStore().updateSourceSpeed(id, speed);
-	}
-
-
+	
 	public Result startStreaming(Broadcast broadcast) {
 		
 		Result result=new Result(false);
@@ -647,6 +640,12 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 	public StreamFetcherManager getStreamFetcherManager() {
 		return streamFetcherManager;
+	}
+
+	@Override
+	public void setQualityParameters(String id, String quality, double speed, int pendingPacketSize) {
+		getDataStore().updateSourceQualityParameters(id, quality, speed, pendingPacketSize);
+		
 	}
 
 }

@@ -96,6 +96,12 @@ public interface IWebSocketListener {
 	public static final String NO_ENCODER_SETTINGS = "no_encoder_settings";
 
 	/**
+	 * This is sent back to the user if publisher wants to send a stream with an unregistered id
+	 * and server is configured not to allow this kind of streams
+	 */
+	public static final String NOT_ALLOWED_UNREGISTERED_STREAM = "not_allowed_unregistered_streams";
+	
+	/**
 	 * This is sent back to the user when there is no room specified in 
 	 * joining the video conference
 	 */

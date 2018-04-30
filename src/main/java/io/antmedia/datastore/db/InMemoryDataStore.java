@@ -459,35 +459,23 @@ public class InMemoryDataStore implements IDataStore {
 	}
 
 
-
 	@Override
-	public boolean updateSourceQuality(String id, String quality) {
+	public boolean updateSourceQualityParameters(String id, String quality, double speed, int pendingPacketSize) {
 		boolean result = false;
 		if (id != null) {
 			Broadcast broadcast = broadcastMap.get(id);
 			if (broadcast != null) {
 				broadcast.setQuality(quality);
-				broadcastMap.replace(id, broadcast);
-				result = true;
-			}
-		}
-		return result;
-	}
-
-	@Override
-
-	public boolean updateSourceSpeed(String id, double speed) {
-		boolean result = false;
-		if (id != null) {
-			Broadcast broadcast = broadcastMap.get(id);
-			if (broadcast != null) {
 				broadcast.setSpeed(speed);
+				broadcast.setPendingPacketSize(pendingPacketSize);
 				broadcastMap.replace(id, broadcast);
 				result = true;
 			}
 		}
 		return result;
 	}
+
+	
 	public SocialEndpointCredentials addSocialEndpointCredentials(SocialEndpointCredentials credentials) {
 		SocialEndpointCredentials addedCredential = null;
 		if (credentials != null && credentials.getAccountName() != null && credentials.getAccessToken() != null

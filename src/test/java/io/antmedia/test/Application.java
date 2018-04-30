@@ -3,9 +3,9 @@ package io.antmedia.test;
 import java.io.File;
 
 import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.muxer.IMuxerListener;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 
-public class Application extends AntMediaApplicationAdapter implements IMuxerListener {
+public class Application extends AntMediaApplicationAdapter implements IAntMediaStreamHandler {
 
 	public static String id = null;
 	public static File file = null;

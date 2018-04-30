@@ -62,6 +62,30 @@ public interface IWebRTCClient {
 	 * or -1 if timing is not available yet
 	 */
 	long getTimeToStop();
+	
+	/**
+	 * Return the period of send video period in milliseconds
+	 * @return
+	 */
+	int getVideoFrameSentPeriod();
+	
+	/**
+	 * Return the period of send audio period in milliseconds
+	 * @return
+	 */
+	int getAudioFrameSentPeriod();
+	
+	/**
+	 * Return the period of entering audio thread interval in milliseconds
+	 * @return
+	 */
+	int getAudioThreadCheckInterval();
+	
+	/**
+	 * Return the priod of entering video thread interval in milliseconds
+	 * @return
+	 */
+	int getVideoThreadCheckInterval();
 
 	
 }

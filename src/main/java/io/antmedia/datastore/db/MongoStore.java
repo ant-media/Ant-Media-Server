@@ -483,29 +483,13 @@ public class MongoStore implements IDataStore {
 	}
 
 
-
 	@Override
-	public boolean updateSourceQuality(String id, String quality) {
+	public boolean updateSourceQualityParameters(String id, String quality, double speed, int pendingPacketQueue) {
 		try {
 
 			Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(id);
-			UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set("quality", quality);
-
-			UpdateResults update = datastore.update(query, ops);
-			return update.getUpdatedCount() == 1;
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		return false;
-	}
-
-	@Override
-
-	public boolean updateSourceSpeed(String id, double speed) {
-		try {
-
-			Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(id);
-			UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set("speed", speed);
+			UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class)
+						.set("quality", quality).set("speed", speed).set("pendingPacketSize", pendingPacketQueue);
 
 			UpdateResults update = datastore.update(query, ops);
 			return update.getUpdatedCount() == 1;

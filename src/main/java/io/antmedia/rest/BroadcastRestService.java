@@ -57,6 +57,7 @@ import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
 import io.antmedia.storage.StorageClient;
 import io.antmedia.storage.StorageClient.FileType;
+import io.antmedia.webrtc.api.IWebRTCAdaptor;
 
 @Component
 @Path("/")
@@ -167,17 +168,32 @@ public class BroadcastRestService {
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/broadcast/create")
 	@Produces(MediaType.APPLICATION_JSON)
-
 	public Broadcast createBroadcast(Broadcast broadcast) {
 		if (broadcast != null) {
 			// make sure stream id is not set on rest service
 			broadcast.resetStreamId();
 		}
+
+		String settingsListenerHookURL = null; 
+		String fqdn = null;
+		AppSettings appSettings = getAppSettings();
+		if (appSettings != null) {
+			settingsListenerHookURL = appSettings.getListenerHookURL();
+			fqdn = appSettings.getServerName();
+		}
+
 		return saveBroadcast(broadcast, AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, getScope().getName(),
-				getDataStore(), getAppSettings());
+				getDataStore(), settingsListenerHookURL, fqdn);
 	}
 
 
+	/**
+	 * Use createBroadcast with listenerHookURL
+	 * @param name
+	 * @param listenerHookURL
+	 * @return
+	 */
+	@Deprecated
 	@POST
 	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	@Path("/broadcast/createPortalBroadcast")
@@ -188,16 +204,22 @@ public class BroadcastRestService {
 
 		broadcast.setName(name);
 		broadcast.setListenerHookURL(listenerHookURL);
-
+		String settingsListenerHookURL = null; 
+		String fqdn = null;
+		AppSettings appSettings = getAppSettings();
+		if (appSettings != null) {
+			settingsListenerHookURL = appSettings.getListenerHookURL();
+			fqdn = appSettings.getServerName();
+		}
 
 		return saveBroadcast(broadcast, AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, getScope().getName(),
-				getDataStore(), getAppSettings());
+				getDataStore(), settingsListenerHookURL, fqdn);
 	}
 
 
 
 	public static Broadcast saveBroadcast(Broadcast broadcast, String status, String scopeName, IDataStore dataStore,
-			AppSettings settings) {
+			String settingsListenerHookURL, String fqdn) {
 
 		if (broadcast == null) {
 			broadcast = new Broadcast();
@@ -207,28 +229,25 @@ public class BroadcastRestService {
 
 		String listenerHookURL = broadcast.getListenerHookURL();
 
-		if (settings != null) {
-			if (listenerHookURL == null || listenerHookURL.length() == 0) {
-				String settingsListenerHookURL = settings.getListenerHookURL();
-				if (settingsListenerHookURL != null && settingsListenerHookURL.length() > 0) {
-					broadcast.setListenerHookURL(settingsListenerHookURL);
-				}
+		if (listenerHookURL == null || listenerHookURL.length() == 0) {
+			if (settingsListenerHookURL != null && settingsListenerHookURL.length() > 0) {
+				broadcast.setListenerHookURL(settingsListenerHookURL);
 			}
-
-			String fqdn = settings.getServerName();
-			if (fqdn == null || fqdn.length() == 0) {
-				try {
-					fqdn = InetAddress.getLocalHost().getHostAddress();
-				} catch (UnknownHostException e) {
-					e.printStackTrace();
-				}
-			}
-
-			if (fqdn != null && fqdn.length() >= 0) {
-				broadcast.setRtmpURL("rtmp://" + fqdn + "/" + scopeName + "/");
-			}
-
 		}
+
+		if (fqdn == null || fqdn.length() == 0) {
+			try {
+				fqdn = InetAddress.getLocalHost().getHostAddress();
+			} catch (UnknownHostException e) {
+				e.printStackTrace();
+			}
+		}
+
+		if (fqdn != null && fqdn.length() >= 0) {
+			broadcast.setRtmpURL("rtmp://" + fqdn + "/" + scopeName + "/");
+		}
+
+
 
 		dataStore.save(broadcast);
 		return broadcast;
@@ -596,12 +615,12 @@ public class BroadcastRestService {
 							e.printStackTrace();
 						}
 					}
-					
+
 					int number = 1;
 					for (Broadcast broadcast : broadcastList) {
 						String cmd = "ffmpeg http://"+ fqdn + ":5080/" 
 								+ getScope().getName() + "/streams/"+broadcast.getStreamId()+".m3u8";
-						
+
 						insertQueryString.append("INSERT INTO stalker_db.itv(name, number, tv_genre_id, base_ch, cmd, languages)"
 								+ " VALUES ('"+broadcast.getName()+"' , "+ number +", 2, 1, '"+ cmd +"', '');");
 
@@ -685,8 +704,8 @@ public class BroadcastRestService {
 			for (int i = 0; i < pageCount; i++) {
 				vodList.addAll(getDataStore().getVodList(i*IDataStore.MAX_ITEM_IN_ONE_LIST, IDataStore.MAX_ITEM_IN_ONE_LIST));
 			}
-			
-			
+
+
 			String fqdn = getAppSettings().getServerName();
 			if (fqdn == null || fqdn.length() == 0) {
 				try {
@@ -785,16 +804,47 @@ public class BroadcastRestService {
 	@Path("/broadcast/getBroadcastLiveStatistics")
 	@Produces(MediaType.APPLICATION_JSON)
 	public BroadcastStatistics getBroadcastStatistics(@QueryParam("id") String id) {
-		IBroadcastScope broadcastScope = getScope().getBroadcastScope(id);
-		BroadcastStatistics broadcastStatistics = null;
 
-		if (broadcastScope != null) {
-			broadcastStatistics = new BroadcastStatistics(broadcastScope.getConsumers().size(), 0, 0);
-		} else {
-			broadcastStatistics = new BroadcastStatistics(-1, -1, -1);
+		int totalRTMPViewer = -1;
+		int totalWebRTCViewer = -1;
+		if (id != null) 
+		{
+			IBroadcastScope broadcastScope = getScope().getBroadcastScope(id);
+
+			if (broadcastScope != null)	{
+				totalRTMPViewer = broadcastScope.getConsumers().size();
+			}
+
+			IWebRTCAdaptor webRTCAdaptor = getWebRTCAdaptor();
+
+			if (webRTCAdaptor != null) {
+				totalWebRTCViewer = webRTCAdaptor.getNumberOfViewers(id);
+			}
 		}
-		return broadcastStatistics;
+
+		return new BroadcastStatistics(totalRTMPViewer, -1, totalWebRTCViewer);
 	}
+
+
+	@GET
+	@Path("/broadcast/getWebRTCClientStats/{stream_id}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public List<WebRTCClientStats> getWebRTCClientStats(@PathParam("stream_id") String streamId) {
+		IWebRTCAdaptor webRTCAdaptor = getWebRTCAdaptor();
+		if (webRTCAdaptor != null) {
+			return webRTCAdaptor.getWebRTCClientStats(streamId);
+		}
+		return null;
+	}
+
+	private IWebRTCAdaptor getWebRTCAdaptor() {
+		IWebRTCAdaptor adaptor = null;
+		if (getAppContext().containsBean(IWebRTCAdaptor.BEAN_NAME)) {
+			adaptor = (IWebRTCAdaptor) getAppContext().getBean(IWebRTCAdaptor.BEAN_NAME);
+		}
+		return adaptor;
+	}
+
 
 	/**
 	 * Deletes vod file in the file system
@@ -935,16 +985,16 @@ public class BroadcastRestService {
 
 				long fileSize = savedFile.length();
 				long unixTime = System.currentTimeMillis();
-				
+
 				String path=savedFile.getPath();
-				
+
 				String[] subDirs = path.split(Pattern.quote(File.separator));
-				
+
 				int pathLength=Integer.valueOf(subDirs.length);
-				
+
 				String relativePath=subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
-				
-				
+
+
 
 				Vod newVod = new Vod(fileName, "vodFile", relativePath, fileName, unixTime, 0, fileSize,
 						Vod.UPLOADED_VOD);
@@ -1049,7 +1099,7 @@ public class BroadcastRestService {
 			String clientSecret = getAppSettings().getFacebookClientSecret();
 
 			videoServiceEndpoint = getApplication().getEndpointService(AntMediaApplicationAdapter.FACEBOOK_ENDPOINT_CLASS, null, clientId, clientSecret);
-			
+
 			if (videoServiceEndpoint != null) 
 			{
 				if (clientId == null || clientSecret == null || 
@@ -1066,7 +1116,7 @@ public class BroadcastRestService {
 			String clientSecret = getAppSettings().getYoutubeClientSecret();
 
 			videoServiceEndpoint = getApplication().getEndpointService(AntMediaApplicationAdapter.YOUTUBE_ENDPOINT_CLASS, null, clientId, clientSecret);
-			
+
 			if (videoServiceEndpoint != null) 
 			{
 				if (clientId == null || clientSecret == null || 
@@ -1091,7 +1141,7 @@ public class BroadcastRestService {
 		}
 
 		try {
-			
+
 			if (missingClientIdAndSecret) {
 				errorId = ERROR_SOCIAL_ENDPOINT_UNDEFINED_CLIENT_ID;
 				message = "Please enter service client id and client secret in app configuration";
@@ -1316,13 +1366,13 @@ public class BroadcastRestService {
 	}
 
 	@Nullable
-	private ApplicationContext getAppContext() {
-		if (servletContext != null) {
+	private ApplicationContext getAppContext() 
+	{
+		if (appCtx == null && servletContext != null) {
 			appCtx = (ApplicationContext) servletContext
 					.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
 
 		}
-
 		return appCtx;
 	}
 
@@ -1343,7 +1393,7 @@ public class BroadcastRestService {
 		}
 		return app;
 	}
-	
+
 	/**
 	 * this is for testing
 	 * @param app

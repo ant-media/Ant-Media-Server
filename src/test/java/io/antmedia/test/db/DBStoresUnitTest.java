@@ -463,9 +463,7 @@ public class DBStoresUnitTest {
 
 			dataStore.save(broadcast3);
 
-			result=dataStore.updateSourceQuality(broadcast3.getStreamId(), "good");
-
-
+			result=dataStore.updateSourceQualityParameters(broadcast3.getStreamId(), "good", 0, 0);
 
 			assertTrue(result);
 
