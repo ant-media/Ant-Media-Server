@@ -179,19 +179,6 @@ public class MapDBStore implements IDataStore {
 		return result;
 	}
 
-	@Override
-	public boolean updatePublish(String id, boolean publish) {
-		String jsonString = map.get(id);
-		boolean result = false;
-		if (jsonString != null) {
-			Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
-			broadcast.setPublish(publish);
-			map.replace(id, gson.toJson(broadcast));
-			db.commit();
-			result = true;
-		}
-		return result;
-	}
 
 	@Override
 	public boolean addEndpoint(String id, Endpoint endpoint) {
@@ -571,28 +558,6 @@ public class MapDBStore implements IDataStore {
 		return result;
 	}
 
-	/**
-	 * Delete camera from camera store
-	 * 
-	 * @returns true if stream exists, otherwise return false
-	 */
-	@Override
-	public boolean deleteStream(String id) {
-		boolean result = false;
-		try {
-
-			if (map.containsKey(id)) {
-				logger.warn("inside of deleteStream");
-				map.remove(id);
-				db.commit();
-				result = true;
-			}
-
-		} catch (Exception e) {
-			result = false;
-		}
-		return result;
-	}
 
 
 	@Override

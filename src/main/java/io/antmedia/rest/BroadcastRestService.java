@@ -349,6 +349,8 @@ public class BroadcastRestService {
 	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
 	 * 
 	 */
+	
+	/*
 	@POST
 	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	@Path("/broadcast/updatePublishStatus")
@@ -365,6 +367,8 @@ public class BroadcastRestService {
 
 		return new Result(success, message);
 	}
+	
+	/*
 
 	/**
 	 * Revoke authorization from a social network account that is authorized
@@ -996,7 +1000,7 @@ public class BroadcastRestService {
 				if (broacast.getType().equals("ipCamera")||broacast.getType().equals("streamSource")) {
 
 					getApplication().stopStreaming(broacast);
-					success = getDataStore().deleteStream(id);
+					success = getDataStore().delete(id);
 					message = "streamSource is deleted";
 					logger.info("streamSource is deleted");
 

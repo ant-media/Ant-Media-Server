@@ -59,7 +59,7 @@ public class DBStoresUnitTest {
 	public void testMapDBStore() {
 
 		IDataStore dataStore = new MapDBStore("testdb");
-		testBugAddIPCameraAndGet(dataStore);
+		testBugGetExternalStreamsList(dataStore);
 		testGetPagination(dataStore);
 		testNullCheck(dataStore);
 		testSimpleOperations(dataStore);
@@ -68,8 +68,10 @@ public class DBStoresUnitTest {
 		testStreamWithId(dataStore);
 		testFilterSearchOperations(dataStore);
 		testAddSocialEndpointCredentials(dataStore);
-		testVoDFunction(dataStore);
+		testVoDFunctions(dataStore);
 		testSaveStreamInDirectory(dataStore);
+		testEditCameraInfo(dataStore);
+
 
 	}
 
@@ -77,7 +79,7 @@ public class DBStoresUnitTest {
 	public void testMemoryDataStore() {
 
 		IDataStore dataStore = new InMemoryDataStore("testdb");
-		testBugAddIPCameraAndGet(dataStore);
+		testBugGetExternalStreamsList(dataStore);
 		testGetPagination(dataStore);
 		testNullCheck(dataStore);
 		testSimpleOperations(dataStore);
@@ -86,10 +88,10 @@ public class DBStoresUnitTest {
 		testStreamWithId(dataStore);
 		testFilterSearchOperations(dataStore);
 		testAddSocialEndpointCredentials(dataStore);
-		testVoDFunction(dataStore);
+		testVoDFunctions(dataStore);
 		testSaveStreamInDirectory(dataStore);
+		testEditCameraInfo(dataStore);
 		
-
 	}
 
 	@Test
@@ -109,7 +111,7 @@ public class DBStoresUnitTest {
 		store.delete(deleteVodQuery);
 		
 
-		testBugAddIPCameraAndGet(dataStore);
+		testBugGetExternalStreamsList(dataStore);
 		testGetPagination(dataStore);
 		testNullCheck(dataStore);
 		testSimpleOperations(dataStore);
@@ -118,15 +120,15 @@ public class DBStoresUnitTest {
 		testStreamWithId(dataStore);
 		testFilterSearchOperations(dataStore);
 		testAddSocialEndpointCredentials(dataStore);
-		testVoDFunction(dataStore);
+		testVoDFunctions(dataStore);
 		testSaveStreamInDirectory(dataStore);
-		
+		testEditCameraInfo(dataStore);
 
 	}
 	
 	
 	
-	public void testBugAddIPCameraAndGet(IDataStore datastore) {
+	public void testBugGetExternalStreamsList(IDataStore datastore) {
 		
 		
 		// add ip camera 
@@ -146,7 +148,6 @@ public class DBStoresUnitTest {
 		assertEquals(2, streamsList.size());
 		
 		//check that there are two streams and values are same as added above
-		
 		
 	}
 	
@@ -254,12 +255,74 @@ public class DBStoresUnitTest {
 		}
 	}
 	
-	public void testVoDFunction(IDataStore datastore) {
-		//fail("Write test codes about saveVod, AddVod, fetchVoDList, AddUserVod, delete vod ");
+	public void testVoDFunctions(IDataStore datastore) {
+		//fail("Write test codes about saveVod, AddVod, AddUserVod, delete vod ");
+		
+		//create a vod
+		
+		Vod streamVod=new Vod("streamName", "streamId", "filePath", "vodName", 111, 111, 111, Vod.STREAM_VOD);
+		
+		//save stream vod
+		
+		datastore.addVod(streamVod);
+		
+		//check vod number
+		
+		assertEquals(1, datastore.getTotalVodNumber());
+		
+		//add uservod
+		
+		Vod userVod=new Vod("streamName", "streamId", "filePath", "vodName", 111, 111, 111, Vod.USER_VOD);
+		
+		datastore.addUserVod(userVod);
+		
+		//check vod number
+		
+		assertEquals(2, datastore.getTotalVodNumber());
+		
+		//delete streamVod
+		datastore.deleteVod(streamVod.getVodId());
+		
+		assertEquals(1, datastore.getTotalVodNumber());
+		
+		//delete userVod
+		datastore.deleteVod(userVod.getVodId());
+		
+		//check vod number
+		assertEquals(0, datastore.getTotalVodNumber());
+		
 	}
 	
 	public void testEditCameraInfo(IDataStore datastore) {
-		fail("Write test codes about getCamera, getExternalStreamList ");
+		
+		//fail("Write test codes about getCamera, getExternalStreamList ");
+		
+		//create an IP Camera
+		
+		Broadcast camera= new Broadcast("old_name", "0.0.0.0", "username", "password", "rtspUrl", AntMediaApplicationAdapter.IP_CAMERA);	
+		
+		//save this cam
+		
+		datastore.save(camera);
+		
+		//check it is saved
+		assertNotNull(camera.getStreamId());
+		
+		//change cam info
+		
+		camera.setName("new_name");
+		camera.setIpAddr("1.1.1.1");
+	
+		datastore.editCameraInfo(camera);
+		
+		//check whether is changed or not
+		
+		assertEquals("1.1.1.1", camera.getIpAddr());
+		assertEquals("new_name", camera.getName());
+		
+		
+		datastore.delete(camera.getStreamId());
+		
 	}
 
 	public void testGetPagination(IDataStore dataStore) {
