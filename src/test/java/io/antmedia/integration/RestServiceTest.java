@@ -743,28 +743,6 @@ public class RestServiceTest {
 
 
 
-	public Result updatePublish(String broadcastId, boolean publish) throws Exception {
-		CloseableHttpClient httpclient = HttpClients.createDefault();
-
-		HttpPost httppost = new HttpPost(ROOT_SERVICE_URL + "/broadcast/updatePublishStatus");
-		List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
-		nameValuePairs.add(new BasicNameValuePair("Content-Type", "application/x-www-form-urlencoded;"));
-		nameValuePairs.add(new BasicNameValuePair("id", broadcastId));
-		nameValuePairs.add(new BasicNameValuePair("publish", String.valueOf(publish)));
-		httppost.setEntity(new UrlEncodedFormEntity(nameValuePairs, StandardCharsets.UTF_8));
-
-		CloseableHttpResponse response = httpclient.execute(httppost);
-
-		StringBuffer result = readResponse(response);
-
-		if (response.getStatusLine().getStatusCode() != 200) {
-			throw new Exception(result.toString());
-		}
-		Gson gson = new Gson();
-		System.out.println("result string: " + result.toString());
-		Result tmp = gson.fromJson(result.toString(), Result.class);
-		return tmp;
-	}
 
 	@Test
 	public void testUpdate() {
@@ -789,10 +767,6 @@ public class RestServiceTest {
 			assertEquals(broadcast.getDescription(), description);
 			assertTrue(broadcast.isPublish());
 
-			// update publish info
-			boolean publish = false;
-			result = updatePublish(broadcast.getStreamId().toString(), publish);
-			assertTrue(result.isSuccess());
 
 			// get broacdast
 			broadcast = getBroadcast(broadcast.getStreamId().toString());
@@ -800,7 +774,7 @@ public class RestServiceTest {
 			// check publish info
 			assertEquals(broadcast.getName(), name);
 			assertEquals(broadcast.getDescription(), description);
-			assertEquals(broadcast.isPublish(), publish);
+
 
 			List<SocialEndpointCredentials> socialEndpointServices = getSocialEndpointServices();
 			assertTrue(socialEndpointServices.size() > 0);

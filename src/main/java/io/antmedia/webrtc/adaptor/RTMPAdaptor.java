@@ -126,6 +126,7 @@ public class RTMPAdaptor extends Adaptor {
 					videoEncoderExecutor.awaitTermination(10, TimeUnit.SECONDS);
 				} catch (InterruptedException e1) {
 					e1.printStackTrace();
+					Thread.currentThread().interrupt();
 				}
 				try {
 					if (peerConnection != null) {

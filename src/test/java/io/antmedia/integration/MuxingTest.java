@@ -157,6 +157,7 @@ public class MuxingTest {
 			assertTrue(testResult);
 			
 			//let the server update stats
+			//wait a little to let the server finish state after rtsp fetching
 			Thread.sleep(2000);
 
 		} catch (Exception e) {

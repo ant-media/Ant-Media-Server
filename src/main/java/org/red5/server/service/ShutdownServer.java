@@ -246,6 +246,8 @@ public class ShutdownServer implements ApplicationContextAware, InitializingBean
             }
         } catch (InterruptedException e) {
             log.error("Exception attempting to close app contexts", e);
+			e.printStackTrace();
+			Thread.currentThread().interrupt();
         }
         // exit
         System.exit(0);

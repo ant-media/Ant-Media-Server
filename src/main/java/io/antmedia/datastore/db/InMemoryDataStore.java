@@ -106,17 +106,6 @@ public class InMemoryDataStore implements IDataStore {
 		return result;
 	}
 
-	@Override
-	public boolean updatePublish(String id, boolean publish) {
-		Broadcast broadcast = broadcastMap.get(id);
-		boolean result = false;
-		if (broadcast != null) {
-			broadcast.setPublish(publish);
-			broadcastMap.put(id, broadcast);
-			result = true;
-		}
-		return result;
-	}
 
 	@Override
 	public boolean addEndpoint(String id, Endpoint endpoint) {
@@ -227,22 +216,7 @@ public class InMemoryDataStore implements IDataStore {
 		return result;
 	}
 
-	@Override
-	public boolean deleteStream(String id) {
-		boolean result = false;
-		try {
 
-			if (broadcastMap.containsKey(id)) {
-				logger.warn("inside of deleteStream");
-				broadcastMap.remove(id);
-				result = true;
-			}
-
-		} catch (Exception e) {
-			result = false;
-		}
-		return result;
-	}
 
 
 	@Override
@@ -421,7 +395,7 @@ public class InMemoryDataStore implements IDataStore {
 
 					String[] subDirs = filePath.split(Pattern.quote(File.separator));
 
-					int pathLength=Integer.valueOf(subDirs.length);
+					Integer pathLength=Integer.valueOf(subDirs.length);
 
 					String relativePath=subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
 
