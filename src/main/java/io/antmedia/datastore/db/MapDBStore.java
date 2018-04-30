@@ -612,7 +612,7 @@ public class MapDBStore implements IDataStore {
 
 		for (int i = 0; i < broadcastArray.length; i++) {
 
-			if (broadcastArray[i].getType().equals(AntMediaApplicationAdapter.IP_CAMERA) || broadcastArray[i].getType().equals(AntMediaApplicationAdapter.LIVE_STREAM)) {
+			if (broadcastArray[i].getType().equals(AntMediaApplicationAdapter.IP_CAMERA) || broadcastArray[i].getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE)) {
 
 				streamsList.add(gson.fromJson((String) objectArray[i], Broadcast.class));
 
