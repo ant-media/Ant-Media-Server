@@ -179,19 +179,6 @@ public class MapDBStore implements IDataStore {
 		return result;
 	}
 
-	@Override
-	public boolean updatePublish(String id, boolean publish) {
-		String jsonString = map.get(id);
-		boolean result = false;
-		if (jsonString != null) {
-			Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
-			broadcast.setPublish(publish);
-			map.replace(id, gson.toJson(broadcast));
-			db.commit();
-			result = true;
-		}
-		return result;
-	}
 
 	@Override
 	public boolean addEndpoint(String id, Endpoint endpoint) {
@@ -571,28 +558,6 @@ public class MapDBStore implements IDataStore {
 		return result;
 	}
 
-	/**
-	 * Delete camera from camera store
-	 * 
-	 * @returns true if stream exists, otherwise return false
-	 */
-	@Override
-	public boolean deleteStream(String id) {
-		boolean result = false;
-		try {
-
-			if (map.containsKey(id)) {
-				logger.warn("inside of deleteStream");
-				map.remove(id);
-				db.commit();
-				result = true;
-			}
-
-		} catch (Exception e) {
-			result = false;
-		}
-		return result;
-	}
 
 
 	@Override
@@ -612,7 +577,7 @@ public class MapDBStore implements IDataStore {
 
 		for (int i = 0; i < broadcastArray.length; i++) {
 
-			if (broadcastArray[i].getType().equals(AntMediaApplicationAdapter.IP_CAMERA) || broadcastArray[i].getType().equals(AntMediaApplicationAdapter.LIVE_STREAM)) {
+			if (broadcastArray[i].getType().equals(AntMediaApplicationAdapter.IP_CAMERA) || broadcastArray[i].getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE)) {
 
 				streamsList.add(gson.fromJson((String) objectArray[i], Broadcast.class));
 
@@ -714,7 +679,7 @@ public class MapDBStore implements IDataStore {
 					
 					String[] subDirs = path.split(Pattern.quote(File.separator));
 					
-					int pathLength=Integer.valueOf(subDirs.length);
+					Integer pathLength=Integer.valueOf(subDirs.length);
 					
 					String relativePath=subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
 

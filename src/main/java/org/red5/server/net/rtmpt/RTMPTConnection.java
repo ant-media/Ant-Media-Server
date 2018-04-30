@@ -122,6 +122,8 @@ public class RTMPTConnection extends BaseRTMPTConnection {
                     log.debug("Going to sleep to allow pending queue a chance to clear");
                     Thread.sleep(256L);
                 } catch (InterruptedException e) {
+					e.printStackTrace();
+					Thread.currentThread().interrupt();
                 }
             }
             // now close

@@ -179,6 +179,7 @@ public class StreamsSourceRestService {
 				Thread.sleep(2000);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
+				Thread.currentThread().interrupt();
 			}
 			onvif = new OnvifCamera();
 			onvif.connect(camera.getIpAddr(), camera.getUsername(), camera.getPassword());
@@ -209,6 +210,7 @@ public class StreamsSourceRestService {
 			Thread.sleep(1000);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
+			Thread.currentThread().interrupt();
 		}
 		getInstance().startStreaming(camera);
 		return new Result(result);

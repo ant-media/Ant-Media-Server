@@ -517,6 +517,7 @@ public class WebRTCClient implements IWebRTCClient, Observer, SdpObserver {
 					videoStreamExecutor.awaitTermination(10, TimeUnit.SECONDS);
 				} catch (InterruptedException e) {
 					e.printStackTrace();
+					Thread.currentThread().interrupt();
 				}
 
 

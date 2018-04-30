@@ -349,6 +349,8 @@ public class BroadcastRestService {
 	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
 	 * 
 	 */
+	
+	/*
 	@POST
 	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	@Path("/broadcast/updatePublishStatus")
@@ -365,6 +367,8 @@ public class BroadcastRestService {
 
 		return new Result(success, message);
 	}
+	
+	/*
 
 	/**
 	 * Revoke authorization from a social network account that is authorized
@@ -657,6 +661,7 @@ public class BroadcastRestService {
 			e.printStackTrace();
 		} catch (InterruptedException e) {
 			e.printStackTrace();
+			Thread.currentThread().interrupt();
 		} 
 		return result;
 	}
@@ -940,7 +945,7 @@ public class BroadcastRestService {
 				
 				String[] subDirs = path.split(Pattern.quote(File.separator));
 				
-				int pathLength=Integer.valueOf(subDirs.length);
+				Integer pathLength=Integer.valueOf(subDirs.length);
 				
 				String relativePath=subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
 				
@@ -995,7 +1000,7 @@ public class BroadcastRestService {
 				if (broacast.getType().equals("ipCamera")||broacast.getType().equals("streamSource")) {
 
 					getApplication().stopStreaming(broacast);
-					success = getDataStore().deleteStream(id);
+					success = getDataStore().delete(id);
 					message = "streamSource is deleted";
 					logger.info("streamSource is deleted");
 

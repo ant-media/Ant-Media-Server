@@ -183,26 +183,7 @@ public class MongoStore implements IDataStore {
 		return false;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see io.antmedia.datastore.db.IDataStore#updatePublish(java.lang.String,
-	 * boolean)
-	 */
-	@Override
-	public boolean updatePublish(String id, boolean publish) {
-		try {
-			Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("dbId").equal(new ObjectId(id));
 
-			UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set("publish", publish);
-
-			UpdateResults update = datastore.update(query, ops);
-			return update.getUpdatedCount() == 1;
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		return false;
-	}
 
 	/*
 	 * (non-Javadoc)
@@ -315,19 +296,6 @@ public class MongoStore implements IDataStore {
 
 	}
 
-	@Override
-	public boolean deleteStream(String id) {
-
-		try {
-			Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(id);
-			WriteResult delete = datastore.delete(query);
-			return delete.getN() == 1;
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		return false;
-
-	}
 
 	@Override
 	public List<Broadcast> getExternalStreamsList() {
@@ -445,7 +413,7 @@ public class MongoStore implements IDataStore {
 
 					String[] subDirs = filePath.split(Pattern.quote(File.separator));
 
-					int pathLength=Integer.valueOf(subDirs.length);
+					Integer pathLength=Integer.valueOf(subDirs.length);
 
 					String relativePath=subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
 
