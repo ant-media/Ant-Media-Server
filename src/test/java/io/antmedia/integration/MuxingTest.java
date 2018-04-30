@@ -145,6 +145,9 @@ public class MuxingTest {
 			// should not be shutdown
 			testResult = testFile("rtsp://" + SERVER_ADDR + ":5554/LiveApp/" + streamName + ".mp4");
 			assertTrue(testResult);
+			
+			//wait a little to let the server finish state after rtsp fetching
+			Thread.sleep(2000);
 
 		} catch (Exception e) {
 			fail(e.getMessage());

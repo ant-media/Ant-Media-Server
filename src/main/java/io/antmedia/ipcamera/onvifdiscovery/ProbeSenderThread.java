@@ -37,6 +37,7 @@ public class ProbeSenderThread extends Thread {
 				serverStarted.await(1000, TimeUnit.MILLISECONDS);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
+				Thread.currentThread().interrupt();
 			}
 			socket.send(new DatagramPacket(probe.getBytes(), probe.length(), address, DeviceDiscovery.WS_DISCOVERY_PORT));
 		} catch (Exception e) {
@@ -46,6 +47,7 @@ public class ProbeSenderThread extends Thread {
 			serverFinished.await(DeviceDiscovery.WS_DISCOVERY_TIMEOUT, TimeUnit.MILLISECONDS);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
+			Thread.currentThread().interrupt();
 		}
 	}
 

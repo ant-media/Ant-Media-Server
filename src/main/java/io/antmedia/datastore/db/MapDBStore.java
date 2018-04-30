@@ -714,7 +714,7 @@ public class MapDBStore implements IDataStore {
 					
 					String[] subDirs = path.split(Pattern.quote(File.separator));
 					
-					int pathLength=Integer.valueOf(subDirs.length);
+					Integer pathLength=Integer.valueOf(subDirs.length);
 					
 					String relativePath=subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
 
