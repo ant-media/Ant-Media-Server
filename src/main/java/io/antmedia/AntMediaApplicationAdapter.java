@@ -399,30 +399,20 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 			if (!name.matches(regularExp) && (index = name.lastIndexOf(".mp4")) != -1) {
 				final String baseName = name.substring(0, index);
-				dataStore.updateDuration(streamId, duration);
+		//		dataStore.updateDuration(streamId, duration);
 
 				Broadcast broadcast = dataStore.get(streamId);
-
-				if (broadcast != null) {
-					streamName = broadcast.getName();
-				} 
-				else {
-					streamName = file.getName();
-				}
 
 				
 				String[] subDirs = filePath.split(Pattern.quote(File.separator));
 				
-				Integer pathLength=Integer.valueOf(subDirs.length);
+				Integer pathLength = Integer.valueOf(subDirs.length);
 				
-				String relativePath=subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
-				
-				
-				Vod newVod = new Vod(streamName, streamId, relativePath, name, unixTime, duration, fileSize, Vod.STREAM_VOD);
+				String relativePath = subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
 
-				getDataStore().addVod(newVod);
 
 				if (broadcast != null) {
+					streamName = broadcast.getName();
 					final String listenerHookURL = broadcast.getListenerHookURL();
 
 					if (listenerHookURL != null && listenerHookURL.length() > 0) {
@@ -435,6 +425,15 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 							}
 						});
 					}
+				}
+				else {
+					streamName = file.getName();
+				}
+				
+				Vod newVod = new Vod(streamName, streamId, relativePath, name, unixTime, duration, fileSize, Vod.STREAM_VOD);
+
+				if (!getDataStore().addVod(newVod)) {
+					logger.warn("Stream vod with stream id {} cannot be added to data store", streamId);
 				}
 
 			}
