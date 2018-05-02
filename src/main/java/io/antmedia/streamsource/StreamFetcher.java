@@ -336,9 +336,6 @@ public class StreamFetcher {
 					setCameraError(result);
 					
 				}
-
-				
-				setThreadActive(false);
 				
 				logger.info("Leaving StreamFetcher Thread");
 
@@ -346,6 +343,9 @@ public class StreamFetcher {
 				logger.info("---Exception in thread---");
 				e.printStackTrace();
 				exceptionInThread  = true;
+			}
+			finally {
+				setThreadActive(false);
 			}
 		}
 
