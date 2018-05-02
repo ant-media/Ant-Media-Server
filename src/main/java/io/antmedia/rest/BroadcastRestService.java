@@ -801,6 +801,8 @@ public class BroadcastRestService {
 	 * Get the broadcast live statistics total rtmp watcher count, total hls
 	 * watcher count, total webrtc watcher count
 	 * 
+	 * Return -1 for the values that is n/a
+	 * 
 	 * @param streamId
 	 * @return {@link BroadcastStatistics} if broadcast exists null or 204(no
 	 *         content) if no broacdast exists with that id

@@ -255,6 +255,12 @@ public class MuxingTest {
 			fail(e.getMessage());
 			e.printStackTrace();
 		}
+		//wait a little more to let server update statistics
+		try {
+			Thread.sleep(2000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
 		
 		RestServiceTest restService = new RestServiceTest();
 
