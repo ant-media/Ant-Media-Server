@@ -146,9 +146,6 @@ public class AppFunctionalTest {
 		RestServiceTest restService = new RestServiceTest();
 
 		LiveStatistics liveStatistics = restService.callGetLiveStatistics();
-		assertEquals(liveStatistics.totalHLSWatchersCount, 0);
-		assertEquals(liveStatistics.totalRTMPWatchersCount, 0);
-		assertEquals(liveStatistics.totalWebRTCWatchersCount, 0);
 		assertEquals(liveStatistics.totalLiveStreamCount, 0);
 
 	}
@@ -163,9 +160,6 @@ public class AppFunctionalTest {
 			RestServiceTest restService = new RestServiceTest();
 
 			LiveStatistics liveStatistics = restService.callGetLiveStatistics();
-			assertEquals(liveStatistics.totalHLSWatchersCount, 0);
-			assertEquals(liveStatistics.totalRTMPWatchersCount, 0);
-			assertEquals(liveStatistics.totalWebRTCWatchersCount, 0);
 			assertEquals(liveStatistics.totalLiveStreamCount, 0);
 
 			// publish live stream to the server
@@ -177,9 +171,6 @@ public class AppFunctionalTest {
 			Thread.sleep(3000);
 
 			liveStatistics = restService.callGetLiveStatistics();
-			assertEquals(liveStatistics.totalHLSWatchersCount, 0);
-			assertEquals(liveStatistics.totalRTMPWatchersCount, 0);
-			assertEquals(liveStatistics.totalWebRTCWatchersCount, 0);
 			assertEquals(liveStatistics.totalLiveStreamCount, 1);
 
 			BroadcastStatistics broadcastStatistics = restService.callGetBroadcastStatistics(streamId);
@@ -204,9 +195,6 @@ public class AppFunctionalTest {
 			assertEquals(broadcastStatistics.totalWebRTCWatchersCount, -1);
 
 			liveStatistics = restService.callGetLiveStatistics();
-			assertEquals(liveStatistics.totalHLSWatchersCount, 0);
-			assertEquals(liveStatistics.totalRTMPWatchersCount, 0);
-			assertEquals(liveStatistics.totalWebRTCWatchersCount, 0);
 			assertEquals(liveStatistics.totalLiveStreamCount, 0);
 
 		} catch (Exception e) {
@@ -282,9 +270,6 @@ public class AppFunctionalTest {
 		RestServiceTest restService = new RestServiceTest();
 
 		LiveStatistics liveStatistics = restService.callGetLiveStatistics();
-		assertEquals(liveStatistics.totalHLSWatchersCount, 0);
-		assertEquals(liveStatistics.totalRTMPWatchersCount, 0);
-		assertEquals(liveStatistics.totalWebRTCWatchersCount, 0);
 		assertEquals(liveStatistics.totalLiveStreamCount, 0);
 	}
 

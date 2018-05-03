@@ -251,6 +251,20 @@ public class MapDBStore implements IDataStore {
 	public long getBroadcastCount() {
 		return map.getSize();
 	}
+	
+	@Override
+	public long getActiveBroadcastCount() {
+		Collection<String> values = map.values();
+		int activeBroadcastCount = 0;
+		for (String broadcastString : values) {
+			Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
+			String status = broadcast.getStatus();
+			if (status != null && status.equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
+				activeBroadcastCount++;
+			}
+		}
+		return activeBroadcastCount;
+	}
 
 	@Override
 	public boolean delete(String id) {
@@ -374,79 +388,6 @@ public class MapDBStore implements IDataStore {
 
 	}
 
-	/*
-	@Override
-	public List<Vod> filterVoDList(int offset, int size, String keyword, long startdate, long endDate) {
-
-		List<Vod> list = new ArrayList<Vod>();
-		int t = 0;
-		int itemCount = 0;
-		if (size > 50) {
-			size = 50;
-		}
-		if (offset < 0) {
-			offset = 0;
-		}
-
-		Object[] objectArray = vodMap.getValues().toArray();
-
-		Vod[] vodArray = new Vod[objectArray.length];
-
-		List<Vod> filterList = new ArrayList<Vod>();
-
-		for (int i = 0; i < objectArray.length; i++) {
-
-			vodArray[i] = gson.fromJson((String) objectArray[i], Vod.class);
-
-		}
-
-		if (keyword != null && keyword.length() > 0) {
-
-			for (int i = 0; i < vodArray.length; i++) {
-
-				if (vodArray[i].getStreamName().contains(keyword) && startdate < vodArray[i].getCreationDate()
-						&& endDate > vodArray[i].getCreationDate()) {
-
-					filterList.add(gson.fromJson((String) objectArray[i], Vod.class));
-
-				}
-
-			}
-
-		} else if (keyword == null || keyword.length() < 0) {
-
-			for (int i = 0; i < vodArray.length; i++) {
-
-				if (startdate < vodArray[i].getCreationDate() && endDate > vodArray[i].getCreationDate()) {
-
-					filterList.add(gson.fromJson((String) objectArray[i], Vod.class));
-
-				}
-
-			}
-
-		}
-
-		for (Vod broadcast : filterList) {
-			if (t < offset) {
-				t++;
-				continue;
-			}
-			list.add(broadcast);
-			itemCount++;
-
-			if (itemCount >= size) {
-				break;
-			}
-
-		}
-
-		return list;
-
-	}
-
-	 */
-
 	@Override
 	public boolean addVod(Vod vod) {
 		String vodId = null;
@@ -495,39 +436,6 @@ public class MapDBStore implements IDataStore {
 	}
 
 
-	/*
-	 * IP Camera Operations
-	 */
-
-
-
-
-	/*
-	 * Save method is used for this one.
-	@Override
-	public boolean addCamera(Broadcast camera) {
-		boolean result = false;
-		String streamId = null;
-
-		// StreamID Address is primary key
-
-		if (camera != null) {
-			try {
-				streamId = RandomStringUtils.randomNumeric(24);
-				camera.setStreamId(streamId);
-
-				map.put(streamId, gson.toJson(camera));
-				db.commit();
-				result = true;
-			} catch (Exception e) {
-				e.printStackTrace();
-				streamId = null;
-			}
-		}
-
-		return result;
-	}
-	 */
 	@Override
 	public boolean editCameraInfo(Broadcast camera) {
 		boolean result = false;
@@ -602,40 +510,12 @@ public class MapDBStore implements IDataStore {
 
 		return result;
 	}
-	/*
-	@Override
-	public boolean resetBroadcastStatus() {
 
-		Object[] objectArray = map.getValues().toArray();
-
-		Broadcast[] broadcastArray = new Broadcast[objectArray.length];
-
-		for (int i = 0; i < objectArray.length; i++) {
-
-			broadcastArray[i] = gson.fromJson((String) objectArray[i], Broadcast.class);
-
-		}
-
-		for (int i = 0; i < broadcastArray.length; i++) {
-			if (broadcastArray[i].getStatus().equals("broadcasting")) {
-				broadcastArray[i].setStatus("created");
-				map.replace(broadcastArray[i].getStreamId(), gson.toJson(broadcastArray[i]));
-			}
-
-		}
-
-		return false;
-	}
-
-	 */
 
 	@Override
 	public long getTotalVodNumber() {
-
 		return getVodMap().size();
 	}
-
-
 
 	@Override
 	public int fetchUserVodList(File userfile) {
@@ -794,8 +674,9 @@ public class MapDBStore implements IDataStore {
 
 	@Override
 	public long getTotalBroadcastNumber() {
-
 		return getMap().size();
 	}
+
+
 
 }

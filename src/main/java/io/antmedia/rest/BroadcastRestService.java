@@ -119,15 +119,12 @@ public class BroadcastRestService {
 		}
 	}
 
-	public static class LiveStatistics extends BroadcastStatistics {
+	public static class LiveStatistics  {
 
-		public final int totalLiveStreamCount;
+		public final long totalLiveStreamCount;
 
-		public LiveStatistics(int totalLiveStreamCount, int totalRTMPWatchersCount, int totalHLSWatchersCount,
-				int totalWebRTCWatchersCount) {
-			super(totalRTMPWatchersCount, totalHLSWatchersCount, totalWebRTCWatchersCount);
+		public LiveStatistics(long totalLiveStreamCount) {
 			this.totalLiveStreamCount = totalLiveStreamCount;
-
 		}
 
 	}
@@ -789,13 +786,10 @@ public class BroadcastRestService {
 	@Path("/broadcast/getAppLiveStatistics")
 	@Produces(MediaType.APPLICATION_JSON)
 	public LiveStatistics getAppLiveStatistics() {
-		Set<String> basicBroadcastScopes = getScope().getBasicScopeNames(ScopeType.BROADCAST);
-
-		int totalLiveStreamCount = getScope().getBasicScopeNames(ScopeType.BROADCAST).size();
-		int totalRTMPWatcherCount = getScope().getStatistics().getActiveClients() - totalLiveStreamCount;
-
-		return new LiveStatistics(totalLiveStreamCount, totalRTMPWatcherCount, 0, 0);
+		long activeBroadcastCount = getDataStore().getActiveBroadcastCount();
+		return new LiveStatistics(activeBroadcastCount);
 	}
+	
 
 	/**
 	 * Get the broadcast live statistics total rtmp watcher count, total hls

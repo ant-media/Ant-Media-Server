@@ -11,6 +11,7 @@ import static org.junit.Assert.fail;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -71,9 +72,12 @@ public class DBStoresUnitTest {
 		testVoDFunctions(dataStore);
 		testSaveStreamInDirectory(dataStore);
 		testEditCameraInfo(dataStore);
+		testGetActiveBroadcastCount(dataStore);
 
 
 	}
+
+	
 
 	@Test
 	public void testMemoryDataStore() {
@@ -91,6 +95,7 @@ public class DBStoresUnitTest {
 		testVoDFunctions(dataStore);
 		testSaveStreamInDirectory(dataStore);
 		testEditCameraInfo(dataStore);
+		testGetActiveBroadcastCount(dataStore);
 		
 	}
 
@@ -123,9 +128,97 @@ public class DBStoresUnitTest {
 		testVoDFunctions(dataStore);
 		testSaveStreamInDirectory(dataStore);
 		testEditCameraInfo(dataStore);
+		testGetActiveBroadcastCount(dataStore);
 
 	}
 	
+	public void clear(IDataStore dataStore) 
+	{
+		long numberOfStreams = dataStore.getBroadcastCount();
+		int pageSize = 10;
+		long pageCount = numberOfStreams / pageSize + ((numberOfStreams % pageSize) > 0 ? 1 : 0);
+		int numberOfCall = 0;
+		List<Broadcast> totalBroadcastList = new ArrayList<>();
+		for (int i = 0; i < pageCount; i++) {
+			totalBroadcastList.addAll(dataStore.getBroadcastList(i * pageSize, pageSize));
+		}
+		
+		for (Broadcast broadcast : totalBroadcastList) {
+			numberOfCall++;
+			assertTrue(dataStore.delete(broadcast.getStreamId()));
+		}
+		
+		assertEquals(numberOfCall, numberOfStreams);
+		
+	}
+	
+	public void testGetActiveBroadcastCount(IDataStore dataStore) {
+
+		//save random number of streams with status created
+		//long broadcastCountInDataStore = dataStore.getBroadcastCount();
+		clear(dataStore);
+		
+		assertEquals(0, dataStore.getBroadcastCount());
+		
+		
+		long streamCount = (int)(Math.random()  * 500);
+		
+		if (streamCount < 10) {
+			streamCount = 10;
+		}
+		
+		System.out.println("Stream count to be added: " + streamCount);
+		
+		for (int i = 0; i < streamCount; i++) {
+			dataStore.save(new Broadcast(null, null));
+		}
+		
+		assertEquals(streamCount, dataStore.getBroadcastCount());
+		
+		//check that no active broadcast exist
+		assertEquals(0, dataStore.getActiveBroadcastCount());
+		
+		//change random number of streams status to broadcasting
+		long numberOfStatusChangeStreams = (int)(Math.random() * 500);
+		if (streamCount < numberOfStatusChangeStreams) {
+			numberOfStatusChangeStreams = streamCount;
+		}
+		
+		int pageSize = 10;
+		numberOfStatusChangeStreams = (numberOfStatusChangeStreams / pageSize) * pageSize; //normalize
+		long pageCount = numberOfStatusChangeStreams / pageSize;
+		int numberOfCall = 0;
+		System.out.println("Number of status change stream count: " + numberOfStatusChangeStreams + 
+				" page Count: " + pageCount);
+		for (int i = 0; i < pageCount; i++) {
+			
+			List<Broadcast> broadcastList = dataStore.getBroadcastList(i * pageSize, pageSize);
+			for (Broadcast broadcast : broadcastList) {
+				numberOfCall++;
+				assertTrue(dataStore.updateStatus(broadcast.getStreamId(), AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING));;
+			}
+			
+		}
+		
+		assertEquals(numberOfCall, numberOfStatusChangeStreams);
+		//check that active broadcast exactly the same as changed above
+		assertEquals(numberOfStatusChangeStreams, dataStore.getActiveBroadcastCount());
+		
+		//change all streams to finished
+		streamCount = dataStore.getBroadcastCount();
+		pageCount = streamCount / pageSize + ((streamCount % pageSize) > 0 ? 1 : 0);
+		for (int i = 0; i < pageCount; i++) {
+			
+			List<Broadcast> broadcastList = dataStore.getBroadcastList(i * pageSize, pageSize);
+			for (Broadcast broadcast : broadcastList) {
+				assertTrue(dataStore.updateStatus(broadcast.getStreamId(), AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED));
+			}
+			
+		}
+		
+		//check that no active broadcast
+		assertEquals(0, dataStore.getActiveBroadcastCount());
+	}
 	
 	
 	public void testBugGetExternalStreamsList(IDataStore datastore) {

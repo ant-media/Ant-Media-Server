@@ -151,6 +151,19 @@ public class InMemoryDataStore implements IDataStore {
 	}
 
 	@Override
+	public long getActiveBroadcastCount() {
+		Collection<Broadcast> values = broadcastMap.values();
+		long activeBroadcastCount = 0;
+		for (Broadcast broadcast : values) {
+			String status = broadcast.getStatus();
+			if (status != null && status.equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
+				activeBroadcastCount++;
+			}
+		}
+		return activeBroadcastCount;
+	}
+	
+	@Override
 	public boolean delete(String id) {
 		Broadcast broadcast = broadcastMap.get(id);
 		boolean result = false;
@@ -218,7 +231,6 @@ public class InMemoryDataStore implements IDataStore {
 
 
 
-
 	@Override
 	public List<Broadcast> getExternalStreamsList() {
 		Collection<Broadcast> values = broadcastMap.values();
@@ -272,7 +284,6 @@ public class InMemoryDataStore implements IDataStore {
 				}
 			}
 		}
-
 		return list;
 	}
 
@@ -330,10 +341,8 @@ public class InMemoryDataStore implements IDataStore {
 	@Override
 	public boolean deleteVod(String id) {
 		boolean result = vodMap.remove(id) != null;
-
 		return result;
 	}
-
 
 
 	public boolean removeAllEndpoints(String id) {
@@ -373,9 +382,6 @@ public class InMemoryDataStore implements IDataStore {
 				iterator.remove();
 			}
 		}
-
-
-
 
 		File[] listOfFiles = userfile.listFiles();
 
@@ -520,9 +526,9 @@ public class InMemoryDataStore implements IDataStore {
 
 	@Override
 	public long getTotalBroadcastNumber() {
-
 		return broadcastMap.size();
-
 	}
+
+
 
 }

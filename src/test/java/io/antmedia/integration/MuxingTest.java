@@ -110,9 +110,6 @@ public class MuxingTest {
 		RestServiceTest restService = new RestServiceTest();
 
 		LiveStatistics liveStatistics = restService.callGetLiveStatistics();
-		assertEquals(liveStatistics.totalHLSWatchersCount, 0);
-		assertEquals(liveStatistics.totalRTMPWatchersCount, 0);
-		assertEquals(liveStatistics.totalWebRTCWatchersCount, 0);
 		assertEquals(liveStatistics.totalLiveStreamCount, 0);
 	}
 
@@ -168,9 +165,6 @@ public class MuxingTest {
 		RestServiceTest restService = new RestServiceTest();
 
 		LiveStatistics liveStatistics = restService.callGetLiveStatistics();
-		assertEquals(liveStatistics.totalHLSWatchersCount, 0);
-		assertEquals(liveStatistics.totalRTMPWatchersCount, 0);
-		assertEquals(liveStatistics.totalWebRTCWatchersCount, 0);
 		assertEquals(liveStatistics.totalLiveStreamCount, 0);
 
 	}
@@ -206,9 +200,6 @@ public class MuxingTest {
 		RestServiceTest restService = new RestServiceTest();
 
 		LiveStatistics liveStatistics = restService.callGetLiveStatistics();
-		assertEquals(liveStatistics.totalHLSWatchersCount, 0);
-		assertEquals(liveStatistics.totalRTMPWatchersCount, 0);
-		assertEquals(liveStatistics.totalWebRTCWatchersCount, 0);
 		assertEquals(liveStatistics.totalLiveStreamCount, 0);
 
 	}
@@ -265,9 +256,6 @@ public class MuxingTest {
 		RestServiceTest restService = new RestServiceTest();
 
 		LiveStatistics liveStatistics = restService.callGetLiveStatistics();
-		assertEquals(liveStatistics.totalHLSWatchersCount, 0);
-		assertEquals(liveStatistics.totalRTMPWatchersCount, 0);
-		assertEquals(liveStatistics.totalWebRTCWatchersCount, 0);
 		assertEquals(liveStatistics.totalLiveStreamCount, 0);
 
 	}
@@ -316,9 +304,6 @@ public class MuxingTest {
 		RestServiceTest restService = new RestServiceTest();
 
 		LiveStatistics liveStatistics = restService.callGetLiveStatistics();
-		assertEquals(liveStatistics.totalHLSWatchersCount, 0);
-		assertEquals(liveStatistics.totalRTMPWatchersCount, 0);
-		assertEquals(liveStatistics.totalWebRTCWatchersCount, 0);
 		assertEquals(liveStatistics.totalLiveStreamCount, 0);
 
 	}
@@ -370,9 +355,6 @@ public class MuxingTest {
 		RestServiceTest restService = new RestServiceTest();
 
 		LiveStatistics liveStatistics = restService.callGetLiveStatistics();
-		assertEquals(liveStatistics.totalHLSWatchersCount, 0);
-		assertEquals(liveStatistics.totalRTMPWatchersCount, 0);
-		assertEquals(liveStatistics.totalWebRTCWatchersCount, 0);
 		assertEquals(liveStatistics.totalLiveStreamCount, 0);
 
 	}
