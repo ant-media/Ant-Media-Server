@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.rest.model.Result;
 
 
 /**
@@ -36,8 +37,13 @@ public class StreamFetcherManager {
 	private IDataStore datastore;
 	
 	private IScope scope;
+	
+	private String streamFetcherScheduleJobName;
+
 
 	public StreamFetcherManager(ISchedulingService schedulingService, IDataStore datastore,IScope scope) {
+
+
 		this.schedulingService = schedulingService;
 		this.datastore = datastore;
 		this.scope=scope;
@@ -53,16 +59,29 @@ public class StreamFetcherManager {
 	}
 
 
-	public void startStreaming(Broadcast broadcast) {
+	public Result startStreaming(Broadcast broadcast) {	
+		
+		Result result=new Result(true);
+
 
 		StreamFetcher streamScheduler = new StreamFetcher(broadcast,scope);
 		streamScheduler.startStream();
+
 		streamFetcherList.add(streamScheduler);
-
-	}
-
-	public List<StreamFetcher> getCamSchedulerList() {
-		return streamFetcherList;
+		streamScheduler.startStream();
+		
+		try {
+			Thread.sleep(6000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			Thread.currentThread().interrupt();
+		}
+		
+		if(!streamScheduler.getCameraError().isSuccess()) {
+			result=streamScheduler.getCameraError();
+		}
+		
+		return result;
 	}
 
 	public void stopStreaming(Broadcast stream) {
@@ -85,7 +104,11 @@ public class StreamFetcherManager {
 			startStreaming(streams.get(i));
 		}
 
-		schedulingService.addScheduledJobAfterDelay(streamCheckerInterval, new IScheduledJob() {
+		if (streamFetcherScheduleJobName != null) {
+			schedulingService.removeScheduledJob(streamFetcherScheduleJobName);
+		}
+		
+		streamFetcherScheduleJobName = schedulingService.addScheduledJobAfterDelay(streamCheckerInterval, new IScheduledJob() {
 
 			@Override
 			public void execute(ISchedulingService service) throws CloneNotSupportedException {
@@ -94,7 +117,7 @@ public class StreamFetcherManager {
 
 					streamCheckerCount++;
 
-					logger.warn("checkerCount is  :" + streamCheckerCount);
+					logger.warn("StreamFetcher Check Count  :" + streamCheckerCount);
 
 					if (streamCheckerCount % 180 == 0) {
 
@@ -111,9 +134,9 @@ public class StreamFetcherManager {
 
 								Broadcast stream = streamScheduler.getStream();
 								if (datastore != null && stream.getStreamId() != null) {
-										logger.info("Updating stream status to finished, updating status of stream {}", stream.getStreamId() );
-										datastore.updateStatus(stream.getStreamId() , 
-												AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+									logger.info("Updating stream status to finished, updating status of stream {}", stream.getStreamId() );
+									datastore.updateStatus(stream.getStreamId() , 
+											AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
 								}
 								streamScheduler.startStream();
 							}
@@ -131,6 +154,14 @@ public class StreamFetcherManager {
 
 	public void setDatastore(IDataStore datastore) {
 		this.datastore = datastore;
+	}
+
+	public List<StreamFetcher> getStreamFetcherList() {
+		return streamFetcherList;
+	}
+
+	public void setStreamFetcherList(List<StreamFetcher> streamFetcherList) {
+		this.streamFetcherList = streamFetcherList;
 	}
 
 }

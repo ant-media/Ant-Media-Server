@@ -232,6 +232,8 @@ public abstract class BaseRTMPTConnection extends RTMPConnection {
                         }
                     } catch (InterruptedException ex) {
                         log.warn("Offering packet to out queue failed", ex);
+						ex.printStackTrace();
+						Thread.currentThread().interrupt();
                     }
                 } else {
                     log.warn("Response buffer was null after encoding");
@@ -265,6 +267,8 @@ public abstract class BaseRTMPTConnection extends RTMPConnection {
             }
         } catch (InterruptedException ex) {
             log.warn("Offering io buffer to out queue failed", ex);
+			ex.printStackTrace();
+			Thread.currentThread().interrupt();
         }
     }
 

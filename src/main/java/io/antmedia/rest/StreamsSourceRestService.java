@@ -52,12 +52,13 @@ public class StreamsSourceRestService {
 	private IDataStore dbStore;
 	private ApplicationContext appCtx;
 
-	private StreamFetcherManager app;
 	private IScope scope;
 
 	private AntMediaApplicationAdapter appInstance;
 
 	protected static Logger logger = LoggerFactory.getLogger(StreamsSourceRestService.class);
+	
+
 
 
 	@POST
@@ -65,12 +66,13 @@ public class StreamsSourceRestService {
 	@Path("/addStreamSource")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result addStreamSource(Broadcast stream) {
-		boolean result = false;
-		String message = "";
+		Result result=new Result(false);
+		
+		
 
 		if (stream.getName() != null && stream.getName().length() > 0) {
 
-			if (stream.getType().equals("ipCamera")) {
+			if (stream.getType().equals(AntMediaApplicationAdapter.IP_CAMERA)) {
 
 				OnvifCamera onvif = new OnvifCamera();
 				onvif.connect(stream.getIpAddr(), stream.getUsername(), stream.getPassword());
@@ -80,28 +82,35 @@ public class StreamsSourceRestService {
 
 					String authparam = stream.getUsername() + ":" + stream.getPassword() + "@";
 					String rtspURLWithAuth = "rtsp://" + authparam + rtspURL.substring("rtsp://".length());
-					System.out.println("rtsp url with auth:" + rtspURLWithAuth);
+					logger.info("rtsp url with auth: {}", rtspURLWithAuth);
 					stream.setStreamUrl(rtspURLWithAuth);
 					Date currentDate = new Date();
 					long unixTime = currentDate.getTime();
 
 					stream.setDate(unixTime);
-					stream.setStatus("created");
+					stream.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
 
 					String id = getStore().save(stream);
+					
 
 					if (id.length() > 0) {
 						Broadcast newCam = getStore().get(stream.getStreamId());
-						getInstance().startStreaming(newCam);
+						result=getInstance().startStreaming(newCam);
+						String str = String.valueOf(result.isSuccess());
+						logger.info("reply from startstreaming " + str);
+						
+						if(!result.isSuccess()) {
+							getStore().delete(stream.getStreamId());
+						}
 					}
 					onvif.disconnect();
-					result = true;
-					message = "IP Camera successfully added";
+				
+					
 				}
 
 			}
 
-			else if (stream.getType().equals("streamSource")) {
+			else if (stream.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE)) {
 
 				Date currentDate = new Date();
 				long unixTime = currentDate.getTime();
@@ -116,46 +125,45 @@ public class StreamsSourceRestService {
 					getInstance().startStreaming(newSource);
 				}
 
-				result = true;
-				message = "StreamSource successfully added";
+				result.setSuccess(true);
+				result.setMessage("StreamSource successfully added");
 
 			}else {
 
-				message = "No stream added";
+				result.setMessage("No stream added");
 
 			}
 		}
-
-		return new Result(result, message);
-	}
-
-
-	@GET
-	@Path("/getUserVodList/{folderPath}")
-	@Produces(MediaType.APPLICATION_JSON)
-	public boolean  getUserVodList(@PathParam("folderPath") String folderPath) {
-		boolean result = false;
-
-		String appScopeName = ScopeUtils.findApplication(getScope()).getName();
-
-
-		File directory = new File(
-				String.format("%s/webapps/%s/%s", System.getProperty("red5.root"), appScopeName, folderPath));
-
-		// if the directory does not exist, create it first
-		if (!directory.exists()) {
-			try {
-				directory.mkdir();
-			} catch (SecurityException se) {
-				se.printStackTrace();
-			}
-		}
-
-		result=getStore().fetchUserVodList(directory);
 
 		return result;
 	}
-	
+
+	@GET
+	@Path("/synchUserVoDList")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result synchUserVodList() {
+		boolean result = false;
+		int errorId = -1;
+		String message = "";
+
+		String vodFolder = getInstance().getAppSettings().getVodFolder();
+
+		logger.info("synch user vod list vod folder is {}", vodFolder);
+
+		if (vodFolder != null && vodFolder.length() > 0) {
+			result = getInstance().synchUserVoDFolder(null, vodFolder);
+		}
+		else {
+			errorId = 404;
+			message = "no vod folder defined";
+		}
+
+		return new Result(result, message, errorId);
+	}
+
+
+
+
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/updateCamInfo")
@@ -164,49 +172,47 @@ public class StreamsSourceRestService {
 		boolean result = false;
 		OnvifCamera onvif = null;
 		logger.warn("inside of rest service");
-
-		logger.warn(camera.getStatus());
-
 		if(camera.getStatus()!=null) {
 
-			if (camera.getStatus().equals("broadcasting")) {
-				getInstance().stopStreaming(camera);
+			getInstance().stopStreaming(camera);
+			try {
+				Thread.sleep(2000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+				Thread.currentThread().interrupt();
+			}
+			onvif = new OnvifCamera();
+			onvif.connect(camera.getIpAddr(), camera.getUsername(), camera.getPassword());
+			String rtspURL = onvif.getRTSPStreamURI();
 
-				result = getStore().editCameraInfo(camera);
+			logger.warn("camera starting point inside camera edit:  " + camera.getStreamId());
 
-				logger.warn("after edit:" + result);
+			result = getStore().editCameraInfo(camera);
 
-				onvif = new OnvifCamera();
-				onvif.connect(camera.getIpAddr(), camera.getUsername(), camera.getPassword());
-				String rtspURL = onvif.getRTSPStreamURI();
+			if (rtspURL != "no") {
 
-				logger.warn("camera starting point inside camera edit:  " + camera.getStreamId());
-
-				if (result = true && rtspURL != "no") {
-
-					String authparam = camera.getUsername() + ":" + camera.getPassword() + "@";
-					String rtspURLWithAuth = "rtsp://" + authparam + rtspURL.substring("rtsp://".length());
-					System.out.println("rtsp url with auth:" + rtspURLWithAuth);
-					camera.setStreamUrl(rtspURLWithAuth);
-
-					Broadcast newCam = getStore().get(camera.getStreamId());
-					getInstance().startStreaming(newCam);
-
-				}
-			} else {
-
-				logger.warn("camera couldnot started");
-				camera.setStatus("finished");
+				String authparam = camera.getUsername() + ":" + camera.getPassword() + "@";
+				String rtspURLWithAuth = "rtsp://" + authparam + rtspURL.substring("rtsp://".length());
+				System.out.println("new RTSP URL:" + rtspURLWithAuth);
+				camera.setStreamUrl(rtspURLWithAuth);
 				result = getStore().editCameraInfo(camera);
 			}
+		}
+		else {result = getStore().editCameraInfo(camera);}
 
-		}else {result = getStore().editCameraInfo(camera);}
-		
 
 		logger.warn("final result:" + result);
+
 		if (onvif != null) {
 			onvif.disconnect();
 		}
+		try {
+			Thread.sleep(1000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			Thread.currentThread().interrupt();
+		}
+		getInstance().startStreaming(camera);
 		return new Result(result);
 	}
 
@@ -332,6 +338,7 @@ public class StreamsSourceRestService {
 		}
 		return new Result(result);
 	}
+
 	@Nullable
 	private ApplicationContext getAppContext() {
 		if (servletContext != null) {

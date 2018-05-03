@@ -6,6 +6,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -14,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
 
+import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
@@ -24,12 +26,10 @@ public class InMemoryDataStore implements IDataStore {
 
 	protected static Logger logger = LoggerFactory.getLogger(InMemoryDataStore.class);
 
-	private Gson gson;
-
 	public LinkedHashMap<String, Broadcast> broadcastMap = new LinkedHashMap<String, Broadcast>();
 
 	public LinkedHashMap<String, Vod> vodMap = new LinkedHashMap<String, Vod>();
-	
+
 	public LinkedHashMap<String, SocialEndpointCredentials> socialEndpointCredentialsMap = new LinkedHashMap<String, SocialEndpointCredentials>();
 
 
@@ -106,17 +106,6 @@ public class InMemoryDataStore implements IDataStore {
 		return result;
 	}
 
-	@Override
-	public boolean updatePublish(String id, boolean publish) {
-		Broadcast broadcast = broadcastMap.get(id);
-		boolean result = false;
-		if (broadcast != null) {
-			broadcast.setPublish(publish);
-			broadcastMap.put(id, broadcast);
-			result = true;
-		}
-		return result;
-	}
 
 	@Override
 	public boolean addEndpoint(String id, Endpoint endpoint) {
@@ -177,8 +166,8 @@ public class InMemoryDataStore implements IDataStore {
 		Collection<Broadcast> values = broadcastMap.values();
 		int t = 0;
 		int itemCount = 0;
-		if (size > 50) {
-			size = 50;
+		if (size > MAX_ITEM_IN_ONE_LIST) {
+			size = MAX_ITEM_IN_ONE_LIST;
 		}
 		if (offset < 0) {
 			offset = 0;
@@ -227,46 +216,21 @@ public class InMemoryDataStore implements IDataStore {
 		return result;
 	}
 
-	@Override
-	public boolean deleteStream(String id) {
-		boolean result = false;
-		try {
 
-			if (broadcastMap.containsKey(id)) {
-				logger.warn("inside of deleteStream");
-				broadcastMap.remove(id);
-				result = true;
-			}
-
-		} catch (Exception e) {
-			result = false;
-		}
-		return result;
-	}
 
 
 	@Override
 	public List<Broadcast> getExternalStreamsList() {
-		Object[] objectArray = broadcastMap.values().toArray();
-
-		Broadcast[] broadcastArray = new Broadcast[objectArray.length];
+		Collection<Broadcast> values = broadcastMap.values();
 
 		List<Broadcast> streamsList = new ArrayList<Broadcast>();
+		for (Broadcast broadcast : values) {
+			String type = broadcast.getType();
 
-		for (int i = 0; i < objectArray.length; i++) {
-
-			broadcastArray[i] = gson.fromJson((String) objectArray[i], Broadcast.class);
-
-		}
-
-		for (int i = 0; i < broadcastArray.length; i++) {
-
-			if (broadcastArray[i].getType().equals("ipCamera") || broadcastArray[i].getType().equals("streamSource")) {
-
-				streamsList.add(gson.fromJson((String) objectArray[i], Broadcast.class));
+			if (type.equals(AntMediaApplicationAdapter.IP_CAMERA) || type.equals(AntMediaApplicationAdapter.STREAM_SOURCE)) {
+				streamsList.add(broadcast);
 			}
 		}
-
 		return streamsList;
 	}
 
@@ -280,8 +244,8 @@ public class InMemoryDataStore implements IDataStore {
 	public List<Broadcast> filterBroadcastList(int offset, int size, String type) {
 		int t = 0;
 		int itemCount = 0;
-		if (size > 50) {
-			size = 50;
+		if (size > MAX_ITEM_IN_ONE_LIST) {
+			size = MAX_ITEM_IN_ONE_LIST;
 		}
 		if (offset < 0) {
 			offset = 0;
@@ -313,7 +277,7 @@ public class InMemoryDataStore implements IDataStore {
 	}
 
 	@Override
-	public boolean addVod(String id, Vod vod) {
+	public boolean addVod(Vod vod) {
 		String vodId = null;
 		boolean result = false;
 
@@ -327,7 +291,7 @@ public class InMemoryDataStore implements IDataStore {
 
 			} catch (Exception e) {
 				e.printStackTrace();
-				
+
 			}
 		}
 		return result;
@@ -338,13 +302,13 @@ public class InMemoryDataStore implements IDataStore {
 		Collection<Vod> values = vodMap.values();
 		int t = 0;
 		int itemCount = 0;
-		if (size > 50) {
-			size = 50;
+		if (size > MAX_ITEM_IN_ONE_LIST) {
+			size = MAX_ITEM_IN_ONE_LIST;
 		}
 		if (offset < 0) {
 			offset = 0;
 		}
-		List<Vod> list = new ArrayList();
+		List<Vod> list = new ArrayList<>();
 		for (Vod vodString : values) {
 			if (t < offset) {
 				t++;
@@ -386,53 +350,70 @@ public class InMemoryDataStore implements IDataStore {
 
 	@Override
 	public long getTotalVodNumber() {
-
 		return vodMap.size();
-
 	}
 
 	@Override
-	public boolean fetchUserVodList(File userfile) {
+	public int fetchUserVodList(File userfile) {
 
-		Object[] objectArray = vodMap.values().toArray();
-
-		Vod[] vodtArray = new Vod[objectArray.length];
-		for (int i = 0; i < objectArray.length; i++) {
-			vodtArray[i] = gson.fromJson((String) objectArray[i], Vod.class);
+		if (userfile == null) {
+			return 0;
 		}
 
-		for (int i = 0; i < vodtArray.length; i++) {
-			if (vodtArray[i].getType().equals("userVod")) {
-				vodMap.remove(vodtArray[i].getVodId());
+
+		/*
+		 * Delete all user vod in db
+		 */
+		int numberOfSavedFiles = 0;
+		Collection<Vod> vodCollection = vodMap.values();
+
+		for (Iterator iterator = vodCollection.iterator(); iterator.hasNext();) {
+			Vod vod = (Vod) iterator.next();
+			if (vod.getType().equals(Vod.USER_VOD)) {
+				iterator.remove();
 			}
 		}
+
+
+
 
 		File[] listOfFiles = userfile.listFiles();
 
-		for (File file : listOfFiles) {
+		if (listOfFiles != null) {
 
-			String fileExtension = FilenameUtils.getExtension(file.getName());
+			for (File file : listOfFiles) 
+			{
+				String fileExtension = FilenameUtils.getExtension(file.getName());
 
-			if (file.isFile() && fileExtension.equals("mp4")) {
-				long fileSize = file.length();
-				long unixTime = System.currentTimeMillis();
+				if (file.isFile() && 
+						(fileExtension.equals("mp4") || fileExtension.equals("flv") || fileExtension.equals("mkv"))) 
+				{
+					long fileSize = file.length();
+					long unixTime = System.currentTimeMillis();
 
-				Vod newVod = new Vod("vodFile", "vodFile", file.getPath(), file.getName(), unixTime, 0, fileSize,
-						"userVod");
+					String filePath=file.getPath();
 
-				addUserVod("vodFile", newVod);
+					String[] subDirs = filePath.split(Pattern.quote(File.separator));
+
+					Integer pathLength=Integer.valueOf(subDirs.length);
+
+					String relativePath=subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
+
+
+					Vod newVod = new Vod("vodFile", "vodFile", relativePath, file.getName(), unixTime, 0, fileSize,
+							Vod.USER_VOD);
+
+					addUserVod(newVod);
+					numberOfSavedFiles++;
+				}
 			}
 		}
 
-
-		return true;
-
-
-
+		return numberOfSavedFiles;
 	}
 
 	@Override
-	public boolean addUserVod(String id, Vod vod) {
+	public boolean addUserVod(Vod vod) {
 		String vodId = null;
 		boolean result = false;
 
@@ -445,7 +426,7 @@ public class InMemoryDataStore implements IDataStore {
 
 			} catch (Exception e) {
 				e.printStackTrace();
-				
+
 			}
 		}
 		return result;
@@ -484,7 +465,7 @@ public class InMemoryDataStore implements IDataStore {
 	public SocialEndpointCredentials addSocialEndpointCredentials(SocialEndpointCredentials credentials) {
 		SocialEndpointCredentials addedCredential = null;
 		if (credentials != null && credentials.getAccountName() != null && credentials.getAccessToken() != null
-				 && credentials.getServiceName() != null) 
+				&& credentials.getServiceName() != null) 
 		{
 			if (credentials.getId() == null) {
 				//create new id if id is not set
@@ -494,14 +475,14 @@ public class InMemoryDataStore implements IDataStore {
 				addedCredential = credentials;
 			}
 			else {
-				
-				 if(socialEndpointCredentialsMap.get(credentials.getId()) != null) 
-				 {
-					 //replace the field if id exists
+
+				if(socialEndpointCredentialsMap.get(credentials.getId()) != null) 
+				{
+					//replace the field if id exists
 					socialEndpointCredentialsMap.put(credentials.getId(), credentials);
 					addedCredential = credentials;
-				 }
-				 //if id is not matched with any value, do not record
+				}
+				//if id is not matched with any value, do not record
 			}
 		}
 		return addedCredential;
@@ -513,8 +494,8 @@ public class InMemoryDataStore implements IDataStore {
 		Collection<SocialEndpointCredentials> values = socialEndpointCredentialsMap.values();
 		int t = 0;
 		int itemCount = 0;
-		if (size > 50) {
-			size = 50;
+		if (size > MAX_ITEM_IN_ONE_LIST) {
+			size = MAX_ITEM_IN_ONE_LIST;
 		}
 		if (offset < 0) {
 			offset = 0;
@@ -551,9 +532,9 @@ public class InMemoryDataStore implements IDataStore {
 
 	@Override
 	public long getTotalBroadcastNumber() {
-	
+
 		return broadcastMap.size();
-		
+
 	}
 
 }

@@ -11,6 +11,7 @@ import static org.junit.Assert.fail;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.Iterator;
 import java.util.List;
 
 import org.junit.After;
@@ -58,6 +59,7 @@ public class DBStoresUnitTest {
 	public void testMapDBStore() {
 
 		IDataStore dataStore = new MapDBStore("testdb");
+		testBugGetExternalStreamsList(dataStore);
 		testGetPagination(dataStore);
 		testNullCheck(dataStore);
 		testSimpleOperations(dataStore);
@@ -66,7 +68,10 @@ public class DBStoresUnitTest {
 		testStreamWithId(dataStore);
 		testFilterSearchOperations(dataStore);
 		testAddSocialEndpointCredentials(dataStore);
-		testVoDFunction(dataStore);
+		testVoDFunctions(dataStore);
+		testSaveStreamInDirectory(dataStore);
+		testEditCameraInfo(dataStore);
+
 
 	}
 
@@ -74,6 +79,7 @@ public class DBStoresUnitTest {
 	public void testMemoryDataStore() {
 
 		IDataStore dataStore = new InMemoryDataStore("testdb");
+		testBugGetExternalStreamsList(dataStore);
 		testGetPagination(dataStore);
 		testNullCheck(dataStore);
 		testSimpleOperations(dataStore);
@@ -82,8 +88,10 @@ public class DBStoresUnitTest {
 		testStreamWithId(dataStore);
 		testFilterSearchOperations(dataStore);
 		testAddSocialEndpointCredentials(dataStore);
-		testVoDFunction(dataStore);
-
+		testVoDFunctions(dataStore);
+		testSaveStreamInDirectory(dataStore);
+		testEditCameraInfo(dataStore);
+		
 	}
 
 	@Test
@@ -97,9 +105,13 @@ public class DBStoresUnitTest {
 		store = ((MongoStore) dataStore).getEndpointCredentialsDS();
 		Query<SocialEndpointCredentials> deleteQuery2 = store.find(SocialEndpointCredentials.class);
 		store.delete(deleteQuery2);
+		
+		store = ((MongoStore)dataStore).getVodDatastore();
+		Query<Vod> deleteVodQuery = store.find(Vod.class);
+		store.delete(deleteVodQuery);
+		
 
-		
-		
+		testBugGetExternalStreamsList(dataStore);
 		testGetPagination(dataStore);
 		testNullCheck(dataStore);
 		testSimpleOperations(dataStore);
@@ -108,8 +120,71 @@ public class DBStoresUnitTest {
 		testStreamWithId(dataStore);
 		testFilterSearchOperations(dataStore);
 		testAddSocialEndpointCredentials(dataStore);
-		testVoDFunction(dataStore);
+		testVoDFunctions(dataStore);
+		testSaveStreamInDirectory(dataStore);
+		testEditCameraInfo(dataStore);
 
+	}
+	
+	
+	
+	public void testBugGetExternalStreamsList(IDataStore datastore) {
+		
+		
+		// add ip camera 
+		Broadcast broadcast = new Broadcast("name", "ipAddr", "username", "password", "rtspUrl", AntMediaApplicationAdapter.IP_CAMERA);
+		datastore.save(broadcast);
+		
+		//add stream source 
+		Broadcast streamSource = new Broadcast("name_stream_source");
+		streamSource.setStreamUrl("rtsp urdfdfdl");
+		streamSource.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
+		datastore.save(streamSource);
+		
+		//get external list
+		List<Broadcast> streamsList = datastore.getExternalStreamsList();
+		assertNotNull(streamsList);
+		
+		assertEquals(2, streamsList.size());
+		
+		//check that there are two streams and values are same as added above
+		
+	}
+	
+	public void testSaveStreamInDirectory(IDataStore datastore) {
+		
+		
+		File f = new File("src/test/resources");
+		
+		long totalVodCount = datastore.getTotalVodNumber();
+		assertEquals(0, totalVodCount);
+		assertEquals(4, datastore.fetchUserVodList(f));
+		
+		//we know there are 4 files there
+		//test_short.flv
+		//test_video_360p_subtitle.flv
+		//test_Video_360p.flv
+		//test.flv
+		
+		totalVodCount = datastore.getTotalVodNumber();
+		assertEquals(4, totalVodCount);
+		
+		//List<Vod> vodList = datastore.getVodList(0, 10);
+		
+		/*
+		for (Vod vod : vodList) {
+			System.out.println("File path: " + vod.getFilePath());
+		}
+		*/
+	
+		
+		f = new File("not_exist");
+		assertEquals(0, datastore.fetchUserVodList(f));
+		
+		
+		assertEquals(0, datastore.fetchUserVodList(null));
+		
+		
 	}
 
 	public void testStreamWithId(IDataStore dataStore) {
@@ -180,15 +255,84 @@ public class DBStoresUnitTest {
 		}
 	}
 	
-	public void testVoDFunction(IDataStore datastore) {
-		//fail("Write test codes about saveVod, AddVod, fetchVoDList, AddUserVod, delete vod ");
+	public void testVoDFunctions(IDataStore datastore) {
+		//fail("Write test codes about saveVod, AddVod, AddUserVod, delete vod ");
+		
+		//create a vod
+		
+		Vod streamVod=new Vod("streamName", "streamId", "filePath", "vodName", 111, 111, 111, Vod.STREAM_VOD);
+		
+		//save stream vod
+		
+		datastore.addVod(streamVod);
+		
+		//check vod number
+		
+		assertEquals(1, datastore.getTotalVodNumber());
+		
+		//add uservod
+		
+		Vod userVod=new Vod("streamName", "streamId", "filePath", "vodName", 111, 111, 111, Vod.USER_VOD);
+		
+		datastore.addUserVod(userVod);
+		
+		//check vod number
+		
+		assertEquals(2, datastore.getTotalVodNumber());
+		
+		//delete streamVod
+		datastore.deleteVod(streamVod.getVodId());
+		
+		assertEquals(1, datastore.getTotalVodNumber());
+		
+		//delete userVod
+		datastore.deleteVod(userVod.getVodId());
+		
+		//check vod number
+		assertEquals(0, datastore.getTotalVodNumber());
+		
 	}
 	
 	public void testEditCameraInfo(IDataStore datastore) {
-		fail("Write test codes about getCamera, getExternalStreamList ");
+		
+		//fail("Write test codes about getCamera, getExternalStreamList ");
+		
+		//create an IP Camera
+		
+		Broadcast camera= new Broadcast("old_name", "0.0.0.0", "username", "password", "rtspUrl", AntMediaApplicationAdapter.IP_CAMERA);	
+		
+		//save this cam
+		
+		datastore.save(camera);
+		
+		//check it is saved
+		assertNotNull(camera.getStreamId());
+		
+		//change cam info
+		
+		camera.setName("new_name");
+		camera.setIpAddr("1.1.1.1");
+	
+		datastore.editCameraInfo(camera);
+		
+		//check whether is changed or not
+		
+		assertEquals("1.1.1.1", camera.getIpAddr());
+		assertEquals("new_name", camera.getName());
+		
+		
+		datastore.delete(camera.getStreamId());
+		
 	}
 
 	public void testGetPagination(IDataStore dataStore) {
+		
+		List<Broadcast> broadcastList2 = dataStore.getBroadcastList(0, 50);
+		for (Iterator iterator = broadcastList2.iterator(); iterator.hasNext();) {
+			Broadcast broadcast = (Broadcast) iterator.next();
+			dataStore.delete(broadcast.getStreamId());
+			
+		}
 
 		for (int i = 0; i < 36; i++) {
 			Broadcast broadcast = new Broadcast(null, null);
@@ -464,25 +608,34 @@ public class DBStoresUnitTest {
 
 		assertEquals(returnList.size(), 1);
 
-		Vod newVod = new Vod("streamName", "1112233", "path", "vod", 1517239908, 17933, 1190425, "streamVod");
-		Vod newVod2 = new Vod("davut", "1112233", "path", "vod", 1517239808, 17933, 1190525, "streamVod");
-		Vod newVod3 = new Vod("oguz", "1112233", "path", "vod", 1517239708, 17933, 1190625, "streamVod");
-		Vod newVod4 = new Vod("ahmet", "1112233", "path", "vod", 1517239608, 17933, 1190725, "streamVod");
-		Vod newVod5 = new Vod("mehmet", "1112233", "path", "vod", 1517239508, 17933, 1190825, "streamVod");
+		Vod newVod =  new Vod("streamName", "1112233" + (int)(Math.random() * 1000), "path", "vod", 1517239908, 17933, 1190425, "streamVod");
+		Vod newVod2 = new Vod("davut", "111223" + (int)(Math.random() * 1000),  "path", "vod", 1517239808, 17933, 1190525, "streamVod");
+		Vod newVod3 = new Vod("oguz", "11122" + (int)(Math.random() * 1000),  "path", "vod", 1517239708, 17933, 1190625, "streamVod");
+		Vod newVod4 = new Vod("ahmet", "111" + (int)(Math.random() * 1000),  "path", "vod", 1517239608, 17933, 1190725, "streamVod");
+		Vod newVod5 = new Vod("mehmet", "11" + (int)(Math.random() * 1000), "path", "vod", 1517239508, 17933, 1190825, "streamVod");
 
-		boolean result = dataStore.addVod(newVod.getStreamId(), newVod);
-		boolean result2 = dataStore.addVod(newVod2.getStreamId(), newVod2);
-		boolean result3 = dataStore.addVod(newVod3.getStreamId(), newVod3);
-		boolean result4 = dataStore.addVod(newVod4.getStreamId(), newVod4);
-		boolean result5 = dataStore.addVod(newVod5.getStreamId(), newVod5);
+		assertTrue(dataStore.addVod(newVod));
+		assertTrue(dataStore.addVod(newVod2));
+		assertTrue(dataStore.addVod(newVod3));
+		assertTrue(dataStore.addVod(newVod4));
+		assertTrue(dataStore.addVod(newVod5));
 
-		assertTrue(result);
-		assertTrue(result2);
-		assertTrue(result3);
-		assertTrue(result4);
-		assertTrue(result5);
-
-
+		
+		long totalVodNumber = dataStore.getTotalVodNumber();
+		assertEquals(5, totalVodNumber);
+		
+		assertTrue(dataStore.deleteVod(newVod.getVodId()));
+		assertTrue(dataStore.deleteVod(newVod2.getVodId()));
+		totalVodNumber = dataStore.getTotalVodNumber();
+		assertEquals(3, totalVodNumber);
+		assertTrue(dataStore.deleteVod(newVod3.getVodId()));
+		assertTrue(dataStore.deleteVod(newVod4.getVodId()));
+		assertTrue(dataStore.deleteVod(newVod5.getVodId()));
+		
+		totalVodNumber = dataStore.getTotalVodNumber();
+		assertEquals(0, totalVodNumber);
+		
+		
 	}
 
 

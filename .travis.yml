@@ -23,11 +23,14 @@ before_install:
   - sudo apt-get install ffmpeg -qq # start ffmpeg
   - sudo service mongod start  # start mongo db
   - sudo apt-get install wondershaper
-  - sudo git clone https://github.com/ant-media/utilities.git /usr/local/onvif
-  - git clone https://github.com/ant-media/Ant-Media-Server-Common.git && cd Ant-Media-Server-Common && git checkout dev && mvn clean install -DskipTests -Dmaven.javadoc.skip=true --quiet && cd ..
-  - git clone https://github.com/ant-media/red5-plugins.git && cd red5-plugins/tomcat/ && mvn clean install -Dmaven.javadoc.skip=true -Dmaven.test.skip=true && cd ../..
+  - sudo git clone --depth=1 https://github.com/ant-media/utilities.git /usr/local/onvif
+  - (if [ $(git ls-remote https://github.com/ant-media/Ant-Media-Server-Common.git $TRAVIS_BRANCH  | wc -l) == "1" ];  then echo "branch found";  git clone --depth=1 -b $TRAVIS_BRANCH https://github.com/ant-media/Ant-Media-Server-Common.git;  else echo "branch not found"; git clone --depth=1 https://github.com/ant-media/Ant-Media-Server-Common.git;  fi)
+  - cd Ant-Media-Server-Common
+  - mvn clean install -DskipTests -Dmaven.javadoc.skip=true --quiet
+  - cd ..
+  - git clone --depth=1 https://github.com/ant-media/red5-plugins.git && cd red5-plugins/tomcat/ && mvn clean install -Dmaven.javadoc.skip=true -Dmaven.test.skip=true && cd ../..
   - mvn clean package -U -P assemble -Dmaven.javadoc.skip=true -Dmaven.test.skip=true -DskipTests=true
-  - wget https://gist.githubusercontent.com/mekya/f5955a75a25eb3148f88cc2b466d0b4d/raw -O target/install_ant-media-server.sh  # install script
+  - wget https://raw.githubusercontent.com/ant-media/Scripts/master/install_ant-media-server.sh -O target/install_ant-media-server.sh  # install script
   - chmod 755 target/install_ant-media-server.sh
   - cd target 
   - ./install_ant-media-server.sh ant-media-server-community*.zip
@@ -39,6 +42,7 @@ before_install:
   - sudo service antmedia stop
   - sudo service antmedia start
   - sleep 10
+  - sudo cat /usr/local/antmedia/log/red5.log
 
 
 install:
@@ -54,7 +58,7 @@ cache:
 
 deploy:
   - provider: script
-    script: "mvn deploy -P assemble -DskipTests -Dmaven.javadoc.skip=true --settings mvn-settings.xml"
+    script: "mvn deploy -P assemble -DskipTests --settings mvn-settings.xml"
     skip_cleanup: true
     on:
       tags: true

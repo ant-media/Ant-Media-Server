@@ -63,7 +63,7 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 
 	private int[][] clientPort;
 
-	private StringBuffer liveStreamSdpDef;
+	private StringBuilder liveStreamSdpDef;
 
 	//	private File streamFile;
 
@@ -280,7 +280,7 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 
 		String rangeValue = request.getHeader(RtspHeaderCode.Range);
 		long duration = frameSender.getDuration();
-		float durationInSeconds =  duration/1000000;
+		float durationInSeconds =  (float)duration/1000000;
 
 
 		long seekTime = 0; //should in micro seconds
@@ -411,7 +411,7 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 							int streamCount = frameSender.getStreamCount();
 							serverPort = new int[streamCount][2];
 							clientPort = new int[streamCount][2];
-							StringBuffer sdp = new StringBuffer();
+							StringBuilder sdp = new StringBuilder();
 							sdp.append(new String(sdpDescription));
 							response.setHeader(RtspHeaderCode.ContentLength, String.valueOf(sdp.length()));
 							response.setBuffer(sdp);
@@ -496,7 +496,7 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 		// get Transport
 		String transport = request.getHeader(RtspHeaderCode.Transport);
 		RTSPTransport rtspTransport = new RTSPTransport(transport);
-		if (rtspTransport.getLowerTransport() == LowerTransport.None) {
+		if (rtspTransport.getLowerTransport() == LowerTransport.NONE) {
 			rtspTransport.setLowerTransport(LowerTransport.UDP);
 		}
 		else if (rtspTransport.getLowerTransport() != LowerTransport.UDP) {
@@ -643,7 +643,7 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 		}
 		else {
 			// sdp
-			StringBuffer sdp = new StringBuffer();
+			StringBuilder sdp = new StringBuilder();
 			sdp.append("position: 22\r\n");
 			sdp.append("presentation state: play\r\n\r\n");
 			sdp.append("scale: 1\r\n");
