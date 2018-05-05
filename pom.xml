@@ -9,7 +9,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>io.antmedia</groupId>
 	<artifactId>ant-media-server</artifactId>
-	<version>1.3.4</version>
+	<version>1.3.5-SNAPSHOT</version>
 	<name>Ant Media Server</name>
 	<description>Ant Media Server supports RTMP, RTSP, MP4, HLS, WebRTC, Adaptive Streaming, etc.</description>
 	<packaging>jar</packaging>
