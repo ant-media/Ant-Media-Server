@@ -49,6 +49,7 @@ import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.BroadcastRestService.BroadcastStatistics;
 import io.antmedia.rest.BroadcastRestService.LiveStatistics;
 import io.antmedia.rest.model.Result;
+import io.antmedia.rest.model.Version;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
 
 public class RestServiceTest {
@@ -420,6 +421,35 @@ public class RestServiceTest {
 		return tmp;
 
 	}
+	
+	@Test
+	public void getVersion() {
+		try{
+		String url = ROOT_SERVICE_URL + "/broadcast/getVersion";
+		
+		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+		
+		HttpUriRequest get = RequestBuilder.get().setUri(url)
+				.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+				.build();
+		
+		CloseableHttpResponse response = client.execute(get);
+
+		StringBuffer result = readResponse(response);
+		
+		Version versionList = null;
+		
+		versionList = gson.fromJson(result.toString(), Version.class);
+		
+		assertEquals("1.3.5", versionList.getVersionName());
+		assertEquals("Community Edition", versionList.getVersionType());
+		
+	}catch(Exception e){
+		e.printStackTrace();
+	}
+
+	}
+	
 
 	public LiveStatistics callGetLiveStatistics() {
 		try {

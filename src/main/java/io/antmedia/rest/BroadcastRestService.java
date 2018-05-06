@@ -52,6 +52,7 @@ import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.Vod;
 import io.antmedia.muxer.Muxer;
 import io.antmedia.rest.model.Result;
+import io.antmedia.rest.model.Version;
 import io.antmedia.social.endpoint.PeriscopeEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
@@ -349,7 +350,7 @@ public class BroadcastRestService {
 	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
 	 * 
 	 */
-	
+
 	/*
 	@POST
 	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
@@ -600,12 +601,12 @@ public class BroadcastRestService {
 							e.printStackTrace();
 						}
 					}
-					
+
 					int number = 1;
 					for (Broadcast broadcast : broadcastList) {
 						String cmd = "ffmpeg http://"+ fqdn + ":5080/" 
 								+ getScope().getName() + "/streams/"+broadcast.getStreamId()+".m3u8";
-						
+
 						insertQueryString.append("INSERT INTO stalker_db.itv(name, number, tv_genre_id, base_ch, cmd, languages)"
 								+ " VALUES ('"+broadcast.getName()+"' , "+ number +", 2, 1, '"+ cmd +"', '');");
 
@@ -690,8 +691,8 @@ public class BroadcastRestService {
 			for (int i = 0; i < pageCount; i++) {
 				vodList.addAll(getDataStore().getVodList(i*IDataStore.MAX_ITEM_IN_ONE_LIST, IDataStore.MAX_ITEM_IN_ONE_LIST));
 			}
-			
-			
+
+
 			String fqdn = getAppSettings().getServerName();
 			if (fqdn == null || fqdn.length() == 0) {
 				try {
@@ -752,6 +753,22 @@ public class BroadcastRestService {
 	public long getTotalVodNumber() {
 		return getDataStore().getTotalVodNumber();
 	}
+
+	@GET
+	@Path("/broadcast/getVersion")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Version getVersion() {
+
+	Version versionList = new Version();
+	versionList.setVersionName(AntMediaApplicationAdapter.class.getPackage().getImplementationVersion());
+	versionList.setVersionType(BroadcastRestService.isEnterprise() ? "Enterprise Edition" : "Community Edition");
+	
+	logger.info("Version Name"+ AntMediaApplicationAdapter.class.getPackage().getImplementationVersion());
+	logger.info("Version Type"+ (BroadcastRestService.isEnterprise() ? "Enterprise Edition" : "Community Edition"));
+
+	return versionList;
+	}
+
 
 	@GET
 	@Path("/broadcast/getTotalBroadcastNumber")
@@ -940,16 +957,16 @@ public class BroadcastRestService {
 
 				long fileSize = savedFile.length();
 				long unixTime = System.currentTimeMillis();
-				
+
 				String path=savedFile.getPath();
-				
+
 				String[] subDirs = path.split(Pattern.quote(File.separator));
-				
+
 				Integer pathLength=Integer.valueOf(subDirs.length);
-				
+
 				String relativePath=subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
-				
-				
+
+
 
 				Vod newVod = new Vod(fileName, "vodFile", relativePath, fileName, unixTime, 0, fileSize,
 						Vod.UPLOADED_VOD);
@@ -1054,7 +1071,7 @@ public class BroadcastRestService {
 			String clientSecret = getAppSettings().getFacebookClientSecret();
 
 			videoServiceEndpoint = getApplication().getEndpointService(AntMediaApplicationAdapter.FACEBOOK_ENDPOINT_CLASS, null, clientId, clientSecret);
-			
+
 			if (videoServiceEndpoint != null) 
 			{
 				if (clientId == null || clientSecret == null || 
@@ -1071,7 +1088,7 @@ public class BroadcastRestService {
 			String clientSecret = getAppSettings().getYoutubeClientSecret();
 
 			videoServiceEndpoint = getApplication().getEndpointService(AntMediaApplicationAdapter.YOUTUBE_ENDPOINT_CLASS, null, clientId, clientSecret);
-			
+
 			if (videoServiceEndpoint != null) 
 			{
 				if (clientId == null || clientSecret == null || 
@@ -1096,7 +1113,7 @@ public class BroadcastRestService {
 		}
 
 		try {
-			
+
 			if (missingClientIdAndSecret) {
 				errorId = ERROR_SOCIAL_ENDPOINT_UNDEFINED_CLIENT_ID;
 				message = "Please enter service client id and client secret in app configuration";
@@ -1348,7 +1365,7 @@ public class BroadcastRestService {
 		}
 		return app;
 	}
-	
+
 	/**
 	 * this is for testing
 	 * @param app
