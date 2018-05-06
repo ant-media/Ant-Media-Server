@@ -7,6 +7,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -33,6 +34,7 @@ import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.integration.RestServiceTest;
+import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.streamsource.StreamFetcher;
 
 @ContextConfiguration(locations = { "test.xml" })
@@ -61,6 +63,16 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 	@Before
 	public void before() {
+		
+		File webApps = new File("webapps");
+		if (!webApps.exists()) {
+			webApps.mkdirs();
+		}
+		File junit = new File(webApps, "junit");
+		if (!junit.exists()) {
+			junit.mkdirs();
+		}
+		
 
 		if (appScope == null) {
 			appScope = (WebScope) applicationContext.getBean("web.scope");
@@ -75,7 +87,6 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			logger.debug("Application / web scope: {}", appScope);
 			assertTrue(appScope.getDepth() == 1);
 		}
-
 
 
 	}
@@ -183,16 +194,10 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			assertNotNull(newCam.getStreamId());
 
-			StreamFetcher fetcher = new StreamFetcher(newCam);
+			StreamFetcher fetcher = new StreamFetcher(newCam,appScope);
 
 
-			ProcessBuilder pb = new ProcessBuilder("/usr/local/onvif/runme.sh");
-			Process p = null;
-			try {
-				p = pb.start();
-			} catch (IOException e1) {
-				e1.printStackTrace();
-			}
+			startCameraEmulator();
 
 			// thread start 
 			fetcher.startStream();
@@ -330,13 +335,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			//start emulator
 
-			ProcessBuilder pb = new ProcessBuilder("/usr/local/onvif/runme.sh");
-			Process p = null;
-			try {
-				p = pb.start();
-			} catch (IOException e1) {
-				e1.printStackTrace();
-			}
+			startCameraEmulator();
 
 			Thread.sleep(2000);
 
@@ -439,13 +438,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		assertTrue(flag3);
 
-		ProcessBuilder pb = new ProcessBuilder("/usr/local/onvif/runme.sh");
-		Process p = null;
-		try {
-			p = pb.start();
-		} catch (IOException e1) {
-			e1.printStackTrace();
-		}
+		startCameraEmulator();
 
 		logger.warn("emulater has been started");
 
@@ -488,14 +481,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		}
 		assertTrue(flag2);
-		// after some time, emulator has been started so connection is back
-		ProcessBuilder pb2 = new ProcessBuilder("/usr/local/onvif/runme.sh");
-		Process p2 = null;
-		try {
-			p2 = pb2.start();
-		} catch (IOException e1) {
-			e1.printStackTrace();
-		}
+		startCameraEmulator();
 
 		try {
 			//wait more than 30sec to make sure stream is started again
@@ -537,6 +523,67 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 	}
+	
+	@Test
+	public void testFecthRtspStream() {
+
+		//start emulator
+
+		startCameraEmulator();
+
+	
+		
+		Broadcast newCam = new Broadcast("onvifCam4", "127.0.0.1:8080", "admin", "admin", "rtsp://127.0.0.1:6554/test.flv",
+				AntMediaApplicationAdapter.IP_CAMERA);
+		
+		
+		assertNotNull(newCam.getStreamUrl());
+		
+	
+		rest.save(newCam);
+		try {
+			Thread.sleep(3000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		StreamFetcher fetcher = new StreamFetcher(newCam,appScope);
+
+		// thread start 
+		fetcher.startStream();
+		
+
+		
+		
+		try {
+			Thread.sleep(60000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		
+		
+		stopCameraEmulator();
+		
+		
+		
+	}
+
+	private void startCameraEmulator() {
+		ProcessBuilder pb = new ProcessBuilder("/usr/local/onvif/runme.sh");
+		Process p = null;
+		try {
+			p = pb.start();
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
+		try {
+			Thread.sleep(2000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
+	
 
 	private void stopCameraEmulator() {
 		// close emulator in order to simulate cut-off
@@ -550,6 +597,12 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+		try {
+			Thread.sleep(2000);
+		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
 	}

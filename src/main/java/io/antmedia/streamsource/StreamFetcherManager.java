@@ -65,8 +65,6 @@ public class StreamFetcherManager {
 
 
 		StreamFetcher streamScheduler = new StreamFetcher(broadcast,scope);
-		streamScheduler.startStream();
-
 		streamFetcherList.add(streamScheduler);
 		streamScheduler.startStream();
 		

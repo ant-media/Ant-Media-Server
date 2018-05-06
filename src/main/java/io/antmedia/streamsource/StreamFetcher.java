@@ -24,6 +24,8 @@ import static org.bytedeco.javacpp.avutil.av_dict_set;
 import static org.bytedeco.javacpp.avutil.av_rescale_q;
 import static org.bytedeco.javacpp.avutil.av_rescale_q_rnd;
 
+import java.util.List;
+
 import org.bytedeco.javacpp.avcodec.AVPacket;
 import org.bytedeco.javacpp.avformat;
 import org.bytedeco.javacpp.avformat.AVFormatContext;
@@ -31,13 +33,19 @@ import org.bytedeco.javacpp.avformat.AVIOContext;
 import org.bytedeco.javacpp.avformat.AVStream;
 import org.bytedeco.javacpp.avutil;
 import org.bytedeco.javacpp.avutil.AVDictionary;
+import org.red5.server.api.IContext;
 import org.red5.server.api.scope.IScope;
+import org.red5.server.stream.ClientBroadcastStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationContext;
 
+import io.antmedia.AppSettings;
+import io.antmedia.EncoderSettings;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.rest.model.Result;
+import io.antmedia.storage.StorageClient;
 
 public class StreamFetcher {
 
@@ -73,9 +81,13 @@ public class StreamFetcher {
 	
 	private IScope scope;
 
+
+
 	public StreamFetcher(Broadcast stream, IScope scope) {
 		this.stream = stream;
 		this.scope=scope;
+		
+		logger.info(":::::::::::scope is ::::::::"+ String.valueOf(scope));
 
 	}
 
@@ -265,10 +277,52 @@ public class StreamFetcher {
 
 				if (result.isSuccess()) {
 					
-					MuxAdaptor muxAdaptor = new MuxAdaptor(null);
-					muxAdaptor.setHLSMuxingEnabled(true);
-					muxAdaptor.init(scope, "streamFetcher", false);
+					IContext context = getScope().getContext(); 
+					ApplicationContext appCtx = context.getApplicationContext(); 
 					
+					
+					
+					boolean mp4MuxingEnabled = true;
+					boolean addDateTimeToMp4FileName=false;
+					boolean webRTCEnabled = false;
+					StorageClient storageClient = null;
+					boolean hlsMuxingEnabled = true;
+					List<EncoderSettings> adaptiveResolutionList = null;
+					String hlsListSize = null;
+					String hlsTime = null;
+					String hlsPlayListType = null;
+					boolean deleteHLSFilesOnExit = true;
+					boolean isPreviewOverwrite = false;
+					if (appCtx.containsBean("app.settings"))  {
+						
+						logger.warn("::::: settings found::::::::.");
+						
+						AppSettings appSettings = (AppSettings) appCtx.getBean("app.settings");
+						mp4MuxingEnabled = appSettings.isMp4MuxingEnabled();
+						addDateTimeToMp4FileName = appSettings.isAddDateTimeToMp4FileName();
+						hlsMuxingEnabled = appSettings.isHlsMuxingEnabled();
+						adaptiveResolutionList = appSettings.getAdaptiveResolutionList();
+						hlsListSize = appSettings.getHlsListSize();
+						hlsTime = appSettings.getHlsTime();
+						hlsPlayListType = appSettings.getHlsPlayListType();
+						webRTCEnabled = appSettings.isWebRTCEnabled();
+						deleteHLSFilesOnExit = appSettings.isDeleteHLSFilesOnExit();
+						isPreviewOverwrite = appSettings.isPreviewOverwrite();
+						
+						logger.info("::::: adaptiveResolutionList::::::::." + String.valueOf(adaptiveResolutionList));
+					}
+					
+					MuxAdaptor muxAdaptor = initializeMuxAdaptor(adaptiveResolutionList);
+					muxAdaptor.setHLSMuxingEnabled(true);
+			//		muxAdaptor.setMp4MuxingEnabled(true, false);
+					
+					
+					muxAdaptor.setHlsTime(hlsTime);
+					muxAdaptor.setHlsListSize(hlsListSize);
+					muxAdaptor.setHlsPlayListType(hlsPlayListType);
+					
+					
+					muxAdaptor.init(scope, "streamFetcher", false);
 					muxAdaptor.prepareStreamFetcher(inputFormatContext);
 					
 					//muxAdaptor.start();
@@ -497,6 +551,38 @@ public class StreamFetcher {
 		}.start();
 
 	}
+	
+	
+	private MuxAdaptor initializeMuxAdaptor(List<EncoderSettings> adaptiveResolutionList) {
+		
+		
+		logger.info("::::: adaptiveResolutionList::::::::." + String.valueOf(adaptiveResolutionList));
+		MuxAdaptor muxAdaptor = null;
+		try {
+			if (adaptiveResolutionList != null && adaptiveResolutionList.size() > 0) 
+			{
+				
+				Class transraterClass = Class.forName("io.antmedia.enterprise.adaptive.EncoderAdaptor");
+
+				muxAdaptor = (MuxAdaptor) transraterClass.getConstructor(ClientBroadcastStream.class, List.class)
+						.newInstance(null, adaptiveResolutionList);
+				logger.info(":::::: encoder adaptor is active::::::::::");
+				
+				
+			}
+		} catch (Exception e) {
+			//e.printStackTrace();
+		} 
+		if (muxAdaptor == null) {
+			
+			logger.info(":::::: mux adaptor is active::::::::::");
+			muxAdaptor = new MuxAdaptor(null);
+		}
+
+		return muxAdaptor;
+	}
+	
+	
 
 	/**
 	 * Set timeout when establishing connection
@@ -524,6 +610,13 @@ public class StreamFetcher {
 
 	public void setCameraError(Result cameraError) {
 		this.cameraError = cameraError;
+	}
+	public IScope getScope() {
+		return scope;
+	}
+
+	public void setScope(IScope scope) {
+		this.scope = scope;
 	}
 
 }

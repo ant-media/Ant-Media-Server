@@ -62,12 +62,14 @@ import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.integration.MuxingTest;
+import io.antmedia.integration.RestServiceTest;
 //import io.antmedia.enterprise.adaptive.TransraterAdaptor;
 import io.antmedia.muxer.HLSMuxer;
 import io.antmedia.muxer.Mp4Muxer;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.Muxer;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
+import io.antmedia.streamsource.StreamFetcher;
 
 @ContextConfiguration(locations = { 
 		"test.xml" 
@@ -79,6 +81,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 	protected static final int BUFFER_SIZE = 10240;
 
 	protected WebScope appScope;
+	private RestServiceTest rest=new RestServiceTest();
 
 	static {
 		System.setProperty("red5.deployment.type", "junit");
@@ -195,6 +198,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 	//TODO: when prepare fails, there is memorly leak or thread leak?
 
 
+	
+	
 	@Test
 	public void testMuxingSimultaneously()  {
 
