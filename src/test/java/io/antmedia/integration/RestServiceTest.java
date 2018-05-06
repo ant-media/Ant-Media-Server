@@ -440,8 +440,8 @@ public class RestServiceTest {
 		Version versionList = null;
 		
 		versionList = gson.fromJson(result.toString(), Version.class);
-		
-		assertEquals("1.3.5", versionList.getVersionName());
+			
+		assertEquals("1.3.5-SNAPSHOT", versionList.getVersionName());
 		assertEquals("Community Edition", versionList.getVersionType());
 		
 	}catch(Exception e){
