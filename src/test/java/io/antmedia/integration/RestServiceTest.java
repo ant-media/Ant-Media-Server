@@ -934,6 +934,8 @@ public class RestServiceTest {
 			assertNull(broadcast.getDbId());
 			System.out.println("json result: " + serializedStr);
 			assertFalse(serializedStr.toString().contains("dbId"));
+			assertFalse(serializedStr.toString().contains("username"));
+			assertFalse(serializedStr.toString().contains("password"));
 		} catch (JsonProcessingException e) {
 			e.printStackTrace();
 		}
