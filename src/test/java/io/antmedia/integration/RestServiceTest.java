@@ -456,9 +456,11 @@ public class RestServiceTest {
 		
         MavenXpp3Reader reader = new MavenXpp3Reader();
         try {
+        	//first, read version from pom.xml 
 			Model model = reader.read(new FileReader("pom.xml"));
 			logger.info(model.getVersion());
 
+			//then get version from rest service
 			String url = ROOT_SERVICE_URL + "/broadcast/getVersion";
 
 			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
@@ -474,7 +476,8 @@ public class RestServiceTest {
 			Version versionList = null;
 
 			versionList = gson.fromJson(result.toString(), Version.class);
-
+			
+			//check that they are same
 			assertEquals(model.getVersion(), versionList.getVersionName());
 
 		}catch(Exception e){
