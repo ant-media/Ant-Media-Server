@@ -51,7 +51,5 @@ There are a few guidelines that we need contributors to follow so that we can st
 [YourKit Java Profiler](http://www.yourkit.com/java/profiler/index.jsp) 
 [YourKit .NET Profiler](http://www.yourkit.com/dotnet/index.jsp)
 
-## Donations
-Donate to the cause using [Bitcoin](https://coinbase.com/checkouts/2c5f023d24b12245d17f8ff8afe794d3)
-<i>Donations are used for beer and snacks</i>
+
 

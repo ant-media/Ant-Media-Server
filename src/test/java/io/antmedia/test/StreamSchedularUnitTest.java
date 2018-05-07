@@ -9,6 +9,8 @@ import static org.bytedeco.javacpp.avformat.avformat_open_input;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
@@ -163,14 +165,14 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 				"rtsp://184.72.239.149/vod/mp4:BigBuckBunny_115k.mov", "streamSource");
 
 		StreamFetcher camScheduler = new StreamFetcher(newCam);
-		
+
 		camScheduler.setConnectionTimeout(10000);
-		
+
 		camScheduler.startStream();
 		Thread.sleep(7000);
 
 		//this should be false because this rtsp url cannot be used
-		
+
 		assertTrue(camScheduler.isStreamAlive());
 
 		camScheduler.stopStream();
@@ -180,7 +182,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		assertFalse(camScheduler.isStreamAlive());
 
 	}
-	
+
 
 	@Test
 	public void testStreamSchedularConnectionTimeout() throws InterruptedException {
@@ -204,7 +206,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		//this should be false because stream is not alive 
 		assertFalse(streamScheduler.isStreamAlive());
-		
+
 		Thread.sleep(2500);
 
 		streamScheduler.stopStream();
@@ -226,7 +228,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		Broadcast newCam = null;
 
 		StreamFetcher streamScheduler = new StreamFetcher(newCam);
-		
+
 		Result result= streamScheduler.prepareInput(inputFormatContext);
 
 		assertFalse(result.isSuccess());
@@ -234,7 +236,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		Broadcast newCam2 = new Broadcast("test", "10.2.40.63:8080", "admin", "admin", null, "ipCamera");
 
 		StreamFetcher streamScheduler2 = new StreamFetcher(newCam2);
-		
+
 		Result result2= streamScheduler2.prepareInput(inputFormatContext);
 
 		assertFalse(result.isSuccess());
@@ -305,13 +307,21 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		RestServiceTest restService = new RestServiceTest();
 
 		Broadcast newSource = new Broadcast("testBandwidth", "10.2.40.63:8080", "admin", "admin", "rtsp://184.72.239.149/vod/mp4:BigBuckBunny_115k.mov",
-				"streamSource");
+				AntMediaApplicationAdapter.STREAM_SOURCE);
 
 		restService.save(newSource);
+
+		Broadcast newZombiSource = new Broadcast("testBandwidth", "10.2.40.63:8080", "admin", "admin", "rtsp://184.72.239.149/vod/mp4:BigBuckBunny_115k.mov",
+				AntMediaApplicationAdapter.STREAM_SOURCE);
+
+		newZombiSource.setZombi(true);
+
+
 
 		List<Broadcast> streams = new ArrayList<>();
 
 		streams.add(newSource);
+		streams.add(newZombiSource);
 
 		app.getStreamFetcherManager().startStreams(streams);
 
@@ -326,38 +336,40 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 
 		logger.info("before first control");
-		
+
 		Broadcast stream=restService.getBroadcast(newSource.getStreamId());
-		
+
+		List<Broadcast> list = restService.callGetBroadcastList();
+
+		Broadcast fetchedBroadcast=new Broadcast();
+
+		for (Broadcast broadcast : list) {
+
+			if(broadcast.isZombi()) {
+
+				fetchedBroadcast=broadcast;	
+				break;
+			}
+		}
 		try {
 			Thread.sleep(2000);
 		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
+
+		assertNotNull(fetchedBroadcast.getQuality());
+
+		assertNotNull(fetchedBroadcast.getSpeed());
+
 		assertEquals("good", stream.getQuality());	
 
 		logger.info("speed{}" + stream.getSpeed()) ;
-		
+
 		assertTrue(1 < stream.getSpeed());
-		
-	
 
 
 
-		/*
 
-		ProcessBuilder pb = new ProcessBuilder("/usr/local/wondershaper/limit.sh" , "myArg1", "myArg2");
-		Process p = null;
-		try {
-			p = pb.start();
-		} catch (IOException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
-
-		 */	
 
 		String[] argsStop = new String[] { "/bin/bash", "-c",
 		"sudo wondershaper -a wlan0 -d 100 -u 100" };
@@ -399,7 +411,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
+
 		String[] argsStop6 = new String[] { "/bin/bash", "-c",
 		"sudo wondershaper -a nic3 -d 100 -u 100" };
 		try {
@@ -448,7 +460,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
+
 
 
 		try {
@@ -459,10 +471,10 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 
 		logger.info("before second control");
-		
+
 		assertNotEquals("poor", restService.getBroadcast(newSource.getStreamId()).getQuality());
 
-	
+
 		/*
 		ProcessBuilder pb2 = new ProcessBuilder("/usr/local/wondershaper/reset.sh" , "myArg1", "myArg2");
 		Process p2 = null;
@@ -473,7 +485,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			e1.printStackTrace();
 		}
 		 */
-		
+
 		String[] argsReset= new String[] { "/bin/bash", "-c",
 		"sudo wondershaper -c -a wlan0" };
 		try {
@@ -482,7 +494,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
+
 		String[] argsReset2= new String[] { "/bin/bash", "-c",
 		"sudo wondershaper -c -a eth0" };
 		try {
@@ -502,7 +514,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		String[] argsReset4= new String[] { "/bin/bash", "-c",
 		"sudo wondershaper -c -a nic1" };
 		try {		logger.warn("thread isRunning");
-			Process procStop = new ProcessBuilder(argsReset4).start();
+		Process procStop = new ProcessBuilder(argsReset4).start();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -564,12 +576,12 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			e.printStackTrace();
 		}
 
-		
-		
+
+
 	}
 
 
-	
+
 
 }
 
