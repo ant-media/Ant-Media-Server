@@ -101,12 +101,13 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 				registerStreamPublishSecurity(streamPublishSecurity);
 			}
 		}
-		addScheduledOnceJob(0, new IScheduledJob() {
+		String scheduledJobName = addScheduledOnceJob(0, new IScheduledJob() {
 
 			@Override
 			public void execute(ISchedulingService service) throws CloneNotSupportedException {
 				streamFetcherManager = new StreamFetcherManager(AntMediaApplicationAdapter.this, dataStore);
 				List<Broadcast> streams = getDataStore().getExternalStreamsList();
+				logger.info("Stream source size: {}", streams.size());
 				streamFetcherManager.startStreams(streams);
 
 				List<SocialEndpointCredentials> socialEndpoints = dataStore.getSocialEndpoints(0, END_POINT_LIMIT);
@@ -141,6 +142,8 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 
 		});
+		
+		logger.info("AppStart scheduled job name: {}", scheduledJobName);
 
 
 		return super.appStart(app);
