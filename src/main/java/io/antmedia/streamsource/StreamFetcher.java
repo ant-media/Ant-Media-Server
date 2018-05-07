@@ -288,8 +288,8 @@ public class StreamFetcher {
 					StorageClient storageClient = null;
 					boolean hlsMuxingEnabled = true;
 					List<EncoderSettings> adaptiveResolutionList = null;
-					String hlsListSize = null;
-					String hlsTime = null;
+					String hlsListSize = "5";
+					String hlsTime = "2";
 					String hlsPlayListType = null;
 					boolean deleteHLSFilesOnExit = true;
 					boolean isPreviewOverwrite = false;
@@ -314,15 +314,15 @@ public class StreamFetcher {
 					
 					MuxAdaptor muxAdaptor = initializeMuxAdaptor(adaptiveResolutionList);
 					muxAdaptor.setHLSMuxingEnabled(true);
-			//		muxAdaptor.setMp4MuxingEnabled(true, false);
+
+					muxAdaptor.setMp4MuxingEnabled(false, false);
+					muxAdaptor.setHlsListSize(hlsListSize + "");
+
+					muxAdaptor.setHlsTime(hlsTime + "");
+					muxAdaptor.setHlsPlayListType(" ");
 					
 					
-					muxAdaptor.setHlsTime(hlsTime);
-					muxAdaptor.setHlsListSize(hlsListSize);
-					muxAdaptor.setHlsPlayListType(hlsPlayListType);
-					
-					
-					muxAdaptor.init(scope, "streamFetcher", false);
+					muxAdaptor.init(scope, stream.getStreamId(), false);
 					muxAdaptor.prepareStreamFetcher(inputFormatContext);
 					
 					//muxAdaptor.start();
@@ -376,13 +376,13 @@ public class StreamFetcher {
 						 * Use Mux adaptor writePacket method
 						 * 
 						 */
-						
+						//ret = av_interleaved_write_frame(outputRTMPFormatContext, pkt);
 						
 						
 						muxAdaptor.writePackets(inputFormatContext,pkt);
 						
 
-						//ret = av_interleaved_write_frame(outputRTMPFormatContext, pkt);
+						
 
 						if (ret < 0) {
 							logger.info("cannot write frame to muxer");
