@@ -204,7 +204,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 	public void testMuxingSimultaneously()  {
 
 		MuxAdaptor muxAdaptor = new MuxAdaptor(null);
-		muxAdaptor.setMp4MuxingEnabled(true,false);
+		muxAdaptor.setMp4MuxingEnabled(true,false, null);
 		muxAdaptor.setHLSMuxingEnabled(true);
 		muxAdaptor.setHLSFilesDeleteOnExit(false);
 
@@ -320,7 +320,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 			List<MuxAdaptor> muxAdaptorList = new ArrayList<MuxAdaptor>();
 			for (int j = 0; j < 20; j++) {
 				MuxAdaptor muxAdaptor = new MuxAdaptor(null);
-				muxAdaptor.setMp4MuxingEnabled(true, true);
+				muxAdaptor.setMp4MuxingEnabled(true, true, null);
 				muxAdaptor.setHLSMuxingEnabled(false);
 				muxAdaptorList.add(muxAdaptor);
 			}
@@ -605,7 +605,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 	public File testMp4Muxing(String name, boolean shortVersion, boolean checkDuration) {
 
 		MuxAdaptor muxAdaptor = new MuxAdaptor(null);
-		muxAdaptor.setMp4MuxingEnabled(true, false);
+		muxAdaptor.setMp4MuxingEnabled(true, false, null);
 
 		if (appScope == null) {
 			appScope = (WebScope) applicationContext.getBean("web.scope");
@@ -826,7 +826,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 	public void testMp4MuxingSubtitledVideo() {
 
 		MuxAdaptor muxAdaptor = new MuxAdaptor(null);
-		muxAdaptor.setMp4MuxingEnabled(true, false);
+		muxAdaptor.setMp4MuxingEnabled(true, false, null);
 		muxAdaptor.setHLSMuxingEnabled(true);
 		muxAdaptor.setHLSFilesDeleteOnExit(false);
 
@@ -922,7 +922,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 		MuxAdaptor muxAdaptor = new MuxAdaptor(null);
 		muxAdaptor.setHLSMuxingEnabled(true);
 
-		muxAdaptor.setMp4MuxingEnabled(false, false);
+		muxAdaptor.setMp4MuxingEnabled(false, false, null);
 		int hlsListSize = 5;
 		muxAdaptor.setHlsListSize(hlsListSize + "");
 		int hlsTime = 2;
@@ -1058,7 +1058,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 		MuxAdaptor muxAdaptor = new MuxAdaptor(null);
 		muxAdaptor.setHLSMuxingEnabled(true);
 
-		muxAdaptor.setMp4MuxingEnabled(false, false);
+		muxAdaptor.setMp4MuxingEnabled(false, false, null);
 		int hlsListSize = 5;
 		muxAdaptor.setHlsListSize(hlsListSize + "");
 		int hlsTime = 2;
@@ -1183,7 +1183,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 		MuxAdaptor muxAdaptor = new MuxAdaptor(null);
 		muxAdaptor.setHLSMuxingEnabled(true);
 
-		muxAdaptor.setMp4MuxingEnabled(false, false);
+		muxAdaptor.setMp4MuxingEnabled(false, false, null);
 		int hlsListSize = 5;
 		muxAdaptor.setHlsListSize(hlsListSize + "");
 		int hlsTime = 2;
