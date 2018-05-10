@@ -9,6 +9,8 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -16,6 +18,9 @@ import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+
+import javax.servlet.ServletContext;
+import javax.ws.rs.core.Context;
 
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
@@ -35,6 +40,11 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.red5.server.api.scope.IScope;
+import org.red5.server.scope.WebScope;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationContext;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -42,6 +52,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
@@ -49,15 +60,34 @@ import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.BroadcastRestService.BroadcastStatistics;
 import io.antmedia.rest.BroadcastRestService.LiveStatistics;
 import io.antmedia.rest.model.Result;
+import io.antmedia.rest.model.Version;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
+import io.antmedia.test.MuxerUnitTest;
+import io.antmedia.test.StreamSchedularUnitTest;
+import org.apache.maven.model.Model;
+import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
+import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
+
+
+import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 
 public class RestServiceTest {
+	
+	
 
 	private static final String ROOT_APP_URL = "http://localhost:5080/LiveApp";
 
 	private static final String ROOT_SERVICE_URL = "http://localhost:5080/LiveApp/rest";
 	private static Process tmpExec;
 	private BroadcastRestService restService = null;
+	protected static Logger logger = LoggerFactory.getLogger(RestServiceTest.class);
+	public AntMediaApplicationAdapter app = null;
+	private WebScope appScope;
+	private ApplicationContext appCtx;
+	private IScope scope;
+
+	@Context
+	private ServletContext servletContext;
 
 	public static final int MAC_OS_X = 0;
 	public static final int LINUX = 1;
@@ -86,7 +116,7 @@ public class RestServiceTest {
 
 	@Before
 	public void before() {
-		restService = new BroadcastRestService();
+		restService = new BroadcastRestService();	
 	}
 
 	@After
@@ -116,7 +146,7 @@ public class RestServiceTest {
 					.setEntity(new StringEntity(gson.toJson(broadcast))).build();
 
 			HttpResponse response = client.execute(post);
-			
+
 			StringBuffer result = readResponse(response);
 
 			if (response.getStatusLine().getStatusCode() != 200) {
@@ -134,13 +164,13 @@ public class RestServiceTest {
 		return null;
 	}
 
-	
+
 	public Broadcast save(Broadcast broadcast) {
 		String url = ROOT_SERVICE_URL + "/broadcast/create";
 
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 		Gson gson = new Gson();
-		
+
 
 		try {
 
@@ -149,7 +179,7 @@ public class RestServiceTest {
 					.setEntity(new StringEntity(gson.toJson(broadcast))).build();
 
 			HttpResponse response = client.execute(post);
-			
+
 			StringBuffer result = readResponse(response);
 
 			if (response.getStatusLine().getStatusCode() != 200) {
@@ -166,9 +196,9 @@ public class RestServiceTest {
 		}
 		return null;
 	}
-	
-	
-	
+
+
+
 	public Result updateBroadcast(String id, String name, String description, String socialNetworks) {
 		String url = ROOT_SERVICE_URL + "/broadcast/update";
 
@@ -322,7 +352,7 @@ public class RestServiceTest {
 		}
 		return null;
 	}
-	
+
 	public List<SocialEndpointCredentials> getSocialEndpointServices() {
 		try {
 			/// get broadcast
@@ -420,6 +450,43 @@ public class RestServiceTest {
 		return tmp;
 
 	}
+
+	@Test
+	public void testGetVersion() {
+		
+        MavenXpp3Reader reader = new MavenXpp3Reader();
+        try {
+        	//first, read version from pom.xml 
+			Model model = reader.read(new FileReader("pom.xml"));
+			logger.info(model.getVersion());
+
+			//then get version from rest service
+			String url = ROOT_SERVICE_URL + "/broadcast/getVersion";
+
+			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+
+			HttpUriRequest get = RequestBuilder.get().setUri(url)
+					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+					.build();
+
+			CloseableHttpResponse response = client.execute(get);
+
+			StringBuffer result = readResponse(response);
+
+			Version versionList = null;
+
+			versionList = gson.fromJson(result.toString(), Version.class);
+			
+			//check that they are same
+			assertEquals(model.getVersion(), versionList.getVersionName());
+
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+
+
+	}
+
 
 	public LiveStatistics callGetLiveStatistics() {
 		try {
@@ -678,15 +745,15 @@ public class RestServiceTest {
 			fail(e.getMessage());
 		}
 	}
-	
-	
+
+
 	@Test
 	public void testUploadVoDFile() {
 		//TODO: write test for uploading file
 	}
-	
 
-	
+
+
 	public String makePOSTRequest(String url, String entity) {
 		try {
 			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
@@ -778,7 +845,7 @@ public class RestServiceTest {
 
 			List<SocialEndpointCredentials> socialEndpointServices = getSocialEndpointServices();
 			assertTrue(socialEndpointServices.size() > 0);
-			
+
 			name = "name 2";
 			description = " description 2";
 			// update broadcast name and add social network
@@ -934,6 +1001,8 @@ public class RestServiceTest {
 			assertNull(broadcast.getDbId());
 			System.out.println("json result: " + serializedStr);
 			assertFalse(serializedStr.toString().contains("dbId"));
+			assertFalse(serializedStr.toString().contains("username"));
+			assertFalse(serializedStr.toString().contains("password"));
 		} catch (JsonProcessingException e) {
 			e.printStackTrace();
 		}
@@ -965,7 +1034,7 @@ public class RestServiceTest {
 
 			List<SocialEndpointCredentials> socialEndpointServices = getSocialEndpointServices();
 			assertTrue(socialEndpointServices.size() > 0);
-			
+
 			// add twitter endpoint
 			result = addSocialEndpoint(broadcast.getStreamId().toString(), socialEndpointServices.get(0).getId());
 

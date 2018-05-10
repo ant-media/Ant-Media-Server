@@ -52,6 +52,7 @@ import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.Vod;
 import io.antmedia.muxer.Muxer;
 import io.antmedia.rest.model.Result;
+import io.antmedia.rest.model.Version;
 import io.antmedia.social.endpoint.PeriscopeEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
@@ -365,7 +366,7 @@ public class BroadcastRestService {
 	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
 	 * 
 	 */
-	
+
 	/*
 	@POST
 	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
@@ -770,6 +771,22 @@ public class BroadcastRestService {
 	}
 
 	@GET
+	@Path("/broadcast/getVersion")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Version getVersion() {
+
+	Version versionList = new Version();
+	versionList.setVersionName(AntMediaApplicationAdapter.class.getPackage().getImplementationVersion());
+	versionList.setVersionType(BroadcastRestService.isEnterprise() ? "Enterprise Edition" : "Community Edition");
+	
+	logger.info("Version Name"+ AntMediaApplicationAdapter.class.getPackage().getImplementationVersion());
+	logger.info("Version Type"+ (BroadcastRestService.isEnterprise() ? "Enterprise Edition" : "Community Edition"));
+
+	return versionList;
+	}
+
+
+	@GET
 	@Path("/broadcast/getTotalBroadcastNumber")
 	@Produces(MediaType.APPLICATION_JSON)
 	public long getTotalBroadcastNumber() {
@@ -990,9 +1007,8 @@ public class BroadcastRestService {
 				String path=savedFile.getPath();
 
 				String[] subDirs = path.split(Pattern.quote(File.separator));
-
-				
 				Integer pathLength=Integer.valueOf(subDirs.length);
+
 				String relativePath=subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
 
 				Vod newVod = new Vod(fileName, "vodFile", relativePath, fileName, unixTime, 0, fileSize,
