@@ -10,7 +10,7 @@ import org.red5.server.api.scheduling.ISchedulingService;
 import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
+
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.IDataStore;
@@ -23,7 +23,7 @@ import io.antmedia.rest.model.Result;
  * @author davut
  *
  */
-public class StreamFetcherManager extends AbstractJUnit4SpringContextTests{
+public class StreamFetcherManager {
 
 	protected static Logger logger = LoggerFactory.getLogger(StreamFetcherManager.class);
 
