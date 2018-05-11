@@ -10,6 +10,7 @@ import org.red5.server.api.scheduling.ISchedulingService;
 import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.IDataStore;
@@ -22,7 +23,7 @@ import io.antmedia.rest.model.Result;
  * @author davut
  *
  */
-public class StreamFetcherManager {
+public class StreamFetcherManager extends AbstractJUnit4SpringContextTests{
 
 	protected static Logger logger = LoggerFactory.getLogger(StreamFetcherManager.class);
 
@@ -35,9 +36,9 @@ public class StreamFetcherManager {
 	private ISchedulingService schedulingService;
 
 	private IDataStore datastore;
-	
+
 	private IScope scope;
-	
+
 	private String streamFetcherScheduleJobName;
 
 
@@ -60,25 +61,25 @@ public class StreamFetcherManager {
 
 
 	public Result startStreaming(Broadcast broadcast) {	
-		
+
 		Result result=new Result(true);
 
 
 		StreamFetcher streamScheduler = new StreamFetcher(broadcast,scope);
 		streamFetcherList.add(streamScheduler);
 		streamScheduler.startStream();
-		
+
 		try {
 			Thread.sleep(6000);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 			Thread.currentThread().interrupt();
 		}
-		
+
 		if(!streamScheduler.getCameraError().isSuccess()) {
 			result=streamScheduler.getCameraError();
 		}
-		
+
 		return result;
 	}
 
@@ -105,7 +106,7 @@ public class StreamFetcherManager {
 		if (streamFetcherScheduleJobName != null) {
 			schedulingService.removeScheduledJob(streamFetcherScheduleJobName);
 		}
-		
+
 		streamFetcherScheduleJobName = schedulingService.addScheduledJobAfterDelay(streamCheckerInterval, new IScheduledJob() {
 
 			@Override
@@ -120,9 +121,12 @@ public class StreamFetcherManager {
 					if (streamCheckerCount % 180 == 0) {
 
 						for (StreamFetcher streamScheduler : streamFetcherList) {
-							if (streamScheduler.isStreamAlive()) {
+							if (streamScheduler.isStreamAlive()) 
+							{
 								streamScheduler.stopStream();
 							}
+
+
 							streamScheduler.startStream();
 						}
 
@@ -136,6 +140,9 @@ public class StreamFetcherManager {
 									datastore.updateStatus(stream.getStreamId() , 
 											AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
 								}
+							}
+
+							if (!streamScheduler.isThreadActive()) {
 								streamScheduler.startStream();
 							}
 						}

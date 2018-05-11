@@ -141,6 +141,8 @@ public class BroadcastRestService {
 	private ServletContext servletContext;
 
 	private IScope scope;
+	
+	
 	private ApplicationContext appCtx;
 
 	private static Gson gson = new Gson();
@@ -273,6 +275,8 @@ public class BroadcastRestService {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result stopBroadcast(@PathParam("streamId") String streamId) {
 
+		
+		
 		boolean result = false;
 		String message = "";
 		IBroadcastStream broadcastStream = getApplication().getBroadcastStream(getScope(), streamId);

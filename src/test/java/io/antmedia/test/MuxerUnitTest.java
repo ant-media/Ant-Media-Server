@@ -203,17 +203,17 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 	@Test
 	public void testMuxingSimultaneously()  {
 
+
+
+		if (appScope == null) {
+			appScope = (WebScope) applicationContext.getBean("web.scope");
+			logger.info("Application / web scope: {}", appScope);
+			assertTrue(appScope.getDepth() == 1);
+		}
 		MuxAdaptor muxAdaptor = new MuxAdaptor(null);
 		muxAdaptor.setMp4MuxingEnabled(true,false, null);
 		muxAdaptor.setHLSMuxingEnabled(true);
 		muxAdaptor.setHLSFilesDeleteOnExit(false);
-
-		if (appScope == null) {
-			appScope = (WebScope) applicationContext.getBean("web.scope");
-			logger.debug("Application / web scope: {}", appScope);
-			assertTrue(appScope.getDepth() == 1);
-		}
-
 		File file = null;
 
 		try {

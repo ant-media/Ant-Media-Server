@@ -31,6 +31,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.MapDBStore;
@@ -49,6 +50,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	protected static Logger logger = LoggerFactory.getLogger(StreamFetcherUnitTest.class);
 	public AntMediaApplicationAdapter app = null;
 	private RestServiceTest rest=new RestServiceTest();
+	private AntMediaApplicationAdapter appInstance;
+	private AppSettings appSettings;
 
 
 	static {
@@ -96,8 +99,16 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 	@After
 	public void after() {
+		
 		appScope = null;
 		app = null;
+		
+		try {
+			delete(new File("webapps"));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
 	}
 
 
@@ -384,8 +395,6 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-
-
 	@Test
 	public void testCameraCheckerStartStop() {
 
@@ -524,170 +533,61 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		logger.info("leaving testCameraCheckerStartStop");
 
+	}
+	
+
+	@Test
+	public void testStreamFetcherSources() {
+		
+		
+		//test FLV Source
+		testFetchStreamSources("src/test/resources/test_video_360p.flv");
+		
+		//test HLS Source
+		testFetchStreamSources("src/test/resources/test.m3u8");
+		
+		//test TS Source
+		testFetchStreamSources("src/test/resources/test.ts");
+		
+		//test RTMP Source
+		testFetchStreamSources("rtmp://184.72.239.149/vod/mp4:bigbuckbunny_1500.mp4");
+		
+		//test RTSP Source
+		testFetchStreamSources("rtsp://admin:Admin12345@71.234.93.90:5001/11");
 
 	}
 	
 	
-	@Test
-	public void testStreamFetcherFLVSource() {
+	public void testFetchStreamSources(String source) {
 		
-		Broadcast newCam = new Broadcast("onvifCam4", "127.0.0.1:8080", "admin", "admin", "src/test/resources/test_video_360p.flv",
-				AntMediaApplicationAdapter.IP_CAMERA);
-		
+		Broadcast newCam = new Broadcast("streamSource", "127.0.0.1:8080", "admin", "admin", source,
+				AntMediaApplicationAdapter.STREAM_SOURCE);
 		
 		assertNotNull(newCam.getStreamUrl());
 		
-		IDataStore dtStore = new InMemoryDataStore("testdb");
-		dtStore.save(newCam);
-		
+		String id = getInstance().getDataStore().save(newCam);
+
 		assertNotNull(newCam.getStreamId());
 		
-		StreamFetcher fetcher = new StreamFetcher(newCam, appScope);
-
-		assertFalse(fetcher.isThreadActive());
-		assertFalse(fetcher.isStreamAlive());
-		// thread start 
-		fetcher.startStream();
 		
-		try {
-			Thread.sleep(5000);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-		
-		
-		//TODO: assert related mp4 files and hls files exist
-		
-		assertTrue(MuxingTest.testFile("webapps/junit/streams/"+newCam.getStreamId() +".m3u8", 27000));
-		assertTrue(MuxingTest.testFile("webapps/junit/streams/"+newCam.getStreamId() +".mp4", 146000));
-		
-		fetcher.stopStream();
-	
-	}
-	
-	
-	@Test
-	public void testStreamFetcherHLSSource() {
-		
-		Broadcast newCam = new Broadcast("onvifCam4", "127.0.0.1:8080", "admin", "admin", "src/test/resources/test.m3u8",
-				AntMediaApplicationAdapter.IP_CAMERA);
-		
-		
-		assertNotNull(newCam.getStreamUrl());
-		
-		IDataStore dtStore = new InMemoryDataStore("testdb");
-		dtStore.save(newCam);
-		
-		assertNotNull(newCam.getStreamId());
-		
-		StreamFetcher fetcher = new StreamFetcher(newCam, appScope);
-
-		assertFalse(fetcher.isThreadActive());
-		assertFalse(fetcher.isStreamAlive());
-		// thread start 
-		fetcher.startStream();
-		
-		try {
-			Thread.sleep(5000);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-		
-		
-		//TODO: assert related mp4 files and hls files exist
-		
-		assertTrue(MuxingTest.testFile("webapps/junit/streams/"+newCam.getStreamId() +".m3u8"));
-		assertTrue(MuxingTest.testFile("webapps/junit/streams/"+newCam.getStreamId() +".mp4"));
-		
-		
-		fetcher.stopStream();
-	
-	}
-	
-	@Test
-	public void testStreamFetcherTSSource() {
-		
-		Broadcast newCam = new Broadcast("onvifCam4", "127.0.0.1:8080", "admin", "admin", "src/test/resources/test.ts",
-				AntMediaApplicationAdapter.IP_CAMERA);
-		
-		
-		assertNotNull(newCam.getStreamUrl());
-		
-		IDataStore dtStore = new InMemoryDataStore("testdb");
-		dtStore.save(newCam);
-		
-		assertNotNull(newCam.getStreamId());
-		
-		StreamFetcher fetcher = new StreamFetcher(newCam, appScope);
-
-		assertFalse(fetcher.isThreadActive());
-		assertFalse(fetcher.isStreamAlive());
-		// thread start 
-		fetcher.startStream();
-		
-		try {
-			Thread.sleep(5000);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-		
-		
-		//TODO: assert related mp4 files and hls files exist
-		
-		assertTrue(MuxingTest.testFile("webapps/junit/streams/"+newCam.getStreamId() +".m3u8"));
-		assertTrue(MuxingTest.testFile("webapps/junit/streams/"+newCam.getStreamId() +".mp4"));
-		
-		
-		fetcher.stopStream();
-	
-	}
-	
-	
-	@Test
-	public void testFetchRtspStream() {
-
-		//start emulator
-		startCameraEmulator();
-		
-		Broadcast newCam = new Broadcast("onvifCam4", "127.0.0.1:8080", "admin", "admin", "rtsp://127.0.0.1:6554/test.flv",
-				AntMediaApplicationAdapter.IP_CAMERA);
-		
-		
-		assertNotNull(newCam.getStreamUrl());
-		
-	
-		rest.save(newCam);
-		
-		try {
-			Thread.sleep(2000);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-		
+		getAppSettings().setMp4MuxingEnabled(true);
 		
 		StreamFetcher fetcher = new StreamFetcher(newCam, appScope);
 		
 		assertFalse(fetcher.isThreadActive());
 		assertFalse(fetcher.isStreamAlive());
-
-		// thread start 
-		fetcher.startStream();
 		
+		// start 
+		fetcher.startStream();
+
+		//wait for fetching stream
 		try {
-			Thread.sleep(25000);
+			Thread.sleep(10000);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
 		
-		assertTrue(fetcher.isThreadActive());
-		assertTrue(fetcher.isStreamAlive());
-		
-		
-		//TODO: assert related mp4 files and hls files exist
-		
-		
+		//wait for packaging files
 		fetcher.stopStream();
 		
 		try {
@@ -696,15 +596,13 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			e.printStackTrace();
 		}
 		
-		assertFalse(fetcher.isThreadActive());
-		assertFalse(fetcher.isStreamAlive());
+		assertTrue(MuxingTest.testFile("webapps/junit/streams/"+newCam.getStreamId() +".m3u8"));
+		assertTrue(MuxingTest.testFile("webapps/junit/streams/"+newCam.getStreamId() +".mp4"));
 		
-		//close emulator
-		stopCameraEmulator();
-		
-		
-		
+		getInstance().getDataStore().delete(id);
+	
 	}
+	
 
 	private void startCameraEmulator() {
 		ProcessBuilder pb = new ProcessBuilder("/usr/local/onvif/runme.sh");
@@ -743,11 +641,66 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			e.printStackTrace();
 		}
 	}
+	
+	
+	public static void delete(File file)
+			throws IOException{
+
+		if(file.isDirectory()){
+
+			//directory is empty, then delete it
+			if(file.list().length==0){
+
+				file.delete();
+				//System.out.println("Directory is deleted : " 
+				//	+ file.getAbsolutePath());
+
+			}else{
+
+				//list all the directory contents
+				String files[] = file.list();
+
+				for (String temp : files) {
+					//construct the file structure
+					File fileDelete = new File(file, temp);
+
+					//recursive delete
+					delete(fileDelete);
+				}
+
+				//check the directory again, if empty then delete it
+				if(file.list().length==0){
+					file.delete();
+					//System.out.println("Directory is deleted : " 
+					//		+ file.getAbsolutePath());
+				}
+			}
+
+		}else{
+			//if file, then delete it
+			file.delete();
+			//System.out.println("File is deleted : " + file.getAbsolutePath());
+		}
+	}
 
 	/*
 	public void cameraChecker(List<Broadcast> cameras, int interval) {
 
 	}
 	 */
+	
+	public AntMediaApplicationAdapter getInstance() {
+		if (appInstance == null) {
+			appInstance = (AntMediaApplicationAdapter) applicationContext.getBean("web.handler");
+		}
+		return appInstance;
+	}
+	
+	public AppSettings getAppSettings() {
+		if (appSettings == null) {
+			appSettings = (AppSettings) applicationContext.getBean(AppSettings.BEAN_NAME);
+		}
+		return appSettings;
+	}
 
 }

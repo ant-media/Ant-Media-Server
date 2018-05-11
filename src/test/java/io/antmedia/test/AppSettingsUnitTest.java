@@ -2,6 +2,8 @@ package io.antmedia.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -76,6 +78,25 @@ public class AppSettingsUnitTest {
 	@Test
 	public void isCommunity() {
 		assertFalse(BroadcastRestService.isEnterprise());
+	}
+	
+	@Test
+	public void testDefaultValues() {
+		AppSettings appSettings = new AppSettings();
+		
+		assertFalse(appSettings.isMp4MuxingEnabled());
+		assertFalse(appSettings.isAddDateTimeToMp4FileName());
+		assertTrue(appSettings.isHlsMuxingEnabled());
+		assertFalse(appSettings.isWebRTCEnabled());
+		assertTrue(appSettings.isDeleteHLSFilesOnExit());
+		assertFalse(appSettings.isMp4MuxingEnabled());
+		assertNull(appSettings.getHlsListSize());
+		assertNull(appSettings.getHlsTime());
+		assertNull(appSettings.getHlsPlayListType());
+		assertNull(appSettings.getAdaptiveResolutionList());
+		
+
+				
 	}
 
 }

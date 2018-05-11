@@ -24,7 +24,12 @@ import static org.bytedeco.javacpp.avutil.av_dict_set;
 import static org.bytedeco.javacpp.avutil.av_rescale_q;
 import static org.bytedeco.javacpp.avutil.av_rescale_q_rnd;
 
+
 import java.util.List;
+
+import javax.annotation.Nullable;
+import javax.servlet.ServletContext;
+import javax.ws.rs.core.Context;
 
 import org.bytedeco.javacpp.avcodec.AVPacket;
 import org.bytedeco.javacpp.avformat;
@@ -39,9 +44,12 @@ import org.red5.server.stream.ClientBroadcastStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
+import org.springframework.web.context.WebApplicationContext;
 
+import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.EncoderSettings;
+import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.muxer.Mp4Muxer;
 import io.antmedia.muxer.MuxAdaptor;
@@ -51,41 +59,32 @@ import io.antmedia.storage.StorageClient;
 public class StreamFetcher {
 
 	protected static Logger logger = LoggerFactory.getLogger(StreamFetcher.class);
-
 	private Broadcast stream;
-
 	private WorkerThread thread;
-
 	private AVPacket pkt = new AVPacket();
-
 	/**
 	 * Connection setup timeout value
 	 */
 	private int timeout;
-
 	public boolean exceptionInThread = false;
 
 	/**
 	 * Last packet received time
 	 */
 	private long lastPacketReceivedTime = 0;
-
 	private boolean threadActive = false;
-	
 	private Result cameraError=new Result(false,"");
-
-
-
 	private static final int PACKET_RECEIVED_INTERVAL_TIMEOUT = 3000;
-	
 	private IScope scope;
-
-
+	private ApplicationContext appCtx;
+	private AntMediaApplicationAdapter appInstance;
+	private long[] lastDTS;
+	private MuxAdaptor muxAdaptor = null;
 
 	public StreamFetcher(Broadcast stream, IScope scope) {
 		this.stream = stream;
 		this.scope=scope;
-		
+
 		logger.debug(":::::::::::scope is ::::::::" + String.valueOf(scope));
 
 	}
@@ -109,7 +108,7 @@ public class StreamFetcher {
 			logger.info("stream is null");
 			return result;
 		}
-		
+
 		AVDictionary optionsDictionary = new AVDictionary();
 
 		String streamUrl = stream.getStreamUrl();
@@ -117,9 +116,9 @@ public class StreamFetcher {
 			av_dict_set(optionsDictionary, "rtsp_transport", "tcp", 0);
 		}
 		else {
-			
+
 		}
-		
+
 		String timeout = String.valueOf(this.timeout);
 		av_dict_set(optionsDictionary, "stimeout", timeout, 0);
 
@@ -134,23 +133,29 @@ public class StreamFetcher {
 			avutil.av_strerror(ret, data, data.length);
 
 			String errorStr=new String(data, 0, data.length);
-			
+
 			result.setMessage(errorStr);		
-			
+
 			logger.info("cannot open input context with error::" +result.getMessage());
 			return result;
 		}
-		
-		
-		
+
+
+
 		av_dict_free(optionsDictionary);
 
 		ret = avformat_find_stream_info(inputFormatContext, (AVDictionary) null);
 		if (ret < 0) {
-			
+
 			result.setMessage("Could not find stream information\n");
 			logger.info(result.getMessage());
 			return result;
+		}
+
+		lastDTS = new long[inputFormatContext.nb_streams()];
+
+		for (int i = 0; i < lastDTS.length; i++) {
+			lastDTS[i] = -1;
 		}
 
 		result.setSuccess(true);
@@ -158,15 +163,30 @@ public class StreamFetcher {
 
 	}
 
-
 	public Result prepare(AVFormatContext inputFormatContext) {
 
 
 		Result result = prepareInput(inputFormatContext);
-		
+
 		setCameraError(result);
 
 		return result;
+
+	}
+
+	public AppSettings getAppSettings() {
+
+		AppSettings appSettings =null;
+
+		appCtx = scope.getContext().getApplicationContext();
+
+		if (appCtx.containsBean("app.settings"))  {
+
+			logger.warn("::::: settings found::::::::.");
+			appSettings = (AppSettings) appCtx.getBean("app.settings");
+
+		}
+		return appSettings;
 
 	}
 
@@ -174,73 +194,84 @@ public class StreamFetcher {
 
 		private volatile boolean stopRequestReceived = false;
 
-
 		@Override
 		public void run() {
-		
+
 			setThreadActive(true);
 			AVFormatContext inputFormatContext = new AVFormatContext(null); // avformat.avformat_alloc_context();
-			//AVFormatContext outputRTMPFormatContext = new AVFormatContext(null);
-	
+
 			logger.info("before prepare");
-			
 
 			Result result = prepare(inputFormatContext);
-
 
 			try {
 
 				if (result.isSuccess()) {
 
-					
-					MuxAdaptor muxAdaptor = new MuxAdaptor(null);
-					muxAdaptor.setHLSMuxingEnabled(true);
+					muxAdaptor = new MuxAdaptor(null);
 
-					muxAdaptor.setMp4MuxingEnabled(true, false, "aac_adtstoasc");
-					
-					muxAdaptor.setHlsListSize("5");
+					/*
+					muxAdaptor.setHLSMuxingEnabled(appSettings.isHlsMuxingEnabled());
+					muxAdaptor.setMp4MuxingEnabled(appSettings.isMp4MuxingEnabled(), appSettings.isAddDateTimeToMp4FileName(), "aac_adtstoasc");
+					muxAdaptor.setHLSFilesDeleteOnExit(appSettings.isDeleteHLSFilesOnExit());
+					muxAdaptor.setHlsListSize(appSettings.getHlsListSize());
+					muxAdaptor.setHlsTime(appSettings.getHlsTime());
+					muxAdaptor.setHlsPlayListType(appSettings.getHlsPlayListType());
+					muxAdaptor.setPreviewOverwrite(appSettings.isPreviewOverwrite());
+					 */
 
-					muxAdaptor.setHlsTime("2");
-					
-					muxAdaptor.setHlsPlayListType("");
-					
-					
 					muxAdaptor.init(scope, stream.getStreamId(), false);
+					
 					logger.info("stream count in stream {} is {}", stream.getStreamUrl(), inputFormatContext.nb_streams());
-					muxAdaptor.prepareMuxers(inputFormatContext);
-					
-					
-					//muxAdaptor.start();
+
+					if(muxAdaptor.prepareMuxers(inputFormatContext)) {
+
+						long currentTime = System.currentTimeMillis();
+						muxAdaptor.setStartTime(currentTime);
+
+						getInstance().startPublish(stream.getStreamId());
+						
+						while (true) {
+							int ret = av_read_frame(inputFormatContext, pkt);
+							if (ret < 0) {
+								logger.info("cannot read frame from input context");
+								break;
+							}
+
+							lastPacketReceivedTime = System.currentTimeMillis();
+
+								if(!getInstance().getDataStore().get(stream.getStreamId()).getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)){
+
+									getInstance().getDataStore().updateStatus(stream.getStreamId(), AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+								}	
+
+							/**
+							 * Check that dts values are monotically increasing for each stream
+							 */
+							int packetIndex = pkt.stream_index();
+							if (lastDTS[packetIndex] >= pkt.dts()) {
+								pkt.dts(lastDTS[packetIndex] + 1);
+								logger.warn("Correcting dts value to {}", pkt.dts());
+							}
+							lastDTS[packetIndex] = pkt.dts();
+							if (pkt.dts() > pkt.pts()) {
+								pkt.pts(pkt.dts());
+							}
 
 
-					while (true) {
-						int ret = av_read_frame(inputFormatContext, pkt);
-						if (ret < 0) {
-							logger.info("cannot read frame from input context");
+							muxAdaptor.writePacketToMuxers(inputFormatContext, pkt);
 
-							break;
+							if (ret < 0) {
+								logger.info("cannot write frame to muxer");
+								break;
+							}
+
+							if (stopRequestReceived) {
+								logger.warn("breaking the loop");
+								break;
+							}
 						}
-
-						lastPacketReceivedTime = System.currentTimeMillis();
-
-						muxAdaptor.writePacketToMuxers(inputFormatContext, pkt);
-
-						if (ret < 0) {
-							logger.info("cannot write frame to muxer");
-							break;
-						}
-
-						if (stopRequestReceived) {
-							logger.warn("breaking the loop");
-							break;
-						}
-
 					}
-					
-					avformat_close_input(inputFormatContext);
-					inputFormatContext = null;
-					
-					muxAdaptor.writeTrailer(inputFormatContext);
 
 				}
 				else {
@@ -251,19 +282,27 @@ public class StreamFetcher {
 
 					logger.warn("Prepare for " + stream.getName() + " returned false");
 				}
-				
+
 				setCameraError(result);
-				
 				logger.info("Leaving StreamFetcher Thread");
 
 			} catch (Exception e) {
 				logger.info("---Exception in thread---");
 				e.printStackTrace();
 				exceptionInThread  = true;
+			} 
+
+			if (muxAdaptor != null) {
+				avformat_close_input(inputFormatContext);
+				inputFormatContext = null;
+
+				muxAdaptor.writeTrailer(inputFormatContext);
 			}
-			
+
+			getInstance().closeBroadcast(stream.getStreamId());
+
 			setThreadActive(false);
-			
+
 		}
 
 		public void setStopRequestReceived() {
@@ -283,6 +322,7 @@ public class StreamFetcher {
 				try {
 					while (threadActive) {
 						Thread.sleep(100);
+						logger.info("waiting");
 					}
 					Thread.sleep(2000);
 				} catch (InterruptedException e) {
@@ -298,44 +338,9 @@ public class StreamFetcher {
 		}.start();
 
 	}
-	
-	
-	public void functi() {
-		IContext context = getScope().getContext(); 
-		ApplicationContext appCtx = context.getApplicationContext(); 
-		
-		
-		
-		boolean mp4MuxingEnabled = true;
-		boolean addDateTimeToMp4FileName=false;
-		boolean webRTCEnabled = false;
-		StorageClient storageClient = null;
-		boolean hlsMuxingEnabled = true;
-		List<EncoderSettings> adaptiveResolutionList = null;
-		String hlsListSize = "5";
-		String hlsTime = "2";
-		String hlsPlayListType = null;
-		boolean deleteHLSFilesOnExit = true;
-		boolean isPreviewOverwrite = false;
-		if (appCtx.containsBean("app.settings"))  {
-			
-			logger.warn("::::: settings found::::::::.");
-			
-			AppSettings appSettings = (AppSettings) appCtx.getBean("app.settings");
-			mp4MuxingEnabled = appSettings.isMp4MuxingEnabled();
-			addDateTimeToMp4FileName = appSettings.isAddDateTimeToMp4FileName();
-			hlsMuxingEnabled = appSettings.isHlsMuxingEnabled();
-			adaptiveResolutionList = appSettings.getAdaptiveResolutionList();
-			hlsListSize = appSettings.getHlsListSize();
-			hlsTime = appSettings.getHlsTime();
-			hlsPlayListType = appSettings.getHlsPlayListType();
-			webRTCEnabled = appSettings.isWebRTCEnabled();
-			deleteHLSFilesOnExit = appSettings.isDeleteHLSFilesOnExit();
-			isPreviewOverwrite = appSettings.isPreviewOverwrite();
-			
-			logger.info("::::: adaptiveResolutionList::::::::." + String.valueOf(adaptiveResolutionList));
-		}
-	}
+
+
+
 
 	/**
 	 * If thread is alive and receiving packet with in the {@link PACKET_RECEIVED_INTERVAL_TIMEOUT} time
@@ -343,7 +348,6 @@ public class StreamFetcher {
 	 * @return true if it is running and false it is not
 	 */
 	public boolean isStreamAlive() {
-
 		return ((System.currentTimeMillis() - lastPacketReceivedTime) < PACKET_RECEIVED_INTERVAL_TIMEOUT);
 	}
 
@@ -386,7 +390,6 @@ public class StreamFetcher {
 				try {
 					while (threadActive) {
 						Thread.sleep(100);
-
 					}
 
 					Thread.sleep(2000);
@@ -394,18 +397,11 @@ public class StreamFetcher {
 					e.printStackTrace();
 					Thread.currentThread().interrupt();
 				}
-
 				startStream();
-
 			};
 		}.start();
 
 	}
-	
-
-	
-	
-
 	/**
 	 * Set timeout when establishing connection
 	 * @param timeout in ms
@@ -440,5 +436,42 @@ public class StreamFetcher {
 	public void setScope(IScope scope) {
 		this.scope = scope;
 	}
+
+	private MuxAdaptor initializeMuxAdaptor(List<EncoderSettings> adaptiveResolutionList) {
+		MuxAdaptor muxAdaptor = null;
+		try {
+			if (adaptiveResolutionList != null && adaptiveResolutionList.size() > 0) 
+			{
+				Class transraterClass = Class.forName("io.antmedia.enterprise.adaptive.EncoderAdaptor");
+
+				muxAdaptor = (MuxAdaptor) transraterClass.getConstructor(ClientBroadcastStream.class, List.class)
+						.newInstance(null, adaptiveResolutionList);
+				logger.warn("::::: encoder adaptor used ::::::::");
+			}
+		} catch (Exception e) {
+			//e.printStackTrace();
+		} 
+		if (muxAdaptor == null) {
+			muxAdaptor = new MuxAdaptor(null);
+		}
+
+		return muxAdaptor;
+	}
+
+	public AntMediaApplicationAdapter getInstance() {
+		if (appInstance == null) {
+			appInstance = (AntMediaApplicationAdapter) scope.getContext().getApplicationContext().getBean("web.handler");
+		}
+		return appInstance;
+	}
+	
+	public MuxAdaptor getMuxAdaptor() {
+		return muxAdaptor;
+	}
+
+	public void setMuxAdaptor(MuxAdaptor muxAdaptor) {
+		this.muxAdaptor = muxAdaptor;
+	}
+
 
 }
