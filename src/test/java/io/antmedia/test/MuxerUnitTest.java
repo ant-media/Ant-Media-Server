@@ -628,6 +628,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 		AppSettings appSettings = (AppSettings) applicationContext.getBean(AppSettings.BEAN_NAME);
 		assertNotNull(appSettings);
 		appSettings.setMp4MuxingEnabled(true);
+		appSettings.setHlsMuxingEnabled(false);
 		
 		logger.info("HLS muxing enabled {}", appSettings.isHlsMuxingEnabled());
 		
@@ -646,7 +647,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 			QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
 			assertNotNull(scheduler);
 
-			//by default, stream source job is schedule
+			//by default, stream source job is scheduled
 			assertEquals(scheduler.getScheduledJobNames().size(), 1);
 
 			if (shortVersion) {
@@ -679,7 +680,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 			Thread.sleep(100);
 
 			for (String jobName : scheduler.getScheduledJobNames()) {
-				logger.info("Scheduler job name {}", jobName);
+				logger.info("--Scheduler job name {}", jobName);
 			}
 			
 			//2 jobs in the scheduler one of them is the job streamFetcherManager and and the other one is 
@@ -699,8 +700,10 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 			// if there is listenerHookURL, a task will be scheduled, so wait a little to make the call happen
 			Thread.sleep(200);
-
-			assertEquals(scheduler.getScheduledJobNames().size(), 2);
+			for (String jobName : scheduler.getScheduledJobNames()) {
+				logger.info("--Scheduler job name {}", jobName);
+			}
+			assertEquals(scheduler.getScheduledJobNames().size(), 1);
 			int duration = 697000;
 			if (shortVersion) {
 				duration = 10080;
@@ -862,6 +865,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 		appSettings.setMp4MuxingEnabled(true);
 		appSettings.setAddDateTimeToMp4FileName(true);
 		appSettings.setHlsMuxingEnabled(true);
+		appSettings.setDeleteHLSFilesOnEnded(false);
 		
 		MuxAdaptor muxAdaptor = new MuxAdaptor(null);
 
@@ -921,7 +925,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 			// if there is listenerHookURL, a task will be scheduled, so wait a little to make the call happen
 			Thread.sleep(200);
 
-			assertEquals(scheduler.getScheduledJobNames().size(), 1);
+			assertEquals(1, scheduler.getScheduledJobNames().size());
 			int duration = 146401;
 
 			assertTrue(MuxingTest.testFile(muxAdaptor.getMuxerList().get(0).getFile().getAbsolutePath(), duration));
@@ -963,6 +967,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 		appSettings.setMp4MuxingEnabled(false);
 		appSettings.setAddDateTimeToMp4FileName(false);
 		appSettings.setHlsMuxingEnabled(true);
+		appSettings.setDeleteHLSFilesOnEnded(true);
 		appSettings.setHlsTime(String.valueOf(hlsTime));
 		appSettings.setHlsListSize(String.valueOf(hlsListSize));
 		
@@ -974,7 +979,14 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 			assertTrue(appScope.getDepth() == 1);
 		}
 
+		QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
+		assertNotNull(scheduler);
+		
+		assertEquals(scheduler.getScheduledJobNames().size(),1);
+		
 		appScope.createChildScope("child");
+
+		
 
 		IScope childScope = appScope.getScope("child");
 
@@ -987,10 +999,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 		File file = null;
 		try {
 
-			QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
-			assertNotNull(scheduler);
-			//assertEquals(scheduler.getScheduledJobNames().size(),1);
-
+			
 			file = new File("target/test-classes/test.flv"); //ResourceUtils.getFile(this.getClass().getResource("test.flv"));
 			final FLVReader flvReader = new FLVReader(file);
 
@@ -1060,8 +1069,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 			assertTrue(files.length > 0);
 			assertTrue(files.length < (int)Integer.valueOf(hlsMuxer.getHlsListSize()) * (Integer.valueOf(hlsMuxer.getHlsTime()) + 1));
 
-
-
 			//wait to let hls muxer delete ts and m3u8 file
 			Thread.sleep(hlsListSize*hlsTime * 1000 + 3000);
 
@@ -1076,9 +1083,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 			});
 
 			assertEquals(0, files.length);
-
-
-
 
 		}
 		catch (Exception e) {

@@ -13,3 +13,4 @@ build.sh
 log/
 temp/
 /hs_err_pid23198.log
+/webapps/

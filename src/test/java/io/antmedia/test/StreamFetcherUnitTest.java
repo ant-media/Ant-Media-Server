@@ -109,6 +109,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			e.printStackTrace();
 		}
 		
+		
 	}
 
 
@@ -280,7 +281,6 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		logger.info("starting testCameraErrorCodes");
 
 		try {
-
 			// start stream fetcher
 
 			Broadcast newCam = new Broadcast("onvifCam2", "127.0.0.1:8080", "admin", "admin", "rtsp://10.122.59.79:6554/test.flv",
@@ -538,16 +538,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 	@Test
 	public void testStreamFetcherSources() {
-		
-		
 		//test FLV Source
 		testFetchStreamSources("src/test/resources/test_video_360p.flv");
-		
-		//test HLS Source
-		testFetchStreamSources("src/test/resources/test.m3u8");
-		
-		//test TS Source
-		testFetchStreamSources("src/test/resources/test.ts");
 		
 		//test RTMP Source
 		testFetchStreamSources("rtmp://184.72.239.149/vod/mp4:bigbuckbunny_1500.mp4");
@@ -555,6 +547,18 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		//test RTSP Source
 		testFetchStreamSources("rtsp://admin:Admin12345@71.234.93.90:5001/11");
 
+	}
+	
+	@Test
+	public void testHLSSource() {
+		//test HLS Source
+		testFetchStreamSources("src/test/resources/test.m3u8");		
+	}
+	
+	@Test
+	public void testTSSource() {
+		//test TS Source
+		testFetchStreamSources("src/test/resources/test.ts");
 	}
 	
 	

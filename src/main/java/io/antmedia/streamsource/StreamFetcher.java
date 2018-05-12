@@ -210,16 +210,6 @@ public class StreamFetcher {
 
 					muxAdaptor = new MuxAdaptor(null);
 
-					/*
-					muxAdaptor.setHLSMuxingEnabled(appSettings.isHlsMuxingEnabled());
-					muxAdaptor.setMp4MuxingEnabled(appSettings.isMp4MuxingEnabled(), appSettings.isAddDateTimeToMp4FileName(), "aac_adtstoasc");
-					muxAdaptor.setHLSFilesDeleteOnExit(appSettings.isDeleteHLSFilesOnExit());
-					muxAdaptor.setHlsListSize(appSettings.getHlsListSize());
-					muxAdaptor.setHlsTime(appSettings.getHlsTime());
-					muxAdaptor.setHlsPlayListType(appSettings.getHlsPlayListType());
-					muxAdaptor.setPreviewOverwrite(appSettings.isPreviewOverwrite());
-					 */
-
 					muxAdaptor.init(scope, stream.getStreamId(), false);
 					
 					logger.info("stream count in stream {} is {}", stream.getStreamUrl(), inputFormatContext.nb_streams());
