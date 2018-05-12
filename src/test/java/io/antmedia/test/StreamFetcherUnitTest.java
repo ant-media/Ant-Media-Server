@@ -416,6 +416,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		List<Broadcast> cameras = new ArrayList<>();
 
 		cameras.add(newCam);
+		
+		assertNotNull(app.getDataStore());
 
 		app.getStreamFetcherManager().getStreamFetcherList().clear();
 

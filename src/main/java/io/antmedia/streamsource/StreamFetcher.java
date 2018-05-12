@@ -207,7 +207,7 @@ public class StreamFetcher {
 
 					muxAdaptor.init(scope, stream.getStreamId(), false);
 					
-					logger.info("stream count in stream {} is {}", stream.getStreamUrl(), inputFormatContext.nb_streams());
+					logger.info("{} stream count in stream {} is {}", stream.getStreamId(), stream.getStreamUrl(), inputFormatContext.nb_streams());
 
 					if(muxAdaptor.prepareMuxers(inputFormatContext)) {
 
@@ -224,11 +224,6 @@ public class StreamFetcher {
 							}
 
 							lastPacketReceivedTime = System.currentTimeMillis();
-
-								if(!getInstance().getDataStore().get(stream.getStreamId()).getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)){
-
-									getInstance().getDataStore().updateStatus(stream.getStreamId(), AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
-								}	
 
 							/**
 							 * Check that dts values are monotically increasing for each stream
