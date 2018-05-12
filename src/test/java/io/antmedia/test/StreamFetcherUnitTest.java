@@ -296,7 +296,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			assertNotNull(newCam.getStreamId());
 
-			StreamFetcher fetcher = new StreamFetcher(newCam);
+			StreamFetcher fetcher = new StreamFetcher(newCam, appScope);
 
 			// thread start 
 			fetcher.startStream();
@@ -308,7 +308,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			assertNotNull(fetcher.getCameraError().getMessage());
 
-			assertTrue(fetcher.getCameraError().getMessage().contains("Connection timed out"));
+			assertTrue(fetcher.getCameraError().getMessage().contains("timed out"));
 
 			fetcher.stopStream();
 
@@ -329,7 +329,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			assertNotNull(newCam2.getStreamId());
 
-			StreamFetcher fetcher2 = new StreamFetcher(newCam2);
+			StreamFetcher fetcher2 = new StreamFetcher(newCam2, appScope);
 
 			// thread start 
 			fetcher2.startStream();
@@ -364,7 +364,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			Thread.sleep(3000);
 
 
-			StreamFetcher fetcher3 = new StreamFetcher(newCam3);
+			StreamFetcher fetcher3 = new StreamFetcher(newCam3, appScope);
 
 			// thread start 
 			fetcher3.startStream();

@@ -89,11 +89,6 @@ public class StreamFetcher {
 
 	}
 
-	public StreamFetcher(Broadcast stream) {
-		this.stream = stream;
-
-	}
-
 	public Result prepareInput(AVFormatContext inputFormatContext) {
 
 		setConnectionTimeout(5000);
