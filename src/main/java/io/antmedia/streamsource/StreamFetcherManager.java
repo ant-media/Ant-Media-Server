@@ -125,8 +125,6 @@ public class StreamFetcherManager {
 							{
 								streamScheduler.stopStream();
 							}
-
-
 							streamScheduler.startStream();
 						}
 
@@ -151,6 +149,7 @@ public class StreamFetcherManager {
 			}
 		}, 5000);
 
+		logger.info("StreamFetcherSchedule job name {}", streamFetcherScheduleJobName);
 	}
 
 	public IDataStore getDatastore() {
