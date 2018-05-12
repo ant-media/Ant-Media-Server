@@ -143,8 +143,6 @@ public class BroadcastRestService {
 	private IScope scope;
 	private ApplicationContext appCtx;
 
-	private static Gson gson = new Gson();
-
 	private AntMediaApplicationAdapter app;
 
 	private IDataStore dataStore;
