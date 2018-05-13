@@ -2,6 +2,7 @@ package io.antmedia.streamsource;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.red5.logging.Red5LoggerFactory;
 import org.red5.server.adapter.MultiThreadedApplicationAdapter;
@@ -29,7 +30,7 @@ public class StreamFetcherManager {
 
 	private int streamCheckerCount = 0;
 
-	private List<StreamFetcher> streamFetcherList = new ArrayList<>();
+	private ConcurrentLinkedQueue<StreamFetcher> streamFetcherList = new ConcurrentLinkedQueue<>();
 
 	private int streamCheckerInterval = 10000;
 
@@ -165,11 +166,11 @@ public class StreamFetcherManager {
 		this.datastore = datastore;
 	}
 
-	public List<StreamFetcher> getStreamFetcherList() {
+	public ConcurrentLinkedQueue<StreamFetcher> getStreamFetcherList() {
 		return streamFetcherList;
 	}
 
-	public void setStreamFetcherList(List<StreamFetcher> streamFetcherList) {
+	public void setStreamFetcherList(ConcurrentLinkedQueue<StreamFetcher> streamFetcherList) {
 		this.streamFetcherList = streamFetcherList;
 	}
 
