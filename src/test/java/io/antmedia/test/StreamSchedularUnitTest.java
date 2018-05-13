@@ -42,6 +42,7 @@ import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.integration.RestServiceTest;
@@ -98,9 +99,6 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			logger.debug("Application / web scope: {}", appScope);
 			assertTrue(appScope.getDepth() == 1);
 		}
-
-
-
 	}
 
 	@After
@@ -235,7 +233,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 			Broadcast newCam = null;
 
-			StreamFetcher streamScheduler = new StreamFetcher(newCam, appScope);
+			new StreamFetcher(newCam, appScope);
 
 			fail("it should throw exception above");
 		}
@@ -245,7 +243,6 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		try {
 			AVFormatContext inputFormatContext = new AVFormatContext();
-
 
 			Broadcast newCam2 = new Broadcast("test", "10.2.40.63:8080", "admin", "admin", null, "ipCamera");
 			newCam2.setStreamId("newcam2_" + (int)(Math.random()*10000));
@@ -260,10 +257,8 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-
 	}
-
-
+	
 
 	public void testIPTVStream() {
 
@@ -324,17 +319,19 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	@Test
 	public void testBandwidth() {
 
-		RestServiceTest restService = new RestServiceTest();
+		IDataStore dataStore = app.getDataStore();
+		assertNotNull(dataStore);
 
 		Broadcast newSource = new Broadcast("testBandwidth", "10.2.40.63:8080", "admin", "admin", "rtsp://184.72.239.149/vod/mp4:BigBuckBunny_115k.mov",
 				AntMediaApplicationAdapter.STREAM_SOURCE);
 
-		restService.save(newSource);
+		dataStore.save(newSource);
 
 		Broadcast newZombiSource = new Broadcast("testBandwidth", "10.2.40.63:8080", "admin", "admin", "rtsp://184.72.239.149/vod/mp4:BigBuckBunny_115k.mov",
 				AntMediaApplicationAdapter.STREAM_SOURCE);
 
 		newZombiSource.setZombi(true);
+		dataStore.save(newZombiSource);
 
 
 
@@ -353,9 +350,9 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		logger.info("before first control");
 
-		Broadcast stream = restService.getBroadcast(newSource.getStreamId());
+		Broadcast stream = dataStore.get(newSource.getStreamId());
 
-		List<Broadcast> list = restService.callGetBroadcastList();
+		List<Broadcast> list =  dataStore.getBroadcastList(0,  20);
 
 		Broadcast fetchedBroadcast=new Broadcast();
 
@@ -383,95 +380,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		assertTrue(1 < stream.getSpeed());
 
-		String[] argsStop = new String[] { "/bin/bash", "-c",
-		"sudo wondershaper -a wlan0 -d 100 -u 100" };
-		try {
-			Process procStop = new ProcessBuilder(argsStop).start();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		String[] argsStop2 = new String[] { "/bin/bash", "-c",
-		"sudo wondershaper -a eth0 -d 100 -u 100" };
-		try {
-			Process procStop = new ProcessBuilder(argsStop2).start();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		String[] argsStop3 = new String[] { "/bin/bash", "-c",
-		"sudo wondershaper -a nic0 -d 100 -u 100" };
-		try {
-			Process procStop = new ProcessBuilder(argsStop3).start();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		String[] argsStop4 = new String[] { "/bin/bash", "-c",
-		"sudo wondershaper -a nic1 -d 100 -u 100" };
-		try {
-			Process procStop = new ProcessBuilder(argsStop4).start();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		String[] argsStop5 = new String[] { "/bin/bash", "-c",
-		"sudo wondershaper -a nic2 -d 100 -u 100" };
-		try {
-			Process procStop = new ProcessBuilder(argsStop5).start();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-		String[] argsStop6 = new String[] { "/bin/bash", "-c",
-		"sudo wondershaper -a nic3 -d 100 -u 100" };
-		try {
-			Process procStop = new ProcessBuilder(argsStop6).start();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		String[] argsStop7 = new String[] { "/bin/bash", "-c",
-		"sudo wondershaper -a nic4 -d 100 -u 100" };
-		try {
-			Process procStop = new ProcessBuilder(argsStop7).start();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		String[] argsStop8 = new String[] { "/bin/bash", "-c",
-		"sudo wondershaper -a vmnet0 -d 100 -u 100" };
-		try {
-			Process procStop = new ProcessBuilder(argsStop8).start();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		String[] argsStop9 = new String[] { "/bin/bash", "-c",
-		"sudo wondershaper -a vmnet1 -d 100 -u 100" };
-		try {
-			Process procStop = new ProcessBuilder(argsStop9).start();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		String[] argsStop10 = new String[] { "/bin/bash", "-c",
-		"sudo wondershaper -a em1 -d 100 -u 100" };
-		try {
-			Process procStop = new ProcessBuilder(argsStop10).start();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		String[] argsStop11 = new String[] { "/bin/bash", "-c",
-		"sudo wondershaper -a em0 -d 100 -u 100" };
-		try {
-			Process procStop = new ProcessBuilder(argsStop11).start();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		limitNetworkInterfaceBandwidth();
 
 
 
@@ -484,26 +393,21 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		logger.info("before second control");
 
-		assertNotEquals("poor", restService.getBroadcast(newSource.getStreamId()).getQuality());
+		assertNotEquals("poor", dataStore.get(newSource.getStreamId()).getQuality());
 
 
-		/*
-		ProcessBuilder pb2 = new ProcessBuilder("/usr/local/wondershaper/reset.sh" , "myArg1", "myArg2");
-		Process p2 = null;
-		try {
-			p2 = pb2.start();
-		} catch (IOException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
-		 */
+		resetNetworkInterface();
 
+
+
+	}
+
+	private void resetNetworkInterface() {
 		String[] argsReset= new String[] { "/bin/bash", "-c",
 		"sudo wondershaper -c -a wlan0" };
 		try {
 			Process procStop = new ProcessBuilder(argsReset).start();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 
@@ -512,7 +416,6 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		try {
 			Process procStop = new ProcessBuilder(argsReset2).start();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		String[] argsReset3= new String[] { "/bin/bash", "-c",
@@ -520,7 +423,6 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		try {
 			Process procStop = new ProcessBuilder(argsReset3).start();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		String[] argsReset4= new String[] { "/bin/bash", "-c",
@@ -528,7 +430,6 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		try {		logger.warn("thread isRunning");
 		Process procStop = new ProcessBuilder(argsReset4).start();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		String[] argsReset5= new String[] { "/bin/bash", "-c",
@@ -536,7 +437,6 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		try {
 			Process procStop = new ProcessBuilder(argsReset5).start();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		String[] argsReset6= new String[] { "/bin/bash", "-c",
@@ -544,7 +444,6 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		try {
 			Process procStop = new ProcessBuilder(argsReset6).start();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		String[] argsReset7= new String[] { "/bin/bash", "-c",
@@ -552,7 +451,6 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		try {
 			Process procStop = new ProcessBuilder(argsReset7).start();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		String[] argsReset8= new String[] { "/bin/bash", "-c",
@@ -560,7 +458,6 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		try {
 			Process procStop = new ProcessBuilder(argsReset8).start();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		String[] argsReset9= new String[] { "/bin/bash", "-c",
@@ -568,7 +465,6 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		try {
 			Process procStop = new ProcessBuilder(argsReset9).start();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		String[] argsReset10= new String[] { "/bin/bash", "-c",
@@ -576,7 +472,6 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		try {
 			Process procStop = new ProcessBuilder(argsReset10).start();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		String[] argsReset11= new String[] { "/bin/bash", "-c",
@@ -584,12 +479,89 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		try {
 			Process procStop = new ProcessBuilder(argsReset11).start();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
+	private void limitNetworkInterfaceBandwidth() {
+		String[] argsStop = new String[] { "/bin/bash", "-c",
+		"sudo wondershaper -a wlan0 -d 100 -u 100" };
+		try {
+			Process procStop = new ProcessBuilder(argsStop).start();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		String[] argsStop2 = new String[] { "/bin/bash", "-c",
+		"sudo wondershaper -a eth0 -d 100 -u 100" };
+		try {
+			Process procStop = new ProcessBuilder(argsStop2).start();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		String[] argsStop3 = new String[] { "/bin/bash", "-c",
+		"sudo wondershaper -a nic0 -d 100 -u 100" };
+		try {
+			Process procStop = new ProcessBuilder(argsStop3).start();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		String[] argsStop4 = new String[] { "/bin/bash", "-c",
+		"sudo wondershaper -a nic1 -d 100 -u 100" };
+		try {
+			Process procStop = new ProcessBuilder(argsStop4).start();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		String[] argsStop5 = new String[] { "/bin/bash", "-c",
+		"sudo wondershaper -a nic2 -d 100 -u 100" };
+		try {
+			Process procStop = new ProcessBuilder(argsStop5).start();
+		} catch (IOException e) {
 			e.printStackTrace();
 		}
 
-
-
+		String[] argsStop6 = new String[] { "/bin/bash", "-c",
+		"sudo wondershaper -a nic3 -d 100 -u 100" };
+		try {
+			Process procStop = new ProcessBuilder(argsStop6).start();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		String[] argsStop7 = new String[] { "/bin/bash", "-c",
+		"sudo wondershaper -a nic4 -d 100 -u 100" };
+		try {
+			Process procStop = new ProcessBuilder(argsStop7).start();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		String[] argsStop8 = new String[] { "/bin/bash", "-c",
+		"sudo wondershaper -a vmnet0 -d 100 -u 100" };
+		try {
+			Process procStop = new ProcessBuilder(argsStop8).start();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		String[] argsStop9 = new String[] { "/bin/bash", "-c",
+		"sudo wondershaper -a vmnet1 -d 100 -u 100" };
+		try {
+			Process procStop = new ProcessBuilder(argsStop9).start();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		String[] argsStop10 = new String[] { "/bin/bash", "-c",
+		"sudo wondershaper -a em1 -d 100 -u 100" };
+		try {
+			Process procStop = new ProcessBuilder(argsStop10).start();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		String[] argsStop11 = new String[] { "/bin/bash", "-c",
+		"sudo wondershaper -a em0 -d 100 -u 100" };
+		try {
+			Process procStop = new ProcessBuilder(argsStop11).start();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
 
