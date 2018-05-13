@@ -620,6 +620,9 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			File f = new File("webapps/junit/streams/"+newCam.getStreamId() +".mp4.tmp_extension");
 			assertFalse(f.exists());
 			
+			f = new File("webapps/junit/streams/"+newCam.getStreamId() +".mp4");
+			assertTrue(f.exists());
+			
 			assertTrue(MuxingTest.testFile("webapps/junit/streams/"+newCam.getStreamId() +".mp4"));
 
 			getInstance().getDataStore().delete(id);

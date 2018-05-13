@@ -235,14 +235,8 @@ public class StreamFetcher {
 								pkt.pts(pkt.dts());
 							}
 
-
 							muxAdaptor.writePacketToMuxers(inputFormatContext, pkt);
-
-							if (ret < 0) {
-								logger.info("cannot write frame to muxer");
-								break;
-							}
-
+							
 							if (stopRequestReceived) {
 								logger.warn("breaking the loop");
 								break;
@@ -252,7 +246,6 @@ public class StreamFetcher {
 
 				}
 				else {
-
 					if (inputFormatContext != null) {
 						avformat_close_input(inputFormatContext);
 					}
@@ -270,10 +263,11 @@ public class StreamFetcher {
 			} 
 
 			if (muxAdaptor != null) {
+				logger.info("Writing trailer for Muxadaptor");
+				muxAdaptor.writeTrailer();
+				
 				avformat_close_input(inputFormatContext);
 				inputFormatContext = null;
-
-				muxAdaptor.writeTrailer(inputFormatContext);
 			}
 
 			getInstance().closeBroadcast(stream.getStreamId());
