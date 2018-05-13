@@ -319,20 +319,22 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	@Test
 	public void testBandwidth() {
 
+		logger.info("running testBandwidth");
 		IDataStore dataStore = app.getDataStore();
 		assertNotNull(dataStore);
 
 		Broadcast newSource = new Broadcast("testBandwidth", "10.2.40.63:8080", "admin", "admin", "rtsp://184.72.239.149/vod/mp4:BigBuckBunny_115k.mov",
 				AntMediaApplicationAdapter.STREAM_SOURCE);
 
+		//add stream to data store
 		dataStore.save(newSource);
 
 		Broadcast newZombiSource = new Broadcast("testBandwidth", "10.2.40.63:8080", "admin", "admin", "rtsp://184.72.239.149/vod/mp4:BigBuckBunny_115k.mov",
 				AntMediaApplicationAdapter.STREAM_SOURCE);
 
 		newZombiSource.setZombi(true);
+		//add second stream to datastore
 		dataStore.save(newZombiSource);
-
 
 
 		List<Broadcast> streams = new ArrayList<>();
@@ -340,6 +342,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		streams.add(newSource);
 		streams.add(newZombiSource);
 
+		//let stream fetching start
 		app.getStreamFetcherManager().startStreams(streams);
 
 		try {
@@ -350,13 +353,11 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		logger.info("before first control");
 
-		Broadcast stream = dataStore.get(newSource.getStreamId());
+		List<Broadcast> broadcastList =  dataStore.getBroadcastList(0,  20);
 
-		List<Broadcast> list =  dataStore.getBroadcastList(0,  20);
+		Broadcast fetchedBroadcast = null;
 
-		Broadcast fetchedBroadcast=new Broadcast();
-
-		for (Broadcast broadcast : list) {
+		for (Broadcast broadcast : broadcastList) {
 
 			if(broadcast.isZombi()) {
 
@@ -364,30 +365,23 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 				break;
 			}
 		}
-		try {
-			Thread.sleep(2000);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
 
+		assertNotNull(fetchedBroadcast);
 		assertNotNull(fetchedBroadcast.getQuality());
-
 		assertNotNull(fetchedBroadcast.getSpeed());
 
+		Broadcast stream = dataStore.get(newSource.getStreamId());
 		assertEquals("good", stream.getQuality());	
 
-		logger.info("speed{}" + stream.getSpeed()) ;
+		logger.info("speed {}" , stream.getSpeed()) ;
 
 		assertTrue(1 < stream.getSpeed());
 
 		limitNetworkInterfaceBandwidth();
 
-
-
 		try {
 			Thread.sleep(10000);
 		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 
@@ -395,9 +389,21 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		assertNotEquals("poor", dataStore.get(newSource.getStreamId()).getQuality());
 
-
 		resetNetworkInterface();
 
+		for (Broadcast broadcast: broadcastList) {
+			app.getStreamFetcherManager().stopStreaming(broadcast);
+		}
+		
+		try {
+			Thread.sleep(3000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+
+		//list size should be zero
+		assertEquals(0, app.getStreamFetcherManager().getStreamFetcherList().size());
+		logger.info("leaving testBandwidth");
 
 
 	}

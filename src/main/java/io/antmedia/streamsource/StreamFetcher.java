@@ -334,15 +334,14 @@ public class StreamFetcher {
 		return thread.isInterrupted();
 	}
 
-	public void stopStream() {
-
-		if(getThread()!=null) {
+	public void stopStream() 
+	{
+		if (getThread() != null) {
 			logger.warn("stop stream called");
 			getThread().setStopRequestReceived();
 
 		}else {
-
-			logger.warn("thread is null");
+			logger.warn("stop stream is called and thread is null");
 		}
 	}
 
