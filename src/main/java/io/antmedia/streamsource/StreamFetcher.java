@@ -81,7 +81,10 @@ public class StreamFetcher {
 	private long[] lastDTS;
 	private MuxAdaptor muxAdaptor = null;
 
-	public StreamFetcher(Broadcast stream, IScope scope) {
+	public StreamFetcher(Broadcast stream, IScope scope) throws Exception {
+		if (stream == null || stream.getStreamId() == null) {
+			throw new Exception("Stream or stream's id is null");
+		}
 		this.stream = stream;
 		this.scope=scope;
 

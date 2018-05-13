@@ -62,22 +62,26 @@ public class StreamFetcherManager {
 
 	public Result startStreaming(Broadcast broadcast) {	
 
-		Result result=new Result(true);
-
-
-		StreamFetcher streamScheduler = new StreamFetcher(broadcast,scope);
-		streamFetcherList.add(streamScheduler);
-		streamScheduler.startStream();
+		Result result=new Result(false);
 
 		try {
-			Thread.sleep(6000);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-			Thread.currentThread().interrupt();
-		}
+			StreamFetcher streamScheduler = new StreamFetcher(broadcast,scope);
+			streamFetcherList.add(streamScheduler);
+			streamScheduler.startStream();
 
-		if(!streamScheduler.getCameraError().isSuccess()) {
-			result=streamScheduler.getCameraError();
+			try {
+				Thread.sleep(6000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+				Thread.currentThread().interrupt();
+			}
+
+			if(!streamScheduler.getCameraError().isSuccess()) {
+				result=streamScheduler.getCameraError();
+			}
+		}
+		catch (Exception e) {
+			e.printStackTrace();
 		}
 
 		return result;

@@ -12,6 +12,7 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
@@ -159,87 +160,102 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	 */
 	public void testStreamSchedular() throws InterruptedException {
 
-		AVFormatContext inputFormatContext = new AVFormatContext();
+		try {
+			AVFormatContext inputFormatContext = new AVFormatContext();
 
-		Broadcast newCam = new Broadcast("testSchedular", "10.2.40.63:8080", "admin", "admin",
-				"rtsp://184.72.239.149/vod/mp4:BigBuckBunny_115k.mov", "streamSource");
+			Broadcast newCam = new Broadcast("testSchedular", "10.2.40.63:8080", "admin", "admin",
+					"rtsp://184.72.239.149/vod/mp4:BigBuckBunny_115k.mov", "streamSource");
 
-		StreamFetcher camScheduler = new StreamFetcher(newCam, appScope);
+			StreamFetcher camScheduler = new StreamFetcher(newCam, appScope);
 
-		camScheduler.setConnectionTimeout(10000);
+			camScheduler.setConnectionTimeout(10000);
 
-		camScheduler.startStream();
-		Thread.sleep(7000);
+			camScheduler.startStream();
+			Thread.sleep(7000);
 
-		//this should be false because this rtsp url cannot be used
+			//this should be false because this rtsp url cannot be used
 
-		assertTrue(camScheduler.isStreamAlive());
+			assertTrue(camScheduler.isStreamAlive());
 
-		camScheduler.stopStream();
+			camScheduler.stopStream();
 
-		Thread.sleep(5000);
+			Thread.sleep(5000);
 
-		assertFalse(camScheduler.isStreamAlive());
+			assertFalse(camScheduler.isStreamAlive());
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
 
 	}
 
 
 	@Test
 	public void testStreamSchedularConnectionTimeout() throws InterruptedException {
+		try {
+			long size = 1232;
 
-		long size = 1232;
+			AVFormatContext inputFormatContext = new AVFormatContext();
 
-		AVFormatContext inputFormatContext = new AVFormatContext();
-
-		Broadcast newCam = new Broadcast("testSchedular2", "10.2.40.64:8080", "admin", "admin",
-				"rtsp://11.2.40.63:8554/live1.sdp", "ipCamera");
+			Broadcast newCam = new Broadcast("testSchedular2", "10.2.40.64:8080", "admin", "admin",
+					"rtsp://11.2.40.63:8554/live1.sdp", "ipCamera");
 
 
 
-		StreamFetcher streamScheduler = new StreamFetcher(newCam, appScope);
+			StreamFetcher streamScheduler = new StreamFetcher(newCam, appScope);
 
-		assertFalse(streamScheduler.isExceptionInThread());
+			assertFalse(streamScheduler.isExceptionInThread());
 
-		streamScheduler.startStream();
+			streamScheduler.startStream();
 
-		streamScheduler.setConnectionTimeout(3000);
+			streamScheduler.setConnectionTimeout(3000);
 
-		//this should be false because stream is not alive 
-		assertFalse(streamScheduler.isStreamAlive());
+			//this should be false because stream is not alive 
+			assertFalse(streamScheduler.isStreamAlive());
 
-		Thread.sleep(2500);
+			Thread.sleep(2500);
 
-		streamScheduler.stopStream();
+			streamScheduler.stopStream();
 
-		Thread.sleep(6000);
+			Thread.sleep(6000);
 
-		assertFalse(streamScheduler.isStreamAlive());
+			assertFalse(streamScheduler.isStreamAlive());
 
-		assertFalse(streamScheduler.isExceptionInThread());
+			assertFalse(streamScheduler.isExceptionInThread());
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
 	}
 
 	@Test
 	public void testPrepareInput() throws InterruptedException {
+		try {
 
-		long size = 1232;
+			AVFormatContext inputFormatContext = new AVFormatContext();
 
-		AVFormatContext inputFormatContext = new AVFormatContext();
+			Broadcast newCam = null;
 
-		Broadcast newCam = null;
+			StreamFetcher streamScheduler = new StreamFetcher(newCam, appScope);
 
-		StreamFetcher streamScheduler = new StreamFetcher(newCam, appScope);
+			Result result= streamScheduler.prepareInput(inputFormatContext);
 
-		Result result= streamScheduler.prepareInput(inputFormatContext);
+			assertFalse(result.isSuccess());
 
-		assertFalse(result.isSuccess());
+			Broadcast newCam2 = new Broadcast("test", "10.2.40.63:8080", "admin", "admin", null, "ipCamera");
 
-		Broadcast newCam2 = new Broadcast("test", "10.2.40.63:8080", "admin", "admin", null, "ipCamera");
+			StreamFetcher streamScheduler2 = new StreamFetcher(newCam2, appScope);
 
-		StreamFetcher streamScheduler2 = new StreamFetcher(newCam2, appScope);
+			Result result2= streamScheduler2.prepareInput(inputFormatContext);
 
-		Result result2= streamScheduler2.prepareInput(inputFormatContext);
-
-		assertFalse(result.isSuccess());
+			assertFalse(result.isSuccess());
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
 
 	}
 
@@ -366,10 +382,6 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		logger.info("speed{}" + stream.getSpeed()) ;
 
 		assertTrue(1 < stream.getSpeed());
-
-
-
-
 
 		String[] argsStop = new String[] { "/bin/bash", "-c",
 		"sudo wondershaper -a wlan0 -d 100 -u 100" };
