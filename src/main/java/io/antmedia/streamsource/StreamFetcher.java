@@ -158,8 +158,6 @@ public class StreamFetcher {
 	}
 
 	public Result prepare(AVFormatContext inputFormatContext) {
-
-
 		Result result = prepareInput(inputFormatContext);
 
 		setCameraError(result);

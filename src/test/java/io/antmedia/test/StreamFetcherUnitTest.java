@@ -92,6 +92,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			logger.debug("Application / web scope: {}", appScope);
 			assertTrue(appScope.getDepth() == 1);
 		}
+		
+		stopCameraEmulator();
 
 
 	}
@@ -147,7 +149,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		//wait 5seconds because connectivity time out is 4sec by default
 		try {
-			Thread.sleep(7000);
+			Thread.sleep(5000);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
@@ -214,7 +216,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			// thread start 
 			fetcher.startStream();
 
-			Thread.sleep(10000);
+			Thread.sleep(6000);
 
 			//check that thread is running
 			assertTrue(fetcher.isThreadActive());
@@ -224,7 +226,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			//stop thread
 			fetcher.stopStream();
 
-			Thread.sleep(6000);
+			Thread.sleep(5000);
 
 			assertFalse(fetcher.isStreamAlive());
 			assertFalse(fetcher.isThreadActive());
@@ -235,7 +237,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			//start thread
 			fetcher.startStream();
 
-			Thread.sleep(8000);
+			Thread.sleep(6000);
 			//check that thread is not started because thread active is true
 			assertFalse(fetcher.isStreamAlive());
 			assertTrue(fetcher.isThreadActive());
@@ -246,7 +248,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			fetcher.setThreadActive(false);
 
 			//wait a little
-			Thread.sleep(8000);
+			Thread.sleep(5000);
 
 			//check that thread is started
 			assertTrue(fetcher.isStreamAlive());
@@ -298,7 +300,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			// thread start 
 			fetcher.startStream();
 
-			Thread.sleep(12000);
+			Thread.sleep(8000);
 
 			String str=fetcher.getCameraError().getMessage();
 			logger.info("error:   "+str);
@@ -331,7 +333,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			// thread start 
 			fetcher2.startStream();
 
-			Thread.sleep(12000);
+			Thread.sleep(6000);
 
 			String str2=fetcher2.getCameraError().getMessage();
 			logger.info("error2:   "+str2);
@@ -375,7 +377,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			// thread start 
 			fetcher3.startStream();
 
-			Thread.sleep(12000);
+			Thread.sleep(6000);
 
 			String str3=fetcher3.getCameraError().getMessage();
 			logger.info("error:   "+str3);
@@ -422,8 +424,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		assertEquals(0, app.getStreamFetcherManager().getStreamFetcherList().size());
 
-		//sets stream fetcher configuration, it checks streams in every 30sec
-		app.getStreamFetcherManager().setStreamCheckerInterval(30000);
+		//sets stream fetcher configuration, it checks streams in every 15sec
+		app.getStreamFetcherManager().setStreamCheckerInterval(15000);
 		logger.info("starting new streams in testCameraCheckerStartStop");
 		app.getStreamFetcherManager().startStreams(cameras);
 		logger.info("started new streams in testCameraCheckerStartStop");
@@ -454,8 +456,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		try {
 
-			//wait more than 30sec to make sure scheduler start the stream again
-			Thread.sleep(35000);
+			//wait more than 15sec to make sure scheduler start the stream again
+			Thread.sleep(18000);
 
 		} catch (InterruptedException e) {
 			e.printStackTrace();
@@ -494,8 +496,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		startCameraEmulator();
 
 		try {
-			//wait more than 30sec to make sure stream is started again
-			Thread.sleep(35000);
+			//wait more than 15sec to make sure stream is started again
+			Thread.sleep(18000);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}

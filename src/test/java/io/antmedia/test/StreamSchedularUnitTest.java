@@ -55,11 +55,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 	public AntMediaApplicationAdapter app = null;
 	private WebScope appScope;
-	private MapDBStore dbStore;
-	private ApplicationContext appCtx;
-	private IScope scope;
 	protected static Logger logger = LoggerFactory.getLogger(StreamSchedularUnitTest.class);
-	private BroadcastRestService rest;
 
 	@Context
 	private ServletContext servletContext;
@@ -215,7 +211,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 			streamScheduler.stopStream();
 
-			Thread.sleep(6000);
+			Thread.sleep(3000);
 
 			assertFalse(streamScheduler.isStreamAlive());
 
@@ -238,7 +234,6 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			fail("it should throw exception above");
 		}
 		catch (Exception e) {
-			//
 		}
 
 		try {
@@ -250,12 +245,8 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			new StreamFetcher(newCam2, appScope);
 
 			fail("it should throw exception above");
-			
-
 		}
 		catch (Exception e) {
-		
-			
 		}
 	}
 	
@@ -346,7 +337,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		app.getStreamFetcherManager().startStreams(streams);
 
 		try {
-			Thread.sleep(24000);
+			Thread.sleep(10000);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
@@ -380,7 +371,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		limitNetworkInterfaceBandwidth();
 
 		try {
-			Thread.sleep(10000);
+			Thread.sleep(5000);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
