@@ -538,27 +538,38 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 	@Test
 	public void testStreamFetcherSources() {
+		logger.info("running testStreamFetcherSources src/test/resources/test_video_360p.flv");
 		//test FLV Source
 		testFetchStreamSources("src/test/resources/test_video_360p.flv");
 
+		
+		logger.info("running testStreamFetcherSources rtmp://184.72.239.149/vod/mp4:bigbuckbunny_1500.mp4");
 		//test RTMP Source
 		testFetchStreamSources("rtmp://184.72.239.149/vod/mp4:bigbuckbunny_1500.mp4");
 
-		//test RTSP Source
-		testFetchStreamSources("rtsp://admin:Admin12345@71.234.93.90:5001/11");
+		logger.info("running testStreamFetcherSources rtsp://127.0.0.1:6554/test.flv");
+		startCameraEmulator();
+		 //test RTSP Source
+		testFetchStreamSources("rtsp://127.0.0.1:6554/test.flv");
+		stopCameraEmulator();
 
 	}
 
 	@Test
 	public void testHLSSource() {
+		logger.info("running testHLSSource");
 		//test HLS Source
-		testFetchStreamSources("src/test/resources/test.m3u8");		
+		testFetchStreamSources("src/test/resources/test.m3u8");	
+		logger.info("leaving testHLSSource");
 	}
 
 	@Test
 	public void testTSSource() {
+		logger.info("running testTSSource");
 		//test TS Source
 		testFetchStreamSources("src/test/resources/test.ts");
+		logger.info("leaving testTSSource");
+		
 	}
 
 
