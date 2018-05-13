@@ -49,7 +49,6 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	private WebScope appScope;
 	protected static Logger logger = LoggerFactory.getLogger(StreamFetcherUnitTest.class);
 	public AntMediaApplicationAdapter app = null;
-	//private RestServiceTest rest=new RestServiceTest();
 	private AntMediaApplicationAdapter appInstance;
 	private AppSettings appSettings;
 
@@ -108,8 +107,6 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-
-
 	}
 
 
@@ -347,19 +344,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			Thread.sleep(2000);
 
-			//start emulator
-
-
-
 		} catch (Exception e) {
-			e.printStackTrace();
-		}
-
-
-
-		try {
-			Thread.sleep(2000);
-		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
 
@@ -377,9 +362,11 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			Broadcast newCam3 = new Broadcast("onvifCam4", "127.0.0.1:8080", "admin", "admin", "rtsp://127.0.0.1:6554/test.flv",
 					AntMediaApplicationAdapter.IP_CAMERA);
 			assertNotNull(newCam3.getStreamUrl());
+			
+			
+			newCam3.setStreamId("stream_id_" + (int)(Math.random() * 100000));
 
 
-			//		rest.save(newCam3);
 			Thread.sleep(3000);
 
 
