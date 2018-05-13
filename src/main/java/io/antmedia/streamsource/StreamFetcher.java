@@ -76,7 +76,6 @@ public class StreamFetcher {
 	private Result cameraError=new Result(false,"");
 	private static final int PACKET_RECEIVED_INTERVAL_TIMEOUT = 3000;
 	private IScope scope;
-	private ApplicationContext appCtx;
 	private AntMediaApplicationAdapter appInstance;
 	private long[] lastDTS;
 	private MuxAdaptor muxAdaptor = null;
@@ -109,13 +108,9 @@ public class StreamFetcher {
 		if (streamUrl.startsWith("rtsp://")) {
 			av_dict_set(optionsDictionary, "rtsp_transport", "tcp", 0);
 		}
-		else {
-
-		}
 
 		String timeout = String.valueOf(this.timeout);
 		av_dict_set(optionsDictionary, "stimeout", timeout, 0);
-
 
 		int ret;
 
@@ -133,8 +128,6 @@ public class StreamFetcher {
 			logger.info("cannot open input context with error::" +result.getMessage());
 			return result;
 		}
-
-
 
 		av_dict_free(optionsDictionary);
 
@@ -163,22 +156,6 @@ public class StreamFetcher {
 		setCameraError(result);
 
 		return result;
-
-	}
-
-	public AppSettings getAppSettings() {
-
-		AppSettings appSettings =null;
-
-		appCtx = scope.getContext().getApplicationContext();
-
-		if (appCtx.containsBean("app.settings"))  {
-
-			logger.warn("::::: settings found::::::::.");
-			appSettings = (AppSettings) appCtx.getBean("app.settings");
-
-		}
-		return appSettings;
 
 	}
 
