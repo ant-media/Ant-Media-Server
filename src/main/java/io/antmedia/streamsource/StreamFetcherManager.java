@@ -137,6 +137,7 @@ public class StreamFetcherManager {
 							if (!streamScheduler.isStreamAlive()) {
 
 								Broadcast stream = streamScheduler.getStream();
+								logger.info("stream is not alive {}", stream.getStreamId());
 								if (datastore != null && stream.getStreamId() != null) {
 									logger.info("Updating stream status to finished, updating status of stream {}", stream.getStreamId() );
 									datastore.updateStatus(stream.getStreamId() , 

@@ -247,15 +247,15 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			Broadcast newCam2 = new Broadcast("test", "10.2.40.63:8080", "admin", "admin", null, "ipCamera");
 			newCam2.setStreamId("newcam2_" + (int)(Math.random()*10000));
 
-			StreamFetcher streamScheduler2 = new StreamFetcher(newCam2, appScope);
+			new StreamFetcher(newCam2, appScope);
 
-			Result result2= streamScheduler2.prepareInput(inputFormatContext);
+			fail("it should throw exception above");
+			
 
-			assertFalse(result2.isSuccess());
 		}
 		catch (Exception e) {
-			e.printStackTrace();
-			fail(e.getMessage());
+		
+			
 		}
 	}
 	
@@ -427,12 +427,12 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 		String[] argsReset4= new String[] { "/bin/bash", "-c",
 		"sudo wondershaper -c -a nic1" };
-		try {		logger.warn("thread isRunning");
-		Process procStop = new ProcessBuilder(argsReset4).start();
+		try {		
+			Process procStop = new ProcessBuilder(argsReset4).start();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		String[] argsReset5= new String[] { "/bin/bash", "-c",
+		String[] argsReset5 = new String[] { "/bin/bash", "-c",
 		"sudo wondershaper -c -a nic2" };
 		try {
 			Process procStop = new ProcessBuilder(argsReset5).start();

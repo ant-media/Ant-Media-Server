@@ -82,8 +82,9 @@ public class StreamFetcher {
 	private MuxAdaptor muxAdaptor = null;
 
 	public StreamFetcher(Broadcast stream, IScope scope) throws Exception {
-		if (stream == null || stream.getStreamId() == null) {
-			throw new Exception("Stream or stream's id is null");
+		if (stream == null || stream.getStreamId() == null || stream.getStreamUrl() == null) {
+			throw new Exception("Stream is not initialized properly. Check stream("+stream+"), "
+						+ " stream id(" + stream.getStreamId() + ") and stream url("+ stream.getStreamUrl() +") values");
 		}
 		this.stream = stream;
 		this.scope=scope;
@@ -99,11 +100,6 @@ public class StreamFetcher {
 		Result result = new Result(false);
 		if (inputFormatContext == null) {
 			logger.info("cannot allocate input context");
-			return result;
-		}
-
-		if (stream == null || stream.getStreamUrl() == null) {
-			logger.info("stream is null");
 			return result;
 		}
 
