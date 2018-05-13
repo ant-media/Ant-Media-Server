@@ -611,8 +611,15 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
+			
+			assertFalse(fetcher.isThreadActive());
 
 			assertTrue(MuxingTest.testFile("webapps/junit/streams/"+newCam.getStreamId() +".m3u8"));
+			
+			//tmp file should be deleted
+			File f = new File("webapps/junit/streams/"+newCam.getStreamId() +".mp4.tmp_extension");
+			assertFalse(f.exists());
+			
 			assertTrue(MuxingTest.testFile("webapps/junit/streams/"+newCam.getStreamId() +".mp4"));
 
 			getInstance().getDataStore().delete(id);
