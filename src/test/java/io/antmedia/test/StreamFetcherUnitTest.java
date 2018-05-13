@@ -94,8 +94,24 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 		
 		stopCameraEmulator();
-
-
+		
+		AppSettings defaultSettings = new AppSettings();
+		
+		//reset values in the bean
+		getAppSettings().setMp4MuxingEnabled(defaultSettings.isMp4MuxingEnabled());
+		getAppSettings().setHlsMuxingEnabled(defaultSettings.isHlsMuxingEnabled());
+		getAppSettings().setAddDateTimeToMp4FileName(false);
+		
+		getAppSettings().setMp4MuxingEnabled(defaultSettings.isMp4MuxingEnabled());
+		getAppSettings().setAddDateTimeToMp4FileName(defaultSettings.isAddDateTimeToMp4FileName());
+		getAppSettings().setHlsMuxingEnabled(defaultSettings.isHlsMuxingEnabled());
+		getAppSettings().setWebRTCEnabled(defaultSettings.isWebRTCEnabled());
+		getAppSettings().setDeleteHLSFilesOnEnded(defaultSettings.isDeleteHLSFilesOnExit());
+		getAppSettings().setHlsListSize(defaultSettings.getHlsListSize());
+		getAppSettings().setHlsTime(defaultSettings.getHlsTime());
+		getAppSettings().setHlsPlayListType(defaultSettings.getHlsPlayListType());
+		getAppSettings().setAdaptiveResolutionList(defaultSettings.getAdaptiveResolutionList());
+		
 	}
 
 	@After
@@ -587,6 +603,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 			getAppSettings().setMp4MuxingEnabled(true);
+			getAppSettings().setHlsMuxingEnabled(true);
 
 			StreamFetcher fetcher = new StreamFetcher(newCam, appScope);
 
