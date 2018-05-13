@@ -194,14 +194,13 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	@Test
 	public void testStreamSchedularConnectionTimeout() throws InterruptedException {
 		try {
-			long size = 1232;
 
 			AVFormatContext inputFormatContext = new AVFormatContext();
 
 			Broadcast newCam = new Broadcast("testSchedular2", "10.2.40.64:8080", "admin", "admin",
 					"rtsp://11.2.40.63:8554/live1.sdp", "ipCamera");
 
-
+			newCam.setStreamId("new_cam" + (int)(Math.random()*10000));
 
 			StreamFetcher streamScheduler = new StreamFetcher(newCam, appScope);
 
@@ -234,23 +233,28 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testPrepareInput() throws InterruptedException {
 		try {
 
-			AVFormatContext inputFormatContext = new AVFormatContext();
-
 			Broadcast newCam = null;
 
 			StreamFetcher streamScheduler = new StreamFetcher(newCam, appScope);
 
-			Result result= streamScheduler.prepareInput(inputFormatContext);
+			fail("it should throw exception above");
+		}
+		catch (Exception e) {
+			//
+		}
 
-			assertFalse(result.isSuccess());
+		try {
+			AVFormatContext inputFormatContext = new AVFormatContext();
+
 
 			Broadcast newCam2 = new Broadcast("test", "10.2.40.63:8080", "admin", "admin", null, "ipCamera");
+			newCam2.setStreamId("newcam2_" + (int)(Math.random()*10000));
 
 			StreamFetcher streamScheduler2 = new StreamFetcher(newCam2, appScope);
 
 			Result result2= streamScheduler2.prepareInput(inputFormatContext);
 
-			assertFalse(result.isSuccess());
+			assertFalse(result2.isSuccess());
 		}
 		catch (Exception e) {
 			e.printStackTrace();
@@ -341,19 +345,15 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		app.getStreamFetcherManager().startStreams(streams);
 
-
-
-
 		try {
 			Thread.sleep(24000);
 		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 
 		logger.info("before first control");
 
-		Broadcast stream=restService.getBroadcast(newSource.getStreamId());
+		Broadcast stream = restService.getBroadcast(newSource.getStreamId());
 
 		List<Broadcast> list = restService.callGetBroadcastList();
 
