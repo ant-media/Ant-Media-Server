@@ -32,6 +32,7 @@ import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
+import io.antmedia.EncoderSettings;
 import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.MapDBStore;
@@ -641,7 +642,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			assertTrue(f.exists());
 			
 			assertTrue(MuxingTest.testFile("webapps/junit/streams/"+newCam.getStreamId() +".mp4"));
-
+			
+			
 			getInstance().getDataStore().delete(id);
 		}
 		catch (Exception e) {

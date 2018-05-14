@@ -177,13 +177,13 @@ public class StreamFetcher {
 
 				if (result.isSuccess()) {
 
-					muxAdaptor = new MuxAdaptor(null);
+					muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null);
 
 					muxAdaptor.init(scope, stream.getStreamId(), false);
 					
 					logger.info("{} stream count in stream {} is {}", stream.getStreamId(), stream.getStreamUrl(), inputFormatContext.nb_streams());
 
-					if(muxAdaptor.prepareMuxers(inputFormatContext)) {
+					if(muxAdaptor.prepareInternal(inputFormatContext)) {
 
 						long currentTime = System.currentTimeMillis();
 						muxAdaptor.setStartTime(currentTime);
@@ -212,7 +212,7 @@ public class StreamFetcher {
 								pkt.pts(pkt.dts());
 							}
 
-							muxAdaptor.writePacketToMuxers(inputFormatContext, pkt);
+							muxAdaptor.writePacket(inputFormatContext.streams(pkt.stream_index()), pkt);
 							
 							if (stopRequestReceived) {
 								logger.warn("breaking the loop");
@@ -223,10 +223,6 @@ public class StreamFetcher {
 
 				}
 				else {
-					if (inputFormatContext != null) {
-						avformat_close_input(inputFormatContext);
-					}
-
 					logger.warn("Prepare for " + stream.getName() + " returned false");
 				}
 
@@ -241,8 +237,10 @@ public class StreamFetcher {
 
 			if (muxAdaptor != null) {
 				logger.info("Writing trailer for Muxadaptor");
-				muxAdaptor.writeTrailer();
-				
+				muxAdaptor.writeTrailer(inputFormatContext);
+			}
+			
+			if (inputFormatContext != null) {
 				avformat_close_input(inputFormatContext);
 				inputFormatContext = null;
 			}
@@ -372,7 +370,6 @@ public class StreamFetcher {
 		return cameraError;
 	}
 
-
 	public void setCameraError(Result cameraError) {
 		this.cameraError = cameraError;
 	}
@@ -382,27 +379,6 @@ public class StreamFetcher {
 
 	public void setScope(IScope scope) {
 		this.scope = scope;
-	}
-
-	private MuxAdaptor initializeMuxAdaptor(List<EncoderSettings> adaptiveResolutionList) {
-		MuxAdaptor muxAdaptor = null;
-		try {
-			if (adaptiveResolutionList != null && adaptiveResolutionList.size() > 0) 
-			{
-				Class transraterClass = Class.forName("io.antmedia.enterprise.adaptive.EncoderAdaptor");
-
-				muxAdaptor = (MuxAdaptor) transraterClass.getConstructor(ClientBroadcastStream.class, List.class)
-						.newInstance(null, adaptiveResolutionList);
-				logger.warn("::::: encoder adaptor used ::::::::");
-			}
-		} catch (Exception e) {
-			//e.printStackTrace();
-		} 
-		if (muxAdaptor == null) {
-			muxAdaptor = new MuxAdaptor(null);
-		}
-
-		return muxAdaptor;
 	}
 
 	public AntMediaApplicationAdapter getInstance() {
