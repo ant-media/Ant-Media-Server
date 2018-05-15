@@ -706,6 +706,7 @@ public class RestServiceTest {
 	@Test
 	public void testStopBroadcast() {
 		try {
+			logger.info("Running testStopBroadcast");
 			// call stop broadcast and check result is false
 
 			assertFalse(callStopBroadcastService(String.valueOf((int) (Math.random() * 1000))));
@@ -735,15 +736,19 @@ public class RestServiceTest {
 			// It should return false again because it is already closed
 			assertFalse(callStopBroadcastService(broadcast.getStreamId()));
 
-			Thread.sleep(3000);
+			Thread.sleep(5000);
 
 			broadcastReturned = callGetBroadcast(broadcast.getStreamId());
 
-			assertEquals(broadcastReturned.getStatus(), "finished");
+			assertEquals("finished", broadcastReturned.getStatus());
+			
+			
 		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+		
+		logger.info("leaving testStopBroadcast");
 	}
 
 

@@ -343,7 +343,7 @@ public class MuxingTest {
 		}
 
 		if ((ret = avformat_open_input(inputFormatContext, absolutePath, null, (AVDictionary) null)) < 0) {
-			System.out.println("cannot open input context");
+			System.out.println("cannot open input context: " + absolutePath);
 			return false;
 		}
 

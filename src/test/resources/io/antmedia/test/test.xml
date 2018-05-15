@@ -127,6 +127,8 @@
 		<property name="waitForTasksToCompleteOnShutdown" value="true" />
 		<property name="threadNamePrefix" value="MuxerScheduler-" />
 	</bean>
+	
+	<bean id="app.settings" class="io.antmedia.AppSettings"></bean>
 
 
 

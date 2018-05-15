@@ -7,6 +7,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -22,6 +23,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mongodb.morphia.Datastore;
 import org.red5.server.scope.WebScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,10 +31,15 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.AppSettings;
+import io.antmedia.EncoderSettings;
 import io.antmedia.datastore.db.IDataStore;
+import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.integration.MuxingTest;
 import io.antmedia.integration.RestServiceTest;
+import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.streamsource.StreamFetcher;
 
 @ContextConfiguration(locations = { "test.xml" })
@@ -43,7 +50,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	private WebScope appScope;
 	protected static Logger logger = LoggerFactory.getLogger(StreamFetcherUnitTest.class);
 	public AntMediaApplicationAdapter app = null;
-	private RestServiceTest rest=new RestServiceTest();
+	private AntMediaApplicationAdapter appInstance;
+	private AppSettings appSettings;
 
 
 	static {
@@ -62,6 +70,16 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	@Before
 	public void before() {
 
+		File webApps = new File("webapps");
+		if (!webApps.exists()) {
+			webApps.mkdirs();
+		}
+		File junit = new File(webApps, "junit");
+		if (!junit.exists()) {
+			junit.mkdirs();
+		}
+
+
 		if (appScope == null) {
 			appScope = (WebScope) applicationContext.getBean("web.scope");
 			logger.debug("Application / web scope: {}", appScope);
@@ -75,15 +93,39 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			logger.debug("Application / web scope: {}", appScope);
 			assertTrue(appScope.getDepth() == 1);
 		}
-
-
-
+		
+		stopCameraEmulator();
+		
+		AppSettings defaultSettings = new AppSettings();
+		
+		//reset values in the bean
+		getAppSettings().setMp4MuxingEnabled(defaultSettings.isMp4MuxingEnabled());
+		getAppSettings().setHlsMuxingEnabled(defaultSettings.isHlsMuxingEnabled());
+		getAppSettings().setAddDateTimeToMp4FileName(false);
+		
+		getAppSettings().setMp4MuxingEnabled(defaultSettings.isMp4MuxingEnabled());
+		getAppSettings().setAddDateTimeToMp4FileName(defaultSettings.isAddDateTimeToMp4FileName());
+		getAppSettings().setHlsMuxingEnabled(defaultSettings.isHlsMuxingEnabled());
+		getAppSettings().setWebRTCEnabled(defaultSettings.isWebRTCEnabled());
+		getAppSettings().setDeleteHLSFilesOnEnded(defaultSettings.isDeleteHLSFilesOnExit());
+		getAppSettings().setHlsListSize(defaultSettings.getHlsListSize());
+		getAppSettings().setHlsTime(defaultSettings.getHlsTime());
+		getAppSettings().setHlsPlayListType(defaultSettings.getHlsPlayListType());
+		getAppSettings().setAdaptiveResolutionList(defaultSettings.getAdaptiveResolutionList());
+		
 	}
 
 	@After
 	public void after() {
+
 		appScope = null;
 		app = null;
+
+		try {
+			delete(new File("webapps"));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
 
@@ -124,7 +166,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		//wait 5seconds because connectivity time out is 4sec by default
 		try {
-			Thread.sleep(7000);
+			Thread.sleep(5000);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
@@ -183,21 +225,15 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			assertNotNull(newCam.getStreamId());
 
-			StreamFetcher fetcher = new StreamFetcher(newCam);
+			StreamFetcher fetcher = new StreamFetcher(newCam,appScope);
 
 
-			ProcessBuilder pb = new ProcessBuilder("/usr/local/onvif/runme.sh");
-			Process p = null;
-			try {
-				p = pb.start();
-			} catch (IOException e1) {
-				e1.printStackTrace();
-			}
+			startCameraEmulator();
 
 			// thread start 
 			fetcher.startStream();
 
-			Thread.sleep(10000);
+			Thread.sleep(6000);
 
 			//check that thread is running
 			assertTrue(fetcher.isThreadActive());
@@ -207,7 +243,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			//stop thread
 			fetcher.stopStream();
 
-			Thread.sleep(6000);
+			Thread.sleep(5000);
 
 			assertFalse(fetcher.isStreamAlive());
 			assertFalse(fetcher.isThreadActive());
@@ -218,7 +254,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			//start thread
 			fetcher.startStream();
 
-			Thread.sleep(8000);
+			Thread.sleep(6000);
 			//check that thread is not started because thread active is true
 			assertFalse(fetcher.isStreamAlive());
 			assertTrue(fetcher.isThreadActive());
@@ -229,7 +265,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			fetcher.setThreadActive(false);
 
 			//wait a little
-			Thread.sleep(8000);
+			Thread.sleep(5000);
 
 			//check that thread is started
 			assertTrue(fetcher.isStreamAlive());
@@ -245,7 +281,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			Thread.sleep(3000);
 
-		} catch (InterruptedException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 
@@ -261,7 +297,6 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		logger.info("starting testCameraErrorCodes");
 
 		try {
-
 			// start stream fetcher
 
 			Broadcast newCam = new Broadcast("onvifCam2", "127.0.0.1:8080", "admin", "admin", "rtsp://10.122.59.79:6554/test.flv",
@@ -277,19 +312,19 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			assertNotNull(newCam.getStreamId());
 
-			StreamFetcher fetcher = new StreamFetcher(newCam);
+			StreamFetcher fetcher = new StreamFetcher(newCam, appScope);
 
 			// thread start 
 			fetcher.startStream();
 
-			Thread.sleep(12000);
+			Thread.sleep(8000);
 
 			String str=fetcher.getCameraError().getMessage();
 			logger.info("error:   "+str);
 
 			assertNotNull(fetcher.getCameraError().getMessage());
 
-			assertTrue(fetcher.getCameraError().getMessage().contains("Connection timed out"));
+			assertTrue(fetcher.getCameraError().getMessage().contains("timed out"));
 
 			fetcher.stopStream();
 
@@ -310,12 +345,12 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			assertNotNull(newCam2.getStreamId());
 
-			StreamFetcher fetcher2 = new StreamFetcher(newCam2);
+			StreamFetcher fetcher2 = new StreamFetcher(newCam2, appScope);
 
 			// thread start 
 			fetcher2.startStream();
 
-			Thread.sleep(12000);
+			Thread.sleep(6000);
 
 			String str2=fetcher2.getCameraError().getMessage();
 			logger.info("error2:   "+str2);
@@ -328,15 +363,16 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			Thread.sleep(2000);
 
-			//start emulator
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 
-			ProcessBuilder pb = new ProcessBuilder("/usr/local/onvif/runme.sh");
-			Process p = null;
-			try {
-				p = pb.start();
-			} catch (IOException e1) {
-				e1.printStackTrace();
-			}
+	}
+
+	@Test
+	public void testCameraStartedProperly() {
+		try {
+			startCameraEmulator();
 
 			Thread.sleep(2000);
 
@@ -346,52 +382,45 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 					AntMediaApplicationAdapter.IP_CAMERA);
 			assertNotNull(newCam3.getStreamUrl());
 			
-		
-			rest.save(newCam3);
+			
+			newCam3.setStreamId("stream_id_" + (int)(Math.random() * 100000));
+
+
 			Thread.sleep(3000);
 
 
-			StreamFetcher fetcher3 = new StreamFetcher(newCam3);
+			StreamFetcher fetcher3 = new StreamFetcher(newCam3, appScope);
 
 			// thread start 
 			fetcher3.startStream();
 
-			Thread.sleep(12000);
+			Thread.sleep(6000);
 
 			String str3=fetcher3.getCameraError().getMessage();
 			logger.info("error:   "+str3);
 
 			assertNull(fetcher3.getCameraError().getMessage());
+			assertTrue(fetcher3.isStreamAlive());
+
 
 
 			fetcher3.stopStream();
 
 			Thread.sleep(2000);
-			
-		} catch (InterruptedException e) {
-			e.printStackTrace();
+			stopCameraEmulator();
 		}
-
-		stopCameraEmulator();
-
-		try {
-			Thread.sleep(2000);
-		} catch (InterruptedException e) {
+		catch (Exception e) {
 			e.printStackTrace();
+			fail(e.getMessage());
 		}
-
 	}
-
-
 
 	@Test
 	public void testCameraCheckerStartStop() {
 
-
 		logger.info("starting testCameraCheckerStartStop");
 
 		// define camera according to onvif emulator parameters
-
 		Broadcast newCam = new Broadcast("testOnvif", "127.0.0.1:8080", "admin", "admin", "rtsp://127.0.0.1:6554/test.flv",
 				AntMediaApplicationAdapter.IP_CAMERA);
 
@@ -406,14 +435,14 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		cameras.add(newCam);
 
-		app.getStreamFetcherManager().getStreamFetcherList().clear();
+		assertNotNull(app.getDataStore());
 
+		app.getStreamFetcherManager().getStreamFetcherList().clear();
 
 		assertEquals(0, app.getStreamFetcherManager().getStreamFetcherList().size());
 
-
-		//sets stream fetcher configuration, it checks streams in every 30sec
-		app.getStreamFetcherManager().setStreamCheckerInterval(30000);
+		//sets stream fetcher configuration, it checks streams in every 15sec
+		app.getStreamFetcherManager().setStreamCheckerInterval(15000);
 		logger.info("starting new streams in testCameraCheckerStartStop");
 		app.getStreamFetcherManager().startStreams(cameras);
 		logger.info("started new streams in testCameraCheckerStartStop");
@@ -438,21 +467,14 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 
 		assertTrue(flag3);
-
-		ProcessBuilder pb = new ProcessBuilder("/usr/local/onvif/runme.sh");
-		Process p = null;
-		try {
-			p = pb.start();
-		} catch (IOException e1) {
-			e1.printStackTrace();
-		}
+		startCameraEmulator();
 
 		logger.warn("emulater has been started");
 
 		try {
 
-			//wait more than 30sec to make sure scheduler start the stream again
-			Thread.sleep(35000);
+			//wait more than 15sec to make sure scheduler start the stream again
+			Thread.sleep(18000);
 
 		} catch (InterruptedException e) {
 			e.printStackTrace();
@@ -488,18 +510,11 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		}
 		assertTrue(flag2);
-		// after some time, emulator has been started so connection is back
-		ProcessBuilder pb2 = new ProcessBuilder("/usr/local/onvif/runme.sh");
-		Process p2 = null;
-		try {
-			p2 = pb2.start();
-		} catch (IOException e1) {
-			e1.printStackTrace();
-		}
+		startCameraEmulator();
 
 		try {
-			//wait more than 30sec to make sure stream is started again
-			Thread.sleep(35000);
+			//wait more than 15sec to make sure stream is started again
+			Thread.sleep(18000);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
@@ -535,8 +550,127 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		logger.info("leaving testCameraCheckerStartStop");
 
+	}
+
+
+	@Test
+	public void testStreamFetcherSources() {
+		logger.info("running testStreamFetcherSources src/test/resources/test_video_360p.flv");
+		//test FLV Source
+		testFetchStreamSources("src/test/resources/test_video_360p.flv");
+
+		
+		logger.info("running testStreamFetcherSources rtmp://184.72.239.149/vod/mp4:bigbuckbunny_1500.mp4");
+		//test RTMP Source
+		testFetchStreamSources("rtmp://184.72.239.149/vod/mp4:bigbuckbunny_1500.mp4");
+
+		logger.info("running testStreamFetcherSources rtsp://127.0.0.1:6554/test.flv");
+		startCameraEmulator();
+		 //test RTSP Source
+		testFetchStreamSources("rtsp://127.0.0.1:6554/test.flv");
+		stopCameraEmulator();
 
 	}
+
+	@Test
+	public void testHLSSource() {
+		logger.info("running testHLSSource");
+		//test HLS Source
+		testFetchStreamSources("src/test/resources/test.m3u8");	
+		logger.info("leaving testHLSSource");
+	}
+
+	@Test
+	public void testTSSource() {
+		logger.info("running testTSSource");
+		//test TS Source
+		testFetchStreamSources("src/test/resources/test.ts");
+		logger.info("leaving testTSSource");
+		
+	}
+
+
+	public void testFetchStreamSources(String source) {
+
+		try {
+			Broadcast newCam = new Broadcast("streamSource", "127.0.0.1:8080", "admin", "admin", source,
+					AntMediaApplicationAdapter.STREAM_SOURCE);
+
+			assertNotNull(newCam.getStreamUrl());
+
+			String id = getInstance().getDataStore().save(newCam);
+
+			assertNotNull(newCam.getStreamId());
+
+
+			getAppSettings().setMp4MuxingEnabled(true);
+			getAppSettings().setHlsMuxingEnabled(true);
+
+			StreamFetcher fetcher = new StreamFetcher(newCam, appScope);
+
+			assertFalse(fetcher.isThreadActive());
+			assertFalse(fetcher.isStreamAlive());
+
+			// start 
+			fetcher.startStream();
+
+			//wait for fetching stream
+			try {
+				Thread.sleep(10000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+
+			//wait for packaging files
+			fetcher.stopStream();
+
+			try {
+				Thread.sleep(3000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			
+			assertFalse(fetcher.isThreadActive());
+
+			assertTrue(MuxingTest.testFile("webapps/junit/streams/"+newCam.getStreamId() +".m3u8"));
+			
+			//tmp file should be deleted
+			File f = new File("webapps/junit/streams/"+newCam.getStreamId() +".mp4.tmp_extension");
+			assertFalse(f.exists());
+			
+			f = new File("webapps/junit/streams/"+newCam.getStreamId() +".mp4");
+			assertTrue(f.exists());
+			
+			assertTrue(MuxingTest.testFile("webapps/junit/streams/"+newCam.getStreamId() +".mp4"));
+			
+			
+			getInstance().getDataStore().delete(id);
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+
+	}
+
+
+	private void startCameraEmulator() {
+		stopCameraEmulator();
+
+		ProcessBuilder pb = new ProcessBuilder("/usr/local/onvif/runme.sh");
+		Process p = null;
+		try {
+			p = pb.start();
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
+		try {
+			Thread.sleep(2000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
+
 
 	private void stopCameraEmulator() {
 		// close emulator in order to simulate cut-off
@@ -552,6 +686,53 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+
+		try {
+			Thread.sleep(2000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
+
+
+	public static void delete(File file)
+			throws IOException{
+
+		if(file.isDirectory()){
+
+			//directory is empty, then delete it
+			if(file.list().length==0){
+
+				file.delete();
+				//System.out.println("Directory is deleted : " 
+				//	+ file.getAbsolutePath());
+
+			}else{
+
+				//list all the directory contents
+				String files[] = file.list();
+
+				for (String temp : files) {
+					//construct the file structure
+					File fileDelete = new File(file, temp);
+
+					//recursive delete
+					delete(fileDelete);
+				}
+
+				//check the directory again, if empty then delete it
+				if(file.list().length==0){
+					file.delete();
+					//System.out.println("Directory is deleted : " 
+					//		+ file.getAbsolutePath());
+				}
+			}
+
+		}else{
+			//if file, then delete it
+			file.delete();
+			//System.out.println("File is deleted : " + file.getAbsolutePath());
+		}
 	}
 
 	/*
@@ -559,5 +740,19 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 	 */
+
+	public AntMediaApplicationAdapter getInstance() {
+		if (appInstance == null) {
+			appInstance = (AntMediaApplicationAdapter) applicationContext.getBean("web.handler");
+		}
+		return appInstance;
+	}
+
+	public AppSettings getAppSettings() {
+		if (appSettings == null) {
+			appSettings = (AppSettings) applicationContext.getBean(AppSettings.BEAN_NAME);
+		}
+		return appSettings;
+	}
 
 }

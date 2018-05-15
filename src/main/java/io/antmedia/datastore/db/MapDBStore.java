@@ -106,7 +106,9 @@ public class MapDBStore implements IDataStore {
 					rtmpURL += streamId;
 				}
 				broadcast.setRtmpURL(rtmpURL);
-
+				if(broadcast.getStatus()==null) {
+					broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
+				}
 				map.put(streamId, gson.toJson(broadcast));
 				db.commit();
 				result = true;

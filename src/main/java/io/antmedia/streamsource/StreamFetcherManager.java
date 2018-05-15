@@ -2,6 +2,7 @@ package io.antmedia.streamsource;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.red5.logging.Red5LoggerFactory;
 import org.red5.server.adapter.MultiThreadedApplicationAdapter;
@@ -10,6 +11,7 @@ import org.red5.server.api.scheduling.ISchedulingService;
 import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.IDataStore;
@@ -28,7 +30,7 @@ public class StreamFetcherManager {
 
 	private int streamCheckerCount = 0;
 
-	private List<StreamFetcher> streamFetcherList = new ArrayList<>();
+	private ConcurrentLinkedQueue<StreamFetcher> streamFetcherList = new ConcurrentLinkedQueue<>();
 
 	private int streamCheckerInterval = 10000;
 
@@ -36,11 +38,17 @@ public class StreamFetcherManager {
 
 	private IDataStore datastore;
 
+	private IScope scope;
+
 	private String streamFetcherScheduleJobName;
 
-	public StreamFetcherManager(ISchedulingService schedulingService, IDataStore datastore) {
+
+	public StreamFetcherManager(ISchedulingService schedulingService, IDataStore datastore,IScope scope) {
+
+
 		this.schedulingService = schedulingService;
 		this.datastore = datastore;
+		this.scope=scope;
 	}
 
 	public int getStreamCheckerInterval() {
@@ -54,24 +62,29 @@ public class StreamFetcherManager {
 
 
 	public Result startStreaming(Broadcast broadcast) {	
-		
-		Result result=new Result(true);
 
-		StreamFetcher streamScheduler = new StreamFetcher(broadcast);
-		streamFetcherList.add(streamScheduler);
-		streamScheduler.startStream();
-		
+		Result result=new Result(false);
+
 		try {
-			Thread.sleep(6000);
-		} catch (InterruptedException e) {
+			StreamFetcher streamScheduler = new StreamFetcher(broadcast,scope);
+			streamFetcherList.add(streamScheduler);
+			streamScheduler.startStream();
+
+			try {
+				Thread.sleep(6000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+				Thread.currentThread().interrupt();
+			}
+
+			if(!streamScheduler.getCameraError().isSuccess()) {
+				result=streamScheduler.getCameraError();
+			}
+		}
+		catch (Exception e) {
 			e.printStackTrace();
-			Thread.currentThread().interrupt();
 		}
-		
-		if(!streamScheduler.getCameraError().isSuccess()) {
-			result=streamScheduler.getCameraError();
-		}
-		
+
 		return result;
 	}
 
@@ -98,7 +111,7 @@ public class StreamFetcherManager {
 		if (streamFetcherScheduleJobName != null) {
 			schedulingService.removeScheduledJob(streamFetcherScheduleJobName);
 		}
-		
+
 		streamFetcherScheduleJobName = schedulingService.addScheduledJobAfterDelay(streamCheckerInterval, new IScheduledJob() {
 
 			@Override
@@ -113,7 +126,8 @@ public class StreamFetcherManager {
 					if (streamCheckerCount % 180 == 0) {
 
 						for (StreamFetcher streamScheduler : streamFetcherList) {
-							if (streamScheduler.isStreamAlive()) {
+							if (streamScheduler.isStreamAlive()) 
+							{
 								streamScheduler.stopStream();
 							}
 							streamScheduler.startStream();
@@ -124,11 +138,15 @@ public class StreamFetcherManager {
 							if (!streamScheduler.isStreamAlive()) {
 
 								Broadcast stream = streamScheduler.getStream();
+								logger.info("stream is not alive {}", stream.getStreamId());
 								if (datastore != null && stream.getStreamId() != null) {
 									logger.info("Updating stream status to finished, updating status of stream {}", stream.getStreamId() );
 									datastore.updateStatus(stream.getStreamId() , 
 											AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
 								}
+							}
+
+							if (!streamScheduler.isThreadActive()) {
 								streamScheduler.startStream();
 							}
 						}
@@ -137,6 +155,7 @@ public class StreamFetcherManager {
 			}
 		}, 5000);
 
+		logger.info("StreamFetcherSchedule job name {}", streamFetcherScheduleJobName);
 	}
 
 	public IDataStore getDatastore() {
@@ -147,11 +166,11 @@ public class StreamFetcherManager {
 		this.datastore = datastore;
 	}
 
-	public List<StreamFetcher> getStreamFetcherList() {
+	public ConcurrentLinkedQueue<StreamFetcher> getStreamFetcherList() {
 		return streamFetcherList;
 	}
 
-	public void setStreamFetcherList(List<StreamFetcher> streamFetcherList) {
+	public void setStreamFetcherList(ConcurrentLinkedQueue<StreamFetcher> streamFetcherList) {
 		this.streamFetcherList = streamFetcherList;
 	}
 

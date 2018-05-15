@@ -116,7 +116,7 @@ public class StreamsSourceRestService {
 				long unixTime = currentDate.getTime();
 
 				stream.setDate(unixTime);
-				stream.setStatus("created");
+				stream.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
 
 				String id = getStore().save(stream);
 

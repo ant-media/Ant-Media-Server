@@ -575,7 +575,6 @@ public class MultiThreadedApplicationAdapter extends StatefulScopeWrappingAdapte
 	 */
 	public boolean appStart(IScope app) {
 
-		logger.warn("scope in multithreadappadaptor:   .............." + app.getName());
 		log.debug("appStart: {}", app);
 		for (IApplication listener : listeners) {
 			if (!listener.appStart(app)) {
