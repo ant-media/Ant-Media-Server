@@ -275,8 +275,6 @@ public class BroadcastRestService {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result stopBroadcast(@PathParam("streamId") String streamId) {
 
-		
-		
 		boolean result = false;
 		String message = "";
 		IBroadcastStream broadcastStream = getApplication().getBroadcastStream(getScope(), streamId);
