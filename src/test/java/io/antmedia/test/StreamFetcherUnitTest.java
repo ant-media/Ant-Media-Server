@@ -93,16 +93,16 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			logger.debug("Application / web scope: {}", appScope);
 			assertTrue(appScope.getDepth() == 1);
 		}
-		
+
 		stopCameraEmulator();
-		
+
 		AppSettings defaultSettings = new AppSettings();
-		
+
 		//reset values in the bean
 		getAppSettings().setMp4MuxingEnabled(defaultSettings.isMp4MuxingEnabled());
 		getAppSettings().setHlsMuxingEnabled(defaultSettings.isHlsMuxingEnabled());
 		getAppSettings().setAddDateTimeToMp4FileName(false);
-		
+
 		getAppSettings().setMp4MuxingEnabled(defaultSettings.isMp4MuxingEnabled());
 		getAppSettings().setAddDateTimeToMp4FileName(defaultSettings.isAddDateTimeToMp4FileName());
 		getAppSettings().setHlsMuxingEnabled(defaultSettings.isHlsMuxingEnabled());
@@ -112,7 +112,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		getAppSettings().setHlsTime(defaultSettings.getHlsTime());
 		getAppSettings().setHlsPlayListType(defaultSettings.getHlsPlayListType());
 		getAppSettings().setAdaptiveResolutionList(defaultSettings.getAdaptiveResolutionList());
-		
+
 	}
 
 	@After
@@ -120,12 +120,14 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		appScope = null;
 		app = null;
-
+		
 		try {
 			delete(new File("webapps"));
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+
+		 
 	}
 
 
@@ -381,8 +383,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			Broadcast newCam3 = new Broadcast("onvifCam4", "127.0.0.1:8080", "admin", "admin", "rtsp://127.0.0.1:6554/test.flv",
 					AntMediaApplicationAdapter.IP_CAMERA);
 			assertNotNull(newCam3.getStreamUrl());
-			
-			
+
+
 			newCam3.setStreamId("stream_id_" + (int)(Math.random() * 100000));
 
 
@@ -559,14 +561,14 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		//test FLV Source
 		testFetchStreamSources("src/test/resources/test_video_360p.flv");
 
-		
+
 		logger.info("running testStreamFetcherSources rtmp://184.72.239.149/vod/mp4:bigbuckbunny_1500.mp4");
 		//test RTMP Source
 		testFetchStreamSources("rtmp://184.72.239.149/vod/mp4:bigbuckbunny_1500.mp4");
 
 		logger.info("running testStreamFetcherSources rtsp://127.0.0.1:6554/test.flv");
 		startCameraEmulator();
-		 //test RTSP Source
+		//test RTSP Source
 		testFetchStreamSources("rtsp://127.0.0.1:6554/test.flv");
 		stopCameraEmulator();
 
@@ -586,7 +588,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		//test TS Source
 		testFetchStreamSources("src/test/resources/test.ts");
 		logger.info("leaving testTSSource");
-		
+
 	}
 
 
@@ -629,21 +631,21 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
-			
+
 			assertFalse(fetcher.isThreadActive());
 
 			assertTrue(MuxingTest.testFile("webapps/junit/streams/"+newCam.getStreamId() +".m3u8"));
-			
+
 			//tmp file should be deleted
 			File f = new File("webapps/junit/streams/"+newCam.getStreamId() +".mp4.tmp_extension");
 			assertFalse(f.exists());
-			
+
 			f = new File("webapps/junit/streams/"+newCam.getStreamId() +".mp4");
 			assertTrue(f.exists());
-			
+
 			assertTrue(MuxingTest.testFile("webapps/junit/streams/"+newCam.getStreamId() +".mp4"));
-			
-			
+
+
 			getInstance().getDataStore().delete(id);
 		}
 		catch (Exception e) {
@@ -735,11 +737,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 	}
 
-	/*
-	public void cameraChecker(List<Broadcast> cameras, int interval) {
 
-	}
-	 */
 
 	public AntMediaApplicationAdapter getInstance() {
 		if (appInstance == null) {
