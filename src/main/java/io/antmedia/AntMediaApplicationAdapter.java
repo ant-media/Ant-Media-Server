@@ -648,9 +648,8 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	}
 	@Override
 	public void sourceQualityChanged(String id,String quality) {
-		log.info("source stream quality changed, new quality is: "+quality);
-
-		getDataStore().updateSourceQuality(id, quality);
+		boolean updateSourceQuality = getDataStore().updateSourceQuality(id, quality);
+		log.info("source stream {} quality changed, new quality is: {}  , updating data strore {}", id, quality, updateSourceQuality);
 	}
 
 

@@ -771,7 +771,7 @@ public class MapDBStore implements IDataStore {
 		if (offset < 0) {
 			offset = 0;
 		}
-		List<SocialEndpointCredentials> list = new ArrayList();
+		List<SocialEndpointCredentials> list = new ArrayList<SocialEndpointCredentials>();
 		for (String credentialString : values) {
 			if (t < offset) {
 				t++;

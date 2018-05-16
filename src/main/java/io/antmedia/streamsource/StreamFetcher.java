@@ -241,7 +241,12 @@ public class StreamFetcher {
 			}
 			
 			if (inputFormatContext != null) {
-				avformat_close_input(inputFormatContext);
+				try {
+					avformat_close_input(inputFormatContext);
+				}
+				catch (Exception e) {
+					e.printStackTrace();
+				}
 				inputFormatContext = null;
 			}
 

@@ -135,10 +135,9 @@ public class StreamFetcherManager {
 
 					} else {
 						for (StreamFetcher streamScheduler : streamFetcherList) {
+							Broadcast stream = streamScheduler.getStream();
 							if (!streamScheduler.isStreamAlive()) {
-
-								Broadcast stream = streamScheduler.getStream();
-								logger.info("stream is not alive {}", stream.getStreamId());
+								
 								if (datastore != null && stream.getStreamId() != null) {
 									logger.info("Updating stream status to finished, updating status of stream {}", stream.getStreamId() );
 									datastore.updateStatus(stream.getStreamId() , 
@@ -149,6 +148,10 @@ public class StreamFetcherManager {
 							if (!streamScheduler.isThreadActive()) {
 								streamScheduler.startStream();
 							}
+							else {
+								logger.info("there is an active thread for {} so that new thread is not started", stream.getStreamId());
+							}
+						
 						}
 					}
 				}
