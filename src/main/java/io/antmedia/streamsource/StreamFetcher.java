@@ -78,6 +78,7 @@ public class StreamFetcher {
 	private IScope scope;
 	private AntMediaApplicationAdapter appInstance;
 	private long[] lastDTS;
+	private long[] lastPTS;
 	private MuxAdaptor muxAdaptor = null;
 
 	public StreamFetcher(Broadcast stream, IScope scope) throws Exception {
@@ -140,9 +141,11 @@ public class StreamFetcher {
 		}
 
 		lastDTS = new long[inputFormatContext.nb_streams()];
+		lastPTS = new long[lastDTS.length];
 
 		for (int i = 0; i < lastDTS.length; i++) {
 			lastDTS[i] = -1;
+			lastPTS[i] = -1;
 		}
 
 		result.setSuccess(true);
@@ -211,6 +214,12 @@ public class StreamFetcher {
 							if (pkt.dts() > pkt.pts()) {
 								pkt.pts(pkt.dts());
 							}
+							
+							if (lastPTS[packetIndex] >= pkt.pts()) {
+								pkt.pts(lastPTS[packetIndex] + 1);
+								logger.warn("Correcting pts value to {}", pkt.pts());
+							}
+							lastPTS[packetIndex] = pkt.pts();
 
 							muxAdaptor.writePacket(inputFormatContext.streams(pkt.stream_index()), pkt);
 							
@@ -271,9 +280,13 @@ public class StreamFetcher {
 		new Thread() {
 			public void run() {
 				try {
+					int i = 0;
 					while (threadActive) {
 						Thread.sleep(100);
-						logger.info("waiting");
+						if (i % 20 == 0) {
+							logger.info("waiting for thread to be finished");
+							i = 0;
+						}
 					}
 					Thread.sleep(2000);
 				} catch (InterruptedException e) {
