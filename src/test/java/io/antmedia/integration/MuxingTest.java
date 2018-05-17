@@ -68,6 +68,30 @@ public class MuxingTest {
 		avformat_network_init();
 
 	}
+	
+	@Before
+	public void before() {
+		// runs before every test code
+		/*
+		 * try { delete(new File(FULL_RED5_PATH + "/webapps/vod/streams")); }
+		 * catch (IOException e) { e.printStackTrace(); }
+		 */
+
+	}
+
+	@After
+	public void after() {
+		// runs after every test code
+	}
+	
+	@AfterClass
+	public static void afterClass() {
+		// stop red5 server
+		// closeRed5();
+
+	}
+
+
 
 	@Test
 	public void testVODStreaming() {
@@ -382,7 +406,7 @@ public class MuxingTest {
 		}
 
 		if ((ret = avformat_open_input(inputFormatContext, absolutePath, null, (AVDictionary) null)) < 0) {
-			System.out.println("cannot open input context");
+			System.out.println("cannot open input context: " + absolutePath);
 			return false;
 		}
 
@@ -477,36 +501,7 @@ public class MuxingTest {
 		return tmpExec;
 	}
 
-	/*
-	 * @BeforeClass public static void beforeClass() { //start red5 server
-	 * av_register_all(); avformat_network_init();
-	 * 
-	 * String path = "./start.sh"; String osName =
-	 * System.getProperty("os.name").toLowerCase(Locale.ENGLISH);
-	 * 
-	 * try { closeRed5(); red5Process = Runtime.getRuntime().exec(path, null,
-	 * new File(FULL_RED5_PATH)); readErrorStream(red5Process); // this may
-	 * required to not fill the error buffer readInputStream(red5Process);
-	 * 
-	 * System.out.println("Waiting for letting red5 start." ); System.out.
-	 * println("You can get exception if red5 is not started fully after this while. \n So arrange this time according to your red5 startup time in your machine"
-	 * );
-	 * 
-	 * 
-	 * Thread.sleep(30000);
-	 * 
-	 * } catch (IOException e) { e.printStackTrace(); } catch
-	 * (InterruptedException e) { e.printStackTrace(); }
-	 * 
-	 * }
-	 */
-	@AfterClass
-	public static void afterClass() {
-		System.out.println("MuxingTest.afterClass()");
-		// stop red5 server
-		// closeRed5();
 
-	}
 
 	private static void readErrorStream(final Process proc) {
 		new Thread() {
@@ -566,20 +561,6 @@ public class MuxingTest {
 		}
 	}
 
-	@Before
-	public void before() {
-		// runs before every test code
-		/*
-		 * try { delete(new File(FULL_RED5_PATH + "/webapps/vod/streams")); }
-		 * catch (IOException e) { e.printStackTrace(); }
-		 */
-
-	}
-
-	@After
-	public void after() {
-		// runs after every test code
-	}
 
 	public static void delete(File file) throws IOException {
 

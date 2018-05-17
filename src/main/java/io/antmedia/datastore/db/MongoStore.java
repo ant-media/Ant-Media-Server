@@ -93,6 +93,9 @@ public class MongoStore implements IDataStore {
 				rtmpURL += streamId;
 			}
 			broadcast.setRtmpURL(rtmpURL);
+			if(broadcast.getStatus()==null) {
+				broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
+			}
 			Key<Broadcast> key = datastore.save(broadcast);
 
 			return streamId;

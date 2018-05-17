@@ -139,9 +139,9 @@ public class BroadcastRestService {
 	private ServletContext servletContext;
 
 	private IScope scope;
+	
+	
 	private ApplicationContext appCtx;
-
-	private static Gson gson = new Gson();
 
 	private AntMediaApplicationAdapter app;
 
@@ -1057,7 +1057,7 @@ public class BroadcastRestService {
 
 			if (broacast != null) {
 
-				if (broacast.getType().equals("ipCamera")||broacast.getType().equals("streamSource")) {
+				if (broacast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA)||broacast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE)) {
 
 					getApplication().stopStreaming(broacast);
 					success = getDataStore().delete(id);

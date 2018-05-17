@@ -24,6 +24,13 @@ import static org.bytedeco.javacpp.avutil.av_dict_set;
 import static org.bytedeco.javacpp.avutil.av_rescale_q;
 import static org.bytedeco.javacpp.avutil.av_rescale_q_rnd;
 
+
+import java.util.List;
+
+import javax.annotation.Nullable;
+import javax.servlet.ServletContext;
+import javax.ws.rs.core.Context;
+
 import org.bytedeco.javacpp.avcodec.AVPacket;
 import org.bytedeco.javacpp.avformat;
 import org.bytedeco.javacpp.avformat.AVFormatContext;
@@ -31,55 +38,58 @@ import org.bytedeco.javacpp.avformat.AVIOContext;
 import org.bytedeco.javacpp.avformat.AVStream;
 import org.bytedeco.javacpp.avutil;
 import org.bytedeco.javacpp.avutil.AVDictionary;
+import org.red5.server.api.IContext;
+import org.red5.server.api.scope.IScope;
+import org.red5.server.stream.ClientBroadcastStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationContext;
+import org.springframework.web.context.WebApplicationContext;
 
+import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.AppSettings;
+import io.antmedia.EncoderSettings;
+import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.muxer.Mp4Muxer;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.rest.model.Result;
+import io.antmedia.storage.StorageClient;
 
 public class StreamFetcher {
 
 	protected static Logger logger = LoggerFactory.getLogger(StreamFetcher.class);
-
 	private Broadcast stream;
-
 	private WorkerThread thread;
-
 	private AVPacket pkt = new AVPacket();
-
-	private long[] lastDTS;
-
 	/**
 	 * Connection setup timeout value
 	 */
 	private int timeout;
-
 	public boolean exceptionInThread = false;
 
 	/**
 	 * Last packet received time
 	 */
 	private long lastPacketReceivedTime = 0;
-
 	private boolean threadActive = false;
-	
 	private Result cameraError=new Result(false,"");
-
-
-
 	private static final int PACKET_RECEIVED_INTERVAL_TIMEOUT = 3000;
+	private IScope scope;
+	private AntMediaApplicationAdapter appInstance;
+	private long[] lastDTS;
+	private long[] lastPTS;
+	private MuxAdaptor muxAdaptor = null;
 
-	public StreamFetcher(Broadcast stream) {
+	public StreamFetcher(Broadcast stream, IScope scope) throws Exception {
+		if (stream == null || stream.getStreamId() == null || stream.getStreamUrl() == null) {
+			throw new Exception("Stream is not initialized properly. Check stream("+stream+"), "
+						+ " stream id(" + stream.getStreamId() + ") and stream url("+ stream.getStreamUrl() +") values");
+		}
 		this.stream = stream;
-	}
+		this.scope=scope;
 
-
-	/*
-	 * This default constructor is needed for test cases
-	 * 
-	 */
-	public StreamFetcher() {
+		logger.debug(":::::::::::scope is ::::::::" + String.valueOf(scope));
 
 	}
 
@@ -93,19 +103,15 @@ public class StreamFetcher {
 			return result;
 		}
 
-		if (stream == null || stream.getStreamUrl() == null) {
-			logger.info("stream is null");
-			return result;
-		}
-
 		AVDictionary optionsDictionary = new AVDictionary();
 
-
-		av_dict_set(optionsDictionary, "rtsp_transport", "tcp", 0);
+		String streamUrl = stream.getStreamUrl();
+		if (streamUrl.startsWith("rtsp://")) {
+			av_dict_set(optionsDictionary, "rtsp_transport", "tcp", 0);
+		}
 
 		String timeout = String.valueOf(this.timeout);
 		av_dict_set(optionsDictionary, "stimeout", timeout, 0);
-
 
 		int ret;
 
@@ -117,236 +123,146 @@ public class StreamFetcher {
 			avutil.av_strerror(ret, data, data.length);
 
 			String errorStr=new String(data, 0, data.length);
-			
+
 			result.setMessage(errorStr);		
-			
+
 			logger.info("cannot open input context with error::" +result.getMessage());
 			return result;
 		}
-		
-		
-		
+
 		av_dict_free(optionsDictionary);
 
 		ret = avformat_find_stream_info(inputFormatContext, (AVDictionary) null);
 		if (ret < 0) {
-			
+
 			result.setMessage("Could not find stream information\n");
 			logger.info(result.getMessage());
 			return result;
 		}
 
 		lastDTS = new long[inputFormatContext.nb_streams()];
+		lastPTS = new long[lastDTS.length];
 
 		for (int i = 0; i < lastDTS.length; i++) {
 			lastDTS[i] = -1;
+			lastPTS[i] = -1;
 		}
+
 		result.setSuccess(true);
 		return result;
 
 	}
 
-	public Result prepare(AVFormatContext inputFormatContext, AVFormatContext outputRTMPFormatContext) {
+	public Result prepare(AVFormatContext inputFormatContext) {
+		Result result = prepareInput(inputFormatContext);
 
-		Result result=prepareInput(inputFormatContext);
-		
 		setCameraError(result);
 
-		if (result.isSuccess()) {
-			return prepareOutput(inputFormatContext, outputRTMPFormatContext);
-		} 
-		
 		return result;
-	}
 
-	/*
-	 * public AVFormatContext getInputContext() { return inputFormatContext; }
-	 */
-
-	private Result prepareOutput(AVFormatContext inputFormatContext, AVFormatContext outputRTMPFormatContext) {
-		// outputRTMPFormatContext = new AVFormatContext(null);
-		
-		Result result=new Result(false);
-
-		int ret = avformat_alloc_output_context2(outputRTMPFormatContext, null, "flv", null);
-		for (int i = 0; i < inputFormatContext.nb_streams(); i++) {
-
-			AVStream in_stream = inputFormatContext.streams(i);
-
-			AVStream out_stream = avformat_new_stream(outputRTMPFormatContext, in_stream.codec().codec());
-
-			ret = avcodec_parameters_copy(out_stream.codecpar(), in_stream.codecpar());
-			if (ret < 0) {
-				logger.warn("Cannot get codec parameters\n");
-				return result;
-			}
-
-			out_stream.codec().codec_tag(0);
-		}
-
-
-		if ((outputRTMPFormatContext.oformat().flags() & AVFMT_GLOBALHEADER) != 0) {
-			// out_stream->codec->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
-			outputRTMPFormatContext.oformat()
-			.flags(outputRTMPFormatContext.oformat().flags() | AV_CODEC_FLAG_GLOBAL_HEADER);
-		}
-
-		if ((outputRTMPFormatContext.flags() & AVFMT_NOFILE) == 0) {
-			AVIOContext pb = new AVIOContext(null);
-
-			// TODO: get application name from red5 context, do not use embedded
-			// url
-
-			String urlStr = "rtmp://localhost/LiveApp/" + stream.getStreamId();
-			// logger.debug("rtmp url: " + urlStr);
-			//
-			ret = avformat.avio_open(pb, urlStr, AVIO_FLAG_WRITE);
-			if (ret < 0) {
-				byte[] data = new byte[1024];
-				avutil.av_strerror(ret, data, data.length);
-				logger.info("Cannot open url: " + urlStr + " error is " + new String(data, 0, data.length));
-				return result;
-			}
-			outputRTMPFormatContext.pb(pb);
-
-			ret = avformat_write_header(outputRTMPFormatContext, (AVDictionary) null);
-			if (ret < 0) {
-				logger.info("Cannot write header to rtmp\n");
-				return result;
-			}
-		}
-
-		result.setSuccess(true);
-		return result;
 	}
 
 	public class WorkerThread extends Thread {
 
 		private volatile boolean stopRequestReceived = false;
-		
-		
-
 
 		@Override
 		public void run() {
-		
+
 			setThreadActive(true);
 			AVFormatContext inputFormatContext = new AVFormatContext(null); // avformat.avformat_alloc_context();
-			AVFormatContext outputRTMPFormatContext = new AVFormatContext(null);
 
 			logger.info("before prepare");
-			
-			Result result=prepare(inputFormatContext, outputRTMPFormatContext);
+
+			Result result = prepare(inputFormatContext);
 
 			try {
+
 				if (result.isSuccess()) {
 
-					while (true) {
-						int ret = av_read_frame(inputFormatContext, pkt);
-						if (ret < 0) {
-							logger.info("cannot read frame from input context");
+					muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null);
 
-							break;
-						}
-
-						lastPacketReceivedTime = System.currentTimeMillis();
-
-						int packetIndex = pkt.stream_index();
-						AVStream in_stream = inputFormatContext.streams(packetIndex);
-						AVStream out_stream = outputRTMPFormatContext.streams(packetIndex);
-
-						if (pkt.dts() < 0) {
-							av_packet_unref(pkt);
-							continue;
-						}
-
-						if (lastDTS[packetIndex] >= pkt.dts()) {
-							// logger.warn("dts timestamps are not in correct order
-							// last dts:" + lastDTS[packetIndex]
-							// + " current dts:" + pkt.dts() + " fixing problem by
-							// adding offset");
-
-							pkt.dts(lastDTS[packetIndex] + 1);
-						}
-
-						lastDTS[packetIndex] = pkt.dts();
-						if (pkt.dts() > pkt.pts()) {
-							pkt.pts(pkt.dts());
-						}
-
-						pkt.pts(av_rescale_q_rnd(pkt.pts(), in_stream.time_base(), out_stream.time_base(),
-								AV_ROUND_NEAR_INF | AV_ROUND_PASS_MINMAX));
-						pkt.dts(av_rescale_q_rnd(pkt.dts(), in_stream.time_base(), out_stream.time_base(),
-								AV_ROUND_NEAR_INF | AV_ROUND_PASS_MINMAX));
-						pkt.duration(av_rescale_q(pkt.duration(), in_stream.time_base(), out_stream.time_base()));
-						pkt.pos(-1);
-
-						/*
-						 * Use Mux adaptor writePacket method
-						 * 
-						 */
-
-						ret = av_interleaved_write_frame(outputRTMPFormatContext, pkt);
-
-						if (ret < 0) {
-							logger.info("cannot write frame to muxer");
-							break;
-						}
-						av_packet_unref(pkt);
-
-						if (stopRequestReceived) {
-							logger.warn("breaking the loop");
-							break;
-						}
-
-					}
+					muxAdaptor.init(scope, stream.getStreamId(), false);
 					
-					avformat_close_input(inputFormatContext);
-					inputFormatContext = null;
-					
-					av_write_trailer(outputRTMPFormatContext);
+					logger.info("{} stream count in stream {} is {}", stream.getStreamId(), stream.getStreamUrl(), inputFormatContext.nb_streams());
 
-					if ((outputRTMPFormatContext.flags() & AVFMT_NOFILE) == 0) {
-						logger.warn("before avio_closep(outputRTMPFormatContext.pb());");
-						avio_closep(outputRTMPFormatContext.pb());
-						outputRTMPFormatContext.pb(null);
+					if(muxAdaptor.prepareInternal(inputFormatContext)) {
+
+						long currentTime = System.currentTimeMillis();
+						muxAdaptor.setStartTime(currentTime);
+
+						getInstance().startPublish(stream.getStreamId());
+						
+						while (true) {
+							int ret = av_read_frame(inputFormatContext, pkt);
+							if (ret < 0) {
+								logger.info("cannot read frame from input context");
+								break;
+							}
+
+							lastPacketReceivedTime = System.currentTimeMillis();
+
+							/**
+							 * Check that dts values are monotically increasing for each stream
+							 */
+							int packetIndex = pkt.stream_index();
+							if (lastDTS[packetIndex] >= pkt.dts()) {
+								pkt.dts(lastDTS[packetIndex] + 1);
+								logger.warn("Correcting dts value to {}", pkt.dts());
+							}
+							lastDTS[packetIndex] = pkt.dts();
+							if (pkt.dts() > pkt.pts()) {
+								pkt.pts(pkt.dts());
+							}
+							
+							if (lastPTS[packetIndex] >= pkt.pts()) {
+								pkt.pts(lastPTS[packetIndex] + 1);
+								logger.warn("Correcting pts value to {}", pkt.pts());
+							}
+							lastPTS[packetIndex] = pkt.pts();
+
+							muxAdaptor.writePacket(inputFormatContext.streams(pkt.stream_index()), pkt);
+							
+							if (stopRequestReceived) {
+								logger.warn("breaking the loop");
+								break;
+							}
+						}
 					}
 
-					logger.warn("before avformat_free_context(outputRTMPFormatContext);");
-					avformat_free_context(outputRTMPFormatContext);
-					outputRTMPFormatContext = null;
-					
-					setCameraError(result);
-				}else {
-
-					if (inputFormatContext != null) {
-						avformat_close_input(inputFormatContext);
-					}
-					if (outputRTMPFormatContext != null && !outputRTMPFormatContext.isNull()) {
-						if (outputRTMPFormatContext.pb() != null) {
-							avio_closep(outputRTMPFormatContext.pb());
-						}
-
-						avformat_free_context(outputRTMPFormatContext);
-					}
-
-					logger.warn("Prepare for " + stream.getName() + " returned false");
-					
-					
-					setCameraError(result);
-					
 				}
-				
+				else {
+					logger.warn("Prepare for " + stream.getName() + " returned false");
+				}
+
+				setCameraError(result);
 				logger.info("Leaving StreamFetcher Thread");
 
 			} catch (Exception e) {
 				logger.info("---Exception in thread---");
 				e.printStackTrace();
 				exceptionInThread  = true;
+			} 
+
+			if (muxAdaptor != null) {
+				logger.info("Writing trailer for Muxadaptor");
+				muxAdaptor.writeTrailer(inputFormatContext);
 			}
-			finally {
-				setThreadActive(false);
+			
+			if (inputFormatContext != null) {
+				try {
+					avformat_close_input(inputFormatContext);
+				}
+				catch (Exception e) {
+					e.printStackTrace();
+				}
+				inputFormatContext = null;
 			}
+
+			getInstance().closeBroadcast(stream.getStreamId());
+
+			setThreadActive(false);
+
 		}
 
 		public void setStopRequestReceived() {
@@ -364,8 +280,13 @@ public class StreamFetcher {
 		new Thread() {
 			public void run() {
 				try {
+					int i = 0;
 					while (threadActive) {
 						Thread.sleep(100);
+						if (i % 20 == 0) {
+							logger.info("waiting for thread to be finished");
+							i = 0;
+						}
 					}
 					Thread.sleep(2000);
 				} catch (InterruptedException e) {
@@ -382,13 +303,15 @@ public class StreamFetcher {
 
 	}
 
+
+
+
 	/**
 	 * If thread is alive and receiving packet with in the {@link PACKET_RECEIVED_INTERVAL_TIMEOUT} time
 	 * mean it is running
 	 * @return true if it is running and false it is not
 	 */
 	public boolean isStreamAlive() {
-
 		return ((System.currentTimeMillis() - lastPacketReceivedTime) < PACKET_RECEIVED_INTERVAL_TIMEOUT);
 	}
 
@@ -396,15 +319,14 @@ public class StreamFetcher {
 		return thread.isInterrupted();
 	}
 
-	public void stopStream() {
-
-		if(getThread()!=null) {
+	public void stopStream() 
+	{
+		if (getThread() != null) {
 			logger.warn("stop stream called");
 			getThread().setStopRequestReceived();
 
 		}else {
-
-			logger.warn("thread is null");
+			logger.warn("stop stream is called and thread is null");
 		}
 	}
 
@@ -429,9 +351,8 @@ public class StreamFetcher {
 		new Thread() {
 			public void run() {
 				try {
-					while (isStreamAlive()) {
+					while (threadActive) {
 						Thread.sleep(100);
-
 					}
 
 					Thread.sleep(2000);
@@ -439,14 +360,11 @@ public class StreamFetcher {
 					e.printStackTrace();
 					Thread.currentThread().interrupt();
 				}
-
 				startStream();
-
 			};
 		}.start();
 
 	}
-
 	/**
 	 * Set timeout when establishing connection
 	 * @param timeout in ms
@@ -470,9 +388,31 @@ public class StreamFetcher {
 		return cameraError;
 	}
 
-
 	public void setCameraError(Result cameraError) {
 		this.cameraError = cameraError;
 	}
+	public IScope getScope() {
+		return scope;
+	}
+
+	public void setScope(IScope scope) {
+		this.scope = scope;
+	}
+
+	public AntMediaApplicationAdapter getInstance() {
+		if (appInstance == null) {
+			appInstance = (AntMediaApplicationAdapter) scope.getContext().getApplicationContext().getBean("web.handler");
+		}
+		return appInstance;
+	}
+	
+	public MuxAdaptor getMuxAdaptor() {
+		return muxAdaptor;
+	}
+
+	public void setMuxAdaptor(MuxAdaptor muxAdaptor) {
+		this.muxAdaptor = muxAdaptor;
+	}
+
 
 }

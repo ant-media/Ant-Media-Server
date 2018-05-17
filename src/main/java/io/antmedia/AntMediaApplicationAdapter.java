@@ -47,10 +47,13 @@ import io.antmedia.rest.model.Result;
 import io.antmedia.social.endpoint.PeriscopeEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
+import io.antmedia.storage.StorageClient;
 import io.antmedia.streamsource.StreamFetcherManager;
 
 public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter implements IAntMediaStreamHandler {
 
+	public static final String BEAN_NAME = "web.handler";
+	
 	public static final String BROADCAST_STATUS_CREATED = "created";
 	public static final String BROADCAST_STATUS_BROADCASTING = "broadcasting";
 	public static final String BROADCAST_STATUS_FINISHED = "finished";
@@ -105,7 +108,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 			@Override
 			public void execute(ISchedulingService service) throws CloneNotSupportedException {
-				streamFetcherManager = new StreamFetcherManager(AntMediaApplicationAdapter.this, dataStore);
+				streamFetcherManager = new StreamFetcherManager(AntMediaApplicationAdapter.this, dataStore,app);
 				List<Broadcast> streams = getDataStore().getExternalStreamsList();
 				logger.info("Stream source size: {}", streams.size());
 				streamFetcherManager.startStreams(streams);
@@ -133,7 +136,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 						videoServiceEndpoints.add(endPointService);
 					}
 				}
-				
+
 				if (appSettings != null) {
 					synchUserVoDFolder(null, appSettings.getVodFolder());
 				}
@@ -195,8 +198,22 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 	@Override
 	public void streamBroadcastClose(IBroadcastStream stream) {
+
+		String streamName = stream.getPublishedName();
+
+		closeBroadcast(streamName);
+
+		super.streamBroadcastClose(stream);
+	}
+
+
+
+
+
+	public void closeBroadcast(String streamName) {
+
 		try {
-			String streamName = stream.getPublishedName();
+
 			if (dataStore != null) {
 				dataStore.updateStatus(streamName, BROADCAST_STATUS_FINISHED);
 				Broadcast broadcast = dataStore.get(streamName);
@@ -230,7 +247,6 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 							}
 						}
 					}
-
 					// recreate endpoints for social media
 
 					if (endPointList != null) {
@@ -247,8 +263,10 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		super.streamBroadcastClose(stream);
+
+
 	}
+
 
 	public void recreateEndpointsForSocialMedia(Broadcast broadcast, List<Endpoint> endPointList) {
 		for (Endpoint endpoint : endPointList) {
@@ -288,14 +306,22 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		return null;
 	}
 
+
 	@Override
 	public void streamPublishStart(final IBroadcastStream stream) {
+		String streamName = stream.getPublishedName();
 
+		startPublish(streamName);
+
+		super.streamPublishStart(stream);
+	}
+
+	public void startPublish(String streamName) {
 		addScheduledOnceJob(0, new IScheduledJob() {
 
 			@Override
 			public void execute(ISchedulingService service) throws CloneNotSupportedException {
-				String streamName = stream.getPublishedName();
+
 				try {
 
 					if (dataStore != null) {
@@ -307,6 +333,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 							broadcast = saveUndefinedBroadcast(streamName, getScope().getName(), dataStore, appSettings);
 
 						} else {
+							logger.info("Stream Status is set to Broadcasting");
 							dataStore.updateStatus(streamName, BROADCAST_STATUS_BROADCASTING);
 						}
 
@@ -347,8 +374,6 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 			}
 
 		});
-
-		super.streamPublishStart(stream);
 	}
 
 	public static Broadcast saveUndefinedBroadcast(String streamName, String scopeName, IDataStore dataStore, AppSettings appSettings) {
@@ -406,13 +431,18 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 				Broadcast broadcast = dataStore.get(streamId);
 
-				
-				String[] subDirs = filePath.split(Pattern.quote(File.separator));
-				
-				Integer pathLength = Integer.valueOf(subDirs.length);
-				
-				String relativePath = subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
+				if (broadcast != null) {
+					streamName = broadcast.getName();
+				} 
+				else {
+					streamName = file.getName();
+				}
 
+
+				String[] subDirs = filePath.split(Pattern.quote(File.separator));
+
+				Integer pathLength=Integer.valueOf(subDirs.length);
+				String relativePath=subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
 
 				if (broadcast != null) {
 					streamName = broadcast.getName();
@@ -605,19 +635,39 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	}
 
 	public AppSettings getAppSettings() {
+
+		if(appSettings == null) {
+
+			AppSettings appSettings = new AppSettings();
+			
+			appSettings.setMp4MuxingEnabled(true);
+			appSettings.setAddDateTimeToMp4FileName(true);
+			appSettings.setWebRTCEnabled(false);
+			appSettings.setHlsMuxingEnabled(true);
+			appSettings.setAdaptiveResolutionList(null);
+			appSettings.setHlsListSize(null);
+			appSettings.setHlsTime(null);
+			appSettings.setHlsPlayListType(null);
+			appSettings.setDeleteHLSFilesOnEnded(true);
+			appSettings.setPreviewOverwrite(false);
+
+			this.appSettings=appSettings;
+		}
+
+
 		return appSettings;
 	}
 
 	public void setAppSettings(AppSettings appSettings) {
 		this.appSettings = appSettings;
 	}
-	
+
 	public Result startStreaming(Broadcast broadcast) {
-		
+
 		Result result=new Result(false);
-		
+
 		result=streamFetcherManager.startStreaming(broadcast);
-		
+
 		return result;
 	}
 

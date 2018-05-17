@@ -106,7 +106,9 @@ public class MapDBStore implements IDataStore {
 					rtmpURL += streamId;
 				}
 				broadcast.setRtmpURL(rtmpURL);
-
+				if(broadcast.getStatus()==null) {
+					broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
+				}
 				map.put(streamId, gson.toJson(broadcast));
 				db.commit();
 				result = true;
@@ -633,7 +635,7 @@ public class MapDBStore implements IDataStore {
 		if (offset < 0) {
 			offset = 0;
 		}
-		List<SocialEndpointCredentials> list = new ArrayList();
+		List<SocialEndpointCredentials> list = new ArrayList<SocialEndpointCredentials>();
 		for (String credentialString : values) {
 			if (t < offset) {
 				t++;

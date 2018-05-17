@@ -53,6 +53,9 @@ public class InMemoryDataStore implements IDataStore {
 					rtmpURL += streamId;
 				}
 				broadcast.setRtmpURL(rtmpURL);
+				if(broadcast.getStatus()==null) {
+					broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
+				}
 				broadcastMap.put(streamId, broadcast);
 			} catch (Exception e) {
 				e.printStackTrace();
