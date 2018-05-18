@@ -180,7 +180,7 @@ public class StreamFetcher {
 
 				if (result.isSuccess()) {
 
-					muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null);
+					muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null,true);
 
 					muxAdaptor.init(scope, stream.getStreamId(), false);
 					
@@ -208,7 +208,7 @@ public class StreamFetcher {
 							int packetIndex = pkt.stream_index();
 							if (lastDTS[packetIndex] >= pkt.dts()) {
 								pkt.dts(lastDTS[packetIndex] + 1);
-								logger.warn("Correcting dts value to {}", pkt.dts());
+								//logger.warn("Correcting dts value to {}", pkt.dts());
 							}
 							lastDTS[packetIndex] = pkt.dts();
 							if (pkt.dts() > pkt.pts()) {
@@ -217,7 +217,7 @@ public class StreamFetcher {
 							
 							if (lastPTS[packetIndex] >= pkt.pts()) {
 								pkt.pts(lastPTS[packetIndex] + 1);
-								logger.warn("Correcting pts value to {}", pkt.pts());
+							//	logger.warn("Correcting pts value to {}", pkt.pts());
 							}
 							lastPTS[packetIndex] = pkt.pts();
 
