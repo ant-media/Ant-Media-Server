@@ -60,7 +60,7 @@
 		<javacpp.ffmpeg.version>3.2.1-1.3</javacpp.ffmpeg.version>
 
 		<jersey.version>2.26</jersey.version>
-		<mapdb.version>3.0.5</mapdb.version>
+		<mapdb.version>3.0.6</mapdb.version>
 
     	    <maven.build.timestamp.format>yyMMdd_HHmm</maven.build.timestamp.format>
         <buildNumber>${maven.build.timestamp}</buildNumber>

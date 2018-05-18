@@ -649,17 +649,31 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		this.appSettings = appSettings;
 	}
 	@Override
-	public void sourceQualityChanged(String id,String quality) {
-		boolean updateSourceQuality = getDataStore().updateSourceQuality(id, quality);
-		log.info("source stream {} quality changed, new quality is: {}  , updating data strore {}", id, quality, updateSourceQuality);
+	public void sourceQualityChanged(String id,String quality) 
+	{
+		addScheduledOnceJob(0, new IScheduledJob() {
+			
+			@Override
+			public void execute(ISchedulingService service) throws CloneNotSupportedException {
+				boolean updateSourceQuality = getDataStore().updateSourceQuality(id, quality);
+				log.info("source stream {} quality changed, new quality is: {}  , updating data strore {}", id, quality, updateSourceQuality);
+				
+			}
+		});
 	}
 
 
 	@Override
 	public void sourceSpeedChanged(String id,double speed) {
 		// log.info("source stream quality changed, new quality is: "+speed);
-
-		getDataStore().updateSourceSpeed(id, speed);
+		addScheduledOnceJob(0, new IScheduledJob() {
+			@Override
+			public void execute(ISchedulingService service) throws CloneNotSupportedException {
+				getDataStore().updateSourceSpeed(id, speed);
+				
+			}
+		});
+		
 	}
 
 

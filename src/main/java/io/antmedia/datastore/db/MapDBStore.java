@@ -46,7 +46,7 @@ public class MapDBStore implements IDataStore {
 
 	public MapDBStore(String dbName) {
 
-		db = DBMaker.fileDB(dbName).transactionEnable().make();
+		db = DBMaker.fileDB(dbName).fileMmapEnable().transactionEnable().make();
 
 		map = db.treeMap(MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING).counterEnable()
 				.createOrOpen();
@@ -90,11 +90,10 @@ public class MapDBStore implements IDataStore {
 
 	@Override
 	public String save(Broadcast broadcast) {
+
 		String streamId = null;
-		boolean result = false;
 		if (broadcast != null) {
 			try {
-
 				if (broadcast.getStreamId() == null) {
 					streamId = RandomStringUtils.randomNumeric(24);
 					broadcast.setStreamId(streamId);
@@ -111,7 +110,6 @@ public class MapDBStore implements IDataStore {
 				}
 				map.put(streamId, gson.toJson(broadcast));
 				db.commit();
-				result = true;
 			} catch (Exception e) {
 				e.printStackTrace();
 				streamId = null;
@@ -135,15 +133,17 @@ public class MapDBStore implements IDataStore {
 	@Override
 	public boolean updateName(String id, String name, String description) {
 		boolean result = false;
-		if (id != null) {
-			String jsonString = map.get(id);
-			if (jsonString != null) {
-				Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
-				broadcast.setName(name);
-				broadcast.setDescription(description);
-				map.replace(id, gson.toJson(broadcast));
-				db.commit();
-				result = true;
+		synchronized (this) {
+			if (id != null) {
+				String jsonString = map.get(id);
+				if (jsonString != null) {
+					Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
+					broadcast.setName(name);
+					broadcast.setDescription(description);
+					map.replace(id, gson.toJson(broadcast));
+					db.commit();
+					result = true;
+				}
 			}
 		}
 		return result;
@@ -152,14 +152,18 @@ public class MapDBStore implements IDataStore {
 	@Override
 	public boolean updateStatus(String id, String status) {
 		boolean result = false;
-		if (id != null) {
-			String jsonString = map.get(id);
-			if (jsonString != null) {
-				Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
-				broadcast.setStatus(status);
-				map.replace(id, gson.toJson(broadcast));
-				db.commit();
-				result = true;
+		synchronized (this) {
+			if (id != null) {
+				String jsonString = map.get(id);
+				if (jsonString != null) {
+					Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
+					broadcast.setStatus(status);
+					String jsonVal = gson.toJson(broadcast);
+					String previousValue = map.replace(id, jsonVal);
+					db.commit();
+					logger.info("updateStatus replacing id {} having value {} to {}", id, previousValue, jsonVal);
+					result = true;
+				}
 			}
 		}
 		return result;
@@ -168,14 +172,18 @@ public class MapDBStore implements IDataStore {
 	@Override
 	public boolean updateDuration(String id, long duration) {
 		boolean result = false;
-		if (id != null) {
-			String jsonString = map.get(id);
-			if (jsonString != null) {
-				Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
-				broadcast.setDuration(duration);
-				map.replace(id, gson.toJson(broadcast));
-				db.commit();
-				result = true;
+		synchronized (this) {
+			if (id != null) {
+				String jsonString = map.get(id);
+				if (jsonString != null) {
+					Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
+					broadcast.setDuration(duration);
+					String jsonVal = gson.toJson(broadcast);
+					String previousValue = map.replace(id, jsonVal);
+					db.commit();
+					result = true;
+					logger.info("updateStatus replacing id {} having value {} to {}", id, previousValue, jsonVal);
+				}
 			}
 		}
 		return result;
@@ -376,79 +384,6 @@ public class MapDBStore implements IDataStore {
 
 	}
 
-	/*
-	@Override
-	public List<Vod> filterVoDList(int offset, int size, String keyword, long startdate, long endDate) {
-
-		List<Vod> list = new ArrayList<Vod>();
-		int t = 0;
-		int itemCount = 0;
-		if (size > 50) {
-			size = 50;
-		}
-		if (offset < 0) {
-			offset = 0;
-		}
-
-		Object[] objectArray = vodMap.getValues().toArray();
-
-		Vod[] vodArray = new Vod[objectArray.length];
-
-		List<Vod> filterList = new ArrayList<Vod>();
-
-		for (int i = 0; i < objectArray.length; i++) {
-
-			vodArray[i] = gson.fromJson((String) objectArray[i], Vod.class);
-
-		}
-
-		if (keyword != null && keyword.length() > 0) {
-
-			for (int i = 0; i < vodArray.length; i++) {
-
-				if (vodArray[i].getStreamName().contains(keyword) && startdate < vodArray[i].getCreationDate()
-						&& endDate > vodArray[i].getCreationDate()) {
-
-					filterList.add(gson.fromJson((String) objectArray[i], Vod.class));
-
-				}
-
-			}
-
-		} else if (keyword == null || keyword.length() < 0) {
-
-			for (int i = 0; i < vodArray.length; i++) {
-
-				if (startdate < vodArray[i].getCreationDate() && endDate > vodArray[i].getCreationDate()) {
-
-					filterList.add(gson.fromJson((String) objectArray[i], Vod.class));
-
-				}
-
-			}
-
-		}
-
-		for (Vod broadcast : filterList) {
-			if (t < offset) {
-				t++;
-				continue;
-			}
-			list.add(broadcast);
-			itemCount++;
-
-			if (itemCount >= size) {
-				break;
-			}
-
-		}
-
-		return list;
-
-	}
-
-	 */
-
 	@Override
 	public boolean addVod(Vod vod) {
 		String vodId = null;
@@ -505,7 +440,6 @@ public class MapDBStore implements IDataStore {
 
 			logger.warn("inside of editCameraInfo");
 
-
 			Broadcast oldCam = get(camera.getStreamId());
 
 			oldCam.setName(camera.getName());
@@ -513,8 +447,6 @@ public class MapDBStore implements IDataStore {
 			oldCam.setPassword(camera.getPassword());
 			oldCam.setIpAddr(camera.getIpAddr());
 			oldCam.setStreamUrl(camera.getStreamUrl());
-			
-
 
 			getMap().replace(oldCam.getStreamId(), gson.toJson(oldCam));
 
@@ -583,18 +515,16 @@ public class MapDBStore implements IDataStore {
 
 	@Override
 	public int fetchUserVodList(File userfile) {
-		
+
 		if(userfile==null) {
 			return 0;
 		}
 
 		int numberOfSavedFiles = 0;
 		Object[] objectArray = vodMap.getValues().toArray();
-
 		Vod[] vodtArray = new Vod[objectArray.length];
 
 		for (int i = 0; i < objectArray.length; i++) {
-
 			vodtArray[i] = gson.fromJson((String) objectArray[i], Vod.class);
 		}
 
@@ -618,19 +548,18 @@ public class MapDBStore implements IDataStore {
 
 					long fileSize = file.length();
 					long unixTime = System.currentTimeMillis();
-					
+
 					String path=file.getPath();
-					
+
 					String[] subDirs = path.split(Pattern.quote(File.separator));
-					
+
 					Integer pathLength=Integer.valueOf(subDirs.length);
-					
+
 					String relativePath=subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
 
 					Vod newVod = new Vod("vodFile", "vodFile", relativePath, file.getName(), unixTime, 0, fileSize,
 							Vod.USER_VOD);
 					addUserVod(newVod);
-					
 					numberOfSavedFiles++;
 				}
 			}
@@ -642,15 +571,19 @@ public class MapDBStore implements IDataStore {
 	@Override
 	public boolean updateSourceQuality(String id, String quality) {
 		boolean result = false;
-		if (id != null) {
-			String jsonString = map.get(id);
-			if (jsonString != null) {
-				Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
-				broadcast.setQuality(quality);
-
-				map.replace(id, gson.toJson(broadcast));
-				db.commit();
-				result = true;
+		synchronized (this) {
+			if (id != null) {
+				String jsonString = map.get(id);
+				if (jsonString != null) {
+					Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
+					broadcast.setQuality(quality);
+					String jsonVal = gson.toJson(broadcast);
+					String previousValue = map.replace(id, jsonVal);
+					db.commit();
+					logger.info("updateSourceQuality replacing id {} having value {} to {} and the fetched value {}", 
+							id, previousValue, jsonVal, jsonString);
+					result = true;
+				}
 			}
 		}
 		return result;
@@ -659,17 +592,17 @@ public class MapDBStore implements IDataStore {
 	@Override
 
 	public boolean updateSourceSpeed(String id, double speed) {
-
-
 		boolean result = false;
-		if (id != null) {
-			String jsonString = map.get(id);
-			if (jsonString != null) {
-				Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
-				broadcast.setSpeed(speed);
-				map.replace(id, gson.toJson(broadcast));
-				db.commit();
-				result = true;
+		synchronized (this) {
+			if (id != null) {
+				String jsonString = map.get(id);
+				if (jsonString != null) {
+					Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
+					broadcast.setSpeed(speed);
+					map.replace(id, gson.toJson(broadcast));
+					db.commit();
+					result = true;
+				}
 			}
 		}
 		return result;
@@ -757,7 +690,7 @@ public class MapDBStore implements IDataStore {
 
 		return getMap().size();
 	}
-	
+
 	@Override
 	public long getActiveBroadcastCount() {
 		Collection<String> values = map.values();

@@ -67,19 +67,18 @@ public class StreamFetcherManager {
 
 		try {
 			StreamFetcher streamScheduler = new StreamFetcher(broadcast,scope);
-			streamFetcherList.add(streamScheduler);
 			streamScheduler.startStream();
 
 			try {
 				Thread.sleep(6000);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
-				Thread.currentThread().interrupt();
 			}
 
 			if(!streamScheduler.getCameraError().isSuccess()) {
 				result=streamScheduler.getCameraError();
 			}
+			streamFetcherList.add(streamScheduler);
 		}
 		catch (Exception e) {
 			e.printStackTrace();
