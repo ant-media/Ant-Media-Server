@@ -539,5 +539,18 @@ public class InMemoryDataStore implements IDataStore {
 		return broadcastMap.size();
 
 	}
+	
+	@Override
+	public long getActiveBroadcastCount() {
+		Collection<Broadcast> values = broadcastMap.values();
+		long activeBroadcastCount = 0;
+		for (Broadcast broadcast : values) {
+			String status = broadcast.getStatus();
+			if (status != null && status.equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
+				activeBroadcastCount++;
+			}
+		}
+		return activeBroadcastCount;
+	}
 
 }

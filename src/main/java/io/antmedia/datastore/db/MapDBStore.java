@@ -497,39 +497,7 @@ public class MapDBStore implements IDataStore {
 	}
 
 
-	/*
-	 * IP Camera Operations
-	 */
 
-
-
-
-	/*
-	 * Save method is used for this one.
-	@Override
-	public boolean addCamera(Broadcast camera) {
-		boolean result = false;
-		String streamId = null;
-
-		// StreamID Address is primary key
-
-		if (camera != null) {
-			try {
-				streamId = RandomStringUtils.randomNumeric(24);
-				camera.setStreamId(streamId);
-
-				map.put(streamId, gson.toJson(camera));
-				db.commit();
-				result = true;
-			} catch (Exception e) {
-				e.printStackTrace();
-				streamId = null;
-			}
-		}
-
-		return result;
-	}
-	 */
 	@Override
 	public boolean editCameraInfo(Broadcast camera) {
 		boolean result = false;
@@ -604,32 +572,6 @@ public class MapDBStore implements IDataStore {
 
 		return result;
 	}
-	/*
-	@Override
-	public boolean resetBroadcastStatus() {
-
-		Object[] objectArray = map.getValues().toArray();
-
-		Broadcast[] broadcastArray = new Broadcast[objectArray.length];
-
-		for (int i = 0; i < objectArray.length; i++) {
-
-			broadcastArray[i] = gson.fromJson((String) objectArray[i], Broadcast.class);
-
-		}
-
-		for (int i = 0; i < broadcastArray.length; i++) {
-			if (broadcastArray[i].getStatus().equals("broadcasting")) {
-				broadcastArray[i].setStatus("created");
-				map.replace(broadcastArray[i].getStreamId(), gson.toJson(broadcastArray[i]));
-			}
-
-		}
-
-		return false;
-	}
-
-	 */
 
 	@Override
 	public long getTotalVodNumber() {
@@ -814,6 +756,20 @@ public class MapDBStore implements IDataStore {
 	public long getTotalBroadcastNumber() {
 
 		return getMap().size();
+	}
+	
+	@Override
+	public long getActiveBroadcastCount() {
+		Collection<String> values = map.values();
+		int activeBroadcastCount = 0;
+		for (String broadcastString : values) {
+			Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
+			String status = broadcast.getStatus();
+			if (status != null && status.equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
+				activeBroadcastCount++;
+			}
+		}
+		return activeBroadcastCount;
 	}
 
 }

@@ -577,10 +577,7 @@ public class MongoStore implements IDataStore {
 
 	@Override
 	public long getTotalBroadcastNumber() {
-
 		return datastore.getCount(Broadcast.class);
-
-
 	}
 
 	public Datastore getVodDatastore() {
@@ -589,6 +586,11 @@ public class MongoStore implements IDataStore {
 
 	public void setVodDatastore(Datastore vodDatastore) {
 		this.vodDatastore = vodDatastore;
+	}
+
+	@Override
+	public long getActiveBroadcastCount() {
+		return datastore.find(Broadcast.class).filter("status", AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING).count();
 	}
 
 
