@@ -50,4 +50,14 @@ public class Application extends AntMediaApplicationAdapter implements IMuxerLis
 
 		return null;
 	}
+	
+	@Override
+	public void sourceQualityChanged(String id, String quality) {
+		//do not implement this function in unit test, it creates unstability in calculating the number of scheduled tasks
+	}
+	
+	@Override
+	public void sourceSpeedChanged(String id, double speed) {
+		//do not implement this function in unit test, it creates unstability in calculating the number of scheduled tasks
+	}
 }

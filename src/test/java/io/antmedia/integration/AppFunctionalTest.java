@@ -290,6 +290,10 @@ public class AppFunctionalTest {
 		try {
 			RestServiceTest restService = new RestServiceTest();
 
+			List<Broadcast> broadcastList = restService.callGetBroadcastList();
+			for (Broadcast broadcast : broadcastList) {
+				System.out.println("brodcast url: " + broadcast.getStreamId() + " status: " + broadcast.getStatus());
+			}
 			LiveStatistics liveStatistics = restService.callGetLiveStatistics();
 			assertEquals(liveStatistics.totalHLSWatchersCount, 0);
 			assertEquals(liveStatistics.totalRTMPWatchersCount, 0);
