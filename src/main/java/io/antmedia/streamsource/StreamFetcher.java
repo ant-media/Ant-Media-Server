@@ -247,6 +247,7 @@ public class StreamFetcher {
 			if (muxAdaptor != null) {
 				logger.info("Writing trailer for Muxadaptor");
 				muxAdaptor.writeTrailer(inputFormatContext);
+				muxAdaptor = null;
 			}
 			
 			if (inputFormatContext != null) {
