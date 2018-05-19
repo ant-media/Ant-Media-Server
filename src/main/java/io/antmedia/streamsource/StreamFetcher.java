@@ -284,8 +284,8 @@ public class StreamFetcher {
 					int i = 0;
 					while (threadActive) {
 						Thread.sleep(100);
-						if (i % 20 == 0) {
-							logger.info("waiting for thread to be finished");
+						if (i % 50 == 0) {
+							logger.info("waiting for thread to be finished for stream " + stream.getStreamUrl());
 							i = 0;
 						}
 					}

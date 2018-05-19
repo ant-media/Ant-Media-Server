@@ -57,7 +57,7 @@
 		<periscope-api.version>1.1.0</periscope-api.version>
 		<restfb.version>1.43.0</restfb.version>
 
-		<javacpp.ffmpeg.version>3.2.1-1.3</javacpp.ffmpeg.version>
+		<javacpp.ffmpeg.version>3.4.2-1.4.1</javacpp.ffmpeg.version>
 
 		<jersey.version>2.26</jersey.version>
 		<mapdb.version>3.0.6</mapdb.version>
