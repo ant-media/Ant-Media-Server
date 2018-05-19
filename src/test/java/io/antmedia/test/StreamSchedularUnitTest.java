@@ -30,7 +30,11 @@ import org.bytedeco.javacpp.avutil.AVDictionary;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.scope.WebScope;
 import org.slf4j.Logger;
@@ -66,6 +70,17 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 	}
+	
+	@Rule
+	public TestRule watcher = new TestWatcher() {
+	   protected void starting(Description description) {
+	      System.out.println("Starting test: " + description.getMethodName());
+	   }
+	   
+	   protected void finished(Description description) {
+		   System.out.println("Finishing test: " + description.getMethodName());
+	   };
+	};
 
 	@BeforeClass
 	public static void beforeClass() {
@@ -95,6 +110,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			logger.debug("Application / web scope: {}", appScope);
 			assertTrue(appScope.getDepth() == 1);
 		}
+		
 	}
 
 	@After
@@ -187,6 +203,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 	@Test
 	public void testStreamSchedularConnectionTimeout() throws InterruptedException {
+		logger.info("running testStreamSchedularConnectionTimeout");
 		try {
 
 			AVFormatContext inputFormatContext = new AVFormatContext();
@@ -221,6 +238,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+		logger.info("leaving testStreamSchedularConnectionTimeout");
 	}
 
 	@Test
