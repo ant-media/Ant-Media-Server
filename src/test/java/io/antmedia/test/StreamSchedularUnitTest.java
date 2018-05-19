@@ -77,6 +77,9 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	      System.out.println("Starting test: " + description.getMethodName());
 	   }
 	   
+	   protected void failed(Throwable e, Description description) {
+		   System.out.println("Failed test: " + description.getMethodName());
+	   };
 	   protected void finished(Description description) {
 		   System.out.println("Finishing test: " + description.getMethodName());
 	   };
@@ -192,6 +195,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			Thread.sleep(5000);
 
 			assertFalse(camScheduler.isStreamAlive());
+			assertFalse(camScheduler.isThreadActive());
 		}
 		catch (Exception e) {
 			e.printStackTrace();
@@ -368,6 +372,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		for (Broadcast broadcast : broadcastList) {
 
+			logger.info("broadcast name: " + broadcast.getName() + " broadcast status :" + broadcast.getStatus() + " broadcast is zombi: " + broadcast.isZombi());
 			if(broadcast.isZombi()) {
 
 				fetchedBroadcast=broadcast;	
