@@ -17,6 +17,8 @@ public class Application extends AntMediaApplicationAdapter implements IMuxerLis
 	public static String notifyStreamName = null;
 	public static String notifyCategory = null;
 	public static String notifyVodName = null;
+	
+	public static boolean enableSourceHealthUpdate = false;
 
 	@Override
 	public void muxingFinished(String id, File file, long duration) {
@@ -53,11 +55,15 @@ public class Application extends AntMediaApplicationAdapter implements IMuxerLis
 	
 	@Override
 	public void sourceQualityChanged(String id, String quality) {
-		//do not implement this function in unit test, it creates unstability in calculating the number of scheduled tasks
+		if (enableSourceHealthUpdate) {
+			super.sourceQualityChanged(id, quality);
+		}
 	}
 	
 	@Override
 	public void sourceSpeedChanged(String id, double speed) {
-		//do not implement this function in unit test, it creates unstability in calculating the number of scheduled tasks
+		if (enableSourceHealthUpdate) {
+			super.sourceSpeedChanged(id, speed);
+		}
 	}
 }

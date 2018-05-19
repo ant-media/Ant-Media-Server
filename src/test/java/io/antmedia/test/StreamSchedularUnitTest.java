@@ -57,7 +57,7 @@ import io.antmedia.streamsource.StreamFetcher;
 @ContextConfiguration(locations = { "test.xml" })
 public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
-	public AntMediaApplicationAdapter app = null;
+	public Application app = null;
 	private WebScope appScope;
 	protected static Logger logger = LoggerFactory.getLogger(StreamSchedularUnitTest.class);
 
@@ -109,10 +109,13 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 
 		if (app == null) {
-			app = (AntMediaApplicationAdapter) applicationContext.getBean("web.handler");
+			app = (Application) applicationContext.getBean("web.handler");
 			logger.debug("Application / web scope: {}", appScope);
 			assertTrue(appScope.getDepth() == 1);
 		}
+		
+		//reset to default
+		Application.enableSourceHealthUpdate = false;
 		
 	}
 
@@ -124,6 +127,9 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		
+		//reset to default
+		Application.enableSourceHealthUpdate = false;
 
 	}
 
@@ -333,6 +339,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testBandwidth() {
 
 		logger.info("running testBandwidth");
+		Application.enableSourceHealthUpdate = true;
 		IDataStore dataStore = app.getDataStore();
 		assertNotNull(dataStore);
 
