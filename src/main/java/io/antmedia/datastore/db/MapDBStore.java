@@ -161,7 +161,7 @@ public class MapDBStore implements IDataStore {
 					String jsonVal = gson.toJson(broadcast);
 					String previousValue = map.replace(id, jsonVal);
 					db.commit();
-					logger.info("updateStatus replacing id {} having value {} to {}", id, previousValue, jsonVal);
+					logger.debug("updateStatus replacing id {} having value {} to {}", id, previousValue, jsonVal);
 					result = true;
 				}
 			}
@@ -182,7 +182,7 @@ public class MapDBStore implements IDataStore {
 					String previousValue = map.replace(id, jsonVal);
 					db.commit();
 					result = true;
-					logger.info("updateStatus replacing id {} having value {} to {}", id, previousValue, jsonVal);
+					logger.debug("updateStatus replacing id {} having value {} to {}", id, previousValue, jsonVal);
 				}
 			}
 		}
@@ -437,9 +437,7 @@ public class MapDBStore implements IDataStore {
 	public boolean editCameraInfo(Broadcast camera) {
 		boolean result = false;
 		try {
-
 			logger.warn("inside of editCameraInfo");
-
 			Broadcast oldCam = get(camera.getStreamId());
 
 			oldCam.setName(camera.getName());
@@ -580,7 +578,7 @@ public class MapDBStore implements IDataStore {
 					String jsonVal = gson.toJson(broadcast);
 					String previousValue = map.replace(id, jsonVal);
 					db.commit();
-					logger.info("updateSourceQuality replacing id {} having value {} to {} and the fetched value {}", 
+					logger.debug("updateSourceQuality replacing id {} having value {} to {} and the fetched value {}", 
 							id, previousValue, jsonVal, jsonString);
 					result = true;
 				}
