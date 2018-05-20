@@ -145,8 +145,8 @@ public class BroadcastRestService {
 	private ServletContext servletContext;
 
 	private IScope scope;
-	
-	
+
+
 	private ApplicationContext appCtx;
 
 	private AntMediaApplicationAdapter app;
@@ -372,7 +372,7 @@ public class BroadcastRestService {
 
 		return new Result(success, message);
 	}
-	
+
 	/*
 
 	/**
@@ -541,7 +541,7 @@ public class BroadcastRestService {
 		}
 		return broadcast;
 	}
-	
+
 	/**
 	 * Get Detected objects
 	 * 
@@ -556,40 +556,40 @@ public class BroadcastRestService {
 	@Produces(MediaType.APPLICATION_JSON)
 	public List<TensorFlowObject> getDetectedObjects(@QueryParam("id") String id) {
 		List<TensorFlowObject> list = null;
-		
+
 		if (id != null) {
 			list = getDataStore().getDetection(id);
 		}
-		
+
 		if (list == null) {
 			//do not return null in rest service
 			list = new ArrayList<TensorFlowObject>();
 		}
-		
+
 		return list;
 	}
-	
-	
+
+
 	@GET
 	@Path("/detection/getList/{offset}/{size}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public List<TensorFlowObject> getDetectionList(@QueryParam("id") String id, @PathParam("offset") int offset, @PathParam("size") int size) {
 		List<TensorFlowObject> list = null;
-		
+
 		if (id != null) {
 			list = getDataStore().getDetectionList(id, offset, size);	
 		}
-		
+
 		if (list == null) {
 			//do not return null in rest service
 			list = new ArrayList<TensorFlowObject>();
 		}
-		
-		
+
+
 		return list;
 	}
-	
-	
+
+
 
 	/**
 	 * Gets the broadcast list from database
@@ -811,15 +811,14 @@ public class BroadcastRestService {
 	@Path("/broadcast/getVersion")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Version getVersion() {
+		Version versionList = new Version();
+		versionList.setVersionName(AntMediaApplicationAdapter.class.getPackage().getImplementationVersion());
+		versionList.setVersionType(BroadcastRestService.isEnterprise() ? "Enterprise Edition" : "Community Edition");
 
-	Version versionList = new Version();
-	versionList.setVersionName(AntMediaApplicationAdapter.class.getPackage().getImplementationVersion());
-	versionList.setVersionType(BroadcastRestService.isEnterprise() ? "Enterprise Edition" : "Community Edition");
-	
-	logger.info("Version Name"+ AntMediaApplicationAdapter.class.getPackage().getImplementationVersion());
-	logger.info("Version Type"+ (BroadcastRestService.isEnterprise() ? "Enterprise Edition" : "Community Edition"));
+		logger.info("Version Name"+ AntMediaApplicationAdapter.class.getPackage().getImplementationVersion());
+		logger.info("Version Type"+ (BroadcastRestService.isEnterprise() ? "Enterprise Edition" : "Community Edition"));
 
-	return versionList;
+		return versionList;
 	}
 
 

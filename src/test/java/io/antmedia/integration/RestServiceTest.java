@@ -458,7 +458,7 @@ public class RestServiceTest {
         try {
         	//first, read version from pom.xml 
 			Model model = reader.read(new FileReader("pom.xml"));
-			logger.info(model.getVersion());
+			logger.info(model.getParent().getVersion());
 
 			//then get version from rest service
 			String url = ROOT_SERVICE_URL + "/broadcast/getVersion";
@@ -478,7 +478,8 @@ public class RestServiceTest {
 			versionList = gson.fromJson(result.toString(), Version.class);
 			
 			//check that they are same
-			assertEquals(model.getVersion(), versionList.getVersionName());
+			assertEquals(model.getParent().getVersion()
+				, versionList.getVersionName());
 
 		}catch(Exception e){
 			e.printStackTrace();
