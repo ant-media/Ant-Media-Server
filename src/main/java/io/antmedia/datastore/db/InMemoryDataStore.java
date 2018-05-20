@@ -7,7 +7,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.regex.Pattern;
-
+import java.util.Set;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.slf4j.Logger;
@@ -19,6 +19,7 @@ import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
+import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Vod;
 
 public class InMemoryDataStore implements IDataStore {
@@ -29,7 +30,9 @@ public class InMemoryDataStore implements IDataStore {
 	public LinkedHashMap<String, Broadcast> broadcastMap = new LinkedHashMap<String, Broadcast>();
 
 	public LinkedHashMap<String, Vod> vodMap = new LinkedHashMap<String, Vod>();
-
+	
+	public LinkedHashMap<String, List<TensorFlowObject>> detectionMap = new LinkedHashMap<String, List<TensorFlowObject>>();
+	
 	public LinkedHashMap<String, SocialEndpointCredentials> socialEndpointCredentialsMap = new LinkedHashMap<String, SocialEndpointCredentials>();
 
 
@@ -534,6 +537,7 @@ public class InMemoryDataStore implements IDataStore {
 	}
 
 	@Override
+
 	public long getTotalBroadcastNumber() {
 
 		return broadcastMap.size();
@@ -552,5 +556,48 @@ public class InMemoryDataStore implements IDataStore {
 		}
 		return activeBroadcastCount;
 	}
+
+	public void saveDetection(String id, long timeElapsed, List<TensorFlowObject> detectedObjects) {
+		if (detectedObjects != null) {
+			for (TensorFlowObject tensorFlowObject : detectedObjects) {
+				tensorFlowObject.setDetectionTime(timeElapsed);
+			}
+			detectionMap.put(id, detectedObjects);
+		}
+	}
+
+	@Override
+	public List<TensorFlowObject> getDetectionList(String idFilter, int offsetSize, int batchSize) {
+		int offsetCount=0, batchCount=0;
+		List<TensorFlowObject> list = new ArrayList<>();
+		Set<String> keySet = detectionMap.keySet();
+		for(String keyValue: keySet) {
+			if (keyValue.startsWith(idFilter)) 
+			{
+				if (offsetCount < offsetSize) {
+					offsetCount++;
+					continue;
+				}
+				if (batchCount > batchSize) {
+					break;
+				}
+				batchCount++;
+				List<TensorFlowObject> detectedList = detectionMap.get(keyValue);
+				list.addAll(detectedList);
+			}
+		}
+		return list;
+	}
+
+	@Override
+	public List<TensorFlowObject> getDetection(String id) {
+		if (id != null) {
+			List<TensorFlowObject> detectedObjects = detectionMap.get(id);
+			return detectedObjects;
+		}
+		return null;
+	}
+
+
 
 }

@@ -56,9 +56,7 @@
 		<cors-filter.version>2.5</cors-filter.version>
 		<periscope-api.version>1.1.0</periscope-api.version>
 		<restfb.version>1.43.0</restfb.version>
-
 		<javacpp.ffmpeg.version>3.2.1-1.3</javacpp.ffmpeg.version>
-
 		<jersey.version>2.26</jersey.version>
 		<mapdb.version>3.0.6</mapdb.version>
 
@@ -246,6 +244,18 @@
 			<groupId>ch.qos.logback</groupId>
 			<artifactId>logback-classic</artifactId>
 			<version>${logback.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.tensorflow</groupId>
+			<artifactId>tensorflow</artifactId>
+			<version>1.6.0</version>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.google.protobuf</groupId>
+			<artifactId>protobuf-java</artifactId>
+			<version>3.5.1</version>
+			<scope>provided</scope>
 		</dependency>
 		<!-- <dependency> <groupId>uk.org.lidalia</groupId> <artifactId>sysout-over-slf4j</artifactId> 
 			<version>1.0.2</version> </dependency> -->

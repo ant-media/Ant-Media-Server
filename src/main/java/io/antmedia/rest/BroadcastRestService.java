@@ -8,6 +8,9 @@ import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -48,6 +51,7 @@ import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointChannel;
+import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.Vod;
 import io.antmedia.muxer.Muxer;
@@ -537,6 +541,55 @@ public class BroadcastRestService {
 		}
 		return broadcast;
 	}
+	
+	/**
+	 * Get Detected objects
+	 * 
+	 * @param id
+	 *            id of the stream
+	 * 
+	 * @return List of detected objects
+	 * 
+	 */
+	@GET
+	@Path("/detection/get")
+	@Produces(MediaType.APPLICATION_JSON)
+	public List<TensorFlowObject> getDetectedObjects(@QueryParam("id") String id) {
+		List<TensorFlowObject> list = null;
+		
+		if (id != null) {
+			list = getDataStore().getDetection(id);
+		}
+		
+		if (list == null) {
+			//do not return null in rest service
+			list = new ArrayList<TensorFlowObject>();
+		}
+		
+		return list;
+	}
+	
+	
+	@GET
+	@Path("/detection/getList/{offset}/{size}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public List<TensorFlowObject> getDetectionList(@QueryParam("id") String id, @PathParam("offset") int offset, @PathParam("size") int size) {
+		List<TensorFlowObject> list = null;
+		
+		if (id != null) {
+			list = getDataStore().getDetectionList(id, offset, size);	
+		}
+		
+		if (list == null) {
+			//do not return null in rest service
+			list = new ArrayList<TensorFlowObject>();
+		}
+		
+		
+		return list;
+	}
+	
+	
 
 	/**
 	 * Gets the broadcast list from database

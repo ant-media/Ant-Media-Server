@@ -19,10 +19,13 @@ import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import java.lang.reflect.Type;
+import com.google.gson.reflect.TypeToken;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
+import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.Vod;
 import io.antmedia.ipcamera.OnvifCamera;
@@ -32,6 +35,7 @@ public class MapDBStore implements IDataStore {
 	private DB db;
 	private BTreeMap<String, String> map;
 	private BTreeMap<String, String> vodMap;
+	private BTreeMap<String, String> detectionMap;
 	private BTreeMap<String, String> userVodMap;
 
 
@@ -40,6 +44,7 @@ public class MapDBStore implements IDataStore {
 	protected static Logger logger = LoggerFactory.getLogger(MapDBStore.class);
 	private static final String MAP_NAME = "broadcast";
 	private static final String VOD_MAP_NAME = "vod";
+	private static final String DETECTION_MAP_NAME = "detection";
 	private static final String USER_MAP_NAME = "userVod";
 	private static final String SOCIAL_ENDPONT_CREDENTIALS_MAP_NAME = "SOCIAL_ENDPONT_CREDENTIALS_MAP_NAME";
 
@@ -53,6 +58,9 @@ public class MapDBStore implements IDataStore {
 		vodMap = db.treeMap(VOD_MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
 				.counterEnable().createOrOpen();
 
+		detectionMap = db.treeMap(DETECTION_MAP_NAME).keySerializer(Serializer.STRING)
+				.valueSerializer(Serializer.STRING).counterEnable().createOrOpen();
+
 		userVodMap = db.treeMap(USER_MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
 				.counterEnable().createOrOpen();
 
@@ -62,12 +70,14 @@ public class MapDBStore implements IDataStore {
 		GsonBuilder builder = new GsonBuilder();
 		gson = builder.create();
 
+
 	}
+
 
 	public BTreeMap<String, String> getUserVodMap() {
+
 		return userVodMap;
 	}
-
 	public void setUserVodMap(BTreeMap<String, String> userVodMap) {
 		this.userVodMap = userVodMap;
 	}
@@ -86,6 +96,14 @@ public class MapDBStore implements IDataStore {
 
 	public void setMap(BTreeMap<String, String> map) {
 		this.map = map;
+	}
+
+	public BTreeMap<String, String> getDetectionMap() {
+		return detectionMap;
+	}
+
+	public void setDetectionMap(BTreeMap<String, String> detectionMap) {
+		this.detectionMap = detectionMap;
 	}
 
 	@Override
@@ -350,20 +368,15 @@ public class MapDBStore implements IDataStore {
 		Broadcast[] broadcastArray = new Broadcast[objectArray.length];
 
 		for (int i = 0; i < objectArray.length; i++) {
-
 			broadcastArray[i] = gson.fromJson((String) objectArray[i], Broadcast.class);
-
 		}
 
 		List<Broadcast> filterList = new ArrayList<Broadcast>();
 		for (int i = 0; i < broadcastArray.length; i++) {
 
 			if (broadcastArray[i].getType().equals(type)) {
-
 				filterList.add(gson.fromJson((String) objectArray[i], Broadcast.class));
-
 			}
-
 		}
 
 		List<Broadcast> list = new ArrayList<Broadcast>();
@@ -684,6 +697,7 @@ public class MapDBStore implements IDataStore {
 	}
 
 	@Override
+
 	public long getTotalBroadcastNumber() {
 
 		return getMap().size();
@@ -701,6 +715,59 @@ public class MapDBStore implements IDataStore {
 			}
 		}
 		return activeBroadcastCount;
+	}
+
+	public void saveDetection(String id, long timeElapsed, List<TensorFlowObject> detectedObjects) {
+		try {
+			if (detectedObjects != null) {
+				for (TensorFlowObject tensorFlowObject : detectedObjects) {
+					tensorFlowObject.setDetectionTime(timeElapsed);
+				}
+				detectionMap.put(id, gson.toJson(detectedObjects));
+				db.commit();
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	@Override
+	public List<TensorFlowObject> getDetection(String id) 
+	{
+		if (id != null) {
+			String jsonString = detectionMap.get(id);
+			if (jsonString != null) {
+				Type listType = new TypeToken<ArrayList<TensorFlowObject>>(){}.getType();
+				return gson.fromJson(jsonString, listType);
+			}
+		}
+		return null;
+	}
+
+	@Override
+	public List<TensorFlowObject> getDetectionList(String idFilter, int offsetSize, int batchSize) 
+	{
+		Type listType = new TypeToken<ArrayList<TensorFlowObject>>(){}.getType();
+		int offsetCount=0, batchCount=0;
+		List<TensorFlowObject> list = new ArrayList<>();
+		for (Iterator<String> keyIterator = detectionMap.keyIterator(); keyIterator.hasNext();) {
+			String keyValue = keyIterator.next();
+			if (keyValue.startsWith(idFilter)) 
+			{
+				if (offsetCount < offsetSize) {
+					offsetCount++;
+					continue;
+				}
+				if (batchCount > batchSize) {
+					break;
+				}
+				batchCount++;
+				List<TensorFlowObject> detectedList = gson.fromJson(detectionMap.get(keyValue), listType);
+				list.addAll(detectedList);
+			}
+		}
+		return list;
+
 	}
 
 }
