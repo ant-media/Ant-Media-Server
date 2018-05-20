@@ -1,15 +1,13 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<parent>
-		<groupId>org.red5</groupId>
-		<artifactId>red5-parent</artifactId>
-		<version>1.0.9-M2</version>
+		<groupId>io.antmedia</groupId>
+		<artifactId>parent</artifactId>
+		<version>1.3.5-SNAPSHOT</version>
 	</parent>
-
 	<modelVersion>4.0.0</modelVersion>
-	<groupId>io.antmedia</groupId>
 	<artifactId>ant-media-server</artifactId>
-	<version>1.3.5-SNAPSHOT</version>
+	<version>${project.parent.version}</version>
 	<name>Ant Media Server</name>
 	<description>Ant Media Server supports RTMP, RTSP, MP4, HLS, WebRTC, Adaptive Streaming, etc.</description>
 	<packaging>jar</packaging>
@@ -50,26 +48,8 @@
 		<skipTests>false</skipTests>
 		<build.dir>target</build.dir>
 		<finalName>${project.artifactId}-${project.version}</finalName>
-		<red5-io.version>${project.parent.version}</red5-io.version>
-		<red5-service.version>${project.version}</red5-service.version>
-		<red5-server-common.version>1.3.5-SNAPSHOT</red5-server-common.version>
-		<cors-filter.version>2.5</cors-filter.version>
-		<periscope-api.version>1.1.0</periscope-api.version>
-		<restfb.version>1.43.0</restfb.version>
-		<javacpp.ffmpeg.version>3.2.1-1.3</javacpp.ffmpeg.version>
-		<jersey.version>2.26</jersey.version>
-		<mapdb.version>3.0.6</mapdb.version>
-
     	    <maven.build.timestamp.format>yyMMdd_HHmm</maven.build.timestamp.format>
         <buildNumber>${maven.build.timestamp}</buildNumber>
-        <enunciate.version>2.10.0</enunciate.version>
-        <webrtcapp.version>1.3.0</webrtcapp.version>
-        <consoleapp.version>1.3.7-SNAPSHOT</consoleapp.version>
-		<liveapp.version>1.3.7-SNAPSHOT</liveapp.version>
-		<webrtcappee.version>1.3.3</webrtcappee.version>	
-		<ant-media-server-service.version>1.2.1</ant-media-server-service.version>
-		<ant-media-server-enterprise.version>1.3.5-SNAPSHOT</ant-media-server-enterprise.version>
-
 	</properties>
 
 	<build>
@@ -360,7 +340,7 @@
 		</dependency>
 		<!-- Runtime plugin deps -->
 		<dependency>
-			<groupId>${project.parent.groupId}</groupId>
+			<groupId>org.red5</groupId>
 			<artifactId>tomcatplugin</artifactId>
 			<version>${tomcatplugin.version}</version>
 			<scope>provided</scope>
