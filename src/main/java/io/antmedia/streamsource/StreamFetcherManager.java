@@ -67,19 +67,18 @@ public class StreamFetcherManager {
 
 		try {
 			StreamFetcher streamScheduler = new StreamFetcher(broadcast,scope);
-			streamFetcherList.add(streamScheduler);
 			streamScheduler.startStream();
 
 			try {
 				Thread.sleep(6000);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
-				Thread.currentThread().interrupt();
 			}
 
 			if(!streamScheduler.getCameraError().isSuccess()) {
 				result=streamScheduler.getCameraError();
 			}
+			streamFetcherList.add(streamScheduler);
 		}
 		catch (Exception e) {
 			e.printStackTrace();
@@ -125,11 +124,18 @@ public class StreamFetcherManager {
 
 					if (streamCheckerCount % 180 == 0) {
 
+						logger.info("Restarting streams");
 						for (StreamFetcher streamScheduler : streamFetcherList) {
+							
 							if (streamScheduler.isStreamAlive()) 
 							{
+								logger.info("Calling stop stream {}", streamScheduler.getStream().getStreamId());
 								streamScheduler.stopStream();
 							}
+							else {
+								logger.info("Stream is not alive {}", streamScheduler.getStream().getStreamId());
+							}
+							
 							streamScheduler.startStream();
 						}
 

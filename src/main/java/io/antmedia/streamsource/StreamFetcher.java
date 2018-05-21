@@ -23,15 +23,14 @@ import static org.bytedeco.javacpp.avutil.av_dict_free;
 import static org.bytedeco.javacpp.avutil.av_dict_set;
 import static org.bytedeco.javacpp.avutil.av_rescale_q;
 import static org.bytedeco.javacpp.avutil.av_rescale_q_rnd;
-
-
+import static org.bytedeco.javacpp.avcodec.av_packet_free;
 import java.util.List;
-
 import javax.annotation.Nullable;
 import javax.servlet.ServletContext;
 import javax.ws.rs.core.Context;
 
 import org.bytedeco.javacpp.avcodec.AVPacket;
+import org.bytedeco.javacpp.avcodec;
 import org.bytedeco.javacpp.avformat;
 import org.bytedeco.javacpp.avformat.AVFormatContext;
 import org.bytedeco.javacpp.avformat.AVIOContext;
@@ -61,7 +60,7 @@ public class StreamFetcher {
 	protected static Logger logger = LoggerFactory.getLogger(StreamFetcher.class);
 	private Broadcast stream;
 	private WorkerThread thread;
-	private AVPacket pkt = new AVPacket();
+	
 	/**
 	 * Connection setup timeout value
 	 */
@@ -170,17 +169,17 @@ public class StreamFetcher {
 		public void run() {
 
 			setThreadActive(true);
-			AVFormatContext inputFormatContext = new AVFormatContext(null); // avformat.avformat_alloc_context();
-
-			logger.info("before prepare");
-
-			Result result = prepare(inputFormatContext);
-
+			AVFormatContext inputFormatContext = null;
+			AVPacket pkt = null;
 			try {
+				inputFormatContext = new AVFormatContext(null); // avformat.avformat_alloc_context();
+				pkt = avcodec.av_packet_alloc();
+				logger.info("before prepare");
+				Result result = prepare(inputFormatContext);
 
 				if (result.isSuccess()) {
 
-					muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null);
+					muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null,true);
 
 					muxAdaptor.init(scope, stream.getStreamId(), false);
 					
@@ -208,7 +207,7 @@ public class StreamFetcher {
 							int packetIndex = pkt.stream_index();
 							if (lastDTS[packetIndex] >= pkt.dts()) {
 								pkt.dts(lastDTS[packetIndex] + 1);
-								logger.warn("Correcting dts value to {}", pkt.dts());
+								//logger.warn("Correcting dts value to {}", pkt.dts());
 							}
 							lastDTS[packetIndex] = pkt.dts();
 							if (pkt.dts() > pkt.pts()) {
@@ -217,12 +216,13 @@ public class StreamFetcher {
 							
 							if (lastPTS[packetIndex] >= pkt.pts()) {
 								pkt.pts(lastPTS[packetIndex] + 1);
-								logger.warn("Correcting pts value to {}", pkt.pts());
+							//	logger.warn("Correcting pts value to {}", pkt.pts());
 							}
 							lastPTS[packetIndex] = pkt.pts();
 
 							muxAdaptor.writePacket(inputFormatContext.streams(pkt.stream_index()), pkt);
 							
+							av_packet_unref(pkt);
 							if (stopRequestReceived) {
 								logger.warn("breaking the loop");
 								break;
@@ -238,7 +238,13 @@ public class StreamFetcher {
 				setCameraError(result);
 				logger.info("Leaving StreamFetcher Thread");
 
-			} catch (Exception e) {
+			} 
+			catch (OutOfMemoryError e) {
+				logger.info("---OutOfMemoryError in thread---");
+				e.printStackTrace();
+				exceptionInThread  = true;
+			}
+			catch (Exception e) {
 				logger.info("---Exception in thread---");
 				e.printStackTrace();
 				exceptionInThread  = true;
@@ -247,6 +253,12 @@ public class StreamFetcher {
 			if (muxAdaptor != null) {
 				logger.info("Writing trailer for Muxadaptor");
 				muxAdaptor.writeTrailer(inputFormatContext);
+				muxAdaptor = null;
+			}
+			
+			if (pkt != null) {
+				av_packet_free(pkt);
+				pkt = null;
 			}
 			
 			if (inputFormatContext != null) {
@@ -283,8 +295,8 @@ public class StreamFetcher {
 					int i = 0;
 					while (threadActive) {
 						Thread.sleep(100);
-						if (i % 20 == 0) {
-							logger.info("waiting for thread to be finished");
+						if (i % 50 == 0) {
+							logger.info("waiting for thread to be finished for stream " + stream.getStreamUrl());
 							i = 0;
 						}
 					}

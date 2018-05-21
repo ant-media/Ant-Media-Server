@@ -7,7 +7,9 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -16,6 +18,7 @@ import java.util.List;
 
 import javax.servlet.ServletContext;
 import javax.ws.rs.core.Context;
+import javax.xml.soap.Text;
 
 import org.bytedeco.javacpp.avformat;
 import org.bytedeco.javacpp.avutil;
@@ -127,7 +130,6 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			e.printStackTrace();
 		}
 
-		 
 	}
 
 
@@ -653,6 +655,89 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			fail(e.getMessage());
 		}
 
+	}
+	
+	
+	@Test
+	public void testHLSFlagResult() {
+		
+		try {
+			String textInFile;
+			
+			startCameraEmulator();
+			
+			Broadcast newCam = new Broadcast("streamSource", "127.0.0.1:8080", "admin", "admin", "rtsp://127.0.0.1:6554/test.flv",
+					AntMediaApplicationAdapter.STREAM_SOURCE);
+
+			assertNotNull(newCam.getStreamUrl());
+
+			String id = getInstance().getDataStore().save(newCam);
+
+			assertNotNull(newCam.getStreamId());
+
+			getAppSettings().setHlsMuxingEnabled(true);
+
+			StreamFetcher fetcher = new StreamFetcher(newCam, appScope);
+
+			assertFalse(fetcher.isThreadActive());
+			assertFalse(fetcher.isStreamAlive());
+
+			// start 
+			fetcher.startStream();
+
+			//wait for fetching stream
+			try {
+				Thread.sleep(5000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			
+			//wait for packaging files
+			fetcher.stopStream();
+			
+			try {
+				Thread.sleep(3000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			
+			assertFalse(fetcher.isThreadActive());
+
+			assertTrue(MuxingTest.testFile("webapps/junit/streams/"+newCam.getStreamId() +".m3u8"));
+
+			BufferedReader br = new BufferedReader(new FileReader("webapps/junit/streams/"+newCam.getStreamId() +".m3u8"));
+			try {
+			    StringBuilder sb = new StringBuilder();
+			    String line = br.readLine();
+
+			    while (line != null) {
+			        sb.append(line);
+			      //  sb.append(System.lineSeparator());
+			        line = br.readLine();
+			    }
+			   textInFile = sb.toString();
+			    
+			    logger.info(textInFile);
+			} finally {
+			    br.close();
+			}
+			
+			//Check that m3u8 file does not include "EXT-X-ENDLIST" parameter because "omit_endlist" flag is used in HLS Muxer
+			
+			assertFalse(textInFile.contains("EXT-X-ENDLIST"));
+		
+			stopCameraEmulator();
+			
+			getInstance().getDataStore().delete(id);
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+
+		
+		
+		
 	}
 
 

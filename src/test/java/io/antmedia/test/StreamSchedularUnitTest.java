@@ -30,7 +30,11 @@ import org.bytedeco.javacpp.avutil.AVDictionary;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.scope.WebScope;
 import org.slf4j.Logger;
@@ -53,7 +57,7 @@ import io.antmedia.streamsource.StreamFetcher;
 @ContextConfiguration(locations = { "test.xml" })
 public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
-	public AntMediaApplicationAdapter app = null;
+	public Application app = null;
 	private WebScope appScope;
 	protected static Logger logger = LoggerFactory.getLogger(StreamSchedularUnitTest.class);
 
@@ -66,6 +70,20 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 	}
+	
+	@Rule
+	public TestRule watcher = new TestWatcher() {
+	   protected void starting(Description description) {
+	      System.out.println("Starting test: " + description.getMethodName());
+	   }
+	   
+	   protected void failed(Throwable e, Description description) {
+		   System.out.println("Failed test: " + description.getMethodName());
+	   };
+	   protected void finished(Description description) {
+		   System.out.println("Finishing test: " + description.getMethodName());
+	   };
+	};
 
 	@BeforeClass
 	public static void beforeClass() {
@@ -91,10 +109,14 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 
 		if (app == null) {
-			app = (AntMediaApplicationAdapter) applicationContext.getBean("web.handler");
+			app = (Application) applicationContext.getBean("web.handler");
 			logger.debug("Application / web scope: {}", appScope);
 			assertTrue(appScope.getDepth() == 1);
 		}
+		
+		//reset to default
+		Application.enableSourceHealthUpdate = false;
+		
 	}
 
 	@After
@@ -105,6 +127,9 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		
+		//reset to default
+		Application.enableSourceHealthUpdate = false;
 
 	}
 
@@ -176,6 +201,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			Thread.sleep(5000);
 
 			assertFalse(camScheduler.isStreamAlive());
+			assertFalse(camScheduler.isThreadActive());
 		}
 		catch (Exception e) {
 			e.printStackTrace();
@@ -187,6 +213,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 	@Test
 	public void testStreamSchedularConnectionTimeout() throws InterruptedException {
+		logger.info("running testStreamSchedularConnectionTimeout");
 		try {
 
 			AVFormatContext inputFormatContext = new AVFormatContext();
@@ -221,6 +248,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+		logger.info("leaving testStreamSchedularConnectionTimeout");
 	}
 
 	@Test
@@ -311,6 +339,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testBandwidth() {
 
 		logger.info("running testBandwidth");
+		Application.enableSourceHealthUpdate = true;
 		IDataStore dataStore = app.getDataStore();
 		assertNotNull(dataStore);
 
@@ -350,6 +379,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		for (Broadcast broadcast : broadcastList) {
 
+			logger.info("broadcast name: " + broadcast.getName() + " broadcast status :" + broadcast.getStatus() + " broadcast is zombi: " + broadcast.isZombi());
 			if(broadcast.isZombi()) {
 
 				fetchedBroadcast=broadcast;	

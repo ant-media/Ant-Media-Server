@@ -333,8 +333,10 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 							broadcast = saveUndefinedBroadcast(streamName, getScope().getName(), dataStore, appSettings);
 
 						} else {
-							logger.info("Stream Status is set to Broadcasting");
-							dataStore.updateStatus(streamName, BROADCAST_STATUS_BROADCASTING);
+							
+							boolean result = dataStore.updateStatus(streamName, BROADCAST_STATUS_BROADCASTING);
+							logger.info(" Status of stream {} is set to Broadcasting with result: {}", broadcast.getStreamId(), result);
+							
 						}
 
 						final String listenerHookURL = broadcast.getListenerHookURL();

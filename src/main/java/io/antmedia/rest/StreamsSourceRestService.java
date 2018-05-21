@@ -67,8 +67,6 @@ public class StreamsSourceRestService {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result addStreamSource(Broadcast stream) {
 		Result result=new Result(false);
-		
-		
 
 		if (stream.getName() != null && stream.getName().length() > 0) {
 
@@ -109,7 +107,6 @@ public class StreamsSourceRestService {
 				}
 
 			}
-
 			else if (stream.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE)) {
 
 				Date currentDate = new Date();
