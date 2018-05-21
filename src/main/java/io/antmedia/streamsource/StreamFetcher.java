@@ -277,7 +277,7 @@ public class StreamFetcher {
 					}
 					inputFormatContext = null;
 				}
-
+				isJobRunning.compareAndSet(true, false);
 				if(streamPublished) {
 					getInstance().closeBroadcast(stream.getStreamId());
 					streamPublished=false;
@@ -288,8 +288,9 @@ public class StreamFetcher {
 					thread = new WorkerThread();
 					thread.start();
 				}
+				
 			}
-			isJobRunning.compareAndSet(true, false);
+		
 		}
 		public void setStopRequestReceived() {
 			logger.warn("inside of setStopRequestReceived");
