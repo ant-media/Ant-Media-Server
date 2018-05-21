@@ -3,6 +3,7 @@ package io.antmedia.streamsource;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.red5.logging.Red5LoggerFactory;
 import org.red5.server.adapter.MultiThreadedApplicationAdapter;
@@ -42,6 +43,7 @@ public class StreamFetcherManager {
 
 	private String streamFetcherScheduleJobName;
 
+	protected AtomicBoolean isJobRunning = new AtomicBoolean(false);
 
 	public StreamFetcherManager(ISchedulingService schedulingService, IDataStore datastore,IScope scope) {
 
@@ -69,14 +71,18 @@ public class StreamFetcherManager {
 			StreamFetcher streamScheduler = new StreamFetcher(broadcast,scope);
 			streamScheduler.startStream();
 
-			try {
-				Thread.sleep(6000);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
+			if(broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA)) {
+				try {
+					Thread.sleep(6000);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
 			}
-
 			if(!streamScheduler.getCameraError().isSuccess()) {
 				result=streamScheduler.getCameraError();
+			}
+			else {
+				result.setSuccess(true);
 			}
 			streamFetcherList.add(streamScheduler);
 		}
@@ -126,7 +132,7 @@ public class StreamFetcherManager {
 
 						logger.info("Restarting streams");
 						for (StreamFetcher streamScheduler : streamFetcherList) {
-							
+
 							if (streamScheduler.isStreamAlive()) 
 							{
 								logger.info("Calling stop stream {}", streamScheduler.getStream().getStreamId());
@@ -135,7 +141,7 @@ public class StreamFetcherManager {
 							else {
 								logger.info("Stream is not alive {}", streamScheduler.getStream().getStreamId());
 							}
-							
+
 							streamScheduler.startStream();
 						}
 
@@ -143,21 +149,21 @@ public class StreamFetcherManager {
 						for (StreamFetcher streamScheduler : streamFetcherList) {
 							Broadcast stream = streamScheduler.getStream();
 							if (!streamScheduler.isStreamAlive()) {
-								
+
 								if (datastore != null && stream.getStreamId() != null) {
 									logger.info("Updating stream status to finished, updating status of stream {}", stream.getStreamId() );
 									datastore.updateStatus(stream.getStreamId() , 
 											AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
 								}
 							}
-
+							/*
 							if (!streamScheduler.isThreadActive()) {
 								streamScheduler.startStream();
 							}
 							else {
 								logger.info("there is an active thread for {} so that new thread is not started", stream.getStreamId());
 							}
-						
+							 */
 						}
 					}
 				}

@@ -337,10 +337,19 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 	@Test
 	public void testBandwidth() {
+		
+		IDataStore dataStore = new MapDBStore("target/testbug.db"); //applicationContext.getBean(IDataStore.BEAN_NAME);
+
+		assertNotNull(dataStore);
+		app.setDataStore(dataStore);
+
+		//set mapdb datastore to stream fetcher because in memory datastore just have references and updating broadcst
+		// object updates the reference in inmemorydatastore
+		app.getStreamFetcherManager().setDatastore(dataStore);
+		
 
 		logger.info("running testBandwidth");
 		Application.enableSourceHealthUpdate = true;
-		IDataStore dataStore = app.getDataStore();
 		assertNotNull(dataStore);
 
 		Broadcast newSource = new Broadcast("testBandwidth", "10.2.40.63:8080", "admin", "admin", "rtsp://184.72.239.149/vod/mp4:BigBuckBunny_115k.mov",
@@ -390,11 +399,19 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		assertNotNull(fetchedBroadcast);
 		assertNotNull(fetchedBroadcast.getQuality());
 		assertNotNull(fetchedBroadcast.getSpeed());
+		
+		try {
+			Thread.sleep(10000);
+		} catch (InterruptedException e1) {
+			e1.printStackTrace();
+		}
 
 		Broadcast stream = dataStore.get(newSource.getStreamId());
 		assertEquals("good", stream.getQuality());	
 
 		logger.info("speed {}" , stream.getSpeed()) ;
+		
+
 
 		assertTrue(1 < stream.getSpeed());
 

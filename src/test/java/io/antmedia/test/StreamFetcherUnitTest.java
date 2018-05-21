@@ -123,7 +123,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		appScope = null;
 		app = null;
-		
+
 		try {
 			delete(new File("webapps"));
 		} catch (IOException e) {
@@ -188,6 +188,12 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 
 		assertTrue(flag3);
+
+		try {
+			Thread.sleep(2000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
 
 		//check that broadcast status in datastore in finished or not broadcasting
 		broadcast = dataStore.get(id);
@@ -418,8 +424,11 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			fail(e.getMessage());
 		}
 	}
-
-	@Test
+	
+	/**
+	 * this test is NA anymore, because StartStop mechanism is managed by itself not by StremFetcherManager
+	 */
+	//@Test
 	public void testCameraCheckerStartStop() {
 
 		logger.info("starting testCameraCheckerStartStop");
@@ -656,16 +665,16 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 
 	}
-	
-	
+
+
 	@Test
 	public void testHLSFlagResult() {
-		
+
 		try {
 			String textInFile;
-			
+
 			startCameraEmulator();
-			
+
 			Broadcast newCam = new Broadcast("streamSource", "127.0.0.1:8080", "admin", "admin", "rtsp://127.0.0.1:6554/test.flv",
 					AntMediaApplicationAdapter.STREAM_SOURCE);
 
@@ -691,43 +700,43 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
-			
+
 			//wait for packaging files
 			fetcher.stopStream();
-			
+
 			try {
 				Thread.sleep(3000);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
-			
+
 			assertFalse(fetcher.isThreadActive());
 
 			assertTrue(MuxingTest.testFile("webapps/junit/streams/"+newCam.getStreamId() +".m3u8"));
 
 			BufferedReader br = new BufferedReader(new FileReader("webapps/junit/streams/"+newCam.getStreamId() +".m3u8"));
 			try {
-			    StringBuilder sb = new StringBuilder();
-			    String line = br.readLine();
+				StringBuilder sb = new StringBuilder();
+				String line = br.readLine();
 
-			    while (line != null) {
-			        sb.append(line);
-			      //  sb.append(System.lineSeparator());
-			        line = br.readLine();
-			    }
-			   textInFile = sb.toString();
-			    
-			    logger.info(textInFile);
+				while (line != null) {
+					sb.append(line);
+					//  sb.append(System.lineSeparator());
+					line = br.readLine();
+				}
+				textInFile = sb.toString();
+
+				logger.info(textInFile);
 			} finally {
-			    br.close();
+				br.close();
 			}
-			
+
 			//Check that m3u8 file does not include "EXT-X-ENDLIST" parameter because "omit_endlist" flag is used in HLS Muxer
-			
+
 			assertFalse(textInFile.contains("EXT-X-ENDLIST"));
-		
+
 			stopCameraEmulator();
-			
+
 			getInstance().getDataStore().delete(id);
 		}
 		catch (Exception e) {
@@ -735,9 +744,9 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			fail(e.getMessage());
 		}
 
-		
-		
-		
+
+
+
 	}
 
 
