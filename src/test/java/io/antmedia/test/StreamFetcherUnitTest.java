@@ -208,6 +208,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
+		
+		app.stopStreaming(newCam);
 
 		logger.info("leaving testBugUpdateStreamFetcherStatus");
 
@@ -604,8 +606,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 	public void testFetchStreamSources(String source) {
-		
-		getAppSettings().setDeleteHLSFilesOnEnded(false);
+
 
 		try {
 			Broadcast newCam = new Broadcast("streamSource", "127.0.0.1:8080", "admin", "admin", source,
