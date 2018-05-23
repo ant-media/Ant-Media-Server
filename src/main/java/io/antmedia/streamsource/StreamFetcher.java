@@ -62,7 +62,7 @@ public class StreamFetcher {
 	protected static Logger logger = LoggerFactory.getLogger(StreamFetcher.class);
 	private Broadcast stream;
 	private WorkerThread thread;
-	protected AtomicBoolean isJobRunning = new AtomicBoolean(false);
+	
 
 	/**
 	 * Connection setup timeout value
@@ -169,6 +169,7 @@ public class StreamFetcher {
 		private volatile boolean stopRequestReceived = false;
 
 		private volatile boolean streamPublished = false;
+		protected AtomicBoolean isJobRunning = new AtomicBoolean(false);
 
 		@Override
 		public void run() {
@@ -277,7 +278,8 @@ public class StreamFetcher {
 					}
 					inputFormatContext = null;
 				}
-				isJobRunning.compareAndSet(true, false);
+				
+				
 				if(streamPublished) {
 					getInstance().closeBroadcast(stream.getStreamId());
 					streamPublished=false;
@@ -285,9 +287,12 @@ public class StreamFetcher {
 
 				setThreadActive(false);
 				if(!stopRequestReceived) {
+					logger.info("new thread is starting");
 					thread = new WorkerThread();
 					thread.start();
 				}
+				
+				isJobRunning.compareAndSet(true, false);
 
 			}
 
