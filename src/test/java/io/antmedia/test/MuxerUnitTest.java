@@ -83,6 +83,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 	protected WebScope appScope;
 	private RestServiceTest rest=new RestServiceTest();
+	private AppSettings appSettings;
 
 	static {
 		System.setProperty("red5.deployment.type", "junit");
@@ -325,11 +326,9 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 		try {
 			
-			AppSettings appSettings = (AppSettings) applicationContext.getBean(AppSettings.BEAN_NAME);
-			assertNotNull(appSettings);
-			appSettings.setMp4MuxingEnabled(true);
-			appSettings.setAddDateTimeToMp4FileName(true);
-			appSettings.setHlsMuxingEnabled(false);
+			getAppSettings().setHlsMuxingEnabled(false);
+			getAppSettings().setMp4MuxingEnabled(true);;
+			getAppSettings().setAddDateTimeToMp4FileName(false);
 
 			List<MuxAdaptor> muxAdaptorList = new ArrayList<MuxAdaptor>();
 			for (int j = 0; j < 20; j++) {
@@ -422,6 +421,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+		
+		getAppSettings().setHlsMuxingEnabled(true);
 
 	}
 
@@ -970,6 +971,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 
 	public void testHLSMuxing(String name)  {
+		
+		getAppSettings().setDeleteHLSFilesOnEnded(true);
 
 		//av_log_set_level (40);
 		int hlsListSize = 5;
@@ -1074,8 +1077,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 			Thread.sleep(hlsListSize*hlsTime * 1000 + 3000);
 
 
-			assertFalse(hlsFile.exists());
-
 			files = dir.listFiles(new FilenameFilter() {
 				@Override
 				public boolean accept(File dir, String name) {
@@ -1093,6 +1094,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+		
+		getAppSettings().setDeleteHLSFilesOnEnded(false);
 
 	}
 
@@ -1280,6 +1283,13 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 		assertTrue(sdpDescription.length() > 0 );
 		System.out.println(sdpDescription);
 
+	}
+	
+	public AppSettings getAppSettings() {
+		if (appSettings == null) {
+			appSettings = (AppSettings) applicationContext.getBean(AppSettings.BEAN_NAME);
+		}
+		return appSettings;
 	}
 
 }
