@@ -7,7 +7,9 @@
 	</parent>
 	<modelVersion>4.0.0</modelVersion>
 	<artifactId>ant-media-server</artifactId>
+
 	<version>${project.parent.version}</version>
+
 	<name>Ant Media Server</name>
 	<description>Ant Media Server supports RTMP, RTSP, MP4, HLS, WebRTC, Adaptive Streaming, etc.</description>
 	<packaging>jar</packaging>
@@ -48,8 +50,10 @@
 		<skipTests>false</skipTests>
 		<build.dir>target</build.dir>
 		<finalName>${project.artifactId}-${project.version}</finalName>
+
     	    <maven.build.timestamp.format>yyMMdd_HHmm</maven.build.timestamp.format>
         <buildNumber>${maven.build.timestamp}</buildNumber>
+
 	</properties>
 
 	<build>
