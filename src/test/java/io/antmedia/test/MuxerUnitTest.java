@@ -59,15 +59,18 @@ import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 import com.antstreaming.rtsp.PacketSenderRunnable;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.integration.MuxingTest;
+import io.antmedia.integration.RestServiceTest;
 //import io.antmedia.enterprise.adaptive.TransraterAdaptor;
 import io.antmedia.muxer.HLSMuxer;
 import io.antmedia.muxer.Mp4Muxer;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.Muxer;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
+import io.antmedia.streamsource.StreamFetcher;
 
 @ContextConfiguration(locations = { 
 		"test.xml" 
@@ -79,6 +82,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 	protected static final int BUFFER_SIZE = 10240;
 
 	protected WebScope appScope;
+	private RestServiceTest rest=new RestServiceTest();
 
 	static {
 		System.setProperty("red5.deployment.type", "junit");
@@ -114,11 +118,13 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 	@After
 	public void after() {
 	
+		
 		try {
 			delete(new File("webapps"));
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		
 		
 	}
 
@@ -195,20 +201,27 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 	//TODO: when prepare fails, there is memorly leak or thread leak?
 
 
+	
+	
 	@Test
 	public void testMuxingSimultaneously()  {
 
-		MuxAdaptor muxAdaptor = new MuxAdaptor(null);
-		muxAdaptor.setMp4MuxingEnabled(true,false);
-		muxAdaptor.setHLSMuxingEnabled(true);
-		muxAdaptor.setHLSFilesDeleteOnExit(false);
+
 
 		if (appScope == null) {
 			appScope = (WebScope) applicationContext.getBean("web.scope");
-			logger.debug("Application / web scope: {}", appScope);
+			logger.info("Application / web scope: {}", appScope);
 			assertTrue(appScope.getDepth() == 1);
 		}
-
+		
+		AppSettings appSettings = (AppSettings) applicationContext.getBean(AppSettings.BEAN_NAME);
+		assertNotNull(appSettings);
+		appSettings.setMp4MuxingEnabled(true);
+		appSettings.setAddDateTimeToMp4FileName(false);
+		appSettings.setHlsMuxingEnabled(true);
+		appSettings.setDeleteHLSFilesOnEnded(false);
+		
+		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null,false);
 		File file = null;
 
 		try {
@@ -311,12 +324,16 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 		}
 
 		try {
+			
+			AppSettings appSettings = (AppSettings) applicationContext.getBean(AppSettings.BEAN_NAME);
+			assertNotNull(appSettings);
+			appSettings.setMp4MuxingEnabled(true);
+			appSettings.setAddDateTimeToMp4FileName(true);
+			appSettings.setHlsMuxingEnabled(false);
 
 			List<MuxAdaptor> muxAdaptorList = new ArrayList<MuxAdaptor>();
 			for (int j = 0; j < 20; j++) {
-				MuxAdaptor muxAdaptor = new MuxAdaptor(null);
-				muxAdaptor.setMp4MuxingEnabled(true, true);
-				muxAdaptor.setHLSMuxingEnabled(false);
+				MuxAdaptor muxAdaptor =  MuxAdaptor.initializeMuxAdaptor(null, false);
 				muxAdaptorList.add(muxAdaptor);
 			}
 			{
@@ -391,6 +408,12 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 			long diff = (System.nanoTime() - startTime) / 1000000;
 
 			System.out.println(" time diff: " + diff + " ms");
+			
+			QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
+			assertNotNull(scheduler);
+
+			//by default, stream fethcer
+			assertEquals(scheduler.getScheduledJobNames().size(), 1);
 
 
 		}
@@ -425,6 +448,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 	@Test
 	public void testMp4MuxingWithSameName() 
 	{
+		logger.info("running testMp4MuxingWithSameName");
 
 		Application.resetFields();
 
@@ -464,6 +488,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 		assertEquals(Application.id, "test_test");
 		assertEquals(Application.file.getName(), "test_test_2.mp4");
 		assertNotEquals(Application.duration, 0L);
+		
+		logger.info("leaving testMp4MuxingWithSameName");
 	}
 
 
@@ -532,6 +558,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 	@Test
 	public void testMp4MuxingAndNotifyCallback() {
+		System.out.println("running testMp4MuxingAndNotifyCallback");
 		Application.resetFields();
 		assertEquals(Application.notifyHookAction, null);
 		assertEquals(Application.notitfyURL, null);
@@ -550,7 +577,9 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 		broadcast.setListenerHookURL(hookUrl);
 		String streamId = appAdaptor.getDataStore().save(broadcast);
 
+		
 		testMp4Muxing(streamId, false, true);
+		
 
 		assertEquals(Application.id, streamId);
 		assertEquals(Application.file.getName(), streamId + ".mp4");
@@ -585,8 +614,12 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 		assertEquals(Application.notifyStreamName, null);
 		assertEquals(Application.notifyCategory, null);
 		assertEquals(Application.notifyVodName, streamId + "_1"); //vod name must be changed
+		
+		
+		System.out.println("leaving testMp4MuxingAndNotifyCallback");
 	}
 
+	@Test
 	public void testMp4Muxing() {
 		testMp4Muxing("lkdlfkdlfkdlfk");
 	}
@@ -599,8 +632,16 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 	public File testMp4Muxing(String name, boolean shortVersion, boolean checkDuration) {
 
-		MuxAdaptor muxAdaptor = new MuxAdaptor(null);
-		muxAdaptor.setMp4MuxingEnabled(true, false);
+		logger.info("running testMp4Muxing");
+		MuxAdaptor muxAdaptor =  MuxAdaptor.initializeMuxAdaptor(null, false);
+		
+		AppSettings appSettings = (AppSettings) applicationContext.getBean(AppSettings.BEAN_NAME);
+		assertNotNull(appSettings);
+		appSettings.setMp4MuxingEnabled(true);
+		appSettings.setHlsMuxingEnabled(false);
+		
+		logger.info("HLS muxing enabled {}", appSettings.isHlsMuxingEnabled());
+		
 
 		if (appScope == null) {
 			appScope = (WebScope) applicationContext.getBean("web.scope");
@@ -616,7 +657,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 			QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
 			assertNotNull(scheduler);
 
-			//by default, stream source job is schedule
+			//by default, stream source job is scheduled
 			assertEquals(scheduler.getScheduledJobNames().size(), 1);
 
 			if (shortVersion) {
@@ -632,6 +673,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 			assertTrue(file.exists());
 
 			boolean result = muxAdaptor.init(appScope, name, false);
+			
 			assertTrue(result);
 
 
@@ -647,6 +689,12 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 			Thread.sleep(100);
 
+			for (String jobName : scheduler.getScheduledJobNames()) {
+				logger.info("testMP4Muxing -- Scheduler job name {}", jobName);
+			}
+			
+			//2 jobs in the scheduler one of them is the job streamFetcherManager and and the other one is 
+			//job in MuxAdaptor
 			assertEquals(scheduler.getScheduledJobNames().size(), 2);
 			assertTrue(muxAdaptor.isRecording());
 
@@ -662,7 +710,9 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 			// if there is listenerHookURL, a task will be scheduled, so wait a little to make the call happen
 			Thread.sleep(200);
-
+			for (String jobName : scheduler.getScheduledJobNames()) {
+				logger.info("--Scheduler job name {}", jobName);
+			}
 			assertEquals(scheduler.getScheduledJobNames().size(), 1);
 			int duration = 697000;
 			if (shortVersion) {
@@ -678,152 +728,21 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 			e.printStackTrace();
 			fail("exception:" + e );
 		}
+		logger.info("leaving testMp4Muxing");
 		return null;
 	}
 
-	
-	/*
-
-	@Test
-	public void testMp4Source() {
-		
-		MuxAdaptor muxAdaptor = new MuxAdaptor(null);
-		muxAdaptor.setMp4MuxingEnabled(true, false);
-		
-		
-		if (appScope == null) {
-			appScope = (WebScope) applicationContext.getBean("web.scope");
-			logger.debug("Application / web scope: {}", appScope);
-			assertTrue(appScope.getDepth() == 1);
-		}
-		
-		
-		
-		AVPacket pkt = new AVPacket();
-
-		File file = null;
-
-		try {
-
-			QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
-			assertNotNull(scheduler);
-
-			//by default, stream source job is schedule
-			assertEquals(scheduler.getScheduledJobNames().size(), 1);
-
-			file = new File("target/test-classes/small.mp4"); //ResourceUtils.getFile(this.getClass().getResource("test.flv"));
-
-			muxAdaptor.init(appScope, "test", false);
-			muxAdaptor.start();
-
-
-			logger.debug("f path:" + file.getAbsolutePath());
-			assertTrue(file.exists());
-
-
-
-			AVDictionary optionsDictionary = new AVDictionary();
-			AVFormatContext inputFormatContext = new AVFormatContext(null);
-			OutputStream outpuStream = null;
-			int ret;
-			long[] lastDTS;
-
-
-			if ((ret = avformat_open_input(inputFormatContext, file.getAbsolutePath(), null, optionsDictionary)) < 0) {
-
-				byte[] data = new byte[1024];
-				avutil.av_strerror(ret, data, data.length);
-				logger.info("cannot open input context with error: " + new String(data, 0, data.length));
-
-			}
-			av_dict_free(optionsDictionary);
-
-			ret = avformat_find_stream_info(inputFormatContext, (AVDictionary) null);
-			if (ret < 0) {
-				logger.info("Could not find stream information\n");
-
-			}
-
-			lastDTS = new long[inputFormatContext.nb_streams()];
-
-			for (int i = 0; i < lastDTS.length; i++) {
-				lastDTS[i] = -1;
-			}
-			
-			
-			File savedFile=new File("target/test-classes/export.mp4");	
-			outpuStream = new FileOutputStream(savedFile);
-			while (true) {
-				ret = av_read_frame(inputFormatContext, pkt);
-				if (ret < 0) {
-					logger.info("cannot read frame from input context");
-
-					break;
-				}
-
-		
-
-				int packetIndex = pkt.stream_index();
-
-
-
-				if (pkt.dts() < 0) {
-					av_packet_unref(pkt);
-					continue;
-				}
-
-				if (lastDTS[packetIndex] >= pkt.dts()) {
-					// logger.warn("dts timestamps are not in correct order
-					// last dts:" + lastDTS[packetIndex]
-					// + " current dts:" + pkt.dts() + " fixing problem by
-					// adding offset");
-
-					pkt.dts(lastDTS[packetIndex] + 1);
-				}
-
-				lastDTS[packetIndex] = pkt.dts();
-				if (pkt.dts() > pkt.pts()) {
-					pkt.pts(pkt.dts());
-				}
-
-
-				muxAdaptor.packetReceived(pkt);
-				
-				
-
-				byte[] avFrame= new byte[pkt.size()];
-
-				pkt.data().get(avFrame,0,avFrame.length);
-				try {
-					outpuStream.write(avFrame, 0, avFrame.length);
-				} catch (IOException iox) {
-					iox.printStackTrace();
-				}
-				
-				
-				av_packet_unref(pkt);
-			}
-
-			outpuStream.flush();
-			outpuStream.close();
-
-		}
-		catch (Exception e) {
-			e.printStackTrace();
-			fail("exception:" + e );
-		}
-
-	}
-
-
-*/
 	@Test
 	public void testMp4MuxingSubtitledVideo() {
 
-		MuxAdaptor muxAdaptor = new MuxAdaptor(null);
-		muxAdaptor.setMp4MuxingEnabled(true, false);
-		muxAdaptor.setHLSMuxingEnabled(true);
-		muxAdaptor.setHLSFilesDeleteOnExit(false);
+		AppSettings appSettings = (AppSettings) applicationContext.getBean(AppSettings.BEAN_NAME);
+		assertNotNull(appSettings);
+		appSettings.setMp4MuxingEnabled(true);
+		appSettings.setAddDateTimeToMp4FileName(true);
+		appSettings.setHlsMuxingEnabled(true);
+		appSettings.setDeleteHLSFilesOnEnded(false);
+		
+		MuxAdaptor muxAdaptor =  MuxAdaptor.initializeMuxAdaptor(null, false);
 
 		if (appScope == null) {
 			appScope = (WebScope) applicationContext.getBean("web.scope");
@@ -881,7 +800,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 			// if there is listenerHookURL, a task will be scheduled, so wait a little to make the call happen
 			Thread.sleep(200);
 
-			assertEquals(scheduler.getScheduledJobNames().size(), 1);
+			assertEquals(1, scheduler.getScheduledJobNames().size());
 			int duration = 146401;
 
 			assertTrue(MuxingTest.testFile(muxAdaptor.getMuxerList().get(0).getFile().getAbsolutePath(), duration));
@@ -914,15 +833,20 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 	@Test
 	public void testHLSMuxingWithinChildScope() {
-		MuxAdaptor muxAdaptor = new MuxAdaptor(null);
-		muxAdaptor.setHLSMuxingEnabled(true);
-
-		muxAdaptor.setMp4MuxingEnabled(false, false);
-		int hlsListSize = 5;
-		muxAdaptor.setHlsListSize(hlsListSize + "");
+		
 		int hlsTime = 2;
-		muxAdaptor.setHlsTime(hlsTime + "");
-
+		int hlsListSize = 5;
+		
+		AppSettings appSettings = (AppSettings) applicationContext.getBean(AppSettings.BEAN_NAME);
+		assertNotNull(appSettings);
+		appSettings.setMp4MuxingEnabled(false);
+		appSettings.setAddDateTimeToMp4FileName(false);
+		appSettings.setHlsMuxingEnabled(true);
+		appSettings.setDeleteHLSFilesOnEnded(true);
+		appSettings.setHlsTime(String.valueOf(hlsTime));
+		appSettings.setHlsListSize(String.valueOf(hlsListSize));
+		
+		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null, false);
 
 		if (appScope == null) {
 			appScope = (WebScope) applicationContext.getBean("web.scope");
@@ -930,7 +854,14 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 			assertTrue(appScope.getDepth() == 1);
 		}
 
+		QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
+		assertNotNull(scheduler);
+		
+		assertEquals(scheduler.getScheduledJobNames().size(),1);
+		
 		appScope.createChildScope("child");
+
+		
 
 		IScope childScope = appScope.getScope("child");
 
@@ -943,10 +874,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 		File file = null;
 		try {
 
-			QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
-			assertNotNull(scheduler);
-			//assertEquals(scheduler.getScheduledJobNames().size(),1);
-
+			
 			file = new File("target/test-classes/test.flv"); //ResourceUtils.getFile(this.getClass().getResource("test.flv"));
 			final FLVReader flvReader = new FLVReader(file);
 
@@ -1016,8 +944,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 			assertTrue(files.length > 0);
 			assertTrue(files.length < (int)Integer.valueOf(hlsMuxer.getHlsListSize()) * (Integer.valueOf(hlsMuxer.getHlsTime()) + 1));
 
-
-
 			//wait to let hls muxer delete ts and m3u8 file
 			Thread.sleep(hlsListSize*hlsTime * 1000 + 3000);
 
@@ -1033,9 +959,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 			assertEquals(0, files.length);
 
-
-
-
 		}
 		catch (Exception e) {
 			e.printStackTrace();
@@ -1049,16 +972,19 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 	public void testHLSMuxing(String name)  {
 
 		//av_log_set_level (40);
-
-		MuxAdaptor muxAdaptor = new MuxAdaptor(null);
-		muxAdaptor.setHLSMuxingEnabled(true);
-
-		muxAdaptor.setMp4MuxingEnabled(false, false);
 		int hlsListSize = 5;
-		muxAdaptor.setHlsListSize(hlsListSize + "");
 		int hlsTime = 2;
-		muxAdaptor.setHlsTime(hlsTime + "");
-
+		AppSettings appSettings = (AppSettings) applicationContext.getBean(AppSettings.BEAN_NAME);
+		assertNotNull(appSettings);
+		appSettings.setMp4MuxingEnabled(false);
+		appSettings.setAddDateTimeToMp4FileName(false);
+		appSettings.setHlsMuxingEnabled(true);
+		
+		appSettings.setHlsTime(String.valueOf(hlsTime));
+		appSettings.setHlsListSize(String.valueOf(hlsListSize));
+		
+		
+		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null, false);
 
 		if (appScope == null) {
 			appScope = (WebScope) applicationContext.getBean("web.scope");
@@ -1174,15 +1100,17 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 	public void testHLSMuxingWithSubtitle()  {
 
 		//av_log_set_level (40);
-
-		MuxAdaptor muxAdaptor = new MuxAdaptor(null);
-		muxAdaptor.setHLSMuxingEnabled(true);
-
-		muxAdaptor.setMp4MuxingEnabled(false, false);
 		int hlsListSize = 5;
-		muxAdaptor.setHlsListSize(hlsListSize + "");
 		int hlsTime = 2;
-		muxAdaptor.setHlsTime(hlsTime + "");
+		AppSettings appSettings = (AppSettings) applicationContext.getBean(AppSettings.BEAN_NAME);
+		assertNotNull(appSettings);
+		appSettings.setMp4MuxingEnabled(false);
+		appSettings.setAddDateTimeToMp4FileName(false);
+		appSettings.setHlsMuxingEnabled(true);
+		appSettings.setHlsListSize(String.valueOf(hlsListSize));
+		appSettings.setHlsTime(String.valueOf(hlsTime));
+		
+		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null, false);
 
 
 		if (appScope == null) {
