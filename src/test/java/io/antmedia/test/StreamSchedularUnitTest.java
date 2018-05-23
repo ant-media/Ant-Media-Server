@@ -84,6 +84,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		   System.out.println("Finishing test: " + description.getMethodName());
 	   };
 	};
+	private AntMediaApplicationAdapter appInstance;
 
 	@BeforeClass
 	public static void beforeClass() {
@@ -219,7 +220,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			AVFormatContext inputFormatContext = new AVFormatContext();
 
 			Broadcast newCam = new Broadcast("testSchedular2", "10.2.40.64:8080", "admin", "admin",
-					"rtsp://11.2.40.63:8554/live1.sdp", "ipCamera");
+					"rtsp://11.2.40.63:8554/live1.sdp", AntMediaApplicationAdapter.IP_CAMERA);
 
 			newCam.setStreamId("new_cam" + (int)(Math.random()*10000));
 
@@ -267,7 +268,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		try {
 			AVFormatContext inputFormatContext = new AVFormatContext();
 
-			Broadcast newCam2 = new Broadcast("test", "10.2.40.63:8080", "admin", "admin", null, "ipCamera");
+			Broadcast newCam2 = new Broadcast("test", "10.2.40.63:8080", "admin", "admin", null, AntMediaApplicationAdapter.IP_CAMERA);
 			newCam2.setStreamId("newcam2_" + (int)(Math.random()*10000));
 
 			new StreamFetcher(newCam2, appScope);
@@ -278,7 +279,42 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 	}
 	
+	
+	@Test
+	public void testAddCameraBug() {
+		
+		Result result;
+		IDataStore dataStore = new MapDBStore("target/testAddCamera.db"); //applicationContext.getBean(IDataStore.BEAN_NAME);
 
+		assertNotNull(dataStore);
+		app.setDataStore(dataStore);
+
+		//set mapdb datastore to stream fetcher because in memory datastore just have references and updating broadcst
+		// object updates the reference in inmemorydatastore
+		app.getStreamFetcherManager().setDatastore(dataStore);
+		
+
+		logger.info("running testAddCameraBug");
+		Application.enableSourceHealthUpdate = true;
+		assertNotNull(dataStore);
+		
+		startCameraEmulator();
+		
+		Broadcast newCam = new Broadcast("testAddCamera", "127.0.0.1:8080", "admin", "admin", "rtsp://127.0.0.1:6554/test.flv",
+				AntMediaApplicationAdapter.IP_CAMERA);
+
+		//add stream to data store
+		dataStore.save(newCam);
+		
+		result=getInstance().startStreaming(newCam);
+		
+		//check whether answer from StreamFetcherManager is true or not after new IPCamera is added
+		assertTrue(result.isSuccess());
+		
+		stopCameraEmulator();
+	}
+	
+	
 	public void testIPTVStream() {
 
 		AVFormatContext inputFormatContext = avformat_alloc_context();
@@ -608,6 +644,52 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 	}
 
+	public AntMediaApplicationAdapter getInstance() {
+		if (appInstance == null) {
+			appInstance = (AntMediaApplicationAdapter) applicationContext.getBean("web.handler");
+		}
+		return appInstance;
+	}
+	
+	private void startCameraEmulator() {
+		stopCameraEmulator();
+
+		ProcessBuilder pb = new ProcessBuilder("/usr/local/onvif/runme.sh");
+		Process p = null;
+		try {
+			p = pb.start();
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
+		try {
+			Thread.sleep(2000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
+
+
+	private void stopCameraEmulator() {
+		// close emulator in order to simulate cut-off
+		String[] argsStop = new String[] { "/bin/bash", "-c",
+		"kill -9 $(ps aux | grep 'onvifser' | awk '{print $2}')" };
+		String[] argsStop2 = new String[] { "/bin/bash", "-c",
+		"kill -9 $(ps aux | grep 'rtspserve' | awk '{print $2}')" };
+		try {
+			Process procStop = new ProcessBuilder(argsStop).start();
+			Process procStop2 = new ProcessBuilder(argsStop2).start();
+
+
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		try {
+			Thread.sleep(2000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
 
 
 
