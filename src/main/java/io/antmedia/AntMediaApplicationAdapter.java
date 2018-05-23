@@ -53,7 +53,6 @@ import io.antmedia.streamsource.StreamFetcherManager;
 public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter implements IMuxerListener {
 
 	public static final String BEAN_NAME = "web.handler";
-	
 	public static final String BROADCAST_STATUS_CREATED = "created";
 	public static final String BROADCAST_STATUS_BROADCASTING = "broadcasting";
 	public static final String BROADCAST_STATUS_FINISHED = "finished";
@@ -68,31 +67,14 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	public static final String FACEBOOK = "facebook";
 	public static final String PERISCOPE = "periscope";
 	public static final String YOUTUBE = "youtube";
-
 	public static final String FACEBOOK_ENDPOINT_CLASS = "io.antmedia.enterprise.social.endpoint.FacebookEndpoint";
 	public static final String YOUTUBE_ENDPOINT_CLASS = "io.antmedia.enterprise.social.endpoint.YoutubeEndpoint";
-
-
-
 	private List<VideoServiceEndpoint> videoServiceEndpoints = new ArrayList<>();
 	private List<VideoServiceEndpoint> videoServiceEndpointsHavingError = new ArrayList<>();
-
 	private List<IStreamPublishSecurity> streamPublishSecurityList;
-
 	private HashMap<String, OnvifCamera> onvifCameraList = new HashMap<String, OnvifCamera>();
-
 	private StreamFetcherManager streamFetcherManager;
-
 	private IDataStore dataStore;
-
-	public IDataStore getDataStore() {
-		return dataStore;
-	}
-
-	public void setDataStore(IDataStore dataStore) {
-		this.dataStore = dataStore;
-	}
-
 	private AppSettings appSettings;
 
 
@@ -139,12 +121,8 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 				if (appSettings != null) {
 					synchUserVoDFolder(null, appSettings.getVodFolder());
 				}
-
 			}
-
-
 		});
-
 
 		return super.appStart(app);
 	}
@@ -203,10 +181,6 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		super.streamBroadcastClose(stream);
 	}
 
-
-
-
-
 	public void closeBroadcast(String streamName) {
 
 		try {
@@ -260,10 +234,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-
-
 	}
-
 
 	public void recreateEndpointsForSocialMedia(Broadcast broadcast, List<Endpoint> endPointList) {
 		for (Endpoint endpoint : endPointList) {
@@ -303,7 +274,6 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		return null;
 	}
 
-
 	@Override
 	public void streamPublishStart(final IBroadcastStream stream) {
 		String streamName = stream.getPublishedName();
@@ -329,10 +299,10 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 							broadcast = saveZombiBroadcast(streamName);
 
 						} else {
-							
+
 							boolean result = dataStore.updateStatus(streamName, BROADCAST_STATUS_BROADCASTING);
 							logger.info(" Status of stream {} is set to Broadcasting with result: {}", broadcast.getStreamId(), result);
-							
+
 						}
 
 						final String listenerHookURL = broadcast.getListenerHookURL();
@@ -428,14 +398,11 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 				else {
 					streamName = file.getName();
 				}
-
-
 				String[] subDirs = filePath.split(Pattern.quote(File.separator));
 
 				Integer pathLength=Integer.valueOf(subDirs.length);
 
 				String relativePath=subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
-
 
 				Vod newVod = new Vod(streamName, streamId, relativePath, name, unixTime, duration, fileSize, Vod.STREAM_VOD);
 
@@ -626,7 +593,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		if(appSettings == null) {
 
 			AppSettings appSettings = new AppSettings();
-			
+
 			appSettings.setMp4MuxingEnabled(true);
 			appSettings.setAddDateTimeToMp4FileName(true);
 			appSettings.setWebRTCEnabled(false);
@@ -641,7 +608,6 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 			this.appSettings=appSettings;
 		}
 
-
 		return appSettings;
 	}
 
@@ -652,12 +618,12 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	public void sourceQualityChanged(String id,String quality) 
 	{
 		addScheduledOnceJob(0, new IScheduledJob() {
-			
+
 			@Override
 			public void execute(ISchedulingService service) throws CloneNotSupportedException {
 				boolean updateSourceQuality = getDataStore().updateSourceQuality(id, quality);
 				log.info("source stream {} quality changed, new quality is: {}  , updating data strore {}", id, quality, updateSourceQuality);
-				
+
 			}
 		});
 	}
@@ -670,12 +636,11 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 			@Override
 			public void execute(ISchedulingService service) throws CloneNotSupportedException {
 				getDataStore().updateSourceSpeed(id, speed);
-				
+
 			}
 		});
-		
-	}
 
+	}
 
 	public Result startStreaming(Broadcast broadcast) {
 
@@ -707,6 +672,13 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 	public StreamFetcherManager getStreamFetcherManager() {
 		return streamFetcherManager;
+	}
+	public IDataStore getDataStore() {
+		return dataStore;
+	}
+
+	public void setDataStore(IDataStore dataStore) {
+		this.dataStore = dataStore;
 	}
 
 }
