@@ -641,12 +641,12 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			fetcher.stopStream();
 
 			try {
-				Thread.sleep(4000);
+				Thread.sleep(6000);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
 
-		//	assertFalse(fetcher.isThreadActive());
+			assertFalse(fetcher.isThreadActive());
 
 			assertTrue(MuxingTest.testFile("webapps/junit/streams/"+newCam.getStreamId() +".m3u8"));
 
