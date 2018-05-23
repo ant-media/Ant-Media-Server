@@ -288,9 +288,9 @@ public class StreamFetcher {
 					thread = new WorkerThread();
 					thread.start();
 				}
-				
+
 			}
-		
+
 		}
 		public void setStopRequestReceived() {
 			logger.warn("inside of setStopRequestReceived");
@@ -313,6 +313,7 @@ public class StreamFetcher {
 							logger.info("waiting for thread to be finished for stream " + stream.getStreamUrl());
 							i = 0;
 						}
+						i++;
 					}
 					Thread.sleep(2000);
 				} catch (InterruptedException e) {
