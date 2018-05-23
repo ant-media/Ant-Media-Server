@@ -617,10 +617,10 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			String id = getInstance().getDataStore().save(newCam);
 
 			assertNotNull(newCam.getStreamId());
+			
 
 
 			getAppSettings().setMp4MuxingEnabled(true);
-			getAppSettings().setHlsMuxingEnabled(true);
 
 			StreamFetcher fetcher = new StreamFetcher(newCam, appScope);
 
