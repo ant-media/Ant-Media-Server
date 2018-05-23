@@ -17,6 +17,8 @@ public class Application extends AntMediaApplicationAdapter implements IMuxerLis
 	public static String notifyStreamName = null;
 	public static String notifyCategory = null;
 	public static String notifyVodName = null;
+	
+	public static boolean enableSourceHealthUpdate = false;
 
 	@Override
 	public void muxingFinished(String id, File file, long duration) {
@@ -49,5 +51,19 @@ public class Application extends AntMediaApplicationAdapter implements IMuxerLis
 		notifyVodName = vodName;
 
 		return null;
+	}
+	
+	@Override
+	public void sourceQualityChanged(String id, String quality) {
+		if (enableSourceHealthUpdate) {
+			super.sourceQualityChanged(id, quality);
+		}
+	}
+	
+	@Override
+	public void sourceSpeedChanged(String id, double speed) {
+		if (enableSourceHealthUpdate) {
+			super.sourceSpeedChanged(id, speed);
+		}
 	}
 }

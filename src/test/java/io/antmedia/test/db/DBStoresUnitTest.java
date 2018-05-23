@@ -12,6 +12,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Iterator;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.After;
@@ -27,6 +28,7 @@ import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.MongoStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
+import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.Vod;
 
@@ -66,6 +68,7 @@ public class DBStoresUnitTest {
 		testRemoveEndpoint(dataStore);
 		testRTMPURL(dataStore);
 		testStreamWithId(dataStore);
+		testSaveDetection(dataStore);
 		testFilterSearchOperations(dataStore);
 		testAddSocialEndpointCredentials(dataStore);
 		testVoDFunctions(dataStore);
@@ -86,6 +89,7 @@ public class DBStoresUnitTest {
 		testRemoveEndpoint(dataStore);
 		testRTMPURL(dataStore);
 		testStreamWithId(dataStore);
+		testSaveDetection(dataStore);
 		testFilterSearchOperations(dataStore);
 		testAddSocialEndpointCredentials(dataStore);
 		testVoDFunctions(dataStore);
@@ -101,6 +105,9 @@ public class DBStoresUnitTest {
 		Datastore store = ((MongoStore) dataStore).getDataStore();
 		Query<Broadcast> deleteQuery = store.find(Broadcast.class);
 		store.delete(deleteQuery);
+		
+		Query<TensorFlowObject> detectedObjects = store.find(TensorFlowObject.class);
+		store.delete(detectedObjects);
 
 		store = ((MongoStore) dataStore).getEndpointCredentialsDS();
 		Query<SocialEndpointCredentials> deleteQuery2 = store.find(SocialEndpointCredentials.class);
@@ -118,6 +125,7 @@ public class DBStoresUnitTest {
 		testRemoveEndpoint(dataStore);
 		testRTMPURL(dataStore);
 		testStreamWithId(dataStore);
+		testSaveDetection(dataStore);
 		testFilterSearchOperations(dataStore);
 		testAddSocialEndpointCredentials(dataStore);
 		testVoDFunctions(dataStore);
@@ -780,6 +788,23 @@ public class DBStoresUnitTest {
 		socialEndpoints = dataStore.getSocialEndpoints(0, 10);
 		// check that the count
 		assertEquals(socialEndpoints.size(), 0);
+	}
+	
+	
+	public void testSaveDetection(IDataStore dataStore){
+		String item1 = "item1";
+		long detectionTime = 434234L;
+		float probability1 = 0.1f;
+		
+		List<TensorFlowObject> detectedObjects = new ArrayList<>();
+		detectedObjects.add(new TensorFlowObject(item1, probability1, "imageId"));
+		dataStore.saveDetection("id", detectionTime, detectedObjects);
+		
+		List<TensorFlowObject> list = dataStore.getDetectionList("id", 0, 10);
+		assertEquals(1,list.size());
+		assertEquals(item1, list.get(0).objectName);
+		assertEquals(probability1, list.get(0).probability,0.1F);
+		assertEquals(detectionTime, list.get(0).detectionTime);	
 	}
 
 }

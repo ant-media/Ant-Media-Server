@@ -2,6 +2,8 @@ package io.antmedia.streamsource;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.red5.logging.Red5LoggerFactory;
 import org.red5.server.adapter.MultiThreadedApplicationAdapter;
@@ -10,6 +12,7 @@ import org.red5.server.api.scheduling.ISchedulingService;
 import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.IDataStore;
@@ -28,7 +31,7 @@ public class StreamFetcherManager {
 
 	private int streamCheckerCount = 0;
 
-	private List<StreamFetcher> streamFetcherList = new ArrayList<>();
+	private ConcurrentLinkedQueue<StreamFetcher> streamFetcherList = new ConcurrentLinkedQueue<>();
 
 	private int streamCheckerInterval = 10000;
 
@@ -36,11 +39,18 @@ public class StreamFetcherManager {
 
 	private IDataStore datastore;
 
+	private IScope scope;
+
 	private String streamFetcherScheduleJobName;
 
-	public StreamFetcherManager(ISchedulingService schedulingService, IDataStore datastore) {
+	protected AtomicBoolean isJobRunning = new AtomicBoolean(false);
+
+	public StreamFetcherManager(ISchedulingService schedulingService, IDataStore datastore,IScope scope) {
+
+
 		this.schedulingService = schedulingService;
 		this.datastore = datastore;
+		this.scope=scope;
 	}
 
 	public int getStreamCheckerInterval() {
@@ -54,24 +64,32 @@ public class StreamFetcherManager {
 
 
 	public Result startStreaming(Broadcast broadcast) {	
-		
-		Result result=new Result(true);
 
-		StreamFetcher streamScheduler = new StreamFetcher(broadcast);
-		streamFetcherList.add(streamScheduler);
-		streamScheduler.startStream();
-		
+		Result result=new Result(false);
+
 		try {
-			Thread.sleep(6000);
-		} catch (InterruptedException e) {
+			StreamFetcher streamScheduler = new StreamFetcher(broadcast,scope);
+			streamScheduler.startStream();
+
+			if(broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA)) {
+				try {
+					Thread.sleep(6000);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
+			if(!streamScheduler.getCameraError().isSuccess()) {
+				result=streamScheduler.getCameraError();
+			}
+			else {
+				result.setSuccess(true);
+			}
+			streamFetcherList.add(streamScheduler);
+		}
+		catch (Exception e) {
 			e.printStackTrace();
-			Thread.currentThread().interrupt();
 		}
-		
-		if(!streamScheduler.getCameraError().isSuccess()) {
-			result=streamScheduler.getCameraError();
-		}
-		
+
 		return result;
 	}
 
@@ -98,7 +116,7 @@ public class StreamFetcherManager {
 		if (streamFetcherScheduleJobName != null) {
 			schedulingService.removeScheduledJob(streamFetcherScheduleJobName);
 		}
-		
+
 		streamFetcherScheduleJobName = schedulingService.addScheduledJobAfterDelay(streamCheckerInterval, new IScheduledJob() {
 
 			@Override
@@ -112,31 +130,47 @@ public class StreamFetcherManager {
 
 					if (streamCheckerCount % 180 == 0) {
 
+						logger.info("Restarting streams");
 						for (StreamFetcher streamScheduler : streamFetcherList) {
-							if (streamScheduler.isStreamAlive()) {
+
+							if (streamScheduler.isStreamAlive()) 
+							{
+								logger.info("Calling stop stream {}", streamScheduler.getStream().getStreamId());
 								streamScheduler.stopStream();
 							}
+							else {
+								logger.info("Stream is not alive {}", streamScheduler.getStream().getStreamId());
+							}
+
 							streamScheduler.startStream();
 						}
 
 					} else {
 						for (StreamFetcher streamScheduler : streamFetcherList) {
+							Broadcast stream = streamScheduler.getStream();
 							if (!streamScheduler.isStreamAlive()) {
 
-								Broadcast stream = streamScheduler.getStream();
 								if (datastore != null && stream.getStreamId() != null) {
 									logger.info("Updating stream status to finished, updating status of stream {}", stream.getStreamId() );
 									datastore.updateStatus(stream.getStreamId() , 
 											AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
 								}
+							}
+							/*
+							if (!streamScheduler.isThreadActive()) {
 								streamScheduler.startStream();
 							}
+							else {
+								logger.info("there is an active thread for {} so that new thread is not started", stream.getStreamId());
+							}
+							 */
 						}
 					}
 				}
 			}
 		}, 5000);
 
+		logger.info("StreamFetcherSchedule job name {}", streamFetcherScheduleJobName);
 	}
 
 	public IDataStore getDatastore() {
@@ -147,11 +181,11 @@ public class StreamFetcherManager {
 		this.datastore = datastore;
 	}
 
-	public List<StreamFetcher> getStreamFetcherList() {
+	public ConcurrentLinkedQueue<StreamFetcher> getStreamFetcherList() {
 		return streamFetcherList;
 	}
 
-	public void setStreamFetcherList(List<StreamFetcher> streamFetcherList) {
+	public void setStreamFetcherList(ConcurrentLinkedQueue<StreamFetcher> streamFetcherList) {
 		this.streamFetcherList = streamFetcherList;
 	}
 
