@@ -8,6 +8,9 @@ import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -48,10 +51,12 @@ import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointChannel;
+import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.Vod;
 import io.antmedia.muxer.Muxer;
 import io.antmedia.rest.model.Result;
+import io.antmedia.rest.model.Version;
 import io.antmedia.social.endpoint.PeriscopeEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
@@ -140,9 +145,9 @@ public class BroadcastRestService {
 	private ServletContext servletContext;
 
 	private IScope scope;
-	private ApplicationContext appCtx;
 
-	private static Gson gson = new Gson();
+
+	private ApplicationContext appCtx;
 
 	private AntMediaApplicationAdapter app;
 
@@ -349,7 +354,7 @@ public class BroadcastRestService {
 	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
 	 * 
 	 */
-	
+
 	/*
 	@POST
 	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
@@ -367,7 +372,7 @@ public class BroadcastRestService {
 
 		return new Result(success, message);
 	}
-	
+
 	/*
 
 	/**
@@ -538,6 +543,55 @@ public class BroadcastRestService {
 	}
 
 	/**
+	 * Get Detected objects
+	 * 
+	 * @param id
+	 *            id of the stream
+	 * 
+	 * @return List of detected objects
+	 * 
+	 */
+	@GET
+	@Path("/detection/get")
+	@Produces(MediaType.APPLICATION_JSON)
+	public List<TensorFlowObject> getDetectedObjects(@QueryParam("id") String id) {
+		List<TensorFlowObject> list = null;
+
+		if (id != null) {
+			list = getDataStore().getDetection(id);
+		}
+
+		if (list == null) {
+			//do not return null in rest service
+			list = new ArrayList<TensorFlowObject>();
+		}
+
+		return list;
+	}
+
+
+	@GET
+	@Path("/detection/getList/{offset}/{size}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public List<TensorFlowObject> getDetectionList(@QueryParam("id") String id, @PathParam("offset") int offset, @PathParam("size") int size) {
+		List<TensorFlowObject> list = null;
+
+		if (id != null) {
+			list = getDataStore().getDetectionList(id, offset, size);	
+		}
+
+		if (list == null) {
+			//do not return null in rest service
+			list = new ArrayList<TensorFlowObject>();
+		}
+
+
+		return list;
+	}
+
+
+
+	/**
 	 * Gets the broadcast list from database
 	 * 
 	 * @param offset
@@ -600,12 +654,12 @@ public class BroadcastRestService {
 							e.printStackTrace();
 						}
 					}
-					
+
 					int number = 1;
 					for (Broadcast broadcast : broadcastList) {
 						String cmd = "ffmpeg http://"+ fqdn + ":5080/" 
 								+ getScope().getName() + "/streams/"+broadcast.getStreamId()+".m3u8";
-						
+
 						insertQueryString.append("INSERT INTO stalker_db.itv(name, number, tv_genre_id, base_ch, cmd, languages)"
 								+ " VALUES ('"+broadcast.getName()+"' , "+ number +", 2, 1, '"+ cmd +"', '');");
 
@@ -690,8 +744,8 @@ public class BroadcastRestService {
 			for (int i = 0; i < pageCount; i++) {
 				vodList.addAll(getDataStore().getVodList(i*IDataStore.MAX_ITEM_IN_ONE_LIST, IDataStore.MAX_ITEM_IN_ONE_LIST));
 			}
-			
-			
+
+
 			String fqdn = getAppSettings().getServerName();
 			if (fqdn == null || fqdn.length() == 0) {
 				try {
@@ -752,6 +806,21 @@ public class BroadcastRestService {
 	public long getTotalVodNumber() {
 		return getDataStore().getTotalVodNumber();
 	}
+
+	@GET
+	@Path("/broadcast/getVersion")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Version getVersion() {
+		Version versionList = new Version();
+		versionList.setVersionName(AntMediaApplicationAdapter.class.getPackage().getImplementationVersion());
+		versionList.setVersionType(BroadcastRestService.isEnterprise() ? "Enterprise Edition" : "Community Edition");
+
+		logger.info("Version Name"+ AntMediaApplicationAdapter.class.getPackage().getImplementationVersion());
+		logger.info("Version Type"+ (BroadcastRestService.isEnterprise() ? "Enterprise Edition" : "Community Edition"));
+
+		return versionList;
+	}
+
 
 	@GET
 	@Path("/broadcast/getTotalBroadcastNumber")
@@ -940,16 +1009,16 @@ public class BroadcastRestService {
 
 				long fileSize = savedFile.length();
 				long unixTime = System.currentTimeMillis();
-				
+
 				String path=savedFile.getPath();
-				
+
 				String[] subDirs = path.split(Pattern.quote(File.separator));
-				
+
 				Integer pathLength=Integer.valueOf(subDirs.length);
-				
+
 				String relativePath=subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
-				
-				
+
+
 
 				Vod newVod = new Vod(fileName, "vodFile", relativePath, fileName, unixTime, 0, fileSize,
 						Vod.UPLOADED_VOD);
@@ -997,7 +1066,7 @@ public class BroadcastRestService {
 
 			if (broacast != null) {
 
-				if (broacast.getType().equals("ipCamera")||broacast.getType().equals("streamSource")) {
+				if (broacast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA)||broacast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE)) {
 
 					getApplication().stopStreaming(broacast);
 					success = getDataStore().delete(id);
@@ -1054,7 +1123,7 @@ public class BroadcastRestService {
 			String clientSecret = getAppSettings().getFacebookClientSecret();
 
 			videoServiceEndpoint = getApplication().getEndpointService(AntMediaApplicationAdapter.FACEBOOK_ENDPOINT_CLASS, null, clientId, clientSecret);
-			
+
 			if (videoServiceEndpoint != null) 
 			{
 				if (clientId == null || clientSecret == null || 
@@ -1071,7 +1140,7 @@ public class BroadcastRestService {
 			String clientSecret = getAppSettings().getYoutubeClientSecret();
 
 			videoServiceEndpoint = getApplication().getEndpointService(AntMediaApplicationAdapter.YOUTUBE_ENDPOINT_CLASS, null, clientId, clientSecret);
-			
+
 			if (videoServiceEndpoint != null) 
 			{
 				if (clientId == null || clientSecret == null || 
@@ -1096,7 +1165,7 @@ public class BroadcastRestService {
 		}
 
 		try {
-			
+
 			if (missingClientIdAndSecret) {
 				errorId = ERROR_SOCIAL_ENDPOINT_UNDEFINED_CLIENT_ID;
 				message = "Please enter service client id and client secret in app configuration";
@@ -1348,7 +1417,7 @@ public class BroadcastRestService {
 		}
 		return app;
 	}
-	
+
 	/**
 	 * this is for testing
 	 * @param app

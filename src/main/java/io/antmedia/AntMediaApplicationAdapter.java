@@ -47,10 +47,12 @@ import io.antmedia.rest.model.Result;
 import io.antmedia.social.endpoint.PeriscopeEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
+import io.antmedia.storage.StorageClient;
 import io.antmedia.streamsource.StreamFetcherManager;
 
 public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter implements IMuxerListener {
 
+	public static final String BEAN_NAME = "web.handler";
 	public static final String BROADCAST_STATUS_CREATED = "created";
 	public static final String BROADCAST_STATUS_BROADCASTING = "broadcasting";
 	public static final String BROADCAST_STATUS_FINISHED = "finished";
@@ -65,31 +67,14 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	public static final String FACEBOOK = "facebook";
 	public static final String PERISCOPE = "periscope";
 	public static final String YOUTUBE = "youtube";
-
 	public static final String FACEBOOK_ENDPOINT_CLASS = "io.antmedia.enterprise.social.endpoint.FacebookEndpoint";
 	public static final String YOUTUBE_ENDPOINT_CLASS = "io.antmedia.enterprise.social.endpoint.YoutubeEndpoint";
-
-
-
 	private List<VideoServiceEndpoint> videoServiceEndpoints = new ArrayList<>();
 	private List<VideoServiceEndpoint> videoServiceEndpointsHavingError = new ArrayList<>();
-
 	private List<IStreamPublishSecurity> streamPublishSecurityList;
-
 	private HashMap<String, OnvifCamera> onvifCameraList = new HashMap<String, OnvifCamera>();
-
 	private StreamFetcherManager streamFetcherManager;
-
 	private IDataStore dataStore;
-
-	public IDataStore getDataStore() {
-		return dataStore;
-	}
-
-	public void setDataStore(IDataStore dataStore) {
-		this.dataStore = dataStore;
-	}
-
 	private AppSettings appSettings;
 
 
@@ -105,7 +90,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 			@Override
 			public void execute(ISchedulingService service) throws CloneNotSupportedException {
-				streamFetcherManager = new StreamFetcherManager(AntMediaApplicationAdapter.this, dataStore);
+				streamFetcherManager = new StreamFetcherManager(AntMediaApplicationAdapter.this, dataStore,app);
 				List<Broadcast> streams = getDataStore().getExternalStreamsList();
 				streamFetcherManager.startStreams(streams);
 
@@ -132,16 +117,12 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 						videoServiceEndpoints.add(endPointService);
 					}
 				}
-				
+
 				if (appSettings != null) {
 					synchUserVoDFolder(null, appSettings.getVodFolder());
 				}
-
 			}
-
-
 		});
-
 
 		return super.appStart(app);
 	}
@@ -192,8 +173,18 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 	@Override
 	public void streamBroadcastClose(IBroadcastStream stream) {
+
+		String streamName = stream.getPublishedName();
+
+		closeBroadcast(streamName);
+
+		super.streamBroadcastClose(stream);
+	}
+
+	public void closeBroadcast(String streamName) {
+
 		try {
-			String streamName = stream.getPublishedName();
+
 			if (dataStore != null) {
 				dataStore.updateStatus(streamName, BROADCAST_STATUS_FINISHED);
 				Broadcast broadcast = dataStore.get(streamName);
@@ -227,7 +218,6 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 							}
 						}
 					}
-
 					// recreate endpoints for social media
 
 					if (endPointList != null) {
@@ -244,7 +234,6 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		super.streamBroadcastClose(stream);
 	}
 
 	public void recreateEndpointsForSocialMedia(Broadcast broadcast, List<Endpoint> endPointList) {
@@ -287,12 +276,19 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 	@Override
 	public void streamPublishStart(final IBroadcastStream stream) {
+		String streamName = stream.getPublishedName();
 
+		startPublish(streamName);
+
+		super.streamPublishStart(stream);
+	}
+
+	public void startPublish(String streamName) {
 		addScheduledOnceJob(0, new IScheduledJob() {
 
 			@Override
 			public void execute(ISchedulingService service) throws CloneNotSupportedException {
-				String streamName = stream.getPublishedName();
+
 				try {
 
 					if (dataStore != null) {
@@ -303,7 +299,10 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 							broadcast = saveZombiBroadcast(streamName);
 
 						} else {
-							dataStore.updateStatus(streamName, BROADCAST_STATUS_BROADCASTING);
+
+							boolean result = dataStore.updateStatus(streamName, BROADCAST_STATUS_BROADCASTING);
+							logger.info(" Status of stream {} is set to Broadcasting with result: {}", broadcast.getStreamId(), result);
+
 						}
 
 						final String listenerHookURL = broadcast.getListenerHookURL();
@@ -343,8 +342,6 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 			}
 
 		});
-
-		super.streamPublishStart(stream);
 	}
 
 	private Broadcast saveZombiBroadcast(String streamName) {
@@ -401,15 +398,12 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 				else {
 					streamName = file.getName();
 				}
-
-				
 				String[] subDirs = filePath.split(Pattern.quote(File.separator));
-				
+
 				Integer pathLength=Integer.valueOf(subDirs.length);
-				
+
 				String relativePath=subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
-				
-				
+
 				Vod newVod = new Vod(streamName, streamId, relativePath, name, unixTime, duration, fileSize, Vod.STREAM_VOD);
 
 				getDataStore().addVod(newVod);
@@ -595,6 +589,25 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	}
 
 	public AppSettings getAppSettings() {
+
+		if(appSettings == null) {
+
+			AppSettings appSettings = new AppSettings();
+
+			appSettings.setMp4MuxingEnabled(true);
+			appSettings.setAddDateTimeToMp4FileName(true);
+			appSettings.setWebRTCEnabled(false);
+			appSettings.setHlsMuxingEnabled(true);
+			appSettings.setAdaptiveResolutionList(null);
+			appSettings.setHlsListSize(null);
+			appSettings.setHlsTime(null);
+			appSettings.setHlsPlayListType(null);
+			appSettings.setDeleteHLSFilesOnEnded(true);
+			appSettings.setPreviewOverwrite(false);
+
+			this.appSettings=appSettings;
+		}
+
 		return appSettings;
 	}
 
@@ -602,27 +615,39 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		this.appSettings = appSettings;
 	}
 	@Override
-	public void sourceQualityChanged(String id,String quality) {
-		log.info("source stream quality changed, new quality is: "+quality);
+	public void sourceQualityChanged(String id,String quality) 
+	{
+		addScheduledOnceJob(0, new IScheduledJob() {
 
-		getDataStore().updateSourceQuality(id, quality);
+			@Override
+			public void execute(ISchedulingService service) throws CloneNotSupportedException {
+				boolean updateSourceQuality = getDataStore().updateSourceQuality(id, quality);
+				log.info("source stream {} quality changed, new quality is: {}  , updating data strore {}", id, quality, updateSourceQuality);
+
+			}
+		});
 	}
 
 
 	@Override
 	public void sourceSpeedChanged(String id,double speed) {
 		// log.info("source stream quality changed, new quality is: "+speed);
+		addScheduledOnceJob(0, new IScheduledJob() {
+			@Override
+			public void execute(ISchedulingService service) throws CloneNotSupportedException {
+				getDataStore().updateSourceSpeed(id, speed);
 
-		getDataStore().updateSourceSpeed(id, speed);
+			}
+		});
+
 	}
 
-
 	public Result startStreaming(Broadcast broadcast) {
-		
+
 		Result result=new Result(false);
-		
+
 		result=streamFetcherManager.startStreaming(broadcast);
-		
+
 		return result;
 	}
 
@@ -647,6 +672,13 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 	public StreamFetcherManager getStreamFetcherManager() {
 		return streamFetcherManager;
+	}
+	public IDataStore getDataStore() {
+		return dataStore;
+	}
+
+	public void setDataStore(IDataStore dataStore) {
+		this.dataStore = dataStore;
 	}
 
 }
