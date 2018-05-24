@@ -88,7 +88,7 @@ public class AppSettingsUnitTest {
 		assertFalse(appSettings.isAddDateTimeToMp4FileName());
 		assertTrue(appSettings.isHlsMuxingEnabled());
 		assertFalse(appSettings.isWebRTCEnabled());
-		assertFalse(appSettings.isDeleteHLSFilesOnExit());
+		assertTrue(appSettings.isDeleteHLSFilesOnExit());
 		assertFalse(appSettings.isMp4MuxingEnabled());
 		assertNull(appSettings.getHlsListSize());
 		assertNull(appSettings.getHlsTime());

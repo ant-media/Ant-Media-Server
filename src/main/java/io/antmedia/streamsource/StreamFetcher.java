@@ -62,8 +62,6 @@ public class StreamFetcher {
 	protected static Logger logger = LoggerFactory.getLogger(StreamFetcher.class);
 	private Broadcast stream;
 	private WorkerThread thread;
-	protected AtomicBoolean isJobRunning = new AtomicBoolean(false);
-
 	/**
 	 * Connection setup timeout value
 	 */
@@ -82,6 +80,12 @@ public class StreamFetcher {
 	private long[] lastDTS;
 	private long[] lastPTS;
 	private MuxAdaptor muxAdaptor = null;
+	
+	/**
+	 * If it is true, it restarts fetching everytime it disconnects
+	 * if it is false, it does not restart
+	 */
+	private boolean restartStream = true;
 
 	public StreamFetcher(Broadcast stream, IScope scope) throws Exception {
 		if (stream == null || stream.getStreamId() == null || stream.getStreamUrl() == null) {
@@ -169,6 +173,7 @@ public class StreamFetcher {
 		private volatile boolean stopRequestReceived = false;
 
 		private volatile boolean streamPublished = false;
+		protected AtomicBoolean isJobRunning = new AtomicBoolean(false);
 
 		@Override
 		public void run() {
@@ -277,18 +282,22 @@ public class StreamFetcher {
 					}
 					inputFormatContext = null;
 				}
-				isJobRunning.compareAndSet(true, false);
+				
+				
 				if(streamPublished) {
 					getInstance().closeBroadcast(stream.getStreamId());
 					streamPublished=false;
 				}
 
+				
+				isJobRunning.compareAndSet(true, false);
+				
 				setThreadActive(false);
-				if(!stopRequestReceived) {
+				if(!stopRequestReceived && restartStream) {
 					thread = new WorkerThread();
 					thread.start();
 				}
-
+				
 			}
 
 		}
@@ -439,6 +448,14 @@ public class StreamFetcher {
 
 	public void setMuxAdaptor(MuxAdaptor muxAdaptor) {
 		this.muxAdaptor = muxAdaptor;
+	}
+
+	public boolean isRestartStream() {
+		return restartStream;
+	}
+
+	public void setRestartStream(boolean restartStream) {
+		this.restartStream = restartStream;
 	}
 
 
