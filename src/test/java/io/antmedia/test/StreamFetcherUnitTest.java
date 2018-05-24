@@ -110,7 +110,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		getAppSettings().setAddDateTimeToMp4FileName(defaultSettings.isAddDateTimeToMp4FileName());
 		getAppSettings().setHlsMuxingEnabled(defaultSettings.isHlsMuxingEnabled());
 		getAppSettings().setWebRTCEnabled(defaultSettings.isWebRTCEnabled());
-		getAppSettings().setDeleteHLSFilesOnEnded(false);
+		getAppSettings().setDeleteHLSFilesOnEnded(defaultSettings.isDeleteHLSFilesOnExit());
 		getAppSettings().setHlsListSize(defaultSettings.getHlsListSize());
 		getAppSettings().setHlsTime(defaultSettings.getHlsTime());
 		getAppSettings().setHlsPlayListType(defaultSettings.getHlsPlayListType());
