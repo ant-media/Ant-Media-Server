@@ -294,7 +294,6 @@ public class StreamFetcher {
 				
 				setThreadActive(false);
 				if(!stopRequestReceived && restartStream) {
-					logger.info("new thread is starting");
 					thread = new WorkerThread();
 					thread.start();
 				}

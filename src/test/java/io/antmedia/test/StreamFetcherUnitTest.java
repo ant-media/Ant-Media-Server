@@ -300,10 +300,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 
 		logger.info("leaving testThreadStopStart");
-
-
 	}
-
 
 	@Test
 	public void testCameraErrorCodes() {
