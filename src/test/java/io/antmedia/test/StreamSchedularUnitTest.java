@@ -311,6 +311,8 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		//check whether answer from StreamFetcherManager is true or not after new IPCamera is added
 		assertTrue(result.isSuccess());
 		
+		getInstance().stopStreaming(newCam);
+		
 		stopCameraEmulator();
 	}
 	
