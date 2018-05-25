@@ -252,7 +252,6 @@ public class StreamFetcher {
 
 				} 
 				catch (OutOfMemoryError e) {
-					logger.info("---OutOfMemoryError in thread---");
 					e.printStackTrace();
 					exceptionInThread  = true;
 				}
@@ -297,6 +296,8 @@ public class StreamFetcher {
 					thread = new WorkerThread();
 					thread.start();
 				}
+				
+				logger.info("Leaving thread");
 				
 			}
 

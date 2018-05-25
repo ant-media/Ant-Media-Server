@@ -154,7 +154,10 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		//set mapdb datastore to stream fetcher because in memory datastore just have references and updating broadcst
 		// object updates the reference in inmemorydatastore
 		app.getStreamFetcherManager().setDatastore(dataStore);
-
+		
+		app.getStreamFetcherManager().setRestartStreamAutomatically(false);
+		app.getStreamFetcherManager().setStreamCheckerInterval(5000);
+		
 		app.getStreamFetcherManager().getStreamFetcherList().clear();
 
 		assertEquals(0, app.getStreamFetcherManager().getStreamFetcherList().size());
@@ -793,6 +796,9 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			assertNotNull(newCam.getStreamId());
 
 			StreamFetcher fetcher = new StreamFetcher(newCam, appScope);
+			
+			
+			fetcher.setRestartStream(false);
 
 			assertFalse(fetcher.isThreadActive());
 			assertFalse(fetcher.isStreamAlive());

@@ -53,6 +53,8 @@ public class StreamFetcherManager {
 			return new StreamFetcher(stream, scope);
 		}
 	}
+	
+	private boolean restartStreamAutomatically = true;
 
 	public StreamFetcherFactory streamFetcherFactory;
 
@@ -64,6 +66,8 @@ public class StreamFetcherManager {
 	public StreamFetcherManager(ISchedulingService schedulingService, IDataStore datastore,IScope scope) {
 		this(schedulingService, datastore, scope, null);
 	}
+	
+	
 	
 	public StreamFetcherManager(ISchedulingService schedulingService, IDataStore datastore,IScope scope, StreamFetcherFactory streamFetcherFactory) {
 		this.schedulingService = schedulingService;
@@ -110,6 +114,7 @@ public class StreamFetcherManager {
 
 		try {
 			StreamFetcher streamScheduler = streamFetcherFactory.make(broadcast, scope);
+			streamScheduler.setRestartStream(restartStreamAutomatically);
 			streamScheduler.startStream();
 
 			String broadcastType = broadcast.getType();
@@ -239,6 +244,18 @@ public class StreamFetcherManager {
 
 	public void setStreamFetcherList(ConcurrentLinkedQueue<StreamFetcher> streamFetcherList) {
 		this.streamFetcherList = streamFetcherList;
+	}
+
+
+
+	public boolean isRestartStreamAutomatically() {
+		return restartStreamAutomatically;
+	}
+
+
+
+	public void setRestartStreamAutomatically(boolean restartStreamAutomatically) {
+		this.restartStreamAutomatically = restartStreamAutomatically;
 	}
 
 }
