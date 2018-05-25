@@ -82,8 +82,11 @@
 		<constructor-arg value="junit.db" />
 	</bean>
 
+	<bean id="app.settings" class="io.antmedia.AppSettings"></bean>
+	
 	<bean id="web.handler" class="io.antmedia.test.Application" >
 		<property name="dataStore" ref="db.datastore" />
+		<property name="appSettings" ref="app.settings" />
 	</bean>
 
 	<!-- Streamable file factory -->
@@ -128,7 +131,7 @@
 		<property name="threadNamePrefix" value="MuxerScheduler-" />
 	</bean>
 	
-	<bean id="app.settings" class="io.antmedia.AppSettings"></bean>
+	
 
 
 
