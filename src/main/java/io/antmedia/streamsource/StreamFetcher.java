@@ -457,6 +457,10 @@ public class StreamFetcher {
 	public void setRestartStream(boolean restartStream) {
 		this.restartStream = restartStream;
 	}
+	
+	public void setStream(Broadcast stream) {
+		this.stream = stream;
+	}
 
 
 }
