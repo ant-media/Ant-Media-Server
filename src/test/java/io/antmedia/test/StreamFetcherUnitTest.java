@@ -294,6 +294,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			//check that stream fetcher stop and start stream is not called
 			verify(streamFetcher, atLeast(4)).stopStream();
 			verify(streamFetcher, atLeast(5)).startStream(); 
+			
+			fetcherManager.setRestartStreamFetcherPeriod(0);
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -784,9 +786,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		try {
 			String textInFile;
 
-			startCameraEmulator();
 
-			Broadcast newCam = new Broadcast("streamSource", "127.0.0.1:8080", "admin", "admin", "rtsp://127.0.0.1:6554/test.flv",
+			Broadcast newCam = new Broadcast("streamSource", "127.0.0.1:8080", "admin", "admin", "src/test/resources/test.ts",
 					AntMediaApplicationAdapter.STREAM_SOURCE);
 
 			assertNotNull(newCam.getStreamUrl());
@@ -846,8 +847,6 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			//Check that m3u8 file does not include "EXT-X-ENDLIST" parameter because "omit_endlist" flag is used in HLS Muxer
 
 			assertFalse(textInFile.contains("EXT-X-ENDLIST"));
-
-			stopCameraEmulator();
 
 			getInstance().getDataStore().delete(id);
 		}
