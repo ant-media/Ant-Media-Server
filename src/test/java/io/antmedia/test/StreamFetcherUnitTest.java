@@ -26,7 +26,11 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mockito.Mockito;
+
+import static org.mockito.Mockito.*;
 import org.mongodb.morphia.Datastore;
+import org.red5.server.scheduling.QuartzSchedulingService;
 import org.red5.server.scope.WebScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,7 +47,10 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.integration.MuxingTest;
 import io.antmedia.integration.RestServiceTest;
 import io.antmedia.muxer.MuxAdaptor;
+import io.antmedia.rest.model.Result;
 import io.antmedia.streamsource.StreamFetcher;
+import io.antmedia.streamsource.StreamFetcherManager;
+import io.antmedia.streamsource.StreamFetcherManager.StreamFetcherFactory;
 
 @ContextConfiguration(locations = { "test.xml" })
 public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
@@ -104,7 +111,6 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		//reset values in the bean
 		getAppSettings().setMp4MuxingEnabled(defaultSettings.isMp4MuxingEnabled());
 		getAppSettings().setHlsMuxingEnabled(defaultSettings.isHlsMuxingEnabled());
-		getAppSettings().setAddDateTimeToMp4FileName(false);
 
 		getAppSettings().setMp4MuxingEnabled(true);
 		getAppSettings().setAddDateTimeToMp4FileName(defaultSettings.isAddDateTimeToMp4FileName());
@@ -148,7 +154,10 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		//set mapdb datastore to stream fetcher because in memory datastore just have references and updating broadcst
 		// object updates the reference in inmemorydatastore
 		app.getStreamFetcherManager().setDatastore(dataStore);
-
+		
+		app.getStreamFetcherManager().setRestartStreamAutomatically(false);
+		app.getStreamFetcherManager().setStreamCheckerInterval(5000);
+		
 		app.getStreamFetcherManager().getStreamFetcherList().clear();
 
 		assertEquals(0, app.getStreamFetcherManager().getStreamFetcherList().size());
@@ -214,6 +223,85 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		app.stopStreaming(newCam);
 
 		logger.info("leaving testBugUpdateStreamFetcherStatus");
+
+	}
+	
+	
+	@Test
+	public void testRestartPeriodStreamFetcher() {
+
+		try {
+			//Create Stream Fetcher Manager
+			QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
+
+			InMemoryDataStore memoryDataStore = new InMemoryDataStore("testdb");
+			
+			
+
+			//Create a mock StreamFetcher and add it to StreamFetcherManager
+			StreamFetcher streamFetcher = Mockito.mock(StreamFetcher.class);
+			Broadcast stream =  Mockito.mock(Broadcast.class);
+
+			stream.setStreamId(String.valueOf((Math.random() * 100000)));
+
+			stream.setStreamUrl("anyurl");
+			streamFetcher.setStream(stream);
+			when(streamFetcher.getStream()).thenReturn(stream);
+			when(streamFetcher.isStreamAlive()).thenReturn(true);
+			when(streamFetcher.getCameraError()).thenReturn(new Result(true));
+			
+			StreamFetcherFactory factory = mock(StreamFetcherFactory.class);
+			when(factory.make(stream, appScope)).thenReturn(streamFetcher);
+
+			StreamFetcherManager fetcherManager = new StreamFetcherManager(scheduler, memoryDataStore, appScope, factory);
+
+			//set checker interval to 3 seconds
+			fetcherManager.setStreamCheckerInterval(4000);
+
+			//set restart period to 5 seconds
+			fetcherManager.setRestartStreamFetcherPeriod(5);
+
+			//Start stream fetcher
+			Result result = fetcherManager.startStreaming(stream);
+			assertTrue(result.isSuccess());
+
+			//wait 10-12 seconds
+			Thread.sleep(13000);
+
+			//check that stream fetcher stop and start stream is called 4 times
+			verify(streamFetcher, times(2)).stopStream();
+			
+			//it is +1 because it is called at first start
+			verify(streamFetcher, times(3)).startStream(); 
+			verify(streamFetcher, times(3)).startStream(); 
+
+			//set restart period to 0 seconds
+			fetcherManager.setRestartStreamFetcherPeriod(0);
+
+			//wait 10-12 seconds
+			Thread.sleep(13000);
+
+			//check that stream fetcher stop and start stream is not called
+			verify(streamFetcher, times(2)).stopStream();
+			verify(streamFetcher, times(3)).startStream(); 
+			
+			//set restart period to 0 seconds
+			fetcherManager.setRestartStreamFetcherPeriod(5);
+			
+			//wait 10-12 seconds
+			Thread.sleep(13000);
+			
+			//check that stream fetcher stop and start stream is not called
+			verify(streamFetcher, atLeast(4)).stopStream();
+			verify(streamFetcher, atLeast(5)).startStream(); 
+			
+			fetcherManager.setRestartStreamFetcherPeriod(0);
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+
 
 	}
 
@@ -698,9 +786,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		try {
 			String textInFile;
 
-			startCameraEmulator();
 
-			Broadcast newCam = new Broadcast("streamSource", "127.0.0.1:8080", "admin", "admin", "rtsp://127.0.0.1:6554/test.flv",
+			Broadcast newCam = new Broadcast("streamSource", "127.0.0.1:8080", "admin", "admin", "src/test/resources/test.ts",
 					AntMediaApplicationAdapter.STREAM_SOURCE);
 
 			assertNotNull(newCam.getStreamUrl());
@@ -710,6 +797,9 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			assertNotNull(newCam.getStreamId());
 
 			StreamFetcher fetcher = new StreamFetcher(newCam, appScope);
+			
+			
+			fetcher.setRestartStream(false);
 
 			assertFalse(fetcher.isThreadActive());
 			assertFalse(fetcher.isStreamAlive());
@@ -757,8 +847,6 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			//Check that m3u8 file does not include "EXT-X-ENDLIST" parameter because "omit_endlist" flag is used in HLS Muxer
 
 			assertFalse(textInFile.contains("EXT-X-ENDLIST"));
-
-			stopCameraEmulator();
 
 			getInstance().getDataStore().delete(id);
 		}
