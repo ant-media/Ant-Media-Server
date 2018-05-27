@@ -61,8 +61,8 @@ deploy:
     script: "mvn deploy -P assemble -DskipTests --settings mvn-settings.xml"
     skip_cleanup: true
     on:
-      tags: true
-      branch: master
+      tags: false
+      all_branches: true
   - provider: releases
     api_key: $GITHUB_OAUTH_TOKEN
     file_glob: true
