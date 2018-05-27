@@ -73,7 +73,8 @@ public class StreamFetcherManager {
 		this.schedulingService = schedulingService;
 		this.datastore = datastore;
 		this.scope=scope;
-		if (streamFetcherFactory == null) {
+		this.streamFetcherFactory = streamFetcherFactory;
+		if(this.streamFetcherFactory == null) {
 			this.streamFetcherFactory = new StreamFetcherFactory();
 		}
 		
