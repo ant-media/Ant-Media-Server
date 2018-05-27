@@ -48,7 +48,7 @@ public class StreamFetcherManager {
 
 	protected AtomicBoolean isJobRunning = new AtomicBoolean(false);
 
-	public static class StreamFetcherFactory {
+	public  static class StreamFetcherFactory {
 		public StreamFetcher make(Broadcast stream, IScope scope) throws Exception {
 			return new StreamFetcher(stream, scope);
 		}
@@ -73,10 +73,7 @@ public class StreamFetcherManager {
 		this.schedulingService = schedulingService;
 		this.datastore = datastore;
 		this.scope=scope;
-		if (streamFetcherFactory != null) {
-			this.streamFetcherFactory = streamFetcherFactory;
-		}
-		else {
+		if (streamFetcherFactory == null) {
 			this.streamFetcherFactory = new StreamFetcherFactory();
 		}
 		
