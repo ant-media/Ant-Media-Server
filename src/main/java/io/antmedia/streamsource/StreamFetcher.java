@@ -297,7 +297,7 @@ public class StreamFetcher {
 					thread.start();
 				}
 				
-				logger.info("Leaving thread");
+				logger.debug("Leaving thread");
 				
 			}
 
