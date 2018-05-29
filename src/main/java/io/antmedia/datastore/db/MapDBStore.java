@@ -446,30 +446,6 @@ public class MapDBStore implements IDataStore {
 
 
 
-	@Override
-	public boolean editCameraInfo(Broadcast camera) {
-		boolean result = false;
-		try {
-			logger.warn("inside of editCameraInfo");
-			Broadcast oldCam = get(camera.getStreamId());
-
-			oldCam.setName(camera.getName());
-			oldCam.setUsername(camera.getUsername());
-			oldCam.setPassword(camera.getPassword());
-			oldCam.setIpAddr(camera.getIpAddr());
-			oldCam.setStreamUrl(camera.getStreamUrl());
-
-			getMap().replace(oldCam.getStreamId(), gson.toJson(oldCam));
-
-			db.commit();
-			result = true;
-		} catch (Exception e) {
-			result = false;
-		}
-
-		logger.warn("result inside edit camera: " + result);
-		return result;
-	}
 
 
 
@@ -768,6 +744,33 @@ public class MapDBStore implements IDataStore {
 		}
 		return list;
 
+	}
+
+
+	@Override
+	public boolean editStreamSourceInfo(Broadcast broadcast) {
+		boolean result = false;
+		try {
+			logger.warn("inside of editStreamSourceInfo");
+			Broadcast oldBroadcast = get(broadcast.getStreamId());
+
+			oldBroadcast.setName(broadcast.getName());
+			oldBroadcast.setUsername(broadcast.getUsername());
+			oldBroadcast.setPassword(broadcast.getPassword());
+			oldBroadcast.setIpAddr(broadcast.getIpAddr());
+			oldBroadcast.setStreamUrl(broadcast.getStreamUrl());
+			oldBroadcast.setStreamUrl(broadcast.getStreamUrl());
+
+			getMap().replace(oldBroadcast.getStreamId(), gson.toJson(oldBroadcast));
+
+			db.commit();
+			result = true;
+		} catch (Exception e) {
+			result = false;
+		}
+
+		logger.warn("result inside edit camera: " + result);
+		return result;
 	}
 
 }

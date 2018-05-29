@@ -57,7 +57,7 @@ public class StreamsSourceRestService {
 	private AntMediaApplicationAdapter appInstance;
 
 	protected static Logger logger = LoggerFactory.getLogger(StreamsSourceRestService.class);
-	
+
 
 
 
@@ -89,21 +89,21 @@ public class StreamsSourceRestService {
 					stream.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
 
 					String id = getStore().save(stream);
-					
+
 
 					if (id.length() > 0) {
 						Broadcast newCam = getStore().get(stream.getStreamId());
 						result=getInstance().startStreaming(newCam);
 						String str = String.valueOf(result.isSuccess());
 						logger.info("reply from startstreaming " + str);
-						
+
 						if(!result.isSuccess()) {
 							getStore().delete(stream.getStreamId());
 						}
 					}
 					onvif.disconnect();
-				
-					
+
+
 				}
 
 			}
@@ -165,40 +165,37 @@ public class StreamsSourceRestService {
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/updateCamInfo")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result updateCamInfo(Broadcast camera) {
+	public Result updateCamInfo(Broadcast broadcast) {
 		boolean result = false;
 		OnvifCamera onvif = null;
 		logger.warn("inside of rest service");
-		if(camera.getStatus()!=null) {
+		if(broadcast.getStatus()!=null) {
 
-			getInstance().stopStreaming(camera);
+			getInstance().stopStreaming(broadcast);
 			try {
-				Thread.sleep(2000);
+				Thread.sleep(1000);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 				Thread.currentThread().interrupt();
 			}
-			onvif = new OnvifCamera();
-			onvif.connect(camera.getIpAddr(), camera.getUsername(), camera.getPassword());
-			String rtspURL = onvif.getRTSPStreamURI();
 
-			logger.warn("camera starting point inside camera edit:  " + camera.getStreamId());
+			if(broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA)) {
 
-			result = getStore().editCameraInfo(camera);
+				onvif = new OnvifCamera();
+				onvif.connect(broadcast.getIpAddr(), broadcast.getUsername(), broadcast.getPassword());
+				String rtspURL = onvif.getRTSPStreamURI();
 
-			if (rtspURL != "no") {
+				if (rtspURL != "no") {
 
-				String authparam = camera.getUsername() + ":" + camera.getPassword() + "@";
-				String rtspURLWithAuth = "rtsp://" + authparam + rtspURL.substring("rtsp://".length());
-				System.out.println("new RTSP URL:" + rtspURLWithAuth);
-				camera.setStreamUrl(rtspURLWithAuth);
-				result = getStore().editCameraInfo(camera);
+					String authparam = broadcast.getUsername() + ":" + broadcast.getPassword() + "@";
+					String rtspURLWithAuth = "rtsp://" + authparam + rtspURL.substring("rtsp://".length());
+					System.out.println("new RTSP URL:" + rtspURLWithAuth);
+					broadcast.setStreamUrl(rtspURLWithAuth);
+				}
+				
+
 			}
 		}
-		else {result = getStore().editCameraInfo(camera);}
-
-
-		logger.warn("final result:" + result);
 
 		if (onvif != null) {
 			onvif.disconnect();
@@ -209,7 +206,8 @@ public class StreamsSourceRestService {
 			e.printStackTrace();
 			Thread.currentThread().interrupt();
 		}
-		getInstance().startStreaming(camera);
+		result = getStore().editStreamSourceInfo(broadcast);
+		getInstance().startStreaming(broadcast);
 		return new Result(result);
 	}
 
@@ -277,10 +275,6 @@ public class StreamsSourceRestService {
 
 		}
 
-		else {
-
-			logger.warn("IP Address is not found");
-		}
 		return list;
 	}
 

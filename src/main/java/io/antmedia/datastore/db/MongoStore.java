@@ -273,27 +273,6 @@ public class MongoStore implements IDataStore {
 	}
 
 
-	@Override
-	public boolean editCameraInfo(Broadcast camera) {
-		boolean result = false;
-
-		try {
-			logger.warn("result inside edit camera: " + result);
-			Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(camera.getStreamId());
-
-
-			UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set("name", camera.getName())
-					.set("username", camera.getUsername()).set("password", camera.getPassword()).set("ipAddr", camera.getIpAddr());
-
-			UpdateResults update = datastore.update(query, ops);
-			return update.getUpdatedCount() == 1;
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		return false;
-
-
-	}
 
 
 	@Override
@@ -597,7 +576,7 @@ public class MongoStore implements IDataStore {
 				datastore.save(tensorFlowObject);
 			}
 		}
-		
+
 	}
 
 	@Override
@@ -618,6 +597,26 @@ public class MongoStore implements IDataStore {
 			e.printStackTrace();
 		}
 		return null;	
+	}
+
+	@Override
+	public boolean editStreamSourceInfo(Broadcast broadcast) {
+		boolean result = false;
+
+		try {
+			logger.warn("result inside edit camera: " + result);
+			Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(broadcast.getStreamId());
+
+			UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set("name", broadcast.getName())
+					.set("username", broadcast.getUsername()).set("password", broadcast.getPassword()).set("ipAddr", broadcast.getIpAddr())
+					.set("streamUrl", broadcast.getStreamUrl());
+
+			UpdateResults update = datastore.update(query, ops);
+			return update.getUpdatedCount() == 1;
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return false;
 	}
 
 
