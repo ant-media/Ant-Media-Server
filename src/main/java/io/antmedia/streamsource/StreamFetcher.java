@@ -191,7 +191,7 @@ public class StreamFetcher {
 
 					if (result.isSuccess()) {
 
-						muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null,true);
+						muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null,true, scope);
 
 						muxAdaptor.init(scope, stream.getStreamId(), false);
 
