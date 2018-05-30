@@ -51,7 +51,6 @@
 		<skipTests>false</skipTests>
 		<build.dir>target</build.dir>
 		<finalName>${project.artifactId}</finalName>
-
     	    <maven.build.timestamp.format>yyMMdd_HHmm</maven.build.timestamp.format>
         <buildNumber>${maven.build.timestamp}</buildNumber>
 
