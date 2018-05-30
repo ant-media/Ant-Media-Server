@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.rest.model.Result;
 
 
@@ -49,8 +50,8 @@ public class StreamFetcherManager {
 	protected AtomicBoolean isJobRunning = new AtomicBoolean(false);
 
 	public  static class StreamFetcherFactory {
-		public StreamFetcher make(Broadcast stream, IScope scope) throws Exception {
-			return new StreamFetcher(stream, scope);
+		public StreamFetcher make(Broadcast stream, IScope scope, ISchedulingService schedulingService) throws Exception {
+			return new StreamFetcher(stream, scope, schedulingService);
 		}
 	}
 	
@@ -111,7 +112,7 @@ public class StreamFetcherManager {
 		Result result=new Result(false);
 
 		try {
-			StreamFetcher streamScheduler = streamFetcherFactory.make(broadcast, scope);
+			StreamFetcher streamScheduler = streamFetcherFactory.make(broadcast, scope, schedulingService);
 			streamScheduler.setRestartStream(restartStreamAutomatically);
 			streamScheduler.startStream();
 
@@ -214,9 +215,11 @@ public class StreamFetcherManager {
 							if (!streamScheduler.isStreamAlive()) {
 
 								if (datastore != null && stream.getStreamId() != null) {
-									logger.info("Updating stream status to finished, updating status of stream {}", stream.getStreamId() );
-									datastore.updateStatus(stream.getStreamId() , 
-											AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+									logger.info("Updating stream quality to poor of stream {}", stream.getStreamId() );
+									datastore.updateSourceQuality(stream.getStreamId(), MuxAdaptor.QUALITY_POOR);
+									datastore.updateSourceSpeed(stream.getStreamId(), 0);
+									//datastore.updateStatus(stream.getStreamId() , 
+									//		AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
 								}
 							}
 						}
