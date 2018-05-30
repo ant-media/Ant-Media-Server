@@ -12,7 +12,6 @@ ANT_MEDIA_SERVER_DIR=~/softwares/ant-media-server
 
 ANT_MEDIA_SERVER_JAR=./target/ant-media-server.jar
 
-
 SRC_CONF_DIR=./src/main/server/conf/
 
 #copy red5 jar from target dir to red5 dir

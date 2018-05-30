@@ -30,9 +30,9 @@ public class InMemoryDataStore implements IDataStore {
 	public LinkedHashMap<String, Broadcast> broadcastMap = new LinkedHashMap<String, Broadcast>();
 
 	public LinkedHashMap<String, Vod> vodMap = new LinkedHashMap<String, Vod>();
-	
+
 	public LinkedHashMap<String, List<TensorFlowObject>> detectionMap = new LinkedHashMap<String, List<TensorFlowObject>>();
-	
+
 	public LinkedHashMap<String, SocialEndpointCredentials> socialEndpointCredentialsMap = new LinkedHashMap<String, SocialEndpointCredentials>();
 
 
@@ -210,31 +210,6 @@ public class InMemoryDataStore implements IDataStore {
 		return list;
 	}
 
-
-
-	@Override
-	public boolean editCameraInfo(Broadcast camera) {
-		boolean result = false;
-		try {
-			logger.warn("inside of editCameraInfo");
-
-			Broadcast oldCam = get(camera.getStreamId());
-
-			oldCam.setName(camera.getName());
-			oldCam.setUsername(camera.getUsername());
-			oldCam.setPassword(camera.getPassword());
-			oldCam.setIpAddr(camera.getIpAddr());
-
-			broadcastMap.replace(oldCam.getStreamId(), oldCam);
-
-
-			result = true;
-		} catch (Exception e) {
-			result = false;
-		}
-
-		return result;
-	}
 
 
 
@@ -532,12 +507,9 @@ public class InMemoryDataStore implements IDataStore {
 	}
 
 	@Override
-
 	public long getTotalBroadcastNumber() {
 		return broadcastMap.size();
 	}
-	
-	
 
 	public void saveDetection(String id, long timeElapsed, List<TensorFlowObject> detectedObjects) {
 		if (detectedObjects != null) {
@@ -578,6 +550,30 @@ public class InMemoryDataStore implements IDataStore {
 			return detectedObjects;
 		}
 		return null;
+	}
+
+	@Override
+	public boolean editStreamSourceInfo(Broadcast broadcast) {		
+		boolean result = false;
+		try {
+			logger.warn("inside of editCameraInfo");
+
+			Broadcast oldBroadcast = get(broadcast.getStreamId());
+
+			oldBroadcast.setName(broadcast.getName());
+			oldBroadcast.setUsername(broadcast.getUsername());
+			oldBroadcast.setPassword(broadcast.getPassword());
+			oldBroadcast.setIpAddr(broadcast.getIpAddr());
+			oldBroadcast.setStreamUrl(broadcast.getStreamUrl());
+			
+			broadcastMap.replace(oldBroadcast.getStreamId(), oldBroadcast);
+
+			result = true;
+		} catch (Exception e) {
+			result = false;
+		}
+
+		return result;
 	}
 
 

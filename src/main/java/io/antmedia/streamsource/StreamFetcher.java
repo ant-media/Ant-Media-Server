@@ -25,6 +25,8 @@ import static org.bytedeco.javacpp.avutil.av_rescale_q;
 import static org.bytedeco.javacpp.avutil.av_rescale_q_rnd;
 import static org.bytedeco.javacpp.avcodec.av_packet_free;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import javax.annotation.Nullable;
 import javax.servlet.ServletContext;
 import javax.ws.rs.core.Context;
@@ -60,7 +62,6 @@ public class StreamFetcher {
 	protected static Logger logger = LoggerFactory.getLogger(StreamFetcher.class);
 	private Broadcast stream;
 	private WorkerThread thread;
-	
 	/**
 	 * Connection setup timeout value
 	 */
@@ -79,11 +80,17 @@ public class StreamFetcher {
 	private long[] lastDTS;
 	private long[] lastPTS;
 	private MuxAdaptor muxAdaptor = null;
+	
+	/**
+	 * If it is true, it restarts fetching everytime it disconnects
+	 * if it is false, it does not restart
+	 */
+	private boolean restartStream = true;
 
 	public StreamFetcher(Broadcast stream, IScope scope) throws Exception {
 		if (stream == null || stream.getStreamId() == null || stream.getStreamUrl() == null) {
 			throw new Exception("Stream is not initialized properly. Check stream("+stream+"), "
-						+ " stream id(" + stream.getStreamId() + ") and stream url("+ stream.getStreamUrl() +") values");
+					+ " stream id(" + stream.getStreamId() + ") and stream url("+ stream.getStreamUrl() +") values");
 		}
 		this.stream = stream;
 		this.scope=scope;
@@ -114,7 +121,7 @@ public class StreamFetcher {
 
 		int ret;
 
-		logger.info("stream url:  " + stream.getStreamUrl());
+		// logger.info("stream url:  " + stream.getStreamUrl());
 
 		if ((ret = avformat_open_input(inputFormatContext, stream.getStreamUrl(), null, optionsDictionary)) < 0) {
 
@@ -125,7 +132,7 @@ public class StreamFetcher {
 
 			result.setMessage(errorStr);		
 
-			logger.info("cannot open input context with error::" +result.getMessage());
+			//	logger.info("cannot open input context with error::" +result.getMessage());
 			return result;
 		}
 
@@ -165,122 +172,139 @@ public class StreamFetcher {
 
 		private volatile boolean stopRequestReceived = false;
 
+		private volatile boolean streamPublished = false;
+		protected AtomicBoolean isJobRunning = new AtomicBoolean(false);
+
 		@Override
 		public void run() {
 
-			setThreadActive(true);
-			AVFormatContext inputFormatContext = null;
-			AVPacket pkt = null;
-			try {
-				inputFormatContext = new AVFormatContext(null); // avformat.avformat_alloc_context();
-				pkt = avcodec.av_packet_alloc();
-				logger.info("before prepare");
-				Result result = prepare(inputFormatContext);
+			if (isJobRunning.compareAndSet(false, true)) {
 
-				if (result.isSuccess()) {
+				setThreadActive(true);
+				AVFormatContext inputFormatContext = null;
+				AVPacket pkt = null;
+				try {
+					inputFormatContext = new AVFormatContext(null); // avformat.avformat_alloc_context();
+					pkt = avcodec.av_packet_alloc();
+					//logger.info("before prepare");
+					Result result = prepare(inputFormatContext);
 
-					muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null,true);
+					if (result.isSuccess()) {
 
-					muxAdaptor.init(scope, stream.getStreamId(), false);
-					
-					logger.info("{} stream count in stream {} is {}", stream.getStreamId(), stream.getStreamUrl(), inputFormatContext.nb_streams());
+						muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null,true, scope);
 
-					if(muxAdaptor.prepareInternal(inputFormatContext)) {
+						muxAdaptor.init(scope, stream.getStreamId(), false);
 
-						long currentTime = System.currentTimeMillis();
-						muxAdaptor.setStartTime(currentTime);
+						logger.info("{} stream count in stream {} is {}", stream.getStreamId(), stream.getStreamUrl(), inputFormatContext.nb_streams());
 
-						getInstance().startPublish(stream.getStreamId());
-						
-						while (true) {
-							int ret = av_read_frame(inputFormatContext, pkt);
-							if (ret < 0) {
-								logger.info("cannot read frame from input context");
-								break;
-							}
+						if(muxAdaptor.prepareInternal(inputFormatContext)) {
 
-							lastPacketReceivedTime = System.currentTimeMillis();
+							long currentTime = System.currentTimeMillis();
+							muxAdaptor.setStartTime(currentTime);
 
-							/**
-							 * Check that dts values are monotically increasing for each stream
-							 */
-							int packetIndex = pkt.stream_index();
-							if (lastDTS[packetIndex] >= pkt.dts()) {
-								pkt.dts(lastDTS[packetIndex] + 1);
-								//logger.warn("Correcting dts value to {}", pkt.dts());
-							}
-							lastDTS[packetIndex] = pkt.dts();
-							if (pkt.dts() > pkt.pts()) {
-								pkt.pts(pkt.dts());
-							}
-							
-							if (lastPTS[packetIndex] >= pkt.pts()) {
-								pkt.pts(lastPTS[packetIndex] + 1);
-							//	logger.warn("Correcting pts value to {}", pkt.pts());
-							}
-							lastPTS[packetIndex] = pkt.pts();
+							getInstance().startPublish(stream.getStreamId());
 
-							muxAdaptor.writePacket(inputFormatContext.streams(pkt.stream_index()), pkt);
-							
-							av_packet_unref(pkt);
-							if (stopRequestReceived) {
-								logger.warn("breaking the loop");
-								break;
+							while (true) {
+								int ret = av_read_frame(inputFormatContext, pkt);
+								if (ret < 0) {
+									logger.info("cannot read frame from input context");
+									break;
+								}
+								streamPublished=true;
+								lastPacketReceivedTime = System.currentTimeMillis();
+
+								/**
+								 * Check that dts values are monotically increasing for each stream
+								 */
+								int packetIndex = pkt.stream_index();
+								if (lastDTS[packetIndex] >= pkt.dts()) {
+									pkt.dts(lastDTS[packetIndex] + 1);
+									//logger.warn("Correcting dts value to {}", pkt.dts());
+								}
+								lastDTS[packetIndex] = pkt.dts();
+								if (pkt.dts() > pkt.pts()) {
+									pkt.pts(pkt.dts());
+								}
+
+								if (lastPTS[packetIndex] >= pkt.pts()) {
+									pkt.pts(lastPTS[packetIndex] + 1);
+									//	logger.warn("Correcting pts value to {}", pkt.pts());
+								}
+								lastPTS[packetIndex] = pkt.pts();
+
+								muxAdaptor.writePacket(inputFormatContext.streams(pkt.stream_index()), pkt);
+
+								av_packet_unref(pkt);
+								if (stopRequestReceived) {
+									logger.warn("breaking the loop");
+									break;
+								}
 							}
 						}
+
+					}
+					else {
+						logger.debug("Prepare for " + stream.getName() + " returned false");
 					}
 
-				}
-				else {
-					logger.warn("Prepare for " + stream.getName() + " returned false");
-				}
+					setCameraError(result);
+					//	logger.info("Leaving StreamFetcher Thread");
 
-				setCameraError(result);
-				logger.info("Leaving StreamFetcher Thread");
-
-			} 
-			catch (OutOfMemoryError e) {
-				logger.info("---OutOfMemoryError in thread---");
-				e.printStackTrace();
-				exceptionInThread  = true;
-			}
-			catch (Exception e) {
-				logger.info("---Exception in thread---");
-				e.printStackTrace();
-				exceptionInThread  = true;
-			} 
-
-			if (muxAdaptor != null) {
-				logger.info("Writing trailer for Muxadaptor");
-				muxAdaptor.writeTrailer(inputFormatContext);
-				muxAdaptor = null;
-			}
-			
-			if (pkt != null) {
-				av_packet_free(pkt);
-				pkt = null;
-			}
-			
-			if (inputFormatContext != null) {
-				try {
-					avformat_close_input(inputFormatContext);
+				} 
+				catch (OutOfMemoryError e) {
+					e.printStackTrace();
+					exceptionInThread  = true;
 				}
 				catch (Exception e) {
+					logger.info("---Exception in thread---");
 					e.printStackTrace();
+					exceptionInThread  = true;
+				} 
+
+				if (muxAdaptor != null) {
+					logger.info("Writing trailer for Muxadaptor");
+					muxAdaptor.writeTrailer(inputFormatContext);
+					muxAdaptor = null;
 				}
-				inputFormatContext = null;
+
+				if (pkt != null) {
+					av_packet_free(pkt);
+					pkt = null;
+				}
+
+				if (inputFormatContext != null) {
+					try {
+						avformat_close_input(inputFormatContext);
+					}
+					catch (Exception e) {
+						e.printStackTrace();
+					}
+					inputFormatContext = null;
+				}
+				
+				
+				if(streamPublished) {
+					getInstance().closeBroadcast(stream.getStreamId());
+					streamPublished=false;
+				}
+
+				
+				isJobRunning.compareAndSet(true, false);
+				
+				setThreadActive(false);
+				if(!stopRequestReceived && restartStream) {
+					thread = new WorkerThread();
+					thread.start();
+				}
+				
+				logger.debug("Leaving thread");
+				
 			}
 
-			getInstance().closeBroadcast(stream.getStreamId());
-
-			setThreadActive(false);
-
 		}
-
 		public void setStopRequestReceived() {
 			logger.warn("inside of setStopRequestReceived");
 			stopRequestReceived = true;
-
 		}
 
 		public boolean isStopRequestReceived() {
@@ -299,6 +323,7 @@ public class StreamFetcher {
 							logger.info("waiting for thread to be finished for stream " + stream.getStreamUrl());
 							i = 0;
 						}
+						i++;
 					}
 					Thread.sleep(2000);
 				} catch (InterruptedException e) {
@@ -417,13 +442,25 @@ public class StreamFetcher {
 		}
 		return appInstance;
 	}
-	
+
 	public MuxAdaptor getMuxAdaptor() {
 		return muxAdaptor;
 	}
 
 	public void setMuxAdaptor(MuxAdaptor muxAdaptor) {
 		this.muxAdaptor = muxAdaptor;
+	}
+
+	public boolean isRestartStream() {
+		return restartStream;
+	}
+
+	public void setRestartStream(boolean restartStream) {
+		this.restartStream = restartStream;
+	}
+	
+	public void setStream(Broadcast stream) {
+		this.stream = stream;
 	}
 
 

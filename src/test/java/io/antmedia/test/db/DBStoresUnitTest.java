@@ -414,7 +414,7 @@ public class DBStoresUnitTest {
 		camera.setName("new_name");
 		camera.setIpAddr("1.1.1.1");
 	
-		datastore.editCameraInfo(camera);
+		datastore.editStreamSourceInfo(camera);
 		
 		//check whether is changed or not
 		

@@ -26,7 +26,11 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mockito.Mockito;
+
+import static org.mockito.Mockito.*;
 import org.mongodb.morphia.Datastore;
+import org.red5.server.scheduling.QuartzSchedulingService;
 import org.red5.server.scope.WebScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,7 +47,10 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.integration.MuxingTest;
 import io.antmedia.integration.RestServiceTest;
 import io.antmedia.muxer.MuxAdaptor;
+import io.antmedia.rest.model.Result;
 import io.antmedia.streamsource.StreamFetcher;
+import io.antmedia.streamsource.StreamFetcherManager;
+import io.antmedia.streamsource.StreamFetcherManager.StreamFetcherFactory;
 
 @ContextConfiguration(locations = { "test.xml" })
 public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
@@ -104,9 +111,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		//reset values in the bean
 		getAppSettings().setMp4MuxingEnabled(defaultSettings.isMp4MuxingEnabled());
 		getAppSettings().setHlsMuxingEnabled(defaultSettings.isHlsMuxingEnabled());
-		getAppSettings().setAddDateTimeToMp4FileName(false);
 
-		getAppSettings().setMp4MuxingEnabled(defaultSettings.isMp4MuxingEnabled());
+		getAppSettings().setMp4MuxingEnabled(true);
 		getAppSettings().setAddDateTimeToMp4FileName(defaultSettings.isAddDateTimeToMp4FileName());
 		getAppSettings().setHlsMuxingEnabled(defaultSettings.isHlsMuxingEnabled());
 		getAppSettings().setWebRTCEnabled(defaultSettings.isWebRTCEnabled());
@@ -121,6 +127,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	@After
 	public void after() {
 
+		stopCameraEmulator();
+
 		appScope = null;
 		app = null;
 		
@@ -129,7 +137,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-
+		 
 	}
 
 
@@ -146,7 +154,10 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		//set mapdb datastore to stream fetcher because in memory datastore just have references and updating broadcst
 		// object updates the reference in inmemorydatastore
 		app.getStreamFetcherManager().setDatastore(dataStore);
-
+		
+		app.getStreamFetcherManager().setRestartStreamAutomatically(false);
+		app.getStreamFetcherManager().setStreamCheckerInterval(5000);
+		
 		app.getStreamFetcherManager().getStreamFetcherList().clear();
 
 		assertEquals(0, app.getStreamFetcherManager().getStreamFetcherList().size());
@@ -189,9 +200,17 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		assertTrue(flag3);
 
+		try {
+			Thread.sleep(2000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+
 		//check that broadcast status in datastore in finished or not broadcasting
 		broadcast = dataStore.get(id);
-		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, broadcast.getStatus());
+		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, broadcast.getStatus());
+		assertEquals(MuxAdaptor.QUALITY_POOR, broadcast.getQuality());
+		assertEquals(0, broadcast.getSpeed(), 2L);
 
 		app.getStreamFetcherManager().stopStreaming(newCam);
 		assertEquals(0, app.getStreamFetcherManager().getStreamFetcherList().size());
@@ -203,7 +222,88 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			e.printStackTrace();
 		}
 
+		app.stopStreaming(newCam);
+
 		logger.info("leaving testBugUpdateStreamFetcherStatus");
+
+	}
+	
+	
+	@Test
+	public void testRestartPeriodStreamFetcher() {
+
+		try {
+			//Create Stream Fetcher Manager
+			QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
+
+			InMemoryDataStore memoryDataStore = new InMemoryDataStore("testdb");
+			
+			
+
+			//Create a mock StreamFetcher and add it to StreamFetcherManager
+			StreamFetcher streamFetcher = Mockito.mock(StreamFetcher.class);
+			Broadcast stream =  Mockito.mock(Broadcast.class);
+
+			stream.setStreamId(String.valueOf((Math.random() * 100000)));
+
+			stream.setStreamUrl("anyurl");
+			streamFetcher.setStream(stream);
+			when(streamFetcher.getStream()).thenReturn(stream);
+			when(streamFetcher.isStreamAlive()).thenReturn(true);
+			when(streamFetcher.getCameraError()).thenReturn(new Result(true));
+			
+			StreamFetcherFactory factory = mock(StreamFetcherFactory.class);
+			when(factory.make(stream, appScope)).thenReturn(streamFetcher);
+
+			StreamFetcherManager fetcherManager = new StreamFetcherManager(scheduler, memoryDataStore, appScope, factory);
+
+			//set checker interval to 3 seconds
+			fetcherManager.setStreamCheckerInterval(4000);
+
+			//set restart period to 5 seconds
+			fetcherManager.setRestartStreamFetcherPeriod(5);
+
+			//Start stream fetcher
+			Result result = fetcherManager.startStreaming(stream);
+			assertTrue(result.isSuccess());
+
+			//wait 10-12 seconds
+			Thread.sleep(13000);
+
+			//check that stream fetcher stop and start stream is called 4 times
+			verify(streamFetcher, times(2)).stopStream();
+			
+			//it is +1 because it is called at first start
+			verify(streamFetcher, times(3)).startStream(); 
+			verify(streamFetcher, times(3)).startStream(); 
+
+			//set restart period to 0 seconds
+			fetcherManager.setRestartStreamFetcherPeriod(0);
+
+			//wait 10-12 seconds
+			Thread.sleep(13000);
+
+			//check that stream fetcher stop and start stream is not called
+			verify(streamFetcher, times(2)).stopStream();
+			verify(streamFetcher, times(3)).startStream(); 
+			
+			//set restart period to 0 seconds
+			fetcherManager.setRestartStreamFetcherPeriod(5);
+			
+			//wait 10-12 seconds
+			Thread.sleep(13000);
+			
+			//check that stream fetcher stop and start stream is not called
+			verify(streamFetcher, atLeast(4)).stopStream();
+			verify(streamFetcher, atLeast(5)).startStream(); 
+			
+			fetcherManager.setRestartStreamFetcherPeriod(0);
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+
 
 	}
 
@@ -290,10 +390,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 
 		logger.info("leaving testThreadStopStart");
-
-
 	}
-
 
 	@Test
 	public void testCameraErrorCodes() {
@@ -419,7 +516,10 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 	}
 
-	@Test
+	/**
+	 * this test is NA anymore, because StartStop mechanism is managed by itself not by StremFetcherManager
+	 */
+	//@Test
 	public void testCameraCheckerStartStop() {
 
 		logger.info("starting testCameraCheckerStartStop");
@@ -556,13 +656,12 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-
+	/*
 	@Test
 	public void testStreamFetcherSources() {
 		logger.info("running testStreamFetcherSources src/test/resources/test_video_360p.flv");
 		//test FLV Source
 		testFetchStreamSources("src/test/resources/test_video_360p.flv");
-
 
 		logger.info("running testStreamFetcherSources rtmp://184.72.239.149/vod/mp4:bigbuckbunny_1500.mp4");
 		//test RTMP Source
@@ -576,11 +675,33 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
+	 */
+	@Test
+	public void testFLVSource() {
+		logger.info("running testFLVSource");
+		//test FLV Source
+		testFetchStreamSources("src/test/resources/test_video_360p.flv", false);	
+		logger.info("leaving testFLVSource");
+	}
+
+
+	@Test
+	public void testRTSPSource() {
+		startCameraEmulator();
+		logger.info("running testRTSPSource");
+		//test RTSP Source
+		testFetchStreamSources("rtsp://127.0.0.1:6554/test.flv", true);	
+		logger.info("leaving testRTSPSource");
+		stopCameraEmulator();
+	}
+
+
+
 	@Test
 	public void testHLSSource() {
 		logger.info("running testHLSSource");
 		//test HLS Source
-		testFetchStreamSources("src/test/resources/test.m3u8");	
+		testFetchStreamSources("src/test/resources/test.m3u8", false);	
 		logger.info("leaving testHLSSource");
 	}
 
@@ -588,13 +709,12 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testTSSource() {
 		logger.info("running testTSSource");
 		//test TS Source
-		testFetchStreamSources("src/test/resources/test.ts");
+		testFetchStreamSources("src/test/resources/test.ts", false);
 		logger.info("leaving testTSSource");
-
 	}
 
 
-	public void testFetchStreamSources(String source) {
+	public void testFetchStreamSources(String source, boolean restartStream) {
 
 		try {
 			Broadcast newCam = new Broadcast("streamSource", "127.0.0.1:8080", "admin", "admin", source,
@@ -606,78 +726,9 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			assertNotNull(newCam.getStreamId());
 
-
-			getAppSettings().setMp4MuxingEnabled(true);
-			getAppSettings().setHlsMuxingEnabled(true);
-
 			StreamFetcher fetcher = new StreamFetcher(newCam, appScope);
-
-			assertFalse(fetcher.isThreadActive());
-			assertFalse(fetcher.isStreamAlive());
-
-			// start 
-			fetcher.startStream();
-
-			//wait for fetching stream
-			try {
-				Thread.sleep(10000);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-
-			//wait for packaging files
-			fetcher.stopStream();
-
-			try {
-				Thread.sleep(3000);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-
-			assertFalse(fetcher.isThreadActive());
-
-			assertTrue(MuxingTest.testFile("webapps/junit/streams/"+newCam.getStreamId() +".m3u8"));
-
-			//tmp file should be deleted
-			File f = new File("webapps/junit/streams/"+newCam.getStreamId() +".mp4.tmp_extension");
-			assertFalse(f.exists());
-
-			f = new File("webapps/junit/streams/"+newCam.getStreamId() +".mp4");
-			assertTrue(f.exists());
-
-			assertTrue(MuxingTest.testFile("webapps/junit/streams/"+newCam.getStreamId() +".mp4"));
-
-
-			getInstance().getDataStore().delete(id);
-		}
-		catch (Exception e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
-
-	}
-	
-	
-	@Test
-	public void testHLSFlagResult() {
-		
-		try {
-			String textInFile;
 			
-			startCameraEmulator();
-			
-			Broadcast newCam = new Broadcast("streamSource", "127.0.0.1:8080", "admin", "admin", "rtsp://127.0.0.1:6554/test.flv",
-					AntMediaApplicationAdapter.STREAM_SOURCE);
-
-			assertNotNull(newCam.getStreamUrl());
-
-			String id = getInstance().getDataStore().save(newCam);
-
-			assertNotNull(newCam.getStreamId());
-
-			getAppSettings().setHlsMuxingEnabled(true);
-
-			StreamFetcher fetcher = new StreamFetcher(newCam, appScope);
+			fetcher.setRestartStream(restartStream);
 
 			assertFalse(fetcher.isThreadActive());
 			assertFalse(fetcher.isStreamAlive());
@@ -691,43 +742,37 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
-			
+
 			//wait for packaging files
 			fetcher.stopStream();
-			
+
 			try {
-				Thread.sleep(3000);
+				Thread.sleep(8000);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
-			
 			assertFalse(fetcher.isThreadActive());
+
+			logger.info("before test m3u8 file");
 
 			assertTrue(MuxingTest.testFile("webapps/junit/streams/"+newCam.getStreamId() +".m3u8"));
 
-			BufferedReader br = new BufferedReader(new FileReader("webapps/junit/streams/"+newCam.getStreamId() +".m3u8"));
-			try {
-			    StringBuilder sb = new StringBuilder();
-			    String line = br.readLine();
+			logger.info("after test m3u8 file");
+			//tmp file should be deleted
+			File f = new File("webapps/junit/streams/"+newCam.getStreamId() +".mp4.tmp_extension");
+			assertFalse(f.exists());
 
-			    while (line != null) {
-			        sb.append(line);
-			      //  sb.append(System.lineSeparator());
-			        line = br.readLine();
-			    }
-			   textInFile = sb.toString();
-			    
-			    logger.info(textInFile);
-			} finally {
-			    br.close();
-			}
-			
-			//Check that m3u8 file does not include "EXT-X-ENDLIST" parameter because "omit_endlist" flag is used in HLS Muxer
-			
-			assertFalse(textInFile.contains("EXT-X-ENDLIST"));
-		
-			stopCameraEmulator();
-			
+
+			f = new File("webapps/junit/streams/"+newCam.getStreamId() +".mp4");
+			assertTrue(f.exists());
+
+
+			logger.info("before test mp4 file");
+
+			assertTrue(MuxingTest.testFile("webapps/junit/streams/"+newCam.getStreamId() +".mp4"));
+
+			logger.info("after test mp4 file");
+
 			getInstance().getDataStore().delete(id);
 		}
 		catch (Exception e) {
@@ -735,9 +780,86 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			fail(e.getMessage());
 		}
 
-		
-		
-		
+	}
+
+	@Test
+	public void testHLSFlagResult() {
+
+		try {
+			String textInFile;
+
+
+			Broadcast newCam = new Broadcast("streamSource", "127.0.0.1:8080", "admin", "admin", "src/test/resources/test.ts",
+					AntMediaApplicationAdapter.STREAM_SOURCE);
+
+			assertNotNull(newCam.getStreamUrl());
+
+			String id = getInstance().getDataStore().save(newCam);
+
+			assertNotNull(newCam.getStreamId());
+
+			StreamFetcher fetcher = new StreamFetcher(newCam, appScope);
+			
+			
+			fetcher.setRestartStream(false);
+
+			assertFalse(fetcher.isThreadActive());
+			assertFalse(fetcher.isStreamAlive());
+
+			// start 
+			fetcher.startStream();
+
+			//wait for fetching stream
+			try {
+				Thread.sleep(5000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+
+			//wait for packaging files
+			fetcher.stopStream();
+
+			try {
+				Thread.sleep(3000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+
+			assertFalse(fetcher.isThreadActive());
+
+			assertTrue(MuxingTest.testFile("webapps/junit/streams/"+newCam.getStreamId() +".m3u8"));
+
+			BufferedReader br = new BufferedReader(new FileReader("webapps/junit/streams/"+newCam.getStreamId() +".m3u8"));
+			try {
+				StringBuilder sb = new StringBuilder();
+				String line = br.readLine();
+
+				while (line != null) {
+					sb.append(line);
+					//  sb.append(System.lineSeparator());
+					line = br.readLine();
+				}
+				textInFile = sb.toString();
+
+				logger.info(textInFile);
+			} finally {
+				br.close();
+			}
+
+			//Check that m3u8 file does not include "EXT-X-ENDLIST" parameter because "omit_endlist" flag is used in HLS Muxer
+
+			assertFalse(textInFile.contains("EXT-X-ENDLIST"));
+
+			getInstance().getDataStore().delete(id);
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+
+
+
+
 	}
 
 
