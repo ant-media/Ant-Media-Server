@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.rest.model.Result;
 
 
@@ -215,8 +216,9 @@ public class StreamFetcherManager {
 
 								if (datastore != null && stream.getStreamId() != null) {
 									logger.info("Updating stream status to finished, updating status of stream {}", stream.getStreamId() );
-									datastore.updateStatus(stream.getStreamId() , 
-											AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+									
+									datastore.updateSourceQuality(stream.getStreamId(), MuxAdaptor.QUALITY_POOR);
+									datastore.updateSourceSpeed(stream.getStreamId(), 0);
 								}
 							}
 						}

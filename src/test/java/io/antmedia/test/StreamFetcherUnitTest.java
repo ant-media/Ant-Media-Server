@@ -208,7 +208,9 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		//check that broadcast status in datastore in finished or not broadcasting
 		broadcast = dataStore.get(id);
-		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, broadcast.getStatus());
+		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, broadcast.getStatus());
+		assertEquals(MuxAdaptor.QUALITY_POOR, broadcast.getQuality());
+		assertEquals(0, broadcast.getSpeed(), 2L);
 
 		app.getStreamFetcherManager().stopStreaming(newCam);
 		assertEquals(0, app.getStreamFetcherManager().getStreamFetcherList().size());
