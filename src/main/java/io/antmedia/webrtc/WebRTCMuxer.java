@@ -69,6 +69,22 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 
 	private AVRational timeBaseForMS;
 
+	private long totalSendVideoPacketCallInterval;
+
+	private long lastSendVideoPacketCallTime;
+
+	private long videoPacketCount;
+
+	private long lastSendAudioPacketCallTime;
+
+	private long totalSendAudioPacketCallInterval;
+
+	private int audioPacketCount;
+
+	private long totalVideoProcessingTime;
+
+	private long totalAudioProcessingTime;
+
 	public WebRTCMuxer(QuartzSchedulingService scheduler, IWebRTCAdaptor webRTCAdaptor) {
 		super(scheduler);
 		this.webRTCAdaptor = webRTCAdaptor;
@@ -148,28 +164,24 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 	@Override
 	public void sendVideoPacket(byte[] videoPacket, boolean isKeyFrame, long timestamp) 
 	{
-		for (Iterator<IWebRTCClient> iterator = webRTCClientList.iterator(); iterator.hasNext();) {
-			IWebRTCClient iWebRTCClient = iterator.next();
-			iWebRTCClient.sendVideoPacket(videoPacket, isKeyFrame, timestamp);	
+		for (IWebRTCClient rtcClient : webRTCClientList) {
+			rtcClient.sendVideoPacket(videoPacket, isKeyFrame, timestamp);	
 		}
 	}
 
 	public void sendVideoConfPacket(byte[] videoPacket, long timestamp)
 	{
-		for (Iterator<IWebRTCClient> iterator = webRTCClientList.iterator(); iterator.hasNext();) {
-			IWebRTCClient iWebRTCClient = iterator.next();
-			iWebRTCClient.sendVideoConfPacket(videoConf, videoPacket, timestamp);	
+		for (IWebRTCClient rtcClient : webRTCClientList) {
+			rtcClient.sendVideoConfPacket(videoConf, videoPacket, timestamp);	
 		}
 	}
 
 	@Override
 	public void sendAudioPacket(byte[] audioPacket, long timestamp) 
 	{
-		for (Iterator<IWebRTCClient> iterator = webRTCClientList.iterator(); iterator.hasNext();) {
-			IWebRTCClient iWebRTCClient = iterator.next();
-			iWebRTCClient.sendAudioPacket(audioPacket, timestamp);
+		for (IWebRTCClient rtcClient : webRTCClientList) {
+			rtcClient.sendAudioPacket(audioPacket, timestamp);
 		}
-		
 	}
 
 	@Override
@@ -213,6 +225,20 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 	@Override
 	public synchronized void writeTrailer() {
 		webRTCAdaptor.unRegisterMuxer(streamId, this);
+		
+		if (videoPacketCount > 0) {
+			logger.info("Average write packet call interval for video {}"
+					+ " average video processing time {} ",
+					totalSendVideoPacketCallInterval/videoPacketCount, 
+					totalVideoProcessingTime/videoPacketCount);
+		}
+
+		if (audioPacketCount > 0) {
+			logger.info("Average write packet call interval {}"
+					+ " average audio processing time {} ",
+					totalSendAudioPacketCallInterval/audioPacketCount,
+					totalAudioProcessingTime/audioPacketCount);
+		}
 
 		for (Iterator<IWebRTCClient> iterator = webRTCClientList.iterator(); iterator.hasNext();) {
 			IWebRTCClient iWebRTCClient = iterator.next();
@@ -293,8 +319,10 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 	@Override
 	public synchronized void writePacket(AVPacket pkt) {
 		
+		long now = System.currentTimeMillis();
 		if (pkt.stream_index() == this.videoStreamIndex) 
 		{
+			
 			long pts = av_rescale_q(pkt.pts(), videoTimebase, timeBaseForMS);
 			//logger.info("send video packet pts: " + pts + " System current time millis: " + now);
 			BytePointer data = pkt.data();
@@ -319,7 +347,7 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 				else {
 					sendVideoConfPacket(byteArray, pts);
 				}
-				//long diff = System.currentTimeMillis() - now;
+				
 				//logger.info("sent video conf packet after " + diff + " ms" );
 			}
 			else {
@@ -330,6 +358,11 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 				//long diff = System.currentTimeMillis() - now;
 				//logger.info("sent video packet after " + diff + " ms" );
 			}
+			totalSendVideoPacketCallInterval += lastSendVideoPacketCallTime != 0 ? 
+					now - lastSendVideoPacketCallTime : 0;
+			videoPacketCount++;
+			totalVideoProcessingTime += System.currentTimeMillis() - now;
+			lastSendVideoPacketCallTime = now;
 
 		}
 		else  if (pkt.stream_index() == this.audioStreamIndex) 
@@ -342,10 +375,17 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 			data.get(byteArray, 0, byteArray.length);
 			
 			sendAudioPacket(byteArray, pts);
-			
+			totalSendAudioPacketCallInterval += lastSendAudioPacketCallTime != 0 ? 
+					now - lastSendAudioPacketCallTime : 0;
+			audioPacketCount++;
+			totalAudioProcessingTime += System.currentTimeMillis() - now;
+			lastSendAudioPacketCallTime = now;
 			//long diff = System.currentTimeMillis() - now;
 			//logger.info("sent audio packet after " + diff + " ms" );
 		}
+		
+		
+		
 	}
 
 	public boolean isExtradata_parsed() {
