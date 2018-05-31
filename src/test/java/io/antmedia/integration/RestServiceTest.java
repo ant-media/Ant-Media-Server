@@ -838,6 +838,7 @@ public class RestServiceTest {
 	@Test
 	public void testUpdate() {
 
+		System.out.println("Running testUpdate");
 		// create broadcast
 		Broadcast broadcast = createBroadcast(null);
 
@@ -905,6 +906,8 @@ public class RestServiceTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+		
+		System.out.println("Leaving testUpdate");
 
 	}
 
@@ -1034,6 +1037,7 @@ public class RestServiceTest {
 
 	@Test
 	public void testCheckSocialEndpointRecreated() {
+		System.out.println("Running testCheckSocialEndpointRecreated");
 		Result result;
 		try {
 			// create broadcast
@@ -1113,7 +1117,8 @@ public class RestServiceTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-
+		
+		System.out.println("Leaving testCheckSocialEndpointRecreated");
 	}
 
 	public static Process execute(final String command) {
@@ -1230,6 +1235,7 @@ public class RestServiceTest {
 	@Test
 	public void testAddEndpoint() {
 
+		System.out.println("Running testAddEndpoint");
 		try {
 
 			Broadcast broadcast = createBroadcast(null);
@@ -1265,6 +1271,8 @@ public class RestServiceTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+		System.out.println("Leaving testAddEndpoint");
+		
 
 	}
 

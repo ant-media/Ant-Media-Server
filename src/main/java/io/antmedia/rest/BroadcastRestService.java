@@ -62,6 +62,7 @@ import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
 import io.antmedia.storage.StorageClient;
 import io.antmedia.storage.StorageClient.FileType;
+import io.antmedia.webrtc.api.IWebRTCAdaptor;
 
 @Component
 @Path("/")
@@ -123,15 +124,12 @@ public class BroadcastRestService {
 		}
 	}
 
-	public static class LiveStatistics extends BroadcastStatistics {
+	public static class LiveStatistics  {
 
-		public final int totalLiveStreamCount;
+		public final long totalLiveStreamCount;
 
-		public LiveStatistics(int totalLiveStreamCount, int totalRTMPWatchersCount, int totalHLSWatchersCount,
-				int totalWebRTCWatchersCount) {
-			super(totalRTMPWatchersCount, totalHLSWatchersCount, totalWebRTCWatchersCount);
+		public LiveStatistics(long totalLiveStreamCount) {
 			this.totalLiveStreamCount = totalLiveStreamCount;
-
 		}
 
 	}
@@ -172,17 +170,32 @@ public class BroadcastRestService {
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/broadcast/create")
 	@Produces(MediaType.APPLICATION_JSON)
-
 	public Broadcast createBroadcast(Broadcast broadcast) {
 		if (broadcast != null) {
 			// make sure stream id is not set on rest service
 			broadcast.resetStreamId();
 		}
+
+		String settingsListenerHookURL = null; 
+		String fqdn = null;
+		AppSettings appSettings = getAppSettings();
+		if (appSettings != null) {
+			settingsListenerHookURL = appSettings.getListenerHookURL();
+			fqdn = appSettings.getServerName();
+		}
+
 		return saveBroadcast(broadcast, AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, getScope().getName(),
-				getDataStore(), getAppSettings());
+				getDataStore(), settingsListenerHookURL, fqdn);
 	}
 
 
+	/**
+	 * Use createBroadcast with listenerHookURL
+	 * @param name
+	 * @param listenerHookURL
+	 * @return
+	 */
+	@Deprecated
 	@POST
 	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	@Path("/broadcast/createPortalBroadcast")
@@ -193,16 +206,22 @@ public class BroadcastRestService {
 
 		broadcast.setName(name);
 		broadcast.setListenerHookURL(listenerHookURL);
-
+		String settingsListenerHookURL = null; 
+		String fqdn = null;
+		AppSettings appSettings = getAppSettings();
+		if (appSettings != null) {
+			settingsListenerHookURL = appSettings.getListenerHookURL();
+			fqdn = appSettings.getServerName();
+		}
 
 		return saveBroadcast(broadcast, AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, getScope().getName(),
-				getDataStore(), getAppSettings());
+				getDataStore(), settingsListenerHookURL, fqdn);
 	}
 
 
 
 	public static Broadcast saveBroadcast(Broadcast broadcast, String status, String scopeName, IDataStore dataStore,
-			AppSettings settings) {
+			String settingsListenerHookURL, String fqdn) {
 
 		if (broadcast == null) {
 			broadcast = new Broadcast();
@@ -212,28 +231,25 @@ public class BroadcastRestService {
 
 		String listenerHookURL = broadcast.getListenerHookURL();
 
-		if (settings != null) {
-			if (listenerHookURL == null || listenerHookURL.length() == 0) {
-				String settingsListenerHookURL = settings.getListenerHookURL();
-				if (settingsListenerHookURL != null && settingsListenerHookURL.length() > 0) {
-					broadcast.setListenerHookURL(settingsListenerHookURL);
-				}
+		if (listenerHookURL == null || listenerHookURL.length() == 0) {
+			if (settingsListenerHookURL != null && settingsListenerHookURL.length() > 0) {
+				broadcast.setListenerHookURL(settingsListenerHookURL);
 			}
-
-			String fqdn = settings.getServerName();
-			if (fqdn == null || fqdn.length() == 0) {
-				try {
-					fqdn = InetAddress.getLocalHost().getHostAddress();
-				} catch (UnknownHostException e) {
-					e.printStackTrace();
-				}
-			}
-
-			if (fqdn != null && fqdn.length() >= 0) {
-				broadcast.setRtmpURL("rtmp://" + fqdn + "/" + scopeName + "/");
-			}
-
 		}
+
+		if (fqdn == null || fqdn.length() == 0) {
+			try {
+				fqdn = InetAddress.getLocalHost().getHostAddress();
+			} catch (UnknownHostException e) {
+				e.printStackTrace();
+			}
+		}
+
+		if (fqdn != null && fqdn.length() >= 0) {
+			broadcast.setRtmpURL("rtmp://" + fqdn + "/" + scopeName + "/");
+		}
+
+
 
 		dataStore.save(broadcast);
 		return broadcast;
@@ -839,17 +855,16 @@ public class BroadcastRestService {
 	@Path("/broadcast/getAppLiveStatistics")
 	@Produces(MediaType.APPLICATION_JSON)
 	public LiveStatistics getAppLiveStatistics() {
-		Set<String> basicBroadcastScopes = getScope().getBasicScopeNames(ScopeType.BROADCAST);
-
-		int totalLiveStreamCount = getScope().getBasicScopeNames(ScopeType.BROADCAST).size();
-		int totalRTMPWatcherCount = getScope().getStatistics().getActiveClients() - totalLiveStreamCount;
-
-		return new LiveStatistics(totalLiveStreamCount, totalRTMPWatcherCount, 0, 0);
+		long activeBroadcastCount = getDataStore().getActiveBroadcastCount();
+		return new LiveStatistics(activeBroadcastCount);
 	}
+	
 
 	/**
 	 * Get the broadcast live statistics total rtmp watcher count, total hls
 	 * watcher count, total webrtc watcher count
+	 * 
+	 * Return -1 for the values that is n/a
 	 * 
 	 * @param streamId
 	 * @return {@link BroadcastStatistics} if broadcast exists null or 204(no
@@ -859,16 +874,47 @@ public class BroadcastRestService {
 	@Path("/broadcast/getBroadcastLiveStatistics")
 	@Produces(MediaType.APPLICATION_JSON)
 	public BroadcastStatistics getBroadcastStatistics(@QueryParam("id") String id) {
-		IBroadcastScope broadcastScope = getScope().getBroadcastScope(id);
-		BroadcastStatistics broadcastStatistics = null;
 
-		if (broadcastScope != null) {
-			broadcastStatistics = new BroadcastStatistics(broadcastScope.getConsumers().size(), 0, 0);
-		} else {
-			broadcastStatistics = new BroadcastStatistics(-1, -1, -1);
+		int totalRTMPViewer = -1;
+		int totalWebRTCViewer = -1;
+		if (id != null) 
+		{
+			IBroadcastScope broadcastScope = getScope().getBroadcastScope(id);
+
+			if (broadcastScope != null)	{
+				totalRTMPViewer = broadcastScope.getConsumers().size();
+			}
+
+			IWebRTCAdaptor webRTCAdaptor = getWebRTCAdaptor();
+
+			if (webRTCAdaptor != null) {
+				totalWebRTCViewer = webRTCAdaptor.getNumberOfViewers(id);
+			}
 		}
-		return broadcastStatistics;
+
+		return new BroadcastStatistics(totalRTMPViewer, -1, totalWebRTCViewer);
 	}
+
+
+	@GET
+	@Path("/broadcast/getWebRTCClientStats/{stream_id}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public List<WebRTCClientStats> getWebRTCClientStats(@PathParam("stream_id") String streamId) {
+		IWebRTCAdaptor webRTCAdaptor = getWebRTCAdaptor();
+		if (webRTCAdaptor != null) {
+			return webRTCAdaptor.getWebRTCClientStats(streamId);
+		}
+		return null;
+	}
+
+	private IWebRTCAdaptor getWebRTCAdaptor() {
+		IWebRTCAdaptor adaptor = null;
+		if (getAppContext().containsBean(IWebRTCAdaptor.BEAN_NAME)) {
+			adaptor = (IWebRTCAdaptor) getAppContext().getBean(IWebRTCAdaptor.BEAN_NAME);
+		}
+		return adaptor;
+	}
+
 
 	/**
 	 * Deletes vod file in the file system
@@ -1013,12 +1059,9 @@ public class BroadcastRestService {
 				String path=savedFile.getPath();
 
 				String[] subDirs = path.split(Pattern.quote(File.separator));
-
 				Integer pathLength=Integer.valueOf(subDirs.length);
 
 				String relativePath=subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
-
-
 
 				Vod newVod = new Vod(fileName, "vodFile", relativePath, fileName, unixTime, 0, fileSize,
 						Vod.UPLOADED_VOD);
@@ -1390,13 +1433,13 @@ public class BroadcastRestService {
 	}
 
 	@Nullable
-	private ApplicationContext getAppContext() {
-		if (servletContext != null) {
+	private ApplicationContext getAppContext() 
+	{
+		if (appCtx == null && servletContext != null) {
 			appCtx = (ApplicationContext) servletContext
 					.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
 
 		}
-
 		return appCtx;
 	}
 

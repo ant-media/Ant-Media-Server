@@ -296,6 +296,11 @@ public class AppFunctionalTest {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		
+		RestServiceTest restService = new RestServiceTest();
+
+		LiveStatistics liveStatistics = restService.callGetLiveStatistics();
+		assertEquals(liveStatistics.totalLiveStreamCount, 0);
 
 	}
 
@@ -313,9 +318,6 @@ public class AppFunctionalTest {
 				System.out.println("brodcast url: " + broadcast.getStreamId() + " status: " + broadcast.getStatus());
 			}
 			LiveStatistics liveStatistics = restService.callGetLiveStatistics();
-			assertEquals(liveStatistics.totalHLSWatchersCount, 0);
-			assertEquals(liveStatistics.totalRTMPWatchersCount, 0);
-			assertEquals(liveStatistics.totalWebRTCWatchersCount, 0);
 			assertEquals(liveStatistics.totalLiveStreamCount, 0);
 
 			// publish live stream to the server
@@ -327,15 +329,12 @@ public class AppFunctionalTest {
 			Thread.sleep(3000);
 
 			liveStatistics = restService.callGetLiveStatistics();
-			assertEquals(liveStatistics.totalHLSWatchersCount, 0);
-			assertEquals(liveStatistics.totalRTMPWatchersCount, 0);
-			assertEquals(liveStatistics.totalWebRTCWatchersCount, 0);
 			assertEquals(liveStatistics.totalLiveStreamCount, 1);
 
 			BroadcastStatistics broadcastStatistics = restService.callGetBroadcastStatistics(streamId);
-			assertEquals(broadcastStatistics.totalHLSWatchersCount, 0);
+			assertEquals(broadcastStatistics.totalHLSWatchersCount, -1);  //-1 mean it is not availeble
 			assertEquals(broadcastStatistics.totalRTMPWatchersCount, 0);
-			assertEquals(broadcastStatistics.totalWebRTCWatchersCount, 0);
+			assertEquals(broadcastStatistics.totalWebRTCWatchersCount, -1); // -1 mean it is not available 
 
 			broadcastStatistics = restService.callGetBroadcastStatistics("unknown_stream_id");
 			assertNotNull(broadcastStatistics);
@@ -354,9 +353,6 @@ public class AppFunctionalTest {
 			assertEquals(broadcastStatistics.totalWebRTCWatchersCount, -1);
 
 			liveStatistics = restService.callGetLiveStatistics();
-			assertEquals(liveStatistics.totalHLSWatchersCount, 0);
-			assertEquals(liveStatistics.totalRTMPWatchersCount, 0);
-			assertEquals(liveStatistics.totalWebRTCWatchersCount, 0);
 			assertEquals(liveStatistics.totalLiveStreamCount, 0);
 
 		} catch (Exception e) {
@@ -421,6 +417,18 @@ public class AppFunctionalTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+		
+		//let the server update live stream count
+		
+		try {
+			Thread.sleep(2000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		RestServiceTest restService = new RestServiceTest();
+
+		LiveStatistics liveStatistics = restService.callGetLiveStatistics();
+		assertEquals(liveStatistics.totalLiveStreamCount, 0);
 	}
 
 	public static void executeProcess(final String command) {

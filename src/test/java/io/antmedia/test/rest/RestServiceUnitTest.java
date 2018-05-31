@@ -17,6 +17,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.red5.server.scope.Scope;
+import org.springframework.context.ApplicationContext;
 
 import com.google.gson.Gson;
 
@@ -27,6 +28,7 @@ import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Vod;
 import io.antmedia.rest.BroadcastRestService;
+import io.antmedia.rest.BroadcastRestService.BroadcastStatistics;
 import io.antmedia.rest.model.Result;
 import io.antmedia.social.endpoint.PeriscopeEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
@@ -113,6 +115,30 @@ public class RestServiceUnitTest  {
 		
 		assertTrue(result.isSuccess());
 		
+	}
+	
+	
+	@Test
+	public void testBugBroadcastStatisticNull() {
+		Scope scope = mock(Scope.class);
+		String scopeName = "scope";
+		when(scope.getName()).thenReturn(scopeName);
+		
+		AntMediaApplicationAdapter app = new AntMediaApplicationAdapter();
+		
+		ApplicationContext context = mock(ApplicationContext.class);
+		
+		restService.setAppCtx(context);
+		restService.setApplication(app);
+		restService.setScope(scope);
+		restService.setDataStore(new InMemoryDataStore("testdb"));
+		
+		
+		BroadcastStatistics broadcastStatistics = restService.getBroadcastStatistics(null);
+		assertNotNull(broadcastStatistics);
+		assertEquals(-1, broadcastStatistics.totalHLSWatchersCount);
+		assertEquals(-1, broadcastStatistics.totalRTMPWatchersCount);
+		assertEquals(-1, broadcastStatistics.totalWebRTCWatchersCount);
 	}
 	
 	

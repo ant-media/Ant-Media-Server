@@ -30,9 +30,9 @@ public class InMemoryDataStore implements IDataStore {
 	public LinkedHashMap<String, Broadcast> broadcastMap = new LinkedHashMap<String, Broadcast>();
 
 	public LinkedHashMap<String, Vod> vodMap = new LinkedHashMap<String, Vod>();
-	
+
 	public LinkedHashMap<String, List<TensorFlowObject>> detectionMap = new LinkedHashMap<String, List<TensorFlowObject>>();
-	
+
 	public LinkedHashMap<String, SocialEndpointCredentials> socialEndpointCredentialsMap = new LinkedHashMap<String, SocialEndpointCredentials>();
 
 
@@ -157,6 +157,20 @@ public class InMemoryDataStore implements IDataStore {
 	}
 
 	@Override
+	public long getActiveBroadcastCount() {
+		Collection<Broadcast> values = broadcastMap.values();
+		long activeBroadcastCount = 0;
+		for (Broadcast broadcast : values) {
+			String status = broadcast.getStatus();
+			if (status != null && status.equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
+				activeBroadcastCount++;
+			}
+		}
+		return activeBroadcastCount;
+	}
+	
+	
+	@Override
 	public boolean delete(String id) {
 		Broadcast broadcast = broadcastMap.get(id);
 		boolean result = false;
@@ -194,32 +208,6 @@ public class InMemoryDataStore implements IDataStore {
 
 		}
 		return list;
-	}
-
-
-
-	@Override
-	public boolean editCameraInfo(Broadcast camera) {
-		boolean result = false;
-		try {
-			logger.warn("inside of editCameraInfo");
-
-			Broadcast oldCam = get(camera.getStreamId());
-
-			oldCam.setName(camera.getName());
-			oldCam.setUsername(camera.getUsername());
-			oldCam.setPassword(camera.getPassword());
-			oldCam.setIpAddr(camera.getIpAddr());
-
-			broadcastMap.replace(oldCam.getStreamId(), oldCam);
-
-
-			result = true;
-		} catch (Exception e) {
-			result = false;
-		}
-
-		return result;
 	}
 
 
@@ -278,7 +266,6 @@ public class InMemoryDataStore implements IDataStore {
 				}
 			}
 		}
-
 		return list;
 	}
 
@@ -336,10 +323,8 @@ public class InMemoryDataStore implements IDataStore {
 	@Override
 	public boolean deleteVod(String id) {
 		boolean result = vodMap.remove(id) != null;
-
 		return result;
 	}
-
 
 
 	public boolean removeAllEndpoints(String id) {
@@ -379,9 +364,6 @@ public class InMemoryDataStore implements IDataStore {
 				iterator.remove();
 			}
 		}
-
-
-
 
 		File[] listOfFiles = userfile.listFiles();
 
@@ -439,35 +421,23 @@ public class InMemoryDataStore implements IDataStore {
 	}
 
 
-
 	@Override
-	public boolean updateSourceQuality(String id, String quality) {
+	public boolean updateSourceQualityParameters(String id, String quality, double speed, int pendingPacketSize) {
 		boolean result = false;
 		if (id != null) {
 			Broadcast broadcast = broadcastMap.get(id);
 			if (broadcast != null) {
 				broadcast.setQuality(quality);
-				broadcastMap.replace(id, broadcast);
-				result = true;
-			}
-		}
-		return result;
-	}
-
-	@Override
-
-	public boolean updateSourceSpeed(String id, double speed) {
-		boolean result = false;
-		if (id != null) {
-			Broadcast broadcast = broadcastMap.get(id);
-			if (broadcast != null) {
 				broadcast.setSpeed(speed);
+				broadcast.setPendingPacketSize(pendingPacketSize);
 				broadcastMap.replace(id, broadcast);
 				result = true;
 			}
 		}
 		return result;
 	}
+
+	
 	public SocialEndpointCredentials addSocialEndpointCredentials(SocialEndpointCredentials credentials) {
 		SocialEndpointCredentials addedCredential = null;
 		if (credentials != null && credentials.getAccountName() != null && credentials.getAccessToken() != null
@@ -537,24 +507,8 @@ public class InMemoryDataStore implements IDataStore {
 	}
 
 	@Override
-
 	public long getTotalBroadcastNumber() {
-
 		return broadcastMap.size();
-
-	}
-	
-	@Override
-	public long getActiveBroadcastCount() {
-		Collection<Broadcast> values = broadcastMap.values();
-		long activeBroadcastCount = 0;
-		for (Broadcast broadcast : values) {
-			String status = broadcast.getStatus();
-			if (status != null && status.equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
-				activeBroadcastCount++;
-			}
-		}
-		return activeBroadcastCount;
 	}
 
 	public void saveDetection(String id, long timeElapsed, List<TensorFlowObject> detectedObjects) {
@@ -597,6 +551,32 @@ public class InMemoryDataStore implements IDataStore {
 		}
 		return null;
 	}
+
+	@Override
+	public boolean editStreamSourceInfo(Broadcast broadcast) {		
+		boolean result = false;
+		try {
+			logger.warn("inside of editCameraInfo");
+
+			Broadcast oldBroadcast = get(broadcast.getStreamId());
+
+			oldBroadcast.setName(broadcast.getName());
+			oldBroadcast.setUsername(broadcast.getUsername());
+			oldBroadcast.setPassword(broadcast.getPassword());
+			oldBroadcast.setIpAddr(broadcast.getIpAddr());
+			oldBroadcast.setStreamUrl(broadcast.getStreamUrl());
+			
+			broadcastMap.replace(oldBroadcast.getStreamId(), oldBroadcast);
+
+			result = true;
+		} catch (Exception e) {
+			result = false;
+		}
+
+		return result;
+	}
+
+
 
 
 

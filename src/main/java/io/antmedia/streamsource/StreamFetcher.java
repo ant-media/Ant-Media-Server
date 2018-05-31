@@ -191,7 +191,7 @@ public class StreamFetcher {
 
 					if (result.isSuccess()) {
 
-						muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null,true);
+						muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null,true, scope);
 
 						muxAdaptor.init(scope, stream.getStreamId(), false);
 
@@ -252,7 +252,6 @@ public class StreamFetcher {
 
 				} 
 				catch (OutOfMemoryError e) {
-					logger.info("---OutOfMemoryError in thread---");
 					e.printStackTrace();
 					exceptionInThread  = true;
 				}
@@ -297,6 +296,8 @@ public class StreamFetcher {
 					thread = new WorkerThread();
 					thread.start();
 				}
+				
+				logger.debug("Leaving thread");
 				
 			}
 
@@ -456,6 +457,10 @@ public class StreamFetcher {
 
 	public void setRestartStream(boolean restartStream) {
 		this.restartStream = restartStream;
+	}
+	
+	public void setStream(Broadcast stream) {
+		this.stream = stream;
 	}
 
 

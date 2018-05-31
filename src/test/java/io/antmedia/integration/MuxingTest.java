@@ -11,6 +11,7 @@ import static org.bytedeco.javacpp.avutil.AVMEDIA_TYPE_AUDIO;
 import static org.bytedeco.javacpp.avutil.AVMEDIA_TYPE_VIDEO;
 import static org.bytedeco.javacpp.avutil.AV_NOPTS_VALUE;
 import static org.bytedeco.javacpp.avutil.AV_PIX_FMT_NONE;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -31,6 +32,8 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import io.antmedia.rest.BroadcastRestService.LiveStatistics;
 
 public class MuxingTest {
 
@@ -128,6 +131,10 @@ public class MuxingTest {
 			fail(e.getMessage());
 			e.printStackTrace();
 		}
+		RestServiceTest restService = new RestServiceTest();
+
+		LiveStatistics liveStatistics = restService.callGetLiveStatistics();
+		assertEquals(liveStatistics.totalLiveStreamCount, 0);
 	}
 
 	// TODO: check that if there is memory leak, if muxing is stopped by somehow
@@ -170,6 +177,7 @@ public class MuxingTest {
 			testResult = testFile("rtsp://" + SERVER_ADDR + ":5554/LiveApp/" + streamName + ".mp4");
 			assertTrue(testResult);
 			
+			//let the server update stats
 			//wait a little to let the server finish state after rtsp fetching
 			Thread.sleep(2000);
 
@@ -177,6 +185,11 @@ public class MuxingTest {
 			fail(e.getMessage());
 			e.printStackTrace();
 		}
+		
+		RestServiceTest restService = new RestServiceTest();
+
+		LiveStatistics liveStatistics = restService.callGetLiveStatistics();
+		assertEquals(liveStatistics.totalLiveStreamCount, 0);
 
 	}
 
@@ -207,6 +220,11 @@ public class MuxingTest {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+		
+		RestServiceTest restService = new RestServiceTest();
+
+		LiveStatistics liveStatistics = restService.callGetLiveStatistics();
+		assertEquals(liveStatistics.totalLiveStreamCount, 0);
 
 	}
 
@@ -252,6 +270,17 @@ public class MuxingTest {
 			fail(e.getMessage());
 			e.printStackTrace();
 		}
+		//wait a little more to let server update statistics
+		try {
+			Thread.sleep(2000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		
+		RestServiceTest restService = new RestServiceTest();
+
+		LiveStatistics liveStatistics = restService.callGetLiveStatistics();
+		assertEquals(liveStatistics.totalLiveStreamCount, 0);
 
 	}
 
@@ -295,6 +324,11 @@ public class MuxingTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+		
+		RestServiceTest restService = new RestServiceTest();
+
+		LiveStatistics liveStatistics = restService.callGetLiveStatistics();
+		assertEquals(liveStatistics.totalLiveStreamCount, 0);
 
 	}
 
@@ -341,6 +375,11 @@ public class MuxingTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+		
+		RestServiceTest restService = new RestServiceTest();
+
+		LiveStatistics liveStatistics = restService.callGetLiveStatistics();
+		assertEquals(liveStatistics.totalLiveStreamCount, 0);
 
 	}
 

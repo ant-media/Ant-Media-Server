@@ -2,6 +2,7 @@ package io.antmedia.datastore.db;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -245,6 +246,7 @@ public class MongoStore implements IDataStore {
 	public long getBroadcastCount() {
 		return datastore.getCount(Broadcast.class);
 	}
+	
 
 	/*
 	 * (non-Javadoc)
@@ -273,27 +275,6 @@ public class MongoStore implements IDataStore {
 	}
 
 
-	@Override
-	public boolean editCameraInfo(Broadcast camera) {
-		boolean result = false;
-
-		try {
-			logger.warn("result inside edit camera: " + result);
-			Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(camera.getStreamId());
-
-
-			UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set("name", camera.getName())
-					.set("username", camera.getUsername()).set("password", camera.getPassword()).set("ipAddr", camera.getIpAddr());
-
-			UpdateResults update = datastore.update(query, ops);
-			return update.getUpdatedCount() == 1;
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		return false;
-
-
-	}
 
 
 	@Override
@@ -450,29 +431,13 @@ public class MongoStore implements IDataStore {
 	}
 
 
-
 	@Override
-	public boolean updateSourceQuality(String id, String quality) {
+	public boolean updateSourceQualityParameters(String id, String quality, double speed, int pendingPacketQueue) {
 		try {
 
 			Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(id);
-			UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set("quality", quality);
-
-			UpdateResults update = datastore.update(query, ops);
-			return update.getUpdatedCount() == 1;
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		return false;
-	}
-
-	@Override
-
-	public boolean updateSourceSpeed(String id, double speed) {
-		try {
-
-			Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(id);
-			UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set("speed", speed);
+			UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class)
+						.set("quality", quality).set("speed", speed).set("pendingPacketSize", pendingPacketQueue);
 
 			UpdateResults update = datastore.update(query, ops);
 			return update.getUpdatedCount() == 1;
@@ -597,7 +562,7 @@ public class MongoStore implements IDataStore {
 				datastore.save(tensorFlowObject);
 			}
 		}
-		
+
 	}
 
 	@Override
@@ -618,6 +583,26 @@ public class MongoStore implements IDataStore {
 			e.printStackTrace();
 		}
 		return null;	
+	}
+
+	@Override
+	public boolean editStreamSourceInfo(Broadcast broadcast) {
+		boolean result = false;
+
+		try {
+			logger.warn("result inside edit camera: " + result);
+			Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(broadcast.getStreamId());
+
+			UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set("name", broadcast.getName())
+					.set("username", broadcast.getUsername()).set("password", broadcast.getPassword()).set("ipAddr", broadcast.getIpAddr())
+					.set("streamUrl", broadcast.getStreamUrl());
+
+			UpdateResults update = datastore.update(query, ops);
+			return update.getUpdatedCount() == 1;
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return false;
 	}
 
 
