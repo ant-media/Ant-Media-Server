@@ -555,7 +555,7 @@ public class BroadcastRestService {
 	@Path("/detection/get")
 	@Produces(MediaType.APPLICATION_JSON)
 	public List<TensorFlowObject> getDetectedObjects(@QueryParam("id") String id) {
-		List<TensorFlowObject> list = null;
+		List<TensorFlowObject> list;
 
 		if (id != null) {
 			list = getDataStore().getDetection(id);
