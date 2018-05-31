@@ -228,16 +228,19 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 		
 		if (videoPacketCount > 0) {
 			logger.info("Average write packet call interval for video {}"
-					+ " average video processing time {} ",
+					+ " average video processing time {} video packet count: {} ",
 					totalSendVideoPacketCallInterval/videoPacketCount, 
-					totalVideoProcessingTime/videoPacketCount);
+					totalVideoProcessingTime/videoPacketCount,
+					videoPacketCount);
 		}
 
 		if (audioPacketCount > 0) {
-			logger.info("Average write packet call interval {}"
-					+ " average audio processing time {} ",
+			logger.info("Average write packet call interval: {}"
+					+ " average audio processing time: {} "
+					+ " audio packet count: {}",
 					totalSendAudioPacketCallInterval/audioPacketCount,
-					totalAudioProcessingTime/audioPacketCount);
+					totalAudioProcessingTime/audioPacketCount,
+					audioPacketCount);
 		}
 
 		for (Iterator<IWebRTCClient> iterator = webRTCClientList.iterator(); iterator.hasNext();) {
