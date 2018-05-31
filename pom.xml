@@ -436,34 +436,6 @@
 			<version>2.11.0</version>
 			<scope>test</scope>
 		</dependency>
-		<dependency>
-			<groupId>io.antmedia.webrtc</groupId>
-			<artifactId>WebRTCApp</artifactId>
-			<version>${webrtcapp.version}</version>
-			<type>war</type>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>io.antmedia.app</groupId>
-			<artifactId>ConsoleApp</artifactId>
-			<version>${consoleapp.version}</version>
-			<type>war</type>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>io.antmedia.app</groupId>
-			<artifactId>LiveApp</artifactId>
-			<version>${liveapp.version}</version>
-			<type>war</type>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>io.antmedia.webrtc</groupId>
-			<artifactId>WebRTCAppEE</artifactId>
-			<version>${webrtcappee.version}</version>
-			<type>war</type>
-			<scope>provided</scope>
-		</dependency>
 		
 		<dependency>
 		    <groupId>javax.websocket</groupId>
@@ -502,6 +474,26 @@
 					<plugin>
 						<artifactId>maven-dependency-plugin</artifactId>
 						<version>2.10</version>
+						<dependencies>
+							<dependency>
+								<groupId>io.antmedia.webrtc</groupId>
+								<artifactId>WebRTCApp</artifactId>
+								<version>${webrtcapp.version}</version>
+								<type>war</type>
+							</dependency>
+							<dependency>
+								<groupId>io.antmedia.app</groupId>
+								<artifactId>LiveApp</artifactId>
+								<version>${liveapp.version}</version>
+								<type>war</type>
+							</dependency>
+							<dependency>
+								<groupId>io.antmedia.app</groupId>
+								<artifactId>ConsoleApp</artifactId>
+								<version>${consoleapp.version}</version>
+								<type>war</type>
+							</dependency>
+						</dependencies>
 						<executions>
 							<execution>
 								<id>copy-dependencies</id>
@@ -638,6 +630,26 @@
 					<plugin>
 						<artifactId>maven-dependency-plugin</artifactId>
 						<version>2.10</version>
+						<dependencies>
+							<dependency>
+								<groupId>io.antmedia.webrtc</groupId>
+								<artifactId>WebRTCAppEE</artifactId>
+								<version>${webrtcappee.version}</version>
+								<type>war</type>
+							</dependency>
+							<dependency>
+								<groupId>io.antmedia.app</groupId>
+								<artifactId>LiveApp</artifactId>
+								<version>${liveapp.version}</version>
+								<type>war</type>
+							</dependency>
+							<dependency>
+								<groupId>io.antmedia.app</groupId>
+								<artifactId>ConsoleApp</artifactId>
+								<version>${consoleapp.version}</version>
+								<type>war</type>
+							</dependency>
+						</dependencies>
 						<executions>
 							<execution>
 								<id>copy-dependencies</id>
