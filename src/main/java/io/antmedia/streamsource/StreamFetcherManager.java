@@ -218,8 +218,7 @@ public class StreamFetcherManager {
 									logger.info("Updating stream quality to poor of stream {}", stream.getStreamId() );
 									datastore.updateSourceQuality(stream.getStreamId(), MuxAdaptor.QUALITY_POOR);
 									datastore.updateSourceSpeed(stream.getStreamId(), 0);
-									//datastore.updateStatus(stream.getStreamId() , 
-									//		AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+
 								}
 							}
 						}

@@ -194,8 +194,8 @@ public class StreamFetcher {
 
 				if (result.isSuccess()) {
 
-					muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null,true);
-
+					
+					muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null,true, scope);
 					muxAdaptor.init(scope, stream.getStreamId(), false);
 
 					logger.info("{} stream count in stream {} is {}", stream.getStreamId(), stream.getStreamUrl(), inputFormatContext.nb_streams());

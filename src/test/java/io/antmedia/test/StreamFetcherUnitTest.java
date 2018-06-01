@@ -210,7 +210,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		broadcast = dataStore.get(id);
 		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, broadcast.getStatus());
 		assertEquals(MuxAdaptor.QUALITY_POOR, broadcast.getQuality());
-		assertEquals(0, broadcast.getSpeed(), 2);
+		assertEquals(0, broadcast.getSpeed(), 2L);
+
 
 		app.getStreamFetcherManager().stopStreaming(newCam);
 		assertEquals(0, app.getStreamFetcherManager().getStreamFetcherList().size());

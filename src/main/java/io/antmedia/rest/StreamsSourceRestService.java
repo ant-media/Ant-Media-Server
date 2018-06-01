@@ -178,7 +178,6 @@ public class StreamsSourceRestService {
 				e.printStackTrace();
 				Thread.currentThread().interrupt();
 			}
-
 			if(broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA)) {
 
 				onvif = new OnvifCamera();
@@ -186,14 +185,12 @@ public class StreamsSourceRestService {
 				String rtspURL = onvif.getRTSPStreamURI();
 
 				if (rtspURL != "no") {
-
+					
 					String authparam = broadcast.getUsername() + ":" + broadcast.getPassword() + "@";
 					String rtspURLWithAuth = "rtsp://" + authparam + rtspURL.substring("rtsp://".length());
 					System.out.println("new RTSP URL:" + rtspURLWithAuth);
 					broadcast.setStreamUrl(rtspURLWithAuth);
 				}
-				
-
 			}
 		}
 
