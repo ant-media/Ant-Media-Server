@@ -565,8 +565,13 @@ public class BroadcastRestService {
 			//do not return null in rest service
 			list = new ArrayList<TensorFlowObject>();
 		}
+	
 
 		return list;
+	}
+	
+	public void doNothing(){
+		
 	}
 
 
