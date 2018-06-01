@@ -8,6 +8,7 @@ public class AppSettingsModel {
 	public boolean mp4MuxingEnabled;
 	public boolean addDateTimeToMp4FileName;
 	public boolean hlsMuxingEnabled;
+	public boolean objectDetectionEnabled;
 	public int hlsListSize;
 	public int hlsTime;
 	public String hlsPlayListType;
