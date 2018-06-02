@@ -62,6 +62,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	public AntMediaApplicationAdapter app = null;
 	private AntMediaApplicationAdapter appInstance;
 	private AppSettings appSettings;
+	private QuartzSchedulingService scheduler;
 
 
 	static {
@@ -103,6 +104,9 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			logger.debug("Application / web scope: {}", appScope);
 			assertTrue(appScope.getDepth() == 1);
 		}
+		
+		scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
+
 
 		stopCameraEmulator();
 
@@ -235,8 +239,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		try {
 			//Create Stream Fetcher Manager
-			QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
-
+			assertEquals(1, scheduler.getScheduledJobNames().size());
+			
 			InMemoryDataStore memoryDataStore = new InMemoryDataStore("testdb");
 
 
@@ -304,7 +308,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-
+		
+		assertEquals(1, scheduler.getScheduledJobNames().size());
 
 	}
 
@@ -313,9 +318,9 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		logger.info("starting testThreadStopStart");
 
+		assertEquals(1, scheduler.getScheduledJobNames().size());
+		
 		try {
-
-			QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
 
 			// start stream fetcher
 
@@ -393,6 +398,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 
 		logger.info("leaving testThreadStopStart");
+		assertEquals(1, scheduler.getScheduledJobNames().size());
+		
 	}
 
 	@Test
@@ -401,8 +408,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		logger.info("starting testCameraErrorCodes");
 
 		try {
-			QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
-
+			assertEquals(1, scheduler.getScheduledJobNames().size());
+			
 			// start stream fetcher
 
 			Broadcast newCam = new Broadcast("onvifCam2", "127.0.0.1:8080", "admin", "admin", "rtsp://10.122.59.79:6554/test.flv",
@@ -472,6 +479,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+		assertEquals(1, scheduler.getScheduledJobNames().size());
+		
 	}
 	
 	
@@ -479,10 +488,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	@Test
 	public void testStreamFetcherBuffer() {
 
-		QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
-
+		
 		try {	
-			
 			assertEquals(1, scheduler.getScheduledJobNames().size());
 			getAppSettings().setDeleteHLSFilesOnEnded(false);
 			
@@ -569,8 +576,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testCameraStartedProperly() {
 		try {
 
-			QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
-
+			assertEquals(1, scheduler.getScheduledJobNames().size());
+			
 			startCameraEmulator();
 
 			Thread.sleep(2000);
@@ -612,6 +619,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+		assertEquals(1, scheduler.getScheduledJobNames().size());
 	}
 
 	/**
@@ -620,6 +628,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	//@Test
 	public void testCameraCheckerStartStop() {
 
+		assertEquals(1, scheduler.getScheduledJobNames().size());
+		
 		logger.info("starting testCameraCheckerStartStop");
 
 		// define camera according to onvif emulator parameters
@@ -750,6 +760,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			e.printStackTrace();
 		}
 
+		assertEquals(1, scheduler.getScheduledJobNames().size());
+		
 		logger.info("leaving testCameraCheckerStartStop");
 
 	}
@@ -816,9 +828,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		try {
 
-			QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
-
-
+			assertEquals(1, scheduler.getScheduledJobNames().size());
+			
 			Broadcast newCam = new Broadcast("streamSource", "127.0.0.1:8080", "admin", "admin", source,
 					AntMediaApplicationAdapter.STREAM_SOURCE);
 
@@ -881,6 +892,9 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+		
+		assertEquals(1, scheduler.getScheduledJobNames().size());
+		
 
 	}
 
@@ -890,9 +904,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		try {
 			String textInFile;
 
-			QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
-
-
+			assertEquals(1, scheduler.getScheduledJobNames().size());
+			
 			Broadcast newCam = new Broadcast("streamSource", "127.0.0.1:8080", "admin", "admin", "src/test/resources/test.ts",
 					AntMediaApplicationAdapter.STREAM_SOURCE);
 
@@ -960,6 +973,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+		assertEquals(1, scheduler.getScheduledJobNames().size());
+		
 	}
 
 
