@@ -41,7 +41,7 @@ public class StreamFetcher {
 	 * Connection setup timeout value
 	 */
 	private int timeout;
-	public boolean exceptionInThread = false;
+	private boolean exceptionInThread = false;
 
 	/**
 	 * Last packet received time
@@ -73,18 +73,27 @@ public class StreamFetcher {
 	private AVRational avRationalTimeBaseMS;
 	private AppSettings appSettings;
 
-	public StreamFetcher(Broadcast stream, IScope scope, ISchedulingService scheduler) throws Exception {
+	public StreamFetcher(Broadcast stream, IScope scope, ISchedulingService scheduler)  {
 		if (stream == null || stream.getStreamId() == null || stream.getStreamUrl() == null) {
-			throw new Exception("Stream is not initialized properly. Check stream("+stream+"), "
-					+ " stream id(" + stream.getStreamId() + ") and stream url("+ stream.getStreamUrl() +") values");
+			String streamId = null;
+			if (stream != null) {
+				streamId = stream.getStreamId();
+			}
+			String streamUrl = null;
+			if (stream != null) {
+				streamUrl = stream.getStreamUrl();
+			}
+			throw new NullPointerException("Stream is not initialized properly. Check stream("+stream+"), "
+					+ " stream id ("+ streamId +") and stream url ("+ streamUrl + ") values");
 		}
+		
 		this.stream = stream;
 		this.scope = scope;
 		this.scheduler = scheduler;
 		
 		
 		if (getAppSettings() == null) {
-			throw new Exception("App Settings is null in StreamFetcher");
+			throw new NullPointerException("App Settings is null in StreamFetcher");
 		}
 		
 		this.bufferTime = getAppSettings().getStreamFetcherBufferTime();
@@ -93,7 +102,7 @@ public class StreamFetcher {
 		avRationalTimeBaseMS.num(1);
 		avRationalTimeBaseMS.den(1000);
 
-		logger.debug(":::::::::::scope is ::::::::" + String.valueOf(scope));
+		logger.debug(":::::::::::scope is {}" , scope.getName());
 
 	}
 
@@ -103,7 +112,7 @@ public class StreamFetcher {
 
 		Result result = new Result(false);
 		if (inputFormatContext == null) {
-			logger.info("cannot allocate input context");
+			logger.info("cannot allocate input context for {}", stream.getStreamId());
 			return result;
 		}
 
@@ -114,8 +123,8 @@ public class StreamFetcher {
 			av_dict_set(optionsDictionary, "rtsp_transport", "tcp", 0);
 		}
 
-		String timeout = String.valueOf(this.timeout);
-		av_dict_set(optionsDictionary, "stimeout", timeout, 0);
+		String timeoutStr = String.valueOf(this.timeout);
+		av_dict_set(optionsDictionary, "stimeout", timeoutStr, 0);
 
 		int ret;
 
@@ -181,19 +190,19 @@ public class StreamFetcher {
 		public void run() {
 
 			setThreadActive(true);
-			long lastPacketTime = 0, firstPacketTime = 0, bufferDuration = 0;
+			long lastPacketTime = 0;
+			long firstPacketTime = 0;
+			long bufferDuration = 0;
 
 			AVPacket pkt = null;
 			String packetWriterJobName = null;
 			try {
-				inputFormatContext = new AVFormatContext(null); // avformat.avformat_alloc_context();
+				inputFormatContext = new AVFormatContext(null); 
 				pkt = avcodec.av_packet_alloc();
-				//logger.info("before prepare");
 				Result result = prepare(inputFormatContext);
 
 
 				if (result.isSuccess()) {
-
 					
 					muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null,true, scope);
 					muxAdaptor.init(scope, stream.getStreamId(), false);
@@ -212,12 +221,8 @@ public class StreamFetcher {
 						}
 
 						int bufferLogCounter = 0;
-						while (true) {
-							int ret = av_read_frame(inputFormatContext, pkt);
-							if (ret < 0) {
-								logger.info("cannot read frame from input context");
-								break;
-							}
+						while (av_read_frame(inputFormatContext, pkt) >= 0) {
+							
 							streamPublished = true;
 							lastPacketReceivedTime = System.currentTimeMillis();
 
@@ -264,47 +269,43 @@ public class StreamFetcher {
 							}
 							av_packet_unref(pkt);
 							if (stopRequestReceived) {
-								logger.warn("breaking the loop");
+								logger.warn("Stop request received, breaking the loop for {} ", stream.getStreamId());
 								break;
 							}
 						}
+						logger.info("Leaving the loop for {}", stream.getStreamId());
+						
 					}
 
 				}
 				else {
-					logger.debug("Prepare for " + stream.getName() + " returned false");
+					logger.debug("Prepare for {} returned false", stream.getName());
 				}
 
 				setCameraError(result);
 			} 
-			catch (OutOfMemoryError e) {
-				e.printStackTrace();
+			catch (OutOfMemoryError | Exception e) {
+				logger.error(e.getMessage());
 				exceptionInThread  = true;
 			}
-			catch (Exception e) {
-				logger.info("---Exception in thread---");
-				e.printStackTrace();
-				exceptionInThread  = true;
-			} 
+			
 			
 			if (packetWriterJobName != null) {
 				logger.info("Removing packet writer job {}", packetWriterJobName);
 				scheduler.removeScheduledJob(packetWriterJobName);
-				packetWriterJobName = null;
 			}
 			
 			writeAllBufferedPackets();
 			
 
 			if (muxAdaptor != null) {
-				logger.info("Writing trailer for Muxadaptor");
+				logger.info("Writing trailer in Muxadaptor {}", stream.getStreamId());
 				muxAdaptor.writeTrailer(inputFormatContext);
 				muxAdaptor = null;
 			}
 
 			if (pkt != null) {
 				av_packet_free(pkt);
-				pkt = null;
 			}
 			
 			if (inputFormatContext != null) {
@@ -312,7 +313,7 @@ public class StreamFetcher {
 					avformat_close_input(inputFormatContext);
 				}
 				catch (Exception e) {
-					e.printStackTrace();
+					logger.info(e.getMessage());
 				}
 				inputFormatContext = null;
 			}
@@ -329,7 +330,8 @@ public class StreamFetcher {
 				thread.start();
 			}
 
-			logger.info("Leaving thread");
+			logger.info("Leaving thread for {}", stream.getStreamUrl());
+			
 
 		}
 		
@@ -344,12 +346,11 @@ public class StreamFetcher {
 			AVPacket pkt;
 			while ((pkt = bufferQueue.poll()) != null) {
 				pkt.close();
-				pkt = null;
 			}
 		}
 		
 		public void setStopRequestReceived() {
-			logger.warn("inside of setStopRequestReceived");
+			logger.warn("inside of setStopRequestReceived for {}", stream.getStreamId());
 			stopRequestReceived = true;
 		}
 
@@ -380,28 +381,29 @@ public class StreamFetcher {
 
 	public void startStream() {
 		new Thread() {
+			@Override
 			public void run() {
 				try {
 					int i = 0;
 					while (threadActive) {
 						Thread.sleep(100);
 						if (i % 50 == 0) {
-							logger.info("waiting for thread to be finished for stream " + stream.getStreamUrl());
+							logger.info("waiting for thread to be finished for stream {}", stream.getStreamUrl());
 							i = 0;
 						}
 						i++;
 					}
 					Thread.sleep(2000);
 				} catch (InterruptedException e) {
-					e.printStackTrace();
+					logger.error(e.getMessage());
 					Thread.currentThread().interrupt();
 				}
 
 				exceptionInThread = false;
 				thread = new WorkerThread();
 				thread.start();
-				logger.info("StartStream called, new thread is started");
-			};
+				logger.info("StartStream called, new thread is started for {}", stream.getStreamId());
+			}
 		}.start();
 
 	}
@@ -432,11 +434,11 @@ public class StreamFetcher {
 	public void stopStream() 
 	{
 		if (getThread() != null) {
-			logger.warn("stop stream called");
+			logger.warn("stop stream called for {}", stream.getStreamId());
 			getThread().setStopRequestReceived();
 
 		}else {
-			logger.warn("stop stream is called and thread is null");
+			logger.warn("stop stream is called and thread is null {}",  stream.getStreamId());
 		}
 	}
 
@@ -459,6 +461,7 @@ public class StreamFetcher {
 	public void restart() {
 		stopStream();
 		new Thread() {
+			@Override
 			public void run() {
 				try {
 					while (threadActive) {
@@ -467,11 +470,11 @@ public class StreamFetcher {
 
 					Thread.sleep(2000);
 				} catch (InterruptedException e) {
-					e.printStackTrace();
+					logger.error(e.getMessage());
 					Thread.currentThread().interrupt();
 				}
 				startStream();
-			};
+			}
 		}.start();
 
 	}
