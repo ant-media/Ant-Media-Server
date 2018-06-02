@@ -588,9 +588,16 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 	@Test
 	public void testCameraStartedProperly() {
+		
+		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnExit();
 		try {
 
 			assertEquals(1, scheduler.getScheduledJobNames().size());
+			
+			
+			
+			getAppSettings().setDeleteHLSFilesOnEnded(false);
+
 			
 			startCameraEmulator();
 
@@ -634,6 +641,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			fail(e.getMessage());
 		}
 		assertEquals(1, scheduler.getScheduledJobNames().size());
+		
+		getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
 	}
 
 	/**
