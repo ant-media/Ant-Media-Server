@@ -303,6 +303,10 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		assertEquals(1, scheduler.getScheduledJobNames().size());
 		
+		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnExit();
+		getAppSettings().setDeleteHLSFilesOnEnded(false);
+		
+		
 		Result result;
 		IDataStore dataStore = new MapDBStore("target/testAddCamera.db"); //applicationContext.getBean(IDataStore.BEAN_NAME);
 
@@ -336,6 +340,8 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		stopCameraEmulator();
 		
 		assertEquals(1, scheduler.getScheduledJobNames().size());
+		
+		getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
 		
 	}
 	
