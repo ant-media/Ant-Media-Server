@@ -151,9 +151,13 @@ public class StreamFetcherManager {
 				streamFetcherList.remove(streamScheduler);
 				break;
 			}
-
 		}
-
+	}
+	
+	public void stopCheckerJob() {
+		if (streamFetcherScheduleJobName != null) {
+			schedulingService.removeScheduledJob(streamFetcherScheduleJobName);
+		}
 	}
 
 	public void startStreams(List<Broadcast> streams) {

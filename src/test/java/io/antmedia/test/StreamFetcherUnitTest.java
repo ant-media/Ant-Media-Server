@@ -149,6 +149,9 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testBugUpdateStreamFetcherStatus() {
 
 		logger.info("starting testBugUpdateStreamFetcherStatus");
+		
+		assertEquals(1, scheduler.getScheduledJobNames().size());
+		
 		//create ip camera broadcast
 		IDataStore dataStore = new MapDBStore("target/testbug.db"); //applicationContext.getBean(IDataStore.BEAN_NAME);
 
@@ -180,6 +183,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		//start StreamFetcher
 		app.getStreamFetcherManager().startStreams(Arrays.asList(broadcast));
+		
+		assertEquals(1, scheduler.getScheduledJobNames().size());
 
 		assertEquals(1, app.getStreamFetcherManager().getStreamFetcherList().size());
 
@@ -228,22 +233,25 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 
 		app.stopStreaming(newCam);
+		
+		assertEquals(1, scheduler.getScheduledJobNames().size());
+		
 
 		logger.info("leaving testBugUpdateStreamFetcherStatus");
 
 	}
-
+	
 
 	@Test
 	public void testRestartPeriodStreamFetcher() {
 
+		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnExit();
+		getAppSettings().setDeleteHLSFilesOnEnded(false);
 		try {
 			//Create Stream Fetcher Manager
 			assertEquals(1, scheduler.getScheduledJobNames().size());
 			
 			InMemoryDataStore memoryDataStore = new InMemoryDataStore("testdb");
-
-
 
 			//Create a mock StreamFetcher and add it to StreamFetcherManager
 			StreamFetcher streamFetcher = Mockito.mock(StreamFetcher.class);
@@ -271,7 +279,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			//Start stream fetcher
 			Result result = fetcherManager.startStreaming(stream);
 			assertTrue(result.isSuccess());
-
+			
+			
 			//wait 10-12 seconds
 			Thread.sleep(13000);
 
@@ -303,6 +312,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			verify(streamFetcher, atLeast(5)).startStream(); 
 
 			fetcherManager.setRestartStreamFetcherPeriod(0);
+			
+			fetcherManager.stopCheckerJob();
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -310,6 +321,9 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 		
 		assertEquals(1, scheduler.getScheduledJobNames().size());
+		
+		getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
+		
 
 	}
 
@@ -810,6 +824,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	@Test
 	public void testHLSSource() {
 		logger.info("running testHLSSource");
+		
 		//test HLS Source
 		testFetchStreamSources("src/test/resources/test.m3u8", false);	
 		logger.info("leaving testHLSSource");
@@ -826,7 +841,9 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 	public void testFetchStreamSources(String source, boolean restartStream) {
 
+		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnExit();
 		try {
+			getAppSettings().setDeleteHLSFilesOnEnded(false);
 
 			assertEquals(1, scheduler.getScheduledJobNames().size());
 			
@@ -894,13 +911,17 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 		
 		assertEquals(1, scheduler.getScheduledJobNames().size());
-		
+		getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
+
 
 	}
 
 	@Test
 	public void testHLSFlagResult() {
 
+		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnExit();
+		getAppSettings().setDeleteHLSFilesOnEnded(false);
+		
 		try {
 			String textInFile;
 
@@ -974,6 +995,9 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			fail(e.getMessage());
 		}
 		assertEquals(1, scheduler.getScheduledJobNames().size());
+		
+		getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
+		
 		
 	}
 
