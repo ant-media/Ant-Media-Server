@@ -1,61 +1,36 @@
 package io.antmedia.streamsource;
 
-import static org.bytedeco.javacpp.avcodec.AV_CODEC_FLAG_GLOBAL_HEADER;
+import static org.bytedeco.javacpp.avcodec.av_packet_free;
+import static org.bytedeco.javacpp.avcodec.av_packet_ref;
 import static org.bytedeco.javacpp.avcodec.av_packet_unref;
-import static org.bytedeco.javacpp.avcodec.avcodec_parameters_copy;
-import static org.bytedeco.javacpp.avformat.AVFMT_GLOBALHEADER;
-import static org.bytedeco.javacpp.avformat.AVFMT_NOFILE;
-import static org.bytedeco.javacpp.avformat.AVIO_FLAG_WRITE;
-import static org.bytedeco.javacpp.avformat.av_interleaved_write_frame;
 import static org.bytedeco.javacpp.avformat.av_read_frame;
-import static org.bytedeco.javacpp.avformat.av_write_trailer;
-import static org.bytedeco.javacpp.avformat.avformat_alloc_output_context2;
 import static org.bytedeco.javacpp.avformat.avformat_close_input;
 import static org.bytedeco.javacpp.avformat.avformat_find_stream_info;
-import static org.bytedeco.javacpp.avformat.avformat_free_context;
-import static org.bytedeco.javacpp.avformat.avformat_new_stream;
 import static org.bytedeco.javacpp.avformat.avformat_open_input;
-import static org.bytedeco.javacpp.avformat.avformat_write_header;
-import static org.bytedeco.javacpp.avformat.avio_closep;
-import static org.bytedeco.javacpp.avutil.AV_ROUND_NEAR_INF;
-import static org.bytedeco.javacpp.avutil.AV_ROUND_PASS_MINMAX;
 import static org.bytedeco.javacpp.avutil.av_dict_free;
 import static org.bytedeco.javacpp.avutil.av_dict_set;
 import static org.bytedeco.javacpp.avutil.av_rescale_q;
-import static org.bytedeco.javacpp.avutil.av_rescale_q_rnd;
-import static org.bytedeco.javacpp.avcodec.av_packet_free;
-import java.util.List;
+
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import javax.annotation.Nullable;
-import javax.servlet.ServletContext;
-import javax.ws.rs.core.Context;
-
-import org.bytedeco.javacpp.avcodec.AVPacket;
 import org.bytedeco.javacpp.avcodec;
-import org.bytedeco.javacpp.avformat;
+import org.bytedeco.javacpp.avcodec.AVPacket;
 import org.bytedeco.javacpp.avformat.AVFormatContext;
-import org.bytedeco.javacpp.avformat.AVIOContext;
-import org.bytedeco.javacpp.avformat.AVStream;
 import org.bytedeco.javacpp.avutil;
 import org.bytedeco.javacpp.avutil.AVDictionary;
-import org.red5.server.api.IContext;
+import org.bytedeco.javacpp.avutil.AVRational;
+import org.red5.server.api.scheduling.IScheduledJob;
+import org.red5.server.api.scheduling.ISchedulingService;
 import org.red5.server.api.scope.IScope;
-import org.red5.server.stream.ClientBroadcastStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationContext;
-import org.springframework.web.context.WebApplicationContext;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
-import io.antmedia.EncoderSettings;
-import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.muxer.Mp4Muxer;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.rest.model.Result;
-import io.antmedia.storage.StorageClient;
 
 public class StreamFetcher {
 
@@ -80,20 +55,43 @@ public class StreamFetcher {
 	private long[] lastDTS;
 	private long[] lastPTS;
 	private MuxAdaptor muxAdaptor = null;
-	
+
 	/**
 	 * If it is true, it restarts fetching everytime it disconnects
 	 * if it is false, it does not restart
 	 */
 	private boolean restartStream = true;
 
-	public StreamFetcher(Broadcast stream, IScope scope) throws Exception {
+	/**
+	 * Buffer time in milliseconds
+	 */
+	private int bufferTime = 0;
+	
+	private ConcurrentLinkedQueue<AVPacket> availableBufferQueue = new ConcurrentLinkedQueue<>();
+
+	private ISchedulingService scheduler;
+	private AVRational avRationalTimeBaseMS;
+	private AppSettings appSettings;
+
+	public StreamFetcher(Broadcast stream, IScope scope, ISchedulingService scheduler) throws Exception {
 		if (stream == null || stream.getStreamId() == null || stream.getStreamUrl() == null) {
 			throw new Exception("Stream is not initialized properly. Check stream("+stream+"), "
 					+ " stream id(" + stream.getStreamId() + ") and stream url("+ stream.getStreamUrl() +") values");
 		}
 		this.stream = stream;
-		this.scope=scope;
+		this.scope = scope;
+		this.scheduler = scheduler;
+		
+		
+		if (getAppSettings() == null) {
+			throw new Exception("App Settings is null in StreamFetcher");
+		}
+		
+		this.bufferTime = getAppSettings().getStreamFetcherBufferTime();
+
+		avRationalTimeBaseMS = new AVRational();
+		avRationalTimeBaseMS.num(1);
+		avRationalTimeBaseMS.den(1000);
 
 		logger.debug(":::::::::::scope is ::::::::" + String.valueOf(scope));
 
@@ -121,7 +119,7 @@ public class StreamFetcher {
 
 		int ret;
 
-		// logger.info("stream url:  " + stream.getStreamUrl());
+		logger.debug("stream url: {}  " , stream.getStreamUrl());
 
 		if ((ret = avformat_open_input(inputFormatContext, stream.getStreamUrl(), null, optionsDictionary)) < 0) {
 
@@ -132,7 +130,7 @@ public class StreamFetcher {
 
 			result.setMessage(errorStr);		
 
-			//	logger.info("cannot open input context with error::" +result.getMessage());
+			logger.debug("cannot open input context with error:: {}",  result.getMessage());
 			return result;
 		}
 
@@ -168,140 +166,188 @@ public class StreamFetcher {
 
 	}
 
-	public class WorkerThread extends Thread {
+	public class WorkerThread extends Thread implements IScheduledJob {
 
 		private volatile boolean stopRequestReceived = false;
 
 		private volatile boolean streamPublished = false;
 		protected AtomicBoolean isJobRunning = new AtomicBoolean(false);
+		AVFormatContext inputFormatContext = null;
+
+		private volatile boolean buffering = false;
+		private ConcurrentLinkedQueue<AVPacket> bufferQueue = new ConcurrentLinkedQueue<>();
 
 		@Override
 		public void run() {
 
-			if (isJobRunning.compareAndSet(false, true)) {
+			setThreadActive(true);
+			long lastPacketTime = 0, firstPacketTime = 0, bufferDuration = 0;
 
-				setThreadActive(true);
-				AVFormatContext inputFormatContext = null;
-				AVPacket pkt = null;
-				try {
-					inputFormatContext = new AVFormatContext(null); // avformat.avformat_alloc_context();
-					pkt = avcodec.av_packet_alloc();
-					//logger.info("before prepare");
-					Result result = prepare(inputFormatContext);
+			AVPacket pkt = null;
+			String packetWriterJobName = null;
+			try {
+				inputFormatContext = new AVFormatContext(null); // avformat.avformat_alloc_context();
+				pkt = avcodec.av_packet_alloc();
+				//logger.info("before prepare");
+				Result result = prepare(inputFormatContext);
 
-					if (result.isSuccess()) {
 
-						muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null,true, scope);
+				if (result.isSuccess()) {
 
-						muxAdaptor.init(scope, stream.getStreamId(), false);
+					
+					muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null,true, scope);
+					muxAdaptor.init(scope, stream.getStreamId(), false);
 
-						logger.info("{} stream count in stream {} is {}", stream.getStreamId(), stream.getStreamUrl(), inputFormatContext.nb_streams());
+					logger.info("{} stream count in stream {} is {}", stream.getStreamId(), stream.getStreamUrl(), inputFormatContext.nb_streams());
 
-						if(muxAdaptor.prepareInternal(inputFormatContext)) {
+					if(muxAdaptor.prepareInternal(inputFormatContext)) {
 
-							long currentTime = System.currentTimeMillis();
-							muxAdaptor.setStartTime(currentTime);
+						long currentTime = System.currentTimeMillis();
+						muxAdaptor.setStartTime(currentTime);
 
-							getInstance().startPublish(stream.getStreamId());
+						getInstance().startPublish(stream.getStreamId());
 
-							while (true) {
-								int ret = av_read_frame(inputFormatContext, pkt);
-								if (ret < 0) {
-									logger.info("cannot read frame from input context");
-									break;
-								}
-								streamPublished=true;
-								lastPacketReceivedTime = System.currentTimeMillis();
-
-								/**
-								 * Check that dts values are monotically increasing for each stream
-								 */
-								int packetIndex = pkt.stream_index();
-								if (lastDTS[packetIndex] >= pkt.dts()) {
-									pkt.dts(lastDTS[packetIndex] + 1);
-									//logger.warn("Correcting dts value to {}", pkt.dts());
-								}
-								lastDTS[packetIndex] = pkt.dts();
-								if (pkt.dts() > pkt.pts()) {
-									pkt.pts(pkt.dts());
-								}
-
-								if (lastPTS[packetIndex] >= pkt.pts()) {
-									pkt.pts(lastPTS[packetIndex] + 1);
-									//	logger.warn("Correcting pts value to {}", pkt.pts());
-								}
-								lastPTS[packetIndex] = pkt.pts();
-
-								muxAdaptor.writePacket(inputFormatContext.streams(pkt.stream_index()), pkt);
-
-								av_packet_unref(pkt);
-								if (stopRequestReceived) {
-									logger.warn("breaking the loop");
-									break;
-								}
-							}
+						if (bufferTime > 0) {
+							packetWriterJobName = scheduler.addScheduledJob(5, this);
 						}
 
+						int bufferLogCounter = 0;
+						while (true) {
+							int ret = av_read_frame(inputFormatContext, pkt);
+							if (ret < 0) {
+								logger.info("cannot read frame from input context");
+								break;
+							}
+							streamPublished = true;
+							lastPacketReceivedTime = System.currentTimeMillis();
+
+							/**
+							 * Check that dts values are monotically increasing for each stream
+							 */
+							int packetIndex = pkt.stream_index();
+							if (lastDTS[packetIndex] >= pkt.dts()) {
+								pkt.dts(lastDTS[packetIndex] + 1);
+							}
+							lastDTS[packetIndex] = pkt.dts();
+							if (pkt.dts() > pkt.pts()) {
+								pkt.pts(pkt.dts());
+							}
+
+							if (lastPTS[packetIndex] >= pkt.pts()) {
+								pkt.pts(lastPTS[packetIndex] + 1);
+							}
+							lastPTS[packetIndex] = pkt.pts();
+
+							if (bufferTime > 0) 
+							{
+								AVPacket packet = getAVPacket();
+								av_packet_ref(packet, pkt);
+								bufferQueue.add(packet);
+								
+								AVPacket pktHead = bufferQueue.peek();
+								lastPacketTime = av_rescale_q(pkt.pts(), inputFormatContext.streams(pkt.stream_index()).time_base(), avRationalTimeBaseMS);
+								firstPacketTime = av_rescale_q(pktHead.pts(), inputFormatContext.streams(pktHead.stream_index()).time_base(), avRationalTimeBaseMS);
+								bufferDuration = (lastPacketTime - firstPacketTime);
+
+								if ( bufferDuration > bufferTime) {
+									buffering = false;
+								}
+								
+								bufferLogCounter++;
+								if (bufferLogCounter % 100 == 0) {
+									logger.info("Buffer status {}, buffer duration {}ms buffer time {}ms", buffering, bufferDuration, bufferTime);
+									bufferLogCounter = 0;
+								}
+							}
+							else {
+								muxAdaptor.writePacket(inputFormatContext.streams(pkt.stream_index()), pkt);
+							}
+							av_packet_unref(pkt);
+							if (stopRequestReceived) {
+								logger.warn("breaking the loop");
+								break;
+							}
+						}
 					}
-					else {
-						logger.debug("Prepare for " + stream.getName() + " returned false");
-					}
 
-					setCameraError(result);
-					//	logger.info("Leaving StreamFetcher Thread");
-
-				} 
-				catch (OutOfMemoryError e) {
-					e.printStackTrace();
-					exceptionInThread  = true;
 				}
-				catch (Exception e) {
-					logger.info("---Exception in thread---");
-					e.printStackTrace();
-					exceptionInThread  = true;
-				} 
-
-				if (muxAdaptor != null) {
-					logger.info("Writing trailer for Muxadaptor");
-					muxAdaptor.writeTrailer(inputFormatContext);
-					muxAdaptor = null;
+				else {
+					logger.debug("Prepare for " + stream.getName() + " returned false");
 				}
 
-				if (pkt != null) {
-					av_packet_free(pkt);
-					pkt = null;
-				}
+				setCameraError(result);
+			} 
+			catch (OutOfMemoryError e) {
+				e.printStackTrace();
+				exceptionInThread  = true;
+			}
+			catch (Exception e) {
+				logger.info("---Exception in thread---");
+				e.printStackTrace();
+				exceptionInThread  = true;
+			} 
+			
+			if (packetWriterJobName != null) {
+				logger.info("Removing packet writer job {}", packetWriterJobName);
+				scheduler.removeScheduledJob(packetWriterJobName);
+				packetWriterJobName = null;
+			}
+			
+			writeAllBufferedPackets();
+			
 
-				if (inputFormatContext != null) {
-					try {
-						avformat_close_input(inputFormatContext);
-					}
-					catch (Exception e) {
-						e.printStackTrace();
-					}
-					inputFormatContext = null;
-				}
-				
-				
-				if(streamPublished) {
-					getInstance().closeBroadcast(stream.getStreamId());
-					streamPublished=false;
-				}
-
-				
-				isJobRunning.compareAndSet(true, false);
-				
-				setThreadActive(false);
-				if(!stopRequestReceived && restartStream) {
-					thread = new WorkerThread();
-					thread.start();
-				}
-				
-				logger.debug("Leaving thread");
-				
+			if (muxAdaptor != null) {
+				logger.info("Writing trailer for Muxadaptor");
+				muxAdaptor.writeTrailer(inputFormatContext);
+				muxAdaptor = null;
 			}
 
+			if (pkt != null) {
+				av_packet_free(pkt);
+				pkt = null;
+			}
+			
+			if (inputFormatContext != null) {
+				try {
+					avformat_close_input(inputFormatContext);
+				}
+				catch (Exception e) {
+					e.printStackTrace();
+				}
+				inputFormatContext = null;
+			}
+
+			if(streamPublished) {
+				getInstance().closeBroadcast(stream.getStreamId());
+				streamPublished=false;
+			}
+
+
+			setThreadActive(false);
+			if(!stopRequestReceived && restartStream) {
+				thread = new WorkerThread();
+				thread.start();
+			}
+
+			logger.info("Leaving thread");
+
 		}
+		
+		private void writeAllBufferedPackets() 
+		{
+			while (!bufferQueue.isEmpty()) {
+				AVPacket pkt = bufferQueue.poll();
+				muxAdaptor.writePacket(inputFormatContext.streams(pkt.stream_index()), pkt);
+				av_packet_unref(pkt);
+			}
+			
+			AVPacket pkt;
+			while ((pkt = bufferQueue.poll()) != null) {
+				pkt.close();
+				pkt = null;
+			}
+		}
+		
 		public void setStopRequestReceived() {
 			logger.warn("inside of setStopRequestReceived");
 			stopRequestReceived = true;
@@ -309,6 +355,26 @@ public class StreamFetcher {
 
 		public boolean isStopRequestReceived() {
 			return stopRequestReceived;
+		}
+
+		@Override
+		public void execute(ISchedulingService service) throws CloneNotSupportedException 
+		{
+			if (isJobRunning.compareAndSet(false, true)) 
+			{
+				if (!buffering) {
+					AVPacket pkt = bufferQueue.poll();
+					if (pkt != null) {
+						muxAdaptor.writePacket(inputFormatContext.streams(pkt.stream_index()), pkt);
+						av_packet_unref(pkt);
+						availableBufferQueue.offer(pkt);
+					}
+					else {
+						buffering = true;
+					}
+				}
+				isJobRunning.compareAndSet(true, false);
+			}
 		}
 	}
 
@@ -342,6 +408,13 @@ public class StreamFetcher {
 
 
 
+
+	public AVPacket getAVPacket() {
+		if (!availableBufferQueue.isEmpty()) {
+			return availableBufferQueue.poll();
+		}
+		return new AVPacket();
+	}
 
 	/**
 	 * If thread is alive and receiving packet with in the {@link PACKET_RECEIVED_INTERVAL_TIMEOUT} time
@@ -458,9 +531,24 @@ public class StreamFetcher {
 	public void setRestartStream(boolean restartStream) {
 		this.restartStream = restartStream;
 	}
-	
+
 	public void setStream(Broadcast stream) {
 		this.stream = stream;
+	}
+
+	public int getBufferTime() {
+		return bufferTime;
+	}
+
+	public void setBufferTime(int bufferTime) {
+		this.bufferTime = bufferTime;
+	}
+	
+	private AppSettings getAppSettings() {
+		if (appSettings == null) {
+			appSettings = (AppSettings) scope.getContext().getApplicationContext().getBean(AppSettings.BEAN_NAME);
+		}
+		return appSettings;
 	}
 
 

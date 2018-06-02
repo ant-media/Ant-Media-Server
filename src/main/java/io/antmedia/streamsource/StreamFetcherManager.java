@@ -50,8 +50,8 @@ public class StreamFetcherManager {
 	protected AtomicBoolean isJobRunning = new AtomicBoolean(false);
 
 	public  static class StreamFetcherFactory {
-		public StreamFetcher make(Broadcast stream, IScope scope) throws Exception {
-			return new StreamFetcher(stream, scope);
+		public StreamFetcher make(Broadcast stream, IScope scope, ISchedulingService schedulingService) throws Exception {
+			return new StreamFetcher(stream, scope, schedulingService);
 		}
 	}
 	
@@ -112,7 +112,7 @@ public class StreamFetcherManager {
 		Result result=new Result(false);
 
 		try {
-			StreamFetcher streamScheduler = streamFetcherFactory.make(broadcast, scope);
+			StreamFetcher streamScheduler = streamFetcherFactory.make(broadcast, scope, schedulingService);
 			streamScheduler.setRestartStream(restartStreamAutomatically);
 			streamScheduler.startStream();
 
@@ -151,9 +151,13 @@ public class StreamFetcherManager {
 				streamFetcherList.remove(streamScheduler);
 				break;
 			}
-
 		}
-
+	}
+	
+	public void stopCheckerJob() {
+		if (streamFetcherScheduleJobName != null) {
+			schedulingService.removeScheduledJob(streamFetcherScheduleJobName);
+		}
 	}
 
 	public void startStreams(List<Broadcast> streams) {
@@ -215,10 +219,10 @@ public class StreamFetcherManager {
 							if (!streamScheduler.isStreamAlive()) {
 
 								if (datastore != null && stream.getStreamId() != null) {
-									logger.info("Updating stream status to finished, updating status of stream {}", stream.getStreamId() );
-									
+									logger.info("Updating stream quality to poor of stream {}", stream.getStreamId() );
 									datastore.updateSourceQuality(stream.getStreamId(), MuxAdaptor.QUALITY_POOR);
 									datastore.updateSourceSpeed(stream.getStreamId(), 0);
+
 								}
 							}
 						}

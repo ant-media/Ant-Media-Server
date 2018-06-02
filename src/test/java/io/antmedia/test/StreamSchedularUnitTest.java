@@ -36,16 +36,20 @@ import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.red5.server.api.scope.IScope;
+import org.red5.server.scheduling.QuartzSchedulingService;
 import org.red5.server.scope.WebScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.types.Broadcast;
@@ -55,6 +59,7 @@ import io.antmedia.rest.model.Result;
 import io.antmedia.streamsource.StreamFetcher;
 
 @ContextConfiguration(locations = { "test.xml" })
+@DirtiesContext(classMode = ClassMode.AFTER_CLASS)
 public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 	public Application app = null;
@@ -85,6 +90,8 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	   };
 	};
 	private AntMediaApplicationAdapter appInstance;
+	private QuartzSchedulingService scheduler;
+	private AppSettings appSettings;
 
 	@BeforeClass
 	public static void beforeClass() {
@@ -115,6 +122,8 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			assertTrue(appScope.getDepth() == 1);
 		}
 		
+		scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
+
 		//reset to default
 		Application.enableSourceHealthUpdate = false;
 		
@@ -186,7 +195,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			Broadcast newCam = new Broadcast("testSchedular", "10.2.40.63:8080", "admin", "admin",
 					"rtsp://184.72.239.149/vod/mp4:BigBuckBunny_115k.mov", "streamSource");
 
-			StreamFetcher camScheduler = new StreamFetcher(newCam, appScope);
+			StreamFetcher camScheduler = new StreamFetcher(newCam, appScope, null);
 
 			camScheduler.setConnectionTimeout(10000);
 
@@ -216,6 +225,9 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testStreamSchedularConnectionTimeout() throws InterruptedException {
 		logger.info("running testStreamSchedularConnectionTimeout");
 		try {
+			
+			assertEquals(1, scheduler.getScheduledJobNames().size());
+			
 
 			AVFormatContext inputFormatContext = new AVFormatContext();
 
@@ -224,7 +236,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 			newCam.setStreamId("new_cam" + (int)(Math.random()*10000));
 
-			StreamFetcher streamScheduler = new StreamFetcher(newCam, appScope);
+			StreamFetcher streamScheduler = new StreamFetcher(newCam, appScope, null);
 
 			assertFalse(streamScheduler.isExceptionInThread());
 
@@ -250,15 +262,19 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			fail(e.getMessage());
 		}
 		logger.info("leaving testStreamSchedularConnectionTimeout");
+		assertEquals(1, scheduler.getScheduledJobNames().size());
+		
 	}
 
 	@Test
 	public void testPrepareInput() throws InterruptedException {
+		assertEquals(1, scheduler.getScheduledJobNames().size());
+		
 		try {
 
 			Broadcast newCam = null;
 
-			new StreamFetcher(newCam, appScope);
+			new StreamFetcher(newCam, appScope, null);
 
 			fail("it should throw exception above");
 		}
@@ -271,17 +287,25 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			Broadcast newCam2 = new Broadcast("test", "10.2.40.63:8080", "admin", "admin", null, AntMediaApplicationAdapter.IP_CAMERA);
 			newCam2.setStreamId("newcam2_" + (int)(Math.random()*10000));
 
-			new StreamFetcher(newCam2, appScope);
+			new StreamFetcher(newCam2, appScope, null);
 
 			fail("it should throw exception above");
 		}
 		catch (Exception e) {
 		}
+		assertEquals(1, scheduler.getScheduledJobNames().size());
+		
 	}
 	
 	
 	@Test
 	public void testAddCameraBug() {
+		
+		assertEquals(1, scheduler.getScheduledJobNames().size());
+		
+		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnExit();
+		getAppSettings().setDeleteHLSFilesOnEnded(false);
+		
 		
 		Result result;
 		IDataStore dataStore = new MapDBStore("target/testAddCamera.db"); //applicationContext.getBean(IDataStore.BEAN_NAME);
@@ -314,6 +338,11 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		getInstance().stopStreaming(newCam);
 		
 		stopCameraEmulator();
+		
+		assertEquals(1, scheduler.getScheduledJobNames().size());
+		
+		getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
+		
 	}
 	
 	
@@ -375,6 +404,11 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 	@Test
 	public void testBandwidth() {
+		
+		assertEquals(1, scheduler.getScheduledJobNames().size());
+		
+		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnExit();
+		getAppSettings().setDeleteHLSFilesOnEnded(false);
 		
 		IDataStore dataStore = new MapDBStore("target/test.db"); //applicationContext.getBean(IDataStore.BEAN_NAME);
 
@@ -480,7 +514,12 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		//list size should be zero
 		assertEquals(0, app.getStreamFetcherManager().getStreamFetcherList().size());
 		logger.info("leaving testBandwidth");
-
+		
+		Application.enableSourceHealthUpdate = false;
+		
+		getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
+		
+		assertEquals(1, scheduler.getScheduledJobNames().size());
 
 	}
 
@@ -691,6 +730,13 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
+	}
+	
+	public AppSettings getAppSettings() {
+		if (appSettings == null) {
+			appSettings = (AppSettings) applicationContext.getBean(AppSettings.BEAN_NAME);
+		}
+		return appSettings;
 	}
 
 
