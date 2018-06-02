@@ -331,6 +331,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testThreadStopStart() {
 
 		logger.info("starting testThreadStopStart");
+		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnExit();
+		getAppSettings().setDeleteHLSFilesOnEnded(false);
 
 		assertEquals(1, scheduler.getScheduledJobNames().size());
 		
@@ -413,6 +415,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		logger.info("leaving testThreadStopStart");
 		assertEquals(1, scheduler.getScheduledJobNames().size());
+		getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
 		
 	}
 
