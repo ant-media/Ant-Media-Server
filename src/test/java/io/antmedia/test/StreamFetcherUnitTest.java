@@ -15,11 +15,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import javax.servlet.ServletContext;
 import javax.ws.rs.core.Context;
 import javax.xml.soap.Text;
 
+import org.awaitility.Awaitility;
 import org.bytedeco.javacpp.avformat;
 import org.bytedeco.javacpp.avutil;
 import org.junit.After;
@@ -81,6 +83,13 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	@Before
 	public void before() {
 
+		try {
+			delete(new File("webapps/junit/streams"));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+
 		File webApps = new File("webapps");
 		if (!webApps.exists()) {
 			webApps.mkdirs();
@@ -104,7 +113,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			logger.debug("Application / web scope: {}", appScope);
 			assertTrue(appScope.getDepth() == 1);
 		}
-		
+
 		scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
 
 
@@ -136,12 +145,12 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		appScope = null;
 		app = null;
 
-		try {
+		/*	try {
 			delete(new File("webapps"));
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-
+		 */
 	}
 
 
@@ -149,9 +158,9 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testBugUpdateStreamFetcherStatus() {
 
 		logger.info("starting testBugUpdateStreamFetcherStatus");
-		
+
 		assertEquals(1, scheduler.getScheduledJobNames().size());
-		
+
 		//create ip camera broadcast
 		IDataStore dataStore = new MapDBStore("target/testbug.db"); //applicationContext.getBean(IDataStore.BEAN_NAME);
 
@@ -179,11 +188,11 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		dataStore.updateStatus(id, AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 		Broadcast broadcast = dataStore.get(id);
 		logger.info("broadcast stream id {}" , id);
-		assertEquals(broadcast.getStatus(), AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, broadcast.getStatus());
 
 		//start StreamFetcher
 		app.getStreamFetcherManager().startStreams(Arrays.asList(broadcast));
-		
+
 		assertEquals(1, scheduler.getScheduledJobNames().size());
 
 		assertEquals(1, app.getStreamFetcherManager().getStreamFetcherList().size());
@@ -233,14 +242,14 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 
 		app.stopStreaming(newCam);
-		
+
 		assertEquals(1, scheduler.getScheduledJobNames().size());
-		
+
 
 		logger.info("leaving testBugUpdateStreamFetcherStatus");
 
 	}
-	
+
 
 	@Test
 	public void testRestartPeriodStreamFetcher() {
@@ -250,7 +259,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		try {
 			//Create Stream Fetcher Manager
 			assertEquals(1, scheduler.getScheduledJobNames().size());
-			
+
 			InMemoryDataStore memoryDataStore = new InMemoryDataStore("testdb");
 
 			//Create a mock StreamFetcher and add it to StreamFetcherManager
@@ -279,8 +288,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			//Start stream fetcher
 			Result result = fetcherManager.startStreaming(stream);
 			assertTrue(result.isSuccess());
-			
-			
+
+
 			//wait 10-12 seconds
 			Thread.sleep(13000);
 
@@ -312,18 +321,18 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			verify(streamFetcher, atLeast(5)).startStream(); 
 
 			fetcherManager.setRestartStreamFetcherPeriod(0);
-			
+
 			fetcherManager.stopCheckerJob();
 
 		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-		
+
 		assertEquals(1, scheduler.getScheduledJobNames().size());
-		
+
 		getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
-		
+
 
 	}
 
@@ -335,7 +344,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		getAppSettings().setDeleteHLSFilesOnEnded(false);
 
 		assertEquals(1, scheduler.getScheduledJobNames().size());
-		
+
 		try {
 
 			// start stream fetcher
@@ -416,7 +425,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		logger.info("leaving testThreadStopStart");
 		assertEquals(1, scheduler.getScheduledJobNames().size());
 		getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
-		
+
 	}
 
 	@Test
@@ -426,7 +435,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		try {
 			assertEquals(1, scheduler.getScheduledJobNames().size());
-			
+
 			// start stream fetcher
 
 			Broadcast newCam = new Broadcast("onvifCam2", "127.0.0.1:8080", "admin", "admin", "rtsp://10.122.59.79:6554/test.flv",
@@ -497,19 +506,19 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			e.printStackTrace();
 		}
 		assertEquals(1, scheduler.getScheduledJobNames().size());
-		
+
 	}
-	
-	
+
+
 
 	@Test
 	public void testStreamFetcherBuffer() {
 
-		
+
 		try {	
 			assertEquals(1, scheduler.getScheduledJobNames().size());
 			getAppSettings().setDeleteHLSFilesOnEnded(false);
-			
+
 			Broadcast newCam = new Broadcast("streamSource", "127.0.0.1:8080", "admin", "admin", 
 					"src/test/resources/test_video_360p.flv",
 					AntMediaApplicationAdapter.STREAM_SOURCE);
@@ -521,7 +530,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			assertNotNull(newCam.getStreamId());
 
 			StreamFetcher fetcher = new StreamFetcher(newCam, appScope, scheduler);
-			
+
 			fetcher.setBufferTime(20000);
 
 			fetcher.setRestartStream(false);
@@ -570,38 +579,38 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			logger.info("after test mp4 file");
 
 			getInstance().getDataStore().delete(id);
-			
-			
+
+
 		}
 		catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-		
+
 		List<String> scheduledJobNames = scheduler.getScheduledJobNames();
 		for (String jobName : scheduledJobNames) {
 			logger.info("Schedule name: {}", jobName);
 		}
-	
+
 		assertEquals(1, scheduler.getScheduledJobNames().size());
-		
+
 		getAppSettings().setDeleteHLSFilesOnEnded(true);
 
 	}
 
 	@Test
 	public void testCameraStartedProperly() {
-		
+
 		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnExit();
 		try {
 
 			assertEquals(1, scheduler.getScheduledJobNames().size());
-			
-			
-			
+
+
+
 			getAppSettings().setDeleteHLSFilesOnEnded(false);
 
-			
+
 			startCameraEmulator();
 
 			Thread.sleep(2000);
@@ -644,7 +653,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			fail(e.getMessage());
 		}
 		assertEquals(1, scheduler.getScheduledJobNames().size());
-		
+
 		getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
 	}
 
@@ -655,7 +664,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testCameraCheckerStartStop() {
 
 		assertEquals(1, scheduler.getScheduledJobNames().size());
-		
+
 		logger.info("starting testCameraCheckerStartStop");
 
 		// define camera according to onvif emulator parameters
@@ -787,7 +796,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 
 		assertEquals(1, scheduler.getScheduledJobNames().size());
-		
+
 		logger.info("leaving testCameraCheckerStartStop");
 
 	}
@@ -836,7 +845,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	@Test
 	public void testHLSSource() {
 		logger.info("running testHLSSource");
-		
+
 		//test HLS Source
 		testFetchStreamSources("src/test/resources/test.m3u8", false);	
 		logger.info("leaving testHLSSource");
@@ -858,7 +867,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			getAppSettings().setDeleteHLSFilesOnEnded(false);
 
 			assertEquals(1, scheduler.getScheduledJobNames().size());
-			
+
 			Broadcast newCam = new Broadcast("streamSource", "127.0.0.1:8080", "admin", "admin", source,
 					AntMediaApplicationAdapter.STREAM_SOURCE);
 
@@ -921,7 +930,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-		
+
 		assertEquals(1, scheduler.getScheduledJobNames().size());
 		getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
 
@@ -933,12 +942,16 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnExit();
 		getAppSettings().setDeleteHLSFilesOnEnded(false);
-		
+		//getAppSettings().setHlsflags("+omit_endlist+append_list+split_by_time");
+		getAppSettings().setHlsListSize("20");
+		getAppSettings().setHlsTime("2");
+		getAppSettings().setHlsflags("+omit_endlist+discont_start+split_by_time");
+
 		try {
 			String textInFile;
 
 			assertEquals(1, scheduler.getScheduledJobNames().size());
-			
+
 			Broadcast newCam = new Broadcast("streamSource", "127.0.0.1:8080", "admin", "admin", "src/test/resources/test.ts",
 					AntMediaApplicationAdapter.STREAM_SOURCE);
 
@@ -950,7 +963,6 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			StreamFetcher fetcher = new StreamFetcher(newCam, appScope, scheduler);
 
-
 			fetcher.setRestartStream(false);
 
 			assertFalse(fetcher.isThreadActive());
@@ -960,24 +972,52 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			fetcher.startStream();
 
 			//wait for fetching stream
-			try {
-				Thread.sleep(5000);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
+
+			String hlsFile = "webapps/junit/streams/"+newCam.getStreamId() +".m3u8";
+			Awaitility.await().pollDelay(5, TimeUnit.SECONDS).until(() -> {
+				return new File(hlsFile).exists();
+			});
 
 			//wait for packaging files
 			fetcher.stopStream();
 
-			try {
-				Thread.sleep(3000);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
+			String mp4File = "webapps/junit/streams/"+newCam.getStreamId() +".mp4";
+
+			Awaitility.await().until(() -> {
+				return new File(mp4File).exists();
+			});
 
 			assertFalse(fetcher.isThreadActive());
 
-			assertTrue(MuxingTest.testFile("webapps/junit/streams/"+newCam.getStreamId() +".m3u8"));
+			//assertTrue(MuxingTest.testFile(hlsFile));
+
+
+			{
+				// start again to check append_list working
+				fetcher.startStream();
+
+				//wait for fetching stream
+
+				Awaitility.await().pollDelay(5, TimeUnit.SECONDS).until(() -> {
+					return new File(hlsFile).exists();
+				});
+
+				//wait for packaging files
+				fetcher.stopStream();
+
+				String mp4File2 = "webapps/junit/streams/"+newCam.getStreamId() +"_1.mp4";
+
+				Awaitility.await().until(() -> {
+					return new File(mp4File2).exists();
+				});
+
+				assertFalse(fetcher.isThreadActive());
+			}
+
+
+
+
+
 
 			BufferedReader br = new BufferedReader(new FileReader("webapps/junit/streams/"+newCam.getStreamId() +".m3u8"));
 			try {
@@ -997,7 +1037,6 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			}
 
 			//Check that m3u8 file does not include "EXT-X-ENDLIST" parameter because "omit_endlist" flag is used in HLS Muxer
-
 			assertFalse(textInFile.contains("EXT-X-ENDLIST"));
 
 			getInstance().getDataStore().delete(id);
@@ -1007,10 +1046,11 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			fail(e.getMessage());
 		}
 		assertEquals(1, scheduler.getScheduledJobNames().size());
-		
+
 		getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
-		
-		
+		getAppSettings().setHlsflags(null);
+
+
 	}
 
 
