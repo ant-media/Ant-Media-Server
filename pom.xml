@@ -7,9 +7,7 @@
 	</parent>
 	<modelVersion>4.0.0</modelVersion>
 	<artifactId>ant-media-server</artifactId>
-
 	<version>${project.parent.version}</version>
-
 	<name>Ant Media Server</name>
 	<description>Ant Media Server supports RTMP, RTSP, MP4, HLS, WebRTC, Adaptive Streaming, etc.</description>
 	<packaging>jar</packaging>
@@ -442,6 +440,12 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
+		    <groupId>org.awaitility</groupId>
+		    <artifactId>awaitility</artifactId>
+		    <version>3.1.0</version>
+		    <scope>test</scope>
+		</dependency>
+		<dependency>
 			<groupId>io.antmedia.webrtc</groupId>
 			<artifactId>WebRTCApp</artifactId>
 			<version>${webrtcapp.version}</version>
@@ -475,7 +479,6 @@
  			 <version>3.3.9</version>
  			 <scope>test</scope>
 			</dependency>
-
 	</dependencies>
 	<profiles>
 		<profile>

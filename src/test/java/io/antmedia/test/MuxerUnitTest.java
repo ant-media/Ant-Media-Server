@@ -874,7 +874,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 		getAppSettings().setHlsTime(String.valueOf(hlsTime));
 		getAppSettings().setHlsListSize(String.valueOf(hlsListSize));
 		
-		
 
 		if (appScope == null) {
 			appScope = (WebScope) applicationContext.getBean("web.scope");
@@ -1001,8 +1000,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 	public void testHLSMuxing(String name)  {
 		
-
-
 		//av_log_set_level (40);
 		int hlsListSize = 5;
 		int hlsTime = 2;
@@ -1114,9 +1111,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 			});
 
 			assertEquals(0, files.length);
-
-
-
 
 		}
 		catch (Exception e) {
