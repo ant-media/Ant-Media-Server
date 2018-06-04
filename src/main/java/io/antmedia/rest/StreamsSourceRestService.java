@@ -1,7 +1,5 @@
 package io.antmedia.rest;
 
-import static org.junit.Assert.assertFalse;
-
 import java.io.File;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
