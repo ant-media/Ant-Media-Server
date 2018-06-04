@@ -2,6 +2,7 @@ package io.antmedia.streamsource;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -32,7 +33,7 @@ public class StreamFetcherManager {
 
 	private int streamCheckerCount = 0;
 
-	private ConcurrentLinkedQueue<StreamFetcher> streamFetcherList = new ConcurrentLinkedQueue<>();
+	private Queue<StreamFetcher> streamFetcherList = new ConcurrentLinkedQueue<>();
 
 	/**
 	 * Time period in milli seconds for checking stream fetchers status, restart issues etc. 
@@ -50,14 +51,14 @@ public class StreamFetcherManager {
 	protected AtomicBoolean isJobRunning = new AtomicBoolean(false);
 
 	public  static class StreamFetcherFactory {
-		public StreamFetcher make(Broadcast stream, IScope scope) throws Exception {
-			return new StreamFetcher(stream, scope);
+		public StreamFetcher make(Broadcast stream, IScope scope, ISchedulingService schedulingService) {
+			return new StreamFetcher(stream, scope, schedulingService);
 		}
 	}
-	
+
 	private boolean restartStreamAutomatically = true;
 
-	public StreamFetcherFactory streamFetcherFactory;
+	private StreamFetcherFactory streamFetcherFactory;
 
 	/**
 	 * Time period in seconds for restarting stream fetchers
@@ -67,9 +68,9 @@ public class StreamFetcherManager {
 	public StreamFetcherManager(ISchedulingService schedulingService, IDataStore datastore,IScope scope) {
 		this(schedulingService, datastore, scope, null);
 	}
-	
-	
-	
+
+
+
 	public StreamFetcherManager(ISchedulingService schedulingService, IDataStore datastore,IScope scope, StreamFetcherFactory streamFetcherFactory) {
 		this.schedulingService = schedulingService;
 		this.datastore = datastore;
@@ -78,7 +79,7 @@ public class StreamFetcherManager {
 		if(this.streamFetcherFactory == null) {
 			this.streamFetcherFactory = new StreamFetcherFactory();
 		}
-		
+
 	}
 
 	public int getStreamCheckerInterval() {
@@ -112,7 +113,7 @@ public class StreamFetcherManager {
 		Result result=new Result(false);
 
 		try {
-			StreamFetcher streamScheduler = streamFetcherFactory.make(broadcast, scope);
+			StreamFetcher streamScheduler = streamFetcherFactory.make(broadcast, scope, schedulingService);
 			streamScheduler.setRestartStream(restartStreamAutomatically);
 			streamScheduler.startStream();
 
@@ -121,7 +122,7 @@ public class StreamFetcherManager {
 				try {
 					Thread.sleep(6000);
 				} catch (InterruptedException e) {
-					e.printStackTrace();
+					logger.error(e.getMessage());
 				}
 			}
 			if(!streamScheduler.getCameraError().isSuccess()) {
@@ -136,14 +137,14 @@ public class StreamFetcherManager {
 			}
 		}
 		catch (Exception e) {
-			e.printStackTrace();
+			logger.error(e.getMessage());
 		}
 
 		return result;
 	}
 
 	public void stopStreaming(Broadcast stream) {
-		logger.warn("inside of stopStreaming");
+		logger.warn("inside of stopStreaming for {}", stream.getStreamId());
 
 		for (StreamFetcher streamScheduler : streamFetcherList) {
 			if (streamScheduler.getStream().getStreamId().equals(stream.getStreamId())) {
@@ -151,9 +152,13 @@ public class StreamFetcherManager {
 				streamFetcherList.remove(streamScheduler);
 				break;
 			}
-
 		}
+	}
 
+	public void stopCheckerJob() {
+		if (streamFetcherScheduleJobName != null) {
+			schedulingService.removeScheduledJob(streamFetcherScheduleJobName);
+		}
 	}
 
 	public void startStreams(List<Broadcast> streams) {
@@ -177,19 +182,19 @@ public class StreamFetcherManager {
 			@Override
 			public void execute(ISchedulingService service) throws CloneNotSupportedException {
 
-				if (streamFetcherList.size() > 0) {
+				if (!streamFetcherList.isEmpty()) {
 
 					streamCheckerCount++;
 
-					logger.warn("StreamFetcher Check Count  :" + streamCheckerCount);
-					
+					logger.warn("StreamFetcher Check Count:{}" , streamCheckerCount);
+
 					int countToRestart = 0;
 					if (restartStreamFetcherPeriodSeconds > 0) 
 					{
 						int streamCheckIntervalSec = streamCheckerIntervalMs / 1000;
 						countToRestart = (streamCheckerCount * streamCheckIntervalSec) / restartStreamFetcherPeriodSeconds;
 					}
-					
+
 
 					if (countToRestart > lastRestartCount) {
 
@@ -212,13 +217,10 @@ public class StreamFetcherManager {
 					} else {
 						for (StreamFetcher streamScheduler : streamFetcherList) {
 							Broadcast stream = streamScheduler.getStream();
-							if (!streamScheduler.isStreamAlive()) {
-
-								if (datastore != null && stream.getStreamId() != null) {
-									logger.info("Updating stream status to finished, updating status of stream {}", stream.getStreamId() );
-									
-									datastore.updateSourceQualityParameters(stream.getStreamId(), MuxAdaptor.QUALITY_POOR, 0, 0);
-								}
+							if (!streamScheduler.isStreamAlive() && datastore != null && stream.getStreamId() != null) 
+							{
+								logger.info("Updating stream quality to poor of stream {}", stream.getStreamId() );
+								datastore.updateSourceQualityParameters(stream.getStreamId(), MuxAdaptor.QUALITY_POOR, 0, 0);
 							}
 						}
 					}
@@ -237,11 +239,11 @@ public class StreamFetcherManager {
 		this.datastore = datastore;
 	}
 
-	public ConcurrentLinkedQueue<StreamFetcher> getStreamFetcherList() {
+	public Queue<StreamFetcher> getStreamFetcherList() {
 		return streamFetcherList;
 	}
 
-	public void setStreamFetcherList(ConcurrentLinkedQueue<StreamFetcher> streamFetcherList) {
+	public void setStreamFetcherList(Queue<StreamFetcher> streamFetcherList) {
 		this.streamFetcherList = streamFetcherList;
 	}
 
@@ -255,6 +257,18 @@ public class StreamFetcherManager {
 
 	public void setRestartStreamAutomatically(boolean restartStreamAutomatically) {
 		this.restartStreamAutomatically = restartStreamAutomatically;
+	}
+
+
+
+	public int getStreamCheckerCount() {
+		return streamCheckerCount;
+	}
+
+
+
+	public void setStreamCheckerCount(int streamCheckerCount) {
+		this.streamCheckerCount = streamCheckerCount;
 	}
 
 }

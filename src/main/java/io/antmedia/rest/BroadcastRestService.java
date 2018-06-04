@@ -1114,19 +1114,14 @@ public class BroadcastRestService {
 					getApplication().stopStreaming(broacast);
 					success = getDataStore().delete(id);
 					message = "streamSource is deleted";
-					logger.info("streamSource is deleted");
-
+					logger.info("streamSource ({}) is deleted", id);
 				}
-
 				else if (getDataStore().delete(id)) {
 					success = true;
 					message = "broadcast is deleted";
-
-					logger.info("broadcast is deleted");
-
+					logger.info("broadcast({}) is deleted", id);
 				}
 			}
-
 		}
 
 		return new Result(success, message);

@@ -5,9 +5,18 @@
             <pattern>[%p] [%thread] %logger - %msg%n</pattern>
         </encoder>
     </appender>
-    <appender class="ch.qos.logback.core.FileAppender" name="FILE">
-        <File>log/red5.log</File>
+    <appender class="ch.qos.logback.core.rolling.RollingFileAppender" name="FILE">
+        <File>log/ant-media-server.log</File>
         <Append>false</Append>
+
+        <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+          <fileNamePattern>log/ant-media-server.%i.log.gz</fileNamePattern>
+          <minIndex>1</minIndex>
+          <maxIndex>2</maxIndex>
+        </rollingPolicy>
+        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+          <maxFileSize>500MB</maxFileSize>
+        </triggeringPolicy>
         <encoder>
             <pattern>%d{ISO8601} [%thread] %-5level %logger{35} - %msg%n</pattern>
         </encoder>

@@ -615,6 +615,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 			appSettings.setAddDateTimeToMp4FileName(true);
 			appSettings.setWebRTCEnabled(false);
 			appSettings.setHlsMuxingEnabled(true);
+			appSettings.setObjectDetectionEnabled(false);
 			appSettings.setAdaptiveResolutionList(null);
 			appSettings.setHlsListSize(null);
 			appSettings.setHlsTime(null);

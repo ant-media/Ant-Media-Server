@@ -8,9 +8,7 @@
 	</parent>
 	<modelVersion>4.0.0</modelVersion>
 	<artifactId>ant-media-server</artifactId>
-
 	<version>${project.parent.version}</version>
-
 	<name>Ant Media Server</name>
 	<description>Ant Media Server supports RTMP, RTSP, MP4, HLS, WebRTC, Adaptive Streaming, etc.</description>
 	<packaging>jar</packaging>
@@ -443,14 +441,18 @@
 		    <version>1.1</version>
 		    <scope>test</scope>
 		</dependency>
-
+		<dependency>
+		    <groupId>org.awaitility</groupId>
+		    <artifactId>awaitility</artifactId>
+		    <version>3.1.0</version>
+		    <scope>test</scope>
+		</dependency>
 		<dependency>
 		    <groupId>org.glassfish.tyrus</groupId>
 		    <artifactId>tyrus-server</artifactId>
 		    <version>1.12</version>
 		    <scope>test</scope>
-		</dependency>
-		
+		</dependency>		
 		<dependency>
 		    <groupId>org.glassfish.tyrus</groupId>
 		    <artifactId>tyrus-container-grizzly-server</artifactId>
@@ -463,7 +465,6 @@
  			 <version>3.3.9</version>
  			 <scope>test</scope>
 		</dependency>
-
 	</dependencies>
 	<profiles>
 		<profile>

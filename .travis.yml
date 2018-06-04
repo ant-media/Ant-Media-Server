@@ -43,11 +43,11 @@ before_install:
   - sudo service antmedia stop
   - sudo service antmedia start
   - sleep 10
-
+  - sudo cat /usr/local/antmedia/log/ant-media-server.log
 
 
 install:
-  - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -Dgpg.skip=true -B -V
+  - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -Dgpg.skip=true -B -V --quiet 
 
 script:
   - mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent package sonar:sonar -Dmaven.javadoc.skip=true
@@ -59,7 +59,7 @@ cache:
 
 deploy:
   - provider: script
-    script: "mvn deploy -P assemble -DskipTests --settings mvn-settings.xml"
+    script: "mvn deploy -P assemble -DskipTests --quiet --settings mvn-settings.xml"
     skip_cleanup: true
     on:
       tags: false
