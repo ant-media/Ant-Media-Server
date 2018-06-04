@@ -1058,35 +1058,35 @@ public class BroadcastRestService {
 	@Path("/broadcast/delete/{id}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result deleteBroadcast(@PathParam("id") String id) {
-		boolean success = false;
-		String message = null;
+		Result result = new Result (false);
 
 		if (id != null) {
 			Broadcast broacast = getDataStore().get(id);
-
 			if (broacast != null) {
-
 				if (broacast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA)||broacast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE)) {
 
 					getApplication().stopStreaming(broacast);
-					success = getDataStore().delete(id);
-					message = "streamSource is deleted";
+					result.setSuccess(getDataStore().delete(id));
+					result.setMessage("streamSource is deleted");
 					logger.info("streamSource is deleted");
 
 				}
 
 				else if (getDataStore().delete(id)) {
-					success = true;
-					message = "broadcast is deleted";
-
+					result.setSuccess(true);
+					result.setMessage("broadcast is deleted");
 					logger.info("broadcast is deleted");
+				}
 
+				if(stopBroadcast(id).isSuccess()) {
+					result.setMessage("stream is deleted and stopped successfully");
+				} else {
+					result.setMessage("stream is deleted but could not stopped");
 				}
 			}
-
 		}
 
-		return new Result(success, message);
+		return result;
 	}
 
 	/**
