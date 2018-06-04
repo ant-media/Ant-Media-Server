@@ -177,6 +177,8 @@ public class StreamFetcher {
 
 	public class WorkerThread extends Thread implements IScheduledJob {
 
+		private static final int PACKET_WRITER_PERIOD_IN_MS = 10;
+
 		private volatile boolean stopRequestReceived = false;
 
 		private volatile boolean streamPublished = false;
@@ -217,7 +219,7 @@ public class StreamFetcher {
 						getInstance().startPublish(stream.getStreamId());
 
 						if (bufferTime > 0) {
-							packetWriterJobName = scheduler.addScheduledJob(5, this);
+							packetWriterJobName = scheduler.addScheduledJob(PACKET_WRITER_PERIOD_IN_MS, this);
 						}
 
 						int bufferLogCounter = 0;
