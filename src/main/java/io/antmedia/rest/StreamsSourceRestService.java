@@ -1,5 +1,7 @@
 package io.antmedia.rest;
 
+import static org.junit.Assert.assertFalse;
+
 import java.io.File;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
@@ -40,6 +42,7 @@ import io.antmedia.datastore.db.types.Vod;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.ipcamera.onvifdiscovery.OnvifDiscovery;
 import io.antmedia.rest.model.Result;
+import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
 
 @Component
@@ -135,6 +138,23 @@ public class StreamsSourceRestService {
 		return result;
 	}
 
+	@GET
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/getCameraError")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result getCameraError(@QueryParam("id") String id) {
+		Result result = new Result(true);
+		
+		for (StreamFetcher camScheduler : getInstance().getStreamFetcherManager().getStreamFetcherList()) {
+			if (camScheduler.getStream().getStreamId().equals(id)) {
+				result = camScheduler.getCameraError();
+			}
+		}
+		
+		return result;
+	}
+	
+	
 	@GET
 	@Path("/synchUserVoDList")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -234,7 +254,6 @@ public class StreamsSourceRestService {
 				}
 			}
 			logger.warn("IP Address:  " + localIP);
-
 		}
 
 		if (localIP != null) {
@@ -266,7 +285,6 @@ public class StreamsSourceRestService {
 					logger.warn("inside of for loop" + onvifDevices.get(i).toString());
 
 					list[i] = StringUtils.substringBetween(onvifDevices.get(i).toString(), "http://", "/");
-
 				}
 			}
 

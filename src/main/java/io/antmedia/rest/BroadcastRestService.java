@@ -1078,11 +1078,6 @@ public class BroadcastRestService {
 					logger.info("broadcast is deleted");
 				}
 
-				if(stopBroadcast(id).isSuccess()) {
-					result.setMessage("stream is deleted and stopped successfully");
-				} else {
-					result.setMessage("stream is deleted but could not stopped");
-				}
 			}
 		}
 

@@ -117,6 +117,7 @@ public class StreamFetcherManager {
 			streamScheduler.setRestartStream(restartStreamAutomatically);
 			streamScheduler.startStream();
 
+			/*
 			String broadcastType = broadcast.getType();
 			if(broadcastType != null && broadcastType.equals(AntMediaApplicationAdapter.IP_CAMERA)) {
 				try {
@@ -131,6 +132,10 @@ public class StreamFetcherManager {
 			else {
 				result.setSuccess(true);
 			}
+			 */
+			
+			
+			result.setSuccess(true);
 			streamFetcherList.add(streamScheduler);
 			if (streamFetcherScheduleJobName == null) {
 				scheduleStreamFetcherJob();
