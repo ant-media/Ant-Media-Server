@@ -51,7 +51,7 @@ public class StreamFetcherManager {
 	protected AtomicBoolean isJobRunning = new AtomicBoolean(false);
 
 	public  static class StreamFetcherFactory {
-		public StreamFetcher make(Broadcast stream, IScope scope, ISchedulingService schedulingService) throws Exception {
+		public StreamFetcher make(Broadcast stream, IScope scope, ISchedulingService schedulingService) {
 			return new StreamFetcher(stream, scope, schedulingService);
 		}
 	}
