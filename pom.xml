@@ -439,7 +439,6 @@
 		    <groupId>javax.websocket</groupId>
 		    <artifactId>javax.websocket-api</artifactId>
 		    <version>1.1</version>
-		    <scope>test</scope>
 		</dependency>
 		<dependency>
 		    <groupId>org.awaitility</groupId>
