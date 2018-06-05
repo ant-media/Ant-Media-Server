@@ -332,7 +332,7 @@ public class StreamFetcher {
 				thread.start();
 			}
 
-			logger.info("Leaving thread for {}", stream.getStreamUrl());
+			logger.debug("Leaving thread for {}", stream.getStreamUrl());
 			
 
 		}
