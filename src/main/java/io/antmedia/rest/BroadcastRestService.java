@@ -1,5 +1,6 @@
 package io.antmedia.rest;
 
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -38,12 +39,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.WebApplicationContext;
+import org.springframework.web.context.support.WebApplicationContextUtils;
 
 import com.drew.lang.annotations.Nullable;
 import com.google.gson.Gson;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
+import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
@@ -148,6 +151,7 @@ public class BroadcastRestService {
 	private IDataStore dataStore;
 
 	private AppSettings appSettings;
+	private DataStoreFactory dataStoreFactory;
 
 	protected static Logger logger = LoggerFactory.getLogger(BroadcastRestService.class);
 
@@ -1393,7 +1397,7 @@ public class BroadcastRestService {
 
 	public IDataStore getDataStore() {
 		if (dataStore == null) {
-			dataStore = (IDataStore) getAppContext().getBean("db.datastore");
+			dataStore = getDataStoreFactory().getDataStore();
 		}
 		return dataStore;
 	}
@@ -1443,5 +1447,17 @@ public class BroadcastRestService {
 		this.appSettings = appSettings;
 	}
 
+	public DataStoreFactory getDataStoreFactory() {
+		if(dataStoreFactory == null) {
+			WebApplicationContext ctxt = WebApplicationContextUtils.getWebApplicationContext(servletContext); 
+			dataStoreFactory = (DataStoreFactory) ctxt.getBean("dataStoreFactory");
+		}
+		return dataStoreFactory;
+	}
+
+
+	public void setDataStoreFactory(DataStoreFactory dataStoreFactory) {
+		this.dataStoreFactory = dataStoreFactory;
+	}
 
 }

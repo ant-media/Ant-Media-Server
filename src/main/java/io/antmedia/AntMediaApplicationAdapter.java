@@ -34,6 +34,7 @@ import org.red5.server.stream.ClientBroadcastStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
@@ -81,14 +82,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	private StreamFetcherManager streamFetcherManager;
 
 	private IDataStore dataStore;
-
-	public IDataStore getDataStore() {
-		return dataStore;
-	}
-
-	public void setDataStore(IDataStore dataStore) {
-		this.dataStore = dataStore;
-	}
+	DataStoreFactory dataStoreFactory;
 
 	private AppSettings appSettings;
 
@@ -110,7 +104,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 				logger.info("Stream source size: {}", streams.size());
 				streamFetcherManager.startStreams(streams);
 
-				List<SocialEndpointCredentials> socialEndpoints = dataStore.getSocialEndpoints(0, END_POINT_LIMIT);
+				List<SocialEndpointCredentials> socialEndpoints = getDataStore().getSocialEndpoints(0, END_POINT_LIMIT);
 
 				for (SocialEndpointCredentials socialEndpointCredentials : socialEndpoints) 
 				{
@@ -182,7 +176,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 				}
 			}
 			//if file does not exists, it means reset the vod
-			dataStore.fetchUserVodList(f);
+			getDataStore().fetchUserVodList(f);
 			result = true;
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -198,8 +192,8 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		try {
 			String streamName = stream.getPublishedName();
 			if (dataStore != null) {
-				dataStore.updateStatus(streamName, BROADCAST_STATUS_FINISHED);
-				Broadcast broadcast = dataStore.get(streamName);
+				getDataStore().updateStatus(streamName, BROADCAST_STATUS_FINISHED);
+				Broadcast broadcast = getDataStore().get(streamName);
 
 				if (broadcast != null) {
 					final String listenerHookURL = broadcast.getListenerHookURL();
@@ -238,7 +232,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 					}
 
 					if (broadcast.isZombi()) {
-						dataStore.delete(streamName);
+						getDataStore().delete(streamName);
 					}
 
 				}
@@ -300,14 +294,14 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 					if (dataStore != null) {
 
-						Broadcast broadcast = dataStore.get(streamName);
+						Broadcast broadcast = getDataStore().get(streamName);
 
 						if (broadcast == null) {
 							
 							broadcast = saveUndefinedBroadcast(streamName, getScope().getName(), dataStore, appSettings);
 
 						} else {
-							dataStore.updateStatus(streamName, BROADCAST_STATUS_BROADCASTING);
+							getDataStore().updateStatus(streamName, BROADCAST_STATUS_BROADCASTING);
 						}
 
 						final String listenerHookURL = broadcast.getListenerHookURL();
@@ -402,9 +396,9 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 			if (!name.matches(regularExp) && (index = name.lastIndexOf(".mp4")) != -1) {
 				final String baseName = name.substring(0, index);
-		//		dataStore.updateDuration(streamId, duration);
+		//		getDataStore().updateDuration(streamId, duration);
 
-				Broadcast broadcast = dataStore.get(streamId);
+				Broadcast broadcast = getDataStore().get(streamId);
 
 				
 				String[] subDirs = filePath.split(Pattern.quote(File.separator));
@@ -648,6 +642,27 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	public void setQualityParameters(String id, String quality, double speed, int pendingPacketSize) {
 		getDataStore().updateSourceQualityParameters(id, quality, speed, pendingPacketSize);
 		
+	}
+	
+	public IDataStore getDataStore() {
+		if(dataStore == null)
+		{
+			dataStore = dataStoreFactory.getDataStore();
+		}
+		return dataStore;
+	}
+
+	public void setDataStore(IDataStore dataStore) {
+		this.dataStore = dataStore;
+	}
+
+	public DataStoreFactory getDataStoreFactory() {
+		return dataStoreFactory;
+	}
+
+
+	public void setDataStoreFactory(DataStoreFactory dataStoreFactory) {
+		this.dataStoreFactory = dataStoreFactory;
 	}
 
 }

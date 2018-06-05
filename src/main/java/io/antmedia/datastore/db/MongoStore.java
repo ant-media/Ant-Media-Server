@@ -30,6 +30,7 @@ import com.mongodb.ServerAddress;
 import com.mongodb.WriteResult;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.datastore.DBUtils;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
@@ -59,11 +60,15 @@ public class MongoStore implements IDataStore {
 		morphia = new Morphia();
 		morphia.mapPackage("io.antmedia.datastore.db.types");
 		List<MongoCredential> credentialList = new ArrayList<MongoCredential>();
-		credentialList.add(MongoCredential.createCredential(username, dbName, password.toCharArray()));
-		datastore = morphia.createDatastore(new MongoClient(new ServerAddress(host), credentialList), dbName);
-		vodDatastore=morphia.createDatastore(new MongoClient(new ServerAddress(host), credentialList), dbName+"Vod");
-		endpointCredentialsDS = morphia.createDatastore(new MongoClient(new ServerAddress(host), credentialList), dbName+"_endpointCredentials");
+		//credentialList.add(MongoCredential.createCredential(username, dbName, password.toCharArray()));
+//		datastore = morphia.createDatastore(new MongoClient(new ServerAddress(host), credentialList), dbName);
+//		vodDatastore=morphia.createDatastore(new MongoClient(new ServerAddress(host), credentialList), dbName+"Vod");
+//		endpointCredentialsDS = morphia.createDatastore(new MongoClient(new ServerAddress(host), credentialList), dbName+"_endpointCredentials");
 
+		datastore = morphia.createDatastore(new MongoClient(host), dbName);
+		vodDatastore=morphia.createDatastore(new MongoClient(host), dbName+"Vod");
+		endpointCredentialsDS = morphia.createDatastore(new MongoClient(host), dbName+"_endpointCredentials");
+		
 		datastore.ensureIndexes();
 		vodDatastore.ensureIndexes();
 		endpointCredentialsDS.ensureIndexes();
@@ -82,6 +87,7 @@ public class MongoStore implements IDataStore {
 			return null;
 		}
 		try {
+			broadcast.setOriginAdress(DBUtils.getHostAddress());
 			String streamId = null;
 			if (broadcast.getStreamId() == null) {
 				streamId = RandomStringUtils.randomAlphanumeric(12) + System.currentTimeMillis();

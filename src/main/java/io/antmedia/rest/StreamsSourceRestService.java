@@ -33,6 +33,7 @@ import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.types.Broadcast;
@@ -49,6 +50,7 @@ public class StreamsSourceRestService {
 	@Context
 	private ServletContext servletContext;
 
+	private DataStoreFactory dataStoreFactory;
 	private IDataStore dbStore;
 	private ApplicationContext appCtx;
 
@@ -364,14 +366,27 @@ public class StreamsSourceRestService {
 
 	public IDataStore getStore() {
 		if (dbStore == null) {
-			WebApplicationContext ctxt = WebApplicationContextUtils.getWebApplicationContext(servletContext);
-			dbStore = (IDataStore) ctxt.getBean("db.datastore");
+			dbStore = getDataStoreFactory().getDataStore();
 		}
 		return dbStore;
 	}
 
 	public void setCameraStore(MapDBStore cameraStore) {
 		this.dbStore = cameraStore;
+	}
+
+	
+	public DataStoreFactory getDataStoreFactory() {
+		if(dataStoreFactory == null) {
+			WebApplicationContext ctxt = WebApplicationContextUtils.getWebApplicationContext(servletContext); 
+			dataStoreFactory = (DataStoreFactory) ctxt.getBean("dataStoreFactory");
+		}
+		return dataStoreFactory;
+	}
+
+
+	public void setDataStoreFactory(DataStoreFactory dataStoreFactory) {
+		this.dataStoreFactory = dataStoreFactory;
 	}
 
 }
