@@ -1064,18 +1064,18 @@ public class BroadcastRestService {
 			Broadcast broacast = getDataStore().get(id);
 			if (broacast != null) {
 				if (broacast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA)||broacast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE)) {
-
 					getApplication().stopStreaming(broacast);
-					result.setSuccess(getDataStore().delete(id));
-					result.setMessage("streamSource is deleted");
-					logger.info("streamSource is deleted");
-
 				}
 
-				else if (getDataStore().delete(id)) {
-					result.setSuccess(true);
-					result.setMessage("broadcast is deleted");
-					logger.info("broadcast is deleted");
+				result.setSuccess(getDataStore().delete(id));
+				
+				if(result.isSuccess() && stopBroadcast(id).isSuccess()) {
+					result.setMessage("brodcast is deleted and stopped successfully");
+					logger.info("brodcast {} is deleted and stopped successfully", id);
+					
+				}else if(result.isSuccess() && !stopBroadcast(id).isSuccess()) {
+					result.setMessage("brodcast is deleted but could not stopped ");
+					logger.info("brodcast {} is deleted but could not stopped", id);
 				}
 
 			}

@@ -2,6 +2,7 @@ package io.antmedia.integration;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
@@ -448,8 +449,35 @@ public class RestServiceTest {
 		Gson gson = new Gson();
 		Broadcast broadcast = new Broadcast();
 		broadcast.setExpireDurationMS(expireTimeMS);
-		broadcast.setName("namesdfsf");
+		broadcast.setName("testBroadcast");
 
+		HttpUriRequest post = RequestBuilder.post().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+				.setEntity(new StringEntity(gson.toJson(broadcast))).build();
+
+		HttpResponse response = client.execute(post);
+
+		StringBuffer result = readResponse(response);
+
+		if (response.getStatusLine().getStatusCode() != 200) {
+			throw new Exception(result.toString());
+		}
+		System.out.println("result string: " + result.toString());
+		Broadcast tmp = gson.fromJson(result.toString(), Broadcast.class);
+		assertNotNull(tmp);
+		assertNotSame(tmp.getDate(), 0L);
+
+		return tmp;
+
+	}
+	
+	public static Broadcast callCreateRegularBroadcast() throws Exception {
+
+		String url = ROOT_SERVICE_URL + "/broadcast/create";
+
+		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+		Gson gson = new Gson();
+		Broadcast broadcast = new Broadcast();
+		broadcast.setName("testBroadcast");
 		HttpUriRequest post = RequestBuilder.post().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
 				.setEntity(new StringEntity(gson.toJson(broadcast))).build();
 
@@ -737,7 +765,7 @@ public class RestServiceTest {
 
 			Broadcast broadcastReturned = callGetBroadcast(broadcast.getStreamId());
 
-			assertEquals(broadcastReturned.getStatus(), "created");
+			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED , broadcastReturned.getStatus());
 
 			// publish stream
 			Process execute = execute(ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy "
@@ -747,7 +775,7 @@ public class RestServiceTest {
 
 			broadcastReturned = callGetBroadcast(broadcast.getStreamId());
 
-			assertEquals(broadcastReturned.getStatus(), "broadcasting");
+			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING , broadcastReturned.getStatus());
 
 			// It should return true this time
 			assertTrue(callStopBroadcastService(broadcast.getStreamId()));
@@ -759,7 +787,7 @@ public class RestServiceTest {
 
 			broadcastReturned = callGetBroadcast(broadcast.getStreamId());
 
-			assertEquals("finished", broadcastReturned.getStatus());
+			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, broadcastReturned.getStatus());
 			
 			
 		} catch (Exception e) {
@@ -1272,102 +1300,41 @@ public class RestServiceTest {
 	public void testBroadcastDelete() {
 		try {
 
-			String url = ROOT_SERVICE_URL + "/broadcast/create";
+			//create broadcast
+			Broadcast broadcast = callCreateRegularBroadcast();
+			assertNotNull(broadcast);
 
-			HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
-			Gson gson = new Gson();
-			Broadcast broadcast = new Broadcast();
-			broadcast.setName("namesdfsf");
+			/// get broadcast	
+			Broadcast broadcastFetched = callGetBroadcast(broadcast.getStreamId());
+			
+			assertNotNull(broadcastFetched);
+			assertEquals(broadcast.getStreamId(), broadcastFetched.getStreamId());
+			assertEquals(broadcast.getName(), broadcastFetched.getName());
+			
+			// publish stream
+			Process execute = execute(ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy "
+					+ "	-vcodec copy -f flv rtmp://localhost/LiveApp/" + broadcastFetched.getStreamId());
 
-			HttpUriRequest post = RequestBuilder.post().setUri(url)
-					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
-					.setEntity(new StringEntity(gson.toJson(broadcast))).build();
+			Thread.sleep(5000);
+			
+			/// get broadcast	
+			Broadcast broadcast2 = callGetBroadcast(broadcast.getStreamId());
 
-			HttpResponse response = client.execute(post);
-
-			StringBuffer result = readResponse(response);
-
-			if (response.getStatusLine().getStatusCode() != 200) {
-				throw new Exception(result.toString());
-			}
-			System.out.println("result string: " + result.toString());
-			Broadcast tmp = gson.fromJson(result.toString(), Broadcast.class);
-			assertNotNull(tmp);
-			assertNotSame(tmp.getDate(), 0L);
-
-			/// get broadcast
-			url = ROOT_SERVICE_URL + "/broadcast/get";
-
-			client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
-			// Gson gson = new Gson();
-			// Broadcast broadcast = null; //new Broadcast();
-			// broadcast.name = "name";
-
-			HttpUriRequest get = RequestBuilder.get().setUri(url + "?id=" + tmp.getStreamId())
-					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
-					// .setEntity(new StringEntity(gson.toJson(broadcast)))
-					.build();
-
-			response = client.execute(get);
-
-			result = readResponse(response);
-
-			if (response.getStatusLine().getStatusCode() != 200) {
-				throw new Exception(result.toString());
-			}
-			System.out.println("result string: " + result.toString());
-			Broadcast tmp2 = gson.fromJson(result.toString(), Broadcast.class);
-			assertNotNull(tmp);
-			assertEquals(tmp.getStreamId(), tmp2.getStreamId());
-			assertEquals(tmp.getName(), tmp2.getName());
-
+			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING , broadcast2.getStatus());
+			
 			// delete broadcast
-			url = ROOT_SERVICE_URL + "/broadcast/delete/" + tmp2.getStreamId().toString();
+			Result result = deleteBroadcast(broadcastFetched.getStreamId());
+			assertNotNull(result);
+			assertTrue(result.isSuccess());
 
-			client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
-
-			post = RequestBuilder.post().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
-					// .setEntity(new StringEntity(gson.toJson(tmp2)))
-					.build();
-
-			response = client.execute(post);
-
-			result = readResponse(response);
-
-			if (response.getStatusLine().getStatusCode() != 200) {
-				throw new Exception(result.toString());
-			}
-			System.out.println("result string: " + result.toString());
-			Result result2 = gson.fromJson(result.toString(), Result.class);
+			//delete again
+			Result result2 = deleteBroadcast(broadcastFetched.getStreamId());
 			assertNotNull(result2);
-			assertTrue(result2.isSuccess());
+			assertFalse(result2.isSuccess());
+			
+			Broadcast broadcast3 = callGetBroadcast(broadcast.getStreamId());
+			assertNotEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING , broadcast3.getStatus());
 
-			// get the same object
-			/// get broadcast
-			url = ROOT_SERVICE_URL + "/broadcast/get";
-
-			client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
-			// Gson gson = new Gson();
-			// Broadcast broadcast = null; //new Broadcast();
-			// broadcast.name = "name";
-
-			get = RequestBuilder.get().setUri(url + "?id=" + tmp.getStreamId())
-					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
-					// .setEntity(new StringEntity(gson.toJson(broadcast)))
-					.build();
-
-			response = client.execute(get);
-
-			result = readResponse(response);
-
-			if (response.getStatusLine().getStatusCode() != 200) {
-				throw new Exception(result.toString());
-			}
-			System.out.println("result string: " + result.toString());
-			tmp2 = gson.fromJson(result.toString(), Broadcast.class);
-			assertNotNull(tmp2);
-			assertEquals(tmp2.getStreamId(), null);
-			assertEquals(tmp2.getName(), null);
 
 		} catch (Exception e) {
 			e.printStackTrace();

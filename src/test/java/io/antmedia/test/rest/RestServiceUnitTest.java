@@ -45,7 +45,7 @@ public class RestServiceUnitTest extends AbstractJUnit4SpringContextTests{
 	private AntMediaApplicationAdapter appInstance;
 	private WebScope appScope;
 	public AntMediaApplicationAdapter app = null;
-	
+
 	static {
 		System.setProperty("red5.deployment.type", "junit");
 		System.setProperty("red5.root", ".");
@@ -398,26 +398,7 @@ public class RestServiceUnitTest extends AbstractJUnit4SpringContextTests{
 		assertEquals(broadcastTmp.getStatus(), AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
 		assertEquals(broadcastTmp.getStreamId(), createBroadcast.getStreamId());
 		assertEquals(broadcastTmp.getName(), createBroadcast.getName());
-
-		Result deleteBroadcast = restService.deleteBroadcast(createBroadcast.getStreamId());
-		assertTrue(deleteBroadcast.isSuccess());
-
-
-		deleteBroadcast = restService.deleteBroadcast(createBroadcast.getStreamId());
-		assertFalse(deleteBroadcast.isSuccess());
-
-		deleteBroadcast = restService.deleteBroadcast(null);
-		assertFalse(deleteBroadcast.isSuccess());
-
-		try {
-			createBroadcast.setStreamId(null);
-			fail("it shoudl throw exception");
-		}
-		catch (Exception e) {
-			e.printStackTrace();
-		}
-		deleteBroadcast = restService.deleteBroadcast(null);
-		assertFalse(deleteBroadcast.isSuccess());
+		
 	}
 
 

@@ -144,7 +144,7 @@ public class StreamsSourceRestService {
 		Result result = new Result(true);
 		
 		for (StreamFetcher camScheduler : getInstance().getStreamFetcherManager().getStreamFetcherList()) {
-			if (camScheduler.getStream().getStreamId().equals(id)) {
+			if (camScheduler.getStream().getIpAddr().equals(id)) {
 				result = camScheduler.getCameraError();
 			}
 		}
