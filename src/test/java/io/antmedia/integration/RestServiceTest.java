@@ -1241,7 +1241,7 @@ public class RestServiceTest {
 			Broadcast broadcast = createBroadcast(null);
 
 			List<SocialEndpointCredentials> socialEndpointServices = getSocialEndpointServices();
-			assertTrue(socialEndpointServices.size() > 0);
+			assertTrue(!socialEndpointServices.isEmpty());
 			// add twitter endpoint
 			Result result = addSocialEndpoint(broadcast.getStreamId().toString(), socialEndpointServices.get(0).getId());
 
