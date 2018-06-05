@@ -327,7 +327,6 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 		{
 			
 			long pts = av_rescale_q(pkt.pts(), videoTimebase, timeBaseForMS);
-			//logger.info("send video packet pts: " + pts + " System current time millis: " + now);
 			BytePointer data = pkt.data();
 			byte[] byteArray = new byte[pkt.size()];
 			data.get(byteArray, 0, byteArray.length);
