@@ -293,56 +293,64 @@ public class MapDBStore implements IDataStore {
 
 	@Override
 	public List<Broadcast> getBroadcastList(int offset, int size) {
-		Collection<String> values = map.values();
-		int t = 0;
-		int itemCount = 0;
-		if (size > MAX_ITEM_IN_ONE_LIST) {
-			size = MAX_ITEM_IN_ONE_LIST;
-		}
-		if (offset < 0) {
-			offset = 0;
-		}
 		List<Broadcast> list = new ArrayList<Broadcast>();
-		for (String broadcastString : values) {
-			if (t < offset) {
-				t++;
-				continue;
+		synchronized (this) {
+			Collection<String> values = map.values();
+			int t = 0;
+			int itemCount = 0;
+			if (size > MAX_ITEM_IN_ONE_LIST) {
+				size = MAX_ITEM_IN_ONE_LIST;
 			}
-			list.add(gson.fromJson(broadcastString, Broadcast.class));
-			itemCount++;
-
-			if (itemCount >= size) {
-				break;
+			if (offset < 0) {
+				offset = 0;
 			}
 
+			for (String broadcastString : values) {
+				if (t < offset) {
+					t++;
+					continue;
+				}
+				list.add(gson.fromJson(broadcastString, Broadcast.class));
+				itemCount++;
+
+				if (itemCount >= size) {
+					break;
+				}
+
+			}
 		}
 		return list;
 	}
 
 	@Override
 	public List<Vod> getVodList(int offset, int size) {
-		Collection<String> values = vodMap.values();
-		int t = 0;
-		int itemCount = 0;
-		if (size > MAX_ITEM_IN_ONE_LIST) {
-			size = MAX_ITEM_IN_ONE_LIST;
-		}
-		if (offset < 0) {
-			offset = 0;
-		}
+
 		List<Vod> list = new ArrayList<Vod>();
-		for (String vodString : values) {
-			if (t < offset) {
-				t++;
-				continue;
-			}
-			list.add(gson.fromJson(vodString, Vod.class));
-			itemCount++;
+		synchronized (this) {
 
-			if (itemCount >= size) {
-				break;
+			Collection<String> values = vodMap.values();
+			int t = 0;
+			int itemCount = 0;
+			if (size > MAX_ITEM_IN_ONE_LIST) {
+				size = MAX_ITEM_IN_ONE_LIST;
+			}
+			if (offset < 0) {
+				offset = 0;
 			}
 
+			for (String vodString : values) {
+				if (t < offset) {
+					t++;
+					continue;
+				}
+				list.add(gson.fromJson(vodString, Vod.class));
+				itemCount++;
+
+				if (itemCount >= size) {
+					break;
+				}
+
+			}
 		}
 		return list;
 	}
@@ -681,13 +689,15 @@ public class MapDBStore implements IDataStore {
 
 	@Override
 	public long getActiveBroadcastCount() {
-		Collection<String> values = map.values();
 		int activeBroadcastCount = 0;
-		for (String broadcastString : values) {
-			Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
-			String status = broadcast.getStatus();
-			if (status != null && status.equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
-				activeBroadcastCount++;
+		synchronized (this) {
+			Collection<String> values = map.values();
+			for (String broadcastString : values) {
+				Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
+				String status = broadcast.getStatus();
+				if (status != null && status.equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
+					activeBroadcastCount++;
+				}
 			}
 		}
 		return activeBroadcastCount;
@@ -721,25 +731,28 @@ public class MapDBStore implements IDataStore {
 	}
 
 	@Override
-	public List<TensorFlowObject> getDetectionList(String idFilter, int offsetSize, int batchSize) 
-	{
-		Type listType = new TypeToken<ArrayList<TensorFlowObject>>(){}.getType();
-		int offsetCount=0, batchCount=0;
+	public List<TensorFlowObject> getDetectionList(String idFilter, int offsetSize, int batchSize) {
 		List<TensorFlowObject> list = new ArrayList<>();
-		for (Iterator<String> keyIterator = detectionMap.keyIterator(); keyIterator.hasNext();) {
-			String keyValue = keyIterator.next();
-			if (keyValue.startsWith(idFilter)) 
-			{
-				if (offsetCount < offsetSize) {
-					offsetCount++;
-					continue;
+
+		synchronized (this) {
+			Type listType = new TypeToken<ArrayList<TensorFlowObject>>(){}.getType();
+			int offsetCount=0, batchCount=0;
+
+			for (Iterator<String> keyIterator = detectionMap.keyIterator(); keyIterator.hasNext();) {
+				String keyValue = keyIterator.next();
+				if (keyValue.startsWith(idFilter)) 
+				{
+					if (offsetCount < offsetSize) {
+						offsetCount++;
+						continue;
+					}
+					if (batchCount > batchSize) {
+						break;
+					}
+					batchCount++;
+					List<TensorFlowObject> detectedList = gson.fromJson(detectionMap.get(keyValue), listType);
+					list.addAll(detectedList);
 				}
-				if (batchCount > batchSize) {
-					break;
-				}
-				batchCount++;
-				List<TensorFlowObject> detectedList = gson.fromJson(detectionMap.get(keyValue), listType);
-				list.addAll(detectedList);
 			}
 		}
 		return list;

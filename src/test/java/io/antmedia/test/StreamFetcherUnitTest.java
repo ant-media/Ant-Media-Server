@@ -866,7 +866,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		try {
 			getAppSettings().setDeleteHLSFilesOnEnded(false);
 
-			assertEquals(1, scheduler.getScheduledJobNames().size());
+			assertEquals(2, scheduler.getScheduledJobNames().size());
 
 			Broadcast newCam = new Broadcast("streamSource", "127.0.0.1:8080", "admin", "admin", source,
 					AntMediaApplicationAdapter.STREAM_SOURCE);
