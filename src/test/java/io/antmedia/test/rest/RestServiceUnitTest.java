@@ -38,7 +38,7 @@ import io.antmedia.rest.model.Result;
 
 
 @ContextConfiguration(locations = { "test.xml" })
-public class RestServiceUnitTest extends AbstractJUnit4SpringContextTests{
+public class RestServiceUnitTest {
 
 
 	private BroadcastRestService restService = null;
@@ -55,19 +55,6 @@ public class RestServiceUnitTest extends AbstractJUnit4SpringContextTests{
 	@Before
 	public void before() {
 		restService = new BroadcastRestService();
-
-		if (appScope == null) {
-			appScope = (WebScope) applicationContext.getBean("web.scope");
-			assertTrue(appScope.getDepth() == 1);
-		}
-
-		if (app == null) 
-		{
-			app = (AntMediaApplicationAdapter) applicationContext.getBean("web.handler");
-			assertTrue(appScope.getDepth() == 1);
-		}
-
-
 	}
 
 	@After
@@ -399,14 +386,6 @@ public class RestServiceUnitTest extends AbstractJUnit4SpringContextTests{
 		assertEquals(broadcastTmp.getStreamId(), createBroadcast.getStreamId());
 		assertEquals(broadcastTmp.getName(), createBroadcast.getName());
 		
-	}
-
-
-	public AntMediaApplicationAdapter getInstance() {
-		if (appInstance == null) {
-			appInstance = (AntMediaApplicationAdapter) applicationContext.getBean("web.handler");
-		}
-		return appInstance;
 	}
 
 
