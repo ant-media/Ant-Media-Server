@@ -920,7 +920,7 @@ public class BroadcastRestService {
 			File recordFile = Muxer.getRecordFile(getScope(), fileName, ".mp4");
 			File uploadedFile = Muxer.getUploadRecordFile(getScope(), fileName, ".mp4");
 
-			logger.info("recordfile : " + recordFile.getAbsolutePath());
+			logger.info("recordfile {} : " , recordFile.getAbsolutePath());
 
 
 

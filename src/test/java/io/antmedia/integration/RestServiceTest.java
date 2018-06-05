@@ -1051,10 +1051,7 @@ public class RestServiceTest {
 			String serializedStr = new ObjectMapper().writeValueAsString(broadcast);
 			// check that this field exist
 			assertNull(broadcast.getDbId());
-			System.out.println("json result: " + serializedStr);
 			assertFalse(serializedStr.toString().contains("dbId"));
-			assertFalse(serializedStr.toString().contains("username"));
-			assertFalse(serializedStr.toString().contains("password"));
 		} catch (JsonProcessingException e) {
 			e.printStackTrace();
 		}
