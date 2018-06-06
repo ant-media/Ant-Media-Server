@@ -1387,6 +1387,10 @@ public class RestServiceTest {
 			result = callUpdateStreamSource(fetchedBroadcast);
 
 			assertTrue(result.isSuccess());
+			
+			fetchedBroadcast = callGetBroadcast(fetchedBroadcast.getStreamId());
+			
+			assertEquals("rtsp://admin:Admin12345@71.234.93.90:5014/11", fetchedBroadcast.getStreamUrl());
 
 			deleteBroadcast(fetchedBroadcast.getStreamId());
 		
