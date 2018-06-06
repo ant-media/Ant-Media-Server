@@ -64,6 +64,7 @@ import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.BroadcastRestService.BroadcastStatistics;
 import io.antmedia.rest.BroadcastRestService.LiveStatistics;
+import io.antmedia.rest.StreamsSourceRestService;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.Version;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
@@ -77,8 +78,8 @@ import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 
 public class RestServiceTest {
-	
-	
+
+
 
 	private static final String ROOT_APP_URL = "http://localhost:5080/LiveApp";
 
@@ -111,19 +112,19 @@ public class RestServiceTest {
 
 	private static String ffmpegPath = "ffmpeg";
 	private static Gson gson = new Gson();
-	
+
 	@Rule
 	public TestRule watcher = new TestWatcher() {
-	   protected void starting(Description description) {
-	      System.out.println("Starting test: " + description.getMethodName());
-	   }
-	   
-	   protected void failed(Throwable e, Description description) {
-		   System.out.println("Failed test: " + description.getMethodName());
-	   };
-	   protected void finished(Description description) {
-		   System.out.println("Finishing test: " + description.getMethodName());
-	   };
+		protected void starting(Description description) {
+			System.out.println("Starting test: " + description.getMethodName());
+		}
+
+		protected void failed(Throwable e, Description description) {
+			System.out.println("Failed test: " + description.getMethodName());
+		};
+		protected void finished(Description description) {
+			System.out.println("Finishing test: " + description.getMethodName());
+		};
 	};
 
 	@BeforeClass
@@ -469,7 +470,7 @@ public class RestServiceTest {
 		return tmp;
 
 	}
-	
+
 	public static Broadcast callCreateRegularBroadcast() throws Exception {
 
 		String url = ROOT_SERVICE_URL + "/broadcast/create";
@@ -497,12 +498,62 @@ public class RestServiceTest {
 
 	}
 
+	public static Result callAddStreamSource(Broadcast broadcast) throws Exception {
+
+		String url = ROOT_SERVICE_URL + "/streamSource/addStreamSource";
+
+		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+		Gson gson = new Gson();
+
+		HttpUriRequest post = RequestBuilder.post().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+				.setEntity(new StringEntity(gson.toJson(broadcast))).build();
+
+		HttpResponse response = client.execute(post);
+
+		StringBuffer result = readResponse(response);
+
+		if (response.getStatusLine().getStatusCode() != 200) {
+			throw new Exception(result.toString());
+		}
+		System.out.println("result string: " + result.toString());
+		Result tmp = gson.fromJson(result.toString(), Result.class);
+		assertNotNull(tmp);
+
+		return tmp;
+
+	}
+
+	public static Result callUpdateStreamSource(Broadcast broadcast) throws Exception {
+
+		String url = ROOT_SERVICE_URL + "/streamSource/updateCamInfo";
+
+		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+		Gson gson = new Gson();
+
+		HttpUriRequest post = RequestBuilder.post().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+				.setEntity(new StringEntity(gson.toJson(broadcast))).build();
+
+		HttpResponse response = client.execute(post);
+
+		StringBuffer result = readResponse(response);
+
+		if (response.getStatusLine().getStatusCode() != 200) {
+			throw new Exception(result.toString());
+		}
+		System.out.println("callUpdateStreamSource result string: " + result.toString());
+		Result tmp = gson.fromJson(result.toString(), Result.class);
+		assertNotNull(tmp);
+
+		return tmp;
+
+	}
+
 	@Test
 	public void testGetVersion() {
-		
-        MavenXpp3Reader reader = new MavenXpp3Reader();
-        try {
-        	//first, read version from pom.xml 
+
+		MavenXpp3Reader reader = new MavenXpp3Reader();
+		try {
+			//first, read version from pom.xml 
 			Model model = reader.read(new FileReader("pom.xml"));
 			logger.info(model.getParent().getVersion());
 
@@ -522,10 +573,10 @@ public class RestServiceTest {
 			Version versionList = null;
 
 			versionList = gson.fromJson(result.toString(), Version.class);
-			
+
 			//check that they are same
 			assertEquals(model.getParent().getVersion()
-				, versionList.getVersionName());
+					, versionList.getVersionName());
 
 		}catch(Exception e){
 			e.printStackTrace();
@@ -788,13 +839,13 @@ public class RestServiceTest {
 			broadcastReturned = callGetBroadcast(broadcast.getStreamId());
 
 			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, broadcastReturned.getStatus());
-			
-			
+
+
 		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-		
+
 		logger.info("leaving testStopBroadcast");
 	}
 
@@ -1294,6 +1345,62 @@ public class RestServiceTest {
 	}
 
 	@Test
+	public void testAddStreamSourceUrlCheck() {
+
+		//create broadcast
+		Broadcast broadcast = new Broadcast();
+		Result result = new Result (false);
+
+
+		try {
+	
+			assertNotNull(broadcast);
+			broadcast.setName("name");
+			broadcast.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
+			broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
+
+			//define invalid stream url
+			broadcast.setStreamUrl("rrtsp://admin:Admin12345@71.234.93.90:5011/12");
+
+			result = callAddStreamSource(broadcast);
+
+			Thread.sleep(1000);
+
+			//it should be false because url is invalid
+			assertFalse(result.isSuccess());
+			
+			//define valid stream url
+			broadcast.setStreamUrl("rtsp://admin:Admin12345@71.234.93.90:5011/12");
+
+			result = callAddStreamSource(broadcast);
+
+			//it should be true because url is valid
+			assertTrue(result.isSuccess());
+
+			Broadcast fetchedBroadcast = callGetBroadcast(result.getMessage());
+			
+			//change url
+
+			fetchedBroadcast.setStreamUrl("rtsp://admin:Admin12345@71.234.93.90:5014/11");
+			
+			//update broadcast
+			result = callUpdateStreamSource(fetchedBroadcast);
+
+			assertTrue(result.isSuccess());
+
+			deleteBroadcast(fetchedBroadcast.getStreamId());
+		
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+
+		
+
+	}
+
+	@Test
 	public void testBroadcastDelete() {
 		try {
 
@@ -1303,22 +1410,22 @@ public class RestServiceTest {
 
 			/// get broadcast	
 			Broadcast broadcastFetched = callGetBroadcast(broadcast.getStreamId());
-			
+
 			assertNotNull(broadcastFetched);
 			assertEquals(broadcast.getStreamId(), broadcastFetched.getStreamId());
 			assertEquals(broadcast.getName(), broadcastFetched.getName());
-			
+
 			// publish stream
 			Process execute = execute(ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy "
 					+ "	-vcodec copy -f flv rtmp://localhost/LiveApp/" + broadcastFetched.getStreamId());
 
 			Thread.sleep(5000);
-			
+
 			/// get broadcast	
 			Broadcast broadcast2 = callGetBroadcast(broadcast.getStreamId());
 
 			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING , broadcast2.getStatus());
-			
+
 			// delete broadcast
 			Result result = deleteBroadcast(broadcastFetched.getStreamId());
 			assertNotNull(result);
@@ -1328,7 +1435,7 @@ public class RestServiceTest {
 			Result result2 = deleteBroadcast(broadcastFetched.getStreamId());
 			assertNotNull(result2);
 			assertFalse(result2.isSuccess());
-			
+
 			Broadcast broadcast3 = callGetBroadcast(broadcast.getStreamId());
 			assertNotEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING , broadcast3.getStatus());
 

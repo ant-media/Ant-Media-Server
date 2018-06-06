@@ -69,7 +69,7 @@ public class StreamsSourceRestService {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result addStreamSource(Broadcast stream) {
 		Result result=new Result(false);
-		
+
 
 		if (stream.getName() != null && stream.getName().length() > 0 && checkStreamUrl(stream.getStreamUrl())) {
 
@@ -126,7 +126,7 @@ public class StreamsSourceRestService {
 				}
 
 				result.setSuccess(true);
-				result.setMessage("StreamSource successfully added");
+				result.setMessage(id);
 
 			}else {
 
@@ -191,7 +191,8 @@ public class StreamsSourceRestService {
 		boolean result = false;
 		OnvifCamera onvif = null;
 		logger.warn("inside of rest service");
-		if(broadcast.getStatus()!=null) {
+		
+		if( checkStreamUrl(broadcast.getStreamUrl()) && broadcast.getStatus()!=null){
 
 			getInstance().stopStreaming(broadcast);
 			try {
@@ -214,19 +215,20 @@ public class StreamsSourceRestService {
 					broadcast.setStreamUrl(rtspURLWithAuth);
 				}
 			}
-		}
 
-		if (onvif != null) {
-			onvif.disconnect();
+			if (onvif != null) {
+				onvif.disconnect();
+			}
+			try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+				Thread.currentThread().interrupt();
+			}
+
+			result = getStore().editStreamSourceInfo(broadcast);
+			getInstance().startStreaming(broadcast);
 		}
-		try {
-			Thread.sleep(1000);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-			Thread.currentThread().interrupt();
-		}
-		result = getStore().editStreamSourceInfo(broadcast);
-		getInstance().startStreaming(broadcast);
 		return new Result(result);
 	}
 
@@ -389,16 +391,18 @@ public class StreamsSourceRestService {
 
 	public boolean checkStreamUrl (String url) {
 
+		logger.info("inside check");
+
 		boolean streamUrlControl = false;
 		String[] ipAddrParts = null;
 		String ipAddr = null;
 
 		if(url != null) {
 			if( url.startsWith("http://") ||
-				url.startsWith("https://") ||
-				url.startsWith("rtmp://") ||
-				url.startsWith("rtmps://") ||
-				url.startsWith("rtsp://")) {
+					url.startsWith("https://") ||
+					url.startsWith("rtmp://") ||
+					url.startsWith("rtmps://") ||
+					url.startsWith("rtsp://")) {
 
 				streamUrlControl=true;
 			}
@@ -432,12 +436,12 @@ public class StreamsSourceRestService {
 			if(!this.validateIPaddress(ipAddr)){
 				streamUrlControl = false;
 			}
-		
+
 		}
 
 		return streamUrlControl;
 
 	}
-	
+
 
 }

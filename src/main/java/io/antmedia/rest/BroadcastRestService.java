@@ -285,6 +285,8 @@ public class BroadcastRestService {
 			result = true;
 		} else {
 			message = "No active broadcast found with id " + streamId;
+			
+			logger.warn("No active broadcast found with id {}", streamId);
 		}
 
 		return new Result(result, message);
