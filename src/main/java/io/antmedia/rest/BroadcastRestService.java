@@ -1420,11 +1420,11 @@ public class BroadcastRestService {
 	}
 
 	protected List<VideoServiceEndpoint> getEndpointList() {
-		return ((AntMediaApplicationAdapter) getApplication()).getVideoServiceEndpoints();
+		return getApplication().getVideoServiceEndpoints();
 	}
 
 	protected List<VideoServiceEndpoint> getEndpointsHavingErrorList(){
-		return ((AntMediaApplicationAdapter) getApplication()).getVideoServiceEndpointsHavingError();
+		return getApplication().getVideoServiceEndpointsHavingError();
 	}
 
 	@Nullable
