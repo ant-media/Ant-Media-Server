@@ -52,10 +52,7 @@ public class MapDBStore implements IDataStore {
 
 	public MapDBStore(String dbName) {
 
-		db = DBMaker.fileDB(dbName)
-				.fileMmapEnableIfSupported()
-				.transactionEnable()
-				.make();
+		db = DBMaker.fileDB(dbName).make();
 
 		map = db.hashMap(MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING).counterEnable()
 				.createOrOpen();
