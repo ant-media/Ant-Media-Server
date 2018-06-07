@@ -54,7 +54,6 @@ public class MapDBStore implements IDataStore {
 
 		db = DBMaker.fileDB(dbName)
 				.fileMmapEnable()
-				.closeOnJvmShutdown()
 				.make();
 
 		map = db.hashMap(MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING).counterEnable()
