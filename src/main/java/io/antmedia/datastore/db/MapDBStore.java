@@ -41,7 +41,7 @@ public class MapDBStore implements IDataStore {
 
 
 	private Gson gson;
-	private BTreeMap<String, String> socialEndpointsCredentialsMap;
+	private HTreeMap<String, String> socialEndpointsCredentialsMap;
 	protected static Logger logger = LoggerFactory.getLogger(MapDBStore.class);
 	private static final String MAP_NAME = "broadcast";
 	private static final String VOD_MAP_NAME = "vod";
@@ -68,7 +68,7 @@ public class MapDBStore implements IDataStore {
 		userVodMap = db.hashMap(USER_MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
 				.counterEnable().createOrOpen();
 
-		socialEndpointsCredentialsMap = db.treeMap(SOCIAL_ENDPONT_CREDENTIALS_MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
+		socialEndpointsCredentialsMap = db.hashMap(SOCIAL_ENDPONT_CREDENTIALS_MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
 				.counterEnable().createOrOpen();
 
 		GsonBuilder builder = new GsonBuilder();
