@@ -13,6 +13,7 @@ import org.mapdb.BTreeMap;
 import org.mapdb.DB;
 import org.mapdb.DB.TreeMapMaker;
 import org.mapdb.DBMaker;
+import org.mapdb.HTreeMap;
 import org.mapdb.Serializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,12 +47,15 @@ public class MapDBStore implements IDataStore {
 	private static final String VOD_MAP_NAME = "vod";
 	private static final String DETECTION_MAP_NAME = "detection";
 	private static final String USER_MAP_NAME = "userVod";
-	private static final String SOCIAL_ENDPONT_CREDENTIALS_MAP_NAME = "SOCIAL_ENDPONT_CREDENTIALS_MAP_NAME";
+	private static final String SOCIAL_ENDPOINT_CREDENTIALS_MAP_NAME = "SOCIAL_ENDPOINT_CREDENTIALS_MAP_NAME";
 
 
 	public MapDBStore(String dbName) {
 
-		db = DBMaker.fileDB(dbName).fileMmapEnable().transactionEnable().make();
+		db = DBMaker
+				.fileDB(dbName)
+				.fileMmapEnable()
+				.make();
 
 		map = db.treeMap(MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING).counterEnable()
 				.createOrOpen();
@@ -64,7 +68,7 @@ public class MapDBStore implements IDataStore {
 		userVodMap = db.treeMap(USER_MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
 				.counterEnable().createOrOpen();
 
-		socialEndpointsCredentialsMap = db.treeMap(SOCIAL_ENDPONT_CREDENTIALS_MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
+		socialEndpointsCredentialsMap = db.treeMap(SOCIAL_ENDPOINT_CREDENTIALS_MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
 				.counterEnable().createOrOpen();
 
 		GsonBuilder builder = new GsonBuilder();
@@ -110,27 +114,29 @@ public class MapDBStore implements IDataStore {
 	public String save(Broadcast broadcast) {
 
 		String streamId = null;
-		if (broadcast != null) {
-			try {
-				if (broadcast.getStreamId() == null) {
-					streamId = RandomStringUtils.randomNumeric(24);
-					broadcast.setStreamId(streamId);
-				}
-				streamId = broadcast.getStreamId();
+		synchronized (this) {
+			if (broadcast != null) {
+				try {
+					if (broadcast.getStreamId() == null) {
+						streamId = RandomStringUtils.randomNumeric(24);
+						broadcast.setStreamId(streamId);
+					}
+					streamId = broadcast.getStreamId();
 
-				String rtmpURL = broadcast.getRtmpURL();
-				if (rtmpURL != null) {
-					rtmpURL += streamId;
+					String rtmpURL = broadcast.getRtmpURL();
+					if (rtmpURL != null) {
+						rtmpURL += streamId;
+					}
+					broadcast.setRtmpURL(rtmpURL);
+					if(broadcast.getStatus()==null) {
+						broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
+					}
+					map.put(streamId, gson.toJson(broadcast));
+					db.commit();
+				} catch (Exception e) {
+					e.printStackTrace();
+					streamId = null;
 				}
-				broadcast.setRtmpURL(rtmpURL);
-				if(broadcast.getStatus()==null) {
-					broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
-				}
-				map.put(streamId, gson.toJson(broadcast));
-				db.commit();
-			} catch (Exception e) {
-				e.printStackTrace();
-				streamId = null;
 			}
 		}
 
@@ -139,10 +145,12 @@ public class MapDBStore implements IDataStore {
 
 	@Override
 	public Broadcast get(String id) {
-		if (id != null) {
-			String jsonString = map.get(id);
-			if (jsonString != null) {
-				return gson.fromJson(jsonString, Broadcast.class);
+		synchronized (this) {
+			if (id != null) {
+				String jsonString = map.get(id);
+				if (jsonString != null) {
+					return gson.fromJson(jsonString, Broadcast.class);
+				}
 			}
 		}
 		return null;
@@ -211,19 +219,21 @@ public class MapDBStore implements IDataStore {
 	@Override
 	public boolean addEndpoint(String id, Endpoint endpoint) {
 		boolean result = false;
-		if (id != null && endpoint != null) {
-			String jsonString = map.get(id);
-			if (jsonString != null) {
-				Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
-				List<Endpoint> endPointList = broadcast.getEndPointList();
-				if (endPointList == null) {
-					endPointList = new ArrayList<Endpoint>();
+		synchronized (this) {
+			if (id != null && endpoint != null) {
+				String jsonString = map.get(id);
+				if (jsonString != null) {
+					Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
+					List<Endpoint> endPointList = broadcast.getEndPointList();
+					if (endPointList == null) {
+						endPointList = new ArrayList<Endpoint>();
+					}
+					endPointList.add(endpoint);
+					broadcast.setEndPointList(endPointList);
+					map.replace(id, gson.toJson(broadcast));
+					db.commit();
+					result = true;
 				}
-				endPointList.add(endpoint);
-				broadcast.setEndPointList(endPointList);
-				map.replace(id, gson.toJson(broadcast));
-				db.commit();
-				result = true;
 			}
 		}
 		return result;
@@ -232,26 +242,28 @@ public class MapDBStore implements IDataStore {
 	@Override
 	public boolean removeEndpoint(String id, Endpoint endpoint) {
 		boolean result = false;
+		synchronized (this) {
 
-		if (id != null && endpoint != null) {
-			String jsonString = map.get(id);
-			if (jsonString != null) {
-				Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
-				List<Endpoint> endPointList = broadcast.getEndPointList();
-				if (endPointList != null) {
-					for (Iterator<Endpoint> iterator = endPointList.iterator(); iterator.hasNext();) {
-						Endpoint endpointItem = iterator.next();
-						if (endpointItem.rtmpUrl.equals(endpoint.rtmpUrl)) {
-							iterator.remove();
-							result = true;
-							break;
+			if (id != null && endpoint != null) {
+				String jsonString = map.get(id);
+				if (jsonString != null) {
+					Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
+					List<Endpoint> endPointList = broadcast.getEndPointList();
+					if (endPointList != null) {
+						for (Iterator<Endpoint> iterator = endPointList.iterator(); iterator.hasNext();) {
+							Endpoint endpointItem = iterator.next();
+							if (endpointItem.rtmpUrl.equals(endpoint.rtmpUrl)) {
+								iterator.remove();
+								result = true;
+								break;
+							}
 						}
-					}
 
-					if (result) {
-						broadcast.setEndPointList(endPointList);
-						map.replace(id, gson.toJson(broadcast));
-						db.commit();
+						if (result) {
+							broadcast.setEndPointList(endPointList);
+							map.replace(id, gson.toJson(broadcast));
+							db.commit();
+						}
 					}
 				}
 			}
@@ -261,15 +273,18 @@ public class MapDBStore implements IDataStore {
 
 	@Override
 	public boolean removeAllEndpoints(String id) {
+
 		boolean result = false;
-		if (id != null) {
-			String jsonString = map.get(id);
-			if (jsonString != null) {
-				Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
-				broadcast.setEndPointList(null);
-				map.replace(id, gson.toJson(broadcast));
-				db.commit();
-				result = true;
+		synchronized (this) {
+			if (id != null) {
+				String jsonString = map.get(id);
+				if (jsonString != null) {
+					Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
+					broadcast.setEndPointList(null);
+					map.replace(id, gson.toJson(broadcast));
+					db.commit();
+					result = true;
+				}
 			}
 		}
 		return result;
@@ -277,7 +292,9 @@ public class MapDBStore implements IDataStore {
 
 	@Override
 	public long getBroadcastCount() {
-		return map.getSize();
+		synchronized (this) {
+			return map.getSize();
+		}
 	}
 
 	@Override
@@ -296,10 +313,12 @@ public class MapDBStore implements IDataStore {
 
 	@Override
 	public boolean delete(String id) {
-
-		boolean result = map.remove(id) != null;
-		if (result) {
-			db.commit();
+		boolean result = false;
+		synchronized (this) {
+			result = map.remove(id) != null;
+			if (result) {
+				db.commit();
+			}
 		}
 
 		return result;
@@ -307,56 +326,64 @@ public class MapDBStore implements IDataStore {
 
 	@Override
 	public List<Broadcast> getBroadcastList(int offset, int size) {
-		Collection<String> values = map.values();
-		int t = 0;
-		int itemCount = 0;
-		if (size > MAX_ITEM_IN_ONE_LIST) {
-			size = MAX_ITEM_IN_ONE_LIST;
-		}
-		if (offset < 0) {
-			offset = 0;
-		}
 		List<Broadcast> list = new ArrayList<Broadcast>();
-		for (String broadcastString : values) {
-			if (t < offset) {
-				t++;
-				continue;
+		synchronized (this) {
+			Collection<String> values = map.values();
+			int t = 0;
+			int itemCount = 0;
+			if (size > MAX_ITEM_IN_ONE_LIST) {
+				size = MAX_ITEM_IN_ONE_LIST;
 			}
-			list.add(gson.fromJson(broadcastString, Broadcast.class));
-			itemCount++;
-
-			if (itemCount >= size) {
-				break;
+			if (offset < 0) {
+				offset = 0;
 			}
 
+			for (String broadcastString : values) {
+				if (t < offset) {
+					t++;
+					continue;
+				}
+				list.add(gson.fromJson(broadcastString, Broadcast.class));
+				itemCount++;
+
+				if (itemCount >= size) {
+					break;
+				}
+
+			}
 		}
 		return list;
 	}
 
 	@Override
 	public List<Vod> getVodList(int offset, int size) {
-		Collection<String> values = vodMap.values();
-		int t = 0;
-		int itemCount = 0;
-		if (size > MAX_ITEM_IN_ONE_LIST) {
-			size = MAX_ITEM_IN_ONE_LIST;
-		}
-		if (offset < 0) {
-			offset = 0;
-		}
+
 		List<Vod> list = new ArrayList<Vod>();
-		for (String vodString : values) {
-			if (t < offset) {
-				t++;
-				continue;
-			}
-			list.add(gson.fromJson(vodString, Vod.class));
-			itemCount++;
+		synchronized (this) {
 
-			if (itemCount >= size) {
-				break;
+			Collection<String> values = vodMap.values();
+			int t = 0;
+			int itemCount = 0;
+			if (size > MAX_ITEM_IN_ONE_LIST) {
+				size = MAX_ITEM_IN_ONE_LIST;
+			}
+			if (offset < 0) {
+				offset = 0;
 			}
 
+			for (String vodString : values) {
+				if (t < offset) {
+					t++;
+					continue;
+				}
+				list.add(gson.fromJson(vodString, Vod.class));
+				itemCount++;
+
+				if (itemCount >= size) {
+					break;
+				}
+
+			}
 		}
 		return list;
 	}
@@ -368,44 +395,49 @@ public class MapDBStore implements IDataStore {
 	@Override
 	public List<Broadcast> filterBroadcastList(int offset, int size, String type) {
 
-		int t = 0;
-		int itemCount = 0;
-		if (size > MAX_ITEM_IN_ONE_LIST) {
-			size = MAX_ITEM_IN_ONE_LIST;
-		}
-		if (offset < 0) {
-			offset = 0;
-		}
-
-		Object[] objectArray = map.getValues().toArray();
-
-		Broadcast[] broadcastArray = new Broadcast[objectArray.length];
-
-		for (int i = 0; i < objectArray.length; i++) {
-			broadcastArray[i] = gson.fromJson((String) objectArray[i], Broadcast.class);
-		}
-
-		List<Broadcast> filterList = new ArrayList<Broadcast>();
-		for (int i = 0; i < broadcastArray.length; i++) {
-
-			if (broadcastArray[i].getType().equals(type)) {
-				filterList.add(gson.fromJson((String) objectArray[i], Broadcast.class));
-			}
-		}
-
 		List<Broadcast> list = new ArrayList<Broadcast>();
-		for (Broadcast broadcast : filterList) {
-			if (t < offset) {
-				t++;
-				continue;
+		synchronized (this) {
+			int t = 0;
+			int itemCount = 0;
+			if (size > MAX_ITEM_IN_ONE_LIST) {
+				size = MAX_ITEM_IN_ONE_LIST;
 			}
-			list.add(broadcast);
-			itemCount++;
-
-			if (itemCount >= size) {
-				break;
+			if (offset < 0) {
+				offset = 0;
 			}
 
+
+
+			Object[] objectArray = map.getValues().toArray();
+
+			Broadcast[] broadcastArray = new Broadcast[objectArray.length];
+
+			for (int i = 0; i < objectArray.length; i++) {
+				broadcastArray[i] = gson.fromJson((String) objectArray[i], Broadcast.class);
+			}
+
+			List<Broadcast> filterList = new ArrayList<Broadcast>();
+			for (int i = 0; i < broadcastArray.length; i++) {
+
+				if (broadcastArray[i].getType().equals(type)) {
+					filterList.add(gson.fromJson((String) objectArray[i], Broadcast.class));
+				}
+			}
+
+
+			for (Broadcast broadcast : filterList) {
+				if (t < offset) {
+					t++;
+					continue;
+				}
+				list.add(broadcast);
+				itemCount++;
+
+				if (itemCount >= size) {
+					break;
+				}
+
+			}
 		}
 		return list;
 
@@ -415,21 +447,22 @@ public class MapDBStore implements IDataStore {
 	public boolean addVod(Vod vod) {
 		String vodId = null;
 		boolean result = false;
+		synchronized (this) {
+			if (vod != null) {
+				try {
+					vodId = RandomStringUtils.randomNumeric(24);
+					vod.setVodId(vodId);
 
-		if (vod != null) {
-			try {
-				vodId = RandomStringUtils.randomNumeric(24);
-				vod.setVodId(vodId);
+					vodMap.put(vodId, gson.toJson(vod));
+					db.commit();
 
-				vodMap.put(vodId, gson.toJson(vod));
-				db.commit();
+					result = true;
+					logger.warn(Long.toString(vod.getCreationDate()));
 
-				result = true;
-				logger.warn(Long.toString(vod.getCreationDate()));
+				} catch (Exception e) {
+					e.printStackTrace();
 
-			} catch (Exception e) {
-				e.printStackTrace();
-
+				}
 			}
 		}
 		return result;
@@ -439,21 +472,22 @@ public class MapDBStore implements IDataStore {
 	public boolean addUserVod(Vod vod) {
 		String vodId = null;
 		boolean result = false;
+		synchronized (this) {
+			if (vod != null) {
+				try {
+					vodId = RandomStringUtils.randomNumeric(24);
+					vod.setVodId(vodId);
 
-		if (vod != null) {
-			try {
-				vodId = RandomStringUtils.randomNumeric(24);
-				vod.setVodId(vodId);
+					vodMap.put(vodId, gson.toJson(vod));
+					db.commit();
 
-				vodMap.put(vodId, gson.toJson(vod));
-				db.commit();
-
-				result = true;
+					result = true;
 
 
-			} catch (Exception e) {
-				e.printStackTrace();
+				} catch (Exception e) {
+					e.printStackTrace();
 
+				}
 			}
 		}
 		return result;
@@ -465,28 +499,28 @@ public class MapDBStore implements IDataStore {
 	@Override
 	public List<Broadcast> getExternalStreamsList() {
 
-		Object[] objectArray = map.getValues().toArray();
-
-		Broadcast[] broadcastArray = new Broadcast[objectArray.length];
-
 		List<Broadcast> streamsList = new ArrayList<Broadcast>();
 
-		for (int i = 0; i < objectArray.length; i++) {
+		synchronized (this) {
 
-			broadcastArray[i] = gson.fromJson((String) objectArray[i], Broadcast.class);
+			Object[] objectArray = map.getValues().toArray();
+			Broadcast[] broadcastArray = new Broadcast[objectArray.length];
 
-		}
 
-		for (int i = 0; i < broadcastArray.length; i++) {
+			for (int i = 0; i < objectArray.length; i++) {
 
-			if (broadcastArray[i].getType().equals(AntMediaApplicationAdapter.IP_CAMERA) || broadcastArray[i].getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE)) {
-
-				streamsList.add(gson.fromJson((String) objectArray[i], Broadcast.class));
+				broadcastArray[i] = gson.fromJson((String) objectArray[i], Broadcast.class);
 
 			}
 
-		}
+			for (int i = 0; i < broadcastArray.length; i++) {
 
+				if (broadcastArray[i].getType().equals(AntMediaApplicationAdapter.IP_CAMERA) || broadcastArray[i].getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE)) {
+
+					streamsList.add(gson.fromJson((String) objectArray[i], Broadcast.class));
+				}
+			}
+		}
 		return streamsList;
 	}
 
@@ -497,17 +531,23 @@ public class MapDBStore implements IDataStore {
 
 	@Override
 	public boolean deleteVod(String id) {
-		boolean result = vodMap.remove(id) != null;
-		if (result) {
-			db.commit();
-		}
 
+		boolean result = false;
+
+		synchronized (this) {
+			result = vodMap.remove(id) != null;
+			if (result) {
+				db.commit();
+			}
+		}
 		return result;
 	}
 
 	@Override
 	public long getTotalVodNumber() {
-		return getVodMap().size();
+		synchronized (this) {
+			return getVodMap().size();
+		}
 	}
 
 	@Override
@@ -518,46 +558,50 @@ public class MapDBStore implements IDataStore {
 		}
 
 		int numberOfSavedFiles = 0;
-		Object[] objectArray = vodMap.getValues().toArray();
-		Vod[] vodtArray = new Vod[objectArray.length];
 
-		for (int i = 0; i < objectArray.length; i++) {
-			vodtArray[i] = gson.fromJson((String) objectArray[i], Vod.class);
-		}
+		synchronized (this) {
+			Object[] objectArray = vodMap.getValues().toArray();
+			Vod[] vodtArray = new Vod[objectArray.length];
 
-		for (int i = 0; i < vodtArray.length; i++) {
-			if (vodtArray[i].getType().equals(Vod.USER_VOD)) {
-				vodMap.remove(vodtArray[i].getVodId());
+			for (int i = 0; i < objectArray.length; i++) {
+				vodtArray[i] = gson.fromJson((String) objectArray[i], Vod.class);
 			}
-		}
+
+			for (int i = 0; i < vodtArray.length; i++) {
+				if (vodtArray[i].getType().equals(Vod.USER_VOD)) {
+					vodMap.remove(vodtArray[i].getVodId());
+					db.commit();
+				}
+			}
 
 
-		File[] listOfFiles = userfile.listFiles();
+			File[] listOfFiles = userfile.listFiles();
 
-		if (listOfFiles != null) 
-		{
-			for (File file : listOfFiles) {
+			if (listOfFiles != null) 
+			{
+				for (File file : listOfFiles) {
 
-				String fileExtension = FilenameUtils.getExtension(file.getName());
+					String fileExtension = FilenameUtils.getExtension(file.getName());
 
-				if (file.isFile() && 
-						(fileExtension.equals("mp4") || fileExtension.equals("flv") || fileExtension.equals("mkv"))) {
+					if (file.isFile() && 
+							(fileExtension.equals("mp4") || fileExtension.equals("flv") || fileExtension.equals("mkv"))) {
 
-					long fileSize = file.length();
-					long unixTime = System.currentTimeMillis();
+						long fileSize = file.length();
+						long unixTime = System.currentTimeMillis();
 
-					String path=file.getPath();
+						String path=file.getPath();
 
-					String[] subDirs = path.split(Pattern.quote(File.separator));
+						String[] subDirs = path.split(Pattern.quote(File.separator));
 
-					Integer pathLength=Integer.valueOf(subDirs.length);
+						Integer pathLength=Integer.valueOf(subDirs.length);
 
-					String relativePath=subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
+						String relativePath=subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
 
-					Vod newVod = new Vod("vodFile", "vodFile", relativePath, file.getName(), unixTime, 0, fileSize,
-							Vod.USER_VOD);
-					addUserVod(newVod);
-					numberOfSavedFiles++;
+						Vod newVod = new Vod("vodFile", "vodFile", relativePath, file.getName(), unixTime, 0, fileSize,
+								Vod.USER_VOD);
+						addUserVod(newVod);
+						numberOfSavedFiles++;
+					}
 				}
 			}
 		}
@@ -589,27 +633,30 @@ public class MapDBStore implements IDataStore {
 
 	public SocialEndpointCredentials addSocialEndpointCredentials(SocialEndpointCredentials credentials) {
 		SocialEndpointCredentials addedCredential = null;
-		if (credentials != null && credentials.getAccountName() != null && credentials.getAccessToken() != null
-				&& credentials.getServiceName() != null) 
-		{
-			if (credentials.getId() == null) {
-				//create new id if id is not set
-				String id = RandomStringUtils.randomAlphanumeric(6);
-				credentials.setId(id);
-				socialEndpointsCredentialsMap.put(id, gson.toJson(credentials));
-				db.commit();
-				addedCredential = credentials;
-			}	
-			else {
+		synchronized (this) {
 
-				if(socialEndpointsCredentialsMap.get(credentials.getId()) != null) 
-				{
-					//replace the field if id exists
-					socialEndpointsCredentialsMap.put(credentials.getId(), gson.toJson(credentials));
+			if (credentials != null && credentials.getAccountName() != null && credentials.getAccessToken() != null
+					&& credentials.getServiceName() != null) 
+			{
+				if (credentials.getId() == null) {
+					//create new id if id is not set
+					String id = RandomStringUtils.randomAlphanumeric(6);
+					credentials.setId(id);
+					socialEndpointsCredentialsMap.put(id, gson.toJson(credentials));
 					db.commit();
 					addedCredential = credentials;
+				}	
+				else {
+
+					if(socialEndpointsCredentialsMap.get(credentials.getId()) != null) 
+					{
+						//replace the field if id exists
+						socialEndpointsCredentialsMap.put(credentials.getId(), gson.toJson(credentials));
+						db.commit();
+						addedCredential = credentials;
+					}
+					//if id is not matched with any value, do not record
 				}
-				//if id is not matched with any value, do not record
 			}
 		}
 		return addedCredential;
@@ -617,37 +664,45 @@ public class MapDBStore implements IDataStore {
 
 	@Override
 	public List<SocialEndpointCredentials> getSocialEndpoints(int offset, int size) {
-		Collection<String> values = socialEndpointsCredentialsMap.values();
-		int t = 0;
-		int itemCount = 0;
-		if (size > MAX_ITEM_IN_ONE_LIST) {
-			size = MAX_ITEM_IN_ONE_LIST;
-		}
-		if (offset < 0) {
-			offset = 0;
-		}
+
 		List<SocialEndpointCredentials> list = new ArrayList<SocialEndpointCredentials>();
-		for (String credentialString : values) {
-			if (t < offset) {
-				t++;
-				continue;
-			}
-			list.add(gson.fromJson(credentialString, SocialEndpointCredentials.class));
-			itemCount++;
 
-			if (itemCount >= size) {
-				break;
+		synchronized (this) {
+			Collection<String> values = socialEndpointsCredentialsMap.values();
+			int t = 0;
+			int itemCount = 0;
+			if (size > MAX_ITEM_IN_ONE_LIST) {
+				size = MAX_ITEM_IN_ONE_LIST;
+			}
+			if (offset < 0) {
+				offset = 0;
 			}
 
+			for (String credentialString : values) {
+				if (t < offset) {
+					t++;
+					continue;
+				}
+				list.add(gson.fromJson(credentialString, SocialEndpointCredentials.class));
+				itemCount++;
+
+				if (itemCount >= size) {
+					break;
+				}
+
+			}
 		}
 		return list;
 	}
 
 	@Override
 	public boolean removeSocialEndpointCredentials(String id) {
-		boolean result = socialEndpointsCredentialsMap.remove(id) != null;
-		if (result) {
-			db.commit();
+		boolean result = false;
+		synchronized (this) {
+			result = socialEndpointsCredentialsMap.remove(id) != null;
+			if (result) {
+				db.commit();
+			}
 		}
 		return result;
 	}
@@ -655,10 +710,12 @@ public class MapDBStore implements IDataStore {
 	@Override
 	public SocialEndpointCredentials getSocialEndpointCredentials(String id) {
 		SocialEndpointCredentials credential = null;
-		if (id != null) {
-			String jsonString = socialEndpointsCredentialsMap.get(id);
-			if (jsonString != null) {
-				credential = gson.fromJson(jsonString, SocialEndpointCredentials.class);
+		synchronized (this) {
+			if (id != null) {
+				String jsonString = socialEndpointsCredentialsMap.get(id);
+				if (jsonString != null) {
+					credential = gson.fromJson(jsonString, SocialEndpointCredentials.class);
+				}
 			}
 		}
 		return credential;
@@ -668,65 +725,71 @@ public class MapDBStore implements IDataStore {
 	@Override
 
 	public long getTotalBroadcastNumber() {
-		return getMap().size();
+		synchronized (this) {
+			return getMap().size();
+		}
 	}
 
 
-	
-
 	public void saveDetection(String id, long timeElapsed, List<TensorFlowObject> detectedObjects) {
-		try {
-			if (detectedObjects != null) {
-				for (TensorFlowObject tensorFlowObject : detectedObjects) {
-					tensorFlowObject.setDetectionTime(timeElapsed);
+		synchronized (this) {
+			try {
+				if (detectedObjects != null) {
+					for (TensorFlowObject tensorFlowObject : detectedObjects) {
+						tensorFlowObject.setDetectionTime(timeElapsed);
+					}
+					detectionMap.put(id, gson.toJson(detectedObjects));
+					db.commit();
 				}
-				detectionMap.put(id, gson.toJson(detectedObjects));
-				db.commit();
+			} catch (Exception e) {
+				e.printStackTrace();
 			}
-		} catch (Exception e) {
-			e.printStackTrace();
 		}
 	}
 
 	@Override
-	public List<TensorFlowObject> getDetection(String id) 
-	{
-		if (id != null) {
-			String jsonString = detectionMap.get(id);
-			if (jsonString != null) {
-				Type listType = new TypeToken<ArrayList<TensorFlowObject>>(){}.getType();
-				return gson.fromJson(jsonString, listType);
+	public List<TensorFlowObject> getDetection(String id) {
+
+		synchronized (this) {
+			if (id != null) {
+				String jsonString = detectionMap.get(id);
+				if (jsonString != null) {
+					Type listType = new TypeToken<ArrayList<TensorFlowObject>>(){}.getType();
+					return gson.fromJson(jsonString, listType);
+				}
 			}
 		}
 		return null;
 	}
 
 	@Override
-	public List<TensorFlowObject> getDetectionList(String idFilter, int offsetSize, int batchSize) 
-	{
-		Type listType = new TypeToken<ArrayList<TensorFlowObject>>(){}.getType();
-		int offsetCount=0, batchCount=0;
+	public List<TensorFlowObject> getDetectionList(String idFilter, int offsetSize, int batchSize) {
+
 		List<TensorFlowObject> list = new ArrayList<>();
-		for (Iterator<String> keyIterator = detectionMap.keyIterator(); keyIterator.hasNext();) {
-			String keyValue = keyIterator.next();
-			if (keyValue.startsWith(idFilter)) 
-			{
-				if (offsetCount < offsetSize) {
-					offsetCount++;
-					continue;
+
+		synchronized (this) {
+			Type listType = new TypeToken<ArrayList<TensorFlowObject>>(){}.getType();
+			int offsetCount=0, batchCount=0;
+
+			for (Iterator<String> keyIterator =  detectionMap.keyIterator(); keyIterator.hasNext();) {
+				String keyValue = keyIterator.next();
+				if (keyValue.startsWith(idFilter)) 
+				{
+					if (offsetCount < offsetSize) {
+						offsetCount++;
+						continue;
+					}
+					if (batchCount > batchSize) {
+						break;
+					}
+					batchCount++;
+					List<TensorFlowObject> detectedList = gson.fromJson(detectionMap.get(keyValue), listType);
+					list.addAll(detectedList);
 				}
-				if (batchCount > batchSize) {
-					break;
-				}
-				batchCount++;
-				List<TensorFlowObject> detectedList = gson.fromJson(detectionMap.get(keyValue), listType);
-				list.addAll(detectedList);
 			}
 		}
 		return list;
-
 	}
-
 
 	@Override
 	public boolean editStreamSourceInfo(Broadcast broadcast) {

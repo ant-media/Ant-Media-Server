@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
 import javax.servlet.ServletContext;
@@ -40,6 +41,7 @@ import io.antmedia.datastore.db.types.Vod;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.ipcamera.onvifdiscovery.OnvifDiscovery;
 import io.antmedia.rest.model.Result;
+import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
 
 @Component
@@ -67,8 +69,12 @@ public class StreamsSourceRestService {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result addStreamSource(Broadcast stream) {
 		Result result=new Result(false);
+		
+		logger.info("username {}", stream.getUsername());
+		logger.info("pass {}", stream.getPassword());
 
-		if (stream.getName() != null && stream.getName().length() > 0) {
+
+		if (stream.getName() != null && stream.getName().length() > 0 && checkStreamUrl(stream.getStreamUrl())) {
 
 			if (stream.getType().equals(AntMediaApplicationAdapter.IP_CAMERA)) {
 
@@ -123,7 +129,7 @@ public class StreamsSourceRestService {
 				}
 
 				result.setSuccess(true);
-				result.setMessage("StreamSource successfully added");
+				result.setMessage(id);
 
 			}else {
 
@@ -134,6 +140,25 @@ public class StreamsSourceRestService {
 
 		return result;
 	}
+
+
+
+	@GET
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/getCameraError")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result getCameraError(@QueryParam("id") String id) {
+		Result result = new Result(true);
+
+		for (StreamFetcher camScheduler : getInstance().getStreamFetcherManager().getStreamFetcherList()) {
+			if (camScheduler.getStream().getIpAddr().equals(id)) {
+				result = camScheduler.getCameraError();
+			}
+		}
+
+		return result;
+	}
+
 
 	@GET
 	@Path("/synchUserVoDList")
@@ -169,7 +194,8 @@ public class StreamsSourceRestService {
 		boolean result = false;
 		OnvifCamera onvif = null;
 		logger.warn("inside of rest service");
-		if(broadcast.getStatus()!=null) {
+		
+		if( checkStreamUrl(broadcast.getStreamUrl()) && broadcast.getStatus()!=null){
 
 			getInstance().stopStreaming(broadcast);
 			try {
@@ -185,26 +211,27 @@ public class StreamsSourceRestService {
 				String rtspURL = onvif.getRTSPStreamURI();
 
 				if (rtspURL != "no") {
-					
+
 					String authparam = broadcast.getUsername() + ":" + broadcast.getPassword() + "@";
 					String rtspURLWithAuth = "rtsp://" + authparam + rtspURL.substring("rtsp://".length());
 					System.out.println("new RTSP URL:" + rtspURLWithAuth);
 					broadcast.setStreamUrl(rtspURLWithAuth);
 				}
 			}
-		}
 
-		if (onvif != null) {
-			onvif.disconnect();
+			if (onvif != null) {
+				onvif.disconnect();
+			}
+			try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+				Thread.currentThread().interrupt();
+			}
+
+			result = getStore().editStreamSourceInfo(broadcast);
+			getInstance().startStreaming(broadcast);
 		}
-		try {
-			Thread.sleep(1000);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-			Thread.currentThread().interrupt();
-		}
-		result = getStore().editStreamSourceInfo(broadcast);
-		getInstance().startStreaming(broadcast);
 		return new Result(result);
 	}
 
@@ -233,8 +260,7 @@ public class StreamsSourceRestService {
 					}
 				}
 			}
-			logger.warn("IP Address:  " + localIP);
-
+			logger.warn("IP Address: {} " , localIP);
 		}
 
 		if (localIP != null) {
@@ -262,11 +288,7 @@ public class StreamsSourceRestService {
 
 				for (int i = 0; i < onvifDevices.size(); i++) {
 
-					logger.warn("inside of for loop" + i);
-					logger.warn("inside of for loop" + onvifDevices.get(i).toString());
-
 					list[i] = StringUtils.substringBetween(onvifDevices.get(i).toString(), "http://", "/");
-
 				}
 			}
 
@@ -361,5 +383,68 @@ public class StreamsSourceRestService {
 	public void setCameraStore(MapDBStore cameraStore) {
 		this.dbStore = cameraStore;
 	}
+	public boolean validateIPaddress(String ipaddress)  {
+
+		final String IPV4_REGEX = "(([0-1]?[0-9]{1,2}\\.)|(2[0-4][0-9]\\.)|(25[0-5]\\.)){3}(([0-1]?[0-9]{1,2})|(2[0-4][0-9])|(25[0-5]))";
+		Pattern pattern = Pattern.compile(IPV4_REGEX);
+
+		return pattern.matcher(ipaddress).matches();
+
+	}
+
+	public boolean checkStreamUrl (String url) {
+
+		logger.info("inside check");
+
+		boolean streamUrlControl = false;
+		String[] ipAddrParts = null;
+		String ipAddr = null;
+
+		if(url != null) {
+			if( url.startsWith("http://") ||
+					url.startsWith("https://") ||
+					url.startsWith("rtmp://") ||
+					url.startsWith("rtmps://") ||
+					url.startsWith("rtsp://")) {
+
+				streamUrlControl=true;
+			}
+			if(url.contains("//")){
+
+				ipAddrParts = url.split("//");
+				ipAddr = ipAddrParts[1];
+
+			} else { ipAddr = url;
+			}
+		}
+		if (ipAddr.contains("@")){
+
+			ipAddrParts = ipAddr.split("@");
+			ipAddr = ipAddrParts[1];
+
+		}
+		if (ipAddr.contains(":")){
+
+			ipAddrParts = ipAddr.split(":");
+			ipAddr = ipAddrParts[0];
+
+		}
+		if (ipAddr.contains("/")){
+
+			ipAddrParts = ipAddr.split("/");
+			ipAddr = ipAddrParts[0];
+
+		}
+		if(ipAddr.split(".").length == 4){
+			if(!this.validateIPaddress(ipAddr)){
+				streamUrlControl = false;
+			}
+
+		}
+
+		return streamUrlControl;
+
+	}
+
 
 }

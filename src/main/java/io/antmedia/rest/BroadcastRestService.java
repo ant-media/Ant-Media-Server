@@ -301,6 +301,8 @@ public class BroadcastRestService {
 			result = true;
 		} else {
 			message = "No active broadcast found with id " + streamId;
+			
+			logger.warn("No active broadcast found with id {}", streamId);
 		}
 
 		return new Result(result, message);
@@ -966,7 +968,7 @@ public class BroadcastRestService {
 			File recordFile = Muxer.getRecordFile(getScope(), fileName, ".mp4");
 			File uploadedFile = Muxer.getUploadRecordFile(getScope(), fileName, ".mp4");
 
-			logger.info("recordfile : " + recordFile.getAbsolutePath());
+			logger.info("recordfile {} : " , recordFile.getAbsolutePath());
 
 
 
@@ -1101,30 +1103,30 @@ public class BroadcastRestService {
 	@Path("/broadcast/delete/{id}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result deleteBroadcast(@PathParam("id") String id) {
-		boolean success = false;
-		String message = null;
+		Result result = new Result (false);
 
 		if (id != null) {
 			Broadcast broacast = getDataStore().get(id);
-
 			if (broacast != null) {
-
 				if (broacast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA)||broacast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE)) {
-
 					getApplication().stopStreaming(broacast);
-					success = getDataStore().delete(id);
-					message = "streamSource is deleted";
-					logger.info("streamSource ({}) is deleted", id);
+
 				}
-				else if (getDataStore().delete(id)) {
-					success = true;
-					message = "broadcast is deleted";
-					logger.info("broadcast({}) is deleted", id);
+				result.setSuccess(getDataStore().delete(id));
+				
+				if (result.isSuccess() && stopBroadcast(id).isSuccess()) {
+					result.setMessage("brodcast is deleted and stopped successfully");
+					logger.info("brodcast {} is deleted and stopped successfully", id);
+					
+				} else if(result.isSuccess() && !stopBroadcast(id).isSuccess()) {
+					result.setMessage("brodcast is deleted but could not stopped ");
+					logger.info("brodcast {} is deleted but could not stopped", id);
 				}
+
 			}
 		}
 
-		return new Result(success, message);
+		return result;
 	}
 
 	/**

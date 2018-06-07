@@ -66,7 +66,7 @@ public class Launcher {
 
 		av_register_all();
 		avformat.avformat_network_init();
-		avutil.av_log_set_level(avutil.AV_LOG_WARNING);
+		avutil.av_log_set_level(avutil.AV_LOG_ERROR);
 		System.out.printf("Root: %s%nDeploy type: %s%n", System.getProperty("red5.root"), System.getProperty("red5.deployment.type"));
 		// check for the logback disable flag
 		boolean useLogback = Boolean.valueOf(System.getProperty("useLogback", "true"));
