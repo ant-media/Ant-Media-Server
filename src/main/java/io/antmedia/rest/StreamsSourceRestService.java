@@ -69,6 +69,9 @@ public class StreamsSourceRestService {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result addStreamSource(Broadcast stream) {
 		Result result=new Result(false);
+		
+		logger.info("username {}", stream.getUsername());
+		logger.info("pass {}", stream.getPassword());
 
 
 		if (stream.getName() != null && stream.getName().length() > 0 && checkStreamUrl(stream.getStreamUrl())) {

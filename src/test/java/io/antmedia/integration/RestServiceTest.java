@@ -260,9 +260,8 @@ public class RestServiceTest {
 
 	@Test
 	public void testBroadcastCreateFunctionalWithoutName() {
-
+		
 		createBroadcast(null);
-
 	}
 
 	@Test
@@ -798,7 +797,6 @@ public class RestServiceTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-
 	}
 
 	@Test
@@ -849,13 +847,10 @@ public class RestServiceTest {
 		logger.info("leaving testStopBroadcast");
 	}
 
-
 	@Test
 	public void testUploadVoDFile() {
 		//TODO: write test for uploading file
 	}
-
-
 
 	public String makePOSTRequest(String url, String entity) {
 		try {
@@ -910,8 +905,6 @@ public class RestServiceTest {
 		}
 		return null;
 	}
-
-
 
 
 	@Test
@@ -1300,7 +1293,6 @@ public class RestServiceTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-
 	}
 
 	@Test
@@ -1341,7 +1333,6 @@ public class RestServiceTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-
 	}
 
 	@Test
@@ -1351,13 +1342,14 @@ public class RestServiceTest {
 		Broadcast broadcast = new Broadcast();
 		Result result = new Result (false);
 
-
 		try {
 	
 			assertNotNull(broadcast);
 			broadcast.setName("name");
 			broadcast.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
 			broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
+			broadcast.setUsername("admin");
+			broadcast.setPassword("admin");
 
 			//define invalid stream url
 			broadcast.setStreamUrl("rrtsp://admin:Admin12345@71.234.93.90:5011/12");
@@ -1398,9 +1390,6 @@ public class RestServiceTest {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-
-
-		
 
 	}
 
