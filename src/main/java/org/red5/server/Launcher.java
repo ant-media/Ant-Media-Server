@@ -29,6 +29,7 @@ import java.util.TimerTask;
 import java.util.UUID;
 
 import org.bytedeco.javacpp.avformat;
+import org.bytedeco.javacpp.avutil;
 import org.red5.logging.Red5LoggerFactory;
 import org.red5.server.api.Red5;
 import org.slf4j.Logger;
@@ -65,6 +66,7 @@ public class Launcher {
 
 		av_register_all();
 		avformat.avformat_network_init();
+		avutil.av_log_set_level(avutil.AV_LOG_ERROR);
 		System.out.printf("Root: %s%nDeploy type: %s%n", System.getProperty("red5.root"), System.getProperty("red5.deployment.type"));
 		// check for the logback disable flag
 		boolean useLogback = Boolean.valueOf(System.getProperty("useLogback", "true"));
