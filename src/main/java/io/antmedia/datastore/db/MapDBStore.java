@@ -36,7 +36,7 @@ public class MapDBStore implements IDataStore {
 	private DB db;
 	private HTreeMap<String, String> map;
 	private HTreeMap<String, String> vodMap;
-	private BTreeMap<String, String> detectionMap;
+	private HTreeMap<String, String> detectionMap;
 	private HTreeMap<String, String> userVodMap;
 
 
@@ -53,7 +53,8 @@ public class MapDBStore implements IDataStore {
 	public MapDBStore(String dbName) {
 
 		db = DBMaker.fileDB(dbName)
-				.fileMmapEnable()
+				.fileMmapEnableIfSupported()
+				.transactionEnable()
 				.make();
 
 		map = db.hashMap(MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING).counterEnable()
@@ -61,7 +62,7 @@ public class MapDBStore implements IDataStore {
 		vodMap = db.hashMap(VOD_MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
 				.counterEnable().createOrOpen();
 
-		detectionMap = db.treeMap(DETECTION_MAP_NAME).keySerializer(Serializer.STRING)
+		detectionMap = db.hashMap(DETECTION_MAP_NAME).keySerializer(Serializer.STRING)
 				.valueSerializer(Serializer.STRING).counterEnable().createOrOpen();
 
 		userVodMap = db.hashMap(USER_MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
@@ -101,11 +102,11 @@ public class MapDBStore implements IDataStore {
 		this.map = map;
 	}
 
-	public BTreeMap<String, String> getDetectionMap() {
+	public HTreeMap<String, String> getDetectionMap() {
 		return detectionMap;
 	}
 
-	public void setDetectionMap(BTreeMap<String, String> detectionMap) {
+	public void setDetectionMap(HTreeMap<String, String> detectionMap) {
 		this.detectionMap = detectionMap;
 	}
 
@@ -791,7 +792,7 @@ public class MapDBStore implements IDataStore {
 			Type listType = new TypeToken<ArrayList<TensorFlowObject>>(){}.getType();
 			int offsetCount=0, batchCount=0;
 
-			for (Iterator<String> keyIterator = detectionMap.keyIterator(); keyIterator.hasNext();) {
+			for (Iterator<String> keyIterator = (Iterator<String>) detectionMap.keySet(); keyIterator.hasNext();) {
 				String keyValue = keyIterator.next();
 				if (keyValue.startsWith(idFilter)) 
 				{
