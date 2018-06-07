@@ -34,38 +34,38 @@ import io.antmedia.ipcamera.OnvifCamera;
 public class MapDBStore implements IDataStore {
 
 	private DB db;
-	private HTreeMap<String, String> map;
-	private HTreeMap<String, String> vodMap;
-	private HTreeMap<String, String> detectionMap;
-	private HTreeMap<String, String> userVodMap;
+	private BTreeMap<String, String> map;
+	private BTreeMap<String, String> vodMap;
+	private BTreeMap<String, String> detectionMap;
+	private BTreeMap<String, String> userVodMap;
 
 
 	private Gson gson;
-	private HTreeMap<String, String> socialEndpointsCredentialsMap;
+	private BTreeMap<String, String> socialEndpointsCredentialsMap;
 	protected static Logger logger = LoggerFactory.getLogger(MapDBStore.class);
 	private static final String MAP_NAME = "broadcast";
 	private static final String VOD_MAP_NAME = "vod";
 	private static final String DETECTION_MAP_NAME = "detection";
 	private static final String USER_MAP_NAME = "userVod";
-	private static final String SOCIAL_ENDPONT_CREDENTIALS_MAP_NAME = "SOCIAL_ENDPONT_CREDENTIALS_MAP_NAME";
+	private static final String SOCIAL_ENDPOINT_CREDENTIALS_MAP_NAME = "SOCIAL_ENDPOINT_CREDENTIALS_MAP_NAME";
 
 
 	public MapDBStore(String dbName) {
 
 		db = DBMaker.fileDB(dbName).make();
 
-		map = db.hashMap(MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING).counterEnable()
+		map = db.treeMap(MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING).counterEnable()
 				.createOrOpen();
-		vodMap = db.hashMap(VOD_MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
+		vodMap = db.treeMap(VOD_MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
 				.counterEnable().createOrOpen();
 
-		detectionMap = db.hashMap(DETECTION_MAP_NAME).keySerializer(Serializer.STRING)
+		detectionMap = db.treeMap(DETECTION_MAP_NAME).keySerializer(Serializer.STRING)
 				.valueSerializer(Serializer.STRING).counterEnable().createOrOpen();
 
-		userVodMap = db.hashMap(USER_MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
+		userVodMap = db.treeMap(USER_MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
 				.counterEnable().createOrOpen();
 
-		socialEndpointsCredentialsMap = db.hashMap(SOCIAL_ENDPONT_CREDENTIALS_MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
+		socialEndpointsCredentialsMap = db.treeMap(SOCIAL_ENDPOINT_CREDENTIALS_MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
 				.counterEnable().createOrOpen();
 
 		GsonBuilder builder = new GsonBuilder();
@@ -75,35 +75,35 @@ public class MapDBStore implements IDataStore {
 	}
 
 
-	public HTreeMap<String, String> getUserVodMap() {
+	public BTreeMap<String, String> getUserVodMap() {
 
 		return userVodMap;
 	}
-	public void setUserVodMap(HTreeMap<String, String> userVodMap) {
+	public void setUserVodMap(BTreeMap<String, String> userVodMap) {
 		this.userVodMap = userVodMap;
 	}
 
-	public HTreeMap<String, String> getVodMap() {
+	public BTreeMap<String, String> getVodMap() {
 		return vodMap;
 	}
 
-	public void setVodMap(HTreeMap<String, String> vodMap) {
+	public void setVodMap(BTreeMap<String, String> vodMap) {
 		this.vodMap = vodMap;
 	}
 
-	public HTreeMap<String, String> getMap() {
+	public BTreeMap<String, String> getMap() {
 		return map;
 	}
 
-	public void setMap(HTreeMap<String, String> map) {
+	public void setMap(BTreeMap<String, String> map) {
 		this.map = map;
 	}
 
-	public HTreeMap<String, String> getDetectionMap() {
+	public BTreeMap<String, String> getDetectionMap() {
 		return detectionMap;
 	}
 
-	public void setDetectionMap(HTreeMap<String, String> detectionMap) {
+	public void setDetectionMap(BTreeMap<String, String> detectionMap) {
 		this.detectionMap = detectionMap;
 	}
 
@@ -789,7 +789,7 @@ public class MapDBStore implements IDataStore {
 			Type listType = new TypeToken<ArrayList<TensorFlowObject>>(){}.getType();
 			int offsetCount=0, batchCount=0;
 
-			for (Iterator<String> keyIterator = (Iterator<String>) detectionMap.keySet(); keyIterator.hasNext();) {
+			for (Iterator<String> keyIterator =  detectionMap.keyIterator(); keyIterator.hasNext();) {
 				String keyValue = keyIterator.next();
 				if (keyValue.startsWith(idFilter)) 
 				{
