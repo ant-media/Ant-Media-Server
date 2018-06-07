@@ -23,4 +23,9 @@ public class WebSocketClientConnection implements IClientConnection {
 		}
 	}
 
+	@Override
+	public String getId() {
+		return String.valueOf(this.wsConnection.getId());
+	}
+
 }
