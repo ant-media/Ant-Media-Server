@@ -251,7 +251,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 			streamScheduler.stopStream();
 
-			Thread.sleep(5000);
+			Thread.sleep(2500);
 
 			assertFalse(streamScheduler.isStreamAlive());
 
@@ -482,10 +482,8 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals("good", stream.getQuality());	
 
 		logger.info("speed {}" , stream.getSpeed()) ;
-		
-
-
-		assertTrue(1 < stream.getSpeed());
+				
+		assertTrue(1 < stream.getSpeed() || Math.abs(stream.getSpeed()-1) < 0.1);
 
 		limitNetworkInterfaceBandwidth();
 
