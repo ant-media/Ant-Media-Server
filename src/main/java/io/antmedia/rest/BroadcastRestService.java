@@ -1070,12 +1070,13 @@ public class BroadcastRestService {
 				}
 
 				result.setSuccess(getDataStore().delete(id));
+				boolean stopResult = stopBroadcast(id).isSuccess();
 				
-				if(result.isSuccess() && stopBroadcast(id).isSuccess()) {
+				if(result.isSuccess() && stopResult) {
 					result.setMessage("brodcast is deleted and stopped successfully");
 					logger.info("brodcast {} is deleted and stopped successfully", id);
 					
-				}else if(result.isSuccess() && !stopBroadcast(id).isSuccess()) {
+				}else if(result.isSuccess() && !stopResult) {
 					result.setMessage("brodcast is deleted but could not stopped ");
 					logger.info("brodcast {} is deleted but could not stopped", id);
 				}
