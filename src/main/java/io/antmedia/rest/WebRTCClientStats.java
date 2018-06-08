@@ -6,16 +6,16 @@ public class WebRTCClientStats {
 	
 	private int sendBitrate;
 	
-	private int videoFrameSendPeriod;
+	private double videoFrameSendPeriod;
 	
-	private int audioFrameSendPeriod;
+	private double audioFrameSendPeriod;
 	
-	private int videoThreadCheckInterval;
+	private double videoThreadCheckInterval;
 	
-	private int audioThreadCheckInterval;
+	private double audioThreadCheckInterval;
 
-	public WebRTCClientStats(int measuredBitrate, int sendBitrate, int videoFrameSendPeriod, int audioFrameSendPeriod,
-			int videoThreadCheckInterval, int audioThreadCheckInterval) {
+	public WebRTCClientStats(int measuredBitrate, int sendBitrate, double videoFrameSendPeriod, double audioFrameSendPeriod,
+			double videoThreadCheckInterval, double audioThreadCheckInterval) {
 		this.setMeasuredBitrate(measuredBitrate);
 		this.setSendBitrate(sendBitrate);
 		this.setVideoFrameSendPeriod(videoFrameSendPeriod);
@@ -24,35 +24,35 @@ public class WebRTCClientStats {
 		this.setAudioThreadCheckInterval(audioThreadCheckInterval);
 	}
 
-	public int getAudioThreadCheckInterval() {
+	public double getAudioThreadCheckInterval() {
 		return audioThreadCheckInterval;
 	}
 
-	public void setAudioThreadCheckInterval(int audioThreadCheckInterval) {
+	public void setAudioThreadCheckInterval(double audioThreadCheckInterval) {
 		this.audioThreadCheckInterval = audioThreadCheckInterval;
 	}
 
-	public int getVideoThreadCheckInterval() {
+	public double getVideoThreadCheckInterval() {
 		return videoThreadCheckInterval;
 	}
 
-	public void setVideoThreadCheckInterval(int videoThreadCheckInterval) {
+	public void setVideoThreadCheckInterval(double videoThreadCheckInterval) {
 		this.videoThreadCheckInterval = videoThreadCheckInterval;
 	}
 
-	public int getAudioFrameSendPeriod() {
+	public double getAudioFrameSendPeriod() {
 		return audioFrameSendPeriod;
 	}
 
-	public void setAudioFrameSendPeriod(int audioFrameSendPeriod) {
+	public void setAudioFrameSendPeriod(double audioFrameSendPeriod) {
 		this.audioFrameSendPeriod = audioFrameSendPeriod;
 	}
 
-	public int getVideoFrameSendPeriod() {
+	public double getVideoFrameSendPeriod() {
 		return videoFrameSendPeriod;
 	}
 
-	public void setVideoFrameSendPeriod(int videoFrameSendPeriod) {
+	public void setVideoFrameSendPeriod(double videoFrameSendPeriod) {
 		this.videoFrameSendPeriod = videoFrameSendPeriod;
 	}
 

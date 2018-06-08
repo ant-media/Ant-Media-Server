@@ -85,6 +85,8 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 
 	private long totalAudioProcessingTime;
 
+	private volatile boolean isStopped = false;
+
 	public WebRTCMuxer(QuartzSchedulingService scheduler, IWebRTCAdaptor webRTCAdaptor) {
 		super(scheduler);
 		this.webRTCAdaptor = webRTCAdaptor;
@@ -224,6 +226,11 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 	 */
 	@Override
 	public synchronized void writeTrailer() {
+		
+		if (isStopped) {
+			return;
+		}
+		isStopped  = true;
 		webRTCAdaptor.unRegisterMuxer(streamId, this);
 		
 		if (videoPacketCount > 0) {
@@ -243,9 +250,16 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 					audioPacketCount);
 		}
 
-		for (Iterator<IWebRTCClient> iterator = webRTCClientList.iterator(); iterator.hasNext();) {
-			IWebRTCClient iWebRTCClient = iterator.next();
+		int i = 0;
+		for (IWebRTCClient iWebRTCClient : webRTCClientList) {
+			logger.info("WebRTC Client {} video frame average sent period: {} "
+					+ " audio frame average period: {} video thread enter interval: {} "
+					+ " audio thread enter interval: {}", 
+					i, iWebRTCClient.getVideoFrameSentPeriod(), iWebRTCClient.getAudioFrameSentPeriod(),
+					iWebRTCClient.getVideoThreadCheckInterval(), iWebRTCClient.getAudioThreadCheckInterval()
+					);
 			iWebRTCClient.stop();
+			i++;
 		}
 	}
 
