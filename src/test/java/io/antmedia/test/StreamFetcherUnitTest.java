@@ -851,17 +851,19 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		logger.info("leaving testHLSSource");
 	}
 
+	
 	@Test
-	public void testTSSource() {
+	public void testTSSourceAndBugStreamSpeed() {
 		logger.info("running testTSSource");
 		//test TS Source
-		testFetchStreamSources("src/test/resources/test.ts", false);
+		testFetchStreamSources("src/test/resources/nba.ts", false);
 		logger.info("leaving testTSSource");
 	}
 
 
 	public void testFetchStreamSources(String source, boolean restartStream) {
 
+		Application.enableSourceHealthUpdate = true;
 		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnExit();
 		try {
 			getAppSettings().setDeleteHLSFilesOnEnded(false);
@@ -872,8 +874,9 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 					AntMediaApplicationAdapter.STREAM_SOURCE);
 
 			assertNotNull(newCam.getStreamUrl());
-
-			String id = getInstance().getDataStore().save(newCam);
+			IDataStore dataStore = getInstance().getDataStore();
+			
+			String id = dataStore.save(newCam);
 
 			assertNotNull(newCam.getStreamId());
 
@@ -893,18 +896,30 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
+			
+			double speed = dataStore.get(newCam.getStreamId()).getSpeed();
+			//this value was so high over 5000. After using first packet time it's value is about 100-200
+			//it is still high and it is normal because it reads vod from disk it does not read live stream.
+			//Btw, nba.ts , in testTSSourceAndBugStreamSpeed, is generated specifically by copying timestamps directy
+			//from live stream by using copyts parameter in ffmpeg 
+			logger.info("Speed of the stream: {}", speed);
+			assertTrue( speed < 300);
 
 			//wait for packaging files
 			fetcher.stopStream();
 
-			try {
-				Thread.sleep(8000);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
+			String mp4File = "webapps/junit/streams/"+newCam.getStreamId() +".mp4";
+			
+			Awaitility.waitAtMost(10, TimeUnit.SECONDS).until(() -> {
+				return new File(mp4File).exists();
+			});
+			
 			assertFalse(fetcher.isThreadActive());
 
 			logger.info("before test m3u8 file");
+			
+			speed = dataStore.get(newCam.getStreamId()).getSpeed();
+			logger.info("Speed of the stream: {}", speed);
 
 			assertTrue(MuxingTest.testFile("webapps/junit/streams/"+newCam.getStreamId() +".m3u8"));
 
@@ -913,14 +928,9 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			File f = new File("webapps/junit/streams/"+newCam.getStreamId() +".mp4.tmp_extension");
 			assertFalse(f.exists());
 
-
-			f = new File("webapps/junit/streams/"+newCam.getStreamId() +".mp4");
-			assertTrue(f.exists());
-
-
 			logger.info("before test mp4 file");
 
-			assertTrue(MuxingTest.testFile("webapps/junit/streams/"+newCam.getStreamId() +".mp4"));
+			assertTrue(MuxingTest.testFile(mp4File));
 
 			logger.info("after test mp4 file");
 
@@ -933,6 +943,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		assertEquals(1, scheduler.getScheduledJobNames().size());
 		getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
+		
+		Application.enableSourceHealthUpdate = false;
 
 
 	}
