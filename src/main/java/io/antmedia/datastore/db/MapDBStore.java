@@ -47,14 +47,16 @@ public class MapDBStore implements IDataStore {
 	private static final String VOD_MAP_NAME = "vod";
 	private static final String DETECTION_MAP_NAME = "detection";
 	private static final String USER_MAP_NAME = "userVod";
-	private static final String SOCIAL_ENDPOINT_CREDENTIALS_MAP_NAME = "SOCIAL_ENDPOINT_CREDENTIALS_MAP_NAME";
+	private static final String SOCIAL_ENDPONT_CREDENTIALS_MAP_NAME = "SOCIAL_ENDPONT_CREDENTIALS_MAP_NAME";
 
 
 	public MapDBStore(String dbName) {
 
 		db = DBMaker
 				.fileDB(dbName)
-				.fileMmapEnable()
+				.fileMmapEnableIfSupported()
+				.transactionEnable()
+				.closeOnJvmShutdown()
 				.make();
 
 		map = db.treeMap(MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING).counterEnable()
@@ -68,7 +70,7 @@ public class MapDBStore implements IDataStore {
 		userVodMap = db.treeMap(USER_MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
 				.counterEnable().createOrOpen();
 
-		socialEndpointsCredentialsMap = db.treeMap(SOCIAL_ENDPOINT_CREDENTIALS_MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
+		socialEndpointsCredentialsMap = db.treeMap(SOCIAL_ENDPONT_CREDENTIALS_MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
 				.counterEnable().createOrOpen();
 
 		GsonBuilder builder = new GsonBuilder();

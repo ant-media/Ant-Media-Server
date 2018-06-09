@@ -240,8 +240,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 	@Test
 	public void testMuxingSimultaneously()  {
 
-
-
 		if (appScope == null) {
 			appScope = (WebScope) applicationContext.getBean("web.scope");
 			logger.info("Application / web scope: {}", appScope);
@@ -254,6 +252,9 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 		getAppSettings().setDeleteHLSFilesOnEnded(false);
 		
 		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null,false, appScope);
+		
+		//this value should be -1. It means it is uninitialized
+		assertEquals( -1, muxAdaptor.getFirstPacketTime());
 		File file = null;
 
 		try {
