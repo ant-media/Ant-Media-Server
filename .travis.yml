@@ -52,10 +52,14 @@ install:
 script:
   - mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent package sonar:sonar -Dmaven.javadoc.skip=true
 
+
 cache:
   directories:
     - '$HOME/.m2/repository'
     - '$HOME/.sonar/cache'
+    
+after_failure:
+  - sudo cat /usr/local/antmedia/log/ant-media-server.log
 
 deploy:
   - provider: script

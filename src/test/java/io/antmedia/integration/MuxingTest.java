@@ -244,7 +244,7 @@ public class MuxingTest {
 		RestServiceTest restService = new RestServiceTest();
 
 		LiveStatistics liveStatistics = restService.callGetLiveStatistics();
-		assertEquals(liveStatistics.totalLiveStreamCount, 0);
+		assertEquals(0, liveStatistics.totalLiveStreamCount);
 
 	}
 
