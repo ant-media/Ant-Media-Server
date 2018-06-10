@@ -647,7 +647,7 @@ public class MuxingTest {
 
 			return byteArray;
 		} catch (Exception e) {
-			e.printStackTrace();
+			//e.printStackTrace();
 		}
 		return null;
 	}
