@@ -40,7 +40,11 @@ import org.bytedeco.javacpp.avutil.AVFrame;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 import org.mockito.Mockito;
 import org.red5.io.ITag;
 import org.red5.io.flv.impl.FLVReader;
@@ -161,6 +165,20 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 		getAppSettings().setAdaptiveResolutionList(defaultSettings.getAdaptiveResolutionList());
 		
 	}
+	
+	@Rule
+	public TestRule watcher = new TestWatcher() {
+	   protected void starting(Description description) {
+	      System.out.println("Starting test: " + description.getMethodName());
+	   }
+	   
+	   protected void failed(Throwable e, Description description) {
+		   System.out.println("Failed test: " + description.getMethodName());
+	   };
+	   protected void finished(Description description) {
+		   System.out.println("Finishing test: " + description.getMethodName());
+	   };
+	};
 
 	public static void delete(File file)
 			throws IOException{
