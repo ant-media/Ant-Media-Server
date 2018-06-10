@@ -394,7 +394,7 @@ public class StreamsSourceRestService {
 
 	public boolean checkStreamUrl (String url) {
 
-		logger.info("inside check");
+		logger.debug("inside check {}", url);
 
 		boolean streamUrlControl = false;
 		String[] ipAddrParts = null;
