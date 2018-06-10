@@ -185,6 +185,12 @@
 			<version>${tomcat.version}</version>
 			<scope>provided</scope>
 		</dependency>
+		 <dependency>
+            <groupId>org.apache.tomcat.embed</groupId>
+            <artifactId>tomcat-embed-websocket</artifactId>
+            <version>${tomcat.version}</version>
+            <scope>provided</scope>
+        </dependency>
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
@@ -404,7 +410,6 @@
 			<artifactId>jersey-media-json-jackson</artifactId>
 			<version>${jersey.version}</version>
 		</dependency>
-	
 		<dependency>
 			<groupId>org.glassfish.jersey.media</groupId>
 			<artifactId>jersey-media-multipart</artifactId>
