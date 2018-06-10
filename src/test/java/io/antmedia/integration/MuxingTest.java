@@ -626,7 +626,7 @@ public class MuxingTest {
 		}
 	}
 
-	public byte[] getByteArray(String address) {
+	public static byte[] getByteArray(String address) {
 		try {
 
 			URL url = new URL(address);

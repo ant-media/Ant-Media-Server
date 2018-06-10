@@ -15,6 +15,7 @@ import java.net.InetAddress;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
@@ -23,6 +24,7 @@ import org.apache.http.client.methods.RequestBuilder;
 import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.client.LaxRedirectStrategy;
+import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -195,11 +197,21 @@ public class AppFunctionalTest {
 			rtmpSendingProcess.destroy();
 
 			//wait for creating mp4 files
-			Thread.sleep(3000);
-
+			
+			String sourceURL = "http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + source.getStreamId() + ".mp4";
+			
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
+				return MuxingTest.getByteArray(sourceURL) != null;
+			});
+			
+			String endpointURL = "http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + endpoint.getStreamId() + ".mp4";
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
+				return MuxingTest.getByteArray(endpointURL) != null;
+			});
+			
 			//test mp4 files
-			assertTrue(MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + source.getStreamId() + ".mp4"));
-			assertTrue(MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + endpoint.getStreamId() + ".mp4"));
+			assertTrue(MuxingTest.testFile(sourceURL));
+			assertTrue(MuxingTest.testFile(endpointURL));
 
 			restService.deleteBroadcast(source.getStreamId());
 			restService.deleteBroadcast(endpoint.getStreamId());
