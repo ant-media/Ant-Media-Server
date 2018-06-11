@@ -312,7 +312,7 @@ public class AppFunctionalTest {
 		RestServiceTest restService = new RestServiceTest();
 
 		LiveStatistics liveStatistics = restService.callGetLiveStatistics();
-		assertEquals(liveStatistics.totalLiveStreamCount, 0);
+		assertEquals(0, liveStatistics.totalLiveStreamCount);
 
 	}
 
@@ -330,7 +330,7 @@ public class AppFunctionalTest {
 				System.out.println("brodcast url: " + broadcast.getStreamId() + " status: " + broadcast.getStatus());
 			}
 			LiveStatistics liveStatistics = restService.callGetLiveStatistics();
-			assertEquals(liveStatistics.totalLiveStreamCount, 0);
+			assertEquals(0, liveStatistics.totalLiveStreamCount);
 
 			// publish live stream to the server
 			String streamId = "zombiStreamId1";
@@ -440,7 +440,7 @@ public class AppFunctionalTest {
 		RestServiceTest restService = new RestServiceTest();
 
 		LiveStatistics liveStatistics = restService.callGetLiveStatistics();
-		assertEquals(liveStatistics.totalLiveStreamCount, 0);
+		assertEquals(0, liveStatistics.totalLiveStreamCount);
 	}
 
 	public static void executeProcess(final String command) {
