@@ -18,6 +18,16 @@ Ant Media Server is an Open Source Media Server that supports:
 
 ## Releases 
 
+
+#### [Ant Media Server Community 1.3.5.1 (May 25, 2018)](https://github.com/ant-media/Ant-Media-Server/releases/download/ams-v1.3.5.1/ant-media-server-community-1.3.5.1-180525_1137.zip)
+
+* Restream RTSP, RTMP, HLS and MPEG-TS stream URLs as Stream Source
+* Improvement: Start StreamFetcher thread immediately after old one is finished to provide continuous stream
+* Bug fix: New Stream Source form does not clear values after a stream source added
+* Bug fix: In some streams, adaptive bitrate does not work properly. It creates longer video than expected and
+  this prevents web player to play properly
+* Bug fix: Login request delay in management panel application
+
 #### [Ant Media Server Community 1.3.4 (Apr 30, 2018)](https://github.com/ant-media/Ant-Media-Server/releases/tag/ams-v1.3.4)
 
 * Enhanced UI Elements,
