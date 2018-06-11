@@ -217,7 +217,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 								try {
 									videoServiceEndPoint.stopBroadcast(endpoint);
 								} catch (Exception e) {
-									e.printStackTrace();
+									logger.error(e.getMessage());
 								}
 							}
 						}
@@ -253,7 +253,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 						getDataStore().removeEndpoint(broadcast.getStreamId(), endpoint);
 						getDataStore().addEndpoint(broadcast.getStreamId(), newEndpoint);
 					} catch (Exception e) {
-						e.printStackTrace();
+						logger.error(e.getMessage());
 					}
 
 				}

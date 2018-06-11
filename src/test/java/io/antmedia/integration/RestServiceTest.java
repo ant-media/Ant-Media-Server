@@ -1143,7 +1143,7 @@ public class RestServiceTest {
 
 			// check that 1 element exist
 			assertNotNull(broadcast.getEndPointList());
-			assertEquals(broadcast.getEndPointList().size(), 1);
+			assertEquals(1, broadcast.getEndPointList().size());
 
 			broadcast = getBroadcast(broadcast.getStreamId().toString());
 			List<Endpoint> endpointList = broadcast.getEndPointList();
@@ -1167,7 +1167,7 @@ public class RestServiceTest {
 
 			broadcast = getBroadcast(broadcast.getStreamId().toString());
 			List<Endpoint> endpointList2 = broadcast.getEndPointList();
-			assertEquals(endpointList2.size(), 1);
+			assertEquals(1, endpointList2.size());
 
 			for (Endpoint endpoint : endpointList2) {
 				System.out.println("new endpoint url: " + endpoint.rtmpUrl + " broadcast.id=" + endpoint.broadcastId
@@ -1177,6 +1177,8 @@ public class RestServiceTest {
 
 			for (Endpoint endpoint : endpointList2) {
 				for (Endpoint endpointFirst : endpointList) {
+					System.out.println("new endpoint rtmp URL -> " + endpoint.rtmpUrl + " first endpoint URL -> " + endpointFirst.rtmpUrl);
+					System.out.println("new broadcast id -> " + endpoint.broadcastId + " first broadcast Id -> " + endpointFirst.broadcastId);
 					assertTrue(!endpoint.rtmpUrl.equals(endpointFirst.rtmpUrl)
 							|| !endpoint.broadcastId.equals(endpointFirst.broadcastId));
 				}
