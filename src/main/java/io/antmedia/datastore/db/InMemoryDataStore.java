@@ -258,24 +258,25 @@ public class InMemoryDataStore implements IDataStore {
 	}
 
 	@Override
-	public boolean addVod(Vod vod) {
-		String vodId = null;
+	public String addVod(Vod vod) {
+		String id = null;
 		boolean result = false;
 
 		if (vod != null) {
 			try {
-				vodId = RandomStringUtils.randomNumeric(24);
-				vod.setVodId(vodId);
-
-				vodMap.put(vodId,vod);
+				vodMap.put(vod.getVodId(),vod);
 				result = true;
 
 			} catch (Exception e) {
 				e.printStackTrace();
-
 			}
 		}
-		return result;
+		
+		if(result) {
+			
+			id = vod.getVodId();
+		}
+		return id;
 	}
 
 	@Override

@@ -28,6 +28,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.red5.server.api.scope.IBroadcastScope;
@@ -919,11 +920,10 @@ public class BroadcastRestService {
 		if (getAppContext() != null) {
 			// TODO: write test code for this function
 
-			File recordFile = Muxer.getRecordFile(getScope(), fileName, ".mp4");
-			File uploadedFile = Muxer.getUploadRecordFile(getScope(), fileName, ".mp4");
+			File recordFile = Muxer.getRecordFile(getScope(), id, ".mp4");
+			File uploadedFile = Muxer.getUploadRecordFile(getScope(), id, ".mp4");
 
 			logger.info("recordfile {} : " , recordFile.getAbsolutePath());
-
 
 
 			if (recordFile.exists()) {
@@ -962,16 +962,16 @@ public class BroadcastRestService {
 	@Consumes({ MediaType.MULTIPART_FORM_DATA })
 	@Path("/broadcast/uploadVoDFile/{name}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result uploadVoDFile(@PathParam("name") String fileName, @FormDataParam("file") InputStream inputStream,
-			@FormDataParam("file") FormDataContentDisposition fileInfo) throws Exception {
+	public Result uploadVoDFile(@PathParam("name") String fileName, @FormDataParam("file") InputStream inputStream) throws Exception {
 		boolean success = false;
 		String message = "";
+		String id= null;
 
 		String appScopeName = ScopeUtils.findApplication(getScope()).getName();
-		String uploadedFileName = fileInfo.getFileName();
+		//String uploadedFileName = fileInfo.getFileName();
 		OutputStream outpuStream = null;
 
-		String fileExtension = FilenameUtils.getExtension(uploadedFileName);
+		String fileExtension = FilenameUtils.getExtension(fileName);
 
 		if (fileExtension.equals("mp4")) {
 
@@ -986,9 +986,9 @@ public class BroadcastRestService {
 
 				}
 			}
-
+			String vodId = RandomStringUtils.randomNumeric(24);
 			File savedFile = new File(String.format("%s/webapps/%s/%s", System.getProperty("red5.root"), appScopeName,
-					"streams/" + fileName));
+					"streams/" + vodId + ".mp4"));
 
 			try {
 				int read = 0;
@@ -1024,8 +1024,15 @@ public class BroadcastRestService {
 
 				Vod newVod = new Vod(fileName, "vodFile", relativePath, fileName, unixTime, 0, fileSize,
 						Vod.UPLOADED_VOD);
+			
+				newVod.setVodId(vodId);
 
-				success = getDataStore().addVod(newVod);
+				id = getDataStore().addVod(newVod);
+				
+				if(id != null) {
+					success=true;
+					message = id;
+				}
 
 				if (outpuStream != null) {
 					try {

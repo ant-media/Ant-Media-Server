@@ -310,24 +310,22 @@ public class MongoStore implements IDataStore {
 	}
 
 	@Override
-	public boolean addVod(Vod vod) {
-		String vodId = null;
+	public String addVod(Vod vod) {
+		
+		String id = null;
 		boolean result = false;
 		try {	
-			if (vod.getStreamId() == null) {
-				vodId = RandomStringUtils.randomAlphanumeric(12) + System.currentTimeMillis();
-				vod.setStreamId(vodId);
-			}
-			vodId = vod.getStreamId();
-			vod.setVodId(vodId);
 			Key<Vod> key = vodDatastore.save(vod);
 			result = true;
-			return result;
 		} catch (Exception e) {
 
 			e.printStackTrace();
 		}
-		return result;
+
+		if(result) {
+			id = vod.getVodId();
+		}
+		return id;
 
 	}
 

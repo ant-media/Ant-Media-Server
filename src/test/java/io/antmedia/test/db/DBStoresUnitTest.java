@@ -622,11 +622,11 @@ public class DBStoresUnitTest {
 		Vod newVod4 = new Vod("ahmet", "111" + (int)(Math.random() * 1000),  "path", "vod", 1517239608, 17933, 1190725, "streamVod");
 		Vod newVod5 = new Vod("mehmet", "11" + (int)(Math.random() * 1000), "path", "vod", 1517239508, 17933, 1190825, "streamVod");
 
-		assertTrue(dataStore.addVod(newVod));
-		assertTrue(dataStore.addVod(newVod2));
-		assertTrue(dataStore.addVod(newVod3));
-		assertTrue(dataStore.addVod(newVod4));
-		assertTrue(dataStore.addVod(newVod5));
+		assertNotNull(dataStore.addVod(newVod));
+		assertNotNull(dataStore.addVod(newVod2));
+		assertNotNull(dataStore.addVod(newVod3));
+		assertNotNull(dataStore.addVod(newVod4));
+		assertNotNull(dataStore.addVod(newVod5));
 
 		
 		long totalVodNumber = dataStore.getTotalVodNumber();

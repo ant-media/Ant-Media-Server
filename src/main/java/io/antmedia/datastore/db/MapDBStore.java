@@ -73,9 +73,7 @@ public class MapDBStore implements IDataStore {
 		GsonBuilder builder = new GsonBuilder();
 		gson = builder.create();
 
-
 	}
-
 
 	public BTreeMap<String, String> getUserVodMap() {
 
@@ -429,16 +427,15 @@ public class MapDBStore implements IDataStore {
 	}
 
 	@Override
-	public boolean addVod(Vod vod) {
-		String vodId = null;
+	public String addVod(Vod vod) {
+		
+		String id = null;
 		boolean result = false;
+
 		synchronized (this) {
 			if (vod != null) {
 				try {
-					vodId = RandomStringUtils.randomNumeric(24);
-					vod.setVodId(vodId);
-
-					vodMap.put(vodId, gson.toJson(vod));
+					vodMap.put(vod.getVodId(), gson.toJson(vod));
 					db.commit();
 
 					result = true;
@@ -450,7 +447,11 @@ public class MapDBStore implements IDataStore {
 				}
 			}
 		}
-		return result;
+		
+		if(result) {
+			id = vod.getVodId();
+		}
+		return id;
 	}
 	@Override
 	public boolean addUserVod(Vod vod) {

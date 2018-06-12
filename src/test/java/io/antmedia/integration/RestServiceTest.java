@@ -1,5 +1,7 @@
 package io.antmedia.integration;
 
+import static org.bytedeco.javacpp.avformat.av_register_all;
+import static org.bytedeco.javacpp.avformat.avformat_network_init;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -10,6 +12,8 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
@@ -19,10 +23,12 @@ import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import javax.servlet.ServletContext;
 import javax.ws.rs.core.Context;
 
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
@@ -33,10 +39,19 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.methods.RequestBuilder;
 import org.apache.http.entity.StringEntity;
+import org.apache.http.entity.mime.HttpMultipartMode;
+import org.apache.http.entity.mime.MultipartEntity;
+import org.apache.http.entity.mime.MultipartEntityBuilder;
+import org.apache.http.entity.mime.content.ContentBody;
+import org.apache.http.entity.mime.content.FileBody;
+import org.apache.http.entity.mime.content.StringBody;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.client.LaxRedirectStrategy;
 import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.FileEntity;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -72,6 +87,9 @@ import io.antmedia.test.MuxerUnitTest;
 import io.antmedia.test.StreamSchedularUnitTest;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
+import org.awaitility.Awaitility;
+import org.bytedeco.javacpp.avformat;
+import org.bytedeco.javacpp.avutil;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 
 
@@ -79,11 +97,10 @@ import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 
 public class RestServiceTest {
 
-
-
 	private static final String ROOT_APP_URL = "http://localhost:5080/LiveApp";
 
 	private static final String ROOT_SERVICE_URL = "http://localhost:5080/LiveApp/rest";
+	private static final String SERVER_ADDR = "127.0.0.1";
 	private static Process tmpExec;
 	private BroadcastRestService restService = null;
 	protected static Logger logger = LoggerFactory.getLogger(RestServiceTest.class);
@@ -127,16 +144,23 @@ public class RestServiceTest {
 		};
 	};
 
+	
+
+	
 	@BeforeClass
 	public static void beforeClass() {
 		if (OS_TYPE == MAC_OS_X) {
 			ffmpegPath = "/usr/local/bin/ffmpeg";
 		}
+		avformat.av_register_all();
+		avformat.avformat_network_init();
+		avutil.av_log_set_level(avutil.AV_LOG_INFO);
 	}
 
 	@Before
 	public void before() {
 		restService = new BroadcastRestService();	
+		
 	}
 
 	@After
@@ -521,6 +545,37 @@ public class RestServiceTest {
 		return tmp;
 
 	}
+	
+	
+	public static Result callUploadVod(File file) throws Exception {
+
+		String url = ROOT_SERVICE_URL + "/broadcast/uploadVoDFile/" + file.getName();
+		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+		
+		HttpPost post = new HttpPost(url);
+		MultipartEntityBuilder builder = MultipartEntityBuilder.create();         
+		builder.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
+		
+		FileBody fileBody = new FileBody(file) ;
+
+		builder.addPart("file", fileBody);
+	
+		HttpEntity entity = builder.build();
+		post.setEntity(entity);
+		HttpResponse response = client.execute(post);
+
+		StringBuffer result = readResponse(response);
+
+		if (response.getStatusLine().getStatusCode() != 200) {
+			throw new Exception(result.toString());
+		}
+		logger.info("result string: {} ",result.toString());
+		Result tmp = gson.fromJson(result.toString(), Result.class);
+		assertNotNull(tmp);
+
+		return tmp;
+
+	}
 
 	public static Result callUpdateStreamSource(Broadcast broadcast) throws Exception {
 
@@ -849,7 +904,26 @@ public class RestServiceTest {
 
 	@Test
 	public void testUploadVoDFile() {
-		//TODO: write test for uploading file
+		
+		Result result = new Result(false);
+
+		File file = new File("src/test/resources/sample_MP4_480.mp4");
+		
+		try {
+			result = callUploadVod(file);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		assertTrue(result.isSuccess());
+		
+		String fileName =  result.getMessage(); 
+		
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
+			return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + fileName + ".mp4");
+		});
+		
+		
 	}
 
 	public String makePOSTRequest(String url, String entity) {
