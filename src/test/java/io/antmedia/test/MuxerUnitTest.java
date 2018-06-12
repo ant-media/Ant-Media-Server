@@ -103,7 +103,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 	public static void beforeClass() {
 		avformat.av_register_all();
 		avformat.avformat_network_init();
-		avutil.av_log_set_level(avutil.	AV_LOG_ERROR);
+		avutil.av_log_set_level(avutil.AV_LOG_INFO);
 	}
 	
 	@Before

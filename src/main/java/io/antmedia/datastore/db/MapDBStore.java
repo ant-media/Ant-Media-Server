@@ -38,10 +38,8 @@ public class MapDBStore implements IDataStore {
 	private BTreeMap<String, String> vodMap;
 	private BTreeMap<String, String> detectionMap;
 	private BTreeMap<String, String> userVodMap;
-
-
-	private Gson gson;
 	private BTreeMap<String, String> socialEndpointsCredentialsMap;
+	private Gson gson;
 	protected static Logger logger = LoggerFactory.getLogger(MapDBStore.class);
 	private static final String MAP_NAME = "broadcast";
 	private static final String VOD_MAP_NAME = "vod";
@@ -55,7 +53,6 @@ public class MapDBStore implements IDataStore {
 		db = DBMaker
 				.fileDB(dbName)
 				.fileMmapEnableIfSupported()
-				.transactionEnable()
 				.closeOnJvmShutdown()
 				.make();
 
@@ -771,7 +768,8 @@ public class MapDBStore implements IDataStore {
 
 		synchronized (this) {
 			Type listType = new TypeToken<ArrayList<TensorFlowObject>>(){}.getType();
-			int offsetCount=0, batchCount=0;
+			int offsetCount = 0;
+			int batchCount = 0;
 
 			for (Iterator<String> keyIterator =  detectionMap.keyIterator(); keyIterator.hasNext();) {
 				String keyValue = keyIterator.next();
@@ -817,7 +815,7 @@ public class MapDBStore implements IDataStore {
 			}
 		}
 
-		logger.debug("result inside edit camera: " + result);
+		logger.debug("result inside edit camera:{} ", result);
 		return result;
 	}
 

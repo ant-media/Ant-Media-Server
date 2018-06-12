@@ -532,7 +532,6 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	@Test
 	public void testStreamFetcherBuffer() {
 
-
 		try {	
 			assertEquals(1, scheduler.getScheduledJobNames().size());
 			getAppSettings().setDeleteHLSFilesOnEnded(false);

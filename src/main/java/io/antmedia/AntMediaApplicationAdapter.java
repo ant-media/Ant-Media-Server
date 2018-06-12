@@ -14,6 +14,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.regex.Pattern;
+
+import javax.annotation.Nonnull;
+
 import java.util.Set;
 
 import org.apache.http.HttpEntity;
@@ -137,17 +140,11 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		boolean result = false;
 		File streamsFolder = new File("webapps/" + getScope().getName() + "/streams");
 
-		if (oldFolderPath != null) 
-		{
-			File f = new File(oldFolderPath);
-			File linkFile = new File(streamsFolder.getAbsolutePath() + "/" + f.getName());
-			if (linkFile.exists()) {
-				try {
-					Files.delete(linkFile.toPath());
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
+		try {
+			deleteOldFolderPath(oldFolderPath, streamsFolder);
+			//even if an exception occurs, catch it in here and do not prevent the below operations
+		} catch (IOException e) {
+			logger.error(e.getMessage());
 		}
 
 		File f = new File(vodFolderPath == null ? "" : vodFolderPath);
@@ -167,11 +164,26 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 			dataStore.fetchUserVodList(f);
 			result = true;
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(e.getMessage());
 		}
 
 
 
+		return result;
+	}
+
+
+	public boolean deleteOldFolderPath(String oldFolderPath, File streamsFolder) throws IOException {
+		boolean result = false;
+		if (oldFolderPath != null && !oldFolderPath.isEmpty() && streamsFolder != null) 
+		{
+			File f = new File(oldFolderPath);
+			File linkFile = new File(streamsFolder.getAbsolutePath(), f.getName());
+			if (linkFile.exists() && linkFile.isDirectory()) {
+				Files.delete(linkFile.toPath());
+				result = true;
+			}
+		}
 		return result;
 	}
 
