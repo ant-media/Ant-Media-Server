@@ -483,6 +483,7 @@
     		<groupId>org.apache.httpcomponents</groupId>
     		<artifactId>httpmime</artifactId>
     		<version>4.3.1</version>
+    		<scope>test</scope>
 		</dependency>
 	</dependencies>
 	<profiles>
