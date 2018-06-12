@@ -429,16 +429,12 @@ public class MapDBStore implements IDataStore {
 	@Override
 	public String addVod(Vod vod) {
 		
-		String id = null;
-		boolean result = false;
-
+		String id = vod.getVodId();
 		synchronized (this) {
-			if (vod != null) {
+			if (id != null) {
 				try {
 					vodMap.put(vod.getVodId(), gson.toJson(vod));
 					db.commit();
-
-					result = true;
 					logger.warn(Long.toString(vod.getCreationDate()));
 
 				} catch (Exception e) {
@@ -446,10 +442,6 @@ public class MapDBStore implements IDataStore {
 
 				}
 			}
-		}
-		
-		if(result) {
-			id = vod.getVodId();
 		}
 		return id;
 	}
@@ -585,9 +577,11 @@ public class MapDBStore implements IDataStore {
 						Integer pathLength=Integer.valueOf(subDirs.length);
 
 						String relativePath=subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
+						
+						String vodId = RandomStringUtils.randomNumeric(24);
 
 						Vod newVod = new Vod("vodFile", "vodFile", relativePath, file.getName(), unixTime, 0, fileSize,
-								Vod.USER_VOD);
+								Vod.USER_VOD, vodId);
 						addUserVod(newVod);
 						numberOfSavedFiles++;
 					}

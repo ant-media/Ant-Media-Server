@@ -16,6 +16,7 @@ import java.net.UnknownHostException;
 import javax.servlet.ServletContext;
 import javax.ws.rs.core.Context;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -116,8 +117,9 @@ public class RestServiceUnitTest {
 
 		//Vod vod = new Vod();
 		File file = new File("test_file");
+		String vodId = RandomStringUtils.randomNumeric(24);
 		Vod newVod = new Vod("vodFile", "vodFile", file.getPath(), file.getName(), System.currentTimeMillis(), 0, 6000,
-				Vod.USER_VOD);
+				Vod.USER_VOD,vodId);
 		IDataStore store = new InMemoryDataStore("testdb");
 		restService.setDataStore(store);
 

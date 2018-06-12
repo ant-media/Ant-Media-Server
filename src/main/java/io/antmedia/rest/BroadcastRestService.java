@@ -1022,10 +1022,10 @@ public class BroadcastRestService {
 
 
 
-				Vod newVod = new Vod(fileName, "vodFile", relativePath, fileName, unixTime, 0, fileSize,
-						Vod.UPLOADED_VOD);
+				Vod newVod = new Vod(fileName, "file", relativePath, fileName, unixTime, 0, fileSize,
+						Vod.UPLOADED_VOD, vodId);
 			
-				newVod.setVodId(vodId);
+		
 
 				id = getDataStore().addVod(newVod);
 				

@@ -19,6 +19,7 @@ import javax.annotation.Nonnull;
 
 import java.util.Set;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
@@ -416,8 +417,10 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 				Integer pathLength=Integer.valueOf(subDirs.length);
 
 				String relativePath=subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
+				
+				String vodId = RandomStringUtils.randomNumeric(24);
 
-				Vod newVod = new Vod(streamName, streamId, relativePath, name, unixTime, duration, fileSize, Vod.STREAM_VOD);
+				Vod newVod = new Vod(streamName, streamId, relativePath, name, unixTime, duration, fileSize, Vod.STREAM_VOD, vodId);
 
 				getDataStore().addVod(newVod);
 

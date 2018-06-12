@@ -392,9 +392,9 @@ public class MongoStore implements IDataStore {
 					Integer pathLength=Integer.valueOf(subDirs.length);
 
 					String relativePath=subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
-
+					String vodId = RandomStringUtils.randomNumeric(24);
 					Vod newVod = new Vod("vodFile", "vodFile", relativePath, file.getName(), unixTime, 0, fileSize,
-							Vod.USER_VOD);
+							Vod.USER_VOD,vodId);
 
 					addUserVod(newVod);
 					numberOfSavedFiles++;
