@@ -53,7 +53,6 @@ public class StreamFetcher {
 	private IScope scope;
 	private AntMediaApplicationAdapter appInstance;
 	private long[] lastDTS;
-	private long[] lastPTS;
 	private MuxAdaptor muxAdaptor = null;
 
 	/**
@@ -154,11 +153,9 @@ public class StreamFetcher {
 		}
 
 		lastDTS = new long[inputFormatContext.nb_streams()];
-		lastPTS = new long[lastDTS.length];
 
 		for (int i = 0; i < lastDTS.length; i++) {
 			lastDTS[i] = -1;
-			lastPTS[i] = -1;
 		}
 
 		result.setSuccess(true);
@@ -237,14 +234,35 @@ public class StreamFetcher {
 							}
 							lastDTS[packetIndex] = pkt.dts();
 							if (pkt.dts() > pkt.pts()) {
+								logger.info("dts ({}) is bigger than pts({})", pkt.dts(), pkt.pts());
 								pkt.pts(pkt.dts());
 							}
 
-							if (lastPTS[packetIndex] >= pkt.pts()) {
-								pkt.pts(lastPTS[packetIndex] + 1);
-							}
-							lastPTS[packetIndex] = pkt.pts();
-
+							/***************************************************
+							 *  Memory of being paranoid or failing while looking for excellence without understanding the whole picture
+							 *  
+							 *  Increasing pkt.dts plus 1 is a simple hack for fixing dts error if current dts has a value lower 
+							 *  than the last received dts. Because dts should be monotonically increasing. I made this simple hack and it is working. 
+							 *  After that I thought the same may happen for the pts value as well and I have added below fix. 
+							 *  Actually not a fix, it is a bug. Because pts values does not have to be monotonically increasing
+							 *  and if stream has B-Frames then pts value can be lower than the last PTS value. So below
+							 *  code snippet make the stream does not play smoothly. It took about 10 hours to find it this error.
+							 *  
+							 *  I have written this simple memory for me
+							 *  and for the guys who is developing or reviewing this code. 
+							 *  Even if it is time consuming or not reasonable, these kind of tryouts sometimes makes me excited. 
+							 *  I think I may expect to find something great by trying something crazy :) 
+							 *  
+							 *  @mekya - June 12, 2018
+							 *  
+							 *  ---------------------------------------------------
+							 *  
+							 *  if (lastPTS[packetIndex] >= pkt.pts()) {
+							 * 	   pkt.pts(lastPTS[packetIndex] + 1);
+							 *  }
+							 *  lastPTS[packetIndex] = pkt.pts();
+							 *
+							 ******************************************************/
 							if (bufferTime > 0) 
 							{
 								AVPacket packet = getAVPacket();
