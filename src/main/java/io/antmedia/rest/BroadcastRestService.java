@@ -140,7 +140,7 @@ public class BroadcastRestService {
 	public static final int ERROR_SOCIAL_ENDPOINT_UNDEFINED_CLIENT_ID = -1;
 	public static final int ERROR_SOCIAL_ENDPOINT_UNDEFINED_ENDPOINT = -2;
 	public static final int ERROR_SOCIAL_ENDPOINT_EXCEPTION_IN_ASKING_AUTHPARAMS = -3;
-	private static final String MYSQL_CLIENT_PATH = "/usr/local/mysql/bin/mysql";
+	private static final String MYSQL_CLIENT_PATH = "/usr/local/antmedia/mysql";
 
 	@Context
 	private ServletContext servletContext;
@@ -566,7 +566,7 @@ public class BroadcastRestService {
 
 		if (list == null) {
 			//do not return null in rest service
-			list = new ArrayList<TensorFlowObject>();
+			list = new ArrayList<>();
 		}
 
 		return list;
@@ -585,7 +585,7 @@ public class BroadcastRestService {
 
 		if (list == null) {
 			//do not return null in rest service
-			list = new ArrayList<TensorFlowObject>();
+			list = new ArrayList<>();
 		}
 
 
@@ -818,8 +818,8 @@ public class BroadcastRestService {
 		versionList.setVersionName(AntMediaApplicationAdapter.class.getPackage().getImplementationVersion());
 		versionList.setVersionType(BroadcastRestService.isEnterprise() ? "Enterprise Edition" : "Community Edition");
 
-		logger.info("Version Name"+ AntMediaApplicationAdapter.class.getPackage().getImplementationVersion());
-		logger.info("Version Type"+ (BroadcastRestService.isEnterprise() ? "Enterprise Edition" : "Community Edition"));
+		logger.debug("Version Name {}", AntMediaApplicationAdapter.class.getPackage().getImplementationVersion());
+		logger.debug("Version Type {}", (BroadcastRestService.isEnterprise() ? "Enterprise Edition" : "Community Edition"));
 
 		return versionList;
 	}
@@ -968,7 +968,6 @@ public class BroadcastRestService {
 		String id= null;
 
 		String appScopeName = ScopeUtils.findApplication(getScope()).getName();
-		//String uploadedFileName = fileInfo.getFileName();
 		OutputStream outpuStream = null;
 
 		String fileExtension = FilenameUtils.getExtension(fileName);
@@ -1353,7 +1352,6 @@ public class BroadcastRestService {
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/broadcast/setSocialNetworkChannel/{endpointId}/{type}/{id}")
 	@Produces(MediaType.APPLICATION_JSON)
-
 	public Result setSocialNetworkChannelList(@PathParam("endpointId") String endpointId,
 			@PathParam("type") String type, @PathParam("id") String id) {
 		boolean result = false;
@@ -1387,11 +1385,11 @@ public class BroadcastRestService {
 	}
 
 	protected List<VideoServiceEndpoint> getEndpointList() {
-		return ((AntMediaApplicationAdapter) getApplication()).getVideoServiceEndpoints();
+		return getApplication().getVideoServiceEndpoints();
 	}
 
 	protected List<VideoServiceEndpoint> getEndpointsHavingErrorList(){
-		return ((AntMediaApplicationAdapter) getApplication()).getVideoServiceEndpointsHavingError();
+		return getApplication().getVideoServiceEndpointsHavingError();
 	}
 
 	@Nullable
