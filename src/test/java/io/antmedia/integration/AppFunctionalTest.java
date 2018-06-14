@@ -289,7 +289,7 @@ public class AppFunctionalTest {
 			});
 			
 			
-			 MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" +streamId+ ".m3u8" );
+			assertTrue(MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" +streamId+ ".m3u8" ));
 
 			broadcast = restService.callGetBroadcast(streamId);
 			assertEquals(1, broadcast.getHlsViewerCount());
