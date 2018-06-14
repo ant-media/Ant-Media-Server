@@ -30,9 +30,9 @@ public class InMemoryDataStore implements IDataStore {
 	public LinkedHashMap<String, Broadcast> broadcastMap = new LinkedHashMap<String, Broadcast>();
 
 	public LinkedHashMap<String, Vod> vodMap = new LinkedHashMap<String, Vod>();
-	
+
 	public LinkedHashMap<String, List<TensorFlowObject>> detectionMap = new LinkedHashMap<String, List<TensorFlowObject>>();
-	
+
 	public LinkedHashMap<String, SocialEndpointCredentials> socialEndpointCredentialsMap = new LinkedHashMap<String, SocialEndpointCredentials>();
 
 
@@ -198,31 +198,6 @@ public class InMemoryDataStore implements IDataStore {
 
 
 
-	@Override
-	public boolean editCameraInfo(Broadcast camera) {
-		boolean result = false;
-		try {
-			logger.warn("inside of editCameraInfo");
-
-			Broadcast oldCam = get(camera.getStreamId());
-
-			oldCam.setName(camera.getName());
-			oldCam.setUsername(camera.getUsername());
-			oldCam.setPassword(camera.getPassword());
-			oldCam.setIpAddr(camera.getIpAddr());
-
-			broadcastMap.replace(oldCam.getStreamId(), oldCam);
-
-
-			result = true;
-		} catch (Exception e) {
-			result = false;
-		}
-
-		return result;
-	}
-
-
 
 
 	@Override
@@ -283,24 +258,25 @@ public class InMemoryDataStore implements IDataStore {
 	}
 
 	@Override
-	public boolean addVod(Vod vod) {
-		String vodId = null;
+	public String addVod(Vod vod) {
+		String id = null;
 		boolean result = false;
 
 		if (vod != null) {
 			try {
-				vodId = RandomStringUtils.randomNumeric(24);
-				vod.setVodId(vodId);
-
-				vodMap.put(vodId,vod);
+				vodMap.put(vod.getVodId(),vod);
 				result = true;
 
 			} catch (Exception e) {
 				e.printStackTrace();
-
 			}
 		}
-		return result;
+		
+		if(result) {
+			
+			id = vod.getVodId();
+		}
+		return id;
 	}
 
 	@Override
@@ -380,9 +356,6 @@ public class InMemoryDataStore implements IDataStore {
 			}
 		}
 
-
-
-
 		File[] listOfFiles = userfile.listFiles();
 
 		if (listOfFiles != null) {
@@ -405,9 +378,9 @@ public class InMemoryDataStore implements IDataStore {
 
 					String relativePath=subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
 
-
+					String vodId = RandomStringUtils.randomNumeric(24);
 					Vod newVod = new Vod("vodFile", "vodFile", relativePath, file.getName(), unixTime, 0, fileSize,
-							Vod.USER_VOD);
+							Vod.USER_VOD,vodId);
 
 					addUserVod(newVod);
 					numberOfSavedFiles++;
@@ -455,7 +428,6 @@ public class InMemoryDataStore implements IDataStore {
 	}
 
 	@Override
-
 	public boolean updateSourceSpeed(String id, double speed) {
 		boolean result = false;
 		if (id != null) {
@@ -543,7 +515,7 @@ public class InMemoryDataStore implements IDataStore {
 		return broadcastMap.size();
 
 	}
-	
+
 	@Override
 	public long getActiveBroadcastCount() {
 		Collection<Broadcast> values = broadcastMap.values();
@@ -596,6 +568,44 @@ public class InMemoryDataStore implements IDataStore {
 			return detectedObjects;
 		}
 		return null;
+	}
+
+	@Override
+	public boolean editStreamSourceInfo(Broadcast broadcast) {		
+		boolean result = false;
+		try {
+			logger.warn("inside of editCameraInfo");
+
+			Broadcast oldBroadcast = get(broadcast.getStreamId());
+
+			oldBroadcast.setName(broadcast.getName());
+			oldBroadcast.setUsername(broadcast.getUsername());
+			oldBroadcast.setPassword(broadcast.getPassword());
+			oldBroadcast.setIpAddr(broadcast.getIpAddr());
+			oldBroadcast.setStreamUrl(broadcast.getStreamUrl());
+			
+			broadcastMap.replace(oldBroadcast.getStreamId(), oldBroadcast);
+
+			result = true;
+		} catch (Exception e) {
+			result = false;
+		}
+
+		return result;
+	}
+	
+	@Override
+	public boolean updateHLSViewerCount(String streamId, int viewerCount) {
+		boolean result = false;
+		if (streamId != null) {
+			Broadcast broadcast = broadcastMap.get(streamId);
+			if (broadcast != null) {
+				broadcast.setHlsViewerCount(viewerCount);
+				broadcastMap.replace(streamId, broadcast);
+				result = true;
+			}
+		}
+		return result;
 	}
 
 

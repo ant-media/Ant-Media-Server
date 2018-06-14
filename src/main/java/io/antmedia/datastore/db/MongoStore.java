@@ -133,7 +133,7 @@ public class MongoStore implements IDataStore {
 			UpdateResults update = datastore.update(query, ops);
 			return update.getUpdatedCount() == 1;
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(e.getMessage());
 		}
 		return false;
 	}
@@ -273,27 +273,6 @@ public class MongoStore implements IDataStore {
 	}
 
 
-	@Override
-	public boolean editCameraInfo(Broadcast camera) {
-		boolean result = false;
-
-		try {
-			logger.warn("result inside edit camera: " + result);
-			Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(camera.getStreamId());
-
-
-			UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set("name", camera.getName())
-					.set("username", camera.getUsername()).set("password", camera.getPassword()).set("ipAddr", camera.getIpAddr());
-
-			UpdateResults update = datastore.update(query, ops);
-			return update.getUpdatedCount() == 1;
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		return false;
-
-
-	}
 
 
 	@Override
@@ -331,24 +310,22 @@ public class MongoStore implements IDataStore {
 	}
 
 	@Override
-	public boolean addVod(Vod vod) {
-		String vodId = null;
+	public String addVod(Vod vod) {
+		
+		String id = null;
 		boolean result = false;
 		try {	
-			if (vod.getStreamId() == null) {
-				vodId = RandomStringUtils.randomAlphanumeric(12) + System.currentTimeMillis();
-				vod.setStreamId(vodId);
-			}
-			vodId = vod.getStreamId();
-			vod.setVodId(vodId);
 			Key<Vod> key = vodDatastore.save(vod);
 			result = true;
-			return result;
 		} catch (Exception e) {
 
 			e.printStackTrace();
 		}
-		return result;
+
+		if(result) {
+			id = vod.getVodId();
+		}
+		return id;
 
 	}
 
@@ -415,9 +392,9 @@ public class MongoStore implements IDataStore {
 					Integer pathLength=Integer.valueOf(subDirs.length);
 
 					String relativePath=subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
-
+					String vodId = RandomStringUtils.randomNumeric(24);
 					Vod newVod = new Vod("vodFile", "vodFile", relativePath, file.getName(), unixTime, 0, fileSize,
-							Vod.USER_VOD);
+							Vod.USER_VOD,vodId);
 
 					addUserVod(newVod);
 					numberOfSavedFiles++;
@@ -597,7 +574,7 @@ public class MongoStore implements IDataStore {
 				datastore.save(tensorFlowObject);
 			}
 		}
-		
+
 	}
 
 	@Override
@@ -605,7 +582,7 @@ public class MongoStore implements IDataStore {
 		try {
 			return datastore.find(TensorFlowObject.class).field("imageId").startsWith(idFilter).asList(new FindOptions().skip(offsetSize).limit(batchSize));
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(e.getMessage());
 		}
 		return null;	
 	}
@@ -615,10 +592,48 @@ public class MongoStore implements IDataStore {
 		try {
 			return datastore.find(TensorFlowObject.class).field("imageId").equal(id).asList();
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(e.getMessage());
 		}
 		return null;	
 	}
+
+	@Override
+	public boolean editStreamSourceInfo(Broadcast broadcast) {
+		boolean result = false;
+
+		try {
+			logger.warn("result inside edit camera: {}" , result);
+			Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(broadcast.getStreamId());
+
+			UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set("name", broadcast.getName())
+					.set("username", broadcast.getUsername()).set("password", broadcast.getPassword()).set("ipAddr", broadcast.getIpAddr())
+					.set("streamUrl", broadcast.getStreamUrl());
+
+			UpdateResults update = datastore.update(query, ops);
+			return update.getUpdatedCount() == 1;
+		} catch (Exception e) {
+			logger.error(e.getMessage());
+		}
+		return false;
+	}
+	
+	@Override
+	public boolean updateHLSViewerCount(String streamId, int viewerCount) {
+		try {
+
+			Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(streamId);
+			UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set("hlsViewerCount", viewerCount);
+
+			UpdateResults update = datastore.update(query, ops);
+			return update.getUpdatedCount() == 1;
+		} catch (Exception e) {
+			logger.error(e.getMessage());
+		}
+		return false;
+	}
+	
+	
+	
 
 
 

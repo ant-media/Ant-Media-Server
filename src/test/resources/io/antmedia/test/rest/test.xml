@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:lang="http://www.springframework.org/schema/lang" xmlns="http://www.springframework.org/schema/beans"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+                           http://www.springframework.org/schema/lang http://www.springframework.org/schema/lang/spring-lang.xsd">
+
+	<bean id="placeholderConfig"
+		class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+		<property name="ignoreResourceNotFound" value="true" />
+		<property name="ignoreUnresolvablePlaceholders" value="true" />
+		<property name="locations">
+			<list>
+				<value>file:///${user.dir}/src/main/server/conf/red5.properties
+				</value>
+			</list>
+		</property>
+	</bean>
+
+	<!-- Server bean -->
+	<bean id="red5.server" class="org.red5.server.Server" />
+
+	<!-- Handles creation / lookup of shared objects -->
+	<bean id="sharedObjectService" class="org.red5.server.so.SharedObjectService">
+		<property name="persistenceClassName" value="org.red5.server.persistence.RamPersistence" />
+	</bean>
+
+	<bean id="providerService" class="org.red5.server.stream.ProviderService" />
+	<bean id="consumerService" class="org.red5.server.stream.ConsumerService" />
+	<!-- <bean id="schedulingService" class="org.red5.server.scheduling.QuartzSchedulingService" 
+		/> -->
+
+	<!-- Global stuff from red5-default.xml -->
+	<bean id="global.clientRegistry" class="org.red5.server.ClientRegistry" />
+
+	<bean id="global.serviceInvoker" class="org.red5.server.service.ServiceInvoker">
+		<property name="serviceResolvers">
+			<list>
+				<bean id="scopeServiceResolver" class="org.red5.server.service.ScopeServiceResolver" />
+				<bean id="handlerServiceResolver" class="org.red5.server.service.HandlerServiceResolver" />
+				<bean id="contextServiceResolver" class="org.red5.server.service.ContextServiceResolver" />
+			</list>
+		</property>
+	</bean>
+
+	<bean id="global.mappingStrategy" class="org.red5.server.MappingStrategy" />
+
+	<bean id="global.context" autowire="byType" class="org.red5.server.Context">
+		<property name="contextPath" value="test" />
+	</bean>
+
+	<bean id="global.handler" autowire="byType" class="org.red5.server.CoreHandler" />
+
+	<bean id="global.scope" class="org.red5.server.scope.GlobalScope"
+		init-method="register">
+		<property name="server" ref="red5.server" />
+		<property name="name" value="default" />
+		<property name="context" ref="global.context" />
+		<property name="handler" ref="global.handler" />
+		<property name="persistenceClass" value="org.red5.server.persistence.RamPersistence" />
+	</bean>
+
+	<bean id="red5.scopeResolver" class="org.red5.server.scope.ScopeResolver">
+		<property name="globalScope" ref="global.scope" />
+	</bean>
+
+
+
+	<!-- Application stuff from red5-web.xml -->
+	<bean id="web.context" autowire="byType" class="org.red5.server.Context" />
+
+	<bean id="web.scope" class="org.red5.server.scope.WebScope">
+		<property name="server" ref="red5.server" />
+		<property name="parent" ref="global.scope" />
+		<property name="context" ref="web.context" />
+		<property name="handler" ref="web.handler" />
+		<property name="persistenceClass" value="org.red5.server.persistence.RamPersistence" />
+		<property name="contextPath" value="/junit" />
+		<property name="virtualHosts" value="*" />
+	</bean>
+	
+	<bean id="db.datastore" class="io.antmedia.datastore.db.InMemoryDataStore">
+		<constructor-arg value="junit.db" />
+	</bean>
+
+	<bean id="app.settings" class="io.antmedia.AppSettings"></bean>
+	
+	<bean id="web.handler" class="io.antmedia.test.Application" >
+		<property name="dataStore" ref="db.datastore" />
+		<property name="appSettings" ref="app.settings" />
+	</bean>
+
+	<!-- Streamable file factory -->
+	<bean id="streamableFileFactory" class="org.red5.server.stream.StreamableFileFactory">
+		<property name="services">
+			<list>
+				<bean id="flvFileService" class="org.red5.server.service.flv.impl.FLVService">
+					<property name="generateMetadata" value="true" />
+				</bean>
+				<bean id="mp3FileService" class="org.red5.server.service.mp3.impl.MP3Service" />
+				<bean id="mp4FileService" class="org.red5.server.service.mp4.impl.MP4Service" />
+				<bean id="m4aFileService" class="org.red5.server.service.m4a.impl.M4AService" />
+			</list>
+		</property>
+	</bean>
+
+	<bean id="clientBroadcastStream" scope="prototype" lazy-init="true"
+		class="org.red5.server.stream.ClientBroadcastStream">
+		<property name="automaticRecording" value="true" />
+	</bean>
+
+
+	<!-- Scheduling service -->
+	<bean id="schedulingService" class="org.red5.server.scheduling.QuartzSchedulingService">
+		<property name="configFile"
+			value="${user.dir}/src/main/server/conf/quartz.properties" />
+	</bean>
+	
+    <bean id="scheduler" class="org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler">
+        <property name="poolSize" value="20" />
+        <property name="daemon" value="true" />
+        <property name="waitForTasksToCompleteOnShutdown" value="true" />
+        <property name="threadNamePrefix" value="ConnectionScheduler-" />
+    </bean>
+
+
+	<bean id="muxerScheduler"
+		class="org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler">
+		<property name="poolSize" value="50" />
+		<property name="daemon" value="true" />
+		<property name="waitForTasksToCompleteOnShutdown" value="true" />
+		<property name="threadNamePrefix" value="MuxerScheduler-" />
+	</bean>
+	
+	
+
+
+
+
+</beans>

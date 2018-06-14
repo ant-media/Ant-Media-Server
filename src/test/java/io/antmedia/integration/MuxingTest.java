@@ -566,6 +566,32 @@ public class MuxingTest {
 			// file.getAbsolutePath());
 		}
 	}
+	
+	public static boolean isURLAvailable(String address) {
+		try {
+
+			URL url = new URL(address);
+			HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
+			urlConnection.setReadTimeout(10000);
+			urlConnection.setConnectTimeout(45000);
+			urlConnection.setRequestMethod("HEAD");
+			urlConnection.setDoInput(true);
+
+			HttpURLConnection.setFollowRedirects(true);
+			urlConnection.connect();
+
+			InputStream in = urlConnection.getInputStream(); // getAssets().open("kralfmtop10.htm");
+
+			byte[] byteArray = org.apache.commons.io.IOUtils.toByteArray(in);
+
+			in.close();
+
+			return true;
+		} catch (Exception e) {
+			//e.printStackTrace();
+		}
+		return false;
+	}
 
 	public byte[] getByteArray(String address) {
 		try {

@@ -15,6 +15,7 @@ import java.util.Iterator;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -74,6 +75,7 @@ public class DBStoresUnitTest {
 		testVoDFunctions(dataStore);
 		testSaveStreamInDirectory(dataStore);
 		testEditCameraInfo(dataStore);
+		testUpdateHLSViewerCount(dataStore);
 
 
 	}
@@ -95,6 +97,7 @@ public class DBStoresUnitTest {
 		testVoDFunctions(dataStore);
 		testSaveStreamInDirectory(dataStore);
 		testEditCameraInfo(dataStore);
+		testUpdateHLSViewerCount(dataStore);
 		
 	}
 
@@ -131,6 +134,7 @@ public class DBStoresUnitTest {
 		testVoDFunctions(dataStore);
 		testSaveStreamInDirectory(dataStore);
 		testEditCameraInfo(dataStore);
+		testUpdateHLSViewerCount(dataStore);
 
 	}
 	
@@ -166,16 +170,17 @@ public class DBStoresUnitTest {
 		
 		long totalVodCount = datastore.getTotalVodNumber();
 		assertEquals(0, totalVodCount);
-		assertEquals(4, datastore.fetchUserVodList(f));
+		assertEquals(5, datastore.fetchUserVodList(f));
 		
 		//we know there are 4 files there
 		//test_short.flv
 		//test_video_360p_subtitle.flv
 		//test_Video_360p.flv
 		//test.flv
+		//sample_MP4_480.mp4
 		
 		totalVodCount = datastore.getTotalVodNumber();
-		assertEquals(4, totalVodCount);
+		assertEquals(5, totalVodCount);
 		
 		//List<Vod> vodList = datastore.getVodList(0, 10);
 		
@@ -267,8 +272,8 @@ public class DBStoresUnitTest {
 		//fail("Write test codes about saveVod, AddVod, AddUserVod, delete vod ");
 		
 		//create a vod
-		
-		Vod streamVod=new Vod("streamName", "streamId", "filePath", "vodName", 111, 111, 111, Vod.STREAM_VOD);
+		String vodId = RandomStringUtils.randomNumeric(24);
+		Vod streamVod=new Vod("streamName", "streamId", "filePath", "vodName", 111, 111, 111, Vod.STREAM_VOD,vodId);
 		
 		//save stream vod
 		
@@ -279,8 +284,8 @@ public class DBStoresUnitTest {
 		assertEquals(1, datastore.getTotalVodNumber());
 		
 		//add uservod
-		
-		Vod userVod=new Vod("streamName", "streamId", "filePath", "vodName", 111, 111, 111, Vod.USER_VOD);
+		vodId = RandomStringUtils.randomNumeric(24);
+		Vod userVod=new Vod("streamName", "streamId", "filePath", "vodName", 111, 111, 111, Vod.USER_VOD,vodId);
 		
 		datastore.addUserVod(userVod);
 		
@@ -306,31 +311,48 @@ public class DBStoresUnitTest {
 		//fail("Write test codes about getCamera, getExternalStreamList ");
 		
 		//create an IP Camera
-		
 		Broadcast camera= new Broadcast("old_name", "0.0.0.0", "username", "password", "rtspUrl", AntMediaApplicationAdapter.IP_CAMERA);	
 		
 		//save this cam
-		
 		datastore.save(camera);
 		
 		//check it is saved
 		assertNotNull(camera.getStreamId());
 		
 		//change cam info
-		
 		camera.setName("new_name");
 		camera.setIpAddr("1.1.1.1");
 	
-		datastore.editCameraInfo(camera);
+		datastore.editStreamSourceInfo(camera);
 		
 		//check whether is changed or not
-		
 		assertEquals("1.1.1.1", camera.getIpAddr());
 		assertEquals("new_name", camera.getName());
-		
-		
 		datastore.delete(camera.getStreamId());
+	}
+	
+	public void testUpdateHLSViewerCount(IDataStore dataStore) {
+		//create a stream
+		Broadcast broadcast = new Broadcast();
+		broadcast.setName("test");
+		String key = dataStore.save(broadcast);
+
+		Broadcast broadcast2 = new Broadcast();
+		broadcast2.setName("test2");
+		String key2 = dataStore.save(broadcast2);
 		
+		//update hls viewer several times 
+		//check hls viewer count
+		for (int i = 0; i < 50; i++) {
+			int viewerCount = (int)(Math.random()*99999);
+			assertTrue(dataStore.updateHLSViewerCount(key, viewerCount));
+			
+			int viewerCount2 = (int)(Math.random()*99999);
+			assertTrue(dataStore.updateHLSViewerCount(key2, viewerCount2));
+			
+			assertEquals(viewerCount, dataStore.get(key).getHlsViewerCount());
+			assertEquals(viewerCount2, dataStore.get(key2).getHlsViewerCount());
+		}
 	}
 
 	public void testGetPagination(IDataStore dataStore) {
@@ -616,17 +638,17 @@ public class DBStoresUnitTest {
 
 		assertEquals(returnList.size(), 1);
 
-		Vod newVod =  new Vod("streamName", "1112233" + (int)(Math.random() * 1000), "path", "vod", 1517239908, 17933, 1190425, "streamVod");
-		Vod newVod2 = new Vod("davut", "111223" + (int)(Math.random() * 1000),  "path", "vod", 1517239808, 17933, 1190525, "streamVod");
-		Vod newVod3 = new Vod("oguz", "11122" + (int)(Math.random() * 1000),  "path", "vod", 1517239708, 17933, 1190625, "streamVod");
-		Vod newVod4 = new Vod("ahmet", "111" + (int)(Math.random() * 1000),  "path", "vod", 1517239608, 17933, 1190725, "streamVod");
-		Vod newVod5 = new Vod("mehmet", "11" + (int)(Math.random() * 1000), "path", "vod", 1517239508, 17933, 1190825, "streamVod");
+		Vod newVod =  new Vod("streamName", "1112233" + (int)(Math.random() * 1000), "path", "vod", 1517239908, 17933, 1190425, Vod.STREAM_VOD, "1112233" + (int)(Math.random() * 1000));
+		Vod newVod2 = new Vod("davut", "111223" + (int)(Math.random() * 1000),  "path", "vod", 1517239808, 17933, 1190525, Vod.STREAM_VOD, "1112233" + (int)(Math.random() * 1000));
+		Vod newVod3 = new Vod("oguz", "11122" + (int)(Math.random() * 1000),  "path", "vod", 1517239708, 17933, 1190625, Vod.STREAM_VOD, "1112233" + (int)(Math.random() * 1000));
+		Vod newVod4 = new Vod("ahmet", "111" + (int)(Math.random() * 1000),  "path", "vod", 1517239608, 17933, 1190725, Vod.STREAM_VOD, "1112233" + (int)(Math.random() * 1000));
+		Vod newVod5 = new Vod("mehmet", "11" + (int)(Math.random() * 1000), "path", "vod", 1517239508, 17933, 1190825, Vod.STREAM_VOD, "1112233" + (int)(Math.random() * 1000));
 
-		assertTrue(dataStore.addVod(newVod));
-		assertTrue(dataStore.addVod(newVod2));
-		assertTrue(dataStore.addVod(newVod3));
-		assertTrue(dataStore.addVod(newVod4));
-		assertTrue(dataStore.addVod(newVod5));
+		assertNotNull(dataStore.addVod(newVod));
+		assertNotNull(dataStore.addVod(newVod2));
+		assertNotNull(dataStore.addVod(newVod3));
+		assertNotNull(dataStore.addVod(newVod4));
+		assertNotNull(dataStore.addVod(newVod5));
 
 		
 		long totalVodNumber = dataStore.getTotalVodNumber();

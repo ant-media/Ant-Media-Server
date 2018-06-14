@@ -4,18 +4,17 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.regex.Pattern;
 import java.util.Set;
+import java.util.regex.Pattern;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
@@ -30,7 +29,6 @@ import org.red5.server.api.scheduling.ISchedulingService;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IBroadcastStream;
 import org.red5.server.api.stream.IStreamPublishSecurity;
-import org.red5.server.stream.ClientBroadcastStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,13 +39,11 @@ import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.Vod;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.muxer.IMuxerListener;
-import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.model.Result;
 import io.antmedia.social.endpoint.PeriscopeEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
-import io.antmedia.storage.StorageClient;
 import io.antmedia.streamsource.StreamFetcherManager;
 
 public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter implements IMuxerListener {
@@ -72,7 +68,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	private List<VideoServiceEndpoint> videoServiceEndpoints = new ArrayList<>();
 	private List<VideoServiceEndpoint> videoServiceEndpointsHavingError = new ArrayList<>();
 	private List<IStreamPublishSecurity> streamPublishSecurityList;
-	private HashMap<String, OnvifCamera> onvifCameraList = new HashMap<String, OnvifCamera>();
+	private HashMap<String, OnvifCamera> onvifCameraList = new HashMap<>();
 	private StreamFetcherManager streamFetcherManager;
 	private IDataStore dataStore;
 	private AppSettings appSettings;
@@ -91,6 +87,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 			@Override
 			public void execute(ISchedulingService service) throws CloneNotSupportedException {
 				streamFetcherManager = new StreamFetcherManager(AntMediaApplicationAdapter.this, dataStore,app);
+				streamFetcherManager.setRestartStreamFetcherPeriod(appSettings.getRestartStreamFetcherPeriod());
 				List<Broadcast> streams = getDataStore().getExternalStreamsList();
 				streamFetcherManager.startStreams(streams);
 
@@ -133,17 +130,11 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		boolean result = false;
 		File streamsFolder = new File("webapps/" + getScope().getName() + "/streams");
 
-		if (oldFolderPath != null) 
-		{
-			File f = new File(oldFolderPath);
-			File linkFile = new File(streamsFolder.getAbsolutePath() + "/" + f.getName());
-			if (linkFile.exists()) {
-				try {
-					Files.delete(linkFile.toPath());
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
+		try {
+			deleteOldFolderPath(oldFolderPath, streamsFolder);
+			//even if an exception occurs, catch it in here and do not prevent the below operations
+		} catch (IOException e) {
+			logger.error(e.getMessage());
 		}
 
 		File f = new File(vodFolderPath == null ? "" : vodFolderPath);
@@ -163,11 +154,26 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 			dataStore.fetchUserVodList(f);
 			result = true;
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(e.getMessage());
 		}
 
 
 
+		return result;
+	}
+
+
+	public boolean deleteOldFolderPath(String oldFolderPath, File streamsFolder) throws IOException {
+		boolean result = false;
+		if (oldFolderPath != null && !oldFolderPath.isEmpty() && streamsFolder != null) 
+		{
+			File f = new File(oldFolderPath);
+			File linkFile = new File(streamsFolder.getAbsolutePath(), f.getName());
+			if (linkFile.exists() && linkFile.isDirectory()) {
+				Files.delete(linkFile.toPath());
+				result = true;
+			}
+		}
 		return result;
 	}
 
@@ -403,8 +409,10 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 				Integer pathLength=Integer.valueOf(subDirs.length);
 
 				String relativePath=subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
+				
+				String vodId = RandomStringUtils.randomNumeric(24);
 
-				Vod newVod = new Vod(streamName, streamId, relativePath, name, unixTime, duration, fileSize, Vod.STREAM_VOD);
+				Vod newVod = new Vod(streamName, streamId, relativePath, name, unixTime, duration, fileSize, Vod.STREAM_VOD, vodId);
 
 				getDataStore().addVod(newVod);
 
@@ -598,6 +606,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 			appSettings.setAddDateTimeToMp4FileName(true);
 			appSettings.setWebRTCEnabled(false);
 			appSettings.setHlsMuxingEnabled(true);
+			appSettings.setObjectDetectionEnabled(false);
 			appSettings.setAdaptiveResolutionList(null);
 			appSettings.setHlsListSize(null);
 			appSettings.setHlsTime(null);
