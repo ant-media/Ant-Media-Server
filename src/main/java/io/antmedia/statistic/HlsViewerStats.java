@@ -23,8 +23,6 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 
 	private IDataStore dataStore;
 
-	private ISchedulingService scheduler;
-
 	public static final int DEFAULT_TIME_PERIOD_FOR_VIEWER_COUNT = 10000;
 	/**
 	 * Time period in milliseconds to check if viewer is dropped
@@ -67,7 +65,7 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 	public void setApplicationContext(ApplicationContext applicationContext)  {
 		dataStore = (IDataStore) applicationContext.getBean(IDataStore.BEAN_NAME);
 
-		scheduler = (ISchedulingService) applicationContext.getBean(ISchedulingService.BEAN_NAME);
+		ISchedulingService scheduler = (ISchedulingService) applicationContext.getBean(ISchedulingService.BEAN_NAME);
 		
 		if (applicationContext.containsBean(AppSettings.BEAN_NAME)) {
 			AppSettings settings = (AppSettings)applicationContext.getBean(AppSettings.BEAN_NAME);

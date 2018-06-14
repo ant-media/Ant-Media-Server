@@ -265,7 +265,7 @@ public class AppFunctionalTest {
 			List<Broadcast> broadcastList = restService.callGetBroadcastList();
 			int size = broadcastList.size();
 			// publish live stream to the server
-			String streamId = "zombiStreamId";
+			String streamId = "zombiStreamId"  + (int)(Math.random()*9999);
 			executeProcess(ffmpegPath
 					+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
 					+ streamId);
