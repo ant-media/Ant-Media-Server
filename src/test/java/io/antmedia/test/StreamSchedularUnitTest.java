@@ -515,9 +515,11 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 		*/
 		
+		
+		logger.info("Checking quality is again");
 		Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 			Broadcast streamTmp = dataStore.get(newSource.getStreamId());
-			return streamTmp != null && streamTmp.getQuality() != null && streamTmp.getQuality().equals("poor");
+			return streamTmp != null && streamTmp.getQuality() != null && !streamTmp.getQuality().equals("poor");
 		});
 
 		logger.info("before second control");
