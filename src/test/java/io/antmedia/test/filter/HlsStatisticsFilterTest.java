@@ -82,6 +82,7 @@ public class HlsStatisticsFilterTest {
 			String sessionId = RandomStringUtils.randomAlphanumeric(16);
 			when(session.getId()).thenReturn(sessionId);
 			when(mockRequest.getSession()).thenReturn(session);
+			when(mockRequest.getMethod()).thenReturn("GET");
 			
 			String streamId = RandomStringUtils.randomAlphanumeric(8);
 			when(mockRequest.getRequestURI()).thenReturn("/LiveApp/streams/"+streamId+".m3u8");
