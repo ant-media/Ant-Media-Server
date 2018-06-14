@@ -8,9 +8,6 @@ import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -29,7 +26,6 @@ import javax.ws.rs.core.MediaType;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.red5.server.api.scope.IBroadcastScope;
 import org.red5.server.api.scope.IScope;
@@ -44,7 +40,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.context.WebApplicationContext;
 
 import com.drew.lang.annotations.Nullable;
-import com.google.gson.Gson;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
@@ -52,8 +47,8 @@ import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointChannel;
-import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
+import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Vod;
 import io.antmedia.muxer.Muxer;
 import io.antmedia.rest.model.Result;
@@ -959,15 +954,14 @@ public class BroadcastRestService {
 	}
 
 	@POST
-	@Consumes({ MediaType.MULTIPART_FORM_DATA })
+	@Consumes({MediaType.MULTIPART_FORM_DATA})
 	@Path("/broadcast/uploadVoDFile/{name}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result uploadVoDFile(@PathParam("name") String fileName, @FormDataParam("file") InputStream inputStream) throws Exception {
+	public Result uploadVoDFile(@PathParam("name") String fileName, @FormDataParam("file") InputStream inputStream) {
 		boolean success = false;
 		String message = "";
 		String id= null;
 		String appScopeName = ScopeUtils.findApplication(getScope()).getName();
-		OutputStream outpuStream = null;
 		String fileExtension = FilenameUtils.getExtension(fileName);
 		try {
 
@@ -986,59 +980,44 @@ public class BroadcastRestService {
 
 				int read = 0;
 				byte[] bytes = new byte[2048];
-				outpuStream = new FileOutputStream(savedFile);
-				while ((read = inputStream.read(bytes)) != -1) {
-					outpuStream.write(bytes, 0, read);
-				}
+				try (OutputStream outpuStream = new FileOutputStream(savedFile))
+				{
 
-				outpuStream.flush();
-				outpuStream.close();
-
-				success = true;
-
-				long fileSize = savedFile.length();
-				long unixTime = System.currentTimeMillis();
-
-				String path=savedFile.getPath();
-
-				String[] subDirs = path.split(Pattern.quote(File.separator));
-
-				Integer pathLength=Integer.valueOf(subDirs.length);
-
-				String relativePath=subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
-
-
-
-				Vod newVod = new Vod(fileName, "file", relativePath, fileName, unixTime, 0, fileSize,
-						Vod.UPLOADED_VOD, vodId);
-
-
-
-				id = getDataStore().addVod(newVod);
-
-				if(id == null) {
-					success=false;
-
-				} else {
-					message = id;
-				}
-
-				if (outpuStream != null) {
-					try {
-						outpuStream.close();
-					} catch (Exception ex) {
+					while ((read = inputStream.read(bytes)) != -1) {
+						outpuStream.write(bytes, 0, read);
 					}
-				}
 
+					outpuStream.flush();
+
+					long fileSize = savedFile.length();
+					long unixTime = System.currentTimeMillis();
+
+					String path=savedFile.getPath();
+
+					String[] subDirs = path.split(Pattern.quote(File.separator));
+
+					Integer pathLength=Integer.valueOf(subDirs.length);
+
+					String relativePath=subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
+
+					Vod newVod = new Vod(fileName, "file", relativePath, fileName, unixTime, 0, fileSize,
+							Vod.UPLOADED_VOD, vodId);
+
+					id = getDataStore().addVod(newVod);
+
+					if(id != null) {
+						success = true;
+						message = id;
+					} 
+				}
 			} 
 			else {
-				success = false;
 				message = "notMp4File";
 			}
 
 		} 
 		catch (IOException iox) {
-			iox.printStackTrace();
+			logger.error(iox.getMessage());
 		} 
 
 
