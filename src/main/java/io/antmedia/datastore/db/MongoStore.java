@@ -133,7 +133,7 @@ public class MongoStore implements IDataStore {
 			UpdateResults update = datastore.update(query, ops);
 			return update.getUpdatedCount() == 1;
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(e.getMessage());
 		}
 		return false;
 	}
@@ -582,7 +582,7 @@ public class MongoStore implements IDataStore {
 		try {
 			return datastore.find(TensorFlowObject.class).field("imageId").startsWith(idFilter).asList(new FindOptions().skip(offsetSize).limit(batchSize));
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(e.getMessage());
 		}
 		return null;	
 	}
@@ -592,7 +592,7 @@ public class MongoStore implements IDataStore {
 		try {
 			return datastore.find(TensorFlowObject.class).field("imageId").equal(id).asList();
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(e.getMessage());
 		}
 		return null;	
 	}
@@ -602,7 +602,7 @@ public class MongoStore implements IDataStore {
 		boolean result = false;
 
 		try {
-			logger.warn("result inside edit camera: " + result);
+			logger.warn("result inside edit camera: {}" , result);
 			Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(broadcast.getStreamId());
 
 			UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set("name", broadcast.getName())
@@ -612,10 +612,28 @@ public class MongoStore implements IDataStore {
 			UpdateResults update = datastore.update(query, ops);
 			return update.getUpdatedCount() == 1;
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(e.getMessage());
 		}
 		return false;
 	}
+	
+	@Override
+	public boolean updateHLSViewerCount(String streamId, int viewerCount) {
+		try {
+
+			Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(streamId);
+			UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set("hlsViewerCount", viewerCount);
+
+			UpdateResults update = datastore.update(query, ops);
+			return update.getUpdatedCount() == 1;
+		} catch (Exception e) {
+			logger.error(e.getMessage());
+		}
+		return false;
+	}
+	
+	
+	
 
 
 

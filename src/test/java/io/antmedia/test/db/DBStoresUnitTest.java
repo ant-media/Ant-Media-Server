@@ -75,6 +75,7 @@ public class DBStoresUnitTest {
 		testVoDFunctions(dataStore);
 		testSaveStreamInDirectory(dataStore);
 		testEditCameraInfo(dataStore);
+		testUpdateHLSViewerCount(dataStore);
 
 
 	}
@@ -96,6 +97,7 @@ public class DBStoresUnitTest {
 		testVoDFunctions(dataStore);
 		testSaveStreamInDirectory(dataStore);
 		testEditCameraInfo(dataStore);
+		testUpdateHLSViewerCount(dataStore);
 		
 	}
 
@@ -132,6 +134,7 @@ public class DBStoresUnitTest {
 		testVoDFunctions(dataStore);
 		testSaveStreamInDirectory(dataStore);
 		testEditCameraInfo(dataStore);
+		testUpdateHLSViewerCount(dataStore);
 
 	}
 	
@@ -308,31 +311,48 @@ public class DBStoresUnitTest {
 		//fail("Write test codes about getCamera, getExternalStreamList ");
 		
 		//create an IP Camera
-		
 		Broadcast camera= new Broadcast("old_name", "0.0.0.0", "username", "password", "rtspUrl", AntMediaApplicationAdapter.IP_CAMERA);	
 		
 		//save this cam
-		
 		datastore.save(camera);
 		
 		//check it is saved
 		assertNotNull(camera.getStreamId());
 		
 		//change cam info
-		
 		camera.setName("new_name");
 		camera.setIpAddr("1.1.1.1");
 	
 		datastore.editStreamSourceInfo(camera);
 		
 		//check whether is changed or not
-		
 		assertEquals("1.1.1.1", camera.getIpAddr());
 		assertEquals("new_name", camera.getName());
-		
-		
 		datastore.delete(camera.getStreamId());
+	}
+	
+	public void testUpdateHLSViewerCount(IDataStore dataStore) {
+		//create a stream
+		Broadcast broadcast = new Broadcast();
+		broadcast.setName("test");
+		String key = dataStore.save(broadcast);
+
+		Broadcast broadcast2 = new Broadcast();
+		broadcast2.setName("test2");
+		String key2 = dataStore.save(broadcast2);
 		
+		//update hls viewer several times 
+		//check hls viewer count
+		for (int i = 0; i < 50; i++) {
+			int viewerCount = (int)(Math.random()*99999);
+			assertTrue(dataStore.updateHLSViewerCount(key, viewerCount));
+			
+			int viewerCount2 = (int)(Math.random()*99999);
+			assertTrue(dataStore.updateHLSViewerCount(key2, viewerCount2));
+			
+			assertEquals(viewerCount, dataStore.get(key).getHlsViewerCount());
+			assertEquals(viewerCount2, dataStore.get(key2).getHlsViewerCount());
+		}
 	}
 
 	public void testGetPagination(IDataStore dataStore) {
