@@ -588,7 +588,7 @@ public class MuxingTest {
 
 			return true;
 		} catch (Exception e) {
-			e.printStackTrace();
+			//e.printStackTrace();
 		}
 		return false;
 	}

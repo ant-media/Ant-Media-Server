@@ -486,28 +486,39 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		assertNotNull(fetchedBroadcast.getQuality());
 		assertNotNull(fetchedBroadcast.getSpeed());
 		
+		/*
 		try {
 			Thread.sleep(20000);
 		} catch (InterruptedException e1) {
 			e1.printStackTrace();
 		}
+		*/
+		
+		Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			Broadcast stream = dataStore.get(newSource.getStreamId());
+			return stream != null && stream.getQuality() != null && stream.getQuality().equals("good");
+		});
 
 		Broadcast stream = dataStore.get(newSource.getStreamId());
-		assertEquals("good", stream.getQuality());	
-
 		logger.info("speed {}" , stream.getSpeed()) ;
-		
 
 
 		assertTrue(1 < stream.getSpeed());
 
 		limitNetworkInterfaceBandwidth();
 
+		/*
 		try {
 			Thread.sleep(5000);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
+		*/
+		
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			Broadcast streamTmp = dataStore.get(newSource.getStreamId());
+			return streamTmp != null && streamTmp.getQuality() != null && streamTmp.getQuality().equals("poor");
+		});
 
 		logger.info("before second control");
 
@@ -521,14 +532,19 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			app.getStreamFetcherManager().stopStreaming(broadcast);
 		}
 		
+		/*
 		try {
 			Thread.sleep(3000);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
+		*/
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			return app.getStreamFetcherManager().getStreamFetcherList().size() == 0;
+		});
 
 		//list size should be zero
-		assertEquals(0, app.getStreamFetcherManager().getStreamFetcherList().size());
+		//assertEquals(0, app.getStreamFetcherManager().getStreamFetcherList().size());
 		logger.info("leaving testBandwidth");
 		
 		Application.enableSourceHealthUpdate = false;
