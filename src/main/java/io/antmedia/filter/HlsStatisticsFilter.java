@@ -23,11 +23,11 @@ public class HlsStatisticsFilter implements javax.servlet.Filter {
 
 	protected static Logger logger = LoggerFactory.getLogger(HlsStatisticsFilter.class);
 	private IStreamStats streamStats;
+	private FilterConfig filterConfig;
 	
 	@Override
 	public void init(FilterConfig filterConfig) throws ServletException {
-		ApplicationContext context = (ApplicationContext) filterConfig.getServletContext().getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
-		streamStats = (IStreamStats)context.getBean(HlsViewerStats.BEAN_NAME);
+		this.filterConfig = filterConfig;
 	}
 
 	@Override
@@ -44,7 +44,7 @@ public class HlsStatisticsFilter implements javax.servlet.Filter {
 			String streamId = getStreamId(httpRequest.getRequestURI());
 			
 			if (streamId != null) {
-				streamStats.registerNewViewer(streamId, sessionId);
+				getStreamStats().registerNewViewer(streamId, sessionId);
 			}
 		}
 		
@@ -81,4 +81,14 @@ public class HlsStatisticsFilter implements javax.servlet.Filter {
 		}
 		return null;
 	}
+
+	public IStreamStats getStreamStats() {
+		if (streamStats == null) {
+			ApplicationContext context = (ApplicationContext) filterConfig.getServletContext().getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
+			streamStats = (IStreamStats)context.getBean(HlsViewerStats.BEAN_NAME);
+
+		}
+		return streamStats;
+	}
+
 }
