@@ -742,7 +742,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			String mp4File = "webapps/junit/streams/"+newCam.getStreamId() +".mp4";
 			
-			Awaitility.waitAtMost(10, TimeUnit.SECONDS).until(() -> {
+			Awaitility.waitAtMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				return new File(mp4File).exists();
 			});
 			

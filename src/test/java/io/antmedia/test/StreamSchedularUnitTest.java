@@ -498,12 +498,12 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			Broadcast stream = dataStore.get(newSource.getStreamId());
 			return stream != null && stream.getQuality() != null && stream.getQuality().equals("good");
 		});
-
-		Broadcast stream = dataStore.get(newSource.getStreamId());
-		logger.info("speed {}" , stream.getSpeed()) ;
-
-
-		assertTrue(1 < stream.getSpeed());
+		
+		Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			Broadcast stream = dataStore.get(newSource.getStreamId());
+			logger.info("speed {}" , stream.getSpeed()) ;
+			return stream != null && 1 < stream.getSpeed();
+		});
 
 		limitNetworkInterfaceBandwidth();
 
