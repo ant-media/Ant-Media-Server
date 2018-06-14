@@ -112,11 +112,17 @@ public class HlsViewerStatsTest {
 			
 			
 			assertEquals(0, dataStore.get(streamId).getHlsViewerCount());
+			
+			
+			scheduler.destroy();
+			
 		
 		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+		
+		
 	}
 
 }
