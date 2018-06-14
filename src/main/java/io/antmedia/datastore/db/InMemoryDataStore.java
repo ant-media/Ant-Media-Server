@@ -550,12 +550,12 @@ public class InMemoryDataStore implements IDataStore {
 					offsetCount++;
 					continue;
 				}
-				if (batchCount >= batchSize) {
+				if (batchCount > batchSize) {
 					break;
 				}
+				batchCount++;
 				List<TensorFlowObject> detectedList = detectionMap.get(keyValue);
 				list.addAll(detectedList);
-				batchCount = list.size();
 			}
 		}
 		return list;
@@ -568,23 +568,6 @@ public class InMemoryDataStore implements IDataStore {
 			return detectedObjects;
 		}
 		return null;
-	}
-	
-	@Override
-
-	public long getObjectDetectedTotal(String id) {
-	
-		List<TensorFlowObject> list = new ArrayList<>();
-		Set<String> keySet = detectionMap.keySet();
-		
-		for(String keyValue: keySet) {
-			if (keyValue.startsWith(id)) 
-			{
-				List<TensorFlowObject> detectedList = detectionMap.get(keyValue);
-				list.addAll(detectedList);
-			}
-		}
-		return list.size();
 	}
 
 	@Override
