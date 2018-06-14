@@ -8,6 +8,9 @@ import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -26,6 +29,7 @@ import javax.ws.rs.core.MediaType;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.red5.server.api.scope.IBroadcastScope;
 import org.red5.server.api.scope.IScope;
@@ -40,6 +44,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.context.WebApplicationContext;
 
 import com.drew.lang.annotations.Nullable;
+import com.google.gson.Gson;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
@@ -47,8 +52,8 @@ import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointChannel;
-import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.TensorFlowObject;
+import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.Vod;
 import io.antmedia.muxer.Muxer;
 import io.antmedia.rest.model.Result;
@@ -135,7 +140,7 @@ public class BroadcastRestService {
 	public static final int ERROR_SOCIAL_ENDPOINT_UNDEFINED_CLIENT_ID = -1;
 	public static final int ERROR_SOCIAL_ENDPOINT_UNDEFINED_ENDPOINT = -2;
 	public static final int ERROR_SOCIAL_ENDPOINT_EXCEPTION_IN_ASKING_AUTHPARAMS = -3;
-	private static final String MYSQL_CLIENT_PATH = "/usr/local/antmedia/mysql";
+	private static final String MYSQL_CLIENT_PATH = "/usr/local/mysql/bin/mysql";
 
 	@Context
 	private ServletContext servletContext;
@@ -281,7 +286,7 @@ public class BroadcastRestService {
 			result = true;
 		} else {
 			message = "No active broadcast found with id " + streamId;
-			
+
 			logger.warn("No active broadcast found with id {}", streamId);
 		}
 
@@ -561,7 +566,7 @@ public class BroadcastRestService {
 
 		if (list == null) {
 			//do not return null in rest service
-			list = new ArrayList<>();
+			list = new ArrayList<TensorFlowObject>();
 		}
 
 		return list;
@@ -580,7 +585,7 @@ public class BroadcastRestService {
 
 		if (list == null) {
 			//do not return null in rest service
-			list = new ArrayList<>();
+			list = new ArrayList<TensorFlowObject>();
 		}
 
 
@@ -813,8 +818,8 @@ public class BroadcastRestService {
 		versionList.setVersionName(AntMediaApplicationAdapter.class.getPackage().getImplementationVersion());
 		versionList.setVersionType(BroadcastRestService.isEnterprise() ? "Enterprise Edition" : "Community Edition");
 
-		logger.debug("Version Name {}", AntMediaApplicationAdapter.class.getPackage().getImplementationVersion());
-		logger.debug("Version Type {}", (BroadcastRestService.isEnterprise() ? "Enterprise Edition" : "Community Edition"));
+		logger.info("Version Name"+ AntMediaApplicationAdapter.class.getPackage().getImplementationVersion());
+		logger.info("Version Type"+ (BroadcastRestService.isEnterprise() ? "Enterprise Edition" : "Community Edition"));
 
 		return versionList;
 	}
@@ -957,34 +962,28 @@ public class BroadcastRestService {
 	@Consumes({ MediaType.MULTIPART_FORM_DATA })
 	@Path("/broadcast/uploadVoDFile/{name}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result uploadVoDFile(@PathParam("name") String fileName, @FormDataParam("file") InputStream inputStream) {
+	public Result uploadVoDFile(@PathParam("name") String fileName, @FormDataParam("file") InputStream inputStream) throws Exception {
 		boolean success = false;
 		String message = "";
 		String id= null;
-
 		String appScopeName = ScopeUtils.findApplication(getScope()).getName();
 		OutputStream outpuStream = null;
-
 		String fileExtension = FilenameUtils.getExtension(fileName);
+		try {
 
-		if (fileExtension.equals("mp4")) {
+			if (fileExtension.equals("mp4")) {
 
-			File streamsDirectory = new File(
-					String.format("%s/webapps/%s/%s", System.getProperty("red5.root"), appScopeName, "streams"));
+				File streamsDirectory = new File(
+						String.format("%s/webapps/%s/%s", System.getProperty("red5.root"), appScopeName, "streams"));
 
-			// if the directory does not exist, create it
-			if (!streamsDirectory.exists()) {
-				try {
+				// if the directory does not exist, create it
+				if (!streamsDirectory.exists()) {
 					streamsDirectory.mkdir();
-				} catch (SecurityException se) {
-
 				}
-			}
-			String vodId = RandomStringUtils.randomNumeric(24);
-			File savedFile = new File(String.format("%s/webapps/%s/%s", System.getProperty("red5.root"), appScopeName,
-					"streams/" + vodId + ".mp4"));
+				String vodId = RandomStringUtils.randomNumeric(24);
+				File savedFile = new File(String.format("%s/webapps/%s/%s", System.getProperty("red5.root"), appScopeName,
+						"streams/" + vodId + ".mp4"));
 
-			try {
 				int read = 0;
 				byte[] bytes = new byte[2048];
 				outpuStream = new FileOutputStream(savedFile);
@@ -994,12 +993,6 @@ public class BroadcastRestService {
 
 				outpuStream.flush();
 				outpuStream.close();
-
-			} 
-			catch (IOException iox) {
-				logger.error(iox.getMessage());
-			} 
-			finally {
 
 				success = true;
 
@@ -1015,13 +1008,18 @@ public class BroadcastRestService {
 				String relativePath=subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
 
 
+
 				Vod newVod = new Vod(fileName, "file", relativePath, fileName, unixTime, 0, fileSize,
 						Vod.UPLOADED_VOD, vodId);
-		
+
+
 
 				id = getDataStore().addVod(newVod);
-				
-				if(id != null) {
+
+				if(id == null) {
+					success=false;
+
+				} else {
 					message = id;
 				}
 
@@ -1031,12 +1029,18 @@ public class BroadcastRestService {
 					} catch (Exception ex) {
 					}
 				}
+
+			} 
+			else {
+				success = false;
+				message = "notMp4File";
 			}
+
 		} 
-		else {
-			success = false;
-			message = "notMp4File";
-		}
+		catch (IOException iox) {
+			iox.printStackTrace();
+		} 
+
 
 		return new Result(success, message);
 	}
@@ -1069,11 +1073,11 @@ public class BroadcastRestService {
 
 				result.setSuccess(getDataStore().delete(id));
 				boolean stopResult = stopBroadcast(id).isSuccess();
-				
+
 				if(result.isSuccess() && stopResult) {
 					result.setMessage("brodcast is deleted and stopped successfully");
 					logger.info("brodcast {} is deleted and stopped successfully", id);
-					
+
 				}else if(result.isSuccess() && !stopResult) {
 					result.setMessage("brodcast is deleted but could not stopped ");
 					logger.info("brodcast {} is deleted but could not stopped", id);
@@ -1344,6 +1348,7 @@ public class BroadcastRestService {
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/broadcast/setSocialNetworkChannel/{endpointId}/{type}/{id}")
 	@Produces(MediaType.APPLICATION_JSON)
+
 	public Result setSocialNetworkChannelList(@PathParam("endpointId") String endpointId,
 			@PathParam("type") String type, @PathParam("id") String id) {
 		boolean result = false;
@@ -1377,11 +1382,11 @@ public class BroadcastRestService {
 	}
 
 	protected List<VideoServiceEndpoint> getEndpointList() {
-		return getApplication().getVideoServiceEndpoints();
+		return ((AntMediaApplicationAdapter) getApplication()).getVideoServiceEndpoints();
 	}
 
 	protected List<VideoServiceEndpoint> getEndpointsHavingErrorList(){
-		return getApplication().getVideoServiceEndpointsHavingError();
+		return ((AntMediaApplicationAdapter) getApplication()).getVideoServiceEndpointsHavingError();
 	}
 
 	@Nullable

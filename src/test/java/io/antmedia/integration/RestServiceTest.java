@@ -923,7 +923,6 @@ public class RestServiceTest {
 			return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + fileName + ".mp4");
 		});
 		
-		
 	}
 
 	public String makePOSTRequest(String url, String entity) {
