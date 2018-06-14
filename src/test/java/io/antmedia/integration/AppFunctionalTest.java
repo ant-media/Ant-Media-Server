@@ -270,7 +270,7 @@ public class AppFunctionalTest {
 					+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
 					+ streamId);
 
-			Thread.sleep(5000);
+			Thread.sleep(10000);
 
 			// getLiveStreams from server and check that zombi stream exists and
 			// status is broadcasting
@@ -291,8 +291,10 @@ public class AppFunctionalTest {
 			
 			assertTrue(MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" +streamId+ ".m3u8" ));
 
-			broadcast = restService.callGetBroadcast(streamId);
-			assertEquals(1, broadcast.getHlsViewerCount());
+			Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return restService.callGetBroadcast(streamId).getHlsViewerCount() == 1;
+			});
+			
 
 			// stop publishing live stream
 			destroyProcess();
@@ -306,9 +308,10 @@ public class AppFunctionalTest {
 
 		} catch (InterruptedException e) {
 			e.printStackTrace();
+			fail(e.getMessage());
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
+			fail(e.getMessage());
 		}
 
 	}

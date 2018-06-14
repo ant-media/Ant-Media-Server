@@ -42,15 +42,17 @@ public class HlsStatisticsFilter implements javax.servlet.Filter {
 			//only accept GET methods
 			String sessionId = httpRequest.getSession().getId();
 
+		
 			chain.doFilter(request, response);
 
 			int status = ((HttpServletResponse) response).getStatus();
-			if (status == HttpServletResponse.SC_OK) 
+			
+			if (HttpServletResponse.SC_OK <= status && status <= HttpServletResponse.SC_BAD_REQUEST) 
 			{
 				String streamId = getStreamId(httpRequest.getRequestURI());
 				
 				if (streamId != null) {
-
+					logger.info("session id {} stream id {} status {}", sessionId, streamId, status);
 					getStreamStats().registerNewViewer(streamId, sessionId);
 				}
 			}
