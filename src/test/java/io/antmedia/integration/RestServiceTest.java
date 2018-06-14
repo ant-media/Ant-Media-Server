@@ -1429,8 +1429,6 @@ public class RestServiceTest {
 
 			result = callAddStreamSource(broadcast);
 
-			Thread.sleep(1000);
-
 			//it should be false because url is invalid
 			assertFalse(result.isSuccess());
 			
@@ -1485,12 +1483,12 @@ public class RestServiceTest {
 			Process execute = execute(ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy "
 					+ "	-vcodec copy -f flv rtmp://localhost/LiveApp/" + broadcastFetched.getStreamId());
 
-			Thread.sleep(5000);
-
 			/// get broadcast	
-			Broadcast broadcast2 = callGetBroadcast(broadcast.getStreamId());
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(()-> {
+				Broadcast broadcast2 = callGetBroadcast(broadcast.getStreamId());
+				return broadcast2 != null && AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(broadcast2.getStatus());
+			});
 
-			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING , broadcast2.getStatus());
 
 			// delete broadcast
 			Result result = deleteBroadcast(broadcastFetched.getStreamId());
