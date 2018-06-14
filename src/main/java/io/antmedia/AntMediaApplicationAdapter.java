@@ -76,7 +76,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	private List<VideoServiceEndpoint> videoServiceEndpoints = new ArrayList<>();
 	private List<VideoServiceEndpoint> videoServiceEndpointsHavingError = new ArrayList<>();
 	private List<IStreamPublishSecurity> streamPublishSecurityList;
-	private HashMap<String, OnvifCamera> onvifCameraList = new HashMap<String, OnvifCamera>();
+	private HashMap<String, OnvifCamera> onvifCameraList = new HashMap<>();
 	private StreamFetcherManager streamFetcherManager;
 	private IDataStore dataStore;
 	private AppSettings appSettings;

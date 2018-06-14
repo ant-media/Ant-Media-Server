@@ -303,13 +303,12 @@ public class MapDBStore implements IDataStore {
 				db.commit();
 			}
 		}
-
 		return result;
 	}
 
 	@Override
 	public List<Broadcast> getBroadcastList(int offset, int size) {
-		List<Broadcast> list = new ArrayList<Broadcast>();
+		List<Broadcast> list = new ArrayList<>();
 		synchronized (this) {
 			Collection<String> values = map.values();
 			int t = 0;
@@ -320,7 +319,6 @@ public class MapDBStore implements IDataStore {
 			if (offset < 0) {
 				offset = 0;
 			}
-
 			for (String broadcastString : values) {
 				if (t < offset) {
 					t++;
@@ -341,7 +339,7 @@ public class MapDBStore implements IDataStore {
 	@Override
 	public List<Vod> getVodList(int offset, int size) {
 
-		List<Vod> list = new ArrayList<Vod>();
+		List<Vod> list = new ArrayList<>();
 		synchronized (this) {
 
 			Collection<String> values = vodMap.values();
@@ -372,9 +370,6 @@ public class MapDBStore implements IDataStore {
 	}
 
 
-
-
-
 	@Override
 	public List<Broadcast> filterBroadcastList(int offset, int size, String type) {
 
@@ -388,8 +383,6 @@ public class MapDBStore implements IDataStore {
 			if (offset < 0) {
 				offset = 0;
 			}
-
-
 
 			Object[] objectArray = map.getValues().toArray();
 
@@ -438,8 +431,7 @@ public class MapDBStore implements IDataStore {
 					logger.warn(Long.toString(vod.getCreationDate()));
 
 				} catch (Exception e) {
-					e.printStackTrace();
-
+					logger.error(e.getMessage());
 				}
 			}
 		}
@@ -459,10 +451,8 @@ public class MapDBStore implements IDataStore {
 					db.commit();
 
 					result = true;
-
-
 				} catch (Exception e) {
-					e.printStackTrace();
+					logger.error(e.getMessage());
 
 				}
 			}
@@ -478,7 +468,7 @@ public class MapDBStore implements IDataStore {
 	@Override
 	public List<Broadcast> getExternalStreamsList() {
 
-		List<Broadcast> streamsList = new ArrayList<Broadcast>();
+		List<Broadcast> streamsList = new ArrayList<>();
 
 		synchronized (this) {
 
@@ -665,7 +655,7 @@ public class MapDBStore implements IDataStore {
 	@Override
 	public List<SocialEndpointCredentials> getSocialEndpoints(int offset, int size) {
 
-		List<SocialEndpointCredentials> list = new ArrayList<SocialEndpointCredentials>();
+		List<SocialEndpointCredentials> list = new ArrayList<>();
 
 		synchronized (this) {
 			Collection<String> values = socialEndpointsCredentialsMap.values();
@@ -757,7 +747,7 @@ public class MapDBStore implements IDataStore {
 					db.commit();
 				}
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.error(e.getMessage());
 			}
 		}
 	}
@@ -812,7 +802,7 @@ public class MapDBStore implements IDataStore {
 		boolean result = false;
 		synchronized (this) {
 			try {
-				logger.debug("inside of editStreamSourceInfo");
+				logger.debug("inside of editStreamSourceInfo {}", broadcast.getStreamId());
 				Broadcast oldBroadcast = get(broadcast.getStreamId());
 
 				oldBroadcast.setName(broadcast.getName());
@@ -833,6 +823,24 @@ public class MapDBStore implements IDataStore {
 
 		logger.debug("result inside edit camera:{} ", result);
 		return result;
+	}
+	
+	@Override
+	public boolean updateHLSViewerCount(String streamId, int viewerCount) {
+		boolean result = false;
+		synchronized (this) {
+			if (streamId != null) {
+				Broadcast broadcast = get(streamId);
+				if (broadcast != null) {
+					broadcast.setHlsViewerCount(viewerCount);
+					map.replace(streamId, gson.toJson(broadcast));
+					db.commit();
+					result = true;
+				}
+			}
+		}
+		return result;
+		
 	}
 
 }

@@ -428,7 +428,6 @@ public class InMemoryDataStore implements IDataStore {
 	}
 
 	@Override
-
 	public boolean updateSourceSpeed(String id, double speed) {
 		boolean result = false;
 		if (id != null) {
@@ -592,6 +591,20 @@ public class InMemoryDataStore implements IDataStore {
 			result = false;
 		}
 
+		return result;
+	}
+	
+	@Override
+	public boolean updateHLSViewerCount(String streamId, int viewerCount) {
+		boolean result = false;
+		if (streamId != null) {
+			Broadcast broadcast = broadcastMap.get(streamId);
+			if (broadcast != null) {
+				broadcast.setHlsViewerCount(viewerCount);
+				broadcastMap.replace(streamId, broadcast);
+				result = true;
+			}
+		}
 		return result;
 	}
 
