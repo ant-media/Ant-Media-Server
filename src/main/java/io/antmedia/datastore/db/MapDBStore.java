@@ -785,13 +785,34 @@ public class MapDBStore implements IDataStore {
 					if (batchCount > batchSize) {
 						break;
 					}
-					batchCount++;
+					List<TensorFlowObject> detectedList = gson.fromJson(detectionMap.get(keyValue), listType);
+					list.addAll(detectedList);
+					batchCount = list.size();
+				}
+			}
+		}
+		return list;
+	}
+	
+	@Override
+	public long getObjectDetectedTotal(String id) {
+
+		List<TensorFlowObject> list = new ArrayList<>();
+		
+		Type listType = new TypeToken<ArrayList<TensorFlowObject>>(){}.getType();
+		
+		synchronized (this) {
+			
+			for (Iterator<String> keyIterator =  detectionMap.keyIterator(); keyIterator.hasNext();) {
+				String keyValue = keyIterator.next();
+				if (keyValue.startsWith(id)) 
+				{
 					List<TensorFlowObject> detectedList = gson.fromJson(detectionMap.get(keyValue), listType);
 					list.addAll(detectedList);
 				}
 			}
 		}
-		return list;
+		return list.size();
 	}
 
 	@Override

@@ -596,6 +596,11 @@ public class MongoStore implements IDataStore {
 		}
 		return null;	
 	}
+	
+	@Override
+	public long getObjectDetectedTotal(String id) {
+		return datastore.find(TensorFlowObject.class).field("imageId").equal(id).asList().size();
+	}
 
 	@Override
 	public boolean editStreamSourceInfo(Broadcast broadcast) {
