@@ -338,6 +338,8 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(streamFetcher, streamFetcher2);
 		stopCameraEmulator();
 		
+		streamFetcherManager.stopCheckerJob();
+		
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->  {
 			return !streamFetcher.isThreadActive();
 		});

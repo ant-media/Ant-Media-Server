@@ -143,6 +143,7 @@ public class StreamFetcherManager {
 	public void stopCheckerJob() {
 		if (streamFetcherScheduleJobName != null) {
 			schedulingService.removeScheduledJob(streamFetcherScheduleJobName);
+			streamFetcherScheduleJobName = null;
 		}
 	}
 
