@@ -300,8 +300,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			fetcherManager.setRestartStreamFetcherPeriod(5);
 
 			//Start stream fetcher
-			Result result = fetcherManager.startStreaming(stream);
-			assertTrue(result.isSuccess());
+			StreamFetcher result = fetcherManager.startStreaming(stream);
+			assertNotNull(result);
 
 
 			//wait 10-12 seconds

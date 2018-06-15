@@ -50,8 +50,10 @@ import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.rest.model.Result;
 import io.antmedia.streamsource.StreamFetcher;
+import io.antmedia.streamsource.StreamFetcherManager;
 
 @ContextConfiguration(locations = { "test.xml" })
+@DirtiesContext(classMode = ClassMode.AFTER_CLASS)
 public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 	public Application app = null;
@@ -293,6 +295,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(1, scheduler.getScheduledJobNames().size());
 		
 		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnExit();
+		
 		getAppSettings().setDeleteHLSFilesOnEnded(false);
 		
 		
@@ -300,11 +303,12 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		IDataStore dataStore = new MapDBStore("target/testAddCamera.db"); //applicationContext.getBean(IDataStore.BEAN_NAME);
 
 		assertNotNull(dataStore);
-		app.setDataStore(dataStore);
+		StreamFetcherManager streamFetcherManager = new StreamFetcherManager(scheduler, dataStore, appScope);
+		//app.setDataStore(dataStore);
 
 		//set mapdb datastore to stream fetcher because in memory datastore just have references and updating broadcst
 		// object updates the reference in inmemorydatastore
-		app.getStreamFetcherManager().setDatastore(dataStore);
+		//app.getStreamFetcherManager().setDatastore(dataStore);
 		
 
 		logger.info("running testAddCameraBug");
@@ -319,18 +323,33 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		//add stream to data store
 		dataStore.save(newCam);
 		
-		result=getInstance().startStreaming(newCam);
+		//result=getInstance().startStreaming(newCam);
+		StreamFetcher streamFetcher = streamFetcherManager.startStreaming(newCam);
 		
 		//check whether answer from StreamFetcherManager is true or not after new IPCamera is added
-		assertTrue(result.isSuccess());
+		assertNotNull(streamFetcher);
 		
-		getInstance().stopStreaming(newCam);
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->  {
+			return streamFetcher.isThreadActive();
+		});
 		
+		//getInstance().stopStreaming(newCam);
+		StreamFetcher streamFetcher2 = streamFetcherManager.stopStreaming(newCam);
+		assertEquals(streamFetcher, streamFetcher2);
 		stopCameraEmulator();
 		
-		assertEquals(1, scheduler.getScheduledJobNames().size());
+		streamFetcherManager.stopCheckerJob();
+		
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->  {
+			return !streamFetcher.isThreadActive();
+		});
+		
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->  {
+			return 1 == scheduler.getScheduledJobNames().size();
+		});
 		
 		getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
+		Application.enableSourceHealthUpdate = false;
 		
 	}
 	

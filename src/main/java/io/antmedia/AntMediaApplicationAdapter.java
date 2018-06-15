@@ -41,10 +41,10 @@ import io.antmedia.datastore.db.types.Vod;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.muxer.IMuxerListener;
 import io.antmedia.rest.BroadcastRestService;
-import io.antmedia.rest.model.Result;
 import io.antmedia.social.endpoint.PeriscopeEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
+import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
 
 public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter implements IMuxerListener {
@@ -654,7 +654,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 	}
 
-	public Result startStreaming(Broadcast broadcast) {
+	public StreamFetcher startStreaming(Broadcast broadcast) {
 		return streamFetcherManager.startStreaming(broadcast);
 	}
 

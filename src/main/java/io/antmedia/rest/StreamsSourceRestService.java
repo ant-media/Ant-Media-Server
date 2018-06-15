@@ -99,16 +99,15 @@ public class StreamsSourceRestService {
 
 					if (id.length() > 0) {
 						Broadcast newCam = getStore().get(stream.getStreamId());
-						result=getInstance().startStreaming(newCam);
-						String str = String.valueOf(result.isSuccess());
-						logger.info("reply from startstreaming {}" , str);
-
-						if(!result.isSuccess()) {
+						StreamFetcher streamFetcher = getInstance().startStreaming(newCam);
+						if (streamFetcher != null) {
+							result.setSuccess(true);
+						}
+						else {
 							getStore().delete(stream.getStreamId());
 						}
 					}
 					onvif.disconnect();
-
 
 				}
 
