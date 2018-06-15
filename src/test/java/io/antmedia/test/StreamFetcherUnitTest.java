@@ -37,6 +37,7 @@ import org.red5.server.scheduling.QuartzSchedulingService;
 import org.red5.server.scope.WebScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.quartz.SpringBeanJobFactory;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
@@ -113,7 +114,6 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		if (!junit.exists()) {
 			junit.mkdirs();
 		}
-
 
 		if (appScope == null) {
 			appScope = (WebScope) applicationContext.getBean("web.scope");
@@ -681,7 +681,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		startCameraEmulator();
 		logger.info("running testRTSPSource");
 		//test RTSP Source
-		testFetchStreamSources("rtsp://127.0.0.1:6554/test.flv", true);	
+		testFetchStreamSources("rtsp://127.0.0.1:6554/test.flv", false);	
 		logger.info("leaving testRTSPSource");
 		stopCameraEmulator();
 	}
