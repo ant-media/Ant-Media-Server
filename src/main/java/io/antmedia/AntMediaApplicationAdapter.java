@@ -41,7 +41,6 @@ import io.antmedia.datastore.db.types.Vod;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.muxer.IMuxerListener;
 import io.antmedia.rest.BroadcastRestService;
-import io.antmedia.rest.model.Result;
 import io.antmedia.social.endpoint.PeriscopeEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
