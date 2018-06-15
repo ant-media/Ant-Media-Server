@@ -638,6 +638,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 			StreamFetcher fetcher3 = new StreamFetcher(newCam3, appScope, scheduler);
+			fetcher3.setRestartStream(false);
 
 			// thread start 
 			fetcher3.startStream();
