@@ -53,6 +53,7 @@ import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
 
 @ContextConfiguration(locations = { "test.xml" })
+@DirtiesContext(classMode = ClassMode.AFTER_CLASS)
 public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 	public Application app = null;
@@ -294,6 +295,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(1, scheduler.getScheduledJobNames().size());
 		
 		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnExit();
+		
 		getAppSettings().setDeleteHLSFilesOnEnded(false);
 		
 		
@@ -340,7 +342,9 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			return !streamFetcher.isThreadActive();
 		});
 		
-		assertEquals(1, scheduler.getScheduledJobNames().size());
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->  {
+			return 1 == scheduler.getScheduledJobNames().size();
+		});
 		
 		getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
 		Application.enableSourceHealthUpdate = false;
