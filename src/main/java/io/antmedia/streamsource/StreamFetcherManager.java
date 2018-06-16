@@ -14,7 +14,6 @@ import org.slf4j.LoggerFactory;
 import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.muxer.MuxAdaptor;
-import io.antmedia.rest.model.Result;
 
 
 /**
@@ -103,43 +102,47 @@ public class StreamFetcherManager {
 	}
 
 
-	public Result startStreaming(Broadcast broadcast) {	
+	public StreamFetcher startStreaming(Broadcast broadcast) {	
 
-		Result result=new Result(false);
-
+		StreamFetcher streamScheduler = null;
 		try {
-			StreamFetcher streamScheduler = streamFetcherFactory.make(broadcast, scope, schedulingService);
+			streamScheduler = streamFetcherFactory.make(broadcast, scope, schedulingService);
 			streamScheduler.setRestartStream(restartStreamAutomatically);
 			streamScheduler.startStream();
 
-			result.setSuccess(true);
 			streamFetcherList.add(streamScheduler);
 			if (streamFetcherScheduleJobName == null) {
 				scheduleStreamFetcherJob();
 			}
 		}
 		catch (Exception e) {
+			streamScheduler = null;
 			logger.error(e.getMessage());
 		}
 
-		return result;
+		return streamScheduler;
 	}
 
-	public void stopStreaming(Broadcast stream) {
+	public StreamFetcher stopStreaming(Broadcast stream) {
 		logger.warn("inside of stopStreaming for {}", stream.getStreamId());
 
-		for (StreamFetcher streamScheduler : streamFetcherList) {
-			if (streamScheduler.getStream().getStreamId().equals(stream.getStreamId())) {
-				streamScheduler.stopStream();
-				streamFetcherList.remove(streamScheduler);
+		StreamFetcher streamScheduler = null;
+		for (StreamFetcher scheduler : streamFetcherList) {
+			if (scheduler.getStream().getStreamId().equals(stream.getStreamId())) {
+				scheduler.stopStream();
+				streamFetcherList.remove(scheduler);
+				streamScheduler = scheduler;
 				break;
 			}
 		}
+		
+		return streamScheduler;
 	}
 
 	public void stopCheckerJob() {
 		if (streamFetcherScheduleJobName != null) {
 			schedulingService.removeScheduledJob(streamFetcherScheduleJobName);
+			streamFetcherScheduleJobName = null;
 		}
 	}
 
