@@ -86,7 +86,7 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 		//do not forget to add this job to a task queue as rtmp conn does
 
 		RtspRequest request = (RtspRequest) message;
-		String cseq = request.getHeader(RtspHeaderCode.CSeq);
+		String cseq = request.getHeader(RtspHeaderCode.CSEQ);
 		session.setAttribute(CSEQ, cseq);
 		switch (request.getVerb()) {
 		case OPTIONS:
@@ -117,17 +117,17 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 			onRecord(session, request);
 			break;
 		default:
-			onDefaultRequest(session, request, request.getHeader(RtspHeaderCode.CSeq));
+			onDefaultRequest(session, request, request.getHeader(RtspHeaderCode.CSEQ));
 		}
 	}
 
 	private void onRecord(IoSession session, RtspRequest request) {
-		String cseq = request.getHeader(RtspHeaderCode.CSeq);
+		String cseq = request.getHeader(RtspHeaderCode.CSEQ);
 		if (cseq == null || "".equals(cseq)) {
 			cseq = "0";
 		}
 
-		String sessionKey = request.getHeader(RtspHeaderCode.Session);
+		String sessionKey = request.getHeader(RtspHeaderCode.SESSION);
 		if (null == sessionKey || "".equals(sessionKey) || mSessionKey == null || !mSessionKey.equals(sessionKey)) {
 			logger.error("sessionKey is null...................");
 			handleError(session, cseq, RtspCode.SessionNotFound);
@@ -143,8 +143,8 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 	private void onAnnounce(IoSession session, RtspRequest request) {
 		// TODO: execute scope publish security function
 
-		String contentType = request.getHeader(RtspHeaderCode.ContentType);
-		String cseq = request.getHeader(RtspHeaderCode.CSeq);
+		String contentType = request.getHeader(RtspHeaderCode.CONTENT_TYPE);
+		String cseq = request.getHeader(RtspHeaderCode.CSEQ);
 		if (cseq == null || "".equals(cseq)) {
 			cseq = "0";
 		}
@@ -230,7 +230,7 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 			serverPort = new int[streamCount][2];
 			clientPort = new int[streamCount][2];
 			RtspResponse rtspResponse = new RtspResponse();
-			rtspResponse.setHeader(RtspHeaderCode.CSeq, cseq);
+			rtspResponse.setHeader(RtspHeaderCode.CSEQ, cseq);
 			session.write(rtspResponse);
 
 		} catch (URISyntaxException e) {
@@ -257,14 +257,14 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 
 	private void onPlay(IoSession session, RtspRequest request) {
 		// get cesq
-		String cseq = request.getHeader(RtspHeaderCode.CSeq);
+		String cseq = request.getHeader(RtspHeaderCode.CSEQ);
 		if (null == cseq || "".equals(cseq)) {
 			logger.error("cesq is null...................");
 			handleError(session, "0", RtspCode.HeaderFieldNotValidForResource);
 			return;
 		}
 		// getsessionKey
-		String sessionKey = request.getHeader(RtspHeaderCode.Session);
+		String sessionKey = request.getHeader(RtspHeaderCode.SESSION);
 		if (null == sessionKey || "".equals(sessionKey) || !mSessionKey.equals(sessionKey)) {
 			logger.error("sessionKey is null...................");
 			handleError(session, cseq, RtspCode.SessionNotFound);
@@ -273,12 +273,12 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 
 		RtspResponse response = new RtspResponse();
 		response.setCode(RtspCode.OK);
-		response.setHeader(RtspHeaderCode.CSeq, cseq);
-		response.setHeader(RtspHeaderCode.Date, DateUtil.getGmtDate());
-		response.setHeader(RtspHeaderCode.Session, sessionKey);
+		response.setHeader(RtspHeaderCode.CSEQ, cseq);
+		response.setHeader(RtspHeaderCode.DATE, DateUtil.getGmtDate());
+		response.setHeader(RtspHeaderCode.SESSION, sessionKey);
 
 
-		String rangeValue = request.getHeader(RtspHeaderCode.Range);
+		String rangeValue = request.getHeader(RtspHeaderCode.RANGE);
 		long duration = frameSender.getDuration();
 		float durationInSeconds =  (float)duration/1000000;
 
@@ -292,13 +292,13 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 				seekTime = (long)(Float.parseFloat(startTime) * 1000000);
 				logger.debug("seek time :" + seekTime);
 				if (durationInSeconds < 0) {
-					response.setHeader(RtspHeaderCode.Range, "npt=0.000-");
+					response.setHeader(RtspHeaderCode.RANGE, "npt=0.000-");
 				}
 				else if (seekTime <= duration) {
 					//duration in 
 					int ret = frameSender.seek(seekTime);
 					if (ret >= 0) {
-						response.setHeader(RtspHeaderCode.Range, "npt=" + startTime + "-" + durationInSeconds);
+						response.setHeader(RtspHeaderCode.RANGE, "npt=" + startTime + "-" + durationInSeconds);
 					}
 					else {
 						logger.debug("cannot seek the file to specified timestamp" + seekTime);
@@ -312,15 +312,15 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 			}
 
 		} else {
-			response.setHeader(RtspHeaderCode.Range, "npt=0.000-" + durationInSeconds);
+			response.setHeader(RtspHeaderCode.RANGE, "npt=0.000-" + durationInSeconds);
 		}
 
 
-		String scale = request.getHeader(RtspHeaderCode.Scale);
+		String scale = request.getHeader(RtspHeaderCode.SCALE);
 		if (null != scale) {
-			response.setHeader(RtspHeaderCode.Scale, scale);
+			response.setHeader(RtspHeaderCode.SCALE, scale);
 		} else {
-			response.setHeader(RtspHeaderCode.Scale, "1.00");
+			response.setHeader(RtspHeaderCode.SCALE, "1.00");
 		}
 
 		session.write(response);
@@ -348,10 +348,10 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 
 	private void onOptions(IoSession session, RtspRequest request) {
 		RtspResponse response = new RtspResponse();
-		response.setHeader(RtspHeaderCode.CSeq, request.getHeader(RtspHeaderCode.CSeq));
-		response.setHeader(RtspHeaderCode.Public, "DESCRIBE, SETUP, TEARDOWN, PLAY, PAUSE, ANNOUNCE");
-		response.setHeader(RtspHeaderCode.Server, "RtspServer");
-		response.setHeader(RtspHeaderCode.ContentLength, "0");
+		response.setHeader(RtspHeaderCode.CSEQ, request.getHeader(RtspHeaderCode.CSEQ));
+		response.setHeader(RtspHeaderCode.PUBLIC, "DESCRIBE, SETUP, TEARDOWN, PLAY, PAUSE, ANNOUNCE");
+		response.setHeader(RtspHeaderCode.SERVER, "RtspServer");
+		response.setHeader(RtspHeaderCode.CONTENT_LENGTH, "0");
 		session.write(response);
 	}
 
@@ -359,9 +359,9 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 	private void onDescribe(final IoSession session, RtspRequest request) {
 		//TODO: call context playback security here
 		final RtspResponse response = new RtspResponse();
-		String cseq = request.getHeader(RtspHeaderCode.CSeq);
+		String cseq = request.getHeader(RtspHeaderCode.CSEQ);
 		if (null != cseq && !"".equals(cseq)) {
-			response.setHeader(RtspHeaderCode.CSeq, cseq);
+			response.setHeader(RtspHeaderCode.CSEQ, cseq);
 		}
 
 		URI url;
@@ -393,9 +393,9 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 
 			if (input != INPUT_TYPE.LIVE_WAIT) 
 			{
-				response.setHeader(RtspHeaderCode.Date, DateUtil.getGmtDate());
-				response.setHeader(RtspHeaderCode.ContentType, "application/sdp");
-				response.setHeader(RtspHeaderCode.Server, "RtspServer");
+				response.setHeader(RtspHeaderCode.DATE, DateUtil.getGmtDate());
+				response.setHeader(RtspHeaderCode.CONTENT_TYPE, "application/sdp");
+				response.setHeader(RtspHeaderCode.SERVER, "RtspServer");
 
 				//TODO: do this job with a task in an executor
 				frameSender = new PacketSenderRunnable(this);
@@ -413,7 +413,7 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 							clientPort = new int[streamCount][2];
 							StringBuilder sdp = new StringBuilder();
 							sdp.append(new String(sdpDescription));
-							response.setHeader(RtspHeaderCode.ContentLength, String.valueOf(sdp.length()));
+							response.setHeader(RtspHeaderCode.CONTENT_LENGTH, String.valueOf(sdp.length()));
 							response.setBuffer(sdp);
 							session.write(response);
 						}
@@ -478,14 +478,14 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 	{
 		RtspResponse response = new RtspResponse();
 		// get cesq
-		String cseq = request.getHeader(RtspHeaderCode.CSeq);
+		String cseq = request.getHeader(RtspHeaderCode.CSEQ);
 		if (null == cseq || "".equals(cseq)) {
 			logger.error("cesq is null.....");
 			handleError(session, "0", RtspCode.HeaderFieldNotValidForResource);
 			return;
 		}
 		else {
-			response.setHeader(RtspHeaderCode.CSeq, cseq);
+			response.setHeader(RtspHeaderCode.CSEQ, cseq);
 		}
 
 		String streamIdText = "streamid=";
@@ -494,7 +494,7 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 		int streamId = Integer.valueOf(request.getUrl().substring(startIndex, startIndex+1)); 
 
 		// get Transport
-		String transport = request.getHeader(RtspHeaderCode.Transport);
+		String transport = request.getHeader(RtspHeaderCode.TRANSPORT);
 		RTSPTransport rtspTransport = new RTSPTransport(transport);
 		if (rtspTransport.getLowerTransport() == LowerTransport.NONE) {
 			rtspTransport.setLowerTransport(LowerTransport.UDP);
@@ -523,10 +523,10 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 			}
 
 			rtspTransport.setServerPort(serverPort[streamId]);
-			response.setHeader(RtspHeaderCode.Session, mSessionKey);
+			response.setHeader(RtspHeaderCode.SESSION, mSessionKey);
 			rtspTransport.setLowerTransport(LowerTransport.UDP);
 
-			response.setHeader(RtspHeaderCode.Transport, rtspTransport.toString());
+			response.setHeader(RtspHeaderCode.TRANSPORT, rtspTransport.toString());
 		}
 		else {
 			//then assume that it is a play request
@@ -541,13 +541,13 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 
 			if (frameSender.prepareOutputContext(streamId, remoteAddress, clientPort[streamId], serverPort[streamId])) {
 				response.setCode(RtspCode.OK);
-				response.setHeader(RtspHeaderCode.CSeq, cseq);
-				response.setHeader(RtspHeaderCode.Session, mSessionKey);
+				response.setHeader(RtspHeaderCode.CSEQ, cseq);
+				response.setHeader(RtspHeaderCode.SESSION, mSessionKey);
 
 				rtspTransport.setServerPort(serverPort[streamId]);
 				rtspTransport.setLowerTransport(LowerTransport.UDP);
 
-				response.setHeader(RtspHeaderCode.Transport, rtspTransport.toString());
+				response.setHeader(RtspHeaderCode.TRANSPORT, rtspTransport.toString());
 
 			}
 			else {
@@ -564,7 +564,7 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 
 	private void onPause(IoSession session, RtspRequest request) {
 		// get cesq
-		String cseq = request.getHeader(RtspHeaderCode.CSeq);
+		String cseq = request.getHeader(RtspHeaderCode.CSEQ);
 		if (null == cseq || "".equals(cseq)) {
 			logger.error("cesq is null...................");
 			handleError(session, "0", RtspCode.HeaderFieldNotValidForResource);
@@ -572,7 +572,7 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 		}
 
 		// get sessionKey
-		String sessionKey = request.getHeader(RtspHeaderCode.Session);
+		String sessionKey = request.getHeader(RtspHeaderCode.SESSION);
 		if (null == sessionKey || "".equals(sessionKey) || mSessionKey == null || !mSessionKey.equals(sessionKey)) {
 			logger.error("sessionKey is null...................");
 			handleError(session, cseq, RtspCode.SessionNotFound);
@@ -581,11 +581,11 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 		else {
 			RtspResponse response = new RtspResponse();
 			response.setCode(RtspCode.OK);
-			response.setHeader(RtspHeaderCode.CSeq, cseq);
+			response.setHeader(RtspHeaderCode.CSEQ, cseq);
 			//response.setHeader(RtspHeaderCode.Require, "HFC.Delivery.Profile.1.0");
-			response.setHeader(RtspHeaderCode.Date, DateUtil.getGmtDate());
-			response.setHeader(RtspHeaderCode.Session, sessionKey);
-			response.setHeader(RtspHeaderCode.Scale, "1.00");
+			response.setHeader(RtspHeaderCode.DATE, DateUtil.getGmtDate());
+			response.setHeader(RtspHeaderCode.SESSION, sessionKey);
+			response.setHeader(RtspHeaderCode.SCALE, "1.00");
 
 
 			frameSender.closeMuxer(false);
@@ -619,7 +619,7 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 
 	private void onGP(IoSession session, RtspRequest request) {
 		// get cesq
-		String cseq = request.getHeader(RtspHeaderCode.CSeq);
+		String cseq = request.getHeader(RtspHeaderCode.CSEQ);
 		if (null == cseq || "".equals(cseq)) {
 			logger.error("cesq is null...................");
 			handleError(session, "0", RtspCode.HeaderFieldNotValidForResource);
@@ -627,7 +627,7 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 		}
 
 		// get require
-		String requireValue = request.getHeader(RtspHeaderCode.Require);
+		String requireValue = request.getHeader(RtspHeaderCode.REQUIRE);
 		if (null == requireValue || "".equals(requireValue)
 				|| (!requireValue.equals(REQUIRE_VALUE_NGOD_C1))) {
 			logger.error("require value ==> {} ", requireValue);
@@ -636,7 +636,7 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 		}
 
 		// get sessionKey
-		String sessionKey = request.getHeader(RtspHeaderCode.Session);
+		String sessionKey = request.getHeader(RtspHeaderCode.SESSION);
 		if (null == sessionKey || "".equals(sessionKey) || mSessionKey == null || !mSessionKey.equals(sessionKey)) {
 			logger.debug("sessionKey is null...................");
 			handleError(session, cseq, RtspCode.SessionNotFound);
@@ -650,10 +650,10 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 
 			RtspResponse response = new RtspResponse();
 			response.setCode(RtspCode.OK);
-			response.setHeader(RtspHeaderCode.CSeq, cseq);
-			response.setHeader(RtspHeaderCode.Date, DateUtil.getGmtDate());
-			response.setHeader(RtspHeaderCode.Session, sessionKey);
-			response.setHeader(RtspHeaderCode.ContentLength, String.valueOf(sdp.length()));
+			response.setHeader(RtspHeaderCode.CSEQ, cseq);
+			response.setHeader(RtspHeaderCode.DATE, DateUtil.getGmtDate());
+			response.setHeader(RtspHeaderCode.SESSION, sessionKey);
+			response.setHeader(RtspHeaderCode.CONTENT_LENGTH, String.valueOf(sdp.length()));
 			response.appendToBuffer(sdp);
 			session.write(response);
 		}
@@ -662,14 +662,14 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 	private void onDefaultRequest(IoSession session, RtspRequest request, String cseq) {
 		RtspResponse response = new RtspResponse();
 		response.setCode(RtspCode.BadRequest);
-		response.setHeader(RtspHeaderCode.CSeq, cseq);
+		response.setHeader(RtspHeaderCode.CSEQ, cseq);
 		session.write(response);
 	}
 
 	private void handleError(IoSession session, String cseq, RtspCode code) {
 		RtspResponse response = new RtspResponse();
 		response.setCode(code);
-		response.setHeader(RtspHeaderCode.CSeq, cseq);
+		response.setHeader(RtspHeaderCode.CSEQ, cseq);
 		session.write(response);
 	}
 
@@ -677,7 +677,7 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 	private void onTeardown(IoSession session, RtspRequest request) {
 
 		// get cesq
-		String cseq = request.getHeader(RtspHeaderCode.CSeq);
+		String cseq = request.getHeader(RtspHeaderCode.CSEQ);
 		if (null == cseq || "".equals(cseq)) {
 			logger.error("cesq is null...................");
 			handleError(session, "0", RtspCode.HeaderFieldNotValidForResource);
@@ -685,7 +685,7 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 		}
 
 		// get sessionKey
-		String sessionKey = request.getHeader(RtspHeaderCode.Session);
+		String sessionKey = request.getHeader(RtspHeaderCode.SESSION);
 		if (null == sessionKey || "".equals(sessionKey) || mSessionKey == null || !mSessionKey.equals(sessionKey))
 		{
 			handleError(session, "0", RtspCode.SessionNotFound);
@@ -696,9 +696,9 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 
 		RtspResponse response = new RtspResponse();
 		response.setCode(RtspCode.OK);
-		response.setHeader(RtspHeaderCode.CSeq, cseq);
-		response.setHeader(RtspHeaderCode.Date, DateUtil.getGmtDate());
-		response.setHeader(RtspHeaderCode.Session, sessionKey);
+		response.setHeader(RtspHeaderCode.CSEQ, cseq);
+		response.setHeader(RtspHeaderCode.DATE, DateUtil.getGmtDate());
+		response.setHeader(RtspHeaderCode.SESSION, sessionKey);
 		session.write(response);
 		logger.debug("tear down called");
 		close();

@@ -87,7 +87,7 @@ public class RtspMinaIoHandler extends IoHandlerAdapter {
 	private void handleError(IoSession session, String cseq, RtspCode code) {
 		RtspResponse response = new RtspResponse();
 		response.setCode(code);
-		response.setHeader(RtspHeaderCode.CSeq, cseq);
+		response.setHeader(RtspHeaderCode.CSEQ, cseq);
 		session.write(response);
 	}
 

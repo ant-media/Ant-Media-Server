@@ -109,9 +109,9 @@ public class PacketReceiverRunnable implements Runnable {
 				public void run() {
 					RtspResponse response = new RtspResponse();
 					response.setCode(RtspCode.OK);
-					response.setHeader(RtspHeaderCode.CSeq, cseq);
-					response.setHeader(RtspHeaderCode.Date, DateUtil.getGmtDate());
-					response.setHeader(RtspHeaderCode.Session, sessionKey);
+					response.setHeader(RtspHeaderCode.CSEQ, cseq);
+					response.setHeader(RtspHeaderCode.DATE, DateUtil.getGmtDate());
+					response.setHeader(RtspHeaderCode.SESSION, sessionKey);
 					session.write(response);
 				}
 			}, new Date());

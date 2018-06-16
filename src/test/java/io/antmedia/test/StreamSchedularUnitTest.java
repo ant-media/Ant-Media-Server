@@ -3,14 +3,12 @@ package io.antmedia.test;
 import static org.bytedeco.javacpp.avcodec.av_packet_unref;
 import static org.bytedeco.javacpp.avformat.av_read_frame;
 import static org.bytedeco.javacpp.avformat.avformat_alloc_context;
-import static org.bytedeco.javacpp.avformat.avformat_close_input;
 import static org.bytedeco.javacpp.avformat.avformat_find_stream_info;
 import static org.bytedeco.javacpp.avformat.avformat_open_input;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -22,11 +20,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import javax.servlet.ServletContext;
-import javax.ws.rs.core.Context;
-
-import org.bytedeco.javacpp.avcodec.AVPacket;
 import org.awaitility.Awaitility;
+import org.bytedeco.javacpp.avcodec.AVPacket;
 import org.bytedeco.javacpp.avformat;
 import org.bytedeco.javacpp.avformat.AVFormatContext;
 import org.bytedeco.javacpp.avutil;
@@ -39,28 +34,23 @@ import org.junit.Test;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
-import org.red5.server.api.scope.IScope;
 import org.red5.server.scheduling.QuartzSchedulingService;
 import org.red5.server.scope.WebScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationContext;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
-import org.springframework.web.context.WebApplicationContext;
-import org.springframework.web.context.support.WebApplicationContextUtils;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.integration.RestServiceTest;
-import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.model.Result;
 import io.antmedia.streamsource.StreamFetcher;
+import io.antmedia.streamsource.StreamFetcherManager;
 
 @ContextConfiguration(locations = { "test.xml" })
 @DirtiesContext(classMode = ClassMode.AFTER_CLASS)
@@ -69,9 +59,6 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	public Application app = null;
 	private WebScope appScope;
 	protected static Logger logger = LoggerFactory.getLogger(StreamSchedularUnitTest.class);
-
-	@Context
-	private ServletContext servletContext;
 
 	static {
 		System.setProperty("red5.deployment.type", "junit");
@@ -308,6 +295,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(1, scheduler.getScheduledJobNames().size());
 		
 		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnExit();
+		
 		getAppSettings().setDeleteHLSFilesOnEnded(false);
 		
 		
@@ -315,11 +303,12 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		IDataStore dataStore = new MapDBStore("target/testAddCamera.db"); //applicationContext.getBean(IDataStore.BEAN_NAME);
 
 		assertNotNull(dataStore);
-		app.setDataStore(dataStore);
+		StreamFetcherManager streamFetcherManager = new StreamFetcherManager(scheduler, dataStore, appScope);
+		//app.setDataStore(dataStore);
 
 		//set mapdb datastore to stream fetcher because in memory datastore just have references and updating broadcst
 		// object updates the reference in inmemorydatastore
-		app.getStreamFetcherManager().setDatastore(dataStore);
+		//app.getStreamFetcherManager().setDatastore(dataStore);
 		
 
 		logger.info("running testAddCameraBug");
@@ -334,18 +323,33 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		//add stream to data store
 		dataStore.save(newCam);
 		
-		result=getInstance().startStreaming(newCam);
+		//result=getInstance().startStreaming(newCam);
+		StreamFetcher streamFetcher = streamFetcherManager.startStreaming(newCam);
 		
 		//check whether answer from StreamFetcherManager is true or not after new IPCamera is added
-		assertTrue(result.isSuccess());
+		assertNotNull(streamFetcher);
 		
-		getInstance().stopStreaming(newCam);
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->  {
+			return streamFetcher.isThreadActive();
+		});
 		
+		//getInstance().stopStreaming(newCam);
+		StreamFetcher streamFetcher2 = streamFetcherManager.stopStreaming(newCam);
+		assertEquals(streamFetcher, streamFetcher2);
 		stopCameraEmulator();
 		
-		assertEquals(1, scheduler.getScheduledJobNames().size());
+		streamFetcherManager.stopCheckerJob();
+		
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->  {
+			return !streamFetcher.isThreadActive();
+		});
+		
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->  {
+			return 1 == scheduler.getScheduledJobNames().size();
+		});
 		
 		getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
+		Application.enableSourceHealthUpdate = false;
 		
 	}
 	

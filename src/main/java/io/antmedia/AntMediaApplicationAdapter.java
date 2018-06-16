@@ -15,6 +15,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
@@ -40,10 +41,10 @@ import io.antmedia.datastore.db.types.Vod;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.muxer.IMuxerListener;
 import io.antmedia.rest.BroadcastRestService;
-import io.antmedia.rest.model.Result;
 import io.antmedia.social.endpoint.PeriscopeEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
+import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
 
 public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter implements IMuxerListener {
@@ -219,7 +220,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 								try {
 									videoServiceEndPoint.stopBroadcast(endpoint);
 								} catch (Exception e) {
-									e.printStackTrace();
+									logger.error(ExceptionUtils.getStackTrace(e));
 								}
 							}
 						}
@@ -238,7 +239,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 	}
 
@@ -255,7 +256,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 						getDataStore().removeEndpoint(broadcast.getStreamId(), endpoint);
 						getDataStore().addEndpoint(broadcast.getStreamId(), newEndpoint);
 					} catch (Exception e) {
-						e.printStackTrace();
+						logger.error(ExceptionUtils.getStackTrace(e));
 					}
 
 				}
@@ -275,7 +276,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 			return endPointService;
 		}
 		catch (Exception e) {
-			e.printStackTrace();
+			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 		return null;
 	}
@@ -626,7 +627,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	@Override
 	public void sourceQualityChanged(String id,String quality) 
 	{
-		addScheduledOnceJob(0, new IScheduledJob() {
+		String qualityChangedJobName = addScheduledOnceJob(0, new IScheduledJob() {
 
 			@Override
 			public void execute(ISchedulingService service) throws CloneNotSupportedException {
@@ -635,29 +636,26 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 			}
 		});
+		logger.info("sourceQualityChanged job name: {}", qualityChangedJobName);
 	}
 
 
 	@Override
 	public void sourceSpeedChanged(String id,double speed) {
-		// log.info("source stream quality changed, new quality is: "+speed);
-		addScheduledOnceJob(0, new IScheduledJob() {
+		
+		String speedChangeJobName = addScheduledOnceJob(0, new IScheduledJob() {
 			@Override
 			public void execute(ISchedulingService service) throws CloneNotSupportedException {
 				getDataStore().updateSourceSpeed(id, speed);
 
 			}
 		});
+		logger.info("sourceSpeedChanged change name {}", speedChangeJobName);
 
 	}
 
-	public Result startStreaming(Broadcast broadcast) {
-
-		Result result=new Result(false);
-
-		result=streamFetcherManager.startStreaming(broadcast);
-
-		return result;
+	public StreamFetcher startStreaming(Broadcast broadcast) {
+		return streamFetcherManager.startStreaming(broadcast);
 	}
 
 	public void stopStreaming(Broadcast cam) {
