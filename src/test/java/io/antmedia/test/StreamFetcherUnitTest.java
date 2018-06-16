@@ -462,11 +462,16 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			assertNotNull(newCam.getStreamId());
 
 			StreamFetcher fetcher = new StreamFetcher(newCam, appScope, scheduler);
-
+			fetcher.setRestartStream(false);
 			// thread start 
 			fetcher.startStream();
+			
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->  {
+				String message = fetcher.getCameraError().getMessage();
+				return message != null && !message.isEmpty();
+			});
 
-			Thread.sleep(8000);
+			//Thread.sleep(8000);
 
 			String str=fetcher.getCameraError().getMessage();
 			logger.info("error:   "+str);
@@ -477,7 +482,9 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			fetcher.stopStream();
 
-			Thread.sleep(2000);
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->  {
+				return !fetcher.isThreadActive();
+			});
 
 			// start stream fetcher
 
@@ -495,27 +502,32 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			assertNotNull(newCam2.getStreamId());
 
 			StreamFetcher fetcher2 = new StreamFetcher(newCam2, appScope, scheduler);
-
+			fetcher2.setRestartStream(false);
 			// thread start 
 			fetcher2.startStream();
 
-			Thread.sleep(6000);
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->  {
+				String message = fetcher2.getCameraError().getMessage();
+				return message != null && !message.isEmpty();
+			});
 
 			String str2=fetcher2.getCameraError().getMessage();
 			logger.info("error2:   "+str2);
-
-
 
 			assertTrue(fetcher2.getCameraError().getMessage().contains("Connection refused"));
 
 			fetcher2.stopStream();
 
-			Thread.sleep(2000);
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->  {
+				return !fetcher2.isThreadActive();
+			});
 
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		assertEquals(1, scheduler.getScheduledJobNames().size());
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->  {
+			return scheduler.getScheduledJobNames().size() == 1;
+		});
 
 	}
 
@@ -614,8 +626,6 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		try {
 
 			assertEquals(1, scheduler.getScheduledJobNames().size());
-
-
 
 			getAppSettings().setDeleteHLSFilesOnEnded(false);
 

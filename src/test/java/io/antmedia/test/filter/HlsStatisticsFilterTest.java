@@ -15,6 +15,7 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.context.ApplicationContext;
@@ -98,7 +99,7 @@ public class HlsStatisticsFilterTest {
 			
 		} catch (ServletException|IOException e) {
 			e.printStackTrace();
-			fail(e.getMessage());
+			fail(ExceptionUtils.getStackTrace(e));
 		} 
 		
 		
