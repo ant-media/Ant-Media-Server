@@ -63,6 +63,17 @@ deploy:
     on:
       tags: false
       all_branches: true
+      #deploy all branches to mvn if it is a snapshot version
+      condition:  $(mvn -o -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)  = *"SNAPSHOT"* 
+  
+  - provider: script
+    script: "mvn deploy -P assemble -DskipTests --quiet --settings mvn-settings.xml"
+    skip_cleanup: true
+    on:
+      #deploy to maven if it is master branch and tagged
+      tags: true
+      branch: master    
+  
   - provider: releases
     api_key: $GITHUB_OAUTH_TOKEN
     file_glob: true
@@ -71,5 +82,8 @@ deploy:
     name: "Ant Media Server Community $(date +'%F-%T')"
     prerelease: true
     on:
+      #deploy to github if it is master branch and tagged
       tags: true
       branch: master
+      
+#above configuration prevents deploying a new release(not snapshot) if it is not tagged       
