@@ -326,7 +326,7 @@ public class BroadcastRestService {
 				broadcast.getDescription());
 		String message = "";
 		int errorId = 0;
-		if (!result) {
+		if (result) {
 			Broadcast fetchedBroadcast = getDataStore().get(broadcast.getStreamId());
 			getDataStore().removeAllEndpoints(fetchedBroadcast.getStreamId());
 
