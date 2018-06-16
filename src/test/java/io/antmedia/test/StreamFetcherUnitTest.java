@@ -507,7 +507,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			fetcher2.startStream();
 
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->  {
-				return fetcher2.isThreadActive();
+				String message = fetcher2.getCameraError().getMessage();
+				return message != null && !message.isEmpty();
 			});
 
 			String str2=fetcher2.getCameraError().getMessage();
