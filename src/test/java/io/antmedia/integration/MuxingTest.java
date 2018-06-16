@@ -30,7 +30,11 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 public class MuxingTest {
 
@@ -55,6 +59,21 @@ public class MuxingTest {
 			OS_TYPE = LINUX;
 		}
 	}
+	
+	@Rule
+	public TestRule watcher = new TestWatcher() {
+	   protected void starting(Description description) {
+	      System.out.println("Starting test: " + description.getMethodName());
+	   }
+	   
+	   protected void failed(Throwable e, Description description) {
+		   System.out.println("Failed test: " + description.getMethodName() );
+		   e.printStackTrace();
+	   };
+	   protected void finished(Description description) {
+		   System.out.println("Finishing test: " + description.getMethodName());
+	   };
+	};
 
 	@BeforeClass
 	public static void beforeClass() {
