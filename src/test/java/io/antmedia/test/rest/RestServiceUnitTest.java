@@ -10,31 +10,22 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
-import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
-
-import javax.servlet.ServletContext;
-import javax.ws.rs.core.Context;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.red5.server.api.stream.IBroadcastStream;
 import org.red5.server.api.stream.IClientBroadcastStream;
 import org.red5.server.api.stream.IStreamCapableConnection;
-import org.red5.server.scheduling.QuartzSchedulingService;
 import org.red5.server.scope.Scope;
-import org.red5.server.scope.WebScope;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 
 import com.google.gson.Gson;
-import com.google.protobuf.Any;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
@@ -56,8 +47,6 @@ public class RestServiceUnitTest {
 
 
 	private BroadcastRestService restService = null;
-	private AntMediaApplicationAdapter appInstance;
-	private WebScope appScope;
 	public AntMediaApplicationAdapter app = null;
 
 	static {
@@ -117,7 +106,7 @@ public class RestServiceUnitTest {
 			restService.setProcessBuilderFactory(factory);
 
 			Broadcast createBroadcast = restService.createBroadcast(broadcast);
-
+			assertNotNull(createBroadcast.getStreamId());
 
 			Result result = restService.importLiveStreams2Stalker();
 			assertTrue(result.isSuccess());
