@@ -64,7 +64,7 @@ import io.antmedia.storage.StorageClient.FileType;
 @Path("/")
 public class BroadcastRestService {
 
-	//TODO: Where this class is being used? I do not see any reference in code.  @mekya
+	//**** Where this class is being used? I do not see any reference in code.  @mekya
 	public static class SearchParam {
 		public String keyword = null;
 
@@ -139,7 +139,6 @@ public class BroadcastRestService {
 	public static final int ERROR_SOCIAL_ENDPOINT_UNDEFINED_ENDPOINT = -2;
 	public static final int ERROR_SOCIAL_ENDPOINT_EXCEPTION_IN_ASKING_AUTHPARAMS = -3;
 
-	private static final String MYSQL_CLIENT_PATH = "/usr/local/antmedia/mysql";
 	public static final String ENTERPRISE_EDITION = "Enterprise Edition";
 	public static final String COMMUNITY_EDITION = "Community Edition";
 
@@ -691,8 +690,10 @@ public class BroadcastRestService {
 
 	private Process getProcess(String query, String stalkerDBServer, String stalkerDBUsername, String stalkerDBPassword) {
 		Process process = null;
+		String mysqlClientPath = getAppSettings().getMySqlClientPath();
 		if (processBuilderFactory != null) {
-			process = processBuilderFactory.make(MYSQL_CLIENT_PATH, 
+			
+			process = processBuilderFactory.make(mysqlClientPath, 
 					"-h", stalkerDBServer,
 					"-u", stalkerDBUsername,
 					"-p"+stalkerDBPassword,
@@ -701,7 +702,7 @@ public class BroadcastRestService {
 		else {
 			try {
 				process = new ProcessBuilder(
-						MYSQL_CLIENT_PATH, 
+						mysqlClientPath, 
 						"-h", stalkerDBServer,
 						"-u", stalkerDBUsername,
 						"-p"+stalkerDBPassword,
