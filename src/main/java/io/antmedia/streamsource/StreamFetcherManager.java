@@ -1,25 +1,19 @@
 package io.antmedia.streamsource;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.red5.logging.Red5LoggerFactory;
-import org.red5.server.adapter.MultiThreadedApplicationAdapter;
 import org.red5.server.api.scheduling.IScheduledJob;
 import org.red5.server.api.scheduling.ISchedulingService;
 import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
-import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.muxer.MuxAdaptor;
-import io.antmedia.rest.model.Result;
 
 
 /**
@@ -108,61 +102,47 @@ public class StreamFetcherManager {
 	}
 
 
-	public Result startStreaming(Broadcast broadcast) {	
+	public StreamFetcher startStreaming(Broadcast broadcast) {	
 
-		Result result=new Result(false);
-
+		StreamFetcher streamScheduler = null;
 		try {
-			StreamFetcher streamScheduler = streamFetcherFactory.make(broadcast, scope, schedulingService);
+			streamScheduler = streamFetcherFactory.make(broadcast, scope, schedulingService);
 			streamScheduler.setRestartStream(restartStreamAutomatically);
 			streamScheduler.startStream();
 
-			/*
-			String broadcastType = broadcast.getType();
-			if(broadcastType != null && broadcastType.equals(AntMediaApplicationAdapter.IP_CAMERA)) {
-				try {
-					Thread.sleep(6000);
-				} catch (InterruptedException e) {
-					logger.error(e.getMessage());
-				}
-			}
-			if(!streamScheduler.getCameraError().isSuccess()) {
-				result=streamScheduler.getCameraError();
-			}
-			else {
-				result.setSuccess(true);
-			}
-			 */
-			
-			
-			result.setSuccess(true);
 			streamFetcherList.add(streamScheduler);
 			if (streamFetcherScheduleJobName == null) {
 				scheduleStreamFetcherJob();
 			}
 		}
 		catch (Exception e) {
+			streamScheduler = null;
 			logger.error(e.getMessage());
 		}
 
-		return result;
+		return streamScheduler;
 	}
 
-	public void stopStreaming(Broadcast stream) {
+	public StreamFetcher stopStreaming(Broadcast stream) {
 		logger.warn("inside of stopStreaming for {}", stream.getStreamId());
 
-		for (StreamFetcher streamScheduler : streamFetcherList) {
-			if (streamScheduler.getStream().getStreamId().equals(stream.getStreamId())) {
-				streamScheduler.stopStream();
-				streamFetcherList.remove(streamScheduler);
+		StreamFetcher streamScheduler = null;
+		for (StreamFetcher scheduler : streamFetcherList) {
+			if (scheduler.getStream().getStreamId().equals(stream.getStreamId())) {
+				scheduler.stopStream();
+				streamFetcherList.remove(scheduler);
+				streamScheduler = scheduler;
 				break;
 			}
 		}
+		
+		return streamScheduler;
 	}
 
 	public void stopCheckerJob() {
 		if (streamFetcherScheduleJobName != null) {
 			schedulingService.removeScheduledJob(streamFetcherScheduleJobName);
+			streamFetcherScheduleJobName = null;
 		}
 	}
 
@@ -202,38 +182,45 @@ public class StreamFetcherManager {
 
 
 					if (countToRestart > lastRestartCount) {
-
 						lastRestartCount = countToRestart;
 						logger.info("This is {} times that restarting streams", lastRestartCount);
-						for (StreamFetcher streamScheduler : streamFetcherList) {
-
-							if (streamScheduler.isStreamAlive()) 
-							{
-								logger.info("Calling stop stream {}", streamScheduler.getStream().getStreamId());
-								streamScheduler.stopStream();
-							}
-							else {
-								logger.info("Stream is not alive {}", streamScheduler.getStream().getStreamId());
-							}
-
-							streamScheduler.startStream();
-						}
-
+						restartStreamFetchers();
 					} else {
-						for (StreamFetcher streamScheduler : streamFetcherList) {
-							Broadcast stream = streamScheduler.getStream();
-							if (!streamScheduler.isStreamAlive() && datastore != null && stream.getStreamId() != null) 
-							{
-								logger.info("Updating stream quality to poor of stream {}", stream.getStreamId() );
-								datastore.updateSourceQualityParameters(stream.getStreamId(), MuxAdaptor.QUALITY_POOR, 0, 0);
-							}
-						}
+						checkStreamFetchersStatus();
 					}
 				}
 			}
+			
 		}, streamCheckerIntervalMs);
 
 		logger.info("StreamFetcherSchedule job name {}", streamFetcherScheduleJobName);
+	}
+	
+	public void checkStreamFetchersStatus() {
+		for (StreamFetcher streamScheduler : streamFetcherList) {
+			Broadcast stream = streamScheduler.getStream();
+			if (!streamScheduler.isStreamAlive() && datastore != null && stream.getStreamId() != null) 
+			{
+				logger.info("Updating stream quality to poor of stream {}", stream.getStreamId() );
+				datastore.updateSourceQualityParameters(stream.getStreamId(), MuxAdaptor.QUALITY_POOR, 0, 0);
+			}
+		}
+	}
+	
+	public void restartStreamFetchers() {
+		for (StreamFetcher streamScheduler : streamFetcherList) {
+
+			if (streamScheduler.isStreamAlive()) 
+			{
+				logger.info("Calling stop stream {}", streamScheduler.getStream().getStreamId());
+				streamScheduler.stopStream();
+			}
+			else {
+				logger.info("Stream is not alive {}", streamScheduler.getStream().getStreamId());
+			}
+
+			streamScheduler.startStream();
+		}
 	}
 
 	public IDataStore getDatastore() {

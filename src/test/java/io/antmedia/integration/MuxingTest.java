@@ -38,8 +38,8 @@ import org.junit.Test;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
-
 import io.antmedia.rest.BroadcastRestService.LiveStatistics;
+
 
 public class MuxingTest {
 
@@ -72,7 +72,9 @@ public class MuxingTest {
 	   }
 	   
 	   protected void failed(Throwable e, Description description) {
-		   System.out.println("Failed test: " + description.getMethodName());
+		   System.out.println("Failed test: " + description.getMethodName() );
+		   e.printStackTrace();
+
 	   };
 	   protected void finished(Description description) {
 		   System.out.println("Finishing test: " + description.getMethodName());
@@ -624,6 +626,32 @@ public class MuxingTest {
 			// System.out.println("File is deleted : " +
 			// file.getAbsolutePath());
 		}
+	}
+	
+	public static boolean isURLAvailable(String address) {
+		try {
+
+			URL url = new URL(address);
+			HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
+			urlConnection.setReadTimeout(10000);
+			urlConnection.setConnectTimeout(45000);
+			urlConnection.setRequestMethod("HEAD");
+			urlConnection.setDoInput(true);
+
+			HttpURLConnection.setFollowRedirects(true);
+			urlConnection.connect();
+
+			InputStream in = urlConnection.getInputStream(); // getAssets().open("kralfmtop10.htm");
+
+			byte[] byteArray = org.apache.commons.io.IOUtils.toByteArray(in);
+
+			in.close();
+
+			return true;
+		} catch (Exception e) {
+			//e.printStackTrace();
+		}
+		return false;
 	}
 
 	public static byte[] getByteArray(String address) {

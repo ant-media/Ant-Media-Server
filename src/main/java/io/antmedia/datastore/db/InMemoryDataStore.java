@@ -270,24 +270,25 @@ public class InMemoryDataStore implements IDataStore {
 	}
 
 	@Override
-	public boolean addVod(Vod vod) {
-		String vodId = null;
+	public String addVod(Vod vod) {
+		String id = null;
 		boolean result = false;
 
 		if (vod != null) {
 			try {
-				vodId = RandomStringUtils.randomNumeric(24);
-				vod.setVodId(vodId);
-
-				vodMap.put(vodId,vod);
+				vodMap.put(vod.getVodId(),vod);
 				result = true;
 
 			} catch (Exception e) {
 				e.printStackTrace();
-
 			}
 		}
-		return result;
+		
+		if(result) {
+			
+			id = vod.getVodId();
+		}
+		return id;
 	}
 
 	@Override
@@ -387,9 +388,9 @@ public class InMemoryDataStore implements IDataStore {
 
 					String relativePath=subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
 
-
+					String vodId = RandomStringUtils.randomNumeric(24);
 					Vod newVod = new Vod("vodFile", "vodFile", relativePath, file.getName(), unixTime, 0, fileSize,
-							Vod.USER_VOD);
+							Vod.USER_VOD,vodId);
 
 					addUserVod(newVod);
 					numberOfSavedFiles++;
@@ -532,15 +533,32 @@ public class InMemoryDataStore implements IDataStore {
 					offsetCount++;
 					continue;
 				}
-				if (batchCount > batchSize) {
+				if (batchCount >= batchSize) {
 					break;
 				}
-				batchCount++;
+				List<TensorFlowObject> detectedList = detectionMap.get(keyValue);
+				list.addAll(detectedList);
+				batchCount=list.size();
+			}
+		}
+		return list;
+	}
+	
+	@Override
+
+	public long getObjectDetectedTotal(String id) {
+	
+		List<TensorFlowObject> list = new ArrayList<>();
+		Set<String> keySet = detectionMap.keySet();
+		
+		for(String keyValue: keySet) {
+			if (keyValue.startsWith(id)) 
+			{
 				List<TensorFlowObject> detectedList = detectionMap.get(keyValue);
 				list.addAll(detectedList);
 			}
 		}
-		return list;
+		return list.size();
 	}
 
 	@Override
@@ -573,6 +591,20 @@ public class InMemoryDataStore implements IDataStore {
 			result = false;
 		}
 
+		return result;
+	}
+	
+	@Override
+	public boolean updateHLSViewerCount(String streamId, int viewerCount) {
+		boolean result = false;
+		if (streamId != null) {
+			Broadcast broadcast = broadcastMap.get(streamId);
+			if (broadcast != null) {
+				broadcast.setHlsViewerCount(viewerCount);
+				broadcastMap.replace(streamId, broadcast);
+				result = true;
+			}
+		}
 		return result;
 	}
 

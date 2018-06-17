@@ -69,7 +69,7 @@ public class StreamsSourceRestService {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result addStreamSource(Broadcast stream) {
 		Result result=new Result(false);
-		
+
 		logger.info("username {}", stream.getUsername());
 		logger.info("pass {}", stream.getPassword());
 
@@ -99,16 +99,15 @@ public class StreamsSourceRestService {
 
 					if (id.length() > 0) {
 						Broadcast newCam = getStore().get(stream.getStreamId());
-						result=getInstance().startStreaming(newCam);
-						String str = String.valueOf(result.isSuccess());
-						logger.info("reply from startstreaming " + str);
-
-						if(!result.isSuccess()) {
+						StreamFetcher streamFetcher = getInstance().startStreaming(newCam);
+						if (streamFetcher != null) {
+							result.setSuccess(true);
+						}
+						else {
 							getStore().delete(stream.getStreamId());
 						}
 					}
 					onvif.disconnect();
-
 
 				}
 
@@ -194,7 +193,7 @@ public class StreamsSourceRestService {
 		boolean result = false;
 		OnvifCamera onvif = null;
 		logger.warn("inside of rest service");
-		
+
 		if( checkStreamUrl(broadcast.getStreamUrl()) && broadcast.getStatus()!=null){
 
 			getInstance().stopStreaming(broadcast);
@@ -214,7 +213,7 @@ public class StreamsSourceRestService {
 
 					String authparam = broadcast.getUsername() + ":" + broadcast.getPassword() + "@";
 					String rtspURLWithAuth = "rtsp://" + authparam + rtspURL.substring("rtsp://".length());
-					System.out.println("new RTSP URL:" + rtspURLWithAuth);
+					logger.info("new RTSP URL: {}" , rtspURLWithAuth);
 					broadcast.setStreamUrl(rtspURLWithAuth);
 				}
 			}
@@ -225,7 +224,7 @@ public class StreamsSourceRestService {
 			try {
 				Thread.sleep(1000);
 			} catch (InterruptedException e) {
-				e.printStackTrace();
+				logger.error(e.getMessage());
 				Thread.currentThread().interrupt();
 			}
 
@@ -269,9 +268,7 @@ public class StreamsSourceRestService {
 
 			String ipAd = ipAddrParts[0] + "." + ipAddrParts[1] + "." + ipAddrParts[2] + ".";
 
-			System.out.println(ipAd);
-
-			logger.warn("inside of auto discovery");
+			logger.warn("inside of auto discovery ip Addr {}", ipAd);
 
 			ArrayList<String> addressList = new ArrayList<>();
 
@@ -284,7 +281,7 @@ public class StreamsSourceRestService {
 
 			list = new String[onvifDevices.size()];
 
-			if (onvifDevices.size() > 0) {
+			if (!onvifDevices.isEmpty()) {
 
 				for (int i = 0; i < onvifDevices.size(); i++) {
 
@@ -395,53 +392,42 @@ public class StreamsSourceRestService {
 	public boolean checkStreamUrl (String url) {
 
 		logger.debug("inside check {}", url);
-
 		boolean streamUrlControl = false;
 		String[] ipAddrParts = null;
 		String ipAddr = null;
 
-		if(url != null) {
-			if( url.startsWith("http://") ||
-					url.startsWith("https://") ||
-					url.startsWith("rtmp://") ||
-					url.startsWith("rtmps://") ||
-					url.startsWith("rtsp://")) {
-
-				streamUrlControl=true;
-			}
-			if(url.contains("//")){
-
-				ipAddrParts = url.split("//");
-				ipAddr = ipAddrParts[1];
-
-			} else { ipAddr = url;
-			}
-		}
-		if (ipAddr.contains("@")){
-
-			ipAddrParts = ipAddr.split("@");
+		if(url != null && (url.startsWith("http://") ||
+								url.startsWith("https://") ||
+								url.startsWith("rtmp://") ||
+								url.startsWith("rtmps://") ||
+								url.startsWith("rtsp://"))) 
+		{
+			streamUrlControl=true;
+			ipAddrParts = url.split("//");
 			ipAddr = ipAddrParts[1];
 
-		}
-		if (ipAddr.contains(":")){
+			if (ipAddr.contains("@")){
 
-			ipAddrParts = ipAddr.split(":");
-			ipAddr = ipAddrParts[0];
+				ipAddrParts = ipAddr.split("@");
+				ipAddr = ipAddrParts[1];
 
-		}
-		if (ipAddr.contains("/")){
+			}
+			if (ipAddr.contains(":")){
 
-			ipAddrParts = ipAddr.split("/");
-			ipAddr = ipAddrParts[0];
+				ipAddrParts = ipAddr.split(":");
+				ipAddr = ipAddrParts[0];
 
-		}
-		if(ipAddr.split(".").length == 4){
-			if(!this.validateIPaddress(ipAddr)){
+			}
+			if (ipAddr.contains("/")){
+
+				ipAddrParts = ipAddr.split("/");
+				ipAddr = ipAddrParts[0];
+
+			}
+			if(ipAddr.split(".").length == 4 && !this.validateIPaddress(ipAddr)){
 				streamUrlControl = false;
 			}
-
 		}
-
 		return streamUrlControl;
 
 	}

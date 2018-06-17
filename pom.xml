@@ -4,7 +4,6 @@
 		<groupId>io.antmedia</groupId>
 		<artifactId>parent</artifactId>
 		<version>1.4.0-SNAPSHOT</version>
-
 	</parent>
 	<modelVersion>4.0.0</modelVersion>
 	<artifactId>ant-media-server</artifactId>
@@ -439,7 +438,6 @@
 			<version>2.11.0</version>
 			<scope>test</scope>
 		</dependency>
-		
 		<dependency>
 		    <groupId>javax.websocket</groupId>
 		    <artifactId>javax.websocket-api</artifactId>
@@ -468,6 +466,12 @@
   			 <artifactId>maven-model</artifactId>
  			 <version>3.3.9</version>
  			 <scope>test</scope>
+			</dependency>
+		<dependency>
+	    		<groupId>org.apache.httpcomponents</groupId>
+	    		<artifactId>httpmime</artifactId>
+	    		<version>4.3.1</version>
+	    		<scope>test</scope>
 		</dependency>
 	</dependencies>
 	<profiles>
@@ -479,18 +483,21 @@
 					<artifactId>WebRTCApp</artifactId>
 					<version>${webrtcapp.version}</version>
 					<type>war</type>
-				</dependency>
-				<dependency>
-					<groupId>io.antmedia.app</groupId>
-					<artifactId>LiveApp</artifactId>
-					<version>${liveapp.version}</version>
-					<type>war</type>
+					<scope>provided</scope>
 				</dependency>
 				<dependency>
 					<groupId>io.antmedia.app</groupId>
 					<artifactId>ConsoleApp</artifactId>
 					<version>${consoleapp.version}</version>
 					<type>war</type>
+					<scope>provided</scope>
+				</dependency>
+				<dependency>
+					<groupId>io.antmedia.app</groupId>
+					<artifactId>LiveApp</artifactId>
+					<version>${liveapp.version}</version>
+					<type>war</type>
+					<scope>provided</scope>
 				</dependency>
 			</dependencies>
 			<build>
@@ -648,6 +655,12 @@
 					<artifactId>ConsoleApp</artifactId>
 					<version>${consoleapp.version}</version>
 					<type>war</type>
+				</dependency>				
+				<dependency>
+					<groupId>io.antmedia.enterprise</groupId>
+					<artifactId>ant-media-enterprise</artifactId>
+					<version>${ant-media-server-enterprise.version}</version>
+					<type>jar</type>
 				</dependency>
 			</dependencies>
 			<build>

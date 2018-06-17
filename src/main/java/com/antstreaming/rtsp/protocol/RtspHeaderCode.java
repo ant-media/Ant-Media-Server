@@ -4,15 +4,15 @@ package com.antstreaming.rtsp.protocol;
  * RtspHeaderCode.
  */
 public enum RtspHeaderCode {
-  CSeq("CSeq"), Require("Require"), SessionGroup("SessionGroup"), EncryptionType("EncryptionType"), CAS_ID(
-      "CAS_ID"), EncryptControl("EncryptControl"), encryption_scheme("encryption_scheme"), Transport(
-      "Transport"), Date("Date"), Session("Session"), UserAgent("User-Agent"), Accept("Accept"), MayNotify(
-      "May-Notify"), UUData("UUData"), EmbeddedEncryptor("EmbeddedEncryptor"), eventDate(
-      "event-date"), SecureData("SecureData"), Location("Location"), UserNotifiacation(
-      "User-Notifiacation"), Range("Range"), Scale("Scale"), Notice("Notice"), Public("Public"), Server(
-      "Server"), ContentLength("Content-Length"), ContentType("Content-Type"), Connection(
-      "Connection"), OnDemandSessionId("OnDemandSessionId"), InbandMarker("InbandMarker"), insertDuration(
-      "insertDuration"), Policy("Policy"), Reason("Reason");
+  CSEQ("CSeq"), REQUIRE("Require"), SESSIONGROUP("SessionGroup"), ENCRYPTIONTYPE("EncryptionType"), CAS_ID(
+      "CAS_ID"), ENCRYPTCONTROL("EncryptControl"), ENCRYPTION_SCHEME("encryption_scheme"), TRANSPORT(
+      "Transport"), DATE("Date"), SESSION("Session"), USERAGENT("User-Agent"), ACCEPT("Accept"), MAYNOTIFY(
+      "May-Notify"), UUDATA("UUData"), EMBEDDED_ENCRYPTOR("EmbeddedEncryptor"), EVENT_DATE(
+      "event-date"), SECURE_DATA("SecureData"), LOCATION("Location"), USER_NOTIFICATION(
+      "User-Notifiacation"), RANGE("Range"), SCALE("Scale"), NOTICE("Notice"), PUBLIC("Public"), SERVER(
+      "Server"), CONTENT_LENGTH("Content-Length"), CONTENT_TYPE("Content-Type"), CONNECTION(
+      "Connection"), ON_DEMAND_SESSION_ID("OnDemandSessionId"), INBAND_MARKER("InbandMarker"), INSERT_DURATION(
+      "insertDuration"), POLICY("Policy"), REASON("Reason");
 
 
   private final String value;

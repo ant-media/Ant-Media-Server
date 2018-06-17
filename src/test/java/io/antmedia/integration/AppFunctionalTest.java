@@ -3,6 +3,7 @@ package io.antmedia.integration;
 import static org.bytedeco.javacpp.avformat.av_register_all;
 import static org.bytedeco.javacpp.avformat.avformat_network_init;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -263,7 +264,7 @@ public class AppFunctionalTest {
 		}
 
 	}
-
+	
 	@Test
 	public void testZombiStream() {
 
@@ -275,12 +276,15 @@ public class AppFunctionalTest {
 			List<Broadcast> broadcastList = restService.callGetBroadcastList();
 			int size = broadcastList.size();
 			// publish live stream to the server
-			String streamId = "zombiStreamId";
+			String streamId = "zombiStreamId"  + (int)(Math.random()*9999);
 			executeProcess(ffmpegPath
 					+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
 					+ streamId);
 
-			Thread.sleep(5000);
+			
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return MuxingTest.isURLAvailable("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" +streamId+ "_0p0001.ts" );
+			});
 
 			// getLiveStreams from server and check that zombi stream exists and
 			// status is broadcasting
@@ -291,7 +295,20 @@ public class AppFunctionalTest {
 			// assertEquals(broadcastList.size(), size+1);
 			Broadcast broadcast = restService.callGetBroadcast(streamId);
 
-			assertEquals(broadcast.getStatus(), AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, broadcast.getStatus());
+			
+			
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return MuxingTest.isURLAvailable("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" +streamId+ ".m3u8" );
+			});
+			
+			
+			assertTrue(MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" +streamId+ ".m3u8" ));
+
+			Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return restService.callGetBroadcast(streamId).getHlsViewerCount() == 1;
+			});
+			
 
 			// stop publishing live stream
 			destroyProcess();
@@ -305,9 +322,10 @@ public class AppFunctionalTest {
 
 		} catch (InterruptedException e) {
 			e.printStackTrace();
+			fail(e.getMessage());
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
+			fail(e.getMessage());
 		}
 		
 		RestServiceTest restService = new RestServiceTest();
