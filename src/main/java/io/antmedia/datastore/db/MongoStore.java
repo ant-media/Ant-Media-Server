@@ -39,7 +39,7 @@ public class MongoStore implements IDataStore {
 
 	protected static Logger logger = LoggerFactory.getLogger(MongoStore.class);
 	
-	public static final String IMAGE_ID = "ImageId"; 
+	public static final String IMAGE_ID = "imageId"; 
 
 	public MongoStore(String dbName) {
 		morphia = new Morphia();
