@@ -38,6 +38,8 @@ public class MongoStore implements IDataStore {
 	private Datastore endpointCredentialsDS;
 
 	protected static Logger logger = LoggerFactory.getLogger(MongoStore.class);
+	
+	public static final String IMAGE_ID = "ImageId"; 
 
 	public MongoStore(String dbName) {
 		morphia = new Morphia();
@@ -580,7 +582,7 @@ public class MongoStore implements IDataStore {
 	@Override
 	public List<TensorFlowObject> getDetectionList(String idFilter, int offsetSize, int batchSize) {
 		try {
-			return datastore.find(TensorFlowObject.class).field("imageId").startsWith(idFilter).asList(new FindOptions().skip(offsetSize).limit(batchSize));
+			return datastore.find(TensorFlowObject.class).field(IMAGE_ID).startsWith(idFilter).asList(new FindOptions().skip(offsetSize).limit(batchSize));
 		} catch (Exception e) {
 			logger.error(e.getMessage());
 		}
@@ -590,7 +592,7 @@ public class MongoStore implements IDataStore {
 	@Override
 	public List<TensorFlowObject> getDetection(String id) {
 		try {
-			return datastore.find(TensorFlowObject.class).field("imageId").equal(id).asList();
+			return datastore.find(TensorFlowObject.class).field(IMAGE_ID).equal(id).asList();
 		} catch (Exception e) {
 			logger.error(e.getMessage());
 		}
@@ -599,7 +601,7 @@ public class MongoStore implements IDataStore {
 	
 	@Override
 	public long getObjectDetectedTotal(String id) {
-		return datastore.find(TensorFlowObject.class).field("imageId").equal(id).asList().size();
+		return datastore.find(TensorFlowObject.class).field(IMAGE_ID).equal(id).asList().size();
 	}
 	
 	
