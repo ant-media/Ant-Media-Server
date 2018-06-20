@@ -44,15 +44,7 @@ public class StreamFetcherManager {
 
 	protected AtomicBoolean isJobRunning = new AtomicBoolean(false);
 
-	public  static class StreamFetcherFactory {
-		public StreamFetcher make(Broadcast stream, IScope scope, ISchedulingService schedulingService) {
-			return new StreamFetcher(stream, scope, schedulingService);
-		}
-	}
-
 	private boolean restartStreamAutomatically = true;
-
-	private StreamFetcherFactory streamFetcherFactory;
 
 	/**
 	 * Time period in seconds for restarting stream fetchers
@@ -60,20 +52,13 @@ public class StreamFetcherManager {
 	private int restartStreamFetcherPeriodSeconds;
 
 	public StreamFetcherManager(ISchedulingService schedulingService, IDataStore datastore,IScope scope) {
-		this(schedulingService, datastore, scope, null);
-	}
-
-
-
-	public StreamFetcherManager(ISchedulingService schedulingService, IDataStore datastore,IScope scope, StreamFetcherFactory streamFetcherFactory) {
 		this.schedulingService = schedulingService;
 		this.datastore = datastore;
 		this.scope=scope;
-		this.streamFetcherFactory = streamFetcherFactory;
-		if(this.streamFetcherFactory == null) {
-			this.streamFetcherFactory = new StreamFetcherFactory();
-		}
+	}
 
+	public StreamFetcher make(Broadcast stream, IScope scope, ISchedulingService schedulingService) {
+		return new StreamFetcher(stream, scope, schedulingService);
 	}
 
 	public int getStreamCheckerInterval() {
@@ -106,7 +91,7 @@ public class StreamFetcherManager {
 
 		StreamFetcher streamScheduler = null;
 		try {
-			streamScheduler = streamFetcherFactory.make(broadcast, scope, schedulingService);
+			streamScheduler =  make(broadcast, scope, schedulingService);
 			streamScheduler.setRestartStream(restartStreamAutomatically);
 			streamScheduler.startStream();
 
