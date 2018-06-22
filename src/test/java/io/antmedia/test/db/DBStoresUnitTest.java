@@ -172,7 +172,7 @@ public class DBStoresUnitTest {
 		assertEquals(0, totalVodCount);
 		assertEquals(5, datastore.fetchUserVodList(f));
 		
-		//we know there are 4 files there
+		//we know there are 5 files there
 		//test_short.flv
 		//test_video_360p_subtitle.flv
 		//test_Video_360p.flv
@@ -269,11 +269,10 @@ public class DBStoresUnitTest {
 	}
 	
 	public void testVoDFunctions(IDataStore datastore) {
-		//fail("Write test codes about saveVod, AddVod, AddUserVod, delete vod ");
 		
 		//create a vod
 		String vodId = RandomStringUtils.randomNumeric(24);
-		Vod streamVod=new Vod("streamName", "streamId", "filePath", "vodName", 111, 111, 111, Vod.STREAM_VOD,vodId);
+		Vod streamVod=new Vod("streamName", "streamId", "filePath", "vodName", 111, 111, 111, Vod.STREAM_VOD, vodId);
 		
 		//save stream vod
 		
@@ -285,8 +284,8 @@ public class DBStoresUnitTest {
 		
 		//add uservod
 		vodId = RandomStringUtils.randomNumeric(24);
-		Vod userVod=new Vod("streamName", "streamId", "filePath", "vodName", 111, 111, 111, Vod.USER_VOD,vodId);
-		
+		Vod userVod=new Vod("streamName", "streamId", "filePath", "vodName", 111, 111, 111, Vod.USER_VOD, vodId);
+		 
 		datastore.addUserVod(userVod);
 		
 		//check vod number
