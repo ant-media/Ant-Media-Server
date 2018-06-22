@@ -22,7 +22,7 @@ Ant Media Server is an Open Source Media Server that supports:
 
 ## Releases 
 
-#### [Ant Media Server Community 1.3.6 (June 16, 2018)](https://github.com/ant-media/Ant-Media-Server/releases/download/ams-v1.3.6.1/ant-media-server-community-1.3.6.1-180616_1929.zip)
+#### [Ant Media Server Community 1.3.6 (June 21, 2018)](https://github.com/ant-media/Ant-Media-Server/releases/download/ams-v1.3.6.2/ant-media-server-community-1.3.6.2-180621_2202.zip)
 * HLS Viewer Count can be available via web panel and rest service
 * Limit the log file size. Old log files are deleted automatically if log files size exceeding 1.5GB
 * Change Stream Source URL without changing the URL in the server
