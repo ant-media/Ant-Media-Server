@@ -34,7 +34,6 @@ import org.red5.server.api.stream.IStreamPacket;
 import org.red5.server.scheduling.QuartzSchedulingService;
 import org.red5.server.scope.WebScope;
 import org.red5.server.service.mp4.impl.MP4Service;
-import org.red5.server.stream.RemoteBroadcastStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
@@ -304,45 +303,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 	}
 
-	@Test
-	public void testRemoteBroadcastStreamStartStop() 
-	{
-		if (appScope == null) {
-			appScope = (WebScope) applicationContext.getBean("web.scope");
-			logger.debug("Application / web scope: {}", appScope);
-			assertTrue(appScope.getDepth() == 1);
-		}
-
-		QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
-		assertNotNull(scheduler);
-
-		RemoteBroadcastStream rbs = new RemoteBroadcastStream();
-		rbs.setRemoteStreamUrl("src/test/resources/test_short.flv");
-		//boolean containsScheduler = thisScope.getParent().getContext().getApplicationContext().containsBean("rtmpScheduler");
-		//if (containsScheduler) 
-
-		rbs.setScheduler(scheduler);
-
-		rbs.setName(UUID.randomUUID().toString());
-		rbs.setConnection(null);
-		rbs.setScope(appScope);
-
-		rbs.start();
-
-
-
-		while(scheduler.getScheduledJobNames().size() != 1) {
-			try {
-				Thread.sleep(5000);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-		}
-
-
-		assertEquals(0, rbs.getReferenceCountInQueue());
-
-	}
 
 	@Test
 	public void testStressMp4Muxing() {
