@@ -25,8 +25,9 @@ import io.antmedia.rest.model.Result;
 public class FirebaseEngine {
 	
 	protected static Logger logger = LoggerFactory.getLogger(FirebaseEngine.class);
-	private static final String DATABASE_URL ="https://ant-media-licence-manager-c4e6d.firebaseio.com/";
-	private static DatabaseReference database;
+	private static final String DATABASE_URL ="https://ant-licence.firebaseio.com";
+	private static DatabaseReference ref;
+	private static DatabaseReference usersRef;
 
 	public Result connectFirebaseDB() {
 
@@ -34,37 +35,22 @@ public class FirebaseEngine {
 
 		 // Initialize Firebase
         try {
-            // [START initialize]
-            FileInputStream serviceAccount = new FileInputStream("src/main/resources/ant-media-licence-manager-firebase-adminsdk-j9dji-8714e8700c.json");
+            FileInputStream serviceAccount = new FileInputStream("conf/ant-licence-firebase-adminsdk-t4f6f-3e2bc12d03.json");
             FirebaseOptions options = new FirebaseOptions.Builder()
                     .setCredentials(GoogleCredentials.fromStream(serviceAccount))
                     .setDatabaseUrl(DATABASE_URL)
                     .build();
             FirebaseApp.initializeApp(options);
-            // [END initialize]
+            logger.info("firebase connection successfull");
         } catch (IOException e) {
             System.out.println("ERROR: invalid service account credentials. See README.");
             System.out.println(e.getMessage());
 
         }
-
+       
 		return result;
 	}
 
-	public Result saveData (Licence licence) {
 
-		Result result = new Result(false);
-
-        // Shared Database reference
-        database = FirebaseDatabase.getInstance().getReference();
-        
-		database.child("alanisawesome").setValueAsync("davut");
-		
-		logger.info("inside save");
-
-
-		return result;
-
-	}
 
 }

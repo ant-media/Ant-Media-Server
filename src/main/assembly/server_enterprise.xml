@@ -117,6 +117,7 @@
 				<include>*.policy</include>
 				<include>*.globals</include>
 				<include>*.jmx</include>
+				<include>*.json</include>
 			</includes>
 			<excludes>
 				<exclude>build_standalone.properties</exclude>

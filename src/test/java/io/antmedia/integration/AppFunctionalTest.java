@@ -417,14 +417,13 @@ public class AppFunctionalTest {
         Licence licence = new Licence();
         
         licence.setType("type");
+        licence.setLicenceId("gel babacim");
         
         database = FirebaseDatabase.getInstance().getReference();
         
         DatabaseReference usersRef = database.child("licences");
 
-        
-		licence.setType("type");
-		licence.setLicenceId("gel babacim");
+		
 
 		usersRef.child(licence.getLicenceId()).setValueAsync(licence);
 		

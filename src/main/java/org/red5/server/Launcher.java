@@ -39,6 +39,9 @@ import org.springframework.context.support.FileSystemXmlApplicationContext;
 import com.brsanthu.googleanalytics.GoogleAnalytics;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.datastore.db.types.Licence;
+import io.antmedia.licence.FirebaseEngine;
+import io.antmedia.licence.LicenceService;
 import io.antmedia.rest.BroadcastRestService;
 
 /**
@@ -51,8 +54,8 @@ public class Launcher {
 
 
 	private String instanceId;
-	
-	
+
+
 
 	/**
 	 * Launch Red5 under it's own classloader
@@ -67,6 +70,7 @@ public class Launcher {
 		av_register_all();
 		avformat.avformat_network_init();
 		avutil.av_log_set_level(avutil.AV_LOG_ERROR);
+		LicenceService licenceService = new LicenceService();
 		System.out.printf("Root: %s%nDeploy type: %s%n", System.getProperty("red5.root"), System.getProperty("red5.deployment.type"));
 		// check for the logback disable flag
 		boolean useLogback = Boolean.valueOf(System.getProperty("useLogback", "true"));
@@ -88,6 +92,7 @@ public class Launcher {
 		String implementationVersion = AntMediaApplicationAdapter.class.getPackage().getImplementationVersion();
 		String type = BroadcastRestService.isEnterprise() ? "Enterprise" : "Community";
 		log.info("Ant Media Server {} {}", type, implementationVersion);
+
 		if (log.isDebugEnabled()) {
 			log.debug("fmsVer: {}", Red5.getFMSVersion());
 		}
@@ -112,35 +117,35 @@ public class Launcher {
 
 		Timer heartbeat = new Timer("heartbeat", true);
 		heartbeat.schedule(new TimerTask() {
-			
+
 			@Override
 			public void run() {
 				getGoogleAnalytic(implementationVersion, type).screenView()
-			    		.sessionControl("start")
-			    		.clientId(instanceId)
-			    		.send();
+				.sessionControl("start")
+				.clientId(instanceId)
+				.send();
 			}
 		}, 0);
-		
+
 		heartbeat.scheduleAtFixedRate(new TimerTask() {
-			
+
 			@Override
 			public void run() {
-				
+
 				System.out.println("-Heartbeat-");
 				getGoogleAnalytic(implementationVersion, type).event()
-					.eventCategory("server_status")
-					.eventAction("heartbeat")
-					.eventLabel("")
-					.clientId(instanceId)
-					.send();
-				
+				.eventCategory("server_status")
+				.eventAction("heartbeat")
+				.eventLabel("")
+				.clientId(instanceId)
+				.send();
+
 			}
 		}, 300000, 300000);
-		
 
-		
-		
+
+
+
 		// refresh must be called before accessing the bean factory
 		log.trace("Refreshing root server context");
 		root.refresh();
@@ -153,9 +158,9 @@ public class Launcher {
 			public void run() {
 				System.out.println("Shutting down just a sec");
 				getGoogleAnalytic(implementationVersion, type).screenView()
-					.clientId(instanceId)
-					.sessionControl("end")
-					.send();
+				.clientId(instanceId)
+				.sessionControl("end")
+				.send();
 
 			}
 		});
@@ -163,10 +168,10 @@ public class Launcher {
 
 	private GoogleAnalytics getGoogleAnalytic(String implementationVersion, String type) {
 		return GoogleAnalytics.builder()
-		.withAppVersion(implementationVersion)
-		.withAppName(type)
-		.withTrackingId("UA-93263926-3").build();
-		
+				.withAppVersion(implementationVersion)
+				.withAppName(type)
+				.withTrackingId("UA-93263926-3").build();
+
 	}
 
 	public void writeToFile(String absolutePath, String content) {
@@ -175,7 +180,7 @@ public class Launcher {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		
+
 	}
 
 	public String getFileContent(String path) {
