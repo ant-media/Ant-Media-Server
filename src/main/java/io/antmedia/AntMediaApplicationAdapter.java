@@ -2,6 +2,8 @@ package io.antmedia;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Files;
@@ -33,14 +35,24 @@ import org.red5.server.api.stream.IStreamPublishSecurity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.auth.oauth2.GoogleCredentials;
+import com.google.firebase.FirebaseApp;
+import com.google.firebase.FirebaseOptions;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.internal.FirebaseService;
+
 import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
+import io.antmedia.datastore.db.types.Licence;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.Vod;
 import io.antmedia.ipcamera.OnvifCamera;
+import io.antmedia.licence.FirebaseEngine;
 import io.antmedia.muxer.IMuxerListener;
 import io.antmedia.rest.BroadcastRestService;
+import io.antmedia.rest.model.Result;
 import io.antmedia.social.endpoint.PeriscopeEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
@@ -77,6 +89,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 	@Override
 	public boolean appStart(IScope app) {
+
 
 		if (getStreamPublishSecurityList() != null) {
 			for (IStreamPublishSecurity streamPublishSecurity : getStreamPublishSecurityList()) {
@@ -121,6 +134,8 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 				}
 			}
 		});
+		
+		
 
 		return super.appStart(app);
 	}
@@ -162,7 +177,6 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 		return result;
 	}
-
 
 	public boolean deleteOldFolderPath(String oldFolderPath, File streamsFolder) throws IOException {
 		boolean result = false;
@@ -410,7 +424,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 				Integer pathLength=Integer.valueOf(subDirs.length);
 
 				String relativePath=subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
-				
+
 				String vodId = RandomStringUtils.randomNumeric(24);
 
 				Vod newVod = new Vod(streamName, streamId, relativePath, name, unixTime, duration, fileSize, Vod.STREAM_VOD, vodId);
@@ -642,7 +656,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 	@Override
 	public void sourceSpeedChanged(String id,double speed) {
-		
+
 		String speedChangeJobName = addScheduledOnceJob(0, new IScheduledJob() {
 			@Override
 			public void execute(ISchedulingService service) throws CloneNotSupportedException {

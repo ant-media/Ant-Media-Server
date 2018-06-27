@@ -9,6 +9,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -39,11 +40,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 
+import com.google.auth.oauth2.GoogleCredentials;
+import com.google.firebase.FirebaseApp;
+import com.google.firebase.FirebaseOptions;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 import com.google.gson.Gson;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.Licence;
+import io.antmedia.licence.FirebaseEngine;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.BroadcastRestService.BroadcastStatistics;
 import io.antmedia.rest.BroadcastRestService.LiveStatistics;
@@ -51,6 +59,9 @@ import io.antmedia.rest.model.Result;
 import io.antmedia.test.Application;
 
 public class AppFunctionalTest {
+	
+	private static final String DATABASE_URL = "https://ant-licence.firebaseio.com/";
+	private static DatabaseReference database;
 
 	private BroadcastRestService restService = null;
 	private AppSettings appSettings;
@@ -384,6 +395,44 @@ public class AppFunctionalTest {
 			fail(e.getMessage());
 		}
 	}
+	
+	@Test
+	public void testFirebaseSave() {
+		
+
+        try {
+            // [START initialize]
+            FileInputStream serviceAccount = new FileInputStream("src/test/resources/ant-licence-firebase-adminsdk-t4f6f-3e2bc12d03.json");
+            FirebaseOptions options = new FirebaseOptions.Builder()
+                    .setCredentials(GoogleCredentials.fromStream(serviceAccount))
+                    .setDatabaseUrl(DATABASE_URL)
+                    .build();
+            FirebaseApp.initializeApp(options);
+            // [END initialize]
+        } catch (IOException e) {
+            System.out.println("ERROR: invalid service account credentials. See README.");
+            System.out.println(e.getMessage());
+
+        }
+        Licence licence = new Licence();
+        
+        licence.setType("type");
+        
+        database = FirebaseDatabase.getInstance().getReference();
+        
+        DatabaseReference usersRef = database.child("licences");
+
+        
+		licence.setType("type");
+		licence.setLicenceId("gel babacim");
+
+		usersRef.child(licence.getLicenceId()).setValueAsync(licence);
+		
+		
+
+		
+	}
+	
 
 	// Before running test all endpoints should be authenticated
 	@Test

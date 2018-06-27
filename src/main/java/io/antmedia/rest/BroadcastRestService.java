@@ -1349,6 +1349,7 @@ public class BroadcastRestService {
 		}
 		return new Result(result, null);
 	}
+	
 
 	public static boolean isEnterprise() {
 		try {
