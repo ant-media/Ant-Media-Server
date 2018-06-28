@@ -153,4 +153,9 @@ public interface IWebSocketListener {
 	 */
 	public static final String AUDIO = "audio";
 
+	/**
+	 * Stream list in the room
+	 */
+	public static final String STREAMS_IN_ROOM = "streams";
+
 }
