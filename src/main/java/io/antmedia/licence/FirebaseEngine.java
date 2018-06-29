@@ -18,13 +18,11 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
-import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.datastore.db.types.Licence;
+
 import io.antmedia.rest.model.Result;
 
 public class FirebaseEngine {
 	
-	protected static Logger logger = LoggerFactory.getLogger(FirebaseEngine.class);
 	private static final String DATABASE_URL ="https://ant-licence.firebaseio.com";
 	private static DatabaseReference ref;
 	private static DatabaseReference usersRef;
@@ -41,12 +39,17 @@ public class FirebaseEngine {
                     .setDatabaseUrl(DATABASE_URL)
                     .build();
             FirebaseApp.initializeApp(options);
-            logger.info("firebase connection successfull");
+        //    logger.info("firebase connection successfull");
         } catch (IOException e) {
             System.out.println("ERROR: invalid service account credentials. See README.");
             System.out.println(e.getMessage());
 
         }
+        
+        
+        DatabaseReference ref = FirebaseDatabase.getInstance().getReference();
+        
+
        
 		return result;
 	}
