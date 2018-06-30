@@ -375,7 +375,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 					AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, scopeName, dataStore,
 					settingsListenerHookURL, fqdn);
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 
 		return null;

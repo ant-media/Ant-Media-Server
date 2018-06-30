@@ -158,4 +158,14 @@ public interface IWebSocketListener {
 	 */
 	public static final String STREAMS_IN_ROOM = "streams";
 
+	/**
+	 * Error definition it is send when stream id is not specified in the message
+	 */
+	public static final String NO_STREAM_ID_SPECIFIED = "noStreamNameSpecified";
+
+	/**
+	 * Error definition it is send when local description is not set successfully
+	 */
+	public static final String NOT_SET_LOCAL_DESCRIPTION = "notSetLocalDescription";
+
 }
