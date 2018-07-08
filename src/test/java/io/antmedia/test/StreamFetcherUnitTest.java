@@ -1,48 +1,5 @@
 package io.antmedia.test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.mockito.Mockito.atLeast;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.timeout;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-
-import org.awaitility.Awaitility;
-import org.bytedeco.javacpp.avformat;
-import org.bytedeco.javacpp.avutil;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestRule;
-import org.junit.rules.TestWatcher;
-import org.junit.runner.Description;
-import org.mockito.Mockito;
-import org.red5.server.scheduling.QuartzSchedulingService;
-import org.red5.server.scope.WebScope;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.scheduling.quartz.SpringBeanJobFactory;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.annotation.DirtiesContext.ClassMode;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
-
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.IDataStore;
@@ -54,7 +11,33 @@ import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.rest.model.Result;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
-import io.antmedia.streamsource.StreamFetcherManager.StreamFetcherFactory;
+import org.awaitility.Awaitility;
+import org.bytedeco.javacpp.avformat;
+import org.bytedeco.javacpp.avutil;
+import org.junit.*;
+import org.junit.rules.TestRule;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
+import org.mockito.Mockito;
+import org.red5.server.scheduling.QuartzSchedulingService;
+import org.red5.server.scope.WebScope;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.annotation.DirtiesContext.ClassMode;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import static org.junit.Assert.*;
+import static org.mockito.Mockito.*;
 
 @ContextConfiguration(locations = { "test.xml" })
 @DirtiesContext(classMode = ClassMode.AFTER_CLASS)
@@ -288,10 +271,10 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			when(streamFetcher.isStreamAlive()).thenReturn(true);
 			when(streamFetcher.getCameraError()).thenReturn(new Result(true));
 
-			StreamFetcherFactory factory = mock(StreamFetcherFactory.class);
-			when(factory.make(stream, appScope, scheduler)).thenReturn(streamFetcher);
+			StreamFetcherManager fetcherManager_ = new StreamFetcherManager(scheduler, memoryDataStore, appScope);
+			StreamFetcherManager fetcherManager = Mockito.spy(fetcherManager_);
 
-			StreamFetcherManager fetcherManager = new StreamFetcherManager(scheduler, memoryDataStore, appScope, factory);
+			Mockito.doReturn(streamFetcher).when(fetcherManager).make(stream, appScope, scheduler);
 
 			//set checker interval to 3 seconds
 			fetcherManager.setStreamCheckerInterval(4000);

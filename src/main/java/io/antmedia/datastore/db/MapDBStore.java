@@ -839,5 +839,4 @@ public class MapDBStore implements IDataStore {
 		return result;
 		
 	}
-
 }

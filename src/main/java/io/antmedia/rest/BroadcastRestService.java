@@ -620,8 +620,6 @@ public class BroadcastRestService {
 		return getDataStore().getObjectDetectedTotal(id);
 	}
 
-
-
 	@POST
 	@Path("/importLiveStreamsToStalker")
 	@Produces(MediaType.APPLICATION_JSON)
