@@ -398,41 +398,34 @@ public class AppFunctionalTest {
 	
 	@Test
 	public void testFirebaseSave() {
-		
 
         try {
-            // [START initialize]
             FileInputStream serviceAccount = new FileInputStream("src/test/resources/ant-licence-firebase-adminsdk-t4f6f-3e2bc12d03.json");
             FirebaseOptions options = new FirebaseOptions.Builder()
                     .setCredentials(GoogleCredentials.fromStream(serviceAccount))
                     .setDatabaseUrl(DATABASE_URL)
                     .build();
             FirebaseApp.initializeApp(options);
-            // [END initialize]
         } catch (IOException e) {
-            System.out.println("ERROR: invalid service account credentials. See README.");
+            System.out.println("ERROR: invalid service account credentials. ");
             System.out.println(e.getMessage());
-
         }
         Licence licence = new Licence();
         
-        licence.setType("type");
-        licence.setLicenceId("gel babacim");
+        licence.setType("regular");
+        licence.setLicenceId("1234-1234");
+        licence.setEndDate("20191010");
+        licence.setStartDate("20181010");
+        licence.setOwner("Corp.");
         
         database = FirebaseDatabase.getInstance().getReference();
         
-        DatabaseReference usersRef = database.child("licences");
+        DatabaseReference licenceRef = database.child("licences");
 
-		
-
-		usersRef.child(licence.getLicenceId()).setValueAsync(licence);
-		
-		
-
+        licenceRef.child(licence.getLicenceId()).setValueAsync(licence);
 		
 	}
 	
-
 	// Before running test all endpoints should be authenticated
 	@Test
 	public void testBroadcastStream() {

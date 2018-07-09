@@ -1,5 +1,7 @@
 package io.antmedia.licence;
 
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -20,6 +22,9 @@ import org.springframework.context.ApplicationContextAware;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
 
+import com.google.auth.oauth2.GoogleCredentials;
+import com.google.firebase.FirebaseApp;
+import com.google.firebase.FirebaseOptions;
 import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -43,15 +48,18 @@ public class LicenceService {
 	private ServletContext servletContext;
 	private String activeLicence = "processing";
 	private String oldKey = null;
-	private Result licenceStatusResponse = new Result(false);
+	private Licence licenceStatusResponse = new Licence();
 	Gson gson = new Gson();
 
 
 
 	public void start() {
+		
+		
+		
 		engine.connectFirebaseDB();
 
-		System.out.println("LicenceService has started");
+		System.out.println("Licence Service has started");
 		Timer timer = new Timer();
 		timer.scheduleAtFixedRate(new TimerTask() {
 
@@ -60,9 +68,9 @@ public class LicenceService {
 				System.out.println( " licence key in the file: " + fetchServerSettings().getLicenceKey());
 				checkLicence(fetchServerSettings().getLicenceKey());
 			}
+		
 		}, 3000, 5000);
 	}
-
 
 	public Result saveLicence (Licence licence) {
 
@@ -138,8 +146,9 @@ public class LicenceService {
 
 
 	public Result checkLicence (String key) {
-		
+
 		Result result = new Result(false);
+		Licence licence = new Licence();
 
 		if(!key.equals(oldKey)) {
 			setResponseReceived(false);
@@ -150,50 +159,47 @@ public class LicenceService {
 		if(getResponseReceived()) {
 			System.out.println( " licence found: " + getActiveLicence());
 			result.setSuccess(true);
+			if(!getActiveLicence().equals(null)) {
+				
+				licence = gson.fromJson( getActiveLicence(), Licence.class);
+				System.out.println("end date " +licence.getEndDate());
 
-			Licence licence = gson.fromJson( getActiveLicence(), Licence.class);
-			System.out.println("end date " +licence.getEndDate());
+				SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
 
-			SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
+				try {
+					Date licenceEndDate = dateFormat.parse(licence.getEndDate());
 
-			try {
-				Date licenceEndDate = dateFormat.parse(licence.getEndDate());
+					Date date=new Date();
+					String formattedDate=dateFormat.format(date);
 
-				Date date=new Date();
-				String formattedDate=dateFormat.format(date);
+					System.out.println("current date " +formattedDate);
 
-				System.out.println("current date " +formattedDate);
+					Date currentDate;
 
-				Date currentDate;
+					currentDate = dateFormat.parse(formattedDate);
 
-				currentDate = dateFormat.parse(formattedDate);
+					if(licenceEndDate.after(currentDate) || licenceEndDate.equals(currentDate)) {
 
-				if(licenceEndDate.after(currentDate) || licenceEndDate.equals(currentDate)) {
+						setLicenceStatusResponse(licence);
 
-					getLicenceStatusResponse().setSuccess(true);
-					getLicenceStatusResponse().setMessage(getActiveLicence());
+						System.out.println( " licence date is after current ");
 
-					System.out.println( " licence date is after current ");
+					}else {
+						setLicenceStatusResponse(null);
+						System.out.println( "license is found but expired");
 
-				}else {
-					getLicenceStatusResponse().setSuccess(false);
-					getLicenceStatusResponse().setMessage("license is found but expired");
-					System.out.println( "license is found but expired");
+					}
 
+				} catch (ParseException e) {
+					e.printStackTrace();
 				}
 
-			} catch (ParseException e) {
-				e.printStackTrace();
 			}
-
 		}
-
 		else {
 			System.out.println( " no licence found: ");
 			result.setMessage("no licence found");
-			getLicenceStatusResponse().setSuccess(false);
-			
-			getLicenceStatusResponse().setMessage("no licence found");
+			setLicenceStatusResponse(null);
 		}
 
 		return result;
@@ -232,12 +238,12 @@ public class LicenceService {
 	}
 
 
-	public Result getLicenceStatusResponse() {
+	public Licence getLicenceStatusResponse() {
 		return licenceStatusResponse;
 	}
 
 
-	public void setLicenceStatusResponse(Result licenceStatusResponse) {
+	public void setLicenceStatusResponse(Licence licenceStatusResponse) {
 		this.licenceStatusResponse = licenceStatusResponse;
 	}
 
