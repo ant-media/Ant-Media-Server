@@ -14,7 +14,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.websocket.Session;
 
-import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.json.simple.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -246,7 +246,7 @@ public class RTMPAdaptor extends Adaptor {
 											frameCV.imageChannels, frameCV.imageStride, AV_PIX_FMT_YUV420P, frameCV.image);
 
 								} catch (FrameRecorder.Exception e) {
-									logger.error(ExceptionUtils.getFullStackTrace(e));
+									logger.error(ExceptionUtils.getStackTrace(e));
 								}
 							}
 							else {
