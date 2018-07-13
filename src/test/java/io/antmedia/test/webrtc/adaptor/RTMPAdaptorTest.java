@@ -27,7 +27,7 @@ public class RTMPAdaptorTest {
 			
 			WebSocketConnection conn = mock(WebSocketConnection.class);
 			
-			rtmpAdaptor.setWsConnection(conn);
+			//rtmpAdaptor.setWsConnection(conn);
 			
 			rtmpAdaptor.onAddStream(stream);
 			
