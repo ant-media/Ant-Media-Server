@@ -224,7 +224,7 @@ public class RTMPAdaptor extends Adaptor {
 							if (enableAudio) {
 								//each audio frame is 10 ms and then multiply with 1000 for microseconds
 								pts = (long)audioFrameCount * 10;
-								logger.info("audio frame count: {}", audioFrameCount);
+								logger.trace("audio frame count: {}", audioFrameCount);
 							}
 							else {
 								pts = (System.currentTimeMillis() - startTime) * 1000;
@@ -251,7 +251,7 @@ public class RTMPAdaptor extends Adaptor {
 							}
 							else {
 								dropFrameCount ++;
-								logger.info("dropping video, total drop count: {}", dropFrameCount);
+								logger.debug("dropping video, total drop count: {}", dropFrameCount);
 							}
 							VideoRenderer.renderFrameDone(frame);
 
