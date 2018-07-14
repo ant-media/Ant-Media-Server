@@ -35,6 +35,7 @@ import org.webrtc.VideoTrack;
 import io.antmedia.recorder.FFmpegFrameRecorder;
 import io.antmedia.recorder.Frame;
 import io.antmedia.recorder.FrameRecorder;
+import io.antmedia.websocket.WebSocketCommunityHandler;
 
 public class RTMPAdaptor extends Adaptor {
 

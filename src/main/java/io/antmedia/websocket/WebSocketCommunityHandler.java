@@ -1,4 +1,4 @@
-package io.antmedia.webrtc.adaptor;
+package io.antmedia.websocket;
 
 import java.io.IOException;
 
@@ -24,7 +24,7 @@ import org.webrtc.SessionDescription.Type;
 
 import io.antmedia.recorder.FFmpegFrameRecorder;
 import io.antmedia.recorder.FrameRecorder;
-import io.antmedia.websocket.IWebSocketListener;
+import io.antmedia.webrtc.adaptor.RTMPAdaptor;
 
 public abstract class WebSocketCommunityHandler {
 
@@ -83,6 +83,7 @@ public abstract class WebSocketCommunityHandler {
 
 				String outputURL = "rtmp://127.0.0.1/WebRTCApp/" + streamId;
 
+				outputURL = "recorded.mp4";
 				RTMPAdaptor connectionContext = new RTMPAdaptor(getNewRecorder(outputURL));
 
 				session.getUserProperties().put(session.getId(), connectionContext);
@@ -198,7 +199,7 @@ public abstract class WebSocketCommunityHandler {
 	public static FFmpegFrameRecorder getNewRecorder(String outputURL) {
 
 		FFmpegFrameRecorder recorder = new FFmpegFrameRecorder(outputURL, 640, 480, 1);
-		recorder.setFormat("flv");
+		recorder.setFormat("mp4");
 		recorder.setSampleRate(44100);
 		// Set in the surface changed method
 		recorder.setFrameRate(30);

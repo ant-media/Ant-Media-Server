@@ -23,6 +23,8 @@ import org.webrtc.SdpObserver;
 import org.webrtc.SessionDescription;
 import org.webrtc.SessionDescription.Type;
 
+import io.antmedia.websocket.WebSocketCommunityHandler;
+
 public abstract class Adaptor implements Observer, SdpObserver 
 {
 	protected PeerConnection peerConnection;
