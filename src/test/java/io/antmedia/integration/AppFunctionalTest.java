@@ -328,10 +328,11 @@ public class AppFunctionalTest {
 			fail(e.getMessage());
 		}
 		
-		RestServiceTest restService = new RestServiceTest();
-
-		LiveStatistics liveStatistics = restService.callGetLiveStatistics();
-		assertEquals(0, liveStatistics.totalLiveStreamCount);
+		
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+			RestServiceTest restService = new RestServiceTest();
+			return 0 == restService.callGetLiveStatistics().totalLiveStreamCount;
+		});
 
 	}
 
@@ -383,8 +384,12 @@ public class AppFunctionalTest {
 			assertEquals(broadcastStatistics.totalRTMPWatchersCount, -1);
 			assertEquals(broadcastStatistics.totalWebRTCWatchersCount, -1);
 
-			liveStatistics = restService.callGetLiveStatistics();
-			assertEquals(liveStatistics.totalLiveStreamCount, 0);
+			
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+
+				return 0 == restService.callGetLiveStatistics().totalLiveStreamCount;
+			});
+			
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -451,15 +456,14 @@ public class AppFunctionalTest {
 		
 		//let the server update live stream count
 		
-		try {
-			Thread.sleep(2000);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-		RestServiceTest restService = new RestServiceTest();
+		
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+			RestServiceTest restService = new RestServiceTest();
 
-		LiveStatistics liveStatistics = restService.callGetLiveStatistics();
-		assertEquals(0, liveStatistics.totalLiveStreamCount);
+			LiveStatistics liveStatistics = restService.callGetLiveStatistics();
+			return 0 == liveStatistics.totalLiveStreamCount;
+		});
+		
 	}
 
 	public static void executeProcess(final String command) {
