@@ -83,7 +83,6 @@ public abstract class WebSocketCommunityHandler {
 
 				String outputURL = "rtmp://127.0.0.1/WebRTCApp/" + streamId;
 
-				outputURL = "recorded.mp4";
 				RTMPAdaptor connectionContext = new RTMPAdaptor(getNewRecorder(outputURL));
 
 				session.getUserProperties().put(session.getId(), connectionContext);
@@ -246,7 +245,7 @@ public abstract class WebSocketCommunityHandler {
 				try {
 					session.getBasicRemote().sendText(message);
 				} catch (IOException e) {
-					e.printStackTrace();
+					logger.error(ExceptionUtils.getStackTrace(e));
 				}
 			}
 		}
