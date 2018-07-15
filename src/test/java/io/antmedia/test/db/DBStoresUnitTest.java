@@ -549,7 +549,7 @@ public class DBStoresUnitTest {
 
 		broadcast2 = dataStore.get(key);
 		assertNotNull(broadcast2.getEndPointList());
-		assertEquals(broadcast2.getEndPointList().size(), 2);
+		assertEquals(2, broadcast2.getEndPointList().size());
 
 		// remove end point
 		result = dataStore.removeEndpoint(broadcast2.getStreamId(), endPoint);
@@ -557,7 +557,7 @@ public class DBStoresUnitTest {
 		broadcast2 = dataStore.get(key);
 		assertNotNull(broadcast2.getEndPointList());
 		// its size should be 1
-		assertEquals(broadcast2.getEndPointList().size(), 1);
+		assertEquals(1, broadcast2.getEndPointList().size());
 
 		// endpoint2 should be in the list, check stream id
 		assertEquals(broadcast2.getEndPointList().get(0).streamId, endpointStreamId);
@@ -661,7 +661,7 @@ public class DBStoresUnitTest {
 
 			broadcast2 = dataStore.get(key);
 			assertNotNull(broadcast2.getEndPointList());
-			assertEquals(broadcast2.getEndPointList().size(), 1);
+			assertEquals(1, broadcast2.getEndPointList().size());
 			assertEquals(broadcast2.getEndPointList().get(0).name, broadcast2.getName());
 			assertEquals(broadcast2.getEndPointList().get(0).rtmpUrl, rtmpUrl);
 
@@ -673,7 +673,7 @@ public class DBStoresUnitTest {
 
 			broadcast2 = dataStore.get(key);
 			assertNotNull(broadcast2.getEndPointList());
-			assertEquals(broadcast2.getEndPointList().size(), 2);
+			assertEquals(2, broadcast2.getEndPointList().size());
 			assertEquals(broadcast2.getEndPointList().get(1).name, broadcast2.getName());
 			assertEquals(broadcast2.getEndPointList().get(1).rtmpUrl, rtmpUrl);
 
@@ -689,7 +689,7 @@ public class DBStoresUnitTest {
 
 			assertTrue(result);
 
-			assertEquals(dataStore.get(broadcast3.getStreamId()).getQuality(),"good");
+			assertEquals("good", dataStore.get(broadcast3.getStreamId()).getQuality());
 
 			result = dataStore.delete(key);
 			assertTrue(result);
@@ -722,25 +722,39 @@ public class DBStoresUnitTest {
 		String type = dataStore.get(cameraBroadcast.getStreamId()).getType();
 		String live_type = dataStore.get(liveBroadcast.getStreamId()).getType();
 
-		assertEquals(type, "ipCamera");
-		assertEquals(live_type, "liveStream");
+		assertEquals("ipCamera", type);
+		assertEquals("liveStream", live_type);
 
 		List<Broadcast> returnList = dataStore.filterBroadcastList(0, 10, "ipCamera");
 
-		assertEquals(returnList.size(), 1);
+		assertEquals(1, returnList.size());
 
-		Vod newVod =  new Vod("streamName", "1112233" + (int)(Math.random() * 1000), "path", "vod", 1517239908, 17933, 1190425, Vod.STREAM_VOD, "1112233" + (int)(Math.random() * 1000));
-		Vod newVod2 = new Vod("davut", "111223" + (int)(Math.random() * 1000),  "path", "vod", 1517239808, 17933, 1190525, Vod.STREAM_VOD, "1112233" + (int)(Math.random() * 1000));
-		Vod newVod3 = new Vod("oguz", "11122" + (int)(Math.random() * 1000),  "path", "vod", 1517239708, 17933, 1190625, Vod.STREAM_VOD, "1112233" + (int)(Math.random() * 1000));
-		Vod newVod4 = new Vod("ahmet", "111" + (int)(Math.random() * 1000),  "path", "vod", 1517239608, 17933, 1190725, Vod.STREAM_VOD, "1112233" + (int)(Math.random() * 1000));
-		Vod newVod5 = new Vod("mehmet", "11" + (int)(Math.random() * 1000), "path", "vod", 1517239508, 17933, 1190825, Vod.STREAM_VOD, "1112233" + (int)(Math.random() * 1000));
+		Vod newVod =  new Vod("streamName", "1112233" + (int)(Math.random() * 1000), "path", "vod", 1517239908, 17933, 1190425, Vod.STREAM_VOD, "1112233" + (int)(Math.random() * 91000));
+		Vod newVod2 = new Vod("davut", "111223" + (int)(Math.random() * 1000),  "path", "vod", 1517239808, 17933, 1190525, Vod.STREAM_VOD, "1112233" + (int)(Math.random() * 91000));
+		Vod newVod3 = new Vod("oguz", "11122" + (int)(Math.random() * 1000),  "path", "vod", 1517239708, 17933, 1190625, Vod.STREAM_VOD, "1112233" + (int)(Math.random() * 91000));
+		Vod newVod4 = new Vod("ahmet", "111" + (int)(Math.random() * 1000),  "path", "vod", 1517239608, 17933, 1190725, Vod.STREAM_VOD, "1112233" + (int)(Math.random() * 91000));
+		Vod newVod5 = new Vod("mehmet", "11" + (int)(Math.random() * 1000), "path", "vod", 1517239508, 17933, 1190825, Vod.STREAM_VOD, "1112233" + (int)(Math.random() * 91000));
 
-		assertNotNull(dataStore.addVod(newVod));
-		assertNotNull(dataStore.addVod(newVod2));
-		assertNotNull(dataStore.addVod(newVod3));
-		assertNotNull(dataStore.addVod(newVod4));
-		assertNotNull(dataStore.addVod(newVod5));
-
+		String vodId = dataStore.addVod(newVod);
+		assertNotNull(vodId);
+		System.out.println("Vod id 1 " + vodId);
+		
+		vodId = dataStore.addVod(newVod2);
+		assertNotNull(vodId);
+		System.out.println("Vod id 2 " + vodId);
+		
+		vodId = dataStore.addVod(newVod3);
+		assertNotNull(vodId);
+		System.out.println("Vod id 3 " + vodId);
+		
+		vodId = dataStore.addVod(newVod4);
+		assertNotNull(vodId);
+		System.out.println("Vod id 4 " + vodId);
+		
+		vodId = dataStore.addVod(newVod5);
+		assertNotNull(vodId);
+		System.out.println("Vod id 5 " + vodId);
+		
 		
 		long totalVodNumber = dataStore.getTotalVodNumber();
 		assertEquals(5, totalVodNumber);
@@ -872,7 +886,7 @@ public class DBStoresUnitTest {
 		List<SocialEndpointCredentials> socialEndpoints = dataStore.getSocialEndpoints(0, 10);
 
 		// check the count
-		assertEquals(socialEndpoints.size(), 3);
+		assertEquals(3, socialEndpoints.size());
 
 		// remove social endpoint
 		assertTrue(dataStore.removeSocialEndpointCredentials(socialEndpoints.get(0).getId()));
@@ -886,21 +900,21 @@ public class DBStoresUnitTest {
 		socialEndpoints = dataStore.getSocialEndpoints(0, 10);
 
 		// check that the count
-		assertEquals(socialEndpoints.size(), 2);
+		assertEquals(2, socialEndpoints.size());
 		
 		// remove social endpoint
 		assertTrue(dataStore.removeSocialEndpointCredentials(socialEndpoints.get(0).getId()));
 		// get list of the social endpoint
 		socialEndpoints = dataStore.getSocialEndpoints(0, 10);
 		// check that the count
-		assertEquals(socialEndpoints.size(), 1);
+		assertEquals(1, socialEndpoints.size());
 		
 		// remove social endpoint
 		assertTrue(dataStore.removeSocialEndpointCredentials(socialEndpoints.get(0).getId()));
 		// get list of the social endpoint
 		socialEndpoints = dataStore.getSocialEndpoints(0, 10);
 		// check that the count
-		assertEquals(socialEndpoints.size(), 0);
+		assertEquals(0, socialEndpoints.size());
 	}
 	
 	
