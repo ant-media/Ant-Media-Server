@@ -1,7 +1,9 @@
 package io.antmedia.websocket;
 
-public interface IWebSocketListener {
+public class WebSocketConstants {
 	
+	private WebSocketConstants() {
+	}
 	
 	public static final String ATTR_STREAM_NAME = "ATTR_STREAM_NAME";
 

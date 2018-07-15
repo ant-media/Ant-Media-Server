@@ -1445,7 +1445,10 @@ public class BroadcastRestService {
 
 	public IDataStore getDataStore() {
 		if (dataStore == null) {
-			dataStore = (IDataStore) getAppContext().getBean("db.datastore");
+			ApplicationContext appContext = getAppContext();
+			if (appContext != null) {
+				dataStore = (IDataStore) appContext.getBean("db.datastore");
+			}
 		}
 		return dataStore;
 	}
@@ -1456,7 +1459,10 @@ public class BroadcastRestService {
 
 	protected AntMediaApplicationAdapter getApplication() {
 		if (app == null) {
-			app = (AntMediaApplicationAdapter) getAppContext().getBean("web.handler");
+			ApplicationContext appContext = getAppContext();
+			if (appContext != null) {
+				app = (AntMediaApplicationAdapter) appContext.getBean("web.handler");
+			}
 		}
 		return app;
 	}
@@ -1471,7 +1477,10 @@ public class BroadcastRestService {
 
 	private AppSettings getAppSettings() {
 		if (appSettings == null) {
-			appSettings = (AppSettings) getAppContext().getBean(AppSettings.BEAN_NAME);
+			ApplicationContext appContext = getAppContext();
+			if (appContext != null) {
+				appSettings = (AppSettings) appContext.getBean(AppSettings.BEAN_NAME);
+			}
 		}
 		return appSettings;
 	}

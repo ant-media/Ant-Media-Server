@@ -65,20 +65,20 @@ public abstract class WebSocketCommunityHandler {
 
 			JSONObject jsonObject = (JSONObject) jsonParser.parse(message);
 
-			String cmd = (String) jsonObject.get(IWebSocketListener.COMMAND);
+			String cmd = (String) jsonObject.get(WebSocketConstants.COMMAND);
 			if (cmd == null) {
 				logger.error("Received message does not contain any command for session id: {}" , session.getId());
 				return;
 			}
 
-			final String streamId = (String) jsonObject.get(IWebSocketListener.STREAM_ID);
+			final String streamId = (String) jsonObject.get(WebSocketConstants.STREAM_ID);
 			if (streamId == null || streamId.isEmpty()) 
 			{
 				sendNoStreamIdSpecifiedError(session);
 				return;
 			}
 
-			if (cmd.equals(IWebSocketListener.PUBLISH_COMMAND)) 
+			if (cmd.equals(WebSocketConstants.PUBLISH_COMMAND)) 
 			{
 
 				String outputURL = "rtmp://127.0.0.1/WebRTCApp/" + streamId;
@@ -93,13 +93,13 @@ public abstract class WebSocketCommunityHandler {
 				connectionContext.start();
 
 			}
-			else if (cmd.equals(IWebSocketListener.TAKE_CONFIGURATION_COMMAND))  
+			else if (cmd.equals(WebSocketConstants.TAKE_CONFIGURATION_COMMAND))  
 			{
 
 				RTMPAdaptor connectionContext = (RTMPAdaptor) session.getUserProperties().get(session.getId());
 				if (connectionContext != null) {
-					String typeString = (String)jsonObject.get(IWebSocketListener.TYPE);
-					String sdpDescription = (String)jsonObject.get(IWebSocketListener.SDP);
+					String typeString = (String)jsonObject.get(WebSocketConstants.TYPE);
+					String sdpDescription = (String)jsonObject.get(WebSocketConstants.SDP);
 
 					SessionDescription.Type type;
 					if (typeString.equals("offer")) {
@@ -117,13 +117,13 @@ public abstract class WebSocketCommunityHandler {
 					logger.warn("Connection context is null. Wrong message order for stream: {}", streamId);
 				}
 			}
-			else if (cmd.equals(IWebSocketListener.TAKE_CANDIDATE_COMMAND)) {
+			else if (cmd.equals(WebSocketConstants.TAKE_CANDIDATE_COMMAND)) {
 
 				RTMPAdaptor connectionContext = (RTMPAdaptor) session.getUserProperties().get(session.getId());
 				if (connectionContext != null) {
-					String sdpMid = (String) jsonObject.get(IWebSocketListener.CANDIDATE_ID);
-					String sdp = (String) jsonObject.get(IWebSocketListener.CANDIDATE_SDP);
-					long sdpMLineIndex = (long)jsonObject.get(IWebSocketListener.CANDIDATE_LABEL);
+					String sdpMid = (String) jsonObject.get(WebSocketConstants.CANDIDATE_ID);
+					String sdp = (String) jsonObject.get(WebSocketConstants.CANDIDATE_SDP);
+					long sdpMLineIndex = (long)jsonObject.get(WebSocketConstants.CANDIDATE_LABEL);
 
 					IceCandidate iceCandidate = new IceCandidate(sdpMid, (int)sdpMLineIndex, sdp);
 
@@ -134,7 +134,7 @@ public abstract class WebSocketCommunityHandler {
 				}
 
 			}
-			else if (cmd.equals(IWebSocketListener.STOP_COMMAND)) {
+			else if (cmd.equals(WebSocketConstants.STOP_COMMAND)) {
 				RTMPAdaptor connectionContext = (RTMPAdaptor) session.getUserProperties().get(session.getId());
 				if (connectionContext != null) {
 					connectionContext.stop();
@@ -157,19 +157,19 @@ public abstract class WebSocketCommunityHandler {
 	@SuppressWarnings("unchecked")
 	public static void sendSDPConfiguration(String description, String type, String streamId, Session session) {
 		JSONObject jsonResponseObject = new JSONObject();
-		jsonResponseObject.put(IWebSocketListener.COMMAND, IWebSocketListener.TAKE_CONFIGURATION_COMMAND);
-		jsonResponseObject.put(IWebSocketListener.SDP, description);
-		jsonResponseObject.put(IWebSocketListener.TYPE, type);
-		jsonResponseObject.put(IWebSocketListener.STREAM_ID, streamId);
+		jsonResponseObject.put(WebSocketConstants.COMMAND, WebSocketConstants.TAKE_CONFIGURATION_COMMAND);
+		jsonResponseObject.put(WebSocketConstants.SDP, description);
+		jsonResponseObject.put(WebSocketConstants.TYPE, type);
+		jsonResponseObject.put(WebSocketConstants.STREAM_ID, streamId);
 		sendMessage(jsonResponseObject.toJSONString(), session);
 	}
 
 	@SuppressWarnings("unchecked")
 	public static void sendPublishStartedMessage(String streamId, Session session) {
 		JSONObject jsonObj = new JSONObject();
-		jsonObj.put(IWebSocketListener.COMMAND, IWebSocketListener.NOTIFICATION_COMMAND);
-		jsonObj.put(IWebSocketListener.DEFINITION, IWebSocketListener.PUBLISH_STARTED);
-		jsonObj.put(IWebSocketListener.STREAM_ID, streamId);
+		jsonObj.put(WebSocketConstants.COMMAND, WebSocketConstants.NOTIFICATION_COMMAND);
+		jsonObj.put(WebSocketConstants.DEFINITION, WebSocketConstants.PUBLISH_STARTED);
+		jsonObj.put(WebSocketConstants.STREAM_ID, streamId);
 
 		sendMessage(jsonObj.toJSONString(), session);
 	}
@@ -177,9 +177,9 @@ public abstract class WebSocketCommunityHandler {
 	@SuppressWarnings("unchecked")
 	public static void sendPublishFinishedMessage(String streamId, Session session) {
 		JSONObject jsonObject = new JSONObject();
-		jsonObject.put(IWebSocketListener.COMMAND, IWebSocketListener.NOTIFICATION_COMMAND);
-		jsonObject.put(IWebSocketListener.DEFINITION,  IWebSocketListener.PUBLISH_FINISHED);
-		jsonObject.put(IWebSocketListener.STREAM_ID, streamId);
+		jsonObject.put(WebSocketConstants.COMMAND, WebSocketConstants.NOTIFICATION_COMMAND);
+		jsonObject.put(WebSocketConstants.DEFINITION,  WebSocketConstants.PUBLISH_FINISHED);
+		jsonObject.put(WebSocketConstants.STREAM_ID, streamId);
 
 		sendMessage(jsonObject.toJSONString(), session);
 	}
@@ -188,8 +188,8 @@ public abstract class WebSocketCommunityHandler {
 	public static void sendStartMessage(String streamId, Session session) 
 	{
 		JSONObject jsonObject = new JSONObject();
-		jsonObject.put(IWebSocketListener.COMMAND, IWebSocketListener.START_COMMAND);
-		jsonObject.put(IWebSocketListener.STREAM_ID, streamId);
+		jsonObject.put(WebSocketConstants.COMMAND, WebSocketConstants.START_COMMAND);
+		jsonObject.put(WebSocketConstants.STREAM_ID, streamId);
 
 		sendMessage(jsonObject.toJSONString(), session);
 	}
@@ -220,8 +220,8 @@ public abstract class WebSocketCommunityHandler {
 	@SuppressWarnings("unchecked")
 	protected static final  void sendNoStreamIdSpecifiedError(Session session)  {
 		JSONObject jsonResponse = new JSONObject();
-		jsonResponse.put(IWebSocketListener.COMMAND, IWebSocketListener.ERROR_COMMAND);
-		jsonResponse.put(IWebSocketListener.DEFINITION, IWebSocketListener.NO_STREAM_ID_SPECIFIED);
+		jsonResponse.put(WebSocketConstants.COMMAND, WebSocketConstants.ERROR_COMMAND);
+		jsonResponse.put(WebSocketConstants.DEFINITION, WebSocketConstants.NO_STREAM_ID_SPECIFIED);
 		sendMessage(jsonResponse.toJSONString(), session);	
 	}
 
@@ -229,11 +229,11 @@ public abstract class WebSocketCommunityHandler {
 	public static void sendTakeCandidateMessage(long sdpMLineIndex, String sdpMid, String sdp, String streamId, Session session)
 	{
 		JSONObject jsonObject = new JSONObject();
-		jsonObject.put(IWebSocketListener.COMMAND,  IWebSocketListener.TAKE_CANDIDATE_COMMAND);
-		jsonObject.put(IWebSocketListener.CANDIDATE_LABEL, sdpMLineIndex);
-		jsonObject.put(IWebSocketListener.CANDIDATE_ID, sdpMid);
-		jsonObject.put(IWebSocketListener.CANDIDATE_SDP, sdp);
-		jsonObject.put(IWebSocketListener.STREAM_ID, streamId);
+		jsonObject.put(WebSocketConstants.COMMAND,  WebSocketConstants.TAKE_CANDIDATE_COMMAND);
+		jsonObject.put(WebSocketConstants.CANDIDATE_LABEL, sdpMLineIndex);
+		jsonObject.put(WebSocketConstants.CANDIDATE_ID, sdpMid);
+		jsonObject.put(WebSocketConstants.CANDIDATE_SDP, sdp);
+		jsonObject.put(WebSocketConstants.STREAM_ID, streamId);
 
 		sendMessage(jsonObject.toJSONString(), session);
 	}
