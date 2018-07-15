@@ -9,7 +9,6 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.regex.Pattern;
 
 import javax.servlet.ServletContext;
@@ -30,7 +29,6 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.red5.server.api.scope.IBroadcastScope;
 import org.red5.server.api.scope.IScope;
-import org.red5.server.api.scope.ScopeType;
 import org.red5.server.api.stream.IBroadcastStream;
 import org.red5.server.api.stream.IClientBroadcastStream;
 import org.red5.server.util.ScopeUtils;
@@ -931,8 +929,9 @@ public class BroadcastRestService {
 
 	private IWebRTCAdaptor getWebRTCAdaptor() {
 		IWebRTCAdaptor adaptor = null;
-		if (getAppContext().containsBean(IWebRTCAdaptor.BEAN_NAME)) {
-			adaptor = (IWebRTCAdaptor) getAppContext().getBean(IWebRTCAdaptor.BEAN_NAME);
+		ApplicationContext appContext = getAppContext();
+		if (appContext != null && appContext.containsBean(IWebRTCAdaptor.BEAN_NAME)) {
+			adaptor = (IWebRTCAdaptor) appContext.getBean(IWebRTCAdaptor.BEAN_NAME);
 		}
 		return adaptor;
 	}

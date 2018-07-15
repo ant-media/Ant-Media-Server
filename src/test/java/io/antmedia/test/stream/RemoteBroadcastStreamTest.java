@@ -10,6 +10,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.tika.utils.ExceptionUtils;
 import org.awaitility.Awaitility;
@@ -119,12 +120,9 @@ public class RemoteBroadcastStreamTest extends AbstractJUnit4SpringContextTests{
 
 
 		while(scheduler.getScheduledJobNames().size() != 1) {
-			try {
-				Thread.sleep(5000);
-				assertFalse(RemoteBroadcastStream.isExceptionExist());
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
+			Awaitility.waitAtMost(10, TimeUnit.SECONDS)
+					.pollDelay(5, TimeUnit.SECONDS)
+					.until(() -> !RemoteBroadcastStream.isExceptionExist());
 		}
 
 		flvWriter.close();
@@ -134,7 +132,6 @@ public class RemoteBroadcastStreamTest extends AbstractJUnit4SpringContextTests{
 
 
 		assertEquals(0, rbs.getReferenceCountInQueue());
-
 
 	}
 
