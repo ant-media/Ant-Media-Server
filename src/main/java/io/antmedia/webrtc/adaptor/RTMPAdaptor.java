@@ -2,7 +2,6 @@ package io.antmedia.webrtc.adaptor;
 
 import static org.bytedeco.javacpp.avutil.AV_PIX_FMT_YUV420P;
 
-import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.ShortBuffer;
@@ -12,10 +11,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import javax.websocket.Session;
-
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.json.simple.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.webrtc.AudioSink;
@@ -49,7 +45,6 @@ public class RTMPAdaptor extends Adaptor {
 	private ExecutorService audioEncoderExecutor;
 	private volatile boolean isStopped = false;
 	private ExecutorService signallingExecutor;
-	private boolean enableVideo = false;
 	private boolean enableAudio = false;
 
 	private int audioFrameCount = 0;
@@ -173,8 +168,6 @@ public class RTMPAdaptor extends Adaptor {
 
 							audioEncoderExecutor.execute(() -> {
 
-								long timeDiff = (System.currentTimeMillis() - startTime) * 1000;
-
 								short[] data = new short[number_of_frames * number_of_channels];
 								tempAudioBuffer.order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(data, 0, data.length);
 
@@ -201,7 +194,6 @@ public class RTMPAdaptor extends Adaptor {
 
 			VideoTrack videoTrack = stream.getVideoTracks().getFirst();
 			if (videoTrack != null) {
-				enableVideo = true;
 				videoTrack.addRenderer(new VideoRenderer(new Callbacks() {
 
 					private int frameCount;

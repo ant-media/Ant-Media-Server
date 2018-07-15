@@ -211,7 +211,7 @@ public abstract class WebSocketCommunityHandler {
 		try {
 			recorder.start();
 		} catch (FrameRecorder.Exception e) {
-			e.printStackTrace();
+			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 
 		return recorder;

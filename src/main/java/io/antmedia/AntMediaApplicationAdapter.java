@@ -406,16 +406,9 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 			if (!name.matches(regularExp) && (index = name.lastIndexOf(".mp4")) != -1) {
 				final String baseName = name.substring(0, index);
-		//		dataStore.updateDuration(streamId, duration);
 
 				Broadcast broadcast = dataStore.get(streamId);
 
-				if (broadcast != null) {
-					streamName = broadcast.getName();
-				} 
-				else {
-					streamName = file.getName();
-				}
 				String[] subDirs = filePath.split(Pattern.quote(File.separator));
 
 				Integer pathLength=Integer.valueOf(subDirs.length);

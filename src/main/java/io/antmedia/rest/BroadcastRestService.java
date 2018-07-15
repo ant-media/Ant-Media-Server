@@ -7,6 +7,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -182,10 +183,10 @@ public class BroadcastRestService {
 
 		String settingsListenerHookURL = null; 
 		String fqdn = null;
-		AppSettings appSettings = getAppSettings();
-		if (appSettings != null) {
-			settingsListenerHookURL = appSettings.getListenerHookURL();
-			fqdn = appSettings.getServerName();
+		AppSettings appSettingsLocal = getAppSettings();
+		if (appSettingsLocal != null) {
+			settingsListenerHookURL = appSettingsLocal.getListenerHookURL();
+			fqdn = appSettingsLocal.getServerName();
 		}
 
 		return saveBroadcast(broadcast, AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, getScope().getName(),
@@ -198,6 +199,8 @@ public class BroadcastRestService {
 	 * @param name
 	 * @param listenerHookURL
 	 * @return
+	 * 
+	 * @deprecated use createBroadcast with listenerHookURL
 	 */
 	@Deprecated
 	@POST
@@ -212,10 +215,10 @@ public class BroadcastRestService {
 		broadcast.setListenerHookURL(listenerHookURL);
 		String settingsListenerHookURL = null; 
 		String fqdn = null;
-		AppSettings appSettings = getAppSettings();
-		if (appSettings != null) {
-			settingsListenerHookURL = appSettings.getListenerHookURL();
-			fqdn = appSettings.getServerName();
+		AppSettings appSettingsLocal = getAppSettings();
+		if (appSettingsLocal != null) {
+			settingsListenerHookURL = appSettingsLocal.getListenerHookURL();
+			fqdn = appSettingsLocal.getServerName();
 		}
 
 		return saveBroadcast(broadcast, AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, getScope().getName(),
@@ -235,10 +238,10 @@ public class BroadcastRestService {
 
 		String listenerHookURL = broadcast.getListenerHookURL();
 
-		if (listenerHookURL == null || listenerHookURL.length() == 0) {
-			if (settingsListenerHookURL != null && settingsListenerHookURL.length() > 0) {
-				broadcast.setListenerHookURL(settingsListenerHookURL);
-			}
+		if ((listenerHookURL == null || listenerHookURL.isEmpty()) 
+				&& settingsListenerHookURL != null && !settingsListenerHookURL.isEmpty()) {
+
+			broadcast.setListenerHookURL(settingsListenerHookURL);
 		}
 
 		if (fqdn == null || fqdn.length() == 0) {
@@ -600,7 +603,7 @@ public class BroadcastRestService {
 	public List<Broadcast> getBroadcastList(@PathParam("offset") int offset, @PathParam("size") int size) {
 		return getDataStore().getBroadcastList(offset, size);
 	}
-	
+
 	/**
 	 * Get Detected objects size
 	 * 
@@ -610,7 +613,7 @@ public class BroadcastRestService {
 	 * @return Size of detected objects
 	 * 
 	 */
-	
+
 	@GET
 	@Path("/detection/getObjectDetectedTotal")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -641,39 +644,39 @@ public class BroadcastRestService {
 			int pageCount = (int) broadcastCount/IDataStore.MAX_ITEM_IN_ONE_LIST
 					+ ((broadcastCount % IDataStore.MAX_ITEM_IN_ONE_LIST != 0) ? 1 : 0);
 
-					List<Broadcast> broadcastList = new ArrayList<>();
-					for (int i = 0; i < pageCount; i++) {
-						broadcastList.addAll(getDataStore().getBroadcastList(i*IDataStore.MAX_ITEM_IN_ONE_LIST, IDataStore.MAX_ITEM_IN_ONE_LIST));
-					}
+			List<Broadcast> broadcastList = new ArrayList<>();
+			for (int i = 0; i < pageCount; i++) {
+				broadcastList.addAll(getDataStore().getBroadcastList(i*IDataStore.MAX_ITEM_IN_ONE_LIST, IDataStore.MAX_ITEM_IN_ONE_LIST));
+			}
 
-					StringBuilder insertQueryString = new StringBuilder();
+			StringBuilder insertQueryString = new StringBuilder();
 
-					insertQueryString.append("DELETE FROM stalker_db.ch_links;");
-					insertQueryString.append("DELETE FROM stalker_db.itv;");
+			insertQueryString.append("DELETE FROM stalker_db.ch_links;");
+			insertQueryString.append("DELETE FROM stalker_db.itv;");
 
-					String fqdn = getAppSettings().getServerName();
-					if (fqdn == null || fqdn.length() == 0) {
-						try {
-							fqdn = InetAddress.getLocalHost().getHostAddress();
-						} catch (UnknownHostException e) {
-							logger.error(ExceptionUtils.getStackTrace(e));
-						}
-					}
+			String fqdn = getAppSettings().getServerName();
+			if (fqdn == null || fqdn.length() == 0) {
+				try {
+					fqdn = InetAddress.getLocalHost().getHostAddress();
+				} catch (UnknownHostException e) {
+					logger.error(ExceptionUtils.getStackTrace(e));
+				}
+			}
 
-					int number = 1;
-					for (Broadcast broadcast : broadcastList) {
-						String cmd = "ffmpeg http://"+ fqdn + ":5080/" 
-								+ getScope().getName() + "/streams/"+broadcast.getStreamId()+".m3u8";
+			int number = 1;
+			for (Broadcast broadcast : broadcastList) {
+				String cmd = "ffmpeg http://"+ fqdn + ":5080/" 
+						+ getScope().getName() + "/streams/"+broadcast.getStreamId()+".m3u8";
 
-						insertQueryString.append("INSERT INTO stalker_db.itv(name, number, tv_genre_id, base_ch, cmd, languages)"
-								+ " VALUES ('"+broadcast.getName()+"' , "+ number +", 2, 1, '"+ cmd +"', '');");
+				insertQueryString.append("INSERT INTO stalker_db.itv(name, number, tv_genre_id, base_ch, cmd, languages)"
+						+ " VALUES ('"+broadcast.getName()+"' , "+ number +", 2, 1, '"+ cmd +"', '');");
 
-						insertQueryString.append("SET @last_id=LAST_INSERT_ID();"
-								+ "INSERT INTO stalker_db.ch_links(ch_id, url)"
-								+ " VALUES(@last_id, '"+ cmd +"');");
-						number++;
-					}
-					result = runStalkerImportQuery(insertQueryString.toString(), stalkerDBServer, stalkerDBUsername, stalkerDBPassword);
+				insertQueryString.append("SET @last_id=LAST_INSERT_ID();"
+						+ "INSERT INTO stalker_db.ch_links(ch_id, url)"
+						+ " VALUES(@last_id, '"+ cmd +"');");
+				number++;
+			}
+			result = runStalkerImportQuery(insertQueryString.toString(), stalkerDBServer, stalkerDBUsername, stalkerDBPassword);
 		}
 		else {
 			message = "Portal DB info is missing";
@@ -723,7 +726,7 @@ public class BroadcastRestService {
 		Process process = null;
 		String mysqlClientPath = getAppSettings().getMySqlClientPath();
 		if (processBuilderFactory != null) {
-			
+
 			process = processBuilderFactory.make(mysqlClientPath, 
 					"-h", stalkerDBServer,
 					"-u", stalkerDBUsername,
@@ -878,7 +881,7 @@ public class BroadcastRestService {
 		long activeBroadcastCount = getDataStore().getActiveBroadcastCount();
 		return new LiveStatistics(activeBroadcastCount);
 	}
-	
+
 
 	/**
 	 * Get the broadcast live statistics total rtmp watcher count, total hls
@@ -924,7 +927,7 @@ public class BroadcastRestService {
 		if (webRTCAdaptor != null) {
 			return webRTCAdaptor.getWebRTCClientStats(streamId);
 		}
-		return null;
+		return new ArrayList<>();
 	}
 
 	private IWebRTCAdaptor getWebRTCAdaptor() {
@@ -964,8 +967,8 @@ public class BroadcastRestService {
 	public Result deleteVoDFile(@PathParam("name") String fileName, @PathParam("id") String id) {
 		boolean success = false;
 		String message = "";
-		if (getAppContext() != null) {
-			// TODO: write test code for this function
+		ApplicationContext appContext = getAppContext();
+		if (appContext != null) {
 
 			File recordFile = Muxer.getRecordFile(getScope(), id, ".mp4");
 			File uploadedFile = Muxer.getUploadRecordFile(getScope(), id, ".mp4");
@@ -974,16 +977,24 @@ public class BroadcastRestService {
 
 
 			if (recordFile.exists()) {
-				success = true;
-				recordFile.delete();
-				message = "streamvod found and deleted";
-				getDataStore().deleteVod(id);
+				try {
+					success = Files.deleteIfExists(recordFile.toPath());
+					message = "streamvod found and deleted";
+					getDataStore().deleteVod(id);
+				}
+				catch (Exception e) {
+					logger.error(ExceptionUtils.getStackTrace(e));
+				}
 
 			} else if (uploadedFile.exists()) {
-				success = true;
-				uploadedFile.delete();
-				message = "uploadedVod is found and deleted";
-				getDataStore().deleteVod(id);
+				try {
+					success = Files.deleteIfExists(uploadedFile.toPath()); 
+					message = "uploadedVod is found and deleted";
+					getDataStore().deleteVod(id);
+				}
+				catch (Exception e) {
+					logger.error(ExceptionUtils.getStackTrace(e));
+				}
 
 			}else {
 				success = getDataStore().deleteVod(id);
@@ -991,11 +1002,15 @@ public class BroadcastRestService {
 			}
 			File previewFile = Muxer.getPreviewFile(getScope(), fileName, ".png");
 			if (previewFile.exists()) {
-				previewFile.delete();
+				try {
+					Files.delete(previewFile.toPath());
+				} catch (IOException e) {
+					logger.error(ExceptionUtils.getStackTrace(e));
+				}
 			}
 
-			if (getAppContext().containsBean("app.storageClient")) {
-				StorageClient storageClient = (StorageClient) getAppContext().getBean("app.storageClient");
+			if (appContext.containsBean("app.storageClient")) {
+				StorageClient storageClient = (StorageClient) appContext.getBean("app.storageClient");
 
 				storageClient.delete(fileName + ".mp4", FileType.TYPE_STREAM);
 				storageClient.delete(fileName + ".png", FileType.TYPE_PREVIEW);

@@ -1,12 +1,8 @@
 package io.antmedia.webrtc.adaptor;
 
-import java.io.UnsupportedEncodingException;
-
 import javax.websocket.Session;
 
-import org.json.simple.JSONObject;
 import org.red5.logging.Red5LoggerFactory;
-import org.red5.net.websocket.WebSocketConnection;
 import org.slf4j.Logger;
 import org.webrtc.DataChannel;
 import org.webrtc.IceCandidate;

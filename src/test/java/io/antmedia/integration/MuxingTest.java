@@ -156,7 +156,7 @@ public class MuxingTest {
 		RestServiceTest restService = new RestServiceTest();
 
 		LiveStatistics liveStatistics = restService.callGetLiveStatistics();
-		assertEquals(liveStatistics.totalLiveStreamCount, 0);
+		assertEquals(0, liveStatistics.totalLiveStreamCount);
 	}
 
 	// TODO: check that if there is memory leak, if muxing is stopped by somehow
@@ -292,18 +292,18 @@ public class MuxingTest {
 			fail(e.getMessage());
 			e.printStackTrace();
 		}
-		//wait a little more to let server update statistics
-		try {
-			Thread.sleep(2000);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
 		
-		RestServiceTest restService = new RestServiceTest();
-
-		LiveStatistics liveStatistics = restService.callGetLiveStatistics();
-		assertEquals(0, liveStatistics.totalLiveStreamCount);
-
+		//wait a little more to let server update statistics
+		
+		Awaitility.await().atMost(10, TimeUnit.SECONDS)
+			.pollInterval(1, TimeUnit.SECONDS)
+			.until(() -> {
+				RestServiceTest restService = new RestServiceTest();
+	
+				LiveStatistics liveStatistics = restService.callGetLiveStatistics();
+				return 0 == liveStatistics.totalLiveStreamCount;
+			});
+		
 	}
 
 	// TODO: check if rtsp failed in some state, how it can be free resources
@@ -350,7 +350,7 @@ public class MuxingTest {
 		RestServiceTest restService = new RestServiceTest();
 
 		LiveStatistics liveStatistics = restService.callGetLiveStatistics();
-		assertEquals(liveStatistics.totalLiveStreamCount, 0);
+		assertEquals(0, liveStatistics.totalLiveStreamCount);
 
 	}
 

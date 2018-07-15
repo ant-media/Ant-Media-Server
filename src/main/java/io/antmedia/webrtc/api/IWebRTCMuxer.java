@@ -1,7 +1,6 @@
 package io.antmedia.webrtc.api;
 
 import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 public interface IWebRTCMuxer extends IStreamInfo {
 	

@@ -1,7 +1,6 @@
 package io.antmedia.webrtc.api;
 
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.red5.server.api.scope.IScopeService;
 
