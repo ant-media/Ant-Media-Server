@@ -348,6 +348,7 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 			boolean isKeyFrame = false;
 			if ((pkt.flags() & AV_PKT_FLAG_KEY) == 1) {
 				isKeyFrame = true;
+				keyFrame = byteArray;
 			}
 
 			if (!videoConfSent) {
@@ -367,9 +368,6 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 				
 			}
 			else {
-				if (isKeyFrame) {
-					keyFrame = byteArray;
-				}
 				sendVideoPacket(byteArray, isKeyFrame, pts);
 			}
 			totalSendVideoPacketCallInterval += lastSendVideoPacketCallTime != 0 ? 

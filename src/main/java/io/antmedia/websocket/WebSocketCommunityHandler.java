@@ -50,7 +50,7 @@ public abstract class WebSocketCommunityHandler {
 	public void onError(Session session, Throwable throwable) {
 
 	}
-	
+
 	@Nonnull
 	public abstract ApplicationContext getAppContext();
 
@@ -97,41 +97,19 @@ public abstract class WebSocketCommunityHandler {
 			{
 
 				RTMPAdaptor connectionContext = (RTMPAdaptor) session.getUserProperties().get(session.getId());
-				if (connectionContext != null) {
-					String typeString = (String)jsonObject.get(WebSocketConstants.TYPE);
-					String sdpDescription = (String)jsonObject.get(WebSocketConstants.SDP);
-
-					SessionDescription.Type type;
-					if (typeString.equals("offer")) {
-						type = Type.OFFER;
-						logger.info("received sdp type is offer");
-					}
-					else {
-						type = Type.ANSWER;
-						logger.info("received sdp type is answer");
-					}
-					SessionDescription sdp = new SessionDescription(type, sdpDescription);
-					connectionContext.setRemoteDescription(sdp);
-				}
-				else {
-					logger.warn("Connection context is null. Wrong message order for stream: {}", streamId);
-				}
+				String typeString = (String)jsonObject.get(WebSocketConstants.TYPE);
+				String sdpDescription = (String)jsonObject.get(WebSocketConstants.SDP);
+				setRemoteDescription(connectionContext, typeString, sdpDescription, streamId);
+				
 			}
 			else if (cmd.equals(WebSocketConstants.TAKE_CANDIDATE_COMMAND)) {
 
 				RTMPAdaptor connectionContext = (RTMPAdaptor) session.getUserProperties().get(session.getId());
-				if (connectionContext != null) {
-					String sdpMid = (String) jsonObject.get(WebSocketConstants.CANDIDATE_ID);
-					String sdp = (String) jsonObject.get(WebSocketConstants.CANDIDATE_SDP);
-					long sdpMLineIndex = (long)jsonObject.get(WebSocketConstants.CANDIDATE_LABEL);
-
-					IceCandidate iceCandidate = new IceCandidate(sdpMid, (int)sdpMLineIndex, sdp);
-
-					connectionContext.addIceCandidate(iceCandidate);
-				}
-				else {
-					logger.warn("Connection context is null for take candidate. Wrong message order for stream: {}", streamId);
-				}
+				String sdpMid = (String) jsonObject.get(WebSocketConstants.CANDIDATE_ID);
+				String sdp = (String) jsonObject.get(WebSocketConstants.CANDIDATE_SDP);
+				long sdpMLineIndex = (long)jsonObject.get(WebSocketConstants.CANDIDATE_LABEL);
+				
+				addICECandidate(streamId, connectionContext, sdpMid, sdp, sdpMLineIndex);
 
 			}
 			else if (cmd.equals(WebSocketConstants.STOP_COMMAND)) {
@@ -141,7 +119,7 @@ public abstract class WebSocketCommunityHandler {
 				}
 				else {
 					logger.warn("Connection context is null for stop. Wrong message order for stream: {}", streamId);
-					
+
 				}
 			}
 
@@ -153,6 +131,38 @@ public abstract class WebSocketCommunityHandler {
 
 	}
 
+	public void addICECandidate(final String streamId, RTMPAdaptor connectionContext, String sdpMid, String sdp,
+			long sdpMLineIndex) {
+		if (connectionContext != null) {
+			IceCandidate iceCandidate = new IceCandidate(sdpMid, (int)sdpMLineIndex, sdp);
+
+			connectionContext.addIceCandidate(iceCandidate);
+		}
+		else {
+			logger.warn("Connection context is null for take candidate. Wrong message order for stream: {}", streamId);
+		}
+	}
+
+
+	private void setRemoteDescription(RTMPAdaptor connectionContext, String typeString, String sdpDescription, String streamId) {
+		if (connectionContext != null) {
+			SessionDescription.Type type;
+			if (typeString.equals("offer")) {
+				type = Type.OFFER;
+				logger.info("received sdp type is offer {}", streamId);
+			}
+			else {
+				type = Type.ANSWER;
+				logger.info("received sdp type is answer {}", streamId);
+			}
+			SessionDescription sdp = new SessionDescription(type, sdpDescription);
+			connectionContext.setRemoteDescription(sdp);
+		}
+		else {
+			logger.warn("Connection context is null. Wrong message order for stream: {}", streamId);
+		}
+
+	}
 
 	@SuppressWarnings("unchecked")
 	public static void sendSDPConfiguration(String description, String type, String streamId, Session session) {
@@ -240,13 +250,11 @@ public abstract class WebSocketCommunityHandler {
 
 
 	public static void sendMessage(String message, Session session) {
-		synchronized (session) {
-			if (session.isOpen()) {
-				try {
-					session.getBasicRemote().sendText(message);
-				} catch (IOException e) {
-					logger.error(ExceptionUtils.getStackTrace(e));
-				}
+		if (session.isOpen()) {
+			try {
+				session.getBasicRemote().sendText(message);
+			} catch (IOException e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
 			}
 		}
 	}

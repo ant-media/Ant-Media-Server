@@ -975,31 +975,27 @@ public class BroadcastRestService {
 
 			logger.info("recordfile {} : " , recordFile.getAbsolutePath());
 
-
-			if (recordFile.exists()) {
-				try {
+			try {
+				if (recordFile.exists()) {
 					success = Files.deleteIfExists(recordFile.toPath());
 					message = "streamvod found and deleted";
 					getDataStore().deleteVod(id);
-				}
-				catch (Exception e) {
-					logger.error(ExceptionUtils.getStackTrace(e));
-				}
-
-			} else if (uploadedFile.exists()) {
-				try {
+				} 
+				else if (uploadedFile.exists()) 
+				{
 					success = Files.deleteIfExists(uploadedFile.toPath()); 
 					message = "uploadedVod is found and deleted";
 					getDataStore().deleteVod(id);
 				}
-				catch (Exception e) {
-					logger.error(ExceptionUtils.getStackTrace(e));
+				else {
+					success = getDataStore().deleteVod(id);
 				}
-
-			}else {
-				success = getDataStore().deleteVod(id);
-
 			}
+			catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+			
+			//delete preview file if exists
 			File previewFile = Muxer.getPreviewFile(getScope(), fileName, ".png");
 			if (previewFile.exists()) {
 				try {
