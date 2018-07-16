@@ -2,7 +2,7 @@ language: java
 jdk:
   - openjdk8
 
-sudo: false
+sudo: required
 
 addons:
   sonarcloud:
@@ -10,7 +10,7 @@ addons:
     token:
       secure: $SONAR_TOKEN
 
-#travis running on ubuntu 14.04
+#travis running  on ubuntu 14.04
 
 before_install: 
   - openssl aes-256-cbc -K $encrypted_5fef4fa28306_key -iv $encrypted_5fef4fa28306_iv -in codesigning.asc.enc -out codesigning.asc -d
@@ -37,6 +37,7 @@ before_install:
   - cd ..
   - echo "Waiting a little to make sure server is started "
   - sleep 20
+  - sudo cat /usr/local/antmedia/log/ant-media-server.log
   - sudo cp src/test/resources/preset-red5-web.properties  /usr/local/antmedia/webapps/LiveApp/WEB-INF/red5-web.properties
   - sudo cp src/test/resources/preset-red5-web.db  /usr/local/antmedia/liveapp.db
   - sudo service antmedia stop
@@ -53,10 +54,14 @@ script:
   - mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent package sonar:sonar -Dmaven.javadoc.skip=true
   
 
+
 cache:
   directories:
     - '$HOME/.m2/repository'
     - '$HOME/.sonar/cache'
+    
+after_failure:
+  - sudo cat /usr/local/antmedia/log/ant-media-server.log
 
 deploy:
   - provider: script

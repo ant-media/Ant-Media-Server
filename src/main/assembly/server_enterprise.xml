@@ -57,6 +57,7 @@
 				<exclude>ant-media-server-*.jar</exclude>
 				<exclude>ffmpeg-*.jar</exclude>
 				<exclude>javacpp-*.jar</exclude>
+				<exclude>ant-media-enterprise*.jar</exclude>
 			</excludes>
 		</fileSet>
 		<fileSet>

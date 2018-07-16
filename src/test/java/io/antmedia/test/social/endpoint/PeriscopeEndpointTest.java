@@ -7,7 +7,9 @@ import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
+import org.awaitility.Awaitility;
 import org.junit.BeforeClass;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
@@ -222,24 +224,25 @@ public class PeriscopeEndpointTest {
 
 			boolean started = false;
 			
-			Thread.sleep(3000);
-			
 			endPoint.publishBroadcast(endpoint);
 
-			Thread.sleep(7000);
-			
-			String status = endPoint.getBroadcast(endpoint);
-			assertEquals(BroadcastStatus.LIVE_NOW, status);
-			
+			Awaitility.await().atMost(20, TimeUnit.SECONDS)
+				.pollInterval(2, TimeUnit.SECONDS)
+				.until(() -> {
+					return endPoint.getBroadcast(endpoint).equals(BroadcastStatus.LIVE_NOW);
+				});
 
 			endPoint.stopBroadcast(endpoint);
 
 			execute.destroy();
 			
-			Thread.sleep(15000);
 			
-			status = endPoint.getBroadcast(endpoint);
-			assertEquals(BroadcastStatus.UNPUBLISHED, status);
+			Awaitility.await().atMost(20, TimeUnit.SECONDS)
+				.pollInterval(2, TimeUnit.SECONDS)
+				.until(() -> {
+					return endPoint.getBroadcast(endpoint).equals(BroadcastStatus.UNPUBLISHED);
+				});
+			
 
 		} catch (Exception e) {
 			e.printStackTrace();

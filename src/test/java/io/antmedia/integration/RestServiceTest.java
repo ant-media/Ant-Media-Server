@@ -983,6 +983,7 @@ public class RestServiceTest {
 	@Test
 	public void testUpdate() {
 
+		System.out.println("Running testUpdate");
 		// create broadcast
 		Broadcast broadcast = createBroadcast(null);
 
@@ -1050,6 +1051,8 @@ public class RestServiceTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+		
+		System.out.println("Leaving testUpdate");
 
 	}
 
@@ -1176,6 +1179,7 @@ public class RestServiceTest {
 
 	@Test
 	public void testCheckSocialEndpointRecreated() {
+		System.out.println("Running testCheckSocialEndpointRecreated");
 		Result result;
 		try {
 			// create broadcast
@@ -1212,7 +1216,7 @@ public class RestServiceTest {
 
 			// check that 1 element exist
 			assertNotNull(broadcast.getEndPointList());
-			assertEquals(broadcast.getEndPointList().size(), 1);
+			assertEquals(1, broadcast.getEndPointList().size());
 
 			broadcast = getBroadcast(broadcast.getStreamId().toString());
 			List<Endpoint> endpointList = broadcast.getEndPointList();
@@ -1236,7 +1240,7 @@ public class RestServiceTest {
 
 			broadcast = getBroadcast(broadcast.getStreamId().toString());
 			List<Endpoint> endpointList2 = broadcast.getEndPointList();
-			assertEquals(endpointList2.size(), 1);
+			assertEquals(1, endpointList2.size());
 
 			for (Endpoint endpoint : endpointList2) {
 				System.out.println("new endpoint url: " + endpoint.rtmpUrl + " broadcast.id=" + endpoint.broadcastId
@@ -1246,6 +1250,8 @@ public class RestServiceTest {
 
 			for (Endpoint endpoint : endpointList2) {
 				for (Endpoint endpointFirst : endpointList) {
+					System.out.println("new endpoint rtmp URL -> " + endpoint.rtmpUrl + " first endpoint URL -> " + endpointFirst.rtmpUrl);
+					System.out.println("new broadcast id -> " + endpoint.broadcastId + " first broadcast Id -> " + endpointFirst.broadcastId);
 					assertTrue(!endpoint.rtmpUrl.equals(endpointFirst.rtmpUrl)
 							|| !endpoint.broadcastId.equals(endpointFirst.broadcastId));
 				}
@@ -1255,7 +1261,8 @@ public class RestServiceTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-
+		
+		System.out.println("Leaving testCheckSocialEndpointRecreated");
 	}
 
 	public static Process execute(final String command) {
@@ -1371,12 +1378,13 @@ public class RestServiceTest {
 	@Test
 	public void testAddEndpoint() {
 
+		System.out.println("Running testAddEndpoint");
 		try {
 
 			Broadcast broadcast = createBroadcast(null);
 
 			List<SocialEndpointCredentials> socialEndpointServices = getSocialEndpointServices();
-			assertTrue(socialEndpointServices.size() > 0);
+			assertTrue(!socialEndpointServices.isEmpty());
 			// add twitter endpoint
 			Result result = addSocialEndpoint(broadcast.getStreamId().toString(), socialEndpointServices.get(0).getId());
 
@@ -1406,6 +1414,7 @@ public class RestServiceTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+
 	}
 
 	@Test
@@ -1461,7 +1470,6 @@ public class RestServiceTest {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-
 	}
 
 	@Test

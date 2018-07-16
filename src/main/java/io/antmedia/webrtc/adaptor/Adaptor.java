@@ -1,10 +1,8 @@
 package io.antmedia.webrtc.adaptor;
 
-import java.io.UnsupportedEncodingException;
+import javax.websocket.Session;
 
-import org.json.simple.JSONObject;
 import org.red5.logging.Red5LoggerFactory;
-import org.red5.net.websocket.WebSocketConnection;
 import org.slf4j.Logger;
 import org.webrtc.DataChannel;
 import org.webrtc.IceCandidate;
@@ -21,11 +19,17 @@ import org.webrtc.SdpObserver;
 import org.webrtc.SessionDescription;
 import org.webrtc.SessionDescription.Type;
 
-public abstract class Adaptor implements Observer, SdpObserver {
+import io.antmedia.websocket.WebSocketCommunityHandler;
+
+public abstract class Adaptor implements Observer, SdpObserver 
+{
 	protected PeerConnection peerConnection;
-	private WebSocketConnection wsConnection;
 	private MediaConstraints sdpMediaConstraints;
 	protected PeerConnectionFactory peerConnectionFactory;
+	
+	private String streamId;
+	
+	private Session session; 
 	
 	protected static final Logger log = Red5LoggerFactory.getLogger(Adaptor.class);
 
@@ -42,14 +46,6 @@ public abstract class Adaptor implements Observer, SdpObserver {
 		return peerConnection;
 	}
 
-	public WebSocketConnection getWsConnection() {
-		return wsConnection;
-	}
-
-	public void setWsConnection(WebSocketConnection wsConnection) {
-		this.wsConnection = wsConnection;
-	}
-	
 	@Override
 	public void onSignalingChange(SignalingState newState) {
 
@@ -76,20 +72,9 @@ public abstract class Adaptor implements Observer, SdpObserver {
 	
 	@Override
 	public void onIceCandidate(IceCandidate candidate) {
-
 		log.warn("onIceCandidate");
-
-		JSONObject jsonObject = new JSONObject();
-		jsonObject.put("command", "takeCandidate");
-		jsonObject.put("label", candidate.sdpMLineIndex);
-		jsonObject.put("id", candidate.sdpMid);
-		jsonObject.put("candidate", candidate.sdp);
-
-		try {
-			wsConnection.send(jsonObject.toJSONString());
-		} catch (UnsupportedEncodingException e) {
-			e.printStackTrace();
-		}
+		
+		WebSocketCommunityHandler.sendTakeCandidateMessage(candidate.sdpMLineIndex, candidate.sdpMid, candidate.sdp, streamId, session);
 
 	}
 	
@@ -144,9 +129,7 @@ public abstract class Adaptor implements Observer, SdpObserver {
 			}
 		}, sdp);
 
-		JSONObject jsonObject = new JSONObject();
-		jsonObject.put("command", "takeConfiguration");
-		jsonObject.put("sdp", sdp.description);
+		
 		String type;
 		if (sdp.type == Type.ANSWER) {
 			type = "answer";
@@ -154,13 +137,8 @@ public abstract class Adaptor implements Observer, SdpObserver {
 		else  {
 			type = "offer";
 		}
-		jsonObject.put("type", type);
-
-		try {
-			wsConnection.send(jsonObject.toJSONString());
-		} catch (UnsupportedEncodingException e) {
-			e.printStackTrace();
-		}
+		
+		WebSocketCommunityHandler.sendSDPConfiguration(sdp.description, type, streamId, session);
 
 	}
 	
@@ -188,8 +166,24 @@ public abstract class Adaptor implements Observer, SdpObserver {
 	}
 
 	public void setPeerConnectionFactory(PeerConnectionFactory peerConnectionFactory) {
-		this.peerConnectionFactory = peerConnectionFactory;
-		
+		this.peerConnectionFactory = peerConnectionFactory;	
+	}
+	
+
+	public void setSession(Session session) {
+		this.session = session;
+	}
+	
+	public Session getSession() {
+		return session;
+	}
+
+	public String getStreamId() {
+		return streamId;
+	}
+
+	public void setStreamId(String streamId) {
+		this.streamId = streamId;
 	}
 
 }

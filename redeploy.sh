@@ -20,6 +20,7 @@ cp  $ANT_MEDIA_SERVER_JAR  $ANT_MEDIA_SERVER_DIR/ant-media-server.jar
 OUT=$?
 
 if [ $OUT -ne 0 ]; then
+    echo "Cannot copy ant-media-server.jar"
     exit $OUT
 fi
 

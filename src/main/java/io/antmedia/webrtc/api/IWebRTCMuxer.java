@@ -1,5 +1,6 @@
 package io.antmedia.webrtc.api;
 
+import java.util.Queue;
 
 public interface IWebRTCMuxer extends IStreamInfo {
 	
@@ -46,9 +47,19 @@ public interface IWebRTCMuxer extends IStreamInfo {
 	 */
 	public void sendAudioPacket(byte[] audioPacket, long timestamp);
 	
+	/**
+	 * Returns number of WebRTCClients registered to the muxer
+	 */
+	public int getClientCount();
+	
 	
 	public boolean contains(IWebRTCClient webRTCClient);
 	
 	
-
+	/**
+	 * Return the list of webrtc clients receiving data from webrtc muxer 
+	 * @return
+	 */
+	public Queue<IWebRTCClient> getClientList();
+	
 }

@@ -10,6 +10,8 @@ import io.antmedia.webrtc.adaptor.RTMPAdaptor;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.*;
 
+import javax.websocket.Session;
+
 public class RTMPAdaptorTest {
 	
 	@Before
@@ -25,9 +27,9 @@ public class RTMPAdaptorTest {
 			
 			MediaStream stream = mock(MediaStream.class);
 			
-			WebSocketConnection conn = mock(WebSocketConnection.class);
+			Session session = mock(Session.class);
 			
-			rtmpAdaptor.setWsConnection(conn);
+			rtmpAdaptor.setSession(session);
 			
 			rtmpAdaptor.onAddStream(stream);
 			

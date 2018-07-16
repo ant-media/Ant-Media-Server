@@ -292,6 +292,20 @@ public class MapDBStore implements IDataStore {
 	}
 
 	@Override
+	public long getActiveBroadcastCount() {
+		Collection<String> values = map.values();
+		int activeBroadcastCount = 0;
+		for (String broadcastString : values) {
+			Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
+			String status = broadcast.getStatus();
+			if (status != null && status.equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
+				activeBroadcastCount++;
+			}
+		}
+		return activeBroadcastCount;
+	}
+
+	@Override
 	public boolean delete(String id) {
 		boolean result = false;
 		synchronized (this) {
@@ -434,6 +448,7 @@ public class MapDBStore implements IDataStore {
 		}
 		return id;
 	}
+
 	@Override
 	public boolean addUserVod(Vod vod) {
 		String vodId = null;
@@ -456,8 +471,6 @@ public class MapDBStore implements IDataStore {
 		}
 		return result;
 	}
-
-
 
 
 
@@ -515,8 +528,6 @@ public class MapDBStore implements IDataStore {
 			return getVodMap().size();
 		}
 	}
-
-
 
 	@Override
 	public int fetchUserVodList(File userfile) {
@@ -579,30 +590,9 @@ public class MapDBStore implements IDataStore {
 		return numberOfSavedFiles;
 	}
 
-	@Override
-	public boolean updateSourceQuality(String id, String quality) {
-		boolean result = false;
-		synchronized (this) {
-			if (id != null) {
-				String jsonString = map.get(id);
-				if (jsonString != null) {
-					Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
-					broadcast.setQuality(quality);
-					String jsonVal = gson.toJson(broadcast);
-					String previousValue = map.replace(id, jsonVal);
-					db.commit();
-					logger.debug("updateSourceQuality replacing id {} having value {} to {} and the fetched value {}", 
-							id, previousValue, jsonVal, jsonString);
-					result = true;
-				}
-			}
-		}
-		return result;
-	}
 
 	@Override
-
-	public boolean updateSourceSpeed(String id, double speed) {
+	public boolean updateSourceQualityParameters(String id, String quality, double speed, int pendingPacketQueue) {
 		boolean result = false;
 		synchronized (this) {
 			if (id != null) {
@@ -610,14 +600,18 @@ public class MapDBStore implements IDataStore {
 				if (jsonString != null) {
 					Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
 					broadcast.setSpeed(speed);
+					broadcast.setQuality(quality);
+					broadcast.setPendingPacketSize(pendingPacketQueue);
 					map.replace(id, gson.toJson(broadcast));
 					db.commit();
 					result = true;
+
 				}
 			}
 		}
 		return result;
 	}
+
 	public SocialEndpointCredentials addSocialEndpointCredentials(SocialEndpointCredentials credentials) {
 		SocialEndpointCredentials addedCredential = null;
 		synchronized (this) {
@@ -717,21 +711,6 @@ public class MapDBStore implements IDataStore {
 		}
 	}
 
-	@Override
-	public long getActiveBroadcastCount() {
-		int activeBroadcastCount = 0;
-		synchronized (this) {
-			Collection<String> values = map.values();
-			for (String broadcastString : values) {
-				Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
-				String status = broadcast.getStatus();
-				if (status != null && status.equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
-					activeBroadcastCount++;
-				}
-			}
-		}
-		return activeBroadcastCount;
-	}
 
 	public void saveDetection(String id, long timeElapsed, List<TensorFlowObject> detectedObjects) {
 		synchronized (this) {

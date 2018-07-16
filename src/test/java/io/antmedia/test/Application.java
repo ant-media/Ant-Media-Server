@@ -3,9 +3,9 @@ package io.antmedia.test;
 import java.io.File;
 
 import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.muxer.IMuxerListener;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 
-public class Application extends AntMediaApplicationAdapter implements IMuxerListener {
+public class Application extends AntMediaApplicationAdapter implements IAntMediaStreamHandler {
 
 	public static String id = null;
 	public static File file = null;
@@ -54,16 +54,10 @@ public class Application extends AntMediaApplicationAdapter implements IMuxerLis
 	}
 	
 	@Override
-	public void sourceQualityChanged(String id, String quality) {
+	public void setQualityParameters(String id, String quality, double speed, int pendingPacketSize) {
 		if (enableSourceHealthUpdate) {
-			super.sourceQualityChanged(id, quality);
+		super.setQualityParameters(id, quality, speed, pendingPacketSize);
 		}
 	}
 	
-	@Override
-	public void sourceSpeedChanged(String id, double speed) {
-		if (enableSourceHealthUpdate) {
-			super.sourceSpeedChanged(id, speed);
-		}
-	}
 }
