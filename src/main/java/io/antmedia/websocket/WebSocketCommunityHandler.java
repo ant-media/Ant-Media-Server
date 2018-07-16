@@ -83,7 +83,7 @@ public abstract class WebSocketCommunityHandler {
 
 				String outputURL = "rtmp://127.0.0.1/WebRTCApp/" + streamId;
 
-				RTMPAdaptor connectionContext = new RTMPAdaptor(getNewRecorder(outputURL));
+				RTMPAdaptor connectionContext = new RTMPAdaptor(getNewRecorder(outputURL), this);
 
 				session.getUserProperties().put(session.getId(), connectionContext);
 
@@ -100,7 +100,7 @@ public abstract class WebSocketCommunityHandler {
 				String typeString = (String)jsonObject.get(WebSocketConstants.TYPE);
 				String sdpDescription = (String)jsonObject.get(WebSocketConstants.SDP);
 				setRemoteDescription(connectionContext, typeString, sdpDescription, streamId);
-				
+
 			}
 			else if (cmd.equals(WebSocketConstants.TAKE_CANDIDATE_COMMAND)) {
 
@@ -108,7 +108,7 @@ public abstract class WebSocketCommunityHandler {
 				String sdpMid = (String) jsonObject.get(WebSocketConstants.CANDIDATE_ID);
 				String sdp = (String) jsonObject.get(WebSocketConstants.CANDIDATE_SDP);
 				long sdpMLineIndex = (long)jsonObject.get(WebSocketConstants.CANDIDATE_LABEL);
-				
+
 				addICECandidate(streamId, connectionContext, sdpMid, sdp, sdpMLineIndex);
 
 			}
@@ -165,7 +165,7 @@ public abstract class WebSocketCommunityHandler {
 	}
 
 	@SuppressWarnings("unchecked")
-	public static void sendSDPConfiguration(String description, String type, String streamId, Session session) {
+	public  void sendSDPConfiguration(String description, String type, String streamId, Session session) {
 		JSONObject jsonResponseObject = new JSONObject();
 		jsonResponseObject.put(WebSocketConstants.COMMAND, WebSocketConstants.TAKE_CONFIGURATION_COMMAND);
 		jsonResponseObject.put(WebSocketConstants.SDP, description);
@@ -175,7 +175,7 @@ public abstract class WebSocketCommunityHandler {
 	}
 
 	@SuppressWarnings("unchecked")
-	public static void sendPublishStartedMessage(String streamId, Session session) {
+	public  void sendPublishStartedMessage(String streamId, Session session) {
 		JSONObject jsonObj = new JSONObject();
 		jsonObj.put(WebSocketConstants.COMMAND, WebSocketConstants.NOTIFICATION_COMMAND);
 		jsonObj.put(WebSocketConstants.DEFINITION, WebSocketConstants.PUBLISH_STARTED);
@@ -185,7 +185,7 @@ public abstract class WebSocketCommunityHandler {
 	}
 
 	@SuppressWarnings("unchecked")
-	public static void sendPublishFinishedMessage(String streamId, Session session) {
+	public  void sendPublishFinishedMessage(String streamId, Session session) {
 		JSONObject jsonObject = new JSONObject();
 		jsonObject.put(WebSocketConstants.COMMAND, WebSocketConstants.NOTIFICATION_COMMAND);
 		jsonObject.put(WebSocketConstants.DEFINITION,  WebSocketConstants.PUBLISH_FINISHED);
@@ -195,7 +195,7 @@ public abstract class WebSocketCommunityHandler {
 	}
 
 	@SuppressWarnings("unchecked")
-	public static void sendStartMessage(String streamId, Session session) 
+	public  void sendStartMessage(String streamId, Session session) 
 	{
 		JSONObject jsonObject = new JSONObject();
 		jsonObject.put(WebSocketConstants.COMMAND, WebSocketConstants.START_COMMAND);
@@ -228,7 +228,7 @@ public abstract class WebSocketCommunityHandler {
 	}
 
 	@SuppressWarnings("unchecked")
-	protected static final  void sendNoStreamIdSpecifiedError(Session session)  {
+	protected  final  void sendNoStreamIdSpecifiedError(Session session)  {
 		JSONObject jsonResponse = new JSONObject();
 		jsonResponse.put(WebSocketConstants.COMMAND, WebSocketConstants.ERROR_COMMAND);
 		jsonResponse.put(WebSocketConstants.DEFINITION, WebSocketConstants.NO_STREAM_ID_SPECIFIED);
@@ -236,7 +236,7 @@ public abstract class WebSocketCommunityHandler {
 	}
 
 	@SuppressWarnings("unchecked")
-	public static void sendTakeCandidateMessage(long sdpMLineIndex, String sdpMid, String sdp, String streamId, Session session)
+	public void sendTakeCandidateMessage(long sdpMLineIndex, String sdpMid, String sdp, String streamId, Session session)
 	{
 		JSONObject jsonObject = new JSONObject();
 		jsonObject.put(WebSocketConstants.COMMAND,  WebSocketConstants.TAKE_CANDIDATE_COMMAND);
@@ -249,12 +249,15 @@ public abstract class WebSocketCommunityHandler {
 	}
 
 
-	public static void sendMessage(String message, Session session) {
-		if (session.isOpen()) {
-			try {
-				session.getBasicRemote().sendText(message);
-			} catch (IOException e) {
-				logger.error(ExceptionUtils.getStackTrace(e));
+	@SuppressWarnings("unchecked")
+	public void sendMessage(String message, final Session session) {
+		synchronized (this) {
+			if (session.isOpen()) {
+				try {
+					session.getBasicRemote().sendText(message);
+				} catch (IOException e) {
+					logger.error(ExceptionUtils.getStackTrace(e));
+				}
 			}
 		}
 	}
