@@ -200,9 +200,8 @@ public class BroadcastRestService {
 	 * @param listenerHookURL
 	 * @return
 	 * 
-	 * @deprecated use createBroadcast with listenerHookURL
+	 * deprecated use createBroadcast with listenerHookURL , it will be deleted.
 	 */
-	@Deprecated
 	@POST
 	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	@Path("/broadcast/createPortalBroadcast")
