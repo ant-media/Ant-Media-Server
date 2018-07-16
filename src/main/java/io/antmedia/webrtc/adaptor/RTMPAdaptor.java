@@ -51,7 +51,8 @@ public class RTMPAdaptor extends Adaptor {
 
 	public static final String DTLS_SRTP_KEY_AGREEMENT_CONSTRAINT = "DtlsSrtpKeyAgreement";
 
-	public RTMPAdaptor(FFmpegFrameRecorder recorder) {
+	public RTMPAdaptor(FFmpegFrameRecorder recorder, WebSocketCommunityHandler webSocketHandler) {
+		super(webSocketHandler);
 		this.recorder = recorder;
 
 		setSdpMediaConstraints(new MediaConstraints());
@@ -87,7 +88,7 @@ public class RTMPAdaptor extends Adaptor {
 			peerConnectionFactory = createPeerConnectionFactory();
 			peerConnection = peerConnectionFactory.createPeerConnection(rtcConfig, pcConstraints, RTMPAdaptor.this);
 
-			WebSocketCommunityHandler.sendStartMessage(getStreamId(), getSession());
+			webSocketCommunityHandler.sendStartMessage(getStreamId(), getSession());
 
 
 		});
@@ -106,7 +107,7 @@ public class RTMPAdaptor extends Adaptor {
 			@Override
 			public void run() {
 
-				WebSocketCommunityHandler.sendPublishFinishedMessage(getStreamId(), getSession());
+				webSocketCommunityHandler.sendPublishFinishedMessage(getStreamId(), getSession());
 
 
 				audioEncoderExecutor.shutdownNow();
@@ -254,7 +255,7 @@ public class RTMPAdaptor extends Adaptor {
 			}
 		}
 
-		WebSocketCommunityHandler.sendPublishStartedMessage(getStreamId(), getSession());
+		webSocketCommunityHandler.sendPublishStartedMessage(getStreamId(), getSession());
 
 	}
 

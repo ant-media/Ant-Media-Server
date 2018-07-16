@@ -26,6 +26,7 @@ public abstract class Adaptor implements Observer, SdpObserver
 	protected PeerConnection peerConnection;
 	private MediaConstraints sdpMediaConstraints;
 	protected PeerConnectionFactory peerConnectionFactory;
+	protected WebSocketCommunityHandler webSocketCommunityHandler;
 	
 	private String streamId;
 	
@@ -33,6 +34,9 @@ public abstract class Adaptor implements Observer, SdpObserver
 	
 	protected static final Logger log = Red5LoggerFactory.getLogger(Adaptor.class);
 
+	public Adaptor(WebSocketCommunityHandler websocketCommunityHandler) {
+		this.webSocketCommunityHandler = websocketCommunityHandler;
+	}
 	
 	public abstract void start();
 	
@@ -74,7 +78,8 @@ public abstract class Adaptor implements Observer, SdpObserver
 	public void onIceCandidate(IceCandidate candidate) {
 		log.warn("onIceCandidate");
 		
-		WebSocketCommunityHandler.sendTakeCandidateMessage(candidate.sdpMLineIndex, candidate.sdpMid, candidate.sdp, streamId, session);
+		webSocketCommunityHandler
+			.sendTakeCandidateMessage(candidate.sdpMLineIndex, candidate.sdpMid, candidate.sdp, streamId, session);
 
 	}
 	
@@ -138,7 +143,7 @@ public abstract class Adaptor implements Observer, SdpObserver
 			type = "offer";
 		}
 		
-		WebSocketCommunityHandler.sendSDPConfiguration(sdp.description, type, streamId, session);
+		webSocketCommunityHandler.sendSDPConfiguration(sdp.description, type, streamId, session);
 
 	}
 	

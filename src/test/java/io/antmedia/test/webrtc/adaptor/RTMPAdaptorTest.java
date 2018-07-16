@@ -6,6 +6,7 @@ import org.red5.net.websocket.WebSocketConnection;
 import org.webrtc.MediaStream;
 
 import io.antmedia.webrtc.adaptor.RTMPAdaptor;
+import io.antmedia.websocket.WebSocketCommunityHandler;
 
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.*;
@@ -23,7 +24,10 @@ public class RTMPAdaptorTest {
 	public void testNoAudioNoVideoInStream() {
 		
 		try {
-			RTMPAdaptor rtmpAdaptor = new RTMPAdaptor(null);
+			
+			WebSocketCommunityHandler handler = mock(WebSocketCommunityHandler.class);
+			
+			RTMPAdaptor rtmpAdaptor = new RTMPAdaptor(null, handler);
 			
 			MediaStream stream = mock(MediaStream.class);
 			
