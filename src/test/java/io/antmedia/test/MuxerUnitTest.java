@@ -335,7 +335,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 				for (Iterator<MuxAdaptor> iterator = muxAdaptorList.iterator(); iterator.hasNext();) {
 					MuxAdaptor muxAdaptor = (MuxAdaptor) iterator.next();
-					boolean result = muxAdaptor.init(appScope, "test" + (int)(Math.random() * 1000), false);
+					boolean result = muxAdaptor.init(appScope, "test" + (int)(Math.random() * 991000), false);
 					assertTrue(result);
 					muxAdaptor.start();
 					logger.info("Mux adaptor instance " + muxAdaptor);
