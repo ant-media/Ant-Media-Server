@@ -207,6 +207,18 @@ public abstract class WebSocketCommunityHandler {
 
 	public static FFmpegFrameRecorder getNewRecorder(String outputURL) {
 
+		FFmpegFrameRecorder recorder = initRecorder(outputURL);
+
+		try {
+			recorder.start();
+		} catch (FrameRecorder.Exception e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+		}
+
+		return recorder;
+	}
+
+	public static FFmpegFrameRecorder initRecorder(String outputURL) {
 		FFmpegFrameRecorder recorder = new FFmpegFrameRecorder(outputURL, 640, 480, 1);
 		recorder.setFormat("flv");
 		recorder.setSampleRate(44100);
@@ -217,13 +229,6 @@ public abstract class WebSocketCommunityHandler {
 		recorder.setAudioCodec(avcodec.AV_CODEC_ID_AAC);
 		recorder.setAudioChannels(2);
 		recorder.setGopSize(20);
-
-		try {
-			recorder.start();
-		} catch (FrameRecorder.Exception e) {
-			logger.error(ExceptionUtils.getStackTrace(e));
-		}
-
 		return recorder;
 	}
 
