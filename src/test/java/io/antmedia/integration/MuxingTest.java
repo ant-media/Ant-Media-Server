@@ -359,7 +359,7 @@ public class MuxingTest {
 
 		try {
 			// send rtmp stream with ffmpeg to red5
-			String streamName = "live_test";
+			String streamName = "live_test"  + (int)(Math.random() * 999999);
 
 			// make sure that ffmpeg is installed and in path
 			Process rtmpSendingProcess = execute(
