@@ -208,7 +208,7 @@ public abstract class WebSocketCommunityHandler {
 	public static FFmpegFrameRecorder getNewRecorder(String outputURL) {
 
 		FFmpegFrameRecorder recorder = new FFmpegFrameRecorder(outputURL, 640, 480, 1);
-		recorder.setFormat("mp4");
+		recorder.setFormat("flv");
 		recorder.setSampleRate(44100);
 		// Set in the surface changed method
 		recorder.setFrameRate(30);
