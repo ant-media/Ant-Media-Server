@@ -151,27 +151,27 @@ public class ConsoleAppRestServiceTest {
 			}
 			
 			AppSettingsModel appSettingsModel = callGetAppSettings(appName);
-			assertEquals(null, appSettingsModel.vodFolder);
+			assertEquals(null, appSettingsModel.getVodFolder());
 			 
 			appSettingsModel = callGetAppSettings("LiveApp");
 				
 			// change app settings - change vod folder
 			String new_vod_folder = "vod_folder";
-			assertNotEquals(new_vod_folder, appSettingsModel.vodFolder);
-			String defaultValue = appSettingsModel.vodFolder;
+			assertNotEquals(new_vod_folder, appSettingsModel.getVodFolder());
+			String defaultValue = appSettingsModel.getVodFolder();
 			
 						
-			appSettingsModel.vodFolder = new_vod_folder;
+			appSettingsModel.setVodFolder(new_vod_folder);
 			result = callSetAppSettings("LiveApp", appSettingsModel);
 			assertTrue(result.isSuccess());
 
 			// get app settings and assert settings has changed - check vod folder has changed
 			appSettingsModel = callGetAppSettings("LiveApp");
-			assertEquals(new_vod_folder, appSettingsModel.vodFolder);
+			assertEquals(new_vod_folder, appSettingsModel.getVodFolder());
 
 			// check the related file to make sure settings changed for restart
 			// return back to default values
-			appSettingsModel.vodFolder = defaultValue;
+			appSettingsModel.setVodFolder(defaultValue);
 			result = callSetAppSettings("LiveApp", appSettingsModel);
 			assertTrue(result.isSuccess());
 			
@@ -199,13 +199,13 @@ public class ConsoleAppRestServiceTest {
 			AppSettingsModel appSettingsModel = callGetAppSettings("LiveApp");
 
 			// Change app settings and make mp4 and hls muxing false
-			appSettingsModel.mp4MuxingEnabled = false;
-			appSettingsModel.hlsMuxingEnabled = false;
+			appSettingsModel.setMp4MuxingEnabled(false);
+			appSettingsModel.setHlsMuxingEnabled(false);
 			List<EncoderSettings> encoderSettings = new ArrayList<EncoderSettings>();
-			for (int i = 0; i < appSettingsModel.encoderSettings.size(); i++) {
-				encoderSettings.add(appSettingsModel.encoderSettings.get(i));
+			for (int i = 0; i < appSettingsModel.getEncoderSettings().size(); i++) {
+				encoderSettings.add(appSettingsModel.getEncoderSettings().get(i));
 			}
-			appSettingsModel.encoderSettings.clear();
+			appSettingsModel.getEncoderSettings().clear();
 
 			Result result = callSetAppSettings("LiveApp", appSettingsModel);
 			assertTrue(result.isSuccess());
@@ -237,15 +237,15 @@ public class ConsoleAppRestServiceTest {
 			assertEquals(broadcast.getStatus(), AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
 
 			// restore settings
-			appSettingsModel.mp4MuxingEnabled = true;
-			appSettingsModel.hlsMuxingEnabled = true;
-			appSettingsModel.encoderSettings = encoderSettings;
+			appSettingsModel.setMp4MuxingEnabled(true);
+			appSettingsModel.setHlsMuxingEnabled(true);
+			appSettingsModel.setEncoderSettings(encoderSettings);
 
 			result = callSetAppSettings("LiveApp", appSettingsModel);
 			assertTrue(result.isSuccess());
 
 			AppSettingsModel callGetAppSettings = callGetAppSettings("LiveApp");
-			assertTrue(callGetAppSettings.encoderSettings.size() > 0);
+			assertTrue(callGetAppSettings.getEncoderSettings().size() > 0);
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -281,7 +281,7 @@ public class ConsoleAppRestServiceTest {
 			
 
 			//check that preview overwrite is false by default
-			assertFalse(appSettingsModel.previewOverwrite);
+			assertFalse(appSettingsModel.isPreviewOverwrite());
 
 			//send a short stream
 			String streamId = "test_stream_" + (int)(Math.random() * 1000);
@@ -314,13 +314,13 @@ public class ConsoleAppRestServiceTest {
 			assertTrue(checkURLExist("http://localhost:5080/LiveApp/previews/"+streamId+"_1.png"));
 
 			//change settings and make preview overwrite true
-			appSettingsModel.previewOverwrite = true;
+			appSettingsModel.setPreviewOverwrite(true);
 			
 			result = callSetAppSettings("LiveApp", appSettingsModel);
 			assertTrue(result.isSuccess());
 			
 			appSettingsModel = callGetAppSettings("LiveApp");
-			assertTrue(appSettingsModel.previewOverwrite);
+			assertTrue(appSettingsModel.isPreviewOverwrite());
 
 			streamId = "test_stream_" + (int)(Math.random() * 1000);
 			AppFunctionalTest.executeProcess(ffmpegPath
@@ -352,13 +352,13 @@ public class ConsoleAppRestServiceTest {
 			assertTrue(checkURLExist("http://localhost:5080/LiveApp/previews/"+streamId+".png"));
 			
 			
-			appSettingsModel.previewOverwrite = false;
+			appSettingsModel.setPreviewOverwrite(false);
 			result = callSetAppSettings("LiveApp", appSettingsModel);
 			assertTrue(result.isSuccess());
 
 			
 			appSettingsModel = callGetAppSettings("LiveApp");
-			assertFalse(appSettingsModel.previewOverwrite);
+			assertFalse(appSettingsModel.isPreviewOverwrite());
 			
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -384,14 +384,14 @@ public class ConsoleAppRestServiceTest {
 			// assertFalse(appSettingsModel.acceptOnlyStreamsInDataStore);
 
 			// change settings test testAllowOnlyStreamsInDataStore is true
-			appSettingsModel.acceptOnlyStreamsInDataStore = true;
+			appSettingsModel.setAcceptOnlyStreamsInDataStore(true);
 
 			Result result = callSetAppSettings("LiveApp", appSettingsModel);
 			assertTrue(result.isSuccess());
 
 			// check app settings
 			appSettingsModel = callGetAppSettings("LiveApp");
-			assertTrue(appSettingsModel.acceptOnlyStreamsInDataStore);
+			assertTrue(appSettingsModel.isAcceptOnlyStreamsInDataStore());
 
 			// send anonymous stream
 			String streamId = "zombiStreamId";
@@ -429,12 +429,12 @@ public class ConsoleAppRestServiceTest {
 			}
 
 			// change settings testAllowOnlyStreamsInDataStore to false
-			appSettingsModel.acceptOnlyStreamsInDataStore = false;
+			appSettingsModel.setAcceptOnlyStreamsInDataStore(false);
 			result = callSetAppSettings("LiveApp", appSettingsModel);
 			assertTrue(result.isSuccess());
 
 			AppSettingsModel callGetAppSettings = callGetAppSettings("LiveApp");
-			assertFalse(appSettingsModel.acceptOnlyStreamsInDataStore);
+			assertFalse(appSettingsModel.isAcceptOnlyStreamsInDataStore());
 
 			// send anonymous stream
 			{
@@ -476,12 +476,12 @@ public class ConsoleAppRestServiceTest {
 
 			{
 				// change settings and accept only streams in data store
-				appSettingsModel.acceptOnlyStreamsInDataStore = true;
+				appSettingsModel.setAcceptOnlyStreamsInDataStore(true);
 				result = callSetAppSettings("LiveApp", appSettingsModel);
 				assertTrue(result.isSuccess());
 
 				callGetAppSettings = callGetAppSettings("LiveApp");
-				assertTrue(appSettingsModel.acceptOnlyStreamsInDataStore);
+				assertTrue(appSettingsModel.isAcceptOnlyStreamsInDataStore());
 			}
 
 			// send anonymous stream
@@ -524,12 +524,12 @@ public class ConsoleAppRestServiceTest {
 			{
 				// change settings and accept only streams to false, because it
 				// effects other tests in data store
-				appSettingsModel.acceptOnlyStreamsInDataStore = false;
+				appSettingsModel.setAcceptOnlyStreamsInDataStore(false);
 				result = callSetAppSettings("LiveApp", appSettingsModel);
 				assertTrue(result.isSuccess());
 
 				callGetAppSettings = callGetAppSettings("LiveApp");
-				assertFalse(appSettingsModel.acceptOnlyStreamsInDataStore);
+				assertFalse(appSettingsModel.isAcceptOnlyStreamsInDataStore());
 			}
 
 		} catch (Exception e) {

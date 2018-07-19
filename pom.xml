@@ -1,16 +1,13 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<parent>
-		<groupId>org.red5</groupId>
-		<artifactId>red5-parent</artifactId>
-		<version>1.0.9-M2</version>
+		<groupId>io.antmedia</groupId>
+		<artifactId>parent</artifactId>
+		<version>1.4.0-SNAPSHOT</version>
 	</parent>
-
 	<modelVersion>4.0.0</modelVersion>
-	<groupId>io.antmedia</groupId>
 	<artifactId>ant-media-server</artifactId>
-	<version>1.4.0-SNAPSHOT</version>
-
+	<version>${project.parent.version}</version>
 	<name>Ant Media Server</name>
 	<description>Ant Media Server supports RTMP, RTSP, MP4, HLS, WebRTC, Adaptive Streaming, etc.</description>
 	<packaging>jar</packaging>
@@ -51,28 +48,8 @@
 		<skipTests>false</skipTests>
 		<build.dir>target</build.dir>
 		<finalName>${project.artifactId}</finalName>
-		<red5-io.version>${project.parent.version}</red5-io.version>
-		<red5-service.version>${project.version}</red5-service.version>
-		<red5-server-common.version>1.4.0-SNAPSHOT</red5-server-common.version>
-		<cors-filter.version>2.5</cors-filter.version>
-		<periscope-api.version>1.1.0</periscope-api.version>
-		<restfb.version>1.43.0</restfb.version>
-
-		<javacpp.ffmpeg.version>3.2.1-1.3</javacpp.ffmpeg.version>
-
-		<jersey.version>2.26</jersey.version>
-		<mapdb.version>3.0.5</mapdb.version>
-
     	    <maven.build.timestamp.format>yyMMdd_HHmm</maven.build.timestamp.format>
         <buildNumber>${maven.build.timestamp}</buildNumber>
-        <enunciate.version>2.10.0</enunciate.version>
-        <consoleapp.version>1.4.0-SNAPSHOT</consoleapp.version>
-		<webrtcappee.version>1.4.0-SNAPSHOT</webrtcappee.version>	
-        <webrtcapp.version>1.3.0</webrtcapp.version>
-		<liveapp.version>1.4.0-SNAPSHOT</liveapp.version>
-		<ant-media-server-service.version>1.2.1</ant-media-server-service.version>
-		<ant-media-server-enterprise.version>1.4.0-SNAPSHOT</ant-media-server-enterprise.version>
-		<vertx-core.version>3.4.2</vertx-core.version>
 
 	</properties>
 
@@ -207,6 +184,12 @@
 			<version>${tomcat.version}</version>
 			<scope>provided</scope>
 		</dependency>
+		 <dependency>
+            <groupId>org.apache.tomcat.embed</groupId>
+            <artifactId>tomcat-embed-websocket</artifactId>
+            <version>${tomcat.version}</version>
+            <scope>provided</scope>
+        </dependency>
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
@@ -245,6 +228,18 @@
 			<groupId>io.vertx</groupId>
 			<artifactId>vertx-core</artifactId>
 			<version>${vertx-core.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.tensorflow</groupId>
+			<artifactId>tensorflow</artifactId>
+			<version>1.6.0</version>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.google.protobuf</groupId>
+			<artifactId>protobuf-java</artifactId>
+			<version>3.5.1</version>
+			<scope>provided</scope>
 		</dependency>
 		<!-- <dependency> <groupId>uk.org.lidalia</groupId> <artifactId>sysout-over-slf4j</artifactId> 
 			<version>1.0.2</version> </dependency> -->
@@ -347,7 +342,7 @@
 		</dependency>
 		<!-- Runtime plugin deps -->
 		<dependency>
-			<groupId>${project.parent.groupId}</groupId>
+			<groupId>org.red5</groupId>
 			<artifactId>tomcatplugin</artifactId>
 			<version>${tomcatplugin.version}</version>
 			<scope>provided</scope>
@@ -414,7 +409,6 @@
 			<artifactId>jersey-media-json-jackson</artifactId>
 			<version>${jersey.version}</version>
 		</dependency>
-	
 		<dependency>
 			<groupId>org.glassfish.jersey.media</groupId>
 			<artifactId>jersey-media-multipart</artifactId>
@@ -445,48 +439,22 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
-			<groupId>io.antmedia.webrtc</groupId>
-			<artifactId>WebRTCApp</artifactId>
-			<version>${webrtcapp.version}</version>
-			<type>war</type>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>io.antmedia.app</groupId>
-			<artifactId>ConsoleApp</artifactId>
-			<version>${consoleapp.version}</version>
-			<type>war</type>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>io.antmedia.app</groupId>
-			<artifactId>LiveApp</artifactId>
-			<version>${liveapp.version}</version>
-			<type>war</type>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>io.antmedia.webrtc</groupId>
-			<artifactId>WebRTCAppEE</artifactId>
-			<version>${webrtcappee.version}</version>
-			<type>war</type>
-			<scope>provided</scope>
-		</dependency>
-		
-		<dependency>
 		    <groupId>javax.websocket</groupId>
 		    <artifactId>javax.websocket-api</artifactId>
 		    <version>1.1</version>
+		</dependency>
+		<dependency>
+		    <groupId>org.awaitility</groupId>
+		    <artifactId>awaitility</artifactId>
+		    <version>3.1.0</version>
 		    <scope>test</scope>
 		</dependency>
-
 		<dependency>
 		    <groupId>org.glassfish.tyrus</groupId>
 		    <artifactId>tyrus-server</artifactId>
 		    <version>1.12</version>
 		    <scope>test</scope>
-		</dependency>
-		
+		</dependency>		
 		<dependency>
 		    <groupId>org.glassfish.tyrus</groupId>
 		    <artifactId>tyrus-container-grizzly-server</artifactId>
@@ -498,17 +466,46 @@
   			 <artifactId>maven-model</artifactId>
  			 <version>3.3.9</version>
  			 <scope>test</scope>
+			</dependency>
+		<dependency>
+	    		<groupId>org.apache.httpcomponents</groupId>
+	    		<artifactId>httpmime</artifactId>
+	    		<version>4.3.1</version>
+	    		<scope>test</scope>
 		</dependency>
 	</dependencies>
 	<profiles>
 		<profile>
 			<id>assemble</id>
-
+			<dependencies>
+				<dependency>
+					<groupId>io.antmedia.webrtc</groupId>
+					<artifactId>WebRTCApp</artifactId>
+					<version>${webrtcapp.version}</version>
+					<type>war</type>
+					<scope>provided</scope>
+				</dependency>
+				<dependency>
+					<groupId>io.antmedia.app</groupId>
+					<artifactId>ConsoleApp</artifactId>
+					<version>${consoleapp.version}</version>
+					<type>war</type>
+					<scope>provided</scope>
+				</dependency>
+				<dependency>
+					<groupId>io.antmedia.app</groupId>
+					<artifactId>LiveApp</artifactId>
+					<version>${liveapp.version}</version>
+					<type>war</type>
+					<scope>provided</scope>
+				</dependency>
+			</dependencies>
 			<build>
 				<plugins>
 					<plugin>
 						<artifactId>maven-dependency-plugin</artifactId>
 						<version>2.10</version>
+						
 						<executions>
 							<execution>
 								<id>copy-dependencies</id>
@@ -640,6 +637,32 @@
 		</profile>
 		<profile>
 			<id>assemble_enterprise</id>
+			<dependencies>
+				<dependency>
+					<groupId>io.antmedia.webrtc</groupId>
+					<artifactId>WebRTCAppEE</artifactId>
+					<version>${webrtcappee.version}</version>
+					<type>war</type>
+				</dependency>
+				<dependency>
+					<groupId>io.antmedia.app</groupId>
+					<artifactId>LiveApp</artifactId>
+					<version>${liveapp.version}</version>
+					<type>war</type>
+				</dependency>
+				<dependency>
+					<groupId>io.antmedia.app</groupId>
+					<artifactId>ConsoleApp</artifactId>
+					<version>${consoleapp.version}</version>
+					<type>war</type>
+				</dependency>				
+				<dependency>
+					<groupId>io.antmedia.enterprise</groupId>
+					<artifactId>ant-media-enterprise</artifactId>
+					<version>${ant-media-server-enterprise.version}</version>
+					<type>jar</type>
+				</dependency>
+			</dependencies>
 			<build>
 				<plugins>
 					<plugin>

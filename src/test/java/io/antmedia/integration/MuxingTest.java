@@ -21,7 +21,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.concurrent.TimeUnit;
 
+import org.awaitility.Awaitility;
 import org.bytedeco.javacpp.avcodec.AVCodecContext;
 import org.bytedeco.javacpp.avcodec.AVPacket;
 import org.bytedeco.javacpp.avformat;
@@ -31,9 +33,13 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
-
+import org.junit.rules.TestRule;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 import io.antmedia.rest.BroadcastRestService.LiveStatistics;
+
 
 public class MuxingTest {
 
@@ -58,6 +64,22 @@ public class MuxingTest {
 			OS_TYPE = LINUX;
 		}
 	}
+	
+	@Rule
+	public TestRule watcher = new TestWatcher() {
+	   protected void starting(Description description) {
+	      System.out.println("Starting test: " + description.getMethodName());
+	   }
+	   
+	   protected void failed(Throwable e, Description description) {
+		   System.out.println("Failed test: " + description.getMethodName() );
+		   e.printStackTrace();
+
+	   };
+	   protected void finished(Description description) {
+		   System.out.println("Finishing test: " + description.getMethodName());
+	   };
+	};
 
 	@BeforeClass
 	public static void beforeClass() {
@@ -68,6 +90,30 @@ public class MuxingTest {
 		avformat_network_init();
 
 	}
+	
+	@Before
+	public void before() {
+		// runs before every test code
+		/*
+		 * try { delete(new File(FULL_RED5_PATH + "/webapps/vod/streams")); }
+		 * catch (IOException e) { e.printStackTrace(); }
+		 */
+
+	}
+
+	@After
+	public void after() {
+		// runs after every test code
+	}
+	
+	@AfterClass
+	public static void afterClass() {
+		// stop red5 server
+		// closeRed5();
+
+	}
+
+
 
 	@Test
 	public void testVODStreaming() {
@@ -110,7 +156,7 @@ public class MuxingTest {
 		RestServiceTest restService = new RestServiceTest();
 
 		LiveStatistics liveStatistics = restService.callGetLiveStatistics();
-		assertEquals(liveStatistics.totalLiveStreamCount, 0);
+		assertEquals(0, liveStatistics.totalLiveStreamCount);
 	}
 
 	// TODO: check that if there is memory leak, if muxing is stopped by somehow
@@ -165,7 +211,7 @@ public class MuxingTest {
 		RestServiceTest restService = new RestServiceTest();
 
 		LiveStatistics liveStatistics = restService.callGetLiveStatistics();
-		assertEquals(liveStatistics.totalLiveStreamCount, 0);
+		assertEquals(0, liveStatistics.totalLiveStreamCount);
 
 	}
 
@@ -200,7 +246,7 @@ public class MuxingTest {
 		RestServiceTest restService = new RestServiceTest();
 
 		LiveStatistics liveStatistics = restService.callGetLiveStatistics();
-		assertEquals(liveStatistics.totalLiveStreamCount, 0);
+		assertEquals(0, liveStatistics.totalLiveStreamCount);
 
 	}
 
@@ -246,18 +292,18 @@ public class MuxingTest {
 			fail(e.getMessage());
 			e.printStackTrace();
 		}
-		//wait a little more to let server update statistics
-		try {
-			Thread.sleep(2000);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
 		
-		RestServiceTest restService = new RestServiceTest();
-
-		LiveStatistics liveStatistics = restService.callGetLiveStatistics();
-		assertEquals(liveStatistics.totalLiveStreamCount, 0);
-
+		//wait a little more to let server update statistics
+		
+		Awaitility.await().atMost(10, TimeUnit.SECONDS)
+			.pollInterval(1, TimeUnit.SECONDS)
+			.until(() -> {
+				RestServiceTest restService = new RestServiceTest();
+	
+				LiveStatistics liveStatistics = restService.callGetLiveStatistics();
+				return 0 == liveStatistics.totalLiveStreamCount;
+			});
+		
 	}
 
 	// TODO: check if rtsp failed in some state, how it can be free resources
@@ -304,7 +350,7 @@ public class MuxingTest {
 		RestServiceTest restService = new RestServiceTest();
 
 		LiveStatistics liveStatistics = restService.callGetLiveStatistics();
-		assertEquals(liveStatistics.totalLiveStreamCount, 0);
+		assertEquals(0, liveStatistics.totalLiveStreamCount);
 
 	}
 
@@ -313,7 +359,7 @@ public class MuxingTest {
 
 		try {
 			// send rtmp stream with ffmpeg to red5
-			String streamName = "live_test";
+			String streamName = "live_test"  + (int)(Math.random() * 999999);
 
 			// make sure that ffmpeg is installed and in path
 			Process rtmpSendingProcess = execute(
@@ -355,7 +401,7 @@ public class MuxingTest {
 		RestServiceTest restService = new RestServiceTest();
 
 		LiveStatistics liveStatistics = restService.callGetLiveStatistics();
-		assertEquals(liveStatistics.totalLiveStreamCount, 0);
+		assertEquals(0, liveStatistics.totalLiveStreamCount);
 
 	}
 
@@ -382,7 +428,7 @@ public class MuxingTest {
 		}
 
 		if ((ret = avformat_open_input(inputFormatContext, absolutePath, null, (AVDictionary) null)) < 0) {
-			System.out.println("cannot open input context");
+			System.out.println("cannot open input context: " + absolutePath);
 			return false;
 		}
 
@@ -477,36 +523,7 @@ public class MuxingTest {
 		return tmpExec;
 	}
 
-	/*
-	 * @BeforeClass public static void beforeClass() { //start red5 server
-	 * av_register_all(); avformat_network_init();
-	 * 
-	 * String path = "./start.sh"; String osName =
-	 * System.getProperty("os.name").toLowerCase(Locale.ENGLISH);
-	 * 
-	 * try { closeRed5(); red5Process = Runtime.getRuntime().exec(path, null,
-	 * new File(FULL_RED5_PATH)); readErrorStream(red5Process); // this may
-	 * required to not fill the error buffer readInputStream(red5Process);
-	 * 
-	 * System.out.println("Waiting for letting red5 start." ); System.out.
-	 * println("You can get exception if red5 is not started fully after this while. \n So arrange this time according to your red5 startup time in your machine"
-	 * );
-	 * 
-	 * 
-	 * Thread.sleep(30000);
-	 * 
-	 * } catch (IOException e) { e.printStackTrace(); } catch
-	 * (InterruptedException e) { e.printStackTrace(); }
-	 * 
-	 * }
-	 */
-	@AfterClass
-	public static void afterClass() {
-		System.out.println("MuxingTest.afterClass()");
-		// stop red5 server
-		// closeRed5();
 
-	}
 
 	private static void readErrorStream(final Process proc) {
 		new Thread() {
@@ -566,20 +583,6 @@ public class MuxingTest {
 		}
 	}
 
-	@Before
-	public void before() {
-		// runs before every test code
-		/*
-		 * try { delete(new File(FULL_RED5_PATH + "/webapps/vod/streams")); }
-		 * catch (IOException e) { e.printStackTrace(); }
-		 */
-
-	}
-
-	@After
-	public void after() {
-		// runs after every test code
-	}
 
 	public static void delete(File file) throws IOException {
 
@@ -624,8 +627,34 @@ public class MuxingTest {
 			// file.getAbsolutePath());
 		}
 	}
+	
+	public static boolean isURLAvailable(String address) {
+		try {
 
-	public byte[] getByteArray(String address) {
+			URL url = new URL(address);
+			HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
+			urlConnection.setReadTimeout(10000);
+			urlConnection.setConnectTimeout(45000);
+			urlConnection.setRequestMethod("HEAD");
+			urlConnection.setDoInput(true);
+
+			HttpURLConnection.setFollowRedirects(true);
+			urlConnection.connect();
+
+			InputStream in = urlConnection.getInputStream(); // getAssets().open("kralfmtop10.htm");
+
+			byte[] byteArray = org.apache.commons.io.IOUtils.toByteArray(in);
+
+			in.close();
+
+			return true;
+		} catch (Exception e) {
+			//e.printStackTrace();
+		}
+		return false;
+	}
+
+	public static byte[] getByteArray(String address) {
 		try {
 
 			URL url = new URL(address);
@@ -646,7 +675,7 @@ public class MuxingTest {
 
 			return byteArray;
 		} catch (Exception e) {
-			e.printStackTrace();
+			//e.printStackTrace();
 		}
 		return null;
 	}

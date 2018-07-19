@@ -212,9 +212,15 @@
         -->
     </bean>
     
-     <bean id="vertxCore" 
+    <bean id="vertxCore" 
     		class="io.vertx.core.Vertx" 
-   		factory-method="vertx" />
+   		factory-method="vertx">
+   		<constructor-arg>
+   			<bean class="io.vertx.core.VertxOptions">
+   				<property name="eventLoopPoolSize" value="20"></property>
+   			</bean>
+   		</constructor-arg>	
+   	</bean>
     
 
 </beans>

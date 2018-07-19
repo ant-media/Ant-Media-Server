@@ -2,7 +2,6 @@ package io.antmedia.webrtc.adaptor;
 
 import static org.bytedeco.javacpp.avutil.AV_PIX_FMT_YUV420P;
 
-import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.ShortBuffer;
@@ -12,7 +11,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import org.json.simple.JSONObject;
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.webrtc.AudioSink;
 import org.webrtc.AudioTrack;
 import org.webrtc.IceCandidate;
@@ -30,22 +31,28 @@ import org.webrtc.VideoTrack;
 import io.antmedia.recorder.FFmpegFrameRecorder;
 import io.antmedia.recorder.Frame;
 import io.antmedia.recorder.FrameRecorder;
+import io.antmedia.websocket.WebSocketCommunityHandler;
 
 public class RTMPAdaptor extends Adaptor {
 
 	FFmpegFrameRecorder recorder;
 	protected long startTime;
 
+	private static Logger logger = LoggerFactory.getLogger(RTMPAdaptor.class);
 
 	private ExecutorService videoEncoderExecutor; 
 
 	private ExecutorService audioEncoderExecutor;
 	private volatile boolean isStopped = false;
-	private ExecutorService signallingExecutor; 
+	private ExecutorService signallingExecutor;
+	private boolean enableAudio = false;
+
+	private int audioFrameCount = 0;
 
 	public static final String DTLS_SRTP_KEY_AGREEMENT_CONSTRAINT = "DtlsSrtpKeyAgreement";
 
-	public RTMPAdaptor(FFmpegFrameRecorder recorder) {
+	public RTMPAdaptor(FFmpegFrameRecorder recorder, WebSocketCommunityHandler webSocketHandler) {
+		super(webSocketHandler);
 		this.recorder = recorder;
 
 		setSdpMediaConstraints(new MediaConstraints());
@@ -68,30 +75,22 @@ public class RTMPAdaptor extends Adaptor {
 		audioEncoderExecutor = Executors.newSingleThreadExecutor();
 		signallingExecutor = Executors.newSingleThreadExecutor();
 
-		signallingExecutor.execute(new Runnable() {
+		signallingExecutor.execute(() -> {
 
-			@Override
-			public void run() {
+			List<IceServer> iceServers = new ArrayList<>();
+			iceServers.add(new IceServer("stun:stun.l.google.com:19302"));
+			PeerConnection.RTCConfiguration rtcConfig = new PeerConnection.RTCConfiguration(iceServers);
 
-				List<IceServer> iceServers = new ArrayList<IceServer>();
-				iceServers.add(new IceServer("stun:stun.l.google.com:19302"));
-				PeerConnection.RTCConfiguration rtcConfig = new PeerConnection.RTCConfiguration(iceServers);
+			MediaConstraints pcConstraints = new MediaConstraints();
+			pcConstraints.optional.add(
+					new MediaConstraints.KeyValuePair(DTLS_SRTP_KEY_AGREEMENT_CONSTRAINT, "true"));
 
-				MediaConstraints pcConstraints = new MediaConstraints();
-				pcConstraints.optional.add(
-						new MediaConstraints.KeyValuePair(DTLS_SRTP_KEY_AGREEMENT_CONSTRAINT, "true"));
+			peerConnectionFactory = createPeerConnectionFactory();
+			peerConnection = peerConnectionFactory.createPeerConnection(rtcConfig, pcConstraints, RTMPAdaptor.this);
 
-				peerConnectionFactory = createPeerConnectionFactory();
-				peerConnection = peerConnectionFactory.createPeerConnection(rtcConfig, pcConstraints, RTMPAdaptor.this);
+			webSocketCommunityHandler.sendStartMessage(getStreamId(), getSession());
 
-				try {
-					JSONObject jsonResponse = new JSONObject();
-					jsonResponse.put("command", "start");
-					getWsConnection().send(jsonResponse.toJSONString());
-				} catch (UnsupportedEncodingException e) {
-					e.printStackTrace();
-				}
-			}
+
 		});
 
 	}
@@ -108,15 +107,7 @@ public class RTMPAdaptor extends Adaptor {
 			@Override
 			public void run() {
 
-				JSONObject jsonObject = new JSONObject();
-				jsonObject.put("command", "notification");
-				jsonObject.put("definition", "publish_finished");
-
-				try {
-					getWsConnection().send(jsonObject.toJSONString());
-				} catch (UnsupportedEncodingException e) {
-					e.printStackTrace();
-				}
+				webSocketCommunityHandler.sendPublishFinishedMessage(getStreamId(), getSession());
 
 
 				audioEncoderExecutor.shutdownNow();
@@ -125,7 +116,7 @@ public class RTMPAdaptor extends Adaptor {
 				try {
 					videoEncoderExecutor.awaitTermination(10, TimeUnit.SECONDS);
 				} catch (InterruptedException e1) {
-					e1.printStackTrace();
+					logger.error(ExceptionUtils.getStackTrace(e1));
 					Thread.currentThread().interrupt();
 				}
 				try {
@@ -137,7 +128,7 @@ public class RTMPAdaptor extends Adaptor {
 						peerConnection = null;
 					}
 				} catch (FrameRecorder.Exception e) {
-					e.printStackTrace();
+					logger.error(ExceptionUtils.getStackTrace(e));
 				}
 			}
 		});
@@ -148,14 +139,16 @@ public class RTMPAdaptor extends Adaptor {
 
 	@Override
 	public void onAddStream(MediaStream stream) {
-		log.warn("onAddStream");
+		log.warn("onAddStream for stream: {}", getStreamId());
 
-		if (stream.getAudioTracks().size() > 0) {
+		if (!stream.getAudioTracks().isEmpty()) {
 
 			AudioTrack audioTrack = stream.getAudioTracks().getFirst();
 			if (audioTrack != null) {
+
+				enableAudio  = true;
 				audioTrack.addSink(new AudioSink() {
-					private int audioFrameCount = 0;
+
 
 					@Override
 					public void onData(byte[] audio_data, int bits_per_sample, final int sample_rate, final int number_of_channels,
@@ -170,28 +163,26 @@ public class RTMPAdaptor extends Adaptor {
 							return;
 						}
 
-						audioFrameCount++;
+
 						if (bits_per_sample == 16)  {
-							audioEncoderExecutor.execute(new Runnable() {
+							audioFrameCount++;
 
-								@Override
-								public void run() {
-									long timeDiff = (System.currentTimeMillis() - startTime) * 1000;
+							audioEncoderExecutor.execute(() -> {
 
-									short[] data = new short[number_of_frames * number_of_channels];
-									tempAudioBuffer.order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(data, 0, data.length);
+								short[] data = new short[number_of_frames * number_of_channels];
+								tempAudioBuffer.order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(data, 0, data.length);
 
-									ShortBuffer audioBuffer = ShortBuffer.wrap(data);
-									try {
-										boolean result = recorder.recordSamples(sample_rate, number_of_channels, timeDiff, audioBuffer);
-										if (!result) {
-											System.out.println("could not audio sample");
-										}
-									} catch (FrameRecorder.Exception e) {
-										e.printStackTrace();
+								ShortBuffer audioBuffer = ShortBuffer.wrap(data);
+								try {
+									boolean result = recorder.recordSamples(sample_rate, number_of_channels, audioBuffer);
+									if (!result) {
+										logger.info("could not audio sample for stream Id {}", getStreamId());
 									}
-
+								} catch (FrameRecorder.Exception e) {
+									logger.error(ExceptionUtils.getStackTrace(e));
 								}
+
+
 							});
 						}
 
@@ -200,13 +191,14 @@ public class RTMPAdaptor extends Adaptor {
 			}
 		}
 
-		if (stream.getVideoTracks().size() > 0) {
+		if (!stream.getVideoTracks().isEmpty()) {
 
 			VideoTrack videoTrack = stream.getVideoTracks().getFirst();
 			if (videoTrack != null) {
 				videoTrack.addRenderer(new VideoRenderer(new Callbacks() {
 
 					private int frameCount;
+					private int dropFrameCount = 0;
 
 					@Override
 					public void renderFrame(final I420Frame frame) {
@@ -214,20 +206,28 @@ public class RTMPAdaptor extends Adaptor {
 							startTime = System.currentTimeMillis();
 						}
 
-
-
 						if (videoEncoderExecutor == null || videoEncoderExecutor.isShutdown()) {
 							VideoRenderer.renderFrameDone(frame);
 							return;
 						}
 
 						frameCount++;
-						videoEncoderExecutor.execute(new Runnable() {
+						videoEncoderExecutor.execute(() -> {
 
-							@Override
-							public void run() {
+							long pts;
+							if (enableAudio) {
+								//each audio frame is 10 ms and then multiply with 1000 for microseconds
+								pts = (long)audioFrameCount * 10;
+								logger.trace("audio frame count: {}", audioFrameCount);
+							}
+							else {
+								pts = (System.currentTimeMillis() - startTime) * 1000;
+							}
 
-								long pts = (System.currentTimeMillis() - startTime) * 1000;
+							int frameNumber = (int)(pts * recorder.getFrameRate() / 1000);
+							if (frameNumber > recorder.getFrameNumber()) {
+
+								recorder.setFrameNumber(frameNumber);
 
 								Frame frameCV = new Frame(frame.width, frame.height, Frame.DEPTH_UBYTE, 2);
 
@@ -236,32 +236,27 @@ public class RTMPAdaptor extends Adaptor {
 								((ByteBuffer)(frameCV.image[0])).put(frame.yuvPlanes[2]);
 
 								try {
-									//boolean result = recorder.recordImage(frame.width, frame.height, 2, Frame.DEPTH_UBYTE, frame.yuvStrides[0], AV_PIX_FMT_YUV420P, frame.yuvPlanes);
-
 									recorder.recordImage(frameCV.imageWidth, frameCV.imageHeight, frameCV.imageDepth,
-											frameCV.imageChannels, frameCV.imageStride, AV_PIX_FMT_YUV420P, pts, frameCV.image);
+											frameCV.imageChannels, frameCV.imageStride, AV_PIX_FMT_YUV420P, frameCV.image);
 
 								} catch (FrameRecorder.Exception e) {
-									e.printStackTrace();
+									logger.error(ExceptionUtils.getStackTrace(e));
 								}
-								VideoRenderer.renderFrameDone(frame);
-
 							}
+							else {
+								dropFrameCount ++;
+								logger.debug("dropping video, total drop count: {}", dropFrameCount);
+							}
+							VideoRenderer.renderFrameDone(frame);
+
 						});
 					}
 				}));
 			}
 		}
 
-		JSONObject jsonObject = new JSONObject();
-		jsonObject.put("command", "notification");
-		jsonObject.put("definition", "publish_started");
+		webSocketCommunityHandler.sendPublishStartedMessage(getStreamId(), getSession());
 
-		try {
-			getWsConnection().send(jsonObject.toJSONString());
-		} catch (UnsupportedEncodingException e) {
-			e.printStackTrace();
-		}
 	}
 
 	@Override
@@ -294,5 +289,6 @@ public class RTMPAdaptor extends Adaptor {
 			}
 		});
 	}
+
 
 }

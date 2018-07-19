@@ -4,9 +4,15 @@ import java.io.UnsupportedEncodingException;
 
 import javax.annotation.Nonnull;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.red5.net.websocket.WebSocketConnection;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 public class WebSocketClientConnection implements IClientConnection {
+
+	private static Logger logger = LoggerFactory.getLogger(WebSocketClientConnection.class);
 
 	private WebSocketConnection wsConnection;
 
@@ -19,8 +25,13 @@ public class WebSocketClientConnection implements IClientConnection {
 		try {
 			this.wsConnection.send(data);
 		} catch (UnsupportedEncodingException e) {
-			e.printStackTrace();
+			logger.error(ExceptionUtils.getStackTrace(e));
 		}
+	}
+
+	@Override
+	public String getId() {
+		return String.valueOf(this.wsConnection.getId());
 	}
 
 }

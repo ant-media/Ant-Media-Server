@@ -67,25 +67,25 @@ public interface IWebRTCClient {
 	 * Return the period of send video period in milliseconds
 	 * @return
 	 */
-	int getVideoFrameSentPeriod();
+	double getVideoFrameSentPeriod();
 	
 	/**
 	 * Return the period of send audio period in milliseconds
 	 * @return
 	 */
-	int getAudioFrameSentPeriod();
+	double getAudioFrameSentPeriod();
 	
 	/**
 	 * Return the period of entering audio thread interval in milliseconds
 	 * @return
 	 */
-	int getAudioThreadCheckInterval();
+	double getAudioThreadCheckInterval();
 	
 	/**
 	 * Return the priod of entering video thread interval in milliseconds
 	 * @return
 	 */
-	int getVideoThreadCheckInterval();
+	double getVideoThreadCheckInterval();
 
 	
 }

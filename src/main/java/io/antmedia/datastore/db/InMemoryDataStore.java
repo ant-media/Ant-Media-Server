@@ -7,7 +7,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.regex.Pattern;
-
+import java.util.Set;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.slf4j.Logger;
@@ -19,6 +19,7 @@ import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
+import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Vod;
 
 public class InMemoryDataStore implements IDataStore {
@@ -29,6 +30,8 @@ public class InMemoryDataStore implements IDataStore {
 	public LinkedHashMap<String, Broadcast> broadcastMap = new LinkedHashMap<String, Broadcast>();
 
 	public LinkedHashMap<String, Vod> vodMap = new LinkedHashMap<String, Vod>();
+
+	public LinkedHashMap<String, List<TensorFlowObject>> detectionMap = new LinkedHashMap<String, List<TensorFlowObject>>();
 
 	public LinkedHashMap<String, SocialEndpointCredentials> socialEndpointCredentialsMap = new LinkedHashMap<String, SocialEndpointCredentials>();
 
@@ -53,6 +56,9 @@ public class InMemoryDataStore implements IDataStore {
 					rtmpURL += streamId;
 				}
 				broadcast.setRtmpURL(rtmpURL);
+				if(broadcast.getStatus()==null) {
+					broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
+				}
 				broadcastMap.put(streamId, broadcast);
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -163,6 +169,7 @@ public class InMemoryDataStore implements IDataStore {
 		return activeBroadcastCount;
 	}
 	
+	
 	@Override
 	public boolean delete(String id) {
 		Broadcast broadcast = broadcastMap.get(id);
@@ -203,31 +210,6 @@ public class InMemoryDataStore implements IDataStore {
 		return list;
 	}
 
-
-
-	@Override
-	public boolean editCameraInfo(Broadcast camera) {
-		boolean result = false;
-		try {
-			logger.warn("inside of editCameraInfo");
-
-			Broadcast oldCam = get(camera.getStreamId());
-
-			oldCam.setName(camera.getName());
-			oldCam.setUsername(camera.getUsername());
-			oldCam.setPassword(camera.getPassword());
-			oldCam.setIpAddr(camera.getIpAddr());
-
-			broadcastMap.replace(oldCam.getStreamId(), oldCam);
-
-
-			result = true;
-		} catch (Exception e) {
-			result = false;
-		}
-
-		return result;
-	}
 
 
 
@@ -288,24 +270,25 @@ public class InMemoryDataStore implements IDataStore {
 	}
 
 	@Override
-	public boolean addVod(Vod vod) {
-		String vodId = null;
+	public String addVod(Vod vod) {
+		String id = null;
 		boolean result = false;
 
 		if (vod != null) {
 			try {
-				vodId = RandomStringUtils.randomNumeric(24);
-				vod.setVodId(vodId);
-
-				vodMap.put(vodId,vod);
+				vodMap.put(vod.getVodId(),vod);
 				result = true;
 
 			} catch (Exception e) {
 				e.printStackTrace();
-
 			}
 		}
-		return result;
+		
+		if(result) {
+			
+			id = vod.getVodId();
+		}
+		return id;
 	}
 
 	@Override
@@ -405,9 +388,9 @@ public class InMemoryDataStore implements IDataStore {
 
 					String relativePath=subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
 
-
+					String vodId = RandomStringUtils.randomNumeric(24);
 					Vod newVod = new Vod("vodFile", "vodFile", relativePath, file.getName(), unixTime, 0, fileSize,
-							Vod.USER_VOD);
+							Vod.USER_VOD,vodId);
 
 					addUserVod(newVod);
 					numberOfSavedFiles++;
@@ -528,6 +511,104 @@ public class InMemoryDataStore implements IDataStore {
 	public long getTotalBroadcastNumber() {
 		return broadcastMap.size();
 	}
+
+	public void saveDetection(String id, long timeElapsed, List<TensorFlowObject> detectedObjects) {
+		if (detectedObjects != null) {
+			for (TensorFlowObject tensorFlowObject : detectedObjects) {
+				tensorFlowObject.setDetectionTime(timeElapsed);
+			}
+			detectionMap.put(id, detectedObjects);
+		}
+	}
+
+	@Override
+	public List<TensorFlowObject> getDetectionList(String idFilter, int offsetSize, int batchSize) {
+		int offsetCount=0, batchCount=0;
+		List<TensorFlowObject> list = new ArrayList<>();
+		Set<String> keySet = detectionMap.keySet();
+		for(String keyValue: keySet) {
+			if (keyValue.startsWith(idFilter)) 
+			{
+				if (offsetCount < offsetSize) {
+					offsetCount++;
+					continue;
+				}
+				if (batchCount >= batchSize) {
+					break;
+				}
+				List<TensorFlowObject> detectedList = detectionMap.get(keyValue);
+				list.addAll(detectedList);
+				batchCount=list.size();
+			}
+		}
+		return list;
+	}
+	
+	@Override
+
+	public long getObjectDetectedTotal(String id) {
+	
+		List<TensorFlowObject> list = new ArrayList<>();
+		Set<String> keySet = detectionMap.keySet();
+		
+		for(String keyValue: keySet) {
+			if (keyValue.startsWith(id)) 
+			{
+				List<TensorFlowObject> detectedList = detectionMap.get(keyValue);
+				list.addAll(detectedList);
+			}
+		}
+		return list.size();
+	}
+
+	@Override
+	public List<TensorFlowObject> getDetection(String id) {
+		if (id != null) {
+			List<TensorFlowObject> detectedObjects = detectionMap.get(id);
+			return detectedObjects;
+		}
+		return null;
+	}
+
+	@Override
+	public boolean editStreamSourceInfo(Broadcast broadcast) {		
+		boolean result = false;
+		try {
+			logger.warn("inside of editCameraInfo");
+
+			Broadcast oldBroadcast = get(broadcast.getStreamId());
+
+			oldBroadcast.setName(broadcast.getName());
+			oldBroadcast.setUsername(broadcast.getUsername());
+			oldBroadcast.setPassword(broadcast.getPassword());
+			oldBroadcast.setIpAddr(broadcast.getIpAddr());
+			oldBroadcast.setStreamUrl(broadcast.getStreamUrl());
+			
+			broadcastMap.replace(oldBroadcast.getStreamId(), oldBroadcast);
+
+			result = true;
+		} catch (Exception e) {
+			result = false;
+		}
+
+		return result;
+	}
+	
+	@Override
+	public boolean updateHLSViewerCount(String streamId, int viewerCount) {
+		boolean result = false;
+		if (streamId != null) {
+			Broadcast broadcast = broadcastMap.get(streamId);
+			if (broadcast != null) {
+				broadcast.setHlsViewerCount(viewerCount);
+				broadcastMap.replace(streamId, broadcast);
+				result = true;
+			}
+		}
+		return result;
+	}
+
+
 
 
 

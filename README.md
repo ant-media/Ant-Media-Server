@@ -1,4 +1,8 @@
-[![Build Status](https://travis-ci.org/ant-media/Ant-Media-Server.svg?branch=master)](https://travis-ci.org/ant-media/Ant-Media-Server)
+[![Build Status](https://travis-ci.org/ant-media/Ant-Media-Server.svg?branch=master)](https://travis-ci.org/ant-media/Ant-Media-Server) 
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.antmedia/ant-media-server/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.antmedia/ant-media-server)
+
+![Quality Gate](https://sonarcloud.io/api/project_badges/quality_gate?project=io.antmedia%3Aant-media-server)
+
 
 Ant Media Server 
 ====
@@ -18,15 +22,30 @@ Ant Media Server is an Open Source Media Server that supports:
 
 ## Releases 
 
-#### [Ant Media Server Community 1.3.3 (Apr 25, 2018)](https://github.com/ant-media/Ant-Media-Server/releases/tag/ams-v1.3.3)
+#### [Ant Media Server Community 1.3.6 (June 21, 2018)](https://github.com/ant-media/Ant-Media-Server/releases/download/ams-v1.3.6.2/ant-media-server-community-1.3.6.2-180621_2202.zip)
+* HLS Viewer Count can be available via web panel and rest service
+* Limit the log file size. Old log files are deleted automatically if log files size exceeding 1.5GB
+* Change Stream Source URL without changing the URL in the server
+* Define period parameter to let Stream Sources or IP Camera Streams restart periodically to create VoD files
+* Improve code quality and test coverage. It passes credentials in SonarCloud 
+* Bug fixes
+
+#### [Ant Media Server Community 1.3.5.1 (May 25, 2018)](https://github.com/ant-media/Ant-Media-Server/releases/download/ams-v1.3.5.1/ant-media-server-community-1.3.5.1-180525_1137.zip)
+
+* Restream RTSP, RTMP, HLS and MPEG-TS stream URLs as Stream Source
+* Improvement: Start StreamFetcher thread immediately after old one is finished to provide continuous stream
+* Bug fix: New Stream Source form does not clear values after a stream source added
+* Bug fix: In some streams, adaptive bitrate does not work properly. It creates longer video than expected and
+  this prevents web player to play properly
+* Bug fix: Login request delay in management panel application
+
+#### [Ant Media Server Community 1.3.4 (Apr 30, 2018)](https://github.com/ant-media/Ant-Media-Server/releases/tag/ams-v1.3.4)
 
 * Enhanced UI Elements,
 * Performance Improvements,
 * Bug Fixes.
 
-
-
-#### [Ant Media Server Community 1.3.1 (Apr 05, 2018)](https://github.com/ant-media/Ant-Media-Server/releases/tag/ams-v1.3.1)
+#### [Ant Media Server Community 1.3.2 (Apr 12, 2018)](https://github.com/ant-media/Ant-Media-Server/releases/tag/ams-v1.3.2)
 
 * IP Camera Streaming Support
 * ONVIF Standard Features (Ptz etc.).

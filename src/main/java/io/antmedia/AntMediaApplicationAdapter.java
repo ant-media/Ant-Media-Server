@@ -4,18 +4,18 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.regex.Pattern;
 import java.util.Set;
+import java.util.regex.Pattern;
 
+import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
@@ -30,7 +30,6 @@ import org.red5.server.api.scheduling.ISchedulingService;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IBroadcastStream;
 import org.red5.server.api.stream.IStreamPublishSecurity;
-import org.red5.server.stream.ClientBroadcastStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,16 +41,16 @@ import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.Vod;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.muxer.IAntMediaStreamHandler;
-import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.rest.BroadcastRestService;
-import io.antmedia.rest.model.Result;
 import io.antmedia.social.endpoint.PeriscopeEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
+import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
 
 public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter implements IAntMediaStreamHandler {
 
+	public static final String BEAN_NAME = "web.handler";
 	public static final String BROADCAST_STATUS_CREATED = "created";
 	public static final String BROADCAST_STATUS_BROADCASTING = "broadcasting";
 	public static final String BROADCAST_STATUS_FINISHED = "finished";
@@ -66,21 +65,13 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	public static final String FACEBOOK = "facebook";
 	public static final String PERISCOPE = "periscope";
 	public static final String YOUTUBE = "youtube";
-
 	public static final String FACEBOOK_ENDPOINT_CLASS = "io.antmedia.enterprise.social.endpoint.FacebookEndpoint";
 	public static final String YOUTUBE_ENDPOINT_CLASS = "io.antmedia.enterprise.social.endpoint.YoutubeEndpoint";
-
-
-
 	private List<VideoServiceEndpoint> videoServiceEndpoints = new ArrayList<>();
 	private List<VideoServiceEndpoint> videoServiceEndpointsHavingError = new ArrayList<>();
-
 	private List<IStreamPublishSecurity> streamPublishSecurityList;
-
-	private HashMap<String, OnvifCamera> onvifCameraList = new HashMap<String, OnvifCamera>();
-
+	private HashMap<String, OnvifCamera> onvifCameraList = new HashMap<>();
 	private StreamFetcherManager streamFetcherManager;
-
 	private IDataStore dataStore;
 	DataStoreFactory dataStoreFactory;
 
@@ -99,7 +90,8 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 			@Override
 			public void execute(ISchedulingService service) throws CloneNotSupportedException {
-				streamFetcherManager = new StreamFetcherManager(AntMediaApplicationAdapter.this, dataStore);
+				streamFetcherManager = new StreamFetcherManager(AntMediaApplicationAdapter.this, dataStore,app);
+				streamFetcherManager.setRestartStreamFetcherPeriod(appSettings.getRestartStreamFetcherPeriod());
 				List<Broadcast> streams = getDataStore().getExternalStreamsList();
 				logger.info("Stream source size: {}", streams.size());
 				streamFetcherManager.startStreams(streams);
@@ -127,18 +119,14 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 						videoServiceEndpoints.add(endPointService);
 					}
 				}
-				
+
 				if (appSettings != null) {
 					synchUserVoDFolder(null, appSettings.getVodFolder());
 				}
-
 			}
-
-
 		});
 		
 		logger.info("AppStart scheduled job name: {}", scheduledJobName);
-
 
 		return super.appStart(app);
 	}
@@ -149,17 +137,11 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		boolean result = false;
 		File streamsFolder = new File("webapps/" + getScope().getName() + "/streams");
 
-		if (oldFolderPath != null) 
-		{
-			File f = new File(oldFolderPath);
-			File linkFile = new File(streamsFolder.getAbsolutePath() + "/" + f.getName());
-			if (linkFile.exists()) {
-				try {
-					Files.delete(linkFile.toPath());
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
+		try {
+			deleteOldFolderPath(oldFolderPath, streamsFolder);
+			//even if an exception occurs, catch it in here and do not prevent the below operations
+		} catch (IOException e) {
+			logger.error(e.getMessage());
 		}
 
 		File f = new File(vodFolderPath == null ? "" : vodFolderPath);
@@ -179,7 +161,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 			getDataStore().fetchUserVodList(f);
 			result = true;
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(e.getMessage());
 		}
 
 
@@ -187,10 +169,35 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		return result;
 	}
 
+
+	public boolean deleteOldFolderPath(String oldFolderPath, File streamsFolder) throws IOException {
+		boolean result = false;
+		if (oldFolderPath != null && !oldFolderPath.isEmpty() && streamsFolder != null) 
+		{
+			File f = new File(oldFolderPath);
+			File linkFile = new File(streamsFolder.getAbsolutePath(), f.getName());
+			if (linkFile.exists() && linkFile.isDirectory()) {
+				Files.delete(linkFile.toPath());
+				result = true;
+			}
+		}
+		return result;
+	}
+
 	@Override
 	public void streamBroadcastClose(IBroadcastStream stream) {
+
+		String streamName = stream.getPublishedName();
+
+		closeBroadcast(streamName);
+
+		super.streamBroadcastClose(stream);
+	}
+
+	public void closeBroadcast(String streamName) {
+
 		try {
-			String streamName = stream.getPublishedName();
+
 			if (dataStore != null) {
 				getDataStore().updateStatus(streamName, BROADCAST_STATUS_FINISHED);
 				Broadcast broadcast = getDataStore().get(streamName);
@@ -219,12 +226,11 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 								try {
 									videoServiceEndPoint.stopBroadcast(endpoint);
 								} catch (Exception e) {
-									e.printStackTrace();
+									logger.error(ExceptionUtils.getStackTrace(e));
 								}
 							}
 						}
 					}
-
 					// recreate endpoints for social media
 
 					if (endPointList != null) {
@@ -239,9 +245,8 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(ExceptionUtils.getStackTrace(e));
 		}
-		super.streamBroadcastClose(stream);
 	}
 
 	public void recreateEndpointsForSocialMedia(Broadcast broadcast, List<Endpoint> endPointList) {
@@ -257,7 +262,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 						getDataStore().removeEndpoint(broadcast.getStreamId(), endpoint);
 						getDataStore().addEndpoint(broadcast.getStreamId(), newEndpoint);
 					} catch (Exception e) {
-						e.printStackTrace();
+						logger.error(ExceptionUtils.getStackTrace(e));
 					}
 
 				}
@@ -277,31 +282,41 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 			return endPointService;
 		}
 		catch (Exception e) {
-			e.printStackTrace();
+			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 		return null;
 	}
 
 	@Override
 	public void streamPublishStart(final IBroadcastStream stream) {
+		String streamName = stream.getPublishedName();
 
+		startPublish(streamName);
+
+		super.streamPublishStart(stream);
+	}
+
+	public void startPublish(String streamName) {
 		addScheduledOnceJob(0, new IScheduledJob() {
 
 			@Override
 			public void execute(ISchedulingService service) throws CloneNotSupportedException {
-				String streamName = stream.getPublishedName();
+
 				try {
 
-					if (dataStore != null) {
+					IDataStore dataStoreLocal = getDataStore();
+					if (dataStoreLocal != null) {
 
-						Broadcast broadcast = getDataStore().get(streamName);
+						Broadcast broadcast = dataStoreLocal.get(streamName);
 
 						if (broadcast == null) {
 							
-							broadcast = saveUndefinedBroadcast(streamName, getScope().getName(), dataStore, appSettings);
+							broadcast = saveUndefinedBroadcast(streamName, getScope().getName(), dataStoreLocal, appSettings);
 
 						} else {
-							getDataStore().updateStatus(streamName, BROADCAST_STATUS_BROADCASTING);
+
+							boolean result = dataStoreLocal.updateStatus(streamName, BROADCAST_STATUS_BROADCASTING);
+							logger.info(" Status of stream {} is set to Broadcasting with result: {}", broadcast.getStreamId(), result);
 						}
 
 						final String listenerHookURL = broadcast.getListenerHookURL();
@@ -341,8 +356,6 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 			}
 
 		});
-
-		super.streamPublishStart(stream);
 	}
 
 	public static Broadcast saveUndefinedBroadcast(String streamName, String scopeName, IDataStore dataStore, AppSettings appSettings) {
@@ -363,7 +376,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 					AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, scopeName, dataStore,
 					settingsListenerHookURL, fqdn);
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 
 		return null;
@@ -396,18 +409,14 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 			if (!name.matches(regularExp) && (index = name.lastIndexOf(".mp4")) != -1) {
 				final String baseName = name.substring(0, index);
-		//		getDataStore().updateDuration(streamId, duration);
 
 				Broadcast broadcast = getDataStore().get(streamId);
 
-				
 				String[] subDirs = filePath.split(Pattern.quote(File.separator));
-				
-				Integer pathLength = Integer.valueOf(subDirs.length);
-				
-				String relativePath = subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
 
-
+				Integer pathLength=Integer.valueOf(subDirs.length);
+				String relativePath=subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
+				
 				if (broadcast != null) {
 					streamName = broadcast.getName();
 					final String listenerHookURL = broadcast.getListenerHookURL();
@@ -427,9 +436,10 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 					streamName = file.getName();
 				}
 				
-				Vod newVod = new Vod(streamName, streamId, relativePath, name, unixTime, duration, fileSize, Vod.STREAM_VOD);
-
-				if (!getDataStore().addVod(newVod)) {
+				String vodId = RandomStringUtils.randomNumeric(24);
+				Vod newVod = new Vod(streamName, streamId, relativePath, name, unixTime, duration, fileSize, Vod.STREAM_VOD, vodId);
+				
+				if (getDataStore().addVod(newVod) == null) {
 					logger.warn("Stream vod with stream id {} cannot be added to data store", streamId);
 				}
 
@@ -599,20 +609,35 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	}
 
 	public AppSettings getAppSettings() {
+
+		if(appSettings == null) {
+
+			AppSettings appSettings = new AppSettings();
+
+			appSettings.setMp4MuxingEnabled(true);
+			appSettings.setAddDateTimeToMp4FileName(true);
+			appSettings.setWebRTCEnabled(false);
+			appSettings.setHlsMuxingEnabled(true);
+			appSettings.setObjectDetectionEnabled(false);
+			appSettings.setAdaptiveResolutionList(null);
+			appSettings.setHlsListSize(null);
+			appSettings.setHlsTime(null);
+			appSettings.setHlsPlayListType(null);
+			appSettings.setDeleteHLSFilesOnEnded(true);
+			appSettings.setPreviewOverwrite(false);
+
+			this.appSettings=appSettings;
+		}
+
 		return appSettings;
 	}
 
 	public void setAppSettings(AppSettings appSettings) {
 		this.appSettings = appSettings;
 	}
-	
-	public Result startStreaming(Broadcast broadcast) {
-		
-		Result result=new Result(false);
-		
-		result=streamFetcherManager.startStreaming(broadcast);
-		
-		return result;
+
+	public StreamFetcher startStreaming(Broadcast broadcast) {
+		return streamFetcherManager.startStreaming(broadcast);
 	}
 
 	public void stopStreaming(Broadcast cam) {

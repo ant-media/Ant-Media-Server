@@ -57,6 +57,7 @@
 				<exclude>ant-media-server-*.jar</exclude>
 				<exclude>ffmpeg-*.jar</exclude>
 				<exclude>javacpp-*.jar</exclude>
+				<exclude>ant-media-enterprise*.jar</exclude>
 			</excludes>
 		</fileSet>
 		<fileSet>
@@ -78,12 +79,16 @@
 				<exclude>cors-filter-*.jar</exclude>
 				<exclude>java-property-utils-*.jar</exclude>
 				<exclude>red5-service-*.jar</exclude>
+				<exclude>libtensorflow*.jar</exclude>
+				<exclude>tensorflow*.jar</exclude>
+				<exclude>commons-lang*.jar</exclude>
+				<exclude>protobuf-java*.jar</exclude>
 				
 				<!-- Below libs are generic we need custom builds which are under src/main/server/plugins 
 				and they will copied later in this file -->
-				<exclude>ffmpeg*linux*.jar</exclude>
+				<exclude>ffmpeg*linux-x86.jar</exclude>
+				<exclude>ffmpeg*linux-armhf.jar</exclude> 
 				<exclude>ffmpeg*android*.jar</exclude>
-				<exclude>ffmpeg*macosx*.jar</exclude>
 				<exclude>ffmpeg*ppc64le.jar</exclude>
 				<exclude>ffmpeg*windows*.jar</exclude>
 			</excludes>
@@ -120,6 +125,7 @@
 		</fileSet>
 		
 		<!--  Copy Custom Build Plugins  -->
+		<!-- 
 		<fileSet>
 			<directory>${project.basedir}/src/main/server/plugins</directory>
 			<outputDirectory>plugins</outputDirectory>
@@ -127,7 +133,8 @@
 				<include>*.jar</include>
 			</includes>
 		</fileSet>
-		
+		 -->
+		 
 		<!-- NATIVE LIBRARIES -->
 		<fileSet>
 			<directory>${project.basedir}/src/main/server/lib/native</directory>

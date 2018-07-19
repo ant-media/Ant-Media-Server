@@ -3,24 +3,24 @@ package io.antmedia.test;
 import static org.bytedeco.javacpp.avcodec.av_packet_unref;
 import static org.bytedeco.javacpp.avformat.av_read_frame;
 import static org.bytedeco.javacpp.avformat.avformat_alloc_context;
-import static org.bytedeco.javacpp.avformat.avformat_close_input;
 import static org.bytedeco.javacpp.avformat.avformat_find_stream_info;
 import static org.bytedeco.javacpp.avformat.avformat_open_input;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
-import javax.servlet.ServletContext;
-import javax.ws.rs.core.Context;
-
+import org.awaitility.Awaitility;
 import org.bytedeco.javacpp.avcodec.AVPacket;
 import org.bytedeco.javacpp.avformat;
 import org.bytedeco.javacpp.avformat.AVFormatContext;
@@ -29,38 +29,36 @@ import org.bytedeco.javacpp.avutil.AVDictionary;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
-import org.red5.server.api.scope.IScope;
+import org.junit.rules.TestRule;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
+import org.red5.server.scheduling.QuartzSchedulingService;
 import org.red5.server.scope.WebScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationContext;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
-import org.springframework.web.context.WebApplicationContext;
-import org.springframework.web.context.support.WebApplicationContextUtils;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.AppSettings;
+import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.integration.RestServiceTest;
-import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.model.Result;
 import io.antmedia.streamsource.StreamFetcher;
+import io.antmedia.streamsource.StreamFetcherManager;
 
 @ContextConfiguration(locations = { "test.xml" })
+@DirtiesContext(classMode = ClassMode.AFTER_CLASS)
 public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
-	public AntMediaApplicationAdapter app = null;
+	public Application app = null;
 	private WebScope appScope;
-	private MapDBStore dbStore;
-	private ApplicationContext appCtx;
-	private IScope scope;
 	protected static Logger logger = LoggerFactory.getLogger(StreamSchedularUnitTest.class);
-	private BroadcastRestService rest;
-
-	@Context
-	private ServletContext servletContext;
 
 	static {
 		System.setProperty("red5.deployment.type", "junit");
@@ -68,6 +66,23 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 	}
+	
+	@Rule
+	public TestRule watcher = new TestWatcher() {
+	   protected void starting(Description description) {
+	      System.out.println("Starting test: " + description.getMethodName());
+	   }
+	   
+	   protected void failed(Throwable e, Description description) {
+		   System.out.println("Failed test: " + description.getMethodName());
+	   };
+	   protected void finished(Description description) {
+		   System.out.println("Finishing test: " + description.getMethodName());
+	   };
+	};
+	private AntMediaApplicationAdapter appInstance;
+	private QuartzSchedulingService scheduler;
+	private AppSettings appSettings;
 
 	@BeforeClass
 	public static void beforeClass() {
@@ -93,13 +108,16 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 
 		if (app == null) {
-			app = (AntMediaApplicationAdapter) applicationContext.getBean("web.handler");
+			app = (Application) applicationContext.getBean("web.handler");
 			logger.debug("Application / web scope: {}", appScope);
 			assertTrue(appScope.getDepth() == 1);
 		}
+		
+		scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
 
-
-
+		//reset to default
+		Application.enableSourceHealthUpdate = false;
+		
 	}
 
 	@After
@@ -110,6 +128,9 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		
+		//reset to default
+		Application.enableSourceHealthUpdate = false;
 
 	}
 
@@ -159,92 +180,180 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	 */
 	public void testStreamSchedular() throws InterruptedException {
 
-		AVFormatContext inputFormatContext = new AVFormatContext();
+		try {
+			AVFormatContext inputFormatContext = new AVFormatContext();
 
-		Broadcast newCam = new Broadcast("testSchedular", "10.2.40.63:8080", "admin", "admin",
-				"rtsp://184.72.239.149/vod/mp4:BigBuckBunny_115k.mov", "streamSource");
+			Broadcast newCam = new Broadcast("testSchedular", "10.2.40.63:8080", "admin", "admin",
+					"rtsp://184.72.239.149/vod/mp4:BigBuckBunny_115k.mov", "streamSource");
 
-		StreamFetcher camScheduler = new StreamFetcher(newCam);
+			StreamFetcher camScheduler = new StreamFetcher(newCam, appScope, null);
 
-		camScheduler.setConnectionTimeout(10000);
+			camScheduler.setConnectionTimeout(10000);
 
-		camScheduler.startStream();
-		Thread.sleep(7000);
+			camScheduler.startStream();
+			Thread.sleep(7000);
 
-		//this should be false because this rtsp url cannot be used
+			//this should be false because this rtsp url cannot be used
 
-		assertTrue(camScheduler.isStreamAlive());
+			assertTrue(camScheduler.isStreamAlive());
 
-		camScheduler.stopStream();
+			camScheduler.stopStream();
 
-		Thread.sleep(5000);
+			Thread.sleep(5000);
 
-		assertFalse(camScheduler.isStreamAlive());
+			assertFalse(camScheduler.isStreamAlive());
+			assertFalse(camScheduler.isThreadActive());
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
 
 	}
 
 
 	@Test
 	public void testStreamSchedularConnectionTimeout() throws InterruptedException {
+		logger.info("running testStreamSchedularConnectionTimeout");
+		try {
+			
+			assertEquals(1, scheduler.getScheduledJobNames().size());
+			
 
-		long size = 1232;
+			AVFormatContext inputFormatContext = new AVFormatContext();
 
-		AVFormatContext inputFormatContext = new AVFormatContext();
+			Broadcast newCam = new Broadcast("testSchedular2", "10.2.40.64:8080", "admin", "admin",
+					"rtsp://11.2.40.63:8554/live1.sdp", AntMediaApplicationAdapter.IP_CAMERA);
 
-		Broadcast newCam = new Broadcast("testSchedular2", "10.2.40.64:8080", "admin", "admin",
-				"rtsp://11.2.40.63:8554/live1.sdp", "ipCamera");
+			newCam.setStreamId("new_cam" + (int)(Math.random()*10000));
 
+			StreamFetcher streamScheduler = new StreamFetcher(newCam, appScope, null);
 
+			assertFalse(streamScheduler.isExceptionInThread());
 
-		StreamFetcher streamScheduler = new StreamFetcher(newCam);
+			streamScheduler.startStream();
 
-		assertFalse(streamScheduler.isExceptionInThread());
+			streamScheduler.setConnectionTimeout(3000);
 
-		streamScheduler.startStream();
+			//this should be false because stream is not alive 
+			assertFalse(streamScheduler.isStreamAlive());
 
-		streamScheduler.setConnectionTimeout(3000);
+			Thread.sleep(2500);
 
-		//this should be false because stream is not alive 
-		assertFalse(streamScheduler.isStreamAlive());
+			streamScheduler.stopStream();
 
-		Thread.sleep(2500);
+			Thread.sleep(2500);
 
-		streamScheduler.stopStream();
+			assertFalse(streamScheduler.isStreamAlive());
 
-		Thread.sleep(6000);
-
-		assertFalse(streamScheduler.isStreamAlive());
-
-		assertFalse(streamScheduler.isExceptionInThread());
+			assertFalse(streamScheduler.isExceptionInThread());
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		logger.info("leaving testStreamSchedularConnectionTimeout");
+		assertEquals(1, scheduler.getScheduledJobNames().size());
+		
 	}
 
 	@Test
 	public void testPrepareInput() throws InterruptedException {
+		assertEquals(1, scheduler.getScheduledJobNames().size());
+		
+		try {
 
-		long size = 1232;
+			Broadcast newCam = null;
 
-		AVFormatContext inputFormatContext = new AVFormatContext();
+			new StreamFetcher(newCam, appScope, null);
 
-		Broadcast newCam = null;
+			fail("it should throw exception above");
+		}
+		catch (Exception e) {
+		}
 
-		StreamFetcher streamScheduler = new StreamFetcher(newCam);
+		try {
+			AVFormatContext inputFormatContext = new AVFormatContext();
 
-		Result result= streamScheduler.prepareInput(inputFormatContext);
+			Broadcast newCam2 = new Broadcast("test", "10.2.40.63:8080", "admin", "admin", null, AntMediaApplicationAdapter.IP_CAMERA);
+			newCam2.setStreamId("newcam2_" + (int)(Math.random()*10000));
 
-		assertFalse(result.isSuccess());
+			new StreamFetcher(newCam2, appScope, null);
 
-		Broadcast newCam2 = new Broadcast("test", "10.2.40.63:8080", "admin", "admin", null, "ipCamera");
-
-		StreamFetcher streamScheduler2 = new StreamFetcher(newCam2);
-
-		Result result2= streamScheduler2.prepareInput(inputFormatContext);
-
-		assertFalse(result.isSuccess());
-
+			fail("it should throw exception above");
+		}
+		catch (Exception e) {
+		}
+		assertEquals(1, scheduler.getScheduledJobNames().size());
+		
 	}
+	
+	
+	@Test
+	public void testAddCameraBug() {
+		
+		assertEquals(1, scheduler.getScheduledJobNames().size());
+		
+		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnExit();
+		
+		getAppSettings().setDeleteHLSFilesOnEnded(false);
+		
+		
+		Result result;
+		IDataStore dataStore = new MapDBStore("target/testAddCamera.db"); //applicationContext.getBean(IDataStore.BEAN_NAME);
 
+		assertNotNull(dataStore);
+		StreamFetcherManager streamFetcherManager = new StreamFetcherManager(scheduler, dataStore, appScope);
+		//app.setDataStore(dataStore);
 
+		//set mapdb datastore to stream fetcher because in memory datastore just have references and updating broadcst
+		// object updates the reference in inmemorydatastore
+		//app.getStreamFetcherManager().setDatastore(dataStore);
+		
 
+		logger.info("running testAddCameraBug");
+		Application.enableSourceHealthUpdate = true;
+		assertNotNull(dataStore);
+		
+		startCameraEmulator();
+		
+		Broadcast newCam = new Broadcast("testAddCamera", "127.0.0.1:8080", "admin", "admin", "rtsp://127.0.0.1:6554/test.flv",
+				AntMediaApplicationAdapter.IP_CAMERA);
+
+		//add stream to data store
+		dataStore.save(newCam);
+		
+		//result=getInstance().startStreaming(newCam);
+		StreamFetcher streamFetcher = streamFetcherManager.startStreaming(newCam);
+		
+		//check whether answer from StreamFetcherManager is true or not after new IPCamera is added
+		assertNotNull(streamFetcher);
+		
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->  {
+			return streamFetcher.isThreadActive();
+		});
+		
+		//getInstance().stopStreaming(newCam);
+		StreamFetcher streamFetcher2 = streamFetcherManager.stopStreaming(newCam);
+		assertEquals(streamFetcher, streamFetcher2);
+		stopCameraEmulator();
+		
+		streamFetcherManager.stopCheckerJob();
+		
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->  {
+			return !streamFetcher.isThreadActive();
+		});
+		
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->  {
+			return 1 == scheduler.getScheduledJobNames().size();
+		});
+		
+		getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
+		Application.enableSourceHealthUpdate = false;
+		
+	}
+	
+	
 	public void testIPTVStream() {
 
 		AVFormatContext inputFormatContext = avformat_alloc_context();
@@ -303,19 +412,48 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 	@Test
 	public void testBandwidth() {
+		
+		
+		startCameraEmulator();
+		assertEquals(1, scheduler.getScheduledJobNames().size());
+		
+		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnExit();
+		getAppSettings().setDeleteHLSFilesOnEnded(false);
+		
+		File f = new File("target/test.db");
+		if (f.exists()) {
+			try {
+				Files.delete(f.toPath());
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		IDataStore dataStore = new MapDBStore("target/test.db"); //applicationContext.getBean(IDataStore.BEAN_NAME);
 
-		RestServiceTest restService = new RestServiceTest();
+		assertNotNull(dataStore);
+		app.setDataStore(dataStore);
 
-		Broadcast newSource = new Broadcast("testBandwidth", "10.2.40.63:8080", "admin", "admin", "rtsp://184.72.239.149/vod/mp4:BigBuckBunny_115k.mov",
+		//set mapdb datastore to stream fetcher because in memory datastore just have references and updating broadcst
+		// object updates the reference in inmemorydatastore
+		app.getStreamFetcherManager().setDatastore(dataStore);
+		
+
+		logger.info("running testBandwidth");
+		Application.enableSourceHealthUpdate = true;
+		assertNotNull(dataStore);
+
+		Broadcast newSource = new Broadcast("testBandwidth", "10.2.40.63:8080", "admin", "admin", "rtsp://127.0.0.1:6554/test.flv",
 				AntMediaApplicationAdapter.STREAM_SOURCE);
 
-		restService.save(newSource);
+		//add stream to data store
+		dataStore.save(newSource);
 
-		Broadcast newZombiSource = new Broadcast("testBandwidth", "10.2.40.63:8080", "admin", "admin", "rtsp://184.72.239.149/vod/mp4:BigBuckBunny_115k.mov",
+		Broadcast newZombiSource = new Broadcast("testBandwidth", "10.2.40.63:8080", "admin", "admin", "rtsp://127.0.0.1:6554/test.flv",
 				AntMediaApplicationAdapter.STREAM_SOURCE);
 
 		newZombiSource.setZombi(true);
-
+		//add second stream to datastore
+		dataStore.save(newZombiSource);
 
 
 		List<Broadcast> streams = new ArrayList<>();
@@ -323,263 +461,241 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		streams.add(newSource);
 		streams.add(newZombiSource);
 
+		//let stream fetching start
+		app.getStreamFetcherManager().setStreamCheckerInterval(5000);
 		app.getStreamFetcherManager().startStreams(streams);
 
-
-
-
-		try {
-			Thread.sleep(24000);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
+		Awaitility.await().atMost(12, TimeUnit.SECONDS).until(() -> {
+			return dataStore.get(newZombiSource.getStreamId()).getQuality() != null;
+		});
+		
 		logger.info("before first control");
 
-		Broadcast stream=restService.getBroadcast(newSource.getStreamId());
+		List<Broadcast> broadcastList =  dataStore.getBroadcastList(0,  20);
 
-		List<Broadcast> list = restService.callGetBroadcastList();
+		Broadcast fetchedBroadcast = null;
 
-		Broadcast fetchedBroadcast=new Broadcast();
+		for (Broadcast broadcast : broadcastList) {
 
-		for (Broadcast broadcast : list) {
-
+			logger.info("broadcast name: " + broadcast.getName() + " broadcast status :" + broadcast.getStatus() + " broadcast is zombi: " + broadcast.isZombi());
 			if(broadcast.isZombi()) {
 
 				fetchedBroadcast=broadcast;	
 				break;
 			}
 		}
+
+		assertNotNull(fetchedBroadcast);
+		assertEquals(fetchedBroadcast.getStreamId(), newZombiSource.getStreamId());
+		assertNotNull(fetchedBroadcast.getQuality());
+		assertNotNull(fetchedBroadcast.getSpeed());
+		
+		Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			Broadcast stream = dataStore.get(newSource.getStreamId());
+			return stream != null && stream.getQuality() != null && stream.getQuality().equals("good");
+		});
+		
+		Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			Broadcast stream = dataStore.get(newSource.getStreamId());
+			logger.info("speed {}" , stream.getSpeed()) ;
+			return stream != null && Math.abs(stream.getSpeed()-1) < 0.1;
+		});
+
+		limitNetworkInterfaceBandwidth();
+		
+		logger.info("Checking quality is again");
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			Broadcast streamTmp = dataStore.get(newSource.getStreamId());
+			return streamTmp != null && streamTmp.getQuality() != null && !streamTmp.getQuality().equals("poor");
+		});
+
+		logger.info("before second control");
+
+		assertNotEquals("poor", dataStore.get(newSource.getStreamId()).getQuality());
+		
+		logger.info("speed {}" , dataStore.get(newSource.getStreamId()).getSpeed()) ;
+
+		resetNetworkInterface();
+
+		for (Broadcast broadcast: broadcastList) {
+			app.getStreamFetcherManager().stopStreaming(broadcast);
+		}
+		
+		/*
+		try {
+			Thread.sleep(3000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		*/
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			return app.getStreamFetcherManager().getStreamFetcherList().size() == 0;
+		});
+
+		//list size should be zero
+		//assertEquals(0, app.getStreamFetcherManager().getStreamFetcherList().size());
+		logger.info("leaving testBandwidth");
+		
+		Application.enableSourceHealthUpdate = false;
+		
+		getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
+		
+		assertEquals(1, scheduler.getScheduledJobNames().size());
+		
+		stopCameraEmulator();
+
+	}
+	
+	private void runShellCommand(String[] params) {
+		try {
+			Process procStop = new ProcessBuilder(params).start();
+			
+			InputStream inputStream = procStop.getInputStream();
+			byte[] data = new byte[1024];
+			int length;
+			while ((length = inputStream.read(data, 0, data.length)) > 0) {
+				System.out.println(new String(data, 0, length));
+			}
+			
+			inputStream = procStop.getErrorStream();
+			while ((length = inputStream.read(data, 0, data.length)) > 0) {
+				System.out.println(new String(data, 0, length));
+			}
+			
+			procStop.waitFor();
+			
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
+
+	private void resetNetworkInterface() {
+		System.out.println("Running resetNetworkInterface");
+		runShellCommand(new String[] { "/bin/bash", "-c",
+			"sudo wondershaper clear wlan0" });
+		
+		runShellCommand(new String[] { "/bin/bash", "-c",
+			"sudo wondershaper clear eth0" });
+		
+		runShellCommand(new String[] { "/bin/bash", "-c",
+			"sudo wondershaper clear nic0" });
+		
+		runShellCommand(new String[] { "/bin/bash", "-c",
+			"sudo wondershaper clear nic1" });
+		
+		runShellCommand(new String[] { "/bin/bash", "-c",
+			"sudo wondershaper clear nic2" });
+		
+		runShellCommand(new String[] { "/bin/bash", "-c",
+			"sudo wondershaper clear nic3" });
+		
+		runShellCommand(new String[] { "/bin/bash", "-c",
+			"sudo wondershaper clear nic4" });
+		
+		runShellCommand(new String[] { "/bin/bash", "-c",
+			"sudo wondershaper clear vmnet0" });
+		
+		runShellCommand(new String[] { "/bin/bash", "-c",
+			"sudo wondershaper clear vmnet1" });
+		
+		runShellCommand(new String[] { "/bin/bash", "-c",
+			"sudo wondershaper clear em1" });
+		
+		runShellCommand(new String[] { "/bin/bash", "-c",
+			"sudo wondershaper clear em0" });
+	}
+
+	private void limitNetworkInterfaceBandwidth() {
+		runShellCommand(new String[] { "/bin/bash", "-c",
+			"sudo wondershaper wlan0 100 100" });
+		
+		runShellCommand(new String[] { "/bin/bash", "-c",
+			"sudo wondershaper eth0 100 100" });
+		
+		runShellCommand(new String[] { "/bin/bash", "-c",
+			"sudo wondershaper nic0 100 100" });
+		
+		runShellCommand(new String[] { "/bin/bash", "-c",
+			"sudo wondershaper nic1 100 100" });
+		
+		runShellCommand(new String[] { "/bin/bash", "-c",
+			"sudo wondershaper nic2 100 100" });
+		
+		runShellCommand(new String[] { "/bin/bash", "-c",
+			"sudo wondershaper nic3 100 100" });
+		
+		runShellCommand(new String[] { "/bin/bash", "-c",
+			"sudo wondershaper nic4 100 100" });
+		
+		runShellCommand(new String[] { "/bin/bash", "-c",
+			"sudo wondershaper  vmnet0  100 100" });
+		
+		runShellCommand(new String[] { "/bin/bash", "-c",
+			"sudo wondershaper  vmnet1 100  100" });
+		
+		runShellCommand(new String[] { "/bin/bash", "-c",
+			"sudo wondershaper  em1  100  100" });
+		
+		runShellCommand(new String[] { "/bin/bash", "-c",
+			"sudo wondershaper em0  100 100" });
+		
+	}
+
+	public AntMediaApplicationAdapter getInstance() {
+		if (appInstance == null) {
+			appInstance = (AntMediaApplicationAdapter) applicationContext.getBean("web.handler");
+		}
+		return appInstance;
+	}
+	
+	private void startCameraEmulator() {
+		stopCameraEmulator();
+
+		ProcessBuilder pb = new ProcessBuilder("/usr/local/onvif/runme.sh");
+		Process p = null;
+		try {
+			p = pb.start();
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
 		try {
 			Thread.sleep(2000);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
-
-		assertNotNull(fetchedBroadcast.getQuality());
-
-		assertNotNull(fetchedBroadcast.getSpeed());
-
-		assertEquals("good", stream.getQuality());	
-
-		logger.info("speed{}" + stream.getSpeed()) ;
-
-		assertTrue(1 < stream.getSpeed());
-
-
-
-
-
-		String[] argsStop = new String[] { "/bin/bash", "-c",
-		"sudo wondershaper -a wlan0 -d 100 -u 100" };
-		try {
-			Process procStop = new ProcessBuilder(argsStop).start();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		String[] argsStop2 = new String[] { "/bin/bash", "-c",
-		"sudo wondershaper -a eth0 -d 100 -u 100" };
-		try {
-			Process procStop = new ProcessBuilder(argsStop2).start();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		String[] argsStop3 = new String[] { "/bin/bash", "-c",
-		"sudo wondershaper -a nic0 -d 100 -u 100" };
-		try {
-			Process procStop = new ProcessBuilder(argsStop3).start();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		String[] argsStop4 = new String[] { "/bin/bash", "-c",
-		"sudo wondershaper -a nic1 -d 100 -u 100" };
-		try {
-			Process procStop = new ProcessBuilder(argsStop4).start();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		String[] argsStop5 = new String[] { "/bin/bash", "-c",
-		"sudo wondershaper -a nic2 -d 100 -u 100" };
-		try {
-			Process procStop = new ProcessBuilder(argsStop5).start();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-		String[] argsStop6 = new String[] { "/bin/bash", "-c",
-		"sudo wondershaper -a nic3 -d 100 -u 100" };
-		try {
-			Process procStop = new ProcessBuilder(argsStop6).start();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		String[] argsStop7 = new String[] { "/bin/bash", "-c",
-		"sudo wondershaper -a nic4 -d 100 -u 100" };
-		try {
-			Process procStop = new ProcessBuilder(argsStop7).start();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		String[] argsStop8 = new String[] { "/bin/bash", "-c",
-		"sudo wondershaper -a vmnet0 -d 100 -u 100" };
-		try {
-			Process procStop = new ProcessBuilder(argsStop8).start();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		String[] argsStop9 = new String[] { "/bin/bash", "-c",
-		"sudo wondershaper -a vmnet1 -d 100 -u 100" };
-		try {
-			Process procStop = new ProcessBuilder(argsStop9).start();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		String[] argsStop10 = new String[] { "/bin/bash", "-c",
-		"sudo wondershaper -a em1 -d 100 -u 100" };
-		try {
-			Process procStop = new ProcessBuilder(argsStop10).start();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		String[] argsStop11 = new String[] { "/bin/bash", "-c",
-		"sudo wondershaper -a em0 -d 100 -u 100" };
-		try {
-			Process procStop = new ProcessBuilder(argsStop11).start();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-
-
-		try {
-			Thread.sleep(10000);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-		logger.info("before second control");
-
-		assertNotEquals("poor", restService.getBroadcast(newSource.getStreamId()).getQuality());
-
-
-		/*
-		ProcessBuilder pb2 = new ProcessBuilder("/usr/local/wondershaper/reset.sh" , "myArg1", "myArg2");
-		Process p2 = null;
-		try {
-			p2 = pb2.start();
-		} catch (IOException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
-		 */
-
-		String[] argsReset= new String[] { "/bin/bash", "-c",
-		"sudo wondershaper -c -a wlan0" };
-		try {
-			Process procStop = new ProcessBuilder(argsReset).start();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-		String[] argsReset2= new String[] { "/bin/bash", "-c",
-		"sudo wondershaper -c -a eth0" };
-		try {
-			Process procStop = new ProcessBuilder(argsReset2).start();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		String[] argsReset3= new String[] { "/bin/bash", "-c",
-		"sudo wondershaper -c -a nic0" };
-		try {
-			Process procStop = new ProcessBuilder(argsReset3).start();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		String[] argsReset4= new String[] { "/bin/bash", "-c",
-		"sudo wondershaper -c -a nic1" };
-		try {		logger.warn("thread isRunning");
-		Process procStop = new ProcessBuilder(argsReset4).start();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		String[] argsReset5= new String[] { "/bin/bash", "-c",
-		"sudo wondershaper -c -a nic2" };
-		try {
-			Process procStop = new ProcessBuilder(argsReset5).start();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		String[] argsReset6= new String[] { "/bin/bash", "-c",
-		"sudo wondershaper -c -a nic3" };
-		try {
-			Process procStop = new ProcessBuilder(argsReset6).start();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		String[] argsReset7= new String[] { "/bin/bash", "-c",
-		"sudo wondershaper -c -a nic4" };
-		try {
-			Process procStop = new ProcessBuilder(argsReset7).start();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		String[] argsReset8= new String[] { "/bin/bash", "-c",
-		"sudo wondershaper -c -a vmnet0" };
-		try {
-			Process procStop = new ProcessBuilder(argsReset8).start();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		String[] argsReset9= new String[] { "/bin/bash", "-c",
-		"sudo wondershaper -c -a vmnet1" };
-		try {
-			Process procStop = new ProcessBuilder(argsReset9).start();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		String[] argsReset10= new String[] { "/bin/bash", "-c",
-		"sudo wondershaper -c -a em1" };
-		try {
-			Process procStop = new ProcessBuilder(argsReset10).start();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		String[] argsReset11= new String[] { "/bin/bash", "-c",
-		"sudo wondershaper -c -a em0" };
-		try {
-			Process procStop = new ProcessBuilder(argsReset11).start();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-
-
 	}
 
+
+	private void stopCameraEmulator() {
+		// close emulator in order to simulate cut-off
+		String[] argsStop = new String[] { "/bin/bash", "-c",
+		"kill -9 $(ps aux | grep 'onvifser' | awk '{print $2}')" };
+		String[] argsStop2 = new String[] { "/bin/bash", "-c",
+		"kill -9 $(ps aux | grep 'rtspserve' | awk '{print $2}')" };
+		try {
+			Process procStop = new ProcessBuilder(argsStop).start();
+			Process procStop2 = new ProcessBuilder(argsStop2).start();
+
+
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		try {
+			Thread.sleep(2000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public AppSettings getAppSettings() {
+		if (appSettings == null) {
+			appSettings = (AppSettings) applicationContext.getBean(AppSettings.BEAN_NAME);
+		}
+		return appSettings;
+	}
 
 
 
