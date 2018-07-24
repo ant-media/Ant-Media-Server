@@ -7,6 +7,7 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.bson.types.ObjectId;
 import org.mongodb.morphia.Datastore;
 import org.mongodb.morphia.Key;
@@ -55,7 +56,7 @@ public class MongoStore implements IDataStore {
 	public MongoStore(String host, String username, String password, String dbName) {
 		morphia = new Morphia();
 		morphia.mapPackage("io.antmedia.datastore.db.types");
-		List<MongoCredential> credentialList = new ArrayList<MongoCredential>();
+		List<MongoCredential> credentialList = new ArrayList<>();
 		credentialList.add(MongoCredential.createCredential(username, dbName, password.toCharArray()));
 		datastore = morphia.createDatastore(new MongoClient(new ServerAddress(host), credentialList), dbName);
 		vodDatastore=morphia.createDatastore(new MongoClient(new ServerAddress(host), credentialList), dbName+"Vod");
@@ -97,7 +98,7 @@ public class MongoStore implements IDataStore {
 
 			return streamId;
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 		return null;
 	}
@@ -112,8 +113,7 @@ public class MongoStore implements IDataStore {
 		try {
 			return datastore.find(Broadcast.class).field("streamId").equal(id).get();
 		} catch (Exception e) {
-
-			e.printStackTrace();
+			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 		return null;
 	}
@@ -156,7 +156,7 @@ public class MongoStore implements IDataStore {
 			UpdateResults update = datastore.update(query, ops);
 			return update.getUpdatedCount() == 1;
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 		return false;
 
@@ -179,7 +179,7 @@ public class MongoStore implements IDataStore {
 			UpdateResults update = datastore.update(query, ops);
 			return update.getUpdatedCount() == 1;
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 		return false;
 	}
@@ -204,7 +204,7 @@ public class MongoStore implements IDataStore {
 				UpdateResults update = datastore.update(query, ops);
 				return update.getUpdatedCount() == 1;
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.error(ExceptionUtils.getStackTrace(e));
 			}
 		}
 		return false;
@@ -261,7 +261,7 @@ public class MongoStore implements IDataStore {
 			WriteResult delete = datastore.delete(query);
 			return delete.getN() == 1;
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 		return false;
 	}
@@ -292,7 +292,7 @@ public class MongoStore implements IDataStore {
 
 		} catch (Exception e) {
 
-			e.printStackTrace();
+			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 		return null;
 	}
@@ -307,7 +307,7 @@ public class MongoStore implements IDataStore {
 		try {
 			return datastore.find(Broadcast.class).field("type").equal(type).asList(new FindOptions().skip(offset).limit(size));
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 		return null;	
 	}
@@ -321,8 +321,7 @@ public class MongoStore implements IDataStore {
 			Key<Vod> key = vodDatastore.save(vod);
 			result = true;
 		} catch (Exception e) {
-
-			e.printStackTrace();
+			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 
 		if(result) {
@@ -345,7 +344,7 @@ public class MongoStore implements IDataStore {
 			WriteResult delete = vodDatastore.delete(query);
 			return delete.getN() == 1;
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 		return false;
 	}
@@ -370,7 +369,7 @@ public class MongoStore implements IDataStore {
 			Query<Vod> query = vodDatastore.createQuery(Vod.class).field("type").equal("userVod");
 			WriteResult delete = vodDatastore.delete(query);
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 
 		File[] listOfFiles = userfile.listFiles();
@@ -423,8 +422,7 @@ public class MongoStore implements IDataStore {
 
 			return true;
 		} catch (Exception e) {
-
-			e.printStackTrace();
+			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 		return false;
 	}
@@ -441,7 +439,7 @@ public class MongoStore implements IDataStore {
 			UpdateResults update = datastore.update(query, ops);
 			return update.getUpdatedCount() == 1;
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 		return false;
 	}
@@ -512,7 +510,7 @@ public class MongoStore implements IDataStore {
 			WriteResult delete = endpointCredentialsDS.delete(query);
 			return delete.getN() == 1;
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 		return false;
 	}
@@ -522,7 +520,7 @@ public class MongoStore implements IDataStore {
 		try {
 			return endpointCredentialsDS.get(SocialEndpointCredentials.class, new ObjectId(id));
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 		return null;
 	}

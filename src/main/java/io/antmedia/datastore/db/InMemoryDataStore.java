@@ -6,14 +6,14 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.regex.Pattern;
+import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
+
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.gson.Gson;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Broadcast;
@@ -27,13 +27,13 @@ public class InMemoryDataStore implements IDataStore {
 
 	protected static Logger logger = LoggerFactory.getLogger(InMemoryDataStore.class);
 
-	public LinkedHashMap<String, Broadcast> broadcastMap = new LinkedHashMap<String, Broadcast>();
+	public Map<String, Broadcast> broadcastMap = new LinkedHashMap<>();
 
-	public LinkedHashMap<String, Vod> vodMap = new LinkedHashMap<String, Vod>();
+	public Map<String, Vod> vodMap = new LinkedHashMap<>();
 
-	public LinkedHashMap<String, List<TensorFlowObject>> detectionMap = new LinkedHashMap<String, List<TensorFlowObject>>();
+	public Map<String, List<TensorFlowObject>> detectionMap = new LinkedHashMap<>();
 
-	public LinkedHashMap<String, SocialEndpointCredentials> socialEndpointCredentialsMap = new LinkedHashMap<String, SocialEndpointCredentials>();
+	public Map<String, SocialEndpointCredentials> socialEndpointCredentialsMap = new LinkedHashMap<>();
 
 
 	public InMemoryDataStore(String dbName) {
@@ -61,7 +61,7 @@ public class InMemoryDataStore implements IDataStore {
 				}
 				broadcastMap.put(streamId, broadcast);
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.error(e.getMessage());
 				streamId = null;
 			}
 
@@ -138,7 +138,7 @@ public class InMemoryDataStore implements IDataStore {
 			List<Endpoint> endPointList = broadcast.getEndPointList();
 			if (endPointList != null) {
 				for (Iterator<Endpoint> iterator = endPointList.iterator(); iterator.hasNext();) {
-					Endpoint endpointItem = (Endpoint) iterator.next();
+					Endpoint endpointItem = iterator.next();
 					if (endpointItem.rtmpUrl.equals(endpoint.rtmpUrl)) {
 						iterator.remove();
 						result = true;
@@ -192,7 +192,7 @@ public class InMemoryDataStore implements IDataStore {
 		if (offset < 0) {
 			offset = 0;
 		}
-		List<Broadcast> list = new ArrayList<Broadcast>();
+		List<Broadcast> list = new ArrayList<>();
 		for (Broadcast broadcast : values) {
 
 			if (t < offset) {
@@ -217,7 +217,7 @@ public class InMemoryDataStore implements IDataStore {
 	public List<Broadcast> getExternalStreamsList() {
 		Collection<Broadcast> values = broadcastMap.values();
 
-		List<Broadcast> streamsList = new ArrayList<Broadcast>();
+		List<Broadcast> streamsList = new ArrayList<>();
 		for (Broadcast broadcast : values) {
 			String type = broadcast.getType();
 
@@ -230,8 +230,7 @@ public class InMemoryDataStore implements IDataStore {
 
 	@Override
 	public void close() {
-		// TODO Auto-generated method stub
-
+		//no need to implement 
 	}
 
 	@Override
@@ -280,7 +279,7 @@ public class InMemoryDataStore implements IDataStore {
 				result = true;
 
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.error(e.getMessage());
 			}
 		}
 		
@@ -414,8 +413,7 @@ public class InMemoryDataStore implements IDataStore {
 				result = true;
 
 			} catch (Exception e) {
-				e.printStackTrace();
-
+				logger.error(e.getMessage());
 			}
 		}
 		return result;

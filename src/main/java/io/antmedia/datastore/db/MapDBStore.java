@@ -10,6 +10,7 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.mapdb.BTreeMap;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
@@ -128,7 +129,7 @@ public class MapDBStore implements IDataStore {
 					map.put(streamId, gson.toJson(broadcast));
 					db.commit();
 				} catch (Exception e) {
-					e.printStackTrace();
+					logger.error(ExceptionUtils.getStackTrace(e));
 					streamId = null;
 				}
 			}
@@ -220,7 +221,7 @@ public class MapDBStore implements IDataStore {
 					Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
 					List<Endpoint> endPointList = broadcast.getEndPointList();
 					if (endPointList == null) {
-						endPointList = new ArrayList<Endpoint>();
+						endPointList = new ArrayList<>();
 					}
 					endPointList.add(endpoint);
 					broadcast.setEndPointList(endPointList);
@@ -403,7 +404,7 @@ public class MapDBStore implements IDataStore {
 				broadcastArray[i] = gson.fromJson((String) objectArray[i], Broadcast.class);
 			}
 
-			List<Broadcast> filterList = new ArrayList<Broadcast>();
+			List<Broadcast> filterList = new ArrayList<>();
 			for (int i = 0; i < broadcastArray.length; i++) {
 
 				if (broadcastArray[i].getType().equals(type)) {
