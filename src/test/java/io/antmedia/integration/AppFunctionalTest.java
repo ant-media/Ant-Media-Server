@@ -408,7 +408,10 @@ public class AppFunctionalTest {
 		}
 	}
 	
-	@Test
+	/*
+	 * @Test
+	 */
+	
 	public void testFirebaseSave() {
 
         try {
