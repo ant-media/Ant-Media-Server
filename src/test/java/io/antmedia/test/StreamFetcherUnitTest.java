@@ -149,7 +149,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			e.printStackTrace();
 		}
 	}
-
+	
 
 	@Test
 	public void testBugUpdateStreamFetcherStatus() {

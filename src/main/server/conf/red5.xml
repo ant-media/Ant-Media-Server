@@ -22,6 +22,7 @@
 			value="classpath:/red5-common.xml" />
 	</bean>
 
+<<<<<<< HEAD
 	<!-- Then we load the core context, with the common as parent -->
 	<!-- Context holding all the networking, users should not need to edit. -->
 	<bean id="red5.core"
@@ -72,4 +73,24 @@
 	</bean>
 
 
+=======
+    <!-- Internal shutdown mechanism -->
+    <bean id="shutdownServer" class="org.red5.server.service.ShutdownServer">
+        <property name="port" value="${jmx.rmi.port}" />
+        <property name="shutdownDelay" value="30" />
+        <property name="coreContext" ref="red5.core" />
+        <property name="commonContext" ref="red5.common" />
+        <property name="contextLoader" ref="context.loader" />
+    </bean>
+    
+    <bean id="ant.rtsp" class="org.red5.spring.Red5ApplicationContext">
+       <property name="configLocation" value="classpath:/red5-rtsp.xml" />
+       <property name="parent" ref="red5.core" />
+    </bean>
+    
+    <bean id="ant.media.server.settings" class="io.antmedia.settings.ServerSettings">
+    		<property name="serverName" value="${ant.media.server.name}" />
+    </bean>
+    
+>>>>>>> refs/remotes/origin/dev
 </beans>

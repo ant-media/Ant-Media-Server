@@ -242,7 +242,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 			streamScheduler.stopStream();
 
-			Thread.sleep(3000);
+			Thread.sleep(2500);
 
 			assertFalse(streamScheduler.isStreamAlive());
 
@@ -490,14 +490,6 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		assertNotNull(fetchedBroadcast.getQuality());
 		assertNotNull(fetchedBroadcast.getSpeed());
 		
-		/*
-		try {
-			Thread.sleep(20000);
-		} catch (InterruptedException e1) {
-			e1.printStackTrace();
-		}
-		*/
-		
 		Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 			Broadcast stream = dataStore.get(newSource.getStreamId());
 			return stream != null && stream.getQuality() != null && stream.getQuality().equals("good");
@@ -506,19 +498,10 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 			Broadcast stream = dataStore.get(newSource.getStreamId());
 			logger.info("speed {}" , stream.getSpeed()) ;
-			return stream != null && 1 < stream.getSpeed();
+			return stream != null && Math.abs(stream.getSpeed()-1) < 0.1;
 		});
 
 		limitNetworkInterfaceBandwidth();
-
-		/*
-		try {
-			Thread.sleep(5000);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-		*/
-		
 		
 		logger.info("Checking quality is again");
 		Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {

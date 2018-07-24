@@ -23,6 +23,8 @@ import org.mockito.Mockito;
 import org.red5.server.api.stream.IClientBroadcastStream;
 import org.red5.server.api.stream.IStreamCapableConnection;
 import org.red5.server.scope.Scope;
+import org.red5.server.scope.WebScope;
+import org.springframework.context.ApplicationContext;
 import org.springframework.test.context.ContextConfiguration;
 
 import com.google.gson.Gson;
@@ -36,6 +38,7 @@ import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.Vod;
 import io.antmedia.rest.BroadcastRestService;
+import io.antmedia.rest.BroadcastRestService.BroadcastStatistics;
 import io.antmedia.rest.BroadcastRestService.ProcessBuilderFactory;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.Version;
@@ -184,6 +187,30 @@ public class RestServiceUnitTest {
 	}
 
 
+	@Test
+	public void testBugBroadcastStatisticNull() {
+		Scope scope = mock(Scope.class);
+		String scopeName = "scope";
+		when(scope.getName()).thenReturn(scopeName);
+		
+		AntMediaApplicationAdapter app = new AntMediaApplicationAdapter();
+		
+		ApplicationContext context = mock(ApplicationContext.class);
+		
+		restService.setAppCtx(context);
+		restService.setApplication(app);
+		restService.setScope(scope);
+		restService.setDataStore(new InMemoryDataStore("testdb"));
+		
+		
+		BroadcastStatistics broadcastStatistics = restService.getBroadcastStatistics(null);
+		assertNotNull(broadcastStatistics);
+		assertEquals(-1, broadcastStatistics.totalHLSWatchersCount);
+		assertEquals(-1, broadcastStatistics.totalRTMPWatchersCount);
+		assertEquals(-1, broadcastStatistics.totalWebRTCWatchersCount);
+	}
+	
+	
 	@Test
 	public void testGetDeviceAuthparameters() {
 		//this is community edition

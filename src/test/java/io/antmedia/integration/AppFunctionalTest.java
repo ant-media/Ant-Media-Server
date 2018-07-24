@@ -209,11 +209,21 @@ public class AppFunctionalTest {
 			rtmpSendingProcess.destroy();
 
 			//wait for creating mp4 files
-			Thread.sleep(3000);
-
+			
+			String sourceURL = "http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + source.getStreamId() + ".mp4";
+			
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
+				return MuxingTest.getByteArray(sourceURL) != null;
+			});
+			
+			String endpointURL = "http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + endpoint.getStreamId() + ".mp4";
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
+				return MuxingTest.getByteArray(endpointURL) != null;
+			});
+			
 			//test mp4 files
-			assertTrue(MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + source.getStreamId() + ".mp4"));
-			assertTrue(MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + endpoint.getStreamId() + ".mp4"));
+			assertTrue(MuxingTest.testFile(sourceURL));
+			assertTrue(MuxingTest.testFile(endpointURL));
 
 			restService.deleteBroadcast(source.getStreamId());
 			restService.deleteBroadcast(endpoint.getStreamId());
@@ -245,9 +255,10 @@ public class AppFunctionalTest {
 			rtmpSendingProcess.destroy();
 
 			//wait for creating  files
-			Thread.sleep(3000);
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + ".mp4");
+			});
 
-			assertTrue(MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + ".mp4"));
 			assertTrue(MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + ".m3u8"));
 
 
@@ -327,6 +338,12 @@ public class AppFunctionalTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+		
+		
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+			RestServiceTest restService = new RestServiceTest();
+			return 0 == restService.callGetLiveStatistics().totalLiveStreamCount;
+		});
 
 	}
 
@@ -344,10 +361,7 @@ public class AppFunctionalTest {
 				System.out.println("brodcast url: " + broadcast.getStreamId() + " status: " + broadcast.getStatus());
 			}
 			LiveStatistics liveStatistics = restService.callGetLiveStatistics();
-			assertEquals(liveStatistics.totalHLSWatchersCount, 0);
-			assertEquals(liveStatistics.totalRTMPWatchersCount, 0);
-			assertEquals(liveStatistics.totalWebRTCWatchersCount, 0);
-			assertEquals(liveStatistics.totalLiveStreamCount, 0);
+			assertEquals(0, liveStatistics.totalLiveStreamCount);
 
 			// publish live stream to the server
 			String streamId = "zombiStreamId1";
@@ -358,15 +372,12 @@ public class AppFunctionalTest {
 			Thread.sleep(3000);
 
 			liveStatistics = restService.callGetLiveStatistics();
-			assertEquals(liveStatistics.totalHLSWatchersCount, 0);
-			assertEquals(liveStatistics.totalRTMPWatchersCount, 0);
-			assertEquals(liveStatistics.totalWebRTCWatchersCount, 0);
 			assertEquals(liveStatistics.totalLiveStreamCount, 1);
 
 			BroadcastStatistics broadcastStatistics = restService.callGetBroadcastStatistics(streamId);
-			assertEquals(broadcastStatistics.totalHLSWatchersCount, 0);
+			assertEquals(broadcastStatistics.totalHLSWatchersCount, -1);  //-1 mean it is not availeble
 			assertEquals(broadcastStatistics.totalRTMPWatchersCount, 0);
-			assertEquals(broadcastStatistics.totalWebRTCWatchersCount, 0);
+			assertEquals(broadcastStatistics.totalWebRTCWatchersCount, -1); // -1 mean it is not available 
 
 			broadcastStatistics = restService.callGetBroadcastStatistics("unknown_stream_id");
 			assertNotNull(broadcastStatistics);
@@ -384,11 +395,12 @@ public class AppFunctionalTest {
 			assertEquals(broadcastStatistics.totalRTMPWatchersCount, -1);
 			assertEquals(broadcastStatistics.totalWebRTCWatchersCount, -1);
 
-			liveStatistics = restService.callGetLiveStatistics();
-			assertEquals(liveStatistics.totalHLSWatchersCount, 0);
-			assertEquals(liveStatistics.totalRTMPWatchersCount, 0);
-			assertEquals(liveStatistics.totalWebRTCWatchersCount, 0);
-			assertEquals(liveStatistics.totalLiveStreamCount, 0);
+			
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+
+				return 0 == restService.callGetLiveStatistics().totalLiveStreamCount;
+			});
+			
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -482,6 +494,17 @@ public class AppFunctionalTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+		
+		//let the server update live stream count
+		
+		
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+			RestServiceTest restService = new RestServiceTest();
+
+			LiveStatistics liveStatistics = restService.callGetLiveStatistics();
+			return 0 == liveStatistics.totalLiveStreamCount;
+		});
+		
 	}
 
 	public static void executeProcess(final String command) {

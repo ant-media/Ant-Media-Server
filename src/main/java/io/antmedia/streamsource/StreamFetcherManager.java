@@ -187,8 +187,7 @@ public class StreamFetcherManager {
 			if (!streamScheduler.isStreamAlive() && datastore != null && stream.getStreamId() != null) 
 			{
 				logger.info("Updating stream quality to poor of stream {}", stream.getStreamId() );
-				datastore.updateSourceQuality(stream.getStreamId(), MuxAdaptor.QUALITY_POOR);
-				datastore.updateSourceSpeed(stream.getStreamId(), 0);
+				datastore.updateSourceQualityParameters(stream.getStreamId(), MuxAdaptor.QUALITY_POOR, 0, 0);
 			}
 		}
 	}

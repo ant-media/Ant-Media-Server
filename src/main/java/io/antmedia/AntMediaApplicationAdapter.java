@@ -49,8 +49,8 @@ import io.antmedia.datastore.db.types.Licence;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.Vod;
 import io.antmedia.ipcamera.OnvifCamera;
-import io.antmedia.licence.FirebaseEngine;
-import io.antmedia.muxer.IMuxerListener;
+import io.antmedia.muxer.IAntMediaStreamHandler;
+
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.model.Result;
 import io.antmedia.social.endpoint.PeriscopeEndpoint;
@@ -59,7 +59,7 @@ import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
 
-public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter implements IMuxerListener {
+public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter implements IAntMediaStreamHandler {
 
 	public static final String BEAN_NAME = "web.handler";
 	public static final String BROADCAST_STATUS_CREATED = "created";
@@ -96,13 +96,14 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 				registerStreamPublishSecurity(streamPublishSecurity);
 			}
 		}
-		addScheduledOnceJob(0, new IScheduledJob() {
+		String scheduledJobName = addScheduledOnceJob(0, new IScheduledJob() {
 
 			@Override
 			public void execute(ISchedulingService service) throws CloneNotSupportedException {
 				streamFetcherManager = new StreamFetcherManager(AntMediaApplicationAdapter.this, dataStore,app);
 				streamFetcherManager.setRestartStreamFetcherPeriod(appSettings.getRestartStreamFetcherPeriod());
 				List<Broadcast> streams = getDataStore().getExternalStreamsList();
+				logger.info("Stream source size: {}", streams.size());
 				streamFetcherManager.startStreams(streams);
 
 				List<SocialEndpointCredentials> socialEndpoints = dataStore.getSocialEndpoints(0, END_POINT_LIMIT);
@@ -135,7 +136,9 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 			}
 		});
 		
-		
+
+		logger.info("AppStart scheduled job name: {}", scheduledJobName);
+
 
 		return super.appStart(app);
 	}
@@ -317,7 +320,8 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 						Broadcast broadcast = dataStore.get(streamName);
 
 						if (broadcast == null) {
-							broadcast = saveZombiBroadcast(streamName);
+							
+							broadcast = saveUndefinedBroadcast(streamName, getScope().getName(), dataStore, appSettings);
 
 						} else {
 
@@ -365,18 +369,25 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		});
 	}
 
-	private Broadcast saveZombiBroadcast(String streamName) {
+	public static Broadcast saveUndefinedBroadcast(String streamName, String scopeName, IDataStore dataStore, AppSettings appSettings) {
 		Broadcast newBroadcast = new Broadcast();
 		newBroadcast.setDate(System.currentTimeMillis());
 		newBroadcast.setZombi(true);
 		try {
 			newBroadcast.setStreamId(streamName);
 
+			String settingsListenerHookURL = null; 
+			String fqdn = null;
+			if (appSettings != null) {
+				settingsListenerHookURL = appSettings.getListenerHookURL();
+				fqdn = appSettings.getServerName();
+			}
+			
 			return BroadcastRestService.saveBroadcast(newBroadcast,
-					AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, getScope().getName(), dataStore,
-					appSettings);
+					AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, scopeName, dataStore,
+					settingsListenerHookURL, fqdn);
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 
 		return null;
@@ -409,29 +420,16 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 			if (!name.matches(regularExp) && (index = name.lastIndexOf(".mp4")) != -1) {
 				final String baseName = name.substring(0, index);
-				dataStore.updateDuration(streamId, duration);
 
 				Broadcast broadcast = dataStore.get(streamId);
 
-				if (broadcast != null) {
-					streamName = broadcast.getName();
-				} 
-				else {
-					streamName = file.getName();
-				}
 				String[] subDirs = filePath.split(Pattern.quote(File.separator));
 
 				Integer pathLength=Integer.valueOf(subDirs.length);
-
 				String relativePath=subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
 
-				String vodId = RandomStringUtils.randomNumeric(24);
-
-				Vod newVod = new Vod(streamName, streamId, relativePath, name, unixTime, duration, fileSize, Vod.STREAM_VOD, vodId);
-
-				getDataStore().addVod(newVod);
-
 				if (broadcast != null) {
+					streamName = broadcast.getName();
 					final String listenerHookURL = broadcast.getListenerHookURL();
 
 					if (listenerHookURL != null && listenerHookURL.length() > 0) {
@@ -444,6 +442,16 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 							}
 						});
 					}
+				}
+				else {
+					streamName = file.getName();
+				}
+				
+				String vodId = RandomStringUtils.randomNumeric(24);
+				Vod newVod = new Vod(streamName, streamId, relativePath, name, unixTime, duration, fileSize, Vod.STREAM_VOD, vodId);
+				
+				if (getDataStore().addVod(newVod) == null) {
+					logger.warn("Stream vod with stream id {} cannot be added to data store", streamId);
 				}
 
 			}
@@ -638,35 +646,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	public void setAppSettings(AppSettings appSettings) {
 		this.appSettings = appSettings;
 	}
-	@Override
-	public void sourceQualityChanged(String id,String quality) 
-	{
-		String qualityChangedJobName = addScheduledOnceJob(0, new IScheduledJob() {
 
-			@Override
-			public void execute(ISchedulingService service) throws CloneNotSupportedException {
-				boolean updateSourceQuality = getDataStore().updateSourceQuality(id, quality);
-				log.info("source stream {} quality changed, new quality is: {}  , updating data strore {}", id, quality, updateSourceQuality);
-
-			}
-		});
-		logger.info("sourceQualityChanged job name: {}", qualityChangedJobName);
-	}
-
-
-	@Override
-	public void sourceSpeedChanged(String id,double speed) {
-
-		String speedChangeJobName = addScheduledOnceJob(0, new IScheduledJob() {
-			@Override
-			public void execute(ISchedulingService service) throws CloneNotSupportedException {
-				getDataStore().updateSourceSpeed(id, speed);
-
-			}
-		});
-		logger.info("sourceSpeedChanged change name {}", speedChangeJobName);
-
-	}
 
 	public StreamFetcher startStreaming(Broadcast broadcast) {
 		return streamFetcherManager.startStreaming(broadcast);
@@ -700,6 +680,12 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 	public void setDataStore(IDataStore dataStore) {
 		this.dataStore = dataStore;
+	}
+
+	@Override
+	public void setQualityParameters(String id, String quality, double speed, int pendingPacketSize) {
+		getDataStore().updateSourceQualityParameters(id, quality, speed, pendingPacketSize);
+		
 	}
 
 }

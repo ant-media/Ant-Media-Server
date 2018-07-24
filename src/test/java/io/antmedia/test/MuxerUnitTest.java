@@ -21,7 +21,11 @@ import org.bytedeco.javacpp.avutil;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 import org.mockito.Mockito;
 import org.red5.io.ITag;
 import org.red5.io.flv.impl.FLVReader;
@@ -30,7 +34,6 @@ import org.red5.server.api.stream.IStreamPacket;
 import org.red5.server.scheduling.QuartzSchedulingService;
 import org.red5.server.scope.WebScope;
 import org.red5.server.service.mp4.impl.MP4Service;
-import org.red5.server.stream.RemoteBroadcastStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
@@ -141,6 +144,20 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 		getAppSettings().setAdaptiveResolutionList(defaultSettings.getAdaptiveResolutionList());
 		
 	}
+	
+	@Rule
+	public TestRule watcher = new TestWatcher() {
+	   protected void starting(Description description) {
+	      System.out.println("Starting test: " + description.getMethodName());
+	   }
+	   
+	   protected void failed(Throwable e, Description description) {
+		   System.out.println("Failed test: " + description.getMethodName());
+	   };
+	   protected void finished(Description description) {
+		   System.out.println("Finishing test: " + description.getMethodName());
+	   };
+	};
 
 	public static void delete(File file)
 			throws IOException{
@@ -286,45 +303,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 	}
 
-	@Test
-	public void testRemoteBroadcastStreamStartStop() 
-	{
-		if (appScope == null) {
-			appScope = (WebScope) applicationContext.getBean("web.scope");
-			logger.debug("Application / web scope: {}", appScope);
-			assertTrue(appScope.getDepth() == 1);
-		}
-
-		QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
-		assertNotNull(scheduler);
-
-		RemoteBroadcastStream rbs = new RemoteBroadcastStream();
-		rbs.setRemoteStreamUrl("src/test/resources/test_short.flv");
-		//boolean containsScheduler = thisScope.getParent().getContext().getApplicationContext().containsBean("rtmpScheduler");
-		//if (containsScheduler) 
-
-		rbs.setScheduler(scheduler);
-
-		rbs.setName(UUID.randomUUID().toString());
-		rbs.setConnection(null);
-		rbs.setScope(appScope);
-
-		rbs.start();
-
-
-
-		while(scheduler.getScheduledJobNames().size() != 1) {
-			try {
-				Thread.sleep(5000);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-		}
-
-
-		assertEquals(0, rbs.getReferenceCountInQueue());
-
-	}
 
 	@Test
 	public void testStressMp4Muxing() {
@@ -357,7 +335,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 				for (Iterator<MuxAdaptor> iterator = muxAdaptorList.iterator(); iterator.hasNext();) {
 					MuxAdaptor muxAdaptor = (MuxAdaptor) iterator.next();
-					boolean result = muxAdaptor.init(appScope, "test" + (int)(Math.random() * 1000), false);
+					boolean result = muxAdaptor.init(appScope, "test" + (int)(Math.random() * 991000), false);
 					assertTrue(result);
 					muxAdaptor.start();
 					logger.info("Mux adaptor instance " + muxAdaptor);
@@ -599,7 +577,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 		assertEquals(Application.duration, 697132L);
 
 		broadcast = appAdaptor.getDataStore().get(streamId);
-		assertEquals((long)broadcast.getDuration(), 697132L);
+		//we do not save duration of the finished live streams
+		//assertEquals((long)broadcast.getDuration(), 697132L);
 
 		assertEquals(Application.notifyHookAction, Application.HOOK_ACTION_VOD_READY);
 		assertEquals(Application.notitfyURL, hookUrl);
@@ -619,7 +598,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 		assertEquals(Application.duration, 10080L);
 
 		broadcast = appAdaptor.getDataStore().get(streamId);
-		assertEquals((long)broadcast.getDuration(), 10080L);
+		//we do not save duration of the finished live streams
+		//assertEquals((long)broadcast.getDuration(), 10080L);
 
 		assertEquals(Application.notifyHookAction, Application.HOOK_ACTION_VOD_READY);
 		assertEquals(Application.notitfyURL, hookUrl);
