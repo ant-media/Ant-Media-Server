@@ -970,38 +970,34 @@ public class BroadcastRestService {
 		File recordFile = null; 
 		ApplicationContext appContext = getAppContext();
 		if (appContext != null) {
-			
+
 			if(type.equals(Vod.STREAM_VOD)) {
 
 				recordFile = Muxer.getRecordFile(getScope(), fileName, "");
-				
+
 			} else if (type.equals(Vod.UPLOADED_VOD)) {
-				
+
 				recordFile = Muxer.getRecordFile(getScope(), id, ".mp4");
-				
+
 			} else {
 				// it means, user VoD
 				String userVoDFolder = getAppSettings().getVodFolder();
 				recordFile = Muxer.getUserRecordFile(getScope(), userVoDFolder, fileName);
 			}
-			
+
 			logger.info("recordfile {} : " , recordFile.getAbsolutePath());
 
 			try {
-				if (recordFile.exists()) {
-					success = Files.deleteIfExists(recordFile.toPath());
-					message = "vod found and deleted";
-					getDataStore().deleteVod(id);
-				} 
-				
-				else {
-					success = getDataStore().deleteVod(id);
-				}
+
+				Files.deleteIfExists(recordFile.toPath());
+				success = getDataStore().deleteVod(id);
+				message = "vod deleted";
+
 			}
 			catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
-			String splitFileName[] = StringUtils.split(fileName,".");
+			String[] splitFileName = StringUtils.split(fileName,".");
 			//delete preview file if exists
 			File previewFile = Muxer.getPreviewFile(getScope(), splitFileName[0], ".png");
 			if (previewFile.exists()) {
@@ -1014,7 +1010,7 @@ public class BroadcastRestService {
 
 			if (appContext.containsBean("app.storageClient")) {
 				StorageClient storageClient = (StorageClient) appContext.getBean("app.storageClient");
-				
+
 				storageClient.delete(splitFileName[0] + ".mp4", FileType.TYPE_STREAM);
 				storageClient.delete(splitFileName[0] + ".png", FileType.TYPE_PREVIEW);
 			}

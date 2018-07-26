@@ -122,7 +122,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 				}
 			}
 		});
-		
+
 		logger.info("AppStart scheduled job name: {}", scheduledJobName);
 
 		return super.appStart(app);
@@ -306,7 +306,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 						Broadcast broadcast = dataStore.get(streamName);
 
 						if (broadcast == null) {
-							
+
 							broadcast = saveUndefinedBroadcast(streamName, getScope().getName(), dataStore, appSettings);
 
 						} else {
@@ -368,7 +368,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 				settingsListenerHookURL = appSettings.getListenerHookURL();
 				fqdn = appSettings.getServerName();
 			}
-			
+
 			return BroadcastRestService.saveBroadcast(newBroadcast,
 					AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, scopeName, dataStore,
 					settingsListenerHookURL, fqdn);
@@ -415,22 +415,21 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 					final String baseName = vodName.substring(0, index);
 					final String listenerHookURL = broadcast.getListenerHookURL();
 
-					if (listenerHookURL != null && listenerHookURL.length() > 0) {
-						addScheduledOnceJob(100, new IScheduledJob() {
+					addScheduledOnceJob(100, new IScheduledJob() {
 
-							@Override
-							public void execute(ISchedulingService service) throws CloneNotSupportedException {
-								notifyHook(listenerHookURL, streamId, HOOK_ACTION_VOD_READY, null, null, baseName);
-							}
-						});
-					}
+						@Override
+						public void execute(ISchedulingService service) throws CloneNotSupportedException {
+							notifyHook(listenerHookURL, streamId, HOOK_ACTION_VOD_READY, null, null, baseName);
+						}
+					});
+
 				}
 			}
-			
+
 			if(resolution != 0 && broadcast != null) {
-				streamName = streamName + " (" + String.valueOf(resolution) + "p)";
+				streamName = streamName + " (" + resolution + "p)";
 			}
-			
+
 			String vodId = RandomStringUtils.randomNumeric(24);
 			Vod newVod = new Vod(streamName, streamId, relativePath, vodName, systemTime, duration, fileSize, Vod.STREAM_VOD, vodId);
 
@@ -532,26 +531,32 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	 */
 	public StringBuffer notifyHook(String url, String id, String action, String streamName, String category,
 			String vodName) {
-		Map<String, String> variables = new HashMap<>();
-
-		variables.put("id", id);
-		variables.put("action", action);
-		if (streamName != null) {
-			variables.put("streamName", streamName);
-		}
-		if (category != null) {
-			variables.put("category", category);
-		}
-
-		if (vodName != null) {
-			variables.put("vodName", vodName);
-		}
 
 		StringBuffer response = null;
-		try {
-			response = sendPOST(url, variables);
-		} catch (IOException e) {
-			e.printStackTrace();
+
+
+		if (url != null && url.length() > 0) {
+			Map<String, String> variables = new HashMap<>();
+
+			variables.put("id", id);
+			variables.put("action", action);
+			if (streamName != null) {
+				variables.put("streamName", streamName);
+			}
+			if (category != null) {
+				variables.put("category", category);
+			}
+
+			if (vodName != null) {
+				variables.put("vodName", vodName);
+			}
+
+
+			try {
+				response = sendPOST(url, variables);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 		return response;
 	}
@@ -667,7 +672,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	@Override
 	public void setQualityParameters(String id, String quality, double speed, int pendingPacketSize) {
 		getDataStore().updateSourceQualityParameters(id, quality, speed, pendingPacketSize);
-		
+
 	}
 
 }
