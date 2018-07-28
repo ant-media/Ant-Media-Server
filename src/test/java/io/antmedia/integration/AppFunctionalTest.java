@@ -229,8 +229,13 @@ public class AppFunctionalTest {
 	public void testSendRTMPStream() {
 
 		try {
-
+			
 			RestServiceTest rest = new RestServiceTest();
+			
+			int currentVodNumber = Integer.valueOf(rest.callTotalVoDNumber().getMessage());
+			
+			log.info("current vod number before test {}", String.valueOf(currentVodNumber));
+			
 
 			Broadcast broadcast=rest.createBroadcast("RTMP_stream");
 
@@ -250,14 +255,17 @@ public class AppFunctionalTest {
 
 			assertTrue(MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + ".m3u8"));
 
-
 			if(!BroadcastRestService.isEnterprise()) {
 				return;
 			}
 
 			assertTrue(MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + "_240p.m3u8"));
-
-
+			
+			int lastVodNumber = Integer.valueOf(rest.callTotalVoDNumber().getMessage());
+			log.info("vod number after test {}", String.valueOf(lastVodNumber));
+			
+			//2 more VoDs should be added to DB, one is original other one ise 240p mp4 files
+			assertEquals(currentVodNumber + 2, lastVodNumber);
 
 		} catch (Exception e) {
 			e.printStackTrace();
