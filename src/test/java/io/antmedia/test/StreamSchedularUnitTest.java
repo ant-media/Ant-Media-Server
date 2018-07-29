@@ -579,7 +579,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	private void resetNetworkInterface(String activeInterface) {
 		logger.info("Running resetNetworkInterface");
 
-		runCommand("wondershaper clear "+activeInterface);
+		runCommand("sudo wondershaper clear "+activeInterface);
 		/*
 
 		runShellCommand(new String[] { "/bin/bash", "-c",
@@ -625,7 +625,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		//runShellCommand(new String[] { "/bin/bash", "-c","sudo wondershaper wlan0 100 100" });
 
-		String command = "wondershaper "+activeInterface+" 5 5";
+		String command = "sudo wondershaper "+activeInterface+" 5 5";
 		logger.info("command : {}",command);
 		runCommand(command);
 
