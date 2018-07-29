@@ -321,6 +321,9 @@ public class AppFunctionalTest {
 			Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				return restService.callGetBroadcast(streamId).getHlsViewerCount() == 1;
 			});
+			
+			BroadcastStatistics broadcastStatistics = restService.callGetBroadcastStatistics(streamId);
+			assertEquals(1, broadcastStatistics.totalHLSWatchersCount);
 
 
 			// stop publishing live stream
@@ -374,18 +377,19 @@ public class AppFunctionalTest {
 			Thread.sleep(3000);
 
 			liveStatistics = restService.callGetLiveStatistics();
-			assertEquals(liveStatistics.totalLiveStreamCount, 1);
+			assertEquals(1, liveStatistics.totalLiveStreamCount);
 
 			BroadcastStatistics broadcastStatistics = restService.callGetBroadcastStatistics(streamId);
-			assertEquals(broadcastStatistics.totalHLSWatchersCount, -1);  //-1 mean it is not availeble
-			assertEquals(broadcastStatistics.totalRTMPWatchersCount, 0);
-			assertEquals(broadcastStatistics.totalWebRTCWatchersCount, -1); // -1 mean it is not available 
+			assertEquals(0, broadcastStatistics.totalHLSWatchersCount); 
+			assertEquals(0, broadcastStatistics.totalRTMPWatchersCount);
+			assertEquals(-1, broadcastStatistics.totalWebRTCWatchersCount); // -1 mean it is not available 
+			
 
 			broadcastStatistics = restService.callGetBroadcastStatistics("unknown_stream_id");
 			assertNotNull(broadcastStatistics);
-			assertEquals(broadcastStatistics.totalHLSWatchersCount, -1);
-			assertEquals(broadcastStatistics.totalRTMPWatchersCount, -1);
-			assertEquals(broadcastStatistics.totalWebRTCWatchersCount, -1);
+			assertEquals(-1, broadcastStatistics.totalHLSWatchersCount);
+			assertEquals(-1, broadcastStatistics.totalRTMPWatchersCount);
+			assertEquals(-1, broadcastStatistics.totalWebRTCWatchersCount);
 
 			destroyProcess();
 
@@ -393,9 +397,9 @@ public class AppFunctionalTest {
 
 			broadcastStatistics = restService.callGetBroadcastStatistics(streamId);
 			assertNotNull(broadcastStatistics);
-			assertEquals(broadcastStatistics.totalHLSWatchersCount, -1);
-			assertEquals(broadcastStatistics.totalRTMPWatchersCount, -1);
-			assertEquals(broadcastStatistics.totalWebRTCWatchersCount, -1);
+			assertEquals(-1, broadcastStatistics.totalHLSWatchersCount);
+			assertEquals(-1, broadcastStatistics.totalRTMPWatchersCount);
+			assertEquals(-1, broadcastStatistics.totalWebRTCWatchersCount);
 
 
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
@@ -421,7 +425,7 @@ public class AppFunctionalTest {
 			Broadcast broadcast = restService.createBroadcast("name");
 
 			broadcast = restService.getBroadcast(broadcast.getStreamId());
-			assertEquals(broadcast.getName(), "name");
+			assertEquals("name", broadcast.getName());
 
 			// TODO: add this to enterprise
 			/*

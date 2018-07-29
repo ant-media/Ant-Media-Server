@@ -609,12 +609,62 @@ public class MongoStore implements IDataStore {
 		return false;
 	}
 	
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
-	public boolean updateHLSViewerCount(String streamId, int viewerCount) {
+	public boolean updateHLSViewerCount(String streamId, int diffCount) {
 		try {
 
 			Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(streamId);
-			UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set("hlsViewerCount", viewerCount);
+			UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).inc("hlsViewerCount", diffCount);
+
+			UpdateResults update = datastore.update(query, ops);
+			return update.getUpdatedCount() == 1;
+		} catch (Exception e) {
+			logger.error(e.getMessage());
+		}
+		return false;
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public boolean updateWebRTCViewerCount(String streamId, boolean increment) {
+		try {
+
+			Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(streamId);
+			UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class);
+			String field = "webRTCViewerCount";
+			if (increment) {
+				ops.inc(field);
+			}
+			else {
+				ops.dec(field);
+			}
+
+			UpdateResults update = datastore.update(query, ops);
+			return update.getUpdatedCount() == 1;
+		} catch (Exception e) {
+			logger.error(e.getMessage());
+		}
+		return false;
+	}
+	
+	@Override
+	public boolean updateRtmpViewerCount(String streamId, boolean increment) {
+		try {
+
+			Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(streamId);
+			UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class);
+			String field = "rtmpViewerCount";
+			if (increment) {
+				ops.inc(field);
+			}
+			else {
+				ops.dec(field);
+			}
 
 			UpdateResults update = datastore.update(query, ops);
 			return update.getUpdatedCount() == 1;

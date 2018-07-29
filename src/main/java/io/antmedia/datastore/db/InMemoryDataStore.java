@@ -593,12 +593,59 @@ public class InMemoryDataStore implements IDataStore {
 	}
 	
 	@Override
-	public boolean updateHLSViewerCount(String streamId, int viewerCount) {
+	public synchronized boolean updateHLSViewerCount(String streamId, int diffCount) {
 		boolean result = false;
 		if (streamId != null) {
 			Broadcast broadcast = broadcastMap.get(streamId);
 			if (broadcast != null) {
-				broadcast.setHlsViewerCount(viewerCount);
+				int hlsViewerCount = broadcast.getHlsViewerCount();
+				hlsViewerCount += diffCount;
+						
+				broadcast.setHlsViewerCount(hlsViewerCount);
+				broadcastMap.replace(streamId, broadcast);
+				result = true;
+			}
+		}
+		return result;
+	}
+	
+	@Override
+	public synchronized boolean updateWebRTCViewerCount(String streamId, boolean increment) {
+		boolean result = false;
+		if (streamId != null) {
+			Broadcast broadcast = broadcastMap.get(streamId);
+			if (broadcast != null) {
+				int webRTCViewerCount = broadcast.getWebRTCViewerCount();
+				if (increment) {
+					webRTCViewerCount++;
+				}
+				else  {
+					webRTCViewerCount--;
+				}
+				
+				broadcast.setWebRTCViewerCount(webRTCViewerCount);
+				broadcastMap.replace(streamId, broadcast);
+				result = true;
+			}
+		}
+		return result;
+	}
+	
+	@Override
+	public synchronized boolean updateRtmpViewerCount(String streamId, boolean increment) {
+		boolean result = false;
+		if (streamId != null) {
+			Broadcast broadcast = broadcastMap.get(streamId);
+			if (broadcast != null) {
+				int rtmpViewerCount = broadcast.getRtmpViewerCount();
+				if (increment) {
+					rtmpViewerCount++;
+				}
+				else  {
+					rtmpViewerCount--;
+				}
+				
+				broadcast.setRtmpViewerCount(rtmpViewerCount);
 				broadcastMap.replace(streamId, broadcast);
 				result = true;
 			}

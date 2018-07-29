@@ -78,6 +78,8 @@ public class DBStoresUnitTest {
 		testEditCameraInfo(dataStore);
 		testGetActiveBroadcastCount(dataStore);
 		testUpdateHLSViewerCount(dataStore);
+		testWebRTCViewerCount(dataStore);
+		testRTMPViewerCount(dataStore);
 
 
 	}
@@ -103,6 +105,8 @@ public class DBStoresUnitTest {
 		testEditCameraInfo(dataStore);
 		testGetActiveBroadcastCount(dataStore);
 		testUpdateHLSViewerCount(dataStore);
+		testWebRTCViewerCount(dataStore);
+		testRTMPViewerCount(dataStore);
 		
 	}
 
@@ -141,6 +145,8 @@ public class DBStoresUnitTest {
 		testEditCameraInfo(dataStore);
 		testGetActiveBroadcastCount(dataStore);
 		testUpdateHLSViewerCount(dataStore);
+		testWebRTCViewerCount(dataStore);
+		testRTMPViewerCount(dataStore);
 
 	}
 	
@@ -436,15 +442,110 @@ public class DBStoresUnitTest {
 		
 		//update hls viewer several times 
 		//check hls viewer count
+		int totalCountFor1 = 0;
+		int totalCountFor2 = 0;
 		for (int i = 0; i < 50; i++) {
 			int viewerCount = (int)(Math.random()*99999);
+			if (viewerCount % 2 == 0) {
+				viewerCount = -1 * viewerCount;
+			}
 			assertTrue(dataStore.updateHLSViewerCount(key, viewerCount));
 			
-			int viewerCount2 = (int)(Math.random()*99999);
-			assertTrue(dataStore.updateHLSViewerCount(key2, viewerCount2));
+			totalCountFor1 += viewerCount;
 			
-			assertEquals(viewerCount, dataStore.get(key).getHlsViewerCount());
-			assertEquals(viewerCount2, dataStore.get(key2).getHlsViewerCount());
+			int viewerCount2 = (int)(Math.random()*99999);
+			if (viewerCount2 % 2 == 0) {
+				viewerCount2 = -1 * viewerCount2;
+			}
+			assertTrue(dataStore.updateHLSViewerCount(key2, viewerCount2));
+			totalCountFor2 += viewerCount2;
+			
+			assertEquals(totalCountFor1, dataStore.get(key).getHlsViewerCount());
+			assertEquals(totalCountFor2, dataStore.get(key2).getHlsViewerCount());
+		}
+	}
+	
+	public void testWebRTCViewerCount(IDataStore dataStore) {
+		//create a stream
+		Broadcast broadcast = new Broadcast();
+		broadcast.setName("test");
+		String key = dataStore.save(broadcast);
+
+		Broadcast broadcast2 = new Broadcast();
+		broadcast2.setName("test2");
+		String key2 = dataStore.save(broadcast2);
+		
+		int totalViewerCountFor1 = 0;
+		int totalViewerCountFor2 = 0;
+		for (int i = 0; i < 150; i++) {
+			
+			boolean increment = false; 
+			int randomValue = (int)(Math.random()*99999);
+			if (randomValue % 2 == 0) {
+				increment = true;
+				totalViewerCountFor1++;
+			}
+			else {
+				totalViewerCountFor1--;
+			}
+			assertTrue(dataStore.updateWebRTCViewerCount(key, increment));
+			
+			increment = false; 
+			randomValue = (int)(Math.random()*99999);
+			if (randomValue % 2 == 0) {
+				increment = true;
+				totalViewerCountFor2++;
+			}
+			else {
+				totalViewerCountFor2--;
+			}
+			
+			assertTrue(dataStore.updateWebRTCViewerCount(key2, increment));
+			
+			assertEquals(totalViewerCountFor1, dataStore.get(key).getWebRTCViewerCount());
+			assertEquals(totalViewerCountFor2, dataStore.get(key2).getWebRTCViewerCount());
+		}
+	}
+	
+	public void testRTMPViewerCount(IDataStore dataStore) {
+		//create a stream
+		Broadcast broadcast = new Broadcast();
+		broadcast.setName("test");
+		String key = dataStore.save(broadcast);
+
+		Broadcast broadcast2 = new Broadcast();
+		broadcast2.setName("test2");
+		String key2 = dataStore.save(broadcast2);
+		
+		int totalViewerCountFor1 = 0;
+		int totalViewerCountFor2 = 0;
+		for (int i = 0; i < 150; i++) {
+			
+			boolean increment = false; 
+			int randomValue = (int)(Math.random()*99999);
+			if (randomValue % 2 == 0) {
+				increment = true;
+				totalViewerCountFor1++;
+			}
+			else {
+				totalViewerCountFor1--;
+			}
+			assertTrue(dataStore.updateRtmpViewerCount(key, increment));
+			
+			increment = false; 
+			randomValue = (int)(Math.random()*99999);
+			if (randomValue % 2 == 0) {
+				increment = true;
+				totalViewerCountFor2++;
+			}
+			else {
+				totalViewerCountFor2--;
+			}
+			
+			assertTrue(dataStore.updateRtmpViewerCount(key2, increment));
+			
+			assertEquals(totalViewerCountFor1, dataStore.get(key).getRtmpViewerCount());
+			assertEquals(totalViewerCountFor2, dataStore.get(key2).getRtmpViewerCount());
 		}
 	}
 

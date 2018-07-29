@@ -29,7 +29,9 @@ import org.red5.server.api.scheduling.IScheduledJob;
 import org.red5.server.api.scheduling.ISchedulingService;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IBroadcastStream;
+import org.red5.server.api.stream.IPlayItem;
 import org.red5.server.api.stream.IStreamPublishSecurity;
+import org.red5.server.api.stream.ISubscriberStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -283,7 +285,29 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		}
 		return null;
 	}
+	
 
+	@Override
+	public void streamPlayItemPlay(ISubscriberStream stream, IPlayItem item, boolean isLive) {
+		super.streamPlayItemPlay(stream, item, isLive);
+		addScheduledOnceJob(0, service -> {
+			if (dataStore != null) {
+				dataStore.updateRtmpViewerCount(item.getName(), true);
+			}
+			
+		});
+	}
+	
+	@Override
+	public void streamPlayItemStop(ISubscriberStream stream, IPlayItem item) {
+		super.streamPlayItemStop(stream, item);
+		addScheduledOnceJob(0, service -> {
+			if (dataStore != null) {
+				dataStore.updateRtmpViewerCount(item.getName(), false);
+			}
+		});
+	}
+	
 	@Override
 	public void streamPublishStart(final IBroadcastStream stream) {
 		String streamName = stream.getPublishedName();
@@ -338,9 +362,9 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 								if (videoServiceEndPoint != null) {
 									try {
 										videoServiceEndPoint.publishBroadcast(endpoint);
-										log.info("publish broadcast called for " + videoServiceEndPoint.getName());
+										log.info("publish broadcast called for {}" , videoServiceEndPoint.getName());
 									} catch (Exception e) {
-										e.printStackTrace();
+										logger.error(ExceptionUtils.getStackTrace(e));
 									}
 								}
 
@@ -348,7 +372,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 						}
 					}
 				} catch (Exception e) {
-					e.printStackTrace();
+					logger.error(ExceptionUtils.getStackTrace(e));
 				}
 			}
 
