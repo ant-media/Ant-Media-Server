@@ -577,6 +577,42 @@ public class RestServiceTest {
 
 	}
 
+	
+	public  Result callTotalVoDNumber() throws Exception {
+
+		String url = ROOT_SERVICE_URL + "/broadcast/getTotalVodNumber";
+		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+		Gson gson = new Gson();
+
+		HttpUriRequest get = RequestBuilder.get().setUri(url)
+				.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+				// .setEntity(new StringEntity(gson.toJson(broadcast)))
+				.build();
+		CloseableHttpResponse response = client.execute(get);
+		
+		StringBuffer result = readResponse(response);
+
+		if (response.getStatusLine().getStatusCode() != 200) {
+			throw new Exception(result.toString());
+		}
+		System.out.println("result string: " + result.toString());
+
+
+		if (response.getStatusLine().getStatusCode() != 200) {
+			throw new Exception(result.toString());
+		}
+		logger.info("result string: {} ",result.toString());
+		
+		int totalVod = gson.fromJson(result.toString(),Integer.class);
+		
+		Result resultResponse = new Result(true, String.valueOf(totalVod));
+		
+		assertNotNull(resultResponse);
+
+		return resultResponse;
+
+	}
+	
 	public static Result callUpdateStreamSource(Broadcast broadcast) throws Exception {
 
 		String url = ROOT_SERVICE_URL + "/streamSource/updateCamInfo";

@@ -8,9 +8,11 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.InetAddress;
 import java.net.URL;
@@ -18,11 +20,14 @@ import java.net.UnknownHostException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.methods.RequestBuilder;
 import org.apache.http.impl.client.BasicCookieStore;
+import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.client.LaxRedirectStrategy;
 import org.awaitility.Awaitility;
@@ -48,6 +53,7 @@ import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.BroadcastRestService.BroadcastStatistics;
 import io.antmedia.rest.BroadcastRestService.LiveStatistics;
 import io.antmedia.rest.model.Result;
+import io.antmedia.rest.model.Version;
 import io.antmedia.test.Application;
 
 public class AppFunctionalTest {
@@ -56,6 +62,7 @@ public class AppFunctionalTest {
 	private AppSettings appSettings;
 	private static final Logger log = LoggerFactory.getLogger(AppFunctionalTest.class);
 	private static final String SERVER_ADDR = "127.0.0.1"; 
+	protected static Logger logger = LoggerFactory.getLogger(AppFunctionalTest.class);
 
 	public static Process process;
 	private static Process tmpExec;
@@ -76,19 +83,19 @@ public class AppFunctionalTest {
 		log.info("ROOT SERVICE URL: " + ROOT_SERVICE_URL);
 
 	}
-	
+
 	@Rule
 	public TestRule watcher = new TestWatcher() {
-	   protected void starting(Description description) {
-	      System.out.println("Starting test: " + description.getMethodName());
-	   }
-	   
-	   protected void failed(Throwable e, Description description) {
-		   System.out.println("Failed test: " + description.getMethodName());
-	   };
-	   protected void finished(Description description) {
-		   System.out.println("Finishing test: " + description.getMethodName());
-	   };
+		protected void starting(Description description) {
+			System.out.println("Starting test: " + description.getMethodName());
+		}
+
+		protected void failed(Throwable e, Description description) {
+			System.out.println("Failed test: " + description.getMethodName());
+		};
+		protected void finished(Description description) {
+			System.out.println("Finishing test: " + description.getMethodName());
+		};
 	};
 
 	private static int OS_TYPE;
@@ -130,7 +137,7 @@ public class AppFunctionalTest {
 			junit.mkdirs();
 		}
 	}
-	
+
 
 	@After
 	public void after() {
@@ -198,18 +205,18 @@ public class AppFunctionalTest {
 			rtmpSendingProcess.destroy();
 
 			//wait for creating mp4 files
-			
+
 			String sourceURL = "http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + source.getStreamId() + ".mp4";
-			
+
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
 				return MuxingTest.getByteArray(sourceURL) != null;
 			});
-			
+
 			String endpointURL = "http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + endpoint.getStreamId() + ".mp4";
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
 				return MuxingTest.getByteArray(endpointURL) != null;
 			});
-			
+
 			//test mp4 files
 			assertTrue(MuxingTest.testFile(sourceURL));
 			assertTrue(MuxingTest.testFile(endpointURL));
@@ -229,8 +236,11 @@ public class AppFunctionalTest {
 	public void testSendRTMPStream() {
 
 		try {
-
 			RestServiceTest rest = new RestServiceTest();
+
+			int currentVodNumber = Integer.valueOf(rest.callTotalVoDNumber().getMessage());
+
+			log.info("current vod number before test {}", String.valueOf(currentVodNumber));
 
 			Broadcast broadcast=rest.createBroadcast("RTMP_stream");
 
@@ -250,21 +260,24 @@ public class AppFunctionalTest {
 
 			assertTrue(MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + ".m3u8"));
 
+			if(callIsEnterpriseEdition().getMessage().equals("Enterprise Edition")) {
 
-			if(!BroadcastRestService.isEnterprise()) {
-				return;
+				assertTrue(MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + "_240p.m3u8"));
+
+				int lastVodNumber = Integer.valueOf(rest.callTotalVoDNumber().getMessage());
+				log.info("vod number after test {}", lastVodNumber);
+
+				//2 more VoDs should be added to DB, one is original other one ise 240p mp4 files
+				assertEquals(currentVodNumber + 2, lastVodNumber);
 			}
-
-			assertTrue(MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + "_240p.m3u8"));
-
-
 
 		} catch (Exception e) {
 			e.printStackTrace();
+			fail(e.getMessage());
 		}
 
 	}
-	
+
 	@Test
 	public void testZombiStream() {
 
@@ -281,7 +294,7 @@ public class AppFunctionalTest {
 					+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
 					+ streamId);
 
-			
+
 			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				return MuxingTest.isURLAvailable("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" +streamId+ "_0p0001.ts" );
 			});
@@ -296,19 +309,19 @@ public class AppFunctionalTest {
 			Broadcast broadcast = restService.callGetBroadcast(streamId);
 
 			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, broadcast.getStatus());
-			
-			
+
+
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				return MuxingTest.isURLAvailable("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" +streamId+ ".m3u8" );
 			});
-			
-			
+
+
 			assertTrue(MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" +streamId+ ".m3u8" ));
 
 			Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				return restService.callGetBroadcast(streamId).getHlsViewerCount() == 1;
 			});
-			
+
 
 			// stop publishing live stream
 			destroyProcess();
@@ -327,8 +340,8 @@ public class AppFunctionalTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-		
-		
+
+
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
 			RestServiceTest restService = new RestServiceTest();
 			return 0 == restService.callGetLiveStatistics().totalLiveStreamCount;
@@ -384,12 +397,12 @@ public class AppFunctionalTest {
 			assertEquals(broadcastStatistics.totalRTMPWatchersCount, -1);
 			assertEquals(broadcastStatistics.totalWebRTCWatchersCount, -1);
 
-			
+
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
 
 				return 0 == restService.callGetLiveStatistics().totalLiveStreamCount;
 			});
-			
+
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -453,17 +466,17 @@ public class AppFunctionalTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-		
+
 		//let the server update live stream count
-		
-		
+
+
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
 			RestServiceTest restService = new RestServiceTest();
 
 			LiveStatistics liveStatistics = restService.callGetLiveStatistics();
 			return 0 == liveStatistics.totalLiveStreamCount;
 		});
-		
+
 	}
 
 	public static void executeProcess(final String command) {
@@ -581,25 +594,43 @@ public class AppFunctionalTest {
 	}
 
 	public Result callIsEnterpriseEdition() throws Exception {
-		String url = "localhost:5080/ConsoleApp/rest/isEnterpriseEdition";
-
-		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
-				.setDefaultCookieStore(httpCookieStore).build();
+	
+		String url = "http://localhost:5080/LiveApp/rest/broadcast/getVersion";
+		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 		Gson gson = new Gson();
 
-		HttpUriRequest post = RequestBuilder.get().setUri(url).build();
+		HttpUriRequest get = RequestBuilder.get().setUri(url).build();
+		CloseableHttpResponse response = client.execute(get);
+		
+		StringBuffer result = readResponse(response);
 
-		HttpResponse response = client.execute(post);
 
-		StringBuffer result = RestServiceTest.readResponse(response);
 		if (response.getStatusLine().getStatusCode() != 200) {
 			throw new Exception(result.toString());
 		}
-		System.out.println("result string: " + result.toString());
-		Result tmp = gson.fromJson(result.toString(), Result.class);
-		assertNotNull(tmp);
-		return tmp;
+		logger.info("result string: {} ",result.toString());
+		
+		Version version = gson.fromJson(result.toString(),Version.class);
+		
+		
+		
+		Result resultResponse = new Result(true, version.getVersionType());
+		
+		assertNotNull(resultResponse);
 
+		return resultResponse;
+
+
+	}
+	public static StringBuffer readResponse(HttpResponse response) throws IOException {
+		BufferedReader rd = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
+
+		StringBuffer result = new StringBuffer();
+		String line = "";
+		while ((line = rd.readLine()) != null) {
+			result.append(line);
+		}
+		return result;
 	}
 
 

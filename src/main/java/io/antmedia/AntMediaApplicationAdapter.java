@@ -122,7 +122,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 				}
 			}
 		});
-		
+
 		logger.info("AppStart scheduled job name: {}", scheduledJobName);
 
 		return super.appStart(app);
@@ -306,7 +306,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 						Broadcast broadcast = dataStore.get(streamName);
 
 						if (broadcast == null) {
-							
+
 							broadcast = saveUndefinedBroadcast(streamName, getScope().getName(), dataStore, appSettings);
 
 						} else {
@@ -368,7 +368,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 				settingsListenerHookURL = appSettings.getListenerHookURL();
 				fqdn = appSettings.getServerName();
 			}
-			
+
 			return BroadcastRestService.saveBroadcast(newBroadcast,
 					AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, scopeName, dataStore,
 					settingsListenerHookURL, fqdn);
@@ -391,56 +391,52 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	}
 
 	@Override
-	public void muxingFinished(final String streamId, File file, long duration) {
-		String name = file.getName();
+	public void muxingFinished(final String streamId, File file, long duration, int resolution) {
+		String vodName = file.getName();
 		String filePath = file.getPath();
 		long fileSize = file.length();
-		long unixTime = System.currentTimeMillis();
-
-		String streamName = "";
+		String streamName = file.getName();
+		long systemTime = System.currentTimeMillis();
+		String[] subDirs = filePath.split(Pattern.quote(File.separator));
+		Integer pathLength=Integer.valueOf(subDirs.length);
+		String relativePath=subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
 
 		if (dataStore != null) {
-			int index;
-			// reg expression of a translated file, kdjf03030_240p.mp4
-			String regularExp = "^.*_{1}[0-9]{3}p{1}\\.mp4{1}$";
+			Broadcast broadcast = dataStore.get(streamId);
 
-			if (!name.matches(regularExp) && (index = name.lastIndexOf(".mp4")) != -1) {
-				final String baseName = name.substring(0, index);
+			if (broadcast != null) {
+				//if it is a stream VoD, than assign stream name, if it is deleted stream Vod name assigned to it already
+				streamName = broadcast.getName();
+				int index;
+				// reg expression of a translated file, kdjf03030_240p.mp4
+				String regularExp = "^.*_{1}[0-9]{3}p{1}\\.mp4{1}$";
 
-				Broadcast broadcast = dataStore.get(streamId);
-
-				String[] subDirs = filePath.split(Pattern.quote(File.separator));
-
-				Integer pathLength=Integer.valueOf(subDirs.length);
-				String relativePath=subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
-				
-				if (broadcast != null) {
-					streamName = broadcast.getName();
+				if (!vodName.matches(regularExp) && (index = vodName.lastIndexOf(".mp4")) != -1) {
+					final String baseName = vodName.substring(0, index);
 					final String listenerHookURL = broadcast.getListenerHookURL();
 
-					if (listenerHookURL != null && listenerHookURL.length() > 0) {
+					addScheduledOnceJob(100, new IScheduledJob() {
 
-						addScheduledOnceJob(100, new IScheduledJob() {
+						@Override
+						public void execute(ISchedulingService service) throws CloneNotSupportedException {
+							notifyHook(listenerHookURL, streamId, HOOK_ACTION_VOD_READY, null, null, baseName);
+						}
+					});
 
-							@Override
-							public void execute(ISchedulingService service) throws CloneNotSupportedException {
-								notifyHook(listenerHookURL, streamId, HOOK_ACTION_VOD_READY, null, null, baseName);
-							}
-						});
-					}
 				}
-				else {
-					streamName = file.getName();
-				}
-				
-				String vodId = RandomStringUtils.randomNumeric(24);
-				Vod newVod = new Vod(streamName, streamId, relativePath, name, unixTime, duration, fileSize, Vod.STREAM_VOD, vodId);
-				
-				if (getDataStore().addVod(newVod) == null) {
-					logger.warn("Stream vod with stream id {} cannot be added to data store", streamId);
-				}
-
 			}
+
+			if(resolution != 0 && broadcast != null) {
+				streamName = streamName + " (" + resolution + "p)";
+			}
+
+			String vodId = RandomStringUtils.randomNumeric(24);
+			Vod newVod = new Vod(streamName, streamId, relativePath, vodName, systemTime, duration, fileSize, Vod.STREAM_VOD, vodId);
+
+			if (getDataStore().addVod(newVod) == null) {
+				logger.warn("Stream vod with stream id {} cannot be added to data store", streamId);
+			}	
+
 		}
 	}
 
@@ -535,26 +531,32 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	 */
 	public StringBuffer notifyHook(String url, String id, String action, String streamName, String category,
 			String vodName) {
-		Map<String, String> variables = new HashMap<>();
-
-		variables.put("id", id);
-		variables.put("action", action);
-		if (streamName != null) {
-			variables.put("streamName", streamName);
-		}
-		if (category != null) {
-			variables.put("category", category);
-		}
-
-		if (vodName != null) {
-			variables.put("vodName", vodName);
-		}
 
 		StringBuffer response = null;
-		try {
-			response = sendPOST(url, variables);
-		} catch (IOException e) {
-			e.printStackTrace();
+
+
+		if (url != null && url.length() > 0) {
+			Map<String, String> variables = new HashMap<>();
+
+			variables.put("id", id);
+			variables.put("action", action);
+			if (streamName != null) {
+				variables.put("streamName", streamName);
+			}
+			if (category != null) {
+				variables.put("category", category);
+			}
+
+			if (vodName != null) {
+				variables.put("vodName", vodName);
+			}
+
+
+			try {
+				response = sendPOST(url, variables);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 		return response;
 	}
@@ -670,7 +672,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	@Override
 	public void setQualityParameters(String id, String quality, double speed, int pendingPacketSize) {
 		getDataStore().updateSourceQualityParameters(id, quality, speed, pendingPacketSize);
-		
+
 	}
 
 }

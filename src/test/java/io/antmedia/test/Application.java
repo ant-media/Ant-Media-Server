@@ -17,12 +17,12 @@ public class Application extends AntMediaApplicationAdapter implements IAntMedia
 	public static String notifyStreamName = null;
 	public static String notifyCategory = null;
 	public static String notifyVodName = null;
-	
+
 	public static boolean enableSourceHealthUpdate = false;
 
 	@Override
-	public void muxingFinished(String id, File file, long duration) {
-		super.muxingFinished(id, file, duration);
+	public void muxingFinished(String id, File file, long duration, int resolution) {
+		super.muxingFinished(id, file, duration, resolution);
 		Application.id = id;
 		Application.file = file;
 		Application.duration = duration;
@@ -52,12 +52,12 @@ public class Application extends AntMediaApplicationAdapter implements IAntMedia
 
 		return null;
 	}
-	
+
 	@Override
 	public void setQualityParameters(String id, String quality, double speed, int pendingPacketSize) {
 		if (enableSourceHealthUpdate) {
-		super.setQualityParameters(id, quality, speed, pendingPacketSize);
+			super.setQualityParameters(id, quality, speed, pendingPacketSize);
 		}
 	}
-	
+
 }
