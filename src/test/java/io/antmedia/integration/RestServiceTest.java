@@ -347,7 +347,7 @@ public class RestServiceTest {
 			System.out.println("result string: " + result.toString());
 			Broadcast tmp2 = gson.fromJson(result.toString(), Broadcast.class);
 			assertNotNull(tmp2);
-			assertEquals(tmp2.getStreamId(), null);
+			assertEquals(null, tmp2.getStreamId());
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -359,7 +359,7 @@ public class RestServiceTest {
 	public void testBroadcasGetUnknown() {
 		Broadcast tmp2 = getBroadcast("dsfsfsfs");
 		assertNotNull(tmp2);
-		assertEquals(tmp2.getStreamId(), null);
+		assertEquals(null, tmp2.getStreamId());
 
 	}
 
@@ -457,7 +457,7 @@ public class RestServiceTest {
 			System.out.println("result string: " + result.toString());
 			Broadcast tmp2 = gson.fromJson(result.toString(), Broadcast.class);
 			assertNotNull(tmp2);
-			assertEquals(tmp2.getStreamId(), null);
+			assertEquals(null, tmp2.getStreamId());
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -488,7 +488,7 @@ public class RestServiceTest {
 		System.out.println("result string: " + result.toString());
 		Broadcast tmp = gson.fromJson(result.toString(), Broadcast.class);
 		assertNotNull(tmp);
-		assertNotSame(tmp.getDate(), 0L);
+		assertNotSame(0L, tmp.getDate());
 
 		return tmp;
 
@@ -515,7 +515,7 @@ public class RestServiceTest {
 		System.out.println("result string: " + result.toString());
 		Broadcast tmp = gson.fromJson(result.toString(), Broadcast.class);
 		assertNotNull(tmp);
-		assertNotSame(tmp.getDate(), 0L);
+		assertNotSame(0L, tmp.getDate());
 
 		return tmp;
 
@@ -866,7 +866,7 @@ public class RestServiceTest {
 
 			broadcast = callGetBroadcast(broadcast.getStreamId());
 
-			assertEquals(broadcast.getStatus(), AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
+			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, broadcast.getStatus());
 
 			execute.destroy();
 
@@ -880,7 +880,7 @@ public class RestServiceTest {
 
 			broadcast = callGetBroadcast(broadcast.getStreamId());
 
-			assertEquals(broadcast.getStatus(), AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, broadcast.getStatus());
 
 			execute.destroy();
 
@@ -1195,7 +1195,6 @@ public class RestServiceTest {
 
 	}
 
-	// TODO: restart server after testAddEndpoint and
 	// check that social endpoints are added correctly
 
 	@Test
@@ -1444,7 +1443,7 @@ public class RestServiceTest {
 
 			// check that 4 element exist
 			assertNotNull(broadcast.getEndPointList());
-			assertEquals(broadcast.getEndPointList().size(), 2);
+			assertEquals(2, broadcast.getEndPointList().size());
 
 		} catch (Exception e) {
 			e.printStackTrace();

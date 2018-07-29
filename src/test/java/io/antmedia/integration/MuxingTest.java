@@ -453,7 +453,6 @@ public class MuxingTest {
 				assertTrue(codecContext.pix_fmt() != AV_PIX_FMT_NONE);
 				streamExists = true;
 			} else if (codecContext.codec_type() == AVMEDIA_TYPE_AUDIO) {
-				// TODO:
 				assertTrue(codecContext.sample_rate() != 0);
 				streamExists = true;
 			}
