@@ -440,7 +440,7 @@ public class MapDBStore implements IDataStore {
 				try {
 					vodMap.put(vod.getVodId(), gson.toJson(vod));
 					db.commit();
-					logger.warn(Long.toString(vod.getCreationDate()));
+					logger.warn("VoD is saved to DB {}", vod.getVodName());
 
 				} catch (Exception e) {
 					logger.error(e.getMessage());
