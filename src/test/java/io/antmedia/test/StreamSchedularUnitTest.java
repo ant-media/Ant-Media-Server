@@ -244,7 +244,13 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 			streamScheduler.stopStream();
 
-			Thread.sleep(2500);
+
+
+			logger.info("leaving testStreamSchedularConnectionTimeout");
+
+			Awaitility.await().atMost(7, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return scheduler.getScheduledJobNames().size()== 1;
+			});
 
 			assertFalse(streamScheduler.isStreamAlive());
 
@@ -254,11 +260,6 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-		logger.info("leaving testStreamSchedularConnectionTimeout");
-
-		Awaitility.await().atMost(7, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-			return scheduler.getScheduledJobNames().size()== 1;
-		});
 
 
 	}
@@ -469,7 +470,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		//let stream fetching start
 		app.getStreamFetcherManager().setStreamCheckerInterval(5000);
 		app.getStreamFetcherManager().startStreams(streams);
-		
+
 
 		Awaitility.await().atMost(12, TimeUnit.SECONDS).until(() -> {
 			return dataStore.get(newZombiSource.getStreamId()).getQuality() != null;
@@ -507,19 +508,19 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			return stream != null && Math.abs(stream.getSpeed()-1) < 0.1;
 		});
 
-		
-		
+
+
 		limitNetworkInterfaceBandwidth(findActiveInterface());
 
 		logger.info("Checking quality is again");
-		
+
 		Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 			Broadcast streamTmp = dataStore.get(newSource.getStreamId());
 			logger.info("speed {}" , streamTmp.getSpeed()) ;
 
 			return streamTmp != null && streamTmp.getQuality() != null && streamTmp.getQuality().equals("poor");
 		});
-		 
+
 
 
 		logger.info("before second control");
@@ -717,8 +718,8 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
-		
-	
+
+
 		return activeInterface.substring(0, activeInterface.length()-1);
 	}
 
