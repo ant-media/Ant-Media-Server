@@ -416,7 +416,6 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testBandwidth() {
 
 
-		//startCameraEmulator();
 		assertEquals(1, scheduler.getScheduledJobNames().size());
 
 		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnExit();
@@ -466,6 +465,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		//let stream fetching start
 		app.getStreamFetcherManager().setStreamCheckerInterval(5000);
 		app.getStreamFetcherManager().startStreams(streams);
+		
 
 		Awaitility.await().atMost(12, TimeUnit.SECONDS).until(() -> {
 			return dataStore.get(newZombiSource.getStreamId()).getQuality() != null;
@@ -545,7 +545,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		assertEquals(1, scheduler.getScheduledJobNames().size());
 
-		stopCameraEmulator();
+		//stopCameraEmulator()		
 
 	}
 
