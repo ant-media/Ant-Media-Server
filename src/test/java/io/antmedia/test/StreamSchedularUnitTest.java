@@ -235,16 +235,12 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 			streamScheduler.startStream();
 
-			streamScheduler.setConnectionTimeout(3000);
+			streamScheduler.setConnectionTimeout(2000);
 
 			//this should be false because stream is not alive 
 			assertFalse(streamScheduler.isStreamAlive());
 
-			Thread.sleep(2500);
-
 			streamScheduler.stopStream();
-
-
 
 			logger.info("leaving testStreamSchedularConnectionTimeout");
 
