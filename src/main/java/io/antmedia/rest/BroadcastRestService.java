@@ -847,6 +847,12 @@ public class BroadcastRestService {
 		return getDataStore().getTotalVodNumber();
 	}
 
+	/**
+	 * Returns the version
+	 * 
+	 * TO DO: Change endpoint from /broadcast/getVersion to /getVersion 
+	 * @return
+	 */
 	@GET
 	@Path("/broadcast/getVersion")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -940,7 +946,7 @@ public class BroadcastRestService {
 
 
 	/**
-	 * Deletes vod file in the file system
+	 * Filter broadcast according to type
 	 * 
 	 * @param fileName
 	 *            name of the file
