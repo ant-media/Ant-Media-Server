@@ -255,7 +255,11 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			fail(e.getMessage());
 		}
 		logger.info("leaving testStreamSchedularConnectionTimeout");
-		assertEquals(1, scheduler.getScheduledJobNames().size());
+
+		Awaitility.await().atMost(7, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			return scheduler.getScheduledJobNames().size()== 1;
+		});
+
 
 	}
 
