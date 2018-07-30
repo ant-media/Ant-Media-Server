@@ -523,6 +523,8 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 			Broadcast streamTmp = dataStore.get(newSource.getStreamId());
 			logger.info("speed {}" , streamTmp.getSpeed()) ;
+			logger.info("quality {}" , streamTmp.getQuality()) ;
+
 
 			return streamTmp != null && streamTmp.getQuality() != null && streamTmp.getQuality().equals("poor");
 		});
