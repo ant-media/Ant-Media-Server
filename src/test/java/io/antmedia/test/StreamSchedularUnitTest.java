@@ -412,6 +412,13 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		 */
 
 	}
+	
+	/*
+	 * This test code may not run on local instance. Because, it includes commands having "sudo" pieces and waits reply 
+	 * for them. Therefore it may not proceed. It is configured for travis CI/CD tool which can run sudo commands 
+	 * automatically.
+	 * 
+	 */
 
 	@Test
 	public void testBandwidth() {
@@ -524,6 +531,8 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		logger.info("before second control");
 		logger.info("speed {}" , dataStore.get(newSource.getStreamId()).getSpeed()) ;
+		
+		assertTrue(dataStore.get(newSource.getStreamId()).getSpeed() < 0.5);
 		assertEquals("poor", dataStore.get(newSource.getStreamId()).getQuality());
 
 		resetNetworkInterface(findActiveInterface());
@@ -582,42 +591,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		logger.info("Running resetNetworkInterface");
 
 		runCommand("sudo wondershaper clear "+activeInterface);
-		/*
 
-		runShellCommand(new String[] { "/bin/bash", "-c",
-		"sudo wondershaper clear wlan0" });
-
-		runShellCommand(new String[] { "/bin/bash", "-c",
-		"sudo wondershaper clear eth0" });
-
-		runShellCommand(new String[] { "/bin/bash", "-c",
-		"sudo wondershaper clear nic0" });
-
-		runShellCommand(new String[] { "/bin/bash", "-c",
-		"sudo wondershaper clear nic1" });
-
-		runShellCommand(new String[] { "/bin/bash", "-c",
-		"sudo wondershaper clear nic2" });
-
-		runShellCommand(new String[] { "/bin/bash", "-c",
-		"sudo wondershaper clear nic3" });
-
-		runShellCommand(new String[] { "/bin/bash", "-c",
-		"sudo wondershaper clear nic4" });
-
-		runShellCommand(new String[] { "/bin/bash", "-c",
-		"sudo wondershaper clear vmnet0" });
-
-		runShellCommand(new String[] { "/bin/bash", "-c",
-		"sudo wondershaper clear vmnet1" });
-
-		runShellCommand(new String[] { "/bin/bash", "-c",
-		"sudo wondershaper clear em1" });
-
-		runShellCommand(new String[] { "/bin/bash", "-c",
-		"sudo wondershaper clear em0" });
-
-		 */
 	}
 
 	private void limitNetworkInterfaceBandwidth(String activeInterface) {
@@ -625,29 +599,15 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		logger.info("Running limitNetworkInterfaceBandwidth");
 		logger.info("active interface {}", activeInterface);
 
-		//runShellCommand(new String[] { "/bin/bash", "-c","sudo wondershaper wlan0 100 100" });
-
-		String command = "sudo wondershaper "+activeInterface+" 5 5";
+		String command = "sudo wondershaper "+activeInterface+" 50 50";
 		logger.info("command : {}",command);
 		runCommand(command);
 
 		logger.info("Exiting limitNetworkInterfaceBandwidth");
 
-
 	}
 
 	public void runCommand(String command) {
-		/*
-
-		String[] argsStop = new String[] { "/bin/bash", "-c", command };
-		try {
-			Process procStop = new ProcessBuilder(argsStop).start();
-
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		 */
-
 		String[] argsStop = new String[] { "/bin/bash", "-c", command };
 
 		try {
@@ -676,9 +636,6 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
-
-
-
 
 	}
 
