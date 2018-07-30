@@ -525,24 +525,15 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			logger.info("speed {}" , streamTmp.getSpeed()) ;
 			logger.info("quality {}" , streamTmp.getQuality()) ;
 
-
-			return streamTmp != null && streamTmp.getQuality() != null && streamTmp.getQuality().equals("poor");
+			return streamTmp != null && streamTmp.getQuality() != null && !streamTmp.getQuality().equals("good") 
+					&& streamTmp.getSpeed() < 0.6;
 		});
-
-
-
-		logger.info("before second control");
-		logger.info("speed {}" , dataStore.get(newSource.getStreamId()).getSpeed()) ;
-		
-		assertTrue(dataStore.get(newSource.getStreamId()).getSpeed() < 0.5);
-		assertEquals("poor", dataStore.get(newSource.getStreamId()).getQuality());
 
 		resetNetworkInterface(findActiveInterface());
 
 		for (Broadcast broadcast: broadcastList) {
 			app.getStreamFetcherManager().stopStreaming(broadcast);
 		}
-
 
 		Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 			return app.getStreamFetcherManager().getStreamFetcherList().size() == 0;
@@ -601,7 +592,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		logger.info("Running limitNetworkInterfaceBandwidth");
 		logger.info("active interface {}", activeInterface);
 
-		String command = "sudo wondershaper "+activeInterface+" 50 50";
+		String command = "sudo wondershaper "+activeInterface+" 20 20";
 		logger.info("command : {}",command);
 		runCommand(command);
 
