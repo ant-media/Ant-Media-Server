@@ -848,6 +848,12 @@ public class BroadcastRestService {
 		return getDataStore().getTotalVodNumber();
 	}
 
+	/**
+	 * Returns the version
+	 * 
+	 * TO DO: Change endpoint from /broadcast/getVersion to /getVersion 
+	 * @return
+	 */
 	@GET
 	@Path("/broadcast/getVersion")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -900,12 +906,18 @@ public class BroadcastRestService {
 
 		int totalRTMPViewer = -1;
 		int totalWebRTCViewer = -1;
+		int totalHLSViewer = -1;
 		if (id != null) 
 		{
 			IBroadcastScope broadcastScope = getScope().getBroadcastScope(id);
 
 			if (broadcastScope != null)	{
 				totalRTMPViewer = broadcastScope.getConsumers().size();
+			}
+			
+			Broadcast broadcast = getDataStore().get(id);
+			if (broadcast != null) {
+				totalHLSViewer = broadcast.getHlsViewerCount();
 			}
 
 			IWebRTCAdaptor webRTCAdaptor = getWebRTCAdaptor();
@@ -915,7 +927,7 @@ public class BroadcastRestService {
 			}
 		}
 
-		return new BroadcastStatistics(totalRTMPViewer, -1, totalWebRTCViewer);
+		return new BroadcastStatistics(totalRTMPViewer, totalHLSViewer, totalWebRTCViewer);
 	}
 
 
@@ -941,7 +953,7 @@ public class BroadcastRestService {
 
 
 	/**
-	 * Deletes vod file in the file system
+	 * Filter broadcast according to type
 	 * 
 	 * @param fileName
 	 *            name of the file

@@ -1,6 +1,5 @@
 package io.antmedia.statistic;
 
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -42,11 +41,15 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 	{
 		Map<String, Long> viewerMap = streamsViewerMap.get(streamId);
 		if (viewerMap == null) {
-			viewerMap = new HashMap<>();
+			viewerMap = new ConcurrentHashMap<>();
+		}
+		if (!viewerMap.containsKey(sessionId)) {
+			//if sessionId is not in the map, this is the first time for getting stream,
+			//increment viewer count
+			dataStore.updateHLSViewerCount(streamId, 1);
 		}
 		viewerMap.put(sessionId, System.currentTimeMillis());
 
-		dataStore.updateHLSViewerCount(streamId, viewerMap.size());
 		streamsViewerMap.put(streamId, viewerMap);
 	}
 
@@ -86,6 +89,7 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 						streamViewerEntry = streamIterator.next();
 						viewerMapEnty = streamViewerEntry.getValue();
 						viewerIterator = viewerMapEnty.entrySet().iterator();
+						int numberOfDecrement = 0;
 						while (viewerIterator.hasNext()) 
 						{
 							Entry<String, Long> viewer = viewerIterator.next();
@@ -93,10 +97,13 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 							{
 								// regard it as not a viewer
 								viewerIterator.remove();
+								numberOfDecrement++;
 							}
 						}
 						
-						dataStore.updateHLSViewerCount(streamViewerEntry.getKey(), streamViewerEntry.getValue().size());
+						numberOfDecrement = -1 * numberOfDecrement;
+						
+						dataStore.updateHLSViewerCount(streamViewerEntry.getKey(), numberOfDecrement);
 						
 					}
 					

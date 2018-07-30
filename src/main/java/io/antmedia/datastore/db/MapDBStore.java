@@ -10,6 +10,7 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.mapdb.BTreeMap;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
@@ -128,7 +129,7 @@ public class MapDBStore implements IDataStore {
 					map.put(streamId, gson.toJson(broadcast));
 					db.commit();
 				} catch (Exception e) {
-					e.printStackTrace();
+					logger.error(ExceptionUtils.getStackTrace(e));
 					streamId = null;
 				}
 			}
@@ -220,7 +221,7 @@ public class MapDBStore implements IDataStore {
 					Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
 					List<Endpoint> endPointList = broadcast.getEndPointList();
 					if (endPointList == null) {
-						endPointList = new ArrayList<Endpoint>();
+						endPointList = new ArrayList<>();
 					}
 					endPointList.add(endpoint);
 					broadcast.setEndPointList(endPointList);
@@ -403,7 +404,7 @@ public class MapDBStore implements IDataStore {
 				broadcastArray[i] = gson.fromJson((String) objectArray[i], Broadcast.class);
 			}
 
-			List<Broadcast> filterList = new ArrayList<Broadcast>();
+			List<Broadcast> filterList = new ArrayList<>();
 			for (int i = 0; i < broadcastArray.length; i++) {
 
 				if (broadcastArray[i].getType().equals(type)) {
@@ -432,7 +433,7 @@ public class MapDBStore implements IDataStore {
 
 	@Override
 	public String addVod(Vod vod) {
-		
+
 		String id = vod.getVodId();
 		synchronized (this) {
 			if (id != null) {
@@ -575,7 +576,7 @@ public class MapDBStore implements IDataStore {
 						Integer pathLength=Integer.valueOf(subDirs.length);
 
 						String relativePath=subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
-						
+
 						String vodId = RandomStringUtils.randomNumeric(24);
 
 						Vod newVod = new Vod("vodFile", "vodFile", relativePath, file.getName(), unixTime, 0, fileSize,
@@ -772,16 +773,16 @@ public class MapDBStore implements IDataStore {
 		}
 		return list;
 	}
-	
+
 	@Override
 	public long getObjectDetectedTotal(String id) {
 
 		List<TensorFlowObject> list = new ArrayList<>();
-		
+
 		Type listType = new TypeToken<ArrayList<TensorFlowObject>>(){}.getType();
-		
+
 		synchronized (this) {
-			
+
 			for (Iterator<String> keyIterator =  detectionMap.keyIterator(); keyIterator.hasNext();) {
 				String keyValue = keyIterator.next();
 				if (keyValue.startsWith(id)) 
@@ -821,22 +822,65 @@ public class MapDBStore implements IDataStore {
 		logger.debug("result inside edit camera:{} ", result);
 		return result;
 	}
-	
+
 	@Override
-	public boolean updateHLSViewerCount(String streamId, int viewerCount) {
+	public synchronized boolean updateHLSViewerCount(String streamId, int diffCount) {
 		boolean result = false;
-		synchronized (this) {
-			if (streamId != null) {
-				Broadcast broadcast = get(streamId);
-				if (broadcast != null) {
-					broadcast.setHlsViewerCount(viewerCount);
-					map.replace(streamId, gson.toJson(broadcast));
-					db.commit();
-					result = true;
+
+		if (streamId != null) {
+			Broadcast broadcast = get(streamId);
+			if (broadcast != null) {
+				int hlsViewerCount = broadcast.getHlsViewerCount();
+				hlsViewerCount += diffCount;
+				broadcast.setHlsViewerCount(hlsViewerCount);
+				map.replace(streamId, gson.toJson(broadcast));
+				db.commit();
+				result = true;
+			}
+		}
+
+		return result;
+	}
+
+	@Override
+	public synchronized boolean updateWebRTCViewerCount(String streamId, boolean increment) {
+		boolean result = false;
+		if (streamId != null) {
+			Broadcast broadcast = get(streamId);
+			if (broadcast != null) {
+				int webRTCViewerCount = broadcast.getWebRTCViewerCount();
+				if (increment) {
+					webRTCViewerCount++;
 				}
+				else {
+					webRTCViewerCount--;
+				}
+				broadcast.setWebRTCViewerCount(webRTCViewerCount);
+				map.replace(streamId, gson.toJson(broadcast));
+				result = true;
 			}
 		}
 		return result;
-		
+	}
+
+	@Override
+	public synchronized boolean updateRtmpViewerCount(String streamId, boolean increment) {
+		boolean result = false;
+		if (streamId != null) {
+			Broadcast broadcast = get(streamId);
+			if (broadcast != null) {
+				int rtmpViewerCount = broadcast.getRtmpViewerCount();
+				if (increment) {
+					rtmpViewerCount++;
+				}
+				else { 
+					rtmpViewerCount--;
+				}
+				broadcast.setRtmpViewerCount(rtmpViewerCount);
+				map.replace(streamId, gson.toJson(broadcast));
+				result = true;
+			}
+		}
+		return result;
 	}
 }

@@ -31,7 +31,7 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 
 	private IWebRTCAdaptor webRTCAdaptor;
 
-	private Queue<IWebRTCClient> webRTCClientList =  new ConcurrentLinkedQueue<IWebRTCClient>();
+	private Queue<IWebRTCClient> webRTCClientList =  new ConcurrentLinkedQueue<>();
 
 	private String streamId;
 
