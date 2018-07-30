@@ -472,7 +472,10 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		//let stream fetching start
 		app.getStreamFetcherManager().setStreamCheckerInterval(5000);
+		//do not restart if it fails
+		app.getStreamFetcherManager().setRestartStreamAutomatically(false);
 		app.getStreamFetcherManager().startStreams(streams);
+		
 
 
 		Awaitility.await().atMost(12, TimeUnit.SECONDS).until(() -> {
@@ -531,8 +534,6 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		assertTrue(dataStore.get(newSource.getStreamId()).getSpeed() < 0.5);
 		assertEquals("poor", dataStore.get(newSource.getStreamId()).getQuality());
-
-
 
 		resetNetworkInterface(findActiveInterface());
 
