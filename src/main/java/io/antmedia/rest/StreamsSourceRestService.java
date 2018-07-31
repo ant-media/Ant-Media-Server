@@ -70,11 +70,8 @@ public class StreamsSourceRestService {
 	public Result addStreamSource(Broadcast stream) {
 		Result result=new Result(false);
 
-		logger.info("username {}", stream.getUsername());
-		logger.info("ipAddr {}", stream.getIpAddr());
-		logger.info("streamURL {}", stream.getStreamUrl());
-		logger.info("name {}", stream.getName());
-
+		logger.info("username {}, ipAddr {}, streamURL {}, name: {}", stream.getUsername(),  stream.getIpAddr(), stream.getStreamUrl(), stream.getName());
+		
 		if (stream.getType().equals(AntMediaApplicationAdapter.IP_CAMERA)) {
 			result = addIPCamera(stream);
 		}
@@ -100,7 +97,7 @@ public class StreamsSourceRestService {
 			onvif.connect(stream.getIpAddr(), stream.getUsername(), stream.getPassword());
 			String rtspURL = onvif.getRTSPStreamURI();
 
-			if (rtspURL != "no") {
+			if (rtspURL != null) {
 
 				String authparam = stream.getUsername() + ":" + stream.getPassword() + "@";
 				String rtspURLWithAuth = "rtsp://" + authparam + rtspURL.substring("rtsp://".length());
