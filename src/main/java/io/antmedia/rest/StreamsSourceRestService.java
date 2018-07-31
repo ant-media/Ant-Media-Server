@@ -90,15 +90,26 @@ public class StreamsSourceRestService {
 	}
 
 
+	public String getRTSPSteramURI(Broadcast stream) {
+		
+		String uri = null;
+		
+		OnvifCamera onvif = new OnvifCamera();
+		onvif.connect(stream.getIpAddr(), stream.getUsername(), stream.getPassword());
+		uri = onvif.getRTSPStreamURI();
+		
+		
+		return uri;
+		
+	}
+	
 	public Result addIPCamera(Broadcast stream) {
 		Result result=new Result(false);
 
 		if(checkIPCamAddr(stream.getIpAddr())) {
 			logger.info("type {}", stream.getType());
 
-			OnvifCamera onvif = new OnvifCamera();
-			onvif.connect(stream.getIpAddr(), stream.getUsername(), stream.getPassword());
-			String rtspURL = onvif.getRTSPStreamURI();
+			String rtspURL = getRTSPSteramURI(stream);
 
 			if (rtspURL != "no") {
 
