@@ -34,6 +34,7 @@ import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.types.Broadcast;
@@ -50,13 +51,11 @@ public class StreamsSourceRestService {
 
 	@Context
 	private ServletContext servletContext;
-
 	private IDataStore dbStore;
 	private ApplicationContext appCtx;
-
 	private IScope scope;
-
 	private AntMediaApplicationAdapter appInstance;
+	private AppSettings appSettings;
 
 	protected static Logger logger = LoggerFactory.getLogger(StreamsSourceRestService.class);
 
@@ -71,35 +70,33 @@ public class StreamsSourceRestService {
 		Result result=new Result(false);
 
 		logger.info("username {}, ipAddr {}, streamURL {}, name: {}", stream.getUsername(),  stream.getIpAddr(), stream.getStreamUrl(), stream.getName());
-		
+
 		if (stream.getType().equals(AntMediaApplicationAdapter.IP_CAMERA)) {
 			result = addIPCamera(stream);
 		}
 		else if (stream.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE) ) {
 			result = addSource(stream);
-			
+
 		}else {
 
 			result.setMessage("No stream added");
 		}
-
 		return result;
 	}
 
 
+
 	public String getRTSPSteramURI(Broadcast stream) {
-		
 		String uri = null;
-		
+
 		OnvifCamera onvif = new OnvifCamera();
 		onvif.connect(stream.getIpAddr(), stream.getUsername(), stream.getPassword());
 		uri = onvif.getRTSPStreamURI();
-		
-		
+
 		return uri;
-		
+
 	}
-	
+
 	public Result addIPCamera(Broadcast stream) {
 		Result result=new Result(false);
 
@@ -133,7 +130,6 @@ public class StreamsSourceRestService {
 						getStore().delete(stream.getStreamId());
 					}
 				}
-				onvif.disconnect();
 
 			}
 
@@ -199,6 +195,7 @@ public class StreamsSourceRestService {
 		logger.info("synch user vod list vod folder is {}", vodFolder);
 
 		if (vodFolder != null && vodFolder.length() > 0) {
+
 			result = getInstance().synchUserVoDFolder(null, vodFolder);
 		}
 		else {
@@ -218,25 +215,20 @@ public class StreamsSourceRestService {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result updateCamInfo(Broadcast broadcast) {
 		boolean result = false;
-		OnvifCamera onvif = null;
 		logger.warn("inside of rest service");
 
 		if( checkStreamUrl(broadcast.getStreamUrl()) && broadcast.getStatus()!=null){
-
 			getInstance().stopStreaming(broadcast);
 			try {
 				Thread.sleep(1000);
 			} catch (InterruptedException e) {
-				e.printStackTrace();
+				logger.error(e.getMessage());
 				Thread.currentThread().interrupt();
 			}
 			if(broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA)) {
+				String rtspURL = getRTSPSteramURI(broadcast);
 
-				onvif = new OnvifCamera();
-				onvif.connect(broadcast.getIpAddr(), broadcast.getUsername(), broadcast.getPassword());
-				String rtspURL = onvif.getRTSPStreamURI();
-
-				if (rtspURL != "no") {
+				if (rtspURL != null) {
 
 					String authparam = broadcast.getUsername() + ":" + broadcast.getPassword() + "@";
 					String rtspURLWithAuth = "rtsp://" + authparam + rtspURL.substring("rtsp://".length());
@@ -244,10 +236,7 @@ public class StreamsSourceRestService {
 					broadcast.setStreamUrl(rtspURLWithAuth);
 				}
 			}
-
-			if (onvif != null) {
-				onvif.disconnect();
-			}
+	
 			try {
 				Thread.sleep(1000);
 			} catch (InterruptedException e) {
@@ -395,6 +384,14 @@ public class StreamsSourceRestService {
 		}
 		return scope;
 	}
+	
+	public void setScope(IScope scope) {
+		this.scope = scope;
+	}
+
+	public void setAppSettings(AppSettings appSettings) {
+		this.appSettings = appSettings;
+	}
 
 	public IDataStore getStore() {
 		if (dbStore == null) {
@@ -402,6 +399,12 @@ public class StreamsSourceRestService {
 			dbStore = (IDataStore) ctxt.getBean("db.datastore");
 		}
 		return dbStore;
+	}
+	
+
+
+	public void setDataStore(IDataStore dataStore) {
+		this.dbStore = dataStore;
 	}
 
 	public void setCameraStore(MapDBStore cameraStore) {
@@ -501,6 +504,16 @@ public class StreamsSourceRestService {
 			}
 		}
 		return ipAddrControl;
+	}
+	
+	private AppSettings getAppSettings() {
+		if (appSettings == null) {
+			ApplicationContext appContext = getAppContext();
+			if (appContext != null) {
+				appSettings = (AppSettings) appContext.getBean(AppSettings.BEAN_NAME);
+			}
+		}
+		return appSettings;
 	}
 
 }
