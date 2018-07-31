@@ -71,49 +71,41 @@ public class StreamsSourceRestService {
 		Result result=new Result(false);
 
 		logger.info("username {}", stream.getUsername());
-		logger.info("pass {}", stream.getPassword());
+		logger.info("ipAddr {}", stream.getIpAddr());
+		logger.info("streamURL {}", stream.getStreamUrl());
+		logger.info("name {}", stream.getName());
+
+		if (stream.getType().equals(AntMediaApplicationAdapter.IP_CAMERA)) {
+			result = addIPCamera(stream);
+		}
+		else if (stream.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE) ) {
+			result = addSource(stream);
+			
+		}else {
+
+			result.setMessage("No stream added");
+		}
+
+		return result;
+	}
 
 
-		if (stream.getName() != null && stream.getName().length() > 0 && checkStreamUrl(stream.getStreamUrl())) {
+	public Result addIPCamera(Broadcast stream) {
+		Result result=new Result(false);
 
-			if (stream.getType().equals(AntMediaApplicationAdapter.IP_CAMERA)) {
+		if(checkIPCamAddr(stream.getIpAddr())) {
+			logger.info("type {}", stream.getType());
 
-				OnvifCamera onvif = new OnvifCamera();
-				onvif.connect(stream.getIpAddr(), stream.getUsername(), stream.getPassword());
-				String rtspURL = onvif.getRTSPStreamURI();
+			OnvifCamera onvif = new OnvifCamera();
+			onvif.connect(stream.getIpAddr(), stream.getUsername(), stream.getPassword());
+			String rtspURL = onvif.getRTSPStreamURI();
 
-				if (rtspURL != "no") {
+			if (rtspURL != "no") {
 
-					String authparam = stream.getUsername() + ":" + stream.getPassword() + "@";
-					String rtspURLWithAuth = "rtsp://" + authparam + rtspURL.substring("rtsp://".length());
-					logger.info("rtsp url with auth: {}", rtspURLWithAuth);
-					stream.setStreamUrl(rtspURLWithAuth);
-					Date currentDate = new Date();
-					long unixTime = currentDate.getTime();
-
-					stream.setDate(unixTime);
-					stream.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
-
-					String id = getStore().save(stream);
-
-
-					if (id.length() > 0) {
-						Broadcast newCam = getStore().get(stream.getStreamId());
-						StreamFetcher streamFetcher = getInstance().startStreaming(newCam);
-						if (streamFetcher != null) {
-							result.setSuccess(true);
-						}
-						else {
-							getStore().delete(stream.getStreamId());
-						}
-					}
-					onvif.disconnect();
-
-				}
-
-			}
-			else if (stream.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE)) {
-
+				String authparam = stream.getUsername() + ":" + stream.getPassword() + "@";
+				String rtspURLWithAuth = "rtsp://" + authparam + rtspURL.substring("rtsp://".length());
+				logger.info("rtsp url with auth: {}", rtspURLWithAuth);
+				stream.setStreamUrl(rtspURLWithAuth);
 				Date currentDate = new Date();
 				long unixTime = currentDate.getTime();
 
@@ -122,24 +114,51 @@ public class StreamsSourceRestService {
 
 				String id = getStore().save(stream);
 
+
 				if (id.length() > 0) {
-					Broadcast newSource = getStore().get(stream.getStreamId());
-					getInstance().startStreaming(newSource);
+					Broadcast newCam = getStore().get(stream.getStreamId());
+					StreamFetcher streamFetcher = getInstance().startStreaming(newCam);
+					if (streamFetcher != null) {
+						result.setSuccess(true);
+					}
+					else {
+						getStore().delete(stream.getStreamId());
+					}
 				}
-
-				result.setSuccess(true);
-				result.setMessage(id);
-
-			}else {
-
-				result.setMessage("No stream added");
+				onvif.disconnect();
 
 			}
+
 		}
 
 		return result;
 	}
 
+
+	public Result addSource(Broadcast stream) {
+		Result result=new Result(false);
+
+		if(checkStreamUrl(stream.getStreamUrl())) {
+
+			logger.info("type {}", stream.getType());
+			Date currentDate = new Date();
+			long unixTime = currentDate.getTime();
+
+			stream.setDate(unixTime);
+			stream.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
+
+			String id = getStore().save(stream);
+
+			if (id.length() > 0) {
+				Broadcast newSource = getStore().get(stream.getStreamId());
+				getInstance().startStreaming(newSource);
+			}
+
+			result.setSuccess(true);
+			result.setMessage(id);
+		}
+		return result;
+	}
 
 
 	@GET
@@ -381,27 +400,29 @@ public class StreamsSourceRestService {
 		this.dbStore = cameraStore;
 	}
 	public boolean validateIPaddress(String ipaddress)  {
+		logger.info("inside check validateIPaddress{}", ipaddress);
 
 		final String IPV4_REGEX = "(([0-1]?[0-9]{1,2}\\.)|(2[0-4][0-9]\\.)|(25[0-5]\\.)){3}(([0-1]?[0-9]{1,2})|(2[0-4][0-9])|(25[0-5]))";
-		Pattern pattern = Pattern.compile(IPV4_REGEX);
+		final String loopback_REGEX = "^localhost$|^127(?:\\.[0-9]+){0,2}\\.[0-9]+$|^(?:0*\\:)*?:?0*1$";
 
-		return pattern.matcher(ipaddress).matches();
+		Pattern patternIP4 = Pattern.compile(IPV4_REGEX);
+		Pattern patternLoopBack = Pattern.compile(loopback_REGEX);
+
+		return patternIP4.matcher(ipaddress).matches() || patternLoopBack.matcher(ipaddress).matches() ;
 
 	}
 
 	public boolean checkStreamUrl (String url) {
 
-		logger.debug("inside check {}", url);
 		boolean streamUrlControl = false;
 		String[] ipAddrParts = null;
 		String ipAddr = null;
 
 		if(url != null && (url.startsWith("http://") ||
-								url.startsWith("https://") ||
-								url.startsWith("rtmp://") ||
-								url.startsWith("rtmps://") ||
-								url.startsWith("rtsp://"))) 
-		{
+				url.startsWith("https://") ||
+				url.startsWith("rtmp://") ||
+				url.startsWith("rtmps://") ||
+				url.startsWith("rtsp://"))) {
 			streamUrlControl=true;
 			ipAddrParts = url.split("//");
 			ipAddr = ipAddrParts[1];
@@ -424,13 +445,54 @@ public class StreamsSourceRestService {
 				ipAddr = ipAddrParts[0];
 
 			}
-			if(ipAddr.split(".").length == 4 && !this.validateIPaddress(ipAddr)){
+			if(ipAddr.split("\\.").length == 4 && !validateIPaddress(ipAddr)){
 				streamUrlControl = false;
 			}
 		}
 		return streamUrlControl;
-
 	}
 
+	public boolean checkIPCamAddr (String url) {
+
+		boolean ipAddrControl = false;
+		String[] ipAddrParts = null;
+		String ipAddr = url;
+
+		if(url != null && (url.startsWith("http://") ||
+				url.startsWith("https://") ||
+				url.startsWith("rtmp://") ||
+				url.startsWith("rtmps://") ||
+				url.startsWith("rtsp://"))) {
+
+			ipAddrParts = url.split("//");
+			ipAddr = ipAddrParts[1];
+			ipAddrControl=true;
+
+		}
+		if (ipAddr != null) {
+			if (ipAddr.contains("@")){
+
+				ipAddrParts = ipAddr.split("@");
+				ipAddr = ipAddrParts[1];
+
+			}
+			if (ipAddr.contains(":")){
+
+				ipAddrParts = ipAddr.split(":");
+				ipAddr = ipAddrParts[0];
+
+			}
+			if (ipAddr.contains("/")){
+				ipAddrParts = ipAddr.split("/");
+				ipAddr = ipAddrParts[0];
+			}
+			logger.info("IP: {}", ipAddr);
+
+			if(ipAddr.split("\\.").length == 4 && validateIPaddress(ipAddr)){
+				ipAddrControl = true;
+			}
+		}
+		return ipAddrControl;
+	}
 
 }
