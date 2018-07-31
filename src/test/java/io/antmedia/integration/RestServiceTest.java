@@ -347,7 +347,7 @@ public class RestServiceTest {
 			System.out.println("result string: " + result.toString());
 			Broadcast tmp2 = gson.fromJson(result.toString(), Broadcast.class);
 			assertNotNull(tmp2);
-			assertEquals(tmp2.getStreamId(), null);
+			assertEquals(null, tmp2.getStreamId());
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -359,7 +359,7 @@ public class RestServiceTest {
 	public void testBroadcasGetUnknown() {
 		Broadcast tmp2 = getBroadcast("dsfsfsfs");
 		assertNotNull(tmp2);
-		assertEquals(tmp2.getStreamId(), null);
+		assertEquals(null, tmp2.getStreamId());
 
 	}
 
@@ -457,7 +457,7 @@ public class RestServiceTest {
 			System.out.println("result string: " + result.toString());
 			Broadcast tmp2 = gson.fromJson(result.toString(), Broadcast.class);
 			assertNotNull(tmp2);
-			assertEquals(tmp2.getStreamId(), null);
+			assertEquals(null, tmp2.getStreamId());
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -488,7 +488,7 @@ public class RestServiceTest {
 		System.out.println("result string: " + result.toString());
 		Broadcast tmp = gson.fromJson(result.toString(), Broadcast.class);
 		assertNotNull(tmp);
-		assertNotSame(tmp.getDate(), 0L);
+		assertNotSame(0L, tmp.getDate());
 
 		return tmp;
 
@@ -515,7 +515,7 @@ public class RestServiceTest {
 		System.out.println("result string: " + result.toString());
 		Broadcast tmp = gson.fromJson(result.toString(), Broadcast.class);
 		assertNotNull(tmp);
-		assertNotSame(tmp.getDate(), 0L);
+		assertNotSame(0L, tmp.getDate());
 
 		return tmp;
 
@@ -577,6 +577,42 @@ public class RestServiceTest {
 
 	}
 
+	
+	public  Result callTotalVoDNumber() throws Exception {
+
+		String url = ROOT_SERVICE_URL + "/broadcast/getTotalVodNumber";
+		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+		Gson gson = new Gson();
+
+		HttpUriRequest get = RequestBuilder.get().setUri(url)
+				.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+				// .setEntity(new StringEntity(gson.toJson(broadcast)))
+				.build();
+		CloseableHttpResponse response = client.execute(get);
+		
+		StringBuffer result = readResponse(response);
+
+		if (response.getStatusLine().getStatusCode() != 200) {
+			throw new Exception(result.toString());
+		}
+		System.out.println("result string: " + result.toString());
+
+
+		if (response.getStatusLine().getStatusCode() != 200) {
+			throw new Exception(result.toString());
+		}
+		logger.info("result string: {} ",result.toString());
+		
+		int totalVod = gson.fromJson(result.toString(),Integer.class);
+		
+		Result resultResponse = new Result(true, String.valueOf(totalVod));
+		
+		assertNotNull(resultResponse);
+
+		return resultResponse;
+
+	}
+	
 	public static Result callUpdateStreamSource(Broadcast broadcast) throws Exception {
 
 		String url = ROOT_SERVICE_URL + "/streamSource/updateCamInfo";
@@ -830,7 +866,7 @@ public class RestServiceTest {
 
 			broadcast = callGetBroadcast(broadcast.getStreamId());
 
-			assertEquals(broadcast.getStatus(), AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
+			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, broadcast.getStatus());
 
 			execute.destroy();
 
@@ -844,7 +880,7 @@ public class RestServiceTest {
 
 			broadcast = callGetBroadcast(broadcast.getStreamId());
 
-			assertEquals(broadcast.getStatus(), AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, broadcast.getStatus());
 
 			execute.destroy();
 
@@ -983,6 +1019,7 @@ public class RestServiceTest {
 	@Test
 	public void testUpdate() {
 
+		System.out.println("Running testUpdate");
 		// create broadcast
 		Broadcast broadcast = createBroadcast(null);
 
@@ -1050,6 +1087,8 @@ public class RestServiceTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+		
+		System.out.println("Leaving testUpdate");
 
 	}
 
@@ -1156,7 +1195,6 @@ public class RestServiceTest {
 
 	}
 
-	// TODO: restart server after testAddEndpoint and
 	// check that social endpoints are added correctly
 
 	@Test
@@ -1176,6 +1214,7 @@ public class RestServiceTest {
 
 	@Test
 	public void testCheckSocialEndpointRecreated() {
+		System.out.println("Running testCheckSocialEndpointRecreated");
 		Result result;
 		try {
 			// create broadcast
@@ -1212,7 +1251,7 @@ public class RestServiceTest {
 
 			// check that 1 element exist
 			assertNotNull(broadcast.getEndPointList());
-			assertEquals(broadcast.getEndPointList().size(), 1);
+			assertEquals(1, broadcast.getEndPointList().size());
 
 			broadcast = getBroadcast(broadcast.getStreamId().toString());
 			List<Endpoint> endpointList = broadcast.getEndPointList();
@@ -1236,7 +1275,7 @@ public class RestServiceTest {
 
 			broadcast = getBroadcast(broadcast.getStreamId().toString());
 			List<Endpoint> endpointList2 = broadcast.getEndPointList();
-			assertEquals(endpointList2.size(), 1);
+			assertEquals(1, endpointList2.size());
 
 			for (Endpoint endpoint : endpointList2) {
 				System.out.println("new endpoint url: " + endpoint.rtmpUrl + " broadcast.id=" + endpoint.broadcastId
@@ -1246,6 +1285,8 @@ public class RestServiceTest {
 
 			for (Endpoint endpoint : endpointList2) {
 				for (Endpoint endpointFirst : endpointList) {
+					System.out.println("new endpoint rtmp URL -> " + endpoint.rtmpUrl + " first endpoint URL -> " + endpointFirst.rtmpUrl);
+					System.out.println("new broadcast id -> " + endpoint.broadcastId + " first broadcast Id -> " + endpointFirst.broadcastId);
 					assertTrue(!endpoint.rtmpUrl.equals(endpointFirst.rtmpUrl)
 							|| !endpoint.broadcastId.equals(endpointFirst.broadcastId));
 				}
@@ -1255,7 +1296,8 @@ public class RestServiceTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-
+		
+		System.out.println("Leaving testCheckSocialEndpointRecreated");
 	}
 
 	public static Process execute(final String command) {
@@ -1371,12 +1413,13 @@ public class RestServiceTest {
 	@Test
 	public void testAddEndpoint() {
 
+		System.out.println("Running testAddEndpoint");
 		try {
 
 			Broadcast broadcast = createBroadcast(null);
 
 			List<SocialEndpointCredentials> socialEndpointServices = getSocialEndpointServices();
-			assertTrue(socialEndpointServices.size() > 0);
+			assertTrue(!socialEndpointServices.isEmpty());
 			// add twitter endpoint
 			Result result = addSocialEndpoint(broadcast.getStreamId().toString(), socialEndpointServices.get(0).getId());
 
@@ -1400,12 +1443,13 @@ public class RestServiceTest {
 
 			// check that 4 element exist
 			assertNotNull(broadcast.getEndPointList());
-			assertEquals(broadcast.getEndPointList().size(), 2);
+			assertEquals(2, broadcast.getEndPointList().size());
 
 		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+
 	}
 
 	@Test
@@ -1461,7 +1505,6 @@ public class RestServiceTest {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-
 	}
 
 	@Test

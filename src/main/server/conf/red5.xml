@@ -55,6 +55,4 @@
     		<property name="serverName" value="${ant.media.server.name}" />
     </bean>
     
-    
-
 </beans>

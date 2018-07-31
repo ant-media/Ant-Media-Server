@@ -29,7 +29,9 @@ import org.red5.server.api.scheduling.IScheduledJob;
 import org.red5.server.api.scheduling.ISchedulingService;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IBroadcastStream;
+import org.red5.server.api.stream.IPlayItem;
 import org.red5.server.api.stream.IStreamPublishSecurity;
+import org.red5.server.api.stream.ISubscriberStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,7 +41,7 @@ import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.Vod;
 import io.antmedia.ipcamera.OnvifCamera;
-import io.antmedia.muxer.IMuxerListener;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.social.endpoint.PeriscopeEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
@@ -47,7 +49,7 @@ import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
 
-public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter implements IMuxerListener {
+public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter implements IAntMediaStreamHandler {
 
 	public static final String BEAN_NAME = "web.handler";
 	public static final String BROADCAST_STATUS_CREATED = "created";
@@ -83,13 +85,14 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 				registerStreamPublishSecurity(streamPublishSecurity);
 			}
 		}
-		addScheduledOnceJob(0, new IScheduledJob() {
+		String scheduledJobName = addScheduledOnceJob(0, new IScheduledJob() {
 
 			@Override
 			public void execute(ISchedulingService service) throws CloneNotSupportedException {
 				streamFetcherManager = new StreamFetcherManager(AntMediaApplicationAdapter.this, dataStore,app);
 				streamFetcherManager.setRestartStreamFetcherPeriod(appSettings.getRestartStreamFetcherPeriod());
 				List<Broadcast> streams = getDataStore().getExternalStreamsList();
+				logger.info("Stream source size: {}", streams.size());
 				streamFetcherManager.startStreams(streams);
 
 				List<SocialEndpointCredentials> socialEndpoints = dataStore.getSocialEndpoints(0, END_POINT_LIMIT);
@@ -121,6 +124,8 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 				}
 			}
 		});
+
+		logger.info("AppStart scheduled job name: {}", scheduledJobName);
 
 		return super.appStart(app);
 	}
@@ -280,7 +285,29 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		}
 		return null;
 	}
+	
 
+	@Override
+	public void streamPlayItemPlay(ISubscriberStream stream, IPlayItem item, boolean isLive) {
+		super.streamPlayItemPlay(stream, item, isLive);
+		addScheduledOnceJob(0, service -> {
+			if (dataStore != null) {
+				dataStore.updateRtmpViewerCount(item.getName(), true);
+			}
+			
+		});
+	}
+	
+	@Override
+	public void streamPlayItemStop(ISubscriberStream stream, IPlayItem item) {
+		super.streamPlayItemStop(stream, item);
+		addScheduledOnceJob(0, service -> {
+			if (dataStore != null) {
+				dataStore.updateRtmpViewerCount(item.getName(), false);
+			}
+		});
+	}
+	
 	@Override
 	public void streamPublishStart(final IBroadcastStream stream) {
 		String streamName = stream.getPublishedName();
@@ -303,7 +330,8 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 						Broadcast broadcast = dataStore.get(streamName);
 
 						if (broadcast == null) {
-							broadcast = saveZombiBroadcast(streamName);
+
+							broadcast = saveUndefinedBroadcast(streamName, getScope().getName(), dataStore, appSettings);
 
 						} else {
 
@@ -334,9 +362,9 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 								if (videoServiceEndPoint != null) {
 									try {
 										videoServiceEndPoint.publishBroadcast(endpoint);
-										log.info("publish broadcast called for " + videoServiceEndPoint.getName());
+										log.info("publish broadcast called for {}" , videoServiceEndPoint.getName());
 									} catch (Exception e) {
-										e.printStackTrace();
+										logger.error(ExceptionUtils.getStackTrace(e));
 									}
 								}
 
@@ -344,25 +372,32 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 						}
 					}
 				} catch (Exception e) {
-					e.printStackTrace();
+					logger.error(ExceptionUtils.getStackTrace(e));
 				}
 			}
 
 		});
 	}
 
-	private Broadcast saveZombiBroadcast(String streamName) {
+	public static Broadcast saveUndefinedBroadcast(String streamName, String scopeName, IDataStore dataStore, AppSettings appSettings) {
 		Broadcast newBroadcast = new Broadcast();
 		newBroadcast.setDate(System.currentTimeMillis());
 		newBroadcast.setZombi(true);
 		try {
 			newBroadcast.setStreamId(streamName);
 
+			String settingsListenerHookURL = null; 
+			String fqdn = null;
+			if (appSettings != null) {
+				settingsListenerHookURL = appSettings.getListenerHookURL();
+				fqdn = appSettings.getServerName();
+			}
+
 			return BroadcastRestService.saveBroadcast(newBroadcast,
-					AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, getScope().getName(), dataStore,
-					appSettings);
+					AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, scopeName, dataStore,
+					settingsListenerHookURL, fqdn);
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 
 		return null;
@@ -380,59 +415,52 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	}
 
 	@Override
-	public void muxingFinished(final String streamId, File file, long duration) {
-		String name = file.getName();
+	public void muxingFinished(final String streamId, File file, long duration, int resolution) {
+		String vodName = file.getName();
 		String filePath = file.getPath();
 		long fileSize = file.length();
-		long unixTime = System.currentTimeMillis();
-
-		String streamName = "";
+		String streamName = file.getName();
+		long systemTime = System.currentTimeMillis();
+		String[] subDirs = filePath.split(Pattern.quote(File.separator));
+		Integer pathLength=Integer.valueOf(subDirs.length);
+		String relativePath=subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
 
 		if (dataStore != null) {
-			int index;
-			// reg expression of a translated file, kdjf03030_240p.mp4
-			String regularExp = "^.*_{1}[0-9]{3}p{1}\\.mp4{1}$";
+			Broadcast broadcast = dataStore.get(streamId);
 
-			if (!name.matches(regularExp) && (index = name.lastIndexOf(".mp4")) != -1) {
-				final String baseName = name.substring(0, index);
-				dataStore.updateDuration(streamId, duration);
+			if (broadcast != null) {
+				//if it is a stream VoD, than assign stream name, if it is deleted stream Vod name assigned to it already
+				streamName = broadcast.getName();
+				int index;
+				// reg expression of a translated file, kdjf03030_240p.mp4
+				String regularExp = "^.*_{1}[0-9]{3}p{1}\\.mp4{1}$";
 
-				Broadcast broadcast = dataStore.get(streamId);
-
-				if (broadcast != null) {
-					streamName = broadcast.getName();
-				} 
-				else {
-					streamName = file.getName();
-				}
-				String[] subDirs = filePath.split(Pattern.quote(File.separator));
-
-				Integer pathLength=Integer.valueOf(subDirs.length);
-
-				String relativePath=subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
-				
-				String vodId = RandomStringUtils.randomNumeric(24);
-
-				Vod newVod = new Vod(streamName, streamId, relativePath, name, unixTime, duration, fileSize, Vod.STREAM_VOD, vodId);
-
-				getDataStore().addVod(newVod);
-
-				if (broadcast != null) {
+				if (!vodName.matches(regularExp) && (index = vodName.lastIndexOf(".mp4")) != -1) {
+					final String baseName = vodName.substring(0, index);
 					final String listenerHookURL = broadcast.getListenerHookURL();
 
-					if (listenerHookURL != null && listenerHookURL.length() > 0) {
+					addScheduledOnceJob(100, new IScheduledJob() {
 
-						addScheduledOnceJob(100, new IScheduledJob() {
+						@Override
+						public void execute(ISchedulingService service) throws CloneNotSupportedException {
+							notifyHook(listenerHookURL, streamId, HOOK_ACTION_VOD_READY, null, null, baseName);
+						}
+					});
 
-							@Override
-							public void execute(ISchedulingService service) throws CloneNotSupportedException {
-								notifyHook(listenerHookURL, streamId, HOOK_ACTION_VOD_READY, null, null, baseName);
-							}
-						});
-					}
 				}
-
 			}
+
+			if(resolution != 0 && broadcast != null) {
+				streamName = streamName + " (" + resolution + "p)";
+			}
+
+			String vodId = RandomStringUtils.randomNumeric(24);
+			Vod newVod = new Vod(streamName, streamId, relativePath, vodName, systemTime, duration, fileSize, Vod.STREAM_VOD, vodId);
+
+			if (getDataStore().addVod(newVod) == null) {
+				logger.warn("Stream vod with stream id {} cannot be added to data store", streamId);
+			}	
+
 		}
 	}
 
@@ -527,26 +555,32 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	 */
 	public StringBuffer notifyHook(String url, String id, String action, String streamName, String category,
 			String vodName) {
-		Map<String, String> variables = new HashMap<>();
-
-		variables.put("id", id);
-		variables.put("action", action);
-		if (streamName != null) {
-			variables.put("streamName", streamName);
-		}
-		if (category != null) {
-			variables.put("category", category);
-		}
-
-		if (vodName != null) {
-			variables.put("vodName", vodName);
-		}
 
 		StringBuffer response = null;
-		try {
-			response = sendPOST(url, variables);
-		} catch (IOException e) {
-			e.printStackTrace();
+
+
+		if (url != null && url.length() > 0) {
+			Map<String, String> variables = new HashMap<>();
+
+			variables.put("id", id);
+			variables.put("action", action);
+			if (streamName != null) {
+				variables.put("streamName", streamName);
+			}
+			if (category != null) {
+				variables.put("category", category);
+			}
+
+			if (vodName != null) {
+				variables.put("vodName", vodName);
+			}
+
+
+			try {
+				response = sendPOST(url, variables);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 		return response;
 	}
@@ -624,35 +658,6 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	public void setAppSettings(AppSettings appSettings) {
 		this.appSettings = appSettings;
 	}
-	@Override
-	public void sourceQualityChanged(String id,String quality) 
-	{
-		String qualityChangedJobName = addScheduledOnceJob(0, new IScheduledJob() {
-
-			@Override
-			public void execute(ISchedulingService service) throws CloneNotSupportedException {
-				boolean updateSourceQuality = getDataStore().updateSourceQuality(id, quality);
-				log.info("source stream {} quality changed, new quality is: {}  , updating data strore {}", id, quality, updateSourceQuality);
-
-			}
-		});
-		logger.info("sourceQualityChanged job name: {}", qualityChangedJobName);
-	}
-
-
-	@Override
-	public void sourceSpeedChanged(String id,double speed) {
-		
-		String speedChangeJobName = addScheduledOnceJob(0, new IScheduledJob() {
-			@Override
-			public void execute(ISchedulingService service) throws CloneNotSupportedException {
-				getDataStore().updateSourceSpeed(id, speed);
-
-			}
-		});
-		logger.info("sourceSpeedChanged change name {}", speedChangeJobName);
-
-	}
 
 	public StreamFetcher startStreaming(Broadcast broadcast) {
 		return streamFetcherManager.startStreaming(broadcast);
@@ -686,6 +691,12 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 	public void setDataStore(IDataStore dataStore) {
 		this.dataStore = dataStore;
+	}
+
+	@Override
+	public void setQualityParameters(String id, String quality, double speed, int pendingPacketSize) {
+		getDataStore().updateSourceQualityParameters(id, quality, speed, pendingPacketSize);
+
 	}
 
 }

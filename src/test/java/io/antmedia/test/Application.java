@@ -3,9 +3,9 @@ package io.antmedia.test;
 import java.io.File;
 
 import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.muxer.IMuxerListener;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 
-public class Application extends AntMediaApplicationAdapter implements IMuxerListener {
+public class Application extends AntMediaApplicationAdapter implements IAntMediaStreamHandler {
 
 	public static String id = null;
 	public static File file = null;
@@ -17,12 +17,12 @@ public class Application extends AntMediaApplicationAdapter implements IMuxerLis
 	public static String notifyStreamName = null;
 	public static String notifyCategory = null;
 	public static String notifyVodName = null;
-	
+
 	public static boolean enableSourceHealthUpdate = false;
 
 	@Override
-	public void muxingFinished(String id, File file, long duration) {
-		super.muxingFinished(id, file, duration);
+	public void muxingFinished(String id, File file, long duration, int resolution) {
+		super.muxingFinished(id, file, duration, resolution);
 		Application.id = id;
 		Application.file = file;
 		Application.duration = duration;
@@ -52,18 +52,12 @@ public class Application extends AntMediaApplicationAdapter implements IMuxerLis
 
 		return null;
 	}
-	
+
 	@Override
-	public void sourceQualityChanged(String id, String quality) {
+	public void setQualityParameters(String id, String quality, double speed, int pendingPacketSize) {
 		if (enableSourceHealthUpdate) {
-			super.sourceQualityChanged(id, quality);
+			super.setQualityParameters(id, quality, speed, pendingPacketSize);
 		}
 	}
-	
-	@Override
-	public void sourceSpeedChanged(String id, double speed) {
-		if (enableSourceHealthUpdate) {
-			super.sourceSpeedChanged(id, speed);
-		}
-	}
+
 }

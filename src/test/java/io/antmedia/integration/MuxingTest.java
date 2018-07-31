@@ -11,6 +11,7 @@ import static org.bytedeco.javacpp.avutil.AVMEDIA_TYPE_AUDIO;
 import static org.bytedeco.javacpp.avutil.AVMEDIA_TYPE_VIDEO;
 import static org.bytedeco.javacpp.avutil.AV_NOPTS_VALUE;
 import static org.bytedeco.javacpp.avutil.AV_PIX_FMT_NONE;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -20,7 +21,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.concurrent.TimeUnit;
 
+import org.awaitility.Awaitility;
 import org.bytedeco.javacpp.avcodec.AVCodecContext;
 import org.bytedeco.javacpp.avcodec.AVPacket;
 import org.bytedeco.javacpp.avformat;
@@ -35,6 +38,8 @@ import org.junit.Test;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
+import io.antmedia.rest.BroadcastRestService.LiveStatistics;
+
 
 public class MuxingTest {
 
@@ -69,6 +74,7 @@ public class MuxingTest {
 	   protected void failed(Throwable e, Description description) {
 		   System.out.println("Failed test: " + description.getMethodName() );
 		   e.printStackTrace();
+
 	   };
 	   protected void finished(Description description) {
 		   System.out.println("Finishing test: " + description.getMethodName());
@@ -147,6 +153,10 @@ public class MuxingTest {
 			fail(e.getMessage());
 			e.printStackTrace();
 		}
+		RestServiceTest restService = new RestServiceTest();
+
+		LiveStatistics liveStatistics = restService.callGetLiveStatistics();
+		assertEquals(0, liveStatistics.totalLiveStreamCount);
 	}
 
 	// TODO: check that if there is memory leak, if muxing is stopped by somehow
@@ -189,6 +199,7 @@ public class MuxingTest {
 			testResult = testFile("rtsp://" + SERVER_ADDR + ":5554/LiveApp/" + streamName + ".mp4");
 			assertTrue(testResult);
 			
+			//let the server update stats
 			//wait a little to let the server finish state after rtsp fetching
 			Thread.sleep(2000);
 
@@ -196,6 +207,11 @@ public class MuxingTest {
 			fail(e.getMessage());
 			e.printStackTrace();
 		}
+		
+		RestServiceTest restService = new RestServiceTest();
+
+		LiveStatistics liveStatistics = restService.callGetLiveStatistics();
+		assertEquals(0, liveStatistics.totalLiveStreamCount);
 
 	}
 
@@ -226,6 +242,11 @@ public class MuxingTest {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+		
+		RestServiceTest restService = new RestServiceTest();
+
+		LiveStatistics liveStatistics = restService.callGetLiveStatistics();
+		assertEquals(0, liveStatistics.totalLiveStreamCount);
 
 	}
 
@@ -271,7 +292,18 @@ public class MuxingTest {
 			fail(e.getMessage());
 			e.printStackTrace();
 		}
-
+		
+		//wait a little more to let server update statistics
+		
+		Awaitility.await().atMost(10, TimeUnit.SECONDS)
+			.pollInterval(1, TimeUnit.SECONDS)
+			.until(() -> {
+				RestServiceTest restService = new RestServiceTest();
+	
+				LiveStatistics liveStatistics = restService.callGetLiveStatistics();
+				return 0 == liveStatistics.totalLiveStreamCount;
+			});
+		
 	}
 
 	// TODO: check if rtsp failed in some state, how it can be free resources
@@ -314,6 +346,11 @@ public class MuxingTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+		
+		RestServiceTest restService = new RestServiceTest();
+
+		LiveStatistics liveStatistics = restService.callGetLiveStatistics();
+		assertEquals(0, liveStatistics.totalLiveStreamCount);
 
 	}
 
@@ -322,7 +359,7 @@ public class MuxingTest {
 
 		try {
 			// send rtmp stream with ffmpeg to red5
-			String streamName = "live_test";
+			String streamName = "live_test"  + (int)(Math.random() * 999999);
 
 			// make sure that ffmpeg is installed and in path
 			Process rtmpSendingProcess = execute(
@@ -360,6 +397,11 @@ public class MuxingTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+		
+		RestServiceTest restService = new RestServiceTest();
+
+		LiveStatistics liveStatistics = restService.callGetLiveStatistics();
+		assertEquals(0, liveStatistics.totalLiveStreamCount);
 
 	}
 
@@ -411,7 +453,6 @@ public class MuxingTest {
 				assertTrue(codecContext.pix_fmt() != AV_PIX_FMT_NONE);
 				streamExists = true;
 			} else if (codecContext.codec_type() == AVMEDIA_TYPE_AUDIO) {
-				// TODO:
 				assertTrue(codecContext.sample_rate() != 0);
 				streamExists = true;
 			}
@@ -612,7 +653,7 @@ public class MuxingTest {
 		return false;
 	}
 
-	public byte[] getByteArray(String address) {
+	public static byte[] getByteArray(String address) {
 		try {
 
 			URL url = new URL(address);
@@ -633,7 +674,7 @@ public class MuxingTest {
 
 			return byteArray;
 		} catch (Exception e) {
-			e.printStackTrace();
+			//e.printStackTrace();
 		}
 		return null;
 	}

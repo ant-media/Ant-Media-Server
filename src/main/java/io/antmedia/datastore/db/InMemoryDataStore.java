@@ -6,14 +6,14 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.regex.Pattern;
+import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
+
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.gson.Gson;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Broadcast;
@@ -27,13 +27,13 @@ public class InMemoryDataStore implements IDataStore {
 
 	protected static Logger logger = LoggerFactory.getLogger(InMemoryDataStore.class);
 
-	public LinkedHashMap<String, Broadcast> broadcastMap = new LinkedHashMap<String, Broadcast>();
+	public Map<String, Broadcast> broadcastMap = new LinkedHashMap<>();
 
-	public LinkedHashMap<String, Vod> vodMap = new LinkedHashMap<String, Vod>();
+	public Map<String, Vod> vodMap = new LinkedHashMap<>();
 
-	public LinkedHashMap<String, List<TensorFlowObject>> detectionMap = new LinkedHashMap<String, List<TensorFlowObject>>();
+	public Map<String, List<TensorFlowObject>> detectionMap = new LinkedHashMap<>();
 
-	public LinkedHashMap<String, SocialEndpointCredentials> socialEndpointCredentialsMap = new LinkedHashMap<String, SocialEndpointCredentials>();
+	public Map<String, SocialEndpointCredentials> socialEndpointCredentialsMap = new LinkedHashMap<>();
 
 
 	public InMemoryDataStore(String dbName) {
@@ -61,7 +61,7 @@ public class InMemoryDataStore implements IDataStore {
 				}
 				broadcastMap.put(streamId, broadcast);
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.error(e.getMessage());
 				streamId = null;
 			}
 
@@ -138,7 +138,7 @@ public class InMemoryDataStore implements IDataStore {
 			List<Endpoint> endPointList = broadcast.getEndPointList();
 			if (endPointList != null) {
 				for (Iterator<Endpoint> iterator = endPointList.iterator(); iterator.hasNext();) {
-					Endpoint endpointItem = (Endpoint) iterator.next();
+					Endpoint endpointItem = iterator.next();
 					if (endpointItem.rtmpUrl.equals(endpoint.rtmpUrl)) {
 						iterator.remove();
 						result = true;
@@ -156,6 +156,20 @@ public class InMemoryDataStore implements IDataStore {
 		return broadcastMap.size();
 	}
 
+	@Override
+	public long getActiveBroadcastCount() {
+		Collection<Broadcast> values = broadcastMap.values();
+		long activeBroadcastCount = 0;
+		for (Broadcast broadcast : values) {
+			String status = broadcast.getStatus();
+			if (status != null && status.equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
+				activeBroadcastCount++;
+			}
+		}
+		return activeBroadcastCount;
+	}
+	
+	
 	@Override
 	public boolean delete(String id) {
 		Broadcast broadcast = broadcastMap.get(id);
@@ -178,7 +192,7 @@ public class InMemoryDataStore implements IDataStore {
 		if (offset < 0) {
 			offset = 0;
 		}
-		List<Broadcast> list = new ArrayList<Broadcast>();
+		List<Broadcast> list = new ArrayList<>();
 		for (Broadcast broadcast : values) {
 
 			if (t < offset) {
@@ -199,12 +213,11 @@ public class InMemoryDataStore implements IDataStore {
 
 
 
-
 	@Override
 	public List<Broadcast> getExternalStreamsList() {
 		Collection<Broadcast> values = broadcastMap.values();
 
-		List<Broadcast> streamsList = new ArrayList<Broadcast>();
+		List<Broadcast> streamsList = new ArrayList<>();
 		for (Broadcast broadcast : values) {
 			String type = broadcast.getType();
 
@@ -217,8 +230,7 @@ public class InMemoryDataStore implements IDataStore {
 
 	@Override
 	public void close() {
-		// TODO Auto-generated method stub
-
+		//no need to implement 
 	}
 
 	@Override
@@ -253,7 +265,6 @@ public class InMemoryDataStore implements IDataStore {
 				}
 			}
 		}
-
 		return list;
 	}
 
@@ -268,7 +279,7 @@ public class InMemoryDataStore implements IDataStore {
 				result = true;
 
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.error(e.getMessage());
 			}
 		}
 		
@@ -312,10 +323,8 @@ public class InMemoryDataStore implements IDataStore {
 	@Override
 	public boolean deleteVod(String id) {
 		boolean result = vodMap.remove(id) != null;
-
 		return result;
 	}
-
 
 
 	public boolean removeAllEndpoints(String id) {
@@ -404,22 +413,22 @@ public class InMemoryDataStore implements IDataStore {
 				result = true;
 
 			} catch (Exception e) {
-				e.printStackTrace();
-
+				logger.error(e.getMessage());
 			}
 		}
 		return result;
 	}
 
 
-
 	@Override
-	public boolean updateSourceQuality(String id, String quality) {
+	public boolean updateSourceQualityParameters(String id, String quality, double speed, int pendingPacketSize) {
 		boolean result = false;
 		if (id != null) {
 			Broadcast broadcast = broadcastMap.get(id);
 			if (broadcast != null) {
 				broadcast.setQuality(quality);
+				broadcast.setSpeed(speed);
+				broadcast.setPendingPacketSize(pendingPacketSize);
 				broadcastMap.replace(id, broadcast);
 				result = true;
 			}
@@ -427,19 +436,7 @@ public class InMemoryDataStore implements IDataStore {
 		return result;
 	}
 
-	@Override
-	public boolean updateSourceSpeed(String id, double speed) {
-		boolean result = false;
-		if (id != null) {
-			Broadcast broadcast = broadcastMap.get(id);
-			if (broadcast != null) {
-				broadcast.setSpeed(speed);
-				broadcastMap.replace(id, broadcast);
-				result = true;
-			}
-		}
-		return result;
-	}
+	
 	public SocialEndpointCredentials addSocialEndpointCredentials(SocialEndpointCredentials credentials) {
 		SocialEndpointCredentials addedCredential = null;
 		if (credentials != null && credentials.getAccountName() != null && credentials.getAccessToken() != null
@@ -509,24 +506,8 @@ public class InMemoryDataStore implements IDataStore {
 	}
 
 	@Override
-
 	public long getTotalBroadcastNumber() {
-
 		return broadcastMap.size();
-
-	}
-
-	@Override
-	public long getActiveBroadcastCount() {
-		Collection<Broadcast> values = broadcastMap.values();
-		long activeBroadcastCount = 0;
-		for (Broadcast broadcast : values) {
-			String status = broadcast.getStatus();
-			if (status != null && status.equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
-				activeBroadcastCount++;
-			}
-		}
-		return activeBroadcastCount;
 	}
 
 	public void saveDetection(String id, long timeElapsed, List<TensorFlowObject> detectedObjects) {
@@ -612,18 +593,67 @@ public class InMemoryDataStore implements IDataStore {
 	}
 	
 	@Override
-	public boolean updateHLSViewerCount(String streamId, int viewerCount) {
+	public synchronized boolean updateHLSViewerCount(String streamId, int diffCount) {
 		boolean result = false;
 		if (streamId != null) {
 			Broadcast broadcast = broadcastMap.get(streamId);
 			if (broadcast != null) {
-				broadcast.setHlsViewerCount(viewerCount);
+				int hlsViewerCount = broadcast.getHlsViewerCount();
+				hlsViewerCount += diffCount;
+						
+				broadcast.setHlsViewerCount(hlsViewerCount);
 				broadcastMap.replace(streamId, broadcast);
 				result = true;
 			}
 		}
 		return result;
 	}
+	
+	@Override
+	public synchronized boolean updateWebRTCViewerCount(String streamId, boolean increment) {
+		boolean result = false;
+		if (streamId != null) {
+			Broadcast broadcast = broadcastMap.get(streamId);
+			if (broadcast != null) {
+				int webRTCViewerCount = broadcast.getWebRTCViewerCount();
+				if (increment) {
+					webRTCViewerCount++;
+				}
+				else  {
+					webRTCViewerCount--;
+				}
+				
+				broadcast.setWebRTCViewerCount(webRTCViewerCount);
+				broadcastMap.replace(streamId, broadcast);
+				result = true;
+			}
+		}
+		return result;
+	}
+	
+	@Override
+	public synchronized boolean updateRtmpViewerCount(String streamId, boolean increment) {
+		boolean result = false;
+		if (streamId != null) {
+			Broadcast broadcast = broadcastMap.get(streamId);
+			if (broadcast != null) {
+				int rtmpViewerCount = broadcast.getRtmpViewerCount();
+				if (increment) {
+					rtmpViewerCount++;
+				}
+				else  {
+					rtmpViewerCount--;
+				}
+				
+				broadcast.setRtmpViewerCount(rtmpViewerCount);
+				broadcastMap.replace(streamId, broadcast);
+				result = true;
+			}
+		}
+		return result;
+	}
+
+
 
 
 

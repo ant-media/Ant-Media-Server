@@ -11,6 +11,7 @@ import static org.junit.Assert.fail;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.ArrayList;
 import java.util.List;
@@ -75,10 +76,15 @@ public class DBStoresUnitTest {
 		testVoDFunctions(dataStore);
 		testSaveStreamInDirectory(dataStore);
 		testEditCameraInfo(dataStore);
+		testGetActiveBroadcastCount(dataStore);
 		testUpdateHLSViewerCount(dataStore);
+		testWebRTCViewerCount(dataStore);
+		testRTMPViewerCount(dataStore);
 
 
 	}
+
+	
 
 	@Test
 	public void testMemoryDataStore() {
@@ -97,7 +103,10 @@ public class DBStoresUnitTest {
 		testVoDFunctions(dataStore);
 		testSaveStreamInDirectory(dataStore);
 		testEditCameraInfo(dataStore);
+		testGetActiveBroadcastCount(dataStore);
 		testUpdateHLSViewerCount(dataStore);
+		testWebRTCViewerCount(dataStore);
+		testRTMPViewerCount(dataStore);
 		
 	}
 
@@ -134,10 +143,100 @@ public class DBStoresUnitTest {
 		testVoDFunctions(dataStore);
 		testSaveStreamInDirectory(dataStore);
 		testEditCameraInfo(dataStore);
+		testGetActiveBroadcastCount(dataStore);
 		testUpdateHLSViewerCount(dataStore);
+		testWebRTCViewerCount(dataStore);
+		testRTMPViewerCount(dataStore);
 
 	}
 	
+	public void clear(IDataStore dataStore) 
+	{
+		long numberOfStreams = dataStore.getBroadcastCount();
+		int pageSize = 10;
+		long pageCount = numberOfStreams / pageSize + ((numberOfStreams % pageSize) > 0 ? 1 : 0);
+		int numberOfCall = 0;
+		List<Broadcast> totalBroadcastList = new ArrayList<>();
+		for (int i = 0; i < pageCount; i++) {
+			totalBroadcastList.addAll(dataStore.getBroadcastList(i * pageSize, pageSize));
+		}
+		
+		for (Broadcast broadcast : totalBroadcastList) {
+			numberOfCall++;
+			assertTrue(dataStore.delete(broadcast.getStreamId()));
+		}
+		
+		assertEquals(numberOfCall, numberOfStreams);
+		
+	}
+	
+	public void testGetActiveBroadcastCount(IDataStore dataStore) {
+
+		//save random number of streams with status created
+		//long broadcastCountInDataStore = dataStore.getBroadcastCount();
+		clear(dataStore);
+		
+		assertEquals(0, dataStore.getBroadcastCount());
+		
+		
+		long streamCount = (int)(Math.random()  * 500);
+		
+		if (streamCount < 10) {
+			streamCount = 10;
+		}
+		
+		System.out.println("Stream count to be added: " + streamCount);
+		
+		for (int i = 0; i < streamCount; i++) {
+			dataStore.save(new Broadcast(null, null));
+		}
+		
+		assertEquals(streamCount, dataStore.getBroadcastCount());
+		
+		//check that no active broadcast exist
+		assertEquals(0, dataStore.getActiveBroadcastCount());
+		
+		//change random number of streams status to broadcasting
+		long numberOfStatusChangeStreams = (int)(Math.random() * 500);
+		if (streamCount < numberOfStatusChangeStreams) {
+			numberOfStatusChangeStreams = streamCount;
+		}
+		
+		int pageSize = 10;
+		numberOfStatusChangeStreams = (numberOfStatusChangeStreams / pageSize) * pageSize; //normalize
+		long pageCount = numberOfStatusChangeStreams / pageSize;
+		int numberOfCall = 0;
+		System.out.println("Number of status change stream count: " + numberOfStatusChangeStreams + 
+				" page Count: " + pageCount);
+		for (int i = 0; i < pageCount; i++) {
+			
+			List<Broadcast> broadcastList = dataStore.getBroadcastList(i * pageSize, pageSize);
+			for (Broadcast broadcast : broadcastList) {
+				numberOfCall++;
+				assertTrue(dataStore.updateStatus(broadcast.getStreamId(), AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING));;
+			}
+			
+		}
+		
+		assertEquals(numberOfCall, numberOfStatusChangeStreams);
+		//check that active broadcast exactly the same as changed above
+		assertEquals(numberOfStatusChangeStreams, dataStore.getActiveBroadcastCount());
+		
+		//change all streams to finished
+		streamCount = dataStore.getBroadcastCount();
+		pageCount = streamCount / pageSize + ((streamCount % pageSize) > 0 ? 1 : 0);
+		for (int i = 0; i < pageCount; i++) {
+			
+			List<Broadcast> broadcastList = dataStore.getBroadcastList(i * pageSize, pageSize);
+			for (Broadcast broadcast : broadcastList) {
+				assertTrue(dataStore.updateStatus(broadcast.getStreamId(), AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED));
+			}
+			
+		}
+		
+		//check that no active broadcast
+		assertEquals(0, dataStore.getActiveBroadcastCount());
+	}
 	
 	
 	public void testBugGetExternalStreamsList(IDataStore datastore) {
@@ -343,15 +442,110 @@ public class DBStoresUnitTest {
 		
 		//update hls viewer several times 
 		//check hls viewer count
+		int totalCountFor1 = 0;
+		int totalCountFor2 = 0;
 		for (int i = 0; i < 50; i++) {
 			int viewerCount = (int)(Math.random()*99999);
+			if (viewerCount % 2 == 0) {
+				viewerCount = -1 * viewerCount;
+			}
 			assertTrue(dataStore.updateHLSViewerCount(key, viewerCount));
 			
-			int viewerCount2 = (int)(Math.random()*99999);
-			assertTrue(dataStore.updateHLSViewerCount(key2, viewerCount2));
+			totalCountFor1 += viewerCount;
 			
-			assertEquals(viewerCount, dataStore.get(key).getHlsViewerCount());
-			assertEquals(viewerCount2, dataStore.get(key2).getHlsViewerCount());
+			int viewerCount2 = (int)(Math.random()*99999);
+			if (viewerCount2 % 2 == 0) {
+				viewerCount2 = -1 * viewerCount2;
+			}
+			assertTrue(dataStore.updateHLSViewerCount(key2, viewerCount2));
+			totalCountFor2 += viewerCount2;
+			
+			assertEquals(totalCountFor1, dataStore.get(key).getHlsViewerCount());
+			assertEquals(totalCountFor2, dataStore.get(key2).getHlsViewerCount());
+		}
+	}
+	
+	public void testWebRTCViewerCount(IDataStore dataStore) {
+		//create a stream
+		Broadcast broadcast = new Broadcast();
+		broadcast.setName("test");
+		String key = dataStore.save(broadcast);
+
+		Broadcast broadcast2 = new Broadcast();
+		broadcast2.setName("test2");
+		String key2 = dataStore.save(broadcast2);
+		
+		int totalViewerCountFor1 = 0;
+		int totalViewerCountFor2 = 0;
+		for (int i = 0; i < 150; i++) {
+			
+			boolean increment = false; 
+			int randomValue = (int)(Math.random()*99999);
+			if (randomValue % 2 == 0) {
+				increment = true;
+				totalViewerCountFor1++;
+			}
+			else {
+				totalViewerCountFor1--;
+			}
+			assertTrue(dataStore.updateWebRTCViewerCount(key, increment));
+			
+			increment = false; 
+			randomValue = (int)(Math.random()*99999);
+			if (randomValue % 2 == 0) {
+				increment = true;
+				totalViewerCountFor2++;
+			}
+			else {
+				totalViewerCountFor2--;
+			}
+			
+			assertTrue(dataStore.updateWebRTCViewerCount(key2, increment));
+			
+			assertEquals(totalViewerCountFor1, dataStore.get(key).getWebRTCViewerCount());
+			assertEquals(totalViewerCountFor2, dataStore.get(key2).getWebRTCViewerCount());
+		}
+	}
+	
+	public void testRTMPViewerCount(IDataStore dataStore) {
+		//create a stream
+		Broadcast broadcast = new Broadcast();
+		broadcast.setName("test");
+		String key = dataStore.save(broadcast);
+
+		Broadcast broadcast2 = new Broadcast();
+		broadcast2.setName("test2");
+		String key2 = dataStore.save(broadcast2);
+		
+		int totalViewerCountFor1 = 0;
+		int totalViewerCountFor2 = 0;
+		for (int i = 0; i < 150; i++) {
+			
+			boolean increment = false; 
+			int randomValue = (int)(Math.random()*99999);
+			if (randomValue % 2 == 0) {
+				increment = true;
+				totalViewerCountFor1++;
+			}
+			else {
+				totalViewerCountFor1--;
+			}
+			assertTrue(dataStore.updateRtmpViewerCount(key, increment));
+			
+			increment = false; 
+			randomValue = (int)(Math.random()*99999);
+			if (randomValue % 2 == 0) {
+				increment = true;
+				totalViewerCountFor2++;
+			}
+			else {
+				totalViewerCountFor2--;
+			}
+			
+			assertTrue(dataStore.updateRtmpViewerCount(key2, increment));
+			
+			assertEquals(totalViewerCountFor1, dataStore.get(key).getRtmpViewerCount());
+			assertEquals(totalViewerCountFor2, dataStore.get(key2).getRtmpViewerCount());
 		}
 	}
 
@@ -456,7 +650,7 @@ public class DBStoresUnitTest {
 
 		broadcast2 = dataStore.get(key);
 		assertNotNull(broadcast2.getEndPointList());
-		assertEquals(broadcast2.getEndPointList().size(), 2);
+		assertEquals(2, broadcast2.getEndPointList().size());
 
 		// remove end point
 		result = dataStore.removeEndpoint(broadcast2.getStreamId(), endPoint);
@@ -464,7 +658,7 @@ public class DBStoresUnitTest {
 		broadcast2 = dataStore.get(key);
 		assertNotNull(broadcast2.getEndPointList());
 		// its size should be 1
-		assertEquals(broadcast2.getEndPointList().size(), 1);
+		assertEquals(1, broadcast2.getEndPointList().size());
 
 		// endpoint2 should be in the list, check stream id
 		assertEquals(broadcast2.getEndPointList().get(0).streamId, endpointStreamId);
@@ -568,7 +762,7 @@ public class DBStoresUnitTest {
 
 			broadcast2 = dataStore.get(key);
 			assertNotNull(broadcast2.getEndPointList());
-			assertEquals(broadcast2.getEndPointList().size(), 1);
+			assertEquals(1, broadcast2.getEndPointList().size());
 			assertEquals(broadcast2.getEndPointList().get(0).name, broadcast2.getName());
 			assertEquals(broadcast2.getEndPointList().get(0).rtmpUrl, rtmpUrl);
 
@@ -580,7 +774,7 @@ public class DBStoresUnitTest {
 
 			broadcast2 = dataStore.get(key);
 			assertNotNull(broadcast2.getEndPointList());
-			assertEquals(broadcast2.getEndPointList().size(), 2);
+			assertEquals(2, broadcast2.getEndPointList().size());
 			assertEquals(broadcast2.getEndPointList().get(1).name, broadcast2.getName());
 			assertEquals(broadcast2.getEndPointList().get(1).rtmpUrl, rtmpUrl);
 
@@ -592,13 +786,11 @@ public class DBStoresUnitTest {
 
 			dataStore.save(broadcast3);
 
-			result=dataStore.updateSourceQuality(broadcast3.getStreamId(), "good");
-
-
+			result=dataStore.updateSourceQualityParameters(broadcast3.getStreamId(), "good", 0, 0);
 
 			assertTrue(result);
 
-			assertEquals(dataStore.get(broadcast3.getStreamId()).getQuality(),"good");
+			assertEquals("good", dataStore.get(broadcast3.getStreamId()).getQuality());
 
 			result = dataStore.delete(key);
 			assertTrue(result);
@@ -631,25 +823,39 @@ public class DBStoresUnitTest {
 		String type = dataStore.get(cameraBroadcast.getStreamId()).getType();
 		String live_type = dataStore.get(liveBroadcast.getStreamId()).getType();
 
-		assertEquals(type, "ipCamera");
-		assertEquals(live_type, "liveStream");
+		assertEquals("ipCamera", type);
+		assertEquals("liveStream", live_type);
 
 		List<Broadcast> returnList = dataStore.filterBroadcastList(0, 10, "ipCamera");
 
-		assertEquals(returnList.size(), 1);
+		assertEquals(1, returnList.size());
 
-		Vod newVod =  new Vod("streamName", "1112233" + (int)(Math.random() * 1000), "path", "vod", 1517239908, 17933, 1190425, Vod.STREAM_VOD, "1112233" + (int)(Math.random() * 1000));
-		Vod newVod2 = new Vod("davut", "111223" + (int)(Math.random() * 1000),  "path", "vod", 1517239808, 17933, 1190525, Vod.STREAM_VOD, "1112233" + (int)(Math.random() * 1000));
-		Vod newVod3 = new Vod("oguz", "11122" + (int)(Math.random() * 1000),  "path", "vod", 1517239708, 17933, 1190625, Vod.STREAM_VOD, "1112233" + (int)(Math.random() * 1000));
-		Vod newVod4 = new Vod("ahmet", "111" + (int)(Math.random() * 1000),  "path", "vod", 1517239608, 17933, 1190725, Vod.STREAM_VOD, "1112233" + (int)(Math.random() * 1000));
-		Vod newVod5 = new Vod("mehmet", "11" + (int)(Math.random() * 1000), "path", "vod", 1517239508, 17933, 1190825, Vod.STREAM_VOD, "1112233" + (int)(Math.random() * 1000));
+		Vod newVod =  new Vod("streamName", "1112233" + (int)(Math.random() * 1000), "path", "vod", 1517239908, 17933, 1190425, Vod.STREAM_VOD, "1112233" + (int)(Math.random() * 91000));
+		Vod newVod2 = new Vod("davut", "111223" + (int)(Math.random() * 1000),  "path", "vod", 1517239808, 17933, 1190525, Vod.STREAM_VOD, "1112233" + (int)(Math.random() * 91000));
+		Vod newVod3 = new Vod("oguz", "11122" + (int)(Math.random() * 1000),  "path", "vod", 1517239708, 17933, 1190625, Vod.STREAM_VOD, "1112233" + (int)(Math.random() * 91000));
+		Vod newVod4 = new Vod("ahmet", "111" + (int)(Math.random() * 1000),  "path", "vod", 1517239608, 17933, 1190725, Vod.STREAM_VOD, "1112233" + (int)(Math.random() * 91000));
+		Vod newVod5 = new Vod("mehmet", "11" + (int)(Math.random() * 1000), "path", "vod", 1517239508, 17933, 1190825, Vod.STREAM_VOD, "1112233" + (int)(Math.random() * 91000));
 
-		assertNotNull(dataStore.addVod(newVod));
-		assertNotNull(dataStore.addVod(newVod2));
-		assertNotNull(dataStore.addVod(newVod3));
-		assertNotNull(dataStore.addVod(newVod4));
-		assertNotNull(dataStore.addVod(newVod5));
-
+		String vodId = dataStore.addVod(newVod);
+		assertNotNull(vodId);
+		System.out.println("Vod id 1 " + vodId);
+		
+		vodId = dataStore.addVod(newVod2);
+		assertNotNull(vodId);
+		System.out.println("Vod id 2 " + vodId);
+		
+		vodId = dataStore.addVod(newVod3);
+		assertNotNull(vodId);
+		System.out.println("Vod id 3 " + vodId);
+		
+		vodId = dataStore.addVod(newVod4);
+		assertNotNull(vodId);
+		System.out.println("Vod id 4 " + vodId);
+		
+		vodId = dataStore.addVod(newVod5);
+		assertNotNull(vodId);
+		System.out.println("Vod id 5 " + vodId);
+		
 		
 		long totalVodNumber = dataStore.getTotalVodNumber();
 		assertEquals(5, totalVodNumber);
@@ -781,7 +987,7 @@ public class DBStoresUnitTest {
 		List<SocialEndpointCredentials> socialEndpoints = dataStore.getSocialEndpoints(0, 10);
 
 		// check the count
-		assertEquals(socialEndpoints.size(), 3);
+		assertEquals(3, socialEndpoints.size());
 
 		// remove social endpoint
 		assertTrue(dataStore.removeSocialEndpointCredentials(socialEndpoints.get(0).getId()));
@@ -795,21 +1001,21 @@ public class DBStoresUnitTest {
 		socialEndpoints = dataStore.getSocialEndpoints(0, 10);
 
 		// check that the count
-		assertEquals(socialEndpoints.size(), 2);
+		assertEquals(2, socialEndpoints.size());
 		
 		// remove social endpoint
 		assertTrue(dataStore.removeSocialEndpointCredentials(socialEndpoints.get(0).getId()));
 		// get list of the social endpoint
 		socialEndpoints = dataStore.getSocialEndpoints(0, 10);
 		// check that the count
-		assertEquals(socialEndpoints.size(), 1);
+		assertEquals(1, socialEndpoints.size());
 		
 		// remove social endpoint
 		assertTrue(dataStore.removeSocialEndpointCredentials(socialEndpoints.get(0).getId()));
 		// get list of the social endpoint
 		socialEndpoints = dataStore.getSocialEndpoints(0, 10);
 		// check that the count
-		assertEquals(socialEndpoints.size(), 0);
+		assertEquals(0, socialEndpoints.size());
 	}
 	
 	
