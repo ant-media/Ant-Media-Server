@@ -51,7 +51,6 @@ public class StreamsSourceRestService {
 	private ApplicationContext appCtx;
 	private IScope scope;
 	private AntMediaApplicationAdapter appInstance;
-	private AppSettings appSettings;
 
 	protected static Logger logger = LoggerFactory.getLogger(StreamsSourceRestService.class);
 
@@ -385,10 +384,6 @@ public class StreamsSourceRestService {
 		this.scope = scope;
 	}
 
-	public void setAppSettings(AppSettings appSettings) {
-		this.appSettings = appSettings;
-	}
-
 	public IDataStore getStore() {
 		if (dbStore == null) {
 			WebApplicationContext ctxt = WebApplicationContextUtils.getWebApplicationContext(servletContext);
@@ -397,8 +392,6 @@ public class StreamsSourceRestService {
 		return dbStore;
 	}
 	
-
-
 	public void setDataStore(IDataStore dataStore) {
 		this.dbStore = dataStore;
 	}
