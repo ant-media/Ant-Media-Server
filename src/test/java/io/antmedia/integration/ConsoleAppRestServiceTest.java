@@ -642,7 +642,7 @@ public class ConsoleAppRestServiceTest {
 
 	}
 
-	public Result callIsEnterpriseEdition() throws Exception {
+	public static Result callIsEnterpriseEdition() throws Exception {
 		String url = ROOT_SERVICE_URL + "/isEnterpriseEdition";
 
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())

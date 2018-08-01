@@ -39,7 +39,7 @@ import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
-import io.antmedia.datastore.db.types.Vod;
+import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.rest.BroadcastRestService;
@@ -423,7 +423,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		long systemTime = System.currentTimeMillis();
 		String[] subDirs = filePath.split(Pattern.quote(File.separator));
 		Integer pathLength=Integer.valueOf(subDirs.length);
-		String relativePath=subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
+		String relativePath= subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
 
 		if (dataStore != null) {
 			Broadcast broadcast = dataStore.get(streamId);
@@ -455,7 +455,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 			}
 
 			String vodId = RandomStringUtils.randomNumeric(24);
-			Vod newVod = new Vod(streamName, streamId, relativePath, vodName, systemTime, duration, fileSize, Vod.STREAM_VOD, vodId);
+			VoD newVod = new VoD(streamName, streamId, relativePath, vodName, systemTime, duration, fileSize, VoD.STREAM_VOD, vodId);
 
 			if (getDataStore().addVod(newVod) == null) {
 				logger.warn("Stream vod with stream id {} cannot be added to data store", streamId);
