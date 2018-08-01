@@ -21,6 +21,7 @@ import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.VoD;
+import io.antmedia.integration.AppFunctionalTest;
 
 public class AntMediaApplicationAdaptorUnitTest {
 	
@@ -31,7 +32,12 @@ public class AntMediaApplicationAdaptorUnitTest {
 	public void before() {
 		adapter = new AntMediaApplicationAdapter();
 		File f = new File(streamsFolderPath);
-		f.delete();
+		try {
+			AppFunctionalTest.delete(f);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
 	}
 	
 	@After

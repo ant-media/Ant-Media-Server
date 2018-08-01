@@ -419,7 +419,6 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	 * automatically.
 	 * 
 	 */
-
 	@Test
 	public void testBandwidth() {
 

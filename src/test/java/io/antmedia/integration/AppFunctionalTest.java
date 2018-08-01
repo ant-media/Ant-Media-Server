@@ -17,6 +17,7 @@ import java.net.HttpURLConnection;
 import java.net.InetAddress;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.nio.file.Files;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -570,16 +571,17 @@ public class AppFunctionalTest {
 			throws IOException{
 
 		if(file.isDirectory()){
-
-			//directory is empty, then delete it
-			if(file.list().length==0){
+			
+			if (Files.isSymbolicLink(file.toPath())) {
+				Files.deleteIfExists(file.toPath());
+			}
+			else if(file.list().length == 0){
+				//directory is empty, then delete it
 
 				file.delete();
-				//System.out.println("Directory is deleted : " 
-				//	+ file.getAbsolutePath());
-
-			}else{
-
+			}
+			else
+			{
 				//list all the directory contents
 				String files[] = file.list();
 
@@ -594,15 +596,12 @@ public class AppFunctionalTest {
 				//check the directory again, if empty then delete it
 				if(file.list().length==0){
 					file.delete();
-					//System.out.println("Directory is deleted : " 
-					//		+ file.getAbsolutePath());
 				}
 			}
 
 		}else{
 			//if file, then delete it
 			file.delete();
-			//System.out.println("File is deleted : " + file.getAbsolutePath());
 		}
 	}
 
