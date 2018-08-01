@@ -74,7 +74,7 @@ public class InMemoryDataStore implements IDataStore {
 
 		return broadcastMap.get(id);
 	}
-	
+
 	@Override
 	public VoD getVoD(String id) {
 		return vodMap.get(id);
@@ -173,8 +173,8 @@ public class InMemoryDataStore implements IDataStore {
 		}
 		return activeBroadcastCount;
 	}
-	
-	
+
+
 	@Override
 	public boolean delete(String id) {
 		Broadcast broadcast = broadcastMap.get(id);
@@ -290,13 +290,13 @@ public class InMemoryDataStore implements IDataStore {
 				logger.error(e.getMessage());
 			}
 		}
-		
+
 		if(result) {
 			id = vod.getVodId();
 		}
 		return id;
 	}
-	
+
 	@Override
 	public List<VoD> getVodList(int offset, int size) {
 		Collection<VoD> values = vodMap.values();
@@ -309,16 +309,18 @@ public class InMemoryDataStore implements IDataStore {
 			offset = 0;
 		}
 		List<VoD> list = new ArrayList<>();
+
 		for (VoD vodString : values) {
 			if (t < offset) {
 				t++;
-				continue;
 			}
-			list.add(vodString);
-			itemCount++;
+			else {
+				list.add(vodString);
+				itemCount++;
 
-			if (itemCount >= size) {
-				break;
+				if (itemCount >= size) {
+					break;
+				}
 			}
 
 		}
@@ -329,8 +331,7 @@ public class InMemoryDataStore implements IDataStore {
 
 	@Override
 	public boolean deleteVod(String id) {
-		boolean result = vodMap.remove(id) != null;
-		return result;
+		return vodMap.remove(id) != null;
 	}
 
 
@@ -424,7 +425,7 @@ public class InMemoryDataStore implements IDataStore {
 		return result;
 	}
 
-	
+
 	public SocialEndpointCredentials addSocialEndpointCredentials(SocialEndpointCredentials credentials) {
 		SocialEndpointCredentials addedCredential = null;
 		if (credentials != null && credentials.getAccountName() != null && credentials.getAccessToken() != null
@@ -529,14 +530,14 @@ public class InMemoryDataStore implements IDataStore {
 		}
 		return list;
 	}
-	
+
 	@Override
 
 	public long getObjectDetectedTotal(String id) {
-	
+
 		List<TensorFlowObject> list = new ArrayList<>();
 		Set<String> keySet = detectionMap.keySet();
-		
+
 		for(String keyValue: keySet) {
 			if (keyValue.startsWith(id)) 
 			{
@@ -569,7 +570,7 @@ public class InMemoryDataStore implements IDataStore {
 			oldBroadcast.setPassword(broadcast.getPassword());
 			oldBroadcast.setIpAddr(broadcast.getIpAddr());
 			oldBroadcast.setStreamUrl(broadcast.getStreamUrl());
-			
+
 			broadcastMap.replace(oldBroadcast.getStreamId(), oldBroadcast);
 
 			result = true;
@@ -579,7 +580,7 @@ public class InMemoryDataStore implements IDataStore {
 
 		return result;
 	}
-	
+
 	@Override
 	public synchronized boolean updateHLSViewerCount(String streamId, int diffCount) {
 		boolean result = false;
@@ -588,7 +589,7 @@ public class InMemoryDataStore implements IDataStore {
 			if (broadcast != null) {
 				int hlsViewerCount = broadcast.getHlsViewerCount();
 				hlsViewerCount += diffCount;
-						
+
 				broadcast.setHlsViewerCount(hlsViewerCount);
 				broadcastMap.replace(streamId, broadcast);
 				result = true;
@@ -596,7 +597,7 @@ public class InMemoryDataStore implements IDataStore {
 		}
 		return result;
 	}
-	
+
 	@Override
 	public synchronized boolean updateWebRTCViewerCount(String streamId, boolean increment) {
 		boolean result = false;
@@ -610,7 +611,7 @@ public class InMemoryDataStore implements IDataStore {
 				else  {
 					webRTCViewerCount--;
 				}
-				
+
 				broadcast.setWebRTCViewerCount(webRTCViewerCount);
 				broadcastMap.replace(streamId, broadcast);
 				result = true;
@@ -618,7 +619,7 @@ public class InMemoryDataStore implements IDataStore {
 		}
 		return result;
 	}
-	
+
 	@Override
 	public synchronized boolean updateRtmpViewerCount(String streamId, boolean increment) {
 		boolean result = false;
@@ -632,7 +633,7 @@ public class InMemoryDataStore implements IDataStore {
 				else  {
 					rtmpViewerCount--;
 				}
-				
+
 				broadcast.setRtmpViewerCount(rtmpViewerCount);
 				broadcastMap.replace(streamId, broadcast);
 				result = true;

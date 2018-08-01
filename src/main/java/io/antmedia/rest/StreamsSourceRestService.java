@@ -1,6 +1,5 @@
 package io.antmedia.rest;
 
-import java.io.File;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
@@ -17,7 +16,6 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
@@ -25,7 +23,6 @@ import javax.ws.rs.core.MediaType;
 
 import org.apache.commons.lang3.StringUtils;
 import org.red5.server.api.scope.IScope;
-import org.red5.server.util.ScopeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -38,17 +35,16 @@ import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.ipcamera.onvifdiscovery.OnvifDiscovery;
 import io.antmedia.rest.model.Result;
 import io.antmedia.streamsource.StreamFetcher;
-import io.antmedia.streamsource.StreamFetcherManager;
 
 @Component
 @Path("/streamSource")
 public class StreamsSourceRestService {
 
+	private static final String HTTP = "http://";
 	@Context
 	private ServletContext servletContext;
 	private IDataStore dbStore;
@@ -301,7 +297,7 @@ public class StreamsSourceRestService {
 
 				for (int i = 0; i < onvifDevices.size(); i++) {
 
-					list[i] = StringUtils.substringBetween(onvifDevices.get(i).toString(), "http://", "/");
+					list[i] = StringUtils.substringBetween(onvifDevices.get(i).toString(), HTTP, "/");
 				}
 			}
 
@@ -429,7 +425,7 @@ public class StreamsSourceRestService {
 		String[] ipAddrParts = null;
 		String ipAddr = null;
 
-		if(url != null && (url.startsWith("http://") ||
+		if(url != null && (url.startsWith(HTTP) ||
 				url.startsWith("https://") ||
 				url.startsWith("rtmp://") ||
 				url.startsWith("rtmps://") ||
@@ -469,7 +465,7 @@ public class StreamsSourceRestService {
 		String[] ipAddrParts = null;
 		String ipAddr = url;
 
-		if(url != null && (url.startsWith("http://") ||
+		if(url != null && (url.startsWith(HTTP) ||
 				url.startsWith("https://") ||
 				url.startsWith("rtmp://") ||
 				url.startsWith("rtmps://") ||
@@ -504,16 +500,6 @@ public class StreamsSourceRestService {
 			}
 		}
 		return ipAddrControl;
-	}
-	
-	private AppSettings getAppSettings() {
-		if (appSettings == null) {
-			ApplicationContext appContext = getAppContext();
-			if (appContext != null) {
-				appSettings = (AppSettings) appContext.getBean(AppSettings.BEAN_NAME);
-			}
-		}
-		return appSettings;
 	}
 
 }
