@@ -271,7 +271,7 @@ public class DBStoresUnitTest {
 		assertEquals(0, totalVodCount);
 		assertEquals(5, datastore.fetchUserVodList(f));
 		
-		//we know there are 4 files there
+		//we know there are 5 files there
 		//test_short.flv
 		//test_video_360p_subtitle.flv
 		//test_Video_360p.flv
@@ -281,14 +281,12 @@ public class DBStoresUnitTest {
 		totalVodCount = datastore.getTotalVodNumber();
 		assertEquals(5, totalVodCount);
 		
-		//List<Vod> vodList = datastore.getVodList(0, 10);
-		
-		/*
-		for (Vod vod : vodList) {
-			System.out.println("File path: " + vod.getFilePath());
+		List<VoD> vodList = datastore.getVodList(0, 50);
+		assertEquals(5, vodList.size());
+		for (VoD voD : vodList) {
+			assertEquals("streams/resources/"+voD.getVodName(), voD.getFilePath());
 		}
-		*/
-	
+		
 		
 		f = new File("not_exist");
 		assertEquals(0, datastore.fetchUserVodList(f));

@@ -151,7 +151,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 			if (f.exists() && f.isDirectory()) {
 				String newLinkPath = streamsFolder.getAbsolutePath() + "/" + f.getName();
 				File newLinkFile = new File(newLinkPath);
-				if (!f.exists()) {
+				if (!newLinkFile.exists()) {
 					Path target = f.toPath();
 					Files.createSymbolicLink(newLinkFile.toPath(), target);
 				}

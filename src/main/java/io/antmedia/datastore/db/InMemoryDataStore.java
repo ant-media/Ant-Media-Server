@@ -386,13 +386,11 @@ public class InMemoryDataStore implements IDataStore {
 					long fileSize = file.length();
 					long unixTime = System.currentTimeMillis();
 
-					String filePath=file.getPath();
+					String filePath = file.getPath();
 
 					String[] subDirs = filePath.split(Pattern.quote(File.separator));
 
-					Integer pathLength=Integer.valueOf(subDirs.length);
-
-					String relativePath=subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
+					String relativePath= "streams/" + subDirs[subDirs.length-2] +'/' +subDirs[subDirs.length-1];
 
 					String vodId = RandomStringUtils.randomNumeric(24);
 					VoD newVod = new VoD("vodFile", "vodFile", relativePath, file.getName(), unixTime, 0, fileSize,

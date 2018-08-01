@@ -566,7 +566,7 @@ public class MapDBStore implements IDataStore {
 
 						Integer pathLength=Integer.valueOf(subDirs.length);
 
-						String relativePath=subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
+						String relativePath = "streams/" +subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
 
 						String vodId = RandomStringUtils.randomNumeric(24);
 
