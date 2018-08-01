@@ -18,6 +18,8 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.web.context.WebApplicationContext;
 
@@ -26,12 +28,15 @@ import static org.mockito.Mockito.*;
 import java.io.IOException;
 
 import io.antmedia.filter.HlsStatisticsFilter;
+import io.antmedia.integration.RestServiceTest;
 import io.antmedia.statistic.HlsViewerStats;
 import io.antmedia.statistic.IStreamStats;
 
 public class HlsStatisticsFilterTest {
 	
 	private HlsStatisticsFilter hlsStatisticsFilter;
+
+	protected static Logger logger = LoggerFactory.getLogger(HlsStatisticsFilterTest.class);
 
 
 	@Before
@@ -89,7 +94,8 @@ public class HlsStatisticsFilterTest {
 			when(mockRequest.getRequestURI()).thenReturn("/LiveApp/streams/"+streamId+".m3u8");
 			
 			when(mockResponse.getStatus()).thenReturn(HttpServletResponse.SC_OK);
-			
+
+			logger.info("session id {}, stream id {}", sessionId, streamId);
 			hlsStatisticsFilter.doFilter(mockRequest, mockResponse, mockChain);
 			
 			
@@ -101,6 +107,10 @@ public class HlsStatisticsFilterTest {
 			e.printStackTrace();
 			fail(ExceptionUtils.getStackTrace(e));
 		} 
+		catch (Exception e) {
+			e.printStackTrace();
+			fail(ExceptionUtils.getStackTrace(e));
+		}
 		
 		
 	}

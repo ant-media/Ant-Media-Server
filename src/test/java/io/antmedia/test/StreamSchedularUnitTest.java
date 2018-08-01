@@ -50,6 +50,7 @@ import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.integration.AppFunctionalTest;
 import io.antmedia.rest.model.Result;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
@@ -126,54 +127,13 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	public void after() {
 
 		try {
-			delete(new File("webapps"));
+			AppFunctionalTest.delete(new File("webapps"));
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 
 		//reset to default
 		Application.enableSourceHealthUpdate = false;
-
-	}
-
-	public static void delete(File file) throws IOException {
-
-		if (file.isDirectory()) {
-
-			// directory is empty, then delete it
-			if (file.list().length == 0) {
-
-				file.delete();
-				// System.out.println("Directory is deleted : "
-				// + file.getAbsolutePath());
-
-			} else {
-
-				// list all the directory contents
-				String files[] = file.list();
-
-				for (String temp : files) {
-					// construct the file structure
-					File fileDelete = new File(file, temp);
-
-					// recursive delete
-					delete(fileDelete);
-				}
-
-				// check the directory again, if empty then delete it
-				if (file.list().length == 0) {
-					file.delete();
-					// System.out.println("Directory is deleted : "
-					// + file.getAbsolutePath());
-				}
-			}
-
-		} else {
-			// if file, then delete it
-			file.delete();
-			// System.out.println("File is deleted : " +
-			// file.getAbsolutePath());
-		}
 
 	}
 
@@ -419,7 +379,6 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	 * automatically.
 	 * 
 	 */
-
 	@Test
 	public void testBandwidth() {
 

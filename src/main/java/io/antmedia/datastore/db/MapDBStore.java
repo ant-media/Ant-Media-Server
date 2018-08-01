@@ -27,7 +27,7 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.TensorFlowObject;
-import io.antmedia.datastore.db.types.Vod;
+import io.antmedia.datastore.db.types.VoD;
 
 public class MapDBStore implements IDataStore {
 
@@ -145,6 +145,19 @@ public class MapDBStore implements IDataStore {
 				String jsonString = map.get(id);
 				if (jsonString != null) {
 					return gson.fromJson(jsonString, Broadcast.class);
+				}
+			}
+		}
+		return null;
+	}
+
+	@Override
+	public VoD getVoD(String id) {
+		synchronized (this) {
+			if (id != null) {
+				String jsonString = vodMap.get(id);
+				if (jsonString != null) {
+					return gson.fromJson(jsonString, VoD.class);
 				}
 			}
 		}
@@ -349,9 +362,9 @@ public class MapDBStore implements IDataStore {
 	}
 
 	@Override
-	public List<Vod> getVodList(int offset, int size) {
+	public List<VoD> getVodList(int offset, int size) {
 
-		List<Vod> list = new ArrayList<>();
+		List<VoD> list = new ArrayList<>();
 		synchronized (this) {
 
 			Collection<String> values = vodMap.values();
@@ -369,7 +382,7 @@ public class MapDBStore implements IDataStore {
 					t++;
 					continue;
 				}
-				list.add(gson.fromJson(vodString, Vod.class));
+				list.add(gson.fromJson(vodString, VoD.class));
 				itemCount++;
 
 				if (itemCount >= size) {
@@ -432,48 +445,26 @@ public class MapDBStore implements IDataStore {
 	}
 
 	@Override
-	public String addVod(Vod vod) {
+	public String addVod(VoD vod) {
 
-		String id = vod.getVodId();
+		String id = null;
 		synchronized (this) {
-			if (id != null) {
-				try {
-					vodMap.put(vod.getVodId(), gson.toJson(vod));
-					db.commit();
-					logger.warn("VoD is saved to DB {}", vod.getVodName());
-
-				} catch (Exception e) {
-					logger.error(e.getMessage());
+			try {
+				if (vod.getVodId() == null) {
+					vod.setVodId(RandomStringUtils.randomNumeric(24));
 				}
+				id = vod.getVodId();
+				vodMap.put(vod.getVodId(), gson.toJson(vod));
+				db.commit();
+				logger.warn("VoD is saved to DB {}", vod.getVodName());
+
+			} catch (Exception e) {
+				logger.error(e.getMessage());
 			}
+
 		}
 		return id;
 	}
-
-	@Override
-	public boolean addUserVod(Vod vod) {
-		String vodId = null;
-		boolean result = false;
-		synchronized (this) {
-			if (vod != null) {
-				try {
-					vodId = RandomStringUtils.randomNumeric(24);
-					vod.setVodId(vodId);
-
-					vodMap.put(vodId, gson.toJson(vod));
-					db.commit();
-
-					result = true;
-				} catch (Exception e) {
-					logger.error(e.getMessage());
-
-				}
-			}
-		}
-		return result;
-	}
-
-
 
 
 	@Override
@@ -541,14 +532,14 @@ public class MapDBStore implements IDataStore {
 
 		synchronized (this) {
 			Object[] objectArray = vodMap.getValues().toArray();
-			Vod[] vodtArray = new Vod[objectArray.length];
+			VoD[] vodtArray = new VoD[objectArray.length];
 
 			for (int i = 0; i < objectArray.length; i++) {
-				vodtArray[i] = gson.fromJson((String) objectArray[i], Vod.class);
+				vodtArray[i] = gson.fromJson((String) objectArray[i], VoD.class);
 			}
 
 			for (int i = 0; i < vodtArray.length; i++) {
-				if (vodtArray[i].getType().equals(Vod.USER_VOD)) {
+				if (vodtArray[i].getType().equals(VoD.USER_VOD)) {
 					vodMap.remove(vodtArray[i].getVodId());
 					db.commit();
 				}
@@ -575,13 +566,13 @@ public class MapDBStore implements IDataStore {
 
 						Integer pathLength=Integer.valueOf(subDirs.length);
 
-						String relativePath=subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
+						String relativePath = "streams/" +subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
 
 						String vodId = RandomStringUtils.randomNumeric(24);
 
-						Vod newVod = new Vod("vodFile", "vodFile", relativePath, file.getName(), unixTime, 0, fileSize,
-								Vod.USER_VOD, vodId);
-						addUserVod(newVod);
+						VoD newVod = new VoD("vodFile", "vodFile", relativePath, file.getName(), unixTime, 0, fileSize,
+								VoD.USER_VOD, vodId);
+						addVod(newVod);
 						numberOfSavedFiles++;
 					}
 				}

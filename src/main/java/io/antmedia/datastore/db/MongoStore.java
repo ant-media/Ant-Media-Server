@@ -29,7 +29,7 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.TensorFlowObject;
-import io.antmedia.datastore.db.types.Vod;
+import io.antmedia.datastore.db.types.VoD;
 
 public class MongoStore implements IDataStore {
 
@@ -112,6 +112,16 @@ public class MongoStore implements IDataStore {
 	public Broadcast get(String id) {
 		try {
 			return datastore.find(Broadcast.class).field("streamId").equal(id).get();
+		} catch (Exception e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+		}
+		return null;
+	}
+	
+	@Override
+	public VoD getVoD(String id) {
+		try {
+			return vodDatastore.find(VoD.class).field("vodId").equal(id).get();
 		} catch (Exception e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
 		}
@@ -313,12 +323,15 @@ public class MongoStore implements IDataStore {
 	}
 
 	@Override
-	public String addVod(Vod vod) {
+	public String addVod(VoD vod) {
 		
 		String id = null;
 		boolean result = false;
 		try {	
-			Key<Vod> key = vodDatastore.save(vod);
+			if (vod.getVodId() == null) {
+				vod.setVodId(RandomStringUtils.randomAlphanumeric(12) + System.currentTimeMillis());
+			}
+			vodDatastore.save(vod);
 			result = true;
 		} catch (Exception e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
@@ -332,15 +345,15 @@ public class MongoStore implements IDataStore {
 	}
 
 	@Override
-	public List<Vod> getVodList(int offset, int size) {	
-		return vodDatastore.find(Vod.class).asList(new FindOptions().skip(offset).limit(size));
+	public List<VoD> getVodList(int offset, int size) {	
+		return vodDatastore.find(VoD.class).asList(new FindOptions().skip(offset).limit(size));
 	}
 
 
 	@Override
 	public boolean deleteVod(String id) {
 		try {
-			Query<Vod> query = vodDatastore.createQuery(Vod.class).field("vodId").equal(id);
+			Query<VoD> query = vodDatastore.createQuery(VoD.class).field("vodId").equal(id);
 			WriteResult delete = vodDatastore.delete(query);
 			return delete.getN() == 1;
 		} catch (Exception e) {
@@ -353,7 +366,7 @@ public class MongoStore implements IDataStore {
 
 	@Override
 	public long getTotalVodNumber() {
-		return vodDatastore.getCount(Vod.class);
+		return vodDatastore.getCount(VoD.class);
 
 	}
 
@@ -366,7 +379,7 @@ public class MongoStore implements IDataStore {
 
 		int numberOfSavedFiles = 0;
 		try {
-			Query<Vod> query = vodDatastore.createQuery(Vod.class).field("type").equal("userVod");
+			Query<VoD> query = vodDatastore.createQuery(VoD.class).field("type").equal("userVod");
 			WriteResult delete = vodDatastore.delete(query);
 		} catch (Exception e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
@@ -393,12 +406,12 @@ public class MongoStore implements IDataStore {
 
 					Integer pathLength=Integer.valueOf(subDirs.length);
 
-					String relativePath=subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
+					String relativePath = "streams/"+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
 					String vodId = RandomStringUtils.randomNumeric(24);
-					Vod newVod = new Vod("vodFile", "vodFile", relativePath, file.getName(), unixTime, 0, fileSize,
-							Vod.USER_VOD,vodId);
+					VoD newVod = new VoD("vodFile", "vodFile", relativePath, file.getName(), unixTime, 0, fileSize,
+							VoD.USER_VOD,vodId);
 
-					addUserVod(newVod);
+					addVod(newVod);
 					numberOfSavedFiles++;
 				}
 			}
@@ -407,25 +420,7 @@ public class MongoStore implements IDataStore {
 
 	}
 
-	@Override
-	public boolean addUserVod(Vod vod) {
-		try {
-			String vodId = null;
-			if (vod.getVodId() == null) {
-				vodId = RandomStringUtils.randomAlphanumeric(12) + System.currentTimeMillis();
-				vod.setVodId(vodId);
-			}
-			vodId = vod.getStreamId();
 
-
-			Key<Vod> key = vodDatastore.save(vod);
-
-			return true;
-		} catch (Exception e) {
-			logger.error(ExceptionUtils.getStackTrace(e));
-		}
-		return false;
-	}
 
 
 	@Override

@@ -17,6 +17,7 @@ import java.net.HttpURLConnection;
 import java.net.InetAddress;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.nio.file.Files;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -49,6 +50,7 @@ import com.google.gson.Gson;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.BroadcastRestService.BroadcastStatistics;
 import io.antmedia.rest.BroadcastRestService.LiveStatistics;
@@ -238,7 +240,7 @@ public class AppFunctionalTest {
 		try {
 			RestServiceTest rest = new RestServiceTest();
 
-			int currentVodNumber = Integer.valueOf(rest.callTotalVoDNumber().getMessage());
+			int currentVodNumber = rest.callTotalVoDNumber();
 
 			log.info("current vod number before test {}", String.valueOf(currentVodNumber));
 
@@ -260,16 +262,56 @@ public class AppFunctionalTest {
 
 			assertTrue(MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + ".m3u8"));
 
-			if(callIsEnterpriseEdition().getMessage().equals("Enterprise Edition")) {
+			boolean isEnterprise = callIsEnterpriseEdition().getMessage().contains("Enterprise");
+			if(isEnterprise) {
 
 				assertTrue(MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + "_240p.m3u8"));
 
-				int lastVodNumber = Integer.valueOf(rest.callTotalVoDNumber().getMessage());
+				int lastVodNumber = rest.callTotalVoDNumber();
 				log.info("vod number after test {}", lastVodNumber);
 
 				//2 more VoDs should be added to DB, one is original other one ise 240p mp4 files
+				//480p is not created because original stream is 360p
 				assertEquals(currentVodNumber + 2, lastVodNumber);
 			}
+			else {
+				int lastVodNumber = rest.callTotalVoDNumber();
+				assertEquals(currentVodNumber + 1, lastVodNumber);
+			}
+			
+			
+			List<VoD> callGetVoDList = RestServiceTest.callGetVoDList();
+			boolean found = false;
+			VoD vod1 = null;
+			VoD vod2 = null;
+			for (VoD voD : callGetVoDList) {
+				if (voD.getStreamId().equals(broadcast.getStreamId())) 
+				{
+					if (voD.getFilePath().equals("streams/"+broadcast.getStreamId() + ".mp4")) {
+						vod1 = voD;
+					}
+					else if (voD.getFilePath().equals("streams/"+broadcast.getStreamId() + "_240p.mp4")) {
+						vod2 = voD;
+					}
+					
+					//file path does not contain vod id
+					assertFalse(voD.getFilePath().contains(voD.getVodId()));
+					found = true;
+				}
+			}
+			assertTrue(found);
+			assertNotNull(vod1);
+			assertTrue(MuxingTest.isURLAvailable("http://" + SERVER_ADDR + ":5080/LiveApp/"+ vod1.getFilePath()));
+			assertTrue(RestServiceTest.deleteVoD(vod1.getVodId()).isSuccess());
+			assertFalse(MuxingTest.isURLAvailable("http://" + SERVER_ADDR + ":5080/LiveApp/"+ vod1.getFilePath()));
+			
+			if (isEnterprise) {
+				assertNotNull(vod2);
+				assertTrue(MuxingTest.isURLAvailable("http://" + SERVER_ADDR + ":5080/LiveApp/"+ vod2.getFilePath()));
+				assertTrue(RestServiceTest.deleteVoD(vod2.getVodId()).isSuccess());
+				assertFalse(MuxingTest.isURLAvailable("http://" + SERVER_ADDR + ":5080/LiveApp/"+ vod2.getFilePath()));
+			}
+			
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -329,7 +371,15 @@ public class AppFunctionalTest {
 			// stop publishing live stream
 			destroyProcess();
 
-			Thread.sleep(3000);
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				List<VoD> callGetVoDList = restService.callGetVoDList();
+				for (VoD vod : callGetVoDList) {
+					if (vod.getStreamId().equals(streamId)) {
+						return true;
+					}
+				}
+				return false;
+			});
 
 			// getLiveStream from server and check that zombi stream not exists
 			broadcastList = restService.callGetBroadcastList();
@@ -529,16 +579,17 @@ public class AppFunctionalTest {
 			throws IOException{
 
 		if(file.isDirectory()){
-
-			//directory is empty, then delete it
-			if(file.list().length==0){
+			
+			if (Files.isSymbolicLink(file.toPath())) {
+				Files.deleteIfExists(file.toPath());
+			}
+			else if(file.list().length == 0){
+				//directory is empty, then delete it
 
 				file.delete();
-				//System.out.println("Directory is deleted : " 
-				//	+ file.getAbsolutePath());
-
-			}else{
-
+			}
+			else
+			{
 				//list all the directory contents
 				String files[] = file.list();
 
@@ -553,15 +604,12 @@ public class AppFunctionalTest {
 				//check the directory again, if empty then delete it
 				if(file.list().length==0){
 					file.delete();
-					//System.out.println("Directory is deleted : " 
-					//		+ file.getAbsolutePath());
 				}
 			}
 
 		}else{
 			//if file, then delete it
 			file.delete();
-			//System.out.println("File is deleted : " + file.getAbsolutePath());
 		}
 	}
 
