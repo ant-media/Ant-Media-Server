@@ -240,7 +240,7 @@ public class AppFunctionalTest {
 		try {
 			RestServiceTest rest = new RestServiceTest();
 
-			int currentVodNumber = Integer.valueOf(rest.callTotalVoDNumber().getMessage());
+			int currentVodNumber = rest.callTotalVoDNumber();
 
 			log.info("current vod number before test {}", String.valueOf(currentVodNumber));
 
@@ -267,7 +267,7 @@ public class AppFunctionalTest {
 
 				assertTrue(MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + "_240p.m3u8"));
 
-				int lastVodNumber = Integer.valueOf(rest.callTotalVoDNumber().getMessage());
+				int lastVodNumber = rest.callTotalVoDNumber();
 				log.info("vod number after test {}", lastVodNumber);
 
 				//2 more VoDs should be added to DB, one is original other one ise 240p mp4 files
@@ -275,7 +275,7 @@ public class AppFunctionalTest {
 				assertEquals(currentVodNumber + 2, lastVodNumber);
 			}
 			else {
-				int lastVodNumber = Integer.valueOf(rest.callTotalVoDNumber().getMessage());
+				int lastVodNumber = rest.callTotalVoDNumber();
 				assertEquals(currentVodNumber + 1, lastVodNumber);
 			}
 			
@@ -371,7 +371,15 @@ public class AppFunctionalTest {
 			// stop publishing live stream
 			destroyProcess();
 
-			Thread.sleep(3000);
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				List<VoD> callGetVoDList = restService.callGetVoDList();
+				for (VoD vod : callGetVoDList) {
+					if (vod.getStreamId().equals(streamId)) {
+						return true;
+					}
+				}
+				return false;
+			});
 
 			// getLiveStream from server and check that zombi stream not exists
 			broadcastList = restService.callGetBroadcastList();

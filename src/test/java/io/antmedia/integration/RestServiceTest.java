@@ -579,7 +579,7 @@ public class RestServiceTest {
 	}
 
 	
-	public  Result callTotalVoDNumber() throws Exception {
+	public  int callTotalVoDNumber() throws Exception {
 
 		String url = ROOT_SERVICE_URL + "/broadcast/getTotalVodNumber";
 		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
@@ -604,13 +604,7 @@ public class RestServiceTest {
 		}
 		logger.info("result string: {} ",result.toString());
 		
-		int totalVod = gson.fromJson(result.toString(),Integer.class);
-		
-		Result resultResponse = new Result(true, String.valueOf(totalVod));
-		
-		assertNotNull(resultResponse);
-
-		return resultResponse;
+		return gson.fromJson(result.toString(),Integer.class);
 
 	}
 	
