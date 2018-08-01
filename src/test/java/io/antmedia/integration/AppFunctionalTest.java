@@ -261,7 +261,8 @@ public class AppFunctionalTest {
 
 			assertTrue(MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + ".m3u8"));
 
-			if(callIsEnterpriseEdition().getMessage().equals("Enterprise Edition")) {
+			boolean isEnterprise = callIsEnterpriseEdition().getMessage().contains("Enterprise");
+			if(isEnterprise) {
 
 				assertTrue(MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + "_240p.m3u8"));
 
@@ -299,20 +300,16 @@ public class AppFunctionalTest {
 			}
 			assertTrue(found);
 			assertNotNull(vod1);
-			assertNotNull(vod2);
-			
-			
 			assertTrue(MuxingTest.isURLAvailable("http://" + SERVER_ADDR + ":5080/LiveApp/"+ vod1.getFilePath()));
-			assertTrue(MuxingTest.isURLAvailable("http://" + SERVER_ADDR + ":5080/LiveApp/"+ vod2.getFilePath()));
-			
-			
 			assertTrue(RestServiceTest.deleteVoD(vod1.getVodId()).isSuccess());
-			assertTrue(RestServiceTest.deleteVoD(vod2.getVodId()).isSuccess());
-			
-			
-			
 			assertFalse(MuxingTest.isURLAvailable("http://" + SERVER_ADDR + ":5080/LiveApp/"+ vod1.getFilePath()));
-			assertFalse(MuxingTest.isURLAvailable("http://" + SERVER_ADDR + ":5080/LiveApp/"+ vod2.getFilePath()));
+			
+			if (isEnterprise) {
+				assertNotNull(vod2);
+				assertTrue(MuxingTest.isURLAvailable("http://" + SERVER_ADDR + ":5080/LiveApp/"+ vod2.getFilePath()));
+				assertTrue(RestServiceTest.deleteVoD(vod2.getVodId()).isSuccess());
+				assertFalse(MuxingTest.isURLAvailable("http://" + SERVER_ADDR + ":5080/LiveApp/"+ vod2.getFilePath()));
+			}
 			
 
 		} catch (Exception e) {
