@@ -46,6 +46,7 @@ import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
+import io.antmedia.integration.AppFunctionalTest;
 import io.antmedia.integration.MuxingTest;
 import io.antmedia.integration.RestServiceTest;
 //import io.antmedia.enterprise.adaptive.TransraterAdaptor;
@@ -121,7 +122,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 	
 		
 		try {
-			delete(new File("webapps"));
+			AppFunctionalTest.delete(new File("webapps"));
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -158,46 +159,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 		   System.out.println("Finishing test: " + description.getMethodName());
 	   };
 	};
-
-	public static void delete(File file)
-			throws IOException{
-
-		if(file.isDirectory()){
-
-			//directory is empty, then delete it
-			if(file.list().length==0){
-
-				file.delete();
-				//System.out.println("Directory is deleted : " 
-				//	+ file.getAbsolutePath());
-
-			}else{
-
-				//list all the directory contents
-				String files[] = file.list();
-
-				for (String temp : files) {
-					//construct the file structure
-					File fileDelete = new File(file, temp);
-
-					//recursive delete
-					delete(fileDelete);
-				}
-
-				//check the directory again, if empty then delete it
-				if(file.list().length==0){
-					file.delete();
-					//System.out.println("Directory is deleted : " 
-					//		+ file.getAbsolutePath());
-				}
-			}
-
-		}else{
-			//if file, then delete it
-			file.delete();
-			//System.out.println("File is deleted : " + file.getAbsolutePath());
-		}
-	}
 
 	public class StreamPacket implements IStreamPacket {
 
