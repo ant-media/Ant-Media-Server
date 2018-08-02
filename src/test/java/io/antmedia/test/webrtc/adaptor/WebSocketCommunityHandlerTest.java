@@ -191,4 +191,5 @@ public class WebSocketCommunityHandlerTest {
 
 		verify(rtmpAdaptor).stop();
 	}
+	
 }
