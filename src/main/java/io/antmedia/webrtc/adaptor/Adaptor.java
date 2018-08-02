@@ -27,25 +27,25 @@ public abstract class Adaptor implements Observer, SdpObserver
 	private MediaConstraints sdpMediaConstraints;
 	protected PeerConnectionFactory peerConnectionFactory;
 	protected WebSocketCommunityHandler webSocketCommunityHandler;
-	
+
 	private String streamId;
-	
+
 	private Session session; 
-	
+
 	protected static final Logger log = Red5LoggerFactory.getLogger(Adaptor.class);
 
 	public Adaptor(WebSocketCommunityHandler websocketCommunityHandler) {
 		this.webSocketCommunityHandler = websocketCommunityHandler;
 	}
-	
+
 	public abstract void start();
-	
+
 	public abstract void stop();
 
 	public void setPeerConnection(PeerConnection peerConnection) {
 		this.peerConnection = peerConnection;
 	}
-	
+
 	public PeerConnection getPeerConnection() {
 		return peerConnection;
 	}
@@ -73,22 +73,22 @@ public abstract class Adaptor implements Observer, SdpObserver
 	public void onIceGatheringChange(IceGatheringState newState) {
 
 	}
-	
+
 	@Override
 	public void onIceCandidate(IceCandidate candidate) {
 		log.warn("onIceCandidate");
-		
+
 		webSocketCommunityHandler
-			.sendTakeCandidateMessage(candidate.sdpMLineIndex, candidate.sdpMid, candidate.sdp, streamId, session);
+		.sendTakeCandidateMessage(candidate.sdpMLineIndex, candidate.sdpMid, candidate.sdp, streamId, session);
 
 	}
-	
+
 	@Override
 	public void onIceCandidatesRemoved(IceCandidate[] candidates) {
 	}
-	
+
 	public void onAddStream(MediaStream stream) {}
-	
+
 	@Override
 	public void onRemoveStream(MediaStream stream) {
 
@@ -107,34 +107,36 @@ public abstract class Adaptor implements Observer, SdpObserver
 	@Override
 	public void onAddTrack(RtpReceiver receiver, MediaStream[] mediaStreams) {
 	}
-	
+
 	@Override
 	public void onCreateSuccess(SessionDescription sdp) {
-		log.warn("onCreate Success");
-		peerConnection.setLocalDescription(new SdpObserver() {
+		log.warn("onCreate Success for stream: {}", streamId);
+		if (peerConnection != null) {
+			peerConnection.setLocalDescription(new SdpObserver() {
 
-			@Override
-			public void onSetSuccess() {
+				@Override
+				public void onSetSuccess() {
+					log.info("set localdescription on set success  for {}", streamId);
+				}
 
-			}
+				@Override
+				public void onSetFailure(String error) {
+					log.info("set localdescription onSetFailure  for {}", streamId);
+				}
 
-			@Override
-			public void onSetFailure(String error) {
+				@Override
+				public void onCreateSuccess(SessionDescription sdp) {
+					log.info("set localdescription onCreateSuccess  for {}", streamId);
+				}
 
-			}
+				@Override
+				public void onCreateFailure(String error) {
+					log.info("set localdescription onCreateSuccess  for {}", streamId);
+				}
+			}, sdp);
+		}
 
-			@Override
-			public void onCreateSuccess(SessionDescription sdp) {
 
-			}
-
-			@Override
-			public void onCreateFailure(String error) {
-
-			}
-		}, sdp);
-
-		
 		String type;
 		if (sdp.type == Type.ANSWER) {
 			type = "answer";
@@ -142,11 +144,11 @@ public abstract class Adaptor implements Observer, SdpObserver
 		else  {
 			type = "offer";
 		}
-		
+
 		webSocketCommunityHandler.sendSDPConfiguration(sdp.description, type, streamId, session);
 
 	}
-	
+
 	@Override
 	public void onSetSuccess() {
 		log.warn("on setSuccess");
@@ -173,12 +175,12 @@ public abstract class Adaptor implements Observer, SdpObserver
 	public void setPeerConnectionFactory(PeerConnectionFactory peerConnectionFactory) {
 		this.peerConnectionFactory = peerConnectionFactory;	
 	}
-	
+
 
 	public void setSession(Session session) {
 		this.session = session;
 	}
-	
+
 	public Session getSession() {
 		return session;
 	}

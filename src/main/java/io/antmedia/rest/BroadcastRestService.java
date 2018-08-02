@@ -50,7 +50,7 @@ import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointChannel;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.TensorFlowObject;
-import io.antmedia.datastore.db.types.Vod;
+import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.muxer.Muxer;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.Version;
@@ -64,50 +64,6 @@ import io.antmedia.webrtc.api.IWebRTCAdaptor;
 @Component
 @Path("/")
 public class BroadcastRestService {
-
-	//**** Where this class is being used? I do not see any reference in code.  @mekya
-	public static class SearchParam {
-		public String keyword = null;
-
-		public String getKeyword() {
-			return keyword;
-		}
-
-		public void setKeyword(String keyword) {
-			this.keyword = keyword;
-		}
-
-		public long getStartDate() {
-			return startDate;
-		}
-
-		public void setStartDate(long startDate) {
-			this.startDate = startDate;
-		}
-
-		public long getEndDate() {
-			return endDate;
-		}
-
-		public void setEndDate(long endDate) {
-			this.endDate = endDate;
-		}
-
-		public long startDate = 0;
-		public long endDate = 0;
-
-		public SearchParam(String keyword, long startDate, long endDate) {
-			this.keyword = keyword;
-			this.startDate = startDate;
-			this.endDate = endDate;
-		}
-
-		public SearchParam() {
-			super();
-		}
-
-	}
-
 
 	public static class BroadcastStatistics {
 
@@ -533,6 +489,26 @@ public class BroadcastRestService {
 		}
 		return broadcast;
 	}
+	
+	/**
+	 * Get vod file in db
+	 * @param id
+	 * @return
+	 */
+	@GET
+	@Path("/broadcast/getVoD")
+	@Produces(MediaType.APPLICATION_JSON)
+	public VoD getVoD(@QueryParam("id") String id) {
+		VoD vod = null;
+		if (id != null) {
+			vod = getDataStore().getVoD(id);
+		}
+		if (vod == null) {
+			vod = new VoD();
+		}
+		return vod;
+	}
+	
 
 	/**
 	 * Get Detected objects
@@ -774,7 +750,7 @@ public class BroadcastRestService {
 				int pageCount = (int) totalVodNumber/IDataStore.MAX_ITEM_IN_ONE_LIST 
 						+ ((totalVodNumber % IDataStore.MAX_ITEM_IN_ONE_LIST != 0) ? 1 : 0);
 
-				List<Vod> vodList = new ArrayList<>();
+				List<VoD> vodList = new ArrayList<>();
 				for (int i = 0; i < pageCount; i++) {
 					vodList.addAll(getDataStore().getVodList(i*IDataStore.MAX_ITEM_IN_ONE_LIST, IDataStore.MAX_ITEM_IN_ONE_LIST));
 				}
@@ -795,8 +771,8 @@ public class BroadcastRestService {
 				insertQueryString.append("DELETE FROM stalker_db.video_series_files;");
 				insertQueryString.append("DELETE FROM stalker_db.video;");
 
-				for (Vod vod : vodList) {
-					if (vod.getType().equals(Vod.USER_VOD)) {
+				for (VoD vod : vodList) {
+					if (vod.getType().equals(VoD.USER_VOD)) {
 						insertQueryString.append("INSERT INTO stalker_db.video(name, o_name, protocol, category_id, cat_genre_id_1, status, cost, path, accessed) "
 								+ "values('"+ vod.getVodName() + "', '"+vod.getVodName()+"', '', 1, 1, 1, 0, '"+vod.getVodName()+"', 1);");
 
@@ -837,7 +813,7 @@ public class BroadcastRestService {
 	@GET
 	@Path("/broadcast/getVodList/{offset}/{size}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public List<Vod> getVodList(@PathParam("offset") int offset, @PathParam("size") int size) {
+	public List<VoD> getVodList(@PathParam("offset") int offset, @PathParam("size") int size) {
 		return getDataStore().getVodList(offset, size);
 	}
 
@@ -914,7 +890,7 @@ public class BroadcastRestService {
 			if (broadcastScope != null)	{
 				totalRTMPViewer = broadcastScope.getConsumers().size();
 			}
-			
+
 			Broadcast broadcast = getDataStore().get(id);
 			if (broadcast != null) {
 				totalHLSViewer = broadcast.getHlsViewerCount();
@@ -976,55 +952,52 @@ public class BroadcastRestService {
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/broadcast/deleteVoDFile/{name}/{id}/{type}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result deleteVoDFile(@PathParam("name") String fileName, @PathParam("id") String id,@PathParam("type") String type) {
+	public Result deleteVoDFile(@PathParam("name") String fleName, @PathParam("id") String id,@PathParam("type") String type) {
+		return deleteVoD(id);
+	}
+	
+	
+	@POST
+	@Consumes({ MediaType.APPLICATION_JSON })
+	@Path("/broadcast/deleteVoD/{id}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result deleteVoD(@PathParam("id") String id) {
 		boolean success = false;
 		String message = "";
-		File recordFile = null; 
 		ApplicationContext appContext = getAppContext();
 		if (appContext != null) {
 
-			if(type.equals(Vod.STREAM_VOD)) {
-
-				recordFile = Muxer.getRecordFile(getScope(), fileName, "");
-
-			} else if (type.equals(Vod.UPLOADED_VOD)) {
-
-				recordFile = Muxer.getRecordFile(getScope(), id, ".mp4");
-
-			} else {
-				// it means, user VoD
-				String userVoDFolder = getAppSettings().getVodFolder();
-				recordFile = Muxer.getUserRecordFile(getScope(), userVoDFolder, fileName);
-			}
-
-			logger.info("recordfile {} : " , recordFile.getAbsolutePath());
-
-			try {
-
-				Files.deleteIfExists(recordFile.toPath());
-				success = getDataStore().deleteVod(id);
-				message = "vod deleted";
-
-			}
-			catch (Exception e) {
-				logger.error(ExceptionUtils.getStackTrace(e));
-			}
-			String[] splitFileName = StringUtils.split(fileName,".");
-			//delete preview file if exists
-			File previewFile = Muxer.getPreviewFile(getScope(), splitFileName[0], ".png");
-			if (previewFile.exists()) {
+			File videoFile = null;
+			VoD voD = getDataStore().getVoD(id);
+			if (voD != null) {
 				try {
-					Files.delete(previewFile.toPath());
-				} catch (IOException e) {
+					String filePath = String.format("webapps/%s/%s", getScope().getName(), voD.getFilePath());
+					videoFile = new File(filePath);
+					boolean result = Files.deleteIfExists(videoFile.toPath());
+					if (!result) {
+						logger.warn("File is not deleted because it does not exist {}", videoFile.getAbsolutePath());
+					}
+					success = getDataStore().deleteVod(id);
+					if (success) {
+						message = "vod deleted";
+					}
+
+					String fileName = videoFile.getName();
+					String[] splitFileName = StringUtils.split(fileName,".");
+					//delete preview file if exists
+					File previewFile = Muxer.getPreviewFile(getScope(), splitFileName[0], ".png");
+					Files.deleteIfExists(previewFile.toPath());
+
+					if (appContext.containsBean("app.storageClient")) {
+						StorageClient storageClient = (StorageClient) appContext.getBean("app.storageClient");
+
+						storageClient.delete(splitFileName[0] + ".mp4", FileType.TYPE_STREAM);
+						storageClient.delete(splitFileName[0] + ".png", FileType.TYPE_PREVIEW);
+					}
+				}
+				catch (Exception e) {
 					logger.error(ExceptionUtils.getStackTrace(e));
 				}
-			}
-
-			if (appContext.containsBean("app.storageClient")) {
-				StorageClient storageClient = (StorageClient) appContext.getBean("app.storageClient");
-
-				storageClient.delete(splitFileName[0] + ".mp4", FileType.TYPE_STREAM);
-				storageClient.delete(splitFileName[0] + ".png", FileType.TYPE_PREVIEW);
 			}
 
 		}
@@ -1045,8 +1018,9 @@ public class BroadcastRestService {
 
 			if (fileExtension.equals("mp4")) {
 
+				
 				File streamsDirectory = new File(
-						String.format("%s/webapps/%s/%s", System.getProperty("red5.root"), appScopeName, "streams"));
+						getStreamsDirectory(appScopeName));
 
 				// if the directory does not exist, create it
 				if (!streamsDirectory.exists()) {
@@ -1064,22 +1038,21 @@ public class BroadcastRestService {
 					while ((read = inputStream.read(bytes)) != -1) {
 						outpuStream.write(bytes, 0, read);
 					}
-
 					outpuStream.flush();
 
 					long fileSize = savedFile.length();
 					long unixTime = System.currentTimeMillis();
 
-					String path=savedFile.getPath();
+					String path = savedFile.getPath();
 
 					String[] subDirs = path.split(Pattern.quote(File.separator));
 
-					Integer pathLength=Integer.valueOf(subDirs.length);
+					Integer pathLength = subDirs.length;
 
-					String relativePath=subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
+					String relativePath = subDirs[pathLength-2]+ File.separator +subDirs[pathLength-1];
 
-					Vod newVod = new Vod(fileName, "file", relativePath, fileName, unixTime, 0, fileSize,
-							Vod.UPLOADED_VOD, vodId);
+					VoD newVod = new VoD(fileName, "file", relativePath, fileName, unixTime, 0, fileSize,
+							VoD.UPLOADED_VOD, vodId);
 
 					id = getDataStore().addVod(newVod);
 
@@ -1100,6 +1073,11 @@ public class BroadcastRestService {
 
 
 		return new Result(success, message);
+	}
+
+
+	public String getStreamsDirectory(String appScopeName) {
+		return String.format("%s/webapps/%s/%s", System.getProperty("red5.root"), appScopeName, "streams");
 	}
 
 	/**
@@ -1472,7 +1450,7 @@ public class BroadcastRestService {
 		if (app == null) {
 			ApplicationContext appContext = getAppContext();
 			if (appContext != null) {
-				app = (AntMediaApplicationAdapter) appContext.getBean("web.handler");
+				app = (AntMediaApplicationAdapter) appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME);
 			}
 		}
 		return app;

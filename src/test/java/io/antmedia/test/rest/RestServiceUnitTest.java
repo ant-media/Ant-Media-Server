@@ -36,7 +36,7 @@ import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
-import io.antmedia.datastore.db.types.Vod;
+import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.BroadcastRestService.BroadcastStatistics;
 import io.antmedia.rest.BroadcastRestService.ProcessBuilderFactory;
@@ -149,12 +149,12 @@ public class RestServiceUnitTest {
 		//Vod vod = new Vod();
 		File file = new File(vodFolder, "test_file");
 		String vodId = RandomStringUtils.randomNumeric(24);
-		Vod newVod = new Vod("vodFile", "vodFile", file.getPath(), file.getName(), System.currentTimeMillis(), 0, 6000,
-				Vod.USER_VOD,vodId);
+		VoD newVod = new VoD("vodFile", "vodFile", file.getPath(), file.getName(), System.currentTimeMillis(), 0, 6000,
+				VoD.USER_VOD,vodId);
 		IDataStore store = new InMemoryDataStore("testdb");
 		restService.setDataStore(store);
 
-		assertTrue(store.addUserVod(newVod));
+		assertNotNull(store.addVod(newVod));
 
 		Process process = mock(Process.class);
 
@@ -185,6 +185,46 @@ public class RestServiceUnitTest {
 		}
 
 	}
+	
+	@Test
+	public void testDeleteVoD() {
+		InMemoryDataStore datastore = new InMemoryDataStore("datastore");
+		restService.setDataStore(datastore);
+		
+		String vodId = RandomStringUtils.randomNumeric(24);
+		
+		VoD streamVod = new VoD("streamName", "streamId", "filePath", "vodName", 111, 111, 111, VoD.STREAM_VOD, vodId);
+		datastore.addVod(streamVod);
+		
+		assertNotNull(datastore.getVoD(vodId));
+		
+		Scope scope = mock(Scope.class);
+		String scopeName = "junit";
+		when(scope.getName()).thenReturn(scopeName);
+		
+		AntMediaApplicationAdapter app = mock(AntMediaApplicationAdapter.class);
+		when(app.getScope()).thenReturn(scope);
+		
+		ApplicationContext context = mock(ApplicationContext.class);
+		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
+		
+		restService.setAppCtx(context);
+		
+		VoD voD = restService.getVoD(vodId);
+		assertEquals(vodId, voD.getVodId());
+		assertEquals(streamVod.getStreamId(), voD.getStreamId());
+		assertEquals(streamVod.getVodName(), voD.getVodName());
+		assertEquals(streamVod.getFilePath(), voD.getFilePath());
+		
+		assertEquals(1, restService.getVodList(0, 50).size());
+		
+		restService.deleteVoD(vodId);
+		
+		assertEquals(0, restService.getVodList(0, 50).size());
+		
+		assertNull(datastore.getVoD(vodId));
+		
+	}
 
 
 	@Test
@@ -194,7 +234,7 @@ public class RestServiceUnitTest {
 		when(scope.getName()).thenReturn(scopeName);
 		
 		AntMediaApplicationAdapter app = new AntMediaApplicationAdapter();
-		
+	
 		ApplicationContext context = mock(ApplicationContext.class);
 		
 		restService.setAppCtx(context);
@@ -208,6 +248,31 @@ public class RestServiceUnitTest {
 		assertEquals(-1, broadcastStatistics.totalHLSWatchersCount);
 		assertEquals(-1, broadcastStatistics.totalRTMPWatchersCount);
 		assertEquals(-1, broadcastStatistics.totalWebRTCWatchersCount);
+	}
+	
+	@Test
+	public void testBugGetBroadcastStatistics() {
+		Scope scope = mock(Scope.class);
+		String scopeName = "junit";
+		when(scope.getName()).thenReturn(scopeName);
+		
+		AntMediaApplicationAdapter app = mock(AntMediaApplicationAdapter.class);
+		when(app.getScope()).thenReturn(scope);
+		
+		ApplicationContext context = mock(ApplicationContext.class);
+		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
+		restService.setAppCtx(context);
+		
+		InMemoryDataStore dataStore = new InMemoryDataStore("testdb");
+		restService.setDataStore(dataStore);
+		Broadcast broadcast = new Broadcast();
+		String streamId = dataStore.save(broadcast);
+		
+		dataStore.updateHLSViewerCount(streamId, 30);
+		BroadcastStatistics broadcastStatistics = restService.getBroadcastStatistics(streamId);
+		assertNotNull(broadcastStatistics);
+		assertEquals(30, broadcastStatistics.totalHLSWatchersCount);
+		
 	}
 	
 	
@@ -352,6 +417,7 @@ public class RestServiceUnitTest {
 		assertEquals("generic", endpoint.type);
 	}
 
+	
 
 	@Test
 	public void testAddSocialEndpoint() {

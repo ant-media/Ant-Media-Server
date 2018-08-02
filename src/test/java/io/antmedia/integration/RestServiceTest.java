@@ -76,6 +76,7 @@ import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
+import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.BroadcastRestService.BroadcastStatistics;
 import io.antmedia.rest.BroadcastRestService.LiveStatistics;
@@ -578,7 +579,7 @@ public class RestServiceTest {
 	}
 
 	
-	public  Result callTotalVoDNumber() throws Exception {
+	public  int callTotalVoDNumber() throws Exception {
 
 		String url = ROOT_SERVICE_URL + "/broadcast/getTotalVodNumber";
 		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
@@ -603,13 +604,7 @@ public class RestServiceTest {
 		}
 		logger.info("result string: {} ",result.toString());
 		
-		int totalVod = gson.fromJson(result.toString(),Integer.class);
-		
-		Result resultResponse = new Result(true, String.valueOf(totalVod));
-		
-		assertNotNull(resultResponse);
-
-		return resultResponse;
+		return gson.fromJson(result.toString(),Integer.class);
 
 	}
 	
@@ -765,6 +760,74 @@ public class RestServiceTest {
 			}
 			System.out.println("result string: " + result.toString());
 			Type listType = new TypeToken<List<Broadcast>>() {
+			}.getType();
+
+			return gson.fromJson(result.toString(), listType);
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+	public static List<VoD> callGetVoDList() {
+		try {
+
+			String url = ROOT_SERVICE_URL + "/broadcast/getVodList/0/50";
+
+			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+			// Gson gson = new Gson();
+			// Broadcast broadcast = null; //new Broadcast();
+			// broadcast.name = "name";
+
+			HttpUriRequest get = RequestBuilder.get().setUri(url)
+					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+					// .setEntity(new StringEntity(gson.toJson(broadcast)))
+					.build();
+
+			CloseableHttpResponse response = client.execute(get);
+
+			StringBuffer result = readResponse(response);
+
+			if (response.getStatusLine().getStatusCode() != 200) {
+				throw new Exception(result.toString());
+			}
+			System.out.println("result string: " + result.toString());
+			Type listType = new TypeToken<List<VoD>>() {
+			}.getType();
+
+			return gson.fromJson(result.toString(), listType);
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+	public VoD callGetVoD(String id) {
+		try {
+
+			String url = ROOT_SERVICE_URL + "/broadcast/getVoD?id="+id;
+
+			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+			// Gson gson = new Gson();
+			// Broadcast broadcast = null; //new Broadcast();
+			// broadcast.name = "name";
+
+			HttpUriRequest get = RequestBuilder.get().setUri(url)
+					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+					// .setEntity(new StringEntity(gson.toJson(broadcast)))
+					.build();
+
+			CloseableHttpResponse response = client.execute(get);
+
+			StringBuffer result = readResponse(response);
+
+			if (response.getStatusLine().getStatusCode() != 200) {
+				throw new Exception(result.toString());
+			}
+			System.out.println("result string: " + result.toString());
+			Type listType = new TypeToken<VoD>() {
 			}.getType();
 
 			return gson.fromJson(result.toString(), listType);
@@ -942,8 +1005,9 @@ public class RestServiceTest {
 	public void testUploadVoDFile() {
 		
 		Result result = new Result(false);
-
 		File file = new File("src/test/resources/sample_MP4_480.mp4");
+		List<VoD> voDList = callGetVoDList();
+		int vodCount = voDList.size();
 		
 		try {
 			result = callUploadVod(file);
@@ -953,11 +1017,39 @@ public class RestServiceTest {
 		
 		assertTrue(result.isSuccess());
 		
-		String fileName =  result.getMessage(); 
+		String vodId =  result.getMessage(); 
 		
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
-			return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + fileName + ".mp4");
+			return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + vodId + ".mp4");
 		});
+		
+		voDList = callGetVoDList();
+		assertEquals(vodCount+1, voDList.size());
+		boolean found = false;
+		for (VoD vod : voDList) {
+			if (vod.getVodId().equals(vodId)) {
+				//System.out.println("vod get name: " + vod.getVodName() + " file name: " + vodId);
+				assertTrue(vod.getFilePath().contains(vodId));
+				assertEquals(VoD.UPLOADED_VOD, vod.getType());
+				found = true;
+			}
+		}
+		
+		assertTrue(found);
+		
+		VoD vod = callGetVoD(vodId);
+		assertNotNull(vod);
+		System.out.println("vod file name: " + vod.getFilePath());
+		assertTrue(vod.getFilePath().startsWith("streams/" + vodId + ".mp4"));
+		
+		
+		result = deleteVoD(vodId);
+		assertTrue(result.isSuccess());
+		
+		//file should be deleted
+		assertFalse(MuxingTest.isURLAvailable("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + vodId + ".mp4"));
+		
+		
 		
 	}
 
@@ -992,6 +1084,33 @@ public class RestServiceTest {
 		try {
 			// delete broadcast
 			String url = ROOT_SERVICE_URL + "/broadcast/delete/" + id;
+
+			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+
+			HttpUriRequest post = RequestBuilder.post().setUri(url)
+					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json").build();
+
+			CloseableHttpResponse response = client.execute(post);
+
+			StringBuffer result = readResponse(response);
+
+			if (response.getStatusLine().getStatusCode() != 200) {
+				throw new Exception(result.toString());
+			}
+			System.out.println("result string: " + result.toString());
+			Result result2 = gson.fromJson(result.toString(), Result.class);
+			return result2;
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		return null;
+	}
+	
+	public static Result deleteVoD(String id) {
+		try {
+			// delete broadcast
+			String url = ROOT_SERVICE_URL + "/broadcast/deleteVoD/" + id;
 
 			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 

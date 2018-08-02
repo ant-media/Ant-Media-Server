@@ -159,8 +159,12 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 
 	@Override
 	public boolean unRegisterWebRTCClient(IWebRTCClient webRTCClient) {
-		clientCount.decrementAndGet();
-		return webRTCClientList.remove(webRTCClient);
+		
+		boolean result = webRTCClientList.remove(webRTCClient);
+		if (result) {
+			clientCount.decrementAndGet();
+		}
+		return result;
 	}
 
 	@Override
@@ -449,16 +453,8 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 
 	}
 
-	public int getWidth() {
-		return width;
-	}
-
 	public void setWidth(int width) {
 		this.width = width;
-	}
-
-	public int getHeight() {
-		return height;
 	}
 
 	public void setHeight(int height) {
@@ -504,5 +500,8 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 		return clientCount.intValue();
 	}
 
+	public void setVideoConf(byte[] videoConf) {
+		this.videoConf = videoConf;
+	}
 
 }

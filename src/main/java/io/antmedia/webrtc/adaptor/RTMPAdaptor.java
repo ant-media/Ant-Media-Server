@@ -48,6 +48,7 @@ public class RTMPAdaptor extends Adaptor {
 	private boolean enableAudio = false;
 
 	private int audioFrameCount = 0;
+	private boolean started = false;
 
 	public static final String DTLS_SRTP_KEY_AGREEMENT_CONSTRAINT = "DtlsSrtpKeyAgreement";
 
@@ -62,7 +63,7 @@ public class RTMPAdaptor extends Adaptor {
 				new MediaConstraints.KeyValuePair("OfferToReceiveVideo", "true"));
 	}
 
-	public static PeerConnectionFactory createPeerConnectionFactory(){
+	public PeerConnectionFactory createPeerConnectionFactory(){
 		PeerConnectionFactory.Options options = new PeerConnectionFactory.Options();
 		options.networkIgnoreMask = 0;
 		return new PeerConnectionFactory(options);
@@ -90,6 +91,8 @@ public class RTMPAdaptor extends Adaptor {
 
 			webSocketCommunityHandler.sendStartMessage(getStreamId(), getSession());
 
+			started  = true;
+
 
 		});
 
@@ -102,37 +105,38 @@ public class RTMPAdaptor extends Adaptor {
 		}
 		isStopped  = true;
 
-		signallingExecutor.execute(new Runnable() {
+		signallingExecutor.execute(() -> {
 
-			@Override
-			public void run() {
-
-				webSocketCommunityHandler.sendPublishFinishedMessage(getStreamId(), getSession());
+			webSocketCommunityHandler.sendPublishFinishedMessage(getStreamId(), getSession());
 
 
-				audioEncoderExecutor.shutdownNow();
-				videoEncoderExecutor.shutdownNow();
+			audioEncoderExecutor.shutdownNow();
+			videoEncoderExecutor.shutdownNow();
 
-				try {
-					videoEncoderExecutor.awaitTermination(10, TimeUnit.SECONDS);
-				} catch (InterruptedException e1) {
-					logger.error(ExceptionUtils.getStackTrace(e1));
-					Thread.currentThread().interrupt();
-				}
-				try {
-					if (peerConnection != null) {
-						peerConnection.close();
-						recorder.stop();
-						peerConnection.dispose();
-						peerConnectionFactory.dispose();
-						peerConnection = null;
-					}
-				} catch (FrameRecorder.Exception e) {
-					logger.error(ExceptionUtils.getStackTrace(e));
-				}
+			try {
+				videoEncoderExecutor.awaitTermination(10, TimeUnit.SECONDS);
+			} catch (InterruptedException e1) {
+				logger.error(ExceptionUtils.getStackTrace(e1));
+				Thread.currentThread().interrupt();
 			}
+			try {
+				if (peerConnection != null) {
+					peerConnection.close();
+					recorder.stop();
+					peerConnection.dispose();
+					peerConnectionFactory.dispose();
+					peerConnection = null;
+				}
+			} catch (FrameRecorder.Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+
 		});
 		signallingExecutor.shutdown();
+	}
+	
+	public ExecutorService getSignallingExecutor() {
+		return signallingExecutor;
 	}
 
 
@@ -289,6 +293,11 @@ public class RTMPAdaptor extends Adaptor {
 			}
 		});
 	}
+
+	public boolean isStarted() {
+		return started;
+	}
+
 
 
 }
