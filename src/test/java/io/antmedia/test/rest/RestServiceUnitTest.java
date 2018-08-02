@@ -209,7 +209,18 @@ public class RestServiceUnitTest {
 		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
 		
 		restService.setAppCtx(context);
+		
+		VoD voD = restService.getVoD(vodId);
+		assertEquals(vodId, voD.getVodId());
+		assertEquals(streamVod.getStreamId(), voD.getStreamId());
+		assertEquals(streamVod.getVodName(), voD.getVodName());
+		assertEquals(streamVod.getFilePath(), voD.getFilePath());
+		
+		assertEquals(1, restService.getVodList(0, 50).size());
+		
 		restService.deleteVoD(vodId);
+		
+		assertEquals(0, restService.getVodList(0, 50).size());
 		
 		assertNull(datastore.getVoD(vodId));
 		
