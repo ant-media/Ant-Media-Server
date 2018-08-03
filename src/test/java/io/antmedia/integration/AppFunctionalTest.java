@@ -267,6 +267,9 @@ public class AppFunctionalTest {
 
 				assertTrue(MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + "_240p.m3u8"));
 
+				Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+					return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + "_240p.mp4");
+				});
 				int lastVodNumber = rest.callTotalVoDNumber();
 				log.info("vod number after test {}", lastVodNumber);
 
@@ -278,7 +281,6 @@ public class AppFunctionalTest {
 				int lastVodNumber = rest.callTotalVoDNumber();
 				assertEquals(currentVodNumber + 1, lastVodNumber);
 			}
-			
 			
 			List<VoD> callGetVoDList = RestServiceTest.callGetVoDList();
 			boolean found = false;
