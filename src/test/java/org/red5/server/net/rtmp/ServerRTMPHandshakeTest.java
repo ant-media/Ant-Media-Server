@@ -153,7 +153,7 @@ public class ServerRTMPHandshakeTest {
         if (!ffmpeg) {
             log.warn("FFMpeg validation failed");
         }
-        //Assert.assertTrue(ffmpeg);
+        Assert.assertTrue(ffmpeg);
     }
 
     @Test
