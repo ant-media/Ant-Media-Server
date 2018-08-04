@@ -792,7 +792,7 @@ public class RestServiceTest {
 			if (response.getStatusLine().getStatusCode() != 200) {
 				throw new Exception(result.toString());
 			}
-			System.out.println("result string: " + result.toString());
+			System.out.println("Get vod list string: " + result.toString());
 			Type listType = new TypeToken<List<VoD>>() {
 			}.getType();
 
@@ -1019,12 +1019,12 @@ public class RestServiceTest {
 		
 		String vodId =  result.getMessage(); 
 		
-		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
-			return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + vodId + ".mp4");
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			List<VoD> tmpVoDList = callGetVoDList();
+			return (vodCount+1 == tmpVoDList.size()) && 
+					MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + vodId + ".mp4");
 		});
 		
-		voDList = callGetVoDList();
-		assertEquals(vodCount+1, voDList.size());
 		boolean found = false;
 		for (VoD vod : voDList) {
 			if (vod.getVodId().equals(vodId)) {

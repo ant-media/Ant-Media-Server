@@ -456,10 +456,11 @@ public class MapDBStore implements IDataStore {
 				id = vod.getVodId();
 				vodMap.put(vod.getVodId(), gson.toJson(vod));
 				db.commit();
-				logger.warn("VoD is saved to DB {}", vod.getVodName());
+				logger.warn("VoD is saved to DB {} with voID {}", vod.getVodName(), id);
 
 			} catch (Exception e) {
 				logger.error(e.getMessage());
+				id = null;
 			}
 
 		}
