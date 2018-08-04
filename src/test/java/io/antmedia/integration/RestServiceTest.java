@@ -1007,7 +1007,14 @@ public class RestServiceTest {
 		Result result = new Result(false);
 		File file = new File("src/test/resources/sample_MP4_480.mp4");
 		List<VoD> voDList = callGetVoDList();
+		
+		for (VoD vod : voDList) {
+			deleteVoD(vod.getVodId());
+		}
+		voDList = callGetVoDList();
 		int vodCount = voDList.size();
+		logger.info("initial vod count: {}" , vodCount);
+		
 		
 		try {
 			result = callUploadVod(file);
@@ -1021,6 +1028,7 @@ public class RestServiceTest {
 		
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 			List<VoD> tmpVoDList = callGetVoDList();
+			logger.info("received vod list size: {} expected vod list size: {}", tmpVoDList.size(), vodCount+1);
 			return (vodCount+1 == tmpVoDList.size()) && 
 					MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + vodId + ".mp4");
 		});
