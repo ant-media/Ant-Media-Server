@@ -22,6 +22,14 @@ Ant Media Server is an Open Source Media Server that supports:
 
 ## Releases 
 
+#### [Ant Media Server Community 1.4.0 (August 2, 2018)](https://github.com/ant-media/Ant-Media-Server/releases/download/ams-v1.4.0/ant-media-server-community-1.4.0-180802_1155.zip)
+* Improvement WebRTCApp compatibility for browsers
+* Fix the audio & video synch issue in some cases in WebRTCApp
+* **Scalable WebRTC streaming** for Enterprise Edition in cluster mode
+* Performance improvement in WebRTC stream playing
+* Improvements & Compatibility on Web Panel
+* Bug-fixes
+
 #### [Ant Media Server Community 1.3.6 (June 21, 2018)](https://github.com/ant-media/Ant-Media-Server/releases/download/ams-v1.3.6.2/ant-media-server-community-1.3.6.2-180621_2202.zip)
 * HLS Viewer Count can be available via web panel and rest service
 * Limit the log file size. Old log files are deleted automatically if log files size exceeding 1.5GB
