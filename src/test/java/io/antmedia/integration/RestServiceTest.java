@@ -1025,6 +1025,7 @@ public class RestServiceTest {
 					MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + vodId + ".mp4");
 		});
 		
+		voDList = callGetVoDList();
 		boolean found = false;
 		for (VoD vod : voDList) {
 			if (vod.getVodId().equals(vodId)) {
