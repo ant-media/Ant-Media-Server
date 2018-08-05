@@ -1014,7 +1014,6 @@ public class BroadcastRestService {
 		String id= null;
 		String appScopeName = ScopeUtils.findApplication(getScope()).getName();
 		String fileExtension = FilenameUtils.getExtension(fileName);
-		String dataId = null;
 		try {
 
 			if (fileExtension.equals("mp4")) {
@@ -1060,7 +1059,6 @@ public class BroadcastRestService {
 					if(id != null) {
 						success = true;
 						message = id;
-						dataId  = id;
 					} 
 				}
 			} 
@@ -1074,7 +1072,7 @@ public class BroadcastRestService {
 		} 
 
 
-		return new Result(success, dataId, message);
+		return new Result(success, id, message);
 	}
 
 
