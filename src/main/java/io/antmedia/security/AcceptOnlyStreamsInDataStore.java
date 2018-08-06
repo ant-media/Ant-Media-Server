@@ -30,12 +30,12 @@ public class AcceptOnlyStreamsInDataStore implements IStreamPublishSecurity  {
 				result = true;
 			}
 			else {
-				logger.info("No stream in data store not allowing");
+				logger.info("No stream in data store not allowing the stream {}", name);
 				Red5.getConnectionLocal().close();
 			}
 		}
 		else {
-			logger.info("AcceptOnlyStreamsInDataStore is not activated accepting all streams");
+			logger.info("AcceptOnlyStreamsInDataStore is not activated. Accepting all streams {}", name);
 			result = true;
 		}
 		

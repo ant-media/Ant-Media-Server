@@ -1072,7 +1072,7 @@ public class BroadcastRestService {
 		} 
 
 
-		return new Result(success, message);
+		return new Result(success, id, message);
 	}
 
 
