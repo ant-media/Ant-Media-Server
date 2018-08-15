@@ -12,6 +12,7 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,20 +21,18 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.TensorFlowObject;
+import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
 
 public class InMemoryDataStore implements IDataStore {
 
 
 	protected static Logger logger = LoggerFactory.getLogger(InMemoryDataStore.class);
-
 	public Map<String, Broadcast> broadcastMap = new LinkedHashMap<>();
-
 	public Map<String, VoD> vodMap = new LinkedHashMap<>();
-
 	public Map<String, List<TensorFlowObject>> detectionMap = new LinkedHashMap<>();
-
 	public Map<String, SocialEndpointCredentials> socialEndpointCredentialsMap = new LinkedHashMap<>();
+	public Map<String, Token> tokenMap = new LinkedHashMap<>();
 
 
 	public InMemoryDataStore(String dbName) {
@@ -638,6 +637,58 @@ public class InMemoryDataStore implements IDataStore {
 				broadcastMap.replace(streamId, broadcast);
 				result = true;
 			}
+		}
+		return result;
+	}
+
+	@Override
+	public Token createToken(String streamId, long expireDate) {
+		Token token = null;
+
+		if(streamId != null) {
+			token = new Token();
+			token.setStreamId(streamId);
+			token.setExpireDate(expireDate);
+
+			try {
+				String tokenId = RandomStringUtils.randomNumeric(24);
+				token.setTokenId(tokenId);
+				tokenMap.put(tokenId, token);
+
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+
+		return token;
+	}
+
+	@Override
+	public Token validateToken(Token token) {
+		Token fetchedToken = null;
+		if (token.getTokenId() != null) {
+			fetchedToken = tokenMap.get(token.getTokenId());
+			if (fetchedToken != null) {
+				tokenMap.remove(token.getTokenId());
+				return fetchedToken;
+			}
+		}
+		return fetchedToken;
+	}
+
+	@Override
+	public boolean revokeTokens(String streamId) {
+		boolean result = false;
+		Collection<Token> tokenCollection = tokenMap.values();
+
+		for (Iterator iterator = tokenCollection.iterator(); iterator.hasNext();) {
+			Token token = (Token) iterator.next();
+			if (token.getStreamId().equals(streamId)) {
+				iterator.remove();
+				tokenMap.remove(token.getTokenId());
+			}
+			result = true;
+
 		}
 		return result;
 	}
