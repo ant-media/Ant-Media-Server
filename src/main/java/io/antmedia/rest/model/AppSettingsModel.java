@@ -23,6 +23,8 @@ public class AppSettingsModel {
 	private String periscopeClientSecret;
 	
 	private boolean acceptOnlyStreamsInDataStore;
+	
+	private boolean tokenControlEnabled ;
 
 	private List<EncoderSettings> encoderSettings;
 	
@@ -164,5 +166,13 @@ public class AppSettingsModel {
 
 	public void setPreviewOverwrite(boolean previewOverwrite) {
 		this.previewOverwrite = previewOverwrite;
+	}
+	
+	public boolean isTokenControlEnabled() {
+		return tokenControlEnabled;
+	}
+
+	public void setTokenControlEnabled(boolean tokenControlEnabled) {
+		this.tokenControlEnabled = tokenControlEnabled;
 	}
 }
