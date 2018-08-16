@@ -725,6 +725,14 @@ public class MongoStore implements IDataStore {
 
 	}
 
+	@Override
+	public List<Token> listAllTokens(String streamId, int offset, int size) {
+
+
+		return 	tokenDatastore.find(Token.class).field("streamId").equal(streamId).asList(new FindOptions() .skip(offset).limit(size));
+
+	}
+
 
 
 

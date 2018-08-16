@@ -914,9 +914,9 @@ public class MapDBStore implements IDataStore {
 		
 		synchronized (this) {
 			if (token.getTokenId() != null) {
-				String jsonString = tokenMap.get(token.getTokenId());
-				if (jsonString != null) {
-					fetchedToken = gson.fromJson((String) jsonString, Token.class);
+				String jsonToken = tokenMap.get(token.getTokenId());
+				if (jsonToken != null) {
+					fetchedToken = gson.fromJson((String) jsonToken, Token.class);
 					boolean result = tokenMap.remove(token.getTokenId()) != null;
 					if (result) {
 						db.commit();
@@ -952,5 +952,37 @@ public class MapDBStore implements IDataStore {
 			}
 		}
 		return result;
+	}
+
+	@Override
+	public List<Token> listAllTokens(String streamId, int offset, int size) {
+		List<Token> list = new ArrayList<>();
+		synchronized (this) {
+			Collection<String> values = tokenMap.values();
+			int t = 0;
+			int itemCount = 0;
+			if (size > MAX_ITEM_IN_ONE_LIST) {
+				size = MAX_ITEM_IN_ONE_LIST;
+			}
+			if (offset < 0) {
+				offset = 0;
+			}
+			for (String tokenString : values) {
+				if (t < offset) {
+					t++;
+					continue;
+				}
+				Token token = gson.fromJson(tokenString, Token.class);
+				if(token.getStreamId().equals(streamId)) {
+				list.add(token);
+				itemCount++;
+				}
+				if (itemCount >= size) {
+					break;
+				}
+
+			}
+		}
+		return list;
 	}
 }

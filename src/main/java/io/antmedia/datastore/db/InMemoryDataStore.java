@@ -693,6 +693,37 @@ public class InMemoryDataStore implements IDataStore {
 		return result;
 	}
 
+	@Override
+	public List<Token> listAllTokens(String streamId, int offset, int size) {
+
+		Collection<Token> values = tokenMap.values();
+		int t = 0;
+		int itemCount = 0;
+		if (size > MAX_ITEM_IN_ONE_LIST) {
+			size = MAX_ITEM_IN_ONE_LIST;
+		}
+		if (offset < 0) {
+			offset = 0;
+		}
+		List<Token> list = new ArrayList<>();
+		for (Token token : values) {
+
+			if (t < offset) {
+				t++;
+				continue;
+			}
+			if(token.getStreamId().equals(streamId)) {
+				list.add(token);
+				itemCount++;
+			}
+			if (itemCount >= size) {
+				break;
+			}
+
+		}
+		return list;
+	}
+
 
 
 
