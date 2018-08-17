@@ -66,6 +66,12 @@ public class WebSocketConstants {
 	public static final String JOIN_COMMAND = "join";
 
 	public static final String JOINED_THE_ROOM = "joinedTheRoom";
+	
+	/**
+	 * this token is used to access resources or start broadcast when token security is enabled
+	 */
+	
+	public static final String TOKEN = "token";
 
 	/**
 	 * This is peer to peer connection error definition.
@@ -108,6 +114,9 @@ public class WebSocketConstants {
 	 * joining the video conference
 	 */
 	public static final String NO_ROOM_SPECIFIED = "no_room_specified";
+	
+	
+	public static final String UNAUTHORIZED = "unauthorized_access";
 
 	/**
 	 * Command that let server returns information about a specific stream.
