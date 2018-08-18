@@ -7,6 +7,7 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.bson.types.ObjectId;
 import org.mongodb.morphia.Datastore;
 import org.mongodb.morphia.Key;
@@ -30,7 +31,7 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.TensorFlowObject;
-import io.antmedia.datastore.db.types.Vod;
+import io.antmedia.datastore.db.types.VoD;
 
 public class MongoStore implements IDataStore {
 
@@ -57,11 +58,12 @@ public class MongoStore implements IDataStore {
 	public MongoStore(String host, String username, String password, String dbName) {
 		morphia = new Morphia();
 		morphia.mapPackage("io.antmedia.datastore.db.types");
-		List<MongoCredential> credentialList = new ArrayList<MongoCredential>();
-		//credentialList.add(MongoCredential.createCredential(username, dbName, password.toCharArray()));
-//		datastore = morphia.createDatastore(new MongoClient(new ServerAddress(host), credentialList), dbName);
-//		vodDatastore=morphia.createDatastore(new MongoClient(new ServerAddress(host), credentialList), dbName+"Vod");
-//		endpointCredentialsDS = morphia.createDatastore(new MongoClient(new ServerAddress(host), credentialList), dbName+"_endpointCredentials");
+
+		List<MongoCredential> credentialList = new ArrayList<>();
+		credentialList.add(MongoCredential.createCredential(username, dbName, password.toCharArray()));
+		datastore = morphia.createDatastore(new MongoClient(new ServerAddress(host), credentialList), dbName);
+		vodDatastore=morphia.createDatastore(new MongoClient(new ServerAddress(host), credentialList), dbName+"Vod");
+		endpointCredentialsDS = morphia.createDatastore(new MongoClient(new ServerAddress(host), credentialList), dbName+"_endpointCredentials");
 
 		datastore = morphia.createDatastore(new MongoClient(host), dbName);
 		vodDatastore=morphia.createDatastore(new MongoClient(host), dbName+"Vod");
@@ -104,7 +106,7 @@ public class MongoStore implements IDataStore {
 
 			return streamId;
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 		return null;
 	}
@@ -119,8 +121,17 @@ public class MongoStore implements IDataStore {
 		try {
 			return datastore.find(Broadcast.class).field("streamId").equal(id).get();
 		} catch (Exception e) {
-
-			e.printStackTrace();
+			logger.error(ExceptionUtils.getStackTrace(e));
+		}
+		return null;
+	}
+	
+	@Override
+	public VoD getVoD(String id) {
+		try {
+			return vodDatastore.find(VoD.class).field("vodId").equal(id).get();
+		} catch (Exception e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 		return null;
 	}
@@ -163,7 +174,7 @@ public class MongoStore implements IDataStore {
 			UpdateResults update = datastore.update(query, ops);
 			return update.getUpdatedCount() == 1;
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 		return false;
 
@@ -186,7 +197,7 @@ public class MongoStore implements IDataStore {
 			UpdateResults update = datastore.update(query, ops);
 			return update.getUpdatedCount() == 1;
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 		return false;
 	}
@@ -211,7 +222,7 @@ public class MongoStore implements IDataStore {
 				UpdateResults update = datastore.update(query, ops);
 				return update.getUpdatedCount() == 1;
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.error(ExceptionUtils.getStackTrace(e));
 			}
 		}
 		return false;
@@ -268,7 +279,7 @@ public class MongoStore implements IDataStore {
 			WriteResult delete = datastore.delete(query);
 			return delete.getN() == 1;
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 		return false;
 	}
@@ -299,7 +310,7 @@ public class MongoStore implements IDataStore {
 
 		} catch (Exception e) {
 
-			e.printStackTrace();
+			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 		return null;
 	}
@@ -314,22 +325,24 @@ public class MongoStore implements IDataStore {
 		try {
 			return datastore.find(Broadcast.class).field("type").equal(type).asList(new FindOptions().skip(offset).limit(size));
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 		return null;	
 	}
 
 	@Override
-	public String addVod(Vod vod) {
+	public String addVod(VoD vod) {
 		
 		String id = null;
 		boolean result = false;
 		try {	
-			Key<Vod> key = vodDatastore.save(vod);
+			if (vod.getVodId() == null) {
+				vod.setVodId(RandomStringUtils.randomAlphanumeric(12) + System.currentTimeMillis());
+			}
+			vodDatastore.save(vod);
 			result = true;
 		} catch (Exception e) {
-
-			e.printStackTrace();
+			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 
 		if(result) {
@@ -340,19 +353,19 @@ public class MongoStore implements IDataStore {
 	}
 
 	@Override
-	public List<Vod> getVodList(int offset, int size) {	
-		return vodDatastore.find(Vod.class).asList(new FindOptions().skip(offset).limit(size));
+	public List<VoD> getVodList(int offset, int size) {	
+		return vodDatastore.find(VoD.class).asList(new FindOptions().skip(offset).limit(size));
 	}
 
 
 	@Override
 	public boolean deleteVod(String id) {
 		try {
-			Query<Vod> query = vodDatastore.createQuery(Vod.class).field("vodId").equal(id);
+			Query<VoD> query = vodDatastore.createQuery(VoD.class).field("vodId").equal(id);
 			WriteResult delete = vodDatastore.delete(query);
 			return delete.getN() == 1;
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 		return false;
 	}
@@ -361,7 +374,7 @@ public class MongoStore implements IDataStore {
 
 	@Override
 	public long getTotalVodNumber() {
-		return vodDatastore.getCount(Vod.class);
+		return vodDatastore.getCount(VoD.class);
 
 	}
 
@@ -374,10 +387,10 @@ public class MongoStore implements IDataStore {
 
 		int numberOfSavedFiles = 0;
 		try {
-			Query<Vod> query = vodDatastore.createQuery(Vod.class).field("type").equal("userVod");
+			Query<VoD> query = vodDatastore.createQuery(VoD.class).field("type").equal("userVod");
 			WriteResult delete = vodDatastore.delete(query);
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 
 		File[] listOfFiles = userfile.listFiles();
@@ -401,12 +414,12 @@ public class MongoStore implements IDataStore {
 
 					Integer pathLength=Integer.valueOf(subDirs.length);
 
-					String relativePath=subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
+					String relativePath = "streams/"+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
 					String vodId = RandomStringUtils.randomNumeric(24);
-					Vod newVod = new Vod("vodFile", "vodFile", relativePath, file.getName(), unixTime, 0, fileSize,
-							Vod.USER_VOD,vodId);
+					VoD newVod = new VoD("vodFile", "vodFile", relativePath, file.getName(), unixTime, 0, fileSize,
+							VoD.USER_VOD,vodId);
 
-					addUserVod(newVod);
+					addVod(newVod);
 					numberOfSavedFiles++;
 				}
 			}
@@ -415,26 +428,7 @@ public class MongoStore implements IDataStore {
 
 	}
 
-	@Override
-	public boolean addUserVod(Vod vod) {
-		try {
-			String vodId = null;
-			if (vod.getVodId() == null) {
-				vodId = RandomStringUtils.randomAlphanumeric(12) + System.currentTimeMillis();
-				vod.setVodId(vodId);
-			}
-			vodId = vod.getStreamId();
 
-
-			Key<Vod> key = vodDatastore.save(vod);
-
-			return true;
-		} catch (Exception e) {
-
-			e.printStackTrace();
-		}
-		return false;
-	}
 
 
 	@Override
@@ -448,7 +442,7 @@ public class MongoStore implements IDataStore {
 			UpdateResults update = datastore.update(query, ops);
 			return update.getUpdatedCount() == 1;
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 		return false;
 	}
@@ -519,7 +513,7 @@ public class MongoStore implements IDataStore {
 			WriteResult delete = endpointCredentialsDS.delete(query);
 			return delete.getN() == 1;
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 		return false;
 	}
@@ -529,7 +523,7 @@ public class MongoStore implements IDataStore {
 		try {
 			return endpointCredentialsDS.get(SocialEndpointCredentials.class, new ObjectId(id));
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 		return null;
 	}
@@ -618,12 +612,62 @@ public class MongoStore implements IDataStore {
 		return false;
 	}
 	
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
-	public boolean updateHLSViewerCount(String streamId, int viewerCount) {
+	public boolean updateHLSViewerCount(String streamId, int diffCount) {
 		try {
 
 			Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(streamId);
-			UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set("hlsViewerCount", viewerCount);
+			UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).inc("hlsViewerCount", diffCount);
+
+			UpdateResults update = datastore.update(query, ops);
+			return update.getUpdatedCount() == 1;
+		} catch (Exception e) {
+			logger.error(e.getMessage());
+		}
+		return false;
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public boolean updateWebRTCViewerCount(String streamId, boolean increment) {
+		try {
+
+			Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(streamId);
+			UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class);
+			String field = "webRTCViewerCount";
+			if (increment) {
+				ops.inc(field);
+			}
+			else {
+				ops.dec(field);
+			}
+
+			UpdateResults update = datastore.update(query, ops);
+			return update.getUpdatedCount() == 1;
+		} catch (Exception e) {
+			logger.error(e.getMessage());
+		}
+		return false;
+	}
+	
+	@Override
+	public boolean updateRtmpViewerCount(String streamId, boolean increment) {
+		try {
+
+			Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(streamId);
+			UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class);
+			String field = "rtmpViewerCount";
+			if (increment) {
+				ops.inc(field);
+			}
+			else {
+				ops.dec(field);
+			}
 
 			UpdateResults update = datastore.update(query, ops);
 			return update.getUpdatedCount() == 1;

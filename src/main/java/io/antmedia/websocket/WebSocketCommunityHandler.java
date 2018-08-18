@@ -80,18 +80,8 @@ public abstract class WebSocketCommunityHandler {
 
 			if (cmd.equals(WebSocketConstants.PUBLISH_COMMAND)) 
 			{
-
-				String outputURL = "rtmp://127.0.0.1/WebRTCApp/" + streamId;
-
-				RTMPAdaptor connectionContext = new RTMPAdaptor(getNewRecorder(outputURL), this);
-
-				session.getUserProperties().put(session.getId(), connectionContext);
-
-				connectionContext.setSession(session);
-				connectionContext.setStreamId(streamId);
-
-				connectionContext.start();
-
+				//get scope and use its name
+				startRTMPAdaptor(session, streamId);
 			}
 			else if (cmd.equals(WebSocketConstants.TAKE_CONFIGURATION_COMMAND))  
 			{
@@ -129,6 +119,25 @@ public abstract class WebSocketCommunityHandler {
 			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 
+	}
+
+	private void startRTMPAdaptor(Session session, final String streamId) {
+		
+		//get scope and use its name
+		String outputURL = "rtmp://127.0.0.1/WebRTCApp/" + streamId;
+
+		RTMPAdaptor connectionContext = getNewRTMPAdaptor(outputURL);
+
+		session.getUserProperties().put(session.getId(), connectionContext);
+
+		connectionContext.setSession(session);
+		connectionContext.setStreamId(streamId);
+
+		connectionContext.start();
+	}
+
+	public RTMPAdaptor getNewRTMPAdaptor(String outputURL) {
+		return new RTMPAdaptor(getNewRecorder(outputURL), this);
 	}
 
 	public void addICECandidate(final String streamId, RTMPAdaptor connectionContext, String sdpMid, String sdp,
