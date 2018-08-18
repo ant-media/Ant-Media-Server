@@ -24,6 +24,7 @@ import com.mongodb.ServerAddress;
 import com.mongodb.WriteResult;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.cluster.StreamInfo;
 import io.antmedia.datastore.DBUtils;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
@@ -632,9 +633,21 @@ public class MongoStore implements IDataStore {
 		return false;
 	}
 	
+	@Override
+	public void addStreamInfoList(List<StreamInfo> streamInfoList) {
+		for (StreamInfo streamInfo : streamInfoList) {
+			datastore.save(streamInfo);
+		}
+	}
 	
-	
+	public List<StreamInfo> getStreamInfoList(String streamId) {
+		return datastore.find(StreamInfo.class).field("streamId").equal(streamId).asList();
+	}
 
+	public void clearStreamInfoList(String streamId) {
+		Query<StreamInfo> query = datastore.createQuery(StreamInfo.class).field("streamId").equal(streamId);
+		datastore.delete(query);
+	}
 
 
 }

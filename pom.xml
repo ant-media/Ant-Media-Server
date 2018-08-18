@@ -165,7 +165,6 @@
 		</plugins>
 	</build>
 	<dependencies>
-
 		<dependency>
 			<groupId>io.antmedia.ipcamera.onvif</groupId>
 			<artifactId>ONVIF</artifactId>

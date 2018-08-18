@@ -11,8 +11,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
+import org.springframework.web.context.WebApplicationContext;
+import org.springframework.web.context.support.WebApplicationContextUtils;
 
 import io.antmedia.AppSettings;
+import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.IDataStore;
 
 public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
@@ -22,6 +25,7 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 	public static final String BEAN_NAME = "hls.viewerstats";
 
 	private IDataStore dataStore;
+	private DataStoreFactory dataStoreFactory;
 
 	public static final int DEFAULT_TIME_PERIOD_FOR_VIEWER_COUNT = 10000;
 	/**
@@ -46,7 +50,7 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 		}
 		viewerMap.put(sessionId, System.currentTimeMillis());
 
-		dataStore.updateHLSViewerCount(streamId, viewerMap.size());
+		getDataStore().updateHLSViewerCount(streamId, viewerMap.size());
 		streamsViewerMap.put(streamId, viewerMap);
 	}
 
@@ -63,8 +67,9 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 
 	@Override
 	public void setApplicationContext(ApplicationContext applicationContext)  {
-		dataStore = (IDataStore) applicationContext.getBean(IDataStore.BEAN_NAME);
+		dataStoreFactory = (DataStoreFactory) applicationContext.getBean("dataStoreFactory");
 
+		
 		ISchedulingService scheduler = (ISchedulingService) applicationContext.getBean(ISchedulingService.BEAN_NAME);
 		
 		if (applicationContext.containsBean(AppSettings.BEAN_NAME)) {
@@ -96,7 +101,7 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 							}
 						}
 						
-						dataStore.updateHLSViewerCount(streamViewerEntry.getKey(), streamViewerEntry.getValue().size());
+						getDataStore().updateHLSViewerCount(streamViewerEntry.getKey(), streamViewerEntry.getValue().size());
 						
 					}
 					
@@ -128,8 +133,24 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 		return timeoutMS;
 	}
 
+	public IDataStore getDataStore() {
+		if (dataStore == null) {
+			dataStore = getDataStoreFactory().getDataStore();
+		}
+		return dataStore;
+	}
+	
 	public void setDataStore(IDataStore dataStore) {
 		this.dataStore = dataStore;
+	}
+	
+	
+	public DataStoreFactory getDataStoreFactory() {
+		return dataStoreFactory;
+	}
+	
+	public void setDataStoreFactory(DataStoreFactory dataStoreFactory) {
+		this.dataStoreFactory = dataStoreFactory;
 	}
 
 }

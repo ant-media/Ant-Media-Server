@@ -10,12 +10,14 @@ import java.util.regex.Pattern;
 import java.util.Set;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.mongodb.morphia.query.Query;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.cluster.StreamInfo;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
@@ -609,7 +611,15 @@ public class InMemoryDataStore implements IDataStore {
 	}
 
 
+	@Override
+	public void addStreamInfoList(List<StreamInfo> streamInfoList) {
+	
+	}
 
-
-
+	public List<StreamInfo> getStreamInfoList(String streamId) {
+		return null;
+	}
+	
+	public void clearStreamInfoList(String streamId) {
+	}
 }
