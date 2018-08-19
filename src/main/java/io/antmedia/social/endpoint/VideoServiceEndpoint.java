@@ -2,6 +2,7 @@ package io.antmedia.social.endpoint;
 
 import java.util.List;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,6 +14,8 @@ import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointChannel;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.preference.PreferenceStore;
+import io.antmedia.rest.model.Interaction;
+import io.antmedia.social.LiveComment;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
 
 /**
@@ -78,7 +81,6 @@ public abstract class VideoServiceEndpoint {
 		credentials = endpointCredentials;
 		
 		if (credentials != null) {
-			//throw new NullPointerException("There is not a credential in datastore having id: " + this.id);
 
 			String expireTimeSeconds = credentials.getExpireTimeInSeconds();
 			String authtimeMilliSeconds = credentials.getAuthTimeInMilliseconds();
@@ -98,7 +100,7 @@ public abstract class VideoServiceEndpoint {
 
 			}
 			catch (Exception e) {
-				e.printStackTrace();
+				logger.info(ExceptionUtils.getStackTrace(e));
 			}
 		}
 		else {
@@ -126,7 +128,7 @@ public abstract class VideoServiceEndpoint {
 		tmpCredentials.setAccountId(accountId);
 		SocialEndpointCredentials addedCredential = dataStore.addSocialEndpointCredentials(tmpCredentials);
 		if (addedCredential == null) {
-			throw new Exception("Social endpoint credential cannot be added for account name: " + accountName + " and service name " + getName() );
+			throw new NullPointerException("Social endpoint credential cannot be added for account name: " + accountName + " and service name " + getName() );
 		}
 		setCredentials(addedCredential);
 
@@ -135,7 +137,7 @@ public abstract class VideoServiceEndpoint {
 	public void resetCredentials() {
 		boolean removeSocialEndpointCredentials = dataStore.removeSocialEndpointCredentials(this.credentials.getId());
 		if (!removeSocialEndpointCredentials) {
-			logger.warn("Social endpoint is not deleted having id: " + this.credentials.getId() + " and service name: " + getName());
+			logger.warn("Social endpoint is not deleted having id: {} and service name: {}" , this.credentials.getId() , getName());
 		}
 		this.credentials = null;
 	}
@@ -273,8 +275,32 @@ public abstract class VideoServiceEndpoint {
 	public void setError(String error) {
 		this.error = error;
 	}
+	
+	
+	/**
+	 * Get the live comment in that channel
+	 * @param streamId id of the stream in data store
+	 * @param offset
+	 * this is the start offset where to start getting comment
+	 * @param batch
+	 * number of items to be returned
+	 * @return list of live comments
+	 */
+	public abstract List<LiveComment> getComments(String streamId, int offset, int batch) ;
+	
 
+	/**
+	 * Return the number of interactions in that channel
+	 * @param streamId id of the stream in data store
+	 * @return Interaction object
+	 */
+	public abstract Interaction getInteraction(String streamId);
 
+	/**
+	 * Return the total number of comments in that channel 
+	 * @return number of the comments
+	 */
+	public abstract int getTotalCommentsCount(String streamId);
 
 
 }

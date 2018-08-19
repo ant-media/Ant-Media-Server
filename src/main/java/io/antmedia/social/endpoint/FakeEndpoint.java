@@ -1,11 +1,15 @@
 package io.antmedia.social.endpoint;
 
+import java.util.List;
+
 import io.antmedia.api.periscope.type.Broadcast;
 import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.types.BroadcastStatus;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.preference.PreferenceStore;
+import io.antmedia.rest.model.Interaction;
+import io.antmedia.social.LiveComment;
 
 public class FakeEndpoint extends VideoServiceEndpoint {
 
@@ -57,6 +61,22 @@ public class FakeEndpoint extends VideoServiceEndpoint {
 	@Override
 	public String getBroadcast(Endpoint endpoint) {
 		return null;
+	}
+
+	@Override
+	public List<LiveComment> getComments(String streamId, int offset, int batch) {
+		//not yet implemented
+		return null;
+	}
+
+	@Override
+	public Interaction getInteraction(String streamId) {
+		// not yet implemented
+		return null;
+	}
+	
+	public int getTotalCommentsCount(String streamId) {
+		return 0;
 	}
 
 }
