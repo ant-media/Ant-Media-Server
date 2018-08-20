@@ -61,9 +61,9 @@ public class MongoStore implements IDataStore {
 
 		List<MongoCredential> credentialList = new ArrayList<>();
 		credentialList.add(MongoCredential.createCredential(username, dbName, password.toCharArray()));
-		datastore = morphia.createDatastore(new MongoClient(new ServerAddress(host), credentialList), dbName);
-		vodDatastore=morphia.createDatastore(new MongoClient(new ServerAddress(host), credentialList), dbName+"Vod");
-		endpointCredentialsDS = morphia.createDatastore(new MongoClient(new ServerAddress(host), credentialList), dbName+"_endpointCredentials");
+		//datastore = morphia.createDatastore(new MongoClient(new ServerAddress(host), credentialList), dbName);
+		//vodDatastore=morphia.createDatastore(new MongoClient(new ServerAddress(host), credentialList), dbName+"Vod");
+		//endpointCredentialsDS = morphia.createDatastore(new MongoClient(new ServerAddress(host), credentialList), dbName+"_endpointCredentials");
 
 		datastore = morphia.createDatastore(new MongoClient(host), dbName);
 		vodDatastore=morphia.createDatastore(new MongoClient(host), dbName+"Vod");
