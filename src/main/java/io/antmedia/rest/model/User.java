@@ -1,6 +1,7 @@
 package io.antmedia.rest.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonProperty.Access;
 
 public class User {
 	
@@ -12,7 +13,7 @@ public class User {
 	/**
 	 * Password of the user, ignore password and this field is not set for all user types
 	 */
-	@JsonIgnore
+	@JsonProperty(access = Access.WRITE_ONLY)
 	private String password;
 	
 	/**
@@ -23,7 +24,7 @@ public class User {
 	/**
 	 * New password of the user, below field is not set  for all user types
 	 */
-	@JsonIgnore
+	@JsonProperty(access = Access.WRITE_ONLY)
 	private String newPassword;
 	
 	/**
