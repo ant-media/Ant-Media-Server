@@ -302,5 +302,12 @@ public abstract class VideoServiceEndpoint {
 	 */
 	public abstract int getTotalCommentsCount(String streamId);
 
+	/**
+	 * Get the live viewer count of the live video
+	 * @param endpoint
+	 * @return number of live viewers
+	 */
+	public abstract long getLiveViews(Endpoint endpoint);
+
 
 }

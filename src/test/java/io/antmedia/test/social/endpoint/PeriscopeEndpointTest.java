@@ -65,7 +65,7 @@ public class PeriscopeEndpointTest {
 	/**
 	 * This function should not be enabled in CI because it requires manual interaction with PSCP service
 	 */
-	//@Test
+	@Test
 	public void testAccessToken() {
 
 		IDataStore dataStore = null;
@@ -225,8 +225,9 @@ public class PeriscopeEndpointTest {
 			boolean started = false;
 			
 			endPoint.publishBroadcast(endpoint);
+			
 
-			Awaitility.await().atMost(20, TimeUnit.SECONDS)
+			Awaitility.await().pollDelay(50, TimeUnit.SECONDS).atMost(60, TimeUnit.SECONDS)
 				.pollInterval(2, TimeUnit.SECONDS)
 				.until(() -> {
 					return endPoint.getBroadcast(endpoint).equals(BroadcastStatus.LIVE_NOW);

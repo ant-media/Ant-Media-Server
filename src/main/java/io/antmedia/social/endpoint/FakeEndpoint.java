@@ -78,5 +78,10 @@ public class FakeEndpoint extends VideoServiceEndpoint {
 	public int getTotalCommentsCount(String streamId) {
 		return 0;
 	}
+	
+	@Override
+	public long getLiveViews(Endpoint endpoint) {
+		return 0;
+	}
 
 }
