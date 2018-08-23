@@ -17,6 +17,7 @@ import io.antmedia.datastore.preference.PreferenceStore;
 import io.antmedia.rest.model.Interaction;
 import io.antmedia.social.LiveComment;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
+import io.vertx.core.Vertx;
 
 /**
  * This is inteface that is used to integrate
@@ -72,13 +73,21 @@ public abstract class VideoServiceEndpoint {
 	protected DeviceAuthParameters authParameters;
 	
 	private String error;
+
+	protected Vertx vertx;
+	
+	/**
+	 * Collect interactiviy such as comments, likes and views in the channel
+	 */
+	protected boolean collectInteractivity = true;
 	
 
-	public VideoServiceEndpoint(String clientId, String clientSecret, IDataStore dataStore, SocialEndpointCredentials endpointCredentials) {
+	public VideoServiceEndpoint(String clientId, String clientSecret, IDataStore dataStore, SocialEndpointCredentials endpointCredentials, Vertx vertx) {
 		this.clientId = clientId;
 		this.clientSecret = clientSecret;
 		this.dataStore = dataStore;
 		credentials = endpointCredentials;
+		this.vertx = vertx;
 		
 		if (credentials != null) {
 
@@ -177,13 +186,14 @@ public abstract class VideoServiceEndpoint {
 	 * 
 	 * @param name give a name do not make null or zero length
 	 * @param description description of the broadcast
+	 * @param serverStreamId id of the stream that is in the server
 	 * @param is_360 if this video is 360 degree
 	 * @param isPublic if this video will be public or not
 	 * @param videoHeight height of the video
 	 * 
 	 * @return the Endpoint which includes rtmp url
 	 */
-	public abstract Endpoint createBroadcast(String name, String description, boolean is360, boolean isPublic, int videoHeight, boolean is_low_latency) throws Exception;
+	public abstract Endpoint createBroadcast(String name, String description, String serverStreamId, boolean is360, boolean isPublic, int videoHeight, boolean is_low_latency) throws Exception;
 
 
 	/**
@@ -206,20 +216,12 @@ public abstract class VideoServiceEndpoint {
 
 	public abstract String getBroadcast(Endpoint endpoint) throws Exception;
 
-	protected String getClientId() {
+	public String getClientId() {
 		return clientId;
 	}
 
-	protected void setClientId(String clientId) {
-		this.clientId = clientId;
-	}
-
-	protected String getClientSecret() {
+	public String getClientSecret() {
 		return clientSecret;
-	}
-
-	protected void setClientSecret(String clientSecret) {
-		this.clientSecret = clientSecret;
 	}
 
 	public boolean isInitialized() {

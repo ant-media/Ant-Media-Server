@@ -413,7 +413,7 @@ public class RestServiceUnitTest {
 
 		assertEquals(1, broadcast2.getEndPointList().size());
 		Endpoint endpoint = broadcast2.getEndPointList().get(0);
-		assertEquals(endpointURL, endpoint.rtmpUrl);
+		assertEquals(endpointURL, endpoint.getRtmpUrl());
 		assertEquals("generic", endpoint.type);
 	}
 
@@ -470,15 +470,15 @@ public class RestServiceUnitTest {
 			String rtmpUrl = "rtmpUrl"  + (int)(Math.random() * 10000);
 			String type = "type"  + (int)(Math.random() * 10000);
 
-			when(videoServiceEndpoint.createBroadcast(broadcastCreated.getName(), broadcastCreated.getDescription(),
-					broadcastCreated.isIs360(), broadcastCreated.isPublicStream(), 720, true))
-			.thenReturn(new Endpoint(broadcastId, streamId, name, rtmpUrl, type, endpointServiceId));
+			when(videoServiceEndpoint.createBroadcast(broadcastCreated.getName(), broadcastCreated.getDescription(), 
+					null, broadcastCreated.isIs360(), broadcastCreated.isPublicStream(), 720, true))
+			.thenReturn(new Endpoint(broadcastId, streamId, null, name, rtmpUrl, type, endpointServiceId));
 
 			result = restService.addSocialEndpoint(broadcastCreated.getStreamId(), endpointServiceId);
 			assertTrue(result.isSuccess());
 
 			Mockito.verify(videoServiceEndpoint).createBroadcast(broadcastCreated.getName(), broadcastCreated.getDescription(),
-					broadcastCreated.isIs360(), broadcastCreated.isPublicStream(), 720, true);
+					null, broadcastCreated.isIs360(), broadcastCreated.isPublicStream(), 720, true);
 		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());

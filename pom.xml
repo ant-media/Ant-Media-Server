@@ -397,7 +397,7 @@
 		<dependency>
 			<groupId>com.google.apis</groupId>
 			<artifactId>google-api-services-youtube</artifactId>
-			<version>v3-rev183-1.22.0</version>
+			<version>${youtube.api.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.glassfish.jersey.containers</groupId>

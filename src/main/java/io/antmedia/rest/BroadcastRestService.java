@@ -297,7 +297,7 @@ public class BroadcastRestService {
 
 		boolean result = getDataStore().updateName(broadcast.getStreamId(), broadcast.getName(),
 				broadcast.getDescription());
-		String message = "";
+		StringBuilder message = new StringBuilder();
 		int errorId = 0;
 		if (result) {
 			Broadcast fetchedBroadcast = getDataStore().get(broadcast.getStreamId());
@@ -310,7 +310,7 @@ public class BroadcastRestService {
 					Result addSocialEndpoint = addSocialEndpoint(broadcast.getStreamId(), networkName);
 					if (!addSocialEndpoint.isSuccess()) {
 						result = false;
-						message += networkName + " ";
+						message.append(networkName).append(" ");
 						errorId = -1;
 						break;
 					}
@@ -318,9 +318,9 @@ public class BroadcastRestService {
 			}
 		}
 		if (message.length() > 0) {
-			message += " endpoint cannot be added";
+			message.append(" endpoint cannot be added");
 		}
-		return new Result(result, message, errorId);
+		return new Result(result, message.toString(), errorId);
 	}
 
 	/**
@@ -398,7 +398,7 @@ public class BroadcastRestService {
 						Endpoint endpoint;
 						try {
 							endpoint = videoServiceEndpoint.createBroadcast(broadcast.getName(),
-									broadcast.getDescription(), broadcast.isIs360(), broadcast.isPublicStream(),
+									broadcast.getDescription(), id, broadcast.isIs360(), broadcast.isPublicStream(),
 									720, true);
 							success = getDataStore().addEndpoint(id, endpoint);
 
@@ -446,7 +446,7 @@ public class BroadcastRestService {
 			Broadcast broadcast = lookupBroadcast(id);
 
 			Endpoint endpoint = new Endpoint();
-			endpoint.rtmpUrl = rtmpUrl;
+			endpoint.setRtmpUrl(rtmpUrl);
 			endpoint.type = "generic";
 
 			success = getDataStore().addEndpoint(id, endpoint);
@@ -1157,12 +1157,9 @@ public class BroadcastRestService {
 
 			videoServiceEndpoint = getApplication().getEndpointService(AntMediaApplicationAdapter.FACEBOOK_ENDPOINT_CLASS, null, clientId, clientSecret);
 
-			if (videoServiceEndpoint != null) 
+			if (isClientIdMissing(videoServiceEndpoint, clientId, clientSecret)) 
 			{
-				if (clientId == null || clientSecret == null || 
-						clientId.length() == 0 || clientSecret.length() == 0) {
-					missingClientIdAndSecret = true;
-				}
+				missingClientIdAndSecret = true;
 			}
 
 		}
@@ -1174,12 +1171,9 @@ public class BroadcastRestService {
 
 			videoServiceEndpoint = getApplication().getEndpointService(AntMediaApplicationAdapter.YOUTUBE_ENDPOINT_CLASS, null, clientId, clientSecret);
 
-			if (videoServiceEndpoint != null) 
+			if (isClientIdMissing(videoServiceEndpoint, clientId, clientSecret)) 
 			{
-				if (clientId == null || clientSecret == null || 
-						clientId.length() == 0 || clientSecret.length() == 0) {
-					missingClientIdAndSecret = true;
-				}
+				missingClientIdAndSecret = true;
 			}
 
 		}
@@ -1187,12 +1181,10 @@ public class BroadcastRestService {
 		{
 			String clientId = getAppSettings().getPeriscopeClientId();
 			String clientSecret = getAppSettings().getPeriscopeClientSecret();
-			if (clientId != null && clientSecret != null && 
-					clientId.length() > 0 && clientSecret.length() > 0) {
-				videoServiceEndpoint = new PeriscopeEndpoint(clientId,
-						clientSecret, getDataStore(), null);
-			}
-			else {
+			
+			videoServiceEndpoint = getApplication().getEndpointService(PeriscopeEndpoint.class.getName(), null, clientId, clientSecret);
+			
+			if (isClientIdMissing(videoServiceEndpoint, clientId, clientSecret))  {
 				missingClientIdAndSecret = true;
 			}
 		}
@@ -1223,6 +1215,17 @@ public class BroadcastRestService {
 
 		return new Result(false, message, errorId);
 	}
+
+	private boolean isClientIdMissing(VideoServiceEndpoint videoServiceEndpoint, String clientId, String clientSecret) {
+		boolean result = false;
+		if ((videoServiceEndpoint != null) && 
+				(clientId == null || clientSecret == null || 
+				clientId.length() == 0 || clientSecret.length() == 0)) {
+			result = true;
+		}
+		return result;
+	}
+
 
 	/**
 	 * Check if device is authenticated in the social network. In authorization
