@@ -471,14 +471,14 @@ public class RestServiceUnitTest {
 			String type = "type"  + (int)(Math.random() * 10000);
 
 			when(videoServiceEndpoint.createBroadcast(broadcastCreated.getName(), broadcastCreated.getDescription(), 
-					null, broadcastCreated.isIs360(), broadcastCreated.isPublicStream(), 720, true))
-			.thenReturn(new Endpoint(broadcastId, streamId, null, name, rtmpUrl, type, endpointServiceId));
+					broadcastCreated.getStreamId(), broadcastCreated.isIs360(), broadcastCreated.isPublicStream(), 720, true))
+			.thenReturn(new Endpoint(broadcastId, streamId, name, rtmpUrl, type, endpointServiceId, broadcastCreated.getStreamId()));
 
 			result = restService.addSocialEndpoint(broadcastCreated.getStreamId(), endpointServiceId);
 			assertTrue(result.isSuccess());
 
 			Mockito.verify(videoServiceEndpoint).createBroadcast(broadcastCreated.getName(), broadcastCreated.getDescription(),
-					null, broadcastCreated.isIs360(), broadcastCreated.isPublicStream(), 720, true);
+					 broadcastCreated.getStreamId(), broadcastCreated.isIs360(), broadcastCreated.isPublicStream(), 720, true);
 		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
