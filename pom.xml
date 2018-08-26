@@ -508,6 +508,44 @@
 			<build>
 				<plugins>
 					<plugin>
+						<groupId>com.github.wvengen</groupId>
+						<artifactId>proguard-maven-plugin</artifactId>
+						<executions>
+							<execution>
+								<phase>package</phase>
+								<goals><goal>proguard</goal></goals>
+							</execution>
+						</executions>
+						<configuration>
+							<proguardVersion>6.0.3</proguardVersion>
+							<obfuscate>true</obfuscate>
+							<options>
+								<option>-dontshrink</option>
+								<option>-dontoptimize</option>
+								<!-- This option will replace all strings in reflections method invocations with new class names.
+                                     For example, invokes Class.forName('className')-->
+								<option>-adaptclassstrings</option>
+								<!-- This option will save all original annotations and etc. Otherwise all we be removed from files.-->
+								<option>-keep class !io.antmedia.licence.**,!io.antmedia.settings.** { *; }</option>
+								<option>-keep class org.red5.server.** { *; }</option>
+								<option>-dontwarn org.red5.server.**</option>
+							</options>
+							<libs>
+								<!-- Include main JAVA library required.-->
+								<lib>${java.home}/lib/rt.jar</lib>
+								<!-- Include crypto JAVA library if necessary.-->
+								<lib>${java.home}/lib/jce.jar</lib>
+							</libs>
+						</configuration>
+						<dependencies>
+							<dependency>
+								<groupId>net.sf.proguard</groupId>
+								<artifactId>proguard-base</artifactId>
+								<version>6.0.3</version>
+							</dependency>
+						</dependencies>
+					</plugin>
+					<plugin>
 						<artifactId>maven-dependency-plugin</artifactId>
 						<version>2.10</version>
 						
