@@ -1,11 +1,19 @@
 package io.antmedia.social.endpoint;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.api.periscope.AuthorizationEndpoints;
 import io.antmedia.api.periscope.BroadcastEndpoints;
+import io.antmedia.api.periscope.ChatEndpoints;
 import io.antmedia.api.periscope.PeriscopeEndpointFactory;
 import io.antmedia.api.periscope.RegionEndpoints;
 import io.antmedia.api.periscope.UserEndpoints;
@@ -13,17 +21,29 @@ import io.antmedia.api.periscope.response.AuthorizationResponse;
 import io.antmedia.api.periscope.response.CheckDeviceCodeResponse;
 import io.antmedia.api.periscope.response.CreateBroadcastResponse;
 import io.antmedia.api.periscope.response.CreateDeviceCodeResponse;
-import io.antmedia.api.periscope.response.UserResponse;
 import io.antmedia.api.periscope.type.Broadcast;
+import io.antmedia.api.periscope.type.IChatListener;
 import io.antmedia.api.periscope.type.User;
+import io.antmedia.api.periscope.type.chatEndpointTypes.ChatMessage;
+import io.antmedia.api.periscope.type.chatEndpointTypes.ErrorMessage;
+import io.antmedia.api.periscope.type.chatEndpointTypes.HeartMessage;
+import io.antmedia.api.periscope.type.chatEndpointTypes.JoinMessage;
+import io.antmedia.api.periscope.type.chatEndpointTypes.ScreenshotMessage;
+import io.antmedia.api.periscope.type.chatEndpointTypes.ShareMessage;
+import io.antmedia.api.periscope.type.chatEndpointTypes.SuperHeartMessage;
+import io.antmedia.api.periscope.type.chatEndpointTypes.ViewerCountMessage;
 import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.types.BroadcastStatus;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
-import io.antmedia.datastore.preference.PreferenceStore;
+import io.antmedia.rest.model.Interaction;
+import io.antmedia.social.LiveComment;
+import io.antmedia.social.ResourceOrigin;
+import io.vertx.core.Vertx;
 
 public class PeriscopeEndpoint extends VideoServiceEndpoint {
 
+	private static final String FIRST_AUTHENTICATED_THE_SERVER = "First authenticated the server";
 	private AuthorizationEndpoints authorizationEndpoint;
 	private String device_code;
 	private PeriscopeEndpointFactory periscopeEndpointFactory;
@@ -34,12 +54,84 @@ public class PeriscopeEndpoint extends VideoServiceEndpoint {
 	private long expireTimeMS;
 	private UserEndpoints userEndpoint;
 	private String refresh_token;
-	
+	private ChatEndpoints chatEndpoint;
+	protected Map<String, Integer> viewerCountMap = new HashMap<>();
+
+	private Map<String, List<LiveComment>> commentMapList = new HashMap<>();
+
+	private Map<String, Interaction> interactionMap = new HashMap<>();
 
 	protected static Logger logger = LoggerFactory.getLogger(PeriscopeEndpoint.class);
+	public class ChatListener implements IChatListener {
 
-	public PeriscopeEndpoint(String clientId, String clientSecret, IDataStore dataStore, SocialEndpointCredentials endpointCredentials) {
-		super(clientId, clientSecret, dataStore, endpointCredentials);
+		private Endpoint endpoint;
+
+		public ChatListener(Endpoint endpoint) {
+			this.endpoint = endpoint;
+		}
+
+		@Override
+		public void viewerCountMessageReceived(ViewerCountMessage viewerCountMessage) {
+			logger.debug("viewerCountMessageReceived live view {}", viewerCountMessage.live);
+			viewerCountMap.put(endpoint.getServerStreamId(), viewerCountMessage.total);
+		}
+
+		@Override
+		public void screenshotMessageReceived(ScreenshotMessage screenshotMessage) {
+			//No need to implement
+		}
+
+		@Override
+		public void errorMessageReceived(ErrorMessage errorMessage) {
+			logger.error("errorMessageReceived  {} for stream {} ", errorMessage.description, endpoint.getStreamId());
+		}
+
+		@Override
+		public void chatMessageReceived(ChatMessage chatMessage) {
+			logger.debug("chatMessageReceived {} from {} for stream {} ", chatMessage.text,chatMessage.user.display_name, endpoint.getStreamId());
+
+			List<LiveComment> list = commentMapList.get(endpoint.getServerStreamId());
+			if (list == null) {
+				list = new ArrayList<>();
+			}
+			io.antmedia.rest.model.User from = new io.antmedia.rest.model.User();
+			from.setId(chatMessage.user.id);
+			from.setFullName(chatMessage.user.display_name);
+			from.setPicture(chatMessage.user.profile_image_urls.get(0).url);
+			list.add(new LiveComment(chatMessage.id, chatMessage.text, from, ResourceOrigin.PERISCOPE, System.currentTimeMillis()));
+			commentMapList.put(endpoint.getServerStreamId(), list);
+		}
+
+		@Override
+		public void heartMessageReceived(HeartMessage heartMessage) {
+			logger.debug("heart MessageReceived for stream {}", endpoint.getServerStreamId());
+			Interaction interaction = interactionMap.get(endpoint.getServerStreamId());
+			if (interaction == null) {
+				interaction = new Interaction();
+			}
+			interaction.setLoveCount(interaction.getLoveCount()+1);
+			interactionMap.put(endpoint.getServerStreamId(), interaction);
+		}
+
+		@Override
+		public void superheartMessageReceived(SuperHeartMessage heartMessage) {
+			//No need to implement
+		}
+
+		@Override
+		public void joinMessageReceived(JoinMessage joinMessage) {
+			//No need to implement
+		}
+
+		@Override
+		public void shareMessageReceived(ShareMessage shareMessage) {
+			//No need to implement
+		}
+	}
+
+
+	public PeriscopeEndpoint(String clientId, String clientSecret, IDataStore dataStore, SocialEndpointCredentials endpointCredentials, Vertx vertx) {
+		super(clientId, clientSecret, dataStore, endpointCredentials, vertx);
 	}
 
 
@@ -50,8 +142,8 @@ public class PeriscopeEndpoint extends VideoServiceEndpoint {
 
 	@Override
 	public DeviceAuthParameters askDeviceAuthParameters() throws Exception {
-		AuthorizationEndpoints authorizationEndpoint = getAuthorizationEndpoint();
-		CreateDeviceCodeResponse response = authorizationEndpoint.createDeviceCode(getClientId());
+		AuthorizationEndpoints authorizationEndpointTmp = getAuthorizationEndpoint();
+		CreateDeviceCodeResponse response = authorizationEndpointTmp.createDeviceCode(getClientId(), ChatEndpoints.CHAT_SCOPE);
 		if (response != null) {
 			authParameters = new DeviceAuthParameters();
 			authParameters.device_code = response.device_code;
@@ -74,11 +166,11 @@ public class PeriscopeEndpoint extends VideoServiceEndpoint {
 
 	@Override
 	public boolean askIfDeviceAuthenticated() throws Exception {
-		AuthorizationEndpoints authorizationEndpoint = getAuthorizationEndpoint();
+		AuthorizationEndpoints authorizationEndpointTmp = getAuthorizationEndpoint();
 
-		CheckDeviceCodeResponse checkDeviceCode = authorizationEndpoint.checkDeviceCode(device_code, getClientId());
+		CheckDeviceCodeResponse checkDeviceCode = authorizationEndpointTmp.checkDeviceCode(device_code, getClientId());
 
-		logger.warn("State: " + checkDeviceCode.state);
+		logger.warn("State: {}" , checkDeviceCode.state);
 
 		boolean result = false;
 		if ( checkDeviceCode.state.equals("associated")) {
@@ -93,7 +185,7 @@ public class PeriscopeEndpoint extends VideoServiceEndpoint {
 			}
 			catch (Exception e) {
 				//even if throw exception, catch here and save the record below lines
-				e.printStackTrace();
+				logger.error(ExceptionUtils.getStackTrace(e));
 			}
 			saveCredentials(accountName, checkDeviceCode.access_token, checkDeviceCode.refresh_token, String.valueOf(checkDeviceCode.expires_in), checkDeviceCode.token_type, accountId);
 			result = true;
@@ -114,25 +206,32 @@ public class PeriscopeEndpoint extends VideoServiceEndpoint {
 	}
 
 	@Override
-	public Endpoint createBroadcast(String name, String description, boolean is360, boolean isPublic,
-			int videoHeight, boolean is_low_latency) throws Exception {
+	public Endpoint createBroadcast(String name, String description, String serverStreamId, boolean is360, boolean isPublic,
+			int videoHeight, boolean isLowLatency) throws IOException{
 		if (broadcastEndpoint == null) {
-			throw new Exception("First authenticated the server");
+			throw new NullPointerException(FIRST_AUTHENTICATED_THE_SERVER);
 		}
 
-		updateTokenIfRequired();
-		CreateBroadcastResponse createBroadcastResponse = broadcastEndpoint.createBroadcast(getRegion(), is360, is_low_latency);
+		
+		try {
+			updateTokenIfRequired();
+			CreateBroadcastResponse createBroadcastResponse = broadcastEndpoint.createBroadcast(getRegion(), is360, isLowLatency);
 
-		String rtmpUrl = createBroadcastResponse.encoder.rtmp_url + "/" + createBroadcastResponse.encoder.stream_key;
-		return new Endpoint(createBroadcastResponse.broadcast.id, null, name, rtmpUrl, getName(), getCredentials().getId());
+			String rtmpUrl = createBroadcastResponse.encoder.rtmp_url + "/" + createBroadcastResponse.encoder.stream_key;
+			return new Endpoint(createBroadcastResponse.broadcast.id, null, name, rtmpUrl, getName(), getCredentials().getId(), serverStreamId);
+
+		} catch (Exception e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+			throw new IOException(e.getMessage());
+		}
 	}
 
 	private String getRegion() {
-		if (region != null) {
+		if (region == null) {
 			try {
 				region = regionEndpoint.get();
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.error(ExceptionUtils.getStackTrace(e));
 			}
 		}
 		return region;
@@ -142,25 +241,32 @@ public class PeriscopeEndpoint extends VideoServiceEndpoint {
 	@Override
 	public void publishBroadcast(Endpoint endpoint) throws Exception {
 		if (broadcastEndpoint == null) {
-			throw new Exception("First authenticated the server");
+			throw new NullPointerException(FIRST_AUTHENTICATED_THE_SERVER);
 		}
-		if (endpoint.broadcastId == null) {
-			throw new Exception("No broadcast is available, call createBroadcast function before calling publish broadcast");
+		if (endpoint.getBroadcastId() == null) {
+			throw new NullPointerException("No broadcast is available, call createBroadcast function before calling publish broadcast");
 		}
 		updateTokenIfRequired();
-		broadcastEndpoint.publishBroadcast(endpoint.broadcastId, endpoint.name, false, "en_US", true);
+		broadcastEndpoint.publishBroadcast(endpoint.getBroadcastId(), endpoint.getName(), false, "en_US", true);
+
+		if (collectInteractivity) {
+			connectToChatEndpoint(endpoint);
+		}
 	}
 
 	@Override
 	public void stopBroadcast(Endpoint endpoint) throws Exception {
 		if (broadcastEndpoint == null) {
-			throw new Exception("First authenticated the server");
+			throw new NullPointerException(FIRST_AUTHENTICATED_THE_SERVER);
 		}
-		if (endpoint.broadcastId == null) {
-			throw new Exception("No broadcast is available");
+		if (endpoint.getBroadcastId() == null) {
+			throw new NullPointerException("No broadcast is available");
 		}
 		updateTokenIfRequired();
-		broadcastEndpoint.stopBroadcast(endpoint.broadcastId);
+		broadcastEndpoint.stopBroadcast(endpoint.getBroadcastId());
+		viewerCountMap.remove(endpoint.getServerStreamId());
+		commentMapList.remove(endpoint.getServerStreamId());
+		interactionMap.remove(endpoint.getServerStreamId());
 	}
 
 	private void updateTokenIfRequired() throws Exception {
@@ -168,7 +274,7 @@ public class PeriscopeEndpoint extends VideoServiceEndpoint {
 			updateToken();
 		}
 	}
-	
+
 	public void updateToken() throws Exception 
 	{
 		AuthorizationResponse token = periscopeEndpointFactory.refreshToken(clientId, clientSecret);
@@ -188,15 +294,25 @@ public class PeriscopeEndpoint extends VideoServiceEndpoint {
 		broadcastEndpoint = periscopeEndpointFactory.getBroadcastEndpoints();
 		regionEndpoint = periscopeEndpointFactory.getRegionEndpoints();
 		userEndpoint = periscopeEndpointFactory.getUserEndpoints();
-
+		chatEndpoint = periscopeEndpointFactory.getChatEndpoints();
 	}
 
 
 	@Override
 	public String getBroadcast(Endpoint endpoint) throws Exception {
-		Broadcast broadcast = broadcastEndpoint.getBroadcast(endpoint.broadcastId);
-		
+		Broadcast broadcast = broadcastEndpoint.getBroadcast(endpoint.getBroadcastId());
+
 		return broadcast.state.equals("running") ? BroadcastStatus.LIVE_NOW : BroadcastStatus.UNPUBLISHED;
+	}
+
+
+	public void connectToChatEndpoint(final Endpoint endpoint) {
+		chatEndpoint.connect(endpoint.getBroadcastId(), getNewChatListener(endpoint));
+	}
+
+
+	public IChatListener getNewChatListener(Endpoint endpoint) {
+		return new ChatListener(endpoint);
 	}
 
 
@@ -207,6 +323,42 @@ public class PeriscopeEndpoint extends VideoServiceEndpoint {
 
 	public void setAccountName(String accountName) {
 		getCredentials().setAccountName(accountName);
+	}
+
+	@Override
+	public List<LiveComment> getComments(String streamId, int offset, int batch) {
+		List<LiveComment> comments = commentMapList.get(streamId);
+		List<LiveComment> resultList = null;
+		if (comments != null) {
+			int size = comments.size();
+			if (offset < size) {
+				int toIndex = offset + batch;
+				if (toIndex > size) {
+					toIndex = size;
+				}
+				resultList = comments.subList(offset, toIndex);
+			}
+		}
+		return resultList;
+	}
+
+	@Override
+	public Interaction getInteraction(String streamId) {
+		return interactionMap.getOrDefault(streamId, null);
+	}
+
+	@Override
+	public  int getTotalCommentsCount(String streamId) {
+		List<LiveComment> comments = commentMapList.get(streamId);
+		if (comments != null)  {
+			return comments.size();
+		}
+		return 0;
+	}
+
+	@Override
+	public long getLiveViews(Endpoint endpoint) {
+		return viewerCountMap.getOrDefault(endpoint.getServerStreamId(), 0);
 	}
 
 }

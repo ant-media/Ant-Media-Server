@@ -41,7 +41,7 @@ public class Application extends AntMediaApplicationAdapter implements IAntMedia
 
 	}
 
-	public StringBuffer notifyHook(String url, String id, String action, String streamName, String category,
+	public StringBuilder notifyHook(String url, String id, String action, String streamName, String category,
 			String vodName) {
 		notifyHookAction = action;
 		notitfyURL = url;

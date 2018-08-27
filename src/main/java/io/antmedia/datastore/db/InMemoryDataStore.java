@@ -144,7 +144,7 @@ public class InMemoryDataStore implements IDataStore {
 			if (endPointList != null) {
 				for (Iterator<Endpoint> iterator = endPointList.iterator(); iterator.hasNext();) {
 					Endpoint endpointItem = iterator.next();
-					if (endpointItem.rtmpUrl.equals(endpoint.rtmpUrl)) {
+					if (endpointItem.getRtmpUrl().equals(endpoint.getRtmpUrl())) {
 						iterator.remove();
 						result = true;
 						break;
