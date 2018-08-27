@@ -1,22 +1,18 @@
 package io.antmedia.social.endpoint;
 
+import java.io.IOException;
 import java.util.List;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.api.periscope.type.Broadcast;
 import io.antmedia.datastore.db.IDataStore;
-import io.antmedia.datastore.db.types.BroadcastStatus;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointChannel;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
-import io.antmedia.datastore.preference.PreferenceStore;
 import io.antmedia.rest.model.Interaction;
 import io.antmedia.social.LiveComment;
-import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
 import io.vertx.core.Vertx;
 
 /**
@@ -193,7 +189,7 @@ public abstract class VideoServiceEndpoint {
 	 * 
 	 * @return the Endpoint which includes rtmp url
 	 */
-	public abstract Endpoint createBroadcast(String name, String description, String serverStreamId, boolean is360, boolean isPublic, int videoHeight, boolean is_low_latency) throws Exception;
+	public abstract Endpoint createBroadcast(String name, String description, String serverStreamId, boolean is360, boolean isPublic, int videoHeight, boolean isLowLatency) throws IOException;
 
 
 	/**

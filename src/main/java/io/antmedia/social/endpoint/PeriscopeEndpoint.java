@@ -1,5 +1,6 @@
 package io.antmedia.social.endpoint;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -126,7 +127,7 @@ public class PeriscopeEndpoint extends VideoServiceEndpoint {
 		public void shareMessageReceived(ShareMessage shareMessage) {
 			//No need to implement
 		}
-	};
+	}
 
 
 	public PeriscopeEndpoint(String clientId, String clientSecret, IDataStore dataStore, SocialEndpointCredentials endpointCredentials, Vertx vertx) {
@@ -206,16 +207,24 @@ public class PeriscopeEndpoint extends VideoServiceEndpoint {
 
 	@Override
 	public Endpoint createBroadcast(String name, String description, String serverStreamId, boolean is360, boolean isPublic,
-			int videoHeight, boolean isLowLatency) throws Exception {
+			int videoHeight, boolean isLowLatency) throws IOException{
 		if (broadcastEndpoint == null) {
 			throw new NullPointerException(FIRST_AUTHENTICATED_THE_SERVER);
 		}
 
-		updateTokenIfRequired();
-		CreateBroadcastResponse createBroadcastResponse = broadcastEndpoint.createBroadcast(getRegion(), is360, isLowLatency);
+		
+		try {
+			updateTokenIfRequired();
+			CreateBroadcastResponse createBroadcastResponse = broadcastEndpoint.createBroadcast(getRegion(), is360, isLowLatency);
 
-		String rtmpUrl = createBroadcastResponse.encoder.rtmp_url + "/" + createBroadcastResponse.encoder.stream_key;
-		return new Endpoint(createBroadcastResponse.broadcast.id, null, name, rtmpUrl, getName(), getCredentials().getId(), serverStreamId);
+			String rtmpUrl = createBroadcastResponse.encoder.rtmp_url + "/" + createBroadcastResponse.encoder.stream_key;
+			return new Endpoint(createBroadcastResponse.broadcast.id, null, name, rtmpUrl, getName(), getCredentials().getId(), serverStreamId);
+
+		} catch (Exception e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+			IOException ioe = new IOException(e.getMessage());
+			throw ioe;
+		}
 	}
 
 	private String getRegion() {
