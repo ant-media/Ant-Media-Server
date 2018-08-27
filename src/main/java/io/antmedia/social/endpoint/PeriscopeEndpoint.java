@@ -222,8 +222,7 @@ public class PeriscopeEndpoint extends VideoServiceEndpoint {
 
 		} catch (Exception e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
-			IOException ioe = new IOException(e.getMessage());
-			throw ioe;
+			throw new IOException(e.getMessage());
 		}
 	}
 
