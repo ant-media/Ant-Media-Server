@@ -33,9 +33,12 @@ import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
+import io.antmedia.datastore.db.MapDBStore;
+import io.antmedia.datastore.db.MongoStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
+import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.BroadcastRestService.BroadcastStatistics;
@@ -703,6 +706,49 @@ public class RestServiceUnitTest {
 		assertEquals(broadcastTmp.getStreamId(), createBroadcast.getStreamId());
 		assertEquals(broadcastTmp.getName(), createBroadcast.getName());
 
+	}
+	
+	@Test
+	public void testTokenOperations() {
+		
+		IDataStore store = new InMemoryDataStore("testdb");
+		restService.setDataStore(store);
+		
+		//create token
+		Token testToken = restService.getToken("1234", 15764264);
+		
+		assertNotNull(testToken.getTokenId());
+		
+		//get tokens of stream
+		List <Token> tokens = restService.listTokens(testToken.getStreamId(), 0, 10);
+		
+		assertEquals(1, tokens.size());
+		
+		//revoke tokens
+		restService.revokeTokens(testToken.getStreamId());
+		
+		//get tokens of stream
+		tokens = restService.listTokens(testToken.getStreamId(), 0, 10);
+		
+		//it should be zero because all tokens are revoked
+		assertEquals(0, tokens.size());
+		
+		//create token again
+		testToken = restService.getToken("1234", 15764264);
+		
+		//validate token
+		Token validatedToken = restService.validateToken(testToken);
+		
+		//token should be validated and returned
+		assertNotNull(validatedToken);
+		
+		//this should be false, because validated token is deleted after consumed
+		Token expiredToken = restService.validateToken(testToken);
+		
+		assertNull(expiredToken);
+		
+		
+		
 	}
 
 

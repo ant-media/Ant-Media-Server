@@ -877,7 +877,7 @@ public class BroadcastRestService {
 	public Token getToken (@QueryParam("id")String streamId, @QueryParam("expireDate") long expireDate) {
 		Token token = null;
 
-		if(streamId !=null) {
+		if(streamId != null) {
 
 			token = getDataStore().createToken(streamId, expireDate);
 		}
@@ -899,7 +899,7 @@ public class BroadcastRestService {
 	public Token validateToken (Token token) {
 		Token validatedToken = null;
 
-		if(token.getTokenId() !=null) {
+		if(token.getTokenId() != null) {
 
 			validatedToken = getDataStore().validateToken(token);
 		}
