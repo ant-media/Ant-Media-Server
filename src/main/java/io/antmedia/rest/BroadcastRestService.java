@@ -457,8 +457,6 @@ public class BroadcastRestService {
 		boolean success = false;
 		String message = null;
 		try {
-			Broadcast broadcast = lookupBroadcast(id);
-
 			Endpoint endpoint = new Endpoint();
 			endpoint.setRtmpUrl(rtmpUrl);
 			endpoint.type = "generic";
@@ -484,7 +482,6 @@ public class BroadcastRestService {
 	 * @return
 	 */
 	@GET
-	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/broadcast/getLiveComments/{endpointServiceId}/{streamId}/{offset}/{batch}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public List<LiveComment> getLiveCommentsFromEndpoint(@PathParam("endpointServiceId") String endpointServiceId, @PathParam("streamId") String streamId, @PathParam("offset") int offset,  @PathParam("batch") int batch) {
@@ -506,7 +503,6 @@ public class BroadcastRestService {
 	 * @return
 	 */
 	@GET
-	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/broadcast/getLiveViewsCount/{endpointServiceId}/{streamId}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result getViewerCountFromEndpoint(@PathParam("endpointServiceId") String endpointServiceId, @PathParam("streamId") String streamId) {
@@ -527,10 +523,9 @@ public class BroadcastRestService {
 	 * @return
 	 */
 	@GET
-	@Consumes(MediaType.APPLICATION_JSON)
-	@Path("/broadcast/getLiveCommentsCount/{endpointServiceId}/{streamId}/{offset}/{batch}")
+	@Path("/broadcast/getLiveCommentsCount/{endpointServiceId}/{streamId}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result getLiveCommentsCount(String endpointServiceId, String streamId) {
+	public Result getLiveCommentsCount( @PathParam("endpointServiceId") String endpointServiceId,  @PathParam("streamId") String streamId) {
 		VideoServiceEndpoint videoServiceEndPoint = getApplication().getVideoServiceEndPoint(endpointServiceId);
 		int commentCount = 0;
 		if (videoServiceEndPoint != null) {
@@ -547,10 +542,9 @@ public class BroadcastRestService {
 	 * @return
 	 */
 	@GET
-	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/broadcast/getInteraction/{endpointServiceId}/{streamId}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Interaction getInteractionFromEndpoint(String endpointServiceId, String streamId) {
+	public Interaction getInteractionFromEndpoint(@PathParam("endpointServiceId") String endpointServiceId, @PathParam("streamId") String streamId) {
 		Interaction interaction = null;
 		VideoServiceEndpoint videoServiceEndPoint = getApplication().getVideoServiceEndPoint(endpointServiceId);
 		if (videoServiceEndPoint != null) {
