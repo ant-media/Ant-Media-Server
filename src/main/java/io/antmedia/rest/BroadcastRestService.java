@@ -347,7 +347,7 @@ public class BroadcastRestService {
 			VideoServiceEndpoint videoServiceEndpoint = endPointServiceMap.get(endpointId);
 			if (videoServiceEndpoint != null) {
 				videoServiceEndpoint.resetCredentials();
-				endPointServiceMap.remove(videoServiceEndpoint);
+				endPointServiceMap.remove(endpointId);
 				result = true;
 			}
 			else {
