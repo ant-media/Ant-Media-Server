@@ -13,7 +13,9 @@ import java.io.File;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
@@ -452,13 +454,13 @@ public class RestServiceUnitTest {
 		assertFalse(result.isSuccess());
 
 
-		ArrayList<VideoServiceEndpoint> endpointList = new ArrayList<>();
+		Map<String, VideoServiceEndpoint> endpointList = new HashMap<>();
 		VideoServiceEndpoint videoServiceEndpoint = mock(VideoServiceEndpoint.class);
 		String endpointServiceId = "mock_endpoint";
 		SocialEndpointCredentials credentials = new SocialEndpointCredentials();
 		credentials.setId(endpointServiceId);
 		when(videoServiceEndpoint.getCredentials()).thenReturn(credentials);
-		endpointList.add(videoServiceEndpoint);
+		endpointList.put(endpointServiceId, videoServiceEndpoint);
 
 		when(appAdaptor.getVideoServiceEndpoints()).thenReturn(endpointList);
 
