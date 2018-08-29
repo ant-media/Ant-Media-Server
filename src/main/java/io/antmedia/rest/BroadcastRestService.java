@@ -376,7 +376,7 @@ public class BroadcastRestService {
 	 */
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
-	@Path("/broadcast/addSocialEndpoint/{id}/{endpointServiceId}")
+	@Path("/broadcast/addSocialEndpointJS/{id}/{endpointServiceId}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result addSocialEndpointJSON(@PathParam("id") String id, @PathParam("endpointServiceId") String endpointServiceId) {
 		return addSocialEndpoint(id, endpointServiceId);
@@ -507,7 +507,7 @@ public class BroadcastRestService {
 	 */
 	@GET
 	@Consumes(MediaType.APPLICATION_JSON)
-	@Path("/broadcast/getLiveViewesCount/{endpointServiceId}/{streamId}")
+	@Path("/broadcast/getLiveViewsCount/{endpointServiceId}/{streamId}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result getViewerCountFromEndpoint(@PathParam("endpointServiceId") String endpointServiceId, @PathParam("streamId") String streamId) {
 		VideoServiceEndpoint videoServiceEndPoint = getApplication().getVideoServiceEndPoint(endpointServiceId);
@@ -1116,7 +1116,7 @@ public class BroadcastRestService {
 		boolean success = false;
 		String message = "";
 		String id= null;
-		String appScopeName = ScopeUtils.findApplication(getScope()).getName();
+		String appScopeName = getScope().getName();
 		String fileExtension = FilenameUtils.getExtension(fileName);
 		try {
 
@@ -1128,7 +1128,7 @@ public class BroadcastRestService {
 
 				// if the directory does not exist, create it
 				if (!streamsDirectory.exists()) {
-					streamsDirectory.mkdir();
+					streamsDirectory.mkdirs();
 				}
 				String vodId = RandomStringUtils.randomNumeric(24);
 				File savedFile = new File(String.format("%s/webapps/%s/%s", System.getProperty("red5.root"), appScopeName,
@@ -1533,7 +1533,7 @@ public class BroadcastRestService {
 		this.dataStore = dataStore;
 	}
 
-	protected AntMediaApplicationAdapter getApplication() {
+	public AntMediaApplicationAdapter getApplication() {
 		if (app == null) {
 			ApplicationContext appContext = getAppContext();
 			if (appContext != null) {
