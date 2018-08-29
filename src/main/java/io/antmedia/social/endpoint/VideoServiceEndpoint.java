@@ -305,7 +305,7 @@ public abstract class VideoServiceEndpoint {
 	 * @param endpoint
 	 * @return number of live viewers
 	 */
-	public abstract long getLiveViews(Endpoint endpoint);
+	public abstract long getLiveViews(String streamId);
 
 
 }

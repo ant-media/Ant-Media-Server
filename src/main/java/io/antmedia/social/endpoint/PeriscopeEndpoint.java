@@ -357,8 +357,8 @@ public class PeriscopeEndpoint extends VideoServiceEndpoint {
 	}
 
 	@Override
-	public long getLiveViews(Endpoint endpoint) {
-		return viewerCountMap.getOrDefault(endpoint.getServerStreamId(), 0);
+	public long getLiveViews(String streamId) {
+		return viewerCountMap.getOrDefault(streamId, 0);
 	}
 
 }

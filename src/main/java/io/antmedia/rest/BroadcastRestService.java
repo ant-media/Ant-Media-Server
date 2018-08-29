@@ -487,7 +487,7 @@ public class BroadcastRestService {
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/broadcast/getLiveComments/{endpointServiceId}/{streamId}/{offset}/{batch}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public List<LiveComment> getLiveCommentsFromEndpoint(String endpointServiceId, String streamId, int offset, int batch) {
+	public List<LiveComment> getLiveCommentsFromEndpoint(@PathParam("endpointServiceId") String endpointServiceId, @PathParam("streamId") String streamId, @PathParam("offset") int offset,  @PathParam("batch") int batch) {
 
 		VideoServiceEndpoint videoServiceEndPoint = getApplication().getVideoServiceEndPoint(endpointServiceId);
 		List<LiveComment> liveComment = null;
@@ -496,6 +496,28 @@ public class BroadcastRestService {
 		}
 		return liveComment;
 	}
+	
+	/**
+	 * Return the number of live views in specified video service endpoint
+	 * 
+	 * 
+	 * @param endpointServiceId
+	 * @param streamId
+	 * @return
+	 */
+	@GET
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/broadcast/getLiveViewesCount/{endpointServiceId}/{streamId}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result getViewerCountFromEndpoint(@PathParam("endpointServiceId") String endpointServiceId, @PathParam("streamId") String streamId) {
+		VideoServiceEndpoint videoServiceEndPoint = getApplication().getVideoServiceEndPoint(endpointServiceId);
+		long liveViews = 0;
+		if (videoServiceEndPoint != null) {
+			liveViews = videoServiceEndPoint.getLiveViews(streamId);
+		}
+		return new Result(true, String.valueOf(liveViews));
+	}
+	
 	
 	/**
 	 * Returns the number of live comment count in a specific video service endpoint
