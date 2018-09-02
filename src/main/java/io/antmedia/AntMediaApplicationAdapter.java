@@ -503,7 +503,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 					}
 				}
 				else {
-					logger.info("Authenticated, adding video service endpoint {} to the app", videoServiceEndpoint.getName());
+					logger.info("Authenticated, adding video service endpoint type: {} with id: {} to the app", videoServiceEndpoint.getName(), videoServiceEndpoint.getCredentials().getId());
 					this.appAdapter.getVideoServiceEndpoints().put(videoServiceEndpoint.getCredentials().getId(), videoServiceEndpoint);
 
 				}

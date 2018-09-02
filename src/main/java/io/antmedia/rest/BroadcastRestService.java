@@ -425,12 +425,15 @@ public class BroadcastRestService {
 				}
 				else {
 					message = endpointServiceId + " endpoint does not exist in this app.";
+					logger.warn(message);
 				}
 			} else {
 				message = "No social endpoint is defined for this app. Consult your app developer";
+				logger.warn(message);
 			}
 		} else {
 			message = "No broadcast exist with the id specified";
+			logger.warn(message);
 		}
 
 		return new Result(success, message);

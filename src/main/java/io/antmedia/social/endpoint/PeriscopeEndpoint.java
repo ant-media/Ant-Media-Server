@@ -73,6 +73,9 @@ public class PeriscopeEndpoint extends VideoServiceEndpoint {
 		@Override
 		public void viewerCountMessageReceived(ViewerCountMessage viewerCountMessage) {
 			logger.debug("viewerCountMessageReceived live view {}", viewerCountMessage.live);
+			if (viewerCountMessage.total < 0) {
+				viewerCountMessage.total = 0;
+			}
 			viewerCountMap.put(endpoint.getServerStreamId(), viewerCountMessage.total);
 		}
 
@@ -110,6 +113,7 @@ public class PeriscopeEndpoint extends VideoServiceEndpoint {
 				interaction = new Interaction();
 			}
 			interaction.setLoveCount(interaction.getLoveCount()+1);
+			interaction.setOrigin(ResourceOrigin.PERISCOPE);
 			interactionMap.put(endpoint.getServerStreamId(), interaction);
 		}
 
