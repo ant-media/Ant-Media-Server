@@ -668,9 +668,11 @@ public class InMemoryDataStore implements IDataStore {
 		Token fetchedToken = null;
 		if (token.getTokenId() != null) {
 			fetchedToken = tokenMap.get(token.getTokenId());
-			if (fetchedToken != null) {
+			if (fetchedToken != null && fetchedToken.getStreamId().equals(token.getStreamId())) {
 				tokenMap.remove(token.getTokenId());
 				return fetchedToken;
+			}else {
+				fetchedToken = null;
 			}
 		}
 		return fetchedToken;

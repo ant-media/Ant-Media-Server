@@ -911,18 +911,25 @@ public class MapDBStore implements IDataStore {
 	@Override
 	public Token validateToken(Token token) {
 		Token fetchedToken = null;
-		
+
 		synchronized (this) {
 			if (token.getTokenId() != null) {
 				String jsonToken = tokenMap.get(token.getTokenId());
 				if (jsonToken != null) {
 					fetchedToken = gson.fromJson((String) jsonToken, Token.class);
-					boolean result = tokenMap.remove(token.getTokenId()) != null;
-					if (result) {
-						db.commit();
-					}	
-					return fetchedToken;
+					if(fetchedToken.getStreamId().equals(token.getStreamId())) {
+						boolean result = tokenMap.remove(token.getTokenId()) != null;
+						if (result) {
+							db.commit();
+						}
+						return fetchedToken;
+					}
+					else {
+						fetchedToken = null;
+					}
 				}
+				
+				
 			}
 		}
 
@@ -974,8 +981,8 @@ public class MapDBStore implements IDataStore {
 				}
 				Token token = gson.fromJson(tokenString, Token.class);
 				if(token.getStreamId().equals(streamId)) {
-				list.add(token);
-				itemCount++;
+					list.add(token);
+					itemCount++;
 				}
 				if (itemCount >= size) {
 					break;

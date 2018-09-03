@@ -1,7 +1,6 @@
 package io.antmedia.filter;
 
 import java.io.IOException;
-
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
 import javax.servlet.ServletException;
@@ -9,19 +8,13 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationContextAware;
 import org.springframework.web.context.WebApplicationContext;
-
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.IDataStore;
-import io.antmedia.datastore.db.types.Token;
-import io.antmedia.statistic.HlsViewerStats;
-import io.antmedia.statistic.IStreamStats;
+import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.token.TokenService;
 
 public class TokenFilter implements javax.servlet.Filter   {
@@ -29,19 +22,15 @@ public class TokenFilter implements javax.servlet.Filter   {
 	protected static Logger logger = LoggerFactory.getLogger(TokenFilter.class);
 	private FilterConfig filterConfig;
 	private IDataStore dataStore;
-	ApplicationContext context;
-
+	private ApplicationContext context;
 	private AppSettings settings;
 	private TokenService tokenService;
-
 
 	@Override
 	public void init(FilterConfig filterConfig) throws ServletException {
 		this.filterConfig = filterConfig;
 
 	}
-
-
 
 
 	@Override
@@ -56,13 +45,17 @@ public class TokenFilter implements javax.servlet.Filter   {
 
 		String method = httpRequest.getMethod();
 		String tokenId = ((HttpServletRequest) request).getParameter("token");
+		String sessionId = httpRequest.getSession().getId();
+		String streamId = getStreamId(httpRequest.getRequestURI());
 
 		logger.info("request url:  {} ", httpRequest.getRequestURI());
 		logger.info("token:  {}", tokenId);
+		logger.info("sessionId:  {}", sessionId);
+		logger.info("streamId:  {}", streamId);
 
 		if (method.equals("GET") && getAppSettings().isTokenControlEnabled()) {
 
-			boolean result = getTokenService().checkToken(tokenId);
+			boolean result = getTokenService().checkToken(tokenId, streamId, sessionId);
 			if(!result) {
 				httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN,"Invalid Token");
 				logger.info("token {} is not valid", tokenId);
@@ -93,7 +86,43 @@ public class TokenFilter implements javax.servlet.Filter   {
 		return settings;
 	}
 
+	public static String getStreamId(String requestURI) {
+		int endIndex;
+		int startIndex = requestURI.lastIndexOf('/');
 
+		if(requestURI.contains("_")) {
+			//if multiple files with same id requested such as : 541211332342978513714151_480p_1.mp4 
+			return requestURI.split("_")[0].substring(startIndex+1);
+		}
+
+		//if mp4 file requested
+		endIndex = requestURI.lastIndexOf(".mp4");
+		if (endIndex != -1) {
+			return requestURI.substring(startIndex+1, endIndex);
+		}
+
+		//if request is adaptive file ( ending with _adaptive.m3u8)
+		endIndex = requestURI.lastIndexOf(MuxAdaptor.ADAPTIVE_SUFFIX + ".m3u8");
+		if (endIndex != -1) {
+			return requestURI.substring(startIndex+1, endIndex);
+		}
+
+		//if specific bitrate is requested
+		endIndex = requestURI.lastIndexOf("p.m3u8");
+		if (endIndex != -1) {
+			endIndex = requestURI.lastIndexOf('_'); //because file format is [NAME]_[RESOLUTION]p.m3u8
+			return requestURI.substring(startIndex+1, endIndex);
+		}
+
+		//if just the m3u8 file
+		endIndex = requestURI.lastIndexOf(".m3u8");
+		if (endIndex != -1) {
+			return requestURI.substring(startIndex+1, endIndex);
+		}
+
+
+		return null;
+	}
 	@Override
 	public void destroy() {
 		//no need

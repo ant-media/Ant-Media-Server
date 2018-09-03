@@ -1,5 +1,9 @@
 package io.antmedia.token;
 
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -17,6 +21,8 @@ public class TokenService implements ApplicationContextAware{
 	protected static Logger logger = LoggerFactory.getLogger(TokenService.class);
 	private AppSettings settings;
 	private IDataStore dataStore;
+	Map<String, String> authenticatedMap = new ConcurrentHashMap<>();
+
 
 	@Override
 	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
@@ -30,15 +36,27 @@ public class TokenService implements ApplicationContextAware{
 
 	}
 
-	public boolean checkToken(String tokenId) {
+	public boolean checkToken(String tokenId, String streamId, String sessionId) {
 		boolean result = false;
 
-		Token token = new Token();
-		token.setTokenId(tokenId);
-		if(dataStore.validateToken(token) != null) {
-			result = true;	
-		}	
+		if(streamId != null && sessionId != null ) {
+			Token token = new Token();
+			token.setTokenId(tokenId);
+			token.setStreamId(streamId);
 
+			if(dataStore.validateToken(token)!= null) {
+				result = true;	
+				authenticatedMap.put(sessionId, streamId);
+			}
+			else {
+		
+				if (authenticatedMap.containsKey(sessionId) && authenticatedMap.get(sessionId).equals(streamId) ) {
+					result = true;
+				}
+
+			}
+
+		}
 		return result;
 	}
 

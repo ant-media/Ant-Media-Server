@@ -703,13 +703,15 @@ public class MongoStore implements IDataStore {
 		Token fetchedToken = null;
 		if (token.getTokenId() != null) {
 			fetchedToken = tokenDatastore.find(Token.class).field("tokenId").equal(token.getTokenId()).get();
-			if (fetchedToken != null) {
+			if (fetchedToken != null && fetchedToken.getStreamId().equals(token.getStreamId())) {
 
 				Query<Token> query = tokenDatastore.createQuery(Token.class).field("tokenId").equal(token.getTokenId());
 				WriteResult delete = tokenDatastore.delete(query);
 				if(delete.getN() == 1) {
 					return fetchedToken;
 				}
+			}else {
+				fetchedToken = null;
 			}
 		}
 		return fetchedToken;
