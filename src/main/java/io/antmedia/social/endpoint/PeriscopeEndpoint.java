@@ -60,8 +60,8 @@ public class PeriscopeEndpoint extends VideoServiceEndpoint {
 	private Map<String, List<LiveComment>> commentMapList = new HashMap<>();
 
 	private Map<String, Interaction> interactionMap = new HashMap<>();
-
-	protected static Logger logger = LoggerFactory.getLogger(PeriscopeEndpoint.class);
+		
+	private static Logger logger = LoggerFactory.getLogger(PeriscopeEndpoint.class);
 	public class ChatListener implements IChatListener {
 
 		private Endpoint endpoint;
