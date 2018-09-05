@@ -48,6 +48,7 @@ import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
+import io.vertx.core.Vertx;
 
 public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter implements IAntMediaStreamHandler {
 
@@ -58,6 +59,9 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	public static final String HOOK_ACTION_END_LIVE_STREAM = "liveStreamEnded";
 	public static final String HOOK_ACTION_START_LIVE_STREAM = "liveStreamStarted";
 	public static final String HOOK_ACTION_VOD_READY = "vodReady";
+	
+	public static final String VERTX_BEAN_NAME = "vertxCore";
+	
 	protected static Logger logger = LoggerFactory.getLogger(AntMediaApplicationAdapter.class);
 	public static final String LIVE_STREAM = "liveStream";
 	public static final String IP_CAMERA = "ipCamera";
@@ -68,17 +72,20 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	public static final String YOUTUBE = "youtube";
 	public static final String FACEBOOK_ENDPOINT_CLASS = "io.antmedia.enterprise.social.endpoint.FacebookEndpoint";
 	public static final String YOUTUBE_ENDPOINT_CLASS = "io.antmedia.enterprise.social.endpoint.YoutubeEndpoint";
-	private List<VideoServiceEndpoint> videoServiceEndpoints = new ArrayList<>();
+	private Map<String, VideoServiceEndpoint> videoServiceEndpoints = new HashMap<>();
 	private List<VideoServiceEndpoint> videoServiceEndpointsHavingError = new ArrayList<>();
 	private List<IStreamPublishSecurity> streamPublishSecurityList;
 	private HashMap<String, OnvifCamera> onvifCameraList = new HashMap<>();
 	private StreamFetcherManager streamFetcherManager;
 	private IDataStore dataStore;
 	private AppSettings appSettings;
+	private Vertx vertx;
 
 
 	@Override
 	public boolean appStart(IScope app) {
+		
+		 vertx = (Vertx) getContext().getBean(VERTX_BEAN_NAME);
 
 		if (getStreamPublishSecurityList() != null) {
 			for (IStreamPublishSecurity streamPublishSecurity : getStreamPublishSecurityList()) {
@@ -106,8 +113,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 					}
 					else if (socialEndpointCredentials.getServiceName().equals(PERISCOPE)) 
 					{
-						endPointService = new PeriscopeEndpoint(appSettings.getPeriscopeClientId(), 
-								appSettings.getPeriscopeClientSecret(), dataStore, socialEndpointCredentials);
+						endPointService = getEndpointService(PeriscopeEndpoint.class.getName(), socialEndpointCredentials, appSettings.getPeriscopeClientId(), appSettings.getPeriscopeClientSecret());
 					}
 					else if (socialEndpointCredentials.getServiceName().equals(YOUTUBE)) 
 					{
@@ -115,7 +121,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 					}
 
 					if (endPointService != null) {
-						videoServiceEndpoints.add(endPointService);
+						videoServiceEndpoints.put(endPointService.getCredentials().getId(), endPointService);
 					}
 				}
 
@@ -220,7 +226,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 					List<Endpoint> endPointList = broadcast.getEndPointList();
 					if (endPointList != null) {
 						for (Endpoint endpoint : endPointList) {
-							VideoServiceEndpoint videoServiceEndPoint = getVideoServiceEndPoint(endpoint.endpointServiceId);
+							VideoServiceEndpoint videoServiceEndPoint = getVideoServiceEndPoint(endpoint.getEndpointServiceId());
 							if (videoServiceEndPoint != null) {
 								try {
 									videoServiceEndPoint.stopBroadcast(endpoint);
@@ -252,12 +258,12 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		for (Endpoint endpoint : endPointList) {
 
 			if (endpoint.type != null && !endpoint.type.equals("")) {
-				VideoServiceEndpoint videoServiceEndPoint = getVideoServiceEndPoint(endpoint.endpointServiceId);
+				VideoServiceEndpoint videoServiceEndPoint = getVideoServiceEndPoint(endpoint.getEndpointServiceId());
 				if (videoServiceEndPoint != null) {
 					Endpoint newEndpoint;
 					try {
 						newEndpoint = videoServiceEndPoint.createBroadcast(broadcast.getName(),
-								broadcast.getDescription(), broadcast.isIs360(), broadcast.isPublicStream(), 720, true);
+								broadcast.getDescription(), broadcast.getStreamId(), broadcast.isIs360(), broadcast.isPublicStream(), 720, true);
 						getDataStore().removeEndpoint(broadcast.getStreamId(), endpoint);
 						getDataStore().addEndpoint(broadcast.getStreamId(), newEndpoint);
 					} catch (Exception e) {
@@ -276,8 +282,8 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 			VideoServiceEndpoint endPointService;
 			Class endpointClass = Class.forName(className);
 
-			endPointService = (VideoServiceEndpoint) endpointClass.getConstructor(String.class, String.class, IDataStore.class, SocialEndpointCredentials.class)
-					.newInstance(clientId, clientSecret, dataStore, socialEndpointCredentials);
+			endPointService = (VideoServiceEndpoint) endpointClass.getConstructor(String.class, String.class, IDataStore.class, SocialEndpointCredentials.class, Vertx.class)
+					.newInstance(clientId, clientSecret, dataStore, socialEndpointCredentials, vertx);
 			return endPointService;
 		}
 		catch (Exception e) {
@@ -358,7 +364,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 						List<Endpoint> endPointList = broadcast.getEndPointList();
 						if (endPointList != null) {
 							for (Endpoint endpoint : endPointList) {
-								VideoServiceEndpoint videoServiceEndPoint = getVideoServiceEndPoint(endpoint.endpointServiceId);
+								VideoServiceEndpoint videoServiceEndPoint = getVideoServiceEndPoint(endpoint.getEndpointServiceId());
 								if (videoServiceEndPoint != null) {
 									try {
 										videoServiceEndPoint.publishBroadcast(endpoint);
@@ -405,11 +411,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 	public VideoServiceEndpoint getVideoServiceEndPoint(String id) {
 		if (videoServiceEndpoints != null) {
-			for (VideoServiceEndpoint serviceEndpoint : videoServiceEndpoints) {
-				if (serviceEndpoint.getCredentials().getId().equals(id)) {
-					return serviceEndpoint;
-				}
-			}
+			return videoServiceEndpoints.get(id);
 		}
 		return null;
 	}
@@ -501,12 +503,12 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 					}
 				}
 				else {
-					logger.info("Authenticated, adding video service endpoint {} to the app", videoServiceEndpoint.getName());
-					this.appAdapter.getVideoServiceEndpoints().add(videoServiceEndpoint);
+					logger.info("Authenticated, adding video service endpoint type: {} with id: {} to the app", videoServiceEndpoint.getName(), videoServiceEndpoint.getCredentials().getId());
+					this.appAdapter.getVideoServiceEndpoints().put(videoServiceEndpoint.getCredentials().getId(), videoServiceEndpoint);
 
 				}
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.error(ExceptionUtils.getStackTrace(e));
 			}
 		}
 	}
@@ -517,7 +519,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		addScheduledOnceJob(timeDelta, new AuthCheckJob(0, timeDelta, videoServiceEndpoint, this));
 	}
 
-	public List<VideoServiceEndpoint> getVideoServiceEndpoints() {
+	public Map<String, VideoServiceEndpoint> getVideoServiceEndpoints() {
 		return videoServiceEndpoints;
 	}
 
@@ -525,7 +527,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		return videoServiceEndpointsHavingError ;
 	}
 
-	public void setVideoServiceEndpoints(List<VideoServiceEndpoint> videoServiceEndpoints) {
+	public void setVideoServiceEndpoints(Map<String, VideoServiceEndpoint> videoServiceEndpoints) {
 		this.videoServiceEndpoints = videoServiceEndpoints;
 	}
 
@@ -553,10 +555,10 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	 * 
 	 * @return
 	 */
-	public StringBuffer notifyHook(String url, String id, String action, String streamName, String category,
+	public StringBuilder notifyHook(String url, String id, String action, String streamName, String category,
 			String vodName) {
 
-		StringBuffer response = null;
+		StringBuilder response = null;
 
 
 		if (url != null && url.length() > 0) {
@@ -579,21 +581,21 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 			try {
 				response = sendPOST(url, variables);
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error(ExceptionUtils.getStackTrace(e));
 			}
 		}
 		return response;
 	}
 
-	public static StringBuffer sendPOST(String url, Map<String, String> variables) throws IOException {
+	public static StringBuilder sendPOST(String url, Map<String, String> variables) throws IOException {
 
-		StringBuffer response = null;
+		StringBuilder response = null;
 		try (CloseableHttpClient httpClient = HttpClients.createDefault()) 
 		{
 			HttpPost httpPost = new HttpPost(url);
 			httpPost.addHeader("User-Agent", "Daaavuuuuuttttt https://www.youtube.com/watch?v=cbyTDRgW4Jg");
 
-			List<NameValuePair> urlParameters = new ArrayList<NameValuePair>();
+			List<NameValuePair> urlParameters = new ArrayList<>();
 			Set<Entry<String, String>> entrySet = variables.entrySet();
 			for (Entry<String, String> entry : entrySet) {
 				urlParameters.add(new BasicNameValuePair(entry.getKey(), entry.getValue()));
@@ -604,12 +606,12 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 			CloseableHttpResponse httpResponse = httpClient.execute(httpPost);
 
-			System.out.println("POST Response Status:: " + httpResponse.getStatusLine().getStatusCode());
+			logger.info("POST Response Status:: {}" , httpResponse.getStatusLine().getStatusCode());
 
 			BufferedReader reader = new BufferedReader(new InputStreamReader(httpResponse.getEntity().getContent()));
 
 			String inputLine;
-			response = new StringBuffer();
+			response = new StringBuilder();
 
 			while ((inputLine = reader.readLine()) != null) {
 				response.append(inputLine);
@@ -635,21 +637,21 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 		if(appSettings == null) {
 
-			AppSettings appSettings = new AppSettings();
+			AppSettings appSettingsTmp = new AppSettings();
 
-			appSettings.setMp4MuxingEnabled(true);
-			appSettings.setAddDateTimeToMp4FileName(true);
-			appSettings.setWebRTCEnabled(false);
-			appSettings.setHlsMuxingEnabled(true);
-			appSettings.setObjectDetectionEnabled(false);
-			appSettings.setAdaptiveResolutionList(null);
-			appSettings.setHlsListSize(null);
-			appSettings.setHlsTime(null);
-			appSettings.setHlsPlayListType(null);
-			appSettings.setDeleteHLSFilesOnEnded(true);
-			appSettings.setPreviewOverwrite(false);
+			appSettingsTmp.setMp4MuxingEnabled(true);
+			appSettingsTmp.setAddDateTimeToMp4FileName(true);
+			appSettingsTmp.setWebRTCEnabled(false);
+			appSettingsTmp.setHlsMuxingEnabled(true);
+			appSettingsTmp.setObjectDetectionEnabled(false);
+			appSettingsTmp.setAdaptiveResolutionList(null);
+			appSettingsTmp.setHlsListSize(null);
+			appSettingsTmp.setHlsTime(null);
+			appSettingsTmp.setHlsPlayListType(null);
+			appSettingsTmp.setDeleteHLSFilesOnEnded(true);
+			appSettingsTmp.setPreviewOverwrite(false);
 
-			this.appSettings=appSettings;
+			this.appSettings=appSettingsTmp;
 		}
 
 		return appSettings;

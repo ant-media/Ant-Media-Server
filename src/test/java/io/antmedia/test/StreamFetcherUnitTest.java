@@ -291,9 +291,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			//wait 10-12 seconds
 			//check that stream fetcher stop and start stream is called 2 times
 			verify(streamFetcher, timeout(13000).times(2)).stopStream();
-
 			//it is +1 because it is called at first start
-			verify(streamFetcher, times(3)).startStream(); 
 			verify(streamFetcher, times(3)).startStream(); 
 
 			//set restart period to 0 seconds
@@ -305,13 +303,13 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			verify(streamFetcher, timeout(13000).times(2)).stopStream();
 			verify(streamFetcher, times(3)).startStream(); 
 
-			//set restart period to 0 seconds
+			//set restart period to 5 seconds
 			fetcherManager.setRestartStreamFetcherPeriod(5);
 
 			//wait 10-12 seconds
 		
 			//check that stream fetcher stop and start stream is not called
-			verify(streamFetcher, timeout(13000).atLeast(4)).stopStream();
+			verify(streamFetcher, timeout(14000).atLeast(4)).stopStream();
 			verify(streamFetcher, atLeast(5)).startStream(); 
 
 			fetcherManager.setRestartStreamFetcherPeriod(0);
