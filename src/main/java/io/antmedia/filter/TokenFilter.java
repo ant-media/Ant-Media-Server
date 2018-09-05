@@ -15,7 +15,7 @@ import org.springframework.web.context.WebApplicationContext;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.muxer.MuxAdaptor;
-import io.antmedia.token.TokenService;
+import io.antmedia.security.TokenService;
 
 public class TokenFilter implements javax.servlet.Filter   {
 

@@ -311,7 +311,8 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	@Override
 	public void streamPublishStart(final IBroadcastStream stream) {
 		String streamName = stream.getPublishedName();
-
+		logger.info("stream name in streamPublishStart: {}", streamName );
+		
 		startPublish(streamName);
 
 		super.streamPublishStart(stream);

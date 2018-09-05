@@ -1,9 +1,11 @@
-package io.antmedia.token;
+package io.antmedia.security;
 
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.red5.server.api.scope.IScope;
+import org.red5.server.api.stream.IStreamPublishSecurity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -15,7 +17,7 @@ import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.types.Token;
 
 
-public class TokenService implements ApplicationContextAware{
+public class TokenService implements ApplicationContextAware, IStreamPublishSecurity{
 
 	public static final String BEAN_NAME = "token.service";
 	protected static Logger logger = LoggerFactory.getLogger(TokenService.class);
@@ -58,6 +60,16 @@ public class TokenService implements ApplicationContextAware{
 
 		}
 		return result;
+	}
+
+	@Override
+	public boolean isPublishAllowed(IScope scope, String name, String mode) {
+
+		
+		
+		
+		
+		return false;
 	}
 
 
