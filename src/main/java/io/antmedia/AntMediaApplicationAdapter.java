@@ -651,7 +651,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 			appSettingsTmp.setHlsPlayListType(null);
 			appSettingsTmp.setDeleteHLSFilesOnEnded(true);
 			appSettingsTmp.setPreviewOverwrite(false);
-
+			appSettingsTmp.setTokenControlEnabled(false);
 			this.appSettings=appSettingsTmp;
 		}
 
