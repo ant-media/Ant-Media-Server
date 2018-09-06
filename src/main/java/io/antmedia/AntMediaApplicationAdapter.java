@@ -72,7 +72,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	public static final String YOUTUBE = "youtube";
 	public static final String FACEBOOK_ENDPOINT_CLASS = "io.antmedia.enterprise.social.endpoint.FacebookEndpoint";
 	public static final String YOUTUBE_ENDPOINT_CLASS = "io.antmedia.enterprise.social.endpoint.YoutubeEndpoint";
-	private List<VideoServiceEndpoint> videoServiceEndpoints = new ArrayList<>();
+	private Map<String, VideoServiceEndpoint> videoServiceEndpoints = new HashMap<>();
 	private List<VideoServiceEndpoint> videoServiceEndpointsHavingError = new ArrayList<>();
 	private List<IStreamPublishSecurity> streamPublishSecurityList;
 	private HashMap<String, OnvifCamera> onvifCameraList = new HashMap<>();
@@ -121,7 +121,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 					}
 
 					if (endPointService != null) {
-						videoServiceEndpoints.add(endPointService);
+						videoServiceEndpoints.put(endPointService.getCredentials().getId(), endPointService);
 					}
 				}
 
@@ -411,11 +411,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 	public VideoServiceEndpoint getVideoServiceEndPoint(String id) {
 		if (videoServiceEndpoints != null) {
-			for (VideoServiceEndpoint serviceEndpoint : videoServiceEndpoints) {
-				if (serviceEndpoint.getCredentials().getId().equals(id)) {
-					return serviceEndpoint;
-				}
-			}
+			return videoServiceEndpoints.get(id);
 		}
 		return null;
 	}
@@ -507,8 +503,8 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 					}
 				}
 				else {
-					logger.info("Authenticated, adding video service endpoint {} to the app", videoServiceEndpoint.getName());
-					this.appAdapter.getVideoServiceEndpoints().add(videoServiceEndpoint);
+					logger.info("Authenticated, adding video service endpoint type: {} with id: {} to the app", videoServiceEndpoint.getName(), videoServiceEndpoint.getCredentials().getId());
+					this.appAdapter.getVideoServiceEndpoints().put(videoServiceEndpoint.getCredentials().getId(), videoServiceEndpoint);
 
 				}
 			} catch (Exception e) {
@@ -523,7 +519,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		addScheduledOnceJob(timeDelta, new AuthCheckJob(0, timeDelta, videoServiceEndpoint, this));
 	}
 
-	public List<VideoServiceEndpoint> getVideoServiceEndpoints() {
+	public Map<String, VideoServiceEndpoint> getVideoServiceEndpoints() {
 		return videoServiceEndpoints;
 	}
 
@@ -531,7 +527,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		return videoServiceEndpointsHavingError ;
 	}
 
-	public void setVideoServiceEndpoints(List<VideoServiceEndpoint> videoServiceEndpoints) {
+	public void setVideoServiceEndpoints(Map<String, VideoServiceEndpoint> videoServiceEndpoints) {
 		this.videoServiceEndpoints = videoServiceEndpoints;
 	}
 

@@ -475,7 +475,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 		String id = "" + (Math.random()*10000);
 		Mockito.when(credentials.getId()).thenReturn(id);
 
-		appAdaptor.getVideoServiceEndpoints().add(endpointService);
+		appAdaptor.getVideoServiceEndpoints().put(id, endpointService);
 
 		Mockito.when(endpointService.getCredentials()).thenReturn(credentials);
 
@@ -485,7 +485,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 		Mockito.when(credentials2.getId()).thenReturn(id2);
 		Mockito.when(endpointService2.getCredentials()).thenReturn(credentials2);
 
-		appAdaptor.getVideoServiceEndpoints().add(endpointService2);
+		appAdaptor.getVideoServiceEndpoints().put(id2, endpointService2);
 
 		VideoServiceEndpoint videoServiceEndPoint = appAdaptor.getVideoServiceEndPoint(id);
 		assertNotNull(videoServiceEndPoint);

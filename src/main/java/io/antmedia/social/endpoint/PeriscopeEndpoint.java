@@ -60,8 +60,8 @@ public class PeriscopeEndpoint extends VideoServiceEndpoint {
 	private Map<String, List<LiveComment>> commentMapList = new HashMap<>();
 
 	private Map<String, Interaction> interactionMap = new HashMap<>();
-
-	protected static Logger logger = LoggerFactory.getLogger(PeriscopeEndpoint.class);
+		
+	private static Logger logger = LoggerFactory.getLogger(PeriscopeEndpoint.class);
 	public class ChatListener implements IChatListener {
 
 		private Endpoint endpoint;
@@ -73,6 +73,9 @@ public class PeriscopeEndpoint extends VideoServiceEndpoint {
 		@Override
 		public void viewerCountMessageReceived(ViewerCountMessage viewerCountMessage) {
 			logger.debug("viewerCountMessageReceived live view {}", viewerCountMessage.live);
+			if (viewerCountMessage.total < 0) {
+				viewerCountMessage.total = 0;
+			}
 			viewerCountMap.put(endpoint.getServerStreamId(), viewerCountMessage.total);
 		}
 
@@ -110,6 +113,7 @@ public class PeriscopeEndpoint extends VideoServiceEndpoint {
 				interaction = new Interaction();
 			}
 			interaction.setLoveCount(interaction.getLoveCount()+1);
+			interaction.setOrigin(ResourceOrigin.PERISCOPE);
 			interactionMap.put(endpoint.getServerStreamId(), interaction);
 		}
 
@@ -357,8 +361,8 @@ public class PeriscopeEndpoint extends VideoServiceEndpoint {
 	}
 
 	@Override
-	public long getLiveViews(Endpoint endpoint) {
-		return viewerCountMap.getOrDefault(endpoint.getServerStreamId(), 0);
+	public long getLiveViews(String streamId) {
+		return viewerCountMap.getOrDefault(streamId, 0);
 	}
 
 }

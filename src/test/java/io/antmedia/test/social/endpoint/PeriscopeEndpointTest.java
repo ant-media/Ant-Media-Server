@@ -384,10 +384,10 @@ public class PeriscopeEndpointTest {
 				viewerMessage.total = totalViewCount;
 				chatListener.viewerCountMessageReceived(viewerMessage);
 				
-				assertEquals(totalViewCount, endPoint.getLiveViews(endpoint));
+				assertEquals(totalViewCount, endPoint.getLiveViews(endpoint.getServerStreamId()));
 			}
 			
-			assertEquals(totalViewCount, endPoint.getLiveViews(endpoint));
+			assertEquals(totalViewCount, endPoint.getLiveViews(endpoint.getServerStreamId()));
 			
 			
 			//test chat message
@@ -419,7 +419,7 @@ public class PeriscopeEndpointTest {
 			assertNull(endPoint.getComments(serverStreamId, 0, 500));
 			assertEquals(0, endPoint.getTotalCommentsCount(serverStreamId));
 			
-			assertEquals(0, endPoint.getLiveViews(endpoint));
+			assertEquals(0, endPoint.getLiveViews(endpoint.getServerStreamId()));
 			assertNull(endPoint.getInteraction(serverStreamId));
 			
 		} catch (Exception e) {

@@ -4,18 +4,29 @@ public enum ResourceOrigin {
 	/**
 	 * Resource from Facebook
 	 */
-	FACEBOOK, 
+	FACEBOOK("facebook"), 
 	/**
 	 * Resource from Periscope
 	 */
-	PERISCOPE,
+	PERISCOPE("periscope"),
 	/**
 	 * Resource from Youtube
 	 */
-	YOUTUBE, 
+	YOUTUBE("youtube"), 
 	/**
 	 * Resource from Server directly
 	 */
-	SERVER,
+	SERVER("server");
+	
+	private String originName;
+	
+	ResourceOrigin(String name) {
+	    this.originName =  name;
+	 }
+	
+	@Override
+	public String toString() {
+		return this.originName;
+	}
 
 }

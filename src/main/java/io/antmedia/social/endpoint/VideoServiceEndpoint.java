@@ -29,7 +29,7 @@ public abstract class VideoServiceEndpoint {
 	public static final String AUTHENTICATION_TIMEOUT = "AUTHENTICATION_TIMEOUT";
 
 
-	protected static Logger logger = LoggerFactory.getLogger(VideoServiceEndpoint.class);
+	private static Logger logger = LoggerFactory.getLogger(VideoServiceEndpoint.class);
 
 	public static class DeviceAuthParameters {
 		/**
@@ -305,7 +305,7 @@ public abstract class VideoServiceEndpoint {
 	 * @param endpoint
 	 * @return number of live viewers
 	 */
-	public abstract long getLiveViews(Endpoint endpoint);
+	public abstract long getLiveViews(String streamId);
 
 
 }
