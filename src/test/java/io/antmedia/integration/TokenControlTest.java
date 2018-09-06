@@ -101,8 +101,8 @@ public class TokenControlTest {
 		try {
 			// authenticate user
 			User user = new User();
-			user.email = TEST_USER_EMAIL;
-			user.password = TEST_USER_PASS;
+			user.setEmail(TEST_USER_EMAIL);
+			user.setPassword(TEST_USER_PASS);
 			Result authenticatedUserResult = callAuthenticateUser(user);
 			assertTrue(authenticatedUserResult.isSuccess());
 

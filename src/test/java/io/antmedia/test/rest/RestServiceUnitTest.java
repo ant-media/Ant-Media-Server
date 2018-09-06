@@ -905,38 +905,38 @@ public class RestServiceUnitTest {
 	public void testTokenOperations() {
 		
 		IDataStore store = new InMemoryDataStore("testdb");
-		restService.setDataStore(store);
+		restServiceReal.setDataStore(store);
 		
 		//create token
-		Token testToken = restService.getToken("1234", 15764264);
+		Token testToken = restServiceReal.getToken("1234", 15764264);
 		
 		assertNotNull(testToken.getTokenId());
 		
 		//get tokens of stream
-		List <Token> tokens = restService.listTokens(testToken.getStreamId(), 0, 10);
+		List <Token> tokens = restServiceReal.listTokens(testToken.getStreamId(), 0, 10);
 		
 		assertEquals(1, tokens.size());
 		
 		//revoke tokens
-		restService.revokeTokens(testToken.getStreamId());
+		restServiceReal.revokeTokens(testToken.getStreamId());
 		
 		//get tokens of stream
-		tokens = restService.listTokens(testToken.getStreamId(), 0, 10);
+		tokens = restServiceReal.listTokens(testToken.getStreamId(), 0, 10);
 		
 		//it should be zero because all tokens are revoked
 		assertEquals(0, tokens.size());
 		
 		//create token again
-		testToken = restService.getToken("1234", 15764264);
+		testToken = restServiceReal.getToken("1234", 15764264);
 		
 		//validate token
-		Token validatedToken = restService.validateToken(testToken);
+		Token validatedToken = restServiceReal.validateToken(testToken);
 		
 		//token should be validated and returned
 		assertNotNull(validatedToken);
 		
 		//this should be false, because validated token is deleted after consumed
-		Token expiredToken = restService.validateToken(testToken);
+		Token expiredToken = restServiceReal.validateToken(testToken);
 		
 		assertNull(expiredToken);
 		
