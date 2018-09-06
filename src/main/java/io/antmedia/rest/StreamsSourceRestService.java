@@ -54,8 +54,6 @@ public class StreamsSourceRestService {
 	protected static Logger logger = LoggerFactory.getLogger(StreamsSourceRestService.class);
 
 
-
-
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/addStreamSource")
@@ -209,7 +207,7 @@ public class StreamsSourceRestService {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result updateCamInfo(Broadcast broadcast) {
 		boolean result = false;
-		logger.warn("inside of rest service");
+		logger.debug("update cam info for stream {}", broadcast.getStreamId());
 
 		if( checkStreamUrl(broadcast.getStreamUrl()) && broadcast.getStatus()!=null){
 			getInstance().stopStreaming(broadcast);

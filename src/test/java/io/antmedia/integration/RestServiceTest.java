@@ -1202,7 +1202,7 @@ public class RestServiceTest {
 			assertEquals(broadcast.getName(), name);
 			assertEquals(broadcast.getDescription(), description);
 
-			assertEquals(broadcast.getEndPointList().get(0).name, name);
+			assertEquals(broadcast.getEndPointList().get(0).getName(), name);
 
 			// update broadcast name and remove social endpoint
 			result = updateBroadcast(broadcast.getStreamId(), name, description, "");
@@ -1385,8 +1385,8 @@ public class RestServiceTest {
 			List<Endpoint> endpointList = broadcast.getEndPointList();
 
 			for (Endpoint endpoint : endpointList) {
-				System.out.println("endpoint url: " + endpoint.rtmpUrl + " broadcast.id=" + endpoint.broadcastId
-						+ " stream id: " + endpoint.streamId);
+				System.out.println("endpoint url: " + endpoint.getRtmpUrl() + " broadcast.id=" + endpoint.getBroadcastId()
+						+ " stream id: " + endpoint.getStreamId());
 			}
 
 			Process execute = execute(
@@ -1406,17 +1406,17 @@ public class RestServiceTest {
 			assertEquals(1, endpointList2.size());
 
 			for (Endpoint endpoint : endpointList2) {
-				System.out.println("new endpoint url: " + endpoint.rtmpUrl + " broadcast.id=" + endpoint.broadcastId
-						+ " stream id: " + endpoint.streamId);
+				System.out.println("new endpoint url: " + endpoint.getRtmpUrl() + " broadcast.id=" + endpoint.getBroadcastId()
+						+ " stream id: " + endpoint.getStreamId());
 
 			}
 
 			for (Endpoint endpoint : endpointList2) {
 				for (Endpoint endpointFirst : endpointList) {
-					System.out.println("new endpoint rtmp URL -> " + endpoint.rtmpUrl + " first endpoint URL -> " + endpointFirst.rtmpUrl);
-					System.out.println("new broadcast id -> " + endpoint.broadcastId + " first broadcast Id -> " + endpointFirst.broadcastId);
-					assertTrue(!endpoint.rtmpUrl.equals(endpointFirst.rtmpUrl)
-							|| !endpoint.broadcastId.equals(endpointFirst.broadcastId));
+					System.out.println("new endpoint rtmp URL -> " + endpoint.getRtmpUrl() + " first endpoint URL -> " + endpointFirst.getRtmpUrl());
+					System.out.println("new broadcast id -> " + endpoint.getBroadcastId() + " first broadcast Id -> " + endpointFirst.getBroadcastId());
+					assertTrue(!endpoint.getRtmpUrl().equals(endpointFirst.getRtmpUrl())
+							|| !endpoint.getBroadcastId().equals(endpointFirst.getBroadcastId()));
 				}
 			}
 

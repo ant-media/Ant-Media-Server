@@ -102,12 +102,12 @@ public class ConsoleAppRestServiceTest {
 			Result authenticatedUserResult = callAuthenticateUser(user);
 			assertFalse(authenticatedUserResult.isSuccess());
 
-			user.email = "any_email";
+			user.setEmail("any_email");
 			authenticatedUserResult = callAuthenticateUser(user);
 			assertFalse(authenticatedUserResult.isSuccess());
 
-			user.email = TEST_USER_EMAIL;
-			user.password = TEST_USER_PASS;
+			user.setEmail(TEST_USER_EMAIL);
+			user.setPassword(TEST_USER_PASS);
 			Result createInitialUser = callCreateInitialUser(user);
 			assertTrue(createInitialUser.isSuccess());
 
@@ -115,8 +115,8 @@ public class ConsoleAppRestServiceTest {
 			authenticatedUserResult = callAuthenticateUser(user);
 			assertTrue(authenticatedUserResult.isSuccess());
 
-			user.email = TEST_USER_EMAIL;
-			user.password = "any_pass";
+			user.setEmail(TEST_USER_EMAIL);
+			user.setPassword( "any_pass");
 			authenticatedUserResult = callAuthenticateUser(user);
 			assertFalse(authenticatedUserResult.isSuccess());
 
@@ -125,8 +125,8 @@ public class ConsoleAppRestServiceTest {
 			firstLogin = callisFirstLogin();
 			assertFalse(firstLogin.isSuccess());
 
-			user.email = "any_email";
-			user.password = "any_pass";
+			user.setEmail("any_email");
+			user.setPassword("any_pass");
 			createInitialUser = callCreateInitialUser(user);
 			assertFalse(createInitialUser.isSuccess());
 
@@ -141,8 +141,8 @@ public class ConsoleAppRestServiceTest {
 		try {
 
 			User user = new User();
-			user.email = TEST_USER_EMAIL;
-			user.password = TEST_USER_PASS;
+			user.setEmail(TEST_USER_EMAIL);
+			user.setPassword(TEST_USER_PASS);
 			Result authenticatedUserResult = callAuthenticateUser(user);
 			assertTrue(authenticatedUserResult.isSuccess());
 
@@ -195,8 +195,8 @@ public class ConsoleAppRestServiceTest {
 		try {
 			// Get App Settings
 			User user = new User();
-			user.email = TEST_USER_EMAIL;
-			user.password = TEST_USER_PASS;
+			user.setEmail(TEST_USER_EMAIL);
+			user.setPassword(TEST_USER_PASS);
 			Result authenticatedUserResult = callAuthenticateUser(user);
 			assertTrue(authenticatedUserResult.isSuccess());
 
@@ -268,8 +268,8 @@ public class ConsoleAppRestServiceTest {
 
 			// first authenticate user
 			User user = new User();
-			user.email = TEST_USER_EMAIL;
-			user.password = TEST_USER_PASS;
+			user.setEmail(TEST_USER_EMAIL);
+			user.setPassword(TEST_USER_PASS);
 			Result authenticatedUserResult = callAuthenticateUser(user);
 			assertTrue(authenticatedUserResult.isSuccess());
 			
@@ -377,8 +377,8 @@ public class ConsoleAppRestServiceTest {
 			// first authenticate user
 
 			User user = new User();
-			user.email = TEST_USER_EMAIL;
-			user.password = TEST_USER_PASS;
+			user.setEmail(TEST_USER_EMAIL);
+			user.setPassword(TEST_USER_PASS);
 			Result authenticatedUserResult = callAuthenticateUser(user);
 			assertTrue(authenticatedUserResult.isSuccess());
 
