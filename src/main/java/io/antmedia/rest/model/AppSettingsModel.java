@@ -31,6 +31,16 @@ public class AppSettingsModel {
 	private String vodFolder;
 	
 	private boolean previewOverwrite;
+	
+	private boolean deleteHLSFilesOnEnded = true;
+	
+	public boolean isDeleteHLSFilesOnExit() {
+		return deleteHLSFilesOnEnded;
+	}
+
+	public void setDeleteHLSFilesOnEnded(boolean deleteHLSFilesOnEnded) {
+		this.deleteHLSFilesOnEnded = deleteHLSFilesOnEnded;
+	}
 
 	public boolean isMp4MuxingEnabled() {
 		return mp4MuxingEnabled;

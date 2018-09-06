@@ -52,18 +52,22 @@ public class TokenFilter implements javax.servlet.Filter   {
 		logger.info("token:  {}", tokenId);
 		logger.info("sessionId:  {}", sessionId);
 		logger.info("streamId:  {}", streamId);
+		
 
 		if (method.equals("GET") && getAppSettings().isTokenControlEnabled()) {
 
-			boolean result = getTokenService().checkToken(tokenId, streamId, sessionId);
+			boolean result = getTokenService().checkToken(tokenId, streamId, sessionId, false);
 			if(!result) {
 				httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN,"Invalid Token");
 				logger.info("token {} is not valid", tokenId);
 				return; 
 			}
 			chain.doFilter(request, response);
+		
 		}
-		chain.doFilter(request, response);
+		else {
+			chain.doFilter(httpRequest, response);
+		}
 
 	}
 

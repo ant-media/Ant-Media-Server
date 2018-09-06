@@ -28,6 +28,8 @@ import org.junit.BeforeClass;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
 
@@ -51,6 +53,8 @@ public class ConsoleAppRestServiceTest {
 	private static String TEST_USER_PASS = "testtest";
 
 	private static BasicCookieStore httpCookieStore;
+	private static final Logger log = LoggerFactory.getLogger(ConsoleAppRestServiceTest.class);
+
 
 	static {
 
@@ -539,22 +543,33 @@ public class ConsoleAppRestServiceTest {
 
 	}
 	
-	private boolean checkURLExist(String url) throws Exception {
+	public static int getStatusCode(String url) throws Exception {
+		
+		log.info("url: {}",url);
 		
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
 				.setDefaultCookieStore(httpCookieStore).build();
-		Gson gson = new Gson();
 
 		HttpUriRequest post = RequestBuilder.get().setUri(url).build();
 
 		HttpResponse response = client.execute(post);
 
 		StringBuffer result = RestServiceTest.readResponse(response);
-		if (response.getStatusLine().getStatusCode() == 200) {
+		
+		log.info("response status code: {}",response.getStatusLine().getStatusCode());
+		
+		return response.getStatusLine().getStatusCode();
+	}
+	
+	public static boolean checkURLExist(String url) throws Exception {
+		int statusCode = getStatusCode(url);
+		if (statusCode == 200) {
 			return true;
 		}
 		return false;
 	}
+	
+	
 
 	private Result callisFirstLogin() throws Exception {
 		String url = ROOT_SERVICE_URL + "/isFirstLogin";
