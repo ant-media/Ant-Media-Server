@@ -168,7 +168,6 @@ public class TokenControlTest {
 			});
 			
 			appSettings.setTokenControlEnabled(false);
-			appSettings.setMp4MuxingEnabled(false);
 
 
 			Result flag = callSetAppSettings("LiveApp", appSettings);
