@@ -166,7 +166,15 @@ public class TokenControlTest {
 				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" 
 						+ broadcast.getStreamId() + ".mp4?token=" + accessToken2.getTokenId());
 			});
+			
+			appSettings.setTokenControlEnabled(false);
+			appSettings.setMp4MuxingEnabled(false);
 
+
+			Result flag = callSetAppSettings("LiveApp", appSettings);
+			assertTrue(flag.isSuccess());
+			
+			
 
 		} catch (Exception e) {
 			e.printStackTrace();
