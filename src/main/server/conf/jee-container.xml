@@ -146,10 +146,7 @@
 		</property>
 
 	</bean>
-	
-	<bean id="valveInjector" class="io.antmedia.ValveInjector" init-method="init"> 
-		<property name="loader" ref="tomcat.server" />
-	</bean>
+
 	
 	<!-- Tomcat with SSL enabled -->
 	<!-- <bean id="tomcat.server" class="org.red5.server.tomcat.TomcatLoader" 

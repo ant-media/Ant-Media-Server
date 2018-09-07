@@ -50,6 +50,7 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 		if (!viewerMap.containsKey(sessionId)) {
 			//if sessionId is not in the map, this is the first time for getting stream,
 			//increment viewer count
+			dataStore.updateHLSViewerCount(streamId, 1);
 		}
 		viewerMap.put(sessionId, System.currentTimeMillis());
 
