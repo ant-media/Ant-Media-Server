@@ -658,6 +658,22 @@ public class BroadcastRestService {
 		return list;
 	}
 
+	/**
+	 * Get Detected objects size
+	 * 
+	 * @param id
+	 *            id of the stream
+	 * 
+	 * @return Size of detected objects
+	 * 
+	 */
+
+	@GET
+	@Path("/detection/getObjectDetectedTotal")
+	@Produces(MediaType.APPLICATION_JSON)
+	public long getObjectDetectedTotal(@QueryParam("id") String id){
+		return getDataStore().getObjectDetectedTotal(id);
+	}
 
 
 	/**
@@ -681,22 +697,7 @@ public class BroadcastRestService {
 		return getDataStore().getBroadcastList(offset, size);
 	}
 
-	/**
-	 * Get Detected objects size
-	 * 
-	 * @param id
-	 *            id of the stream
-	 * 
-	 * @return Size of detected objects
-	 * 
-	 */
 
-	@GET
-	@Path("/detection/getObjectDetectedTotal")
-	@Produces(MediaType.APPLICATION_JSON)
-	public long getObjectDetectedTotal(@QueryParam("id") String id){
-		return getDataStore().getObjectDetectedTotal(id);
-	}
 
 	@POST
 	@Path("/importLiveStreamsToStalker")

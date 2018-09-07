@@ -43,6 +43,7 @@ import io.antmedia.datastore.db.MongoStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
+import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.integration.MuxingTest;
@@ -939,6 +940,48 @@ public class RestServiceUnitTest {
 		Token expiredToken = restServiceReal.validateToken(testToken);
 		
 		assertNull(expiredToken);
+		
+		
+		
+	}
+	
+	@Test
+	public void testObjectDetectionOperations() {
+		
+		IDataStore store = new InMemoryDataStore("testdb");
+		restServiceReal.setDataStore(store);
+		
+		String streamId = "object_streamId";
+		
+		List<TensorFlowObject> detectedObjects = new ArrayList<>();
+		
+		//create detection object
+		
+		TensorFlowObject object = new TensorFlowObject("objectName", 92, "imageId");
+		
+		//add to list
+		
+		detectedObjects.add(object);
+		
+		restServiceReal.getDataStore().saveDetection(streamId, 0, detectedObjects);
+		
+		//get objects
+		
+		List<TensorFlowObject> objects = restServiceReal.getDetectedObjects(streamId);
+		
+		assertEquals(1, objects.size());		
+		
+		//get list of requested id
+		
+		List<TensorFlowObject> objectList = restServiceReal.getDetectionList(streamId, 0, 50);
+		
+		assertEquals(1, objectList.size());
+		
+		//get total number of saved detection list
+		
+		Long total = restServiceReal.getObjectDetectedTotal(streamId);
+		
+		assertEquals(1, (int)(long)total);
 		
 		
 		
