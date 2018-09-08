@@ -975,12 +975,12 @@ public class BroadcastRestService {
 	@GET
 	@Path("/broadcast/getToken")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Token getToken (@QueryParam("id")String streamId, @QueryParam("expireDate") long expireDate) {
+	public Token getToken (@QueryParam("id")String streamId, @QueryParam("expireDate") long expireDate, @QueryParam("type") String type) {
 		Token token = null;
 
 		if(streamId != null) {
 
-			token = getDataStore().createToken(streamId, expireDate);
+			token = getDataStore().createToken(streamId, expireDate, type);
 		}
 
 		return token;

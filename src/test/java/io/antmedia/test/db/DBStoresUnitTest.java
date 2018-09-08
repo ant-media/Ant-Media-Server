@@ -31,6 +31,7 @@ import io.antmedia.datastore.db.MongoStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.TensorFlowObject;
+import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.VoD;
 
@@ -80,6 +81,7 @@ public class DBStoresUnitTest {
 		testUpdateHLSViewerCount(dataStore);
 		testWebRTCViewerCount(dataStore);
 		testRTMPViewerCount(dataStore);
+		testTokenOperations(dataStore);
 
 
 	}
@@ -107,6 +109,7 @@ public class DBStoresUnitTest {
 		testUpdateHLSViewerCount(dataStore);
 		testWebRTCViewerCount(dataStore);
 		testRTMPViewerCount(dataStore);
+		testTokenOperations(dataStore);
 		
 	}
 
@@ -147,6 +150,7 @@ public class DBStoresUnitTest {
 		testUpdateHLSViewerCount(dataStore);
 		testWebRTCViewerCount(dataStore);
 		testRTMPViewerCount(dataStore);
+		testTokenOperations(dataStore);
 
 	}
 	
@@ -1044,5 +1048,45 @@ public class DBStoresUnitTest {
 		assertEquals(probability1, list.get(0).probability,0.1F);
 		assertEquals(detectionTime, list.get(0).detectionTime);	
 	}
+	
+	public void testTokenOperations(IDataStore store) {
+		
+		//create token
+		Token testToken = store.createToken("1234", 15764264, Token.PLAY_TOKEN);
+		
+		assertNotNull(testToken.getTokenId());
+		
+		//get tokens of stream
+		List <Token> tokens = store.listAllTokens(testToken.getStreamId(), 0, 10);
+		
+		assertEquals(1, tokens.size());
+		
+		//revoke tokens
+		store.revokeTokens(testToken.getStreamId());
+		
+		//get tokens of stream
+		tokens = store.listAllTokens(testToken.getStreamId(), 0, 10);
+		
+		//it should be zero because all tokens are revoked
+		assertEquals(0, tokens.size());
+		
+		//create token again
+		testToken = store.createToken("1234", 15764264, Token.PLAY_TOKEN);
+		
+		
+		//validate token
+		Token validatedToken = store.validateToken(testToken);
+		
+		//token should be validated and returned
+		assertNotNull(validatedToken);
+		
+		//this should be false, because validated token is deleted after consumed
+		Token expiredToken = store.validateToken(testToken);
+		
+		assertNull(expiredToken);
+
+		
+	}
+	
 
 }

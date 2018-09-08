@@ -1,6 +1,8 @@
 package io.antmedia.filter;
 
 import java.io.IOException;
+import java.net.InetAddress;
+
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
 import javax.servlet.ServletException;
@@ -14,6 +16,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.web.context.WebApplicationContext;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.IDataStore;
+import io.antmedia.datastore.db.types.Token;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.security.TokenService;
 
@@ -39,7 +42,8 @@ public class TokenFilter implements javax.servlet.Filter   {
 
 		context = (ApplicationContext) filterConfig.getServletContext().getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
 
-
+		InetAddress inetAddress = InetAddress.getLocalHost();
+		
 		HttpServletRequest httpRequest =(HttpServletRequest)request;
 		HttpServletResponse httpResponse = (HttpServletResponse)response;
 
@@ -47,19 +51,22 @@ public class TokenFilter implements javax.servlet.Filter   {
 		String tokenId = ((HttpServletRequest) request).getParameter("token");
 		String sessionId = httpRequest.getSession().getId();
 		String streamId = getStreamId(httpRequest.getRequestURI());
-
+		String clientIP = httpRequest.getRemoteAddr();
+		
+		
+		logger.info("Client IP: {}",clientIP);
 		logger.info("request url:  {} ", httpRequest.getRequestURI());
 		logger.info("token:  {}", tokenId);
 		logger.info("sessionId:  {}", sessionId);
 		logger.info("streamId:  {}", streamId);
 		
 
-		if (method.equals("GET") && getAppSettings().isTokenControlEnabled()) {
+		if (method.equals("GET") && getAppSettings().isTokenControlEnabled() && !clientIP.equals("127.0.0.1")) {
 
-			boolean result = getTokenService().checkToken(tokenId, streamId, sessionId, false);
+			boolean result = getTokenService().checkToken(tokenId, streamId, sessionId, Token.PLAY_TOKEN);
 			if(!result) {
 				httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN,"Invalid Token");
-				logger.info("token {} is not valid", tokenId);
+				logger.warn("token {} is not valid", tokenId);
 				return; 
 			}
 			chain.doFilter(request, response);

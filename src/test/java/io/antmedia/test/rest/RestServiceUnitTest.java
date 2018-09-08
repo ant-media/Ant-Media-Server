@@ -909,7 +909,7 @@ public class RestServiceUnitTest {
 		restServiceReal.setDataStore(store);
 		
 		//create token
-		Token testToken = restServiceReal.getToken("1234", 15764264);
+		Token testToken = restServiceReal.getToken("1234", 15764264, Token.PLAY_TOKEN);
 		
 		assertNotNull(testToken.getTokenId());
 		
@@ -928,7 +928,7 @@ public class RestServiceUnitTest {
 		assertEquals(0, tokens.size());
 		
 		//create token again
-		testToken = restServiceReal.getToken("1234", 15764264);
+		testToken = restServiceReal.getToken("1234", 15764264, Token.PLAY_TOKEN);
 		
 		//validate token
 		Token validatedToken = restServiceReal.validateToken(testToken);

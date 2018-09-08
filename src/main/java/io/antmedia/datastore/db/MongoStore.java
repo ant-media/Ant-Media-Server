@@ -685,13 +685,14 @@ public class MongoStore implements IDataStore {
 	}
 
 	@Override
-	public Token createToken(String streamId, long expireDate) {
+	public Token createToken(String streamId, long expireDate, String type) {
 		Token token = null;
 
 		if(streamId != null) {
 			token = new Token();
 			token.setStreamId(streamId);
 			token.setExpireDate(expireDate);
+			token.setType(type);
 
 			try {
 				String tokenId = RandomStringUtils.randomNumeric(24);
@@ -711,7 +712,7 @@ public class MongoStore implements IDataStore {
 		Token fetchedToken = null;
 		if (token.getTokenId() != null) {
 			fetchedToken = tokenDatastore.find(Token.class).field("tokenId").equal(token.getTokenId()).get();
-			if (fetchedToken != null && fetchedToken.getStreamId().equals(token.getStreamId())) {
+			if (fetchedToken != null && fetchedToken.getStreamId().equals(token.getStreamId()) && fetchedToken.getType().equals(token.getType())) {
 
 				Query<Token> query = tokenDatastore.createQuery(Token.class).field("tokenId").equal(token.getTokenId());
 				WriteResult delete = tokenDatastore.delete(query);
@@ -737,8 +738,6 @@ public class MongoStore implements IDataStore {
 
 	@Override
 	public List<Token> listAllTokens(String streamId, int offset, int size) {
-
-
 		return 	tokenDatastore.find(Token.class).field("streamId").equal(streamId).asList(new FindOptions() .skip(offset).limit(size));
 
 	}

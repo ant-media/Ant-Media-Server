@@ -885,7 +885,7 @@ public class MapDBStore implements IDataStore {
 	}
 
 	@Override
-	public Token createToken(String streamId, long expireDate) {
+	public Token createToken(String streamId, long expireDate, String type) {
 		Token token = null;
 		synchronized (this) {
 
@@ -893,6 +893,7 @@ public class MapDBStore implements IDataStore {
 				token = new Token();
 				token.setStreamId(streamId);
 				token.setExpireDate(expireDate);
+				token.setType(type);
 
 				try {
 					String tokenId = RandomStringUtils.randomNumeric(24);
@@ -917,7 +918,7 @@ public class MapDBStore implements IDataStore {
 				String jsonToken = tokenMap.get(token.getTokenId());
 				if (jsonToken != null) {
 					fetchedToken = gson.fromJson((String) jsonToken, Token.class);
-					if(fetchedToken.getStreamId().equals(token.getStreamId())) {
+					if(fetchedToken.getStreamId().equals(token.getStreamId()) && fetchedToken.getType().equals(token.getType())) {
 						boolean result = tokenMap.remove(token.getTokenId()) != null;
 						if (result) {
 							db.commit();
@@ -928,8 +929,6 @@ public class MapDBStore implements IDataStore {
 						fetchedToken = null;
 					}
 				}
-				
-				
 			}
 		}
 

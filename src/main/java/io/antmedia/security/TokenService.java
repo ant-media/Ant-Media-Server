@@ -36,17 +36,18 @@ public class TokenService implements ApplicationContextAware, IStreamPublishSecu
 
 	}
 
-	public boolean checkToken(String tokenId, String streamId, String sessionId, boolean isPublishing) {
+	public boolean checkToken(String tokenId, String streamId, String sessionId, String type) {
 		boolean result = false;
 
 		if(streamId != null && sessionId != null ) {
 			Token token = new Token();
 			token.setTokenId(tokenId);
 			token.setStreamId(streamId);
+			token.setType(type);
 
 			if(dataStore.validateToken(token)!= null) {
 				result = true;	
-				if(!isPublishing) {
+				if(type.equals(Token.PLAY_TOKEN)) {
 					authenticatedMap.put(sessionId, streamId);
 				}
 			}
@@ -75,7 +76,7 @@ public class TokenService implements ApplicationContextAware, IStreamPublishSecu
 			
 			String token = queryParams.get("token");
 
-			if(checkToken(token, name, "sessionId", true)) {
+			if(checkToken(token, name, "sessionId", Token.PUBLISH_TOKEN)) {
 
 				result = true;
 			}

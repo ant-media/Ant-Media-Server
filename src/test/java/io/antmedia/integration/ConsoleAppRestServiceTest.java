@@ -586,7 +586,7 @@ public class ConsoleAppRestServiceTest {
 			assertTrue(appSettings.isTokenControlEnabled());
 
 			Broadcast broadcast = RestServiceTest.callCreateRegularBroadcast();
-			Token accessToken = callGetToken(broadcast.getStreamId());
+			Token accessToken = callGetToken(broadcast.getStreamId(), Token.PLAY_TOKEN, 15444343);
 			assertNotNull(accessToken);
 
 
@@ -604,11 +604,11 @@ public class ConsoleAppRestServiceTest {
 			
 			
 			//create token for publishing
-			Token publishToken = callGetToken(broadcast.getStreamId());
+			Token publishToken = callGetToken(broadcast.getStreamId(), Token.PUBLISH_TOKEN, 15444343);
 			assertNotNull(publishToken);
 
 			//create token for playing/accessing file
-			Token accessToken2 = callGetToken(broadcast.getStreamId());
+			Token accessToken2 = callGetToken(broadcast.getStreamId(), Token.PLAY_TOKEN, 15444343);
 			assertNotNull(accessToken2);
 
 			Process rtmpSendingProcessToken = execute(ffmpegPath
@@ -648,12 +648,12 @@ public class ConsoleAppRestServiceTest {
 
 	}
 	
-	public static Token callGetToken(String streamId) throws Exception {
+	public static Token callGetToken(String streamId, String type, long expireDate) throws Exception {
 		String url = SERVICE_URL + "/broadcast/getToken";
 
 		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 
-		HttpUriRequest get = RequestBuilder.get().setUri(url + "?id=" + streamId + "&expireDate=15784343")
+		HttpUriRequest get = RequestBuilder.get().setUri(url + "?id=" + streamId + "&expireDate=" + expireDate + "&type=" + type)
 				.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
 				.build();
 
