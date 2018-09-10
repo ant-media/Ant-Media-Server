@@ -711,7 +711,7 @@ public class ConsoleAppRestServiceTest {
 		if (response.getStatusLine().getStatusCode() != 200) {
 			throw new Exception(result.toString());
 		}
-		System.out.println("result string: " + result.toString());
+		log.info("result string: " + result.toString());
 		Result tmp = gson.fromJson(result.toString(), Result.class);
 		assertNotNull(tmp);
 		return tmp;
@@ -733,7 +733,7 @@ public class ConsoleAppRestServiceTest {
 		if (response.getStatusLine().getStatusCode() != 200) {
 			throw new Exception(result.toString());
 		}
-		System.out.println("result string: " + result.toString());
+		log.info("result string: " + result.toString());
 		Result tmp = gson.fromJson(result.toString(), Result.class);
 		assertNotNull(tmp);
 		return tmp;
@@ -754,7 +754,7 @@ public class ConsoleAppRestServiceTest {
 		if (response.getStatusLine().getStatusCode() != 200) {
 			throw new Exception(result.toString());
 		}
-		System.out.println("result string: " + result.toString());
+		log.info("result string: " + result.toString());
 		Result tmp = gson.fromJson(result.toString(), Result.class);
 		assertNotNull(tmp);
 		return tmp;
@@ -776,7 +776,7 @@ public class ConsoleAppRestServiceTest {
 		if (response.getStatusLine().getStatusCode() != 200) {
 			throw new Exception(result.toString());
 		}
-		System.out.println("result string: " + result.toString());
+		log.info("result string: " + result.toString());
 		Result tmp = gson.fromJson(result.toString(), Result.class);
 		assertNotNull(tmp);
 		return tmp;
@@ -798,7 +798,7 @@ public class ConsoleAppRestServiceTest {
 		if (response.getStatusLine().getStatusCode() != 200) {
 			throw new Exception(result.toString());
 		}
-		System.out.println("result string: " + result.toString());
+		log.info("result string: " + result.toString());
 		Result tmp = gson.fromJson(result.toString(), Result.class);
 		assertNotNull(tmp);
 		return tmp;
@@ -823,7 +823,7 @@ public class ConsoleAppRestServiceTest {
 			System.out.println("status code: " + response.getStatusLine().getStatusCode());
 			throw new Exception(result.toString());
 		}
-		System.out.println("result string: " + result.toString());
+		log.info("result string: " + result.toString());
 		AppSettingsModel tmp = gson.fromJson(result.toString(), AppSettingsModel.class);
 		assertNotNull(tmp);
 		return tmp;
@@ -850,7 +850,7 @@ public class ConsoleAppRestServiceTest {
 					int length = 0;
 
 					while ((length = errorStream.read(data, 0, data.length)) > 0) {
-						System.out.println(new String(data, 0, length));
+						log.info(new String(data, 0, length));
 					}
 				} catch (IOException e) {
 					e.printStackTrace();
@@ -859,18 +859,11 @@ public class ConsoleAppRestServiceTest {
 		}.start();
 
 		while (tmpExec == null) {
-			try {
-				System.out.println("Waiting for exec get initialized...");
-				Thread.sleep(1000);
-				
-				Awaitility.await().pollDelay(1, TimeUnit.SECONDS).atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-					return tmpExec !=null;
-				});
-				
-				
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
+			log.info("Waiting for exec get initialized...");
+			
+			Awaitility.await().pollDelay(1, TimeUnit.SECONDS).atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return tmpExec !=null;
+			});
 		}
 
 		return tmpExec;

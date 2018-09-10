@@ -1,8 +1,6 @@
 package io.antmedia.filter;
 
 import java.io.IOException;
-import java.net.InetAddress;
-
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
 import javax.servlet.ServletException;
