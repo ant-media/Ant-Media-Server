@@ -25,7 +25,7 @@ public class TokenService implements ApplicationContextAware, IStreamPublishSecu
 
 
 	@Override
-	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+	public void setApplicationContext(ApplicationContext applicationContext) {
 
 		dataStore = (IDataStore) applicationContext.getBean(IDataStore.BEAN_NAME);
 

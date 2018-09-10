@@ -15,7 +15,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.web.context.WebApplicationContext;
 import io.antmedia.AppSettings;
-import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.security.TokenService;
@@ -24,8 +23,6 @@ public class TokenFilter implements javax.servlet.Filter   {
 
 	protected static Logger logger = LoggerFactory.getLogger(TokenFilter.class);
 	private FilterConfig filterConfig;
-	private IDataStore dataStore;
-	private ApplicationContext context;
 	private AppSettings settings;
 	private TokenService tokenService;
 
@@ -39,10 +36,6 @@ public class TokenFilter implements javax.servlet.Filter   {
 	@Override
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
 			throws IOException, ServletException {
-
-		context = (ApplicationContext) filterConfig.getServletContext().getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
-
-		InetAddress inetAddress = InetAddress.getLocalHost();
 		
 		HttpServletRequest httpRequest =(HttpServletRequest)request;
 		HttpServletResponse httpResponse = (HttpServletResponse)response;
@@ -54,12 +47,9 @@ public class TokenFilter implements javax.servlet.Filter   {
 		String clientIP = httpRequest.getRemoteAddr();
 		
 		
-		logger.info("Client IP: {}",clientIP);
-		logger.info("request url:  {} ", httpRequest.getRequestURI());
-		logger.info("token:  {}", tokenId);
-		logger.info("sessionId:  {}", sessionId);
-		logger.info("streamId:  {}", streamId);
-		
+		logger.info("Client IP: {}, request url:  {}, token:  {}, sessionId: {},streamId:  {} ",clientIP 
+				,httpRequest.getRequestURI(), tokenId, sessionId, streamId);
+
 
 		if (method.equals("GET") && getAppSettings().isTokenControlEnabled() && !clientIP.equals("127.0.0.1")) {
 

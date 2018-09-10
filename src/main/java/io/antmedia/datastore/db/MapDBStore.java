@@ -352,19 +352,20 @@ public class MapDBStore implements IDataStore {
 			if (offset < 0) {
 				offset = 0;
 			}
-			for (String broadcastString : values) {
+			Iterator<String> iterator = values.iterator();
+
+			while(itemCount < size && iterator.hasNext()) {
 				if (t < offset) {
 					t++;
-					continue;
+					iterator.next();
 				}
-				list.add(gson.fromJson(broadcastString, Broadcast.class));
-				itemCount++;
+				else {
+				list.add(gson.fromJson(iterator.next(), Broadcast.class));
 
-				if (itemCount >= size) {
-					break;
+				itemCount++;	
 				}
-
 			}
+
 		}
 		return list;
 	}
@@ -973,21 +974,20 @@ public class MapDBStore implements IDataStore {
 			if (offset < 0) {
 				offset = 0;
 			}
-			for (String tokenString : values) {
+			Iterator<String> iterator = values.iterator();
+
+			while(itemCount < size && iterator.hasNext()) {
 				if (t < offset) {
 					t++;
-					continue;
+					iterator.next();
 				}
-				Token token = gson.fromJson(tokenString, Token.class);
-				if(token.getStreamId().equals(streamId)) {
-					list.add(token);
-					itemCount++;
-				}
-				if (itemCount >= size) {
-					break;
-				}
+				else {
+				list.add(gson.fromJson(iterator.next(), Token.class));
 
+				itemCount++;	
+				}
 			}
+
 		}
 		return list;
 	}

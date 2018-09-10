@@ -28,11 +28,11 @@ public class InMemoryDataStore implements IDataStore {
 
 
 	protected static Logger logger = LoggerFactory.getLogger(InMemoryDataStore.class);
-	public Map<String, Broadcast> broadcastMap = new LinkedHashMap<>();
-	public Map<String, VoD> vodMap = new LinkedHashMap<>();
-	public Map<String, List<TensorFlowObject>> detectionMap = new LinkedHashMap<>();
-	public Map<String, SocialEndpointCredentials> socialEndpointCredentialsMap = new LinkedHashMap<>();
-	public Map<String, Token> tokenMap = new LinkedHashMap<>();
+	private Map<String, Broadcast> broadcastMap = new LinkedHashMap<>();
+	private Map<String, VoD> vodMap = new LinkedHashMap<>();
+	private Map<String, List<TensorFlowObject>> detectionMap = new LinkedHashMap<>();
+	private Map<String, SocialEndpointCredentials> socialEndpointCredentialsMap = new LinkedHashMap<>();
+	private Map<String, Token> tokenMap = new LinkedHashMap<>();
 
 
 	public InMemoryDataStore(String dbName) {
@@ -709,21 +709,21 @@ public class InMemoryDataStore implements IDataStore {
 			offset = 0;
 		}
 		List<Token> list = new ArrayList<>();
-		for (Token token : values) {
+		Iterator<Token> iterator = values.iterator();
 
+		while(itemCount < size && iterator.hasNext()) {
 			if (t < offset) {
 				t++;
-				continue;
+				iterator.next();
 			}
-			if(token.getStreamId().equals(streamId)) {
-				list.add(token);
-				itemCount++;
-			}
-			if (itemCount >= size) {
-				break;
-			}
+			else {
+			list.add(iterator.next());
 
+			itemCount++;	
+			}
 		}
+		
+		
 		return list;
 	}
 

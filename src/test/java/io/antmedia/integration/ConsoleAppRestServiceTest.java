@@ -862,6 +862,12 @@ public class ConsoleAppRestServiceTest {
 			try {
 				System.out.println("Waiting for exec get initialized...");
 				Thread.sleep(1000);
+				
+				Awaitility.await().pollDelay(1, TimeUnit.SECONDS).atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+					return tmpExec !=null;
+				});
+				
+				
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
