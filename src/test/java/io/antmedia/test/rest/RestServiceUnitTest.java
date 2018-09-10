@@ -38,9 +38,13 @@ import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
+import io.antmedia.datastore.db.MapDBStore;
+import io.antmedia.datastore.db.MongoStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
+import io.antmedia.datastore.db.types.TensorFlowObject;
+import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.integration.MuxingTest;
 import io.antmedia.rest.BroadcastRestService;
@@ -896,6 +900,91 @@ public class RestServiceUnitTest {
 		assertEquals(broadcastTmp.getStreamId(), createBroadcast.getStreamId());
 		assertEquals(broadcastTmp.getName(), createBroadcast.getName());
 
+	}
+	
+	@Test
+	public void testTokenOperations() {
+		
+		IDataStore store = new InMemoryDataStore("testdb");
+		restServiceReal.setDataStore(store);
+		
+		//create token
+		Token testToken = restServiceReal.getToken("1234", 15764264, Token.PLAY_TOKEN);
+		
+		assertNotNull(testToken.getTokenId());
+		
+		//get tokens of stream
+		List <Token> tokens = restServiceReal.listTokens(testToken.getStreamId(), 0, 10);
+		
+		assertEquals(1, tokens.size());
+		
+		//revoke tokens
+		restServiceReal.revokeTokens(testToken.getStreamId());
+		
+		//get tokens of stream
+		tokens = restServiceReal.listTokens(testToken.getStreamId(), 0, 10);
+		
+		//it should be zero because all tokens are revoked
+		assertEquals(0, tokens.size());
+		
+		//create token again
+		testToken = restServiceReal.getToken("1234", 15764264, Token.PLAY_TOKEN);
+		
+		//validate token
+		Token validatedToken = restServiceReal.validateToken(testToken);
+		
+		//token should be validated and returned
+		assertNotNull(validatedToken);
+		
+		//this should be false, because validated token is deleted after consumed
+		Token expiredToken = restServiceReal.validateToken(testToken);
+		
+		assertNull(expiredToken);
+		
+		
+		
+	}
+	
+	@Test
+	public void testObjectDetectionOperations() {
+		
+		IDataStore store = new InMemoryDataStore("testdb");
+		restServiceReal.setDataStore(store);
+		
+		String streamId = "object_streamId";
+		
+		List<TensorFlowObject> detectedObjects = new ArrayList<>();
+		
+		//create detection object
+		
+		TensorFlowObject object = new TensorFlowObject("objectName", 92, "imageId");
+		
+		//add to list
+		
+		detectedObjects.add(object);
+		
+		restServiceReal.getDataStore().saveDetection(streamId, 0, detectedObjects);
+		
+		//get objects
+		
+		List<TensorFlowObject> objects = restServiceReal.getDetectedObjects(streamId);
+		
+		assertEquals(1, objects.size());		
+		
+		//get list of requested id
+		
+		List<TensorFlowObject> objectList = restServiceReal.getDetectionList(streamId, 0, 50);
+		
+		assertEquals(1, objectList.size());
+		
+		//get total number of saved detection list
+		
+		Long total = restServiceReal.getObjectDetectedTotal(streamId);
+		
+		assertEquals(1, (int)(long)total);
+		
+		
+		
 	}
 
 

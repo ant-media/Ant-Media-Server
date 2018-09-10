@@ -50,6 +50,7 @@ import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointChannel;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.TensorFlowObject;
+import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.muxer.Muxer;
 import io.antmedia.rest.model.Interaction;
@@ -657,6 +658,22 @@ public class BroadcastRestService {
 		return list;
 	}
 
+	/**
+	 * Get Detected objects size
+	 * 
+	 * @param id
+	 *            id of the stream
+	 * 
+	 * @return Size of detected objects
+	 * 
+	 */
+
+	@GET
+	@Path("/detection/getObjectDetectedTotal")
+	@Produces(MediaType.APPLICATION_JSON)
+	public long getObjectDetectedTotal(@QueryParam("id") String id){
+		return getDataStore().getObjectDetectedTotal(id);
+	}
 
 
 	/**
@@ -680,22 +697,7 @@ public class BroadcastRestService {
 		return getDataStore().getBroadcastList(offset, size);
 	}
 
-	/**
-	 * Get Detected objects size
-	 * 
-	 * @param id
-	 *            id of the stream
-	 * 
-	 * @return Size of detected objects
-	 * 
-	 */
 
-	@GET
-	@Path("/detection/getObjectDetectedTotal")
-	@Produces(MediaType.APPLICATION_JSON)
-	public long getObjectDetectedTotal(@QueryParam("id") String id){
-		return getDataStore().getObjectDetectedTotal(id);
-	}
 
 	@POST
 	@Path("/importLiveStreamsToStalker")
@@ -964,6 +966,92 @@ public class BroadcastRestService {
 		return new LiveStatistics(activeBroadcastCount);
 	}
 
+	/**
+	 * Generates random one-time token for specified stream
+	 * @param streamId
+	 * @param expireDate
+	 * @return token
+	 */
+	@GET
+	@Path("/broadcast/getToken")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Token getToken (@QueryParam("id")String streamId, @QueryParam("expireDate") long expireDate, @QueryParam("type") String type) {
+		Token token = null;
+
+		if(streamId != null) {
+
+			token = getDataStore().createToken(streamId, expireDate, type);
+		}
+
+		return token;
+	}
+
+
+	/**
+	 * Perform validation of token for required stream
+	 * @param token
+	 * @return validated token, either null or token. Null means not validated
+	 */
+
+	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/broadcast/validateToken")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Token validateToken (Token token) {
+		Token validatedToken = null;
+
+		if(token.getTokenId() != null) {
+
+			validatedToken = getDataStore().validateToken(token);
+		}
+
+		return validatedToken;
+	}
+
+
+	/**
+	 * Removes all tokens related with requested stream
+	 * @param streamId
+	 * @return result object including success or not
+	 */
+
+	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/broadcast/revokeTokens")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result revokeTokens (@QueryParam("id")String streamId) {
+		Result result = new Result(false);
+
+		if(streamId != null) {
+
+			result.setSuccess(getDataStore().revokeTokens(streamId));
+		}
+
+		return result;
+	}
+
+
+	/**
+	 * Get the all tokens of requested stream
+	 * @param streamId
+	 * @param offset
+	 * @param size
+	 * @return token list of stream,  if no active tokens returns null
+	 */
+	@GET
+	@Path("/broadcast/listTokens/{streamId}/{offset}/{size}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public List<Token> listTokens (@PathParam("streamId") String streamId, @PathParam("offset") int offset, @PathParam("size") int size) {
+		List<Token> tokens = null;
+
+		if(streamId != null) {
+
+			tokens = getDataStore().listAllTokens(streamId, offset, size);
+		}
+
+		return tokens;
+	}
+
 
 	/**
 	 * Get the broadcast live statistics total rtmp watcher count, total hls
@@ -973,7 +1061,7 @@ public class BroadcastRestService {
 	 * 
 	 * @param streamId
 	 * @return {@link BroadcastStatistics} if broadcast exists null or 204(no
-	 *         content) if no broacdast exists with that id
+	 *         content) if no broadcast exists with that id
 	 */
 	@GET
 	@Path("/broadcast/getBroadcastLiveStatistics")
