@@ -1,5 +1,7 @@
 package io.antmedia.security;
 
+import java.util.Map;
+
 import org.red5.server.api.Red5;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IStreamPublishSecurity;
@@ -20,7 +22,7 @@ public class AcceptOnlyStreamsInDataStore implements IStreamPublishSecurity  {
 	protected static Logger logger = LoggerFactory.getLogger(AcceptOnlyStreamsInDataStore.class);
 
 	@Override
-	public boolean isPublishAllowed(IScope scope, String name, String mode) {
+	public boolean isPublishAllowed(IScope scope, String name, String mode, Map<String, String> queryParams) {
 		
 		boolean result = false;
 		if (enabled) {
