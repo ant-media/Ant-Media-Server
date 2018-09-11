@@ -10,8 +10,10 @@ public class Result {
 	private boolean success = false;
 
 	/**
-	 * Message may be filled when error happens so that developer may
+	 * Message may be filled error or informaiton 
+	 * It is filled with error when  success if false so that developer may
 	 * understand what the problem is
+	 * It is filled with information if user makes a request it returns success as true with additional information
 	 */
 	private String message;
 	

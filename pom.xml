@@ -396,7 +396,7 @@
 		<dependency>
 			<groupId>com.google.apis</groupId>
 			<artifactId>google-api-services-youtube</artifactId>
-			<version>v3-rev183-1.22.0</version>
+			<version>${youtube.api.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.glassfish.jersey.containers</groupId>
@@ -407,6 +407,12 @@
 			<groupId>org.glassfish.jersey.media</groupId>
 			<artifactId>jersey-media-json-jackson</artifactId>
 			<version>${jersey.version}</version>
+			<exclusions>
+				<exclusion>
+		          <groupId>com.fasterxml.jackson.core</groupId>
+		          <artifactId>jackson-annotations</artifactId>
+		        </exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>org.glassfish.jersey.media</groupId>
@@ -418,6 +424,11 @@
 			<groupId>org.glassfish.jersey.ext</groupId>
 			<artifactId>jersey-spring4</artifactId>
 			<version>${jersey.version}</version>
+		</dependency>
+		<dependency>
+		    <groupId>org.glassfish.jersey.media</groupId>
+		    <artifactId>jersey-media-sse</artifactId>
+		    <version>${jersey.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.mapdb</groupId>
