@@ -12,6 +12,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 
 import io.antmedia.AppSettings;
+import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.types.Token;
 
@@ -28,7 +29,7 @@ public class TokenService implements ApplicationContextAware, IStreamPublishSecu
 	@Override
 	public void setApplicationContext(ApplicationContext applicationContext) {
 
-		dataStore = (IDataStore) applicationContext.getBean(IDataStore.BEAN_NAME);
+		dataStore = ((DataStoreFactory) applicationContext.getBean("dataStoreFactory")).getDataStore();
 
 		if (applicationContext.containsBean(AppSettings.BEAN_NAME)) {
 			settings = (AppSettings)applicationContext.getBean(AppSettings.BEAN_NAME);
