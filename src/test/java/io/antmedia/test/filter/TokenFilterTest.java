@@ -82,9 +82,11 @@ public class TokenFilterTest {
 			String tokenId = RandomStringUtils.randomAlphanumeric(8);
 			HttpSession session = mock(HttpSession.class);
 			String sessionId = RandomStringUtils.randomAlphanumeric(16);
+			String clientIP = "10.0.0.1";
 			when(session.getId()).thenReturn(sessionId);
 			when(mockRequest.getSession()).thenReturn(session);
 			when(mockRequest.getMethod()).thenReturn("GET");
+			when(mockRequest.getRemoteAddr()).thenReturn(clientIP);
 			
 			when(mockRequest.getParameter("token")).thenReturn(tokenId);
 			
