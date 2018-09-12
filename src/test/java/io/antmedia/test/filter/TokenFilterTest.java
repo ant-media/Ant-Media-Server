@@ -3,13 +3,17 @@ package io.antmedia.test.filter;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.io.IOException;
 
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
@@ -24,84 +28,77 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.web.context.WebApplicationContext;
 
-import static org.mockito.Mockito.*;
+import io.antmedia.AppSettings;
+import io.antmedia.datastore.db.types.Token;
+import io.antmedia.filter.TokenFilter;
+import io.antmedia.muxer.MuxAdaptor;
+import io.antmedia.security.TokenService;
 
-import java.io.IOException;
-
-import io.antmedia.filter.HlsStatisticsFilter;
-import io.antmedia.integration.RestServiceTest;
-import io.antmedia.statistic.HlsViewerStats;
-import io.antmedia.statistic.IStreamStats;
-
-public class HlsStatisticsFilterTest {
+public class TokenFilterTest {
+	protected static Logger logger = LoggerFactory.getLogger(TokenFilterTest.class);
 	
-	private HlsStatisticsFilter hlsStatisticsFilter;
-
-	protected static Logger logger = LoggerFactory.getLogger(HlsStatisticsFilterTest.class);
-
-
+	private TokenFilter tokenFilter;
+	
 	@Before
 	public void before() {
-		hlsStatisticsFilter = new HlsStatisticsFilter();
+		tokenFilter = new TokenFilter();
 	}
 	
 	@After
 	public void after() {
-		hlsStatisticsFilter = null;
+		tokenFilter = null;
 	}
 	
-	
-	@Test
-	public void testGetStreamId() {
-		String streamId = "stream_id_knhbgv";
-		assertEquals(streamId, HlsStatisticsFilter.getStreamId("/liveapp/streams/"+streamId+"_adaptive.m3u8"));
-		
-		assertEquals(streamId, HlsStatisticsFilter.getStreamId("/liveapp/streams/"+streamId+".m3u8"));
-		
-		assertEquals(streamId, HlsStatisticsFilter.getStreamId("/liveapp/streams/"+streamId+"_240p.m3u8"));
-		
-		assertNull(HlsStatisticsFilter.getStreamId("/liveapp/streams/"+streamId+".u8"));
-	}
-	
+
 	@Test
 	public void testDoFilter() {
+		
 		FilterConfig filterconfig = mock(FilterConfig.class);
 		ServletContext servletContext = mock(ServletContext.class);
 		ApplicationContext context = mock(ApplicationContext.class);
 		
-		IStreamStats streamStats = mock(IStreamStats.class);
 		
-		when(context.getBean(HlsViewerStats.BEAN_NAME)).thenReturn(streamStats);
+		TokenService tokenService = mock(TokenService.class);
+		AppSettings settings = new AppSettings();
+		settings.setTokenControlEnabled(true);
+
+		
+		when(context.getBean(TokenService.BEAN_NAME)).thenReturn(tokenService);
+		when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(settings);
 		
 		when(servletContext.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE))
 				.thenReturn(context);
 		
 		when(filterconfig.getServletContext()).thenReturn(servletContext);
 		
-		
 		try {
-			hlsStatisticsFilter.init(filterconfig);
+			tokenFilter.init(filterconfig);
 			
 			HttpServletRequest mockRequest = mock(HttpServletRequest.class);
 			HttpServletResponse mockResponse = mock(HttpServletResponse.class);
 			FilterChain mockChain = mock(FilterChain.class);
 			
+			String streamId = RandomStringUtils.randomAlphanumeric(8);
+			String tokenId = RandomStringUtils.randomAlphanumeric(8);
 			HttpSession session = mock(HttpSession.class);
 			String sessionId = RandomStringUtils.randomAlphanumeric(16);
+			String clientIP = "10.0.0.1";
 			when(session.getId()).thenReturn(sessionId);
 			when(mockRequest.getSession()).thenReturn(session);
 			when(mockRequest.getMethod()).thenReturn("GET");
+			when(mockRequest.getRemoteAddr()).thenReturn(clientIP);
 			
-			String streamId = RandomStringUtils.randomAlphanumeric(8);
+			when(mockRequest.getParameter("token")).thenReturn(tokenId);
+			
 			when(mockRequest.getRequestURI()).thenReturn("/LiveApp/streams/"+streamId+".m3u8");
 			
 			when(mockResponse.getStatus()).thenReturn(HttpServletResponse.SC_OK);
 
 			logger.info("session id {}, stream id {}", sessionId, streamId);
-			hlsStatisticsFilter.doFilter(mockRequest, mockResponse, mockChain);
+			tokenFilter.doFilter(mockRequest, mockResponse, mockChain);
 			
 			
-			verify(streamStats, times(1)).registerNewViewer(streamId, sessionId);
+			verify(tokenService, times(1)).checkToken(tokenId, streamId, sessionId, Token.PLAY_TOKEN);
 			
 			
 			
@@ -113,8 +110,24 @@ public class HlsStatisticsFilterTest {
 			e.printStackTrace();
 			fail(ExceptionUtils.getStackTrace(e));
 		}
-		
-		
+	
 	}
-
+	
+	@Test
+	public void testGetStreamId() {
+		String streamId = "streamId";
+		assertEquals(streamId, TokenFilter.getStreamId("/liveapp/streams/"+streamId+"_davut_diyen_kedi_adaptive.m3u8"));
+		
+		assertEquals(streamId, TokenFilter.getStreamId("/liveapp/streams/"+streamId+".m3u8"));
+		
+		assertEquals(streamId, TokenFilter.getStreamId("/liveapp/streams/"+streamId+".mp4"));
+		
+		assertEquals(streamId, TokenFilter.getStreamId("/liveapp/streams/"+streamId+ MuxAdaptor.ADAPTIVE_SUFFIX + ".m3u8"));
+		
+		assertEquals(streamId, TokenFilter.getStreamId("/liveapp/streams/"+streamId+"_240p.m3u8"));
+		
+		assertNull(TokenFilter.getStreamId("/liveapp/streams/"+streamId+".u8"));
+	}
+	
+	
 }
