@@ -49,7 +49,7 @@ public class TokenFilter implements javax.servlet.Filter   {
 				,httpRequest.getRequestURI(), tokenId, sessionId, streamId);
 
 
-		if (method.equals("GET") && getAppSettings().isTokenControlEnabled() && !clientIP.equals("127.0.0.1")) {
+		if (method.equals("GET") && getAppSettings().isTokenControlEnabled()) {
 
 			boolean result = getTokenService().checkToken(tokenId, streamId, sessionId, Token.PLAY_TOKEN);
 			if(!result) {

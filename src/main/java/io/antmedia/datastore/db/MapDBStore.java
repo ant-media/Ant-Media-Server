@@ -362,9 +362,9 @@ public class MapDBStore implements IDataStore {
 					iterator.next();
 				}
 				else {
-				list.add(gson.fromJson(iterator.next(), Broadcast.class));
+					list.add(gson.fromJson(iterator.next(), Broadcast.class));
 
-				itemCount++;	
+					itemCount++;	
 				}
 			}
 
@@ -977,7 +977,10 @@ public class MapDBStore implements IDataStore {
 
 	@Override
 	public List<Token> listAllTokens(String streamId, int offset, int size) {
+
 		List<Token> list = new ArrayList<>();
+		List<Token> listToken = new ArrayList<>();
+
 		synchronized (this) {
 			Collection<String> values = tokenMap.values();
 			int t = 0;
@@ -988,21 +991,33 @@ public class MapDBStore implements IDataStore {
 			if (offset < 0) {
 				offset = 0;
 			}
+
 			Iterator<String> iterator = values.iterator();
 
-			while(itemCount < size && iterator.hasNext()) {
+			while(iterator.hasNext()) {
+				Token token = gson.fromJson(iterator.next(), Token.class);
+
+				if(token.getStreamId().equals(streamId)) {
+					list.add(token);
+				}
+			}
+
+			Iterator<Token> listIterator = list.iterator();
+
+			while(itemCount < size && listIterator.hasNext()) {
 				if (t < offset) {
 					t++;
-					iterator.next();
+					listIterator.next();
 				}
 				else {
-				list.add(gson.fromJson(iterator.next(), Token.class));
 
-				itemCount++;	
+					listToken.add(listIterator.next());
+					itemCount++;
+
 				}
 			}
 
 		}
-		return list;
+		return listToken;
 	}
 }

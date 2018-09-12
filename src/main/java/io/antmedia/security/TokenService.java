@@ -23,6 +23,8 @@ public class TokenService implements ApplicationContextAware, IStreamPublishSecu
 	protected static Logger logger = LoggerFactory.getLogger(TokenService.class);
 	private AppSettings settings;
 	private IDataStore dataStore;
+
+
 	Map<String, String> authenticatedMap = new ConcurrentHashMap<>();
 
 
@@ -75,7 +77,7 @@ public class TokenService implements ApplicationContextAware, IStreamPublishSecu
 				Red5.getConnectionLocal().close();
 				return false;
 			}
-			
+
 			String token = queryParams.get("token");
 
 			if(checkToken(token, name, "sessionId", Token.PUBLISH_TOKEN)) {
@@ -90,7 +92,21 @@ public class TokenService implements ApplicationContextAware, IStreamPublishSecu
 		}
 		return result;
 	}
+	public AppSettings getSettings() {
+		return settings;
+	}
 
+	public void setSettings(AppSettings settings) {
+		this.settings = settings;
+	}
+
+	public IDataStore getDataStore() {
+		return dataStore;
+	}
+
+	public void setDataStore(IDataStore dataStore) {
+		this.dataStore = dataStore;
+	}
 
 
 }
