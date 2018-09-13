@@ -12,6 +12,10 @@ public class DataStoreFactory {
 	private String dbUser;
 	private String dbPassword;
 	
+	public DataStoreFactory() {
+		getDataStore();
+	}
+	
 	public String getDbName() {
 		return dbName;
 	}
