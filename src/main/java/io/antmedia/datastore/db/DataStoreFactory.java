@@ -64,14 +64,17 @@ public class DataStoreFactory {
 			}
 			else if(dbType .contentEquals("mapdb"))
 			{
+				System.out.println("\n\n\n before map db init");
+				
 				while(dataStore == null) {
 				try {
 					dataStore = new MapDBStore(dbName+".db");
+					System.out.println("datastore created:"+dataStore);
 				} catch (Exception e) {
 					System.out.println("\n\n eeeeeee"+e+"\n");
 				}
 				}
-				
+				System.out.println("\n\n\n after map db init\n\n");
 			}
 			else if(dbType .contentEquals("memorydb"))
 			{
