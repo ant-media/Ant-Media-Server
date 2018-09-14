@@ -4,6 +4,8 @@ import io.antmedia.datastore.DBReader;
 
 public class DataStoreFactory {
 
+	public static String BEAN_NAME = "dataStoreFactory";
+	
 	private IDataStore dataStore;
 	private String appName;
 	private String dbName;
@@ -11,10 +13,6 @@ public class DataStoreFactory {
 	private String dbHost;
 	private String dbUser;
 	private String dbPassword;
-	
-	public DataStoreFactory() {
-		getDataStore();
-	}
 	
 	public String getDbName() {
 		return dbName;
@@ -66,7 +64,18 @@ public class DataStoreFactory {
 			}
 			else if(dbType .contentEquals("mapdb"))
 			{
-				dataStore = new MapDBStore(dbName+".db");
+				while(dataStore == null) {
+				try {
+					dataStore = new MapDBStore(dbName+".db");
+				} catch (Exception e) {
+					System.out.println("\n\n eeeeeee"+e+"\n");
+				}
+				}
+				
+			}
+			else if(dbType .contentEquals("memorydb"))
+			{
+				dataStore = new InMemoryDataStore("dbName");
 			}
 			
 			DBReader.instance.addDataStore(appName, dataStore);
