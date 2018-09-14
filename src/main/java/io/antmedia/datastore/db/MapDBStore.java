@@ -433,21 +433,20 @@ public class MapDBStore implements IDataStore {
 					filterList.add(gson.fromJson((String) objectArray[i], Broadcast.class));
 				}
 			}
+			Iterator<Broadcast> iterator = filterList.iterator();
 
-
-			for (Broadcast broadcast : filterList) {
+			while(itemCount < size && iterator.hasNext()) {
 				if (t < offset) {
 					t++;
-					continue;
+					iterator.next();
 				}
-				list.add(broadcast);
-				itemCount++;
+				else {
 
-				if (itemCount >= size) {
-					break;
+					list.add(iterator.next());
+					itemCount++;
 				}
-
 			}
+
 		}
 		return list;
 
