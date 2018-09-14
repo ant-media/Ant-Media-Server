@@ -56,6 +56,9 @@ public class DataStoreFactory {
 
 	
 	public IDataStore getDataStore() {
+		
+		System.out.println("\n\n\n getDataStore:"+getDbType()+" "+getDbName());
+		
 		if (dataStore == null) {
 			if(dbType.contentEquals("mongodb"))
 			{
