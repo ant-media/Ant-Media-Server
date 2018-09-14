@@ -698,9 +698,9 @@ public class InMemoryDataStore implements IDataStore {
 
 	@Override
 	public List<Token> listAllTokens(String streamId, int offset, int size) {
-		
+
 		List<Token> list = new ArrayList<>();
-		List<Token> listToken = new ArrayList<>();
+		List<Token> returnList = new ArrayList<>();
 
 		Collection<Token> values = tokenMap.values();
 		int t = 0;
@@ -711,34 +711,31 @@ public class InMemoryDataStore implements IDataStore {
 		if (offset < 0) {
 			offset = 0;
 		}
-		Iterator<Token> iterator = values.iterator();
 
-		while(iterator.hasNext()) {
-			Token token = iterator.next();
 
-			if(token.getStreamId().equals(streamId)) {
+		for(Token token: values) {
+			if (token.getStreamId().equals(streamId)) {
 				list.add(token);
 			}
 		}
 
-		Iterator<Token> listIterator = list.iterator();
 
-		while(itemCount < size && listIterator.hasNext()) {
+		Iterator<Token> iterator = list.iterator();
+
+		while(itemCount < size && iterator.hasNext()) {
 			if (t < offset) {
 				t++;
-				listIterator.next();
+				iterator.next();
 			}
 			else {
 
-				listToken.add(listIterator.next());
+				returnList.add(iterator.next());
 				itemCount++;
 			}
 		}
 
-		return listToken;
+		return returnList;
 	}
-
-
 
 
 
