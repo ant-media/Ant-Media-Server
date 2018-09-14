@@ -51,17 +51,6 @@ public class HlsStatisticsFilterTest {
 	}
 	
 	
-	@Test
-	public void testGetStreamId() {
-		String streamId = "stream_id_knhbgv";
-		assertEquals(streamId, HlsStatisticsFilter.getStreamId("/liveapp/streams/"+streamId+"_adaptive.m3u8"));
-		
-		assertEquals(streamId, HlsStatisticsFilter.getStreamId("/liveapp/streams/"+streamId+".m3u8"));
-		
-		assertEquals(streamId, HlsStatisticsFilter.getStreamId("/liveapp/streams/"+streamId+"_240p.m3u8"));
-		
-		assertNull(HlsStatisticsFilter.getStreamId("/liveapp/streams/"+streamId+".u8"));
-	}
 	
 	@Test
 	public void testDoFilter() {

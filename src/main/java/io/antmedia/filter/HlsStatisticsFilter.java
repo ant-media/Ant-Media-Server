@@ -49,7 +49,7 @@ public class HlsStatisticsFilter implements javax.servlet.Filter {
 			
 			if (HttpServletResponse.SC_OK <= status && status <= HttpServletResponse.SC_BAD_REQUEST) 
 			{
-				String streamId = getStreamId(httpRequest.getRequestURI());
+				String streamId = TokenFilter.getStreamId(httpRequest.getRequestURI());
 				
 				if (streamId != null) {
 					logger.info("session id {} stream id {} status {}", sessionId, streamId, status);
@@ -70,30 +70,6 @@ public class HlsStatisticsFilter implements javax.servlet.Filter {
 		//There is no need to implement destroy right now
 	}
 
-	public static String getStreamId(String requestURI) {
-
-		int startIndex = requestURI.lastIndexOf('/');
-
-		//if request is adaptive file ( ending with _adaptive.m3u8)
-		int endIndex = requestURI.lastIndexOf(MuxAdaptor.ADAPTIVE_SUFFIX + ".m3u8");
-		if (endIndex != -1) {
-			return requestURI.substring(startIndex+1, endIndex);
-		}
-
-		//if specific bitrate is requested
-		endIndex = requestURI.lastIndexOf("p.m3u8");
-		if (endIndex != -1) {
-			endIndex = requestURI.lastIndexOf('_'); //because file format is [NAME]_[RESOLUTION]p.m3u8
-			return requestURI.substring(startIndex+1, endIndex);
-		}
-
-		//if just the m3u8 file
-		endIndex = requestURI.lastIndexOf(".m3u8");
-		if (endIndex != -1) {
-			return requestURI.substring(startIndex+1, endIndex);
-		}
-		return null;
-	}
 
 	public IStreamStats getStreamStats() {
 		if (streamStats == null) {
