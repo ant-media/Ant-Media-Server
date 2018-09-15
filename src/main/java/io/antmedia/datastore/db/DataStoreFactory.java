@@ -53,6 +53,10 @@ public class DataStoreFactory {
 	public void setDbPassword(String dbPassword) {
 		this.dbPassword = dbPassword;
 	}
+	
+	public void init() {
+		getDataStore();
+	}
 
 	
 	public IDataStore getDataStore() {
