@@ -14,7 +14,10 @@ public class DataStoreFactory {
 	private String dbUser;
 	private String dbPassword;
 	
-	
+	public DataStoreFactory ()
+	{
+		
+	}
 	
 	public DataStoreFactory(String appName, String dbName, String dbType) {
 		this.appName = appName;
