@@ -87,11 +87,6 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 	@Override
 	public boolean appStart(IScope app) {
-		
-		System.out.println("\n\n ****** getDataStore():"+getDataStore());
-		
-		
-		
 		 vertx = (Vertx) getContext().getBean(VERTX_BEAN_NAME);
 
 		if (getStreamPublishSecurityList() != null) {
@@ -703,8 +698,6 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	}
 	
 	public IDataStore getDataStore() {
-		
-		System.out.println("\n AntMediaApplicationAdapter.getDataStore():"+dataStoreFactory);
 		if(dataStore == null)
 		{
 			dataStore = dataStoreFactory.getDataStore();
