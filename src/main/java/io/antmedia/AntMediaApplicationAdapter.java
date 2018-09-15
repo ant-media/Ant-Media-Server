@@ -703,6 +703,8 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	}
 	
 	public IDataStore getDataStore() {
+		
+		System.out.println("\n AntMediaApplicationAdapter.getDataStore():"+dataStoreFactory);
 		if(dataStore == null)
 		{
 			dataStore = dataStoreFactory.getDataStore();
