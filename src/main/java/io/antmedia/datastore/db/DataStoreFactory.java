@@ -14,6 +14,14 @@ public class DataStoreFactory {
 	private String dbUser;
 	private String dbPassword;
 	
+	
+	
+	public DataStoreFactory(String appName, String dbName, String dbType) {
+		this.appName = appName;
+		this.dbName = dbName;
+		this.dbType = dbType;
+	}
+
 	public String getDbName() {
 		return dbName;
 	}
@@ -54,15 +62,7 @@ public class DataStoreFactory {
 		this.dbPassword = dbPassword;
 	}
 	
-	public void init() {
-		getDataStore();
-	}
-
-	
 	public IDataStore getDataStore() {
-		
-		System.out.println("\n\n\n getDataStore:"+getDbType()+" "+getDbName());
-		
 		if (dataStore == null) {
 			if(dbType.contentEquals("mongodb"))
 			{
@@ -71,15 +71,7 @@ public class DataStoreFactory {
 			}
 			else if(dbType .contentEquals("mapdb"))
 			{
-				System.out.println("\n\n\n before map db init");
-				
-				try {
-					dataStore = new MapDBStore(dbName+".db");
-					System.out.println("datastore created:"+dataStore);
-				} catch (Exception e) {
-					System.out.println("\n\n eeeeeee"+e+"\n");
-				}
-				System.out.println("\n\n\n after map db init\n\n");
+				dataStore = new MapDBStore(dbName+".db");
 			}
 			else if(dbType .contentEquals("memorydb"))
 			{
