@@ -74,7 +74,12 @@ public class DataStoreFactory {
 			}
 			else if(dbType .contentEquals("mapdb"))
 			{
-				dataStore = new MapDBStore(dbName+".db");
+				try {
+					dataStore = new MapDBStore(dbName+".db");
+				} catch (Exception e) {
+					System.err.println("\n\n eeeeee:"+e);
+				}
+				
 			}
 			else if(dbType .contentEquals("memorydb"))
 			{
