@@ -14,17 +14,6 @@ public class DataStoreFactory {
 	private String dbUser;
 	private String dbPassword;
 	
-	public DataStoreFactory ()
-	{
-		
-	}
-	
-	public DataStoreFactory(String appName, String dbName, String dbType) {
-		this.appName = appName;
-		this.dbName = dbName;
-		this.dbType = dbType;
-	}
-
 	public String getDbName() {
 		return dbName;
 	}
@@ -74,12 +63,7 @@ public class DataStoreFactory {
 			}
 			else if(dbType .contentEquals("mapdb"))
 			{
-				try {
-					dataStore = new MapDBStore(dbName+".db");
-				} catch (Exception e) {
-					System.err.println("\n\n eeeeee:"+e);
-				}
-				
+				dataStore = new MapDBStore(dbName+".db");
 			}
 			else if(dbType .contentEquals("memorydb"))
 			{
