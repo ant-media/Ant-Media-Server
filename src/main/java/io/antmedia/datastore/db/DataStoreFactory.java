@@ -75,6 +75,10 @@ public class DataStoreFactory {
 		return dataStore;
 	}
 	
+	public void setDataStore(IDataStore dataStore) {
+		this.dataStore = dataStore;
+	}
+
 	public String getAppName()
 	{
 		return appName;
