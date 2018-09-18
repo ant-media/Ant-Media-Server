@@ -4,7 +4,7 @@ import io.antmedia.datastore.DBReader;
 
 public class DataStoreFactory {
 
-	public static String BEAN_NAME = "dataStoreFactory";
+	public static final String BEAN_NAME = "dataStoreFactory";
 	
 	private IDataStore dataStore;
 	private String appName;
