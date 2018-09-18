@@ -1,10 +1,16 @@
 package io.antmedia.datastore.db;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.antmedia.datastore.DBReader;
+import io.antmedia.websocket.WebSocketCommunityHandler;
 
 public class DataStoreFactory {
 
 	public static final String BEAN_NAME = "dataStoreFactory";
+	private static Logger logger = LoggerFactory.getLogger(WebSocketCommunityHandler.class);
+
 	
 	private IDataStore dataStore;
 	private String appName;
@@ -70,8 +76,10 @@ public class DataStoreFactory {
 				dataStore = new InMemoryDataStore("dbName");
 			}
 			else {
-				System.out.println("Undefined Datastore:"+dbType+" app:"+appName+" db name:"+dbName);
+				logger.error("Undefined Datastore:{} app:{} db name:{}", dbType, appName, dbName);
 			}
+			
+			logger.error("Used Datastore:{} app:{} db name:{}", dbType, appName, dbName);
 			
 			DBReader.instance.addDataStore(appName, dataStore);
 		}
