@@ -317,7 +317,8 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	@Override
 	public void streamPublishStart(final IBroadcastStream stream) {
 		String streamName = stream.getPublishedName();
-
+		logger.info("stream name in streamPublishStart: {}", streamName );
+		
 		startPublish(streamName);
 
 		super.streamPublishStart(stream);
@@ -650,7 +651,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 			appSettingsTmp.setHlsPlayListType(null);
 			appSettingsTmp.setDeleteHLSFilesOnEnded(true);
 			appSettingsTmp.setPreviewOverwrite(false);
-
+			appSettingsTmp.setTokenControlEnabled(false);
 			this.appSettings=appSettingsTmp;
 		}
 

@@ -29,6 +29,7 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.TensorFlowObject;
+import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
 
 public class MongoStore implements IDataStore {
@@ -37,20 +38,28 @@ public class MongoStore implements IDataStore {
 	private Datastore datastore;
 	private Datastore vodDatastore;
 	private Datastore endpointCredentialsDS;
+	private Datastore tokenDatastore;
+	private Datastore detectionMap;
 
 	protected static Logger logger = LoggerFactory.getLogger(MongoStore.class);
-	
+
 	public static final String IMAGE_ID = "imageId"; 
 
 	public MongoStore(String dbName) {
 		morphia = new Morphia();
 		morphia.mapPackage("io.antmedia.datastore.db.types");
 		datastore = morphia.createDatastore(new MongoClient(), dbName);
-		vodDatastore = morphia.createDatastore(new MongoClient(), dbName+"Vod");
+		vodDatastore = morphia.createDatastore(new MongoClient(), dbName+"_VoD");
 		endpointCredentialsDS = morphia.createDatastore(new MongoClient(), dbName+"_endpointCredentials");
+		tokenDatastore = morphia.createDatastore(new MongoClient(), dbName + "_token");
+		detectionMap = morphia.createDatastore(new MongoClient(), dbName + "detection");
+
+
 		datastore.ensureIndexes();
 		vodDatastore.ensureIndexes();
 		endpointCredentialsDS.ensureIndexes();
+		tokenDatastore.ensureIndexes();
+		detectionMap.ensureIndexes();
 	}
 
 	public MongoStore(String host, String username, String password, String dbName) {
@@ -59,12 +68,18 @@ public class MongoStore implements IDataStore {
 		List<MongoCredential> credentialList = new ArrayList<>();
 		credentialList.add(MongoCredential.createCredential(username, dbName, password.toCharArray()));
 		datastore = morphia.createDatastore(new MongoClient(new ServerAddress(host), credentialList), dbName);
-		vodDatastore=morphia.createDatastore(new MongoClient(new ServerAddress(host), credentialList), dbName+"Vod");
+		vodDatastore=morphia.createDatastore(new MongoClient(new ServerAddress(host), credentialList), dbName+"VoD");
 		endpointCredentialsDS = morphia.createDatastore(new MongoClient(new ServerAddress(host), credentialList), dbName+"_endpointCredentials");
+		tokenDatastore = morphia.createDatastore(new MongoClient(), dbName + "_token");
+		detectionMap = morphia.createDatastore(new MongoClient(), dbName + "detection");
 
+
+		tokenDatastore.ensureIndexes();
 		datastore.ensureIndexes();
 		vodDatastore.ensureIndexes();
 		endpointCredentialsDS.ensureIndexes();
+		detectionMap.ensureIndexes();
+
 	}
 
 	/*
@@ -117,7 +132,7 @@ public class MongoStore implements IDataStore {
 		}
 		return null;
 	}
-	
+
 	@Override
 	public VoD getVoD(String id) {
 		try {
@@ -257,7 +272,7 @@ public class MongoStore implements IDataStore {
 	public long getBroadcastCount() {
 		return datastore.getCount(Broadcast.class);
 	}
-	
+
 
 	/*
 	 * (non-Javadoc)
@@ -324,7 +339,7 @@ public class MongoStore implements IDataStore {
 
 	@Override
 	public String addVod(VoD vod) {
-		
+
 		String id = null;
 		boolean result = false;
 		try {	
@@ -429,7 +444,7 @@ public class MongoStore implements IDataStore {
 
 			Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(id);
 			UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class)
-						.set("quality", quality).set("speed", speed).set("pendingPacketSize", pendingPacketQueue);
+					.set("quality", quality).set("speed", speed).set("pendingPacketSize", pendingPacketQueue);
 
 			UpdateResults update = datastore.update(query, ops);
 			return update.getUpdatedCount() == 1;
@@ -551,7 +566,7 @@ public class MongoStore implements IDataStore {
 			for (TensorFlowObject tensorFlowObject : detectedObjects) {
 				tensorFlowObject.setDetectionTime(timeElapsed);
 				tensorFlowObject.setImageId(id);
-				datastore.save(tensorFlowObject);
+				detectionMap.save(tensorFlowObject);
 			}
 		}
 
@@ -560,7 +575,7 @@ public class MongoStore implements IDataStore {
 	@Override
 	public List<TensorFlowObject> getDetectionList(String idFilter, int offsetSize, int batchSize) {
 		try {
-			return datastore.find(TensorFlowObject.class).field(IMAGE_ID).startsWith(idFilter).asList(new FindOptions().skip(offsetSize).limit(batchSize));
+			return detectionMap.find(TensorFlowObject.class).field(IMAGE_ID).startsWith(idFilter).asList(new FindOptions().skip(offsetSize).limit(batchSize));
 		} catch (Exception e) {
 			logger.error(e.getMessage());
 		}
@@ -570,19 +585,19 @@ public class MongoStore implements IDataStore {
 	@Override
 	public List<TensorFlowObject> getDetection(String id) {
 		try {
-			return datastore.find(TensorFlowObject.class).field(IMAGE_ID).equal(id).asList();
+			return detectionMap.find(TensorFlowObject.class).field(IMAGE_ID).equal(id).asList();
 		} catch (Exception e) {
 			logger.error(e.getMessage());
 		}
 		return null;	
 	}
-	
+
 	@Override
 	public long getObjectDetectedTotal(String id) {
-		return datastore.find(TensorFlowObject.class).field(IMAGE_ID).equal(id).asList().size();
+		return detectionMap.find(TensorFlowObject.class).field(IMAGE_ID).equal(id).asList().size();
 	}
-	
-	
+
+
 
 	@Override
 	public boolean editStreamSourceInfo(Broadcast broadcast) {
@@ -603,7 +618,7 @@ public class MongoStore implements IDataStore {
 		}
 		return false;
 	}
-	
+
 	/**
 	 * {@inheritDoc}
 	 */
@@ -621,7 +636,7 @@ public class MongoStore implements IDataStore {
 		}
 		return false;
 	}
-	
+
 	/**
 	 * {@inheritDoc}
 	 */
@@ -646,7 +661,7 @@ public class MongoStore implements IDataStore {
 		}
 		return false;
 	}
-	
+
 	@Override
 	public boolean updateRtmpViewerCount(String streamId, boolean increment) {
 		try {
@@ -668,9 +683,67 @@ public class MongoStore implements IDataStore {
 		}
 		return false;
 	}
-	
-	
-	
+
+	@Override
+	public Token createToken(String streamId, long expireDate, String type) {
+		Token token = null;
+
+		if(streamId != null) {
+			token = new Token();
+			token.setStreamId(streamId);
+			token.setExpireDate(expireDate);
+			token.setType(type);
+
+			try {
+				String tokenId = RandomStringUtils.randomNumeric(24);
+				token.setTokenId(tokenId);
+				tokenDatastore.save(token);
+
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+
+		return token;
+	}
+
+	@Override
+	public Token validateToken(Token token) {
+		Token fetchedToken = null;
+		if (token.getTokenId() != null) {
+			fetchedToken = tokenDatastore.find(Token.class).field("tokenId").equal(token.getTokenId()).get();
+			if (fetchedToken != null && fetchedToken.getStreamId().equals(token.getStreamId()) && fetchedToken.getType().equals(token.getType())) {
+
+				Query<Token> query = tokenDatastore.createQuery(Token.class).field("tokenId").equal(token.getTokenId());
+				WriteResult delete = tokenDatastore.delete(query);
+				if(delete.getN() == 1) {
+					return fetchedToken;
+				}
+			}else {
+				fetchedToken = null;
+			}
+		}
+		return fetchedToken;
+	}
+
+	@Override
+	public boolean revokeTokens(String streamId) {
+
+		Query<Token> query = tokenDatastore.createQuery(Token.class).field("streamId").equal(streamId);
+		WriteResult delete = tokenDatastore.delete(query);
+
+		return delete.getN() >= 1;
+
+	}
+
+	@Override
+	public List<Token> listAllTokens(String streamId, int offset, int size) {
+		return 	tokenDatastore.find(Token.class).field("streamId").equal(streamId).asList(new FindOptions() .skip(offset).limit(size));
+
+	}
+
+
+
 
 
 
