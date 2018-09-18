@@ -69,6 +69,9 @@ public class DataStoreFactory {
 			{
 				dataStore = new InMemoryDataStore("dbName");
 			}
+			else {
+				System.out.println("Undefined Datastore:"+dbType+" app:"+appName+" db name:"+dbName);
+			}
 			
 			DBReader.instance.addDataStore(appName, dataStore);
 		}
