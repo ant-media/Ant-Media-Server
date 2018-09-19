@@ -79,7 +79,7 @@ public class DataStoreFactory {
 				logger.error("Undefined Datastore:{} app:{} db name:{}", dbType, appName, dbName);
 			}
 			
-			logger.error("Used Datastore:{} app:{} db name:{}", dbType, appName, dbName);
+			logger.info("Used Datastore:{} app:{} db name:{}", dbType, appName, dbName);
 			
 			DBReader.instance.addDataStore(appName, dataStore);
 		}

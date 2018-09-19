@@ -414,6 +414,8 @@ public class BroadcastRestService {
 			if (endPointServiceList != null) {
 
 				VideoServiceEndpoint videoServiceEndpoint = endPointServiceList.get(endpointServiceId);
+				
+				logger.error("\n\n epsid:{}, vse: {}", endpointServiceId, videoServiceEndpoint.toString());
 
 				if (videoServiceEndpoint != null) {
 					Endpoint endpoint;

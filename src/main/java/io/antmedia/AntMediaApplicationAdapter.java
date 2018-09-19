@@ -105,6 +105,8 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 				streamFetcherManager.startStreams(streams);
 
 				List<SocialEndpointCredentials> socialEndpoints = getDataStore().getSocialEndpoints(0, END_POINT_LIMIT);
+				
+				logger.info("socialEndpoints size: {}", socialEndpoints.size());
 
 				for (SocialEndpointCredentials socialEndpointCredentials : socialEndpoints) 
 				{
