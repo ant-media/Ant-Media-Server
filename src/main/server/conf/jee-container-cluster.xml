@@ -93,12 +93,15 @@
 					</list>
 				</constructor-arg>
 				<property name="membershipService">
+				<!-- 
 					<bean class="org.apache.catalina.tribes.membership.McastService">
 						<property name="address" value="228.0.0.4" />
 						<property name="port" value="45564" />
 						<property name="frequency" value="500" />
 						<property name="dropTime" value="3000" />
 					</bean>
+				-->
+					<bean class="io.antmedia.enterprise.cluster.DBMembershipService"/>
 				</property>
 				<property name="channelSender">
 					<bean class="org.apache.catalina.tribes.transport.ReplicationTransmitter">
