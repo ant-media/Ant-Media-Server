@@ -9,7 +9,7 @@ import io.antmedia.websocket.WebSocketCommunityHandler;
 public class DataStoreFactory {
 
 	public static final String BEAN_NAME = "dataStoreFactory";
-	private static Logger logger = LoggerFactory.getLogger(WebSocketCommunityHandler.class);
+	private static Logger logger = LoggerFactory.getLogger(DataStoreFactory.class);
 
 	
 	private IDataStore dataStore;
