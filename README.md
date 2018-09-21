@@ -15,12 +15,20 @@ Ant Media Server is an Open Source Media Server that supports:
  * Recording Live Streams (FLV, MP4 and HLS Containers)
  * Restream to Social Media Simultaneously(Facebook and Youtube in in **Enterprise Edition**)
  * Low Latency 1:N WebRTC Live Streaming in **Enterprise Edition**
- * Adaptive Bitrate Conversion for Live Streams (FLV, MP4, HLS) in **Enterprise Edition**
+ * One-Time Token Control in **Enterprise Edition**
+ * Object Detection in **Enterprise Edition**
 
 
 [Documentation](https://antmedia.io/documentation) & [Enterprise Edition](https://antmedia.io)
 
 ## Releases 
+
+
+#### [Ant Media Server Community 1.5.0 (September 21, 2018)](https://github.com/ant-media/Ant-Media-Server/releases/download/ams-v1.5.0/ant-media-server-community-1.5.0-180921_0855.zip)
+* One-Time Token Control Services Added
+* Object Detection Features Added
+* Improvements & Compatibility on Web Panel
+* Bug Fixes
 
 #### [Ant Media Server Community 1.4.0 (August 2, 2018)](https://github.com/ant-media/Ant-Media-Server/releases/download/ams-v1.4.0/ant-media-server-community-1.4.0-180802_1155.zip)
 * Improvement WebRTCApp compatibility for browsers
