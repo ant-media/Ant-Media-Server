@@ -165,11 +165,7 @@
 					<property name="rotatable" value="true" />
 				</bean>
 				 
-				<bean id="valve.cluster" class="io.antmedia.enterprise.cluster.HttpLiveStreamValve"> 
-					<property name="cluster" ref="tomcat.cluster" /> </bean>
-					
-				
-					
+				<bean id="valve.cluster" class="io.antmedia.enterprise.cluster.HttpLiveStreamValve"/> 
 			</list>
 		</property>
 
