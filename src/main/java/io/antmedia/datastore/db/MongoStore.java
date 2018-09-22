@@ -47,14 +47,14 @@ public class MongoStore implements IDataStore {
 
 	public static final String IMAGE_ID = "imageId"; 
 
-	public MongoStore(String dbName) {
+	public MongoStore(String dbName, String host) {
 		morphia = new Morphia();
 		morphia.mapPackage("io.antmedia.datastore.db.types");
-		datastore = morphia.createDatastore(new MongoClient(), dbName);
-		vodDatastore = morphia.createDatastore(new MongoClient(), dbName+"_VoD");
-		endpointCredentialsDS = morphia.createDatastore(new MongoClient(), dbName+"_endpointCredentials");
-		tokenDatastore = morphia.createDatastore(new MongoClient(), dbName + "_token");
-		detectionMap = morphia.createDatastore(new MongoClient(), dbName + "detection");
+		datastore = morphia.createDatastore(new MongoClient(host), dbName);
+		vodDatastore = morphia.createDatastore(new MongoClient(host), dbName+"_VoD");
+		endpointCredentialsDS = morphia.createDatastore(new MongoClient(host), dbName+"_endpointCredentials");
+		tokenDatastore = morphia.createDatastore(new MongoClient(host), dbName + "_token");
+		detectionMap = morphia.createDatastore(new MongoClient(host), dbName + "detection");
 
 
 		datastore.ensureIndexes();

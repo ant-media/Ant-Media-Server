@@ -65,7 +65,7 @@ public class DataStoreFactory {
 			if(dbType.contentEquals("mongodb"))
 			{
 				//dataStore = new MongoStore(dbHost, dbUser, dbPassword, dbName);
-				dataStore = new MongoStore(dbName);
+				dataStore = new MongoStore(dbName, dbHost);
 			}
 			else if(dbType .contentEquals("mapdb"))
 			{
