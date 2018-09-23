@@ -47,7 +47,7 @@ before_install:
 
 
 install:
-  - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -Dgpg.skip=true -B -V --quiet 
+  - mvn install -P security -DskipTests=true -Dmaven.javadoc.skip=true -Dgpg.skip=true -B -V --quiet
 
 script:
   - echo $(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)
