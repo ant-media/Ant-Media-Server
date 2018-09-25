@@ -408,7 +408,6 @@ public class BroadcastRestService {
 		boolean success = false;
 		String message = null;
 		Broadcast broadcast = lookupBroadcast(id);
-		logger.error("\n\n broadcast:{} id:{} service:{}", broadcast.toString(), id, endpointServiceId);
 
 		if (broadcast != null) {
 			Map<String, VideoServiceEndpoint> endPointServiceList = getEndpointList();
@@ -417,8 +416,6 @@ public class BroadcastRestService {
 
 				VideoServiceEndpoint videoServiceEndpoint = endPointServiceList.get(endpointServiceId);
 				
-				logger.error("\n\n epsid:{}, vse: {}", endpointServiceId, videoServiceEndpoint.toString());
-
 				if (videoServiceEndpoint != null) {
 					Endpoint endpoint;
 					try {
