@@ -7,13 +7,11 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Vector;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.antmedia.datastore.db.DataStoreFactory;
 
 public class DBUtils {
 	
@@ -34,7 +32,9 @@ public class DBUtils {
 					}
 				}
 			}
-		} catch (SocketException e) { }
+		} catch (SocketException e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+		}
 		ip = hostAddresses.get(0);
 		return ip;
 	}
