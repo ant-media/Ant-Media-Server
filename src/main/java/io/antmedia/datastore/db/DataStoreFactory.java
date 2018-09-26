@@ -4,7 +4,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.antmedia.datastore.DBReader;
-import io.antmedia.websocket.WebSocketCommunityHandler;
 
 public class DataStoreFactory {
 
@@ -64,7 +63,7 @@ public class DataStoreFactory {
 		if (dataStore == null) {
 			if(dbType.contentEquals("mongodb"))
 			{
-				//dataStore = new MongoStore(dbHost, dbUser, dbPassword, dbName);
+				// dataStore = new MongoStore(dbHost, dbUser, dbPassword, dbName)
 				dataStore = new MongoStore(dbName, dbHost);
 			}
 			else if(dbType .contentEquals("mapdb"))

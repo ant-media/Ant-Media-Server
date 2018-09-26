@@ -15,7 +15,6 @@ import org.mapdb.BTreeMap;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.mapdb.Serializer;
-import org.mongodb.morphia.query.Query;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -888,14 +887,15 @@ public class MapDBStore implements IDataStore {
 	
 	@Override
 	public void addStreamInfoList(List<StreamInfo> streamInfoList) {
-	
+		//used in mongo for cluster mode. useless here.
 	}
 	
 	public List<StreamInfo> getStreamInfoList(String streamId) {
-		return null;
+		return new ArrayList<>();
 	}
 	
 	public void clearStreamInfoList(String streamId) {
+		//used in mongo for cluster mode. useless here.
 	}
 
 	@Override

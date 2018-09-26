@@ -2,14 +2,12 @@ package io.antmedia.datastore;
 
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.commons.collections.map.HashedMap;
-
 import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 
 public class DBReader {
 
-	public static DBReader instance = new DBReader();
+	public static final DBReader instance = new DBReader();
 	
 	ConcurrentHashMap<String, IDataStore> dbMap = new ConcurrentHashMap<>();	
 	public String getHost(String streamName, String appName) {

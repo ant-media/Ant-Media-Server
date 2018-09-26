@@ -13,7 +13,6 @@ import java.util.regex.Pattern;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.mongodb.morphia.query.Query;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -742,13 +741,16 @@ public class InMemoryDataStore implements IDataStore {
 
 	@Override
 	public void addStreamInfoList(List<StreamInfo> streamInfoList) {
+		//used in mongo for cluster mode. useless here.
+
 	
 	}
 
 	public List<StreamInfo> getStreamInfoList(String streamId) {
-		return null;
+		return new ArrayList<>();
 	}
 	
 	public void clearStreamInfoList(String streamId) {
+		//used in mongo for cluster mode. useless here.
 	}
 }
