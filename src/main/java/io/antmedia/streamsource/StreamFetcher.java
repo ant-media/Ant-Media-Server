@@ -205,7 +205,7 @@ public class StreamFetcher {
 				if (result.isSuccess()) {
 					boolean audioOnly = false;
 					if(inputFormatContext.nb_streams() == 1) {
-						audioOnly  = (inputFormatContext.streams(0).codec().codec_type() == AVMEDIA_TYPE_AUDIO);
+						audioOnly  = (inputFormatContext.streams(0).codecpar().codec_type() == AVMEDIA_TYPE_AUDIO);
 					}
 					
 					if(audioOnly) {
