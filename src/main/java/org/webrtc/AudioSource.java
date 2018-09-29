@@ -15,31 +15,7 @@ package org.webrtc;
  * more {@code AudioTrack} objects.
  */
 public class AudioSource extends MediaSource {
-	/**
-	 * Native Peer Connection Factory
-	 */
-	private long nativeFactory;
-
-	public AudioSource(long nativeSource, long nativeFactory) {
-		super(nativeSource);
-		this.nativeFactory = nativeFactory;
-	}
-
-
-	public void writeAudioFrame(byte[] data, int length) {
-		nativeWriteAudioFrame(nativeFactory, data, length);
-	}
-	
-	public void writeMockFrame(int length) {
-		  nativeWriteMockAudioFrame(nativeFactory, length);
-	 }
-	
-	/**
-	 * Write 48K Hz stereo data
-	 * @param data
-	 * @param length
-	 */
-	private native void nativeWriteAudioFrame(long nativeFactory, byte[] data, int length);
-	
-	private native void nativeWriteMockAudioFrame(long nativeFactory, int length);
+  public AudioSource(long nativeSource) {
+    super(nativeSource);
+  }
 }

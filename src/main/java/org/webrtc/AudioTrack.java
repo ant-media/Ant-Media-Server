@@ -10,43 +10,18 @@
 
 package org.webrtc;
 
-import java.util.LinkedList;
-
-
 /** Java wrapper for a C++ AudioTrackInterface */
 public class AudioTrack extends MediaStreamTrack {
+  public AudioTrack(long nativeTrack) {
+    super(nativeTrack);
+  }
 
+  /** Sets the volume for the underlying MediaSource. Volume is a gain value in the range
+   *  0 to 10.
+   */
+  public void setVolume(double volume) {
+    nativeSetVolume(super.nativeTrack, volume);
+  }
 
-	private final LinkedList<AudioSink> audioSinks = new LinkedList<AudioSink>();
-
-	public AudioTrack(long nativeTrack) {
-		super(nativeTrack);
-	}
-
-	public void addSink(AudioSink renderer) {
-		audioSinks.add(renderer);
-		nativeAddSink(nativeTrack, renderer.nativeAudioSink);
-	}
-
-	public void removeSink(AudioSink renderer) {
-		if (!audioSinks.remove(renderer)) {
-			return;
-		}
-		nativeRemoveSink(nativeTrack, renderer.nativeAudioSink);
-		renderer.dispose();
-	}
-
-	public void dispose() {
-		while (!audioSinks.isEmpty()) {
-			removeSink(audioSinks.getFirst());
-		}
-		super.dispose();
-	}
-
-	private static native void free(long nativeTrack);
-
-	private static native void nativeAddSink(long nativeTrack, long nativeRenderer);
-
-	private static native void nativeRemoveSink(long nativeTrack, long nativeRenderer);
-
+  private static native void nativeSetVolume(long track, double volume);
 }

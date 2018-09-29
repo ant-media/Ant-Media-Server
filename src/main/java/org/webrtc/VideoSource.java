@@ -10,15 +10,24 @@
 
 package org.webrtc;
 
+import javax.annotation.Nullable;
+
 /**
  * Java wrapper of native AndroidVideoTrackSource.
  */
 public class VideoSource extends MediaSource {
-  private long nativeFactory;
+  private final NativeCapturerObserver capturerObserver;
 
-public VideoSource(long nativeSource, long nativeFactory) {
+  public VideoSource(long nativeSource) {
     super(nativeSource);
-    this.nativeFactory = nativeFactory;
+    this.capturerObserver = new NativeCapturerObserver(nativeGetInternalSource(nativeSource));
+  }
+
+  // TODO(bugs.webrtc.org/9181): Remove.
+  VideoSource(long nativeSource, Object surfaceTextureHelper) {
+    super(nativeSource);
+    this.capturerObserver =
+        new NativeCapturerObserver(nativeGetInternalSource(nativeSource), surfaceTextureHelper);
   }
 
   /**
@@ -31,18 +40,17 @@ public VideoSource(long nativeSource, long nativeFactory) {
     nativeAdaptOutputFormat(nativeSource, width, height, fps);
   }
 
-  private static native void nativeAdaptOutputFormat(
-      long nativeSource, int width, int height, int fps);
-  
-  public void writeFrame(byte[] data, int width, int height) {
-	  nativeWriteVideoFrame(nativeFactory, data, width, height);
+  public CapturerObserver getCapturerObserver() {
+    return capturerObserver;
   }
-  
-  public void writeMockFrame(int width, int height) {
-	  nativeWriteMockVideoFrame(nativeFactory, width, height);
+
+  @Override
+  public void dispose() {
+    capturerObserver.dispose();
+    super.dispose();
   }
-  
-  private native void nativeWriteVideoFrame(long nativeFactory, byte[] data, int width, int height);
-  
-  private native void nativeWriteMockVideoFrame(long nativeFactory, int width, int height);
+
+  // Returns source->internal() from webrtc::VideoTrackSourceProxy.
+  private static native long nativeGetInternalSource(long source);
+  private static native void nativeAdaptOutputFormat(long source, int width, int height, int fps);
 }

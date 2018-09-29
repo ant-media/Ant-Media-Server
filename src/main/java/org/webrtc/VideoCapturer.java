@@ -10,9 +10,12 @@
 
 package org.webrtc;
 
+import java.util.List;
+
 // Base interface for all VideoCapturers to implement.
 public interface VideoCapturer {
   // Interface used for providing callbacks to an observer.
+  @Deprecated
   public interface CapturerObserver {
     // Notify if the camera have been started successfully or not.
     // Called on a Java thread owned by VideoCapturer.
@@ -20,71 +23,32 @@ public interface VideoCapturer {
     void onCapturerStopped();
 
     // Delivers a captured frame. Called on a Java thread owned by VideoCapturer.
-    void onByteBufferFrameCaptured(
-        byte[] data, int width, int height, int rotation, long timeStamp);
-
-    // Delivers a captured frame in a texture with id |oesTextureId|. Called on a Java thread
-    // owned by VideoCapturer.
-    void onTextureFrameCaptured(int width, int height, int oesTextureId, float[] transformMatrix,
-        int rotation, long timestamp);
+    void onFrameCaptured(VideoFrame frame);
   }
 
-  // An implementation of CapturerObserver that forwards all calls from
-  // Java to the C layer.
-  static class AndroidVideoTrackSourceObserver implements CapturerObserver {
-    // Pointer to VideoTrackSourceProxy proxying AndroidVideoTrackSource.
-    private final long nativeSource;
 
-    public AndroidVideoTrackSourceObserver(long nativeSource) {
-      this.nativeSource = nativeSource;
-    }
-
-    @Override
-    public void onCapturerStarted(boolean success) {
-      nativeCapturerStarted(nativeSource, success);
-    }
-
-    @Override
-    public void onCapturerStopped() {
-      nativeCapturerStopped(nativeSource);
-    }
-
-    @Override
-    public void onByteBufferFrameCaptured(
-        byte[] data, int width, int height, int rotation, long timeStamp) {
-      nativeOnByteBufferFrameCaptured(
-          nativeSource, data, data.length, width, height, rotation, timeStamp);
-    }
-
-    @Override
-    public void onTextureFrameCaptured(int width, int height, int oesTextureId,
-        float[] transformMatrix, int rotation, long timestamp) {
-      nativeOnTextureFrameCaptured(
-          nativeSource, width, height, oesTextureId, transformMatrix, rotation, timestamp);
-    }
-
-    private native void nativeCapturerStarted(long nativeSource, boolean success);
-    private native void nativeCapturerStopped(long nativeSource);
-    private native void nativeOnByteBufferFrameCaptured(long nativeSource, byte[] data, int length,
-        int width, int height, int rotation, long timeStamp);
-    private native void nativeOnTextureFrameCaptured(long nativeSource, int width, int height,
-        int oesTextureId, float[] transformMatrix, int rotation, long timestamp);
-  }
 
   /**
    * This function is used to initialize the camera thread, the android application context, and the
    * capture observer. It will be called only once and before any startCapture() request. The
    * camera thread is guaranteed to be valid until dispose() is called. If the VideoCapturer wants
    * to deliver texture frames, it should do this by rendering on the SurfaceTexture in
-   * |surfaceTextureHelper|, register itself as a listener, and forward the texture frames to
-   * CapturerObserver.onTextureFrameCaptured().
+   * {@code surfaceTextureHelper}, register itself as a listener, and forward the frames to
+   * CapturerObserver.onFrameCaptured(). The caller still has ownership of {@code
+   * surfaceTextureHelper} and is responsible for making sure surfaceTextureHelper.dispose() is
+   * called. This also means that the caller can reuse the SurfaceTextureHelper to initialize a new
+   * VideoCapturer once the previous VideoCapturer has been disposed.
    */
-  //void initialize(SurfaceTextureHelper surfaceTextureHelper, Context applicationContext,
-  //    CapturerObserver capturerObserver);
+  // Our version of clang format doesn't understand default and messes up.
+  // clang-format off
+//  default void initialize(SurfaceTextureHelper surfaceTextureHelper, Context applicationContext,
+  //    org.webrtc.CapturerObserver capturerObserver) {
+  //  initialize(surfaceTextureHelper, applicationContext, (CapturerObserver) capturerObserver);
+ // }
 
   /**
-   * Start capturing frames in a format that is as close as possible to |width| x |height| and
-   * |framerate|.
+   * Start capturing frames in a format that is as close as possible to {@code width x height} and
+   * {@code framerate}.
    */
   void startCapture(int width, int height, int framerate);
 
