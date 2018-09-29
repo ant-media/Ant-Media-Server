@@ -6,7 +6,7 @@ FULL_CHAIN_FILE=
 PRIVATE_KEY_FILE=
 domain=""
 
-while getopts u:d:p:f: option
+while getopts i:d:p:f: option
 do
 case "${option}"
 in
