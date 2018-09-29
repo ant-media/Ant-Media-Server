@@ -12,6 +12,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 
 import io.antmedia.AppSettings;
+import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.types.Token;
 
@@ -25,13 +26,13 @@ public class TokenService implements ApplicationContextAware, IStreamPublishSecu
 
 
 	Map<String, String> authenticatedMap = new ConcurrentHashMap<>();
+	private ApplicationContext applicationContext;
 
 
 	@Override
 	public void setApplicationContext(ApplicationContext applicationContext) {
 
-		dataStore = (IDataStore) applicationContext.getBean(IDataStore.BEAN_NAME);
-
+		this.applicationContext = applicationContext;
 		if (applicationContext.containsBean(AppSettings.BEAN_NAME)) {
 			settings = (AppSettings)applicationContext.getBean(AppSettings.BEAN_NAME);
 
@@ -48,7 +49,7 @@ public class TokenService implements ApplicationContextAware, IStreamPublishSecu
 			token.setStreamId(streamId);
 			token.setType(type);
 
-			if(dataStore.validateToken(token)!= null) {
+			if(getDataStore().validateToken(token)!= null) {
 				result = true;	
 				if(type.equals(Token.PLAY_TOKEN)) {
 					authenticatedMap.put(sessionId, streamId);
@@ -100,6 +101,9 @@ public class TokenService implements ApplicationContextAware, IStreamPublishSecu
 	}
 
 	public IDataStore getDataStore() {
+		if(dataStore == null) {
+			dataStore = ((DataStoreFactory) applicationContext.getBean("dataStoreFactory")).getDataStore();
+		}
 		return dataStore;
 	}
 

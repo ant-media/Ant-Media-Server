@@ -3,8 +3,7 @@
 	<parent>
 		<groupId>io.antmedia</groupId>
 		<artifactId>parent</artifactId>
-		<version>1.5.0</version>
-
+		<version>1.5.1-SNAPSHOT</version>
 	</parent>
 	<modelVersion>4.0.0</modelVersion>
 	<artifactId>ant-media-server</artifactId>
@@ -166,7 +165,6 @@
 		</plugins>
 	</build>
 	<dependencies>
-
 		<dependency>
 			<groupId>io.antmedia.ipcamera.onvif</groupId>
 			<artifactId>ONVIF</artifactId>
