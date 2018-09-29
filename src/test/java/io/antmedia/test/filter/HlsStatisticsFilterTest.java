@@ -16,6 +16,7 @@ import javax.servlet.http.HttpSession;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -44,22 +45,12 @@ public class HlsStatisticsFilterTest {
 		hlsStatisticsFilter = new HlsStatisticsFilter();
 	}
 	
+	@After
 	public void after() {
 		hlsStatisticsFilter = null;
 	}
 	
 	
-	@Test
-	public void testGetStreamId() {
-		String streamId = "stream_id_knhbgv";
-		assertEquals(streamId, HlsStatisticsFilter.getStreamId("/liveapp/streams/"+streamId+"_adaptive.m3u8"));
-		
-		assertEquals(streamId, HlsStatisticsFilter.getStreamId("/liveapp/streams/"+streamId+".m3u8"));
-		
-		assertEquals(streamId, HlsStatisticsFilter.getStreamId("/liveapp/streams/"+streamId+"_240p.m3u8"));
-		
-		assertNull(HlsStatisticsFilter.getStreamId("/liveapp/streams/"+streamId+".u8"));
-	}
 	
 	@Test
 	public void testDoFilter() {

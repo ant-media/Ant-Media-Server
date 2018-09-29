@@ -18,6 +18,8 @@
 
 package org.red5.server.api.stream.support;
 
+import java.util.Map;
+
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IStreamPlaybackSecurity;
 import org.red5.server.api.stream.IStreamPublishSecurity;
@@ -31,7 +33,7 @@ import org.red5.server.api.stream.IStreamPublishSecurity;
 public class DenyAllStreamAccess implements IStreamPublishSecurity, IStreamPlaybackSecurity {
 
     /** {@inheritDoc} */
-    public boolean isPublishAllowed(IScope scope, String name, String mode) {
+    public boolean isPublishAllowed(IScope scope, String name, String mode, Map<String, String> queryParams) {
         return false;
     }
 

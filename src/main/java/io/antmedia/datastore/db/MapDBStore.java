@@ -27,7 +27,9 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.TensorFlowObject;
+import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
+
 
 public class MapDBStore implements IDataStore {
 
@@ -37,12 +39,15 @@ public class MapDBStore implements IDataStore {
 	private BTreeMap<String, String> detectionMap;
 	private BTreeMap<String, String> userVodMap;
 	private BTreeMap<String, String> socialEndpointsCredentialsMap;
+	private BTreeMap<String, String> tokenMap;
+
 	private Gson gson;
 	protected static Logger logger = LoggerFactory.getLogger(MapDBStore.class);
-	private static final String MAP_NAME = "broadcast";
-	private static final String VOD_MAP_NAME = "vod";
-	private static final String DETECTION_MAP_NAME = "detection";
-	private static final String USER_MAP_NAME = "userVod";
+	private static final String MAP_NAME = "BROADCAST";
+	private static final String VOD_MAP_NAME = "VOD";
+	private static final String DETECTION_MAP_NAME = "DETECTION";
+	private static final String USER_MAP_NAME = "USER_VOD";
+	private static final String TOKEN = "TOKEN";
 	private static final String SOCIAL_ENDPONT_CREDENTIALS_MAP_NAME = "SOCIAL_ENDPONT_CREDENTIALS_MAP_NAME";
 
 
@@ -66,6 +71,9 @@ public class MapDBStore implements IDataStore {
 				.counterEnable().createOrOpen();
 
 		socialEndpointsCredentialsMap = db.treeMap(SOCIAL_ENDPONT_CREDENTIALS_MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
+				.counterEnable().createOrOpen();
+
+		tokenMap = db.treeMap(TOKEN).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
 				.counterEnable().createOrOpen();
 
 		GsonBuilder builder = new GsonBuilder();
@@ -344,19 +352,20 @@ public class MapDBStore implements IDataStore {
 			if (offset < 0) {
 				offset = 0;
 			}
-			for (String broadcastString : values) {
+			Iterator<String> iterator = values.iterator();
+
+			while(itemCount < size && iterator.hasNext()) {
 				if (t < offset) {
 					t++;
-					continue;
+					iterator.next();
 				}
-				list.add(gson.fromJson(broadcastString, Broadcast.class));
-				itemCount++;
+				else {
+					list.add(gson.fromJson(iterator.next(), Broadcast.class));
 
-				if (itemCount >= size) {
-					break;
+					itemCount++;	
 				}
-
 			}
+
 		}
 		return list;
 	}
@@ -424,21 +433,20 @@ public class MapDBStore implements IDataStore {
 					filterList.add(gson.fromJson((String) objectArray[i], Broadcast.class));
 				}
 			}
+			Iterator<Broadcast> iterator = filterList.iterator();
 
-
-			for (Broadcast broadcast : filterList) {
+			while(itemCount < size && iterator.hasNext()) {
 				if (t < offset) {
 					t++;
-					continue;
+					iterator.next();
 				}
-				list.add(broadcast);
-				itemCount++;
+				else {
 
-				if (itemCount >= size) {
-					break;
+					list.add(iterator.next());
+					itemCount++;
 				}
-
 			}
+
 		}
 		return list;
 
@@ -874,5 +882,127 @@ public class MapDBStore implements IDataStore {
 			}
 		}
 		return result;
+	}
+
+	@Override
+	public Token createToken(String streamId, long expireDate, String type) {
+		Token token = null;
+		synchronized (this) {
+
+			if(streamId != null) {
+				token = new Token();
+				token.setStreamId(streamId);
+				token.setExpireDate(expireDate);
+				token.setType(type);
+
+				try {
+					String tokenId = RandomStringUtils.randomNumeric(24);
+					token.setTokenId(tokenId);
+					tokenMap.put(tokenId, gson.toJson(token));
+					db.commit();
+				} catch (Exception e) {
+					logger.error(ExceptionUtils.getStackTrace(e));
+				}
+			}
+		}
+
+		return token;
+	}
+
+	@Override
+	public Token validateToken(Token token) {
+		Token fetchedToken = null;
+
+		synchronized (this) {
+			if (token.getTokenId() != null) {
+				String jsonToken = tokenMap.get(token.getTokenId());
+				if (jsonToken != null) {
+					fetchedToken = gson.fromJson((String) jsonToken, Token.class);
+					if(fetchedToken.getStreamId().equals(token.getStreamId()) && fetchedToken.getType().equals(token.getType())) {
+						boolean result = tokenMap.remove(token.getTokenId()) != null;
+						if (result) {
+							db.commit();
+						}
+						return fetchedToken;
+					}
+					else {
+						fetchedToken = null;
+					}
+				}
+			}
+		}
+
+		return fetchedToken;
+	}
+
+	@Override
+	public boolean revokeTokens(String streamId) {
+		boolean result = false;
+
+		synchronized (this) {
+			Object[] objectArray = tokenMap.getValues().toArray();
+			Token[] tokenArray = new Token[objectArray.length];
+
+			for (int i = 0; i < objectArray.length; i++) {
+				tokenArray[i] = gson.fromJson((String) objectArray[i], Token.class);
+			}
+
+			for (int i = 0; i < tokenArray.length; i++) {
+				if (tokenArray[i].getStreamId().equals(streamId)) {
+					result = tokenMap.remove(tokenArray[i].getTokenId()) != null;
+					if(!result) {
+						break;
+					}
+				}
+				db.commit();
+			}
+		}
+		return result;
+	}
+
+	@Override
+	public List<Token> listAllTokens(String streamId, int offset, int size) {
+
+		List<Token> list = new ArrayList<>();
+		List<Token> listToken = new ArrayList<>();
+
+		synchronized (this) {
+			Collection<String> values = tokenMap.values();
+			int t = 0;
+			int itemCount = 0;
+			if (size > MAX_ITEM_IN_ONE_LIST) {
+				size = MAX_ITEM_IN_ONE_LIST;
+			}
+			if (offset < 0) {
+				offset = 0;
+			}
+
+			Iterator<String> iterator = values.iterator();
+
+			while(iterator.hasNext()) {
+				Token token = gson.fromJson(iterator.next(), Token.class);
+
+				if(token.getStreamId().equals(streamId)) {
+					list.add(token);
+				}
+			}
+
+			Iterator<Token> listIterator = list.iterator();
+
+			while(itemCount < size && listIterator.hasNext()) {
+				if (t < offset) {
+					t++;
+					listIterator.next();
+				}
+				else {
+
+					listToken.add(listIterator.next());
+					itemCount++;
+
+				}
+			}
+
+		}
+		return listToken;
 	}
 }
