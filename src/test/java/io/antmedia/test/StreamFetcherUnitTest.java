@@ -698,6 +698,22 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		testFetchStreamSources("src/test/resources/nba.ts", false);
 		logger.info("leaving testTSSource");
 	}
+	
+	@Test
+	public void testShoutcastSource() {
+		logger.info("running testShoutcastSource");
+		//test Southcast Source
+		testFetchStreamSources("http://46.4.33.73:5252/;", false);
+		logger.info("leaving testShoutcastSource");
+	}
+	
+	@Test
+	public void testAudioOnlySource() {
+		logger.info("running testAudioOnlySource");
+		//test AudioOnly Source
+		testFetchStreamSources("rtmp://37.247.100.100/shoutcast/karadenizfm.stream", false);
+		logger.info("leaving testAudioOnlySource");
+	}
 
 
 	public void testFetchStreamSources(String source, boolean restartStream) {

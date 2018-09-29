@@ -10,6 +10,7 @@ import static org.bytedeco.javacpp.avformat.avformat_open_input;
 import static org.bytedeco.javacpp.avutil.av_dict_free;
 import static org.bytedeco.javacpp.avutil.av_dict_set;
 import static org.bytedeco.javacpp.avutil.av_rescale_q;
+import static org.bytedeco.javacpp.avutil.AVMEDIA_TYPE_AUDIO;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -202,9 +203,14 @@ public class StreamFetcher {
 
 
 				if (result.isSuccess()) {
+					boolean audioOnly = false;
+					if(inputFormatContext.nb_streams() == 1) {
+						audioOnly  = (inputFormatContext.streams(0).codec().codec_type() == AVMEDIA_TYPE_AUDIO);
+					}
 					
 					muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null,true, scope);
 					muxAdaptor.init(scope, stream.getStreamId(), false);
+					muxAdaptor.setAudioOnly(audioOnly);
 
 					logger.info("{} stream count in stream {} is {}", stream.getStreamId(), stream.getStreamUrl(), inputFormatContext.nb_streams());
 
