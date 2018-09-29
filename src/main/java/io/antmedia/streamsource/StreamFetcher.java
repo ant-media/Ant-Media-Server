@@ -208,9 +208,15 @@ public class StreamFetcher {
 						audioOnly  = (inputFormatContext.streams(0).codec().codec_type() == AVMEDIA_TYPE_AUDIO);
 					}
 					
-					muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null,true, scope);
+					if(audioOnly) {
+						muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null,true, scope, false);
+						muxAdaptor.setAudioOnly(audioOnly);
+					}
+					else {
+						muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null,true, scope);
+					}
 					muxAdaptor.init(scope, stream.getStreamId(), false);
-					muxAdaptor.setAudioOnly(audioOnly);
+					
 
 					logger.info("{} stream count in stream {} is {}", stream.getStreamId(), stream.getStreamUrl(), inputFormatContext.nb_streams());
 
