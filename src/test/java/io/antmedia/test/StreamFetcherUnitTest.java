@@ -703,7 +703,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testShoutcastSource() {
 		logger.info("running testShoutcastSource");
 		//test Southcast Source
-		testFetchStreamSources("http://46.4.33.73:5252/;", false);
+		testFetchStreamSources("http://66.85.88.18:5116/;", false);
 		logger.info("leaving testShoutcastSource");
 	}
 	
