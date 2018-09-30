@@ -208,13 +208,12 @@ public class StreamFetcher {
 						audioOnly  = (inputFormatContext.streams(0).codecpar().codec_type() == AVMEDIA_TYPE_AUDIO);
 					}
 					
-					if(audioOnly) {
-						muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null,true, scope, false);
-						muxAdaptor.setAudioOnly(audioOnly);
-					}
-					else {
-						muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null,true, scope);
-					}
+					muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null,true, scope, !audioOnly);
+					// if there is only audio, firstKeyFrameReceivedChecked should be true in advance
+					// because there is no video frame
+					muxAdaptor.setFirstKeyFrameReceivedChecked(audioOnly); 
+					
+					
 					muxAdaptor.init(scope, stream.getStreamId(), false);
 					
 
