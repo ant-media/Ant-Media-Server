@@ -8,11 +8,13 @@ import org.red5.server.api.stream.IStreamPublishSecurity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 
 public class AcceptOnlyStreamsInDataStore implements IStreamPublishSecurity  {
 	
+	private DataStoreFactory dataStoreFactory;
 	private IDataStore dataStore;
 	
 	private boolean enabled = true;
@@ -26,7 +28,7 @@ public class AcceptOnlyStreamsInDataStore implements IStreamPublishSecurity  {
 		
 		boolean result = false;
 		if (enabled) {
-			Broadcast broadcast = dataStore.get(name);
+			Broadcast broadcast = getDatastore().get(name);
 			if (broadcast != null) 
 			{
 				result = true;
@@ -46,7 +48,10 @@ public class AcceptOnlyStreamsInDataStore implements IStreamPublishSecurity  {
 	}
 	
 	
-	public IDataStore getDataStore() {
+	public IDataStore getDatastore() {
+		if (dataStore == null) {
+			dataStore = dataStoreFactory.getDataStore();
+		}
 		return dataStore;
 	}
 	
@@ -65,4 +70,14 @@ public class AcceptOnlyStreamsInDataStore implements IStreamPublishSecurity  {
 		this.enabled = enabled;
 	}
 
+	public DataStoreFactory getDataStoreFactory() {
+		return dataStoreFactory;
+	}
+
+
+	public void setDataStoreFactory(DataStoreFactory dataStoreFactory) {
+		this.dataStoreFactory = dataStoreFactory;
+	}
+
+	
 }

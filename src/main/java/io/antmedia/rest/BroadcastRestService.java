@@ -1,5 +1,6 @@
 package io.antmedia.rest;
 
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -39,11 +40,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.WebApplicationContext;
+import org.springframework.web.context.support.WebApplicationContextUtils;
 
 import com.drew.lang.annotations.Nullable;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
+import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
@@ -112,6 +115,8 @@ public class BroadcastRestService {
 	private IDataStore dataStore;
 
 	private AppSettings appSettings;
+	private DataStoreFactory dataStoreFactory;
+
 	public interface ProcessBuilderFactory {
 		Process make(String...args);
 	}
@@ -403,13 +408,14 @@ public class BroadcastRestService {
 		boolean success = false;
 		String message = null;
 		Broadcast broadcast = lookupBroadcast(id);
+
 		if (broadcast != null) {
 			Map<String, VideoServiceEndpoint> endPointServiceList = getEndpointList();
 
 			if (endPointServiceList != null) {
 
 				VideoServiceEndpoint videoServiceEndpoint = endPointServiceList.get(endpointServiceId);
-
+				
 				if (videoServiceEndpoint != null) {
 					Endpoint endpoint;
 					try {
@@ -1605,10 +1611,7 @@ public class BroadcastRestService {
 
 	public IDataStore getDataStore() {
 		if (dataStore == null) {
-			ApplicationContext appContext = getAppContext();
-			if (appContext != null) {
-				dataStore = (IDataStore) appContext.getBean("db.datastore");
-			}
+			dataStore = getDataStoreFactory().getDataStore();
 		}
 		return dataStore;
 	}
@@ -1664,6 +1667,18 @@ public class BroadcastRestService {
 		this.appSettings = appSettings;
 	}
 
+	public DataStoreFactory getDataStoreFactory() {
+		if(dataStoreFactory == null) {
+			WebApplicationContext ctxt = WebApplicationContextUtils.getWebApplicationContext(servletContext); 
+			dataStoreFactory = (DataStoreFactory) ctxt.getBean("dataStoreFactory");
+		}
+		return dataStoreFactory;
+	}
+
+
+	public void setDataStoreFactory(DataStoreFactory dataStoreFactory) {
+		this.dataStoreFactory = dataStoreFactory;
+	}
 
 	public ProcessBuilderFactory getProcessBuilderFactory() {
 		return processBuilderFactory;

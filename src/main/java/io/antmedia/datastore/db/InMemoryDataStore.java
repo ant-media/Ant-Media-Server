@@ -17,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.cluster.StreamInfo;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
@@ -698,7 +699,7 @@ public class InMemoryDataStore implements IDataStore {
 
 	@Override
 	public List<Token> listAllTokens(String streamId, int offset, int size) {
-
+		
 		List<Token> list = new ArrayList<>();
 		List<Token> returnList = new ArrayList<>();
 
@@ -738,5 +739,18 @@ public class InMemoryDataStore implements IDataStore {
 	}
 
 
+	@Override
+	public void addStreamInfoList(List<StreamInfo> streamInfoList) {
+		//used in mongo for cluster mode. useless here.
 
+	
+	}
+
+	public List<StreamInfo> getStreamInfoList(String streamId) {
+		return new ArrayList<>();
+	}
+	
+	public void clearStreamInfoList(String streamId) {
+		//used in mongo for cluster mode. useless here.
+	}
 }
