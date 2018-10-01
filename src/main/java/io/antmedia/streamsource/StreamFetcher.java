@@ -208,7 +208,7 @@ public class StreamFetcher {
 						audioOnly  = (inputFormatContext.streams(0).codecpar().codec_type() == AVMEDIA_TYPE_AUDIO);
 					}
 					
-					muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null,true, scope, !audioOnly);
+					muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null,true, scope);
 					// if there is only audio, firstKeyFrameReceivedChecked should be true in advance
 					// because there is no video frame
 					muxAdaptor.setFirstKeyFrameReceivedChecked(audioOnly); 
