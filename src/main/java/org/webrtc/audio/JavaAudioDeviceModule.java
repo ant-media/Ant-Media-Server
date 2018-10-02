@@ -283,6 +283,10 @@ public class JavaAudioDeviceModule implements AudioDeviceModule {
   public WebRtcAudioTrack getAudioTrack() {
 	  return audioOutput;
   }
+  
+  public WebRtcAudioRecord getAudioRecord() {
+	  return audioInput;
+  }
  
 
   @Override
