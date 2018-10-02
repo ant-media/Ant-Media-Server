@@ -187,6 +187,28 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 			this.data = data;
 		}
 	};
+	
+	@Test
+	public void testMuxAdaptorEnableSettingsPreviewCreatePeriod() {
+		
+		if (appScope == null) {
+			appScope = (WebScope) applicationContext.getBean("web.scope");
+			logger.info("Application / web scope: {}", appScope);
+			assertTrue(appScope.getDepth() == 1);
+		}
+		
+		MuxAdaptor muxAdaptor =  MuxAdaptor.initializeMuxAdaptor(null,false, appScope);
+		int createPreviewPeriod = (int)(Math.random()*10000);
+		assertNotEquals(0, createPreviewPeriod);
+		getAppSettings().setCreatePreviewPeriod(createPreviewPeriod);
+		
+		boolean result = muxAdaptor.init(appScope, "test", false);
+		assertTrue(result);
+		
+		muxAdaptor.init(appScope, "test", false);
+		
+		assertEquals(createPreviewPeriod, muxAdaptor.getPreviewCreatePeriod());
+	}
 
 	@Test
 	public void testMuxingSimultaneously()  {
