@@ -234,7 +234,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 			assertNotNull(scheduler);
 			logger.info("name    "+String.valueOf(scheduler.getJobName().toCharArray()));
 
-			assertEquals(scheduler.getScheduledJobNames().size(),1);
+			assertEquals(1, scheduler.getScheduledJobNames().size());
 
 			file = new File("target/test-classes/test.flv"); //ResourceUtils.getFile(this.getClass().getResource("test.flv"));
 			final FLVReader flvReader = new FLVReader(file);
@@ -260,12 +260,17 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 			flvReader.close();
 
-			while (muxAdaptor.isRecording()) {
-				Thread.sleep(50);
-			}
-
+			
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(() -> !muxAdaptor.isRecording());
 
 			assertFalse(muxAdaptor.isRecording());
+			
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+				File f1 = new File(muxAdaptor.getMuxerList().get(0).getFile().getAbsolutePath());
+				File f2 = new File(muxAdaptor.getMuxerList().get(1).getFile().getAbsolutePath());
+				return f1.exists() && f2.exists();
+			});
+			
 
 			assertTrue(MuxingTest.testFile(muxAdaptor.getMuxerList().get(0).getFile().getAbsolutePath()));
 			assertTrue(MuxingTest.testFile(muxAdaptor.getMuxerList().get(1).getFile().getAbsolutePath()));
