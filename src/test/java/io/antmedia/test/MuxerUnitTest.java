@@ -205,8 +205,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 		boolean result = muxAdaptor.init(appScope, "test", false);
 		assertTrue(result);
 		
-		muxAdaptor.init(appScope, "test", false);
-		
 		assertEquals(createPreviewPeriod, muxAdaptor.getPreviewCreatePeriod());
 	}
 
