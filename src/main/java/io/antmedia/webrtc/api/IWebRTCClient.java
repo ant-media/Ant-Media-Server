@@ -1,5 +1,7 @@
 package io.antmedia.webrtc.api;
 
+import java.nio.ByteBuffer;
+
 import org.webrtc.IceCandidate;
 import org.webrtc.SessionDescription;
 
@@ -35,9 +37,9 @@ public interface IWebRTCClient {
 	public void addIceCandidate(IceCandidate iceCandidate);
 
 
-	void sendVideoConfPacket(byte[] videoConfData, byte[] videoPacket, long timestamp);
+	public void sendVideoConfPacket(byte[] videoConfData, byte[] videoPacket, long timestamp);
 	
-	void setVideoResolution(int width, int height);
+	public void setVideoResolution(int width, int height);
 
 
 	public void setWebRTCMuxer(IWebRTCMuxer webRTCMuxer);
