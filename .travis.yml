@@ -26,6 +26,7 @@ before_install:
   - sudo apt-get install wondershaper
   - npm install -g @angular/cli@6.0.5
   - sudo git clone --depth=1 https://github.com/ant-media/ManagementConsole_AngularApp.git
+  - sudo chown -R `whoami` ./ManagementConsole_AngularApp
   - cd ManagementConsole_AngularApp
   - npm install
   - ng build --prod
