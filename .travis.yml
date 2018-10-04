@@ -24,11 +24,11 @@ before_install:
   - sudo apt-get install ffmpeg -qq # start ffmpeg
   - sudo service mongod start  # start mongo db
   - sudo apt-get install wondershaper
-  - sudo npm install -g @angular/cli@6.0.5
+  - npm install -g @angular/cli@6.0.5
   - sudo git clone --depth=1 https://github.com/ant-media/ManagementConsole_AngularApp.git
   - cd ManagementConsole_AngularApp
-  - sudo npm install
-  - sudo ng build --prod
+  - npm install
+  - ng build --prod
   - cd ..
   - sudo cp -R ./ManagementConsole_AngularApp/dist/ ./src/main/server/webapps
   - sudo git clone --depth=1 https://github.com/ant-media/utilities.git /usr/local/onvif
