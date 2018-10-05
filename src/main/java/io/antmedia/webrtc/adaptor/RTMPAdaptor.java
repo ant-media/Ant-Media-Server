@@ -157,7 +157,9 @@ public class RTMPAdaptor extends Adaptor {
 		}
 		isStopped  = true;
 
-		audioDataSchedulerFuture.cancel(false);
+		if (audioDataSchedulerFuture != null) {
+			audioDataSchedulerFuture.cancel(false);
+		}
 
 		signallingExecutor.execute(() -> {
 

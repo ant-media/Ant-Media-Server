@@ -60,7 +60,7 @@ public class RTMPAdaptorTest {
 		Session session = mock(Session.class);
 		rtmpAdaptor.setSession(session);
 
-		MediaStream stream = mock(MediaStream.class);
+		MediaStream stream =  new MediaStream(0L);
 		rtmpAdaptor.onAddStream(stream);
 
 		verify(webSocketHandler).sendPublishStartedMessage(streamId, session);
@@ -209,14 +209,13 @@ public class RTMPAdaptorTest {
 
 			RTMPAdaptor rtmpAdaptor = new RTMPAdaptor(null, handler);
 
-			MediaStream stream = mock(MediaStream.class);
+			MediaStream stream = new MediaStream(0L);
 
 			Session session = mock(Session.class);
 
 			rtmpAdaptor.setSession(session);
 
 			rtmpAdaptor.onAddStream(stream);
-
 
 		}
 		catch (Exception e) {
