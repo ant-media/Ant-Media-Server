@@ -25,6 +25,8 @@ import com.mongodb.ServerAddress;
 import com.mongodb.WriteResult;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.cluster.StreamInfo;
+import io.antmedia.datastore.DBUtils;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
@@ -45,14 +47,14 @@ public class MongoStore implements IDataStore {
 
 	public static final String IMAGE_ID = "imageId"; 
 
-	public MongoStore(String dbName) {
+	public MongoStore(String dbName, String host) {
 		morphia = new Morphia();
 		morphia.mapPackage("io.antmedia.datastore.db.types");
-		datastore = morphia.createDatastore(new MongoClient(), dbName);
-		vodDatastore = morphia.createDatastore(new MongoClient(), dbName+"_VoD");
-		endpointCredentialsDS = morphia.createDatastore(new MongoClient(), dbName+"_endpointCredentials");
-		tokenDatastore = morphia.createDatastore(new MongoClient(), dbName + "_token");
-		detectionMap = morphia.createDatastore(new MongoClient(), dbName + "detection");
+		datastore = morphia.createDatastore(new MongoClient(host), dbName);
+		vodDatastore = morphia.createDatastore(new MongoClient(host), dbName+"_VoD");
+		endpointCredentialsDS = morphia.createDatastore(new MongoClient(host), dbName+"_endpointCredentials");
+		tokenDatastore = morphia.createDatastore(new MongoClient(host), dbName + "_token");
+		detectionMap = morphia.createDatastore(new MongoClient(host), dbName + "detection");
 
 
 		datastore.ensureIndexes();
@@ -72,7 +74,6 @@ public class MongoStore implements IDataStore {
 		endpointCredentialsDS = morphia.createDatastore(new MongoClient(new ServerAddress(host), credentialList), dbName+"_endpointCredentials");
 		tokenDatastore = morphia.createDatastore(new MongoClient(), dbName + "_token");
 		detectionMap = morphia.createDatastore(new MongoClient(), dbName + "detection");
-
 
 		tokenDatastore.ensureIndexes();
 		datastore.ensureIndexes();
@@ -95,6 +96,7 @@ public class MongoStore implements IDataStore {
 			return null;
 		}
 		try {
+			broadcast.setOriginAdress(DBUtils.getHostAddress());
 			String streamId = null;
 			if (broadcast.getStreamId() == null) {
 				streamId = RandomStringUtils.randomAlphanumeric(12) + System.currentTimeMillis();
@@ -683,7 +685,22 @@ public class MongoStore implements IDataStore {
 		}
 		return false;
 	}
+	
+	@Override
+	public void addStreamInfoList(List<StreamInfo> streamInfoList) {
+		for (StreamInfo streamInfo : streamInfoList) {
+			datastore.save(streamInfo);
+		}
+	}
+	
+	public List<StreamInfo> getStreamInfoList(String streamId) {
+		return datastore.find(StreamInfo.class).field("streamId").equal(streamId).asList();
+	}
 
+	public void clearStreamInfoList(String streamId) {
+		Query<StreamInfo> query = datastore.createQuery(StreamInfo.class).field("streamId").equal(streamId);
+		datastore.delete(query);
+	}
 	@Override
 	public Token createToken(String streamId, long expireDate, String type) {
 		Token token = null;

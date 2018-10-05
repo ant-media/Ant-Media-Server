@@ -12,6 +12,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 
 import io.antmedia.AppSettings;
+import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.IDataStore;
 
 public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
@@ -21,6 +22,7 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 	public static final String BEAN_NAME = "hls.viewerstats";
 
 	private IDataStore dataStore;
+	private DataStoreFactory dataStoreFactory;
 
 	public static final int DEFAULT_TIME_PERIOD_FOR_VIEWER_COUNT = 10000;
 	/**
@@ -46,7 +48,7 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 		if (!viewerMap.containsKey(sessionId)) {
 			//if sessionId is not in the map, this is the first time for getting stream,
 			//increment viewer count
-			dataStore.updateHLSViewerCount(streamId, 1);
+			getDataStore().updateHLSViewerCount(streamId, 1);
 		}
 		viewerMap.put(sessionId, System.currentTimeMillis());
 
@@ -66,8 +68,9 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 
 	@Override
 	public void setApplicationContext(ApplicationContext applicationContext)  {
-		dataStore = (IDataStore) applicationContext.getBean(IDataStore.BEAN_NAME);
+		dataStoreFactory = (DataStoreFactory) applicationContext.getBean("dataStoreFactory");
 
+		
 		ISchedulingService scheduler = (ISchedulingService) applicationContext.getBean(ISchedulingService.BEAN_NAME);
 		
 		if (applicationContext.containsBean(AppSettings.BEAN_NAME)) {
@@ -103,7 +106,7 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 						
 						numberOfDecrement = -1 * numberOfDecrement;
 						
-						dataStore.updateHLSViewerCount(streamViewerEntry.getKey(), numberOfDecrement);
+						getDataStoreFactory().getDataStore().updateHLSViewerCount(streamViewerEntry.getKey(), numberOfDecrement);
 						
 					}
 					
@@ -135,8 +138,24 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 		return timeoutMS;
 	}
 
+	public IDataStore getDataStore() {
+		if (dataStore == null) {
+			dataStore = getDataStoreFactory().getDataStore();
+		}
+		return dataStore;
+	}
+	
 	public void setDataStore(IDataStore dataStore) {
 		this.dataStore = dataStore;
+	}
+	
+	
+	public DataStoreFactory getDataStoreFactory() {
+		return dataStoreFactory;
+	}
+	
+	public void setDataStoreFactory(DataStoreFactory dataStoreFactory) {
+		this.dataStoreFactory = dataStoreFactory;
 	}
 
 }
