@@ -406,7 +406,7 @@ public class PeerConnectionFactory {
     nativeStopAecDump(nativeFactory);
   }
 
-  /**
+  /*
    * Set the EGL context used by HW Video encoding and decoding.
    *
    * @param localEglContext   Must be the same as used by VideoCapturerAndroid and any local video
@@ -415,12 +415,12 @@ public class PeerConnectionFactory {
    * @deprecated Use new HW video encoded/decoder instead, and use createVideoSource(boolean
    * isScreencast) instead of createVideoSource(VideoCapturer).
    */
-  @Deprecated
-  //public void setVideoHwAccelerationOptions(
-  //    EglBase.Context localEglContext, EglBase.Context remoteEglContext) {
-   // MediaCodecVideoEncoder.setEglContext(localEglContext);
-   // MediaCodecVideoDecoder.setEglContext(remoteEglContext);
-  //}
+//  @Deprecated
+//  public void setVideoHwAccelerationOptions(
+//      EglBase.Context localEglContext, EglBase.Context remoteEglContext) {
+//    MediaCodecVideoEncoder.setEglContext(localEglContext);
+//    MediaCodecVideoDecoder.setEglContext(remoteEglContext);
+//  }
 
   public void dispose() {
     nativeFreeFactory(nativeFactory);
