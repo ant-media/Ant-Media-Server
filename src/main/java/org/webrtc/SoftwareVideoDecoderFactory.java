@@ -20,10 +20,10 @@ public class SoftwareVideoDecoderFactory implements VideoDecoderFactory {
   @Override
   public VideoDecoder createDecoder(VideoCodecInfo codecType) {
     if (codecType.getName().equalsIgnoreCase("VP8")) {
-      return (VideoDecoder) new VP8Decoder();
+      return new VP8Decoder();
     }
     if (codecType.getName().equalsIgnoreCase("VP9") && VP9Decoder.nativeIsSupported()) {
-      return (VideoDecoder) new VP9Decoder();
+      return new VP9Decoder();
     }
 
     return null;
@@ -35,7 +35,7 @@ public class SoftwareVideoDecoderFactory implements VideoDecoderFactory {
   }
 
   static VideoCodecInfo[] supportedCodecs() {
-    List<VideoCodecInfo> codecs = new ArrayList<VideoCodecInfo>();
+    List<VideoCodecInfo> codecs = new ArrayList<>();
 
     codecs.add(new VideoCodecInfo("VP8", new HashMap<>()));
     if (VP9Decoder.nativeIsSupported()) {
