@@ -20,6 +20,7 @@ class NativeLibrary {
       try {
         System.loadLibrary(name);
       } catch (UnsatisfiedLinkError e) {
+    	  e.printStackTrace();
     	  System.err.println("Failed to load native library: " + name);
         return false;
       }
