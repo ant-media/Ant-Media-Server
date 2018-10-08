@@ -107,8 +107,8 @@ public class TokenFilter implements javax.servlet.Filter   {
 		}
 
 		//if specific bitrate is requested
-		endIndex = requestURI.lastIndexOf("p.m3u8");
-		if (endIndex != -1) {
+		String regex = "_[0-9]+p\\.m3u8$";  // matches ending with _[resolution]p.m3u8
+		if (requestURI.matches(regex)) {
 			endIndex = requestURI.lastIndexOf('_'); //because file format is [NAME]_[RESOLUTION]p.m3u8
 			return requestURI.substring(startIndex+1, endIndex);
 		}

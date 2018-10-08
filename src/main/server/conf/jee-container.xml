@@ -140,16 +140,13 @@
 					<property name="pattern" value="common" />
 					<property name="rotatable" value="true" />
 				</bean>
-				<!-- 
-				<bean id="valve.cluster" class="io.antmedia.enterprise.cluster.HttpLiveStreamValve"> 
-					<property name="cluster" ref="tomcat.cluster" /> </bean>
-					
-				-->
-					
+				
+				
 			</list>
 		</property>
 
 	</bean>
+
 	
 	<!-- Tomcat with SSL enabled -->
 	<!-- <bean id="tomcat.server" class="org.red5.server.tomcat.TomcatLoader" 

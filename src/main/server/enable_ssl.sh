@@ -1,116 +1,164 @@
 #!/bin/bash
 
-
-if [ -z "$1" ]; then
-  echo "Please give domain name as the parameter."
-  echo "Sample usage:"
-  echo "$0 example.com "
-  exit 1
-fi
-
-domain=$1
-
 INSTALL_DIRECTORY=/usr/local/antmedia
 
-if [ ! -z "$2" ]; then
-  INSTALL_DIRECTORY=$2
-fi
+FULL_CHAIN_FILE=
+PRIVATE_KEY_FILE=
+domain=""
 
+while getopts i:d:p:f: option
+do
+case "${option}"
+in
+f) FULL_CHAIN_FILE=${OPTARG};;
+p) PRIVATE_KEY_FILE=${OPTARG};;
+i) INSTALL_DIRECTORY=${OPTARG};;
+d) domain=${OPTARG};;
+esac
+done
 
-
-if [ ! -d "$INSTALL_DIRECTORY" ]; then
-  # Control will enter here if $DIRECTORY doesn't exist.
-  echo "Ant Media Server does not seem to be installed to $INSTALL_DIRECTORY"
-  echo "Please install Ant Media Server with the install script or give second parameter as installation path"
-  echo "Sample usage:"
-  echo "$0 example.com  /home/ubuntu/antmedia"
-  echo "If you need help, please contact@antmedia.io"
-  exit 1
-fi
-
-
-
-read -sp 'Create Password For SSL Certificate:' password
-
-echo ""
-
-ERROR_MESSAGE="There is a problem in installing SSL to Ant Media Server.\n Please take a look at the logs above and try to fix.\n If you do not have any idea, contact@antmedia.io"
+usage() {
+	echo "Usage:"
+	echo "$0 -d {DOMAIN_NAME} [-i {INSTALL_DIRECTORY}]"
+	echo "$0 -f {FULL_CHAIN_FILE} -p {PRIVATE_KEY_FILE} -d {DOMAIN_NAME} [-i {INSTALL_DIRECTORY}]"
+	echo " "
+	echo "If you have any question, send e-mail to contact@antmedia.io"
+}
 
 SUDO="sudo"
 if ! [ -x "$(command -v sudo)" ]; then
   SUDO=""
 fi
 
-# Install required libraries
-$SUDO apt-get update -y -qq
-OUT=$?
-if [ $OUT -ne 0 ]; then
-  echo -e $ERROR_MESSAGE
-  exit $OUT
+delete_alias() {
+  if [ -f "$1" ]; then
+	 $SUDO keytool -delete -alias tomcat -storepass $password -keystore $file
+	 OUT=$?
+	 if [ $OUT -ne 0 ]; then
+	   echo -e $ERROR_MESSAGE
+	 fi
+  fi
+}
+
+
+#check domain name exists
+if [ -z "$domain" ]; then
+  echo "Missing parameter. Domain name is not set"
+  usage
+  exit 1
 fi
 
-$SUDO apt-get install software-properties-common -y -qq
-OUT=$?
-if [ $OUT -ne 0 ]; then
-  echo -e $ERROR_MESSAGE
-  exit $OUT
+fullChainFileExist=false
+if [ ! -z "$FULL_CHAIN_FILE" ] && [ -f "$FULL_CHAIN_FILE" ]; then
+  fullChainFileExist=true
 fi
 
-$SUDO add-apt-repository ppa:certbot/certbot -y 
-OUT=$?
-if [ $OUT -ne 0 ]; then
-  echo -e $ERROR_MESSAGE
-  exit $OUT
+privateKeyFileExist=false
+if [ ! -z "$PRIVATE_KEY_FILE" ] && [ -f "$PRIVATE_KEY_FILE" ]; then
+  privateKeyFileExist=true
 fi
 
-$SUDO apt-get update -qq -y
-OUT=$?
-if [ $OUT -ne 0 ]; then
-  echo -e $ERROR_MESSAGE
-  exit $OUT
+if [ "$fullChainFileExist" != "$privateKeyFileExist" ]; then
+   echo "Missing full chain or private key file. Please provide both or neither of them"
+   usage
+   exit 1
 fi
 
-$SUDO apt-get install certbot -qq -y
-OUT=$?
-if [ $OUT -ne 0 ]; then
-  echo -e $ERROR_MESSAGE
-  exit $OUT
-fi
-
-#Get certificate
-sudo certbot certonly --standalone -d $domain
-OUT=$?
-if [ $OUT -ne 0 ]; then
-  echo -e $ERROR_MESSAGE
-  exit $OUT
-fi
-
-file="/etc/letsencrypt/live/$domain/keystore.jks"
-if [ -f "$file" ]; then
-   $SUDO keytool -delete -alias tomcat -storepass $password -keystore $file
-   OUT=$?
-   if [ $OUT -ne 0 ]; then
-     echo -e $ERROR_MESSAGE
-     exit $OUT
-   fi
+if [ ! -d "$INSTALL_DIRECTORY" ]; then
+  # Control will enter here if $DIRECTORY doesn't exist.
+  echo "Ant Media Server does not seem to be installed to $INSTALL_DIRECTORY"
+  echo "Please install Ant Media Server with the install script or give as a parameter"
+  usage
+  exit 1
 fi
 
 
-file="/etc/letsencrypt/live/$domain/truststore.jks"
-if [ -f "$file" ]; then
-   $SUDO keytool -delete -alias tomcat -storepass $password -keystore $file
-   OUT=$?
-   if [ $OUT -ne 0 ]; then
+
+
+read -sp 'Enter Password For SSL Certificate:' password
+
+if [ "$fullChainFileExist" == false ]; then
+    #  install letsencrypt and get the certificate
+    
+    
+    # Install required libraries
+    $SUDO apt-get update -y -qq
+    OUT=$?
+    if [ $OUT -ne 0 ]; then
       echo -e $ERROR_MESSAGE
       exit $OUT
-   fi
-fi   
+    fi
 
+    $SUDO apt-get install software-properties-common -y -qq
+    OUT=$?
+    if [ $OUT -ne 0 ]; then
+      echo -e $ERROR_MESSAGE
+      exit $OUT
+    fi
+
+    $SUDO add-apt-repository ppa:certbot/certbot -y 
+    OUT=$?
+    if [ $OUT -ne 0 ]; then
+      echo -e $ERROR_MESSAGE
+      exit $OUT
+    fi
+
+    $SUDO apt-get update -qq -y
+    OUT=$?
+    if [ $OUT -ne 0 ]; then
+      echo -e $ERROR_MESSAGE
+      exit $OUT
+    fi
+
+    $SUDO apt-get install certbot -qq -y
+    OUT=$?
+    if [ $OUT -ne 0 ]; then
+      echo -e $ERROR_MESSAGE
+      exit $OUT
+    fi
+
+    #Get certificate
+    sudo certbot certonly --standalone -d $domain
+    OUT=$?
+    if [ $OUT -ne 0 ]; then
+      echo -e $ERROR_MESSAGE
+      exit $OUT
+    fi
+    
+    file="/etc/letsencrypt/live/$domain/keystore.jks"
+    delete_alias $file
+    
+    file="/etc/letsencrypt/live/$domain/truststore.jks"
+    delete_alias $file
+    
+    FULL_CHAIN_FILE="/etc/letsencrypt/live/$domain/fullchain.pem"
+    	PRIVATE_KEY_FILE="/etc/letsencrypt/live/$domain/privkey.pem"
+
+fi
+
+
+echo ""
+
+ERROR_MESSAGE="There is a problem in installing SSL to Ant Media Server.\n Please take a look at the logs above and try to fix.\n If you do not have any idea, contact@antmedia.io"
+
+TEMP_DIR=$INSTALL_DIRECTORY/$domain
+if [ ! -d "$TEMP_DIR" ]; then
+  $SUDO mkdir $TEMP_DIR
+fi
+
+
+EXPORT_P12_FILE=$TEMP_DIR/fullchain_and_key.p12
+
+DEST_KEYSTORE=$TEMP_DIR/keystore.jks
+
+TRUST_STORE=$TEMP_DIR/truststore.jks
+
+CER_FILE=$INSTALL_DIRECTORY/$domain/tomcat.cer
 
 $SUDO openssl pkcs12 -export \
-    -in /etc/letsencrypt/live/$domain/fullchain.pem \
-    -inkey /etc/letsencrypt/live/$domain/privkey.pem \
-    -out /etc/letsencrypt/live/$domain/fullchain_and_key.p12 \
+    -in $FULL_CHAIN_FILE \
+    -inkey $PRIVATE_KEY_FILE \
+    -out $EXPORT_P12_FILE \
     -name tomcat \
     -password pass:$password
 OUT=$?
@@ -123,8 +171,8 @@ fi
 $SUDO keytool -importkeystore \
        -deststorepass $password \
        -destkeypass $password \
-       -destkeystore /etc/letsencrypt/live/$domain/keystore.jks \
-       -srckeystore /etc/letsencrypt/live/$domain/fullchain_and_key.p12 \
+       -destkeystore $DEST_KEYSTORE \
+       -srckeystore $EXPORT_P12_FILE \
        -srcstoretype pkcs12 \
        -srcstorepass $password \
        -alias tomcat \
@@ -135,11 +183,12 @@ if [ $OUT -ne 0 ]; then
   exit $OUT
 fi
 
+
 $SUDO keytool -export  \
          -alias tomcat \
          -deststorepass $password \
-         -file /etc/letsencrypt/live/$domain/tomcat.cer \
-         -keystore /etc/letsencrypt/live/$domain/keystore.jks
+         -file $CER_FILE \
+         -keystore $DEST_KEYSTORE
 OUT=$?
 if [ $OUT -ne 0 ]; then
  echo -e $ERROR_MESSAGE
@@ -147,8 +196,8 @@ if [ $OUT -ne 0 ]; then
 fi
 
 $SUDO keytool -import -trustcacerts -alias tomcat \
-  -file /etc/letsencrypt/live/$domain/tomcat.cer \
-  -keystore /etc/letsencrypt/live/$domain/truststore.jks \
+  -file $CER_FILE \
+  -keystore $TRUST_STORE \
   -storepass $password -noprompt
 OUT=$?
 if [ $OUT -ne 0 ]; then
@@ -156,14 +205,14 @@ if [ $OUT -ne 0 ]; then
  exit $OUT
 fi
 
-$SUDO cp /etc/letsencrypt/live/$domain/truststore.jks $INSTALL_DIRECTORY/conf/
+$SUDO cp $TRUST_STORE $INSTALL_DIRECTORY/conf/
 OUT=$?
 if [ $OUT -ne 0 ]; then
  echo -e $ERROR_MESSAGE
  exit $OUT
 fi
 
-$SUDO cp /etc/letsencrypt/live/$domain/keystore.jks $INSTALL_DIRECTORY/conf/
+$SUDO cp $DEST_KEYSTORE $INSTALL_DIRECTORY/conf/
 OUT=$?
 if [ $OUT -ne 0 ]; then
  echo -e $ERROR_MESSAGE
@@ -222,3 +271,6 @@ echo "SSL certificate is installed."
 echo "Https port: 5443"
 echo "WebSocket Secure port: 8082"
 echo "You can use this url: https://$domain:5443/"
+
+#remove temp dir
+sudo rm -rf $TEMP_DIR
