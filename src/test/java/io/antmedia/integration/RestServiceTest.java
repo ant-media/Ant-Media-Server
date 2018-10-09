@@ -1620,6 +1620,16 @@ public class RestServiceTest {
 				//size should +2 because we restream again into the server
 				return size+2 == callGetBroadcastList().size();
 			});
+			
+			execute.destroy();
+			
+			result = deleteBroadcast(broadcast.getStreamId());
+			assertTrue(result.isSuccess());
+			
+			Awaitility.await().atMost(20, TimeUnit.SECONDS)
+				.pollInterval(2, TimeUnit.SECONDS).until(() -> {
+				return size == callGetBroadcastList().size();
+			});
 
 			
 
