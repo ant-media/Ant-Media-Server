@@ -12,6 +12,8 @@ package org.webrtc.audio;
 
 import org.webrtc.JniCommon;
 
+import io.antmedia.webrtc.api.IAudioRecordListener;
+
 /**
  * AudioDeviceModule implemented using android.media.AudioRecord as input and
  * android.media.AudioTrack as output.
@@ -32,8 +34,6 @@ public class JavaAudioDeviceModule implements AudioDeviceModule {
   
   
   public static class Builder {
-//    private final Context context;
-//    private final AudioManager audioManager;
     private int sampleRate;
     private int audioSource = WebRtcAudioRecord.DEFAULT_AUDIO_SOURCE;
     private AudioTrackErrorCallback audioTrackErrorCallback;
@@ -43,11 +43,9 @@ public class JavaAudioDeviceModule implements AudioDeviceModule {
     private boolean useHardwareNoiseSuppressor = isBuiltInNoiseSuppressorSupported();
     private boolean useStereoInput;
     private boolean useStereoOutput;
+	private IAudioRecordListener audioRecordListener;
 
     private Builder(Object context) {
-//      this.context = context;
-//      this.audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
-//      this.sampleRate = WebRtcAudioManager.getSampleRate(audioManager);
     		this.sampleRate = DEFAULT_SAMPLE_RATE_HZ;
     }
 
@@ -61,6 +59,11 @@ public class JavaAudioDeviceModule implements AudioDeviceModule {
       this.sampleRate = sampleRate;
       return this;
     }
+    
+    public Builder setAudioRecordListener(IAudioRecordListener audioRecordListener) {
+		this.audioRecordListener = audioRecordListener;
+		return this;
+	}
 
     /**
      * Call this to change the audio source. The argument should be one of the values from
@@ -162,7 +165,7 @@ public class JavaAudioDeviceModule implements AudioDeviceModule {
       }
       final WebRtcAudioRecord audioInput =
           new WebRtcAudioRecord(null, null, audioSource, audioRecordErrorCallback,
-              samplesReadyCallback, useHardwareAcousticEchoCanceler, useHardwareNoiseSuppressor);
+              samplesReadyCallback, useHardwareAcousticEchoCanceler, useHardwareNoiseSuppressor, audioRecordListener);
       final WebRtcAudioTrack audioOutput =
           new WebRtcAudioTrack(null, null, audioTrackErrorCallback);
       return new JavaAudioDeviceModule(null, null, audioInput, audioOutput, sampleRate,

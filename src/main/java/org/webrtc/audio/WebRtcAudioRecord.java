@@ -24,6 +24,8 @@ import org.webrtc.audio.JavaAudioDeviceModule.AudioRecordErrorCallback;
 import org.webrtc.audio.JavaAudioDeviceModule.AudioRecordStartErrorCode;
 import org.webrtc.audio.JavaAudioDeviceModule.SamplesReadyCallback;
 
+import io.antmedia.webrtc.api.IAudioRecordListener;
+
 public class WebRtcAudioRecord {
 	private static final String TAG = "WebRtcAudioRecordExternal";
 
@@ -46,18 +48,18 @@ public class WebRtcAudioRecord {
 	// but the wait times out afther this amount of time.
 	private static final long AUDIO_RECORD_THREAD_JOIN_TIMEOUT_MS = 2000;
 
-	public static final int DEFAULT_AUDIO_SOURCE = 0; //AudioSource.VOICE_COMMUNICATION;
+	public static final int DEFAULT_AUDIO_SOURCE = 0; //AudioSource.VOICE_COMMUNICATION
 
-	//  private final Context context;
-	//  private final AudioManager audioManager;
+	//  private final Context context
+	//  private final AudioManager audioManager
 	private final int audioSource;
 
 	private long nativeAudioRecord;
 
 	private @Nullable ByteBuffer byteBuffer;
 
-	//private @Nullable AudioRecord audioRecord = null;
-	//private @Nullable AudioRecordThread audioThread = null;
+	//private @Nullable AudioRecord audioRecord = null
+	//private @Nullable AudioRecordThread audioThread = null
 	
 	
 	private static Logger logger = LoggerFactory.getLogger(WebRtcAudioRecord.class);
@@ -71,6 +73,8 @@ public class WebRtcAudioRecord {
 	private final boolean isNoiseSuppressorSupported;
 
 	private ByteBuffer encodedByteBuffer;
+
+	private IAudioRecordListener audioRecordListener;
 
 
 	public void notifyDataIsReady(byte[] audioData) {
@@ -104,26 +108,25 @@ public class WebRtcAudioRecord {
 	WebRtcAudioRecord(Object context, Object audioManager) {
 		this(context, audioManager, DEFAULT_AUDIO_SOURCE, null /* errorCallback */,
 				null /* audioSamplesReadyCallback */, false,
-				false);
+				false, null);
 	}
 
 	public WebRtcAudioRecord(Object context, Object audioManager, int audioSource,
 			@Nullable AudioRecordErrorCallback errorCallback,
 			@Nullable SamplesReadyCallback audioSamplesReadyCallback,
-			boolean isAcousticEchoCancelerSupported, boolean isNoiseSuppressorSupported) {
+			boolean isAcousticEchoCancelerSupported, boolean isNoiseSuppressorSupported, IAudioRecordListener audioRecordListener) {
 		if (isAcousticEchoCancelerSupported) {
 			throw new IllegalArgumentException("HW AEC not supported");
 		}
 		if (isNoiseSuppressorSupported) {
 			throw new IllegalArgumentException("HW NS not supported");
 		}
-		//this.context = context;
-		//this.audioManager = audioManager;
 		this.audioSource = audioSource;
 		this.errorCallback = errorCallback;
 		this.audioSamplesReadyCallback = audioSamplesReadyCallback;
 		this.isAcousticEchoCancelerSupported = isAcousticEchoCancelerSupported;
 		this.isNoiseSuppressorSupported = isNoiseSuppressorSupported;
+		this.audioRecordListener = audioRecordListener;
 	}
 
 	@CalledByNative
@@ -180,12 +183,18 @@ public class WebRtcAudioRecord {
 	@CalledByNative
 	private boolean startRecording() {
 		System.out.println("startRecording");
+		if (audioRecordListener != null) {
+			audioRecordListener.audioRecordStarted();
+		}
 		return true;
 	}
 
 	@CalledByNative
 	private boolean stopRecording() {
 		System.out.println("stopRecording");
+		if (audioRecordListener != null) {
+			audioRecordListener.audioRecordStoppped();
+		}
 		releaseAudioResources();
 		return true;
 	}
