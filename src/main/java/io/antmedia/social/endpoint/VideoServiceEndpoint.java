@@ -209,7 +209,12 @@ public abstract class VideoServiceEndpoint {
 	 */
 	public abstract void stopBroadcast(Endpoint endpoint) throws Exception;
 
-
+	/**
+	 * Return the status of the broadcast
+	 * @param endpoint
+	 * @return one of the definitions in {@link io.antmedia.datastore.db.types.BroadcastStatus}
+	 * @throws Exception
+	 */
 	public abstract String getBroadcast(Endpoint endpoint) throws Exception;
 
 	public String getClientId() {
