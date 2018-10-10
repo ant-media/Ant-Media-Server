@@ -571,7 +571,7 @@
 									<outputDirectory>${project.build.directory}/plugins</outputDirectory>
 									<includeScope>provided</includeScope>
 									<excludeTransitive>false</excludeTransitive>
-								</configuration>https://github.com/ant-media/Ant-Media-Server/issues
+								</configuration>
 							</execution>
 							<execution>
 								<id>copy-war-dependencies</id>
