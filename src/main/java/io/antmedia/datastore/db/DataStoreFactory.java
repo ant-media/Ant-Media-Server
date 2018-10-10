@@ -5,9 +5,8 @@ import org.slf4j.LoggerFactory;
 
 import io.antmedia.datastore.DBReader;
 
-public class DataStoreFactory {
+public class DataStoreFactory implements IDataStoreFactory{
 
-	public static final String BEAN_NAME = "dataStoreFactory";
 	private static Logger logger = LoggerFactory.getLogger(DataStoreFactory.class);
 
 	

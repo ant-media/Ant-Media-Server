@@ -28,6 +28,7 @@ import java.util.concurrent.TimeUnit;
 import javax.servlet.ServletContext;
 import javax.ws.rs.core.Context;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
@@ -72,8 +73,10 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.BroadcastStatus;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.VoD;
@@ -83,9 +86,12 @@ import io.antmedia.rest.BroadcastRestService.LiveStatistics;
 import io.antmedia.rest.StreamsSourceRestService;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.Version;
+import io.antmedia.social.endpoint.PeriscopeEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
 import io.antmedia.test.MuxerUnitTest;
 import io.antmedia.test.StreamSchedularUnitTest;
+import io.antmedia.test.social.endpoint.PeriscopeEndpointTest;
+
 import org.apache.maven.model.Model;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.awaitility.Awaitility;
@@ -1577,7 +1583,60 @@ public class RestServiceTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+	}
+	
+	@Test
+	public void testAddEndpointCrossCheck() {
+		System.out.println("Running testAddEndpoint");
+		try {
 
+			List<Broadcast> broadcastList = callGetBroadcastList();
+			int size = broadcastList.size();
+			Broadcast broadcast = createBroadcast(null);
+			
+			String streamId = RandomStringUtils.randomAlphabetic(6);
+			// add generic endpoint
+			Result result = addEndpoint(broadcast.getStreamId().toString(), "rtmp://localhost/LiveApp/" + streamId);
+
+			// check that it is successfull
+			assertTrue(result.isSuccess());
+
+			// get endpoint list
+			broadcast = getBroadcast(broadcast.getStreamId().toString());
+
+			// check that 4 element exist
+			assertNotNull(broadcast.getEndPointList());
+			assertEquals(1, broadcast.getEndPointList().size());
+			
+			broadcastList = callGetBroadcastList();
+			assertEquals(size+1, broadcastList.size());
+			
+			Process execute = execute(
+					ffmpegPath + " -re -i src/test/resources/test.flv -codec copy -f flv rtmp://localhost/LiveApp/"
+							+ broadcast.getStreamId());
+			
+			
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+				//size should +2 because we restream again into the server
+				return size+2 == callGetBroadcastList().size();
+			});
+			
+			execute.destroy();
+			
+			result = deleteBroadcast(broadcast.getStreamId());
+			assertTrue(result.isSuccess());
+			
+			Awaitility.await().atMost(20, TimeUnit.SECONDS)
+				.pollInterval(2, TimeUnit.SECONDS).until(() -> {
+				return size == callGetBroadcastList().size();
+			});
+
+			
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
 	}
 
 	@Test
