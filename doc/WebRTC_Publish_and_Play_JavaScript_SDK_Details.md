@@ -38,7 +38,7 @@ Let's see how to make it step by step
 	};
 
 	var webRTCAdaptor = new WebRTCAdaptor({
-		websocket_url : "ws://" + location.hostname + ":8081/WebRTCApp4",
+		websocket_url : "ws://" + location.hostname + ":5080/WebRTCAppEE/websocket",
 		mediaConstraints : mediaConstraints,
 		peerconnection_config : pc_config,
 		sdp_constraints : sdpConstraints,
@@ -126,7 +126,7 @@ Please take a look at the WebRTCApp4/index.html file in order to see How JavaScr
 	};
 	
 	var webRTCAdaptor = new WebRTCAdaptor({
-		websocket_url : "ws://" + location.hostname + ":8081/WebRTCApp4",
+		websocket_url : "ws://" + location.hostname + ":5080/WebRTCAppEE/websocket",
 		mediaConstraints : mediaConstraints,
 		peerconnection_config : pc_config,
 		sdp_constraints : sdpConstraints,

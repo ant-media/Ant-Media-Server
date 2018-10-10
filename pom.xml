@@ -436,12 +436,14 @@
 			<version>${mapdb.version}</version>
 			<type>bundle</type>
 		</dependency>
+		<!--  
 		<dependency>
 			<groupId>org.red5</groupId>
 			<artifactId>websocket</artifactId>
 			<version>${websocket.version}</version>
 			<scope>provided</scope>
 		</dependency>
+		-->
 		<dependency>
 			<groupId>org.mockito</groupId>
 			<artifactId>mockito-core</artifactId>
@@ -569,7 +571,7 @@
 									<outputDirectory>${project.build.directory}/plugins</outputDirectory>
 									<includeScope>provided</includeScope>
 									<excludeTransitive>false</excludeTransitive>
-								</configuration>
+								</configuration>https://github.com/ant-media/Ant-Media-Server/issues
 							</execution>
 							<execution>
 								<id>copy-war-dependencies</id>
@@ -606,6 +608,7 @@
 									</artifactItems>
 								</configuration>
 							</execution>
+							<!--  
 							<execution>
 								<id>copy-dependency-websocket-plugin</id>
 								<phase>package</phase>
@@ -625,6 +628,7 @@
 									</artifactItems>
 								</configuration>
 							</execution>
+							-->
 							<execution>
 								<id>unpack-red5-service</id>
 								<phase>package</phase>
@@ -787,6 +791,7 @@
 									</artifactItems>
 								</configuration>
 							</execution>
+							<!--  
 							<execution>
 								<id>copy-dependency-websocket-plugin</id>
 								<phase>package</phase>
@@ -806,6 +811,7 @@
 									</artifactItems>
 								</configuration>
 							</execution>
+							-->
 							<execution>
 								<id>unpack-red5-service</id>
 								<phase>package</phase>
