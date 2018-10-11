@@ -12,6 +12,7 @@ import static org.bytedeco.javacpp.avutil.av_dict_set;
 import static org.bytedeco.javacpp.avutil.av_rescale_q;
 import static org.bytedeco.javacpp.avutil.AVMEDIA_TYPE_AUDIO;
 
+import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -26,11 +27,16 @@ import org.red5.server.api.scheduling.ISchedulingService;
 import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationContext;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
+import io.antmedia.datastore.db.IDataStore;
+import io.antmedia.datastore.db.IDataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.muxer.MuxAdaptor;
+import io.antmedia.muxer.RtmpMuxer;
 import io.antmedia.rest.model.Result;
 
 public class StreamFetcher {
@@ -206,13 +212,18 @@ public class StreamFetcher {
 					boolean audioOnly = false;
 					if(inputFormatContext.nb_streams() == 1) {
 						audioOnly  = (inputFormatContext.streams(0).codecpar().codec_type() == AVMEDIA_TYPE_AUDIO);
+						System.out.println("\n*** codec:"+inputFormatContext.streams(0).codecpar().codec_id());
+
 					}
 					
 					muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null,true, scope);
 					// if there is only audio, firstKeyFrameReceivedChecked should be true in advance
 					// because there is no video frame
-					muxAdaptor.setFirstKeyFrameReceivedChecked(audioOnly); 
 					
+					
+					
+					muxAdaptor.setFirstKeyFrameReceivedChecked(audioOnly); 
+					setUpEndPoints(scope.getContext().getApplicationContext(), stream.getStreamId(), muxAdaptor);
 					
 					muxAdaptor.init(scope, stream.getStreamId(), false);
 					
@@ -363,6 +374,25 @@ public class StreamFetcher {
 
 			logger.debug("Leaving thread for {}", stream.getStreamUrl());
 			
+
+		}
+		
+		private void setUpEndPoints(ApplicationContext appCtx, String publishedName, MuxAdaptor muxAdaptor) {
+			if (appCtx.containsBean(IDataStoreFactory.BEAN_NAME)) 
+			{
+				IDataStore dataStore = ((IDataStoreFactory)appCtx.getBean(IDataStoreFactory.BEAN_NAME)).getDataStore();
+				Broadcast broadcast = dataStore.get(publishedName);
+				if (broadcast != null) {
+					List<Endpoint> endPointList = broadcast.getEndPointList();
+					
+					if (endPointList != null && endPointList.size() > 0) 
+					{
+						for (Endpoint endpoint : endPointList) {
+							muxAdaptor.addMuxer(new RtmpMuxer(endpoint.getRtmpUrl()));
+						}
+					}
+				}
+			}
 
 		}
 		

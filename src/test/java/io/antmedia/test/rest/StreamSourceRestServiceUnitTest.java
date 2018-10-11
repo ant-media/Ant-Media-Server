@@ -62,7 +62,7 @@ public class StreamSourceRestServiceUnitTest {
 		Mockito.doReturn(new InMemoryDataStore("testAddIPCamera")).when(streamSourceRest).getStore();
 
 	
-		result = streamSourceRest.addStreamSource(newCam);
+		result = streamSourceRest.addStreamSource(newCam,"");
 		
 		assertTrue(result.isSuccess());
 	}
@@ -83,7 +83,7 @@ public class StreamSourceRestServiceUnitTest {
 		Mockito.doReturn(new InMemoryDataStore("testAddStreamSource")).when(streamSourceRest).getStore();
 
 	
-		result = streamSourceRest.addStreamSource(newCam);
+		result = streamSourceRest.addStreamSource(newCam, "");
 		
 		assertTrue(result.isSuccess());
 	}
@@ -116,7 +116,7 @@ public class StreamSourceRestServiceUnitTest {
 		
 		store.save(newCam);
 
-		result = streamSourceRest.updateCamInfo(newCam);
+		result = streamSourceRest.updateCamInfo(newCam, "");
 		
 		assertTrue(result.isSuccess());
 	}

@@ -1,5 +1,6 @@
 package io.antmedia.rest;
 
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
@@ -8,11 +9,13 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
 import javax.servlet.ServletContext;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -22,6 +25,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,9 +39,11 @@ import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.ipcamera.onvifdiscovery.OnvifDiscovery;
 import io.antmedia.rest.model.Result;
+import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.streamsource.StreamFetcher;
 
 @Component
@@ -60,7 +66,7 @@ public class StreamsSourceRestService {
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/addStreamSource")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result addStreamSource(Broadcast stream) {
+	public Result addStreamSource(Broadcast stream, @QueryParam("socialNetworks") String socialEndpointIds) {
 		Result result=new Result(false);
 
 		logger.info("username {}, ipAddr {}, streamURL {}, name: {}", stream.getUsername(),  stream.getIpAddr(), stream.getStreamUrl(), stream.getName());
@@ -69,7 +75,7 @@ public class StreamsSourceRestService {
 			result = addIPCamera(stream);
 		}
 		else if (stream.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE) ) {
-			result = addSource(stream);
+			result = addSource(stream, socialEndpointIds);
 
 		}else {
 
@@ -133,7 +139,7 @@ public class StreamsSourceRestService {
 	}
 
 
-	public Result addSource(Broadcast stream) {
+	public Result addSource(Broadcast stream, String socialEndpointIds) {
 		Result result=new Result(false);
 
 		if(checkStreamUrl(stream.getStreamUrl())) {
@@ -149,6 +155,11 @@ public class StreamsSourceRestService {
 
 			if (id.length() > 0) {
 				Broadcast newSource = getStore().get(stream.getStreamId());
+
+				if (socialEndpointIds != null && socialEndpointIds.length()>0) {
+					addSocialEndpoints(newSource, socialEndpointIds);
+				}
+
 				getInstance().startStreaming(newSource);
 			}
 
@@ -159,6 +170,30 @@ public class StreamsSourceRestService {
 	}
 
 
+
+	private void addSocialEndpoints(Broadcast streamSource, String socialEndpointIds) {
+		Map<String, VideoServiceEndpoint> endPointServiceList = getInstance().getVideoServiceEndpoints();
+
+		String[] endpointIds = socialEndpointIds.split(",");
+
+		if (endPointServiceList != null) {
+			for (String endpointId : endpointIds) {
+				VideoServiceEndpoint videoServiceEndpoint = endPointServiceList.get(endpointId);
+				if (videoServiceEndpoint != null) {
+					Endpoint endpoint;
+					try {
+						endpoint = videoServiceEndpoint.createBroadcast(streamSource.getName(),
+								streamSource.getDescription(), streamSource.getStreamId(), streamSource.isIs360(), streamSource.isPublicStream(),
+								720, true);
+						getStore().addEndpoint(streamSource.getStreamId(), endpoint);
+					} catch (IOException e) {
+						logger.error(ExceptionUtils.getStackTrace(e));
+					}
+				}
+			}
+		}
+	}
+	
 	@GET
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/getCameraError")
@@ -207,7 +242,7 @@ public class StreamsSourceRestService {
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/updateCamInfo")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result updateCamInfo(Broadcast broadcast) {
+	public Result updateCamInfo(Broadcast broadcast, @QueryParam("socialNetworks") String socialNetworksToPublish) {
 		boolean result = false;
 		logger.debug("update cam info for stream {}", broadcast.getStreamId());
 
@@ -239,6 +274,15 @@ public class StreamsSourceRestService {
 			}
 
 			result = getStore().editStreamSourceInfo(broadcast);
+			
+			Broadcast fetchedBroadcast = getStore().get(broadcast.getStreamId());
+			getStore().removeAllEndpoints(fetchedBroadcast.getStreamId());
+
+			if (socialNetworksToPublish != null && socialNetworksToPublish.length() > 0) {
+				addSocialEndpoints(fetchedBroadcast, socialNetworksToPublish);
+			}
+			
+			
 			getInstance().startStreaming(broadcast);
 		}
 		return new Result(result);
