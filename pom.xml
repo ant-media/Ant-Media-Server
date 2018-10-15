@@ -436,14 +436,6 @@
 			<version>${mapdb.version}</version>
 			<type>bundle</type>
 		</dependency>
-		<!--  
-		<dependency>
-			<groupId>org.red5</groupId>
-			<artifactId>websocket</artifactId>
-			<version>${websocket.version}</version>
-			<scope>provided</scope>
-		</dependency>
-		-->
 		<dependency>
 			<groupId>org.mockito</groupId>
 			<artifactId>mockito-core</artifactId>
@@ -608,27 +600,6 @@
 									</artifactItems>
 								</configuration>
 							</execution>
-							<!--  
-							<execution>
-								<id>copy-dependency-websocket-plugin</id>
-								<phase>package</phase>
-								<goals>
-									<goal>copy</goal>
-								</goals>
-								<configuration>
-									<artifactItems>
-										<artifactItem>
-											<groupId>org.red5</groupId>
-											<artifactId>websocket</artifactId>
-											<version>${websocket.version}</version>
-											<type>jar</type>
-											<overWrite>true</overWrite>
-											<outputDirectory>${project.build.directory}/plugins</outputDirectory>
-										</artifactItem>
-									</artifactItems>
-								</configuration>
-							</execution>
-							-->
 							<execution>
 								<id>unpack-red5-service</id>
 								<phase>package</phase>
@@ -791,27 +762,6 @@
 									</artifactItems>
 								</configuration>
 							</execution>
-							<!--  
-							<execution>
-								<id>copy-dependency-websocket-plugin</id>
-								<phase>package</phase>
-								<goals>
-									<goal>copy</goal>
-								</goals>
-								<configuration>
-									<artifactItems>
-										<artifactItem>
-											<groupId>org.red5</groupId>
-											<artifactId>websocket</artifactId>
-											<version>${websocket.version}</version>
-											<type>jar</type>
-											<overWrite>true</overWrite>
-											<outputDirectory>${project.build.directory}/plugins</outputDirectory>
-										</artifactItem>
-									</artifactItems>
-								</configuration>
-							</execution>
-							-->
 							<execution>
 								<id>unpack-red5-service</id>
 								<phase>package</phase>
