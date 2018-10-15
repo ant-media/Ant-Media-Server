@@ -131,12 +131,6 @@ public class DataStoreFactoryUnitTest {
     	
     	datastore.save(broadcast);
     	
-    	try {
-			Thread.sleep(1000);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-    	
     	host = DBReader.instance.getHost("myStream", "myApp");
 
     	assertTrue(host.contentEquals("1.1.1.1"));
