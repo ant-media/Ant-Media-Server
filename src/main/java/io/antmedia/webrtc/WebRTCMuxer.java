@@ -152,7 +152,7 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 		clientCount.incrementAndGet();
 		webRTCClient.setWebRTCMuxer(this);
 		webRTCClient.setVideoResolution(width, height);
-		if (videoConfSent) {
+		if (isVideoConfSent()) {
 			webRTCClient.sendVideoConfPacket(videoConf, keyFrame, 0);
 		}
 	}
@@ -355,8 +355,8 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 				keyFrame = byteArray;
 			}
 
-			if (!videoConfSent) {
-				videoConfSent = true;
+			if (!isVideoConfSent()) {
+				setVideoConfSent(true);
 				
 				if (videoConf == null) {
 					parseVideoConfData(byteArray);
@@ -402,11 +402,11 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 	}
 
 	public boolean isExtradata_parsed() {
-		return videoConfSent;
+		return isVideoConfSent();
 	}
 
 	public void setExtradata_parsed(boolean extradata_parsed) {
-		this.videoConfSent = extradata_parsed;
+		this.setVideoConfSent(extradata_parsed);
 	}
 
 	public byte[] getKeyFrame() {
@@ -502,6 +502,14 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 
 	public void setVideoConf(byte[] videoConf) {
 		this.videoConf = videoConf;
+	}
+
+	public boolean isVideoConfSent() {
+		return videoConfSent;
+	}
+
+	public void setVideoConfSent(boolean videoConfSent) {
+		this.videoConfSent = videoConfSent;
 	}
 
 }
