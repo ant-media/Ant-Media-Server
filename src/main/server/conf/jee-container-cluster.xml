@@ -25,7 +25,7 @@
 		name="protocol" value="org.apache.coyote.http11.Http11NioProtocol" /> -->
 
  
-	<bean id="tomcat.cluster" class="io.antmedia.enterprise.cluster.TcpCluster">
+	<bean id="tomcat.cluster" class="io.antmedia.enterprise.cluster.TcpCluster" init-method="initDBCluster">
 		<constructor-arg>
 			<list>
 				<bean class="org.apache.catalina.ha.tcp.ReplicationValve">
@@ -48,15 +48,22 @@
 				<bean class="io.antmedia.enterprise.cluster.ClusterMessageListener" />
 			</list>
 		</constructor-arg>
+		<property name="channelStartOptions" value="3" />
 		<property name="clusterName" value="ant-media-server-cluster-1" />
+		<property name="clusterStore">
+			<bean class="io.antmedia.enterprise.cluster.ClusterStore">
+				<constructor-arg value="${clusterdb.host}" />
+				<constructor-arg value="${clusterdb.user}" />
+				<constructor-arg value="${clusterdb.password}" />
+			</bean>
+		</property>
+		
 		<property name="channel">
 			<bean class="io.antmedia.enterprise.cluster.ClusterGroupChannel">
 				<constructor-arg>
 					<list>
 					
-					    <!-- open it when you use static members
-					      <bean class="org.apache.catalina.tribes.group.interceptors.TcpPingInterceptor" />
-					     -->
+					    <bean class="org.apache.catalina.tribes.group.interceptors.TcpPingInterceptor" />
 						<bean
 							class="org.apache.catalina.tribes.group.interceptors.TcpFailureDetector" />
 						<bean
@@ -65,10 +72,11 @@
 							class="org.apache.catalina.tribes.group.interceptors.ThroughputInterceptor" />
 							
 							
-						<!-- open it when you use static members
+						
 						<bean class="io.antmedia.enterprise.cluster.EasyStaticMemberInterceptor" >
 							<constructor-arg>
 									<list>
+									<!-- open it when you use static members
 									  <bean class="org.apache.catalina.tribes.membership.StaticMember" >
 									    <property name="port" value="5000" />
 										<property name="securePort" value="-1" />
@@ -76,10 +84,10 @@
 										<property name="domain" value="cluster-antmedia" />
 										<property name="uniqueId" value="{10,0,10,227}" />
     									 </bean>
+									-->
 									</list>
 							</constructor-arg>
 						</bean>	
-						-->
 					</list>
 				</constructor-arg>
 				<constructor-arg>
@@ -92,17 +100,19 @@
 						<bean class="io.antmedia.enterprise.cluster.ClusterChannelListener" />
 					</list>
 				</constructor-arg>
+				<!--
 				<property name="membershipService">
-				<!-- 
+ 
 					<bean class="org.apache.catalina.tribes.membership.McastService">
 						<property name="address" value="228.0.0.4" />
 						<property name="port" value="45564" />
 						<property name="frequency" value="500" />
 						<property name="dropTime" value="3000" />
 					</bean>
-				-->
+								
 					<bean class="io.antmedia.enterprise.cluster.DBMembershipService"/>
 				</property>
+				-->
 				<property name="channelSender">
 					<bean class="org.apache.catalina.tribes.transport.ReplicationTransmitter">
 						<property name="transport">
