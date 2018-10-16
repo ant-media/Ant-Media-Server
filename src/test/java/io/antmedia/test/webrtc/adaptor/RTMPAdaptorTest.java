@@ -5,7 +5,6 @@ import org.awaitility.Awaitility;
 import org.json.simple.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
-import org.red5.net.websocket.WebSocketConnection;
 import org.springframework.context.ApplicationContext;
 import org.webrtc.IceCandidate;
 import org.webrtc.MediaStream;
