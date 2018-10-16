@@ -437,12 +437,6 @@
 			<type>bundle</type>
 		</dependency>
 		<dependency>
-			<groupId>org.red5</groupId>
-			<artifactId>websocket</artifactId>
-			<version>${websocket.version}</version>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
 			<groupId>org.mockito</groupId>
 			<artifactId>mockito-core</artifactId>
 			<version>2.11.0</version>
@@ -574,25 +568,6 @@
 											<type>war</type>
 											<overWrite>true</overWrite>
 											<outputDirectory>${project.build.directory}/webapps</outputDirectory>
-										</artifactItem>
-									</artifactItems>
-								</configuration>
-							</execution>
-							<execution>
-								<id>copy-dependency-websocket-plugin</id>
-								<phase>package</phase>
-								<goals>
-									<goal>copy</goal>
-								</goals>
-								<configuration>
-									<artifactItems>
-										<artifactItem>
-											<groupId>org.red5</groupId>
-											<artifactId>websocket</artifactId>
-											<version>${websocket.version}</version>
-											<type>jar</type>
-											<overWrite>true</overWrite>
-											<outputDirectory>${project.build.directory}/plugins</outputDirectory>
 										</artifactItem>
 									</artifactItems>
 								</configuration>
@@ -752,25 +727,6 @@
 											<groupId>io.antmedia.enterprise</groupId>
 											<artifactId>ant-media-enterprise</artifactId>
 											<version>${ant-media-server-enterprise.version}</version>
-											<type>jar</type>
-											<overWrite>true</overWrite>
-											<outputDirectory>${project.build.directory}/plugins</outputDirectory>
-										</artifactItem>
-									</artifactItems>
-								</configuration>
-							</execution>
-							<execution>
-								<id>copy-dependency-websocket-plugin</id>
-								<phase>package</phase>
-								<goals>
-									<goal>copy</goal>
-								</goals>
-								<configuration>
-									<artifactItems>
-										<artifactItem>
-											<groupId>org.red5</groupId>
-											<artifactId>websocket</artifactId>
-											<version>${websocket.version}</version>
 											<type>jar</type>
 											<overWrite>true</overWrite>
 											<outputDirectory>${project.build.directory}/plugins</outputDirectory>

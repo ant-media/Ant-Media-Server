@@ -77,9 +77,11 @@ public class DataStoreFactory implements IDataStoreFactory{
 				logger.error("Undefined Datastore:{} app:{} db name:{}", dbType, appName, dbName);
 			}
 			
-			logger.info("Used Datastore:{} app:{} db name:{}", dbType, appName, dbName);
+			logger.info("Used Datastore:{} app:{} db name:{}", getDbType(), getAppName(), getDbName());
 			
-			DBReader.instance.addDataStore(appName, dataStore);
+			if(dataStore != null) {
+				DBReader.instance.addDataStore(appName, dataStore);
+			}
 		}
 		return dataStore;
 	}
