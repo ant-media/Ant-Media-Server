@@ -19,6 +19,7 @@ import io.antmedia.websocket.WebSocketCommunityHandler;
 import io.antmedia.websocket.WebSocketConstants;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.*;
 
@@ -61,6 +62,11 @@ public class RTMPAdaptorTest {
 
 		MediaStream stream = mock(MediaStream.class);
 		rtmpAdaptor.onAddStream(stream);
+		
+		/* no room property is put to session with streamId, because roomName is put during joining to room  
+		 * getting room parameter from session is tested in io.antmedia.test.enterprise.WebSocketHandlerUnitTest.joinConferenceRoomAndPublish
+		 */
+		assertNull(session.getUserProperties().get(streamId));
 
 		verify(webSocketHandler).sendPublishStartedMessage(streamId, session);
 	}

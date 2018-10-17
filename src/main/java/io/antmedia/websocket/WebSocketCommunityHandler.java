@@ -122,7 +122,7 @@ public abstract class WebSocketCommunityHandler {
 	}
 
 	private void startRTMPAdaptor(Session session, final String streamId) {
-		
+
 		//get scope and use its name
 		String outputURL = "rtmp://127.0.0.1/WebRTCApp/" + streamId;
 
@@ -182,12 +182,15 @@ public abstract class WebSocketCommunityHandler {
 	@SuppressWarnings("unchecked")
 	public  void sendPublishStartedMessage(String streamId, Session session) {
 		String roomName = (String)session.getUserProperties().get(streamId);
-		
+
 		JSONObject jsonObj = new JSONObject();
 		jsonObj.put(WebSocketConstants.COMMAND, WebSocketConstants.NOTIFICATION_COMMAND);
 		jsonObj.put(WebSocketConstants.DEFINITION, WebSocketConstants.PUBLISH_STARTED);
 		jsonObj.put(WebSocketConstants.STREAM_ID, streamId);
-		jsonObj.put(WebSocketConstants.ATTR_ROOM_NAME, roomName);
+
+		if(roomName != null) {
+			jsonObj.put(WebSocketConstants.ATTR_ROOM_NAME, roomName);
+		}
 
 		sendMessage(jsonObj.toJSONString(), session);
 	}
@@ -251,7 +254,7 @@ public abstract class WebSocketCommunityHandler {
 	@SuppressWarnings("unchecked")
 	public void sendTakeCandidateMessage(long sdpMLineIndex, String sdpMid, String sdp, String streamId, Session session)
 	{
-		
+
 		sendMessage(getTakeCandidateJSON(sdpMLineIndex, sdpMid, sdp, streamId).toJSONString(), session);
 	}
 
@@ -271,7 +274,7 @@ public abstract class WebSocketCommunityHandler {
 
 
 	public static JSONObject getTakeCandidateJSON(long sdpMLineIndex, String sdpMid, String sdp, String streamId) {
-		
+
 		JSONObject jsonObject = new JSONObject();
 		jsonObject.put(WebSocketConstants.COMMAND,  WebSocketConstants.TAKE_CANDIDATE_COMMAND);
 		jsonObject.put(WebSocketConstants.CANDIDATE_LABEL, sdpMLineIndex);
@@ -281,17 +284,17 @@ public abstract class WebSocketCommunityHandler {
 
 		return jsonObject;
 	}
-	
+
 	public static JSONObject getSDPConfigurationJSON(String description, String type, String streamId) {
-		
+
 		JSONObject jsonResponseObject = new JSONObject();
 		jsonResponseObject.put(WebSocketConstants.COMMAND, WebSocketConstants.TAKE_CONFIGURATION_COMMAND);
 		jsonResponseObject.put(WebSocketConstants.SDP, description);
 		jsonResponseObject.put(WebSocketConstants.TYPE, type);
 		jsonResponseObject.put(WebSocketConstants.STREAM_ID, streamId);
-		
+
 		return jsonResponseObject;
 	}
-	
+
 
 }
