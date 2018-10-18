@@ -38,6 +38,7 @@
 			<list>
 				<bean name="deltaManager" class="org.apache.catalina.ha.session.DeltaManager">
 					<property name="name" value="deltaManager" />
+					<property name="stateTransferTimeout" value="5" />
 					<property name="expireSessionsOnShutdown" value="false" />
 					<property name="notifyListenersOnReplication" value="true" />
 				</bean>
@@ -46,6 +47,7 @@
 		<constructor-arg>
 			<list>
 				<bean class="io.antmedia.enterprise.cluster.ClusterMessageListener" />
+				<bean class="org.apache.catalina.ha.session.ClusterSessionListener" />
 			</list>
 		</constructor-arg>
 		<property name="channelStartOptions" value="3" />
