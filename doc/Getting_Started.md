@@ -123,8 +123,7 @@ Here are the ports server uses
 * TCP:5443 (HTTPS)
 * TCP:5554 (RTSP)
 * UDP:5000-65000 (RTP in RTSP)
-* TCP: 8081 (WebSocket)
-* TCP: 8082 (WebSocket Secure)
+
 
 ### Forward Default 80 Port to 5080 
 

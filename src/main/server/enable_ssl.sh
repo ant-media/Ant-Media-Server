@@ -269,7 +269,6 @@ fi
 
 echo "SSL certificate is installed."
 echo "Https port: 5443"
-echo "WebSocket Secure port: 8082"
 echo "You can use this url: https://$domain:5443/"
 
 #remove temp dir
