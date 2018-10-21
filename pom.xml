@@ -270,9 +270,10 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
-			<groupId>org.red5</groupId>
-			<artifactId>red5-server-common</artifactId>
-			<version>${red5-server-common.version}</version>
+			<groupId>io.antmedia</groupId>
+			<artifactId>ant-media-server-common</artifactId>
+			<version>${ant-media-server-common.version}</version>
+			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.red5</groupId>
