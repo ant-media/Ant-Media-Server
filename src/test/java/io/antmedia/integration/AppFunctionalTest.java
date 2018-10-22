@@ -21,6 +21,7 @@ import java.nio.file.Files;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.lang.RandomStringUtils;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
@@ -40,23 +41,34 @@ import org.junit.Test;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
+import org.mockito.Mockito;
+import org.red5.server.api.IContext;
+import org.red5.server.api.scope.IScope;
+import org.red5.server.scheduling.QuartzSchedulingService;
+import org.red5.server.scope.BasicScope;
 import org.red5.server.stream.ClientBroadcastStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 
 import com.google.gson.Gson;
+import com.restfb.types.Application.ApplicationContext;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
+import io.antmedia.datastore.db.IDataStore;
+import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.BroadcastRestService.BroadcastStatistics;
 import io.antmedia.rest.BroadcastRestService.LiveStatistics;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.Version;
+import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.test.Application;
+import io.antmedia.test.StreamFetcherUnitTest;
 
 public class AppFunctionalTest {
 
@@ -181,7 +193,7 @@ public class AppFunctionalTest {
 		 * System.out.println("Result: " + notifyHook.toString());
 		 */
 	}
-
+	
 	@Test
 	public void testSetUpEndPoints() {
 

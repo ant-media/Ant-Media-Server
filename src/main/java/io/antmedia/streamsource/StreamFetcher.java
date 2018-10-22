@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.bytedeco.javacpp.avcodec;
 import org.bytedeco.javacpp.avcodec.AVPacket;
 import org.bytedeco.javacpp.avformat.AVFormatContext;
@@ -220,8 +221,6 @@ public class StreamFetcher {
 					// if there is only audio, firstKeyFrameReceivedChecked should be true in advance
 					// because there is no video frame
 
-
-
 					muxAdaptor.setFirstKeyFrameReceivedChecked(audioOnly); 
 					setUpEndPoints(stream.getStreamId(), muxAdaptor);
 
@@ -327,7 +326,7 @@ public class StreamFetcher {
 				setCameraError(result);
 			} 
 			catch (OutOfMemoryError | Exception e) {
-				logger.error(e.getMessage());
+				logger.error(ExceptionUtils.getStackTrace(e));
 				exceptionInThread  = true;
 			}
 
@@ -572,7 +571,7 @@ public class StreamFetcher {
 
 	public AntMediaApplicationAdapter getInstance() {
 		if (appInstance == null) {
-			appInstance = (AntMediaApplicationAdapter) scope.getContext().getApplicationContext().getBean("web.handler");
+			appInstance = (AntMediaApplicationAdapter) scope.getContext().getApplicationContext().getBean(AntMediaApplicationAdapter.BEAN_NAME);
 		}
 		return appInstance;
 	}
