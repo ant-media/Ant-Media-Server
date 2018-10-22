@@ -8,6 +8,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -46,11 +47,11 @@ import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class PeriscopeEndpointTest {
 
-	private static final String TARGET_TEST_PROPERTIES = "src/test/resources/preset-red5-web.db";
+	public static final String TARGET_TEST_PROPERTIES = "src/test/resources/preset-red5-web.db";
 
 	// This is test app
-	public String CLIENT_ID = "5PXoLeNEcFEKBYOh2W-lJHTF_D584hF4XI-ENDIHCOCzArNaMx";
-	public String CLIENT_SECRET = "tYHjmoe42iD1FX0wSLgF7-4kdnM9mabgznuSdaSkVDFFflYomK";
+	public static String CLIENT_ID = "5PXoLeNEcFEKBYOh2W-lJHTF_D584hF4XI-ENDIHCOCzArNaMx";
+	public static String CLIENT_SECRET = "tYHjmoe42iD1FX0wSLgF7-4kdnM9mabgznuSdaSkVDFFflYomK";
 
 	public static final int MAC_OS_X = 0;
 	public static final int LINUX = 1;
@@ -84,14 +85,14 @@ public class PeriscopeEndpointTest {
 
 		IDataStore dataStore = null;
 		try {
-			
+
 			File f = new File(TARGET_TEST_PROPERTIES);
 			if (f.exists()) {
 				f.delete();
 			}
-			
+
 			dataStore = new MapDBStore(TARGET_TEST_PROPERTIES);
-			
+
 			PeriscopeEndpoint endPoint = new PeriscopeEndpoint(CLIENT_ID, CLIENT_SECRET, dataStore, null, null);
 			DeviceAuthParameters device = null;
 
@@ -125,23 +126,23 @@ public class PeriscopeEndpointTest {
 				}
 
 			} while (true);
-			
+
 			assertNotNull(endPoint.getCredentials());
 			assertNotNull(endPoint.getCredentials().getAccountName());
 			assertTrue(endPoint.getCredentials().getAccountName().length() > 3 );
 			assertNotNull(endPoint.getCredentials().getAccountId());
-			
+
 			assertEquals("periscope", endPoint.getCredentials().getServiceName());
-			
-			
+
+
 			assertNotNull(endPoint.getAccountName());
-			
+
 			assertTrue(endPoint.getAccountName().length() > 0);
-			
+
 			List<SocialEndpointCredentials> socialEndpoints = dataStore.getSocialEndpoints(0, 100);
 			assertEquals(1, socialEndpoints.size());
-			
-			
+
+
 		} catch (Exception e) {
 
 			e.printStackTrace();
@@ -151,19 +152,19 @@ public class PeriscopeEndpointTest {
 		{
 			dataStore.close();
 		}
-		
+
 		testUpdateToken();
-		
+
 	}
-	
-	
+
+
 	//@Test This function should not be called as a test funciton. It is called in testAccessToken
 	public void testUpdateToken() {
 		IDataStore dataStore = new MapDBStore(TARGET_TEST_PROPERTIES);
-		
+
 		List<SocialEndpointCredentials> socialEndpoints = dataStore.getSocialEndpoints(0, 10);
 		assertEquals(1, socialEndpoints.size());
-		
+
 		PeriscopeEndpoint endPoint = new PeriscopeEndpoint(CLIENT_ID, CLIENT_SECRET, dataStore, socialEndpoints.get(0), null);
 
 		try {
@@ -172,14 +173,14 @@ public class PeriscopeEndpointTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-		
+
 		dataStore.close();
-		
+
 		dataStore = new MapDBStore(TARGET_TEST_PROPERTIES);
-			
+
 		socialEndpoints = dataStore.getSocialEndpoints(0, 10);
 		assertEquals(1, socialEndpoints.size());
-		
+
 		endPoint = new PeriscopeEndpoint(CLIENT_ID, CLIENT_SECRET, dataStore, socialEndpoints.get(0), null);
 
 		try {
@@ -188,24 +189,24 @@ public class PeriscopeEndpointTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-		
+
 		dataStore.close();
 	}
-	
+
 	@Test
 	public void testAskDeviceParameters() {
 
 		IDataStore dataStore = null;
 		try {
-			
+
 			dataStore = new InMemoryDataStore(TARGET_TEST_PROPERTIES);
-			
+
 			PeriscopeEndpoint endPoint = new PeriscopeEndpoint(CLIENT_ID, CLIENT_SECRET, dataStore, null, null);
 			DeviceAuthParameters device = null;
-			
+
 			assertEquals(CLIENT_ID, endPoint.getClientId());
 			assertEquals(CLIENT_SECRET, endPoint.getClientSecret());
-			
+
 			assertTrue(endPoint.isInitialized());
 
 			device = endPoint.askDeviceAuthParameters();
@@ -216,12 +217,12 @@ public class PeriscopeEndpointTest {
 			assertNotNull(device.expires_in);
 			assertNotNull(device.interval);
 			assertNotNull(device.verification_url);
-			
+
 			assertFalse(endPoint.isAuthenticated());
-			
+
 			assertFalse(endPoint.askIfDeviceAuthenticated());
-			
-			
+
+
 			String accountName = RandomStringUtils.randomAlphanumeric(23);
 			String accessToken = RandomStringUtils.randomAlphanumeric(23);
 			String refreshToken = RandomStringUtils.randomAlphanumeric(23);
@@ -229,7 +230,7 @@ public class PeriscopeEndpointTest {
 			String token_type = RandomStringUtils.randomAlphanumeric(23);
 			String accountId = RandomStringUtils.randomAlphanumeric(23);
 			endPoint.saveCredentials(accountName, accessToken, refreshToken, expireTimeInSeconds, token_type, accountId);
-			
+
 			SocialEndpointCredentials credentials = endPoint.getCredentials();
 			assertEquals(accountName, credentials.getAccountName());
 			assertEquals(accessToken, credentials.getAccessToken());
@@ -237,7 +238,7 @@ public class PeriscopeEndpointTest {
 			assertEquals(expireTimeInSeconds, credentials.getExpireTimeInSeconds());
 			assertEquals(token_type, credentials.getTokenType());
 			assertEquals(accountId, credentials.getAccountId());
-			
+
 			credentials = dataStore.getSocialEndpointCredentials(credentials.getId());
 			assertEquals(accountName, credentials.getAccountName());
 			assertEquals(accessToken, credentials.getAccessToken());
@@ -245,12 +246,12 @@ public class PeriscopeEndpointTest {
 			assertEquals(expireTimeInSeconds, credentials.getExpireTimeInSeconds());
 			assertEquals(token_type, credentials.getTokenType());
 			assertEquals(accountId, credentials.getAccountId());
-			
+
 			endPoint.resetCredentials();
-			
+
 			assertNull(endPoint.getCredentials());
 			assertNull(dataStore.getSocialEndpointCredentials(credentials.getId()));
-		
+
 		} catch (Exception e) {
 
 			e.printStackTrace();
@@ -261,14 +262,14 @@ public class PeriscopeEndpointTest {
 			dataStore.close();
 		}		
 	}
-	
+
 
 	@Test
 	public void testCreateBroadcastNoName() {
 		IDataStore dataStore = new MapDBStore(TARGET_TEST_PROPERTIES);
 		List<SocialEndpointCredentials> socialEndpoints = dataStore.getSocialEndpoints(0, 10);
 		assertEquals(1, socialEndpoints.size());
-		
+
 		PeriscopeEndpoint endPoint = new PeriscopeEndpoint(CLIENT_ID, CLIENT_SECRET, dataStore, socialEndpoints.get(0), null);
 
 		try {
@@ -282,27 +283,30 @@ public class PeriscopeEndpointTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-		
+
 		dataStore.close();
 	}
+
+
+	
 
 	@Test
 	public void testCreateBroadcast() {
 		IDataStore dataStore = new MapDBStore(TARGET_TEST_PROPERTIES);
 		List<SocialEndpointCredentials> socialEndpoints = dataStore.getSocialEndpoints(0, 10);
 		assertEquals(1, socialEndpoints.size());
-		
+
 		PeriscopeEndpoint endPoint = new PeriscopeEndpoint(CLIENT_ID, CLIENT_SECRET, dataStore, socialEndpoints.get(0), null);
 		try {
-			
+
 			assertEquals("faraklit06", endPoint.getAccountName());
-			
+
 			String name = "Event name";
 			Endpoint endpoint = endPoint.createBroadcast(name, null, null, false, false, 720, true);
 
 			System.out.println("rtmp url is:" + endpoint.getRtmpUrl());
 
-			
+
 			/// usr/local/bin/
 			Process execute = MuxingTest.execute(
 					ffmpegPath + " -re -i src/test/resources/test_video_360p.flv -acodec copy -vcodec copy -f flv "
@@ -311,27 +315,27 @@ public class PeriscopeEndpointTest {
 			LiveStreamStatus streamStatus = null;
 
 			boolean started = false;
-			
+
 			endPoint.publishBroadcast(endpoint);
-			
+
 
 			Awaitility.await().atMost(60, TimeUnit.SECONDS)
-				.pollInterval(2, TimeUnit.SECONDS)
-				.until(() -> {
-					return endPoint.getBroadcast(endpoint).equals(BroadcastStatus.LIVE_NOW);
-				});
+			.pollInterval(2, TimeUnit.SECONDS)
+			.until(() -> {
+				return endPoint.getBroadcast(endpoint).equals(BroadcastStatus.LIVE_NOW);
+			});
 
 			endPoint.stopBroadcast(endpoint);
 
 			execute.destroy();
-			
-			
+
+
 			Awaitility.await().atMost(20, TimeUnit.SECONDS)
-				.pollInterval(2, TimeUnit.SECONDS)
-				.until(() -> {
-					return endPoint.getBroadcast(endpoint).equals(BroadcastStatus.UNPUBLISHED);
-				});
-			
+			.pollInterval(2, TimeUnit.SECONDS)
+			.until(() -> {
+				return endPoint.getBroadcast(endpoint).equals(BroadcastStatus.UNPUBLISHED);
+			});
+
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -341,22 +345,22 @@ public class PeriscopeEndpointTest {
 			dataStore.close();
 		}
 	}
-	
+
 	@Test
 	public void testChatEndpoint() {
 		IDataStore dataStore = new MapDBStore(TARGET_TEST_PROPERTIES);
 		List<SocialEndpointCredentials> socialEndpoints = dataStore.getSocialEndpoints(0, 10);
 		assertEquals(1, socialEndpoints.size());
-		
+
 		PeriscopeEndpoint endPoint = new PeriscopeEndpoint(CLIENT_ID, CLIENT_SECRET, dataStore, socialEndpoints.get(0), null);
-		
+
 		String name = "Event name";
 		String serverStreamId = RandomStringUtils.randomAlphabetic(8);
 		Endpoint endpoint;
 		try {
 			endpoint = endPoint.createBroadcast(name, null, serverStreamId, false, false, 720, true);
 			IChatListener chatListener = endPoint.getNewChatListener(endpoint);
-			
+
 			int randomMessageCount = (int) (Math.random() * 100);
 			for (int i = 0; i < randomMessageCount; i++) {
 				HeartMessage heartMessage = new HeartMessage();
@@ -364,14 +368,14 @@ public class PeriscopeEndpointTest {
 				heartMessage.type = "heart";
 				heartMessage.user = null;
 				chatListener.heartMessageReceived(heartMessage);
-				
+
 				assertEquals(i+1, endPoint.getInteraction(serverStreamId).getLoveCount());
 			}
-			
+
 			assertEquals(randomMessageCount, endPoint.getInteraction(serverStreamId).getLoveCount());
 			assertEquals(0, endPoint.getInteraction(serverStreamId).getLikeCount());
 			assertEquals(0, endPoint.getInteraction(serverStreamId).getHahaCount());
-			
+
 			//test viewer message
 			randomMessageCount = (int) (Math.random() * 100);
 			int totalViewCount = 0;
@@ -380,23 +384,23 @@ public class PeriscopeEndpointTest {
 				viewerMessage.id = RandomStringUtils.randomAlphabetic(8);
 				viewerMessage.live = (int) (Math.random() * 100);
 				totalViewCount = (int) (Math.random() * 100);
-				
+
 				viewerMessage.total = totalViewCount;
 				chatListener.viewerCountMessageReceived(viewerMessage);
-				
+
 				assertEquals(totalViewCount, endPoint.getLiveViews(endpoint.getServerStreamId()));
 			}
-			
+
 			assertEquals(totalViewCount, endPoint.getLiveViews(endpoint.getServerStreamId()));
-			
-			
+
+
 			//test chat message
 			randomMessageCount = (int) (Math.random() * 100) + 10;
 			for (int i = 0; i < randomMessageCount ; i++) {
 				ChatMessage chatMessage = new ChatMessage();
 				chatMessage.id = RandomStringUtils.randomAlphabetic(8);
 				chatMessage.text = RandomStringUtils.randomAlphanumeric(48);
-				
+
 				chatMessage.user = new User();
 				chatMessage.user.id = RandomStringUtils.randomAlphabetic(8);
 				chatMessage.user.display_name = RandomStringUtils.randomAlphabetic(8);		
@@ -405,23 +409,23 @@ public class PeriscopeEndpointTest {
 				chatListener.chatMessageReceived(chatMessage);
 				assertEquals(i+1, endPoint.getTotalCommentsCount(serverStreamId));
 			}
-			
+
 			assertEquals(randomMessageCount, endPoint.getTotalCommentsCount(serverStreamId));
-			
+
 			List<LiveComment> comments = endPoint.getComments(serverStreamId, 0, 5);
 			assertEquals(5, comments.size());
-			
+
 			comments = endPoint.getComments(serverStreamId, 200, 500);
 			assertNull(comments);
-			
-			
+
+
 			endPoint.stopBroadcast(endpoint);
 			assertNull(endPoint.getComments(serverStreamId, 0, 500));
 			assertEquals(0, endPoint.getTotalCommentsCount(serverStreamId));
-			
+
 			assertEquals(0, endPoint.getLiveViews(endpoint.getServerStreamId()));
 			assertNull(endPoint.getInteraction(serverStreamId));
-			
+
 		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
