@@ -7,9 +7,9 @@ for publishing & playing streams. Let's make it step by step
 1. Client connects to Ant Media Server through WebSocket. URL of the WebSocket interface is something like
 
 ```
-ws://SERVER_NAME:8081/WebRTCAppEE
+ws://" + location.hostname + ":5080/WebRTCAppEE/websocket
 ```
-8081 is the port number of WebSocket and `WebRTCAppEE` is the name of the app on the server.
+`WebRTCAppEE` is the name of the app on the server.
 
 2. Client sends publish JSON command to the server with stream name parameter. 
 
@@ -73,10 +73,10 @@ to the server with takeConfiguration command
 1. Client connects to Ant Media Server through WebSocket.
 
 ```
-ws://SERVER_NAME:8081/WebRTCApp4
+ws://" + location.hostname + ":5080/WebRTCAppEE/websocket
 ```
 
-8081 is the port number of WebSocket and `WebRTCApp4` is the name of the app on the server.
+`WebRTCApp4` is the name of the app on the server.
 
 2. Client sends play JSON command to the server with stream name parameter. 
 
@@ -132,10 +132,10 @@ ws://SERVER_NAME:8081/WebRTCApp4
 1. Peers connects to Ant Media Server through WebSocket.
 
 ```
-ws://SERVER_NAME:8081/WebRTCAppEE
+ws://" + location.hostname + ":5080/WebRTCAppEE/websocket
 ```
 
-8081 is the port number of WebSocket and `WebRTCAppEE` is the name of the app on the server.
+ `WebRTCAppEE` is the name of the app on the server.
 
 2. Client sends join JSON command to the server with stream name parameter. 
 
@@ -205,10 +205,10 @@ Server relays the answer sdp to the first peer
 1. Peers connects to Ant Media Server through WebSocket.
 
 ```
-ws://SERVER_NAME:8081/WebRTCAppEE
+ws://" + location.hostname + ":5080/WebRTCAppEE/websocket
 ```
 
-8081 is the port number of WebSocket and `WebRTCAppEE` is the name of the app on the server.
+`WebRTCAppEE` is the name of the app on the server.
 
 2. Client sends join JSON command to the server with room name parameter. 
 

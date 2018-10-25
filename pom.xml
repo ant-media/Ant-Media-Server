@@ -7,11 +7,11 @@
 	</parent>
 	<modelVersion>4.0.0</modelVersion>
 	<artifactId>ant-media-server</artifactId>
-	<version>${project.parent.version}</version>
 	<name>Ant Media Server</name>
 	<description>Ant Media Server supports RTMP, RTSP, MP4, HLS, WebRTC, Adaptive Streaming, etc.</description>
 	<packaging>jar</packaging>
 	<url>https://github.com/ant-media/Ant-Media-Server</url>
+	<version>${project.parent.version}</version>
 	<organization>
 		<name>Ant Media</name>
 		<url>https://antmedia.io</url>
@@ -437,12 +437,6 @@
 			<type>bundle</type>
 		</dependency>
 		<dependency>
-			<groupId>org.red5</groupId>
-			<artifactId>websocket</artifactId>
-			<version>${websocket.version}</version>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
 			<groupId>org.mockito</groupId>
 			<artifactId>mockito-core</artifactId>
 			<version>2.11.0</version>
@@ -602,25 +596,6 @@
 											<type>war</type>
 											<overWrite>true</overWrite>
 											<outputDirectory>${project.build.directory}/webapps</outputDirectory>
-										</artifactItem>
-									</artifactItems>
-								</configuration>
-							</execution>
-							<execution>
-								<id>copy-dependency-websocket-plugin</id>
-								<phase>package</phase>
-								<goals>
-									<goal>copy</goal>
-								</goals>
-								<configuration>
-									<artifactItems>
-										<artifactItem>
-											<groupId>org.red5</groupId>
-											<artifactId>websocket</artifactId>
-											<version>${websocket.version}</version>
-											<type>jar</type>
-											<overWrite>true</overWrite>
-											<outputDirectory>${project.build.directory}/plugins</outputDirectory>
 										</artifactItem>
 									</artifactItems>
 								</configuration>
@@ -788,25 +763,6 @@
 								</configuration>
 							</execution>
 							<execution>
-								<id>copy-dependency-websocket-plugin</id>
-								<phase>package</phase>
-								<goals>
-									<goal>copy</goal>
-								</goals>
-								<configuration>
-									<artifactItems>
-										<artifactItem>
-											<groupId>org.red5</groupId>
-											<artifactId>websocket</artifactId>
-											<version>${websocket.version}</version>
-											<type>jar</type>
-											<overWrite>true</overWrite>
-											<outputDirectory>${project.build.directory}/plugins</outputDirectory>
-										</artifactItem>
-									</artifactItems>
-								</configuration>
-							</execution>
-							<execution>
 								<id>unpack-red5-service</id>
 								<phase>package</phase>
 								<goals>
@@ -890,4 +846,5 @@
 		</profile>
 	</profiles>
 
+	
 </project>

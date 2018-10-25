@@ -49,7 +49,7 @@ First video tag is for local video and the second video tag for remote video.
 	        };
 	
 	  var webRTCAdaptor = new WebRTCAdaptor({
-		  websocket_url:"ws://" + location.hostname + ":8081/WebRTCApp4",  // url of the WebSocket Signalling Server
+		  websocket_url:"ws://" + location.hostname + ":5080/WebRTCAppEE/websocket",  // url of the WebSocket  Signalling Server
 		  mediaConstraints: mediaConstraints, 
 		  peerconnection_config: pc_config,
 		  sdp_constraints: sdpConstraints,
