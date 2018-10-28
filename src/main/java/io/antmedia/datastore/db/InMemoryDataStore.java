@@ -28,7 +28,7 @@ import io.antmedia.datastore.db.types.VoD;
 public class InMemoryDataStore implements IDataStore {
 
 
-	protected static Logger logger = LoggerFactory.getLogger(InMemoryDataStore.class);
+	protected static final Logger logger = LoggerFactory.getLogger(InMemoryDataStore.class);
 	private Map<String, Broadcast> broadcastMap = new LinkedHashMap<>();
 	private Map<String, VoD> vodMap = new LinkedHashMap<>();
 	private Map<String, List<TensorFlowObject>> detectionMap = new LinkedHashMap<>();

@@ -41,7 +41,7 @@ import org.springframework.jmx.export.annotation.ManagedResource;
 @ManagedResource(objectName = "org.red5.server:type=ApplicationSchedulingService,name=default")
 public class ApplicationSchedulingService extends QuartzSchedulingService {
 
-    private static Logger log = Red5LoggerFactory.getLogger(ApplicationSchedulingService.class);
+    private static final Logger log = Red5LoggerFactory.getLogger(ApplicationSchedulingService.class);
 
     public static final String QUARTZ_FACTORY_KEY = "org.quartz.impl.StdSchedulerFactory.KEY";
 

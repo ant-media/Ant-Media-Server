@@ -43,7 +43,7 @@ public class MapDBStore implements IDataStore {
 	private BTreeMap<String, String> tokenMap;
 
 	private Gson gson;
-	protected static Logger logger = LoggerFactory.getLogger(MapDBStore.class);
+	protected static final Logger logger = LoggerFactory.getLogger(MapDBStore.class);
 	private static final String MAP_NAME = "BROADCAST";
 	private static final String VOD_MAP_NAME = "VOD";
 	private static final String DETECTION_MAP_NAME = "DETECTION";

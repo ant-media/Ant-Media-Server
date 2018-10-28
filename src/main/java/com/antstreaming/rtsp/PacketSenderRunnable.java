@@ -25,6 +25,7 @@ import static org.bytedeco.javacpp.avutil.av_rescale_q;
 import static org.bytedeco.javacpp.avutil.av_rescale_q_rnd;
 
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.nio.charset.StandardCharsets;
 
 import org.bytedeco.javacpp.PointerPointer;
 import org.bytedeco.javacpp.avcodec.AVPacket;
@@ -55,7 +56,7 @@ public class PacketSenderRunnable implements Runnable {
 	private AtomicBoolean isRunning = new AtomicBoolean(false);
 	private AVFormatContext inputFormatContext;
 	private AVFormatContext[] outputFormatContext;
-	private static Logger logger = LoggerFactory.getLogger(PacketSenderRunnable.class);
+	private static final Logger logger = LoggerFactory.getLogger(PacketSenderRunnable.class);
 	private boolean closeRequest = false;
 	private boolean finish;
 	private String rtmpUrl;
@@ -173,7 +174,7 @@ public class PacketSenderRunnable implements Runnable {
 					if (ret < 0) {
 						byte[] data = new byte[4096];
 						avutil.av_strerror(ret, data, data.length);
-						logger.warn("cannot read frame, closing muxer. Error: " + new String(data));
+						logger.warn("cannot read frame, closing muxer. Error: " + new String(data,StandardCharsets.UTF_8));
 
 						closeMuxer(true);
 						return;
@@ -312,7 +313,7 @@ public class PacketSenderRunnable implements Runnable {
 			byte[] data = new byte[4096];
 			avutil.av_strerror(ret, data, data.length);
 			logger.warn("could not open input " + rtmpUrl + " error code:" + ret
-					+ " description: " + new String(data));
+					+ " description: " + new String(data,StandardCharsets.UTF_8));
 			return null;
 		}
 
@@ -325,7 +326,7 @@ public class PacketSenderRunnable implements Runnable {
 				byte[] data = new byte[4096];
 				avutil.av_strerror(ret, data, data.length);
 				logger.warn("could not find stream info " + rtmpUrl + " error code:" + ret
-						+ " description: " + new String(data));
+						+ " description: " + new String(data,StandardCharsets.UTF_8));
 				return null;
 			}
 
@@ -336,11 +337,11 @@ public class PacketSenderRunnable implements Runnable {
 				byte[] data = new byte[4096];
 				avutil.av_strerror(ret, data, data.length);
 				logger.warn("could not create sdp " + rtmpUrl + " error code:" + ret
-						+ " description: " + new String(data));
+						+ " description: " + new String(data,StandardCharsets.UTF_8));
 				return null;
 			}
 
-			String sdpString = new String(sdpData);
+			String sdpString = new String(sdpData,StandardCharsets.UTF_8);
 
 			if (sdpString.indexOf("rtpmap") == -1) {
 				logger.warn("sdp description does not have rtpmap field");

@@ -55,7 +55,7 @@ import org.slf4j.Logger;
  */
 public final class Installer {
 
-    private static Logger log = Red5LoggerFactory.getLogger(Installer.class);
+    private static final Logger log = Red5LoggerFactory.getLogger(Installer.class);
 
     private String applicationRepositoryUrl;
 

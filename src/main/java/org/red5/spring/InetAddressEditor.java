@@ -32,7 +32,7 @@ import org.slf4j.LoggerFactory;
  */
 public class InetAddressEditor extends PropertyEditorSupport {
 
-    private static Logger log = LoggerFactory.getLogger(InetAddressEditor.class);
+    private static final Logger log = LoggerFactory.getLogger(InetAddressEditor.class);
 
     private static Pattern ipv4 = Pattern.compile("(([01][0-9][0-9]|2[0-4][0-9]|25[0-5])\\.){3}([01][0-9][0-9]|2[0-4][0-9]|25[0-5])");
 

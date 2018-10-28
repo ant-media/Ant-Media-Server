@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
+import java.nio.charset.StandardCharsets;
 
 import javax.servlet.ServletContext;
 import javax.ws.rs.Consumes;
@@ -123,7 +124,7 @@ public class BroadcastRestService {
 
 	private ProcessBuilderFactory processBuilderFactory = null;
 
-	protected static Logger logger = LoggerFactory.getLogger(BroadcastRestService.class);
+	protected static final Logger logger = LoggerFactory.getLogger(BroadcastRestService.class);
 
 	/**
 	 * Creates a broadcast and returns the full broadcast object with rtmp
@@ -785,7 +786,7 @@ public class BroadcastRestService {
 					int length;
 					while ((length = is.read(data, 0, data.length)) != -1) {
 						if (logger.isInfoEnabled()) {
-							logger.info(new String(data, 0, length));
+							logger.info(new String(data, 0, length,StandardCharsets.UTF_8));
 						}
 					}
 				}

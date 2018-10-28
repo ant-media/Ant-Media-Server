@@ -36,7 +36,7 @@ import org.slf4j.LoggerFactory;
  */
 public class ScopeResolver implements IScopeResolver {
 
-    protected static Logger log = LoggerFactory.getLogger(ScopeResolver.class);
+    protected static final Logger log = LoggerFactory.getLogger(ScopeResolver.class);
 
     /**
      * Global scope

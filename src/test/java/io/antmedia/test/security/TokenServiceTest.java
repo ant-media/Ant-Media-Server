@@ -25,7 +25,7 @@ import io.antmedia.datastore.db.types.Token;
 import io.antmedia.security.TokenService;
 
 public class TokenServiceTest {
-	protected static Logger logger = LoggerFactory.getLogger(TokenServiceTest.class);
+	protected static final Logger logger = LoggerFactory.getLogger(TokenServiceTest.class);
 
 	IDataStore datastore;
 	ApplicationContext applicationContext;

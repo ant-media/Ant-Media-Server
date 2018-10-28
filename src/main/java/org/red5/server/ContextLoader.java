@@ -59,7 +59,7 @@ import org.springframework.web.context.support.XmlWebApplicationContext;
 @ManagedResource(objectName = "org.red5.server:name=contextLoader,type=ContextLoader", description = "ContextLoader")
 public class ContextLoader implements ApplicationContextAware, InitializingBean, DisposableBean, ContextLoaderMXBean {
 
-    protected static Logger log = Red5LoggerFactory.getLogger(ContextLoader.class);
+    protected static final Logger log = Red5LoggerFactory.getLogger(ContextLoader.class);
 
     /**
      * Spring Application context

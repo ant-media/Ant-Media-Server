@@ -12,7 +12,6 @@ import java.nio.ByteBuffer;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.tika.utils.ExceptionUtils;
 import org.awaitility.Awaitility;
 import org.bytedeco.javacpp.avformat;
 import org.bytedeco.javacpp.avutil;
@@ -43,7 +42,7 @@ import io.antmedia.test.MuxerUnitTest;
 })
 public class RemoteBroadcastStreamTest extends AbstractJUnit4SpringContextTests{
 
-	protected static Logger logger = LoggerFactory.getLogger(RemoteBroadcastStreamTest.class);
+	protected static final Logger logger = LoggerFactory.getLogger(RemoteBroadcastStreamTest.class);
 	protected WebScope appScope;
 
 	private final static byte[] DEFAULT_STREAM_ID = new byte[] { (byte) (0 & 0xff), (byte) (0 & 0xff), (byte) (0 & 0xff) };

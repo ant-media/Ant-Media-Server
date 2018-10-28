@@ -38,7 +38,7 @@ import org.slf4j.LoggerFactory;
 
 public class RemotingProtocolDecoder {
 
-    protected static Logger log = LoggerFactory.getLogger(RemotingProtocolDecoder.class);
+    protected static final Logger log = LoggerFactory.getLogger(RemotingProtocolDecoder.class);
 
     /**
      * Decodes the given buffer.

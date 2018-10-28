@@ -45,7 +45,7 @@ import static org.mockito.Mockito.*;
 public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 	private WebScope appScope;
-	protected static Logger logger = LoggerFactory.getLogger(StreamFetcherUnitTest.class);
+	protected static final Logger logger = LoggerFactory.getLogger(StreamFetcherUnitTest.class);
 	public AntMediaApplicationAdapter app = null;
 	private AntMediaApplicationAdapter appInstance;
 	private AppSettings appSettings;

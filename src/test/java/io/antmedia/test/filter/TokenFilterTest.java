@@ -39,7 +39,7 @@ import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.security.TokenService;
 
 public class TokenFilterTest {
-	protected static Logger logger = LoggerFactory.getLogger(TokenFilterTest.class);
+	protected static final Logger logger = LoggerFactory.getLogger(TokenFilterTest.class);
 	
 	private TokenFilter tokenFilter;
 	

@@ -17,7 +17,7 @@ import io.antmedia.datastore.db.IDataStore;
 
 public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 
-	protected static Logger logger = LoggerFactory.getLogger(HlsViewerStats.class);
+	protected static final Logger logger = LoggerFactory.getLogger(HlsViewerStats.class);
 	
 	public static final String BEAN_NAME = "hls.viewerstats";
 
@@ -118,7 +118,7 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 		String hlsTime = settings.getHlsTime();
 		if (hlsTime != null && !hlsTime.isEmpty()) {
 			try {
-				newTimePeriodMS = Integer.valueOf(hlsTime) * 10 * 1000;
+				newTimePeriodMS = Integer.parseInt(hlsTime) * 10 * 1000;
 			}
 			catch (Exception e) {
 				logger.error(e.getMessage());

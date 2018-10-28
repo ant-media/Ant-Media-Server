@@ -30,10 +30,10 @@ import org.apache.commons.io.FileUtils;
 
 public class DeviceDiscovery {
 
-	public static String WS_DISCOVERY_SOAP_VERSION = "SOAP 1.2 Protocol";
-	public static String WS_DISCOVERY_CONTENT_TYPE = "application/soap+xml";
-	public static int WS_DISCOVERY_TIMEOUT = 4000;
-	public static int WS_DISCOVERY_PORT = 3702;
+	public static final String WS_DISCOVERY_SOAP_VERSION = "SOAP 1.2 Protocol";
+	public static final String WS_DISCOVERY_CONTENT_TYPE = "application/soap+xml";
+	public static final int WS_DISCOVERY_TIMEOUT = 4000;
+	public static final int WS_DISCOVERY_PORT = 3702;
 	private static final Random random = new SecureRandom();
 
 	/**

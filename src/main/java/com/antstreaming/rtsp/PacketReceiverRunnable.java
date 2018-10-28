@@ -29,6 +29,7 @@ import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.net.URI;
 import java.util.Date;
+import java.nio.charset.StandardCharsets;
 
 import org.apache.mina.core.session.IoSession;
 import org.bytedeco.javacpp.PointerPointer;
@@ -83,7 +84,7 @@ public class PacketReceiverRunnable implements Runnable {
 			sdpFile = new File(announcedStreamName + ".sdp");
 			
 			try (OutputStream fos = new FileOutputStream(sdpFile)) {
-				fos.write(liveStreamSdpDef.toString().getBytes());
+				fos.write(liveStreamSdpDef.toString().getBytes(StandardCharsets.UTF_8));
 			}
 
 			inputFormatCtx = new AVFormatContext(null);

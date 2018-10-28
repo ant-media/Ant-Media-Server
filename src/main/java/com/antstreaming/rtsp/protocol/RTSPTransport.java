@@ -72,7 +72,7 @@ import org.slf4j.LoggerFactory;
  */
 public class RTSPTransport {
 
-	private static Logger log = LoggerFactory.getLogger(RTSPTransport.class);
+	private static final Logger log = LoggerFactory.getLogger(RTSPTransport.class);
 
 	public enum TransportProtocol {
 		NONE, RTP, RDT, RAW
@@ -177,9 +177,9 @@ public class RTSPTransport {
 			else if (tok.startsWith("append"))
 				setAppend(true);
 			else if (tok.startsWith("layers"))
-				setLayers(Integer.valueOf(_getStrValue(tok)));
+				setLayers(Integer.parseInt(_getStrValue(tok)));
 			else if (tok.startsWith("ttl"))
-				setTTL(Integer.valueOf(_getStrValue(tok)));
+				setTTL(Integer.parseInt(_getStrValue(tok)));
 			else if (tok.startsWith("port"))
 				setPort(_getPairValue(tok));
 			else if (tok.startsWith("client_port"))

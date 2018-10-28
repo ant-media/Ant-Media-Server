@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
  */
 public class NetworkDumpFilter extends IoFilterAdapter {
 
-    protected static Logger log = LoggerFactory.getLogger(ProxyFilter.class);
+    protected static final Logger log = LoggerFactory.getLogger(ProxyFilter.class);
 
     /**
      * Raw data byte channel

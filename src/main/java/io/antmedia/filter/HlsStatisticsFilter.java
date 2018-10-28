@@ -20,7 +20,7 @@ import io.antmedia.statistic.IStreamStats;
 
 public class HlsStatisticsFilter implements javax.servlet.Filter {
 
-	protected static Logger logger = LoggerFactory.getLogger(HlsStatisticsFilter.class);
+	protected static final Logger logger = LoggerFactory.getLogger(HlsStatisticsFilter.class);
 	private IStreamStats streamStats;
 	private FilterConfig filterConfig;
 

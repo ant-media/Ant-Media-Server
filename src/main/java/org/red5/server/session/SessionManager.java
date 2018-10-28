@@ -19,6 +19,7 @@
 
 package org.red5.server.session;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
@@ -122,7 +123,7 @@ public class SessionManager {
     }
 
     public static String createHash(String str) {
-        return DigestUtils.md5Hex(str.getBytes());
+        return DigestUtils.md5Hex(str.getBytes(StandardCharsets.UTF_8));
     }
 
     /**

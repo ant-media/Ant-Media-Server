@@ -27,7 +27,7 @@ public class OnvifCamera implements IOnvifCamera {
 
 	String profileToken;
 	
-	protected static Logger logger = LoggerFactory.getLogger(OnvifCamera.class);
+	protected static final Logger logger = LoggerFactory.getLogger(OnvifCamera.class);
 
 	@Override
 	public boolean connect(String address, String username, String password) {

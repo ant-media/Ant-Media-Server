@@ -129,7 +129,7 @@ public class MultiThreadedApplicationAdapter extends StatefulScopeWrappingAdapte
 	 */
 	protected Logger log = null;
 
-	protected static Logger logger = LoggerFactory.getLogger(MultiThreadedApplicationAdapter.class);
+	protected static final Logger logger = LoggerFactory.getLogger(MultiThreadedApplicationAdapter.class);
 
 	/**
 	 * List of application listeners.

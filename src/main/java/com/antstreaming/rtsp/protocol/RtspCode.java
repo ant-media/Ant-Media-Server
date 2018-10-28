@@ -66,7 +66,7 @@ public enum RtspCode {
    * @return enum values
    */
   public static RtspCode fromString(String strCode) {
-    int intCode = Integer.valueOf(strCode);
+    int intCode = Integer.parseInt(strCode);
     for (RtspCode code : RtspCode.values()) {
       if (code.value() == intCode) return code;
     }

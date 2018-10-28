@@ -61,7 +61,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 	public Application app = null;
 	private WebScope appScope;
-	protected static Logger logger = LoggerFactory.getLogger(StreamSchedularUnitTest.class);
+	protected static final Logger logger = LoggerFactory.getLogger(StreamSchedularUnitTest.class);
 
 	static {
 		System.setProperty("red5.deployment.type", "junit");

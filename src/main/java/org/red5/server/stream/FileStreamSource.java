@@ -39,7 +39,7 @@ public class FileStreamSource implements ISeekableStreamSource, Constants {
     /**
      * Logger
      */
-    protected static Logger log = LoggerFactory.getLogger(FileStreamSource.class);
+    protected static final Logger log = LoggerFactory.getLogger(FileStreamSource.class);
 
     /**
      * Tag reader

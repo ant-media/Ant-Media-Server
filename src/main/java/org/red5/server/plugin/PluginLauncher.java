@@ -41,7 +41,7 @@ import org.springframework.context.ApplicationContextAware;
  */
 public class PluginLauncher implements ApplicationContextAware, InitializingBean {
 
-    protected static Logger log = LoggerFactory.getLogger(PluginLauncher.class);
+    protected static final Logger log = LoggerFactory.getLogger(PluginLauncher.class);
 
     /**
      * Spring application context

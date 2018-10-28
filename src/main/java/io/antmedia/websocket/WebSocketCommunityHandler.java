@@ -28,7 +28,7 @@ import io.antmedia.webrtc.adaptor.RTMPAdaptor;
 
 public abstract class WebSocketCommunityHandler {
 
-	private static Logger logger = LoggerFactory.getLogger(WebSocketCommunityHandler.class);
+	private static final Logger logger = LoggerFactory.getLogger(WebSocketCommunityHandler.class);
 
 	private JSONParser jsonParser = new JSONParser();
 

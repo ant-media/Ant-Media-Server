@@ -41,7 +41,7 @@ public class HlsStatisticsFilterTest {
 	
 	private HlsStatisticsFilter hlsStatisticsFilter;
 
-	protected static Logger logger = LoggerFactory.getLogger(HlsStatisticsFilterTest.class);
+	protected static final Logger logger = LoggerFactory.getLogger(HlsStatisticsFilterTest.class);
 
 
 	@Before

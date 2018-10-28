@@ -62,7 +62,7 @@ public class RTMPTServlet extends HttpServlet {
 
     private static final long serialVersionUID = 5925399677454936613L;
 
-    protected static Logger log = Red5LoggerFactory.getLogger(RTMPTServlet.class);
+    protected static final Logger log = Red5LoggerFactory.getLogger(RTMPTServlet.class);
 
     /**
      * HTTP request method to use for RTMPT calls.

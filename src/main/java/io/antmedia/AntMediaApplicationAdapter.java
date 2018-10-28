@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.regex.Pattern;
+import java.nio.charset.StandardCharsets;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -63,7 +64,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	
 	public static final String VERTX_BEAN_NAME = "vertxCore";
 	
-	protected static Logger logger = LoggerFactory.getLogger(AntMediaApplicationAdapter.class);
+	protected static final Logger logger = LoggerFactory.getLogger(AntMediaApplicationAdapter.class);
 	public static final String LIVE_STREAM = "liveStream";
 	public static final String IP_CAMERA = "ipCamera";
 	public static final String STREAM_SOURCE = "streamSource";
@@ -613,7 +614,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 			logger.info("POST Response Status:: {}" , httpResponse.getStatusLine().getStatusCode());
 
-			BufferedReader reader = new BufferedReader(new InputStreamReader(httpResponse.getEntity().getContent()));
+			BufferedReader reader = new BufferedReader(new InputStreamReader(httpResponse.getEntity().getContent(),StandardCharsets.UTF_8));
 
 			String inputLine;
 			response = new StringBuilder();

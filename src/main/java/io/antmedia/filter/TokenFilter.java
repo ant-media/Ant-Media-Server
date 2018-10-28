@@ -19,7 +19,7 @@ import io.antmedia.security.TokenService;
 
 public class TokenFilter implements javax.servlet.Filter   {
 
-	protected static Logger logger = LoggerFactory.getLogger(TokenFilter.class);
+	protected static final Logger logger = LoggerFactory.getLogger(TokenFilter.class);
 	private FilterConfig filterConfig;
 	private AppSettings settings;
 	private TokenService tokenService;

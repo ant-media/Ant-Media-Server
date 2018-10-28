@@ -32,6 +32,7 @@ import org.red5.server.net.rtmp.message.Constants;
 import org.red5.server.net.rtmpe.RTMPEIoFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.nio.charset.StandardCharsets;
 
 /**
  * RTMPS IO filter - Server version.
@@ -62,7 +63,7 @@ public class RTMPSIoFilter extends RTMPEIoFilter {
                 InboundHandshake handshake = null;
                 switch (connectionState) {
                     case RTMP.STATE_CONNECT:
-                        if (message.indexOf("P".getBytes()[0]) == 0) {
+                        if (message.indexOf("P".getBytes(StandardCharsets.UTF_8)[0]) == 0) {
                             log.info("Non-native RTMPS connection requested for: {}", sessionId);
                             // indicates that the FP sent "POST" for a non-native rtmps connection
                             break;

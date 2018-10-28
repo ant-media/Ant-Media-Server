@@ -14,6 +14,7 @@ import static org.bytedeco.javacpp.avutil.AVMEDIA_TYPE_AUDIO;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.nio.charset.StandardCharsets;
 
 import org.bytedeco.javacpp.avcodec;
 import org.bytedeco.javacpp.avcodec.AVPacket;
@@ -35,7 +36,7 @@ import io.antmedia.rest.model.Result;
 
 public class StreamFetcher {
 
-	protected static Logger logger = LoggerFactory.getLogger(StreamFetcher.class);
+	protected static final Logger logger = LoggerFactory.getLogger(StreamFetcher.class);
 	private Broadcast stream;
 	private WorkerThread thread;
 	/**
@@ -135,7 +136,7 @@ public class StreamFetcher {
 			byte[] data = new byte[1024];
 			avutil.av_strerror(ret, data, data.length);
 
-			String errorStr=new String(data, 0, data.length);
+			String errorStr=new String(data, 0, data.length,StandardCharsets.UTF_8);
 
 			result.setMessage(errorStr);		
 

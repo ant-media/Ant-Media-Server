@@ -47,7 +47,7 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 
 	public static final int UDP_PORT_MAX = 65000;
 
-	public static AtomicInteger PORT_NUMBER = new AtomicInteger(UDP_PORT_MIN);
+	public static final AtomicInteger PORT_NUMBER = new AtomicInteger(UDP_PORT_MIN);
 
 
 	private ThreadPoolTaskScheduler mTaskScheduler;
@@ -491,7 +491,7 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 		String streamIdText = "streamid=";
 		int streamIdIndex = request.getUrl().indexOf(streamIdText);
 		int startIndex = streamIdIndex + streamIdText.length();
-		int streamId = Integer.valueOf(request.getUrl().substring(startIndex, startIndex+1)); 
+		int streamId = Integer.parseInt(request.getUrl().substring(startIndex, startIndex+1));
 
 		// get Transport
 		String transport = request.getHeader(RtspHeaderCode.TRANSPORT);

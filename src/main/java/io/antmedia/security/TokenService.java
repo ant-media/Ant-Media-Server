@@ -20,7 +20,7 @@ import io.antmedia.datastore.db.types.Token;
 public class TokenService implements ApplicationContextAware, IStreamPublishSecurity{
 
 	public static final String BEAN_NAME = "token.service";
-	protected static Logger logger = LoggerFactory.getLogger(TokenService.class);
+	protected static final Logger logger = LoggerFactory.getLogger(TokenService.class);
 	private AppSettings settings;
 	private IDataStore dataStore;
 

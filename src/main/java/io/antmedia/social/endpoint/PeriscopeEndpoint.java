@@ -61,7 +61,7 @@ public class PeriscopeEndpoint extends VideoServiceEndpoint {
 
 	private Map<String, Interaction> interactionMap = new HashMap<>();
 		
-	private static Logger logger = LoggerFactory.getLogger(PeriscopeEndpoint.class);
+	private static final Logger logger = LoggerFactory.getLogger(PeriscopeEndpoint.class);
 	public class ChatListener implements IChatListener {
 
 		private Endpoint endpoint;
@@ -286,7 +286,7 @@ public class PeriscopeEndpoint extends VideoServiceEndpoint {
 			token.refresh_token = this.refresh_token;
 		}
 		saveCredentials(getCredentials().getAccountName(), token.access_token, token.refresh_token, String.valueOf(token.expires_in), token.token_type, getCredentials().getAccountId());
-		init(getCredentials().getAccountName(), token.access_token, token.refresh_token, Long.valueOf(token.expires_in), token.token_type, System.currentTimeMillis());
+		init(getCredentials().getAccountName(), token.access_token, token.refresh_token, Long.parseLong(token.expires_in), token.token_type, System.currentTimeMillis());
 	}
 
 	@Override

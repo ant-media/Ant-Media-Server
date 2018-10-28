@@ -17,7 +17,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 
 public class RtspConnectionManager implements IConnectionManager<RtspConnection>, ApplicationContextAware {
 
-	private static Logger logger = LoggerFactory.getLogger(RtspConnectionManager.class);
+	private static final Logger logger = LoggerFactory.getLogger(RtspConnectionManager.class);
 
 	protected ConcurrentMap<String, RtspConnection> connMap = new ConcurrentHashMap<String, RtspConnection>();
 

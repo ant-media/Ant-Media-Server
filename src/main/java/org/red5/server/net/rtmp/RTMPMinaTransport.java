@@ -195,7 +195,7 @@ public class RTMPMinaTransport implements RTMPMinaTransportMXBean {
             for (String addr : addresses) {
                 if (addr.indexOf(':') != -1) {
                     String[] parts = addr.split(":");
-                    socketAddresses.add(new InetSocketAddress(parts[0], Integer.valueOf(parts[1])));
+                    socketAddresses.add(new InetSocketAddress(parts[0], Integer.parseInt(parts[1])));
                 } else {
                     socketAddresses.add(new InetSocketAddress(addr, 1935));
                 }

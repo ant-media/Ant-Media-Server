@@ -63,7 +63,7 @@ import org.slf4j.LoggerFactory;
  */
 public class RTMPSMinaIoHandler extends RTMPMinaIoHandler {
 
-    private static Logger log = LoggerFactory.getLogger(RTMPSMinaIoHandler.class);
+    private static final Logger log = LoggerFactory.getLogger(RTMPSMinaIoHandler.class);
 
     /**
      * Password for accessing the keystore.

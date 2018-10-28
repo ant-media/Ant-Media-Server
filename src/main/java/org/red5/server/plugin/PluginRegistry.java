@@ -36,7 +36,7 @@ import org.slf4j.Logger;
  */
 public class PluginRegistry {
 
-    private static Logger log = Red5LoggerFactory.getLogger(PluginRegistry.class, "plugins");
+    private static final Logger log = Red5LoggerFactory.getLogger(PluginRegistry.class, "plugins");
 
     // keeps track of plug-ins, keyed by plug-in name
     private static volatile ConcurrentMap<String, IRed5Plugin> plugins = new ConcurrentHashMap<>(3, 0.9f, 1);

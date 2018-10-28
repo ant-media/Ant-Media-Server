@@ -20,13 +20,14 @@ package org.red5.logging;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class DerbyLogInterceptor {
 
-    protected static Logger log = LoggerFactory.getLogger(DerbyLogInterceptor.class);
+    protected static final Logger log = LoggerFactory.getLogger(DerbyLogInterceptor.class);
 
     private static ThreadLocal<StringBuilder> local = new ThreadLocal<>();
 
@@ -35,7 +36,7 @@ public class DerbyLogInterceptor {
 
             @Override
             public void write(byte[] b) throws IOException {
-                log.info("Derby log: {}", new String(b));
+                log.info("Derby log: {}", new String(b,StandardCharsets.UTF_8));
             }
 
             @Override
@@ -50,7 +51,7 @@ public class DerbyLogInterceptor {
                     sb.delete(0, sb.length() - 1);
                 } else {
                     log.trace("Derby log: {}", i);
-                    sb.append(new String(intToDWord(i)));
+                    sb.append(new String(intToDWord(i),StandardCharsets.UTF_8));
                 }
                 local.set(sb);
             }

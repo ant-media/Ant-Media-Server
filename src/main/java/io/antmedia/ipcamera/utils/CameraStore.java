@@ -15,7 +15,7 @@ public class CameraStore implements ICameraStore {
 	private DB db;
 	private HTreeMap<String, String> map;
 	private Gson gson;
-	protected static Logger logger = LoggerFactory.getLogger(CameraStore.class);
+	protected static final Logger logger = LoggerFactory.getLogger(CameraStore.class);
 
 	public CameraStore() {
 		// db =

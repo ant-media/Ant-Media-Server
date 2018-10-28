@@ -40,7 +40,7 @@ import org.slf4j.LoggerFactory;
  */
 public class CoreHandler implements IScopeHandler, CoreHandlerMXBean {
 
-    protected static Logger log = LoggerFactory.getLogger(CoreHandler.class);
+    protected static final Logger log = LoggerFactory.getLogger(CoreHandler.class);
 
     /** {@inheritDoc} */
     public boolean addChildScope(IBasicScope scope) {

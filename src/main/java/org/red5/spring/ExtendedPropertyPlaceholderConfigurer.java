@@ -46,7 +46,7 @@ import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
  */
 public class ExtendedPropertyPlaceholderConfigurer extends PropertyPlaceholderConfigurer {
 
-    private static Logger logger = LoggerFactory.getLogger(ExtendedPropertyPlaceholderConfigurer.class);
+    private static final Logger logger = LoggerFactory.getLogger(ExtendedPropertyPlaceholderConfigurer.class);
 
     private static Properties globalPlaceholderProperties = new Properties();
 

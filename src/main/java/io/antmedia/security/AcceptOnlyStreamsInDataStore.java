@@ -21,7 +21,7 @@ public class AcceptOnlyStreamsInDataStore implements IStreamPublishSecurity  {
 	
 	public static final String BEAN_NAME = "acceptOnlyStreamsInDataStore"; 
 	
-	protected static Logger logger = LoggerFactory.getLogger(AcceptOnlyStreamsInDataStore.class);
+	protected static final Logger logger = LoggerFactory.getLogger(AcceptOnlyStreamsInDataStore.class);
 
 	@Override
 	public boolean isPublishAllowed(IScope scope, String name, String mode, Map<String, String> queryParams) {

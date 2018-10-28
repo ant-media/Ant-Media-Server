@@ -12,7 +12,7 @@ import com.antstreaming.rtsp.protocol.RtspRequest.Verb;
  * rtsp response.
  */
 public class RtspResponse extends RtspMessage {
-  private static Logger logger = LoggerFactory.getLogger(RtspResponse.class);
+  private static final Logger logger = LoggerFactory.getLogger(RtspResponse.class);
   RtspCode code;
   Verb requestVerb = Verb.None;
 

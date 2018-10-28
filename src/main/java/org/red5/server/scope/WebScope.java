@@ -57,7 +57,7 @@ public class WebScope extends Scope implements ServletContextAware, WebScopeMXBe
     /**
      * Logger
      */
-    protected static Logger log = LoggerFactory.getLogger(WebScope.class);
+    protected static final Logger log = LoggerFactory.getLogger(WebScope.class);
 
     /**
      * Server instance

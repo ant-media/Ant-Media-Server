@@ -64,7 +64,7 @@ public class AppFunctionalTest {
 	private AppSettings appSettings;
 	private static final Logger log = LoggerFactory.getLogger(AppFunctionalTest.class);
 	private static final String SERVER_ADDR = "127.0.0.1"; 
-	protected static Logger logger = LoggerFactory.getLogger(AppFunctionalTest.class);
+	protected static final Logger logger = LoggerFactory.getLogger(AppFunctionalTest.class);
 
 	public static Process process;
 	private static Process tmpExec;

@@ -67,7 +67,7 @@ public class FlexMessagingService {
     /**
      * Logger
      */
-    protected static Logger log = LoggerFactory.getLogger(FlexMessagingService.class);
+    protected static final Logger log = LoggerFactory.getLogger(FlexMessagingService.class);
 
     /** Service invoker to use. */
     protected IServiceInvoker serviceInvoker;

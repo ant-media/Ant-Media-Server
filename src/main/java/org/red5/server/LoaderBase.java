@@ -39,7 +39,7 @@ import org.springframework.context.ApplicationContextAware;
  */
 public abstract class LoaderBase implements ApplicationContextAware {
 
-    private static Logger log = Red5LoggerFactory.getLogger(LoaderBase.class);
+    private static final Logger log = Red5LoggerFactory.getLogger(LoaderBase.class);
 
     /**
      * We store the application context so we can access it later.
@@ -54,7 +54,7 @@ public abstract class LoaderBase implements ApplicationContextAware {
     /**
      * Loader for new applications.
      */
-    protected static ThreadLocal<IApplicationLoader> loader = new ThreadLocal<>();
+    protected static final ThreadLocal<IApplicationLoader> loader = new ThreadLocal<>();
 
     /**
      * Folder containing the webapps.

@@ -40,7 +40,7 @@ import org.slf4j.LoggerFactory;
  */
 public class JMXUtil {
 
-    private static Logger log = LoggerFactory.getLogger(JMXUtil.class);
+    private static final Logger log = LoggerFactory.getLogger(JMXUtil.class);
 
     public static void printMBeanInfo(ObjectName objectName, String className) {
         log.info("Retrieve the management information for the {}", className);

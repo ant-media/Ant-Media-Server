@@ -110,7 +110,7 @@ public class RestServiceTest {
 	private static final String SERVER_ADDR = "127.0.0.1";
 	private static Process tmpExec;
 	private BroadcastRestService restService = null;
-	protected static Logger logger = LoggerFactory.getLogger(RestServiceTest.class);
+	protected static final Logger logger = LoggerFactory.getLogger(RestServiceTest.class);
 	public AntMediaApplicationAdapter app = null;
 	private WebScope appScope;
 	private ApplicationContext appCtx;

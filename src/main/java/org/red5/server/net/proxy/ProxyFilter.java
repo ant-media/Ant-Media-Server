@@ -36,7 +36,7 @@ public class ProxyFilter extends IoFilterAdapter {
     /**
      * Logger
      */
-    protected static Logger log = LoggerFactory.getLogger(ProxyFilter.class);
+    protected static final Logger log = LoggerFactory.getLogger(ProxyFilter.class);
 
     /**
      * Filter name

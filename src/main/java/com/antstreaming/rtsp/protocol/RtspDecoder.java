@@ -18,7 +18,7 @@ import org.slf4j.LoggerFactory;
 
 
 public class RtspDecoder extends CumulativeProtocolDecoder {
-	private static Logger logger = LoggerFactory.getLogger(RtspDecoder.class);
+	private static final Logger logger = LoggerFactory.getLogger(RtspDecoder.class);
 
 	/**
 	 * State enumerator that indicates the reached state in the RTSP message decoding process.

@@ -66,7 +66,7 @@ public class AMFTunnelServlet extends HttpServlet {
         log.debug("POST acceptor URL: {}", postAcceptorURL);
         //get the connection timeout
         if (config.getInitParameter("tunnel.timeout") != null) {
-            connectionTimeout = Integer.valueOf(config.getInitParameter("tunnel.timeout"));
+            connectionTimeout = Integer.parseInt(config.getInitParameter("tunnel.timeout"));
         }
         log.debug("POST connection timeout: {}", postAcceptorURL);
     }

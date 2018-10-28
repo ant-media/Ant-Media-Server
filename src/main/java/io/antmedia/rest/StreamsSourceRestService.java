@@ -53,7 +53,7 @@ public class StreamsSourceRestService {
 	private IScope scope;
 	private AntMediaApplicationAdapter appInstance;
 
-	protected static Logger logger = LoggerFactory.getLogger(StreamsSourceRestService.class);
+	protected static final Logger logger = LoggerFactory.getLogger(StreamsSourceRestService.class);
 
 
 	@POST

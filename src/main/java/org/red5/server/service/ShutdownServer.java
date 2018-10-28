@@ -27,6 +27,7 @@ import java.io.RandomAccessFile;
 import java.net.BindException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -151,7 +152,7 @@ public class ShutdownServer implements ApplicationContextAware, InitializingBean
             Path path = Files.createFile(Paths.get(shutdownTokenFileName));
             File tokenFile = path.toFile();
             RandomAccessFile raf = new RandomAccessFile(tokenFile, "rws");
-            raf.write(token.getBytes());
+            raf.write(token.getBytes(StandardCharsets.UTF_8));
             raf.close();
         } catch (Exception e) {
             log.warn("Exception handling token file", e);
@@ -160,8 +161,8 @@ public class ShutdownServer implements ApplicationContextAware, InitializingBean
             try (
                     ServerSocket serverSocket = new ServerSocket(port); 
                     Socket clientSocket = serverSocket.accept(); 
-                    PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true); 
-                    BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+                    PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
+                    BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream(),StandardCharsets.UTF_8));
                  ) {
                 log.info("Connected - local: {} remote: {}", clientSocket.getLocalSocketAddress(), clientSocket.getRemoteSocketAddress());
                 String inputLine = in.readLine();

@@ -48,7 +48,7 @@ import org.slf4j.LoggerFactory;
  */
 public class RemotingProtocolEncoder {
 
-    protected static Logger log = LoggerFactory.getLogger(RemotingProtocolEncoder.class);
+    protected static final Logger log = LoggerFactory.getLogger(RemotingProtocolEncoder.class);
 
     /**
      * Encodes the given buffer.

@@ -18,7 +18,7 @@ public class ExpireStreamPublishSecurity implements IStreamPublishSecurity {
 	private IDataStore dataStore;
 
 
-	protected static Logger logger = LoggerFactory.getLogger(ExpireStreamPublishSecurity.class);
+	protected static final Logger logger = LoggerFactory.getLogger(ExpireStreamPublishSecurity.class);
 
 	@Override
 	public boolean isPublishAllowed(IScope scope, String name, String mode, Map<String, String> queryParams) {

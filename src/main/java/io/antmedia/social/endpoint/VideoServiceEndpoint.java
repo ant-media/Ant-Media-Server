@@ -29,7 +29,7 @@ public abstract class VideoServiceEndpoint {
 	public static final String AUTHENTICATION_TIMEOUT = "AUTHENTICATION_TIMEOUT";
 
 
-	private static Logger logger = LoggerFactory.getLogger(VideoServiceEndpoint.class);
+	private static final Logger logger = LoggerFactory.getLogger(VideoServiceEndpoint.class);
 
 	public static class DeviceAuthParameters {
 		/**
@@ -93,10 +93,10 @@ public abstract class VideoServiceEndpoint {
 			long authTime = 0;
 			if (expireTimeSeconds != null) 
 			{
-				expireTime = Long.valueOf(expireTimeSeconds);
+				expireTime = Long.parseLong(expireTimeSeconds);
 			}
 			if (authtimeMilliSeconds != null) {
-				authTime = Long.valueOf(authtimeMilliSeconds);
+				authTime = Long.parseLong(authtimeMilliSeconds);
 			}
 			try {
 				init(credentials.getAccountName(), credentials.getAccessToken(), credentials.getRefreshToken(), 

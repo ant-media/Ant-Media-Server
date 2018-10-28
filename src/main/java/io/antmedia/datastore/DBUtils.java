@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory;
 
 public class DBUtils {
 	
-	private static Logger logger = LoggerFactory.getLogger(DBUtils.class);
+	private static final Logger logger = LoggerFactory.getLogger(DBUtils.class);
 	
 	private DBUtils() {
 	}

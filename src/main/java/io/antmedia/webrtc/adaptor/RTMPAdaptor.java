@@ -38,7 +38,7 @@ public class RTMPAdaptor extends Adaptor {
 	FFmpegFrameRecorder recorder;
 	protected long startTime;
 
-	private static Logger logger = LoggerFactory.getLogger(RTMPAdaptor.class);
+	private static final Logger logger = LoggerFactory.getLogger(RTMPAdaptor.class);
 
 	private ExecutorService videoEncoderExecutor; 
 

@@ -65,7 +65,7 @@ public class WebRTCMuxer extends Muxer implements IWebRTCMuxer {
 
 	private AVRational audioTimebase;
 
-	protected static Logger logger = LoggerFactory.getLogger(WebRTCMuxer.class);
+	protected static final Logger logger = LoggerFactory.getLogger(WebRTCMuxer.class);
 
 	private AVRational timeBaseForMS;
 

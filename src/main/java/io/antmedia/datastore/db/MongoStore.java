@@ -43,7 +43,7 @@ public class MongoStore implements IDataStore {
 	private Datastore tokenDatastore;
 	private Datastore detectionMap;
 
-	protected static Logger logger = LoggerFactory.getLogger(MongoStore.class);
+	protected static final Logger logger = LoggerFactory.getLogger(MongoStore.class);
 
 	public static final String IMAGE_ID = "imageId"; 
 

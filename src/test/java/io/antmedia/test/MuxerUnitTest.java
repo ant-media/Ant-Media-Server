@@ -64,7 +64,7 @@ import io.antmedia.social.endpoint.VideoServiceEndpoint;
 //@ContextConfiguration(classes = {AppConfig.class})
 public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
-	protected static Logger logger = LoggerFactory.getLogger(MuxerUnitTest.class);
+	protected static final Logger logger = LoggerFactory.getLogger(MuxerUnitTest.class);
 	protected static final int BUFFER_SIZE = 10240;
 
 	protected WebScope appScope;

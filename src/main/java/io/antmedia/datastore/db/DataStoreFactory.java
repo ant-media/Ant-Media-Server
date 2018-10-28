@@ -7,7 +7,7 @@ import io.antmedia.datastore.DBReader;
 
 public class DataStoreFactory implements IDataStoreFactory{
 
-	private static Logger logger = LoggerFactory.getLogger(DataStoreFactory.class);
+	private static final Logger logger = LoggerFactory.getLogger(DataStoreFactory.class);
 
 	
 	private IDataStore dataStore;

@@ -30,7 +30,7 @@ import org.slf4j.LoggerFactory;
  */
 public class RtmpSampleAccess implements IRtmpSampleAccess {
 
-    private static Logger logger = LoggerFactory.getLogger(RtmpSampleAccess.class);
+    private static final Logger logger = LoggerFactory.getLogger(RtmpSampleAccess.class);
 
     private boolean audioAllowed = false;
 

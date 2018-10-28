@@ -6,6 +6,7 @@ import java.net.InetAddress;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.nio.charset.StandardCharsets;
 
 public class ProbeSenderThread extends Thread {
 	
@@ -39,7 +40,7 @@ public class ProbeSenderThread extends Thread {
 				e.printStackTrace();
 				Thread.currentThread().interrupt();
 			}
-			socket.send(new DatagramPacket(probe.getBytes(), probe.length(), address, DeviceDiscovery.WS_DISCOVERY_PORT));
+			socket.send(new DatagramPacket(probe.getBytes(StandardCharsets.UTF_8), probe.length(), address, DeviceDiscovery.WS_DISCOVERY_PORT));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

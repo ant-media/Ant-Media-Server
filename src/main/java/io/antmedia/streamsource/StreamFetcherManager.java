@@ -23,7 +23,7 @@ import io.antmedia.muxer.MuxAdaptor;
  */
 public class StreamFetcherManager {
 
-	protected static Logger logger = LoggerFactory.getLogger(StreamFetcherManager.class);
+	protected static final Logger logger = LoggerFactory.getLogger(StreamFetcherManager.class);
 
 	private int streamCheckerCount = 0;
 

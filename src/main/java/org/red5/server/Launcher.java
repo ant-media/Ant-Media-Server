@@ -27,6 +27,7 @@ import java.nio.file.StandardOpenOption;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.UUID;
+import java.nio.charset.StandardCharsets;
 
 import org.bytedeco.javacpp.avformat;
 import org.bytedeco.javacpp.avutil;
@@ -171,7 +172,7 @@ public class Launcher {
 
 	public void writeToFile(String absolutePath, String content) {
 		try {
-			Files.write(new File(absolutePath).toPath(), content.getBytes(), StandardOpenOption.CREATE);
+			Files.write(new File(absolutePath).toPath(), content.getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -181,7 +182,7 @@ public class Launcher {
 	public String getFileContent(String path) {
 		try {
 			byte[] data = Files.readAllBytes(new File(path).toPath());
-			return new String(data);
+			return new String(data,StandardCharsets.UTF_8);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
