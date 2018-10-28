@@ -1,6 +1,7 @@
 language: java
 jdk:
   - openjdk8
+node_js: "8.10.0"
 
 sudo: required
 
@@ -12,7 +13,7 @@ addons:
 
 #travis running  on ubuntu 14.04
 
-before_install: 
+before_install:
   - openssl aes-256-cbc -K $encrypted_5fef4fa28306_key -iv $encrypted_5fef4fa28306_iv -in codesigning.asc.enc -out codesigning.asc -d
   - gpg --fast-import codesigning.asc
   - sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 2930ADAE8CAF5059EE73BB4B58712A2291FA4AD5
@@ -23,8 +24,16 @@ before_install:
   - sudo apt-get install ffmpeg -qq # start ffmpeg
   - sudo service mongod start  # start mongo db
   - sudo apt-get install wondershaper
+  - npm install -g @angular/cli@6.0.5
+  - sudo git clone --depth=1 https://github.com/ant-media/ManagementConsole_AngularApp.git
+  - sudo chown -R `whoami` ./ManagementConsole_AngularApp
+  - cd ManagementConsole_AngularApp
+  - npm install
+  - ng build --prod
+  - cd ..
+  - sudo cp -a ./ManagementConsole_AngularApp/dist/. ./src/main/server/webapps/root/
   - sudo git clone --depth=1 https://github.com/ant-media/utilities.git /usr/local/onvif
-  - (if [ $(git ls-remote https://github.com/ant-media/Ant-Media-Server-Common.git $TRAVIS_BRANCH  | wc -l) == "1" ];  then echo " $TRAVIS_BRANCH branch found";  git clone --depth=1 -b $TRAVIS_BRANCH https://github.com/ant-media/Ant-Media-Server-Common.git;  else echo "branch not found. Checking out master branch"; git clone --depth=1 https://github.com/ant-media/Ant-Media-Server-Common.git;  fi)
+  - (if [ $(git ls-remote https://github.com/ant-media/Ant-Media-Server-Common.git $TRAVIS_BRANCH  | wc -l) == "1" ];  then echo " $TRAVIS_BRANCH branch found";  git clone --depth=1 -b $TRAVIS_BRANCH https://github.com/ant-media/Ant-Media-Server-Common.git;  else echo "Branch not found. Checkout master"; git clone --depth=1 https://github.com/ant-media/Ant-Media-Server-Common.git;  fi)
   - cd Ant-Media-Server-Common
   - mvn clean install -DskipTests -Dmaven.javadoc.skip=true -Dgpg.skip=true --quiet 
   - cd ..

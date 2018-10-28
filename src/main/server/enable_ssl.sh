@@ -5,6 +5,7 @@ INSTALL_DIRECTORY=/usr/local/antmedia
 FULL_CHAIN_FILE=
 PRIVATE_KEY_FILE=
 domain=""
+password=
 
 while getopts i:d:p:f: option
 do
@@ -23,6 +24,20 @@ usage() {
 	echo "$0 -f {FULL_CHAIN_FILE} -p {PRIVATE_KEY_FILE} -d {DOMAIN_NAME} [-i {INSTALL_DIRECTORY}]"
 	echo " "
 	echo "If you have any question, send e-mail to contact@antmedia.io"
+}
+
+get_password() {
+		
+  until [ ! -z "$password" ]
+  do
+    read -sp 'Enter Password For SSL Certificate:' password
+	if [ -z "$password" ]
+	then
+	  echo 
+	  echo "Password cannot be empty. "
+	fi
+  done			
+    
 }
 
 SUDO="sudo"
@@ -74,8 +89,9 @@ fi
 
 
 
+# get password from console input
+get_password
 
-read -sp 'Enter Password For SSL Certificate:' password
 
 if [ "$fullChainFileExist" == false ]; then
     #  install letsencrypt and get the certificate
@@ -269,7 +285,6 @@ fi
 
 echo "SSL certificate is installed."
 echo "Https port: 5443"
-echo "WebSocket Secure port: 8082"
 echo "You can use this url: https://$domain:5443/"
 
 #remove temp dir
