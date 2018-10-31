@@ -173,7 +173,7 @@ public class ConsoleAppRestServiceTest {
 			}
 			
 			AppSettingsModel appSettingsModel = callGetAppSettings(appName);
-			assertEquals(null, appSettingsModel.getVodFolder());
+			assertEquals("", appSettingsModel.getVodFolder());
 			 
 			appSettingsModel = callGetAppSettings("LiveApp");
 				
