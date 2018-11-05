@@ -7,11 +7,11 @@
 	</parent>
 	<modelVersion>4.0.0</modelVersion>
 	<artifactId>ant-media-server</artifactId>
-	<version>${project.parent.version}</version>
 	<name>Ant Media Server</name>
 	<description>Ant Media Server supports RTMP, RTSP, MP4, HLS, WebRTC, Adaptive Streaming, etc.</description>
 	<packaging>jar</packaging>
 	<url>https://github.com/ant-media/Ant-Media-Server</url>
+	<version>${project.parent.version}</version>
 	<organization>
 		<name>Ant Media</name>
 		<url>https://antmedia.io</url>
@@ -847,4 +847,5 @@
 		</profile>
 	</profiles>
 
+	
 </project>
