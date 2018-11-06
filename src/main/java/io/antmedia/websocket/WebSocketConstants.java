@@ -64,8 +64,18 @@ public class WebSocketConstants {
 	public static final String ROOM = "room";
 
 	public static final String JOIN_COMMAND = "join";
+	
+	/**
+	 * this is for leaving from room in 1-N and N-N connection
+	 */
+	
+	public static final String LEAVE_THE_ROOM = "leaveFromRoom";
 
 	public static final String JOINED_THE_ROOM = "joinedTheRoom";
+	
+	public static final String LEAVED_THE_ROOM = "leavedFromRoom";
+	
+	
 	
 	/**
 	 * this token is used to access resources or start broadcast when token security is enabled
