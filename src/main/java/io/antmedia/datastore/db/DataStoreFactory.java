@@ -7,12 +7,21 @@ import io.antmedia.cluster.DBReader;
 
 public class DataStoreFactory implements IDataStoreFactory{
 
+	public static final String DB_TYPE_MEMORYDB = "memorydb";
+	public static final String DB_TYPE_MAPDB = "mapdb";
+	public static final String DB_TYPE_MONGODB = "mongodb";
+
+
 	private static Logger logger = LoggerFactory.getLogger(DataStoreFactory.class);
 
 	
 	private IDataStore dataStore;
 	private String appName;
 	private String dbName;
+	
+	/**
+	 * One of the DB_TYPE_*
+	 */
 	private String dbType;
 	private String dbHost;
 	private String dbUser;
@@ -60,18 +69,22 @@ public class DataStoreFactory implements IDataStoreFactory{
 	
 	public IDataStore getDataStore() {
 		if (dataStore == null) {
-			if(dbType.contentEquals("mongodb"))
+			if(dbType.contentEquals(DB_TYPE_MONGODB))
 			{
-				// dataStore = new MongoStore(dbHost, dbUser, dbPassword, dbName)
-				dataStore = new MongoStore(dbName, dbHost);
+				if (dbUser != null && !dbUser.isEmpty()) {
+					dataStore = new MongoStore(dbHost, dbUser, dbPassword, dbName);
+				}
+				else {
+					dataStore = new MongoStore(dbName, dbHost);
+				}
 			}
-			else if(dbType .contentEquals("mapdb"))
+			else if(dbType .contentEquals(DB_TYPE_MAPDB))
 			{
 				dataStore = new MapDBStore(dbName+".db");
 			}
-			else if(dbType .contentEquals("memorydb"))
+			else if(dbType .contentEquals(DB_TYPE_MEMORYDB))
 			{
-				dataStore = new InMemoryDataStore("dbName");
+				dataStore = new InMemoryDataStore(dbName);
 			}
 			else {
 				logger.error("Undefined Datastore:{} app:{} db name:{}", dbType, appName, dbName);
