@@ -1,5 +1,6 @@
 package io.antmedia.test.security;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -7,8 +8,8 @@ import static org.mockito.Mockito.when;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletContext;
+import javax.servlet.http.HttpSession;
+import javax.servlet.http.HttpSessionEvent;
 
 import org.junit.After;
 import org.junit.Before;
@@ -74,6 +75,30 @@ public class TokenServiceTest {
 	}
 
 	@Test
+	public void testRemoveSession() {
+		
+		//create token with session id "sessionId", then it saves session to map because it is play token
+		testCheckToken();
+		
+		//check that session is saved to map
+		assertEquals(1, tokenService.getAuthenticatedMap().size());
+		
+		HttpSession session = mock(HttpSession.class);
+		when(session.getId()).thenReturn("sessionId");
+	
+		HttpSessionEvent event = mock (HttpSessionEvent.class);
+		when(event.getSession()).thenReturn(session);
+		
+		//close session
+		tokenService.sessionDestroyed(event);
+		
+		//check that map size is decreased
+		assertEquals(0, tokenService.getAuthenticatedMap().size());
+
+	}
+
+
+	@Test
 	public void testIsPublishAllowed() {
 
 		datastore = new InMemoryDataStore("testDb");
@@ -94,13 +119,11 @@ public class TokenServiceTest {
 		token.setStreamId("streamId");
 		token.setExpireDate(1454354);
 		token.setType(Token.PUBLISH_TOKEN);
-		
-		
-		
+
 		//save to datastore
 		Token createdToken=	datastore.createToken(token.getStreamId(), token.getExpireDate(), token.getType());
 		queryParams.put("token", createdToken.getTokenId());
-		
+
 		//check is publish allowed or not
 		boolean flag = tokenService.isPublishAllowed(scope, createdToken.getStreamId(), "mode", queryParams);
 
