@@ -5,11 +5,16 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
 import javax.servlet.http.HttpSession;
 import javax.servlet.http.HttpSessionEvent;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 
 import org.junit.After;
 import org.junit.Before;
@@ -18,6 +23,11 @@ import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.IDataStore;
@@ -77,24 +87,30 @@ public class TokenServiceTest {
 	@Test
 	public void testRemoveSession() {
 		
+		//check that listeners exist in the applications' web.xml
+		assertTrue(getXMLValue("LiveApp"));
+		assertTrue(getXMLValue("WebRTCAppEE"));
+
 		//create token with session id "sessionId", then it saves session to map because it is play token
 		testCheckToken();
-		
+
 		//check that session is saved to map
 		assertEquals(1, tokenService.getAuthenticatedMap().size());
-		
+
 		HttpSession session = mock(HttpSession.class);
 		when(session.getId()).thenReturn("sessionId");
-	
+
 		HttpSessionEvent event = mock (HttpSessionEvent.class);
 		when(event.getSession()).thenReturn(session);
-		
+
 		//close session
 		tokenService.sessionDestroyed(event);
-		
+
 		//check that map size is decreased
 		assertEquals(0, tokenService.getAuthenticatedMap().size());
+		
 
+		
 	}
 
 
@@ -129,6 +145,45 @@ public class TokenServiceTest {
 
 		assertTrue(flag);
 
+	}
+	
+	public boolean getXMLValue(String appName) {
+		Boolean flag = false;
+		
+		try {
+
+			File xmlFile = new File("/usr/local/antmedia/webapps/"+appName+"/WEB-INF/web.xml");
+			DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+			DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+			Document doc = dBuilder.parse(xmlFile);
+			doc.getDocumentElement().normalize();
+			
+			NodeList nList = doc.getElementsByTagName("listener");
+			
+		
+			for (int temp = 0; temp < nList.getLength(); temp++) {
+
+				Node nNode = nList.item(temp);			
+					
+				if (nNode.getNodeType() == Node.ELEMENT_NODE) {
+
+					Element eElement = (Element) nNode;
+
+					if(eElement.getElementsByTagName("listener-class").item(0).getTextContent().equals("io.antmedia.filter.TokenFilter")){
+
+						flag = true;
+						break;
+					}			
+				}
+			}			
+			assertTrue(flag);
+		
+		} catch (ParserConfigurationException | SAXException | IOException e) {
+			e.printStackTrace();
+		}
+		
+		return flag;
+		
 	}
 
 }
