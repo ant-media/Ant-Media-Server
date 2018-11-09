@@ -42,7 +42,6 @@ public class TokenService implements ApplicationContextAware, IStreamPublishSecu
 			settings = (AppSettings)applicationContext.getBean(AppSettings.BEAN_NAME);
 
 		}
-
 	}
 
 	public boolean checkToken(String tokenId, String streamId, String sessionId, String type) {
@@ -65,9 +64,7 @@ public class TokenService implements ApplicationContextAware, IStreamPublishSecu
 				if (authenticatedMap.containsKey(sessionId) && authenticatedMap.get(sessionId).equals(streamId) ) {
 					result = true;
 				}
-
 			}
-
 		}
 		return result;
 	}
@@ -115,7 +112,7 @@ public class TokenService implements ApplicationContextAware, IStreamPublishSecu
 	public void setDataStore(IDataStore dataStore) {
 		this.dataStore = dataStore;
 	}
-	
+
 
 	public Map<String, String> getAuthenticatedMap() {
 		return authenticatedMap;
@@ -128,21 +125,14 @@ public class TokenService implements ApplicationContextAware, IStreamPublishSecu
 	@Override
 	public void sessionCreated(HttpSessionEvent se) {
 		logger.info("session created {}", se.getSession().getId());
-		
-	}
 
+	}
 
 	@Override
 	public void sessionDestroyed(HttpSessionEvent se) {
 		logger.info("session closed {}", se.getSession().getId());
 		
-		
-		if(!authenticatedMap.isEmpty() && authenticatedMap.containsKey(se.getSession().getId())) {
-			
 			authenticatedMap.remove(se.getSession().getId());
-		}
-		
 	}
-
 
 }
