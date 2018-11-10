@@ -3,7 +3,7 @@ package io.antmedia.datastore.db;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.antmedia.datastore.DBReader;
+import io.antmedia.cluster.DBReader;
 
 public class DataStoreFactory implements IDataStoreFactory{
 

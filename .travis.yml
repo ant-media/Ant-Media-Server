@@ -1,7 +1,7 @@
 language: java
 jdk:
   - openjdk8
-node_js: "8.10.0"
+node_js: "8.12.0"
 
 sudo: required
 
@@ -24,11 +24,11 @@ before_install:
   - sudo apt-get install ffmpeg -qq # start ffmpeg
   - sudo service mongod start  # start mongo db
   - sudo apt-get install wondershaper
-  - npm install -g @angular/cli@6.0.5
   - sudo git clone --depth=1 https://github.com/ant-media/ManagementConsole_AngularApp.git
   - sudo chown -R `whoami` ./ManagementConsole_AngularApp
   - cd ManagementConsole_AngularApp
   - npm install
+  - npm install -g @angular/cli@6.0.5
   - ng build --prod
   - cd ..
   - sudo cp -a ./ManagementConsole_AngularApp/dist/. ./src/main/server/webapps/root/

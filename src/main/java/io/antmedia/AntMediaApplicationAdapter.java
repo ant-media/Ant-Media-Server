@@ -319,6 +319,16 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	}
 	
 	@Override
+	public void streamSubscriberClose(ISubscriberStream stream) {
+		super.streamSubscriberClose(stream);
+		addScheduledOnceJob(0, service -> {
+			if (dataStore != null) {
+				dataStore.updateRtmpViewerCount(stream.getBroadcastStreamPublishName(), false);
+			}
+		});
+	}
+	
+	@Override
 	public void streamPublishStart(final IBroadcastStream stream) {
 		String streamName = stream.getPublishedName();
 		logger.info("stream name in streamPublishStart: {}", streamName );
