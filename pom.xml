@@ -483,6 +483,18 @@
 		<profile>
 			<id>assemble</id>
 			<dependencies>
+				<!-- SpringFox Swagger UI -->
+				<dependency>
+					<groupId>io.springfox</groupId>
+					<artifactId>springfox-swagger2</artifactId>
+					<version>2.7.0</version>
+				</dependency>
+
+				<dependency>
+					<groupId>io.springfox</groupId>
+					<artifactId>springfox-swagger-ui</artifactId>
+					<version>2.7.0</version>
+				</dependency>
 				<dependency>
 					<groupId>io.antmedia.webrtc</groupId>
 					<artifactId>WebRTCApp</artifactId>
