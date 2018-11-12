@@ -14,6 +14,7 @@ import org.springframework.context.ApplicationContextAware;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.IDataStore;
+import io.antmedia.datastore.db.IDataStoreFactory;
 import io.antmedia.datastore.db.types.Token;
 
 
@@ -56,11 +57,9 @@ public class TokenService implements ApplicationContextAware, IStreamPublishSecu
 				}
 			}
 			else {
-
 				if (authenticatedMap.containsKey(sessionId) && authenticatedMap.get(sessionId).equals(streamId) ) {
 					result = true;
 				}
-
 			}
 
 		}
@@ -81,11 +80,9 @@ public class TokenService implements ApplicationContextAware, IStreamPublishSecu
 			String token = queryParams.get("token");
 
 			if(checkToken(token, name, "sessionId", Token.PUBLISH_TOKEN)) {
-
 				result = true;
 			}
 			else {
-
 				logger.info("Token {} is not valid for publishing ", token);
 				Red5.getConnectionLocal().close();
 			}
@@ -102,7 +99,7 @@ public class TokenService implements ApplicationContextAware, IStreamPublishSecu
 
 	public IDataStore getDataStore() {
 		if(dataStore == null) {
-			dataStore = ((DataStoreFactory) applicationContext.getBean("dataStoreFactory")).getDataStore();
+			dataStore = ((DataStoreFactory) applicationContext.getBean(IDataStoreFactory.BEAN_NAME)).getDataStore();
 		}
 		return dataStore;
 	}
