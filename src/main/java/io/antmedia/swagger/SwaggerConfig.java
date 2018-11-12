@@ -2,6 +2,13 @@ package io.antmedia.swagger;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import springfox.documentation.builders.PathSelectors;
+import springfox.documentation.builders.RequestHandlerSelectors;
+import springfox.documentation.service.ApiInfo;
+import springfox.documentation.service.Contact;
+import springfox.documentation.spi.DocumentationType;
+import springfox.documentation.spring.web.plugins.Docket;
+import springfox.documentation.swagger2.annotations.EnableSwagger2;
 
 import java.util.Collections;
 
@@ -25,7 +32,7 @@ public class SwaggerConfig {
                 "Rest Services Documentation",
                 "1.0",
                 "Terms of service",
-                new Contact("Omer Enlicay", "github.com/enlicayomer", "omerenlicay@gmail.com"),
+                new Contact("Murat AYDIN", "antmedia.io", "maydin@gmail.com"),
                 "License of API", "API license URL", Collections.emptyList());
     }
 }
