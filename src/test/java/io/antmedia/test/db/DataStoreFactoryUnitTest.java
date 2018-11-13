@@ -14,7 +14,7 @@ import org.junit.Test;
 import org.springframework.context.ApplicationContext;
 
 import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.datastore.DBReader;
+import io.antmedia.cluster.DBReader;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.IDataStoreFactory;
