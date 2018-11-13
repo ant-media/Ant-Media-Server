@@ -47,10 +47,6 @@ public class TokenServiceTest {
 
 		datastore = new InMemoryDataStore("testDb");
 
-		ApplicationContext context = mock(ApplicationContext.class);
-
-		when(context.getBean(IDataStore.BEAN_NAME)).thenReturn(datastore);
-
 		tokenService.setDataStore(datastore);
 
 		//create token
@@ -84,7 +80,6 @@ public class TokenServiceTest {
 
 		tokenService.setDataStore(datastore);
 		tokenService.setSettings(settings);
-		when(context.getBean(IDataStore.BEAN_NAME)).thenReturn(datastore);
 
 		Map<String, String> queryParams = new HashMap<>();
 
