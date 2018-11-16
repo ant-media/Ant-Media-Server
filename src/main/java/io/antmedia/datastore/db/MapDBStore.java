@@ -899,28 +899,25 @@ public class MapDBStore implements IDataStore {
 	}
 
 	@Override
-	public Token createToken(String streamId, long expireDate, String type) {
-		Token token = null;
+	public boolean saveToken(Token token) {
+		boolean result = false;
+
 		synchronized (this) {
 
-			if(streamId != null) {
-				token = new Token();
-				token.setStreamId(streamId);
-				token.setExpireDate(expireDate);
-				token.setType(type);
+			if(token.getStreamId() != null && token.getTokenId() != null) {
+
 
 				try {
-					String tokenId = RandomStringUtils.randomNumeric(24);
-					token.setTokenId(tokenId);
-					tokenMap.put(tokenId, gson.toJson(token));
+					tokenMap.put(token.getTokenId(), gson.toJson(token));
 					db.commit();
+					result = true;
 				} catch (Exception e) {
 					logger.error(ExceptionUtils.getStackTrace(e));
 				}
 			}
 		}
 
-		return token;
+		return result;
 	}
 
 	@Override

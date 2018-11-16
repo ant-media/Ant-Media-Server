@@ -7,8 +7,12 @@ import javax.servlet.FilterConfig;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
+import javax.servlet.annotation.WebFilter;
+import javax.servlet.annotation.WebListener;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSessionEvent;
+import javax.servlet.http.HttpSessionListener;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,21 +22,22 @@ import org.springframework.web.context.WebApplicationContext;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.muxer.MuxAdaptor;
-import io.antmedia.security.TokenService;
+import io.antmedia.security.ITokenService;
+import io.antmedia.security.MockTokenService;
 
-public class TokenFilter implements javax.servlet.Filter   {
+public class TokenFilterManager implements javax.servlet.Filter   {
 
-	protected static Logger logger = LoggerFactory.getLogger(TokenFilter.class);
+	protected static Logger logger = LoggerFactory.getLogger(TokenFilterManager.class);
 	private FilterConfig filterConfig;
 	private AppSettings settings;
-	private TokenService tokenService;
+	private ITokenService tokenService;
+
 
 	@Override
 	public void init(FilterConfig filterConfig) throws ServletException {
 		this.filterConfig = filterConfig;
 
 	}
-
 
 	@Override
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
@@ -69,14 +74,18 @@ public class TokenFilter implements javax.servlet.Filter   {
 
 	}
 
-
-	public TokenService getTokenService() {
+	public ITokenService getTokenService() {
 		if (tokenService == null) {
 			ApplicationContext context = (ApplicationContext) filterConfig.getServletContext().getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
-			tokenService = (TokenService)context.getBean(TokenService.BEAN_NAME);
+			tokenService = (ITokenService)context.getBean(ITokenService.BEAN_NAME);
 
 		}
 		return tokenService;
+	}
+
+
+	public void setTokenService(ITokenService tokenService) {
+		this.tokenService = tokenService;
 	}
 
 	public AppSettings getAppSettings() {
@@ -125,9 +134,11 @@ public class TokenFilter implements javax.servlet.Filter   {
 
 		return null;
 	}
+
 	@Override
 	public void destroy() {
-		//no need
+
+		//no need to deploy
 	}
 
 

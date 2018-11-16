@@ -48,7 +48,7 @@ public class HlsStatisticsFilter implements javax.servlet.Filter {
 			
 			if (HttpServletResponse.SC_OK <= status && status <= HttpServletResponse.SC_BAD_REQUEST) 
 			{
-				String streamId = TokenFilter.getStreamId(httpRequest.getRequestURI());
+				String streamId = TokenFilterManager.getStreamId(httpRequest.getRequestURI());
 				
 				if (streamId != null) {
 					logger.info("req ip {} session id {} stream id {} status {}", request.getRemoteHost(), sessionId, streamId, status);
