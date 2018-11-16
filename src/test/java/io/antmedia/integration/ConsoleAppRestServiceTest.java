@@ -563,8 +563,14 @@ public class ConsoleAppRestServiceTest {
 	
 	@Test
 	public void testTokenControl() {
-
+		
 		try {
+			
+			Result enterpiseResult = callIsEnterpriseEdition();
+			if (!enterpiseResult.isSuccess()) {
+				//if it is not enterprise return
+				return ;
+			}
 			// authenticate user
 			User user = new User();
 			user.setEmail(TEST_USER_EMAIL);
