@@ -10,14 +10,15 @@
 
 package org.webrtc.audio;
 
-import java.lang.Thread;
-import java.nio.Buffer;
 import java.nio.ByteBuffer;
+
 import javax.annotation.Nullable;
+
+import org.webrtc.CalledByNative;
 import org.webrtc.audio.JavaAudioDeviceModule.AudioTrackErrorCallback;
 import org.webrtc.audio.JavaAudioDeviceModule.AudioTrackStartErrorCode;
 
-import org.webrtc.CalledByNative;
+import io.antmedia.webrtc.api.IAudioTrackListener;
 
 public class WebRtcAudioTrack {
 	private static final String TAG = "WebRtcAudioTrackExternal";
@@ -65,6 +66,8 @@ public class WebRtcAudioTrack {
 	private int channels;
 
 	private int readSizeInBytes;
+
+	private IAudioTrackListener audioTrackListener;
 
 	/**
 	 * Audio thread which keeps calling AudioTrack.write() to stream audio.
@@ -191,10 +194,7 @@ public class WebRtcAudioTrack {
 
 	@CalledByNative
 	private boolean startPlayout() {
-		System.out.println("startPlayout");
-		//audioThread = new AudioTrackThread("AudioTrackJavaThread");
-		//audioThread.setPriority(Thread.MAX_PRIORITY);
-		//audioThread.start();
+		this.audioTrackListener.playoutStarted();
 		return true;
 	}
 	
@@ -204,16 +204,7 @@ public class WebRtcAudioTrack {
 
 	@CalledByNative
 	private boolean stopPlayout() {
-		System.out.println("stopPlayout");
-
-		//audioThread.stopThread();
-
-		System.out.println("Stopping the AudioTrackThread...");
-		//audioThread.interrupt();
-
-		System.out.println("AudioTrackThread has now been stopped.");
-		//audioThread = null;
-
+		this.audioTrackListener.playoutStopped();
 
 		releaseAudioResources();
 		return true;
@@ -305,5 +296,9 @@ public class WebRtcAudioTrack {
 
 	public int getChannels() {
 		return channels;
+	}
+
+	public void setAudioTrackListener(IAudioTrackListener audioTrackListener) {
+		this.audioTrackListener = audioTrackListener;
 	}
 }
