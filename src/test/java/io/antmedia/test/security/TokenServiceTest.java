@@ -1,5 +1,6 @@
 package io.antmedia.test.security;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -50,7 +51,6 @@ public class TokenServiceTest {
 		tokenService.setDataStore(datastore);
 
 		//create token
-
 		Token token = new Token();
 		token.setStreamId("streamId");
 		token.setExpireDate(1454354);
@@ -91,14 +91,12 @@ public class TokenServiceTest {
 		token.setType(Token.PUBLISH_TOKEN);
 		
 		
-		
 		//save to datastore
 		Token createdToken=	datastore.createToken(token.getStreamId(), token.getExpireDate(), token.getType());
 		queryParams.put("token", createdToken.getTokenId());
 		
 		//check is publish allowed or not
 		boolean flag = tokenService.isPublishAllowed(scope, createdToken.getStreamId(), "mode", queryParams);
-
 		assertTrue(flag);
 
 	}

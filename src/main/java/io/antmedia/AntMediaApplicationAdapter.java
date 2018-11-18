@@ -705,6 +705,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 	@Override
 	public void setQualityParameters(String id, String quality, double speed, int pendingPacketSize) {
+		logger.info("update source quality for stream: {} quality:{} speed:{}", id, quality, speed);
 		getDataStore().updateSourceQualityParameters(id, quality, speed, pendingPacketSize);
 		
 	}
@@ -715,10 +716,6 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 			dataStore = dataStoreFactory.getDataStore();
 		}
 		return dataStore;
-	}
-
-	public void setDataStore(IDataStore dataStore) {
-		this.dataStore = dataStore;
 	}
 
 	public DataStoreFactory getDataStoreFactory() {
