@@ -3,22 +3,9 @@ package io.antmedia.security;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import javax.servlet.annotation.WebListener;
-import javax.servlet.http.HttpSessionEvent;
-import javax.servlet.http.HttpSessionListener;
-
-import org.red5.server.api.Red5;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IStreamPublishSecurity;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationContextAware;
 
-import io.antmedia.AppSettings;
-import io.antmedia.datastore.db.DataStoreFactory;
-import io.antmedia.datastore.db.IDataStore;
-import io.antmedia.datastore.db.IDataStoreFactory;
 import io.antmedia.datastore.db.types.Token;
 
 

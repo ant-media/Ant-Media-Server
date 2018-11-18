@@ -38,7 +38,7 @@ public class TokenSessionFilter implements HttpSessionListener {
 	public ITokenService getTokenService() {
 		if (tokenService == null) {
 			
-			tokenService = (ITokenService)context.getBean(ITokenService.BEAN_NAME);
+			tokenService = (ITokenService)context.getBean(ITokenService.BeanName.TOKEN_SERVICE.toString());
 		}
 		return tokenService;
 	}

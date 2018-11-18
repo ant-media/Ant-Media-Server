@@ -992,8 +992,8 @@ public class BroadcastRestService {
 
 			ApplicationContext appContext = getAppContext();
 
-			if(appContext != null && appContext.containsBean(ITokenService.BEAN_NAME)) {
-				tokenService = (ITokenService)appContext.getBean(ITokenService.BEAN_NAME);
+			if(appContext != null && appContext.containsBean(ITokenService.BeanName.TOKEN_SERVICE.toString())) {
+				tokenService = (ITokenService)appContext.getBean(ITokenService.BeanName.TOKEN_SERVICE.toString());
 			}
 
 			token = tokenService.createToken(streamId, expireDate, type);
