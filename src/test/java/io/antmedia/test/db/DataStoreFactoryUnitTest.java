@@ -34,7 +34,7 @@ public class DataStoreFactoryUnitTest {
 		dsf.setAppName("myApp");
 		dsf.setDbName("myDB");
 		dsf.setDbHost("localhost");
-		dsf.setDbUser("me");
+		dsf.setDbUser(null);
 		dsf.setDbPassword("myPass");
 	}
 
