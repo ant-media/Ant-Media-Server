@@ -22,6 +22,12 @@ Ant Media Server is an Open Source Media Server that supports:
 
 ## Releases 
 
+ #### [Ant Media Server Community 1.5.2 (Nov 16, 2018)](https://github.com/ant-media/Ant-Media-Server/releases/download/ams-v1.5.2/ant-media-server-community-1.5.2-181116_1126.zip)
+ * Session replication and improvements in clustering
+ * Improvements in Management Console
+ * Publishing WebRTC streams to Social and other RTMP endpoints
+ * Bug fixes
+
  #### [Ant Media Server Community 1.5.1.1 (October 11, 2018)](https://github.com/ant-media/Ant-Media-Server/releases/download/ams-v1.5.1.1/ant-media-server-community-1.5.1.1-181011_1410.zip)
 * DB Based Clustering
 * Autoscaling with DB Based Clustering
