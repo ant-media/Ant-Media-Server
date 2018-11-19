@@ -3,6 +3,7 @@ package io.antmedia;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -476,9 +477,34 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 			if (getDataStore().addVod(newVod) == null) {
 				logger.warn("Stream vod with stream id {} cannot be added to data store", streamId);
-			}	
-
+			}
+			
+			String muxerFinishScript = appSettings.getMuxerFinishScript();
+			if (muxerFinishScript != null && !muxerFinishScript.isEmpty()) {	
+				
+				runScript(muxerFinishScript + "  " + vodName);
+			}
 		}
+	}
+
+	private void runScript(String scriptFile) {
+		vertx.executeBlocking(future -> {
+			try {
+				logger.info("running muxer finish script: {}", scriptFile);
+				Process exec = Runtime.getRuntime().exec(scriptFile);
+				int result = exec.waitFor();
+				future.complete();
+				logger.info("completing script: {} with return value {}", scriptFile, result);
+			} catch (IOException e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			} catch (InterruptedException e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+				Thread.currentThread().interrupt();
+			} 
+			
+		}, res -> {
+			
+		});
 	}
 
 	private static class AuthCheckJob implements IScheduledJob {

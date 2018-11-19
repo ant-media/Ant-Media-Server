@@ -145,8 +145,5 @@ public class AntMediaApplicationAdaptorUnitTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-		
-		
 	}
-
 }
