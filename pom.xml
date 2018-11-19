@@ -3,7 +3,8 @@
 	<parent>
 		<groupId>io.antmedia</groupId>
 		<artifactId>parent</artifactId>
-		<version>1.5.2</version>
+		<version>1.6.0-SNAPSHOT</version>
+
 	</parent>
 	<modelVersion>4.0.0</modelVersion>
 	<artifactId>ant-media-server</artifactId>
@@ -34,6 +35,26 @@
 		<developerConnection>git@github.com:ant-media/Ant-Media-Server.git</developerConnection>
 		<tag>media-server,webrtc,rtmp,rtsp,mp4-hls,stream,broadcast,hls,ip-camera,mp4,flv</tag>
 	</scm>
+	<repositories>
+	    <repository>
+	      <snapshots>
+	        <enabled>false</enabled>
+	      </snapshots>
+	      <id>central</id>
+	      <name>Central Repository</name>
+	      <url>http://repo.maven.apache.org/maven2</url>
+	    </repository>
+	    <repository>
+	      <id>sonatype-snapshots</id>
+	      <name>Sonatype Snapshots</name>
+	      <url>http://oss.sonatype.org/content/repositories/snapshots</url>
+	    </repository>
+	    <repository>
+	      <id>sonatype-releases</id>
+	      <name>Sonatype Releases</name>
+	      <url>http://oss.sonatype.org/content/repositories/releases</url>
+	    </repository>
+	</repositories>
 	<distributionManagement>
 		<snapshotRepository>
 			<id>ossrh</id>
@@ -152,7 +173,9 @@
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>2.22.1</version>
                     <configuration>
+
                     	<useSystemClassLoader>false</useSystemClassLoader>
+                    	
         				<argLine>@{argLine} -Xmx750M -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -Djava.library.path=${project.basedir}/../Ant-Media-Server/src/main/server/lib/native</argLine>
     				</configuration>
              </plugin>

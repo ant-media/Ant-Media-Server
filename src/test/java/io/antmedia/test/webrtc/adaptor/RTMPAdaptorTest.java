@@ -60,7 +60,7 @@ public class RTMPAdaptorTest {
 		Session session = mock(Session.class);
 		rtmpAdaptor.setSession(session);
 
-		MediaStream stream = mock(MediaStream.class);
+		MediaStream stream =  new MediaStream(0L);
 		rtmpAdaptor.onAddStream(stream);
 		
 		/* no room property is put to session with streamId, because roomName is put during joining to room  
@@ -214,14 +214,13 @@ public class RTMPAdaptorTest {
 
 			RTMPAdaptor rtmpAdaptor = new RTMPAdaptor(null, handler);
 
-			MediaStream stream = mock(MediaStream.class);
+			MediaStream stream = new MediaStream(0L);
 
 			Session session = mock(Session.class);
 
 			rtmpAdaptor.setSession(session);
 
 			rtmpAdaptor.onAddStream(stream);
-
 
 		}
 		catch (Exception e) {

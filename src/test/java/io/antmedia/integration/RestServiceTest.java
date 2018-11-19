@@ -1546,8 +1546,6 @@ public class RestServiceTest {
 
 	@Test
 	public void testAddEndpoint() {
-
-		System.out.println("Running testAddEndpoint");
 		try {
 
 			Broadcast broadcast = createBroadcast(null);
@@ -1575,7 +1573,7 @@ public class RestServiceTest {
 			// get endpoint list
 			broadcast = getBroadcast(broadcast.getStreamId().toString());
 
-			// check that 4 element exist
+			// check that 2 element exist
 			assertNotNull(broadcast.getEndPointList());
 			assertEquals(2, broadcast.getEndPointList().size());
 
@@ -1587,7 +1585,6 @@ public class RestServiceTest {
 	
 	@Test
 	public void testAddEndpointCrossCheck() {
-		System.out.println("Running testAddEndpoint");
 		try {
 
 			List<Broadcast> broadcastList = callGetBroadcastList();

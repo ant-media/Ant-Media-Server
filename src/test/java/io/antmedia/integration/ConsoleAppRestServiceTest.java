@@ -563,14 +563,22 @@ public class ConsoleAppRestServiceTest {
 	
 	@Test
 	public void testTokenControl() {
-
+		Result enterpiseResult;
 		try {
+			
+
 			// authenticate user
 			User user = new User();
 			user.setEmail(TEST_USER_EMAIL);
 			user.setPassword(TEST_USER_PASS);
 			Result authenticatedUserResult = callAuthenticateUser(user);
 			assertTrue(authenticatedUserResult.isSuccess());
+			
+			enterpiseResult = callIsEnterpriseEdition();
+			if (!enterpiseResult.isSuccess()) {
+				//if it is not enterprise return
+				return ;
+			}
 
 			// get settings from the app
 			AppSettingsModel appSettings = callGetAppSettings("LiveApp");
