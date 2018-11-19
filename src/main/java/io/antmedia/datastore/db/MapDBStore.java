@@ -57,6 +57,7 @@ public class MapDBStore implements IDataStore {
 		db = DBMaker
 				.fileDB(dbName)
 				.fileMmapEnableIfSupported()
+				.transactionEnable()
 				.closeOnJvmShutdown()
 				.make();
 
