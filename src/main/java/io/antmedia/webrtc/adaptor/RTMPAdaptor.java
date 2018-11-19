@@ -120,24 +120,16 @@ public class RTMPAdaptor extends Adaptor {
 			peerConnectionFactory = createPeerConnectionFactory();
 
 			List<IceServer> iceServers = new ArrayList();
-			iceServers.add(new IceServer(stunServerUri));
+			iceServers.add(IceServer.builder(stunServerUri).createIceServer());
+			
 
 			PeerConnection.RTCConfiguration rtcConfig =
 					new PeerConnection.RTCConfiguration(iceServers);
 
-			//TODO: pay attention to this configuration parameters
-			rtcConfig.tcpCandidatePolicy = PeerConnection.TcpCandidatePolicy.DISABLED;
-			rtcConfig.bundlePolicy = PeerConnection.BundlePolicy.MAXBUNDLE;
-			rtcConfig.rtcpMuxPolicy = PeerConnection.RtcpMuxPolicy.REQUIRE;
 
-			//TODO: which is better gather one or gather continually for our use case
-			rtcConfig.continualGatheringPolicy = PeerConnection.ContinualGatheringPolicy.GATHER_CONTINUALLY;
-			// Use ECDSA encryption.
-			rtcConfig.keyType = PeerConnection.KeyType.ECDSA;
 			// Enable DTLS for normal calls and disable for loopback calls.
 			rtcConfig.enableDtlsSrtp = true;
-			//TODO: which is better for our use case
-			rtcConfig.sdpSemantics = PeerConnection.SdpSemantics.UNIFIED_PLAN;
+
 
 			peerConnection = peerConnectionFactory.createPeerConnection(rtcConfig, RTMPAdaptor.this);
 

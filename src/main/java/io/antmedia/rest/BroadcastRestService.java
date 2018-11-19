@@ -59,6 +59,7 @@ import io.antmedia.muxer.Muxer;
 import io.antmedia.rest.model.Interaction;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.Version;
+import io.antmedia.security.ITokenService;
 import io.antmedia.social.LiveComment;
 import io.antmedia.social.endpoint.PeriscopeEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
@@ -124,6 +125,10 @@ public class BroadcastRestService {
 	private ProcessBuilderFactory processBuilderFactory = null;
 
 	protected static Logger logger = LoggerFactory.getLogger(BroadcastRestService.class);
+
+	private ITokenService tokenService;
+
+
 
 	/**
 	 * Creates a broadcast and returns the full broadcast object with rtmp
@@ -415,7 +420,7 @@ public class BroadcastRestService {
 			if (endPointServiceList != null) {
 
 				VideoServiceEndpoint videoServiceEndpoint = endPointServiceList.get(endpointServiceId);
-				
+
 				if (videoServiceEndpoint != null) {
 					Endpoint endpoint;
 					try {
@@ -502,7 +507,7 @@ public class BroadcastRestService {
 		}
 		return liveComment;
 	}
-	
+
 	/**
 	 * Return the number of live views in specified video service endpoint
 	 * 
@@ -522,8 +527,8 @@ public class BroadcastRestService {
 		}
 		return new Result(true, String.valueOf(liveViews));
 	}
-	
-	
+
+
 	/**
 	 * Returns the number of live comment count in a specific video service endpoint
 	 * 
@@ -561,8 +566,8 @@ public class BroadcastRestService {
 		}
 		return interaction;
 	}
-	
-	
+
+
 
 	protected Broadcast lookupBroadcast(String id) {
 		Broadcast broadcast = null;
@@ -983,10 +988,20 @@ public class BroadcastRestService {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Token getToken (@QueryParam("id")String streamId, @QueryParam("expireDate") long expireDate, @QueryParam("type") String type) {
 		Token token = null;
-
 		if(streamId != null) {
 
-			token = getDataStore().createToken(streamId, expireDate, type);
+			ApplicationContext appContext = getAppContext();
+
+			if(appContext != null && appContext.containsBean(ITokenService.BeanName.TOKEN_SERVICE.toString())) {
+				tokenService = (ITokenService)appContext.getBean(ITokenService.BeanName.TOKEN_SERVICE.toString());
+			}
+
+			token = tokenService.createToken(streamId, expireDate, type);
+
+			//if it is  MockService, returns null
+			if(token != null) {
+				getDataStore().saveToken(token);
+			}	 
 		}
 
 		return token;

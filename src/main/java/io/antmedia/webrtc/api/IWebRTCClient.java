@@ -1,7 +1,5 @@
 package io.antmedia.webrtc.api;
 
-import java.nio.ByteBuffer;
-
 import org.webrtc.IceCandidate;
 import org.webrtc.SessionDescription;
 

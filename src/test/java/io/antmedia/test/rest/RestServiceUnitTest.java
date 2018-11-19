@@ -909,39 +909,45 @@ public class RestServiceUnitTest {
 		restServiceReal.setDataStore(store);
 		
 		//create token
-		Token testToken = restServiceReal.getToken("1234", 15764264, Token.PLAY_TOKEN);
-		
-		assertNotNull(testToken.getTokenId());
+		Token token = new Token();
+		token.setStreamId("1234");
+		token.setTokenId("tokenId");
+		token.setType(Token.PLAY_TOKEN);
+	
+		assertTrue(restServiceReal.getDataStore().saveToken(token));
 		
 		//get tokens of stream
-		List <Token> tokens = restServiceReal.listTokens(testToken.getStreamId(), 0, 10);
+		List <Token> tokens = restServiceReal.listTokens(token.getStreamId(), 0, 10);
 		
 		assertEquals(1, tokens.size());
 		
 		//revoke tokens
-		restServiceReal.revokeTokens(testToken.getStreamId());
+		restServiceReal.revokeTokens(token.getStreamId());
 		
 		//get tokens of stream
-		tokens = restServiceReal.listTokens(testToken.getStreamId(), 0, 10);
+		tokens = restServiceReal.listTokens(token.getStreamId(), 0, 10);
 		
 		//it should be zero because all tokens are revoked
 		assertEquals(0, tokens.size());
 		
 		//create token again
-		testToken = restServiceReal.getToken("1234", 15764264, Token.PLAY_TOKEN);
+		token = new Token();
+		token.setStreamId("1234");
+		token.setTokenId("tokenId");
+		token.setType(Token.PLAY_TOKEN);
+	
+		assertTrue(restServiceReal.getDataStore().saveToken(token));
 		
 		//validate token
-		Token validatedToken = restServiceReal.validateToken(testToken);
+		Token validatedToken = restServiceReal.validateToken(token);
 		
 		//token should be validated and returned
 		assertNotNull(validatedToken);
 		
 		//this should be false, because validated token is deleted after consumed
-		Token expiredToken = restServiceReal.validateToken(testToken);
+		Token expiredToken = restServiceReal.validateToken(token);
 		
 		assertNull(expiredToken);
-		
-		
 		
 	}
 	

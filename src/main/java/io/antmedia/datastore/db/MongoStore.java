@@ -702,26 +702,21 @@ public class MongoStore implements IDataStore {
 		datastore.delete(query);
 	}
 	@Override
-	public Token createToken(String streamId, long expireDate, String type) {
-		Token token = null;
+	public boolean saveToken(Token token) {
+		boolean result = false;
 
-		if(streamId != null) {
-			token = new Token();
-			token.setStreamId(streamId);
-			token.setExpireDate(expireDate);
-			token.setType(type);
+		if(token.getStreamId() != null && token.getTokenId() != null) {
 
 			try {
-				String tokenId = RandomStringUtils.randomNumeric(24);
-				token.setTokenId(tokenId);
 				tokenDatastore.save(token);
+				result = true;
 
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
 		}
 
-		return token;
+		return result;
 	}
 
 	@Override

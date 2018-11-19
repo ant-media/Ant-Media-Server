@@ -643,26 +643,20 @@ public class InMemoryDataStore implements IDataStore {
 	}
 
 	@Override
-	public Token createToken(String streamId, long expireDate, String type) {
-		Token token = null;
-
-		if(streamId != null) {
-			token = new Token();
-			token.setStreamId(streamId);
-			token.setExpireDate(expireDate);
-			token.setType(type);
+	public boolean saveToken(Token token) {
+		boolean result = false;
+		if(token.getStreamId() != null && token.getTokenId() != null) {
 
 			try {
-				String tokenId = RandomStringUtils.randomNumeric(24);
-				token.setTokenId(tokenId);
-				tokenMap.put(tokenId, token);
 
+				tokenMap.put(token.getTokenId(), token);
+				result = true;
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
 		}
 
-		return token;
+		return result;
 	}
 
 	@Override
