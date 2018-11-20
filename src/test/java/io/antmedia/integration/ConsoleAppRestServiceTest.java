@@ -675,6 +675,11 @@ public class ConsoleAppRestServiceTest {
 			// get settings from the app
 			AppSettingsModel appSettings = callGetAppSettings("LiveApp");
 
+			//disable mp4 muxing
+			appSettings.setMp4MuxingEnabled(false);
+			Result result = callSetAppSettings("LiveApp", appSettings);
+			assertTrue(result.isSuccess());
+
 			// create broadcast
 			Broadcast broadcast = RestServiceTest.callCreateRegularBroadcast();
 
@@ -698,7 +703,7 @@ public class ConsoleAppRestServiceTest {
 			 */
 
 			//set stream specific mp4 setting to 1, general setting is still disabled
-			Result result = RestServiceTest.callEnableMp4Muxing(broadcast.getStreamId(), 1);
+			result = RestServiceTest.callEnableMp4Muxing(broadcast.getStreamId(), 1);
 
 			assertTrue(result.isSuccess());
 
@@ -717,7 +722,7 @@ public class ConsoleAppRestServiceTest {
 			/**
 			 * CASE 3: General setting is enabled and stream setting is 0 
 			 */
-			
+
 			//enable mp4 muxing
 			appSettings.setMp4MuxingEnabled(true);
 			result = callSetAppSettings("LiveApp", appSettings);
@@ -739,18 +744,18 @@ public class ConsoleAppRestServiceTest {
 			Awaitility.await().pollDelay(9, TimeUnit.SECONDS).atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + ".mp4");
 			});
-			
+
 			/**
 			 * CASE 4: General setting is enabled (default) and stream setting is -1 
 			 */
-			
+
 			// create new broadcast because mp4 files exist with same streamId
 			Broadcast broadcast2 = RestServiceTest.callCreateRegularBroadcast();
-			
+
 			// general setting is still enabled and set stream spesific mp4 settings to -1
 			result = RestServiceTest.callEnableMp4Muxing(broadcast2.getStreamId(), -1);
 			assertTrue(result.isSuccess());
-			
+
 			//send stream
 			rtmpSendingProcess = execute(ffmpegPath
 					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
@@ -763,13 +768,13 @@ public class ConsoleAppRestServiceTest {
 				return !MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast2.getStreamId() + ".mp4");
 			});
 
-			
+
 			//disable mp4 muxing
 			appSettings.setMp4MuxingEnabled(false);
 			result = callSetAppSettings("LiveApp", appSettings);
 			assertTrue(result.isSuccess());
-			
-			
+
+
 		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
