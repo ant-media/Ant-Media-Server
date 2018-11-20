@@ -171,18 +171,18 @@ public class ConsoleAppRestServiceTest {
 			if (result.isSuccess()) {
 				appName = "WebRTCAppEE";
 			}
-			
+
 			AppSettingsModel appSettingsModel = callGetAppSettings(appName);
 			assertEquals("", appSettingsModel.getVodFolder());
-			 
+
 			appSettingsModel = callGetAppSettings("LiveApp");
-				
+
 			// change app settings - change vod folder
 			String new_vod_folder = "vod_folder";
 			assertNotEquals(new_vod_folder, appSettingsModel.getVodFolder());
 			String defaultValue = appSettingsModel.getVodFolder();
-			
-						
+
+
 			appSettingsModel.setVodFolder(new_vod_folder);
 			result = callSetAppSettings("LiveApp", appSettingsModel);
 			assertTrue(result.isSuccess());
@@ -196,8 +196,8 @@ public class ConsoleAppRestServiceTest {
 			appSettingsModel.setVodFolder(defaultValue);
 			result = callSetAppSettings("LiveApp", appSettingsModel);
 			assertTrue(result.isSuccess());
-			
-			
+
+
 		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
@@ -282,7 +282,7 @@ public class ConsoleAppRestServiceTest {
 
 		Result result;
 		try {
-			
+
 
 			// first authenticate user
 			User user = new User();
@@ -290,8 +290,8 @@ public class ConsoleAppRestServiceTest {
 			user.setPassword(TEST_USER_PASS);
 			Result authenticatedUserResult = callAuthenticateUser(user);
 			assertTrue(authenticatedUserResult.isSuccess());
-			
-			
+
+
 			result = callIsEnterpriseEdition();
 			if (!result.isSuccess()) {
 				//if it is not enterprise return
@@ -300,7 +300,7 @@ public class ConsoleAppRestServiceTest {
 
 			//get app settings
 			AppSettingsModel appSettingsModel = callGetAppSettings("LiveApp");
-			
+
 
 			//check that preview overwrite is false by default
 			assertFalse(appSettingsModel.isPreviewOverwrite());
@@ -318,7 +318,7 @@ public class ConsoleAppRestServiceTest {
 
 			//check that preview is created
 			assertTrue(checkURLExist("http://localhost:5080/LiveApp/previews/"+streamId+".png"));
-			
+
 
 			//send a short stream with same name again
 			AppFunctionalTest.executeProcess(ffmpegPath
@@ -337,10 +337,10 @@ public class ConsoleAppRestServiceTest {
 
 			//change settings and make preview overwrite true
 			appSettingsModel.setPreviewOverwrite(true);
-			
+
 			result = callSetAppSettings("LiveApp", appSettingsModel);
 			assertTrue(result.isSuccess());
-			
+
 			appSettingsModel = callGetAppSettings("LiveApp");
 			assertTrue(appSettingsModel.isPreviewOverwrite());
 
@@ -367,21 +367,21 @@ public class ConsoleAppRestServiceTest {
 
 			//stop it
 			AppFunctionalTest.destroyProcess();
-			
+
 			Thread.sleep(3000);
 
 			//check that second preview with the same created.
 			assertTrue(checkURLExist("http://localhost:5080/LiveApp/previews/"+streamId+".png"));
-			
-			
+
+
 			appSettingsModel.setPreviewOverwrite(false);
 			result = callSetAppSettings("LiveApp", appSettingsModel);
 			assertTrue(result.isSuccess());
 
-			
+
 			appSettingsModel = callGetAppSettings("LiveApp");
 			assertFalse(appSettingsModel.isPreviewOverwrite());
-			
+
 		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
@@ -560,12 +560,12 @@ public class ConsoleAppRestServiceTest {
 		}
 
 	}
-	
+
 	@Test
 	public void testTokenControl() {
 		Result enterpiseResult;
 		try {
-			
+
 
 			// authenticate user
 			User user = new User();
@@ -573,7 +573,7 @@ public class ConsoleAppRestServiceTest {
 			user.setPassword(TEST_USER_PASS);
 			Result authenticatedUserResult = callAuthenticateUser(user);
 			assertTrue(authenticatedUserResult.isSuccess());
-			
+
 			enterpiseResult = callIsEnterpriseEdition();
 			if (!enterpiseResult.isSuccess()) {
 				//if it is not enterprise return
@@ -609,8 +609,8 @@ public class ConsoleAppRestServiceTest {
 			});
 
 			rtmpSendingProcess.destroy();
-			
-			
+
+
 			//create token for publishing
 			Token publishToken = callGetToken(broadcast.getStreamId(), Token.PUBLISH_TOKEN, 15444343);
 			assertNotNull(publishToken);
@@ -622,8 +622,8 @@ public class ConsoleAppRestServiceTest {
 			Process rtmpSendingProcessToken = execute(ffmpegPath
 					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
 					+ broadcast.getStreamId()+ "?token=" + publishToken.getTokenId());
-			
-			
+
+
 			//it should be false because token control is enabled but no token provided
 
 			Awaitility.await()
@@ -634,20 +634,20 @@ public class ConsoleAppRestServiceTest {
 			});
 
 			rtmpSendingProcessToken.destroy();
-	
+
 			//this time, it should be true since valid token is provided
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" 
 						+ broadcast.getStreamId() + ".mp4?token=" + accessToken2.getTokenId());
 			});
-			
+
 			appSettings.setTokenControlEnabled(false);
 
 
 			Result flag = callSetAppSettings("LiveApp", appSettings);
 			assertTrue(flag.isSuccess());
-			
-			
+
+
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -655,7 +655,133 @@ public class ConsoleAppRestServiceTest {
 		}
 
 	}
-	
+
+	@Test
+	public void testMp4Setting() {
+		/**
+		 * This is testing stream-specific mp4 setting via rest service and results
+		 */
+
+		try {
+
+			// authenticate user
+			User user = new User();
+			user.setEmail(TEST_USER_EMAIL);
+			user.setPassword(TEST_USER_PASS);
+			Result authenticatedUserResult;
+			authenticatedUserResult = callAuthenticateUser(user);
+			assertTrue(authenticatedUserResult.isSuccess());
+
+			// get settings from the app
+			AppSettingsModel appSettings = callGetAppSettings("LiveApp");
+
+			// create broadcast
+			Broadcast broadcast = RestServiceTest.callCreateRegularBroadcast();
+
+			/**
+			 * CASE 1: General setting is disabled (default) and stream setting is 0 (default)
+			 */
+
+			Process rtmpSendingProcess = execute(ffmpegPath
+					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
+					+ broadcast.getStreamId());
+
+			rtmpSendingProcess.destroy();
+
+			//it should be false, because mp4 settings is disabled and stream mp4 setting is 0, so mp4 file not created
+			Awaitility.await().pollDelay(9, TimeUnit.SECONDS).atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return !MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + ".mp4");
+			});
+
+			/**
+			 * CASE 2: General setting is disabled (default) and stream setting is 1 
+			 */
+
+			//set stream specific mp4 setting to 1, general setting is still disabled
+			Result result = RestServiceTest.callEnableMp4Muxing(broadcast.getStreamId(), 1);
+
+			assertTrue(result.isSuccess());
+
+			//send stream
+			rtmpSendingProcess = execute(ffmpegPath
+					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
+					+ broadcast.getStreamId());
+
+			rtmpSendingProcess.destroy();
+
+			//it should be true this time, because stream mp4 setting is 1 although general setting is disabled
+			Awaitility.await().pollDelay(9, TimeUnit.SECONDS).atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + ".mp4");
+			});
+
+			/**
+			 * CASE 3: General setting is enabled and stream setting is 0 
+			 */
+			
+			//enable mp4 muxing
+			appSettings.setMp4MuxingEnabled(true);
+			result = callSetAppSettings("LiveApp", appSettings);
+			assertTrue(result.isSuccess());
+
+			//set stream spesific mp4 settings to 0
+			result = RestServiceTest.callEnableMp4Muxing(broadcast.getStreamId(), 0);
+			assertTrue(result.isSuccess());
+
+
+			//send stream
+			rtmpSendingProcess = execute(ffmpegPath
+					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
+					+ broadcast.getStreamId());
+
+			rtmpSendingProcess.destroy();
+
+			//it should be true this time also, because stream mp4 setting is 0 but general setting is enabled
+			Awaitility.await().pollDelay(9, TimeUnit.SECONDS).atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + ".mp4");
+			});
+			
+			/**
+			 * CASE 4: General setting is enabled (default) and stream setting is -1 
+			 */
+			
+			// create new broadcast because mp4 files exist with same streamId
+			Broadcast broadcast2 = RestServiceTest.callCreateRegularBroadcast();
+			
+			// general setting is still enabled and set stream spesific mp4 settings to -1
+			result = RestServiceTest.callEnableMp4Muxing(broadcast2.getStreamId(), -1);
+			assertTrue(result.isSuccess());
+			
+			//send stream
+			rtmpSendingProcess = execute(ffmpegPath
+					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
+					+ broadcast2.getStreamId());
+
+			rtmpSendingProcess.destroy();
+
+			//it should be false this time, because stream mp4 setting is -1 althouh general setting is enabled
+			Awaitility.await().pollDelay(9, TimeUnit.SECONDS).atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return !MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast2.getStreamId() + ".mp4");
+			});
+
+			
+			//disable mp4 muxing
+			appSettings.setMp4MuxingEnabled(false);
+			result = callSetAppSettings("LiveApp", appSettings);
+			assertTrue(result.isSuccess());
+			
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+
+
+
+
+
+
+	}
+
 	public static Token callGetToken(String streamId, String type, long expireDate) throws Exception {
 		String url = SERVICE_URL + "/broadcast/getToken";
 
@@ -676,11 +802,11 @@ public class ConsoleAppRestServiceTest {
 
 		return gson.fromJson(result.toString(), Token.class);
 	}
-	
+
 	public static int getStatusCode(String url) throws Exception {
-		
+
 		log.info("url: {}",url);
-		
+
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
 				.setDefaultCookieStore(httpCookieStore).build();
 
@@ -689,12 +815,12 @@ public class ConsoleAppRestServiceTest {
 		HttpResponse response = client.execute(post);
 
 		StringBuffer result = RestServiceTest.readResponse(response);
-		
+
 		log.info("response status code: {}",response.getStatusLine().getStatusCode());
-		
+
 		return response.getStatusLine().getStatusCode();
 	}
-	
+
 	public static boolean checkURLExist(String url) throws Exception {
 		int statusCode = getStatusCode(url);
 		if (statusCode == 200) {
@@ -702,8 +828,8 @@ public class ConsoleAppRestServiceTest {
 		}
 		return false;
 	}
-	
-	
+
+
 
 	private Result callisFirstLogin() throws Exception {
 		String url = ROOT_SERVICE_URL + "/isFirstLogin";
@@ -868,7 +994,7 @@ public class ConsoleAppRestServiceTest {
 
 		while (tmpExec == null) {
 			log.info("Waiting for exec get initialized...");
-			
+
 			Awaitility.await().pollDelay(1, TimeUnit.SECONDS).atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				return tmpExec !=null;
 			});

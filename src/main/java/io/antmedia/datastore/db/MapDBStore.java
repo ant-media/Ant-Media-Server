@@ -137,6 +137,7 @@ public class MapDBStore implements IDataStore {
 						broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
 					}
 					map.put(streamId, gson.toJson(broadcast));
+					logger.info("***********save : "+ gson.toJson(broadcast) );
 					db.commit();
 				} catch (Exception e) {
 					logger.error(ExceptionUtils.getStackTrace(e));
@@ -1016,5 +1017,25 @@ public class MapDBStore implements IDataStore {
 
 		}
 		return listToken;
+	}
+
+	@Override
+	public boolean setMp4Muxing(String streamId, int enabled) {
+		boolean result = false;
+		synchronized (this) {
+			if (streamId != null) {
+				String jsonString = map.get(streamId);
+				if (jsonString != null && (enabled == 0 || enabled == 1 || enabled == -1)) {			
+					
+					Broadcast broadcast =  gson.fromJson(jsonString, Broadcast.class);	
+					broadcast.setMp4Enabled(enabled);
+					map.replace(streamId, gson.toJson(broadcast));
+
+					db.commit();
+					result = true;
+				}
+			}
+		}
+		return result;
 	}
 }

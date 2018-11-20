@@ -28,18 +28,13 @@ import org.mockito.Mockito;
 import org.red5.server.api.stream.IClientBroadcastStream;
 import org.red5.server.api.stream.IStreamCapableConnection;
 import org.red5.server.scope.Scope;
-import org.red5.server.scope.WebScope;
 import org.springframework.context.ApplicationContext;
 import org.springframework.test.context.ContextConfiguration;
-
-import com.google.gson.Gson;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
-import io.antmedia.datastore.db.MapDBStore;
-import io.antmedia.datastore.db.MongoStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
@@ -859,10 +854,6 @@ public class RestServiceUnitTest {
 		assertNotNull(createBroadcast2.getStatus());
 		assertNull(createBroadcast2.getListenerHookURL());
 
-
-
-		Gson gson = new Gson();
-
 		Broadcast broadcastTmp = restServiceReal.getBroadcast(createBroadcast.getStreamId());
 		assertNotNull(broadcastTmp);
 		assertEquals(createBroadcast.getStatus(), broadcastTmp.getStatus());
@@ -899,6 +890,21 @@ public class RestServiceUnitTest {
 		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, broadcastTmp.getStatus());
 		assertEquals(broadcastTmp.getStreamId(), createBroadcast.getStreamId());
 		assertEquals(broadcastTmp.getName(), createBroadcast.getName());
+		
+		//create test broadcast for setting mp4 muxing setting
+		Broadcast testBroadcast = restServiceReal.createBroadcast(new Broadcast("testBroadcast"));
+		assertNotNull(testBroadcast.getStreamId());
+		
+		//check null case
+		assertFalse(restServiceReal.enableMp4Muxing(null,1).isSuccess());
+		
+		//check that setting is saved
+		assertTrue(restServiceReal.enableMp4Muxing(testBroadcast.getStreamId(),1).isSuccess());
+		
+		//check that setting is saved correctly
+		assertEquals(1, restServiceReal.getBroadcast(testBroadcast.getStreamId()).getMp4Enabled());
+		
+		
 
 	}
 	

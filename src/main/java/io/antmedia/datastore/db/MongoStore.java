@@ -685,14 +685,14 @@ public class MongoStore implements IDataStore {
 		}
 		return false;
 	}
-	
+
 	@Override
 	public void addStreamInfoList(List<StreamInfo> streamInfoList) {
 		for (StreamInfo streamInfo : streamInfoList) {
 			datastore.save(streamInfo);
 		}
 	}
-	
+
 	public List<StreamInfo> getStreamInfoList(String streamId) {
 		return datastore.find(StreamInfo.class).field("streamId").equal(streamId).asList();
 	}
@@ -754,9 +754,20 @@ public class MongoStore implements IDataStore {
 
 	}
 
+	@Override
+	public boolean setMp4Muxing(String streamId, int enabled) {
+		try {
+			if (streamId != null && (enabled == 0 || enabled == 1 || enabled == -1)) {
+				Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(streamId);
+				UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set("mp4Enabled", enabled);
+				UpdateResults update = datastore.update(query, ops);
+				return update.getUpdatedCount() == 1;
+			}
+		} catch (Exception e) {
+			logger.error(e.getMessage());
+		}
+		return false;
 
-
-
-
+	}
 
 }

@@ -693,7 +693,7 @@ public class InMemoryDataStore implements IDataStore {
 
 	@Override
 	public List<Token> listAllTokens(String streamId, int offset, int size) {
-		
+
 		List<Token> list = new ArrayList<>();
 		List<Token> returnList = new ArrayList<>();
 
@@ -737,14 +737,30 @@ public class InMemoryDataStore implements IDataStore {
 	public void addStreamInfoList(List<StreamInfo> streamInfoList) {
 		//used in mongo for cluster mode. useless here.
 
-	
+
 	}
 
 	public List<StreamInfo> getStreamInfoList(String streamId) {
 		return new ArrayList<>();
 	}
-	
+
 	public void clearStreamInfoList(String streamId) {
 		//used in mongo for cluster mode. useless here.
+	}
+
+	@Override
+	public boolean setMp4Muxing(String streamId, int enabled) {
+		boolean result = false;
+
+		if (streamId != null) {
+			Broadcast broadcast = broadcastMap.get(streamId);
+			if (broadcast != null && (enabled == 0 || enabled == 1 || enabled == -1)) {
+				broadcast.setMp4Enabled(enabled);
+				broadcastMap.replace(streamId, broadcast);
+				result = true;
+			}
+		}
+
+		return result;
 	}
 }
