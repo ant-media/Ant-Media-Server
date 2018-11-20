@@ -450,10 +450,9 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 				//if it is a stream VoD, than assign stream name, if it is deleted stream Vod name assigned to it already
 				streamName = broadcast.getName();
 				int index;
-				// reg expression of a translated file, kdjf03030_240p.mp4
-				String regularExp = "^.*_{1}[0-9]{3}p{1}\\.mp4{1}$";
-
-				if (!vodName.matches(regularExp) && (index = vodName.lastIndexOf(".mp4")) != -1) {
+				
+				if ((index = vodName.lastIndexOf(".mp4")) != -1) 
+				{
 					final String baseName = vodName.substring(0, index);
 					final String listenerHookURL = broadcast.getListenerHookURL();
 
@@ -482,7 +481,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 			String muxerFinishScript = appSettings.getMuxerFinishScript();
 			if (muxerFinishScript != null && !muxerFinishScript.isEmpty()) {	
 				
-				runScript(muxerFinishScript + "  " + vodName);
+				runScript(muxerFinishScript + "  " + file.getAbsolutePath());
 			}
 		}
 	}
