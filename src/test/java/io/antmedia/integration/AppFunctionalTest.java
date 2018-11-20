@@ -351,6 +351,10 @@ public class AppFunctionalTest {
 			// maximum return list size is 50
 			// assertEquals(broadcastList.size(), size+1);
 			Broadcast broadcast = restService.callGetBroadcast(streamId);
+			broadcast.setMp4Enabled(1);
+			
+			restService.callEnableMp4Muxing(streamId, 1);
+			
 
 			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, broadcast.getStatus());
 
@@ -397,7 +401,7 @@ public class AppFunctionalTest {
 		}
 
 
-		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+		Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 			RestServiceTest restService = new RestServiceTest();
 			return 0 == restService.callGetLiveStatistics().totalLiveStreamCount;
 		});
