@@ -137,7 +137,6 @@ public class MapDBStore implements IDataStore {
 						broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
 					}
 					map.put(streamId, gson.toJson(broadcast));
-					logger.info("***********save : "+ gson.toJson(broadcast) );
 					db.commit();
 				} catch (Exception e) {
 					logger.error(ExceptionUtils.getStackTrace(e));
