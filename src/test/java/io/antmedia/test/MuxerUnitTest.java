@@ -298,9 +298,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 		}
 
 		try {
-			Broadcast broadcast = new Broadcast("testBroadcast");
-			//set stream mp4 muxing to 1
-			broadcast.setMp4Enabled(1);
+			
 			getAppSettings().setHlsMuxingEnabled(false);
 			getAppSettings().setMp4MuxingEnabled(true);;
 			getAppSettings().setAddDateTimeToMp4FileName(false);
@@ -308,7 +306,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 			List<MuxAdaptor> muxAdaptorList = new ArrayList<MuxAdaptor>();
 			for (int j = 0; j < 20; j++) {
 				MuxAdaptor muxAdaptor =  MuxAdaptor.initializeMuxAdaptor(null, false, appScope);
-				muxAdaptor.setBroadcast(broadcast);
 				muxAdaptorList.add(muxAdaptor);
 			}
 			{
@@ -617,12 +614,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 			logger.debug("Application / web scope: {}", appScope);
 			assertTrue(appScope.getDepth() == 1);
 		}
-		Broadcast broadcast = new Broadcast("testBroadcast");
-		//set stream mp4 muxing to 1
-		broadcast.setMp4Enabled(1);
 		
 		MuxAdaptor muxAdaptor =  MuxAdaptor.initializeMuxAdaptor(null, false, appScope);
-		muxAdaptor.setBroadcast(broadcast);
 		getAppSettings().setMp4MuxingEnabled(true);
 		getAppSettings().setHlsMuxingEnabled(false);
 		
@@ -725,11 +718,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 			logger.debug("Application / web scope: {}", appScope);
 			assertTrue(appScope.getDepth() == 1);
 		}
-		Broadcast broadcast = new Broadcast("testBroadcast");
-		//set stream mp4 muxing to 1
-		broadcast.setMp4Enabled(1);
+		
 		MuxAdaptor muxAdaptor =  MuxAdaptor.initializeMuxAdaptor(null, false, appScope);
-		muxAdaptor.setBroadcast(broadcast);
 
 		//File file = new File(getResource("test.mp4").getFile());
 		File file = null;
