@@ -48,6 +48,7 @@ import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.IDataStore;
+import io.antmedia.datastore.db.IDataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointChannel;
@@ -102,6 +103,9 @@ public class BroadcastRestService {
 
 	public static final String ENTERPRISE_EDITION = "Enterprise Edition";
 	public static final String COMMUNITY_EDITION = "Community Edition";
+	public static final int MP4_ENABLE = 1;
+	public static final int MP4_DISABLE = -1;
+	public static final int MP4_NO_SET = 0;
 
 	@Context
 	private ServletContext servletContext;
@@ -1074,6 +1078,24 @@ public class BroadcastRestService {
 	}
 
 
+	@GET
+	@Path("/broadcast/enableMp4Muxing")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result enableMp4Muxing (@QueryParam("id")String streamId, @QueryParam("enableMp4") int enableMp4) {
+		Result result = new Result(false);
+		if(streamId != null) {
+
+			if(getDataStore().setMp4Muxing(streamId, enableMp4)) {		
+				result.setSuccess(true);
+				result.setMessage("streamId:"+ streamId);
+			}else {
+				result.setMessage("no stream for this id: " + streamId + "or wrong setting parameter");
+			}
+		}
+
+		return result;
+	}
+
 	/**
 	 * Get the broadcast live statistics total rtmp watcher count, total hls
 	 * watcher count, total webrtc watcher count
@@ -1116,6 +1138,8 @@ public class BroadcastRestService {
 	}
 
 
+
+
 	@GET
 	@Path("/broadcast/getWebRTCClientStats/{stream_id}")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -1136,15 +1160,12 @@ public class BroadcastRestService {
 		return adaptor;
 	}
 
-
 	/**
-	 * Filter broadcast according to type
-	 * 
-	 * @param fileName
-	 *            name of the file
-	 * 
-	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
-	 * 
+	 * Returns filtered broadcast list
+	 * @param offset
+	 * @param size
+	 * @param type
+	 * @return list
 	 */
 
 	@GET
@@ -1685,7 +1706,7 @@ public class BroadcastRestService {
 	public DataStoreFactory getDataStoreFactory() {
 		if(dataStoreFactory == null) {
 			WebApplicationContext ctxt = WebApplicationContextUtils.getWebApplicationContext(servletContext); 
-			dataStoreFactory = (DataStoreFactory) ctxt.getBean("dataStoreFactory");
+			dataStoreFactory = (DataStoreFactory) ctxt.getBean(IDataStoreFactory.BEAN_NAME);
 		}
 		return dataStoreFactory;
 	}
