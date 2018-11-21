@@ -769,6 +769,12 @@ public class ConsoleAppRestServiceTest {
 			});
 
 
+			//disable mp4 muxing
+			appSettings.setMp4MuxingEnabled(false);
+			result = callSetAppSettings("LiveApp", appSettings);
+			assertTrue(result.isSuccess());
+
+
 		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());

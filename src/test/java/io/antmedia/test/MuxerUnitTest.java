@@ -217,16 +217,12 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 			assertTrue(appScope.getDepth() == 1);
 		}
 		
-		Broadcast broadcast = new Broadcast ("testBrodcast");
-		broadcast.setMp4Enabled(1);
-		
 		getAppSettings().setMp4MuxingEnabled(true);
 		getAppSettings().setAddDateTimeToMp4FileName(false);
 		getAppSettings().setHlsMuxingEnabled(true);
 		getAppSettings().setDeleteHLSFilesOnEnded(false);
 		
 		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null,false, appScope);
-		muxAdaptor.setBroadcast(broadcast);
 		
 		//this value should be -1. It means it is uninitialized
 		assertEquals( -1, muxAdaptor.getFirstPacketTime());

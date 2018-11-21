@@ -38,8 +38,6 @@ import org.junit.Test;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
-
-import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.rest.BroadcastRestService.LiveStatistics;
 
 
@@ -220,13 +218,11 @@ public class MuxingTest {
 	@Test
 	public void testConcurrentStreaming() {
 		try {
-			Broadcast broadcast = RestServiceTest.callCreateRegularBroadcast();
-			
-	
+			String streamName1 = "conccurent" + (int) (Math.random() * 1000);
 			// make sure that ffmpeg is installed and in path
 			Process rtmpSendingProcess = execute(
 					ffmpegPath + " -re -i src/test/resources/test.flv -acodec pcm_alaw -vcodec copy -f flv rtmp://"
-							+ SERVER_ADDR + "/LiveApp/" + broadcast.getStreamId());
+							+ SERVER_ADDR + "/LiveApp/" + streamName1);
 
 			String streamName2 = "conccurent" + (int) (Math.random() * 1000);
 			Process rtmpSendingProcess2 = execute(
@@ -240,8 +236,8 @@ public class MuxingTest {
 
 			Thread.sleep(12000);
 
-			assertTrue(testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + ".mp4", 16000));
-			assertTrue(testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + ".mp4", 16000));
+			assertTrue(testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName1 + ".mp4", 16000));
+			assertTrue(testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName2 + ".mp4", 16000));
 
 		} catch (Exception e) {
 			e.printStackTrace();
