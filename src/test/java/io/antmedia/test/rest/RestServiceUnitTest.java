@@ -42,6 +42,7 @@ import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.integration.MuxingTest;
+import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.BroadcastRestService.BroadcastStatistics;
 import io.antmedia.rest.BroadcastRestService.ProcessBuilderFactory;
@@ -896,13 +897,13 @@ public class RestServiceUnitTest {
 		assertNotNull(testBroadcast.getStreamId());
 		
 		//check null case
-		assertFalse(restServiceReal.enableMp4Muxing(null,1).isSuccess());
+		assertFalse(restServiceReal.enableMp4Muxing(null, MuxAdaptor.MP4_ENABLED_FOR_STREAM).isSuccess());
 		
 		//check that setting is saved
-		assertTrue(restServiceReal.enableMp4Muxing(testBroadcast.getStreamId(),1).isSuccess());
+		assertTrue(restServiceReal.enableMp4Muxing(testBroadcast.getStreamId(),MuxAdaptor.MP4_ENABLED_FOR_STREAM).isSuccess());
 		
 		//check that setting is saved correctly
-		assertEquals(1, restServiceReal.getBroadcast(testBroadcast.getStreamId()).getMp4Enabled());
+		assertEquals(MuxAdaptor.MP4_ENABLED_FOR_STREAM, restServiceReal.getBroadcast(testBroadcast.getStreamId()).getMp4Enabled());
 		
 		
 

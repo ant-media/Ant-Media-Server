@@ -33,6 +33,7 @@ import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
+import io.antmedia.muxer.MuxAdaptor;
 
 public class DBStoresUnitTest {
 
@@ -806,29 +807,29 @@ public class DBStoresUnitTest {
 			assertEquals("good", dataStore.get(broadcast3.getStreamId()).getQuality());
 			
 			//set mp4 muxing to true
-			result = dataStore.setMp4Muxing(key, 1);
+			result = dataStore.setMp4Muxing(key, MuxAdaptor.MP4_ENABLED_FOR_STREAM);
 			
 			//check that setting is saved
 			assertTrue(result);
 			
 			//check that setting is saved correctly
-			assertEquals(1, dataStore.get(key).getMp4Enabled());
+			assertEquals(MuxAdaptor.MP4_ENABLED_FOR_STREAM, dataStore.get(key).getMp4Enabled());
 			
 			
 			//check null case
-			result = dataStore.setMp4Muxing(null, -1);
+			result = dataStore.setMp4Muxing(null, MuxAdaptor.MP4_DISABLED_FOR_STREAM);
 			
 			assertFalse(result);
 			
 			
 			//set mp4 muxing to false
-			result = dataStore.setMp4Muxing(key, -1);
+			result = dataStore.setMp4Muxing(key, MuxAdaptor.MP4_DISABLED_FOR_STREAM);
 			
 			//check that setting is saved
 			assertTrue(result);
 			
 			//check that setting is saved correctly
-			assertEquals(-1, dataStore.get(key).getMp4Enabled());
+			assertEquals(MuxAdaptor.MP4_DISABLED_FOR_STREAM, dataStore.get(key).getMp4Enabled());
 			
 			result = dataStore.delete(key);
 			assertTrue(result);

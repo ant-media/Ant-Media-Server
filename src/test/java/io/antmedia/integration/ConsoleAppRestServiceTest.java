@@ -47,6 +47,7 @@ import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.EncoderSettings;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Token;
+import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.model.AppSettingsModel;
 import io.antmedia.rest.model.Result;
@@ -703,7 +704,7 @@ public class ConsoleAppRestServiceTest {
 			 */
 
 			//set stream specific mp4 setting to 1, general setting is still disabled
-			result = RestServiceTest.callEnableMp4Muxing(broadcast.getStreamId(), 1);
+			result = RestServiceTest.callEnableMp4Muxing(broadcast.getStreamId(), MuxAdaptor.MP4_ENABLED_FOR_STREAM);
 
 			assertTrue(result.isSuccess());
 
@@ -729,7 +730,7 @@ public class ConsoleAppRestServiceTest {
 			assertTrue(result.isSuccess());
 
 			//set stream spesific mp4 settings to 0
-			result = RestServiceTest.callEnableMp4Muxing(broadcast.getStreamId(), 0);
+			result = RestServiceTest.callEnableMp4Muxing(broadcast.getStreamId(), MuxAdaptor.MP4_NO_SET_FOR_STREAM);
 			assertTrue(result.isSuccess());
 
 
@@ -753,7 +754,7 @@ public class ConsoleAppRestServiceTest {
 			Broadcast broadcast2 = RestServiceTest.callCreateRegularBroadcast();
 
 			// general setting is still enabled and set stream spesific mp4 settings to -1
-			result = RestServiceTest.callEnableMp4Muxing(broadcast2.getStreamId(), -1);
+			result = RestServiceTest.callEnableMp4Muxing(broadcast2.getStreamId(), MuxAdaptor.MP4_DISABLED_FOR_STREAM);
 			assertTrue(result.isSuccess());
 
 			//send stream
