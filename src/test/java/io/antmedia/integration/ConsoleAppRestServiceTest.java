@@ -678,6 +678,7 @@ public class ConsoleAppRestServiceTest {
 
 			//disable mp4 muxing
 			appSettings.setMp4MuxingEnabled(false);
+			appSettings.setHlsMuxingEnabled(true);
 			Result result = callSetAppSettings("LiveApp", appSettings);
 			assertTrue(result.isSuccess());
 
@@ -691,59 +692,81 @@ public class ConsoleAppRestServiceTest {
 			Process rtmpSendingProcess = execute(ffmpegPath
 					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
 					+ broadcast.getStreamId());
+			
+			//wait until stream is broadcasted
+			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + ".m3u8");
+			});
 
 			rtmpSendingProcess.destroy();
 
 			//it should be false, because mp4 settings is disabled and stream mp4 setting is 0, so mp4 file not created
-			Awaitility.await().pollDelay(9, TimeUnit.SECONDS).atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				return !MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + ".mp4");
 			});
 
 			/**
 			 * CASE 2: General setting is disabled (default) and stream setting is 1 
 			 */
-
+			
+			//create new stream to avoid same stream name
+			Broadcast broadcast2 = RestServiceTest.callCreateRegularBroadcast();
+			
 			//set stream specific mp4 setting to 1, general setting is still disabled
-			result = RestServiceTest.callEnableMp4Muxing(broadcast.getStreamId(), MuxAdaptor.MP4_ENABLED_FOR_STREAM);
+			result = RestServiceTest.callEnableMp4Muxing(broadcast2.getStreamId(), MuxAdaptor.MP4_ENABLED_FOR_STREAM);
 
 			assertTrue(result.isSuccess());
 
 			//send stream
 			rtmpSendingProcess = execute(ffmpegPath
 					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
-					+ broadcast.getStreamId());
-
+					+ broadcast2.getStreamId());
+			
+			//wait until stream is broadcasted
+			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast2.getStreamId() + ".m3u8");
+			});
+			
+			
 			rtmpSendingProcess.destroy();
 
 			//it should be true this time, because stream mp4 setting is 1 although general setting is disabled
-			Awaitility.await().pollDelay(9, TimeUnit.SECONDS).atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + ".mp4");
+			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast2.getStreamId() + ".mp4");
 			});
 
 			/**
 			 * CASE 3: General setting is enabled and stream setting is 0 
 			 */
 
+			//create new stream to avoid same stream name
+			Broadcast broadcast3 = RestServiceTest.callCreateRegularBroadcast();
+			
 			//enable mp4 muxing
 			appSettings.setMp4MuxingEnabled(true);
 			result = callSetAppSettings("LiveApp", appSettings);
 			assertTrue(result.isSuccess());
 
 			//set stream spesific mp4 settings to 0
-			result = RestServiceTest.callEnableMp4Muxing(broadcast.getStreamId(), MuxAdaptor.MP4_NO_SET_FOR_STREAM);
+			result = RestServiceTest.callEnableMp4Muxing(broadcast3.getStreamId(), MuxAdaptor.MP4_NO_SET_FOR_STREAM);
 			assertTrue(result.isSuccess());
 
 
 			//send stream
 			rtmpSendingProcess = execute(ffmpegPath
 					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
-					+ broadcast.getStreamId());
+					+ broadcast3.getStreamId());
+			
+			//wait until stream is broadcasted
+			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast3.getStreamId() + ".m3u8");
+			});
 
 			rtmpSendingProcess.destroy();
 
 			//it should be true this time also, because stream mp4 setting is 0 but general setting is enabled
-			Awaitility.await().pollDelay(9, TimeUnit.SECONDS).atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + ".mp4");
+			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast3.getStreamId() + ".mp4");
 			});
 
 			/**
@@ -751,22 +774,27 @@ public class ConsoleAppRestServiceTest {
 			 */
 
 			// create new broadcast because mp4 files exist with same streamId
-			Broadcast broadcast2 = RestServiceTest.callCreateRegularBroadcast();
+			Broadcast broadcast4 = RestServiceTest.callCreateRegularBroadcast();
 
 			// general setting is still enabled and set stream spesific mp4 settings to -1
-			result = RestServiceTest.callEnableMp4Muxing(broadcast2.getStreamId(), MuxAdaptor.MP4_DISABLED_FOR_STREAM);
+			result = RestServiceTest.callEnableMp4Muxing(broadcast4.getStreamId(), MuxAdaptor.MP4_DISABLED_FOR_STREAM);
 			assertTrue(result.isSuccess());
 
 			//send stream
 			rtmpSendingProcess = execute(ffmpegPath
 					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
-					+ broadcast2.getStreamId());
+					+ broadcast4.getStreamId());
+			
+			//wait until stream is broadcasted
+			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast4.getStreamId() + ".m3u8");
+			});
 
 			rtmpSendingProcess.destroy();
 
 			//it should be false this time, because stream mp4 setting is -1 althouh general setting is enabled
-			Awaitility.await().pollDelay(9, TimeUnit.SECONDS).atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-				return !MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast2.getStreamId() + ".mp4");
+			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return !MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast4.getStreamId() + ".mp4");
 			});
 
 

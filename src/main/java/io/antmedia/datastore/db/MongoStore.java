@@ -33,6 +33,7 @@ import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
+import io.antmedia.muxer.MuxAdaptor;
 
 public class MongoStore implements IDataStore {
 
@@ -757,7 +758,7 @@ public class MongoStore implements IDataStore {
 	@Override
 	public boolean setMp4Muxing(String streamId, int enabled) {
 		try {
-			if (streamId != null && (enabled == 0 || enabled == 1 || enabled == -1)) {
+			if (streamId != null && (enabled == MuxAdaptor.MP4_ENABLED_FOR_STREAM || enabled == MuxAdaptor.MP4_NO_SET_FOR_STREAM || enabled == MuxAdaptor.MP4_DISABLED_FOR_STREAM)) {
 				Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(streamId);
 				UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set("mp4Enabled", enabled);
 				UpdateResults update = datastore.update(query, ops);
