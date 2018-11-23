@@ -449,10 +449,9 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 				//if it is a stream VoD, than assign stream name, if it is deleted stream Vod name assigned to it already
 				streamName = broadcast.getName();
 				int index;
-				// reg expression of a translated file, kdjf03030_240p.mp4
-				String regularExp = "^.*_{1}[0-9]{3}p{1}\\.mp4{1}$";
-
-				if (!vodName.matches(regularExp) && (index = vodName.lastIndexOf(".mp4")) != -1) {
+				
+				if ((index = vodName.lastIndexOf(".mp4")) != -1) 
+				{
 					final String baseName = vodName.substring(0, index);
 					final String listenerHookURL = broadcast.getListenerHookURL();
 
@@ -476,9 +475,34 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 			if (getDataStore().addVod(newVod) == null) {
 				logger.warn("Stream vod with stream id {} cannot be added to data store", streamId);
-			}	
-
+			}
+			
+			String muxerFinishScript = appSettings.getMuxerFinishScript();
+			if (muxerFinishScript != null && !muxerFinishScript.isEmpty()) {	
+				
+				runScript(muxerFinishScript + "  " + file.getAbsolutePath());
+			}
 		}
+	}
+
+	private void runScript(String scriptFile) {
+		vertx.executeBlocking(future -> {
+			try {
+				logger.info("running muxer finish script: {}", scriptFile);
+				Process exec = Runtime.getRuntime().exec(scriptFile);
+				int result = exec.waitFor();
+				future.complete();
+				logger.info("completing script: {} with return value {}", scriptFile, result);
+			} catch (IOException e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			} catch (InterruptedException e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+				Thread.currentThread().interrupt();
+			} 
+			
+		}, res -> {
+			
+		});
 	}
 
 	private static class AuthCheckJob implements IScheduledJob {

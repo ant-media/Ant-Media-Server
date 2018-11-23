@@ -35,6 +35,7 @@ import org.webrtc.WrappedNativeI420Buffer;
 import io.antmedia.recorder.FFmpegFrameRecorder;
 import io.antmedia.recorder.Frame;
 import io.antmedia.recorder.FrameRecorder;
+import io.antmedia.webrtc.api.IAudioTrackListener;
 import io.antmedia.websocket.WebSocketCommunityHandler;
 
 public class RTMPAdaptor extends Adaptor {
@@ -98,6 +99,18 @@ public class RTMPAdaptor extends Adaptor {
 				.setUseHardwareNoiseSuppressor(false)
 				.setAudioRecordErrorCallback(null)
 				.setAudioTrackErrorCallback(null)
+				.setAudioTrackListener(new IAudioTrackListener() {
+
+					@Override
+					public void playoutStopped() {
+						//no need to implement
+					}
+
+					@Override
+					public void playoutStarted() {
+						initAudioTrackExecutor();
+					}
+				})
 				.createAudioDeviceModule();
 
 		webRtcAudioTrack = adm.getAudioTrack();
@@ -121,7 +134,7 @@ public class RTMPAdaptor extends Adaptor {
 
 			List<IceServer> iceServers = new ArrayList();
 			iceServers.add(IceServer.builder(stunServerUri).createIceServer());
-			
+
 
 			PeerConnection.RTCConfiguration rtcConfig =
 					new PeerConnection.RTCConfiguration(iceServers);
@@ -187,6 +200,35 @@ public class RTMPAdaptor extends Adaptor {
 		return signallingExecutor;
 	}
 
+	private void initAudioTrackExecutor() {
+		audioDataSchedulerFuture = signallingExecutor.scheduleAtFixedRate(() -> {
+
+			if (startTime == 0) {
+				startTime = System.currentTimeMillis();
+			}
+
+			if (audioEncoderExecutor == null || audioEncoderExecutor.isShutdown()) {
+				return;
+			}
+
+			audioFrameCount++;
+			ByteBuffer playoutData = webRtcAudioTrack.getPlayoutData();
+
+			audioEncoderExecutor.execute(() -> {
+
+				ShortBuffer audioBuffer = playoutData.asShortBuffer();
+				try {
+					boolean result = recorder.recordSamples(webRtcAudioTrack.getSampleRate(), webRtcAudioTrack.getChannels(), audioBuffer);
+					if (!result) {
+						logger.info("could not audio sample for stream Id {}", getStreamId());
+					}
+				} catch (FrameRecorder.Exception e) {
+					logger.error(ExceptionUtils.getStackTrace(e));
+				}
+			});
+
+		}, 0, 10, TimeUnit.MILLISECONDS);
+	}
 
 
 	@Override
@@ -195,33 +237,6 @@ public class RTMPAdaptor extends Adaptor {
 
 		if (!stream.audioTracks.isEmpty()) {
 			enableAudio = true;
-			audioDataSchedulerFuture = signallingExecutor.scheduleAtFixedRate(() -> {
-
-					if (startTime == 0) {
-						startTime = System.currentTimeMillis();
-					}
-
-					if (audioEncoderExecutor == null || audioEncoderExecutor.isShutdown()) {
-						return;
-					}
-
-					audioFrameCount++;
-					ByteBuffer playoutData = webRtcAudioTrack.getPlayoutData();
-
-					audioEncoderExecutor.execute(() -> {
-
-						ShortBuffer audioBuffer = playoutData.asShortBuffer();
-						try {
-							boolean result = recorder.recordSamples(webRtcAudioTrack.getSampleRate(), webRtcAudioTrack.getChannels(), audioBuffer);
-							if (!result) {
-								logger.info("could not audio sample for stream Id {}", getStreamId());
-							}
-						} catch (FrameRecorder.Exception e) {
-							logger.error(ExceptionUtils.getStackTrace(e));
-						}
-					});
-				
-			}, 0, 10, TimeUnit.MILLISECONDS);
 		}
 
 
@@ -298,7 +313,7 @@ public class RTMPAdaptor extends Adaptor {
 							}
 							else {
 								dropFrameCount ++;
-								logger.info("dropping video, total drop count: {} frame number: {} recorder frame number: {}", 
+								logger.trace("dropping video, total drop count: {} frame number: {} recorder frame number: {}", 
 										dropFrameCount, frameNumber, lastFrameNumber);
 							}
 							frame.release();

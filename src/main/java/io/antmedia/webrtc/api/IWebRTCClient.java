@@ -34,7 +34,14 @@ public interface IWebRTCClient {
 	
 	public void addIceCandidate(IceCandidate iceCandidate);
 
-
+	/**
+	 * Send video packet including sps and pps parameters in 
+	 * @param videoConfData
+	 * 		sps, pps parameter
+	 * @param videoPacket
+	 * 		video packet key frame
+	 * @param timestamp
+	 */
 	public void sendVideoConfPacket(byte[] videoConfData, byte[] videoPacket, long timestamp);
 	
 	public void setVideoResolution(int width, int height);

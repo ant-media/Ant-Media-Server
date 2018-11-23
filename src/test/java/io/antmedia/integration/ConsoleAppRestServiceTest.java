@@ -113,6 +113,14 @@ public class ConsoleAppRestServiceTest {
 		try {
 			// create user for the first login
 			Result firstLogin = callisFirstLogin();
+			if (!firstLogin.isSuccess()) {
+				//if it's not first login check that TEST_USER_EMAIL and TEST_USER_PASS is authenticated
+				User user = new User();
+				user.setEmail(TEST_USER_EMAIL);
+				user.setPassword(TEST_USER_PASS);
+				assertTrue(callAuthenticateUser(user).isSuccess());
+				return;
+			}
 			assertTrue("Server is not started from scratch. Please delete server.db file and restart server",
 					firstLogin.isSuccess());
 
