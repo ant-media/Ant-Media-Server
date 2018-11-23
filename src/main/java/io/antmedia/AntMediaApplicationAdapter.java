@@ -597,7 +597,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	 * 
 	 * @return
 	 */
-	public StringBuilder notifyHook(String url, String id, String action, String streamName, String category, String vodName) {
+	public final StringBuilder notifyHook(String url, String id, String action, String streamName, String category, String vodName) {
 		return notifyHook(url, id, action, streamName, category, vodName, null);
 	}
 		
