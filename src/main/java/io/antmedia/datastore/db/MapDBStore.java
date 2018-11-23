@@ -30,6 +30,7 @@ import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
+import io.antmedia.muxer.MuxAdaptor;
 
 
 public class MapDBStore implements IDataStore {
@@ -1016,5 +1017,25 @@ public class MapDBStore implements IDataStore {
 
 		}
 		return listToken;
+	}
+
+	@Override
+	public boolean setMp4Muxing(String streamId, int enabled) {
+		boolean result = false;
+		synchronized (this) {
+			if (streamId != null) {
+				String jsonString = map.get(streamId);
+				if (jsonString != null && (enabled == MuxAdaptor.MP4_ENABLED_FOR_STREAM || enabled == MuxAdaptor.MP4_NO_SET_FOR_STREAM || enabled == MuxAdaptor.MP4_DISABLED_FOR_STREAM)) {			
+					
+					Broadcast broadcast =  gson.fromJson(jsonString, Broadcast.class);	
+					broadcast.setMp4Enabled(enabled);
+					map.replace(streamId, gson.toJson(broadcast));
+
+					db.commit();
+					result = true;
+				}
+			}
+		}
+		return result;
 	}
 }
