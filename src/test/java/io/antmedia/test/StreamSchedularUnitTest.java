@@ -489,9 +489,9 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			logger.info("quality {}" , streamTmp.getQuality()) ;
 			
 			return streamTmp != null && streamTmp.getQuality() != null 
-					&& streamTmp.getSpeed() < 0.6 && 
+					&& streamTmp.getSpeed() < 0.7 && 
 					(streamTmp.getQuality().equals("good") || streamTmp.getQuality().equals("average")); 
-					// quality may be good or average, the critical thing is the speed which less that 0.6
+					// quality may be good or average, the critical thing is the speed which less that 0.7
 		});
 
 		resetNetworkInterface(findActiveInterface());
