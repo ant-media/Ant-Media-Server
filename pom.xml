@@ -296,7 +296,6 @@
 			<groupId>io.antmedia</groupId>
 			<artifactId>ant-media-server-common</artifactId>
 			<version>${ant-media-server-common.version}</version>
-			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.red5</groupId>
