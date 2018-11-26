@@ -18,7 +18,11 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.awaitility.Awaitility;
 import org.junit.BeforeClass;
 import org.junit.FixMethodOrder;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 import org.junit.runners.MethodSorters;
 
 import com.google.api.services.youtube.model.LiveStreamStatus;
@@ -75,6 +79,21 @@ public class PeriscopeEndpointTest {
 			ffmpegPath = "/usr/local/bin/ffmpeg";
 		}
 	}
+	
+	@Rule
+	public TestRule watcher = new TestWatcher() {
+	   protected void starting(Description description) {
+	      System.out.println("Starting test: " + description.getMethodName());
+	   }
+	   
+	   protected void failed(Throwable e, Description description) {
+		   e.printStackTrace();
+		   System.out.println("Failed test: " + description.getMethodName());
+	   };
+	   protected void finished(Description description) {
+		   System.out.println("Finishing test: " + description.getMethodName());
+	   };
+	};
 
 	/**
 	 * This function should not be enabled in CI because it requires manual interaction with PSCP service
@@ -348,14 +367,14 @@ public class PeriscopeEndpointTest {
 		List<SocialEndpointCredentials> socialEndpoints = dataStore.getSocialEndpoints(0, 10);
 		assertEquals(1, socialEndpoints.size());
 		
-		PeriscopeEndpoint endPoint = new PeriscopeEndpoint(CLIENT_ID, CLIENT_SECRET, dataStore, socialEndpoints.get(0), null);
+		PeriscopeEndpoint pscpEndPoint = new PeriscopeEndpoint(CLIENT_ID, CLIENT_SECRET, dataStore, socialEndpoints.get(0), null);
 		
 		String name = "Event name";
 		String serverStreamId = RandomStringUtils.randomAlphabetic(8);
 		Endpoint endpoint;
 		try {
-			endpoint = endPoint.createBroadcast(name, null, serverStreamId, false, false, 720, true);
-			IChatListener chatListener = endPoint.getNewChatListener(endpoint);
+			endpoint = pscpEndPoint.createBroadcast(name, null, serverStreamId, false, false, 720, true);
+			IChatListener chatListener = pscpEndPoint.getNewChatListener(endpoint);
 			
 			int randomMessageCount = (int) (Math.random() * 100);
 			for (int i = 0; i < randomMessageCount; i++) {
@@ -365,12 +384,13 @@ public class PeriscopeEndpointTest {
 				heartMessage.user = null;
 				chatListener.heartMessageReceived(heartMessage);
 				
-				assertEquals(i+1, endPoint.getInteraction(serverStreamId).getLoveCount());
+				assertEquals(i+1, pscpEndPoint.getInteraction(serverStreamId).getLoveCount());
 			}
 			
-			assertEquals(randomMessageCount, endPoint.getInteraction(serverStreamId).getLoveCount());
-			assertEquals(0, endPoint.getInteraction(serverStreamId).getLikeCount());
-			assertEquals(0, endPoint.getInteraction(serverStreamId).getHahaCount());
+			assertNotNull(pscpEndPoint.getInteraction(serverStreamId));
+			assertEquals(randomMessageCount, pscpEndPoint.getInteraction(serverStreamId).getLoveCount());
+			assertEquals(0, pscpEndPoint.getInteraction(serverStreamId).getLikeCount());
+			assertEquals(0, pscpEndPoint.getInteraction(serverStreamId).getHahaCount());
 			
 			//test viewer message
 			randomMessageCount = (int) (Math.random() * 100);
@@ -384,10 +404,10 @@ public class PeriscopeEndpointTest {
 				viewerMessage.total = totalViewCount;
 				chatListener.viewerCountMessageReceived(viewerMessage);
 				
-				assertEquals(totalViewCount, endPoint.getLiveViews(endpoint.getServerStreamId()));
+				assertEquals(totalViewCount, pscpEndPoint.getLiveViews(endpoint.getServerStreamId()));
 			}
 			
-			assertEquals(totalViewCount, endPoint.getLiveViews(endpoint.getServerStreamId()));
+			assertEquals(totalViewCount, pscpEndPoint.getLiveViews(endpoint.getServerStreamId()));
 			
 			
 			//test chat message
@@ -403,24 +423,24 @@ public class PeriscopeEndpointTest {
 				chatMessage.user.profile_image_urls = new ArrayList<>();
 				chatMessage.user.profile_image_urls.add(chatMessage.user.new ProfileImageUrls());
 				chatListener.chatMessageReceived(chatMessage);
-				assertEquals(i+1, endPoint.getTotalCommentsCount(serverStreamId));
+				assertEquals(i+1, pscpEndPoint.getTotalCommentsCount(serverStreamId));
 			}
 			
-			assertEquals(randomMessageCount, endPoint.getTotalCommentsCount(serverStreamId));
+			assertEquals(randomMessageCount, pscpEndPoint.getTotalCommentsCount(serverStreamId));
 			
-			List<LiveComment> comments = endPoint.getComments(serverStreamId, 0, 5);
+			List<LiveComment> comments = pscpEndPoint.getComments(serverStreamId, 0, 5);
 			assertEquals(5, comments.size());
 			
-			comments = endPoint.getComments(serverStreamId, 200, 500);
+			comments = pscpEndPoint.getComments(serverStreamId, 200, 500);
 			assertNull(comments);
 			
 			
-			endPoint.stopBroadcast(endpoint);
-			assertNull(endPoint.getComments(serverStreamId, 0, 500));
-			assertEquals(0, endPoint.getTotalCommentsCount(serverStreamId));
+			pscpEndPoint.stopBroadcast(endpoint);
+			assertNull(pscpEndPoint.getComments(serverStreamId, 0, 500));
+			assertEquals(0, pscpEndPoint.getTotalCommentsCount(serverStreamId));
 			
-			assertEquals(0, endPoint.getLiveViews(endpoint.getServerStreamId()));
-			assertNull(endPoint.getInteraction(serverStreamId));
+			assertEquals(0, pscpEndPoint.getLiveViews(endpoint.getServerStreamId()));
+			assertNull(pscpEndPoint.getInteraction(serverStreamId));
 			
 		} catch (Exception e) {
 			e.printStackTrace();

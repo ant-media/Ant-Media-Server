@@ -30,6 +30,7 @@ import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
+import io.antmedia.muxer.MuxAdaptor;
 
 
 public class MapDBStore implements IDataStore {
@@ -57,6 +58,7 @@ public class MapDBStore implements IDataStore {
 		db = DBMaker
 				.fileDB(dbName)
 				.fileMmapEnableIfSupported()
+				.transactionEnable()
 				.closeOnJvmShutdown()
 				.make();
 
@@ -899,28 +901,25 @@ public class MapDBStore implements IDataStore {
 	}
 
 	@Override
-	public Token createToken(String streamId, long expireDate, String type) {
-		Token token = null;
+	public boolean saveToken(Token token) {
+		boolean result = false;
+
 		synchronized (this) {
 
-			if(streamId != null) {
-				token = new Token();
-				token.setStreamId(streamId);
-				token.setExpireDate(expireDate);
-				token.setType(type);
+			if(token.getStreamId() != null && token.getTokenId() != null) {
+
 
 				try {
-					String tokenId = RandomStringUtils.randomNumeric(24);
-					token.setTokenId(tokenId);
-					tokenMap.put(tokenId, gson.toJson(token));
+					tokenMap.put(token.getTokenId(), gson.toJson(token));
 					db.commit();
+					result = true;
 				} catch (Exception e) {
 					logger.error(ExceptionUtils.getStackTrace(e));
 				}
 			}
 		}
 
-		return token;
+		return result;
 	}
 
 	@Override
@@ -1018,5 +1017,25 @@ public class MapDBStore implements IDataStore {
 
 		}
 		return listToken;
+	}
+
+	@Override
+	public boolean setMp4Muxing(String streamId, int enabled) {
+		boolean result = false;
+		synchronized (this) {
+			if (streamId != null) {
+				String jsonString = map.get(streamId);
+				if (jsonString != null && (enabled == MuxAdaptor.MP4_ENABLED_FOR_STREAM || enabled == MuxAdaptor.MP4_NO_SET_FOR_STREAM || enabled == MuxAdaptor.MP4_DISABLED_FOR_STREAM)) {			
+					
+					Broadcast broadcast =  gson.fromJson(jsonString, Broadcast.class);	
+					broadcast.setMp4Enabled(enabled);
+					map.replace(streamId, gson.toJson(broadcast));
+
+					db.commit();
+					result = true;
+				}
+			}
+		}
+		return result;
 	}
 }

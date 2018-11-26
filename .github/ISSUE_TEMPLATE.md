@@ -6,9 +6,10 @@ __Brief description of what happened__
 
 ### Environment
 
-[] Operating system and version:
-[] Java version:
-[] Red5 version:
+* Operating system and version:
+* Java version: 
+* Ant Media Server version:
+* Browser name and version:
 
 
 ### Expected behavior

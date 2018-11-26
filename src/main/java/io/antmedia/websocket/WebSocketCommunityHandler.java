@@ -234,12 +234,13 @@ public abstract class WebSocketCommunityHandler {
 		recorder.setFormat("flv");
 		recorder.setSampleRate(44100);
 		// Set in the surface changed method
-		recorder.setFrameRate(30);
+		recorder.setFrameRate(20);
 		recorder.setPixelFormat(avutil.AV_PIX_FMT_YUV420P);
 		recorder.setVideoCodec(avcodec.AV_CODEC_ID_H264);
 		recorder.setAudioCodec(avcodec.AV_CODEC_ID_AAC);
 		recorder.setAudioChannels(2);
-		recorder.setGopSize(20);
+		recorder.setGopSize(40);
+		recorder.setVideoQuality(29);
 		return recorder;
 	}
 

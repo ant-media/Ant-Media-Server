@@ -15,6 +15,7 @@ import static org.bytedeco.javacpp.avutil.AVMEDIA_TYPE_AUDIO;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.bytedeco.javacpp.avcodec;
 import org.bytedeco.javacpp.avcodec.AVPacket;
 import org.bytedeco.javacpp.avformat.AVFormatContext;
@@ -316,7 +317,7 @@ public class StreamFetcher {
 				setCameraError(result);
 			} 
 			catch (OutOfMemoryError | Exception e) {
-				logger.error(e.getMessage());
+				logger.error(ExceptionUtils.getStackTrace(e));
 				exceptionInThread  = true;
 			}
 			
