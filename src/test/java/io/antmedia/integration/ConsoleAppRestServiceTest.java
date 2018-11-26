@@ -163,6 +163,20 @@ public class ConsoleAppRestServiceTest {
 		}
 	}
 
+	/**
+	 * Bug test
+	 */
+	@Test
+	public void testIsClusterMode() {
+		try {
+			Result result = callIsClusterMode();
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+	}
+	
+	
 	@Test
 	public void testGetAppSettings() {
 		try {
@@ -957,6 +971,28 @@ public class ConsoleAppRestServiceTest {
 		assertNotNull(tmp);
 		return tmp;
 
+	}
+	
+	
+	public static Result callIsClusterMode() throws Exception {
+		String url = ROOT_SERVICE_URL + "/isInClusterMode";
+
+		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
+				.setDefaultCookieStore(httpCookieStore).build();
+		Gson gson = new Gson();
+
+		HttpUriRequest post = RequestBuilder.get().setUri(url).build();
+
+		HttpResponse response = client.execute(post);
+
+		StringBuffer result = RestServiceTest.readResponse(response);
+		if (response.getStatusLine().getStatusCode() != 200) {
+			throw new Exception(result.toString());
+		}
+		log.info("result string: " + result.toString());
+		Result tmp = gson.fromJson(result.toString(), Result.class);
+		assertNotNull(tmp);
+		return tmp;
 	}
 
 	public static Result callIsEnterpriseEdition() throws Exception {
