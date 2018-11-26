@@ -18,6 +18,7 @@ import org.red5.server.api.scope.IScope;
 import org.red5.server.scope.BasicScope;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.VoD;
@@ -43,8 +44,6 @@ public class AntMediaApplicationAdaptorUnitTest {
 	@After
 	public void after() {
 		adapter = null;
-		
-		
 	}
 	
 	@Test
@@ -54,7 +53,9 @@ public class AntMediaApplicationAdaptorUnitTest {
 			assertTrue(streamsFolder.mkdirs());
 		}
 		IDataStore dataStore = new InMemoryDataStore("dbname");
-		adapter.setDataStore(dataStore);
+		DataStoreFactory dsf = Mockito.mock(DataStoreFactory.class);
+		Mockito.when(dsf.getDataStore()).thenReturn(dataStore);
+		adapter.setDataStoreFactory(dsf);
 
 		IScope scope = Mockito.mock(IScope.class);
 		Mockito.when(scope.getName()).thenReturn("test");
@@ -99,6 +100,13 @@ public class AntMediaApplicationAdaptorUnitTest {
 		
 	}
 	
+	@Test
+	public void testRootWebXMLExists() {
+		File f = new File("src/main/server/webapps/root/WEB-INF/web.xml");
+		
+		assertTrue("Please restore root/WEB-INF/web.xml file", f.exists());
+	}
+	
 	
 	
 	@Test
@@ -137,8 +145,5 @@ public class AntMediaApplicationAdaptorUnitTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-		
-		
 	}
-
 }
