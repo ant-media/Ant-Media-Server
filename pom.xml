@@ -514,7 +514,7 @@
 				</dependency>
 				<dependency>
 					<groupId>io.antmedia.app</groupId>
-					<artifactId>ConsoleApp</artifactId>
+					<artifactId>root</artifactId>
 					<version>${consoleapp.version}</version>
 					<type>war</type>
 					<scope>provided</scope>
@@ -614,7 +614,7 @@
 										</artifactItem>
 										<artifactItem>
 											<groupId>io.antmedia.app</groupId>
-											<artifactId>ConsoleApp</artifactId>
+											<artifactId>root</artifactId>
 											<version>${consoleapp.version}</version>
 											<type>war</type>
 											<overWrite>true</overWrite>
