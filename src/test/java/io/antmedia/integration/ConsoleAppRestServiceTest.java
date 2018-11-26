@@ -169,6 +169,12 @@ public class ConsoleAppRestServiceTest {
 	@Test
 	public void testIsClusterMode() {
 		try {
+			User user = new User();
+			user.setEmail(TEST_USER_EMAIL);
+			user.setPassword(TEST_USER_PASS);
+			Result authenticatedUserResult = callAuthenticateUser(user);
+			assertTrue(authenticatedUserResult.isSuccess());
+			
 			Result result = callIsClusterMode();
 		} catch (Exception e) {
 			e.printStackTrace();
