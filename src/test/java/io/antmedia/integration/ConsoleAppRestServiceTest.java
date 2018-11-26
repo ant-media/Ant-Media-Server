@@ -76,7 +76,7 @@ public class ConsoleAppRestServiceTest {
 	static {
 
 		try {
-			ROOT_SERVICE_URL = "http://" + InetAddress.getLocalHost().getHostAddress() + ":5080/ConsoleApp/rest";
+			ROOT_SERVICE_URL = "http://" + InetAddress.getLocalHost().getHostAddress() + ":5080/rest";
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		}
