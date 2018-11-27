@@ -47,7 +47,7 @@ public class RTMPAdaptor extends Adaptor {
 	public static final String AUDIO_NOISE_SUPPRESSION_CONSTRAINT = "googNoiseSuppression";
 
 	FFmpegFrameRecorder recorder;
-	protected long startTime;
+	private long startTime;
 
 	private static Logger logger = LoggerFactory.getLogger(RTMPAdaptor.class);
 
@@ -130,25 +130,30 @@ public class RTMPAdaptor extends Adaptor {
 
 		signallingExecutor.execute(() -> {
 
-			peerConnectionFactory = createPeerConnectionFactory();
+			try {
 
-			List<IceServer> iceServers = new ArrayList();
-			iceServers.add(IceServer.builder(stunServerUri).createIceServer());
+				peerConnectionFactory = createPeerConnectionFactory();
 
-
-			PeerConnection.RTCConfiguration rtcConfig =
-					new PeerConnection.RTCConfiguration(iceServers);
+				List<IceServer> iceServers = new ArrayList();
+				iceServers.add(IceServer.builder(stunServerUri).createIceServer());
 
 
-			// Enable DTLS for normal calls and disable for loopback calls.
-			rtcConfig.enableDtlsSrtp = true;
+				PeerConnection.RTCConfiguration rtcConfig =
+						new PeerConnection.RTCConfiguration(iceServers);
 
 
-			peerConnection = peerConnectionFactory.createPeerConnection(rtcConfig, RTMPAdaptor.this);
+				// Enable DTLS for normal calls and disable for loopback calls.
+				rtcConfig.enableDtlsSrtp = true;
 
-			webSocketCommunityHandler.sendStartMessage(getStreamId(), getSession());
 
-			started  = true;
+				peerConnection = peerConnectionFactory.createPeerConnection(rtcConfig, RTMPAdaptor.this);
+
+				webSocketCommunityHandler.sendStartMessage(getStreamId(), getSession());
+
+				started  = true;
+			}catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
 
 
 		});
@@ -200,7 +205,7 @@ public class RTMPAdaptor extends Adaptor {
 		return signallingExecutor;
 	}
 
-	private void initAudioTrackExecutor() {
+	public void initAudioTrackExecutor() {
 		audioDataSchedulerFuture = signallingExecutor.scheduleAtFixedRate(() -> {
 
 			if (startTime == 0) {
@@ -334,28 +339,20 @@ public class RTMPAdaptor extends Adaptor {
 	}
 
 	public void setRemoteDescription(final SessionDescription sdp) {
-		signallingExecutor.execute(new Runnable() {
-
-			@Override
-			public void run() {
-				peerConnection.setRemoteDescription(RTMPAdaptor.this, sdp);
-
-			}
-		});
+		signallingExecutor.execute(() -> 
+				peerConnection.setRemoteDescription(RTMPAdaptor.this, sdp)
+		);
 
 	}
 
 	public void addIceCandidate(final IceCandidate iceCandidate) {
-		signallingExecutor.execute(new Runnable() {
-
-			@Override
-			public void run() {
+		signallingExecutor.execute(() -> {
+	
 				if (!peerConnection.addIceCandidate(iceCandidate))
 				{
-					log.error("Add ice candidate failed");
+					log.error("Add ice candidate failed for {}", iceCandidate);
 				}
-
-			}
+			
 		});
 	}
 
@@ -363,6 +360,16 @@ public class RTMPAdaptor extends Adaptor {
 		return started;
 	}
 
+	public boolean isStopped() {
+		return isStopped;
+	}
 
+	public ScheduledFuture getAudioDataSchedulerFuture() {
+		return audioDataSchedulerFuture;
+	}
+
+	public long getStartTime() {
+		return startTime;
+	}
 
 }
