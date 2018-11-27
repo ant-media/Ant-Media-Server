@@ -296,7 +296,6 @@
 			<groupId>io.antmedia</groupId>
 			<artifactId>ant-media-server-common</artifactId>
 			<version>${ant-media-server-common.version}</version>
-			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.red5</groupId>
@@ -515,7 +514,7 @@
 				</dependency>
 				<dependency>
 					<groupId>io.antmedia.app</groupId>
-					<artifactId>ConsoleApp</artifactId>
+					<artifactId>root</artifactId>
 					<version>${consoleapp.version}</version>
 					<type>war</type>
 					<scope>provided</scope>
@@ -615,7 +614,7 @@
 										</artifactItem>
 										<artifactItem>
 											<groupId>io.antmedia.app</groupId>
-											<artifactId>ConsoleApp</artifactId>
+											<artifactId>root</artifactId>
 											<version>${consoleapp.version}</version>
 											<type>war</type>
 											<overWrite>true</overWrite>
@@ -689,7 +688,7 @@
 				</dependency>
 				<dependency>
 					<groupId>io.antmedia.app</groupId>
-					<artifactId>ConsoleApp</artifactId>
+					<artifactId>root</artifactId>
 					<version>${consoleapp.version}</version>
 					<type>war</type>
 				</dependency>				
@@ -758,7 +757,7 @@
 										</artifactItem>
 										<artifactItem>
 											<groupId>io.antmedia.app</groupId>
-											<artifactId>ConsoleApp</artifactId>
+											<artifactId>root</artifactId>
 											<version>${consoleapp.version}</version>
 											<type>war</type>
 											<overWrite>true</overWrite>
