@@ -1167,7 +1167,6 @@ public class BroadcastRestService {
 	 * @param type
 	 * @return list
 	 */
-
 	@GET
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/broadcast/filterList/{offset}/{size}/{type}")
