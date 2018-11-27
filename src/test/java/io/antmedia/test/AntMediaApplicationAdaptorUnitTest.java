@@ -101,15 +101,6 @@ public class AntMediaApplicationAdaptorUnitTest {
 	}
 	
 	@Test
-	public void testRootWebXMLExists() {
-		File f = new File("src/main/server/webapps/root/WEB-INF/web.xml");
-		
-		assertTrue("Please restore root/WEB-INF/web.xml file", f.exists());
-	}
-	
-	
-	
-	@Test
 	public void testSynchUserVodThrowException() {
 		File f = new File(streamsFolderPath);
 		assertTrue(f.mkdirs());
