@@ -180,9 +180,8 @@ public abstract class WebSocketCommunityHandler {
 	}
 
 	@SuppressWarnings("unchecked")
-	public  void sendPublishStartedMessage(String streamId, Session session) {
-		String roomName = (String)session.getUserProperties().get(streamId);
-
+	public  void sendPublishStartedMessage(String streamId, Session session, String roomName) {
+		
 		JSONObject jsonObj = new JSONObject();
 		jsonObj.put(WebSocketConstants.COMMAND, WebSocketConstants.NOTIFICATION_COMMAND);
 		jsonObj.put(WebSocketConstants.DEFINITION, WebSocketConstants.PUBLISH_STARTED);

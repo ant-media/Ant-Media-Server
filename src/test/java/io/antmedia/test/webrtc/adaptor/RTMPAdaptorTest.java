@@ -70,7 +70,7 @@ public class RTMPAdaptorTest {
 		 */
 		assertNull(session.getUserProperties().get(streamId));
 
-		verify(webSocketHandler).sendPublishStartedMessage(streamId, session);
+		verify(webSocketHandler).sendPublishStartedMessage(streamId, session, null);
 	}
 	
 	

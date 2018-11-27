@@ -329,7 +329,7 @@ public class RTMPAdaptor extends Adaptor {
 			}
 		}
 
-		webSocketCommunityHandler.sendPublishStartedMessage(getStreamId(), getSession());
+		webSocketCommunityHandler.sendPublishStartedMessage(getStreamId(), getSession(), null);
 
 	}
 
