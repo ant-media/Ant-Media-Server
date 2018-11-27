@@ -1,7 +1,6 @@
 package io.antmedia.websocket;
 
 import java.io.IOException;
-import java.util.Map;
 
 import javax.annotation.Nonnull;
 import javax.websocket.EndpointConfig;
