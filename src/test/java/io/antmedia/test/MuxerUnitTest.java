@@ -603,8 +603,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 	public File testMp4Muxing(String name, boolean shortVersion, boolean checkDuration) {
 
 		logger.info("running testMp4Muxing");
-		
-		
 
 		if (appScope == null) {
 			appScope = (WebScope) applicationContext.getBean("web.scope");

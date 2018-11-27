@@ -31,6 +31,8 @@ import org.red5.server.scope.Scope;
 import org.springframework.context.ApplicationContext;
 import org.springframework.test.context.ContextConfiguration;
 
+import com.google.protobuf.Any;
+
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.IDataStore;
@@ -50,6 +52,7 @@ import io.antmedia.rest.model.Interaction;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.User;
 import io.antmedia.rest.model.Version;
+import io.antmedia.security.ITokenService;
 import io.antmedia.social.LiveComment;
 import io.antmedia.social.ResourceOrigin;
 import io.antmedia.social.endpoint.PeriscopeEndpoint;
@@ -365,6 +368,43 @@ public class RestServiceUnitTest {
 		object  = (Result) restServiceReal.getDeviceAuthParameters("periscope");
 		assertFalse(object.isSuccess());
 		assertEquals(BroadcastRestService.ERROR_SOCIAL_ENDPOINT_EXCEPTION_IN_ASKING_AUTHPARAMS, object.getErrorId());
+	}
+	
+	
+	@Test
+	public void testGetToken() {
+		
+		InMemoryDataStore datastore = mock(InMemoryDataStore.class);
+		restServiceReal.setDataStore(datastore);
+		
+		ApplicationContext appContext = mock(ApplicationContext.class);
+		when(appContext.containsBean(ITokenService.BeanName.TOKEN_SERVICE.toString())).thenReturn(true);
+		
+		ITokenService tokenService = mock(ITokenService.class);
+		String streamId = "stream " + (int)(Math.random() * 1000);
+		Token token = new Token();
+		token.setStreamId(streamId);
+		token.setExpireDate(123432);
+		token.setTokenId(RandomStringUtils.randomAlphabetic(8));
+		token.setType(Token.PLAY_TOKEN);
+		
+		//
+		when(tokenService.createToken(streamId, 123432, Token.PLAY_TOKEN))
+			.thenReturn(token);
+		when(appContext.getBean(ITokenService.BeanName.TOKEN_SERVICE.toString())).thenReturn(tokenService);
+		
+		restServiceReal.setAppCtx(appContext);
+		
+		
+		Token tokenReturn = restServiceReal.getToken(streamId, 123432, Token.PLAY_TOKEN);
+		
+		//check create token is called
+		Mockito.verify(tokenService).createToken(streamId, 123432, Token.PLAY_TOKEN);
+		
+		//check saveToken is called
+		Mockito.verify(datastore).saveToken(token);
+		
+		
 	}
 
 	@Test
