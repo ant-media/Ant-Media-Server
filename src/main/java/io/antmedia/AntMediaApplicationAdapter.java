@@ -439,40 +439,28 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		String vodName = file.getName();
 		String filePath = file.getPath();
 		long fileSize = file.length();
-		String streamName = file.getName();
 		long systemTime = System.currentTimeMillis();
 		String[] subDirs = filePath.split(Pattern.quote(File.separator));
 		Integer pathLength=Integer.valueOf(subDirs.length);
 		String relativePath= subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
+		String listenerHookURL = null;
+		String streamName = null;
 
 
 		Broadcast broadcast = getDataStore().get(streamId);
-
 		if (broadcast != null) {
 			//if it is a stream VoD, than assign stream name, if it is deleted stream Vod name assigned to it already
 			streamName = broadcast.getName();
-			int index;
+			listenerHookURL = broadcast.getListenerHookURL();
+			if (resolution != 0) {
+				streamName = streamName + " (" + resolution + "p)";
+			}
 
-			if ((index = vodName.lastIndexOf(".mp4")) != -1) 
-			{
-				final String baseName = vodName.substring(0, index);
-				final String listenerHookURL = broadcast.getListenerHookURL();
-
-				addScheduledOnceJob(100, new IScheduledJob() {
-
-					@Override
-					public void execute(ISchedulingService service) throws CloneNotSupportedException {
-						notifyHook(listenerHookURL, streamId, HOOK_ACTION_VOD_READY, null, null, baseName);
-					}
-				});
-
+			if(resolution != 0) {
+				streamName = streamName + " (" + resolution + "p)";
 			}
 		}
-
-		if(resolution != 0 && broadcast != null) {
-			streamName = streamName + " (" + resolution + "p)";
-		}
-
+		
 		String vodId = RandomStringUtils.randomNumeric(24);
 		VoD newVod = new VoD(streamName, streamId, relativePath, vodName, systemTime, duration, fileSize, VoD.STREAM_VOD, vodId);
 
@@ -480,11 +468,28 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 			logger.warn("Stream vod with stream id {} cannot be added to data store", streamId);
 		}
 
+		int index;
+		//HOOK_ACTION_VOD_READY is called only the stream in the datastore
+		//it is not called for zombi streams
+		if (listenerHookURL != null && !listenerHookURL.isEmpty() && 
+				(index = vodName.lastIndexOf(".mp4")) != -1) 
+		{
+			final String baseName = vodName.substring(0, index);
+			String finalListenerHookURL = listenerHookURL;
+			addScheduledOnceJob(100, new IScheduledJob() {
+
+				@Override
+				public void execute(ISchedulingService service) throws CloneNotSupportedException {
+					notifyHook(finalListenerHookURL, streamId, HOOK_ACTION_VOD_READY, null, null, baseName, vodId);
+				}
+			});
+		}
+
 		String muxerFinishScript = appSettings.getMuxerFinishScript();
 		if (muxerFinishScript != null && !muxerFinishScript.isEmpty()) {	
-
 			runScript(muxerFinishScript + "  " + file.getAbsolutePath());
 		}
+
 
 	}
 
@@ -597,8 +602,39 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	 * 
 	 * @return
 	 */
+	public final StringBuilder notifyHook(String url, String id, String action, String streamName, String category, String vodName) {
+		return notifyHook(url, id, action, streamName, category, vodName, null);
+	}
+
+	/**
+	 * Notify hook with parameters below
+	 * 
+	 * @param url
+	 *            is the url of the service to be called
+	 * 
+	 * @param id
+	 *            is the stream id that is unique for each stream
+	 * 
+	 * @param action
+	 *            is the name of the action to be notified, it has values such
+	 *            as {@link #HOOK_ACTION_END_LIVE_STREAM}
+	 *            {@link #HOOK_ACTION_START_LIVE_STREAM}
+	 * 
+	 * @param streamName,
+	 *            name of the stream. It is not the name of the file. It is just
+	 *            a user friendly name
+	 * 
+	 * @param category,
+	 *            category of the stream
+	 * 
+	 * @param vodName name of the vod 
+	 * 
+	 * @param vodId id of the vod in the datastore
+	 * 
+	 * @return
+	 */
 	public StringBuilder notifyHook(String url, String id, String action, String streamName, String category,
-			String vodName) {
+			String vodName, String vodId) {
 
 		StringBuilder response = null;
 
@@ -619,6 +655,9 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 				variables.put("vodName", vodName);
 			}
 
+			if (vodId != null) {
+				variables.put("vodId", vodId);
+			}
 
 			try {
 				response = sendPOST(url, variables);
