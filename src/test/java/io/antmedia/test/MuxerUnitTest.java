@@ -121,13 +121,13 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 	@After
 	public void after() {
 
-		/*
+		
 		try {
 			AppFunctionalTest.delete(new File("webapps"));
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		 */
+		 
 
 		AppSettings defaultSettings = new AppSettings();
 
@@ -728,7 +728,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 			QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
 			assertNotNull(scheduler);
-			assertEquals(scheduler.getScheduledJobNames().size(), 1);
+			assertEquals(1, scheduler.getScheduledJobNames().size());
 
 
 			file = new File("target/test-classes/test_video_360p_subtitle.flv"); //ResourceUtils.getFile(this.getClass().getResource("test.flv"));
