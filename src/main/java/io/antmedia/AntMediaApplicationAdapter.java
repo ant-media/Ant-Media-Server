@@ -444,7 +444,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		Integer pathLength=Integer.valueOf(subDirs.length);
 		String relativePath= subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
 		String listenerHookURL = null;
-		String streamName = null;
+		String streamName = file.getName();
 
 
 		Broadcast broadcast = getDataStore().get(streamId);
@@ -453,10 +453,6 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 			streamName = broadcast.getName();
 			listenerHookURL = broadcast.getListenerHookURL();
 			if (resolution != 0) {
-				streamName = streamName + " (" + resolution + "p)";
-			}
-
-			if(resolution != 0) {
 				streamName = streamName + " (" + resolution + "p)";
 			}
 		}
