@@ -449,14 +449,9 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 		Broadcast broadcast = getDataStore().get(streamId);
 		if (broadcast != null) {
-			//if it is a stream VoD, than assign stream name, if it is deleted stream Vod name assigned to it already
 			streamName = broadcast.getName();
 			listenerHookURL = broadcast.getListenerHookURL();
 			if (resolution != 0) {
-				streamName = streamName + " (" + resolution + "p)";
-			}
-
-			if(resolution != 0) {
 				streamName = streamName + " (" + resolution + "p)";
 			}
 		}
