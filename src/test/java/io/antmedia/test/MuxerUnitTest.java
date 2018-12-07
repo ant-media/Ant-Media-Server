@@ -822,7 +822,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 		//add stream
 		int width = 640;
 		int height = 480;
-		boolean addStreamResult = mp4Muxer.addVideoStream(width, height, AV_CODEC_ID_H264, 0);
+		boolean addStreamResult = mp4Muxer.addVideoStream(width, height, null, AV_CODEC_ID_H264, 0, false, null);
 		assertTrue(addStreamResult);
 
 		//prepare io
