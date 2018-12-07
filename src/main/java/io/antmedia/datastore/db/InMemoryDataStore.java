@@ -12,28 +12,29 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.cluster.StreamInfo;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.TensorFlowObject;
+import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
+import io.antmedia.muxer.MuxAdaptor;
 
 public class InMemoryDataStore implements IDataStore {
 
 
 	protected static Logger logger = LoggerFactory.getLogger(InMemoryDataStore.class);
-
-	public Map<String, Broadcast> broadcastMap = new LinkedHashMap<>();
-
-	public Map<String, VoD> vodMap = new LinkedHashMap<>();
-
-	public Map<String, List<TensorFlowObject>> detectionMap = new LinkedHashMap<>();
-
-	public Map<String, SocialEndpointCredentials> socialEndpointCredentialsMap = new LinkedHashMap<>();
+	private Map<String, Broadcast> broadcastMap = new LinkedHashMap<>();
+	private Map<String, VoD> vodMap = new LinkedHashMap<>();
+	private Map<String, List<TensorFlowObject>> detectionMap = new LinkedHashMap<>();
+	private Map<String, SocialEndpointCredentials> socialEndpointCredentialsMap = new LinkedHashMap<>();
+	private Map<String, Token> tokenMap = new LinkedHashMap<>();
 
 
 	public InMemoryDataStore(String dbName) {
@@ -144,7 +145,7 @@ public class InMemoryDataStore implements IDataStore {
 			if (endPointList != null) {
 				for (Iterator<Endpoint> iterator = endPointList.iterator(); iterator.hasNext();) {
 					Endpoint endpointItem = iterator.next();
-					if (endpointItem.rtmpUrl.equals(endpoint.rtmpUrl)) {
+					if (endpointItem.getRtmpUrl().equals(endpoint.getRtmpUrl())) {
 						iterator.remove();
 						result = true;
 						break;
@@ -642,8 +643,125 @@ public class InMemoryDataStore implements IDataStore {
 		return result;
 	}
 
+	@Override
+	public boolean saveToken(Token token) {
+		boolean result = false;
+		if(token.getStreamId() != null && token.getTokenId() != null) {
+
+			try {
+
+				tokenMap.put(token.getTokenId(), token);
+				result = true;
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+
+		return result;
+	}
+
+	@Override
+	public Token validateToken(Token token) {
+		Token fetchedToken = null;
+		if (token.getTokenId() != null) {
+			fetchedToken = tokenMap.get(token.getTokenId());
+			if (fetchedToken != null && fetchedToken.getStreamId().equals(token.getStreamId()) && fetchedToken.getType().equals(token.getType())) {
+				tokenMap.remove(token.getTokenId());
+				return fetchedToken;
+			}else {
+				fetchedToken = null;
+			}
+		}
+		return fetchedToken;
+	}
+
+	@Override
+	public boolean revokeTokens(String streamId) {
+		boolean result = false;
+		Collection<Token> tokenCollection = tokenMap.values();
+
+		for (Iterator iterator = tokenCollection.iterator(); iterator.hasNext();) {
+			Token token = (Token) iterator.next();
+			if (token.getStreamId().equals(streamId)) {
+				iterator.remove();
+				tokenMap.remove(token.getTokenId());
+			}
+			result = true;
+
+		}
+		return result;
+	}
+
+	@Override
+	public List<Token> listAllTokens(String streamId, int offset, int size) {
+
+		List<Token> list = new ArrayList<>();
+		List<Token> returnList = new ArrayList<>();
+
+		Collection<Token> values = tokenMap.values();
+		int t = 0;
+		int itemCount = 0;
+		if (size > MAX_ITEM_IN_ONE_LIST) {
+			size = MAX_ITEM_IN_ONE_LIST;
+		}
+		if (offset < 0) {
+			offset = 0;
+		}
 
 
+		for(Token token: values) {
+			if (token.getStreamId().equals(streamId)) {
+				list.add(token);
+			}
+		}
 
 
+		Iterator<Token> iterator = list.iterator();
+
+		while(itemCount < size && iterator.hasNext()) {
+			if (t < offset) {
+				t++;
+				iterator.next();
+			}
+			else {
+
+				returnList.add(iterator.next());
+				itemCount++;
+			}
+		}
+
+		return returnList;
+	}
+
+
+	@Override
+	public void addStreamInfoList(List<StreamInfo> streamInfoList) {
+		//used in mongo for cluster mode. useless here.
+
+
+	}
+
+	public List<StreamInfo> getStreamInfoList(String streamId) {
+		return new ArrayList<>();
+	}
+
+	public void clearStreamInfoList(String streamId) {
+		//used in mongo for cluster mode. useless here.
+	}
+
+	@Override
+	public boolean setMp4Muxing(String streamId, int enabled) {
+		boolean result = false;
+
+		if (streamId != null) {
+			Broadcast broadcast = broadcastMap.get(streamId);
+			if (broadcast != null && (enabled == MuxAdaptor.MP4_ENABLED_FOR_STREAM || enabled == MuxAdaptor.MP4_NO_SET_FOR_STREAM || enabled == MuxAdaptor.MP4_DISABLED_FOR_STREAM)) {
+				broadcast.setMp4Enabled(enabled);
+				broadcastMap.replace(streamId, broadcast);
+				result = true;
+			}
+		}
+
+		return result;
+	}
 }

@@ -1,27 +1,31 @@
 package io.antmedia.security;
 
+import java.util.Map;
+
 import org.red5.server.api.Red5;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IStreamPublishSecurity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 
 public class ExpireStreamPublishSecurity implements IStreamPublishSecurity {
 
+	private DataStoreFactory dataStoreFactory;
 	private IDataStore dataStore;
 
 
 	protected static Logger logger = LoggerFactory.getLogger(ExpireStreamPublishSecurity.class);
 
 	@Override
-	public boolean isPublishAllowed(IScope scope, String name, String mode) {
+	public boolean isPublishAllowed(IScope scope, String name, String mode, Map<String, String> queryParams) {
 
 		boolean result = false;
 
-		Broadcast broadcast = dataStore.get(name);
+		Broadcast broadcast = getDatastore().get(name);
 		if (broadcast != null) 
 		{
 			int expireDurationMS = broadcast.getExpireDurationMS();
@@ -51,7 +55,10 @@ public class ExpireStreamPublishSecurity implements IStreamPublishSecurity {
 	}
 
 
-	public IDataStore getDataStore() {
+	public IDataStore getDatastore() {
+		if (dataStore == null) {
+			dataStore = dataStoreFactory.getDataStore();
+		}
 		return dataStore;
 	}
 
@@ -60,5 +67,13 @@ public class ExpireStreamPublishSecurity implements IStreamPublishSecurity {
 		this.dataStore = dataStore;
 	}
 
+	public DataStoreFactory getDataStoreFactory() {
+		return dataStoreFactory;
+	}
+
+
+	public void setDataStoreFactory(DataStoreFactory dataStoreFactory) {
+		this.dataStoreFactory = dataStoreFactory;
+	}
 
 }

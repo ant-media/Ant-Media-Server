@@ -3,15 +3,15 @@
 	<parent>
 		<groupId>io.antmedia</groupId>
 		<artifactId>parent</artifactId>
-		<version>1.4.1</version>
+		<version>1.6.0-SNAPSHOT</version>
 	</parent>
 	<modelVersion>4.0.0</modelVersion>
 	<artifactId>ant-media-server</artifactId>
-	<version>${project.parent.version}</version>
 	<name>Ant Media Server</name>
 	<description>Ant Media Server supports RTMP, RTSP, MP4, HLS, WebRTC, Adaptive Streaming, etc.</description>
 	<packaging>jar</packaging>
 	<url>https://github.com/ant-media/Ant-Media-Server</url>
+	<version>${project.parent.version}</version>
 	<organization>
 		<name>Ant Media</name>
 		<url>https://antmedia.io</url>
@@ -34,6 +34,26 @@
 		<developerConnection>git@github.com:ant-media/Ant-Media-Server.git</developerConnection>
 		<tag>media-server,webrtc,rtmp,rtsp,mp4-hls,stream,broadcast,hls,ip-camera,mp4,flv</tag>
 	</scm>
+	<repositories>
+	    <repository>
+	      <snapshots>
+	        <enabled>false</enabled>
+	      </snapshots>
+	      <id>central</id>
+	      <name>Central Repository</name>
+	      <url>http://repo.maven.apache.org/maven2</url>
+	    </repository>
+	    <repository>
+	      <id>sonatype-snapshots</id>
+	      <name>Sonatype Snapshots</name>
+	      <url>http://oss.sonatype.org/content/repositories/snapshots</url>
+	    </repository>
+	    <repository>
+	      <id>sonatype-releases</id>
+	      <name>Sonatype Releases</name>
+	      <url>http://oss.sonatype.org/content/repositories/releases</url>
+	    </repository>
+	</repositories>
 	<distributionManagement>
 		<snapshotRepository>
 			<id>ossrh</id>
@@ -150,8 +170,11 @@
 			<plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
-                    <version>2.20.1</version>
+                    <version>2.22.1</version>
                     <configuration>
+
+                    	<useSystemClassLoader>false</useSystemClassLoader>
+                    	
         				<argLine>@{argLine} -Xmx750M -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -Djava.library.path=${project.basedir}/../Ant-Media-Server/src/main/server/lib/native</argLine>
     				</configuration>
              </plugin>
@@ -165,7 +188,6 @@
 		</plugins>
 	</build>
 	<dependencies>
-
 		<dependency>
 			<groupId>io.antmedia.ipcamera.onvif</groupId>
 			<artifactId>ONVIF</artifactId>
@@ -271,9 +293,9 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
-			<groupId>org.red5</groupId>
-			<artifactId>red5-server-common</artifactId>
-			<version>${red5-server-common.version}</version>
+			<groupId>io.antmedia</groupId>
+			<artifactId>ant-media-server-common</artifactId>
+			<version>${ant-media-server-common.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.red5</groupId>
@@ -397,7 +419,7 @@
 		<dependency>
 			<groupId>com.google.apis</groupId>
 			<artifactId>google-api-services-youtube</artifactId>
-			<version>v3-rev183-1.22.0</version>
+			<version>${youtube.api.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.glassfish.jersey.containers</groupId>
@@ -408,6 +430,12 @@
 			<groupId>org.glassfish.jersey.media</groupId>
 			<artifactId>jersey-media-json-jackson</artifactId>
 			<version>${jersey.version}</version>
+			<exclusions>
+				<exclusion>
+		          <groupId>com.fasterxml.jackson.core</groupId>
+		          <artifactId>jackson-annotations</artifactId>
+		        </exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>org.glassfish.jersey.media</groupId>
@@ -421,16 +449,15 @@
 			<version>${jersey.version}</version>
 		</dependency>
 		<dependency>
+		    <groupId>org.glassfish.jersey.media</groupId>
+		    <artifactId>jersey-media-sse</artifactId>
+		    <version>${jersey.version}</version>
+		</dependency>
+		<dependency>
 			<groupId>org.mapdb</groupId>
 			<artifactId>mapdb</artifactId>
 			<version>${mapdb.version}</version>
 			<type>bundle</type>
-		</dependency>
-		<dependency>
-			<groupId>org.red5</groupId>
-			<artifactId>websocket</artifactId>
-			<version>${websocket.version}</version>
-			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.mockito</groupId>
@@ -487,7 +514,7 @@
 				</dependency>
 				<dependency>
 					<groupId>io.antmedia.app</groupId>
-					<artifactId>ConsoleApp</artifactId>
+					<artifactId>root</artifactId>
 					<version>${consoleapp.version}</version>
 					<type>war</type>
 					<scope>provided</scope>
@@ -502,6 +529,34 @@
 			</dependencies>
 			<build>
 				<plugins>
+					<plugin>
+						<groupId>com.github.spotbugs</groupId>
+						<artifactId>spotbugs-maven-plugin</artifactId>
+						<version>3.1.1</version>
+						<configuration>
+							<effort>Max</effort>
+							<threshold>Low</threshold>
+							<failOnError>true</failOnError>
+							<plugins>
+								<plugin>
+									<groupId>com.h3xstream.findsecbugs</groupId>
+									<artifactId>findsecbugs-plugin</artifactId>
+									<version>LATEST</version>
+								</plugin>
+							</plugins>
+						</configuration>
+					</plugin>
+					<plugin>
+						<groupId>org.owasp</groupId>
+						<artifactId>dependency-check-maven</artifactId>
+						<executions>
+							<execution>
+								<goals>
+									<goal>check</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
 					<plugin>
 						<artifactId>maven-dependency-plugin</artifactId>
 						<version>2.10</version>
@@ -559,30 +614,11 @@
 										</artifactItem>
 										<artifactItem>
 											<groupId>io.antmedia.app</groupId>
-											<artifactId>ConsoleApp</artifactId>
+											<artifactId>root</artifactId>
 											<version>${consoleapp.version}</version>
 											<type>war</type>
 											<overWrite>true</overWrite>
 											<outputDirectory>${project.build.directory}/webapps</outputDirectory>
-										</artifactItem>
-									</artifactItems>
-								</configuration>
-							</execution>
-							<execution>
-								<id>copy-dependency-websocket-plugin</id>
-								<phase>package</phase>
-								<goals>
-									<goal>copy</goal>
-								</goals>
-								<configuration>
-									<artifactItems>
-										<artifactItem>
-											<groupId>org.red5</groupId>
-											<artifactId>websocket</artifactId>
-											<version>${websocket.version}</version>
-											<type>jar</type>
-											<overWrite>true</overWrite>
-											<outputDirectory>${project.build.directory}/plugins</outputDirectory>
 										</artifactItem>
 									</artifactItems>
 								</configuration>
@@ -652,7 +688,7 @@
 				</dependency>
 				<dependency>
 					<groupId>io.antmedia.app</groupId>
-					<artifactId>ConsoleApp</artifactId>
+					<artifactId>root</artifactId>
 					<version>${consoleapp.version}</version>
 					<type>war</type>
 				</dependency>				
@@ -721,7 +757,7 @@
 										</artifactItem>
 										<artifactItem>
 											<groupId>io.antmedia.app</groupId>
-											<artifactId>ConsoleApp</artifactId>
+											<artifactId>root</artifactId>
 											<version>${consoleapp.version}</version>
 											<type>war</type>
 											<overWrite>true</overWrite>
@@ -742,25 +778,6 @@
 											<groupId>io.antmedia.enterprise</groupId>
 											<artifactId>ant-media-enterprise</artifactId>
 											<version>${ant-media-server-enterprise.version}</version>
-											<type>jar</type>
-											<overWrite>true</overWrite>
-											<outputDirectory>${project.build.directory}/plugins</outputDirectory>
-										</artifactItem>
-									</artifactItems>
-								</configuration>
-							</execution>
-							<execution>
-								<id>copy-dependency-websocket-plugin</id>
-								<phase>package</phase>
-								<goals>
-									<goal>copy</goal>
-								</goals>
-								<configuration>
-									<artifactItems>
-										<artifactItem>
-											<groupId>org.red5</groupId>
-											<artifactId>websocket</artifactId>
-											<version>${websocket.version}</version>
 											<type>jar</type>
 											<overWrite>true</overWrite>
 											<outputDirectory>${project.build.directory}/plugins</outputDirectory>
@@ -852,4 +869,5 @@
 		</profile>
 	</profiles>
 
+	
 </project>

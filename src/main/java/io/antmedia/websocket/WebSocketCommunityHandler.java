@@ -122,7 +122,7 @@ public abstract class WebSocketCommunityHandler {
 	}
 
 	private void startRTMPAdaptor(Session session, final String streamId) {
-		
+
 		//get scope and use its name
 		String outputURL = "rtmp://127.0.0.1/WebRTCApp/" + streamId;
 
@@ -175,20 +175,21 @@ public abstract class WebSocketCommunityHandler {
 
 	@SuppressWarnings("unchecked")
 	public  void sendSDPConfiguration(String description, String type, String streamId, Session session) {
-		JSONObject jsonResponseObject = new JSONObject();
-		jsonResponseObject.put(WebSocketConstants.COMMAND, WebSocketConstants.TAKE_CONFIGURATION_COMMAND);
-		jsonResponseObject.put(WebSocketConstants.SDP, description);
-		jsonResponseObject.put(WebSocketConstants.TYPE, type);
-		jsonResponseObject.put(WebSocketConstants.STREAM_ID, streamId);
-		sendMessage(jsonResponseObject.toJSONString(), session);
+
+		sendMessage(getSDPConfigurationJSON (description, type,  streamId).toJSONString(), session);
 	}
 
 	@SuppressWarnings("unchecked")
-	public  void sendPublishStartedMessage(String streamId, Session session) {
+	public  void sendPublishStartedMessage(String streamId, Session session, String roomName) {
+		
 		JSONObject jsonObj = new JSONObject();
 		jsonObj.put(WebSocketConstants.COMMAND, WebSocketConstants.NOTIFICATION_COMMAND);
 		jsonObj.put(WebSocketConstants.DEFINITION, WebSocketConstants.PUBLISH_STARTED);
 		jsonObj.put(WebSocketConstants.STREAM_ID, streamId);
+
+		if(roomName != null) {
+			jsonObj.put(WebSocketConstants.ATTR_ROOM_NAME, roomName);
+		}
 
 		sendMessage(jsonObj.toJSONString(), session);
 	}
@@ -232,12 +233,13 @@ public abstract class WebSocketCommunityHandler {
 		recorder.setFormat("flv");
 		recorder.setSampleRate(44100);
 		// Set in the surface changed method
-		recorder.setFrameRate(30);
+		recorder.setFrameRate(20);
 		recorder.setPixelFormat(avutil.AV_PIX_FMT_YUV420P);
 		recorder.setVideoCodec(avcodec.AV_CODEC_ID_H264);
 		recorder.setAudioCodec(avcodec.AV_CODEC_ID_AAC);
 		recorder.setAudioChannels(2);
-		recorder.setGopSize(20);
+		recorder.setGopSize(40);
+		recorder.setVideoQuality(29);
 		return recorder;
 	}
 
@@ -252,14 +254,8 @@ public abstract class WebSocketCommunityHandler {
 	@SuppressWarnings("unchecked")
 	public void sendTakeCandidateMessage(long sdpMLineIndex, String sdpMid, String sdp, String streamId, Session session)
 	{
-		JSONObject jsonObject = new JSONObject();
-		jsonObject.put(WebSocketConstants.COMMAND,  WebSocketConstants.TAKE_CANDIDATE_COMMAND);
-		jsonObject.put(WebSocketConstants.CANDIDATE_LABEL, sdpMLineIndex);
-		jsonObject.put(WebSocketConstants.CANDIDATE_ID, sdpMid);
-		jsonObject.put(WebSocketConstants.CANDIDATE_SDP, sdp);
-		jsonObject.put(WebSocketConstants.STREAM_ID, streamId);
 
-		sendMessage(jsonObject.toJSONString(), session);
+		sendMessage(getTakeCandidateJSON(sdpMLineIndex, sdpMid, sdp, streamId).toJSONString(), session);
 	}
 
 
@@ -276,6 +272,29 @@ public abstract class WebSocketCommunityHandler {
 		}
 	}
 
+
+	public static JSONObject getTakeCandidateJSON(long sdpMLineIndex, String sdpMid, String sdp, String streamId) {
+
+		JSONObject jsonObject = new JSONObject();
+		jsonObject.put(WebSocketConstants.COMMAND,  WebSocketConstants.TAKE_CANDIDATE_COMMAND);
+		jsonObject.put(WebSocketConstants.CANDIDATE_LABEL, sdpMLineIndex);
+		jsonObject.put(WebSocketConstants.CANDIDATE_ID, sdpMid);
+		jsonObject.put(WebSocketConstants.CANDIDATE_SDP, sdp);
+		jsonObject.put(WebSocketConstants.STREAM_ID, streamId);
+
+		return jsonObject;
+	}
+
+	public static JSONObject getSDPConfigurationJSON(String description, String type, String streamId) {
+
+		JSONObject jsonResponseObject = new JSONObject();
+		jsonResponseObject.put(WebSocketConstants.COMMAND, WebSocketConstants.TAKE_CONFIGURATION_COMMAND);
+		jsonResponseObject.put(WebSocketConstants.SDP, description);
+		jsonResponseObject.put(WebSocketConstants.TYPE, type);
+		jsonResponseObject.put(WebSocketConstants.STREAM_ID, streamId);
+
+		return jsonResponseObject;
+	}
 
 
 }

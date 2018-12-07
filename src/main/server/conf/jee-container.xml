@@ -140,16 +140,13 @@
 					<property name="pattern" value="common" />
 					<property name="rotatable" value="true" />
 				</bean>
-				<!-- 
-				<bean id="valve.cluster" class="io.antmedia.enterprise.cluster.HttpLiveStreamValve"> 
-					<property name="cluster" ref="tomcat.cluster" /> </bean>
-					
-				-->
-					
+				
+				
 			</list>
 		</property>
 
 	</bean>
+
 	
 	<!-- Tomcat with SSL enabled -->
 	<!-- <bean id="tomcat.server" class="org.red5.server.tomcat.TomcatLoader" 
@@ -195,31 +192,7 @@
 			</property> 
 		</bean> -->
 		
-	<!-- This entry enabled websocket support on port 8081 at localhost -->
-	<bean id="webSocketTransport" class="org.red5.net.websocket.WebSocketTransport">
-		<property name="addresses">
-			<list>
-				<value>${ws.host}:${ws.port}</value>
-			</list>
-		</property>
-	</bean>
-	
-	<!--  
-	<bean id="webSocketTransportSecure" class="org.red5.net.websocket.WebSocketTransport">
-        <property name="secureConfig">
-            <bean id="webSocketSecureConfig" class="org.red5.net.websocket.SecureWebSocketConfiguration">
-                <property name="keystoreFile" value="${rtmps.keystorefile}"/>
-                <property name="keystorePassword" value="${rtmps.keystorepass}"/>
-                <property name="truststoreFile" value="${rtmps.truststorefile}"/>
-                <property name="truststorePassword" value="${rtmps.truststorepass}"/>
-            </bean>
-        </property>
-        <property name="addresses">
-            <list>
-                <value>${wss.host}:${wss.port}</value>
-            </list>
-        </property>
-    </bean>
-    -->
+
+
 
 </beans>

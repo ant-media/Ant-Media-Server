@@ -36,6 +36,7 @@ import org.junit.Test;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
+import org.mockito.Mockito;
 import org.red5.server.scheduling.QuartzSchedulingService;
 import org.red5.server.scope.WebScope;
 import org.slf4j.Logger;
@@ -47,6 +48,7 @@ import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
+import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.types.Broadcast;
@@ -382,7 +384,6 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	@Test
 	public void testBandwidth() {
 
-
 		assertEquals(1, scheduler.getScheduledJobNames().size());
 
 		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnExit();
@@ -396,10 +397,13 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 				e.printStackTrace();
 			}
 		}
-		IDataStore dataStore = new MapDBStore("target/test.db"); //applicationContext.getBean(IDataStore.BEAN_NAME);
+		IDataStore dataStore = app.getDataStore(); //new MapDBStore("target/test.db"); //applicationContext.getBean(IDataStore.BEAN_NAME);
 
-		assertNotNull(dataStore);
-		app.setDataStore(dataStore);
+		//assertNotNull(dataStore);
+		
+		//DataStoreFactory dsf = Mockito.mock(DataStoreFactory.class);
+		//Mockito.when(dsf.getDataStore()).thenReturn(dataStore);
+		//app.setDataStoreFactory(dsf);
 
 		//set mapdb datastore to stream fetcher because in memory datastore just have references and updating broadcst
 		// object updates the reference in inmemorydatastore
@@ -479,13 +483,14 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		logger.info("Checking quality is again");
 
-		Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+		Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 			Broadcast streamTmp = dataStore.get(newSource.getStreamId());
 			logger.info("speed {}" , streamTmp.getSpeed()) ;
 			logger.info("quality {}" , streamTmp.getQuality()) ;
-
-			return streamTmp != null && streamTmp.getQuality() != null && !streamTmp.getQuality().equals("good") 
-					&& streamTmp.getSpeed() < 0.6;
+			
+			return streamTmp != null && streamTmp.getQuality() != null 
+					&& streamTmp.getSpeed() < 0.7;
+					// the critical thing is the speed which less that 0.7
 		});
 
 		resetNetworkInterface(findActiveInterface());

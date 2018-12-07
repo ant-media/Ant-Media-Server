@@ -78,14 +78,23 @@
 		<property name="virtualHosts" value="*" />
 	</bean>
 	
-	<bean id="db.datastore" class="io.antmedia.datastore.db.InMemoryDataStore">
+<!-- 	<bean id="db.datastore" class="io.antmedia.datastore.db.InMemoryDataStore">
 		<constructor-arg value="junit.db" />
 	</bean>
-
+ -->
+    <bean id="dataStoreFactory" class="io.antmedia.datastore.db.DataStoreFactory">
+		<property name="appName" value="junit" />
+		<property name="dbName" value="junit.db" />
+		<property name="dbType" value="memorydb" />
+		<property name="dbHost" value="" />
+		<property name="dbUser" value="" />
+		<property name="dbPassword" value="" />
+	</bean>
+	
 	<bean id="app.settings" class="io.antmedia.AppSettings"></bean>
 	
 	<bean id="web.handler" class="io.antmedia.test.Application" >
-		<property name="dataStore" ref="db.datastore" />
+		<property name="dataStoreFactory" ref="dataStoreFactory" />
 		<property name="appSettings" ref="app.settings" />
 	</bean>
 
@@ -132,6 +141,15 @@
 	</bean>
 	
 	
+	  <bean id="vertxCore" 
+    		class="io.vertx.core.Vertx" 
+   		factory-method="vertx">
+   		<constructor-arg>
+   			<bean class="io.vertx.core.VertxOptions">
+   				<property name="eventLoopPoolSize" value="20"></property>
+   			</bean>
+   		</constructor-arg>	
+   	</bean>
 
 
 

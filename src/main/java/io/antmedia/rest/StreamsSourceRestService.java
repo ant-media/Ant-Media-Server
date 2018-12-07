@@ -31,6 +31,7 @@ import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.types.Broadcast;
@@ -46,14 +47,13 @@ public class StreamsSourceRestService {
 	private static final String HTTP = "http://";
 	@Context
 	private ServletContext servletContext;
+	private DataStoreFactory dataStoreFactory;
 	private IDataStore dbStore;
 	private ApplicationContext appCtx;
 	private IScope scope;
 	private AntMediaApplicationAdapter appInstance;
 
 	protected static Logger logger = LoggerFactory.getLogger(StreamsSourceRestService.class);
-
-
 
 
 	@POST
@@ -209,7 +209,7 @@ public class StreamsSourceRestService {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result updateCamInfo(Broadcast broadcast) {
 		boolean result = false;
-		logger.warn("inside of rest service");
+		logger.debug("update cam info for stream {}", broadcast.getStreamId());
 
 		if( checkStreamUrl(broadcast.getStreamUrl()) && broadcast.getStatus()!=null){
 			getInstance().stopStreaming(broadcast);
@@ -385,8 +385,7 @@ public class StreamsSourceRestService {
 
 	public IDataStore getStore() {
 		if (dbStore == null) {
-			WebApplicationContext ctxt = WebApplicationContextUtils.getWebApplicationContext(servletContext);
-			dbStore = (IDataStore) ctxt.getBean("db.datastore");
+			dbStore = getDataStoreFactory().getDataStore();
 		}
 		return dbStore;
 	}
@@ -492,6 +491,20 @@ public class StreamsSourceRestService {
 			}
 		}
 		return ipAddrControl;
+	}
+
+	
+	public DataStoreFactory getDataStoreFactory() {
+		if(dataStoreFactory == null) {
+			WebApplicationContext ctxt = WebApplicationContextUtils.getWebApplicationContext(servletContext); 
+			dataStoreFactory = (DataStoreFactory) ctxt.getBean("dataStoreFactory");
+		}
+		return dataStoreFactory;
+	}
+
+
+	public void setDataStoreFactory(DataStoreFactory dataStoreFactory) {
+		this.dataStoreFactory = dataStoreFactory;
 	}
 
 }

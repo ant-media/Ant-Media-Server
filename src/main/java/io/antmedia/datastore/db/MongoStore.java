@@ -25,11 +25,15 @@ import com.mongodb.ServerAddress;
 import com.mongodb.WriteResult;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.cluster.StreamInfo;
+import io.antmedia.datastore.DBUtils;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.TensorFlowObject;
+import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
+import io.antmedia.muxer.MuxAdaptor;
 
 public class MongoStore implements IDataStore {
 
@@ -37,20 +41,28 @@ public class MongoStore implements IDataStore {
 	private Datastore datastore;
 	private Datastore vodDatastore;
 	private Datastore endpointCredentialsDS;
+	private Datastore tokenDatastore;
+	private Datastore detectionMap;
 
 	protected static Logger logger = LoggerFactory.getLogger(MongoStore.class);
-	
+
 	public static final String IMAGE_ID = "imageId"; 
 
-	public MongoStore(String dbName) {
+	public MongoStore(String dbName, String host) {
 		morphia = new Morphia();
 		morphia.mapPackage("io.antmedia.datastore.db.types");
-		datastore = morphia.createDatastore(new MongoClient(), dbName);
-		vodDatastore = morphia.createDatastore(new MongoClient(), dbName+"Vod");
-		endpointCredentialsDS = morphia.createDatastore(new MongoClient(), dbName+"_endpointCredentials");
+		datastore = morphia.createDatastore(new MongoClient(host), dbName);
+		vodDatastore = morphia.createDatastore(new MongoClient(host), dbName+"_VoD");
+		endpointCredentialsDS = morphia.createDatastore(new MongoClient(host), dbName+"_endpointCredentials");
+		tokenDatastore = morphia.createDatastore(new MongoClient(host), dbName + "_token");
+		detectionMap = morphia.createDatastore(new MongoClient(host), dbName + "detection");
+
+
 		datastore.ensureIndexes();
 		vodDatastore.ensureIndexes();
 		endpointCredentialsDS.ensureIndexes();
+		tokenDatastore.ensureIndexes();
+		detectionMap.ensureIndexes();
 	}
 
 	public MongoStore(String host, String username, String password, String dbName) {
@@ -59,12 +71,17 @@ public class MongoStore implements IDataStore {
 		List<MongoCredential> credentialList = new ArrayList<>();
 		credentialList.add(MongoCredential.createCredential(username, dbName, password.toCharArray()));
 		datastore = morphia.createDatastore(new MongoClient(new ServerAddress(host), credentialList), dbName);
-		vodDatastore=morphia.createDatastore(new MongoClient(new ServerAddress(host), credentialList), dbName+"Vod");
+		vodDatastore=morphia.createDatastore(new MongoClient(new ServerAddress(host), credentialList), dbName+"VoD");
 		endpointCredentialsDS = morphia.createDatastore(new MongoClient(new ServerAddress(host), credentialList), dbName+"_endpointCredentials");
+		tokenDatastore = morphia.createDatastore(new MongoClient(), dbName + "_token");
+		detectionMap = morphia.createDatastore(new MongoClient(), dbName + "detection");
 
+		tokenDatastore.ensureIndexes();
 		datastore.ensureIndexes();
 		vodDatastore.ensureIndexes();
 		endpointCredentialsDS.ensureIndexes();
+		detectionMap.ensureIndexes();
+
 	}
 
 	/*
@@ -80,6 +97,7 @@ public class MongoStore implements IDataStore {
 			return null;
 		}
 		try {
+			broadcast.setOriginAdress(DBUtils.getHostAddress());
 			String streamId = null;
 			if (broadcast.getStreamId() == null) {
 				streamId = RandomStringUtils.randomAlphanumeric(12) + System.currentTimeMillis();
@@ -117,7 +135,7 @@ public class MongoStore implements IDataStore {
 		}
 		return null;
 	}
-	
+
 	@Override
 	public VoD getVoD(String id) {
 		try {
@@ -257,7 +275,7 @@ public class MongoStore implements IDataStore {
 	public long getBroadcastCount() {
 		return datastore.getCount(Broadcast.class);
 	}
-	
+
 
 	/*
 	 * (non-Javadoc)
@@ -324,7 +342,7 @@ public class MongoStore implements IDataStore {
 
 	@Override
 	public String addVod(VoD vod) {
-		
+
 		String id = null;
 		boolean result = false;
 		try {	
@@ -429,7 +447,7 @@ public class MongoStore implements IDataStore {
 
 			Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(id);
 			UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class)
-						.set("quality", quality).set("speed", speed).set("pendingPacketSize", pendingPacketQueue);
+					.set("quality", quality).set("speed", speed).set("pendingPacketSize", pendingPacketQueue);
 
 			UpdateResults update = datastore.update(query, ops);
 			return update.getUpdatedCount() == 1;
@@ -551,7 +569,7 @@ public class MongoStore implements IDataStore {
 			for (TensorFlowObject tensorFlowObject : detectedObjects) {
 				tensorFlowObject.setDetectionTime(timeElapsed);
 				tensorFlowObject.setImageId(id);
-				datastore.save(tensorFlowObject);
+				detectionMap.save(tensorFlowObject);
 			}
 		}
 
@@ -560,7 +578,7 @@ public class MongoStore implements IDataStore {
 	@Override
 	public List<TensorFlowObject> getDetectionList(String idFilter, int offsetSize, int batchSize) {
 		try {
-			return datastore.find(TensorFlowObject.class).field(IMAGE_ID).startsWith(idFilter).asList(new FindOptions().skip(offsetSize).limit(batchSize));
+			return detectionMap.find(TensorFlowObject.class).field(IMAGE_ID).startsWith(idFilter).asList(new FindOptions().skip(offsetSize).limit(batchSize));
 		} catch (Exception e) {
 			logger.error(e.getMessage());
 		}
@@ -570,19 +588,19 @@ public class MongoStore implements IDataStore {
 	@Override
 	public List<TensorFlowObject> getDetection(String id) {
 		try {
-			return datastore.find(TensorFlowObject.class).field(IMAGE_ID).equal(id).asList();
+			return detectionMap.find(TensorFlowObject.class).field(IMAGE_ID).equal(id).asList();
 		} catch (Exception e) {
 			logger.error(e.getMessage());
 		}
 		return null;	
 	}
-	
+
 	@Override
 	public long getObjectDetectedTotal(String id) {
-		return datastore.find(TensorFlowObject.class).field(IMAGE_ID).equal(id).asList().size();
+		return detectionMap.find(TensorFlowObject.class).field(IMAGE_ID).equal(id).asList().size();
 	}
-	
-	
+
+
 
 	@Override
 	public boolean editStreamSourceInfo(Broadcast broadcast) {
@@ -603,7 +621,7 @@ public class MongoStore implements IDataStore {
 		}
 		return false;
 	}
-	
+
 	/**
 	 * {@inheritDoc}
 	 */
@@ -621,7 +639,7 @@ public class MongoStore implements IDataStore {
 		}
 		return false;
 	}
-	
+
 	/**
 	 * {@inheritDoc}
 	 */
@@ -646,7 +664,7 @@ public class MongoStore implements IDataStore {
 		}
 		return false;
 	}
-	
+
 	@Override
 	public boolean updateRtmpViewerCount(String streamId, boolean increment) {
 		try {
@@ -668,10 +686,89 @@ public class MongoStore implements IDataStore {
 		}
 		return false;
 	}
-	
-	
-	
 
+	@Override
+	public void addStreamInfoList(List<StreamInfo> streamInfoList) {
+		for (StreamInfo streamInfo : streamInfoList) {
+			datastore.save(streamInfo);
+		}
+	}
 
+	public List<StreamInfo> getStreamInfoList(String streamId) {
+		return datastore.find(StreamInfo.class).field("streamId").equal(streamId).asList();
+	}
+
+	public void clearStreamInfoList(String streamId) {
+		Query<StreamInfo> query = datastore.createQuery(StreamInfo.class).field("streamId").equal(streamId);
+		datastore.delete(query);
+	}
+	@Override
+	public boolean saveToken(Token token) {
+		boolean result = false;
+
+		if(token.getStreamId() != null && token.getTokenId() != null) {
+
+			try {
+				tokenDatastore.save(token);
+				result = true;
+
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+
+		return result;
+	}
+
+	@Override
+	public Token validateToken(Token token) {
+		Token fetchedToken = null;
+		if (token.getTokenId() != null) {
+			fetchedToken = tokenDatastore.find(Token.class).field("tokenId").equal(token.getTokenId()).get();
+			if (fetchedToken != null && fetchedToken.getStreamId().equals(token.getStreamId()) && fetchedToken.getType().equals(token.getType())) {
+
+				Query<Token> query = tokenDatastore.createQuery(Token.class).field("tokenId").equal(token.getTokenId());
+				WriteResult delete = tokenDatastore.delete(query);
+				if(delete.getN() == 1) {
+					return fetchedToken;
+				}
+			}else {
+				fetchedToken = null;
+			}
+		}
+		return fetchedToken;
+	}
+
+	@Override
+	public boolean revokeTokens(String streamId) {
+
+		Query<Token> query = tokenDatastore.createQuery(Token.class).field("streamId").equal(streamId);
+		WriteResult delete = tokenDatastore.delete(query);
+
+		return delete.getN() >= 1;
+
+	}
+
+	@Override
+	public List<Token> listAllTokens(String streamId, int offset, int size) {
+		return 	tokenDatastore.find(Token.class).field("streamId").equal(streamId).asList(new FindOptions() .skip(offset).limit(size));
+
+	}
+
+	@Override
+	public boolean setMp4Muxing(String streamId, int enabled) {
+		try {
+			if (streamId != null && (enabled == MuxAdaptor.MP4_ENABLED_FOR_STREAM || enabled == MuxAdaptor.MP4_NO_SET_FOR_STREAM || enabled == MuxAdaptor.MP4_DISABLED_FOR_STREAM)) {
+				Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(streamId);
+				UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set("mp4Enabled", enabled);
+				UpdateResults update = datastore.update(query, ops);
+				return update.getUpdatedCount() == 1;
+			}
+		} catch (Exception e) {
+			logger.error(e.getMessage());
+		}
+		return false;
+
+	}
 
 }
