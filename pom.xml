@@ -3,7 +3,7 @@
 	<parent>
 		<groupId>io.antmedia</groupId>
 		<artifactId>parent</artifactId>
-		<version>1.5.2-SNAPSHOT</version>
+		<version>1.5.2M-SNAPSHOT</version>
 	</parent>
 	<modelVersion>4.0.0</modelVersion>
 	<artifactId>ant-media-server</artifactId>
@@ -156,6 +156,50 @@
         				<argLine>@{argLine} -Xmx750M -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -Djava.library.path=${project.basedir}/../Ant-Media-Server/src/main/server/lib/native</argLine>
     				</configuration>
              </plugin>
+			<plugin>
+				<groupId>com.sebastian-daschner</groupId>
+				<artifactId>jaxrs-analyzer-maven-plugin</artifactId>
+				<version>0.9</version>
+				<executions>
+					<execution>
+						<goals>
+							<goal>analyze-jaxrs</goal>
+						</goals>
+						<configuration>
+							<!-- Available backends are plaintext (default), swagger and asciidoc -->
+							<backend>swagger</backend>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>com.github.kongchen</groupId>
+				<artifactId>swagger-maven-plugin</artifactId>
+				<version>3.1.5</version>
+				<configuration>
+					<apiSources>
+						<apiSource>
+							<springmvc>true</springmvc>
+							<locations>com.sandy2friends.test.web.rest</locations>
+							<info>
+								<title>REST API</title>
+								<version>1</version>
+								<description>REST API</description>
+							</info>
+							<swaggerDirectory>swagger</swaggerDirectory>
+							<swaggerFileName>rest api</swaggerFileName>
+						</apiSource>
+					</apiSources>
+				</configuration>
+				<executions>
+					<execution>
+						<phase>compile</phase>
+						<goals>
+							<goal>generate</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
 			
 			
 			<!-- >>>>>>> master <plugin> <groupId>com.webcohesion.enunciate</groupId> 
@@ -166,18 +210,6 @@
 		</plugins>
 	</build>
 	<dependencies>
-		<!-- SpringFox Swagger UI -->
-		<dependency>
-			<groupId>io.springfox</groupId>
-			<artifactId>springfox-swagger2</artifactId>
-			<version>2.7.0</version>
-		</dependency>
-
-		<dependency>
-			<groupId>io.springfox</groupId>
-			<artifactId>springfox-swagger-ui</artifactId>
-			<version>2.7.0</version>
-		</dependency>
 		<dependency>
 			<groupId>io.antmedia.ipcamera.onvif</groupId>
 			<artifactId>ONVIF</artifactId>
