@@ -194,36 +194,6 @@
 					</execution>
 				</executions>
 			</plugin>
-			<plugin>
-				<groupId>com.github.kongchen</groupId>
-				<artifactId>swagger-maven-plugin</artifactId>
-				<version>3.1.5</version>
-				<configuration>
-					<apiSources>
-						<apiSource>
-							<springmvc>true</springmvc>
-							<locations>com.sandy2friends.test.web.rest</locations>
-							<info>
-								<title>REST API</title>
-								<version>1</version>
-								<description>REST API</description>
-							</info>
-							<swaggerDirectory>swagger</swaggerDirectory>
-							<swaggerFileName>rest api</swaggerFileName>
-						</apiSource>
-					</apiSources>
-				</configuration>
-				<executions>
-					<execution>
-						<phase>compile</phase>
-						<goals>
-							<goal>generate</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-			
-			
 			<!-- >>>>>>> master <plugin> <groupId>com.webcohesion.enunciate</groupId> 
 				<artifactId>enunciate-maven-plugin</artifactId> <version>${enunciate.version}</version> 
 				<executions> <execution> <goals> <goal>docs</goal> </goals> <configuration> 
