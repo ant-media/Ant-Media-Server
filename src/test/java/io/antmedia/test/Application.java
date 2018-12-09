@@ -19,6 +19,7 @@ public class Application extends AntMediaApplicationAdapter implements IAntMedia
 	public static String notifyVodName = null;
 
 	public static boolean enableSourceHealthUpdate = false;
+	public static String notifyVodId = null;
 
 	@Override
 	public void muxingFinished(String id, File file, long duration, int resolution) {
@@ -41,14 +42,16 @@ public class Application extends AntMediaApplicationAdapter implements IAntMedia
 
 	}
 
+	@Override
 	public StringBuilder notifyHook(String url, String id, String action, String streamName, String category,
-			String vodName) {
+			String vodName, String vodId) {
 		notifyHookAction = action;
 		notitfyURL = url;
 		notifyId = id;
 		notifyStreamName = streamName;
 		notifyCategory = category;
 		notifyVodName = vodName;
+		notifyVodId  = vodId;
 
 		return null;
 	}

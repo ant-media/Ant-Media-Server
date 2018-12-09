@@ -562,6 +562,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 		assertEquals(null, Application.notifyStreamName);
 		assertEquals(null, Application.notifyCategory);
 		assertEquals(Application.notifyVodName, streamId);
+		assertNotNull(Application.notifyVodId);
 
 
 
@@ -602,8 +603,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 	public File testMp4Muxing(String name, boolean shortVersion, boolean checkDuration) {
 
 		logger.info("running testMp4Muxing");
-		
-		
 
 		if (appScope == null) {
 			appScope = (WebScope) applicationContext.getBean("web.scope");
@@ -670,18 +669,18 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 			flvReader.close();
 
-			while (muxAdaptor.isRecording()) {
-				Thread.sleep(50);
-			}
+			
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(()-> !muxAdaptor.isRecording());
 
 			assertFalse(muxAdaptor.isRecording());
 
 			// if there is listenerHookURL, a task will be scheduled, so wait a little to make the call happen
-			Thread.sleep(200);
 			for (String jobName : scheduler.getScheduledJobNames()) {
 				logger.info("--Scheduler job name {}", jobName);
 			}
-			assertEquals(scheduler.getScheduledJobNames().size(), 1);
+			
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(()-> scheduler.getScheduledJobNames().size() == 1);
+			assertEquals(1, scheduler.getScheduledJobNames().size());
 			int duration = 697000;
 			if (shortVersion) {
 				duration = 10080;

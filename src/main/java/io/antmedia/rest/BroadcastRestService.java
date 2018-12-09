@@ -48,6 +48,7 @@ import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.IDataStore;
+import io.antmedia.datastore.db.IDataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointChannel;
@@ -59,6 +60,7 @@ import io.antmedia.muxer.Muxer;
 import io.antmedia.rest.model.Interaction;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.Version;
+import io.antmedia.security.ITokenService;
 import io.antmedia.social.LiveComment;
 import io.antmedia.social.endpoint.PeriscopeEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
@@ -101,6 +103,9 @@ public class BroadcastRestService {
 
 	public static final String ENTERPRISE_EDITION = "Enterprise Edition";
 	public static final String COMMUNITY_EDITION = "Community Edition";
+	public static final int MP4_ENABLE = 1;
+	public static final int MP4_DISABLE = -1;
+	public static final int MP4_NO_SET = 0;
 
 	@Context
 	private ServletContext servletContext;
@@ -124,6 +129,10 @@ public class BroadcastRestService {
 	private ProcessBuilderFactory processBuilderFactory = null;
 
 	protected static Logger logger = LoggerFactory.getLogger(BroadcastRestService.class);
+
+	private ITokenService tokenService;
+
+
 
 	/**
 	 * Creates a broadcast and returns the full broadcast object with rtmp
@@ -415,7 +424,7 @@ public class BroadcastRestService {
 			if (endPointServiceList != null) {
 
 				VideoServiceEndpoint videoServiceEndpoint = endPointServiceList.get(endpointServiceId);
-				
+
 				if (videoServiceEndpoint != null) {
 					Endpoint endpoint;
 					try {
@@ -502,7 +511,7 @@ public class BroadcastRestService {
 		}
 		return liveComment;
 	}
-	
+
 	/**
 	 * Return the number of live views in specified video service endpoint
 	 * 
@@ -522,8 +531,8 @@ public class BroadcastRestService {
 		}
 		return new Result(true, String.valueOf(liveViews));
 	}
-	
-	
+
+
 	/**
 	 * Returns the number of live comment count in a specific video service endpoint
 	 * 
@@ -561,8 +570,8 @@ public class BroadcastRestService {
 		}
 		return interaction;
 	}
-	
-	
+
+
 
 	protected Broadcast lookupBroadcast(String id) {
 		Broadcast broadcast = null;
@@ -983,10 +992,20 @@ public class BroadcastRestService {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Token getToken (@QueryParam("id")String streamId, @QueryParam("expireDate") long expireDate, @QueryParam("type") String type) {
 		Token token = null;
-
 		if(streamId != null) {
 
-			token = getDataStore().createToken(streamId, expireDate, type);
+			ApplicationContext appContext = getAppContext();
+
+			if(appContext != null && appContext.containsBean(ITokenService.BeanName.TOKEN_SERVICE.toString())) {
+				tokenService = (ITokenService)appContext.getBean(ITokenService.BeanName.TOKEN_SERVICE.toString());
+			}
+
+			token = tokenService.createToken(streamId, expireDate, type);
+
+			//if it is  MockService, returns null
+			if(token != null) {
+				getDataStore().saveToken(token);
+			}	 
 		}
 
 		return token;
@@ -1059,6 +1078,24 @@ public class BroadcastRestService {
 	}
 
 
+	@GET
+	@Path("/broadcast/enableMp4Muxing")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result enableMp4Muxing (@QueryParam("id")String streamId, @QueryParam("enableMp4") int enableMp4) {
+		Result result = new Result(false);
+		if(streamId != null) {
+
+			if(getDataStore().setMp4Muxing(streamId, enableMp4)) {		
+				result.setSuccess(true);
+				result.setMessage("streamId:"+ streamId);
+			}else {
+				result.setMessage("no stream for this id: " + streamId + "or wrong setting parameter");
+			}
+		}
+
+		return result;
+	}
+
 	/**
 	 * Get the broadcast live statistics total rtmp watcher count, total hls
 	 * watcher count, total webrtc watcher count
@@ -1101,6 +1138,8 @@ public class BroadcastRestService {
 	}
 
 
+
+
 	@GET
 	@Path("/broadcast/getWebRTCClientStats/{stream_id}")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -1121,17 +1160,13 @@ public class BroadcastRestService {
 		return adaptor;
 	}
 
-
 	/**
-	 * Filter broadcast according to type
-	 * 
-	 * @param fileName
-	 *            name of the file
-	 * 
-	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
-	 * 
+	 * Returns filtered broadcast list
+	 * @param offset
+	 * @param size
+	 * @param type
+	 * @return list
 	 */
-
 	@GET
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/broadcast/filterList/{offset}/{size}/{type}")
@@ -1670,7 +1705,7 @@ public class BroadcastRestService {
 	public DataStoreFactory getDataStoreFactory() {
 		if(dataStoreFactory == null) {
 			WebApplicationContext ctxt = WebApplicationContextUtils.getWebApplicationContext(servletContext); 
-			dataStoreFactory = (DataStoreFactory) ctxt.getBean("dataStoreFactory");
+			dataStoreFactory = (DataStoreFactory) ctxt.getBean(IDataStoreFactory.BEAN_NAME);
 		}
 		return dataStoreFactory;
 	}

@@ -33,6 +33,7 @@ import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
+import io.antmedia.muxer.MuxAdaptor;
 
 public class MongoStore implements IDataStore {
 
@@ -685,14 +686,14 @@ public class MongoStore implements IDataStore {
 		}
 		return false;
 	}
-	
+
 	@Override
 	public void addStreamInfoList(List<StreamInfo> streamInfoList) {
 		for (StreamInfo streamInfo : streamInfoList) {
 			datastore.save(streamInfo);
 		}
 	}
-	
+
 	public List<StreamInfo> getStreamInfoList(String streamId) {
 		return datastore.find(StreamInfo.class).field("streamId").equal(streamId).asList();
 	}
@@ -702,26 +703,21 @@ public class MongoStore implements IDataStore {
 		datastore.delete(query);
 	}
 	@Override
-	public Token createToken(String streamId, long expireDate, String type) {
-		Token token = null;
+	public boolean saveToken(Token token) {
+		boolean result = false;
 
-		if(streamId != null) {
-			token = new Token();
-			token.setStreamId(streamId);
-			token.setExpireDate(expireDate);
-			token.setType(type);
+		if(token.getStreamId() != null && token.getTokenId() != null) {
 
 			try {
-				String tokenId = RandomStringUtils.randomNumeric(24);
-				token.setTokenId(tokenId);
 				tokenDatastore.save(token);
+				result = true;
 
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
 		}
 
-		return token;
+		return result;
 	}
 
 	@Override
@@ -759,9 +755,20 @@ public class MongoStore implements IDataStore {
 
 	}
 
+	@Override
+	public boolean setMp4Muxing(String streamId, int enabled) {
+		try {
+			if (streamId != null && (enabled == MuxAdaptor.MP4_ENABLED_FOR_STREAM || enabled == MuxAdaptor.MP4_NO_SET_FOR_STREAM || enabled == MuxAdaptor.MP4_DISABLED_FOR_STREAM)) {
+				Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(streamId);
+				UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set("mp4Enabled", enabled);
+				UpdateResults update = datastore.update(query, ops);
+				return update.getUpdatedCount() == 1;
+			}
+		} catch (Exception e) {
+			logger.error(e.getMessage());
+		}
+		return false;
 
-
-
-
+	}
 
 }
