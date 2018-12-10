@@ -199,9 +199,22 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	@Override
 	public void streamBroadcastClose(IBroadcastStream stream) {
 
+		
 		String streamName = stream.getPublishedName();
+		vertx.executeBlocking(future -> {
+			try {
+				closeBroadcast(streamName);
+				future.complete(true);
+			}
+			catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+				future.complete(false);
+			}
+		},
+		result -> 
+			logger.info("close broadcast operation for {} is finished with {}", streamName, result.result())
+		);
 
-		closeBroadcast(streamName);
 
 		super.streamBroadcastClose(stream);
 	}
@@ -456,7 +469,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 				streamName = streamName + " (" + resolution + "p)";
 			}
 		}
-		
+
 		String vodId = RandomStringUtils.randomNumeric(24);
 		VoD newVod = new VoD(streamName, streamId, relativePath, vodName, systemTime, duration, fileSize, VoD.STREAM_VOD, vodId);
 
