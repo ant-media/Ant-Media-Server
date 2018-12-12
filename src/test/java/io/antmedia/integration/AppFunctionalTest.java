@@ -270,16 +270,27 @@ public class AppFunctionalTest {
 				Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 					return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + "_240p.mp4");
 				});
-				int lastVodNumber = rest.callTotalVoDNumber();
-				log.info("vod number after test {}", lastVodNumber);
-
-				//2 more VoDs should be added to DB, one is original other one ise 240p mp4 files
-				//480p is not created because original stream is 360p
-				assertEquals(currentVodNumber + 2, lastVodNumber);
+				Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+					int lastVodNumber = rest.callTotalVoDNumber();
+					log.info("vod number after test {}", lastVodNumber);
+					//2 more VoDs should be added to DB, one is original other one ise 240p mp4 files
+					//480p is not created because original stream is 360p
+					
+					return currentVodNumber +2 == lastVodNumber;
+							
+				});
+				
 			}
 			else {
-				int lastVodNumber = rest.callTotalVoDNumber();
-				assertEquals(currentVodNumber + 1, lastVodNumber);
+				Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+					int lastVodNumber = rest.callTotalVoDNumber();
+					log.info("vod number after test {}", lastVodNumber);
+					//2 more VoDs should be added to DB, one is original other one ise 240p mp4 files
+					//480p is not created because original stream is 360p
+					
+					return currentVodNumber +1 == lastVodNumber;
+							
+				});
 			}
 			
 			List<VoD> callGetVoDList = RestServiceTest.callGetVoDList();
