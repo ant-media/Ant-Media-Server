@@ -134,7 +134,7 @@ if [ "$fullChainFileExist" == false ]; then
     fi
 
     #Get certificate
-    sudo certbot certonly --standalone -d $domain
+    $SUDO certbot certonly --standalone -d $domain
     OUT=$?
     if [ $OUT -ne 0 ]; then
       echo -e $ERROR_MESSAGE
@@ -288,4 +288,4 @@ echo "Https port: 5443"
 echo "You can use this url: https://$domain:5443/"
 
 #remove temp dir
-sudo rm -rf $TEMP_DIR
+$SUDO rm -rf $TEMP_DIR
