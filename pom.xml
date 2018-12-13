@@ -178,8 +178,22 @@
         				<argLine>@{argLine} -Xmx750M -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -Djava.library.path=${project.basedir}/../Ant-Media-Server/src/main/server/lib/native</argLine>
     				</configuration>
              </plugin>
-			
-			
+			<plugin>
+				<groupId>com.sebastian-daschner</groupId>
+				<artifactId>jaxrs-analyzer-maven-plugin</artifactId>
+				<version>0.9</version>
+				<executions>
+					<execution>
+						<goals>
+							<goal>analyze-jaxrs</goal>
+						</goals>
+						<configuration>
+							<!-- Available backends are plaintext (default), swagger and asciidoc -->
+							<backend>swagger</backend>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
 			<!-- >>>>>>> master <plugin> <groupId>com.webcohesion.enunciate</groupId> 
 				<artifactId>enunciate-maven-plugin</artifactId> <version>${enunciate.version}</version> 
 				<executions> <execution> <goals> <goal>docs</goal> </goals> <configuration> 

@@ -199,9 +199,22 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	@Override
 	public void streamBroadcastClose(IBroadcastStream stream) {
 
+		
 		String streamName = stream.getPublishedName();
+		vertx.executeBlocking(future -> {
+			try {
+				closeBroadcast(streamName);
+				future.complete(true);
+			}
+			catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+				future.complete(false);
+			}
+		},
+		result -> 
+			logger.info("close broadcast operation for {} is finished with {}", streamName, result.result())
+		);
 
-		closeBroadcast(streamName);
 
 		super.streamBroadcastClose(stream);
 	}
@@ -444,23 +457,18 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		Integer pathLength=Integer.valueOf(subDirs.length);
 		String relativePath= subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
 		String listenerHookURL = null;
-		String streamName = null;
+		String streamName = file.getName();
 
 
 		Broadcast broadcast = getDataStore().get(streamId);
 		if (broadcast != null) {
-			//if it is a stream VoD, than assign stream name, if it is deleted stream Vod name assigned to it already
 			streamName = broadcast.getName();
 			listenerHookURL = broadcast.getListenerHookURL();
 			if (resolution != 0) {
 				streamName = streamName + " (" + resolution + "p)";
 			}
-
-			if(resolution != 0) {
-				streamName = streamName + " (" + resolution + "p)";
-			}
 		}
-		
+
 		String vodId = RandomStringUtils.randomNumeric(24);
 		VoD newVod = new VoD(streamName, streamId, relativePath, vodName, systemTime, duration, fileSize, VoD.STREAM_VOD, vodId);
 
