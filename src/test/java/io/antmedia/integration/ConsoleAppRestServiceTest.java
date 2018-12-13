@@ -44,12 +44,12 @@ import org.slf4j.LoggerFactory;
 import com.google.gson.Gson;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.AppSettingsModel;
 import io.antmedia.EncoderSettings;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.rest.BroadcastRestService;
-import io.antmedia.rest.model.AppSettingsModel;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.User;
 import io.antmedia.test.Application;
@@ -264,28 +264,35 @@ public class ConsoleAppRestServiceTest {
 			// send stream
 			Broadcast broadcastCreated = RestServiceTest.callCreateBroadcast(10000);
 			assertNotNull(broadcastCreated.getStreamId());
-			assertEquals(broadcastCreated.getStatus(), Application.BROADCAST_STATUS_CREATED);
+			assertEquals(Application.BROADCAST_STATUS_CREATED, broadcastCreated.getStatus());
 
 			AppFunctionalTest.executeProcess(ffmpegPath
 					+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
 					+ broadcastCreated.getStreamId());
 
-			Thread.sleep(5000);
-
 			// check stream status is broadcasting
+			Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->
+			{
+				Broadcast broadcast = RestServiceTest.callGetBroadcast(broadcastCreated.getStreamId());
+				return broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+			});
+			
 			Broadcast broadcast = RestServiceTest.callGetBroadcast(broadcastCreated.getStreamId());
-
-			assertEquals(broadcast.getStatus(), AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, broadcast.getStatus());
 
 			// stop stream
 			AppFunctionalTest.destroyProcess();
 
-			Thread.sleep(3000);
+			Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->
+			{
+				Broadcast broadcastTmp = RestServiceTest.callGetBroadcast(broadcastCreated.getStreamId());
+				return broadcastTmp.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+			});
 
 			// check stream status is finished
 			broadcast = RestServiceTest.callGetBroadcast(broadcastCreated.getStreamId());
 
-			assertEquals(broadcast.getStatus(), AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, broadcast.getStatus());
 
 			// restore settings
 			appSettingsModel.setMp4MuxingEnabled(true);
