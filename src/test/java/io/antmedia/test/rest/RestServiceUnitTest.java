@@ -31,8 +31,6 @@ import org.red5.server.scope.Scope;
 import org.springframework.context.ApplicationContext;
 import org.springframework.test.context.ContextConfiguration;
 
-import com.google.protobuf.Any;
-
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.IDataStore;

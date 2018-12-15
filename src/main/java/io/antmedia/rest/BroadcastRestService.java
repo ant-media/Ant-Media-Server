@@ -275,14 +275,31 @@ public class BroadcastRestService {
 
 		boolean result = false;
 		String message = "";
-		IBroadcastStream broadcastStream = getApplication().getBroadcastStream(getScope(), streamId);
-		if (broadcastStream != null) {
-			((IClientBroadcastStream) broadcastStream).getConnection().close();
-			result = true;
-		} else {
-			message = "No active broadcast found with id " + streamId;
 
-			logger.warn("No active broadcast found with id {}", streamId);
+		if (streamId != null) {
+			Broadcast broacast = getDataStore().get(streamId);
+			if (broacast != null) {
+
+				if (broacast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA)||broacast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE)) {
+					result = getApplication().stopStreaming(broacast).isSuccess();
+
+				} else if (broacast.getType().equals(AntMediaApplicationAdapter.LIVE_STREAM)) {
+
+					IBroadcastStream broadcastStream = getApplication().getBroadcastStream(getScope(), streamId);
+					if (broadcastStream != null) {
+						((IClientBroadcastStream) broadcastStream).getConnection().close();
+						result = true;
+						logger.warn("Broadcast stopped, id: {}", streamId);
+
+					} else {
+						message = "No active broadcast found with id " + streamId;
+
+						logger.warn("No active broadcast found with id {}, so could not stopped", streamId);
+					}
+
+				}
+
+			}
 		}
 
 		return new Result(result, message);
@@ -1325,16 +1342,21 @@ public class BroadcastRestService {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result deleteBroadcast(@PathParam("id") String id) {
 		Result result = new Result (false);
+		boolean stopResult = false;
 
 		if (id != null) {
 			Broadcast broacast = getDataStore().get(id);
 			if (broacast != null) {
 				if (broacast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA)||broacast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE)) {
-					getApplication().stopStreaming(broacast);
+					stopResult = getApplication().stopStreaming(broacast).isSuccess();
 
+				} else if (broacast.getType().equals(AntMediaApplicationAdapter.LIVE_STREAM)) {
+
+					stopResult = stopBroadcast(id).isSuccess();
 				}
+
 				result.setSuccess(getDataStore().delete(id));
-				boolean stopResult = stopBroadcast(id).isSuccess();
+
 
 				if(result.isSuccess() && stopResult) {
 					result.setMessage("brodcast is deleted and stopped successfully");

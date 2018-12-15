@@ -44,6 +44,7 @@ import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.rest.BroadcastRestService;
+import io.antmedia.rest.model.Result;
 import io.antmedia.social.endpoint.PeriscopeEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
@@ -754,8 +755,8 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		return streamFetcherManager.startStreaming(broadcast);
 	}
 
-	public void stopStreaming(Broadcast cam) {
-		streamFetcherManager.stopStreaming(cam);
+	public Result stopStreaming(Broadcast broadcast) {
+		return streamFetcherManager.stopStreaming(broadcast);
 	}
 
 	public OnvifCamera getOnvifCamera(String id) {
@@ -775,6 +776,10 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 	public StreamFetcherManager getStreamFetcherManager() {
 		return streamFetcherManager;
+	}
+	
+	public void setStreamFetcherManager(StreamFetcherManager streamFetcherManager) {
+		this.streamFetcherManager = streamFetcherManager;
 	}
 
 	@Override
