@@ -70,7 +70,7 @@ import io.antmedia.storage.StorageClient;
 import io.antmedia.storage.StorageClient.FileType;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 
-@Api(value = "BroadcastRestService", description = "RESTful API to interact broadcasts")
+@Api(value = "BroadcastRestService")
 @SwaggerDefinition(
 		info = @Info(
 				description = "Antmedia Rest Api Doc",
