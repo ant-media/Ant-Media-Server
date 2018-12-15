@@ -220,6 +220,12 @@
             <groupId>io.swagger</groupId>
             <artifactId>swagger-jersey2-jaxrs</artifactId>
             <version>1.5.21</version>
+            <exclusions>
+                <exclusion>
+                    <artifactId>jersey-container-servlet-core</artifactId>
+                    <groupId>org.glassfish.jersey.containers</groupId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>io.antmedia.ipcamera.onvif</groupId>
