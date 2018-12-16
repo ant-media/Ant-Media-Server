@@ -25,7 +25,10 @@ public class AppSettingsManager {
 	private static final String SETTINGS_ADD_DATE_TIME_TO_MP4_FILE_NAME = "settings.addDateTimeToMp4FileName";
 	private static final String SETTINGS_MP4_MUXING_ENABLED = "settings.mp4MuxingEnabled";
 	private static final String SETTINGS_ACCEPT_ONLY_STREAMS_IN_DATA_STORE = "settings.acceptOnlyStreamsInDataStore";
+	private static final String SETTINGS_WEBRTC_ENABLED = "settings.webRTCEnabled";
 
+	
+	
 	private static final Logger log = LoggerFactory.getLogger(AppSettingsManager.class);
 
 	private AppSettingsManager() {
@@ -50,7 +53,7 @@ public class AppSettingsManager {
 			appSettings.setHlsPlayListType(settingsModel.getHlsPlayListType());
 			appSettings.setAcceptOnlyStreamsInDataStore(settingsModel.isAcceptOnlyStreamsInDataStore());
 			appSettings.setTokenControlEnabled(settingsModel.isTokenControlEnabled());
-
+			appSettings.setWebRTCEnabled(settingsModel.isWebRTCEnabled());
 
 			appSettings.setAdaptiveResolutionList(settingsModel.getEncoderSettings());
 
@@ -92,6 +95,7 @@ public class AppSettingsManager {
 		store.put(SETTINGS_ACCEPT_ONLY_STREAMS_IN_DATA_STORE, String.valueOf(appsettings.isAcceptOnlyStreamsInDataStore()));
 		store.put(SETTINGS_OBJECT_DETECTION_ENABLED, String.valueOf(appsettings.isObjectDetectionEnabled()));
 		store.put("settings.tokenControlEnabled", String.valueOf(appsettings.isTokenControlEnabled()));
+		store.put(SETTINGS_WEBRTC_ENABLED, String.valueOf(appsettings.isWebRTCEnabled()));
 
 		if (appsettings.getVodFolder() == null) {
 			store.put(SETTINGS_VOD_FOLDER, "");
@@ -149,6 +153,11 @@ public class AppSettingsManager {
 		if (store.get(SETTINGS_MP4_MUXING_ENABLED) != null) {
 			appSettings.setMp4MuxingEnabled(Boolean.parseBoolean(store.get(SETTINGS_MP4_MUXING_ENABLED)));
 		}
+		
+		if (store.get(SETTINGS_WEBRTC_ENABLED) != null) {
+			appSettings.setWebRTCEnabled(Boolean.parseBoolean(store.get(SETTINGS_WEBRTC_ENABLED)));
+		}
+		
 		if (store.get(SETTINGS_ADD_DATE_TIME_TO_MP4_FILE_NAME) != null) {
 			appSettings.setAddDateTimeToMp4FileName(Boolean.parseBoolean(store.get(SETTINGS_ADD_DATE_TIME_TO_MP4_FILE_NAME)));
 		}
