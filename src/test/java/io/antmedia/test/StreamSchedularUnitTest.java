@@ -433,8 +433,6 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			return streamFetcher.isThreadActive();
 		});
 
-
-		
 		//just delete broadcast instead of calling stop
 		Result result = service.stopBroadcast(newCam.getStreamId());
 
