@@ -97,8 +97,8 @@ deploy:
     name: "Ant Media Server Community $(date +'%F-%T')"
     prerelease: true
     on:
-      #deploy to github if it is master branch and tagged
+      #deploy to github if it is a release tagged
       tags: true
-      branch: master
+      condition: $TRAVIS_TAG =~ ^release
       
 #above configuration prevents deploying a new release(not snapshot) if it is not tagged       
