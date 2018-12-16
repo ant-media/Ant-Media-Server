@@ -82,7 +82,7 @@ deploy:
       condition:  $(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)  = *"SNAPSHOT"* 
   
   - provider: script
-    script: "mvn deploy -P assemble -DskipTests --quiet --settings mvn-settings.xml && curl -g --ftp-create-dirs -T target/jaxrs-analyzer/swagger.json -u $SWAGGER_FTP_USERNAME:$SWAGGER_FTP_PASSWORD $SWAGGER_FTP_URL"
+    script: "mvn deploy -P assemble -DskipTests --quiet --settings mvn-settings.xml && curl -g --ftp-create-dirs -T target/swagger/swagger.json -u $SWAGGER_FTP_USERNAME:$SWAGGER_FTP_PASSWORD $SWAGGER_FTP_URL"
     skip_cleanup: true
     on:
       #deploy to maven if it is master branch and tagged
