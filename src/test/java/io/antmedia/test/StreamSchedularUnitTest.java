@@ -325,7 +325,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		getAppSettings().setDeleteHLSFilesOnEnded(false);
 
 		//create a test db
-		IDataStore dataStore = new MapDBStore("target/testStop.db"); 
+		IDataStore dataStore = new MapDBStore("target/testDelete.db"); 
 		service.setDataStore(dataStore);
 		
 		//create a stream fetcher
