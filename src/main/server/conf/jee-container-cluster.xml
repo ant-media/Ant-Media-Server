@@ -25,7 +25,7 @@
 		name="protocol" value="org.apache.coyote.http11.Http11NioProtocol" /> -->
 
  
-	<bean id="tomcat.cluster" class="io.antmedia.enterprise.cluster.TcpCluster">
+	<bean id="tomcat.cluster" class="io.antmedia.enterprise.cluster.TcpCluster" init-method="initDBCluster">
 		<constructor-arg>
 			<list>
 				<bean class="org.apache.catalina.ha.tcp.ReplicationValve">
@@ -38,6 +38,7 @@
 			<list>
 				<bean name="deltaManager" class="org.apache.catalina.ha.session.DeltaManager">
 					<property name="name" value="deltaManager" />
+					<property name="stateTransferTimeout" value="5" />
 					<property name="expireSessionsOnShutdown" value="false" />
 					<property name="notifyListenersOnReplication" value="true" />
 				</bean>
@@ -46,17 +47,25 @@
 		<constructor-arg>
 			<list>
 				<bean class="io.antmedia.enterprise.cluster.ClusterMessageListener" />
+				<bean class="org.apache.catalina.ha.session.ClusterSessionListener" />
 			</list>
 		</constructor-arg>
+		<property name="channelStartOptions" value="3" />
 		<property name="clusterName" value="ant-media-server-cluster-1" />
+		<property name="clusterStore">
+			<bean class="io.antmedia.enterprise.cluster.ClusterStore">
+				<constructor-arg value="${clusterdb.host}" />
+				<constructor-arg value="${clusterdb.user}" />
+				<constructor-arg value="${clusterdb.password}" />
+			</bean>
+		</property>
+		
 		<property name="channel">
 			<bean class="io.antmedia.enterprise.cluster.ClusterGroupChannel">
 				<constructor-arg>
 					<list>
 					
-					    <!-- open it when you use static members
-					      <bean class="org.apache.catalina.tribes.group.interceptors.TcpPingInterceptor" />
-					     -->
+					    <bean class="org.apache.catalina.tribes.group.interceptors.TcpPingInterceptor" />
 						<bean
 							class="org.apache.catalina.tribes.group.interceptors.TcpFailureDetector" />
 						<bean
@@ -65,10 +74,11 @@
 							class="org.apache.catalina.tribes.group.interceptors.ThroughputInterceptor" />
 							
 							
-						<!-- open it when you use static members
+						
 						<bean class="io.antmedia.enterprise.cluster.EasyStaticMemberInterceptor" >
 							<constructor-arg>
 									<list>
+									<!-- open it when you use static members
 									  <bean class="org.apache.catalina.tribes.membership.StaticMember" >
 									    <property name="port" value="5000" />
 										<property name="securePort" value="-1" />
@@ -76,10 +86,10 @@
 										<property name="domain" value="cluster-antmedia" />
 										<property name="uniqueId" value="{10,0,10,227}" />
     									 </bean>
+									-->
 									</list>
 							</constructor-arg>
 						</bean>	
-						-->
 					</list>
 				</constructor-arg>
 				<constructor-arg>
@@ -92,14 +102,19 @@
 						<bean class="io.antmedia.enterprise.cluster.ClusterChannelListener" />
 					</list>
 				</constructor-arg>
+				<!--
 				<property name="membershipService">
+ 
 					<bean class="org.apache.catalina.tribes.membership.McastService">
 						<property name="address" value="228.0.0.4" />
 						<property name="port" value="45564" />
 						<property name="frequency" value="500" />
 						<property name="dropTime" value="3000" />
 					</bean>
+								
+					<bean class="io.antmedia.enterprise.cluster.DBMembershipService"/>
 				</property>
+				-->
 				<property name="channelSender">
 					<bean class="org.apache.catalina.tribes.transport.ReplicationTransmitter">
 						<property name="transport">
@@ -162,11 +177,7 @@
 					<property name="rotatable" value="true" />
 				</bean>
 				 
-				<bean id="valve.cluster" class="io.antmedia.enterprise.cluster.HttpLiveStreamValve"> 
-					<property name="cluster" ref="tomcat.cluster" /> </bean>
-					
-				
-					
+				<bean id="valve.cluster" class="io.antmedia.enterprise.cluster.HttpLiveStreamValve"/> 
 			</list>
 		</property>
 
@@ -215,32 +226,6 @@
 				<bean class="org.apache.catalina.core.StandardHost"> <property name="name" value="${http.host}" /></bean> 
 			</property> 
 		</bean> -->
-		
-	<!-- This entry enabled websocket support on port 8081 at localhost -->
-	<bean id="webSocketTransport" class="org.red5.net.websocket.WebSocketTransport">
-		<property name="addresses">
-			<list>
-				<value>${ws.host}:${ws.port}</value>
-			</list>
-		</property>
-	</bean>
-	
-	<!--  
-	<bean id="webSocketTransportSecure" class="org.red5.net.websocket.WebSocketTransport">
-        <property name="secureConfig">
-            <bean id="webSocketSecureConfig" class="org.red5.net.websocket.SecureWebSocketConfiguration">
-                <property name="keystoreFile" value="${rtmps.keystorefile}"/>
-                <property name="keystorePassword" value="${rtmps.keystorepass}"/>
-                <property name="truststoreFile" value="${rtmps.truststorefile}"/>
-                <property name="truststorePassword" value="${rtmps.truststorepass}"/>
-            </bean>
-        </property>
-        <property name="addresses">
-            <list>
-                <value>${wss.host}:${wss.port}</value>
-            </list>
-        </property>
-    </bean>
-    -->
+
 
 </beans>

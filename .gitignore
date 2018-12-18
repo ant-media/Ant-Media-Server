@@ -14,3 +14,14 @@ log/
 temp/
 /hs_err_pid23198.log
 /webapps/
+/testdb
+/linux_signing_key.pub
+
+*.iml
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/gradle.xml
+.idea/assetWizardSettings.xml
+.idea/dictionaries
+.idea/libraries
+.idea/caches

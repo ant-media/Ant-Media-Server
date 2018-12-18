@@ -1,6 +1,7 @@
 language: java
 jdk:
   - openjdk8
+node_js: "8.12.0"
 
 sudo: required
 
@@ -12,7 +13,7 @@ addons:
 
 #travis running  on ubuntu 14.04
 
-before_install: 
+before_install:
   - openssl aes-256-cbc -K $encrypted_5fef4fa28306_key -iv $encrypted_5fef4fa28306_iv -in codesigning.asc.enc -out codesigning.asc -d
   - gpg --fast-import codesigning.asc
   - sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 2930ADAE8CAF5059EE73BB4B58712A2291FA4AD5
@@ -24,10 +25,17 @@ before_install:
   - sudo service mongod start  # start mongo db
   - sudo apt-get install wondershaper
   - sudo git clone --depth=1 https://github.com/ant-media/utilities.git /usr/local/onvif
-  - (if [ $(git ls-remote https://github.com/ant-media/Ant-Media-Server-Common.git $TRAVIS_BRANCH  | wc -l) == "1" ];  then echo " $TRAVIS_BRANCH branch found";  git clone --depth=1 -b $TRAVIS_BRANCH https://github.com/ant-media/Ant-Media-Server-Common.git;  else echo "branch not found"; git clone --depth=1 -b dev https://github.com/ant-media/Ant-Media-Server-Common.git;  fi)
+  - (if [ $(git ls-remote https://github.com/ant-media/Ant-Media-Server-Common.git $TRAVIS_BRANCH  | wc -l) == "1" ];  
+      then 
+       echo " $TRAVIS_BRANCH branch found";  
+       git clone --depth=1 -b $TRAVIS_BRANCH https://github.com/ant-media/Ant-Media-Server-Common.git;  
+      else
+       echo "branch not found"; 
+       git clone --depth=1 https://github.com/ant-media/Ant-Media-Server-Common.git;  
+     fi)
   - cd Ant-Media-Server-Common
-  - mvn clean install -DskipTests -Dmaven.javadoc.skip=true -Dgpg.skip=true --quiet 
-  - cd ..
+  - mvn clean install -DskipTests -Dmaven.javadoc.skip=true -Dgpg.skip=true --quiet
+  - cd ..  
   - git clone --depth=1 https://github.com/ant-media/red5-plugins.git && cd red5-plugins/tomcat/ && mvn clean install -Dmaven.javadoc.skip=true -Dmaven.test.skip=true --quiet && cd ../..
   - mvn clean package -U -P assemble -Dmaven.javadoc.skip=true -Dmaven.test.skip=true -DskipTests=true --quiet 
   - wget https://raw.githubusercontent.com/ant-media/Scripts/master/install_ant-media-server.sh -O target/install_ant-media-server.sh  # install script
@@ -47,7 +55,7 @@ before_install:
 
 
 install:
-  - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -Dgpg.skip=true -B -V --quiet 
+  - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -Dgpg.skip=true -B -V --quiet
 
 script:
   - echo $(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)
@@ -74,7 +82,7 @@ deploy:
       condition:  $(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)  = *"SNAPSHOT"* 
   
   - provider: script
-    script: "mvn deploy -P assemble -DskipTests --quiet --settings mvn-settings.xml"
+    script: "mvn deploy -P assemble -DskipTests --quiet --settings mvn-settings.xml && curl -g --ftp-create-dirs -T target/swagger/swagger.json -u $SWAGGER_FTP_USERNAME:$SWAGGER_FTP_PASSWORD $SWAGGER_FTP_URL"
     skip_cleanup: true
     on:
       #deploy to maven if it is master branch and tagged
@@ -89,8 +97,8 @@ deploy:
     name: "Ant Media Server Community $(date +'%F-%T')"
     prerelease: true
     on:
-      #deploy to github if it is master branch and tagged
+      #deploy to github if it is a release tagged
       tags: true
-      branch: master
+      condition: $TRAVIS_TAG =~ ^release
       
 #above configuration prevents deploying a new release(not snapshot) if it is not tagged       

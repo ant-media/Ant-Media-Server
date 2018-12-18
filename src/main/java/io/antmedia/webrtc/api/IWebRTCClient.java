@@ -1,5 +1,7 @@
 package io.antmedia.webrtc.api;
 
+import java.nio.ByteBuffer;
+
 import org.webrtc.IceCandidate;
 import org.webrtc.SessionDescription;
 
@@ -14,14 +16,14 @@ public interface IWebRTCClient {
 	 * @param videoPacket
 	 * @param isKeyFrame
 	 */
-	public void sendVideoPacket(byte[] videoPacket, boolean isKeyFrame, long timestamp);
+	public void sendVideoPacket(ByteBuffer videoPacket, boolean isKeyFrame, long timestamp);
 	
 	
 	/**
 	 * Send audio packet to connected client
 	 * @param audioPacket
 	 */
-	public void sendAudioPacket(byte[] audioPacket, long timestamp);
+	public void sendAudioPacket(ByteBuffer audioPacket, long timestamp);
 	
 	
 	
@@ -33,11 +35,8 @@ public interface IWebRTCClient {
 	public void setRemoteDescription(SessionDescription sdp);
 	
 	public void addIceCandidate(IceCandidate iceCandidate);
-
-
-	void sendVideoConfPacket(byte[] videoConfData, byte[] videoPacket, long timestamp);
 	
-	void setVideoResolution(int width, int height);
+	public void setVideoResolution(int width, int height);
 
 
 	public void setWebRTCMuxer(IWebRTCMuxer webRTCMuxer);
@@ -67,25 +66,25 @@ public interface IWebRTCClient {
 	 * Return the period of send video period in milliseconds
 	 * @return
 	 */
-	double getVideoFrameSentPeriod();
+	float getVideoFrameSentPeriod();
 	
 	/**
 	 * Return the period of send audio period in milliseconds
 	 * @return
 	 */
-	double getAudioFrameSentPeriod();
+	float getAudioFrameSentPeriod();
 	
 	/**
 	 * Return the period of entering audio thread interval in milliseconds
 	 * @return
 	 */
-	double getAudioThreadCheckInterval();
+	float getAudioThreadCheckInterval();
 	
 	/**
 	 * Return the priod of entering video thread interval in milliseconds
 	 * @return
 	 */
-	double getVideoThreadCheckInterval();
+	float getVideoThreadCheckInterval();
 
 	
 }

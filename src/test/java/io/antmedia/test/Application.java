@@ -17,12 +17,13 @@ public class Application extends AntMediaApplicationAdapter implements IAntMedia
 	public static String notifyStreamName = null;
 	public static String notifyCategory = null;
 	public static String notifyVodName = null;
-	
+
 	public static boolean enableSourceHealthUpdate = false;
+	public static String notifyVodId = null;
 
 	@Override
-	public void muxingFinished(String id, File file, long duration) {
-		super.muxingFinished(id, file, duration);
+	public void muxingFinished(String id, File file, long duration, int resolution) {
+		super.muxingFinished(id, file, duration, resolution);
 		Application.id = id;
 		Application.file = file;
 		Application.duration = duration;
@@ -41,23 +42,25 @@ public class Application extends AntMediaApplicationAdapter implements IAntMedia
 
 	}
 
-	public StringBuffer notifyHook(String url, String id, String action, String streamName, String category,
-			String vodName) {
+	@Override
+	public StringBuilder notifyHook(String url, String id, String action, String streamName, String category,
+			String vodName, String vodId) {
 		notifyHookAction = action;
 		notitfyURL = url;
 		notifyId = id;
 		notifyStreamName = streamName;
 		notifyCategory = category;
 		notifyVodName = vodName;
+		notifyVodId  = vodId;
 
 		return null;
 	}
-	
+
 	@Override
 	public void setQualityParameters(String id, String quality, double speed, int pendingPacketSize) {
 		if (enableSourceHealthUpdate) {
-		super.setQualityParameters(id, quality, speed, pendingPacketSize);
+			super.setQualityParameters(id, quality, speed, pendingPacketSize);
 		}
 	}
-	
+
 }

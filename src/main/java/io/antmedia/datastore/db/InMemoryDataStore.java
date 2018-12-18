@@ -6,34 +6,35 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.regex.Pattern;
+import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
+
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.gson.Gson;
-
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.cluster.StreamInfo;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.TensorFlowObject;
-import io.antmedia.datastore.db.types.Vod;
+import io.antmedia.datastore.db.types.Token;
+import io.antmedia.datastore.db.types.VoD;
+import io.antmedia.muxer.MuxAdaptor;
 
 public class InMemoryDataStore implements IDataStore {
 
 
 	protected static Logger logger = LoggerFactory.getLogger(InMemoryDataStore.class);
-
-	public LinkedHashMap<String, Broadcast> broadcastMap = new LinkedHashMap<String, Broadcast>();
-
-	public LinkedHashMap<String, Vod> vodMap = new LinkedHashMap<String, Vod>();
-
-	public LinkedHashMap<String, List<TensorFlowObject>> detectionMap = new LinkedHashMap<String, List<TensorFlowObject>>();
-
-	public LinkedHashMap<String, SocialEndpointCredentials> socialEndpointCredentialsMap = new LinkedHashMap<String, SocialEndpointCredentials>();
+	private Map<String, Broadcast> broadcastMap = new LinkedHashMap<>();
+	private Map<String, VoD> vodMap = new LinkedHashMap<>();
+	private Map<String, List<TensorFlowObject>> detectionMap = new LinkedHashMap<>();
+	private Map<String, SocialEndpointCredentials> socialEndpointCredentialsMap = new LinkedHashMap<>();
+	private Map<String, Token> tokenMap = new LinkedHashMap<>();
 
 
 	public InMemoryDataStore(String dbName) {
@@ -61,7 +62,7 @@ public class InMemoryDataStore implements IDataStore {
 				}
 				broadcastMap.put(streamId, broadcast);
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.error(e.getMessage());
 				streamId = null;
 			}
 
@@ -73,6 +74,11 @@ public class InMemoryDataStore implements IDataStore {
 	public Broadcast get(String id) {
 
 		return broadcastMap.get(id);
+	}
+
+	@Override
+	public VoD getVoD(String id) {
+		return vodMap.get(id);
 	}
 
 	@Override
@@ -138,8 +144,8 @@ public class InMemoryDataStore implements IDataStore {
 			List<Endpoint> endPointList = broadcast.getEndPointList();
 			if (endPointList != null) {
 				for (Iterator<Endpoint> iterator = endPointList.iterator(); iterator.hasNext();) {
-					Endpoint endpointItem = (Endpoint) iterator.next();
-					if (endpointItem.rtmpUrl.equals(endpoint.rtmpUrl)) {
+					Endpoint endpointItem = iterator.next();
+					if (endpointItem.getRtmpUrl().equals(endpoint.getRtmpUrl())) {
 						iterator.remove();
 						result = true;
 						break;
@@ -168,8 +174,8 @@ public class InMemoryDataStore implements IDataStore {
 		}
 		return activeBroadcastCount;
 	}
-	
-	
+
+
 	@Override
 	public boolean delete(String id) {
 		Broadcast broadcast = broadcastMap.get(id);
@@ -192,7 +198,7 @@ public class InMemoryDataStore implements IDataStore {
 		if (offset < 0) {
 			offset = 0;
 		}
-		List<Broadcast> list = new ArrayList<Broadcast>();
+		List<Broadcast> list = new ArrayList<>();
 		for (Broadcast broadcast : values) {
 
 			if (t < offset) {
@@ -217,7 +223,7 @@ public class InMemoryDataStore implements IDataStore {
 	public List<Broadcast> getExternalStreamsList() {
 		Collection<Broadcast> values = broadcastMap.values();
 
-		List<Broadcast> streamsList = new ArrayList<Broadcast>();
+		List<Broadcast> streamsList = new ArrayList<>();
 		for (Broadcast broadcast : values) {
 			String type = broadcast.getType();
 
@@ -230,8 +236,7 @@ public class InMemoryDataStore implements IDataStore {
 
 	@Override
 	public void close() {
-		// TODO Auto-generated method stub
-
+		//no need to implement 
 	}
 
 	@Override
@@ -270,30 +275,32 @@ public class InMemoryDataStore implements IDataStore {
 	}
 
 	@Override
-	public String addVod(Vod vod) {
+	public String addVod(VoD vod) {
 		String id = null;
 		boolean result = false;
 
 		if (vod != null) {
 			try {
+				if (vod.getVodId() == null) {
+					vod.setVodId(RandomStringUtils.randomNumeric(24));
+				}
 				vodMap.put(vod.getVodId(),vod);
 				result = true;
 
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.error(e.getMessage());
 			}
 		}
-		
+
 		if(result) {
-			
 			id = vod.getVodId();
 		}
 		return id;
 	}
 
 	@Override
-	public List<Vod> getVodList(int offset, int size) {
-		Collection<Vod> values = vodMap.values();
+	public List<VoD> getVodList(int offset, int size) {
+		Collection<VoD> values = vodMap.values();
 		int t = 0;
 		int itemCount = 0;
 		if (size > MAX_ITEM_IN_ONE_LIST) {
@@ -302,17 +309,19 @@ public class InMemoryDataStore implements IDataStore {
 		if (offset < 0) {
 			offset = 0;
 		}
-		List<Vod> list = new ArrayList<>();
-		for (Vod vodString : values) {
+		List<VoD> list = new ArrayList<>();
+
+		for (VoD vodString : values) {
 			if (t < offset) {
 				t++;
-				continue;
 			}
-			list.add(vodString);
-			itemCount++;
+			else {
+				list.add(vodString);
+				itemCount++;
 
-			if (itemCount >= size) {
-				break;
+				if (itemCount >= size) {
+					break;
+				}
 			}
 
 		}
@@ -323,8 +332,7 @@ public class InMemoryDataStore implements IDataStore {
 
 	@Override
 	public boolean deleteVod(String id) {
-		boolean result = vodMap.remove(id) != null;
-		return result;
+		return vodMap.remove(id) != null;
 	}
 
 
@@ -357,11 +365,11 @@ public class InMemoryDataStore implements IDataStore {
 		 * Delete all user vod in db
 		 */
 		int numberOfSavedFiles = 0;
-		Collection<Vod> vodCollection = vodMap.values();
+		Collection<VoD> vodCollection = vodMap.values();
 
 		for (Iterator iterator = vodCollection.iterator(); iterator.hasNext();) {
-			Vod vod = (Vod) iterator.next();
-			if (vod.getType().equals(Vod.USER_VOD)) {
+			VoD vod = (VoD) iterator.next();
+			if (vod.getType().equals(VoD.USER_VOD)) {
 				iterator.remove();
 			}
 		}
@@ -380,19 +388,17 @@ public class InMemoryDataStore implements IDataStore {
 					long fileSize = file.length();
 					long unixTime = System.currentTimeMillis();
 
-					String filePath=file.getPath();
+					String filePath = file.getPath();
 
 					String[] subDirs = filePath.split(Pattern.quote(File.separator));
 
-					Integer pathLength=Integer.valueOf(subDirs.length);
-
-					String relativePath=subDirs[pathLength-3]+'/'+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
+					String relativePath= "streams/" + subDirs[subDirs.length-2] +'/' +subDirs[subDirs.length-1];
 
 					String vodId = RandomStringUtils.randomNumeric(24);
-					Vod newVod = new Vod("vodFile", "vodFile", relativePath, file.getName(), unixTime, 0, fileSize,
-							Vod.USER_VOD,vodId);
+					VoD newVod = new VoD("vodFile", "vodFile", relativePath, file.getName(), unixTime, 0, fileSize,
+							VoD.USER_VOD, vodId);
 
-					addUserVod(newVod);
+					addVod(newVod);
 					numberOfSavedFiles++;
 				}
 			}
@@ -401,25 +407,7 @@ public class InMemoryDataStore implements IDataStore {
 		return numberOfSavedFiles;
 	}
 
-	@Override
-	public boolean addUserVod(Vod vod) {
-		String vodId = null;
-		boolean result = false;
 
-		if (vod != null) {
-			try {
-				vodId = RandomStringUtils.randomNumeric(24);
-				vod.setVodId(vodId);
-				vodMap.put(vodId, vod);
-				result = true;
-
-			} catch (Exception e) {
-				e.printStackTrace();
-
-			}
-		}
-		return result;
-	}
 
 
 	@Override
@@ -438,7 +426,7 @@ public class InMemoryDataStore implements IDataStore {
 		return result;
 	}
 
-	
+
 	public SocialEndpointCredentials addSocialEndpointCredentials(SocialEndpointCredentials credentials) {
 		SocialEndpointCredentials addedCredential = null;
 		if (credentials != null && credentials.getAccountName() != null && credentials.getAccessToken() != null
@@ -543,14 +531,14 @@ public class InMemoryDataStore implements IDataStore {
 		}
 		return list;
 	}
-	
+
 	@Override
 
 	public long getObjectDetectedTotal(String id) {
-	
+
 		List<TensorFlowObject> list = new ArrayList<>();
 		Set<String> keySet = detectionMap.keySet();
-		
+
 		for(String keyValue: keySet) {
 			if (keyValue.startsWith(id)) 
 			{
@@ -583,7 +571,7 @@ public class InMemoryDataStore implements IDataStore {
 			oldBroadcast.setPassword(broadcast.getPassword());
 			oldBroadcast.setIpAddr(broadcast.getIpAddr());
 			oldBroadcast.setStreamUrl(broadcast.getStreamUrl());
-			
+
 			broadcastMap.replace(oldBroadcast.getStreamId(), oldBroadcast);
 
 			result = true;
@@ -593,14 +581,17 @@ public class InMemoryDataStore implements IDataStore {
 
 		return result;
 	}
-	
+
 	@Override
-	public boolean updateHLSViewerCount(String streamId, int viewerCount) {
+	public synchronized boolean updateHLSViewerCount(String streamId, int diffCount) {
 		boolean result = false;
 		if (streamId != null) {
 			Broadcast broadcast = broadcastMap.get(streamId);
 			if (broadcast != null) {
-				broadcast.setHlsViewerCount(viewerCount);
+				int hlsViewerCount = broadcast.getHlsViewerCount();
+				hlsViewerCount += diffCount;
+
+				broadcast.setHlsViewerCount(hlsViewerCount);
 				broadcastMap.replace(streamId, broadcast);
 				result = true;
 			}
@@ -608,8 +599,169 @@ public class InMemoryDataStore implements IDataStore {
 		return result;
 	}
 
+	@Override
+	public synchronized boolean updateWebRTCViewerCount(String streamId, boolean increment) {
+		boolean result = false;
+		if (streamId != null) {
+			Broadcast broadcast = broadcastMap.get(streamId);
+			if (broadcast != null) {
+				int webRTCViewerCount = broadcast.getWebRTCViewerCount();
+				if (increment) {
+					webRTCViewerCount++;
+				}
+				else  {
+					webRTCViewerCount--;
+				}
+
+				broadcast.setWebRTCViewerCount(webRTCViewerCount);
+				broadcastMap.replace(streamId, broadcast);
+				result = true;
+			}
+		}
+		return result;
+	}
+
+	@Override
+	public synchronized boolean updateRtmpViewerCount(String streamId, boolean increment) {
+		boolean result = false;
+		if (streamId != null) {
+			Broadcast broadcast = broadcastMap.get(streamId);
+			if (broadcast != null) {
+				int rtmpViewerCount = broadcast.getRtmpViewerCount();
+				if (increment) {
+					rtmpViewerCount++;
+				}
+				else  {
+					rtmpViewerCount--;
+				}
+
+				broadcast.setRtmpViewerCount(rtmpViewerCount);
+				broadcastMap.replace(streamId, broadcast);
+				result = true;
+			}
+		}
+		return result;
+	}
+
+	@Override
+	public boolean saveToken(Token token) {
+		boolean result = false;
+		if(token.getStreamId() != null && token.getTokenId() != null) {
+
+			try {
+
+				tokenMap.put(token.getTokenId(), token);
+				result = true;
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+
+		return result;
+	}
+
+	@Override
+	public Token validateToken(Token token) {
+		Token fetchedToken = null;
+		if (token.getTokenId() != null) {
+			fetchedToken = tokenMap.get(token.getTokenId());
+			if (fetchedToken != null && fetchedToken.getStreamId().equals(token.getStreamId()) && fetchedToken.getType().equals(token.getType())) {
+				tokenMap.remove(token.getTokenId());
+				return fetchedToken;
+			}else {
+				fetchedToken = null;
+			}
+		}
+		return fetchedToken;
+	}
+
+	@Override
+	public boolean revokeTokens(String streamId) {
+		boolean result = false;
+		Collection<Token> tokenCollection = tokenMap.values();
+
+		for (Iterator iterator = tokenCollection.iterator(); iterator.hasNext();) {
+			Token token = (Token) iterator.next();
+			if (token.getStreamId().equals(streamId)) {
+				iterator.remove();
+				tokenMap.remove(token.getTokenId());
+			}
+			result = true;
+
+		}
+		return result;
+	}
+
+	@Override
+	public List<Token> listAllTokens(String streamId, int offset, int size) {
+
+		List<Token> list = new ArrayList<>();
+		List<Token> returnList = new ArrayList<>();
+
+		Collection<Token> values = tokenMap.values();
+		int t = 0;
+		int itemCount = 0;
+		if (size > MAX_ITEM_IN_ONE_LIST) {
+			size = MAX_ITEM_IN_ONE_LIST;
+		}
+		if (offset < 0) {
+			offset = 0;
+		}
 
 
+		for(Token token: values) {
+			if (token.getStreamId().equals(streamId)) {
+				list.add(token);
+			}
+		}
 
 
+		Iterator<Token> iterator = list.iterator();
+
+		while(itemCount < size && iterator.hasNext()) {
+			if (t < offset) {
+				t++;
+				iterator.next();
+			}
+			else {
+
+				returnList.add(iterator.next());
+				itemCount++;
+			}
+		}
+
+		return returnList;
+	}
+
+
+	@Override
+	public void addStreamInfoList(List<StreamInfo> streamInfoList) {
+		//used in mongo for cluster mode. useless here.
+
+
+	}
+
+	public List<StreamInfo> getStreamInfoList(String streamId) {
+		return new ArrayList<>();
+	}
+
+	public void clearStreamInfoList(String streamId) {
+		//used in mongo for cluster mode. useless here.
+	}
+
+	@Override
+	public boolean setMp4Muxing(String streamId, int enabled) {
+		boolean result = false;
+
+		if (streamId != null) {
+			Broadcast broadcast = broadcastMap.get(streamId);
+			if (broadcast != null && (enabled == MuxAdaptor.MP4_ENABLED_FOR_STREAM || enabled == MuxAdaptor.MP4_NO_SET_FOR_STREAM || enabled == MuxAdaptor.MP4_DISABLED_FOR_STREAM)) {
+				broadcast.setMp4Enabled(enabled);
+				broadcastMap.replace(streamId, broadcast);
+				result = true;
+			}
+		}
+
+		return result;
+	}
 }

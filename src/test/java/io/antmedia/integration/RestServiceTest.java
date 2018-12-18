@@ -1,7 +1,5 @@
 package io.antmedia.integration;
 
-import static org.bytedeco.javacpp.avformat.av_register_all;
-import static org.bytedeco.javacpp.avformat.avformat_network_init;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -13,8 +11,6 @@ import static org.junit.Assert.fail;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -28,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 import javax.servlet.ServletContext;
 import javax.ws.rs.core.Context;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
@@ -40,18 +37,17 @@ import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.methods.RequestBuilder;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.entity.mime.HttpMultipartMode;
-import org.apache.http.entity.mime.MultipartEntity;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
-import org.apache.http.entity.mime.content.ContentBody;
 import org.apache.http.entity.mime.content.FileBody;
-import org.apache.http.entity.mime.content.StringBody;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.client.LaxRedirectStrategy;
 import org.apache.http.message.BasicNameValuePair;
-import org.apache.http.entity.ContentType;
-import org.apache.http.entity.FileEntity;
-
+import org.apache.maven.model.Model;
+import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
+import org.awaitility.Awaitility;
+import org.bytedeco.javacpp.avformat;
+import org.bytedeco.javacpp.avutil;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -72,28 +68,16 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
+import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.BroadcastRestService.BroadcastStatistics;
 import io.antmedia.rest.BroadcastRestService.LiveStatistics;
-import io.antmedia.rest.StreamsSourceRestService;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.Version;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
-import io.antmedia.test.MuxerUnitTest;
-import io.antmedia.test.StreamSchedularUnitTest;
-import org.apache.maven.model.Model;
-import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
-import org.awaitility.Awaitility;
-import org.bytedeco.javacpp.avformat;
-import org.bytedeco.javacpp.avutil;
-import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
-
-
-import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 
 public class RestServiceTest {
 
@@ -347,7 +331,7 @@ public class RestServiceTest {
 			System.out.println("result string: " + result.toString());
 			Broadcast tmp2 = gson.fromJson(result.toString(), Broadcast.class);
 			assertNotNull(tmp2);
-			assertEquals(tmp2.getStreamId(), null);
+			assertEquals(null, tmp2.getStreamId());
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -359,7 +343,7 @@ public class RestServiceTest {
 	public void testBroadcasGetUnknown() {
 		Broadcast tmp2 = getBroadcast("dsfsfsfs");
 		assertNotNull(tmp2);
-		assertEquals(tmp2.getStreamId(), null);
+		assertEquals(null, tmp2.getStreamId());
 
 	}
 
@@ -457,7 +441,7 @@ public class RestServiceTest {
 			System.out.println("result string: " + result.toString());
 			Broadcast tmp2 = gson.fromJson(result.toString(), Broadcast.class);
 			assertNotNull(tmp2);
-			assertEquals(tmp2.getStreamId(), null);
+			assertEquals(null, tmp2.getStreamId());
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -488,7 +472,31 @@ public class RestServiceTest {
 		System.out.println("result string: " + result.toString());
 		Broadcast tmp = gson.fromJson(result.toString(), Broadcast.class);
 		assertNotNull(tmp);
-		assertNotSame(tmp.getDate(), 0L);
+		assertNotSame(0L, tmp.getDate());
+
+		return tmp;
+
+	}
+	
+	public static Result callEnableMp4Muxing(String streamId, int mode) throws Exception {
+
+		String url = ROOT_SERVICE_URL + "/broadcast/enableMp4Muxing?id="+ streamId + "&enableMp4=" + mode;
+
+		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+
+
+		HttpUriRequest post = RequestBuilder.get().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json").build();
+
+		HttpResponse response = client.execute(post);
+
+		StringBuffer result = readResponse(response);
+
+		if (response.getStatusLine().getStatusCode() != 200) {
+			throw new Exception(result.toString());
+		}
+		System.out.println("result string: " + result.toString());
+		Result tmp = gson.fromJson(result.toString(), Result.class);
+		assertNotNull(tmp);
 
 		return tmp;
 
@@ -515,7 +523,7 @@ public class RestServiceTest {
 		System.out.println("result string: " + result.toString());
 		Broadcast tmp = gson.fromJson(result.toString(), Broadcast.class);
 		assertNotNull(tmp);
-		assertNotSame(tmp.getDate(), 0L);
+		assertNotSame(0L, tmp.getDate());
 
 		return tmp;
 
@@ -577,6 +585,36 @@ public class RestServiceTest {
 
 	}
 
+	
+	public  int callTotalVoDNumber() throws Exception {
+
+		String url = ROOT_SERVICE_URL + "/broadcast/getTotalVodNumber";
+		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+		Gson gson = new Gson();
+
+		HttpUriRequest get = RequestBuilder.get().setUri(url)
+				.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+				// .setEntity(new StringEntity(gson.toJson(broadcast)))
+				.build();
+		CloseableHttpResponse response = client.execute(get);
+		
+		StringBuffer result = readResponse(response);
+
+		if (response.getStatusLine().getStatusCode() != 200) {
+			throw new Exception(result.toString());
+		}
+		System.out.println("result string: " + result.toString());
+
+
+		if (response.getStatusLine().getStatusCode() != 200) {
+			throw new Exception(result.toString());
+		}
+		logger.info("result string: {} ",result.toString());
+		
+		return gson.fromJson(result.toString(),Integer.class);
+
+	}
+	
 	public static Result callUpdateStreamSource(Broadcast broadcast) throws Exception {
 
 		String url = ROOT_SERVICE_URL + "/streamSource/updateCamInfo";
@@ -738,6 +776,74 @@ public class RestServiceTest {
 		}
 		return null;
 	}
+	
+	public static List<VoD> callGetVoDList() {
+		try {
+
+			String url = ROOT_SERVICE_URL + "/broadcast/getVodList/0/50";
+
+			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+			// Gson gson = new Gson();
+			// Broadcast broadcast = null; //new Broadcast();
+			// broadcast.name = "name";
+
+			HttpUriRequest get = RequestBuilder.get().setUri(url)
+					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+					// .setEntity(new StringEntity(gson.toJson(broadcast)))
+					.build();
+
+			CloseableHttpResponse response = client.execute(get);
+
+			StringBuffer result = readResponse(response);
+
+			if (response.getStatusLine().getStatusCode() != 200) {
+				throw new Exception(result.toString());
+			}
+			System.out.println("Get vod list string: " + result.toString());
+			Type listType = new TypeToken<List<VoD>>() {
+			}.getType();
+
+			return gson.fromJson(result.toString(), listType);
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+	public VoD callGetVoD(String id) {
+		try {
+
+			String url = ROOT_SERVICE_URL + "/broadcast/getVoD?id="+id;
+
+			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+			// Gson gson = new Gson();
+			// Broadcast broadcast = null; //new Broadcast();
+			// broadcast.name = "name";
+
+			HttpUriRequest get = RequestBuilder.get().setUri(url)
+					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+					// .setEntity(new StringEntity(gson.toJson(broadcast)))
+					.build();
+
+			CloseableHttpResponse response = client.execute(get);
+
+			StringBuffer result = readResponse(response);
+
+			if (response.getStatusLine().getStatusCode() != 200) {
+				throw new Exception(result.toString());
+			}
+			System.out.println("result string: " + result.toString());
+			Type listType = new TypeToken<VoD>() {
+			}.getType();
+
+			return gson.fromJson(result.toString(), listType);
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
 
 	public static Broadcast callGetBroadcast(String streamId) throws Exception {
 		String url = ROOT_SERVICE_URL + "/broadcast/get";
@@ -830,7 +936,7 @@ public class RestServiceTest {
 
 			broadcast = callGetBroadcast(broadcast.getStreamId());
 
-			assertEquals(broadcast.getStatus(), AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
+			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, broadcast.getStatus());
 
 			execute.destroy();
 
@@ -844,7 +950,7 @@ public class RestServiceTest {
 
 			broadcast = callGetBroadcast(broadcast.getStreamId());
 
-			assertEquals(broadcast.getStatus(), AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, broadcast.getStatus());
 
 			execute.destroy();
 
@@ -906,8 +1012,16 @@ public class RestServiceTest {
 	public void testUploadVoDFile() {
 		
 		Result result = new Result(false);
-
 		File file = new File("src/test/resources/sample_MP4_480.mp4");
+		List<VoD> voDList = callGetVoDList();
+		
+		for (VoD vod : voDList) {
+			deleteVoD(vod.getVodId());
+		}
+		voDList = callGetVoDList();
+		int vodCount = voDList.size();
+		logger.info("initial vod count: {}" , vodCount);
+		
 		
 		try {
 			result = callUploadVod(file);
@@ -917,11 +1031,41 @@ public class RestServiceTest {
 		
 		assertTrue(result.isSuccess());
 		
-		String fileName =  result.getMessage(); 
+		String vodId =  result.getMessage(); 
 		
-		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
-			return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + fileName + ".mp4");
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			List<VoD> tmpVoDList = callGetVoDList();
+			logger.info("received vod list size: {} expected vod list size: {}", tmpVoDList.size(), vodCount+1);
+			return (vodCount+1 == tmpVoDList.size()) && 
+					MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + vodId + ".mp4");
 		});
+		
+		voDList = callGetVoDList();
+		boolean found = false;
+		for (VoD vod : voDList) {
+			if (vod.getVodId().equals(vodId)) {
+				//System.out.println("vod get name: " + vod.getVodName() + " file name: " + vodId);
+				assertTrue(vod.getFilePath().contains(vodId));
+				assertEquals(VoD.UPLOADED_VOD, vod.getType());
+				found = true;
+			}
+		}
+		
+		assertTrue(found);
+		
+		VoD vod = callGetVoD(vodId);
+		assertNotNull(vod);
+		System.out.println("vod file name: " + vod.getFilePath());
+		assertTrue(vod.getFilePath().startsWith("streams/" + vodId + ".mp4"));
+		
+		
+		result = deleteVoD(vodId);
+		assertTrue(result.isSuccess());
+		
+		//file should be deleted
+		assertFalse(MuxingTest.isURLAvailable("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + vodId + ".mp4"));
+		
+		
 		
 	}
 
@@ -956,6 +1100,33 @@ public class RestServiceTest {
 		try {
 			// delete broadcast
 			String url = ROOT_SERVICE_URL + "/broadcast/delete/" + id;
+
+			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+
+			HttpUriRequest post = RequestBuilder.post().setUri(url)
+					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json").build();
+
+			CloseableHttpResponse response = client.execute(post);
+
+			StringBuffer result = readResponse(response);
+
+			if (response.getStatusLine().getStatusCode() != 200) {
+				throw new Exception(result.toString());
+			}
+			System.out.println("result string: " + result.toString());
+			Result result2 = gson.fromJson(result.toString(), Result.class);
+			return result2;
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		return null;
+	}
+	
+	public static Result deleteVoD(String id) {
+		try {
+			// delete broadcast
+			String url = ROOT_SERVICE_URL + "/broadcast/deleteVoD/" + id;
 
 			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 
@@ -1038,7 +1209,7 @@ public class RestServiceTest {
 			assertEquals(broadcast.getName(), name);
 			assertEquals(broadcast.getDescription(), description);
 
-			assertEquals(broadcast.getEndPointList().get(0).name, name);
+			assertEquals(broadcast.getEndPointList().get(0).getName(), name);
 
 			// update broadcast name and remove social endpoint
 			result = updateBroadcast(broadcast.getStreamId(), name, description, "");
@@ -1159,7 +1330,6 @@ public class RestServiceTest {
 
 	}
 
-	// TODO: restart server after testAddEndpoint and
 	// check that social endpoints are added correctly
 
 	@Test
@@ -1222,8 +1392,8 @@ public class RestServiceTest {
 			List<Endpoint> endpointList = broadcast.getEndPointList();
 
 			for (Endpoint endpoint : endpointList) {
-				System.out.println("endpoint url: " + endpoint.rtmpUrl + " broadcast.id=" + endpoint.broadcastId
-						+ " stream id: " + endpoint.streamId);
+				System.out.println("endpoint url: " + endpoint.getRtmpUrl() + " broadcast.id=" + endpoint.getBroadcastId()
+						+ " stream id: " + endpoint.getStreamId());
 			}
 
 			Process execute = execute(
@@ -1243,17 +1413,17 @@ public class RestServiceTest {
 			assertEquals(1, endpointList2.size());
 
 			for (Endpoint endpoint : endpointList2) {
-				System.out.println("new endpoint url: " + endpoint.rtmpUrl + " broadcast.id=" + endpoint.broadcastId
-						+ " stream id: " + endpoint.streamId);
+				System.out.println("new endpoint url: " + endpoint.getRtmpUrl() + " broadcast.id=" + endpoint.getBroadcastId()
+						+ " stream id: " + endpoint.getStreamId());
 
 			}
 
 			for (Endpoint endpoint : endpointList2) {
 				for (Endpoint endpointFirst : endpointList) {
-					System.out.println("new endpoint rtmp URL -> " + endpoint.rtmpUrl + " first endpoint URL -> " + endpointFirst.rtmpUrl);
-					System.out.println("new broadcast id -> " + endpoint.broadcastId + " first broadcast Id -> " + endpointFirst.broadcastId);
-					assertTrue(!endpoint.rtmpUrl.equals(endpointFirst.rtmpUrl)
-							|| !endpoint.broadcastId.equals(endpointFirst.broadcastId));
+					System.out.println("new endpoint rtmp URL -> " + endpoint.getRtmpUrl() + " first endpoint URL -> " + endpointFirst.getRtmpUrl());
+					System.out.println("new broadcast id -> " + endpoint.getBroadcastId() + " first broadcast Id -> " + endpointFirst.getBroadcastId());
+					assertTrue(!endpoint.getRtmpUrl().equals(endpointFirst.getRtmpUrl())
+							|| !endpoint.getBroadcastId().equals(endpointFirst.getBroadcastId()));
 				}
 			}
 
@@ -1377,8 +1547,6 @@ public class RestServiceTest {
 
 	@Test
 	public void testAddEndpoint() {
-
-		System.out.println("Running testAddEndpoint");
 		try {
 
 			Broadcast broadcast = createBroadcast(null);
@@ -1406,15 +1574,67 @@ public class RestServiceTest {
 			// get endpoint list
 			broadcast = getBroadcast(broadcast.getStreamId().toString());
 
-			// check that 4 element exist
+			// check that 2 element exist
 			assertNotNull(broadcast.getEndPointList());
-			assertEquals(broadcast.getEndPointList().size(), 2);
+			assertEquals(2, broadcast.getEndPointList().size());
 
 		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+	}
+	
+	@Test
+	public void testAddEndpointCrossCheck() {
+		try {
 
+			List<Broadcast> broadcastList = callGetBroadcastList();
+			int size = broadcastList.size();
+			Broadcast broadcast = createBroadcast(null);
+			
+			String streamId = RandomStringUtils.randomAlphabetic(6);
+			// add generic endpoint
+			Result result = addEndpoint(broadcast.getStreamId().toString(), "rtmp://localhost/LiveApp/" + streamId);
+
+			// check that it is successfull
+			assertTrue(result.isSuccess());
+
+			// get endpoint list
+			broadcast = getBroadcast(broadcast.getStreamId().toString());
+
+			// check that 4 element exist
+			assertNotNull(broadcast.getEndPointList());
+			assertEquals(1, broadcast.getEndPointList().size());
+			
+			broadcastList = callGetBroadcastList();
+			assertEquals(size+1, broadcastList.size());
+			
+			Process execute = execute(
+					ffmpegPath + " -re -i src/test/resources/test.flv -codec copy -f flv rtmp://localhost/LiveApp/"
+							+ broadcast.getStreamId());
+			
+			
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+				//size should +2 because we restream again into the server
+				return size+2 == callGetBroadcastList().size();
+			});
+			
+			execute.destroy();
+			
+			result = deleteBroadcast(broadcast.getStreamId());
+			assertTrue(result.isSuccess());
+			
+			Awaitility.await().atMost(20, TimeUnit.SECONDS)
+				.pollInterval(2, TimeUnit.SECONDS).until(() -> {
+				return size == callGetBroadcastList().size();
+			});
+
+			
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
 	}
 
 	@Test

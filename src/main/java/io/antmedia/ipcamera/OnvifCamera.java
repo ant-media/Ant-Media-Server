@@ -5,6 +5,7 @@ import java.util.List;
 
 import javax.xml.soap.SOAPException;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.onvif.ver10.schema.AutoFocusMode;
 import org.onvif.ver10.schema.Date;
 import org.onvif.ver10.schema.DateTime;
@@ -12,6 +13,8 @@ import org.onvif.ver10.schema.FocusConfiguration20;
 import org.onvif.ver10.schema.ImagingSettings20;
 import org.onvif.ver10.schema.Profile;
 import org.onvif.ver10.schema.Time;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.antmedia.ipcamera.onvif.soap.OnvifDevice;
 import io.antmedia.ipcamera.onvif.soap.devices.PtzDevices;
@@ -23,6 +26,8 @@ public class OnvifCamera implements IOnvifCamera {
 	List<Profile> profiles;
 
 	String profileToken;
+	
+	protected static Logger logger = LoggerFactory.getLogger(OnvifCamera.class);
 
 	@Override
 	public boolean connect(String address, String username, String password) {
@@ -35,20 +40,16 @@ public class OnvifCamera implements IOnvifCamera {
 			profiles = nvt.getDevices().getProfiles();
 			profileToken = profiles.get(0).getToken();
 			result = true;
-		} catch (ConnectException e) {
-			e.printStackTrace();
+		} catch (ConnectException | SOAPException e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
 			result = false;
-		} catch (SOAPException e) {
-			e.printStackTrace();
-			result = false;
-		}
+		} 
 		return result;
 	}
 
 	@Override
 	public void disconnect() {
 		// nvt.getDevices().;
-		// TODO Auto-generated method stub
 
 	}
 
@@ -59,17 +60,8 @@ public class OnvifCamera implements IOnvifCamera {
 		try {
 			PTSPURL = nvt.getMedia().getRTSPStreamUri(profileToken);
 
-		} catch (NullPointerException e) {
-			PTSPURL = "no";
-			e.printStackTrace();
-
-		} catch (SOAPException e) {
-			PTSPURL = "no";
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (ConnectException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		} catch (NullPointerException | ConnectException | SOAPException e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 		return PTSPURL;
 	}
@@ -81,13 +73,9 @@ public class OnvifCamera implements IOnvifCamera {
 		try {
 			PTSPURL = nvt.getMedia().getTCPStreamUri(profileToken);
 
-		} catch (ConnectException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (SOAPException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		} catch (ConnectException | SOAPException e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+		} 
 		return PTSPURL;
 	}
 
@@ -101,8 +89,7 @@ public class OnvifCamera implements IOnvifCamera {
 
 			ptzDevices.stopMove(profileToken);
 		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(ExceptionUtils.getStackTrace(e));
 			Thread.currentThread().interrupt();
 		}
 		return true;
@@ -117,8 +104,7 @@ public class OnvifCamera implements IOnvifCamera {
 
 			ptzDevices.stopMove(profileToken);
 		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(ExceptionUtils.getStackTrace(e));
 			Thread.currentThread().interrupt();
 		}
 
@@ -134,8 +120,7 @@ public class OnvifCamera implements IOnvifCamera {
 
 			ptzDevices.stopMove(profileToken);
 		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(ExceptionUtils.getStackTrace(e));
 			Thread.currentThread().interrupt();
 		}
 
@@ -150,8 +135,7 @@ public class OnvifCamera implements IOnvifCamera {
 
 			ptzDevices.stopMove(profileToken);
 		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(ExceptionUtils.getStackTrace(e));
 			Thread.currentThread().interrupt();
 		}
 
@@ -166,13 +150,11 @@ public class OnvifCamera implements IOnvifCamera {
 
 	@Override
 	public String getAlarms() {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
 	public boolean enableDhcp() {
-		// TODO Auto-generated method stub
 		// .setDHCP
 		// IPv4NetworkInterfaceSetConfiguration.java
 		return false;
@@ -180,7 +162,6 @@ public class OnvifCamera implements IOnvifCamera {
 
 	@Override
 	public boolean disableDhcp(String ipaddress, String netmask, String gateway) {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
@@ -221,7 +202,6 @@ public class OnvifCamera implements IOnvifCamera {
 
 	@Override
 	public boolean setBrightness(float brightness) {
-		// TODO Auto-generated method stub
 		ImagingSettings20 image_set = nvt.getImaging().getImagingSettings(profileToken);
 		image_set.setBrightness(brightness);
 		return true;
@@ -229,14 +209,12 @@ public class OnvifCamera implements IOnvifCamera {
 
 	@Override
 	public float getBrightness() {
-		// TODO Auto-generated method stub
 		ImagingSettings20 image_set = nvt.getImaging().getImagingSettings(profileToken);
 		return image_set.getBrightness();
 	}
 
 	@Override
 	public boolean setSaturation(float saturation) {
-		// TODO Auto-generated method stub
 		ImagingSettings20 image_set = nvt.getImaging().getImagingSettings(profileToken);
 		image_set.setColorSaturation(saturation);
 		return true;
@@ -244,14 +222,12 @@ public class OnvifCamera implements IOnvifCamera {
 
 	@Override
 	public float getSaturation() {
-		// TODO Auto-generated method stub
 		ImagingSettings20 image_set = nvt.getImaging().getImagingSettings(profileToken);
 		return image_set.getColorSaturation();
 	}
 
 	@Override
 	public boolean setContrast(float contrast) {
-		// TODO Auto-generated method stub
 		ImagingSettings20 image_set = nvt.getImaging().getImagingSettings(profileToken);
 		image_set.setContrast(contrast);
 		return true;
@@ -259,14 +235,12 @@ public class OnvifCamera implements IOnvifCamera {
 
 	@Override
 	public float getContrast() {
-		// TODO Auto-generated method stub
 		ImagingSettings20 image_set = nvt.getImaging().getImagingSettings(profileToken);
 		return image_set.getContrast();
 	}
 
 	@Override
 	public boolean setSharpness(float sharpness) {
-		// TODO Auto-generated method stub
 		ImagingSettings20 image_set = nvt.getImaging().getImagingSettings(profileToken);
 		image_set.setSharpness(sharpness);
 		return true;
@@ -274,18 +248,16 @@ public class OnvifCamera implements IOnvifCamera {
 
 	@Override
 	public float getSharpness() {
-		// TODO Auto-generated method stub
 		ImagingSettings20 image_set = nvt.getImaging().getImagingSettings(profileToken);
 		return image_set.getSharpness();
 	}
 
 	@Override
 	public boolean setFocusMode(boolean auto) {
-		// TODO Auto-generated method stub
 		ImagingSettings20 image_set = nvt.getImaging().getImagingSettings(profileToken);
 		FocusConfiguration20 focus = image_set.getFocus();
 		AutoFocusMode foc_mode;
-		if (auto == true)
+		if (auto)
 			foc_mode = AutoFocusMode.fromValue("AUTO");
 		else
 			foc_mode = AutoFocusMode.fromValue("MANUAL");
@@ -297,18 +269,13 @@ public class OnvifCamera implements IOnvifCamera {
 
 	@Override
 	public boolean isFocusModeAuto() {
-		// TODO Auto-generated method stub
 		ImagingSettings20 image_set = nvt.getImaging().getImagingSettings(profileToken);
 		FocusConfiguration20 focus = image_set.getFocus();
-		if (focus.getAutoFocusMode().value() == "AUTO")
-			return true;
-		else
-			return false;
+		return focus.getAutoFocusMode().value().equals("AUTO");
 	}
 
 	@Override
 	public boolean setDateTime(java.sql.Date date, java.sql.Time time) {
-		// TODO Auto-generated method stub
 		return false;
 	}
 

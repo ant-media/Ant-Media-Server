@@ -16,8 +16,15 @@ import javax.servlet.http.HttpSession;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.web.context.WebApplicationContext;
 
@@ -26,6 +33,7 @@ import static org.mockito.Mockito.*;
 import java.io.IOException;
 
 import io.antmedia.filter.HlsStatisticsFilter;
+import io.antmedia.integration.RestServiceTest;
 import io.antmedia.statistic.HlsViewerStats;
 import io.antmedia.statistic.IStreamStats;
 
@@ -33,28 +41,34 @@ public class HlsStatisticsFilterTest {
 	
 	private HlsStatisticsFilter hlsStatisticsFilter;
 
+	protected static Logger logger = LoggerFactory.getLogger(HlsStatisticsFilterTest.class);
+
 
 	@Before
 	public void before() {
 		hlsStatisticsFilter = new HlsStatisticsFilter();
 	}
 	
+	@After
 	public void after() {
 		hlsStatisticsFilter = null;
 	}
 	
+	@Rule
+	public TestRule watcher = new TestWatcher() {
+	   protected void starting(Description description) {
+	      System.out.println("Starting test: " + description.getMethodName());
+	   }
+	   
+	   protected void failed(Throwable e, Description description) {
+		   System.out.println("Failed test: " + description.getMethodName());
+	   };
+	   protected void finished(Description description) {
+		   System.out.println("Finishing test: " + description.getMethodName());
+	   };
+	};
 	
-	@Test
-	public void testGetStreamId() {
-		String streamId = "stream_id_knhbgv";
-		assertEquals(streamId, HlsStatisticsFilter.getStreamId("/liveapp/streams/"+streamId+"_adaptive.m3u8"));
-		
-		assertEquals(streamId, HlsStatisticsFilter.getStreamId("/liveapp/streams/"+streamId+".m3u8"));
-		
-		assertEquals(streamId, HlsStatisticsFilter.getStreamId("/liveapp/streams/"+streamId+"_240p.m3u8"));
-		
-		assertNull(HlsStatisticsFilter.getStreamId("/liveapp/streams/"+streamId+".u8"));
-	}
+	
 	
 	@Test
 	public void testDoFilter() {
@@ -89,7 +103,8 @@ public class HlsStatisticsFilterTest {
 			when(mockRequest.getRequestURI()).thenReturn("/LiveApp/streams/"+streamId+".m3u8");
 			
 			when(mockResponse.getStatus()).thenReturn(HttpServletResponse.SC_OK);
-			
+
+			logger.info("session id {}, stream id {}", sessionId, streamId);
 			hlsStatisticsFilter.doFilter(mockRequest, mockResponse, mockChain);
 			
 			
@@ -101,6 +116,10 @@ public class HlsStatisticsFilterTest {
 			e.printStackTrace();
 			fail(ExceptionUtils.getStackTrace(e));
 		} 
+		catch (Exception e) {
+			e.printStackTrace();
+			fail(ExceptionUtils.getStackTrace(e));
+		}
 		
 		
 	}

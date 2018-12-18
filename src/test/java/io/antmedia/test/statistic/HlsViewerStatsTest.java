@@ -15,6 +15,7 @@ import java.util.concurrent.TimeUnit;
 import org.awaitility.Awaitility;
 import org.springframework.context.ApplicationContext;
 import org.springframework.test.context.ContextConfiguration;import io.antmedia.AppSettings;
+import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
@@ -69,8 +70,11 @@ public class HlsViewerStatsTest {
 		try {
 			scheduler.afterPropertiesSet();
 
-			IDataStore dataStore = new InMemoryDataStore("datastore");
-			when(context.getBean(IDataStore.BEAN_NAME)).thenReturn(dataStore);
+			DataStoreFactory dsf = new DataStoreFactory();
+			dsf.setAppName("liveapp");
+			dsf.setDbType("memorydb");
+			dsf.setDbName("datastore");
+			when(context.getBean(DataStoreFactory.BEAN_NAME)).thenReturn(dsf);
 			
 			when(context.getBean(ISchedulingService.BEAN_NAME)).thenReturn(scheduler);
 			
@@ -91,13 +95,13 @@ public class HlsViewerStatsTest {
 			
 			Broadcast broadcast = new Broadcast();
 			broadcast.setName("name");
-			String streamId = dataStore.save(broadcast);
+			String streamId = dsf.getDataStore().save(broadcast);
 			
 			String sessionId = "sessionId" + (int)(Math.random() * 10000);
 			viewerStats.registerNewViewer(streamId, sessionId);
 			viewerStats.registerNewViewer(streamId, sessionId);
 			
-			assertEquals(1, dataStore.get(streamId).getHlsViewerCount());
+			assertEquals(1, dsf.getDataStore().get(streamId).getHlsViewerCount());
 			
 			assertEquals(1000, viewerStats.getTimePeriodMS());
 			
@@ -111,7 +115,7 @@ public class HlsViewerStatsTest {
 			});
 			
 			
-			assertEquals(0, dataStore.get(streamId).getHlsViewerCount());
+			assertEquals(0, dsf.getDataStore().get(streamId).getHlsViewerCount());
 			
 			
 			scheduler.destroy();

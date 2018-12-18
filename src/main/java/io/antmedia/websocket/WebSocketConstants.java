@@ -64,8 +64,30 @@ public class WebSocketConstants {
 	public static final String ROOM = "room";
 
 	public static final String JOIN_COMMAND = "join";
+	
+	/**
+	 * this is for leaving from room in 1-N and N-N connection
+	 */
+	
+	public static final String LEAVE_THE_ROOM = "leaveFromRoom";
+	
+	/**
+	 * this map includes streamId as key, room name as value  for active session
+	 */
+	
+	public static final String SESSION_STREAM_ROOM_MAP = "session_room_map";
 
 	public static final String JOINED_THE_ROOM = "joinedTheRoom";
+	
+	public static final String LEAVED_THE_ROOM = "leavedFromRoom";
+	
+	
+	
+	/**
+	 * this token is used to access resources or start broadcast when token security is enabled
+	 */
+	
+	public static final String TOKEN = "token";
 
 	/**
 	 * This is peer to peer connection error definition.
@@ -108,6 +130,9 @@ public class WebSocketConstants {
 	 * joining the video conference
 	 */
 	public static final String NO_ROOM_SPECIFIED = "no_room_specified";
+	
+	
+	public static final String UNAUTHORIZED = "unauthorized_access";
 
 	/**
 	 * Command that let server returns information about a specific stream.

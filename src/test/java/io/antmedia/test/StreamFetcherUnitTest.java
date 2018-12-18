@@ -2,10 +2,12 @@ package io.antmedia.test;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
+import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.integration.AppFunctionalTest;
 import io.antmedia.integration.MuxingTest;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.rest.model.Result;
@@ -83,7 +85,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	public void before() {
 
 		try {
-			delete(new File("webapps/junit/streams"));
+			AppFunctionalTest.delete(new File("webapps/junit/streams"));
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -144,7 +146,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		app = null;
 
 		try {
-			delete(new File("webapps"));
+			AppFunctionalTest.delete(new File("webapps"));
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -162,7 +164,10 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		IDataStore dataStore = new MapDBStore("target/testbug.db"); //applicationContext.getBean(IDataStore.BEAN_NAME);
 
 		assertNotNull(dataStore);
-		app.setDataStore(dataStore);
+		DataStoreFactory dsf = Mockito.mock(DataStoreFactory.class);
+		Mockito.when(dsf.getDataStore()).thenReturn(dataStore);
+		
+		app.setDataStoreFactory(dsf);
 
 		//set mapdb datastore to stream fetcher because in memory datastore just have references and updating broadcst
 		// object updates the reference in inmemorydatastore
@@ -290,9 +295,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			//wait 10-12 seconds
 			//check that stream fetcher stop and start stream is called 2 times
 			verify(streamFetcher, timeout(13000).times(2)).stopStream();
-
 			//it is +1 because it is called at first start
-			verify(streamFetcher, times(3)).startStream(); 
 			verify(streamFetcher, times(3)).startStream(); 
 
 			//set restart period to 0 seconds
@@ -304,13 +307,13 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			verify(streamFetcher, timeout(13000).times(2)).stopStream();
 			verify(streamFetcher, times(3)).startStream(); 
 
-			//set restart period to 0 seconds
+			//set restart period to 5 seconds
 			fetcherManager.setRestartStreamFetcherPeriod(5);
 
 			//wait 10-12 seconds
 		
 			//check that stream fetcher stop and start stream is not called
-			verify(streamFetcher, timeout(13000).atLeast(4)).stopStream();
+			verify(streamFetcher, timeout(14000).atLeast(4)).stopStream();
 			verify(streamFetcher, atLeast(5)).startStream(); 
 
 			fetcherManager.setRestartStreamFetcherPeriod(0);
@@ -699,6 +702,22 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		testFetchStreamSources("src/test/resources/nba.ts", false);
 		logger.info("leaving testTSSource");
 	}
+	
+	@Test
+	public void testShoutcastSource() {
+		logger.info("running testShoutcastSource");
+		//test Southcast Source
+		testFetchStreamSources("http://live-radio02.mediahubaustralia.com/1LRW/aac/", false);
+		logger.info("leaving testShoutcastSource");
+	}
+	
+	@Test
+	public void testAudioOnlySource() {
+		logger.info("running testAudioOnlySource");
+		//test AudioOnly Source
+		testFetchStreamSources("rtmp://37.247.100.100/shoutcast/karadenizfm.stream", false);
+		logger.info("leaving testAudioOnlySource");
+	}
 
 
 	public void testFetchStreamSources(String source, boolean restartStream) {
@@ -732,7 +751,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			//wait for fetching stream
 			try {
-				Thread.sleep(5000);
+				Thread.sleep(10000);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
@@ -946,46 +965,6 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 	}
 
-
-	public static void delete(File file)
-			throws IOException{
-
-		if(file.isDirectory()){
-
-			//directory is empty, then delete it
-			if(file.list().length==0){
-
-				file.delete();
-				//System.out.println("Directory is deleted : " 
-				//	+ file.getAbsolutePath());
-
-			}else{
-
-				//list all the directory contents
-				String files[] = file.list();
-
-				for (String temp : files) {
-					//construct the file structure
-					File fileDelete = new File(file, temp);
-
-					//recursive delete
-					delete(fileDelete);
-				}
-
-				//check the directory again, if empty then delete it
-				if(file.list().length==0){
-					file.delete();
-					//System.out.println("Directory is deleted : " 
-					//		+ file.getAbsolutePath());
-				}
-			}
-
-		}else{
-			//if file, then delete it
-			file.delete();
-			//System.out.println("File is deleted : " + file.getAbsolutePath());
-		}
-	}
 
 
 
