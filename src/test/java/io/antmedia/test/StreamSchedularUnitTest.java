@@ -79,6 +79,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 
 		protected void failed(Throwable e, Description description) {
+			e.printStackTrace();
 			System.out.println("Failed test: " + description.getMethodName());
 		};
 		protected void finished(Description description) {
