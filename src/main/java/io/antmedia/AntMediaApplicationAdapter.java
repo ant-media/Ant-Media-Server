@@ -199,7 +199,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	@Override
 	public void streamBroadcastClose(IBroadcastStream stream) {
 
-		
+
 		String streamName = stream.getPublishedName();
 		vertx.executeBlocking(future -> {
 			try {
@@ -211,9 +211,9 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 				future.complete(false);
 			}
 		},
-		result -> 
-			logger.info("close broadcast operation for {} is finished with {}", streamName, result.result())
-		);
+				result -> 
+		logger.info("close broadcast operation for {} is finished with {}", streamName, result.result())
+				);
 
 
 		super.streamBroadcastClose(stream);
@@ -694,18 +694,22 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 			httpPost.setEntity(postParams);
 
 			CloseableHttpResponse httpResponse = httpClient.execute(httpPost);
-
 			logger.info("POST Response Status:: {}" , httpResponse.getStatusLine().getStatusCode());
 
-			BufferedReader reader = new BufferedReader(new InputStreamReader(httpResponse.getEntity().getContent()));
+			HttpEntity entity = httpResponse.getEntity();
+			if (entity != null) 
+			{ 
+				//read entity if it's available
+				BufferedReader reader = new BufferedReader(new InputStreamReader(entity.getContent()));
 
-			String inputLine;
-			response = new StringBuilder();
+				String inputLine;
+				response = new StringBuilder();
 
-			while ((inputLine = reader.readLine()) != null) {
-				response.append(inputLine);
+				while ((inputLine = reader.readLine()) != null) {
+					response.append(inputLine);
+				}
+				reader.close();
 			}
-			reader.close();
 
 		}
 
