@@ -82,7 +82,6 @@ import io.antmedia.webrtc.api.IWebRTCAdaptor;
 		produces = {"application/json" },
 		schemes = {SwaggerDefinition.Scheme.HTTP, SwaggerDefinition.Scheme.HTTPS},
 		externalDocs = @ExternalDocs(value = "External Docs", url = "http://antmedia.io"),
-		host = "antmedia.io",
 		basePath = "/"
 )
 @Component
