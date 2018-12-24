@@ -21,6 +21,8 @@ public class GPUUtils {
 
 	private static GPUUtils instance;
 
+	private static boolean noGPU = false;
+
 	private Integer deviceCount = null;
 
 	public static GPUUtils getInstance() {
@@ -30,12 +32,17 @@ public class GPUUtils {
 			int result = nvmlInit_v2();
 			if (result != NVML_SUCCESS) {
 				logger.info("cuda cannot be initialized.");
+				noGPU = true;
 			}
 		}
 		return instance;
 	}
 
 	public int getDeviceCount() {
+		if(noGPU) {
+			return 0;
+		}
+		
 		if(deviceCount == null) {
 			IntPointer count = new IntPointer(1);
 			int result = nvmlDeviceGetCount_v2(count);
