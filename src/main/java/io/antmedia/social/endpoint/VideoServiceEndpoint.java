@@ -75,7 +75,7 @@ public abstract class VideoServiceEndpoint {
 	/**
 	 * Collect interactiviy such as comments, likes and views in the channel
 	 */
-	protected boolean collectInteractivity = true;
+	protected boolean collectInteractivity = false;
 	
 
 	public VideoServiceEndpoint(String clientId, String clientSecret, IDataStore dataStore, SocialEndpointCredentials endpointCredentials, Vertx vertx) {
@@ -311,6 +311,14 @@ public abstract class VideoServiceEndpoint {
 	 * @return number of live viewers
 	 */
 	public abstract long getLiveViews(String streamId);
+
+	public boolean isCollectInteractivity() {
+		return collectInteractivity;
+	}
+
+	public void setCollectInteractivity(boolean collectInteractivity) {
+		this.collectInteractivity = collectInteractivity;
+	}
 
 
 }
