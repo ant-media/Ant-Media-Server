@@ -37,7 +37,7 @@ public class GPUUtils {
 					noGPU = true;
 				}
 			}
-			catch (UnsatisfiedLinkError e) {
+			catch (Exception e) {
 				logger.info("no cuda installed.");
 				noGPU = true;
 			}
