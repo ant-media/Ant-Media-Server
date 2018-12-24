@@ -21,7 +21,7 @@ public class GPUUtils {
 
 	private static GPUUtils instance;
 
-	private static boolean noGPU = false;
+	private static boolean noGPU = true;
 
 	private Integer deviceCount = null;
 
@@ -32,14 +32,13 @@ public class GPUUtils {
 			try {
 				Loader.load(nvml.class);
 				int result = nvmlInit_v2();
-				if (result != NVML_SUCCESS) {
+				if (result == NVML_SUCCESS) {
 					logger.info("cuda cannot be initialized.");
-					noGPU = true;
+					noGPU = false;
 				}
 			}
 			catch (Exception e) {
 				logger.info("no cuda installed.");
-				noGPU = true;
 			}
 		}
 		return instance;
