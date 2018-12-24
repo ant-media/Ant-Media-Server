@@ -28,10 +28,17 @@ public class GPUUtils {
 	public static GPUUtils getInstance() {
 		if(instance == null) {
 			instance = new GPUUtils();
-			Loader.load(nvml.class);
-			int result = nvmlInit_v2();
-			if (result != NVML_SUCCESS) {
-				logger.info("cuda cannot be initialized.");
+
+			try {
+				Loader.load(nvml.class);
+				int result = nvmlInit_v2();
+				if (result != NVML_SUCCESS) {
+					logger.info("cuda cannot be initialized.");
+					noGPU = true;
+				}
+			}
+			catch (UnsatisfiedLinkError e) {
+				logger.info("no cuda installed.");
 				noGPU = true;
 			}
 		}
@@ -42,7 +49,7 @@ public class GPUUtils {
 		if(noGPU) {
 			return 0;
 		}
-		
+
 		if(deviceCount == null) {
 			IntPointer count = new IntPointer(1);
 			int result = nvmlDeviceGetCount_v2(count);
