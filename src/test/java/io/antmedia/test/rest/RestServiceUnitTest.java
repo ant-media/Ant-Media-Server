@@ -301,12 +301,14 @@ public class RestServiceUnitTest {
 		AppSettings settings = mock(AppSettings.class);
 		when(settings.getFacebookClientId()).thenReturn(null);
 		when(settings.getFacebookClientSecret()).thenReturn(null);
+		when(settings.isCollectSocialMediaActivity()).thenReturn(false);
 
 		Scope scope = mock(Scope.class);
 		String scopeName = "scope";
 		when(scope.getName()).thenReturn(scopeName);
 
 		AntMediaApplicationAdapter app = new AntMediaApplicationAdapter();
+		app.setAppSettings(settings);
 
 
 		restServiceReal.setApplication(app);
