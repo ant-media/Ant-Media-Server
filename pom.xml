@@ -440,6 +440,12 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
+			<groupId>org.bytedeco.javacpp-presets</groupId>
+			<artifactId>cuda-platform</artifactId>
+			<version>${javacpp.cuda.version}</version>
+			<scope>provided</scope>
+		</dependency>
+        <dependency>
             <groupId>io.antmedia.api.periscope</groupId>
             <artifactId>PeriscopeAPI</artifactId>
             <version>${periscope-api.version}</version>
