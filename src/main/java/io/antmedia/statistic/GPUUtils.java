@@ -32,13 +32,7 @@ public class GPUUtils {
 			try {
 				Class.forName("org.bytedeco.javacpp.nvml");
 				logger.info("nvml class found:");
-			}
-			catch (ClassNotFoundException e) {
-				logger.info("nvml class not found:");
-				return instance;
-			}
-			
-			try {
+				
 				Loader.load(nvml.class);
 				int result = nvmlInit_v2();
 				if (result == NVML_SUCCESS) {
@@ -48,7 +42,12 @@ public class GPUUtils {
 			}
 			catch (UnsatisfiedLinkError e) {
 				logger.info("no cuda installed.");
+				return instance;
 			} 
+			catch (ClassNotFoundException e) {
+				logger.info("nvml class not found:");
+				return instance;
+			}
 		}
 		return instance;
 	}
