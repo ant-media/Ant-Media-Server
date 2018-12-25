@@ -76,12 +76,12 @@ import io.antmedia.webrtc.api.IWebRTCAdaptor;
 				description = "Antmedia Rest Api Doc",
 				version = "V1.0",
 				title = "Antmedia Rest Api Doc",
-				contact = @Contact(name = "Antmedia Info", email = "info@antmedia.io", url = "http://antmedia.io"),
+				contact = @Contact(name = "Antmedia Info", email = "contact@antmedia.io", url = "https://antmedia.io"),
 				license = @License(name = "Apache 2.0", url = "http://www.apache.org")),
 		consumes = {"application/json" },
 		produces = {"application/json" },
 		schemes = {SwaggerDefinition.Scheme.HTTP, SwaggerDefinition.Scheme.HTTPS},
-		externalDocs = @ExternalDocs(value = "External Docs", url = "http://antmedia.io"),
+		externalDocs = @ExternalDocs(value = "External Docs", url = "https://antmedia.io"),
 		basePath = "/"
 )
 @Component
