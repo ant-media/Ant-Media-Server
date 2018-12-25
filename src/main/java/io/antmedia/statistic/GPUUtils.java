@@ -31,7 +31,7 @@ public class GPUUtils {
 
 			logger.info("\n\n log1 \n");
 			logger.info("\n\n log2:{} \n",nvml.class.getCanonicalName());
-			logger.info("\n\n log3 \n");
+			logger.info("\n\n log3  \n");
 
 			try {
 				Class.forName(nvml.class.getCanonicalName());
