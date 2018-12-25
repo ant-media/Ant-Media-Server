@@ -33,11 +33,10 @@ public class GPUUtils {
 
 			try {
 				Class.forName(nvml.class.getCanonicalName());
-				System.out.println("class found:"+nvml.class.getCanonicalName());
+				logger.info("nvml class found:"+nvml.class.getCanonicalName());
 			}
 			catch (ClassNotFoundException e) {
-				System.out.println("class not found:"+nvml.class.getCanonicalName());
-				logger.info("nvml class not found.");
+				logger.info("nvml class not found:"+nvml.class.getCanonicalName());
 				return instance;
 			}
 			
