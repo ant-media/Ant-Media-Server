@@ -29,10 +29,19 @@ public class GPUUtils {
 		if(instance == null) {
 			instance = new GPUUtils();
 
-			
-			
+
+
 			try {
 				Class.forName(nvml.class.getCanonicalName());
+				System.out.println("class found:"+nvml.class.getCanonicalName());
+			}
+			catch (ClassNotFoundException e) {
+				System.out.println("class not found:"+nvml.class.getCanonicalName());
+				logger.info("nvml class not found.");
+				return instance;
+			}
+			
+			try {
 				Loader.load(nvml.class);
 				int result = nvmlInit_v2();
 				if (result == NVML_SUCCESS) {
@@ -42,9 +51,7 @@ public class GPUUtils {
 			}
 			catch (UnsatisfiedLinkError e) {
 				logger.info("no cuda installed.");
-			} catch (ClassNotFoundException e) {
-				logger.info("nvml class not found.");
-			}
+			} 
 		}
 		return instance;
 	}
