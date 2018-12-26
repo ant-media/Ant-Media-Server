@@ -18,7 +18,6 @@ import io.antmedia.AppSettings;
 import io.antmedia.EncoderSettings;
 import io.antmedia.rest.BroadcastRestService;
 
-@TestPropertySource
 public class AppSettingsUnitTest {
 	
 	@Test
