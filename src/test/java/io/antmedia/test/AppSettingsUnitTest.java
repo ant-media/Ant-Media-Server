@@ -12,11 +12,13 @@ import java.util.List;
 
 import org.junit.Test;
 import org.red5.server.Launcher;
+import org.springframework.test.context.TestPropertySource;
 
 import io.antmedia.AppSettings;
 import io.antmedia.EncoderSettings;
 import io.antmedia.rest.BroadcastRestService;
 
+@TestPropertySource
 public class AppSettingsUnitTest {
 	
 	@Test
