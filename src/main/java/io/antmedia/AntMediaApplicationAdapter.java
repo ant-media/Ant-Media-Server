@@ -128,6 +128,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 					}
 
 					if (endPointService != null) {
+						endPointService.setCollectInteractivity(appSettings.isCollectSocialMediaActivity());
 						videoServiceEndpoints.put(endPointService.getCredentials().getId(), endPointService);
 					}
 				}
@@ -304,6 +305,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 			endPointService = (VideoServiceEndpoint) endpointClass.getConstructor(String.class, String.class, IDataStore.class, SocialEndpointCredentials.class, Vertx.class)
 					.newInstance(clientId, clientSecret, dataStore, socialEndpointCredentials, vertx);
+			endPointService.setCollectInteractivity(appSettings.isCollectSocialMediaActivity());
 			return endPointService;
 		}
 		catch (Exception e) {
