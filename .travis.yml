@@ -59,7 +59,7 @@ install:
 
 script:
   - echo $(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)
-  - mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent package sonar:sonar -Dmaven.javadoc.skip=true
+  - mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent package sonar:sonar -Dtest=StreamSchedularUnitTest -Dmaven.javadoc.skip=true
   
 
 
