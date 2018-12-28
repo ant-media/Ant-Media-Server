@@ -32,6 +32,8 @@ import org.red5.server.scope.WebScope;
 import org.red5.server.stream.RemoteBroadcastStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 
@@ -41,6 +43,7 @@ import io.antmedia.test.MuxerUnitTest;
 @ContextConfiguration(locations = { 
 		"../test.xml" 
 })
+@DirtiesContext(classMode = ClassMode.AFTER_CLASS)
 public class RemoteBroadcastStreamTest extends AbstractJUnit4SpringContextTests{
 
 	protected static Logger logger = LoggerFactory.getLogger(RemoteBroadcastStreamTest.class);

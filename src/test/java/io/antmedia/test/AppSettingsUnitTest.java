@@ -11,13 +11,27 @@ import java.nio.file.Files;
 import java.util.List;
 
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.red5.server.Launcher;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.annotation.DirtiesContext.ClassMode;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import io.antmedia.AppSettings;
 import io.antmedia.EncoderSettings;
 import io.antmedia.rest.BroadcastRestService;
 
+@RunWith(SpringJUnit4ClassRunner.class)
+@TestPropertySource("/test.properties")
+@ContextConfiguration(classes = AppSettings.class)
+@DirtiesContext(classMode = ClassMode.AFTER_CLASS)
 public class AppSettingsUnitTest {
+
+	@Autowired
+	AppSettings appSettings;
 	
 	@Test
 	public void testEncodeSettings() {
@@ -81,9 +95,7 @@ public class AppSettingsUnitTest {
 	}
 	
 	@Test
-	public void testDefaultValues() {
-		AppSettings appSettings = new AppSettings();
-		
+	public void testDefaultValues() {		
 		assertFalse(appSettings.isMp4MuxingEnabled());
 		assertFalse(appSettings.isAddDateTimeToMp4FileName());
 		assertTrue(appSettings.isHlsMuxingEnabled());
@@ -94,9 +106,6 @@ public class AppSettingsUnitTest {
 		assertNull(appSettings.getHlsTime());
 		assertNull(appSettings.getHlsPlayListType());
 		assertNull(appSettings.getAdaptiveResolutionList());
-		
-
-				
 	}
 
 }

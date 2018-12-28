@@ -13,6 +13,7 @@ import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.rest.model.Result;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
+
 import org.awaitility.Awaitility;
 import org.bytedeco.javacpp.avformat;
 import org.bytedeco.javacpp.avutil;
@@ -25,10 +26,13 @@ import org.red5.server.scheduling.QuartzSchedulingService;
 import org.red5.server.scope.WebScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeanUtils;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
+
+import ch.qos.logback.core.joran.util.beans.BeanUtil;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -51,8 +55,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	private AntMediaApplicationAdapter appInstance;
 	private AppSettings appSettings;
 	private QuartzSchedulingService scheduler;
-
-
+	
 	static {
 		System.setProperty("red5.deployment.type", "junit");
 		System.setProperty("red5.root", ".");
@@ -78,7 +81,6 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		avformat.av_register_all();
 		avformat.avformat_network_init();
 		avutil.av_log_set_level(avutil.AV_LOG_INFO);
-
 	}
 
 	@Before
@@ -119,22 +121,9 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		stopCameraEmulator();
 
-		AppSettings defaultSettings = new AppSettings();
-
 		//reset values in the bean
-		getAppSettings().setMp4MuxingEnabled(defaultSettings.isMp4MuxingEnabled());
-		getAppSettings().setHlsMuxingEnabled(defaultSettings.isHlsMuxingEnabled());
-
+		getAppSettings().resetDefaults();
 		getAppSettings().setMp4MuxingEnabled(true);
-		getAppSettings().setAddDateTimeToMp4FileName(defaultSettings.isAddDateTimeToMp4FileName());
-		getAppSettings().setHlsMuxingEnabled(defaultSettings.isHlsMuxingEnabled());
-		getAppSettings().setWebRTCEnabled(defaultSettings.isWebRTCEnabled());
-		getAppSettings().setDeleteHLSFilesOnEnded(defaultSettings.isDeleteHLSFilesOnExit());
-		getAppSettings().setHlsListSize(defaultSettings.getHlsListSize());
-		getAppSettings().setHlsTime(defaultSettings.getHlsTime());
-		getAppSettings().setHlsPlayListType(defaultSettings.getHlsPlayListType());
-		getAppSettings().setAdaptiveResolutionList(defaultSettings.getAdaptiveResolutionList());
-
 	}
 	
 	@After

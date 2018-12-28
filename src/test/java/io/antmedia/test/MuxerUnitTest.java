@@ -42,6 +42,8 @@ import org.red5.server.service.mp4.impl.MP4Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 
@@ -65,6 +67,7 @@ import io.antmedia.social.endpoint.VideoServiceEndpoint;
 		"test.xml" 
 })
 //@ContextConfiguration(classes = {AppConfig.class})
+@DirtiesContext(classMode = ClassMode.AFTER_CLASS)
 public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 	protected static Logger logger = LoggerFactory.getLogger(MuxerUnitTest.class);
