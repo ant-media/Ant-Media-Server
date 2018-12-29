@@ -254,6 +254,7 @@ public class AppFunctionalTest {
 			Broadcast broadcast=rest.createBroadcast("RTMP_stream");
 			{
 				//prepare settings
+				ConsoleAppRestServiceTest.resetCookieStore();
 				Result result = ConsoleAppRestServiceTest.callisFirstLogin();
 				if (result.isSuccess()) {
 					Result createInitialUser = ConsoleAppRestServiceTest.createDefaultInitialUser();

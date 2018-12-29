@@ -69,8 +69,7 @@ public class ConsoleAppRestServiceTest {
 	private static Gson gson = new Gson();
 
 
-	//initialized by default
-	private static BasicCookieStore httpCookieStore = new BasicCookieStore();;
+	private static BasicCookieStore httpCookieStore;
 	private static final Logger log = LoggerFactory.getLogger(ConsoleAppRestServiceTest.class);
 
 
@@ -84,6 +83,10 @@ public class ConsoleAppRestServiceTest {
 
 		System.out.println("ROOT SERVICE URL: " + ROOT_SERVICE_URL);
 
+	}
+	
+	public static void resetCookieStore() {
+		httpCookieStore = new BasicCookieStore();
 	}
 
 	@BeforeClass
