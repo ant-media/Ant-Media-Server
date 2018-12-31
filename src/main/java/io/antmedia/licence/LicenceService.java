@@ -1,8 +1,5 @@
 package io.antmedia.licence;
 
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -12,19 +9,9 @@ import java.util.TimerTask;
 import javax.servlet.ServletContext;
 import javax.ws.rs.core.Context;
 
-import org.red5.logging.Red5LoggerFactory;
-import org.red5.spring.Red5ApplicationContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.BeansException;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationContextAware;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
 
-import com.google.auth.oauth2.GoogleCredentials;
-import com.google.firebase.FirebaseApp;
-import com.google.firebase.FirebaseOptions;
 import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -38,8 +25,7 @@ import io.antmedia.rest.model.Result;
 import io.antmedia.settings.ServerSettings;
 
 public class LicenceService {
-	private static DatabaseReference ref;
-	private static DatabaseReference usersRef;
+	private DatabaseReference ref;
 	private ServerSettings serverSettings;
 	private FirebaseEngine engine = new FirebaseEngine();
 	private boolean responseReceived = false;
@@ -52,11 +38,8 @@ public class LicenceService {
 	Gson gson = new Gson();
 
 
-
 	public void start() {
-		
-		
-		
+
 		engine.connectFirebaseDB();
 
 		System.out.println("Licence Service has started");
@@ -78,7 +61,7 @@ public class LicenceService {
 
 		ref = FirebaseDatabase.getInstance().getReference();
 
-		usersRef = ref.child(FIREBASE_CHILD);
+		DatabaseReference usersRef = ref.child(FIREBASE_CHILD);
 
 		usersRef.child(licence.getLicenceId()).setValueAsync(licence);
 		result.setSuccess(true);
@@ -96,7 +79,7 @@ public class LicenceService {
 		queryRef.addChildEventListener(new ChildEventListener() {
 			@Override
 			public void onChildAdded(DataSnapshot snapshot, String previousChild) {
-				System.out.println( "value :  " + snapshot.getValue().toString());
+				System.out.println( "value :  "+ snapshot.getValue().toString());
 				setResponseReceived(true);
 				setActiveLicence(snapshot.getValue().toString());
 
@@ -105,19 +88,24 @@ public class LicenceService {
 
 			@Override
 			public void onChildChanged(DataSnapshot snapshot, String previousChildName) {
+				//no need to implement at this stage
 			}
 
 			@Override
 			public void onChildRemoved(DataSnapshot snapshot) {
+				//no need to implement at this stage
 
 			}
 
 			@Override
 			public void onChildMoved(DataSnapshot snapshot, String previousChildName) {
+				//no need to implement at this stage
+
 			}
 
 			@Override
 			public void onCancelled(DatabaseError error) {
+				//no need to implement at this stage
 
 			}
 		});
@@ -157,12 +145,12 @@ public class LicenceService {
 		getLicence(key);
 
 		if(getResponseReceived()) {
-			System.out.println( " licence found: " + getActiveLicence());
+			System.out.println( " licence found: "+ getActiveLicence());
 			result.setSuccess(true);
-			if(!getActiveLicence().equals(null)) {
+			if(getActiveLicence() != null) {
 				
 				licence = gson.fromJson( getActiveLicence(), Licence.class);
-				System.out.println("end date " +licence.getEndDate());
+				System.out.println("end date: " +licence.getEndDate());
 
 				SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
 
@@ -172,7 +160,7 @@ public class LicenceService {
 					Date date=new Date();
 					String formattedDate=dateFormat.format(date);
 
-					System.out.println("current date " +formattedDate);
+					System.out.println("current date " + formattedDate);
 
 					Date currentDate;
 
@@ -191,13 +179,14 @@ public class LicenceService {
 					}
 
 				} catch (ParseException e) {
-					e.printStackTrace();
+					System.out.println("context" + e);
+					
 				}
 
 			}
 		}
 		else {
-			System.out.println( " no licence found: ");
+			System.out.println("no licence found");
 			result.setMessage("no licence found");
 			setLicenceStatusResponse(null);
 		}
