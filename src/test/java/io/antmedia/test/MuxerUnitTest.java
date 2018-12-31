@@ -132,23 +132,9 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 		}
 		 
 
-		AppSettings defaultSettings = new AppSettings();
-
 		//reset values in the bean
-		getAppSettings().setMp4MuxingEnabled(defaultSettings.isMp4MuxingEnabled());
-		getAppSettings().setHlsMuxingEnabled(defaultSettings.isHlsMuxingEnabled());
+		getAppSettings().resetDefaults();
 		getAppSettings().setAddDateTimeToMp4FileName(false);
-
-		getAppSettings().setMp4MuxingEnabled(defaultSettings.isMp4MuxingEnabled());
-		getAppSettings().setAddDateTimeToMp4FileName(defaultSettings.isAddDateTimeToMp4FileName());
-		getAppSettings().setHlsMuxingEnabled(defaultSettings.isHlsMuxingEnabled());
-		getAppSettings().setWebRTCEnabled(defaultSettings.isWebRTCEnabled());
-		getAppSettings().setDeleteHLSFilesOnEnded(defaultSettings.isDeleteHLSFilesOnExit());
-		getAppSettings().setHlsListSize(defaultSettings.getHlsListSize());
-		getAppSettings().setHlsTime(defaultSettings.getHlsTime());
-		getAppSettings().setHlsPlayListType(defaultSettings.getHlsPlayListType());
-		getAppSettings().setAdaptiveResolutionList(defaultSettings.getAdaptiveResolutionList());
-
 	}
 
 	@Rule
