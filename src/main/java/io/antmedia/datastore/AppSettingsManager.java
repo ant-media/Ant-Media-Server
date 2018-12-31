@@ -121,7 +121,7 @@ public class AppSettingsManager {
 			store.put(AppSettings.SETTINGS_ENCODER_SETTINGS_STRING, "");
 		}
 		else {
-			store.put(AppSettings.SETTINGS_ENCODER_SETTINGS_STRING, io.antmedia.AppSettings.getEncoderSettingsString(appsettings.getEncoderSettings()));
+			store.put(AppSettings.SETTINGS_ENCODER_SETTINGS_STRING, AppSettings.encodersList2Str(appsettings.getEncoderSettings()));
 		}
 
 		store.put(AppSettings.SETTINGS_PREVIEW_OVERWRITE, String.valueOf(appsettings.isPreviewOverwrite()));
@@ -176,7 +176,7 @@ public class AppSettingsManager {
 		appSettings.setVodFolder(store.get(AppSettings.SETTINGS_VOD_FOLDER));
 		appSettings.setTokenControlEnabled(Boolean.parseBoolean(store.get(AppSettings.SETTINGS_TOKEN_CONTROL_ENABLED)));
 
-		appSettings.setEncoderSettings(io.antmedia.AppSettings.getEncoderSettingsList(store.get(AppSettings.SETTINGS_ENCODER_SETTINGS_STRING)));
+		appSettings.setEncoderSettings(AppSettings.encodersStr2List(store.get(AppSettings.SETTINGS_ENCODER_SETTINGS_STRING)));
 
 		if (store.get(AppSettings.SETTINGS_PREVIEW_OVERWRITE) != null) {
 			appSettings.setPreviewOverwrite(Boolean.parseBoolean(store.get(AppSettings.SETTINGS_PREVIEW_OVERWRITE)));
