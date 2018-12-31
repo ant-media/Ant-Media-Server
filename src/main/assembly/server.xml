@@ -58,6 +58,7 @@
 				<exclude>red5-service-*.jar</exclude>
 				<exclude>ffmpeg-*.jar</exclude>
 				<exclude>javacpp-*.jar</exclude>
+				<exclude>cuda-*.jar</exclude>
 			</excludes>
 		</fileSet>
 		<fileSet>
@@ -92,6 +93,9 @@
 				<exclude>ffmpeg*android*.jar</exclude>
 				<exclude>ffmpeg*ppc64le.jar</exclude>
 				<exclude>ffmpeg*windows*.jar</exclude>
+				<exclude>cuda*ppc64le.jar</exclude>
+				<exclude>cuda*macosx*.jar</exclude>
+				<exclude>cuda*windows*.jar</exclude>
 			</excludes>
 		</fileSet>
 		<fileSet>

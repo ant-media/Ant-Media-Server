@@ -21,6 +21,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
+import io.swagger.annotations.*;
 import org.apache.commons.lang3.StringUtils;
 import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
@@ -40,6 +41,7 @@ import io.antmedia.ipcamera.onvifdiscovery.OnvifDiscovery;
 import io.antmedia.rest.model.Result;
 import io.antmedia.streamsource.StreamFetcher;
 
+@Api(value = "StreamsSourceRestService")
 @Component
 @Path("/streamSource")
 public class StreamsSourceRestService {
@@ -55,12 +57,12 @@ public class StreamsSourceRestService {
 
 	protected static Logger logger = LoggerFactory.getLogger(StreamsSourceRestService.class);
 
-
+	@ApiOperation(value = "", notes = "Notes here", response = Result.class)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/addStreamSource")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result addStreamSource(Broadcast stream) {
+	public Result addStreamSource(@ApiParam(value = "stream", required = true) Broadcast stream) {
 		Result result=new Result(false);
 
 		logger.info("username {}, ipAddr {}, streamURL {}, name: {}", stream.getUsername(),  stream.getIpAddr(), stream.getStreamUrl(), stream.getName());
@@ -158,12 +160,12 @@ public class StreamsSourceRestService {
 		return result;
 	}
 
-
+	@ApiOperation(value = "", notes = "Notes here", response = Result.class)
 	@GET
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/getCameraError")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result getCameraError(@QueryParam("id") String id) {
+	public Result getCameraError(@ApiParam(value = "id", required = true) @QueryParam("id") String id) {
 		Result result = new Result(true);
 
 		for (StreamFetcher camScheduler : getInstance().getStreamFetcherManager().getStreamFetcherList()) {
@@ -175,7 +177,7 @@ public class StreamsSourceRestService {
 		return result;
 	}
 
-
+	@ApiOperation(value = "", notes = "Notes here", response = Result.class)
 	@GET
 	@Path("/synchUserVoDList")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -202,12 +204,12 @@ public class StreamsSourceRestService {
 
 
 
-
+	@ApiOperation(value = "", notes = "Notes here", response = Result.class)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/updateCamInfo")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result updateCamInfo(Broadcast broadcast) {
+	public Result updateCamInfo(@ApiParam(value = "broadcast", required = true) Broadcast broadcast) {
 		boolean result = false;
 		logger.debug("update cam info for stream {}", broadcast.getStreamId());
 
@@ -244,6 +246,7 @@ public class StreamsSourceRestService {
 		return new Result(result);
 	}
 
+	@ApiOperation(value = "", notes = "Notes here", response = Result.class)
 	@GET
 	@Path("/searchOnvifDevices")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -304,10 +307,11 @@ public class StreamsSourceRestService {
 		return list;
 	}
 
+	@ApiOperation(value = "", notes = "Notes here", response = Result.class)
 	@GET
 	@Path("/moveUp")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result moveUp(@QueryParam("id") String id) {
+	public Result moveUp(@ApiParam(value = "id", required = true) @QueryParam("id") String id) {
 		boolean result = false;
 		OnvifCamera camera = getInstance().getOnvifCamera(id);
 		if (camera != null) {
@@ -317,10 +321,11 @@ public class StreamsSourceRestService {
 		return new Result(result);
 	}
 
+	@ApiOperation(value = "", notes = "Notes here", response = Result.class)
 	@GET
 	@Path("/moveDown")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result moveDown(@QueryParam("id") String id) {
+	public Result moveDown(@ApiParam(value = "id", required = true) @QueryParam("id") String id) {
 		boolean result = false;
 		OnvifCamera camera = getInstance().getOnvifCamera(id);
 		if (camera != null) {
@@ -330,10 +335,11 @@ public class StreamsSourceRestService {
 		return new Result(result);
 	}
 
+	@ApiOperation(value = "", notes = "Notes here", response = Result.class)
 	@GET
 	@Path("/moveLeft")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result moveLeft(@QueryParam("id") String id) {
+	public Result moveLeft(@ApiParam(value = "id", required = true) @QueryParam("id") String id) {
 		boolean result = false;
 		OnvifCamera camera = getInstance().getOnvifCamera(id);
 		if (camera != null) {
@@ -343,10 +349,11 @@ public class StreamsSourceRestService {
 		return new Result(result);
 	}
 
+	@ApiOperation(value = "", notes = "Notes here", response = Result.class)
 	@GET
 	@Path("/moveRight")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result moveRight(@QueryParam("id") String id) {
+	public Result moveRight(@ApiParam(value = "id", required = true) @QueryParam("id") String id) {
 		boolean result = false;
 		OnvifCamera camera = getInstance().getOnvifCamera(id);
 		if (camera != null) {

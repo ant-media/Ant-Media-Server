@@ -129,6 +129,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 					}
 
 					if (endPointService != null) {
+						endPointService.setCollectInteractivity(appSettings.isCollectSocialMediaActivity());
 						videoServiceEndpoints.put(endPointService.getCredentials().getId(), endPointService);
 					}
 				}
@@ -305,6 +306,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 			endPointService = (VideoServiceEndpoint) endpointClass.getConstructor(String.class, String.class, IDataStore.class, SocialEndpointCredentials.class, Vertx.class)
 					.newInstance(clientId, clientSecret, dataStore, socialEndpointCredentials, vertx);
+			endPointService.setCollectInteractivity(appSettings.isCollectSocialMediaActivity());
 			return endPointService;
 		}
 		catch (Exception e) {
@@ -695,18 +697,22 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 			httpPost.setEntity(postParams);
 
 			CloseableHttpResponse httpResponse = httpClient.execute(httpPost);
-
 			logger.info("POST Response Status:: {}" , httpResponse.getStatusLine().getStatusCode());
 
-			BufferedReader reader = new BufferedReader(new InputStreamReader(httpResponse.getEntity().getContent()));
+			HttpEntity entity = httpResponse.getEntity();
+			if (entity != null) 
+			{ 
+				//read entity if it's available
+				BufferedReader reader = new BufferedReader(new InputStreamReader(entity.getContent()));
 
-			String inputLine;
-			response = new StringBuilder();
+				String inputLine;
+				response = new StringBuilder();
 
-			while ((inputLine = reader.readLine()) != null) {
-				response.append(inputLine);
+				while ((inputLine = reader.readLine()) != null) {
+					response.append(inputLine);
+				}
+				reader.close();
 			}
-			reader.close();
 
 		}
 
