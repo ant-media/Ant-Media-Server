@@ -25,6 +25,8 @@ public class GPUUtils {
 
 	private Integer deviceCount = null;
 
+	private GPUUtils() {}
+
 	public static GPUUtils getInstance() {
 		if(instance == null) {
 			instance = new GPUUtils();
@@ -32,7 +34,7 @@ public class GPUUtils {
 			try {
 				Class.forName("org.bytedeco.javacpp.nvml");
 				logger.info("nvml class found:");
-				
+
 				Loader.load(nvml.class);
 				int result = nvmlInit_v2();
 				if (result == NVML_SUCCESS) {
@@ -84,17 +86,21 @@ public class GPUUtils {
 	} 
 
 	public int getMemoryUtilization(int deviceNo) {
-		nvmlUtilization_t utilization = getUtilization(deviceNo);
-		if(utilization != null) {
-			return utilization.memory();
+		if(!noGPU) {
+			nvmlUtilization_t utilization = getUtilization(deviceNo);
+			if(utilization != null) {
+				return utilization.memory();
+			}
 		}
 		return -1;
 	}
 
 	public int getGPUUtilization(int deviceNo) {
-		nvmlUtilization_t utilization = getUtilization(deviceNo);
-		if(utilization != null) {
-			return utilization.gpu();
+		if(!noGPU) {
+			nvmlUtilization_t utilization = getUtilization(deviceNo);
+			if(utilization != null) {
+				return utilization.gpu();
+			}
 		}
 		return -1;
 	}
