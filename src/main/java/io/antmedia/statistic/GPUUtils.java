@@ -104,8 +104,4 @@ public class GPUUtils {
 		}
 		return -1;
 	}
-
-	public void close() {
-		nvmlShutdown();
-	}
 }
