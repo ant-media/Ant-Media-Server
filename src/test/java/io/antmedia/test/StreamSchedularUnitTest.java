@@ -360,11 +360,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		//just delete broadcast instead of calling stop
 		Result result = service.deleteBroadcast(newCam.getStreamId());
-
 		assertTrue(result.isSuccess());
-		assertEquals("brodcast is deleted and stopped successfully", result.getMessage());
-
-		
 		
 		//stop emulator
 		stopCameraEmulator();
