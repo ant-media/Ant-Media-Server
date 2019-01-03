@@ -84,6 +84,10 @@ public class ConsoleAppRestServiceTest {
 		System.out.println("ROOT SERVICE URL: " + ROOT_SERVICE_URL);
 
 	}
+	
+	public static void resetCookieStore() {
+		httpCookieStore = new BasicCookieStore();
+	}
 
 	@BeforeClass
 	public static void beforeClass() {
@@ -96,6 +100,7 @@ public class ConsoleAppRestServiceTest {
 	public void before() {
 		avformat_network_init();
 		av_register_all();
+		//initialize again
 		httpCookieStore = new BasicCookieStore();
 	}
 
@@ -103,6 +108,15 @@ public class ConsoleAppRestServiceTest {
 	public void teardown() {
 		httpCookieStore = null;
 
+	}
+	
+	public static Result createDefaultInitialUser() throws Exception {
+		User user = new User();
+		user.setEmail(TEST_USER_EMAIL);
+		user.setPassword(TEST_USER_PASS);
+		Result createInitialUser = callCreateInitialUser(user);
+		assertTrue(createInitialUser.isSuccess());
+		return createInitialUser;
 	}
 
 	/**
@@ -182,15 +196,17 @@ public class ConsoleAppRestServiceTest {
 		}
 	}
 	
+	public static Result authenticateDefaultUser() throws Exception{
+		User user = new User();
+		user.setEmail(TEST_USER_EMAIL);
+		user.setPassword(TEST_USER_PASS);
+		return callAuthenticateUser(user);
+	}
 	
 	@Test
 	public void testGetAppSettings() {
 		try {
-
-			User user = new User();
-			user.setEmail(TEST_USER_EMAIL);
-			user.setPassword(TEST_USER_PASS);
-			Result authenticatedUserResult = callAuthenticateUser(user);
+			Result authenticatedUserResult = authenticateDefaultUser();
 			assertTrue(authenticatedUserResult.isSuccess());
 
 			// get LiveApp default settings and check the default values
@@ -900,7 +916,7 @@ public class ConsoleAppRestServiceTest {
 
 
 
-	private Result callisFirstLogin() throws Exception {
+	public static Result callisFirstLogin() throws Exception {
 		String url = ROOT_SERVICE_URL + "/isFirstLogin";
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 		Gson gson = new Gson();
@@ -921,7 +937,7 @@ public class ConsoleAppRestServiceTest {
 
 	}
 
-	private Result callCreateInitialUser(User user) throws Exception {
+	public static Result callCreateInitialUser(User user) throws Exception {
 
 		String url = ROOT_SERVICE_URL + "/addInitialUser";
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
@@ -942,7 +958,7 @@ public class ConsoleAppRestServiceTest {
 		return tmp;
 	}
 
-	private Result callAuthenticateUser(User user) throws Exception {
+	private static Result callAuthenticateUser(User user) throws Exception {
 		String url = ROOT_SERVICE_URL + "/authenticateUser";
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
 				.setDefaultCookieStore(httpCookieStore).build();
@@ -963,7 +979,7 @@ public class ConsoleAppRestServiceTest {
 		return tmp;
 	}
 
-	private Result callSetAppSettings(String appName, AppSettingsModel appSettingsModel) throws Exception {
+	public static Result callSetAppSettings(String appName, AppSettingsModel appSettingsModel) throws Exception {
 		String url = ROOT_SERVICE_URL + "/changeSettings/" + appName;
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
 				.setDefaultCookieStore(httpCookieStore).build();
@@ -1030,7 +1046,7 @@ public class ConsoleAppRestServiceTest {
 
 	}
 
-	public AppSettingsModel callGetAppSettings(String appName) throws Exception {
+	public static AppSettingsModel callGetAppSettings(String appName) throws Exception {
 
 		String url = ROOT_SERVICE_URL + "/getSettings/" + appName;
 
@@ -1053,6 +1069,7 @@ public class ConsoleAppRestServiceTest {
 		assertNotNull(tmp);
 		return tmp;
 	}
+	
 	public static StringBuffer readResponse(HttpResponse response) throws IOException {
 		BufferedReader rd = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
 
@@ -1093,4 +1110,6 @@ public class ConsoleAppRestServiceTest {
 
 		return tmpExec;
 	}
+
+
 }

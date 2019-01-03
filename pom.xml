@@ -3,7 +3,7 @@
     <parent>
         <groupId>io.antmedia</groupId>
         <artifactId>parent</artifactId>
-        <version>1.6.0-SNAPSHOT</version>
+        <version>1.6.1-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>ant-media-server</artifactId>
@@ -334,7 +334,7 @@
         <dependency>
             <groupId>io.antmedia</groupId>
             <artifactId>ant-media-server-common</artifactId>
-            <version>${ant-media-server-common.version}</version>
+            <version>${project.parent.version}</version>
         </dependency>
         <dependency>
             <groupId>org.red5</groupId>
@@ -375,13 +375,13 @@
         <dependency>
             <groupId>io.antmedia</groupId>
             <artifactId>ant-media-server-service</artifactId>
-            <version>${ant-media-server-service.version}</version>
+            <version>${project.parent.version}</version>
             <type>jar</type>
         </dependency>
         <dependency>
             <groupId>io.antmedia</groupId>
             <artifactId>ant-media-server-service</artifactId>
-            <version>${ant-media-server-service.version}</version>
+            <version>${project.parent.version}</version>
             <type>tar.gz</type>
             <classifier>daemon</classifier>
         </dependency>
@@ -439,6 +439,12 @@
             <version>${javacpp.ffmpeg.version}</version>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+			<groupId>org.bytedeco.javacpp-presets</groupId>
+			<artifactId>cuda-platform</artifactId>
+			<version>${javacpp.cuda.version}</version>
+			<scope>provided</scope>
+		</dependency>
         <dependency>
             <groupId>io.antmedia.api.periscope</groupId>
             <artifactId>PeriscopeAPI</artifactId>
@@ -547,21 +553,21 @@
                 <dependency>
                     <groupId>io.antmedia.webrtc</groupId>
                     <artifactId>WebRTCApp</artifactId>
-                    <version>${webrtcapp.version}</version>
+                    <version>${project.parent.version}</version>
                     <type>war</type>
                     <scope>provided</scope>
                 </dependency>
                 <dependency>
                     <groupId>io.antmedia.app</groupId>
                     <artifactId>root</artifactId>
-                    <version>${consoleapp.version}</version>
+                    <version>${project.parent.version}</version>
                     <type>war</type>
                     <scope>provided</scope>
                 </dependency>
                 <dependency>
                     <groupId>io.antmedia.app</groupId>
                     <artifactId>LiveApp</artifactId>
-                    <version>${liveapp.version}</version>
+                    <version>${project.parent.version}</version>
                     <type>war</type>
                     <scope>provided</scope>
                 </dependency>
@@ -638,7 +644,7 @@
                                         <artifactItem>
                                             <groupId>io.antmedia.webrtc</groupId>
                                             <artifactId>WebRTCApp</artifactId>
-                                            <version>${webrtcapp.version}</version>
+                                            <version>${project.parent.version}</version>
                                             <type>war</type>
                                             <overWrite>true</overWrite>
                                             <outputDirectory>${project.build.directory}/webapps</outputDirectory>
@@ -646,7 +652,7 @@
                                         <artifactItem>
                                             <groupId>io.antmedia.app</groupId>
                                             <artifactId>LiveApp</artifactId>
-                                            <version>${liveapp.version}</version>
+                                            <version>${project.parent.version}</version>
                                             <type>war</type>
                                             <overWrite>true</overWrite>
                                             <outputDirectory>${project.build.directory}/webapps</outputDirectory>
@@ -654,7 +660,7 @@
                                         <artifactItem>
                                             <groupId>io.antmedia.app</groupId>
                                             <artifactId>root</artifactId>
-                                            <version>${consoleapp.version}</version>
+                                            <version>${project.parent.version}</version>
                                             <type>war</type>
                                             <overWrite>true</overWrite>
                                             <outputDirectory>${project.build.directory}/webapps</outputDirectory>
@@ -673,7 +679,7 @@
                                         <artifactItem>
                                             <groupId>io.antmedia</groupId>
                                             <artifactId>ant-media-server-service</artifactId>
-                                            <version>${ant-media-server-service.version}</version>
+                                            <version>${project.parent.version}</version>
                                             <type>tar.gz</type>
                                             <classifier>daemon</classifier>
                                             <overWrite>true</overWrite>
@@ -716,25 +722,25 @@
                 <dependency>
                     <groupId>io.antmedia.webrtc</groupId>
                     <artifactId>WebRTCAppEE</artifactId>
-                    <version>${webrtcappee.version}</version>
+                    <version>${project.parent.version}</version>
                     <type>war</type>
                 </dependency>
                 <dependency>
                     <groupId>io.antmedia.app</groupId>
                     <artifactId>LiveApp</artifactId>
-                    <version>${liveapp.version}</version>
+                    <version>${project.parent.version}</version>
                     <type>war</type>
                 </dependency>
                 <dependency>
                     <groupId>io.antmedia.app</groupId>
                     <artifactId>root</artifactId>
-                    <version>${consoleapp.version}</version>
+                    <version>${project.parent.version}</version>
                     <type>war</type>
                 </dependency>
                 <dependency>
                     <groupId>io.antmedia.enterprise</groupId>
                     <artifactId>ant-media-enterprise</artifactId>
-                    <version>${ant-media-server-enterprise.version}</version>
+                    <version>${project.parent.version}</version>
                     <type>jar</type>
                 </dependency>
             </dependencies>
@@ -781,7 +787,7 @@
                                         <artifactItem>
                                             <groupId>io.antmedia.webrtc</groupId>
                                             <artifactId>WebRTCAppEE</artifactId>
-                                            <version>${webrtcappee.version}</version>
+                                            <version>${project.parent.version}</version>
                                             <type>war</type>
                                             <overWrite>true</overWrite>
                                             <outputDirectory>${project.build.directory}/webapps</outputDirectory>
@@ -789,7 +795,7 @@
                                         <artifactItem>
                                             <groupId>io.antmedia.app</groupId>
                                             <artifactId>LiveApp</artifactId>
-                                            <version>${liveapp.version}</version>
+                                            <version>${project.parent.version}</version>
                                             <type>war</type>
                                             <overWrite>true</overWrite>
                                             <outputDirectory>${project.build.directory}/webapps</outputDirectory>
@@ -797,7 +803,7 @@
                                         <artifactItem>
                                             <groupId>io.antmedia.app</groupId>
                                             <artifactId>root</artifactId>
-                                            <version>${consoleapp.version}</version>
+                                            <version>${project.parent.version}</version>
                                             <type>war</type>
                                             <overWrite>true</overWrite>
                                             <outputDirectory>${project.build.directory}/webapps</outputDirectory>
@@ -835,7 +841,7 @@
                                         <artifactItem>
                                             <groupId>io.antmedia</groupId>
                                             <artifactId>ant-media-server-service</artifactId>
-                                            <version>${ant-media-server-service.version}</version>
+                                            <version>${project.parent.version}</version>
                                             <type>tar.gz</type>
                                             <classifier>daemon</classifier>
                                             <overWrite>true</overWrite>

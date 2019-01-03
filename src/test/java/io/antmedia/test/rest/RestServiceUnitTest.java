@@ -29,6 +29,8 @@ import org.red5.server.api.stream.IClientBroadcastStream;
 import org.red5.server.api.stream.IStreamCapableConnection;
 import org.red5.server.scope.Scope;
 import org.springframework.context.ApplicationContext;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
 
 import io.antmedia.AntMediaApplicationAdapter;
@@ -59,6 +61,7 @@ import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
 
 
 @ContextConfiguration(locations = { "test.xml" })
+@DirtiesContext(classMode = ClassMode.AFTER_CLASS)
 public class RestServiceUnitTest {
 
 
@@ -299,12 +302,14 @@ public class RestServiceUnitTest {
 		AppSettings settings = mock(AppSettings.class);
 		when(settings.getFacebookClientId()).thenReturn(null);
 		when(settings.getFacebookClientSecret()).thenReturn(null);
+		when(settings.isCollectSocialMediaActivity()).thenReturn(false);
 
 		Scope scope = mock(Scope.class);
 		String scopeName = "scope";
 		when(scope.getName()).thenReturn(scopeName);
 
 		AntMediaApplicationAdapter app = new AntMediaApplicationAdapter();
+		app.setAppSettings(settings);
 
 
 		restServiceReal.setApplication(app);

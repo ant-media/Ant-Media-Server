@@ -85,9 +85,9 @@ deploy:
     script: "mvn deploy -P assemble -DskipTests --quiet --settings mvn-settings.xml && curl -g --ftp-create-dirs -T target/swagger/swagger.json -u $SWAGGER_FTP_USERNAME:$SWAGGER_FTP_PASSWORD $SWAGGER_FTP_URL"
     skip_cleanup: true
     on:
-      #deploy to maven if it is master branch and tagged
+      #deploy to maven if it is a release tagged
       tags: true
-      branch: master    
+      condition: $TRAVIS_TAG =~ ^release 
   
   - provider: releases
     api_key: $GITHUB_OAUTH_TOKEN
@@ -97,8 +97,8 @@ deploy:
     name: "Ant Media Server Community $(date +'%F-%T')"
     prerelease: true
     on:
-      #deploy to github if it is master branch and tagged
+      #deploy to github if it is a release tagged
       tags: true
-      branch: master
+      condition: $TRAVIS_TAG =~ ^release
       
 #above configuration prevents deploying a new release(not snapshot) if it is not tagged       

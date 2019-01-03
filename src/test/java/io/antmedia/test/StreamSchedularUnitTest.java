@@ -75,6 +75,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 
 		protected void failed(Throwable e, Description description) {
+			e.printStackTrace();
 			System.out.println("Failed test: " + description.getMethodName());
 		};
 		protected void finished(Description description) {
@@ -605,13 +606,16 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 			Broadcast stream = dataStore.get(newSource.getStreamId());
+			logger.info("quality {}" , stream.getQuality()) ;
+			logger.info("speed {}" , stream.getSpeed()) ;
+			
 			return stream != null && stream.getQuality() != null && stream.getQuality().equals("good");
 		});
 
 		Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 			Broadcast stream = dataStore.get(newSource.getStreamId());
-			logger.info("speed {}" , stream.getSpeed()) ;
-			return stream != null && Math.abs(stream.getSpeed()-1) < 0.1;
+			logger.info("speed {} stream id: {}" , stream.getSpeed(), stream.getStreamId()) ;
+			return stream != null && Math.abs(stream.getSpeed()-1) < 0.2;
 		});
 
 
