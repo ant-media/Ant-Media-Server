@@ -679,7 +679,7 @@
                                         <artifactItem>
                                             <groupId>io.antmedia</groupId>
                                             <artifactId>ant-media-server-service</artifactId>
-                                            <version>${ant-media-server-service.version}</version>
+                                            <version>${project.parent.version}</version>
                                             <type>tar.gz</type>
                                             <classifier>daemon</classifier>
                                             <overWrite>true</overWrite>
@@ -841,7 +841,7 @@
                                         <artifactItem>
                                             <groupId>io.antmedia</groupId>
                                             <artifactId>ant-media-server-service</artifactId>
-                                            <version>${ant-media-server-service.version}</version>
+                                            <version>${project.parent.version}</version>
                                             <type>tar.gz</type>
                                             <classifier>daemon</classifier>
                                             <overWrite>true</overWrite>
