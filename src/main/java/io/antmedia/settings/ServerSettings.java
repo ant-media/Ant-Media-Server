@@ -5,7 +5,7 @@ public class ServerSettings {
 	public static final String BEAN_NAME = "ant.media.server.settings";
 	
 	/**
-	 * Fully Qalified Domain Name
+	 * Fully Qualified Domain Name
 	 */
 	private String serverName;
 	/**

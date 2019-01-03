@@ -39,9 +39,6 @@ import org.springframework.context.support.FileSystemXmlApplicationContext;
 import com.brsanthu.googleanalytics.GoogleAnalytics;
 
 import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.datastore.db.types.Licence;
-import io.antmedia.licence.FirebaseEngine;
-import io.antmedia.licence.LicenceService;
 import io.antmedia.rest.BroadcastRestService;
 
 /**
@@ -70,7 +67,6 @@ public class Launcher {
 		av_register_all();
 		avformat.avformat_network_init();
 		avutil.av_log_set_level(avutil.AV_LOG_ERROR);
-		LicenceService licenceService = new LicenceService();
 		System.out.printf("Root: %s%nDeploy type: %s%n", System.getProperty("red5.root"), System.getProperty("red5.deployment.type"));
 		// check for the logback disable flag
 		boolean useLogback = Boolean.valueOf(System.getProperty("useLogback", "true"));

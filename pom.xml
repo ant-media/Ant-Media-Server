@@ -547,7 +547,7 @@
         <dependency>
   			<groupId>com.google.firebase</groupId>
  			 <artifactId>firebase-admin</artifactId>
- 			 <version>6.2.0</version>
+ 			 <version>6.6.0</version>
 		</dependency>
     </dependencies>
     <profiles>
