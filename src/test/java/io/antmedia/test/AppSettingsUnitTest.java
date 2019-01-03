@@ -2,6 +2,7 @@ package io.antmedia.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -18,7 +19,7 @@ import io.antmedia.EncoderSettings;
 import io.antmedia.rest.BroadcastRestService;
 
 public class AppSettingsUnitTest {
-	
+
 	@Test
 	public void testEncodeSettings() {
 		AppSettings appSettings = new AppSettings();
@@ -36,7 +37,7 @@ public class AppSettingsUnitTest {
 		String encoderSettingString = height1+"," + videoBitrate1 + "," + audioBitrate1
 				+ "," + height2 +"," + videoBitrate2 + "," + audioBitrate2
 				+ "," + height3 +"," + videoBitrate3 + "," + audioBitrate3;
-		List<EncoderSettings> list = AppSettings.getEncoderSettingsList(encoderSettingString);
+		List<EncoderSettings> list = AppSettings.encodersStr2List(encoderSettingString);
 		
 	
 		
@@ -53,7 +54,7 @@ public class AppSettingsUnitTest {
 		assertEquals(300000, list.get(2).getVideoBitrate());
 		assertEquals(32000, list.get(2).getAudioBitrate());
 		
-		assertEquals(encoderSettingString, appSettings.getEncoderSettingsString(list));
+		assertEquals(encoderSettingString, appSettings.encodersList2Str(list));
 	}
 	
 	
@@ -81,9 +82,9 @@ public class AppSettingsUnitTest {
 	}
 	
 	@Test
-	public void testDefaultValues() {
+	public void testDefaultValues() {		
 		AppSettings appSettings = new AppSettings();
-		
+		appSettings.resetDefaults();
 		assertFalse(appSettings.isMp4MuxingEnabled());
 		assertFalse(appSettings.isAddDateTimeToMp4FileName());
 		assertTrue(appSettings.isHlsMuxingEnabled());
@@ -94,9 +95,16 @@ public class AppSettingsUnitTest {
 		assertNull(appSettings.getHlsTime());
 		assertNull(appSettings.getHlsPlayListType());
 		assertNull(appSettings.getAdaptiveResolutionList());
-		
-
-				
+	}
+	
+	@Test
+	public void testEncoderSettingsAtStartUp() {
+		AppSettings appSettings = new AppSettings();
+		String encSettings = "480,500000,96000,240,300000,64000";
+		assertNull(appSettings.getAdaptiveResolutionList());
+		appSettings.setEncoderSettingsString(encSettings);
+		assertNotNull(appSettings.getAdaptiveResolutionList());
+		assertEquals(2, appSettings.getAdaptiveResolutionList().size());
 	}
 
 }

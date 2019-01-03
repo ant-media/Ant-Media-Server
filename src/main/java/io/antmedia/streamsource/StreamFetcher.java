@@ -67,7 +67,7 @@ public class StreamFetcher {
 	 * Buffer time in milliseconds
 	 */
 	private int bufferTime = 0;
-	
+
 	private ConcurrentLinkedQueue<AVPacket> availableBufferQueue = new ConcurrentLinkedQueue<>();
 
 	private ISchedulingService scheduler;
@@ -87,16 +87,16 @@ public class StreamFetcher {
 			throw new NullPointerException("Stream is not initialized properly. Check stream("+stream+"), "
 					+ " stream id ("+ streamId +") and stream url ("+ streamUrl + ") values");
 		}
-		
+
 		this.stream = stream;
 		this.scope = scope;
 		this.scheduler = scheduler;
-		
-		
+
+
 		if (getAppSettings() == null) {
 			throw new NullPointerException("App Settings is null in StreamFetcher");
 		}
-		
+
 		this.bufferTime = getAppSettings().getStreamFetcherBufferTime();
 
 		avRationalTimeBaseMS = new AVRational();
@@ -208,15 +208,15 @@ public class StreamFetcher {
 					if(inputFormatContext.nb_streams() == 1) {
 						audioOnly  = (inputFormatContext.streams(0).codecpar().codec_type() == AVMEDIA_TYPE_AUDIO);
 					}
-					
+
 					muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null,true, scope);
 					// if there is only audio, firstKeyFrameReceivedChecked should be true in advance
 					// because there is no video frame
 					muxAdaptor.setFirstKeyFrameReceivedChecked(audioOnly); 
-					
-					
+
+
 					muxAdaptor.init(scope, stream.getStreamId(), false);
-					
+
 
 					logger.info("{} stream count in stream {} is {}", stream.getStreamId(), stream.getStreamUrl(), inputFormatContext.nb_streams());
 
@@ -233,7 +233,7 @@ public class StreamFetcher {
 
 						int bufferLogCounter = 0;
 						while (av_read_frame(inputFormatContext, pkt) >= 0) {
-							
+
 							streamPublished = true;
 							lastPacketReceivedTime = System.currentTimeMillis();
 
@@ -280,20 +280,26 @@ public class StreamFetcher {
 								AVPacket packet = getAVPacket();
 								av_packet_ref(packet, pkt);
 								bufferQueue.add(packet);
-								
-								AVPacket pktHead = bufferQueue.peek();
-								lastPacketTime = av_rescale_q(pkt.pts(), inputFormatContext.streams(pkt.stream_index()).time_base(), avRationalTimeBaseMS);
-								firstPacketTime = av_rescale_q(pktHead.pts(), inputFormatContext.streams(pktHead.stream_index()).time_base(), avRationalTimeBaseMS);
-								bufferDuration = (lastPacketTime - firstPacketTime);
 
-								if ( bufferDuration > bufferTime) {
-									buffering = false;
-								}
-								
-								bufferLogCounter++;
-								if (bufferLogCounter % 100 == 0) {
-									logger.info("Buffer status {}, buffer duration {}ms buffer time {}ms", buffering, bufferDuration, bufferTime);
-									bufferLogCounter = 0;
+								AVPacket pktHead = bufferQueue.peek();
+								/**
+								 * BufferQueue may be polled in writer thread. 
+								 * It's a very rare case to happen so that check if it's null
+								 */
+								if (pktHead != null) {
+									lastPacketTime = av_rescale_q(pkt.pts(), inputFormatContext.streams(pkt.stream_index()).time_base(), avRationalTimeBaseMS);
+									firstPacketTime = av_rescale_q(pktHead.pts(), inputFormatContext.streams(pktHead.stream_index()).time_base(), avRationalTimeBaseMS);
+									bufferDuration = (lastPacketTime - firstPacketTime);
+
+									if ( bufferDuration > bufferTime) {
+										buffering = false;
+									}
+
+									bufferLogCounter++;
+									if (bufferLogCounter % 100 == 0) {
+										logger.info("Buffer status {}, buffer duration {}ms buffer time {}ms", buffering, bufferDuration, bufferTime);
+										bufferLogCounter = 0;
+									}
 								}
 							}
 							else {
@@ -306,7 +312,7 @@ public class StreamFetcher {
 							}
 						}
 						logger.info("Leaving the loop for {}", stream.getStreamId());
-						
+
 					}
 
 				}
@@ -320,15 +326,15 @@ public class StreamFetcher {
 				logger.error(ExceptionUtils.getStackTrace(e));
 				exceptionInThread  = true;
 			}
-			
-			
+
+
 			if (packetWriterJobName != null) {
 				logger.info("Removing packet writer job {}", packetWriterJobName);
 				scheduler.removeScheduledJob(packetWriterJobName);
 			}
-			
+
 			writeAllBufferedPackets();
-			
+
 
 			if (muxAdaptor != null) {
 				logger.info("Writing trailer in Muxadaptor {}", stream.getStreamId());
@@ -339,7 +345,7 @@ public class StreamFetcher {
 			if (pkt != null) {
 				av_packet_free(pkt);
 			}
-			
+
 			if (inputFormatContext != null) {
 				try {
 					avformat_close_input(inputFormatContext);
@@ -363,10 +369,10 @@ public class StreamFetcher {
 			}
 
 			logger.debug("Leaving thread for {}", stream.getStreamUrl());
-			
+
 
 		}
-		
+
 		private void writeAllBufferedPackets() 
 		{
 			while (!bufferQueue.isEmpty()) {
@@ -374,13 +380,13 @@ public class StreamFetcher {
 				muxAdaptor.writePacket(inputFormatContext.streams(pkt.stream_index()), pkt);
 				av_packet_unref(pkt);
 			}
-			
+
 			AVPacket pkt;
 			while ((pkt = bufferQueue.poll()) != null) {
 				pkt.close();
 			}
 		}
-		
+
 		public void setStopRequestReceived() {
 			logger.warn("inside of setStopRequestReceived for {}", stream.getStreamId());
 			stopRequestReceived = true;
@@ -578,7 +584,7 @@ public class StreamFetcher {
 	public void setBufferTime(int bufferTime) {
 		this.bufferTime = bufferTime;
 	}
-	
+
 	private AppSettings getAppSettings() {
 		if (appSettings == null) {
 			appSettings = (AppSettings) scope.getContext().getApplicationContext().getBean(AppSettings.BEAN_NAME);

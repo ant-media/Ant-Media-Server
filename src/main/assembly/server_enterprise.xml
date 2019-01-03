@@ -25,7 +25,7 @@
 			</includes>
 		</fileSet>
 		<fileSet>
-			<directory>${project.build.directory}/ant-media-server-service-${ant-media-server-service.version}</directory>
+			<directory>${project.build.directory}/ant-media-server-service-${project.parent.version}</directory>
 			<outputDirectory></outputDirectory>
 		</fileSet>
 		<fileSet>
@@ -50,13 +50,14 @@
 				<exclude>servlet-api-*.jar</exclude>
 				<exclude>junit-${junit.version}.jar</exclude>
 				<exclude>logback-access-*.jar</exclude>
-				<exclude>ant-media-server-service-${ant-media-server-service.version}.jar</exclude>
+				<exclude>ant-media-server-service-${project.parent.version}.jar</exclude>
 				<exclude>red5-server-${red5-service.version}.jar</exclude>
 				<exclude>red5-server-common-*.jar</exclude>
 				<exclude>red5-server-1*.jar</exclude>
 				<exclude>red5-service-*.jar</exclude>
 				<exclude>ffmpeg-*.jar</exclude>
 				<exclude>javacpp-*.jar</exclude>
+				<exclude>cuda-*.jar</exclude>
 				<exclude>ant-media-enterprise*.jar</exclude>
 			</excludes>
 		</fileSet>
@@ -91,6 +92,9 @@
 				<exclude>ffmpeg*android*.jar</exclude>
 				<exclude>ffmpeg*ppc64le.jar</exclude>
 				<exclude>ffmpeg*windows*.jar</exclude>
+				<exclude>cuda*ppc64le.jar</exclude>
+				<exclude>cuda*macosx*.jar</exclude>
+				<exclude>cuda*windows*.jar</exclude>
 			</excludes>
 		</fileSet>
 		<fileSet>
