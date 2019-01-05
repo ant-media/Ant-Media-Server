@@ -240,7 +240,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 							@Override
 							public void execute(ISchedulingService service) throws CloneNotSupportedException {
 								notifyHook(listenerHookURL, streamId, HOOK_ACTION_END_LIVE_STREAM, name, category,
-										null);
+										null, null);
 							}
 						});
 					}
@@ -390,7 +390,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 								@Override
 								public void execute(ISchedulingService service) throws CloneNotSupportedException {
 									notifyHook(listenerHookURL, streamId, HOOK_ACTION_START_LIVE_STREAM, name, category,
-											null);
+											null, null);
 								}
 							});
 						}
@@ -610,34 +610,6 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	 * @param category,
 	 *            category of the stream
 	 * 
-	 * 
-	 * @return
-	 */
-	public final StringBuilder notifyHook(String url, String id, String action, String streamName, String category, String vodName) {
-		return notifyHook(url, id, action, streamName, category, vodName, null);
-	}
-
-	/**
-	 * Notify hook with parameters below
-	 * 
-	 * @param url
-	 *            is the url of the service to be called
-	 * 
-	 * @param id
-	 *            is the stream id that is unique for each stream
-	 * 
-	 * @param action
-	 *            is the name of the action to be notified, it has values such
-	 *            as {@link #HOOK_ACTION_END_LIVE_STREAM}
-	 *            {@link #HOOK_ACTION_START_LIVE_STREAM}
-	 * 
-	 * @param streamName,
-	 *            name of the stream. It is not the name of the file. It is just
-	 *            a user friendly name
-	 * 
-	 * @param category,
-	 *            category of the stream
-	 * 
 	 * @param vodName name of the vod 
 	 * 
 	 * @param vodId id of the vod in the datastore
@@ -648,7 +620,6 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 			String vodName, String vodId) {
 
 		StringBuilder response = null;
-
 
 		if (url != null && url.length() > 0) {
 			Map<String, String> variables = new HashMap<>();
@@ -675,14 +646,17 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 			} catch (IOException e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
+			catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
 		}
 		return response;
 	}
 
-	public static StringBuilder sendPOST(String url, Map<String, String> variables) throws IOException {
+	public StringBuilder sendPOST(String url, Map<String, String> variables) throws IOException {
 
 		StringBuilder response = null;
-		try (CloseableHttpClient httpClient = HttpClients.createDefault()) 
+		try (CloseableHttpClient httpClient = getHttpClient()) 
 		{
 			HttpPost httpPost = new HttpPost(url);
 			httpPost.addHeader("User-Agent", "Daaavuuuuuttttt https://www.youtube.com/watch?v=cbyTDRgW4Jg");
@@ -719,6 +693,10 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 		return response;
 
+	}
+	
+	public CloseableHttpClient getHttpClient() {
+		return HttpClients.createDefault();
 	}
 
 	public List<IStreamPublishSecurity> getStreamPublishSecurityList() {

@@ -304,15 +304,26 @@ public class PeriscopeEndpointTest {
 		
 		dataStore.close();
 	}
+	
+	@Test
+	public void testConnectChatEndpoint() {
+		createBroadcast(true);
+	}
 
 	@Test
 	public void testCreateBroadcast() {
+		createBroadcast(false);
+	}
+	
+	public void createBroadcast(boolean collectInteractivity) {
 		IDataStore dataStore = new MapDBStore(TARGET_TEST_PROPERTIES);
 		List<SocialEndpointCredentials> socialEndpoints = dataStore.getSocialEndpoints(0, 10);
 		assertEquals(1, socialEndpoints.size());
 		
 		PeriscopeEndpoint endPoint = new PeriscopeEndpoint(CLIENT_ID, CLIENT_SECRET, dataStore, socialEndpoints.get(0), null);
 		try {
+			
+			endPoint.setCollectInteractivity(collectInteractivity);
 			
 			assertEquals("faraklit06", endPoint.getAccountName());
 			
