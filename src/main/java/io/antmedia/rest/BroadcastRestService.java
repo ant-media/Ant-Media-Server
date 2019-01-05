@@ -291,20 +291,39 @@ public class BroadcastRestService {
 	@Path("/broadcast/stop/{streamId}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result stopBroadcast(@ApiParam(value = "Stream id", required = true) @PathParam("streamId") String streamId) {
-
 		boolean result = false;
-		String message = "";
-		IBroadcastStream broadcastStream = getApplication().getBroadcastStream(getScope(), streamId);
-		if (broadcastStream != null) {
-			((IClientBroadcastStream) broadcastStream).getConnection().close();
-			result = true;
-		} else {
-			message = "No active broadcast found with id " + streamId;
 
-			logger.warn("No active broadcast found with id {}", streamId);
+		if (streamId != null) {
+			result = stopBroadcastInternal(getDataStore().get(streamId));
 		}
 
-		return new Result(result, message);
+		return new Result(result);
+	}
+	
+	private boolean stopBroadcastInternal(Broadcast broadcast) {
+		boolean result = false;
+		if (broadcast != null) {
+
+			if (broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA)|| broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE)) {
+				result = getApplication().stopStreaming(broadcast).isSuccess();
+				logger.info("stop broadcast of extenal source(ip camera, remote) stream: {} is {} ", broadcast.getStreamId(), result);
+
+			} else if (broadcast.getType().equals(AntMediaApplicationAdapter.LIVE_STREAM)) {
+
+				IBroadcastStream broadcastStream = getApplication().getBroadcastStream(getScope(), broadcast.getStreamId());
+				if (broadcastStream != null) {
+					((IClientBroadcastStream) broadcastStream).getConnection().close();
+					result = true;
+					logger.warn("Broadcast stopped, id: {}", broadcast.getStreamId());
+
+				} else {
+					logger.error("No active broadcast found with id {}, so could not stopped", broadcast.getStreamId());
+				}
+
+			}
+
+		}
+		return result;
 	}
 
 	/**
@@ -1384,29 +1403,23 @@ public class BroadcastRestService {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result deleteBroadcast(@ApiParam(value = " Id of the braodcast", required = true) @PathParam("id") String id) {
 		Result result = new Result (false);
+		boolean stopResult = false;
 
 		if (id != null) {
 			Broadcast broacast = getDataStore().get(id);
-			if (broacast != null) {
-				if (broacast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA)||broacast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE)) {
-					getApplication().stopStreaming(broacast);
+			stopResult = stopBroadcastInternal(broacast);
+			
+			result.setSuccess(getDataStore().delete(id));
 
-				}
-				result.setSuccess(getDataStore().delete(id));
-				boolean stopResult = stopBroadcast(id).isSuccess();
-
-				if(result.isSuccess() && stopResult) {
-					result.setMessage("brodcast is deleted and stopped successfully");
-					logger.info("brodcast {} is deleted and stopped successfully", id);
-				}
-				else if(result.isSuccess() && !stopResult) {
-					result.setMessage("brodcast is deleted but could not stopped ");
-					logger.info("brodcast {} is deleted but could not stopped", id);
-				}
-
+			if(result.isSuccess() && stopResult) {
+				result.setMessage("brodcast is deleted and stopped successfully");
+				logger.info("brodcast {} is deleted and stopped successfully", id);
+			}
+			else if(result.isSuccess() && !stopResult) {
+				result.setMessage("brodcast is deleted but could not stopped ");
+				logger.info("brodcast {} is deleted but could not stopped", id);
 			}
 		}
-
 		return result;
 	}
 

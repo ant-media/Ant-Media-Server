@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.muxer.MuxAdaptor;
+import io.antmedia.rest.model.Result;
 
 
 /**
@@ -108,20 +109,19 @@ public class StreamFetcherManager {
 		return streamScheduler;
 	}
 
-	public StreamFetcher stopStreaming(Broadcast stream) {
+	public Result stopStreaming(Broadcast stream) {
 		logger.warn("inside of stopStreaming for {}", stream.getStreamId());
-
-		StreamFetcher streamScheduler = null;
+		Result result = new Result(false);
+		
 		for (StreamFetcher scheduler : streamFetcherList) {
 			if (scheduler.getStream().getStreamId().equals(stream.getStreamId())) {
 				scheduler.stopStream();
 				streamFetcherList.remove(scheduler);
-				streamScheduler = scheduler;
+				result.setSuccess(true);
 				break;
 			}
 		}
-		
-		return streamScheduler;
+		return result;
 	}
 
 	public void stopCheckerJob() {
