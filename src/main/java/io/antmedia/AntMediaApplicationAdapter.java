@@ -643,10 +643,8 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 			try {
 				response = sendPOST(url, variables);
-			} catch (IOException e) {
-				logger.error(ExceptionUtils.getStackTrace(e));
-			}
-			catch (Exception e) {
+			} catch (Exception e) {
+				//Make Exception generi
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
 		}
