@@ -429,7 +429,7 @@ public class AppFunctionalTest {
 			// stop publishing live stream
 			destroyProcess();
 
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				List<VoD> callGetVoDList = restService.callGetVoDList();
 				for (VoD vod : callGetVoDList) {
 					if (vod.getStreamId().equals(streamId)) {
