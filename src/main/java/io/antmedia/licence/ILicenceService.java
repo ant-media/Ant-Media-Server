@@ -39,17 +39,17 @@ public interface ILicenceService {
 	/**
 	 * Retrieves License information
 	 * @param key of the license
-	 * @return active license string
+	 * @return requested license 
 	 */
 	
-	public String getLicence (String key);
+	public Licence getLicence (String key);
 	
 	/**
 	 * Check License Status
 	 * @param key of the license
 	 * @return result of the operation and message
 	 */
-	public Result checkLicence (String key);
+	public Licence checkLicence (String key);
 	
 	/**
 	 * Retrieves Server Settings

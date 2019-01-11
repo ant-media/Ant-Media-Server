@@ -73,9 +73,9 @@
 	<bean id="ant.media.licence.service" class="#{ T(io.antmedia.rest.BroadcastRestService).isEnterprise() ? 'io.antmedia.enterprise.licence.LicenceService' : 'io.antmedia.licence.CommunityLicenceService' }"
 	init-method="start">
 		<property name="serverSettings" ref="ant.media.server.settings" />
-		<property name="url" value="https://ant-licence.firebaseio.com" />
 		<property name="child" value="licences" />
-		<property name="config" value="/META-INF/3e2bc12d03.json" />
+		<property name="url" value="https://ant-licence.firebaseio.com/" />
+		
 						
 	</bean>
 	

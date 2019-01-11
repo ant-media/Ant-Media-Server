@@ -25,7 +25,7 @@ public class CommunityLicenceService implements ILicenceService{
 		return new Result(false);
 	}
 
-	public String getLicence (String key) {
+	public Licence getLicence (String key) {
 
 		//no need to implement for Community Edition
 
@@ -33,11 +33,11 @@ public class CommunityLicenceService implements ILicenceService{
 	}
 
 
-	public Result checkLicence (String key) {
+	public Licence checkLicence (String key) {
 
 		//no need to implement for Community Edition
 
-		return new Result(false);
+		return null;
 	}
 
 	public ServerSettings getServerSettings() {
