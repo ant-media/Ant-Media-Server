@@ -47,9 +47,14 @@ public abstract class RestServiceBase {
 					success = success && addSocialEndpoint(broadcast, videoServiceEndpoint);
 				}
 				else {
+					success = false;
 					logger.warn(endpointId + " endpoint does not exist in this app.");
 				}
 			}
+		}
+		else {
+			success = false;
+			logger.warn("endPointServiceList is null");
 		}
 		return success;
 	}

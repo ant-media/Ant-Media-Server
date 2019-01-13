@@ -438,7 +438,7 @@ public class BroadcastRestService extends RestServiceBase{
 		boolean success = addSocialEndpoints(broadcast, endpointServiceId);
 		String message = "";
 		if(!success) {
-			message  = endpointServiceId+" endpoint can not be added to "+broadcast.getStreamId();
+			message  = endpointServiceId+" endpoint can not be added to "+id;
 		}
 		
 		return new Result(success, message);
