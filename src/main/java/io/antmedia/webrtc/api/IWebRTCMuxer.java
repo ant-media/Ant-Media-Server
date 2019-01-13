@@ -1,5 +1,6 @@
 package io.antmedia.webrtc.api;
 
+import java.nio.ByteBuffer;
 import java.util.Queue;
 
 public interface IWebRTCMuxer extends IStreamInfo {
@@ -38,14 +39,14 @@ public interface IWebRTCMuxer extends IStreamInfo {
 	 * @param videoPacket
 	 * @param isKeyFrame
 	 */
-	public void sendVideoPacket(byte[] videoPacket, boolean isKeyFrame, long timestamp);
+	public void sendVideoPacket(ByteBuffer videoPacket, boolean isKeyFrame, long timestamp, int frameRotation);
 	
 	
 	/**
 	 * Send audio packet to WebRTCClients
 	 * @param audioPacket
 	 */
-	public void sendAudioPacket(byte[] audioPacket, long timestamp);
+	public void sendAudioPacket(ByteBuffer audioPacket, long timestamp);
 	
 	/**
 	 * Returns number of WebRTCClients registered to the muxer

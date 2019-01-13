@@ -19,7 +19,9 @@ import io.antmedia.websocket.WebSocketCommunityHandler;
 import io.antmedia.websocket.WebSocketConstants;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.*;
 
@@ -60,7 +62,7 @@ public class RTMPAdaptorTest {
 		Session session = mock(Session.class);
 		rtmpAdaptor.setSession(session);
 
-		MediaStream stream = mock(MediaStream.class);
+		MediaStream stream =  new MediaStream(0L);
 		rtmpAdaptor.onAddStream(stream);
 		
 		/* no room property is put to session with streamId, because roomName is put during joining to room  
@@ -68,7 +70,58 @@ public class RTMPAdaptorTest {
 		 */
 		assertNull(session.getUserProperties().get(streamId));
 
-		verify(webSocketHandler).sendPublishStartedMessage(streamId, session);
+		verify(webSocketHandler).sendPublishStartedMessage(streamId, session, null);
+	}
+	
+	
+	@Test
+	public void testIsStarted() {
+		FFmpegFrameRecorder recorder = mock(FFmpegFrameRecorder.class);
+		WebSocketCommunityHandler webSocketHandlerReal = new WebSocketCommunityHandler() {
+
+			@Override
+			public ApplicationContext getAppContext() {
+				return null;
+			}
+		};
+		
+		WebSocketCommunityHandler webSocketHandler = spy(webSocketHandlerReal);
+
+		RTMPAdaptor rtmpAdaptor = new RTMPAdaptor(recorder, webSocketHandler);
+		
+		String streamId = "stramId" + (int)(Math.random()*10000);
+		rtmpAdaptor.setStreamId(streamId);
+		Session session = mock(Session.class);
+		rtmpAdaptor.setSession(session);
+		
+		assertNull(rtmpAdaptor.getAudioDataSchedulerFuture());
+		assertEquals(0, rtmpAdaptor.getStartTime());
+		
+		rtmpAdaptor.start();
+		
+		
+		
+		Awaitility.await().pollDelay(1, TimeUnit.SECONDS)
+			.atMost(10, TimeUnit.SECONDS)
+			.until(() -> rtmpAdaptor.isStarted());
+		
+		
+		rtmpAdaptor.initAudioTrackExecutor();
+		
+		assertNotNull(rtmpAdaptor.getAudioDataSchedulerFuture());
+		
+		rtmpAdaptor.stop();
+		
+		Awaitility.await().pollDelay(1, TimeUnit.SECONDS)
+		.atMost(10, TimeUnit.SECONDS)
+		.until(() -> rtmpAdaptor.getAudioDataSchedulerFuture().isCancelled());
+		
+		assertTrue(rtmpAdaptor.getAudioDataSchedulerFuture().isCancelled());
+		
+		Awaitility.await().pollDelay(1, TimeUnit.SECONDS)
+		.atMost(10, TimeUnit.SECONDS)
+		.until(() -> rtmpAdaptor.isStopped());
+		
 	}
 
 	@Test
@@ -214,14 +267,13 @@ public class RTMPAdaptorTest {
 
 			RTMPAdaptor rtmpAdaptor = new RTMPAdaptor(null, handler);
 
-			MediaStream stream = mock(MediaStream.class);
+			MediaStream stream = new MediaStream(0L);
 
 			Session session = mock(Session.class);
 
 			rtmpAdaptor.setSession(session);
 
 			rtmpAdaptor.onAddStream(stream);
-
 
 		}
 		catch (Exception e) {

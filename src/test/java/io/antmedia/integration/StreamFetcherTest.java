@@ -34,6 +34,7 @@ import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
+import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
@@ -195,8 +196,10 @@ public class StreamFetcherTest extends AbstractJUnit4SpringContextTests{
 		//add endpoint to the server
 		dataStore.addEndpoint(localStream.getStreamId(), endpoint);
 		
-		app.setDataStore(dataStore);
+		DataStoreFactory dsf = Mockito.mock(DataStoreFactory.class);
+		Mockito.when(dsf.getDataStore()).thenReturn(dataStore);
 		
+		app.setDataStoreFactory(dsf);
 		
 		//create stream fetcher
 		StreamFetcher streamFetcher = new StreamFetcher(localStream, appScope, null);

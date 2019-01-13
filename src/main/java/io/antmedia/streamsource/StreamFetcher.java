@@ -288,11 +288,6 @@ public class StreamFetcher {
 								av_packet_ref(packet, pkt);
 								bufferQueue.add(packet);
 
-								AVPacket pktHead = bufferQueue.peek();
-								lastPacketTime = av_rescale_q(pkt.pts(), inputFormatContext.streams(pkt.stream_index()).time_base(), avRationalTimeBaseMS);
-								firstPacketTime = av_rescale_q(pktHead.pts(), inputFormatContext.streams(pktHead.stream_index()).time_base(), avRationalTimeBaseMS);
-								bufferDuration = (lastPacketTime - firstPacketTime);
-
 								if ( bufferDuration > bufferTime) {
 									buffering = false;
 								}
@@ -301,28 +296,48 @@ public class StreamFetcher {
 								if (bufferLogCounter % 100 == 0) {
 									logger.info("Buffer status {}, buffer duration {}ms buffer time {}ms", buffering, bufferDuration, bufferTime);
 									bufferLogCounter = 0;
+									AVPacket pktHead = bufferQueue.peek();
+									/**
+									 * BufferQueue may be polled in writer thread. 
+									 * It's a very rare case to happen so that check if it's null
+									 */
+									if (pktHead != null) {
+										lastPacketTime = av_rescale_q(pkt.pts(), inputFormatContext.streams(pkt.stream_index()).time_base(), avRationalTimeBaseMS);
+										firstPacketTime = av_rescale_q(pktHead.pts(), inputFormatContext.streams(pktHead.stream_index()).time_base(), avRationalTimeBaseMS);
+										bufferDuration = (lastPacketTime - firstPacketTime);
+
+										if ( bufferDuration > bufferTime) {
+											buffering = false;
+										}
+
+										bufferLogCounter++;
+										if (bufferLogCounter % 100 == 0) {
+											logger.info("Buffer status {}, buffer duration {}ms buffer time {}ms", buffering, bufferDuration, bufferTime);
+											bufferLogCounter = 0;
+										}
+									}
+								}
+								else {
+									muxAdaptor.writePacket(inputFormatContext.streams(pkt.stream_index()), pkt);
+								}
+								av_packet_unref(pkt);
+								if (stopRequestReceived) {
+									logger.warn("Stop request received, breaking the loop for {} ", stream.getStreamId());
+									break;
 								}
 							}
-							else {
-								muxAdaptor.writePacket(inputFormatContext.streams(pkt.stream_index()), pkt);
-							}
-							av_packet_unref(pkt);
-							if (stopRequestReceived) {
-								logger.warn("Stop request received, breaking the loop for {} ", stream.getStreamId());
-								break;
-							}
+							logger.info("Leaving the loop for {}", stream.getStreamId());
+
 						}
-						logger.info("Leaving the loop for {}", stream.getStreamId());
 
 					}
+					else {
+						logger.debug("Prepare for {} returned false", stream.getName());
+					}
 
-				}
-				else {
-					logger.debug("Prepare for {} returned false", stream.getName());
-				}
-
-				setCameraError(result);
-			} 
+					setCameraError(result);
+				} 
+			}
 			catch (OutOfMemoryError | Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 				exceptionInThread  = true;

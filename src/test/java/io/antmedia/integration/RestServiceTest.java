@@ -489,6 +489,30 @@ public class RestServiceTest {
 		return tmp;
 
 	}
+	
+	public static Result callEnableMp4Muxing(String streamId, int mode) throws Exception {
+
+		String url = ROOT_SERVICE_URL + "/broadcast/enableMp4Muxing?id="+ streamId + "&enableMp4=" + mode;
+
+		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+
+
+		HttpUriRequest post = RequestBuilder.get().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json").build();
+
+		HttpResponse response = client.execute(post);
+
+		StringBuffer result = readResponse(response);
+
+		if (response.getStatusLine().getStatusCode() != 200) {
+			throw new Exception(result.toString());
+		}
+		System.out.println("result string: " + result.toString());
+		Result tmp = gson.fromJson(result.toString(), Result.class);
+		assertNotNull(tmp);
+
+		return tmp;
+
+	}
 
 	public static Broadcast callCreateRegularBroadcast() throws Exception {
 
@@ -1535,8 +1559,6 @@ public class RestServiceTest {
 
 	@Test
 	public void testAddEndpoint() {
-
-		System.out.println("Running testAddEndpoint");
 		try {
 
 			Broadcast broadcast = createBroadcast(null);
@@ -1564,7 +1586,7 @@ public class RestServiceTest {
 			// get endpoint list
 			broadcast = getBroadcast(broadcast.getStreamId().toString());
 
-			// check that 4 element exist
+			// check that 2 element exist
 			assertNotNull(broadcast.getEndPointList());
 			assertEquals(2, broadcast.getEndPointList().size());
 
@@ -1576,7 +1598,6 @@ public class RestServiceTest {
 	
 	@Test
 	public void testAddEndpointCrossCheck() {
-		System.out.println("Running testAddEndpoint");
 		try {
 
 			List<Broadcast> broadcastList = callGetBroadcastList();

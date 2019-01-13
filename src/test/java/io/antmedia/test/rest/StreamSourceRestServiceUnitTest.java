@@ -9,6 +9,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.red5.server.scope.Scope;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
 
 import io.antmedia.AntMediaApplicationAdapter;
@@ -21,6 +23,7 @@ import io.antmedia.rest.model.Result;
 import io.antmedia.streamsource.StreamFetcher;
 
 @ContextConfiguration(locations = { "test.xml" })
+@DirtiesContext(classMode = ClassMode.AFTER_CLASS)
 public class StreamSourceRestServiceUnitTest {
 	
 	private StreamsSourceRestService restService = null;

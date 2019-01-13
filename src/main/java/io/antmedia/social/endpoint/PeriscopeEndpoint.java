@@ -253,7 +253,7 @@ public class PeriscopeEndpoint extends VideoServiceEndpoint {
 		updateTokenIfRequired();
 		broadcastEndpoint.publishBroadcast(endpoint.getBroadcastId(), endpoint.getName(), false, "en_US", true);
 
-		if (collectInteractivity) {
+		if (isCollectInteractivity()) {
 			connectToChatEndpoint(endpoint);
 		}
 	}

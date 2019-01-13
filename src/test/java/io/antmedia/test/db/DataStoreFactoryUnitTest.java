@@ -3,21 +3,17 @@ package io.antmedia.test.db;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import java.io.File;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.springframework.context.ApplicationContext;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.cluster.DBReader;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.IDataStore;
-import io.antmedia.datastore.db.IDataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.MongoStore;
@@ -26,7 +22,6 @@ import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.StreamsSourceRestService;
 import io.antmedia.security.AcceptOnlyStreamsInDataStore;
 import io.antmedia.security.ExpireStreamPublishSecurity;
-import io.antmedia.security.TokenService;
 import io.antmedia.statistic.HlsViewerStats;
 
 public class DataStoreFactoryUnitTest {
@@ -39,7 +34,7 @@ public class DataStoreFactoryUnitTest {
 		dsf.setAppName("myApp");
 		dsf.setDbName("myDB");
 		dsf.setDbHost("localhost");
-		dsf.setDbUser("me");
+		dsf.setDbUser(null);
 		dsf.setDbPassword("myPass");
 	}
 
@@ -104,12 +99,7 @@ public class DataStoreFactoryUnitTest {
     	HlsViewerStats hvs = new HlsViewerStats();
     	hvs.setDataStoreFactory(dsf);
     	assertEquals(datastore, hvs.getDataStore());
-    	
-    	TokenService ts = new TokenService();
-    	ApplicationContext context = mock(ApplicationContext.class);
-		when(context.getBean(IDataStoreFactory.BEAN_NAME)).thenReturn(dsf);
-		ts.setApplicationContext(context);
-		assertEquals(datastore, ts.getDataStore());
+
     }
     
     

@@ -44,6 +44,7 @@ import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.rest.BroadcastRestService;
+import io.antmedia.rest.model.Result;
 import io.antmedia.social.endpoint.PeriscopeEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
@@ -60,9 +61,9 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	public static final String HOOK_ACTION_END_LIVE_STREAM = "liveStreamEnded";
 	public static final String HOOK_ACTION_START_LIVE_STREAM = "liveStreamStarted";
 	public static final String HOOK_ACTION_VOD_READY = "vodReady";
-	
+
 	public static final String VERTX_BEAN_NAME = "vertxCore";
-	
+
 	protected static Logger logger = LoggerFactory.getLogger(AntMediaApplicationAdapter.class);
 	public static final String LIVE_STREAM = "liveStream";
 	public static final String IP_CAMERA = "ipCamera";
@@ -87,7 +88,10 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 	@Override
 	public boolean appStart(IScope app) {
-		 vertx = (Vertx) getContext().getBean(VERTX_BEAN_NAME);
+		vertx = (Vertx) getContext().getBean(VERTX_BEAN_NAME);
+
+		//initalize to access the data store directly in the code
+		getDataStore();
 
 		if (getStreamPublishSecurityList() != null) {
 			for (IStreamPublishSecurity streamPublishSecurity : getStreamPublishSecurityList()) {
@@ -105,7 +109,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 				streamFetcherManager.startStreams(streams);
 
 				List<SocialEndpointCredentials> socialEndpoints = getDataStore().getSocialEndpoints(0, END_POINT_LIMIT);
-				
+
 				logger.info("socialEndpoints size: {}", socialEndpoints.size());
 
 				for (SocialEndpointCredentials socialEndpointCredentials : socialEndpoints) 
@@ -125,6 +129,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 					}
 
 					if (endPointService != null) {
+						endPointService.setCollectInteractivity(appSettings.isCollectSocialMediaActivity());
 						videoServiceEndpoints.put(endPointService.getCredentials().getId(), endPointService);
 					}
 				}
@@ -196,9 +201,22 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	@Override
 	public void streamBroadcastClose(IBroadcastStream stream) {
 
-		String streamName = stream.getPublishedName();
 
-		closeBroadcast(streamName);
+		String streamName = stream.getPublishedName();
+		vertx.executeBlocking(future -> {
+			try {
+				closeBroadcast(streamName);
+				future.complete(true);
+			}
+			catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+				future.complete(false);
+			}
+		},
+				result -> 
+		logger.info("close broadcast operation for {} is finished with {}", streamName, result.result())
+				);
+
 
 		super.streamBroadcastClose(stream);
 	}
@@ -222,7 +240,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 							@Override
 							public void execute(ISchedulingService service) throws CloneNotSupportedException {
 								notifyHook(listenerHookURL, streamId, HOOK_ACTION_END_LIVE_STREAM, name, category,
-										null);
+										null, null);
 							}
 						});
 					}
@@ -288,6 +306,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 			endPointService = (VideoServiceEndpoint) endpointClass.getConstructor(String.class, String.class, IDataStore.class, SocialEndpointCredentials.class, Vertx.class)
 					.newInstance(clientId, clientSecret, dataStore, socialEndpointCredentials, vertx);
+			endPointService.setCollectInteractivity(appSettings.isCollectSocialMediaActivity());
 			return endPointService;
 		}
 		catch (Exception e) {
@@ -295,7 +314,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		}
 		return null;
 	}
-	
+
 
 	@Override
 	public void streamPlayItemPlay(ISubscriberStream stream, IPlayItem item, boolean isLive) {
@@ -304,10 +323,10 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 			if (dataStore != null) {
 				dataStore.updateRtmpViewerCount(item.getName(), true);
 			}
-			
+
 		});
 	}
-	
+
 	@Override
 	public void streamPlayItemStop(ISubscriberStream stream, IPlayItem item) {
 		super.streamPlayItemStop(stream, item);
@@ -317,7 +336,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 			}
 		});
 	}
-	
+
 	@Override
 	public void streamSubscriberClose(ISubscriberStream stream) {
 		super.streamSubscriberClose(stream);
@@ -327,12 +346,12 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 			}
 		});
 	}
-	
+
 	@Override
 	public void streamPublishStart(final IBroadcastStream stream) {
 		String streamName = stream.getPublishedName();
 		logger.info("stream name in streamPublishStart: {}", streamName );
-		
+
 		startPublish(streamName);
 
 		super.streamPublishStart(stream);
@@ -352,7 +371,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 						Broadcast broadcast = dataStoreLocal.get(streamName);
 
 						if (broadcast == null) {
-							
+
 							broadcast = saveUndefinedBroadcast(streamName, getScope().getName(), dataStoreLocal, appSettings);
 
 						} else {
@@ -371,7 +390,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 								@Override
 								public void execute(ISchedulingService service) throws CloneNotSupportedException {
 									notifyHook(listenerHookURL, streamId, HOOK_ACTION_START_LIVE_STREAM, name, category,
-											null);
+											null, null);
 								}
 							});
 						}
@@ -436,49 +455,73 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		String vodName = file.getName();
 		String filePath = file.getPath();
 		long fileSize = file.length();
-		String streamName = file.getName();
 		long systemTime = System.currentTimeMillis();
 		String[] subDirs = filePath.split(Pattern.quote(File.separator));
 		Integer pathLength=Integer.valueOf(subDirs.length);
 		String relativePath= subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
+		String listenerHookURL = null;
+		String streamName = file.getName();
 
-		if (dataStore != null) {
-			Broadcast broadcast = dataStore.get(streamId);
 
-			if (broadcast != null) {
-				//if it is a stream VoD, than assign stream name, if it is deleted stream Vod name assigned to it already
-				streamName = broadcast.getName();
-				int index;
-				// reg expression of a translated file, kdjf03030_240p.mp4
-				String regularExp = "^.*_{1}[0-9]{3}p{1}\\.mp4{1}$";
-
-				if (!vodName.matches(regularExp) && (index = vodName.lastIndexOf(".mp4")) != -1) {
-					final String baseName = vodName.substring(0, index);
-					final String listenerHookURL = broadcast.getListenerHookURL();
-
-					addScheduledOnceJob(100, new IScheduledJob() {
-
-						@Override
-						public void execute(ISchedulingService service) throws CloneNotSupportedException {
-							notifyHook(listenerHookURL, streamId, HOOK_ACTION_VOD_READY, null, null, baseName);
-						}
-					});
-
-				}
-			}
-
-			if(resolution != 0 && broadcast != null) {
+		Broadcast broadcast = getDataStore().get(streamId);
+		if (broadcast != null) {
+			streamName = broadcast.getName();
+			listenerHookURL = broadcast.getListenerHookURL();
+			if (resolution != 0) {
 				streamName = streamName + " (" + resolution + "p)";
 			}
-
-			String vodId = RandomStringUtils.randomNumeric(24);
-			VoD newVod = new VoD(streamName, streamId, relativePath, vodName, systemTime, duration, fileSize, VoD.STREAM_VOD, vodId);
-
-			if (getDataStore().addVod(newVod) == null) {
-				logger.warn("Stream vod with stream id {} cannot be added to data store", streamId);
-			}	
-
 		}
+
+		String vodId = RandomStringUtils.randomNumeric(24);
+		VoD newVod = new VoD(streamName, streamId, relativePath, vodName, systemTime, duration, fileSize, VoD.STREAM_VOD, vodId);
+
+		if (getDataStore().addVod(newVod) == null) {
+			logger.warn("Stream vod with stream id {} cannot be added to data store", streamId);
+		}
+
+		int index;
+		//HOOK_ACTION_VOD_READY is called only the stream in the datastore
+		//it is not called for zombi streams
+		if (listenerHookURL != null && !listenerHookURL.isEmpty() && 
+				(index = vodName.lastIndexOf(".mp4")) != -1) 
+		{
+			final String baseName = vodName.substring(0, index);
+			String finalListenerHookURL = listenerHookURL;
+			addScheduledOnceJob(100, new IScheduledJob() {
+
+				@Override
+				public void execute(ISchedulingService service) throws CloneNotSupportedException {
+					notifyHook(finalListenerHookURL, streamId, HOOK_ACTION_VOD_READY, null, null, baseName, vodId);
+				}
+			});
+		}
+
+		String muxerFinishScript = appSettings.getMuxerFinishScript();
+		if (muxerFinishScript != null && !muxerFinishScript.isEmpty()) {	
+			runScript(muxerFinishScript + "  " + file.getAbsolutePath());
+		}
+
+
+	}
+
+	public void runScript(String scriptFile) {
+		vertx.executeBlocking(future -> {
+			try {
+				logger.info("running muxer finish script: {}", scriptFile);
+				Process exec = Runtime.getRuntime().exec(scriptFile);
+				int result = exec.waitFor();
+				future.complete();
+				logger.info("completing script: {} with return value {}", scriptFile, result);
+			} catch (IOException e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			} catch (InterruptedException e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+				Thread.currentThread().interrupt();
+			} 
+
+		}, res -> {
+
+		});
 	}
 
 	private static class AuthCheckJob implements IScheduledJob {
@@ -567,14 +610,16 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	 * @param category,
 	 *            category of the stream
 	 * 
+	 * @param vodName name of the vod 
+	 * 
+	 * @param vodId id of the vod in the datastore
 	 * 
 	 * @return
 	 */
 	public StringBuilder notifyHook(String url, String id, String action, String streamName, String category,
-			String vodName) {
+			String vodName, String vodId) {
 
 		StringBuilder response = null;
-
 
 		if (url != null && url.length() > 0) {
 			Map<String, String> variables = new HashMap<>();
@@ -592,20 +637,24 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 				variables.put("vodName", vodName);
 			}
 
+			if (vodId != null) {
+				variables.put("vodId", vodId);
+			}
 
 			try {
 				response = sendPOST(url, variables);
-			} catch (IOException e) {
+			} catch (Exception e) {
+				//Make Exception generi
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
 		}
 		return response;
 	}
 
-	public static StringBuilder sendPOST(String url, Map<String, String> variables) throws IOException {
+	public StringBuilder sendPOST(String url, Map<String, String> variables) throws IOException {
 
 		StringBuilder response = null;
-		try (CloseableHttpClient httpClient = HttpClients.createDefault()) 
+		try (CloseableHttpClient httpClient = getHttpClient()) 
 		{
 			HttpPost httpPost = new HttpPost(url);
 			httpPost.addHeader("User-Agent", "Daaavuuuuuttttt https://www.youtube.com/watch?v=cbyTDRgW4Jg");
@@ -620,24 +669,32 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 			httpPost.setEntity(postParams);
 
 			CloseableHttpResponse httpResponse = httpClient.execute(httpPost);
-
 			logger.info("POST Response Status:: {}" , httpResponse.getStatusLine().getStatusCode());
 
-			BufferedReader reader = new BufferedReader(new InputStreamReader(httpResponse.getEntity().getContent()));
+			HttpEntity entity = httpResponse.getEntity();
+			if (entity != null) 
+			{ 
+				//read entity if it's available
+				BufferedReader reader = new BufferedReader(new InputStreamReader(entity.getContent()));
 
-			String inputLine;
-			response = new StringBuilder();
+				String inputLine;
+				response = new StringBuilder();
 
-			while ((inputLine = reader.readLine()) != null) {
-				response.append(inputLine);
+				while ((inputLine = reader.readLine()) != null) {
+					response.append(inputLine);
+				}
+				reader.close();
 			}
-			reader.close();
 
 		}
 
 
 		return response;
 
+	}
+	
+	public CloseableHttpClient getHttpClient() {
+		return HttpClients.createDefault();
 	}
 
 	public List<IStreamPublishSecurity> getStreamPublishSecurityList() {
@@ -680,8 +737,8 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		return streamFetcherManager.startStreaming(broadcast);
 	}
 
-	public void stopStreaming(Broadcast cam) {
-		streamFetcherManager.stopStreaming(cam);
+	public Result stopStreaming(Broadcast broadcast) {
+		return streamFetcherManager.stopStreaming(broadcast);
 	}
 
 	public OnvifCamera getOnvifCamera(String id) {
@@ -702,23 +759,24 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	public StreamFetcherManager getStreamFetcherManager() {
 		return streamFetcherManager;
 	}
+	
+	public void setStreamFetcherManager(StreamFetcherManager streamFetcherManager) {
+		this.streamFetcherManager = streamFetcherManager;
+	}
 
 	@Override
 	public void setQualityParameters(String id, String quality, double speed, int pendingPacketSize) {
+		logger.info("update source quality for stream: {} quality:{} speed:{}", id, quality, speed);
 		getDataStore().updateSourceQualityParameters(id, quality, speed, pendingPacketSize);
-		
+
 	}
-	
+
 	public IDataStore getDataStore() {
 		if(dataStore == null)
 		{
 			dataStore = dataStoreFactory.getDataStore();
 		}
 		return dataStore;
-	}
-
-	public void setDataStore(IDataStore dataStore) {
-		this.dataStore = dataStore;
 	}
 
 	public DataStoreFactory getDataStoreFactory() {
@@ -728,6 +786,14 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 	public void setDataStoreFactory(DataStoreFactory dataStoreFactory) {
 		this.dataStoreFactory = dataStoreFactory;
+	}
+
+	/**
+	 * This setter for test cases
+	 * @param vertx
+	 */
+	public void setVertx(Vertx vertx) {
+		this.vertx = vertx;
 	}
 
 }

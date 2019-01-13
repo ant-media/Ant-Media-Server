@@ -18,6 +18,7 @@ import java.net.InetAddress;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -45,6 +46,8 @@ import com.google.gson.Gson;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
+import io.antmedia.AppSettingsModel;
+import io.antmedia.EncoderSettings;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.rest.BroadcastRestService;
@@ -73,7 +76,7 @@ public class AppFunctionalTest {
 	static {
 
 		try {
-			ROOT_SERVICE_URL = "http://" + InetAddress.getLocalHost().getHostAddress() + ":5080/ConsoleApp/rest";
+			ROOT_SERVICE_URL = "http://" + InetAddress.getLocalHost().getHostAddress() + ":5080/rest";
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		}
@@ -240,7 +243,40 @@ public class AppFunctionalTest {
 
 			log.info("current vod number before test {}", String.valueOf(currentVodNumber));
 
+			boolean found240p = false;
+			List<EncoderSettings> encoderSettingsActive = null;
+			AppSettingsModel appSettingsModel = null;
+			boolean mp4MuxingEnabled = false;
 			Broadcast broadcast=rest.createBroadcast("RTMP_stream");
+			{
+				//prepare settings
+				ConsoleAppRestServiceTest.resetCookieStore();
+				Result result = ConsoleAppRestServiceTest.callisFirstLogin();
+				if (result.isSuccess()) {
+					Result createInitialUser = ConsoleAppRestServiceTest.createDefaultInitialUser();
+					assertTrue(createInitialUser.isSuccess());
+				}
+
+				result = ConsoleAppRestServiceTest.authenticateDefaultUser();
+				assertTrue(result.isSuccess());
+
+				appSettingsModel = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
+				List<EncoderSettings> encoderSettingsList = appSettingsModel.getEncoderSettings();
+				encoderSettingsActive = appSettingsModel.getEncoderSettings();
+
+
+				mp4MuxingEnabled = appSettingsModel.isMp4MuxingEnabled();
+
+				appSettingsModel.setMp4MuxingEnabled(true);
+
+				List<EncoderSettings> settingsList = new ArrayList<>();
+				settingsList.add(new EncoderSettings(240, 300000, 64000));
+				appSettingsModel.setEncoderSettings(settingsList);
+				result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettingsModel);
+				assertTrue(result.isSuccess());
+
+			}
+
 
 			Process rtmpSendingProcess = execute(ffmpegPath
 					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
@@ -266,18 +302,29 @@ public class AppFunctionalTest {
 				Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 					return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + "_240p.mp4");
 				});
-				int lastVodNumber = rest.callTotalVoDNumber();
-				log.info("vod number after test {}", lastVodNumber);
+				Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+					int lastVodNumber = rest.callTotalVoDNumber();
+					log.info("vod number after test {}", lastVodNumber);
+					//2 more VoDs should be added to DB, one is original other one ise 240p mp4 files
+					//480p is not created because original stream is 360p
 
-				//2 more VoDs should be added to DB, one is original other one ise 240p mp4 files
-				//480p is not created because original stream is 360p
-				assertEquals(currentVodNumber + 2, lastVodNumber);
+					return currentVodNumber +2 == lastVodNumber;
+
+				});
+
 			}
 			else {
-				int lastVodNumber = rest.callTotalVoDNumber();
-				assertEquals(currentVodNumber + 1, lastVodNumber);
+				Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+					int lastVodNumber = rest.callTotalVoDNumber();
+					log.info("vod number after test {}", lastVodNumber);
+					//2 more VoDs should be added to DB, one is original other one ise 240p mp4 files
+					//480p is not created because original stream is 360p
+
+					return currentVodNumber +1 == lastVodNumber;
+
+				});
 			}
-			
+
 			List<VoD> callGetVoDList = RestServiceTest.callGetVoDList();
 			boolean found = false;
 			VoD vod1 = null;
@@ -291,7 +338,7 @@ public class AppFunctionalTest {
 					else if (voD.getFilePath().equals("streams/"+broadcast.getStreamId() + "_240p.mp4")) {
 						vod2 = voD;
 					}
-					
+
 					//file path does not contain vod id
 					assertFalse(voD.getFilePath().contains(voD.getVodId()));
 					found = true;
@@ -302,14 +349,23 @@ public class AppFunctionalTest {
 			assertTrue(MuxingTest.isURLAvailable("http://" + SERVER_ADDR + ":5080/LiveApp/"+ vod1.getFilePath()));
 			assertTrue(RestServiceTest.deleteVoD(vod1.getVodId()).isSuccess());
 			assertFalse(MuxingTest.isURLAvailable("http://" + SERVER_ADDR + ":5080/LiveApp/"+ vod1.getFilePath()));
-			
+
 			if (isEnterprise) {
 				assertNotNull(vod2);
 				assertTrue(MuxingTest.isURLAvailable("http://" + SERVER_ADDR + ":5080/LiveApp/"+ vod2.getFilePath()));
 				assertTrue(RestServiceTest.deleteVoD(vod2.getVodId()).isSuccess());
 				assertFalse(MuxingTest.isURLAvailable("http://" + SERVER_ADDR + ":5080/LiveApp/"+ vod2.getFilePath()));
 			}
-			
+
+
+			{
+				//restore settings
+				appSettingsModel.setEncoderSettings(encoderSettingsActive);
+				appSettingsModel.setMp4MuxingEnabled(mp4MuxingEnabled);
+				Result result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettingsModel);
+				assertTrue(result.isSuccess());
+
+			}
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -361,7 +417,7 @@ public class AppFunctionalTest {
 			Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				return restService.callGetBroadcast(streamId).getHlsViewerCount() == 1;
 			});
-			
+
 			BroadcastStatistics broadcastStatistics = restService.callGetBroadcastStatistics(streamId);
 			assertEquals(1, broadcastStatistics.totalHLSWatchersCount);
 
@@ -369,7 +425,7 @@ public class AppFunctionalTest {
 			// stop publishing live stream
 			destroyProcess();
 
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				List<VoD> callGetVoDList = restService.callGetVoDList();
 				for (VoD vod : callGetVoDList) {
 					if (vod.getStreamId().equals(streamId)) {
@@ -431,7 +487,7 @@ public class AppFunctionalTest {
 			assertEquals(0, broadcastStatistics.totalHLSWatchersCount); 
 			assertEquals(0, broadcastStatistics.totalRTMPWatchersCount);
 			assertEquals(-1, broadcastStatistics.totalWebRTCWatchersCount); // -1 mean it is not available 
-			
+
 
 			broadcastStatistics = restService.callGetBroadcastStatistics("unknown_stream_id");
 			assertNotNull(broadcastStatistics);
@@ -577,7 +633,7 @@ public class AppFunctionalTest {
 			throws IOException{
 
 		if(file.isDirectory()){
-			
+
 			if (Files.isSymbolicLink(file.toPath())) {
 				Files.deleteIfExists(file.toPath());
 			}
@@ -644,14 +700,14 @@ public class AppFunctionalTest {
 	}
 
 	public Result callIsEnterpriseEdition() throws Exception {
-	
+
 		String url = "http://localhost:5080/LiveApp/rest/broadcast/getVersion";
 		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 		Gson gson = new Gson();
 
 		HttpUriRequest get = RequestBuilder.get().setUri(url).build();
 		CloseableHttpResponse response = client.execute(get);
-		
+
 		StringBuffer result = readResponse(response);
 
 
@@ -659,13 +715,13 @@ public class AppFunctionalTest {
 			throw new Exception(result.toString());
 		}
 		logger.info("result string: {} ",result.toString());
-		
+
 		Version version = gson.fromJson(result.toString(),Version.class);
-		
-		
-		
+
+
+
 		Result resultResponse = new Result(true, version.getVersionType());
-		
+
 		assertNotNull(resultResponse);
 
 		return resultResponse;

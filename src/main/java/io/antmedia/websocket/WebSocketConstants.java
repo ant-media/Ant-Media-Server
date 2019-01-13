@@ -70,6 +70,12 @@ public class WebSocketConstants {
 	 */
 	
 	public static final String LEAVE_THE_ROOM = "leaveFromRoom";
+	
+	/**
+	 * this map includes streamId as key, room name as value  for active session
+	 */
+	
+	public static final String SESSION_STREAM_ROOM_MAP = "session_room_map";
 
 	public static final String JOINED_THE_ROOM = "joinedTheRoom";
 	
