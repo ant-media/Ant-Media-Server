@@ -1,6 +1,5 @@
 package io.antmedia.rest;
 
-import java.io.IOException;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
@@ -9,56 +8,37 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.List;
-import java.util.Map;
 import java.util.regex.Pattern;
 
-import javax.annotation.Nullable;
-import javax.servlet.ServletContext;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
-import io.swagger.annotations.*;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
-import org.springframework.web.context.WebApplicationContext;
-import org.springframework.web.context.support.WebApplicationContextUtils;
 
 import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.datastore.db.DataStoreFactory;
-import io.antmedia.datastore.db.IDataStore;
-import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.ipcamera.onvifdiscovery.OnvifDiscovery;
 import io.antmedia.rest.model.Result;
-import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.streamsource.StreamFetcher;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
 
 @Api(value = "StreamsSourceRestService")
 @Component
 @Path("/streamSource")
-public class StreamsSourceRestService {
+public class StreamsSourceRestService extends RestServiceBase{
 
 	private static final String HTTP = "http://";
-	@Context
-	private ServletContext servletContext;
-	private DataStoreFactory dataStoreFactory;
-	private IDataStore dbStore;
-	private ApplicationContext appCtx;
-	private IScope scope;
-	private AntMediaApplicationAdapter appInstance;
 
 	protected static Logger logger = LoggerFactory.getLogger(StreamsSourceRestService.class);
 
@@ -119,17 +99,17 @@ public class StreamsSourceRestService {
 				stream.setDate(unixTime);
 				stream.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
 
-				String id = getStore().save(stream);
+				String id = getDataStore().save(stream);
 
 
 				if (id.length() > 0) {
-					Broadcast newCam = getStore().get(stream.getStreamId());
-					StreamFetcher streamFetcher = getInstance().startStreaming(newCam);
+					Broadcast newCam = getDataStore().get(stream.getStreamId());
+					StreamFetcher streamFetcher = getApplication().startStreaming(newCam);
 					if (streamFetcher != null) {
 						result.setSuccess(true);
 					}
 					else {
-						getStore().delete(stream.getStreamId());
+						getDataStore().delete(stream.getStreamId());
 					}
 				}
 
@@ -153,16 +133,16 @@ public class StreamsSourceRestService {
 			stream.setDate(unixTime);
 			stream.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
 
-			String id = getStore().save(stream);
+			String id = getDataStore().save(stream);
 
 			if (id.length() > 0) {
-				Broadcast newSource = getStore().get(stream.getStreamId());
+				Broadcast newSource = getDataStore().get(stream.getStreamId());
 
 				if (socialEndpointIds != null && socialEndpointIds.length()>0) {
 					addSocialEndpoints(newSource, socialEndpointIds);
 				}
 
-				getInstance().startStreaming(newSource);
+				getApplication().startStreaming(newSource);
 			}
 
 			result.setSuccess(true);
@@ -171,28 +151,7 @@ public class StreamsSourceRestService {
 		return result;
 	}
 
-	private void addSocialEndpoints(Broadcast streamSource, String socialEndpointIds) {
-		Map<String, VideoServiceEndpoint> endPointServiceList = getInstance().getVideoServiceEndpoints();
-
-		String[] endpointIds = socialEndpointIds.split(",");
-
-		if (endPointServiceList != null) {
-			for (String endpointId : endpointIds) {
-				VideoServiceEndpoint videoServiceEndpoint = endPointServiceList.get(endpointId);
-				if (videoServiceEndpoint != null) {
-					Endpoint endpoint;
-					try {
-						endpoint = videoServiceEndpoint.createBroadcast(streamSource.getName(),
-								streamSource.getDescription(), streamSource.getStreamId(), streamSource.isIs360(), streamSource.isPublicStream(),
-								720, true);
-						getStore().addEndpoint(streamSource.getStreamId(), endpoint);
-					} catch (IOException e) {
-						logger.error(ExceptionUtils.getStackTrace(e));
-					}
-				}
-			}
-		}
-	}
+	
 	
 	@ApiOperation(value = "", notes = "Notes here", response = Result.class)
 	@GET
@@ -202,7 +161,7 @@ public class StreamsSourceRestService {
 	public Result getCameraError(@ApiParam(value = "id", required = true) @QueryParam("id") String id) {
 		Result result = new Result(true);
 
-		for (StreamFetcher camScheduler : getInstance().getStreamFetcherManager().getStreamFetcherList()) {
+		for (StreamFetcher camScheduler : getApplication().getStreamFetcherManager().getStreamFetcherList()) {
 			if (camScheduler.getStream().getIpAddr().equals(id)) {
 				result = camScheduler.getCameraError();
 			}
@@ -220,13 +179,13 @@ public class StreamsSourceRestService {
 		int errorId = -1;
 		String message = "";
 
-		String vodFolder = getInstance().getAppSettings().getVodFolder();
+		String vodFolder = getApplication().getAppSettings().getVodFolder();
 
 		logger.info("synch user vod list vod folder is {}", vodFolder);
 
 		if (vodFolder != null && vodFolder.length() > 0) {
 
-			result = getInstance().synchUserVoDFolder(null, vodFolder);
+			result = getApplication().synchUserVoDFolder(null, vodFolder);
 		}
 		else {
 			errorId = 404;
@@ -248,7 +207,7 @@ public class StreamsSourceRestService {
 		logger.debug("update cam info for stream {}", broadcast.getStreamId());
 
 		if( checkStreamUrl(broadcast.getStreamUrl()) && broadcast.getStatus()!=null){
-			getInstance().stopStreaming(broadcast);
+			getApplication().stopStreaming(broadcast);
 			try {
 				Thread.sleep(1000);
 			} catch (InterruptedException e) {
@@ -274,17 +233,16 @@ public class StreamsSourceRestService {
 				Thread.currentThread().interrupt();
 			}
 
-			result = getStore().editStreamSourceInfo(broadcast);
+			result = getDataStore().editStreamSourceInfo(broadcast);
 			
-			Broadcast fetchedBroadcast = getStore().get(broadcast.getStreamId());
-			getStore().removeAllEndpoints(fetchedBroadcast.getStreamId());
+			Broadcast fetchedBroadcast = getDataStore().get(broadcast.getStreamId());
+			getDataStore().removeAllEndpoints(fetchedBroadcast.getStreamId());
 
 			if (socialNetworksToPublish != null && socialNetworksToPublish.length() > 0) {
 				addSocialEndpoints(fetchedBroadcast, socialNetworksToPublish);
 			}
 			
-			
-			getInstance().startStreaming(broadcast);
+			getApplication().startStreaming(broadcast);
 		}
 		return new Result(result);
 	}
@@ -356,7 +314,7 @@ public class StreamsSourceRestService {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result moveUp(@ApiParam(value = "id", required = true) @QueryParam("id") String id) {
 		boolean result = false;
-		OnvifCamera camera = getInstance().getOnvifCamera(id);
+		OnvifCamera camera = getApplication().getOnvifCamera(id);
 		if (camera != null) {
 			camera.MoveUp();
 			result = true;
@@ -370,7 +328,7 @@ public class StreamsSourceRestService {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result moveDown(@ApiParam(value = "id", required = true) @QueryParam("id") String id) {
 		boolean result = false;
-		OnvifCamera camera = getInstance().getOnvifCamera(id);
+		OnvifCamera camera = getApplication().getOnvifCamera(id);
 		if (camera != null) {
 			camera.MoveDown();
 			result = true;
@@ -384,7 +342,7 @@ public class StreamsSourceRestService {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result moveLeft(@ApiParam(value = "id", required = true) @QueryParam("id") String id) {
 		boolean result = false;
-		OnvifCamera camera = getInstance().getOnvifCamera(id);
+		OnvifCamera camera = getApplication().getOnvifCamera(id);
 		if (camera != null) {
 			camera.MoveLeft();
 			result = true;
@@ -398,7 +356,7 @@ public class StreamsSourceRestService {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result moveRight(@ApiParam(value = "id", required = true) @QueryParam("id") String id) {
 		boolean result = false;
-		OnvifCamera camera = getInstance().getOnvifCamera(id);
+		OnvifCamera camera = getApplication().getOnvifCamera(id);
 		if (camera != null) {
 			camera.MoveRight();
 			result = true;
@@ -406,47 +364,6 @@ public class StreamsSourceRestService {
 		return new Result(result);
 	}
 
-	@Nullable
-	private ApplicationContext getAppContext() {
-		if (servletContext != null) {
-			appCtx = (ApplicationContext) servletContext
-					.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
-		}
-		return appCtx;
-	}
-
-	public AntMediaApplicationAdapter getInstance() {
-		if (appInstance == null) {
-			appInstance = (AntMediaApplicationAdapter) getAppContext().getBean("web.handler");
-		}
-		return appInstance;
-	}
-
-	public IScope getScope() {
-		if (scope == null) {
-			scope = getInstance().getScope();
-		}
-		return scope;
-	}
-	
-	public void setScope(IScope scope) {
-		this.scope = scope;
-	}
-
-	public IDataStore getStore() {
-		if (dbStore == null) {
-			dbStore = getDataStoreFactory().getDataStore();
-		}
-		return dbStore;
-	}
-	
-	public void setDataStore(IDataStore dataStore) {
-		this.dbStore = dataStore;
-	}
-
-	public void setCameraStore(MapDBStore cameraStore) {
-		this.dbStore = cameraStore;
-	}
 	public boolean validateIPaddress(String ipaddress)  {
 		logger.info("inside check validateIPaddress{}", ipaddress);
 
@@ -542,19 +459,4 @@ public class StreamsSourceRestService {
 		}
 		return ipAddrControl;
 	}
-
-	
-	public DataStoreFactory getDataStoreFactory() {
-		if(dataStoreFactory == null) {
-			WebApplicationContext ctxt = WebApplicationContextUtils.getWebApplicationContext(servletContext); 
-			dataStoreFactory = (DataStoreFactory) ctxt.getBean("dataStoreFactory");
-		}
-		return dataStoreFactory;
-	}
-
-
-	public void setDataStoreFactory(DataStoreFactory dataStoreFactory) {
-		this.dataStoreFactory = dataStoreFactory;
-	}
-
 }

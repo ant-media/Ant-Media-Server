@@ -140,22 +140,8 @@ public class StreamFetcherTest extends AbstractJUnit4SpringContextTests{
 
 		scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
 
-		AppSettings defaultSettings = new AppSettings();
-
-		//reset values in the bean
-		getAppSettings().setMp4MuxingEnabled(defaultSettings.isMp4MuxingEnabled());
-		getAppSettings().setHlsMuxingEnabled(defaultSettings.isHlsMuxingEnabled());
-
+		getAppSettings().resetDefaults();
 		getAppSettings().setMp4MuxingEnabled(true);
-		getAppSettings().setAddDateTimeToMp4FileName(defaultSettings.isAddDateTimeToMp4FileName());
-		getAppSettings().setHlsMuxingEnabled(defaultSettings.isHlsMuxingEnabled());
-		getAppSettings().setWebRTCEnabled(defaultSettings.isWebRTCEnabled());
-		getAppSettings().setDeleteHLSFilesOnEnded(defaultSettings.isDeleteHLSFilesOnExit());
-		getAppSettings().setHlsListSize(defaultSettings.getHlsListSize());
-		getAppSettings().setHlsTime(defaultSettings.getHlsTime());
-		getAppSettings().setHlsPlayListType(defaultSettings.getHlsPlayListType());
-		getAppSettings().setAdaptiveResolutionList(defaultSettings.getAdaptiveResolutionList());
-
 	}
 	
 	

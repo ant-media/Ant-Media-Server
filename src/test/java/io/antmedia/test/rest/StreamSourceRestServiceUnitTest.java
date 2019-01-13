@@ -60,9 +60,9 @@ public class StreamSourceRestServiceUnitTest {
 		
 		
 		Mockito.doReturn("rtsp://11.2.40.63:8554/live1.sdp").when(streamSourceRest).getRTSPSteramURI(newCam);
-		Mockito.doReturn(adaptor).when(streamSourceRest).getInstance();
+		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
 		Mockito.doReturn(fetcher).when(adaptor).startStreaming(newCam);
-		Mockito.doReturn(new InMemoryDataStore("testAddIPCamera")).when(streamSourceRest).getStore();
+		Mockito.doReturn(new InMemoryDataStore("testAddIPCamera")).when(streamSourceRest).getDataStore();
 
 	
 		result = streamSourceRest.addStreamSource(newCam,"");
@@ -82,8 +82,8 @@ public class StreamSourceRestServiceUnitTest {
 		AntMediaApplicationAdapter adaptor = mock (AntMediaApplicationAdapter.class);
 		
 		
-		Mockito.doReturn(adaptor).when(streamSourceRest).getInstance();
-		Mockito.doReturn(new InMemoryDataStore("testAddStreamSource")).when(streamSourceRest).getStore();
+		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
+		Mockito.doReturn(new InMemoryDataStore("testAddStreamSource")).when(streamSourceRest).getDataStore();
 
 	
 		result = streamSourceRest.addStreamSource(newCam, "");
@@ -113,9 +113,9 @@ public class StreamSourceRestServiceUnitTest {
 		InMemoryDataStore store = new InMemoryDataStore("test");
 		
 		Mockito.doReturn("rtsp://11.2.40.63:8554/live1.sdp").when(streamSourceRest).getRTSPSteramURI(newCam);
-		Mockito.doReturn(adaptor).when(streamSourceRest).getInstance();
+		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
 		Mockito.doReturn(fetcher).when(adaptor).startStreaming(newCam);
-		Mockito.doReturn(store).when(streamSourceRest).getStore();
+		Mockito.doReturn(store).when(streamSourceRest).getDataStore();
 		
 		store.save(newCam);
 
@@ -135,8 +135,8 @@ public class StreamSourceRestServiceUnitTest {
 		InMemoryDataStore store = new InMemoryDataStore("test");
 		AppSettings settings = mock(AppSettings.class);
 		
-		Mockito.doReturn(adaptor).when(streamSourceRest).getInstance();
-		Mockito.doReturn(store).when(streamSourceRest).getStore();
+		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
+		Mockito.doReturn(store).when(streamSourceRest).getDataStore();
 		Mockito.doReturn(settings).when(adaptor).getAppSettings();
 		when(settings.getVodFolder()).thenReturn(vodFolder);
 		Mockito.doReturn(true).when(adaptor).synchUserVoDFolder(null, vodFolder);
