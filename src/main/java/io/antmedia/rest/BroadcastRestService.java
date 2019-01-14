@@ -83,7 +83,7 @@ import io.antmedia.webrtc.api.IWebRTCAdaptor;
 		schemes = {SwaggerDefinition.Scheme.HTTP, SwaggerDefinition.Scheme.HTTPS},
 		externalDocs = @ExternalDocs(value = "External Docs", url = "https://antmedia.io"),
 		basePath = "/"
-)
+		)
 @Component
 @Path("/")
 public class BroadcastRestService {
@@ -197,7 +197,7 @@ public class BroadcastRestService {
 	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	@Path("/broadcast/createPortalBroadcast")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Broadcast createPortalBroadcast(@ApiParam(value = "name", required = true) @FormParam("name") String name,@ApiParam(value = "listenerHookURL", required = true) @FormParam("listenerHookURL") String listenerHookURL) {
+	public Broadcast createPortalBroadcast(@ApiParam(value = "name of the broadcast", required = true) @FormParam("name") String name, @ApiParam(value = "listenerHookURL", required = true) @FormParam("listenerHookURL") String listenerHookURL) {
 
 		Broadcast broadcast=new Broadcast();
 
@@ -253,7 +253,7 @@ public class BroadcastRestService {
 	}
 
 	/**
-	 * Create broadcast and bind social networks at the same time Server should
+	 * Create broadcast and bind social networks at the same time. Server should
 	 * be authorized in advance to make this service return success
 	 * 
 	 * @param broadcast
@@ -273,7 +273,7 @@ public class BroadcastRestService {
 	@Path("/broadcast/createWithSocial")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Broadcast createWithSocial(@ApiParam(value = "Broadcast", required = true) Broadcast broadcast,
-									  @ApiParam(value = "Comma separated social network names Social network names must in comma separated and names must match with the defined names like facebook,periscope,youtube etc.", required = true) @QueryParam("socialNetworks") String socialEndpointIds) {
+			@ApiParam(value = "Comma separated social network names Social network names must in comma separated and names must match with the defined names like facebook,periscope,youtube etc.", required = true) @QueryParam("socialNetworks") String socialEndpointIds) {
 		broadcast = createBroadcast(broadcast);
 		if (broadcast.getStreamId() != null && socialEndpointIds != null) {
 			String[] endpointIds = socialEndpointIds.split(",");
@@ -285,12 +285,21 @@ public class BroadcastRestService {
 		return getBroadcast(broadcast.getStreamId());
 	}
 
-	@ApiOperation(value = "Stops Broadcasting", notes = "", response = Result.class)
+
+	/**
+	 * Stops broadcasting of requested stream
+	 * 
+	 * @param streamId the id of the requested stream
+	 * 
+	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
+	 */
+
+	@ApiOperation(value = "Stops broadcasting of requested stream", notes = "", response = Result.class)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/broadcast/stop/{streamId}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result stopBroadcast(@ApiParam(value = "Stream id", required = true) @PathParam("streamId") String streamId) {
+	public Result stopBroadcast(@ApiParam(value = "id of the stream", required = true) @PathParam("streamId") String streamId) {
 		boolean result = false;
 
 		if (streamId != null) {
@@ -299,7 +308,7 @@ public class BroadcastRestService {
 
 		return new Result(result);
 	}
-	
+
 	private boolean stopBroadcastInternal(Broadcast broadcast) {
 		boolean result = false;
 		if (broadcast != null) {
@@ -326,19 +335,23 @@ public class BroadcastRestService {
 		return result;
 	}
 
+
 	/**
-	 * Updates broadcast
+	 * Updates the properties of the broadcast
 	 * 
+	 * @param broadcast {@link io.antmedia.datastore.db.types.Broadcast}
+	 * @param socialNetworksToPublish    Comma separated social network names Social network names must
+	 *           						 in comma separated and names must match with the defined names
+	 *          						 like Facebook, Periscope,Youtube etc.
 	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
-	 * 
 	 */
-	@ApiOperation(value = "Updates broadcast", notes = "", response = Result.class)
+	@ApiOperation(value = "Updates the properties of the broadcast", notes = "", response = Result.class)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/broadcast/update")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result updateBroadcast(@ApiParam(value = "Broadcast", required = true) Broadcast broadcast,
-								  @ApiParam(value = "Comma separated social network names Social network names must in comma separated and names must match with the defined names like facebook,periscope,youtube etc.", required = true) @QueryParam("socialNetworks") String socialNetworksToPublish) {
+	public Result updateBroadcast(@ApiParam(value = "Broadcast object", required = true) Broadcast broadcast,
+			@ApiParam(value = "Comma separated social network names Social network names must in comma separated and names must match with the defined names like facebook,periscope,youtube etc.", required = true) @QueryParam("socialNetworks") String socialNetworksToPublish) {
 
 		boolean result = getDataStore().updateName(broadcast.getStreamId(), broadcast.getName(),
 				broadcast.getDescription());
@@ -369,10 +382,11 @@ public class BroadcastRestService {
 	}
 
 	/**
-	 * Revoke authorization from a social network account that is authorized
+	 * Revokes authorization from a social network account that is authorized
 	 * before
-	 *
 	 * 
+	 * @param endpointId the id of the social network account
+	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
 	 */
 	@ApiOperation(value = "Revoke authorization from a social network account that is authorized before", notes = "", response = Result.class)
 	@POST
@@ -404,11 +418,10 @@ public class BroadcastRestService {
 	/**
 	 * Add social endpoint to a stream. 
 	 * 
-	 * @param id
-	 *            of the stream
+	 * @param id - the id of the stream
 	 * 
 	 * @param endpointServiceId
-	 *            name of the service like facebook, youtube, periscope in order
+	 *            name of the service like Facebook, Youtube, Periscope in order
 	 *            to have successfull operation. Social network must be
 	 *            authorized in advance
 	 * 
@@ -421,7 +434,7 @@ public class BroadcastRestService {
 	@Path("/broadcast/addSocialEndpointJS/{id}/{endpointServiceId}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result addSocialEndpointJSON(@ApiParam(value = "Stream id", required = true) @PathParam("id") String id,
-										@ApiParam(value = "name of the service like facebook, youtube, periscope in order to have successfull operation. Social network must be authorized in advance", required = true) @PathParam("endpointServiceId") String endpointServiceId) {
+			@ApiParam(value = "name of the service like facebook, youtube, periscope in order to have successfull operation. Social network must be authorized in advance", required = true) @PathParam("endpointServiceId") String endpointServiceId) {
 		return addSocialEndpoint(id, endpointServiceId);
 	}
 
@@ -444,8 +457,8 @@ public class BroadcastRestService {
 	@Path("/broadcast/addSocialEndpoint")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result addSocialEndpoint(@ApiParam(value = "Stream id", required = true) @FormParam("id") String id,
-									@ApiParam(value = "name of the service like facebook, youtube, periscope in order to have successfull operation. Social network must be authorized in advance", required = true)
-									@FormParam("serviceName") String endpointServiceId) {
+			@ApiParam(value = "name of the service like facebook, youtube, periscope in order to have successfull operation. Social network must be authorized in advance", required = true)
+	@FormParam("serviceName") String endpointServiceId) {
 		boolean success = false;
 		String message = null;
 		Broadcast broadcast = lookupBroadcast(id);
@@ -487,14 +500,14 @@ public class BroadcastRestService {
 	}
 
 	/**
-	 * Add a third pary rtmp end point to the stream. When broadcast is started,
-	 * it will send rtmp stream to this rtmp url as well.
+	 * Add a third pary RTMP end point to the stream. When broadcast is started,
+	 * it will send RTMP stream to this RTMP URL as well.
 	 * 
 	 * @param id
 	 *            This is the id of broadcast
 	 * 
 	 * @param rtmpUrl
-	 *            rtmp url of the endpoint that stream will be republished
+	 *            RTMP  URL of the endpoint that stream will be republished
 	 * 
 	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
 	 * 
@@ -505,7 +518,7 @@ public class BroadcastRestService {
 	@Path("/broadcast/addEndpoint")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result addEndpoint(@ApiParam(value = "Broadcast id", required = true) @FormParam("id") String id,
-							  @ApiParam(value = "rtmp url of the endpoint that stream will be republished", required = true) @FormParam("rtmpUrl") String rtmpUrl) {
+			@ApiParam(value = "rtmp url of the endpoint that stream will be republished", required = true) @FormParam("rtmpUrl") String rtmpUrl) {
 		boolean success = false;
 		String message = null;
 		try {
@@ -525,26 +538,24 @@ public class BroadcastRestService {
 	 * Returns live comments from a specific endpoint like facebook, youtube, pscp, etc.
 	 * 
 	 * 
-	 * @param endpointServiceId 
-	 * This is the id of the endpoint service 
-	 * @param streamId This 
-	 * is the id of the stream
-	 * @param offset
-	 * @param batch
-	 * @return
+	 * @param endpointServiceId This is the id of the endpoint service 
+	 * @param streamId This is the id of the stream
+	 * @param offset this is the start offset where to start getting comment
+	 * @param batch number of items to be returned
+	 * @return {@link io.antmedia.social.LiveComment }
 	 */
 	@ApiOperation(value = "Returns live comments from a specific endpoint like facebook, youtube, pscp, etc.", notes = "Notes here", responseContainer = "List", response = LiveComment.class)
 	@GET
 	@Path("/broadcast/getLiveComments/{endpointServiceId}/{streamId}/{offset}/{batch}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public List<LiveComment> getLiveCommentsFromEndpoint(@ApiParam(value = "This is the id of the endpoint service", required = true)
-															 @PathParam("endpointServiceId") String endpointServiceId,
-														 @ApiParam(value = "Stream id", required = true)
-														 @PathParam("streamId") String streamId,
-														 @ApiParam(value = "offset", required = true)
-															 @PathParam("offset") int offset,
-														 @ApiParam(value = "batch", required = true)
-															 @PathParam("batch") int batch) {
+	@PathParam("endpointServiceId") String endpointServiceId,
+	@ApiParam(value = "Stream id", required = true)
+	@PathParam("streamId") String streamId,
+	@ApiParam(value = "this is the start offset where to start getting comment", required = true)
+	@PathParam("offset") int offset,
+	@ApiParam(value = "number of items to be returned", required = true)
+	@PathParam("batch") int batch) {
 
 		VideoServiceEndpoint videoServiceEndPoint = getApplication().getVideoServiceEndPoint(endpointServiceId);
 		List<LiveComment> liveComment = null;
@@ -557,19 +568,18 @@ public class BroadcastRestService {
 	/**
 	 * Return the number of live views in specified video service endpoint
 	 * 
-	 * 
-	 * @param endpointServiceId
-	 * @param streamId
-	 * @return
+	 * @param endpointServiceId- the id of the endpoint
+	 * @param streamId- the id of the stream
+	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
 	 */
 	@ApiOperation(value = "Return the number of live views in specified video service endpoint", notes = "", response = Result.class)
 	@GET
 	@Path("/broadcast/getLiveViewsCount/{endpointServiceId}/{streamId}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result getViewerCountFromEndpoint(@ApiParam(value = "endpointServiceId", required = true)
-												 @PathParam("endpointServiceId") String endpointServiceId,
-											 @ApiParam(value = "streamId", required = true)
-											 @PathParam("streamId") String streamId) {
+	public Result getViewerCountFromEndpoint(@ApiParam(value = "the id of the endpoint", required = true)
+	@PathParam("endpointServiceId") String endpointServiceId,
+	@ApiParam(value = "the id of the stream", required = true)
+	@PathParam("streamId") String streamId) {
 		VideoServiceEndpoint videoServiceEndPoint = getApplication().getVideoServiceEndPoint(endpointServiceId);
 		long liveViews = 0;
 		if (videoServiceEndPoint != null) {
@@ -582,16 +592,16 @@ public class BroadcastRestService {
 	/**
 	 * Returns the number of live comment count in a specific video service endpoint
 	 * 
-	 * @param endpointServiceId
-	 * @param streamId
-	 * @return
+	 * @param endpointServiceId- the id of the endpoint
+	 * @param streamId- the id of the stream
+	 * @return @return {@link io.antmedia.rest.BroadcastRestService.Result}
 	 */
 	@ApiOperation(value = "Returns the number of live comment count in a specific video service endpoint", notes = "", response = Result.class)
 	@GET
 	@Path("/broadcast/getLiveCommentsCount/{endpointServiceId}/{streamId}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result getLiveCommentsCount(@ApiParam(value = "endpointServiceId", required = true) @PathParam("endpointServiceId") String endpointServiceId,
-									   @ApiParam(value = "streamId", required = true)  @PathParam("streamId") String streamId) {
+	public Result getLiveCommentsCount(@ApiParam(value = " the id of the endpoint", required = true) @PathParam("endpointServiceId") String endpointServiceId,
+			@ApiParam(value = "the id of the stream", required = true)  @PathParam("streamId") String streamId) {
 		VideoServiceEndpoint videoServiceEndPoint = getApplication().getVideoServiceEndPoint(endpointServiceId);
 		int commentCount = 0;
 		if (videoServiceEndPoint != null) {
@@ -603,16 +613,16 @@ public class BroadcastRestService {
 	/**
 	 * Return the interaction from a specific endpoint like facebook, youtube, pscp, etc. 
 	 * 
-	 * @param endpointServiceId
-	 * @param streamId
-	 * @return
+	 * @param endpointServiceId- the id of the endpoint
+	 * @param streamId- the id of the stream
+	 * @return {@link io.antmedia.rest.model.Interaction }
 	 */
 	@ApiOperation(value = "Return the interaction from a specific endpoint like facebook, youtube, pscp, etc. ", notes = "", response = Interaction.class)
 	@GET
 	@Path("/broadcast/getInteraction/{endpointServiceId}/{streamId}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Interaction getInteractionFromEndpoint(@ApiParam(value = "endpointServiceId", required = true) @PathParam("endpointServiceId") String endpointServiceId,
-												  @ApiParam(value = "streamId", required = true) @PathParam("streamId") String streamId) {
+	public Interaction getInteractionFromEndpoint(@ApiParam(value = "the id of the endpoint", required = true) @PathParam("endpointServiceId") String endpointServiceId,
+			@ApiParam(value = "the id of the stream", required = true) @PathParam("streamId") String streamId) {
 		Interaction interaction = null;
 		VideoServiceEndpoint videoServiceEndPoint = getApplication().getVideoServiceEndPoint(endpointServiceId);
 		if (videoServiceEndPoint != null) {
@@ -636,8 +646,7 @@ public class BroadcastRestService {
 	/**
 	 * Get broadcast object
 	 * 
-	 * @param id
-	 *            id of the broadcast
+	 * @param id - id of the broadcast
 	 * 
 	 * @return broadcast object nothing if broadcast is not found
 	 * 
@@ -646,7 +655,7 @@ public class BroadcastRestService {
 	@GET
 	@Path("/broadcast/get")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Broadcast getBroadcast(@ApiParam(value = "id", required = true) @QueryParam("id") String id) {
+	public Broadcast getBroadcast(@ApiParam(value = "id of the broadcast", required = true) @QueryParam("id") String id) {
 		Broadcast broadcast = null;
 		if (id != null) {
 			broadcast = lookupBroadcast(id);
@@ -658,15 +667,15 @@ public class BroadcastRestService {
 	}
 
 	/**
-	 * Get vod file in db
-	 * @param id
-	 * @return
+	 * Get VoD file from database
+	 * @param id- id of the VoD
+	 * @return {@link io.antmedia.datastore.db.types.VoD}
 	 */
-	@ApiOperation(value = "Get vod file in db", notes = "", response = VoD.class)
+	@ApiOperation(value = "VoD file from database", notes = "", response = VoD.class)
 	@GET
 	@Path("/broadcast/getVoD")
 	@Produces(MediaType.APPLICATION_JSON)
-	public VoD getVoD(@ApiParam(value = "id", required = true) @QueryParam("id") String id) {
+	public VoD getVoD(@ApiParam(value = "id of the VoD", required = true) @QueryParam("id") String id) {
 		VoD vod = null;
 		if (id != null) {
 			vod = getDataStore().getVoD(id);
@@ -679,13 +688,11 @@ public class BroadcastRestService {
 
 
 	/**
-	 * Get Detected objects
+	 * Get detected objects from the stream
 	 * 
-	 * @param id
-	 *            id of the stream
+	 * @param id - the id of the stream 
 	 * 
-	 * @return List of detected objects
-	 * 
+	 * @return  the list of TensorFlowObject objects {@link io.antmedia.datastore.db.types.TensorFlowObject}
 	 */
 	@ApiOperation(value = "Get Detected objects", notes = "",responseContainer = "List", response = TensorFlowObject.class)
 	@GET
@@ -706,13 +713,23 @@ public class BroadcastRestService {
 		return list;
 	}
 
-	@ApiOperation(value = "", notes = "",responseContainer = "List", response = TensorFlowObject.class)
+
+	/**
+	 * Get detected objects from the stream based on offset and size
+	 * 
+	 * @param id- the id of the stream
+	 * @param offset - starting point of the list
+	 * @param size - total size of the return list
+	 * @return the list of TensorFlowObject objects {@link io.antmedia.datastore.db.types.TensorFlowObject}
+	 */
+
+	@ApiOperation(value = "Get detected objects from the stream based on offset and size", notes = "",responseContainer = "List", response = TensorFlowObject.class)
 	@GET
 	@Path("/detection/getList/{offset}/{size}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public List<TensorFlowObject> getDetectionList(@ApiParam(value = "id", required = true) @QueryParam("id") String id,
-												   @ApiParam(value = "offset", required = true) @PathParam("offset") int offset,
-												   @ApiParam(value = "size", required = true) @PathParam("size") int size) {
+	public List<TensorFlowObject> getDetectionList(@ApiParam(value = "the id of the stream", required = true) @QueryParam("id") String id,
+			@ApiParam(value = "starting point of the list", required = true) @PathParam("offset") int offset,
+			@ApiParam(value = "total size of the return list", required = true) @PathParam("size") int size) {
 		List<TensorFlowObject> list = null;
 
 		if (id != null) {
@@ -729,15 +746,15 @@ public class BroadcastRestService {
 	}
 
 	/**
-	 * Get Detected objects size
+	 * Get total number of detected objects
 	 * 
 	 * @param id
 	 *            id of the stream
 	 * 
-	 * @return Size of detected objects
+	 * @return number of detected objects
 	 * 
 	 */
-	@ApiOperation(value = "Get Detected objects size", notes = "", response = Long.class)
+	@ApiOperation(value = "Get total number of detected objects", notes = "", response = Long.class)
 	@GET
 	@Path("/detection/getObjectDetectedTotal")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -747,7 +764,7 @@ public class BroadcastRestService {
 
 
 	/**
-	 * Gets the broadcast list from database
+	 * Get the broadcast list from database
 	 * 
 	 * @param offset
 	 *            This is the offset of the list, it is useful for pagination,
@@ -757,7 +774,7 @@ public class BroadcastRestService {
 	 *            item in the datastore, returned list size may less then this
 	 *            value
 	 * 
-	 * @return JSON broadcast list
+	 * @return JSON list of broadcast objects
 	 * 
 	 */
 	@ApiOperation(value = "Gets the broadcast list from database", notes = "",responseContainer = "List", response = Broadcast.class)
@@ -765,12 +782,18 @@ public class BroadcastRestService {
 	@Path("/broadcast/getList/{offset}/{size}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public List<Broadcast> getBroadcastList(@ApiParam(value = "This is the offset of the list, it is useful for pagination", required = true) @PathParam("offset") int offset,
-											@ApiParam(value = "Number of items that will be fetched. If there is not enough item in the datastore, returned list size may less then this value", required = true) @PathParam("size") int size) {
+			@ApiParam(value = "Number of items that will be fetched. If there is not enough item in the datastore, returned list size may less then this value", required = true) @PathParam("size") int size) {
 		return getDataStore().getBroadcastList(offset, size);
 	}
 
 
-	@ApiOperation(value = "", notes = "", response = Result.class)
+	/**
+	 * Import Live Streams to Stalker Portal
+	 * 
+	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
+	 */
+
+	@ApiOperation(value = "Import Live Streams to Stalker Portal", notes = "", response = Result.class)
 	@POST
 	@Path("/importLiveStreamsToStalker")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -901,7 +924,14 @@ public class BroadcastRestService {
 
 	}
 
-	@ApiOperation(value = "", notes = "", response = Result.class)
+
+	/**
+	 * Import VoDs to Stalker Portal
+	 * 
+	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
+	 */
+
+	@ApiOperation(value = "Import VoDs to Stalker Portal", notes = "", response = Result.class)
 	@POST
 	@Path("/importVoDsToStalker")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -982,17 +1012,37 @@ public class BroadcastRestService {
 
 	}
 
+	/**
+	 * Get the VoD list from database
+	 * 
+	 * @param offset
+	 *            This is the offset of the list, it is useful for pagination,
+	 * 
+	 * @param size
+	 *            Number of items that will be fetched. If there is not enough
+	 *            item in the datastore, returned list size may less then this
+	 *            value
+	 * 
+	 * @return JSON list of VoD objects
+	 * 
+	 */
 
-	@ApiOperation(value = "", notes = "", responseContainer = "List",response = VoD.class)
+	@ApiOperation(value = " Get the VoD list from database", notes = "", responseContainer = "List",response = VoD.class)
 	@GET
 	@Path("/broadcast/getVodList/{offset}/{size}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public List<VoD> getVodList(@ApiParam(value = "offset", required = true) @PathParam("offset") int offset,
-								@ApiParam(value = "size", required = true) @PathParam("size") int size) {
+	public List<VoD> getVodList(@ApiParam(value = "offset of the list", required = true) @PathParam("offset") int offset,
+			@ApiParam(value = "Number of items that will be fetched", required = true) @PathParam("size") int size) {
 		return getDataStore().getVodList(offset, size);
 	}
 
-	@ApiOperation(value = "", notes = "", response = Long.class)
+	/**
+	 * Get the total number of VoDs
+	 * 
+	 * @return the number of total VoDs
+	 */
+
+	@ApiOperation(value = "Get the total number of VoDs", notes = "", response = Long.class)
 	@GET
 	@Path("/broadcast/getTotalVodNumber")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -1001,10 +1051,10 @@ public class BroadcastRestService {
 	}
 
 	/**
-	 * Returns the version
+	 * Returns the version of the Ant Media Server
 	 * 
 	 * TO DO: Change endpoint from /broadcast/getVersion to /getVersion 
-	 * @return
+	 * @return {@link io.antmedia.rest.model.Version}
 	 */
 	@ApiOperation(value = "", notes = "", response = Version.class)
 	@GET
@@ -1020,7 +1070,13 @@ public class BroadcastRestService {
 	}
 
 
-	@ApiOperation(value = "", notes = "", response = Long.class)
+	/**
+	 * Get the total number of broadcasts
+	 * 
+	 * @return the number of total broadcasts
+	 */
+
+	@ApiOperation(value = "Get the total number of broadcasts", notes = "", response = Long.class)
 	@GET
 	@Path("/broadcast/getTotalBroadcastNumber")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -1029,12 +1085,12 @@ public class BroadcastRestService {
 	}
 
 	/**
-	 * Returns total live streams, total rtmp watchers, total hls and total
-	 * webrtc watchers
+	 * Return the statistics of the  total live streams, total RTMP watchers, total HLS and total
+	 * WebRTC watchers
 	 * 
 	 * @return {@link LiveStatistics}
 	 */
-	@ApiOperation(value = "Returns total live streams, total rtmp watchers, total hls and total webrtc watchers", notes = "", response = LiveStatistics.class)
+	@ApiOperation(value = "Return the statistics of the  total live streams, total RTMP watchers, total HLS and total WebRTC watchers", notes = "", response = LiveStatistics.class)
 	@GET
 	@Path("/broadcast/getAppLiveStatistics")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -1045,17 +1101,18 @@ public class BroadcastRestService {
 
 	/**
 	 * Generates random one-time token for specified stream
-	 * @param streamId
-	 * @param expireDate
-	 * @return token
+	 * @param streamId - the id of the stream
+	 * @param expireDate - the expire date of the token
+	 * @param type - type of the token (publish/play)
+	 * @return  {@link io.antmedia.datastore.db.types.Token}
 	 */
 	@ApiOperation(value = "Generates random one-time token for specified stream", notes = "", response = Token.class)
 	@GET
 	@Path("/broadcast/getToken")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Token getToken (@ApiParam(value = "id", required = true) @QueryParam("id")String streamId,
-						   @ApiParam(value = "expireDate", required = true) @QueryParam("expireDate") long expireDate,
-						   @ApiParam(value = "type", required = true) @QueryParam("type") String type) {
+	public Token getToken (@ApiParam(value = "the id of the stream", required = true) @QueryParam("id")String streamId,
+			@ApiParam(value = "the expire date of the token", required = true) @QueryParam("expireDate") long expireDate,
+			@ApiParam(value = "type", required = true) @QueryParam("type") String type) {
 		Token token = null;
 		if(streamId != null) {
 
@@ -1078,17 +1135,17 @@ public class BroadcastRestService {
 
 
 	/**
-	 * Perform validation of token for required stream
-	 * @param token
-	 * @return validated token, either null or token. Null means not validated
+	 * Perform validation of token for requested stream
+	 * @param token - sent token for validation
+	 * @return validated token {@link io.antmedia.datastore.db.types.Token}, either null or token. Null means not validated
 	 */
 
-	@ApiOperation(value = "Perform validation of token for required stream", notes = "", response = Token.class)
+	@ApiOperation(value = "Perform validation of token for requested stream", notes = "", response = Token.class)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/broadcast/validateToken")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Token validateToken (@ApiParam(value = "token", required = true) Token token) {
+	public Token validateToken (@ApiParam(value = "sent token for validation", required = true) Token token) {
 		Token validatedToken = null;
 
 		if(token.getTokenId() != null) {
@@ -1102,15 +1159,15 @@ public class BroadcastRestService {
 
 	/**
 	 * Removes all tokens related with requested stream
-	 * @param streamId
-	 * @return result object including success or not
+	 * @param streamId - the id of the stream
+	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
 	 */
 	@ApiOperation(value = " Removes all tokens related with requested stream", notes = "", response = Result.class)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/broadcast/revokeTokens")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result revokeTokens (@ApiParam(value = "stream id", required = true) @QueryParam("id") String streamId) {
+	public Result revokeTokens (@ApiParam(value = "the id of the stream", required = true) @QueryParam("id") String streamId) {
 		Result result = new Result(false);
 
 		if(streamId != null) {
@@ -1124,18 +1181,18 @@ public class BroadcastRestService {
 
 	/**
 	 * Get the all tokens of requested stream
-	 * @param streamId
-	 * @param offset
-	 * @param size
-	 * @return token list of stream,  if no active tokens returns null
+	 * @param streamId - the id of the stream
+	 * @param offset - the starting point of the list
+	 * @param size - size of the return list (max:50 )
+	 * @return token list of stream,  if no active tokens then returns null
 	 */
 	@ApiOperation(value = "Get the all tokens of requested stream", notes = "",responseContainer = "List", response = Token.class)
 	@GET
 	@Path("/broadcast/listTokens/{streamId}/{offset}/{size}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public List<Token> listTokens (@ApiParam(value = "streamId", required = true) @PathParam("streamId") String streamId,
-								   @ApiParam(value = "offset", required = true) @PathParam("offset") int offset,
-								   @ApiParam(value = "size", required = true) @PathParam("size") int size) {
+	public List<Token> listTokens (@ApiParam(value = "the id of the stream", required = true) @PathParam("streamId") String streamId,
+			@ApiParam(value = "the starting point of the list", required = true) @PathParam("offset") int offset,
+			@ApiParam(value = "size of the return list (max:50 )", required = true) @PathParam("size") int size) {
 		List<Token> tokens = null;
 
 		if(streamId != null) {
@@ -1146,12 +1203,21 @@ public class BroadcastRestService {
 		return tokens;
 	}
 
-	@ApiOperation(value = "", notes = "", response = Result.class)
-	@GET
+	/**
+	 * Set stream specific Mp4 Muxing setting, this setting overrides general Mp4 Muxing Setting
+	 * 
+	 * @param streamId - the id of the stream
+	 * @param enableMp4 - the integer value for Mp4 Muxing, 1 = Enable Muxing, -1 = Disable Muxing, 0 = No Settings
+	 * @return  {@link io.antmedia.rest.BroadcastRestService.Result}
+	 */
+
+	@ApiOperation(value = "Set stream specific Mp4 Muxing setting, this setting overrides general Mp4 Muxing Setting", notes = "", response = Result.class)
+	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/broadcast/enableMp4Muxing")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result enableMp4Muxing (@ApiParam(value = "id", required = true) @QueryParam("id")String streamId,
-								   @ApiParam(value = "enableMp4", required = true) @QueryParam("enableMp4") int enableMp4) {
+	public Result enableMp4Muxing (@ApiParam(value = "the id of the stream", required = true) @QueryParam("id")String streamId,
+			@ApiParam(value = "the integer value for Mp4 Muxing, 1 = Enable Muxing, -1 = Disable Muxing, 0 = No Settings", required = true) @QueryParam("enableMp4") int enableMp4) {
 		Result result = new Result(false);
 		if(streamId != null) {
 
@@ -1159,7 +1225,7 @@ public class BroadcastRestService {
 				result.setSuccess(true);
 				result.setMessage("streamId:"+ streamId);
 			}else {
-				result.setMessage("no stream for this id: " + streamId + "or wrong setting parameter");
+				result.setMessage("no stream for this id: " + streamId + " or wrong setting parameter");
 			}
 		}
 
@@ -1167,20 +1233,20 @@ public class BroadcastRestService {
 	}
 
 	/**
-	 * Get the broadcast live statistics total rtmp watcher count, total hls
-	 * watcher count, total webrtc watcher count
+	 * Get the broadcast live statistics total RTMP watcher count, total HLS
+	 * watcher count, total WebRTC watcher count
 	 * 
 	 * Return -1 for the values that is n/a
 	 * 
-	 * @param streamId
-	 * @return {@link BroadcastStatistics} if broadcast exists null or 204(no
+	 * @param streamId - the id of the stream
+	 * @return {@link BroadcastStatistics} if broadcast exists, null or 204(no
 	 *         content) if no broadcast exists with that id
 	 */
-	@ApiOperation(value = "Get the broadcast live statistics total rtmp watcher count, total hls watcher count, total webrtc watcher count", notes = "", response = BroadcastStatistics.class)
+	@ApiOperation(value = "Get the broadcast live statistics total RTMP watcher count, total HLS watcher count, total WebRTC watcher count", notes = "", response = BroadcastStatistics.class)
 	@GET
 	@Path("/broadcast/getBroadcastLiveStatistics")
 	@Produces(MediaType.APPLICATION_JSON)
-	public BroadcastStatistics getBroadcastStatistics(@ApiParam(value = "stream Id", required = true) @QueryParam("id") String id) {
+	public BroadcastStatistics getBroadcastStatistics(@ApiParam(value = "the id of the stream", required = true) @QueryParam("id") String id) {
 
 		int totalRTMPViewer = -1;
 		int totalWebRTCViewer = -1;
@@ -1208,13 +1274,19 @@ public class BroadcastRestService {
 		return new BroadcastStatistics(totalRTMPViewer, totalHLSViewer, totalWebRTCViewer);
 	}
 
+	
+	/**
+	 * Get WebRTC Client Statistics such as : Audio bitrate, Video bitrate, Target bitrate, Video Sent Period etc.
+	 * 
+	 * @param streamId - the id of the stream
+	 * @return the list of {@link io.antmedia.rest.WebRTCClientStats }
+	 */
 
-
-	@ApiOperation(value = "", notes = "", responseContainer = "List",response = WebRTCClientStats.class)
+	@ApiOperation(value = "Get WebRTC Client Statistics such as : Audio bitrate, Video bitrate, Target bitrate, Video Sent Period etc.", notes = "", responseContainer = "List",response = WebRTCClientStats.class)
 	@GET
 	@Path("/broadcast/getWebRTCClientStats/{stream_id}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public List<WebRTCClientStats> getWebRTCClientStats(@ApiParam(value = "stream id", required = true) @PathParam("stream_id") String streamId) {
+	public List<WebRTCClientStats> getWebRTCClientStats(@ApiParam(value = "the id of the stream", required = true) @PathParam("stream_id") String streamId) {
 		IWebRTCAdaptor webRTCAdaptor = getWebRTCAdaptor();
 		if (webRTCAdaptor != null) {
 			return webRTCAdaptor.getWebRTCClientStats(streamId);
@@ -1232,40 +1304,57 @@ public class BroadcastRestService {
 	}
 
 	/**
-	 * Returns filtered broadcast list
-	 * @param offset
-	 * @param size
-	 * @param type
-	 * @return list
+	 * Get filtered broadcast list
+	 * @param offset - starting point of the list
+	 * @param size - size of the return list (max:50 )
+	 * @param type - type of the stream
+	 * @return list of the broadcast objects
 	 */
 	@ApiOperation(value = "Returns filtered broadcast list", notes = "",responseContainer = "List",response = Broadcast.class)
 	@GET
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/broadcast/filterList/{offset}/{size}/{type}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public List<Broadcast> filterBroadcastList(@ApiParam(value = "offset", required = true) @PathParam("offset") int offset,
-											   @ApiParam(value = "size", required = true) @PathParam("size") int size,
-											   @ApiParam(value = "type", required = true) @PathParam("type") String type) {
+	public List<Broadcast> filterBroadcastList(@ApiParam(value = "starting point of the list", required = true) @PathParam("offset") int offset,
+			@ApiParam(value = "size", required = true) @PathParam("size of the return list (max:50 )") int size,
+			@ApiParam(value = "type", required = true) @PathParam("type of the stream") String type) {
 		return getDataStore().filterBroadcastList(offset, size, type);
 	}
+	
 
-	@ApiOperation(value = "", notes = "", response = Result.class)
+	/**
+	 * Delete specific VoD File- Use deleteVoD method (/broadcast/deleteVoD/{id}), this will be depreciated
+	 * 
+	 * @param fileName- name of the VoD file
+	 * @param id - id of the VoD file
+	 * @param type -type of the VoD file
+	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
+	 */
+
+	@ApiOperation(value = "Delete specific VoD File", notes = "", response = Result.class)
 	@POST
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/broadcast/deleteVoDFile/{name}/{id}/{type}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result deleteVoDFile(@ApiParam(value = "name", required = true) @PathParam("name") String fleName,
-								@ApiParam(value = "id", required = true) @PathParam("id") String id,
-								@ApiParam(value = "type", required = true) @PathParam("type") String type) {
+	public Result deleteVoDFile(@ApiParam(value = "name", required = true) @PathParam("name") String fileName,
+			@ApiParam(value = "id", required = true) @PathParam("id") String id,
+			@ApiParam(value = "type", required = true) @PathParam("type") String type) {
 		return deleteVoD(id);
 	}
 
-	@ApiOperation(value = "", notes = "", response = Result.class)
+	
+	/**
+	 * Delete specific VoD File
+	 * 
+	 * @param id - the id of the VoD file
+	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
+	 */
+	@ApiOperation(value = "Delete specific VoD File", notes = "", response = Result.class)
 	@POST
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/broadcast/deleteVoD/{id}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result deleteVoD(@ApiParam(value = "id", required = true) @PathParam("id") String id) {
+	public Result deleteVoD(@ApiParam(value = "the id of the VoD file", required = true) @PathParam("id") String id) {
 		boolean success = false;
 		String message = "";
 		ApplicationContext appContext = getAppContext();
@@ -1308,13 +1397,21 @@ public class BroadcastRestService {
 		return new Result(success, message);
 	}
 
-	@ApiOperation(value = "", notes = "", response = Result.class)
+	/**
+	 * Upload external user VoD file to Ant Media Server
+	 * 
+	 * @param fileName - the name of the VoD File
+	 * @param inputStream - the input stream of VoD file
+	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
+	 */
+	
+	@ApiOperation(value = "Upload external user VoD file to Ant Media Server", notes = "", response = Result.class)
 	@POST
 	@Consumes({MediaType.MULTIPART_FORM_DATA})
 	@Path("/broadcast/uploadVoDFile/{name}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result uploadVoDFile(@ApiParam(value = "name", required = true) @PathParam("name") String fileName,
-								@ApiParam(value = "file", required = true) @FormDataParam("file") InputStream inputStream) {
+	public Result uploadVoDFile(@ApiParam(value = "the name of the VoD File", required = true) @PathParam("name") String fileName,
+			@ApiParam(value = "file", required = true) @FormDataParam("file") InputStream inputStream) {
 		boolean success = false;
 		String message = "";
 		String id= null;
@@ -1391,9 +1488,9 @@ public class BroadcastRestService {
 	 * 
 	 * 
 	 * @param id
-	 *            Id of the braodcast
+	 *            Id of the broadcast
 	 * 
-	 * @return Result object with success field true or false
+	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
 	 * 
 	 */
 	@ApiOperation(value = "Delete broadcast from data store", notes = "", response = Result.class)
@@ -1408,7 +1505,7 @@ public class BroadcastRestService {
 		if (id != null) {
 			Broadcast broacast = getDataStore().get(id);
 			stopResult = stopBroadcastInternal(broacast);
-			
+
 			result.setSuccess(getDataStore().delete(id));
 
 			if(result.isSuccess() && stopResult) {
@@ -1539,7 +1636,7 @@ public class BroadcastRestService {
 	 * @param userCode Code of social media account
 	 *          
 	 * 
-	 * @return Result object with success field. If success field is true, it is
+	 * @return {@link io.antmedia.rest.BroadcastRestService.Result} object with success field. If success field is true, it is
 	 *         authenticated if false, not authenticated
 	 * 
 	 */
@@ -1584,13 +1681,20 @@ public class BroadcastRestService {
 		return new Result(authenticated, endpointId, message);
 	}
 
-	@ApiOperation(value = "", notes = "", responseContainer = "List",response = SocialEndpointCredentials.class)
+	/**
+	 * Get Credentials of Social Endpoints
+	 * 
+	 * @param offset - the starting point of the list
+	 * @param size - size of the return list (max:50 )
+	 * @return - list of {@link io.antmedia.datastore.db.types.SocialEndpointCredentials}
+	 */
+	@ApiOperation(value = "Get Credentials of Social Endpoints", notes = "", responseContainer = "List",response = SocialEndpointCredentials.class)
 	@GET
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/broadcast/getSocialEndpoints/{offset}/{size}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public List<SocialEndpointCredentials> getSocialEndpoints(@ApiParam(value = "offset", required = true) @PathParam("offset") int offset,
-															  @ApiParam(value = "size", required = true) @PathParam("size") int size) {
+	public List<SocialEndpointCredentials> getSocialEndpoints(@ApiParam(value = "the starting point of the list", required = true) @PathParam("offset") int offset,
+			@ApiParam(value = "size of the return list (max:50 )", required = true) @PathParam("size") int size) {
 		List<SocialEndpointCredentials> endPointCredentials = new ArrayList<>();
 		Map<String, VideoServiceEndpoint> endPointMap = getEndpointList();
 		if (endPointMap != null) {
@@ -1647,7 +1751,7 @@ public class BroadcastRestService {
 	@Path("/broadcast/getSocialNetworkChannelList/{endpointId}/{type}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public List<SocialEndpointChannel> getSocialNetworkChannelList(@ApiParam(value = "endpointId", required = true) @PathParam("endpointId") String endpointId,
-																   @ApiParam(value = "This is very service specific, it may be page for Facebook", required = true) @PathParam("type") String type) {
+			@ApiParam(value = "This is very service specific, it may be page for Facebook", required = true) @PathParam("type") String type) {
 
 		Map<String, VideoServiceEndpoint> endPointMap = getEndpointList();
 		VideoServiceEndpoint endPoint = endPointMap.get(endpointId);
@@ -1675,8 +1779,8 @@ public class BroadcastRestService {
 	@Path("/broadcast/setSocialNetworkChannel/{endpointId}/{type}/{id}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result setSocialNetworkChannelList(@ApiParam(value = "endpointId", required = true) @PathParam("endpointId") String endpointId,
-											  @ApiParam(value = "type", required = true) @PathParam("type") String type,
-											  @ApiParam(value = "id", required = true) @PathParam("id") String channelId) {
+			@ApiParam(value = "type", required = true) @PathParam("type") String type,
+			@ApiParam(value = "id", required = true) @PathParam("id") String channelId) {
 		boolean result = false;
 		Map<String, VideoServiceEndpoint> endPointMap = getEndpointList();
 
