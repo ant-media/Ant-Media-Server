@@ -161,7 +161,7 @@ public class StreamFetcherTest extends AbstractJUnit4SpringContextTests{
 		
 		Broadcast endpointStream = restService.createBroadcast("endpoint_stream");
 		
-		IDataStore dataStore = new InMemoryDataStore("db");
+		IDataStore dataStore = app.getDataStore();
 		
 		String streamId = RandomStringUtils.randomAlphanumeric(8);
 		Process rtmpSendingProcess = AppFunctionalTest.execute(ffmpegPath
@@ -189,13 +189,13 @@ public class StreamFetcherTest extends AbstractJUnit4SpringContextTests{
 		
 		//create stream fetcher
 		StreamFetcher streamFetcher = new StreamFetcher(localStream, appScope, null);
-			
+
 		//start stream fetcher
 		streamFetcher.startStream();
 		
 		//check that server has the stream
 		
-		Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS)
+		Awaitility.await().atMost(200, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS)
 			.until(() -> {
 				return restService.getBroadcast(endpointStream.getStreamId()).getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 			});
