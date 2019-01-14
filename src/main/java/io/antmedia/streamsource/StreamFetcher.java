@@ -288,47 +288,37 @@ public class StreamFetcher {
 								av_packet_ref(packet, pkt);
 								bufferQueue.add(packet);
 
-								if ( bufferDuration > bufferTime) {
-									buffering = false;
-								}
+								AVPacket pktHead = bufferQueue.peek();
+								/**
+								 * BufferQueue may be polled in writer thread. 
+								 * It's a very rare case to happen so that check if it's null
+								 */
+								if (pktHead != null) {
+									lastPacketTime = av_rescale_q(pkt.pts(), inputFormatContext.streams(pkt.stream_index()).time_base(), avRationalTimeBaseMS);
+									firstPacketTime = av_rescale_q(pktHead.pts(), inputFormatContext.streams(pktHead.stream_index()).time_base(), avRationalTimeBaseMS);
+									bufferDuration = (lastPacketTime - firstPacketTime);
 
-								bufferLogCounter++;
-								if (bufferLogCounter % 100 == 0) {
-									logger.info("Buffer status {}, buffer duration {}ms buffer time {}ms", buffering, bufferDuration, bufferTime);
-									bufferLogCounter = 0;
-									AVPacket pktHead = bufferQueue.peek();
-									/**
-									 * BufferQueue may be polled in writer thread. 
-									 * It's a very rare case to happen so that check if it's null
-									 */
-									if (pktHead != null) {
-										lastPacketTime = av_rescale_q(pkt.pts(), inputFormatContext.streams(pkt.stream_index()).time_base(), avRationalTimeBaseMS);
-										firstPacketTime = av_rescale_q(pktHead.pts(), inputFormatContext.streams(pktHead.stream_index()).time_base(), avRationalTimeBaseMS);
-										bufferDuration = (lastPacketTime - firstPacketTime);
+									if ( bufferDuration > bufferTime) {
+										buffering = false;
+									}
 
-										if ( bufferDuration > bufferTime) {
-											buffering = false;
-										}
-
-										bufferLogCounter++;
-										if (bufferLogCounter % 100 == 0) {
-											logger.info("Buffer status {}, buffer duration {}ms buffer time {}ms", buffering, bufferDuration, bufferTime);
-											bufferLogCounter = 0;
-										}
+									bufferLogCounter++;
+									if (bufferLogCounter % 100 == 0) {
+										logger.info("Buffer status {}, buffer duration {}ms buffer time {}ms", buffering, bufferDuration, bufferTime);
+										bufferLogCounter = 0;
 									}
 								}
-								else {
-									muxAdaptor.writePacket(inputFormatContext.streams(pkt.stream_index()), pkt);
-								}
-								av_packet_unref(pkt);
-								if (stopRequestReceived) {
-									logger.warn("Stop request received, breaking the loop for {} ", stream.getStreamId());
-									break;
-								}
 							}
-							logger.info("Leaving the loop for {}", stream.getStreamId());
-
+							else {
+								muxAdaptor.writePacket(inputFormatContext.streams(pkt.stream_index()), pkt);
+							}
+							av_packet_unref(pkt);
+							if (stopRequestReceived) {
+								logger.warn("Stop request received, breaking the loop for {} ", stream.getStreamId());
+								break;
+							}
 						}
+						logger.info("Leaving the loop for {}", stream.getStreamId());
 
 					}
 					else {
