@@ -5,7 +5,6 @@ import static org.bytedeco.javacpp.nvml.nvmlDeviceGetCount_v2;
 import static org.bytedeco.javacpp.nvml.nvmlDeviceGetHandleByIndex_v2;
 import static org.bytedeco.javacpp.nvml.nvmlDeviceGetUtilizationRates;
 import static org.bytedeco.javacpp.nvml.nvmlInit_v2;
-import static org.bytedeco.javacpp.nvml.nvmlShutdown;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.bytedeco.javacpp.IntPointer;
