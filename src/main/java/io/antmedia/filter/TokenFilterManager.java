@@ -37,7 +37,7 @@ public class TokenFilterManager implements javax.servlet.Filter   {
 	@Override
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
 			throws IOException, ServletException {
-		
+
 		boolean result = false;
 
 		HttpServletRequest httpRequest =(HttpServletRequest)request;
@@ -68,13 +68,16 @@ public class TokenFilterManager implements javax.servlet.Filter   {
 
 			else if (getAppSettings().isHashControlPlayEnabled()) {
 				result = getTokenService().checkHash(tokenId, streamId, sessionId, Token.PLAY_TOKEN);
-				
+
 				if(!result) {
 					httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN,"Invalid Hash");
 					logger.warn("hash {} is not valid", tokenId);
 					return; 
 				}
 
+				chain.doFilter(request, response);
+			}else {
+				
 				chain.doFilter(request, response);
 			}
 		}
