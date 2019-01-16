@@ -37,6 +37,8 @@ public class TokenFilterManager implements javax.servlet.Filter   {
 	@Override
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
 			throws IOException, ServletException {
+		
+		boolean result = false;
 
 		HttpServletRequest httpRequest =(HttpServletRequest)request;
 		HttpServletResponse httpResponse = (HttpServletResponse)response;
@@ -52,16 +54,29 @@ public class TokenFilterManager implements javax.servlet.Filter   {
 				,httpRequest.getRequestURI(), tokenId, sessionId, streamId);
 
 
-		if (method.equals("GET") && getAppSettings().isTokenControlEnabled()) {
+		if (method.equals("GET")) {
+			if(getAppSettings().isTokenControlEnabled()) {
 
-			boolean result = getTokenService().checkToken(tokenId, streamId, sessionId, Token.PLAY_TOKEN);
-			if(!result) {
-				httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN,"Invalid Token");
-				logger.warn("token {} is not valid", tokenId);
-				return; 
+				result = getTokenService().checkToken(tokenId, streamId, sessionId, Token.PLAY_TOKEN);
+				if(!result) {
+					httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN,"Invalid Token");
+					logger.warn("token {} is not valid", tokenId);
+					return; 
+				}
+				chain.doFilter(request, response);
 			}
-			chain.doFilter(request, response);
 
+			else if (getAppSettings().isHashControlPlayEnabled()) {
+				result = getTokenService().checkHash(tokenId, streamId, sessionId, Token.PLAY_TOKEN);
+				
+				if(!result) {
+					httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN,"Invalid Hash");
+					logger.warn("hash {} is not valid", tokenId);
+					return; 
+				}
+
+				chain.doFilter(request, response);
+			}
 		}
 		else {
 			chain.doFilter(httpRequest, response);
