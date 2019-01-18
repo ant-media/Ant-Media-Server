@@ -17,14 +17,6 @@ public class CommunityLicenceService implements ILicenceService{
 		//no need to implement for Community Edition
 	}
 
-	public Result saveLicence (Licence licence) {
-
-		//no need to implement for Community Edition
-
-		return new Result(false);
-	}
-
-
 	public Licence checkLicence (String key) {
 
 		//no need to implement for Community Edition

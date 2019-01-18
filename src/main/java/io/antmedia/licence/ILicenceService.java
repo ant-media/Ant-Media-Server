@@ -28,14 +28,6 @@ public interface ILicenceService {
 	 */
 	public void start();
 	
-	/**
-	 * Saves License to the server
-	 * @param licence
-	 * @return result of the operation and message
-	 */
-	
-	public Result saveLicence (Licence licence);
-	
 	
 	/**
 	 * Check License Status
