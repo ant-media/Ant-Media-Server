@@ -48,7 +48,8 @@ public abstract class RestServiceBase {
 				}
 				else {
 					success = false;
-					logger.warn(endpointId + " endpoint does not exist in this app.");
+					String warning = endpointId + " endpoint does not exist in this app.";
+					logger.warn(warning);
 				}
 			}
 		}
