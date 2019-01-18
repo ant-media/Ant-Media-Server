@@ -7,11 +7,12 @@ import static org.bytedeco.javacpp.avformat.av_read_frame;
 import static org.bytedeco.javacpp.avformat.avformat_close_input;
 import static org.bytedeco.javacpp.avformat.avformat_find_stream_info;
 import static org.bytedeco.javacpp.avformat.avformat_open_input;
+import static org.bytedeco.javacpp.avutil.AVMEDIA_TYPE_AUDIO;
 import static org.bytedeco.javacpp.avutil.av_dict_free;
 import static org.bytedeco.javacpp.avutil.av_dict_set;
 import static org.bytedeco.javacpp.avutil.av_rescale_q;
-import static org.bytedeco.javacpp.avutil.AVMEDIA_TYPE_AUDIO;
 
+import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -30,8 +31,11 @@ import org.slf4j.LoggerFactory;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
+import io.antmedia.datastore.db.IDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.muxer.MuxAdaptor;
+import io.antmedia.muxer.RtmpMuxer;
 import io.antmedia.rest.model.Result;
 
 public class StreamFetcher {
@@ -207,13 +211,16 @@ public class StreamFetcher {
 					boolean audioOnly = false;
 					if(inputFormatContext.nb_streams() == 1) {
 						audioOnly  = (inputFormatContext.streams(0).codecpar().codec_type() == AVMEDIA_TYPE_AUDIO);
+						logger.debug(" codec: {}", inputFormatContext.streams(0).codecpar().codec_id());
+
 					}
 
 					muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null,true, scope);
 					// if there is only audio, firstKeyFrameReceivedChecked should be true in advance
 					// because there is no video frame
-					muxAdaptor.setFirstKeyFrameReceivedChecked(audioOnly); 
 
+					muxAdaptor.setFirstKeyFrameReceivedChecked(audioOnly); 
+					setUpEndPoints(stream.getStreamId(), muxAdaptor);
 
 					muxAdaptor.init(scope, stream.getStreamId(), false);
 
@@ -314,14 +321,13 @@ public class StreamFetcher {
 						logger.info("Leaving the loop for {}", stream.getStreamId());
 
 					}
+					else {
+						logger.debug("Prepare for {} returned false", stream.getName());
+					}
 
-				}
-				else {
-					logger.debug("Prepare for {} returned false", stream.getName());
-				}
-
-				setCameraError(result);
-			} 
+					setCameraError(result);
+				} 
+			}
 			catch (OutOfMemoryError | Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 				exceptionInThread  = true;
@@ -370,6 +376,22 @@ public class StreamFetcher {
 
 			logger.debug("Leaving thread for {}", stream.getStreamUrl());
 
+
+		}
+
+		private void setUpEndPoints(String publishedName, MuxAdaptor muxAdaptor) {
+			IDataStore dataStore = getInstance().getDataStore();
+			Broadcast broadcast = dataStore.get(publishedName);
+			if (broadcast != null) {
+				List<Endpoint> endPointList = broadcast.getEndPointList();
+
+				if (endPointList != null && !endPointList.isEmpty()) 
+				{
+					for (Endpoint endpoint : endPointList) {
+						muxAdaptor.addMuxer(new RtmpMuxer(endpoint.getRtmpUrl()));
+					}
+				}
+			}
 
 		}
 
@@ -552,7 +574,7 @@ public class StreamFetcher {
 
 	public AntMediaApplicationAdapter getInstance() {
 		if (appInstance == null) {
-			appInstance = (AntMediaApplicationAdapter) scope.getContext().getApplicationContext().getBean("web.handler");
+			appInstance = (AntMediaApplicationAdapter) scope.getContext().getApplicationContext().getBean(AntMediaApplicationAdapter.BEAN_NAME);
 		}
 		return appInstance;
 	}
