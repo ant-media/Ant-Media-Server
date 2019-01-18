@@ -1,6 +1,5 @@
 package io.antmedia.rest;
 
-import java.io.IOException;
 import java.util.Map;
 
 import javax.annotation.Nullable;
