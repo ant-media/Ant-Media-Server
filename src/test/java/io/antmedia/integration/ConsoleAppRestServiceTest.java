@@ -1,6 +1,9 @@
 package io.antmedia.integration;
 
 import static org.bytedeco.javacpp.avformat.av_register_all;
+
+
+
 import static org.bytedeco.javacpp.avformat.avformat_network_init;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -40,22 +43,30 @@ import org.junit.Test;
 import org.junit.runners.MethodSorters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.annotation.DirtiesContext.ClassMode;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 
 import com.google.gson.Gson;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.AppSettings;
 import io.antmedia.AppSettingsModel;
 import io.antmedia.EncoderSettings;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Token;
+import io.antmedia.licence.ILicenceService;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.User;
+import io.antmedia.settings.ServerSettings;
 import io.antmedia.test.Application;
 
+
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
-public class ConsoleAppRestServiceTest {
+public class ConsoleAppRestServiceTest{
 
 	private static String ROOT_SERVICE_URL;
 
@@ -248,9 +259,56 @@ public class ConsoleAppRestServiceTest {
 			fail(e.getMessage());
 		}
 	}
+	
+	
+	
+	@Test
+	public void testGetServerSettings() {
+		try {
+			Result authenticatedUserResult = authenticateDefaultUser();
+			assertTrue(authenticatedUserResult.isSuccess());
+
+			//get Server Settings
+			ServerSettings serverSettings = callGetServerSettings();
+			String serverName = serverSettings.getServerName();
+			String licenseKey = serverSettings.getLicenceKey();
+
+
+			// change Server settings 
+			serverSettings.setServerName("newServerName");
+			serverSettings.setLicenceKey("newLicenseKey");
+
+			//check that settings saved
+			Result result = callSetServerSettings(serverSettings);
+			assertTrue(result.isSuccess());
+
+			// get serverSettings again
+			
+			serverSettings = callGetServerSettings();
+			
+			assertEquals("newServerName", serverSettings.getServerName());
+			assertEquals("newLicenseKey", serverSettings.getLicenceKey());
+
+			// return back to original values
+			
+			serverSettings.setServerName(serverName);
+			serverSettings.setLicenceKey(licenseKey);
+			
+			//save original settings
+			result = callSetServerSettings(serverSettings);
+			assertTrue(result.isSuccess());
+
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+	}
+
+	
 
 	/**
-	 * This may be a bug, just check it out, it is working as expectes
+	 * This may be a bug, just check it out, it is working as expected
 	 */
 	@Test
 	public void testMuxingDisableCheckStreamStatus() {
@@ -618,7 +676,6 @@ public class ConsoleAppRestServiceTest {
 		Result enterpiseResult;
 		try {
 
-
 			// authenticate user
 			User user = new User();
 			user.setEmail(TEST_USER_EMAIL);
@@ -707,6 +764,7 @@ public class ConsoleAppRestServiceTest {
 		}
 
 	}
+
 
 	@Test
 	public void testMp4Setting() {
@@ -1002,6 +1060,28 @@ public class ConsoleAppRestServiceTest {
 
 	}
 	
+	public static Result callSetServerSettings(ServerSettings serverSettings) throws Exception {
+		String url = ROOT_SERVICE_URL + "/changeServerSettings";
+		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
+				.setDefaultCookieStore(httpCookieStore).build();
+		Gson gson = new Gson();
+
+		HttpUriRequest post = RequestBuilder.post().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+				.setEntity(new StringEntity(gson.toJson(serverSettings))).build();
+
+		HttpResponse response = client.execute(post);
+
+		StringBuffer result = RestServiceTest.readResponse(response);
+
+		if (response.getStatusLine().getStatusCode() != 200) {
+			throw new Exception(result.toString());
+		}
+		log.info("result string: " + result.toString());
+		Result tmp = gson.fromJson(result.toString(), Result.class);
+		assertNotNull(tmp);
+		return tmp;
+
+	}
 	
 	public static Result callIsClusterMode() throws Exception {
 		String url = ROOT_SERVICE_URL + "/isInClusterMode";
@@ -1070,6 +1150,32 @@ public class ConsoleAppRestServiceTest {
 		return tmp;
 	}
 	
+	public static ServerSettings callGetServerSettings() throws Exception {
+
+		String url = ROOT_SERVICE_URL + "/getServerSettings";
+
+		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
+				.setDefaultCookieStore(httpCookieStore).build();
+		Gson gson = new Gson();
+
+		HttpUriRequest post = RequestBuilder.get().setUri(url).build();
+
+		HttpResponse response = client.execute(post);
+
+		StringBuffer result = RestServiceTest.readResponse(response);
+
+		if (response.getStatusLine().getStatusCode() != 200) {
+			System.out.println("status code: " + response.getStatusLine().getStatusCode());
+			throw new Exception(result.toString());
+		}
+		log.info("result string: " + result.toString());
+		ServerSettings tmp = gson.fromJson(result.toString(), ServerSettings.class);
+		assertNotNull(tmp);
+		return tmp;
+	}
+	
+	
+	
 	public static StringBuffer readResponse(HttpResponse response) throws IOException {
 		BufferedReader rd = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
 
@@ -1110,6 +1216,8 @@ public class ConsoleAppRestServiceTest {
 
 		return tmpExec;
 	}
+	
+
 
 
 }

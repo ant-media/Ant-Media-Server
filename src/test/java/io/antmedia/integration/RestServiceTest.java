@@ -89,9 +89,6 @@ public class RestServiceTest {
 	private BroadcastRestService restService = null;
 	protected static Logger logger = LoggerFactory.getLogger(RestServiceTest.class);
 	public AntMediaApplicationAdapter app = null;
-	private WebScope appScope;
-	private ApplicationContext appCtx;
-	private IScope scope;
 
 	@Context
 	private ServletContext servletContext;
@@ -127,9 +124,6 @@ public class RestServiceTest {
 			System.out.println("Finishing test: " + description.getMethodName());
 		};
 	};
-
-	
-
 	
 	@BeforeClass
 	public static void beforeClass() {
@@ -279,9 +273,8 @@ public class RestServiceTest {
 
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 		Gson gson = new Gson();
-		Broadcast broadcast = null; // new Broadcast();
-		// broadcast.name = "name";
-
+		Broadcast broadcast = null; 
+	
 		try {
 
 			HttpUriRequest post = RequestBuilder.post().setUri(url)
@@ -313,8 +306,6 @@ public class RestServiceTest {
 
 			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 			Gson gson = new Gson();
-			// Broadcast broadcast = null; //new Broadcast();
-			// broadcast.name = "name";
 
 			HttpUriRequest get = RequestBuilder.get().setUri(url)
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
@@ -354,8 +345,7 @@ public class RestServiceTest {
 
 			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 			Gson gson = new Gson();
-			// Broadcast broadcast = null; //new Broadcast();
-			// broadcast.name = "name";
+
 
 			HttpUriRequest get = RequestBuilder.get().setUri(url + "?id=" + streamId)
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
@@ -387,8 +377,6 @@ public class RestServiceTest {
 
 			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 			Gson gson = new Gson();
-			// Broadcast broadcast = null; //new Broadcast();
-			// broadcast.name = "name";
 
 			HttpUriRequest get = RequestBuilder.get().setUri(url)
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
@@ -423,8 +411,6 @@ public class RestServiceTest {
 
 			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 			Gson gson = new Gson();
-			// Broadcast broadcast = null; //new Broadcast();
-			// broadcast.name = "name";
 
 			HttpUriRequest get = RequestBuilder.get().setUri(url + "?id=")
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
@@ -585,7 +571,6 @@ public class RestServiceTest {
 
 	}
 
-	
 	public  int callTotalVoDNumber() throws Exception {
 
 		String url = ROOT_SERVICE_URL + "/broadcast/getTotalVodNumber";
@@ -684,9 +669,6 @@ public class RestServiceTest {
 			String url = ROOT_SERVICE_URL + "/broadcast/getAppLiveStatistics";
 
 			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
-			// Gson gson = new Gson();
-			// Broadcast broadcast = null; //new Broadcast();
-			// broadcast.name = "name";
 
 			HttpUriRequest get = RequestBuilder.get().setUri(url)
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
@@ -716,9 +698,6 @@ public class RestServiceTest {
 			String url = ROOT_SERVICE_URL + "/broadcast/getBroadcastLiveStatistics";
 
 			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
-			// Gson gson = new Gson();
-			// Broadcast broadcast = null; //new Broadcast();
-			// broadcast.name = "name";
 
 			HttpUriRequest get = RequestBuilder.get().setUri(url + "?id=" + streamId)
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
@@ -749,9 +728,6 @@ public class RestServiceTest {
 			String url = ROOT_SERVICE_URL + "/broadcast/getList/0/50";
 
 			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
-			// Gson gson = new Gson();
-			// Broadcast broadcast = null; //new Broadcast();
-			// broadcast.name = "name";
 
 			HttpUriRequest get = RequestBuilder.get().setUri(url)
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
@@ -783,9 +759,6 @@ public class RestServiceTest {
 			String url = ROOT_SERVICE_URL + "/broadcast/getVodList/0/50";
 
 			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
-			// Gson gson = new Gson();
-			// Broadcast broadcast = null; //new Broadcast();
-			// broadcast.name = "name";
 
 			HttpUriRequest get = RequestBuilder.get().setUri(url)
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
@@ -817,9 +790,6 @@ public class RestServiceTest {
 			String url = ROOT_SERVICE_URL + "/broadcast/getVoD?id="+id;
 
 			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
-			// Gson gson = new Gson();
-			// Broadcast broadcast = null; //new Broadcast();
-			// broadcast.name = "name";
 
 			HttpUriRequest get = RequestBuilder.get().setUri(url)
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
@@ -849,9 +819,6 @@ public class RestServiceTest {
 		String url = ROOT_SERVICE_URL + "/broadcast/get";
 
 		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
-		// Gson gson = new Gson();
-		// Broadcast broadcast = null; //new Broadcast();
-		// broadcast.name = "name";
 
 		HttpUriRequest get = RequestBuilder.get().setUri(url + "?id=" + streamId)
 				.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")

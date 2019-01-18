@@ -46,7 +46,7 @@ public class MuxingTest {
 	private static Process red5Process;
 	private static Process tmpExec;
 
-	private static final String SERVER_ADDR = "127.0.0.1"; // "34.206.64.213";
+	private static final String SERVER_ADDR = "127.0.0.1"; 
 
 	public static final int MAC_OS_X = 0;
 	public static final int LINUX = 1;

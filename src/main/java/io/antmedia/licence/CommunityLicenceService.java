@@ -8,8 +8,7 @@ public class CommunityLicenceService implements ILicenceService{
 
 	private ServerSettings serverSettings = null;
 	private boolean responseReceived = false;
-	private String activeLicence = null;
-	private Licence licenceStatusResponse = null;
+	private Licence activeLicence = null;
 	private String url;
 	private String child;
 	private String config;
@@ -23,13 +22,6 @@ public class CommunityLicenceService implements ILicenceService{
 		//no need to implement for Community Edition
 
 		return new Result(false);
-	}
-
-	public Licence getLicence (String key) {
-
-		//no need to implement for Community Edition
-
-		return null;
 	}
 
 
@@ -56,27 +48,18 @@ public class CommunityLicenceService implements ILicenceService{
 		this.responseReceived = responseReceived;
 	}
 
-	public String getActiveLicence() {
+	public Licence getActiveLicence() {
 		return activeLicence;
 	}
 
-	public void setActiveLicence(String res) {
-		this.activeLicence = res;
+	public void setActiveLicence(Licence licence) {
+		this.activeLicence = licence;
 	}
 
 	public ServerSettings fetchServerSettings() {
 		return serverSettings;
 	}
 
-
-	public Licence getLicenceStatusResponse() {
-		return licenceStatusResponse;
-	}
-
-
-	public void setLicenceStatusResponse(Licence licenceStatusResponse) {
-		this.licenceStatusResponse = licenceStatusResponse;
-	}
 	public String getUrl() {
 		return url;
 	}

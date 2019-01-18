@@ -10,7 +10,6 @@ import static org.junit.Assert.fail;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -43,11 +42,7 @@ import org.junit.runner.Description;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.auth.oauth2.GoogleCredentials;
-import com.google.firebase.FirebaseApp;
-import com.google.firebase.FirebaseOptions;
 import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
 import com.google.gson.Gson;
 
 import io.antmedia.AntMediaApplicationAdapter;
@@ -55,7 +50,6 @@ import io.antmedia.AppSettings;
 import io.antmedia.AppSettingsModel;
 import io.antmedia.EncoderSettings;
 import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.datastore.db.types.Licence;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.BroadcastRestService.BroadcastStatistics;
@@ -66,12 +60,8 @@ import io.antmedia.test.Application;
 
 public class AppFunctionalTest {
 	
-	private static final String DATABASE_URL = "https://ant-licence.firebaseio.com/";
-	private static DatabaseReference database;
 
 	private BroadcastRestService restService = null;
-	private AppSettings appSettings;
-	private static final Logger log = LoggerFactory.getLogger(AppFunctionalTest.class);
 	private static final String SERVER_ADDR = "127.0.0.1"; 
 	protected static Logger logger = LoggerFactory.getLogger(AppFunctionalTest.class);
 
@@ -91,7 +81,7 @@ public class AppFunctionalTest {
 			e.printStackTrace();
 		}
 
-		log.info("ROOT SERVICE URL: " + ROOT_SERVICE_URL);
+		logger.info("ROOT SERVICE URL: " + ROOT_SERVICE_URL);
 
 	}
 
@@ -175,7 +165,7 @@ public class AppFunctionalTest {
 
 		Broadcast broadcast = restService.createBroadcast("TOBB Demo");
 
-		log.info("broadcast id:{}", broadcast.getStreamId());
+		logger.info("broadcast id:{}", broadcast.getStreamId());
 
 	}
 
@@ -251,7 +241,7 @@ public class AppFunctionalTest {
 
 			int currentVodNumber = rest.callTotalVoDNumber();
 
-			log.info("current vod number before test {}", String.valueOf(currentVodNumber));
+			logger.info("current vod number before test {}", String.valueOf(currentVodNumber));
 
 			boolean found240p = false;
 			List<EncoderSettings> encoderSettingsActive = null;
@@ -314,7 +304,7 @@ public class AppFunctionalTest {
 				});
 				Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
 					int lastVodNumber = rest.callTotalVoDNumber();
-					log.info("vod number after test {}", lastVodNumber);
+					logger.info("vod number after test {}", lastVodNumber);
 					//2 more VoDs should be added to DB, one is original other one ise 240p mp4 files
 					//480p is not created because original stream is 360p
 
@@ -326,7 +316,7 @@ public class AppFunctionalTest {
 			else {
 				Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
 					int lastVodNumber = rest.callTotalVoDNumber();
-					log.info("vod number after test {}", lastVodNumber);
+					logger.info("vod number after test {}", lastVodNumber);
 					//2 more VoDs should be added to DB, one is original other one ise 240p mp4 files
 					//480p is not created because original stream is 360p
 
@@ -526,39 +516,6 @@ public class AppFunctionalTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-	}
-	
-	/*
-	 * @Test
-	 */
-	
-	public void testFirebaseSave() {
-
-        try {
-            FileInputStream serviceAccount = new FileInputStream("src/test/resources/ant-licence-firebase-adminsdk-t4f6f-3e2bc12d03.json");
-            FirebaseOptions options = new FirebaseOptions.Builder()
-                    .setCredentials(GoogleCredentials.fromStream(serviceAccount))
-                    .setDatabaseUrl(DATABASE_URL)
-                    .build();
-            FirebaseApp.initializeApp(options);
-        } catch (IOException e) {
-            System.out.println("ERROR: invalid service account credentials. ");
-            System.out.println(e.getMessage());
-        }
-        Licence licence = new Licence();
-        
-        licence.setType("regular");
-        licence.setLicenceId("1234-1234");
-        licence.setEndDate("20191010");
-        licence.setStartDate("20181010");
-        licence.setOwner("Corp.");
-        
-        database = FirebaseDatabase.getInstance().getReference();
-        
-        DatabaseReference licenceRef = database.child("licences");
-
-        licenceRef.child(licence.getLicenceId()).setValueAsync(licence);
-		
 	}
 	
 	// Before running test all endpoints should be authenticated

@@ -36,13 +36,6 @@ public interface ILicenceService {
 	
 	public Result saveLicence (Licence licence);
 	
-	/**
-	 * Retrieves License information
-	 * @param key of the license
-	 * @return requested license 
-	 */
-	
-	public Licence getLicence (String key);
 	
 	/**
 	 * Check License Status
@@ -55,15 +48,21 @@ public interface ILicenceService {
 	 * Retrieves Server Settings
 	 * @return ServerSettings including server name and license key
 	 */
-	
+
 	public ServerSettings fetchServerSettings();
 	
 	/**
-	 * Gets Current License Status 
-	 * @return current license if it is validated, if not it returns null
+	 * Gets active license retrieved from license service
+	 * @return
 	 */
+	public Licence getActiveLicence();
 	
-	public Licence getLicenceStatusResponse();
+	/**
+	 * Sets Server Settings 
+	 * @param serverSettings
+	 */
+	public void setServerSettings(ServerSettings serverSettings);
+
 	
 	
 	
