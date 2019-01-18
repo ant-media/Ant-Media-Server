@@ -5,8 +5,8 @@ import static org.bytedeco.javacpp.nvml.nvmlDeviceGetCount_v2;
 import static org.bytedeco.javacpp.nvml.nvmlDeviceGetHandleByIndex_v2;
 import static org.bytedeco.javacpp.nvml.nvmlDeviceGetUtilizationRates;
 import static org.bytedeco.javacpp.nvml.nvmlInit_v2;
-import static org.bytedeco.javacpp.nvml.nvmlShutdown;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.bytedeco.javacpp.IntPointer;
 import org.bytedeco.javacpp.Loader;
 import org.bytedeco.javacpp.nvml;
@@ -25,6 +25,8 @@ public class GPUUtils {
 
 	private Integer deviceCount = null;
 
+	private GPUUtils() {}
+
 	public static GPUUtils getInstance() {
 		if(instance == null) {
 			instance = new GPUUtils();
@@ -32,7 +34,7 @@ public class GPUUtils {
 			try {
 				Class.forName("org.bytedeco.javacpp.nvml");
 				logger.info("nvml class found:");
-				
+
 				Loader.load(nvml.class);
 				int result = nvmlInit_v2();
 				if (result == NVML_SUCCESS) {
@@ -41,12 +43,10 @@ public class GPUUtils {
 				}
 			}
 			catch (UnsatisfiedLinkError e) {
-				logger.info("no cuda installed.");
-				return instance;
+				logger.info("no cuda installed: {}", ExceptionUtils.getStackTrace(e));
 			} 
 			catch (ClassNotFoundException e) {
-				logger.info("nvml class not found:");
-				return instance;
+				logger.info("nvml class not found {}", ExceptionUtils.getStackTrace(e));
 			}
 		}
 		return instance;
@@ -71,13 +71,15 @@ public class GPUUtils {
 	}
 
 	private nvmlUtilization_t getUtilization(int deviceNo) {
-		nvmlDevice_st device = new nvmlDevice_st();
-		int result = nvmlDeviceGetHandleByIndex_v2(deviceNo, device );
-		if (result == NVML_SUCCESS) {
-			nvmlUtilization_t deviceUtilization = new nvmlUtilization_t();
-			result = nvmlDeviceGetUtilizationRates(device, deviceUtilization);
+		if (!noGPU) {
+			nvmlDevice_st device = new nvmlDevice_st();
+			int result = nvmlDeviceGetHandleByIndex_v2(deviceNo, device );
 			if (result == NVML_SUCCESS) {
-				return deviceUtilization;
+				nvmlUtilization_t deviceUtilization = new nvmlUtilization_t();
+				result = nvmlDeviceGetUtilizationRates(device, deviceUtilization);
+				if (result == NVML_SUCCESS) {
+					return deviceUtilization;
+				}
 			}
 		}
 		return null;
@@ -97,9 +99,5 @@ public class GPUUtils {
 			return utilization.gpu();
 		}
 		return -1;
-	}
-
-	public void close() {
-		nvmlShutdown();
 	}
 }
