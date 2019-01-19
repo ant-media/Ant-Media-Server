@@ -38,7 +38,7 @@ public class GPUUtils {
 				Loader.load(nvml.class);
 				int result = nvmlInit_v2();
 				if (result == NVML_SUCCESS) {
-					logger.info("cuda cannot be initialized.");
+					logger.info("cuda initialized.");
 					noGPU = false;
 				}
 			}
