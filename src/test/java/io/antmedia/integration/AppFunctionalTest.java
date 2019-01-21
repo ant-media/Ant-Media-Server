@@ -22,9 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.methods.RequestBuilder;
@@ -41,10 +39,8 @@ import org.junit.Test;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
-import org.red5.server.stream.ClientBroadcastStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 
 import com.google.gson.Gson;
 
@@ -184,7 +180,7 @@ public class AppFunctionalTest {
 		 * System.out.println("Result: " + notifyHook.toString());
 		 */
 	}
-
+	
 	@Test
 	public void testSetUpEndPoints() {
 

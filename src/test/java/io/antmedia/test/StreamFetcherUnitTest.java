@@ -914,7 +914,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 
-	private void startCameraEmulator() {
+	public static void startCameraEmulator() {
 		stopCameraEmulator();
 
 		ProcessBuilder pb = new ProcessBuilder("/usr/local/onvif/runme.sh");
@@ -932,7 +932,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 
-	private void stopCameraEmulator() {
+	public static void stopCameraEmulator() {
 		// close emulator in order to simulate cut-off
 		String[] argsStop = new String[] { "/bin/bash", "-c",
 		"kill -9 $(ps aux | grep 'onvifser' | awk '{print $2}')" };
