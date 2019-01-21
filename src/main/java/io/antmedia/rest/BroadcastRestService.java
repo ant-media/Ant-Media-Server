@@ -88,10 +88,16 @@ import io.antmedia.webrtc.api.IWebRTCAdaptor;
 @Path("/")
 public class BroadcastRestService {
 
+	@ApiModel(value="BroadcastStatistics", description="The statistics class of the broadcasts")
 	public static class BroadcastStatistics {
 
+		@ApiModelProperty(value = "the total RTMP viewers of the stream")
 		public final int totalRTMPWatchersCount;
+
+		@ApiModelProperty(value = "the total HLS viewers of the stream")
 		public final int totalHLSWatchersCount;
+		
+		@ApiModelProperty(value = "the total WebRTC viewers of the stream")
 		public final int totalWebRTCWatchersCount;
 
 		public BroadcastStatistics(int totalRTMPWatchersCount, int totalHLSWatchersCount,
@@ -101,9 +107,11 @@ public class BroadcastRestService {
 			this.totalWebRTCWatchersCount = totalWebRTCWatchersCount;
 		}
 	}
-
+	
+	@ApiModel(value="LiveStatistics", description="The statistics class of the broadcasts live stream count")
 	public static class LiveStatistics  {
 
+		@ApiModelProperty(value = "the total live stream count of the stream")
 		public final long totalLiveStreamCount;
 
 		public LiveStatistics(long totalLiveStreamCount) {
@@ -1274,7 +1282,7 @@ public class BroadcastRestService {
 		return new BroadcastStatistics(totalRTMPViewer, totalHLSViewer, totalWebRTCViewer);
 	}
 
-	
+
 	/**
 	 * Get WebRTC Client Statistics such as : Audio bitrate, Video bitrate, Target bitrate, Video Sent Period etc.
 	 * 
@@ -1320,7 +1328,7 @@ public class BroadcastRestService {
 			@ApiParam(value = "type", required = true) @PathParam("type of the stream") String type) {
 		return getDataStore().filterBroadcastList(offset, size, type);
 	}
-	
+
 
 	/**
 	 * Delete specific VoD File- Use deleteVoD method (/broadcast/deleteVoD/{id}), this will be depreciated
@@ -1342,7 +1350,7 @@ public class BroadcastRestService {
 		return deleteVoD(id);
 	}
 
-	
+
 	/**
 	 * Delete specific VoD File
 	 * 
@@ -1404,7 +1412,7 @@ public class BroadcastRestService {
 	 * @param inputStream - the input stream of VoD file
 	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
 	 */
-	
+
 	@ApiOperation(value = "Upload external user VoD file to Ant Media Server", notes = "", response = Result.class)
 	@POST
 	@Consumes({MediaType.MULTIPART_FORM_DATA})
