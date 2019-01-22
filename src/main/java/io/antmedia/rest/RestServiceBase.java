@@ -26,12 +26,12 @@ public abstract class RestServiceBase {
 
 
 	@Context
-	private ServletContext servletContext;
-	private DataStoreFactory dataStoreFactory;
+	protected ServletContext servletContext;
+	protected DataStoreFactory dataStoreFactory;
 	private IDataStore dbStore;
-	private ApplicationContext appCtx;
-	private IScope scope;
-	private AntMediaApplicationAdapter appInstance;
+	protected ApplicationContext appCtx;
+	protected IScope scope;
+	protected AntMediaApplicationAdapter appInstance;
 
 	protected boolean addSocialEndpoints(Broadcast broadcast, String socialEndpointIds) {	
 		boolean success = true;
