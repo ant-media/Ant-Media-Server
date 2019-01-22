@@ -11,6 +11,10 @@ public class WebSocketConstants {
 	
 	public static final String NOTIFICATION_COMMAND = "notification";
 	
+	public static final String PING_COMMAND = "ping";
+	
+	public static final String PONG_COMMAND = "pong";
+	
 	public static final String COMMAND = "command";
 
 	public static final String ATTR_SIGNALLING_CONNECTION = "ATTR_SIGNALLING_CONNECTION";
