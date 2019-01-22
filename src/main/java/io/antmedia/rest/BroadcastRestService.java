@@ -268,7 +268,7 @@ public class BroadcastRestService extends RestServiceBase{
 	@Path("/broadcast/createWithSocial")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Broadcast createWithSocial(@ApiParam(value = "Broadcast", required = true) Broadcast broadcast,
-			@ApiParam(value = "Comma separated social network IDs, they must in comma separated and names must match with the defined names like facebook,periscope,youtube etc.", required = true) @QueryParam("socialNetworks") String socialEndpointIds) {
+			@ApiParam(value = "Comma separated social network IDs, they must in comma separated and IDs must match with the defined IDs.", required = true) @QueryParam("socialNetworks") String socialEndpointIds) {
 		broadcast = createBroadcast(broadcast);
 		if (broadcast.getStreamId() != null && socialEndpointIds != null) {
 			String[] endpointIds = socialEndpointIds.split(",");
@@ -346,7 +346,7 @@ public class BroadcastRestService extends RestServiceBase{
 	@Path("/broadcast/update")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result updateBroadcast(@ApiParam(value = "Broadcast object", required = true) Broadcast broadcast,
-			@ApiParam(value = "Comma separated social network IDs, they must in comma separated and names must match with the defined names like facebook,periscope,youtube etc.", required = true) @QueryParam("socialNetworks") String socialNetworksToPublish) {
+			@ApiParam(value = "Comma separated social network IDs, they must in comma separated and IDs must match with the defined IDs", required = true) @QueryParam("socialNetworks") String socialNetworksToPublish) {
 
 		boolean result = getDataStore().updateName(broadcast.getStreamId(), broadcast.getName(),
 				broadcast.getDescription());
@@ -416,8 +416,8 @@ public class BroadcastRestService extends RestServiceBase{
 	 * @param id - the id of the stream
 	 * 
 	 * @param endpointServiceId
-	 *            name of the service like Facebook, Youtube, Periscope in order
-	 *            to have successfull operation. Social network must be
+	 *            the id  of the service in order
+	 *            to have successful operation. Social network must be
 	 *            authorized in advance
 	 * 
 	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
@@ -429,7 +429,7 @@ public class BroadcastRestService extends RestServiceBase{
 	@Path("/broadcast/addSocialEndpointJS/{id}/{endpointServiceId}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result addSocialEndpointJSON(@ApiParam(value = "Stream id", required = true) @PathParam("id") String id,
-			@ApiParam(value = "the id of the service like facebook, youtube, periscope in order to have successfull operation. Social network must be authorized in advance", required = true) @PathParam("endpointServiceId") String endpointServiceId) {
+			@ApiParam(value = "the id of the service in order to have successfull operation. Social network must be authorized in advance", required = true) @PathParam("endpointServiceId") String endpointServiceId) {
 		return addSocialEndpoint(id, endpointServiceId);
 	}
 
@@ -440,7 +440,7 @@ public class BroadcastRestService extends RestServiceBase{
 	 *            of the stream
 	 * 
 	 * @param endpointServiceId
-	 *            name of the service like facebook, youtube, periscope in order
+	 *            the id of the service in order
 	 *            to have successfull operation. Social network must be
 	 *            authorized in advance
 	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
@@ -453,7 +453,7 @@ public class BroadcastRestService extends RestServiceBase{
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result addSocialEndpoint(@ApiParam(value = "Stream id", required = true) @FormParam("id") String id,
 
-			@ApiParam(value = "the id of the service like facebook, youtube, periscope in order to have successfull operation. Social network must be authorized in advance", required = true)
+			@ApiParam(value = "the id of the service in order to have successfull operation. Social network must be authorized in advance", required = true)
 	@FormParam("serviceName") String endpointServiceId) {
 
 		Broadcast broadcast = lookupBroadcast(id);
@@ -486,7 +486,7 @@ public class BroadcastRestService extends RestServiceBase{
 	@Path("/broadcast/addEndpoint")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result addEndpoint(@ApiParam(value = "Broadcast id", required = true) @FormParam("id") String id,
-			@ApiParam(value = "rtmp url of the endpoint that stream will be republished", required = true) @FormParam("rtmpUrl") String rtmpUrl) {
+			@ApiParam(value = "RTMP url of the endpoint that stream will be republished", required = true) @FormParam("rtmpUrl") String rtmpUrl) {
 		boolean success = false;
 		String message = null;
 		try {
@@ -512,7 +512,7 @@ public class BroadcastRestService extends RestServiceBase{
 	 * @param batch number of items to be returned
 	 * @return {@link io.antmedia.social.LiveComment }
 	 */
-	@ApiOperation(value = "Returns live comments from a specific endpoint like facebook, youtube, pscp, etc.", notes = "Notes here", responseContainer = "List", response = LiveComment.class)
+	@ApiOperation(value = "Returns live comments from a specific endpoint like Facebook, Youtube, PSCP, etc. It works If interactivity is collected which can be enabled/disabled by properties file.", notes = "Notes here", responseContainer = "List", response = LiveComment.class)
 	@GET
 	@Path("/broadcast/getLiveComments/{endpointServiceId}/{streamId}/{offset}/{batch}")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -541,7 +541,7 @@ public class BroadcastRestService extends RestServiceBase{
 	 * @param streamId- the id of the stream
 	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
 	 */
-	@ApiOperation(value = "Return the number of live views in specified video service endpoint", notes = "", response = Result.class)
+	@ApiOperation(value = "Return the number of live views in specified video service endpoint. It works If interactivity is collected which can be enabled/disabled by properties file.", notes = "", response = Result.class)
 	@GET
 	@Path("/broadcast/getLiveViewsCount/{endpointServiceId}/{streamId}")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -566,7 +566,7 @@ public class BroadcastRestService extends RestServiceBase{
 	 * @param streamId- the id of the stream
 	 * @return @return {@link io.antmedia.rest.BroadcastRestService.Result}
 	 */
-	@ApiOperation(value = "Returns the number of live comment count in a specific video service endpoint", notes = "", response = Result.class)
+	@ApiOperation(value = "Returns the number of live comment count from a specific video service endpoint. It works If interactivity is collected which can be enabled/disabled by properties file.", notes = "", response = Result.class)
 	@GET
 	@Path("/broadcast/getLiveCommentsCount/{endpointServiceId}/{streamId}")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -588,7 +588,7 @@ public class BroadcastRestService extends RestServiceBase{
 	 * @param streamId- the id of the stream
 	 * @return {@link io.antmedia.rest.model.Interaction }
 	 */
-	@ApiOperation(value = "Return the interaction from a specific endpoint like facebook, youtube, pscp, etc. ", notes = "", response = Interaction.class)
+	@ApiOperation(value = "Return the interaction from a specific endpoint like Facebook, Youtube, PSCP, etc. It works If interactivity is collected which can be enabled/disabled by properties file.", notes = "", response = Interaction.class)
 	@GET
 	@Path("/broadcast/getInteraction/{endpointServiceId}/{streamId}")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -1295,7 +1295,7 @@ public class BroadcastRestService extends RestServiceBase{
 
 	/**
 	 * Delete specific VoD File
-	 * "Deprecated -> Use deleteVoD method (/broadcast/deleteVoD/{id})"
+	 * Deprecated -> Use deleteVoD method (/broadcast/deleteVoD/{id})
 	 * 
 	 * @param fileName- name of the VoD file
 	 * @param id - id of the VoD file
@@ -1303,7 +1303,7 @@ public class BroadcastRestService extends RestServiceBase{
 	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
 	 */
 
-	@ApiOperation(value = "Delete specific VoD File", notes = "", response = Result.class)
+	@ApiOperation(value = "Delete specific VoD File. Deprecated -> Use deleteVoD method (/broadcast/deleteVoD/{id})", notes = "", response = Result.class)
 	@POST
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/broadcast/deleteVoDFile/{name}/{id}/{type}")
