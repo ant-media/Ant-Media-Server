@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-import javax.servlet.ServletContext;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
@@ -23,33 +22,24 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
-import io.swagger.annotations.*;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.red5.server.api.scope.IBroadcastScope;
-import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IBroadcastStream;
 import org.red5.server.api.stream.IClientBroadcastStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
-import org.springframework.web.context.WebApplicationContext;
-import org.springframework.web.context.support.WebApplicationContextUtils;
-
-import com.drew.lang.annotations.Nullable;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
-import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.IDataStore;
-import io.antmedia.datastore.db.IDataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointChannel;
@@ -69,6 +59,14 @@ import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
 import io.antmedia.storage.StorageClient;
 import io.antmedia.storage.StorageClient.FileType;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.Contact;
+import io.swagger.annotations.ExternalDocs;
+import io.swagger.annotations.Info;
+import io.swagger.annotations.License;
+import io.swagger.annotations.SwaggerDefinition;
 
 @Api(value = "BroadcastRestService")
 @SwaggerDefinition(
@@ -86,7 +84,7 @@ import io.antmedia.webrtc.api.IWebRTCAdaptor;
 )
 @Component
 @Path("/")
-public class BroadcastRestService {
+public class BroadcastRestService extends RestServiceBase{
 
 	public static class BroadcastStatistics {
 
@@ -122,20 +120,7 @@ public class BroadcastRestService {
 	public static final int MP4_DISABLE = -1;
 	public static final int MP4_NO_SET = 0;
 
-	@Context
-	private ServletContext servletContext;
-
-	private IScope scope;
-
-
-	private ApplicationContext appCtx;
-
-	private AntMediaApplicationAdapter app;
-
-	private IDataStore dataStore;
-
 	private AppSettings appSettings;
-	private DataStoreFactory dataStoreFactory;
 
 	public interface ProcessBuilderFactory {
 		Process make(String...args);
@@ -446,43 +431,14 @@ public class BroadcastRestService {
 	public Result addSocialEndpoint(@ApiParam(value = "Stream id", required = true) @FormParam("id") String id,
 									@ApiParam(value = "name of the service like facebook, youtube, periscope in order to have successfull operation. Social network must be authorized in advance", required = true)
 									@FormParam("serviceName") String endpointServiceId) {
-		boolean success = false;
-		String message = null;
 		Broadcast broadcast = lookupBroadcast(id);
-
-		if (broadcast != null) {
-			Map<String, VideoServiceEndpoint> endPointServiceList = getEndpointList();
-
-			if (endPointServiceList != null) {
-
-				VideoServiceEndpoint videoServiceEndpoint = endPointServiceList.get(endpointServiceId);
-
-				if (videoServiceEndpoint != null) {
-					Endpoint endpoint;
-					try {
-						endpoint = videoServiceEndpoint.createBroadcast(broadcast.getName(),
-								broadcast.getDescription(), id, broadcast.isIs360(), broadcast.isPublicStream(),
-								720, true);
-						success = getDataStore().addEndpoint(id, endpoint);
-
-					} catch (Exception e) {
-						logger.error(ExceptionUtils.getStackTrace(e));
-						message = e.getMessage();
-					}
-				}
-				else {
-					message = endpointServiceId + " endpoint does not exist in this app.";
-					logger.warn(message);
-				}
-			} else {
-				message = "No social endpoint is defined for this app. Consult your app developer";
-				logger.warn(message);
-			}
-		} else {
-			message = "No broadcast exist with the id specified";
-			logger.warn(message);
+		
+		boolean success = addSocialEndpoints(broadcast, endpointServiceId);
+		String message = "";
+		if(!success) {
+			message  = endpointServiceId+" endpoint can not be added to "+id;
 		}
-
+		
 		return new Result(success, message);
 	}
 
@@ -1701,52 +1657,8 @@ public class BroadcastRestService {
 		return getDataStore().getBroadcastCount();
 	}
 
-	protected Map<String, VideoServiceEndpoint> getEndpointList() {
-		return getApplication().getVideoServiceEndpoints();
-	}
-
 	protected List<VideoServiceEndpoint> getEndpointsHavingErrorList(){
 		return getApplication().getVideoServiceEndpointsHavingError();
-	}
-
-	@Nullable
-	private ApplicationContext getAppContext() 
-	{
-		if (appCtx == null && servletContext != null) {
-			appCtx = (ApplicationContext) servletContext
-					.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
-
-		}
-		return appCtx;
-	}
-
-	public IDataStore getDataStore() {
-		if (dataStore == null) {
-			dataStore = getDataStoreFactory().getDataStore();
-		}
-		return dataStore;
-	}
-
-	public void setDataStore(IDataStore dataStore) {
-		this.dataStore = dataStore;
-	}
-
-	public AntMediaApplicationAdapter getApplication() {
-		if (app == null) {
-			ApplicationContext appContext = getAppContext();
-			if (appContext != null) {
-				app = (AntMediaApplicationAdapter) appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME);
-			}
-		}
-		return app;
-	}
-
-	/**
-	 * this is for testing
-	 * @param app
-	 */
-	public void setApplication(AntMediaApplicationAdapter app) {
-		this.app = app;
 	}
 
 	private AppSettings getAppSettings() {
@@ -1759,36 +1671,8 @@ public class BroadcastRestService {
 		return appSettings;
 	}
 
-	public IScope getScope() {
-		if (scope == null) {
-			scope = getApplication().getScope();
-		}
-		return scope;
-	}
-
-	public void setScope(IScope scope) {
-		this.scope = scope;
-	}
-
-	public void setAppCtx(ApplicationContext appCtx) {
-		this.appCtx = appCtx;
-	}
-
 	public void setAppSettings(AppSettings appSettings) {
 		this.appSettings = appSettings;
-	}
-
-	public DataStoreFactory getDataStoreFactory() {
-		if(dataStoreFactory == null) {
-			WebApplicationContext ctxt = WebApplicationContextUtils.getWebApplicationContext(servletContext); 
-			dataStoreFactory = (DataStoreFactory) ctxt.getBean(IDataStoreFactory.BEAN_NAME);
-		}
-		return dataStoreFactory;
-	}
-
-
-	public void setDataStoreFactory(DataStoreFactory dataStoreFactory) {
-		this.dataStoreFactory = dataStoreFactory;
 	}
 
 	public ProcessBuilderFactory getProcessBuilderFactory() {
