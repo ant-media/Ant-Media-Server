@@ -36,4 +36,10 @@ public class MockTokenService implements  IStreamPublishSecurity, ITokenService{
 		return authenticatedMap;
 	}
 
+	@Override
+	public boolean checkHash(String hash, String streamId, String sessionId, String type) {
+
+		return false;
+	}
+
 }

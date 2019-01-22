@@ -16,6 +16,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -41,6 +42,7 @@ import org.junit.runners.MethodSorters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.hash.Hashing;
 import com.google.gson.Gson;
 
 import io.antmedia.AntMediaApplicationAdapter;
@@ -707,6 +709,104 @@ public class ConsoleAppRestServiceTest {
 		}
 
 	}
+	
+	@Test
+	public void testHashControl() {
+		Result enterpiseResult;
+		try {
+
+
+			// authenticate user
+			User user = new User();
+			user.setEmail(TEST_USER_EMAIL);
+			user.setPassword(TEST_USER_PASS);
+			Result authenticatedUserResult = callAuthenticateUser(user);
+			assertTrue(authenticatedUserResult.isSuccess());
+
+			enterpiseResult = callIsEnterpriseEdition();
+			if (!enterpiseResult.isSuccess()) {
+				//if it is not enterprise return
+				return ;
+			}
+
+			// get settings from the app
+			AppSettingsModel appSettings = callGetAppSettings("LiveApp");
+
+			//set hash publish control enabled
+			appSettings.setHashControlPublishEnabled(true);
+			appSettings.setMp4MuxingEnabled(true);
+			
+			//define hash secret 
+			String secret = "secret";
+			appSettings.setTokenHashSecret(secret);
+
+
+			Result result = callSetAppSettings("LiveApp", appSettings);
+			assertTrue(result.isSuccess());
+
+			appSettings = callGetAppSettings("LiveApp");
+			
+			//check that settings is set successfully
+			assertTrue(appSettings.isHashControlPublishEnabled());
+
+			//create a broadcast
+			Broadcast broadcast = RestServiceTest.callCreateRegularBroadcast();
+			
+			//publish stream
+			Process rtmpSendingProcess = execute(ffmpegPath
+					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
+					+ broadcast.getStreamId());
+
+
+			//publishing is not allowed therefore hls files are not created
+			Awaitility.await().pollDelay(5, TimeUnit.SECONDS).atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return ConsoleAppRestServiceTest.getStatusCode("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + ".m3u8?token=hash" )==404;
+			});
+
+			rtmpSendingProcess.destroy();
+
+			//generate correct hash value
+		
+			String hashCombine = broadcast.getStreamId() + Token.PUBLISH_TOKEN + secret ;
+			
+			String sha256hex = Hashing.sha256()
+					.hashString(hashCombine, StandardCharsets.UTF_8)
+					.toString();
+
+			
+			//start publish with generated hash value
+			Process rtmpSendingProcessHash = execute(ffmpegPath
+					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
+					+ broadcast.getStreamId()+ "?token=" + sha256hex);
+
+
+
+			//this time, HLS files should be created
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" 
+						+ broadcast.getStreamId() + ".m3u8" );
+			});
+
+			//destroy process
+			rtmpSendingProcessHash.destroy();
+
+			//return back settings for other tests
+			appSettings.setHashControlPublishEnabled(false);
+			
+			Result flag = callSetAppSettings("LiveApp", appSettings);
+			
+			//check that settings saved successfully
+			assertTrue(flag.isSuccess());
+
+
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+
+	}
+	
 
 	@Test
 	public void testMp4Setting() {
