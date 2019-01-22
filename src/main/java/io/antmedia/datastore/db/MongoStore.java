@@ -20,8 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.mongodb.MongoClient;
-import com.mongodb.MongoCredential;
-import com.mongodb.ServerAddress;
+import com.mongodb.MongoClientURI;
 import com.mongodb.WriteResult;
 
 import io.antmedia.AntMediaApplicationAdapter;
@@ -48,33 +47,19 @@ public class MongoStore implements IDataStore {
 
 	public static final String IMAGE_ID = "imageId"; 
 
-	public MongoStore(String dbName, String host) {
-		morphia = new Morphia();
-		morphia.mapPackage("io.antmedia.datastore.db.types");
-		datastore = morphia.createDatastore(new MongoClient(host), dbName);
-		vodDatastore = morphia.createDatastore(new MongoClient(host), dbName+"_VoD");
-		endpointCredentialsDS = morphia.createDatastore(new MongoClient(host), dbName+"_endpointCredentials");
-		tokenDatastore = morphia.createDatastore(new MongoClient(host), dbName + "_token");
-		detectionMap = morphia.createDatastore(new MongoClient(host), dbName + "detection");
-
-
-		datastore.ensureIndexes();
-		vodDatastore.ensureIndexes();
-		endpointCredentialsDS.ensureIndexes();
-		tokenDatastore.ensureIndexes();
-		detectionMap.ensureIndexes();
-	}
-
 	public MongoStore(String host, String username, String password, String dbName) {
 		morphia = new Morphia();
 		morphia.mapPackage("io.antmedia.datastore.db.types");
-		List<MongoCredential> credentialList = new ArrayList<>();
-		credentialList.add(MongoCredential.createCredential(username, dbName, password.toCharArray()));
-		datastore = morphia.createDatastore(new MongoClient(new ServerAddress(host), credentialList), dbName);
-		vodDatastore=morphia.createDatastore(new MongoClient(new ServerAddress(host), credentialList), dbName+"VoD");
-		endpointCredentialsDS = morphia.createDatastore(new MongoClient(new ServerAddress(host), credentialList), dbName+"_endpointCredentials");
-		tokenDatastore = morphia.createDatastore(new MongoClient(), dbName + "_token");
-		detectionMap = morphia.createDatastore(new MongoClient(), dbName + "detection");
+		
+		String uri = DBUtils.getUri(host, username, password);
+		
+		MongoClientURI mongoUri = new MongoClientURI(uri);
+		MongoClient client = new MongoClient(mongoUri);
+		datastore = morphia.createDatastore(client, dbName);
+		vodDatastore=morphia.createDatastore(client, dbName+"VoD");
+		endpointCredentialsDS = morphia.createDatastore(client, dbName+"_endpointCredentials");
+		tokenDatastore = morphia.createDatastore(client, dbName + "_token");
+		detectionMap = morphia.createDatastore(client, dbName + "detection");
 
 		tokenDatastore.ensureIndexes();
 		datastore.ensureIndexes();
