@@ -56,7 +56,7 @@ public class DBUtils {
 		
 		String uri = "mongodb://"+credential+host;
 		
-		logger.info("\n\n uri:"+uri+"\n");
+		logger.info("uri:{}",uri);
 		
 		return uri;
 	}
