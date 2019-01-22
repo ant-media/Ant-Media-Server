@@ -116,7 +116,7 @@ public class DBStoresUnitTest {
 	@Test
 	public void testMongoStore() {
 
-		IDataStore dataStore = new MongoStore("testdb", "localhost");
+		IDataStore dataStore = new MongoStore("localhost", "", "", "testdb");
 		Datastore store = ((MongoStore) dataStore).getDataStore();
 		Query<Broadcast> deleteQuery = store.find(Broadcast.class);
 		store.delete(deleteQuery);
