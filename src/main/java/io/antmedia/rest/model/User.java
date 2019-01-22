@@ -3,43 +3,54 @@ package io.antmedia.rest.model;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonProperty.Access;
 
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
+
+@ApiModel(value="User", description="The basic user class")
 public class User {
 	
 	/**
 	 * Email of the user
 	 */
+	@ApiModelProperty(value = "the email of the user")
 	private String email;
 	
 	/**
 	 * Password of the user, ignore password and this field is not set for all user types
 	 */
+	@ApiModelProperty(value = "the password of the user")
 	@JsonProperty(access = Access.WRITE_ONLY)
 	private String password;
 	
 	/**
 	 * Type of the user
 	 */
+	@ApiModelProperty(value = "the type of the user", allowableValues = "facebook_user, periscope_user, youtube_user, admin")
 	private UserType userType;
 	
 	/**
 	 * New password of the user, below field is not set  for all user types
 	 */
+	@ApiModelProperty(value = "the new password of the user")
 	@JsonProperty(access = Access.WRITE_ONLY)
 	private String newPassword;
 	
 	/**
 	 * Name of the user
 	 */
+	@ApiModelProperty(value = "the name of the user")
 	private String fullName;
 	
 	/**
 	 * URL of the picture if exists
 	 */
+	@ApiModelProperty(value = "the URL of the user picture")
 	private String picture;
 	
 	/**
 	 * ID of the user
 	 */
+	@ApiModelProperty(value = "the id of the user")
 	private String id;
 	
 	public User(String email, String password, UserType userType) {
