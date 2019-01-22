@@ -1,32 +1,40 @@
 package io.antmedia.social;
 
 import io.antmedia.rest.model.User;
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
 
+@ApiModel(value="LiveComment", description="The live comment class written on social media about related stream")
 public class LiveComment {
 	
 	/**
 	 * id of the comment
 	 */
+	@ApiModelProperty(value = "the id of the comment")
 	private String id;
 	
 	/**
 	 * Content of the comment
 	 */
+	@ApiModelProperty(value = "the content of the comment")
 	private String message;
 	
 	/**
 	 * User who write this comment
 	 */
+	@ApiModelProperty(value = "the owner of the comment")
 	private User from;
 
 	/**
 	 * Origin of the comment
 	 */
+	@ApiModelProperty(value = "the origin of the comment", allowableValues = "facebook, periscope, youtube, server")
 	private ResourceOrigin origin;
 	
 	/**
 	 * Timestamp of the comment
 	 */
+	@ApiModelProperty(value = "the timestamp of the stream")
 	private long timestamp;
 
 	public LiveComment(String id, String message, User from, ResourceOrigin origin, long timestamp) {
