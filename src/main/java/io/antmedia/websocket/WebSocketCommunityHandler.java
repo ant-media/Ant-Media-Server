@@ -22,6 +22,7 @@ import org.webrtc.IceCandidate;
 import org.webrtc.SessionDescription;
 import org.webrtc.SessionDescription.Type;
 
+import io.antmedia.AppSettings;
 import io.antmedia.recorder.FFmpegFrameRecorder;
 import io.antmedia.recorder.FrameRecorder;
 import io.antmedia.webrtc.adaptor.RTMPAdaptor;
@@ -32,10 +33,13 @@ public abstract class WebSocketCommunityHandler {
 
 	private JSONParser jsonParser = new JSONParser();
 
+	private AppSettings appSettings;
+
 	@OnOpen
 	public void onOpen(Session session, EndpointConfig config)
 	{
-
+		appSettings = (AppSettings) getAppContext().getBean(AppSettings.BEAN_NAME);
+		
 	}
 
 	@OnClose
@@ -132,7 +136,10 @@ public abstract class WebSocketCommunityHandler {
 
 		connectionContext.setSession(session);
 		connectionContext.setStreamId(streamId);
-
+		connectionContext.setPortRange(appSettings.getWebRTCPortRangeMin(), appSettings.getWebRTCPortRangeMax());
+		connectionContext.setStunServerUri(appSettings.getStunServerURI());
+		connectionContext.setTcpCandidatesEnabled(appSettings.isWebRTCTcpCandidatesEnabled());
+		
 		connectionContext.start();
 	}
 

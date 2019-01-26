@@ -6,7 +6,6 @@ import static org.bytedeco.javacpp.nvml.nvmlDeviceGetHandleByIndex_v2;
 import static org.bytedeco.javacpp.nvml.nvmlDeviceGetUtilizationRates;
 import static org.bytedeco.javacpp.nvml.nvmlInit_v2;
 
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.bytedeco.javacpp.IntPointer;
 import org.bytedeco.javacpp.Loader;
 import org.bytedeco.javacpp.nvml;
@@ -33,20 +32,19 @@ public class GPUUtils {
 
 			try {
 				Class.forName("org.bytedeco.javacpp.nvml");
-				logger.info("nvml class found:");
 
 				Loader.load(nvml.class);
 				int result = nvmlInit_v2();
 				if (result == NVML_SUCCESS) {
-					logger.info("cuda initialized.");
+					logger.info("cuda initialized {}", "");
 					noGPU = false;
 				}
 			}
 			catch (UnsatisfiedLinkError e) {
-				logger.info("no cuda installed: {}", ExceptionUtils.getStackTrace(e));
+				logger.info("no cuda installed {}", "");
 			} 
 			catch (ClassNotFoundException e) {
-				logger.info("nvml class not found {}", ExceptionUtils.getStackTrace(e));
+				logger.info("nvml class not found {}", "");
 			}
 		}
 		return instance;
