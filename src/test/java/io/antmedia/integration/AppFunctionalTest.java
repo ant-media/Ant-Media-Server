@@ -384,6 +384,9 @@ public class AppFunctionalTest {
 
 			List<Broadcast> broadcastList = restService.callGetBroadcastList();
 			int size = broadcastList.size();
+			
+			int currentVodNumber = restService.callTotalVoDNumber();
+			log.info("current vod number: {}", currentVodNumber);
 			// publish live stream to the server
 			String streamId = "zombiStreamId"  + (int)(Math.random()*9999);
 			executeProcess(ffmpegPath
@@ -439,6 +442,16 @@ public class AppFunctionalTest {
 			broadcastList = restService.callGetBroadcastList();
 			assertNotNull(broadcastList);
 			assertEquals(broadcastList.size(), size);
+			
+			
+			boolean isEnterprise = callIsEnterpriseEdition().getMessage().contains("Enterprise");
+			if (isEnterprise) {
+				Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+					int vodNumber = restService.callTotalVoDNumber();
+					//one for it self and one for 240p
+					return vodNumber == currentVodNumber + 2;
+				});
+			}
 
 		} catch (InterruptedException e) {
 			e.printStackTrace();
