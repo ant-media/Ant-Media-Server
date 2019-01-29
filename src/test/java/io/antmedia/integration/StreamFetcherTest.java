@@ -170,7 +170,9 @@ public class StreamFetcherTest extends AbstractJUnit4SpringContextTests{
 		
 		Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS)
 		.until(() -> {
-			return restService.getBroadcast(streamId).getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+			Broadcast broadcast = restService.getBroadcast(streamId);
+			return broadcast != null && broadcast.getStatus() != null && 
+					broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 		});
 		
 		//create a local stream
