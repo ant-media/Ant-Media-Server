@@ -242,6 +242,17 @@ public class AppFunctionalTest {
 			int currentVodNumber = rest.callTotalVoDNumber();
 
 			log.info("current vod number before test {}", String.valueOf(currentVodNumber));
+			
+			//delete vods
+			List<VoD> voDList = rest.callGetVoDList();
+			if (voDList != null) {
+				for (VoD voD : voDList) {
+					RestServiceTest.deleteVoD(voD.getVodId());
+				}
+			}
+			
+			currentVodNumber = rest.callTotalVoDNumber();
+			log.info("vod number after deletion {}", String.valueOf(currentVodNumber));
 
 			boolean found240p = false;
 			List<EncoderSettings> encoderSettingsActive = null;
