@@ -790,9 +790,13 @@ public class RestServiceTest {
 	}
 	
 	public static List<VoD> callGetVoDList() {
+		return callGetVoDList(0, 50);
+	}
+	
+	public static List<VoD> callGetVoDList(int offset, int size) {
 		try {
 
-			String url = ROOT_SERVICE_URL + "/broadcast/getVodList/0/50";
+			String url = ROOT_SERVICE_URL + "/broadcast/getVodList/"+offset+"/" + size;
 
 			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 			// Gson gson = new Gson();

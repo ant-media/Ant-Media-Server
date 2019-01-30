@@ -303,13 +303,28 @@ public class AppFunctionalTest {
 					return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + "_240p.mp4");
 				});
 				Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
-					int lastVodNumber = rest.callTotalVoDNumber();
-					log.info("vod number after test {}", lastVodNumber);
+					
+					int vodNumber = rest.callTotalVoDNumber();
+					log.info("vod number after test {}", vodNumber);
 					//2 more VoDs should be added to DB, one is original other one ise 240p mp4 files
 					//480p is not created because original stream is 360p
-
-					return currentVodNumber +2 == lastVodNumber;
-
+					
+					int foundTime = 0;
+					for (int i = 0; i*50 < vodNumber; i++) {
+						List<VoD> vodList = rest.callGetVoDList(i*50, 50);
+						for (VoD vod : vodList) {
+							if (vod.getStreamId().equals(broadcast.getStreamId())) 
+							{
+								foundTime++;
+							}
+							if (foundTime == 2) {
+								return true;
+							}
+						}						
+					}
+					
+					return false;
+					
 				});
 
 			}
@@ -320,7 +335,22 @@ public class AppFunctionalTest {
 					//2 more VoDs should be added to DB, one is original other one ise 240p mp4 files
 					//480p is not created because original stream is 360p
 
-					return currentVodNumber +1 == lastVodNumber;
+				
+					//2 more VoDs should be added to DB, one is original other one ise 240p mp4 files
+					//480p is not created because original stream is 360p
+					
+					int foundTime = 0;
+					for (int i = 0; i*50 < lastVodNumber; i++) {
+						List<VoD> vodList = rest.callGetVoDList(i*50, 50);
+						for (VoD vod : vodList) {
+							if (vod.getStreamId().equals(broadcast.getStreamId())) 
+							{
+								return true;
+							}
+						}						
+					}
+					
+					return false;
 
 				});
 			}
@@ -388,7 +418,7 @@ public class AppFunctionalTest {
 			int currentVodNumber = restService.callTotalVoDNumber();
 			log.info("current vod number: {}", currentVodNumber);
 			// publish live stream to the server
-			String streamId = "zombiStreamId"  + (int)(Math.random()*9999);
+			String streamId = "zombiStreamId"  + (int)(Math.random()*999999);
 			executeProcess(ffmpegPath
 					+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
 					+ streamId);
@@ -446,10 +476,24 @@ public class AppFunctionalTest {
 			
 			boolean isEnterprise = callIsEnterpriseEdition().getMessage().contains("Enterprise");
 			if (isEnterprise) {
-				Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(3, TimeUnit.SECONDS).until(() -> {
 					int vodNumber = restService.callTotalVoDNumber();
+					int foundTime = 0;
+					for (int i = 0; i*50 < vodNumber; i++) {
+						List<VoD> vodList = restService.callGetVoDList(i*50, 50);
+						for (VoD vod : vodList) {
+							if (vod.getStreamId().equals(streamId)) 
+							{
+								foundTime++;
+							}
+							if (foundTime == 2) {
+								return true;
+							}
+						}
+						
+					}
 					//one for it self and one for 240p
-					return vodNumber == currentVodNumber + 2;
+					return false;
 				});
 			}
 
