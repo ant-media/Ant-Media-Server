@@ -10,6 +10,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -120,6 +121,7 @@ public class BroadcastRestService extends RestServiceBase{
 
 	}
 
+	public static final int MAX_ITEM_IN_ONE_LIST = 50;
 	public static final int ERROR_SOCIAL_ENDPOINT_UNDEFINED_CLIENT_ID = -1;
 	public static final int ERROR_SOCIAL_ENDPOINT_UNDEFINED_ENDPOINT = -2;
 	public static final int ERROR_SOCIAL_ENDPOINT_EXCEPTION_IN_ASKING_AUTHPARAMS = -3;
@@ -1263,6 +1265,63 @@ public class BroadcastRestService extends RestServiceBase{
 			return webRTCAdaptor.getWebRTCClientStats(streamId);
 		}
 		return new ArrayList<>();
+	}
+	
+	
+	/**
+	 * Get WebRTC Client Statistics such as : Audio bitrate, Video bitrate, Target bitrate, Video Sent Period etc.
+	 * 
+	 * @param offset
+	 *            This is the offset of the list, it is useful for pagination,
+	 *            
+	 * @param size
+	 *            Number of items that will be fetched. If there is not enough
+	 *            item in the WebRTCClientStats, returned list size may less then this
+	 *            value
+	 * 
+	 * @param streamId - the id of the stream
+	 * @return the list of {@link io.antmedia.rest.WebRTCClientStats }
+	 */
+
+	@ApiOperation(value = "Get WebRTC Client Statistics such as : Audio bitrate, Video bitrate, Target bitrate, Video Sent Period etc.", notes = "", responseContainer = "List",response = WebRTCClientStats.class)
+	@GET
+	@Path("/broadcast/getWebRTCClientStatsList/{offset}/{size}/{stream_id}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public List<WebRTCClientStats> getWebRTCClientStatsList(@ApiParam(value = "Number of items that will be fetched", required = true) @PathParam("size") int size,
+			@ApiParam(value = "offset of the list", required = true) @PathParam("offset") int offset,
+			@ApiParam(value = "the id of the stream", required = true) @PathParam("stream_id") String streamId) {
+		IWebRTCAdaptor webRTCAdaptor = getWebRTCAdaptor();
+		
+		List<WebRTCClientStats> list = new ArrayList<>();
+		
+		synchronized (this) {
+		
+		Collection<WebRTCClientStats> values = webRTCAdaptor.getWebRTCClientStats(streamId);
+		int t = 0;
+		int itemCount = 0;
+		if (size > MAX_ITEM_IN_ONE_LIST) {
+			size = MAX_ITEM_IN_ONE_LIST;
+		}
+		if (offset < 0) {
+			offset = 0;
+		}
+
+		for (WebRTCClientStats webrtcString : values) {
+			if (t < offset) {
+				t++;
+				continue;
+			}
+			list.add(webrtcString);
+			itemCount++;
+
+			if (itemCount >= size) {
+				break;
+			}
+
+		}
+		}
+		
+		return list;
 	}
 
 	private IWebRTCAdaptor getWebRTCAdaptor() {
