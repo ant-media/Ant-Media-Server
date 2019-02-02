@@ -1292,9 +1292,6 @@ public class BroadcastRestService extends RestServiceBase{
 			@ApiParam(value = "the id of the stream", required = true) @PathParam("stream_id") String streamId) {
 		
 		try{
-		
-			
-	
 			
 		IWebRTCAdaptor webRTCAdaptor = getWebRTCAdaptor();
 		
@@ -1325,8 +1322,8 @@ public class BroadcastRestService extends RestServiceBase{
 			list.add(webrtcString);
 			itemCount++;
 
-			if (itemCount >= size) {
-				break;
+			if (itemCount >= size ) {
+				return list;
 			}
 
 		}
