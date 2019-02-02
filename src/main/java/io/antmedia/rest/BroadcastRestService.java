@@ -1290,13 +1290,24 @@ public class BroadcastRestService extends RestServiceBase{
 	public List<WebRTCClientStats> getWebRTCClientStatsList(@ApiParam(value = "Number of items that will be fetched", required = true) @PathParam("size") int size,
 			@ApiParam(value = "offset of the list", required = true) @PathParam("offset") int offset,
 			@ApiParam(value = "the id of the stream", required = true) @PathParam("stream_id") String streamId) {
+		
+		try{
+		
+			
+	
+			
 		IWebRTCAdaptor webRTCAdaptor = getWebRTCAdaptor();
 		
 		List<WebRTCClientStats> list = new ArrayList<>();
 		
-		synchronized (this) {
+		Collection<WebRTCClientStats> values = null;
 		
-		Collection<WebRTCClientStats> values = webRTCAdaptor.getWebRTCClientStats(streamId);
+		synchronized (this) {
+			
+		if (webRTCAdaptor != null) {
+		values = webRTCAdaptor.getWebRTCClientStats(streamId);
+		}
+		
 		int t = 0;
 		int itemCount = 0;
 		if (size > MAX_ITEM_IN_ONE_LIST) {
@@ -1320,8 +1331,13 @@ public class BroadcastRestService extends RestServiceBase{
 
 		}
 		}
-		
 		return list;
+		}
+		catch (Exception e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+		}
+		return new ArrayList<>();
+		
 	}
 
 	private IWebRTCAdaptor getWebRTCAdaptor() {
