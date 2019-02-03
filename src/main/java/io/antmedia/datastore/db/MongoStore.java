@@ -182,7 +182,7 @@ public class MongoStore implements IDataStore {
 	 * java.lang.int)
 	 */
 	@Override
-	public boolean updateStats(String id, int number) {
+	public boolean resetViewerStats(String id, int number) {
 		try {
 			Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(id);
 

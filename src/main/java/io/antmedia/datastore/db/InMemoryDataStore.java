@@ -107,7 +107,7 @@ public class InMemoryDataStore implements IDataStore {
 	}
 	
 	@Override
-	public boolean updateStats(String id, int number) {
+	public boolean resetViewerStats(String id, int number) {
 		Broadcast broadcast = broadcastMap.get(id);
 		boolean result = false;
 		if (broadcast != null) {

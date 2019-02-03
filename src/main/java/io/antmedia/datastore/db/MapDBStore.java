@@ -215,7 +215,7 @@ public class MapDBStore implements IDataStore {
 	}
 	
 	@Override
-	public boolean updateStats(String id, int number) {
+	public boolean resetViewerStats(String id, int number) {
 		boolean result = false;
 		synchronized (this) {
 			if (id != null) {
