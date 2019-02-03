@@ -213,6 +213,30 @@ public class MapDBStore implements IDataStore {
 		}
 		return result;
 	}
+	
+	@Override
+	public boolean updateStats(String id, int number) {
+		boolean result = false;
+		synchronized (this) {
+			if (id != null) {
+				String jsonString = map.get(id);
+				if (jsonString != null) {
+					Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
+					
+					broadcast.setHlsViewerCount(number);
+					broadcast.setRtmpViewerCount(number);
+					broadcast.setWebRTCViewerCount(number);
+					
+					String jsonVal = gson.toJson(broadcast);
+					String previousValue = map.replace(id, jsonVal);
+					db.commit();
+					logger.debug("updateStats replacing id {} having value {} to {}", id, previousValue, jsonVal);
+					result = true;
+				}
+			}
+		}
+		return result;
+	}
 
 	@Override
 	public boolean updateDuration(String id, long duration) {

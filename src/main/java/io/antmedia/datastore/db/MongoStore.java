@@ -174,6 +174,33 @@ public class MongoStore implements IDataStore {
 		return false;
 
 	}
+	
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see io.antmedia.datastore.db.IDataStore#updateStats(java.lang.String,
+	 * java.lang.int)
+	 */
+	@Override
+	public boolean updateStats(String id, int number) {
+		try {
+			Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(id);
+
+			UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set("hlsViewerCount", number);
+			UpdateOperations<Broadcast> ops2 = datastore.createUpdateOperations(Broadcast.class).set("webRTCViewerCount", number);
+			UpdateOperations<Broadcast> ops3 = datastore.createUpdateOperations(Broadcast.class).set("rtmpViewerCount", number);
+
+			UpdateResults update = datastore.update(query, ops);
+			UpdateResults update2 = datastore.update(query, ops2);
+			UpdateResults update3 = datastore.update(query, ops3);
+			
+			return update.getUpdatedCount() == 1 && update2.getUpdatedCount() == 1 && update3.getUpdatedCount() == 1  ;
+		} catch (Exception e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+		}
+		return false;
+
+	}
 
 	/*
 	 * (non-Javadoc)

@@ -105,6 +105,20 @@ public class InMemoryDataStore implements IDataStore {
 		}
 		return result;
 	}
+	
+	@Override
+	public boolean updateStats(String id, int number) {
+		Broadcast broadcast = broadcastMap.get(id);
+		boolean result = false;
+		if (broadcast != null) {
+			broadcast.setRtmpViewerCount(number);
+			broadcast.setWebRTCViewerCount(number);
+			broadcast.setHlsViewerCount(number);
+			broadcastMap.put(id, broadcast);
+			result = true;
+		}
+		return result;
+	}
 
 	@Override
 	public boolean updateDuration(String id, long duration) {
