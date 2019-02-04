@@ -316,6 +316,10 @@ public class BroadcastRestService extends RestServiceBase{
 
 				getDataStore().resetViewerStats(broadcast.getStreamId(), AntMediaApplicationAdapter.BROADCAST_STATS_RESET);
 				
+			//	broadcast.setHlsViewerCount(AntMediaApplicationAdapter.BROADCAST_STATS_RESET);
+			//	broadcast.setWebRTCViewerCount(AntMediaApplicationAdapter.BROADCAST_STATS_RESET);
+			//	broadcast.setHlsViewerCount(AntMediaApplicationAdapter.BROADCAST_STATS_RESET);
+				
 			} else if (broadcast.getType().equals(AntMediaApplicationAdapter.LIVE_STREAM)) {
 
 				IBroadcastStream broadcastStream = getApplication().getBroadcastStream(getScope(), broadcast.getStreamId());
@@ -324,13 +328,11 @@ public class BroadcastRestService extends RestServiceBase{
 					result = true;
 					logger.warn("Broadcast stopped, id: {}", broadcast.getStreamId());
 
-					getDataStore().resetViewerStats(broadcast.getStreamId(), AntMediaApplicationAdapter.BROADCAST_STATS_RESET);
-					
+				//	broadcast.setHlsViewerCount(AntMediaApplicationAdapter.BROADCAST_STATS_RESET);
+				//	broadcast.setWebRTCViewerCount(AntMediaApplicationAdapter.BROADCAST_STATS_RESET);
+				//	broadcast.setHlsViewerCount(AntMediaApplicationAdapter.BROADCAST_STATS_RESET);		
 
-				} else {
-
-					getDataStore().resetViewerStats(broadcast.getStreamId(), AntMediaApplicationAdapter.BROADCAST_STATS_RESET);
-					
+				} else {					
 					logger.error("No active broadcast found with id {}, so could not stopped", broadcast.getStreamId());
 				}
 
