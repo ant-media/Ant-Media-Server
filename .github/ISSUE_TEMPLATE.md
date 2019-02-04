@@ -28,3 +28,10 @@ __Put as much detail here as possible__
 __Place logs on [pastebin](http://pastebin.com/) or elsewhere and put links here__
 
 
+
+
+#
+[Join Google Group ](https://groups.google.com/forum/#!forum/ant-media-server)
+
+
+
