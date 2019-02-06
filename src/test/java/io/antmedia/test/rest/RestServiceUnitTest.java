@@ -285,50 +285,66 @@ public class RestServiceUnitTest {
 	
 	@Test
 	public void testWebRTCClientStats() {
-			
+			//create stream
 			String streamId = RandomStringUtils.randomAlphanumeric(8);
+			BroadcastRestService restServiceSpy = Mockito.spy(restServiceReal);
+			//mock webrtc adaptor
+			IWebRTCAdaptor webrtcAdaptor = Mockito.mock(IWebRTCAdaptor.class);
 			
-			IClientConnection socketConnection = Mockito.mock(IClientConnection.class);
-			
-			//IWebRTCClient client2 = IWebRTCClient(socketConnection, streamId, vertx);
-			
-			IWebRTCMuxer webRTCMuxer  = Mockito.mock(IWebRTCMuxer.class);
-			
-			IWebRTCAdaptor webRTCAdaptor = Mockito.mock(IWebRTCAdaptor.class);
-			
-			IWebRTCClient webRTCClient = Mockito.mock(IWebRTCClient.class);
-			
-			webRTCAdaptor.registerWebRTCClient(streamId, webRTCClient);
-			webRTCMuxer.setWebRTCAdaptor(webRTCAdaptor);
-			
-			webRTCClient.setWebRTCAdaptor(webRTCAdaptor);
-			webRTCClient.setWebRTCMuxer(webRTCMuxer);
-			
-			Mockito.when(webRTCClient.getWebRTCMuxer()).thenReturn(webRTCMuxer);
-			
-			webRTCClient.start();
-			
-		/*	int clientCount = (int)(Math.random()*999);
-			List<IWebRTCClient> clientList = new ArrayList<>();
-			for (int i = 0; i< clientCount; i++) {
+			Mockito.doReturn(webrtcAdaptor).when(restServiceSpy).getWebRTCAdaptor();
 				
-				webRTCAdaptor.registerWebRTCClient(streamId, webRTCClient);
-				webRTCMuxer.setWebRTCAdaptor(webRTCAdaptor);
-				
-				webRTCClient.setWebRTCAdaptor(webRTCAdaptor);
-				webRTCClient.setWebRTCMuxer(webRTCMuxer);
-				
-				Mockito.when(webRTCClient.getWebRTCMuxer()).thenReturn(webRTCMuxer);
-				Mockito.when(webRTCAdaptor.getWebRTCClientStats(streamId).size()).thenReturn(clientSize);
-				
-
+			//create random number of webrtc client stats 
+			List<WebRTCClientStats> statsList = new ArrayList<>();
+			int clientCount = (int)(Math.random()*999) + 70;
+			
+			for (int i = 0; i < clientCount; i++) {
+				statsList.add(new WebRTCClientStats(500, 400, 40, 20, 20, 20));
 			}
-			*/
 			
-			int clientSize = webRTCAdaptor.getWebRTCClientStats(streamId).size();
+			Mockito.when(webrtcAdaptor.getWebRTCClientStats(Mockito.anyString())).thenReturn(statsList);
 			
-			assertEquals(1, clientSize);
+			//fetch 20 stats
+			List<WebRTCClientStats> webRTCClientStatsList = restServiceSpy.getWebRTCClientStatsList(0, 20, streamId);
+		
+			//check 20 stats
+			for(int i = 0; i< 20; i++) {
+				assertEquals(statsList.get(i), webRTCClientStatsList.get(i));
+			}
+		
+			//fetch 60 stats
+			webRTCClientStatsList = restServiceSpy.getWebRTCClientStatsList(0, 60, streamId);
+			//check return list 50
+			assertEquals(50, webRTCClientStatsList.size());
+		
+			//check values
+			for(int i = 0; i< 50; i++) {
+				assertEquals(statsList.get(i), webRTCClientStatsList.get(i));
+			}
 			
+			//request offset for minus value, it should return between 0 to size
+			webRTCClientStatsList = restServiceSpy.getWebRTCClientStatsList(-10, 10, streamId);
+			assertEquals(10, webRTCClientStatsList.size());
+			//check values
+			for(int i = 0; i< 10; i++) {
+				assertEquals(statsList.get(i), webRTCClientStatsList.get(i));
+			}
+			
+			
+			webRTCClientStatsList = restServiceSpy.getWebRTCClientStatsList(20, 40, streamId);
+			assertEquals(40, webRTCClientStatsList.size());
+			//check values
+			for(int i = 20; i < 60; i++) {
+				assertEquals(statsList.get(i), webRTCClientStatsList.get(i-20));
+			}
+			
+			
+			webRTCClientStatsList = restServiceSpy.getWebRTCClientStatsList(clientCount, 40, streamId);
+			assertEquals(0, webRTCClientStatsList.size());
+			
+			
+			Mockito.doReturn(null).when(restServiceSpy).getWebRTCAdaptor();
+			webRTCClientStatsList = restServiceSpy.getWebRTCClientStatsList(clientCount, 40, streamId);
+			assertEquals(0, webRTCClientStatsList.size());
 			
 	}
 

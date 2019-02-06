@@ -229,9 +229,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 			if (dataStore != null) {
 				getDataStore().updateStatus(streamName, BROADCAST_STATUS_FINISHED);
 				Broadcast broadcast = getDataStore().get(streamName);
-				
-				getDataStore().resetViewerStats(streamName, BROADCAST_STATS_RESET);
-				
+								
 				if (broadcast != null) {
 					final String listenerHookURL = broadcast.getListenerHookURL();
 					final String streamId = broadcast.getStreamId();
