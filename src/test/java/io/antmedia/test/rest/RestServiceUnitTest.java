@@ -15,6 +15,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -24,7 +25,10 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import static org.mockito.Mockito.doReturn;
+import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IClientBroadcastStream;
 import org.red5.server.api.stream.IStreamCapableConnection;
 import org.red5.server.scope.Scope;
@@ -32,6 +36,10 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
+import org.webrtc.IceCandidate;
+import org.webrtc.SessionDescription;
+
+import com.amazonaws.services.s3.model.GetBucketWebsiteConfigurationRequest;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
@@ -46,6 +54,7 @@ import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.integration.MuxingTest;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.rest.BroadcastRestService;
+import io.antmedia.rest.WebRTCClientStats;
 import io.antmedia.rest.BroadcastRestService.BroadcastStatistics;
 import io.antmedia.rest.BroadcastRestService.ProcessBuilderFactory;
 import io.antmedia.rest.model.Interaction;
@@ -58,6 +67,12 @@ import io.antmedia.social.ResourceOrigin;
 import io.antmedia.social.endpoint.PeriscopeEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
+import io.antmedia.webrtc.IClientConnection;
+import io.antmedia.webrtc.api.IStreamInfo;
+import io.antmedia.webrtc.api.IWebRTCAdaptor;
+import io.antmedia.webrtc.api.IWebRTCClient;
+import io.antmedia.webrtc.api.IWebRTCMuxer;
+import io.vertx.core.Vertx;
 
 
 @ContextConfiguration(locations = { "test.xml" })
@@ -72,6 +87,8 @@ public class RestServiceUnitTest {
 		System.setProperty("red5.deployment.type", "junit");
 		System.setProperty("red5.root", ".");
 	}
+	
+	Vertx vertx = io.vertx.core.Vertx.vertx();
 
 
 	@Before
@@ -266,7 +283,57 @@ public class RestServiceUnitTest {
 		assertEquals(-1, broadcastStatistics.totalWebRTCWatchersCount);
 	}
 	
+	@Test
+	public void testWebRTCClientStats() {
+			
+			String streamId = RandomStringUtils.randomAlphanumeric(8);
+			
+			IClientConnection socketConnection = Mockito.mock(IClientConnection.class);
+			
+			//IWebRTCClient client2 = IWebRTCClient(socketConnection, streamId, vertx);
+			
+			IWebRTCMuxer webRTCMuxer  = Mockito.mock(IWebRTCMuxer.class);
+			
+			IWebRTCAdaptor webRTCAdaptor = Mockito.mock(IWebRTCAdaptor.class);
+			
+			IWebRTCClient webRTCClient = Mockito.mock(IWebRTCClient.class);
+			
+			webRTCAdaptor.registerWebRTCClient(streamId, webRTCClient);
+			webRTCMuxer.setWebRTCAdaptor(webRTCAdaptor);
+			
+			webRTCClient.setWebRTCAdaptor(webRTCAdaptor);
+			webRTCClient.setWebRTCMuxer(webRTCMuxer);
+			
+			Mockito.when(webRTCClient.getWebRTCMuxer()).thenReturn(webRTCMuxer);
+			
+			webRTCClient.start();
+			
+		/*	int clientCount = (int)(Math.random()*999);
+			List<IWebRTCClient> clientList = new ArrayList<>();
+			for (int i = 0; i< clientCount; i++) {
+				
+				webRTCAdaptor.registerWebRTCClient(streamId, webRTCClient);
+				webRTCMuxer.setWebRTCAdaptor(webRTCAdaptor);
+				
+				webRTCClient.setWebRTCAdaptor(webRTCAdaptor);
+				webRTCClient.setWebRTCMuxer(webRTCMuxer);
+				
+				Mockito.when(webRTCClient.getWebRTCMuxer()).thenReturn(webRTCMuxer);
+				Mockito.when(webRTCAdaptor.getWebRTCClientStats(streamId).size()).thenReturn(clientSize);
+				
 
+			}
+			*/
+			
+			int clientSize = webRTCAdaptor.getWebRTCClientStats(streamId).size();
+			
+			assertEquals(1, clientSize);
+			
+			
+	}
+
+	
+	
 	
 	@Test
 	public void testBugGetBroadcastStatistics() {
