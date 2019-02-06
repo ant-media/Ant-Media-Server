@@ -12,6 +12,7 @@ import org.bson.types.ObjectId;
 import org.mongodb.morphia.Datastore;
 import org.mongodb.morphia.Key;
 import org.mongodb.morphia.Morphia;
+import org.mongodb.morphia.mapping.DefaultCreator;
 import org.mongodb.morphia.query.FindOptions;
 import org.mongodb.morphia.query.Query;
 import org.mongodb.morphia.query.UpdateOperations;
@@ -66,6 +67,13 @@ public class MongoStore implements IDataStore {
 		vodDatastore.ensureIndexes();
 		endpointCredentialsDS.ensureIndexes();
 		detectionMap.ensureIndexes();
+		
+		morphia.getMapper().getOptions().setObjectFactory(new DefaultCreator() {
+		    @Override
+		    protected ClassLoader getClassLoaderForClass() {
+		        return Broadcast.class.getClassLoader();
+		    }
+		});
 
 	}
 
