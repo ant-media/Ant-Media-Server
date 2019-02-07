@@ -68,7 +68,6 @@ import io.antmedia.social.endpoint.PeriscopeEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
 import io.antmedia.webrtc.IClientConnection;
-import io.antmedia.webrtc.api.IStreamInfo;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.antmedia.webrtc.api.IWebRTCClient;
 import io.antmedia.webrtc.api.IWebRTCMuxer;
