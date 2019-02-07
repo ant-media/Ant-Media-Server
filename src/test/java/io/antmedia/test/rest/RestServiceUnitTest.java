@@ -15,6 +15,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -24,7 +25,10 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import static org.mockito.Mockito.doReturn;
+import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IClientBroadcastStream;
 import org.red5.server.api.stream.IStreamCapableConnection;
 import org.red5.server.scope.Scope;
@@ -32,6 +36,10 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
+import org.webrtc.IceCandidate;
+import org.webrtc.SessionDescription;
+
+import com.amazonaws.services.s3.model.GetBucketWebsiteConfigurationRequest;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
@@ -46,6 +54,7 @@ import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.integration.MuxingTest;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.rest.BroadcastRestService;
+import io.antmedia.rest.WebRTCClientStats;
 import io.antmedia.rest.BroadcastRestService.BroadcastStatistics;
 import io.antmedia.rest.BroadcastRestService.ProcessBuilderFactory;
 import io.antmedia.rest.model.Interaction;
@@ -58,6 +67,12 @@ import io.antmedia.social.ResourceOrigin;
 import io.antmedia.social.endpoint.PeriscopeEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
+import io.antmedia.webrtc.IClientConnection;
+import io.antmedia.webrtc.api.IStreamInfo;
+import io.antmedia.webrtc.api.IWebRTCAdaptor;
+import io.antmedia.webrtc.api.IWebRTCClient;
+import io.antmedia.webrtc.api.IWebRTCMuxer;
+import io.vertx.core.Vertx;
 
 
 @ContextConfiguration(locations = { "test.xml" })
@@ -72,6 +87,8 @@ public class RestServiceUnitTest {
 		System.setProperty("red5.deployment.type", "junit");
 		System.setProperty("red5.root", ".");
 	}
+	
+	Vertx vertx = io.vertx.core.Vertx.vertx();
 
 
 	@Before
@@ -266,7 +283,73 @@ public class RestServiceUnitTest {
 		assertEquals(-1, broadcastStatistics.totalWebRTCWatchersCount);
 	}
 	
+	@Test
+	public void testWebRTCClientStats() {
+			//create stream
+			String streamId = RandomStringUtils.randomAlphanumeric(8);
+			BroadcastRestService restServiceSpy = Mockito.spy(restServiceReal);
+			//mock webrtc adaptor
+			IWebRTCAdaptor webrtcAdaptor = Mockito.mock(IWebRTCAdaptor.class);
+			
+			Mockito.doReturn(webrtcAdaptor).when(restServiceSpy).getWebRTCAdaptor();
+				
+			//create random number of webrtc client stats 
+			List<WebRTCClientStats> statsList = new ArrayList<>();
+			int clientCount = (int)(Math.random()*999) + 70;
+			
+			for (int i = 0; i < clientCount; i++) {
+				statsList.add(new WebRTCClientStats(500, 400, 40, 20, 20, 20));
+			}
+			
+			Mockito.when(webrtcAdaptor.getWebRTCClientStats(Mockito.anyString())).thenReturn(statsList);
+			
+			//fetch 20 stats
+			List<WebRTCClientStats> webRTCClientStatsList = restServiceSpy.getWebRTCClientStatsList(0, 20, streamId);
+		
+			//check 20 stats
+			for(int i = 0; i< 20; i++) {
+				assertEquals(statsList.get(i), webRTCClientStatsList.get(i));
+			}
+		
+			//fetch 60 stats
+			webRTCClientStatsList = restServiceSpy.getWebRTCClientStatsList(0, 60, streamId);
+			//check return list 50
+			assertEquals(50, webRTCClientStatsList.size());
+		
+			//check values
+			for(int i = 0; i< 50; i++) {
+				assertEquals(statsList.get(i), webRTCClientStatsList.get(i));
+			}
+			
+			//request offset for minus value, it should return between 0 to size
+			webRTCClientStatsList = restServiceSpy.getWebRTCClientStatsList(-10, 10, streamId);
+			assertEquals(10, webRTCClientStatsList.size());
+			//check values
+			for(int i = 0; i< 10; i++) {
+				assertEquals(statsList.get(i), webRTCClientStatsList.get(i));
+			}
+			
+			
+			webRTCClientStatsList = restServiceSpy.getWebRTCClientStatsList(20, 40, streamId);
+			assertEquals(40, webRTCClientStatsList.size());
+			//check values
+			for(int i = 20; i < 60; i++) {
+				assertEquals(statsList.get(i), webRTCClientStatsList.get(i-20));
+			}
+			
+			
+			webRTCClientStatsList = restServiceSpy.getWebRTCClientStatsList(clientCount, 40, streamId);
+			assertEquals(0, webRTCClientStatsList.size());
+			
+			
+			Mockito.doReturn(null).when(restServiceSpy).getWebRTCAdaptor();
+			webRTCClientStatsList = restServiceSpy.getWebRTCClientStatsList(clientCount, 40, streamId);
+			assertEquals(0, webRTCClientStatsList.size());
+			
+	}
 
+	
+	
 	
 	@Test
 	public void testBugGetBroadcastStatistics() {

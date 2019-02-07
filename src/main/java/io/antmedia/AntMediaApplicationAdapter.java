@@ -58,6 +58,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	public static final String BROADCAST_STATUS_CREATED = "created";
 	public static final String BROADCAST_STATUS_BROADCASTING = "broadcasting";
 	public static final String BROADCAST_STATUS_FINISHED = "finished";
+	public static final int BROADCAST_STATS_RESET = 0;
 	public static final String HOOK_ACTION_END_LIVE_STREAM = "liveStreamEnded";
 	public static final String HOOK_ACTION_START_LIVE_STREAM = "liveStreamStarted";
 	public static final String HOOK_ACTION_VOD_READY = "vodReady";
@@ -228,7 +229,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 			if (dataStore != null) {
 				getDataStore().updateStatus(streamName, BROADCAST_STATUS_FINISHED);
 				Broadcast broadcast = getDataStore().get(streamName);
-
+								
 				if (broadcast != null) {
 					final String listenerHookURL = broadcast.getListenerHookURL();
 					final String streamId = broadcast.getStreamId();

@@ -320,9 +320,9 @@ public class BroadcastRestService extends RestServiceBase{
 				if (broadcastStream != null) {
 					((IClientBroadcastStream) broadcastStream).getConnection().close();
 					result = true;
-					logger.warn("Broadcast stopped, id: {}", broadcast.getStreamId());
+					logger.warn("Broadcast stopped, id: {}", broadcast.getStreamId());	
 
-				} else {
+				} else {					
 					logger.error("No active broadcast found with id {}, so could not stopped", broadcast.getStreamId());
 				}
 
@@ -1266,8 +1266,8 @@ public class BroadcastRestService extends RestServiceBase{
 		}
 		return new ArrayList<>();
 	}
-	
-	
+
+
 	/**
 	 * Get WebRTC Client Statistics such as : Audio bitrate, Video bitrate, Target bitrate, Video Sent Period etc.
 	 * 
@@ -1287,57 +1287,44 @@ public class BroadcastRestService extends RestServiceBase{
 	@GET
 	@Path("/broadcast/getWebRTCClientStatsList/{offset}/{size}/{stream_id}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public List<WebRTCClientStats> getWebRTCClientStatsList(@ApiParam(value = "Number of items that will be fetched", required = true) @PathParam("size") int size,
-			@ApiParam(value = "offset of the list", required = true) @PathParam("offset") int offset,
+	public List<WebRTCClientStats> getWebRTCClientStatsList(@ApiParam(value = "offset of the list", required = true) @PathParam("offset") int offset,
+			@ApiParam(value = "Number of items that will be fetched", required = true) @PathParam("size") int size,
 			@ApiParam(value = "the id of the stream", required = true) @PathParam("stream_id") String streamId) {
-		
-		try{
-			
-		IWebRTCAdaptor webRTCAdaptor = getWebRTCAdaptor();
-		
+
 		List<WebRTCClientStats> list = new ArrayList<>();
-		
-		Collection<WebRTCClientStats> values = null;
-		
-		synchronized (this) {
-			
-		if (webRTCAdaptor != null) {
-		values = webRTCAdaptor.getWebRTCClientStats(streamId);
-		}
-		
-		int t = 0;
-		int itemCount = 0;
-		if (size > MAX_ITEM_IN_ONE_LIST) {
-			size = MAX_ITEM_IN_ONE_LIST;
-		}
-		if (offset < 0) {
-			offset = 0;
-		}
 
-		for (WebRTCClientStats webrtcString : values) {
-			if (t < offset) {
-				t++;
-				continue;
+		IWebRTCAdaptor webRTCAdaptor = getWebRTCAdaptor();
+
+		if (webRTCAdaptor != null) 
+		{
+			Collection<WebRTCClientStats> webRTCClientStats = webRTCAdaptor.getWebRTCClientStats(streamId);
+
+			int t = 0;
+			int itemCount = 0;
+			if (size > MAX_ITEM_IN_ONE_LIST) {
+				size = MAX_ITEM_IN_ONE_LIST;
 			}
-			list.add(webrtcString);
-			itemCount++;
-
-			if (itemCount >= size ) {
-				return list;
+			if (offset < 0) {
+				offset = 0;
 			}
 
-		}
+			for (WebRTCClientStats webrtcClientStat : webRTCClientStats) {
+				if (t < offset) {
+					t++;
+					continue;
+				}
+				list.add(webrtcClientStat);
+				itemCount++;
+
+				if (itemCount >= size ) {
+					return list;
+				}
+			}
 		}
 		return list;
-		}
-		catch (Exception e) {
-			logger.error(ExceptionUtils.getStackTrace(e));
-		}
-		return new ArrayList<>();
-		
 	}
 
-	private IWebRTCAdaptor getWebRTCAdaptor() {
+	public IWebRTCAdaptor getWebRTCAdaptor() {
 		IWebRTCAdaptor adaptor = null;
 		ApplicationContext appContext = getAppContext();
 		if (appContext != null && appContext.containsBean(IWebRTCAdaptor.BEAN_NAME)) {
