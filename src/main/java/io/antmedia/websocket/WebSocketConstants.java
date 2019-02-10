@@ -199,4 +199,9 @@ public class WebSocketConstants {
 	 */
 	public static final String NOT_SET_LOCAL_DESCRIPTION = "notSetLocalDescription";
 
+	/**
+	 * Error definition it is send when publisher tries to publish with in use stream id
+	 */
+	public static final Object STREAM_ID_IN_USE = "streamIdInUse";;
+
 }

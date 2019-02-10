@@ -67,13 +67,6 @@ public class MongoStore implements IDataStore {
 		vodDatastore.ensureIndexes();
 		endpointCredentialsDS.ensureIndexes();
 		detectionMap.ensureIndexes();
-		
-		morphia.getMapper().getOptions().setObjectFactory(new DefaultCreator() {
-		    @Override
-		    protected ClassLoader getClassLoaderForClass() {
-		        return Broadcast.class.getClassLoader();
-		    }
-		});
 
 	}
 
