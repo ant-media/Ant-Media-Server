@@ -2,6 +2,7 @@ package io.antmedia.filter;
 
 import java.io.IOException;
 
+import javax.servlet.http.Cookie;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
 import javax.servlet.ServletException;
@@ -23,6 +24,8 @@ public class HlsStatisticsFilter implements javax.servlet.Filter {
 	protected static Logger logger = LoggerFactory.getLogger(HlsStatisticsFilter.class);
 	private IStreamStats streamStats;
 	private FilterConfig filterConfig;
+	public static final String IS_PLAY = "isPlay";
+
 
 	@Override
 	public void init(FilterConfig filterConfig) throws ServletException {
@@ -41,17 +44,29 @@ public class HlsStatisticsFilter implements javax.servlet.Filter {
 			//only accept GET methods
 			String sessionId = httpRequest.getSession().getId();
 
-		
+			String isPlay ="true";
+
+			Cookie[] cookies = httpRequest.getCookies();
+
+			if (cookies != null) {
+				for (int i= 0; i < cookies.length ; i++) {
+					if (cookies[i].getName().equals(IS_PLAY)) {
+						isPlay = cookies[i].getValue();
+						break;
+					} 
+				}
+			}
+
 			chain.doFilter(request, response);
 
 			int status = ((HttpServletResponse) response).getStatus();
-			
+
 			if (HttpServletResponse.SC_OK <= status && status <= HttpServletResponse.SC_BAD_REQUEST) 
 			{
 				String streamId = TokenFilterManager.getStreamId(httpRequest.getRequestURI());
-				
-				if (streamId != null) {
-					logger.debug("req ip {} session id {} stream id {} status {}", request.getRemoteHost(), sessionId, streamId, status);
+
+				if (streamId != null && isPlay.equals("true") ) {
+					logger.debug("req ip {} session id {} stream id {} status {} ", request.getRemoteHost(), sessionId, streamId, status);
 					getStreamStats().registerNewViewer(streamId, sessionId);
 				}
 			}
