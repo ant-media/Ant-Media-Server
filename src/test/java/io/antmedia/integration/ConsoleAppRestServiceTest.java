@@ -861,11 +861,6 @@ public class ConsoleAppRestServiceTest {
 			
 			assertTrue(jsObject.containsKey("totalLiveStreamSize"));
 			
-			
-			
-			
-			
-			
 			System.out.println("system resource info: " + systemResourcesInfo);
 				
 		}
@@ -1212,7 +1207,7 @@ public class ConsoleAppRestServiceTest {
 	}
 	
 	public static String callGetSystemResourcesInfo() throws Exception {
-		String url = ROOT_SERVICE_URL + "/getResourcesInfo";
+		String url = ROOT_SERVICE_URL + "/getSystemResourcesInfo";
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
 				.setDefaultCookieStore(httpCookieStore).build();
 		Gson gson = new Gson();
