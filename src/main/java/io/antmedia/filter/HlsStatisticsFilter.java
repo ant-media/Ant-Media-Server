@@ -25,11 +25,27 @@ public class HlsStatisticsFilter implements javax.servlet.Filter {
 	private IStreamStats streamStats;
 	private FilterConfig filterConfig;
 	public static final String IS_PLAY = "isPlay";
+	private Cookie[] cookies;
+	private String isPlay ="true";
 
 
 	@Override
 	public void init(FilterConfig filterConfig) throws ServletException {
 		this.filterConfig = filterConfig;
+	}
+
+
+
+	public void cookieCheck() {
+
+		if (cookies != null) {
+			for (int i= 0; i < cookies.length ; i++) {
+				if (cookies[i].getName().equals(IS_PLAY)) {
+					isPlay = cookies[i].getValue();
+					break;
+				} 
+			}
+		}
 	}
 
 	@Override
@@ -44,18 +60,9 @@ public class HlsStatisticsFilter implements javax.servlet.Filter {
 			//only accept GET methods
 			String sessionId = httpRequest.getSession().getId();
 
-			String isPlay ="true";
+			cookies = httpRequest.getCookies();
 
-			Cookie[] cookies = httpRequest.getCookies();
-
-			if (cookies != null) {
-				for (int i= 0; i < cookies.length ; i++) {
-					if (cookies[i].getName().equals(IS_PLAY)) {
-						isPlay = cookies[i].getValue();
-						break;
-					} 
-				}
-			}
+			cookieCheck();
 
 			chain.doFilter(request, response);
 
