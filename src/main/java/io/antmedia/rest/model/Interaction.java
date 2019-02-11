@@ -1,42 +1,52 @@
 package io.antmedia.rest.model;
 
 import io.antmedia.social.ResourceOrigin;
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
 
+@ApiModel(value="Interaction", description="The social media interaction for stream class")
 public class Interaction {
 	
 	/**
 	 * Origin of the resource
 	 */
+	@ApiModelProperty(value = "the origin of the resource", allowableValues = "facebook, periscope, youtube, server")
 	private ResourceOrigin origin;
 	
 	/**
 	 * Total number of like interaction
 	 */
+	@ApiModelProperty(value = "the total number of like interaction")
 	private int likeCount;
 	
 	/**
 	 * Total number of wow interaction
 	 */
+	@ApiModelProperty(value = "the total number of wow interaction")
 	private int wowCount;
 	
 	/**
 	 * Total number of sad interaction
 	 */
+	@ApiModelProperty(value = "the total number of sad interaction")
 	private int sadCount;
 	
 	/**
 	 * Total number of angry interaction
 	 */
+	@ApiModelProperty(value = "the total number of angry interaction")
 	private int angryCount;
 	
 	/**
 	 * Total number of haha count
 	 */
+	@ApiModelProperty(value = "the total number of haha interaction")
 	private int hahaCount;
 	
 	/**
 	 * Total number of love count;
 	 */
+	@ApiModelProperty(value = "the total number of like interaction")
 	private int loveCount;
 
 

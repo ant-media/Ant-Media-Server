@@ -22,9 +22,20 @@ public interface ITokenService {
 		}
 
 	}
+	
+	
+	/**
+	 * Compare hash string with computed one which is based on streamId,type and secret
+	 * @param hash - client hash
+	 * @param streamId - id of the stream
+	 * @param sessionId - session of the request
+	 * @param type - type of the request (publish/play)
+	 * @return
+	 */
+	boolean checkHash(String hash, String streamId, String sessionId, String type);
 
 	/**
-	 * checks the token validity
+	 * Checks the token validity
 	 * @param tokenId - requested token id
 	 * @param streamId - id of the stream
 	 * @param sessionId - id of the current session

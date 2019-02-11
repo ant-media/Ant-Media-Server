@@ -26,6 +26,7 @@ import org.webrtc.IceCandidate;
 import org.webrtc.SessionDescription;
 import org.webrtc.SessionDescription.Type;
 
+import io.antmedia.AppSettings;
 import io.antmedia.webrtc.adaptor.RTMPAdaptor;
 import io.antmedia.websocket.WebSocketCommunityHandler;
 import io.antmedia.websocket.WebSocketConstants;
@@ -37,18 +38,24 @@ public class WebSocketCommunityHandlerTest {
 	private Session session;
 	private Basic basicRemote;
 	private HashMap userProperties;
+	private ApplicationContext appContext;
 
 	public class WebSocketEndpoint extends WebSocketCommunityHandler {
+
+		
 
 		@Override
 		public ApplicationContext getAppContext() {
 
-			return null;
+			return appContext;
 		}
 	}
 
 	@Before
 	public void before() {
+		appContext = Mockito.mock(ApplicationContext.class);
+		when(appContext.getBean(AppSettings.BEAN_NAME)).thenReturn(new AppSettings());
+		
 		wsHandlerReal = new WebSocketEndpoint();
 		wsHandler = Mockito.spy(wsHandlerReal);
 

@@ -22,9 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.methods.RequestBuilder;
@@ -41,10 +39,8 @@ import org.junit.Test;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
-import org.red5.server.stream.ClientBroadcastStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 
 import com.google.gson.Gson;
 
@@ -184,7 +180,7 @@ public class AppFunctionalTest {
 		 * System.out.println("Result: " + notifyHook.toString());
 		 */
 	}
-
+	
 	@Test
 	public void testSetUpEndPoints() {
 
@@ -246,6 +242,17 @@ public class AppFunctionalTest {
 			int currentVodNumber = rest.callTotalVoDNumber();
 
 			log.info("current vod number before test {}", String.valueOf(currentVodNumber));
+			
+			//delete vods
+			List<VoD> voDList = rest.callGetVoDList();
+			if (voDList != null) {
+				for (VoD voD : voDList) {
+					RestServiceTest.deleteVoD(voD.getVodId());
+				}
+			}
+			
+			currentVodNumber = rest.callTotalVoDNumber();
+			log.info("vod number after deletion {}", String.valueOf(currentVodNumber));
 
 			boolean found240p = false;
 			List<EncoderSettings> encoderSettingsActive = null;
@@ -307,13 +314,28 @@ public class AppFunctionalTest {
 					return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + "_240p.mp4");
 				});
 				Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
-					int lastVodNumber = rest.callTotalVoDNumber();
-					log.info("vod number after test {}", lastVodNumber);
+					
+					int vodNumber = rest.callTotalVoDNumber();
+					log.info("vod number after test {}", vodNumber);
 					//2 more VoDs should be added to DB, one is original other one ise 240p mp4 files
 					//480p is not created because original stream is 360p
-
-					return currentVodNumber +2 == lastVodNumber;
-
+					
+					int foundTime = 0;
+					for (int i = 0; i*50 < vodNumber; i++) {
+						List<VoD> vodList = rest.callGetVoDList(i*50, 50);
+						for (VoD vod : vodList) {
+							if (vod.getStreamId().equals(broadcast.getStreamId())) 
+							{
+								foundTime++;
+							}
+							if (foundTime == 2) {
+								return true;
+							}
+						}						
+					}
+					
+					return false;
+					
 				});
 
 			}
@@ -324,7 +346,22 @@ public class AppFunctionalTest {
 					//2 more VoDs should be added to DB, one is original other one ise 240p mp4 files
 					//480p is not created because original stream is 360p
 
-					return currentVodNumber +1 == lastVodNumber;
+				
+					//2 more VoDs should be added to DB, one is original other one ise 240p mp4 files
+					//480p is not created because original stream is 360p
+					
+					int foundTime = 0;
+					for (int i = 0; i*50 < lastVodNumber; i++) {
+						List<VoD> vodList = rest.callGetVoDList(i*50, 50);
+						for (VoD vod : vodList) {
+							if (vod.getStreamId().equals(broadcast.getStreamId())) 
+							{
+								return true;
+							}
+						}						
+					}
+					
+					return false;
 
 				});
 			}
@@ -388,8 +425,11 @@ public class AppFunctionalTest {
 
 			List<Broadcast> broadcastList = restService.callGetBroadcastList();
 			int size = broadcastList.size();
+			
+			int currentVodNumber = restService.callTotalVoDNumber();
+			log.info("current vod number: {}", currentVodNumber);
 			// publish live stream to the server
-			String streamId = "zombiStreamId"  + (int)(Math.random()*9999);
+			String streamId = "zombiStreamId"  + (int)(Math.random()*999999);
 			executeProcess(ffmpegPath
 					+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
 					+ streamId);
@@ -443,6 +483,30 @@ public class AppFunctionalTest {
 			broadcastList = restService.callGetBroadcastList();
 			assertNotNull(broadcastList);
 			assertEquals(broadcastList.size(), size);
+			
+			
+			boolean isEnterprise = callIsEnterpriseEdition().getMessage().contains("Enterprise");
+			if (isEnterprise) {
+				Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(3, TimeUnit.SECONDS).until(() -> {
+					int vodNumber = restService.callTotalVoDNumber();
+					int foundTime = 0;
+					for (int i = 0; i*50 < vodNumber; i++) {
+						List<VoD> vodList = restService.callGetVoDList(i*50, 50);
+						for (VoD vod : vodList) {
+							if (vod.getStreamId().equals(streamId)) 
+							{
+								foundTime++;
+							}
+							if (foundTime == 2) {
+								return true;
+							}
+						}
+						
+					}
+					//one for it self and one for 240p
+					return false;
+				});
+			}
 
 		} catch (InterruptedException e) {
 			e.printStackTrace();

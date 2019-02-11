@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.red5.server.api.scope.IScopeService;
 
+import io.antmedia.cluster.IStreamInfo;
 import io.antmedia.rest.WebRTCClientStats;
 
 

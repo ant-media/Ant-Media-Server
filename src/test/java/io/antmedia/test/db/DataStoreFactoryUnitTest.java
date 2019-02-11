@@ -90,7 +90,7 @@ public class DataStoreFactoryUnitTest {
     	
     	StreamsSourceRestService ssrs = new StreamsSourceRestService();
     	ssrs.setDataStoreFactory(dsf);
-    	assertEquals(datastore, ssrs.getStore());
+    	assertEquals(datastore, ssrs.getDataStore());
     	
     	AntMediaApplicationAdapter amaa = new AntMediaApplicationAdapter();
     	amaa.setDataStoreFactory(dsf);

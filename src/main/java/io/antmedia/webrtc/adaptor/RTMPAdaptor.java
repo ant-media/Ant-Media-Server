@@ -20,6 +20,7 @@ import org.webrtc.MediaConstraints;
 import org.webrtc.MediaStream;
 import org.webrtc.PeerConnection;
 import org.webrtc.PeerConnection.IceServer;
+import org.webrtc.PeerConnection.TcpCandidatePolicy;
 import org.webrtc.audio.JavaAudioDeviceModule;
 import org.webrtc.audio.WebRtcAudioTrack;
 import org.webrtc.PeerConnectionFactory;
@@ -65,7 +66,10 @@ public class RTMPAdaptor extends Adaptor {
 
 	public static final String DTLS_SRTP_KEY_AGREEMENT_CONSTRAINT = "DtlsSrtpKeyAgreement";
 
-	private static String stunServerUri ="stun:stun.l.google.com:19302";
+	private String stunServerUri ="stun:stun.l.google.com:19302";
+	private int portRangeMin = 0; 
+	private int portRangeMax = 0;
+	private boolean tcpCandidatesEnabled = true;
 
 	public RTMPAdaptor(FFmpegFrameRecorder recorder, WebSocketCommunityHandler webSocketHandler) {
 		super(webSocketHandler);
@@ -134,9 +138,8 @@ public class RTMPAdaptor extends Adaptor {
 
 				peerConnectionFactory = createPeerConnectionFactory();
 
-				List<IceServer> iceServers = new ArrayList();
-				iceServers.add(IceServer.builder(stunServerUri).createIceServer());
-
+				List<IceServer> iceServers = new ArrayList<>();
+				iceServers.add(IceServer.builder(getStunServerUri()).createIceServer());
 
 				PeerConnection.RTCConfiguration rtcConfig =
 						new PeerConnection.RTCConfiguration(iceServers);
@@ -144,7 +147,11 @@ public class RTMPAdaptor extends Adaptor {
 
 				// Enable DTLS for normal calls and disable for loopback calls.
 				rtcConfig.enableDtlsSrtp = true;
-
+				rtcConfig.minPort = portRangeMin;
+				rtcConfig.maxPort = portRangeMax;
+				rtcConfig.tcpCandidatePolicy = tcpCandidatesEnabled 
+												? TcpCandidatePolicy.ENABLED 
+												: TcpCandidatePolicy.DISABLED;
 
 				peerConnection = peerConnectionFactory.createPeerConnection(rtcConfig, RTMPAdaptor.this);
 
@@ -370,6 +377,23 @@ public class RTMPAdaptor extends Adaptor {
 
 	public long getStartTime() {
 		return startTime;
+	}
+
+	public String getStunServerUri() {
+		return stunServerUri;
+	}
+
+	public void setStunServerUri(String stunServerUri) {
+		this.stunServerUri = stunServerUri;
+	}
+
+	public void setPortRange(int webRTCPortRangeMin, int webRTCPortRangeMax) {
+		this.portRangeMin = webRTCPortRangeMin;
+		this.portRangeMax = webRTCPortRangeMax;
+	}
+
+	public void setTcpCandidatesEnabled(boolean tcpCandidatesEnabled) {
+		this.tcpCandidatesEnabled  = tcpCandidatesEnabled;
 	}
 
 }

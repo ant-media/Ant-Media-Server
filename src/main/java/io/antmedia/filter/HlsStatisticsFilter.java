@@ -51,7 +51,7 @@ public class HlsStatisticsFilter implements javax.servlet.Filter {
 				String streamId = TokenFilterManager.getStreamId(httpRequest.getRequestURI());
 				
 				if (streamId != null) {
-					logger.info("req ip {} session id {} stream id {} status {}", request.getRemoteHost(), sessionId, streamId, status);
+					logger.debug("req ip {} session id {} stream id {} status {}", request.getRemoteHost(), sessionId, streamId, status);
 					getStreamStats().registerNewViewer(streamId, sessionId);
 				}
 			}
