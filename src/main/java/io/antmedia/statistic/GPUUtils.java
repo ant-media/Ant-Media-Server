@@ -3,17 +3,17 @@ package io.antmedia.statistic;
 import static org.bytedeco.javacpp.nvml.NVML_SUCCESS;
 import static org.bytedeco.javacpp.nvml.nvmlDeviceGetCount_v2;
 import static org.bytedeco.javacpp.nvml.nvmlDeviceGetHandleByIndex_v2;
-import static org.bytedeco.javacpp.nvml.*;
+import static org.bytedeco.javacpp.nvml.nvmlDeviceGetMemoryInfo;
+import static org.bytedeco.javacpp.nvml.nvmlDeviceGetName;
+import static org.bytedeco.javacpp.nvml.nvmlDeviceGetUtilizationRates;
 import static org.bytedeco.javacpp.nvml.nvmlInit_v2;
 
-import java.util.jar.Attributes.Name;
-
-import org.bytedeco.javacpp.BytePointer;
 import org.bytedeco.javacpp.IntPointer;
 import org.bytedeco.javacpp.Loader;
 import org.bytedeco.javacpp.nvml;
 import org.bytedeco.javacpp.nvml.nvmlDevice_st;
-import org.bytedeco.javacpp.nvml.*;
+import org.bytedeco.javacpp.nvml.nvmlMemory_t;
+import org.bytedeco.javacpp.nvml.nvmlUtilization_t;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
