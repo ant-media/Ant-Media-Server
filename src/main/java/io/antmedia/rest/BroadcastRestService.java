@@ -7,12 +7,15 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetAddress;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.jar.Manifest;
 import java.util.regex.Pattern;
 
 import javax.ws.rs.Consumes;
@@ -88,6 +91,11 @@ import io.swagger.annotations.SwaggerDefinition;
 @Component
 @Path("/")
 public class BroadcastRestService extends RestServiceBase{
+
+	/**
+	 * Key for Manifest entry of Build number. It should match with the value in pom.xml
+	 */
+	private static final String BUILD_NUMBER = "Build-Number";
 
 	@ApiModel(value="BroadcastStatistics", description="The statistics class of the broadcasts")
 	public static class BroadcastStatistics {
@@ -1034,12 +1042,27 @@ public class BroadcastRestService extends RestServiceBase{
 	@Path("/broadcast/getVersion")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Version getVersion() {
-		Version versionList = new Version();
-		versionList.setVersionName(AntMediaApplicationAdapter.class.getPackage().getImplementationVersion());
-		versionList.setVersionType(BroadcastRestService.isEnterprise() ? ENTERPRISE_EDITION : COMMUNITY_EDITION);
+		return getSoftwareVersion();
+	}
+	
+	public static Version getSoftwareVersion() {
+		Version version = new Version();
+		version.setVersionName(AntMediaApplicationAdapter.class.getPackage().getImplementationVersion());
+		
+		URLClassLoader cl = (URLClassLoader) AntMediaApplicationAdapter.class.getClassLoader();
+		URL url = cl.findResource("META-INF/MANIFEST.MF");
+		Manifest manifest;
+		try {
+			manifest = new Manifest(url.openStream());
+			version.setBuildNumber(manifest.getMainAttributes().getValue(BUILD_NUMBER));
+		} catch (IOException e) {
+			//No need to implement
+		}
+		
+		version.setVersionType(BroadcastRestService.isEnterprise() ? ENTERPRISE_EDITION : COMMUNITY_EDITION);
 
-		logger.debug("Version Name {} Version Type {}", versionList.getVersionName(), versionList.getVersionType());
-		return versionList;
+		logger.debug("Version Name {} Version Type {}", version.getVersionName(), version.getVersionType());
+		return version;
 	}
 
 

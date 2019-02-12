@@ -9,14 +9,17 @@ public class Version {
 	/**
 	 * Gives information about the version name. 
 	 */
-	@ApiModelProperty(value = "the information about the version name")
+	@ApiModelProperty(value = "Version of the software")
 	public String versionName;
 
 	/**
 	 * Gives information about the version type
 	 */
-	@ApiModelProperty(value = "the information about the version type")
+	@ApiModelProperty(value = "Version type of the software (Community or Enterprise)")
 	public String versionType;
+
+	@ApiModelProperty(value = "Build number(timestamp) of the software.")
+	private String buildNumber;
 
 	public String getVersionName() {
 		return versionName;
@@ -32,6 +35,14 @@ public class Version {
 
 	public void setVersionType(String versionType) {
 		this.versionType = versionType;
+	}
+
+	public void setBuildNumber(String value) {
+		this.buildNumber = value;
+	}
+	
+	public String getBuildNumber() {
+		return buildNumber;
 	}
 
 	
