@@ -681,6 +681,9 @@ public class RestServiceTest {
 			//check that they are same
 			assertEquals(model.getParent().getVersion()
 					, versionList.getVersionName());
+			
+			assertNotNull(versionList.getBuildNumber());
+			assertTrue(versionList.getBuildNumber().length() == 13); //format is yyyyMMdd_HHmm
 
 		}catch(Exception e){
 			e.printStackTrace();
