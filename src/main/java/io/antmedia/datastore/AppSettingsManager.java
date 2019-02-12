@@ -46,6 +46,9 @@ public class AppSettingsManager {
 				appSettings.setTokenControlEnabled(settingsModel.isTokenControlEnabled());
 				appSettings.setWebRTCEnabled(settingsModel.isWebRTCEnabled());
 				appSettings.setWebRTCFrameRate(settingsModel.getWebRTCFrameRate());
+				appSettings.setHashControlPublishEnabled(settingsModel.isHashControlPublishEnabled());
+				appSettings.setHashControlPlayEnabled(settingsModel.isHashControlPlayEnabled());
+				appSettings.setTokenHashSecret(settingsModel.getTokenHashSecret());
 
 				appSettings.setAdaptiveResolutionList(settingsModel.getEncoderSettings());
 
@@ -82,7 +85,9 @@ public class AppSettingsManager {
 		store.put(AppSettings.SETTINGS_TOKEN_CONTROL_ENABLED, String.valueOf(appsettings.isTokenControlEnabled()));
 		store.put(AppSettings.SETTINGS_WEBRTC_ENABLED, String.valueOf(appsettings.isWebRTCEnabled()));
 		store.put(AppSettings.SETTINGS_WEBRTC_FRAME_RATE, String.valueOf(appsettings.getWebRTCFrameRate()));
-
+		store.put(AppSettings.SETTINGS_HASH_CONTROL_PUBLISH_ENABLED, String.valueOf(appsettings.isHashControlPublishEnabled()));
+		store.put(AppSettings.SETTINGS_HASH_CONTROL_PLAY_ENABLED, String.valueOf(appsettings.isHashControlPlayEnabled()));
+		
 
 		if (appsettings.getVodFolder() == null) {
 			store.put(AppSettings.SETTINGS_VOD_FOLDER, "");
@@ -125,6 +130,13 @@ public class AppSettingsManager {
 		else {
 			store.put(AppSettings.SETTINGS_ENCODER_SETTINGS_STRING, AppSettings.encodersList2Str(appsettings.getEncoderSettings()));
 		}
+		
+		if (appsettings.getTokenHashSecret() == null) {
+			store.put(AppSettings.TOKEN_HASH_SECRET, "");
+		}
+		else {
+			store.put(AppSettings.TOKEN_HASH_SECRET, appsettings.getTokenHashSecret());
+		}
 
 		store.put(AppSettings.SETTINGS_PREVIEW_OVERWRITE, String.valueOf(appsettings.isPreviewOverwrite()));
 
@@ -136,6 +148,21 @@ public class AppSettingsManager {
 		PreferenceStore store = new PreferenceStore("red5-web.properties");
 		store.setFullPath("webapps/"+appname+"/WEB-INF/red5-web.properties");
 		AppSettingsModel appSettings = new AppSettingsModel();
+		
+		
+		
+		if (store.get(AppSettings.SETTINGS_HASH_CONTROL_PLAY_ENABLED) != null) {
+			appSettings.setHashControlPlayEnabled(Boolean.parseBoolean(store.get(AppSettings.SETTINGS_HASH_CONTROL_PLAY_ENABLED)));
+		}
+		
+		if (store.get(AppSettings.SETTINGS_HASH_CONTROL_PUBLISH_ENABLED) != null) {
+			appSettings.setHashControlPublishEnabled(Boolean.parseBoolean(store.get(AppSettings.SETTINGS_HASH_CONTROL_PUBLISH_ENABLED)));
+		}
+		
+		if (store.get(AppSettings.TOKEN_HASH_SECRET) != null) {
+			appSettings.setTokenHashSecret(store.get(AppSettings.TOKEN_HASH_SECRET));
+		}
+		
 
 		if (store.get(AppSettings.SETTINGS_MP4_MUXING_ENABLED) != null) {
 			appSettings.setMp4MuxingEnabled(Boolean.parseBoolean(store.get(AppSettings.SETTINGS_MP4_MUXING_ENABLED)));

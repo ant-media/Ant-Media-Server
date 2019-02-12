@@ -40,6 +40,7 @@ import com.brsanthu.googleanalytics.GoogleAnalytics;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.rest.BroadcastRestService;
+import io.antmedia.shutdown.AMSShutdownManager;
 
 /**
  * Launches Red5.
@@ -152,6 +153,7 @@ public class Launcher {
 
 			@Override
 			public void run() {
+				AMSShutdownManager.getInstance().notifyShutdown();
 				System.out.println("Shutting down just a sec");
 				getGoogleAnalytic(implementationVersion, type).screenView()
 				.clientId(instanceId)

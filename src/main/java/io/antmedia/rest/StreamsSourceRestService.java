@@ -10,59 +10,56 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import javax.annotation.Nullable;
-import javax.servlet.ServletContext;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
-import io.swagger.annotations.*;
 import org.apache.commons.lang3.StringUtils;
-import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
-import org.springframework.web.context.WebApplicationContext;
-import org.springframework.web.context.support.WebApplicationContextUtils;
 
 import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.datastore.db.DataStoreFactory;
-import io.antmedia.datastore.db.IDataStore;
-import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.ipcamera.onvifdiscovery.OnvifDiscovery;
 import io.antmedia.rest.model.Result;
 import io.antmedia.streamsource.StreamFetcher;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
 
 @Api(value = "StreamsSourceRestService")
 @Component
 @Path("/streamSource")
-public class StreamsSourceRestService {
+public class StreamsSourceRestService extends RestServiceBase{
 
 	private static final String HTTP = "http://";
-	@Context
-	private ServletContext servletContext;
-	private DataStoreFactory dataStoreFactory;
-	private IDataStore dbStore;
-	private ApplicationContext appCtx;
-	private IScope scope;
-	private AntMediaApplicationAdapter appInstance;
 
 	protected static Logger logger = LoggerFactory.getLogger(StreamsSourceRestService.class);
 
-	@ApiOperation(value = "", notes = "Notes here", response = Result.class)
+
+
+
+	/**
+	 * Add IP Camera and Stream Sources to the system as broadcast
+	 * 
+	 * @param stream - broadcast object of IP Camera or Stream Source
+	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
+	 */
+	@ApiOperation(value = "Add IP Camera and Stream Sources to the system as broadcast", notes = "Notes here", response = Result.class)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/addStreamSource")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result addStreamSource(@ApiParam(value = "stream", required = true) Broadcast stream) {
+
+
+	public Result addStreamSource(@ApiParam(value = "stream", required = true) Broadcast stream, @QueryParam("socialNetworks") String socialEndpointIds) {
+
 		Result result=new Result(false);
 
 		logger.info("username {}, ipAddr {}, streamURL {}, name: {}", stream.getUsername(),  stream.getIpAddr(), stream.getStreamUrl(), stream.getName());
@@ -71,7 +68,7 @@ public class StreamsSourceRestService {
 			result = addIPCamera(stream);
 		}
 		else if (stream.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE) ) {
-			result = addSource(stream);
+			result = addSource(stream, socialEndpointIds);
 
 		}else {
 
@@ -113,17 +110,17 @@ public class StreamsSourceRestService {
 				stream.setDate(unixTime);
 				stream.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
 
-				String id = getStore().save(stream);
+				String id = getDataStore().save(stream);
 
 
 				if (id.length() > 0) {
-					Broadcast newCam = getStore().get(stream.getStreamId());
-					StreamFetcher streamFetcher = getInstance().startStreaming(newCam);
+					Broadcast newCam = getDataStore().get(stream.getStreamId());
+					StreamFetcher streamFetcher = getApplication().startStreaming(newCam);
 					if (streamFetcher != null) {
 						result.setSuccess(true);
 					}
 					else {
-						getStore().delete(stream.getStreamId());
+						getDataStore().delete(stream.getStreamId());
 					}
 				}
 
@@ -135,7 +132,7 @@ public class StreamsSourceRestService {
 	}
 
 
-	public Result addSource(Broadcast stream) {
+	public Result addSource(Broadcast stream, String socialEndpointIds) {
 		Result result=new Result(false);
 
 		if(checkStreamUrl(stream.getStreamUrl())) {
@@ -147,11 +144,16 @@ public class StreamsSourceRestService {
 			stream.setDate(unixTime);
 			stream.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
 
-			String id = getStore().save(stream);
+			String id = getDataStore().save(stream);
 
 			if (id.length() > 0) {
-				Broadcast newSource = getStore().get(stream.getStreamId());
-				getInstance().startStreaming(newSource);
+				Broadcast newSource = getDataStore().get(stream.getStreamId());
+
+				if (socialEndpointIds != null && socialEndpointIds.length()>0) {
+					addSocialEndpoints(newSource, socialEndpointIds);
+				}
+
+				getApplication().startStreaming(newSource);
 			}
 
 			result.setSuccess(true);
@@ -160,15 +162,23 @@ public class StreamsSourceRestService {
 		return result;
 	}
 
-	@ApiOperation(value = "", notes = "Notes here", response = Result.class)
+
+
+	/**
+	 * Get IP Camera Error after connection failure
+	 * @param id - the id of the stream
+	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
+	 */
+	@ApiOperation(value = "Get IP Camera Error after connection failure", notes = "Notes here", response = Result.class)
+
 	@GET
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/getCameraError")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result getCameraError(@ApiParam(value = "id", required = true) @QueryParam("id") String id) {
+	public Result getCameraError(@ApiParam(value = "the id of the stream", required = true) @QueryParam("id") String id) {
 		Result result = new Result(true);
 
-		for (StreamFetcher camScheduler : getInstance().getStreamFetcherManager().getStreamFetcherList()) {
+		for (StreamFetcher camScheduler : getApplication().getStreamFetcherManager().getStreamFetcherList()) {
 			if (camScheduler.getStream().getIpAddr().equals(id)) {
 				result = camScheduler.getCameraError();
 			}
@@ -177,7 +187,13 @@ public class StreamsSourceRestService {
 		return result;
 	}
 
-	@ApiOperation(value = "", notes = "Notes here", response = Result.class)
+
+	/**
+	 * Synchronize User VoD Folder and add them to VoD database if any file exist and create symbolic links to that folder
+	 * 
+	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
+	 */
+	@ApiOperation(value = "Synchronize VoD Folder and add them to VoD database if any file exist and create symbolic links to that folder", notes = "Notes here", response = Result.class)
 	@GET
 	@Path("/synchUserVoDList")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -186,13 +202,13 @@ public class StreamsSourceRestService {
 		int errorId = -1;
 		String message = "";
 
-		String vodFolder = getInstance().getAppSettings().getVodFolder();
+		String vodFolder = getApplication().getAppSettings().getVodFolder();
 
 		logger.info("synch user vod list vod folder is {}", vodFolder);
 
 		if (vodFolder != null && vodFolder.length() > 0) {
 
-			result = getInstance().synchUserVoDFolder(null, vodFolder);
+			result = getApplication().synchUserVoDFolder(null, vodFolder);
 		}
 		else {
 			errorId = 404;
@@ -202,19 +218,26 @@ public class StreamsSourceRestService {
 		return new Result(result, message, errorId);
 	}
 
+	/**
+	 * Update IP Camera and Stream Sources' Parameters
+	 * 
+	 * @param broadcast- object of IP Camera or Stream Source
+	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
+	 */
 
-
-	@ApiOperation(value = "", notes = "Notes here", response = Result.class)
+	@ApiOperation(value = "Update IP Camera and Stream Sources' Parameters", notes = "Notes here", response = Result.class)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/updateCamInfo")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result updateCamInfo(@ApiParam(value = "broadcast", required = true) Broadcast broadcast) {
+
+	public Result updateCamInfo(@ApiParam(value = "object of IP Camera or Stream Source", required = true) Broadcast broadcast, @QueryParam("socialNetworks") String socialNetworksToPublish) {
+
 		boolean result = false;
 		logger.debug("update cam info for stream {}", broadcast.getStreamId());
 
 		if( checkStreamUrl(broadcast.getStreamUrl()) && broadcast.getStatus()!=null){
-			getInstance().stopStreaming(broadcast);
+			getApplication().stopStreaming(broadcast);
 			try {
 				Thread.sleep(1000);
 			} catch (InterruptedException e) {
@@ -232,7 +255,7 @@ public class StreamsSourceRestService {
 					broadcast.setStreamUrl(rtspURLWithAuth);
 				}
 			}
-	
+
 			try {
 				Thread.sleep(1000);
 			} catch (InterruptedException e) {
@@ -240,13 +263,28 @@ public class StreamsSourceRestService {
 				Thread.currentThread().interrupt();
 			}
 
-			result = getStore().editStreamSourceInfo(broadcast);
-			getInstance().startStreaming(broadcast);
+			result = getDataStore().editStreamSourceInfo(broadcast);
+
+			Broadcast fetchedBroadcast = getDataStore().get(broadcast.getStreamId());
+			getDataStore().removeAllEndpoints(fetchedBroadcast.getStreamId());
+
+			if (socialNetworksToPublish != null && socialNetworksToPublish.length() > 0) {
+				addSocialEndpoints(fetchedBroadcast, socialNetworksToPublish);
+			}
+
+			getApplication().startStreaming(broadcast);
 		}
 		return new Result(result);
 	}
 
-	@ApiOperation(value = "", notes = "Notes here", response = Result.class)
+
+	/**
+	 * Get Discovered ONVIF IP Cameras, this service perform a discovery inside of internal network and 
+	 * get automatically  ONVIF enabled camera information.
+	 * 
+	 * @return - list of discovered ONVIF URLs
+	 */
+	@ApiOperation(value = "Get Discovered ONVIF IP Cameras, this service perform a discovery inside of internal network and get automatically  ONVIF enabled camera information", notes = "Notes here", response = Result.class)
 	@GET
 	@Path("/searchOnvifDevices")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -307,13 +345,19 @@ public class StreamsSourceRestService {
 		return list;
 	}
 
-	@ApiOperation(value = "", notes = "Notes here", response = Result.class)
+	/**
+	 * Move IP Camera Up
+	 * @param id - the id of the IP Camera
+	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
+	 */
+
+	@ApiOperation(value = "Move IP Camera Up", notes = "Notes here", response = Result.class)
 	@GET
 	@Path("/moveUp")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result moveUp(@ApiParam(value = "id", required = true) @QueryParam("id") String id) {
+	public Result moveUp(@ApiParam(value = "the id of the IP Camera", required = true) @QueryParam("id") String id) {
 		boolean result = false;
-		OnvifCamera camera = getInstance().getOnvifCamera(id);
+		OnvifCamera camera = getApplication().getOnvifCamera(id);
 		if (camera != null) {
 			camera.MoveUp();
 			result = true;
@@ -321,13 +365,18 @@ public class StreamsSourceRestService {
 		return new Result(result);
 	}
 
-	@ApiOperation(value = "", notes = "Notes here", response = Result.class)
+	/**
+	 * Move IP Camera Down
+	 * @param id - the id of the IP Camera
+	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
+	 */
+	@ApiOperation(value = "Move IP Camera Down", notes = "Notes here", response = Result.class)
 	@GET
 	@Path("/moveDown")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result moveDown(@ApiParam(value = "id", required = true) @QueryParam("id") String id) {
+	public Result moveDown(@ApiParam(value = "the id of the IP Camera", required = true) @QueryParam("id") String id) {
 		boolean result = false;
-		OnvifCamera camera = getInstance().getOnvifCamera(id);
+		OnvifCamera camera = getApplication().getOnvifCamera(id);
 		if (camera != null) {
 			camera.MoveDown();
 			result = true;
@@ -335,13 +384,18 @@ public class StreamsSourceRestService {
 		return new Result(result);
 	}
 
-	@ApiOperation(value = "", notes = "Notes here", response = Result.class)
+	/**
+	 * Move IP Camera Left
+	 * @param id - the id of the IP Camera
+	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
+	 */
+	@ApiOperation(value = "Move IP Camera Left", notes = "Notes here", response = Result.class)
 	@GET
 	@Path("/moveLeft")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result moveLeft(@ApiParam(value = "id", required = true) @QueryParam("id") String id) {
+	public Result moveLeft(@ApiParam(value = "the id of the IP Camera", required = true) @QueryParam("id") String id) {
 		boolean result = false;
-		OnvifCamera camera = getInstance().getOnvifCamera(id);
+		OnvifCamera camera = getApplication().getOnvifCamera(id);
 		if (camera != null) {
 			camera.MoveLeft();
 			result = true;
@@ -349,13 +403,18 @@ public class StreamsSourceRestService {
 		return new Result(result);
 	}
 
-	@ApiOperation(value = "", notes = "Notes here", response = Result.class)
+	/**
+	 * Move IP Camera Right
+	 * @param id - the id of the IP Camera
+	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
+	 */
+	@ApiOperation(value = "Move IP Camera Right", notes = "Notes here", response = Result.class)
 	@GET
 	@Path("/moveRight")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result moveRight(@ApiParam(value = "id", required = true) @QueryParam("id") String id) {
+	public Result moveRight(@ApiParam(value = "the id of the IP Camera", required = true) @QueryParam("id") String id) {
 		boolean result = false;
-		OnvifCamera camera = getInstance().getOnvifCamera(id);
+		OnvifCamera camera = getApplication().getOnvifCamera(id);
 		if (camera != null) {
 			camera.MoveRight();
 			result = true;
@@ -363,47 +422,7 @@ public class StreamsSourceRestService {
 		return new Result(result);
 	}
 
-	@Nullable
-	private ApplicationContext getAppContext() {
-		if (servletContext != null) {
-			appCtx = (ApplicationContext) servletContext
-					.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
-		}
-		return appCtx;
-	}
 
-	public AntMediaApplicationAdapter getInstance() {
-		if (appInstance == null) {
-			appInstance = (AntMediaApplicationAdapter) getAppContext().getBean("web.handler");
-		}
-		return appInstance;
-	}
-
-	public IScope getScope() {
-		if (scope == null) {
-			scope = getInstance().getScope();
-		}
-		return scope;
-	}
-	
-	public void setScope(IScope scope) {
-		this.scope = scope;
-	}
-
-	public IDataStore getStore() {
-		if (dbStore == null) {
-			dbStore = getDataStoreFactory().getDataStore();
-		}
-		return dbStore;
-	}
-	
-	public void setDataStore(IDataStore dataStore) {
-		this.dbStore = dataStore;
-	}
-
-	public void setCameraStore(MapDBStore cameraStore) {
-		this.dbStore = cameraStore;
-	}
 	public boolean validateIPaddress(String ipaddress)  {
 		logger.info("inside check validateIPaddress{}", ipaddress);
 
@@ -498,20 +517,6 @@ public class StreamsSourceRestService {
 			}
 		}
 		return ipAddrControl;
-	}
-
-	
-	public DataStoreFactory getDataStoreFactory() {
-		if(dataStoreFactory == null) {
-			WebApplicationContext ctxt = WebApplicationContextUtils.getWebApplicationContext(servletContext); 
-			dataStoreFactory = (DataStoreFactory) ctxt.getBean("dataStoreFactory");
-		}
-		return dataStoreFactory;
-	}
-
-
-	public void setDataStoreFactory(DataStoreFactory dataStoreFactory) {
-		this.dataStoreFactory = dataStoreFactory;
 	}
 
 }

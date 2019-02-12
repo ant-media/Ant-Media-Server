@@ -68,7 +68,7 @@
         <skipTests>false</skipTests>
         <build.dir>target</build.dir>
         <finalName>${project.artifactId}</finalName>
-        <maven.build.timestamp.format>yyMMdd_HHmm</maven.build.timestamp.format>
+        <maven.build.timestamp.format>yyyyMMdd_HHmm</maven.build.timestamp.format>
         <buildNumber>${maven.build.timestamp}</buildNumber>
 
     </properties>
@@ -216,17 +216,6 @@
         </plugins>
     </build>
     <dependencies>
-        <dependency>
-            <groupId>io.swagger</groupId>
-            <artifactId>swagger-jersey2-jaxrs</artifactId>
-            <version>1.5.21</version>
-            <exclusions>
-                <exclusion>
-                    <artifactId>jersey-container-servlet-core</artifactId>
-                    <groupId>org.glassfish.jersey.containers</groupId>
-                </exclusion>
-            </exclusions>
-        </dependency>
         <dependency>
             <groupId>io.antmedia.ipcamera.onvif</groupId>
             <artifactId>ONVIF</artifactId>
@@ -622,7 +611,8 @@
                                     <outputDirectory>${project.build.directory}/lib</outputDirectory>
                                     <includeScope>compile</includeScope>
                                     <excludeScope>test</excludeScope>
-
+                                    <excludeGroupIds>org.tensorflow,</excludeGroupIds>
+                                    <excludeArtifactIds>cuda,cuda-platform</excludeArtifactIds>
                                     <excludeTransitive>false</excludeTransitive>
                                 </configuration>
                             </execution>
@@ -634,6 +624,8 @@
                                 </goals>
                                 <configuration>
                                     <outputDirectory>${project.build.directory}/plugins</outputDirectory>
+                                    <excludeGroupIds>org.tensorflow</excludeGroupIds>
+                                    <excludeArtifactIds>cuda,cuda-platform</excludeArtifactIds>
                                     <includeScope>provided</includeScope>
                                     <excludeTransitive>false</excludeTransitive>
                                 </configuration>
@@ -682,7 +674,7 @@
                                 <configuration>
                                     <artifactItems>
                                         <artifactItem>
-                                            <groupId>io.antmedia</groupId>
+                                           <groupId>io.antmedia</groupId>
                                             <artifactId>ant-media-server-service</artifactId>
                                             <version>${project.parent.version}</version>
                                             <type>tar.gz</type>

@@ -1,9 +1,6 @@
 package io.antmedia.integration;
 
 import static org.bytedeco.javacpp.avformat.av_register_all;
-
-
-
 import static org.bytedeco.javacpp.avformat.avformat_network_init;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -19,6 +16,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -35,6 +33,8 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.client.LaxRedirectStrategy;
 import org.awaitility.Awaitility;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -43,24 +43,19 @@ import org.junit.Test;
 import org.junit.runners.MethodSorters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.annotation.DirtiesContext.ClassMode;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 
+import com.google.common.hash.Hashing;
 import com.google.gson.Gson;
 
 import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.AppSettings;
 import io.antmedia.AppSettingsModel;
 import io.antmedia.EncoderSettings;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Token;
-import io.antmedia.licence.ILicenceService;
 import io.antmedia.muxer.MuxAdaptor;
-import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.User;
+import io.antmedia.rest.model.Version;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.test.Application;
 
@@ -95,7 +90,7 @@ public class ConsoleAppRestServiceTest{
 		System.out.println("ROOT SERVICE URL: " + ROOT_SERVICE_URL);
 
 	}
-	
+
 	public static void resetCookieStore() {
 		httpCookieStore = new BasicCookieStore();
 	}
@@ -120,7 +115,7 @@ public class ConsoleAppRestServiceTest{
 		httpCookieStore = null;
 
 	}
-	
+
 	public static Result createDefaultInitialUser() throws Exception {
 		User user = new User();
 		user.setEmail(TEST_USER_EMAIL);
@@ -199,21 +194,21 @@ public class ConsoleAppRestServiceTest{
 			user.setPassword(TEST_USER_PASS);
 			Result authenticatedUserResult = callAuthenticateUser(user);
 			assertTrue(authenticatedUserResult.isSuccess());
-			
+
 			Result result = callIsClusterMode();
 		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
 	}
-	
+
 	public static Result authenticateDefaultUser() throws Exception{
 		User user = new User();
 		user.setEmail(TEST_USER_EMAIL);
 		user.setPassword(TEST_USER_PASS);
 		return callAuthenticateUser(user);
 	}
-	
+
 	@Test
 	public void testGetAppSettings() {
 		try {
@@ -350,7 +345,7 @@ public class ConsoleAppRestServiceTest{
 				Broadcast broadcast = RestServiceTest.callGetBroadcast(broadcastCreated.getStreamId());
 				return broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 			});
-			
+
 			Broadcast broadcast = RestServiceTest.callGetBroadcast(broadcastCreated.getStreamId());
 			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, broadcast.getStatus());
 
@@ -767,11 +762,195 @@ public class ConsoleAppRestServiceTest{
 
 
 	@Test
+	public void testHashControl() {
+		Result enterpiseResult;
+		try {
+
+
+			// authenticate user
+			User user = new User();
+			user.setEmail(TEST_USER_EMAIL);
+			user.setPassword(TEST_USER_PASS);
+			Result authenticatedUserResult = callAuthenticateUser(user);
+			assertTrue(authenticatedUserResult.isSuccess());
+
+			enterpiseResult = callIsEnterpriseEdition();
+			if (!enterpiseResult.isSuccess()) {
+				//if it is not enterprise return
+				return ;
+			}
+
+			// get settings from the app
+			AppSettingsModel appSettings = callGetAppSettings("LiveApp");
+
+			//set hash publish control enabled
+			appSettings.setHashControlPublishEnabled(true);
+			appSettings.setMp4MuxingEnabled(true);
+
+			//define hash secret 
+			String secret = "secret";
+			appSettings.setTokenHashSecret(secret);
+
+
+			Result result = callSetAppSettings("LiveApp", appSettings);
+			assertTrue(result.isSuccess());
+
+			appSettings = callGetAppSettings("LiveApp");
+
+			//check that settings is set successfully
+			assertTrue(appSettings.isHashControlPublishEnabled());
+
+			//create a broadcast
+			Broadcast broadcast = RestServiceTest.callCreateRegularBroadcast();
+
+			//publish stream
+			Process rtmpSendingProcess = execute(ffmpegPath
+					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
+					+ broadcast.getStreamId());
+
+
+			//publishing is not allowed therefore hls files are not created
+			Awaitility.await().pollDelay(5, TimeUnit.SECONDS).atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return ConsoleAppRestServiceTest.getStatusCode("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + ".m3u8?token=hash" )==404;
+			});
+
+			rtmpSendingProcess.destroy();
+
+			//generate correct hash value
+
+			String hashCombine = broadcast.getStreamId() + Token.PUBLISH_TOKEN + secret ;
+
+			String sha256hex = Hashing.sha256()
+					.hashString(hashCombine, StandardCharsets.UTF_8)
+					.toString();
+
+
+			//start publish with generated hash value
+			Process rtmpSendingProcessHash = execute(ffmpegPath
+					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
+					+ broadcast.getStreamId()+ "?token=" + sha256hex);
+
+
+
+			//this time, HLS files should be created
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" 
+						+ broadcast.getStreamId() + ".m3u8" );
+			});
+
+			//destroy process
+			rtmpSendingProcessHash.destroy();
+
+			//return back settings for other tests
+			appSettings.setHashControlPublishEnabled(false);
+
+			Result flag = callSetAppSettings("LiveApp", appSettings);
+
+			//check that settings saved successfully
+			assertTrue(flag.isSuccess());
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+
+	}
+
+	@Test
+	public void testGetSystemResourcesInfo() {
+		try {
+			// authenticate user
+			User user = new User();
+			user.setEmail(TEST_USER_EMAIL);
+			user.setPassword(TEST_USER_PASS);
+			Result authenticatedUserResult;
+			authenticatedUserResult = callAuthenticateUser(user);
+			assertTrue(authenticatedUserResult.isSuccess());
+			
+			String systemResourcesInfo = callGetSystemResourcesInfo();
+			
+			JSONParser parser = new JSONParser();		
+			JSONObject jsObject = (JSONObject) parser.parse(systemResourcesInfo);
+			JSONObject tmpObject = (JSONObject) jsObject.get("cpuUsage");
+			assertTrue(tmpObject.containsKey("processCPUTime"));
+			assertTrue(tmpObject.containsKey("systemCPULoad"));
+			assertTrue(tmpObject.containsKey("processCPULoad"));
+			
+			tmpObject = (JSONObject) jsObject.get("jvmMemoryUsage"); 
+			assertTrue(tmpObject.containsKey("maxMemory"));
+			assertTrue(tmpObject.containsKey("totalMemory"));
+			assertTrue(tmpObject.containsKey("freeMemory"));
+			assertTrue(tmpObject.containsKey("inUseMemory"));
+			
+			
+			tmpObject = (JSONObject) jsObject.get("systemInfo"); 
+			assertTrue(tmpObject.containsKey("osName"));
+			assertTrue(tmpObject.containsKey("osArch"));
+			assertTrue(tmpObject.containsKey("javaVersion"));
+			assertTrue(tmpObject.containsKey("processorCount"));
+			
+			tmpObject = (JSONObject) jsObject.get("systemMemoryInfo"); 
+			assertTrue(tmpObject.containsKey("virtualMemory"));
+			assertTrue(tmpObject.containsKey("totalMemory"));
+			assertTrue(tmpObject.containsKey("freeMemory"));
+			assertTrue(tmpObject.containsKey("inUseMemory"));
+			assertTrue(tmpObject.containsKey("totalSwapSpace"));
+			assertTrue(tmpObject.containsKey("freeSwapSpace"));
+			assertTrue(tmpObject.containsKey("inUseSwapSpace"));
+			
+			tmpObject = (JSONObject) jsObject.get("fileSystemInfo"); 
+			assertTrue(tmpObject.containsKey("usableSpace"));
+			assertTrue(tmpObject.containsKey("totalSpace"));
+			assertTrue(tmpObject.containsKey("freeSpace"));
+			assertTrue(tmpObject.containsKey("inUseSpace"));
+
+			assertTrue(jsObject.containsKey("gpuUsageInfo"));
+			
+			assertTrue(jsObject.containsKey("totalLiveStreamSize"));
+			
+			System.out.println("system resource info: " + systemResourcesInfo);
+				
+		}
+		catch (Exception e) {
+			fail(e.getMessage());
+		}
+
+	}
+	
+	@Test
+	public void testGetVersion() {
+		try {
+			// authenticate user
+			User user = new User();
+			user.setEmail(TEST_USER_EMAIL);
+			user.setPassword(TEST_USER_PASS);
+			Result authenticatedUserResult;
+			authenticatedUserResult = callAuthenticateUser(user);
+			assertTrue(authenticatedUserResult.isSuccess());
+			
+			String version = callGetSoftwareVersion();
+			
+			Version versionObj = gson.fromJson(version, Version.class);
+			
+			assertEquals(13 , versionObj.getBuildNumber().length());
+			assertNotNull(versionObj.getVersionType());
+			assertNotEquals("null", versionObj.getVersionType());
+			
+			assertNotNull(versionObj.getVersionName());
+			assertNotEquals("null", versionObj.getVersionName());
+			
+		}
+		catch (Exception e) {
+			fail(e.getMessage());
+		}
+
+	}
+
+	@Test
 	public void testMp4Setting() {
 		/**
 		 * This is testing stream-specific mp4 setting via rest service and results
 		 */
-
 		try {
 
 			// authenticate user
@@ -801,7 +980,7 @@ public class ConsoleAppRestServiceTest{
 			Process rtmpSendingProcess = execute(ffmpegPath
 					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
 					+ broadcast.getStreamId());
-			
+
 			//wait until stream is broadcasted
 			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + ".m3u8");
@@ -817,10 +996,10 @@ public class ConsoleAppRestServiceTest{
 			/**
 			 * CASE 2: General setting is disabled (default) and stream setting is 1 
 			 */
-			
+
 			//create new stream to avoid same stream name
 			Broadcast broadcast2 = RestServiceTest.callCreateRegularBroadcast();
-			
+
 			//set stream specific mp4 setting to 1, general setting is still disabled
 			result = RestServiceTest.callEnableMp4Muxing(broadcast2.getStreamId(), MuxAdaptor.MP4_ENABLED_FOR_STREAM);
 
@@ -830,13 +1009,13 @@ public class ConsoleAppRestServiceTest{
 			rtmpSendingProcess = execute(ffmpegPath
 					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
 					+ broadcast2.getStreamId());
-			
+
 			//wait until stream is broadcasted
 			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast2.getStreamId() + ".m3u8");
 			});
-			
-			
+
+
 			rtmpSendingProcess.destroy();
 
 			//it should be true this time, because stream mp4 setting is 1 although general setting is disabled
@@ -850,7 +1029,7 @@ public class ConsoleAppRestServiceTest{
 
 			//create new stream to avoid same stream name
 			Broadcast broadcast3 = RestServiceTest.callCreateRegularBroadcast();
-			
+
 			//enable mp4 muxing
 			appSettings.setMp4MuxingEnabled(true);
 			result = callSetAppSettings("LiveApp", appSettings);
@@ -865,7 +1044,7 @@ public class ConsoleAppRestServiceTest{
 			rtmpSendingProcess = execute(ffmpegPath
 					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
 					+ broadcast3.getStreamId());
-			
+
 			//wait until stream is broadcasted
 			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast3.getStreamId() + ".m3u8");
@@ -893,7 +1072,7 @@ public class ConsoleAppRestServiceTest{
 			rtmpSendingProcess = execute(ffmpegPath
 					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
 					+ broadcast4.getStreamId());
-			
+
 			//wait until stream is broadcasted
 			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast4.getStreamId() + ".m3u8");
@@ -917,12 +1096,6 @@ public class ConsoleAppRestServiceTest{
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-
-
-
-
-
-
 	}
 
 	public static Token callGetToken(String streamId, String type, long expireDate) throws Exception {
@@ -1059,6 +1232,7 @@ public class ConsoleAppRestServiceTest{
 		return tmp;
 
 	}
+
 	
 	public static Result callSetServerSettings(ServerSettings serverSettings) throws Exception {
 		String url = ROOT_SERVICE_URL + "/changeServerSettings";
@@ -1083,6 +1257,42 @@ public class ConsoleAppRestServiceTest{
 
 	}
 	
+	public static String callGetSoftwareVersion() throws Exception {
+		String url = ROOT_SERVICE_URL + "/getVersion";
+		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
+				.setDefaultCookieStore(httpCookieStore).build();
+		Gson gson = new Gson();
+		
+		HttpUriRequest post = RequestBuilder.get().setUri(url).build();
+
+		HttpResponse response = client.execute(post);
+
+		StringBuffer result = RestServiceTest.readResponse(response);
+		if (response.getStatusLine().getStatusCode() != 200) {
+			throw new Exception(result.toString());
+		}
+		log.info("result string: " + result.toString());
+		return result.toString();
+	}
+	
+	public static String callGetSystemResourcesInfo() throws Exception {
+		String url = ROOT_SERVICE_URL + "/getSystemResourcesInfo";
+		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
+				.setDefaultCookieStore(httpCookieStore).build();
+		Gson gson = new Gson();
+		
+		HttpUriRequest post = RequestBuilder.get().setUri(url).build();
+
+		HttpResponse response = client.execute(post);
+
+		StringBuffer result = RestServiceTest.readResponse(response);
+		if (response.getStatusLine().getStatusCode() != 200) {
+			throw new Exception(result.toString());
+		}
+		log.info("result string: " + result.toString());
+		return result.toString();
+	}
+
 	public static Result callIsClusterMode() throws Exception {
 		String url = ROOT_SERVICE_URL + "/isInClusterMode";
 
@@ -1174,8 +1384,7 @@ public class ConsoleAppRestServiceTest{
 		return tmp;
 	}
 	
-	
-	
+
 	public static StringBuffer readResponse(HttpResponse response) throws IOException {
 		BufferedReader rd = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
 

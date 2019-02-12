@@ -71,12 +71,7 @@ public class DataStoreFactory implements IDataStoreFactory{
 		if (dataStore == null) {
 			if(dbType.contentEquals(DB_TYPE_MONGODB))
 			{
-				if (dbUser != null && !dbUser.isEmpty()) {
-					dataStore = new MongoStore(dbHost, dbUser, dbPassword, dbName);
-				}
-				else {
-					dataStore = new MongoStore(dbName, dbHost);
-				}
+				dataStore = new MongoStore(dbHost, dbUser, dbPassword, dbName);
 			}
 			else if(dbType .contentEquals(DB_TYPE_MAPDB))
 			{

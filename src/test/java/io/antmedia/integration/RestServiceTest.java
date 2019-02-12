@@ -152,6 +152,10 @@ public class RestServiceTest {
 	}
 
 	public Broadcast createBroadcast(String name) {
+		return createBroadcast(name, null, null);
+	}
+	
+	public Broadcast createBroadcast(String name, String type, String streamUrl) {
 		String url = ROOT_SERVICE_URL + "/broadcast/create";
 
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
@@ -159,6 +163,14 @@ public class RestServiceTest {
 		Broadcast broadcast = new Broadcast();
 		if (name != null) {
 			broadcast.setName(name);
+		}
+		
+		if (type != null) {
+			broadcast.setType(type);
+		}
+		
+		if (streamUrl != null) {
+			broadcast.setStreamUrl(streamUrl);
 		}
 
 		try {
@@ -471,7 +483,7 @@ public class RestServiceTest {
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 
 
-		HttpUriRequest post = RequestBuilder.get().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json").build();
+		HttpUriRequest post = RequestBuilder.post().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json").build();
 
 		HttpResponse response = client.execute(post);
 
@@ -654,6 +666,9 @@ public class RestServiceTest {
 			//check that they are same
 			assertEquals(model.getParent().getVersion()
 					, versionList.getVersionName());
+			
+			assertNotNull(versionList.getBuildNumber());
+			assertTrue(versionList.getBuildNumber().length() == 13); //format is yyyyMMdd_HHmm
 
 		}catch(Exception e){
 			e.printStackTrace();
@@ -754,9 +769,13 @@ public class RestServiceTest {
 	}
 	
 	public static List<VoD> callGetVoDList() {
+		return callGetVoDList(0, 50);
+	}
+	
+	public static List<VoD> callGetVoDList(int offset, int size) {
 		try {
 
-			String url = ROOT_SERVICE_URL + "/broadcast/getVodList/0/50";
+			String url = ROOT_SERVICE_URL + "/broadcast/getVodList/"+offset+"/" + size;
 
 			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 

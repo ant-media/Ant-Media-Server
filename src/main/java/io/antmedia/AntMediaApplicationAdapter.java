@@ -45,6 +45,8 @@ import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.model.Result;
+import io.antmedia.shutdown.AMSShutdownManager;
+import io.antmedia.shutdown.IShutdownListener;
 import io.antmedia.social.endpoint.PeriscopeEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
@@ -52,12 +54,13 @@ import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
 import io.vertx.core.Vertx;
 
-public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter implements IAntMediaStreamHandler {
+public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter implements IAntMediaStreamHandler, IShutdownListener {
 
 	public static final String BEAN_NAME = "web.handler";
 	public static final String BROADCAST_STATUS_CREATED = "created";
 	public static final String BROADCAST_STATUS_BROADCASTING = "broadcasting";
 	public static final String BROADCAST_STATUS_FINISHED = "finished";
+	public static final int BROADCAST_STATS_RESET = 0;
 	public static final String HOOK_ACTION_END_LIVE_STREAM = "liveStreamEnded";
 	public static final String HOOK_ACTION_START_LIVE_STREAM = "liveStreamStarted";
 	public static final String HOOK_ACTION_VOD_READY = "vodReady";
@@ -142,6 +145,8 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		});
 
 		logger.info("AppStart scheduled job name: {}", scheduledJobName);
+		
+		AMSShutdownManager.getInstance().subscribe(this);
 
 
 		return super.appStart(app);
@@ -229,7 +234,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 			if (dataStore != null) {
 				getDataStore().updateStatus(streamName, BROADCAST_STATUS_FINISHED);
 				Broadcast broadcast = getDataStore().get(streamName);
-
+								
 				if (broadcast != null) {
 					final String listenerHookURL = broadcast.getListenerHookURL();
 					final String streamId = broadcast.getStreamId();
@@ -796,6 +801,12 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	 */
 	public void setVertx(Vertx vertx) {
 		this.vertx = vertx;
+	}
+
+
+	@Override
+	public void serverShuttingdown() {
+		logger.info("{} is shutting down.", getName());
 	}
 
 }

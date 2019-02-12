@@ -65,6 +65,14 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 		}
 		return viewerCount;
 	}
+	
+	public int getTotalViewerCount() {
+		int viewerCount = 0;
+		for (Map<String, Long> map : streamsViewerMap.values()) {
+			viewerCount += map.size();
+		}
+		return viewerCount;
+	}
 
 	@Override
 	public void setApplicationContext(ApplicationContext applicationContext)  {

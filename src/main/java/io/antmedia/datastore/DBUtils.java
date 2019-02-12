@@ -48,4 +48,16 @@ public class DBUtils {
 		}
 		return ip;
 	}
+	public static String getUri(String host, String username, String password) {
+		String credential = "";
+		if(username != null && !username.isEmpty()) {
+			credential = username+":"+password+"@";
+		}
+		
+		String uri = "mongodb://"+credential+host;
+		
+		logger.info("uri:{}",uri);
+		
+		return uri;
+	}
 }

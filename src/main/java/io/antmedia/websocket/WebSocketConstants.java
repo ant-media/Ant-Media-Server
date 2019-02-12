@@ -11,6 +11,10 @@ public class WebSocketConstants {
 	
 	public static final String NOTIFICATION_COMMAND = "notification";
 	
+	public static final String PING_COMMAND = "ping";
+	
+	public static final String PONG_COMMAND = "pong";
+	
 	public static final String COMMAND = "command";
 
 	public static final String ATTR_SIGNALLING_CONNECTION = "ATTR_SIGNALLING_CONNECTION";
@@ -194,5 +198,10 @@ public class WebSocketConstants {
 	 * Error definition it is send when local description is not set successfully
 	 */
 	public static final String NOT_SET_LOCAL_DESCRIPTION = "notSetLocalDescription";
+
+	/**
+	 * Error definition it is send when publisher tries to publish with in use stream id
+	 */
+	public static final String STREAM_ID_IN_USE = "streamIdInUse";
 
 }
