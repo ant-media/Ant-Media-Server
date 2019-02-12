@@ -36,10 +36,9 @@ public class IPFilter implements Filter {
         HttpServletResponse httpResp = null;
         if (response instanceof HttpServletResponse) httpResp = (HttpServletResponse) response;
         if (ip.matches(ipFilterSource.getIPFilterRegex())) {
-
-            httpResp.sendError(HttpServletResponse.SC_FORBIDDEN,"Your own message 403 Forbidden");
-        } else {
             chain.doFilter(request, response);
+        } else {
+            httpResp.sendError(HttpServletResponse.SC_FORBIDDEN,"Your own message 403 Forbidden");
         }
     }
 
