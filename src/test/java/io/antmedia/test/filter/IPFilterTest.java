@@ -21,12 +21,13 @@ public class IPFilterTest {
         IPFilter ipFilter = new IPFilter(new LocalIPFilterSource());
 
         MockHttpServletRequest httpServletRequest = new MockHttpServletRequest();
+        httpServletRequest.setRemoteAddr("127.0.0.1");
         MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
         MockFilterChain filterChain = new MockFilterChain();
 
         ipFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
 
-        assertEquals(httpServletResponse.getStatus(),HttpStatus.OK.value());
+        assertEquals(HttpStatus.OK.value(),httpServletResponse.getStatus());
     }
 
     @Test
@@ -40,7 +41,7 @@ public class IPFilterTest {
 
         ipFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
 
-        assertEquals(httpServletResponse.getStatus(),HttpStatus.FORBIDDEN.value());
+        assertEquals(HttpStatus.FORBIDDEN.value(),httpServletResponse.getStatus());
     }
 
     class LocalIPFilterSource implements IPFilterSource{
