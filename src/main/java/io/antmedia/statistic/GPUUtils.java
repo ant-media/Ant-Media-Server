@@ -6,6 +6,9 @@ import static org.bytedeco.javacpp.nvml.nvmlDeviceGetHandleByIndex_v2;
 import static org.bytedeco.javacpp.nvml.*;
 import static org.bytedeco.javacpp.nvml.nvmlInit_v2;
 
+import java.util.jar.Attributes.Name;
+
+import org.bytedeco.javacpp.BytePointer;
 import org.bytedeco.javacpp.IntPointer;
 import org.bytedeco.javacpp.Loader;
 import org.bytedeco.javacpp.nvml;
@@ -129,9 +132,11 @@ public class GPUUtils {
 	public String getDeviceName(int deviceIndex) {
 		nvmlDevice_st device = null;
 		if ((device = getDevice(deviceIndex)) != null) {
-			byte[] name = new byte[64];
-			if (nvmlDeviceGetName(device, name, name.length) == NVML_SUCCESS) {
-				return new String(name, 0, name.length);
+			byte[] nameByte = new byte[64];
+			if (nvmlDeviceGetName(device, nameByte, nameByte.length) == NVML_SUCCESS) {
+				String name = new String(nameByte, 0, nameByte.length);
+				int indexOf = name.indexOf("\u0000");	
+				return name.substring(0, indexOf > 0 ? indexOf : name.length());
 			}
 		}
 		return null;
