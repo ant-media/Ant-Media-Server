@@ -11,10 +11,6 @@ addons:
     token:
       secure: $SONAR_TOKEN
 
-env:
-  global:
-    - RELEASE_VERSION = $(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)
-
 #travis running  on ubuntu 14.04
 
 before_install:
@@ -63,7 +59,7 @@ install:
 
 script:
   - echo $(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)
-  - mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent package sonar:sonar -Dmaven.javadoc.skip=true
+  - mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent package sonar:sonar -Dmaven.javadoc.skip=true -DskipTests=true
   
 
 
@@ -77,7 +73,7 @@ after_failure:
 
 deploy:
   - provider: script
-    script: "mvn deploy -P assemble -DskipTests --quiet --settings mvn-settings.xml && curl -g --ftp-create-dirs -T target/swagger/swagger.json -u $SWAGGER_FTP_USERNAME:$SWAGGER_FTP_PASSWORD $SWAGGER_FTP_URL/$RELEASE_VERSION/"
+    script: "mvn deploy -P assemble -DskipTests --quiet --settings mvn-settings.xml && curl -g --ftp-create-dirs -T target/swagger/swagger.json -u $SWAGGER_FTP_USERNAME:$SWAGGER_FTP_PASSWORD $SWAGGER_FTP_URL/$(mvn -q -Dexec.executable=\"echo\" -Dexec.args='${project.version}' --non-recursive exec:exec)/"
     skip_cleanup: true
     on:
       tags: false
@@ -86,7 +82,7 @@ deploy:
       condition:  $(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)  = *"SNAPSHOT"* 
   
   - provider: script
-    script: "mvn deploy -P assemble -DskipTests --quiet --settings mvn-settings.xml && curl -g --ftp-create-dirs -T target/swagger/swagger.json -u $SWAGGER_FTP_USERNAME:$SWAGGER_FTP_PASSWORD $SWAGGER_FTP_URL/$RELEASE_VERSION/"
+    script: "mvn deploy -P assemble -DskipTests --quiet --settings mvn-settings.xml && curl -g --ftp-create-dirs -T target/swagger/swagger.json -u $SWAGGER_FTP_USERNAME:$SWAGGER_FTP_PASSWORD $SWAGGER_FTP_URL/$(mvn -q -Dexec.executable=\"echo\" -Dexec.args='${project.version}' --non-recursive exec:exec)/"
     skip_cleanup: true
     on:
       #deploy to maven if it is a release tagged
