@@ -52,9 +52,11 @@ before_install:
   - sudo service antmedia start
   - sleep 10
   - sudo cat /usr/local/antmedia/log/ant-media-server.log
+  - RELEASE_VERSION = $(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)
 
 
 install:
+  - echo $(RELEASE_VERSION)
   - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -Dgpg.skip=true -B -V --quiet
 
 script:
