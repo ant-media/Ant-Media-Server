@@ -68,7 +68,7 @@
         <skipTests>false</skipTests>
         <build.dir>target</build.dir>
         <finalName>${project.artifactId}</finalName>
-        <maven.build.timestamp.format>yyMMdd_HHmm</maven.build.timestamp.format>
+        <maven.build.timestamp.format>yyyyMMdd_HHmm</maven.build.timestamp.format>
         <buildNumber>${maven.build.timestamp}</buildNumber>
 
     </properties>
@@ -606,7 +606,8 @@
                                     <outputDirectory>${project.build.directory}/lib</outputDirectory>
                                     <includeScope>compile</includeScope>
                                     <excludeScope>test</excludeScope>
-
+                                    <excludeGroupIds>org.tensorflow,</excludeGroupIds>
+                                    <excludeArtifactIds>cuda,cuda-platform</excludeArtifactIds>
                                     <excludeTransitive>false</excludeTransitive>
                                 </configuration>
                             </execution>
@@ -618,6 +619,8 @@
                                 </goals>
                                 <configuration>
                                     <outputDirectory>${project.build.directory}/plugins</outputDirectory>
+                                    <excludeGroupIds>org.tensorflow</excludeGroupIds>
+                                    <excludeArtifactIds>cuda,cuda-platform</excludeArtifactIds>
                                     <includeScope>provided</includeScope>
                                     <excludeTransitive>false</excludeTransitive>
                                 </configuration>
@@ -666,7 +669,7 @@
                                 <configuration>
                                     <artifactItems>
                                         <artifactItem>
-                                            <groupId>io.antmedia</groupId>
+                                           <groupId>io.antmedia</groupId>
                                             <artifactId>ant-media-server-service</artifactId>
                                             <version>${project.parent.version}</version>
                                             <type>tar.gz</type>

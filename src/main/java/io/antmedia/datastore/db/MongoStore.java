@@ -12,7 +12,6 @@ import org.bson.types.ObjectId;
 import org.mongodb.morphia.Datastore;
 import org.mongodb.morphia.Key;
 import org.mongodb.morphia.Morphia;
-import org.mongodb.morphia.mapping.DefaultCreator;
 import org.mongodb.morphia.query.FindOptions;
 import org.mongodb.morphia.query.Query;
 import org.mongodb.morphia.query.UpdateOperations;
@@ -35,7 +34,7 @@ import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.muxer.MuxAdaptor;
 
-public class MongoStore implements IDataStore {
+public class MongoStore extends DataStore {
 
 	private Morphia morphia;
 	private Datastore datastore;
@@ -67,13 +66,6 @@ public class MongoStore implements IDataStore {
 		vodDatastore.ensureIndexes();
 		endpointCredentialsDS.ensureIndexes();
 		detectionMap.ensureIndexes();
-		
-		morphia.getMapper().getOptions().setObjectFactory(new DefaultCreator() {
-		    @Override
-		    protected ClassLoader getClassLoaderForClass() {
-		        return Broadcast.class.getClassLoader();
-		    }
-		});
 
 	}
 
@@ -680,6 +672,12 @@ public class MongoStore implements IDataStore {
 		return false;
 	}
 
+	
+	@Override
+	public void saveStreamInfo(StreamInfo streamInfo) {
+		datastore.save(streamInfo);
+	}
+	
 	@Override
 	public void addStreamInfoList(List<StreamInfo> streamInfoList) {
 		for (StreamInfo streamInfo : streamInfoList) {

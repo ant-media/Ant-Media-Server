@@ -36,7 +36,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.antmedia.datastore.db.DataStoreFactory;
-import io.antmedia.datastore.db.IDataStore;
+import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
@@ -45,6 +45,8 @@ import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.model.Result;
+import io.antmedia.shutdown.AMSShutdownManager;
+import io.antmedia.shutdown.IShutdownListener;
 import io.antmedia.social.endpoint.PeriscopeEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
@@ -52,7 +54,7 @@ import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
 import io.vertx.core.Vertx;
 
-public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter implements IAntMediaStreamHandler {
+public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter implements IAntMediaStreamHandler, IShutdownListener {
 
 	public static final String BEAN_NAME = "web.handler";
 	public static final String BROADCAST_STATUS_CREATED = "created";
@@ -80,7 +82,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	private List<IStreamPublishSecurity> streamPublishSecurityList;
 	private HashMap<String, OnvifCamera> onvifCameraList = new HashMap<>();
 	private StreamFetcherManager streamFetcherManager;
-	private IDataStore dataStore;
+	private DataStore dataStore;
 	DataStoreFactory dataStoreFactory;
 
 	private AppSettings appSettings;
@@ -142,6 +144,8 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		});
 
 		logger.info("AppStart scheduled job name: {}", scheduledJobName);
+		
+		AMSShutdownManager.getInstance().subscribe(this);
 
 		return super.appStart(app);
 	}
@@ -305,7 +309,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 			VideoServiceEndpoint endPointService;
 			Class endpointClass = Class.forName(className);
 
-			endPointService = (VideoServiceEndpoint) endpointClass.getConstructor(String.class, String.class, IDataStore.class, SocialEndpointCredentials.class, Vertx.class)
+			endPointService = (VideoServiceEndpoint) endpointClass.getConstructor(String.class, String.class, DataStore.class, SocialEndpointCredentials.class, Vertx.class)
 					.newInstance(clientId, clientSecret, dataStore, socialEndpointCredentials, vertx);
 			endPointService.setCollectInteractivity(appSettings.isCollectSocialMediaActivity());
 			return endPointService;
@@ -366,7 +370,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 				try {
 
-					IDataStore dataStoreLocal = getDataStore();
+					DataStore dataStoreLocal = getDataStore();
 					if (dataStoreLocal != null) {
 
 						Broadcast broadcast = dataStoreLocal.get(streamName);
@@ -420,7 +424,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		});
 	}
 
-	public static Broadcast saveUndefinedBroadcast(String streamName, String scopeName, IDataStore dataStore, AppSettings appSettings) {
+	public static Broadcast saveUndefinedBroadcast(String streamName, String scopeName, DataStore dataStore, AppSettings appSettings) {
 		Broadcast newBroadcast = new Broadcast();
 		newBroadcast.setDate(System.currentTimeMillis());
 		newBroadcast.setZombi(true);
@@ -772,7 +776,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 	}
 
-	public IDataStore getDataStore() {
+	public DataStore getDataStore() {
 		if(dataStore == null)
 		{
 			dataStore = dataStoreFactory.getDataStore();
@@ -795,6 +799,12 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	 */
 	public void setVertx(Vertx vertx) {
 		this.vertx = vertx;
+	}
+
+
+	@Override
+	public void serverShuttingdown() {
+		logger.info("{} is shutting down.", getName());
 	}
 
 }

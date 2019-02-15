@@ -20,7 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 
-import io.antmedia.datastore.db.IDataStore;
+import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.filter.TokenFilterManager;
@@ -30,7 +30,7 @@ import io.antmedia.security.MockTokenService;
 public class TokenServiceTest {
 	protected static Logger logger = LoggerFactory.getLogger(TokenServiceTest.class);
 
-	IDataStore datastore;
+	DataStore datastore;
 	ApplicationContext applicationContext;
 
 	private MockTokenService tokenService;

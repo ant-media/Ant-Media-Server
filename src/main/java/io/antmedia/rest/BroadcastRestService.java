@@ -7,12 +7,15 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetAddress;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.jar.Manifest;
 import java.util.regex.Pattern;
 
 import javax.ws.rs.Consumes;
@@ -40,7 +43,7 @@ import org.springframework.stereotype.Component;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
-import io.antmedia.datastore.db.IDataStore;
+import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointChannel;
@@ -88,6 +91,11 @@ import io.swagger.annotations.SwaggerDefinition;
 @Component
 @Path("/")
 public class BroadcastRestService extends RestServiceBase{
+
+	/**
+	 * Key for Manifest entry of Build number. It should match with the value in pom.xml
+	 */
+	private static final String BUILD_NUMBER = "Build-Number";
 
 	@ApiModel(value="BroadcastStatistics", description="The statistics class of the broadcasts")
 	public static class BroadcastStatistics {
@@ -214,7 +222,7 @@ public class BroadcastRestService extends RestServiceBase{
 
 
 
-	public static Broadcast saveBroadcast(Broadcast broadcast, String status, String scopeName, IDataStore dataStore,
+	public static Broadcast saveBroadcast(Broadcast broadcast, String status, String scopeName, DataStore dataStore,
 			String settingsListenerHookURL, String fqdn) {
 
 		if (broadcast == null) {
@@ -787,12 +795,12 @@ public class BroadcastRestService extends RestServiceBase{
 
 
 			long broadcastCount = getDataStore().getBroadcastCount();
-			int pageCount = (int) broadcastCount/IDataStore.MAX_ITEM_IN_ONE_LIST
-					+ ((broadcastCount % IDataStore.MAX_ITEM_IN_ONE_LIST != 0) ? 1 : 0);
+			int pageCount = (int) broadcastCount/DataStore.MAX_ITEM_IN_ONE_LIST
+					+ ((broadcastCount % DataStore.MAX_ITEM_IN_ONE_LIST != 0) ? 1 : 0);
 
 			List<Broadcast> broadcastList = new ArrayList<>();
 			for (int i = 0; i < pageCount; i++) {
-				broadcastList.addAll(getDataStore().getBroadcastList(i*IDataStore.MAX_ITEM_IN_ONE_LIST, IDataStore.MAX_ITEM_IN_ONE_LIST));
+				broadcastList.addAll(getDataStore().getBroadcastList(i*DataStore.MAX_ITEM_IN_ONE_LIST, DataStore.MAX_ITEM_IN_ONE_LIST));
 			}
 
 			StringBuilder insertQueryString = new StringBuilder();
@@ -924,12 +932,12 @@ public class BroadcastRestService extends RestServiceBase{
 			if (vodFolderPath != null && !vodFolderPath.isEmpty()) {
 
 				long totalVodNumber = getDataStore().getTotalVodNumber();
-				int pageCount = (int) totalVodNumber/IDataStore.MAX_ITEM_IN_ONE_LIST 
-						+ ((totalVodNumber % IDataStore.MAX_ITEM_IN_ONE_LIST != 0) ? 1 : 0);
+				int pageCount = (int) totalVodNumber/DataStore.MAX_ITEM_IN_ONE_LIST 
+						+ ((totalVodNumber % DataStore.MAX_ITEM_IN_ONE_LIST != 0) ? 1 : 0);
 
 				List<VoD> vodList = new ArrayList<>();
 				for (int i = 0; i < pageCount; i++) {
-					vodList.addAll(getDataStore().getVodList(i*IDataStore.MAX_ITEM_IN_ONE_LIST, IDataStore.MAX_ITEM_IN_ONE_LIST));
+					vodList.addAll(getDataStore().getVodList(i*DataStore.MAX_ITEM_IN_ONE_LIST, DataStore.MAX_ITEM_IN_ONE_LIST));
 				}
 
 
@@ -1034,12 +1042,27 @@ public class BroadcastRestService extends RestServiceBase{
 	@Path("/broadcast/getVersion")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Version getVersion() {
-		Version versionList = new Version();
-		versionList.setVersionName(AntMediaApplicationAdapter.class.getPackage().getImplementationVersion());
-		versionList.setVersionType(BroadcastRestService.isEnterprise() ? ENTERPRISE_EDITION : COMMUNITY_EDITION);
+		return getSoftwareVersion();
+	}
+	
+	public static Version getSoftwareVersion() {
+		Version version = new Version();
+		version.setVersionName(AntMediaApplicationAdapter.class.getPackage().getImplementationVersion());
+		
+		URLClassLoader cl = (URLClassLoader) AntMediaApplicationAdapter.class.getClassLoader();
+		URL url = cl.findResource("META-INF/MANIFEST.MF");
+		Manifest manifest;
+		try {
+			manifest = new Manifest(url.openStream());
+			version.setBuildNumber(manifest.getMainAttributes().getValue(BUILD_NUMBER));
+		} catch (IOException e) {
+			//No need to implement
+		}
+		
+		version.setVersionType(BroadcastRestService.isEnterprise() ? ENTERPRISE_EDITION : COMMUNITY_EDITION);
 
-		logger.debug("Version Name {} Version Type {}", versionList.getVersionName(), versionList.getVersionType());
-		return versionList;
+		logger.debug("Version Name {} Version Type {}", version.getVersionName(), version.getVersionType());
+		return version;
 	}
 
 

@@ -35,7 +35,7 @@ import com.jmatio.io.stream.ByteBufferInputStream;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStoreFactory;
-import io.antmedia.datastore.db.IDataStore;
+import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.integration.AppFunctionalTest;
@@ -69,7 +69,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		if (!streamsFolder.exists()) {
 			assertTrue(streamsFolder.mkdirs());
 		}
-		IDataStore dataStore = new InMemoryDataStore("dbname");
+		DataStore dataStore = new InMemoryDataStore("dbname");
 		DataStoreFactory dsf = Mockito.mock(DataStoreFactory.class);
 		Mockito.when(dsf.getDataStore()).thenReturn(dataStore);
 		adapter.setDataStoreFactory(dsf);
@@ -124,7 +124,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		adapter.setAppSettings(appSettings);
 		File f = new File ("src/test/resources/hello_script");
 
-		IDataStore dataStore = new InMemoryDataStore("dbname");
+		DataStore dataStore = new InMemoryDataStore("dbname");
 		DataStoreFactory dsf = Mockito.mock(DataStoreFactory.class);
 		Mockito.when(dsf.getDataStore()).thenReturn(dataStore);
 		adapter.setDataStoreFactory(dsf);

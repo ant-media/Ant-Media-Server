@@ -3,6 +3,8 @@ package io.antmedia.statistic;
 import static org.bytedeco.javacpp.nvml.NVML_SUCCESS;
 import static org.bytedeco.javacpp.nvml.nvmlDeviceGetCount_v2;
 import static org.bytedeco.javacpp.nvml.nvmlDeviceGetHandleByIndex_v2;
+import static org.bytedeco.javacpp.nvml.nvmlDeviceGetMemoryInfo;
+import static org.bytedeco.javacpp.nvml.nvmlDeviceGetName;
 import static org.bytedeco.javacpp.nvml.nvmlDeviceGetUtilizationRates;
 import static org.bytedeco.javacpp.nvml.nvmlInit_v2;
 
@@ -10,6 +12,7 @@ import org.bytedeco.javacpp.IntPointer;
 import org.bytedeco.javacpp.Loader;
 import org.bytedeco.javacpp.nvml;
 import org.bytedeco.javacpp.nvml.nvmlDevice_st;
+import org.bytedeco.javacpp.nvml.nvmlMemory_t;
 import org.bytedeco.javacpp.nvml.nvmlUtilization_t;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,6 +26,30 @@ public class GPUUtils {
 	private static boolean noGPU = true;
 
 	private Integer deviceCount = null;
+
+	public static class MemoryStatus {
+		private long memoryTotal;
+		private long memoryUsed;
+		private long memoryFree;
+
+		public MemoryStatus(long memoryTotal, long memoryUsed, long memoryFree) {
+			this.memoryTotal = memoryTotal;
+			this.memoryUsed = memoryUsed;
+			this.memoryFree = memoryFree;
+		}
+
+		public long getMemoryTotal() {
+			return memoryTotal;
+		}
+
+		public long getMemoryUsed() {
+			return memoryUsed;
+		}
+
+		public long getMemoryFree() {
+			return memoryFree;
+		}
+	}
 
 	private GPUUtils() {}
 
@@ -68,21 +95,53 @@ public class GPUUtils {
 		return deviceCount;
 	}
 
-	private nvmlUtilization_t getUtilization(int deviceNo) {
+	public nvmlDevice_st getDevice(int deviceIndex) 
+	{
 		if (!noGPU) {
 			nvmlDevice_st device = new nvmlDevice_st();
-			int result = nvmlDeviceGetHandleByIndex_v2(deviceNo, device );
-			if (result == NVML_SUCCESS) {
-				nvmlUtilization_t deviceUtilization = new nvmlUtilization_t();
-				result = nvmlDeviceGetUtilizationRates(device, deviceUtilization);
-				if (result == NVML_SUCCESS) {
-					return deviceUtilization;
-				}
+			if (nvmlDeviceGetHandleByIndex_v2(deviceIndex, device) == NVML_SUCCESS) {
+				return device;
+			}
+		}
+		return null;
+	}
+
+	private nvmlUtilization_t getUtilization(int deviceNo) {
+		nvmlDevice_st device = null;
+		if ((device = getDevice(deviceNo)) != null) {
+			nvmlUtilization_t deviceUtilization = new nvmlUtilization_t();
+			if (nvmlDeviceGetUtilizationRates(device, deviceUtilization) == NVML_SUCCESS) {
+				return deviceUtilization;
 			}
 		}
 		return null;
 	} 
 
+
+	public MemoryStatus getMemoryStatus(int deviceNo) {
+		nvmlDevice_st device = null;
+		if ((device = getDevice(deviceNo)) != null) {
+			nvmlMemory_t nvmlMemory = new nvmlMemory_t();
+			if (nvmlDeviceGetMemoryInfo(device, nvmlMemory) == NVML_SUCCESS) {
+				return new MemoryStatus(nvmlMemory.total(), nvmlMemory.used(), nvmlMemory.free());
+			}
+		}
+		return null;
+	}
+	
+	public String getDeviceName(int deviceIndex) {
+		nvmlDevice_st device = null;
+		if ((device = getDevice(deviceIndex)) != null) {
+			byte[] nameByte = new byte[64];
+			if (nvmlDeviceGetName(device, nameByte, nameByte.length) == NVML_SUCCESS) {
+				String name = new String(nameByte, 0, nameByte.length);
+				int indexOf = name.indexOf("\u0000");	
+				return name.substring(0, indexOf > 0 ? indexOf : name.length());
+			}
+		}
+		return null;
+	}
+	
 	public int getMemoryUtilization(int deviceNo) {
 		nvmlUtilization_t utilization = getUtilization(deviceNo);
 		if(utilization != null) {
