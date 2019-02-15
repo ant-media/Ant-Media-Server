@@ -34,7 +34,7 @@ import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.muxer.MuxAdaptor;
 
-public class MongoStore implements IDataStore {
+public class MongoStore extends DataStore {
 
 	private Morphia morphia;
 	private Datastore datastore;
@@ -672,6 +672,12 @@ public class MongoStore implements IDataStore {
 		return false;
 	}
 
+	
+	@Override
+	public void saveStreamInfo(StreamInfo streamInfo) {
+		datastore.save(streamInfo);
+	}
+	
 	@Override
 	public void addStreamInfoList(List<StreamInfo> streamInfoList) {
 		for (StreamInfo streamInfo : streamInfoList) {

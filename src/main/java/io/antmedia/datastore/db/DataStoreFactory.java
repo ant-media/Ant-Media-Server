@@ -15,7 +15,7 @@ public class DataStoreFactory implements IDataStoreFactory{
 	private static Logger logger = LoggerFactory.getLogger(DataStoreFactory.class);
 
 	
-	private IDataStore dataStore;
+	private DataStore dataStore;
 	private String appName;
 	private String dbName;
 	
@@ -67,7 +67,7 @@ public class DataStoreFactory implements IDataStoreFactory{
 		this.dbPassword = dbPassword;
 	}
 	
-	public IDataStore getDataStore() {
+	public DataStore getDataStore() {
 		if (dataStore == null) {
 			if(dbType.contentEquals(DB_TYPE_MONGODB))
 			{
@@ -94,7 +94,7 @@ public class DataStoreFactory implements IDataStoreFactory{
 		return dataStore;
 	}
 	
-	public void setDataStore(IDataStore dataStore) {
+	public void setDataStore(DataStore dataStore) {
 		this.dataStore = dataStore;
 	}
 

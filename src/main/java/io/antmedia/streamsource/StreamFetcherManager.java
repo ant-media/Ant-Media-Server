@@ -11,7 +11,7 @@ import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.antmedia.datastore.db.IDataStore;
+import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.rest.model.Result;
@@ -37,7 +37,7 @@ public class StreamFetcherManager {
 
 	private ISchedulingService schedulingService;
 
-	private IDataStore datastore;
+	private DataStore datastore;
 
 	private IScope scope;
 
@@ -52,7 +52,7 @@ public class StreamFetcherManager {
 	 */
 	private int restartStreamFetcherPeriodSeconds;
 
-	public StreamFetcherManager(ISchedulingService schedulingService, IDataStore datastore,IScope scope) {
+	public StreamFetcherManager(ISchedulingService schedulingService, DataStore datastore,IScope scope) {
 		this.schedulingService = schedulingService;
 		this.datastore = datastore;
 		this.scope=scope;
@@ -208,11 +208,11 @@ public class StreamFetcherManager {
 		}
 	}
 
-	public IDataStore getDatastore() {
+	public DataStore getDatastore() {
 		return datastore;
 	}
 
-	public void setDatastore(IDataStore datastore) {
+	public void setDatastore(DataStore datastore) {
 		this.datastore = datastore;
 	}
 

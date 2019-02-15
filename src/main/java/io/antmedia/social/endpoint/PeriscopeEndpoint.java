@@ -32,7 +32,7 @@ import io.antmedia.api.periscope.type.chatEndpointTypes.ScreenshotMessage;
 import io.antmedia.api.periscope.type.chatEndpointTypes.ShareMessage;
 import io.antmedia.api.periscope.type.chatEndpointTypes.SuperHeartMessage;
 import io.antmedia.api.periscope.type.chatEndpointTypes.ViewerCountMessage;
-import io.antmedia.datastore.db.IDataStore;
+import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.types.BroadcastStatus;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
@@ -134,7 +134,7 @@ public class PeriscopeEndpoint extends VideoServiceEndpoint {
 	}
 
 
-	public PeriscopeEndpoint(String clientId, String clientSecret, IDataStore dataStore, SocialEndpointCredentials endpointCredentials, Vertx vertx) {
+	public PeriscopeEndpoint(String clientId, String clientSecret, DataStore dataStore, SocialEndpointCredentials endpointCredentials, Vertx vertx) {
 		super(clientId, clientSecret, dataStore, endpointCredentials, vertx);
 	}
 

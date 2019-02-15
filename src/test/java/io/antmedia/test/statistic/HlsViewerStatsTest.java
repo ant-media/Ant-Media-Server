@@ -16,7 +16,7 @@ import org.awaitility.Awaitility;
 import org.springframework.context.ApplicationContext;
 import org.springframework.test.context.ContextConfiguration;import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStoreFactory;
-import io.antmedia.datastore.db.IDataStore;
+import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.statistic.HlsViewerStats;
@@ -30,7 +30,7 @@ public class HlsViewerStatsTest {
 	public void testHLSViewerCount() {
 		HlsViewerStats viewerStats = new HlsViewerStats();
 
-		IDataStore dataStore = new InMemoryDataStore("datastore");
+		DataStore dataStore = new InMemoryDataStore("datastore");
 		viewerStats.setDataStore(dataStore);
 		
 		String streamId = String.valueOf((Math.random() * 999999));

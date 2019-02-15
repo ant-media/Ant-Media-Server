@@ -33,7 +33,7 @@ import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.muxer.MuxAdaptor;
 
 
-public class MapDBStore implements IDataStore {
+public class MapDBStore extends DataStore {
 
 	private DB db;
 	private BTreeMap<String, String> map;
@@ -1037,5 +1037,10 @@ public class MapDBStore implements IDataStore {
 			}
 		}
 		return result;
+	}
+	
+	@Override
+	public void saveStreamInfo(StreamInfo streamInfo) {
+		//no need to implement this method, it is used in cluster mode
 	}
 }

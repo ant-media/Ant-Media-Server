@@ -9,13 +9,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.antmedia.datastore.db.DataStoreFactory;
-import io.antmedia.datastore.db.IDataStore;
+import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 
 public class AcceptOnlyStreamsInDataStore implements IStreamPublishSecurity  {
 	
 	private DataStoreFactory dataStoreFactory;
-	private IDataStore dataStore;
+	private DataStore dataStore;
 	
 	private boolean enabled = true;
 	
@@ -48,7 +48,7 @@ public class AcceptOnlyStreamsInDataStore implements IStreamPublishSecurity  {
 	}
 	
 	
-	public IDataStore getDatastore() {
+	public DataStore getDatastore() {
 		if (dataStore == null) {
 			dataStore = dataStoreFactory.getDataStore();
 		}
@@ -56,7 +56,7 @@ public class AcceptOnlyStreamsInDataStore implements IStreamPublishSecurity  {
 	}
 	
 	
-	public void setDataStore(IDataStore dataStore) {
+	public void setDataStore(DataStore dataStore) {
 		this.dataStore = dataStore;
 	}
 
