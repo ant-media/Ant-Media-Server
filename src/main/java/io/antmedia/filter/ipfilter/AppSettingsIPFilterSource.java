@@ -12,7 +12,6 @@ public class AppSettingsIPFilterSource implements IPFilterSource {
 
     @Override
     public String getIPFilterRegex() {
-        //appSettings.getIPFilterRegex();
-        return "";
+        return appSettings.getIpFilterRegex();
     }
 }
