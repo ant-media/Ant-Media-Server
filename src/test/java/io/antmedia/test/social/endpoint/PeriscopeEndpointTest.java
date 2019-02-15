@@ -35,7 +35,7 @@ import io.antmedia.api.periscope.type.User.ProfileImageUrls;
 import io.antmedia.api.periscope.type.chatEndpointTypes.ChatMessage;
 import io.antmedia.api.periscope.type.chatEndpointTypes.HeartMessage;
 import io.antmedia.api.periscope.type.chatEndpointTypes.ViewerCountMessage;
-import io.antmedia.datastore.db.IDataStore;
+import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.types.BroadcastStatus;
@@ -102,7 +102,7 @@ public class PeriscopeEndpointTest {
 	//@Test
 	public void testAccessToken() {
 
-		IDataStore dataStore = null;
+		DataStore dataStore = null;
 		try {
 
 			File f = new File(TARGET_TEST_PROPERTIES);
@@ -179,7 +179,7 @@ public class PeriscopeEndpointTest {
 
 	//@Test This function should not be called as a test funciton. It is called in testAccessToken
 	public void testUpdateToken() {
-		IDataStore dataStore = new MapDBStore(TARGET_TEST_PROPERTIES);
+		DataStore dataStore = new MapDBStore(TARGET_TEST_PROPERTIES);
 
 		List<SocialEndpointCredentials> socialEndpoints = dataStore.getSocialEndpoints(0, 10);
 		assertEquals(1, socialEndpoints.size());
@@ -215,7 +215,7 @@ public class PeriscopeEndpointTest {
 	@Test
 	public void testAskDeviceParameters() {
 
-		IDataStore dataStore = null;
+		DataStore dataStore = null;
 		try {
 
 			dataStore = new InMemoryDataStore(TARGET_TEST_PROPERTIES);
@@ -285,7 +285,7 @@ public class PeriscopeEndpointTest {
 
 	@Test
 	public void testCreateBroadcastNoName() {
-		IDataStore dataStore = new MapDBStore(TARGET_TEST_PROPERTIES);
+		DataStore dataStore = new MapDBStore(TARGET_TEST_PROPERTIES);
 		List<SocialEndpointCredentials> socialEndpoints = dataStore.getSocialEndpoints(0, 10);
 		assertEquals(1, socialEndpoints.size());
 
@@ -320,7 +320,7 @@ public class PeriscopeEndpointTest {
 	}
 	
 	public void createBroadcast(boolean collectInteractivity) {
-		IDataStore dataStore = new MapDBStore(TARGET_TEST_PROPERTIES);
+		DataStore dataStore = new MapDBStore(TARGET_TEST_PROPERTIES);
 		List<SocialEndpointCredentials> socialEndpoints = dataStore.getSocialEndpoints(0, 10);
 		assertEquals(1, socialEndpoints.size());
 
@@ -379,7 +379,7 @@ public class PeriscopeEndpointTest {
 
 	@Test
 	public void testChatEndpoint() {
-		IDataStore dataStore = new MapDBStore(TARGET_TEST_PROPERTIES);
+		DataStore dataStore = new MapDBStore(TARGET_TEST_PROPERTIES);
 		List<SocialEndpointCredentials> socialEndpoints = dataStore.getSocialEndpoints(0, 10);
 		assertEquals(1, socialEndpoints.size());
 		

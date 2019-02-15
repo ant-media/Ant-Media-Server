@@ -7,7 +7,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.antmedia.datastore.db.IDataStore;
+import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointChannel;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
@@ -62,7 +62,7 @@ public abstract class VideoServiceEndpoint {
 
 	protected String clientSecret;
 
-	protected IDataStore dataStore;
+	protected DataStore dataStore;
 
 	private SocialEndpointCredentials credentials;
 	
@@ -78,7 +78,7 @@ public abstract class VideoServiceEndpoint {
 	protected boolean collectInteractivity = false;
 	
 
-	public VideoServiceEndpoint(String clientId, String clientSecret, IDataStore dataStore, SocialEndpointCredentials endpointCredentials, Vertx vertx) {
+	public VideoServiceEndpoint(String clientId, String clientSecret, DataStore dataStore, SocialEndpointCredentials endpointCredentials, Vertx vertx) {
 		this.clientId = clientId;
 		this.clientSecret = clientSecret;
 		this.dataStore = dataStore;

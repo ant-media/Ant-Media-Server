@@ -43,7 +43,7 @@ import org.springframework.stereotype.Component;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
-import io.antmedia.datastore.db.IDataStore;
+import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointChannel;
@@ -222,7 +222,7 @@ public class BroadcastRestService extends RestServiceBase{
 
 
 
-	public static Broadcast saveBroadcast(Broadcast broadcast, String status, String scopeName, IDataStore dataStore,
+	public static Broadcast saveBroadcast(Broadcast broadcast, String status, String scopeName, DataStore dataStore,
 			String settingsListenerHookURL, String fqdn) {
 
 		if (broadcast == null) {
@@ -795,12 +795,12 @@ public class BroadcastRestService extends RestServiceBase{
 
 
 			long broadcastCount = getDataStore().getBroadcastCount();
-			int pageCount = (int) broadcastCount/IDataStore.MAX_ITEM_IN_ONE_LIST
-					+ ((broadcastCount % IDataStore.MAX_ITEM_IN_ONE_LIST != 0) ? 1 : 0);
+			int pageCount = (int) broadcastCount/DataStore.MAX_ITEM_IN_ONE_LIST
+					+ ((broadcastCount % DataStore.MAX_ITEM_IN_ONE_LIST != 0) ? 1 : 0);
 
 			List<Broadcast> broadcastList = new ArrayList<>();
 			for (int i = 0; i < pageCount; i++) {
-				broadcastList.addAll(getDataStore().getBroadcastList(i*IDataStore.MAX_ITEM_IN_ONE_LIST, IDataStore.MAX_ITEM_IN_ONE_LIST));
+				broadcastList.addAll(getDataStore().getBroadcastList(i*DataStore.MAX_ITEM_IN_ONE_LIST, DataStore.MAX_ITEM_IN_ONE_LIST));
 			}
 
 			StringBuilder insertQueryString = new StringBuilder();
@@ -932,12 +932,12 @@ public class BroadcastRestService extends RestServiceBase{
 			if (vodFolderPath != null && !vodFolderPath.isEmpty()) {
 
 				long totalVodNumber = getDataStore().getTotalVodNumber();
-				int pageCount = (int) totalVodNumber/IDataStore.MAX_ITEM_IN_ONE_LIST 
-						+ ((totalVodNumber % IDataStore.MAX_ITEM_IN_ONE_LIST != 0) ? 1 : 0);
+				int pageCount = (int) totalVodNumber/DataStore.MAX_ITEM_IN_ONE_LIST 
+						+ ((totalVodNumber % DataStore.MAX_ITEM_IN_ONE_LIST != 0) ? 1 : 0);
 
 				List<VoD> vodList = new ArrayList<>();
 				for (int i = 0; i < pageCount; i++) {
-					vodList.addAll(getDataStore().getVodList(i*IDataStore.MAX_ITEM_IN_ONE_LIST, IDataStore.MAX_ITEM_IN_ONE_LIST));
+					vodList.addAll(getDataStore().getVodList(i*DataStore.MAX_ITEM_IN_ONE_LIST, DataStore.MAX_ITEM_IN_ONE_LIST));
 				}
 
 

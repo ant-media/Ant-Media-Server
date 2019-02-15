@@ -43,7 +43,7 @@ import com.amazonaws.services.s3.model.GetBucketWebsiteConfigurationRequest;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
-import io.antmedia.datastore.db.IDataStore;
+import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
@@ -124,7 +124,7 @@ public class RestServiceUnitTest {
 		restServiceReal.setAppSettings(settings);
 
 		Broadcast broadcast = new Broadcast(null, "name");
-		IDataStore store = new InMemoryDataStore("testdb");
+		DataStore store = new InMemoryDataStore("testdb");
 		restServiceReal.setDataStore(store);
 
 		Process process = mock(Process.class);
@@ -183,7 +183,7 @@ public class RestServiceUnitTest {
 		String vodId = RandomStringUtils.randomNumeric(24);
 		VoD newVod = new VoD("vodFile", "vodFile", file.getPath(), file.getName(), System.currentTimeMillis(), 0, 6000,
 				VoD.USER_VOD,vodId);
-		IDataStore store = new InMemoryDataStore("testdb");
+		DataStore store = new InMemoryDataStore("testdb");
 		restServiceReal.setDataStore(store);
 
 		assertNotNull(store.addVod(newVod));
@@ -510,7 +510,7 @@ public class RestServiceUnitTest {
 		restServiceReal.setAppSettings(settings);
 
 		Broadcast broadcast = new Broadcast(null, "name");
-		IDataStore store = new InMemoryDataStore("testdb");
+		DataStore store = new InMemoryDataStore("testdb");
 		restServiceReal.setDataStore(store);
 		Broadcast createBroadcast = restServiceReal.createBroadcast(broadcast);
 
@@ -531,7 +531,7 @@ public class RestServiceUnitTest {
 		restServiceReal.setAppSettings(settings);
 
 		Broadcast broadcast = new Broadcast(null, "name");
-		IDataStore store = new InMemoryDataStore("testdb");
+		DataStore store = new InMemoryDataStore("testdb");
 		restServiceReal.setDataStore(store);
 
 		Scope scope = mock(Scope.class);
@@ -566,7 +566,7 @@ public class RestServiceUnitTest {
 		restServiceReal.setAppSettings(settings);
 
 		Broadcast broadcast = new Broadcast(null, "name");
-		IDataStore store = new InMemoryDataStore("testdb");
+		DataStore store = new InMemoryDataStore("testdb");
 		restServiceReal.setDataStore(store);
 
 		Scope scope = mock(Scope.class);
@@ -781,7 +781,7 @@ public class RestServiceUnitTest {
 		restServiceReal.setAppSettings(settings);
 
 
-		IDataStore store = new InMemoryDataStore("testdb");
+		DataStore store = new InMemoryDataStore("testdb");
 		restServiceReal.setDataStore(store);
 
 		Scope scope = mock(Scope.class);
@@ -840,7 +840,7 @@ public class RestServiceUnitTest {
 			
 			restServiceReal.setScope(scope);
 			
-			IDataStore store = new InMemoryDataStore("testdb");
+			DataStore store = new InMemoryDataStore("testdb");
 			restServiceReal.setDataStore(store);
 			
 			assertNull(f.list());
@@ -888,7 +888,7 @@ public class RestServiceUnitTest {
 		restServiceReal.setAppSettings(settings);
 
 		Broadcast broadcast = new Broadcast(null, "name");
-		IDataStore store = new InMemoryDataStore("testdb");
+		DataStore store = new InMemoryDataStore("testdb");
 		restServiceReal.setDataStore(store);
 		Broadcast createBroadcast = restServiceReal.createBroadcast(broadcast);
 
@@ -937,7 +937,7 @@ public class RestServiceUnitTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-		IDataStore store = new InMemoryDataStore("testdb");
+		DataStore store = new InMemoryDataStore("testdb");
 		restServiceReal.setDataStore(store);
 
 		Broadcast createdBroadcast = restServiceReal.createBroadcast(broadcast);
@@ -962,7 +962,7 @@ public class RestServiceUnitTest {
 
 
 		Broadcast broadcast = new Broadcast(null, "name");
-		IDataStore store = new InMemoryDataStore("testdb");
+		DataStore store = new InMemoryDataStore("testdb");
 		restServiceReal.setDataStore(store);
 		Broadcast createBroadcast = restServiceReal.createBroadcast(broadcast);
 
@@ -1037,7 +1037,7 @@ public class RestServiceUnitTest {
 	@Test
 	public void testTokenOperations() {
 		
-		IDataStore store = new InMemoryDataStore("testdb");
+		DataStore store = new InMemoryDataStore("testdb");
 		restServiceReal.setDataStore(store);
 		
 		//create token
@@ -1086,7 +1086,7 @@ public class RestServiceUnitTest {
 	@Test
 	public void testObjectDetectionOperations() {
 		
-		IDataStore store = new InMemoryDataStore("testdb");
+		DataStore store = new InMemoryDataStore("testdb");
 		restServiceReal.setDataStore(store);
 		
 		String streamId = "object_streamId";

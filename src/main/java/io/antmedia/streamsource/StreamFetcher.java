@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
-import io.antmedia.datastore.db.IDataStore;
+import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.muxer.MuxAdaptor;
@@ -284,6 +284,10 @@ public class StreamFetcher {
 							 ******************************************************/
 							if (bufferTime > 0) 
 							{
+								/*
+								 * If there is a bufferTime in the server.
+								 * Generally we don't use this feature most of the time
+								 */
 								AVPacket packet = getAVPacket();
 								av_packet_ref(packet, pkt);
 								bufferQueue.add(packet);
@@ -380,7 +384,7 @@ public class StreamFetcher {
 		}
 
 		private void setUpEndPoints(String publishedName, MuxAdaptor muxAdaptor) {
-			IDataStore dataStore = getInstance().getDataStore();
+			DataStore dataStore = getInstance().getDataStore();
 			Broadcast broadcast = dataStore.get(publishedName);
 			if (broadcast != null) {
 				List<Endpoint> endPointList = broadcast.getEndPointList();
@@ -397,7 +401,9 @@ public class StreamFetcher {
 
 		private void writeAllBufferedPackets() 
 		{
+			logger.info("write all buffered packets for stream: {}", stream.getStreamId());
 			while (!bufferQueue.isEmpty()) {
+				
 				AVPacket pkt = bufferQueue.poll();
 				muxAdaptor.writePacket(inputFormatContext.streams(pkt.stream_index()), pkt);
 				av_packet_unref(pkt);

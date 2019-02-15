@@ -35,7 +35,7 @@ import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStoreFactory;
-import io.antmedia.datastore.db.IDataStore;
+import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
@@ -161,7 +161,7 @@ public class StreamFetcherTest extends AbstractJUnit4SpringContextTests{
 		
 		Broadcast endpointStream = restService.createBroadcast("endpoint_stream");
 		
-		IDataStore dataStore = app.getDataStore();
+		DataStore dataStore = app.getDataStore();
 		
 		String streamId = RandomStringUtils.randomAlphanumeric(8);
 		Process rtmpSendingProcess = AppFunctionalTest.execute(ffmpegPath
