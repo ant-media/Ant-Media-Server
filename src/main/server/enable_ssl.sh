@@ -266,6 +266,71 @@ if [ $OUT -ne 0 ]; then
  exit $OUT
 fi
 
+
+
+
+#get auto-renew tool
+
+$SUDO wget https://dl.eff.org/certbot-auto 
+
+OUT=$?
+if [ $OUT -ne 0 ]; then
+ echo -e $ERROR_MESSAGE
+ exit $OUT
+fi
+
+#grant permission to tool
+
+$SUDO chmod a+x certbot-auto
+
+OUT=$?
+if [ $OUT -ne 0 ]; then
+ echo -e $ERROR_MESSAGE
+ exit $OUT
+fi
+
+
+
+#add renew job to crontab
+$SUDO crontab -l > mycron
+
+
+#echo new cron into cron file
+#run renew script in each 80 days
+$SUDO echo "00 03 */80 * * cd /etc/letsencrypt/ && ./certbot-auto renew" >> mycron
+
+
+OUT=$?
+if [ $OUT -ne 0 ]; then
+ echo -e $ERROR_MESSAGE
+ exit $OUT
+fi
+
+
+#install new cron file
+$SUDO crontab mycron
+
+
+OUT=$?
+if [ $OUT -ne 0 ]; then
+ echo -e $ERROR_MESSAGE
+ exit $OUT
+fi
+
+#remove temp cron
+$SUDO rm mycron
+
+#restart cron jobs
+$SUDO systemctl restart cron
+
+OUT=$?
+if [ $OUT -ne 0 ]; then
+ echo -e $ERROR_MESSAGE
+ exit $OUT
+fi
+
+
+
 $SUDO service antmedia stop
 
 OUT=$?
@@ -281,6 +346,8 @@ if [ $OUT -ne 0 ]; then
  echo -e $ERROR_MESSAGE
  exit $OUT
 fi
+
+
 
 
 echo "SSL certificate is installed."
