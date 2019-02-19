@@ -221,6 +221,9 @@
    			</bean>
    		</constructor-arg>	
    	</bean>
+   	
+   	<bean id="resourceMonitor" class="io.antmedia.statistic.ResourceMonitor" init-method="start">
+   	</bean>
     
 
 </beans>

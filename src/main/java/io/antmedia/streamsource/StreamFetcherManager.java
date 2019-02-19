@@ -11,6 +11,7 @@ import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.antmedia.IResourceMonitor;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.muxer.MuxAdaptor;
@@ -89,7 +90,12 @@ public class StreamFetcherManager {
 
 
 	public StreamFetcher startStreaming(Broadcast broadcast) {	
-
+		if(scope.getContext().hasBean(IResourceMonitor.BEAN_NAME)) {
+			IResourceMonitor monitor = (IResourceMonitor) scope.getContext().getBean(IResourceMonitor.BEAN_NAME);
+			if(monitor.getAvgCpuUsage() > monitor.getCpuLimit()) {
+				return null;
+			}
+		}
 		StreamFetcher streamScheduler = null;
 		try {
 			streamScheduler =  make(broadcast, scope, schedulingService);
