@@ -90,11 +90,11 @@ public class StreamFetcherManager {
 
 
 	public StreamFetcher startStreaming(Broadcast broadcast) {	
-		if(scope.getContext().hasBean(IResourceMonitor.BEAN_NAME)) {
-			IResourceMonitor monitor = (IResourceMonitor) scope.getContext().getBean(IResourceMonitor.BEAN_NAME);
-			if(monitor.getAvgCpuUsage() > monitor.getCpuLimit()) {
-				return null;
-			}
+		IResourceMonitor monitor = (IResourceMonitor) scope.getContext().getBean(IResourceMonitor.BEAN_NAME);
+		int cpuLoad = monitor.getAvgCpuUsage();
+		if(cpuLoad > monitor.getCpuLimit()) {
+			logger.error("Stream Fetcher can not be created due to high cpu load: {}", cpuLoad);
+			return null;
 		}
 		StreamFetcher streamScheduler = null;
 		try {
@@ -118,7 +118,7 @@ public class StreamFetcherManager {
 	public Result stopStreaming(Broadcast stream) {
 		logger.warn("inside of stopStreaming for {}", stream.getStreamId());
 		Result result = new Result(false);
-		
+
 		for (StreamFetcher scheduler : streamFetcherList) {
 			if (scheduler.getStream().getStreamId().equals(stream.getStreamId())) {
 				scheduler.stopStream();
@@ -181,12 +181,12 @@ public class StreamFetcherManager {
 					}
 				}
 			}
-			
+
 		}, streamCheckerIntervalMs);
 
 		logger.info("StreamFetcherSchedule job name {}", streamFetcherScheduleJobName);
 	}
-	
+
 	public void checkStreamFetchersStatus() {
 		for (StreamFetcher streamScheduler : streamFetcherList) {
 			Broadcast stream = streamScheduler.getStream();
@@ -197,7 +197,7 @@ public class StreamFetcherManager {
 			}
 		}
 	}
-	
+
 	public void restartStreamFetchers() {
 		for (StreamFetcher streamScheduler : streamFetcherList) {
 

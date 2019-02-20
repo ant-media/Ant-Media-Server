@@ -68,6 +68,6 @@ public class ResourceMonitor implements IResourceMonitor{
 
 	@Override
 	public int getCpuLimit() {
-		return 80;
+		return 70;
 	}
 }
