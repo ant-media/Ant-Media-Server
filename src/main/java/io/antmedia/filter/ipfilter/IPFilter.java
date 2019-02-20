@@ -21,10 +21,6 @@ public class IPFilter implements Filter {
     public IPFilter() {
     }
 
-    // the regex must define whole string to match - for example a substring without .* will not match
-    // note the double backslashes that need to be present in Java code but not in web.xml
-    private String ip_regex = "172\\.20\\.\\d+\\.\\d+.*";
-
     public void init(FilterConfig filterConfig) throws ServletException {
         this.config = filterConfig;
         if(this.ipFilterSource != null) {
@@ -35,6 +31,9 @@ public class IPFilter implements Filter {
         String ip = request.getRemoteAddr();
         HttpServletResponse httpResp = null;
         if (response instanceof HttpServletResponse) httpResp = (HttpServletResponse) response;
+
+        if(httpResp == null) return;
+
         if (ip.matches(ipFilterSource.getIPFilterRegex())) {
             chain.doFilter(request, response);
         } else {
@@ -46,5 +45,7 @@ public class IPFilter implements Filter {
         ApplicationContext context = (ApplicationContext) config.getServletContext().getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
         return (AppSettings) context.getBean(AppSettings.BEAN_NAME);
     }
-    public void destroy() {}
+    public void destroy() {
+        //nothing to clean up
+    }
 }
