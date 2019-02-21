@@ -12,6 +12,7 @@ import io.antmedia.datastore.preference.PreferenceStore;
 import io.antmedia.security.AcceptOnlyStreamsInDataStore;
 
 public class AppSettingsManager {
+	private static final String DEFAULT_LOCALHOST = "127.0.0.1";
 	private static final Logger log = LoggerFactory.getLogger(AppSettingsManager.class);
 
 	private AppSettingsManager() {
@@ -89,14 +90,16 @@ public class AppSettingsManager {
 		store.put(AppSettings.SETTINGS_WEBRTC_FRAME_RATE, String.valueOf(appsettings.getWebRTCFrameRate()));
 		store.put(AppSettings.SETTINGS_HASH_CONTROL_PUBLISH_ENABLED, String.valueOf(appsettings.isHashControlPublishEnabled()));
 		store.put(AppSettings.SETTINGS_HASH_CONTROL_PLAY_ENABLED, String.valueOf(appsettings.isHashControlPlayEnabled()));
-		store.put(AppSettings.SETTINGS_REMOTE_ALLOWED_CIDR, appsettings.getRemoteAllowedCIDR());
-
+		
+		store.put(AppSettings.SETTINGS_REMOTE_ALLOWED_CIDR, appsettings.getRemoteAllowedCIDR() != null 
+																? appsettings.getRemoteAllowedCIDR() 
+																: DEFAULT_LOCALHOST);
+		
 		if (appsettings.getVodFolder() == null) {
 			store.put(AppSettings.SETTINGS_VOD_FOLDER, "");
 		}else {
 			store.put(AppSettings.SETTINGS_VOD_FOLDER, appsettings.getVodFolder());
 		}
-
 
 		if (appsettings.getHlsListSize() < 5) {
 			store.put(AppSettings.SETTINGS_HLS_LIST_SIZE, "5");
