@@ -18,6 +18,7 @@ public class ResourceMonitor implements IResourceMonitor{
 	private int windowSize = 5;
 	private int measurementPeriod = 3000;
 	private int avgCpuUsage;
+	private int cpuLimit = 70;
 	
 	public void start() {
 		getVertx().setPeriodic(measurementPeriod, l -> {
@@ -66,8 +67,12 @@ public class ResourceMonitor implements IResourceMonitor{
 	}
 
 
+	public void setCpuLimit(int cpuLimit) {
+		this.cpuLimit = cpuLimit;
+	}
+	
 	@Override
 	public int getCpuLimit() {
-		return 70;
+		return cpuLimit;
 	}
 }
