@@ -216,9 +216,14 @@ public class AppSettingsManager {
 			appSettings.setPreviewOverwrite(Boolean.parseBoolean(store.get(AppSettings.SETTINGS_PREVIEW_OVERWRITE)));
 		}
 		
-		if (store.get(AppSettings.SETTINGS_REMOTE_ALLOWED_CIDR) != null)
+		String remoteAllowedCIDR = store.get(AppSettings.SETTINGS_REMOTE_ALLOWED_CIDR);
+		if (remoteAllowedCIDR != null && !remoteAllowedCIDR.isEmpty())
 		{
 			appSettings.setRemoteAllowedCIDR(store.get(AppSettings.SETTINGS_REMOTE_ALLOWED_CIDR));
+		}
+		else {
+			//default value
+			appSettings.setRemoteAllowedCIDR(DEFAULT_LOCALHOST);
 		}
 		
 		return appSettings;

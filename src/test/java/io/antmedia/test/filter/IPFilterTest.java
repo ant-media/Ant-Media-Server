@@ -1,6 +1,7 @@
 package io.antmedia.test.filter;
 
 import org.junit.Test;
+import org.mockito.Mockito;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -19,16 +20,18 @@ public class IPFilterTest {
 
     @Test
     public void testDoFilterPass() throws IOException, ServletException {
-        IPFilter ipFilter = new IPFilter();
+        IPFilter ipFilter = Mockito.spy(new IPFilter());
 
         MockHttpServletRequest httpServletRequest = new MockHttpServletRequest();
         httpServletRequest.setRemoteAddr("127.0.0.1");
+        
         MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
         MockFilterChain filterChain = new MockFilterChain();
         
         AppSettings appSettings = new AppSettings();
         appSettings.setRemoteAllowedCIDR("127.0.0.1/8");
-        ipFilter.setAllowedCIDRList(appSettings.getAllowedCIDRList());
+        
+        Mockito.doReturn(appSettings).when(ipFilter).getAppSettings();
         
         ipFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
 
@@ -37,7 +40,7 @@ public class IPFilterTest {
 
     @Test
     public void testDoFilterFail() throws IOException, ServletException {
-        IPFilter ipFilter = new IPFilter();
+        IPFilter ipFilter = Mockito.spy(new IPFilter());
 
         MockHttpServletRequest httpServletRequest = new MockHttpServletRequest();
         httpServletRequest.setRemoteAddr("192.168.0.1");
@@ -45,7 +48,7 @@ public class IPFilterTest {
         MockFilterChain filterChain = new MockFilterChain();
         AppSettings appSettings = new AppSettings();
         appSettings.setRemoteAllowedCIDR("127.0.0.1/8");
-        ipFilter.setAllowedCIDRList(appSettings.getAllowedCIDRList());
+        Mockito.doReturn(appSettings).when(ipFilter).getAppSettings();
         
         ipFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
 

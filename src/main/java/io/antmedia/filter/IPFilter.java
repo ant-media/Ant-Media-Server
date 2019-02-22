@@ -27,14 +27,8 @@ public class IPFilter implements Filter {
 	protected Logger log = LoggerFactory.getLogger(IPFilter.class);
 	private FilterConfig config;
 
-	/**
-	 * The list of allowed {@link NetMask}s
-	 */
-	private List<NetMask> allowedCIDRList;
-
 	public void init(FilterConfig filterConfig) throws ServletException {
 		this.config = filterConfig;
-		allowedCIDRList = getAppSettings().getAllowedCIDRList();
 	}
 
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
@@ -73,7 +67,8 @@ public class IPFilter implements Filter {
 			log.error("error", e);
 			return false;
 		}
-
+		List<NetMask> allowedCIDRList = getAppSettings().getAllowedCIDRList();
+		
 		for (final NetMask nm : allowedCIDRList) {
 			if (nm.matches(addr)) {
 				return true;
@@ -84,11 +79,4 @@ public class IPFilter implements Filter {
 		return false;
 	}
 
-	public List<NetMask> getAllowedCIDRList() {
-		return allowedCIDRList;
-	}
-
-	public void setAllowedCIDRList(List<NetMask> allowedCIDRList) {
-		this.allowedCIDRList = allowedCIDRList;
-	}
 }
