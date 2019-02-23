@@ -758,7 +758,7 @@ public class RestServiceTest {
 		return null;
 	}
 
-	public List<Broadcast> callGetBroadcastList() {
+	public static List<Broadcast> callGetBroadcastList() {
 		try {
 
 			String url = ROOT_SERVICE_URL + "/broadcast/getList/0/50";

@@ -11,15 +11,45 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.List;
 
+import org.apache.catalina.util.NetMask;
 import org.junit.Test;
 import org.red5.server.Launcher;
+import org.red5.server.scope.WebScope;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.annotation.DirtiesContext.ClassMode;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 
 import io.antmedia.AppSettings;
 import io.antmedia.EncoderSettings;
 import io.antmedia.rest.BroadcastRestService;
 
-public class AppSettingsUnitTest {
+@ContextConfiguration(locations = { "test.xml" })
+@DirtiesContext(classMode = ClassMode.AFTER_CLASS)
+public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 
+	
+	protected WebScope appScope;
+	static {
+		System.setProperty("red5.deployment.type", "junit");
+		System.setProperty("red5.root", ".");
+	}
+	
+	@Test
+	public void testDefaultSettings() {
+
+		if (appScope == null) {
+			appScope = (WebScope) applicationContext.getBean("web.scope");
+			assertTrue(appScope.getDepth() == 1);
+		}
+		
+		AppSettings appSettings = (AppSettings) applicationContext.getBean("app.settings");
+		
+		List<NetMask> allowedCIDRList = appSettings.getAllowedCIDRList();
+		System.out.println("allowedCIDRList ->" + allowedCIDRList.size());
+	}
+	
+	
 	@Test
 	public void testEncodeSettings() {
 		AppSettings appSettings = new AppSettings();

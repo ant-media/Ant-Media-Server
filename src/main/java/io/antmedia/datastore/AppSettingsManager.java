@@ -12,6 +12,7 @@ import io.antmedia.datastore.preference.PreferenceStore;
 import io.antmedia.security.AcceptOnlyStreamsInDataStore;
 
 public class AppSettingsManager {
+	private static final String DEFAULT_LOCALHOST = "127.0.0.1";
 	private static final Logger log = LoggerFactory.getLogger(AppSettingsManager.class);
 
 	private AppSettingsManager() {
@@ -50,6 +51,8 @@ public class AppSettingsManager {
 				appSettings.setHashControlPlayEnabled(settingsModel.isHashControlPlayEnabled());
 				appSettings.setTokenHashSecret(settingsModel.getTokenHashSecret());
 
+				appSettings.setRemoteAllowedCIDR(settingsModel.getRemoteAllowedCIDR());
+				
 				appSettings.setAdaptiveResolutionList(settingsModel.getEncoderSettings());
 
 				String oldVodFolder = appSettings.getVodFolder();
@@ -88,13 +91,15 @@ public class AppSettingsManager {
 		store.put(AppSettings.SETTINGS_HASH_CONTROL_PUBLISH_ENABLED, String.valueOf(appsettings.isHashControlPublishEnabled()));
 		store.put(AppSettings.SETTINGS_HASH_CONTROL_PLAY_ENABLED, String.valueOf(appsettings.isHashControlPlayEnabled()));
 		
-
+		store.put(AppSettings.SETTINGS_REMOTE_ALLOWED_CIDR, appsettings.getRemoteAllowedCIDR() != null 
+																? appsettings.getRemoteAllowedCIDR() 
+																: DEFAULT_LOCALHOST);
+		
 		if (appsettings.getVodFolder() == null) {
 			store.put(AppSettings.SETTINGS_VOD_FOLDER, "");
 		}else {
 			store.put(AppSettings.SETTINGS_VOD_FOLDER, appsettings.getVodFolder());
 		}
-
 
 		if (appsettings.getHlsListSize() < 5) {
 			store.put(AppSettings.SETTINGS_HLS_LIST_SIZE, "5");
@@ -210,7 +215,17 @@ public class AppSettingsManager {
 		if (store.get(AppSettings.SETTINGS_PREVIEW_OVERWRITE) != null) {
 			appSettings.setPreviewOverwrite(Boolean.parseBoolean(store.get(AppSettings.SETTINGS_PREVIEW_OVERWRITE)));
 		}
-
+		
+		String remoteAllowedCIDR = store.get(AppSettings.SETTINGS_REMOTE_ALLOWED_CIDR);
+		if (remoteAllowedCIDR != null && !remoteAllowedCIDR.isEmpty())
+		{
+			appSettings.setRemoteAllowedCIDR(store.get(AppSettings.SETTINGS_REMOTE_ALLOWED_CIDR));
+		}
+		else {
+			//default value
+			appSettings.setRemoteAllowedCIDR(DEFAULT_LOCALHOST);
+		}
+		
 		return appSettings;
 	}
 
