@@ -21,9 +21,7 @@ public class ResourceMonitor implements IResourceMonitor{
 	private int cpuLimit = 70;
 	
 	public void start() {
-		getVertx().setPeriodic(measurementPeriod, l -> {
-			addCpuMeasurement(SystemUtils.getSystemCpuLoad());
-		});
+		getVertx().setPeriodic(measurementPeriod, l -> addCpuMeasurement(SystemUtils.getSystemCpuLoad()));
 	}
 	
 	
