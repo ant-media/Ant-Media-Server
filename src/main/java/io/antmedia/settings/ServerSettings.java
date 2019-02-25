@@ -12,6 +12,21 @@ public class ServerSettings {
 	 * Customer License Key
 	 */
 	private String licenceKey;
+	
+	/**
+	 * The setting for customized marketplace build
+	 */
+	
+	private boolean buildForMarket = false;
+	
+
+	public boolean isBuildForMarket() {
+		return buildForMarket;
+	}
+
+	public void setBuildForMarket(boolean buildForMarket) {
+		this.buildForMarket = buildForMarket;
+	}
 
 	public String getLicenceKey() {
 		return licenceKey;

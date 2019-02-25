@@ -51,6 +51,7 @@ import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettingsModel;
 import io.antmedia.EncoderSettings;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.Licence;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.rest.model.Result;
@@ -254,9 +255,9 @@ public class ConsoleAppRestServiceTest{
 			fail(e.getMessage());
 		}
 	}
-	
-	
-	
+
+
+
 	@Test
 	public void testGetServerSettings() {
 		try {
@@ -278,17 +279,17 @@ public class ConsoleAppRestServiceTest{
 			assertTrue(result.isSuccess());
 
 			// get serverSettings again
-			
+
 			serverSettings = callGetServerSettings();
-			
+
 			assertEquals("newServerName", serverSettings.getServerName());
 			assertEquals("newLicenseKey", serverSettings.getLicenceKey());
 
 			// return back to original values
-			
+
 			serverSettings.setServerName(serverName);
 			serverSettings.setLicenceKey(licenseKey);
-			
+
 			//save original settings
 			result = callSetServerSettings(serverSettings);
 			assertTrue(result.isSuccess());
@@ -300,7 +301,7 @@ public class ConsoleAppRestServiceTest{
 		}
 	}
 
-	
+
 
 	/**
 	 * This may be a bug, just check it out, it is working as expected
@@ -668,7 +669,7 @@ public class ConsoleAppRestServiceTest{
 
 	@Test
 	public void testTokenControl() {
-		Result enterpiseResult;
+		Result enterpriseResult;
 		try {
 
 			// authenticate user
@@ -678,8 +679,8 @@ public class ConsoleAppRestServiceTest{
 			Result authenticatedUserResult = callAuthenticateUser(user);
 			assertTrue(authenticatedUserResult.isSuccess());
 
-			enterpiseResult = callIsEnterpriseEdition();
-			if (!enterpiseResult.isSuccess()) {
+			enterpriseResult = callIsEnterpriseEdition();
+			if (!enterpriseResult.isSuccess()) {
 				//if it is not enterprise return
 				return ;
 			}
@@ -760,6 +761,78 @@ public class ConsoleAppRestServiceTest{
 
 	}
 
+
+	@Test
+	public void testLicenseControl() {
+
+		Result enterpriseResult;
+		try {
+
+			// authenticate user
+			User user = new User();
+			user.setEmail(TEST_USER_EMAIL);
+			user.setPassword(TEST_USER_PASS);
+			Result authenticatedUserResult = callAuthenticateUser(user);
+			assertTrue(authenticatedUserResult.isSuccess());
+
+			enterpriseResult = callIsEnterpriseEdition();
+			if (!enterpriseResult.isSuccess()) {
+				//if it is not enterprise return
+				return ;
+			}
+
+			// get Server Settings
+			ServerSettings serverSettings = callGetServerSettings();
+
+			//set test license key
+			serverSettings.setLicenceKey("test-test");
+			serverSettings.setBuildForMarket(false);
+
+			Result flag = callSetServerSettings(serverSettings);
+
+			
+			//request license check via rest service
+			Licence activeLicence = callGetLicenceStatus(serverSettings.getLicenceKey());
+
+
+			//it should not be null because test license key is active
+			assertNotNull(activeLicence);
+
+			//set build for market as true
+			serverSettings.setBuildForMarket(true);
+
+			//save this setting
+			flag = callSetServerSettings(serverSettings);
+
+			//check that setting is saved
+			assertTrue (flag.isSuccess());
+
+			
+			//check license status
+
+			activeLicence = callGetLicenceStatus(serverSettings.getLicenceKey());
+
+			//it should be null because it is market build
+			assertNull(activeLicence);
+
+
+
+			//set build for market setting to default
+			serverSettings.setBuildForMarket(false);
+
+			//save default setting
+			flag = callSetServerSettings(serverSettings);
+
+			//check that setting is saved
+			assertTrue (flag.isSuccess());
+
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+
+	}
 
 	@Test
 	public void testHashControl() {
@@ -866,29 +939,29 @@ public class ConsoleAppRestServiceTest{
 			Result authenticatedUserResult;
 			authenticatedUserResult = callAuthenticateUser(user);
 			assertTrue(authenticatedUserResult.isSuccess());
-			
+
 			String systemResourcesInfo = callGetSystemResourcesInfo();
-			
+
 			JSONParser parser = new JSONParser();		
 			JSONObject jsObject = (JSONObject) parser.parse(systemResourcesInfo);
 			JSONObject tmpObject = (JSONObject) jsObject.get("cpuUsage");
 			assertTrue(tmpObject.containsKey("processCPUTime"));
 			assertTrue(tmpObject.containsKey("systemCPULoad"));
 			assertTrue(tmpObject.containsKey("processCPULoad"));
-			
+
 			tmpObject = (JSONObject) jsObject.get("jvmMemoryUsage"); 
 			assertTrue(tmpObject.containsKey("maxMemory"));
 			assertTrue(tmpObject.containsKey("totalMemory"));
 			assertTrue(tmpObject.containsKey("freeMemory"));
 			assertTrue(tmpObject.containsKey("inUseMemory"));
-			
-			
+
+
 			tmpObject = (JSONObject) jsObject.get("systemInfo"); 
 			assertTrue(tmpObject.containsKey("osName"));
 			assertTrue(tmpObject.containsKey("osArch"));
 			assertTrue(tmpObject.containsKey("javaVersion"));
 			assertTrue(tmpObject.containsKey("processorCount"));
-			
+
 			tmpObject = (JSONObject) jsObject.get("systemMemoryInfo"); 
 			assertTrue(tmpObject.containsKey("virtualMemory"));
 			assertTrue(tmpObject.containsKey("totalMemory"));
@@ -897,7 +970,7 @@ public class ConsoleAppRestServiceTest{
 			assertTrue(tmpObject.containsKey("totalSwapSpace"));
 			assertTrue(tmpObject.containsKey("freeSwapSpace"));
 			assertTrue(tmpObject.containsKey("inUseSwapSpace"));
-			
+
 			tmpObject = (JSONObject) jsObject.get("fileSystemInfo"); 
 			assertTrue(tmpObject.containsKey("usableSpace"));
 			assertTrue(tmpObject.containsKey("totalSpace"));
@@ -905,18 +978,18 @@ public class ConsoleAppRestServiceTest{
 			assertTrue(tmpObject.containsKey("inUseSpace"));
 
 			assertTrue(jsObject.containsKey("gpuUsageInfo"));
-			
+
 			assertTrue(jsObject.containsKey("totalLiveStreamSize"));
-			
+
 			System.out.println("system resource info: " + systemResourcesInfo);
-				
+
 		}
 		catch (Exception e) {
 			fail(e.getMessage());
 		}
 
 	}
-	
+
 	@Test
 	public void testGetVersion() {
 		try {
@@ -927,18 +1000,18 @@ public class ConsoleAppRestServiceTest{
 			Result authenticatedUserResult;
 			authenticatedUserResult = callAuthenticateUser(user);
 			assertTrue(authenticatedUserResult.isSuccess());
-			
+
 			String version = callGetSoftwareVersion();
-			
+
 			Version versionObj = gson.fromJson(version, Version.class);
-			
+
 			assertEquals(13 , versionObj.getBuildNumber().length());
 			assertNotNull(versionObj.getVersionType());
 			assertNotEquals("null", versionObj.getVersionType());
-			
+
 			assertNotNull(versionObj.getVersionName());
 			assertNotEquals("null", versionObj.getVersionName());
-			
+
 		}
 		catch (Exception e) {
 			fail(e.getMessage());
@@ -1233,7 +1306,7 @@ public class ConsoleAppRestServiceTest{
 
 	}
 
-	
+
 	public static Result callSetServerSettings(ServerSettings serverSettings) throws Exception {
 		String url = ROOT_SERVICE_URL + "/changeServerSettings";
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
@@ -1256,13 +1329,13 @@ public class ConsoleAppRestServiceTest{
 		return tmp;
 
 	}
-	
+
 	public static String callGetSoftwareVersion() throws Exception {
 		String url = ROOT_SERVICE_URL + "/getVersion";
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
 				.setDefaultCookieStore(httpCookieStore).build();
 		Gson gson = new Gson();
-		
+
 		HttpUriRequest post = RequestBuilder.get().setUri(url).build();
 
 		HttpResponse response = client.execute(post);
@@ -1274,13 +1347,13 @@ public class ConsoleAppRestServiceTest{
 		log.info("result string: " + result.toString());
 		return result.toString();
 	}
-	
+
 	public static String callGetSystemResourcesInfo() throws Exception {
 		String url = ROOT_SERVICE_URL + "/getSystemResourcesInfo";
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
 				.setDefaultCookieStore(httpCookieStore).build();
 		Gson gson = new Gson();
-		
+
 		HttpUriRequest post = RequestBuilder.get().setUri(url).build();
 
 		HttpResponse response = client.execute(post);
@@ -1359,7 +1432,7 @@ public class ConsoleAppRestServiceTest{
 		assertNotNull(tmp);
 		return tmp;
 	}
-	
+
 	public static ServerSettings callGetServerSettings() throws Exception {
 
 		String url = ROOT_SERVICE_URL + "/getServerSettings";
@@ -1383,7 +1456,29 @@ public class ConsoleAppRestServiceTest{
 		assertNotNull(tmp);
 		return tmp;
 	}
-	
+
+	public static Licence callGetLicenceStatus(String key) throws Exception {
+
+		Licence tmp = null;
+
+		String url = ROOT_SERVICE_URL + "/getLicenceStatus/" + key;
+
+		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
+				.setDefaultCookieStore(httpCookieStore).build();
+		Gson gson = new Gson();
+
+		HttpUriRequest post = RequestBuilder.get().setUri(url).build();
+
+		HttpResponse response = client.execute(post);
+
+		StringBuffer result = RestServiceTest.readResponse(response);
+
+		log.info("result string: " + result.toString());
+		tmp = gson.fromJson(result.toString(), Licence.class);
+
+		return tmp;
+	}
+
 
 	public static StringBuffer readResponse(HttpResponse response) throws IOException {
 		BufferedReader rd = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
@@ -1425,7 +1520,7 @@ public class ConsoleAppRestServiceTest{
 
 		return tmpExec;
 	}
-	
+
 
 
 

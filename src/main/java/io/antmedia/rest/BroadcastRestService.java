@@ -56,6 +56,7 @@ import io.antmedia.rest.model.Interaction;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.Version;
 import io.antmedia.security.ITokenService;
+import io.antmedia.settings.ServerSettings;
 import io.antmedia.social.LiveComment;
 import io.antmedia.social.endpoint.PeriscopeEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
@@ -141,6 +142,8 @@ public class BroadcastRestService extends RestServiceBase{
 	public static final int MP4_NO_SET = 0;
 
 	private AppSettings appSettings;
+	private ServerSettings serverSettings;
+
 
 	public interface ProcessBuilderFactory {
 		Process make(String...args);
@@ -1855,7 +1858,12 @@ public class BroadcastRestService extends RestServiceBase{
 			return false;
 		}
 	}
-
+	
+	public boolean isMarketBuild() {
+		
+		return getServerSettings().isBuildForMarket();
+			
+	}
 	public long getRecordCount() {
 		return getDataStore().getBroadcastCount();
 	}
@@ -1876,6 +1884,16 @@ public class BroadcastRestService extends RestServiceBase{
 
 	public void setAppSettings(AppSettings appSettings) {
 		this.appSettings = appSettings;
+	}
+	
+	private ServerSettings getServerSettings() {
+		if (serverSettings == null) {
+			ApplicationContext appContext = getAppContext();
+			if (appContext != null) {
+				serverSettings = (ServerSettings) appContext.getBean(ServerSettings.BEAN_NAME);
+			}
+		}
+		return serverSettings;
 	}
 
 	public ProcessBuilderFactory getProcessBuilderFactory() {
