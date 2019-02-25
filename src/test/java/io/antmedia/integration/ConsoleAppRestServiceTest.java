@@ -14,6 +14,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.lang.reflect.Type;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
@@ -33,6 +34,7 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.client.LaxRedirectStrategy;
 import org.awaitility.Awaitility;
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.junit.After;
@@ -46,6 +48,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.hash.Hashing;
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettingsModel;
@@ -379,6 +382,100 @@ public class ConsoleAppRestServiceTest{
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+	}
+
+	@Test
+	public void testIPFilter() {
+		try {
+			
+			User user = new User();
+			user.setEmail(TEST_USER_EMAIL);
+			user.setPassword(TEST_USER_PASS);
+			Result authenticatedUserResult = callAuthenticateUser(user);
+			assertTrue(authenticatedUserResult.isSuccess());
+			
+			//get the applications from server
+			String applications = callGetApplications();
+
+			JSONObject appsJSON = (JSONObject) new JSONParser().parse(applications);
+			JSONArray jsonArray = (JSONArray) appsJSON.get("applications");
+			//choose the one of them
+
+			int index = (int)(Math.random()*jsonArray.size());
+			String appName = (String) jsonArray.get(index);
+			
+			log.info("appName: {}", appName);
+			
+			
+			//call a rest service 
+			List<Broadcast> broadcastList = callGetBroadcastList(appName);
+			//assert that it's successfull
+			assertNotNull(broadcastList);
+			
+			AppSettingsModel appSettings = callGetAppSettings(appName);
+
+			String remoteAllowedCIDR = appSettings.getRemoteAllowedCIDR();
+			assertEquals("127.0.0.1", remoteAllowedCIDR);
+			
+			//change the settings and ip filter does not accept rest services
+			appSettings.setRemoteAllowedCIDR("");
+			
+			Result result = callSetAppSettings(appName, appSettings);
+			assertTrue(result.isSuccess());
+
+			//call a rest service
+			broadcastList = callGetBroadcastList(appName);
+
+			//assert that it's failed
+			assertNull(broadcastList);
+			
+			assertEquals(403, lastStatusCode);
+
+			//restore settings
+			appSettings.setRemoteAllowedCIDR(remoteAllowedCIDR);
+			callSetAppSettings(appName, appSettings);
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+
+	}
+	
+	static int lastStatusCode;
+	public static List<Broadcast> callGetBroadcastList(String appName) {
+		try {
+
+			String url = "http://127.0.0.1:5080/" + appName + "/rest/broadcast/getList/0/50";
+
+			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+			// Gson gson = new Gson();
+			// Broadcast broadcast = null; //new Broadcast();
+			// broadcast.name = "name";
+
+			HttpUriRequest get = RequestBuilder.get().setUri(url)
+					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+					// .setEntity(new StringEntity(gson.toJson(broadcast)))
+					.build();
+
+			CloseableHttpResponse response = client.execute(get);
+
+			StringBuffer result = readResponse(response);
+
+			if (response.getStatusLine().getStatusCode() != 200) {
+				lastStatusCode = response.getStatusLine().getStatusCode();
+				throw new Exception(result.toString());
+			}
+			System.out.println("result string: " + result.toString());
+			Type listType = new TypeToken<List<Broadcast>>() {
+			}.getType();
+
+			return gson.fromJson(result.toString(), listType);
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return null;
 	}
 
 	@Test
@@ -1307,6 +1404,7 @@ public class ConsoleAppRestServiceTest{
 	}
 
 
+
 	public static Result callSetServerSettings(ServerSettings serverSettings) throws Exception {
 		String url = ROOT_SERVICE_URL + "/changeServerSettings";
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
@@ -1330,6 +1428,28 @@ public class ConsoleAppRestServiceTest{
 
 	}
 
+
+	public static String callGetApplications() throws Exception {
+		String url = ROOT_SERVICE_URL + "/getApplications";
+
+		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
+				.setDefaultCookieStore(httpCookieStore).build();
+		Gson gson = new Gson();
+
+		HttpUriRequest post = RequestBuilder.get().setUri(url).build();
+
+		HttpResponse response = client.execute(post);
+
+		StringBuffer result = RestServiceTest.readResponse(response);
+		if (response.getStatusLine().getStatusCode() != 200) {
+			throw new Exception(result.toString());
+		}
+		log.info("result string: " + result.toString());
+		return result.toString();
+	}
+
+
+
 	public static String callGetSoftwareVersion() throws Exception {
 		String url = ROOT_SERVICE_URL + "/getVersion";
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
@@ -1347,6 +1467,7 @@ public class ConsoleAppRestServiceTest{
 		log.info("result string: " + result.toString());
 		return result.toString();
 	}
+
 
 	public static String callGetSystemResourcesInfo() throws Exception {
 		String url = ROOT_SERVICE_URL + "/getSystemResourcesInfo";
