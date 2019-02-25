@@ -6,8 +6,9 @@ FULL_CHAIN_FILE=
 PRIVATE_KEY_FILE=
 domain=""
 password=
+renew_flag='false'
 
-while getopts i:d:p:f: option
+while getopts i:d:p:f:r option
 do
 case "${option}"
 in
@@ -15,8 +16,13 @@ f) FULL_CHAIN_FILE=${OPTARG};;
 p) PRIVATE_KEY_FILE=${OPTARG};;
 i) INSTALL_DIRECTORY=${OPTARG};;
 d) domain=${OPTARG};;
+r) renew_flag='true';;
+
+
+
 esac
 done
+
 
 usage() {
 	echo "Usage:"
@@ -55,6 +61,11 @@ delete_alias() {
   fi
 }
 
+if [ "$renew_flag" == "true" ]; then
+   echo "auto renew is enabled"
+
+fi
+
 
 #check domain name exists
 if [ -z "$domain" ]; then
@@ -62,6 +73,8 @@ if [ -z "$domain" ]; then
   usage
   exit 1
 fi
+
+
 
 fullChainFileExist=false
 if [ ! -z "$FULL_CHAIN_FILE" ] && [ -f "$FULL_CHAIN_FILE" ]; then
@@ -78,6 +91,10 @@ if [ "$fullChainFileExist" != "$privateKeyFileExist" ]; then
    usage
    exit 1
 fi
+
+
+
+
 
 if [ ! -d "$INSTALL_DIRECTORY" ]; then
   # Control will enter here if $DIRECTORY doesn't exist.
