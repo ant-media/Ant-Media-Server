@@ -9,13 +9,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.antmedia.datastore.db.DataStoreFactory;
-import io.antmedia.datastore.db.IDataStore;
+import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 
 public class ExpireStreamPublishSecurity implements IStreamPublishSecurity {
 
 	private DataStoreFactory dataStoreFactory;
-	private IDataStore dataStore;
+	private DataStore dataStore;
 
 
 	protected static Logger logger = LoggerFactory.getLogger(ExpireStreamPublishSecurity.class);
@@ -55,7 +55,7 @@ public class ExpireStreamPublishSecurity implements IStreamPublishSecurity {
 	}
 
 
-	public IDataStore getDatastore() {
+	public DataStore getDatastore() {
 		if (dataStore == null) {
 			dataStore = dataStoreFactory.getDataStore();
 		}
@@ -63,7 +63,7 @@ public class ExpireStreamPublishSecurity implements IStreamPublishSecurity {
 	}
 
 
-	public void setDataStore(IDataStore dataStore) {
+	public void setDataStore(DataStore dataStore) {
 		this.dataStore = dataStore;
 	}
 

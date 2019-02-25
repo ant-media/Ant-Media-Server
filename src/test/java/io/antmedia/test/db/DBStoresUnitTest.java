@@ -23,7 +23,7 @@ import org.mongodb.morphia.Datastore;
 import org.mongodb.morphia.query.Query;
 
 import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.datastore.db.IDataStore;
+import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.MongoStore;
@@ -63,7 +63,7 @@ public class DBStoresUnitTest {
 	@Test
 	public void testMapDBStore() {
 
-		IDataStore dataStore = new MapDBStore("testdb");
+		DataStore dataStore = new MapDBStore("testdb");
 		testBugGetExternalStreamsList(dataStore);
 		testGetPagination(dataStore);
 		testNullCheck(dataStore);
@@ -91,7 +91,7 @@ public class DBStoresUnitTest {
 	@Test
 	public void testMemoryDataStore() {
 
-		IDataStore dataStore = new InMemoryDataStore("testdb");
+		DataStore dataStore = new InMemoryDataStore("testdb");
 		testBugGetExternalStreamsList(dataStore);
 		testGetPagination(dataStore);
 		testNullCheck(dataStore);
@@ -116,7 +116,7 @@ public class DBStoresUnitTest {
 	@Test
 	public void testMongoStore() {
 
-		IDataStore dataStore = new MongoStore("localhost", "", "", "testdb");
+		DataStore dataStore = new MongoStore("localhost", "", "", "testdb");
 		Datastore store = ((MongoStore) dataStore).getDataStore();
 		Query<Broadcast> deleteQuery = store.find(Broadcast.class);
 		store.delete(deleteQuery);
@@ -154,7 +154,7 @@ public class DBStoresUnitTest {
 
 	}
 
-	public void clear(IDataStore dataStore) 
+	public void clear(DataStore dataStore) 
 	{
 		long numberOfStreams = dataStore.getBroadcastCount();
 		int pageSize = 10;
@@ -174,7 +174,7 @@ public class DBStoresUnitTest {
 
 	}
 
-	public void testGetActiveBroadcastCount(IDataStore dataStore) {
+	public void testGetActiveBroadcastCount(DataStore dataStore) {
 
 		//save random number of streams with status created
 		//long broadcastCountInDataStore = dataStore.getBroadcastCount();
@@ -243,7 +243,7 @@ public class DBStoresUnitTest {
 	}
 
 
-	public void testBugGetExternalStreamsList(IDataStore datastore) {
+	public void testBugGetExternalStreamsList(DataStore datastore) {
 
 
 		// add ip camera 
@@ -266,7 +266,7 @@ public class DBStoresUnitTest {
 
 	}
 
-	public void testSaveStreamInDirectory(IDataStore datastore) {
+	public void testSaveStreamInDirectory(DataStore datastore) {
 
 
 		File f = new File("src/test/resources");
@@ -301,7 +301,7 @@ public class DBStoresUnitTest {
 
 	}
 
-	public void testStreamWithId(IDataStore dataStore) {
+	public void testStreamWithId(DataStore dataStore) {
 		try {
 			Broadcast broadcast = new Broadcast();
 			broadcast.setName("stream_having_id");
@@ -319,7 +319,7 @@ public class DBStoresUnitTest {
 		}
 	}
 
-	public void testRTMPURL(IDataStore dataStore) {
+	public void testRTMPURL(DataStore dataStore) {
 		Broadcast broadcast = new Broadcast();
 		broadcast.setName("test");
 		String key = dataStore.save(broadcast);
@@ -347,7 +347,7 @@ public class DBStoresUnitTest {
 
 	}
 
-	public void testNullCheck(IDataStore dataStore) {
+	public void testNullCheck(DataStore dataStore) {
 
 		try {
 			String save = dataStore.save(null);
@@ -369,7 +369,7 @@ public class DBStoresUnitTest {
 		}
 	}
 
-	public void testVoDFunctions(IDataStore datastore) {
+	public void testVoDFunctions(DataStore datastore) {
 		//fail("Write test codes about saveVod, AddVod, AddUserVod, delete vod ");
 
 		//create a vod
@@ -419,7 +419,7 @@ public class DBStoresUnitTest {
 
 	}
 
-	public void testEditCameraInfo(IDataStore datastore) {
+	public void testEditCameraInfo(DataStore datastore) {
 
 		//fail("Write test codes about getCamera, getExternalStreamList ");
 
@@ -444,7 +444,7 @@ public class DBStoresUnitTest {
 		datastore.delete(camera.getStreamId());
 	}
 
-	public void testUpdateHLSViewerCount(IDataStore dataStore) {
+	public void testUpdateHLSViewerCount(DataStore dataStore) {
 		//create a stream
 		Broadcast broadcast = new Broadcast();
 		broadcast.setName("test");
@@ -479,7 +479,7 @@ public class DBStoresUnitTest {
 		}
 	}
 
-	public void testWebRTCViewerCount(IDataStore dataStore) {
+	public void testWebRTCViewerCount(DataStore dataStore) {
 		//create a stream
 		Broadcast broadcast = new Broadcast();
 		broadcast.setName("test");
@@ -521,7 +521,7 @@ public class DBStoresUnitTest {
 		}
 	}
 
-	public void testRTMPViewerCount(IDataStore dataStore) {
+	public void testRTMPViewerCount(DataStore dataStore) {
 		//create a stream
 		Broadcast broadcast = new Broadcast();
 		broadcast.setName("test");
@@ -563,7 +563,7 @@ public class DBStoresUnitTest {
 		}
 	}
 
-	public void testGetPagination(IDataStore dataStore) {
+	public void testGetPagination(DataStore dataStore) {
 
 		List<Broadcast> broadcastList2 = dataStore.getBroadcastList(0, 50);
 		for (Iterator iterator = broadcastList2.iterator(); iterator.hasNext();) {
@@ -632,7 +632,7 @@ public class DBStoresUnitTest {
 		}
 	}
 
-	public void testRemoveEndpoint(IDataStore dataStore) {
+	public void testRemoveEndpoint(DataStore dataStore) {
 		Broadcast broadcast = new Broadcast(null, null);
 		String name = "name 1";
 		String description = "description 2";
@@ -707,7 +707,7 @@ public class DBStoresUnitTest {
 
 	}
 
-	public void testSimpleOperations(IDataStore dataStore) {
+	public void testSimpleOperations(DataStore dataStore) {
 		try {
 
 			Broadcast broadcast = new Broadcast(null, null);
@@ -847,7 +847,7 @@ public class DBStoresUnitTest {
 	}
 
 
-	private void testFilterSearchOperations(IDataStore dataStore) {
+	private void testFilterSearchOperations(DataStore dataStore) {
 
 		Broadcast cameraBroadcast = new Broadcast("test", "192.168.1.100", "admin", "admin", "rtspUrl", "ipCamera");
 		Broadcast liveBroadcast = new Broadcast("live_test");
@@ -914,7 +914,7 @@ public class DBStoresUnitTest {
 	}
 
 
-	public void testAddSocialEndpointCredentials(IDataStore dataStore) 
+	public void testAddSocialEndpointCredentials(DataStore dataStore) 
 	{
 		// add social endpoint credential 
 
@@ -1058,7 +1058,7 @@ public class DBStoresUnitTest {
 	}
 
 
-	public void testSaveDetection(IDataStore dataStore){
+	public void testSaveDetection(DataStore dataStore){
 		String item1 = "item1";
 		long detectionTime = 434234L;
 		float probability1 = 0.1f;
@@ -1074,7 +1074,7 @@ public class DBStoresUnitTest {
 		assertEquals(detectionTime, list.get(0).detectionTime);	
 	}
 
-	public void testTokenOperations(IDataStore store) {
+	public void testTokenOperations(DataStore store) {
 
 		//create token
 		Token testToken = new Token();

@@ -3,14 +3,17 @@ package io.antmedia.statistic;
 import static org.bytedeco.javacpp.nvml.NVML_SUCCESS;
 import static org.bytedeco.javacpp.nvml.nvmlDeviceGetCount_v2;
 import static org.bytedeco.javacpp.nvml.nvmlDeviceGetHandleByIndex_v2;
-import static org.bytedeco.javacpp.nvml.*;
+import static org.bytedeco.javacpp.nvml.nvmlDeviceGetMemoryInfo;
+import static org.bytedeco.javacpp.nvml.nvmlDeviceGetName;
+import static org.bytedeco.javacpp.nvml.nvmlDeviceGetUtilizationRates;
 import static org.bytedeco.javacpp.nvml.nvmlInit_v2;
 
 import org.bytedeco.javacpp.IntPointer;
 import org.bytedeco.javacpp.Loader;
 import org.bytedeco.javacpp.nvml;
 import org.bytedeco.javacpp.nvml.nvmlDevice_st;
-import org.bytedeco.javacpp.nvml.*;
+import org.bytedeco.javacpp.nvml.nvmlMemory_t;
+import org.bytedeco.javacpp.nvml.nvmlUtilization_t;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -129,9 +132,11 @@ public class GPUUtils {
 	public String getDeviceName(int deviceIndex) {
 		nvmlDevice_st device = null;
 		if ((device = getDevice(deviceIndex)) != null) {
-			byte[] name = new byte[64];
-			if (nvmlDeviceGetName(device, name, name.length) == NVML_SUCCESS) {
-				return new String(name, 0, name.length);
+			byte[] nameByte = new byte[64];
+			if (nvmlDeviceGetName(device, nameByte, nameByte.length) == NVML_SUCCESS) {
+				String name = new String(nameByte, 0, nameByte.length);
+				int indexOf = name.indexOf("\u0000");	
+				return name.substring(0, indexOf > 0 ? indexOf : name.length());
 			}
 		}
 		return null;

@@ -44,7 +44,7 @@ import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
-import io.antmedia.datastore.db.IDataStore;
+import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.integration.AppFunctionalTest;
@@ -260,7 +260,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		getAppSettings().setDeleteHLSFilesOnEnded(false);
 
-		IDataStore dataStore = new MapDBStore("target/testAddCamera.db"); //applicationContext.getBean(IDataStore.BEAN_NAME);
+		DataStore dataStore = new MapDBStore("target/testAddCamera.db"); //applicationContext.getBean(IDataStore.BEAN_NAME);
 
 		assertNotNull(dataStore);
 		StreamFetcherManager streamFetcherManager = new StreamFetcherManager(scheduler, dataStore, appScope);
@@ -326,7 +326,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		getAppSettings().setDeleteHLSFilesOnEnded(false);
 
 		//create a test db
-		IDataStore dataStore = new MapDBStore("target/testDelete.db"); 
+		DataStore dataStore = new MapDBStore("target/testDelete.db"); 
 		service.setDataStore(dataStore);
 		
 		//create a stream fetcher
@@ -399,7 +399,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		getAppSettings().setDeleteHLSFilesOnEnded(false);
 
 		//create a test db
-		IDataStore dataStore = new MapDBStore("target/testStop.db"); 
+		DataStore dataStore = new MapDBStore("target/testStop.db"); 
 		service.setDataStore(dataStore);
 		
 		//create a stream fetcher
@@ -535,7 +535,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 				e.printStackTrace();
 			}
 		}
-		IDataStore dataStore = app.getDataStore(); //new MapDBStore("target/test.db"); //applicationContext.getBean(IDataStore.BEAN_NAME);
+		DataStore dataStore = app.getDataStore(); //new MapDBStore("target/test.db"); //applicationContext.getBean(IDataStore.BEAN_NAME);
 
 		//assertNotNull(dataStore);
 		

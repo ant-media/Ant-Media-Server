@@ -16,7 +16,7 @@ import org.springframework.web.context.support.WebApplicationContextUtils;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.DataStoreFactory;
-import io.antmedia.datastore.db.IDataStore;
+import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
@@ -28,7 +28,7 @@ public abstract class RestServiceBase {
 	@Context
 	protected ServletContext servletContext;
 	protected DataStoreFactory dataStoreFactory;
-	private IDataStore dbStore;
+	private DataStore dbStore;
 	protected ApplicationContext appCtx;
 	protected IScope scope;
 	protected AntMediaApplicationAdapter appInstance;
@@ -116,14 +116,14 @@ public abstract class RestServiceBase {
 		this.scope = scope;
 	}
 
-	public IDataStore getDataStore() {
+	public DataStore getDataStore() {
 		if (dbStore == null) {
 			dbStore = getDataStoreFactory().getDataStore();
 		}
 		return dbStore;
 	}
 
-	public void setDataStore(IDataStore dataStore) {
+	public void setDataStore(DataStore dataStore) {
 		this.dbStore = dataStore;
 	}
 

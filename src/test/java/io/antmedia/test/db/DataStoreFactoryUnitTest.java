@@ -13,7 +13,7 @@ import org.junit.Test;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.cluster.DBReader;
 import io.antmedia.datastore.db.DataStoreFactory;
-import io.antmedia.datastore.db.IDataStore;
+import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.MongoStore;
@@ -74,7 +74,7 @@ public class DataStoreFactoryUnitTest {
     @Test
     public void testForUsedClases() {
     	dsf.setDbType("memorydb");
-    	IDataStore datastore = dsf.getDataStore();
+    	DataStore datastore = dsf.getDataStore();
     	
     	AcceptOnlyStreamsInDataStore aosid = new AcceptOnlyStreamsInDataStore();
     	aosid.setDataStoreFactory(dsf);
@@ -106,7 +106,7 @@ public class DataStoreFactoryUnitTest {
     @Test
     public void testDBReader() {
     	dsf.setDbType("memorydb");
-    	IDataStore datastore = dsf.getDataStore();
+    	DataStore datastore = dsf.getDataStore();
     	
     	String host = DBReader.instance.getHost("myStream", "myApp");
     	assertNull(host);

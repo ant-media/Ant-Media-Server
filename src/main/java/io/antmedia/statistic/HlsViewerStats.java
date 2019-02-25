@@ -13,7 +13,7 @@ import org.springframework.context.ApplicationContextAware;
 
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStoreFactory;
-import io.antmedia.datastore.db.IDataStore;
+import io.antmedia.datastore.db.DataStore;
 
 public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 
@@ -21,7 +21,7 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 	
 	public static final String BEAN_NAME = "hls.viewerstats";
 
-	private IDataStore dataStore;
+	private DataStore dataStore;
 	private DataStoreFactory dataStoreFactory;
 
 	public static final int DEFAULT_TIME_PERIOD_FOR_VIEWER_COUNT = 10000;
@@ -146,14 +146,14 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 		return timeoutMS;
 	}
 
-	public IDataStore getDataStore() {
+	public DataStore getDataStore() {
 		if (dataStore == null) {
 			dataStore = getDataStoreFactory().getDataStore();
 		}
 		return dataStore;
 	}
 	
-	public void setDataStore(IDataStore dataStore) {
+	public void setDataStore(DataStore dataStore) {
 		this.dataStore = dataStore;
 	}
 	

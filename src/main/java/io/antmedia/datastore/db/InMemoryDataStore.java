@@ -26,7 +26,7 @@ import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.muxer.MuxAdaptor;
 
-public class InMemoryDataStore implements IDataStore {
+public class InMemoryDataStore extends DataStore {
 
 
 	protected static Logger logger = LoggerFactory.getLogger(InMemoryDataStore.class);
@@ -763,5 +763,10 @@ public class InMemoryDataStore implements IDataStore {
 		}
 
 		return result;
+	}
+	
+	@Override
+	public void saveStreamInfo(StreamInfo streamInfo) {
+		//no need to implement this method, it is used in cluster mode
 	}
 }

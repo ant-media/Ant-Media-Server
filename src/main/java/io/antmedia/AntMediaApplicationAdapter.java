@@ -36,7 +36,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.antmedia.datastore.db.DataStoreFactory;
-import io.antmedia.datastore.db.IDataStore;
+import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
@@ -82,7 +82,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	private List<IStreamPublishSecurity> streamPublishSecurityList;
 	private HashMap<String, OnvifCamera> onvifCameraList = new HashMap<>();
 	private StreamFetcherManager streamFetcherManager;
-	private IDataStore dataStore;
+	private DataStore dataStore;
 	DataStoreFactory dataStoreFactory;
 
 	private AppSettings appSettings;
@@ -310,7 +310,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 			VideoServiceEndpoint endPointService;
 			Class endpointClass = Class.forName(className);
 
-			endPointService = (VideoServiceEndpoint) endpointClass.getConstructor(String.class, String.class, IDataStore.class, SocialEndpointCredentials.class, Vertx.class)
+			endPointService = (VideoServiceEndpoint) endpointClass.getConstructor(String.class, String.class, DataStore.class, SocialEndpointCredentials.class, Vertx.class)
 					.newInstance(clientId, clientSecret, dataStore, socialEndpointCredentials, vertx);
 			endPointService.setCollectInteractivity(appSettings.isCollectSocialMediaActivity());
 			return endPointService;
@@ -371,7 +371,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 				try {
 
-					IDataStore dataStoreLocal = getDataStore();
+					DataStore dataStoreLocal = getDataStore();
 					if (dataStoreLocal != null) {
 
 						Broadcast broadcast = dataStoreLocal.get(streamName);
@@ -425,7 +425,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		});
 	}
 
-	public static Broadcast saveUndefinedBroadcast(String streamName, String scopeName, IDataStore dataStore, AppSettings appSettings) {
+	public static Broadcast saveUndefinedBroadcast(String streamName, String scopeName, DataStore dataStore, AppSettings appSettings) {
 		Broadcast newBroadcast = new Broadcast();
 		newBroadcast.setDate(System.currentTimeMillis());
 		newBroadcast.setZombi(true);
@@ -778,7 +778,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 	}
 
-	public IDataStore getDataStore() {
+	public DataStore getDataStore() {
 		if(dataStore == null)
 		{
 			dataStore = dataStoreFactory.getDataStore();
