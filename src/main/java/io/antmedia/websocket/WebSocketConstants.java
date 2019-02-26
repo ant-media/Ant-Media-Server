@@ -203,5 +203,9 @@ public class WebSocketConstants {
 	 * Error definition it is send when publisher tries to publish with in use stream id
 	 */
 	public static final String STREAM_ID_IN_USE = "streamIdInUse";
+	/**
+	 * Error definition it is send when cpu usage exceeds the limit
+	 */
+	public static final String HIGH_RESOURCE_USAGE = "highResourceUsage";
 
 }
