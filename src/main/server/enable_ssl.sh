@@ -1,6 +1,8 @@
 #!/bin/bash
 
 INSTALL_DIRECTORY=/usr/local/antmedia
+PASS="pass"
+
 
 FULL_CHAIN_FILE=
 PRIVATE_KEY_FILE=
@@ -23,6 +25,8 @@ r) renew_flag='true';;
 esac
 done
 
+ERROR_MESSAGE="There is a problem in installing SSL to Ant Media Server.\n Please take a look at the logs above and try to fix.\n If you do not have any idea, contact@antmedia.io"
+
 
 usage() {
 	echo "Usage:"
@@ -33,6 +37,9 @@ usage() {
 }
 
 get_password() {
+
+
+
 		
   until [ ! -z "$password" ]
   do
@@ -61,18 +68,7 @@ delete_alias() {
   fi
 }
 
-if [ "$renew_flag" == "true" ]; then
-   echo "auto renew is enabled"
 
-fi
-
-
-#check domain name exists
-if [ -z "$domain" ]; then
-  echo "Missing parameter. Domain name is not set"
-  usage
-  exit 1
-fi
 
 
 
@@ -106,14 +102,13 @@ fi
 
 
 
-# get password from console input
-get_password
+get_new_certificate(){
 
 
 if [ "$fullChainFileExist" == false ]; then
     #  install letsencrypt and get the certificate
-    
-    
+
+
     # Install required libraries
     $SUDO apt-get update -y -qq
     OUT=$?
@@ -129,7 +124,7 @@ if [ "$fullChainFileExist" == false ]; then
       exit $OUT
     fi
 
-    $SUDO add-apt-repository ppa:certbot/certbot -y 
+    $SUDO add-apt-repository ppa:certbot/certbot -y
     OUT=$?
     if [ $OUT -ne 0 ]; then
       echo -e $ERROR_MESSAGE
@@ -157,22 +152,44 @@ if [ "$fullChainFileExist" == false ]; then
       echo -e $ERROR_MESSAGE
       exit $OUT
     fi
-    
-    file="/etc/letsencrypt/live/$domain/keystore.jks"
-    delete_alias $file
-    
-    file="/etc/letsencrypt/live/$domain/truststore.jks"
-    delete_alias $file
-    
-    FULL_CHAIN_FILE="/etc/letsencrypt/live/$domain/fullchain.pem"
-    	PRIVATE_KEY_FILE="/etc/letsencrypt/live/$domain/privkey.pem"
+
+
 
 fi
 
 
-echo ""
+}
 
-ERROR_MESSAGE="There is a problem in installing SSL to Ant Media Server.\n Please take a look at the logs above and try to fix.\n If you do not have any idea, contact@antmedia.io"
+renew_certificate(){
+
+   echo "renewing certificate"
+
+   $SUDO certbot renew
+
+    OUT=$?
+    if [ $OUT -ne 0 ]; then
+         echo -e $ERROR_MESSAGE
+    exit $OUT
+    fi
+
+
+}
+
+
+auth_tomcat(){
+
+    echo ""
+
+
+    file="/etc/letsencrypt/live/$domain/keystore.jks"
+    delete_alias $file
+
+    file="/etc/letsencrypt/live/$domain/truststore.jks"
+    delete_alias $file
+
+    FULL_CHAIN_FILE="/etc/letsencrypt/live/$domain/fullchain.pem"
+    PRIVATE_KEY_FILE="/etc/letsencrypt/live/$domain/privkey.pem"
+
 
 TEMP_DIR=$INSTALL_DIRECTORY/$domain
 if [ ! -d "$TEMP_DIR" ]; then
@@ -195,10 +212,13 @@ $SUDO openssl pkcs12 -export \
     -name tomcat \
     -password pass:$password
 OUT=$?
+
+
 if [ $OUT -ne 0 ]; then
   echo -e $ERROR_MESSAGE
   exit $OUT
 fi
+
 
 
 $SUDO keytool -importkeystore \
@@ -228,6 +248,7 @@ if [ $OUT -ne 0 ]; then
  exit $OUT
 fi
 
+
 $SUDO keytool -import -trustcacerts -alias tomcat \
   -file $CER_FILE \
   -keystore $TRUST_STORE \
@@ -238,12 +259,14 @@ if [ $OUT -ne 0 ]; then
  exit $OUT
 fi
 
+
 $SUDO cp $TRUST_STORE $INSTALL_DIRECTORY/conf/
 OUT=$?
 if [ $OUT -ne 0 ]; then
  echo -e $ERROR_MESSAGE
  exit $OUT
 fi
+
 
 $SUDO cp $DEST_KEYSTORE $INSTALL_DIRECTORY/conf/
 OUT=$?
@@ -283,29 +306,9 @@ if [ $OUT -ne 0 ]; then
  exit $OUT
 fi
 
+}
 
-
-
-#get auto-renew tool
-
-$SUDO wget https://dl.eff.org/certbot-auto 
-
-OUT=$?
-if [ $OUT -ne 0 ]; then
- echo -e $ERROR_MESSAGE
- exit $OUT
-fi
-
-#grant permission to tool
-
-$SUDO chmod a+x certbot-auto
-
-OUT=$?
-if [ $OUT -ne 0 ]; then
- echo -e $ERROR_MESSAGE
- exit $OUT
-fi
-
+create_cron_job(){
 
 
 #add renew job to crontab
@@ -313,8 +316,8 @@ $SUDO crontab -l > mycron
 
 
 #echo new cron into cron file
-#run renew script in each 80 days
-$SUDO echo "00 03 */80 * * cd /etc/letsencrypt/ && ./certbot-auto renew" >> mycron
+#run renew script in each 85 days
+$SUDO echo "00 03 */85 * * cd $INSTALL_DIRECTORY && ./enable_ssl.sh -d $domain -r" >> mycron
 
 
 OUT=$?
@@ -345,6 +348,68 @@ if [ $OUT -ne 0 ]; then
  echo -e $ERROR_MESSAGE
  exit $OUT
 fi
+
+
+}
+
+generate_password(){
+
+
+    #user may define his own password
+    #password=$(echo -n "$domain" | sha256sum)
+
+    password="$domain"
+
+    echo "domain: $domain"
+    #echo "generated password: $password"
+
+}
+
+check_domain_name(){
+#check domain name exists
+    if [ -z "$domain" ]; then
+    echo "Missing parameter. Domain name is not set"
+    usage
+    exit 1
+    fi
+}
+
+#check domain name
+check_domain_name
+
+#generate password using domain name
+generate_password
+
+
+if [ "$renew_flag" == "true" ]
+then
+
+    #renew certificate
+    renew_certificate
+
+    #authenticate tomcat with certificate
+    auth_tomcat
+
+
+elif [ "$renew_flag" == "false" ]
+then
+   echo "creating new certificate"
+
+
+    #install letsencrypt and get the certificate
+    get_new_certificate
+
+    #authenticate tomcat with certificate
+    auth_tomcat
+
+    #create cron job for auto renew
+    create_cron_job
+
+fi
+
+
+
+echo ""
 
 
 
