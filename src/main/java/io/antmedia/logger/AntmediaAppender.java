@@ -1,6 +1,5 @@
 package io.antmedia.logger;
 
-import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.classic.spi.IThrowableProxy;
 import ch.qos.logback.classic.spi.ThrowableProxyUtil;
@@ -35,29 +34,19 @@ public class AntmediaAppender extends AppenderBase<ILoggingEvent> {
         }
     }
 
-    /**
-     * If set, only events with level = minLevel and up will be recorded.
-     *
-     * @deprecated use logback filters.
-     */
-    @Deprecated
-    protected Level minLevel;
-
     @Override
     protected void append(ILoggingEvent iLoggingEvent) {
-        if (isNotLoggable(iLoggingEvent) || LoggerEnvironment.isManagingThread()) {
+        if (LoggerEnvironment.isManagingThread()) {
             return;
         }
 
         LoggerEnvironment.startManagingThread();
         try {
-            if (minLevel != null && !iLoggingEvent.getLevel().isGreaterOrEqual(minLevel)) {
-                return;
-            }
 
             IThrowableProxy throwbleProxy = iLoggingEvent.getThrowableProxy();
             if (throwbleProxy != null) {
                 String throwableStr = ThrowableProxyUtil.asString(throwbleProxy);
+                System.out.println("murat err :"+throwableStr);
                 getGoogleAnalytic(implementationVersion, type).
                         exception().
                         exceptionDescription(throwableStr).
@@ -77,37 +66,6 @@ public class AntmediaAppender extends AppenderBase<ILoggingEvent> {
                 .withAppName(type)
                 .withTrackingId("UA-93263926-3").build();
 
-    }
-
-    private boolean isNotLoggable(ILoggingEvent iLoggingEvent) {
-        return minLevel != null && !iLoggingEvent.getLevel().isGreaterOrEqual(minLevel);
-    }
-
-    protected static String formatMessageParameters(Object[] parameters) {
-        String str = "";
-        for (Object argument : parameters) {
-            str += (argument != null) ? argument.toString() : "";
-        }
-        return str;
-    }
-
-    protected static String formatCallerData(StackTraceElement[] parameters) {
-        String str = "";
-        for (Object argument : parameters) {
-            str += (argument != null) ? argument.toString() : "";
-        }
-        return str;
-    }
-
-    /**
-     * Set minimum level to log.
-     *
-     * @param minLevel minimum level to log.
-     * @deprecated use logback filters.
-     */
-    @Deprecated
-    public void setMinLevel(String minLevel) {
-        this.minLevel = minLevel != null ? Level.toLevel(minLevel) : null;
     }
 
     @Override
