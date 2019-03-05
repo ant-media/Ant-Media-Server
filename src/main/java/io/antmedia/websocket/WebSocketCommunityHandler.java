@@ -223,8 +223,12 @@ public abstract class WebSocketCommunityHandler {
 
 
 	public static FFmpegFrameRecorder getNewRecorder(String outputURL) {
+		return getNewRecorder(outputURL, 640, 480);
+	}
+	
+	public static FFmpegFrameRecorder getNewRecorder(String outputURL, int width, int height) {
 
-		FFmpegFrameRecorder recorder = initRecorder(outputURL);
+		FFmpegFrameRecorder recorder = initRecorder(outputURL, width, height);
 
 		try {
 			recorder.start();
@@ -235,8 +239,8 @@ public abstract class WebSocketCommunityHandler {
 		return recorder;
 	}
 
-	public static FFmpegFrameRecorder initRecorder(String outputURL) {
-		FFmpegFrameRecorder recorder = new FFmpegFrameRecorder(outputURL, 640, 480, 1);
+	public static FFmpegFrameRecorder initRecorder(String outputURL, int width, int height) {
+		FFmpegFrameRecorder recorder = new FFmpegFrameRecorder(outputURL, width, height, 1);
 		recorder.setFormat("flv");
 		recorder.setSampleRate(44100);
 		// Set in the surface changed method
