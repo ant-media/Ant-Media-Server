@@ -1,36 +1,16 @@
 package io.antmedia.test.webrtc.adaptor;
 
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.RandomStringUtils;
-import org.awaitility.Awaitility;
-import org.bytedeco.javacpp.avutil.AVFrame;
-import org.json.simple.JSONObject;
-import org.junit.Before;
-import org.junit.Test;
-import org.springframework.context.ApplicationContext;
-import org.webrtc.IceCandidate;
-import org.webrtc.MediaStream;
-import org.webrtc.PeerConnection;
-import org.webrtc.PeerConnectionFactory;
-import org.webrtc.SessionDescription;
-import org.webrtc.WrappedNativeI420Buffer;
-import org.webrtc.SessionDescription.Type;
-import org.webrtc.VideoFrame.Buffer;
-
-import io.antmedia.integration.MuxingTest;
-import io.antmedia.recorder.FFmpegFrameRecorder;
-import io.antmedia.recorder.Frame;
-import io.antmedia.webrtc.adaptor.RTMPAdaptor;
-import io.antmedia.websocket.WebSocketCommunityHandler;
-import io.antmedia.websocket.WebSocketConstants;
-
 import static org.bytedeco.javacpp.avutil.AV_PIX_FMT_YUV420P;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.io.IOException;
@@ -40,6 +20,26 @@ import java.util.concurrent.TimeUnit;
 
 import javax.websocket.RemoteEndpoint;
 import javax.websocket.Session;
+
+import org.apache.commons.lang3.RandomStringUtils;
+import org.awaitility.Awaitility;
+import org.bytedeco.javacpp.avutil.AVFrame;
+import org.json.simple.JSONObject;
+import org.junit.Before;
+import org.junit.Test;
+import org.springframework.context.ApplicationContext;
+import org.webrtc.IceCandidate;
+import org.webrtc.MediaStream;
+import org.webrtc.PeerConnectionFactory;
+import org.webrtc.SessionDescription;
+import org.webrtc.SessionDescription.Type;
+
+import io.antmedia.integration.MuxingTest;
+import io.antmedia.recorder.FFmpegFrameRecorder;
+import io.antmedia.recorder.Frame;
+import io.antmedia.webrtc.adaptor.RTMPAdaptor;
+import io.antmedia.websocket.WebSocketCommunityHandler;
+import io.antmedia.websocket.WebSocketConstants;
 
 public class RTMPAdaptorTest {
 
