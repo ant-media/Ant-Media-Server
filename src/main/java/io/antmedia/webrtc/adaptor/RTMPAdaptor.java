@@ -21,8 +21,6 @@ import org.webrtc.MediaStream;
 import org.webrtc.PeerConnection;
 import org.webrtc.PeerConnection.IceServer;
 import org.webrtc.PeerConnection.TcpCandidatePolicy;
-import org.webrtc.audio.JavaAudioDeviceModule;
-import org.webrtc.audio.WebRtcAudioTrack;
 import org.webrtc.PeerConnectionFactory;
 import org.webrtc.SessionDescription;
 import org.webrtc.SoftwareVideoDecoderFactory;
@@ -32,6 +30,8 @@ import org.webrtc.VideoFrame.Buffer;
 import org.webrtc.VideoSink;
 import org.webrtc.VideoTrack;
 import org.webrtc.WrappedNativeI420Buffer;
+import org.webrtc.audio.JavaAudioDeviceModule;
+import org.webrtc.audio.WebRtcAudioTrack;
 
 import io.antmedia.recorder.FFmpegFrameRecorder;
 import io.antmedia.recorder.Frame;
@@ -150,8 +150,8 @@ public class RTMPAdaptor extends Adaptor {
 				rtcConfig.minPort = portRangeMin;
 				rtcConfig.maxPort = portRangeMax;
 				rtcConfig.tcpCandidatePolicy = tcpCandidatesEnabled 
-												? TcpCandidatePolicy.ENABLED 
-												: TcpCandidatePolicy.DISABLED;
+						? TcpCandidatePolicy.ENABLED 
+								: TcpCandidatePolicy.DISABLED;
 
 				peerConnection = peerConnectionFactory.createPeerConnection(rtcConfig, RTMPAdaptor.this);
 
@@ -253,6 +253,7 @@ public class RTMPAdaptor extends Adaptor {
 
 
 
+
 		if (!stream.videoTracks.isEmpty()) {
 
 			VideoTrack videoTrack = stream.videoTracks.get(0);
@@ -308,19 +309,27 @@ public class RTMPAdaptor extends Adaptor {
 								Frame frameCV = new Frame(frame.getRotatedWidth(), frame.getRotatedHeight(), Frame.DEPTH_UBYTE, 2);
 
 								Buffer buffer = frame.getBuffer();
+								int[] stride = new int[3];
 								if (buffer instanceof WrappedNativeI420Buffer) {
 									WrappedNativeI420Buffer wrappedBuffer = (WrappedNativeI420Buffer) buffer;
 									((ByteBuffer)(frameCV.image[0].position(0))).put(wrappedBuffer.getDataY());
 									((ByteBuffer)(frameCV.image[0])).put(wrappedBuffer.getDataU());
 									((ByteBuffer)(frameCV.image[0])).put(wrappedBuffer.getDataV());
+
+									stride[0] = wrappedBuffer.getStrideY();
+									stride[1] = wrappedBuffer.getStrideU();
+									stride[2] = wrappedBuffer.getStrideV();
+
+									try {
+										recorder.recordImage(frameCV.imageWidth, frameCV.imageHeight, frameCV.imageDepth,
+												frameCV.imageChannels, stride, AV_PIX_FMT_YUV420P, frameCV.image);
+
+									} catch (FrameRecorder.Exception e) {
+										logger.error(ExceptionUtils.getStackTrace(e));
+									}
 								}
-
-								try {
-									recorder.recordImage(frameCV.imageWidth, frameCV.imageHeight, frameCV.imageDepth,
-											frameCV.imageChannels, frameCV.imageStride, AV_PIX_FMT_YUV420P, frameCV.image);
-
-								} catch (FrameRecorder.Exception e) {
-									logger.error(ExceptionUtils.getStackTrace(e));
+								else {
+									logger.error("Buffer is not type of WrappedNativeI420Buffer for stream: {}", recorder.getFilename());
 								}
 							}
 							else {
@@ -336,6 +345,7 @@ public class RTMPAdaptor extends Adaptor {
 			}
 		}
 
+
 		webSocketCommunityHandler.sendPublishStartedMessage(getStreamId(), getSession(), null);
 
 	}
@@ -347,19 +357,19 @@ public class RTMPAdaptor extends Adaptor {
 
 	public void setRemoteDescription(final SessionDescription sdp) {
 		signallingExecutor.execute(() -> 
-				peerConnection.setRemoteDescription(RTMPAdaptor.this, sdp)
-		);
+		peerConnection.setRemoteDescription(RTMPAdaptor.this, sdp)
+				);
 
 	}
 
 	public void addIceCandidate(final IceCandidate iceCandidate) {
 		signallingExecutor.execute(() -> {
-	
-				if (!peerConnection.addIceCandidate(iceCandidate))
-				{
-					log.error("Add ice candidate failed for {}", iceCandidate);
-				}
-			
+
+			if (!peerConnection.addIceCandidate(iceCandidate))
+			{
+				log.error("Add ice candidate failed for {}", iceCandidate);
+			}
+
 		});
 	}
 
