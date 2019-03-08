@@ -20,7 +20,7 @@ import java.util.UUID;
 public class AntmediaAppender extends AppenderBase<ILoggingEvent> {
     private String implementationVersion = AntMediaApplicationAdapter.class.getPackage().getImplementationVersion();
     private String type = BroadcastRestService.isEnterprise() ? "Enterprise" : "Community";
-    private String instanceId;
+    String instanceId;
 
     public AntmediaAppender() {
         String path = System.getProperty("red5.root");
@@ -46,7 +46,7 @@ public class AntmediaAppender extends AppenderBase<ILoggingEvent> {
             IThrowableProxy throwbleProxy = iLoggingEvent.getThrowableProxy();
             if (throwbleProxy != null) {
                 String throwableStr = ThrowableProxyUtil.asString(throwbleProxy);
-                System.out.println("murat err :"+throwableStr);
+
                 getGoogleAnalytic(implementationVersion, type).
                         exception().
                         exceptionDescription(throwableStr).
@@ -60,7 +60,7 @@ public class AntmediaAppender extends AppenderBase<ILoggingEvent> {
         }
     }
 
-    private GoogleAnalytics getGoogleAnalytic(String implementationVersion, String type) {
+    GoogleAnalytics getGoogleAnalytic(String implementationVersion, String type) {
         return GoogleAnalytics.builder()
                 .withAppVersion(implementationVersion)
                 .withAppName(type)
