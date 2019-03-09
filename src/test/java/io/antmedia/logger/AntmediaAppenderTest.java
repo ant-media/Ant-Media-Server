@@ -2,39 +2,36 @@ package io.antmedia.logger;
 
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.classic.spi.IThrowableProxy;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
 import org.mockito.Mockito;
 
 public class AntmediaAppenderTest {
 
-    AntmediaAppender antmediaAppender;
+    private AntmediaAppender antmediaAppender;
+
+    @Mock
+    GoogleAnalyticsLogger googleAnalyticsLogger;
 
     @Before
     public void before(){
-        antmediaAppender = Mockito.spy(new AntmediaAppender());
+        antmediaAppender = Mockito.spy(new AntmediaAppender(googleAnalyticsLogger));
     }
 
     @Test
-    public void appendNotCalledWhenThrowbleProxyIsNull(){
+    public void logNotCalledWhenThrowbleProxyIsNull(){
         ILoggingEvent iLoggingEvent = Mockito.mock(ILoggingEvent.class);
         Mockito.when(iLoggingEvent.getThrowableProxy()).thenReturn(null);
         antmediaAppender.append(iLoggingEvent);
-        Mockito.verify(antmediaAppender,Mockito.never()).getGoogleAnalytic(Mockito.anyString(),Mockito.anyString());
+        Mockito.verify(googleAnalyticsLogger,Mockito.never()).log(Mockito.anyString());
     }
 
     @Test
-    public void appendCalledWhenThrowbleProxyIsNotNull(){
+    public void logCalledWhenThrowbleProxyIsNotNull(){
         ILoggingEvent iLoggingEvent = Mockito.mock(ILoggingEvent.class);
         Mockito.when(iLoggingEvent.getThrowableProxy()).thenReturn(Mockito.mock(IThrowableProxy.class));
         antmediaAppender.append(iLoggingEvent);
-        Mockito.verify(antmediaAppender).getGoogleAnalytic(Mockito.anyString(),Mockito.anyString());
-    }
-
-    @Test
-    public void instanceIdIsSet(){
-        AntmediaAppender appender = new AntmediaAppender();
-        Assert.assertNotNull(appender.instanceId);
+        Mockito.verify(googleAnalyticsLogger).log(Mockito.anyString());
     }
 }
