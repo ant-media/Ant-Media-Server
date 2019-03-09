@@ -95,7 +95,10 @@ public class AntmediaAppender extends AppenderBase<ILoggingEvent> {
 
     public void writeToFile(String absolutePath, String content) {
         try {
-            Files.write(new File(absolutePath).toPath(), content.getBytes(), StandardOpenOption.CREATE);
+            File file = new File(absolutePath);
+            if(file.exists()) {
+                Files.write(file.toPath(), content.getBytes(), StandardOpenOption.CREATE);
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
