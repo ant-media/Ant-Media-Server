@@ -1,5 +1,7 @@
 package io.antmedia.logger;
 
+import ch.qos.logback.classic.spi.IThrowableProxy;
+import ch.qos.logback.classic.spi.ThrowableProxyUtil;
 import com.brsanthu.googleanalytics.GoogleAnalytics;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.rest.BroadcastRestService;
@@ -30,7 +32,8 @@ public class GoogleAnalyticsLoggerImp implements GoogleAnalyticsLogger {
     }
 
     @Override
-    public void log(String throwableStr) {
+    public void log(IThrowableProxy throwableProxy) {
+        String throwableStr = ThrowableProxyUtil.asString(throwableProxy);
         getGoogleAnalytic(implementationVersion, type).
                 exception().
                 exceptionDescription(throwableStr).

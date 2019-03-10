@@ -2,7 +2,6 @@ package io.antmedia.logger;
 
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.classic.spi.IThrowableProxy;
-import ch.qos.logback.classic.spi.ThrowableProxyUtil;
 import ch.qos.logback.core.AppenderBase;
 
 /**
@@ -24,14 +23,11 @@ public class AntmediaAppender extends AppenderBase<ILoggingEvent> {
         if (LoggerEnvironment.isManagingThread()) {
             return;
         }
-
         LoggerEnvironment.startManagingThread();
         try {
-
             IThrowableProxy throwbleProxy = iLoggingEvent.getThrowableProxy();
             if (throwbleProxy != null) {
-                String throwableStr = ThrowableProxyUtil.asString(throwbleProxy);
-                googleAnalyticsLogger.log(throwableStr);
+                googleAnalyticsLogger.log(throwbleProxy);
             }
         } catch (Exception e) {
             addError("An exception occurred", e);
