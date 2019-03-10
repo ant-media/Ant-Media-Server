@@ -11,11 +11,11 @@ public class AntmediaAppenderTest {
 
     private AntmediaAppender antmediaAppender;
 
-    @Mock
-    GoogleAnalyticsLogger googleAnalyticsLogger;
+    private GoogleAnalyticsLogger googleAnalyticsLogger;
 
     @Before
     public void before(){
+        googleAnalyticsLogger = Mockito.mock(GoogleAnalyticsLogger.class);
         antmediaAppender = Mockito.spy(new AntmediaAppender(googleAnalyticsLogger));
     }
 
