@@ -1,5 +1,10 @@
 <?xml version="1.0" ?>
 <configuration>
+    <appender class="ch.qos.logback.core.ConsoleAppender" name="CONSOLE">
+        <encoder>
+            <pattern>[%p] [%thread] %logger - %msg%n</pattern>
+        </encoder>
+    </appender>
     
     <appender name="AntmediaLogger" class="io.antmedia.logger.AntmediaAppender">
     </appender>
