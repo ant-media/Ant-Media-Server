@@ -5,6 +5,9 @@ import ch.qos.logback.classic.spi.ThrowableProxyUtil;
 import com.brsanthu.googleanalytics.GoogleAnalytics;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.rest.BroadcastRestService;
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -14,6 +17,7 @@ import java.util.UUID;
 
 public class GoogleAnalyticsLoggerImp implements GoogleAnalyticsLogger {
 
+    protected static Logger logger = LoggerFactory.getLogger(GoogleAnalyticsLoggerImp.class);
     private final String implementationVersion = AntMediaApplicationAdapter.class.getPackage().getImplementationVersion();
     private final String type = BroadcastRestService.isEnterprise() ? "Enterprise" : "Community";
 
@@ -54,7 +58,7 @@ public class GoogleAnalyticsLoggerImp implements GoogleAnalyticsLogger {
             byte[] data = Files.readAllBytes(new File(path).toPath());
             return new String(data);
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.error(ExceptionUtils.getStackTrace(e));
         }
         return null;
     }
@@ -66,7 +70,7 @@ public class GoogleAnalyticsLoggerImp implements GoogleAnalyticsLogger {
                 Files.write(file.toPath(), content.getBytes(), StandardOpenOption.CREATE);
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.error(ExceptionUtils.getStackTrace(e));
         }
 
     }
