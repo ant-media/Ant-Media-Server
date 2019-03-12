@@ -4,7 +4,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public final class LoggerEnvironment {
 
-    protected static final ThreadLocal<AtomicInteger> LOGGER_THREAD = ThreadLocal.withInitial(() -> new AtomicInteger());
+    protected static final ThreadLocal<AtomicInteger> LOGGER_THREAD = ThreadLocal.withInitial(AtomicInteger::new);
 
     private LoggerEnvironment() {
     }
