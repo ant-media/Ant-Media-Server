@@ -187,6 +187,38 @@ public class BroadcastRestService extends RestServiceBase{
 		return saveBroadcast(broadcast, AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, getScope().getName(),
 				getDataStore(), settingsListenerHookURL, fqdn);
 	}
+	
+	/**
+	 * Ant Media Server does not use this rest service by default. 
+	 * 
+	 * Creates a broadcast without reset StreamID and returns the full broadcast object with rtmp
+	 * address and other information.
+	 * 
+	 * @param broadcast
+	 *            Broadcast object only related information should be set, it
+	 *            may be null as well.
+	 * 
+	 * @return {@link io.antmedia.datastore.db.types.Broadcast}
+	 * 
+	 */
+	@ApiOperation(value = "Creates a broadcast without reset StreamID and returns the full broadcast object with rtmp address and other information.", notes = "Ant Media Server does not use this rest service by default", response = Broadcast.class)
+	@POST
+	@Consumes({ MediaType.APPLICATION_JSON })
+	@Path("/broadcast/createWithStreamID")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Broadcast createBroadcastWithStreamID(@ApiParam(value = "Broadcast object only related information should be set, it may be null as well.", required = true) Broadcast broadcast) throws Exception {
+
+		String settingsListenerHookURL = null; 
+		String fqdn = null;
+		AppSettings appSettingsLocal = getAppSettings();
+		if (appSettingsLocal != null) {
+			settingsListenerHookURL = appSettingsLocal.getListenerHookURL();
+			fqdn = appSettingsLocal.getServerName();
+		}
+
+		return saveBroadcast(broadcast, AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, getScope().getName(),
+				getDataStore(), settingsListenerHookURL, fqdn);
+	}
 
 
 	/**
