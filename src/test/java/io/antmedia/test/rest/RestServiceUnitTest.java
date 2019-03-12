@@ -945,6 +945,30 @@ public class RestServiceUnitTest {
 		assertNotEquals(createdBroadcast.getStreamId(), streamId);
 
 		assertFalse(createdBroadcast.isZombi());
+		
+		Broadcast broadcastWithStreamID = new Broadcast(null, "name");
+		String streamIdNew = "streamId";
+		try {
+			broadcastWithStreamID.setStreamId(streamIdNew);
+		} 
+		catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		
+		try {
+			Broadcast createdBroadcastwithStreamID = restServiceReal.createBroadcastWithStreamID(broadcastWithStreamID);
+			
+			assertNotNull(createdBroadcastwithStreamID.getStreamId());
+			assertEquals(createdBroadcastwithStreamID.getStreamId(), streamId);
+
+			assertFalse(createdBroadcastwithStreamID.isZombi());
+			
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
 
 	}
 
