@@ -176,16 +176,7 @@ public class BroadcastRestService extends RestServiceBase{
 			broadcast.resetStreamId();
 		}
 
-		String settingsListenerHookURL = null; 
-		String fqdn = null;
-		AppSettings appSettingsLocal = getAppSettings();
-		if (appSettingsLocal != null) {
-			settingsListenerHookURL = appSettingsLocal.getListenerHookURL();
-			fqdn = appSettingsLocal.getServerName();
-		}
-
-		return saveBroadcast(broadcast, AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, getScope().getName(),
-				getDataStore(), settingsListenerHookURL, fqdn);
+		return createBroadcastWithStreamID(broadcast);
 	}
 	
 	/**

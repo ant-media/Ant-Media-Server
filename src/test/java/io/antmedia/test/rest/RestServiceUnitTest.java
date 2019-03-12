@@ -957,19 +957,13 @@ public class RestServiceUnitTest {
 			fail(e.getMessage());
 		}
 		
-		try {
-			Broadcast createdBroadcastwithStreamID = restServiceReal.createBroadcastWithStreamID(broadcastWithStreamID);
+		
+		Broadcast createdBroadcastwithStreamID = restServiceReal.createBroadcastWithStreamID(broadcastWithStreamID);
 			
-			assertNotNull(createdBroadcastwithStreamID.getStreamId());
-			assertEquals(createdBroadcastwithStreamID.getStreamId(), streamId);
+		assertNotNull(createdBroadcastwithStreamID.getStreamId());
+		assertEquals(createdBroadcastwithStreamID.getStreamId(), streamId);
 
-			assertFalse(createdBroadcastwithStreamID.isZombi());
-			
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
+		assertFalse(createdBroadcastwithStreamID.isZombi());
 
 	}
 
