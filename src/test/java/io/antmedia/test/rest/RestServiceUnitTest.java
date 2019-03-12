@@ -946,10 +946,11 @@ public class RestServiceUnitTest {
 
 		assertFalse(createdBroadcast.isZombi());
 		
+		//testing Create Broadcast without reset Stream ID
+		
 		Broadcast broadcastWithStreamID = new Broadcast(null, "name");
-		String streamIdNew = "streamId";
 		try {
-			broadcastWithStreamID.setStreamId(streamIdNew);
+			broadcastWithStreamID.setStreamId(streamId);
 		} 
 		catch (Exception e) {
 			e.printStackTrace();
