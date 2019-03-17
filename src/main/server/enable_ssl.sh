@@ -100,61 +100,145 @@ if [ ! -d "$INSTALL_DIRECTORY" ]; then
   exit 1
 fi
 
+is_debian(){
+	
+	if [ -f /etc/debian_version ]; then
+	true
+	else
+	false
+	fi
+	
+}
+
+# Centos Functions
+
+update_centos()
+{
+	# update centos for requirements
+	
+	$SUDO yum -y update
+	
+    OUT=$?
+    if [ $OUT -ne 0 ]; then
+	echo -e $ERROR_MESSAGE3
+	exit $OUT
+    fi
+}
+
+install_certbot_centos()
+{
+	
+    $SUDO yum install certbot -y
+    OUT=$?
+    if [ $OUT -ne 0 ]; then
+	echo -e $ERROR_MESSAGE5
+	exit $OUT
+    fi
+}
+
+# Ubuntu Functions
+
+update_ubuntu()
+{
+	# update ubuntu for requirements
+	
+	$SUDO apt-get update -y -qq
+	OUT=$?
+	if [ $OUT -ne 0 ]; then
+	echo -e $ERROR_MESSAGE
+	exit $OUT
+	fi
+	
+}
+
+install_common_ubuntu()
+{
+	#install common requirements in ubuntu
+	
+	$SUDO apt-get install software-properties-common -y -qq
+	OUT=$?
+	if [ $OUT -ne 0 ]; then
+	echo -e $ERROR_MESSAGE
+	exit $OUT
+	fi
+}
+
+add_repository_certbot_ubuntu()
+{
+	#add certbot in repository
+	
+	$SUDO add-apt-repository ppa:certbot/certbot -y
+	OUT=$?
+	if [ $OUT -ne 0 ]; then
+	echo -e $ERROR_MESSAGE
+	exit $OUT
+	fi
+}
+
+install_certbot_ubuntu(){
+	
+	#install certbot in ubuntu
+	
+	$SUDO apt-get install certbot -qq -y
+	OUT=$?
+	if [ $OUT -ne 0 ]; then
+	echo -e $ERROR_MESSAGE
+	exit $OUT
+	fi
+}
+
+get_certificate(){
+	
+	#Get certificate section is same with ubuntu and centos
+	
+	$SUDO certbot certonly --standalone -d $domain
+	OUT=$?
+	if [ $OUT -ne 0 ]; then
+	echo -e $ERROR_MESSAGE
+	exit $OUT
+	fi
+}
 
 
 get_new_certificate(){
 
-
-if [ "$fullChainFileExist" == false ]; then
+	if [ "$fullChainFileExist" == false ]; then
     #  install letsencrypt and get the certificate
+	
+	#Detect which os system Centos or Ubuntu
+	if is_debian; then
+	
+	#update ubuntu
+	update_ubuntu
+	
+	#install common requirements in ubuntu
+	install_common_ubuntu
+	
+	#add certbot in repository
+	add_repository_certbot_ubuntu
 
-
-    # Install required libraries
-    $SUDO apt-get update -y -qq
-    OUT=$?
-    if [ $OUT -ne 0 ]; then
-      echo -e $ERROR_MESSAGE
-      exit $OUT
-    fi
-
-    $SUDO apt-get install software-properties-common -y -qq
-    OUT=$?
-    if [ $OUT -ne 0 ]; then
-      echo -e $ERROR_MESSAGE
-      exit $OUT
-    fi
-
-    $SUDO add-apt-repository ppa:certbot/certbot -y
-    OUT=$?
-    if [ $OUT -ne 0 ]; then
-      echo -e $ERROR_MESSAGE
-      exit $OUT
-    fi
-
-    $SUDO apt-get update -qq -y
-    OUT=$?
-    if [ $OUT -ne 0 ]; then
-      echo -e $ERROR_MESSAGE
-      exit $OUT
-    fi
-
-    $SUDO apt-get install certbot -qq -y
-    OUT=$?
-    if [ $OUT -ne 0 ]; then
-      echo -e $ERROR_MESSAGE
-      exit $OUT
-    fi
-
-    #Get certificate
-    $SUDO certbot certonly --standalone -d $domain
-    OUT=$?
-    if [ $OUT -ne 0 ]; then
-      echo -e $ERROR_MESSAGE
-      exit $OUT
-    fi
-
-
-
+	#install certbot in ubuntu
+	install_certbot_ubuntu
+	
+	#update ubuntu
+	update_ubuntu
+	
+	else
+	
+	#update centos
+	update_centos
+	
+	#install certbot in centos
+	install_certbot_centos
+	
+	#update centos
+	update_centos
+	
+	fi
+	
+	#Get certificate section is same with ubuntu and centos
+	get_certificate
+	
 fi
 
 
@@ -341,7 +425,11 @@ fi
 $SUDO rm mycron
 
 #restart cron jobs
+if is_debian; then
 $SUDO systemctl restart cron
+else
+$SUDO systemctl restart crond.service
+fi
 
 OUT=$?
 if [ $OUT -ne 0 ]; then
