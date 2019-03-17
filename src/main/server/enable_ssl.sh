@@ -12,9 +12,9 @@ renew_flag='false'
 
 while getopts i:d:p:f:r option
 do
-case "${option}"
-in
-f) FULL_CHAIN_FILE=${OPTARG};;
+	case "${option}"
+		in
+		f) FULL_CHAIN_FILE=${OPTARG};;
 p) PRIVATE_KEY_FILE=${OPTARG};;
 i) INSTALL_DIRECTORY=${OPTARG};;
 d) domain=${OPTARG};;
@@ -40,32 +40,32 @@ get_password() {
 
 
 
-		
-  until [ ! -z "$password" ]
-  do
-    read -sp 'Enter Password For SSL Certificate:' password
-	if [ -z "$password" ]
-	then
-	  echo 
-	  echo "Password cannot be empty. "
-	fi
-  done			
-    
+
+	until [ ! -z "$password" ]
+	do
+		read -sp 'Enter Password For SSL Certificate:' password
+		if [ -z "$password" ]
+		then
+			echo 
+			echo "Password cannot be empty. "
+		fi
+	done			
+
 }
 
 SUDO="sudo"
 if ! [ -x "$(command -v sudo)" ]; then
-  SUDO=""
+	SUDO=""
 fi
 
 delete_alias() {
-  if [ -f "$1" ]; then
-	 $SUDO keytool -delete -alias tomcat -storepass $password -keystore $file
-	 OUT=$?
-	 if [ $OUT -ne 0 ]; then
-	   echo -e $ERROR_MESSAGE
-	 fi
-  fi
+	if [ -f "$1" ]; then
+		$SUDO keytool -delete -alias tomcat -storepass $password -keystore $file
+		OUT=$?
+		if [ $OUT -ne 0 ]; then
+			echo -e $ERROR_MESSAGE
+		fi
+	fi
 }
 
 
@@ -74,18 +74,18 @@ delete_alias() {
 
 fullChainFileExist=false
 if [ ! -z "$FULL_CHAIN_FILE" ] && [ -f "$FULL_CHAIN_FILE" ]; then
-  fullChainFileExist=true
+	fullChainFileExist=true
 fi
 
 privateKeyFileExist=false
 if [ ! -z "$PRIVATE_KEY_FILE" ] && [ -f "$PRIVATE_KEY_FILE" ]; then
-  privateKeyFileExist=true
+	privateKeyFileExist=true
 fi
 
 if [ "$fullChainFileExist" != "$privateKeyFileExist" ]; then
-   echo "Missing full chain or private key file. Please provide both or neither of them"
-   usage
-   exit 1
+	echo "Missing full chain or private key file. Please provide both or neither of them"
+	usage
+	exit 1
 fi
 
 
@@ -103,75 +103,74 @@ fi
 is_debian(){
 	
 	if [ -f /etc/debian_version ]; then
-	true
+		true
 	else
-	false
+		false
 	fi
 	
 }
 
 # Centos Functions
 
-update_centos()
-{
+update_centos(){
+
 	# update centos for requirements
 	
 	$SUDO yum -y update
 	
-    OUT=$?
-    if [ $OUT -ne 0 ]; then
-	echo -e $ERROR_MESSAGE3
-	exit $OUT
-    fi
+	OUT=$?
+	if [ $OUT -ne 0 ]; then
+		echo -e $ERROR_MESSAGE
+		exit $OUT
+	fi
 }
 
-install_certbot_centos()
-{
+install_certbot_centos(){
 	
-    $SUDO yum install certbot -y
-    OUT=$?
-    if [ $OUT -ne 0 ]; then
-	echo -e $ERROR_MESSAGE5
-	exit $OUT
-    fi
+	$SUDO yum install certbot -y
+	OUT=$?
+	if [ $OUT -ne 0 ]; then
+		echo -e $ERROR_MESSAGE
+		exit $OUT
+	fi
 }
 
 # Ubuntu Functions
 
-update_ubuntu()
-{
+update_ubuntu(){
+
 	# update ubuntu for requirements
 	
 	$SUDO apt-get update -y -qq
 	OUT=$?
 	if [ $OUT -ne 0 ]; then
-	echo -e $ERROR_MESSAGE
-	exit $OUT
+		echo -e $ERROR_MESSAGE
+		exit $OUT
 	fi
 	
 }
 
-install_common_ubuntu()
-{
+install_common_ubuntu(){
+
 	#install common requirements in ubuntu
 	
 	$SUDO apt-get install software-properties-common -y -qq
 	OUT=$?
 	if [ $OUT -ne 0 ]; then
-	echo -e $ERROR_MESSAGE
-	exit $OUT
+		echo -e $ERROR_MESSAGE
+		exit $OUT
 	fi
 }
 
-add_repository_certbot_ubuntu()
-{
+add_repository_certbot_ubuntu(){
+
 	#add certbot in repository
 	
 	$SUDO add-apt-repository ppa:certbot/certbot -y
 	OUT=$?
 	if [ $OUT -ne 0 ]; then
-	echo -e $ERROR_MESSAGE
-	exit $OUT
+		echo -e $ERROR_MESSAGE
+		exit $OUT
 	fi
 }
 
@@ -182,8 +181,8 @@ install_certbot_ubuntu(){
 	$SUDO apt-get install certbot -qq -y
 	OUT=$?
 	if [ $OUT -ne 0 ]; then
-	echo -e $ERROR_MESSAGE
-	exit $OUT
+		echo -e $ERROR_MESSAGE
+		exit $OUT
 	fi
 }
 
@@ -194,8 +193,8 @@ get_certificate(){
 	$SUDO certbot certonly --standalone -d $domain
 	OUT=$?
 	if [ $OUT -ne 0 ]; then
-	echo -e $ERROR_MESSAGE
-	exit $OUT
+		echo -e $ERROR_MESSAGE
+		exit $OUT
 	fi
 }
 
@@ -204,10 +203,10 @@ get_new_certificate(){
 
 	if [ "$fullChainFileExist" == false ]; then
     #  install letsencrypt and get the certificate
-	
+
 	#Detect which os system Centos or Ubuntu
 	if is_debian; then
-	
+
 	#update ubuntu
 	update_ubuntu
 	
@@ -223,7 +222,7 @@ get_new_certificate(){
 	#update ubuntu
 	update_ubuntu
 	
-	else
+else
 	
 	#update centos
 	update_centos
@@ -234,8 +233,8 @@ get_new_certificate(){
 	#update centos
 	update_centos
 	
-	fi
-	
+fi
+
 	#Get certificate section is same with ubuntu and centos
 	get_certificate
 	
@@ -246,15 +245,15 @@ fi
 
 renew_certificate(){
 
-   echo "renewing certificate"
+	echo "renewing certificate"
 
-   $SUDO certbot renew
+	$SUDO certbot renew
 
-    OUT=$?
-    if [ $OUT -ne 0 ]; then
-         echo -e $ERROR_MESSAGE
-    exit $OUT
-    fi
+	OUT=$?
+	if [ $OUT -ne 0 ]; then
+		echo -e $ERROR_MESSAGE
+		exit $OUT
+	fi
 
 
 }
@@ -262,132 +261,132 @@ renew_certificate(){
 
 auth_tomcat(){
 
-    echo ""
+	echo ""
 
 
-    file="/etc/letsencrypt/live/$domain/keystore.jks"
-    delete_alias $file
+	file="/etc/letsencrypt/live/$domain/keystore.jks"
+	delete_alias $file
 
-    file="/etc/letsencrypt/live/$domain/truststore.jks"
-    delete_alias $file
+	file="/etc/letsencrypt/live/$domain/truststore.jks"
+	delete_alias $file
 
-    FULL_CHAIN_FILE="/etc/letsencrypt/live/$domain/fullchain.pem"
-    PRIVATE_KEY_FILE="/etc/letsencrypt/live/$domain/privkey.pem"
-
-
-TEMP_DIR=$INSTALL_DIRECTORY/$domain
-if [ ! -d "$TEMP_DIR" ]; then
-  $SUDO mkdir $TEMP_DIR
-fi
+	FULL_CHAIN_FILE="/etc/letsencrypt/live/$domain/fullchain.pem"
+	PRIVATE_KEY_FILE="/etc/letsencrypt/live/$domain/privkey.pem"
 
 
-EXPORT_P12_FILE=$TEMP_DIR/fullchain_and_key.p12
-
-DEST_KEYSTORE=$TEMP_DIR/keystore.jks
-
-TRUST_STORE=$TEMP_DIR/truststore.jks
-
-CER_FILE=$INSTALL_DIRECTORY/$domain/tomcat.cer
-
-$SUDO openssl pkcs12 -export \
-    -in $FULL_CHAIN_FILE \
-    -inkey $PRIVATE_KEY_FILE \
-    -out $EXPORT_P12_FILE \
-    -name tomcat \
-    -password pass:$password
-OUT=$?
+	TEMP_DIR=$INSTALL_DIRECTORY/$domain
+	if [ ! -d "$TEMP_DIR" ]; then
+		$SUDO mkdir $TEMP_DIR
+	fi
 
 
-if [ $OUT -ne 0 ]; then
-  echo -e $ERROR_MESSAGE
-  exit $OUT
-fi
+	EXPORT_P12_FILE=$TEMP_DIR/fullchain_and_key.p12
+
+	DEST_KEYSTORE=$TEMP_DIR/keystore.jks
+
+	TRUST_STORE=$TEMP_DIR/truststore.jks
+
+	CER_FILE=$INSTALL_DIRECTORY/$domain/tomcat.cer
+
+	$SUDO openssl pkcs12 -export \
+	-in $FULL_CHAIN_FILE \
+	-inkey $PRIVATE_KEY_FILE \
+	-out $EXPORT_P12_FILE \
+	-name tomcat \
+	-password pass:$password
+	OUT=$?
+
+
+	if [ $OUT -ne 0 ]; then
+		echo -e $ERROR_MESSAGE
+		exit $OUT
+	fi
 
 
 
-$SUDO keytool -importkeystore \
-       -deststorepass $password \
-       -destkeypass $password \
-       -destkeystore $DEST_KEYSTORE \
-       -srckeystore $EXPORT_P12_FILE \
-       -srcstoretype pkcs12 \
-       -srcstorepass $password \
-       -alias tomcat \
-       -deststoretype pkcs12
-OUT=$?
-if [ $OUT -ne 0 ]; then
-  echo -e $ERROR_MESSAGE
-  exit $OUT
-fi
+	$SUDO keytool -importkeystore \
+	-deststorepass $password \
+	-destkeypass $password \
+	-destkeystore $DEST_KEYSTORE \
+	-srckeystore $EXPORT_P12_FILE \
+	-srcstoretype pkcs12 \
+	-srcstorepass $password \
+	-alias tomcat \
+	-deststoretype pkcs12
+	OUT=$?
+	if [ $OUT -ne 0 ]; then
+		echo -e $ERROR_MESSAGE
+		exit $OUT
+	fi
 
 
-$SUDO keytool -export  \
-         -alias tomcat \
-         -deststorepass $password \
-         -file $CER_FILE \
-         -keystore $DEST_KEYSTORE
-OUT=$?
-if [ $OUT -ne 0 ]; then
- echo -e $ERROR_MESSAGE
- exit $OUT
-fi
+	$SUDO keytool -export  \
+	-alias tomcat \
+	-deststorepass $password \
+	-file $CER_FILE \
+	-keystore $DEST_KEYSTORE
+	OUT=$?
+	if [ $OUT -ne 0 ]; then
+		echo -e $ERROR_MESSAGE
+		exit $OUT
+	fi
 
 
-$SUDO keytool -import -trustcacerts -alias tomcat \
-  -file $CER_FILE \
-  -keystore $TRUST_STORE \
-  -storepass $password -noprompt
-OUT=$?
-if [ $OUT -ne 0 ]; then
- echo -e $ERROR_MESSAGE
- exit $OUT
-fi
+	$SUDO keytool -import -trustcacerts -alias tomcat \
+	-file $CER_FILE \
+	-keystore $TRUST_STORE \
+	-storepass $password -noprompt
+	OUT=$?
+	if [ $OUT -ne 0 ]; then
+		echo -e $ERROR_MESSAGE
+		exit $OUT
+	fi
 
 
-$SUDO cp $TRUST_STORE $INSTALL_DIRECTORY/conf/
-OUT=$?
-if [ $OUT -ne 0 ]; then
- echo -e $ERROR_MESSAGE
- exit $OUT
-fi
+	$SUDO cp $TRUST_STORE $INSTALL_DIRECTORY/conf/
+	OUT=$?
+	if [ $OUT -ne 0 ]; then
+		echo -e $ERROR_MESSAGE
+		exit $OUT
+	fi
 
 
-$SUDO cp $DEST_KEYSTORE $INSTALL_DIRECTORY/conf/
-OUT=$?
-if [ $OUT -ne 0 ]; then
- echo -e $ERROR_MESSAGE
- exit $OUT
-fi
+	$SUDO cp $DEST_KEYSTORE $INSTALL_DIRECTORY/conf/
+	OUT=$?
+	if [ $OUT -ne 0 ]; then
+		echo -e $ERROR_MESSAGE
+		exit $OUT
+	fi
 
 
-$SUDO sed -i "/rtmps.keystorepass=password/c\rtmps.keystorepass=$password"  $INSTALL_DIRECTORY/conf/red5.properties
-OUT=$?
-if [ $OUT -ne 0 ]; then
- echo -e $ERROR_MESSAGE
- exit $OUT
-fi
+	$SUDO sed -i "/rtmps.keystorepass=password/c\rtmps.keystorepass=$password"  $INSTALL_DIRECTORY/conf/red5.properties
+	OUT=$?
+	if [ $OUT -ne 0 ]; then
+		echo -e $ERROR_MESSAGE
+		exit $OUT
+	fi
 
-$SUDO sed -i "/rtmps.truststorepass=password/c\rtmps.truststorepass=$password"  $INSTALL_DIRECTORY/conf/red5.properties
-OUT=$?
-if [ $OUT -ne 0 ]; then
- echo -e $ERROR_MESSAGE
- exit $OUT
-fi
+	$SUDO sed -i "/rtmps.truststorepass=password/c\rtmps.truststorepass=$password"  $INSTALL_DIRECTORY/conf/red5.properties
+	OUT=$?
+	if [ $OUT -ne 0 ]; then
+		echo -e $ERROR_MESSAGE
+		exit $OUT
+	fi
 
 #cp default jee-container to jee-container-nossl
 $SUDO cp $INSTALL_DIRECTORY/conf/jee-container.xml $INSTALL_DIRECTORY/conf/jee-container-nossl.xml
 OUT=$?
 if [ $OUT -ne 0 ]; then
- echo -e $ERROR_MESSAGE
- exit $OUT
+	echo -e $ERROR_MESSAGE
+	exit $OUT
 fi
 
 #cp jee-container-ssl to jee-container
 $SUDO cp $INSTALL_DIRECTORY/conf/jee-container-ssl.xml $INSTALL_DIRECTORY/conf/jee-container.xml
 OUT=$?
 if [ $OUT -ne 0 ]; then
- echo -e $ERROR_MESSAGE
- exit $OUT
+	echo -e $ERROR_MESSAGE
+	exit $OUT
 fi
 
 }
@@ -406,8 +405,8 @@ $SUDO echo "00 03 */85 * * cd $INSTALL_DIRECTORY && ./enable_ssl.sh -d $domain -
 
 OUT=$?
 if [ $OUT -ne 0 ]; then
- echo -e $ERROR_MESSAGE
- exit $OUT
+	echo -e $ERROR_MESSAGE
+	exit $OUT
 fi
 
 
@@ -417,8 +416,8 @@ $SUDO crontab mycron
 
 OUT=$?
 if [ $OUT -ne 0 ]; then
- echo -e $ERROR_MESSAGE
- exit $OUT
+	echo -e $ERROR_MESSAGE
+	exit $OUT
 fi
 
 #remove temp cron
@@ -426,15 +425,15 @@ $SUDO rm mycron
 
 #restart cron jobs
 if is_debian; then
-$SUDO systemctl restart cron
+	$SUDO systemctl restart cron
 else
-$SUDO systemctl restart crond.service
+	$SUDO systemctl restart crond.service
 fi
 
 OUT=$?
 if [ $OUT -ne 0 ]; then
- echo -e $ERROR_MESSAGE
- exit $OUT
+	echo -e $ERROR_MESSAGE
+	exit $OUT
 fi
 
 
@@ -455,11 +454,11 @@ generate_password(){
 
 check_domain_name(){
 #check domain name exists
-    if [ -z "$domain" ]; then
-    echo "Missing parameter. Domain name is not set"
-    usage
-    exit 1
-    fi
+if [ -z "$domain" ]; then
+	echo "Missing parameter. Domain name is not set"
+	usage
+	exit 1
+fi
 }
 
 #check domain name
@@ -480,8 +479,8 @@ then
 
 
 elif [ "$renew_flag" == "false" ]
-then
-   echo "creating new certificate"
+	then
+		echo "creating new certificate"
 
 
     #install letsencrypt and get the certificate
@@ -505,16 +504,16 @@ $SUDO service antmedia stop
 
 OUT=$?
 if [ $OUT -ne 0 ]; then
- echo -e $ERROR_MESSAGE
- exit $OUT
+	echo -e $ERROR_MESSAGE
+	exit $OUT
 fi
 
 $SUDO service antmedia start
 
 OUT=$?
 if [ $OUT -ne 0 ]; then
- echo -e $ERROR_MESSAGE
- exit $OUT
+	echo -e $ERROR_MESSAGE
+	exit $OUT
 fi
 
 
