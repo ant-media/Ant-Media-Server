@@ -52,6 +52,7 @@ public class GoogleAnalyticsLoggerImpTest {
     @Test
     public void logTest(){
         googleAnalyticsLogger.log(throwableProxy);
+        Assert.assertNotNull(throwableProxy);
     }
 
     @Test
