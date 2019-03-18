@@ -41,9 +41,22 @@ public class LoggerUtilsTest {
     }
 
     @Test
+    public void writeToFileExceptionTest(){
+        LoggerUtils.writeToFile(testPath,null);
+        Assert.assertFalse(new File(testPath).exists());
+    }
+
+    @Test
     public void getFileContentTest(){
         LoggerUtils.writeToFile(testPath,testContent);
         String fileContent = LoggerUtils.getFileContent(testPath);
         Assert.assertEquals(testContent,fileContent);
+    }
+
+    @Test
+    public void getFileContentExceptionTest(){
+        LoggerUtils.writeToFile("",testContent);
+        String fileContent = LoggerUtils.getFileContent(testPath);
+        Assert.assertNull(fileContent);
     }
 }

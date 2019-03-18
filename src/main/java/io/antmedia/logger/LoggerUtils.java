@@ -21,7 +21,7 @@ class LoggerUtils {
         try {
             File file = new File(absolutePath);
             Files.write(file.toPath(), content.getBytes(), StandardOpenOption.CREATE);
-        } catch (IOException e) {
+        } catch (Exception e) {
             logger.error(ExceptionUtils.getStackTrace(e));
         }
 
