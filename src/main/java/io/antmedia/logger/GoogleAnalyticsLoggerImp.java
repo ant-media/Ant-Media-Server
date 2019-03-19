@@ -36,7 +36,7 @@ class GoogleAnalyticsLoggerImp implements GoogleAnalyticsLogger {
         googleAnalytic.exception().
                 exceptionDescription(throwableStr).
                 clientId(instanceId).
-                send();
+                sendAsync();
     }
 
     @VisibleForTesting
