@@ -7,6 +7,9 @@
     </appender>
     
     <appender name="AntmediaLogger" class="io.antmedia.logger.AntmediaAppender">
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>ERROR</level>
+        </filter>
     </appender>
     
     <appender class="ch.qos.logback.core.rolling.RollingFileAppender" name="FILE">

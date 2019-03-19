@@ -3,75 +3,47 @@ package io.antmedia.logger;
 import ch.qos.logback.classic.spi.IThrowableProxy;
 import ch.qos.logback.classic.spi.ThrowableProxyUtil;
 import com.brsanthu.googleanalytics.GoogleAnalytics;
+import com.google.common.annotations.VisibleForTesting;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.rest.BroadcastRestService;
-import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.StandardOpenOption;
 import java.util.UUID;
 
-public class GoogleAnalyticsLoggerImp implements GoogleAnalyticsLogger {
+class GoogleAnalyticsLoggerImp implements GoogleAnalyticsLogger {
 
-    protected static Logger logger = LoggerFactory.getLogger(GoogleAnalyticsLoggerImp.class);
     private final String implementationVersion = AntMediaApplicationAdapter.class.getPackage().getImplementationVersion();
     private final String type = BroadcastRestService.isEnterprise() ? "Enterprise" : "Community";
 
-    private String instanceId;
+    @VisibleForTesting
+    String instanceId;
 
-    public GoogleAnalyticsLoggerImp() {
-        String path = System.getProperty("red5.root");
-        File idFile = new File(path + "/conf/instanceId");
+    public GoogleAnalyticsLoggerImp(String path) {
+        File idFile = new File(path);
         instanceId = null;
         if (idFile.exists()) {
-            instanceId = getFileContent(idFile.getAbsolutePath());
+            instanceId = LoggerUtils.getFileContent(idFile.getAbsolutePath());
         } else {
             instanceId = UUID.randomUUID().toString();
-            writeToFile(idFile.getAbsolutePath(), instanceId);
+            LoggerUtils.writeToFile(idFile.getAbsolutePath(), instanceId);
         }
     }
 
     @Override
     public void log(IThrowableProxy throwableProxy) {
         String throwableStr = ThrowableProxyUtil.asString(throwableProxy);
-        getGoogleAnalytic(implementationVersion, type).
-                exception().
+        GoogleAnalytics googleAnalytic = getGoogleAnalytic();
+        googleAnalytic.exception().
                 exceptionDescription(throwableStr).
                 clientId(instanceId).
-                send();
+                sendAsync();
     }
 
-    private GoogleAnalytics getGoogleAnalytic(String implementationVersion, String type) {
+    @VisibleForTesting
+    GoogleAnalytics getGoogleAnalytic() {
         return GoogleAnalytics.builder()
                 .withAppVersion(implementationVersion)
                 .withAppName(type)
                 .withTrackingId("UA-93263926-3").build();
-
-    }
-
-    private String getFileContent(String path) {
-        try {
-            byte[] data = Files.readAllBytes(new File(path).toPath());
-            return new String(data);
-        } catch (IOException e) {
-            logger.error(ExceptionUtils.getStackTrace(e));
-        }
-        return null;
-    }
-
-    private void writeToFile(String absolutePath, String content) {
-        try {
-            File file = new File(absolutePath);
-            if(file.exists()) {
-                Files.write(file.toPath(), content.getBytes(), StandardOpenOption.CREATE);
-            }
-        } catch (IOException e) {
-            logger.error(ExceptionUtils.getStackTrace(e));
-        }
-
     }
 }

@@ -11,7 +11,7 @@ public class AntmediaAppender extends AppenderBase<ILoggingEvent> {
     private final GoogleAnalyticsLogger googleAnalyticsLogger;
 
     public AntmediaAppender() {
-        googleAnalyticsLogger = new GoogleAnalyticsLoggerImp();
+        googleAnalyticsLogger = new GoogleAnalyticsLoggerImp(System.getProperty("red5.root")+"/conf/instanceId");
     }
 
     public AntmediaAppender(GoogleAnalyticsLogger googleAnalyticsLogger) {
