@@ -51,6 +51,7 @@ import io.antmedia.shutdown.AMSShutdownManager;
 public class Launcher {
 
 
+	public static final String GA_TRACKING_ID = "UA-93263926-3";
 	private String instanceId;
 	
 	
@@ -167,7 +168,7 @@ public class Launcher {
 		return GoogleAnalytics.builder()
 		.withAppVersion(implementationVersion)
 		.withAppName(type)
-		.withTrackingId("UA-93263926-3").build();
+		.withTrackingId(GA_TRACKING_ID).build();
 		
 	}
 
