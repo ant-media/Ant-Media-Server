@@ -55,4 +55,9 @@
     		<property name="serverName" value="${ant.media.server.name}" />
     </bean>
     
+     <bean id="logSettings" class="io.antmedia.settings.LogSettings">
+		<property name="logLevel" value="${logLevel}"/>   
+		<property name="logFileSize" value="${logFileSize}"/>   
+    	</bean>
+    
 </beans>
