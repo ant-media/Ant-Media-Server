@@ -28,6 +28,35 @@ Ant Media Server is an open source media server that supports:
 
 ## Releases 
 
+ ### [Ant Media Server Community 1.6.2 (March 25, 2019)](https://github.com/ant-media/Ant-Media-Server/releases/download/release-1.6.2/ant-media-server-1.6.2-community-1.6.2-20190323_0616.zip)
+*   Rest Filtering based on IP Address [#361](https://github.com/ant-media/Ant-Media-Server/issues/361) [#360](https://github.com/ant-media/Ant-Media-Server/issues/360)
+*   Update embedded tomcat version to 8.5.38 [#520](https://github.com/ant-media/Ant-Media-Server/issues/520)
+*   Configure WebRTC port-ranges for both publishing/playing [#884](https://github.com/ant-media/Ant-Media-Server/issues/884)
+*   Auto renew SSL certificates before time-out [#523](https://github.com/ant-media/Ant-Media-Server/issues/523)
+*   Add a rest method that accept user-assigned stream id [#1007](https://github.com/ant-media/Ant-Media-Server/issues/1007)
+*   Make encoder settings configurable [#826](https://github.com/ant-media/Ant-Media-Server/issues/826)
+*   Receive build number from Root app, instead of LiveApp/WebRTCAppEE [#957](https://github.com/ant-media/Ant-Media-Server/issues/957)
+*   Vod section add download button [#776](https://github.com/ant-media/Ant-Media-Server/issues/776)
+*   Secret based streams authorization without rest api calls [#717](https://github.com/ant-media/Ant-Media-Server/issues/717)
+*   Websocket signaling ping/pong request [#718](https://github.com/ant-media/Ant-Media-Server/issues/718)
+*   Update ffmpeg, make it compatible with cuda javacpp version [#769](https://github.com/ant-media/Ant-Media-Server/issues/752)
+*   Collect exceptions in the instances in order to have better quality # [#909](https://github.com/ant-media/Ant-Media-Server/issues/909)
+
+#### Fixes and Refactors
+*   HLS delete files in the edge nodes [#853](https://github.com/ant-media/Ant-Media-Server/issues/853)
+*   Collect previews from origin in the cluster [#726](https://github.com/ant-media/Ant-Media-Server/issues/726)
+*   WebRTC number of viewers is seen even if stream is not alive [#824](https://github.com/ant-media/Ant-Media-Server/issues/824)
+*   WebRTC embed code sometimes does not play automatically [#799](https://github.com/ant-media/Ant-Media-Server/issues/799)
+*   Some cases ICE Connection Fails [#869](https://github.com/ant-media/Ant-Media-Server/issues/869)
+*   WebRTC playing from edge with the same Id does not start after origin restart during the streaming [#877](https://github.com/ant-media/Ant-Media-Server/issues/877)
+*   High Idle load time after some rtsp operations [#855](https://github.com/ant-media/Ant-Media-Server/issues/855)
+*   Refactor on webrtc client stats graph [#702](https://github.com/ant-media/Ant-Media-Server/issues/702)
+*   Change Rest Service method(GET->POST) of Mp4Muxing for streams [#798](https://github.com/ant-media/Ant-Media-Server/issues/798)
+*   Inconsistency in stream number in dashboard [#547](https://github.com/ant-media/Ant-Media-Server/issues/547)
+*   WebRTCApp HLS preview doesn't work in Community Edition [#1014](https://github.com/ant-media/Ant-Media-Server/issues/1014)  [#965](https://github.com/ant-media/Ant-Media-Server/issues/965)
+*   Unique play.html [#690](https://github.com/ant-media/Ant-Media-Server/issues/690)
+*   Simultaneous Periscope accounts issue [#802](https://github.com/ant-media/Ant-Media-Server/issues/802)
+
  ### [Ant Media Server Community 1.6.1 (Jan 8, 2019)](https://github.com/ant-media/Ant-Media-Server/releases/download/release-1.6.1/ant-media-server-1.6.1-community-1.6.1-190108_1656.zip)
 *   Use GPU resources respectively in the system [#663](https://github.com/ant-media/Ant-Media-Server/issues/663)
 *   Transcoding is not enabled by default [#734](https://github.com/ant-media/Ant-Media-Server/issues/734)
@@ -56,13 +85,6 @@ Ant Media Server is an open source media server that supports:
   * Enable/Disable MP4 Recording on Stream basis via Rest API
   * AVC compatibility
   * Bug fixes
-
-
- #### [Ant Media Server Community 1.5.2 (Nov 16, 2018)](https://github.com/ant-media/Ant-Media-Server/releases/download/ams-v1.5.2/ant-media-server-community-1.5.2-181116_1126.zip)
- * Session replication and improvements in clustering
- * Improvements in Management Console
- * Publishing WebRTC streams to Social and other RTMP endpoints
- * Bug fixes
 
 
 Previous releases
