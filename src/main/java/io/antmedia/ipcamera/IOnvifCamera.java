@@ -16,7 +16,7 @@ public interface IOnvifCamera {
 	 * @return true if connected
 	 * 		   false if not connected
 	 */
-	boolean connect(String address, String username, String password);
+	int connect(String address, String username, String password);
 	
 	void disconnect();
 	
