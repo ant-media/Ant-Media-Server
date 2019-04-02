@@ -1,6 +1,7 @@
 package io.antmedia.test.rest;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -19,6 +20,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
@@ -32,11 +35,13 @@ import io.antmedia.rest.StreamsSourceRestService;
 import io.antmedia.rest.model.Result;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.streamsource.StreamFetcher;
+import io.antmedia.test.StreamFetcherUnitTest;
 
 @ContextConfiguration(locations = { "test.xml" })
 @DirtiesContext(classMode = ClassMode.AFTER_CLASS)
 public class StreamSourceRestServiceUnitTest {
 
+	protected static Logger logger = LoggerFactory.getLogger(StreamSourceRestServiceUnitTest.class);
 	private StreamsSourceRestService restService = null;
 	public AntMediaApplicationAdapter app = null;
 
@@ -80,6 +85,68 @@ public class StreamSourceRestServiceUnitTest {
 		result = streamSourceRest.addStreamSource(newCam,"");
 
 		assertTrue(result.isSuccess());
+	}
+
+	@Test
+	public void testConnectToCamera()  {
+		//start ONVIF Camera emulator
+		StreamFetcherUnitTest.startCameraEmulator();
+
+		//create a cam broadcast
+		Broadcast newCam = new Broadcast("testAddIPCamera", "127.0.0.1:8080", "admin", "admin",
+				"rtsp://11.2.40.63:8554/live1.sdp", AntMediaApplicationAdapter.IP_CAMERA);
+
+		//simulate required operations
+		StreamsSourceRestService streamSourceRest = Mockito.spy(restService);
+		AntMediaApplicationAdapter adaptor = mock (AntMediaApplicationAdapter.class);
+		StreamFetcher fetcher = mock (StreamFetcher.class);
+		
+		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
+		Mockito.doReturn(fetcher).when(adaptor).startStreaming(newCam);
+		Mockito.doReturn(new InMemoryDataStore("testConnectToCamera")).when(streamSourceRest).getDataStore();
+
+		//try to connect to camera
+		Result result =	streamSourceRest.connectToCamera(newCam);
+		
+		//message should be RTSP address because it is reachable
+		assertEquals("rtsp://127.0.0.1:6554/test.flv", result.getMessage());
+		
+		//set wrong IP Address
+		newCam.setIpAddr("127.0.0.11:8080");
+		
+		//try to connect to camera
+		result = streamSourceRest.connectToCamera(newCam);
+		
+		//message should be connection error code (-1) because IP is set
+		assertEquals(String.valueOf(-1), result.getMessage());
+
+		//stop camera emulator
+		StreamFetcherUnitTest.stopCameraEmulator();
+
+	}
+	
+	@Test
+	public void testSearchOnvifDevices()  {
+
+		//start ONVIF Cam emulator
+		StreamFetcherUnitTest.startCameraEmulator();
+
+		StreamsSourceRestService streamSourceRest = Mockito.spy(restService);
+
+		//start ONVIF discovery
+		String result[] = streamSourceRest.searchOnvifDevices();
+		
+		//it should not null because there is an ONVIF Cam discoverable
+		assertNotNull(result);
+		
+		//check that camera onvif url is correct
+		assertEquals("127.0.0.1:8080", result[0]);
+		
+		logger.info(result[0]);
+
+		//stop camera emulator
+		StreamFetcherUnitTest.stopCameraEmulator();
+
 	}
 
 	@Test
