@@ -12,21 +12,16 @@ renew_flag='false'
 
 while getopts i:d:p:f:r option
 do
-case "${option}"
-in
-f) FULL_CHAIN_FILE=${OPTARG};;
-p) PRIVATE_KEY_FILE=${OPTARG};;
-i) INSTALL_DIRECTORY=${OPTARG};;
-d) domain=${OPTARG};;
-r) renew_flag='true';;
-
-
-
-esac
+  case "${option}" in
+    f) FULL_CHAIN_FILE=${OPTARG};;
+    p) PRIVATE_KEY_FILE=${OPTARG};;
+    i) INSTALL_DIRECTORY=${OPTARG};;
+    d) domain=${OPTARG};;
+    r) renew_flag='true';;
+   esac
 done
 
 ERROR_MESSAGE="There is a problem in installing SSL to Ant Media Server.\n Please take a look at the logs above and try to fix.\n If you do not have any idea, contact@antmedia.io"
-
 
 usage() {
 	echo "Usage:"
@@ -36,11 +31,7 @@ usage() {
 	echo "If you have any question, send e-mail to contact@antmedia.io"
 }
 
-get_password() {
-
-
-
-		
+get_password() {	
   until [ ! -z "$password" ]
   do
     read -sp 'Enter Password For SSL Certificate:' password
@@ -49,8 +40,7 @@ get_password() {
 	  echo 
 	  echo "Password cannot be empty. "
 	fi
-  done			
-    
+  done			   
 }
 
 SUDO="sudo"
@@ -69,9 +59,6 @@ delete_alias() {
 }
 
 
-
-
-
 fullChainFileExist=false
 if [ ! -z "$FULL_CHAIN_FILE" ] && [ -f "$FULL_CHAIN_FILE" ]; then
   fullChainFileExist=true
@@ -88,10 +75,6 @@ if [ "$fullChainFileExist" != "$privateKeyFileExist" ]; then
    exit 1
 fi
 
-
-
-
-
 if [ ! -d "$INSTALL_DIRECTORY" ]; then
   # Control will enter here if $DIRECTORY doesn't exist.
   echo "Ant Media Server does not seem to be installed to $INSTALL_DIRECTORY"
@@ -100,14 +83,10 @@ if [ ! -d "$INSTALL_DIRECTORY" ]; then
   exit 1
 fi
 
-
-
 get_new_certificate(){
-
 
 if [ "$fullChainFileExist" == false ]; then
     #  install letsencrypt and get the certificate
-
 
     # Install required libraries
     $SUDO apt-get update -y -qq
@@ -153,11 +132,7 @@ if [ "$fullChainFileExist" == false ]; then
       exit $OUT
     fi
 
-
-
 fi
-
-
 }
 
 renew_certificate(){
@@ -166,194 +141,182 @@ renew_certificate(){
 
    $SUDO certbot renew
 
-    OUT=$?
-    if [ $OUT -ne 0 ]; then
+   OUT=$?
+   if [ $OUT -ne 0 ]; then
          echo -e $ERROR_MESSAGE
-    exit $OUT
-    fi
-
-
+   exit $OUT
+   fi
 }
 
 
 auth_tomcat(){
-
     echo ""
-
-
     file="/etc/letsencrypt/live/$domain/keystore.jks"
     delete_alias $file
-
+    
     file="/etc/letsencrypt/live/$domain/truststore.jks"
     delete_alias $file
 
     FULL_CHAIN_FILE="/etc/letsencrypt/live/$domain/fullchain.pem"
     PRIVATE_KEY_FILE="/etc/letsencrypt/live/$domain/privkey.pem"
 
-
-TEMP_DIR=$INSTALL_DIRECTORY/$domain
-if [ ! -d "$TEMP_DIR" ]; then
-  $SUDO mkdir $TEMP_DIR
-fi
-
-
-EXPORT_P12_FILE=$TEMP_DIR/fullchain_and_key.p12
-
-DEST_KEYSTORE=$TEMP_DIR/keystore.jks
-
-TRUST_STORE=$TEMP_DIR/truststore.jks
-
-CER_FILE=$INSTALL_DIRECTORY/$domain/tomcat.cer
-
-$SUDO openssl pkcs12 -export \
-    -in $FULL_CHAIN_FILE \
-    -inkey $PRIVATE_KEY_FILE \
-    -out $EXPORT_P12_FILE \
-    -name tomcat \
-    -password pass:$password
-OUT=$?
+	TEMP_DIR=$INSTALL_DIRECTORY/$domain
+	if [ ! -d "$TEMP_DIR" ]; then
+	  $SUDO mkdir $TEMP_DIR
+	fi
 
 
-if [ $OUT -ne 0 ]; then
-  echo -e $ERROR_MESSAGE
-  exit $OUT
-fi
+	EXPORT_P12_FILE=$TEMP_DIR/fullchain_and_key.p12
+	
+	DEST_KEYSTORE=$TEMP_DIR/keystore.jks
+	
+	TRUST_STORE=$TEMP_DIR/truststore.jks
+	
+	CER_FILE=$INSTALL_DIRECTORY/$domain/tomcat.cer
+	
+	$SUDO openssl pkcs12 -export \
+	    -in $FULL_CHAIN_FILE \
+	    -inkey $PRIVATE_KEY_FILE \
+	    -out $EXPORT_P12_FILE \
+	    -name tomcat \
+	    -password pass:$password
+	OUT=$?
 
 
-
-$SUDO keytool -importkeystore \
-       -deststorepass $password \
-       -destkeypass $password \
-       -destkeystore $DEST_KEYSTORE \
-       -srckeystore $EXPORT_P12_FILE \
-       -srcstoretype pkcs12 \
-       -srcstorepass $password \
-       -alias tomcat \
-       -deststoretype pkcs12
-OUT=$?
-if [ $OUT -ne 0 ]; then
-  echo -e $ERROR_MESSAGE
-  exit $OUT
-fi
-
-
-$SUDO keytool -export  \
-         -alias tomcat \
-         -deststorepass $password \
-         -file $CER_FILE \
-         -keystore $DEST_KEYSTORE
-OUT=$?
-if [ $OUT -ne 0 ]; then
- echo -e $ERROR_MESSAGE
- exit $OUT
-fi
-
-
-$SUDO keytool -import -trustcacerts -alias tomcat \
-  -file $CER_FILE \
-  -keystore $TRUST_STORE \
-  -storepass $password -noprompt
-OUT=$?
-if [ $OUT -ne 0 ]; then
- echo -e $ERROR_MESSAGE
- exit $OUT
-fi
+	if [ $OUT -ne 0 ]; then
+	  echo -e $ERROR_MESSAGE
+	  exit $OUT
+	fi
+	
+	
+	
+	$SUDO keytool -importkeystore \
+	       -deststorepass $password \
+	       -destkeypass $password \
+	       -destkeystore $DEST_KEYSTORE \
+	       -srckeystore $EXPORT_P12_FILE \
+	       -srcstoretype pkcs12 \
+	       -srcstorepass $password \
+	       -alias tomcat \
+	       -deststoretype pkcs12
+	OUT=$?
+	if [ $OUT -ne 0 ]; then
+	  echo -e $ERROR_MESSAGE
+	  exit $OUT
+	fi
+	
+	
+	$SUDO keytool -export  \
+	         -alias tomcat \
+	         -deststorepass $password \
+	         -file $CER_FILE \
+	         -keystore $DEST_KEYSTORE
+	OUT=$?
+	if [ $OUT -ne 0 ]; then
+	 echo -e $ERROR_MESSAGE
+	 exit $OUT
+	fi
 
 
-$SUDO cp $TRUST_STORE $INSTALL_DIRECTORY/conf/
-OUT=$?
-if [ $OUT -ne 0 ]; then
- echo -e $ERROR_MESSAGE
- exit $OUT
-fi
+	$SUDO keytool -import -trustcacerts -alias tomcat \
+	  -file $CER_FILE \
+	  -keystore $TRUST_STORE \
+	  -storepass $password -noprompt
+	OUT=$?
+	if [ $OUT -ne 0 ]; then
+	 echo -e $ERROR_MESSAGE
+	 exit $OUT
+	fi
+	
+	
+	$SUDO cp $TRUST_STORE $INSTALL_DIRECTORY/conf/
+	OUT=$?
+	if [ $OUT -ne 0 ]; then
+	 echo -e $ERROR_MESSAGE
+	 exit $OUT
+	fi
 
 
-$SUDO cp $DEST_KEYSTORE $INSTALL_DIRECTORY/conf/
-OUT=$?
-if [ $OUT -ne 0 ]; then
- echo -e $ERROR_MESSAGE
- exit $OUT
-fi
+	$SUDO cp $DEST_KEYSTORE $INSTALL_DIRECTORY/conf/
+	OUT=$?
+	if [ $OUT -ne 0 ]; then
+	 echo -e $ERROR_MESSAGE
+	 exit $OUT
+	fi
+	
+	
+	$SUDO sed -i "/rtmps.keystorepass=password/c\rtmps.keystorepass=$password"  $INSTALL_DIRECTORY/conf/red5.properties
+	OUT=$?
+	if [ $OUT -ne 0 ]; then
+	 echo -e $ERROR_MESSAGE
+	 exit $OUT
+	fi
+	
+	$SUDO sed -i "/rtmps.truststorepass=password/c\rtmps.truststorepass=$password"  $INSTALL_DIRECTORY/conf/red5.properties
+	OUT=$?
+	if [ $OUT -ne 0 ]; then
+	 echo -e $ERROR_MESSAGE
+	 exit $OUT
+	fi
+	
+	#cp default jee-container to jee-container-nossl
+	$SUDO cp $INSTALL_DIRECTORY/conf/jee-container.xml $INSTALL_DIRECTORY/conf/jee-container-nossl.xml
+	OUT=$?
+	if [ $OUT -ne 0 ]; then
+	 echo -e $ERROR_MESSAGE
+	 exit $OUT
+	fi
 
-
-$SUDO sed -i "/rtmps.keystorepass=password/c\rtmps.keystorepass=$password"  $INSTALL_DIRECTORY/conf/red5.properties
-OUT=$?
-if [ $OUT -ne 0 ]; then
- echo -e $ERROR_MESSAGE
- exit $OUT
-fi
-
-$SUDO sed -i "/rtmps.truststorepass=password/c\rtmps.truststorepass=$password"  $INSTALL_DIRECTORY/conf/red5.properties
-OUT=$?
-if [ $OUT -ne 0 ]; then
- echo -e $ERROR_MESSAGE
- exit $OUT
-fi
-
-#cp default jee-container to jee-container-nossl
-$SUDO cp $INSTALL_DIRECTORY/conf/jee-container.xml $INSTALL_DIRECTORY/conf/jee-container-nossl.xml
-OUT=$?
-if [ $OUT -ne 0 ]; then
- echo -e $ERROR_MESSAGE
- exit $OUT
-fi
-
-#cp jee-container-ssl to jee-container
-$SUDO cp $INSTALL_DIRECTORY/conf/jee-container-ssl.xml $INSTALL_DIRECTORY/conf/jee-container.xml
-OUT=$?
-if [ $OUT -ne 0 ]; then
- echo -e $ERROR_MESSAGE
- exit $OUT
-fi
-
+	#cp jee-container-ssl to jee-container
+	$SUDO cp $INSTALL_DIRECTORY/conf/jee-container-ssl.xml $INSTALL_DIRECTORY/conf/jee-container.xml
+	OUT=$?
+	if [ $OUT -ne 0 ]; then
+	 echo -e $ERROR_MESSAGE
+	 exit $OUT
+	fi
 }
 
 create_cron_job(){
 
-
-#add renew job to crontab
-$SUDO crontab -l > mycron
-
-
-#echo new cron into cron file
-#run renew script in each 85 days
-$SUDO echo "00 03 */85 * * cd $INSTALL_DIRECTORY && ./enable_ssl.sh -d $domain -r" >> mycron
-
-
-OUT=$?
-if [ $OUT -ne 0 ]; then
- echo -e $ERROR_MESSAGE
- exit $OUT
-fi
-
-
-#install new cron file
-$SUDO crontab mycron
+	#add renew job to crontab
+	$SUDO crontab -l > mycron
+	
+	
+	#echo new cron into cron file
+	#run renew script in each 85 days
+	$SUDO echo "00 03 */85 * * cd $INSTALL_DIRECTORY && ./enable_ssl.sh -d $domain -r" >> mycron
+	
+	
+	OUT=$?
+	if [ $OUT -ne 0 ]; then
+	 echo -e $ERROR_MESSAGE
+	 exit $OUT
+	fi
 
 
-OUT=$?
-if [ $OUT -ne 0 ]; then
- echo -e $ERROR_MESSAGE
- exit $OUT
-fi
+	#install new cron file
+	$SUDO crontab mycron
+	
+	OUT=$?
+	if [ $OUT -ne 0 ]; then
+	 echo -e $ERROR_MESSAGE
+	 exit $OUT
+	fi
 
-#remove temp cron
-$SUDO rm mycron
-
-#restart cron jobs
-$SUDO systemctl restart cron
-
-OUT=$?
-if [ $OUT -ne 0 ]; then
- echo -e $ERROR_MESSAGE
- exit $OUT
-fi
-
-
+	#remove temp cron
+	$SUDO rm mycron
+	
+	#restart cron jobs
+	$SUDO systemctl restart cron
+	
+	OUT=$?
+	if [ $OUT -ne 0 ]; then
+	 echo -e $ERROR_MESSAGE
+	 exit $OUT
+	fi
 }
 
 generate_password(){
-
 
     #user may define his own password
     #password=$(echo -n "$domain" | sha256sum)
@@ -362,11 +325,10 @@ generate_password(){
 
     echo "domain: $domain"
     #echo "generated password: $password"
-
 }
 
 check_domain_name(){
-#check domain name exists
+    #check domain name exists
     if [ -z "$domain" ]; then
     echo "Missing parameter. Domain name is not set"
     usage
@@ -390,11 +352,9 @@ then
     #authenticate tomcat with certificate
     auth_tomcat
 
-
 elif [ "$renew_flag" == "false" ]
 then
    echo "creating new certificate"
-
 
     #install letsencrypt and get the certificate
     get_new_certificate
@@ -404,14 +364,9 @@ then
 
     #create cron job for auto renew
     create_cron_job
-
 fi
 
-
-
 echo ""
-
-
 
 $SUDO service antmedia stop
 
@@ -428,9 +383,6 @@ if [ $OUT -ne 0 ]; then
  echo -e $ERROR_MESSAGE
  exit $OUT
 fi
-
-
-
 
 echo "SSL certificate is installed."
 echo "Https port: 5443"
