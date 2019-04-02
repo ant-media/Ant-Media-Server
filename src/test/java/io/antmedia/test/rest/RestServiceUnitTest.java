@@ -297,7 +297,7 @@ public class RestServiceUnitTest {
 			int clientCount = (int)(Math.random()*999) + 70;
 			
 			for (int i = 0; i < clientCount; i++) {
-				statsList.add(new WebRTCClientStats(500, 400, 40, 20, 20, 20));
+				statsList.add(new WebRTCClientStats(500, 400, 40, 20));
 			}
 			
 			Mockito.when(webrtcAdaptor.getWebRTCClientStats(Mockito.anyString())).thenReturn(statsList);

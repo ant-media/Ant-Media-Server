@@ -2,7 +2,14 @@ package io.antmedia.datastore.db;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 
 import org.apache.commons.io.FilenameUtils;
@@ -44,15 +51,18 @@ public class MongoStore extends DataStore {
 	private Datastore detectionMap;
 
 	protected static Logger logger = LoggerFactory.getLogger(MongoStore.class);
+	ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
 
 	public static final String IMAGE_ID = "imageId"; 
+
+	Map<String, AtomicInteger> incrementMap= Collections.synchronizedMap(new HashMap<String, AtomicInteger>());
 
 	public MongoStore(String host, String username, String password, String dbName) {
 		morphia = new Morphia();
 		morphia.mapPackage("io.antmedia.datastore.db.types");
-		
+
 		String uri = DBUtils.getUri(host, username, password);
-		
+
 		MongoClientURI mongoUri = new MongoClientURI(uri);
 		MongoClient client = new MongoClient(mongoUri);
 		datastore = morphia.createDatastore(client, dbName);
@@ -630,24 +640,44 @@ public class MongoStore extends DataStore {
 	 */
 	@Override
 	public boolean updateWebRTCViewerCount(String streamId, boolean increment) {
+
+		synchronized (incrementMap) {
+			AtomicInteger number = incrementMap.get(streamId);
+			if(number == null) {
+				number = new AtomicInteger(0);
+				incrementMap.put(streamId, number);
+
+				scheduledExecutorService.schedule(()->updateWebRTCViewerCountOnDB(streamId), 3000, TimeUnit.MILLISECONDS);
+			}
+			if (increment) {
+				number.incrementAndGet();
+			}
+			else {
+				number.decrementAndGet();
+			}
+		}
+
+		return true;
+	}
+
+	private void updateWebRTCViewerCountOnDB(String streamId) {
+		int number = 0;
+		synchronized(incrementMap) {
+			number = incrementMap.get(streamId).get();
+			incrementMap.remove(streamId);
+		}
+
 		try {
 
 			Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(streamId);
 			UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class);
 			String field = "webRTCViewerCount";
-			if (increment) {
-				ops.inc(field);
-			}
-			else {
-				ops.dec(field);
-			}
+			ops.inc(field, number);
 
 			UpdateResults update = datastore.update(query, ops);
-			return update.getUpdatedCount() == 1;
 		} catch (Exception e) {
 			logger.error(e.getMessage());
-		}
-		return false;
+		}		
 	}
 
 	@Override
@@ -672,12 +702,12 @@ public class MongoStore extends DataStore {
 		return false;
 	}
 
-	
+
 	@Override
 	public void saveStreamInfo(StreamInfo streamInfo) {
 		datastore.save(streamInfo);
 	}
-	
+
 	@Override
 	public void addStreamInfoList(List<StreamInfo> streamInfoList) {
 		for (StreamInfo streamInfo : streamInfoList) {
