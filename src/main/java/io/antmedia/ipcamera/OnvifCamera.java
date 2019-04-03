@@ -25,24 +25,45 @@ public class OnvifCamera implements IOnvifCamera {
 	PtzDevices ptzDevices;
 	List<Profile> profiles;
 
+	public static final int CONNECTION_SUCCESS = 0;
+	public static final int CONNECT_ERROR = -1;
+	public static final int AUTHENTICATION_ERROR = -2;
 	String profileToken;
-	
+	private static final String HTTP = "http://";
+
+
 	protected static Logger logger = LoggerFactory.getLogger(OnvifCamera.class);
 
 	@Override
-	public boolean connect(String address, String username, String password) {
-		boolean result = false;
+	public int connect(String address, String username, String password) {
+		int result = CONNECTION_SUCCESS;
+		String camIP = "";
 		try {
-			nvt = new OnvifDevice(address, username, password);
+			
+			camIP = getURL(address);
+			
+			nvt = new OnvifDevice(camIP, username, password);
 			nvt.getDevices().getCapabilities().getDevice();
 			nvt.getDevices().getServices(false);
 			ptzDevices = nvt.getPtz();
 			profiles = nvt.getDevices().getProfiles();
-			profileToken = profiles.get(0).getToken();
-			result = true;
+
+
+			if (profiles == null) {
+
+				//it is likely authentication error but maybe something else
+				//inform user to check username and password
+				result = AUTHENTICATION_ERROR;
+			}else {
+
+				profileToken = profiles.get(0).getToken();
+
+			}
+
 		} catch (ConnectException | SOAPException e) {
-			logger.error(ExceptionUtils.getStackTrace(e));
-			result = false;
+
+			//connection error. Let the user check ip address
+			result = CONNECT_ERROR;
 		} 
 		return result;
 	}
@@ -277,6 +298,33 @@ public class OnvifCamera implements IOnvifCamera {
 	@Override
 	public boolean setDateTime(java.sql.Date date, java.sql.Time time) {
 		return false;
+	}
+	
+	public String getURL (String url) {
+
+		String[] ipAddrParts = null;
+		String ipAddr = url;
+
+		if(url != null && (url.startsWith(HTTP) ||
+				url.startsWith("https://") ||
+				url.startsWith("rtmp://") ||
+				url.startsWith("rtmps://") ||
+				url.startsWith("rtsp://"))) {
+
+			ipAddrParts = url.split("//");
+			ipAddr = ipAddrParts[1];
+		}
+		if (ipAddr != null) {
+
+			if (ipAddr.contains("/")){
+				ipAddrParts = ipAddr.split("/");
+				ipAddr = ipAddrParts[0];
+			}
+			logger.info("IP: {}", ipAddr);
+
+
+		}
+		return ipAddr;
 	}
 
 }
