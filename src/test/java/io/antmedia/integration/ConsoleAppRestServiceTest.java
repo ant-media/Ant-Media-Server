@@ -24,7 +24,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
-import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpUriRequest;
@@ -56,8 +55,8 @@ import io.antmedia.AppSettingsModel;
 import io.antmedia.EncoderSettings;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Token;
+import io.antmedia.datastore.preference.PreferenceStore;
 import io.antmedia.muxer.MuxAdaptor;
-import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.User;
 import io.antmedia.rest.model.Version;
@@ -65,6 +64,8 @@ import io.antmedia.test.Application;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class ConsoleAppRestServiceTest {
+	
+    public ch.qos.logback.classic.Logger rootLogger;
 
 	private static String ROOT_SERVICE_URL;
 
@@ -392,6 +393,64 @@ public class ConsoleAppRestServiceTest {
 			fail(e.getMessage());
 		}
 
+	}
+	
+	@Test
+	public void testLogLevel() throws Exception {
+	
+	PreferenceStore store = new PreferenceStore("red5.properties");
+	store.setFullPath("src/main/server/conf/red5.properties");
+	rootLogger = (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME);
+	
+	//get Log Level Check (Default Log Level INFO)
+	
+	String logLevel = callGetLogLevel();
+	
+	JSONObject logJSON = (JSONObject) new JSONParser().parse(logLevel);
+	
+	String tmpObject = (String) logJSON.get("logLevel"); 
+	
+	assertEquals(store.get("logLevel"), tmpObject);
+	
+	// change Log Level Check (INFO -> WARN)
+	
+	callSetLogLevel("WARN");
+	
+	logLevel = callGetLogLevel();
+		
+	JSONObject appsJSON = (JSONObject) new JSONParser().parse(logLevel);
+	
+	tmpObject = (String) appsJSON.get("logLevel"); 
+	
+	assertEquals(store.get("logLevel"), tmpObject);
+	
+	//get Log Level Check (currently should be WARN)
+	
+	logLevel = callGetLogLevel();
+	
+	logJSON = (JSONObject) new JSONParser().parse(logLevel);
+	
+	tmpObject = (String) logJSON.get("logLevel"); 
+	
+	assertEquals(store.get("logLevel"), tmpObject);
+	
+	// change Log Level Check (currently Log Level doesn't change)
+	
+	callSetLogLevel("TEST");
+	
+	logLevel = callGetLogLevel();
+		
+	appsJSON = (JSONObject) new JSONParser().parse(logLevel);
+	
+	tmpObject = (String) appsJSON.get("logLevel"); 
+	
+	assertEquals(store.get("logLevel"), tmpObject);
+	
+	//check root log
+	
+	assertEquals(rootLogger.getLevel().toString(), tmpObject);
+
+	
 	}
 	
 	static int lastStatusCode;
@@ -1447,5 +1506,42 @@ public class ConsoleAppRestServiceTest {
 		return tmpExec;
 	}
 
+	public static String callGetLogLevel() throws Exception {
+		
+		String url = "http://localhost:5080/rest/getLogLevel";
+		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
+				.setDefaultCookieStore(httpCookieStore).build();
+		
+		Gson gson = new Gson();
+
+		HttpUriRequest post = RequestBuilder.get().setUri(url).build();
+
+		HttpResponse response = client.execute(post);
+
+		StringBuffer result = RestServiceTest.readResponse(response);
+
+		
+		log.info("result string: " + result.toString());
+		return result.toString();
+	}
+	
+public static String callSetLogLevel(String level) throws Exception {
+		
+		String url = "http://localhost:5080/rest/changeLogLevel/"+level;
+		
+		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
+				.setDefaultCookieStore(httpCookieStore).build();
+		
+		Gson gson = new Gson();
+
+		HttpUriRequest post = RequestBuilder.get().setUri(url).build();
+
+		HttpResponse response = client.execute(post);
+
+		StringBuffer result = RestServiceTest.readResponse(response);
+		
+		log.info("result string: " + result.toString());
+		return result.toString();
+	}
 
 }
