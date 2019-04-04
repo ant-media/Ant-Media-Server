@@ -14,8 +14,11 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.lang3.RandomStringUtils;
+import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -140,7 +143,7 @@ public class DBStoresUnitTest {
 		testRemoveEndpoint(dataStore);
 		testRTMPURL(dataStore);
 		testStreamWithId(dataStore);
-		testSaveDetection(dataStore);
+		//testSaveDetection(dataStore);
 		testFilterSearchOperations(dataStore);
 		testAddSocialEndpointCredentials(dataStore);
 		testVoDFunctions(dataStore);
@@ -148,7 +151,8 @@ public class DBStoresUnitTest {
 		testEditCameraInfo(dataStore);
 		testGetActiveBroadcastCount(dataStore);
 		testUpdateHLSViewerCount(dataStore);
-		testWebRTCViewerCount(dataStore);
+		//testWebRTCViewerCount(dataStore);
+		testWebRTCViewerCountMongo(dataStore);
 		testRTMPViewerCount(dataStore);
 		testTokenOperations(dataStore);
 
@@ -1125,6 +1129,81 @@ public class DBStoresUnitTest {
 		assertNull(expiredToken);
 
 
+	}
+	
+	private void testWebRTCViewerCountMongo(DataStore dataStore) {
+		Broadcast broadcast = new Broadcast();
+		broadcast.setName("test");
+		String key = dataStore.save(broadcast);
+
+		Broadcast broadcast2 = new Broadcast();
+		broadcast2.setName("test2");
+		String key2 = dataStore.save(broadcast2);
+
+		int totalViewerCountFor1 = 0;
+		int totalViewerCountFor2 = 0;
+		for (int i = 0; i < 150; i++) {
+
+			boolean increment = false; 
+			int randomValue = (int)(Math.random()*99999);
+			if (randomValue % 2 == 0) {
+				increment = true;
+				totalViewerCountFor1++;
+			}
+			else {
+				totalViewerCountFor1--;
+			}
+			assertTrue(dataStore.updateWebRTCViewerCount(key, increment));
+
+			increment = false; 
+			randomValue = (int)(Math.random()*99999);
+			if (randomValue % 2 == 0) {
+				increment = true;
+				totalViewerCountFor2++;
+			}
+			else {
+				totalViewerCountFor2--;
+			}
+
+			assertTrue(dataStore.updateWebRTCViewerCount(key2, increment));
+		}
+		
+		assertEquals(0, dataStore.get(key).getWebRTCViewerCount());
+		assertEquals(0, dataStore.get(key2).getWebRTCViewerCount());
+		
+		int lastCount1 = totalViewerCountFor1;
+		int lastCount2 = totalViewerCountFor2;
+		
+		Awaitility.await().atMost(5, TimeUnit.SECONDS)
+		.pollInterval(1, TimeUnit.SECONDS)
+		.until(() -> {
+			return (lastCount1 == dataStore.get(key).getWebRTCViewerCount()) &&
+					(lastCount2 == dataStore.get(key2).getWebRTCViewerCount()) ;
+		});
+		
+		Broadcast broadcast3 = new Broadcast();
+		broadcast3.setName("test3");
+		String key3 = dataStore.save(broadcast3);
+		
+		try {
+			assertTrue(dataStore.updateWebRTCViewerCount(key3, true));
+			Thread.sleep(1000);
+			assertEquals(0, dataStore.get(key3).getWebRTCViewerCount());
+
+			assertTrue(dataStore.updateWebRTCViewerCount(key3, true));
+			Thread.sleep(1000);
+			assertEquals(0, dataStore.get(key3).getWebRTCViewerCount());
+			
+			assertTrue(dataStore.updateWebRTCViewerCount(key3, true));
+			Thread.sleep(1500);
+			assertEquals(3, dataStore.get(key3).getWebRTCViewerCount());
+			
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+
+
+		
 	}
 
 

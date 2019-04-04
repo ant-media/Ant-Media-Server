@@ -54,7 +54,7 @@ public class StreamFetcher {
 	 */
 	private long lastPacketReceivedTime = 0;
 	private boolean threadActive = false;
-	private Result cameraError=new Result(false,"");
+	private Result cameraError = new Result(false,"");
 	private static final int PACKET_RECEIVED_INTERVAL_TIMEOUT = 3000;
 	private IScope scope;
 	private AntMediaApplicationAdapter appInstance;
@@ -106,8 +106,6 @@ public class StreamFetcher {
 		avRationalTimeBaseMS = new AVRational();
 		avRationalTimeBaseMS.num(1);
 		avRationalTimeBaseMS.den(1000);
-
-		logger.debug(":::::::::::scope is {}" , scope.getName());
 
 	}
 

@@ -17,37 +17,12 @@ public class WebRTCClientStats {
 	
 	@ApiModelProperty(value = "the audio frame send period of the WebRTC Client")
 	private double audioFrameSendPeriod;
-	
-	@ApiModelProperty(value = "the video thread check interval of the WebRTC Client")
-	private double videoThreadCheckInterval;
-	
-	@ApiModelProperty(value = "the audio thread check interval of the WebRTC Client")
-	private double audioThreadCheckInterval;
 
-	public WebRTCClientStats(int measuredBitrate, int sendBitrate, double videoFrameSendPeriod, double audioFrameSendPeriod,
-			double videoThreadCheckInterval, double audioThreadCheckInterval) {
+	public WebRTCClientStats(int measuredBitrate, int sendBitrate, double videoFrameSendPeriod, double audioFrameSendPeriod) {
 		this.setMeasuredBitrate(measuredBitrate);
 		this.setSendBitrate(sendBitrate);
 		this.setVideoFrameSendPeriod(videoFrameSendPeriod);
 		this.setAudioFrameSendPeriod(audioFrameSendPeriod);
-		this.setVideoThreadCheckInterval(videoThreadCheckInterval);
-		this.setAudioThreadCheckInterval(audioThreadCheckInterval);
-	}
-
-	public double getAudioThreadCheckInterval() {
-		return audioThreadCheckInterval;
-	}
-
-	public void setAudioThreadCheckInterval(double audioThreadCheckInterval) {
-		this.audioThreadCheckInterval = audioThreadCheckInterval;
-	}
-
-	public double getVideoThreadCheckInterval() {
-		return videoThreadCheckInterval;
-	}
-
-	public void setVideoThreadCheckInterval(double videoThreadCheckInterval) {
-		this.videoThreadCheckInterval = videoThreadCheckInterval;
 	}
 
 	public double getAudioFrameSendPeriod() {
