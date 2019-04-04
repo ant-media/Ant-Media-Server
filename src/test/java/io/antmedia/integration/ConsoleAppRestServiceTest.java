@@ -1508,7 +1508,7 @@ public class ConsoleAppRestServiceTest {
 
 	public static String callGetLogLevel() throws Exception {
 		
-		String url = "http://localhost:5080/rest/getLogLevel";
+		String url = "http://localhost:5080/rest/getLogLevel/";
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
 				.setDefaultCookieStore(httpCookieStore).build();
 		
