@@ -336,6 +336,74 @@ public class ConsoleAppRestServiceTest {
 			fail(e.getMessage());
 		}
 	}
+	
+	@Test
+	public void testLogLevel() throws Exception {
+		
+	try {	
+		
+	Result authenticatedUserResult = authenticateDefaultUser();
+	assertTrue(authenticatedUserResult.isSuccess());
+	
+	PreferenceStore store = new PreferenceStore("red5.properties");
+	store.setFullPath("src/main/server/conf/red5.properties");
+	rootLogger = (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME);
+	
+	//get Log Level Check (Default Log Level INFO)
+	
+	String logLevel = callGetLogLevel();
+	
+	JSONObject logJSON = (JSONObject) new JSONParser().parse(logLevel);
+	
+	String tmpObject = (String) logJSON.get("logLevel"); 
+	
+	assertEquals(store.get("logLevel"), tmpObject);
+	
+	// change Log Level Check (INFO -> WARN)
+	
+	callSetLogLevel("WARN");
+	
+	logLevel = callGetLogLevel();
+		
+	JSONObject appsJSON = (JSONObject) new JSONParser().parse(logLevel);
+	
+	tmpObject = (String) appsJSON.get("logLevel"); 
+	
+	assertEquals(store.get("logLevel"), tmpObject);
+	
+	//get Log Level Check (currently should be WARN)
+	
+	logLevel = callGetLogLevel();
+	
+	logJSON = (JSONObject) new JSONParser().parse(logLevel);
+	
+	tmpObject = (String) logJSON.get("logLevel"); 
+	
+	assertEquals(store.get("logLevel"), tmpObject);
+	
+	// change Log Level Check (currently Log Level doesn't change)
+	
+	callSetLogLevel("TEST");
+	
+	logLevel = callGetLogLevel();
+		
+	appsJSON = (JSONObject) new JSONParser().parse(logLevel);
+	
+	tmpObject = (String) appsJSON.get("logLevel"); 
+	
+	assertEquals(store.get("logLevel"), tmpObject);
+	
+	//check root log
+	
+	assertEquals(rootLogger.getLevel().toString(), tmpObject);
+	
+	} catch (Exception e) {
+		e.printStackTrace();
+		fail(e.getMessage());
+	}
+	
+	}
+	
 
 	@Test
 	public void testIPFilter() {
@@ -395,65 +463,9 @@ public class ConsoleAppRestServiceTest {
 
 	}
 	
-	@Test
-	public void testLogLevel() throws Exception {
-	
-	PreferenceStore store = new PreferenceStore("red5.properties");
-	store.setFullPath("src/main/server/conf/red5.properties");
-	rootLogger = (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME);
-	
-	//get Log Level Check (Default Log Level INFO)
-	
-	String logLevel = callGetLogLevel();
-	
-	JSONObject logJSON = (JSONObject) new JSONParser().parse(logLevel);
-	
-	String tmpObject = (String) logJSON.get("logLevel"); 
-	
-	assertEquals(store.get("logLevel"), tmpObject);
-	
-	// change Log Level Check (INFO -> WARN)
-	
-	callSetLogLevel("WARN");
-	
-	logLevel = callGetLogLevel();
-		
-	JSONObject appsJSON = (JSONObject) new JSONParser().parse(logLevel);
-	
-	tmpObject = (String) appsJSON.get("logLevel"); 
-	
-	assertEquals(store.get("logLevel"), tmpObject);
-	
-	//get Log Level Check (currently should be WARN)
-	
-	logLevel = callGetLogLevel();
-	
-	logJSON = (JSONObject) new JSONParser().parse(logLevel);
-	
-	tmpObject = (String) logJSON.get("logLevel"); 
-	
-	assertEquals(store.get("logLevel"), tmpObject);
-	
-	// change Log Level Check (currently Log Level doesn't change)
-	
-	callSetLogLevel("TEST");
-	
-	logLevel = callGetLogLevel();
-		
-	appsJSON = (JSONObject) new JSONParser().parse(logLevel);
-	
-	tmpObject = (String) appsJSON.get("logLevel"); 
-	
-	assertEquals(store.get("logLevel"), tmpObject);
-	
-	//check root log
-	
-	assertEquals(rootLogger.getLevel().toString(), tmpObject);
-
-	
-	}
-	
 	static int lastStatusCode;
+	
+
 	public static List<Broadcast> callGetBroadcastList(String appName) {
 		try {
 
@@ -1520,7 +1532,11 @@ public class ConsoleAppRestServiceTest {
 		HttpResponse response = client.execute(post);
 
 		StringBuffer result = RestServiceTest.readResponse(response);
-
+		
+		if (response.getStatusLine().getStatusCode() != 200) {
+			System.out.println("status code: " + response.getStatusLine().getStatusCode());
+			throw new Exception(result.toString());
+		}
 		
 		log.info("result string: " + result.toString());
 		return result.toString();
@@ -1540,6 +1556,11 @@ public static String callSetLogLevel(String level) throws Exception {
 		HttpResponse response = client.execute(post);
 
 		StringBuffer result = RestServiceTest.readResponse(response);
+		
+		if (response.getStatusLine().getStatusCode() != 200) {
+			System.out.println("status code: " + response.getStatusLine().getStatusCode());
+			throw new Exception(result.toString());
+		}
 		
 		log.info("result string: " + result.toString());
 		return result.toString();
