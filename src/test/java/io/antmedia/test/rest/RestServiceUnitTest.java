@@ -481,7 +481,10 @@ public class RestServiceUnitTest {
 		restServiceReal.setAppCtx(appContext);
 		
 		
-		Token tokenReturn = restServiceReal.getToken(streamId, 123432, Token.PLAY_TOKEN);
+		Object tokenReturn = (Object) restServiceReal.getToken(streamId, 123432, Token.PLAY_TOKEN);
+		assertTrue(tokenReturn instanceof Result);
+		Result result = (Result) tokenReturn;
+		assertFalse(result.isSuccess());	
 		
 		//check create token is called
 		Mockito.verify(tokenService).createToken(streamId, 123432, Token.PLAY_TOKEN);
