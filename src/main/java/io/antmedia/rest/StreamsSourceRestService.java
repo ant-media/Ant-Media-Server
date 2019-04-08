@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.IResourceMonitor;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.ipcamera.onvifdiscovery.OnvifDiscovery;
@@ -40,6 +41,8 @@ public class StreamsSourceRestService extends RestServiceBase{
 
 	private static final String HTTP = "http://";
 	private static final String RTSP = "rtsp://";
+	public static final int HIGH_CPU_ERROR = -3;
+
 
 	protected static Logger logger = LoggerFactory.getLogger(StreamsSourceRestService.class);
 
@@ -56,23 +59,32 @@ public class StreamsSourceRestService extends RestServiceBase{
 	@Path("/addStreamSource")
 	@Produces(MediaType.APPLICATION_JSON)
 
-
 	public Result addStreamSource(@ApiParam(value = "stream", required = true) Broadcast stream, @QueryParam("socialNetworks") String socialEndpointIds) {
 
 		Result result = new Result(false);
 
 		logger.info("username {}, ipAddr {}, streamURL {}, name: {}", stream.getUsername(),  stream.getIpAddr(), stream.getStreamUrl(), stream.getName());
 
-		if (stream.getType().equals(AntMediaApplicationAdapter.IP_CAMERA)) {
-			result = addIPCamera(stream);
-		}
-		else if (stream.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE) ) {
-			result = addSource(stream, socialEndpointIds);
-
+		IResourceMonitor monitor = (IResourceMonitor) getAppContext().getBean(IResourceMonitor.BEAN_NAME);
+		int cpuLoad = monitor.getAvgCpuUsage();
+		
+		logger.info("CPU Limit : {} Current CPU: {}", monitor.getCpuLimit(), cpuLoad);
+		
+		if(cpuLoad > monitor.getCpuLimit()) {
+			logger.error("Stream Fetcher can not be created due to high cpu load: {}", cpuLoad);
+			result.setMessage(String.valueOf(HIGH_CPU_ERROR));
+			return result;
+			
 		}else {
-
-			result.setMessage("No stream added");
+			
+			if (stream.getType().equals(AntMediaApplicationAdapter.IP_CAMERA)) {
+				result = addIPCamera(stream, socialEndpointIds);
+			}
+			else if (stream.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE) ) {
+				result = addSource(stream, socialEndpointIds);
+			}
 		}
+
 		return result;
 	}
 
@@ -99,7 +111,7 @@ public class StreamsSourceRestService extends RestServiceBase{
 
 	}
 
-	public Result addIPCamera(Broadcast stream) {
+	public Result addIPCamera(Broadcast stream, String socialEndpointIds) {
 
 		Result connResult = new Result(false);
 
@@ -125,6 +137,10 @@ public class StreamsSourceRestService extends RestServiceBase{
 
 				if (id.length() > 0) {
 					Broadcast newCam = getDataStore().get(stream.getStreamId());
+					if (socialEndpointIds != null && socialEndpointIds.length()>0) {
+						addSocialEndpoints(newCam, socialEndpointIds);
+					}
+					
 					StreamFetcher streamFetcher = getApplication().startStreaming(newCam);
 					if (streamFetcher == null) {
 						getDataStore().delete(stream.getStreamId());

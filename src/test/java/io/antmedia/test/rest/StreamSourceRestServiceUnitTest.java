@@ -1,6 +1,7 @@
 package io.antmedia.test.rest;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -22,12 +23,14 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationContext;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
+import io.antmedia.IResourceMonitor;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
@@ -81,10 +84,46 @@ public class StreamSourceRestServiceUnitTest {
 		Mockito.doReturn(fetcher).when(adaptor).startStreaming(newCam);
 		Mockito.doReturn(new InMemoryDataStore("testAddIPCamera")).when(streamSourceRest).getDataStore();
 
+		
+		ApplicationContext appContext = mock(ApplicationContext.class);
+		
+		streamSourceRest.setAppCtx(appContext);
+		
+		IResourceMonitor monitorService = mock(IResourceMonitor.class);
 
+		when(appContext.getBean(IResourceMonitor.BEAN_NAME)).thenReturn(monitorService);
+		
+		//define CPU load above limit
+		int cpuLoad = 90;
+		int cpuLimit = 80;
+				
+				
+		when(monitorService.getAvgCpuUsage()).thenReturn(cpuLoad);
+		when(monitorService.getCpuLimit()).thenReturn(cpuLimit);
+	
+		//try to add IP camera
 		result = streamSourceRest.addStreamSource(newCam,"");
-
+		
+		//should be false because load is above limit
+		assertFalse(result.isSuccess());
+		
+		
+		//should be -3 because it is CPU Load Error Code
+		assertEquals(String.valueOf(-3), result.getMessage());
+		
+		//define CPU load below limit
+		int cpuLoad2 = 70;
+		int cpuLimit2 = 80;
+				
+				
+		when(monitorService.getAvgCpuUsage()).thenReturn(cpuLoad2);
+		when(monitorService.getCpuLimit()).thenReturn(cpuLimit2);
+		
+		result = streamSourceRest.addStreamSource(newCam,"");
+		
+		//should be true because load is below limit
 		assertTrue(result.isSuccess());
+		
 	}
 
 	@Test
@@ -159,9 +198,25 @@ public class StreamSourceRestServiceUnitTest {
 		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
 		Mockito.doReturn(new InMemoryDataStore("testAddStreamSource")).when(streamSourceRest).getDataStore();
 
+		ApplicationContext appContext = mock(ApplicationContext.class);
+		
+		streamSourceRest.setAppCtx(appContext);
+		
+		IResourceMonitor monitorService = mock(IResourceMonitor.class);
 
+		when(appContext.getBean(IResourceMonitor.BEAN_NAME)).thenReturn(monitorService);
+		
+		//define CPU load below limit
+		int cpuLoad2 = 70;
+		int cpuLimit2 = 80;
+				
+				
+		when(monitorService.getAvgCpuUsage()).thenReturn(cpuLoad2);
+		when(monitorService.getCpuLimit()).thenReturn(cpuLimit2);
+		
 		result = streamSourceRest.addStreamSource(newCam, "");
 
+		//should be true, because CPU load is above limit and other parameters defined correctly
 		assertTrue(result.isSuccess());
 	}
 
