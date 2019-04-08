@@ -55,7 +55,6 @@ import io.antmedia.AppSettingsModel;
 import io.antmedia.EncoderSettings;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Token;
-import io.antmedia.datastore.preference.PreferenceStore;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.User;
@@ -64,8 +63,6 @@ import io.antmedia.test.Application;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class ConsoleAppRestServiceTest {
-
-	public ch.qos.logback.classic.Logger rootLogger;
 
 	private static String ROOT_SERVICE_URL;
 
