@@ -1131,7 +1131,7 @@ public class BroadcastRestService extends RestServiceBase{
 			@ApiParam(value = "type", required = true) @QueryParam("type") String type) 
 	{
 		Token token = null;
-		String message = null;
+		String message = "No stream id";
 		if(streamId != null) {
 
 			ApplicationContext appContext = getAppContext();
