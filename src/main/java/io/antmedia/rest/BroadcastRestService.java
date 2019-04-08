@@ -150,9 +150,6 @@ public class BroadcastRestService extends RestServiceBase{
 
 	protected static Logger logger = LoggerFactory.getLogger(BroadcastRestService.class);
 
-	private ITokenService tokenService;
-
-
 
 	/**
 	 * Creates a broadcast and returns the full broadcast object with rtmp
@@ -1129,27 +1126,40 @@ public class BroadcastRestService extends RestServiceBase{
 	@GET
 	@Path("/broadcast/getToken")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Token getToken (@ApiParam(value = "the id of the stream", required = true) @QueryParam("id")String streamId,
+	public Object getToken (@ApiParam(value = "the id of the stream", required = true) @QueryParam("id")String streamId,
 			@ApiParam(value = "the expire date of the token", required = true) @QueryParam("expireDate") long expireDate,
-			@ApiParam(value = "type", required = true) @QueryParam("type") String type) {
+			@ApiParam(value = "type", required = true) @QueryParam("type") String type) 
+	{
 		Token token = null;
+		String message = null;
 		if(streamId != null) {
 
 			ApplicationContext appContext = getAppContext();
-
-			if(appContext != null && appContext.containsBean(ITokenService.BeanName.TOKEN_SERVICE.toString())) {
-				tokenService = (ITokenService)appContext.getBean(ITokenService.BeanName.TOKEN_SERVICE.toString());
+			
+			if(appContext != null && appContext.containsBean(ITokenService.BeanName.TOKEN_SERVICE.toString())) 
+			{
+				ITokenService tokenService = (ITokenService)appContext.getBean(ITokenService.BeanName.TOKEN_SERVICE.toString());
+				token = tokenService.createToken(streamId, expireDate, type);
+				if(token != null) 
+				{
+					if (getDataStore().saveToken(token)) {
+						//return token only everthing is ok
+						return token;
+					}
+					else {
+						message = "Cannot save token to the datastore";
+					}
+				}
+				else {
+					message = "Cannot create token. It can be a mock token service";
+				}
 			}
-
-			token = tokenService.createToken(streamId, expireDate, type);
-
-			//if it is  MockService, returns null
-			if(token != null) {
-				getDataStore().saveToken(token);
-			}	 
+			else {
+				message = "No token service in this app";
+			}
 		}
 
-		return token;
+		return new Result(false, message);
 	}
 
 
