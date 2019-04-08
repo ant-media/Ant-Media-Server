@@ -1,23 +1,21 @@
 package io.antmedia.datastore;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.InetAddress;
+import java.io.InputStream;
 import java.net.InterfaceAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.URL;
-import java.net.UnknownHostException;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.antmedia.datastore.preference.PreferenceStore;
-import io.antmedia.settings.LogSettings;
 
 
 public class DBUtils {
@@ -38,14 +36,12 @@ public class DBUtils {
 		else {
 			ip = getLocalHostAddress(); 
 		}
-
-
 	}
-	
+
 	public static String getHostAddress() {
 		return instance.ip;
 	}
-	
+
 	public static String getLocalHostAddress() {
 
 		ArrayList<String> hostAddresses = new ArrayList<>();
@@ -65,18 +61,20 @@ public class DBUtils {
 		return hostAddresses.get(0);
 	}
 
-	public static String getGlobalHostAddress() {
-		String ip = "-.-.-.-";
-		URL whatismyip;
+	public static String getGlobalHostAddress(){
+		String globalIp = "";
+		InputStream in = null;
 		try {
-			whatismyip = new URL("http://checkip.amazonaws.com");
-			BufferedReader in = new BufferedReader(new InputStreamReader(whatismyip.openStream()));
-			ip = in.readLine(); //you get the IP as a String
+			in = new URL("http://checkip.amazonaws.com").openStream();
+			globalIp = IOUtils.toString(in, Charset.defaultCharset());
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(ExceptionUtils.getStackTrace(e));
+		}
+		finally {
+			IOUtils.closeQuietly(in);
 		}
 
-		return ip;
+		return globalIp;
 	}
 
 	public static String getUri(String host, String username, String password) {
