@@ -39,10 +39,9 @@ import io.swagger.annotations.ApiParam;
 public class StreamsSourceRestService extends RestServiceBase{
 
 	private static final String HTTP = "http://";
+	private static final String RTSP = "rtsp://";
 
 	protected static Logger logger = LoggerFactory.getLogger(StreamsSourceRestService.class);
-
-
 
 
 	/**
@@ -60,7 +59,7 @@ public class StreamsSourceRestService extends RestServiceBase{
 
 	public Result addStreamSource(@ApiParam(value = "stream", required = true) Broadcast stream, @QueryParam("socialNetworks") String socialEndpointIds) {
 
-		Result result=new Result(false);
+		Result result = new Result(false);
 
 		logger.info("username {}, ipAddr {}, streamURL {}, name: {}", stream.getUsername(),  stream.getIpAddr(), stream.getStreamUrl(), stream.getName());
 
@@ -79,29 +78,40 @@ public class StreamsSourceRestService extends RestServiceBase{
 
 
 
-	public String getRTSPSteramURI(Broadcast stream) {
-		String uri = null;
+	public Result connectToCamera(Broadcast stream) {
+
+		Result result = new Result(false);
 
 		OnvifCamera onvif = new OnvifCamera();
-		onvif.connect(stream.getIpAddr(), stream.getUsername(), stream.getPassword());
-		uri = onvif.getRTSPStreamURI();
+		int connResult = onvif.connect(stream.getIpAddr(), stream.getUsername(), stream.getPassword());
+		if (connResult == 0) {
+			result.setSuccess(true);
+			//it means no connection or authentication error
+			//set RTMP URL
+			result.setMessage(onvif.getRTSPStreamURI());
+		}else {
+			//there is an error
+			//set error code and send it
+			result.setMessage(String.valueOf(connResult));
+		}
 
-		return uri;
+		return result;
 
 	}
 
 	public Result addIPCamera(Broadcast stream) {
-		Result result=new Result(false);
+
+		Result connResult = new Result(false);
 
 		if(checkIPCamAddr(stream.getIpAddr())) {
 			logger.info("type {}", stream.getType());
 
-			String rtspURL = getRTSPSteramURI(stream);
+			connResult = connectToCamera(stream);
 
-			if (rtspURL != null) {
+			if (connResult.isSuccess()) {
 
 				String authparam = stream.getUsername() + ":" + stream.getPassword() + "@";
-				String rtspURLWithAuth = "rtsp://" + authparam + rtspURL.substring("rtsp://".length());
+				String rtspURLWithAuth = RTSP + authparam + connResult.getMessage().substring(RTSP.length());
 				logger.info("rtsp url with auth: {}", rtspURLWithAuth);
 				stream.setStreamUrl(rtspURLWithAuth);
 				Date currentDate = new Date();
@@ -116,19 +126,14 @@ public class StreamsSourceRestService extends RestServiceBase{
 				if (id.length() > 0) {
 					Broadcast newCam = getDataStore().get(stream.getStreamId());
 					StreamFetcher streamFetcher = getApplication().startStreaming(newCam);
-					if (streamFetcher != null) {
-						result.setSuccess(true);
-					}
-					else {
+					if (streamFetcher == null) {
 						getDataStore().delete(stream.getStreamId());
 					}
 				}
-
 			}
-
 		}
 
-		return result;
+		return connResult;
 	}
 
 
@@ -212,7 +217,7 @@ public class StreamsSourceRestService extends RestServiceBase{
 		}
 		else {
 			errorId = 404;
-			message = "no vod folder defined";
+			message = "no VodD folder defined";
 		}
 
 		return new Result(result, message, errorId);
@@ -245,12 +250,12 @@ public class StreamsSourceRestService extends RestServiceBase{
 				Thread.currentThread().interrupt();
 			}
 			if(broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA)) {
-				String rtspURL = getRTSPSteramURI(broadcast);
+				String rtspURL = connectToCamera(broadcast).getMessage();
 
 				if (rtspURL != null) {
 
 					String authparam = broadcast.getUsername() + ":" + broadcast.getPassword() + "@";
-					String rtspURLWithAuth = "rtsp://" + authparam + rtspURL.substring("rtsp://".length());
+					String rtspURLWithAuth = RTSP + authparam + rtspURL.substring(RTSP.length());
 					logger.info("new RTSP URL: {}" , rtspURLWithAuth);
 					broadcast.setStreamUrl(rtspURLWithAuth);
 				}
@@ -310,7 +315,7 @@ public class StreamsSourceRestService extends RestServiceBase{
 					}
 				}
 			}
-			logger.warn("IP Address: {} " , localIP);
+			logger.info("IP Address: {} " , localIP);
 		}
 
 		if (localIP != null) {
@@ -318,9 +323,6 @@ public class StreamsSourceRestService extends RestServiceBase{
 			String[] ipAddrParts = localIP.split("\\.");
 
 			String ipAd = ipAddrParts[0] + "." + ipAddrParts[1] + "." + ipAddrParts[2] + ".";
-
-			logger.warn("inside of auto discovery ip Addr {}", ipAd);
-
 			ArrayList<String> addressList = new ArrayList<>();
 
 			for (int i = 2; i < 255; i++) {
@@ -446,7 +448,7 @@ public class StreamsSourceRestService extends RestServiceBase{
 				url.startsWith("https://") ||
 				url.startsWith("rtmp://") ||
 				url.startsWith("rtmps://") ||
-				url.startsWith("rtsp://"))) {
+				url.startsWith(RTSP))) {
 			streamUrlControl=true;
 			ipAddrParts = url.split("//");
 			ipAddr = ipAddrParts[1];
@@ -486,7 +488,7 @@ public class StreamsSourceRestService extends RestServiceBase{
 				url.startsWith("https://") ||
 				url.startsWith("rtmp://") ||
 				url.startsWith("rtmps://") ||
-				url.startsWith("rtsp://"))) {
+				url.startsWith(RTSP))) {
 
 			ipAddrParts = url.split("//");
 			ipAddr = ipAddrParts[1];

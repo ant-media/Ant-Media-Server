@@ -297,7 +297,7 @@ public class RestServiceUnitTest {
 			int clientCount = (int)(Math.random()*999) + 70;
 			
 			for (int i = 0; i < clientCount; i++) {
-				statsList.add(new WebRTCClientStats(500, 400, 40, 20, 20, 20));
+				statsList.add(new WebRTCClientStats(500, 400, 40, 20));
 			}
 			
 			Mockito.when(webrtcAdaptor.getWebRTCClientStats(Mockito.anyString())).thenReturn(statsList);
@@ -945,6 +945,25 @@ public class RestServiceUnitTest {
 		assertNotEquals(createdBroadcast.getStreamId(), streamId);
 
 		assertFalse(createdBroadcast.isZombi());
+		
+		//testing Create Broadcast without reset Stream ID
+		
+		Broadcast broadcastWithStreamID = new Broadcast(null, "name");
+		try {
+			broadcastWithStreamID.setStreamId(streamId);
+		} 
+		catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		
+		
+		Broadcast createdBroadcastwithStreamID = restServiceReal.createBroadcastWithStreamID(broadcastWithStreamID);
+			
+		assertNotNull(createdBroadcastwithStreamID.getStreamId());
+		assertEquals(createdBroadcastwithStreamID.getStreamId(), streamId);
+
+		assertFalse(createdBroadcastwithStreamID.isZombi());
 
 	}
 
