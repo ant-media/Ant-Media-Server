@@ -301,6 +301,23 @@ public class StreamSourceRestServiceUnitTest {
 		Mockito.doReturn(true).when(streamSourceRest).checkStreamUrl(any());
 		Mockito.doReturn(videoServiceEndpoints).when(adaptor).getVideoServiceEndpoints();
 
+		
+		ApplicationContext appContext = mock(ApplicationContext.class);
+		
+		streamSourceRest.setAppCtx(appContext);
+		
+		IResourceMonitor monitorService = mock(IResourceMonitor.class);
+
+		when(appContext.getBean(IResourceMonitor.BEAN_NAME)).thenReturn(monitorService);
+		
+		//define CPU load below limit
+		int cpuLoad2 = 70;
+		int cpuLimit2 = 80;
+				
+				
+		when(monitorService.getAvgCpuUsage()).thenReturn(cpuLoad2);
+		when(monitorService.getCpuLimit()).thenReturn(cpuLimit2);
+		
 		result = streamSourceRest.addStreamSource(source, "endpoint_1");
 		assertNull(source.getEndPointList());
 
