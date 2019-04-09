@@ -20,6 +20,7 @@ import io.antmedia.datastore.preference.PreferenceStore;
 
 public class DBUtils {
 
+	private static final String USE_GLOBAL_IP = "useGlobalIp";
 	private static Logger logger = LoggerFactory.getLogger(DBUtils.class);
 	public static final DBUtils instance = new DBUtils();
 	private String ip;
@@ -28,7 +29,7 @@ public class DBUtils {
 		PreferenceStore store = new PreferenceStore("red5.properties");
 		store.setFullPath("conf/red5.properties");
 
-		boolean global = Boolean.parseBoolean(store.get("useGlobalIp"));
+		boolean global = Boolean.parseBoolean(store.get(USE_GLOBAL_IP));
 
 		if(global) {
 			ip = getGlobalHostAddress();
@@ -66,7 +67,7 @@ public class DBUtils {
 		InputStream in = null;
 		try {
 			in = new URL("http://checkip.amazonaws.com").openStream();
-			globalIp = IOUtils.toString(in, Charset.defaultCharset());
+			globalIp = IOUtils.toString(in, Charset.defaultCharset()).trim();
 		} catch (IOException e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
 		}
@@ -77,7 +78,7 @@ public class DBUtils {
 		return globalIp;
 	}
 
-	public static String getUri(String host, String username, String password) {
+	public static String getMongoConnectionUri(String host, String username, String password) {
 		String credential = "";
 		if(username != null && !username.isEmpty()) {
 			credential = username+":"+password+"@";
