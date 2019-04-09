@@ -15,9 +15,22 @@ public class PreferenceStore implements ServletContextAware{
 	private Properties prop;
 	private String fullPath;
 
-	public PreferenceStore(String fileName) {
-		this.fileName = fileName;
+	@Deprecated
+	public PreferenceStore(String relativePath) {
+		
+		this(relativePath, false);
 	}
+
+	public PreferenceStore(String path, boolean fullPath) {
+
+		if(fullPath) {
+			this.fullPath = path;
+		}
+		else {
+			this.fileName = path;
+		}
+	}
+
 
 	public void put(String key, String value) {
 		Properties properties = getProperties();
@@ -28,7 +41,7 @@ public class PreferenceStore implements ServletContextAware{
 		Properties properties = getProperties();
 		return properties.getProperty(key);
 	}
-	
+
 	public void remove(String key) {
 		getProperties().remove(key);
 	}
@@ -85,7 +98,7 @@ public class PreferenceStore implements ServletContextAware{
 	public void setServletContext(ServletContext servletContext) {
 		fullPath = servletContext.getRealPath(fileName);		
 	}
-	
+
 	public void setFullPath(String fullpath) {
 		this.fullPath = fullpath;
 	}

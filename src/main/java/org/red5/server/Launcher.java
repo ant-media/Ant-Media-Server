@@ -52,7 +52,7 @@ public class Launcher {
 
 
 	public static final String GA_TRACKING_ID = "UA-93263926-3";
-	private String instanceId;
+	private static String instanceId;
 
 
 
@@ -63,10 +63,8 @@ public class Launcher {
 	 *             on error
 	 */
 	public void launch() throws Exception {
-
-
-
-		av_register_all();
+		
+	av_register_all();
 		avformat.avformat_network_init();
 		avutil.av_log_set_level(avutil.AV_LOG_ERROR);
 		System.out.printf("Root: %s%nDeploy type: %s%n", System.getProperty("red5.root"), System.getProperty("red5.deployment.type"));
@@ -191,6 +189,11 @@ public class Launcher {
 			e.printStackTrace();
 		}
 		return null;
+	}
+	
+	public static String getInstanceId() {
+		
+		return instanceId;
 	}
 
 }

@@ -42,11 +42,9 @@ import org.junit.runner.Description;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.firebase.database.DatabaseReference;
 import com.google.gson.Gson;
 
 import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.AppSettings;
 import io.antmedia.AppSettingsModel;
 import io.antmedia.EncoderSettings;
 import io.antmedia.datastore.db.types.Broadcast;
