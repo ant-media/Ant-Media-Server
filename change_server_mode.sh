@@ -1,11 +1,17 @@
 MODE=$1
 
+USE_GLOBAL_IP="false"
+
 if [ $MODE = "cluster" ]
   then
     echo "Mode: cluster"
     DB_TYPE=mongodb
     MONGO_SERVER_IP=$2
     cp /usr/local/antmedia/conf/jee-container-cluster.xml /usr/local/antmedia/conf/jee-container.xml
+    
+    if [ ! -z "$3" ]; then
+   	  USE_GLOBAL_IP=$3
+	fi
   else
     echo "Mode: standalone"
     DB_TYPE=mapdb
@@ -19,6 +25,7 @@ CONSOLEAPP_PROPERTIES_FILE=/usr/local/antmedia/webapps/root/WEB-INF/red5-web.pro
 RED5_PROPERTIES_FILE=/usr/local/antmedia/conf/red5.properties
 
 sed -i 's/clusterdb.host=.*/clusterdb.host='$MONGO_SERVER_IP'/' $RED5_PROPERTIES_FILE
+sed -i 's/useGlobalIp=.*/useGlobalIp='$USE_GLOBAL_IP'/' $RED5_PROPERTIES_FILE
 
 sed -i 's/db.type=.*/db.type='$DB_TYPE'/' $LIVEAPP_PROPERTIES_FILE
 sed -i 's/db.host=.*/db.host='$MONGO_SERVER_IP'/' $LIVEAPP_PROPERTIES_FILE
