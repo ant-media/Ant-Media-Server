@@ -52,9 +52,8 @@ public class Launcher {
 
 
 	public static final String GA_TRACKING_ID = "UA-93263926-3";
+	public static final String RED5_ROOT = "red5.root";
 	private static String instanceId;
-
-
 
 	/**
 	 * Launch Red5 under it's own classloader
@@ -67,7 +66,7 @@ public class Launcher {
 	av_register_all();
 		avformat.avformat_network_init();
 		avutil.av_log_set_level(avutil.AV_LOG_ERROR);
-		System.out.printf("Root: %s%nDeploy type: %s%n", System.getProperty("red5.root"), System.getProperty("red5.deployment.type"));
+		System.out.printf("Root: %s%nDeploy type: %s%n", System.getProperty(RED5_ROOT), System.getProperty("red5.deployment.type"));
 		// check for the logback disable flag
 		boolean useLogback = Boolean.valueOf(System.getProperty("useLogback", "true"));
 		if (useLogback) {
@@ -97,20 +96,8 @@ public class Launcher {
 		FileSystemXmlApplicationContext root = new FileSystemXmlApplicationContext(new String[] { "classpath:/red5.xml" }, false);
 		// set the current threads classloader as the loader for the factory/appctx
 		root.setClassLoader(Thread.currentThread().getContextClassLoader());
-		root.setId("red5.root");
-		root.setBeanName("red5.root");
-		String path = System.getProperty("red5.root");
-		File idFile = new File(path + "/conf/instanceId");
-		instanceId = null;
-		if (idFile.exists()) {
-			instanceId = getFileContent(idFile.getAbsolutePath());
-		}
-		else {
-			instanceId =  UUID.randomUUID().toString();
-			writeToFile(idFile.getAbsolutePath(), instanceId);
-		}
-
-
+		root.setId(RED5_ROOT);
+		root.setBeanName(RED5_ROOT);
 		Timer heartbeat = new Timer("heartbeat", true);
 		heartbeat.schedule(new TimerTask() {
 
@@ -118,7 +105,7 @@ public class Launcher {
 			public void run() {
 				getGoogleAnalytic(implementationVersion, type).screenView()
 				.sessionControl("start")
-				.clientId(instanceId)
+				.clientId(getInstanceId())
 				.send();
 			}
 		}, 0);
@@ -133,14 +120,11 @@ public class Launcher {
 				.eventCategory("server_status")
 				.eventAction("heartbeat")
 				.eventLabel("")
-				.clientId(instanceId)
+				.clientId(getInstanceId())
 				.send();
 
 			}
 		}, 300000, 300000);
-
-
-
 
 		// refresh must be called before accessing the bean factory
 		log.trace("Refreshing root server context");
@@ -155,7 +139,7 @@ public class Launcher {
 				AMSShutdownManager.getInstance().notifyShutdown();
 				System.out.println("Shutting down just a sec");
 				getGoogleAnalytic(implementationVersion, type).screenView()
-				.clientId(instanceId)
+				.clientId(getInstanceId())
 				.sessionControl("end")
 				.send();
 
@@ -172,7 +156,7 @@ public class Launcher {
 
 	}
 
-	public void writeToFile(String absolutePath, String content) {
+	public static void writeToFile(String absolutePath, String content) {
 		try {
 			Files.write(new File(absolutePath).toPath(), content.getBytes(), StandardOpenOption.CREATE);
 		} catch (IOException e) {
@@ -181,7 +165,7 @@ public class Launcher {
 
 	}
 
-	public String getFileContent(String path) {
+	public static String getFileContent(String path) {
 		try {
 			byte[] data = Files.readAllBytes(new File(path).toPath());
 			return new String(data);
@@ -192,6 +176,16 @@ public class Launcher {
 	}
 	
 	public static String getInstanceId() {
+		String path = System.getProperty(RED5_ROOT);
+		File idFile = new File(path + "/conf/instanceId");
+		instanceId = null;
+		if (idFile.exists()) {
+			instanceId = getFileContent(idFile.getAbsolutePath());
+		}
+		else {
+			instanceId =  UUID.randomUUID().toString();
+			writeToFile(idFile.getAbsolutePath(), instanceId);
+		}
 		
 		return instanceId;
 	}

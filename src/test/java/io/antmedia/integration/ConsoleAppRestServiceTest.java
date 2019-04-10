@@ -271,11 +271,13 @@ public class ConsoleAppRestServiceTest{
 			ServerSettings serverSettings = callGetServerSettings();
 			String serverName = serverSettings.getServerName();
 			String licenseKey = serverSettings.getLicenceKey();
+			boolean isMarketRelease = serverSettings.isBuildForMarket();
 
 
 			// change Server settings 
 			serverSettings.setServerName("newServerName");
 			serverSettings.setLicenceKey("newLicenseKey");
+			serverSettings.setBuildForMarket(!isMarketRelease);
 
 			//check that settings saved
 			Result result = callSetServerSettings(serverSettings);
@@ -287,11 +289,13 @@ public class ConsoleAppRestServiceTest{
 
 			assertEquals("newServerName", serverSettings.getServerName());
 			assertEquals("newLicenseKey", serverSettings.getLicenceKey());
+			assertEquals(!isMarketRelease, serverSettings.isBuildForMarket());
 
 			// return back to original values
 
 			serverSettings.setServerName(serverName);
 			serverSettings.setLicenceKey(licenseKey);
+			serverSettings.setBuildForMarket(isMarketRelease);
 
 			//save original settings
 			result = callSetServerSettings(serverSettings);

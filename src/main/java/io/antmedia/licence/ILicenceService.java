@@ -1,13 +1,12 @@
 package io.antmedia.licence;
 
 import io.antmedia.datastore.db.types.Licence;
-import io.antmedia.rest.model.Result;
 import io.antmedia.settings.ServerSettings;
 
 public interface ILicenceService {
 	
-	
 	public enum BeanName {
+		
 		LICENCE_SERVICE("ant.media.licence.service");
 		
 		private String licenceBeanName;
@@ -36,18 +35,7 @@ public interface ILicenceService {
 	 */
 	public Licence checkLicence (String key);
 	
-	/**
-	 * Retrieves Server Settings
-	 * @return ServerSettings including server name and license key
-	 */
 
-	public ServerSettings fetchServerSettings();
-	
-	/**
-	 * Gets active license retrieved from license service
-	 * @return
-	 */
-	public Licence getActiveLicence();
 	
 	/**
 	 * Sets Server Settings 

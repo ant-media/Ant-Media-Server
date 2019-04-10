@@ -15,7 +15,7 @@ public class PreferenceStore implements ServletContextAware{
 	private Properties prop;
 	private String fullPath;
 
-	@Deprecated
+
 	public PreferenceStore(String relativePath) {
 		
 		this(relativePath, false);
