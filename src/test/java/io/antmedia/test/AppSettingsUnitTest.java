@@ -1,4 +1,4 @@
-package io.antmedia.test.settings;
+package io.antmedia.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
