@@ -28,7 +28,6 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.UUID;
 
-import org.apache.commons.logging.Log;
 import org.bytedeco.javacpp.avformat;
 import org.bytedeco.javacpp.avutil;
 import org.red5.logging.Red5LoggerFactory;
@@ -70,7 +69,6 @@ public class Launcher {
 		av_register_all();
 		avformat.avformat_network_init();
 		avutil.av_log_set_level(avutil.AV_LOG_ERROR);
-		//	log.info("Root: %s%nDeploy type: %s%n", System.getProperty(RED5_ROOT), System.getProperty("red5.deployment.type"));
 		// check for the logback disable flag
 		boolean useLogback = Boolean.valueOf(System.getProperty("useLogback", "true"));
 		if (useLogback) {
@@ -83,8 +81,7 @@ public class Launcher {
 		Red5LoggerFactory.setUseLogback(useLogback);
 		// install the slf4j bridge (mostly for JUL logging)
 		SLF4JBridgeHandler.install();
-		// log stdout and stderr to slf4j
-		//SysOutOverSLF4J.sendSystemOutAndErrToSLF4J();
+
 		// get the first logger
 		final Logger log = Red5LoggerFactory.getLogger(Launcher.class);
 		setLog(log);

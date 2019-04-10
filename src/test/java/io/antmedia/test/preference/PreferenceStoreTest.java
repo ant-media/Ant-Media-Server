@@ -62,7 +62,7 @@ public class PreferenceStoreTest {
 			
 			assertTrue(dataStore.save());
 			assertNotNull(dataStore.get("data1"));
-			assertEquals(dataStore.get("data1"), "value1");
+			assertEquals( "value1", dataStore.get("data1"));
 
 
 		} catch (IOException e) {
