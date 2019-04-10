@@ -4,8 +4,7 @@ import io.antmedia.datastore.db.types.Licence;
 import io.antmedia.settings.ServerSettings;
 
 public class CommunityLicenceService implements ILicenceService{
-
-
+	
 	public void start() {
 		//no need to implement for Community Edition
 	}

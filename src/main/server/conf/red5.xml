@@ -73,10 +73,7 @@
 
 	<bean id="ant.media.licence.service" class="#{ T(io.antmedia.rest.BroadcastRestService).isEnterprise() ? 'io.antmedia.enterprise.licence.LicenceService' : 'io.antmedia.licence.CommunityLicenceService' }"
 	init-method="start">
-		<property name="serverSettings" ref="ant.media.server.settings" />
-		<property name="child" value="licences" />
-		<property name="url" value="https://us-central1-ant-licence.cloudfunctions.net/check/licenseStatus" />
-								
+		<property name="serverSettings" ref="ant.media.server.settings" />						
 	</bean>
 
 </beans>
