@@ -35,7 +35,7 @@ import io.antmedia.rest.StreamsSourceRestService;
 import io.antmedia.rest.model.Result;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.streamsource.StreamFetcher;
-import io.antmedia.test.StreamFetcherUnitTest;
+import io.antmedia.test.fetcher.StreamFetcherUnitTest;
 
 @ContextConfiguration(locations = { "test.xml" })
 @DirtiesContext(classMode = ClassMode.AFTER_CLASS)

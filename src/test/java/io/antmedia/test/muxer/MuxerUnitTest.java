@@ -1,4 +1,4 @@
-package io.antmedia.test;
+package io.antmedia.test.muxer;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -62,6 +62,7 @@ import io.antmedia.muxer.Mp4Muxer;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.Muxer;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
+import io.antmedia.test.Application;
 
 @ContextConfiguration(locations = { 
 		"test.xml" 

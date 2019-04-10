@@ -50,6 +50,20 @@ public class PreferenceStoreTest {
 			assertTrue(dataStore.save());
 
 			assertEquals(dataStore.get("data3"), "value3");
+			
+			dataStore.remove("data4");
+			
+			assertNull(dataStore.get("data4"));
+			
+			//create store with full path
+			dataStore = new PreferenceStore("data.properties", true);
+			
+			dataStore.put("data1", "value1");
+			
+			assertTrue(dataStore.save());
+			assertNotNull(dataStore.get("data1"));
+			assertEquals(dataStore.get("data1"), "value1");
+
 
 		} catch (IOException e) {
 			e.printStackTrace();

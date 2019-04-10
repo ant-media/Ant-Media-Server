@@ -28,6 +28,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.UUID;
 
+import org.apache.commons.logging.Log;
 import org.bytedeco.javacpp.avformat;
 import org.bytedeco.javacpp.avutil;
 import org.red5.logging.Red5LoggerFactory;
@@ -50,10 +51,11 @@ import io.antmedia.shutdown.AMSShutdownManager;
  */
 public class Launcher {
 
-
 	public static final String GA_TRACKING_ID = "UA-93263926-3";
 	public static final String RED5_ROOT = "red5.root";
-	private static String instanceId;
+	private static Logger log; 
+	Timer heartbeat = new Timer("heartbeat", true);
+
 
 	/**
 	 * Launch Red5 under it's own classloader
@@ -62,11 +64,11 @@ public class Launcher {
 	 *             on error
 	 */
 	public void launch() throws Exception {
-		
-	av_register_all();
+
+		av_register_all();
 		avformat.avformat_network_init();
 		avutil.av_log_set_level(avutil.AV_LOG_ERROR);
-		System.out.printf("Root: %s%nDeploy type: %s%n", System.getProperty(RED5_ROOT), System.getProperty("red5.deployment.type"));
+		//	log.info("Root: %s%nDeploy type: %s%n", System.getProperty(RED5_ROOT), System.getProperty("red5.deployment.type"));
 		// check for the logback disable flag
 		boolean useLogback = Boolean.valueOf(System.getProperty("useLogback", "true"));
 		if (useLogback) {
@@ -82,7 +84,9 @@ public class Launcher {
 		// log stdout and stderr to slf4j
 		//SysOutOverSLF4J.sendSystemOutAndErrToSLF4J();
 		// get the first logger
-		Logger log = Red5LoggerFactory.getLogger(Launcher.class);
+		final Logger log = Red5LoggerFactory.getLogger(Launcher.class);
+		this.log = log;
+
 		// version info banner
 		String implementationVersion = AntMediaApplicationAdapter.class.getPackage().getImplementationVersion();
 		String type = BroadcastRestService.isEnterprise() ? "Enterprise" : "Community";
@@ -98,33 +102,10 @@ public class Launcher {
 		root.setClassLoader(Thread.currentThread().getContextClassLoader());
 		root.setId(RED5_ROOT);
 		root.setBeanName(RED5_ROOT);
-		Timer heartbeat = new Timer("heartbeat", true);
-		heartbeat.schedule(new TimerTask() {
 
-			@Override
-			public void run() {
-				getGoogleAnalytic(implementationVersion, type).screenView()
-				.sessionControl("start")
-				.clientId(getInstanceId())
-				.send();
-			}
-		}, 0);
+		startAnalytic(implementationVersion, type);
 
-		heartbeat.scheduleAtFixedRate(new TimerTask() {
-
-			@Override
-			public void run() {
-
-				System.out.println("-Heartbeat-");
-				getGoogleAnalytic(implementationVersion, type).event()
-				.eventCategory("server_status")
-				.eventAction("heartbeat")
-				.eventLabel("")
-				.clientId(getInstanceId())
-				.send();
-
-			}
-		}, 300000, 300000);
+		startHeartBeats(implementationVersion, type);
 
 		// refresh must be called before accessing the bean factory
 		log.trace("Refreshing root server context");
@@ -137,7 +118,7 @@ public class Launcher {
 			@Override
 			public void run() {
 				AMSShutdownManager.getInstance().notifyShutdown();
-				System.out.println("Shutting down just a sec");
+				log.info("Shutting down just a sec");
 				getGoogleAnalytic(implementationVersion, type).screenView()
 				.clientId(getInstanceId())
 				.sessionControl("end")
@@ -147,12 +128,48 @@ public class Launcher {
 		});
 	}
 
-	private GoogleAnalytics getGoogleAnalytic(String implementationVersion, String type) {
+	public boolean startHeartBeats(String implementationVersion, String type) {
+		Boolean result = false;
+
+		heartbeat.scheduleAtFixedRate(new TimerTask() {
+
+			@Override
+			public void run() {
+				log.info("-Heartbeat-");
+				getGoogleAnalytic(implementationVersion, type).event()
+				.eventCategory("server_status")
+				.eventAction("heartbeat")
+				.eventLabel("")
+				.clientId(getInstanceId())
+				.send();
+
+			}
+		}, 300000, 300000);
+		result = true;
+		return result;
+	}
+
+	public boolean startAnalytic(String implementationVersion, String type) {
+		Boolean result = false;
+		heartbeat.schedule(new TimerTask() {
+			@Override
+			public void run() {
+				getGoogleAnalytic(implementationVersion, type).screenView()
+				.sessionControl("start")
+				.clientId(getInstanceId())
+				.send();
+			}
+			
+		}, 0);
+		result = true;
+		return result;
+	}
+
+	public GoogleAnalytics getGoogleAnalytic(String implementationVersion, String type) {
 		return GoogleAnalytics.builder()
 				.withAppVersion(implementationVersion)
 				.withAppName(type)
 				.withTrackingId(GA_TRACKING_ID).build();
-
 
 	}
 
@@ -160,7 +177,7 @@ public class Launcher {
 		try {
 			Files.write(new File(absolutePath).toPath(), content.getBytes(), StandardOpenOption.CREATE);
 		} catch (IOException e) {
-			e.printStackTrace();
+			log.error(e.toString());	
 		}
 
 	}
@@ -170,15 +187,15 @@ public class Launcher {
 			byte[] data = Files.readAllBytes(new File(path).toPath());
 			return new String(data);
 		} catch (IOException e) {
-			e.printStackTrace();
+			log.error(e.toString());	
 		}
 		return null;
 	}
-	
+
 	public static String getInstanceId() {
+		String instanceId;
 		String path = System.getProperty(RED5_ROOT);
 		File idFile = new File(path + "/conf/instanceId");
-		instanceId = null;
 		if (idFile.exists()) {
 			instanceId = getFileContent(idFile.getAbsolutePath());
 		}
@@ -186,7 +203,6 @@ public class Launcher {
 			instanceId =  UUID.randomUUID().toString();
 			writeToFile(idFile.getAbsolutePath(), instanceId);
 		}
-		
 		return instanceId;
 	}
 

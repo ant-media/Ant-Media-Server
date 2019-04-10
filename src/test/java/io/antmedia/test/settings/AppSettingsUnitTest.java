@@ -1,4 +1,4 @@
-package io.antmedia.test;
+package io.antmedia.test.settings;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -86,26 +86,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		assertEquals(encoderSettingString, appSettings.encodersList2Str(list));
 	}
-	
-	
-	@Test
-	public void testReadWriteSimple() {
-			Launcher launcher = new Launcher();
-			File f = new File("testFile");
-			String content = "contentntntnt";
-			launcher.writeToFile(f.getAbsolutePath(), content);
-			
-			String fileContent = launcher.getFileContent(f.getAbsolutePath());
-			
-			assertEquals(fileContent, content);
-			
-			try {
-				Files.delete(f.toPath());
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-	}
-	
+
 	@Test
 	public void isCommunity() {
 		assertFalse(BroadcastRestService.isEnterprise());

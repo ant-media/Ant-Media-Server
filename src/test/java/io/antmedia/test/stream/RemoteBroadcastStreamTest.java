@@ -38,7 +38,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 
 import io.antmedia.integration.MuxingTest;
-import io.antmedia.test.MuxerUnitTest;
+import io.antmedia.test.muxer.MuxerUnitTest;
 
 @ContextConfiguration(locations = { 
 		"../test.xml" 
