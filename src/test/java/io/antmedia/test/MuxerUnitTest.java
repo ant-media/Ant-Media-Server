@@ -1,4 +1,4 @@
-package io.antmedia.test.muxer;
+package io.antmedia.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -62,11 +62,8 @@ import io.antmedia.muxer.Mp4Muxer;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.Muxer;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
-import io.antmedia.test.Application;
 
-@ContextConfiguration(locations = { 
-		"test.xml" 
-})
+@ContextConfiguration(locations = { "test.xml" })
 //@ContextConfiguration(classes = {AppConfig.class})
 @DirtiesContext(classMode = ClassMode.AFTER_CLASS)
 public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
@@ -75,7 +72,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 	protected static final int BUFFER_SIZE = 10240;
 
 	protected WebScope appScope;
-	private RestServiceTest rest=new RestServiceTest();
 	private AppSettings appSettings;
 
 	static {

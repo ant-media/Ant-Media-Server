@@ -53,7 +53,9 @@ public class Launcher {
 
 	public static final String GA_TRACKING_ID = "UA-93263926-3";
 	public static final String RED5_ROOT = "red5.root";
-	private static Logger log; 
+	private static Logger logger; 
+
+
 	Timer heartbeat = new Timer("heartbeat", true);
 
 
@@ -85,7 +87,7 @@ public class Launcher {
 		//SysOutOverSLF4J.sendSystemOutAndErrToSLF4J();
 		// get the first logger
 		final Logger log = Red5LoggerFactory.getLogger(Launcher.class);
-		this.log = log;
+		setLog(log);
 
 		// version info banner
 		String implementationVersion = AntMediaApplicationAdapter.class.getPackage().getImplementationVersion();
@@ -135,7 +137,7 @@ public class Launcher {
 
 			@Override
 			public void run() {
-				log.info("-Heartbeat-");
+				logger.info("-Heartbeat-");
 				getGoogleAnalytic(implementationVersion, type).event()
 				.eventCategory("server_status")
 				.eventAction("heartbeat")
@@ -177,7 +179,7 @@ public class Launcher {
 		try {
 			Files.write(new File(absolutePath).toPath(), content.getBytes(), StandardOpenOption.CREATE);
 		} catch (IOException e) {
-			log.error(e.toString());	
+			logger.error(e.toString());	
 		}
 
 	}
@@ -187,7 +189,7 @@ public class Launcher {
 			byte[] data = Files.readAllBytes(new File(path).toPath());
 			return new String(data);
 		} catch (IOException e) {
-			log.error(e.toString());	
+			logger.error(e.toString());	
 		}
 		return null;
 	}
@@ -204,6 +206,10 @@ public class Launcher {
 			writeToFile(idFile.getAbsolutePath(), instanceId);
 		}
 		return instanceId;
+	}
+	
+	public static void setLog(Logger log) {
+		Launcher.logger = log;
 	}
 
 }

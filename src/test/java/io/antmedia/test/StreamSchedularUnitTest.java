@@ -1,4 +1,4 @@
-package io.antmedia.test.fetcher;
+package io.antmedia.test;
 
 import static org.bytedeco.javacpp.avcodec.av_packet_unref;
 import static org.bytedeco.javacpp.avformat.av_read_frame;
@@ -52,7 +52,6 @@ import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.model.Result;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
-import io.antmedia.test.Application;
 
 @ContextConfiguration(locations = { "test.xml" })
 @DirtiesContext(classMode = ClassMode.AFTER_CLASS)

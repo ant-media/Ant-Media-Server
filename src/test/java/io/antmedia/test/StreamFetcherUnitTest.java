@@ -1,4 +1,4 @@
-package io.antmedia.test.fetcher;
+package io.antmedia.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -55,7 +55,6 @@ import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.rest.model.Result;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
-import io.antmedia.test.Application;
 
 @ContextConfiguration(locations = { "test.xml" })
 @DirtiesContext(classMode = ClassMode.AFTER_CLASS)
