@@ -6,7 +6,9 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.concurrent.TimeUnit;
 
+import org.awaitility.Awaitility;
 import org.junit.Test;
 import org.red5.server.Launcher;
 import org.red5.server.scope.WebScope;
@@ -42,10 +44,21 @@ public class LauncherUnitTest {
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-			assertTrue(launcher.startAnalytic("version", "type"));
-			assertTrue(launcher.startHeartBeats("version", "type"));
+			
+			Launcher.setInstanceIdFilePath("target/instanceId");
+			
+			assertTrue(launcher.notifyShutDown("version", "type"));
+			
+			assertTrue(launcher.startAnalytic("version", "type"));	
+			
+			assertTrue(launcher.startHeartBeats("version", "type", 1000));
+			
 
-
+			Awaitility.await().with().pollDelay(10,TimeUnit.SECONDS).atMost(20, TimeUnit.SECONDS)
+			.pollInterval(1, TimeUnit.SECONDS)
+			.until(()->{
+				return launcher.startHeartBeats("version", "type", 1000);
+			});
 
 	}
 
