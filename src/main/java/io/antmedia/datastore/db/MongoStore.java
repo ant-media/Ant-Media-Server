@@ -61,7 +61,7 @@ public class MongoStore extends DataStore {
 		morphia = new Morphia();
 		morphia.mapPackage("io.antmedia.datastore.db.types");
 
-		String uri = DBUtils.getUri(host, username, password);
+		String uri = DBUtils.getMongoConnectionUri(host, username, password);
 
 		MongoClientURI mongoUri = new MongoClientURI(uri);
 		MongoClient client = new MongoClient(mongoUri);
