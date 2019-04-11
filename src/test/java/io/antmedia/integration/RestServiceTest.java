@@ -89,9 +89,6 @@ public class RestServiceTest {
 	private BroadcastRestService restService = null;
 	protected static Logger logger = LoggerFactory.getLogger(RestServiceTest.class);
 	public AntMediaApplicationAdapter app = null;
-	private WebScope appScope;
-	private ApplicationContext appCtx;
-	private IScope scope;
 
 	@Context
 	private ServletContext servletContext;
@@ -128,9 +125,6 @@ public class RestServiceTest {
 		};
 	};
 
-	
-
-	
 	@BeforeClass
 	public static void beforeClass() {
 		if (OS_TYPE == MAC_OS_X) {
@@ -144,7 +138,7 @@ public class RestServiceTest {
 	@Before
 	public void before() {
 		restService = new BroadcastRestService();	
-		
+
 	}
 
 	@After
@@ -160,7 +154,7 @@ public class RestServiceTest {
 	public Broadcast createBroadcast(String name) {
 		return createBroadcast(name, null, null);
 	}
-	
+
 	public Broadcast createBroadcast(String name, String type, String streamUrl) {
 		String url = ROOT_SERVICE_URL + "/broadcast/create";
 
@@ -170,11 +164,11 @@ public class RestServiceTest {
 		if (name != null) {
 			broadcast.setName(name);
 		}
-		
+
 		if (type != null) {
 			broadcast.setType(type);
 		}
-		
+
 		if (streamUrl != null) {
 			broadcast.setStreamUrl(streamUrl);
 		}
@@ -280,7 +274,7 @@ public class RestServiceTest {
 
 	@Test
 	public void testBroadcastCreateFunctionalWithoutName() {
-		
+
 		createBroadcast(null);
 	}
 
@@ -291,8 +285,7 @@ public class RestServiceTest {
 
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 		Gson gson = new Gson();
-		Broadcast broadcast = null; // new Broadcast();
-		// broadcast.name = "name";
+		Broadcast broadcast = null; 
 
 		try {
 
@@ -325,8 +318,6 @@ public class RestServiceTest {
 
 			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 			Gson gson = new Gson();
-			// Broadcast broadcast = null; //new Broadcast();
-			// broadcast.name = "name";
 
 			HttpUriRequest get = RequestBuilder.get().setUri(url)
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
@@ -366,8 +357,7 @@ public class RestServiceTest {
 
 			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 			Gson gson = new Gson();
-			// Broadcast broadcast = null; //new Broadcast();
-			// broadcast.name = "name";
+
 
 			HttpUriRequest get = RequestBuilder.get().setUri(url + "?id=" + streamId)
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
@@ -399,8 +389,6 @@ public class RestServiceTest {
 
 			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 			Gson gson = new Gson();
-			// Broadcast broadcast = null; //new Broadcast();
-			// broadcast.name = "name";
 
 			HttpUriRequest get = RequestBuilder.get().setUri(url)
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
@@ -435,8 +423,6 @@ public class RestServiceTest {
 
 			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 			Gson gson = new Gson();
-			// Broadcast broadcast = null; //new Broadcast();
-			// broadcast.name = "name";
 
 			HttpUriRequest get = RequestBuilder.get().setUri(url + "?id=")
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
@@ -489,7 +475,7 @@ public class RestServiceTest {
 		return tmp;
 
 	}
-	
+
 	public static Result callEnableMp4Muxing(String streamId, int mode) throws Exception {
 
 		String url = ROOT_SERVICE_URL + "/broadcast/enableMp4Muxing?id="+ streamId + "&enableMp4=" + mode;
@@ -565,21 +551,21 @@ public class RestServiceTest {
 		return tmp;
 
 	}
-	
-	
+
+
 	public static Result callUploadVod(File file) throws Exception {
 
 		String url = ROOT_SERVICE_URL + "/broadcast/uploadVoDFile/" + file.getName();
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
-		
+
 		HttpPost post = new HttpPost(url);
 		MultipartEntityBuilder builder = MultipartEntityBuilder.create();         
 		builder.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
-		
+
 		FileBody fileBody = new FileBody(file) ;
 
 		builder.addPart("file", fileBody);
-	
+
 		HttpEntity entity = builder.build();
 		post.setEntity(entity);
 		HttpResponse response = client.execute(post);
@@ -597,7 +583,6 @@ public class RestServiceTest {
 
 	}
 
-	
 	public  int callTotalVoDNumber() throws Exception {
 
 		String url = ROOT_SERVICE_URL + "/broadcast/getTotalVodNumber";
@@ -609,7 +594,7 @@ public class RestServiceTest {
 				// .setEntity(new StringEntity(gson.toJson(broadcast)))
 				.build();
 		CloseableHttpResponse response = client.execute(get);
-		
+
 		StringBuffer result = readResponse(response);
 
 		if (response.getStatusLine().getStatusCode() != 200) {
@@ -622,11 +607,11 @@ public class RestServiceTest {
 			throw new Exception(result.toString());
 		}
 		logger.info("result string: {} ",result.toString());
-		
+
 		return gson.fromJson(result.toString(),Integer.class);
 
 	}
-	
+
 	public static Result callUpdateStreamSource(Broadcast broadcast) throws Exception {
 
 		String url = ROOT_SERVICE_URL + "/streamSource/updateCamInfo";
@@ -681,7 +666,7 @@ public class RestServiceTest {
 			//check that they are same
 			assertEquals(model.getParent().getVersion()
 					, versionList.getVersionName());
-			
+
 			assertNotNull(versionList.getBuildNumber());
 			assertTrue(versionList.getBuildNumber().length() == 13); //format is yyyyMMdd_HHmm
 
@@ -699,9 +684,6 @@ public class RestServiceTest {
 			String url = ROOT_SERVICE_URL + "/broadcast/getAppLiveStatistics";
 
 			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
-			// Gson gson = new Gson();
-			// Broadcast broadcast = null; //new Broadcast();
-			// broadcast.name = "name";
 
 			HttpUriRequest get = RequestBuilder.get().setUri(url)
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
@@ -731,9 +713,6 @@ public class RestServiceTest {
 			String url = ROOT_SERVICE_URL + "/broadcast/getBroadcastLiveStatistics";
 
 			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
-			// Gson gson = new Gson();
-			// Broadcast broadcast = null; //new Broadcast();
-			// broadcast.name = "name";
 
 			HttpUriRequest get = RequestBuilder.get().setUri(url + "?id=" + streamId)
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
@@ -764,9 +743,6 @@ public class RestServiceTest {
 			String url = ROOT_SERVICE_URL + "/broadcast/getList/0/50";
 
 			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
-			// Gson gson = new Gson();
-			// Broadcast broadcast = null; //new Broadcast();
-			// broadcast.name = "name";
 
 			HttpUriRequest get = RequestBuilder.get().setUri(url)
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
@@ -791,20 +767,17 @@ public class RestServiceTest {
 		}
 		return null;
 	}
-	
+
 	public static List<VoD> callGetVoDList() {
 		return callGetVoDList(0, 50);
 	}
-	
+
 	public static List<VoD> callGetVoDList(int offset, int size) {
 		try {
 
 			String url = ROOT_SERVICE_URL + "/broadcast/getVodList/"+offset+"/" + size;
 
 			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
-			// Gson gson = new Gson();
-			// Broadcast broadcast = null; //new Broadcast();
-			// broadcast.name = "name";
 
 			HttpUriRequest get = RequestBuilder.get().setUri(url)
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
@@ -829,16 +802,13 @@ public class RestServiceTest {
 		}
 		return null;
 	}
-	
+
 	public VoD callGetVoD(String id) {
 		try {
 
 			String url = ROOT_SERVICE_URL + "/broadcast/getVoD?id="+id;
 
 			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
-			// Gson gson = new Gson();
-			// Broadcast broadcast = null; //new Broadcast();
-			// broadcast.name = "name";
 
 			HttpUriRequest get = RequestBuilder.get().setUri(url)
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
@@ -868,9 +838,6 @@ public class RestServiceTest {
 		String url = ROOT_SERVICE_URL + "/broadcast/get";
 
 		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
-		// Gson gson = new Gson();
-		// Broadcast broadcast = null; //new Broadcast();
-		// broadcast.name = "name";
 
 		HttpUriRequest get = RequestBuilder.get().setUri(url + "?id=" + streamId)
 				.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
@@ -1029,36 +996,36 @@ public class RestServiceTest {
 
 	@Test
 	public void testUploadVoDFile() {
-		
+
 		Result result = new Result(false);
 		File file = new File("src/test/resources/sample_MP4_480.mp4");
 		List<VoD> voDList = callGetVoDList();
-		
+
 		for (VoD vod : voDList) {
 			deleteVoD(vod.getVodId());
 		}
 		voDList = callGetVoDList();
 		int vodCount = voDList.size();
 		logger.info("initial vod count: {}" , vodCount);
-		
-		
+
+
 		try {
 			result = callUploadVod(file);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		
+
 		assertTrue(result.isSuccess());
-		
+
 		String vodId =  result.getMessage(); 
-		
+
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 			List<VoD> tmpVoDList = callGetVoDList();
 			logger.info("received vod list size: {} expected vod list size: {}", tmpVoDList.size(), vodCount+1);
 			return (vodCount+1 == tmpVoDList.size()) && 
 					MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + vodId + ".mp4");
 		});
-		
+
 		voDList = callGetVoDList();
 		boolean found = false;
 		for (VoD vod : voDList) {
@@ -1069,23 +1036,23 @@ public class RestServiceTest {
 				found = true;
 			}
 		}
-		
+
 		assertTrue(found);
-		
+
 		VoD vod = callGetVoD(vodId);
 		assertNotNull(vod);
 		System.out.println("vod file name: " + vod.getFilePath());
 		assertTrue(vod.getFilePath().startsWith("streams/" + vodId + ".mp4"));
-		
-		
+
+
 		result = deleteVoD(vodId);
 		assertTrue(result.isSuccess());
-		
+
 		//file should be deleted
 		assertFalse(MuxingTest.isURLAvailable("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + vodId + ".mp4"));
-		
-		
-		
+
+
+
 	}
 
 	public String makePOSTRequest(String url, String entity) {
@@ -1141,7 +1108,7 @@ public class RestServiceTest {
 		}
 		return null;
 	}
-	
+
 	public static Result deleteVoD(String id) {
 		try {
 			// delete broadcast
@@ -1241,7 +1208,7 @@ public class RestServiceTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-		
+
 		System.out.println("Leaving testUpdate");
 
 	}
@@ -1412,7 +1379,7 @@ public class RestServiceTest {
 
 			for (Endpoint endpoint : endpointList) {
 				System.out.println("endpoint url: " + endpoint.getRtmpUrl() + " broadcast.id=" + endpoint.getBroadcastId()
-						+ " stream id: " + endpoint.getStreamId());
+				+ " stream id: " + endpoint.getStreamId());
 			}
 
 			Process execute = execute(
@@ -1433,7 +1400,7 @@ public class RestServiceTest {
 
 			for (Endpoint endpoint : endpointList2) {
 				System.out.println("new endpoint url: " + endpoint.getRtmpUrl() + " broadcast.id=" + endpoint.getBroadcastId()
-						+ " stream id: " + endpoint.getStreamId());
+				+ " stream id: " + endpoint.getStreamId());
 
 			}
 
@@ -1450,7 +1417,7 @@ public class RestServiceTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-		
+
 		System.out.println("Leaving testCheckSocialEndpointRecreated");
 	}
 
@@ -1602,7 +1569,7 @@ public class RestServiceTest {
 			fail(e.getMessage());
 		}
 	}
-	
+
 	@Test
 	public void testAddEndpointCrossCheck() {
 		try {
@@ -1610,7 +1577,7 @@ public class RestServiceTest {
 			List<Broadcast> broadcastList = callGetBroadcastList();
 			int size = broadcastList.size();
 			Broadcast broadcast = createBroadcast(null);
-			
+
 			String streamId = RandomStringUtils.randomAlphabetic(6);
 			// add generic endpoint
 			Result result = addEndpoint(broadcast.getStreamId().toString(), "rtmp://localhost/LiveApp/" + streamId);
@@ -1624,31 +1591,31 @@ public class RestServiceTest {
 			// check that 4 element exist
 			assertNotNull(broadcast.getEndPointList());
 			assertEquals(1, broadcast.getEndPointList().size());
-			
+
 			broadcastList = callGetBroadcastList();
 			assertEquals(size+1, broadcastList.size());
-			
+
 			Process execute = execute(
 					ffmpegPath + " -re -i src/test/resources/test.flv -codec copy -f flv rtmp://localhost/LiveApp/"
 							+ broadcast.getStreamId());
-			
-			
+
+
 			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
 				//size should +2 because we restream again into the server
 				return size+2 == callGetBroadcastList().size();
 			});
-			
+
 			execute.destroy();
-			
+
 			result = deleteBroadcast(broadcast.getStreamId());
 			assertTrue(result.isSuccess());
-			
+
 			Awaitility.await().atMost(20, TimeUnit.SECONDS)
-				.pollInterval(2, TimeUnit.SECONDS).until(() -> {
+			.pollInterval(2, TimeUnit.SECONDS).until(() -> {
 				return size == callGetBroadcastList().size();
 			});
 
-			
+
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -1664,7 +1631,7 @@ public class RestServiceTest {
 		Result result = new Result (false);
 
 		try {
-	
+
 			assertNotNull(broadcast);
 			broadcast.setName("name");
 			broadcast.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
@@ -1679,7 +1646,7 @@ public class RestServiceTest {
 
 			//it should be false because url is invalid
 			assertFalse(result.isSuccess());
-			
+
 			//define valid stream url
 			broadcast.setStreamUrl("rtsp://admin:Admin12345@71.234.93.90:5011/12");
 
@@ -1689,22 +1656,22 @@ public class RestServiceTest {
 			assertTrue(result.isSuccess());
 
 			Broadcast fetchedBroadcast = callGetBroadcast(result.getMessage());
-			
+
 			//change url
 
 			fetchedBroadcast.setStreamUrl("rtsp://admin:Admin12345@71.234.93.90:5014/11");
-			
+
 			//update broadcast
 			result = callUpdateStreamSource(fetchedBroadcast);
 
 			assertTrue(result.isSuccess());
-			
+
 			fetchedBroadcast = callGetBroadcast(fetchedBroadcast.getStreamId());
-			
+
 			assertEquals("rtsp://admin:Admin12345@71.234.93.90:5014/11", fetchedBroadcast.getStreamUrl());
 
 			deleteBroadcast(fetchedBroadcast.getStreamId());
-		
+
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -1758,12 +1725,15 @@ public class RestServiceTest {
 	}
 
 	public static StringBuffer readResponse(HttpResponse response) throws IOException {
-		BufferedReader rd = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
-
 		StringBuffer result = new StringBuffer();
-		String line = "";
-		while ((line = rd.readLine()) != null) {
-			result.append(line);
+
+		if(response.getEntity() != null) {
+			BufferedReader rd = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
+
+			String line = "";
+			while ((line = rd.readLine()) != null) {
+				result.append(line);
+			}
 		}
 		return result;
 	}
