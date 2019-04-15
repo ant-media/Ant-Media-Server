@@ -2,14 +2,7 @@ package io.antmedia.datastore.db;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 
 import org.apache.commons.io.FilenameUtils;
@@ -637,33 +630,20 @@ public class MongoStore extends DataStore {
 	 */
 	@Override
 	public boolean updateWebRTCViewerCountLocal(String streamId, boolean increment) {
-		try {
-
-			Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(streamId);
-			UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class);
-			String field = "webRTCViewerCount";
-			if (increment) {
-				ops.inc(field);
-			}
-			else {
-				ops.dec(field);
-			}
-
-			UpdateResults update = datastore.update(query, ops);
-			return update.getUpdatedCount() == 1;
-		} catch (Exception e) {
-			logger.error(e.getMessage());
-		}
-		return false;
+		return updateViewerField(streamId, increment, "webRTCViewerCount");
 	}
 
 	@Override
 	public boolean updateRtmpViewerCountLocal(String streamId, boolean increment) {
+		return updateViewerField(streamId, increment, "rtmpViewerCount");
+	}
+
+	private boolean updateViewerField(String streamId, boolean increment, String fieldName) {
 		try {
 
 			Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(streamId);
 			UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class);
-			String field = "rtmpViewerCount";
+			String field = fieldName;
 			if (increment) {
 				ops.inc(field);
 			}
@@ -679,7 +659,7 @@ public class MongoStore extends DataStore {
 		return false;
 	}
 
-
+	
 	@Override
 	public void saveStreamInfo(StreamInfo streamInfo) {
 		datastore.save(streamInfo);
