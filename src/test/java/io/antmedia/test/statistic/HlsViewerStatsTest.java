@@ -95,6 +95,7 @@ public class HlsViewerStatsTest {
 			
 			Broadcast broadcast = new Broadcast();
 			broadcast.setName("name");
+			when(settings.isWriteStatsToDatastore()).thenReturn(true);
 			dsf.setAppSettings(settings);
 			String streamId = dsf.getDataStore().save(broadcast);
 			
