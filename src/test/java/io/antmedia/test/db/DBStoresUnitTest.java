@@ -26,7 +26,9 @@ import org.mongodb.morphia.Datastore;
 import org.mongodb.morphia.query.Query;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
+import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.MongoStore;
@@ -151,8 +153,7 @@ public class DBStoresUnitTest {
 		testEditCameraInfo(dataStore);
 		testGetActiveBroadcastCount(dataStore);
 		testUpdateHLSViewerCount(dataStore);
-		//testWebRTCViewerCount(dataStore);
-		testWebRTCViewerCountMongo(dataStore);
+		testWebRTCViewerCount(dataStore);
 		testRTMPViewerCount(dataStore);
 		testTokenOperations(dataStore);
 
@@ -809,32 +810,32 @@ public class DBStoresUnitTest {
 			assertTrue(result);
 
 			assertEquals("good", dataStore.get(broadcast3.getStreamId()).getQuality());
-			
+
 			//set mp4 muxing to true
 			result = dataStore.setMp4Muxing(key, MuxAdaptor.MP4_ENABLED_FOR_STREAM);
-			
+
 			//check that setting is saved
 			assertTrue(result);
-			
+
 			//check that setting is saved correctly
 			assertEquals(MuxAdaptor.MP4_ENABLED_FOR_STREAM, dataStore.get(key).getMp4Enabled());
-			
-			
+
+
 			//check null case
 			result = dataStore.setMp4Muxing(null, MuxAdaptor.MP4_DISABLED_FOR_STREAM);
-			
+
 			assertFalse(result);
-			
-			
+
+
 			//set mp4 muxing to false
 			result = dataStore.setMp4Muxing(key, MuxAdaptor.MP4_DISABLED_FOR_STREAM);
-			
+
 			//check that setting is saved
 			assertTrue(result);
-			
+
 			//check that setting is saved correctly
 			assertEquals(MuxAdaptor.MP4_DISABLED_FOR_STREAM, dataStore.get(key).getMp4Enabled());
-			
+
 			result = dataStore.delete(key);
 			assertTrue(result);
 
@@ -1131,80 +1132,76 @@ public class DBStoresUnitTest {
 
 	}
 	
-	private void testWebRTCViewerCountMongo(DataStore dataStore) {
+	@Test
+	public void testDontWriteStatsToDB () {
+		DataStore ds = createDB("memorydb", false);
+		assertTrue(ds instanceof InMemoryDataStore);	
+		testDontWriteStatsToDB(ds);
+		
+		ds = createDB("mapdb", false);
+		assertTrue(ds instanceof MapDBStore);	
+		testDontWriteStatsToDB(ds);
+		
+		ds = createDB("mongodb", false);
+		assertTrue(ds instanceof MongoStore);	
+		testDontWriteStatsToDB(ds);
+		
+		
+	}
+	
+	public void testDontWriteStatsToDB (DataStore dataStore) {
+		testDontUpdateRtmpViewerStats(dataStore);
+		testDontUpdateHLSViewerStats(dataStore);
+		testDontUpdateWebRTCViewerStats(dataStore);
+		testDontUpdateSourceQualityParameters(dataStore);
+	}
+	
+	public void testDontUpdateRtmpViewerStats(DataStore dataStore) {
 		Broadcast broadcast = new Broadcast();
 		broadcast.setName("test");
 		String key = dataStore.save(broadcast);
 
-		Broadcast broadcast2 = new Broadcast();
-		broadcast2.setName("test2");
-		String key2 = dataStore.save(broadcast2);
+		assertFalse(dataStore.updateRtmpViewerCount(key, true));
+		assertEquals(0, dataStore.get(key).getRtmpViewerCount());
+	}
+	
+	public void testDontUpdateHLSViewerStats(DataStore dataStore) {
+		Broadcast broadcast = new Broadcast();
+		broadcast.setName("test");
+		String key = dataStore.save(broadcast);
 
-		int totalViewerCountFor1 = 0;
-		int totalViewerCountFor2 = 0;
-		for (int i = 0; i < 150; i++) {
+		assertFalse(dataStore.updateHLSViewerCount(key, 1));
+		assertEquals(0, dataStore.get(key).getHlsViewerCount());
+	}
+	
+	public void testDontUpdateWebRTCViewerStats(DataStore dataStore) {
+		Broadcast broadcast = new Broadcast();
+		broadcast.setName("test");
+		String key = dataStore.save(broadcast);
 
-			boolean increment = false; 
-			int randomValue = (int)(Math.random()*99999);
-			if (randomValue % 2 == 0) {
-				increment = true;
-				totalViewerCountFor1++;
-			}
-			else {
-				totalViewerCountFor1--;
-			}
-			assertTrue(dataStore.updateWebRTCViewerCount(key, increment));
-
-			increment = false; 
-			randomValue = (int)(Math.random()*99999);
-			if (randomValue % 2 == 0) {
-				increment = true;
-				totalViewerCountFor2++;
-			}
-			else {
-				totalViewerCountFor2--;
-			}
-
-			assertTrue(dataStore.updateWebRTCViewerCount(key2, increment));
-		}
-		
+		assertFalse(dataStore.updateWebRTCViewerCount(key, true));
 		assertEquals(0, dataStore.get(key).getWebRTCViewerCount());
-		assertEquals(0, dataStore.get(key2).getWebRTCViewerCount());
-		
-		int lastCount1 = totalViewerCountFor1;
-		int lastCount2 = totalViewerCountFor2;
-		
-		Awaitility.await().atMost(5, TimeUnit.SECONDS)
-		.pollInterval(1, TimeUnit.SECONDS)
-		.until(() -> {
-			return (lastCount1 == dataStore.get(key).getWebRTCViewerCount()) &&
-					(lastCount2 == dataStore.get(key2).getWebRTCViewerCount()) ;
-		});
-		
-		Broadcast broadcast3 = new Broadcast();
-		broadcast3.setName("test3");
-		String key3 = dataStore.save(broadcast3);
-		
-		try {
-			assertTrue(dataStore.updateWebRTCViewerCount(key3, true));
-			Thread.sleep(1000);
-			assertEquals(0, dataStore.get(key3).getWebRTCViewerCount());
-
-			assertTrue(dataStore.updateWebRTCViewerCount(key3, true));
-			Thread.sleep(1000);
-			assertEquals(0, dataStore.get(key3).getWebRTCViewerCount());
-			
-			assertTrue(dataStore.updateWebRTCViewerCount(key3, true));
-			Thread.sleep(1500);
-			assertEquals(3, dataStore.get(key3).getWebRTCViewerCount());
-			
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-
-
-		
+	}
+	
+	public void testDontUpdateSourceQualityParameters(DataStore dataStore) {
+		Broadcast broadcast = new Broadcast();
+		broadcast.setName("test");
+		broadcast.setQuality("poor");
+		String key = dataStore.save(broadcast);
+		assertFalse(dataStore.updateSourceQualityParameters(key, "good", 0, 0));
+		assertEquals("poor", dataStore.get(key).getQuality());
 	}
 
+	private DataStore createDB(String type, boolean writeStats) {
+		DataStoreFactory dsf = new DataStoreFactory();
+		AppSettings settings = new AppSettings();
+		settings.setWriteStatsToDatastore(writeStats);
+		dsf.setAppSettings(settings);
+		dsf.setDbType(type);
+		dsf.setDbName("testdb");
+		dsf.setAppName("testApp");
+		dsf.setDbHost("localhost");
+		return dsf.getDataStore();
+	}
 
 }

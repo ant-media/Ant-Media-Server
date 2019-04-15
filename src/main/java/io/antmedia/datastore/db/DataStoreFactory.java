@@ -2,7 +2,9 @@ package io.antmedia.datastore.db;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
+import io.antmedia.AppSettings;
 import io.antmedia.cluster.DBReader;
 
 public class DataStoreFactory implements IDataStoreFactory{
@@ -11,6 +13,8 @@ public class DataStoreFactory implements IDataStoreFactory{
 	public static final String DB_TYPE_MAPDB = "mapdb";
 	public static final String DB_TYPE_MONGODB = "mongodb";
 
+	@Autowired
+	private AppSettings appSettings;
 
 	private static Logger logger = LoggerFactory.getLogger(DataStoreFactory.class);
 
@@ -88,6 +92,7 @@ public class DataStoreFactory implements IDataStoreFactory{
 			logger.info("Used Datastore:{} app:{} db name:{}", getDbType(), getAppName(), getDbName());
 			
 			if(dataStore != null) {
+				dataStore.setWriteStatsToDatastore(getAppSettings().isWriteStatsToDatastore());
 				DBReader.instance.addDataStore(appName, dataStore);
 			}
 		}
@@ -106,6 +111,14 @@ public class DataStoreFactory implements IDataStoreFactory{
 	public void setAppName(String appName)
 	{
 		this.appName = appName;
+	}
+
+	public AppSettings getAppSettings() {
+		return appSettings;
+	}
+
+	public void setAppSettings(AppSettings appSettings) {
+		this.appSettings = appSettings;
 	}
 
 }

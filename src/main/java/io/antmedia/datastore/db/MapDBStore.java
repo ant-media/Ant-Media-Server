@@ -596,7 +596,7 @@ public class MapDBStore extends DataStore {
 
 
 	@Override
-	public boolean updateSourceQualityParameters(String id, String quality, double speed, int pendingPacketQueue) {
+	protected boolean updateSourceQualityParametersLocal(String id, String quality, double speed, int pendingPacketQueue) {
 		boolean result = false;
 		synchronized (this) {
 			if (id != null) {
@@ -827,7 +827,7 @@ public class MapDBStore extends DataStore {
 	}
 
 	@Override
-	public synchronized boolean updateHLSViewerCount(String streamId, int diffCount) {
+	protected synchronized boolean updateHLSViewerCountLocal(String streamId, int diffCount) {
 		boolean result = false;
 
 		if (streamId != null) {
@@ -846,7 +846,7 @@ public class MapDBStore extends DataStore {
 	}
 
 	@Override
-	public synchronized boolean updateWebRTCViewerCount(String streamId, boolean increment) {
+	protected synchronized boolean updateWebRTCViewerCountLocal(String streamId, boolean increment) {
 		boolean result = false;
 		if (streamId != null) {
 			Broadcast broadcast = get(streamId);
@@ -867,7 +867,7 @@ public class MapDBStore extends DataStore {
 	}
 
 	@Override
-	public synchronized boolean updateRtmpViewerCount(String streamId, boolean increment) {
+	protected synchronized boolean updateRtmpViewerCountLocal(String streamId, boolean increment) {
 		boolean result = false;
 		if (streamId != null) {
 			Broadcast broadcast = get(streamId);
