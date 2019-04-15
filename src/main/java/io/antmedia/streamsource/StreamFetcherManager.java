@@ -90,12 +90,7 @@ public class StreamFetcherManager {
 
 
 	public StreamFetcher startStreaming(Broadcast broadcast) {	
-		IResourceMonitor monitor = (IResourceMonitor) scope.getContext().getBean(IResourceMonitor.BEAN_NAME);
-		int cpuLoad = monitor.getAvgCpuUsage();
-		if(cpuLoad > monitor.getCpuLimit()) {
-			logger.error("Stream Fetcher can not be created due to high cpu load: {}", cpuLoad);
-			return null;
-		}
+
 		StreamFetcher streamScheduler = null;
 		try {
 			streamScheduler =  make(broadcast, scope, schedulingService);
