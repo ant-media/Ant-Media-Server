@@ -11,6 +11,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.AppSettings;
 import io.antmedia.cluster.DBReader;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.DataStore;
@@ -36,6 +37,7 @@ public class DataStoreFactoryUnitTest {
 		dsf.setDbHost("localhost");
 		dsf.setDbUser(null);
 		dsf.setDbPassword("myPass");
+		dsf.setAppSettings(new AppSettings());
 	}
 
 	@After
