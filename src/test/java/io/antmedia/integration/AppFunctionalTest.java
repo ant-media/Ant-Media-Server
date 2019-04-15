@@ -45,7 +45,6 @@ import org.slf4j.LoggerFactory;
 import com.google.gson.Gson;
 
 import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.AppSettings;
 import io.antmedia.AppSettingsModel;
 import io.antmedia.EncoderSettings;
 import io.antmedia.datastore.db.types.Broadcast;
@@ -58,10 +57,9 @@ import io.antmedia.rest.model.Version;
 import io.antmedia.test.Application;
 
 public class AppFunctionalTest {
+	
 
 	private BroadcastRestService restService = null;
-	private AppSettings appSettings;
-	private static final Logger log = LoggerFactory.getLogger(AppFunctionalTest.class);
 	private static final String SERVER_ADDR = "127.0.0.1"; 
 	protected static Logger logger = LoggerFactory.getLogger(AppFunctionalTest.class);
 
@@ -81,7 +79,7 @@ public class AppFunctionalTest {
 			e.printStackTrace();
 		}
 
-		log.info("ROOT SERVICE URL: " + ROOT_SERVICE_URL);
+		logger.info("ROOT SERVICE URL: " + ROOT_SERVICE_URL);
 
 	}
 
@@ -165,7 +163,7 @@ public class AppFunctionalTest {
 
 		Broadcast broadcast = restService.createBroadcast("TOBB Demo");
 
-		log.info("broadcast id:{}", broadcast.getStreamId());
+		logger.info("broadcast id:{}", broadcast.getStreamId());
 
 	}
 
@@ -241,7 +239,7 @@ public class AppFunctionalTest {
 
 			int currentVodNumber = rest.callTotalVoDNumber();
 
-			log.info("current vod number before test {}", String.valueOf(currentVodNumber));
+			logger.info("current vod number before test {}", String.valueOf(currentVodNumber));
 			
 			//delete vods
 			List<VoD> voDList = rest.callGetVoDList();
@@ -252,7 +250,8 @@ public class AppFunctionalTest {
 			}
 			
 			currentVodNumber = rest.callTotalVoDNumber();
-			log.info("vod number after deletion {}", String.valueOf(currentVodNumber));
+			logger.info("vod number after deletion {}", String.valueOf(currentVodNumber));
+
 
 			boolean found240p = false;
 			List<EncoderSettings> encoderSettingsActive = null;
@@ -314,9 +313,11 @@ public class AppFunctionalTest {
 					return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + "_240p.mp4");
 				});
 				Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+
 					
 					int vodNumber = rest.callTotalVoDNumber();
-					log.info("vod number after test {}", vodNumber);
+					logger.info("vod number after test {}", vodNumber);
+
 					//2 more VoDs should be added to DB, one is original other one ise 240p mp4 files
 					//480p is not created because original stream is 360p
 					
@@ -342,7 +343,7 @@ public class AppFunctionalTest {
 			else {
 				Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
 					int lastVodNumber = rest.callTotalVoDNumber();
-					log.info("vod number after test {}", lastVodNumber);
+					logger.info("vod number after test {}", lastVodNumber);
 					//2 more VoDs should be added to DB, one is original other one ise 240p mp4 files
 					//480p is not created because original stream is 360p
 
@@ -427,7 +428,7 @@ public class AppFunctionalTest {
 			int size = broadcastList.size();
 			
 			int currentVodNumber = restService.callTotalVoDNumber();
-			log.info("current vod number: {}", currentVodNumber);
+			logger.info("current vod number: {}", currentVodNumber);
 			// publish live stream to the server
 			String streamId = "zombiStreamId"  + (int)(Math.random()*999999);
 			executeProcess(ffmpegPath
@@ -585,7 +586,7 @@ public class AppFunctionalTest {
 			fail(e.getMessage());
 		}
 	}
-
+	
 	// Before running test all endpoints should be authenticated
 	@Test
 	public void testBroadcastStream() {

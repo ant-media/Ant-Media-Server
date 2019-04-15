@@ -24,7 +24,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
-import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpUriRequest;
@@ -55,20 +54,28 @@ import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettingsModel;
 import io.antmedia.EncoderSettings;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.Licence;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.muxer.MuxAdaptor;
-import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.User;
 import io.antmedia.rest.model.Version;
+import io.antmedia.settings.ServerSettings;
 import io.antmedia.test.Application;
 
+
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
-public class ConsoleAppRestServiceTest {
+public class ConsoleAppRestServiceTest{
 
 	private static String ROOT_SERVICE_URL;
 
 	private static String ffmpegPath = "ffmpeg";
+
+	private static final String LOG_LEVEL = "logLevel";
+
+	private static final String LOG_LEVEL_INFO = "INFO";
+	private static final String LOG_LEVEL_WARN = "WARN";
+	private static final String LOG_LEVEL_TEST = "TEST";
 
 	private static String TEST_USER_EMAIL = "test@antmedia.io";
 	private static String TEST_USER_PASS = "testtest";
@@ -258,8 +265,59 @@ public class ConsoleAppRestServiceTest {
 		}
 	}
 
+
+
+	@Test
+	public void testGetServerSettings() {
+		try {
+			Result authenticatedUserResult = authenticateDefaultUser();
+			assertTrue(authenticatedUserResult.isSuccess());
+
+			//get Server Settings
+			ServerSettings serverSettings = callGetServerSettings();
+			String serverName = serverSettings.getServerName();
+			String licenseKey = serverSettings.getLicenceKey();
+			boolean isMarketRelease = serverSettings.isBuildForMarket();
+
+
+			// change Server settings 
+			serverSettings.setServerName("newServerName");
+			serverSettings.setLicenceKey("newLicenseKey");
+			serverSettings.setBuildForMarket(!isMarketRelease);
+
+			//check that settings saved
+			Result result = callSetServerSettings(serverSettings);
+			assertTrue(result.isSuccess());
+
+			// get serverSettings again
+
+			serverSettings = callGetServerSettings();
+
+			assertEquals("newServerName", serverSettings.getServerName());
+			assertEquals("newLicenseKey", serverSettings.getLicenceKey());
+			assertEquals(!isMarketRelease, serverSettings.isBuildForMarket());
+
+			// return back to original values
+
+			serverSettings.setServerName(serverName);
+			serverSettings.setLicenceKey(licenseKey);
+			serverSettings.setBuildForMarket(isMarketRelease);
+
+			//save original settings
+			result = callSetServerSettings(serverSettings);
+			assertTrue(result.isSuccess());
+
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+	}
+
+
+
 	/**
-	 * This may be a bug, just check it out, it is working as expectes
+	 * This may be a bug, just check it out, it is working as expected
 	 */
 	@Test
 	public void testMuxingDisableCheckStreamStatus() {
@@ -337,15 +395,72 @@ public class ConsoleAppRestServiceTest {
 	}
 
 	@Test
+	public void testLogLevel() throws Exception {
+
+		try {	
+
+			Result authenticatedUserResult = authenticateDefaultUser();
+			assertTrue(authenticatedUserResult.isSuccess());
+
+			//get Log Level Check (Default Log Level INFO)
+
+			String logLevel = callGetLogLevel();
+
+			JSONObject logJSON = (JSONObject) new JSONParser().parse(logLevel);
+
+			String tmpObject = (String) logJSON.get(LOG_LEVEL); 
+
+			assertEquals(LOG_LEVEL_INFO, tmpObject);
+
+			// change Log Level Check (INFO -> WARN)
+
+			Result callSetLogLevelWarn = callSetLogLevel(LOG_LEVEL_WARN);
+
+			assertTrue(callSetLogLevelWarn.isSuccess());
+
+			logLevel = callGetLogLevel();
+
+			logJSON = (JSONObject) new JSONParser().parse(logLevel);
+
+			tmpObject = (String) logJSON.get(LOG_LEVEL); 
+
+			assertEquals(LOG_LEVEL_WARN, tmpObject);
+
+			// change Log Level Check (currently Log Level doesn't change)
+
+			Result callSetLogLevelTest = callSetLogLevel(LOG_LEVEL_TEST);
+
+			assertFalse(callSetLogLevelTest.isSuccess());
+
+			// check log status
+
+			logLevel = callGetLogLevel();
+
+			logJSON = (JSONObject) new JSONParser().parse(logLevel);
+
+			tmpObject = (String) logJSON.get(LOG_LEVEL); 
+
+			assertEquals(LOG_LEVEL_WARN, tmpObject);
+
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+
+	}
+
+
+	@Test
 	public void testIPFilter() {
 		try {
-			
+
 			User user = new User();
 			user.setEmail(TEST_USER_EMAIL);
 			user.setPassword(TEST_USER_PASS);
 			Result authenticatedUserResult = callAuthenticateUser(user);
 			assertTrue(authenticatedUserResult.isSuccess());
-			
+
 			//get the applications from server
 			String applications = callGetApplications();
 
@@ -355,23 +470,23 @@ public class ConsoleAppRestServiceTest {
 
 			int index = (int)(Math.random()*jsonArray.size());
 			String appName = (String) jsonArray.get(index);
-			
+
 			log.info("appName: {}", appName);
-			
-			
+
+
 			//call a rest service 
 			List<Broadcast> broadcastList = callGetBroadcastList(appName);
 			//assert that it's successfull
 			assertNotNull(broadcastList);
-			
+
 			AppSettingsModel appSettings = callGetAppSettings(appName);
 
 			String remoteAllowedCIDR = appSettings.getRemoteAllowedCIDR();
 			assertEquals("127.0.0.1", remoteAllowedCIDR);
-			
+
 			//change the settings and ip filter does not accept rest services
 			appSettings.setRemoteAllowedCIDR("");
-			
+
 			Result result = callSetAppSettings(appName, appSettings);
 			assertTrue(result.isSuccess());
 
@@ -380,7 +495,7 @@ public class ConsoleAppRestServiceTest {
 
 			//assert that it's failed
 			assertNull(broadcastList);
-			
+
 			assertEquals(403, lastStatusCode);
 
 			//restore settings
@@ -393,8 +508,10 @@ public class ConsoleAppRestServiceTest {
 		}
 
 	}
-	
+
 	static int lastStatusCode;
+
+
 	public static List<Broadcast> callGetBroadcastList(String appName) {
 		try {
 
@@ -718,9 +835,8 @@ public class ConsoleAppRestServiceTest {
 
 	@Test
 	public void testTokenControl() {
-		Result enterpiseResult;
+		Result enterpriseResult;
 		try {
-
 
 			// authenticate user
 			User user = new User();
@@ -729,8 +845,8 @@ public class ConsoleAppRestServiceTest {
 			Result authenticatedUserResult = callAuthenticateUser(user);
 			assertTrue(authenticatedUserResult.isSuccess());
 
-			enterpiseResult = callIsEnterpriseEdition();
-			if (!enterpiseResult.isSuccess()) {
+			enterpriseResult = callIsEnterpriseEdition();
+			if (!enterpriseResult.isSuccess()) {
 				//if it is not enterprise return
 				return ;
 			}
@@ -802,6 +918,79 @@ public class ConsoleAppRestServiceTest {
 			Result flag = callSetAppSettings("LiveApp", appSettings);
 			assertTrue(flag.isSuccess());
 
+
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+
+	}
+
+
+	@Test
+	public void testLicenseControl() {
+
+		Result enterpriseResult;
+		try {
+
+			// authenticate user
+			User user = new User();
+			user.setEmail(TEST_USER_EMAIL);
+			user.setPassword(TEST_USER_PASS);
+			Result authenticatedUserResult = callAuthenticateUser(user);
+			assertTrue(authenticatedUserResult.isSuccess());
+
+			enterpriseResult = callIsEnterpriseEdition();
+			if (!enterpriseResult.isSuccess()) {
+				//if it is not enterprise return
+				return ;
+			}
+
+			// get Server Settings
+			ServerSettings serverSettings = callGetServerSettings();
+
+			//set test license key
+			serverSettings.setLicenceKey("test-test");
+			serverSettings.setBuildForMarket(false);
+
+			Result flag = callSetServerSettings(serverSettings);
+
+			
+			//request license check via rest service
+			Licence activeLicence = callGetLicenceStatus(serverSettings.getLicenceKey());
+
+
+			//it should not be null because test license key is active
+			assertNotNull(activeLicence);
+
+			//set build for market as true
+			serverSettings.setBuildForMarket(true);
+
+			//save this setting
+			flag = callSetServerSettings(serverSettings);
+
+			//check that setting is saved
+			assertTrue (flag.isSuccess());
+
+			
+			//check license status
+
+			activeLicence = callGetLicenceStatus(serverSettings.getLicenceKey());
+
+			//it should be null because it is market build
+			assertNull(activeLicence);
+
+
+
+			//set build for market setting to default
+			serverSettings.setBuildForMarket(false);
+
+			//save default setting
+			flag = callSetServerSettings(serverSettings);
+
+			//check that setting is saved
+			assertTrue (flag.isSuccess());
 
 
 		} catch (Exception e) {
@@ -1284,8 +1473,34 @@ public class ConsoleAppRestServiceTest {
 	}
 
 
+
+	public static Result callSetServerSettings(ServerSettings serverSettings) throws Exception {
+		String url = ROOT_SERVICE_URL + "/changeServerSettings";
+		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
+				.setDefaultCookieStore(httpCookieStore).build();
+		Gson gson = new Gson();
+
+		HttpUriRequest post = RequestBuilder.post().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+				.setEntity(new StringEntity(gson.toJson(serverSettings))).build();
+
+		HttpResponse response = client.execute(post);
+
+		StringBuffer result = RestServiceTest.readResponse(response);
+
+		if (response.getStatusLine().getStatusCode() != 200) {
+			throw new Exception(result.toString());
+		}
+		log.info("result string: " + result.toString());
+		Result tmp = gson.fromJson(result.toString(), Result.class);
+		assertNotNull(tmp);
+		return tmp;
+
+	}
+
+
 	public static String callGetApplications() throws Exception {
 		String url = ROOT_SERVICE_URL + "/getApplications";
+
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
 				.setDefaultCookieStore(httpCookieStore).build();
 		Gson gson = new Gson();
@@ -1301,6 +1516,7 @@ public class ConsoleAppRestServiceTest {
 		log.info("result string: " + result.toString());
 		return result.toString();
 	}
+
 
 
 	public static String callGetSoftwareVersion() throws Exception {
@@ -1320,6 +1536,7 @@ public class ConsoleAppRestServiceTest {
 		log.info("result string: " + result.toString());
 		return result.toString();
 	}
+
 
 	public static String callGetSystemResourcesInfo() throws Exception {
 		String url = ROOT_SERVICE_URL + "/getSystemResourcesInfo";
@@ -1406,6 +1623,53 @@ public class ConsoleAppRestServiceTest {
 		return tmp;
 	}
 
+	public static ServerSettings callGetServerSettings() throws Exception {
+
+		String url = ROOT_SERVICE_URL + "/getServerSettings";
+
+		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
+				.setDefaultCookieStore(httpCookieStore).build();
+		Gson gson = new Gson();
+
+		HttpUriRequest post = RequestBuilder.get().setUri(url).build();
+
+		HttpResponse response = client.execute(post);
+
+		StringBuffer result = RestServiceTest.readResponse(response);
+
+		if (response.getStatusLine().getStatusCode() != 200) {
+			System.out.println("status code: " + response.getStatusLine().getStatusCode());
+			throw new Exception(result.toString());
+		}
+		log.info("result string: " + result.toString());
+		ServerSettings tmp = gson.fromJson(result.toString(), ServerSettings.class);
+		assertNotNull(tmp);
+		return tmp;
+	}
+
+	public static Licence callGetLicenceStatus(String key) throws Exception {
+
+		Licence tmp = null;
+
+		String url = ROOT_SERVICE_URL + "/getLicenceStatus/" + key;
+
+		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
+				.setDefaultCookieStore(httpCookieStore).build();
+		Gson gson = new Gson();
+
+		HttpUriRequest post = RequestBuilder.get().setUri(url).build();
+
+		HttpResponse response = client.execute(post);
+
+		StringBuffer result = RestServiceTest.readResponse(response);
+
+		log.info("result string: " + result.toString());
+		tmp = gson.fromJson(result.toString(), Licence.class);
+
+		return tmp;
+	}
+
+
 	public static StringBuffer readResponse(HttpResponse response) throws IOException {
 		BufferedReader rd = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
 
@@ -1446,6 +1710,57 @@ public class ConsoleAppRestServiceTest {
 
 		return tmpExec;
 	}
+
+	public static String callGetLogLevel() throws Exception {
+
+		String url = ROOT_SERVICE_URL + "/getLogLevel";
+
+		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
+				.setDefaultCookieStore(httpCookieStore).build();
+
+		Gson gson = new Gson();
+
+		HttpUriRequest post = RequestBuilder.get().setUri(url).build();
+
+		HttpResponse response = client.execute(post);
+
+		StringBuffer result = RestServiceTest.readResponse(response);
+
+		if (response.getStatusLine().getStatusCode() != 200) {
+			System.out.println("status code: " + response.getStatusLine().getStatusCode());
+			throw new Exception(result.toString());
+		}
+
+		log.info("result string: " + result.toString());
+		return result.toString();
+	}
+
+	public static Result callSetLogLevel(String level) throws Exception {
+
+		String url = ROOT_SERVICE_URL + "/changeLogLevel/"+level;
+
+		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
+				.setDefaultCookieStore(httpCookieStore).build();
+
+		Gson gson = new Gson();
+
+		HttpUriRequest post = RequestBuilder.get().setUri(url).build();
+
+		HttpResponse response = client.execute(post);
+
+		StringBuffer result = RestServiceTest.readResponse(response);
+
+		if (response.getStatusLine().getStatusCode() != 200) {
+			System.out.println("status code: " + response.getStatusLine().getStatusCode());
+			throw new Exception(result.toString());
+		}
+
+		log.info("result string: " + result.toString());
+		Result tmp = gson.fromJson(result.toString(), Result.class);
+
+		return tmp;
+	}
+
 
 
 }

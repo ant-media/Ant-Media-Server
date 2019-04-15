@@ -1,62 +1,79 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <beans xmlns="http://www.springframework.org/schema/beans"
-       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-       xmlns:lang="http://www.springframework.org/schema/lang"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:lang="http://www.springframework.org/schema/lang"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
                            http://www.springframework.org/schema/lang http://www.springframework.org/schema/lang/spring-lang.xsd">
 
-    <!-- DO NOT FORMAT THIS FILE IN ECLIPSE -->
-    <!-- This file just wires together the context tree. Its accessed by ContextSingletonBeanFactoryLocator -->
-    
-    <bean id="placeholderConfig" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
-        <property name="location" value="classpath:/red5.properties" />
-    </bean>
+	<!-- DO NOT FORMAT THIS FILE IN ECLIPSE -->
+	<!-- This file just wires together the context tree. Its accessed by ContextSingletonBeanFactoryLocator -->
 
-    <!-- First we load the common context, its shared between all the other contexts -->
-    <!-- Global context serves as the parent to all child contexts. -->
-    <bean id="red5.common" class="org.red5.spring.Red5ApplicationContext">
-        <property name="configLocation" value="classpath:/red5-common.xml" />
-    </bean>
-    
-    <!-- Then we load the core context, with the common as parent --> 
-    <!-- Context holding all the networking, users should not need to edit. -->
-    <bean id="red5.core" class="org.red5.spring.Red5ApplicationContext">
-        <property name="configLocation" value="classpath:/red5-core.xml" />
-        <property name="parent" ref="red5.common" />
-    </bean>
-    
-    <!-- Then we load the global contexts, note its important this happens before app container loads -->
-    <bean id="context.loader" class="org.red5.server.ContextLoader">
-        <property name="parentContext" ref="red5.common" />
-        <property name="contextsConfig" value="classpath:/red5.globals" />
-    </bean> 
+	<bean id="placeholderConfig"
+		class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+		<property name="location" value="classpath:/red5.properties" />
+	</bean>
 
-    <!-- Plug-ins management -->
-    <bean id="pluginLauncher" class="org.red5.server.plugin.PluginLauncher" />
-    
-    <!-- Now we can load the JEE container / servlet engine -->
-    <import resource="classpath:/jee-container.xml"/>
+	<!-- First we load the common context, its shared between all the other 
+		contexts -->
+	<!-- Global context serves as the parent to all child contexts. -->
+	<bean id="red5.common"
+		class="org.red5.spring.Red5ApplicationContext">
+		<property name="configLocation"
+			value="classpath:/red5-common.xml" />
+	</bean>
 
-    <!-- Internal shutdown mechanism -->
-    <bean id="shutdownServer" class="org.red5.server.service.ShutdownServer">
-        <property name="port" value="${jmx.rmi.port}" />
-        <property name="shutdownDelay" value="30" />
-        <property name="coreContext" ref="red5.core" />
-        <property name="commonContext" ref="red5.common" />
-        <property name="contextLoader" ref="context.loader" />
-    </bean>
-    
-    <bean id="ant.rtsp" class="org.red5.spring.Red5ApplicationContext">
-       <property name="configLocation" value="classpath:/red5-rtsp.xml" />
-       <property name="parent" ref="red5.core" />
-    </bean>
-    
-    <bean id="ant.media.server.settings" class="io.antmedia.settings.ServerSettings">
-    		<property name="serverName" value="${ant.media.server.name}" />
-    </bean>
-    
-     <bean id="logSettings" class="io.antmedia.settings.LogSettings">
+
+	<!-- Then we load the core context, with the common as parent -->
+	<!-- Context holding all the networking, users should not need to edit. -->
+	<bean id="red5.core"
+		class="org.red5.spring.Red5ApplicationContext">
+		<property name="configLocation"
+			value="classpath:/red5-core.xml" />
+		<property name="parent" ref="red5.common" />
+	</bean>
+
+	<!-- Then we load the global contexts, note its important this happens before 
+		app container loads -->
+	<bean id="context.loader" class="org.red5.server.ContextLoader">
+		<property name="parentContext" ref="red5.common" />
+		<property name="contextsConfig"
+			value="classpath:/red5.globals" />
+	</bean>
+
+	<!-- Plug-ins management -->
+	<bean id="pluginLauncher"
+		class="org.red5.server.plugin.PluginLauncher" />
+
+	<!-- Now we can load the JEE container / servlet engine -->
+	<import resource="classpath:/jee-container.xml" />
+
+	<!-- Internal shutdown mechanism -->
+	<bean id="shutdownServer" class="org.red5.server.service.ShutdownServer">
+		<property name="port" value="${jmx.rmi.port}" />
+		<property name="shutdownDelay" value="30" />
+		<property name="coreContext" ref="red5.core" />
+		<property name="commonContext" ref="red5.common" />
+		<property name="contextLoader" ref="context.loader" />
+	</bean>
+
+	<bean id="ant.rtsp" class="org.red5.spring.Red5ApplicationContext">
+		<property name="configLocation" value="classpath:/red5-rtsp.xml" />
+		<property name="parent" ref="red5.core" />
+	</bean>
+
+	<bean id="ant.media.server.settings" class="io.antmedia.settings.ServerSettings">
+		<property name="serverName" value="${server.name}" />
+		<property name="licenceKey" value="${server.licence_key}" />
+		<property name="buildForMarket" value="${server.market_build}" />	
+	</bean>
+	
+	<bean id="logSettings" class="io.antmedia.settings.LogSettings">
 		<property name="logLevel" value="${logLevel}"/>   
-    	</bean>
-    
+  	</bean>
+
+	<bean id="ant.media.licence.service" class="#{ T(io.antmedia.rest.BroadcastRestService).isEnterprise() ? 'io.antmedia.enterprise.licence.LicenceService' : 'io.antmedia.licence.CommunityLicenceService' }"
+	init-method="start">
+		<property name="serverSettings" ref="ant.media.server.settings" />						
+	</bean>
+
 </beans>

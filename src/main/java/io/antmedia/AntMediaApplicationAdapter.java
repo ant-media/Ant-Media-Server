@@ -96,6 +96,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		//initalize to access the data store directly in the code
 		getDataStore();
 
+
 		if (getStreamPublishSecurityList() != null) {
 			for (IStreamPublishSecurity streamPublishSecurity : getStreamPublishSecurityList()) {
 				registerStreamPublishSecurity(streamPublishSecurity);
@@ -147,6 +148,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		
 		AMSShutdownManager.getInstance().subscribe(this);
 
+
 		return super.appStart(app);
 	}
 
@@ -187,7 +189,6 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 		return result;
 	}
-
 
 	public boolean deleteOldFolderPath(String oldFolderPath, File streamsFolder) throws IOException {
 		boolean result = false;
@@ -467,13 +468,13 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		String listenerHookURL = null;
 		String streamName = file.getName();
 
-
 		Broadcast broadcast = getDataStore().get(streamId);
 		if (broadcast != null) {
 			streamName = broadcast.getName();
 			listenerHookURL = broadcast.getListenerHookURL();
 			if (resolution != 0) {
 				streamName = streamName + " (" + resolution + "p)";
+
 			}
 		}
 
@@ -737,6 +738,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	public void setAppSettings(AppSettings appSettings) {
 		this.appSettings = appSettings;
 	}
+
 
 	public StreamFetcher startStreaming(Broadcast broadcast) {
 		return streamFetcherManager.startStreaming(broadcast);

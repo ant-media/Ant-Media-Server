@@ -1878,6 +1878,7 @@ public class BroadcastRestService extends RestServiceBase{
 		}
 		return new Result(result, null);
 	}
+	
 
 	public static boolean isEnterprise() {
 		try {
