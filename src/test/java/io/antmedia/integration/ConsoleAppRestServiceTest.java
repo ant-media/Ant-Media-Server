@@ -71,6 +71,12 @@ public class ConsoleAppRestServiceTest{
 
 	private static String ffmpegPath = "ffmpeg";
 
+	private static final String LOG_LEVEL = "logLevel";
+
+	private static final String LOG_LEVEL_INFO = "INFO";
+	private static final String LOG_LEVEL_WARN = "WARN";
+	private static final String LOG_LEVEL_TEST = "TEST";
+
 	private static String TEST_USER_EMAIL = "test@antmedia.io";
 	private static String TEST_USER_PASS = "testtest";
 	private static Process tmpExec;
@@ -389,15 +395,72 @@ public class ConsoleAppRestServiceTest{
 	}
 
 	@Test
+	public void testLogLevel() throws Exception {
+
+		try {	
+
+			Result authenticatedUserResult = authenticateDefaultUser();
+			assertTrue(authenticatedUserResult.isSuccess());
+
+			//get Log Level Check (Default Log Level INFO)
+
+			String logLevel = callGetLogLevel();
+
+			JSONObject logJSON = (JSONObject) new JSONParser().parse(logLevel);
+
+			String tmpObject = (String) logJSON.get(LOG_LEVEL); 
+
+			assertEquals(LOG_LEVEL_INFO, tmpObject);
+
+			// change Log Level Check (INFO -> WARN)
+
+			Result callSetLogLevelWarn = callSetLogLevel(LOG_LEVEL_WARN);
+
+			assertTrue(callSetLogLevelWarn.isSuccess());
+
+			logLevel = callGetLogLevel();
+
+			logJSON = (JSONObject) new JSONParser().parse(logLevel);
+
+			tmpObject = (String) logJSON.get(LOG_LEVEL); 
+
+			assertEquals(LOG_LEVEL_WARN, tmpObject);
+
+			// change Log Level Check (currently Log Level doesn't change)
+
+			Result callSetLogLevelTest = callSetLogLevel(LOG_LEVEL_TEST);
+
+			assertFalse(callSetLogLevelTest.isSuccess());
+
+			// check log status
+
+			logLevel = callGetLogLevel();
+
+			logJSON = (JSONObject) new JSONParser().parse(logLevel);
+
+			tmpObject = (String) logJSON.get(LOG_LEVEL); 
+
+			assertEquals(LOG_LEVEL_WARN, tmpObject);
+
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+
+	}
+
+
+	@Test
 	public void testIPFilter() {
 		try {
-			
+
 			User user = new User();
 			user.setEmail(TEST_USER_EMAIL);
 			user.setPassword(TEST_USER_PASS);
 			Result authenticatedUserResult = callAuthenticateUser(user);
 			assertTrue(authenticatedUserResult.isSuccess());
-			
+
 			//get the applications from server
 			String applications = callGetApplications();
 
@@ -407,23 +470,23 @@ public class ConsoleAppRestServiceTest{
 
 			int index = (int)(Math.random()*jsonArray.size());
 			String appName = (String) jsonArray.get(index);
-			
+
 			log.info("appName: {}", appName);
-			
-			
+
+
 			//call a rest service 
 			List<Broadcast> broadcastList = callGetBroadcastList(appName);
 			//assert that it's successfull
 			assertNotNull(broadcastList);
-			
+
 			AppSettingsModel appSettings = callGetAppSettings(appName);
 
 			String remoteAllowedCIDR = appSettings.getRemoteAllowedCIDR();
 			assertEquals("127.0.0.1", remoteAllowedCIDR);
-			
+
 			//change the settings and ip filter does not accept rest services
 			appSettings.setRemoteAllowedCIDR("");
-			
+
 			Result result = callSetAppSettings(appName, appSettings);
 			assertTrue(result.isSuccess());
 
@@ -432,7 +495,7 @@ public class ConsoleAppRestServiceTest{
 
 			//assert that it's failed
 			assertNull(broadcastList);
-			
+
 			assertEquals(403, lastStatusCode);
 
 			//restore settings
@@ -445,8 +508,10 @@ public class ConsoleAppRestServiceTest{
 		}
 
 	}
-	
+
 	static int lastStatusCode;
+
+
 	public static List<Broadcast> callGetBroadcastList(String appName) {
 		try {
 
@@ -1646,6 +1711,55 @@ public class ConsoleAppRestServiceTest{
 		return tmpExec;
 	}
 
+	public static String callGetLogLevel() throws Exception {
+
+		String url = ROOT_SERVICE_URL + "/getLogLevel";
+
+		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
+				.setDefaultCookieStore(httpCookieStore).build();
+
+		Gson gson = new Gson();
+
+		HttpUriRequest post = RequestBuilder.get().setUri(url).build();
+
+		HttpResponse response = client.execute(post);
+
+		StringBuffer result = RestServiceTest.readResponse(response);
+
+		if (response.getStatusLine().getStatusCode() != 200) {
+			System.out.println("status code: " + response.getStatusLine().getStatusCode());
+			throw new Exception(result.toString());
+		}
+
+		log.info("result string: " + result.toString());
+		return result.toString();
+	}
+
+	public static Result callSetLogLevel(String level) throws Exception {
+
+		String url = ROOT_SERVICE_URL + "/changeLogLevel/"+level;
+
+		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
+				.setDefaultCookieStore(httpCookieStore).build();
+
+		Gson gson = new Gson();
+
+		HttpUriRequest post = RequestBuilder.get().setUri(url).build();
+
+		HttpResponse response = client.execute(post);
+
+		StringBuffer result = RestServiceTest.readResponse(response);
+
+		if (response.getStatusLine().getStatusCode() != 200) {
+			System.out.println("status code: " + response.getStatusLine().getStatusCode());
+			throw new Exception(result.toString());
+		}
+
+		log.info("result string: " + result.toString());
+		Result tmp = gson.fromJson(result.toString(), Result.class);
+
+		return tmp;
+	}
 
 
 
