@@ -2,14 +2,7 @@ package io.antmedia.datastore.db;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 
 import org.apache.commons.io.FilenameUtils;
@@ -51,11 +44,8 @@ public class MongoStore extends DataStore {
 	private Datastore detectionMap;
 
 	protected static Logger logger = LoggerFactory.getLogger(MongoStore.class);
-	ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
 
 	public static final String IMAGE_ID = "imageId"; 
-
-	Map<String, AtomicInteger> incrementMap= Collections.synchronizedMap(new HashMap<String, AtomicInteger>());
 
 	public MongoStore(String host, String username, String password, String dbName) {
 		morphia = new Morphia();
@@ -437,7 +427,7 @@ public class MongoStore extends DataStore {
 
 
 	@Override
-	public boolean updateSourceQualityParameters(String id, String quality, double speed, int pendingPacketQueue) {
+	public boolean updateSourceQualityParametersLocal(String id, String quality, double speed, int pendingPacketQueue) {
 		try {
 
 			Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(id);
@@ -621,7 +611,7 @@ public class MongoStore extends DataStore {
 	 * {@inheritDoc}
 	 */
 	@Override
-	public boolean updateHLSViewerCount(String streamId, int diffCount) {
+	public boolean updateHLSViewerCountLocal(String streamId, int diffCount) {
 		try {
 
 			Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(streamId);
@@ -639,54 +629,21 @@ public class MongoStore extends DataStore {
 	 * {@inheritDoc}
 	 */
 	@Override
-	public boolean updateWebRTCViewerCount(String streamId, boolean increment) {
-
-		synchronized (incrementMap) {
-			AtomicInteger number = incrementMap.get(streamId);
-			if(number == null) {
-				number = new AtomicInteger(0);
-				incrementMap.put(streamId, number);
-
-				scheduledExecutorService.schedule(()->updateWebRTCViewerCountOnDB(streamId), 3000, TimeUnit.MILLISECONDS);
-			}
-			if (increment) {
-				number.incrementAndGet();
-			}
-			else {
-				number.decrementAndGet();
-			}
-		}
-
-		return true;
-	}
-
-	private void updateWebRTCViewerCountOnDB(String streamId) {
-		int number = 0;
-		synchronized(incrementMap) {
-			number = incrementMap.get(streamId).get();
-			incrementMap.remove(streamId);
-		}
-
-		try {
-
-			Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(streamId);
-			UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class);
-			String field = "webRTCViewerCount";
-			ops.inc(field, number);
-
-			UpdateResults update = datastore.update(query, ops);
-		} catch (Exception e) {
-			logger.error(e.getMessage());
-		}		
+	public boolean updateWebRTCViewerCountLocal(String streamId, boolean increment) {
+		return updateViewerField(streamId, increment, "webRTCViewerCount");
 	}
 
 	@Override
-	public boolean updateRtmpViewerCount(String streamId, boolean increment) {
+	public boolean updateRtmpViewerCountLocal(String streamId, boolean increment) {
+		return updateViewerField(streamId, increment, "rtmpViewerCount");
+	}
+
+	private boolean updateViewerField(String streamId, boolean increment, String fieldName) {
 		try {
 
 			Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(streamId);
 			UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class);
-			String field = "rtmpViewerCount";
+			String field = fieldName;
 			if (increment) {
 				ops.inc(field);
 			}
@@ -702,7 +659,7 @@ public class MongoStore extends DataStore {
 		return false;
 	}
 
-
+	
 	@Override
 	public void saveStreamInfo(StreamInfo streamInfo) {
 		datastore.save(streamInfo);

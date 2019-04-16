@@ -411,7 +411,7 @@ public class InMemoryDataStore extends DataStore {
 
 
 	@Override
-	public boolean updateSourceQualityParameters(String id, String quality, double speed, int pendingPacketSize) {
+	public boolean updateSourceQualityParametersLocal(String id, String quality, double speed, int pendingPacketSize) {
 		boolean result = false;
 		if (id != null) {
 			Broadcast broadcast = broadcastMap.get(id);
@@ -583,7 +583,7 @@ public class InMemoryDataStore extends DataStore {
 	}
 
 	@Override
-	public synchronized boolean updateHLSViewerCount(String streamId, int diffCount) {
+	public synchronized boolean updateHLSViewerCountLocal(String streamId, int diffCount) {
 		boolean result = false;
 		if (streamId != null) {
 			Broadcast broadcast = broadcastMap.get(streamId);
@@ -600,7 +600,7 @@ public class InMemoryDataStore extends DataStore {
 	}
 
 	@Override
-	public synchronized boolean updateWebRTCViewerCount(String streamId, boolean increment) {
+	public synchronized boolean updateWebRTCViewerCountLocal(String streamId, boolean increment) {
 		boolean result = false;
 		if (streamId != null) {
 			Broadcast broadcast = broadcastMap.get(streamId);
@@ -622,7 +622,7 @@ public class InMemoryDataStore extends DataStore {
 	}
 
 	@Override
-	public synchronized boolean updateRtmpViewerCount(String streamId, boolean increment) {
+	public synchronized boolean updateRtmpViewerCountLocal(String streamId, boolean increment) {
 		boolean result = false;
 		if (streamId != null) {
 			Broadcast broadcast = broadcastMap.get(streamId);
