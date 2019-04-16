@@ -405,43 +405,34 @@ public class ConsoleAppRestServiceTest{
 			//get Log Level Check (Default Log Level INFO)
 
 			String logLevel = callGetLogLevel();
-
 			JSONObject logJSON = (JSONObject) new JSONParser().parse(logLevel);
-
 			String tmpObject = (String) logJSON.get(LOG_LEVEL); 
-
 			assertEquals(LOG_LEVEL_INFO, tmpObject);
 
 			// change Log Level Check (INFO -> WARN)
-
 			Result callSetLogLevelWarn = callSetLogLevel(LOG_LEVEL_WARN);
-
 			assertTrue(callSetLogLevelWarn.isSuccess());
 
 			logLevel = callGetLogLevel();
-
 			logJSON = (JSONObject) new JSONParser().parse(logLevel);
-
 			tmpObject = (String) logJSON.get(LOG_LEVEL); 
-
 			assertEquals(LOG_LEVEL_WARN, tmpObject);
 
 			// change Log Level Check (currently Log Level doesn't change)
-
 			Result callSetLogLevelTest = callSetLogLevel(LOG_LEVEL_TEST);
-
 			assertFalse(callSetLogLevelTest.isSuccess());
 
 			// check log status
-
 			logLevel = callGetLogLevel();
-
 			logJSON = (JSONObject) new JSONParser().parse(logLevel);
-
 			tmpObject = (String) logJSON.get(LOG_LEVEL); 
 
 			assertEquals(LOG_LEVEL_WARN, tmpObject);
-
+			
+			
+			//restore the log 
+			callSetLogLevelTest = callSetLogLevel(LOG_LEVEL_INFO);
+			assertTrue(callSetLogLevelTest.isSuccess());
 
 		} catch (Exception e) {
 			e.printStackTrace();
