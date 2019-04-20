@@ -41,6 +41,16 @@ public class EmailSettings {
 	public void setEmailSmtpEncryption(String emailSmtpEncryption) {
 		this.emailSmtpEncryption = emailSmtpEncryption;
 	}
+	
+	private String emailSmtpPort = null;
+	
+	public String getEmailSmtpPort() {
+		return emailSmtpPort;
+	}
+
+	public void setEmailSmtpPort(String emailSmtpPort) {
+		this.emailSmtpPort = emailSmtpPort;
+	}
 
 	private String emailCheckDate = null;
 

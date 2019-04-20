@@ -76,10 +76,11 @@
 		<property name="serverSettings" ref="ant.media.server.settings" />						
 	</bean>
 	
-	<bean id="ant.media.email.settings" class="io.antmedia.settings.EmailSettings">
+	<bean id="emailSettings" class="io.antmedia.settings.EmailSettings">
 		<property name="emailUsername" value="${emailUsername}"/>   	
 		<property name="emailPassword" value="${emailPassword}"/>   
 		<property name="emailSmtpHost" value="${emailSmtpHost}"/>   
+		<property name="emailSmtpPort" value="${emailSmtpPort}"/>   
 		<property name="emailSmtpEncryption" value="${emailSmtpEncryption}"/>   
 		<property name="emailCheckDate" value="${emailCheckDate}"/>  				
 	</bean>
