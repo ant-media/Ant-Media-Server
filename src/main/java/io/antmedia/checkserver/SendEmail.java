@@ -43,7 +43,7 @@ public class SendEmail {
 	private static final String EMAIL_SMTP_SSL = "SSL";
 
 	private static final String EMAIL_SMTP_TLS = "TLS";
-	
+
 	private PreferenceStore store;
 
 
@@ -63,63 +63,63 @@ public class SendEmail {
 				!emailSettings.getEmailSmtpHost().equals("") && !emailSettings.getEmailSmtpPort().equals("") &&
 				!emailSettings.getEmailSmtpEncryption().equals("")
 				) {
-			
-		
-		Properties prop = new Properties();
-		prop.put("mail.smtp.host", emailSettings.getEmailSmtpHost());
-		prop.put("mail.smtp.port", emailSettings.getEmailSmtpPort());
-		prop.put("mail.smtp.auth", "true");
 
-		if(emailSettings.getEmailSmtpEncryption().equals(EMAIL_SMTP_SSL)) {
-			prop.put("mail.smtp.socketFactory.port", emailSettings.getEmailSmtpPort());
-			prop.put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
-			prop.put("mail.smtp.ssl.checkserveridentity", "true");
 
-		}
+			Properties prop = new Properties();
+			prop.put("mail.smtp.host", emailSettings.getEmailSmtpHost());
+			prop.put("mail.smtp.port", emailSettings.getEmailSmtpPort());
+			prop.put("mail.smtp.auth", "true");
 
-		else if (emailSettings.getEmailSmtpEncryption().equals(EMAIL_SMTP_TLS)) {
-			prop.put("mail.smtp.starttls.enable", "true");
-		}
+			if(emailSettings.getEmailSmtpEncryption().equals(EMAIL_SMTP_SSL)) {
+				prop.put("mail.smtp.socketFactory.port", emailSettings.getEmailSmtpPort());
+				prop.put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
+				prop.put("mail.smtp.ssl.checkserveridentity", "true");
 
-		Session session = Session.getInstance(prop,
-				new Authenticator() {
-			@Override
-			protected PasswordAuthentication getPasswordAuthentication() {
-				return new PasswordAuthentication(emailSettings.getEmailUsername(), emailSettings.getEmailPassword());
 			}
-		});
 
-		try {
+			else if (emailSettings.getEmailSmtpEncryption().equals(EMAIL_SMTP_TLS)) {
+				prop.put("mail.smtp.starttls.enable", "true");
+			}
 
-			Message message = new MimeMessage(session);
-			message.setFrom(new InternetAddress(emailSettings.getEmailUsername()));
-			message.setRecipients(
-					Message.RecipientType.TO,
-					InternetAddress.parse(emailSettings.getEmailUsername())
-					);
-			message.setSubject(subjectMessage);
-			message.setText(textMessage);
+			Session session = Session.getInstance(prop,
+					new Authenticator() {
+				@Override
+				protected PasswordAuthentication getPasswordAuthentication() {
+					return new PasswordAuthentication(emailSettings.getEmailUsername(), emailSettings.getEmailPassword());
+				}
+			});
 
-			Transport.send(message);
+			try {
 
-			logger.info(textMessage);
+				Message message = new MimeMessage(session);
+				message.setFrom(new InternetAddress(emailSettings.getEmailUsername()));
+				message.setRecipients(
+						Message.RecipientType.TO,
+						InternetAddress.parse(emailSettings.getEmailUsername())
+						);
+				message.setSubject(subjectMessage);
+				message.setText(textMessage);
+
+				Transport.send(message);
+
+				logger.info(textMessage);
+
+			}
+			catch (AddressException ae) {
+				logger.warn(ae.toString());
+			}
+			catch (MessagingException me) {
+				logger.warn(me.toString());
+			}
 
 		}
-		catch (AddressException ae) {
-			logger.warn(ae.toString());
-		}
-		catch (MessagingException me) {
-			logger.warn(me.toString());
-		}
-	
-	}
 		else {
 			logger.warn("Could you please check your Email Address, Password, Smtp Host, Smtp Port, Smtp Encryption values in conf/red5.properties");
 		}
-		}
-	
+	}
+
 	private void fillEmailValues(){
-		
+
 		if (store.get(EMAIL_USERNAME) != null) {
 			emailSettings.setEmailUsername(String.valueOf(store.get(EMAIL_USERNAME)));
 		}
@@ -143,7 +143,7 @@ public class SendEmail {
 		if (store.get(EMAIL_CHECK_DATE) != null) {
 			emailSettings.setEmailCheckDate(String.valueOf(store.get(EMAIL_CHECK_DATE)));
 		}
-		
+
 	}
 
 }
