@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import io.antmedia.IResourceMonitor;
 import io.antmedia.SystemUtils;
+import io.antmedia.checkserver.DiskSizeControl;
 import io.vertx.core.Vertx;
 
 public class ResourceMonitor implements IResourceMonitor{
@@ -16,17 +17,26 @@ public class ResourceMonitor implements IResourceMonitor{
 	private Queue<Integer> cpuMeasurements = new ConcurrentLinkedQueue<>();
 
 	private int windowSize = 5;
+	private int checkdiskSizePeriod = 3000;
 	private int measurementPeriod = 3000;
 	private int avgCpuUsage;
 	private int cpuLimit = 70;
 	
 	public void start() {
 		getVertx().setPeriodic(measurementPeriod, l -> addCpuMeasurement(SystemUtils.getSystemCpuLoad()));
+		getVertx().setPeriodic(checkdiskSizePeriod, l -> startDiskSizeControl());
 	}
 	
 	
-	public void addCpuMeasurement(int measurment) {
-		cpuMeasurements.add(measurment);
+	
+	public void startDiskSizeControl() {
+		DiskSizeControl diskControl = new DiskSizeControl();
+		diskControl.startService();
+	}
+	
+	
+	public void addCpuMeasurement(int measurement) {
+		cpuMeasurements.add(measurement);
 		if(cpuMeasurements.size() > windowSize) {
 			cpuMeasurements.poll();
 		}
