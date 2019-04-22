@@ -45,6 +45,10 @@ public class SendEmail {
 	private static final String EMAIL_SMTP_TLS = "TLS";
 
 	private PreferenceStore store;
+	
+	private Session session;
+	
+	public Properties prop;
 
 
 
@@ -65,7 +69,7 @@ public class SendEmail {
 				) {
 
 
-			Properties prop = new Properties();
+			prop = new Properties();
 			prop.put("mail.smtp.host", emailSettings.getEmailSmtpHost());
 			prop.put("mail.smtp.port", emailSettings.getEmailSmtpPort());
 			prop.put("mail.smtp.auth", "true");
@@ -81,44 +85,52 @@ public class SendEmail {
 				prop.put("mail.smtp.starttls.enable", "true");
 			}
 
-			Session session = Session.getInstance(prop,
-					new Authenticator() {
-				@Override
-				protected PasswordAuthentication getPasswordAuthentication() {
-					return new PasswordAuthentication(emailSettings.getEmailUsername(), emailSettings.getEmailPassword());
-				}
-			});
 
-			try {
+		callSendEmail(subjectMessage,textMessage);
 
-				Message message = new MimeMessage(session);
-				message.setFrom(new InternetAddress(emailSettings.getEmailUsername()));
-				message.setRecipients(
-						Message.RecipientType.TO,
-						InternetAddress.parse(emailSettings.getEmailUsername())
-						);
-				message.setSubject(subjectMessage);
-				message.setText(textMessage);
-
-				Transport.send(message);
-
-				logger.info(textMessage);
-
-			}
-			catch (AddressException ae) {
-				logger.warn(ae.toString());
-			}
-			catch (MessagingException me) {
-				logger.warn(me.toString());
-			}
-
+			
 		}
 		else {
 			logger.warn("Could you please check your Email Address, Password, Smtp Host, Smtp Port, Smtp Encryption values in conf/red5.properties");
 		}
 	}
 
-	private void fillEmailValues(){
+	public void callSendEmail(String subjectMessage, String textMessage) {
+		
+		session = Session.getInstance(prop,
+				new Authenticator() {
+			@Override
+			protected PasswordAuthentication getPasswordAuthentication() {
+				return new PasswordAuthentication(emailSettings.getEmailUsername(), emailSettings.getEmailPassword());
+			}
+		});
+
+		try {
+
+		
+		Message message = new MimeMessage(session);
+		message.setFrom(new InternetAddress(emailSettings.getEmailUsername()));
+		message.setRecipients(
+				Message.RecipientType.TO,
+				InternetAddress.parse(emailSettings.getEmailUsername())
+				);
+		message.setSubject(subjectMessage);
+		message.setText(textMessage);
+		Transport.send(message);
+		
+		logger.info(textMessage);
+
+	}
+	catch (AddressException ae) {
+		logger.warn(ae.toString());
+	}
+	catch (MessagingException me) {
+		logger.warn(me.toString());
+	}
+
+	}
+
+	public void fillEmailValues(){
 
 		if (store.get(EMAIL_USERNAME) != null) {
 			emailSettings.setEmailUsername(String.valueOf(store.get(EMAIL_USERNAME)));

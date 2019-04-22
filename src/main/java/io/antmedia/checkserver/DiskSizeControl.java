@@ -13,29 +13,29 @@ public class DiskSizeControl {
 	private static final String RED5_PROPERTIES_PATH = "conf/red5.properties";
 
 	private static final String EMAIL_CHECK_DATE = "emailCheckDate";
+	
+	public String todayString;
+	
+	private PreferenceStore store = new PreferenceStore(RED5_PROPERTIES);
+	
+	private EmailSettings emailSettings = new EmailSettings();
+	
+	public Integer diskSpacePercent;
+	
+	public SendEmail sendEmail;
+	
 
 	public void startService() {
 		
-		SendEmail sendEmail = new SendEmail();
+		sendEmail = new SendEmail();
 
-		String todayString = LocalDate.now().toString();
+		todayString = getTodayString();
 
-		PreferenceStore store = new PreferenceStore(RED5_PROPERTIES);
-		store.setFullPath(RED5_PROPERTIES_PATH);
+		if(!getTodayStringDb().equals(todayString)) {
 
-		EmailSettings emailSettings = new EmailSettings();
-
-		if (store.get(EMAIL_CHECK_DATE) != null) {
-			emailSettings.setEmailCheckDate(String.valueOf(store.get(EMAIL_CHECK_DATE)));
-		}
-
-		if(!emailSettings.getEmailCheckDate().equals(todayString)) {
-
-			Integer diskSpacePercent = Integer.valueOf(SystemUtils.osHDInUseSpace(null, "MB", false))*100 /  Integer.valueOf(SystemUtils.osHDTotalSpace(null, "MB", false));
-
-			emailSettings.setEmailCheckDate(todayString);
-			store.put(EMAIL_CHECK_DATE, todayString);
-			store.save();
+			diskSpacePercent = getDiskSize();
+			
+			saveTodayStringDb(getTodayString());
 			
 			//Check Disk Size
 
@@ -50,6 +50,31 @@ public class DiskSizeControl {
 			}
 			
 		}
+	}
+	
+	public String getTodayStringDb() {
+		if (store.get(EMAIL_CHECK_DATE) != null) {
+			emailSettings.setEmailCheckDate(String.valueOf(store.get(EMAIL_CHECK_DATE)));
+		}
+		return emailSettings.getEmailCheckDate();
+	}
+	
+	public void saveTodayStringDb(String getTodayString) {
+		emailSettings.setEmailCheckDate(getTodayString);
+		store.setFullPath(RED5_PROPERTIES_PATH);
+		store.put(EMAIL_CHECK_DATE, todayString);
+		store.save();
+	
+	}
+
+	public String getTodayString() {
+		todayString = LocalDate.now().toString();
+		return todayString;
+	}
+
+	public Integer getDiskSize() {
+		diskSpacePercent = Integer.valueOf(SystemUtils.osHDInUseSpace(null, "MB", false))*100 /  Integer.valueOf(SystemUtils.osHDTotalSpace(null, "MB", false));
+		return diskSpacePercent;
 	}
 
 }
