@@ -142,7 +142,7 @@ public class StreamFetcher {
 
 			result.setMessage(errorStr);		
 
-			logger.debug("cannot open input context with error:: {}",  result.getMessage());
+			logger.error("cannot open stream: {} with error:: {}",  stream.getStreamUrl(), result.getMessage());
 			return result;
 		}
 
