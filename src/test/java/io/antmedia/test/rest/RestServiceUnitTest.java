@@ -102,7 +102,7 @@ public class RestServiceUnitTest {
 		when(settings.getStalkerDBServer()).thenReturn("192.168.1.29");
 		when(settings.getStalkerDBUsername()).thenReturn("stalker");
 		when(settings.getStalkerDBPassword()).thenReturn("1");
-		when(settings.getServerName()).thenReturn("localhost");
+		when(settings.getServerName()).thenReturn(null);
 
 		Scope scope = mock(Scope.class);
 		String scopeName = "scope";
@@ -549,10 +549,22 @@ public class RestServiceUnitTest {
 		Broadcast broadcastTmp = restServiceReal.getBroadcast(createBroadcast.getStreamId());
 
 		assertEquals(hookURL, broadcastTmp.getListenerHookURL());
+		
+		
+		//this makes the test code enter getHostAddress method
+		when(settings.getServerName()).thenReturn(null);
+		
+		Broadcast broadcast2 = restServiceReal.createBroadcast(broadcast);
+		assertNotNull(broadcast2);
+		
+		//this case makes the test code get address from static field
+		broadcast2 = restServiceReal.createBroadcast(broadcast);
+		assertNotNull(broadcast2);
+		
 
 	}
-
-
+	
+	
 	@Test
 	public void testAddEndpoint() {
 		AppSettings settings = mock(AppSettings.class);
