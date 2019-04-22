@@ -33,6 +33,10 @@ public class DiskSizeControl {
 
 			Integer diskSpacePercent = Integer.valueOf(SystemUtils.osHDInUseSpace(null, "MB", false))*100 /  Integer.valueOf(SystemUtils.osHDTotalSpace(null, "MB", false));
 
+			emailSettings.setEmailCheckDate(todayString);
+			store.put(EMAIL_CHECK_DATE, todayString);
+			store.save();
+			
 			//Check Disk Size
 
 			if(diskSpacePercent>90) {
@@ -44,10 +48,6 @@ public class DiskSizeControl {
 			else if(diskSpacePercent>70) {
 				sendEmail.sendEmail("Disk Usage Over %70 - Ant Media Server","%70 above your Disk Size");	
 			}
-
-			emailSettings.setEmailCheckDate(todayString);
-			store.put(EMAIL_CHECK_DATE, todayString);
-			store.save();
 			
 		}
 	}
