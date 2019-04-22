@@ -150,9 +150,8 @@ public class StreamFetcher {
 
 		ret = avformat_find_stream_info(inputFormatContext, (AVDictionary) null);
 		if (ret < 0) {
-
 			result.setMessage("Could not find stream information\n");
-			logger.info(result.getMessage());
+			logger.error(result.getMessage());
 			return result;
 		}
 

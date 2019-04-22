@@ -747,7 +747,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 		String[] argsStop = new String[] { "/bin/bash", "-c",
-		"ip addr | awk '/state UP/ {print $2}' | sed 's/.$//'" };
+		"ip addr | awk '/LOOPBACK/ {print $2}' | sed 's/.$//'" };
 
 		try {
 			logger.info("Running findActiveInterface");
