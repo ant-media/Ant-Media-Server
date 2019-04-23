@@ -1,96 +1,158 @@
 package io.antmedia.test.checkserver;
 
-import java.time.LocalDate;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import org.junit.Test;
 import org.mockito.Mockito;
-
-import static org.mockito.Mockito.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import io.antmedia.checkserver.DiskSizeControl;
-
-import io.vertx.core.Vertx;
+import io.antmedia.checkserver.EmailSender;
 
 
 public class DiskSizeControlTest {
-	
-	@Autowired
-	private Vertx vertx;
-	
-	private Integer diskSizeover95 = 95;
-	
-	private Integer diskSizeover85 = 85;
-	
-	private Integer diskSizeover75 = 75;
-	
-	private Integer diskSizeover65 = 65;
-	
-	private String today = LocalDate.now().toString();
-	 
-	private String tomorrow = LocalDate.now().minusDays(1).toString();
-	
-	protected static Logger logger = LoggerFactory.getLogger(DiskSizeControlTest.class);
-	
-	 @Test
-	    public void testDiskSizeCheck()  {
-		 
-		 DiskSizeControl diskSizeControl = Mockito.spy(new DiskSizeControl());		 
-		 
-		 when(diskSizeControl.getTodayStringDb()).thenReturn(today);
-		 
-		 when(diskSizeControl.getDiskSize()).thenReturn(diskSizeover95);
-		 
-		 diskSizeControl.startService();
-		 
-		 //verify send function 
-		 verify(diskSizeControl,times(1)).startService();
-		 
-		 when(diskSizeControl.getTodayString()).thenReturn(tomorrow);
-		 
-		 when(diskSizeControl.getDiskSize()).thenReturn(diskSizeover95);
-		 
-		 //verify send function 
-		 verify(diskSizeControl,times(1)).startService();
-		 
-		// doNothing().when(diskSizeControl).sendEmail.callSendEmail("Disk Usage Over %90 - Ant Media Server", "Disk Usage Over %90 - Ant Media Server \n\n The system will disable enablemMp4 Recording Setting in Applications.");
-		 
-		 when(diskSizeControl.getTodayString()).thenReturn(tomorrow);
-		 
-		 when(diskSizeControl.getDiskSize()).thenReturn(diskSizeover75);
-		 
-	//	 diskSizeControl.startService();
-		 
-	//	 doNothing().when(diskSizeControl).sendEmail.callSendEmail("Disk Usage Over %70 - Ant Media Server", "%70 above your Disk Size");
-		 
-		 //verify send function 
-		 verify(diskSizeControl,times(1)).startService();
-		 
-		 when(diskSizeControl.getTodayString()).thenReturn(tomorrow);
-		 
-		 when(diskSizeControl.getDiskSize()).thenReturn(diskSizeover85);
-		 
-		// diskSizeControl.startService();
-		 
-	// doNothing().when(diskSizeControl).sendEmail.callSendEmail("Disk Usage Over %80 - Ant Media Server", "%80 above your Disk Size");
-		 
-		 //verify send function 
-		 verify(diskSizeControl,times(1)).startService();
-		 
-		 when(diskSizeControl.getTodayString()).thenReturn(tomorrow);
-		 
-		 when(diskSizeControl.getDiskSize()).thenReturn(diskSizeover65);
-		 
-		// diskSizeControl.startService();
-		 
-		// doNothing().when(diskSizeControl).sendEmail.callSendEmail("test subject", "test context");
-		 
-	 }
-	 
-		public Vertx getVertx() {
-			return vertx;
-		}
 
+	private Integer diskSizeOver95 = 95;
+
+	private Integer diskSizeOver85 = 85;
+
+	private Integer diskSizeOver75 = 75;
+
+	private Integer diskSizeOver65 = 65;
+
+	protected static Logger logger = LoggerFactory.getLogger(DiskSizeControlTest.class);
+
+	@Test
+	public void testDiskSizeCheck()  {
+
+		DiskSizeControl diskSizeControl = Mockito.spy(new DiskSizeControl());	
+
+		EmailSender emailSender = mock(EmailSender.class);
+
+		diskSizeControl.setEmailSender(emailSender); 
+
+		long twoHour= System.currentTimeMillis() - (2 * 60 * 60 * 1000);
+
+		long oneDaytwoHour= System.currentTimeMillis() - (26 * 60 * 60 * 1000);
+
+		// Check Under 1 day(passed 2 Hour) & diskSizeOver95
+
+		diskSizeControl.setLastEmailSentTime(twoHour);
+
+		when(diskSizeControl.getDiskSize()).thenReturn(diskSizeOver95);
+
+		diskSizeControl.startService();
+
+		verify(diskSizeControl,times(1)).startService();
+
+		verify(diskSizeControl,times(1)).diskUsageExceeded(anyString(), anyString());
+
+		verify(emailSender,never()).sendEmail(anyString(), anyString());
+
+		// Check Over 1 day(passed 1 day and 2 hour) & diskSizeOver95
+
+		diskSizeControl.setLastEmailSentTime(oneDaytwoHour);
+
+		when(diskSizeControl.getDiskSize()).thenReturn(diskSizeOver95);
+
+		diskSizeControl.startService();
+
+		verify(diskSizeControl,times(2)).startService();
+
+		verify(diskSizeControl,times(2)).diskUsageExceeded(anyString(), anyString());
+
+		verify(emailSender,times(1)).sendEmail(anyString(), anyString());
+
+		// Check Under 1 day(passed 2 Hour) & diskSizeOver65
+
+		diskSizeControl.setLastEmailSentTime(twoHour);
+
+		when(diskSizeControl.getDiskSize()).thenReturn(diskSizeOver65);
+
+		diskSizeControl.startService();
+
+		verify(diskSizeControl,times(3)).startService();
+
+		verify(diskSizeControl,times(2)).diskUsageExceeded(anyString(), anyString());
+
+		verify(emailSender,times(1)).sendEmail(anyString(), anyString());
+
+		// Check Over 1 day(passed 1 day and 2 hour) & diskSizeOver65
+
+		diskSizeControl.setLastEmailSentTime(oneDaytwoHour);
+
+		when(diskSizeControl.getDiskSize()).thenReturn(diskSizeOver65);
+
+		diskSizeControl.startService();
+
+		verify(diskSizeControl,times(4)).startService();
+
+		verify(diskSizeControl,times(2)).diskUsageExceeded(anyString(), anyString());
+
+		verify(emailSender,times(1)).sendEmail(anyString(), anyString());
+
+		// Check Under 1 day(passed 2 Hour) &  diskSizeOver85
+
+		diskSizeControl.setLastEmailSentTime(twoHour);
+
+		when(diskSizeControl.getDiskSize()).thenReturn(diskSizeOver85);
+
+		diskSizeControl.startService();
+
+		verify(diskSizeControl,times(5)).startService();
+
+		verify(diskSizeControl,times(3)).diskUsageExceeded(anyString(), anyString());
+
+		verify(emailSender,times(1)).sendEmail(anyString(), anyString());
+
+		// Check Over 1 day(passed 1 day and 2 hour) & diskSizeOver85
+
+		diskSizeControl.setLastEmailSentTime(oneDaytwoHour);
+
+		when(diskSizeControl.getDiskSize()).thenReturn(diskSizeOver85);
+
+		diskSizeControl.startService();
+
+		verify(diskSizeControl,times(6)).startService();
+
+		verify(diskSizeControl,times(4)).diskUsageExceeded(anyString(), anyString());
+
+		verify(emailSender,times(2)).sendEmail(anyString(), anyString());
+
+		// Check Under 1 day(passed 2 Hour) & diskSizeOver75
+
+		diskSizeControl.setLastEmailSentTime(twoHour);
+
+		when(diskSizeControl.getDiskSize()).thenReturn(diskSizeOver75);
+
+		diskSizeControl.startService();
+
+		verify(diskSizeControl,times(7)).startService();
+
+		verify(diskSizeControl,times(5)).diskUsageExceeded(anyString(), anyString());
+
+		verify(emailSender,times(2)).sendEmail(anyString(), anyString());
+
+		// Check Over 1 day(passed 1 day and 2 hour) & diskSizeOver75
+
+		diskSizeControl.setLastEmailSentTime(oneDaytwoHour);
+
+		when(diskSizeControl.getDiskSize()).thenReturn(diskSizeOver75);
+
+		diskSizeControl.startService();
+
+		verify(diskSizeControl,times(8)).startService();
+
+		verify(diskSizeControl,times(6)).diskUsageExceeded(anyString(), anyString());
+
+		verify(emailSender,times(3)).sendEmail(anyString(), anyString());
+
+
+	}
 }

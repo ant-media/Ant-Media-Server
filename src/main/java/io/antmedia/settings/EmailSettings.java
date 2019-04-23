@@ -52,14 +52,4 @@ public class EmailSettings {
 		this.emailSmtpPort = emailSmtpPort;
 	}
 
-	private String emailCheckDate = null;
-
-	public String getEmailCheckDate() {
-		return emailCheckDate;
-	}
-
-	public void setEmailCheckDate(String emailCheckDate) {
-		this.emailCheckDate = emailCheckDate;
-	}
-
 }
