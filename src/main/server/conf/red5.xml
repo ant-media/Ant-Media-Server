@@ -81,8 +81,7 @@
 		<property name="emailPassword" value="${emailPassword}"/>   
 		<property name="emailSmtpHost" value="${emailSmtpHost}"/>   
 		<property name="emailSmtpPort" value="${emailSmtpPort}"/>   
-		<property name="emailSmtpEncryption" value="${emailSmtpEncryption}"/>   
-		<property name="emailCheckDate" value="${emailCheckDate}"/>  				
+		<property name="emailSmtpEncryption" value="${emailSmtpEncryption}"/>    				
 	</bean>
 
 </beans>
