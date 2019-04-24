@@ -149,6 +149,7 @@ public class BroadcastRestService extends RestServiceBase{
 	private ProcessBuilderFactory processBuilderFactory = null;
 
 	protected static Logger logger = LoggerFactory.getLogger(BroadcastRestService.class);
+	private static String hostaddress;
 
 
 	/**
@@ -244,7 +245,7 @@ public class BroadcastRestService extends RestServiceBase{
 
 	public static Broadcast saveBroadcast(Broadcast broadcast, String status, String scopeName, DataStore dataStore,
 			String settingsListenerHookURL, String fqdn) {
-
+		
 		if (broadcast == null) {
 			broadcast = new Broadcast();
 		}
@@ -260,21 +261,30 @@ public class BroadcastRestService extends RestServiceBase{
 		}
 
 		if (fqdn == null || fqdn.length() == 0) {
-			try {
-				fqdn = InetAddress.getLocalHost().getHostAddress();
-			} catch (UnknownHostException e) {
-				logger.error(ExceptionUtils.getStackTrace(e));
-			}
+			fqdn = getHostAddress(); 
 		}
 
 		if (fqdn != null && fqdn.length() >= 0) {
 			broadcast.setRtmpURL("rtmp://" + fqdn + "/" + scopeName + "/");
 		}
 
-
-
 		dataStore.save(broadcast);
 		return broadcast;
+	}
+
+	private static String getHostAddress() {
+		if (hostaddress == null) {
+			try {
+				/*
+				 * InetAddress.getLocalHost().getHostAddress() takes long time(5sec in macos) to return.
+				 * Let it is run once
+				 */
+				hostaddress = InetAddress.getLocalHost().getHostAddress();
+			} catch (UnknownHostException e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+		return hostaddress;
 	}
 
 	/**
@@ -830,11 +840,7 @@ public class BroadcastRestService extends RestServiceBase{
 
 			String fqdn = getAppSettings().getServerName();
 			if (fqdn == null || fqdn.length() == 0) {
-				try {
-					fqdn = InetAddress.getLocalHost().getHostAddress();
-				} catch (UnknownHostException e) {
-					logger.error(ExceptionUtils.getStackTrace(e));
-				}
+				fqdn = getHostAddress();
 			}
 
 			int number = 1;
@@ -963,11 +969,7 @@ public class BroadcastRestService extends RestServiceBase{
 
 				String fqdn = getAppSettings().getServerName();
 				if (fqdn == null || fqdn.length() == 0) {
-					try {
-						fqdn = InetAddress.getLocalHost().getHostAddress();
-					} catch (UnknownHostException e) {
-						logger.error(ExceptionUtils.getStackTrace(e));
-					}
+					fqdn = getHostAddress();
 				}
 
 				StringBuilder insertQueryString = new StringBuilder();

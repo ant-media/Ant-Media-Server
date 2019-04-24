@@ -551,14 +551,18 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		logger.info("running testBandwidth");
 		Application.enableSourceHealthUpdate = true;
 		assertNotNull(dataStore);
+		
+		startCameraEmulator();
 
-		Broadcast newSource = new Broadcast("testBandwidth", "10.2.40.63:8080", "admin", "admin", "rtsp://wowzaec2demo.streamlock.net/vod/mp4:BigBuckBunny_115k.mov",
+		Broadcast newSource = new Broadcast("testBandwidth", "10.2.40.63:8080", "admin", "admin", 
+				"rtsp://127.0.0.1:6554/test.flv",
 				AntMediaApplicationAdapter.STREAM_SOURCE);
 
 		//add stream to data store
 		dataStore.save(newSource);
 
-		Broadcast newZombiSource = new Broadcast("testBandwidth", "10.2.40.63:8080", "admin", "admin", "rtsp://wowzaec2demo.streamlock.net/vod/mp4:BigBuckBunny_115k.mov",
+		Broadcast newZombiSource = new Broadcast("testBandwidth", "10.2.40.63:8080", "admin", "admin", 
+				"rtsp://127.0.0.1:6554/test.flv",
 				AntMediaApplicationAdapter.STREAM_SOURCE);
 
 		newZombiSource.setZombi(true);
@@ -654,7 +658,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		assertEquals(1, scheduler.getScheduledJobNames().size());
 
-		//stopCameraEmulator()		
+		stopCameraEmulator()	;	
 
 	}
 
@@ -743,7 +747,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 		String[] argsStop = new String[] { "/bin/bash", "-c",
-		"ip addr | awk '/state UP/ {print $2}' | sed 's/.$//'" };
+		"ip addr | awk '/LOOPBACK/ {print $2}' | sed 's/.$//'" };
 
 		try {
 			logger.info("Running findActiveInterface");
