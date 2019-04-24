@@ -26,7 +26,7 @@ public class EmailSender {
 
 	private static final String RED5_PROPERTIES_PATH = "conf/red5.properties";
 
-	private EmailSettings emailSettings;
+	public EmailSettings emailSettings;
 
 	private static final String EMAIL_USERNAME = "emailUsername";
 
@@ -38,13 +38,11 @@ public class EmailSender {
 
 	private static final String EMAIL_SMTP_ENCRYPTION = "emailSmtpEncryption";
 
-	private static final String EMAIL_CHECK_DATE = "emailCheckDate";
-
 	private static final String EMAIL_SMTP_SSL = "SSL";
 
 	private static final String EMAIL_SMTP_TLS = "TLS";
 
-	private PreferenceStore store;
+	public PreferenceStore store;
 
 	private Session session;
 
@@ -53,8 +51,6 @@ public class EmailSender {
 
 
 	public void sendEmail(String subjectMessage,String textMessage){
-
-		//mock preference store olacak, when return
 
 		store = new PreferenceStore(RED5_PROPERTIES);
 		store.setFullPath(RED5_PROPERTIES_PATH);
@@ -66,9 +62,7 @@ public class EmailSender {
 
 		//check email values not null
 		try{
-			//validateEmail() 2sini de 
 			if(checkEmailValues()) {
-
 
 				prop = new Properties();
 				prop.put("mail.smtp.host", emailSettings.getEmailSmtpHost());
