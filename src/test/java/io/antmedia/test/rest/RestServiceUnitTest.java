@@ -831,13 +831,13 @@ public class RestServiceUnitTest {
 		when(scope.getName()).thenReturn(scopeName);
 		restServiceReal.setScope(scope);
 
-		AntMediaApplicationAdapter appAdaptor = mock(AntMediaApplicationAdapter.class);
+		AntMediaApplicationAdapter appAdaptor = Mockito.spy(new AntMediaApplicationAdapter());
 		IClientBroadcastStream broadcastStream = mock(IClientBroadcastStream.class);
 		IStreamCapableConnection streamCapableConnection = mock(IStreamCapableConnection.class);
 
 		when(broadcastStream.getConnection()).thenReturn(streamCapableConnection);
-		when(appAdaptor.getBroadcastStream(Mockito.any(Scope.class), Mockito.any(String.class))).thenReturn(broadcastStream);
-
+		Mockito.doReturn(broadcastStream).when(appAdaptor).getBroadcastStream(Mockito.any(), Mockito.anyString());
+		
 		restServiceReal.setApplication(appAdaptor);
 
 		int streamCount = 15; 
