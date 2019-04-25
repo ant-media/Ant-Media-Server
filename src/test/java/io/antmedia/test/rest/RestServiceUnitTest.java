@@ -1181,10 +1181,30 @@ public class RestServiceUnitTest {
 		Long total = restServiceReal.getObjectDetectedTotal(streamId);
 		
 		assertEquals(1, (int)(long)total);
-		
-		
-		
 	}
 
+	@Test
+	public void testStopLiveStream() {
+		BroadcastRestService restService = new BroadcastRestService();
+		AntMediaApplicationAdapter app = Mockito.spy(new AntMediaApplicationAdapter());
+		DataStore ds = Mockito.mock(DataStore.class);
+		String streamId = "test-stream";
+		
+		Broadcast broadcast = new Broadcast();
+		try {
+			broadcast.setStreamId(streamId);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		broadcast.setType(AntMediaApplicationAdapter.LIVE_STREAM);
+		
+		Mockito.doReturn(broadcast).when(ds).get(streamId);
+		restService.setDataStore(ds);
+		restService.setApplication(app);
+		
+		restService.stopBroadcast(streamId);
+		
+		Mockito.verify(app, Mockito.times(1)).getBroadcastStream(null, streamId);
+	}
 
 }

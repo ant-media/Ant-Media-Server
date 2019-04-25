@@ -29,6 +29,7 @@ import org.red5.server.api.scheduling.IScheduledJob;
 import org.red5.server.api.scheduling.ISchedulingService;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IBroadcastStream;
+import org.red5.server.api.stream.IClientBroadcastStream;
 import org.red5.server.api.stream.IPlayItem;
 import org.red5.server.api.stream.IStreamPublishSecurity;
 import org.red5.server.api.stream.ISubscriberStream;
@@ -81,7 +82,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	private List<VideoServiceEndpoint> videoServiceEndpointsHavingError = new ArrayList<>();
 	private List<IStreamPublishSecurity> streamPublishSecurityList;
 	private HashMap<String, OnvifCamera> onvifCameraList = new HashMap<>();
-	private StreamFetcherManager streamFetcherManager;
+	protected StreamFetcherManager streamFetcherManager;
 	private DataStore dataStore;
 	DataStoreFactory dataStoreFactory;
 
@@ -745,7 +746,18 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	}
 
 	public Result stopStreaming(Broadcast broadcast) {
-		return streamFetcherManager.stopStreaming(broadcast);
+		Result result = new Result(false);
+		if(broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA)|| broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE)) {
+			result = streamFetcherManager.stopStreaming(broadcast);
+		} 
+		else if (broadcast.getType().equals(AntMediaApplicationAdapter.LIVE_STREAM)) {
+			IBroadcastStream broadcastStream = getBroadcastStream(getScope(), broadcast.getStreamId());
+			if (broadcastStream != null) {
+				((IClientBroadcastStream) broadcastStream).getConnection().close();
+				result.setSuccess(true);
+			}
+		}
+		return result;
 	}
 
 	public OnvifCamera getOnvifCamera(String id) {
@@ -808,5 +820,4 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	public void serverShuttingdown() {
 		logger.info("{} is shutting down.", getName());
 	}
-
 }

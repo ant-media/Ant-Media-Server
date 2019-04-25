@@ -347,25 +347,13 @@ public class BroadcastRestService extends RestServiceBase{
 	private boolean stopBroadcastInternal(Broadcast broadcast) {
 		boolean result = false;
 		if (broadcast != null) {
-
-			if (broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA)|| broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE)) {
-				result = getApplication().stopStreaming(broadcast).isSuccess();
-				logger.info("stop broadcast of extenal source(ip camera, remote) stream: {} is {} ", broadcast.getStreamId(), result);
-
-			} else if (broadcast.getType().equals(AntMediaApplicationAdapter.LIVE_STREAM)) {
-
-				IBroadcastStream broadcastStream = getApplication().getBroadcastStream(getScope(), broadcast.getStreamId());
-				if (broadcastStream != null) {
-					((IClientBroadcastStream) broadcastStream).getConnection().close();
-					result = true;
-					logger.warn("Broadcast stopped, id: {}", broadcast.getStreamId());	
-
-				} else {					
-					logger.error("No active broadcast found with id {}, so could not stopped", broadcast.getStreamId());
-				}
-
+			result = getApplication().stopStreaming(broadcast).isSuccess(); 
+			if (result) {
+				logger.info("broadcast is stopped streamId: {}", broadcast.getStreamId());
 			}
-
+			else {
+				logger.error("No active broadcast found with id {}, so could not stopped", broadcast.getStreamId());
+			}
 		}
 		return result;
 	}
