@@ -1,8 +1,10 @@
 package io.antmedia.settings;
 
 public class EmailSettings {
+	
+	public static final String BEAN_NAME = "ant.media.email.settings";
 
-	private String emailUsername = null;
+	private String emailUsername;
 
 	public String getEmailUsername() {
 		return emailUsername;
@@ -12,7 +14,7 @@ public class EmailSettings {
 		this.emailUsername = emailUsername;
 	}
 
-	private String emailPassword = null;
+	private String emailPassword;
 
 	public String getEmailPassword() {
 		return emailPassword;
@@ -22,7 +24,7 @@ public class EmailSettings {
 		this.emailPassword = emailPassword;
 	}
 
-	private String emailSmtpHost = null;
+	private String emailSmtpHost;
 
 	public String getEmailSmtpHost() {
 		return emailSmtpHost;
@@ -32,7 +34,7 @@ public class EmailSettings {
 		this.emailSmtpHost = emailSmtpHost;
 	}
 
-	private String emailSmtpEncryption = null;
+	private String emailSmtpEncryption;
 
 	public String getEmailSmtpEncryption() {
 		return emailSmtpEncryption;
@@ -42,7 +44,7 @@ public class EmailSettings {
 		this.emailSmtpEncryption = emailSmtpEncryption;
 	}
 	
-	private String emailSmtpPort = null;
+	private String emailSmtpPort;
 	
 	public String getEmailSmtpPort() {
 		return emailSmtpPort;

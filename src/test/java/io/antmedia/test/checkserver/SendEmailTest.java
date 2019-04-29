@@ -14,9 +14,9 @@ import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.antmedia.checkserver.EmailSender;
 import io.antmedia.datastore.preference.PreferenceStore;
 import io.antmedia.settings.EmailSettings;
+import io.antmedia.statistic.control.Notification;
 
 public class SendEmailTest {
 	
@@ -43,7 +43,7 @@ public class SendEmailTest {
 	@Test
 	public void testSendEmail()  {
 
-		EmailSender emailSender = Mockito.spy(new EmailSender());
+		Notification emailSender = Mockito.spy(new Notification());
 		
 		EmailSettings emailSettings = mock(EmailSettings.class);
 		

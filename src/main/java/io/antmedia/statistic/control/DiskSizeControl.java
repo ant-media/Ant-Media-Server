@@ -1,4 +1,4 @@
-package io.antmedia.checkserver;
+package io.antmedia.statistic.control;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -9,9 +9,9 @@ public class DiskSizeControl {
 
 	protected static Logger logger = LoggerFactory.getLogger(DiskSizeControl.class);
 
-	private Integer diskSpacePercent;
+	private int diskSpacePercent;
 
-	private EmailSender emailSender = new EmailSender();
+	private Notification emailSender = new Notification();
 
 	private long lastEmailSentTime;
 
@@ -45,16 +45,16 @@ public class DiskSizeControl {
 		}
 	}
 
-	public Integer getDiskSize() {
+	public int getDiskSize() {
 		diskSpacePercent = Integer.valueOf(SystemUtils.osHDInUseSpace(null, "MB", false))*100 /  Integer.valueOf(SystemUtils.osHDTotalSpace(null, "MB", false));
 		return diskSpacePercent;
 	}
 
-	public EmailSender getEmailSender() {
+	public Notification getEmailSender() {
 		return emailSender;
 	}
 
-	public void setEmailSender(EmailSender emailSender) {
+	public void setEmailSender(Notification emailSender) {
 		this.emailSender = emailSender;
 	}
 

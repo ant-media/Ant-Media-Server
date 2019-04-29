@@ -1,7 +1,8 @@
-package io.antmedia.checkserver;
+package io.antmedia.statistic.control;
 
 import java.util.Properties;
 
+import javax.annotation.Nonnull;
 import javax.mail.Authenticator;
 import javax.mail.Message;
 import javax.mail.MessagingException;
@@ -11,22 +12,40 @@ import javax.mail.Transport;
 import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
+import javax.servlet.ServletContext;
+import javax.ws.rs.core.Context;
 
+import org.red5.spring.Red5ApplicationContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeansException;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
+import org.springframework.context.ApplicationContextException;
+import org.springframework.web.context.WebApplicationContext;
+import org.springframework.web.context.support.WebApplicationContextUtils;
 
+import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.AppSettings;
+import io.antmedia.IResourceMonitor;
 import io.antmedia.datastore.preference.PreferenceStore;
 import io.antmedia.settings.EmailSettings;
+import io.vertx.core.Vertx;
 
-public class EmailSender {
 
-	protected static Logger logger = LoggerFactory.getLogger(EmailSender.class);
+public class Notification implements ApplicationContextAware{
 
-	private static final String RED5_PROPERTIES = "red5.properties";
+	protected static Logger logger = LoggerFactory.getLogger(Notification.class);
+	
+    /**
+     * Spring Application context
+     */
+    private ApplicationContext applicationContext;
+	
+    @Context
+	private ServletContext servletContext;
 
-	private static final String RED5_PROPERTIES_PATH = "conf/red5.properties";
-
-	public EmailSettings emailSettings;
+	private EmailSettings emailSettings;
 
 	private static final String EMAIL_USERNAME = "emailUsername";
 
@@ -42,26 +61,15 @@ public class EmailSender {
 
 	private static final String EMAIL_SMTP_TLS = "TLS";
 
-	public PreferenceStore store;
-
 	private Session session;
 
 	public Properties prop;
 
 
-
 	public void sendEmail(String subjectMessage,String textMessage){
 
-		store = new PreferenceStore(RED5_PROPERTIES);
-		store.setFullPath(RED5_PROPERTIES_PATH);
-
-		emailSettings = new EmailSettings();
-
-		//Fill Email Values in Store 
-		fillEmailValues();
-
-		//check email values not null
-		try{
+		emailSettings = getEmailSettings(); 
+		
 			if(checkEmailValues()) {
 
 				prop = new Properties();
@@ -88,16 +96,7 @@ public class EmailSender {
 			else {
 				logger.warn("Could you provide your Email Address, Password, Smtp Host, Smtp Port, Smtp Encryption values in conf/red5.properties");
 			}
-		}
-		catch(NullPointerException e) {
-			logger.warn("Could you please check your "
-					+ "emailUsername=\n" + 
-					"emailPassword\n" + 
-					"emailSmtpHost\n" + 
-					"emailSmtpPort\n" + 
-					"emailSmtpEncryption\n" + 
-					" values in conf/red5.properties");
-		}
+		
 	}
 
 	public void callSendEmail(String subjectMessage, String textMessage) {
@@ -127,10 +126,10 @@ public class EmailSender {
 
 		}
 		catch (AddressException ae) {
-			logger.warn(ae.toString());
+			logger.error(ae.toString()); 
 		}
 		catch (MessagingException me) {
-			logger.warn(me.toString());
+			logger.error(me.toString());
 		}
 
 	}
@@ -148,29 +147,17 @@ public class EmailSender {
 		}
 
 	}
+	
+	private EmailSettings getEmailSettings() {	
+		
+		emailSettings = (EmailSettings)applicationContext.getBean(EmailSettings.BEAN_NAME);
+		
+		return emailSettings;
+	}
 
-	public void fillEmailValues(){
-
-		if (store.get(EMAIL_USERNAME) != null) {
-			emailSettings.setEmailUsername(String.valueOf(store.get(EMAIL_USERNAME)));
-		}
-
-		if (store.get(EMAIL_PASS) != null) {
-			emailSettings.setEmailPassword(String.valueOf(store.get(EMAIL_PASS)));
-		}
-
-		if (store.get(EMAIL_SMTP_HOST) != null) {
-			emailSettings.setEmailSmtpHost(String.valueOf(store.get(EMAIL_SMTP_HOST)));
-		}
-
-		if (store.get(EMAIL_SMTP_PORT) != null) {
-			emailSettings.setEmailSmtpPort(String.valueOf(store.get(EMAIL_SMTP_PORT)));
-		}
-
-		if (store.get(EMAIL_SMTP_ENCRYPTION) != null) {
-			emailSettings.setEmailSmtpEncryption(String.valueOf(store.get(EMAIL_SMTP_ENCRYPTION)));
-		}
-
+	@Override
+	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+		this.applicationContext = applicationContext;
 	}
 
 }

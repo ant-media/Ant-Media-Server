@@ -7,7 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import io.antmedia.IResourceMonitor;
 import io.antmedia.SystemUtils;
-import io.antmedia.checkserver.DiskSizeControl;
+import io.antmedia.statistic.control.DiskSizeControl;
 import io.vertx.core.Vertx;
 
 public class ResourceMonitor implements IResourceMonitor{
@@ -17,7 +17,8 @@ public class ResourceMonitor implements IResourceMonitor{
 	private Queue<Integer> cpuMeasurements = new ConcurrentLinkedQueue<>();
 
 	private int windowSize = 5;
-	private int checkdiskSizePeriod = 3600000;
+	//private int checkdiskSizePeriod = 3600000;
+	private int checkdiskSizePeriod = 3000;
 	private int measurementPeriod = 3000;
 	private int avgCpuUsage;
 	private int cpuLimit = 70;

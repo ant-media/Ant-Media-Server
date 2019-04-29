@@ -12,19 +12,19 @@ import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.antmedia.checkserver.DiskSizeControl;
-import io.antmedia.checkserver.EmailSender;
+import io.antmedia.statistic.control.DiskSizeControl;
+import io.antmedia.statistic.control.Notification;
 
 
 public class DiskSizeControlTest {
 
-	private Integer diskSizeOver95 = 95;
+	private int diskSizeOver95 = 95;
 
-	private Integer diskSizeOver85 = 85;
+	private int diskSizeOver85 = 85;
 
-	private Integer diskSizeOver75 = 75;
+	private int diskSizeOver75 = 75;
 
-	private Integer diskSizeOver65 = 65;
+	private int diskSizeOver65 = 65;
 
 	protected static Logger logger = LoggerFactory.getLogger(DiskSizeControlTest.class);
 
@@ -33,7 +33,7 @@ public class DiskSizeControlTest {
 
 		DiskSizeControl diskSizeControl = Mockito.spy(new DiskSizeControl());	
 
-		EmailSender emailSender = mock(EmailSender.class);
+		Notification emailSender = mock(Notification.class);
 
 		diskSizeControl.setEmailSender(emailSender); 
 
