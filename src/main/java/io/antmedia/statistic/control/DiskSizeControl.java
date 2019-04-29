@@ -1,11 +1,19 @@
 package io.antmedia.statistic.control;
 
+import org.red5.spring.Red5ApplicationContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeansException;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
+import org.springframework.context.ApplicationContextException;
 
+import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.SystemUtils;
+import io.antmedia.settings.EmailSettings;
+import io.vertx.core.Vertx;
 
-public class DiskSizeControl {
+public class DiskSizeControl implements ApplicationContextAware{
 
 	protected static Logger logger = LoggerFactory.getLogger(DiskSizeControl.class);
 
@@ -15,24 +23,41 @@ public class DiskSizeControl {
 
 	private long lastEmailSentTime;
 
+	private EmailSettings emailSettings;
+
 	private static final long ONEDAY = 24*60*60*1000;
+
+	public static final String BEAN_NAME = "diskSizeControl";
+
+	private Vertx vertx;
+
+	private int checkdiskSizePeriod = 3000;
+
+
 
 
 	public void startService() {
 
+		emailSender.setEmailSettings(emailSettings);
+		logger.info("emailSettings user {}", emailSettings.getEmailUsername());
+		logger.info("emailSettings smtp {}", emailSettings.getEmailSmtpHost());
+		logger.info("emailSettings smtp port {}", emailSettings.getEmailSmtpPort());
 
-		diskSpacePercent = getDiskSize();
+		vertx.setPeriodic(checkdiskSizePeriod, l -> {
 
-		if(diskSpacePercent>90) {	
-			diskUsageExceeded("Disk Usage Over %90 - Ant Media Server","Disk Usage Over %90 - Ant Media Server \n\n The system will disable enablemMp4 Recording Setting in Applications.");
-		}
-		else if(diskSpacePercent>80) {
-			diskUsageExceeded("Disk Usage Over %80 - Ant Media Server","%80 above your Disk Size");
-		}
-		else if(diskSpacePercent>70) {
-			diskUsageExceeded("Disk Usage Over %70 - Ant Media Server","%70 above your Disk Size");
-		}
+			diskSpacePercent = getDiskSize();
 
+			if(diskSpacePercent>10) {	
+				diskUsageExceeded("Disk Usage Over %90 - Ant Media Server","Disk Usage Over %90 - Ant Media Server \n\n The system will disable enablemMp4 Recording Setting in Applications.");
+			}
+			else if(diskSpacePercent>80) {
+				diskUsageExceeded("Disk Usage Over %80 - Ant Media Server","%80 above your Disk Size");
+			}
+			else if(diskSpacePercent>70) {
+				diskUsageExceeded("Disk Usage Over %70 - Ant Media Server","%70 above your Disk Size");
+			}
+
+		});
 	}
 
 	public void diskUsageExceeded(String textSubject, String textMessage) {
@@ -65,5 +90,35 @@ public class DiskSizeControl {
 	public void setLastEmailSentTime(long lastEmailSentTime) {
 		this.lastEmailSentTime = lastEmailSentTime;
 	}
+
+
+	public EmailSettings getEmailSettings() {
+		return emailSettings;
+	}
+
+	public void setEmailSettings(EmailSettings emailSettings) {
+		this.emailSettings = emailSettings;
+	}
+
+	@Override
+	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+
+		if (applicationContext.containsBean("red5.common")) 
+		{
+			Red5ApplicationContext red5Common = (Red5ApplicationContext)applicationContext.getBean("red5.common");
+
+			if (red5Common.containsBean(AntMediaApplicationAdapter.VERTX_BEAN_NAME)) {
+				vertx = (Vertx)red5Common.getBean(AntMediaApplicationAdapter.VERTX_BEAN_NAME);
+				logger.info("vertx in context");
+			}
+			else {
+				throw new ApplicationContextException("No Vertx bean in application context");
+			}
+		}
+		else {
+			logger.info("No server in application context");
+		}
+	}
+
 
 }

@@ -17,8 +17,6 @@ public class ResourceMonitor implements IResourceMonitor{
 	private Queue<Integer> cpuMeasurements = new ConcurrentLinkedQueue<>();
 
 	private int windowSize = 5;
-	//private int checkdiskSizePeriod = 3600000;
-	private int checkdiskSizePeriod = 3000;
 	private int measurementPeriod = 3000;
 	private int avgCpuUsage;
 	private int cpuLimit = 70;
@@ -26,15 +24,7 @@ public class ResourceMonitor implements IResourceMonitor{
 
 	public void start() {
 		getVertx().setPeriodic(measurementPeriod, l -> addCpuMeasurement(SystemUtils.getSystemCpuLoad()));
-		getVertx().setPeriodic(checkdiskSizePeriod, l -> startDiskSizeControl());
 	}
-
-
-
-	public void startDiskSizeControl() {
-		diskControl.startService();
-	}
-
 
 	public void addCpuMeasurement(int measurement) {
 		cpuMeasurements.add(measurement);

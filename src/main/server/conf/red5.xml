@@ -83,5 +83,12 @@
 		<property name="emailSmtpPort" value="${emailSmtpPort}"/>   
 		<property name="emailSmtpEncryption" value="${emailSmtpEncryption}"/>    				
 	</bean>
+	
+		<bean id="diskSizeControl" class="io.antmedia.statistic.control.DiskSizeControl" init-method="startService">
+		<property name="emailSettings" ref="ant.media.email.settings" /> 
+  	</bean>
+	
+	
+	
 
 </beans>

@@ -2,7 +2,6 @@ package io.antmedia.statistic.control;
 
 import java.util.Properties;
 
-import javax.annotation.Nonnull;
 import javax.mail.Authenticator;
 import javax.mail.Message;
 import javax.mail.MessagingException;
@@ -12,28 +11,15 @@ import javax.mail.Transport;
 import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
-import javax.servlet.ServletContext;
-import javax.ws.rs.core.Context;
 
-import org.red5.spring.Red5ApplicationContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationContextAware;
-import org.springframework.context.ApplicationContextException;
-import org.springframework.web.context.WebApplicationContext;
-import org.springframework.web.context.support.WebApplicationContextUtils;
 
-import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.AppSettings;
-import io.antmedia.IResourceMonitor;
-import io.antmedia.datastore.preference.PreferenceStore;
 import io.antmedia.settings.EmailSettings;
-import io.vertx.core.Vertx;
 
 
-public class Notification implements ApplicationContextAware{
+public class Notification{
 
 	protected static Logger logger = LoggerFactory.getLogger(Notification.class);
 	
@@ -42,10 +28,10 @@ public class Notification implements ApplicationContextAware{
      */
     private ApplicationContext applicationContext;
 	
-    @Context
-	private ServletContext servletContext;
 
 	private EmailSettings emailSettings;
+
+
 
 	private static final String EMAIL_USERNAME = "emailUsername";
 
@@ -68,8 +54,6 @@ public class Notification implements ApplicationContextAware{
 
 	public void sendEmail(String subjectMessage,String textMessage){
 
-		emailSettings = getEmailSettings(); 
-		
 			if(checkEmailValues()) {
 
 				prop = new Properties();
@@ -150,14 +134,11 @@ public class Notification implements ApplicationContextAware{
 	
 	private EmailSettings getEmailSettings() {	
 		
-		emailSettings = (EmailSettings)applicationContext.getBean(EmailSettings.BEAN_NAME);
-		
 		return emailSettings;
 	}
-
-	@Override
-	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-		this.applicationContext = applicationContext;
+	
+	public void setEmailSettings(EmailSettings emailSettings) {
+		this.emailSettings = emailSettings;
 	}
 
 }
