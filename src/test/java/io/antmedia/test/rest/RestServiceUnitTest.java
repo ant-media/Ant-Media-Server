@@ -831,13 +831,13 @@ public class RestServiceUnitTest {
 		when(scope.getName()).thenReturn(scopeName);
 		restServiceReal.setScope(scope);
 
-		AntMediaApplicationAdapter appAdaptor = mock(AntMediaApplicationAdapter.class);
+		AntMediaApplicationAdapter appAdaptor = Mockito.spy(new AntMediaApplicationAdapter());
 		IClientBroadcastStream broadcastStream = mock(IClientBroadcastStream.class);
 		IStreamCapableConnection streamCapableConnection = mock(IStreamCapableConnection.class);
 
 		when(broadcastStream.getConnection()).thenReturn(streamCapableConnection);
-		when(appAdaptor.getBroadcastStream(Mockito.any(Scope.class), Mockito.any(String.class))).thenReturn(broadcastStream);
-
+		Mockito.doReturn(broadcastStream).when(appAdaptor).getBroadcastStream(Mockito.any(), Mockito.anyString());
+		
 		restServiceReal.setApplication(appAdaptor);
 
 		int streamCount = 15; 
@@ -1181,10 +1181,30 @@ public class RestServiceUnitTest {
 		Long total = restServiceReal.getObjectDetectedTotal(streamId);
 		
 		assertEquals(1, (int)(long)total);
-		
-		
-		
 	}
 
+	@Test
+	public void testStopLiveStream() {
+		BroadcastRestService restService = new BroadcastRestService();
+		AntMediaApplicationAdapter app = Mockito.spy(new AntMediaApplicationAdapter());
+		DataStore ds = Mockito.mock(DataStore.class);
+		String streamId = "test-stream";
+		
+		Broadcast broadcast = new Broadcast();
+		try {
+			broadcast.setStreamId(streamId);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		broadcast.setType(AntMediaApplicationAdapter.LIVE_STREAM);
+		
+		Mockito.doReturn(broadcast).when(ds).get(streamId);
+		restService.setDataStore(ds);
+		restService.setApplication(app);
+		
+		restService.stopBroadcast(streamId);
+		
+		Mockito.verify(app, Mockito.times(1)).getBroadcastStream(null, streamId);
+	}
 
 }
