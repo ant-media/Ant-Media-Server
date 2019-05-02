@@ -1642,7 +1642,7 @@ public class ConsoleAppRestServiceTest{
 
 		Licence tmp = null;
 
-		String url = ROOT_SERVICE_URL + "/getLicenceStatus/" + key;
+		String url = ROOT_SERVICE_URL + "/getLicenceStatus/?key=" + key;
 
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
 				.setDefaultCookieStore(httpCookieStore).build();
