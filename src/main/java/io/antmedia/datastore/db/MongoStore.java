@@ -749,4 +749,23 @@ public class MongoStore extends DataStore {
 
 	}
 
+	@Override
+	public void clearStreamsOnThisServer() {
+		String ip = DBUtils.getHostAddress();
+		Query<Broadcast> query = datastore.createQuery(Broadcast.class);
+		query.or(query.criteria("originAdress").doesNotExist(), //check for non cluster mode
+				query.criteria("originAdress").equal(ip));
+		if(query.count() > 0) {
+			logger.error("There are {} streams for {} at start. They are deleted now.", query.count(), ip);
+			datastore.delete(query);
+		}
+		
+		Query<StreamInfo> querySI = datastore.createQuery(StreamInfo.class).field("host").equal(ip);
+		if(querySI.count() > 0) {
+			logger.error("There are {} stream info adressing {} at start. They are deleted now.", querySI.count(), ip);
+			datastore.delete(querySI);
+		}
+		
+	}
+
 }

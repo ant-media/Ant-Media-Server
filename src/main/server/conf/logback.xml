@@ -29,6 +29,16 @@
             <pattern>%d{ISO8601} [%thread] %-5level %logger{35} - %msg%n</pattern>
         </encoder>
     </appender>
+    <appender class="ch.qos.logback.core.FileAppender" name="FILE">
+        <File>log/ant-media-server-error.log</File>
+        <Append>true</Append>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>ERROR</level>
+        </filter>     
+        <encoder>
+            <pattern>%d{ISO8601} [%thread] %-5level %logger{35} - %msg%n</pattern>
+        </encoder>
+    </appender>
     <root level="${logLevel}">
         <appender-ref ref="CONSOLE" />
         <appender-ref ref="FILE" />
