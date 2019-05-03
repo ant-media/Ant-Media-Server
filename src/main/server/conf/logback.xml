@@ -29,12 +29,20 @@
             <pattern>%d{ISO8601} [%thread] %-5level %logger{35} - %msg%n</pattern>
         </encoder>
     </appender>
-    <appender class="ch.qos.logback.core.FileAppender" name="FILE">
+    <appender class="ch.qos.logback.core.rolling.RollingFileAppender" name="FILE">
         <File>log/ant-media-server-error.log</File>
-        <Append>true</Append>
-        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+        <Append>false</Append>
+		<filter class="ch.qos.logback.classic.filter.ThresholdFilter">
             <level>ERROR</level>
-        </filter>     
+        </filter> 
+        <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+          <fileNamePattern>log/ant-media-server-error.%i.log.gz</fileNamePattern>
+          <minIndex>1</minIndex>
+          <maxIndex>2</maxIndex>
+        </rollingPolicy>
+        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+          <maxFileSize>500MB</maxFileSize>
+        </triggeringPolicy>
         <encoder>
             <pattern>%d{ISO8601} [%thread] %-5level %logger{35} - %msg%n</pattern>
         </encoder>
