@@ -27,6 +27,8 @@ import org.mongodb.morphia.query.Query;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
+import io.antmedia.cluster.StreamInfo;
+import io.antmedia.datastore.DBUtils;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
@@ -87,8 +89,7 @@ public class DBStoresUnitTest {
 		testWebRTCViewerCount(dataStore);
 		testRTMPViewerCount(dataStore);
 		testTokenOperations(dataStore);
-
-
+		testClearAtStart(dataStore);
 	}
 
 
@@ -115,6 +116,7 @@ public class DBStoresUnitTest {
 		testWebRTCViewerCount(dataStore);
 		testRTMPViewerCount(dataStore);
 		testTokenOperations(dataStore);
+		testClearAtStart(dataStore);
 
 	}
 
@@ -156,6 +158,8 @@ public class DBStoresUnitTest {
 		testWebRTCViewerCount(dataStore);
 		testRTMPViewerCount(dataStore);
 		testTokenOperations(dataStore);
+		testClearAtStart(dataStore);
+		testClearAtStartCluster(dataStore);
 
 	}
 
@@ -1202,6 +1206,63 @@ public class DBStoresUnitTest {
 		dsf.setAppName("testApp");
 		dsf.setDbHost("localhost");
 		return dsf.getDataStore();
+	}
+	
+	public void testClearAtStart(DataStore dataStore) {
+		dataStore.clearStreamsOnThisServer();
+		assertEquals(0, dataStore.getBroadcastCount());
+
+		
+		Broadcast broadcast = new Broadcast();
+		broadcast.setName("test1");
+		dataStore.save(broadcast);
+		
+		Broadcast broadcast2 = new Broadcast();
+		broadcast2.setName("test2");
+		dataStore.save(broadcast2);
+		
+		assertEquals(2, dataStore.getBroadcastCount());
+		
+		dataStore.clearStreamsOnThisServer();
+		
+		assertEquals(0, dataStore.getBroadcastCount());
+	}
+	
+	public void testClearAtStartCluster(DataStore dataStore) {
+		dataStore.clearStreamsOnThisServer();
+		assertEquals(0, dataStore.getBroadcastCount());
+		
+		Broadcast broadcast = new Broadcast();
+		broadcast.setOriginAdress(DBUtils.getHostAddress());
+		broadcast.setName("test1");
+		try {
+			broadcast.setStreamId("test1");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		dataStore.save(broadcast);
+		
+		StreamInfo si = new StreamInfo();
+		si.setHost(DBUtils.getHostAddress());
+		si.setStreamId(broadcast.getStreamId());
+		
+		dataStore.saveStreamInfo(si);
+		
+		StreamInfo si2 = new StreamInfo();
+		si2.setHost(DBUtils.getHostAddress());
+		si2.setStreamId(broadcast.getStreamId());
+		
+		dataStore.saveStreamInfo(si2);
+		
+		dataStore.getStreamInfoList(broadcast.getStreamId());
+		
+		assertEquals(1, dataStore.getBroadcastCount());
+		assertEquals(2, dataStore.getStreamInfoList(broadcast.getStreamId()).size());
+		
+		dataStore.clearStreamsOnThisServer();
+		
+		assertEquals(0, dataStore.getBroadcastCount());
+		assertEquals(0, dataStore.getStreamInfoList(broadcast.getStreamId()).size());
 	}
 
 }
