@@ -1,7 +1,6 @@
 #!/bin/bash
 
 INSTALL_DIRECTORY=/usr/local/antmedia
-PASS="pass"
 
 
 FULL_CHAIN_FILE=
