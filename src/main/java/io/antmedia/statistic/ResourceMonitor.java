@@ -157,7 +157,6 @@ public class ResourceMonitor implements IResourceMonitor, ApplicationContextAwar
 	}
 
 	private void sendWebRTCClientStats2Kafka(List<WebRTCClientStats> webRTCClientStatList, String streamId) {
-		JsonArray jsonArray = new JsonArray();
 		JsonObject jsonObject;
 		String dateTime = DateTimeFormatter.ISO_INSTANT.format(Instant.now());
 		for (WebRTCClientStats webRTCClientStat : webRTCClientStatList) 
@@ -165,15 +164,17 @@ public class ResourceMonitor implements IResourceMonitor, ApplicationContextAwar
 			jsonObject = new JsonObject();
 			jsonObject.addProperty(STREAM_ID, streamId);
 			jsonObject.addProperty(WEBRTC_CLIENT_ID, webRTCClientStat.getClientId());
-			jsonObject.addProperty(AUDIO_FRAME_SEND_PERIOD, webRTCClientStat.getAudioFrameSendPeriod());
-			jsonObject.addProperty(VIDEO_FRAME_SEND_PERIOD, webRTCClientStat.getVideoFrameSendPeriod());
+			jsonObject.addProperty(AUDIO_FRAME_SEND_PERIOD, (int)webRTCClientStat.getAudioFrameSendPeriod());
+			jsonObject.addProperty(VIDEO_FRAME_SEND_PERIOD, (int)webRTCClientStat.getVideoFrameSendPeriod());
 			jsonObject.addProperty(MEASURED_BITRATE, webRTCClientStat.getMeasuredBitrate());
 			jsonObject.addProperty(SEND_BITRATE, webRTCClientStat.getSendBitrate());
 			jsonObject.addProperty(TIME, dateTime);
-			jsonArray.add(jsonObject);
+			//logstash cannot parse json array so that we send each info separately
+			send2Kafka(jsonObject, webRTCStatsTopicName);
 		}
 		
-		send2Kafka(jsonArray, webRTCStatsTopicName);
+		
+		
 	}
 
 	public Producer<Long, String> createKafkaProducer() {
