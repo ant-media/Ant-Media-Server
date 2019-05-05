@@ -764,9 +764,17 @@ public class InMemoryDataStore extends DataStore {
 
 		return result;
 	}
-	
+
 	@Override
 	public void saveStreamInfo(StreamInfo streamInfo) {
 		//no need to implement this method, it is used in cluster mode
+	}
+
+	@Override
+	public void clearStreamsOnThisServer() {
+		if(!broadcastMap.isEmpty()) {
+			logger.error("There are {} streams at start. They are deleted now.", broadcastMap.size());
+			broadcastMap.clear();
+		}
 	}
 }
