@@ -94,6 +94,7 @@ public class DataStoreFactory implements IDataStoreFactory{
 			if(dataStore != null) {
 				dataStore.setWriteStatsToDatastore(getAppSettings().isWriteStatsToDatastore());
 				DBReader.instance.addDataStore(appName, dataStore);
+				dataStore.clearStreamsOnThisServer();
 			}
 		}
 		return dataStore;
