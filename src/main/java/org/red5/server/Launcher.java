@@ -39,6 +39,7 @@ import org.springframework.context.support.FileSystemXmlApplicationContext;
 import com.brsanthu.googleanalytics.GoogleAnalytics;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.AsciiArt;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.shutdown.AMSShutdownManager;
 
@@ -89,8 +90,8 @@ public class Launcher {
 		// version info banner
 		String implementationVersion = AntMediaApplicationAdapter.class.getPackage().getImplementationVersion();
 		String type = BroadcastRestService.isEnterprise() ? "Enterprise" : "Community";
-		log.info("Ant Media Server {} {}", type, implementationVersion);
-
+		log.info("Ant Media Server {} {} \n {}", type, implementationVersion, AsciiArt.LOGO);
+		
 		if (log.isDebugEnabled()) {
 			log.debug("fmsVer: {}", Red5.getFMSVersion());
 		}
