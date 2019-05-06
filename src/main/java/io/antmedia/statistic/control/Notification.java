@@ -22,26 +22,8 @@ import io.antmedia.settings.EmailSettings;
 public class Notification{
 
 	protected static Logger logger = LoggerFactory.getLogger(Notification.class);
-	
-    /**
-     * Spring Application context
-     */
-    private ApplicationContext applicationContext;
-	
 
 	private EmailSettings emailSettings;
-
-
-
-	private static final String EMAIL_USERNAME = "emailUsername";
-
-	private static final String EMAIL_PASS = "emailPassword";
-
-	private static final String EMAIL_SMTP_HOST = "emailSmtpHost";
-
-	private static final String EMAIL_SMTP_PORT = "emailSmtpPort";
-
-	private static final String EMAIL_SMTP_ENCRYPTION = "emailSmtpEncryption";
 
 	private static final String EMAIL_SMTP_SSL = "SSL";
 

@@ -31,7 +31,7 @@ public class DiskSizeControl implements ApplicationContextAware{
 
 	private Vertx vertx;
 
-	private int checkdiskSizePeriod = 3000;
+	private int checkdiskSizePeriod = 10000;
 
 
 
