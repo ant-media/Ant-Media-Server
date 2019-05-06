@@ -116,8 +116,8 @@ public class ResourceMonitor implements IResourceMonitor, ApplicationContextAwar
 	private Producer<Long,String> kafkaProducer = null;
 
 	public void start() {
-		startKafkaProducer();
 		getVertx().setPeriodic(measurementPeriod, l -> addCpuMeasurement(SystemUtils.getSystemCpuLoad()));
+		startKafkaProducer();
 	}
 
 	private void startKafkaProducer() {
@@ -134,21 +134,26 @@ public class ResourceMonitor implements IResourceMonitor, ApplicationContextAwar
 	private void sendWebRTCClientStats() {
 		getVertx().executeBlocking(
 				b -> {
-					for (Iterator<IScope> iterator = scopes.iterator(); iterator.hasNext();) { 
-						IScope scope = iterator.next();
-
-						if( scope.getContext().getApplicationContext().containsBean(IWebRTCAdaptor.BEAN_NAME)) 
-						{
-							IWebRTCAdaptor webrtcAdaptor = (IWebRTCAdaptor)scope.getContext().getApplicationContext().getBean(IWebRTCAdaptor.BEAN_NAME);
-							Set<String> streams = webrtcAdaptor.getStreams();
-							List<WebRTCClientStats> webRTCClientStats;
-							for (String streamId : streams) {
-								webRTCClientStats = webrtcAdaptor.getWebRTCClientStats(streamId);
-								sendWebRTCClientStats2Kafka(webRTCClientStats, streamId);			
-							}							
+					try {
+						for (Iterator<IScope> iterator = scopes.iterator(); iterator.hasNext();) { 
+							IScope scope = iterator.next();
+	
+							if( scope.getContext().getApplicationContext().containsBean(IWebRTCAdaptor.BEAN_NAME)) 
+							{
+								IWebRTCAdaptor webrtcAdaptor = (IWebRTCAdaptor)scope.getContext().getApplicationContext().getBean(IWebRTCAdaptor.BEAN_NAME);
+								Set<String> streams = webrtcAdaptor.getStreams();
+								List<WebRTCClientStats> webRTCClientStats;
+								for (String streamId : streams) {
+									webRTCClientStats = webrtcAdaptor.getWebRTCClientStats(streamId);
+									sendWebRTCClientStats2Kafka(webRTCClientStats, streamId);			
+								}							
+							}
 						}
+						b.complete();
 					}
-					b.complete();
+					catch (Exception e) {
+						logger.error(ExceptionUtils.getStackTrace(e));
+					}
 				}, 
 				r -> {
 
