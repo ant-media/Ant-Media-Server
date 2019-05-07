@@ -225,6 +225,7 @@ public class ResourceMonitorTest {
 		resMonitor.setKafkaBrokers("localhost:9092");
 		Producer<Long, String> kafkaProducer = resMonitor.createKafkaProducer();
 		assertNotNull(kafkaProducer);
+		kafkaProducer.close();
 	}
 	
 	@Test
