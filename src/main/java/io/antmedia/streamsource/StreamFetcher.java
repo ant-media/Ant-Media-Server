@@ -191,7 +191,6 @@ public class StreamFetcher {
 		@Override
 		public void run() {
 
-			logger.info("0 {}", stream.getStreamId());
 			setThreadActive(true);
 			long lastPacketTime = 0;
 			long firstPacketTime = 0;
@@ -199,15 +198,13 @@ public class StreamFetcher {
 
 			AVPacket pkt = null;
 			String packetWriterJobName = null;
-			logger.info("1 {}", stream.getStreamId());
 			try {
 				inputFormatContext = new AVFormatContext(null); 
 				pkt = avcodec.av_packet_alloc();
-				logger.info("2 {}", stream.getStreamId());
+				logger.info("Preparing the StreamFetcher for {}", stream.getStreamUrl());
 				Result result = prepare(inputFormatContext);
 
 
-				logger.info("3 {}", stream.getStreamId());
 				if (result.isSuccess()) {
 					boolean audioOnly = false;
 					if(inputFormatContext.nb_streams() == 1) {
@@ -215,7 +212,6 @@ public class StreamFetcher {
 						logger.debug(" codec: {}", inputFormatContext.streams(0).codecpar().codec_id());
 
 					}
-					logger.info("4 {}", stream.getStreamId());
 					muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null,true, scope);
 					// if there is only audio, firstKeyFrameReceivedChecked should be true in advance
 					// because there is no video frame
@@ -225,7 +221,6 @@ public class StreamFetcher {
 
 					muxAdaptor.init(scope, stream.getStreamId(), false);
 
-					logger.info("5 {}", stream.getStreamId());
 
 					logger.info("{} stream count in stream {} is {}", stream.getStreamId(), stream.getStreamUrl(), inputFormatContext.nb_streams());
 
