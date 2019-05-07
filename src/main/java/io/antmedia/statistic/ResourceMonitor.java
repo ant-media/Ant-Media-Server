@@ -41,6 +41,44 @@ import io.vertx.core.Vertx;
 
 public class ResourceMonitor implements IResourceMonitor, ApplicationContextAware {	
 
+	public static final String IN_USE_SWAP_SPACE = "inUseSwapSpace";
+
+	public static final String FREE_SWAP_SPACE = "freeSwapSpace";
+
+	public static final String TOTAL_SWAP_SPACE = "totalSwapSpace";
+
+	public static final String VIRTUAL_MEMORY = "virtualMemory";
+
+	public static final String PROCESSOR_COUNT = "processorCount";
+
+	public static final String JAVA_VERSION = "javaVersion";
+
+	public static final String OS_ARCH = "osArch";
+
+	public static final String OS_NAME = "osName";
+
+	public static final String IN_USE_SPACE = "inUseSpace";
+
+	public static final String FREE_SPACE = "freeSpace";
+
+	public static final String TOTAL_SPACE = "totalSpace";
+
+	public static final String USABLE_SPACE = "usableSpace";
+
+	public static final String IN_USE_MEMORY = "inUseMemory";
+
+	public static final String FREE_MEMORY = "freeMemory";
+
+	public static final String TOTAL_MEMORY = "totalMemory";
+
+	public static final String MAX_MEMORY = "maxMemory";
+
+	public static final String PROCESS_CPU_LOAD = "processCPULoad";
+
+	public static final String SYSTEM_CPU_LOAD = "systemCPULoad";
+
+	public static final String PROCESS_CPU_TIME = "processCPUTime";
+
 	public static final String CPU_USAGE = "cpuUsage";
 
 	public static final String INSTANCE_ID = "instanceId";
@@ -109,14 +147,18 @@ public class ResourceMonitor implements IResourceMonitor, ApplicationContextAwar
 
 	private String kafkaBrokers = null;
 
-	private String instanceStatsTopicName = "ams-instance-stats";
-	
-	private String webRTCStatsTopicName = "ams-webrtc-stats";
+	public static final String INSTANCE_STATS_TOPIC_NAME = "ams-instance-stats";
+
+	public static final String WEBRTC_STATS_TOPIC_NAME = "ams-webrtc-stats";
 
 	private Producer<Long,String> kafkaProducer = null;
 
+	private long cpuMeasurementTimerId = -1;
+
+	private long kafkaTimerId = -1;
+
 	public void start() {
-		getVertx().setPeriodic(measurementPeriod, l -> addCpuMeasurement(SystemUtils.getSystemCpuLoad()));
+		cpuMeasurementTimerId  = getVertx().setPeriodic(measurementPeriod, l -> addCpuMeasurement(SystemUtils.getSystemCpuLoad()));
 		startKafkaProducer();
 	}
 
@@ -124,7 +166,7 @@ public class ResourceMonitor implements IResourceMonitor, ApplicationContextAwar
 		if (kafkaBrokers != null && !kafkaBrokers.isEmpty()) {
 			kafkaProducer = createKafkaProducer();		
 
-			getVertx().setPeriodic(staticSendPeriod, l -> {
+			kafkaTimerId  = getVertx().setPeriodic(staticSendPeriod, l -> {
 				sendInstanceStats(scopes);
 				sendWebRTCClientStats();
 			});
@@ -134,34 +176,35 @@ public class ResourceMonitor implements IResourceMonitor, ApplicationContextAwar
 	private void sendWebRTCClientStats() {
 		getVertx().executeBlocking(
 				b -> {
-					try {
-						for (Iterator<IScope> iterator = scopes.iterator(); iterator.hasNext();) { 
-							IScope scope = iterator.next();
-	
-							if( scope.getContext().getApplicationContext().containsBean(IWebRTCAdaptor.BEAN_NAME)) 
-							{
-								IWebRTCAdaptor webrtcAdaptor = (IWebRTCAdaptor)scope.getContext().getApplicationContext().getBean(IWebRTCAdaptor.BEAN_NAME);
-								Set<String> streams = webrtcAdaptor.getStreams();
-								List<WebRTCClientStats> webRTCClientStats;
-								for (String streamId : streams) {
-									webRTCClientStats = webrtcAdaptor.getWebRTCClientStats(streamId);
-									sendWebRTCClientStats2Kafka(webRTCClientStats, streamId);			
-								}							
-							}
-						}
-						b.complete();
-					}
-					catch (Exception e) {
-						logger.error(ExceptionUtils.getStackTrace(e));
-					}
+					collectAndSendWebRTCClientsStats();
+					b.complete();
 				}, 
 				r -> {
 
 				});
-		
 	}
 
-	private void sendWebRTCClientStats2Kafka(List<WebRTCClientStats> webRTCClientStatList, String streamId) {
+	public void collectAndSendWebRTCClientsStats() {
+
+		for (Iterator<IScope> iterator = scopes.iterator(); iterator.hasNext();) { 
+			IScope scope = iterator.next();
+
+			if( scope.getContext().getApplicationContext().containsBean(IWebRTCAdaptor.BEAN_NAME)) 
+			{
+				IWebRTCAdaptor webrtcAdaptor = (IWebRTCAdaptor)scope.getContext().getApplicationContext().getBean(IWebRTCAdaptor.BEAN_NAME);
+				Set<String> streams = webrtcAdaptor.getStreams();
+				List<WebRTCClientStats> webRTCClientStats;
+				for (String streamId : streams) {
+					webRTCClientStats = webrtcAdaptor.getWebRTCClientStats(streamId);
+					sendWebRTCClientStats2Kafka(webRTCClientStats, streamId);			
+				}							
+			}
+		}
+
+
+	}
+
+	public void sendWebRTCClientStats2Kafka(List<WebRTCClientStats> webRTCClientStatList, String streamId) {
 		JsonObject jsonObject;
 		String dateTime = DateTimeFormatter.ISO_INSTANT.format(Instant.now());
 		for (WebRTCClientStats webRTCClientStat : webRTCClientStatList) 
@@ -175,11 +218,11 @@ public class ResourceMonitor implements IResourceMonitor, ApplicationContextAwar
 			jsonObject.addProperty(SEND_BITRATE, webRTCClientStat.getSendBitrate());
 			jsonObject.addProperty(TIME, dateTime);
 			//logstash cannot parse json array so that we send each info separately
-			send2Kafka(jsonObject, webRTCStatsTopicName);
+			send2Kafka(jsonObject, WEBRTC_STATS_TOPIC_NAME);
 		}
-		
-		
-		
+
+
+
 	}
 
 	public Producer<Long, String> createKafkaProducer() {
@@ -193,20 +236,20 @@ public class ResourceMonitor implements IResourceMonitor, ApplicationContextAwar
 
 	public static JsonObject getFileSystemInfoJSObject() {
 		JsonObject jsonObject = new JsonObject();
-		jsonObject.addProperty("usableSpace", SystemUtils.osHDUsableSpace(null,"B", false));
-		jsonObject.addProperty("totalSpace", SystemUtils.osHDTotalSpace(null, "B", false));
-		jsonObject.addProperty("freeSpace", SystemUtils.osHDFreeSpace(null,  "B", false));
-		jsonObject.addProperty("inUseSpace", SystemUtils.osHDInUseSpace(null, "B", false));
+		jsonObject.addProperty(USABLE_SPACE, SystemUtils.osHDUsableSpace(null,"B", false));
+		jsonObject.addProperty(TOTAL_SPACE, SystemUtils.osHDTotalSpace(null, "B", false));
+		jsonObject.addProperty(FREE_SPACE, SystemUtils.osHDFreeSpace(null,  "B", false));
+		jsonObject.addProperty(IN_USE_SPACE, SystemUtils.osHDInUseSpace(null, "B", false));
 		return jsonObject;
 	}
 
 
-	private static JsonObject getGPUInfoJSObject(int deviceIndex) {
+	public static JsonObject getGPUInfoJSObject(int deviceIndex, GPUUtils gpuUtils) {
 		JsonObject jsonObject = new JsonObject();
 		jsonObject.addProperty(GPU_DEVICE_INDEX, deviceIndex);
-		jsonObject.addProperty(GPU_UTILIZATION, GPUUtils.getInstance().getGPUUtilization(deviceIndex));
-		jsonObject.addProperty(GPU_MEMORY_UTILIZATION, GPUUtils.getInstance().getMemoryUtilization(deviceIndex));
-		MemoryStatus memoryStatus = GPUUtils.getInstance().getMemoryStatus(deviceIndex);
+		jsonObject.addProperty(GPU_UTILIZATION, gpuUtils.getGPUUtilization(deviceIndex));
+		jsonObject.addProperty(GPU_MEMORY_UTILIZATION, gpuUtils.getMemoryUtilization(deviceIndex));
+		MemoryStatus memoryStatus = gpuUtils.getMemoryStatus(deviceIndex);
 		jsonObject.addProperty(GPU_MEMORY_TOTAL, memoryStatus.getMemoryTotal());
 		jsonObject.addProperty(GPU_MEMORY_FREE, memoryStatus.getMemoryFree());
 		jsonObject.addProperty(GPU_MEMORY_USED, memoryStatus.getMemoryUsed());
@@ -222,7 +265,7 @@ public class ResourceMonitor implements IResourceMonitor, ApplicationContextAwar
 		JsonArray jsonArray = new JsonArray();
 		if (deviceCount > 0) {
 			for (int i=0; i < deviceCount; i++) {
-				jsonArray.add(getGPUInfoJSObject(i));
+				jsonArray.add(getGPUInfoJSObject(i, GPUUtils.getInstance()));
 			}
 		}
 		return jsonArray;
@@ -230,41 +273,41 @@ public class ResourceMonitor implements IResourceMonitor, ApplicationContextAwar
 
 	public static JsonObject getCPUInfoJSObject() {
 		JsonObject jsonObject = new JsonObject();
-		jsonObject.addProperty("processCPUTime", SystemUtils.getProcessCpuTime());
-		jsonObject.addProperty("systemCPULoad", SystemUtils.getSystemCpuLoad());
-		jsonObject.addProperty("processCPULoad", SystemUtils.getProcessCpuLoad());
+		jsonObject.addProperty(PROCESS_CPU_TIME, SystemUtils.getProcessCpuTime());
+		jsonObject.addProperty(SYSTEM_CPU_LOAD, SystemUtils.getSystemCpuLoad());
+		jsonObject.addProperty(PROCESS_CPU_LOAD, SystemUtils.getProcessCpuLoad());
 		return jsonObject;
 	}
 
 	public static JsonObject getJVMMemoryInfoJSObject() {
 		JsonObject jsonObject = new JsonObject();
 
-		jsonObject.addProperty("maxMemory", SystemUtils.jvmMaxMemory("B", false));
-		jsonObject.addProperty("totalMemory", SystemUtils.jvmTotalMemory("B", false));
-		jsonObject.addProperty("freeMemory", SystemUtils.jvmFreeMemory("B", false));
-		jsonObject.addProperty("inUseMemory", SystemUtils.jvmInUseMemory("B", false));
+		jsonObject.addProperty(MAX_MEMORY, SystemUtils.jvmMaxMemory("B", false));
+		jsonObject.addProperty(TOTAL_MEMORY, SystemUtils.jvmTotalMemory("B", false));
+		jsonObject.addProperty(FREE_MEMORY, SystemUtils.jvmFreeMemory("B", false));
+		jsonObject.addProperty(IN_USE_MEMORY, SystemUtils.jvmInUseMemory("B", false));
 		return jsonObject;
 	}
 
 	public static JsonObject getSystemInfoJSObject() {
 		JsonObject jsonObject = new JsonObject();
-		jsonObject.addProperty("osName", SystemUtils.osName);
-		jsonObject.addProperty("osArch", SystemUtils.osArch);
-		jsonObject.addProperty("javaVersion", SystemUtils.jvmVersion);
-		jsonObject.addProperty("processorCount", SystemUtils.osProcessorX);
+		jsonObject.addProperty(OS_NAME, SystemUtils.osName);
+		jsonObject.addProperty(OS_ARCH, SystemUtils.osArch);
+		jsonObject.addProperty(JAVA_VERSION, SystemUtils.jvmVersion);
+		jsonObject.addProperty(PROCESSOR_COUNT, SystemUtils.osProcessorX);
 		return jsonObject;
 	}
 
 	public static JsonObject getSysteMemoryInfoJSObject() {
 		JsonObject jsonObject = new JsonObject();
 
-		jsonObject.addProperty("virtualMemory", SystemUtils.osCommittedVirtualMemory("B", false));
-		jsonObject.addProperty("totalMemory", SystemUtils.osTotalPhysicalMemory("B", false));
-		jsonObject.addProperty("freeMemory", SystemUtils.osFreePhysicalMemory("B", false));
-		jsonObject.addProperty("inUseMemory", SystemUtils.osInUsePhysicalMemory("B", false));
-		jsonObject.addProperty("totalSwapSpace", SystemUtils.osTotalSwapSpace("B", false));
-		jsonObject.addProperty("freeSwapSpace", SystemUtils.osFreeSwapSpace("B", false));
-		jsonObject.addProperty("inUseSwapSpace", SystemUtils.osInUseSwapSpace("B", false));
+		jsonObject.addProperty(VIRTUAL_MEMORY, SystemUtils.osCommittedVirtualMemory("B", false));
+		jsonObject.addProperty(TOTAL_MEMORY, SystemUtils.osTotalPhysicalMemory("B", false));
+		jsonObject.addProperty(FREE_MEMORY, SystemUtils.osFreePhysicalMemory("B", false));
+		jsonObject.addProperty(IN_USE_MEMORY, SystemUtils.osInUsePhysicalMemory("B", false));
+		jsonObject.addProperty(TOTAL_SWAP_SPACE, SystemUtils.osTotalSwapSpace("B", false));
+		jsonObject.addProperty(FREE_SWAP_SPACE, SystemUtils.osFreeSwapSpace("B", false));
+		jsonObject.addProperty(IN_USE_SWAP_SPACE, SystemUtils.osInUseSwapSpace("B", false));
 		return jsonObject;
 	}
 
@@ -284,14 +327,16 @@ public class ResourceMonitor implements IResourceMonitor, ApplicationContextAwar
 		int localHlsViewers = 0;
 		int localWebRTCViewers = 0;
 		int localWebRTCStreams = 0;
-		for (Iterator<IScope> iterator = scopes.iterator(); iterator.hasNext();) { 
-			IScope scope = iterator.next();
-			localHlsViewers += getHLSViewers(scope);
+		if (scopes != null) {
+			for (Iterator<IScope> iterator = scopes.iterator(); iterator.hasNext();) { 
+				IScope scope = iterator.next();
+				localHlsViewers += getHLSViewers(scope);
 
-			if( scope.getContext().getApplicationContext().containsBean(IWebRTCAdaptor.BEAN_NAME)) {
-				IWebRTCAdaptor webrtcAdaptor = (IWebRTCAdaptor)scope.getContext().getApplicationContext().getBean(IWebRTCAdaptor.BEAN_NAME);
-				localWebRTCViewers += webrtcAdaptor.getNumberOfTotalViewers();
-				localWebRTCStreams += webrtcAdaptor.getNumberOfLiveStreams();
+				if( scope.getContext().getApplicationContext().containsBean(IWebRTCAdaptor.BEAN_NAME)) {
+					IWebRTCAdaptor webrtcAdaptor = (IWebRTCAdaptor)scope.getContext().getApplicationContext().getBean(IWebRTCAdaptor.BEAN_NAME);
+					localWebRTCViewers += webrtcAdaptor.getNumberOfTotalViewers();
+					localWebRTCStreams += webrtcAdaptor.getNumberOfLiveStreams();
+				}
 			}
 		}
 
@@ -319,7 +364,7 @@ public class ResourceMonitor implements IResourceMonitor, ApplicationContextAwar
 
 		jsonObject.addProperty(TIME, DateTimeFormatter.ISO_INSTANT.format(Instant.now()));
 
-		send2Kafka(jsonObject, instanceStatsTopicName); 
+		send2Kafka(jsonObject, INSTANCE_STATS_TOPIC_NAME); 
 
 	}
 
@@ -378,7 +423,15 @@ public class ResourceMonitor implements IResourceMonitor, ApplicationContextAwar
 
 
 	public void setCpuLimit(int cpuLimit) {
-		this.cpuLimit = cpuLimit;
+		if (cpuLimit > 100) {
+			this.cpuLimit = 100;
+		}
+		else if (cpuLimit < 10) {
+			this.cpuLimit = 10;
+		}
+		else {
+			this.cpuLimit = cpuLimit;
+		}
 	}
 
 	@Override
@@ -412,11 +465,19 @@ public class ResourceMonitor implements IResourceMonitor, ApplicationContextAwar
 		this.staticSendPeriod = staticSendPeriod;
 	}
 
+	public void setKafkaProducer(Producer<Long, String> kafkaProducer) {
+		this.kafkaProducer = kafkaProducer;
+	}
+
 	public String getKafkaBrokers() {
 		return kafkaBrokers;
 	}
 
 	public void setKafkaBrokers(String kafkaBrokers) {
 		this.kafkaBrokers = kafkaBrokers;
+	}
+
+	public void setScopes(ConcurrentLinkedQueue<IScope> scopes) {
+		this.scopes = scopes;
 	}
 }
