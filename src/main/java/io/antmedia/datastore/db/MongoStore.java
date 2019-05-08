@@ -50,6 +50,7 @@ public class MongoStore extends DataStore {
 	public MongoStore(String host, String username, String password, String dbName) {
 		morphia = new Morphia();
 		morphia.mapPackage("io.antmedia.datastore.db.types");
+		morphia.map(StreamInfo.class);
 
 		String uri = DBUtils.getMongoConnectionUri(host, username, password);
 
@@ -662,6 +663,29 @@ public class MongoStore extends DataStore {
 	
 	@Override
 	public void saveStreamInfo(StreamInfo streamInfo) {
+		Query<StreamInfo> query = datastore.createQuery(StreamInfo.class);
+		query.and(
+				query.criteria("host").equal(streamInfo.getHost()),
+				query.or(
+						query.criteria("videoPort").equal(streamInfo.getVideoPort()),
+						query.criteria("videoPort").equal(streamInfo.getAudioPort()),
+						query.criteria("audioPort").equal(streamInfo.getVideoPort()),
+						query.criteria("audioPort").equal(streamInfo.getAudioPort())
+						)
+				);
+
+
+		if(query.count() > 0) {
+			logger.error("{} port duplications are detected for host: {}, video port: {}, audio port:{}",
+					query.count(), streamInfo.getHost(), streamInfo.getVideoPort(), streamInfo.getAudioPort());
+
+			WriteResult res = datastore.delete(query);
+			if(res.getN() != query.count()) {
+				logger.error("Only {} stream info were deleted out of {} having duplicated port.", res.getN(), query.count());
+			}
+
+		}
+
 		datastore.save(streamInfo);
 	}
 
@@ -771,7 +795,7 @@ public class MongoStore extends DataStore {
 			logger.error("There are {} stream info adressing {} at start. They are deleted now.", count, ip);
 			WriteResult res = datastore.delete(querySI);
 			if(res.getN() != count) {
-				logger.error("Only {} stream info were deleted ou of {} streams.", res.getN(), count);
+				logger.error("Only {} stream info were deleted out of {} streams.", res.getN(), count);
 			}
 		}
 		
