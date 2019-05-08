@@ -73,4 +73,14 @@ public interface IWebRTCClient {
 	 * @return
 	 */
 	float getAudioFrameSentPeriod();
+	
+	/** 
+	 * @return the number of times video packet send called
+	 */
+	long getSendVideoPacketCallCount();
+	
+	/**
+	 * @return number of times audio packet send called
+	 */
+	long getSendAudioPacketCallCount();
 }

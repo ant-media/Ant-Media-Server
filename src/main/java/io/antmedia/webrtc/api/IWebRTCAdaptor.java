@@ -1,6 +1,7 @@
 package io.antmedia.webrtc.api;
 
 import java.util.List;
+import java.util.Set;
 
 import org.red5.server.api.scope.IScopeService;
 
@@ -66,5 +67,10 @@ public interface IWebRTCAdaptor extends IScopeService {
 	 * @return
 	 */
 	List<WebRTCClientStats> getWebRTCClientStats(String streamId);
+	
+	/**
+	 * Returns the stream id in the WebRTCAdaptor
+	 */
+	Set<String> getStreams();
 
 }
