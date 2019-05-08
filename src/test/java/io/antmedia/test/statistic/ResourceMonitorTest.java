@@ -65,7 +65,7 @@ public class ResourceMonitorTest {
 		assertTrue(jsObject.has(ResourceMonitor.SYSTEM_CPU_LOAD));
 		assertTrue(jsObject.has(ResourceMonitor.PROCESS_CPU_LOAD));
 		
-		assertTrue(jsObject.get(ResourceMonitor.SYSTEM_CPU_LOAD).getAsInt() < 100);
+		assertTrue(jsObject.get(ResourceMonitor.SYSTEM_CPU_LOAD).getAsInt() <= 100);
 		
 		
 		jsObject = ResourceMonitor.getJVMMemoryInfoJSObject();
