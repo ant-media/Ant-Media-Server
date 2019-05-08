@@ -10,6 +10,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.awaitility.Awaitility;
 import org.junit.Test;
+import org.red5.logging.Red5LoggerFactory;
 import org.red5.server.Launcher;
 import org.red5.server.scope.WebScope;
 import org.springframework.test.annotation.DirtiesContext;
@@ -66,7 +67,9 @@ public class LauncherUnitTest {
 	
 	@Test
 	public void testLogo() {
-		System.out.println("Ant Media Server \n "+ AsciiArt.LOGO);
+		Launcher launcher = new Launcher();
+		launcher.setLog(Red5LoggerFactory.getLogger(Launcher.class));
+		launcher.printLogo();
 	}
 
 

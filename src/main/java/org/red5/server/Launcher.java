@@ -90,7 +90,8 @@ public class Launcher {
 		// version info banner
 		String implementationVersion = AntMediaApplicationAdapter.class.getPackage().getImplementationVersion();
 		String type = BroadcastRestService.isEnterprise() ? "Enterprise" : "Community";
-		log.info("Ant Media Server {} {} \n {}", type, implementationVersion, AsciiArt.LOGO);
+		log.info("Ant Media Server {} {}", type, implementationVersion);
+		printLogo();
 		
 		if (log.isDebugEnabled()) {
 			log.debug("fmsVer: {}", Red5.getFMSVersion());
@@ -114,6 +115,11 @@ public class Launcher {
 		log.debug("Launcher exit");
 
 		notifyShutDown(implementationVersion, type);
+	}
+
+
+	public void printLogo() {
+		logger.info("\n {}", AsciiArt.LOGO);
 	}
 
 
