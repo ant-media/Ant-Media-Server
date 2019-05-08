@@ -70,6 +70,9 @@ public class LauncherUnitTest {
 		Launcher launcher = new Launcher();
 		launcher.setLog(Red5LoggerFactory.getLogger(Launcher.class));
 		launcher.printLogo();
+		
+		AsciiArt aa = new AsciiArt();
+		
 	}
 
 
