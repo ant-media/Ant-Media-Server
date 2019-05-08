@@ -47,9 +47,9 @@ public class DiskSizeControlTest {
 
 		when(diskSizeControl.getDiskSize()).thenReturn(diskSizeOver95);
 
-		diskSizeControl.startService();
+		diskSizeControl.serviceStarted();
 
-		verify(diskSizeControl,times(1)).startService();
+		verify(diskSizeControl,times(1)).serviceStarted();
 
 		verify(diskSizeControl,times(1)).diskUsageExceeded(anyString(), anyString());
 
@@ -61,9 +61,9 @@ public class DiskSizeControlTest {
 
 		when(diskSizeControl.getDiskSize()).thenReturn(diskSizeOver95);
 
-		diskSizeControl.startService();
+		diskSizeControl.serviceStarted();
 
-		verify(diskSizeControl,times(2)).startService();
+		verify(diskSizeControl,times(2)).serviceStarted();
 
 		verify(diskSizeControl,times(2)).diskUsageExceeded(anyString(), anyString());
 
@@ -75,9 +75,9 @@ public class DiskSizeControlTest {
 
 		when(diskSizeControl.getDiskSize()).thenReturn(diskSizeOver65);
 
-		diskSizeControl.startService();
+		diskSizeControl.serviceStarted();
 
-		verify(diskSizeControl,times(3)).startService();
+		verify(diskSizeControl,times(3)).serviceStarted();
 
 		verify(diskSizeControl,times(2)).diskUsageExceeded(anyString(), anyString());
 
@@ -89,9 +89,9 @@ public class DiskSizeControlTest {
 
 		when(diskSizeControl.getDiskSize()).thenReturn(diskSizeOver65);
 
-		diskSizeControl.startService();
+		diskSizeControl.serviceStarted();
 
-		verify(diskSizeControl,times(4)).startService();
+		verify(diskSizeControl,times(4)).serviceStarted();
 
 		verify(diskSizeControl,times(2)).diskUsageExceeded(anyString(), anyString());
 
@@ -103,9 +103,9 @@ public class DiskSizeControlTest {
 
 		when(diskSizeControl.getDiskSize()).thenReturn(diskSizeOver85);
 
-		diskSizeControl.startService();
+		diskSizeControl.serviceStarted();
 
-		verify(diskSizeControl,times(5)).startService();
+		verify(diskSizeControl,times(5)).serviceStarted();
 
 		verify(diskSizeControl,times(3)).diskUsageExceeded(anyString(), anyString());
 
@@ -117,9 +117,9 @@ public class DiskSizeControlTest {
 
 		when(diskSizeControl.getDiskSize()).thenReturn(diskSizeOver85);
 
-		diskSizeControl.startService();
+		diskSizeControl.serviceStarted();
 
-		verify(diskSizeControl,times(6)).startService();
+		verify(diskSizeControl,times(6)).serviceStarted();
 
 		verify(diskSizeControl,times(4)).diskUsageExceeded(anyString(), anyString());
 
@@ -131,9 +131,9 @@ public class DiskSizeControlTest {
 
 		when(diskSizeControl.getDiskSize()).thenReturn(diskSizeOver75);
 
-		diskSizeControl.startService();
+		diskSizeControl.serviceStarted();
 
-		verify(diskSizeControl,times(7)).startService();
+		verify(diskSizeControl,times(7)).serviceStarted();
 
 		verify(diskSizeControl,times(5)).diskUsageExceeded(anyString(), anyString());
 
@@ -145,9 +145,9 @@ public class DiskSizeControlTest {
 
 		when(diskSizeControl.getDiskSize()).thenReturn(diskSizeOver75);
 
-		diskSizeControl.startService();
+		diskSizeControl.serviceStarted();
 
-		verify(diskSizeControl,times(8)).startService();
+		verify(diskSizeControl,times(8)).serviceStarted();
 
 		verify(diskSizeControl,times(6)).diskUsageExceeded(anyString(), anyString());
 

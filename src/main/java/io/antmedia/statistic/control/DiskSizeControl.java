@@ -31,7 +31,7 @@ public class DiskSizeControl implements ApplicationContextAware{
 
 	private Vertx vertx;
 
-	private int checkdiskSizePeriod = 10000;
+	private int checkdiskSizePeriod = 3600000;
 
 
 
@@ -44,20 +44,26 @@ public class DiskSizeControl implements ApplicationContextAware{
 		logger.info("emailSettings smtp port {}", emailSettings.getEmailSmtpPort());
 
 		vertx.setPeriodic(checkdiskSizePeriod, l -> {
-
-			diskSpacePercent = getDiskSize();
-
-			if(diskSpacePercent>10) {	
-				diskUsageExceeded("Disk Usage Over %90 - Ant Media Server","Disk Usage Over %90 - Ant Media Server \n\n The system will disable enablemMp4 Recording Setting in Applications.");
-			}
-			else if(diskSpacePercent>80) {
-				diskUsageExceeded("Disk Usage Over %80 - Ant Media Server","%80 above your Disk Size");
-			}
-			else if(diskSpacePercent>70) {
-				diskUsageExceeded("Disk Usage Over %70 - Ant Media Server","%70 above your Disk Size");
-			}
+			
+			serviceStarted();	
 
 		});
+	}
+	
+	public void serviceStarted(){
+		
+		diskSpacePercent = getDiskSize();
+
+		if(diskSpacePercent>90) {	
+			diskUsageExceeded("Disk Usage Over %90 - Ant Media Server","Disk Usage Over %90 - Ant Media Server \n\n The system will disable enablemMp4 Recording Setting in Applications.");
+		}
+		else if(diskSpacePercent>80) {
+			diskUsageExceeded("Disk Usage Over %80 - Ant Media Server","%80 above your Disk Size");
+		}
+		else if(diskSpacePercent>70) {
+			diskUsageExceeded("Disk Usage Over %70 - Ant Media Server","%70 above your Disk Size");
+		}
+		
 	}
 
 	public void diskUsageExceeded(String textSubject, String textMessage) {
