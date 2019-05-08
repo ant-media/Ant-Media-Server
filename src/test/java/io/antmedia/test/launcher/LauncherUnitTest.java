@@ -16,6 +16,8 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
 
+import io.antmedia.AsciiArt;
+
 
 @ContextConfiguration(locations = { "test.xml" })
 @DirtiesContext(classMode = ClassMode.AFTER_CLASS)
@@ -60,6 +62,11 @@ public class LauncherUnitTest {
 				return launcher.startHeartBeats("version", "type", 1000);
 			});
 
+	}
+	
+	@Test
+	public void testLogo() {
+		System.out.println("Ant Media Server \n "+ AsciiArt.LOGO);
 	}
 
 
