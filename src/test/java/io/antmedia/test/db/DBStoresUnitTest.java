@@ -1251,6 +1251,9 @@ public class DBStoresUnitTest {
 		StreamInfo si2 = new StreamInfo();
 		si2.setHost(DBUtils.getHostAddress());
 		si2.setStreamId(broadcast.getStreamId());
+		si2.setVideoPort(1000);
+		si2.setAudioPort(1100);
+
 
 		dataStore.saveStreamInfo(si2);
 
