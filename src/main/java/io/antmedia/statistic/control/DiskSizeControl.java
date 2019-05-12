@@ -25,13 +25,13 @@ public class DiskSizeControl implements ApplicationContextAware{
 
 	private EmailSettings emailSettings;
 
-	private static final long ONEDAY = 24*60*60*1000;
+	private static final int ONEDAY = 24*60*60*1000;
 
 	public static final String BEAN_NAME = "diskSizeControl";
 
 	private Vertx vertx;
 
-	private int checkdiskSizePeriod = 3600000;
+	private static final int CHECK_DISK_SIZE_PERIOD = 6*60*60*1000;
 
 
 
@@ -43,11 +43,9 @@ public class DiskSizeControl implements ApplicationContextAware{
 		logger.info("emailSettings smtp {}", emailSettings.getEmailSmtpHost());
 		logger.info("emailSettings smtp port {}", emailSettings.getEmailSmtpPort());
 
-		vertx.setPeriodic(checkdiskSizePeriod, l -> {
-			
-			serviceStarted();	
-
-		});
+		vertx.setPeriodic(CHECK_DISK_SIZE_PERIOD, l -> 
+			serviceStarted()
+		);
 	}
 	
 	public void serviceStarted(){

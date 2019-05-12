@@ -14,7 +14,6 @@ import javax.mail.internet.MimeMessage;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationContext;
 
 import io.antmedia.settings.EmailSettings;
 
@@ -29,9 +28,7 @@ public class Notification{
 
 	private static final String EMAIL_SMTP_TLS = "TLS";
 
-	private Session session;
-
-	public Properties prop;
+	private Properties prop;
 
 
 	public void sendEmail(String subjectMessage,String textMessage){
@@ -67,7 +64,7 @@ public class Notification{
 
 	public void callSendEmail(String subjectMessage, String textMessage) {
 
-		session = Session.getInstance(prop,
+		Session session = Session.getInstance(prop,
 				new Authenticator() {
 			@Override
 			protected PasswordAuthentication getPasswordAuthentication() {
@@ -106,17 +103,9 @@ public class Notification{
 				!emailSettings.getEmailSmtpHost().equals("") && !emailSettings.getEmailSmtpPort().equals("") &&
 				!emailSettings.getEmailSmtpEncryption().equals("")){
 			return true;
-
 		}
-		else {
-			return false;
-		}
-
-	}
-	
-	private EmailSettings getEmailSettings() {	
 		
-		return emailSettings;
+		return false;
 	}
 	
 	public void setEmailSettings(EmailSettings emailSettings) {
