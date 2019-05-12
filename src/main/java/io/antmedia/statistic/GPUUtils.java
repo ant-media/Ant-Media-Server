@@ -66,12 +66,16 @@ public class GPUUtils {
 					logger.info("cuda initialized {}", "");
 					noGPU = false;
 				}
+				else {
+					logger.warn("Nvml cannot be initialized {}", GPUUtils.class.getSimpleName());
+				}
 			}
 			catch (UnsatisfiedLinkError e) {
-				logger.info("no cuda installed {}", "");
+				logger.warn("UnsatisfiedLinkError no cuda installed {}", e.getMessage());
+				
 			} 
 			catch (ClassNotFoundException e) {
-				logger.info("nvml class not found {}", "");
+				logger.warn("ClassNotFoundException nvml class not found {}", e.getMessage());
 			}
 		}
 		return instance;

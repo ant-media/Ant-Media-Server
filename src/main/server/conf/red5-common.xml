@@ -223,7 +223,8 @@
    	</bean>
    	
    	<bean id="resourceMonitor" class="io.antmedia.statistic.ResourceMonitor" init-method="start">
-   		<property name="cpuLimit" value="100"/>
+   	   <property name="cpuLimit" value="${server.cpu_limit}"/>
+       <property name="kafkaBrokers" value="${server.kafka_brokers}" />
    	</bean>
     
 

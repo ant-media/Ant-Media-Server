@@ -14,11 +14,18 @@ public class WebRTCClientStatsTest {
 		int sendBitrate = (int)(Math.random() * 999999);
 		double videoFrameSendPeriod = (Math.random() * 9999);
 		double audioFrameSendPeriod = (Math.random() * 999999);
-		WebRTCClientStats clientStats = new WebRTCClientStats(measuredBitrate, sendBitrate, videoFrameSendPeriod, audioFrameSendPeriod);
+		int videoPacketCount = (int)(Math.random() * 999999);
+		int audioPacketCount = (int)(Math.random() * 999999);
+		int clientId = (int)(Math.random() * 999999);
+		WebRTCClientStats clientStats = new WebRTCClientStats(measuredBitrate, sendBitrate, videoFrameSendPeriod, audioFrameSendPeriod, 
+				videoPacketCount, audioPacketCount, clientId);
 	
 		assertEquals(measuredBitrate, clientStats.getMeasuredBitrate());
 		assertEquals(sendBitrate, clientStats.getSendBitrate());
 		assertEquals(videoFrameSendPeriod, clientStats.getVideoFrameSendPeriod(), 0.02);
 		assertEquals(audioFrameSendPeriod, clientStats.getAudioFrameSendPeriod(), 0.02);
+		assertEquals(videoPacketCount, clientStats.getVideoPacketCount());
+		assertEquals(audioPacketCount, clientStats.getAudioPacketCount());
+		assertEquals(clientId, clientStats.getClientId());
 	}
 }
