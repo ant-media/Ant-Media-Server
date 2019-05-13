@@ -39,9 +39,6 @@ public class DiskSizeControl implements ApplicationContextAware{
 	public void startService() {
 
 		emailSender.setEmailSettings(emailSettings);
-		logger.info("emailSettings user {}", emailSettings.getEmailUsername());
-		logger.info("emailSettings smtp {}", emailSettings.getEmailSmtpHost());
-		logger.info("emailSettings smtp port {}", emailSettings.getEmailSmtpPort());
 
 		vertx.setPeriodic(CHECK_DISK_SIZE_PERIOD, l -> 
 			serviceStarted()

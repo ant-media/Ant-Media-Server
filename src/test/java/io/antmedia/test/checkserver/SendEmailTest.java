@@ -1,13 +1,15 @@
 package io.antmedia.test.checkserver;
 
 import static org.mockito.Mockito.mock;
-
+import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import javax.mail.internet.AddressException;
 
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -45,45 +47,106 @@ public class SendEmailTest {
 
 		Notification emailSender = Mockito.spy(new Notification());
 		
-		EmailSettings emailSettings = mock(EmailSettings.class);
+		//test check email values is empty
 		
-		PreferenceStore store = mock(PreferenceStore.class);
+		emailSender.setEmailSettings(fillEmptyEmailSettings());
 		
-		//store.setFullPath(RED5_PROPERTIES);
+		assertEquals(false, emailSender.checkEmailValues());
 		
-		store.put(EMAIL_USERNAME, "");
+		// test check email values is full
 		
-		store.put(EMAIL_PASS, "");
+		emailSender.setEmailSettings(fillFullEmailSettings());
 		
-		store.put(EMAIL_SMTP_HOST, "");
+		assertEquals(true, emailSender.checkEmailValues());
 		
-		store.put(EMAIL_SMTP_PORT, "");
+		// test check email values is random full
 		
-		store.put(EMAIL_SMTP_ENCRYPTION, "");
+		emailSender.setEmailSettings(fillRandomEmailSettings());
 		
-	//	when(emailSender.store).thenReturn(store);
+		assertEquals(false, emailSender.checkEmailValues());
 		
-		// empty Email Settings
+		// get back default fulled values
 		
-		//when(emailSender.emailSettings).thenReturn(emailSettings);
+		emailSender.setEmailSettings(fillFullEmailSettings());
 		
-		//verify(emailSender,times(1)).checkEmailValues();
+		assertEquals(true, emailSender.checkEmailValues());
+		
+		// test Configs
+		
+		emailSender.sendEmail("test Subject", "test Content");
+
+		verify(emailSender,never()).addSSLConfigs();
+		
+		verify(emailSender,never()).addTLSConfigs();
+		
+		verify(emailSender,times(1)).callSendEmail(anyString(), anyString());
+		
+		//doTh(emailSender.callSendEmail(anyString(), anyString())).thenThrow(AddressException.class);
 		
 		
-		//filled Email Settings
 		
-		//when(emailSender.emailSettings).thenReturn(emptyEmailSettings());
+		// SSL Configs check
+		
+		emailSender.emailSettings.setEmailSmtpEncryption("SSL");
+		
+		emailSender.sendEmail("test Subject", "test Content");
+		
+		verify(emailSender,times(1)).addSSLConfigs();
+		
+		verify(emailSender,times(2)).callSendEmail(anyString(), anyString());
+		
+		// TLS Configs check
+		
+		emailSender.emailSettings.setEmailSmtpEncryption("TLS");
+		
+		emailSender.sendEmail("test Subject", "test Content");
+		
+		verify(emailSender,times(1)).addTLSConfigs();
+		
+		verify(emailSender,times(3)).callSendEmail(anyString(), anyString());
 		
 		
 		
 	}
 	
-	private EmailSettings emptyEmailSettings(){
+	private EmailSettings fillEmptyEmailSettings(){
 		
 		emailSettings = new EmailSettings();
 		
+		emailSettings.setEmailPassword("");
+		emailSettings.setEmailSmtpEncryption("");
+		emailSettings.setEmailSmtpHost("");
+		emailSettings.setEmailSmtpPort("");
+		emailSettings.setEmailUsername("");
+		
 		return emailSettings;
 	}
+	
+private EmailSettings fillFullEmailSettings(){
+		
+		emailSettings = new EmailSettings();
+		
+		emailSettings.setEmailPassword("test1");
+		emailSettings.setEmailSmtpEncryption("test1");
+		emailSettings.setEmailSmtpHost("test1");
+		emailSettings.setEmailSmtpPort("test1");
+		emailSettings.setEmailUsername("test1");
+		
+		return emailSettings;
+	}
+
+private EmailSettings fillRandomEmailSettings(){
+	
+		emailSettings = new EmailSettings();
+	
+		emailSettings.setEmailPassword("");
+		emailSettings.setEmailSmtpEncryption("");
+		emailSettings.setEmailSmtpHost("test1");
+		emailSettings.setEmailSmtpPort("test1");
+		emailSettings.setEmailUsername("test1");
+	
+		return emailSettings;
+}
 
 
 }
