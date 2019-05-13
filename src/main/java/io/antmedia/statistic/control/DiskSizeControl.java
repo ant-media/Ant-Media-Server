@@ -102,7 +102,7 @@ public class DiskSizeControl implements ApplicationContextAware{
 	}
 
 	@Override
-	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+	public void setApplicationContext(ApplicationContext applicationContext) {
 
 		if (applicationContext.containsBean("red5.common")) 
 		{

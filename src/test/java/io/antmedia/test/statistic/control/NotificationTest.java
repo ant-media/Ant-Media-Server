@@ -14,9 +14,9 @@ import org.slf4j.LoggerFactory;
 import io.antmedia.settings.EmailSettings;
 import io.antmedia.statistic.control.Notification;
 
-public class SendEmailTest {
+public class NotificationTest {
 
-	protected static Logger logger = LoggerFactory.getLogger(SendEmailTest.class);
+	protected static Logger logger = LoggerFactory.getLogger(NotificationTest.class);
 
 	private EmailSettings emailSettings;
 
@@ -61,7 +61,7 @@ public class SendEmailTest {
 
 		// SSL Configs check
 
-		emailSender.emailSettings.setEmailSmtpEncryption("SSL");
+		emailSender.getEmailSettings().setEmailSmtpEncryption("SSL");
 
 		emailSender.sendEmail("test Subject", "test Content");
 
@@ -71,7 +71,7 @@ public class SendEmailTest {
 
 		// TLS Configs check
 
-		emailSender.emailSettings.setEmailSmtpEncryption("TLS");
+		emailSender.getEmailSettings().setEmailSmtpEncryption("TLS");
 
 		emailSender.sendEmail("test Subject", "test Content");
 

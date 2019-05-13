@@ -22,7 +22,7 @@ public class Notification{
 
 	protected static Logger logger = LoggerFactory.getLogger(Notification.class);
 
-	public EmailSettings emailSettings;
+	private EmailSettings emailSettings;
 
 	private static final String EMAIL_SMTP_SSL_UPPERCASE = "SSL";
 	
@@ -132,6 +132,10 @@ public class Notification{
 	
 	public void setEmailSettings(EmailSettings emailSettings) {
 		this.emailSettings = emailSettings;
+	}
+	
+	public EmailSettings getEmailSettings() {
+		return emailSettings;
 	}
 
 }
