@@ -1,4 +1,4 @@
-package io.antmedia.test.checkserver;
+package io.antmedia.test.statistic.control;
 
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -17,7 +17,7 @@ import io.antmedia.statistic.control.Notification;
 
 
 public class DiskSizeControlTest {
-
+	
 	private int diskSizeOver95 = 95;
 
 	private int diskSizeOver85 = 85;
