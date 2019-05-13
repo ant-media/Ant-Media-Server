@@ -13,6 +13,10 @@ public class AMSShutdownManager {
 		return instance;
 	}
 	
+	//make a private constructor for singleton instance
+	private AMSShutdownManager() {
+	}
+	
 	public void subscribe(IShutdownListener listener) {
 		listeners.add(listener);
 	}
