@@ -142,7 +142,7 @@ public class StreamFetcher {
 
 			result.setMessage(errorStr);		
 
-			logger.debug("cannot open input context with error:: {}",  result.getMessage());
+			logger.error("cannot open stream: {} with error:: {}",  stream.getStreamUrl(), result.getMessage());
 			return result;
 		}
 
@@ -150,9 +150,8 @@ public class StreamFetcher {
 
 		ret = avformat_find_stream_info(inputFormatContext, (AVDictionary) null);
 		if (ret < 0) {
-
 			result.setMessage("Could not find stream information\n");
-			logger.info(result.getMessage());
+			logger.error(result.getMessage());
 			return result;
 		}
 
@@ -202,6 +201,7 @@ public class StreamFetcher {
 			try {
 				inputFormatContext = new AVFormatContext(null); 
 				pkt = avcodec.av_packet_alloc();
+				logger.info("Preparing the StreamFetcher for {}", stream.getStreamUrl());
 				Result result = prepare(inputFormatContext);
 
 
@@ -212,7 +212,6 @@ public class StreamFetcher {
 						logger.debug(" codec: {}", inputFormatContext.streams(0).codecpar().codec_id());
 
 					}
-
 					muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null,true, scope);
 					// if there is only audio, firstKeyFrameReceivedChecked should be true in advance
 					// because there is no video frame
@@ -324,11 +323,14 @@ public class StreamFetcher {
 
 					}
 					else {
-						logger.debug("Prepare for {} returned false", stream.getName());
+						logger.error("MuxAdaptor.Prepare for {} returned false", stream.getName());
 					}
 
 					setCameraError(result);
 				} 
+				else {
+					logger.error("Prepare for opening the {} has failed", stream.getStreamUrl());
+				}
 			}
 			catch (OutOfMemoryError | Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));

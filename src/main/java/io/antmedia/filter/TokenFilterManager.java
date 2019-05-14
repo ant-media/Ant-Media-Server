@@ -50,7 +50,7 @@ public class TokenFilterManager implements javax.servlet.Filter   {
 		String clientIP = httpRequest.getRemoteAddr();
 
 
-		logger.info("Client IP: {}, request url:  {}, token:  {}, sessionId: {},streamId:  {} ",clientIP 
+		logger.debug("Client IP: {}, request url:  {}, token:  {}, sessionId: {},streamId:  {} ",clientIP 
 				,httpRequest.getRequestURI(), tokenId, sessionId, streamId);
 
 

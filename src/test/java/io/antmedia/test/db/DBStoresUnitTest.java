@@ -27,6 +27,8 @@ import org.mongodb.morphia.query.Query;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
+import io.antmedia.cluster.StreamInfo;
+import io.antmedia.datastore.DBUtils;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
@@ -87,8 +89,7 @@ public class DBStoresUnitTest {
 		testWebRTCViewerCount(dataStore);
 		testRTMPViewerCount(dataStore);
 		testTokenOperations(dataStore);
-
-
+		testClearAtStart(dataStore);
 	}
 
 
@@ -115,6 +116,7 @@ public class DBStoresUnitTest {
 		testWebRTCViewerCount(dataStore);
 		testRTMPViewerCount(dataStore);
 		testTokenOperations(dataStore);
+		testClearAtStart(dataStore);
 
 	}
 
@@ -156,6 +158,8 @@ public class DBStoresUnitTest {
 		testWebRTCViewerCount(dataStore);
 		testRTMPViewerCount(dataStore);
 		testTokenOperations(dataStore);
+		testClearAtStart(dataStore);
+		testClearAtStartCluster(dataStore);
 
 	}
 
@@ -1131,31 +1135,31 @@ public class DBStoresUnitTest {
 
 
 	}
-	
+
 	@Test
 	public void testDontWriteStatsToDB () {
 		DataStore ds = createDB("memorydb", false);
 		assertTrue(ds instanceof InMemoryDataStore);	
 		testDontWriteStatsToDB(ds);
-		
+
 		ds = createDB("mapdb", false);
 		assertTrue(ds instanceof MapDBStore);	
 		testDontWriteStatsToDB(ds);
-		
+
 		ds = createDB("mongodb", false);
 		assertTrue(ds instanceof MongoStore);	
 		testDontWriteStatsToDB(ds);
-		
-		
+
+
 	}
-	
+
 	public void testDontWriteStatsToDB (DataStore dataStore) {
 		testDontUpdateRtmpViewerStats(dataStore);
 		testDontUpdateHLSViewerStats(dataStore);
 		testDontUpdateWebRTCViewerStats(dataStore);
 		testDontUpdateSourceQualityParameters(dataStore);
 	}
-	
+
 	public void testDontUpdateRtmpViewerStats(DataStore dataStore) {
 		Broadcast broadcast = new Broadcast();
 		broadcast.setName("test");
@@ -1164,7 +1168,7 @@ public class DBStoresUnitTest {
 		assertFalse(dataStore.updateRtmpViewerCount(key, true));
 		assertEquals(0, dataStore.get(key).getRtmpViewerCount());
 	}
-	
+
 	public void testDontUpdateHLSViewerStats(DataStore dataStore) {
 		Broadcast broadcast = new Broadcast();
 		broadcast.setName("test");
@@ -1173,7 +1177,7 @@ public class DBStoresUnitTest {
 		assertFalse(dataStore.updateHLSViewerCount(key, 1));
 		assertEquals(0, dataStore.get(key).getHlsViewerCount());
 	}
-	
+
 	public void testDontUpdateWebRTCViewerStats(DataStore dataStore) {
 		Broadcast broadcast = new Broadcast();
 		broadcast.setName("test");
@@ -1182,7 +1186,7 @@ public class DBStoresUnitTest {
 		assertFalse(dataStore.updateWebRTCViewerCount(key, true));
 		assertEquals(0, dataStore.get(key).getWebRTCViewerCount());
 	}
-	
+
 	public void testDontUpdateSourceQualityParameters(DataStore dataStore) {
 		Broadcast broadcast = new Broadcast();
 		broadcast.setName("test");
@@ -1204,4 +1208,128 @@ public class DBStoresUnitTest {
 		return dsf.getDataStore();
 	}
 
+	public void testClearAtStart(DataStore dataStore) {
+		dataStore.clearStreamsOnThisServer();
+		assertEquals(0, dataStore.getBroadcastCount());
+
+
+		Broadcast broadcast = new Broadcast();
+		broadcast.setName("test1");
+		dataStore.save(broadcast);
+
+		Broadcast broadcast2 = new Broadcast();
+		broadcast2.setName("test2");
+		dataStore.save(broadcast2);
+
+		assertEquals(2, dataStore.getBroadcastCount());
+
+		dataStore.clearStreamsOnThisServer();
+
+		assertEquals(0, dataStore.getBroadcastCount());
+	}
+
+	public void testClearAtStartCluster(DataStore dataStore) {
+		dataStore.clearStreamsOnThisServer();
+		assertEquals(0, dataStore.getBroadcastCount());
+
+		Broadcast broadcast = new Broadcast();
+		broadcast.setOriginAdress(DBUtils.getHostAddress());
+		broadcast.setName("test1");
+		try {
+			broadcast.setStreamId("test1");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		dataStore.save(broadcast);
+
+		StreamInfo si = new StreamInfo();
+		si.setHost(DBUtils.getHostAddress());
+		si.setStreamId(broadcast.getStreamId());
+
+		dataStore.saveStreamInfo(si);
+
+		StreamInfo si2 = new StreamInfo();
+		si2.setHost(DBUtils.getHostAddress());
+		si2.setStreamId(broadcast.getStreamId());
+		si2.setVideoPort(1000);
+		si2.setAudioPort(1100);
+
+
+		dataStore.saveStreamInfo(si2);
+
+		dataStore.getStreamInfoList(broadcast.getStreamId());
+
+		assertEquals(1, dataStore.getBroadcastCount());
+		assertEquals(2, dataStore.getStreamInfoList(broadcast.getStreamId()).size());
+
+		dataStore.clearStreamsOnThisServer();
+
+		assertEquals(0, dataStore.getBroadcastCount());
+		assertEquals(0, dataStore.getStreamInfoList(broadcast.getStreamId()).size());
+	}
+
+	@Test
+	public void testMongoDBSaveStreamInfo() {
+		MongoStore dataStore = new MongoStore("localhost", "", "", "testdb");
+		deleteStreamInfos(dataStore);
+		
+		//same ports different host => there will be 2 SIs
+		saveStreamInfo(dataStore, "host1", 1000, 2000, "host2", 1000, 2000);
+		assertEquals(2, dataStore.getDataStore().find(StreamInfo.class).count());
+		deleteStreamInfos(dataStore);
+		
+		//different ports same host => there will be 2 SIs
+		saveStreamInfo(dataStore, "host1", 1000, 2000, "host1", 1100, 2100);
+		assertEquals(2, dataStore.getDataStore().find(StreamInfo.class).count());
+		deleteStreamInfos(dataStore);
+		
+		//same video ports same host => first SI should be deleted
+		saveStreamInfo(dataStore, "host1", 1000, 2000, "host1", 1000, 2100);
+		assertEquals(1, dataStore.getDataStore().find(StreamInfo.class).count());
+		assertTrue(dataStore.getStreamInfoList("test1").isEmpty());
+		deleteStreamInfos(dataStore);
+		
+		//same audio ports same host => first SI should be deleted
+		saveStreamInfo(dataStore, "host1", 1000, 2000, "host1", 1100, 2000);
+		assertEquals(1, dataStore.getDataStore().find(StreamInfo.class).count());
+		assertTrue(dataStore.getStreamInfoList("test1").isEmpty());
+		deleteStreamInfos(dataStore);
+		
+		//first video port same with second audio port and same host => first SI should be deleted
+		saveStreamInfo(dataStore, "host1", 1000, 2000, "host1", 1100, 1000);
+		assertEquals(1, dataStore.getDataStore().find(StreamInfo.class).count());
+		assertTrue(dataStore.getStreamInfoList("test1").isEmpty());
+		deleteStreamInfos(dataStore);
+		
+		//first audio port same with second video port and same host => first SI should be deleted
+		saveStreamInfo(dataStore, "host1", 1000, 2000, "host1", 2000, 2100);
+		assertEquals(1, dataStore.getDataStore().find(StreamInfo.class).count());
+		assertTrue(dataStore.getStreamInfoList("test1").isEmpty());
+		deleteStreamInfos(dataStore);
+	}
+	
+	public void deleteStreamInfos(MongoStore dataStore) {
+		Query<StreamInfo> deleteQuery = dataStore.getDataStore().find(StreamInfo.class);
+		dataStore.getDataStore().delete(deleteQuery);
+	}
+
+	public void saveStreamInfo(DataStore dataStore, String host1, int videoPort1, int audioPort1,
+			String host2, int videoPort2, int audioPort2) {
+
+		StreamInfo si = new StreamInfo();
+		si.setHost(host1);
+		si.setVideoPort(videoPort1);
+		si.setAudioPort(audioPort1);
+		si.setStreamId("test1");
+		dataStore.saveStreamInfo(si);
+		
+		assertEquals(1, dataStore.getStreamInfoList("test1").size());
+
+		si = new StreamInfo();
+		si.setHost(host2);
+		si.setVideoPort(videoPort2);
+		si.setAudioPort(audioPort2);
+		si.setStreamId("test2");
+		dataStore.saveStreamInfo(si);
+	}
 }

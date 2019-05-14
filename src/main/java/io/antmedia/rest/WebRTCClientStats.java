@@ -18,11 +18,24 @@ public class WebRTCClientStats {
 	@ApiModelProperty(value = "the audio frame send period of the WebRTC Client")
 	private double audioFrameSendPeriod;
 
-	public WebRTCClientStats(int measuredBitrate, int sendBitrate, double videoFrameSendPeriod, double audioFrameSendPeriod) {
-		this.setMeasuredBitrate(measuredBitrate);
-		this.setSendBitrate(sendBitrate);
-		this.setVideoFrameSendPeriod(videoFrameSendPeriod);
-		this.setAudioFrameSendPeriod(audioFrameSendPeriod);
+	@ApiModelProperty(value = "WebRTC Client Id which is basically hash of the object")
+	private int clientId;
+
+	@ApiModelProperty(value = "Number of video packets sent")
+	private long videoPacketCount;
+
+	@ApiModelProperty(value = "Number of audio packets sent")
+	private long audioPacketCount;
+
+	public WebRTCClientStats(int measuredBitrate, int sendBitrate, double videoFrameSendPeriod, double audioFrameSendPeriod, 
+			long videoPacketCount, long audioPacketCount, int clientId) {
+		this.measuredBitrate = measuredBitrate;
+		this.sendBitrate = sendBitrate;
+		this.videoFrameSendPeriod = videoFrameSendPeriod;
+		this.audioFrameSendPeriod = audioFrameSendPeriod;
+		this.videoPacketCount = videoPacketCount;
+		this.audioPacketCount = audioPacketCount;
+		this.clientId = clientId;
 	}
 
 	public double getAudioFrameSendPeriod() {
@@ -55,6 +68,30 @@ public class WebRTCClientStats {
 
 	public void setMeasuredBitrate(int measuredBitrate) {
 		this.measuredBitrate = measuredBitrate;
+	}
+
+	public int getClientId() {
+		return clientId;
+	}
+
+	public void setClientId(int clientId) {
+		this.clientId = clientId;
+	}
+
+	public long getAudioPacketCount() {
+		return audioPacketCount;
+	}
+
+	public void setAudioPacketCount(long audioPacketCount) {
+		this.audioPacketCount = audioPacketCount;
+	}
+
+	public long getVideoPacketCount() {
+		return videoPacketCount;
+	}
+
+	public void setVideoPacketCount(long videoPacketCount) {
+		this.videoPacketCount = videoPacketCount;
 	}
 	
 }

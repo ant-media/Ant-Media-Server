@@ -149,6 +149,7 @@ public class BroadcastRestService extends RestServiceBase{
 	private ProcessBuilderFactory processBuilderFactory = null;
 
 	protected static Logger logger = LoggerFactory.getLogger(BroadcastRestService.class);
+	private static String hostaddress;
 
 
 	/**
@@ -244,7 +245,7 @@ public class BroadcastRestService extends RestServiceBase{
 
 	public static Broadcast saveBroadcast(Broadcast broadcast, String status, String scopeName, DataStore dataStore,
 			String settingsListenerHookURL, String fqdn) {
-
+		
 		if (broadcast == null) {
 			broadcast = new Broadcast();
 		}
@@ -260,21 +261,30 @@ public class BroadcastRestService extends RestServiceBase{
 		}
 
 		if (fqdn == null || fqdn.length() == 0) {
-			try {
-				fqdn = InetAddress.getLocalHost().getHostAddress();
-			} catch (UnknownHostException e) {
-				logger.error(ExceptionUtils.getStackTrace(e));
-			}
+			fqdn = getHostAddress(); 
 		}
 
 		if (fqdn != null && fqdn.length() >= 0) {
 			broadcast.setRtmpURL("rtmp://" + fqdn + "/" + scopeName + "/");
 		}
 
-
-
 		dataStore.save(broadcast);
 		return broadcast;
+	}
+
+	private static String getHostAddress() {
+		if (hostaddress == null) {
+			try {
+				/*
+				 * InetAddress.getLocalHost().getHostAddress() takes long time(5sec in macos) to return.
+				 * Let it is run once
+				 */
+				hostaddress = InetAddress.getLocalHost().getHostAddress();
+			} catch (UnknownHostException e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+		return hostaddress;
 	}
 
 	/**
@@ -337,25 +347,13 @@ public class BroadcastRestService extends RestServiceBase{
 	private boolean stopBroadcastInternal(Broadcast broadcast) {
 		boolean result = false;
 		if (broadcast != null) {
-
-			if (broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA)|| broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE)) {
-				result = getApplication().stopStreaming(broadcast).isSuccess();
-				logger.info("stop broadcast of extenal source(ip camera, remote) stream: {} is {} ", broadcast.getStreamId(), result);
-
-			} else if (broadcast.getType().equals(AntMediaApplicationAdapter.LIVE_STREAM)) {
-
-				IBroadcastStream broadcastStream = getApplication().getBroadcastStream(getScope(), broadcast.getStreamId());
-				if (broadcastStream != null) {
-					((IClientBroadcastStream) broadcastStream).getConnection().close();
-					result = true;
-					logger.warn("Broadcast stopped, id: {}", broadcast.getStreamId());	
-
-				} else {					
-					logger.error("No active broadcast found with id {}, so could not stopped", broadcast.getStreamId());
-				}
-
+			result = getApplication().stopStreaming(broadcast).isSuccess(); 
+			if (result) {
+				logger.info("broadcast is stopped streamId: {}", broadcast.getStreamId());
 			}
-
+			else {
+				logger.error("No active broadcast found with id {}, so could not stopped", broadcast.getStreamId());
+			}
 		}
 		return result;
 	}
@@ -830,11 +828,7 @@ public class BroadcastRestService extends RestServiceBase{
 
 			String fqdn = getAppSettings().getServerName();
 			if (fqdn == null || fqdn.length() == 0) {
-				try {
-					fqdn = InetAddress.getLocalHost().getHostAddress();
-				} catch (UnknownHostException e) {
-					logger.error(ExceptionUtils.getStackTrace(e));
-				}
+				fqdn = getHostAddress();
 			}
 
 			int number = 1;
@@ -963,11 +957,7 @@ public class BroadcastRestService extends RestServiceBase{
 
 				String fqdn = getAppSettings().getServerName();
 				if (fqdn == null || fqdn.length() == 0) {
-					try {
-						fqdn = InetAddress.getLocalHost().getHostAddress();
-					} catch (UnknownHostException e) {
-						logger.error(ExceptionUtils.getStackTrace(e));
-					}
+					fqdn = getHostAddress();
 				}
 
 				StringBuilder insertQueryString = new StringBuilder();

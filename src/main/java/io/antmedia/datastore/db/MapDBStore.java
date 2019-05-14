@@ -1043,4 +1043,12 @@ public class MapDBStore extends DataStore {
 	public void saveStreamInfo(StreamInfo streamInfo) {
 		//no need to implement this method, it is used in cluster mode
 	}
+	
+	@Override
+	public void clearStreamsOnThisServer() {
+		if(!map.isEmpty()) {
+			logger.error("There are {} streams at start. They are deleted now.", map.size());
+			map.clear();
+		}
+	}
 }

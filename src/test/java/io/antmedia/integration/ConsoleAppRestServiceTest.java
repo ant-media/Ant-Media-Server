@@ -41,7 +41,11 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.FixMethodOrder;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 import org.junit.runners.MethodSorters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -125,6 +129,20 @@ public class ConsoleAppRestServiceTest{
 		httpCookieStore = null;
 
 	}
+	
+	@Rule
+	public TestRule watcher = new TestWatcher() {
+		protected void starting(Description description) {
+			System.out.println("Starting test: " + description.getMethodName());
+		}
+
+		protected void failed(Throwable e, Description description) {
+			System.out.println("Failed test: " + description.getMethodName());
+		};
+		protected void finished(Description description) {
+			System.out.println("Finishing test: " + description.getMethodName());
+		};
+	};
 
 	public static Result createDefaultInitialUser() throws Exception {
 		User user = new User();
@@ -1642,7 +1660,7 @@ public class ConsoleAppRestServiceTest{
 
 		Licence tmp = null;
 
-		String url = ROOT_SERVICE_URL + "/getLicenceStatus/" + key;
+		String url = ROOT_SERVICE_URL + "/getLicenceStatus/?key=" + key;
 
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
 				.setDefaultCookieStore(httpCookieStore).build();
@@ -1654,7 +1672,7 @@ public class ConsoleAppRestServiceTest{
 
 		StringBuffer result = RestServiceTest.readResponse(response);
 
-		log.info("result string: " + result.toString());
+		log.info("callGetLicenceStatus result string: " + result.toString());
 		tmp = gson.fromJson(result.toString(), Licence.class);
 
 		return tmp;

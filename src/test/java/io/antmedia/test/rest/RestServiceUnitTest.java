@@ -102,7 +102,7 @@ public class RestServiceUnitTest {
 		when(settings.getStalkerDBServer()).thenReturn("192.168.1.29");
 		when(settings.getStalkerDBUsername()).thenReturn("stalker");
 		when(settings.getStalkerDBPassword()).thenReturn("1");
-		when(settings.getServerName()).thenReturn("localhost");
+		when(settings.getServerName()).thenReturn(null);
 
 		Scope scope = mock(Scope.class);
 		String scopeName = "scope";
@@ -286,7 +286,7 @@ public class RestServiceUnitTest {
 			int clientCount = (int)(Math.random()*999) + 70;
 			
 			for (int i = 0; i < clientCount; i++) {
-				statsList.add(new WebRTCClientStats(500, 400, 40, 20));
+				statsList.add(new WebRTCClientStats(500, 400, 40, 20, 0, 0, 0));
 			}
 			
 			Mockito.when(webrtcAdaptor.getWebRTCClientStats(Mockito.anyString())).thenReturn(statsList);
@@ -549,10 +549,22 @@ public class RestServiceUnitTest {
 		Broadcast broadcastTmp = restServiceReal.getBroadcast(createBroadcast.getStreamId());
 
 		assertEquals(hookURL, broadcastTmp.getListenerHookURL());
+		
+		
+		//this makes the test code enter getHostAddress method
+		when(settings.getServerName()).thenReturn(null);
+		
+		Broadcast broadcast2 = restServiceReal.createBroadcast(broadcast);
+		assertNotNull(broadcast2);
+		
+		//this case makes the test code get address from static field
+		broadcast2 = restServiceReal.createBroadcast(broadcast);
+		assertNotNull(broadcast2);
+		
 
 	}
-
-
+	
+	
 	@Test
 	public void testAddEndpoint() {
 		AppSettings settings = mock(AppSettings.class);
@@ -819,13 +831,13 @@ public class RestServiceUnitTest {
 		when(scope.getName()).thenReturn(scopeName);
 		restServiceReal.setScope(scope);
 
-		AntMediaApplicationAdapter appAdaptor = mock(AntMediaApplicationAdapter.class);
+		AntMediaApplicationAdapter appAdaptor = Mockito.spy(new AntMediaApplicationAdapter());
 		IClientBroadcastStream broadcastStream = mock(IClientBroadcastStream.class);
 		IStreamCapableConnection streamCapableConnection = mock(IStreamCapableConnection.class);
 
 		when(broadcastStream.getConnection()).thenReturn(streamCapableConnection);
-		when(appAdaptor.getBroadcastStream(Mockito.any(Scope.class), Mockito.any(String.class))).thenReturn(broadcastStream);
-
+		Mockito.doReturn(broadcastStream).when(appAdaptor).getBroadcastStream(Mockito.any(), Mockito.anyString());
+		
 		restServiceReal.setApplication(appAdaptor);
 
 		int streamCount = 15; 
@@ -1169,10 +1181,30 @@ public class RestServiceUnitTest {
 		Long total = restServiceReal.getObjectDetectedTotal(streamId);
 		
 		assertEquals(1, (int)(long)total);
-		
-		
-		
 	}
 
+	@Test
+	public void testStopLiveStream() {
+		BroadcastRestService restService = new BroadcastRestService();
+		AntMediaApplicationAdapter app = Mockito.spy(new AntMediaApplicationAdapter());
+		DataStore ds = Mockito.mock(DataStore.class);
+		String streamId = "test-stream";
+		
+		Broadcast broadcast = new Broadcast();
+		try {
+			broadcast.setStreamId(streamId);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		broadcast.setType(AntMediaApplicationAdapter.LIVE_STREAM);
+		
+		Mockito.doReturn(broadcast).when(ds).get(streamId);
+		restService.setDataStore(ds);
+		restService.setApplication(app);
+		
+		restService.stopBroadcast(streamId);
+		
+		Mockito.verify(app, Mockito.times(1)).getBroadcastStream(null, streamId);
+	}
 
 }

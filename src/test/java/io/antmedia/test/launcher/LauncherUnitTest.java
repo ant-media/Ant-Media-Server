@@ -10,11 +10,14 @@ import java.util.concurrent.TimeUnit;
 
 import org.awaitility.Awaitility;
 import org.junit.Test;
+import org.red5.logging.Red5LoggerFactory;
 import org.red5.server.Launcher;
 import org.red5.server.scope.WebScope;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
+
+import io.antmedia.AsciiArt;
 
 
 @ContextConfiguration(locations = { "test.xml" })
@@ -60,6 +63,16 @@ public class LauncherUnitTest {
 				return launcher.startHeartBeats("version", "type", 1000);
 			});
 
+	}
+	
+	@Test
+	public void testLogo() {
+		Launcher launcher = new Launcher();
+		launcher.setLog(Red5LoggerFactory.getLogger(Launcher.class));
+		launcher.printLogo();
+		
+		AsciiArt aa = new AsciiArt();
+		
 	}
 
 
