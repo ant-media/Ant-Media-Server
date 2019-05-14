@@ -44,7 +44,11 @@ public interface ILicenceService {
 	public void setServerSettings(ServerSettings serverSettings);
 
 	
-	
+	/**
+	 * Returns the last license status checked
+	 * @return
+	 */
+	public Licence getLastLicenseStatus();
 	
 	
 	
