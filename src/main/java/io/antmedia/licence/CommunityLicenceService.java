@@ -10,26 +10,19 @@ public class CommunityLicenceService implements ILicenceService{
 	}
 
 	public Licence checkLicence (String key) {
-
 		//no need to implement for Community Edition
-
 		return null;
 	}
 
 
 	public void setServerSettings(ServerSettings serverSettings) {
 		//no need to implement for Community Edition
-
 	}
 
-
-
-
-
-
-
-
-
-
+	@Override
+	public Licence getLastLicenseStatus() {
+		//no need to implement for Community Edition
+		return null;
+	}
 
 }
