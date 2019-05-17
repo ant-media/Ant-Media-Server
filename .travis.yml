@@ -101,6 +101,6 @@ deploy:
     on:
       #deploy to github if it is a release tagged
       tags: true
-      condition: $TRAVIS_TAG =~ ^release
+      condition: $TRAVIS_TAG =~ ^ams-v
       
 #above configuration prevents deploying a new release(not snapshot) if it is not tagged       
