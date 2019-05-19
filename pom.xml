@@ -583,6 +583,7 @@
                             </plugins>
                         </configuration>
                     </plugin>
+                    <!-- 
                     <plugin>
                         <groupId>org.owasp</groupId>
                         <artifactId>dependency-check-maven</artifactId>
@@ -594,6 +595,7 @@
                             </execution>
                         </executions>
                     </plugin>
+                     -->
                     <plugin>
                         <artifactId>maven-dependency-plugin</artifactId>
                         <version>2.10</version>

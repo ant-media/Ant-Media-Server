@@ -84,20 +84,20 @@ deploy:
       condition:  $(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)  = *"SNAPSHOT"* 
   
   - provider: script
-    script: "mvn deploy -P assemble -DskipTests --quiet --settings mvn-settings.xml"
+    script: "mvn deploy -P assemble -DskipTests --settings mvn-settings.xml"
     skip_cleanup: true
     on:
       #deploy to maven if it is a release tagged
       tags: true
       condition: $TRAVIS_TAG =~ ^ams-v 
   
-  - provider: script
-    script: "curl -g --ftp-create-dirs -T target/swagger/swagger.json -u $SWAGGER_FTP_USERNAME:$SWAGGER_FTP_PASSWORD $SWAGGER_FTP_URL/$RELEASE_VERSION/" 
-    skip_cleanup: true
-    on:
+  #- provider: script
+  #  script: "curl -g --ftp-create-dirs -T target/swagger/swagger.json -u $SWAGGER_FTP_USERNAME:$SWAGGER_FTP_PASSWORD $SWAGGER_FTP_URL/$RELEASE_VERSION/" 
+  #  skip_cleanup: true
+  #  on:
       #deploy to website if it is a release tagged
-      tags: true
-      condition: $TRAVIS_TAG =~ ^ams-v 
+  #    tags: true
+  #    condition: $TRAVIS_TAG =~ ^ams-v 
   
   - provider: releases
     api_key: $GITHUB_OAUTH_TOKEN
