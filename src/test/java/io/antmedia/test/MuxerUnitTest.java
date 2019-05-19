@@ -1,33 +1,23 @@
 package io.antmedia.test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FilenameFilter;
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import static org.bytedeco.javacpp.avcodec.AV_CODEC_ID_H264;
+import com.antstreaming.rtsp.PacketSenderRunnable;
+import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.AppSettings;
+import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.SocialEndpointCredentials;
+import io.antmedia.integration.AppFunctionalTest;
+import io.antmedia.integration.MuxingTest;
+import io.antmedia.muxer.HLSMuxer;
+import io.antmedia.muxer.Mp4Muxer;
+import io.antmedia.muxer.MuxAdaptor;
+import io.antmedia.muxer.Muxer;
+import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.tika.io.IOUtils;
 import org.awaitility.Awaitility;
 import org.bytedeco.javacpp.avformat;
 import org.bytedeco.javacpp.avutil;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
@@ -47,21 +37,20 @@ import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 
-import com.antstreaming.rtsp.PacketSenderRunnable;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FilenameFilter;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
-import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.AppSettings;
-import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.datastore.db.types.SocialEndpointCredentials;
-import io.antmedia.integration.AppFunctionalTest;
-import io.antmedia.integration.MuxingTest;
-import io.antmedia.integration.RestServiceTest;
+import static org.bytedeco.javacpp.avcodec.AV_CODEC_ID_H264;
+import static org.junit.Assert.*;
+
 //import io.antmedia.enterprise.adaptive.TransraterAdaptor;
-import io.antmedia.muxer.HLSMuxer;
-import io.antmedia.muxer.Mp4Muxer;
-import io.antmedia.muxer.MuxAdaptor;
-import io.antmedia.muxer.Muxer;
-import io.antmedia.social.endpoint.VideoServiceEndpoint;
 
 @ContextConfiguration(locations = { "test.xml" })
 //@ContextConfiguration(classes = {AppConfig.class})
@@ -1280,6 +1269,119 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 			appSettings = (AppSettings) applicationContext.getBean(AppSettings.BEAN_NAME);
 		}
 		return appSettings;
+	}
+
+	@Test
+	public void testRecording(){
+		testRecording("dasss",true);
+	}
+
+	public void testRecording(String name, boolean checkDuration){
+		logger.info("running testMp4Muxing");
+
+		if (appScope == null) {
+			appScope = (WebScope) applicationContext.getBean("web.scope");
+			logger.debug("Application / web scope: {}", appScope);
+			assertTrue(appScope.getDepth() == 1);
+		}
+
+		MuxAdaptor muxAdaptor =  MuxAdaptor.initializeMuxAdaptor(null, false, appScope);
+		getAppSettings().setMp4MuxingEnabled(false);
+		getAppSettings().setHlsMuxingEnabled(false);
+
+		logger.info("HLS muxing enabled {}", appSettings.isHlsMuxingEnabled());
+
+		//File file = new File(getResource("test.mp4").getFile());
+		File file = null;
+
+		try {
+
+			QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
+			assertNotNull(scheduler);
+
+			//by default, stream source job is scheduled
+			assertEquals(scheduler.getScheduledJobNames().size(), 1);
+
+			file = new File("target/test-classes/test.flv");
+
+			final FLVReader flvReader = new FLVReader(file);
+
+			logger.debug("f path:" + file.getAbsolutePath());
+			assertTrue(file.exists());
+
+			logger.info("1");
+			for (String jobName : scheduler.getScheduledJobNames()) {
+				logger.info("testMP4Muxing1 -- Scheduler job name {}", jobName);
+			}
+			boolean result = muxAdaptor.init(appScope, name, false);
+
+			assertTrue(result);
+
+
+			muxAdaptor.start();
+			logger.info("2");
+			int packetNumber = 0;
+			while (flvReader.hasMoreTags())
+			{
+
+				ITag readTag = flvReader.readTag();
+
+				StreamPacket streamPacket = new StreamPacket(readTag);
+				muxAdaptor.packetReceived(null, streamPacket);
+
+				if(packetNumber == 40000){
+					logger.info("6");
+
+					muxAdaptor.startRecording();
+
+					logger.info("7");
+				}
+				packetNumber++;
+
+				if(packetNumber % 1000 == 0){
+					logger.info("packetNumber "+packetNumber);
+				}
+			}
+
+			for (String jobName : scheduler.getScheduledJobNames()) {
+				logger.info("testMP4Muxing -- Scheduler job name {}", jobName);
+			}
+
+			//2 jobs in the scheduler one of them is the job streamFetcherManager and and the other one is
+			//job in MuxAdaptor
+			Awaitility.await().atMost(90, TimeUnit.SECONDS).until(()-> scheduler.getScheduledJobNames().size() == 2);
+			Awaitility.await().atMost(90, TimeUnit.SECONDS).until(()-> muxAdaptor.isRecording());
+
+			logger.info("9");
+			assertEquals(2, scheduler.getScheduledJobNames().size());
+			assertTrue(muxAdaptor.isRecording());
+			final String finalFilePath = muxAdaptor.getMuxerList().get(0).getFile().getAbsolutePath();
+
+
+			muxAdaptor.stopRecording();
+			muxAdaptor.stop();
+
+			flvReader.close();
+
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(()-> !muxAdaptor.isRecording());
+
+			assertFalse(muxAdaptor.isRecording());
+
+			// if there is listenerHookURL, a task will be scheduled, so wait a little to make the call happen
+			for (String jobName : scheduler.getScheduledJobNames()) {
+				logger.info("--Scheduler job name {}", jobName);
+			}
+
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(()-> scheduler.getScheduledJobNames().size() == 1);
+			assertEquals(1, scheduler.getScheduledJobNames().size());
+			assertTrue(MuxingTest.testFile(finalFilePath, 111130));
+
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			fail("exception:" + e );
+		}
+		logger.info("leaving testRecording");
 	}
 
 }
