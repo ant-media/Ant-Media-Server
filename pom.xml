@@ -2,7 +2,7 @@
     <parent>
         <groupId>io.antmedia</groupId>
         <artifactId>parent</artifactId>
-        <version>1.7.0</version>
+        <version>1.8.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>ant-media-server</artifactId>
@@ -583,7 +583,6 @@
                             </plugins>
                         </configuration>
                     </plugin>
-                    <!-- 
                     <plugin>
                         <groupId>org.owasp</groupId>
                         <artifactId>dependency-check-maven</artifactId>
@@ -595,7 +594,6 @@
                             </execution>
                         </executions>
                     </plugin>
-                     -->
                     <plugin>
                         <artifactId>maven-dependency-plugin</artifactId>
                         <version>2.10</version>
