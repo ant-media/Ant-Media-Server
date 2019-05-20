@@ -28,6 +28,22 @@ Ant Media Server is an open source media server that supports:
 
 ## Releases 
 
+### [Ant Media Server Community 1.7.0 (May 19, 2019)](https://github.com/ant-media/Ant-Media-Server/releases/download/ams-v1.7.0/ant-media-server-1.7.0-community-1.7.0-20190519_1506.zip)
+ * %40 Performance Improvement in WebRTC Streams [#1130](https://github.com/ant-media/Ant-Media-Server/issues/1130), [#1147](https://github.com/ant-media/Ant-Media-Server/issues/1147), [#1068](https://github.com/ant-media/Ant-Media-Server/issues/1068)
+ * View Logs on Web Panel [#100](https://github.com/ant-media/Ant-Media-Server/issues/100)
+ * Licence Control for Enterprise Edition [#762](https://github.com/ant-media/Ant-Media-Server/issues/762)
+ * Web Panel  Improvements [#1057](https://github.com/ant-media/Ant-Media-Server/issues/1057), [#1059](https://github.com/ant-media/Ant-Media-Server/issues/1059), [#1055](https://github.com/ant-media/Ant-Media-Server/issues/1055), [#437](https://github.com/ant-media/Ant-Media-Server/issues/437)
+ * REST API method to get all system stats [#907](https://github.com/ant-media/Ant-Media-Server/issues/907)
+ * Optimize Memory Operations in WebRTC native side [#971](https://github.com/ant-media/Ant-Media-Server/issues/971)
+ * Better error handling for stream fetching [#955](https://github.com/ant-media/Ant-Media-Server/issues/955)
+ * Enable/Disable stats update to data stores [#1131](https://github.com/ant-media/Ant-Media-Server/issues/1131)
+ * Built-in Apache Kafka Producer for monitoring nodes [#1164](https://github.com/ant-media/Ant-Media-Server/issues/1164)
+ * Reliability: Create unique host and port for cluster nodes [#1215](https://github.com/ant-media/Ant-Media-Server/issues/1215), [#1214](https://github.com/ant-media/Ant-Media-Server/issues/1214)
+ * Bug fix: MP4 rotation in SFU mode [#825](https://github.com/ant-media/Ant-Media-Server/issues/825)
+ * Bug fix: Sudden Connection Drop [#978](https://github.com/ant-media/Ant-Media-Server/issues/978)
+ * Bug fix: Cluster Edge-Origin Reconnect [#1106](https://github.com/ant-media/Ant-Media-Server/issues/1106)
+ * Bug fix: Stop WebRTC streams through REST Stop Method [#1160](https://github.com/ant-media/Ant-Media-Server/issues/1160)
+
  ### [Ant Media Server Community 1.6.2 (March 25, 2019)](https://github.com/ant-media/Ant-Media-Server/releases/download/release-1.6.2/ant-media-server-1.6.2-community-1.6.2-20190323_0616.zip)
 *   Rest Filtering based on IP Address [#361](https://github.com/ant-media/Ant-Media-Server/issues/361) [#360](https://github.com/ant-media/Ant-Media-Server/issues/360)
 *   Update embedded tomcat version to 8.5.38 [#520](https://github.com/ant-media/Ant-Media-Server/issues/520)
@@ -70,21 +86,6 @@ Ant Media Server is an open source media server that supports:
 *   Stop broadcast method does not support stopping streams in pulling mode [#661](https://github.com/ant-media/Ant-Media-Server/issues/661)
 *   HLS does not updated properly in SFU mode [#701](https://github.com/ant-media/Ant-Media-Server/issues/701)
 *   "Undefined" JS app request settings which causes exception [#698](https://github.com/ant-media/Ant-Media-Server/issues/698)
-
-
-
- #### [Ant Media Server Community 1.6.0 (Dec 17, 2018)](https://github.com/ant-media/Ant-Media-Server/releases/download/release-1.6.0/ant-media-server-community-1.6.0-181216_1551.zip)
-  * Update native codes to WebRTC v69
-  * Optimize native byte usage in Java side
-  * SFU Support (EE) in WebRTC (Forwarding stream without transcoding with low latency)
-  * MP4/HLS Recording in SFU
-  * RTMP Pushing in SFU
-  * Show WebRTC Viewers Stats on Dashboard
-  * Rest API Documentation
-  * Improved Webhook support
-  * Enable/Disable MP4 Recording on Stream basis via Rest API
-  * AVC compatibility
-  * Bug fixes
 
 
 Previous releases
