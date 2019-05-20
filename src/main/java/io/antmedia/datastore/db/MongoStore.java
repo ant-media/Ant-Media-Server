@@ -341,6 +341,16 @@ public class MongoStore implements IDataStore {
 	}
 
 	@Override
+	public List<Broadcast> filterBroadcastListByType(int offset, int size, String type, String value) {
+		try {
+			return datastore.find(Broadcast.class).field("type").equal(type).asList(new FindOptions().skip(offset).limit(size));
+		} catch (Exception e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+		}
+		return null;
+	}
+
+	@Override
 	public String addVod(VoD vod) {
 
 		String id = null;

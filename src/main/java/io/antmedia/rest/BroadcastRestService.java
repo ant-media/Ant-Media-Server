@@ -1176,6 +1176,14 @@ public class BroadcastRestService {
 		return getDataStore().filterBroadcastList(offset, size, type);
 	}
 
+	@GET
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/broadcast/filterListByType/{offset}/{size}/{type}/{value}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public List<Broadcast> filterBroadcastListByType(@PathParam("offset") int offset, @PathParam("size") int size,
+			@PathParam("type") String type, @PathParam("value") String value) {
+		return getDataStore().filterBroadcastListByType(offset, size, type);
+	}
 
 	@POST
 	@Consumes({ MediaType.APPLICATION_JSON })

@@ -275,6 +275,41 @@ public class InMemoryDataStore implements IDataStore {
 	}
 
 	@Override
+	public List<Broadcast> filterBroadcastListByType(int offset, int size, String type, String value) {
+		int t = 0;
+		int itemCount = 0;
+		if (size > MAX_ITEM_IN_ONE_LIST) {
+			size = MAX_ITEM_IN_ONE_LIST;
+		}
+		if (offset < 0) {
+			offset = 0;
+		}
+
+		Collection<Broadcast> values =broadcastMap.values();
+
+		List<Broadcast> list = new ArrayList();
+
+		for (Broadcast broadcast : values)
+		{
+			if(broadcast.getType().equals("ipCamera"))
+			{
+				if (t < offset) {
+					t++;
+					continue;
+				}
+				list.add(broadcast);
+
+				itemCount++;
+
+				if (itemCount >= size) {
+					break;
+				}
+			}
+		}
+		return list;
+	}
+
+	@Override
 	public String addVod(VoD vod) {
 		String id = null;
 		boolean result = false;
