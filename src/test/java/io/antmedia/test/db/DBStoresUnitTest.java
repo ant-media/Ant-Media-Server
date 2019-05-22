@@ -89,7 +89,6 @@ public class DBStoresUnitTest {
 		testWebRTCViewerCount(dataStore);
 		testRTMPViewerCount(dataStore);
 		testTokenOperations(dataStore);
-		testClearAtStart(dataStore);
 	}
 
 
@@ -116,7 +115,6 @@ public class DBStoresUnitTest {
 		testWebRTCViewerCount(dataStore);
 		testRTMPViewerCount(dataStore);
 		testTokenOperations(dataStore);
-		testClearAtStart(dataStore);
 
 	}
 
