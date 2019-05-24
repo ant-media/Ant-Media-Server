@@ -144,6 +144,7 @@ public class ResourceMonitor implements IResourceMonitor, ApplicationContextAwar
 	private int staticSendPeriod = 15000;
 	private int avgCpuUsage;
 	private int cpuLimit = 70;
+	private int ramLimit = 200;
 
 	private String kafkaBrokers = null;
 
@@ -395,6 +396,47 @@ public class ResourceMonitor implements IResourceMonitor, ApplicationContextAwar
 		avgCpuUsage = total/cpuMeasurements.size();
 	}
 
+
+	public boolean checkSystemResources(){
+
+		boolean systemResult = true;
+
+		int cpuLoad = getAvgCpuUsage();
+
+		int freeJvmRamValue = getFreeJvmRamValue();
+
+		int usingJvmRamValue = getTotalJvmRamValue();
+
+		logger.info("CPU Limit : {} Current CPU: {}", cpuLimit, cpuLoad);
+
+		logger.info("RAM Limit : {} Free RAM: {}", ramLimit, freeJvmRamValue);		
+
+		if(cpuLoad > cpuLimit) {
+			systemResult = false;
+			logger.error("Publishing can not be started due to high cpu load: {}", cpuLoad);
+			return systemResult;
+		}
+
+		else if (freeJvmRamValue < ramLimit) {
+			systemResult = false;
+			logger.error("Publishing can not be started due to high RAM usage: {}", usingJvmRamValue);
+			return systemResult;
+		}
+
+		return systemResult; 
+	}
+
+	public int getFreeJvmRamValue() {
+		return Integer.parseInt(SystemUtils.jvmFreeMemory("MB", false));
+	}
+
+	public int getTotalJvmRamValue() {
+		return Integer.parseInt(SystemUtils.jvmInUseMemory("MB", false));
+	}
+
+	public int getRamLimit() {
+		return ramLimit;
+	}
 
 	@Override
 	public int getAvgCpuUsage() {

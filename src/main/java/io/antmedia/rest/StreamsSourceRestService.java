@@ -39,6 +39,8 @@ import io.swagger.annotations.ApiParam;
 @Path("/streamSource")
 public class StreamsSourceRestService extends RestServiceBase{
 
+	private static final String HIGH_RESOURCE_USAGE = "current system resources not enough";
+
 	private static final String HTTP = "http://";
 	private static final String RTSP = "rtsp://";
 	public static final int HIGH_CPU_ERROR = -3;
@@ -66,17 +68,16 @@ public class StreamsSourceRestService extends RestServiceBase{
 		logger.info("username {}, ipAddr {}, streamURL {}, name: {}", stream.getUsername(),  stream.getIpAddr(), stream.getStreamUrl(), stream.getName());
 
 		IResourceMonitor monitor = (IResourceMonitor) getAppContext().getBean(IResourceMonitor.BEAN_NAME);
-		int cpuLoad = monitor.getAvgCpuUsage();
-		
-		logger.info("CPU Limit : {} Current CPU: {}", monitor.getCpuLimit(), cpuLoad);
-		
-		if(cpuLoad > monitor.getCpuLimit()) {
-			logger.error("Stream Fetcher can not be created due to high cpu load: {}", cpuLoad);
-			result.setMessage(String.valueOf(HIGH_CPU_ERROR));
+
+		boolean systemResult = monitor.checkSystemResources();
+
+		if(!systemResult) {
+			result.setMessage(HIGH_RESOURCE_USAGE);
 			return result;
-			
-		}else {
-			
+
+		}
+		else {
+
 			if (stream.getType().equals(AntMediaApplicationAdapter.IP_CAMERA)) {
 				result = addIPCamera(stream, socialEndpointIds);
 			}
@@ -140,7 +141,7 @@ public class StreamsSourceRestService extends RestServiceBase{
 					if (socialEndpointIds != null && socialEndpointIds.length()>0) {
 						addSocialEndpoints(newCam, socialEndpointIds);
 					}
-					
+
 					StreamFetcher streamFetcher = getApplication().startStreaming(newCam);
 					if (streamFetcher == null) {
 						getDataStore().delete(stream.getStreamId());
