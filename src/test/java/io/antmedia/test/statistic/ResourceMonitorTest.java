@@ -272,5 +272,40 @@ public class ResourceMonitorTest {
 		
 	}
 	
+	@Test
+	public void testCheckSystemResources() {
+		
+		ResourceMonitor monitor = Mockito.spy(new ResourceMonitor());
+		
+		//Cpu Limit = 70 & RAM Limit = 200 MB
+		
+		//check default values
+		
+		Mockito.when(monitor.getAvgCpuUsage()).thenReturn(10);
+		
+		Mockito.when(monitor.getFreeJvmRamValue()).thenReturn(500);
+		
+		assertEquals(true,monitor.checkSystemResources());
+		
+		//CPU value over 70
+		
+		Mockito.when(monitor.getAvgCpuUsage()).thenReturn(80);
+		
+		Mockito.when(monitor.getFreeJvmRamValue()).thenReturn(500);
+		
+		assertEquals(false,monitor.checkSystemResources());
+		
+		//RAM free value under 200
+		
+		Mockito.when(monitor.getAvgCpuUsage()).thenReturn(10);
+		
+		Mockito.when(monitor.getFreeJvmRamValue()).thenReturn(100);
+		
+		assertEquals(false,monitor.checkSystemResources());
+		
+		
+		
+		
+	}
 	
 }

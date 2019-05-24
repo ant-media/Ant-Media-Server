@@ -400,12 +400,14 @@ public class ResourceMonitor implements IResourceMonitor, ApplicationContextAwar
 	public boolean checkSystemResources(){
 
 		boolean systemResult = true;
+		
+		cpuLimit = getCpuLimit();
+		
+		ramLimit = getRamLimit();
 
 		int cpuLoad = getAvgCpuUsage();
 
 		int freeJvmRamValue = getFreeJvmRamValue();
-
-		int usingJvmRamValue = getTotalJvmRamValue();
 
 		logger.info("CPU Limit : {} Current CPU: {}", cpuLimit, cpuLoad);
 
@@ -419,7 +421,7 @@ public class ResourceMonitor implements IResourceMonitor, ApplicationContextAwar
 
 		else if (freeJvmRamValue < ramLimit) {
 			systemResult = false;
-			logger.error("Publishing can not be started due to high RAM usage: {}", usingJvmRamValue);
+			logger.error("Publishing can not be started due to free RAM not enough: {}", freeJvmRamValue);
 			return systemResult;
 		}
 
@@ -428,10 +430,6 @@ public class ResourceMonitor implements IResourceMonitor, ApplicationContextAwar
 
 	public int getFreeJvmRamValue() {
 		return Integer.parseInt(SystemUtils.jvmFreeMemory("MB", false));
-	}
-
-	public int getTotalJvmRamValue() {
-		return Integer.parseInt(SystemUtils.jvmInUseMemory("MB", false));
 	}
 
 	public int getRamLimit() {
