@@ -12,7 +12,9 @@ import java.net.URLClassLoader;
 import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.jar.Manifest;
@@ -45,6 +47,7 @@ import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointChannel;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
@@ -176,7 +179,7 @@ public class BroadcastRestService extends RestServiceBase{
 
 		return createBroadcastWithStreamID(broadcast);
 	}
-	
+
 	/**
 	 * Ant Media Server does not use this rest service by default. 
 	 * 
@@ -207,6 +210,87 @@ public class BroadcastRestService extends RestServiceBase{
 
 		return saveBroadcast(broadcast, AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, getScope().getName(),
 				getDataStore(), settingsListenerHookURL, fqdn);
+	}
+
+
+	/**
+	 * Creates a conference room with the parameters. 
+	 * The room name is key so if this is called with the same room name 
+	 * then new room is overwritten to old one.
+	 * 
+	 * @param room Conference Room object with start and end date
+	 * 
+	 * @return {@link io.antmedia.datastore.db.types.ConferenceRoom}
+	 * 
+	 */
+	@ApiOperation(value = "Creates a conference room with the parameters. The room name is key so if this is called with the same room name then new room is overwritten to old one", response = ConferenceRoom.class)
+	@POST
+	@Consumes({ MediaType.APPLICATION_JSON })
+	@Path("/broadcast/createConferenceRoom")
+	@Produces(MediaType.APPLICATION_JSON)
+	public ConferenceRoom createConferenceRoom(@ApiParam(value = "Conference Room object with start and end date", required = true) ConferenceRoom room) {
+
+		if(room != null) {
+
+			Calendar calendar = Calendar.getInstance();
+
+			if(room.getStartDate() == null) {
+				room.setStartDate(calendar.getTime().toString());
+			}
+
+			if(room.getEndDate() == null) {
+				calendar.add(Calendar.HOUR, 1);
+				room.setEndDate(calendar.getTime().toString());
+			}
+
+			if (getDataStore().createConferenceRoom(room)) {
+				return room;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Edits previously saved conference room
+	 * @param room Conference Room object with start and end date
+	 * 
+	 * @return {@link io.antmedia.datastore.db.types.ConferenceRoom}
+	 * 
+	 */
+	@ApiOperation(value = "Edits previously saved conference room", response = ConferenceRoom.class)
+	@POST
+	@Consumes({ MediaType.APPLICATION_JSON })
+	@Path("/broadcast/editConferenceRoom")
+	@Produces(MediaType.APPLICATION_JSON)
+	public ConferenceRoom editConferenceRoom(@ApiParam(value = "Conference Room object with start and end date", required = true) ConferenceRoom room) {
+
+		if(room != null) {
+
+			if (getDataStore().editConferenceRoom(room)) {
+				return room;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Deletes previously saved conference room 
+	 * @param roomName the name of the conference room
+	 * 
+	 * @return true if successfully deleted, false if not 
+	 * 
+	 */
+	@ApiOperation(value = "Creates a conference room with the parameters. The room name is key so if this is called with the same room name then new room is overwritten to old one", response = ConferenceRoom.class)
+	@POST
+	@Consumes({ MediaType.APPLICATION_JSON })
+	@Path("/broadcast/deleteConferenceRoom")
+	@Produces(MediaType.APPLICATION_JSON)
+	public boolean deleteConferenceRoom(@ApiParam(value = "the name of the conference room", required = true) @QueryParam("roomName") String roomName) {
+
+		if(roomName != null) {
+			return getDataStore().deleteConferenceRoom(roomName);
+		}
+		return false;
 	}
 
 
@@ -245,7 +329,7 @@ public class BroadcastRestService extends RestServiceBase{
 
 	public static Broadcast saveBroadcast(Broadcast broadcast, String status, String scopeName, DataStore dataStore,
 			String settingsListenerHookURL, String fqdn) {
-		
+
 		if (broadcast == null) {
 			broadcast = new Broadcast();
 		}
@@ -684,8 +768,7 @@ public class BroadcastRestService extends RestServiceBase{
 		}
 		return vod;
 	}
-
-
+	
 	/**
 	 * Get detected objects from the stream
 	 * 
@@ -1054,11 +1137,11 @@ public class BroadcastRestService extends RestServiceBase{
 	public Version getVersion() {
 		return getSoftwareVersion();
 	}
-	
+
 	public static Version getSoftwareVersion() {
 		Version version = new Version();
 		version.setVersionName(AntMediaApplicationAdapter.class.getPackage().getImplementationVersion());
-		
+
 		URLClassLoader cl = (URLClassLoader) AntMediaApplicationAdapter.class.getClassLoader();
 		URL url = cl.findResource("META-INF/MANIFEST.MF");
 		Manifest manifest;
@@ -1068,7 +1151,7 @@ public class BroadcastRestService extends RestServiceBase{
 		} catch (IOException e) {
 			//No need to implement
 		}
-		
+
 		version.setVersionType(BroadcastRestService.isEnterprise() ? ENTERPRISE_EDITION : COMMUNITY_EDITION);
 
 		logger.debug("Version Name {} Version Type {}", version.getVersionName(), version.getVersionType());
@@ -1125,7 +1208,7 @@ public class BroadcastRestService extends RestServiceBase{
 		if(streamId != null) {
 
 			ApplicationContext appContext = getAppContext();
-			
+
 			if(appContext != null && appContext.containsBean(ITokenService.BeanName.TOKEN_SERVICE.toString())) 
 			{
 				ITokenService tokenService = (ITokenService)appContext.getBean(ITokenService.BeanName.TOKEN_SERVICE.toString());
@@ -1868,7 +1951,7 @@ public class BroadcastRestService extends RestServiceBase{
 		}
 		return new Result(result, null);
 	}
-	
+
 
 	public static boolean isEnterprise() {
 		try {
