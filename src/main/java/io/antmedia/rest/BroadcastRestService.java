@@ -77,10 +77,10 @@ import io.swagger.annotations.SwaggerDefinition;
 @Api(value = "BroadcastRestService")
 @SwaggerDefinition(
 		info = @Info(
-				description = "Antmedia Rest Api Doc",
+				description = "Ant Media Server REST API Reference",
 				version = "V1.0",
-				title = "Antmedia Rest Api Doc",
-				contact = @Contact(name = "Antmedia Info", email = "contact@antmedia.io", url = "https://antmedia.io"),
+				title = "Ant Media Server REST API Reference",
+				contact = @Contact(name = "Ant Media Info", email = "contact@antmedia.io", url = "https://antmedia.io"),
 				license = @License(name = "Apache 2.0", url = "http://www.apache.org")),
 		consumes = {"application/json" },
 		produces = {"application/json" },
