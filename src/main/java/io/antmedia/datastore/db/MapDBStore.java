@@ -1046,9 +1046,6 @@ public class MapDBStore extends DataStore {
 	
 	@Override
 	public void clearStreamsOnThisServer() {
-		if(!map.isEmpty()) {
-			logger.error("There are {} streams at start. They are deleted now.", map.size());
-			map.clear();
-		}
+		//no need to implement for MapDB
 	}
 }
