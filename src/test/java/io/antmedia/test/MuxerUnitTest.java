@@ -18,11 +18,24 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import static org.bytedeco.javacpp.avcodec.AV_CODEC_ID_H264;
+import static org.bytedeco.javacpp.avformat.avformat_close_input;
+import static org.bytedeco.javacpp.avformat.avformat_find_stream_info;
+import static org.bytedeco.javacpp.avformat.avformat_open_input;
+import static org.bytedeco.javacpp.avutil.AVMEDIA_TYPE_AUDIO;
+import static org.bytedeco.javacpp.avutil.AVMEDIA_TYPE_VIDEO;
+import static org.bytedeco.javacpp.avutil.AV_PIX_FMT_NONE;
+
 import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.tika.io.IOUtils;
 import org.awaitility.Awaitility;
 import org.bytedeco.javacpp.avformat;
 import org.bytedeco.javacpp.avutil;
+import org.bytedeco.javacpp.annotation.Const;
+import org.bytedeco.javacpp.avcodec.AVCodecContext;
+import org.bytedeco.javacpp.avformat.AVFormatContext;
+import org.bytedeco.javacpp.avformat.AVStream;
+import org.bytedeco.javacpp.avutil.AVDictionary;
+import org.bytedeco.javacpp.avutil.AVDictionaryEntry;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -62,6 +75,9 @@ import io.antmedia.muxer.Mp4Muxer;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.Muxer;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
+
+import static org.bytedeco.javacpp.avutil.*;
+
 
 @ContextConfiguration(locations = { "test.xml" })
 //@ContextConfiguration(classes = {AppConfig.class})
@@ -1282,4 +1298,45 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 		return appSettings;
 	}
 
+	@Test
+	public void testRemux() 
+	{
+		String input = "target/test-classes/sample_MP4_480.mp4";
+		String rotated = "rotated.mp4"; 
+		
+		Mp4Muxer.remux(input, rotated, 90);
+		AVFormatContext inputFormatContext = avformat.avformat_alloc_context();
+
+		int ret;
+		if (inputFormatContext == null) {
+			System.out.println("cannot allocate input context");
+		}
+
+		if ((ret = avformat_open_input(inputFormatContext, rotated, null, (AVDictionary) null)) < 0) {
+			System.out.println("cannot open input context: " + rotated);
+		}
+
+		ret = avformat_find_stream_info(inputFormatContext, (AVDictionary) null);
+		if (ret < 0) {
+			System.out.println("Could not find stream information\n");
+		}
+
+		int streamCount = inputFormatContext.nb_streams();
+		
+		for (int i = 0; i < streamCount; i++) {
+			AVCodecContext codecContext = inputFormatContext.streams(i).codec();
+			if (codecContext.codec_type() == AVMEDIA_TYPE_VIDEO) {
+				AVStream videoStream = inputFormatContext.streams(i);
+				
+				AVDictionaryEntry entry = av_dict_get(videoStream.metadata(), "rotate", null, 0);
+				
+				assertEquals("90", entry.value().getString());
+			}
+		}
+		
+		avformat_close_input(inputFormatContext);
+		
+		new File(rotated).delete();
+		
+	}
 }
