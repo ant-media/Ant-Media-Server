@@ -11,10 +11,11 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.UnknownHostException;
 import java.nio.file.Files;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.jar.Manifest;
@@ -36,8 +37,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.red5.server.api.scope.IBroadcastScope;
-import org.red5.server.api.stream.IBroadcastStream;
-import org.red5.server.api.stream.IClientBroadcastStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -233,14 +232,16 @@ public class BroadcastRestService extends RestServiceBase{
 		if(room != null) {
 
 			Calendar calendar = Calendar.getInstance();
+			
+	        DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd hh:mm:ss");  			
 
 			if(room.getStartDate() == null) {
-				room.setStartDate(calendar.getTime().toString());
+				room.setStartDate(dateFormat.format(calendar.getTime()));
 			}
 
 			if(room.getEndDate() == null) {
 				calendar.add(Calendar.HOUR, 1);
-				room.setEndDate(calendar.getTime().toString());
+				room.setEndDate(dateFormat.format(calendar.getTime()));
 			}
 
 			if (getDataStore().createConferenceRoom(room)) {
