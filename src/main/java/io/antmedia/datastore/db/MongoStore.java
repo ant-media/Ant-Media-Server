@@ -675,13 +675,14 @@ public class MongoStore extends DataStore {
 				);
 
 
-		if(query.count() > 0) {
+		long count = query.count();
+		if(count > 0) {
 			logger.error("{} port duplications are detected for host: {}, video port: {}, audio port:{}",
-					query.count(), streamInfo.getHost(), streamInfo.getVideoPort(), streamInfo.getAudioPort());
+					count, streamInfo.getHost(), streamInfo.getVideoPort(), streamInfo.getAudioPort());
 
 			WriteResult res = datastore.delete(query);
-			if(res.getN() != query.count()) {
-				logger.error("Only {} stream info were deleted out of {} having duplicated port.", res.getN(), query.count());
+			if(res.getN() != count) {
+				logger.error("Only {} stream info were deleted out of {} having duplicated port.", res.getN(), count);
 			}
 
 		}
@@ -702,7 +703,12 @@ public class MongoStore extends DataStore {
 
 	public void clearStreamInfoList(String streamId) {
 		Query<StreamInfo> query = datastore.createQuery(StreamInfo.class).field("streamId").equal(streamId);
-		datastore.delete(query);
+		long count = query.count();
+		WriteResult res = datastore.delete(query);
+		
+		if(res.getN() != count) {
+			logger.error("{} StreamInfo were deleted out of {} for stream {}",res.getN(), count, streamId);
+		}
 	}
 	@Override
 	public boolean saveToken(Token token) {
