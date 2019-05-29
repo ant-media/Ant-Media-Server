@@ -25,6 +25,7 @@ import com.google.gson.reflect.TypeToken;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.cluster.StreamInfo;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.TensorFlowObject;
@@ -42,6 +43,8 @@ public class MapDBStore extends DataStore {
 	private BTreeMap<String, String> userVodMap;
 	private BTreeMap<String, String> socialEndpointsCredentialsMap;
 	private BTreeMap<String, String> tokenMap;
+	private BTreeMap<String, String> conferenceRoomMap;
+
 
 	private Gson gson;
 	protected static Logger logger = LoggerFactory.getLogger(MapDBStore.class);
@@ -51,6 +54,8 @@ public class MapDBStore extends DataStore {
 	private static final String USER_MAP_NAME = "USER_VOD";
 	private static final String TOKEN = "TOKEN";
 	private static final String SOCIAL_ENDPONT_CREDENTIALS_MAP_NAME = "SOCIAL_ENDPONT_CREDENTIALS_MAP_NAME";
+	private static final String CONFERENCE_ROOM_MAP_NAME = "CONFERENCE_ROOM";
+
 
 
 	public MapDBStore(String dbName) {
@@ -77,6 +82,9 @@ public class MapDBStore extends DataStore {
 				.counterEnable().createOrOpen();
 
 		tokenMap = db.treeMap(TOKEN).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
+				.counterEnable().createOrOpen();
+
+		conferenceRoomMap = db.treeMap(CONFERENCE_ROOM_MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
 				.counterEnable().createOrOpen();
 
 		GsonBuilder builder = new GsonBuilder();
@@ -886,16 +894,16 @@ public class MapDBStore extends DataStore {
 		}
 		return result;
 	}
-	
+
 	@Override
 	public void addStreamInfoList(List<StreamInfo> streamInfoList) {
 		//used in mongo for cluster mode. useless here.
 	}
-	
+
 	public List<StreamInfo> getStreamInfoList(String streamId) {
 		return new ArrayList<>();
 	}
-	
+
 	public void clearStreamInfoList(String streamId) {
 		//used in mongo for cluster mode. useless here.
 	}
@@ -1026,7 +1034,7 @@ public class MapDBStore extends DataStore {
 			if (streamId != null) {
 				String jsonString = map.get(streamId);
 				if (jsonString != null && (enabled == MuxAdaptor.MP4_ENABLED_FOR_STREAM || enabled == MuxAdaptor.MP4_NO_SET_FOR_STREAM || enabled == MuxAdaptor.MP4_DISABLED_FOR_STREAM)) {			
-					
+
 					Broadcast broadcast =  gson.fromJson(jsonString, Broadcast.class);	
 					broadcast.setMp4Enabled(enabled);
 					map.replace(streamId, gson.toJson(broadcast));
@@ -1038,14 +1046,64 @@ public class MapDBStore extends DataStore {
 		}
 		return result;
 	}
-	
+
 	@Override
 	public void saveStreamInfo(StreamInfo streamInfo) {
 		//no need to implement this method, it is used in cluster mode
 	}
-	
+
 	@Override
 	public void clearStreamsOnThisServer() {
 		//no need to implement for MapDB
+	}
+
+	@Override
+	public boolean createConferenceRoom(ConferenceRoom room) {
+		boolean result = false;
+
+		if (room != null && room.getRoomName() != null) {
+			conferenceRoomMap.put(room.getRoomName(), gson.toJson(room));
+			db.commit();
+			result = true;
+		}
+
+		return result;
+	}
+
+	@Override
+	public boolean editConferenceRoom(ConferenceRoom room) {
+		boolean result = false;
+
+		if (room != null && room.getRoomName() != null) {
+			conferenceRoomMap.replace(room.getRoomName(), gson.toJson(room));
+			db.commit();
+			result = true;
+		}
+		return result;
+	}
+
+	@Override
+	public boolean deleteConferenceRoom(String roomName) {
+		boolean result = false;
+
+		if (roomName != null && roomName.length() > 0 ) {
+			conferenceRoomMap.remove(roomName);
+			db.commit();
+			result = true;
+		}
+		return result;
+	}
+
+	@Override
+	public ConferenceRoom getConferenceRoom(String roomName) {
+		synchronized (this) {
+			if (roomName != null) {
+				String jsonString = conferenceRoomMap.get(roomName);
+				if (jsonString != null) {
+					return gson.fromJson(jsonString, ConferenceRoom.class);
+				}
+			}
+		}
+		return null;
 	}
 }

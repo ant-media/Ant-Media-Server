@@ -15,8 +15,12 @@ import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.tika.io.IOUtils;
 import org.awaitility.Awaitility;
+import org.bytedeco.javacpp.avcodec.AVCodecContext;
 import org.bytedeco.javacpp.avformat;
+import org.bytedeco.javacpp.avformat.*;
 import org.bytedeco.javacpp.avutil;
+import org.bytedeco.javacpp.avutil.AVDictionary;
+import org.bytedeco.javacpp.avutil.AVDictionaryEntry;
 import org.junit.*;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
@@ -48,1340 +52,1358 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static org.bytedeco.javacpp.avcodec.AV_CODEC_ID_H264;
+import static org.bytedeco.javacpp.avformat.*;
+import static org.bytedeco.javacpp.avutil.AVMEDIA_TYPE_VIDEO;
+import static org.bytedeco.javacpp.avutil.av_dict_get;
 import static org.junit.Assert.*;
 
-//import io.antmedia.enterprise.adaptive.TransraterAdaptor;
 
-@ContextConfiguration(locations = { "test.xml" })
+@ContextConfiguration(locations = {"test.xml"})
 //@ContextConfiguration(classes = {AppConfig.class})
 @DirtiesContext(classMode = ClassMode.AFTER_CLASS)
-public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
-
-	protected static Logger logger = LoggerFactory.getLogger(MuxerUnitTest.class);
-	protected static final int BUFFER_SIZE = 10240;
-
-	protected WebScope appScope;
-	private AppSettings appSettings;
-
-	static {
-		System.setProperty("red5.deployment.type", "junit");
-		System.setProperty("red5.root", ".");
-	}
-
-
-	@BeforeClass
-	public static void beforeClass() {
-		avformat.av_register_all();
-		avformat.avformat_network_init();
-		avutil.av_log_set_level(avutil.AV_LOG_INFO);
-	}
-
-	@Before
-	public void before() {
-		File webApps = new File("webapps");
-		if (!webApps.exists()) {
-			webApps.mkdirs();
-		}
-		File junit = new File(webApps, "junit");
-		if (!junit.exists()) {
-			junit.mkdirs();
-		}
-
-
-		//reset values in the bean
-		getAppSettings().resetDefaults();
-		getAppSettings().setAddDateTimeToMp4FileName(false);
-	}
-
-	@After
-	public void after() {
-
-		
-		try {
-			AppFunctionalTest.delete(new File("webapps"));
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		 
-
-		//reset values in the bean
-		getAppSettings().resetDefaults();
-		getAppSettings().setAddDateTimeToMp4FileName(false);
-	}
-
-	@Rule
-	public TestRule watcher = new TestWatcher() {
-		protected void starting(Description description) {
-			System.out.println("Starting test: " + description.getMethodName());
-		}
-
-		protected void failed(Throwable e, Description description) {
-			System.out.println("Failed test: " + description.getMethodName());
-		};
-		protected void finished(Description description) {
-			System.out.println("Finishing test: " + description.getMethodName());
-		};
-	};
-
-	public class StreamPacket implements IStreamPacket {
-
-		private ITag readTag;
-		private IoBuffer data;
+public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
+
+    protected static Logger logger = LoggerFactory.getLogger(MuxerUnitTest.class);
+    protected static final int BUFFER_SIZE = 10240;
 
-		public StreamPacket(ITag tag) {
-			readTag = tag;
-			data = readTag.getBody();
-		}
+    protected WebScope appScope;
+    private AppSettings appSettings;
 
-		@Override
-		public int getTimestamp() {
-			return readTag.getTimestamp();
-		}
+    static {
+        System.setProperty("red5.deployment.type", "junit");
+        System.setProperty("red5.root", ".");
+    }
 
-		@Override
-		public byte getDataType() {
-			return readTag.getDataType();
-		}
+
+    @BeforeClass
+    public static void beforeClass() {
+        avformat.av_register_all();
+        avformat.avformat_network_init();
+        avutil.av_log_set_level(avutil.AV_LOG_INFO);
+    }
 
-		@Override
-		public IoBuffer getData() {
-			return data;
-		}
+    @Before
+    public void before() {
+        File webApps = new File("webapps");
+        if (!webApps.exists()) {
+            webApps.mkdirs();
+        }
+        File junit = new File(webApps, "junit");
+        if (!junit.exists()) {
+            junit.mkdirs();
+        }
 
-		public void setData(IoBuffer data) {
-			this.data = data;
-		}
-	};
 
-	@Test
-	public void testMuxAdaptorEnableSettingsPreviewCreatePeriod() {
+        //reset values in the bean
+        getAppSettings().resetDefaults();
+        getAppSettings().setAddDateTimeToMp4FileName(false);
+    }
+
+    @After
+    public void after() {
 
-		if (appScope == null) {
-			appScope = (WebScope) applicationContext.getBean("web.scope");
-			logger.info("Application / web scope: {}", appScope);
-			assertTrue(appScope.getDepth() == 1);
-		}
 
-		MuxAdaptor muxAdaptor =  MuxAdaptor.initializeMuxAdaptor(null,false, appScope);
-		int createPreviewPeriod = (int)(Math.random()*10000);
-		assertNotEquals(0, createPreviewPeriod);
-		getAppSettings().setCreatePreviewPeriod(createPreviewPeriod);
+        try {
+            AppFunctionalTest.delete(new File("webapps"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
-		boolean result = muxAdaptor.init(appScope, "test", false);
-		assertTrue(result);
 
-		assertEquals(createPreviewPeriod, muxAdaptor.getPreviewCreatePeriod());
-	}
+        //reset values in the bean
+        getAppSettings().resetDefaults();
+        getAppSettings().setAddDateTimeToMp4FileName(false);
+    }
 
-	@Test
-	public void testMuxingSimultaneously()  {
+    @Rule
+    public TestRule watcher = new TestWatcher() {
+        protected void starting(Description description) {
+            System.out.println("Starting test: " + description.getMethodName());
+        }
 
-		if (appScope == null) {
-			appScope = (WebScope) applicationContext.getBean("web.scope");
-			logger.info("Application / web scope: {}", appScope);
-			assertTrue(appScope.getDepth() == 1);
-		}
+        protected void failed(Throwable e, Description description) {
+            System.out.println("Failed test: " + description.getMethodName());
+        }
 
-		getAppSettings().setMp4MuxingEnabled(true);
-		getAppSettings().setAddDateTimeToMp4FileName(false);
-		getAppSettings().setHlsMuxingEnabled(true);
-		getAppSettings().setDeleteHLSFilesOnEnded(false);
+        ;
 
-		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null,false, appScope);
+        protected void finished(Description description) {
+            System.out.println("Finishing test: " + description.getMethodName());
+        }
 
-		//this value should be -1. It means it is uninitialized
-		assertEquals( -1, muxAdaptor.getFirstPacketTime());
-		File file = null;
+        ;
+    };
 
-		try {
+    public class StreamPacket implements IStreamPacket {
 
-			QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
-			assertNotNull(scheduler);
-			logger.info("name    "+String.valueOf(scheduler.getJobName().toCharArray()));
+        private ITag readTag;
+        private IoBuffer data;
 
-			assertEquals(1, scheduler.getScheduledJobNames().size());
+        public StreamPacket(ITag tag) {
+            readTag = tag;
+            data = readTag.getBody();
+        }
 
-			file = new File("target/test-classes/test.flv"); //ResourceUtils.getFile(this.getClass().getResource("test.flv"));
-			final FLVReader flvReader = new FLVReader(file);
+        @Override
+        public int getTimestamp() {
+            return readTag.getTimestamp();
+        }
 
-			logger.debug("f path:" + file.getAbsolutePath());
-			assertTrue(file.exists());
+        @Override
+        public byte getDataType() {
+            return readTag.getDataType();
+        }
 
-			boolean result = muxAdaptor.init(appScope, "test", false);
-			assertTrue(result);
+        @Override
+        public IoBuffer getData() {
+            return data;
+        }
 
-			muxAdaptor.start();
+        public void setData(IoBuffer data) {
+            this.data = data;
+        }
+    }
 
-			while (flvReader.hasMoreTags()) 
-			{
-				ITag readTag = flvReader.readTag();
-				StreamPacket streamPacket = new StreamPacket(readTag);
-				muxAdaptor.packetReceived(null, streamPacket);
-			}
+    ;
 
-			assertTrue(muxAdaptor.isRecording());
+    @Test
+    public void testMuxAdaptorEnableSettingsPreviewCreatePeriod() {
 
-			muxAdaptor.stop();
+        if (appScope == null) {
+            appScope = (WebScope) applicationContext.getBean("web.scope");
+            logger.info("Application / web scope: {}", appScope);
+            assertTrue(appScope.getDepth() == 1);
+        }
 
-			flvReader.close();
+        MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null, false, appScope);
+        int createPreviewPeriod = (int) (Math.random() * 10000);
+        assertNotEquals(0, createPreviewPeriod);
+        getAppSettings().setCreatePreviewPeriod(createPreviewPeriod);
 
+        boolean result = muxAdaptor.init(appScope, "test", false);
+        assertTrue(result);
 
-			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(() -> !muxAdaptor.isRecording());
+        assertEquals(createPreviewPeriod, muxAdaptor.getPreviewCreatePeriod());
+    }
 
-			assertFalse(muxAdaptor.isRecording());
+    @Test
+    public void testMuxingSimultaneously() {
 
-			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
-				File f1 = new File(muxAdaptor.getMuxerList().get(0).getFile().getAbsolutePath());
-				File f2 = new File(muxAdaptor.getMuxerList().get(1).getFile().getAbsolutePath());
-				return f1.exists() && f2.exists();
-			});
+        if (appScope == null) {
+            appScope = (WebScope) applicationContext.getBean("web.scope");
+            logger.info("Application / web scope: {}", appScope);
+            assertTrue(appScope.getDepth() == 1);
+        }
 
+        getAppSettings().setMp4MuxingEnabled(true);
+        getAppSettings().setAddDateTimeToMp4FileName(false);
+        getAppSettings().setHlsMuxingEnabled(true);
+        getAppSettings().setDeleteHLSFilesOnEnded(false);
 
-			assertTrue(MuxingTest.testFile(muxAdaptor.getMuxerList().get(0).getFile().getAbsolutePath()));
-			assertTrue(MuxingTest.testFile(muxAdaptor.getMuxerList().get(1).getFile().getAbsolutePath()));
+        MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null, false, appScope);
 
-		}
-		catch (Exception e) {
-			fail("excsereption:" + e );
-		}
+        //this value should be -1. It means it is uninitialized
+        assertEquals(-1, muxAdaptor.getFirstPacketTime());
+        File file = null;
 
-	}
+        try {
 
+            QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
+            assertNotNull(scheduler);
+            logger.info("name    " + String.valueOf(scheduler.getJobName().toCharArray()));
 
-	@Test
-	public void testStressMp4Muxing() {
+            assertEquals(1, scheduler.getScheduledJobNames().size());
 
-		long startTime = System.nanoTime();
-		if (appScope == null) {
-			appScope = (WebScope) applicationContext.getBean("web.scope");
-			logger.debug("Application / web scope: {}", appScope);
-			assertTrue(appScope.getDepth() == 1);
-		}
+            file = new File("target/test-classes/test.flv"); //ResourceUtils.getFile(this.getClass().getResource("test.flv"));
+            final FLVReader flvReader = new FLVReader(file);
 
-		try {
+            logger.debug("f path:" + file.getAbsolutePath());
+            assertTrue(file.exists());
 
-			getAppSettings().setHlsMuxingEnabled(false);
-			getAppSettings().setMp4MuxingEnabled(true);;
-			getAppSettings().setAddDateTimeToMp4FileName(false);
+            boolean result = muxAdaptor.init(appScope, "test", false);
+            assertTrue(result);
 
-			List<MuxAdaptor> muxAdaptorList = new ArrayList<MuxAdaptor>();
-			for (int j = 0; j < 20; j++) {
-				MuxAdaptor muxAdaptor =  MuxAdaptor.initializeMuxAdaptor(null, false, appScope);
-				muxAdaptorList.add(muxAdaptor);
-			}
-			{
+            muxAdaptor.start();
 
-				File file = new File("src/test/resources/test.flv"); //ResourceUtils.getFile(this.getClass().getResource("test.flv"));
-				final FLVReader flvReader = new FLVReader(file);
+            while (flvReader.hasMoreTags()) {
+                ITag readTag = flvReader.readTag();
+                StreamPacket streamPacket = new StreamPacket(readTag);
+                muxAdaptor.packetReceived(null, streamPacket);
+            }
 
-				logger.debug("f path: " + file.getAbsolutePath());
-				assertTrue(file.exists());
+            assertTrue(muxAdaptor.isRecording());
 
-				for (Iterator<MuxAdaptor> iterator = muxAdaptorList.iterator(); iterator.hasNext();) {
-					MuxAdaptor muxAdaptor = (MuxAdaptor) iterator.next();
-					boolean result = muxAdaptor.init(appScope, "test" + (int)(Math.random() * 991000), false);
-					assertTrue(result);
-					muxAdaptor.start();
-					logger.info("Mux adaptor instance " + muxAdaptor);
-				}
+            muxAdaptor.stop();
 
+            flvReader.close();
 
-				while (flvReader.hasMoreTags()) 
-				{
-					ITag readTag = flvReader.readTag();
-					StreamPacket streamPacket = new StreamPacket(readTag);
-					for (MuxAdaptor muxAdaptor : muxAdaptorList) 
-					{
-						muxAdaptor.packetReceived(null, streamPacket);
-						streamPacket.getData().rewind();
-					}
 
-				}
+            Awaitility.await().atMost(20, TimeUnit.SECONDS).until(() -> !muxAdaptor.isRecording());
 
-				for (MuxAdaptor muxAdaptor : muxAdaptorList) {
-					Awaitility.await().atMost(50, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
-						return muxAdaptor.isRecording();
-					});
-				}
+            assertFalse(muxAdaptor.isRecording());
 
-				for (MuxAdaptor muxAdaptor : muxAdaptorList) {
-					muxAdaptor.stop();
-				}
+            Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+                File f1 = new File(muxAdaptor.getMuxerList().get(0).getFile().getAbsolutePath());
+                File f2 = new File(muxAdaptor.getMuxerList().get(1).getFile().getAbsolutePath());
+                return f1.exists() && f2.exists();
+            });
 
 
-				flvReader.close();
+            assertTrue(MuxingTest.testFile(muxAdaptor.getMuxerList().get(0).getFile().getAbsolutePath()));
+            assertTrue(MuxingTest.testFile(muxAdaptor.getMuxerList().get(1).getFile().getAbsolutePath()));
 
-				for (MuxAdaptor muxAdaptor : muxAdaptorList) {
-					Awaitility.await().atMost(50, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
-						return !muxAdaptor.isRecording();
-					});
-				}
+        } catch (Exception e) {
+            fail("excsereption:" + e);
+        }
 
+    }
 
-			}
 
-			//Thread.sleep(15000);
+    @Test
+    public void testStressMp4Muxing() {
 
-			int count = 0;
-			for (MuxAdaptor muxAdaptor : muxAdaptorList) {
-				List<Muxer> muxerList = muxAdaptor.getMuxerList();
-				for (Muxer abstractMuxer : muxerList) {
-					if (abstractMuxer instanceof Mp4Muxer) {
-						assertTrue(MuxingTest.testFile(abstractMuxer.getFile().getAbsolutePath(), 697000));
-						count++;
-					}
-				}
-			}
+        long startTime = System.nanoTime();
+        if (appScope == null) {
+            appScope = (WebScope) applicationContext.getBean("web.scope");
+            logger.debug("Application / web scope: {}", appScope);
+            assertTrue(appScope.getDepth() == 1);
+        }
 
-			assertEquals(muxAdaptorList.size(), count);
+        try {
 
-			long diff = (System.nanoTime() - startTime) / 1000000;
+            getAppSettings().setHlsMuxingEnabled(false);
+            getAppSettings().setMp4MuxingEnabled(true);
+            ;
+            getAppSettings().setAddDateTimeToMp4FileName(false);
 
-			System.out.println(" time diff: " + diff + " ms");
+            List<MuxAdaptor> muxAdaptorList = new ArrayList<MuxAdaptor>();
+            for (int j = 0; j < 20; j++) {
+                MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null, false, appScope);
+                muxAdaptorList.add(muxAdaptor);
+            }
+            {
 
-			QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
-			assertNotNull(scheduler);
+                File file = new File("src/test/resources/test.flv"); //ResourceUtils.getFile(this.getClass().getResource("test.flv"));
+                final FLVReader flvReader = new FLVReader(file);
 
-			//by default, stream fethcer
-			assertEquals(1, scheduler.getScheduledJobNames().size());
+                logger.debug("f path: " + file.getAbsolutePath());
+                assertTrue(file.exists());
 
+                for (Iterator<MuxAdaptor> iterator = muxAdaptorList.iterator(); iterator.hasNext(); ) {
+                    MuxAdaptor muxAdaptor = (MuxAdaptor) iterator.next();
+                    boolean result = muxAdaptor.init(appScope, "test" + (int) (Math.random() * 991000), false);
+                    assertTrue(result);
+                    muxAdaptor.start();
+                    logger.info("Mux adaptor instance " + muxAdaptor);
+                }
 
-		}
-		catch (Exception e) {
 
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
+                while (flvReader.hasMoreTags()) {
+                    ITag readTag = flvReader.readTag();
+                    StreamPacket streamPacket = new StreamPacket(readTag);
+                    for (MuxAdaptor muxAdaptor : muxAdaptorList) {
+                        muxAdaptor.packetReceived(null, streamPacket);
+                        streamPacket.getData().rewind();
+                    }
 
-		getAppSettings().setHlsMuxingEnabled(true);
+                }
 
-	}
+                for (MuxAdaptor muxAdaptor : muxAdaptorList) {
+                    Awaitility.await().atMost(50, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+                        return muxAdaptor.isRecording();
+                    });
+                }
 
-	@Test
-	public void testMp4MuxingWithWithMultipleDepth() {
-		File file = testMp4Muxing("test_test/test");
-		assertEquals("test.mp4", file.getName());
+                for (MuxAdaptor muxAdaptor : muxAdaptorList) {
+                    muxAdaptor.stop();
+                }
 
-		file = testMp4Muxing("dir1/dir2/file");
-		assertTrue(file.exists());
 
-		file = testMp4Muxing("dir1/dir2/dir3/file");
-		assertTrue(file.exists());
+                flvReader.close();
 
-		file = testMp4Muxing("dir1/dir2/dir3/dir4/file");
-		assertTrue(file.exists());
-	}
+                for (MuxAdaptor muxAdaptor : muxAdaptorList) {
+                    Awaitility.await().atMost(50, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+                        return !muxAdaptor.isRecording();
+                    });
+                }
 
 
+            }
 
+            //Thread.sleep(15000);
 
+            int count = 0;
+            for (MuxAdaptor muxAdaptor : muxAdaptorList) {
+                List<Muxer> muxerList = muxAdaptor.getMuxerList();
+                for (Muxer abstractMuxer : muxerList) {
+                    if (abstractMuxer instanceof Mp4Muxer) {
+                        assertTrue(MuxingTest.testFile(abstractMuxer.getFile().getAbsolutePath(), 697000));
+                        count++;
+                    }
+                }
+            }
 
+            assertEquals(muxAdaptorList.size(), count);
 
-	@Test
-	public void testMp4MuxingWithSameName() 
-	{
-		logger.info("running testMp4MuxingWithSameName");
+            long diff = (System.nanoTime() - startTime) / 1000000;
 
-		Application.resetFields();
+            System.out.println(" time diff: " + diff + " ms");
 
-		assertEquals(null, Application.id);
-		assertEquals(null, Application.file);
-		assertEquals(0, Application.duration);
+            QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
+            assertNotNull(scheduler);
 
-		File file = testMp4Muxing("test_test");
-		assertEquals("test_test.mp4", file.getName());
+            //by default, stream fethcer
+            assertEquals(1, scheduler.getScheduledJobNames().size());
 
-		assertEquals("test_test", Application.id);
-		assertEquals("test_test.mp4", Application.file.getName());
-		assertNotEquals(0L, Application.duration);
 
-		Application.resetFields();
+        } catch (Exception e) {
 
-		assertEquals(null, Application.id);
-		assertEquals(null, Application.file);
-		assertEquals(0, Application.duration);
+            e.printStackTrace();
+            fail(e.getMessage());
+        }
 
-		file = testMp4Muxing("test_test");
-		assertEquals("test_test_1.mp4", file.getName());
+        getAppSettings().setHlsMuxingEnabled(true);
 
-		assertEquals("test_test", Application.id);
-		assertEquals("test_test_1.mp4", Application.file.getName());
-		assertNotEquals(0L, Application.duration);
+    }
 
-		Application.resetFields();
+    @Test
+    public void testMp4MuxingWithWithMultipleDepth() {
+        File file = testMp4Muxing("test_test/test");
+        assertEquals("test.mp4", file.getName());
 
-		assertEquals(null, Application.id);
-		assertEquals(null, Application.file);
-		assertEquals(0, Application.duration);
+        file = testMp4Muxing("dir1/dir2/file");
+        assertTrue(file.exists());
 
-		file = testMp4Muxing("test_test");
-		assertEquals("test_test_2.mp4", file.getName());
+        file = testMp4Muxing("dir1/dir2/dir3/file");
+        assertTrue(file.exists());
 
-		assertEquals("test_test", Application.id);
-		assertEquals("test_test_2.mp4", Application.file.getName());
-		assertNotEquals(0L, Application.duration);
+        file = testMp4Muxing("dir1/dir2/dir3/dir4/file");
+        assertTrue(file.exists());
+    }
 
-		logger.info("leaving testMp4MuxingWithSameName");
-	}
 
+    @Test
+    public void testMp4MuxingWithSameName() {
+        logger.info("running testMp4MuxingWithSameName");
 
-	@Test
-	public void testBaseStreamFileServiceBug() {
-		MP4Service mp4Service = new MP4Service();
+        Application.resetFields();
 
-		String fileName = mp4Service.prepareFilename("mp4:1");
-		assertEquals("1.mp4", fileName);
+        assertEquals(null, Application.id);
+        assertEquals(null, Application.file);
+        assertEquals(0, Application.duration);
 
-		fileName = mp4Service.prepareFilename("mp4:12");
-		assertEquals("12.mp4", fileName);
+        File file = testMp4Muxing("test_test");
+        assertEquals("test_test.mp4", file.getName());
 
-		fileName = mp4Service.prepareFilename("mp4:123");
-		assertEquals("123.mp4", fileName);
+        assertEquals("test_test", Application.id);
+        assertEquals("test_test.mp4", Application.file.getName());
+        assertNotEquals(0L, Application.duration);
 
-		fileName = mp4Service.prepareFilename("mp4:1234");
-		assertEquals("1234.mp4", fileName);
+        Application.resetFields();
 
-		fileName = mp4Service.prepareFilename("mp4:12345");
-		assertEquals("12345.mp4", fileName);
+        assertEquals(null, Application.id);
+        assertEquals(null, Application.file);
+        assertEquals(0, Application.duration);
 
-		fileName = mp4Service.prepareFilename("mp4:123456");
-		assertEquals("123456.mp4", fileName);
+        file = testMp4Muxing("test_test");
+        assertEquals("test_test_1.mp4", file.getName());
 
-		fileName = mp4Service.prepareFilename("mp4:1.mp4");
-		assertEquals("1.mp4", fileName);
+        assertEquals("test_test", Application.id);
+        assertEquals("test_test_1.mp4", Application.file.getName());
+        assertNotEquals(0L, Application.duration);
 
-		fileName = mp4Service.prepareFilename("mp4:123456789.mp4");
-		assertEquals("123456789.mp4", fileName);
+        Application.resetFields();
 
-	}
+        assertEquals(null, Application.id);
+        assertEquals(null, Application.file);
+        assertEquals(0, Application.duration);
 
-	@Test
-	public void testVideoServiceEndpoint() {
-		AntMediaApplicationAdapter appAdaptor = (AntMediaApplicationAdapter) applicationContext.getBean("web.handler");
-		assertNotNull(appAdaptor);
+        file = testMp4Muxing("test_test");
+        assertEquals("test_test_2.mp4", file.getName());
 
-		VideoServiceEndpoint endpointService = Mockito.mock(VideoServiceEndpoint.class);
-		SocialEndpointCredentials credentials = Mockito.mock(SocialEndpointCredentials.class);
-		String id = "" + (Math.random()*10000);
-		Mockito.when(credentials.getId()).thenReturn(id);
+        assertEquals("test_test", Application.id);
+        assertEquals("test_test_2.mp4", Application.file.getName());
+        assertNotEquals(0L, Application.duration);
 
-		appAdaptor.getVideoServiceEndpoints().put(id, endpointService);
+        logger.info("leaving testMp4MuxingWithSameName");
+    }
 
-		Mockito.when(endpointService.getCredentials()).thenReturn(credentials);
 
-		String id2 = "" + (Math.random()*10000);
-		VideoServiceEndpoint endpointService2 = Mockito.mock(VideoServiceEndpoint.class);
-		SocialEndpointCredentials credentials2 = Mockito.mock(SocialEndpointCredentials.class);
-		Mockito.when(credentials2.getId()).thenReturn(id2);
-		Mockito.when(endpointService2.getCredentials()).thenReturn(credentials2);
+    @Test
+    public void testBaseStreamFileServiceBug() {
+        MP4Service mp4Service = new MP4Service();
 
-		appAdaptor.getVideoServiceEndpoints().put(id2, endpointService2);
+        String fileName = mp4Service.prepareFilename("mp4:1");
+        assertEquals("1.mp4", fileName);
 
-		VideoServiceEndpoint videoServiceEndPoint = appAdaptor.getVideoServiceEndPoint(id);
-		assertNotNull(videoServiceEndPoint);
-		assertEquals(endpointService, videoServiceEndPoint);
+        fileName = mp4Service.prepareFilename("mp4:12");
+        assertEquals("12.mp4", fileName);
 
-		videoServiceEndPoint = appAdaptor.getVideoServiceEndPoint(id2);
-		assertNotNull(videoServiceEndPoint);
-		assertEquals(endpointService2, videoServiceEndPoint);
+        fileName = mp4Service.prepareFilename("mp4:123");
+        assertEquals("123.mp4", fileName);
 
+        fileName = mp4Service.prepareFilename("mp4:1234");
+        assertEquals("1234.mp4", fileName);
 
-	}
+        fileName = mp4Service.prepareFilename("mp4:12345");
+        assertEquals("12345.mp4", fileName);
 
-	@Test
-	public void testMp4MuxingAndNotifyCallback() {
-		System.out.println("running testMp4MuxingAndNotifyCallback");
-		Application.resetFields();
-		assertEquals(null, Application.notifyHookAction);
-		assertEquals(null,Application.notitfyURL);
-		assertEquals(null, Application.notifyId);
-		assertEquals(null, Application.notifyStreamName);
-		assertEquals(null, Application.notifyCategory);
-		assertEquals(null, Application.notifyVodName);
+        fileName = mp4Service.prepareFilename("mp4:123456");
+        assertEquals("123456.mp4", fileName);
 
-		AntMediaApplicationAdapter appAdaptor = (AntMediaApplicationAdapter) applicationContext.getBean("web.handler");
-		assertNotNull(appAdaptor);
-		//just check below value that it is not null, this is not related to this case but it should be tested
-		assertNotNull(appAdaptor.getVideoServiceEndpoints());
-		String hookUrl = "hook_url";
-		String name = "namer123";
-		Broadcast broadcast = new Broadcast(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, name);
-		broadcast.setListenerHookURL(hookUrl);
-		String streamId = appAdaptor.getDataStore().save(broadcast);
+        fileName = mp4Service.prepareFilename("mp4:1.mp4");
+        assertEquals("1.mp4", fileName);
 
+        fileName = mp4Service.prepareFilename("mp4:123456789.mp4");
+        assertEquals("123456789.mp4", fileName);
 
-		testMp4Muxing(streamId, false, true);
+    }
 
+    @Test
+    public void testVideoServiceEndpoint() {
+        AntMediaApplicationAdapter appAdaptor = (AntMediaApplicationAdapter) applicationContext.getBean("web.handler");
+        assertNotNull(appAdaptor);
 
-		assertEquals(Application.id, streamId);
-		assertEquals(Application.file.getName(), streamId + ".mp4");
-		assertEquals(697132L, Application.duration);
+        VideoServiceEndpoint endpointService = Mockito.mock(VideoServiceEndpoint.class);
+        SocialEndpointCredentials credentials = Mockito.mock(SocialEndpointCredentials.class);
+        String id = "" + (Math.random() * 10000);
+        Mockito.when(credentials.getId()).thenReturn(id);
 
-		broadcast = appAdaptor.getDataStore().get(streamId);
-		//we do not save duration of the finished live streams
-		//assertEquals((long)broadcast.getDuration(), 697132L);
+        appAdaptor.getVideoServiceEndpoints().put(id, endpointService);
 
-		assertEquals(Application.HOOK_ACTION_VOD_READY, Application.notifyHookAction);
-		assertEquals(Application.notitfyURL, hookUrl);
-		assertEquals(Application.notifyId, streamId);
-		assertEquals(null, Application.notifyStreamName);
-		assertEquals(null, Application.notifyCategory);
-		assertEquals(Application.notifyVodName, streamId);
-		assertNotNull(Application.notifyVodId);
+        Mockito.when(endpointService.getCredentials()).thenReturn(credentials);
 
+        String id2 = "" + (Math.random() * 10000);
+        VideoServiceEndpoint endpointService2 = Mockito.mock(VideoServiceEndpoint.class);
+        SocialEndpointCredentials credentials2 = Mockito.mock(SocialEndpointCredentials.class);
+        Mockito.when(credentials2.getId()).thenReturn(id2);
+        Mockito.when(endpointService2.getCredentials()).thenReturn(credentials2);
 
+        appAdaptor.getVideoServiceEndpoints().put(id2, endpointService2);
 
-		Application.resetFields();
-		//test with same id again
-		testMp4Muxing(streamId, true, true);
+        VideoServiceEndpoint videoServiceEndPoint = appAdaptor.getVideoServiceEndPoint(id);
+        assertNotNull(videoServiceEndPoint);
+        assertEquals(endpointService, videoServiceEndPoint);
 
-		assertEquals(Application.id, streamId);
-		assertEquals(Application.file.getName(), streamId + "_1.mp4");
-		assertEquals(10080L, Application.duration);
+        videoServiceEndPoint = appAdaptor.getVideoServiceEndPoint(id2);
+        assertNotNull(videoServiceEndPoint);
+        assertEquals(endpointService2, videoServiceEndPoint);
 
-		broadcast = appAdaptor.getDataStore().get(streamId);
-		//we do not save duration of the finished live streams
-		//assertEquals((long)broadcast.getDuration(), 10080L);
 
-		assertEquals(Application.HOOK_ACTION_VOD_READY, Application.notifyHookAction);
-		assertEquals(Application.notitfyURL, hookUrl);
-		assertEquals(Application.notifyId, streamId);
-		assertEquals(null, Application.notifyStreamName);
-		assertEquals(null, Application.notifyCategory);
-		assertEquals(Application.notifyVodName, streamId + "_1"); //vod name must be changed
+    }
 
+    @Test
+    public void testMp4MuxingAndNotifyCallback() {
+        System.out.println("running testMp4MuxingAndNotifyCallback");
+        Application.resetFields();
+        assertEquals(null, Application.notifyHookAction);
+        assertEquals(null, Application.notitfyURL);
+        assertEquals(null, Application.notifyId);
+        assertEquals(null, Application.notifyStreamName);
+        assertEquals(null, Application.notifyCategory);
+        assertEquals(null, Application.notifyVodName);
 
-		System.out.println("leaving testMp4MuxingAndNotifyCallback");
-	}
+        AntMediaApplicationAdapter appAdaptor = (AntMediaApplicationAdapter) applicationContext.getBean("web.handler");
+        assertNotNull(appAdaptor);
+        //just check below value that it is not null, this is not related to this case but it should be tested
+        assertNotNull(appAdaptor.getVideoServiceEndpoints());
+        String hookUrl = "hook_url";
+        String name = "namer123";
+        Broadcast broadcast = new Broadcast(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, name);
+        broadcast.setListenerHookURL(hookUrl);
+        String streamId = appAdaptor.getDataStore().save(broadcast);
 
-	@Test
-	public void testMp4Muxing() {
-		testMp4Muxing("lkdlfkdlfkdlfk");
-	}
 
+        testMp4Muxing(streamId, false, true);
 
-	public File testMp4Muxing(String name) {
-		return testMp4Muxing(name, false, true);
-	}
 
+        assertEquals(Application.id, streamId);
+        assertEquals(Application.file.getName(), streamId + ".mp4");
+        assertEquals(697132L, Application.duration);
 
-	public File testMp4Muxing(String name, boolean shortVersion, boolean checkDuration) {
+        broadcast = appAdaptor.getDataStore().get(streamId);
+        //we do not save duration of the finished live streams
+        //assertEquals((long)broadcast.getDuration(), 697132L);
 
-		logger.info("running testMp4Muxing");
+        assertEquals(Application.HOOK_ACTION_VOD_READY, Application.notifyHookAction);
+        assertEquals(Application.notitfyURL, hookUrl);
+        assertEquals(Application.notifyId, streamId);
+        assertEquals(null, Application.notifyStreamName);
+        assertEquals(null, Application.notifyCategory);
+        assertEquals(Application.notifyVodName, streamId);
+        assertNotNull(Application.notifyVodId);
 
-		if (appScope == null) {
-			appScope = (WebScope) applicationContext.getBean("web.scope");
-			logger.debug("Application / web scope: {}", appScope);
-			assertTrue(appScope.getDepth() == 1);
-		}
 
-		MuxAdaptor muxAdaptor =  MuxAdaptor.initializeMuxAdaptor(null, false, appScope);
-		getAppSettings().setMp4MuxingEnabled(true);
-		getAppSettings().setHlsMuxingEnabled(false);
+        Application.resetFields();
+        //test with same id again
+        testMp4Muxing(streamId, true, true);
 
-		logger.info("HLS muxing enabled {}", appSettings.isHlsMuxingEnabled());
+        assertEquals(Application.id, streamId);
+        assertEquals(Application.file.getName(), streamId + "_1.mp4");
+        assertEquals(10080L, Application.duration);
 
-		//File file = new File(getResource("test.mp4").getFile());
-		File file = null;
+        broadcast = appAdaptor.getDataStore().get(streamId);
+        //we do not save duration of the finished live streams
+        //assertEquals((long)broadcast.getDuration(), 10080L);
 
-		try {
+        assertEquals(Application.HOOK_ACTION_VOD_READY, Application.notifyHookAction);
+        assertEquals(Application.notitfyURL, hookUrl);
+        assertEquals(Application.notifyId, streamId);
+        assertEquals(null, Application.notifyStreamName);
+        assertEquals(null, Application.notifyCategory);
+        assertEquals(Application.notifyVodName, streamId + "_1"); //vod name must be changed
 
-			QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
-			assertNotNull(scheduler);
 
-			//by default, stream source job is scheduled
-			assertEquals(scheduler.getScheduledJobNames().size(), 1);
+        System.out.println("leaving testMp4MuxingAndNotifyCallback");
+    }
 
-			if (shortVersion) {
-				file = new File("target/test-classes/test_short.flv"); //ResourceUtils.getFile(this.getClass().getResource("test.flv"));
-			}
-			else {
-				file = new File("target/test-classes/test.flv"); //ResourceUtils.getFile(this.getClass().getResource("test.flv"));
-			}
+    @Test
+    public void testMp4Muxing() {
+        testMp4Muxing("lkdlfkdlfkdlfk");
+    }
 
-			final FLVReader flvReader = new FLVReader(file);
 
-			logger.debug("f path:" + file.getAbsolutePath());
-			assertTrue(file.exists());
+    public File testMp4Muxing(String name) {
+        return testMp4Muxing(name, false, true);
+    }
 
-			boolean result = muxAdaptor.init(appScope, name, false);
 
-			assertTrue(result);
+    public File testMp4Muxing(String name, boolean shortVersion, boolean checkDuration) {
 
+        logger.info("running testMp4Muxing");
 
-			muxAdaptor.start();
+        if (appScope == null) {
+            appScope = (WebScope) applicationContext.getBean("web.scope");
+            logger.debug("Application / web scope: {}", appScope);
+            assertTrue(appScope.getDepth() == 1);
+        }
 
-			while (flvReader.hasMoreTags()) 
-			{
-				ITag readTag = flvReader.readTag();
-				StreamPacket streamPacket = new StreamPacket(readTag);
-				muxAdaptor.packetReceived(null, streamPacket);
+        MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null, false, appScope);
+        getAppSettings().setMp4MuxingEnabled(true);
+        getAppSettings().setHlsMuxingEnabled(false);
 
-			}
+        logger.info("HLS muxing enabled {}", appSettings.isHlsMuxingEnabled());
 
-			for (String jobName : scheduler.getScheduledJobNames()) {
-				logger.info("testMP4Muxing -- Scheduler job name {}", jobName);
-			}
+        //File file = new File(getResource("test.mp4").getFile());
+        File file = null;
 
-			//2 jobs in the scheduler one of them is the job streamFetcherManager and and the other one is 
-			//job in MuxAdaptor
-			Awaitility.await().atMost(90, TimeUnit.SECONDS).until(()-> scheduler.getScheduledJobNames().size() == 2);
-			Awaitility.await().atMost(90, TimeUnit.SECONDS).until(()-> muxAdaptor.isRecording());
+        try {
 
-			assertEquals(2, scheduler.getScheduledJobNames().size());
-			assertTrue(muxAdaptor.isRecording());
+            QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
+            assertNotNull(scheduler);
 
-			muxAdaptor.stop();
+            //by default, stream source job is scheduled
+            assertEquals(scheduler.getScheduledJobNames().size(), 1);
 
-			flvReader.close();
+            if (shortVersion) {
+                file = new File("target/test-classes/test_short.flv"); //ResourceUtils.getFile(this.getClass().getResource("test.flv"));
+            } else {
+                file = new File("target/test-classes/test.flv"); //ResourceUtils.getFile(this.getClass().getResource("test.flv"));
+            }
 
+            final FLVReader flvReader = new FLVReader(file);
 
-			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(()-> !muxAdaptor.isRecording());
+            logger.debug("f path:" + file.getAbsolutePath());
+            assertTrue(file.exists());
 
-			assertFalse(muxAdaptor.isRecording());
+            boolean result = muxAdaptor.init(appScope, name, false);
 
-			// if there is listenerHookURL, a task will be scheduled, so wait a little to make the call happen
-			for (String jobName : scheduler.getScheduledJobNames()) {
-				logger.info("--Scheduler job name {}", jobName);
-			}
+            assertTrue(result);
 
-			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(()-> scheduler.getScheduledJobNames().size() == 1);
-			assertEquals(1, scheduler.getScheduledJobNames().size());
-			int duration = 697000;
-			if (shortVersion) {
-				duration = 10080;
-			}
 
-			if (checkDuration) {
-				assertTrue(MuxingTest.testFile(muxAdaptor.getMuxerList().get(0).getFile().getAbsolutePath(), duration));
-			}
-			return muxAdaptor.getMuxerList().get(0).getFile();
-		}
-		catch (Exception e) {
-			e.printStackTrace();
-			fail("exception:" + e );
-		}
-		logger.info("leaving testMp4Muxing");
-		return null;
-	}
+            muxAdaptor.start();
 
-	@Test
-	public void testMp4MuxingSubtitledVideo() {
-		getAppSettings().setMp4MuxingEnabled(true);
-		getAppSettings().setAddDateTimeToMp4FileName(true);
-		getAppSettings().setHlsMuxingEnabled(true);
-		getAppSettings().setDeleteHLSFilesOnEnded(false);
+            while (flvReader.hasMoreTags()) {
+                ITag readTag = flvReader.readTag();
+                StreamPacket streamPacket = new StreamPacket(readTag);
+                muxAdaptor.packetReceived(null, streamPacket);
 
+            }
 
+            for (String jobName : scheduler.getScheduledJobNames()) {
+                logger.info("testMP4Muxing -- Scheduler job name {}", jobName);
+            }
 
-		if (appScope == null) {
-			appScope = (WebScope) applicationContext.getBean("web.scope");
-			logger.debug("Application / web scope: {}", appScope);
-			assertTrue(appScope.getDepth() == 1);
-		}
+            //2 jobs in the scheduler one of them is the job streamFetcherManager and and the other one is
+            //job in MuxAdaptor
+            Awaitility.await().atMost(90, TimeUnit.SECONDS).until(() -> scheduler.getScheduledJobNames().size() == 2);
+            Awaitility.await().atMost(90, TimeUnit.SECONDS).until(() -> muxAdaptor.isRecording());
 
-		MuxAdaptor muxAdaptor =  MuxAdaptor.initializeMuxAdaptor(null, false, appScope);
+            assertEquals(2, scheduler.getScheduledJobNames().size());
+            assertTrue(muxAdaptor.isRecording());
 
-		//File file = new File(getResource("test.mp4").getFile());
-		File file = null;
+            muxAdaptor.stop();
 
-		try {
+            flvReader.close();
 
-			QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
-			assertNotNull(scheduler);
-			assertEquals(1, scheduler.getScheduledJobNames().size());
 
+            Awaitility.await().atMost(20, TimeUnit.SECONDS).until(() -> !muxAdaptor.isRecording());
 
-			file = new File("target/test-classes/test_video_360p_subtitle.flv"); //ResourceUtils.getFile(this.getClass().getResource("test.flv"));
+            assertFalse(muxAdaptor.isRecording());
 
+            // if there is listenerHookURL, a task will be scheduled, so wait a little to make the call happen
+            for (String jobName : scheduler.getScheduledJobNames()) {
+                logger.info("--Scheduler job name {}", jobName);
+            }
 
-			final FLVReader flvReader = new FLVReader(file);
+            Awaitility.await().atMost(20, TimeUnit.SECONDS).until(() -> scheduler.getScheduledJobNames().size() == 1);
+            assertEquals(1, scheduler.getScheduledJobNames().size());
+            int duration = 697000;
+            if (shortVersion) {
+                duration = 10080;
+            }
 
-			logger.debug("f path:" + file.getAbsolutePath());
-			assertTrue(file.exists());
+            if (checkDuration) {
+                assertTrue(MuxingTest.testFile(muxAdaptor.getMuxerList().get(0).getFile().getAbsolutePath(), duration));
+            }
+            return muxAdaptor.getMuxerList().get(0).getFile();
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail("exception:" + e);
+        }
+        logger.info("leaving testMp4Muxing");
+        return null;
+    }
 
-			boolean result = muxAdaptor.init(appScope, "video_with_subtitle_stream", false);
-			assertTrue(result);
+    @Test
+    public void testMp4MuxingSubtitledVideo() {
+        getAppSettings().setMp4MuxingEnabled(true);
+        getAppSettings().setAddDateTimeToMp4FileName(true);
+        getAppSettings().setHlsMuxingEnabled(true);
+        getAppSettings().setDeleteHLSFilesOnEnded(false);
 
 
-			muxAdaptor.start();
+        if (appScope == null) {
+            appScope = (WebScope) applicationContext.getBean("web.scope");
+            logger.debug("Application / web scope: {}", appScope);
+            assertTrue(appScope.getDepth() == 1);
+        }
 
-			while (flvReader.hasMoreTags()) 
-			{
-				ITag readTag = flvReader.readTag();
-				StreamPacket streamPacket = new StreamPacket(readTag);
-				muxAdaptor.packetReceived(null, streamPacket);
+        MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null, false, appScope);
 
-			}
+        //File file = new File(getResource("test.mp4").getFile());
+        File file = null;
 
-			Thread.sleep(500);
+        try {
 
-			assertEquals(scheduler.getScheduledJobNames().size(), 2);
-			assertTrue(muxAdaptor.isRecording());
+            QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
+            assertNotNull(scheduler);
+            assertEquals(1, scheduler.getScheduledJobNames().size());
 
-			muxAdaptor.stop();
 
-			flvReader.close();
+            file = new File("target/test-classes/test_video_360p_subtitle.flv"); //ResourceUtils.getFile(this.getClass().getResource("test.flv"));
 
-			while (muxAdaptor.isRecording()) {
-				Thread.sleep(50);
-			}
 
-			assertFalse(muxAdaptor.isRecording());
+            final FLVReader flvReader = new FLVReader(file);
 
-			// if there is listenerHookURL, a task will be scheduled, so wait a little to make the call happen
-			Thread.sleep(200);
+            logger.debug("f path:" + file.getAbsolutePath());
+            assertTrue(file.exists());
 
-			assertEquals(1, scheduler.getScheduledJobNames().size());
-			int duration = 146401;
+            boolean result = muxAdaptor.init(appScope, "video_with_subtitle_stream", false);
+            assertTrue(result);
 
-			assertTrue(MuxingTest.testFile(muxAdaptor.getMuxerList().get(0).getFile().getAbsolutePath(), duration));
-			assertTrue(MuxingTest.testFile(muxAdaptor.getMuxerList().get(1).getFile().getAbsolutePath()));
 
-		}
-		catch (Exception e) {
-			e.printStackTrace();
-			fail("exception:" + e );
-		}
-	}
+            muxAdaptor.start();
 
-	@Test
-	public void testChangeAppSettingsMP4andHLS() {
-		//fail("implement this test");
+            while (flvReader.hasMoreTags()) {
+                ITag readTag = flvReader.readTag();
+                StreamPacket streamPacket = new StreamPacket(readTag);
+                muxAdaptor.packetReceived(null, streamPacket);
 
-		//change appsettings and make sure that mp4 and hls whether relavant files are created properly
-	}
+            }
 
-	@Test
-	public void testCheckDefaultAppSettings(){
-		//fail("implement this test");
-	}
+            Thread.sleep(500);
 
+            assertEquals(scheduler.getScheduledJobNames().size(), 2);
+            assertTrue(muxAdaptor.isRecording());
 
-	@Test
-	public void testHLSNormal() {
-		testHLSMuxing("hlsmuxing_test");
-	}
+            muxAdaptor.stop();
 
-	@Test
-	public void testMp4MuxingWithDirectParams() {
-		QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
-		assertNotNull(scheduler);
+            flvReader.close();
 
-		Mp4Muxer mp4Muxer = new Mp4Muxer(null, scheduler);
+            while (muxAdaptor.isRecording()) {
+                Thread.sleep(50);
+            }
 
-		if (appScope == null) {
-			appScope = (WebScope) applicationContext.getBean("web.scope");
-			logger.debug("Application / web scope: {}", appScope);
-			assertTrue(appScope.getDepth() == 1);
-		}
+            assertFalse(muxAdaptor.isRecording());
 
-		String streamName = "stream_name_" + (int)(Math.random()*10000);
-		//init 
-		mp4Muxer.init(appScope, streamName, 0);
+            // if there is listenerHookURL, a task will be scheduled, so wait a little to make the call happen
+            Thread.sleep(200);
 
-		//add stream
-		int width = 640;
-		int height = 480;
-		boolean addStreamResult = mp4Muxer.addVideoStream(width, height, null, AV_CODEC_ID_H264, 0, false, null);
-		assertTrue(addStreamResult);
+            assertEquals(1, scheduler.getScheduledJobNames().size());
+            int duration = 146401;
 
-		//prepare io
-		boolean prepareIOresult = mp4Muxer.prepareIO();
-		assertTrue(prepareIOresult);
+            assertTrue(MuxingTest.testFile(muxAdaptor.getMuxerList().get(0).getFile().getAbsolutePath(), duration));
+            assertTrue(MuxingTest.testFile(muxAdaptor.getMuxerList().get(1).getFile().getAbsolutePath()));
 
-		try {
-			FileInputStream fis = new FileInputStream("src/test/resources/frame0");
-			byte[] byteArray = IOUtils.toByteArray(fis);
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail("exception:" + e);
+        }
+    }
 
-			fis.close();
-			
-			ByteBuffer encodedVideoFrame = ByteBuffer.wrap(byteArray);
-			
-			for (int i = 0; i < 100; i++) {
-				//add packet
-				mp4Muxer.writeVideoBuffer(encodedVideoFrame, i*100, 0, 0);
-			}
-			
-		} catch (IOException e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
+    @Test
+    public void testChangeAppSettingsMP4andHLS() {
+        //fail("implement this test");
 
-		//write trailer
-		mp4Muxer.writeTrailer();
-		
-		Awaitility.await().atMost(10, TimeUnit.SECONDS)
-			.pollInterval(1, TimeUnit.SECONDS)
-			.until(()->{
-				return MuxingTest.testFile("webapps/junit/streams/" + streamName +".mp4", 10000);
-			});
-	}
+        //change appsettings and make sure that mp4 and hls whether relavant files are created properly
+    }
 
-	@Test
-	public void testHLSMuxingWithinChildScope() {
+    @Test
+    public void testCheckDefaultAppSettings() {
+        //fail("implement this test");
+    }
 
-		int hlsTime = 2;
-		int hlsListSize = 5;
 
-		getAppSettings().setMp4MuxingEnabled(false);
-		getAppSettings().setAddDateTimeToMp4FileName(false);
-		getAppSettings().setHlsMuxingEnabled(true);
-		getAppSettings().setDeleteHLSFilesOnEnded(true);
-		getAppSettings().setHlsTime(String.valueOf(hlsTime));
-		getAppSettings().setHlsListSize(String.valueOf(hlsListSize));
+    @Test
+    public void testHLSNormal() {
+        testHLSMuxing("hlsmuxing_test");
+    }
 
+    @Test
+    public void testMp4MuxingWithDirectParams() {
+        QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
+        assertNotNull(scheduler);
 
-		if (appScope == null) {
-			appScope = (WebScope) applicationContext.getBean("web.scope");
-			logger.debug("Application / web scope: {}", appScope);
-			assertTrue(appScope.getDepth() == 1);
-		}
+        Mp4Muxer mp4Muxer = new Mp4Muxer(null, scheduler);
 
-		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null, false, appScope);
+        if (appScope == null) {
+            appScope = (WebScope) applicationContext.getBean("web.scope");
+            logger.debug("Application / web scope: {}", appScope);
+            assertTrue(appScope.getDepth() == 1);
+        }
 
-		QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
-		assertNotNull(scheduler);
+        String streamName = "stream_name_" + (int) (Math.random() * 10000);
+        //init
+        mp4Muxer.init(appScope, streamName, 0);
 
-		assertEquals(scheduler.getScheduledJobNames().size(),1);
+        //add stream
+        int width = 640;
+        int height = 480;
+        boolean addStreamResult = mp4Muxer.addVideoStream(width, height, null, AV_CODEC_ID_H264, 0, false, null);
+        assertTrue(addStreamResult);
 
-		appScope.createChildScope("child");
+        //prepare io
+        boolean prepareIOresult = mp4Muxer.prepareIO();
+        assertTrue(prepareIOresult);
 
+        try {
+            FileInputStream fis = new FileInputStream("src/test/resources/frame0");
+            byte[] byteArray = IOUtils.toByteArray(fis);
 
+            fis.close();
 
-		IScope childScope = appScope.getScope("child");
+            ByteBuffer encodedVideoFrame = ByteBuffer.wrap(byteArray);
 
-		childScope.createChildScope("child2");
-		IScope childScope2 = childScope.getScope("child2");
+            for (int i = 0; i < 100; i++) {
+                //add packet
+                mp4Muxer.writeVideoBuffer(encodedVideoFrame, i * 100, 0, 0);
+            }
 
-		childScope2.createChildScope("child3");
-		IScope childScope3 = childScope2.getScope("child3");
+        } catch (IOException e) {
+            e.printStackTrace();
+            fail(e.getMessage());
+        }
 
-		File file = null;
-		try {
+        //write trailer
+        mp4Muxer.writeTrailer();
 
+        Awaitility.await().atMost(10, TimeUnit.SECONDS)
+                .pollInterval(1, TimeUnit.SECONDS)
+                .until(() -> {
+                    return MuxingTest.testFile("webapps/junit/streams/" + streamName + ".mp4", 10000);
+                });
+    }
 
-			file = new File("target/test-classes/test.flv"); //ResourceUtils.getFile(this.getClass().getResource("test.flv"));
-			final FLVReader flvReader = new FLVReader(file);
+    @Test
+    public void testHLSMuxingWithinChildScope() {
 
-			logger.debug("f path:" + file.getAbsolutePath());
-			assertTrue(file.exists());
+        int hlsTime = 2;
+        int hlsListSize = 5;
 
-			boolean result = muxAdaptor.init(childScope3, "test_within_childscope", false);
-			assert(result);
+        getAppSettings().setMp4MuxingEnabled(false);
+        getAppSettings().setAddDateTimeToMp4FileName(false);
+        getAppSettings().setHlsMuxingEnabled(true);
+        getAppSettings().setDeleteHLSFilesOnEnded(true);
+        getAppSettings().setHlsTime(String.valueOf(hlsTime));
+        getAppSettings().setHlsListSize(String.valueOf(hlsListSize));
 
-			muxAdaptor.start();
 
-			while (flvReader.hasMoreTags()) 
-			{
-				ITag readTag = flvReader.readTag();
-				StreamPacket streamPacket = new StreamPacket(readTag);
-				muxAdaptor.packetReceived(null, streamPacket);
-			}
+        if (appScope == null) {
+            appScope = (WebScope) applicationContext.getBean("web.scope");
+            logger.debug("Application / web scope: {}", appScope);
+            assertTrue(appScope.getDepth() == 1);
+        }
 
-			Thread.sleep(1000);
-			assertTrue(muxAdaptor.isRecording());
+        MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null, false, appScope);
 
-			muxAdaptor.stop();
+        QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
+        assertNotNull(scheduler);
 
-			flvReader.close();
+        assertEquals(scheduler.getScheduledJobNames().size(), 1);
 
-			while (muxAdaptor.isRecording()) {
-				Thread.sleep(50);
-			}
+        appScope.createChildScope("child");
 
-			assertFalse(muxAdaptor.isRecording());
-			// delete job in the list
-			assertEquals(2, scheduler.getScheduledJobNames().size());
 
+        IScope childScope = appScope.getScope("child");
 
-			List<Muxer> muxerList = muxAdaptor.getMuxerList();
-			HLSMuxer hlsMuxer = null;
-			for (Muxer muxer : muxerList) {
-				if (muxer instanceof HLSMuxer) {
-					hlsMuxer = (HLSMuxer) muxer;
-					break;
-				}
-			}
-			assertNotNull(hlsMuxer);
-			File hlsFile = hlsMuxer.getFile();
+        childScope.createChildScope("child2");
+        IScope childScope2 = childScope.getScope("child2");
 
-			String hlsFilePath = hlsFile.getAbsolutePath();
-			int lastIndex =  hlsFilePath.lastIndexOf(".m3u8");
+        childScope2.createChildScope("child3");
+        IScope childScope3 = childScope2.getScope("child3");
 
-			String mp4Filename = hlsFilePath.substring(0, lastIndex) + ".mp4";
+        File file = null;
+        try {
 
-			//just check mp4 file is not created
-			File mp4File = new File(mp4Filename);
-			assertFalse(mp4File.exists());
 
-			assertTrue(MuxingTest.testFile(hlsFile.getAbsolutePath()));
+            file = new File("target/test-classes/test.flv"); //ResourceUtils.getFile(this.getClass().getResource("test.flv"));
+            final FLVReader flvReader = new FLVReader(file);
 
-			File dir = new File(hlsFile.getAbsolutePath()).getParentFile();
-			File[] files = dir.listFiles(new FilenameFilter() {
-				@Override
-				public boolean accept(File dir, String name) {
-					return name.endsWith(".ts");
-				}
-			});
+            logger.debug("f path:" + file.getAbsolutePath());
+            assertTrue(file.exists());
 
-			System.out.println("ts file count:" + files.length);
+            boolean result = muxAdaptor.init(childScope3, "test_within_childscope", false);
+            assert (result);
 
-			assertTrue(files.length > 0);
-			assertTrue(files.length < (int)Integer.valueOf(hlsMuxer.getHlsListSize()) * (Integer.valueOf(hlsMuxer.getHlsTime()) + 1));
+            muxAdaptor.start();
 
-			//wait to let hls muxer delete ts and m3u8 file
-			Thread.sleep(hlsListSize*hlsTime * 1000 + 3000);
+            while (flvReader.hasMoreTags()) {
+                ITag readTag = flvReader.readTag();
+                StreamPacket streamPacket = new StreamPacket(readTag);
+                muxAdaptor.packetReceived(null, streamPacket);
+            }
 
+            Thread.sleep(1000);
+            assertTrue(muxAdaptor.isRecording());
 
-			assertFalse(hlsFile.exists());
+            muxAdaptor.stop();
 
-			files = dir.listFiles(new FilenameFilter() {
-				@Override
-				public boolean accept(File dir, String name) {
-					return name.endsWith(".ts") || name.endsWith(".m3u8");
-				}
-			});
+            flvReader.close();
 
-			assertEquals(0, files.length);
+            while (muxAdaptor.isRecording()) {
+                Thread.sleep(50);
+            }
 
-		}
-		catch (Exception e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
+            assertFalse(muxAdaptor.isRecording());
+            // delete job in the list
+            assertEquals(2, scheduler.getScheduledJobNames().size());
 
 
-	}
+            List<Muxer> muxerList = muxAdaptor.getMuxerList();
+            HLSMuxer hlsMuxer = null;
+            for (Muxer muxer : muxerList) {
+                if (muxer instanceof HLSMuxer) {
+                    hlsMuxer = (HLSMuxer) muxer;
+                    break;
+                }
+            }
+            assertNotNull(hlsMuxer);
+            File hlsFile = hlsMuxer.getFile();
 
+            String hlsFilePath = hlsFile.getAbsolutePath();
+            int lastIndex = hlsFilePath.lastIndexOf(".m3u8");
 
-	public void testHLSMuxing(String name)  {
+            String mp4Filename = hlsFilePath.substring(0, lastIndex) + ".mp4";
 
-		//av_log_set_level (40);
-		int hlsListSize = 5;
-		int hlsTime = 2;
+            //just check mp4 file is not created
+            File mp4File = new File(mp4Filename);
+            assertFalse(mp4File.exists());
 
-		getAppSettings().setMp4MuxingEnabled(false);
-		getAppSettings().setAddDateTimeToMp4FileName(false);
-		getAppSettings().setHlsMuxingEnabled(true);
-		getAppSettings().setDeleteHLSFilesOnEnded(true);
-		getAppSettings().setHlsTime(String.valueOf(hlsTime));
-		getAppSettings().setHlsListSize(String.valueOf(hlsListSize));
+            assertTrue(MuxingTest.testFile(hlsFile.getAbsolutePath()));
 
+            File dir = new File(hlsFile.getAbsolutePath()).getParentFile();
+            File[] files = dir.listFiles(new FilenameFilter() {
+                @Override
+                public boolean accept(File dir, String name) {
+                    return name.endsWith(".ts");
+                }
+            });
 
+            System.out.println("ts file count:" + files.length);
 
-		if (appScope == null) {
-			appScope = (WebScope) applicationContext.getBean("web.scope");
-			logger.debug("Application / web scope: {}", appScope);
-			assertTrue(appScope.getDepth() == 1);
-		}
+            assertTrue(files.length > 0);
+            assertTrue(files.length < (int) Integer.valueOf(hlsMuxer.getHlsListSize()) * (Integer.valueOf(hlsMuxer.getHlsTime()) + 1));
 
-		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null, false, appScope);
+            //wait to let hls muxer delete ts and m3u8 file
+            Thread.sleep(hlsListSize * hlsTime * 1000 + 3000);
 
-		File file = null;
-		try {
 
-			QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
-			assertNotNull(scheduler);
-			assertEquals(scheduler.getScheduledJobNames().size(), 1);
+            assertFalse(hlsFile.exists());
 
-			file = new File("target/test-classes/test.flv"); //ResourceUtils.getFile(this.getClass().getResource("test.flv"));
-			final FLVReader flvReader = new FLVReader(file);
+            files = dir.listFiles(new FilenameFilter() {
+                @Override
+                public boolean accept(File dir, String name) {
+                    return name.endsWith(".ts") || name.endsWith(".m3u8");
+                }
+            });
 
-			logger.info("f path:" + file.getAbsolutePath());
-			assertTrue(file.exists());
+            assertEquals(0, files.length);
 
-			boolean result = muxAdaptor.init(appScope, name, false);
-			assert(result);
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail(e.getMessage());
+        }
 
-			muxAdaptor.start();
 
-			while (flvReader.hasMoreTags()) 
-			{
-				ITag readTag = flvReader.readTag();
-				StreamPacket streamPacket = new StreamPacket(readTag);
-				muxAdaptor.packetReceived(null, streamPacket);
-			}
+    }
 
-			Thread.sleep(1000);
-			assertTrue(muxAdaptor.isRecording());
 
-			muxAdaptor.stop();
+    public void testHLSMuxing(String name) {
 
-			flvReader.close();
+        //av_log_set_level (40);
+        int hlsListSize = 5;
+        int hlsTime = 2;
 
-			while (muxAdaptor.isRecording()) {
-				Thread.sleep(50);
-			}
+        getAppSettings().setMp4MuxingEnabled(false);
+        getAppSettings().setAddDateTimeToMp4FileName(false);
+        getAppSettings().setHlsMuxingEnabled(true);
+        getAppSettings().setDeleteHLSFilesOnEnded(true);
+        getAppSettings().setHlsTime(String.valueOf(hlsTime));
+        getAppSettings().setHlsListSize(String.valueOf(hlsListSize));
 
-			assertFalse(muxAdaptor.isRecording());
-			// delete job in the list
-			assertEquals(2, scheduler.getScheduledJobNames().size());
 
+        if (appScope == null) {
+            appScope = (WebScope) applicationContext.getBean("web.scope");
+            logger.debug("Application / web scope: {}", appScope);
+            assertTrue(appScope.getDepth() == 1);
+        }
 
-			List<Muxer> muxerList = muxAdaptor.getMuxerList();
-			HLSMuxer hlsMuxer = null;
-			for (Muxer muxer : muxerList) {
-				if (muxer instanceof HLSMuxer) {
-					hlsMuxer = (HLSMuxer) muxer;
-					break;
-				}
-			}
-			assertNotNull(hlsMuxer);
-			File hlsFile = hlsMuxer.getFile();
+        MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null, false, appScope);
 
-			String hlsFilePath = hlsFile.getAbsolutePath();
-			int lastIndex =  hlsFilePath.lastIndexOf(".m3u8");
+        File file = null;
+        try {
 
-			String mp4Filename = hlsFilePath.substring(0, lastIndex) + ".mp4";
+            QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
+            assertNotNull(scheduler);
+            assertEquals(scheduler.getScheduledJobNames().size(), 1);
 
-			//just check mp4 file is not created
-			File mp4File = new File(mp4Filename);
-			assertFalse(mp4File.exists());
+            file = new File("target/test-classes/test.flv"); //ResourceUtils.getFile(this.getClass().getResource("test.flv"));
+            final FLVReader flvReader = new FLVReader(file);
 
-			assertTrue(MuxingTest.testFile(hlsFile.getAbsolutePath()));
+            logger.info("f path:" + file.getAbsolutePath());
+            assertTrue(file.exists());
 
-			File dir = new File(hlsFile.getAbsolutePath()).getParentFile();
-			File[] files = dir.listFiles(new FilenameFilter() {
-				@Override
-				public boolean accept(File dir, String name) {
-					return name.endsWith(".ts");
-				}
-			});
+            boolean result = muxAdaptor.init(appScope, name, false);
+            assert (result);
 
-			System.out.println("ts file count:" + files.length);
+            muxAdaptor.start();
 
-			assertTrue(files.length > 0);
-			assertTrue(files.length < (int)Integer.valueOf(hlsMuxer.getHlsListSize()) * (Integer.valueOf(hlsMuxer.getHlsTime()) + 1));
+            while (flvReader.hasMoreTags()) {
+                ITag readTag = flvReader.readTag();
+                StreamPacket streamPacket = new StreamPacket(readTag);
+                muxAdaptor.packetReceived(null, streamPacket);
+            }
 
+            Thread.sleep(1000);
+            assertTrue(muxAdaptor.isRecording());
 
+            muxAdaptor.stop();
 
-			//wait to let hls muxer delete ts and m3u8 file
-			Thread.sleep(hlsListSize*hlsTime * 1000 + 3000);
+            flvReader.close();
 
+            while (muxAdaptor.isRecording()) {
+                Thread.sleep(50);
+            }
 
-			files = dir.listFiles(new FilenameFilter() {
-				@Override
-				public boolean accept(File dir, String name) {
-					return name.endsWith(".ts") || name.endsWith(".m3u8");
-				}
-			});
+            assertFalse(muxAdaptor.isRecording());
+            // delete job in the list
+            assertEquals(2, scheduler.getScheduledJobNames().size());
 
-			assertEquals(0, files.length);
 
-		}
-		catch (Exception e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
+            List<Muxer> muxerList = muxAdaptor.getMuxerList();
+            HLSMuxer hlsMuxer = null;
+            for (Muxer muxer : muxerList) {
+                if (muxer instanceof HLSMuxer) {
+                    hlsMuxer = (HLSMuxer) muxer;
+                    break;
+                }
+            }
+            assertNotNull(hlsMuxer);
+            File hlsFile = hlsMuxer.getFile();
 
-		getAppSettings().setDeleteHLSFilesOnEnded(false);
+            String hlsFilePath = hlsFile.getAbsolutePath();
+            int lastIndex = hlsFilePath.lastIndexOf(".m3u8");
 
-	}
+            String mp4Filename = hlsFilePath.substring(0, lastIndex) + ".mp4";
 
+            //just check mp4 file is not created
+            File mp4File = new File(mp4Filename);
+            assertFalse(mp4File.exists());
 
-	@Test
-	public void testHLSMuxingWithSubtitle()  {
+            assertTrue(MuxingTest.testFile(hlsFile.getAbsolutePath()));
 
-		//av_log_set_level (40);
-		int hlsListSize = 5;
-		int hlsTime = 2;
+            File dir = new File(hlsFile.getAbsolutePath()).getParentFile();
+            File[] files = dir.listFiles(new FilenameFilter() {
+                @Override
+                public boolean accept(File dir, String name) {
+                    return name.endsWith(".ts");
+                }
+            });
 
-		getAppSettings().setMp4MuxingEnabled(false);
-		getAppSettings().setAddDateTimeToMp4FileName(false);
-		getAppSettings().setHlsMuxingEnabled(true);
-		getAppSettings().setDeleteHLSFilesOnEnded(true);
-		getAppSettings().setHlsTime(String.valueOf(hlsTime));
-		getAppSettings().setHlsListSize(String.valueOf(hlsListSize));
+            System.out.println("ts file count:" + files.length);
 
+            assertTrue(files.length > 0);
+            assertTrue(files.length < (int) Integer.valueOf(hlsMuxer.getHlsListSize()) * (Integer.valueOf(hlsMuxer.getHlsTime()) + 1));
 
 
-		if (appScope == null) {
-			appScope = (WebScope) applicationContext.getBean("web.scope");
-			logger.debug("Application / web scope: {}", appScope);
-			assertTrue(appScope.getDepth() == 1);
-		}
+            //wait to let hls muxer delete ts and m3u8 file
+            Thread.sleep(hlsListSize * hlsTime * 1000 + 3000);
 
-		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null, false, appScope);
 
-		File file = null;
-		try {
+            files = dir.listFiles(new FilenameFilter() {
+                @Override
+                public boolean accept(File dir, String name) {
+                    return name.endsWith(".ts") || name.endsWith(".m3u8");
+                }
+            });
 
-			QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
-			assertNotNull(scheduler);
-			assertEquals(scheduler.getScheduledJobNames().size(),1);
+            assertEquals(0, files.length);
 
-			file = new File("target/test-classes/test_video_360p_subtitle.flv"); //ResourceUtils.getFile(this.getClass().getResource("test.flv"));
-			final FLVReader flvReader = new FLVReader(file);
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail(e.getMessage());
+        }
 
-			logger.info("f path:" + file.getAbsolutePath());
-			assertTrue(file.exists());
+        getAppSettings().setDeleteHLSFilesOnEnded(false);
 
-			boolean result = muxAdaptor.init(appScope, "hls_video_subtitle", false);
-			assert(result);
+    }
 
-			muxAdaptor.start();
 
-			while (flvReader.hasMoreTags()) 
-			{
-				ITag readTag = flvReader.readTag();
-				StreamPacket streamPacket = new StreamPacket(readTag);
-				muxAdaptor.packetReceived(null, streamPacket);
-			}
+    @Test
+    public void testHLSMuxingWithSubtitle() {
 
-			Thread.sleep(1000);
-			assertTrue(muxAdaptor.isRecording());
+        //av_log_set_level (40);
+        int hlsListSize = 5;
+        int hlsTime = 2;
 
-			muxAdaptor.stop();
+        getAppSettings().setMp4MuxingEnabled(false);
+        getAppSettings().setAddDateTimeToMp4FileName(false);
+        getAppSettings().setHlsMuxingEnabled(true);
+        getAppSettings().setDeleteHLSFilesOnEnded(true);
+        getAppSettings().setHlsTime(String.valueOf(hlsTime));
+        getAppSettings().setHlsListSize(String.valueOf(hlsListSize));
 
-			flvReader.close();
 
-			while (muxAdaptor.isRecording()) {
-				Thread.sleep(50);
-			}
+        if (appScope == null) {
+            appScope = (WebScope) applicationContext.getBean("web.scope");
+            logger.debug("Application / web scope: {}", appScope);
+            assertTrue(appScope.getDepth() == 1);
+        }
 
-			assertFalse(muxAdaptor.isRecording());
-			// delete job in the list
-			assertEquals(2, scheduler.getScheduledJobNames().size());
+        MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null, false, appScope);
 
+        File file = null;
+        try {
 
-			List<Muxer> muxerList = muxAdaptor.getMuxerList();
-			HLSMuxer hlsMuxer = null;
-			for (Muxer muxer : muxerList) {
-				if (muxer instanceof HLSMuxer) {
-					hlsMuxer = (HLSMuxer) muxer;
-					break;
-				}
-			}
-			assertNotNull(hlsMuxer);
-			File hlsFile = hlsMuxer.getFile();
+            QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
+            assertNotNull(scheduler);
+            assertEquals(scheduler.getScheduledJobNames().size(), 1);
 
-			String hlsFilePath = hlsFile.getAbsolutePath();
-			int lastIndex =  hlsFilePath.lastIndexOf(".m3u8");
+            file = new File("target/test-classes/test_video_360p_subtitle.flv"); //ResourceUtils.getFile(this.getClass().getResource("test.flv"));
+            final FLVReader flvReader = new FLVReader(file);
 
-			String mp4Filename = hlsFilePath.substring(0, lastIndex) + ".mp4";
+            logger.info("f path:" + file.getAbsolutePath());
+            assertTrue(file.exists());
 
-			//just check mp4 file is not created
-			File mp4File = new File(mp4Filename);
-			assertFalse(mp4File.exists());
+            boolean result = muxAdaptor.init(appScope, "hls_video_subtitle", false);
+            assert (result);
 
-			assertTrue(MuxingTest.testFile(hlsFile.getAbsolutePath()));
+            muxAdaptor.start();
 
-			File dir = new File(hlsFile.getAbsolutePath()).getParentFile();
-			File[] files = dir.listFiles(new FilenameFilter() {
-				@Override
-				public boolean accept(File dir, String name) {
-					return name.endsWith(".ts");
-				}
-			});
+            while (flvReader.hasMoreTags()) {
+                ITag readTag = flvReader.readTag();
+                StreamPacket streamPacket = new StreamPacket(readTag);
+                muxAdaptor.packetReceived(null, streamPacket);
+            }
 
-			System.out.println("ts file count:" + files.length);
+            Thread.sleep(1000);
+            assertTrue(muxAdaptor.isRecording());
 
-			assertTrue(files.length > 0);
+            muxAdaptor.stop();
 
-			logger.info("hls list:{}",(int)Integer.valueOf(hlsMuxer.getHlsListSize()));
+            flvReader.close();
 
-			logger.info("hls time:{}",(int)Integer.valueOf(hlsMuxer.getHlsTime()));
+            while (muxAdaptor.isRecording()) {
+                Thread.sleep(50);
+            }
 
-			assertTrue(files.length < (int)Integer.valueOf(hlsMuxer.getHlsListSize()) * (Integer.valueOf(hlsMuxer.getHlsTime()) + 1));
+            assertFalse(muxAdaptor.isRecording());
+            // delete job in the list
+            assertEquals(2, scheduler.getScheduledJobNames().size());
 
-			//wait to let hls muxer delete ts and m3u8 file
-			Thread.sleep(hlsListSize*hlsTime * 1000 + 3000);
 
+            List<Muxer> muxerList = muxAdaptor.getMuxerList();
+            HLSMuxer hlsMuxer = null;
+            for (Muxer muxer : muxerList) {
+                if (muxer instanceof HLSMuxer) {
+                    hlsMuxer = (HLSMuxer) muxer;
+                    break;
+                }
+            }
+            assertNotNull(hlsMuxer);
+            File hlsFile = hlsMuxer.getFile();
 
-			assertFalse(hlsFile.exists());
+            String hlsFilePath = hlsFile.getAbsolutePath();
+            int lastIndex = hlsFilePath.lastIndexOf(".m3u8");
 
-			files = dir.listFiles(new FilenameFilter() {
-				@Override
-				public boolean accept(File dir, String name) {
-					return name.endsWith(".ts") || name.endsWith(".m3u8");
-				}
-			});
+            String mp4Filename = hlsFilePath.substring(0, lastIndex) + ".mp4";
 
-			assertEquals(0, files.length);	
-		}
-		catch (Exception e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
+            //just check mp4 file is not created
+            File mp4File = new File(mp4Filename);
+            assertFalse(mp4File.exists());
 
-	}
+            assertTrue(MuxingTest.testFile(hlsFile.getAbsolutePath()));
 
-	@Test
-	public void testRTSPMuxing() {
+            File dir = new File(hlsFile.getAbsolutePath()).getParentFile();
+            File[] files = dir.listFiles(new FilenameFilter() {
+                @Override
+                public boolean accept(File dir, String name) {
+                    return name.endsWith(".ts");
+                }
+            });
 
-		if (appScope == null) {
-			appScope = (WebScope) applicationContext.getBean("web.scope");
-			logger.debug("Application / web scope: {}", appScope);
-			assertTrue(appScope.getDepth() == 1);
-		}
+            System.out.println("ts file count:" + files.length);
 
-		try {
+            assertTrue(files.length > 0);
 
-			File file = new File("target/test-classes/test.flv"); //ResourceUtils.getFile(this.getClass().getResource("test.flv"));
-			PacketSenderRunnable rtspPacketSender = new PacketSenderRunnable(null);
+            logger.info("hls list:{}", (int) Integer.valueOf(hlsMuxer.getHlsListSize()));
 
-			String sdpDescription = rtspPacketSender.getSdpDescription(file.getAbsolutePath());
-			assertNotNull(sdpDescription);
-			assertTrue(sdpDescription.length() > 0 );
-			int[] clientPort = new int[2];
-			clientPort[0] = 23458;
-			clientPort[1] = 45567;
-			int[] serverPort = new int[2];
-			boolean result = rtspPacketSender.prepareOutputContext(0, "127.0.0.1", clientPort, serverPort);
-			assertTrue(result);
+            logger.info("hls time:{}", (int) Integer.valueOf(hlsMuxer.getHlsTime()));
 
-			int[] clientPort2 = new int[2];
-			clientPort2[0] = 23452;
-			clientPort2[1] = 44557;
-			int[] serverPort2 = new int[2];
-			result = rtspPacketSender.prepareOutputContext(1, "127.0.0.1", clientPort2, serverPort2);
-			assertTrue(result);
+            assertTrue(files.length < (int) Integer.valueOf(hlsMuxer.getHlsListSize()) * (Integer.valueOf(hlsMuxer.getHlsTime()) + 1));
 
-			ThreadPoolTaskScheduler scheduler = (ThreadPoolTaskScheduler) applicationContext.getBean("scheduler");
-			assertNotNull(scheduler);
+            //wait to let hls muxer delete ts and m3u8 file
+            Thread.sleep(hlsListSize * hlsTime * 1000 + 3000);
 
-			scheduler.scheduleAtFixedRate(rtspPacketSender, 10);
 
-			Thread.sleep(10000);
+            assertFalse(hlsFile.exists());
 
+            files = dir.listFiles(new FilenameFilter() {
+                @Override
+                public boolean accept(File dir, String name) {
+                    return name.endsWith(".ts") || name.endsWith(".m3u8");
+                }
+            });
 
-		}
-		catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
+            assertEquals(0, files.length);
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail(e.getMessage());
+        }
 
-	@Test
-	public void testSDPCreateBug() 
-	{
-		String file = "target/test-classes/test.flv";
-		PacketSenderRunnable packetSender = new PacketSenderRunnable(null);
-		String sdpDescription = packetSender.getSdpDescription(file);
-		assertNotNull(sdpDescription);
-		assertTrue(sdpDescription.length() > 0 );
-		System.out.println(sdpDescription);
+    }
 
-	}
+    @Test
+    public void testRTSPMuxing() {
 
-	public AppSettings getAppSettings() {
-		if (appSettings == null) {
-			appSettings = (AppSettings) applicationContext.getBean(AppSettings.BEAN_NAME);
-		}
-		return appSettings;
-	}
+        if (appScope == null) {
+            appScope = (WebScope) applicationContext.getBean("web.scope");
+            logger.debug("Application / web scope: {}", appScope);
+            assertTrue(appScope.getDepth() == 1);
+        }
 
-	@Test
-	public void testRecording(){
-		testRecording("dasss",true);
-	}
+        try {
 
-	public void testRecording(String name, boolean checkDuration){
-		logger.info("running testMp4Muxing");
+            File file = new File("target/test-classes/test.flv"); //ResourceUtils.getFile(this.getClass().getResource("test.flv"));
+            PacketSenderRunnable rtspPacketSender = new PacketSenderRunnable(null);
 
-		if (appScope == null) {
-			appScope = (WebScope) applicationContext.getBean("web.scope");
-			logger.debug("Application / web scope: {}", appScope);
-			assertTrue(appScope.getDepth() == 1);
-		}
+            String sdpDescription = rtspPacketSender.getSdpDescription(file.getAbsolutePath());
+            assertNotNull(sdpDescription);
+            assertTrue(sdpDescription.length() > 0);
+            int[] clientPort = new int[2];
+            clientPort[0] = 23458;
+            clientPort[1] = 45567;
+            int[] serverPort = new int[2];
+            boolean result = rtspPacketSender.prepareOutputContext(0, "127.0.0.1", clientPort, serverPort);
+            assertTrue(result);
 
-		MuxAdaptor muxAdaptor =  MuxAdaptor.initializeMuxAdaptor(null, false, appScope);
-		getAppSettings().setMp4MuxingEnabled(false);
-		getAppSettings().setHlsMuxingEnabled(false);
+            int[] clientPort2 = new int[2];
+            clientPort2[0] = 23452;
+            clientPort2[1] = 44557;
+            int[] serverPort2 = new int[2];
+            result = rtspPacketSender.prepareOutputContext(1, "127.0.0.1", clientPort2, serverPort2);
+            assertTrue(result);
 
-		logger.info("HLS muxing enabled {}", appSettings.isHlsMuxingEnabled());
+            ThreadPoolTaskScheduler scheduler = (ThreadPoolTaskScheduler) applicationContext.getBean("scheduler");
+            assertNotNull(scheduler);
 
-		//File file = new File(getResource("test.mp4").getFile());
-		File file = null;
+            scheduler.scheduleAtFixedRate(rtspPacketSender, 10);
 
-		try {
+            Thread.sleep(10000);
 
-			QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
-			assertNotNull(scheduler);
 
-			//by default, stream source job is scheduled
-			assertEquals(scheduler.getScheduledJobNames().size(), 1);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
-			file = new File("target/test-classes/test.flv");
+    @Test
+    public void testSDPCreateBug() {
+        String file = "target/test-classes/test.flv";
+        PacketSenderRunnable packetSender = new PacketSenderRunnable(null);
+        String sdpDescription = packetSender.getSdpDescription(file);
+        assertNotNull(sdpDescription);
+        assertTrue(sdpDescription.length() > 0);
+        System.out.println(sdpDescription);
 
-			final FLVReader flvReader = new FLVReader(file);
+    }
 
-			logger.debug("f path:" + file.getAbsolutePath());
-			assertTrue(file.exists());
+    public AppSettings getAppSettings() {
+        if (appSettings == null) {
+            appSettings = (AppSettings) applicationContext.getBean(AppSettings.BEAN_NAME);
+        }
+        return appSettings;
+    }
 
-			logger.info("1");
-			for (String jobName : scheduler.getScheduledJobNames()) {
-				logger.info("testMP4Muxing1 -- Scheduler job name {}", jobName);
-			}
-			boolean result = muxAdaptor.init(appScope, name, false);
+    @Test
+    public void testRecording() {
+        testRecording("dasss", true);
+    }
 
-			assertTrue(result);
+    public void testRecording(String name, boolean checkDuration) {
+        logger.info("running testMp4Muxing");
 
+        if (appScope == null) {
+            appScope = (WebScope) applicationContext.getBean("web.scope");
+            logger.debug("Application / web scope: {}", appScope);
+            assertTrue(appScope.getDepth() == 1);
+        }
 
-			muxAdaptor.start();
-			logger.info("2");
-			int packetNumber = 0;
-			while (flvReader.hasMoreTags())
-			{
+        MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null, false, appScope);
+        getAppSettings().setMp4MuxingEnabled(false);
+        getAppSettings().setHlsMuxingEnabled(false);
 
-				ITag readTag = flvReader.readTag();
+        logger.info("HLS muxing enabled {}", appSettings.isHlsMuxingEnabled());
 
-				StreamPacket streamPacket = new StreamPacket(readTag);
-				muxAdaptor.packetReceived(null, streamPacket);
+        //File file = new File(getResource("test.mp4").getFile());
+        File file = null;
 
-				if(packetNumber == 40000){
-					logger.info("6");
+        try {
 
-					muxAdaptor.startRecording();
+            QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
+            assertNotNull(scheduler);
 
-					logger.info("7");
-				}
-				packetNumber++;
+            //by default, stream source job is scheduled
+            assertEquals(scheduler.getScheduledJobNames().size(), 1);
 
-				if(packetNumber % 1000 == 0){
-					logger.info("packetNumber "+packetNumber);
-				}
-			}
+            file = new File("target/test-classes/test.flv");
 
-			for (String jobName : scheduler.getScheduledJobNames()) {
-				logger.info("testMP4Muxing -- Scheduler job name {}", jobName);
-			}
+            final FLVReader flvReader = new FLVReader(file);
 
-			//2 jobs in the scheduler one of them is the job streamFetcherManager and and the other one is
-			//job in MuxAdaptor
-			Awaitility.await().atMost(90, TimeUnit.SECONDS).until(()-> scheduler.getScheduledJobNames().size() == 2);
-			Awaitility.await().atMost(90, TimeUnit.SECONDS).until(()-> muxAdaptor.isRecording());
+            logger.debug("f path:" + file.getAbsolutePath());
+            assertTrue(file.exists());
 
-			logger.info("9");
-			assertEquals(2, scheduler.getScheduledJobNames().size());
-			assertTrue(muxAdaptor.isRecording());
-			final String finalFilePath = muxAdaptor.getMuxerList().get(0).getFile().getAbsolutePath();
+            logger.info("1");
+            for (String jobName : scheduler.getScheduledJobNames()) {
+                logger.info("testMP4Muxing1 -- Scheduler job name {}", jobName);
+            }
+            boolean result = muxAdaptor.init(appScope, name, false);
 
+            assertTrue(result);
 
-			muxAdaptor.stopRecording();
-			muxAdaptor.stop();
 
-			flvReader.close();
+            muxAdaptor.start();
+            logger.info("2");
+            int packetNumber = 0;
+            while (flvReader.hasMoreTags()) {
 
-			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(()-> !muxAdaptor.isRecording());
+                ITag readTag = flvReader.readTag();
 
-			assertFalse(muxAdaptor.isRecording());
+                StreamPacket streamPacket = new StreamPacket(readTag);
+                muxAdaptor.packetReceived(null, streamPacket);
 
-			// if there is listenerHookURL, a task will be scheduled, so wait a little to make the call happen
-			for (String jobName : scheduler.getScheduledJobNames()) {
-				logger.info("--Scheduler job name {}", jobName);
-			}
+                if (packetNumber == 40000) {
+                    logger.info("6");
 
-			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(()-> scheduler.getScheduledJobNames().size() == 1);
-			assertEquals(1, scheduler.getScheduledJobNames().size());
-			assertTrue(MuxingTest.testFile(finalFilePath, 111130));
+                    muxAdaptor.startRecording();
 
-		}
-		catch (Exception e) {
-			e.printStackTrace();
-			fail("exception:" + e );
-		}
-		logger.info("leaving testRecording");
-	}
+                    logger.info("7");
+                }
+                packetNumber++;
 
+                if (packetNumber % 1000 == 0) {
+                    logger.info("packetNumber " + packetNumber);
+                }
+            }
+
+            for (String jobName : scheduler.getScheduledJobNames()) {
+                logger.info("testMP4Muxing -- Scheduler job name {}", jobName);
+            }
+
+            //2 jobs in the scheduler one of them is the job streamFetcherManager and and the other one is
+            //job in MuxAdaptor
+            Awaitility.await().atMost(90, TimeUnit.SECONDS).until(() -> scheduler.getScheduledJobNames().size() == 2);
+            Awaitility.await().atMost(90, TimeUnit.SECONDS).until(() -> muxAdaptor.isRecording());
+
+            logger.info("9");
+            assertEquals(2, scheduler.getScheduledJobNames().size());
+            assertTrue(muxAdaptor.isRecording());
+            final String finalFilePath = muxAdaptor.getMuxerList().get(0).getFile().getAbsolutePath();
+
+
+            muxAdaptor.stopRecording();
+            muxAdaptor.stop();
+
+            flvReader.close();
+
+            Awaitility.await().atMost(20, TimeUnit.SECONDS).until(() -> !muxAdaptor.isRecording());
+
+            assertFalse(muxAdaptor.isRecording());
+
+            // if there is listenerHookURL, a task will be scheduled, so wait a little to make the call happen
+            for (String jobName : scheduler.getScheduledJobNames()) {
+                logger.info("--Scheduler job name {}", jobName);
+            }
+
+            Awaitility.await().atMost(20, TimeUnit.SECONDS).until(() -> scheduler.getScheduledJobNames().size() == 1);
+            assertEquals(1, scheduler.getScheduledJobNames().size());
+            assertTrue(MuxingTest.testFile(finalFilePath, 111130));
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail("exception:" + e);
+        }
+        logger.info("leaving testRecording");
+    }
+
+    public void testRemux() {
+        String input = "target/test-classes/sample_MP4_480.mp4";
+        String rotated = "rotated.mp4";
+
+        Mp4Muxer.remux(input, rotated, 90);
+        AVFormatContext inputFormatContext = avformat.avformat_alloc_context();
+
+        int ret;
+        if (inputFormatContext == null) {
+            System.out.println("cannot allocate input context");
+        }
+
+        if ((ret = avformat_open_input(inputFormatContext, rotated, null, (AVDictionary) null)) < 0) {
+            System.out.println("cannot open input context: " + rotated);
+        }
+
+        ret = avformat_find_stream_info(inputFormatContext, (AVDictionary) null);
+        if (ret < 0) {
+            System.out.println("Could not find stream information\n");
+        }
+
+        int streamCount = inputFormatContext.nb_streams();
+
+        for (int i = 0; i < streamCount; i++) {
+            AVCodecContext codecContext = inputFormatContext.streams(i).codec();
+            if (codecContext.codec_type() == AVMEDIA_TYPE_VIDEO) {
+                AVStream videoStream = inputFormatContext.streams(i);
+
+                AVDictionaryEntry entry = av_dict_get(videoStream.metadata(), "rotate", null, 0);
+
+                assertEquals("90", entry.value().getString());
+            }
+        }
+
+        avformat_close_input(inputFormatContext);
+
+        new File(rotated).delete();
+
+    }
 }

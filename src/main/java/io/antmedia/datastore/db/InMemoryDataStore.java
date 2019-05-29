@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.cluster.StreamInfo;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.TensorFlowObject;
@@ -28,14 +29,13 @@ import io.antmedia.muxer.MuxAdaptor;
 
 public class InMemoryDataStore extends DataStore {
 
-
 	protected static Logger logger = LoggerFactory.getLogger(InMemoryDataStore.class);
 	private Map<String, Broadcast> broadcastMap = new LinkedHashMap<>();
 	private Map<String, VoD> vodMap = new LinkedHashMap<>();
 	private Map<String, List<TensorFlowObject>> detectionMap = new LinkedHashMap<>();
 	private Map<String, SocialEndpointCredentials> socialEndpointCredentialsMap = new LinkedHashMap<>();
 	private Map<String, Token> tokenMap = new LinkedHashMap<>();
-
+	private Map<String, ConferenceRoom> roomMap = new LinkedHashMap<>();
 
 	public InMemoryDataStore(String dbName) {
 	}
@@ -773,5 +773,48 @@ public class InMemoryDataStore extends DataStore {
 	@Override
 	public void clearStreamsOnThisServer() {
 		//no need to implement for InMemoryDb
+	}
+
+	@Override
+	public boolean createConferenceRoom(ConferenceRoom room) {
+		
+		boolean result = false;
+
+		if (room != null && room.getRoomName() != null) {
+			roomMap.put(room.getRoomName(), room);
+			result = true;
+		}
+
+		return result;
+	}
+
+	@Override
+	public boolean editConferenceRoom(ConferenceRoom room) {
+
+		boolean result = false;
+
+		if (room != null && room.getRoomName() != null) {
+			roomMap.replace(room.getRoomName(), room);
+			result = true;
+		}
+		return result;
+	}
+
+	@Override
+	public boolean deleteConferenceRoom(String roomName) {
+
+		boolean result = false;
+
+		if (roomName != null && roomName.length() > 0 ) {
+			roomMap.remove(roomName);
+			result = true;
+		}
+		return result;
+		
+	}
+
+	@Override
+	public ConferenceRoom getConferenceRoom(String roomName) {
+		return roomMap.get(roomName);
 	}
 }
