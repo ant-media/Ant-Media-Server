@@ -27,6 +27,7 @@ import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.cluster.StreamInfo;
 import io.antmedia.datastore.DBUtils;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.TensorFlowObject;
@@ -42,6 +43,8 @@ public class MongoStore extends DataStore {
 	private Datastore endpointCredentialsDS;
 	private Datastore tokenDatastore;
 	private Datastore detectionMap;
+	private Datastore conferenceRoomDatastore;
+
 
 	protected static Logger logger = LoggerFactory.getLogger(MongoStore.class);
 
@@ -61,12 +64,15 @@ public class MongoStore extends DataStore {
 		endpointCredentialsDS = morphia.createDatastore(client, dbName+"_endpointCredentials");
 		tokenDatastore = morphia.createDatastore(client, dbName + "_token");
 		detectionMap = morphia.createDatastore(client, dbName + "detection");
+		conferenceRoomDatastore = morphia.createDatastore(client, dbName + "room");
+
 
 		tokenDatastore.ensureIndexes();
 		datastore.ensureIndexes();
 		vodDatastore.ensureIndexes();
 		endpointCredentialsDS.ensureIndexes();
 		detectionMap.ensureIndexes();
+		conferenceRoomDatastore.ensureIndexes();
 
 	}
 
@@ -660,7 +666,7 @@ public class MongoStore extends DataStore {
 		return false;
 	}
 
-	
+
 	@Override
 	public void saveStreamInfo(StreamInfo streamInfo) {
 		Query<StreamInfo> query = datastore.createQuery(StreamInfo.class);
@@ -788,13 +794,13 @@ public class MongoStore extends DataStore {
 		long count = query.count();
 		if(count > 0) {
 			logger.error("There are {} streams for {} at start. They are deleted now.", count, ip);
-			
+
 			WriteResult res = datastore.delete(query);
 			if(res.getN() != count) {
 				logger.error("Only {} streams were deleted ou of {} streams.", res.getN(), count);
 			}
 		}
-		
+
 		Query<StreamInfo> querySI = datastore.createQuery(StreamInfo.class).field("host").equal(ip);
 		count = querySI.count();
 		if(count > 0) {
@@ -804,7 +810,65 @@ public class MongoStore extends DataStore {
 				logger.error("Only {} stream info were deleted out of {} streams.", res.getN(), count);
 			}
 		}
-		
+
+	}
+
+	@Override
+	public boolean createConferenceRoom(ConferenceRoom room) {
+		boolean result = false;
+
+		if(room != null && room.getRoomName() != null) {
+
+			try {
+				conferenceRoomDatastore.save(room);
+				result = true;
+
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+
+		return result;
+	}
+
+	@Override
+	public boolean editConferenceRoom(ConferenceRoom room) {
+
+		boolean result = false;
+		try {
+			Query<ConferenceRoom> query = conferenceRoomDatastore.createQuery(ConferenceRoom.class).field("roomName").equal(room.getRoomName());
+
+			UpdateOperations<ConferenceRoom> ops = conferenceRoomDatastore.createUpdateOperations(ConferenceRoom.class).set("roomName", room.getRoomName())
+					.set("startDate", room.getStartDate()).set("endDate", room.getEndDate());
+
+			UpdateResults update = conferenceRoomDatastore.update(query, ops);
+			return update.getUpdatedCount() == 1;
+		} catch (Exception e) {
+			logger.error(e.getMessage());
+		}
+		return result;
+	}
+
+	@Override
+	public boolean deleteConferenceRoom(String roomName) {
+		try {
+			Query<ConferenceRoom> query = conferenceRoomDatastore.createQuery(ConferenceRoom.class).field("roomName").equal(roomName);
+			WriteResult delete = conferenceRoomDatastore.delete(query);
+			return delete.getN() == 1;
+		} catch (Exception e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+		}
+		return false;
+	}
+
+	@Override
+	public ConferenceRoom getConferenceRoom(String roomName) {
+		try {
+			return conferenceRoomDatastore.find(ConferenceRoom.class).field("roomName").equal(roomName).get();
+		} catch (Exception e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+		}
+		return null;
 	}
 
 }

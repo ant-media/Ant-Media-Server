@@ -135,6 +135,12 @@ public class WebSocketConstants {
 	 */
 	public static final String NO_ROOM_SPECIFIED = "no_room_specified";
 	
+	/**
+	 * This is sent back to the user when there is no room specified in 
+	 * joining the video conference
+	 */
+	public static final String ROOM_TIME_INVALID = "room_not_active_or_expired";
+	
 	
 	public static final String UNAUTHORIZED = "unauthorized_access";
 
