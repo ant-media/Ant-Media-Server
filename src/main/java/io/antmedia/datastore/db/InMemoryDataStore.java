@@ -772,9 +772,6 @@ public class InMemoryDataStore extends DataStore {
 
 	@Override
 	public void clearStreamsOnThisServer() {
-		if(!broadcastMap.isEmpty()) {
-			logger.error("There are {} streams at start. They are deleted now.", broadcastMap.size());
-			broadcastMap.clear();
-		}
+		//no need to implement for InMemoryDb
 	}
 }

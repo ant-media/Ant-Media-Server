@@ -1,3 +1,4 @@
+dist: xenial
 language: java
 jdk:
   - openjdk8
@@ -18,7 +19,6 @@ before_install:
   - gpg --fast-import codesigning.asc
   - sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 2930ADAE8CAF5059EE73BB4B58712A2291FA4AD5
   - echo "deb [ arch=amd64 ] https://repo.mongodb.org/apt/ubuntu trusty/mongodb-org/3.6 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-3.6.list
-  - sudo add-apt-repository ppa:mc3man/trusty-media -y  # this for ffmpeg
   - sudo apt-get update -qq
   - sudo apt-get install -y mongodb-org #install mongodb
   - sudo apt-get install ffmpeg -qq # start ffmpeg
@@ -84,12 +84,20 @@ deploy:
       condition:  $(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)  = *"SNAPSHOT"* 
   
   - provider: script
-    script: "mvn deploy -P assemble -DskipTests --quiet --settings mvn-settings.xml && curl -g --ftp-create-dirs -T target/swagger/swagger.json -u $SWAGGER_FTP_USERNAME:$SWAGGER_FTP_PASSWORD $SWAGGER_FTP_URL/$RELEASE_VERSION/"
+    script: "mvn deploy -P assemble -DskipTests --settings mvn-settings.xml"
     skip_cleanup: true
     on:
       #deploy to maven if it is a release tagged
       tags: true
-      condition: $TRAVIS_TAG =~ ^release 
+      condition: $TRAVIS_TAG =~ ^ams-v 
+  
+  #- provider: script
+  #  script: "curl -g --ftp-create-dirs -T target/swagger/swagger.json -u $SWAGGER_FTP_USERNAME:$SWAGGER_FTP_PASSWORD $SWAGGER_FTP_URL/$RELEASE_VERSION/" 
+  #  skip_cleanup: true
+  #  on:
+      #deploy to website if it is a release tagged
+  #    tags: true
+  #    condition: $TRAVIS_TAG =~ ^ams-v 
   
   - provider: releases
     api_key: $GITHUB_OAUTH_TOKEN
@@ -101,6 +109,6 @@ deploy:
     on:
       #deploy to github if it is a release tagged
       tags: true
-      condition: $TRAVIS_TAG =~ ^release
+      condition: $TRAVIS_TAG =~ ^ams-v
       
 #above configuration prevents deploying a new release(not snapshot) if it is not tagged       
