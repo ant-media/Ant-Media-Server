@@ -102,7 +102,7 @@ deploy:
   - provider: releases
     api_key: $GITHUB_OAUTH_TOKEN
     file_glob: true
-    file: "target/ant-media-server-*-community*.zip"
+    file: "target/ant-media-server-community*.zip"
     skip_cleanup: true
     name: "Ant Media Server Community $(date +'%F-%T')"
     prerelease: true
