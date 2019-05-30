@@ -1,5 +1,26 @@
 package io.antmedia.rest;
 
+import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.IResourceMonitor;
+import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.ipcamera.OnvifCamera;
+import io.antmedia.ipcamera.onvifdiscovery.OnvifDiscovery;
+import io.antmedia.muxer.Mp4Muxer;
+import io.antmedia.muxer.MuxAdaptor;
+import io.antmedia.muxer.Muxer;
+import io.antmedia.rest.model.Result;
+import io.antmedia.streamsource.StreamFetcher;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+
+import javax.ws.rs.*;
+import javax.ws.rs.core.MediaType;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
@@ -9,30 +30,6 @@ import java.util.Date;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.regex.Pattern;
-
-import javax.ws.rs.Consumes;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.MediaType;
-
-import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
-
-import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.IResourceMonitor;
-import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.ipcamera.OnvifCamera;
-import io.antmedia.ipcamera.onvifdiscovery.OnvifDiscovery;
-import io.antmedia.rest.model.Result;
-import io.antmedia.streamsource.StreamFetcher;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
 
 @Api(value = "StreamsSourceRestService")
 @Component
@@ -438,6 +435,66 @@ public class StreamsSourceRestService extends RestServiceBase{
 			result = true;
 		}
 		return new Result(result);
+	}
+
+	@ApiOperation(value = "Start mp4 muxing", notes = "", response = Result.class)
+	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/mp4muxing/start/{streamId}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result startMp4Muxing(@ApiParam(value = "id of the stream", required = true) @QueryParam("streamId") String streamId) {
+		boolean result = false;
+		MuxAdaptor muxAdaptor = getMuxAdaptor(streamId);
+		if(muxAdaptor != null){
+			Mp4Muxer mp4Muxer = getMp4Muxer(muxAdaptor);
+			if(mp4Muxer == null){
+				//avoid multiple call of rest api adding new mp4muxers
+				muxAdaptor.startRecording();
+			}
+			result = true;
+		}
+		return new Result(result);
+	}
+
+	@ApiOperation(value = "Stop mp4 muxing", notes = "", response = Result.class)
+	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/mp4muxing/stop/{streamId}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result stopMp4Muxing(@ApiParam(value = "id of the stream", required = true) @QueryParam("streamId") String streamId) {
+		boolean result = false;
+		MuxAdaptor muxAdaptor = getMuxAdaptor(streamId);
+		if(muxAdaptor != null){
+			Mp4Muxer mp4Muxer = getMp4Muxer(muxAdaptor);
+			if(mp4Muxer != null){
+				//avoid multiple call of rest api stopping mp4 muxer
+				muxAdaptor.stopRecording();
+			}
+			result = true;
+		}
+		return new Result(result);
+	}
+
+	@Nullable
+	private Mp4Muxer getMp4Muxer(MuxAdaptor muxAdaptor) {
+		Mp4Muxer mp4Muxer = null;
+		for(Muxer muxer:muxAdaptor.getMuxerList()){
+			if(muxer instanceof Mp4Muxer){
+				mp4Muxer = (Mp4Muxer) muxer;
+			}
+		}
+		return mp4Muxer;
+	}
+
+	@Nullable
+	private MuxAdaptor getMuxAdaptor(@ApiParam(value = "id of the stream", required = true) @QueryParam("streamId") String streamId) {
+		MuxAdaptor muxAdaptor = null;
+		for (StreamFetcher streamFetcher : getApplication().getStreamFetcherManager().getStreamFetcherList()) {
+			if (streamFetcher.getStream().getStreamId().equals(streamId)) {
+				muxAdaptor = streamFetcher.getMuxAdaptor();
+			}
+		}
+		return muxAdaptor;
 	}
 
 
