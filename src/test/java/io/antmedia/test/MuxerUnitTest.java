@@ -1367,6 +1367,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
         logger.info("leaving testRecording");
     }
 
+
+    @Test
     public void testRemux() {
         String input = "target/test-classes/sample_MP4_480.mp4";
         String rotated = "rotated.mp4";
