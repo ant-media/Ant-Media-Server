@@ -25,6 +25,19 @@ before_install:
   - sudo service mongod start  # start mongo db
   - sudo apt-get install wondershaper
   - sudo git clone --depth=1 https://github.com/ant-media/utilities.git /usr/local/onvif
+    # get parent project
+  - (if [ $(git ls-remote https://github.com/ant-media/ant-media-server-parent.git $TRAVIS_BRANCH  | wc -l) == "1" ];  
+      then 
+        echo " $TRAVIS_BRANCH branch found";  
+        git clone --depth=1 -b $TRAVIS_BRANCH https://github.com/ant-media/ant-media-server-parent.git;  
+      else
+        echo "branch not found"; 
+        git clone --depth=1 https://github.com/ant-media/ant-media-server-parent.git;  
+    fi)
+  - cd ant-media-server-parent
+  - mvn clean install -DskipTests -Dmaven.javadoc.skip=true -Dgpg.skip=true --quiet
+  - cd ..
+    #get common project
   - (if [ $(git ls-remote https://github.com/ant-media/Ant-Media-Server-Common.git $TRAVIS_BRANCH  | wc -l) == "1" ];  
       then 
        echo " $TRAVIS_BRANCH branch found";  
