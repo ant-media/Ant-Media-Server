@@ -1580,7 +1580,7 @@ public class BroadcastRestService extends RestServiceBase{
 		String fileExtension = FilenameUtils.getExtension(fileName);
 		try {
 
-			if (fileExtension.equals("mp4")) {
+			if ("mp4".equals(fileExtension)) {
 
 
 				File streamsDirectory = new File(

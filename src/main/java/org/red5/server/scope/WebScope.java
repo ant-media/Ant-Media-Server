@@ -204,7 +204,7 @@ public class WebScope extends Scope implements ServletContextAware, WebScopeMXBe
         hostnames = virtualHosts.split(",");
         for (int i = 0; i < hostnames.length; i++) {
             hostnames[i] = hostnames[i].trim();
-            if (hostnames[i].equals("*")) {
+            if ("*".equals(hostnames[i])) {
                 hostnames[i] = "";
             }
         }

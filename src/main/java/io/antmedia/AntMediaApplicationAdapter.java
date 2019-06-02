@@ -286,7 +286,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	public void recreateEndpointsForSocialMedia(Broadcast broadcast, List<Endpoint> endPointList) {
 		for (Endpoint endpoint : endPointList) {
 
-			if (endpoint.type != null && !endpoint.type.equals("")) {
+			if (!"".equals(endpoint.type)) {
 				VideoServiceEndpoint videoServiceEndPoint = getVideoServiceEndPoint(endpoint.getEndpointServiceId());
 				if (videoServiceEndPoint != null) {
 					Endpoint newEndpoint;
