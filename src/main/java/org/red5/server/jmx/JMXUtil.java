@@ -40,6 +40,9 @@ import org.slf4j.LoggerFactory;
  */
 public class JMXUtil {
 
+    private static final String DESCR_T = "    DESCR: \t";
+    private static final String NAME_T = " ** NAME: \t";
+
     private static Logger log = LoggerFactory.getLogger(JMXUtil.class);
 
     public static void printMBeanInfo(ObjectName objectName, String className) {
@@ -59,8 +62,8 @@ public class JMXUtil {
         MBeanAttributeInfo[] attrInfo = info.getAttributes();
         if (attrInfo.length > 0) {
             for (int i = 0; i < attrInfo.length; i++) {
-                log.info(" ** NAME: \t" + attrInfo[i].getName());
-                log.info("    DESCR: \t" + attrInfo[i].getDescription());
+                log.info(NAME_T + attrInfo[i].getName());
+                log.info(DESCR_T + attrInfo[i].getDescription());
                 log.info("    TYPE: \t" + attrInfo[i].getType() + "\tREAD: " + attrInfo[i].isReadable() + "\tWRITE: " + attrInfo[i].isWritable());
             }
         } else
@@ -68,16 +71,16 @@ public class JMXUtil {
         log.info("CONSTRUCTORS");
         MBeanConstructorInfo[] constrInfo = info.getConstructors();
         for (int i = 0; i < constrInfo.length; i++) {
-            log.info(" ** NAME: \t" + constrInfo[i].getName());
-            log.info("    DESCR: \t" + constrInfo[i].getDescription());
+            log.info(NAME_T + constrInfo[i].getName());
+            log.info(DESCR_T + constrInfo[i].getDescription());
             log.info("    PARAM: \t" + constrInfo[i].getSignature().length + " parameter(s)");
         }
         log.info("OPERATIONS");
         MBeanOperationInfo[] opInfo = info.getOperations();
         if (opInfo.length > 0) {
             for (int i = 0; i < opInfo.length; i++) {
-                log.info(" ** NAME: \t" + opInfo[i].getName());
-                log.info("    DESCR: \t" + opInfo[i].getDescription());
+                log.info(NAME_T + opInfo[i].getName());
+                log.info(DESCR_T + opInfo[i].getDescription());
                 log.info("    PARAM: \t" + opInfo[i].getSignature().length + " parameter(s)");
             }
         } else
@@ -86,8 +89,8 @@ public class JMXUtil {
         MBeanNotificationInfo[] notifInfo = info.getNotifications();
         if (notifInfo.length > 0) {
             for (int i = 0; i < notifInfo.length; i++) {
-                log.info(" ** NAME: \t" + notifInfo[i].getName());
-                log.info("    DESCR: \t" + notifInfo[i].getDescription());
+                log.info(NAME_T + notifInfo[i].getName());
+                log.info(DESCR_T + notifInfo[i].getDescription());
                 String notifTypes[] = notifInfo[i].getNotifTypes();
                 for (int j = 0; j < notifTypes.length; j++) {
                     log.info("    TYPE: \t" + notifTypes[j]);

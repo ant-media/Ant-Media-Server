@@ -124,6 +124,8 @@ public class MultiThreadedApplicationAdapter extends StatefulScopeWrappingAdapte
 		IBroadcastStreamService, IOnDemandStreamService, ISubscriberStreamService, ISchedulingService,
 		IStreamSecurityService, ISharedObjectSecurityService, IStreamAwareScopeHandler, ApplicationMXBean {
 
+	private static final String _0_0_0_0 = "0.0.0.0";
+
 	/**
 	 * Logger object
 	 */
@@ -1413,7 +1415,7 @@ public class MultiThreadedApplicationAdapter extends StatefulScopeWrappingAdapte
 		// log w3c connect event
 		IConnection connection = Red5.getConnectionLocal();
 		log.info("W3C x-category:stream x-event:publish c-ip:{} x-sname:{} x-name:{}",
-				new Object[] { connection != null ? connection.getRemoteAddress() : "0.0.0.0", stream.getName(),
+				new Object[] { connection != null ? connection.getRemoteAddress() : _0_0_0_0, stream.getName(),
 						stream.getPublishedName() });
 	}
 
@@ -1421,7 +1423,7 @@ public class MultiThreadedApplicationAdapter extends StatefulScopeWrappingAdapte
 		// log w3c connect event
 		IConnection connection = Red5.getConnectionLocal();
 		log.info("W3C x-category:stream x-event:record-start c-ip:{} x-sname:{} x-file-name:{}",
-				new Object[] { connection != null ? connection.getRemoteAddress() : "0.0.0.0", stream.getName(),
+				new Object[] { connection != null ? connection.getRemoteAddress() : _0_0_0_0, stream.getName(),
 						stream.getSaveFilename() });
 	}
 
@@ -1429,7 +1431,7 @@ public class MultiThreadedApplicationAdapter extends StatefulScopeWrappingAdapte
 		// log w3c connect event
 		IConnection connection = Red5.getConnectionLocal();
 		log.info("W3C x-category:stream x-event:record-stop c-ip:{} x-sname:{} x-file-name:{}",
-				new Object[] { connection != null ? connection.getRemoteAddress() : "0.0.0.0", stream.getName(),
+				new Object[] { connection != null ? connection.getRemoteAddress() : _0_0_0_0, stream.getName(),
 						stream.getSaveFilename() });
 	}
 

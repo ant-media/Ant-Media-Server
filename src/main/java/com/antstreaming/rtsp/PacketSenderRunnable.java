@@ -41,6 +41,8 @@ import org.slf4j.LoggerFactory;
 
 public class PacketSenderRunnable implements Runnable {
 
+	private static final String ERROR_CODE = " error code:";
+	private static final String DESCRIPTION = " description: ";
 
 	AVPacket pkt = new AVPacket();
 
@@ -311,8 +313,8 @@ public class PacketSenderRunnable implements Runnable {
 		if (ret < 0) {
 			byte[] data = new byte[4096];
 			avutil.av_strerror(ret, data, data.length);
-			logger.warn("could not open input " + rtmpUrl + " error code:" + ret
-					+ " description: " + new String(data));
+			logger.warn("could not open input " + rtmpUrl + ERROR_CODE + ret
+					+ DESCRIPTION + new String(data));
 			return null;
 		}
 
@@ -324,8 +326,8 @@ public class PacketSenderRunnable implements Runnable {
 			if (ret < 0) {
 				byte[] data = new byte[4096];
 				avutil.av_strerror(ret, data, data.length);
-				logger.warn("could not find stream info " + rtmpUrl + " error code:" + ret
-						+ " description: " + new String(data));
+				logger.warn("could not find stream info " + rtmpUrl + ERROR_CODE + ret
+						+ DESCRIPTION + new String(data));
 				return null;
 			}
 
@@ -335,8 +337,8 @@ public class PacketSenderRunnable implements Runnable {
 			if (ret < 0) {
 				byte[] data = new byte[4096];
 				avutil.av_strerror(ret, data, data.length);
-				logger.warn("could not create sdp " + rtmpUrl + " error code:" + ret
-						+ " description: " + new String(data));
+				logger.warn("could not create sdp " + rtmpUrl + ERROR_CODE + ret
+						+ DESCRIPTION + new String(data));
 				return null;
 			}
 

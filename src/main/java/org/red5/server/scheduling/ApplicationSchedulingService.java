@@ -41,6 +41,8 @@ import org.springframework.jmx.export.annotation.ManagedResource;
 @ManagedResource(objectName = "org.red5.server:type=ApplicationSchedulingService,name=default")
 public class ApplicationSchedulingService extends QuartzSchedulingService {
 
+    private static final String ORG_RED5_SERVER_TYPE_APPLICATIONSCHEDULINGSERVICE_APPLICATIONNAME = "org.red5.server:type=ApplicationSchedulingService,applicationName=";
+
     private static Logger log = Red5LoggerFactory.getLogger(ApplicationSchedulingService.class);
 
     public static final String QUARTZ_FACTORY_KEY = "org.quartz.impl.StdSchedulerFactory.KEY";
@@ -106,9 +108,9 @@ public class ApplicationSchedulingService extends QuartzSchedulingService {
         try {
             ObjectName oName = null;
             if (instanceId == null) {
-                oName = new ObjectName("org.red5.server:type=ApplicationSchedulingService,applicationName=" + applicationName);
+                oName = new ObjectName(ORG_RED5_SERVER_TYPE_APPLICATIONSCHEDULINGSERVICE_APPLICATIONNAME + applicationName);
             } else {
-                oName = new ObjectName("org.red5.server:type=ApplicationSchedulingService,applicationName=" + applicationName + ",instanceId=" + instanceId);
+                oName = new ObjectName(ORG_RED5_SERVER_TYPE_APPLICATIONSCHEDULINGSERVICE_APPLICATIONNAME + applicationName + ",instanceId=" + instanceId);
             }
             mbeanServer.registerMBean(new StandardMBean(this, QuartzSchedulingServiceMXBean.class, true), oName);
         } catch (Exception e) {
@@ -121,9 +123,9 @@ public class ApplicationSchedulingService extends QuartzSchedulingService {
         try {
             ObjectName oName = null;
             if (instanceId == null) {
-                oName = new ObjectName("org.red5.server:type=ApplicationSchedulingService,applicationName=" + applicationName);
+                oName = new ObjectName(ORG_RED5_SERVER_TYPE_APPLICATIONSCHEDULINGSERVICE_APPLICATIONNAME + applicationName);
             } else {
-                oName = new ObjectName("org.red5.server:type=ApplicationSchedulingService,applicationName=" + applicationName + ",instanceId=" + instanceId);
+                oName = new ObjectName(ORG_RED5_SERVER_TYPE_APPLICATIONSCHEDULINGSERVICE_APPLICATIONNAME + applicationName + ",instanceId=" + instanceId);
             }
             mbs.unregisterMBean(oName);
         } catch (Exception e) {

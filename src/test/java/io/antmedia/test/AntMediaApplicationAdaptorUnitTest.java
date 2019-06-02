@@ -43,6 +43,8 @@ import io.vertx.core.Vertx;
 
 public class AntMediaApplicationAdaptorUnitTest {
 
+    private static final String ACTION = "action";
+
 	AntMediaApplicationAdapter adapter;
 	String streamsFolderPath = "webapps/test/streams";
 
@@ -202,7 +204,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 			Mockito.when(entity.getContent()).thenReturn(is);
 			Mockito.when(httpResponse.getEntity()).thenReturn(entity);
 			HashMap map = new HashMap();
-			map.put("action", "action_any");
+			map.put(ACTION, "action_any");
 			response = spyAdaptor.sendPOST("http://any_url", map);
 			assertNotNull(response);
 			assertEquals(10, response.length());
@@ -246,7 +248,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 			Map variablesMap = variables.getValue();
 			assertEquals(id, variablesMap.get("id"));
-			assertEquals(action, variablesMap.get("action"));
+			assertEquals(action, variablesMap.get(ACTION));
 			assertEquals(streamName, variablesMap.get("streamName"));
 			assertEquals(category, variablesMap.get("category"));
 			assertEquals(vodName, variablesMap.get("vodName"));
@@ -270,7 +272,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 			Map variablesMap = variables.getValue();
 			assertEquals(id, variablesMap.get("id"));
-			assertNull(variablesMap.get("action"));
+			assertNull(variablesMap.get(ACTION));
 			assertNull(variablesMap.get("streamName"));
 			assertNull(variablesMap.get("category"));
 			assertNull(variablesMap.get("vodName"));

@@ -23,6 +23,8 @@ import io.antmedia.AsciiArt;
 @ContextConfiguration(locations = { "test.xml" })
 @DirtiesContext(classMode = ClassMode.AFTER_CLASS)
 public class LauncherUnitTest {
+
+    private static final String VERSION = "version";
 	
 	protected WebScope appScope;
 	static {
@@ -50,17 +52,17 @@ public class LauncherUnitTest {
 			
 			Launcher.setInstanceIdFilePath("target/instanceId");
 			
-			assertTrue(launcher.notifyShutDown("version", "type"));
+			assertTrue(launcher.notifyShutDown(VERSION, "type"));
 			
-			assertTrue(launcher.startAnalytic("version", "type"));	
+			assertTrue(launcher.startAnalytic(VERSION, "type"));	
 			
-			assertTrue(launcher.startHeartBeats("version", "type", 1000));
+			assertTrue(launcher.startHeartBeats(VERSION, "type", 1000));
 			
 
 			Awaitility.await().with().pollDelay(10,TimeUnit.SECONDS).atMost(20, TimeUnit.SECONDS)
 			.pollInterval(1, TimeUnit.SECONDS)
 			.until(()->{
-				return launcher.startHeartBeats("version", "type", 1000);
+				return launcher.startHeartBeats(VERSION, "type", 1000);
 			});
 
 	}

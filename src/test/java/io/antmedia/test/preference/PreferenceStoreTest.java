@@ -16,6 +16,9 @@ import io.antmedia.datastore.preference.PreferenceStore;
 
 public class PreferenceStoreTest {
 
+    private static final String VALUE1 = "value1";
+    private static final String DATA_PROPERTIES = "data.properties";
+
 
 	@Test
 	public void testStorePreferences() {
@@ -28,24 +31,24 @@ public class PreferenceStoreTest {
 				Files.delete(f.toPath());
 			}
 
-			PreferenceStore dataStore = new PreferenceStore("data.properties");
+			PreferenceStore dataStore = new PreferenceStore(DATA_PROPERTIES);
 			dataStore.setFullPath(fullPath);
 			assertNull(dataStore.get("data1"));
 
-			dataStore.put("data1", "value1");
+			dataStore.put("data1", VALUE1);
 			dataStore.put("data2", "value2");
 			dataStore.put("data3", "value3");
 
-			assertEquals(dataStore.get("data1"), "value1");
+			assertEquals(dataStore.get("data1"), VALUE1);
 
 			assertTrue(dataStore.save());
 
-			assertEquals(dataStore.get("data1"), "value1");
+			assertEquals(dataStore.get("data1"), VALUE1);
 
-			dataStore = new PreferenceStore("data.properties");
+			dataStore = new PreferenceStore(DATA_PROPERTIES);
 			dataStore.setFullPath(fullPath);
 			assertNotNull(dataStore.get("data1"));
-			assertEquals(dataStore.get("data1"), "value1");
+			assertEquals(dataStore.get("data1"), VALUE1);
 			dataStore.put("data4", "value4");
 			assertTrue(dataStore.save());
 
@@ -56,13 +59,13 @@ public class PreferenceStoreTest {
 			assertNull(dataStore.get("data4"));
 			
 			//create store with full path
-			dataStore = new PreferenceStore("data.properties", true);
+			dataStore = new PreferenceStore(DATA_PROPERTIES, true);
 			
-			dataStore.put("data1", "value1");
+			dataStore.put("data1", VALUE1);
 			
 			assertTrue(dataStore.save());
 			assertNotNull(dataStore.get("data1"));
-			assertEquals( "value1", dataStore.get("data1"));
+			assertEquals( VALUE1, dataStore.get("data1"));
 
 
 		} catch (IOException e) {

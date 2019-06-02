@@ -26,6 +26,8 @@ import org.slf4j.LoggerFactory;
 
 public class DerbyLogInterceptor {
 
+	private static final String DERBY_LOG = "Derby log: {}";
+
     protected static Logger log = LoggerFactory.getLogger(DerbyLogInterceptor.class);
 
     private static ThreadLocal<StringBuilder> local = new ThreadLocal<>();
@@ -35,7 +37,7 @@ public class DerbyLogInterceptor {
 
             @Override
             public void write(byte[] b) throws IOException {
-                log.info("Derby log: {}", new String(b));
+                log.info(DERBY_LOG, new String(b));
             }
 
             @Override
@@ -46,10 +48,10 @@ public class DerbyLogInterceptor {
                 }
                 //look for LF
                 if (i == 10) {
-                    log.info("Derby log: {}", sb.toString());
+                    log.info(DERBY_LOG, sb.toString());
                     sb.delete(0, sb.length() - 1);
                 } else {
-                    log.trace("Derby log: {}", i);
+                    log.trace(DERBY_LOG, i);
                     sb.append(new String(intToDWord(i)));
                 }
                 local.set(sb);

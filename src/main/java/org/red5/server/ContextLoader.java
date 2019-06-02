@@ -59,6 +59,9 @@ import org.springframework.web.context.support.XmlWebApplicationContext;
 @ManagedResource(objectName = "org.red5.server:name=contextLoader,type=ContextLoader", description = "ContextLoader")
 public class ContextLoader implements ApplicationContextAware, InitializingBean, DisposableBean, ContextLoaderMXBean {
 
+	private static final String FILE = "file://";
+	private static final String RED5_COMMON = "red5.common";
+
     protected static Logger log = Red5LoggerFactory.getLogger(ContextLoader.class);
 
     /**
@@ -165,11 +168,11 @@ public class ContextLoader implements ApplicationContextAware, InitializingBean,
             File configFile = new File(config);
             if (!configFile.exists()) {
                 log.warn("Config file was not found at: {}", configFile.getCanonicalPath());
-                configFile = new File("file://" + config);
+                configFile = new File(FILE + config);
                 if (!configFile.exists()) {
                     log.warn("Config file was not found at either: {}", configFile.getCanonicalPath());
                 } else {
-                    config = "file://" + config;
+                    config = FILE + config;
                 }
             }
         } catch (IOException e) {
@@ -183,14 +186,14 @@ public class ContextLoader implements ApplicationContextAware, InitializingBean,
         }
         // if parent context was not set then lookup red5.common
         if (parentContext == null) {
-            log.debug("Lookup common - bean:{} local:{} singleton:{}", new Object[] { factory.containsBean("red5.common"), factory.containsLocalBean("red5.common"), factory.containsSingleton("red5.common"), });
-            parentContext = (ApplicationContext) factory.getBean("red5.common");
+            log.debug("Lookup common - bean:{} local:{} singleton:{}", new Object[] { factory.containsBean(RED5_COMMON), factory.containsLocalBean(RED5_COMMON), factory.containsSingleton(RED5_COMMON), });
+            parentContext = (ApplicationContext) factory.getBean(RED5_COMMON);
         }
         if (config.startsWith("/")) {
             // Spring always interprets files as relative, so will strip a leading slash unless we tell
             // it otherwise. It also appears to not need this for Windows
             // absolute paths (e.g. C:\Foo\Bar) so we don't catch that either
-            String newConfig = "file://" + config;
+            String newConfig = FILE + config;
             log.debug("Resetting {} to {}", config, newConfig);
             config = newConfig;
         }

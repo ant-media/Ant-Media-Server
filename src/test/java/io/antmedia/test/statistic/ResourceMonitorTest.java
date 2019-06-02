@@ -39,6 +39,8 @@ import io.vertx.core.Vertx;
 
 public class ResourceMonitorTest {
 
+    private static final String TARGET_INSTANCEID = "target/instanceId";
+
 	@Test
 	public void testCpuAverage() {
 		ResourceMonitor monitor = new ResourceMonitor();
@@ -97,7 +99,7 @@ public class ResourceMonitorTest {
 		assertTrue(jsObject.has(ResourceMonitor.FREE_SWAP_SPACE));
 		assertTrue(jsObject.has(ResourceMonitor.IN_USE_SWAP_SPACE));
 		
-		Launcher.setInstanceIdFilePath("target/instanceId");
+		Launcher.setInstanceIdFilePath(TARGET_INSTANCEID);
 		jsObject = ResourceMonitor.getSystemResourcesInfo(null);
 		assertTrue(jsObject.has(ResourceMonitor.CPU_USAGE));
 		assertTrue(jsObject.has(ResourceMonitor.JVM_MEMORY_USAGE));
@@ -169,7 +171,7 @@ public class ResourceMonitorTest {
 		
 		Mockito.when(kafkaProducer.send(any())).thenReturn(futureMetdata);
 		
-		Launcher.setInstanceIdFilePath("target/instanceId");
+		Launcher.setInstanceIdFilePath(TARGET_INSTANCEID);
 		resMonitor.setKafkaProducer(kafkaProducer);
 		resMonitor.sendInstanceStats(null);
 		
@@ -195,7 +197,7 @@ public class ResourceMonitorTest {
 		
 		Mockito.when(kafkaProducer.send(any())).thenReturn(futureMetdata);
 		
-		Launcher.setInstanceIdFilePath("target/instanceId");
+		Launcher.setInstanceIdFilePath(TARGET_INSTANCEID);
 		resMonitor.setKafkaProducer(kafkaProducer);
 		
 		List<WebRTCClientStats> webRTCClientStatList = new ArrayList<>();
@@ -211,7 +213,7 @@ public class ResourceMonitorTest {
 	
 	@Test
 	public void testCreateKafka() {
-		Launcher.setInstanceIdFilePath("target/instanceId");
+		Launcher.setInstanceIdFilePath(TARGET_INSTANCEID);
 		ResourceMonitor resMonitor = new ResourceMonitor();
 		try {
 			Producer<Long, String> kafkaProducer = resMonitor.createKafkaProducer();
@@ -230,7 +232,7 @@ public class ResourceMonitorTest {
 	
 	@Test
 	public void testCollectAndSendWebRTCStats() {
-		Launcher.setInstanceIdFilePath("target/instanceId");
+		Launcher.setInstanceIdFilePath(TARGET_INSTANCEID);
 		ResourceMonitor resMonitor = new ResourceMonitor();
 		Producer<Long, String> kafkaProducer = Mockito.mock(Producer.class);
 		resMonitor.setKafkaProducer(kafkaProducer);

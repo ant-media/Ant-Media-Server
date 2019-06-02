@@ -44,6 +44,8 @@ import io.antmedia.test.StreamFetcherUnitTest;
 @DirtiesContext(classMode = ClassMode.AFTER_CLASS)
 public class StreamSourceRestServiceUnitTest {
 
+    private static final String ENDPOINT_1 = "endpoint_1";
+
 	protected static Logger logger = LoggerFactory.getLogger(StreamSourceRestServiceUnitTest.class);
 	private StreamsSourceRestService restService = null;
 	public AntMediaApplicationAdapter app = null;
@@ -318,7 +320,7 @@ public class StreamSourceRestServiceUnitTest {
 		when(monitorService.getAvgCpuUsage()).thenReturn(cpuLoad2);
 		when(monitorService.getCpuLimit()).thenReturn(cpuLimit2);
 		
-		result = streamSourceRest.addStreamSource(source, "endpoint_1");
+		result = streamSourceRest.addStreamSource(source, ENDPOINT_1);
 		assertNull(source.getEndPointList());
 
 
@@ -332,7 +334,7 @@ public class StreamSourceRestServiceUnitTest {
 			e.printStackTrace();
 		}
 
-		videoServiceEndpoints.put("endpoint_1", mockVSEndpoint);
+		videoServiceEndpoints.put(ENDPOINT_1, mockVSEndpoint);
 
 		//When there is an endpoint defined
 		Broadcast source2 = new Broadcast("test_2");
@@ -341,7 +343,7 @@ public class StreamSourceRestServiceUnitTest {
 		source2.setPublicStream(false);
 		source2.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
 
-		result = streamSourceRest.addStreamSource(source2, "endpoint_1");
+		result = streamSourceRest.addStreamSource(source2, ENDPOINT_1);
 		assertEquals(1, source2.getEndPointList().size());
 
 		//Now we add second endpoint
@@ -358,7 +360,7 @@ public class StreamSourceRestServiceUnitTest {
 		assertEquals(2, source3.getEndPointList().size());
 
 		//update first source now. At the moment we have endpoint_1
-		result = streamSourceRest.updateCamInfo(source, "endpoint_1");
+		result = streamSourceRest.updateCamInfo(source, ENDPOINT_1);
 		assertEquals(1, source.getEndPointList().size());
 	}
 

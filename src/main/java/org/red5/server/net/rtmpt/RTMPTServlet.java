@@ -60,6 +60,12 @@ import org.springframework.web.context.support.WebApplicationContextUtils;
  */
 public class RTMPTServlet extends HttpServlet {
 
+    private static final String CONNECTION = "Connection";
+    private static final String NO_CACHE = "no-cache";
+    private static final String CACHE_CONTROL = "Cache-Control";
+    private static final String RETURNMESSAGE = "returnMessage {}";
+    private static final String KEEP_ALIVE = "Keep-Alive";
+
     private static final long serialVersionUID = 5925399677454936613L;
 
     protected static Logger log = Red5LoggerFactory.getLogger(RTMPTServlet.class);
@@ -165,10 +171,10 @@ public class RTMPTServlet extends HttpServlet {
      *             I/O exception
      */
     protected void returnMessage(byte message, HttpServletResponse resp) throws IOException {
-        log.debug("returnMessage {}", message);
+        log.debug(RETURNMESSAGE, message);
         resp.setStatus(HttpServletResponse.SC_OK);
-        resp.setHeader("Connection", "Keep-Alive");
-        resp.setHeader("Cache-Control", "no-cache");
+        resp.setHeader(CONNECTION, KEEP_ALIVE);
+        resp.setHeader(CACHE_CONTROL, NO_CACHE);
         resp.setContentType(CONTENT_TYPE);
         resp.setContentLength(1);
         resp.getWriter().write(message);
@@ -186,10 +192,10 @@ public class RTMPTServlet extends HttpServlet {
      *             I/O exception
      */
     protected void returnMessage(String message, HttpServletResponse resp) throws IOException {
-        log.debug("returnMessage {}", message);
+        log.debug(RETURNMESSAGE, message);
         resp.setStatus(HttpServletResponse.SC_OK);
-        resp.setHeader("Connection", "Keep-Alive");
-        resp.setHeader("Cache-Control", "no-cache");
+        resp.setHeader(CONNECTION, KEEP_ALIVE);
+        resp.setHeader(CACHE_CONTROL, NO_CACHE);
         resp.setContentType(CONTENT_TYPE);
         resp.setContentLength(message.length());
         resp.getWriter().write(message);
@@ -209,14 +215,14 @@ public class RTMPTServlet extends HttpServlet {
      *             I/O exception
      */
     protected void returnMessage(RTMPTConnection conn, IoBuffer buffer, HttpServletResponse resp) throws IOException {
-        log.trace("returnMessage {}", buffer);
+        log.trace(RETURNMESSAGE, buffer);
         if (conn != null) {
             resp.setStatus(HttpServletResponse.SC_OK);
         } else {
             resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
         }
-        resp.setHeader("Connection", "Keep-Alive");
-        resp.setHeader("Cache-Control", "no-cache");
+        resp.setHeader(CONNECTION, KEEP_ALIVE);
+        resp.setHeader(CACHE_CONTROL, NO_CACHE);
         resp.setContentType(CONTENT_TYPE);
         int contentLength = buffer.limit() + 1;
         resp.setContentLength(contentLength);
@@ -352,8 +358,8 @@ public class RTMPTServlet extends HttpServlet {
             }
         } else {
             resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            resp.setHeader("Connection", "Keep-Alive");
-            resp.setHeader("Cache-Control", "no-cache");
+            resp.setHeader(CONNECTION, KEEP_ALIVE);
+            resp.setHeader(CACHE_CONTROL, NO_CACHE);
             resp.flushBuffer();
         }
     }
@@ -603,15 +609,15 @@ public class RTMPTServlet extends HttpServlet {
                     } else {
                         // just send 404 back if no ident2 value is set
                         resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
-                        resp.setHeader("Connection", "Keep-Alive");
-                        resp.setHeader("Cache-Control", "no-cache");
+                        resp.setHeader(CONNECTION, KEEP_ALIVE);
+                        resp.setHeader(CACHE_CONTROL, NO_CACHE);
                         resp.flushBuffer();
                         break;
                     }
                 }
                 resp.setStatus(HttpServletResponse.SC_OK);
-                resp.setHeader("Connection", "Keep-Alive");
-                resp.setHeader("Cache-Control", "no-cache");
+                resp.setHeader(CONNECTION, KEEP_ALIVE);
+                resp.setHeader(CACHE_CONTROL, NO_CACHE);
                 resp.setContentType(CONTENT_TYPE);
                 resp.setContentLength(ident.length());
                 resp.getWriter().write(ident);
