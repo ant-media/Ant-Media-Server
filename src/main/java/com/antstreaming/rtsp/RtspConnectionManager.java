@@ -17,6 +17,8 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 
 public class RtspConnectionManager implements IConnectionManager<RtspConnection>, ApplicationContextAware {
 
+	private static final String NOT_IMPLEMENTED = "Not implemented";
+
 	private static Logger logger = LoggerFactory.getLogger(RtspConnectionManager.class);
 
 	protected ConcurrentMap<String, RtspConnection> connMap = new ConcurrentHashMap<String, RtspConnection>();
@@ -76,12 +78,12 @@ public class RtspConnectionManager implements IConnectionManager<RtspConnection>
 
 	@Override
 	public RtspConnection getConnection(int clientId) {
-		throw new UnsupportedOperationException("Not implemented");
+		throw new UnsupportedOperationException(NOT_IMPLEMENTED);
 	}
 
 	@Override
 	public void setConnection(RtspConnection conn) {
-		throw new UnsupportedOperationException("Not implemented");
+		throw new UnsupportedOperationException(NOT_IMPLEMENTED);
 
 	}
 
@@ -120,12 +122,12 @@ public class RtspConnectionManager implements IConnectionManager<RtspConnection>
 
 	@Override
 	public RtspConnection createConnection(Class<?> connCls, String sessionId) {
-		throw new UnsupportedOperationException("Not implemented");
+		throw new UnsupportedOperationException(NOT_IMPLEMENTED);
 	}
 
 	@Override
 	public RtspConnection removeConnection(int clientId) {
-		throw new UnsupportedOperationException("Not implemented");
+		throw new UnsupportedOperationException(NOT_IMPLEMENTED);
 	}
 
 	@Override

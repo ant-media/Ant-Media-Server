@@ -18,6 +18,8 @@ import org.slf4j.LoggerFactory;
 
 
 public class RtspDecoder extends CumulativeProtocolDecoder {
+
+	private static final String RTSPMESSAGE = "rtspMessage";
 	private static Logger logger = LoggerFactory.getLogger(RtspDecoder.class);
 
 	/**
@@ -105,7 +107,7 @@ public class RtspDecoder extends CumulativeProtocolDecoder {
 						Matcher m = rtspResponsePattern.matcher(line);
 						if (!m.matches()) {
 							session.removeAttribute("state");
-							session.removeAttribute("rtspMessage");
+							session.removeAttribute(RTSPMESSAGE);
 							throw new ProtocolDecoderException("Malformed response line: " + line);
 						}
 
@@ -118,7 +120,7 @@ public class RtspDecoder extends CumulativeProtocolDecoder {
 						Matcher m = rtspRequestPattern.matcher(line);
 						if (!m.matches()) {
 							session.removeAttribute("state");
-							session.removeAttribute("rtspMessage");
+							session.removeAttribute(RTSPMESSAGE);
 							throw new ProtocolDecoderException("Malformed request line: " + line);
 						}
 
@@ -135,7 +137,7 @@ public class RtspDecoder extends CumulativeProtocolDecoder {
 
 						if (((RtspRequest) rtspMessage).getVerb() == RtspRequest.Verb.None) {
 							session.removeAttribute("state");
-							session.removeAttribute("rtspMessage");
+							session.removeAttribute(RTSPMESSAGE);
 							logger.error("Invalid method: " + verb);
 							throw new ProtocolDecoderException("Invalid method: " + verb);
 						}
@@ -150,7 +152,7 @@ public class RtspDecoder extends CumulativeProtocolDecoder {
 
 					if (!m.matches()) {
 						session.removeAttribute("state");
-						session.removeAttribute("rtspMessage");
+						session.removeAttribute(RTSPMESSAGE);
 						// logger.error("RTSP header not valid line:" + line);
 						throw new ProtocolDecoderException("RTSP header not valid line:" + line);
 					}
@@ -203,7 +205,7 @@ public class RtspDecoder extends CumulativeProtocolDecoder {
 			// The message is already formed
 			// send it
 			session.removeAttribute("state");
-			session.removeAttribute("rtspMessage");
+			session.removeAttribute(RTSPMESSAGE);
 			out.write(rtspMessage);
 			return true;
 		}
@@ -212,7 +214,7 @@ public class RtspDecoder extends CumulativeProtocolDecoder {
 
 		// Save attributes in session
 		session.setAttribute("state", state);
-		session.setAttribute("rtspMessage", rtspMessage);
+		session.setAttribute(RTSPMESSAGE, rtspMessage);
 		return false;
 	}
 }

@@ -55,6 +55,8 @@ import org.slf4j.Logger;
  */
 public final class Installer {
 
+    private static final String ONALERT = "onAlert";
+
     private static Logger log = Red5LoggerFactory.getLogger(Installer.class);
 
     private String applicationRepositoryUrl;
@@ -184,7 +186,7 @@ public final class Installer {
             } else {
                 log.warn("Application destination is not a directory");
             }
-            ServiceUtils.invokeOnConnection(conn, "onAlert", new Object[] { String.format("Application %s already installed, please un-install before attempting another install", application) });
+            ServiceUtils.invokeOnConnection(conn, ONALERT, new Object[] { String.format("Application %s already installed, please un-install before attempting another install", application) });
         } else {
             //use the system temp directory for moving files around
             String srcDir = System.getProperty("java.io.tmpdir");
@@ -283,12 +285,12 @@ public final class Installer {
                     //just copy the war to the webapps dir
                     try {
                         FileUtil.moveFile(srcDir + '/' + applicationWarName, webappsDir + '/' + application + ".war");
-                        ServiceUtils.invokeOnConnection(conn, "onAlert", new Object[] { String.format("Application %s will not be available until container is restarted", application) });
+                        ServiceUtils.invokeOnConnection(conn, ONALERT, new Object[] { String.format("Application %s will not be available until container is restarted", application) });
                     } catch (IOException e) {
                     }
                 }
             }
-            ServiceUtils.invokeOnConnection(conn, "onAlert", new Object[] { String.format("Application %s was %s", application, (result ? "installed" : "not installed")) });
+            ServiceUtils.invokeOnConnection(conn, ONALERT, new Object[] { String.format("Application %s was %s", application, (result ? "installed" : "not installed")) });
         }
         appDir = null;
         return result;
@@ -302,7 +304,7 @@ public final class Installer {
      * @return true if uninstalled; else false
      */
     public boolean uninstall(String applicationName) {
-        ServiceUtils.invokeOnConnection(Red5.getConnectionLocal(), "onAlert", new Object[] { "Uninstall function not available" });
+        ServiceUtils.invokeOnConnection(Red5.getConnectionLocal(), ONALERT, new Object[] { "Uninstall function not available" });
         return false;
     }
 

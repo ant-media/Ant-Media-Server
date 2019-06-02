@@ -28,6 +28,8 @@ import io.antmedia.filter.TokenSessionFilter;
 import io.antmedia.security.MockTokenService;
 
 public class TokenServiceTest {
+
+    private static final String STREAMID = "streamId";
 	protected static Logger logger = LoggerFactory.getLogger(TokenServiceTest.class);
 
 	DataStore datastore;
@@ -59,7 +61,7 @@ public class TokenServiceTest {
 		//create token
 		
 		Token token = new Token();
-		token.setStreamId("streamId");
+		token.setStreamId(STREAMID);
 		token.setTokenId("tokenId");
 		token.setType(Token.PLAY_TOKEN);
 
@@ -79,11 +81,11 @@ public class TokenServiceTest {
 
 		//create token
 		Token token = new Token();
-		token.setStreamId("streamId");
+		token.setStreamId(STREAMID);
 		token.setTokenId("tokenId");
 		token.setType(Token.PLAY_TOKEN);
 		
-		tokenService.getAuthenticatedMap().put("sessionId", "streamId");
+		tokenService.getAuthenticatedMap().put("sessionId", STREAMID);
 
 		//check that map size
 		assertEquals(1, tokenService.getAuthenticatedMap().size());

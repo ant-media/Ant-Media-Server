@@ -73,6 +73,8 @@ import org.slf4j.LoggerFactory;
  */
 public class ServerStream extends AbstractStream implements IServerStream, IFilter, IPushableConsumer, IPipeConnectionListener {
 
+    private static final String ERROR_WHILE_SENDING_MESSAGE = "Error while sending message.";
+
     private static final Logger log = LoggerFactory.getLogger(ServerStream.class);
 
     private static final long WAIT_THRESHOLD = 0;
@@ -784,7 +786,7 @@ public class ServerStream extends AbstractStream implements IServerStream, IFilt
             try {
                 pushMessage(nextRTMPMessage);
             } catch (IOException err) {
-                log.error("Error while sending message.", err);
+                log.error(ERROR_WHILE_SENDING_MESSAGE, err);
             }
             nextRTMPMessage.getBody().release();
         }
@@ -864,7 +866,7 @@ public class ServerStream extends AbstractStream implements IServerStream, IFilt
             try {
                 pushMessage(nextRTMPMessage);
             } catch (IOException err) {
-                log.error("Error while sending message.", err);
+                log.error(ERROR_WHILE_SENDING_MESSAGE, err);
             }
             nextRTMPMessage.getBody().release();
             nextRTMPMessage = null;
@@ -873,7 +875,7 @@ public class ServerStream extends AbstractStream implements IServerStream, IFilt
         try {
             pushMessage(reset);
         } catch (IOException err) {
-            log.error("Error while sending message.", err);
+            log.error(ERROR_WHILE_SENDING_MESSAGE, err);
         }
         scheduleNextMessage();
     }

@@ -26,6 +26,8 @@ import io.antmedia.security.ExpireStreamPublishSecurity;
 import io.antmedia.statistic.HlsViewerStats;
 
 public class DataStoreFactoryUnitTest {
+
+    private static final String MEMORYDB = "memorydb";
 	private DataStoreFactory dsf;
 
 	@Before
@@ -55,7 +57,7 @@ public class DataStoreFactoryUnitTest {
 	
     @Test
     public void testDBCreation() {
-    	dsf.setDbType("memorydb");
+    	dsf.setDbType(MEMORYDB);
     	assertTrue(dsf.getDataStore() instanceof InMemoryDataStore);
     	
     	dsf.setDataStore(null);
@@ -75,7 +77,7 @@ public class DataStoreFactoryUnitTest {
     
     @Test
     public void testForUsedClases() {
-    	dsf.setDbType("memorydb");
+    	dsf.setDbType(MEMORYDB);
     	DataStore datastore = dsf.getDataStore();
     	
     	AcceptOnlyStreamsInDataStore aosid = new AcceptOnlyStreamsInDataStore();
@@ -107,7 +109,7 @@ public class DataStoreFactoryUnitTest {
     
     @Test
     public void testDBReader() {
-    	dsf.setDbType("memorydb");
+    	dsf.setDbType(MEMORYDB);
     	DataStore datastore = dsf.getDataStore();
     	
     	String host = DBReader.instance.getHost("myStream", "myApp");

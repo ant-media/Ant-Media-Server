@@ -36,6 +36,9 @@ import com.antstreaming.rtsp.session.DateUtil;
 
 public class RtspConnection  extends RTMPMinaConnection implements IMuxerListener {
 
+	private static final String CESQ_IS_NULL = "cesq is null...................";
+	private static final String SESSIONKEY_IS_NULL = "sessionKey is null...................";
+
 	private Logger logger = LoggerFactory.getLogger(RtspConnection.class);
 
 	protected static final String SLASH = "/";
@@ -129,7 +132,7 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 
 		String sessionKey = request.getHeader(RtspHeaderCode.SESSION);
 		if (null == sessionKey || "".equals(sessionKey) || mSessionKey == null || !mSessionKey.equals(sessionKey)) {
-			logger.error("sessionKey is null...................");
+			logger.error(SESSIONKEY_IS_NULL);
 			handleError(session, cseq, RtspCode.SessionNotFound);
 			return;
 		}
@@ -259,14 +262,14 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 		// get cesq
 		String cseq = request.getHeader(RtspHeaderCode.CSEQ);
 		if (null == cseq || "".equals(cseq)) {
-			logger.error("cesq is null...................");
+			logger.error(CESQ_IS_NULL);
 			handleError(session, "0", RtspCode.HeaderFieldNotValidForResource);
 			return;
 		}
 		// getsessionKey
 		String sessionKey = request.getHeader(RtspHeaderCode.SESSION);
 		if (null == sessionKey || "".equals(sessionKey) || !mSessionKey.equals(sessionKey)) {
-			logger.error("sessionKey is null...................");
+			logger.error(SESSIONKEY_IS_NULL);
 			handleError(session, cseq, RtspCode.SessionNotFound);
 			return;
 		}
@@ -506,7 +509,7 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 		clientPort[streamId] = rtspTransport.getClientPort();
 		mode = rtspTransport.getMode();
 
-		if (mode != null && mode.equals("record")) {
+		if ("record".equals(mode)) {
 			//TODO check the url and do this operation according to the control parameter in the sdp
 
 			int portNo = PORT_NUMBER.getAndAdd(2);
@@ -566,7 +569,7 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 		// get cesq
 		String cseq = request.getHeader(RtspHeaderCode.CSEQ);
 		if (null == cseq || "".equals(cseq)) {
-			logger.error("cesq is null...................");
+			logger.error(CESQ_IS_NULL);
 			handleError(session, "0", RtspCode.HeaderFieldNotValidForResource);
 			return;
 		}
@@ -574,7 +577,7 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 		// get sessionKey
 		String sessionKey = request.getHeader(RtspHeaderCode.SESSION);
 		if (null == sessionKey || "".equals(sessionKey) || mSessionKey == null || !mSessionKey.equals(sessionKey)) {
-			logger.error("sessionKey is null...................");
+			logger.error(SESSIONKEY_IS_NULL);
 			handleError(session, cseq, RtspCode.SessionNotFound);
 			return;
 		}
@@ -621,7 +624,7 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 		// get cesq
 		String cseq = request.getHeader(RtspHeaderCode.CSEQ);
 		if (null == cseq || "".equals(cseq)) {
-			logger.error("cesq is null...................");
+			logger.error(CESQ_IS_NULL);
 			handleError(session, "0", RtspCode.HeaderFieldNotValidForResource);
 			return;
 		}
@@ -638,7 +641,7 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 		// get sessionKey
 		String sessionKey = request.getHeader(RtspHeaderCode.SESSION);
 		if (null == sessionKey || "".equals(sessionKey) || mSessionKey == null || !mSessionKey.equals(sessionKey)) {
-			logger.debug("sessionKey is null...................");
+			logger.debug(SESSIONKEY_IS_NULL);
 			handleError(session, cseq, RtspCode.SessionNotFound);
 		}
 		else {
@@ -679,7 +682,7 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 		// get cesq
 		String cseq = request.getHeader(RtspHeaderCode.CSEQ);
 		if (null == cseq || "".equals(cseq)) {
-			logger.error("cesq is null...................");
+			logger.error(CESQ_IS_NULL);
 			handleError(session, "0", RtspCode.HeaderFieldNotValidForResource);
 			return;
 		}
