@@ -28,7 +28,7 @@ Ant Media Server is an open source media server that supports:
 
 ## Releases 
 
-### [Ant Media Server Community 1.7.1 (May 27, 2019)](https://github.com/ant-media/Ant-Media-Server/releases/download/ams-v1.7.1/ant-media-server-1.7.1-community-1.7.1-20190527_0942.zip)
+### [Ant Media Server Community 1.7.2 (June 2, 2019)](https://github.com/ant-media/Ant-Media-Server/releases/download/ams-v1.7.2/ant-media-server-community-1.7.2-20190602_1447.zip)
  * %40 Performance Improvement in WebRTC Streams [#1130](https://github.com/ant-media/Ant-Media-Server/issues/1130), [#1147](https://github.com/ant-media/Ant-Media-Server/issues/1147), [#1068](https://github.com/ant-media/Ant-Media-Server/issues/1068)
  * View Logs on Web Panel [#100](https://github.com/ant-media/Ant-Media-Server/issues/100)
  * Licence Control for Enterprise Edition [#762](https://github.com/ant-media/Ant-Media-Server/issues/762)
@@ -45,6 +45,7 @@ Ant Media Server is an open source media server that supports:
  * Bug fix: Stop WebRTC streams through REST Stop Method [#1160](https://github.com/ant-media/Ant-Media-Server/issues/1160)
  * Bug fix: Stream Sources Deleting [#1272](https://github.com/ant-media/Ant-Media-Server/issues/1272)
  * Bug fix: Stream stop does not stop immediately in edge [#1257](https://github.com/ant-media/Ant-Media-Server/issues/1257)
+ * Bug fix: Web panel IP Camera adding failure
  
 
 
