@@ -3,6 +3,7 @@ package io.antmedia.datastore.db;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 
 import io.antmedia.AppSettings;
 import io.antmedia.cluster.DBReader;
@@ -12,6 +13,12 @@ public class DataStoreFactory implements IDataStoreFactory{
 	public static final String DB_TYPE_MEMORYDB = "memorydb";
 	public static final String DB_TYPE_MAPDB = "mapdb";
 	public static final String DB_TYPE_MONGODB = "mongodb";
+	private static final String SETTINGS_DB_APP_NAME = "db.app.name";
+	private static final String SETTINGS_DB_NAME = "db.name";
+	private static final String SETTINGS_DB_TYPE = "db.type";
+	private static final String SETTINGS_DB_HOST = "db.host";
+	private static final String SETTINGS_DB_USER = "db.user";
+	private static final String SETTINGS_DB_PASS = "db.password";
 
 	@Autowired
 	private AppSettings appSettings;
@@ -20,15 +27,28 @@ public class DataStoreFactory implements IDataStoreFactory{
 
 	
 	private DataStore dataStore;
+	
+	
+	@Value( "${"+SETTINGS_DB_APP_NAME+":#{null}}" )
 	private String appName;
+	
+	@Value( "${"+SETTINGS_DB_NAME+":#{null}}" )
 	private String dbName;
 	
 	/**
 	 * One of the DB_TYPE_*
 	 */
+	
+	@Value( "${"+SETTINGS_DB_TYPE+":#{null}}" )
 	private String dbType;
+	
+	@Value( "${"+SETTINGS_DB_HOST+":#{null}}" )
 	private String dbHost;
+	
+	@Value( "${"+SETTINGS_DB_USER+":#{null}}" )
 	private String dbUser;
+	
+	@Value( "${"+SETTINGS_DB_PASS+":#{null}}" )
 	private String dbPassword;
 	
 	public String getDbName() {
