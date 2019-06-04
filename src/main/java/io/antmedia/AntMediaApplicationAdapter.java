@@ -61,6 +61,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	public static final String BROADCAST_STATUS_CREATED = "created";
 	public static final String BROADCAST_STATUS_BROADCASTING = "broadcasting";
 	public static final String BROADCAST_STATUS_FINISHED = "finished";
+	public static final String BROADCAST_STATUS_PREPARING = "preparing";
 	public static final int BROADCAST_STATS_RESET = 0;
 	public static final String HOOK_ACTION_END_LIVE_STREAM = "liveStreamEnded";
 	public static final String HOOK_ACTION_START_LIVE_STREAM = "liveStreamStarted";
@@ -78,6 +79,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	public static final String YOUTUBE = "youtube";
 	public static final String FACEBOOK_ENDPOINT_CLASS = "io.antmedia.enterprise.social.endpoint.FacebookEndpoint";
 	public static final String YOUTUBE_ENDPOINT_CLASS = "io.antmedia.enterprise.social.endpoint.YoutubeEndpoint";
+	
 	private Map<String, VideoServiceEndpoint> videoServiceEndpoints = new HashMap<>();
 	private List<VideoServiceEndpoint> videoServiceEndpointsHavingError = new ArrayList<>();
 	private List<IStreamPublishSecurity> streamPublishSecurityList;
@@ -426,12 +428,16 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		});
 	}
 
-	public static Broadcast saveUndefinedBroadcast(String streamName, String scopeName, DataStore dataStore, AppSettings appSettings) {
+	public static Broadcast saveUndefinedBroadcast(String streamId, String scopeName, DataStore dataStore, AppSettings appSettings) {
+		return saveUndefinedBroadcast(streamId, scopeName, dataStore, appSettings, AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+	}
+	
+	public static Broadcast saveUndefinedBroadcast(String streamId, String scopeName, DataStore dataStore, AppSettings appSettings, String streamStatus) {
 		Broadcast newBroadcast = new Broadcast();
 		newBroadcast.setDate(System.currentTimeMillis());
 		newBroadcast.setZombi(true);
 		try {
-			newBroadcast.setStreamId(streamName);
+			newBroadcast.setStreamId(streamId);
 
 			String settingsListenerHookURL = null; 
 			String fqdn = null;
@@ -441,7 +447,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 			}
 
 			return BroadcastRestService.saveBroadcast(newBroadcast,
-					AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, scopeName, dataStore,
+					streamStatus, scopeName, dataStore,
 					settingsListenerHookURL, fqdn);
 		} catch (Exception e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
