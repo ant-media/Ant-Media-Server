@@ -10,8 +10,8 @@
 		<property name="ignoreUnresolvablePlaceholders" value="true" />
 		<property name="locations">
 			<list>
-				<value>file:///${user.dir}/src/main/server/conf/red5.properties
-				</value>
+				<value>file:///${user.dir}/src/main/server/conf/red5.properties</value>
+				<value>file:///${user.dir}/src/test/resources/WEB-INF/red5-web.properties</value>
 			</list>
 		</property>
 	</bean>
@@ -84,6 +84,9 @@
 
 	<bean id="app.settings" class="io.antmedia.AppSettings"></bean>
 	
+	<bean id="dataStoreFactory"
+		class="io.antmedia.datastore.db.DataStoreFactory"/>
+		
 	<bean id="web.handler" class="io.antmedia.test.Application" >
 		<property name="dataStore" ref="db.datastore" />
 		<property name="appSettings" ref="app.settings" />
