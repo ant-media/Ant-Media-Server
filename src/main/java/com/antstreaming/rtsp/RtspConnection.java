@@ -466,9 +466,9 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 
 	private String getStreamName(String path) {
 		String streamName = null;
-		int lastIndexOf = path.lastIndexOf("/");
+		int lastIndexOf = path.lastIndexOf('/');
 		if (lastIndexOf != -1) {
-			streamName = path.substring(path.lastIndexOf("/") + 1);
+			streamName = path.substring(path.lastIndexOf('/') + 1);
 		}
 		return streamName;
 	}
