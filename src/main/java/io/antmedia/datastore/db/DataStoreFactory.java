@@ -13,12 +13,12 @@ public class DataStoreFactory implements IDataStoreFactory{
 	public static final String DB_TYPE_MEMORYDB = "memorydb";
 	public static final String DB_TYPE_MAPDB = "mapdb";
 	public static final String DB_TYPE_MONGODB = "mongodb";
-	private static final String SETTINGS_DB_APP_NAME = "db.app.name";
-	private static final String SETTINGS_DB_NAME = "db.name";
-	private static final String SETTINGS_DB_TYPE = "db.type";
-	private static final String SETTINGS_DB_HOST = "db.host";
-	private static final String SETTINGS_DB_USER = "db.user";
-	private static final String SETTINGS_DB_PASS = "db.password";
+	public static final String SETTINGS_DB_APP_NAME = "db.app.name";
+	public static final String SETTINGS_DB_NAME = "db.name";
+	public static final String SETTINGS_DB_TYPE = "db.type";
+	public static final String SETTINGS_DB_HOST = "db.host";
+	public static final String SETTINGS_DB_USER = "db.user";
+	public static final String SETTINGS_DB_PASS = "db.password";
 
 	@Autowired
 	private AppSettings appSettings;
