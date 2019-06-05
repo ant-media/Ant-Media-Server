@@ -2,7 +2,6 @@ package io.antmedia.websocket;
 
 import java.io.IOException;
 
-import javax.annotation.Nonnull;
 import javax.websocket.EndpointConfig;
 import javax.websocket.OnClose;
 import javax.websocket.OnError;
@@ -55,7 +54,6 @@ public abstract class WebSocketCommunityHandler {
 
 	}
 
-	@Nonnull
 	public abstract ApplicationContext getAppContext();
 
 	@OnMessage
