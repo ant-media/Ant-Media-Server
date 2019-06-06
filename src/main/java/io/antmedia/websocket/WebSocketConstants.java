@@ -136,6 +136,11 @@ public class WebSocketConstants {
 	public static final String NO_ROOM_SPECIFIED = "no_room_specified";
 	
 	/**
+	 * This is sent back to the user when context is not initialized yet
+	 */
+	public static final String NOT_INITIALIZED_YET = "not_initialized_yet";
+	
+	/**
 	 * This is sent back to the user when there is no room specified in 
 	 * joining the video conference
 	 */

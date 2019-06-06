@@ -25,6 +25,19 @@ before_install:
   - sudo service mongod start  # start mongo db
   - sudo apt-get install wondershaper
   - sudo git clone --depth=1 https://github.com/ant-media/utilities.git /usr/local/onvif
+    # get parent project
+  - (if [ $(git ls-remote https://github.com/ant-media/ant-media-server-parent.git $TRAVIS_BRANCH  | wc -l) == "1" ];  
+      then 
+        echo " $TRAVIS_BRANCH branch found";  
+        git clone --depth=1 -b $TRAVIS_BRANCH https://github.com/ant-media/ant-media-server-parent.git;  
+      else
+        echo "branch not found"; 
+        git clone --depth=1 https://github.com/ant-media/ant-media-server-parent.git;  
+    fi)
+  - cd ant-media-server-parent
+  - mvn clean install -DskipTests -Dmaven.javadoc.skip=true -Dgpg.skip=true --quiet
+  - cd ..
+    #get common project
   - (if [ $(git ls-remote https://github.com/ant-media/Ant-Media-Server-Common.git $TRAVIS_BRANCH  | wc -l) == "1" ];  
       then 
        echo " $TRAVIS_BRANCH branch found";  
@@ -35,7 +48,20 @@ before_install:
      fi)
   - cd Ant-Media-Server-Common
   - mvn clean install -DskipTests -Dmaven.javadoc.skip=true -Dgpg.skip=true --quiet
-  - cd ..  
+  - cd .. 
+  
+  #get service project
+  - (if [ $(git ls-remote https://github.com/ant-media/Ant-Media-Server-Service.git $TRAVIS_BRANCH  | wc -l) == "1" ];  
+     then 
+       echo " $TRAVIS_BRANCH branch found";  
+       git clone --depth=1 -b $TRAVIS_BRANCH https://github.com/ant-media/Ant-Media-Server-Service.git; 
+       cd Ant-Media-Server-Service; 
+       mvn install -DskipTests=true -Dmaven.javadoc.skip=true -Dgpg.skip=true -B -V --quiet;
+       cd ..;
+     else
+       echo "branch not found. Using version in sonatype"; 
+    fi) 
+   
   - git clone --depth=1 https://github.com/ant-media/red5-plugins.git && cd red5-plugins/tomcat/ && mvn clean install -Dmaven.javadoc.skip=true -Dmaven.test.skip=true --quiet && cd ../..
   - mvn clean package -U -P assemble -Dmaven.javadoc.skip=true -Dmaven.test.skip=true -DskipTests=true --quiet 
   - wget https://raw.githubusercontent.com/ant-media/Scripts/master/install_ant-media-server.sh -O target/install_ant-media-server.sh  # install script
