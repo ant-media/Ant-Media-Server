@@ -37,7 +37,7 @@ public class HlsStatisticsFilter implements javax.servlet.Filter {
 		HttpServletRequest httpRequest =(HttpServletRequest)request;
 
 		String method = httpRequest.getMethod();
-		if (method.equals("GET")) {
+		if ("GET".equals(method)) {
 			//only accept GET methods
 			String sessionId = httpRequest.getSession().getId();
 

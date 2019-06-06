@@ -177,7 +177,7 @@ public class PeriscopeEndpoint extends VideoServiceEndpoint {
 		logger.warn("State: {}" , checkDeviceCode.state);
 
 		boolean result = false;
-		if ( checkDeviceCode.state.equals("associated")) {
+		if ( "associated".equals(checkDeviceCode.state)) {
 			init("", checkDeviceCode.access_token, checkDeviceCode.refresh_token, (long)checkDeviceCode.expires_in, checkDeviceCode.token_type, System.currentTimeMillis());
 			String accountName = "";
 			String accountId = "";
@@ -306,7 +306,7 @@ public class PeriscopeEndpoint extends VideoServiceEndpoint {
 	public String getBroadcast(Endpoint endpoint) throws Exception {
 		Broadcast broadcast = broadcastEndpoint.getBroadcast(endpoint.getBroadcastId());
 
-		return broadcast.state.equals("running") ? BroadcastStatus.LIVE_NOW : BroadcastStatus.UNPUBLISHED;
+		return "running".equals(broadcast.state) ? BroadcastStatus.LIVE_NOW : BroadcastStatus.UNPUBLISHED;
 	}
 
 
