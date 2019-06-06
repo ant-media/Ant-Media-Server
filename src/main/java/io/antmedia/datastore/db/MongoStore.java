@@ -404,7 +404,7 @@ public class MongoStore extends DataStore {
 				String fileExtension = FilenameUtils.getExtension(file.getName());
 
 				if (file.isFile() &&
-						(fileExtension.equals("mp4") || fileExtension.equals("flv") || fileExtension.equals("mkv"))) {
+						("mp4".equals(fileExtension) || "flv".equals(fileExtension) || "mkv".equals(fileExtension))) {
 
 					long fileSize = file.length();
 					long unixTime = System.currentTimeMillis();

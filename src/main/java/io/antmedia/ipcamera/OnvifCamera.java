@@ -292,7 +292,7 @@ public class OnvifCamera implements IOnvifCamera {
 	public boolean isFocusModeAuto() {
 		ImagingSettings20 image_set = nvt.getImaging().getImagingSettings(profileToken);
 		FocusConfiguration20 focus = image_set.getFocus();
-		return focus.getAutoFocusMode().value().equals("AUTO");
+		return "AUTO".equals(focus.getAutoFocusMode().value());
 	}
 
 	@Override

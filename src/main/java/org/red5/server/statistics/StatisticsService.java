@@ -56,7 +56,7 @@ public class StatisticsService implements IStatisticsService {
 
     private IScope getScope(String path) throws ScopeNotFoundException {
         IScope scope;
-        if (path != null && !path.equals("")) {
+        if (!"".equals(path)) {
             scope = ScopeUtils.resolveScope(globalScope, path);
         } else {
             scope = globalScope;

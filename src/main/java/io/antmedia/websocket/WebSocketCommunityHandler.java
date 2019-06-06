@@ -161,7 +161,7 @@ public abstract class WebSocketCommunityHandler {
 	private void setRemoteDescription(RTMPAdaptor connectionContext, String typeString, String sdpDescription, String streamId) {
 		if (connectionContext != null) {
 			SessionDescription.Type type;
-			if (typeString.equals("offer")) {
+			if ("offer".equals(typeString)) {
 				type = Type.OFFER;
 				logger.info("received sdp type is offer {}", streamId);
 			}
