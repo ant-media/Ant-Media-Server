@@ -14,6 +14,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import io.antmedia.muxer.MuxAdaptor;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.HttpEntity;
@@ -85,6 +86,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	private List<IStreamPublishSecurity> streamPublishSecurityList;
 	private HashMap<String, OnvifCamera> onvifCameraList = new HashMap<>();
 	protected StreamFetcherManager streamFetcherManager;
+	protected List<MuxAdaptor> muxAdaptors;
 	private DataStore dataStore;
 	DataStoreFactory dataStoreFactory;
 
@@ -825,5 +827,22 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	@Override
 	public void serverShuttingdown() {
 		logger.info("{} is shutting down.", getName());
+	}
+
+	@Override
+	public void muxAdaptorAdded(MuxAdaptor muxAdaptor){
+		muxAdaptors.add(muxAdaptor);
+	}
+
+	@Override
+	public void muxAdaptorRemoved(MuxAdaptor muxAdaptor) {
+		muxAdaptors.remove(muxAdaptor);
+	}
+
+	public List<MuxAdaptor> getMuxAdaptors() {
+		if(muxAdaptors == null){
+			muxAdaptors = new ArrayList<>();
+		}
+		return muxAdaptors;
 	}
 }
