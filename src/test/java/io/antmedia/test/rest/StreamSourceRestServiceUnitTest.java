@@ -84,46 +84,92 @@ public class StreamSourceRestServiceUnitTest {
 		Mockito.doReturn(fetcher).when(adaptor).startStreaming(newCam);
 		Mockito.doReturn(new InMemoryDataStore("testAddIPCamera")).when(streamSourceRest).getDataStore();
 
-		
+
 		ApplicationContext appContext = mock(ApplicationContext.class);
-		
+
 		streamSourceRest.setAppCtx(appContext);
-		
+
 		IResourceMonitor monitorService = mock(IResourceMonitor.class);
 
 		when(appContext.getBean(IResourceMonitor.BEAN_NAME)).thenReturn(monitorService);
-		
+
 		//define CPU load above limit
 		int cpuLoad = 90;
 		int cpuLimit = 80;
-				
-				
+
+
 		when(monitorService.getAvgCpuUsage()).thenReturn(cpuLoad);
 		when(monitorService.getCpuLimit()).thenReturn(cpuLimit);
-	
+
 		//try to add IP camera
 		result = streamSourceRest.addStreamSource(newCam,"");
-		
+
 		//should be false because load is above limit
 		assertFalse(result.isSuccess());
-		
-		
+
+
 		//should be -3 because it is CPU Load Error Code
 		assertEquals(String.valueOf(-3), result.getMessage());
-		
+
 		//define CPU load below limit
 		int cpuLoad2 = 70;
 		int cpuLimit2 = 80;
-				
-				
+
+
 		when(monitorService.getAvgCpuUsage()).thenReturn(cpuLoad2);
 		when(monitorService.getCpuLimit()).thenReturn(cpuLimit2);
-		
+
 		result = streamSourceRest.addStreamSource(newCam,"");
-		
+
 		//should be true because load is below limit
 		assertTrue(result.isSuccess());
+
+	}
+
+
+	@Test
+	public void startStopStreamSource()  {
+
+		//start ONVIF Camera emulator
+		StreamFetcherUnitTest.startCameraEmulator();
+
+		//create an IP Camera for emulator
+		Broadcast newCam = new Broadcast("startStopIPCamera", "127.0.0.1:8080", "admin", "admin",
+				null, AntMediaApplicationAdapter.IP_CAMERA);
+
+		//simulate required operations
+		StreamsSourceRestService streamSourceRest = Mockito.spy(restService);
+		AntMediaApplicationAdapter adaptor = mock (AntMediaApplicationAdapter.class);
+		StreamFetcher fetcher = mock (StreamFetcher.class);
+		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
+		Mockito.doReturn(fetcher).when(adaptor).startStreaming(newCam);
+		Mockito.doReturn(new Result(true)).when(adaptor).stopStreaming(newCam);
+		Mockito.doReturn(new InMemoryDataStore("startStopStreamSource")).when(streamSourceRest).getDataStore();
+
+		//add IP Camera first
+		assertTrue(streamSourceRest.addIPCamera(newCam, null).isSuccess());
+
+		//stream URL should be defined after ONVIF operations
+		//this assignment also ensures that, connection is successful to IP Camera via rest service using ONVIF operations
+		assertEquals("rtsp://admin:admin@127.0.0.1:6554/test.flv", newCam.getStreamUrl());
 		
+		//stop request should trigger application adaptor stopStreaming
+		assertTrue(streamSourceRest.stopStreamSource(newCam.getStreamId()).isSuccess());
+		
+		//reset stream URL and check whether start rest service is able to get stream URL by connecting to camera using ONVIF
+		newCam.setStreamUrl(null);
+		streamSourceRest.getDataStore().save(newCam);
+
+		//start again via rest service
+		assertTrue(streamSourceRest.startStreamSource(newCam.getStreamId()).isSuccess());
+				
+		newCam = streamSourceRest.getDataStore().get(newCam.getStreamId());
+		
+		//check that streamURL is set again successfully
+		assertEquals("rtsp://admin:admin@127.0.0.1:6554/test.flv", newCam.getStreamUrl());
+
+		//stop camera emulator
+		StreamFetcherUnitTest.stopCameraEmulator();
 	}
 
 	@Test
@@ -139,31 +185,33 @@ public class StreamSourceRestServiceUnitTest {
 		StreamsSourceRestService streamSourceRest = Mockito.spy(restService);
 		AntMediaApplicationAdapter adaptor = mock (AntMediaApplicationAdapter.class);
 		StreamFetcher fetcher = mock (StreamFetcher.class);
-		
+
 		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
 		Mockito.doReturn(fetcher).when(adaptor).startStreaming(newCam);
 		Mockito.doReturn(new InMemoryDataStore("testConnectToCamera")).when(streamSourceRest).getDataStore();
 
 		//try to connect to camera
 		Result result =	streamSourceRest.connectToCamera(newCam);
-		
+
 		//message should be RTSP address because it is reachable
 		assertEquals("rtsp://127.0.0.1:6554/test.flv", result.getMessage());
-		
+
 		//set wrong IP Address
 		newCam.setIpAddr("127.0.0.11:8080");
-		
+
 		//try to connect to camera
 		result = streamSourceRest.connectToCamera(newCam);
-		
+
 		//message should be connection error code (-1) because IP is set
 		assertEquals(String.valueOf(-1), result.getMessage());
+
 
 		//stop camera emulator
 		StreamFetcherUnitTest.stopCameraEmulator();
 
+
 	}
-	
+
 	@Test
 	public void testSearchOnvifDevices()  {
 
@@ -174,10 +222,10 @@ public class StreamSourceRestServiceUnitTest {
 
 		//start ONVIF discovery
 		String result[] = streamSourceRest.searchOnvifDevices();
-		
+
 		//it should not null because discovery is performed
 		assertNotNull(result);
-		
+
 		//stop camera emulator
 		StreamFetcherUnitTest.stopCameraEmulator();
 
@@ -199,21 +247,21 @@ public class StreamSourceRestServiceUnitTest {
 		Mockito.doReturn(new InMemoryDataStore("testAddStreamSource")).when(streamSourceRest).getDataStore();
 
 		ApplicationContext appContext = mock(ApplicationContext.class);
-		
+
 		streamSourceRest.setAppCtx(appContext);
-		
+
 		IResourceMonitor monitorService = mock(IResourceMonitor.class);
 
 		when(appContext.getBean(IResourceMonitor.BEAN_NAME)).thenReturn(monitorService);
-		
+
 		//define CPU load below limit
 		int cpuLoad2 = 70;
 		int cpuLimit2 = 80;
-				
-				
+
+
 		when(monitorService.getAvgCpuUsage()).thenReturn(cpuLoad2);
 		when(monitorService.getCpuLimit()).thenReturn(cpuLimit2);
-		
+
 		result = streamSourceRest.addStreamSource(newCam, "");
 
 		//should be true, because CPU load is above limit and other parameters defined correctly
@@ -291,7 +339,6 @@ public class StreamSourceRestServiceUnitTest {
 		source.setIs360(false);
 		source.setPublicStream(false);
 		source.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
-		source.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
 
 		StreamsSourceRestService streamSourceRest = Mockito.spy(restService);
 		AntMediaApplicationAdapter adaptor = mock (AntMediaApplicationAdapter.class);
@@ -301,23 +348,23 @@ public class StreamSourceRestServiceUnitTest {
 		Mockito.doReturn(true).when(streamSourceRest).checkStreamUrl(any());
 		Mockito.doReturn(videoServiceEndpoints).when(adaptor).getVideoServiceEndpoints();
 
-		
+
 		ApplicationContext appContext = mock(ApplicationContext.class);
-		
+
 		streamSourceRest.setAppCtx(appContext);
-		
+
 		IResourceMonitor monitorService = mock(IResourceMonitor.class);
 
 		when(appContext.getBean(IResourceMonitor.BEAN_NAME)).thenReturn(monitorService);
-		
+
 		//define CPU load below limit
 		int cpuLoad2 = 70;
 		int cpuLimit2 = 80;
-				
-				
+
+
 		when(monitorService.getAvgCpuUsage()).thenReturn(cpuLoad2);
 		when(monitorService.getCpuLimit()).thenReturn(cpuLimit2);
-		
+
 		result = streamSourceRest.addStreamSource(source, "endpoint_1");
 		assertNull(source.getEndPointList());
 

@@ -11,7 +11,6 @@ import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.antmedia.IResourceMonitor;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.muxer.MuxAdaptor;
@@ -97,7 +96,10 @@ public class StreamFetcherManager {
 			streamScheduler.setRestartStream(restartStreamAutomatically);
 			streamScheduler.startStream();
 
-			streamFetcherList.add(streamScheduler);
+			if(!streamFetcherList.contains(streamScheduler)) {
+				streamFetcherList.add(streamScheduler);
+			}
+
 			if (streamFetcherScheduleJobName == null) {
 				scheduleStreamFetcherJob();
 			}

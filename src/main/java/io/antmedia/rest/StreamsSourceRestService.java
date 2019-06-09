@@ -67,16 +67,16 @@ public class StreamsSourceRestService extends RestServiceBase{
 
 		IResourceMonitor monitor = (IResourceMonitor) getAppContext().getBean(IResourceMonitor.BEAN_NAME);
 		int cpuLoad = monitor.getAvgCpuUsage();
-		
+
 		logger.info("CPU Limit : {} Current CPU: {}", monitor.getCpuLimit(), cpuLoad);
-		
+
 		if(cpuLoad > monitor.getCpuLimit()) {
 			logger.error("Stream Fetcher can not be created due to high cpu load: {}", cpuLoad);
 			result.setMessage(String.valueOf(HIGH_CPU_ERROR));
 			return result;
-			
+
 		}else {
-			
+
 			if (stream.getType().equals(AntMediaApplicationAdapter.IP_CAMERA)) {
 				result = addIPCamera(stream, socialEndpointIds);
 			}
@@ -87,103 +87,6 @@ public class StreamsSourceRestService extends RestServiceBase{
 
 		return result;
 	}
-
-
-
-	public Result connectToCamera(Broadcast stream) {
-
-		Result result = new Result(false);
-
-		OnvifCamera onvif = new OnvifCamera();
-		int connResult = onvif.connect(stream.getIpAddr(), stream.getUsername(), stream.getPassword());
-		if (connResult == 0) {
-			result.setSuccess(true);
-			//it means no connection or authentication error
-			//set RTMP URL
-			result.setMessage(onvif.getRTSPStreamURI());
-		}else {
-			//there is an error
-			//set error code and send it
-			result.setMessage(String.valueOf(connResult));
-		}
-
-		return result;
-
-	}
-
-	public Result addIPCamera(Broadcast stream, String socialEndpointIds) {
-
-		Result connResult = new Result(false);
-
-		if(checkIPCamAddr(stream.getIpAddr())) {
-			logger.info("type {}", stream.getType());
-
-			connResult = connectToCamera(stream);
-
-			if (connResult.isSuccess()) {
-
-				String authparam = stream.getUsername() + ":" + stream.getPassword() + "@";
-				String rtspURLWithAuth = RTSP + authparam + connResult.getMessage().substring(RTSP.length());
-				logger.info("rtsp url with auth: {}", rtspURLWithAuth);
-				stream.setStreamUrl(rtspURLWithAuth);
-				Date currentDate = new Date();
-				long unixTime = currentDate.getTime();
-
-				stream.setDate(unixTime);
-				stream.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
-
-				String id = getDataStore().save(stream);
-
-
-				if (id.length() > 0) {
-					Broadcast newCam = getDataStore().get(stream.getStreamId());
-					if (socialEndpointIds != null && socialEndpointIds.length()>0) {
-						addSocialEndpoints(newCam, socialEndpointIds);
-					}
-					
-					StreamFetcher streamFetcher = getApplication().startStreaming(newCam);
-					if (streamFetcher == null) {
-						getDataStore().delete(stream.getStreamId());
-					}
-				}
-			}
-		}
-
-		return connResult;
-	}
-
-
-	public Result addSource(Broadcast stream, String socialEndpointIds) {
-		Result result=new Result(false);
-
-		if(checkStreamUrl(stream.getStreamUrl())) {
-
-			logger.info("type {}", stream.getType());
-			Date currentDate = new Date();
-			long unixTime = currentDate.getTime();
-
-			stream.setDate(unixTime);
-			stream.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
-
-			String id = getDataStore().save(stream);
-
-			if (id.length() > 0) {
-				Broadcast newSource = getDataStore().get(stream.getStreamId());
-
-				if (socialEndpointIds != null && socialEndpointIds.length()>0) {
-					addSocialEndpoints(newSource, socialEndpointIds);
-				}
-
-				getApplication().startStreaming(newSource);
-			}
-
-			result.setSuccess(true);
-			result.setMessage(id);
-		}
-		return result;
-	}
-
-
 
 	/**
 	 * Get IP Camera Error after connection failure
@@ -208,14 +111,75 @@ public class StreamsSourceRestService extends RestServiceBase{
 		return result;
 	}
 
+	/**
+	 * Start external sources (IP Cameras and Stream Sources) again if it is added and stopped before
+	 * @param id - the id of the stream
+	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
+	 */
+	@ApiOperation(value = "Start external sources (IP Cameras and Stream Sources) again if it is added and stopped before", response = Result.class)
 
+	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/startStreamSource")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result startStreamSource(@ApiParam(value = "the id of the stream", required = true) @QueryParam("id") String id) {
+		Result result = new Result(true);	
+		Broadcast broadcast = getDataStore().get(id);
+
+		if (broadcast != null) {
+
+			if(broadcast.getStreamUrl() == null && broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA)) {
+
+				//if streamURL is not defined before for IP Camera, connect to it again and define streamURL
+				Result connResult = connectToCamera(broadcast);
+
+				if (connResult.isSuccess()) {
+					String authparam = broadcast.getUsername() + ":" + broadcast.getPassword() + "@";
+					String rtspURLWithAuth = RTSP + authparam + connResult.getMessage().substring(RTSP.length());
+					logger.info("rtsp url with auth: {}", rtspURLWithAuth);
+					broadcast.setStreamUrl(rtspURLWithAuth);
+					getDataStore().save(broadcast);
+				}
+			}
+
+			if(getApplication().startStreaming(broadcast) != null) {
+
+				result.setSuccess(true);
+			}
+		}
+
+		return result;
+	}
+
+	/**
+	 * Stop external sources (IP Cameras and Stream Sources)
+	 * @param id - the id of the stream
+	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
+	 */
+	@ApiOperation(value = "Stop external sources (IP Cameras and Stream Sources)", response = Result.class)
+
+	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/stopStreamSource")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result stopStreamSource(@ApiParam(value = "the id of the stream", required = true) @QueryParam("id") String id) {
+		Result result = new Result(true);
+		Broadcast broadcast = getDataStore().get(id);
+		if(broadcast != null) {
+			result = getApplication().stopStreaming(broadcast);
+
+		}
+		return result;
+	}
+
+	
 	/**
 	 * Synchronize User VoD Folder and add them to VoD database if any file exist and create symbolic links to that folder
 	 * 
 	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
 	 */
 	@ApiOperation(value = "Synchronize VoD Folder and add them to VoD database if any file exist and create symbolic links to that folder", notes = "Notes here", response = Result.class)
-	@GET
+	@POST
 	@Path("/synchUserVoDList")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result synchUserVodList() {
@@ -439,6 +403,110 @@ public class StreamsSourceRestService extends RestServiceBase{
 		}
 		return new Result(result);
 	}
+
+
+
+
+	public Result connectToCamera(Broadcast stream) {
+
+		Result result = new Result(false);
+
+		OnvifCamera onvif = new OnvifCamera();
+		int connResult = onvif.connect(stream.getIpAddr(), stream.getUsername(), stream.getPassword());
+		if (connResult == 0) {
+			result.setSuccess(true);
+			//it means no connection or authentication error
+			//set RTMP URL
+			result.setMessage(onvif.getRTSPStreamURI());
+		}else {
+			//there is an error
+			//set error code and send it
+			result.setMessage(String.valueOf(connResult));
+		}
+
+		return result;
+
+	}
+
+	public Result addIPCamera(Broadcast stream, String socialEndpointIds) {
+
+		Result connResult = new Result(false);
+
+		if(checkIPCamAddr(stream.getIpAddr())) {
+			logger.info("type {}", stream.getType());
+
+			connResult = connectToCamera(stream);
+
+			if (connResult.isSuccess()) {
+
+				String authparam = stream.getUsername() + ":" + stream.getPassword() + "@";
+				String rtspURLWithAuth = RTSP + authparam + connResult.getMessage().substring(RTSP.length());
+				logger.info("rtsp url with auth: {}", rtspURLWithAuth);
+				stream.setStreamUrl(rtspURLWithAuth);
+				Date currentDate = new Date();
+				long unixTime = currentDate.getTime();
+
+				stream.setDate(unixTime);
+				stream.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
+
+				String id = getDataStore().save(stream);
+
+
+				if (id.length() > 0) {
+					Broadcast newCam = getDataStore().get(stream.getStreamId());
+					if (socialEndpointIds != null && socialEndpointIds.length()>0) {
+						addSocialEndpoints(newCam, socialEndpointIds);
+					}
+
+					StreamFetcher streamFetcher = getApplication().startStreaming(newCam);
+					if (streamFetcher == null) {
+						getDataStore().delete(stream.getStreamId());
+					}
+				}
+			}
+		}
+
+		return connResult;
+	}
+
+
+	public Result addSource(Broadcast stream, String socialEndpointIds) {
+		Result result=new Result(false);
+
+		if(checkStreamUrl(stream.getStreamUrl())) {
+
+			logger.info("type {}", stream.getType());
+			Date currentDate = new Date();
+			long unixTime = currentDate.getTime();
+
+			stream.setDate(unixTime);
+			stream.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
+
+			String id = getDataStore().save(stream);
+
+			if (id.length() > 0) {
+				Broadcast newSource = getDataStore().get(stream.getStreamId());
+
+				if (socialEndpointIds != null && socialEndpointIds.length()>0) {
+					addSocialEndpoints(newSource, socialEndpointIds);
+				}
+
+				StreamFetcher streamFetcher = getApplication().startStreaming(newSource);
+
+				result.setSuccess(true);
+				result.setMessage(id);
+
+				if (streamFetcher == null) {
+					getDataStore().delete(stream.getStreamId());
+					result.setSuccess(false);
+				}
+			}
+
+		}
+		return result;
+	}
+
+
 
 
 	public boolean validateIPaddress(String ipaddress)  {
