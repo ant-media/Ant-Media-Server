@@ -358,7 +358,9 @@ public class BroadcastRestService extends RestServiceBase{
 	}
 
 	private static String getHostAddress() {
+		
 		if (hostaddress == null) {
+			long startTime = System.currentTimeMillis();
 			try {
 				/*
 				 * InetAddress.getLocalHost().getHostAddress() takes long time(5sec in macos) to return.
@@ -368,7 +370,14 @@ public class BroadcastRestService extends RestServiceBase{
 			} catch (UnknownHostException e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
+			long diff = System.currentTimeMillis() - startTime;
+			if (diff > 1000) {
+				logger.warn("Getting host adress took {}ms. it's cached now and will return immediately from now on. You can "
+						+ " alternatively set serverName in conf/red5.properties file ", diff);
+			}
 		}
+		
+		
 		return hostaddress;
 	}
 
@@ -1580,7 +1589,7 @@ public class BroadcastRestService extends RestServiceBase{
 		String fileExtension = FilenameUtils.getExtension(fileName);
 		try {
 
-			if (fileExtension.equals("mp4")) {
+			if ("mp4".equals(fileExtension)) {
 
 
 				File streamsDirectory = new File(

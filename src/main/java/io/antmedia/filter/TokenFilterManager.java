@@ -54,7 +54,7 @@ public class TokenFilterManager implements javax.servlet.Filter   {
 				,httpRequest.getRequestURI(), tokenId, sessionId, streamId);
 
 
-		if (method.equals("GET")) {
+		if ("GET".equals(method)) {
 			if(getAppSettings().isTokenControlEnabled()) {
 
 				result = getTokenService().checkToken(tokenId, streamId, sessionId, Token.PLAY_TOKEN);
