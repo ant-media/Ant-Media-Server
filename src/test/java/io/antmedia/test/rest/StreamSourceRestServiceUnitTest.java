@@ -128,7 +128,7 @@ public class StreamSourceRestServiceUnitTest {
 
 
 	@Test
-	public void startStopStreamSource()  {
+	public void testStartStopStreamSource()  {
 
 		//start ONVIF Camera emulator
 		StreamFetcherUnitTest.startCameraEmulator();
