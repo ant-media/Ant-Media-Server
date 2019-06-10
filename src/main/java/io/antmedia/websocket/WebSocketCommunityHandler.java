@@ -2,7 +2,6 @@ package io.antmedia.websocket;
 
 import java.io.IOException;
 
-import javax.annotation.Nonnull;
 import javax.websocket.EndpointConfig;
 import javax.websocket.OnClose;
 import javax.websocket.OnError;
@@ -55,7 +54,6 @@ public abstract class WebSocketCommunityHandler {
 
 	}
 
-	@Nonnull
 	public abstract ApplicationContext getAppContext();
 
 	@OnMessage
@@ -163,7 +161,7 @@ public abstract class WebSocketCommunityHandler {
 	private void setRemoteDescription(RTMPAdaptor connectionContext, String typeString, String sdpDescription, String streamId) {
 		if (connectionContext != null) {
 			SessionDescription.Type type;
-			if (typeString.equals("offer")) {
+			if ("offer".equals(typeString)) {
 				type = Type.OFFER;
 				logger.info("received sdp type is offer {}", streamId);
 			}
