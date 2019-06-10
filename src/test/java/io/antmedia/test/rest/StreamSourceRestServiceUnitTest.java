@@ -339,6 +339,8 @@ public class StreamSourceRestServiceUnitTest {
 		source.setIs360(false);
 		source.setPublicStream(false);
 		source.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
+		source.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
+
 
 		StreamsSourceRestService streamSourceRest = Mockito.spy(restService);
 		AntMediaApplicationAdapter adaptor = mock (AntMediaApplicationAdapter.class);
@@ -365,7 +367,7 @@ public class StreamSourceRestServiceUnitTest {
 		when(monitorService.getAvgCpuUsage()).thenReturn(cpuLoad2);
 		when(monitorService.getCpuLimit()).thenReturn(cpuLimit2);
 
-		result = streamSourceRest.addStreamSource(source, "endpoint_1");
+		result = streamSourceRest.addStreamSource(source,"endpoint_1");
 		assertNull(source.getEndPointList());
 
 

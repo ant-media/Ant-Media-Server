@@ -42,6 +42,8 @@ public class StreamsSourceRestService extends RestServiceBase{
 	private static final String HTTP = "http://";
 	private static final String RTSP = "rtsp://";
 	public static final int HIGH_CPU_ERROR = -3;
+	public static final int FETCHER_NOT_STARTED_ERROR = -4;
+
 
 
 	protected static Logger logger = LoggerFactory.getLogger(StreamsSourceRestService.class);
@@ -84,7 +86,8 @@ public class StreamsSourceRestService extends RestServiceBase{
 				result = addSource(stream, socialEndpointIds);
 			}
 		}
-
+		logger.info("result in addStreamSource" + result.isSuccess());
+		
 		return result;
 	}
 
@@ -249,8 +252,12 @@ public class StreamsSourceRestService extends RestServiceBase{
 			}
 
 			result = getDataStore().editStreamSourceInfo(broadcast);
+			logger.info("result in updateCamInfo :" + result);
+
 
 			Broadcast fetchedBroadcast = getDataStore().get(broadcast.getStreamId());
+			
+			logger.info("id" + fetchedBroadcast.getStreamId());
 			getDataStore().removeAllEndpoints(fetchedBroadcast.getStreamId());
 
 			if (socialNetworksToPublish != null && socialNetworksToPublish.length() > 0) {
@@ -483,8 +490,11 @@ public class StreamsSourceRestService extends RestServiceBase{
 			stream.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
 
 			String id = getDataStore().save(stream);
+			logger.info("id in add Source" + id );
 
 			if (id.length() > 0) {
+				logger.info("id in add Source" + id );
+
 				Broadcast newSource = getDataStore().get(stream.getStreamId());
 
 				if (socialEndpointIds != null && socialEndpointIds.length()>0) {
@@ -498,7 +508,7 @@ public class StreamsSourceRestService extends RestServiceBase{
 
 				if (streamFetcher == null) {
 					getDataStore().delete(stream.getStreamId());
-					result.setSuccess(false);
+					result.setErrorId(FETCHER_NOT_STARTED_ERROR);
 				}
 			}
 
