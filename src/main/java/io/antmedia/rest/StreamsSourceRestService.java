@@ -65,12 +65,8 @@ public class StreamsSourceRestService extends RestServiceBase{
 
 		Result result = new Result(false);
 
-		logger.info("username {}, ipAddr {}, streamURL {}, name: {}", stream.getUsername(),  stream.getIpAddr(), stream.getStreamUrl(), stream.getName());
-
 		IResourceMonitor monitor = (IResourceMonitor) getAppContext().getBean(IResourceMonitor.BEAN_NAME);
 		int cpuLoad = monitor.getAvgCpuUsage();
-
-		logger.info("CPU Limit : {} Current CPU: {}", monitor.getCpuLimit(), cpuLoad);
 
 		if(cpuLoad > monitor.getCpuLimit()) {
 			logger.error("Stream Fetcher can not be created due to high cpu load: {}", cpuLoad);
@@ -86,7 +82,6 @@ public class StreamsSourceRestService extends RestServiceBase{
 				result = addSource(stream, socialEndpointIds);
 			}
 		}
-		logger.info("result in addStreamSource" + result.isSuccess());
 		
 		return result;
 	}
@@ -141,7 +136,6 @@ public class StreamsSourceRestService extends RestServiceBase{
 					String rtspURLWithAuth = RTSP + authparam + connResult.getMessage().substring(RTSP.length());
 					logger.info("rtsp url with auth: {}", rtspURLWithAuth);
 					broadcast.setStreamUrl(rtspURLWithAuth);
-					getDataStore().save(broadcast);
 				}
 			}
 
@@ -252,12 +246,7 @@ public class StreamsSourceRestService extends RestServiceBase{
 			}
 
 			result = getDataStore().editStreamSourceInfo(broadcast);
-			logger.info("result in updateCamInfo :" + result);
-
-
 			Broadcast fetchedBroadcast = getDataStore().get(broadcast.getStreamId());
-			
-			logger.info("id" + fetchedBroadcast.getStreamId());
 			getDataStore().removeAllEndpoints(fetchedBroadcast.getStreamId());
 
 			if (socialNetworksToPublish != null && socialNetworksToPublish.length() > 0) {
@@ -412,8 +401,6 @@ public class StreamsSourceRestService extends RestServiceBase{
 	}
 
 
-
-
 	public Result connectToCamera(Broadcast stream) {
 
 		Result result = new Result(false);
@@ -476,13 +463,10 @@ public class StreamsSourceRestService extends RestServiceBase{
 		return connResult;
 	}
 
-
 	public Result addSource(Broadcast stream, String socialEndpointIds) {
 		Result result=new Result(false);
 
 		if(checkStreamUrl(stream.getStreamUrl())) {
-
-			logger.info("type {}", stream.getType());
 			Date currentDate = new Date();
 			long unixTime = currentDate.getTime();
 
@@ -490,13 +474,9 @@ public class StreamsSourceRestService extends RestServiceBase{
 			stream.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
 
 			String id = getDataStore().save(stream);
-			logger.info("id in add Source" + id );
-
 			if (id.length() > 0) {
-				logger.info("id in add Source" + id );
 
 				Broadcast newSource = getDataStore().get(stream.getStreamId());
-
 				if (socialEndpointIds != null && socialEndpointIds.length()>0) {
 					addSocialEndpoints(newSource, socialEndpointIds);
 				}
@@ -515,9 +495,6 @@ public class StreamsSourceRestService extends RestServiceBase{
 		}
 		return result;
 	}
-
-
-
 
 	public boolean validateIPaddress(String ipaddress)  {
 		logger.info("inside check validateIPaddress{}", ipaddress);

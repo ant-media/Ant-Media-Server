@@ -128,7 +128,7 @@ public class StreamSourceRestServiceUnitTest {
 
 
 	@Test
-	public void testStartStopStreamSource()  {
+	public void startStopStreamSource()  {
 
 		//start ONVIF Camera emulator
 		StreamFetcherUnitTest.startCameraEmulator();
@@ -158,15 +158,12 @@ public class StreamSourceRestServiceUnitTest {
 		
 		//reset stream URL and check whether start rest service is able to get stream URL by connecting to camera using ONVIF
 		newCam.setStreamUrl(null);
-		streamSourceRest.getDataStore().save(newCam);
-
-		//start again via rest service
-		assertTrue(streamSourceRest.startStreamSource(newCam.getStreamId()).isSuccess());
-				
+		
+		
 		newCam = streamSourceRest.getDataStore().get(newCam.getStreamId());
 		
-		//check that streamURL is set again successfully
-		assertEquals("rtsp://admin:admin@127.0.0.1:6554/test.flv", newCam.getStreamUrl());
+		//start again via rest service
+		assertTrue(streamSourceRest.startStreamSource(newCam.getStreamId()).isSuccess());
 
 		//stop camera emulator
 		StreamFetcherUnitTest.stopCameraEmulator();
@@ -339,8 +336,6 @@ public class StreamSourceRestServiceUnitTest {
 		source.setIs360(false);
 		source.setPublicStream(false);
 		source.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
-		source.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
-
 
 		StreamsSourceRestService streamSourceRest = Mockito.spy(restService);
 		AntMediaApplicationAdapter adaptor = mock (AntMediaApplicationAdapter.class);
@@ -349,6 +344,8 @@ public class StreamSourceRestServiceUnitTest {
 		Mockito.doReturn(new InMemoryDataStore("testAddStreamSourceWithEndPoint")).when(streamSourceRest).getDataStore();
 		Mockito.doReturn(true).when(streamSourceRest).checkStreamUrl(any());
 		Mockito.doReturn(videoServiceEndpoints).when(adaptor).getVideoServiceEndpoints();
+		StreamFetcher fetcher = mock (StreamFetcher.class);
+		Mockito.doReturn(fetcher).when(adaptor).startStreaming(source);
 
 
 		ApplicationContext appContext = mock(ApplicationContext.class);
@@ -367,7 +364,7 @@ public class StreamSourceRestServiceUnitTest {
 		when(monitorService.getAvgCpuUsage()).thenReturn(cpuLoad2);
 		when(monitorService.getCpuLimit()).thenReturn(cpuLimit2);
 
-		result = streamSourceRest.addStreamSource(source,"endpoint_1");
+		result = streamSourceRest.addStreamSource(source, "endpoint_1");
 		assertNull(source.getEndPointList());
 
 
@@ -407,7 +404,7 @@ public class StreamSourceRestServiceUnitTest {
 		assertEquals(2, source3.getEndPointList().size());
 
 		//update first source now. At the moment we have endpoint_1
-		result = streamSourceRest.updateCamInfo(source, "endpoint_1");
+		result = streamSourceRest.updateCamInfo(source,"endpoint_1");
 		assertEquals(1, source.getEndPointList().size());
 	}
 
