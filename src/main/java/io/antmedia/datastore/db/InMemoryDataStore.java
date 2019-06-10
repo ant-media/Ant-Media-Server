@@ -574,7 +574,7 @@ public class InMemoryDataStore extends DataStore {
 
 			result = true;
 		} catch (Exception e) {
-			logger.error("error" + ExceptionUtils.getStackTrace(e));
+			logger.error("error in editStreamSourceInfo: {}",  ExceptionUtils.getStackTrace(e));
 			result = false;
 		}
 
