@@ -5,13 +5,14 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import javax.annotation.Nonnull;
+
 import org.red5.server.api.scheduling.IScheduledJob;
 import org.red5.server.api.scheduling.ISchedulingService;
 import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.antmedia.IResourceMonitor;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.muxer.MuxAdaptor;
@@ -89,22 +90,37 @@ public class StreamFetcherManager {
 	}
 
 
-	public StreamFetcher startStreaming(Broadcast broadcast) {	
+	public StreamFetcher startStreaming(@Nonnull Broadcast broadcast) {	
 
-		StreamFetcher streamScheduler = null;
-		try {
-			streamScheduler =  make(broadcast, scope, schedulingService);
-			streamScheduler.setRestartStream(restartStreamAutomatically);
-			streamScheduler.startStream();
-
-			streamFetcherList.add(streamScheduler);
-			if (streamFetcherScheduleJobName == null) {
-				scheduleStreamFetcherJob();
+		//check if broadcast is already being fetching
+		boolean alreadyFetching = false;
+		for (StreamFetcher streamFetcher : streamFetcherList) {
+			if (streamFetcher.getStream().getStreamId().equals(broadcast.getStreamId())) {
+				alreadyFetching = true;
+				break;
 			}
 		}
-		catch (Exception e) {
-			streamScheduler = null;
-			logger.error(e.getMessage());
+		
+		StreamFetcher streamScheduler = null;
+		if (!alreadyFetching) {
+			
+			try {
+				streamScheduler =  make(broadcast, scope, schedulingService);
+				streamScheduler.setRestartStream(restartStreamAutomatically);
+				streamScheduler.startStream();
+
+				if(!streamFetcherList.contains(streamScheduler)) {
+					streamFetcherList.add(streamScheduler);
+				}
+
+				if (streamFetcherScheduleJobName == null) {
+					scheduleStreamFetcherJob();
+				}
+			}
+			catch (Exception e) {
+				streamScheduler = null;
+				logger.error(e.getMessage());
+			}
 		}
 
 		return streamScheduler;
@@ -157,7 +173,7 @@ public class StreamFetcherManager {
 
 					streamCheckerCount++;
 
-					logger.warn("StreamFetcher Check Count:{}" , streamCheckerCount);
+					logger.debug("StreamFetcher Check Count:{}" , streamCheckerCount);
 
 					int countToRestart = 0;
 					if (restartStreamFetcherPeriodSeconds > 0) 
