@@ -60,7 +60,6 @@ public class StreamsSourceRestService extends RestServiceBase{
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/addStreamSource")
 	@Produces(MediaType.APPLICATION_JSON)
-
 	public Result addStreamSource(@ApiParam(value = "stream", required = true) Broadcast stream, @QueryParam("socialNetworks") String socialEndpointIds) {
 
 		Result result = new Result(false);
@@ -68,19 +67,19 @@ public class StreamsSourceRestService extends RestServiceBase{
 		IResourceMonitor monitor = (IResourceMonitor) getAppContext().getBean(IResourceMonitor.BEAN_NAME);
 		int cpuLoad = monitor.getAvgCpuUsage();
 
-		if(cpuLoad > monitor.getCpuLimit()) {
-			logger.error("Stream Fetcher can not be created due to high cpu load: {}", cpuLoad);
-			result.setMessage(String.valueOf(HIGH_CPU_ERROR));
-			return result;
-
-		}else {
-
+		if(cpuLoad < monitor.getCpuLimit()) 
+		{
 			if (stream.getType().equals(AntMediaApplicationAdapter.IP_CAMERA)) {
 				result = addIPCamera(stream, socialEndpointIds);
 			}
 			else if (stream.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE) ) {
 				result = addSource(stream, socialEndpointIds);
 			}
+		} 
+		else {
+
+			logger.error("Stream Fetcher can not be created due to high cpu load: {}", cpuLoad);
+			result.setMessage(String.valueOf(HIGH_CPU_ERROR));			
 		}
 		
 		return result;
@@ -115,23 +114,24 @@ public class StreamsSourceRestService extends RestServiceBase{
 	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
 	 */
 	@ApiOperation(value = "Start external sources (IP Cameras and Stream Sources) again if it is added and stopped before", response = Result.class)
-
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/startStreamSource")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result startStreamSource(@ApiParam(value = "the id of the stream", required = true) @QueryParam("id") String id) {
-		Result result = new Result(true);	
+	public Result startStreamSource(@ApiParam(value = "the id of the stream", required = true) @QueryParam("id") String id) 
+	{
+		Result result = new Result(false);	
 		Broadcast broadcast = getDataStore().get(id);
 
-		if (broadcast != null) {
-
-			if(broadcast.getStreamUrl() == null && broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA)) {
-
+		if (broadcast != null) 
+		{
+			if(broadcast.getStreamUrl() == null && broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA)) 
+			{
 				//if streamURL is not defined before for IP Camera, connect to it again and define streamURL
 				Result connResult = connectToCamera(broadcast);
 
-				if (connResult.isSuccess()) {
+				if (connResult.isSuccess()) 
+				{
 					String authparam = broadcast.getUsername() + ":" + broadcast.getPassword() + "@";
 					String rtspURLWithAuth = RTSP + authparam + connResult.getMessage().substring(RTSP.length());
 					logger.info("rtsp url with auth: {}", rtspURLWithAuth);
@@ -144,7 +144,6 @@ public class StreamsSourceRestService extends RestServiceBase{
 				result.setSuccess(true);
 			}
 		}
-
 		return result;
 	}
 
@@ -154,17 +153,16 @@ public class StreamsSourceRestService extends RestServiceBase{
 	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
 	 */
 	@ApiOperation(value = "Stop external sources (IP Cameras and Stream Sources)", response = Result.class)
-
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/stopStreamSource")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result stopStreamSource(@ApiParam(value = "the id of the stream", required = true) @QueryParam("id") String id) {
-		Result result = new Result(true);
+	public Result stopStreamSource(@ApiParam(value = "the id of the stream", required = true) @QueryParam("id") String id) 
+	{
+		Result result = new Result(false);
 		Broadcast broadcast = getDataStore().get(id);
 		if(broadcast != null) {
 			result = getApplication().stopStreaming(broadcast);
-
 		}
 		return result;
 	}
@@ -453,8 +451,11 @@ public class StreamsSourceRestService extends RestServiceBase{
 					}
 
 					StreamFetcher streamFetcher = getApplication().startStreaming(newCam);
+					//if IP Camera is not being started while adding, do not record it to datastore
 					if (streamFetcher == null) {
 						getDataStore().delete(stream.getStreamId());
+						connResult.setSuccess(false);
+						connResult.setErrorId(FETCHER_NOT_STARTED_ERROR);
 					}
 				}
 			}
@@ -483,12 +484,17 @@ public class StreamsSourceRestService extends RestServiceBase{
 
 				StreamFetcher streamFetcher = getApplication().startStreaming(newSource);
 
-				result.setSuccess(true);
+				
 				result.setMessage(id);
 
-				if (streamFetcher == null) {
+				//if it's not started while adding, do not record it to datastore
+				if (streamFetcher != null) {
+					result.setSuccess(true);
+				}
+				else {
 					getDataStore().delete(stream.getStreamId());
 					result.setErrorId(FETCHER_NOT_STARTED_ERROR);
+					result.setSuccess(false);
 				}
 			}
 
