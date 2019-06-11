@@ -753,12 +753,16 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 	public Result stopStreaming(Broadcast broadcast) {
 		Result result = new Result(false);
-		if(broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA)|| broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE)) {
+		if(broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA) ||
+				broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE)) 
+		{
 			result = streamFetcherManager.stopStreaming(broadcast);
 		} 
-		else if (broadcast.getType().equals(AntMediaApplicationAdapter.LIVE_STREAM)) {
+		else if (broadcast.getType().equals(AntMediaApplicationAdapter.LIVE_STREAM)) 
+		{
 			IBroadcastStream broadcastStream = getBroadcastStream(getScope(), broadcast.getStreamId());
-			if (broadcastStream != null) {
+			if (broadcastStream != null) 
+			{
 				((IClientBroadcastStream) broadcastStream).getConnection().close();
 				result.setSuccess(true);
 			}

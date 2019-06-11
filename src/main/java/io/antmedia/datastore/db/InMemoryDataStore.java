@@ -562,10 +562,8 @@ public class InMemoryDataStore extends DataStore {
 	public boolean editStreamSourceInfo(Broadcast broadcast) {		
 		boolean result = false;
 		try {
-			logger.warn("inside of editCameraInfo");
-
 			Broadcast oldBroadcast = get(broadcast.getStreamId());
-
+			
 			oldBroadcast.setName(broadcast.getName());
 			oldBroadcast.setUsername(broadcast.getUsername());
 			oldBroadcast.setPassword(broadcast.getPassword());
@@ -576,6 +574,7 @@ public class InMemoryDataStore extends DataStore {
 
 			result = true;
 		} catch (Exception e) {
+			logger.error("error in editStreamSourceInfo: {}",  ExceptionUtils.getStackTrace(e));
 			result = false;
 		}
 
