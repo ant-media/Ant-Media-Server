@@ -238,10 +238,11 @@ public class StreamSourceRestServiceUnitTest {
 
 		StreamsSourceRestService streamSourceRest = Mockito.spy(restService);
 		AntMediaApplicationAdapter adaptor = mock (AntMediaApplicationAdapter.class);
-
+		StreamFetcher streamFetcher = mock(StreamFetcher.class);
 
 		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
 		Mockito.doReturn(new InMemoryDataStore("testAddStreamSource")).when(streamSourceRest).getDataStore();
+		Mockito.doReturn(streamFetcher).when(adaptor).startStreaming(Mockito.any());
 
 		ApplicationContext appContext = mock(ApplicationContext.class);
 
