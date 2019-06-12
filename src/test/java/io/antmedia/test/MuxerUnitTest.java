@@ -542,7 +542,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 
 		assertEquals(Application.id, streamId);
 		assertEquals(Application.file.getName(), streamId + ".mp4");
-		assertEquals(697132L, Application.duration);
+		assertEquals(697182L, Application.duration);
 
 		broadcast = appAdaptor.getDataStore().get(streamId);
 		//we do not save duration of the finished live streams
@@ -617,7 +617,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests{
 			assertNotNull(scheduler);
 
 			//by default, stream source job is scheduled
-			assertEquals(scheduler.getScheduledJobNames().size(), 1);
+			assertEquals(1, scheduler.getScheduledJobNames().size());
 
 			if (shortVersion) {
 				file = new File("target/test-classes/test_short.flv"); //ResourceUtils.getFile(this.getClass().getResource("test.flv"));
