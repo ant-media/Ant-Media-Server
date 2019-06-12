@@ -513,13 +513,11 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
         broadcast.setListenerHookURL(hookUrl);
         String streamId = appAdaptor.getDataStore().save(broadcast);
 
-
         testMp4Muxing(streamId, false, true);
-
-
+		
         assertEquals(Application.id, streamId);
-        assertEquals(Application.file.getName(), streamId + ".mp4");
-        assertEquals(697132L, Application.duration);
+		assertEquals(Application.file.getName(), streamId + ".mp4");
+		assertEquals(697182L, Application.duration);
 
         broadcast = appAdaptor.getDataStore().get(streamId);
         //we do not save duration of the finished live streams
@@ -589,8 +587,11 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
         try {
 
+
             QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
             assertNotNull(scheduler);
+			//by default, stream source job is scheduled
+			assertEquals(1, scheduler.getScheduledJobNames().size());
 
             //by default, stream source job is scheduled
             assertEquals(scheduler.getScheduledJobNames().size(), 1);
