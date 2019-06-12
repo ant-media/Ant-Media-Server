@@ -387,11 +387,10 @@ public class MuxingTest {
 			// stop rtmp streaming
 			rtmpSendingProcess.destroy();
 
-			Thread.sleep(5000);
-
 			// check that mp4 is created successfully and can be playable
-			testResult = testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".mp4");
-			assertTrue(testResult);
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(4, TimeUnit.SECONDS).until(()->{
+				return testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".mp4");
+			});
 
 		} catch (Exception e) {
 			e.printStackTrace();
