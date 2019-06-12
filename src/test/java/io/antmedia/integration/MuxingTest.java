@@ -132,20 +132,16 @@ public class MuxingTest {
 			// stop rtmp streaming
 			rtmpSendingProcess.destroy();
 
-			Thread.sleep(5000);
-
-			assertTrue(testFile("rtmp://" + SERVER_ADDR + "/LiveApp/" + streamName + ".mp4", 10000));
+			
+			Awaitility.await().atMost(20, TimeUnit.SECONDS)
+					.pollInterval(4, TimeUnit.SECONDS)
+					.until(() -> testFile("rtmp://" + SERVER_ADDR + "/LiveApp/" + streamName + ".mp4", 10000));
 
 			// check that stream can be watchable by hls
 			assertTrue(testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".m3u8", 10000));
 
 			// check that mp4 is created successfully and can be playable
 			assertTrue(testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".mp4", 10000));
-
-			// check that stream can be playable with rtsp
-			assertTrue(testFile("rtsp://" + SERVER_ADDR + ":5554/LiveApp/" + streamName + ".mp4", true));
-
-			assertTrue(testFile("rtsp://" + SERVER_ADDR + ":5554/LiveApp/" + streamName + ".mp4"));
 
 			Thread.sleep(1000);
 
@@ -387,11 +383,10 @@ public class MuxingTest {
 			// stop rtmp streaming
 			rtmpSendingProcess.destroy();
 
-			Thread.sleep(5000);
-
 			// check that mp4 is created successfully and can be playable
-			testResult = testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".mp4");
-			assertTrue(testResult);
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(4, TimeUnit.SECONDS).until(()->{
+				return testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".mp4");
+			});
 
 		} catch (Exception e) {
 			e.printStackTrace();
