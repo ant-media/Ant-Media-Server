@@ -1286,7 +1286,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
             assertNotNull(scheduler);
 
             //by default, stream source job is scheduled
-            assertEquals(scheduler.getScheduledJobNames().size(), 1);
+            assertEquals(1, scheduler.getScheduledJobNames().size());
 
             file = new File("target/test-classes/test.flv");
 
@@ -1315,11 +1315,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
                 muxAdaptor.packetReceived(null, streamPacket);
 
                 if (packetNumber == 40000) {
-                    logger.info("6");
-
                     muxAdaptor.startRecording();
-
-                    logger.info("7");
                 }
                 packetNumber++;
 
@@ -1359,7 +1355,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
             Awaitility.await().atMost(20, TimeUnit.SECONDS).until(() -> scheduler.getScheduledJobNames().size() == 1);
             assertEquals(1, scheduler.getScheduledJobNames().size());
-            assertTrue(MuxingTest.testFile(finalFilePath, 111130));
+            assertTrue(MuxingTest.testFile(finalFilePath, 65071));
 
         } catch (Exception e) {
             e.printStackTrace();
