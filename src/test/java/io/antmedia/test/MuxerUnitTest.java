@@ -1307,14 +1307,21 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
             muxAdaptor.start();
             logger.info("2");
             int packetNumber = 0;
+            int lastTimeStamp = 0;
+            int startOfRecordingTimeStamp = 0;
             while (flvReader.hasMoreTags()) {
 
                 ITag readTag = flvReader.readTag();
 
                 StreamPacket streamPacket = new StreamPacket(readTag);
+                lastTimeStamp = streamPacket.getTimestamp();
+                if(packetNumber == 0){
+					logger.info("timeStamp 1 "+streamPacket.getTimestamp());
+				}
                 muxAdaptor.packetReceived(null, streamPacket);
 
                 if (packetNumber == 40000) {
+					startOfRecordingTimeStamp = streamPacket.getTimestamp();
                     muxAdaptor.startRecording();
                 }
                 packetNumber++;
@@ -1355,7 +1362,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
             Awaitility.await().atMost(20, TimeUnit.SECONDS).until(() -> scheduler.getScheduledJobNames().size() == 1);
             assertEquals(1, scheduler.getScheduledJobNames().size());
-            assertTrue(MuxingTest.testFile(finalFilePath, 65071));
+            assertTrue(MuxingTest.testFile(finalFilePath, lastTimeStamp-startOfRecordingTimeStamp));
 
         } catch (Exception e) {
             e.printStackTrace();
