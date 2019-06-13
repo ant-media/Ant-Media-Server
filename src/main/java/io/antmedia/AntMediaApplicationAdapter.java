@@ -209,24 +209,8 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 	@Override
 	public void streamBroadcastClose(IBroadcastStream stream) {
-
-
 		String streamName = stream.getPublishedName();
-		vertx.executeBlocking(future -> {
-			try {
-				closeBroadcast(streamName);
-				future.complete(true);
-			}
-			catch (Exception e) {
-				logger.error(ExceptionUtils.getStackTrace(e));
-				future.complete(false);
-			}
-		},
-				result -> 
-		logger.info("close broadcast operation for {} is finished with {}", streamName, result.result())
-				);
-
-
+		vertx.executeBlocking(future -> closeBroadcast(streamName), null);
 		super.streamBroadcastClose(stream);
 	}
 
@@ -254,24 +238,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 						});
 					}
 
-					List<Endpoint> endPointList = broadcast.getEndPointList();
-					if (endPointList != null) {
-						for (Endpoint endpoint : endPointList) {
-							VideoServiceEndpoint videoServiceEndPoint = getVideoServiceEndPoint(endpoint.getEndpointServiceId());
-							if (videoServiceEndPoint != null) {
-								try {
-									videoServiceEndPoint.stopBroadcast(endpoint);
-								} catch (Exception e) {
-									logger.error(ExceptionUtils.getStackTrace(e));
-								}
-							}
-						}
-					}
-					// recreate endpoints for social media
-
-					if (endPointList != null) {
-						recreateEndpointsForSocialMedia(broadcast, endPointList);
-					}
+					stopPublishingSocialEndpoints(broadcast);
 
 					if (broadcast.isZombi()) {
 						getDataStore().delete(streamName);
@@ -284,19 +251,44 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 	}
-
-	public void recreateEndpointsForSocialMedia(Broadcast broadcast, List<Endpoint> endPointList) {
-		for (Endpoint endpoint : endPointList) {
-
-			if (!"".equals(endpoint.type)) {
+	
+	public void stopPublishingSocialEndpoints(Broadcast broadcast) 
+	{
+		List<Endpoint> endPointList = broadcast.getEndPointList();
+		if (endPointList != null) {
+			for (Endpoint endpoint : endPointList) {
 				VideoServiceEndpoint videoServiceEndPoint = getVideoServiceEndPoint(endpoint.getEndpointServiceId());
 				if (videoServiceEndPoint != null) {
+					try {
+						videoServiceEndPoint.stopBroadcast(endpoint);
+					} catch (Exception e) {
+						logger.error(ExceptionUtils.getStackTrace(e));
+					}
+				}
+			}
+			// recreate endpoints for social media
+			recreateEndpointsForSocialMedia(broadcast, endPointList);
+		}
+	}
+
+	public void recreateEndpointsForSocialMedia(Broadcast broadcast, List<Endpoint> endPointList) {
+		//below removeList and addList is due to avoid concurrent exception
+		List<Endpoint> removeList = new ArrayList<>();
+		List<Endpoint> addList = new ArrayList<>();
+		for (Endpoint endpoint : endPointList) {
+
+			if (!"".equals(endpoint.type)) 
+			{
+				VideoServiceEndpoint videoServiceEndPoint = getVideoServiceEndPoint(endpoint.getEndpointServiceId());
+				if (videoServiceEndPoint != null) 
+				{
 					Endpoint newEndpoint;
 					try {
 						newEndpoint = videoServiceEndPoint.createBroadcast(broadcast.getName(),
 								broadcast.getDescription(), broadcast.getStreamId(), broadcast.isIs360(), broadcast.isPublicStream(), 720, true);
-						getDataStore().removeEndpoint(broadcast.getStreamId(), endpoint);
-						getDataStore().addEndpoint(broadcast.getStreamId(), newEndpoint);
+						removeList.add(endpoint);
+						addList.add(newEndpoint);
+						
 					} catch (Exception e) {
 						logger.error(ExceptionUtils.getStackTrace(e));
 					}
@@ -304,6 +296,14 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 				}
 			}
 		}
+		for (Endpoint endpoint : removeList) {
+			getDataStore().removeEndpoint(broadcast.getStreamId(), endpoint);
+		}
+		
+		for (Endpoint endpoint : addList) {
+			getDataStore().addEndpoint(broadcast.getStreamId(), endpoint);
+		}
+		
 	}
 
 	public VideoServiceEndpoint getEndpointService(String className, 
@@ -367,66 +367,74 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	}
 
 	public void startPublish(String streamName) {
-		addScheduledOnceJob(0, new IScheduledJob() {
+		vertx.executeBlocking( handler -> {
+			try {
 
-			@Override
-			public void execute(ISchedulingService service) throws CloneNotSupportedException {
+				DataStore dataStoreLocal = getDataStore();
+				if (dataStoreLocal != null) {
 
-				try {
+					Broadcast broadcast = dataStoreLocal.get(streamName);
 
-					DataStore dataStoreLocal = getDataStore();
-					if (dataStoreLocal != null) {
+					if (broadcast == null) {
 
-						Broadcast broadcast = dataStoreLocal.get(streamName);
+						broadcast = saveUndefinedBroadcast(streamName, getScope().getName(), dataStoreLocal, appSettings);
 
-						if (broadcast == null) {
+					} else {
 
-							broadcast = saveUndefinedBroadcast(streamName, getScope().getName(), dataStoreLocal, appSettings);
-
-						} else {
-
-							boolean result = dataStoreLocal.updateStatus(streamName, BROADCAST_STATUS_BROADCASTING);
-							logger.info(" Status of stream {} is set to Broadcasting with result: {}", broadcast.getStreamId(), result);
-						}
-
-						final String listenerHookURL = broadcast.getListenerHookURL();
-						final String streamId = broadcast.getStreamId();
-						if (listenerHookURL != null && listenerHookURL.length() > 0) {
-							final String name = broadcast.getName();
-							final String category = broadcast.getCategory();
-							addScheduledOnceJob(100, new IScheduledJob() {
-
-								@Override
-								public void execute(ISchedulingService service) throws CloneNotSupportedException {
-									notifyHook(listenerHookURL, streamId, HOOK_ACTION_START_LIVE_STREAM, name, category,
-											null, null);
-								}
-							});
-						}
-
-						List<Endpoint> endPointList = broadcast.getEndPointList();
-						if (endPointList != null) {
-							for (Endpoint endpoint : endPointList) {
-								VideoServiceEndpoint videoServiceEndPoint = getVideoServiceEndPoint(endpoint.getEndpointServiceId());
-								if (videoServiceEndPoint != null) {
-									try {
-										videoServiceEndPoint.publishBroadcast(endpoint);
-										log.info("publish broadcast called for {}" , videoServiceEndPoint.getName());
-									} catch (Exception e) {
-										logger.error(ExceptionUtils.getStackTrace(e));
-									}
-								}
-
-							}
-						}
+						boolean result = dataStoreLocal.updateStatus(streamName, BROADCAST_STATUS_BROADCASTING);
+						logger.info(" Status of stream {} is set to Broadcasting with result: {}", broadcast.getStreamId(), result);
 					}
-				} catch (Exception e) {
-					logger.error(ExceptionUtils.getStackTrace(e));
+
+					final String listenerHookURL = broadcast.getListenerHookURL();
+					final String streamId = broadcast.getStreamId();
+					if (listenerHookURL != null && listenerHookURL.length() > 0) {
+						final String name = broadcast.getName();
+						final String category = broadcast.getCategory();
+						addScheduledOnceJob(100, new IScheduledJob() {
+
+							@Override
+							public void execute(ISchedulingService service) throws CloneNotSupportedException {
+								notifyHook(listenerHookURL, streamId, HOOK_ACTION_START_LIVE_STREAM, name, category,
+										null, null);
+							}
+						});
+					}
+
+					publishSocialEndpoints(broadcast.getEndPointList());
+				}
+				handler.complete();
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+				handler.fail(ExceptionUtils.getStackTrace(e));
+			}
+			
+		}, null);
+		
+		logger.info("start publish leaved");
+	}
+	
+	public void publishSocialEndpoints(List<Endpoint> endPointList) 
+	{
+		if (endPointList != null) 
+		{
+			for (Endpoint endpoint : endPointList) {
+				VideoServiceEndpoint videoServiceEndPoint = getVideoServiceEndPoint(endpoint.getEndpointServiceId());
+				if (videoServiceEndPoint != null) {
+					try {
+						videoServiceEndPoint.publishBroadcast(endpoint);
+						logger.info("publish broadcast called for {}" , videoServiceEndPoint.getName());
+					} catch (Exception e) {
+						logger.error(ExceptionUtils.getStackTrace(e));
+					}
 				}
 			}
-
-		});
+		}
 	}
+	
+	
+	
+	
+	
 
 	public static Broadcast saveUndefinedBroadcast(String streamId, String scopeName, DataStore dataStore, AppSettings appSettings) {
 		return saveUndefinedBroadcast(streamId, scopeName, dataStore, appSettings, AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
