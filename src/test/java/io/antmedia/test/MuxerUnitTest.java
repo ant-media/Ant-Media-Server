@@ -1372,9 +1372,14 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
                 if(packetNumber == 0){
 					logger.info("timeStamp 1 "+streamPacket.getTimestamp());
 				}
+                
                 muxAdaptor.packetReceived(null, streamPacket);
 
+                
                 if (packetNumber == 40000) {
+                		logger.info("----input queue size: {}", muxAdaptor.getInputQueueSize());
+                		Awaitility.await().atMost(90, TimeUnit.SECONDS).until(() -> muxAdaptor.getInputQueueSize() == 0);
+                		logger.info("----input queue size: {}", muxAdaptor.getInputQueueSize());
 					startOfRecordingTimeStamp = streamPacket.getTimestamp();
                     muxAdaptor.startRecording();
                 }
