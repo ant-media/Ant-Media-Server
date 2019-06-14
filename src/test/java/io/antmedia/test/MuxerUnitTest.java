@@ -4,6 +4,7 @@ import com.antstreaming.rtsp.PacketSenderRunnable;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.integration.AppFunctionalTest;
 import io.antmedia.integration.MuxingTest;
@@ -29,6 +30,7 @@ import org.mockito.Mockito;
 import org.red5.io.ITag;
 import org.red5.io.flv.impl.FLVReader;
 import org.red5.server.api.scope.IScope;
+import org.red5.server.api.stream.IBroadcastStream;
 import org.red5.server.api.stream.IStreamPacket;
 import org.red5.server.scheduling.QuartzSchedulingService;
 import org.red5.server.scope.WebScope;
@@ -458,6 +460,50 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
         assertEquals("123456789.mp4", fileName);
 
     }
+    
+	@Test
+	public void testPublishAndUnpublishSocialEndpoints() {
+		AntMediaApplicationAdapter appAdaptor = (AntMediaApplicationAdapter) applicationContext.getBean("web.handler");
+		assertNotNull(appAdaptor);
+		
+		
+		
+		Broadcast broadcast = new Broadcast();
+		appAdaptor.getDataStore().save(broadcast);
+		IBroadcastStream stream = Mockito.mock(IBroadcastStream.class);
+		Mockito.when(stream.getPublishedName()).thenReturn(broadcast.getStreamId());
+		
+		VideoServiceEndpoint endpointService = Mockito.mock(VideoServiceEndpoint.class);
+		String endpointServiceId = "" + (Math.random()*10000);
+		appAdaptor.getVideoServiceEndpoints().put(endpointServiceId, endpointService);	
+		
+		Endpoint endpoint = new Endpoint(null, broadcast.getStreamId(), "name", "rtmp url", null, endpointServiceId, null);
+		
+		appAdaptor.getDataStore().addEndpoint(broadcast.getStreamId(), endpoint);
+		
+		appAdaptor.streamPublishStart(stream);
+		
+		try {
+			Mockito.verify(endpointService).publishBroadcast(endpoint);
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		
+		//this zombi trick will let us have a proper await method
+		broadcast.setZombi(true);
+		appAdaptor.streamBroadcastClose(stream);
+		
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> appAdaptor.getDataStore().get(broadcast.getStreamId()) == null);
+		
+		try {
+			Mockito.verify(endpointService).stopBroadcast(endpoint);
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		
+	}
 
     @Test
     public void testVideoServiceEndpoint() {
