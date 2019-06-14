@@ -483,6 +483,14 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		appAdaptor.streamPublishStart(stream);
 		
+		Awaitility.await()
+			.atMost(5, TimeUnit.SECONDS)
+			.pollInterval(1, TimeUnit.SECONDS)
+			.until(() -> 
+					appAdaptor.getDataStore().get(broadcast.getStreamId())
+								.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING));
+		
+		
 		try {
 			Mockito.verify(endpointService).publishBroadcast(endpoint);
 		} catch (Exception e) {
