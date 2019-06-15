@@ -6,12 +6,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.regex.Pattern;
 
 import io.antmedia.muxer.MuxAdaptor;
@@ -843,17 +839,17 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 	@Override
 	public void muxAdaptorAdded(MuxAdaptor muxAdaptor){
-		muxAdaptors.add(muxAdaptor);
+		getMuxAdaptors().add(muxAdaptor);
 	}
 
 	@Override
 	public void muxAdaptorRemoved(MuxAdaptor muxAdaptor) {
-		muxAdaptors.remove(muxAdaptor);
+		getMuxAdaptors().remove(muxAdaptor);
 	}
 
 	public List<MuxAdaptor> getMuxAdaptors() {
 		if(muxAdaptors == null){
-			muxAdaptors = new ArrayList<>();
+			muxAdaptors = Collections.synchronizedList(new ArrayList());
 		}
 		return muxAdaptors;
 	}
