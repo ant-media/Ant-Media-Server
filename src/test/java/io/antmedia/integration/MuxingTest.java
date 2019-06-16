@@ -433,6 +433,8 @@ public class MuxingTest {
                 return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName+ ".mp4");
             });
 
+            rtmpSendingProcess.destroy();
+
 
 		} catch (Exception e) {
 			e.printStackTrace();
