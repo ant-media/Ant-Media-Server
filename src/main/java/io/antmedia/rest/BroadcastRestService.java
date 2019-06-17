@@ -1980,7 +1980,11 @@ public class BroadcastRestService extends RestServiceBase{
 
     @Nullable
     private List<MuxAdaptor> getMuxAdaptors(String streamId) {
-        List<MuxAdaptor> muxAdaptors = getApplication().getMuxAdaptors();
+        AntMediaApplicationAdapter application = getApplication();
+        List<MuxAdaptor> muxAdaptors = new ArrayList<>();
+        if(application != null){
+            muxAdaptors = application.getMuxAdaptors();
+        }
         List<MuxAdaptor> matchedMuxAdaptors = new ArrayList<>();
         for (MuxAdaptor muxAdaptor : muxAdaptors) {
             if (streamId.equals(muxAdaptor.getStreamId())) {
@@ -2004,7 +2008,6 @@ public class BroadcastRestService extends RestServiceBase{
     public Result startMp4Muxing(String streamId) {
         boolean result = false;
         List<MuxAdaptor> muxAdaptors = getMuxAdaptors(streamId);
-
         for (MuxAdaptor muxAdaptor : muxAdaptors) {
             if (muxAdaptor != null) {
                 Mp4Muxer mp4Muxer = getMp4Muxer(muxAdaptor);
