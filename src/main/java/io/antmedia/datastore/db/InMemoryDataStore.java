@@ -1,6 +1,7 @@
 package io.antmedia.datastore.db;
 
 import java.io.File;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -664,7 +665,10 @@ public class InMemoryDataStore extends DataStore {
 		Token fetchedToken = null;
 		if (token.getTokenId() != null) {
 			fetchedToken = tokenMap.get(token.getTokenId());
-			if (fetchedToken != null && fetchedToken.getStreamId().equals(token.getStreamId()) && fetchedToken.getType().equals(token.getType())) {
+			if (fetchedToken != null 
+					&& fetchedToken.getStreamId().equals(token.getStreamId()) 
+					&& fetchedToken.getType().equals(token.getType()) 
+					&& Instant.now().getEpochSecond() < fetchedToken.getExpireDate()) {
 				tokenMap.remove(token.getTokenId());
 				return fetchedToken;
 			}else {
@@ -673,7 +677,7 @@ public class InMemoryDataStore extends DataStore {
 		}
 		return fetchedToken;
 	}
-
+	
 	@Override
 	public boolean revokeTokens(String streamId) {
 		boolean result = false;

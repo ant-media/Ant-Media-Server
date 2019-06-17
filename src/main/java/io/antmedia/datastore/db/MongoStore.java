@@ -1,6 +1,7 @@
 package io.antmedia.datastore.db;
 
 import java.io.File;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -739,7 +740,10 @@ public class MongoStore extends DataStore {
 		Token fetchedToken = null;
 		if (token.getTokenId() != null) {
 			fetchedToken = tokenDatastore.find(Token.class).field("tokenId").equal(token.getTokenId()).get();
-			if (fetchedToken != null && fetchedToken.getStreamId().equals(token.getStreamId()) && fetchedToken.getType().equals(token.getType())) {
+			if (fetchedToken != null 
+					&& fetchedToken.getStreamId().equals(token.getStreamId()) 
+					&& fetchedToken.getType().equals(token.getType())
+					&& Instant.now().getEpochSecond() < fetchedToken.getExpireDate()) {
 
 				Query<Token> query = tokenDatastore.createQuery(Token.class).field("tokenId").equal(token.getTokenId());
 				WriteResult delete = tokenDatastore.delete(query);
