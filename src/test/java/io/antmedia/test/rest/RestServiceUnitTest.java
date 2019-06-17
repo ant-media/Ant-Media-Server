@@ -15,6 +15,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -1102,6 +1103,7 @@ public class RestServiceUnitTest {
 		DataStore store = new InMemoryDataStore("testdb");
 		restServiceReal.setDataStore(store);
 
+		
 		//create token
 		Token token = new Token();
 		token.setStreamId("1234");
@@ -1124,11 +1126,16 @@ public class RestServiceUnitTest {
 		//it should be zero because all tokens are revoked
 		assertEquals(0, tokens.size());
 
+
+		//define a valid expire date
+		long expireDate = Instant.now().getEpochSecond() + 1000;
+		
 		//create token again
 		token = new Token();
 		token.setStreamId("1234");
 		token.setTokenId("tokenId");
 		token.setType(Token.PLAY_TOKEN);
+		token.setExpireDate(expireDate);
 
 		assertTrue(restServiceReal.getDataStore().saveToken(token));
 

@@ -18,6 +18,7 @@ import java.lang.reflect.Type;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -873,8 +874,11 @@ public class ConsoleAppRestServiceTest{
 			appSettings = callGetAppSettings("LiveApp");
 			assertTrue(appSettings.isTokenControlEnabled());
 
+			//define a valid expire date
+			long expireDate = Instant.now().getEpochSecond() + 1000;
+			
 			Broadcast broadcast = RestServiceTest.callCreateRegularBroadcast();
-			Token accessToken = callGetToken(broadcast.getStreamId(), Token.PLAY_TOKEN, 15444343);
+			Token accessToken = callGetToken(broadcast.getStreamId(), Token.PLAY_TOKEN, expireDate);
 			assertNotNull(accessToken);
 
 
@@ -892,11 +896,11 @@ public class ConsoleAppRestServiceTest{
 
 
 			//create token for publishing
-			Token publishToken = callGetToken(broadcast.getStreamId(), Token.PUBLISH_TOKEN, 15444343);
+			Token publishToken = callGetToken(broadcast.getStreamId(), Token.PUBLISH_TOKEN, expireDate);
 			assertNotNull(publishToken);
 
 			//create token for playing/accessing file
-			Token accessToken2 = callGetToken(broadcast.getStreamId(), Token.PLAY_TOKEN, 15444343);
+			Token accessToken2 = callGetToken(broadcast.getStreamId(), Token.PLAY_TOKEN, expireDate);
 			assertNotNull(accessToken2);
 
 			Process rtmpSendingProcessToken = execute(ffmpegPath
