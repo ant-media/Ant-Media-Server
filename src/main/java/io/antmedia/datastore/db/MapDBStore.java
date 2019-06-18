@@ -2,6 +2,7 @@ package io.antmedia.datastore.db;
 
 import java.io.File;
 import java.lang.reflect.Type;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -939,7 +940,9 @@ public class MapDBStore extends DataStore {
 				String jsonToken = tokenMap.get(token.getTokenId());
 				if (jsonToken != null) {
 					fetchedToken = gson.fromJson((String) jsonToken, Token.class);
-					if(fetchedToken.getStreamId().equals(token.getStreamId()) && fetchedToken.getType().equals(token.getType())) {
+					if(fetchedToken.getStreamId().equals(token.getStreamId()) 
+							&& fetchedToken.getType().equals(token.getType())
+							&& Instant.now().getEpochSecond() < fetchedToken.getExpireDate()) {
 						boolean result = tokenMap.remove(token.getTokenId()) != null;
 						if (result) {
 							db.commit();

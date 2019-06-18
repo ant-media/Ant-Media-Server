@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Iterator;
@@ -1096,9 +1097,12 @@ public class DBStoresUnitTest {
 
 		//create token
 		Token testToken = new Token();
+		
+		//define a valid expire date
+		long expireDate = Instant.now().getEpochSecond() + 1000;
 
 		testToken.setStreamId("1234");
-		testToken.setExpireDate(65342456);
+		testToken.setExpireDate(expireDate);
 		testToken.setType(Token.PLAY_TOKEN);
 		testToken.setTokenId("tokenID");
 
@@ -1125,7 +1129,7 @@ public class DBStoresUnitTest {
 		testToken = new Token();
 
 		testToken.setStreamId("1234");
-		testToken.setExpireDate(65342456);
+		testToken.setExpireDate(expireDate);
 		testToken.setType(Token.PLAY_TOKEN);
 		testToken.setTokenId("tokenID");
 

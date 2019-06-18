@@ -1214,8 +1214,8 @@ public class BroadcastRestService extends RestServiceBase{
 			@ApiParam(value = "type", required = true) @QueryParam("type") String type) 
 	{
 		Token token = null;
-		String message = "No stream id";
-		if(streamId != null) {
+		String message = "Define stream Id and Expire Date (unix time)";
+		if(streamId != null && expireDate > 0) {
 
 			ApplicationContext appContext = getAppContext();
 
@@ -1226,7 +1226,7 @@ public class BroadcastRestService extends RestServiceBase{
 				if(token != null) 
 				{
 					if (getDataStore().saveToken(token)) {
-						//return token only everthing is ok
+						//returns token only everything is OK
 						return token;
 					}
 					else {
