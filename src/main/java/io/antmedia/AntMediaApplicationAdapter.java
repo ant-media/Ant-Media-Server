@@ -484,7 +484,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		String streamName = file.getName();
 
 		Broadcast broadcast = getDataStore().get(streamId);
-		if (broadcast != null) {
+		if (broadcast != null && broadcast.getName() != null) {
 			streamName = broadcast.getName();
 			listenerHookURL = broadcast.getListenerHookURL();
 			if (resolution != 0) {
