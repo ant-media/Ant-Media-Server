@@ -1,52 +1,15 @@
 package io.antmedia.test.rest;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.commons.lang3.RandomStringUtils;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mockito;
-import org.red5.server.api.stream.IClientBroadcastStream;
-import org.red5.server.api.stream.IStreamCapableConnection;
-import org.red5.server.scope.Scope;
-import org.springframework.context.ApplicationContext;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.annotation.DirtiesContext.ClassMode;
-import org.springframework.test.context.ContextConfiguration;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
-import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.datastore.db.types.ConferenceRoom;
-import io.antmedia.datastore.db.types.Endpoint;
-import io.antmedia.datastore.db.types.SocialEndpointCredentials;
-import io.antmedia.datastore.db.types.TensorFlowObject;
-import io.antmedia.datastore.db.types.Token;
-import io.antmedia.datastore.db.types.VoD;
+import io.antmedia.datastore.db.types.*;
 import io.antmedia.integration.MuxingTest;
+import io.antmedia.muxer.HLSMuxer;
+import io.antmedia.muxer.Mp4Muxer;
 import io.antmedia.muxer.MuxAdaptor;
+import io.antmedia.muxer.Muxer;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.BroadcastRestService.BroadcastStatistics;
 import io.antmedia.rest.BroadcastRestService.ProcessBuilderFactory;
@@ -63,6 +26,33 @@ import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.vertx.core.Vertx;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Mockito;
+import org.red5.server.api.stream.IClientBroadcastStream;
+import org.red5.server.api.stream.IStreamCapableConnection;
+import org.red5.server.scope.Scope;
+import org.springframework.context.ApplicationContext;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.annotation.DirtiesContext.ClassMode;
+import org.springframework.test.context.ContextConfiguration;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.Assert.*;
+import static org.mockito.Mockito.*;
 
 
 @ContextConfiguration(locations = { "test.xml" })
@@ -1096,6 +1086,61 @@ public class RestServiceUnitTest {
 
 
 	}
+
+	@Test
+    public void testEnableMp4Muxing() throws Exception{
+		final String scopeValue = "scope";
+		final String dbName = "testdb";
+		final String broadcastName = "testBroadcast";
+
+        BroadcastRestService restServiceSpy = Mockito.spy(new BroadcastRestService());
+		AppSettings settings = mock(AppSettings.class);
+		when(settings.getListenerHookURL()).thenReturn(null);
+		restServiceSpy.setAppSettings(settings);
+
+		Scope scope = mock(Scope.class);
+		when(scope.getName()).thenReturn(scopeValue);
+
+		restServiceSpy.setScope(scope);
+
+		DataStore store = new InMemoryDataStore(dbName);
+		restServiceSpy.setDataStore(store);
+
+        AntMediaApplicationAdapter application = mock(AntMediaApplicationAdapter.class);
+        Mp4Muxer mockMp4Muxer = Mockito.mock(Mp4Muxer.class);
+		HLSMuxer mockHLSMuxer = Mockito.mock(HLSMuxer.class);
+        ArrayList<Muxer> mockMuxers = new ArrayList<>();
+        mockMuxers.add(mockMp4Muxer);
+
+        MuxAdaptor mockMuxAdaptor = Mockito.mock(MuxAdaptor.class);
+        when(mockMuxAdaptor.getMuxerList()).thenReturn(mockMuxers);
+
+        ArrayList<MuxAdaptor> mockMuxAdaptors = new ArrayList<>();
+        mockMuxAdaptors.add(mockMuxAdaptor);
+
+        when(application.getMuxAdaptors()).thenReturn(mockMuxAdaptors);
+        when(restServiceSpy.getApplication()).thenReturn(application);
+
+        Broadcast testBroadcast = restServiceSpy.createBroadcast(new Broadcast(broadcastName));
+		when(mockMuxAdaptor.getStreamId()).thenReturn(testBroadcast.getStreamId());
+
+        assertTrue(restServiceSpy.enableMp4Muxing(testBroadcast.getStreamId(),MuxAdaptor.MP4_ENABLED_FOR_STREAM).isSuccess());
+
+        verify(mockMuxAdaptor,never()).startRecording();
+
+		mockMuxers.clear();
+		mockMuxers.add(mockHLSMuxer);
+
+		assertTrue(restServiceSpy.enableMp4Muxing(testBroadcast.getStreamId(),MuxAdaptor.MP4_ENABLED_FOR_STREAM).isSuccess());
+		verify(mockMuxAdaptor).startRecording();
+
+		mockMuxers.add(mockMp4Muxer);
+
+        assertEquals(MuxAdaptor.MP4_ENABLED_FOR_STREAM, restServiceSpy.getBroadcast(testBroadcast.getStreamId()).getMp4Enabled());
+
+        assertTrue(restServiceSpy.enableMp4Muxing(testBroadcast.getStreamId(),MuxAdaptor.MP4_DISABLED_FOR_STREAM).isSuccess());
+        verify(mockMuxAdaptor).stopRecording();
+    }
 
 	@Test
 	public void testTokenOperations() {
