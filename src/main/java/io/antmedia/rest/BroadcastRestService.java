@@ -42,6 +42,7 @@ import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.util.*;
 import java.util.jar.Manifest;
 import java.util.regex.Pattern;
@@ -201,17 +202,12 @@ public class BroadcastRestService extends RestServiceBase{
 
 		if(room != null) {
 
-			Calendar calendar = Calendar.getInstance();
-			
-	        DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd hh:mm:ss");  			
-
-			if(room.getStartDate() == null) {
-				room.setStartDate(dateFormat.format(calendar.getTime()));
+			if(room.getStartDate() == 0) {
+				room.setStartDate(Instant.now().getEpochSecond());
 			}
 
-			if(room.getEndDate() == null) {
-				calendar.add(Calendar.HOUR, 1);
-				room.setEndDate(dateFormat.format(calendar.getTime()));
+			if(room.getEndDate() == 0) {
+				room.setEndDate(Instant.now().getEpochSecond() + 3600 );
 			}
 
 			if (getDataStore().createConferenceRoom(room)) {

@@ -1266,6 +1266,8 @@ public class RestServiceUnitTest {
 		restServiceReal.setDataStore(store);
 
 		ConferenceRoom room = new ConferenceRoom();
+		
+		long now = Instant.now().getEpochSecond();
 
 		//should be null because roomName not defined
 		assertNull(restServiceReal.createConferenceRoom(room));
@@ -1285,7 +1287,7 @@ public class RestServiceUnitTest {
 		assertNotNull(room.getEndDate());
 
 		//define a start date
-		room.setStartDate("2019/05/26 17:03:58");
+		room.setStartDate(now);
 		
 		//edit room with the new startDate
 		//should not be null because room is saved to database and edited room is returned
@@ -1294,7 +1296,7 @@ public class RestServiceUnitTest {
 		room = restServiceReal.getDataStore().getConferenceRoom(room.getRoomName());
 		
 		//check start date
-		assertEquals("2019/05/26 17:03:58", room.getStartDate());
+		assertEquals(now, room.getStartDate());
 
 		//delete room
 		assertTrue(restServiceReal.deleteConferenceRoom(room.getRoomName()));
