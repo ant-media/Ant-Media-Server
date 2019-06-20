@@ -11,11 +11,8 @@ import static org.junit.Assert.fail;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Iterator;
 import java.util.List;
 
@@ -1349,19 +1346,14 @@ public class DBStoresUnitTest {
 
 	public void testConferenceRoom(DataStore datastore) {
 
-		Calendar calendar = Calendar.getInstance();
-		DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd hh:mm:ss");  
-
-
 		ConferenceRoom room = new ConferenceRoom();
 
+		long now = Instant.now().getEpochSecond();
+
 		room.setRoomName("roomName");
-
-		String strDate = dateFormat.format(calendar.getTime()); 
-		calendar.add(Calendar.HOUR, 1);
-
-		room.setStartDate(strDate);
-		room.setEndDate(dateFormat.format(calendar.getTime()));
+		room.setStartDate(now);
+		//1 hour later
+		room.setEndDate(now + 3600);
 
 		//create room
 		assertTrue(datastore.createConferenceRoom(room));
@@ -1372,7 +1364,7 @@ public class DBStoresUnitTest {
 		assertNotNull(dbRoom);
 		assertEquals("roomName", dbRoom.getRoomName());
 
-		dbRoom.setEndDate("2019-05-28");
+		dbRoom.setEndDate(now + 7200);
 
 		//edit room
 		assertTrue(datastore.editConferenceRoom(dbRoom));
@@ -1381,7 +1373,7 @@ public class DBStoresUnitTest {
 		ConferenceRoom editedRoom = datastore.getConferenceRoom(dbRoom.getRoomName());
 
 		assertNotNull(editedRoom);
-		assertEquals("2019-05-28", editedRoom.getEndDate());
+		assertEquals(now + 7200, editedRoom.getEndDate());
 
 		//delete room
 		assertTrue(datastore.deleteConferenceRoom(editedRoom.getRoomName()));
