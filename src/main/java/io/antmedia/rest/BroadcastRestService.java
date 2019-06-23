@@ -95,10 +95,6 @@ import io.swagger.annotations.SwaggerDefinition;
 @Path("/")
 public class BroadcastRestService extends RestServiceBase{
 
-	/**
-	 * Key for Manifest entry of Build number. It should match with the value in pom.xml
-	 */
-	private static final String BUILD_NUMBER = "Build-Number";
 
 	@ApiModel(value="BroadcastStatistics", description="The statistics class of the broadcasts")
 	public static class BroadcastStatistics {
@@ -137,22 +133,13 @@ public class BroadcastRestService extends RestServiceBase{
 	public static final int ERROR_SOCIAL_ENDPOINT_UNDEFINED_ENDPOINT = -2;
 	public static final int ERROR_SOCIAL_ENDPOINT_EXCEPTION_IN_ASKING_AUTHPARAMS = -3;
 
-	public static final String ENTERPRISE_EDITION = "Enterprise Edition";
-	public static final String COMMUNITY_EDITION = "Community Edition";
-	public static final int MP4_ENABLE = 1;
-	public static final int MP4_DISABLE = -1;
-	public static final int MP4_NO_SET = 0;
 
-	private AppSettings appSettings;
 
 	public interface ProcessBuilderFactory {
 		Process make(String...args);
 	}
 
-	private ProcessBuilderFactory processBuilderFactory = null;
-
 	protected static Logger logger = LoggerFactory.getLogger(BroadcastRestService.class);
-	private static String hostaddress;
 
 
 	/**
@@ -199,17 +186,7 @@ public class BroadcastRestService extends RestServiceBase{
 	@Path("/broadcast/createWithStreamID")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Broadcast createBroadcastWithStreamID(@ApiParam(value = "Broadcast object only related information should be set, it may be null as well.", required = true) Broadcast broadcast) {
-
-		String settingsListenerHookURL = null; 
-		String fqdn = null;
-		AppSettings appSettingsLocal = getAppSettings();
-		if (appSettingsLocal != null) {
-			settingsListenerHookURL = appSettingsLocal.getListenerHookURL();
-			fqdn = appSettingsLocal.getServerName();
-		}
-
-		return saveBroadcast(broadcast, AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, getScope().getName(),
-				getDataStore(), settingsListenerHookURL, fqdn);
+		return super.createBroadcastWithStreamID(broadcast);
 	}
 
 
@@ -324,58 +301,6 @@ public class BroadcastRestService extends RestServiceBase{
 
 
 
-	public static Broadcast saveBroadcast(Broadcast broadcast, String status, String scopeName, DataStore dataStore,
-			String settingsListenerHookURL, String fqdn) {
-
-		if (broadcast == null) {
-			broadcast = new Broadcast();
-		}
-		broadcast.setStatus(status);
-		broadcast.setDate(System.currentTimeMillis());
-
-		String listenerHookURL = broadcast.getListenerHookURL();
-
-		if ((listenerHookURL == null || listenerHookURL.isEmpty()) 
-				&& settingsListenerHookURL != null && !settingsListenerHookURL.isEmpty()) {
-
-			broadcast.setListenerHookURL(settingsListenerHookURL);
-		}
-
-		if (fqdn == null || fqdn.length() == 0) {
-			fqdn = getHostAddress(); 
-		}
-
-		if (fqdn != null && fqdn.length() >= 0) {
-			broadcast.setRtmpURL("rtmp://" + fqdn + "/" + scopeName + "/");
-		}
-
-		dataStore.save(broadcast);
-		return broadcast;
-	}
-
-	private static String getHostAddress() {
-		
-		if (hostaddress == null) {
-			long startTime = System.currentTimeMillis();
-			try {
-				/*
-				 * InetAddress.getLocalHost().getHostAddress() takes long time(5sec in macos) to return.
-				 * Let it is run once
-				 */
-				hostaddress = InetAddress.getLocalHost().getHostAddress();
-			} catch (UnknownHostException e) {
-				logger.error(ExceptionUtils.getStackTrace(e));
-			}
-			long diff = System.currentTimeMillis() - startTime;
-			if (diff > 1000) {
-				logger.warn("Getting host adress took {}ms. it's cached now and will return immediately from now on. You can "
-						+ " alternatively set serverName in conf/red5.properties file ", diff);
-			}
-		}
-		
-		
-		return hostaddress;
-	}
 
 	/**
 	 * Create broadcast and bind social networks at the same time. Server should
@@ -434,21 +359,6 @@ public class BroadcastRestService extends RestServiceBase{
 		return new Result(result);
 	}
 
-	private boolean stopBroadcastInternal(Broadcast broadcast) {
-		boolean result = false;
-		if (broadcast != null) {
-			result = getApplication().stopStreaming(broadcast).isSuccess(); 
-			if (result) {
-				logger.info("broadcast is stopped streamId: {}", broadcast.getStreamId());
-			}
-			else {
-				logger.error("No active broadcast found with id {}, so could not stopped", broadcast.getStreamId());
-			}
-		}
-		return result;
-	}
-
-
 	/**
 	 * Updates the properties of the broadcast
 	 * 
@@ -466,32 +376,7 @@ public class BroadcastRestService extends RestServiceBase{
 	public Result updateBroadcast(@ApiParam(value = "Broadcast object", required = true) Broadcast broadcast,
 			@ApiParam(value = "Comma separated social network IDs, they must in comma separated and IDs must match with the defined IDs", required = true) @QueryParam("socialNetworks") String socialNetworksToPublish) {
 
-		boolean result = getDataStore().updateName(broadcast.getStreamId(), broadcast.getName(),
-				broadcast.getDescription());
-		StringBuilder message = new StringBuilder();
-		int errorId = 0;
-		if (result) {
-			Broadcast fetchedBroadcast = getDataStore().get(broadcast.getStreamId());
-			getDataStore().removeAllEndpoints(fetchedBroadcast.getStreamId());
-
-			if (socialNetworksToPublish != null && socialNetworksToPublish.length() > 0) {
-				String[] socialNetworks = socialNetworksToPublish.split(",");
-
-				for (String networkName : socialNetworks) {
-					Result addSocialEndpoint = addSocialEndpoint(broadcast.getStreamId(), networkName);
-					if (!addSocialEndpoint.isSuccess()) {
-						result = false;
-						message.append(networkName).append(" ");
-						errorId = -1;
-						break;
-					}
-				}
-			}
-		}
-		if (message.length() > 0) {
-			message.append(" endpoint cannot be added");
-		}
-		return new Result(result, message.toString(), errorId);
+		return super.updateBroadcast(broadcast.getStreamId(), broadcast.getName(), broadcast.getDescription(), socialNetworksToPublish);
 	}
 
 	/**
@@ -506,26 +391,9 @@ public class BroadcastRestService extends RestServiceBase{
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/broadcast/revokeSocialNetwork/{endpointId}")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Override
 	public Result revokeSocialNetwork(@ApiParam(value = "Endpoint id", required = true) @PathParam("endpointId") String endpointId) {
-		Map<String, VideoServiceEndpoint> endPointServiceMap = getEndpointList();
-		String message = null;
-		boolean result = false;
-		if (endPointServiceMap != null) {
-
-			VideoServiceEndpoint videoServiceEndpoint = endPointServiceMap.get(endpointId);
-			if (videoServiceEndpoint != null) {
-				videoServiceEndpoint.resetCredentials();
-				endPointServiceMap.remove(endpointId);
-				result = true;
-			}
-			else {
-				message = "Service with the name specified is not found in this app";
-			}
-		} 
-		else {
-			message = "No endpoint is defined for this app";
-		}
-		return new Result(result, message);
+		return super.revokeSocialNetwork(endpointId);
 	}
 
 	/**
@@ -573,16 +441,8 @@ public class BroadcastRestService extends RestServiceBase{
 
 			@ApiParam(value = "the id of the service in order to have successfull operation. Social network must be authorized in advance", required = true)
 	@FormParam("serviceName") String endpointServiceId) {
-
-		Broadcast broadcast = lookupBroadcast(id);
-
-		boolean success = addSocialEndpoints(broadcast, endpointServiceId);
-		String message = "";
-		if(!success) {
-			message  = endpointServiceId+" endpoint can not be added to "+id;
-		}
-
-		return new Result(success, message);
+		
+		return super.addSocialEndpoint(id, endpointServiceId);
 	}
 
 	/**
@@ -605,19 +465,7 @@ public class BroadcastRestService extends RestServiceBase{
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result addEndpoint(@ApiParam(value = "Broadcast id", required = true) @FormParam("id") String id,
 			@ApiParam(value = "RTMP url of the endpoint that stream will be republished", required = true) @FormParam("rtmpUrl") String rtmpUrl) {
-		boolean success = false;
-		String message = null;
-		try {
-			Endpoint endpoint = new Endpoint();
-			endpoint.setRtmpUrl(rtmpUrl);
-			endpoint.type = "generic";
-
-			success = getDataStore().addEndpoint(id, endpoint);
-		} catch (Exception e) {
-			logger.error(ExceptionUtils.getStackTrace(e));
-		}
-
-		return new Result(success, message);
+		return super.addEndpoint(id, rtmpUrl);
 	}
 
 	/**
@@ -635,13 +483,14 @@ public class BroadcastRestService extends RestServiceBase{
 	@Path("/broadcast/getLiveComments/{endpointServiceId}/{streamId}/{offset}/{batch}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public List<LiveComment> getLiveCommentsFromEndpoint(@ApiParam(value = "This is the id of the endpoint service", required = true)
-	@PathParam("endpointServiceId") String endpointServiceId,
-	@ApiParam(value = "Stream id", required = true)
-	@PathParam("streamId") String streamId,
-	@ApiParam(value = "this is the start offset where to start getting comment", required = true)
-	@PathParam("offset") int offset,
-	@ApiParam(value = "number of items to be returned", required = true)
-	@PathParam("batch") int batch) {
+				@PathParam("endpointServiceId") String endpointServiceId,
+				@ApiParam(value = "Stream id", required = true)
+				@PathParam("streamId") String streamId,
+				@ApiParam(value = "this is the start offset where to start getting comment", required = true)
+				@PathParam("offset") int offset,
+				@ApiParam(value = "number of items to be returned", required = true)
+				@PathParam("batch") int batch) 
+	{
 
 		VideoServiceEndpoint videoServiceEndPoint = getApplication().getVideoServiceEndPoint(endpointServiceId);
 		List<LiveComment> liveComment = null;
@@ -718,18 +567,6 @@ public class BroadcastRestService extends RestServiceBase{
 			interaction = videoServiceEndPoint.getInteraction(streamId);
 		}
 		return interaction;
-	}
-
-
-
-	protected Broadcast lookupBroadcast(String id) {
-		Broadcast broadcast = null;
-		try {
-			broadcast = getDataStore().get(id);
-		} catch (Exception e) {
-			logger.error(ExceptionUtils.getStackTrace(e));
-		}
-		return broadcast;
 	}
 
 	/**
@@ -885,128 +722,12 @@ public class BroadcastRestService extends RestServiceBase{
 	@POST
 	@Path("/importLiveStreamsToStalker")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Override
 	public Result importLiveStreams2Stalker() 
 	{
-
-		String stalkerDBServer = getAppSettings().getStalkerDBServer();
-		String stalkerDBUsername = getAppSettings().getStalkerDBUsername();
-		String stalkerDBPassword = getAppSettings().getStalkerDBPassword();
-
-		boolean result = false;
-		String message = "";
-		int errorId = -1;
-		if (stalkerDBServer != null && stalkerDBServer.length() > 0
-				&& stalkerDBUsername != null && stalkerDBUsername.length() > 0
-				&& stalkerDBPassword != null && stalkerDBPassword.length() > 0) 
-		{
-
-
-			long broadcastCount = getDataStore().getBroadcastCount();
-			int pageCount = (int) broadcastCount/DataStore.MAX_ITEM_IN_ONE_LIST
-					+ ((broadcastCount % DataStore.MAX_ITEM_IN_ONE_LIST != 0) ? 1 : 0);
-
-			List<Broadcast> broadcastList = new ArrayList<>();
-			for (int i = 0; i < pageCount; i++) {
-				broadcastList.addAll(getDataStore().getBroadcastList(i*DataStore.MAX_ITEM_IN_ONE_LIST, DataStore.MAX_ITEM_IN_ONE_LIST));
-			}
-
-			StringBuilder insertQueryString = new StringBuilder();
-
-			insertQueryString.append("DELETE FROM stalker_db.ch_links;");
-			insertQueryString.append("DELETE FROM stalker_db.itv;");
-
-			String fqdn = getAppSettings().getServerName();
-			if (fqdn == null || fqdn.length() == 0) {
-				fqdn = getHostAddress();
-			}
-
-			int number = 1;
-			for (Broadcast broadcast : broadcastList) {
-				String cmd = "ffmpeg http://"+ fqdn + ":5080/" 
-						+ getScope().getName() + "/streams/"+broadcast.getStreamId()+".m3u8";
-
-				insertQueryString.append("INSERT INTO stalker_db.itv(name, number, tv_genre_id, base_ch, cmd, languages)"
-						+ " VALUES ('"+broadcast.getName()+"' , "+ number +", 2, 1, '"+ cmd +"', '');");
-
-				insertQueryString.append("SET @last_id=LAST_INSERT_ID();"
-						+ "INSERT INTO stalker_db.ch_links(ch_id, url)"
-						+ " VALUES(@last_id, '"+ cmd +"');");
-				number++;
-			}
-			result = runStalkerImportQuery(insertQueryString.toString(), stalkerDBServer, stalkerDBUsername, stalkerDBPassword);
-		}
-		else {
-			message = "Portal DB info is missing";
-			errorId = 404;
-		}
-
-
-		return new Result(result, message, errorId);
+		return super.importLiveStreams2Stalker();
 	}
 
-	private boolean runStalkerImportQuery(String query, String stalkerDBServer, String stalkerDBUsername, String stalkerDBPassword) {
-
-		boolean result = false;
-		try {
-
-			Process p = getProcess(query, stalkerDBServer, stalkerDBUsername, stalkerDBPassword);
-
-			if (p != null) {
-				InputStream is = p.getInputStream();
-				if (is != null) {
-					byte[] data = new byte[1024];
-					int length;
-					while ((length = is.read(data, 0, data.length)) != -1) {
-						if (logger.isInfoEnabled()) {
-							logger.info(new String(data, 0, length));
-						}
-					}
-				}
-
-				int exitWith = p.waitFor();
-
-				if (exitWith == 0) {
-					result = true;
-				}	
-			}
-
-		} catch (IOException e) {
-			logger.error(ExceptionUtils.getStackTrace(e));
-		} catch (InterruptedException e) {
-			logger.error(ExceptionUtils.getStackTrace(e));
-			Thread.currentThread().interrupt();
-		} 
-		return result;
-	}
-
-	private Process getProcess(String query, String stalkerDBServer, String stalkerDBUsername, String stalkerDBPassword) {
-		Process process = null;
-		String mysqlClientPath = getAppSettings().getMySqlClientPath();
-		if (processBuilderFactory != null) {
-
-			process = processBuilderFactory.make(mysqlClientPath, 
-					"-h", stalkerDBServer,
-					"-u", stalkerDBUsername,
-					"-p"+stalkerDBPassword,
-					"-e",   query);
-		}
-		else {
-			try {
-				process = new ProcessBuilder(
-						mysqlClientPath, 
-						"-h", stalkerDBServer,
-						"-u", stalkerDBUsername,
-						"-p"+stalkerDBPassword,
-						"-e",   query  
-						).redirectErrorStream(true).start();
-			} catch (IOException e) {
-				logger.error(ExceptionUtils.getStackTrace(e));
-			}
-		}
-
-		return process;
-
-	}
 
 
 	/**
@@ -1014,82 +735,14 @@ public class BroadcastRestService extends RestServiceBase{
 	 * 
 	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
 	 */
-
 	@ApiOperation(value = "Import VoDs to Stalker Portal", notes = "", response = Result.class)
 	@POST
 	@Path("/importVoDsToStalker")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Override
 	public Result importVoDsToStalker() 
 	{
-
-		String stalkerDBServer = getAppSettings().getStalkerDBServer();
-		String stalkerDBUsername = getAppSettings().getStalkerDBUsername();
-		String stalkerDBPassword = getAppSettings().getStalkerDBPassword();
-
-		boolean result = false;
-		String message = "";
-		int errorId = -1;
-		if (stalkerDBServer != null && stalkerDBUsername != null && stalkerDBPassword != null) {
-
-			String vodFolderPath = getAppSettings().getVodFolder();
-			if (vodFolderPath != null && !vodFolderPath.isEmpty()) {
-
-				long totalVodNumber = getDataStore().getTotalVodNumber();
-				int pageCount = (int) totalVodNumber/DataStore.MAX_ITEM_IN_ONE_LIST 
-						+ ((totalVodNumber % DataStore.MAX_ITEM_IN_ONE_LIST != 0) ? 1 : 0);
-
-				List<VoD> vodList = new ArrayList<>();
-				for (int i = 0; i < pageCount; i++) {
-					vodList.addAll(getDataStore().getVodList(i*DataStore.MAX_ITEM_IN_ONE_LIST, DataStore.MAX_ITEM_IN_ONE_LIST));
-				}
-
-
-				String fqdn = getAppSettings().getServerName();
-				if (fqdn == null || fqdn.length() == 0) {
-					fqdn = getHostAddress();
-				}
-
-				StringBuilder insertQueryString = new StringBuilder();
-
-				//delete all videos in stalker to import new ones
-				insertQueryString.append("DELETE FROM stalker_db.video_series_files;");
-				insertQueryString.append("DELETE FROM stalker_db.video;");
-
-				for (VoD vod : vodList) {
-					if (vod.getType().equals(VoD.USER_VOD)) {
-						insertQueryString.append("INSERT INTO stalker_db.video(name, o_name, protocol, category_id, cat_genre_id_1, status, cost, path, accessed) "
-								+ "values('"+ vod.getVodName() + "', '"+vod.getVodName()+"', '', 1, 1, 1, 0, '"+vod.getVodName()+"', 1);");
-
-						File vodFolder = new File(vodFolderPath);
-						int lastIndexOf = vod.getFilePath().lastIndexOf(vodFolder.getName());
-						String filePath = vod.getFilePath().substring(lastIndexOf);
-						String cmd = "ffmpeg http://"+ fqdn + ":5080/" 
-								+ getScope().getName() + "/streams/" + filePath;
-
-						insertQueryString.append("SET @last_id=LAST_INSERT_ID();");
-
-						insertQueryString.append("INSERT INTO stalker_db.video_series_files"
-								+ "(video_id, file_type, protocol, url, languages, quality, date_add, date_modify, status, accessed)"
-								+ "VALUES(@last_id, 'video', 'custom', '"+cmd+"', 'a:1:{i:0;s:2:\"en\";}', 5, NOW(), NOW(), 1, 1);");
-
-					}
-
-				}
-
-				result = runStalkerImportQuery(insertQueryString.toString(), stalkerDBServer, stalkerDBUsername, stalkerDBPassword );
-			}
-			else {
-				message = "No VoD folder specified";
-				errorId = 500;
-			}
-		}
-		else {
-			message = "Portal DB info is missing";
-			errorId = 404;
-		}
-
-		return new Result(result, message, errorId);
-
+		return super.importVoDsToStalker();
 	}
 
 	/**
@@ -1106,7 +759,6 @@ public class BroadcastRestService extends RestServiceBase{
 	 * @return JSON list of VoD objects
 	 * 
 	 */
-
 	@ApiOperation(value = " Get the VoD list from database", notes = "", responseContainer = "List",response = VoD.class)
 	@GET
 	@Path("/broadcast/getVodList/{offset}/{size}")
@@ -1247,7 +899,6 @@ public class BroadcastRestService extends RestServiceBase{
 	 * @param token - sent token for validation
 	 * @return validated token {@link io.antmedia.datastore.db.types.Token}, either null or token. Null means not validated
 	 */
-
 	@ApiOperation(value = "Perform validation of token for requested stream", notes = "", response = Token.class)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
@@ -1430,14 +1081,6 @@ public class BroadcastRestService extends RestServiceBase{
 		return list;
 	}
 
-	public IWebRTCAdaptor getWebRTCAdaptor() {
-		IWebRTCAdaptor adaptor = null;
-		ApplicationContext appContext = getAppContext();
-		if (appContext != null && appContext.containsBean(IWebRTCAdaptor.BEAN_NAME)) {
-			adaptor = (IWebRTCAdaptor) appContext.getBean(IWebRTCAdaptor.BEAN_NAME);
-		}
-		return adaptor;
-	}
 
 	/**
 	 * Get filtered broadcast list
@@ -1453,7 +1096,7 @@ public class BroadcastRestService extends RestServiceBase{
 	@Produces(MediaType.APPLICATION_JSON)
 	public List<Broadcast> filterBroadcastList(@ApiParam(value = "starting point of the list", required = true) @PathParam("offset") int offset,
 			@ApiParam(value = "size of the return list (max:50 )", required = true) @PathParam("size") int size,
-			@ApiParam(value = "type of the stream", required = true) @PathParam("type") String type) {
+			@ApiParam(value = "type of the stream possible values are \"liveStream\", \"ipCamera\", \"streamSource\", \"VoD\"", required = true) @PathParam("type") String type) {
 		return getDataStore().filterBroadcastList(offset, size, type);
 	}
 
@@ -1467,7 +1110,6 @@ public class BroadcastRestService extends RestServiceBase{
 	 * @param type -type of the VoD file
 	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
 	 */
-
 	@ApiOperation(value = "Delete specific VoD File. Deprecated -> Use deleteVoD method (/broadcast/deleteVoD/{id})", notes = "", response = Result.class)
 	@POST
 	@Consumes({ MediaType.APPLICATION_JSON })
@@ -1635,26 +1277,9 @@ public class BroadcastRestService extends RestServiceBase{
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/broadcast/delete/{id}")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Override
 	public Result deleteBroadcast(@ApiParam(value = " Id of the braodcast", required = true) @PathParam("id") String id) {
-		Result result = new Result (false);
-		boolean stopResult = false;
-
-		if (id != null) {
-			Broadcast broacast = getDataStore().get(id);
-			stopResult = stopBroadcastInternal(broacast);
-
-			result.setSuccess(getDataStore().delete(id));
-
-			if(result.isSuccess() && stopResult) {
-				result.setMessage("brodcast is deleted and stopped successfully");
-				logger.info("brodcast {} is deleted and stopped successfully", id);
-			}
-			else if(result.isSuccess() && !stopResult) {
-				result.setMessage("brodcast is deleted but could not stopped ");
-				logger.info("brodcast {} is deleted but could not stopped", id);
-			}
-		}
-		return result;
+		return super.deleteBroadcast(id);
 	}
 
 	/**
@@ -1947,29 +1572,6 @@ public class BroadcastRestService extends RestServiceBase{
 		return getApplication().getVideoServiceEndpointsHavingError();
 	}
 
-	private AppSettings getAppSettings() {
-		if (appSettings == null) {
-			ApplicationContext appContext = getAppContext();
-			if (appContext != null) {
-				appSettings = (AppSettings) appContext.getBean(AppSettings.BEAN_NAME);
-			}
-		}
-		return appSettings;
-	}
-
-	public void setAppSettings(AppSettings appSettings) {
-		this.appSettings = appSettings;
-	}
-
-	public ProcessBuilderFactory getProcessBuilderFactory() {
-		return processBuilderFactory;
-	}
-
-
-	public void setProcessBuilderFactory(ProcessBuilderFactory processBuilderFactory) {
-		this.processBuilderFactory = processBuilderFactory;
-	}
-
     /**
      * Set stream specific Mp4 Muxing setting, this setting overrides general Mp4 Muxing Setting
      *
@@ -1977,7 +1579,6 @@ public class BroadcastRestService extends RestServiceBase{
      * @param enableMp4 - the integer value for Mp4 Muxing, 1 = Enable Muxing, -1 = Disable Muxing, 0 = No Settings
      * @return {@link io.antmedia.rest.BroadcastRestService.Result}
      */
-
     @ApiOperation(value = "Set stream specific Mp4 Muxing setting, this setting overrides general Mp4 Muxing Setting", notes = "", response = Result.class)
     @POST
     @Consumes(MediaType.APPLICATION_JSON)

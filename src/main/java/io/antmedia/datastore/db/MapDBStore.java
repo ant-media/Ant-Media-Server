@@ -820,7 +820,6 @@ public class MapDBStore extends DataStore {
 				oldBroadcast.setPassword(broadcast.getPassword());
 				oldBroadcast.setIpAddr(broadcast.getIpAddr());
 				oldBroadcast.setStreamUrl(broadcast.getStreamUrl());
-				oldBroadcast.setStreamUrl(broadcast.getStreamUrl());
 
 				getMap().replace(oldBroadcast.getStreamId(), gson.toJson(oldBroadcast));
 
