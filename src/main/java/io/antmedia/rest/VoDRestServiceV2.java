@@ -56,10 +56,10 @@ import io.swagger.annotations.SwaggerDefinition;
         basePath = "/v2/VoD"
 )
 @Component
-@Path("/v2/VoD")
+@Path("/v2/vods")
 public class VoDRestServiceV2 extends RestServiceBase{
 	
-	@ApiOperation(value = "VoD file from database", notes = "", response = VoD.class)
+	@ApiOperation(value = "VoD file from database", response = VoD.class)
 	@GET
 	@Path("/{id}")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -74,7 +74,7 @@ public class VoDRestServiceV2 extends RestServiceBase{
 		return vod;
 	}
 	
-	@ApiOperation(value = "Import VoDs to Stalker Portal", notes = "", response = Result.class)
+	@ApiOperation(value = "Import VoDs to Stalker Portal", response = Result.class)
 	@POST
 	@Path("/import-to-stalker")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -85,7 +85,7 @@ public class VoDRestServiceV2 extends RestServiceBase{
 	}
 	
 	
-	@ApiOperation(value = " Get the VoD list from database", notes = "", responseContainer = "List",response = VoD.class)
+	@ApiOperation(value = " Get the VoD list from database", responseContainer = "List",response = VoD.class)
 	@GET
 	@Path("/list/{offset}/{size}")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -94,7 +94,7 @@ public class VoDRestServiceV2 extends RestServiceBase{
 		return getDataStore().getVodList(offset, size);
 	}
 	
-	@ApiOperation(value = "Get the total number of VoDs", notes = "", response = Long.class)
+	@ApiOperation(value = "Get the total number of VoDs", response = Long.class)
 	@GET
 	@Path("/count")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -102,7 +102,7 @@ public class VoDRestServiceV2 extends RestServiceBase{
 		return getDataStore().getTotalVodNumber();
 	}
 	
-	@ApiOperation(value = "Delete specific VoD File", notes = "", response = Result.class)
+	@ApiOperation(value = "Delete specific VoD File", response = Result.class)
 	@DELETE
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/{id}")
@@ -229,7 +229,7 @@ public class VoDRestServiceV2 extends RestServiceBase{
 	
 	@ApiOperation(value = "Synchronize VoD Folder and add them to VoD database if any file exist and create symbolic links to that folder", notes = "Notes here", response = Result.class)
 	@POST
-	@Path("/synchUserVoDList")
+	@Path("/synch-user-vod-list")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result synchUserVodList() {
 		boolean result = false;
