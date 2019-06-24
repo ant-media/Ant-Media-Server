@@ -11,6 +11,7 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.UnknownHostException;
 import java.nio.file.Files;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -33,9 +34,8 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.glassfish.jersey.media.multipart.FormDataParam;
+import org.jetbrains.annotations.Nullable;
 import org.red5.server.api.scope.IBroadcastScope;
-import org.red5.server.api.stream.IBroadcastStream;
-import org.red5.server.api.stream.IClientBroadcastStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -45,12 +45,15 @@ import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointChannel;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
+import io.antmedia.muxer.Mp4Muxer;
+import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.Muxer;
 import io.antmedia.rest.model.Interaction;
 import io.antmedia.rest.model.Result;
@@ -76,18 +79,18 @@ import io.swagger.annotations.SwaggerDefinition;
 
 @Api(value = "BroadcastRestService")
 @SwaggerDefinition(
-		info = @Info(
-				description = "Antmedia Rest Api Doc",
-				version = "V1.0",
-				title = "Antmedia Rest Api Doc",
-				contact = @Contact(name = "Antmedia Info", email = "contact@antmedia.io", url = "https://antmedia.io"),
-				license = @License(name = "Apache 2.0", url = "http://www.apache.org")),
-		consumes = {"application/json" },
-		produces = {"application/json" },
-		schemes = {SwaggerDefinition.Scheme.HTTP, SwaggerDefinition.Scheme.HTTPS},
-		externalDocs = @ExternalDocs(value = "External Docs", url = "https://antmedia.io"),
-		basePath = "/"
-		)
+        info = @Info(
+                description = "Ant Media Server REST API Reference",
+                version = "V1.0",
+                title = "Ant Media Server REST API Reference",
+                contact = @Contact(name = "Ant Media Info", email = "contact@antmedia.io", url = "https://antmedia.io"),
+                license = @License(name = "Apache 2.0", url = "http://www.apache.org")),
+        consumes = {"application/json"},
+        produces = {"application/json"},
+        schemes = {SwaggerDefinition.Scheme.HTTP, SwaggerDefinition.Scheme.HTTPS},
+        externalDocs = @ExternalDocs(value = "External Docs", url = "https://antmedia.io"),
+        basePath = "/"
+)
 @Component
 @Path("/")
 public class BroadcastRestService extends RestServiceBase{
@@ -176,7 +179,7 @@ public class BroadcastRestService extends RestServiceBase{
 
 		return createBroadcastWithStreamID(broadcast);
 	}
-	
+
 	/**
 	 * Ant Media Server does not use this rest service by default. 
 	 * 
@@ -207,6 +210,84 @@ public class BroadcastRestService extends RestServiceBase{
 
 		return saveBroadcast(broadcast, AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, getScope().getName(),
 				getDataStore(), settingsListenerHookURL, fqdn);
+	}
+
+
+	/**
+	 * Creates a conference room with the parameters. 
+	 * The room name is key so if this is called with the same room name 
+	 * then new room is overwritten to old one.
+	 * 
+	 * @param room Conference Room object with start and end date
+	 * 
+	 * @return {@link io.antmedia.datastore.db.types.ConferenceRoom}
+	 * 
+	 */
+	@ApiOperation(value = "Creates a conference room with the parameters. The room name is key so if this is called with the same room name then new room is overwritten to old one", response = ConferenceRoom.class)
+	@POST
+	@Consumes({ MediaType.APPLICATION_JSON })
+	@Path("/broadcast/createConferenceRoom")
+	@Produces(MediaType.APPLICATION_JSON)
+	public ConferenceRoom createConferenceRoom(@ApiParam(value = "Conference Room object with start and end date", required = true) ConferenceRoom room) {
+
+		if(room != null) {
+
+			if(room.getStartDate() == 0) {
+				room.setStartDate(Instant.now().getEpochSecond());
+			}
+
+			if(room.getEndDate() == 0) {
+				room.setEndDate(Instant.now().getEpochSecond() + 3600 );
+			}
+
+			if (getDataStore().createConferenceRoom(room)) {
+				return room;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Edits previously saved conference room
+	 * @param room Conference Room object with start and end date
+	 * 
+	 * @return {@link io.antmedia.datastore.db.types.ConferenceRoom}
+	 * 
+	 */
+	@ApiOperation(value = "Edits previously saved conference room", response = ConferenceRoom.class)
+	@POST
+	@Consumes({ MediaType.APPLICATION_JSON })
+	@Path("/broadcast/editConferenceRoom")
+	@Produces(MediaType.APPLICATION_JSON)
+	public ConferenceRoom editConferenceRoom(@ApiParam(value = "Conference Room object with start and end date", required = true) ConferenceRoom room) {
+
+		if(room != null) {
+
+			if (getDataStore().editConferenceRoom(room)) {
+				return room;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Deletes previously saved conference room 
+	 * @param roomName the name of the conference room
+	 * 
+	 * @return true if successfully deleted, false if not 
+	 * 
+	 */
+	@ApiOperation(value = "Creates a conference room with the parameters. The room name is key so if this is called with the same room name then new room is overwritten to old one", response = ConferenceRoom.class)
+	@POST
+	@Consumes({ MediaType.APPLICATION_JSON })
+	@Path("/broadcast/deleteConferenceRoom")
+	@Produces(MediaType.APPLICATION_JSON)
+	public boolean deleteConferenceRoom(@ApiParam(value = "the name of the conference room", required = true) @QueryParam("roomName") String roomName) {
+
+		if(roomName != null) {
+			return getDataStore().deleteConferenceRoom(roomName);
+		}
+		return false;
 	}
 
 
@@ -245,7 +326,7 @@ public class BroadcastRestService extends RestServiceBase{
 
 	public static Broadcast saveBroadcast(Broadcast broadcast, String status, String scopeName, DataStore dataStore,
 			String settingsListenerHookURL, String fqdn) {
-		
+
 		if (broadcast == null) {
 			broadcast = new Broadcast();
 		}
@@ -273,7 +354,9 @@ public class BroadcastRestService extends RestServiceBase{
 	}
 
 	private static String getHostAddress() {
+		
 		if (hostaddress == null) {
+			long startTime = System.currentTimeMillis();
 			try {
 				/*
 				 * InetAddress.getLocalHost().getHostAddress() takes long time(5sec in macos) to return.
@@ -283,7 +366,14 @@ public class BroadcastRestService extends RestServiceBase{
 			} catch (UnknownHostException e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
+			long diff = System.currentTimeMillis() - startTime;
+			if (diff > 1000) {
+				logger.warn("Getting host adress took {}ms. it's cached now and will return immediately from now on. You can "
+						+ " alternatively set serverName in conf/red5.properties file ", diff);
+			}
 		}
+		
+		
 		return hostaddress;
 	}
 
@@ -684,8 +774,7 @@ public class BroadcastRestService extends RestServiceBase{
 		}
 		return vod;
 	}
-
-
+	
 	/**
 	 * Get detected objects from the stream
 	 * 
@@ -1054,11 +1143,11 @@ public class BroadcastRestService extends RestServiceBase{
 	public Version getVersion() {
 		return getSoftwareVersion();
 	}
-	
+
 	public static Version getSoftwareVersion() {
 		Version version = new Version();
 		version.setVersionName(AntMediaApplicationAdapter.class.getPackage().getImplementationVersion());
-		
+
 		URLClassLoader cl = (URLClassLoader) AntMediaApplicationAdapter.class.getClassLoader();
 		URL url = cl.findResource("META-INF/MANIFEST.MF");
 		Manifest manifest;
@@ -1068,7 +1157,7 @@ public class BroadcastRestService extends RestServiceBase{
 		} catch (IOException e) {
 			//No need to implement
 		}
-		
+
 		version.setVersionType(BroadcastRestService.isEnterprise() ? ENTERPRISE_EDITION : COMMUNITY_EDITION);
 
 		logger.debug("Version Name {} Version Type {}", version.getVersionName(), version.getVersionType());
@@ -1121,11 +1210,11 @@ public class BroadcastRestService extends RestServiceBase{
 			@ApiParam(value = "type", required = true) @QueryParam("type") String type) 
 	{
 		Token token = null;
-		String message = "No stream id";
-		if(streamId != null) {
+		String message = "Define stream Id and Expire Date (unix time)";
+		if(streamId != null && expireDate > 0) {
 
 			ApplicationContext appContext = getAppContext();
-			
+
 			if(appContext != null && appContext.containsBean(ITokenService.BeanName.TOKEN_SERVICE.toString())) 
 			{
 				ITokenService tokenService = (ITokenService)appContext.getBean(ITokenService.BeanName.TOKEN_SERVICE.toString());
@@ -1133,7 +1222,7 @@ public class BroadcastRestService extends RestServiceBase{
 				if(token != null) 
 				{
 					if (getDataStore().saveToken(token)) {
-						//return token only everthing is ok
+						//returns token only everything is OK
 						return token;
 					}
 					else {
@@ -1220,35 +1309,6 @@ public class BroadcastRestService extends RestServiceBase{
 		}
 
 		return tokens;
-	}
-
-	/**
-	 * Set stream specific Mp4 Muxing setting, this setting overrides general Mp4 Muxing Setting
-	 * 
-	 * @param streamId - the id of the stream
-	 * @param enableMp4 - the integer value for Mp4 Muxing, 1 = Enable Muxing, -1 = Disable Muxing, 0 = No Settings
-	 * @return  {@link io.antmedia.rest.BroadcastRestService.Result}
-	 */
-
-	@ApiOperation(value = "Set stream specific Mp4 Muxing setting, this setting overrides general Mp4 Muxing Setting", notes = "", response = Result.class)
-	@POST
-	@Consumes(MediaType.APPLICATION_JSON)
-	@Path("/broadcast/enableMp4Muxing")
-	@Produces(MediaType.APPLICATION_JSON)
-	public Result enableMp4Muxing (@ApiParam(value = "the id of the stream", required = true) @QueryParam("id")String streamId,
-			@ApiParam(value = "the integer value for Mp4 Muxing, 1 = Enable Muxing, -1 = Disable Muxing, 0 = No Settings", required = true) @QueryParam("enableMp4") int enableMp4) {
-		Result result = new Result(false);
-		if(streamId != null) {
-
-			if(getDataStore().setMp4Muxing(streamId, enableMp4)) {		
-				result.setSuccess(true);
-				result.setMessage("streamId:"+ streamId);
-			}else {
-				result.setMessage("no stream for this id: " + streamId + " or wrong setting parameter");
-			}
-		}
-
-		return result;
 	}
 
 	/**
@@ -1496,7 +1556,7 @@ public class BroadcastRestService extends RestServiceBase{
 		String fileExtension = FilenameUtils.getExtension(fileName);
 		try {
 
-			if (fileExtension.equals("mp4")) {
+			if ("mp4".equals(fileExtension)) {
 
 
 				File streamsDirectory = new File(
@@ -1868,7 +1928,7 @@ public class BroadcastRestService extends RestServiceBase{
 		}
 		return new Result(result, null);
 	}
-	
+
 
 	public static boolean isEnterprise() {
 		try {
@@ -1910,5 +1970,95 @@ public class BroadcastRestService extends RestServiceBase{
 		this.processBuilderFactory = processBuilderFactory;
 	}
 
+    /**
+     * Set stream specific Mp4 Muxing setting, this setting overrides general Mp4 Muxing Setting
+     *
+     * @param streamId  - the id of the stream
+     * @param enableMp4 - the integer value for Mp4 Muxing, 1 = Enable Muxing, -1 = Disable Muxing, 0 = No Settings
+     * @return {@link io.antmedia.rest.BroadcastRestService.Result}
+     */
 
+    @ApiOperation(value = "Set stream specific Mp4 Muxing setting, this setting overrides general Mp4 Muxing Setting", notes = "", response = Result.class)
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Path("/broadcast/enableMp4Muxing")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Result enableMp4Muxing(@ApiParam(value = "the id of the stream", required = true) @QueryParam("id") String streamId,
+                                  @ApiParam(value = "the integer value for Mp4 Muxing, 1 = Enable Muxing, -1 = Disable Muxing, 0 = No Settings", required = true) @QueryParam("enableMp4") int enableMp4) {
+        Result result = new Result(false);
+        if (streamId != null) {
+
+            if (getDataStore().setMp4Muxing(streamId, enableMp4)) {
+                if (MP4_ENABLE == enableMp4) {
+                    startMp4Muxing(streamId);
+                } else if (MP4_DISABLE == enableMp4) {
+                    stopMp4Muxing(streamId);
+                }
+                result.setSuccess(true);
+                result.setMessage("streamId:" + streamId);
+            } else {
+                result.setMessage("no stream for this id: " + streamId + " or wrong setting parameter");
+            }
+        }
+
+        return result;
+    }
+
+    private List<MuxAdaptor> getMuxAdaptors(String streamId) {
+        AntMediaApplicationAdapter application = getApplication();
+        List<MuxAdaptor> muxAdaptors = new ArrayList<>();
+        if(application != null){
+            muxAdaptors = application.getMuxAdaptors();
+        }
+        List<MuxAdaptor> matchedMuxAdaptors = new ArrayList<>();
+        for (MuxAdaptor muxAdaptor : muxAdaptors) {
+            if (streamId.equals(muxAdaptor.getStreamId())) {
+                matchedMuxAdaptors.add(muxAdaptor);
+            }
+        }
+        return matchedMuxAdaptors;
+    }
+
+    @Nullable
+    private Mp4Muxer getMp4Muxer(MuxAdaptor muxAdaptor) {
+        Mp4Muxer mp4Muxer = null;
+        for (Muxer muxer : muxAdaptor.getMuxerList()) {
+            if (muxer instanceof Mp4Muxer) {
+                mp4Muxer = (Mp4Muxer) muxer;
+            }
+        }
+        return mp4Muxer;
+    }
+
+	private Result startMp4Muxing(String streamId) {
+        boolean result = false;
+        List<MuxAdaptor> muxAdaptors = getMuxAdaptors(streamId);
+        for (MuxAdaptor muxAdaptor : muxAdaptors) {
+            if (muxAdaptor != null) {
+                Mp4Muxer mp4Muxer = getMp4Muxer(muxAdaptor);
+                if (mp4Muxer == null) {
+                    //avoid multiple call of rest api adding new mp4muxers
+                    muxAdaptor.startRecording();
+                }
+                result = true;
+            }
+        }
+        return new Result(result);
+    }
+
+	private Result stopMp4Muxing(String streamId) {
+        boolean result = false;
+        List<MuxAdaptor> muxAdaptors = getMuxAdaptors(streamId);
+        for (MuxAdaptor muxAdaptor : muxAdaptors) {
+            if (muxAdaptor != null) {
+                Mp4Muxer mp4Muxer = getMp4Muxer(muxAdaptor);
+                if (mp4Muxer != null) {
+                    //avoid multiple call of rest api stopping mp4 muxer
+                    muxAdaptor.stopRecording();
+                }
+                result = true;
+            }
+        }
+        return new Result(result);
+    }
 }

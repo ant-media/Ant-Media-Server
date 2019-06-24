@@ -1,6 +1,7 @@
 package io.antmedia.datastore.db;
 
 import java.io.File;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -19,6 +20,7 @@ import org.slf4j.LoggerFactory;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.cluster.StreamInfo;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.TensorFlowObject;
@@ -28,14 +30,13 @@ import io.antmedia.muxer.MuxAdaptor;
 
 public class InMemoryDataStore extends DataStore {
 
-
 	protected static Logger logger = LoggerFactory.getLogger(InMemoryDataStore.class);
 	private Map<String, Broadcast> broadcastMap = new LinkedHashMap<>();
 	private Map<String, VoD> vodMap = new LinkedHashMap<>();
 	private Map<String, List<TensorFlowObject>> detectionMap = new LinkedHashMap<>();
 	private Map<String, SocialEndpointCredentials> socialEndpointCredentialsMap = new LinkedHashMap<>();
 	private Map<String, Token> tokenMap = new LinkedHashMap<>();
-
+	private Map<String, ConferenceRoom> roomMap = new LinkedHashMap<>();
 
 	public InMemoryDataStore(String dbName) {
 	}
@@ -256,7 +257,7 @@ public class InMemoryDataStore extends DataStore {
 
 		for (Broadcast broadcast : values) 
 		{
-			if(broadcast.getType().equals("ipCamera")) 
+			if("ipCamera".equals(broadcast.getType())) 
 			{
 				if (t < offset) {
 					t++;
@@ -383,7 +384,7 @@ public class InMemoryDataStore extends DataStore {
 				String fileExtension = FilenameUtils.getExtension(file.getName());
 
 				if (file.isFile() && 
-						(fileExtension.equals("mp4") || fileExtension.equals("flv") || fileExtension.equals("mkv"))) 
+						("mp4".equals(fileExtension) || "flv".equals(fileExtension) || "mkv".equals(fileExtension))) 
 				{
 					long fileSize = file.length();
 					long unixTime = System.currentTimeMillis();
@@ -562,10 +563,8 @@ public class InMemoryDataStore extends DataStore {
 	public boolean editStreamSourceInfo(Broadcast broadcast) {		
 		boolean result = false;
 		try {
-			logger.warn("inside of editCameraInfo");
-
 			Broadcast oldBroadcast = get(broadcast.getStreamId());
-
+			
 			oldBroadcast.setName(broadcast.getName());
 			oldBroadcast.setUsername(broadcast.getUsername());
 			oldBroadcast.setPassword(broadcast.getPassword());
@@ -576,6 +575,7 @@ public class InMemoryDataStore extends DataStore {
 
 			result = true;
 		} catch (Exception e) {
+			logger.error("error in editStreamSourceInfo: {}",  ExceptionUtils.getStackTrace(e));
 			result = false;
 		}
 
@@ -665,7 +665,10 @@ public class InMemoryDataStore extends DataStore {
 		Token fetchedToken = null;
 		if (token.getTokenId() != null) {
 			fetchedToken = tokenMap.get(token.getTokenId());
-			if (fetchedToken != null && fetchedToken.getStreamId().equals(token.getStreamId()) && fetchedToken.getType().equals(token.getType())) {
+			if (fetchedToken != null 
+					&& fetchedToken.getStreamId().equals(token.getStreamId()) 
+					&& fetchedToken.getType().equals(token.getType()) 
+					&& Instant.now().getEpochSecond() < fetchedToken.getExpireDate()) {
 				tokenMap.remove(token.getTokenId());
 				return fetchedToken;
 			}else {
@@ -674,7 +677,7 @@ public class InMemoryDataStore extends DataStore {
 		}
 		return fetchedToken;
 	}
-
+	
 	@Override
 	public boolean revokeTokens(String streamId) {
 		boolean result = false;
@@ -773,5 +776,48 @@ public class InMemoryDataStore extends DataStore {
 	@Override
 	public void clearStreamsOnThisServer() {
 		//no need to implement for InMemoryDb
+	}
+
+	@Override
+	public boolean createConferenceRoom(ConferenceRoom room) {
+		
+		boolean result = false;
+
+		if (room != null && room.getRoomName() != null) {
+			roomMap.put(room.getRoomName(), room);
+			result = true;
+		}
+
+		return result;
+	}
+
+	@Override
+	public boolean editConferenceRoom(ConferenceRoom room) {
+
+		boolean result = false;
+
+		if (room != null && room.getRoomName() != null) {
+			roomMap.replace(room.getRoomName(), room);
+			result = true;
+		}
+		return result;
+	}
+
+	@Override
+	public boolean deleteConferenceRoom(String roomName) {
+
+		boolean result = false;
+
+		if (roomName != null && roomName.length() > 0 ) {
+			roomMap.remove(roomName);
+			result = true;
+		}
+		return result;
+		
+	}
+
+	@Override
+	public ConferenceRoom getConferenceRoom(String roomName) {
+		return roomMap.get(roomName);
 	}
 }

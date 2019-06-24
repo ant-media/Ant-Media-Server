@@ -11,19 +11,19 @@ import static org.junit.Assert.fail;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.lang3.RandomStringUtils;
-import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mongodb.morphia.Datastore;
 import org.mongodb.morphia.query.Query;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
@@ -35,6 +35,7 @@ import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.MongoStore;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.TensorFlowObject;
@@ -43,6 +44,9 @@ import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.muxer.MuxAdaptor;
 
 public class DBStoresUnitTest {
+
+	protected static Logger logger = LoggerFactory.getLogger(DBStoresUnitTest.class);
+
 
 	@Before
 	public void before() {
@@ -89,6 +93,8 @@ public class DBStoresUnitTest {
 		testWebRTCViewerCount(dataStore);
 		testRTMPViewerCount(dataStore);
 		testTokenOperations(dataStore);
+		testConferenceRoom(dataStore);
+
 	}
 
 
@@ -115,6 +121,7 @@ public class DBStoresUnitTest {
 		testWebRTCViewerCount(dataStore);
 		testRTMPViewerCount(dataStore);
 		testTokenOperations(dataStore);
+		testConferenceRoom(dataStore);
 
 	}
 
@@ -158,6 +165,8 @@ public class DBStoresUnitTest {
 		testTokenOperations(dataStore);
 		testClearAtStart(dataStore);
 		testClearAtStartCluster(dataStore);
+		testConferenceRoom(dataStore);
+
 
 	}
 
@@ -1085,9 +1094,12 @@ public class DBStoresUnitTest {
 
 		//create token
 		Token testToken = new Token();
+		
+		//define a valid expire date
+		long expireDate = Instant.now().getEpochSecond() + 1000;
 
 		testToken.setStreamId("1234");
-		testToken.setExpireDate(65342456);
+		testToken.setExpireDate(expireDate);
 		testToken.setType(Token.PLAY_TOKEN);
 		testToken.setTokenId("tokenID");
 
@@ -1114,7 +1126,7 @@ public class DBStoresUnitTest {
 		testToken = new Token();
 
 		testToken.setStreamId("1234");
-		testToken.setExpireDate(65342456);
+		testToken.setExpireDate(expireDate);
 		testToken.setType(Token.PLAY_TOKEN);
 		testToken.setTokenId("tokenID");
 
@@ -1270,42 +1282,42 @@ public class DBStoresUnitTest {
 	public void testMongoDBSaveStreamInfo() {
 		MongoStore dataStore = new MongoStore("localhost", "", "", "testdb");
 		deleteStreamInfos(dataStore);
-		
+
 		//same ports different host => there will be 2 SIs
 		saveStreamInfo(dataStore, "host1", 1000, 2000, "host2", 1000, 2000);
 		assertEquals(2, dataStore.getDataStore().find(StreamInfo.class).count());
 		deleteStreamInfos(dataStore);
-		
+
 		//different ports same host => there will be 2 SIs
 		saveStreamInfo(dataStore, "host1", 1000, 2000, "host1", 1100, 2100);
 		assertEquals(2, dataStore.getDataStore().find(StreamInfo.class).count());
 		deleteStreamInfos(dataStore);
-		
+
 		//same video ports same host => first SI should be deleted
 		saveStreamInfo(dataStore, "host1", 1000, 2000, "host1", 1000, 2100);
 		assertEquals(1, dataStore.getDataStore().find(StreamInfo.class).count());
 		assertTrue(dataStore.getStreamInfoList("test1").isEmpty());
 		deleteStreamInfos(dataStore);
-		
+
 		//same audio ports same host => first SI should be deleted
 		saveStreamInfo(dataStore, "host1", 1000, 2000, "host1", 1100, 2000);
 		assertEquals(1, dataStore.getDataStore().find(StreamInfo.class).count());
 		assertTrue(dataStore.getStreamInfoList("test1").isEmpty());
 		deleteStreamInfos(dataStore);
-		
+
 		//first video port same with second audio port and same host => first SI should be deleted
 		saveStreamInfo(dataStore, "host1", 1000, 2000, "host1", 1100, 1000);
 		assertEquals(1, dataStore.getDataStore().find(StreamInfo.class).count());
 		assertTrue(dataStore.getStreamInfoList("test1").isEmpty());
 		deleteStreamInfos(dataStore);
-		
+
 		//first audio port same with second video port and same host => first SI should be deleted
 		saveStreamInfo(dataStore, "host1", 1000, 2000, "host1", 2000, 2100);
 		assertEquals(1, dataStore.getDataStore().find(StreamInfo.class).count());
 		assertTrue(dataStore.getStreamInfoList("test1").isEmpty());
 		deleteStreamInfos(dataStore);
 	}
-	
+
 	public void deleteStreamInfos(MongoStore dataStore) {
 		Query<StreamInfo> deleteQuery = dataStore.getDataStore().find(StreamInfo.class);
 		dataStore.getDataStore().delete(deleteQuery);
@@ -1320,7 +1332,7 @@ public class DBStoresUnitTest {
 		si.setAudioPort(audioPort1);
 		si.setStreamId("test1");
 		dataStore.saveStreamInfo(si);
-		
+
 		assertEquals(1, dataStore.getStreamInfoList("test1").size());
 
 		si = new StreamInfo();
@@ -1329,5 +1341,43 @@ public class DBStoresUnitTest {
 		si.setAudioPort(audioPort2);
 		si.setStreamId("test2");
 		dataStore.saveStreamInfo(si);
+	}
+
+
+	public void testConferenceRoom(DataStore datastore) {
+
+		ConferenceRoom room = new ConferenceRoom();
+
+		long now = Instant.now().getEpochSecond();
+
+		room.setRoomName("roomName");
+		room.setStartDate(now);
+		//1 hour later
+		room.setEndDate(now + 3600);
+
+		//create room
+		assertTrue(datastore.createConferenceRoom(room));
+
+		//get room		
+		ConferenceRoom dbRoom = datastore.getConferenceRoom(room.getRoomName());
+
+		assertNotNull(dbRoom);
+		assertEquals("roomName", dbRoom.getRoomName());
+
+		dbRoom.setEndDate(now + 7200);
+
+		//edit room
+		assertTrue(datastore.editConferenceRoom(dbRoom));
+
+
+		ConferenceRoom editedRoom = datastore.getConferenceRoom(dbRoom.getRoomName());
+
+		assertNotNull(editedRoom);
+		assertEquals(now + 7200, editedRoom.getEndDate());
+
+		//delete room
+		assertTrue(datastore.deleteConferenceRoom(editedRoom.getRoomName()));
+
+		assertNull(datastore.getConferenceRoom(editedRoom.getRoomName()));
 	}
 }

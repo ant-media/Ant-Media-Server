@@ -466,9 +466,9 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 
 	private String getStreamName(String path) {
 		String streamName = null;
-		int lastIndexOf = path.lastIndexOf("/");
+		int lastIndexOf = path.lastIndexOf('/');
 		if (lastIndexOf != -1) {
-			streamName = path.substring(path.lastIndexOf("/") + 1);
+			streamName = path.substring(path.lastIndexOf('/') + 1);
 		}
 		return streamName;
 	}
@@ -506,7 +506,7 @@ public class RtspConnection  extends RTMPMinaConnection implements IMuxerListene
 		clientPort[streamId] = rtspTransport.getClientPort();
 		mode = rtspTransport.getMode();
 
-		if (mode != null && mode.equals("record")) {
+		if ("record".equals(mode)) {
 			//TODO check the url and do this operation according to the control parameter in the sdp
 
 			int portNo = PORT_NUMBER.getAndAdd(2);

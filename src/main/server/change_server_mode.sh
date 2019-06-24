@@ -1,4 +1,25 @@
+usage() {
+	echo ""
+	echo "This script change server mode to cluster or standalone"
+	echo "Please use the script as follows."
+	echo ""
+	echo "Usage: "
+	echo "Change server mode to cluster"
+	echo "$0  cluster {MONGO_DB_SERVER}"
+	echo ""
+	echo "Change server mode to standalone"
+	echo "$0  standalone"
+	echo ""
+	echo "If you have any question, send e-mail to contact@antmedia.io"
+}
+
 MODE=$1
+if [ -z "$MODE" ]; then
+  echo "No server mode specified. Missing parameter"
+  usage
+  exit 1
+fi
+
 
 USE_GLOBAL_IP="false"
 
@@ -7,6 +28,12 @@ if [ $MODE = "cluster" ]
     echo "Mode: cluster"
     DB_TYPE=mongodb
     MONGO_SERVER_IP=$2
+    	if [ -z "$MONGO_SERVER_IP" ]; then
+    		echo "No Mongo DB Server specified. Missing parameter"
+    		usage
+    		exit 1
+    	fi
+    
     cp /usr/local/antmedia/conf/jee-container-cluster.xml /usr/local/antmedia/conf/jee-container.xml
     
     if [ ! -z "$3" ]; then

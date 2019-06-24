@@ -29,6 +29,7 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.red5.server.api.scope.IScope;
+import org.red5.server.api.stream.IBroadcastStream;
 
 import com.jmatio.io.stream.ByteBufferInputStream;
 
@@ -45,10 +46,13 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 	AntMediaApplicationAdapter adapter;
 	String streamsFolderPath = "webapps/test/streams";
+	
+	Vertx vertx = Vertx.vertx();
 
 	@Before
 	public void before() {
 		adapter = new AntMediaApplicationAdapter();
+		adapter.setVertx(vertx);
 		File f = new File(streamsFolderPath);
 		try {
 			AppFunctionalTest.delete(f);
@@ -213,6 +217,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 			fail(e.getMessage());
 		}
 	}
+	
 
 	@Test
 	public void testNotifyHook() {

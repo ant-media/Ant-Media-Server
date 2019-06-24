@@ -7,6 +7,8 @@ import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IStreamPublishSecurity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.DataStore;
@@ -14,9 +16,12 @@ import io.antmedia.datastore.db.types.Broadcast;
 
 public class AcceptOnlyStreamsInDataStore implements IStreamPublishSecurity  {
 	
+	@Autowired
 	private DataStoreFactory dataStoreFactory;
+	
 	private DataStore dataStore;
 	
+	@Value("${settings.acceptOnlyStreamsInDataStore:true}")
 	private boolean enabled = true;
 	
 	public static final String BEAN_NAME = "acceptOnlyStreamsInDataStore"; 
