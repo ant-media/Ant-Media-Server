@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.bytedeco.javacpp.avformat;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -52,6 +53,7 @@ public class StreamSourceRestServiceUnitTest {
 	static {
 		System.setProperty("red5.deployment.type", "junit");
 		System.setProperty("red5.root", ".");
+		avformat.avformat_network_init();
 	}
 
 
@@ -354,7 +356,7 @@ public class StreamSourceRestServiceUnitTest {
 
 		streamSourceRest.setAppCtx(appContext);
 
-		IResourceMonitor monitorService = mock(IResourceMonitor.class);
+		ResourceMonitor monitorService = new ResourceMonitor();
 
 		when(appContext.getBean(IResourceMonitor.BEAN_NAME)).thenReturn(monitorService);
 
@@ -362,9 +364,8 @@ public class StreamSourceRestServiceUnitTest {
 		int cpuLoad2 = 70;
 		int cpuLimit2 = 80;
 
-
-		when(monitorService.getCpuLoad()).thenReturn(cpuLoad2);
-		when(monitorService.getCpuLimit()).thenReturn(cpuLimit2);
+		monitorService.setCpuLoad(cpuLoad2);
+		monitorService.setCpuLimit(cpuLimit2);
 
 		result = streamSourceRest.addStreamSource(source, "endpoint_1");
 		assertNull(source.getEndPointList());
