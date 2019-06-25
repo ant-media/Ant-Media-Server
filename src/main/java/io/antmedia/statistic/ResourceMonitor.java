@@ -144,7 +144,7 @@ public class ResourceMonitor implements IResourceMonitor, ApplicationContextAwar
 	private int staticSendPeriod = 15000;
 	private int avgCpuUsage;
 	private int cpuLimit = 70;
-	private int ramLimit = 200;
+	private int ramLimit = 20;
 
 	private String kafkaBrokers = null;
 
@@ -397,47 +397,42 @@ public class ResourceMonitor implements IResourceMonitor, ApplicationContextAwar
 	}
 
 
-	public boolean checkSystemResources(){
+	@Override
+	public boolean enoughResource(){
 
 		boolean systemResult = true;
-		
-		cpuLimit = getCpuLimit();
-		
-		ramLimit = getRamLimit();
 
-		int cpuLoad = getAvgCpuUsage();
+		int freeJvmRamValue = getFreeRam();
 
-		int freeJvmRamValue = getFreeJvmRamValue();
-
-		logger.info("CPU Limit : {} Current CPU: {}", cpuLimit, cpuLoad);
-
-		logger.info("RAM Limit : {} Free RAM: {}", ramLimit, freeJvmRamValue);		
-
-		if(cpuLoad > cpuLimit) {
+		if(avgCpuUsage > cpuLimit) {
 			systemResult = false;
-			logger.error("Publishing can not be started due to high cpu load: {}", cpuLoad);
-			return systemResult;
+			logger.error("Not enough resource. Due to high cpu load: {} cpu limit: {}", avgCpuUsage, cpuLimit);
 		}
 
 		else if (freeJvmRamValue < ramLimit) {
 			systemResult = false;
-			logger.error("Publishing can not be started due to free RAM not enough: {}", freeJvmRamValue);
-			return systemResult;
+			logger.error("Not enough resource. Due to not free RAM. Free RAM should be more than  {} but it is: {}", ramLimit, freeJvmRamValue);
 		}
 
 		return systemResult; 
 	}
 
-	public int getFreeJvmRamValue() {
+	@Override
+	public int getFreeRam() {
 		return Integer.parseInt(SystemUtils.jvmFreeMemory("MB", false));
 	}
 
+	@Override
 	public int getRamLimit() {
 		return ramLimit;
 	}
+	
+	public void setRamLimit(int ramLimit) {
+		this.ramLimit = ramLimit;
+	}
 
 	@Override
-	public int getAvgCpuUsage() {
+	public int getCpuUsage() {
 		return avgCpuUsage;
 	}
 
@@ -520,4 +515,5 @@ public class ResourceMonitor implements IResourceMonitor, ApplicationContextAwar
 	public void setScopes(ConcurrentLinkedQueue<IScope> scopes) {
 		this.scopes = scopes;
 	}
+
 }

@@ -98,7 +98,7 @@ public class StreamSourceRestServiceUnitTest {
 		int cpuLimit = 80;
 
 
-		when(monitorService.getAvgCpuUsage()).thenReturn(cpuLoad);
+		when(monitorService.getCpuUsage()).thenReturn(cpuLoad);
 		when(monitorService.getCpuLimit()).thenReturn(cpuLimit);
 
 		//try to add IP camera
@@ -116,7 +116,7 @@ public class StreamSourceRestServiceUnitTest {
 		int cpuLimit2 = 80;
 
 
-		when(monitorService.getAvgCpuUsage()).thenReturn(cpuLoad2);
+		when(monitorService.getCpuUsage()).thenReturn(cpuLoad2);
 		when(monitorService.getCpuLimit()).thenReturn(cpuLimit2);
 
 		result = streamSourceRest.addStreamSource(newCam,"");
@@ -257,7 +257,7 @@ public class StreamSourceRestServiceUnitTest {
 		int cpuLimit2 = 80;
 
 
-		when(monitorService.getAvgCpuUsage()).thenReturn(cpuLoad2);
+		when(monitorService.getCpuUsage()).thenReturn(cpuLoad2);
 		when(monitorService.getCpuLimit()).thenReturn(cpuLimit2);
 
 		result = streamSourceRest.addStreamSource(newCam, "");
@@ -362,7 +362,7 @@ public class StreamSourceRestServiceUnitTest {
 		int cpuLimit2 = 80;
 
 
-		when(monitorService.getAvgCpuUsage()).thenReturn(cpuLoad2);
+		when(monitorService.getCpuUsage()).thenReturn(cpuLoad2);
 		when(monitorService.getCpuLimit()).thenReturn(cpuLimit2);
 
 		result = streamSourceRest.addStreamSource(source, "endpoint_1");

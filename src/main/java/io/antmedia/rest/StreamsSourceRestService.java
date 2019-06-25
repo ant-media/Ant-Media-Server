@@ -68,10 +68,11 @@ public class StreamsSourceRestService extends RestServiceBase{
 
 		IResourceMonitor monitor = (IResourceMonitor) getAppContext().getBean(IResourceMonitor.BEAN_NAME);
 
-		boolean systemResult = monitor.checkSystemResources();
+		boolean systemResult = monitor.enoughResource();
 
 		if(!systemResult) {
-			logger.error("Stream Fetcher can not be created due to high cpu load: {} or ", monitor.getAvgCpuUsage());
+			logger.error("Stream Fetcher can not be created due to not enough system resource for stream {} CPU load:{}"
+					+ " CPU Limit:{} free RAM Limit:{}, free RAM available:{}", stream.getName(), monitor.getCpuUsage(), monitor.getCpuLimit(), monitor.getRamLimit(), monitor.getFreeRam());
 			result.setMessage(HIGH_RESOURCE_USAGE);
 		}
 		else {
