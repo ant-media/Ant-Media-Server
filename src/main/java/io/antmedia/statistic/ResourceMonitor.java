@@ -17,6 +17,7 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.LongSerializer;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.bytedeco.javacpp.Pointer;
 import org.red5.server.Launcher;
 import org.red5.server.api.IServer;
 import org.red5.server.api.listeners.IScopeListener;
@@ -406,12 +407,31 @@ public class ResourceMonitor implements IResourceMonitor, ApplicationContextAwar
 
 		boolean enoughResource = false;
 
-		int freeJvmRamValue = getFreeRam();
-
 		if(cpuLoad < cpuLimit) 
 		{
-			if (freeJvmRamValue > minFreeRamSize) {
-				enoughResource = true;
+			long freeJvmRamValue = getFreeRam();
+			
+			if (freeJvmRamValue > minFreeRamSize) 
+			{
+				long maxPhysicalBytes = Pointer.maxPhysicalBytes();
+				long physicalBytes = Pointer.physicalBytes();
+				if (maxPhysicalBytes > 0) 
+				{
+					long freeNativeMemory = SystemUtils.convertByteSize(maxPhysicalBytes - physicalBytes, "MB"); 
+					if (freeNativeMemory > minFreeRamSize )
+					{
+						enoughResource = true;
+					}
+					else {
+						logger.error("Not enough resource. Due to no enough native memory. Current free memory:{} min free memory:{}", freeNativeMemory, minFreeRamSize);
+					}
+					
+				}
+				else {
+					//if maxPhysicalBytes is not reported, just proceed
+					enoughResource = true;
+				}
+				
 			}
 			else {
 				logger.error("Not enough resource. Due to not free RAM. Free RAM should be more than  {} but it is: {}", minFreeRamSize, freeJvmRamValue);
@@ -426,7 +446,10 @@ public class ResourceMonitor implements IResourceMonitor, ApplicationContextAwar
 
 	@Override
 	public int getFreeRam() {
-		return Integer.parseInt(SystemUtils.jvmFreeMemory("MB", false));
+		//return the allocatable free ram which means max memory - inuse memory
+		//inuse memory means total memory - free memory
+		long inuseMemory = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
+		return (int)SystemUtils.convertByteSize(Runtime.getRuntime().maxMemory() - inuseMemory, "MB");
 	}
 
 	@Override
