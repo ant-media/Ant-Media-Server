@@ -45,16 +45,16 @@ public class ResourceMonitorTest {
 		monitor.setWindowSize(3);
 		
 		monitor.addCpuMeasurement(5);
-		assertEquals(5, monitor.getCpuUsage());
+		assertEquals(5, monitor.getCpuLoad());
 		
 		monitor.addCpuMeasurement(7);
-		assertEquals(6, monitor.getCpuUsage());
+		assertEquals(6, monitor.getCpuLoad());
 		
 		monitor.addCpuMeasurement(9);
-		assertEquals(7, monitor.getCpuUsage());
+		assertEquals(7, monitor.getCpuLoad());
 		
 		monitor.addCpuMeasurement(11);
-		assertEquals(9, monitor.getCpuUsage());
+		assertEquals(9, monitor.getCpuLoad());
 	}
 	
 	
@@ -281,7 +281,7 @@ public class ResourceMonitorTest {
 		
 		//check default values
 		
-		Mockito.when(monitor.getCpuUsage()).thenReturn(10);
+		Mockito.when(monitor.getCpuLoad()).thenReturn(10);
 		
 		Mockito.when(monitor.getFreeRam()).thenReturn(500);
 		
@@ -289,15 +289,15 @@ public class ResourceMonitorTest {
 		
 		//CPU value over 70
 		
-		Mockito.when(monitor.getCpuUsage()).thenReturn(80);
+		monitor.setCpuLoad(80);
 		
 		Mockito.when(monitor.getFreeRam()).thenReturn(500);
 		
-		assertEquals(false,monitor.enoughResource());
+		assertEquals(false, monitor.enoughResource());
 		
 		//RAM free value under 200
 		
-		Mockito.when(monitor.getCpuUsage()).thenReturn(10);
+		Mockito.when(monitor.getCpuLoad()).thenReturn(10);
 		
 		Mockito.when(monitor.getFreeRam()).thenReturn(100);
 		

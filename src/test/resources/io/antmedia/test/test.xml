@@ -153,6 +153,7 @@
 
 	<bean id="resourceMonitor" class="io.antmedia.statistic.ResourceMonitor" init-method="start">
    		<property name="cpuLimit" value="100"/>
+   		<property name="minFreeRamSize" value="20"/>
    	</bean>
 
 

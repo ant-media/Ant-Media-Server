@@ -37,6 +37,7 @@ import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.rest.StreamsSourceRestService;
 import io.antmedia.rest.model.Result;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
+import io.antmedia.statistic.ResourceMonitor;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.test.StreamFetcherUnitTest;
 
@@ -85,12 +86,13 @@ public class StreamSourceRestServiceUnitTest {
 		Mockito.doReturn(new InMemoryDataStore("testAddIPCamera")).when(streamSourceRest).getDataStore();
 
 
+		
 		ApplicationContext appContext = mock(ApplicationContext.class);
 
 		streamSourceRest.setAppCtx(appContext);
 
-		IResourceMonitor monitorService = mock(IResourceMonitor.class);
-
+		ResourceMonitor monitorService = new ResourceMonitor(); 
+		
 		when(appContext.getBean(IResourceMonitor.BEAN_NAME)).thenReturn(monitorService);
 
 		//define CPU load above limit
@@ -98,8 +100,8 @@ public class StreamSourceRestServiceUnitTest {
 		int cpuLimit = 80;
 
 
-		when(monitorService.getCpuUsage()).thenReturn(cpuLoad);
-		when(monitorService.getCpuLimit()).thenReturn(cpuLimit);
+		monitorService.setCpuLimit(cpuLimit);
+		monitorService.setCpuLoad(cpuLoad);
 
 		//try to add IP camera
 		result = streamSourceRest.addStreamSource(newCam,"");
@@ -109,15 +111,15 @@ public class StreamSourceRestServiceUnitTest {
 
 
 		//should be -3 because it is CPU Load Error Code
-		assertEquals(String.valueOf(-3), result.getMessage());
+		assertEquals(-3, result.getErrorId());
 
 		//define CPU load below limit
 		int cpuLoad2 = 70;
 		int cpuLimit2 = 80;
 
 
-		when(monitorService.getCpuUsage()).thenReturn(cpuLoad2);
-		when(monitorService.getCpuLimit()).thenReturn(cpuLimit2);
+		monitorService.setCpuLimit(cpuLimit2);
+		monitorService.setCpuLoad(cpuLoad2);
 
 		result = streamSourceRest.addStreamSource(newCam,"");
 
@@ -248,18 +250,17 @@ public class StreamSourceRestServiceUnitTest {
 
 		streamSourceRest.setAppCtx(appContext);
 
-		IResourceMonitor monitorService = mock(IResourceMonitor.class);
-
+		ResourceMonitor monitorService = new ResourceMonitor(); 
+		
 		when(appContext.getBean(IResourceMonitor.BEAN_NAME)).thenReturn(monitorService);
 
 		//define CPU load below limit
 		int cpuLoad2 = 70;
 		int cpuLimit2 = 80;
 
-
-		when(monitorService.getCpuUsage()).thenReturn(cpuLoad2);
-		when(monitorService.getCpuLimit()).thenReturn(cpuLimit2);
-
+		monitorService.setCpuLoad(cpuLoad2);
+		monitorService.setCpuLimit(cpuLimit2);
+		
 		result = streamSourceRest.addStreamSource(newCam, "");
 
 		//should be true, because CPU load is above limit and other parameters defined correctly
@@ -362,7 +363,7 @@ public class StreamSourceRestServiceUnitTest {
 		int cpuLimit2 = 80;
 
 
-		when(monitorService.getCpuUsage()).thenReturn(cpuLoad2);
+		when(monitorService.getCpuLoad()).thenReturn(cpuLoad2);
 		when(monitorService.getCpuLimit()).thenReturn(cpuLimit2);
 
 		result = streamSourceRest.addStreamSource(source, "endpoint_1");

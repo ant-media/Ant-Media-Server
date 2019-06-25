@@ -43,7 +43,7 @@ public class StreamsSourceRestService extends RestServiceBase{
 
 	private static final String HTTP = "http://";
 	private static final String RTSP = "rtsp://";
-	public static final int HIGH_CPU_ERROR = -3;
+	public static final int HIGH_RESOURCE_USAGE_ERROR = -3;
 	public static final int FETCHER_NOT_STARTED_ERROR = -4;
 
 
@@ -72,8 +72,9 @@ public class StreamsSourceRestService extends RestServiceBase{
 
 		if(!systemResult) {
 			logger.error("Stream Fetcher can not be created due to not enough system resource for stream {} CPU load:{}"
-					+ " CPU Limit:{} free RAM Limit:{}, free RAM available:{}", stream.getName(), monitor.getCpuUsage(), monitor.getCpuLimit(), monitor.getRamLimit(), monitor.getFreeRam());
+					+ " CPU Limit:{} free RAM Limit:{}, free RAM available:{}", stream.getName(), monitor.getCpuLoad(), monitor.getCpuLimit(), monitor.getMinFreeRamSize(), monitor.getFreeRam());
 			result.setMessage(HIGH_RESOURCE_USAGE);
+			result.setErrorId(HIGH_RESOURCE_USAGE_ERROR);
 		}
 		else {
 

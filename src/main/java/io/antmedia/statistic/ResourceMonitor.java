@@ -142,9 +142,13 @@ public class ResourceMonitor implements IResourceMonitor, ApplicationContextAwar
 	private int windowSize = 5;
 	private int measurementPeriod = 5000;
 	private int staticSendPeriod = 15000;
-	private int avgCpuUsage;
+	private int cpuLoad;
 	private int cpuLimit = 70;
-	private int ramLimit = 20;
+	
+	/**
+	 * Min Free Ram Size that free memory should be always more than min
+	 */
+	private int minFreeRamSize = 20;
 
 	private String kafkaBrokers = null;
 
@@ -393,28 +397,31 @@ public class ResourceMonitor implements IResourceMonitor, ApplicationContextAwar
 		for (int msrmnt : cpuMeasurements) {
 			total += msrmnt;
 		}		
-		avgCpuUsage = total/cpuMeasurements.size();
+		cpuLoad = total/cpuMeasurements.size();
 	}
 
 
 	@Override
 	public boolean enoughResource(){
 
-		boolean systemResult = true;
+		boolean enoughResource = false;
 
 		int freeJvmRamValue = getFreeRam();
 
-		if(avgCpuUsage > cpuLimit) {
-			systemResult = false;
-			logger.error("Not enough resource. Due to high cpu load: {} cpu limit: {}", avgCpuUsage, cpuLimit);
+		if(cpuLoad < cpuLimit) 
+		{
+			if (freeJvmRamValue > minFreeRamSize) {
+				enoughResource = true;
+			}
+			else {
+				logger.error("Not enough resource. Due to not free RAM. Free RAM should be more than  {} but it is: {}", minFreeRamSize, freeJvmRamValue);
+			}
+		}
+		else {
+			logger.error("Not enough resource. Due to high cpu load: {} cpu limit: {}", cpuLoad, cpuLimit);
 		}
 
-		else if (freeJvmRamValue < ramLimit) {
-			systemResult = false;
-			logger.error("Not enough resource. Due to not free RAM. Free RAM should be more than  {} but it is: {}", ramLimit, freeJvmRamValue);
-		}
-
-		return systemResult; 
+		return enoughResource; 
 	}
 
 	@Override
@@ -423,17 +430,21 @@ public class ResourceMonitor implements IResourceMonitor, ApplicationContextAwar
 	}
 
 	@Override
-	public int getRamLimit() {
-		return ramLimit;
+	public int getMinFreeRamSize() {
+		return minFreeRamSize;
 	}
 	
-	public void setRamLimit(int ramLimit) {
-		this.ramLimit = ramLimit;
+	public void setMinFreeRamSize(int ramLimit) {
+		this.minFreeRamSize = ramLimit;
+	}
+	
+	public void setCpuLoad(int cpuLoad) {
+		this.cpuLoad = cpuLoad;
 	}
 
 	@Override
-	public int getCpuUsage() {
-		return avgCpuUsage;
+	public int getCpuLoad() {
+		return cpuLoad;
 	}
 
 
