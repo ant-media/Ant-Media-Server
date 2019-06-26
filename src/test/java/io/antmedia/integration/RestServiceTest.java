@@ -119,6 +119,7 @@ public class RestServiceTest {
 
 		protected void failed(Throwable e, Description description) {
 			System.out.println("Failed test: " + description.getMethodName());
+			e.printStackTrace();
 		};
 		protected void finished(Description description) {
 			System.out.println("Finishing test: " + description.getMethodName());

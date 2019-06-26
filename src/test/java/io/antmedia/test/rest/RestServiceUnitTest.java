@@ -1,4 +1,5 @@
 package io.antmedia.test.rest;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -7,6 +8,8 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
@@ -15,6 +18,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -45,7 +49,10 @@ import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.integration.MuxingTest;
+import io.antmedia.muxer.HLSMuxer;
+import io.antmedia.muxer.Mp4Muxer;
 import io.antmedia.muxer.MuxAdaptor;
+import io.antmedia.muxer.Muxer;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.BroadcastRestService.BroadcastStatistics;
 import io.antmedia.rest.BroadcastRestService.ProcessBuilderFactory;
@@ -1097,11 +1104,67 @@ public class RestServiceUnitTest {
 	}
 
 	@Test
+    public void testEnableMp4Muxing() throws Exception{
+		final String scopeValue = "scope";
+		final String dbName = "testdb";
+		final String broadcastName = "testBroadcast";
+
+        BroadcastRestService restServiceSpy = Mockito.spy(new BroadcastRestService());
+		AppSettings settings = mock(AppSettings.class);
+		when(settings.getListenerHookURL()).thenReturn(null);
+		restServiceSpy.setAppSettings(settings);
+
+		Scope scope = mock(Scope.class);
+		when(scope.getName()).thenReturn(scopeValue);
+
+		restServiceSpy.setScope(scope);
+
+		DataStore store = new InMemoryDataStore(dbName);
+		restServiceSpy.setDataStore(store);
+
+        AntMediaApplicationAdapter application = mock(AntMediaApplicationAdapter.class);
+        Mp4Muxer mockMp4Muxer = Mockito.mock(Mp4Muxer.class);
+		HLSMuxer mockHLSMuxer = Mockito.mock(HLSMuxer.class);
+        ArrayList<Muxer> mockMuxers = new ArrayList<>();
+        mockMuxers.add(mockMp4Muxer);
+
+        MuxAdaptor mockMuxAdaptor = Mockito.mock(MuxAdaptor.class);
+        when(mockMuxAdaptor.getMuxerList()).thenReturn(mockMuxers);
+
+        ArrayList<MuxAdaptor> mockMuxAdaptors = new ArrayList<>();
+        mockMuxAdaptors.add(mockMuxAdaptor);
+
+        when(application.getMuxAdaptors()).thenReturn(mockMuxAdaptors);
+        when(restServiceSpy.getApplication()).thenReturn(application);
+
+        Broadcast testBroadcast = restServiceSpy.createBroadcast(new Broadcast(broadcastName));
+		when(mockMuxAdaptor.getStreamId()).thenReturn(testBroadcast.getStreamId());
+
+        assertTrue(restServiceSpy.enableMp4Muxing(testBroadcast.getStreamId(),MuxAdaptor.MP4_ENABLED_FOR_STREAM).isSuccess());
+
+        verify(mockMuxAdaptor,never()).startRecording();
+
+		mockMuxers.clear();
+		mockMuxers.add(mockHLSMuxer);
+
+		assertTrue(restServiceSpy.enableMp4Muxing(testBroadcast.getStreamId(),MuxAdaptor.MP4_ENABLED_FOR_STREAM).isSuccess());
+		verify(mockMuxAdaptor).startRecording();
+
+		mockMuxers.add(mockMp4Muxer);
+
+        assertEquals(MuxAdaptor.MP4_ENABLED_FOR_STREAM, restServiceSpy.getBroadcast(testBroadcast.getStreamId()).getMp4Enabled());
+
+        assertTrue(restServiceSpy.enableMp4Muxing(testBroadcast.getStreamId(),MuxAdaptor.MP4_DISABLED_FOR_STREAM).isSuccess());
+        verify(mockMuxAdaptor).stopRecording();
+    }
+
+	@Test
 	public void testTokenOperations() {
 
 		DataStore store = new InMemoryDataStore("testdb");
 		restServiceReal.setDataStore(store);
 
+		
 		//create token
 		Token token = new Token();
 		token.setStreamId("1234");
@@ -1124,11 +1187,16 @@ public class RestServiceUnitTest {
 		//it should be zero because all tokens are revoked
 		assertEquals(0, tokens.size());
 
+
+		//define a valid expire date
+		long expireDate = Instant.now().getEpochSecond() + 1000;
+		
 		//create token again
 		token = new Token();
 		token.setStreamId("1234");
 		token.setTokenId("tokenId");
 		token.setType(Token.PLAY_TOKEN);
+		token.setExpireDate(expireDate);
 
 		assertTrue(restServiceReal.getDataStore().saveToken(token));
 
@@ -1214,6 +1282,8 @@ public class RestServiceUnitTest {
 		restServiceReal.setDataStore(store);
 
 		ConferenceRoom room = new ConferenceRoom();
+		
+		long now = Instant.now().getEpochSecond();
 
 		//should be null because roomName not defined
 		assertNull(restServiceReal.createConferenceRoom(room));
@@ -1233,7 +1303,7 @@ public class RestServiceUnitTest {
 		assertNotNull(room.getEndDate());
 
 		//define a start date
-		room.setStartDate("2019/05/26 17:03:58");
+		room.setStartDate(now);
 		
 		//edit room with the new startDate
 		//should not be null because room is saved to database and edited room is returned
@@ -1242,7 +1312,7 @@ public class RestServiceUnitTest {
 		room = restServiceReal.getDataStore().getConferenceRoom(room.getRoomName());
 		
 		//check start date
-		assertEquals("2019/05/26 17:03:58", room.getStartDate());
+		assertEquals(now, room.getStartDate());
 
 		//delete room
 		assertTrue(restServiceReal.deleteConferenceRoom(room.getRoomName()));

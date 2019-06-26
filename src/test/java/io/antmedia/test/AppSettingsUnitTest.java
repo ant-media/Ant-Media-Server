@@ -22,6 +22,7 @@ import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 
 import io.antmedia.AppSettings;
 import io.antmedia.EncoderSettings;
+import io.antmedia.SystemUtils;
 import io.antmedia.rest.BroadcastRestService;
 
 @ContextConfiguration(locations = { "test.xml" })
