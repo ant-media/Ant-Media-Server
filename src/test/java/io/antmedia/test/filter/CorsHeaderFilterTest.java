@@ -52,7 +52,7 @@ public class CorsHeaderFilterTest {
 		
 		
 		Mockito.when(request.getHeader(CorsFilter.REQUEST_HEADER_ORIGIN)).thenReturn("localhost:4200");
-		corsFilterSpy.addStandardHeadersInternal(request, response, "http://localhost:4200");
+		corsFilterSpy.addStandardHeadersInternal(request, response, "localhost:4200");
 		Mockito.verify(response).addHeader(CorsFilter.RESPONSE_HEADER_ACCESS_CONTROL_ALLOW_ORIGIN, "*");
 		
 		
