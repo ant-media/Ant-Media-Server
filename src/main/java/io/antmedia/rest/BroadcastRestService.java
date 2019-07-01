@@ -240,7 +240,7 @@ public class BroadcastRestService extends RestServiceBase{
 
 		if(room != null) {
 
-			if (getDataStore().editConferenceRoom(room)) {
+			if (getDataStore().editConferenceRoom(room.getRoomId(), room)) {
 				return room;
 			}
 		}
@@ -254,7 +254,7 @@ public class BroadcastRestService extends RestServiceBase{
 	 * @return true if successfully deleted, false if not 
 	 * 
 	 */
-	@ApiOperation(value = "Creates a conference room with the parameters. The room name is key so if this is called with the same room name then new room is overwritten to old one", response = ConferenceRoom.class)
+	@ApiOperation(value = "Deletes a conference room. The room name is key so if this is called with the same room name then new room is overwritten to old one", response = ConferenceRoom.class)
 	@POST
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/broadcast/deleteConferenceRoom")
@@ -376,7 +376,7 @@ public class BroadcastRestService extends RestServiceBase{
 	public Result updateBroadcast(@ApiParam(value = "Broadcast object", required = true) Broadcast broadcast,
 			@ApiParam(value = "Comma separated social network IDs, they must in comma separated and IDs must match with the defined IDs", required = true) @QueryParam("socialNetworks") String socialNetworksToPublish) {
 
-		return super.updateBroadcast(broadcast.getStreamId(), broadcast.getName(), broadcast.getDescription(), socialNetworksToPublish);
+		return super.updateBroadcast(broadcast.getStreamId(), broadcast, socialNetworksToPublish);
 	}
 
 	/**
@@ -1044,41 +1044,12 @@ public class BroadcastRestService extends RestServiceBase{
 	@GET
 	@Path("/broadcast/getWebRTCClientStatsList/{offset}/{size}/{stream_id}")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Override
 	public List<WebRTCClientStats> getWebRTCClientStatsList(@ApiParam(value = "offset of the list", required = true) @PathParam("offset") int offset,
 			@ApiParam(value = "Number of items that will be fetched", required = true) @PathParam("size") int size,
 			@ApiParam(value = "the id of the stream", required = true) @PathParam("stream_id") String streamId) {
 
-		List<WebRTCClientStats> list = new ArrayList<>();
-
-		IWebRTCAdaptor webRTCAdaptor = getWebRTCAdaptor();
-
-		if (webRTCAdaptor != null) 
-		{
-			Collection<WebRTCClientStats> webRTCClientStats = webRTCAdaptor.getWebRTCClientStats(streamId);
-
-			int t = 0;
-			int itemCount = 0;
-			if (size > MAX_ITEM_IN_ONE_LIST) {
-				size = MAX_ITEM_IN_ONE_LIST;
-			}
-			if (offset < 0) {
-				offset = 0;
-			}
-
-			for (WebRTCClientStats webrtcClientStat : webRTCClientStats) {
-				if (t < offset) {
-					t++;
-					continue;
-				}
-				list.add(webrtcClientStat);
-				itemCount++;
-
-				if (itemCount >= size ) {
-					return list;
-				}
-			}
-		}
-		return list;
+		return super.getWebRTCClientStatsList(offset, size, streamId);
 	}
 
 

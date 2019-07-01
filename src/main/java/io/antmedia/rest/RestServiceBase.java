@@ -6,6 +6,7 @@ import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +29,7 @@ import org.springframework.web.context.support.WebApplicationContextUtils;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
+import io.antmedia.IResourceMonitor;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
@@ -194,7 +196,7 @@ public abstract class RestServiceBase {
 		return getApplication().getVideoServiceEndpoints();
 	}
 
-	public Broadcast createBroadcastWithStreamID(@ApiParam(value = "Broadcast object only related information should be set, it may be null as well.", required = true) Broadcast broadcast) {
+	public Broadcast createBroadcastWithStreamID(Broadcast broadcast) {
 
 		String settingsListenerHookURL = null; 
 		String fqdn = null;
@@ -321,9 +323,9 @@ public abstract class RestServiceBase {
 		return broadcast;
 	}
 	
-	public Result updateBroadcast(String streamId, String name, String description, String socialNetworksToPublish) {
+	public Result updateBroadcast(String streamId, Broadcast broadcast, String socialNetworksToPublish) {
 
-		boolean result = getDataStore().updateName(streamId, name, description);
+		boolean result = getDataStore().updateBroadcastFields(streamId, broadcast);
 		StringBuilder message = new StringBuilder();
 		int errorId = 0;
 		if (result) {
@@ -348,6 +350,57 @@ public abstract class RestServiceBase {
 			message.append(" endpoint cannot be added");
 		}
 		return new Result(result, message.toString(), errorId);
+	}
+	
+	/**
+	 * Update Stream Source or IP Camera info
+	 * @param broadcast
+	 * @param socialNetworksToPublish
+	 * @return
+	 */
+	public Result updateStreamSource(String streamId, Broadcast broadcast, String socialNetworksToPublish) {
+
+		boolean result = false;
+		logger.debug("update cam info for stream {}", broadcast.getStreamId());
+
+		if( checkStreamUrl(broadcast.getStreamUrl()) && broadcast.getStatus()!=null){
+			getApplication().stopStreaming(broadcast);
+			try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+				logger.error(e.getMessage());
+				Thread.currentThread().interrupt();
+			}
+			if(broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA)) {
+				String rtspURL = connectToCamera(broadcast).getMessage();
+
+				if (rtspURL != null) {
+
+					String authparam = broadcast.getUsername() + ":" + broadcast.getPassword() + "@";
+					String rtspURLWithAuth = RTSP + authparam + rtspURL.substring(RTSP.length());
+					logger.info("new RTSP URL: {}" , rtspURLWithAuth);
+					broadcast.setStreamUrl(rtspURLWithAuth);
+				}
+			}
+
+			try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+				logger.error(e.getMessage());
+				Thread.currentThread().interrupt();
+			}
+
+			result = getDataStore().updateBroadcastFields(streamId, broadcast);
+			Broadcast fetchedBroadcast = getDataStore().get(broadcast.getStreamId());
+			getDataStore().removeAllEndpoints(fetchedBroadcast.getStreamId());
+
+			if (socialNetworksToPublish != null && socialNetworksToPublish.length() > 0) {
+				addSocialEndpoints(fetchedBroadcast, socialNetworksToPublish);
+			}
+
+			getApplication().startStreaming(broadcast);
+		}
+		return new Result(result);
 	}
 	
 	public Result addSocialEndpoint(String id, String endpointServiceId) 
@@ -664,7 +717,32 @@ public abstract class RestServiceBase {
 		return connResult;
 	}
 	
-	public static Result connectToCamera(Broadcast stream) {
+	public Result addStreamSource(Broadcast stream, String socialEndpointIds) {
+
+		Result result = new Result(false);
+
+		IResourceMonitor monitor = (IResourceMonitor) getAppContext().getBean(IResourceMonitor.BEAN_NAME);
+		
+		if(monitor.enoughResource()) 
+		{
+			if (stream.getType().equals(AntMediaApplicationAdapter.IP_CAMERA)) {
+				result = addIPCamera(stream, socialEndpointIds);
+			}
+			else if (stream.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE) ) {
+				result = addSource(stream, socialEndpointIds);
+			}
+		} 
+		else {
+
+			logger.error("Stream Fetcher can not be created due to high cpu load/limit: {}/{} ram free/minfree:{}/{}", 
+					monitor.getCpuLoad(), monitor.getCpuLimit(), monitor.getFreeRam(), monitor.getMinFreeRamSize());
+			result.setMessage(String.valueOf(HIGH_CPU_ERROR));			
+		}
+		
+		return result;
+	}
+	
+	public Result connectToCamera(Broadcast stream) {
 
 		Result result = new Result(false);
 
@@ -742,7 +820,7 @@ public abstract class RestServiceBase {
 
 	}
 	
-	public static boolean checkStreamUrl (String url) {
+	public boolean checkStreamUrl (String url) {
 
 		boolean streamUrlControl = false;
 		String[] ipAddrParts = null;
@@ -819,6 +897,44 @@ public abstract class RestServiceBase {
 		}
 		return result;
 	}
+	
+	public List<WebRTCClientStats> getWebRTCClientStatsList(int offset, int size, String streamId) {
+
+		List<WebRTCClientStats> list = new ArrayList<>();
+
+		IWebRTCAdaptor webRTCAdaptor = getWebRTCAdaptor();
+
+		if (webRTCAdaptor != null) 
+		{
+			Collection<WebRTCClientStats> webRTCClientStats = webRTCAdaptor.getWebRTCClientStats(streamId);
+
+			int t = 0;
+			int itemCount = 0;
+			if (size > MAX_ITEM_IN_ONE_LIST) {
+				size = MAX_ITEM_IN_ONE_LIST;
+			}
+			if (offset < 0) {
+				offset = 0;
+			}
+
+			for (WebRTCClientStats webrtcClientStat : webRTCClientStats) {
+				if (t < offset) {
+					t++;
+					continue;
+				}
+				list.add(webrtcClientStat);
+				itemCount++;
+
+				if (itemCount >= size ) {
+					return list;
+				}
+			}
+		}
+		return list;
+	}
+
+	
+	
 
 
 }

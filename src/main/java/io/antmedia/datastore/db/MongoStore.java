@@ -148,29 +148,6 @@ public class MongoStore extends DataStore {
 	/*
 	 * (non-Javadoc)
 	 * 
-	 * @see io.antmedia.datastore.db.IDataStore#updateName(java.lang.String,
-	 * java.lang.String, java.lang.String)
-	 */
-	@Override
-	public boolean updateName(String id, String name, String description) {
-		synchronized(this) {
-			try {
-				Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(id);
-				UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set("name", name)
-						.set("description", description);
-
-				UpdateResults update = datastore.update(query, ops);
-				return update.getUpdatedCount() == 1;
-			} catch (Exception e) {
-				logger.error(e.getMessage());
-			}
-		}
-		return false;
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
 	 * @see io.antmedia.datastore.db.IDataStore#updateStatus(java.lang.String,
 	 * java.lang.String)
 	 */
@@ -619,6 +596,9 @@ public class MongoStore extends DataStore {
 	public List<TensorFlowObject> getDetectionList(String idFilter, int offsetSize, int batchSize) {
 		synchronized(this) {
 			try {
+				if (batchSize > MAX_ITEM_IN_ONE_LIST) {
+					batchSize = MAX_ITEM_IN_ONE_LIST;
+				}
 				return detectionMap.find(TensorFlowObject.class).field(IMAGE_ID).startsWith(idFilter).asList(new FindOptions().skip(offsetSize).limit(batchSize));
 			} catch (Exception e) {
 				logger.error(e.getMessage());
@@ -649,17 +629,34 @@ public class MongoStore extends DataStore {
 
 
 	@Override
-	public boolean editStreamSourceInfo(Broadcast broadcast) {
+	public boolean updateBroadcastFields(String streamId, Broadcast broadcast) {
 		boolean result = false;
 		synchronized(this) {
 			try {
 				logger.warn("result inside edit camera: {}" , result);
-				Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(broadcast.getStreamId());
+				Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(streamId);
 
-				UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set("name", broadcast.getName())
-						.set("username", broadcast.getUsername()).set("password", broadcast.getPassword()).set("ipAddr", broadcast.getIpAddr())
-						.set("streamUrl", broadcast.getStreamUrl());
-
+				UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class);
+				if (broadcast.getName() != null) {
+					ops.set("name", broadcast.getName());
+				}
+				
+				if (broadcast.getUsername() != null) {
+					ops.set("username", broadcast.getUsername());
+				}
+				
+				if (broadcast.getPassword() != null) {
+					ops.set("password", broadcast.getPassword());
+				}
+				
+				if (broadcast.getIpAddr() != null) {
+					ops.set("ipAddr", broadcast.getIpAddr());
+				}
+				
+				if ( broadcast.getStreamUrl() != null) {
+					ops.set("streamUrl", broadcast.getStreamUrl());
+				}
+				
 				UpdateResults update = datastore.update(query, ops);
 				return update.getUpdatedCount() == 1;
 			} catch (Exception e) {
@@ -886,7 +883,7 @@ public class MongoStore extends DataStore {
 	public boolean createConferenceRoom(ConferenceRoom room) {
 		boolean result = false;
 		synchronized(this) {
-			if(room != null && room.getRoomName() != null) {
+			if(room != null && room.getRoomId() != null) {
 
 				try {
 					conferenceRoomDatastore.save(room);
@@ -901,13 +898,13 @@ public class MongoStore extends DataStore {
 	}
 
 	@Override
-	public boolean editConferenceRoom(ConferenceRoom room) {
+	public boolean editConferenceRoom(String roomId, ConferenceRoom room) {
 		boolean result = false;
 		synchronized(this) {
 			try {
-				Query<ConferenceRoom> query = conferenceRoomDatastore.createQuery(ConferenceRoom.class).field("roomName").equal(room.getRoomName());
+				Query<ConferenceRoom> query = conferenceRoomDatastore.createQuery(ConferenceRoom.class).field("roomName").equal(room.getRoomId());
 
-				UpdateOperations<ConferenceRoom> ops = conferenceRoomDatastore.createUpdateOperations(ConferenceRoom.class).set("roomName", room.getRoomName())
+				UpdateOperations<ConferenceRoom> ops = conferenceRoomDatastore.createUpdateOperations(ConferenceRoom.class).set("roomName", room.getRoomId())
 						.set("startDate", room.getStartDate()).set("endDate", room.getEndDate());
 
 				UpdateResults update = conferenceRoomDatastore.update(query, ops);

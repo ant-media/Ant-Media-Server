@@ -4,11 +4,11 @@ import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.URL;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Pattern;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -20,6 +20,8 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -29,8 +31,8 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
 import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.IResourceMonitor;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.SocialEndpointChannel;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.TensorFlowObject;
@@ -62,8 +64,6 @@ import io.swagger.annotations.ExternalDocs;
 import io.swagger.annotations.Info;
 import io.swagger.annotations.License;
 import io.swagger.annotations.SwaggerDefinition;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
 
 @Api(value = "BroadcastRestService")
 @SwaggerDefinition(
@@ -92,17 +92,26 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 			this.number = number;
 		}
 
+		public long getNumber() {
+			return number;
+		}
+
 	}
 
-	@ApiOperation(value = "Creates a broadcast(stream) and returns the full broadcast object with rtmp address and "
-			+ "other information.")
+	@ApiOperation(value = "Creates a Broadcast, IP Camera or Stream Source and returns the full broadcast object with rtmp address and "
+			+ "other information. The different between Broadcast and IP Camera or Stream Source is that Broadcast is ingested by Ant Media Server"
+			+ "IP Camera or Stream Source is pulled by Ant Media Server")
 	@ApiResponses(value = { @ApiResponse(code = 400, message = "If stream id is already used in the data store, it returns error", response=Result.class),
 			@ApiResponse(code = 200, message = "Returns the created stream", response = Broadcast.class)})
 	@POST
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response createBroadcast(@ApiParam(value = "Broadcast object only related information should be set, it may be null as well.", required = true) Broadcast broadcast) {
+	public Response createBroadcast(@ApiParam(value = "Broadcast object only related information should be set, it may be null as well.", required = false) Broadcast broadcast,
+			@ApiParam(value = "Comma separated social network IDs, they must in comma separated and IDs must match with the defined IDs.", required = false) @QueryParam("socialNetworks") String socialEndpointIds,
+			@ApiParam(value = "Only effective if stream is IP Camera or Stream Source. If it's true, it starts automatically pulling stream. Default value is false by default", required = false, defaultValue="false") @QueryParam("autoStart") boolean autoStart) {
+
+
 		if (broadcast != null && broadcast.getStreamId() != null && !broadcast.getStreamId().isEmpty()) {
 			// make sure stream id is not set on rest service
 			Broadcast broadcastTmp = getDataStore().get(broadcast.getStreamId());
@@ -112,7 +121,30 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 			}
 		}
 
-		return Response.status(Status.OK).entity(createBroadcastWithStreamID(broadcast)).build();
+		Object returnObject = new Result(false, "unexptected parameters received");
+
+		if (autoStart)  
+		{
+			//auto is only effective for IP Camera or Stream Source 
+			//so if it's true, it should be IP Camera or Stream Soruce
+			//otherwise wrong parameter
+			if (broadcast != null) {
+				returnObject = addStreamSource(broadcast, socialEndpointIds);
+			}
+		}
+		else {
+			Broadcast createdBroadcast = createBroadcastWithStreamID(broadcast);
+			if (createdBroadcast.getStreamId() != null && socialEndpointIds != null) {
+				String[] endpointIds = socialEndpointIds.split(",");
+				for (String endpointId : endpointIds) {
+					addSocialEndpoint(createdBroadcast.getStreamId(), endpointId);
+				}
+			}
+			returnObject = createdBroadcast;
+		}
+
+
+		return Response.status(returnObject instanceof Result ? Status.BAD_REQUEST : Status.OK).entity(returnObject).build();
 	}
 
 	@ApiOperation(value = "Delete broadcast from data store and stop if it's broadcasting", response = Result.class)
@@ -138,7 +170,7 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 		if (id != null) {
 			broadcast = lookupBroadcast(id);
 		}
-		if (broadcast == null) {
+		if (broadcast != null) {
 			return Response.status(Status.OK).entity(broadcast).build();
 		}
 		else {
@@ -156,7 +188,9 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	}
 
 
-	@ApiOperation(value = "Updates the name and description of the broadcast. It also updates the social endpoints", notes = "", response = Result.class)
+	@ApiOperation(value = "Updates the Broadcast objects fields if it's not null." + 
+			" The updated fields are as follows: name, description, userName, password, IP address, streamUrl of the broadcast. " + 
+			"It also updates the social endpoints", notes = "", response = Result.class)
 	@ApiResponses(value = { @ApiResponse(code = 200, message = "If it's updated, success field is true. If it's not updated, success  field if false.")})
 	@PUT
 	@Consumes(MediaType.APPLICATION_JSON)
@@ -164,20 +198,20 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	@Produces(MediaType.APPLICATION_JSON)
 	@Override
 	public Result updateBroadcast(@ApiParam(value="Broadcast id", required = true) @PathParam("id") String id, 
-			@ApiParam(value="Broadcast name", required = false) @QueryParam("name") String name, 
-			@ApiParam(value="Broadcast description", required = false) @QueryParam("description") String description,
+			@ApiParam(value="Broadcast object with the updates") Broadcast broadcast,
 			@ApiParam(value = "Comma separated social network IDs, they must in comma separated and IDs must match with the defined IDs", required = true) @QueryParam("socialNetworks") String socialNetworksToPublish) {
 		Result result = new Result(false);
-		if (id != null) {
-			Broadcast broadcast = getDataStore().get(id);
-			if (broadcast != null) {
-				if (name == null) {
-					name = broadcast.getName();
-				}
-				if (description == null) {
-					description = broadcast.getDescription();
-				}
-				result = super.updateBroadcast(id, name, description, socialNetworksToPublish);
+		if (id != null && broadcast != null) 
+		{
+			if (broadcast.getType() != null && 
+					(broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA) || 
+							broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE))) 
+			{
+				result = super.updateStreamSource(id, broadcast, socialNetworksToPublish);
+			}
+			else 
+			{
+				result = super.updateBroadcast(id, broadcast, socialNetworksToPublish);
 			}
 		}
 		return result;
@@ -193,7 +227,7 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 		return super.revokeSocialNetwork(endpointId);
 	}
 
-	@ApiOperation(value = "Add social endpoint to a stream. ", notes = "", response = Result.class)
+	@ApiOperation(value = "Add social endpoint to a stream for the specified service id. ", notes = "", response = Result.class)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/social-endpoints/{endpointServiceId}")
@@ -310,8 +344,8 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	@GET
 	@Path("/{id}/detections/count")
 	@Produces(MediaType.APPLICATION_JSON)
-	public long getObjectDetectedTotal(@ApiParam(value = "id of the stream", required = true) @PathParam("id") String id){
-		return getDataStore().getObjectDetectedTotal(id);
+	public SimpleStat getObjectDetectedTotal(@ApiParam(value = "id of the stream", required = true) @PathParam("id") String id){
+		return new SimpleStat(getDataStore().getObjectDetectedTotal(id));
 	}
 
 	@ApiOperation(value = "Import Live Streams to Stalker Portal", notes = "", response = Result.class)
@@ -333,7 +367,7 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 		return new SimpleStat(getDataStore().getTotalBroadcastNumber());
 	}
 
-	@ApiOperation(value = "Return the statistics of the  total live streams, total RTMP watchers, total HLS and total WebRTC watchers", notes = "", response = SimpleStat.class)
+	@ApiOperation(value = "Return the active live streams", notes = "", response = SimpleStat.class)
 	@GET
 	@Path("/active-live-stream-count")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -384,20 +418,21 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 		return Response.status(Status.BAD_REQUEST).entity(new Result(false, message)).build();
 	}
 
-	@ApiOperation(value = "Perform validation of token for requested stream", notes = "", response = Token.class)
+	@ApiOperation(value = "Perform validation of token for requested stream. If validated, success field is true, "
+			+ "not validated success field false", response = Result.class)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/validate-token")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Token validateToken (@ApiParam(value = "token to be validated", required = true) Token token) {
-		Token validatedToken = null;
-
-		if(token.getTokenId() != null) {
-
-			validatedToken = getDataStore().validateToken(token);
+	public Result validateToken (@ApiParam(value = "token to be validated", required = true) Token token) 
+	{
+		boolean result =  false;
+		
+		if(token.getTokenId() != null && getDataStore().validateToken(token) != null) {
+			result = true;
 		}
 
-		return validatedToken;
+		return new Result(result);
 	}
 
 
@@ -410,7 +445,6 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 		Result result = new Result(false);
 
 		if(streamId != null) {
-
 			result.setSuccess(getDataStore().revokeTokens(streamId));
 		}
 
@@ -464,7 +498,19 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 		return new BroadcastStatistics(totalRTMPViewer, totalHLSViewer, totalWebRTCViewer);
 	}
 
-	@ApiOperation(value = "Returns filtered broadcast list", notes = "",responseContainer = "List",response = Broadcast.class)
+	@ApiOperation(value = "Get WebRTC Client Statistics such as : Audio bitrate, Video bitrate, Target bitrate, Video Sent Period etc.", notes = "", responseContainer = "List",response = WebRTCClientStats.class)
+	@GET
+	@Path("/{stream_id}/webrtc-client-stats/{offset}/{size}")
+	@Produces(MediaType.APPLICATION_JSON)
+	@Override
+	public List<WebRTCClientStats> getWebRTCClientStatsList(@ApiParam(value = "offset of the list", required = true) @PathParam("offset") int offset,
+			@ApiParam(value = "Number of items that will be fetched", required = true) @PathParam("size") int size,
+			@ApiParam(value = "the id of the stream", required = true) @PathParam("stream_id") String streamId) {
+
+		return super.getWebRTCClientStatsList(offset, size, streamId);
+	}
+
+	@ApiOperation(value = "Returns filtered broadcast list according to type. It's useful for getting IP Camera and Stream Sources from the whole list", notes = "",responseContainer = "List",response = Broadcast.class)
 	@GET
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/filter-list/{offset}/{size}/{type}")
@@ -568,9 +614,9 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 			"Server checks social network service for about 1 minute so that if user" +
 			"does not enter DeviceAuthParameters in a 1 minute, this function will" +
 			"never return true", notes = "", response = Result.class)
-	@POST
+	@GET
 	@Consumes({ MediaType.APPLICATION_JSON })
-	@Path("/check-social-network-status/{userCode}")
+	@Path("/social-network-status/{userCode}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result checkDeviceAuthStatus(@ApiParam(value = "Code of social media account", required = true) @PathParam("userCode") String userCode) {
 		Map<String, VideoServiceEndpoint> endPointMap = getEndpointList();
@@ -682,20 +728,21 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 		return new Result(result, null);
 	}
 
-	@ApiOperation(value = "Set stream specific Mp4 Muxing setting, this setting overrides general Mp4 Muxing Setting", notes = "", response = Result.class)
-	@POST
+	@ApiOperation(value = "Set stream specific recording setting, this setting overrides general Mp4 Muxing Setting", notes = "", response = Result.class)
+	@PUT
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/recording/{recording-status}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result enableMp4Muxing(@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String streamId,
-			@ApiParam(value = "the integer value for Mp4 Muxing, 1 = Enable Muxing, -1 = Disable Muxing, 0 = No Settings", required = true) @PathParam("recording-status") int enableMp4) {
+			@ApiParam(value = "Change recording status. If true, starts recording. If false stop recording", required = true) @PathParam("recording-status") boolean enableRecording) {
 		Result result = new Result(false);
 		if (streamId != null) {
 
-			if (getDataStore().setMp4Muxing(streamId, enableMp4)) {
-				if (MP4_ENABLE == enableMp4) {
+			if (getDataStore().setMp4Muxing(streamId, enableRecording ? MP4_ENABLE : MP4_DISABLE)) 
+			{
+				if (enableRecording) {
 					startMp4Muxing(streamId);
-				} else if (MP4_DISABLE == enableMp4) {
+				} else {
 					stopMp4Muxing(streamId);
 				}
 				result.setSuccess(true);
@@ -765,37 +812,7 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 		}
 		return new Result(result);
 	}
-	
-	@ApiOperation(value = "Add IP Camera and Stream Sources to the system as broadcast. It starts automatically", response = Result.class)
-	@POST
-	@Consumes(MediaType.APPLICATION_JSON)
-	@Path("/stream-source")
-	@Produces(MediaType.APPLICATION_JSON)
-	public Result addStreamSource(@ApiParam(value = "stream", required = true) Broadcast stream, @QueryParam("socialNetworks") String socialEndpointIds) {
 
-		Result result = new Result(false);
-
-		IResourceMonitor monitor = (IResourceMonitor) getAppContext().getBean(IResourceMonitor.BEAN_NAME);
-		int cpuLoad = monitor.getAvgCpuUsage();
-
-		if(cpuLoad < monitor.getCpuLimit()) 
-		{
-			if (stream.getType().equals(AntMediaApplicationAdapter.IP_CAMERA)) {
-				result = addIPCamera(stream, socialEndpointIds);
-			}
-			else if (stream.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE) ) {
-				result = addSource(stream, socialEndpointIds);
-			}
-		} 
-		else {
-
-			logger.error("Stream Fetcher can not be created due to high cpu load: {}", cpuLoad);
-			result.setMessage(String.valueOf(HIGH_CPU_ERROR));			
-		}
-		
-		return result;
-	}
-	
 	@ApiOperation(value = "Get IP Camera Error after connection failure", notes = "Notes here", response = Result.class)
 	@GET
 	@Consumes(MediaType.APPLICATION_JSON)
@@ -812,13 +829,13 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 
 		return result;
 	}
-	
+
 	@ApiOperation(value = "Start external sources (IP Cameras and Stream Sources) again if it is added and stopped before", response = Result.class)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
-	@Path("/{id}/start-stream-source")
+	@Path("/{id}/start")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result startStreamSource(@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String id) 
+	public Result startStreamSource(@ApiParam(value = "the id of the stream. The broadcast type should be IP Camera or Stream Source otherwise it does not work", required = true) @PathParam("id") String id) 
 	{
 		Result result = new Result(false);	
 		Broadcast broadcast = getDataStore().get(id);
@@ -829,30 +846,30 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 			{
 				//if streamURL is not defined before for IP Camera, connect to it again and define streamURL
 				Result connResult = connectToCamera(broadcast);
-
 				if (connResult.isSuccess()) 
 				{
 					String authparam = broadcast.getUsername() + ":" + broadcast.getPassword() + "@";
 					String rtspURLWithAuth = RTSP + authparam + connResult.getMessage().substring(RTSP.length());
 					logger.info("rtsp url with auth: {}", rtspURLWithAuth);
 					broadcast.setStreamUrl(rtspURLWithAuth);
-				}
+				}	
+
 			}
 
 			if(getApplication().startStreaming(broadcast) != null) {
-
 				result.setSuccess(true);
 			}
+
 		}
 		return result;
 	}
-	
+
 	@ApiOperation(value = "Stop external sources (IP Cameras and Stream Sources)", response = Result.class)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
-	@Path("/{id}/stop-stream-source")
+	@Path("/{id}/stop")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result stopStreamSource(@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String id) 
+	public Result stopStreamSource(@ApiParam(value = "the id of the broadcast. The broadcast type should be IP Camera or Stream Source otherwise it does not work", required = true) @PathParam("id") String id) 
 	{
 		Result result = new Result(false);
 		Broadcast broadcast = getDataStore().get(id);
@@ -862,61 +879,7 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 		return result;
 	}
 
-	
-	
-	
-	
-	@ApiOperation(value = "Update IP Camera and Stream Sources' Parameters. It especially updates name, username, password, ip addr and stream url", notes = "Notes here", response = Result.class)
-	@PUT
-	@Consumes(MediaType.APPLICATION_JSON)
-	@Path("/stream-source/{id}")
-	@Produces(MediaType.APPLICATION_JSON)
-	public Result updateCamInfo(@ApiParam(value = "object of IP Camera or Stream Source", required = true) Broadcast broadcast, @QueryParam("socialNetworks") String socialNetworksToPublish) {
 
-		boolean result = false;
-		logger.debug("update cam info for stream {}", broadcast.getStreamId());
-
-		if( checkStreamUrl(broadcast.getStreamUrl()) && broadcast.getStatus()!=null){
-			getApplication().stopStreaming(broadcast);
-			try {
-				Thread.sleep(1000);
-			} catch (InterruptedException e) {
-				logger.error(e.getMessage());
-				Thread.currentThread().interrupt();
-			}
-			if(broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA)) {
-				String rtspURL = connectToCamera(broadcast).getMessage();
-
-				if (rtspURL != null) {
-
-					String authparam = broadcast.getUsername() + ":" + broadcast.getPassword() + "@";
-					String rtspURLWithAuth = RTSP + authparam + rtspURL.substring(RTSP.length());
-					logger.info("new RTSP URL: {}" , rtspURLWithAuth);
-					broadcast.setStreamUrl(rtspURLWithAuth);
-				}
-			}
-
-			try {
-				Thread.sleep(1000);
-			} catch (InterruptedException e) {
-				logger.error(e.getMessage());
-				Thread.currentThread().interrupt();
-			}
-
-			result = getDataStore().editStreamSourceInfo(broadcast);
-			Broadcast fetchedBroadcast = getDataStore().get(broadcast.getStreamId());
-			getDataStore().removeAllEndpoints(fetchedBroadcast.getStreamId());
-
-			if (socialNetworksToPublish != null && socialNetworksToPublish.length() > 0) {
-				addSocialEndpoints(fetchedBroadcast, socialNetworksToPublish);
-			}
-
-			getApplication().startStreaming(broadcast);
-		}
-		return new Result(result);
-	}
-
-	
 	@ApiOperation(value = "Get Discovered ONVIF IP Cameras, this service perform a discovery inside of internal network and get automatically  ONVIF enabled camera information", notes = "Notes here", response = Result.class)
 	@GET
 	@Path("/onvif-devices")
@@ -974,66 +937,148 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 
 		return list;
 	}
-	
+
 	@ApiOperation(value = "Move IP Camera Up", response = Result.class)
-	@GET
+	@POST
 	@Path("/{id}/ip-camera/move-up")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result moveUp(@ApiParam(value = "the id of the IP Camera", required = true) @PathParam("id") String id) {
 		boolean result = false;
 		OnvifCamera camera = getApplication().getOnvifCamera(id);
 		if (camera != null) {
-			camera.MoveUp();
+			camera.moveUp();
 			result = true;
 		}
 		return new Result(result);
 	}
-	
+
 	@ApiOperation(value = "Move IP Camera Down", response = Result.class)
-	@GET
+	@POST
 	@Path("/{id}/ip-camera/move-down")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result moveDown(@ApiParam(value = "the id of the IP Camera", required = true) @PathParam("id") String id) {
 		boolean result = false;
 		OnvifCamera camera = getApplication().getOnvifCamera(id);
 		if (camera != null) {
-			camera.MoveDown();
+			camera.moveDown();
 			result = true;
 		}
 		return new Result(result);
 	}
 
-	
+
 
 	@ApiOperation(value = "Move IP Camera Left", notes = "Notes here", response = Result.class)
-	@GET
+	@POST
 	@Path("/{id}/ip-camera/move-left")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result moveLeft(@ApiParam(value = "the id of the IP Camera", required = true) @PathParam("id") String id) {
 		boolean result = false;
 		OnvifCamera camera = getApplication().getOnvifCamera(id);
 		if (camera != null) {
-			camera.MoveLeft();
+			camera.moveLeft();
 			result = true;
 		}
 		return new Result(result);
 	}
-	
-	
-	@ApiOperation(value = "Move IP Camera Right", notes = "Notes here", response = Result.class)
-	@GET
+
+
+	@ApiOperation(value = "Move IP Camera Right", response = Result.class)
+	@POST
 	@Path("/{id}/ip-camera/move-right")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result moveRight(@ApiParam(value = "the id of the IP Camera", required = true) @PathParam("id") String id) {
 		boolean result = false;
 		OnvifCamera camera = getApplication().getOnvifCamera(id);
 		if (camera != null) {
-			camera.MoveRight();
+			camera.moveRight();
 			result = true;
 		}
 		return new Result(result);
 	}
 
+	@ApiOperation(value="Zoom-In IP Camera")
+	@POST
+	@Path("/{id}/ip-camera/zoom-in")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result zoomInIPCamera(@ApiParam(value = "the id of the IP Camera", required = true) @PathParam("id") String id) {
+		boolean result = false;
+		OnvifCamera camera = getApplication().getOnvifCamera(id);
+		if (camera != null) {
+			camera.zoomIn();
+			result = true;
+		}
+		return new Result(result);
+	}
+
+
+	@ApiOperation(value="Zoom-In IP Camera")
+	@POST
+	@Path("/{id}/ip-camera/zoom-out")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result zoomOutIPCamera(@ApiParam(value = "the id of the IP Camera", required = true) @PathParam("id") String id) {
+		boolean result = false;
+		OnvifCamera camera = getApplication().getOnvifCamera(id);
+		if (camera != null) {
+			camera.zoomOut();
+			result = true;
+		}
+		return new Result(result);
+	}
+
+	@ApiOperation(value = "Creates a conference room with the parameters. The room name is key so if this is called with the same room name then new room is overwritten to old one", response = ConferenceRoom.class)
+	@ApiResponses(value = { @ApiResponse(code = 400, message = "If operation is no completed for any reason", response=Result.class),
+			@ApiResponse(code = 200, message = "Returns the created conference room", response = ConferenceRoom.class)})
+	@POST
+	@Consumes({ MediaType.APPLICATION_JSON })
+	@Path("/conference-rooms")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response createConferenceRoom(@ApiParam(value = "Conference Room object with start and end date", required = true) ConferenceRoom room) {
+
+		if(room != null) {
+
+			if(room.getStartDate() == 0) {
+				room.setStartDate(Instant.now().getEpochSecond());
+			}
+
+			if(room.getEndDate() == 0) {
+				room.setEndDate(Instant.now().getEpochSecond() + 3600 );
+			}
+
+			if (getDataStore().createConferenceRoom(room)) {
+				return Response.status(Status.OK).entity(room).build();
+			}
+		}
+		return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Operation not completed")).build();
+	}
+
+	@ApiOperation(value = "Edits previously saved conference room", response = Response.class)
+	@ApiResponses(value = { @ApiResponse(code = 400, message = "If operation is no completed for any reason", response=Result.class),
+			@ApiResponse(code = 200, message = "Returns the updated Conference room", response = ConferenceRoom.class)})
+	@PUT
+	@Consumes({ MediaType.APPLICATION_JSON })
+	@Path("/conference-rooms/{room_id}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response editConferenceRoom(@ApiParam(value="Room id") @PathParam("room_id") String roomId,  @ApiParam(value = "Conference Room object with start and end date", required = true) ConferenceRoom room) {
+
+		if(room != null && getDataStore().editConferenceRoom(roomId, room)) {
+			return Response.status(Status.OK).entity(room).build();
+		}
+		return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Operation not completed")).build();
+	}
+
+	@ApiOperation(value = "Deletes a conference room. The room id is key so if this is called with the same room id then new room is overwritten to old one", response = Result.class)
+	@DELETE
+	@Consumes({ MediaType.APPLICATION_JSON })
+	@Path("/conference-rooms/{room_id}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result deleteConferenceRoom(@ApiParam(value = "the id of the conference room", required = true) @PathParam("room_id") String roomId) {
+		boolean result = false;
+		if(roomId != null) {
+			result = getDataStore().deleteConferenceRoom(roomId);
+		}
+		return new Result(result);
+	}
 
 
 

@@ -28,7 +28,7 @@ import io.swagger.annotations.Info;
 import io.swagger.annotations.License;
 import io.swagger.annotations.SwaggerDefinition;
 
-@Api(value = "VoD Rest Service")
+@Api(value = "Rest Service")
 @SwaggerDefinition(
         info = @Info(
                 description = "Ant Media Server REST API Reference",

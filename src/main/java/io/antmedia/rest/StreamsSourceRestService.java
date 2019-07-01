@@ -213,7 +213,6 @@ public class StreamsSourceRestService extends RestServiceBase{
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/updateCamInfo")
 	@Produces(MediaType.APPLICATION_JSON)
-
 	public Result updateCamInfo(@ApiParam(value = "object of IP Camera or Stream Source", required = true) Broadcast broadcast, @QueryParam("socialNetworks") String socialNetworksToPublish) {
 
 		boolean result = false;
@@ -246,7 +245,7 @@ public class StreamsSourceRestService extends RestServiceBase{
 				Thread.currentThread().interrupt();
 			}
 
-			result = getDataStore().editStreamSourceInfo(broadcast);
+			result = getDataStore().updateBroadcastFields(broadcast.getStreamId(), broadcast);
 			Broadcast fetchedBroadcast = getDataStore().get(broadcast.getStreamId());
 			getDataStore().removeAllEndpoints(fetchedBroadcast.getStreamId());
 
@@ -338,7 +337,7 @@ public class StreamsSourceRestService extends RestServiceBase{
 		boolean result = false;
 		OnvifCamera camera = getApplication().getOnvifCamera(id);
 		if (camera != null) {
-			camera.MoveUp();
+			camera.moveUp();
 			result = true;
 		}
 		return new Result(result);
@@ -357,7 +356,7 @@ public class StreamsSourceRestService extends RestServiceBase{
 		boolean result = false;
 		OnvifCamera camera = getApplication().getOnvifCamera(id);
 		if (camera != null) {
-			camera.MoveDown();
+			camera.moveDown();
 			result = true;
 		}
 		return new Result(result);
@@ -376,7 +375,7 @@ public class StreamsSourceRestService extends RestServiceBase{
 		boolean result = false;
 		OnvifCamera camera = getApplication().getOnvifCamera(id);
 		if (camera != null) {
-			camera.MoveLeft();
+			camera.moveLeft();
 			result = true;
 		}
 		return new Result(result);
@@ -395,7 +394,7 @@ public class StreamsSourceRestService extends RestServiceBase{
 		boolean result = false;
 		OnvifCamera camera = getApplication().getOnvifCamera(id);
 		if (camera != null) {
-			camera.MoveRight();
+			camera.moveRight();
 			result = true;
 		}
 		return new Result(result);
