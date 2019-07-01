@@ -1094,10 +1094,10 @@ public class MapDBStore extends DataStore {
 	}
 
 	@Override
-	public ConferenceRoom getConferenceRoom(String roomName) {
+	public ConferenceRoom getConferenceRoom(String roomId) {
 		synchronized (this) {
-			if (roomName != null) {
-				String jsonString = conferenceRoomMap.get(roomName);
+			if (roomId != null) {
+				String jsonString = conferenceRoomMap.get(roomId);
 				if (jsonString != null) {
 					return gson.fromJson(jsonString, ConferenceRoom.class);
 				}
