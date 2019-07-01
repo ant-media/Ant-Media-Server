@@ -84,7 +84,9 @@ public class CorsHeaderFilter extends CorsFilter {
 	        } else {
 	            // Add a single Access-Control-Allow-Origin header, with the value
 	            // of the Origin header as value.
-	            response.addHeader(CorsFilter.RESPONSE_HEADER_ACCESS_CONTROL_ALLOW_ORIGIN, origin);
+	        		if (origin.contains("http") || origin.contains("ws")) {
+	        			response.addHeader(CorsFilter.RESPONSE_HEADER_ACCESS_CONTROL_ALLOW_ORIGIN, origin);
+	        		}
 	        }
 
 	        // If the resource supports credentials, add a single
@@ -98,7 +100,7 @@ public class CorsHeaderFilter extends CorsFilter {
 	        // Access-Control-Expose-Headers headers, with as values the header
 	        // field names given in the list of exposed headers.
 	        
-	        if ((getExposedHeaders() != null) && (getExposedHeaders().size() > 0)) {
+	        if ((getExposedHeaders() != null) && (!getExposedHeaders().isEmpty())) {
 	            String exposedHeadersString = join(getExposedHeaders(), ",");
 	            response.addHeader(CorsFilter.RESPONSE_HEADER_ACCESS_CONTROL_EXPOSE_HEADERS,
 	                    exposedHeadersString);

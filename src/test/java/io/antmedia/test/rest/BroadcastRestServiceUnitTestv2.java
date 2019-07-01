@@ -33,7 +33,11 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.bytedeco.javacpp.avformat;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 import org.mockito.Mockito;
 import org.red5.server.api.stream.IClientBroadcastStream;
 import org.red5.server.api.stream.IStreamCapableConnection;
@@ -110,6 +114,24 @@ public class BroadcastRestServiceUnitTestv2 {
 	}
 
 
+	@Rule
+    public TestRule watcher = new TestWatcher() {
+        protected void starting(Description description) {
+            System.out.println("Starting test: " + description.getMethodName());
+        }
+
+        protected void failed(Throwable e, Description description) {
+            System.out.println("Failed test: " + description.getMethodName());
+        }
+
+        ;
+
+        protected void finished(Description description) {
+            System.out.println("Finishing test: " + description.getMethodName());
+        }
+
+        ;
+    };
 
 	/**
 	 * These tests should be run with stalker db
@@ -272,7 +294,7 @@ public class BroadcastRestServiceUnitTestv2 {
 		Mockito.when(webrtcAdaptor.getWebRTCClientStats(Mockito.anyString())).thenReturn(statsList);
 
 		//fetch 20 stats
-		List<WebRTCClientStats> webRTCClientStatsList = restServiceSpy.getWebRTCClientStatsList(0, 20, streamId);
+		List<WebRTCClientStats> webRTCClientStatsList = restServiceSpy.getWebRTCClientStatsListV2(0, 20, streamId);
 
 		//check 20 stats
 		for(int i = 0; i< 20; i++) {
@@ -280,7 +302,7 @@ public class BroadcastRestServiceUnitTestv2 {
 		}
 
 		//fetch 60 stats
-		webRTCClientStatsList = restServiceSpy.getWebRTCClientStatsList(0, 60, streamId);
+		webRTCClientStatsList = restServiceSpy.getWebRTCClientStatsListV2(0, 60, streamId);
 		//check return list 50
 		assertEquals(50, webRTCClientStatsList.size());
 
@@ -290,7 +312,7 @@ public class BroadcastRestServiceUnitTestv2 {
 		}
 
 		//request offset for minus value, it should return between 0 to size
-		webRTCClientStatsList = restServiceSpy.getWebRTCClientStatsList(-10, 10, streamId);
+		webRTCClientStatsList = restServiceSpy.getWebRTCClientStatsListV2(-10, 10, streamId);
 		assertEquals(10, webRTCClientStatsList.size());
 		//check values
 		for(int i = 0; i< 10; i++) {
@@ -298,7 +320,7 @@ public class BroadcastRestServiceUnitTestv2 {
 		}
 
 
-		webRTCClientStatsList = restServiceSpy.getWebRTCClientStatsList(20, 40, streamId);
+		webRTCClientStatsList = restServiceSpy.getWebRTCClientStatsListV2(20, 40, streamId);
 		assertEquals(40, webRTCClientStatsList.size());
 		//check values
 		for(int i = 20; i < 60; i++) {
@@ -306,12 +328,12 @@ public class BroadcastRestServiceUnitTestv2 {
 		}
 
 
-		webRTCClientStatsList = restServiceSpy.getWebRTCClientStatsList(clientCount, 40, streamId);
+		webRTCClientStatsList = restServiceSpy.getWebRTCClientStatsListV2(clientCount, 40, streamId);
 		assertEquals(0, webRTCClientStatsList.size());
 
 
 		Mockito.doReturn(null).when(restServiceSpy).getWebRTCAdaptor();
-		webRTCClientStatsList = restServiceSpy.getWebRTCClientStatsList(clientCount, 40, streamId);
+		webRTCClientStatsList = restServiceSpy.getWebRTCClientStatsListV2(clientCount, 40, streamId);
 		assertEquals(0, webRTCClientStatsList.size());
 
 	}
@@ -370,7 +392,7 @@ public class BroadcastRestServiceUnitTestv2 {
 		restServiceReal.setAppSettings(settings);
 
 		//get device auth parameters for facebook
-		Result object = (Result)restServiceReal.getDeviceAuthParameters("facebook");
+		Result object = (Result)restServiceReal.getDeviceAuthParametersV2("facebook");
 
 		// it should be facebook is not defined in this scope
 		assertFalse(object.isSuccess());
@@ -381,7 +403,7 @@ public class BroadcastRestServiceUnitTestv2 {
 		when(settings.getFacebookClientSecret()).thenReturn("sdfsfsf");
 
 		// get device auth parameter for facebook
-		object = (Result)restServiceReal.getDeviceAuthParameters("facebook");
+		object = (Result)restServiceReal.getDeviceAuthParametersV2("facebook");
 
 		//it should be again facebook is not defined in this scope
 		assertFalse(object.isSuccess());
@@ -390,7 +412,7 @@ public class BroadcastRestServiceUnitTestv2 {
 		//make the same test for youtube and expect same results
 		when(settings.getYoutubeClientId()).thenReturn(null);
 		when(settings.getYoutubeClientSecret()).thenReturn(null);
-		object = (Result)restServiceReal.getDeviceAuthParameters("youtube");
+		object = (Result)restServiceReal.getDeviceAuthParametersV2("youtube");
 
 		assertFalse(object.isSuccess());
 		assertEquals(BroadcastRestService.ERROR_SOCIAL_ENDPOINT_UNDEFINED_ENDPOINT, object.getErrorId());
@@ -398,7 +420,7 @@ public class BroadcastRestServiceUnitTestv2 {
 		when(settings.getYoutubeClientId()).thenReturn("121212");
 		when(settings.getYoutubeClientSecret()).thenReturn("1212121");
 
-		object = (Result)restServiceReal.getDeviceAuthParameters("youtube");
+		object = (Result)restServiceReal.getDeviceAuthParametersV2("youtube");
 
 		assertFalse(object.isSuccess());
 		assertEquals(BroadcastRestService.ERROR_SOCIAL_ENDPOINT_UNDEFINED_ENDPOINT, object.getErrorId());
@@ -408,7 +430,7 @@ public class BroadcastRestServiceUnitTestv2 {
 		when(settings.getPeriscopeClientSecret()).thenReturn(null);
 
 		//get device auth parameter for periscope
-		object = (Result)restServiceReal.getDeviceAuthParameters("periscope");
+		object = (Result)restServiceReal.getDeviceAuthParametersV2("periscope");
 
 		//it should be client id and client secret missing
 		assertFalse(object.isSuccess());
@@ -419,7 +441,7 @@ public class BroadcastRestServiceUnitTestv2 {
 		when(settings.getPeriscopeClientSecret()).thenReturn("121212");
 
 		//it should be different error because client id and cleint secret is not correct
-		object  = (Result) restServiceReal.getDeviceAuthParameters("periscope");
+		object  = (Result) restServiceReal.getDeviceAuthParametersV2("periscope");
 		assertFalse(object.isSuccess());
 		assertEquals(BroadcastRestService.ERROR_SOCIAL_ENDPOINT_EXCEPTION_IN_ASKING_AUTHPARAMS, object.getErrorId());
 	}
@@ -566,7 +588,7 @@ public class BroadcastRestServiceUnitTestv2 {
 		assertNotNull(streamId);
 
 		String endpointURL = "rtmp://test.endpoint.url/test";
-		Result result = restServiceReal.addEndpoint(streamId, endpointURL);
+		Result result = restServiceReal.addEndpointV2(streamId, endpointURL);
 		assertTrue(result.isSuccess());
 
 		Broadcast broadcast2 = (Broadcast) restServiceReal.getBroadcast(streamId).getEntity();
@@ -602,14 +624,14 @@ public class BroadcastRestServiceUnitTestv2 {
 
 		Broadcast broadcastCreated = (Broadcast) restServiceReal.createBroadcast(broadcast, null, false).getEntity();
 
-		Result result = restServiceReal.addSocialEndpoint(broadcastCreated.getStreamId(), "not_exist");
+		Result result = restServiceReal.addSocialEndpointJSONV2(broadcastCreated.getStreamId(), "not_exist");
 		assertFalse(result.isSuccess());
 
 		when(appAdaptor.getVideoServiceEndpoints()).thenReturn(null);
-		result = restServiceReal.addSocialEndpoint(broadcastCreated.getStreamId(), "not_exist");
+		result = restServiceReal.addSocialEndpointJSONV2(broadcastCreated.getStreamId(), "not_exist");
 		assertFalse(result.isSuccess());
 
-		result = restServiceReal.addSocialEndpoint("not_exist", "not exist");
+		result = restServiceReal.addSocialEndpointJSONV2("not_exist", "not exist");
 		assertFalse(result.isSuccess());
 
 
@@ -635,7 +657,7 @@ public class BroadcastRestServiceUnitTestv2 {
 					broadcastCreated.getStreamId(), broadcastCreated.isIs360(), broadcastCreated.isPublicStream(), 720, true))
 			.thenReturn(new Endpoint(broadcastId, streamId, name, rtmpUrl, type, endpointServiceId, broadcastCreated.getStreamId()));
 
-			result = restServiceReal.addSocialEndpoint(broadcastCreated.getStreamId(), endpointServiceId);
+			result = restServiceReal.addSocialEndpointJSONV2(broadcastCreated.getStreamId(), endpointServiceId);
 			assertTrue(result.isSuccess());
 
 			Mockito.verify(videoServiceEndpoint).createBroadcast(broadcastCreated.getName(), broadcastCreated.getDescription(),
@@ -645,17 +667,17 @@ public class BroadcastRestServiceUnitTestv2 {
 			fail(e.getMessage());
 		}
 
-		result = restServiceReal.revokeSocialNetwork(endpointServiceId);
+		result = restServiceReal.revokeSocialNetworkV2(endpointServiceId);
 		assertTrue(result.isSuccess());
 
 		Mockito.verify(videoServiceEndpoint).resetCredentials();
 		assertTrue(endpointList.isEmpty());
 
-		result = restServiceReal.revokeSocialNetwork("not_exist");
+		result = restServiceReal.revokeSocialNetworkV2("not_exist");
 		assertFalse(result.isSuccess());
 
 		when(appAdaptor.getVideoServiceEndpoints()).thenReturn(null);
-		result = restServiceReal.revokeSocialNetwork("not_exist");
+		result = restServiceReal.revokeSocialNetworkV2("not_exist");
 		assertFalse(result.isSuccess());
 
 	}
@@ -679,7 +701,7 @@ public class BroadcastRestServiceUnitTestv2 {
 
 		when(restServiceSpy.getApplication()).thenReturn(application);
 
-		List<SocialEndpointCredentials> list = restServiceSpy.getSocialEndpoints(0, 100);
+		List<SocialEndpointCredentials> list = restServiceSpy.getSocialEndpointsV2(0, 100);
 		assertEquals(2, list.size());
 	}
 
@@ -705,11 +727,11 @@ public class BroadcastRestServiceUnitTestv2 {
 
 		when(restServiceSpy.getApplication()).thenReturn(application);
 
-		Result checkDeviceAuthStatus = restServiceSpy.checkDeviceAuthStatus(userCode);
+		Result checkDeviceAuthStatus = restServiceSpy.checkDeviceAuthStatusV2(userCode);
 		assertTrue(checkDeviceAuthStatus.isSuccess());
 
 
-		checkDeviceAuthStatus = restServiceSpy.checkDeviceAuthStatus(userCode + "spoiler");
+		checkDeviceAuthStatus = restServiceSpy.checkDeviceAuthStatusV2(userCode + "spoiler");
 		assertFalse(checkDeviceAuthStatus.isSuccess());
 
 		List<VideoServiceEndpoint> endpointErrorList = new ArrayList<>();
@@ -723,7 +745,7 @@ public class BroadcastRestServiceUnitTestv2 {
 
 		endpointErrorList.add(endpointError);
 		when(application.getVideoServiceEndpointsHavingError()).thenReturn(endpointErrorList);
-		checkDeviceAuthStatus = restServiceSpy.checkDeviceAuthStatus(userCode);
+		checkDeviceAuthStatus = restServiceSpy.checkDeviceAuthStatusV2(userCode);
 		assertFalse(checkDeviceAuthStatus.isSuccess());
 
 		assertEquals(0, application.getVideoServiceEndpointsHavingError().size());
@@ -752,31 +774,31 @@ public class BroadcastRestServiceUnitTestv2 {
 
 		when(endpoint.getTotalCommentsCount(streamId)).thenReturn(124);
 
-		Result liveCommentsCount = restServiceSpy.getLiveCommentsCount(credentials.getId(), streamId);
+		Result liveCommentsCount = restServiceSpy.getLiveCommentsCountV2(credentials.getId(), streamId);
 		assertEquals(124, Integer.valueOf(liveCommentsCount.getMessage()).intValue());
 
-		liveCommentsCount = restServiceSpy.getLiveCommentsCount(credentials.getId(), streamId + "dd");
+		liveCommentsCount = restServiceSpy.getLiveCommentsCountV2(credentials.getId(), streamId + "dd");
 		assertEquals(0, Integer.valueOf(liveCommentsCount.getMessage()).intValue());
 
-		liveCommentsCount = restServiceSpy.getLiveCommentsCount(credentials.getId() + "spoiler", streamId);
+		liveCommentsCount = restServiceSpy.getLiveCommentsCountV2(credentials.getId() + "spoiler", streamId);
 		assertEquals(0, Integer.valueOf(liveCommentsCount.getMessage()).intValue());
 
-		List<LiveComment> liveComments = restServiceSpy.getLiveCommentsFromEndpoint(credentials.getId(), streamId, 0, 10);
+		List<LiveComment> liveComments = restServiceSpy.getLiveCommentsFromEndpointV2(credentials.getId(), streamId, 0, 10);
 		assertEquals(1, liveComments.size());
 
-		Result viewerCountFromEndpoint = restServiceSpy.getViewerCountFromEndpoint(credentials.getId(), streamId + "spoiler");
+		Result viewerCountFromEndpoint = restServiceSpy.getViewerCountFromEndpointV2(credentials.getId(), streamId + "spoiler");
 		assertEquals(0, Integer.valueOf(viewerCountFromEndpoint.getMessage()).intValue());
 
 
 		when(endpoint.getLiveViews(streamId)).thenReturn((long) 234);
-		viewerCountFromEndpoint = restServiceSpy.getViewerCountFromEndpoint(credentials.getId(), streamId);
+		viewerCountFromEndpoint = restServiceSpy.getViewerCountFromEndpointV2(credentials.getId(), streamId);
 		assertEquals(234, Integer.valueOf(viewerCountFromEndpoint.getMessage()).intValue());
 
 		Interaction interaction = new Interaction();
 		interaction.setAngryCount(23);
 		interaction.setLikeCount(33);
 		when(endpoint.getInteraction(streamId)).thenReturn(interaction);
-		Interaction interactionFromEndpoint = restServiceSpy.getInteractionFromEndpoint(credentials.getId(), streamId);
+		Interaction interactionFromEndpoint = restServiceSpy.getInteractionFromEndpointV2(credentials.getId(), streamId);
 		assertEquals(23, interactionFromEndpoint.getAngryCount());
 		assertEquals(33, interactionFromEndpoint.getLikeCount());
 
@@ -1105,7 +1127,7 @@ public class BroadcastRestServiceUnitTestv2 {
 		assertEquals(1, tokens.size());
 
 		//revoke tokens
-		restServiceReal.revokeTokens(token.getStreamId());
+		restServiceReal.revokeTokensV2(token.getStreamId());
 
 		//get tokens of stream
 		tokens = restServiceReal.listTokensV2(token.getStreamId(), 0, 10);
@@ -1161,13 +1183,13 @@ public class BroadcastRestServiceUnitTestv2 {
 
 		//get objects
 
-		List<TensorFlowObject> objects = restServiceReal.getDetectionList(streamId, 0, 10);
+		List<TensorFlowObject> objects = restServiceReal.getDetectionListV2(streamId, 0, 10);
 
 		assertEquals(1, objects.size());		
 
 		//get list of requested id
 
-		List<TensorFlowObject> objectList = restServiceReal.getDetectionList(streamId, 0, 50);
+		List<TensorFlowObject> objectList = restServiceReal.getDetectionListV2(streamId, 0, 50);
 
 		assertEquals(1, objectList.size());
 
@@ -1219,7 +1241,7 @@ public class BroadcastRestServiceUnitTestv2 {
 		room.setRoomId("roomName");
 
 		//should not be null because room is saved to database and created room is returned
-		assertNotNull(restServiceReal.createConferenceRoom(room));
+		assertNotNull(restServiceReal.createConferenceRoomV2(room));
 
 		room = restServiceReal.getDataStore().getConferenceRoom(room.getRoomId());
 		
@@ -1405,7 +1427,7 @@ public class BroadcastRestServiceUnitTestv2 {
 		BroadcastRestServiceV2 streamSourceRest = Mockito.spy(restServiceReal);
 
 		//start ONVIF discovery
-		String result[] = streamSourceRest.searchOnvifDevices();
+		String result[] = streamSourceRest.searchOnvifDevicesV2();
 
 		//it should not null because discovery is performed
 		assertNotNull(result);

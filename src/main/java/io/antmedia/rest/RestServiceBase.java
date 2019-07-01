@@ -312,7 +312,7 @@ public abstract class RestServiceBase {
 		this.appSettings = appSettings;
 	}
 	
-	public Result deleteBroadcast(String id) {
+	protected Result deleteBroadcast(String id) {
 		Result result = new Result (false);
 		boolean stopResult = false;
 
@@ -323,13 +323,15 @@ public abstract class RestServiceBase {
 			result.setSuccess(getDataStore().delete(id));
 
 			if(result.isSuccess() && stopResult) {
+				logger.info("brodcast {} is deleted and stopped successfully", broacast.getStreamId());
 				result.setMessage("brodcast is deleted and stopped successfully");
-				logger.info("brodcast {} is deleted and stopped successfully", id);
+				
 			}
 			else if(result.isSuccess() && !stopResult) {
+				logger.info("brodcast {} is deleted but could not stopped", broacast);
 				result.setMessage("brodcast is deleted but could not stopped ");
-				logger.info("brodcast {} is deleted but could not stopped", id);
 			}
+			
 		}
 		return result;
 	}
@@ -358,7 +360,7 @@ public abstract class RestServiceBase {
 		return broadcast;
 	}
 	
-	public Result updateBroadcast(String streamId, Broadcast broadcast, String socialNetworksToPublish) {
+	protected Result updateBroadcast(String streamId, Broadcast broadcast, String socialNetworksToPublish) {
 
 		boolean result = getDataStore().updateBroadcastFields(streamId, broadcast);
 		StringBuilder message = new StringBuilder();
@@ -393,7 +395,7 @@ public abstract class RestServiceBase {
 	 * @param socialNetworksToPublish
 	 * @return
 	 */
-	public Result updateStreamSource(String streamId, Broadcast broadcast, String socialNetworksToPublish) {
+	protected Result updateStreamSource(String streamId, Broadcast broadcast, String socialNetworksToPublish) {
 
 		boolean result = false;
 		logger.debug("update cam info for stream {}", broadcast.getStreamId());
@@ -438,7 +440,7 @@ public abstract class RestServiceBase {
 		return new Result(result);
 	}
 	
-	public Result addSocialEndpoint(String id, String endpointServiceId) 
+	protected Result addSocialEndpoint(String id, String endpointServiceId) 
 	{
 		Broadcast broadcast = lookupBroadcast(id);
 		
@@ -454,7 +456,7 @@ public abstract class RestServiceBase {
 		return new Result(success, message);
 	}
 	
-	public Result revokeSocialNetwork(String endpointId) {
+	protected Result revokeSocialNetwork(String endpointId) {
 		Map<String, VideoServiceEndpoint> endPointServiceMap = getEndpointList();
 		String message = null;
 		boolean result = false;
@@ -689,7 +691,7 @@ public abstract class RestServiceBase {
 
 	}
 	
-	public ProcessBuilderFactory getProcessBuilderFactory() {
+	protected ProcessBuilderFactory getProcessBuilderFactory() {
 		return processBuilderFactory;
 	}
 
@@ -800,7 +802,7 @@ public abstract class RestServiceBase {
 	}
 	
 	
-	public static boolean checkIPCamAddr (String url) {
+	protected static boolean checkIPCamAddr (String url) {
 
 		boolean ipAddrControl = false;
 		String[] ipAddrParts = null;
@@ -843,7 +845,7 @@ public abstract class RestServiceBase {
 		return ipAddrControl;
 	}
 	
-	public static boolean validateIPaddress(String ipaddress)  {
+	protected static boolean validateIPaddress(String ipaddress)  {
 		logger.info("inside check validateIPaddress{}", ipaddress);
 
 		final String IPV4_REGEX = "(([0-1]?[0-9]{1,2}\\.)|(2[0-4][0-9]\\.)|(25[0-5]\\.)){3}(([0-1]?[0-9]{1,2})|(2[0-4][0-9])|(25[0-5]))";
@@ -896,7 +898,7 @@ public abstract class RestServiceBase {
 		return streamUrlControl;
 	}
 	
-	public Result addSource(Broadcast stream, String socialEndpointIds) {
+	protected Result addSource(Broadcast stream, String socialEndpointIds) {
 		Result result=new Result(false);
 
 		if(checkStreamUrl(stream.getStreamUrl())) {
@@ -934,7 +936,7 @@ public abstract class RestServiceBase {
 		return result;
 	}
 	
-	public List<WebRTCClientStats> getWebRTCClientStatsList(int offset, int size, String streamId) {
+	protected List<WebRTCClientStats> getWebRTCClientStatsList(int offset, int size, String streamId) {
 
 		List<WebRTCClientStats> list = new ArrayList<>();
 
@@ -970,7 +972,7 @@ public abstract class RestServiceBase {
 	}
 	
 	
-	public Result deleteVoD(String id) {
+	protected Result deleteVoD(String id) {
 		boolean success = false;
 		String message = "";
 		ApplicationContext appContext = getAppContext();
@@ -1013,11 +1015,11 @@ public abstract class RestServiceBase {
 		return new Result(success, message);
 	}
 	
-	public String getStreamsDirectory(String appScopeName) {
+	protected String getStreamsDirectory(String appScopeName) {
 		return String.format("%s/webapps/%s/%s", System.getProperty("red5.root"), appScopeName, "streams");
 	}
 	
-	public Result uploadVoDFile(String fileName, InputStream inputStream) {
+	protected Result uploadVoDFile(String fileName, InputStream inputStream) {
 		boolean success = false;
 		String message = "";
 		String id= null;
@@ -1085,7 +1087,7 @@ public abstract class RestServiceBase {
 	}
 
 	
-	public Result synchUserVodList() {
+	protected Result synchUserVodList() {
 		boolean result = false;
 		int errorId = -1;
 		String message = "";
@@ -1106,7 +1108,7 @@ public abstract class RestServiceBase {
 		return new Result(result, message, errorId);
 	}
 	
-	public Object getDeviceAuthParameters(String serviceName) {
+	protected Object getDeviceAuthParameters(String serviceName) {
 		String message = null;
 		boolean missingClientIdAndSecret = false;
 
@@ -1178,7 +1180,7 @@ public abstract class RestServiceBase {
 		return new Result(false, message, errorId);
 	}
 	
-	private boolean isClientIdMissing(VideoServiceEndpoint videoServiceEndpoint, String clientId, String clientSecret) {
+	protected boolean isClientIdMissing(VideoServiceEndpoint videoServiceEndpoint, String clientId, String clientSecret) {
 		boolean result = false;
 		if ((videoServiceEndpoint != null) && 
 				(clientId == null || clientSecret == null || 
@@ -1188,7 +1190,7 @@ public abstract class RestServiceBase {
 		return result;
 	}
 	
-	public Result checkDeviceAuthStatus(String userCode) {
+	protected Result checkDeviceAuthStatus(String userCode) {
 		Map<String, VideoServiceEndpoint> endPointMap = getEndpointList();
 		String message = null;
 		boolean authenticated = false;
@@ -1283,7 +1285,7 @@ public abstract class RestServiceBase {
 	}
 
 	
-	public BroadcastStatistics getBroadcastStatistics(String id) {
+	protected BroadcastStatistics getBroadcastStatistics(String id) {
 
 		int totalRTMPViewer = -1;
 		int totalWebRTCViewer = -1;
@@ -1311,7 +1313,7 @@ public abstract class RestServiceBase {
 		return new BroadcastStatistics(totalRTMPViewer, totalHLSViewer, totalWebRTCViewer);
 	}
 	
-	public List<SocialEndpointCredentials> getSocialEndpoints(int offset, int size) {
+	protected List<SocialEndpointCredentials> getSocialEndpoints(int offset, int size) {
 		List<SocialEndpointCredentials> endPointCredentials = new ArrayList<>();
 		Map<String, VideoServiceEndpoint> endPointMap = getEndpointList();
 		if (endPointMap != null) {
@@ -1322,7 +1324,7 @@ public abstract class RestServiceBase {
 		return endPointCredentials;
 	}
 	
-	public SocialEndpointChannel getSocialNetworkChannel(String endpointId) {
+	protected SocialEndpointChannel getSocialNetworkChannel(String endpointId) {
 		Map<String, VideoServiceEndpoint> endPointMap = getEndpointList();
 		VideoServiceEndpoint endPoint = endPointMap.get(endpointId);
 		SocialEndpointChannel channel = null;
@@ -1332,7 +1334,7 @@ public abstract class RestServiceBase {
 		return channel;
 	}
 	
-	public List<SocialEndpointChannel> getSocialNetworkChannelList(String endpointId, String type) {
+	protected List<SocialEndpointChannel> getSocialNetworkChannelList(String endpointId, String type) {
 
 		Map<String, VideoServiceEndpoint> endPointMap = getEndpointList();
 		VideoServiceEndpoint endPoint = endPointMap.get(endpointId);
@@ -1344,7 +1346,7 @@ public abstract class RestServiceBase {
 	}
 	
 	
-	public Result setSocialNetworkChannelList(String endpointId, String type, String channelId) {
+	protected Result setSocialNetworkChannelList(String endpointId, String type, String channelId) {
 		boolean result = false;
 		Map<String, VideoServiceEndpoint> endPointMap = getEndpointList();
 
@@ -1356,7 +1358,7 @@ public abstract class RestServiceBase {
 		return new Result(result, null);
 	}
 	
-	public Result getCameraError(String id) {
+	protected Result getCameraError(String id) {
 		Result result = new Result(true);
 
 		for (StreamFetcher camScheduler : getApplication().getStreamFetcherManager().getStreamFetcherList()) {
@@ -1409,7 +1411,7 @@ public abstract class RestServiceBase {
 	}
 	
 	
-	public String[] searchOnvifDevices() {
+	protected String[] searchOnvifDevices() {
 
 		String localIP = null;
 		String[] list = null;
@@ -1464,7 +1466,7 @@ public abstract class RestServiceBase {
 	}
 	
 	
-	public Result moveUp(String id) {
+	protected Result moveUp(String id) {
 		boolean result = false;
 		OnvifCamera camera = getApplication().getOnvifCamera(id);
 		if (camera != null) {
@@ -1474,7 +1476,7 @@ public abstract class RestServiceBase {
 		return new Result(result);
 	}
 	
-	public Result moveDown(String id) {
+	protected Result moveDown(String id) {
 		boolean result = false;
 		OnvifCamera camera = getApplication().getOnvifCamera(id);
 		if (camera != null) {
@@ -1484,7 +1486,7 @@ public abstract class RestServiceBase {
 		return new Result(result);
 	}
 	
-	public Result moveLeft(String id) {
+	protected Result moveLeft(String id) {
 		boolean result = false;
 		OnvifCamera camera = getApplication().getOnvifCamera(id);
 		if (camera != null) {
@@ -1494,7 +1496,7 @@ public abstract class RestServiceBase {
 		return new Result(result);
 	}
 	
-	public Result moveRight(String id) {
+	protected Result moveRight(String id) {
 		boolean result = false;
 		OnvifCamera camera = getApplication().getOnvifCamera(id);
 		if (camera != null) {
@@ -1504,7 +1506,7 @@ public abstract class RestServiceBase {
 		return new Result(result);
 	}
 	
-	public Result getViewerCountFromEndpoint(String endpointServiceId, String streamId) 
+	protected Result getViewerCountFromEndpoint(String endpointServiceId, String streamId) 
 	{
 		VideoServiceEndpoint videoServiceEndPoint = getApplication().getVideoServiceEndPoint(endpointServiceId);
 		long liveViews = 0;
@@ -1514,7 +1516,7 @@ public abstract class RestServiceBase {
 		return new Result(true, String.valueOf(liveViews));
 	}
 	
-	public Result getLiveCommentsCount(String endpointServiceId, String streamId) {
+	protected Result getLiveCommentsCount(String endpointServiceId, String streamId) {
 		VideoServiceEndpoint videoServiceEndPoint = getApplication().getVideoServiceEndPoint(endpointServiceId);
 		int commentCount = 0;
 		if (videoServiceEndPoint != null) {
@@ -1523,7 +1525,7 @@ public abstract class RestServiceBase {
 		return new Result(true, String.valueOf(commentCount));
 	}
 	
-	public Interaction getInteractionFromEndpoint(String endpointServiceId, String streamId) {
+	protected Interaction getInteractionFromEndpoint(String endpointServiceId, String streamId) {
 		Interaction interaction = null;
 		VideoServiceEndpoint videoServiceEndPoint = getApplication().getVideoServiceEndPoint(endpointServiceId);
 		if (videoServiceEndPoint != null) {
@@ -1532,7 +1534,7 @@ public abstract class RestServiceBase {
 		return interaction;
 	}
 	
-	public List<LiveComment> getLiveCommentsFromEndpoint(String endpointServiceId, String streamId, int offset, int batch) 
+	protected List<LiveComment> getLiveCommentsFromEndpoint(String endpointServiceId, String streamId, int offset, int batch) 
 	{
 	
 		VideoServiceEndpoint videoServiceEndPoint = getApplication().getVideoServiceEndPoint(endpointServiceId);
@@ -1543,7 +1545,7 @@ public abstract class RestServiceBase {
 		return liveComment;
 	}
 	
-	public List<TensorFlowObject> getDetectionList(String id, int offset, int size) {
+	protected List<TensorFlowObject> getDetectionList(String id, int offset, int size) {
 		List<TensorFlowObject> list = null;
 
 		if (id != null) {
@@ -1557,7 +1559,7 @@ public abstract class RestServiceBase {
 		return list;
 	}
 	
-	public Object getToken (String streamId, long expireDate, String type) 
+	protected Object getToken (String streamId, long expireDate, String type) 
 	{
 		Token token = null;
 		String message = "Define stream Id and Expire Date (unix time)";
@@ -1591,7 +1593,7 @@ public abstract class RestServiceBase {
 		return new Result(false, message);
 	}
 	
-	public Token validateToken (Token token) {
+	protected Token validateToken (Token token) {
 		Token validatedToken = null;
 
 		if(token.getTokenId() != null) {
@@ -1602,7 +1604,7 @@ public abstract class RestServiceBase {
 		return validatedToken;
 	}
 	
-	public Result revokeTokens (String streamId) {
+	protected Result revokeTokens (String streamId) {
 		Result result = new Result(false);
 
 		if(streamId != null) {
@@ -1613,7 +1615,7 @@ public abstract class RestServiceBase {
 		return result;
 	}
 	
-	public boolean deleteConferenceRoom(String roomName) {
+	protected boolean deleteConferenceRoom(String roomName) {
 
 		if(roomName != null) {
 			return getDataStore().deleteConferenceRoom(roomName);
@@ -1621,7 +1623,7 @@ public abstract class RestServiceBase {
 		return false;
 	}
 	
-	public ConferenceRoom editConferenceRoom(ConferenceRoom room) 
+	protected ConferenceRoom editConferenceRoom(ConferenceRoom room) 
 	{
 		if(room != null && getDataStore().editConferenceRoom(room.getRoomId(), room)) {
 			return room;
@@ -1629,7 +1631,7 @@ public abstract class RestServiceBase {
 		return null;
 	}
 	
-	public ConferenceRoom createConferenceRoom(ConferenceRoom room) {
+	protected ConferenceRoom createConferenceRoom(ConferenceRoom room) {
 
 		if(room != null) {
 
@@ -1648,7 +1650,7 @@ public abstract class RestServiceBase {
 		return null;
 	}
 
-	public VoD getVoD(String id) {
+	protected VoD getVoD(String id) {
 		VoD vod = null;
 		if (id != null) {
 			vod = getDataStore().getVoD(id);
