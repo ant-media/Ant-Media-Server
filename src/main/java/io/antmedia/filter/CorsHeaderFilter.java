@@ -91,7 +91,7 @@ public class CorsHeaderFilter extends CorsFilter {
 			// of the Origin header as value.
 			
 				try {
-					if (!(origin.matches("^http") || origin.matches("^ws"))) {
+					if (!(origin.matches("^http.*") || origin.matches("^ws.*"))) {
 						throw new IOException("origin does not start http or ws. It is " + origin);
 					}
 					response.addHeader(CorsFilter.RESPONSE_HEADER_ACCESS_CONTROL_ALLOW_ORIGIN, origin);
