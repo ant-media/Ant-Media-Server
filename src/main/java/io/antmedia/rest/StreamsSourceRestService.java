@@ -99,16 +99,9 @@ public class StreamsSourceRestService extends RestServiceBase{
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/getCameraError")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Override
 	public Result getCameraError(@ApiParam(value = "the id of the stream", required = true) @QueryParam("id") String id) {
-		Result result = new Result(true);
-
-		for (StreamFetcher camScheduler : getApplication().getStreamFetcherManager().getStreamFetcherList()) {
-			if (camScheduler.getStream().getIpAddr().equals(id)) {
-				result = camScheduler.getCameraError();
-			}
-		}
-
-		return result;
+		return super.getCameraError(id);
 	}
 
 	/**
@@ -121,33 +114,10 @@ public class StreamsSourceRestService extends RestServiceBase{
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/startStreamSource")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Override
 	public Result startStreamSource(@ApiParam(value = "the id of the stream", required = true) @QueryParam("id") String id) 
 	{
-		Result result = new Result(false);	
-		Broadcast broadcast = getDataStore().get(id);
-
-		if (broadcast != null) 
-		{
-			if(broadcast.getStreamUrl() == null && broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA)) 
-			{
-				//if streamURL is not defined before for IP Camera, connect to it again and define streamURL
-				Result connResult = connectToCamera(broadcast);
-
-				if (connResult.isSuccess()) 
-				{
-					String authparam = broadcast.getUsername() + ":" + broadcast.getPassword() + "@";
-					String rtspURLWithAuth = RTSP + authparam + connResult.getMessage().substring(RTSP.length());
-					logger.info("rtsp url with auth: {}", rtspURLWithAuth);
-					broadcast.setStreamUrl(rtspURLWithAuth);
-				}
-			}
-
-			if(getApplication().startStreaming(broadcast) != null) {
-
-				result.setSuccess(true);
-			}
-		}
-		return result;
+		return super.startStreamSource(id);
 	}
 
 	/**
@@ -160,14 +130,10 @@ public class StreamsSourceRestService extends RestServiceBase{
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/stopStreamSource")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Override
 	public Result stopStreamSource(@ApiParam(value = "the id of the stream", required = true) @QueryParam("id") String id) 
 	{
-		Result result = new Result(false);
-		Broadcast broadcast = getDataStore().get(id);
-		if(broadcast != null) {
-			result = getApplication().stopStreaming(broadcast);
-		}
-		return result;
+		return super.stopStreamSource(id);
 	}
 
 	
@@ -253,58 +219,9 @@ public class StreamsSourceRestService extends RestServiceBase{
 	@GET
 	@Path("/searchOnvifDevices")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Override
 	public String[] searchOnvifDevices() {
-
-		String localIP = null;
-		String[] list = null;
-		Enumeration<NetworkInterface> interfaces = null;
-		try {
-			interfaces = NetworkInterface.getNetworkInterfaces();
-		} catch (SocketException e) {
-			// handle error
-		}
-
-		if (interfaces != null) {
-			while (interfaces.hasMoreElements()) {
-				NetworkInterface i = interfaces.nextElement();
-				Enumeration<InetAddress> addresses = i.getInetAddresses();
-				while (addresses.hasMoreElements() && (localIP == null || localIP.isEmpty())) {
-					InetAddress address = addresses.nextElement();
-					if (!address.isLoopbackAddress() && address.isSiteLocalAddress()) {
-						localIP = address.getHostAddress();
-					}
-				}
-			}
-			logger.info("IP Address: {} " , localIP);
-		}
-
-		if (localIP != null) {
-
-			String[] ipAddrParts = localIP.split("\\.");
-
-			String ipAd = ipAddrParts[0] + "." + ipAddrParts[1] + "." + ipAddrParts[2] + ".";
-			ArrayList<String> addressList = new ArrayList<>();
-
-			for (int i = 2; i < 255; i++) {
-				addressList.add(ipAd + i);
-
-			}
-
-			List<URL> onvifDevices = OnvifDiscovery.discoverOnvifDevices(true, addressList);
-
-			list = new String[onvifDevices.size()];
-
-			if (!onvifDevices.isEmpty()) {
-
-				for (int i = 0; i < onvifDevices.size(); i++) {
-
-					list[i] = StringUtils.substringBetween(onvifDevices.get(i).toString(), HTTP, "/");
-				}
-			}
-
-		}
-
-		return list;
+		return super.searchOnvifDevices();
 	}
 
 	/**
@@ -317,14 +234,9 @@ public class StreamsSourceRestService extends RestServiceBase{
 	@GET
 	@Path("/moveUp")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Override
 	public Result moveUp(@ApiParam(value = "the id of the IP Camera", required = true) @QueryParam("id") String id) {
-		boolean result = false;
-		OnvifCamera camera = getApplication().getOnvifCamera(id);
-		if (camera != null) {
-			camera.moveUp();
-			result = true;
-		}
-		return new Result(result);
+		return super.moveUp(id);
 	}
 
 	/**
@@ -336,14 +248,9 @@ public class StreamsSourceRestService extends RestServiceBase{
 	@GET
 	@Path("/moveDown")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Override
 	public Result moveDown(@ApiParam(value = "the id of the IP Camera", required = true) @QueryParam("id") String id) {
-		boolean result = false;
-		OnvifCamera camera = getApplication().getOnvifCamera(id);
-		if (camera != null) {
-			camera.moveDown();
-			result = true;
-		}
-		return new Result(result);
+		return super.moveDown(id);
 	}
 
 	/**
@@ -355,14 +262,9 @@ public class StreamsSourceRestService extends RestServiceBase{
 	@GET
 	@Path("/moveLeft")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Override
 	public Result moveLeft(@ApiParam(value = "the id of the IP Camera", required = true) @QueryParam("id") String id) {
-		boolean result = false;
-		OnvifCamera camera = getApplication().getOnvifCamera(id);
-		if (camera != null) {
-			camera.moveLeft();
-			result = true;
-		}
-		return new Result(result);
+		return super.moveLeft(id);
 	}
 
 	/**
@@ -374,14 +276,9 @@ public class StreamsSourceRestService extends RestServiceBase{
 	@GET
 	@Path("/moveRight")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Override
 	public Result moveRight(@ApiParam(value = "the id of the IP Camera", required = true) @QueryParam("id") String id) {
-		boolean result = false;
-		OnvifCamera camera = getApplication().getOnvifCamera(id);
-		if (camera != null) {
-			camera.moveRight();
-			result = true;
-		}
-		return new Result(result);
+		return super.moveRight(id);
 	}
 
 }

@@ -528,16 +528,10 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/social-endpoints/{offset}/{size}")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Override
 	public List<SocialEndpointCredentials> getSocialEndpoints(@ApiParam(value = "the starting point of the list", required = true) @PathParam("offset") int offset,
 			@ApiParam(value = "size of the return list (max:50 )", required = true) @PathParam("size") int size) {
-		List<SocialEndpointCredentials> endPointCredentials = new ArrayList<>();
-		Map<String, VideoServiceEndpoint> endPointMap = getEndpointList();
-		if (endPointMap != null) {
-			for (VideoServiceEndpoint videoServiceEndpoint : endPointMap.values()) {
-				endPointCredentials.add(videoServiceEndpoint.getCredentials());
-			}
-		}
-		return endPointCredentials;
+		return super.getSocialEndpoints(offset, size);
 	}
 
 	@ApiOperation(value = "Some social networks have different channels especially for facebook," +
@@ -547,14 +541,9 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/social-networks-channel/{endpointId}")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Override
 	public SocialEndpointChannel getSocialNetworkChannel(@ApiParam(value = "endpointId", required = true) @PathParam("endpointId") String endpointId) {
-		Map<String, VideoServiceEndpoint> endPointMap = getEndpointList();
-		VideoServiceEndpoint endPoint = endPointMap.get(endpointId);
-		SocialEndpointChannel channel = null;
-		if (endPoint != null) {
-			channel = endPoint.getChannel();
-		}
-		return channel;
+		return super.getSocialNetworkChannel(endpointId);
 	}
 
 
@@ -563,16 +552,10 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/social-networks-channel-lists/{endpointId}/{type}")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Override
 	public List<SocialEndpointChannel> getSocialNetworkChannelList(@ApiParam(value = "endpointId", required = true) @PathParam("endpointId") String endpointId,
 			@ApiParam(value = "This is very service specific, it may be page for Facebook", required = true) @PathParam("type") String type) {
-
-		Map<String, VideoServiceEndpoint> endPointMap = getEndpointList();
-		VideoServiceEndpoint endPoint = endPointMap.get(endpointId);
-		List<SocialEndpointChannel>  channelList = null;
-		if (endPoint != null) {
-			channelList = endPoint.getChannelList();
-		}
-		return channelList;
+		return super.getSocialNetworkChannelList(endpointId, type);
 	}
 
 
@@ -583,18 +566,11 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/social-networks-channels/{endpointId}/{type}/{id}")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Override
 	public Result setSocialNetworkChannelList(@ApiParam(value = "endpointId", required = true) @PathParam("endpointId") String endpointId,
 			@ApiParam(value = "type", required = true) @PathParam("type") String type,
 			@ApiParam(value = "id", required = true) @PathParam("id") String channelId) {
-		boolean result = false;
-		Map<String, VideoServiceEndpoint> endPointMap = getEndpointList();
-
-		VideoServiceEndpoint endPoint = endPointMap.get(endpointId);
-
-		if (endPoint != null) {
-			result = endPoint.setActiveChannel(type, channelId);
-		}
-		return new Result(result, null);
+		return super.setSocialNetworkChannelList(endpointId, type, channelId);
 	}
 
 	@ApiOperation(value = "Set stream specific recording setting, this setting overrides general Mp4 Muxing Setting", notes = "", response = Result.class)
@@ -630,16 +606,9 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/error")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Override
 	public Result getCameraError(@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String id) {
-		Result result = new Result(true);
-
-		for (StreamFetcher camScheduler : getApplication().getStreamFetcherManager().getStreamFetcherList()) {
-			if (camScheduler.getStream().getIpAddr().equals(id)) {
-				result = camScheduler.getCameraError();
-			}
-		}
-
-		return result;
+		return super.getCameraError(id);
 	}
 
 	@ApiOperation(value = "Start external sources (IP Cameras and Stream Sources) again if it is added and stopped before", response = Result.class)
@@ -647,33 +616,10 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/start")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Override
 	public Result startStreamSource(@ApiParam(value = "the id of the stream. The broadcast type should be IP Camera or Stream Source otherwise it does not work", required = true) @PathParam("id") String id) 
 	{
-		Result result = new Result(false);	
-		Broadcast broadcast = getDataStore().get(id);
-
-		if (broadcast != null) 
-		{
-			if(broadcast.getStreamUrl() == null && broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA)) 
-			{
-				//if streamURL is not defined before for IP Camera, connect to it again and define streamURL
-				Result connResult = connectToCamera(broadcast);
-				if (connResult.isSuccess()) 
-				{
-					String authparam = broadcast.getUsername() + ":" + broadcast.getPassword() + "@";
-					String rtspURLWithAuth = RTSP + authparam + connResult.getMessage().substring(RTSP.length());
-					logger.info("rtsp url with auth: {}", rtspURLWithAuth);
-					broadcast.setStreamUrl(rtspURLWithAuth);
-				}	
-
-			}
-
-			if(getApplication().startStreaming(broadcast) != null) {
-				result.setSuccess(true);
-			}
-
-		}
-		return result;
+		return super.startStreamSource(id);
 	}
 
 	@ApiOperation(value = "Stop external sources (IP Cameras and Stream Sources)", response = Result.class)
@@ -681,14 +627,10 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/stop")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Override
 	public Result stopStreamSource(@ApiParam(value = "the id of the broadcast. The broadcast type should be IP Camera or Stream Source otherwise it does not work", required = true) @PathParam("id") String id) 
 	{
-		Result result = new Result(false);
-		Broadcast broadcast = getDataStore().get(id);
-		if(broadcast != null) {
-			result = getApplication().stopStreaming(broadcast);
-		}
-		return result;
+		return super.stopStreamSource(id);
 	}
 
 
@@ -696,86 +638,27 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	@GET
 	@Path("/onvif-devices")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Override
 	public String[] searchOnvifDevices() {
-
-		String localIP = null;
-		String[] list = null;
-		Enumeration<NetworkInterface> interfaces = null;
-		try {
-			interfaces = NetworkInterface.getNetworkInterfaces();
-		} catch (SocketException e) {
-			// handle error
-		}
-
-		if (interfaces != null) {
-			while (interfaces.hasMoreElements()) {
-				NetworkInterface i = interfaces.nextElement();
-				Enumeration<InetAddress> addresses = i.getInetAddresses();
-				while (addresses.hasMoreElements() && (localIP == null || localIP.isEmpty())) {
-					InetAddress address = addresses.nextElement();
-					if (!address.isLoopbackAddress() && address.isSiteLocalAddress()) {
-						localIP = address.getHostAddress();
-					}
-				}
-			}
-			logger.info("IP Address: {} " , localIP);
-		}
-
-		if (localIP != null) {
-
-			String[] ipAddrParts = localIP.split("\\.");
-
-			String ipAd = ipAddrParts[0] + "." + ipAddrParts[1] + "." + ipAddrParts[2] + ".";
-			ArrayList<String> addressList = new ArrayList<>();
-
-			for (int i = 2; i < 255; i++) {
-				addressList.add(ipAd + i);
-
-			}
-
-			List<URL> onvifDevices = OnvifDiscovery.discoverOnvifDevices(true, addressList);
-
-			list = new String[onvifDevices.size()];
-
-			if (!onvifDevices.isEmpty()) {
-
-				for (int i = 0; i < onvifDevices.size(); i++) {
-
-					list[i] = StringUtils.substringBetween(onvifDevices.get(i).toString(), HTTP, "/");
-				}
-			}
-
-		}
-
-		return list;
+		return super.searchOnvifDevices();
 	}
 
 	@ApiOperation(value = "Move IP Camera Up", response = Result.class)
 	@POST
 	@Path("/{id}/ip-camera/move-up")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Override
 	public Result moveUp(@ApiParam(value = "the id of the IP Camera", required = true) @PathParam("id") String id) {
-		boolean result = false;
-		OnvifCamera camera = getApplication().getOnvifCamera(id);
-		if (camera != null) {
-			camera.moveUp();
-			result = true;
-		}
-		return new Result(result);
+		return super.moveUp(id);
 	}
 
 	@ApiOperation(value = "Move IP Camera Down", response = Result.class)
 	@POST
 	@Path("/{id}/ip-camera/move-down")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Override
 	public Result moveDown(@ApiParam(value = "the id of the IP Camera", required = true) @PathParam("id") String id) {
-		boolean result = false;
-		OnvifCamera camera = getApplication().getOnvifCamera(id);
-		if (camera != null) {
-			camera.moveDown();
-			result = true;
-		}
-		return new Result(result);
+		return super.moveDown(id);
 	}
 
 
@@ -784,14 +667,9 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	@POST
 	@Path("/{id}/ip-camera/move-left")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Override
 	public Result moveLeft(@ApiParam(value = "the id of the IP Camera", required = true) @PathParam("id") String id) {
-		boolean result = false;
-		OnvifCamera camera = getApplication().getOnvifCamera(id);
-		if (camera != null) {
-			camera.moveLeft();
-			result = true;
-		}
-		return new Result(result);
+		return super.moveLeft(id);
 	}
 
 
@@ -799,14 +677,9 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	@POST
 	@Path("/{id}/ip-camera/move-right")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Override
 	public Result moveRight(@ApiParam(value = "the id of the IP Camera", required = true) @PathParam("id") String id) {
-		boolean result = false;
-		OnvifCamera camera = getApplication().getOnvifCamera(id);
-		if (camera != null) {
-			camera.moveRight();
-			result = true;
-		}
-		return new Result(result);
+		return super.moveRight(id);
 	}
 
 	@ApiOperation(value="Zoom-In IP Camera")

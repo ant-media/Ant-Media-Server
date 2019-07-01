@@ -1192,16 +1192,10 @@ public class BroadcastRestService extends RestServiceBase{
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/broadcast/getSocialEndpoints/{offset}/{size}")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Override
 	public List<SocialEndpointCredentials> getSocialEndpoints(@ApiParam(value = "the starting point of the list", required = true) @PathParam("offset") int offset,
 			@ApiParam(value = "size of the return list (max:50 )", required = true) @PathParam("size") int size) {
-		List<SocialEndpointCredentials> endPointCredentials = new ArrayList<>();
-		Map<String, VideoServiceEndpoint> endPointMap = getEndpointList();
-		if (endPointMap != null) {
-			for (VideoServiceEndpoint videoServiceEndpoint : endPointMap.values()) {
-				endPointCredentials.add(videoServiceEndpoint.getCredentials());
-			}
-		}
-		return endPointCredentials;
+		return super.getSocialEndpoints(offset, size);
 	}
 
 
@@ -1222,14 +1216,9 @@ public class BroadcastRestService extends RestServiceBase{
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/broadcast/getSocialNetworkChannel/{endpointId}")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Override
 	public SocialEndpointChannel getSocialNetworkChannel(@ApiParam(value = "endpointId", required = true) @PathParam("endpointId") String endpointId) {
-		Map<String, VideoServiceEndpoint> endPointMap = getEndpointList();
-		VideoServiceEndpoint endPoint = endPointMap.get(endpointId);
-		SocialEndpointChannel channel = null;
-		if (endPoint != null) {
-			channel = endPoint.getChannel();
-		}
-		return channel;
+		return super.getSocialNetworkChannel(endpointId);
 	}
 
 	/**
@@ -1249,16 +1238,10 @@ public class BroadcastRestService extends RestServiceBase{
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/broadcast/getSocialNetworkChannelList/{endpointId}/{type}")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Override
 	public List<SocialEndpointChannel> getSocialNetworkChannelList(@ApiParam(value = "endpointId", required = true) @PathParam("endpointId") String endpointId,
 			@ApiParam(value = "This is very service specific, it may be page for Facebook", required = true) @PathParam("type") String type) {
-
-		Map<String, VideoServiceEndpoint> endPointMap = getEndpointList();
-		VideoServiceEndpoint endPoint = endPointMap.get(endpointId);
-		List<SocialEndpointChannel>  channelList = null;
-		if (endPoint != null) {
-			channelList = endPoint.getChannelList();
-		}
-		return channelList;
+		return super.getSocialNetworkChannelList(endpointId, type);
 	}
 
 	/**
@@ -1277,18 +1260,11 @@ public class BroadcastRestService extends RestServiceBase{
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/broadcast/setSocialNetworkChannel/{endpointId}/{type}/{id}")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Override
 	public Result setSocialNetworkChannelList(@ApiParam(value = "endpointId", required = true) @PathParam("endpointId") String endpointId,
 			@ApiParam(value = "type", required = true) @PathParam("type") String type,
 			@ApiParam(value = "id", required = true) @PathParam("id") String channelId) {
-		boolean result = false;
-		Map<String, VideoServiceEndpoint> endPointMap = getEndpointList();
-
-		VideoServiceEndpoint endPoint = endPointMap.get(endpointId);
-
-		if (endPoint != null) {
-			result = endPoint.setActiveChannel(type, channelId);
-		}
-		return new Result(result, null);
+		return super.setSocialNetworkChannelList(endpointId, type, channelId);
 	}
 
 

@@ -6,11 +6,16 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.file.Files;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -21,6 +26,8 @@ import javax.ws.rs.FormParam;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -41,9 +48,13 @@ import io.antmedia.IResourceMonitor;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
+import io.antmedia.datastore.db.types.SocialEndpointChannel;
+import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.ipcamera.OnvifCamera;
+import io.antmedia.ipcamera.onvifdiscovery.OnvifDiscovery;
 import io.antmedia.muxer.Mp4Muxer;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.Muxer;
@@ -1290,5 +1301,200 @@ public abstract class RestServiceBase {
 
 		return new BroadcastStatistics(totalRTMPViewer, totalHLSViewer, totalWebRTCViewer);
 	}
+	
+	public List<SocialEndpointCredentials> getSocialEndpoints(int offset, int size) {
+		List<SocialEndpointCredentials> endPointCredentials = new ArrayList<>();
+		Map<String, VideoServiceEndpoint> endPointMap = getEndpointList();
+		if (endPointMap != null) {
+			for (VideoServiceEndpoint videoServiceEndpoint : endPointMap.values()) {
+				endPointCredentials.add(videoServiceEndpoint.getCredentials());
+			}
+		}
+		return endPointCredentials;
+	}
+	
+	public SocialEndpointChannel getSocialNetworkChannel(String endpointId) {
+		Map<String, VideoServiceEndpoint> endPointMap = getEndpointList();
+		VideoServiceEndpoint endPoint = endPointMap.get(endpointId);
+		SocialEndpointChannel channel = null;
+		if (endPoint != null) {
+			channel = endPoint.getChannel();
+		}
+		return channel;
+	}
+	
+	public List<SocialEndpointChannel> getSocialNetworkChannelList(String endpointId, String type) {
+
+		Map<String, VideoServiceEndpoint> endPointMap = getEndpointList();
+		VideoServiceEndpoint endPoint = endPointMap.get(endpointId);
+		List<SocialEndpointChannel>  channelList = null;
+		if (endPoint != null) {
+			channelList = endPoint.getChannelList();
+		}
+		return channelList;
+	}
+	
+	
+	public Result setSocialNetworkChannelList(String endpointId, String type, String channelId) {
+		boolean result = false;
+		Map<String, VideoServiceEndpoint> endPointMap = getEndpointList();
+
+		VideoServiceEndpoint endPoint = endPointMap.get(endpointId);
+
+		if (endPoint != null) {
+			result = endPoint.setActiveChannel(type, channelId);
+		}
+		return new Result(result, null);
+	}
+	
+	public Result getCameraError(String id) {
+		Result result = new Result(true);
+
+		for (StreamFetcher camScheduler : getApplication().getStreamFetcherManager().getStreamFetcherList()) {
+			if (camScheduler.getStream().getIpAddr().equals(id)) {
+				result = camScheduler.getCameraError();
+			}
+		}
+
+		return result;
+	}
+	
+	public Result startStreamSource(String id) 
+	{
+		Result result = new Result(false);	
+		Broadcast broadcast = getDataStore().get(id);
+
+		if (broadcast != null) 
+		{
+			if(broadcast.getStreamUrl() == null && broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA)) 
+			{
+				//if streamURL is not defined before for IP Camera, connect to it again and define streamURL
+				Result connResult = connectToCamera(broadcast);
+
+				if (connResult.isSuccess()) 
+				{
+					String authparam = broadcast.getUsername() + ":" + broadcast.getPassword() + "@";
+					String rtspURLWithAuth = RTSP + authparam + connResult.getMessage().substring(RTSP.length());
+					logger.info("rtsp url with auth: {}", rtspURLWithAuth);
+					broadcast.setStreamUrl(rtspURLWithAuth);
+				}
+			}
+
+			if(getApplication().startStreaming(broadcast) != null) {
+
+				result.setSuccess(true);
+			}
+		}
+		return result;
+	}
+	
+	
+	public Result stopStreamSource(String id) 
+	{
+		Result result = new Result(false);
+		Broadcast broadcast = getDataStore().get(id);
+		if(broadcast != null) {
+			result = getApplication().stopStreaming(broadcast);
+		}
+		return result;
+	}
+	
+	
+	public String[] searchOnvifDevices() {
+
+		String localIP = null;
+		String[] list = null;
+		Enumeration<NetworkInterface> interfaces = null;
+		try {
+			interfaces = NetworkInterface.getNetworkInterfaces();
+		} catch (SocketException e) {
+			// handle error
+		}
+
+		if (interfaces != null) {
+			while (interfaces.hasMoreElements()) {
+				NetworkInterface i = interfaces.nextElement();
+				Enumeration<InetAddress> addresses = i.getInetAddresses();
+				while (addresses.hasMoreElements() && (localIP == null || localIP.isEmpty())) {
+					InetAddress address = addresses.nextElement();
+					if (!address.isLoopbackAddress() && address.isSiteLocalAddress()) {
+						localIP = address.getHostAddress();
+					}
+				}
+			}
+			logger.info("IP Address: {} " , localIP);
+		}
+
+		if (localIP != null) {
+
+			String[] ipAddrParts = localIP.split("\\.");
+
+			String ipAd = ipAddrParts[0] + "." + ipAddrParts[1] + "." + ipAddrParts[2] + ".";
+			ArrayList<String> addressList = new ArrayList<>();
+
+			for (int i = 2; i < 255; i++) {
+				addressList.add(ipAd + i);
+
+			}
+
+			List<URL> onvifDevices = OnvifDiscovery.discoverOnvifDevices(true, addressList);
+
+			list = new String[onvifDevices.size()];
+
+			if (!onvifDevices.isEmpty()) {
+
+				for (int i = 0; i < onvifDevices.size(); i++) {
+
+					list[i] = StringUtils.substringBetween(onvifDevices.get(i).toString(), HTTP, "/");
+				}
+			}
+
+		}
+
+		return list;
+	}
+	
+	
+	public Result moveUp(String id) {
+		boolean result = false;
+		OnvifCamera camera = getApplication().getOnvifCamera(id);
+		if (camera != null) {
+			camera.moveUp();
+			result = true;
+		}
+		return new Result(result);
+	}
+	
+	public Result moveDown(String id) {
+		boolean result = false;
+		OnvifCamera camera = getApplication().getOnvifCamera(id);
+		if (camera != null) {
+			camera.moveDown();
+			result = true;
+		}
+		return new Result(result);
+	}
+	
+	public Result moveLeft(String id) {
+		boolean result = false;
+		OnvifCamera camera = getApplication().getOnvifCamera(id);
+		if (camera != null) {
+			camera.moveLeft();
+			result = true;
+		}
+		return new Result(result);
+	}
+	
+	public Result moveRight(String id) {
+		boolean result = false;
+		OnvifCamera camera = getApplication().getOnvifCamera(id);
+		if (camera != null) {
+			camera.moveRight();
+			result = true;
+		}
+		return new Result(result);
+	}
+	
+
 
 }
