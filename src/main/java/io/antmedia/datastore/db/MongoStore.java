@@ -902,9 +902,9 @@ public class MongoStore extends DataStore {
 		boolean result = false;
 		synchronized(this) {
 			try {
-				Query<ConferenceRoom> query = conferenceRoomDatastore.createQuery(ConferenceRoom.class).field("roomName").equal(room.getRoomId());
+				Query<ConferenceRoom> query = conferenceRoomDatastore.createQuery(ConferenceRoom.class).field("roomId").equal(room.getRoomId());
 
-				UpdateOperations<ConferenceRoom> ops = conferenceRoomDatastore.createUpdateOperations(ConferenceRoom.class).set("roomName", room.getRoomId())
+				UpdateOperations<ConferenceRoom> ops = conferenceRoomDatastore.createUpdateOperations(ConferenceRoom.class).set("roomId", room.getRoomId())
 						.set("startDate", room.getStartDate()).set("endDate", room.getEndDate());
 
 				UpdateResults update = conferenceRoomDatastore.update(query, ops);
@@ -917,10 +917,10 @@ public class MongoStore extends DataStore {
 	}
 
 	@Override
-	public boolean deleteConferenceRoom(String roomName) {
+	public boolean deleteConferenceRoom(String roomId) {
 		synchronized(this) {
 			try {
-				Query<ConferenceRoom> query = conferenceRoomDatastore.createQuery(ConferenceRoom.class).field("roomName").equal(roomName);
+				Query<ConferenceRoom> query = conferenceRoomDatastore.createQuery(ConferenceRoom.class).field("roomId").equal(roomId);
 				WriteResult delete = conferenceRoomDatastore.delete(query);
 				return delete.getN() == 1;
 			} catch (Exception e) {
@@ -931,10 +931,10 @@ public class MongoStore extends DataStore {
 	}
 
 	@Override
-	public ConferenceRoom getConferenceRoom(String roomName) {
+	public ConferenceRoom getConferenceRoom(String roomId) {
 		synchronized(this) {
 			try {
-				return conferenceRoomDatastore.find(ConferenceRoom.class).field("roomName").equal(roomName).get();
+				return conferenceRoomDatastore.find(ConferenceRoom.class).field("roomId").equal(roomId).get();
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
