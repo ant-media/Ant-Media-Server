@@ -205,23 +205,9 @@ public class BroadcastRestService extends RestServiceBase{
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/broadcast/createConferenceRoom")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Override
 	public ConferenceRoom createConferenceRoom(@ApiParam(value = "Conference Room object with start and end date", required = true) ConferenceRoom room) {
-
-		if(room != null) {
-
-			if(room.getStartDate() == 0) {
-				room.setStartDate(Instant.now().getEpochSecond());
-			}
-
-			if(room.getEndDate() == 0) {
-				room.setEndDate(Instant.now().getEpochSecond() + 3600 );
-			}
-
-			if (getDataStore().createConferenceRoom(room)) {
-				return room;
-			}
-		}
-		return null;
+		return super.createConferenceRoom(room);
 	}
 
 	/**
@@ -236,15 +222,9 @@ public class BroadcastRestService extends RestServiceBase{
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/broadcast/editConferenceRoom")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Override
 	public ConferenceRoom editConferenceRoom(@ApiParam(value = "Conference Room object with start and end date", required = true) ConferenceRoom room) {
-
-		if(room != null) {
-
-			if (getDataStore().editConferenceRoom(room.getRoomId(), room)) {
-				return room;
-			}
-		}
-		return null;
+		return super.editConferenceRoom(room);
 	}
 
 	/**
@@ -259,12 +239,9 @@ public class BroadcastRestService extends RestServiceBase{
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/broadcast/deleteConferenceRoom")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Override
 	public boolean deleteConferenceRoom(@ApiParam(value = "the name of the conference room", required = true) @QueryParam("roomName") String roomName) {
-
-		if(roomName != null) {
-			return getDataStore().deleteConferenceRoom(roomName);
-		}
-		return false;
+		return super.deleteConferenceRoom(roomName);
 	}
 
 
@@ -482,6 +459,7 @@ public class BroadcastRestService extends RestServiceBase{
 	@GET
 	@Path("/broadcast/getLiveComments/{endpointServiceId}/{streamId}/{offset}/{batch}")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Override
 	public List<LiveComment> getLiveCommentsFromEndpoint(@ApiParam(value = "This is the id of the endpoint service", required = true)
 				@PathParam("endpointServiceId") String endpointServiceId,
 				@ApiParam(value = "Stream id", required = true)
@@ -492,12 +470,7 @@ public class BroadcastRestService extends RestServiceBase{
 				@PathParam("batch") int batch) 
 	{
 
-		VideoServiceEndpoint videoServiceEndPoint = getApplication().getVideoServiceEndPoint(endpointServiceId);
-		List<LiveComment> liveComment = null;
-		if (videoServiceEndPoint != null) {
-			liveComment = videoServiceEndPoint.getComments(streamId, offset, batch);
-		}
-		return liveComment;
+		return super.getLiveCommentsFromEndpoint(endpointServiceId, streamId, offset, batch);
 	}
 
 	/**
@@ -512,16 +485,13 @@ public class BroadcastRestService extends RestServiceBase{
 	@GET
 	@Path("/broadcast/getLiveViewsCount/{endpointServiceId}/{streamId}")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Override
 	public Result getViewerCountFromEndpoint(@ApiParam(value = "the id of the endpoint", required = true)
 	@PathParam("endpointServiceId") String endpointServiceId,
 	@ApiParam(value = "the id of the stream", required = true)
-	@PathParam("streamId") String streamId) {
-		VideoServiceEndpoint videoServiceEndPoint = getApplication().getVideoServiceEndPoint(endpointServiceId);
-		long liveViews = 0;
-		if (videoServiceEndPoint != null) {
-			liveViews = videoServiceEndPoint.getLiveViews(streamId);
-		}
-		return new Result(true, String.valueOf(liveViews));
+	@PathParam("streamId") String streamId) 
+	{
+		return super.getViewerCountFromEndpoint(endpointServiceId, streamId);
 	}
 
 
@@ -537,14 +507,10 @@ public class BroadcastRestService extends RestServiceBase{
 	@GET
 	@Path("/broadcast/getLiveCommentsCount/{endpointServiceId}/{streamId}")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Override
 	public Result getLiveCommentsCount(@ApiParam(value = " the id of the endpoint", required = true) @PathParam("endpointServiceId") String endpointServiceId,
 			@ApiParam(value = "the id of the stream", required = true)  @PathParam("streamId") String streamId) {
-		VideoServiceEndpoint videoServiceEndPoint = getApplication().getVideoServiceEndPoint(endpointServiceId);
-		int commentCount = 0;
-		if (videoServiceEndPoint != null) {
-			commentCount = videoServiceEndPoint.getTotalCommentsCount(streamId);
-		}
-		return new Result(true, String.valueOf(commentCount));
+		return super.getLiveCommentsCount(endpointServiceId, streamId);
 	}
 
 	/**
@@ -559,14 +525,10 @@ public class BroadcastRestService extends RestServiceBase{
 	@GET
 	@Path("/broadcast/getInteraction/{endpointServiceId}/{streamId}")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Override
 	public Interaction getInteractionFromEndpoint(@ApiParam(value = "the id of the endpoint", required = true) @PathParam("endpointServiceId") String endpointServiceId,
 			@ApiParam(value = "the id of the stream", required = true) @PathParam("streamId") String streamId) {
-		Interaction interaction = null;
-		VideoServiceEndpoint videoServiceEndPoint = getApplication().getVideoServiceEndPoint(endpointServiceId);
-		if (videoServiceEndPoint != null) {
-			interaction = videoServiceEndPoint.getInteraction(streamId);
-		}
-		return interaction;
+		return super.getInteractionFromEndpoint(endpointServiceId, streamId);
 	}
 
 	/**
@@ -601,15 +563,9 @@ public class BroadcastRestService extends RestServiceBase{
 	@GET
 	@Path("/broadcast/getVoD")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Override
 	public VoD getVoD(@ApiParam(value = "id of the VoD", required = true) @QueryParam("id") String id) {
-		VoD vod = null;
-		if (id != null) {
-			vod = getDataStore().getVoD(id);
-		}
-		if (vod == null) {
-			vod = new VoD();
-		}
-		return vod;
+		return super.getVoD(id);
 	}
 	
 	/**
@@ -652,22 +608,11 @@ public class BroadcastRestService extends RestServiceBase{
 	@GET
 	@Path("/detection/getList/{offset}/{size}")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Override
 	public List<TensorFlowObject> getDetectionList(@ApiParam(value = "the id of the stream", required = true) @QueryParam("id") String id,
 			@ApiParam(value = "starting point of the list", required = true) @PathParam("offset") int offset,
 			@ApiParam(value = "total size of the return list", required = true) @PathParam("size") int size) {
-		List<TensorFlowObject> list = null;
-
-		if (id != null) {
-			list = getDataStore().getDetectionList(id, offset, size);	
-		}
-
-		if (list == null) {
-			//do not return null in rest service
-			list = new ArrayList<>();
-		}
-
-
-		return list;
+		return super.getDetectionList(id, offset, size);
 	}
 
 	/**
@@ -857,40 +802,12 @@ public class BroadcastRestService extends RestServiceBase{
 	@GET
 	@Path("/broadcast/getToken")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Override
 	public Object getToken (@ApiParam(value = "the id of the stream", required = true) @QueryParam("id")String streamId,
 			@ApiParam(value = "the expire date of the token", required = true) @QueryParam("expireDate") long expireDate,
 			@ApiParam(value = "type", required = true) @QueryParam("type") String type) 
 	{
-		Token token = null;
-		String message = "Define stream Id and Expire Date (unix time)";
-		if(streamId != null && expireDate > 0) {
-
-			ApplicationContext appContext = getAppContext();
-
-			if(appContext != null && appContext.containsBean(ITokenService.BeanName.TOKEN_SERVICE.toString())) 
-			{
-				ITokenService tokenService = (ITokenService)appContext.getBean(ITokenService.BeanName.TOKEN_SERVICE.toString());
-				token = tokenService.createToken(streamId, expireDate, type);
-				if(token != null) 
-				{
-					if (getDataStore().saveToken(token)) {
-						//returns token only everything is OK
-						return token;
-					}
-					else {
-						message = "Cannot save token to the datastore";
-					}
-				}
-				else {
-					message = "Cannot create token. It can be a mock token service";
-				}
-			}
-			else {
-				message = "No token service in this app";
-			}
-		}
-
-		return new Result(false, message);
+		return super.getToken(streamId, expireDate, type);
 	}
 
 
@@ -904,15 +821,9 @@ public class BroadcastRestService extends RestServiceBase{
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/broadcast/validateToken")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Override
 	public Token validateToken (@ApiParam(value = "token to be validated", required = true) Token token) {
-		Token validatedToken = null;
-
-		if(token.getTokenId() != null) {
-
-			validatedToken = getDataStore().validateToken(token);
-		}
-
-		return validatedToken;
+		return super.validateToken(token);		
 	}
 
 
@@ -926,15 +837,9 @@ public class BroadcastRestService extends RestServiceBase{
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/broadcast/revokeTokens")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Override
 	public Result revokeTokens (@ApiParam(value = "the id of the stream", required = true) @QueryParam("id") String streamId) {
-		Result result = new Result(false);
-
-		if(streamId != null) {
-
-			result.setSuccess(getDataStore().revokeTokens(streamId));
-		}
-
-		return result;
+		return super.revokeTokens(streamId);
 	}
 
 

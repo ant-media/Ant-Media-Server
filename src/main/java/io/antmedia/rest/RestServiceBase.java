@@ -52,6 +52,8 @@ import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointChannel;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
+import io.antmedia.datastore.db.types.TensorFlowObject;
+import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.ipcamera.onvifdiscovery.OnvifDiscovery;
@@ -60,7 +62,10 @@ import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.Muxer;
 import io.antmedia.rest.BroadcastRestService.BroadcastStatistics;
 import io.antmedia.rest.BroadcastRestService.ProcessBuilderFactory;
+import io.antmedia.rest.model.Interaction;
 import io.antmedia.rest.model.Result;
+import io.antmedia.security.ITokenService;
+import io.antmedia.social.LiveComment;
 import io.antmedia.social.endpoint.PeriscopeEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
@@ -1495,6 +1500,160 @@ public abstract class RestServiceBase {
 		return new Result(result);
 	}
 	
+	public Result getViewerCountFromEndpoint(String endpointServiceId, String streamId) 
+	{
+		VideoServiceEndpoint videoServiceEndPoint = getApplication().getVideoServiceEndPoint(endpointServiceId);
+		long liveViews = 0;
+		if (videoServiceEndPoint != null) {
+			liveViews = videoServiceEndPoint.getLiveViews(streamId);
+		}
+		return new Result(true, String.valueOf(liveViews));
+	}
+	
+	public Result getLiveCommentsCount(String endpointServiceId, String streamId) {
+		VideoServiceEndpoint videoServiceEndPoint = getApplication().getVideoServiceEndPoint(endpointServiceId);
+		int commentCount = 0;
+		if (videoServiceEndPoint != null) {
+			commentCount = videoServiceEndPoint.getTotalCommentsCount(streamId);
+		}
+		return new Result(true, String.valueOf(commentCount));
+	}
+	
+	public Interaction getInteractionFromEndpoint(String endpointServiceId, String streamId) {
+		Interaction interaction = null;
+		VideoServiceEndpoint videoServiceEndPoint = getApplication().getVideoServiceEndPoint(endpointServiceId);
+		if (videoServiceEndPoint != null) {
+			interaction = videoServiceEndPoint.getInteraction(streamId);
+		}
+		return interaction;
+	}
+	
+	public List<LiveComment> getLiveCommentsFromEndpoint(String endpointServiceId, String streamId, int offset, int batch) 
+	{
+	
+		VideoServiceEndpoint videoServiceEndPoint = getApplication().getVideoServiceEndPoint(endpointServiceId);
+		List<LiveComment> liveComment = null;
+		if (videoServiceEndPoint != null) {
+			liveComment = videoServiceEndPoint.getComments(streamId, offset, batch);
+		}
+		return liveComment;
+	}
+	
+	public List<TensorFlowObject> getDetectionList(String id, int offset, int size) {
+		List<TensorFlowObject> list = null;
+
+		if (id != null) {
+			list = getDataStore().getDetectionList(id, offset, size);	
+		}
+
+		if (list == null) {
+			//do not return null in rest service
+			list = new ArrayList<>();
+		}
+		return list;
+	}
+	
+	public Object getToken (String streamId, long expireDate, String type) 
+	{
+		Token token = null;
+		String message = "Define stream Id and Expire Date (unix time)";
+		if(streamId != null && expireDate > 0) {
+
+			ApplicationContext appContext = getAppContext();
+
+			if(appContext != null && appContext.containsBean(ITokenService.BeanName.TOKEN_SERVICE.toString())) 
+			{
+				ITokenService tokenService = (ITokenService)appContext.getBean(ITokenService.BeanName.TOKEN_SERVICE.toString());
+				token = tokenService.createToken(streamId, expireDate, type);
+				if(token != null) 
+				{
+					if (getDataStore().saveToken(token)) {
+						//returns token only everything is OK
+						return token;
+					}
+					else {
+						message = "Cannot save token to the datastore";
+					}
+				}
+				else {
+					message = "Cannot create token. It can be a mock token service";
+				}
+			}
+			else {
+				message = "No token service in this app";
+			}
+		}
+
+		return new Result(false, message);
+	}
+	
+	public Token validateToken (Token token) {
+		Token validatedToken = null;
+
+		if(token.getTokenId() != null) {
+
+			validatedToken = getDataStore().validateToken(token);
+		}
+
+		return validatedToken;
+	}
+	
+	public Result revokeTokens (String streamId) {
+		Result result = new Result(false);
+
+		if(streamId != null) {
+
+			result.setSuccess(getDataStore().revokeTokens(streamId));
+		}
+
+		return result;
+	}
+	
+	public boolean deleteConferenceRoom(String roomName) {
+
+		if(roomName != null) {
+			return getDataStore().deleteConferenceRoom(roomName);
+		}
+		return false;
+	}
+	
+	public ConferenceRoom editConferenceRoom(ConferenceRoom room) 
+	{
+		if(room != null && getDataStore().editConferenceRoom(room.getRoomId(), room)) {
+			return room;
+		}
+		return null;
+	}
+	
+	public ConferenceRoom createConferenceRoom(ConferenceRoom room) {
+
+		if(room != null) {
+
+			if(room.getStartDate() == 0) {
+				room.setStartDate(Instant.now().getEpochSecond());
+			}
+
+			if(room.getEndDate() == 0) {
+				room.setEndDate(Instant.now().getEpochSecond() + 3600 );
+			}
+
+			if (getDataStore().createConferenceRoom(room)) {
+				return room;
+			}
+		}
+		return null;
+	}
+
+	public VoD getVoD(String id) {
+		VoD vod = null;
+		if (id != null) {
+			vod = getDataStore().getVoD(id);
+		}
+		if (vod == null) {
+			vod = new VoD();
+		}
+		return vod;
+	}
 
 
 }

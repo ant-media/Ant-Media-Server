@@ -49,15 +49,9 @@ public class VoDRestServiceV2 extends RestServiceBase{
 	@GET
 	@Path("/{id}")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Override
 	public VoD getVoD(@ApiParam(value = "id of the VoD", required = true) @PathParam("id") String id) {
-		VoD vod = null;
-		if (id != null) {
-			vod = getDataStore().getVoD(id);
-		}
-		if (vod == null) {
-			vod = new VoD();
-		}
-		return vod;
+		return super.getVoD(id);
 	}
 	
 	@ApiOperation(value = "Import VoDs to Stalker Portal", response = Result.class)
@@ -114,6 +108,7 @@ public class VoDRestServiceV2 extends RestServiceBase{
 	@POST
 	@Path("/synch-user-vod-list")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Override
 	public Result synchUserVodList() {
 		return super.synchUserVodList();
 	}

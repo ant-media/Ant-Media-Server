@@ -1127,13 +1127,13 @@ public class BroadcastRestServiceUnitTestv2 {
 		assertTrue(restServiceReal.getDataStore().saveToken(token));
 
 		//validate token
-		Result result = restServiceReal.validateToken(token);
+		Result result = restServiceReal.validateTokenV2(token);
 
 		//token should be validated and returned
 		assertTrue(result.isSuccess());
 
 		//this should be false, because validated token is deleted after consumed
-		result = restServiceReal.validateToken(token);
+		result = restServiceReal.validateTokenV2(token);
 
 		assertFalse(result.isSuccess());
 
@@ -1212,7 +1212,7 @@ public class BroadcastRestServiceUnitTestv2 {
 		long now = Instant.now().getEpochSecond();
 
 		//should be null because roomName not defined
-		Response response = restServiceReal.createConferenceRoom(room);
+		Response response = restServiceReal.createConferenceRoomV2(room);
 		assertEquals(Status.BAD_REQUEST.getStatusCode(), response.getStatus());
 
 		//define roomName
@@ -1242,7 +1242,7 @@ public class BroadcastRestServiceUnitTestv2 {
 		assertEquals(now, room.getStartDate());
 
 		//delete room
-		assertTrue(restServiceReal.deleteConferenceRoom(room.getRoomId()).isSuccess());
+		assertTrue(restServiceReal.deleteConferenceRoomV2(room.getRoomId()).isSuccess());
 		
 		//check that room does not exist  in db 
 		assertNull(restServiceReal.getDataStore().getConferenceRoom(room.getRoomId()));

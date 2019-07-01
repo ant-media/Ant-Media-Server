@@ -1,15 +1,5 @@
 package io.antmedia.rest;
 
-import java.net.InetAddress;
-import java.net.NetworkInterface;
-import java.net.SocketException;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.Enumeration;
-import java.util.List;
-import java.util.regex.Pattern;
-
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -18,18 +8,12 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.IResourceMonitor;
 import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.ipcamera.OnvifCamera;
-import io.antmedia.ipcamera.onvifdiscovery.OnvifDiscovery;
 import io.antmedia.rest.model.Result;
-import io.antmedia.streamsource.StreamFetcher;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
@@ -62,31 +46,9 @@ public class StreamsSourceRestService extends RestServiceBase{
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/addStreamSource")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Override
 	public Result addStreamSource(@ApiParam(value = "stream", required = true) Broadcast stream, @QueryParam("socialNetworks") String socialEndpointIds) {
-
-		Result result = new Result(false);
-
-		IResourceMonitor monitor = (IResourceMonitor) getAppContext().getBean(IResourceMonitor.BEAN_NAME);
-
-		boolean systemResult = monitor.enoughResource();
-
-		if(!systemResult) {
-			logger.error("Stream Fetcher can not be created due to not enough system resource for stream {} CPU load:{}"
-					+ " CPU Limit:{} free RAM Limit:{}, free RAM available:{}", stream.getName(), monitor.getCpuLoad(), monitor.getCpuLimit(), monitor.getMinFreeRamSize(), monitor.getFreeRam());
-			result.setMessage(HIGH_RESOURCE_USAGE);
-			result.setErrorId(HIGH_RESOURCE_USAGE_ERROR);
-		}
-		else {
-
-			if (stream.getType().equals(AntMediaApplicationAdapter.IP_CAMERA)) {
-				result = addIPCamera(stream, socialEndpointIds);
-			}
-			else if (stream.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE) ) {
-				result = addSource(stream, socialEndpointIds);
-			}
-		} 
-		
-		return result;
+		return super.addStreamSource(stream, socialEndpointIds);
 	}
 
 	/**
@@ -164,48 +126,7 @@ public class StreamsSourceRestService extends RestServiceBase{
 	@Path("/updateCamInfo")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result updateCamInfo(@ApiParam(value = "object of IP Camera or Stream Source", required = true) Broadcast broadcast, @QueryParam("socialNetworks") String socialNetworksToPublish) {
-
-		boolean result = false;
-		logger.debug("update cam info for stream {}", broadcast.getStreamId());
-
-		if( checkStreamUrl(broadcast.getStreamUrl()) && broadcast.getStatus()!=null){
-			getApplication().stopStreaming(broadcast);
-			try {
-				Thread.sleep(1000);
-			} catch (InterruptedException e) {
-				logger.error(e.getMessage());
-				Thread.currentThread().interrupt();
-			}
-			if(broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA)) {
-				String rtspURL = connectToCamera(broadcast).getMessage();
-
-				if (rtspURL != null) {
-
-					String authparam = broadcast.getUsername() + ":" + broadcast.getPassword() + "@";
-					String rtspURLWithAuth = RTSP + authparam + rtspURL.substring(RTSP.length());
-					logger.info("new RTSP URL: {}" , rtspURLWithAuth);
-					broadcast.setStreamUrl(rtspURLWithAuth);
-				}
-			}
-
-			try {
-				Thread.sleep(1000);
-			} catch (InterruptedException e) {
-				logger.error(e.getMessage());
-				Thread.currentThread().interrupt();
-			}
-
-			result = getDataStore().updateBroadcastFields(broadcast.getStreamId(), broadcast);
-			Broadcast fetchedBroadcast = getDataStore().get(broadcast.getStreamId());
-			getDataStore().removeAllEndpoints(fetchedBroadcast.getStreamId());
-
-			if (socialNetworksToPublish != null && socialNetworksToPublish.length() > 0) {
-				addSocialEndpoints(fetchedBroadcast, socialNetworksToPublish);
-			}
-
-			getApplication().startStreaming(broadcast);
-		}
-		return new Result(result);
+		return super.updateStreamSource(broadcast.getStreamId(), broadcast, socialNetworksToPublish);
 	}
 
 
