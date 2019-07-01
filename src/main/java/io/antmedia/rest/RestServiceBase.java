@@ -1,10 +1,13 @@
 package io.antmedia.rest;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -19,7 +22,11 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,9 +43,12 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.ipcamera.OnvifCamera;
+import io.antmedia.muxer.Muxer;
 import io.antmedia.rest.BroadcastRestService.ProcessBuilderFactory;
 import io.antmedia.rest.model.Result;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
+import io.antmedia.storage.StorageClient;
+import io.antmedia.storage.StorageClient.FileType;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.swagger.annotations.ApiParam;
@@ -932,8 +942,143 @@ public abstract class RestServiceBase {
 		}
 		return list;
 	}
+	
+	
+	public Result deleteVoD(String id) {
+		boolean success = false;
+		String message = "";
+		ApplicationContext appContext = getAppContext();
+		if (appContext != null) {
+
+			File videoFile = null;
+			VoD voD = getDataStore().getVoD(id);
+			if (voD != null) {
+				try {
+					String filePath = String.format("webapps/%s/%s", getScope().getName(), voD.getFilePath());
+					videoFile = new File(filePath);
+					boolean result = Files.deleteIfExists(videoFile.toPath());
+					if (!result) {
+						logger.warn("File is not deleted because it does not exist {}", videoFile.getAbsolutePath());
+					}
+					success = getDataStore().deleteVod(id);
+					if (success) {
+						message = "vod deleted";
+					}
+
+					String fileName = videoFile.getName();
+					String[] splitFileName = StringUtils.split(fileName,".");
+					//delete preview file if exists
+					File previewFile = Muxer.getPreviewFile(getScope(), splitFileName[0], ".png");
+					Files.deleteIfExists(previewFile.toPath());
+
+					if (appContext.containsBean("app.storageClient")) {
+						StorageClient storageClient = (StorageClient) appContext.getBean("app.storageClient");
+
+						storageClient.delete(splitFileName[0] + ".mp4", FileType.TYPE_STREAM);
+						storageClient.delete(splitFileName[0] + ".png", FileType.TYPE_PREVIEW);
+					}
+				}
+				catch (Exception e) {
+					logger.error(ExceptionUtils.getStackTrace(e));
+				}
+			}
+
+		}
+		return new Result(success, message);
+	}
+	
+	public String getStreamsDirectory(String appScopeName) {
+		return String.format("%s/webapps/%s/%s", System.getProperty("red5.root"), appScopeName, "streams");
+	}
+	
+	public Result uploadVoDFile(String fileName, InputStream inputStream) {
+		boolean success = false;
+		String message = "";
+		String id= null;
+		String appScopeName = getScope().getName();
+		String fileExtension = FilenameUtils.getExtension(fileName);
+		try {
+
+			if ("mp4".equals(fileExtension)) {
+
+
+				File streamsDirectory = new File(
+						getStreamsDirectory(appScopeName));
+
+				// if the directory does not exist, create it
+				if (!streamsDirectory.exists()) {
+					streamsDirectory.mkdirs();
+				}
+				String vodId = RandomStringUtils.randomNumeric(24);
+				File savedFile = new File(String.format("%s/webapps/%s/%s", System.getProperty("red5.root"), appScopeName,
+						"streams/" + vodId + ".mp4"));
+
+				int read = 0;
+				byte[] bytes = new byte[2048];
+				try (OutputStream outpuStream = new FileOutputStream(savedFile))
+				{
+
+					while ((read = inputStream.read(bytes)) != -1) {
+						outpuStream.write(bytes, 0, read);
+					}
+					outpuStream.flush();
+
+					long fileSize = savedFile.length();
+					long unixTime = System.currentTimeMillis();
+
+					String path = savedFile.getPath();
+
+					String[] subDirs = path.split(Pattern.quote(File.separator));
+
+					Integer pathLength = subDirs.length;
+
+					String relativePath = subDirs[pathLength-2]+ File.separator +subDirs[pathLength-1];
+
+					VoD newVod = new VoD(fileName, "file", relativePath, fileName, unixTime, 0, fileSize,
+							VoD.UPLOADED_VOD, vodId);
+
+					id = getDataStore().addVod(newVod);
+
+					if(id != null) {
+						success = true;
+						message = id;
+					} 
+				}
+			} 
+			else {
+				message = "notMp4File";
+			}
+
+		} 
+		catch (IOException iox) {
+			logger.error(iox.getMessage());
+		} 
+
+
+		return new Result(success, id, message);
+	}
 
 	
+	public Result synchUserVodList() {
+		boolean result = false;
+		int errorId = -1;
+		String message = "";
+
+		String vodFolder = getApplication().getAppSettings().getVodFolder();
+
+		logger.info("synch user vod list vod folder is {}", vodFolder);
+
+		if (vodFolder != null && vodFolder.length() > 0) {
+
+			result = getApplication().synchUserVoDFolder(null, vodFolder);
+		}
+		else {
+			errorId = 404;
+			message = "no VodD folder defined";
+		}
+
+		return new Result(result, message, errorId);
+	}
 	
 
 

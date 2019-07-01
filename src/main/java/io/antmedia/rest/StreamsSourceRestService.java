@@ -180,25 +180,9 @@ public class StreamsSourceRestService extends RestServiceBase{
 	@POST
 	@Path("/synchUserVoDList")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Override
 	public Result synchUserVodList() {
-		boolean result = false;
-		int errorId = -1;
-		String message = "";
-
-		String vodFolder = getApplication().getAppSettings().getVodFolder();
-
-		logger.info("synch user vod list vod folder is {}", vodFolder);
-
-		if (vodFolder != null && vodFolder.length() > 0) {
-
-			result = getApplication().synchUserVoDFolder(null, vodFolder);
-		}
-		else {
-			errorId = 404;
-			message = "no VodD folder defined";
-		}
-
-		return new Result(result, message, errorId);
+		return super.synchUserVodList();
 	}
 
 	/**

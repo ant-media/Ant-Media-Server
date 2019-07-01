@@ -1104,47 +1104,9 @@ public class BroadcastRestService extends RestServiceBase{
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/broadcast/deleteVoD/{id}")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Override
 	public Result deleteVoD(@ApiParam(value = "the id of the VoD file", required = true) @PathParam("id") String id) {
-		boolean success = false;
-		String message = "";
-		ApplicationContext appContext = getAppContext();
-		if (appContext != null) {
-
-			File videoFile = null;
-			VoD voD = getDataStore().getVoD(id);
-			if (voD != null) {
-				try {
-					String filePath = String.format("webapps/%s/%s", getScope().getName(), voD.getFilePath());
-					videoFile = new File(filePath);
-					boolean result = Files.deleteIfExists(videoFile.toPath());
-					if (!result) {
-						logger.warn("File is not deleted because it does not exist {}", videoFile.getAbsolutePath());
-					}
-					success = getDataStore().deleteVod(id);
-					if (success) {
-						message = "vod deleted";
-					}
-
-					String fileName = videoFile.getName();
-					String[] splitFileName = StringUtils.split(fileName,".");
-					//delete preview file if exists
-					File previewFile = Muxer.getPreviewFile(getScope(), splitFileName[0], ".png");
-					Files.deleteIfExists(previewFile.toPath());
-
-					if (appContext.containsBean("app.storageClient")) {
-						StorageClient storageClient = (StorageClient) appContext.getBean("app.storageClient");
-
-						storageClient.delete(splitFileName[0] + ".mp4", FileType.TYPE_STREAM);
-						storageClient.delete(splitFileName[0] + ".png", FileType.TYPE_PREVIEW);
-					}
-				}
-				catch (Exception e) {
-					logger.error(ExceptionUtils.getStackTrace(e));
-				}
-			}
-
-		}
-		return new Result(success, message);
+		return super.deleteVoD(id);
 	}
 
 	/**
@@ -1160,78 +1122,12 @@ public class BroadcastRestService extends RestServiceBase{
 	@Consumes({MediaType.MULTIPART_FORM_DATA})
 	@Path("/broadcast/uploadVoDFile/{name}")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Override
 	public Result uploadVoDFile(@ApiParam(value = "the name of the VoD File", required = true) @PathParam("name") String fileName,
 			@ApiParam(value = "file", required = true) @FormDataParam("file") InputStream inputStream) {
-		boolean success = false;
-		String message = "";
-		String id= null;
-		String appScopeName = getScope().getName();
-		String fileExtension = FilenameUtils.getExtension(fileName);
-		try {
-
-			if ("mp4".equals(fileExtension)) {
-
-
-				File streamsDirectory = new File(
-						getStreamsDirectory(appScopeName));
-
-				// if the directory does not exist, create it
-				if (!streamsDirectory.exists()) {
-					streamsDirectory.mkdirs();
-				}
-				String vodId = RandomStringUtils.randomNumeric(24);
-				File savedFile = new File(String.format("%s/webapps/%s/%s", System.getProperty("red5.root"), appScopeName,
-						"streams/" + vodId + ".mp4"));
-
-				int read = 0;
-				byte[] bytes = new byte[2048];
-				try (OutputStream outpuStream = new FileOutputStream(savedFile))
-				{
-
-					while ((read = inputStream.read(bytes)) != -1) {
-						outpuStream.write(bytes, 0, read);
-					}
-					outpuStream.flush();
-
-					long fileSize = savedFile.length();
-					long unixTime = System.currentTimeMillis();
-
-					String path = savedFile.getPath();
-
-					String[] subDirs = path.split(Pattern.quote(File.separator));
-
-					Integer pathLength = subDirs.length;
-
-					String relativePath = subDirs[pathLength-2]+ File.separator +subDirs[pathLength-1];
-
-					VoD newVod = new VoD(fileName, "file", relativePath, fileName, unixTime, 0, fileSize,
-							VoD.UPLOADED_VOD, vodId);
-
-					id = getDataStore().addVod(newVod);
-
-					if(id != null) {
-						success = true;
-						message = id;
-					} 
-				}
-			} 
-			else {
-				message = "notMp4File";
-			}
-
-		} 
-		catch (IOException iox) {
-			logger.error(iox.getMessage());
-		} 
-
-
-		return new Result(success, id, message);
+		return super.uploadVoDFile(fileName, inputStream);
 	}
 
-
-	public String getStreamsDirectory(String appScopeName) {
-		return String.format("%s/webapps/%s/%s", System.getProperty("red5.root"), appScopeName, "streams");
-	}
 
 	/**
 	 * Delete broadcast from data store
