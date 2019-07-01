@@ -641,6 +641,10 @@ public class MongoStore extends DataStore {
 					ops.set("name", broadcast.getName());
 				}
 				
+				if (broadcast.getDescription() != null) {
+					ops.set("description", broadcast.getDescription());
+				}
+				
 				if (broadcast.getUsername() != null) {
 					ops.set("username", broadcast.getUsername());
 				}
