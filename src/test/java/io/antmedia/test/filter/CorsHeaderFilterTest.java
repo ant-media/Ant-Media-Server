@@ -45,14 +45,14 @@ public class CorsHeaderFilterTest {
 		
 		Mockito.when(request.getHeader(CorsFilter.REQUEST_HEADER_ORIGIN)).thenReturn("http://localhost:4200");
 		
-		corsFilterSpy.addStandardHeadersInternal(request, response);
+		corsFilterSpy.addStandardHeadersInternal(request, response, "http://localhost:4200");
 		
 		Mockito.verify(response).addHeader(CorsFilter.RESPONSE_HEADER_ACCESS_CONTROL_ALLOW_ORIGIN, "http://localhost:4200");
 		
 		
 		
 		Mockito.when(request.getHeader(CorsFilter.REQUEST_HEADER_ORIGIN)).thenReturn("localhost:4200");
-		corsFilterSpy.addStandardHeadersInternal(request, response);
+		corsFilterSpy.addStandardHeadersInternal(request, response, "http://localhost:4200");
 		Mockito.verify(response).addHeader(CorsFilter.RESPONSE_HEADER_ACCESS_CONTROL_ALLOW_ORIGIN, "*");
 		
 		
@@ -68,7 +68,7 @@ public class CorsHeaderFilterTest {
 		
 		Mockito.doReturn(100L).when(corsFilterSpy).getPreflightMaxAge();
 		
-		corsFilterSpy.addStandardHeadersInternal(request, response);
+		corsFilterSpy.addStandardHeadersInternal(request, response, "http://localhost:4200");
 		
 		try {
 			Mockito.doReturn(true).when(corsFilterSpy).isAnyOriginAllowed();
