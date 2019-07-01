@@ -27,6 +27,7 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.glassfish.jersey.media.multipart.FormDataParam;
+import org.red5.server.api.scope.IBroadcastScope;
 import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,10 +44,15 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.ipcamera.OnvifCamera;
+import io.antmedia.muxer.Mp4Muxer;
+import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.Muxer;
+import io.antmedia.rest.BroadcastRestService.BroadcastStatistics;
 import io.antmedia.rest.BroadcastRestService.ProcessBuilderFactory;
 import io.antmedia.rest.model.Result;
+import io.antmedia.social.endpoint.PeriscopeEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
+import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
 import io.antmedia.storage.StorageClient;
 import io.antmedia.storage.StorageClient.FileType;
 import io.antmedia.streamsource.StreamFetcher;
@@ -1080,6 +1086,209 @@ public abstract class RestServiceBase {
 		return new Result(result, message, errorId);
 	}
 	
+	public Object getDeviceAuthParameters(String serviceName) {
+		String message = null;
+		boolean missingClientIdAndSecret = false;
 
+		int errorId = -1;
+		VideoServiceEndpoint videoServiceEndpoint = null;
+		if (serviceName.equals(AntMediaApplicationAdapter.FACEBOOK)) 
+		{
+			String clientId = getAppSettings().getFacebookClientId();
+			String clientSecret = getAppSettings().getFacebookClientSecret();
+
+			videoServiceEndpoint = getApplication().getEndpointService(AntMediaApplicationAdapter.FACEBOOK_ENDPOINT_CLASS, null, clientId, clientSecret);
+
+			if (isClientIdMissing(videoServiceEndpoint, clientId, clientSecret)) 
+			{
+				missingClientIdAndSecret = true;
+			}
+
+		}
+		else if (serviceName.equals(AntMediaApplicationAdapter.YOUTUBE)) 
+		{
+
+			String clientId = getAppSettings().getYoutubeClientId();
+			String clientSecret = getAppSettings().getYoutubeClientSecret();
+
+			videoServiceEndpoint = getApplication().getEndpointService(AntMediaApplicationAdapter.YOUTUBE_ENDPOINT_CLASS, null, clientId, clientSecret);
+
+			if (isClientIdMissing(videoServiceEndpoint, clientId, clientSecret)) 
+			{
+				missingClientIdAndSecret = true;
+			}
+
+		}
+		else if (serviceName.equals(AntMediaApplicationAdapter.PERISCOPE)) 
+		{
+			String clientId = getAppSettings().getPeriscopeClientId();
+			String clientSecret = getAppSettings().getPeriscopeClientSecret();
+
+			videoServiceEndpoint = getApplication().getEndpointService(PeriscopeEndpoint.class.getName(), null, clientId, clientSecret);
+
+			if (isClientIdMissing(videoServiceEndpoint, clientId, clientSecret))  {
+				missingClientIdAndSecret = true;
+			}
+		}
+
+		try {
+
+			if (missingClientIdAndSecret) {
+				errorId = ERROR_SOCIAL_ENDPOINT_UNDEFINED_CLIENT_ID;
+				message = "Please enter service client id and client secret in app configuration";
+			}
+			else if (videoServiceEndpoint == null) {
+				errorId = ERROR_SOCIAL_ENDPOINT_UNDEFINED_ENDPOINT;
+				message = "Service with the name specified is not found in this app";
+			}
+			else {
+				DeviceAuthParameters askDeviceAuthParameters = videoServiceEndpoint.askDeviceAuthParameters();
+
+				getApplication().startDeviceAuthStatusPolling(videoServiceEndpoint,
+						askDeviceAuthParameters);
+				return askDeviceAuthParameters;
+			}
+		}
+		catch (Exception e) {
+			errorId = ERROR_SOCIAL_ENDPOINT_EXCEPTION_IN_ASKING_AUTHPARAMS;
+			message = "Exception in asking parameters";
+			logger.error(ExceptionUtils.getStackTrace(e));
+		}
+
+		return new Result(false, message, errorId);
+	}
+	
+	private boolean isClientIdMissing(VideoServiceEndpoint videoServiceEndpoint, String clientId, String clientSecret) {
+		boolean result = false;
+		if ((videoServiceEndpoint != null) && 
+				(clientId == null || clientSecret == null || 
+				clientId.length() == 0 || clientSecret.length() == 0)) {
+			result = true;
+		}
+		return result;
+	}
+	
+	public Result checkDeviceAuthStatus(String userCode) {
+		Map<String, VideoServiceEndpoint> endPointMap = getEndpointList();
+		String message = null;
+		boolean authenticated = false;
+		String endpointId = null;
+		if (endPointMap != null) {
+			for (VideoServiceEndpoint videoServiceEndpoint : endPointMap.values()) {
+				//if there is an endpoint added to the list with same user code,
+				//it means it is authenticated
+				DeviceAuthParameters authParameters = videoServiceEndpoint.getAuthParameters();
+				if (authParameters != null && authParameters.user_code.equals(userCode)) {
+					authenticated = true;
+					endpointId = videoServiceEndpoint.getCredentials().getId();
+					break;
+				}
+			}
+		}
+		if (!authenticated) {
+			List<VideoServiceEndpoint> endPointList = getEndpointsHavingErrorList();
+			for (VideoServiceEndpoint videoServiceEndpoint : endPointList) {
+				DeviceAuthParameters authParameters = videoServiceEndpoint.getAuthParameters();
+				if (authParameters != null && authParameters.user_code.equals(userCode)) {
+					message = videoServiceEndpoint.getError();
+					endPointList.remove(videoServiceEndpoint);
+					break;
+				}
+			}
+
+		}
+		return new Result(authenticated, endpointId, message);
+	}
+	
+	protected List<MuxAdaptor> getMuxAdaptors(String streamId) {
+        AntMediaApplicationAdapter application = getApplication();
+        List<MuxAdaptor> muxAdaptors = new ArrayList<>();
+        if(application != null){
+            muxAdaptors = application.getMuxAdaptors();
+        }
+        List<MuxAdaptor> matchedMuxAdaptors = new ArrayList<>();
+        for (MuxAdaptor muxAdaptor : muxAdaptors) {
+            if (streamId.equals(muxAdaptor.getStreamId())) {
+                matchedMuxAdaptors.add(muxAdaptor);
+            }
+        }
+        return matchedMuxAdaptors;
+    }
+
+    @Nullable
+    protected Mp4Muxer getMp4Muxer(MuxAdaptor muxAdaptor) {
+        Mp4Muxer mp4Muxer = null;
+        for (Muxer muxer : muxAdaptor.getMuxerList()) {
+            if (muxer instanceof Mp4Muxer) {
+                mp4Muxer = (Mp4Muxer) muxer;
+            }
+        }
+        return mp4Muxer;
+    }
+
+    protected Result startMp4Muxing(String streamId) {
+        boolean result = false;
+        List<MuxAdaptor> muxAdaptors = getMuxAdaptors(streamId);
+        for (MuxAdaptor muxAdaptor : muxAdaptors) {
+            if (muxAdaptor != null) {
+                Mp4Muxer mp4Muxer = getMp4Muxer(muxAdaptor);
+                if (mp4Muxer == null) {
+                    //avoid multiple call of rest api adding new mp4muxers
+                    muxAdaptor.startRecording();
+                }
+                result = true;
+            }
+        }
+        return new Result(result);
+    }
+
+	protected Result stopMp4Muxing(String streamId) {
+        boolean result = false;
+        List<MuxAdaptor> muxAdaptors = getMuxAdaptors(streamId);
+        for (MuxAdaptor muxAdaptor : muxAdaptors) {
+            if (muxAdaptor != null) {
+                Mp4Muxer mp4Muxer = getMp4Muxer(muxAdaptor);
+                if (mp4Muxer != null) {
+                    //avoid multiple call of rest api stopping mp4 muxer
+                    muxAdaptor.stopRecording();
+                }
+                result = true;
+            }
+        }
+        return new Result(result);
+    }
+	
+	protected List<VideoServiceEndpoint> getEndpointsHavingErrorList(){
+		return getApplication().getVideoServiceEndpointsHavingError();
+	}
+
+	
+	public BroadcastStatistics getBroadcastStatistics(String id) {
+
+		int totalRTMPViewer = -1;
+		int totalWebRTCViewer = -1;
+		int totalHLSViewer = -1;
+		if (id != null) 
+		{
+			IBroadcastScope broadcastScope = getScope().getBroadcastScope(id);
+
+			if (broadcastScope != null)	{
+				totalRTMPViewer = broadcastScope.getConsumers().size();
+			}
+
+			Broadcast broadcast = getDataStore().get(id);
+			if (broadcast != null) {
+				totalHLSViewer = broadcast.getHlsViewerCount();
+			}
+
+			IWebRTCAdaptor webRTCAdaptor = getWebRTCAdaptor();
+
+			if (webRTCAdaptor != null) {
+				totalWebRTCViewer = webRTCAdaptor.getNumberOfViewers(id);
+			}
+		}
+
+		return new BroadcastStatistics(totalRTMPViewer, totalHLSViewer, totalWebRTCViewer);
+	}
 
 }

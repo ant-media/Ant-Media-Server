@@ -976,32 +976,9 @@ public class BroadcastRestService extends RestServiceBase{
 	@GET
 	@Path("/broadcast/getBroadcastLiveStatistics")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Override
 	public BroadcastStatistics getBroadcastStatistics(@ApiParam(value = "the id of the stream", required = true) @QueryParam("id") String id) {
-
-		int totalRTMPViewer = -1;
-		int totalWebRTCViewer = -1;
-		int totalHLSViewer = -1;
-		if (id != null) 
-		{
-			IBroadcastScope broadcastScope = getScope().getBroadcastScope(id);
-
-			if (broadcastScope != null)	{
-				totalRTMPViewer = broadcastScope.getConsumers().size();
-			}
-
-			Broadcast broadcast = getDataStore().get(id);
-			if (broadcast != null) {
-				totalHLSViewer = broadcast.getHlsViewerCount();
-			}
-
-			IWebRTCAdaptor webRTCAdaptor = getWebRTCAdaptor();
-
-			if (webRTCAdaptor != null) {
-				totalWebRTCViewer = webRTCAdaptor.getNumberOfViewers(id);
-			}
-		}
-
-		return new BroadcastStatistics(totalRTMPViewer, totalHLSViewer, totalWebRTCViewer);
+		return super.getBroadcastStatistics(id);
 	}
 
 
@@ -1173,87 +1150,8 @@ public class BroadcastRestService extends RestServiceBase{
 	@Path("/broadcast/getDeviceAuthParameters/{serviceName}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Object getDeviceAuthParameters(@ApiParam(value = "Name of the service, like Facebook, Youtube, Periscope", required = true) @PathParam("serviceName") String serviceName) {
-		String message = null;
-		boolean missingClientIdAndSecret = false;
-
-		int errorId = -1;
-		VideoServiceEndpoint videoServiceEndpoint = null;
-		if (serviceName.equals(AntMediaApplicationAdapter.FACEBOOK)) 
-		{
-			String clientId = getAppSettings().getFacebookClientId();
-			String clientSecret = getAppSettings().getFacebookClientSecret();
-
-			videoServiceEndpoint = getApplication().getEndpointService(AntMediaApplicationAdapter.FACEBOOK_ENDPOINT_CLASS, null, clientId, clientSecret);
-
-			if (isClientIdMissing(videoServiceEndpoint, clientId, clientSecret)) 
-			{
-				missingClientIdAndSecret = true;
-			}
-
-		}
-		else if (serviceName.equals(AntMediaApplicationAdapter.YOUTUBE)) 
-		{
-
-			String clientId = getAppSettings().getYoutubeClientId();
-			String clientSecret = getAppSettings().getYoutubeClientSecret();
-
-			videoServiceEndpoint = getApplication().getEndpointService(AntMediaApplicationAdapter.YOUTUBE_ENDPOINT_CLASS, null, clientId, clientSecret);
-
-			if (isClientIdMissing(videoServiceEndpoint, clientId, clientSecret)) 
-			{
-				missingClientIdAndSecret = true;
-			}
-
-		}
-		else if (serviceName.equals(AntMediaApplicationAdapter.PERISCOPE)) 
-		{
-			String clientId = getAppSettings().getPeriscopeClientId();
-			String clientSecret = getAppSettings().getPeriscopeClientSecret();
-
-			videoServiceEndpoint = getApplication().getEndpointService(PeriscopeEndpoint.class.getName(), null, clientId, clientSecret);
-
-			if (isClientIdMissing(videoServiceEndpoint, clientId, clientSecret))  {
-				missingClientIdAndSecret = true;
-			}
-		}
-
-		try {
-
-			if (missingClientIdAndSecret) {
-				errorId = ERROR_SOCIAL_ENDPOINT_UNDEFINED_CLIENT_ID;
-				message = "Please enter service client id and client secret in app configuration";
-			}
-			else if (videoServiceEndpoint == null) {
-				errorId = ERROR_SOCIAL_ENDPOINT_UNDEFINED_ENDPOINT;
-				message = "Service with the name specified is not found in this app";
-			}
-			else {
-				DeviceAuthParameters askDeviceAuthParameters = videoServiceEndpoint.askDeviceAuthParameters();
-
-				getApplication().startDeviceAuthStatusPolling(videoServiceEndpoint,
-						askDeviceAuthParameters);
-				return askDeviceAuthParameters;
-			}
-		}
-		catch (Exception e) {
-			errorId = ERROR_SOCIAL_ENDPOINT_EXCEPTION_IN_ASKING_AUTHPARAMS;
-			message = "Exception in asking parameters";
-			logger.error(ExceptionUtils.getStackTrace(e));
-		}
-
-		return new Result(false, message, errorId);
+		return super.getDeviceAuthParameters(serviceName);
 	}
-
-	private boolean isClientIdMissing(VideoServiceEndpoint videoServiceEndpoint, String clientId, String clientSecret) {
-		boolean result = false;
-		if ((videoServiceEndpoint != null) && 
-				(clientId == null || clientSecret == null || 
-				clientId.length() == 0 || clientSecret.length() == 0)) {
-			result = true;
-		}
-		return result;
-	}
-
 
 	/**
 	 * Check if device is authenticated in the social network. In authorization
@@ -1279,35 +1177,7 @@ public class BroadcastRestService extends RestServiceBase{
 	@Path("/broadcast/checkDeviceAuthStatus/{userCode}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result checkDeviceAuthStatus(@ApiParam(value = "Code of social media account", required = true) @PathParam("userCode") String userCode) {
-		Map<String, VideoServiceEndpoint> endPointMap = getEndpointList();
-		String message = null;
-		boolean authenticated = false;
-		String endpointId = null;
-		if (endPointMap != null) {
-			for (VideoServiceEndpoint videoServiceEndpoint : endPointMap.values()) {
-				//if there is an endpoint added to the list with same user code,
-				//it means it is authenticated
-				DeviceAuthParameters authParameters = videoServiceEndpoint.getAuthParameters();
-				if (authParameters != null && authParameters.user_code.equals(userCode)) {
-					authenticated = true;
-					endpointId = videoServiceEndpoint.getCredentials().getId();
-					break;
-				}
-			}
-		}
-		if (!authenticated) {
-			List<VideoServiceEndpoint> endPointList = getEndpointsHavingErrorList();
-			for (VideoServiceEndpoint videoServiceEndpoint : endPointList) {
-				DeviceAuthParameters authParameters = videoServiceEndpoint.getAuthParameters();
-				if (authParameters != null && authParameters.user_code.equals(userCode)) {
-					message = videoServiceEndpoint.getError();
-					endPointList.remove(videoServiceEndpoint);
-					break;
-				}
-			}
-
-		}
-		return new Result(authenticated, endpointId, message);
+		return super.checkDeviceAuthStatus(userCode);
 	}
 
 	/**
@@ -1435,10 +1305,7 @@ public class BroadcastRestService extends RestServiceBase{
 		return getDataStore().getBroadcastCount();
 	}
 
-	protected List<VideoServiceEndpoint> getEndpointsHavingErrorList(){
-		return getApplication().getVideoServiceEndpointsHavingError();
-	}
-
+	
     /**
      * Set stream specific Mp4 Muxing setting, this setting overrides general Mp4 Muxing Setting
      *
@@ -1472,61 +1339,5 @@ public class BroadcastRestService extends RestServiceBase{
         return result;
     }
 
-    private List<MuxAdaptor> getMuxAdaptors(String streamId) {
-        AntMediaApplicationAdapter application = getApplication();
-        List<MuxAdaptor> muxAdaptors = new ArrayList<>();
-        if(application != null){
-            muxAdaptors = application.getMuxAdaptors();
-        }
-        List<MuxAdaptor> matchedMuxAdaptors = new ArrayList<>();
-        for (MuxAdaptor muxAdaptor : muxAdaptors) {
-            if (streamId.equals(muxAdaptor.getStreamId())) {
-                matchedMuxAdaptors.add(muxAdaptor);
-            }
-        }
-        return matchedMuxAdaptors;
-    }
-
-    @Nullable
-    private Mp4Muxer getMp4Muxer(MuxAdaptor muxAdaptor) {
-        Mp4Muxer mp4Muxer = null;
-        for (Muxer muxer : muxAdaptor.getMuxerList()) {
-            if (muxer instanceof Mp4Muxer) {
-                mp4Muxer = (Mp4Muxer) muxer;
-            }
-        }
-        return mp4Muxer;
-    }
-
-	private Result startMp4Muxing(String streamId) {
-        boolean result = false;
-        List<MuxAdaptor> muxAdaptors = getMuxAdaptors(streamId);
-        for (MuxAdaptor muxAdaptor : muxAdaptors) {
-            if (muxAdaptor != null) {
-                Mp4Muxer mp4Muxer = getMp4Muxer(muxAdaptor);
-                if (mp4Muxer == null) {
-                    //avoid multiple call of rest api adding new mp4muxers
-                    muxAdaptor.startRecording();
-                }
-                result = true;
-            }
-        }
-        return new Result(result);
-    }
-
-	private Result stopMp4Muxing(String streamId) {
-        boolean result = false;
-        List<MuxAdaptor> muxAdaptors = getMuxAdaptors(streamId);
-        for (MuxAdaptor muxAdaptor : muxAdaptors) {
-            if (muxAdaptor != null) {
-                Mp4Muxer mp4Muxer = getMp4Muxer(muxAdaptor);
-                if (mp4Muxer != null) {
-                    //avoid multiple call of rest api stopping mp4 muxer
-                    muxAdaptor.stopRecording();
-                }
-                result = true;
-            }
-        }
-        return new Result(result);
-    }
+    
 }
