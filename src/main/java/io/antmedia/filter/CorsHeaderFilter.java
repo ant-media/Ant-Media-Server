@@ -53,17 +53,16 @@ public class CorsHeaderFilter extends CorsFilter {
 			return;
 		}
 
-		addStandardHeadersInternal(request, response);
+		addStandardHeadersInternal(request, response, origin);
 
 		// Forward the request down the filter chain.
 		filterChain.doFilter(request, response);
 	}
 	
 	 public void addStandardHeadersInternal(final HttpServletRequest request,
-	            final HttpServletResponse response) {
+	            final HttpServletResponse response, String origin) {
 
 	        final String method = request.getMethod();
-	        final String origin = request.getHeader(CorsFilter.REQUEST_HEADER_ORIGIN);
 
 	        if (!isAnyOriginAllowed()) {
 	            // If only specific origins are allowed, the response will vary by
@@ -84,9 +83,7 @@ public class CorsHeaderFilter extends CorsFilter {
 	        } else {
 	            // Add a single Access-Control-Allow-Origin header, with the value
 	            // of the Origin header as value.
-	        		if (origin.contains("http") || origin.contains("ws")) {
-	        			response.addHeader(CorsFilter.RESPONSE_HEADER_ACCESS_CONTROL_ALLOW_ORIGIN, origin);
-	        		}
+	        		response.addHeader(CorsFilter.RESPONSE_HEADER_ACCESS_CONTROL_ALLOW_ORIGIN, origin);
 	        }
 
 	        // If the resource supports credentials, add a single
@@ -223,7 +220,7 @@ public class CorsHeaderFilter extends CorsFilter {
             }
         }
 
-        addStandardHeadersInternal(request, response);
+        addStandardHeadersInternal(request, response, origin);
 
         // Do not forward the request down the filter chain.
     }

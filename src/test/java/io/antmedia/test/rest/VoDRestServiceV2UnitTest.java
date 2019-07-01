@@ -78,7 +78,7 @@ import io.vertx.core.Vertx;
 
 @ContextConfiguration(locations = { "test.xml" })
 @DirtiesContext(classMode = ClassMode.AFTER_CLASS)
-public class VoDRestServiceUnitTestv2 {
+public class VoDRestServiceV2UnitTest {
 
 
 	private VoDRestServiceV2 restServiceReal = null;
