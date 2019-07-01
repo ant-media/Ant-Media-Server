@@ -768,7 +768,8 @@ public abstract class RestServiceBase {
 
 			logger.error("Stream Fetcher can not be created due to high cpu load/limit: {}/{} ram free/minfree:{}/{}", 
 					monitor.getCpuLoad(), monitor.getCpuLimit(), monitor.getFreeRam(), monitor.getMinFreeRamSize());
-			result.setMessage(String.valueOf(HIGH_CPU_ERROR));			
+			result.setMessage("Resource usage is high");		
+			result.setErrorId(HIGH_CPU_ERROR);
 		}
 		
 		return result;
