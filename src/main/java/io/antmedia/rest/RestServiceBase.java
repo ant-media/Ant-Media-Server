@@ -9,6 +9,7 @@ import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.URL;
+import java.net.URLClassLoader;
 import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.time.Instant;
@@ -18,6 +19,7 @@ import java.util.Date;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
+import java.util.jar.Manifest;
 import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
@@ -64,6 +66,7 @@ import io.antmedia.rest.BroadcastRestService.BroadcastStatistics;
 import io.antmedia.rest.BroadcastRestService.ProcessBuilderFactory;
 import io.antmedia.rest.model.Interaction;
 import io.antmedia.rest.model.Result;
+import io.antmedia.rest.model.Version;
 import io.antmedia.security.ITokenService;
 import io.antmedia.social.LiveComment;
 import io.antmedia.social.endpoint.PeriscopeEndpoint;
@@ -1654,6 +1657,35 @@ public abstract class RestServiceBase {
 			vod = new VoD();
 		}
 		return vod;
+	}
+	
+	public static Version getSoftwareVersion() {
+		Version version = new Version();
+		version.setVersionName(AntMediaApplicationAdapter.class.getPackage().getImplementationVersion());
+
+		URLClassLoader cl = (URLClassLoader) AntMediaApplicationAdapter.class.getClassLoader();
+		URL url = cl.findResource("META-INF/MANIFEST.MF");
+		Manifest manifest;
+		try {
+			manifest = new Manifest(url.openStream());
+			version.setBuildNumber(manifest.getMainAttributes().getValue(RestServiceBase.BUILD_NUMBER));
+		} catch (IOException e) {
+			//No need to implement
+		}
+
+		version.setVersionType(isEnterprise() ? RestServiceBase.ENTERPRISE_EDITION : RestServiceBase.COMMUNITY_EDITION);
+
+		logger.debug("Version Name {} Version Type {}", version.getVersionName(), version.getVersionType());
+		return version;
+	}
+	
+	public static boolean isEnterprise() {
+		try {
+			Class.forName("io.antmedia.enterprise.adaptive.EncoderAdaptor");
+			return true;
+		} catch (ClassNotFoundException e) {
+			return false;
+		}
 	}
 
 

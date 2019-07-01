@@ -199,8 +199,7 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/social-networks/{endpointId}")
 	@Produces(MediaType.APPLICATION_JSON)
-	@Override
-	public Result revokeSocialNetwork(@ApiParam(value = "Endpoint id", required = true) @PathParam("endpointId") String endpointId) {
+	public Result revokeSocialNetworkV2(@ApiParam(value = "Endpoint id", required = true) @PathParam("endpointId") String endpointId) {
 		return super.revokeSocialNetwork(endpointId);
 	}
 
@@ -209,7 +208,7 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/social-endpoints/{endpointServiceId}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result addSocialEndpointJSON(@ApiParam(value = "Stream id", required = true) @PathParam("id") String id,
+	public Result addSocialEndpointJSONV2(@ApiParam(value = "Stream id", required = true) @PathParam("id") String id,
 			@ApiParam(value = "the id of the service in order to have successfull operation. Social network must be authorized in advance", required = true) @PathParam("endpointServiceId") String endpointServiceId) {
 		return addSocialEndpoint(id, endpointServiceId);
 	}
@@ -219,8 +218,7 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/endpoint")
 	@Produces(MediaType.APPLICATION_JSON)
-	@Override
-	public Result addEndpoint(@ApiParam(value = "Broadcast id", required = true) @PathParam("id") String id,
+	public Result addEndpointV2(@ApiParam(value = "Broadcast id", required = true) @PathParam("id") String id,
 			@ApiParam(value = "RTMP url of the endpoint that stream will be republished", required = true) @QueryParam("rtmpUrl") String rtmpUrl) {
 		return super.addEndpoint(id, rtmpUrl);
 	}
@@ -229,8 +227,7 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	@GET
 	@Path("/{id}/social-endpoints/{endpointServiceId}/live-comments/{offset}/{batch}")
 	@Produces(MediaType.APPLICATION_JSON)
-	@Override
-	public List<LiveComment> getLiveCommentsFromEndpoint(@ApiParam(value = "This is the id of the endpoint service", required = true)
+	public List<LiveComment> getLiveCommentsFromEndpointV2(@ApiParam(value = "This is the id of the endpoint service", required = true)
 		@PathParam("endpointServiceId") String endpointServiceId,
 		@ApiParam(value = "Broadcast id", required = true) @PathParam("id") String streamId,
 		@ApiParam(value = "this is the start offset where to start getting comment", required = true) @PathParam("offset") int offset,
@@ -245,8 +242,7 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	@GET
 	@Path("/{id}/social-endpoints/{endpointServiceId}/live-views-count")
 	@Produces(MediaType.APPLICATION_JSON)
-	@Override
-	public Result getViewerCountFromEndpoint(@ApiParam(value = "the id of the endpoint", required = true) @PathParam("endpointServiceId") String endpointServiceId,
+	public Result getViewerCountFromEndpointV2(@ApiParam(value = "the id of the endpoint", required = true) @PathParam("endpointServiceId") String endpointServiceId,
 			@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String streamId) 
 	{
 		return super.getViewerCountFromEndpoint(endpointServiceId, streamId);
@@ -257,8 +253,7 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	@GET
 	@Path("/{id}/social-endpoints/{endpointServiceId}/live-comments-count")
 	@Produces(MediaType.APPLICATION_JSON)
-	@Override
-	public Result getLiveCommentsCount(@ApiParam(value = " the id of the endpoint", required = true) @PathParam("endpointServiceId") String endpointServiceId,
+	public Result getLiveCommentsCountV2(@ApiParam(value = " the id of the endpoint", required = true) @PathParam("endpointServiceId") String endpointServiceId,
 			@ApiParam(value = "the id of the stream", required = true)  @PathParam("streamId") String streamId) {
 		return super.getLiveCommentsCount(endpointServiceId, streamId);
 	}
@@ -268,8 +263,7 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	@GET
 	@Path("/{id}/social-endpoints/{endpointServiceId}/interaction")
 	@Produces(MediaType.APPLICATION_JSON)
-	@Override
-	public Interaction getInteractionFromEndpoint(@ApiParam(value = "the id of the endpoint", required = true) @PathParam("endpointServiceId") String endpointServiceId,
+	public Interaction getInteractionFromEndpointV2(@ApiParam(value = "the id of the endpoint", required = true) @PathParam("endpointServiceId") String endpointServiceId,
 			@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String streamId) {
 		return super.getInteractionFromEndpoint(endpointServiceId, streamId);
 	}
@@ -280,8 +274,7 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	@GET
 	@Path("/{id}/detections/{offset}/{size}")
 	@Produces(MediaType.APPLICATION_JSON)
-	@Override
-	public List<TensorFlowObject> getDetectionList(@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String id,
+	public List<TensorFlowObject> getDetectionListV2(@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String id,
 			@ApiParam(value = "starting point of the list", required = true) @PathParam("offset") int offset,
 			@ApiParam(value = "total size of the return list", required = true) @PathParam("size") int size) {
 		return super.getDetectionList(id, offset, size);
@@ -299,8 +292,7 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	@POST
 	@Path("/import-to-stalker")
 	@Produces(MediaType.APPLICATION_JSON)
-	@Override
-	public Result importLiveStreams2Stalker() 
+	public Result importLiveStreams2StalkerV2() 
 	{
 		return super.importLiveStreams2Stalker();
 	}
@@ -310,7 +302,7 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	@GET
 	@Path("/count")
 	@Produces(MediaType.APPLICATION_JSON)
-	public SimpleStat getTotalBroadcastNumber() {
+	public SimpleStat getTotalBroadcastNumberV2() {
 		return new SimpleStat(getDataStore().getTotalBroadcastNumber());
 	}
 
@@ -329,7 +321,7 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	@GET
 	@Path("/{id}/token")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response getToken (@ApiParam(value = "the id of the stream", required = true) @PathParam("id")String streamId,
+	public Response getTokenV2 (@ApiParam(value = "the id of the stream", required = true) @PathParam("id")String streamId,
 			@ApiParam(value = "the expire date of the token", required = true) @QueryParam("expireDate") long expireDate,
 			@ApiParam(value = "type of the token. It may be \"play\" or \"publish\" ", required = true) @QueryParam("type") String type) 
 	{
@@ -348,7 +340,7 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/validate-token")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result validateTokenV2 (@ApiParam(value = "token to be validated", required = true) Token token) 
+	public Result validateTokenV2(@ApiParam(value = "token to be validated", required = true) Token token) 
 	{
 		boolean result =  false;
 		Token validateToken = super.validateToken(token);
@@ -365,8 +357,7 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/tokens")
 	@Produces(MediaType.APPLICATION_JSON)
-	@Override
-	public Result revokeTokens (@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String streamId) {
+	public Result revokeTokensV2(@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String streamId) {
 		return super.revokeTokens(streamId);
 	}
 
@@ -375,7 +366,7 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	@GET
 	@Path("/{id}/tokens/list/{offset}/{size}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public List<Token> listTokens (@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String streamId,
+	public List<Token> listTokensV2(@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String streamId,
 			@ApiParam(value = "the starting point of the list", required = true) @PathParam("offset") int offset,
 			@ApiParam(value = "size of the return list (max:50 )", required = true) @PathParam("size") int size) {
 		List<Token> tokens = null;
@@ -398,8 +389,7 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	@GET
 	@Path("/{stream_id}/webrtc-client-stats/{offset}/{size}")
 	@Produces(MediaType.APPLICATION_JSON)
-	@Override
-	public List<WebRTCClientStats> getWebRTCClientStatsList(@ApiParam(value = "offset of the list", required = true) @PathParam("offset") int offset,
+	public List<WebRTCClientStats> getWebRTCClientStatsListV2(@ApiParam(value = "offset of the list", required = true) @PathParam("offset") int offset,
 			@ApiParam(value = "Number of items that will be fetched", required = true) @PathParam("size") int size,
 			@ApiParam(value = "the id of the stream", required = true) @PathParam("stream_id") String streamId) {
 
@@ -411,7 +401,7 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/filter-list/{offset}/{size}/{type}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public List<Broadcast> filterBroadcastList(@ApiParam(value = "starting point of the list", required = true) @PathParam("offset") int offset,
+	public List<Broadcast> filterBroadcastListV2(@ApiParam(value = "starting point of the list", required = true) @PathParam("offset") int offset,
 			@ApiParam(value = "size of the return list (max:50 )", required = true) @PathParam("size") int size,
 			@ApiParam(value = "type of the stream. Possible values are \"liveStream\", \"ipCamera\", \"streamSource\", \"VoD\"", required = true) @PathParam("type") String type) {
 		return getDataStore().filterBroadcastList(offset, size, type);
@@ -423,8 +413,7 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/social-networks/{serviceName}")
 	@Produces(MediaType.APPLICATION_JSON)
-	@Override
-	public Object getDeviceAuthParameters(@ApiParam(value = "Name of the service, like Facebook, Youtube, Periscope", required = true) @PathParam("serviceName") String serviceName) {
+	public Object getDeviceAuthParametersV2(@ApiParam(value = "Name of the service, like Facebook, Youtube, Periscope", required = true) @PathParam("serviceName") String serviceName) {
 		return super.getDeviceAuthParameters(serviceName);
 	}
 
@@ -437,8 +426,7 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/social-network-status/{userCode}")
 	@Produces(MediaType.APPLICATION_JSON)
-	@Override
-	public Result checkDeviceAuthStatus(@ApiParam(value = "Code of social media account", required = true) @PathParam("userCode") String userCode) {
+	public Result checkDeviceAuthStatusV2(@ApiParam(value = "Code of social media account", required = true) @PathParam("userCode") String userCode) {
 		return super.checkDeviceAuthStatus(userCode);
 	}
 
@@ -447,8 +435,7 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/social-endpoints/{offset}/{size}")
 	@Produces(MediaType.APPLICATION_JSON)
-	@Override
-	public List<SocialEndpointCredentials> getSocialEndpoints(@ApiParam(value = "the starting point of the list", required = true) @PathParam("offset") int offset,
+	public List<SocialEndpointCredentials> getSocialEndpointsV2(@ApiParam(value = "the starting point of the list", required = true) @PathParam("offset") int offset,
 			@ApiParam(value = "size of the return list (max:50 )", required = true) @PathParam("size") int size) {
 		return super.getSocialEndpoints(offset, size);
 	}
@@ -460,8 +447,7 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/social-networks-channel/{endpointId}")
 	@Produces(MediaType.APPLICATION_JSON)
-	@Override
-	public SocialEndpointChannel getSocialNetworkChannel(@ApiParam(value = "endpointId", required = true) @PathParam("endpointId") String endpointId) {
+	public SocialEndpointChannel getSocialNetworkChannelV2(@ApiParam(value = "endpointId", required = true) @PathParam("endpointId") String endpointId) {
 		return super.getSocialNetworkChannel(endpointId);
 	}
 
@@ -471,8 +457,7 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/social-networks-channel-lists/{endpointId}/{type}")
 	@Produces(MediaType.APPLICATION_JSON)
-	@Override
-	public List<SocialEndpointChannel> getSocialNetworkChannelList(@ApiParam(value = "endpointId", required = true) @PathParam("endpointId") String endpointId,
+	public List<SocialEndpointChannel> getSocialNetworkChannelListV2(@ApiParam(value = "endpointId", required = true) @PathParam("endpointId") String endpointId,
 			@ApiParam(value = "This is very service specific, it may be page for Facebook", required = true) @PathParam("type") String type) {
 		return super.getSocialNetworkChannelList(endpointId, type);
 	}
@@ -485,8 +470,7 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/social-networks-channels/{endpointId}/{type}/{id}")
 	@Produces(MediaType.APPLICATION_JSON)
-	@Override
-	public Result setSocialNetworkChannelList(@ApiParam(value = "endpointId", required = true) @PathParam("endpointId") String endpointId,
+	public Result setSocialNetworkChannelListV2(@ApiParam(value = "endpointId", required = true) @PathParam("endpointId") String endpointId,
 			@ApiParam(value = "type", required = true) @PathParam("type") String type,
 			@ApiParam(value = "id", required = true) @PathParam("id") String channelId) {
 		return super.setSocialNetworkChannelList(endpointId, type, channelId);
@@ -525,8 +509,7 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/error")
 	@Produces(MediaType.APPLICATION_JSON)
-	@Override
-	public Result getCameraError(@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String id) {
+	public Result getCameraErrorV2(@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String id) {
 		return super.getCameraError(id);
 	}
 
@@ -535,8 +518,7 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/start")
 	@Produces(MediaType.APPLICATION_JSON)
-	@Override
-	public Result startStreamSource(@ApiParam(value = "the id of the stream. The broadcast type should be IP Camera or Stream Source otherwise it does not work", required = true) @PathParam("id") String id) 
+	public Result startStreamSourceV2(@ApiParam(value = "the id of the stream. The broadcast type should be IP Camera or Stream Source otherwise it does not work", required = true) @PathParam("id") String id) 
 	{
 		return super.startStreamSource(id);
 	}
@@ -546,8 +528,7 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/stop")
 	@Produces(MediaType.APPLICATION_JSON)
-	@Override
-	public Result stopStreamSource(@ApiParam(value = "the id of the broadcast. The broadcast type should be IP Camera or Stream Source otherwise it does not work", required = true) @PathParam("id") String id) 
+	public Result stopStreamSourceV2(@ApiParam(value = "the id of the broadcast. The broadcast type should be IP Camera or Stream Source otherwise it does not work", required = true) @PathParam("id") String id) 
 	{
 		return super.stopStreamSource(id);
 	}
@@ -557,8 +538,7 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	@GET
 	@Path("/onvif-devices")
 	@Produces(MediaType.APPLICATION_JSON)
-	@Override
-	public String[] searchOnvifDevices() {
+	public String[] searchOnvifDevicesV2() {
 		return super.searchOnvifDevices();
 	}
 

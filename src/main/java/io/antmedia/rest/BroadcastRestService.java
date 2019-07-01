@@ -741,26 +741,6 @@ public class BroadcastRestService extends RestServiceBase{
 		return getSoftwareVersion();
 	}
 
-	public static Version getSoftwareVersion() {
-		Version version = new Version();
-		version.setVersionName(AntMediaApplicationAdapter.class.getPackage().getImplementationVersion());
-
-		URLClassLoader cl = (URLClassLoader) AntMediaApplicationAdapter.class.getClassLoader();
-		URL url = cl.findResource("META-INF/MANIFEST.MF");
-		Manifest manifest;
-		try {
-			manifest = new Manifest(url.openStream());
-			version.setBuildNumber(manifest.getMainAttributes().getValue(BUILD_NUMBER));
-		} catch (IOException e) {
-			//No need to implement
-		}
-
-		version.setVersionType(BroadcastRestService.isEnterprise() ? ENTERPRISE_EDITION : COMMUNITY_EDITION);
-
-		logger.debug("Version Name {} Version Type {}", version.getVersionName(), version.getVersionType());
-		return version;
-	}
-
 
 	/**
 	 * Get the total number of broadcasts
@@ -1170,16 +1150,6 @@ public class BroadcastRestService extends RestServiceBase{
 			@ApiParam(value = "type", required = true) @PathParam("type") String type,
 			@ApiParam(value = "id", required = true) @PathParam("id") String channelId) {
 		return super.setSocialNetworkChannelList(endpointId, type, channelId);
-	}
-
-
-	public static boolean isEnterprise() {
-		try {
-			Class.forName("io.antmedia.enterprise.adaptive.EncoderAdaptor");
-			return true;
-		} catch (ClassNotFoundException e) {
-			return false;
-		}
 	}
 
 	public long getRecordCount() {

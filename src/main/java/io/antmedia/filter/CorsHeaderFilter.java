@@ -26,7 +26,7 @@ public class CorsHeaderFilter extends CorsFilter {
 	private static final StringManager sm = StringManager.getManager(CorsFilter.class);
 
 	@Override
-	protected void handleSimpleCORS(final HttpServletRequest request,
+	public void handleSimpleCORS(final HttpServletRequest request,
 			final HttpServletResponse response, final FilterChain filterChain)
 					throws IOException, ServletException {
 
@@ -59,7 +59,7 @@ public class CorsHeaderFilter extends CorsFilter {
 		filterChain.doFilter(request, response);
 	}
 	
-	 private void addStandardHeadersInternal(final HttpServletRequest request,
+	 public void addStandardHeadersInternal(final HttpServletRequest request,
 	            final HttpServletResponse response) {
 
 	        final String method = request.getMethod();
@@ -157,10 +157,6 @@ public class CorsHeaderFilter extends CorsFilter {
      */
     private void handleInvalidCORSInternal(final HttpServletRequest request,
             final HttpServletResponse response, final FilterChain filterChain) {
-        String origin = request.getHeader(CorsFilter.REQUEST_HEADER_ORIGIN);
-        String method = request.getMethod();
-        String accessControlRequestHeaders = request.getHeader(
-                REQUEST_HEADER_ACCESS_CONTROL_REQUEST_HEADERS);
 
         response.setContentType("text/plain");
         response.setStatus(HttpServletResponse.SC_FORBIDDEN);
@@ -169,7 +165,7 @@ public class CorsHeaderFilter extends CorsFilter {
     
     
     @Override
-    protected void handlePreflightCORS(final HttpServletRequest request,
+    public void handlePreflightCORS(final HttpServletRequest request,
             final HttpServletResponse response, final FilterChain filterChain)
             throws IOException, ServletException {
 

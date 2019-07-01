@@ -44,7 +44,7 @@ import io.swagger.annotations.SwaggerDefinition;
 )
 @Component
 @Path("/v2")
-public class RootRestService {
+public class RootRestService extends RestServiceBase {
 	
 	
 	protected static Logger logger = LoggerFactory.getLogger(RootRestService.class);
@@ -55,38 +55,7 @@ public class RootRestService {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Version getVersion() {
 		return getSoftwareVersion();
-	}
-
-	public static Version getSoftwareVersion() {
-		Version version = new Version();
-		version.setVersionName(AntMediaApplicationAdapter.class.getPackage().getImplementationVersion());
-
-		URLClassLoader cl = (URLClassLoader) AntMediaApplicationAdapter.class.getClassLoader();
-		URL url = cl.findResource("META-INF/MANIFEST.MF");
-		Manifest manifest;
-		try {
-			manifest = new Manifest(url.openStream());
-			version.setBuildNumber(manifest.getMainAttributes().getValue(RestServiceBase.BUILD_NUMBER));
-		} catch (IOException e) {
-			//No need to implement
-		}
-
-		version.setVersionType(isEnterprise() ? RestServiceBase.ENTERPRISE_EDITION : RestServiceBase.COMMUNITY_EDITION);
-
-		logger.debug("Version Name {} Version Type {}", version.getVersionName(), version.getVersionType());
-		return version;
-	}
+	}	
 	
-	
-	public static boolean isEnterprise() {
-		try {
-			Class.forName("io.antmedia.enterprise.adaptive.EncoderAdaptor");
-			return true;
-		} catch (ClassNotFoundException e) {
-			return false;
-		}
-	}
-	
-
 	
 }
