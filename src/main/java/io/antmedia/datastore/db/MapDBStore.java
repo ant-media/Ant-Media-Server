@@ -185,25 +185,6 @@ public class MapDBStore extends DataStore {
 	}
 
 	@Override
-	public boolean updateName(String id, String name, String description) {
-		boolean result = false;
-		synchronized (this) {
-			if (id != null) {
-				String jsonString = map.get(id);
-				if (jsonString != null) {
-					Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
-					broadcast.setName(name);
-					broadcast.setDescription(description);
-					map.replace(id, gson.toJson(broadcast));
-					db.commit();
-					result = true;
-				}
-			}
-		}
-		return result;
-	}
-
-	@Override
 	public boolean updateStatus(String id, String status) {
 		boolean result = false;
 		synchronized (this) {
@@ -419,7 +400,7 @@ public class MapDBStore extends DataStore {
 	@Override
 	public List<Broadcast> filterBroadcastList(int offset, int size, String type) {
 
-		List<Broadcast> list = new ArrayList<Broadcast>();
+		List<Broadcast> list = new ArrayList<>();
 		synchronized (this) {
 			int t = 0;
 			int itemCount = 0;
@@ -765,6 +746,10 @@ public class MapDBStore extends DataStore {
 			Type listType = new TypeToken<ArrayList<TensorFlowObject>>(){}.getType();
 			int offsetCount = 0;
 			int batchCount = 0;
+			
+			if (batchSize > MAX_ITEM_IN_ONE_LIST) {
+				batchSize = MAX_ITEM_IN_ONE_LIST;
+			}
 
 			for (Iterator<String> keyIterator =  detectionMap.keyIterator(); keyIterator.hasNext();) {
 				String keyValue = keyIterator.next();
@@ -806,26 +791,30 @@ public class MapDBStore extends DataStore {
 		}
 		return list.size();
 	}
-
+	
+	
+	/**
+	 * Updates the stream's name, description, userName, password, IP address, stream URL if these values is not null
+	 * @param streamId
+	 * @param broadcast
+	 * @return
+	 */
 	@Override
-	public boolean editStreamSourceInfo(Broadcast broadcast) {
+	public boolean updateBroadcastFields(String streamId, Broadcast broadcast) {
 		boolean result = false;
 		synchronized (this) {
 			try {
 				logger.debug("inside of editStreamSourceInfo {}", broadcast.getStreamId());
-				Broadcast oldBroadcast = get(broadcast.getStreamId());
-
-				oldBroadcast.setName(broadcast.getName());
-				oldBroadcast.setUsername(broadcast.getUsername());
-				oldBroadcast.setPassword(broadcast.getPassword());
-				oldBroadcast.setIpAddr(broadcast.getIpAddr());
-				oldBroadcast.setStreamUrl(broadcast.getStreamUrl());
-				oldBroadcast.setStreamUrl(broadcast.getStreamUrl());
-
-				getMap().replace(oldBroadcast.getStreamId(), gson.toJson(oldBroadcast));
-
-				db.commit();
-				result = true;
+				Broadcast oldBroadcast = get(streamId);
+				if (oldBroadcast != null) 
+				{
+					
+					updateStreamInfo(oldBroadcast, broadcast.getName(), broadcast.getDescription(), broadcast.getUsername(), broadcast.getPassword(), broadcast.getIpAddr(), broadcast.getStreamUrl());
+					getMap().replace(streamId, gson.toJson(oldBroadcast));
+	
+					db.commit();
+					result = true;
+				}
 			} catch (Exception e) {
 				result = false;
 			}
@@ -1062,46 +1051,53 @@ public class MapDBStore extends DataStore {
 
 	@Override
 	public boolean createConferenceRoom(ConferenceRoom room) {
-		boolean result = false;
-
-		if (room != null && room.getRoomName() != null) {
-			conferenceRoomMap.put(room.getRoomName(), gson.toJson(room));
-			db.commit();
-			result = true;
-		}
-
-		return result;
-	}
-
-	@Override
-	public boolean editConferenceRoom(ConferenceRoom room) {
-		boolean result = false;
-
-		if (room != null && room.getRoomName() != null) {
-			conferenceRoomMap.replace(room.getRoomName(), gson.toJson(room));
-			db.commit();
-			result = true;
-		}
-		return result;
-	}
-
-	@Override
-	public boolean deleteConferenceRoom(String roomName) {
-		boolean result = false;
-
-		if (roomName != null && roomName.length() > 0 ) {
-			conferenceRoomMap.remove(roomName);
-			db.commit();
-			result = true;
-		}
-		return result;
-	}
-
-	@Override
-	public ConferenceRoom getConferenceRoom(String roomName) {
 		synchronized (this) {
-			if (roomName != null) {
-				String jsonString = conferenceRoomMap.get(roomName);
+			boolean result = false;
+	
+			if (room != null && room.getRoomId() != null) {
+				conferenceRoomMap.put(room.getRoomId(), gson.toJson(room));
+				db.commit();
+				result = true;
+			}
+	
+			return result;
+		}
+	}
+
+	@Override
+	public boolean editConferenceRoom(String roomId, ConferenceRoom room) {
+		synchronized (this) {
+			boolean result = false;
+	
+			if (room != null && room.getRoomId() != null) {
+				conferenceRoomMap.replace(room.getRoomId(), gson.toJson(room));
+				db.commit();
+				result = true;
+			}
+			return result;
+		}
+	}
+
+	@Override
+	public boolean deleteConferenceRoom(String roomId) {
+		synchronized (this) 
+		{		
+			boolean result = false;
+	
+			if (roomId != null && !roomId.isEmpty()) {
+				conferenceRoomMap.remove(roomId);
+				db.commit();
+				result = true;
+			}
+			return result;
+		}
+	}
+
+	@Override
+	public ConferenceRoom getConferenceRoom(String roomId) {
+		synchronized (this) {
+			if (roomId != null) {
+				String jsonString = conferenceRoomMap.get(roomId);
 				if (jsonString != null) {
 					return gson.fromJson(jsonString, ConferenceRoom.class);
 				}

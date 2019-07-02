@@ -754,7 +754,11 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 
 	public StreamFetcher startStreaming(Broadcast broadcast) {
-		return streamFetcherManager.startStreaming(broadcast);
+		if(broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA) ||
+				broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE))  {
+			return streamFetcherManager.startStreaming(broadcast);
+		}
+		return null;
 	}
 
 	public Result stopStreaming(Broadcast broadcast) {

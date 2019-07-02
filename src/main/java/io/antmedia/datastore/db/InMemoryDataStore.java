@@ -83,19 +83,6 @@ public class InMemoryDataStore extends DataStore {
 	}
 
 	@Override
-	public boolean updateName(String id, String name, String description) {
-		Broadcast broadcast = broadcastMap.get(id);
-		boolean result = false;
-		if (broadcast != null) {
-			broadcast.setName(name);
-			broadcast.setDescription(description);
-			broadcastMap.put(id, broadcast);
-			result = true;
-		}
-		return result;
-	}
-
-	@Override
 	public boolean updateStatus(String id, String status) {
 		Broadcast broadcast = broadcastMap.get(id);
 		boolean result = false;
@@ -253,11 +240,11 @@ public class InMemoryDataStore extends DataStore {
 
 		Collection<Broadcast> values =broadcastMap.values();
 
-		List<Broadcast> list = new ArrayList();
+		List<Broadcast> list = new ArrayList<>();
 
 		for (Broadcast broadcast : values) 
 		{
-			if("ipCamera".equals(broadcast.getType())) 
+			if(type.equals(broadcast.getType())) 
 			{
 				if (t < offset) {
 					t++;
@@ -512,9 +499,13 @@ public class InMemoryDataStore extends DataStore {
 
 	@Override
 	public List<TensorFlowObject> getDetectionList(String idFilter, int offsetSize, int batchSize) {
-		int offsetCount=0, batchCount=0;
+		int offsetCount=0; 
+		int batchCount=0;
 		List<TensorFlowObject> list = new ArrayList<>();
 		Set<String> keySet = detectionMap.keySet();
+		if (batchSize > MAX_ITEM_IN_ONE_LIST) {
+			batchSize = MAX_ITEM_IN_ONE_LIST;
+		}
 		for(String keyValue: keySet) {
 			if (keyValue.startsWith(idFilter)) 
 			{
@@ -560,20 +551,17 @@ public class InMemoryDataStore extends DataStore {
 	}
 
 	@Override
-	public boolean editStreamSourceInfo(Broadcast broadcast) {		
+	public boolean updateBroadcastFields(String streamId, Broadcast broadcast) {		
 		boolean result = false;
 		try {
-			Broadcast oldBroadcast = get(broadcast.getStreamId());
+			Broadcast oldBroadcast = get(streamId);
 			
-			oldBroadcast.setName(broadcast.getName());
-			oldBroadcast.setUsername(broadcast.getUsername());
-			oldBroadcast.setPassword(broadcast.getPassword());
-			oldBroadcast.setIpAddr(broadcast.getIpAddr());
-			oldBroadcast.setStreamUrl(broadcast.getStreamUrl());
-
-			broadcastMap.replace(oldBroadcast.getStreamId(), oldBroadcast);
+			if (oldBroadcast != null) {
+				updateStreamInfo(oldBroadcast, broadcast.getName(), broadcast.getDescription(), broadcast.getUsername(), broadcast.getPassword(), broadcast.getIpAddr(), broadcast.getStreamUrl());
+				broadcastMap.replace(oldBroadcast.getStreamId(), oldBroadcast);
 
 			result = true;
+			}
 		} catch (Exception e) {
 			logger.error("error in editStreamSourceInfo: {}",  ExceptionUtils.getStackTrace(e));
 			result = false;
@@ -783,8 +771,8 @@ public class InMemoryDataStore extends DataStore {
 		
 		boolean result = false;
 
-		if (room != null && room.getRoomName() != null) {
-			roomMap.put(room.getRoomName(), room);
+		if (room != null && room.getRoomId() != null) {
+			roomMap.put(room.getRoomId(), room);
 			result = true;
 		}
 
@@ -792,12 +780,12 @@ public class InMemoryDataStore extends DataStore {
 	}
 
 	@Override
-	public boolean editConferenceRoom(ConferenceRoom room) {
+	public boolean editConferenceRoom(String roomId, ConferenceRoom room) {
 
 		boolean result = false;
 
-		if (room != null && room.getRoomName() != null) {
-			roomMap.replace(room.getRoomName(), room);
+		if (room != null && room.getRoomId() != null) {
+			roomMap.replace(roomId, room);
 			result = true;
 		}
 		return result;
