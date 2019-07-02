@@ -43,6 +43,7 @@ public class OnvifCamera implements IOnvifCamera {
 			camIP = getURL(address);
 			
 			nvt = new OnvifDevice(camIP, username, password);
+			nvt.getSoap().setLogging(false);
 			nvt.getDevices().getCapabilities().getDevice();
 			nvt.getDevices().getServices(false);
 			ptzDevices = nvt.getPtz();
@@ -101,7 +102,7 @@ public class OnvifCamera implements IOnvifCamera {
 	}
 
 	@Override
-	public boolean MoveUp() {
+	public boolean moveUp() {
 
 		ptzDevices.relativeMove(profileToken, 0f, 0.1f, 0f);
 
@@ -115,25 +116,62 @@ public class OnvifCamera implements IOnvifCamera {
 		}
 		return true;
 	}
+	
+	@Override
+	public boolean zoomIn() {
+		boolean result = false;
+		
+		try {
+			ptzDevices.relativeMove(profileToken, 0f, 0.0f, 0.1f);
+			Thread.sleep(500);
+
+			ptzDevices.stopMove(profileToken);
+			result = true;
+		} catch (InterruptedException e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+			Thread.currentThread().interrupt();
+		} 
+		return result;
+	}
+	
+	@Override
+	public boolean zoomOut() {
+		boolean result = false;
+		
+		try {
+			ptzDevices.relativeMove(profileToken, 0f, 0.0f, -0.1f);
+			Thread.sleep(500);
+
+			ptzDevices.stopMove(profileToken);
+			result = true;
+		} catch (InterruptedException e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+			Thread.currentThread().interrupt();
+		}
+		
+		return result;
+	}
+	
 
 	@Override
-	public boolean MoveDown() {
-
+	public boolean moveDown() {
+		boolean result = false;
 		ptzDevices.relativeMove(profileToken, 0f, -0.1f, 0f);
 		try {
 			Thread.sleep(500);
 
 			ptzDevices.stopMove(profileToken);
+			result = true;
 		} catch (InterruptedException e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
 			Thread.currentThread().interrupt();
 		}
 
-		return true;
+		return result;
 	}
 
 	@Override
-	public boolean MoveRight() {
+	public boolean moveRight() {
 		ptzDevices.relativeMove(profileToken, 1f, 0f, 0f);
 
 		try {
@@ -149,7 +187,7 @@ public class OnvifCamera implements IOnvifCamera {
 	}
 
 	@Override
-	public boolean MoveLeft() {
+	public boolean moveLeft() {
 		ptzDevices.relativeMove(profileToken, -1f, 0f, 0f);
 		try {
 			Thread.sleep(500);
@@ -164,7 +202,7 @@ public class OnvifCamera implements IOnvifCamera {
 	}
 
 	@Override
-	public boolean MoveStop() {
+	public boolean moveStop() {
 		ptzDevices.stopMove(profileToken);
 		return true;
 	}

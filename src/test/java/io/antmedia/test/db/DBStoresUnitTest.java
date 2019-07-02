@@ -372,8 +372,6 @@ public class DBStoresUnitTest {
 
 			assertNull(dataStore.get(null));
 
-			assertFalse(dataStore.updateName(null, "name", "description"));
-
 			assertFalse(dataStore.updateDuration(null, 100000));
 
 			assertFalse(dataStore.updateStatus(null, "created"));
@@ -452,7 +450,7 @@ public class DBStoresUnitTest {
 		camera.setName("new_name");
 		camera.setIpAddr("1.1.1.1");
 
-		datastore.editStreamSourceInfo(camera);
+		datastore.updateBroadcastFields(camera.getStreamId(), camera);
 
 		//check whether is changed or not
 		assertEquals("1.1.1.1", camera.getIpAddr());
@@ -740,7 +738,10 @@ public class DBStoresUnitTest {
 
 			String name = "name 1";
 			String description = "description 2";
-			boolean result = dataStore.updateName(broadcast.getStreamId().toString(), name, description);
+			Broadcast tmp = new Broadcast();
+			tmp.setName(name);
+			tmp.setDescription(description);
+			boolean result = dataStore.updateBroadcastFields(broadcast.getStreamId(), tmp);
 			assertTrue(result);
 
 			broadcast2 = dataStore.get(key);
@@ -1350,7 +1351,7 @@ public class DBStoresUnitTest {
 
 		long now = Instant.now().getEpochSecond();
 
-		room.setRoomName("roomName");
+		room.setRoomId("roomName");
 		room.setStartDate(now);
 		//1 hour later
 		room.setEndDate(now + 3600);
@@ -1359,25 +1360,25 @@ public class DBStoresUnitTest {
 		assertTrue(datastore.createConferenceRoom(room));
 
 		//get room		
-		ConferenceRoom dbRoom = datastore.getConferenceRoom(room.getRoomName());
+		ConferenceRoom dbRoom = datastore.getConferenceRoom(room.getRoomId());
 
 		assertNotNull(dbRoom);
-		assertEquals("roomName", dbRoom.getRoomName());
+		assertEquals("roomName", dbRoom.getRoomId());
 
 		dbRoom.setEndDate(now + 7200);
 
 		//edit room
-		assertTrue(datastore.editConferenceRoom(dbRoom));
+		assertTrue(datastore.editConferenceRoom(dbRoom.getRoomId(), dbRoom));
 
 
-		ConferenceRoom editedRoom = datastore.getConferenceRoom(dbRoom.getRoomName());
+		ConferenceRoom editedRoom = datastore.getConferenceRoom(dbRoom.getRoomId());
 
 		assertNotNull(editedRoom);
 		assertEquals(now + 7200, editedRoom.getEndDate());
 
 		//delete room
-		assertTrue(datastore.deleteConferenceRoom(editedRoom.getRoomName()));
+		assertTrue(datastore.deleteConferenceRoom(editedRoom.getRoomId()));
 
-		assertNull(datastore.getConferenceRoom(editedRoom.getRoomName()));
+		assertNull(datastore.getConferenceRoom(editedRoom.getRoomId()));
 	}
 }

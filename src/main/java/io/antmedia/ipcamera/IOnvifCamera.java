@@ -61,15 +61,47 @@ public interface IOnvifCamera {
 
 	boolean isFocusModeAuto();
 
-	boolean MoveUp();
+	/**
+	 * Move up IP Camera
+	 * @return
+	 */
+	boolean moveUp();
 
-	boolean MoveStop();
+	/**
+	 * Stop IP Camera any movement
+	 * @return
+	 */
+	boolean moveStop();
 
-	boolean MoveDown();
+	/**
+	 * Move down IP Camera
+	 * @return
+	 */
+	boolean moveDown();
 
-	boolean MoveRight();
+	/**
+	 * Move right IP Camera
+	 * @return
+	 */
+	boolean moveRight();
 
-	boolean MoveLeft();
+	/**
+	 * Move left IP Camera
+	 * @return
+	 */
+	boolean moveLeft();
+	
+	/**
+	 * Zoom-in IP Camera
+	 * @return
+	 */
+	boolean zoomIn();
+	
+	/**
+	 * Zoom-out IP Camera
+	 * @return
+	 */
+	boolean zoomOut();
 
 	String getTCPStreamURI();
 
