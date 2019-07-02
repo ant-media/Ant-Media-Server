@@ -22,6 +22,7 @@ import org.webrtc.SessionDescription;
 import org.webrtc.SessionDescription.Type;
 
 import io.antmedia.AppSettings;
+import io.antmedia.StreamNameValidator;
 import io.antmedia.recorder.FFmpegFrameRecorder;
 import io.antmedia.recorder.FrameRecorder;
 import io.antmedia.webrtc.adaptor.RTMPAdaptor;
@@ -33,7 +34,7 @@ public abstract class WebSocketCommunityHandler {
 	private JSONParser jsonParser = new JSONParser();
 
 	private AppSettings appSettings;
-
+	
 	@OnOpen
 	public void onOpen(Session session, EndpointConfig config)
 	{
@@ -77,6 +78,11 @@ public abstract class WebSocketCommunityHandler {
 			if (streamId == null || streamId.isEmpty()) 
 			{
 				sendNoStreamIdSpecifiedError(session);
+				return;
+			}
+			
+			if(!StreamNameValidator.isStreamNameValid(streamId)) {
+				sendInvalidStreamNameError(session);
 				return;
 			}
 
@@ -305,5 +311,11 @@ public abstract class WebSocketCommunityHandler {
 		return jsonResponseObject;
 	}
 
-
+	@SuppressWarnings("unchecked")
+	protected  final  void sendInvalidStreamNameError(Session session)  {
+		JSONObject jsonResponse = new JSONObject();
+		jsonResponse.put(WebSocketConstants.COMMAND, WebSocketConstants.ERROR_COMMAND);
+		jsonResponse.put(WebSocketConstants.DEFINITION, WebSocketConstants.NO_STREAM_ID_SPECIFIED);
+		sendMessage(jsonResponse.toJSONString(), session);	
+	}
 }

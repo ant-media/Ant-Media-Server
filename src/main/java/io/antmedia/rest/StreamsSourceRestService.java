@@ -25,6 +25,7 @@ import org.springframework.stereotype.Component;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.IResourceMonitor;
+import io.antmedia.StreamNameValidator;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.ipcamera.onvifdiscovery.OnvifDiscovery;
@@ -40,11 +41,15 @@ import io.swagger.annotations.ApiParam;
 public class StreamsSourceRestService extends RestServiceBase{
 
 	private static final String HIGH_RESOURCE_USAGE = "current system resources not enough";
+	private static final String INVALID_STREAM_NAME = "stream name is invalid";
 
+	
+	
 	private static final String HTTP = "http://";
 	private static final String RTSP = "rtsp://";
 	public static final int HIGH_RESOURCE_USAGE_ERROR = -3;
 	public static final int FETCHER_NOT_STARTED_ERROR = -4;
+	public static final int INVALID_STREAM_NAME_ERROR = -5;
 
 
 
@@ -69,12 +74,19 @@ public class StreamsSourceRestService extends RestServiceBase{
 		IResourceMonitor monitor = (IResourceMonitor) getAppContext().getBean(IResourceMonitor.BEAN_NAME);
 
 		boolean systemResult = monitor.enoughResource();
+		
+		boolean nameValid = StreamNameValidator.isStreamNameValid(stream.getName()); 
 
 		if(!systemResult) {
 			logger.error("Stream Fetcher can not be created due to not enough system resource for stream {} CPU load:{}"
 					+ " CPU Limit:{} free RAM Limit:{}, free RAM available:{}", stream.getName(), monitor.getCpuLoad(), monitor.getCpuLimit(), monitor.getMinFreeRamSize(), monitor.getFreeRam());
 			result.setMessage(HIGH_RESOURCE_USAGE);
 			result.setErrorId(HIGH_RESOURCE_USAGE_ERROR);
+		}
+		else if(!nameValid) {
+			logger.error("Stream name ({}) is invalid.", stream.getName());
+			result.setMessage(INVALID_STREAM_NAME);
+			result.setErrorId(INVALID_STREAM_NAME_ERROR);
 		}
 		else {
 
