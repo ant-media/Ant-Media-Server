@@ -50,10 +50,11 @@ public interface ITokenService {
 	 * @param streamId - id of the requested stream for token creation
 	 * @param exprireDate - expire date of the token
 	 * @param type type of the token (play/publish)
+	 * @param roomName- name of the room for playing streams in the room
 	 * @return token
 	 */
 
-	Token createToken(String streamId, long exprireDate, String type);
+	Token createToken(String streamId, long exprireDate, String type, String roomName);
 
 	/**
 	 * gets  map of authenticated sessions

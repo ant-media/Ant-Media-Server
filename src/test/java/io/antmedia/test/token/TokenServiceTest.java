@@ -109,7 +109,7 @@ public class TokenServiceTest {
 	public void testcreateToken() {
 
 		//create token
-		Token token = tokenService.createToken("streamId", 654345, Token.PUBLISH_TOKEN);
+		Token token = tokenService.createToken("streamId", 654345, Token.PUBLISH_TOKEN, "testRoomName");
 
 		//check that token is null, because mock service can not create token
 		assertNull(token);

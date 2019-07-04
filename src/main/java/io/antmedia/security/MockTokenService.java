@@ -25,7 +25,7 @@ public class MockTokenService implements  IStreamPublishSecurity, ITokenService{
 	}
 
 	@Override
-	public Token createToken(String streamId, long exprireDate, String type) {
+	public Token createToken(String streamId, long exprireDate, String type, String roomName) {
 
 		return null;
 	}
@@ -39,7 +39,7 @@ public class MockTokenService implements  IStreamPublishSecurity, ITokenService{
 	@Override
 	public boolean checkHash(String hash, String streamId, String sessionId, String type) {
 
-		return false;
+		return true;
 	}
 
 }

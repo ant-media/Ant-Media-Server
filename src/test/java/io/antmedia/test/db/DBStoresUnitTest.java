@@ -1104,7 +1104,6 @@ public class DBStoresUnitTest {
 		testToken.setType(Token.PLAY_TOKEN);
 		testToken.setTokenId("tokenID");
 
-
 		store.saveToken(testToken);
 
 		assertNotNull(testToken.getTokenId());
@@ -1130,9 +1129,36 @@ public class DBStoresUnitTest {
 		testToken.setExpireDate(expireDate);
 		testToken.setType(Token.PLAY_TOKEN);
 		testToken.setTokenId("tokenID");
+		testToken.setRoomName("testRoom");
 
 		store.saveToken(testToken);
+		
+		//get this token
+		Token retrievedToken = store.getToken(testToken.getTokenId());
+		
+		assertNotNull(retrievedToken);
+		assertEquals("testRoom", retrievedToken.getRoomName());
+		
+		
+		//delete this token
+		assertTrue(store.deleteToken(testToken.getTokenId()));
+		
+		tokens = store.listAllTokens(testToken.getStreamId(),0 , 10);
+		
+		//it should be zero because all tokens are revoked
+		assertEquals(0, tokens.size());
+		
+		//create token again
+		testToken = new Token();
 
+		testToken.setStreamId("1234");
+		testToken.setExpireDate(expireDate);
+		testToken.setType(Token.PLAY_TOKEN);
+		testToken.setTokenId("tokenID");
+		testToken.setRoomName("testRoom");
+
+		store.saveToken(testToken);
+		
 		//validate token
 		Token validatedToken = store.validateToken(testToken);
 
@@ -1143,7 +1169,6 @@ public class DBStoresUnitTest {
 		Token expiredToken = store.validateToken(testToken);
 
 		assertNull(expiredToken);
-
 
 	}
 
