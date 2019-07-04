@@ -56,6 +56,7 @@ import io.antmedia.muxer.Muxer;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.BroadcastRestService.BroadcastStatistics;
 import io.antmedia.rest.BroadcastRestService.ProcessBuilderFactory;
+import io.antmedia.rest.RestServiceBase;
 import io.antmedia.rest.WebRTCClientStats;
 import io.antmedia.rest.model.Interaction;
 import io.antmedia.rest.model.Result;
@@ -67,6 +68,7 @@ import io.antmedia.social.ResourceOrigin;
 import io.antmedia.social.endpoint.PeriscopeEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
+import io.antmedia.statistic.ResourceMonitor;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.vertx.core.Vertx;
 
@@ -1321,6 +1323,23 @@ public class RestServiceUnitTest {
 		assertNull(restServiceReal.getDataStore().getConferenceRoom(room.getRoomId()));
 
 		
+	}
+	
+	@Test
+	public void testInvalidName() {
+		ApplicationContext context = mock(ApplicationContext.class);
+		ResourceMonitor monitor = mock(ResourceMonitor.class);
+		when(monitor.enoughResource()).thenReturn(true);
+		when(context.getBean(ResourceMonitor.BEAN_NAME)).thenReturn(monitor);
+
+
+		restServiceReal.setAppCtx(context);
+		
+		Result result = restServiceReal.addStreamSource(new Broadcast("stream1"), null);
+		assertEquals(0, result.getErrorId());
+
+		result = restServiceReal.addStreamSource(new Broadcast("stream1_"), null);
+		assertEquals(RestServiceBase.INVALID_STREAM_NAME_ERROR, result.getErrorId());
 	}
 
 

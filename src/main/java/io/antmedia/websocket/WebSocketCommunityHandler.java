@@ -312,10 +312,10 @@ public abstract class WebSocketCommunityHandler {
 	}
 
 	@SuppressWarnings("unchecked")
-	protected  final  void sendInvalidStreamNameError(Session session)  {
+	public void sendInvalidStreamNameError(Session session)  {
 		JSONObject jsonResponse = new JSONObject();
 		jsonResponse.put(WebSocketConstants.COMMAND, WebSocketConstants.ERROR_COMMAND);
-		jsonResponse.put(WebSocketConstants.DEFINITION, WebSocketConstants.NO_STREAM_ID_SPECIFIED);
+		jsonResponse.put(WebSocketConstants.DEFINITION, WebSocketConstants.INVALID_STREAM_NAME);
 		sendMessage(jsonResponse.toJSONString(), session);	
 	}
 }
