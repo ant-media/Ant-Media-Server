@@ -234,6 +234,12 @@ public abstract class RestServiceBase {
 	}
 
 	public Broadcast createBroadcastWithStreamID(Broadcast broadcast) {
+		
+		boolean nameValid = StreamNameValidator.isStreamNameValid(broadcast.getStreamId()); 
+		if(!nameValid) {
+			logger.error("Stream name ({}) is invalid.", broadcast.getStreamId());
+			return null;
+		}
 
 		String settingsListenerHookURL = null; 
 		String fqdn = null;

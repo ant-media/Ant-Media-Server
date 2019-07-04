@@ -1326,7 +1326,7 @@ public class RestServiceUnitTest {
 	}
 	
 	@Test
-	public void testInvalidName() {
+	public void testStreamSourceInvalidName() {
 		ApplicationContext context = mock(ApplicationContext.class);
 		ResourceMonitor monitor = mock(ResourceMonitor.class);
 		when(monitor.enoughResource()).thenReturn(true);
@@ -1340,6 +1340,40 @@ public class RestServiceUnitTest {
 
 		result = restServiceReal.addStreamSource(new Broadcast("stream1_"), null);
 		assertEquals(RestServiceBase.INVALID_STREAM_NAME_ERROR, result.getErrorId());
+	}
+	
+	@Test
+	public void testBroadcastInvalidName() {
+		InMemoryDataStore datastore = new InMemoryDataStore("datastore");
+		restServiceReal.setDataStore(datastore);
+
+		Scope scope = mock(Scope.class);
+		String scopeName = "junit";
+		when(scope.getName()).thenReturn(scopeName);
+
+		AntMediaApplicationAdapter app = mock(AntMediaApplicationAdapter.class);
+		when(app.getScope()).thenReturn(scope);
+
+		ApplicationContext context = mock(ApplicationContext.class);
+		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
+
+		restServiceReal.setAppCtx(context);
+		Broadcast broadcast = new Broadcast();
+		try {
+			broadcast.setStreamId("stream1");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		assertNotNull(restServiceReal.createBroadcastWithStreamID(broadcast));
+		
+		Broadcast broadcast2 = new Broadcast();
+		try {
+			broadcast2.setStreamId("stream1_");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		assertNull(restServiceReal.createBroadcastWithStreamID(broadcast2));
+
 	}
 
 
