@@ -1129,7 +1129,7 @@ public class DBStoresUnitTest {
 		testToken.setExpireDate(expireDate);
 		testToken.setType(Token.PLAY_TOKEN);
 		testToken.setTokenId("tokenID");
-		testToken.setRoomName("testRoom");
+		testToken.setRoomId("testRoom");
 
 		store.saveToken(testToken);
 		
@@ -1137,7 +1137,7 @@ public class DBStoresUnitTest {
 		Token retrievedToken = store.getToken(testToken.getTokenId());
 		
 		assertNotNull(retrievedToken);
-		assertEquals("testRoom", retrievedToken.getRoomName());
+		assertEquals("testRoom", retrievedToken.getRoomId());
 		
 		
 		//delete this token
@@ -1155,7 +1155,7 @@ public class DBStoresUnitTest {
 		testToken.setExpireDate(expireDate);
 		testToken.setType(Token.PLAY_TOKEN);
 		testToken.setTokenId("tokenID");
-		testToken.setRoomName("testRoom");
+		testToken.setRoomId("testRoom");
 
 		store.saveToken(testToken);
 		

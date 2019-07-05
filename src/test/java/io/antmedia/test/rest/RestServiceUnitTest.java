@@ -497,7 +497,7 @@ public class RestServiceUnitTest {
 		token.setExpireDate(123432);
 		token.setTokenId(RandomStringUtils.randomAlphabetic(8));
 		token.setType(Token.PLAY_TOKEN);
-		token.setRoomName("testRoom");
+		token.setRoomId("testRoom");
 
 		{
 			when(tokenService.createToken(streamId, 123432, Token.PLAY_TOKEN, "testRoom"))
