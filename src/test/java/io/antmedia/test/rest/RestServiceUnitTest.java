@@ -1339,7 +1339,10 @@ public class RestServiceUnitTest {
 		Result result = restServiceReal.addStreamSource(new Broadcast("stream1"), null);
 		assertEquals(0, result.getErrorId());
 
-		result = restServiceReal.addStreamSource(new Broadcast("stream1_"), null);
+		result = restServiceReal.addStreamSource(new Broadcast("stre--__am1_-"), null);
+		assertEquals(0, result.getErrorId());
+		
+		result = restServiceReal.addStreamSource(new Broadcast("stream1_-:"), null);
 		assertEquals(RestServiceBase.INVALID_STREAM_NAME_ERROR, result.getErrorId());
 	}
 	
@@ -1370,6 +1373,14 @@ public class RestServiceUnitTest {
 		Broadcast broadcast2 = new Broadcast();
 		try {
 			broadcast2.setStreamId("stream1_");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		assertNotNull(restServiceReal.createBroadcastWithStreamID(broadcast));
+		
+		broadcast2 = new Broadcast();
+		try {
+			broadcast2.setStreamId("stream1_:");
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

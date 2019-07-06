@@ -47,7 +47,7 @@ import org.springframework.web.context.support.WebApplicationContextUtils;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.IResourceMonitor;
-import io.antmedia.StreamNameValidator;
+import io.antmedia.StreamIdValidator;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
@@ -235,7 +235,7 @@ public abstract class RestServiceBase {
 
 	public Broadcast createBroadcastWithStreamID(Broadcast broadcast) {
 		
-		boolean nameValid = StreamNameValidator.isStreamNameValid(broadcast.getStreamId()); 
+		boolean nameValid = StreamIdValidator.isStreamIdValid(broadcast.getStreamId()); 
 		if(!nameValid) {
 			logger.error("Stream name ({}) is invalid.", broadcast.getStreamId());
 			return null;
@@ -766,7 +766,7 @@ public abstract class RestServiceBase {
 
 		Result result = new Result(false);
 
-		boolean nameValid = StreamNameValidator.isStreamNameValid(stream.getName()); 
+		boolean nameValid = StreamIdValidator.isStreamIdValid(stream.getName()); 
 		if(!nameValid) {
 			logger.error("Stream name ({}) is invalid.", stream.getName());
 			result.setMessage("Stream name is invalid");

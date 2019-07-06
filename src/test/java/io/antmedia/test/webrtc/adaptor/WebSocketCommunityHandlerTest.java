@@ -229,7 +229,16 @@ public class WebSocketCommunityHandlerTest {
 		publishObject2.put(WebSocketConstants.STREAM_ID, streamId2);
 		wsHandler.onMessage(session, publishObject2.toJSONString());
 		
+		verify(wsHandler, Mockito.never()).sendInvalidStreamNameError(Mockito.any());
+		
+		streamId2 = "streamId_:?" + (int)(Math.random()*1000);
+		publishObject2 = new JSONObject();
+		publishObject2.put(WebSocketConstants.COMMAND, WebSocketConstants.PUBLISH_COMMAND);
+		publishObject2.put(WebSocketConstants.STREAM_ID, streamId2);
+		wsHandler.onMessage(session, publishObject2.toJSONString());
+		
 		verify(wsHandler, Mockito.timeout(1)).sendInvalidStreamNameError(Mockito.any());
+
 
 		
 	}

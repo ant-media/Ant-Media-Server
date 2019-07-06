@@ -22,7 +22,7 @@ import org.webrtc.SessionDescription;
 import org.webrtc.SessionDescription.Type;
 
 import io.antmedia.AppSettings;
-import io.antmedia.StreamNameValidator;
+import io.antmedia.StreamIdValidator;
 import io.antmedia.recorder.FFmpegFrameRecorder;
 import io.antmedia.recorder.FrameRecorder;
 import io.antmedia.webrtc.adaptor.RTMPAdaptor;
@@ -81,7 +81,7 @@ public abstract class WebSocketCommunityHandler {
 				return;
 			}
 			
-			if(!StreamNameValidator.isStreamNameValid(streamId)) {
+			if(!StreamIdValidator.isStreamIdValid(streamId)) {
 				sendInvalidStreamNameError(session);
 				return;
 			}
