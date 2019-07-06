@@ -808,4 +808,18 @@ public class InMemoryDataStore extends DataStore {
 	public ConferenceRoom getConferenceRoom(String roomName) {
 		return roomMap.get(roomName);
 	}
+
+	@Override
+	public boolean deleteToken(String tokenId) {
+
+		return tokenMap.remove(tokenId) != null;
+
+	}
+
+	@Override
+	public Token getToken(String tokenId) {
+
+		return tokenMap.get(tokenId);
+	
+	}
 }

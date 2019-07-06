@@ -1575,7 +1575,7 @@ public abstract class RestServiceBase {
 		return list;
 	}
 	
-	protected Object getToken (String streamId, long expireDate, String type) 
+	protected Object getToken (String streamId, long expireDate, String type, String roomId) 
 	{
 		Token token = null;
 		String message = "Define stream Id and Expire Date (unix time)";
@@ -1586,7 +1586,7 @@ public abstract class RestServiceBase {
 			if(appContext != null && appContext.containsBean(ITokenService.BeanName.TOKEN_SERVICE.toString())) 
 			{
 				ITokenService tokenService = (ITokenService)appContext.getBean(ITokenService.BeanName.TOKEN_SERVICE.toString());
-				token = tokenService.createToken(streamId, expireDate, type);
+				token = tokenService.createToken(streamId, expireDate, type, roomId);
 				if(token != null) 
 				{
 					if (getDataStore().saveToken(token)) {
