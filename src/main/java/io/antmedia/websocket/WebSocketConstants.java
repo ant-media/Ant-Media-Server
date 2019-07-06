@@ -218,5 +218,9 @@ public class WebSocketConstants {
 	 * Error definition it is send when cpu usage exceeds the limit
 	 */
 	public static final String HIGH_RESOURCE_USAGE = "highResourceUsage";
+	/**
+	 * Error definition it is send when stream name contains special characters
+	 */
+	public static final String INVALID_STREAM_NAME = "invalidStreamName.";
 
 }

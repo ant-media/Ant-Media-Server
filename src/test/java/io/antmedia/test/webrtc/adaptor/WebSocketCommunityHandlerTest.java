@@ -199,4 +199,48 @@ public class WebSocketCommunityHandlerTest {
 		verify(rtmpAdaptor).stop();
 	}
 	
+	@Test
+	public void testInvalidName() {
+
+		String sessionId = String.valueOf((int)(Math.random()*10000));
+
+
+		when(session.getId()).thenReturn(sessionId);
+		wsHandler.onOpen(null, null);
+
+
+		String streamId = "streamId" + (int)(Math.random()*1000);
+
+		RTMPAdaptor rtmpAdaptor = mock(RTMPAdaptor.class);
+
+		doReturn(rtmpAdaptor).when(wsHandler).getNewRTMPAdaptor(Mockito.anyString());
+
+
+		JSONObject publishObject = new JSONObject();
+		publishObject.put(WebSocketConstants.COMMAND, WebSocketConstants.PUBLISH_COMMAND);
+		publishObject.put(WebSocketConstants.STREAM_ID, streamId);
+		wsHandler.onMessage(session, publishObject.toJSONString());
+		
+		verify(wsHandler, Mockito.never()).sendInvalidStreamNameError(Mockito.any());
+		
+		String streamId2 = "streamId_" + (int)(Math.random()*1000);
+		JSONObject publishObject2 = new JSONObject();
+		publishObject2.put(WebSocketConstants.COMMAND, WebSocketConstants.PUBLISH_COMMAND);
+		publishObject2.put(WebSocketConstants.STREAM_ID, streamId2);
+		wsHandler.onMessage(session, publishObject2.toJSONString());
+		
+		verify(wsHandler, Mockito.never()).sendInvalidStreamNameError(Mockito.any());
+		
+		streamId2 = "streamId_:?" + (int)(Math.random()*1000);
+		publishObject2 = new JSONObject();
+		publishObject2.put(WebSocketConstants.COMMAND, WebSocketConstants.PUBLISH_COMMAND);
+		publishObject2.put(WebSocketConstants.STREAM_ID, streamId2);
+		wsHandler.onMessage(session, publishObject2.toJSONString());
+		
+		verify(wsHandler, Mockito.timeout(1)).sendInvalidStreamNameError(Mockito.any());
+
+
+		
+	}
+	
 }
