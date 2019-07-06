@@ -95,7 +95,7 @@ public class VoDRestServiceV2 extends RestServiceBase{
 	@ApiOperation(value = "Upload external VoD file to Ant Media Server", notes = "", response = Result.class)
 	@POST
 	@Consumes({MediaType.MULTIPART_FORM_DATA})
-	@Path("/")
+	@Path("/create")
 	@Produces(MediaType.APPLICATION_JSON)
 	@Override
 	public Result uploadVoDFile(@ApiParam(value = "the name of the VoD File", required = true) @QueryParam("name") String fileName,

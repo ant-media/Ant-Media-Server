@@ -82,7 +82,7 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 			@ApiResponse(code = 200, message = "Returns the created stream", response = Broadcast.class)})
 	@POST
 	@Consumes({ MediaType.APPLICATION_JSON })
-	@Path("/")
+	@Path("/create")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response createBroadcast(@ApiParam(value = "Broadcast object only related information should be set, it may be null as well.", required = false) Broadcast broadcast,
 			@ApiParam(value = "Comma separated social network IDs, they must in comma separated and IDs must match with the defined IDs.", required = false) @QueryParam("socialNetworks") String socialEndpointIds,
