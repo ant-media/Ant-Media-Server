@@ -22,6 +22,7 @@ import org.springframework.stereotype.Component;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
+import io.antmedia.StreamIdValidator;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.SocialEndpointChannel;
@@ -154,6 +155,15 @@ public class BroadcastRestService extends RestServiceBase{
 	@Path("/broadcast/createWithStreamID")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Broadcast createBroadcastWithStreamID(@ApiParam(value = "Broadcast object only related information should be set, it may be null as well.", required = true) Broadcast broadcast) {
+		if (broadcast != null) {
+			//check stream id if exists
+			boolean nameValid = StreamIdValidator.isStreamIdValid(broadcast.getStreamId()); 
+			if(!nameValid) {
+				logger.error("Stream name ({}) is invalid.", broadcast.getStreamId());
+				return null;
+			}
+		}
+		
 		return super.createBroadcastWithStreamID(broadcast);
 	}
 

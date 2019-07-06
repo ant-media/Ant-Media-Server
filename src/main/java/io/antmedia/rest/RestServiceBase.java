@@ -80,36 +80,36 @@ import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.swagger.annotations.ApiParam;
 
 public abstract class RestServiceBase {
-	
+
 	/**
 	 * Key for Manifest entry of Build number. It should match with the value in pom.xml
 	 */
 	public static final String BUILD_NUMBER = "Build-Number";
-	
+
 	public static final String ENTERPRISE_EDITION = "Enterprise Edition";
-	
+
 	public static final String COMMUNITY_EDITION = "Community Edition";
-	
+
 	public static final int MAX_ITEM_IN_ONE_LIST = 50;
 	public static final int ERROR_SOCIAL_ENDPOINT_UNDEFINED_CLIENT_ID = -1;
 	public static final int ERROR_SOCIAL_ENDPOINT_UNDEFINED_ENDPOINT = -2;
 	public static final int ERROR_SOCIAL_ENDPOINT_EXCEPTION_IN_ASKING_AUTHPARAMS = -3;
-	
+
 	public static final int MP4_ENABLE = 1;
 	public static final int MP4_DISABLE = -1;
 	public static final int MP4_NO_SET = 0;
-	
+
 	public static final int HIGH_CPU_ERROR = -3;
 	public static final int FETCHER_NOT_STARTED_ERROR = -4;
 	public static final int INVALID_STREAM_NAME_ERROR = -5;
-	
+
 	public static final String HTTP = "http://";
 	public static final String RTSP = "rtsp://";
-	
+
 	protected static Logger logger = LoggerFactory.getLogger(RestServiceBase.class);
 
 	private static String hostaddress;
-	
+
 	private ProcessBuilderFactory processBuilderFactory = null;
 
 	@Context
@@ -119,7 +119,7 @@ public abstract class RestServiceBase {
 	protected ApplicationContext appCtx;
 	protected IScope scope;
 	protected AntMediaApplicationAdapter appInstance;
-	
+
 	private AppSettings appSettings;
 
 	protected boolean addSocialEndpoints(Broadcast broadcast, String socialEndpointIds) {	
@@ -234,13 +234,6 @@ public abstract class RestServiceBase {
 	}
 
 	public Broadcast createBroadcastWithStreamID(Broadcast broadcast) {
-		
-		boolean nameValid = StreamIdValidator.isStreamIdValid(broadcast.getStreamId()); 
-		if(!nameValid) {
-			logger.error("Stream name ({}) is invalid.", broadcast.getStreamId());
-			return null;
-		}
-
 		String settingsListenerHookURL = null; 
 		String fqdn = null;
 		AppSettings appSettingsLocal = getAppSettings();
@@ -259,6 +252,7 @@ public abstract class RestServiceBase {
 		if (broadcast == null) {
 			broadcast = new Broadcast();
 		}
+		
 		broadcast.setStatus(status);
 		broadcast.setDate(System.currentTimeMillis());
 
@@ -315,11 +309,11 @@ public abstract class RestServiceBase {
 		}
 		return appSettings;
 	}
-	
+
 	public void setAppSettings(AppSettings appSettings) {
 		this.appSettings = appSettings;
 	}
-	
+
 	protected Result deleteBroadcast(String id) {
 		Result result = new Result (false);
 		boolean stopResult = false;
@@ -333,17 +327,17 @@ public abstract class RestServiceBase {
 			if(result.isSuccess() && stopResult) {
 				logger.info("brodcast {} is deleted and stopped successfully", broacast.getStreamId());
 				result.setMessage("brodcast is deleted and stopped successfully");
-				
+
 			}
 			else if(result.isSuccess() && !stopResult) {
 				logger.info("brodcast {} is deleted but could not stopped", broacast);
 				result.setMessage("brodcast is deleted but could not stopped ");
 			}
-			
+
 		}
 		return result;
 	}
-	
+
 	protected boolean stopBroadcastInternal(Broadcast broadcast) {
 		boolean result = false;
 		if (broadcast != null) {
@@ -357,7 +351,7 @@ public abstract class RestServiceBase {
 		}
 		return result;
 	}
-	
+
 	protected Broadcast lookupBroadcast(String id) {
 		Broadcast broadcast = null;
 		try {
@@ -367,7 +361,7 @@ public abstract class RestServiceBase {
 		}
 		return broadcast;
 	}
-	
+
 	protected Result updateBroadcast(String streamId, Broadcast broadcast, String socialNetworksToPublish) {
 
 		boolean result = getDataStore().updateBroadcastFields(streamId, broadcast);
@@ -396,7 +390,7 @@ public abstract class RestServiceBase {
 		}
 		return new Result(result, message.toString(), errorId);
 	}
-	
+
 	/**
 	 * Update Stream Source or IP Camera info
 	 * @param broadcast
@@ -447,11 +441,11 @@ public abstract class RestServiceBase {
 		}
 		return new Result(result);
 	}
-	
+
 	protected Result addSocialEndpoint(String id, String endpointServiceId) 
 	{
 		Broadcast broadcast = lookupBroadcast(id);
-		
+
 		boolean success = false;
 		String message = "";
 		if (broadcast != null) 
@@ -463,7 +457,7 @@ public abstract class RestServiceBase {
 		}
 		return new Result(success, message);
 	}
-	
+
 	protected Result revokeSocialNetwork(String endpointId) {
 		Map<String, VideoServiceEndpoint> endPointServiceMap = getEndpointList();
 		String message = null;
@@ -485,7 +479,7 @@ public abstract class RestServiceBase {
 		}
 		return new Result(result, message);
 	}
-	
+
 	public Result addEndpoint(String id, String rtmpUrl) {
 		boolean success = false;
 		String message = null;
@@ -501,8 +495,8 @@ public abstract class RestServiceBase {
 
 		return new Result(success, message);
 	}
-	
-	
+
+
 	public Result importLiveStreams2Stalker() 
 	{
 
@@ -625,7 +619,7 @@ public abstract class RestServiceBase {
 		return process;
 
 	}
-	
+
 	public Result importVoDsToStalker() 
 	{
 
@@ -698,7 +692,7 @@ public abstract class RestServiceBase {
 		return new Result(result, message, errorId);
 
 	}
-	
+
 	protected ProcessBuilderFactory getProcessBuilderFactory() {
 		return processBuilderFactory;
 	}
@@ -707,8 +701,8 @@ public abstract class RestServiceBase {
 	public void setProcessBuilderFactory(ProcessBuilderFactory processBuilderFactory) {
 		this.processBuilderFactory = processBuilderFactory;
 	}
-	
-	
+
+
 	public IWebRTCAdaptor getWebRTCAdaptor() {
 		IWebRTCAdaptor adaptor = null;
 		ApplicationContext appContext = getAppContext();
@@ -717,7 +711,7 @@ public abstract class RestServiceBase {
 		}
 		return adaptor;
 	}
-	
+
 	public Result addIPCamera(Broadcast stream, String socialEndpointIds) {
 
 		Result connResult = new Result(false);
@@ -761,7 +755,7 @@ public abstract class RestServiceBase {
 
 		return connResult;
 	}
-	
+
 	public Result addStreamSource(Broadcast stream, String socialEndpointIds) {
 
 		Result result = new Result(false);
@@ -773,9 +767,9 @@ public abstract class RestServiceBase {
 			result.setErrorId(INVALID_STREAM_NAME_ERROR);
 			return result;
 		}
-		
+
 		IResourceMonitor monitor = (IResourceMonitor) getAppContext().getBean(IResourceMonitor.BEAN_NAME);
-		
+
 		if(monitor.enoughResource()) 
 		{
 			if (stream.getType().equals(AntMediaApplicationAdapter.IP_CAMERA)) {
@@ -792,10 +786,10 @@ public abstract class RestServiceBase {
 			result.setMessage("Resource usage is high");		
 			result.setErrorId(HIGH_CPU_ERROR);
 		}
-		
+
 		return result;
 	}
-	
+
 	public Result connectToCamera(Broadcast stream) {
 
 		Result result = new Result(false);
@@ -816,8 +810,8 @@ public abstract class RestServiceBase {
 		return result;
 
 	}
-	
-	
+
+
 	protected static boolean checkIPCamAddr (String url) {
 
 		boolean ipAddrControl = false;
@@ -860,7 +854,7 @@ public abstract class RestServiceBase {
 		}
 		return ipAddrControl;
 	}
-	
+
 	protected static boolean validateIPaddress(String ipaddress)  {
 		logger.info("inside check validateIPaddress{}", ipaddress);
 
@@ -873,7 +867,7 @@ public abstract class RestServiceBase {
 		return patternIP4.matcher(ipaddress).matches() || patternLoopBack.matcher(ipaddress).matches() ;
 
 	}
-	
+
 	public boolean checkStreamUrl (String url) {
 
 		boolean streamUrlControl = false;
@@ -913,7 +907,7 @@ public abstract class RestServiceBase {
 		}
 		return streamUrlControl;
 	}
-	
+
 	protected Result addSource(Broadcast stream, String socialEndpointIds) {
 		Result result=new Result(false);
 
@@ -934,7 +928,7 @@ public abstract class RestServiceBase {
 
 				StreamFetcher streamFetcher = getApplication().startStreaming(newSource);
 
-				
+
 				result.setMessage(id);
 
 				//if it's not started while adding, do not record it to datastore
@@ -951,7 +945,7 @@ public abstract class RestServiceBase {
 		}
 		return result;
 	}
-	
+
 	protected List<WebRTCClientStats> getWebRTCClientStatsList(int offset, int size, String streamId) {
 
 		List<WebRTCClientStats> list = new ArrayList<>();
@@ -986,8 +980,8 @@ public abstract class RestServiceBase {
 		}
 		return list;
 	}
-	
-	
+
+
 	protected Result deleteVoD(String id) {
 		boolean success = false;
 		String message = "";
@@ -1030,11 +1024,11 @@ public abstract class RestServiceBase {
 		}
 		return new Result(success, message);
 	}
-	
+
 	protected String getStreamsDirectory(String appScopeName) {
 		return String.format("%s/webapps/%s/%s", System.getProperty("red5.root"), appScopeName, "streams");
 	}
-	
+
 	protected Result uploadVoDFile(String fileName, InputStream inputStream) {
 		boolean success = false;
 		String message = "";
@@ -1102,7 +1096,7 @@ public abstract class RestServiceBase {
 		return new Result(success, id, message);
 	}
 
-	
+
 	protected Result synchUserVodList() {
 		boolean result = false;
 		int errorId = -1;
@@ -1123,7 +1117,7 @@ public abstract class RestServiceBase {
 
 		return new Result(result, message, errorId);
 	}
-	
+
 	protected Object getDeviceAuthParameters(String serviceName) {
 		String message = null;
 		boolean missingClientIdAndSecret = false;
@@ -1195,7 +1189,7 @@ public abstract class RestServiceBase {
 
 		return new Result(false, message, errorId);
 	}
-	
+
 	protected boolean isClientIdMissing(VideoServiceEndpoint videoServiceEndpoint, String clientId, String clientSecret) {
 		boolean result = false;
 		if ((videoServiceEndpoint != null) && 
@@ -1205,7 +1199,7 @@ public abstract class RestServiceBase {
 		}
 		return result;
 	}
-	
+
 	protected Result checkDeviceAuthStatus(String userCode) {
 		Map<String, VideoServiceEndpoint> endPointMap = getEndpointList();
 		String message = null;
@@ -1237,70 +1231,70 @@ public abstract class RestServiceBase {
 		}
 		return new Result(authenticated, endpointId, message);
 	}
-	
+
 	protected List<MuxAdaptor> getMuxAdaptors(String streamId) {
-        AntMediaApplicationAdapter application = getApplication();
-        List<MuxAdaptor> muxAdaptors = new ArrayList<>();
-        if(application != null){
-            muxAdaptors = application.getMuxAdaptors();
-        }
-        List<MuxAdaptor> matchedMuxAdaptors = new ArrayList<>();
-        for (MuxAdaptor muxAdaptor : muxAdaptors) {
-            if (streamId.equals(muxAdaptor.getStreamId())) {
-                matchedMuxAdaptors.add(muxAdaptor);
-            }
-        }
-        return matchedMuxAdaptors;
-    }
+		AntMediaApplicationAdapter application = getApplication();
+		List<MuxAdaptor> muxAdaptors = new ArrayList<>();
+		if(application != null){
+			muxAdaptors = application.getMuxAdaptors();
+		}
+		List<MuxAdaptor> matchedMuxAdaptors = new ArrayList<>();
+		for (MuxAdaptor muxAdaptor : muxAdaptors) {
+			if (streamId.equals(muxAdaptor.getStreamId())) {
+				matchedMuxAdaptors.add(muxAdaptor);
+			}
+		}
+		return matchedMuxAdaptors;
+	}
 
-    @Nullable
-    protected Mp4Muxer getMp4Muxer(MuxAdaptor muxAdaptor) {
-        Mp4Muxer mp4Muxer = null;
-        for (Muxer muxer : muxAdaptor.getMuxerList()) {
-            if (muxer instanceof Mp4Muxer) {
-                mp4Muxer = (Mp4Muxer) muxer;
-            }
-        }
-        return mp4Muxer;
-    }
+	@Nullable
+	protected Mp4Muxer getMp4Muxer(MuxAdaptor muxAdaptor) {
+		Mp4Muxer mp4Muxer = null;
+		for (Muxer muxer : muxAdaptor.getMuxerList()) {
+			if (muxer instanceof Mp4Muxer) {
+				mp4Muxer = (Mp4Muxer) muxer;
+			}
+		}
+		return mp4Muxer;
+	}
 
-    protected Result startMp4Muxing(String streamId) {
-        boolean result = false;
-        List<MuxAdaptor> muxAdaptors = getMuxAdaptors(streamId);
-        for (MuxAdaptor muxAdaptor : muxAdaptors) {
-            if (muxAdaptor != null) {
-                Mp4Muxer mp4Muxer = getMp4Muxer(muxAdaptor);
-                if (mp4Muxer == null) {
-                    //avoid multiple call of rest api adding new mp4muxers
-                    muxAdaptor.startRecording();
-                }
-                result = true;
-            }
-        }
-        return new Result(result);
-    }
+	protected Result startMp4Muxing(String streamId) {
+		boolean result = false;
+		List<MuxAdaptor> muxAdaptors = getMuxAdaptors(streamId);
+		for (MuxAdaptor muxAdaptor : muxAdaptors) {
+			if (muxAdaptor != null) {
+				Mp4Muxer mp4Muxer = getMp4Muxer(muxAdaptor);
+				if (mp4Muxer == null) {
+					//avoid multiple call of rest api adding new mp4muxers
+					muxAdaptor.startRecording();
+				}
+				result = true;
+			}
+		}
+		return new Result(result);
+	}
 
 	protected Result stopMp4Muxing(String streamId) {
-        boolean result = false;
-        List<MuxAdaptor> muxAdaptors = getMuxAdaptors(streamId);
-        for (MuxAdaptor muxAdaptor : muxAdaptors) {
-            if (muxAdaptor != null) {
-                Mp4Muxer mp4Muxer = getMp4Muxer(muxAdaptor);
-                if (mp4Muxer != null) {
-                    //avoid multiple call of rest api stopping mp4 muxer
-                    muxAdaptor.stopRecording();
-                }
-                result = true;
-            }
-        }
-        return new Result(result);
-    }
-	
+		boolean result = false;
+		List<MuxAdaptor> muxAdaptors = getMuxAdaptors(streamId);
+		for (MuxAdaptor muxAdaptor : muxAdaptors) {
+			if (muxAdaptor != null) {
+				Mp4Muxer mp4Muxer = getMp4Muxer(muxAdaptor);
+				if (mp4Muxer != null) {
+					//avoid multiple call of rest api stopping mp4 muxer
+					muxAdaptor.stopRecording();
+				}
+				result = true;
+			}
+		}
+		return new Result(result);
+	}
+
 	protected List<VideoServiceEndpoint> getEndpointsHavingErrorList(){
 		return getApplication().getVideoServiceEndpointsHavingError();
 	}
 
-	
+
 	protected BroadcastStatistics getBroadcastStatistics(String id) {
 
 		int totalRTMPViewer = -1;
@@ -1328,7 +1322,7 @@ public abstract class RestServiceBase {
 
 		return new BroadcastStatistics(totalRTMPViewer, totalHLSViewer, totalWebRTCViewer);
 	}
-	
+
 	protected List<SocialEndpointCredentials> getSocialEndpoints(int offset, int size) {
 		List<SocialEndpointCredentials> endPointCredentials = new ArrayList<>();
 		Map<String, VideoServiceEndpoint> endPointMap = getEndpointList();
@@ -1339,7 +1333,7 @@ public abstract class RestServiceBase {
 		}
 		return endPointCredentials;
 	}
-	
+
 	protected SocialEndpointChannel getSocialNetworkChannel(String endpointId) {
 		Map<String, VideoServiceEndpoint> endPointMap = getEndpointList();
 		VideoServiceEndpoint endPoint = endPointMap.get(endpointId);
@@ -1349,7 +1343,7 @@ public abstract class RestServiceBase {
 		}
 		return channel;
 	}
-	
+
 	protected List<SocialEndpointChannel> getSocialNetworkChannelList(String endpointId, String type) {
 
 		Map<String, VideoServiceEndpoint> endPointMap = getEndpointList();
@@ -1360,8 +1354,8 @@ public abstract class RestServiceBase {
 		}
 		return channelList;
 	}
-	
-	
+
+
 	protected Result setSocialNetworkChannelList(String endpointId, String type, String channelId) {
 		boolean result = false;
 		Map<String, VideoServiceEndpoint> endPointMap = getEndpointList();
@@ -1373,7 +1367,7 @@ public abstract class RestServiceBase {
 		}
 		return new Result(result, null);
 	}
-	
+
 	protected Result getCameraError(String id) {
 		Result result = new Result(true);
 
@@ -1385,7 +1379,7 @@ public abstract class RestServiceBase {
 
 		return result;
 	}
-	
+
 	public Result startStreamSource(String id) 
 	{
 		Result result = new Result(false);	
@@ -1414,8 +1408,8 @@ public abstract class RestServiceBase {
 		}
 		return result;
 	}
-	
-	
+
+
 	public Result stopStreamSource(String id) 
 	{
 		Result result = new Result(false);
@@ -1425,8 +1419,8 @@ public abstract class RestServiceBase {
 		}
 		return result;
 	}
-	
-	
+
+
 	protected String[] searchOnvifDevices() {
 
 		String localIP = null;
@@ -1480,8 +1474,8 @@ public abstract class RestServiceBase {
 
 		return list;
 	}
-	
-	
+
+
 	protected Result moveUp(String id) {
 		boolean result = false;
 		OnvifCamera camera = getApplication().getOnvifCamera(id);
@@ -1491,7 +1485,7 @@ public abstract class RestServiceBase {
 		}
 		return new Result(result);
 	}
-	
+
 	protected Result moveDown(String id) {
 		boolean result = false;
 		OnvifCamera camera = getApplication().getOnvifCamera(id);
@@ -1501,7 +1495,7 @@ public abstract class RestServiceBase {
 		}
 		return new Result(result);
 	}
-	
+
 	protected Result moveLeft(String id) {
 		boolean result = false;
 		OnvifCamera camera = getApplication().getOnvifCamera(id);
@@ -1511,7 +1505,7 @@ public abstract class RestServiceBase {
 		}
 		return new Result(result);
 	}
-	
+
 	protected Result moveRight(String id) {
 		boolean result = false;
 		OnvifCamera camera = getApplication().getOnvifCamera(id);
@@ -1521,7 +1515,7 @@ public abstract class RestServiceBase {
 		}
 		return new Result(result);
 	}
-	
+
 	protected Result getViewerCountFromEndpoint(String endpointServiceId, String streamId) 
 	{
 		VideoServiceEndpoint videoServiceEndPoint = getApplication().getVideoServiceEndPoint(endpointServiceId);
@@ -1531,7 +1525,7 @@ public abstract class RestServiceBase {
 		}
 		return new Result(true, String.valueOf(liveViews));
 	}
-	
+
 	protected Result getLiveCommentsCount(String endpointServiceId, String streamId) {
 		VideoServiceEndpoint videoServiceEndPoint = getApplication().getVideoServiceEndPoint(endpointServiceId);
 		int commentCount = 0;
@@ -1540,7 +1534,7 @@ public abstract class RestServiceBase {
 		}
 		return new Result(true, String.valueOf(commentCount));
 	}
-	
+
 	protected Interaction getInteractionFromEndpoint(String endpointServiceId, String streamId) {
 		Interaction interaction = null;
 		VideoServiceEndpoint videoServiceEndPoint = getApplication().getVideoServiceEndPoint(endpointServiceId);
@@ -1549,10 +1543,10 @@ public abstract class RestServiceBase {
 		}
 		return interaction;
 	}
-	
+
 	protected List<LiveComment> getLiveCommentsFromEndpoint(String endpointServiceId, String streamId, int offset, int batch) 
 	{
-	
+
 		VideoServiceEndpoint videoServiceEndPoint = getApplication().getVideoServiceEndPoint(endpointServiceId);
 		List<LiveComment> liveComment = null;
 		if (videoServiceEndPoint != null) {
@@ -1560,7 +1554,7 @@ public abstract class RestServiceBase {
 		}
 		return liveComment;
 	}
-	
+
 	protected List<TensorFlowObject> getDetectionList(String id, int offset, int size) {
 		List<TensorFlowObject> list = null;
 
@@ -1574,7 +1568,7 @@ public abstract class RestServiceBase {
 		}
 		return list;
 	}
-	
+
 	protected Object getToken (String streamId, long expireDate, String type, String roomId) 
 	{
 		Token token = null;
@@ -1608,7 +1602,7 @@ public abstract class RestServiceBase {
 
 		return new Result(false, message);
 	}
-	
+
 	protected Token validateToken (Token token) {
 		Token validatedToken = null;
 
@@ -1619,7 +1613,7 @@ public abstract class RestServiceBase {
 
 		return validatedToken;
 	}
-	
+
 	protected Result revokeTokens (String streamId) {
 		Result result = new Result(false);
 
@@ -1630,7 +1624,7 @@ public abstract class RestServiceBase {
 
 		return result;
 	}
-	
+
 	protected boolean deleteConferenceRoom(String roomName) {
 
 		if(roomName != null) {
@@ -1638,7 +1632,7 @@ public abstract class RestServiceBase {
 		}
 		return false;
 	}
-	
+
 	protected ConferenceRoom editConferenceRoom(ConferenceRoom room) 
 	{
 		if(room != null && getDataStore().editConferenceRoom(room.getRoomId(), room)) {
@@ -1646,7 +1640,7 @@ public abstract class RestServiceBase {
 		}
 		return null;
 	}
-	
+
 	protected ConferenceRoom createConferenceRoom(ConferenceRoom room) {
 
 		if(room != null) {
@@ -1676,7 +1670,7 @@ public abstract class RestServiceBase {
 		}
 		return vod;
 	}
-	
+
 	public static Version getSoftwareVersion() {
 		Version version = new Version();
 		version.setVersionName(AntMediaApplicationAdapter.class.getPackage().getImplementationVersion());
@@ -1696,7 +1690,7 @@ public abstract class RestServiceBase {
 		logger.debug("Version Name {} Version Type {}", version.getVersionName(), version.getVersionType());
 		return version;
 	}
-	
+
 	public static boolean isEnterprise() {
 		try {
 			Class.forName("io.antmedia.enterprise.adaptive.EncoderAdaptor");
