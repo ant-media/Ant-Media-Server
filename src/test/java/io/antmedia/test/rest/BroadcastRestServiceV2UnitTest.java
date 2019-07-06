@@ -458,7 +458,7 @@ public class BroadcastRestServiceV2UnitTest {
 		ApplicationContext appContext = mock(ApplicationContext.class);
 
 		when(appContext.containsBean(ITokenService.BeanName.TOKEN_SERVICE.toString())).thenReturn(false);
-		Object tokenReturn = restServiceReal.getTokenV2(streamId, 123432, Token.PLAY_TOKEN).getEntity();
+		Object tokenReturn = restServiceReal.getTokenV2(streamId, 123432, Token.PLAY_TOKEN, "testRoom").getEntity();
 		assertTrue(tokenReturn instanceof Result);
 		Result result = (Result) tokenReturn;
 		//it should false, because appContext is null
@@ -466,20 +466,20 @@ public class BroadcastRestServiceV2UnitTest {
 
 
 		restServiceReal.setAppCtx(appContext);
-		tokenReturn = restServiceReal.getTokenV2(streamId, 123432, Token.PLAY_TOKEN).getEntity();
+		tokenReturn = restServiceReal.getTokenV2(streamId, 123432, Token.PLAY_TOKEN, "testRoom").getEntity();
 		assertTrue(tokenReturn instanceof Result);
 		result = (Result) tokenReturn;
-		//it should be false, becase there is no token service in the context
+		//it should be false, because there is no token service in the context
 		assertFalse(result.isSuccess());	
 
 		ITokenService tokenService = mock(ITokenService.class);
 		{
 			when(appContext.containsBean(ITokenService.BeanName.TOKEN_SERVICE.toString())).thenReturn(true);
-			when(tokenService.createToken(streamId, 123432, Token.PLAY_TOKEN))
+			when(tokenService.createToken(streamId, 123432, Token.PLAY_TOKEN, "testRoom"))
 			.thenReturn(null);
 			when(appContext.getBean(ITokenService.BeanName.TOKEN_SERVICE.toString())).thenReturn(tokenService);
 
-			tokenReturn = restServiceReal.getTokenV2(streamId, 123432, Token.PLAY_TOKEN).getEntity();
+			tokenReturn = restServiceReal.getTokenV2(streamId, 123432, Token.PLAY_TOKEN, "testRoom").getEntity();
 			assertTrue(tokenReturn instanceof Result);
 			result = (Result) tokenReturn;
 			//it should be false, becase token service returns null
@@ -493,32 +493,32 @@ public class BroadcastRestServiceV2UnitTest {
 		token.setType(Token.PLAY_TOKEN);
 
 		{
-			when(tokenService.createToken(streamId, 123432, Token.PLAY_TOKEN))
+			when(tokenService.createToken(streamId, 123432, Token.PLAY_TOKEN, "testRoom" ))
 			.thenReturn(token);
 			restServiceReal.setAppCtx(appContext);
 
 
-			tokenReturn = (Object) restServiceReal.getTokenV2(streamId, 123432, Token.PLAY_TOKEN).getEntity();
+			tokenReturn = (Object) restServiceReal.getTokenV2(streamId, 123432, Token.PLAY_TOKEN, "testRoom").getEntity();
 			assertTrue(tokenReturn instanceof Result);
 			result = (Result) tokenReturn;
 			assertFalse(result.isSuccess());
 		}
 
 		//check create token is called
-		Mockito.verify(tokenService, Mockito.times(2)).createToken(streamId, 123432, Token.PLAY_TOKEN);
+		Mockito.verify(tokenService, Mockito.times(2)).createToken(streamId, 123432, Token.PLAY_TOKEN, "testRoom");
 		//check saveToken is called
 		Mockito.verify(datastore).saveToken(token);
 
 		{	
 			//set stream id null and it should return false
-			tokenReturn = restServiceReal.getTokenV2(null, 0, Token.PLAY_TOKEN).getEntity();
+			tokenReturn = restServiceReal.getTokenV2(null, 0, Token.PLAY_TOKEN, "testRoom").getEntity();
 			assertTrue(tokenReturn instanceof Result);
 			result = (Result) tokenReturn;
 			assertFalse(result.isSuccess());	
 		}
 
 		Mockito.when(datastore.saveToken(Mockito.any())).thenReturn(true);
-		tokenReturn = (Object) restServiceReal.getTokenV2(streamId, 123432, Token.PLAY_TOKEN).getEntity();
+		tokenReturn = (Object) restServiceReal.getTokenV2(streamId, 123432, Token.PLAY_TOKEN, "testRoom").getEntity();
 		assertTrue(tokenReturn instanceof Token);
 		assertEquals(((Token)tokenReturn).getTokenId(), token.getTokenId());
 

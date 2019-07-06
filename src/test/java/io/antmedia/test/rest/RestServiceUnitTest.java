@@ -56,6 +56,7 @@ import io.antmedia.muxer.Muxer;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.BroadcastRestService.BroadcastStatistics;
 import io.antmedia.rest.BroadcastRestService.ProcessBuilderFactory;
+import io.antmedia.rest.RestServiceBase;
 import io.antmedia.rest.WebRTCClientStats;
 import io.antmedia.rest.model.Interaction;
 import io.antmedia.rest.model.Result;
@@ -67,6 +68,7 @@ import io.antmedia.social.ResourceOrigin;
 import io.antmedia.social.endpoint.PeriscopeEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
+import io.antmedia.statistic.ResourceMonitor;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.vertx.core.Vertx;
 
@@ -464,7 +466,7 @@ public class RestServiceUnitTest {
 		ApplicationContext appContext = mock(ApplicationContext.class);
 
 		when(appContext.containsBean(ITokenService.BeanName.TOKEN_SERVICE.toString())).thenReturn(false);
-		Object tokenReturn = restServiceReal.getToken(streamId, 123432, Token.PLAY_TOKEN);
+		Object tokenReturn = restServiceReal.getToken(streamId, 123432, Token.PLAY_TOKEN, "testRoom");
 		assertTrue(tokenReturn instanceof Result);
 		Result result = (Result) tokenReturn;
 		//it should false, because appContext is null
@@ -472,20 +474,20 @@ public class RestServiceUnitTest {
 
 
 		restServiceReal.setAppCtx(appContext);
-		tokenReturn = restServiceReal.getToken(streamId, 123432, Token.PLAY_TOKEN);
+		tokenReturn = restServiceReal.getToken(streamId, 123432, Token.PLAY_TOKEN, "testRoom");
 		assertTrue(tokenReturn instanceof Result);
 		result = (Result) tokenReturn;
-		//it should be false, becase there is no token service in the context
+		//it should be false, because there is no token service in the context
 		assertFalse(result.isSuccess());	
 
 		ITokenService tokenService = mock(ITokenService.class);
 		{
 			when(appContext.containsBean(ITokenService.BeanName.TOKEN_SERVICE.toString())).thenReturn(true);
-			when(tokenService.createToken(streamId, 123432, Token.PLAY_TOKEN))
+			when(tokenService.createToken(streamId, 123432, Token.PLAY_TOKEN, "testRoom"))
 			.thenReturn(null);
 			when(appContext.getBean(ITokenService.BeanName.TOKEN_SERVICE.toString())).thenReturn(tokenService);
 
-			tokenReturn = restServiceReal.getToken(streamId, 123432, Token.PLAY_TOKEN);
+			tokenReturn = restServiceReal.getToken(streamId, 123432, Token.PLAY_TOKEN, "testRoom");
 			assertTrue(tokenReturn instanceof Result);
 			result = (Result) tokenReturn;
 			//it should be false, becase token service returns null
@@ -497,34 +499,35 @@ public class RestServiceUnitTest {
 		token.setExpireDate(123432);
 		token.setTokenId(RandomStringUtils.randomAlphabetic(8));
 		token.setType(Token.PLAY_TOKEN);
+		token.setRoomId("testRoom");
 
 		{
-			when(tokenService.createToken(streamId, 123432, Token.PLAY_TOKEN))
+			when(tokenService.createToken(streamId, 123432, Token.PLAY_TOKEN, "testRoom"))
 			.thenReturn(token);
 			restServiceReal.setAppCtx(appContext);
 
 
-			tokenReturn = (Object) restServiceReal.getToken(streamId, 123432, Token.PLAY_TOKEN);
+			tokenReturn = (Object) restServiceReal.getToken(streamId, 123432, Token.PLAY_TOKEN, "testRoom");
 			assertTrue(tokenReturn instanceof Result);
 			result = (Result) tokenReturn;
 			assertFalse(result.isSuccess());
 		}
 
 		//check create token is called
-		Mockito.verify(tokenService, Mockito.times(2)).createToken(streamId, 123432, Token.PLAY_TOKEN);
+		Mockito.verify(tokenService, Mockito.times(2)).createToken(streamId, 123432, Token.PLAY_TOKEN, "testRoom");
 		//check saveToken is called
 		Mockito.verify(datastore).saveToken(token);
 
 		{	
 			//set stream id null and it should return false
-			tokenReturn = restServiceReal.getToken(null, 0, Token.PLAY_TOKEN);
+			tokenReturn = restServiceReal.getToken(null, 0, Token.PLAY_TOKEN, "testRoom");
 			assertTrue(tokenReturn instanceof Result);
 			result = (Result) tokenReturn;
 			assertFalse(result.isSuccess());	
 		}
 
 		Mockito.when(datastore.saveToken(Mockito.any())).thenReturn(true);
-		tokenReturn = (Object) restServiceReal.getToken(streamId, 123432, Token.PLAY_TOKEN);
+		tokenReturn = (Object) restServiceReal.getToken(streamId, 123432, Token.PLAY_TOKEN, "testRoom");
 		assertTrue(tokenReturn instanceof Token);
 		assertEquals(((Token)tokenReturn).getTokenId(), token.getTokenId());
 
@@ -1321,6 +1324,68 @@ public class RestServiceUnitTest {
 		assertNull(restServiceReal.getDataStore().getConferenceRoom(room.getRoomId()));
 
 		
+	}
+	
+	@Test
+	public void testStreamSourceInvalidName() {
+		ApplicationContext context = mock(ApplicationContext.class);
+		ResourceMonitor monitor = mock(ResourceMonitor.class);
+		when(monitor.enoughResource()).thenReturn(true);
+		when(context.getBean(ResourceMonitor.BEAN_NAME)).thenReturn(monitor);
+
+
+		restServiceReal.setAppCtx(context);
+		
+		Result result = restServiceReal.addStreamSource(new Broadcast("stream1"), null);
+		assertEquals(0, result.getErrorId());
+
+		result = restServiceReal.addStreamSource(new Broadcast("stre--__am1_-"), null);
+		assertEquals(0, result.getErrorId());
+		
+		result = restServiceReal.addStreamSource(new Broadcast("stream1_-:"), null);
+		assertEquals(RestServiceBase.INVALID_STREAM_NAME_ERROR, result.getErrorId());
+	}
+	
+	@Test
+	public void testBroadcastInvalidName() {
+		InMemoryDataStore datastore = new InMemoryDataStore("datastore");
+		restServiceReal.setDataStore(datastore);
+
+		Scope scope = mock(Scope.class);
+		String scopeName = "junit";
+		when(scope.getName()).thenReturn(scopeName);
+
+		AntMediaApplicationAdapter app = mock(AntMediaApplicationAdapter.class);
+		when(app.getScope()).thenReturn(scope);
+
+		ApplicationContext context = mock(ApplicationContext.class);
+		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
+
+		restServiceReal.setAppCtx(context);
+		Broadcast broadcast = new Broadcast();
+		try {
+			broadcast.setStreamId("stream1");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		assertNotNull(restServiceReal.createBroadcastWithStreamID(broadcast));
+		
+		Broadcast broadcast2 = new Broadcast();
+		try {
+			broadcast2.setStreamId("stream1_");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		assertNotNull(restServiceReal.createBroadcastWithStreamID(broadcast));
+		
+		broadcast2 = new Broadcast();
+		try {
+			broadcast2.setStreamId("stream1_:");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		assertNull(restServiceReal.createBroadcastWithStreamID(broadcast2));
+
 	}
 
 

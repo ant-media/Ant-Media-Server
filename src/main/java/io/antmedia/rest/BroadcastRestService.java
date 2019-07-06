@@ -1,23 +1,9 @@
 package io.antmedia.rest;
 
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.InetAddress;
-import java.net.URL;
-import java.net.URLClassLoader;
-import java.net.UnknownHostException;
-import java.nio.file.Files;
-import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
-import java.util.Map;
-import java.util.jar.Manifest;
-import java.util.regex.Pattern;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.FormParam;
@@ -29,42 +15,25 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
-import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.glassfish.jersey.media.multipart.FormDataParam;
-import org.jetbrains.annotations.Nullable;
-import org.red5.server.api.scope.IBroadcastScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
-import io.antmedia.datastore.db.DataStore;
+import io.antmedia.StreamIdValidator;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConferenceRoom;
-import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointChannel;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
-import io.antmedia.muxer.Mp4Muxer;
-import io.antmedia.muxer.MuxAdaptor;
-import io.antmedia.muxer.Muxer;
 import io.antmedia.rest.model.Interaction;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.Version;
-import io.antmedia.security.ITokenService;
 import io.antmedia.social.LiveComment;
-import io.antmedia.social.endpoint.PeriscopeEndpoint;
-import io.antmedia.social.endpoint.VideoServiceEndpoint;
-import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
-import io.antmedia.storage.StorageClient;
-import io.antmedia.storage.StorageClient.FileType;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiModel;
@@ -186,6 +155,15 @@ public class BroadcastRestService extends RestServiceBase{
 	@Path("/broadcast/createWithStreamID")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Broadcast createBroadcastWithStreamID(@ApiParam(value = "Broadcast object only related information should be set, it may be null as well.", required = true) Broadcast broadcast) {
+		if (broadcast != null) {
+			//check stream id if exists
+			boolean nameValid = StreamIdValidator.isStreamIdValid(broadcast.getStreamId()); 
+			if(!nameValid) {
+				logger.error("Stream name ({}) is invalid.", broadcast.getStreamId());
+				return null;
+			}
+		}
+		
 		return super.createBroadcastWithStreamID(broadcast);
 	}
 
@@ -776,6 +754,7 @@ public class BroadcastRestService extends RestServiceBase{
 	 * @param streamId - the id of the stream
 	 * @param expireDate - the expire date of the token
 	 * @param type - type of the token (publish/play)
+	 * @param roomName - room Name that token belongs to)
 	 * @return  {@link io.antmedia.datastore.db.types.Token}
 	 */
 	@ApiOperation(value = "Generates random one-time token for specified stream", notes = "", response = Token.class)
@@ -785,9 +764,11 @@ public class BroadcastRestService extends RestServiceBase{
 	@Override
 	public Object getToken (@ApiParam(value = "the id of the stream", required = true) @QueryParam("id")String streamId,
 			@ApiParam(value = "the expire date of the token", required = true) @QueryParam("expireDate") long expireDate,
-			@ApiParam(value = "type", required = true) @QueryParam("type") String type) 
+			@ApiParam(value = "type of the token. It may be play or publish ", required = true) @QueryParam("type") String type,
+			@ApiParam(value = "room Name that token belongs to ", required = true) @QueryParam("roomId") String roomId) 
+ 
 	{
-		return super.getToken(streamId, expireDate, type);
+		return super.getToken(streamId, expireDate, type, roomId);
 	}
 
 

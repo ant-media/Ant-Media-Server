@@ -18,6 +18,7 @@ import javax.ws.rs.core.Response.Status;
 import org.springframework.stereotype.Component;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.StreamIdValidator;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.SocialEndpointChannel;
@@ -92,10 +93,15 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 		if (broadcast != null && broadcast.getStreamId() != null && !broadcast.getStreamId().isEmpty()) {
 			// make sure stream id is not set on rest service
 			Broadcast broadcastTmp = getDataStore().get(broadcast.getStreamId());
-			if (broadcastTmp != null) {
-
+			if (broadcastTmp != null) 
+			{
 				return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Stream id is already being used. ")).build();
 			}
+			else if (!StreamIdValidator.isStreamIdValid(broadcast.getStreamId())) 
+			{
+				return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Stream id is not valid. ")).build();
+			}
+			
 		}
 
 		Object returnObject = new Result(false, "unexptected parameters received");
@@ -111,6 +117,7 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 		}
 		else {
 			Broadcast createdBroadcast = createBroadcastWithStreamID(broadcast);
+
 			if (createdBroadcast.getStreamId() != null && socialEndpointIds != null) {
 				String[] endpointIds = socialEndpointIds.split(",");
 				for (String endpointId : endpointIds) {
@@ -118,6 +125,7 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 				}
 			}
 			returnObject = createdBroadcast;
+
 		}
 
 
@@ -228,10 +236,10 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	@Path("/{id}/social-endpoints/{endpointServiceId}/live-comments/{offset}/{batch}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public List<LiveComment> getLiveCommentsFromEndpointV2(@ApiParam(value = "This is the id of the endpoint service", required = true)
-		@PathParam("endpointServiceId") String endpointServiceId,
-		@ApiParam(value = "Broadcast id", required = true) @PathParam("id") String streamId,
-		@ApiParam(value = "this is the start offset where to start getting comment", required = true) @PathParam("offset") int offset,
-		@ApiParam(value = "number of items to be returned", required = true) @PathParam("batch") int batch) 
+	@PathParam("endpointServiceId") String endpointServiceId,
+	@ApiParam(value = "Broadcast id", required = true) @PathParam("id") String streamId,
+	@ApiParam(value = "this is the start offset where to start getting comment", required = true) @PathParam("offset") int offset,
+	@ApiParam(value = "number of items to be returned", required = true) @PathParam("batch") int batch) 
 	{
 
 		return super.getLiveCommentsFromEndpoint(endpointServiceId, streamId, offset, batch);
@@ -323,9 +331,10 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response getTokenV2 (@ApiParam(value = "the id of the stream", required = true) @PathParam("id")String streamId,
 			@ApiParam(value = "the expire date of the token", required = true) @QueryParam("expireDate") long expireDate,
-			@ApiParam(value = "type of the token. It may be \"play\" or \"publish\" ", required = true) @QueryParam("type") String type) 
+			@ApiParam(value = "type of the token. It may be play or publish ", required = true) @QueryParam("type") String type,
+			@ApiParam(value = "room Name that token belongs to ", required = true) @QueryParam("roomId") String roomId) 
 	{
-		Object result = super.getToken(streamId, expireDate, type);
+		Object result = super.getToken(streamId, expireDate, type, roomId);
 		if (result instanceof Token) {
 			return Response.status(Status.OK).entity(result).build();
 		}
@@ -624,7 +633,7 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 			return Response.status(Status.OK).entity(room).build();
 		}
 		return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Operation not completed")).build();
-		
+
 	}
 
 	@ApiOperation(value = "Edits previously saved conference room", response = Response.class)

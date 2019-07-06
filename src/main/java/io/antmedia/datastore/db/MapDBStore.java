@@ -1105,4 +1105,33 @@ public class MapDBStore extends DataStore {
 		}
 		return null;
 	}
+
+	@Override
+	public boolean deleteToken(String tokenId) {
+
+		boolean result = false;
+
+		synchronized (this) {
+			result = tokenMap.remove(tokenId) != null;
+			if (result) {
+				db.commit();
+			}
+		}
+		return result;
+	}
+
+	@Override
+	public Token getToken(String tokenId) {
+		Token token = null;
+		synchronized (this) {
+			if (tokenId != null) {
+				String jsonString = tokenMap.get(tokenId);
+				if (jsonString != null) {
+					token = gson.fromJson(jsonString, Token.class);
+				}
+			}
+		}
+		return token;
+		
+	}
 }

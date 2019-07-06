@@ -946,4 +946,33 @@ public class MongoStore extends DataStore {
 		return null;
 	}
 
+	@Override
+	public boolean deleteToken(String tokenId) {
+		boolean result = false;
+		synchronized(this) {
+			try {
+				Query<Token> query = tokenDatastore.createQuery(Token.class).field("tokenId").equal(tokenId);
+				WriteResult delete = tokenDatastore.delete(query);
+				result = delete.getN() == 1;
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+		return result;
+	}
+
+	@Override
+	public Token getToken(String tokenId) {
+		Token token = null;
+
+		synchronized(this) {
+			try {
+				token =  tokenDatastore.find(Token.class).field("tokenId").equal(tokenId).get();
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+		return token;
+	}
+
 }
