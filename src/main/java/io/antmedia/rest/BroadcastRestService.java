@@ -755,10 +755,10 @@ public class BroadcastRestService extends RestServiceBase{
 	public Object getToken (@ApiParam(value = "the id of the stream", required = true) @QueryParam("id")String streamId,
 			@ApiParam(value = "the expire date of the token", required = true) @QueryParam("expireDate") long expireDate,
 			@ApiParam(value = "type of the token. It may be play or publish ", required = true) @QueryParam("type") String type,
-			@ApiParam(value = "room Name that token belongs to ", required = true) @QueryParam("roomName") String roomName) 
+			@ApiParam(value = "room Name that token belongs to ", required = true) @QueryParam("roomId") String roomId) 
  
 	{
-		return super.getToken(streamId, expireDate, type, roomName);
+		return super.getToken(streamId, expireDate, type, roomId);
 	}
 
 

@@ -324,9 +324,9 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	public Response getTokenV2 (@ApiParam(value = "the id of the stream", required = true) @PathParam("id")String streamId,
 			@ApiParam(value = "the expire date of the token", required = true) @QueryParam("expireDate") long expireDate,
 			@ApiParam(value = "type of the token. It may be play or publish ", required = true) @QueryParam("type") String type,
-			@ApiParam(value = "room Name that token belongs to ", required = true) @QueryParam("roomName") String roomName) 
+			@ApiParam(value = "room Name that token belongs to ", required = true) @QueryParam("roomId") String roomId) 
 	{
-		Object result = super.getToken(streamId, expireDate, type, roomName);
+		Object result = super.getToken(streamId, expireDate, type, roomId);
 		if (result instanceof Token) {
 			return Response.status(Status.OK).entity(result).build();
 		}
