@@ -101,7 +101,7 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 			{
 				return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Stream id is not valid. ")).build();
 			}
-			
+
 		}
 
 		Object returnObject = new Result(false, "unexptected parameters received");
@@ -128,8 +128,7 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 
 		}
 
-
-		return Response.status(returnObject instanceof Result ? Status.BAD_REQUEST : Status.OK).entity(returnObject).build();
+		return Response.status(Status.OK).entity(returnObject).build();
 	}
 
 	@ApiOperation(value = "Delete broadcast from data store and stop if it's broadcasting", response = Result.class)
@@ -198,6 +197,7 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 			{
 				result = super.updateBroadcast(id, broadcast, socialNetworksToPublish);
 			}
+
 		}
 		return result;
 	}
@@ -475,7 +475,7 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	@ApiOperation(value = "If there are multiple channels in a social network," +
 			"this method sets specific channel for that endpoint" +
 			"If a user has pages in Facebook, this method sets the specific page to publish live stream to", notes = "", response = Result.class)
-	@POST
+	@PUT
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/social-networks-channels/{endpointId}/{type}/{id}")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -513,13 +513,13 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	}
 
 
-	@ApiOperation(value = "Get IP Camera Error after connection failure", notes = "Notes here", response = Result.class)
+	@ApiOperation(value = "Get IP Camera Error after connection failure. If returns true, it means there is an error. If returns false, there is no error", notes = "Notes here", response = Result.class)
 	@GET
 	@Consumes(MediaType.APPLICATION_JSON)
-	@Path("/{id}/error")
+	@Path("/{ipAddr}/ip-camera-error")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result getCameraErrorV2(@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String id) {
-		return super.getCameraError(id);
+	public Result getCameraErrorV2(@ApiParam(value = "IP Addr of the Camera. This IP may contain port number", required = true) @PathParam("ipAddr") String ipAddr) {
+		return super.getCameraError(ipAddr);
 	}
 
 	@ApiOperation(value = "Start external sources (IP Cameras and Stream Sources) again if it is added and stopped before", response = Result.class)
