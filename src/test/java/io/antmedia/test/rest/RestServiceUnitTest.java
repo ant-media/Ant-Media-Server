@@ -57,6 +57,7 @@ import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.BroadcastRestService.BroadcastStatistics;
 import io.antmedia.rest.BroadcastRestService.ProcessBuilderFactory;
 import io.antmedia.rest.RestServiceBase;
+import io.antmedia.rest.StreamsSourceRestService;
 import io.antmedia.rest.WebRTCClientStats;
 import io.antmedia.rest.model.Interaction;
 import io.antmedia.rest.model.Result;
@@ -1333,16 +1334,23 @@ public class RestServiceUnitTest {
 		when(monitor.enoughResource()).thenReturn(true);
 		when(context.getBean(ResourceMonitor.BEAN_NAME)).thenReturn(monitor);
 
-
-		restServiceReal.setAppCtx(context);
+		StreamsSourceRestService restService = new StreamsSourceRestService();
+		restService.setAppCtx(context);
 		
-		Result result = restServiceReal.addStreamSource(new Broadcast("stream1"), null);
+		restService.setDataStore(new InMemoryDataStore("any_db"));
+		
+		Result result = restService.addStreamSource(new Broadcast("stream1"), null);
 		assertEquals(0, result.getErrorId());
 
-		result = restServiceReal.addStreamSource(new Broadcast("stre--__am1_-"), null);
+		result = restService.addStreamSource(new Broadcast("stre--__am1_-"), null);
 		assertEquals(0, result.getErrorId());
-		
-		result = restServiceReal.addStreamSource(new Broadcast("stream1_-:"), null);
+		Broadcast broadcast = new Broadcast("stream1_-:");
+		try {
+			broadcast.setStreamId("stream1_-:");
+		} catch (Exception e) {
+			fail(e.getMessage());
+		}
+		result = restService.addStreamSource(broadcast, null);
 		assertEquals(RestServiceBase.INVALID_STREAM_NAME_ERROR, result.getErrorId());
 	}
 	

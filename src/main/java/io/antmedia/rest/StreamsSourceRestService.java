@@ -7,11 +7,14 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import io.antmedia.StreamIdValidator;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.rest.model.Result;
 import io.swagger.annotations.Api;
@@ -48,6 +51,19 @@ public class StreamsSourceRestService extends RestServiceBase{
 	@Produces(MediaType.APPLICATION_JSON)
 	@Override
 	public Result addStreamSource(@ApiParam(value = "stream", required = true) Broadcast stream, @QueryParam("socialNetworks") String socialEndpointIds) {
+		if (stream != null && stream.getStreamId() != null && !stream.getStreamId().isEmpty()) {
+			// make sure stream id is not set on rest service
+			Broadcast broadcastTmp = getDataStore().get(stream.getStreamId());
+			if (broadcastTmp != null) 
+			{
+				return new Result(false, "Stream id is already being used. ");
+			}
+			else if (!StreamIdValidator.isStreamIdValid(stream.getStreamId())) 
+			{
+				return new Result(false, "Stream id is not valid. ", INVALID_STREAM_NAME_ERROR);
+			}
+
+		}
 		return super.addStreamSource(stream, socialEndpointIds);
 	}
 
