@@ -17,6 +17,7 @@ import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.springframework.stereotype.Component;
 
 import io.antmedia.datastore.db.types.VoD;
+import io.antmedia.rest.BroadcastRestServiceV2.SimpleStat;
 import io.antmedia.rest.model.Result;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -78,8 +79,8 @@ public class VoDRestServiceV2 extends RestServiceBase{
 	@GET
 	@Path("/count")
 	@Produces(MediaType.APPLICATION_JSON)
-	public long getTotalVodNumber() {
-		return getDataStore().getTotalVodNumber();
+	public SimpleStat getTotalVodNumber() {
+		return new SimpleStat(getDataStore().getTotalVodNumber());
 	}
 	
 	@ApiOperation(value = "Delete specific VoD File", response = Result.class)
@@ -95,7 +96,7 @@ public class VoDRestServiceV2 extends RestServiceBase{
 	@ApiOperation(value = "Upload external VoD file to Ant Media Server", notes = "", response = Result.class)
 	@POST
 	@Consumes({MediaType.MULTIPART_FORM_DATA})
-	@Path("/")
+	@Path("/create")
 	@Produces(MediaType.APPLICATION_JSON)
 	@Override
 	public Result uploadVoDFile(@ApiParam(value = "the name of the VoD File", required = true) @QueryParam("name") String fileName,

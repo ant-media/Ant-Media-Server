@@ -760,13 +760,6 @@ public abstract class RestServiceBase {
 
 		Result result = new Result(false);
 
-		boolean nameValid = StreamIdValidator.isStreamIdValid(stream.getName()); 
-		if(!nameValid) {
-			logger.error("Stream name ({}) is invalid.", stream.getName());
-			result.setMessage("Stream name is invalid");
-			result.setErrorId(INVALID_STREAM_NAME_ERROR);
-			return result;
-		}
 
 		IResourceMonitor monitor = (IResourceMonitor) getAppContext().getBean(IResourceMonitor.BEAN_NAME);
 

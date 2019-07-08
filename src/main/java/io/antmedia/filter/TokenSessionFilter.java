@@ -21,23 +21,18 @@ public class TokenSessionFilter implements HttpSessionListener {
 
 	@Override
 	public void sessionCreated(HttpSessionEvent se) {
-		
-		logger.info("session created:{}", se.getSession().getId());
-
+		logger.debug("session created:{}", se.getSession().getId());
 		context = (ApplicationContext)se.getSession().getServletContext().getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
-
 	}
 
 	@Override
 	public void sessionDestroyed(HttpSessionEvent se) {
-		
 		getTokenService().getAuthenticatedMap().remove(se.getSession().getId());
 	}
 
 
 	public ITokenService getTokenService() {
 		if (tokenService == null) {
-			
 			tokenService = (ITokenService)context.getBean(ITokenService.BeanName.TOKEN_SERVICE.toString());
 		}
 		return tokenService;
