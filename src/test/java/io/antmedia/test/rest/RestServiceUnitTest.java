@@ -1108,12 +1108,12 @@ public class RestServiceUnitTest {
 	}
 
 	@Test
-    public void testEnableMp4Muxing() throws Exception{
+	public void testEnableMp4Muxing() throws Exception{
 		final String scopeValue = "scope";
 		final String dbName = "testdb";
 		final String broadcastName = "testBroadcast";
 
-        BroadcastRestService restServiceSpy = Mockito.spy(new BroadcastRestService());
+		BroadcastRestService restServiceSpy = Mockito.spy(new BroadcastRestService());
 		AppSettings settings = mock(AppSettings.class);
 		when(settings.getListenerHookURL()).thenReturn(null);
 		restServiceSpy.setAppSettings(settings);
@@ -1126,27 +1126,27 @@ public class RestServiceUnitTest {
 		DataStore store = new InMemoryDataStore(dbName);
 		restServiceSpy.setDataStore(store);
 
-        AntMediaApplicationAdapter application = mock(AntMediaApplicationAdapter.class);
-        Mp4Muxer mockMp4Muxer = Mockito.mock(Mp4Muxer.class);
+		AntMediaApplicationAdapter application = mock(AntMediaApplicationAdapter.class);
+		Mp4Muxer mockMp4Muxer = Mockito.mock(Mp4Muxer.class);
 		HLSMuxer mockHLSMuxer = Mockito.mock(HLSMuxer.class);
-        ArrayList<Muxer> mockMuxers = new ArrayList<>();
-        mockMuxers.add(mockMp4Muxer);
+		ArrayList<Muxer> mockMuxers = new ArrayList<>();
+		mockMuxers.add(mockMp4Muxer);
 
-        MuxAdaptor mockMuxAdaptor = Mockito.mock(MuxAdaptor.class);
-        when(mockMuxAdaptor.getMuxerList()).thenReturn(mockMuxers);
+		MuxAdaptor mockMuxAdaptor = Mockito.mock(MuxAdaptor.class);
+		when(mockMuxAdaptor.getMuxerList()).thenReturn(mockMuxers);
 
-        ArrayList<MuxAdaptor> mockMuxAdaptors = new ArrayList<>();
-        mockMuxAdaptors.add(mockMuxAdaptor);
+		ArrayList<MuxAdaptor> mockMuxAdaptors = new ArrayList<>();
+		mockMuxAdaptors.add(mockMuxAdaptor);
 
-        when(application.getMuxAdaptors()).thenReturn(mockMuxAdaptors);
-        when(restServiceSpy.getApplication()).thenReturn(application);
+		when(application.getMuxAdaptors()).thenReturn(mockMuxAdaptors);
+		when(restServiceSpy.getApplication()).thenReturn(application);
 
-        Broadcast testBroadcast = restServiceSpy.createBroadcast(new Broadcast(broadcastName));
+		Broadcast testBroadcast = restServiceSpy.createBroadcast(new Broadcast(broadcastName));
 		when(mockMuxAdaptor.getStreamId()).thenReturn(testBroadcast.getStreamId());
 
-        assertTrue(restServiceSpy.enableMp4Muxing(testBroadcast.getStreamId(),MuxAdaptor.MP4_ENABLED_FOR_STREAM).isSuccess());
+		assertTrue(restServiceSpy.enableMp4Muxing(testBroadcast.getStreamId(),MuxAdaptor.MP4_ENABLED_FOR_STREAM).isSuccess());
 
-        verify(mockMuxAdaptor,never()).startRecording();
+		verify(mockMuxAdaptor,never()).startRecording();
 
 		mockMuxers.clear();
 		mockMuxers.add(mockHLSMuxer);
@@ -1156,11 +1156,11 @@ public class RestServiceUnitTest {
 
 		mockMuxers.add(mockMp4Muxer);
 
-        assertEquals(MuxAdaptor.MP4_ENABLED_FOR_STREAM, restServiceSpy.getBroadcast(testBroadcast.getStreamId()).getMp4Enabled());
+		assertEquals(MuxAdaptor.MP4_ENABLED_FOR_STREAM, restServiceSpy.getBroadcast(testBroadcast.getStreamId()).getMp4Enabled());
 
-        assertTrue(restServiceSpy.enableMp4Muxing(testBroadcast.getStreamId(),MuxAdaptor.MP4_DISABLED_FOR_STREAM).isSuccess());
-        verify(mockMuxAdaptor).stopRecording();
-    }
+		assertTrue(restServiceSpy.enableMp4Muxing(testBroadcast.getStreamId(),MuxAdaptor.MP4_DISABLED_FOR_STREAM).isSuccess());
+		verify(mockMuxAdaptor).stopRecording();
+	}
 
 	@Test
 	public void testTokenOperations() {
@@ -1168,7 +1168,7 @@ public class RestServiceUnitTest {
 		DataStore store = new InMemoryDataStore("testdb");
 		restServiceReal.setDataStore(store);
 
-		
+
 		//create token
 		Token token = new Token();
 		token.setStreamId("1234");
@@ -1194,7 +1194,7 @@ public class RestServiceUnitTest {
 
 		//define a valid expire date
 		long expireDate = Instant.now().getEpochSecond() + 1000;
-		
+
 		//create token again
 		token = new Token();
 		token.setStreamId("1234");
@@ -1286,7 +1286,7 @@ public class RestServiceUnitTest {
 		restServiceReal.setDataStore(store);
 
 		ConferenceRoom room = new ConferenceRoom();
-		
+
 		long now = Instant.now().getEpochSecond();
 
 		//should be null because roomName not defined
@@ -1299,34 +1299,34 @@ public class RestServiceUnitTest {
 		assertNotNull(restServiceReal.createConferenceRoom(room));
 
 		room = restServiceReal.getDataStore().getConferenceRoom(room.getRoomId());
-		
+
 		//this should not be null, because although start date is not defined, service create it as now
 		assertNotNull(room.getStartDate());
-		
+
 		//this should not be null, because although end date is not defined, service create it as 1 hour later of now
 		assertNotNull(room.getEndDate());
 
 		//define a start date
 		room.setStartDate(now);
-		
+
 		//edit room with the new startDate
 		//should not be null because room is saved to database and edited room is returned
 		assertNotNull(restServiceReal.editConferenceRoom(room));
-		
+
 		room = restServiceReal.getDataStore().getConferenceRoom(room.getRoomId());
-		
+
 		//check start date
 		assertEquals(now, room.getStartDate());
 
 		//delete room
 		assertTrue(restServiceReal.deleteConferenceRoom(room.getRoomId()));
-		
+
 		//check that room does not exist  in db 
 		assertNull(restServiceReal.getDataStore().getConferenceRoom(room.getRoomId()));
 
-		
+
 	}
-	
+
 	@Test
 	public void testStreamSourceInvalidName() {
 		ApplicationContext context = mock(ApplicationContext.class);
@@ -1336,9 +1336,10 @@ public class RestServiceUnitTest {
 
 		StreamsSourceRestService restService = new StreamsSourceRestService();
 		restService.setAppCtx(context);
-		
-		restService.setDataStore(new InMemoryDataStore("any_db"));
-		
+
+		InMemoryDataStore dataStore = new InMemoryDataStore("any_db");
+		restService.setDataStore(dataStore);
+
 		Result result = restService.addStreamSource(new Broadcast("stream1"), null);
 		assertEquals(0, result.getErrorId());
 
@@ -1347,13 +1348,29 @@ public class RestServiceUnitTest {
 		Broadcast broadcast = new Broadcast("stream1_-:");
 		try {
 			broadcast.setStreamId("stream1_-:");
+
+			result = restService.addStreamSource(broadcast, null);
+			assertEquals(RestServiceBase.INVALID_STREAM_NAME_ERROR, result.getErrorId());
+
+			broadcast.setStreamId("");
+			result = restService.addStreamSource(broadcast, null);
+			//because type is not defined
+			assertFalse(result.isSuccess());
+
+			result = restService.addStreamSource(null, null);
+			assertFalse(result.isSuccess());
+			
+			Broadcast broadcast2 = new Broadcast();
+			dataStore.save(broadcast2);
+			
+			result = restService.addStreamSource(broadcast2, null);
+			assertFalse(result.isSuccess());
+
 		} catch (Exception e) {
 			fail(e.getMessage());
 		}
-		result = restService.addStreamSource(broadcast, null);
-		assertEquals(RestServiceBase.INVALID_STREAM_NAME_ERROR, result.getErrorId());
 	}
-	
+
 	@Test
 	public void testBroadcastInvalidName() {
 		InMemoryDataStore datastore = new InMemoryDataStore("datastore");
@@ -1377,7 +1394,7 @@ public class RestServiceUnitTest {
 			e.printStackTrace();
 		}
 		assertNotNull(restServiceReal.createBroadcastWithStreamID(broadcast));
-		
+
 		Broadcast broadcast2 = new Broadcast();
 		try {
 			broadcast2.setStreamId("stream1_");
@@ -1385,7 +1402,7 @@ public class RestServiceUnitTest {
 			e.printStackTrace();
 		}
 		assertNotNull(restServiceReal.createBroadcastWithStreamID(broadcast));
-		
+
 		broadcast2 = new Broadcast();
 		try {
 			broadcast2.setStreamId("stream1_:");

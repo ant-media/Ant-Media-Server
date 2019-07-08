@@ -51,18 +51,21 @@ public class StreamsSourceRestService extends RestServiceBase{
 	@Produces(MediaType.APPLICATION_JSON)
 	@Override
 	public Result addStreamSource(@ApiParam(value = "stream", required = true) Broadcast stream, @QueryParam("socialNetworks") String socialEndpointIds) {
-		if (stream != null && stream.getStreamId() != null && !stream.getStreamId().isEmpty()) {
+		if (stream == null) {
+			return new Result(false, "Stream  object is null.");
+		}
+		else if (stream.getStreamId() != null && !stream.getStreamId().isEmpty()) 
+		{
 			// make sure stream id is not set on rest service
 			Broadcast broadcastTmp = getDataStore().get(stream.getStreamId());
 			if (broadcastTmp != null) 
 			{
-				return new Result(false, "Stream id is already being used. ");
+				return new Result(false, "Stream id is already being used.");
 			}
 			else if (!StreamIdValidator.isStreamIdValid(stream.getStreamId())) 
 			{
-				return new Result(false, "Stream id is not valid. ", INVALID_STREAM_NAME_ERROR);
+				return new Result(false, "Stream id is not valid.", INVALID_STREAM_NAME_ERROR);
 			}
-
 		}
 		return super.addStreamSource(stream, socialEndpointIds);
 	}
@@ -114,7 +117,7 @@ public class StreamsSourceRestService extends RestServiceBase{
 		return super.stopStreamSource(id);
 	}
 
-	
+
 	/**
 	 * Synchronize User VoD Folder and add them to VoD database if any file exist and create symbolic links to that folder
 	 * 
