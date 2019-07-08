@@ -304,9 +304,16 @@ public class MongoStore extends DataStore {
 				List<Broadcast> ipCameraList=datastore.find(Broadcast.class).field("type").equal(AntMediaApplicationAdapter.IP_CAMERA).asList();
 				List<Broadcast> streamSourceList=datastore.find(Broadcast.class).field("type").equal(AntMediaApplicationAdapter.STREAM_SOURCE).asList();
 
+				Query<Broadcast> query = datastore.createQuery(Broadcast.class);
+				query.and(
+						query.criteria("type").equal(AntMediaApplicationAdapter.STREAM_SOURCE), 
+						query.criteria("status").notEqual(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)
+						);
+				
+				
 				List<Broadcast> newList = new ArrayList<Broadcast>(ipCameraList);
 
-				newList.addAll(streamSourceList);
+				newList.addAll(query.asList());
 
 				return newList;
 
@@ -859,9 +866,15 @@ public class MongoStore extends DataStore {
 		synchronized(this) {
 			String ip = DBUtils.getHostAddress();
 			Query<Broadcast> query = datastore.createQuery(Broadcast.class);
-			query.or(query.criteria("originAdress").doesNotExist(), //check for non cluster mode
-					query.criteria("originAdress").equal(ip));
+			query.and(
+					query.or(
+							query.criteria("originAdress").doesNotExist(), //check for non cluster mode
+							query.criteria("originAdress").equal(ip)
+							),
+					query.criteria("zombi").equal(true)
+					);
 			long count = query.count();
+			
 			if(count > 0) {
 				logger.error("There are {} streams for {} at start. They are deleted now.", count, ip);
 
