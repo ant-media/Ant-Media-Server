@@ -36,7 +36,7 @@ public class OnvifCamera implements IOnvifCamera {
 
 	@Override
 	public int connect(String address, String username, String password) {
-		int result = CONNECTION_SUCCESS;
+		int result = CONNECT_ERROR;
 		String camIP = "";
 		try {
 			
@@ -50,15 +50,15 @@ public class OnvifCamera implements IOnvifCamera {
 			profiles = nvt.getDevices().getProfiles();
 
 
-			if (profiles == null) {
-
+			if (profiles != null) 
+			{
+				profileToken = profiles.get(0).getToken();
+				result = CONNECTION_SUCCESS;
+			}
+			else {
 				//it is likely authentication error but maybe something else
 				//inform user to check username and password
 				result = AUTHENTICATION_ERROR;
-			}else {
-
-				profileToken = profiles.get(0).getToken();
-
 			}
 
 		} catch (ConnectException | SOAPException e) {
@@ -172,33 +172,37 @@ public class OnvifCamera implements IOnvifCamera {
 
 	@Override
 	public boolean moveRight() {
-		ptzDevices.relativeMove(profileToken, 1f, 0f, 0f);
+		boolean result = false;
+		ptzDevices.relativeMove(profileToken, 10f, 0f, 0f);
 
 		try {
-			Thread.sleep(500);
+			Thread.sleep(5000);
 
 			ptzDevices.stopMove(profileToken);
+			result = true;
 		} catch (InterruptedException e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
 			Thread.currentThread().interrupt();
 		}
 
-		return true;
+		return result;
 	}
 
 	@Override
 	public boolean moveLeft() {
+		boolean result = false;
 		ptzDevices.relativeMove(profileToken, -1f, 0f, 0f);
 		try {
 			Thread.sleep(500);
 
 			ptzDevices.stopMove(profileToken);
+			result = true;
 		} catch (InterruptedException e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
 			Thread.currentThread().interrupt();
 		}
 
-		return true;
+		return result;
 	}
 
 	@Override
