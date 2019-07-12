@@ -1239,7 +1239,7 @@ public class RestServiceTest {
 		CloseableHttpClient httpclient = HttpClients.createDefault();
 
 		HttpPost httppost = new HttpPost(ROOT_SERVICE_URL + "/broadcast/addSocialEndpoint");
-		List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
+		List<NameValuePair> nameValuePairs = new ArrayList<>();
 		nameValuePairs.add(new BasicNameValuePair("Content-Type", "application/x-www-form-urlencoded;"));
 		nameValuePairs.add(new BasicNameValuePair("id", broadcastId));
 		nameValuePairs.add(new BasicNameValuePair("serviceName", name));
@@ -1263,13 +1263,7 @@ public class RestServiceTest {
 		CloseableHttpClient httpclient = HttpClients.createDefault();
 
 		HttpPost httppost = new HttpPost(ROOT_SERVICE_URL + "/broadcast/getDeviceAuthParameters/" + serviceName);
-		// List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
-		// nameValuePairs.add(new
-		// BasicNameValuePair("Content-Type","application/x-www-form-urlencoded;"));
-		// nameValuePairs.add(new BasicNameValuePair("serviceName",
-		// serviceName));
-		// httppost.setEntity(new UrlEncodedFormEntity(nameValuePairs,
-		// StandardCharsets.UTF_8));
+
 
 		CloseableHttpResponse response = httpclient.execute(httppost);
 
@@ -1333,7 +1327,6 @@ public class RestServiceTest {
 
 	@Test
 	public void testCheckSocialEndpointRecreated() {
-		System.out.println("Running testCheckSocialEndpointRecreated");
 		Result result;
 		try {
 			// create broadcast
@@ -1344,16 +1337,16 @@ public class RestServiceTest {
 			 * 
 			 * in enterprise edition result =
 			 * addSocialEndpoint(broadcast.getStreamId().toString(),
-			 * "facebook");
+			 * "facebook")
 			 * 
 			 * //check that it is successfull assertTrue(result.success);
 			 */
 
 			/*
 			 * in enterprise edition //add youtube endpoint result =
-			 * addSocialEndpoint(broadcast.getStreamId().toString(), "youtube");
+			 * addSocialEndpoint (broadcast.getStreamId().toString(), "youtube")
 			 * 
-			 * //check that it is succes full assertTrue(result.success);
+			 * //check that it is succes full assertTrue(result.success)
 			 */
 
 			List<SocialEndpointCredentials> socialEndpointServices = getSocialEndpointServices();
@@ -1545,7 +1538,7 @@ public class RestServiceTest {
 
 			/*
 			 * //add youtube endpoint result =
-			 * addSocialEndpoint(broadcast.getStreamId().toString(), "youtube");
+			 * addSocialEndpoint(broadcast.getStreamId().toString(), "youtube")
 			 * //check that it is succes full assertTrue(result.success);
 			 */
 

@@ -557,7 +557,10 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	@Produces(MediaType.APPLICATION_JSON)
 	@Override
 	public Result moveUp(@ApiParam(value = "the id of the IP Camera", required = true) @PathParam("id") String id) {
-		return super.moveUp(id);
+		if (StreamIdValidator.isStreamIdValid(id)) {
+			return super.moveUp(id);
+		}
+		return new Result(false, "Stream id not valid");
 	}
 
 	@ApiOperation(value = "Move IP Camera Down", response = Result.class)
@@ -566,7 +569,10 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	@Produces(MediaType.APPLICATION_JSON)
 	@Override
 	public Result moveDown(@ApiParam(value = "the id of the IP Camera", required = true) @PathParam("id") String id) {
-		return super.moveDown(id);
+		if (StreamIdValidator.isStreamIdValid(id)) {
+			return super.moveDown(id);
+		}
+		return new Result(false, "Stream id not valid");
 	}
 
 
@@ -577,7 +583,10 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	@Produces(MediaType.APPLICATION_JSON)
 	@Override
 	public Result moveLeft(@ApiParam(value = "the id of the IP Camera", required = true) @PathParam("id") String id) {
-		return super.moveLeft(id);
+		if (StreamIdValidator.isStreamIdValid(id)) {
+			return super.moveLeft(id);
+		}
+		return new Result(false, "Stream id not valid");
 	}
 
 
@@ -587,7 +596,10 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	@Produces(MediaType.APPLICATION_JSON)
 	@Override
 	public Result moveRight(@ApiParam(value = "the id of the IP Camera", required = true) @PathParam("id") String id) {
-		return super.moveRight(id);
+		if (StreamIdValidator.isStreamIdValid(id)) {
+			return super.moveRight(id);
+		}
+		return new Result(false, "Stream id not valid");
 	}
 
 	@ApiOperation(value="Zoom-In IP Camera")
@@ -595,13 +607,15 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	@Path("/{id}/ip-camera/zoom-in")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result zoomInIPCamera(@ApiParam(value = "the id of the IP Camera", required = true) @PathParam("id") String id) {
-		boolean result = false;
-		OnvifCamera camera = getApplication().getOnvifCamera(id);
-		if (camera != null) {
-			camera.zoomIn();
-			result = true;
+		if (StreamIdValidator.isStreamIdValid(id)) 
+		{
+			OnvifCamera camera = getApplication().getOnvifCamera(id);
+			if (camera != null) {
+				return new Result(camera.zoomIn());
+			}
+
 		}
-		return new Result(result);
+		return new Result(false, "Stream id not valid");
 	}
 
 
@@ -610,13 +624,14 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	@Path("/{id}/ip-camera/zoom-out")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result zoomOutIPCamera(@ApiParam(value = "the id of the IP Camera", required = true) @PathParam("id") String id) {
-		boolean result = false;
-		OnvifCamera camera = getApplication().getOnvifCamera(id);
-		if (camera != null) {
-			camera.zoomOut();
-			result = true;
+		if (StreamIdValidator.isStreamIdValid(id)) 
+		{
+			OnvifCamera camera = getApplication().getOnvifCamera(id);
+			if (camera != null) {
+				return new Result(camera.zoomOut());
+			}
 		}
-		return new Result(result);
+		return new Result(false, "Stream id not valid");
 	}
 
 	@ApiOperation(value = "Creates a conference room with the parameters. The room name is key so if this is called with the same room name then new room is overwritten to old one", response = ConferenceRoom.class)
