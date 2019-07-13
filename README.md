@@ -20,18 +20,16 @@ Ant Media Server is an open source media server that supports:
  * Object Detection in **Enterprise Edition**
  
 ## Quick Launch
- Launch pre-installed Ant Media Server instantly. 
+ Launch Ant Media Server instantly
  
-### Amazon Web Services
- Launch Ant Media Server instantly in [Amazon Web Services](https://aws.amazon.com/marketplace/search/results?x=0&y=0&searchTerms=Ant+Media+Server&page=1&ref_=nav_search_box)
- 
+<b>Launch in [Amazon Web Services](https://aws.amazon.com/marketplace/search/results?x=0&y=0&searchTerms=Ant+Media+Server&page=1&ref_=nav_search_box)</b>
+
+
  <a href="https://aws.amazon.com/marketplace/search/results?x=0&y=0&searchTerms=Ant+Media+Server&page=1&ref_=nav_search_box"><img src="https://i1.wp.com/antmedia.io/wp-content/uploads/2019/06/1200px-Amazon_Web_Services_Logo.svg-300x180.png" width=90/></a>
  
-### Microsoft Azure
-  Launch Ant Media Server instantly in [Microsoft Azure](https://azuremarketplace.microsoft.com/en-us/marketplace/apps?search=Ant%20Media%20Server&page=1) (Wait a few seconds for listings appear)
+<b>Launch in [Microsoft Azure](https://azuremarketplace.microsoft.com/en-us/marketplace/apps?search=Ant%20Media%20Server&page=1)</b> (Wait a few seconds for listings appear)
   
  <a href="https://azuremarketplace.microsoft.com/en-us/marketplace/apps?search=Ant%20Media%20Server&page=1"><img src="https://i1.wp.com/antmedia.io/wp-content/uploads/2019/01/azure-e1548153434609.png" width=130/></a>
- 
  
  
  ### Links
@@ -39,10 +37,6 @@ Ant Media Server is an open source media server that supports:
  * [Documentation](https://antmedia.io/documentation) 
  * [Web site](https://antmedia.io)
  * [Community Edition vs. Enterprise Edition](https://antmedia.io/#comparison_table)
- 
- ### Quick Launch 
- * Launch Ant Media Server in Amazon Web Services(AWS)
- * Launch Ant Media Server in Azure
  
 
 ## Releases 
