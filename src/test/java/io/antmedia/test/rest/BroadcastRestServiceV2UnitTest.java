@@ -1385,12 +1385,12 @@ public class BroadcastRestServiceV2UnitTest {
 		BroadcastRestServiceV2 spyService = Mockito.spy(restServiceReal);
 		
 		String id = "invalid_?stream_id";
-		assertFalse(spyService.moveLeft(id).isSuccess());
-		assertFalse(spyService.moveRight(id).isSuccess());
-		assertFalse(spyService.moveUp(id).isSuccess());
-		assertFalse(spyService.moveDown(id).isSuccess());
-		assertFalse(spyService.zoomInIPCamera(id).isSuccess());
-		assertFalse(spyService.zoomOutIPCamera(id).isSuccess());
+		assertFalse(spyService.moveLeftIPCamera(id, null).isSuccess());
+		assertFalse(spyService.moveRightIPCamera(id, null).isSuccess());
+		assertFalse(spyService.moveUpIPCamera(id, null).isSuccess());
+		assertFalse(spyService.moveDownIPCamera(id, null).isSuccess());
+		assertFalse(spyService.zoomInIPCamera(id, null).isSuccess());
+		assertFalse(spyService.zoomOutIPCamera(id, null).isSuccess());
 
 		 
 		id = "valid_stream_id";
@@ -1401,27 +1401,55 @@ public class BroadcastRestServiceV2UnitTest {
 		
 		Mockito.doReturn(application).when(spyService).getApplication();
 		
-		spyService.zoomOutIPCamera(id).isSuccess();
-		Mockito.verify(onvifCamera).zoomOut();
+		spyService.zoomOutIPCamera(id, null).isSuccess();
+		Mockito.verify(onvifCamera).zoom(-0.1f);
+		spyService.zoomOutIPCamera(id, -0.5f).isSuccess();
+		Mockito.verify(onvifCamera).zoom(-0.5f);
+		spyService.zoomOutIPCamera(id, 0.5f).isSuccess();
+		Mockito.verify(onvifCamera, never()).zoom(0.5f);
 		
-		spyService.zoomInIPCamera(id).isSuccess();
-		Mockito.verify(onvifCamera).zoomIn();
+		onvifCamera = Mockito.mock(OnvifCamera.class);
+		Mockito.when(application.getOnvifCamera(anyString())).thenReturn(onvifCamera);
 		
-		spyService.moveDown(id).isSuccess();
-		Mockito.verify(onvifCamera).moveDown();
+		spyService.zoomInIPCamera(id, null).isSuccess();
+		Mockito.verify(onvifCamera).zoom(0.1f);
+		spyService.zoomInIPCamera(id, 0.5f).isSuccess();
+		Mockito.verify(onvifCamera).zoom(0.5f);
+		spyService.zoomInIPCamera(id, -0.5f).isSuccess();
+		Mockito.verify(onvifCamera, never()).zoom(-0.5f);
 		
-		spyService.moveUp(id).isSuccess();
-		Mockito.verify(onvifCamera).moveUp();
+		spyService.moveDownIPCamera(id, null).isSuccess();
+		Mockito.verify(onvifCamera).moveY(-0.1f);
+		spyService.moveDownIPCamera(id, -0.5f).isSuccess();
+		Mockito.verify(onvifCamera).moveY(-0.5f);
+		spyService.moveDownIPCamera(id, 0.5f).isSuccess();
+		Mockito.verify(onvifCamera, never()).moveY(0.5f);
 		
-		spyService.moveRight(id).isSuccess();
-		Mockito.verify(onvifCamera).moveRight();
+		onvifCamera = Mockito.mock(OnvifCamera.class);
+		Mockito.when(application.getOnvifCamera(anyString())).thenReturn(onvifCamera);
+		spyService.moveUpIPCamera(id, null).isSuccess();
+		Mockito.verify(onvifCamera).moveY(0.1f);
+		spyService.moveUpIPCamera(id, 0.5f).isSuccess();
+		Mockito.verify(onvifCamera).moveY(0.5f);
+		spyService.moveUpIPCamera(id, -0.5f).isSuccess();
+		Mockito.verify(onvifCamera, never()).moveY(-0.5f);
 		
-		spyService.moveLeft(id).isSuccess();
-		Mockito.verify(onvifCamera).moveLeft();
+		spyService.moveRightIPCamera(id, null).isSuccess();
+		Mockito.verify(onvifCamera).moveX(0.1f);
+		spyService.moveRightIPCamera(id, 0.5f).isSuccess();
+		Mockito.verify(onvifCamera).moveX(0.5f);
+		spyService.moveRightIPCamera(id, -0.5f).isSuccess();
+		Mockito.verify(onvifCamera, never()).moveX(-0.5f);
 		
 		
-		
-		
+		onvifCamera = Mockito.mock(OnvifCamera.class);
+		Mockito.when(application.getOnvifCamera(anyString())).thenReturn(onvifCamera);
+		spyService.moveLeftIPCamera(id, null).isSuccess();
+		Mockito.verify(onvifCamera).moveX(-0.1f);	
+		spyService.moveLeftIPCamera(id, -0.5f).isSuccess();
+		Mockito.verify(onvifCamera).moveX(-0.5f);	
+		spyService.moveLeftIPCamera(id, 0.5f).isSuccess();
+		Mockito.verify(onvifCamera, never()).moveX(0.5f);	
 		
 	}
 

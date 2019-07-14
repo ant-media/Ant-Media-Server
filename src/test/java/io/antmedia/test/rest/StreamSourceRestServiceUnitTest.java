@@ -35,6 +35,7 @@ import io.antmedia.IResourceMonitor;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
+import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.rest.StreamsSourceRestService;
 import io.antmedia.rest.model.Result;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
@@ -128,6 +129,23 @@ public class StreamSourceRestServiceUnitTest {
 		//should be true because load is below limit
 		assertTrue(result.isSuccess());
 
+	}
+	
+	
+	@Test
+	public void connectOnvif() {
+		OnvifCamera onvif = new OnvifCamera();
+		
+		//int connect = onvif.connect("10.2.40.41:8080", "admin", "admin");
+		
+		int connect = onvif.connect("166.169.204.123:1155", "admin", "ms1234");
+
+		assertEquals(OnvifCamera.CONNECTION_SUCCESS, connect);
+		
+		long moveStartTime = System.currentTimeMillis();
+		onvif.zoom(0.1f);
+		System.out.println("zoom operation takes: " + (System.currentTimeMillis() - moveStartTime) + "ms");
+		
 	}
 
 

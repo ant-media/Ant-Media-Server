@@ -1466,44 +1466,22 @@ public abstract class RestServiceBase {
 	}
 
 
-	protected Result moveUp(String id) {
+	protected boolean moveY(String id, float value) {
 		boolean result = false;
 		OnvifCamera camera = getApplication().getOnvifCamera(id);
 		if (camera != null) {
-			camera.moveUp();
-			result = true;
+			result = camera.moveY(value);
 		}
-		return new Result(result);
+		return result;
 	}
 
-	protected Result moveDown(String id) {
+	protected boolean moveX(String id, float value) {
 		boolean result = false;
 		OnvifCamera camera = getApplication().getOnvifCamera(id);
 		if (camera != null) {
-			camera.moveDown();
-			result = true;
+			result = camera.moveX(value);
 		}
-		return new Result(result);
-	}
-
-	protected Result moveLeft(String id) {
-		boolean result = false;
-		OnvifCamera camera = getApplication().getOnvifCamera(id);
-		if (camera != null) {
-			camera.moveLeft();
-			result = true;
-		}
-		return new Result(result);
-	}
-
-	protected Result moveRight(String id) {
-		boolean result = false;
-		OnvifCamera camera = getApplication().getOnvifCamera(id);
-		if (camera != null) {
-			camera.moveRight();
-			result = true;
-		}
-		return new Result(result);
+		return result;
 	}
 
 	protected Result getViewerCountFromEndpoint(String endpointServiceId, String streamId) 
