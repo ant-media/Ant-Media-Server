@@ -1,8 +1,6 @@
 package io.antmedia.datastore.db;
 
 import java.io.File;
-import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -301,6 +299,7 @@ public class MongoStore extends DataStore {
 	public List<Broadcast> getExternalStreamsList() {
 		synchronized(this) {
 			try {
+				String statusField = "status"; 
 				Query<Broadcast> query = datastore.createQuery(Broadcast.class);
 				query.and(
 						query.or(
@@ -308,14 +307,14 @@ public class MongoStore extends DataStore {
 								query.criteria("type").equal(AntMediaApplicationAdapter.STREAM_SOURCE)
 								), 
 						query.and(
-								query.criteria("status").notEqual(AntMediaApplicationAdapter.BROADCAST_STATUS_PREPARING),
-								query.criteria("status").notEqual(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)
+								query.criteria(statusField).notEqual(AntMediaApplicationAdapter.BROADCAST_STATUS_PREPARING),
+								query.criteria(statusField).notEqual(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)
 								)
 						);
 				
 				List<Broadcast> streamList = query.asList();
 				
-				UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set("status", AntMediaApplicationAdapter.BROADCAST_STATUS_PREPARING);
+				UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set(statusField, AntMediaApplicationAdapter.BROADCAST_STATUS_PREPARING);
 				UpdateResults update = datastore.update(query, ops);
 				int updatedCount = update.getUpdatedCount();
 				if(updatedCount != streamList.size()) {

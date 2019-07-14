@@ -844,10 +844,12 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 			streamFetcher.stopStream();
 		}
 		
+		
 		try {
 			Thread.sleep(5000);
 		} catch (InterruptedException e) {
-			e.printStackTrace();
+			logger.error(ExceptionUtils.getStackTrace(e));
+			Thread.currentThread().interrupt();
 		}
 	}
 
