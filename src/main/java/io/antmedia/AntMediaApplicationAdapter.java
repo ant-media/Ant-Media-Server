@@ -850,7 +850,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 			adaptor.stop();
 		}
 		
-		while(dataStore.getLocalLiveBroadcastCount() > 0) {
+		while(getDataStore().getLocalLiveBroadcastCount() > 0) {
 			try {
 				Thread.sleep(1000);
 			} catch (InterruptedException e) {
