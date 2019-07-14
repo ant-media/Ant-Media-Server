@@ -141,11 +141,9 @@ public class OnvifCamera implements IOnvifCamera {
 	
 	@Override
 	public boolean zoom(float value) {
-		long startTime = System.currentTimeMillis();
 		PTZVector position = ptzDevices.getPosition(profileToken);
 		boolean result = false;
 		try {
-			startTime = System.currentTimeMillis();
 			result = ptzDevices.absoluteMove(profileToken, position.getPanTilt().getX(), position.getPanTilt().getY(), position.getZoom().getX()+value);
 		}
 		catch (SOAPException e) {
