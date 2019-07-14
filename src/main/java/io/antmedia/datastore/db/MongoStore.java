@@ -301,22 +301,28 @@ public class MongoStore extends DataStore {
 	public List<Broadcast> getExternalStreamsList() {
 		synchronized(this) {
 			try {
-				List<Broadcast> ipCameraList=datastore.find(Broadcast.class).field("type").equal(AntMediaApplicationAdapter.IP_CAMERA).asList();
-				List<Broadcast> streamSourceList=datastore.find(Broadcast.class).field("type").equal(AntMediaApplicationAdapter.STREAM_SOURCE).asList();
-
 				Query<Broadcast> query = datastore.createQuery(Broadcast.class);
 				query.and(
-						query.criteria("type").equal(AntMediaApplicationAdapter.STREAM_SOURCE), 
-						query.criteria("status").notEqual(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)
+						query.or(
+								query.criteria("type").equal(AntMediaApplicationAdapter.IP_CAMERA),
+								query.criteria("type").equal(AntMediaApplicationAdapter.STREAM_SOURCE)
+								), 
+						query.and(
+								query.criteria("status").notEqual(AntMediaApplicationAdapter.BROADCAST_STATUS_PREPARING),
+								query.criteria("status").notEqual(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)
+								)
 						);
 				
+				List<Broadcast> streamList = query.asList();
 				
-				List<Broadcast> newList = new ArrayList<Broadcast>(ipCameraList);
-
-				newList.addAll(query.asList());
-
-				return newList;
-
+				UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set("status", AntMediaApplicationAdapter.BROADCAST_STATUS_PREPARING);
+				UpdateResults update = datastore.update(query, ops);
+				int updatedCount = update.getUpdatedCount();
+				if(updatedCount != streamList.size()) {
+					logger.error("Only {} stream status updated out of {}", updatedCount, streamList.size());
+				}
+						
+				return streamList;
 			} catch (Exception e) {
 
 				logger.error(ExceptionUtils.getStackTrace(e));

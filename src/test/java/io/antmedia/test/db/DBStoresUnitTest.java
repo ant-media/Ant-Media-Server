@@ -166,7 +166,7 @@ public class DBStoresUnitTest {
 		testClearAtStart(dataStore);
 		testClearAtStartCluster(dataStore);
 		testConferenceRoom(dataStore);
-
+		testStreamSourceList(dataStore);
 
 	}
 
@@ -1348,6 +1348,11 @@ public class DBStoresUnitTest {
 		Query<StreamInfo> deleteQuery = dataStore.getDataStore().find(StreamInfo.class);
 		dataStore.getDataStore().delete(deleteQuery);
 	}
+	
+	public void deleteBroadcast(MongoStore dataStore) {
+		Query<Broadcast> deleteQuery = dataStore.getDataStore().find(Broadcast.class);
+		dataStore.getDataStore().delete(deleteQuery);
+	}
 
 	public void saveStreamInfo(DataStore dataStore, String host1, int videoPort1, int audioPort1,
 			String host2, int videoPort2, int audioPort2) {
@@ -1405,5 +1410,36 @@ public class DBStoresUnitTest {
 		assertTrue(datastore.deleteConferenceRoom(editedRoom.getRoomId()));
 
 		assertNull(datastore.getConferenceRoom(editedRoom.getRoomId()));
+	}
+	
+	/*
+	 * This test is written for mongostore
+	 */
+	private void testStreamSourceList(DataStore dataStore) {
+		deleteBroadcast((MongoStore) dataStore);
+		
+		Broadcast ss1 = new Broadcast("ss1");
+		ss1.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
+		ss1.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+		
+		Broadcast ss2 = new Broadcast("ss2");
+		ss2.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
+		ss2.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+		
+		Broadcast ss3 = new Broadcast("ss3");
+		ss3.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
+		ss3.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_PREPARING);
+		  
+		dataStore.save(ss1);
+		dataStore.save(ss2);
+		dataStore.save(ss3);
+		
+		List<Broadcast> list = dataStore.getExternalStreamsList();
+		assertEquals(1, list.size());
+
+		List<Broadcast> list2 = dataStore.getExternalStreamsList();
+		assertEquals(0, list2.size());
+
+		
 	}
 }
