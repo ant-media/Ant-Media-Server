@@ -992,5 +992,21 @@ public class MongoStore extends DataStore {
 		}
 		return token;
 	}
+	
+	@Override
+	public long getLocalLiveBroadcastCount() {
+		synchronized(this) {
+			String ip = DBUtils.getHostAddress();
+			Query<Broadcast> query = datastore.createQuery(Broadcast.class);
+			query.and(
+					query.or(
+							query.criteria("originAdress").doesNotExist(), //check for non cluster mode
+							query.criteria("originAdress").equal(ip)
+							),
+					query.criteria("status").equal(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)
+					);
+			return query.count();
+		}
+	}
 
 }

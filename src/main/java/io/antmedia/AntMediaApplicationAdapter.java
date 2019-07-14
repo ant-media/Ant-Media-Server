@@ -844,12 +844,19 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 			streamFetcher.stopStream();
 		}
 		
+		logger.info("RTMP Broadcasts are closing.");
+		for (MuxAdaptor adaptor : getMuxAdaptors()) {
+			adaptor.getBroadcastStream().stop();
+			adaptor.stop();
+		}
 		
-		try {
-			Thread.sleep(5000);
-		} catch (InterruptedException e) {
-			logger.error(ExceptionUtils.getStackTrace(e));
-			Thread.currentThread().interrupt();
+		while(dataStore.getLocalLiveBroadcastCount() > 0) {
+			try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+				Thread.currentThread().interrupt();
+			}
 		}
 	}
 
