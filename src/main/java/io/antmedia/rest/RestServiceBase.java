@@ -123,7 +123,7 @@ public abstract class RestServiceBase {
 	private AppSettings appSettings;
 
 	protected boolean addSocialEndpoints(Broadcast broadcast, String socialEndpointIds) {	
-		boolean success = true;
+		boolean success = false;
 		Map<String, VideoServiceEndpoint> endPointServiceList = getApplication().getVideoServiceEndpoints();
 
 		String[] endpointIds = socialEndpointIds.split(",");
@@ -132,17 +132,14 @@ public abstract class RestServiceBase {
 			for (String endpointId : endpointIds) {
 				VideoServiceEndpoint videoServiceEndpoint = endPointServiceList.get(endpointId);
 				if (videoServiceEndpoint != null) {
-					success = success && addSocialEndpoint(broadcast, videoServiceEndpoint);
+					success = addSocialEndpoint(broadcast, videoServiceEndpoint);
 				}
 				else {
-					success = false;
-					String warning = endpointId + " endpoint does not exist in this app.";
-					logger.warn(warning);
+					logger.warn("{} endpoint does not exist in this app.", endpointId);
 				}
 			}
 		}
 		else {
-			success = false;
 			logger.warn("endPointServiceList is null");
 		}
 		return success;

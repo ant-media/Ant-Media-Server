@@ -69,6 +69,8 @@ public class WebSocketConstants {
 
 	public static final String JOIN_COMMAND = "join";
 	
+	public static final String SERVER_WILL_STOP = "server_will_stop";
+	
 	/**
 	 * this is for leaving from room in 1-N and N-N connection
 	 */

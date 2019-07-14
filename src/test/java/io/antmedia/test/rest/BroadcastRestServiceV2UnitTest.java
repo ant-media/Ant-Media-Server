@@ -59,6 +59,7 @@ import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
+import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.muxer.HLSMuxer;
 import io.antmedia.muxer.Mp4Muxer;
 import io.antmedia.muxer.MuxAdaptor;
@@ -1376,6 +1377,52 @@ public class BroadcastRestServiceV2UnitTest {
 
 		//stop camera emulator
 		StreamFetcherUnitTest.stopCameraEmulator();
+	}
+	
+	@Test
+	public void testOnvifPTZ() {
+		
+		BroadcastRestServiceV2 spyService = Mockito.spy(restServiceReal);
+		
+		String id = "invalid_?stream_id";
+		assertFalse(spyService.moveLeft(id).isSuccess());
+		assertFalse(spyService.moveRight(id).isSuccess());
+		assertFalse(spyService.moveUp(id).isSuccess());
+		assertFalse(spyService.moveDown(id).isSuccess());
+		assertFalse(spyService.zoomInIPCamera(id).isSuccess());
+		assertFalse(spyService.zoomOutIPCamera(id).isSuccess());
+
+		 
+		id = "valid_stream_id";
+		OnvifCamera onvifCamera = Mockito.mock(OnvifCamera.class);
+		AntMediaApplicationAdapter application = Mockito.mock(AntMediaApplicationAdapter.class);
+		Mockito.when(application.getOnvifCamera(anyString())).thenReturn(onvifCamera);
+		
+		
+		Mockito.doReturn(application).when(spyService).getApplication();
+		
+		spyService.zoomOutIPCamera(id).isSuccess();
+		Mockito.verify(onvifCamera).zoomOut();
+		
+		spyService.zoomInIPCamera(id).isSuccess();
+		Mockito.verify(onvifCamera).zoomIn();
+		
+		spyService.moveDown(id).isSuccess();
+		Mockito.verify(onvifCamera).moveDown();
+		
+		spyService.moveUp(id).isSuccess();
+		Mockito.verify(onvifCamera).moveUp();
+		
+		spyService.moveRight(id).isSuccess();
+		Mockito.verify(onvifCamera).moveRight();
+		
+		spyService.moveLeft(id).isSuccess();
+		Mockito.verify(onvifCamera).moveLeft();
+		
+		
+		
+		
+		
 	}
 
 	@Test
