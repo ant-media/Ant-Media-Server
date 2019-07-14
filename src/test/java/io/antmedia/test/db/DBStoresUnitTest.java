@@ -1245,16 +1245,18 @@ public class DBStoresUnitTest {
 	}
 
 	public void testClearAtStart(DataStore dataStore) {
-		dataStore.clearStreamsOnThisServer();
+		deleteBroadcast((MongoStore) dataStore);
 		assertEquals(0, dataStore.getBroadcastCount());
 
 
 		Broadcast broadcast = new Broadcast();
 		broadcast.setName("test1");
+		broadcast.setZombi(true);
 		dataStore.save(broadcast);
 
 		Broadcast broadcast2 = new Broadcast();
 		broadcast2.setName("test2");
+		broadcast2.setZombi(true);
 		dataStore.save(broadcast2);
 
 		assertEquals(2, dataStore.getBroadcastCount());
@@ -1276,6 +1278,7 @@ public class DBStoresUnitTest {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+		broadcast.setZombi(true);
 		dataStore.save(broadcast);
 
 		StreamInfo si = new StreamInfo();
