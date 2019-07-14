@@ -555,12 +555,12 @@ public class InMemoryDataStore extends DataStore {
 		boolean result = false;
 		try {
 			Broadcast oldBroadcast = get(streamId);
-			
+
 			if (oldBroadcast != null) {
 				updateStreamInfo(oldBroadcast, broadcast.getName(), broadcast.getDescription(), broadcast.getUsername(), broadcast.getPassword(), broadcast.getIpAddr(), broadcast.getStreamUrl());
 				broadcastMap.replace(oldBroadcast.getStreamId(), oldBroadcast);
 
-			result = true;
+				result = true;
 			}
 		} catch (Exception e) {
 			logger.error("error in editStreamSourceInfo: {}",  ExceptionUtils.getStackTrace(e));
@@ -657,7 +657,10 @@ public class InMemoryDataStore extends DataStore {
 					&& fetchedToken.getStreamId().equals(token.getStreamId()) 
 					&& fetchedToken.getType().equals(token.getType()) 
 					&& Instant.now().getEpochSecond() < fetchedToken.getExpireDate()) {
-				tokenMap.remove(token.getTokenId());
+				
+				if(token.getRoomId() == null || token.getRoomId().isEmpty()) {
+					tokenMap.remove(token.getTokenId());
+				}
 				return fetchedToken;
 			}else {
 				fetchedToken = null;
@@ -665,7 +668,7 @@ public class InMemoryDataStore extends DataStore {
 		}
 		return fetchedToken;
 	}
-	
+
 	@Override
 	public boolean revokeTokens(String streamId) {
 		boolean result = false;
@@ -768,7 +771,7 @@ public class InMemoryDataStore extends DataStore {
 
 	@Override
 	public boolean createConferenceRoom(ConferenceRoom room) {
-		
+
 		boolean result = false;
 
 		if (room != null && room.getRoomId() != null) {
@@ -801,7 +804,7 @@ public class InMemoryDataStore extends DataStore {
 			result = true;
 		}
 		return result;
-		
+
 	}
 
 	@Override
@@ -820,6 +823,6 @@ public class InMemoryDataStore extends DataStore {
 	public Token getToken(String tokenId) {
 
 		return tokenMap.get(tokenId);
-	
+
 	}
 }
