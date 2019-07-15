@@ -24,12 +24,16 @@ import org.apache.http.message.BasicNameValuePair;
 import org.red5.server.adapter.MultiThreadedApplicationAdapter;
 import org.red5.server.api.scheduling.IScheduledJob;
 import org.red5.server.api.scheduling.ISchedulingService;
+import org.red5.server.api.scope.IBroadcastScope;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IBroadcastStream;
 import org.red5.server.api.stream.IClientBroadcastStream;
 import org.red5.server.api.stream.IPlayItem;
 import org.red5.server.api.stream.IStreamPublishSecurity;
+import org.red5.server.api.stream.IStreamService;
 import org.red5.server.api.stream.ISubscriberStream;
+import org.red5.server.stream.StreamService;
+import org.red5.server.util.ScopeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,9 +54,10 @@ import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
+import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 
-public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter implements IAntMediaStreamHandler, IShutdownListener {
+public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShutdownListener {
 
 	public static final String BEAN_NAME = "web.handler";
 	public static final String BROADCAST_STATUS_CREATED = "created";
@@ -88,26 +93,20 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 	private AppSettings appSettings;
 	private Vertx vertx;
+	private IScope scope;
+	private ISchedulingService schedulingService;
 
 
-	@Override
 	public boolean appStart(IScope app) {
-		vertx = (Vertx) getContext().getBean(VERTX_BEAN_NAME);
+		setScope(app);
+		vertx = (Vertx) app.getContext().getBean(VERTX_BEAN_NAME);
 
 		//initalize to access the data store directly in the code
 		getDataStore();
 
 
-		if (getStreamPublishSecurityList() != null) {
-			for (IStreamPublishSecurity streamPublishSecurity : getStreamPublishSecurityList()) {
-				registerStreamPublishSecurity(streamPublishSecurity);
-			}
-		}
-		String scheduledJobName = addScheduledOnceJob(0, new IScheduledJob() {
-
-			@Override
-			public void execute(ISchedulingService service) throws CloneNotSupportedException {
-				streamFetcherManager = new StreamFetcherManager(AntMediaApplicationAdapter.this, getDataStore(),app);
+		addScheduledOnceJob(0, l->{
+				streamFetcherManager = new StreamFetcherManager(getSchedulingService(), getDataStore(),app);
 				streamFetcherManager.setRestartStreamFetcherPeriod(appSettings.getRestartStreamFetcherPeriod());
 				List<Broadcast> streams = getDataStore().getExternalStreamsList();
 				logger.info("Stream source size: {}", streams.size());
@@ -142,15 +141,14 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 				if (appSettings != null) {
 					synchUserVoDFolder(null, appSettings.getVodFolder());
 				}
-			}
 		});
 
-		logger.info("AppStart scheduled job name: {}", scheduledJobName);
+		//logger.info("AppStart scheduled job name: {}", scheduledJobName);
 		
 		AMSShutdownManager.getInstance().subscribe(this);
 
 
-		return super.appStart(app);
+		return true;
 	}
 
 
@@ -205,11 +203,9 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		return result;
 	}
 
-	@Override
 	public void streamBroadcastClose(IBroadcastStream stream) {
 		String streamName = stream.getPublishedName();
 		vertx.executeBlocking(future -> closeBroadcast(streamName), null);
-		super.streamBroadcastClose(stream);
 	}
 
 	public void closeBroadcast(String streamName) {
@@ -226,13 +222,9 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 					if (listenerHookURL != null && listenerHookURL.length() > 0) {
 						final String name = broadcast.getName();
 						final String category = broadcast.getCategory();
-						addScheduledOnceJob(100, new IScheduledJob() {
-
-							@Override
-							public void execute(ISchedulingService service) throws CloneNotSupportedException {
+						addScheduledOnceJob(100, l-> {
 								notifyHook(listenerHookURL, streamId, HOOK_ACTION_END_LIVE_STREAM, name, category,
 										null, null);
-							}
 						});
 					}
 
@@ -323,9 +315,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	}
 
 
-	@Override
 	public void streamPlayItemPlay(ISubscriberStream stream, IPlayItem item, boolean isLive) {
-		super.streamPlayItemPlay(stream, item, isLive);
 		addScheduledOnceJob(0, service -> {
 			if (dataStore != null) {
 				dataStore.updateRtmpViewerCount(item.getName(), true);
@@ -334,9 +324,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		});
 	}
 
-	@Override
 	public void streamPlayItemStop(ISubscriberStream stream, IPlayItem item) {
-		super.streamPlayItemStop(stream, item);
 		addScheduledOnceJob(0, service -> {
 			if (dataStore != null) {
 				dataStore.updateRtmpViewerCount(item.getName(), false);
@@ -344,9 +332,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		});
 	}
 
-	@Override
 	public void streamSubscriberClose(ISubscriberStream stream) {
-		super.streamSubscriberClose(stream);
 		addScheduledOnceJob(0, service -> {
 			if (dataStore != null) {
 				dataStore.updateRtmpViewerCount(stream.getBroadcastStreamPublishName(), false);
@@ -354,14 +340,17 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		});
 	}
 
-	@Override
+	private void addScheduledOnceJob(int i, Handler<Void> action) {
+		vertx.runOnContext(action);
+		
+	}
+
+
 	public void streamPublishStart(final IBroadcastStream stream) {
 		String streamName = stream.getPublishedName();
 		logger.info("stream name in streamPublishStart: {}", streamName );
 
 		startPublish(streamName);
-
-		super.streamPublishStart(stream);
 	}
 
 	public void startPublish(String streamName) {
@@ -388,13 +377,9 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 					if (listenerHookURL != null && listenerHookURL.length() > 0) {
 						final String name = broadcast.getName();
 						final String category = broadcast.getCategory();
-						addScheduledOnceJob(100, new IScheduledJob() {
-
-							@Override
-							public void execute(ISchedulingService service) throws CloneNotSupportedException {
+						addScheduledOnceJob(100, l-> {
 								notifyHook(listenerHookURL, streamId, HOOK_ACTION_START_LIVE_STREAM, name, category,
 										null, null);
-							}
 						});
 					}
 
@@ -506,12 +491,8 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		{
 			final String baseName = vodName.substring(0, index);
 			String finalListenerHookURL = listenerHookURL;
-			addScheduledOnceJob(100, new IScheduledJob() {
-
-				@Override
-				public void execute(ISchedulingService service) throws CloneNotSupportedException {
+			addScheduledOnceJob(100, l -> {
 					notifyHook(finalListenerHookURL, streamId, HOOK_ACTION_VOD_READY, null, null, baseName, vodId);
-				}
 			});
 		}
 
@@ -593,7 +574,8 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	public void startDeviceAuthStatusPolling(VideoServiceEndpoint videoServiceEndpoint,
 			DeviceAuthParameters askDeviceAuthParameters) {
 		int timeDelta = askDeviceAuthParameters.interval * 1000;
-		addScheduledOnceJob(timeDelta, new AuthCheckJob(0, timeDelta, videoServiceEndpoint, this));
+		
+	//TODO	addScheduledOnceJob(timeDelta, new AuthCheckJob(0, timeDelta, videoServiceEndpoint, this));
 	}
 
 	public Map<String, VideoServiceEndpoint> getVideoServiceEndpoints() {
@@ -780,6 +762,18 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		return result;
 	}
 
+	public IBroadcastStream getBroadcastStream(IScope scope, String name) {
+		IStreamService service = (IStreamService) ScopeUtils.getScopeService(scope, IStreamService.class,
+				StreamService.class);
+		if (service instanceof StreamService) {
+			IBroadcastScope bs = ((StreamService) service).getBroadcastScope(scope, name);
+			if (bs != null) {
+				return bs.getClientBroadcastStream();
+			}
+		}
+		return null;
+	}
+	
 	public OnvifCamera getOnvifCamera(String id) {
 		OnvifCamera onvifCamera = onvifCameraList.get(id);
 		if (onvifCamera == null) {
@@ -838,7 +832,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 	@Override
 	public void serverShuttingdown() {
-		logger.info("{} is shutting down.", getName());
+		//logger.info("{} is shutting down.", getName());
 	}
 
 	@Override
@@ -856,5 +850,25 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 			muxAdaptors = Collections.synchronizedList(new ArrayList());
 		}
 		return muxAdaptors;
+	}
+
+
+	public IScope getScope() {
+		return scope;
+	}
+
+
+	public void setScope(IScope scope) {
+		this.scope = scope;
+	}
+
+
+	public ISchedulingService getSchedulingService() {
+		return schedulingService;
+	}
+
+
+	public void setSchedulingService(ISchedulingService schedulingService) {
+		this.schedulingService = schedulingService;
 	}
 }
