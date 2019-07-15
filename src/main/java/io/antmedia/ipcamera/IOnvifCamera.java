@@ -65,7 +65,7 @@ public interface IOnvifCamera {
 	 * Move up IP Camera
 	 * @return
 	 */
-	boolean moveUp();
+	boolean relativeMoveUp();
 
 	/**
 	 * Stop IP Camera any movement
@@ -77,33 +77,54 @@ public interface IOnvifCamera {
 	 * Move down IP Camera
 	 * @return
 	 */
-	boolean moveDown();
+	boolean relativeMoveDown();
 
 	/**
 	 * Move right IP Camera
 	 * @return
 	 */
-	boolean moveRight();
+	boolean relativeMoveRight();
 
 	/**
 	 * Move left IP Camera
 	 * @return
 	 */
-	boolean moveLeft();
+	boolean relativeMoveLeft();
 	
 	/**
 	 * Zoom-in IP Camera
 	 * @return
 	 */
-	boolean zoomIn();
+	boolean relativeZoomIn();
 	
 	/**
 	 * Zoom-out IP Camera
 	 * @return
 	 */
-	boolean zoomOut();
+	boolean relativeZoomOut();
 
 	String getTCPStreamURI();
+	
+	/**
+	 * Move in X direction in positive or negative
+	 * @param value
+	 * @return true if successful, false if faied
+	 */
+	boolean moveX(float value);
+	
+	/**
+	 * Move in Y direction in positive or negative
+	 * @param value 
+	 * @return true if successful, false if failed
+	 */
+	boolean moveY(float value);
+	
+	/**
+	 * Zoom in and out according to the value
+	 * @param value, if 0-1 zoom in, if -1-0 zoom out
+	 * @return true if successful, false if failed
+	 */
+	boolean zoom(float value);
 
 
 	
