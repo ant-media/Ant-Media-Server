@@ -231,7 +231,7 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	@Path("/{id}/endpoint")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result addEndpointV2(@ApiParam(value = "Broadcast id", required = true) @PathParam("id") String id,
-			@ApiParam(value = "RTMP url of the endpoint that stream will be republished", required = true) @QueryParam("rtmpUrl") String rtmpUrl) {
+			@ApiParam(value = "RTMP url of the endpoint that stream will be republished. URL Encode the stream if required", required = true) @QueryParam("rtmpUrl") String rtmpUrl) {
 		return super.addEndpoint(id, rtmpUrl);
 	}
 
@@ -536,14 +536,14 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 		return super.startStreamSource(id);
 	}
 
-	@ApiOperation(value = "Stop external sources (IP Cameras and Stream Sources)", response = Result.class)
+	@ApiOperation(value = "Stop streaming for the active stream. It both stops ingested(RTMP, WebRTC) or pulled stream sources (IP Cameras and Stream Sources)", response = Result.class)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/stop")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result stopStreamSourceV2(@ApiParam(value = "the id of the broadcast. The broadcast type should be IP Camera or Stream Source otherwise it does not work", required = true) @PathParam("id") String id) 
+	public Result stopStreamingV2(@ApiParam(value = "the id of the broadcast.", required = true) @PathParam("id") String id) 
 	{
-		return super.stopStreamSource(id);
+		return super.stopStreaming(id);
 	}
 
 

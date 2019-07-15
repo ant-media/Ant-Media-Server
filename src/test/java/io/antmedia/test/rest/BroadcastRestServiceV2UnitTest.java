@@ -591,6 +591,8 @@ public class BroadcastRestServiceV2UnitTest {
 		String endpointURL = "rtmp://test.endpoint.url/test";
 		Result result = restServiceReal.addEndpointV2(streamId, endpointURL);
 		assertTrue(result.isSuccess());
+		
+		assertFalse(restServiceReal.addEndpointV2(streamId, null).isSuccess());
 
 		Broadcast broadcast2 = (Broadcast) restServiceReal.getBroadcast(streamId).getEntity();
 		assertEquals(broadcast.getStreamId(), broadcast2.getStreamId());
@@ -1364,7 +1366,7 @@ public class BroadcastRestServiceV2UnitTest {
 		assertEquals("rtsp://admin:admin@127.0.0.1:6554/test.flv", newCam.getStreamUrl());
 		
 		//stop request should trigger application adaptor stopStreaming
-		assertTrue(streamSourceRest.stopStreamSource(newCam.getStreamId()).isSuccess());
+		assertTrue(streamSourceRest.stopStreamingV2(newCam.getStreamId()).isSuccess());
 		
 		//reset stream URL and check whether start rest service is able to get stream URL by connecting to camera using ONVIF
 		newCam.setStreamUrl(null);

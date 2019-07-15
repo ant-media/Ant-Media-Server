@@ -111,10 +111,9 @@ public class StreamsSourceRestService extends RestServiceBase{
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/stopStreamSource")
 	@Produces(MediaType.APPLICATION_JSON)
-	@Override
 	public Result stopStreamSource(@ApiParam(value = "the id of the stream", required = true) @QueryParam("id") String id) 
 	{
-		return super.stopStreamSource(id);
+		return super.stopStreaming(id);
 	}
 
 

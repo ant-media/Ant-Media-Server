@@ -481,11 +481,13 @@ public abstract class RestServiceBase {
 		boolean success = false;
 		String message = null;
 		try {
-			Endpoint endpoint = new Endpoint();
-			endpoint.setRtmpUrl(rtmpUrl);
-			endpoint.type = "generic";
-
-			success = getDataStore().addEndpoint(id, endpoint);
+			if (validateStreamURL(rtmpUrl)) {
+				Endpoint endpoint = new Endpoint();
+				endpoint.setRtmpUrl(rtmpUrl);
+				endpoint.type = "generic";
+	
+				success = getDataStore().addEndpoint(id, endpoint);
+			}
 		} catch (Exception e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
 		}
@@ -713,7 +715,7 @@ public abstract class RestServiceBase {
 
 		Result connResult = new Result(false);
 
-		if(checkIPCamAddr(stream.getIpAddr())) {
+		if(validateStreamURL(stream.getIpAddr())) {
 			logger.info("type {}", stream.getType());
 
 			connResult = connectToCamera(stream);
@@ -802,7 +804,7 @@ public abstract class RestServiceBase {
 	}
 
 
-	protected static boolean checkIPCamAddr (String url) {
+	protected static boolean validateStreamURL(String url) {
 
 		boolean ipAddrControl = false;
 		String[] ipAddrParts = null;
@@ -846,7 +848,6 @@ public abstract class RestServiceBase {
 	}
 
 	protected static boolean validateIPaddress(String ipaddress)  {
-		logger.info("inside check validateIPaddress{}", ipaddress);
 
 		final String IPV4_REGEX = "(([0-1]?[0-9]{1,2}\\.)|(2[0-4][0-9]\\.)|(25[0-5]\\.)){3}(([0-1]?[0-9]{1,2})|(2[0-4][0-9])|(25[0-5]))";
 		final String loopback_REGEX = "^localhost$|^127(?:\\.[0-9]+){0,2}\\.[0-9]+$|^(?:0*\\:)*?:?0*1$";
@@ -1400,7 +1401,7 @@ public abstract class RestServiceBase {
 	}
 
 
-	public Result stopStreamSource(String id) 
+	public Result stopStreaming(String id) 
 	{
 		Result result = new Result(false);
 		Broadcast broadcast = getDataStore().get(id);
