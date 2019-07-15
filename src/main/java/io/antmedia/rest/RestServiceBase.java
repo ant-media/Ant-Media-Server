@@ -481,7 +481,8 @@ public abstract class RestServiceBase {
 		boolean success = false;
 		String message = null;
 		try {
-			if (validateStreamURL(rtmpUrl)) {
+			if (validateStreamURL(rtmpUrl)) 
+			{
 				Endpoint endpoint = new Endpoint();
 				endpoint.setRtmpUrl(rtmpUrl);
 				endpoint.type = "generic";
