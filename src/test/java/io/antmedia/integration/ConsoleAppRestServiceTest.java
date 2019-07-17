@@ -1076,12 +1076,12 @@ public class ConsoleAppRestServiceTest{
 					.hashString(hashCombine, StandardCharsets.UTF_8)
 					.toString();
 
+			log.error("created token:  {}", sha256hex );
 
 			//start publish with generated hash value
 			Process rtmpSendingProcessHash = execute(ffmpegPath
 					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
 					+ broadcast.getStreamId()+ "?token=" + sha256hex);
-
 
 
 			//this time, HLS files should be created
