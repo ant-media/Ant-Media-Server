@@ -929,14 +929,20 @@ public class MapDBStore extends DataStore {
 				String jsonToken = tokenMap.get(token.getTokenId());
 				if (jsonToken != null) {
 					fetchedToken = gson.fromJson((String) jsonToken, Token.class);
-					if(fetchedToken.getStreamId().equals(token.getStreamId()) 
-							&& fetchedToken.getType().equals(token.getType())
-							&& Instant.now().getEpochSecond() < fetchedToken.getExpireDate()) {
-						if(token.getRoomId() == null || token.getRoomId().isEmpty() ) {
 
-							boolean result = tokenMap.remove(token.getTokenId()) != null;
-							if (result) {
-								db.commit();
+					if( fetchedToken.getType().equals(token.getType())
+							&& Instant.now().getEpochSecond() < fetchedToken.getExpireDate()) {
+						
+						if(token.getRoomId() == null || token.getRoomId().isEmpty() ) {
+							if(fetchedToken.getStreamId().equals(token.getStreamId())) {
+
+								boolean result = tokenMap.remove(token.getTokenId()) != null;
+								if (result) {
+									db.commit();
+								}
+							}
+							else{
+								fetchedToken = null;
 							}
 						}
 						return fetchedToken;
