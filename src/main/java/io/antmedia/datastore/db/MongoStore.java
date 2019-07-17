@@ -805,12 +805,18 @@ public class MongoStore extends DataStore {
 			if (token.getTokenId() != null) {
 				fetchedToken = tokenDatastore.find(Token.class).field("tokenId").equal(token.getTokenId()).get();
 				if (fetchedToken != null 
-						&& fetchedToken.getStreamId().equals(token.getStreamId()) 
 						&& fetchedToken.getType().equals(token.getType())
 						&& Instant.now().getEpochSecond() < fetchedToken.getExpireDate()) {
-					if( token.getRoomId() == null || token.getRoomId().isEmpty() ) {
-						Query<Token> query = tokenDatastore.createQuery(Token.class).field("tokenId").equal(token.getTokenId());
-						tokenDatastore.delete(query);
+					if(token.getRoomId() == null || token.getRoomId().isEmpty()) {
+
+						if(fetchedToken.getStreamId().equals(token.getStreamId())) {	
+							Query<Token> query = tokenDatastore.createQuery(Token.class).field("tokenId").equal(token.getTokenId());
+							tokenDatastore.delete(query);
+						}
+						else {
+							fetchedToken = null;
+						}
+
 					}
 					return fetchedToken;
 

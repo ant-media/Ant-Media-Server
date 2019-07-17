@@ -654,12 +654,16 @@ public class InMemoryDataStore extends DataStore {
 		if (token.getTokenId() != null) {
 			fetchedToken = tokenMap.get(token.getTokenId());
 			if (fetchedToken != null 
-					&& fetchedToken.getStreamId().equals(token.getStreamId()) 
 					&& fetchedToken.getType().equals(token.getType()) 
 					&& Instant.now().getEpochSecond() < fetchedToken.getExpireDate()) {
-				
+
 				if(token.getRoomId() == null || token.getRoomId().isEmpty()) {
-					tokenMap.remove(token.getTokenId());
+					if(fetchedToken.getStreamId().equals(token.getStreamId())) {
+						tokenMap.remove(token.getTokenId());
+					}
+					else {
+						fetchedToken = null;
+					}
 				}
 				return fetchedToken;
 			}else {

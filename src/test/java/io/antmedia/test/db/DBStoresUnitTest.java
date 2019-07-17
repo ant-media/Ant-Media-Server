@@ -1194,6 +1194,18 @@ public class DBStoresUnitTest {
 		expiredToken = store.validateToken(testToken);
 
 		assertNotNull(expiredToken);
+		
+		//change stream id of token
+		
+		testToken.setStreamId("changed");
+		
+		//validate token
+		validatedToken = store.validateToken(testToken);
+
+		//token should be validated and returned
+		assertNotNull(validatedToken);
+		
+		
 	}
 
 	@Test
