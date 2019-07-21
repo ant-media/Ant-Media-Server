@@ -588,7 +588,7 @@ public class ConsoleAppRestServiceTest{
 			assertFalse(appSettingsModel.isPreviewOverwrite());
 
 			//send a short stream
-			String streamId = "test_stream_" + (int)(Math.random() * 1000);
+			final String streamId = "test_stream_" + (int)(Math.random() * 1000);
 			AppFunctionalTest.executeProcess(ffmpegPath
 					+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
 					+ streamId);
@@ -599,7 +599,11 @@ public class ConsoleAppRestServiceTest{
 			AppFunctionalTest.destroyProcess();
 
 			//check that preview is created
-			assertTrue(checkURLExist("http://localhost:5080/LiveApp/previews/"+streamId+".png"));
+			
+			Awaitility.await()
+			.atMost(10, TimeUnit.SECONDS)
+			.pollInterval(1, TimeUnit.SECONDS).until(() -> checkURLExist("http://localhost:5080/LiveApp/previews/"+streamId+".png"));
+	
 
 
 			//send a short stream with same name again
@@ -626,23 +630,26 @@ public class ConsoleAppRestServiceTest{
 			appSettingsModel = callGetAppSettings("LiveApp");
 			assertTrue(appSettingsModel.isPreviewOverwrite());
 
-			streamId = "test_stream_" + (int)(Math.random() * 1000);
+			String streamId2 = "test_stream_" + (int)(Math.random() * 1000);
 			AppFunctionalTest.executeProcess(ffmpegPath
 					+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
-					+ streamId);
+					+ streamId2);
 
 			Thread.sleep(5000);
 
 			//stop it
 			AppFunctionalTest.destroyProcess();
 
-			//check that preview is created
-			assertTrue(checkURLExist("http://localhost:5080/LiveApp/previews/"+streamId+".png"));
+			//check that preview is created			
+			Awaitility.await()
+			.atMost(10, TimeUnit.SECONDS)
+			.pollInterval(1, TimeUnit.SECONDS).until(() -> checkURLExist("http://localhost:5080/LiveApp/previews/"+streamId2+".png"));
+	
 
 			//send a short stream with same name again
 			AppFunctionalTest.executeProcess(ffmpegPath
 					+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
-					+ streamId);
+					+ streamId2);
 
 			//let the muxing finish
 			Thread.sleep(5000);
@@ -653,8 +660,10 @@ public class ConsoleAppRestServiceTest{
 			Thread.sleep(3000);
 
 			//check that second preview with the same created.
-			assertTrue(checkURLExist("http://localhost:5080/LiveApp/previews/"+streamId+".png"));
-
+			
+			Awaitility.await()
+			.atMost(10, TimeUnit.SECONDS)
+			.pollInterval(1, TimeUnit.SECONDS).until(() -> checkURLExist("http://localhost:5080/LiveApp/previews/"+streamId2+".png"));
 
 			appSettingsModel.setPreviewOverwrite(false);
 			result = callSetAppSettings("LiveApp", appSettingsModel);
@@ -698,7 +707,7 @@ public class ConsoleAppRestServiceTest{
 			assertTrue(appSettingsModel.isAcceptOnlyStreamsInDataStore());
 
 			// send anonymous stream
-			String streamId = "zombiStreamId";
+			String streamId = "zombiStreamId" + (int)(Math.random()*10000);
 			AppFunctionalTest.executeProcess(ffmpegPath
 					+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
 					+ streamId);
@@ -791,7 +800,7 @@ public class ConsoleAppRestServiceTest{
 			// send anonymous stream
 			// check that it is not accepted
 			{
-				streamId = "zombiStreamId";
+				streamId = "zombiStreamId" + (int)(Math.random()*100000);
 				AppFunctionalTest.executeProcess(ffmpegPath
 						+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
 						+ streamId);
@@ -815,13 +824,21 @@ public class ConsoleAppRestServiceTest{
 						+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
 						+ broadcastCreated.getStreamId());
 
-				Thread.sleep(5000);
-				assertTrue(AppFunctionalTest.isProcessAlive());
 
-				broadcast = RestServiceTest.callGetBroadcast(broadcastCreated.getStreamId());
-				assertNotNull(broadcast);
-				assertEquals(broadcast.getStatus(), Application.BROADCAST_STATUS_BROADCASTING);
+				Awaitility.await().atMost(10, TimeUnit.SECONDS)
+				.pollInterval(1, TimeUnit.SECONDS).until(AppFunctionalTest::isProcessAlive);
+						
 
+				Awaitility.await().pollDelay(3, TimeUnit.SECONDS)
+						.atMost(10, TimeUnit.SECONDS)
+						.pollInterval(1, TimeUnit.SECONDS).until(() -> 
+				{
+					Broadcast broadcast2 = RestServiceTest.callGetBroadcast(broadcastCreated.getStreamId());
+					assertNotNull(broadcast2);
+					return broadcast2 != null && broadcast2.getStatus().equals(Application.BROADCAST_STATUS_BROADCASTING);
+				});
+				
+				
 				AppFunctionalTest.destroyProcess();
 			}
 
