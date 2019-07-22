@@ -746,7 +746,7 @@ public class MapDBStore extends DataStore {
 			Type listType = new TypeToken<ArrayList<TensorFlowObject>>(){}.getType();
 			int offsetCount = 0;
 			int batchCount = 0;
-			
+
 			if (batchSize > MAX_ITEM_IN_ONE_LIST) {
 				batchSize = MAX_ITEM_IN_ONE_LIST;
 			}
@@ -791,8 +791,8 @@ public class MapDBStore extends DataStore {
 		}
 		return list.size();
 	}
-	
-	
+
+
 	/**
 	 * Updates the stream's name, description, userName, password, IP address, stream URL if these values is not null
 	 * @param streamId
@@ -808,10 +808,10 @@ public class MapDBStore extends DataStore {
 				Broadcast oldBroadcast = get(streamId);
 				if (oldBroadcast != null) 
 				{
-					
+
 					updateStreamInfo(oldBroadcast, broadcast.getName(), broadcast.getDescription(), broadcast.getUsername(), broadcast.getPassword(), broadcast.getIpAddr(), broadcast.getStreamUrl());
 					getMap().replace(streamId, gson.toJson(oldBroadcast));
-	
+
 					db.commit();
 					result = true;
 				}
@@ -929,12 +929,21 @@ public class MapDBStore extends DataStore {
 				String jsonToken = tokenMap.get(token.getTokenId());
 				if (jsonToken != null) {
 					fetchedToken = gson.fromJson((String) jsonToken, Token.class);
-					if(fetchedToken.getStreamId().equals(token.getStreamId()) 
-							&& fetchedToken.getType().equals(token.getType())
+
+					if( fetchedToken.getType().equals(token.getType())
 							&& Instant.now().getEpochSecond() < fetchedToken.getExpireDate()) {
-						boolean result = tokenMap.remove(token.getTokenId()) != null;
-						if (result) {
-							db.commit();
+						
+						if(token.getRoomId() == null || token.getRoomId().isEmpty() ) {
+							if(fetchedToken.getStreamId().equals(token.getStreamId())) {
+
+								boolean result = tokenMap.remove(token.getTokenId()) != null;
+								if (result) {
+									db.commit();
+								}
+							}
+							else{
+								fetchedToken = null;
+							}
 						}
 						return fetchedToken;
 					}
@@ -1053,13 +1062,13 @@ public class MapDBStore extends DataStore {
 	public boolean createConferenceRoom(ConferenceRoom room) {
 		synchronized (this) {
 			boolean result = false;
-	
+
 			if (room != null && room.getRoomId() != null) {
 				conferenceRoomMap.put(room.getRoomId(), gson.toJson(room));
 				db.commit();
 				result = true;
 			}
-	
+
 			return result;
 		}
 	}
@@ -1068,7 +1077,7 @@ public class MapDBStore extends DataStore {
 	public boolean editConferenceRoom(String roomId, ConferenceRoom room) {
 		synchronized (this) {
 			boolean result = false;
-	
+
 			if (room != null && room.getRoomId() != null) {
 				conferenceRoomMap.replace(room.getRoomId(), gson.toJson(room));
 				db.commit();
@@ -1083,7 +1092,7 @@ public class MapDBStore extends DataStore {
 		synchronized (this) 
 		{		
 			boolean result = false;
-	
+
 			if (roomId != null && !roomId.isEmpty()) {
 				conferenceRoomMap.remove(roomId);
 				db.commit();
@@ -1132,6 +1141,6 @@ public class MapDBStore extends DataStore {
 			}
 		}
 		return token;
-		
+
 	}
 }

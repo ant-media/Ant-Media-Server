@@ -40,11 +40,21 @@ public class IPFilter implements Filter {
 	}
 
 
-	public AppSettings getAppSettings() {
-		ApplicationContext context = (ApplicationContext) config.getServletContext().getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
-		return (AppSettings) context.getBean(AppSettings.BEAN_NAME);
+	public AppSettings getAppSettings() 
+	{
+		AppSettings appSettings = null;
+		ApplicationContext context = getAppContext();
+		if (context != null) {
+			appSettings = (AppSettings)context.getBean(AppSettings.BEAN_NAME);
+		}
+		return appSettings;
+
 	}
-	
+
+	public ApplicationContext getAppContext() {
+		return (ApplicationContext) config.getServletContext().getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
+	}
+
 	public void destroy() {
 		//nothing to clean up
 	}
@@ -56,25 +66,28 @@ public class IPFilter implements Filter {
 	 * @param property The remote's IP address, as a string
 	 * @return true if allowed
 	 */
-	private boolean isAllowed(final String property) {
-		final InetAddress addr;
-
-		try {
-			addr = InetAddress.getByName(property);
-		} catch (UnknownHostException e) {
-			// This should be in the 'could never happen' category but handle it
-			// to be safe.
-			log.error("error", e);
-			return false;
-		}
-		List<NetMask> allowedCIDRList = getAppSettings().getAllowedCIDRList();
+	public boolean isAllowed(final String property) 
+	{
 		
-		for (final NetMask nm : allowedCIDRList) {
-			if (nm.matches(addr)) {
-				return true;
+		AppSettings appSettings = getAppSettings();
+		if (appSettings != null) 
+		{
+			try {
+				InetAddress addr = InetAddress.getByName(property);
+				List<NetMask> allowedCIDRList = appSettings.getAllowedCIDRList();
+
+				for (final NetMask nm : allowedCIDRList) {
+					if (nm.matches(addr)) {
+						return true;
+					}
+				}
+				
+			} catch (UnknownHostException e) {
+				// This should be in the 'could never happen' category but handle it
+				// to be safe.
+				log.error("error", e);
 			}
 		}
-
 		// Deny this request
 		return false;
 	}

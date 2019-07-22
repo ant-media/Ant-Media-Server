@@ -11,6 +11,7 @@ import org.onvif.ver10.schema.Date;
 import org.onvif.ver10.schema.DateTime;
 import org.onvif.ver10.schema.FocusConfiguration20;
 import org.onvif.ver10.schema.ImagingSettings20;
+import org.onvif.ver10.schema.PTZVector;
 import org.onvif.ver10.schema.Profile;
 import org.onvif.ver10.schema.Time;
 import org.slf4j.Logger;
@@ -52,7 +53,16 @@ public class OnvifCamera implements IOnvifCamera {
 
 			if (profiles != null) 
 			{
-				profileToken = profiles.get(0).getToken();
+				for (Profile profile : profiles) {
+					if (profile.getPTZConfiguration() != null) {
+						profileToken = profile.getToken();
+						break;
+					}
+				}
+				if (profileToken == null) {
+					profileToken = profiles.get(0).getToken();
+				}
+				
 				result = CONNECTION_SUCCESS;
 			}
 			else {
@@ -77,138 +87,108 @@ public class OnvifCamera implements IOnvifCamera {
 
 	@Override
 	public String getRTSPStreamURI() {
-		String PTSPURL = null;
+		String rtspURL = null;
 
 		try {
-			PTSPURL = nvt.getMedia().getRTSPStreamUri(profileToken);
+			rtspURL = nvt.getMedia().getRTSPStreamUri(profileToken);
 
 		} catch (NullPointerException | ConnectException | SOAPException e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
 		}
-		return PTSPURL;
+		return rtspURL;
 	}
 
 	@Override
 	public String getTCPStreamURI() {
-		String PTSPURL = null;
+		String rtspURL = null;
 
 		try {
-			PTSPURL = nvt.getMedia().getTCPStreamUri(profileToken);
+			rtspURL = nvt.getMedia().getTCPStreamUri(profileToken);
 
 		} catch (ConnectException | SOAPException e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
 		} 
-		return PTSPURL;
-	}
-
-	@Override
-	public boolean moveUp() {
-
-		ptzDevices.relativeMove(profileToken, 0f, 0.1f, 0f);
-
-		try {
-			Thread.sleep(500);
-
-			ptzDevices.stopMove(profileToken);
-		} catch (InterruptedException e) {
-			logger.error(ExceptionUtils.getStackTrace(e));
-			Thread.currentThread().interrupt();
-		}
-		return true;
+		return rtspURL;
 	}
 	
 	@Override
-	public boolean zoomIn() {
+	public boolean moveX(float value) {
+		PTZVector position = ptzDevices.getPosition(profileToken);
 		boolean result = false;
-		
 		try {
-			ptzDevices.relativeMove(profileToken, 0f, 0.0f, 0.1f);
-			Thread.sleep(500);
-
-			ptzDevices.stopMove(profileToken);
-			result = true;
-		} catch (InterruptedException e) {
+			result = ptzDevices.absoluteMove(profileToken, position.getPanTilt().getX() + value, position.getPanTilt().getY(), position.getZoom().getX());
+		}
+		catch (SOAPException e) {
+			result = false;
 			logger.error(ExceptionUtils.getStackTrace(e));
-			Thread.currentThread().interrupt();
-		} 
+		}
 		return result;
 	}
 	
 	@Override
-	public boolean zoomOut() {
+	public boolean moveY(float value) {
+		PTZVector position = ptzDevices.getPosition(profileToken);
 		boolean result = false;
-		
 		try {
-			ptzDevices.relativeMove(profileToken, 0f, 0.0f, -0.1f);
-			Thread.sleep(500);
-
-			ptzDevices.stopMove(profileToken);
-			result = true;
-		} catch (InterruptedException e) {
-			logger.error(ExceptionUtils.getStackTrace(e));
-			Thread.currentThread().interrupt();
+			result = ptzDevices.absoluteMove(profileToken, position.getPanTilt().getX(), position.getPanTilt().getY() + value, position.getZoom().getX());
 		}
-		
+		catch (SOAPException e) {
+			result = false;
+			logger.error(ExceptionUtils.getStackTrace(e));
+		}
 		return result;
+	}
+	
+	@Override
+	public boolean zoom(float value) {
+		PTZVector position = ptzDevices.getPosition(profileToken);
+		boolean result = false;
+		try {
+			result = ptzDevices.absoluteMove(profileToken, position.getPanTilt().getX(), position.getPanTilt().getY(), position.getZoom().getX()+value);
+		}
+		catch (SOAPException e) {
+			result = false;
+			logger.error(ExceptionUtils.getStackTrace(e));
+		}
+		return result;
+	}
+	
+	
+
+	@Override
+	public boolean relativeMoveUp() {
+		return ptzDevices.relativeMove(profileToken, 0f, 0.1f, 0f);
+	}
+	
+	@Override
+	public boolean relativeZoomIn() {
+		return ptzDevices.relativeMove(profileToken, 0f, 0f, 0.1f);
+	}
+	
+	@Override
+	public boolean relativeZoomOut() {
+		return ptzDevices.relativeMove(profileToken, 0f, 0.0f, -0.1f);
 	}
 	
 
 	@Override
-	public boolean moveDown() {
-		boolean result = false;
-		ptzDevices.relativeMove(profileToken, 0f, -0.1f, 0f);
-		try {
-			Thread.sleep(500);
-
-			ptzDevices.stopMove(profileToken);
-			result = true;
-		} catch (InterruptedException e) {
-			logger.error(ExceptionUtils.getStackTrace(e));
-			Thread.currentThread().interrupt();
-		}
-
-		return result;
+	public boolean relativeMoveDown() {
+		return ptzDevices.relativeMove(profileToken, 0f, -0.1f, 0f);
 	}
 
 	@Override
-	public boolean moveRight() {
-		boolean result = false;
-		ptzDevices.relativeMove(profileToken, 10f, 0f, 0f);
-
-		try {
-			Thread.sleep(5000);
-
-			ptzDevices.stopMove(profileToken);
-			result = true;
-		} catch (InterruptedException e) {
-			logger.error(ExceptionUtils.getStackTrace(e));
-			Thread.currentThread().interrupt();
-		}
-
-		return result;
+	public boolean relativeMoveRight() {
+		return ptzDevices.relativeMove(profileToken, 0.1f, 0f, 0f);
 	}
 
 	@Override
-	public boolean moveLeft() {
-		boolean result = false;
-		ptzDevices.relativeMove(profileToken, -1f, 0f, 0f);
-		try {
-			Thread.sleep(500);
-
-			ptzDevices.stopMove(profileToken);
-			result = true;
-		} catch (InterruptedException e) {
-			logger.error(ExceptionUtils.getStackTrace(e));
-			Thread.currentThread().interrupt();
-		}
-
-		return result;
+	public boolean relativeMoveLeft() {
+		return ptzDevices.relativeMove(profileToken, -0.1f, 0f, 0f);
 	}
 
 	@Override
 	public boolean moveStop() {
-		ptzDevices.stopMove(profileToken);
-		return true;
+		return ptzDevices.stopMove(profileToken);
 	}
 
 	@Override

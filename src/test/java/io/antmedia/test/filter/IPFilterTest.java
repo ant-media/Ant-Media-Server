@@ -16,6 +16,7 @@ import io.antmedia.filter.IPFilter;
 import javax.servlet.ServletException;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
@@ -27,6 +28,24 @@ public class IPFilterTest {
 	
 	protected static Logger logger = LoggerFactory.getLogger(IPFilterTest.class);
 
+	
+	
+	@Test
+	public void testBugNullContext() {
+		 IPFilter ipFilter = Mockito.spy(new IPFilter());
+		 
+		 Mockito.doReturn(null).when(ipFilter).getAppContext();
+		 assertFalse(ipFilter.isAllowed("127.0.0.1"));
+		 
+
+		 Mockito.doReturn(null).when(ipFilter).getAppSettings();
+		 assertFalse(ipFilter.isAllowed("127.0.0.1"));
+		 
+		 
+		
+	}
+	
+	
     @Test
     public void testDoFilterPass() throws IOException, ServletException {
         IPFilter ipFilter = Mockito.spy(new IPFilter());

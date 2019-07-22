@@ -103,7 +103,7 @@ public class MongoStore extends DataStore {
 			if(broadcast.getStatus()==null) {
 				broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
 			}
-			
+
 			synchronized(this) {
 				Key<Broadcast> key = datastore.save(broadcast);
 			}
@@ -652,27 +652,27 @@ public class MongoStore extends DataStore {
 				if (broadcast.getName() != null) {
 					ops.set("name", broadcast.getName());
 				}
-				
+
 				if (broadcast.getDescription() != null) {
 					ops.set("description", broadcast.getDescription());
 				}
-				
+
 				if (broadcast.getUsername() != null) {
 					ops.set("username", broadcast.getUsername());
 				}
-				
+
 				if (broadcast.getPassword() != null) {
 					ops.set("password", broadcast.getPassword());
 				}
-				
+
 				if (broadcast.getIpAddr() != null) {
 					ops.set("ipAddr", broadcast.getIpAddr());
 				}
-				
+
 				if ( broadcast.getStreamUrl() != null) {
 					ops.set("streamUrl", broadcast.getStreamUrl());
 				}
-				
+
 				UpdateResults update = datastore.update(query, ops);
 				return update.getUpdatedCount() == 1;
 			} catch (Exception e) {
@@ -790,7 +790,7 @@ public class MongoStore extends DataStore {
 			}
 		}
 	}
-	
+
 	@Override
 	public boolean saveToken(Token token) {
 		boolean result = false;
@@ -816,13 +816,22 @@ public class MongoStore extends DataStore {
 		synchronized(this) {
 			if (token.getTokenId() != null) {
 				fetchedToken = tokenDatastore.find(Token.class).field("tokenId").equal(token.getTokenId()).get();
-				if (fetchedToken != null && fetchedToken.getStreamId().equals(token.getStreamId()) && fetchedToken.getType().equals(token.getType())) {
+				if (fetchedToken != null 
+						&& fetchedToken.getType().equals(token.getType())
+						&& Instant.now().getEpochSecond() < fetchedToken.getExpireDate()) {
+					if(token.getRoomId() == null || token.getRoomId().isEmpty()) {
 
-					Query<Token> query = tokenDatastore.createQuery(Token.class).field("tokenId").equal(token.getTokenId());
-					WriteResult delete = tokenDatastore.delete(query);
-					if(delete.getN() == 1) {
-						return fetchedToken;
+						if(fetchedToken.getStreamId().equals(token.getStreamId())) {	
+							Query<Token> query = tokenDatastore.createQuery(Token.class).field("tokenId").equal(token.getTokenId());
+							tokenDatastore.delete(query);
+						}
+						else {
+							fetchedToken = null;
+						}
+
 					}
+					return fetchedToken;
+
 				}else {
 					fetchedToken = null;
 				}

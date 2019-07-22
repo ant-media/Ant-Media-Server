@@ -61,6 +61,10 @@ import io.swagger.annotations.SwaggerDefinition;
 @Path("/v2/broadcasts")
 public class BroadcastRestServiceV2 extends RestServiceBase{
 
+	private static final String VALUE_IS_BIGGER_THAN_ZERO = "Value is bigger than zero";
+	private static final String VALUE_IS_LESS_THAN_ZERO = "Value is less than zero";
+	private static final String STREAM_ID_NOT_VALID = "Stream id not valid";
+
 	@ApiModel(value="SimpleStat", description="Simple generic statistics class to return single values")
 	public static class SimpleStat {
 		@ApiModelProperty(value = "the stat value")
@@ -227,7 +231,7 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	@Path("/{id}/endpoint")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result addEndpointV2(@ApiParam(value = "Broadcast id", required = true) @PathParam("id") String id,
-			@ApiParam(value = "RTMP url of the endpoint that stream will be republished", required = true) @QueryParam("rtmpUrl") String rtmpUrl) {
+			@ApiParam(value = "RTMP url of the endpoint that stream will be republished. URL Encode the stream if required", required = true) @QueryParam("rtmpUrl") String rtmpUrl) {
 		return super.addEndpoint(id, rtmpUrl);
 	}
 
@@ -532,14 +536,14 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 		return super.startStreamSource(id);
 	}
 
-	@ApiOperation(value = "Stop external sources (IP Cameras and Stream Sources)", response = Result.class)
+	@ApiOperation(value = "Stop streaming for the active stream. It both stops ingested(RTMP, WebRTC) or pulled stream sources (IP Cameras and Stream Sources)", response = Result.class)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/stop")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result stopStreamSourceV2(@ApiParam(value = "the id of the broadcast. The broadcast type should be IP Camera or Stream Source otherwise it does not work", required = true) @PathParam("id") String id) 
+	public Result stopStreamingV2(@ApiParam(value = "the id of the broadcast.", required = true) @PathParam("id") String id) 
 	{
-		return super.stopStreamSource(id);
+		return super.stopStreaming(id);
 	}
 
 
@@ -551,87 +555,193 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 		return super.searchOnvifDevices();
 	}
 
-	@ApiOperation(value = "Move IP Camera Up", response = Result.class)
+	@ApiOperation(value = "Move IP Camera up relatively. If the new position is in the limit it moves, otherwise it does not move. "
+			+ "The total space range generally is between -1.0 to 1.0", response = Result.class)
 	@POST
 	@Path("/{id}/ip-camera/move-up")
 	@Produces(MediaType.APPLICATION_JSON)
-	@Override
-	public Result moveUp(@ApiParam(value = "the id of the IP Camera", required = true) @PathParam("id") String id) {
-		if (StreamIdValidator.isStreamIdValid(id)) {
-			return super.moveUp(id);
+	public Result moveUpIPCamera(@ApiParam(value = "the id of the IP Camera", required = true) @PathParam("id") String id, 
+			@ApiParam(value = "The value how much camera moves up. "
+					+ "This value should be bigger than 0 and less than 1. The default value is 0.1", required = false) @QueryParam("value") Float value) {
+		boolean result = false;
+		String message = STREAM_ID_NOT_VALID;
+		if (StreamIdValidator.isStreamIdValid(id)) 
+		{
+			if (value == null) {
+				value = 0.1f;
+			}
+
+			if (value >= 0f) {
+				result = super.moveY(id, value);
+				message = "";
+			}
+			else {
+				message = VALUE_IS_LESS_THAN_ZERO;
+			}
 		}
-		return new Result(false, "Stream id not valid");
+		return new Result(result, message);
 	}
 
-	@ApiOperation(value = "Move IP Camera Down", response = Result.class)
+	@ApiOperation(value = "Move IP Camera down relatively. If the new position is in the limit it moves, otherwise it does not move." 
+			+ "The total space range generally is between -1.0 to 1.0", response = Result.class)
 	@POST
 	@Path("/{id}/ip-camera/move-down")
 	@Produces(MediaType.APPLICATION_JSON)
-	@Override
-	public Result moveDown(@ApiParam(value = "the id of the IP Camera", required = true) @PathParam("id") String id) {
+	public Result moveDownIPCamera(@ApiParam(value = "the id of the IP Camera", required = true) @PathParam("id") String id,
+			@ApiParam(value = "The value how much camera moves up. "
+					+ "This value should be bigger than -1 and less than 0. The default value is -0.1", required = false) @QueryParam("value") Float value) {
+
+		boolean result = false;
+		String message = STREAM_ID_NOT_VALID;
 		if (StreamIdValidator.isStreamIdValid(id)) {
-			return super.moveDown(id);
+			if (value == null) {
+				value = -0.1f;
+			}
+			if (value <= 0f) {
+				result = super.moveY(id, value);
+				message = "";
+			}
+			else {
+				message = VALUE_IS_BIGGER_THAN_ZERO;
+			}
+
 		}
-		return new Result(false, "Stream id not valid");
+		return new Result(result, message);
 	}
 
 
 
-	@ApiOperation(value = "Move IP Camera Left", notes = "Notes here", response = Result.class)
+	@ApiOperation(value = "Move IP Camera left relatively.If the new position is in the limit it moves, otherwise it does not move. " + 
+			"The total space range generally is between -1.0 to 1.0 ", notes = "Notes here", response = Result.class)
 	@POST
 	@Path("/{id}/ip-camera/move-left")
 	@Produces(MediaType.APPLICATION_JSON)
-	@Override
-	public Result moveLeft(@ApiParam(value = "the id of the IP Camera", required = true) @PathParam("id") String id) {
-		if (StreamIdValidator.isStreamIdValid(id)) {
-			return super.moveLeft(id);
+	public Result moveLeftIPCamera(@ApiParam(value = "the id of the IP Camera", required = true) @PathParam("id") String id,
+			@ApiParam(value = "The value how much camera moves left. "
+					+ "This value should be bigger than -1 and less than 0. The default value is -0.1", required = false) @QueryParam("value") Float value) {
+		boolean result = false;
+		String message = STREAM_ID_NOT_VALID;
+		if (id != null && StreamIdValidator.isStreamIdValid(id)) {
+			if (value == null) {
+				value = -0.1f;
+			}
+			if (value <= 0f) {
+				result = super.moveX(id, value);
+				message = "";
+			}
+			else {
+				message = VALUE_IS_BIGGER_THAN_ZERO;
+			}
 		}
-		return new Result(false, "Stream id not valid");
+		return new Result(result, message);
 	}
 
 
-	@ApiOperation(value = "Move IP Camera Right", response = Result.class)
+	@ApiOperation(value = "Move IP Camera right. If the new position is in the limit it moves, otherwise it does not move."
+			+ "The total space range generally is between -1.0 to 1.0 ", response = Result.class)
 	@POST
 	@Path("/{id}/ip-camera/move-right")
 	@Produces(MediaType.APPLICATION_JSON)
-	@Override
-	public Result moveRight(@ApiParam(value = "the id of the IP Camera", required = true) @PathParam("id") String id) {
-		if (StreamIdValidator.isStreamIdValid(id)) {
-			return super.moveRight(id);
+	public Result moveRightIPCamera(@ApiParam(value = "the id of the IP Camera", required = true) @PathParam("id") String id,
+			@ApiParam(value = "The value how much camera moves right. "
+					+ "This value should be bigger than 0 and less than 1. The default value is 0.1", required = false) @QueryParam("value") Float value) {
+		boolean result = false;
+		String message = STREAM_ID_NOT_VALID;
+		if (id != null && StreamIdValidator.isStreamIdValid(id)) {
+			if (value == null) {
+				value = 0.1f;
+			}
+			if (value >= 0f) {
+				result = super.moveX(id, value);
+				message = "";
+			}
+			else {
+				message = VALUE_IS_LESS_THAN_ZERO;
+			}
+
 		}
-		return new Result(false, "Stream id not valid");
+		return new Result(result, message);
 	}
 
-	@ApiOperation(value="Zoom-In IP Camera")
+	@ApiOperation(value="Zoom-In IP Camera relatively. The total space for zoom is between 0 and 1. "
+			+ "The total space range generally is between -1.0 to 1.0 ", response = Result.class)
 	@POST
 	@Path("/{id}/ip-camera/zoom-in")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result zoomInIPCamera(@ApiParam(value = "the id of the IP Camera", required = true) @PathParam("id") String id) {
-		if (StreamIdValidator.isStreamIdValid(id)) 
+	public Result zoomInIPCamera(@ApiParam(value = "the id of the IP Camera", required = true) @PathParam("id") String id,
+			@ApiParam(value = "The value how much camera zoom in. "
+					+ "This value should be bigger than 0 and less than 1. The default value is 0.1", required = false) @QueryParam("value") Float value) {
+		boolean result = false;
+		String message = STREAM_ID_NOT_VALID;
+		if (id != null && StreamIdValidator.isStreamIdValid(id)) 
 		{
-			OnvifCamera camera = getApplication().getOnvifCamera(id);
-			if (camera != null) {
-				return new Result(camera.zoomIn());
+			if (value == null) {
+				value = 0.1f;
+			}
+			if (value >= 0f) {
+				OnvifCamera camera = getApplication().getOnvifCamera(id);
+				if (camera != null) {
+					result = camera.zoom(value);
+					message = "";
+				}
+			}
+			else {
+				message = VALUE_IS_LESS_THAN_ZERO;
 			}
 
 		}
-		return new Result(false, "Stream id not valid");
+		return new Result(result, message);
 	}
 
 
-	@ApiOperation(value="Zoom-In IP Camera")
+	@ApiOperation(value="Zoom-Out IP Camera relatively. The total space for zoom is between 0 and 1."
+			+ "The total space range generally is between -1.0 to 1.0 ", response = Result.class)
 	@POST
 	@Path("/{id}/ip-camera/zoom-out")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result zoomOutIPCamera(@ApiParam(value = "the id of the IP Camera", required = true) @PathParam("id") String id) {
-		if (StreamIdValidator.isStreamIdValid(id)) 
+	public Result zoomOutIPCamera(@ApiParam(value = "the id of the IP Camera", required = true) @PathParam("id") String id,
+			@ApiParam(value = "The value how much camera zoom out. "
+					+ "This value should be bigger than -1 and less than 0. The default value is -0.1", required = false) @QueryParam("value") Float value) {
+		boolean result = false;
+		String message = STREAM_ID_NOT_VALID;
+		if (id != null && StreamIdValidator.isStreamIdValid(id)) 
 		{
-			OnvifCamera camera = getApplication().getOnvifCamera(id);
-			if (camera != null) {
-				return new Result(camera.zoomOut());
+			if (value == null) {
+				value = -0.1f;
+			}
+			if (value <= 0f) {
+				OnvifCamera camera = getApplication().getOnvifCamera(id);
+				if (camera != null) {
+					result = camera.zoom(value);
+					message = "";
+				}
+			}
+			else {
+				message = VALUE_IS_BIGGER_THAN_ZERO;
 			}
 		}
-		return new Result(false, "Stream id not valid");
+		return new Result(result, message);
+	}
+
+	@ApiOperation(value="Stop move for IP Camera.", response = Result.class)
+	@POST
+	@Path("/{id}/ip-camera/stop-move")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result zoomOutIPCamera(@ApiParam(value = "the id of the IP Camera", required = true) @PathParam("id") String id) {
+		boolean result = false;
+		String message = STREAM_ID_NOT_VALID;
+		if (id != null && StreamIdValidator.isStreamIdValid(id)) 
+		{		
+			OnvifCamera camera = getApplication().getOnvifCamera(id);
+			if (camera != null) {
+				result = camera.moveStop();
+				message = "";
+			}
+			else {
+				message = "Camera not found";
+			}
+		}
+		return new Result(result, message);
 	}
 
 	@ApiOperation(value = "Creates a conference room with the parameters. The room name is key so if this is called with the same room name then new room is overwritten to old one", response = ConferenceRoom.class)
