@@ -49,6 +49,9 @@ public class MongoStore extends DataStore {
 	protected static Logger logger = LoggerFactory.getLogger(MongoStore.class);
 
 	public static final String IMAGE_ID = "imageId"; 
+	public static final String STATUS = "status";
+	private static final String ORIGIN_ADDRESS = "originAdress"; 
+
 
 	public MongoStore(String host, String username, String password, String dbName) {
 		morphia = new Morphia();
@@ -156,7 +159,7 @@ public class MongoStore extends DataStore {
 			try {
 				Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(id);
 
-				UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set("status", status);
+				UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set(STATUS, status);
 
 				UpdateResults update = datastore.update(query, ops);
 				return update.getUpdatedCount() == 1;
@@ -300,7 +303,6 @@ public class MongoStore extends DataStore {
 	public List<Broadcast> getExternalStreamsList() {
 		synchronized(this) {
 			try {
-				String statusField = "status"; 
 				Query<Broadcast> query = datastore.createQuery(Broadcast.class);
 				query.and(
 						query.or(
@@ -308,14 +310,14 @@ public class MongoStore extends DataStore {
 								query.criteria("type").equal(AntMediaApplicationAdapter.STREAM_SOURCE)
 								), 
 						query.and(
-								query.criteria(statusField).notEqual(AntMediaApplicationAdapter.BROADCAST_STATUS_PREPARING),
-								query.criteria(statusField).notEqual(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)
+								query.criteria(STATUS).notEqual(AntMediaApplicationAdapter.BROADCAST_STATUS_PREPARING),
+								query.criteria(STATUS).notEqual(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)
 								)
 						);
 				
 				List<Broadcast> streamList = query.asList();
 				
-				UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set(statusField, AntMediaApplicationAdapter.BROADCAST_STATUS_PREPARING);
+				UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set(STATUS, AntMediaApplicationAdapter.BROADCAST_STATUS_PREPARING);
 				UpdateResults update = datastore.update(query, ops);
 				int updatedCount = update.getUpdatedCount();
 				if(updatedCount != streamList.size()) {
@@ -589,7 +591,7 @@ public class MongoStore extends DataStore {
 	@Override
 	public long getActiveBroadcastCount() {
 		synchronized(this) {
-			return datastore.find(Broadcast.class).filter("status", AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING).count();
+			return datastore.find(Broadcast.class).filter(STATUS, AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING).count();
 		}
 	}
 
@@ -883,8 +885,8 @@ public class MongoStore extends DataStore {
 			Query<Broadcast> query = datastore.createQuery(Broadcast.class);
 			query.and(
 					query.or(
-							query.criteria("originAdress").doesNotExist(), //check for non cluster mode
-							query.criteria("originAdress").equal(ip)
+							query.criteria(ORIGIN_ADDRESS).doesNotExist(), //check for non cluster mode
+							query.criteria(ORIGIN_ADDRESS).equal(ip)
 							),
 					query.criteria("zombi").equal(true)
 					);
@@ -1010,10 +1012,10 @@ public class MongoStore extends DataStore {
 			Query<Broadcast> query = datastore.createQuery(Broadcast.class);
 			query.and(
 					query.or(
-							query.criteria("originAdress").doesNotExist(), //check for non cluster mode
-							query.criteria("originAdress").equal(ip)
+							query.criteria(ORIGIN_ADDRESS).doesNotExist(), //check for non cluster mode
+							query.criteria(ORIGIN_ADDRESS).equal(ip)
 							),
-					query.criteria("status").equal(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)
+					query.criteria(STATUS).equal(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)
 					);
 			return query.count();
 		}
