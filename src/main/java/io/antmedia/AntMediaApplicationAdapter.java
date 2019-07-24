@@ -839,6 +839,25 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	@Override
 	public void serverShuttingdown() {
 		logger.info("{} is shutting down.", getName());
+		Queue<StreamFetcher> fetchers = streamFetcherManager.getStreamFetcherList();
+		for (StreamFetcher streamFetcher : fetchers) {
+			streamFetcher.stopStream();
+		}
+		
+		logger.info("RTMP Broadcasts are closing.");
+		for (MuxAdaptor adaptor : getMuxAdaptors()) {
+			adaptor.getBroadcastStream().stop();
+			adaptor.stop();
+		}
+		
+		while(getDataStore().getLocalLiveBroadcastCount() > 0) {
+			try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+				Thread.currentThread().interrupt();
+			}
+		}
 	}
 
 	@Override
