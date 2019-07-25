@@ -1,6 +1,7 @@
 package io.antmedia.shutdown;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class AMSShutdownManager {
 	private static AMSShutdownManager instance = new AMSShutdownManager();
@@ -18,15 +19,19 @@ public class AMSShutdownManager {
 	}
 	
 	public void subscribe(IShutdownListener listener) {
-		listeners.add(listener);
+		getListeners().add(listener);
 	}
 	
 	public void notifyShutdown() {
 		if(!isShuttingDown) {
 			isShuttingDown = true;
-			for (IShutdownListener listener : listeners) {
+			for (IShutdownListener listener : getListeners()) {
 				listener.serverShuttingdown();
 			}
 		}
+	}
+
+	public List<IShutdownListener> getListeners() {
+		return listeners;
 	}
 }

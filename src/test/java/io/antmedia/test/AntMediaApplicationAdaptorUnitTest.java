@@ -15,6 +15,8 @@ import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.http.HttpEntity;
@@ -30,6 +32,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IBroadcastStream;
+import org.red5.server.stream.ClientBroadcastStream;
 
 import com.jmatio.io.stream.ByteBufferInputStream;
 
@@ -40,7 +43,12 @@ import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.integration.AppFunctionalTest;
+import io.antmedia.muxer.MuxAdaptor;
+import io.antmedia.streamsource.StreamFetcher;
+import io.antmedia.streamsource.StreamFetcherManager;
 import io.vertx.core.Vertx;
+import static org.mockito.Mockito.*;
+
 
 public class AntMediaApplicationAdaptorUnitTest {
 
@@ -324,5 +332,53 @@ public class AntMediaApplicationAdaptorUnitTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+	}
+	
+	@Test
+	public void testShutDown() {
+		IScope scope = mock(IScope.class);
+		when(scope.getName()).thenReturn("test");
+		adapter.setScope(scope);
+		
+		StreamFetcherManager sfm = mock(StreamFetcherManager.class);
+		adapter.setStreamFetcherManager(sfm);
+		
+		StreamFetcher sf = mock(StreamFetcher.class);
+		Queue<StreamFetcher> sfQueue = new ConcurrentLinkedQueue<StreamFetcher>();
+		sfQueue.add(sf);
+		when(sfm.getStreamFetcherList()).thenReturn(sfQueue);
+		
+		MuxAdaptor muxerAdaptor = mock(MuxAdaptor.class);
+		adapter.muxAdaptorAdded(muxerAdaptor);
+		
+		ClientBroadcastStream cbs = mock(ClientBroadcastStream.class);
+		when(muxerAdaptor.getBroadcastStream()).thenReturn(cbs);
+
+		
+		DataStore dataStore = mock(DataStore.class);
+		when(dataStore.getLocalLiveBroadcastCount()).thenReturn(1L);
+		
+		DataStoreFactory dataStoreFactory = mock(DataStoreFactory.class);
+		when(dataStoreFactory.getDataStore()).thenReturn(dataStore);
+		
+		adapter.setDataStoreFactory(dataStoreFactory);
+		
+		new Thread() {
+			public void run() {
+				try {
+					sleep(3000);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+				when(dataStore.getLocalLiveBroadcastCount()).thenReturn(0L);
+			};
+		}.start();
+		
+		adapter.serverShuttingdown();
+		
+		verify(sf, times(1)).stopStream();
+		verify(cbs, times(1)).stop();
+		verify(muxerAdaptor, times(1)).stop();
+		
 	}
 }

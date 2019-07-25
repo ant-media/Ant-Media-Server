@@ -12,6 +12,7 @@ public class AMSShutdownManagerUnitTest {
 	
 	@Test
 	public void testShutdown() {
+		AMSShutdownManager.getInstance().getListeners().clear();
 		IShutdownListener listener1 = mock(IShutdownListener.class);
 		IShutdownListener listener2 = mock(IShutdownListener.class);
 		

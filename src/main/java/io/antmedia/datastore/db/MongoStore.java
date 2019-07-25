@@ -2,7 +2,6 @@ package io.antmedia.datastore.db;
 
 import java.io.File;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -50,6 +49,9 @@ public class MongoStore extends DataStore {
 	protected static Logger logger = LoggerFactory.getLogger(MongoStore.class);
 
 	public static final String IMAGE_ID = "imageId"; 
+	public static final String STATUS = "status";
+	private static final String ORIGIN_ADDRESS = "originAdress"; 
+
 
 	public MongoStore(String host, String username, String password, String dbName) {
 		morphia = new Morphia();
@@ -157,7 +159,7 @@ public class MongoStore extends DataStore {
 			try {
 				Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(id);
 
-				UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set("status", status);
+				UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set(STATUS, status);
 
 				UpdateResults update = datastore.update(query, ops);
 				return update.getUpdatedCount() == 1;
@@ -301,15 +303,28 @@ public class MongoStore extends DataStore {
 	public List<Broadcast> getExternalStreamsList() {
 		synchronized(this) {
 			try {
-				List<Broadcast> ipCameraList=datastore.find(Broadcast.class).field("type").equal(AntMediaApplicationAdapter.IP_CAMERA).asList();
-				List<Broadcast> streamSourceList=datastore.find(Broadcast.class).field("type").equal(AntMediaApplicationAdapter.STREAM_SOURCE).asList();
-
-				List<Broadcast> newList = new ArrayList<Broadcast>(ipCameraList);
-
-				newList.addAll(streamSourceList);
-
-				return newList;
-
+				Query<Broadcast> query = datastore.createQuery(Broadcast.class);
+				query.and(
+						query.or(
+								query.criteria("type").equal(AntMediaApplicationAdapter.IP_CAMERA),
+								query.criteria("type").equal(AntMediaApplicationAdapter.STREAM_SOURCE)
+								), 
+						query.and(
+								query.criteria(STATUS).notEqual(AntMediaApplicationAdapter.BROADCAST_STATUS_PREPARING),
+								query.criteria(STATUS).notEqual(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)
+								)
+						);
+				
+				List<Broadcast> streamList = query.asList();
+				
+				UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set(STATUS, AntMediaApplicationAdapter.BROADCAST_STATUS_PREPARING);
+				UpdateResults update = datastore.update(query, ops);
+				int updatedCount = update.getUpdatedCount();
+				if(updatedCount != streamList.size()) {
+					logger.error("Only {} stream status updated out of {}", updatedCount, streamList.size());
+				}
+						
+				return streamList;
 			} catch (Exception e) {
 
 				logger.error(ExceptionUtils.getStackTrace(e));
@@ -576,7 +591,7 @@ public class MongoStore extends DataStore {
 	@Override
 	public long getActiveBroadcastCount() {
 		synchronized(this) {
-			return datastore.find(Broadcast.class).filter("status", AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING).count();
+			return datastore.find(Broadcast.class).filter(STATUS, AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING).count();
 		}
 	}
 
@@ -868,9 +883,15 @@ public class MongoStore extends DataStore {
 		synchronized(this) {
 			String ip = DBUtils.getHostAddress();
 			Query<Broadcast> query = datastore.createQuery(Broadcast.class);
-			query.or(query.criteria("originAdress").doesNotExist(), //check for non cluster mode
-					query.criteria("originAdress").equal(ip));
+			query.and(
+					query.or(
+							query.criteria(ORIGIN_ADDRESS).doesNotExist(), //check for non cluster mode
+							query.criteria(ORIGIN_ADDRESS).equal(ip)
+							),
+					query.criteria("zombi").equal(true)
+					);
 			long count = query.count();
+			
 			if(count > 0) {
 				logger.error("There are {} streams for {} at start. They are deleted now.", count, ip);
 
@@ -982,6 +1003,22 @@ public class MongoStore extends DataStore {
 			}
 		}
 		return token;
+	}
+	
+	@Override
+	public long getLocalLiveBroadcastCount() {
+		synchronized(this) {
+			String ip = DBUtils.getHostAddress();
+			Query<Broadcast> query = datastore.createQuery(Broadcast.class);
+			query.and(
+					query.or(
+							query.criteria(ORIGIN_ADDRESS).doesNotExist(), //check for non cluster mode
+							query.criteria(ORIGIN_ADDRESS).equal(ip)
+							),
+					query.criteria(STATUS).equal(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)
+					);
+			return query.count();
+		}
 	}
 
 }
