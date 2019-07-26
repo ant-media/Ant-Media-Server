@@ -6,6 +6,11 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.io.IOException;
@@ -22,7 +27,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.http.HttpEntity;
 import org.apache.http.StatusLine;
 import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.awaitility.Awaitility;
 import org.junit.After;
@@ -31,30 +35,29 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.red5.server.api.scope.IScope;
-import org.red5.server.api.stream.IBroadcastStream;
 import org.red5.server.stream.ClientBroadcastStream;
 
 import com.jmatio.io.stream.ByteBufferInputStream;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
-import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.DataStore;
+import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
+import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.integration.AppFunctionalTest;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
 import io.vertx.core.Vertx;
-import static org.mockito.Mockito.*;
 
 
 public class AntMediaApplicationAdaptorUnitTest {
 
 	AntMediaApplicationAdapter adapter;
 	String streamsFolderPath = "webapps/test/streams";
-	
+
 	Vertx vertx = Vertx.vertx();
 
 	@Before
@@ -204,11 +207,11 @@ public class AntMediaApplicationAdaptorUnitTest {
 			CloseableHttpResponse httpResponse = Mockito.mock(CloseableHttpResponse.class);
 			Mockito.when(httpClient.execute(Mockito.any())).thenReturn(httpResponse);
 			Mockito.when(httpResponse.getStatusLine()).thenReturn(Mockito.mock(StatusLine.class));
-			
+
 			Mockito.when(httpResponse.getEntity()).thenReturn(null);
 			StringBuilder response = spyAdaptor.sendPOST("http://any_url", new HashMap());
 			assertNull(response);
-			
+
 			HttpEntity entity = Mockito.mock(HttpEntity.class);
 			InputStream is = new ByteBufferInputStream(ByteBuffer.allocate(10), 10);
 			Mockito.when(entity.getContent()).thenReturn(is);
@@ -218,14 +221,14 @@ public class AntMediaApplicationAdaptorUnitTest {
 			response = spyAdaptor.sendPOST("http://any_url", map);
 			assertNotNull(response);
 			assertEquals(10, response.length());
-			
-			
+
+
 		} catch (IOException e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
 	}
-	
+
 
 	@Test
 	public void testNotifyHook() {
@@ -297,6 +300,157 @@ public class AntMediaApplicationAdaptorUnitTest {
 	}
 
 	@Test
+	public void testNotifyHookFromMuxingFinished() {
+
+		AntMediaApplicationAdapter spyAdaptor = Mockito.spy(adapter);
+		AppSettings appSettings = new AppSettings();
+		spyAdaptor.setAppSettings(appSettings);
+
+		DataStore dataStore = new InMemoryDataStore("testHook");
+		DataStoreFactory dsf = Mockito.mock(DataStoreFactory.class);
+		Mockito.when(dsf.getDataStore()).thenReturn(dataStore);
+		spyAdaptor.setDataStoreFactory(dsf);
+		
+		//get sample mp4 file from test resources
+		File anyFile = new File("src/test/resources/sample_MP4_480.mp4");
+		
+		//create new broadcast
+		Broadcast broadcast = new Broadcast();
+		
+		//save this broadcast to db
+		String streamId = dataStore.save(broadcast);
+
+		/*
+		 * Scenario 1; Stream is saved to DB, but no Hook URL is defined either for stream and in AppSettings
+		 * So, no hook is posted
+		 */
+		
+		//call muxingFinished function
+		spyAdaptor.muxingFinished(streamId, anyFile, 100, 480);
+
+		ArgumentCaptor<String> captureUrl = ArgumentCaptor.forClass(String.class);
+		ArgumentCaptor<String> captureId = ArgumentCaptor.forClass(String.class);
+		ArgumentCaptor<String> captureAction = ArgumentCaptor.forClass(String.class);
+		ArgumentCaptor<String> captureStreamName = ArgumentCaptor.forClass(String.class);
+		ArgumentCaptor<String> captureCategory = ArgumentCaptor.forClass(String.class);
+		ArgumentCaptor<String> captureVodName = ArgumentCaptor.forClass(String.class);
+		ArgumentCaptor<String> captureVodId = ArgumentCaptor.forClass(String.class);
+
+		//verify that notifyHook is never called
+		verify(spyAdaptor, never()).notifyHook(captureUrl.capture(), captureId.capture(), captureAction.capture(), 
+				captureStreamName.capture(), captureCategory.capture(), captureVodName.capture(), captureVodId.capture());
+
+
+		/*
+		 * Scenario 2; hook URL is defined for stream and stream is in DB
+		 * So hook is posted
+		 */
+		
+		//define hook URL for stream specific
+		broadcast.setListenerHookURL("listenerHookURL");
+		broadcast.setName("name");
+		
+		//update broadcast
+		dataStore.updateBroadcastFields(streamId, broadcast);
+
+		//call muxingFinished function
+		spyAdaptor.muxingFinished(streamId, anyFile, 100, 480);	
+		try {
+			Thread.sleep(1000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> {
+			boolean called = false;
+			try {
+				
+				//verify that notifyHook is called 1 time
+				verify(spyAdaptor, times(1)).notifyHook(captureUrl.capture(), captureId.capture(), captureAction.capture(), 
+						captureStreamName.capture(), captureCategory.capture(), captureVodName.capture(), captureVodId.capture());
+
+				assertEquals(captureUrl.getValue(), broadcast.getListenerHookURL());
+				assertEquals(captureId.getValue(), broadcast.getStreamId());
+				assertEquals(captureVodName.getValue()+".mp4", anyFile.getName());
+
+				called = true;
+			}
+			catch (Exception e) {
+				e.printStackTrace();
+
+			}
+			return called;
+		});
+
+		/*
+		 * Scenario 3; Stream is deleted from DB (zombi stream)
+		 * also no HookURL is defined in AppSettins
+		 * so no hook is posted
+		 */
+		
+		//delete broadcast from db
+		dataStore.delete(streamId);
+		
+		//call muxingFinished function
+		spyAdaptor.muxingFinished(streamId, anyFile, 100, 480);	
+
+
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> {
+			boolean called = false;
+			try {
+				
+				//verify that no new notifyHook is called 
+				verify(spyAdaptor, times(1)).notifyHook(captureUrl.capture(), captureId.capture(), captureAction.capture(), 
+						captureStreamName.capture(), captureCategory.capture(), captureVodName.capture(), captureVodId.capture());
+				
+				called = true;
+			}
+			catch (Exception e) {
+				e.printStackTrace();
+
+			}
+			return called;
+		});
+
+		/*
+		 * Scenario 4; Stream is deleted from DB (zombi stream)
+		 * but HookURL is defined in AppSettins
+		 * so new hook is posted
+		 */
+		
+		//set common hook URL
+		appSettings.setListenerHookURL("listenerHookURL");
+		
+		//call muxingFinished function
+		spyAdaptor.muxingFinished(streamId, anyFile, 100, 480);	
+
+
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> {
+			boolean called = false;
+			try {
+				
+				//verify that notifyHook is called 2 times
+				verify(spyAdaptor, times(2)).notifyHook(captureUrl.capture(), captureId.capture(), captureAction.capture(), 
+						captureStreamName.capture(), captureCategory.capture(), captureVodName.capture(), captureVodId.capture());
+
+				assertEquals(captureUrl.getValue(), broadcast.getListenerHookURL());
+				assertEquals(captureId.getValue(), broadcast.getStreamId());
+				assertEquals(captureVodName.getValue()+".mp4", anyFile.getName());
+				
+				called = true;
+			}
+			catch (Exception e) {
+				e.printStackTrace();
+
+			}
+			return called;
+		});
+
+	}
+
+
+	@Test
 	public void testSynchUserVodThrowException() {
 		File f = new File(streamsFolderPath);
 		assertTrue(f.mkdirs());
@@ -333,36 +487,36 @@ public class AntMediaApplicationAdaptorUnitTest {
 			fail(e.getMessage());
 		}
 	}
-	
+
 	@Test
 	public void testShutDown() {
 		IScope scope = mock(IScope.class);
 		when(scope.getName()).thenReturn("test");
 		adapter.setScope(scope);
-		
+
 		StreamFetcherManager sfm = mock(StreamFetcherManager.class);
 		adapter.setStreamFetcherManager(sfm);
-		
+
 		StreamFetcher sf = mock(StreamFetcher.class);
 		Queue<StreamFetcher> sfQueue = new ConcurrentLinkedQueue<StreamFetcher>();
 		sfQueue.add(sf);
 		when(sfm.getStreamFetcherList()).thenReturn(sfQueue);
-		
+
 		MuxAdaptor muxerAdaptor = mock(MuxAdaptor.class);
 		adapter.muxAdaptorAdded(muxerAdaptor);
-		
+
 		ClientBroadcastStream cbs = mock(ClientBroadcastStream.class);
 		when(muxerAdaptor.getBroadcastStream()).thenReturn(cbs);
 
-		
+
 		DataStore dataStore = mock(DataStore.class);
 		when(dataStore.getLocalLiveBroadcastCount()).thenReturn(1L);
-		
+
 		DataStoreFactory dataStoreFactory = mock(DataStoreFactory.class);
 		when(dataStoreFactory.getDataStore()).thenReturn(dataStore);
-		
+
 		adapter.setDataStoreFactory(dataStoreFactory);
-		
+
 		new Thread() {
 			public void run() {
 				try {
@@ -373,12 +527,12 @@ public class AntMediaApplicationAdaptorUnitTest {
 				when(dataStore.getLocalLiveBroadcastCount()).thenReturn(0L);
 			};
 		}.start();
-		
+
 		adapter.serverShuttingdown();
-		
+
 		verify(sf, times(1)).stopStream();
 		verify(cbs, times(1)).stop();
 		verify(muxerAdaptor, times(1)).stop();
-		
+
 	}
 }
