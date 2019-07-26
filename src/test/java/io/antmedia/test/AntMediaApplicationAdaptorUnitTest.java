@@ -325,8 +325,6 @@ public class AntMediaApplicationAdaptorUnitTest {
 		 * So, no hook is posted
 		 */
 		
-		//call muxingFinished function
-		spyAdaptor.muxingFinished(streamId, anyFile, 100, 480);
 
 		ArgumentCaptor<String> captureUrl = ArgumentCaptor.forClass(String.class);
 		ArgumentCaptor<String> captureId = ArgumentCaptor.forClass(String.class);
@@ -336,6 +334,9 @@ public class AntMediaApplicationAdaptorUnitTest {
 		ArgumentCaptor<String> captureVodName = ArgumentCaptor.forClass(String.class);
 		ArgumentCaptor<String> captureVodId = ArgumentCaptor.forClass(String.class);
 
+		//call muxingFinished function
+		spyAdaptor.muxingFinished(streamId, anyFile, 100, 480);
+		
 		//verify that notifyHook is never called
 		verify(spyAdaptor, never()).notifyHook(captureUrl.capture(), captureId.capture(), captureAction.capture(), 
 				captureStreamName.capture(), captureCategory.capture(), captureVodName.capture(), captureVodId.capture());
@@ -355,13 +356,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		//call muxingFinished function
 		spyAdaptor.muxingFinished(streamId, anyFile, 100, 480);	
-		try {
-			Thread.sleep(1000);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
+		
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> {
 			boolean called = false;
 			try {
@@ -395,7 +390,6 @@ public class AntMediaApplicationAdaptorUnitTest {
 		//call muxingFinished function
 		spyAdaptor.muxingFinished(streamId, anyFile, 100, 480);	
 
-
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> {
 			boolean called = false;
 			try {
@@ -424,7 +418,6 @@ public class AntMediaApplicationAdaptorUnitTest {
 		
 		//call muxingFinished function
 		spyAdaptor.muxingFinished(streamId, anyFile, 100, 480);	
-
 
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> {
 			boolean called = false;
