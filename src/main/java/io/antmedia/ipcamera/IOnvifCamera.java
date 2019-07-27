@@ -5,6 +5,10 @@ package io.antmedia.ipcamera;
 import java.sql.Date;
 import java.sql.Time;
 
+import javax.xml.soap.SOAPException;
+
+import org.apache.commons.lang3.exception.ExceptionUtils;
+
 
 
 public interface IOnvifCamera {
@@ -61,11 +65,7 @@ public interface IOnvifCamera {
 
 	boolean isFocusModeAuto();
 
-	/**
-	 * Move up IP Camera
-	 * @return
-	 */
-	boolean relativeMoveUp();
+	
 
 	/**
 	 * Stop IP Camera any movement
@@ -74,58 +74,34 @@ public interface IOnvifCamera {
 	boolean moveStop();
 
 	/**
-	 * Move down IP Camera
-	 * @return
+	 * Move camera continously
+	 * @param x speed in pan
+	 * @param y speed in tilt
+	 * @param zoom 
+	 * @return true if successful, false if failed
 	 */
-	boolean relativeMoveDown();
-
-	/**
-	 * Move right IP Camera
-	 * @return
-	 */
-	boolean relativeMoveRight();
-
-	/**
-	 * Move left IP Camera
-	 * @return
-	 */
-	boolean relativeMoveLeft();
+	boolean moveContinous(float x, float y, float zoom);
 	
 	/**
-	 * Zoom-in IP Camera
+	 * Move camera relatively
+	 * @param x
+	 * @param y
+	 * @param zoom
 	 * @return
 	 */
-	boolean relativeZoomIn();
+	boolean moveRelative(float x, float y, float zoom);
 	
 	/**
-	 * Zoom-out IP Camera
+	 * Move camera absolutely in the x,y and zoom positions
+	 * @param x
+	 * @param y
+	 * @param zoom
 	 * @return
 	 */
-	boolean relativeZoomOut();
+	boolean moveAbsolute(float x, float y, float zoom);
+	
+
 
 	String getTCPStreamURI();
-	
-	/**
-	 * Move in X direction in positive or negative
-	 * @param value
-	 * @return true if successful, false if faied
-	 */
-	boolean moveX(float value);
-	
-	/**
-	 * Move in Y direction in positive or negative
-	 * @param value 
-	 * @return true if successful, false if failed
-	 */
-	boolean moveY(float value);
-	
-	/**
-	 * Zoom in and out according to the value
-	 * @param value, if 0-1 zoom in, if -1-0 zoom out
-	 * @return true if successful, false if failed
-	 */
-	boolean zoom(float value);
-
-
-	
+		
 }

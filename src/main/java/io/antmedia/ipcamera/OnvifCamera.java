@@ -111,79 +111,25 @@ public class OnvifCamera implements IOnvifCamera {
 		return rtspURL;
 	}
 	
-	@Override
-	public boolean moveX(float value) {
-		PTZVector position = ptzDevices.getPosition(profileToken);
+	
+	public boolean moveContinous(float x, float y, float zoom) {
+		return ptzDevices.continuousMove(profileToken, x, y, zoom);
+	}
+	
+	public boolean moveRelative(float x, float y, float zoom) {
+		return ptzDevices.relativeMove(profileToken, x, y, zoom);
+	}
+	
+	public boolean moveAbsolute(float x, float y, float zoom) {
 		boolean result = false;
 		try {
-			result = ptzDevices.absoluteMove(profileToken, position.getPanTilt().getX() + value, position.getPanTilt().getY(), position.getZoom().getX());
+			result = ptzDevices.absoluteMove(profileToken, x, y, zoom);
 		}
 		catch (SOAPException e) {
 			result = false;
 			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 		return result;
-	}
-	
-	@Override
-	public boolean moveY(float value) {
-		PTZVector position = ptzDevices.getPosition(profileToken);
-		boolean result = false;
-		try {
-			result = ptzDevices.absoluteMove(profileToken, position.getPanTilt().getX(), position.getPanTilt().getY() + value, position.getZoom().getX());
-		}
-		catch (SOAPException e) {
-			result = false;
-			logger.error(ExceptionUtils.getStackTrace(e));
-		}
-		return result;
-	}
-	
-	@Override
-	public boolean zoom(float value) {
-		PTZVector position = ptzDevices.getPosition(profileToken);
-		boolean result = false;
-		try {
-			result = ptzDevices.absoluteMove(profileToken, position.getPanTilt().getX(), position.getPanTilt().getY(), position.getZoom().getX()+value);
-		}
-		catch (SOAPException e) {
-			result = false;
-			logger.error(ExceptionUtils.getStackTrace(e));
-		}
-		return result;
-	}
-	
-	
-
-	@Override
-	public boolean relativeMoveUp() {
-		return ptzDevices.relativeMove(profileToken, 0f, 0.1f, 0f);
-	}
-	
-	@Override
-	public boolean relativeZoomIn() {
-		return ptzDevices.relativeMove(profileToken, 0f, 0f, 0.1f);
-	}
-	
-	@Override
-	public boolean relativeZoomOut() {
-		return ptzDevices.relativeMove(profileToken, 0f, 0.0f, -0.1f);
-	}
-	
-
-	@Override
-	public boolean relativeMoveDown() {
-		return ptzDevices.relativeMove(profileToken, 0f, -0.1f, 0f);
-	}
-
-	@Override
-	public boolean relativeMoveRight() {
-		return ptzDevices.relativeMove(profileToken, 0.1f, 0f, 0f);
-	}
-
-	@Override
-	public boolean relativeMoveLeft() {
-		return ptzDevices.relativeMove(profileToken, -0.1f, 0f, 0f);
 	}
 
 	@Override
@@ -213,35 +159,6 @@ public class OnvifCamera implements IOnvifCamera {
 		return nvt.getDate();
 	}
 
-	public boolean setDateTime(Date date, Time time) {
-
-		DateTime dt = new DateTime();
-
-		/*
-		 * Date date = new Date();
-		 * 
-		 * date.setDay(1);
-		 * 
-		 * date.setMonth(1);
-		 * 
-		 * date.setYear(2005);
-		 * 
-		 * 
-		 * Time time = new Time();
-		 * 
-		 * time.setHour(10);
-		 * 
-		 * time.setMinute(10);
-		 * 
-		 * time.setSecond(10);
-		 */
-
-		dt.setDate(date);
-
-		dt.setTime(time);
-
-		return true;
-	}
 
 	@Override
 	public boolean setBrightness(float brightness) {

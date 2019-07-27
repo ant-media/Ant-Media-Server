@@ -206,7 +206,6 @@
                 </executions>
             </plugin>
 
-
             <!-- >>>>>>> master <plugin> <groupId>com.webcohesion.enunciate</groupId>
                 <artifactId>enunciate-maven-plugin</artifactId> <version>${enunciate.version}</version>
                 <executions> <execution> <goals> <goal>docs</goal> </goals> <configuration>
