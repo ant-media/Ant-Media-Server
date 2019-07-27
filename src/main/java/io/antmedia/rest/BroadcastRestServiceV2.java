@@ -559,16 +559,20 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	}
 
 
-	@ApiOperation(value = "Move IP Camera right. It support continous, relative and absolute move. By default it's relative move."
-			+ "The total space range generally is between -1.0 to 1.0 ", response = Result.class)
+	@ApiOperation(value = "Move IP Camera right. It support continuous, relative and absolute move. By default it's relative move."
+			+ "Movement parameters should be given according to movement type. "
+			+ "Generally here are the values "
+			+ "For Absolute move, value X and value Y is between -1.0f and 1.0f. Zooom value is between 0.0f and 1.0f"
+			+ "For Relative move, value X, value Y and Zoom Value is between -1.0f and 1.0f"
+			+ "For Continous move,value X, value Y and Zoom Value is between -1.0f and 1.0f ", response = Result.class)
 	@POST
 	@Path("/{id}/ip-camera/move")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result moveIPCamera(@ApiParam(value = "The id of the IP Camera", required = true) @PathParam("id") String id,
-			@ApiParam(value = "Movement in X direction. If not provided, it's assumed to be zero ", required = false) @QueryParam("valueX") Float valueX,
-			@ApiParam(value = "Movement in Y direction. If not provided, it's assumed to be zero ", required = false) @QueryParam("valueY") Float valueY,
-			@ApiParam(value = "Movement in Zoom. If not provided, it's assumed to be zero", required = false) @QueryParam("valueZ") Float valueZ,
-			@ApiParam(value = "Movement type. It can be absolute, relative or continous. By default it's relative", required = false) @QueryParam("movement") String movement
+			@ApiParam(value = "Movement in X direction. If not specified, it's assumed to be zero. Valid ranges between -1.0f and 1.0f for all movements ", required = false) @QueryParam("valueX") Float valueX,
+			@ApiParam(value = "Movement in Y direction. If not specified, it's assumed to be zero. Valid ranges between -1.0f and 1.0f for all movements ", required = false) @QueryParam("valueY") Float valueY,
+			@ApiParam(value = "Movement in Zoom. If not specified, it's assumed to be zero. Valid ranges for relative and continous move is between -1.0f and 1.0f. For absolute move between 0.0f and 1.0f ", required = false) @QueryParam("valueZ") Float valueZ,
+			@ApiParam(value = "Movement type. It can be absolute, relative or continuous. If not specified, it's relative", required = false) @QueryParam("movement") String movement
 			) {
 		boolean result = false;
 		String message = STREAM_ID_NOT_VALID;
