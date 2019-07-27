@@ -1391,6 +1391,7 @@ public class BroadcastRestServiceV2UnitTest {
 		assertFalse(spyService.moveIPCamera(id, null, null, null, "absolute").isSuccess());
 		assertFalse(spyService.moveIPCamera(id, null, null, null, "relative").isSuccess());
 		assertFalse(spyService.moveIPCamera(id, null, null, null, "continous").isSuccess());
+		assertFalse(spyService.stopMove(id).isSuccess());
 		
 
 		 
@@ -1414,8 +1415,13 @@ public class BroadcastRestServiceV2UnitTest {
 		spyService.moveIPCamera(id, 0.3f, 0.4f, 0.2f, "continuous").isSuccess();
 		Mockito.verify(onvifCamera).moveContinous(0.3f, 0.4f, 0.2f);
 		
+		spyService.stopMove(id);
+		Mockito.verify(onvifCamera).moveStop();
+		
 		
 		assertFalse(spyService.moveIPCamera(id, 0.3f, 0.4f, 0.2f, "false_value").isSuccess());
+		
+		
 		
 	}
 

@@ -609,6 +609,27 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 		}
 		return new Result(result, message);
 	}
+	
+	@ApiOperation(value="Stop move for IP Camera.", response = Result.class)
+	@POST
+	@Path("/{id}/ip-camera/stop-move")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result stopMove(@ApiParam(value = "the id of the IP Camera", required = true) @PathParam("id") String id) {
+		boolean result = false;
+		String message = STREAM_ID_NOT_VALID;
+		if (id != null && StreamIdValidator.isStreamIdValid(id)) 
+		{		
+			OnvifCamera camera = getApplication().getOnvifCamera(id);
+			if (camera != null) {
+			result = camera.moveStop();
+				message = "";
+			}
+			else {
+				message = "Camera not found";
+			}
+		}
+		return new Result(result, message);
+	}
 
 
 	@ApiOperation(value = "Creates a conference room with the parameters. The room name is key so if this is called with the same room name then new room is overwritten to old one", response = ConferenceRoom.class)
