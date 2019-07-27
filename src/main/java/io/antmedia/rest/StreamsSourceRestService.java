@@ -174,7 +174,7 @@ public class StreamsSourceRestService extends RestServiceBase{
 	@Path("/moveUp")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result moveUp(@ApiParam(value = "the id of the IP Camera", required = true) @QueryParam("id") String id) {
-		return new Result(super.moveY(id, 0.1f));
+		return new Result(super.moveRelative(id, 0f, 0.1f, 0f));
 	}
 
 	/**
@@ -187,7 +187,7 @@ public class StreamsSourceRestService extends RestServiceBase{
 	@Path("/moveDown")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result moveDown(@ApiParam(value = "the id of the IP Camera", required = true) @QueryParam("id") String id) {
-		return new Result(super.moveY(id, -0.1f));
+		return new Result(super.moveRelative(id, 0f, -0.1f, 0f));
 	}
 
 	/**
@@ -200,7 +200,7 @@ public class StreamsSourceRestService extends RestServiceBase{
 	@Path("/moveLeft")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result moveLeft(@ApiParam(value = "the id of the IP Camera", required = true) @QueryParam("id") String id) {
-		return new Result(super.moveX(id, -0.1f));
+		return new Result(super.moveRelative(id, -0.1f, 0f, 0f));
 	}
 
 	/**
@@ -213,7 +213,7 @@ public class StreamsSourceRestService extends RestServiceBase{
 	@Path("/moveRight")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result moveRight(@ApiParam(value = "the id of the IP Camera", required = true) @QueryParam("id") String id) {
-		return new Result(super.moveX(id, 0.1f));
+		return new Result(super.moveRelative(id, 0.1f, 0f, 0f));
 	}
 
 }

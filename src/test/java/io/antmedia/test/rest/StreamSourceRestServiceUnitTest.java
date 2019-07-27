@@ -130,24 +130,6 @@ public class StreamSourceRestServiceUnitTest {
 		assertTrue(result.isSuccess());
 
 	}
-	
-	
-	@Test
-	public void connectOnvif() {
-		OnvifCamera onvif = new OnvifCamera();
-		
-		//int connect = onvif.connect("10.2.40.41:8080", "admin", "admin");
-		
-		int connect = onvif.connect("166.169.204.123:1155", "admin", "ms1234");
-
-		assertEquals(OnvifCamera.CONNECTION_SUCCESS, connect);
-		
-		long moveStartTime = System.currentTimeMillis();
-		onvif.zoom(0.1f);
-		System.out.println("zoom operation takes: " + (System.currentTimeMillis() - moveStartTime) + "ms");
-		
-	}
-
 
 	@Test
 	public void startStopStreamSource()  {
