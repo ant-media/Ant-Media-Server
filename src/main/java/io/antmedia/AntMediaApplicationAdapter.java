@@ -6,11 +6,16 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Queue;
+import java.util.Set;
 import java.util.regex.Pattern;
 
-import io.antmedia.muxer.MuxAdaptor;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.HttpEntity;
@@ -33,14 +38,15 @@ import org.red5.server.api.stream.ISubscriberStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.DataStore;
+import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.muxer.IAntMediaStreamHandler;
+import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.model.Result;
 import io.antmedia.shutdown.AMSShutdownManager;
@@ -490,6 +496,10 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 			}
 		}
+		if (listenerHookURL == null || listenerHookURL.isEmpty()) {
+			// if hook URL is not defined for stream specific, then try to get common one from app
+			listenerHookURL = appSettings.getListenerHookURL();
+		}
 
 		String vodId = RandomStringUtils.randomNumeric(24);
 		VoD newVod = new VoD(streamName, streamId, relativePath, vodName, systemTime, duration, fileSize, VoD.STREAM_VOD, vodId);
@@ -499,20 +509,21 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		}
 
 		int index;
-		//HOOK_ACTION_VOD_READY is called only the stream in the datastore
-		//it is not called for zombi streams
+		
+		//HOOK_ACTION_VOD_READY is called only the listenerHookURL is defined either for stream or in AppSettings
 		if (listenerHookURL != null && !listenerHookURL.isEmpty() && 
 				(index = vodName.lastIndexOf(".mp4")) != -1) 
 		{
 			final String baseName = vodName.substring(0, index);
 			String finalListenerHookURL = listenerHookURL;
-			addScheduledOnceJob(100, new IScheduledJob() {
-
-				@Override
-				public void execute(ISchedulingService service) throws CloneNotSupportedException {
-					notifyHook(finalListenerHookURL, streamId, HOOK_ACTION_VOD_READY, null, null, baseName, vodId);
-				}
+			
+			vertx.executeBlocking(b-> {
+				notifyHook(finalListenerHookURL, streamId, HOOK_ACTION_VOD_READY, null, null, baseName, vodId);
+				b.complete();
+			}, r -> {
+				
 			});
+		
 		}
 
 		String muxerFinishScript = appSettings.getMuxerFinishScript();
@@ -839,6 +850,25 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	@Override
 	public void serverShuttingdown() {
 		logger.info("{} is shutting down.", getName());
+		Queue<StreamFetcher> fetchers = streamFetcherManager.getStreamFetcherList();
+		for (StreamFetcher streamFetcher : fetchers) {
+			streamFetcher.stopStream();
+		}
+		
+		logger.info("RTMP Broadcasts are closing.");
+		for (MuxAdaptor adaptor : getMuxAdaptors()) {
+			adaptor.getBroadcastStream().stop();
+			adaptor.stop();
+		}
+		
+		while(getDataStore().getLocalLiveBroadcastCount() > 0) {
+			try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+				Thread.currentThread().interrupt();
+			}
+		}
 	}
 
 	@Override

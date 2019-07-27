@@ -15,7 +15,7 @@ Ant Media Server is an open source media server that supports:
  * WebRTC to RTMP Adapter
  * IP Camera Support
  * Recording Live Streams (MP4 and HLS)
- * Restream to Social Media Simultaneously(Facebook and Youtube in in **Enterprise Edition**)
+ * Restream to Social Media Simultaneously(Facebook and Youtube in **Enterprise Edition**)
  * One-Time Token Control in **Enterprise Edition**
  * Object Detection in **Enterprise Edition**
  
