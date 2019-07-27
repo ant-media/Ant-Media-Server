@@ -674,6 +674,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			fetcher3.startStream();
 
 			Thread.sleep(6000);
+			
+			assertEquals(1, getInstance().getMuxAdaptors().size());
 
 			String str3=fetcher3.getCameraError().getMessage();
 			logger.info("error:   "+str3);
@@ -681,11 +683,12 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			assertNull(fetcher3.getCameraError().getMessage());
 			assertTrue(fetcher3.isStreamAlive());
 
-
-
 			fetcher3.stopStream();
 
 			Thread.sleep(2000);
+			
+			assertEquals(0, getInstance().getMuxAdaptors().size());
+
 			stopCameraEmulator();
 		}
 		catch (Exception e) {
