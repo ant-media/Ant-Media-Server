@@ -857,8 +857,10 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		
 		logger.info("RTMP Broadcasts are closing.");
 		for (MuxAdaptor adaptor : getMuxAdaptors()) {
-			adaptor.getBroadcastStream().stop();
-			adaptor.stop();
+			if(adaptor.getBroadcast().getType().equals(AntMediaApplicationAdapter.LIVE_STREAM)) {
+				adaptor.getBroadcastStream().stop();
+				adaptor.stop();
+			}
 		}
 		
 		while(getDataStore().getLocalLiveBroadcastCount() > 0) {
@@ -869,6 +871,8 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 				Thread.currentThread().interrupt();
 			}
 		}
+		
+		getDataStore().close();
 	}
 
 	@Override
