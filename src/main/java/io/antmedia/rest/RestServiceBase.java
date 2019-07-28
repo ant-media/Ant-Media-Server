@@ -1475,22 +1475,30 @@ public abstract class RestServiceBase {
 
 		return list;
 	}
-
-
-	protected boolean moveY(String id, float value) {
+	
+	protected boolean moveRelative(String id, float valueX, float valueY, float valueZoom) {
 		boolean result = false;
 		OnvifCamera camera = getApplication().getOnvifCamera(id);
 		if (camera != null) {
-			result = camera.moveY(value);
+			result = camera.moveRelative(valueX, valueY, valueZoom);
+		}
+		return result;
+	}
+	
+	protected boolean moveAbsolute(String id, float valueX, float valueY, float valueZoom) {
+		boolean result = false;
+		OnvifCamera camera = getApplication().getOnvifCamera(id);
+		if (camera != null) {
+			result = camera.moveAbsolute(valueX, valueY, valueZoom);
 		}
 		return result;
 	}
 
-	protected boolean moveX(String id, float value) {
+	protected boolean moveContinous(String id, float valueX, float valueY, float valueZoom) {
 		boolean result = false;
 		OnvifCamera camera = getApplication().getOnvifCamera(id);
 		if (camera != null) {
-			result = camera.moveX(value);
+			result = camera.moveContinous(valueX, valueY, valueZoom);
 		}
 		return result;
 	}

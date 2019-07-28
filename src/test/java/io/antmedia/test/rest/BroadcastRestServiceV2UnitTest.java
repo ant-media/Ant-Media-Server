@@ -1387,12 +1387,12 @@ public class BroadcastRestServiceV2UnitTest {
 		BroadcastRestServiceV2 spyService = Mockito.spy(restServiceReal);
 		
 		String id = "invalid_?stream_id";
-		assertFalse(spyService.moveLeftIPCamera(id, null).isSuccess());
-		assertFalse(spyService.moveRightIPCamera(id, null).isSuccess());
-		assertFalse(spyService.moveUpIPCamera(id, null).isSuccess());
-		assertFalse(spyService.moveDownIPCamera(id, null).isSuccess());
-		assertFalse(spyService.zoomInIPCamera(id, null).isSuccess());
-		assertFalse(spyService.zoomOutIPCamera(id, null).isSuccess());
+		assertFalse(spyService.moveIPCamera(id, null, null, null, null).isSuccess());
+		assertFalse(spyService.moveIPCamera(id, null, null, null, "absolute").isSuccess());
+		assertFalse(spyService.moveIPCamera(id, null, null, null, "relative").isSuccess());
+		assertFalse(spyService.moveIPCamera(id, null, null, null, "continous").isSuccess());
+		assertFalse(spyService.stopMove(id).isSuccess());
+		
 
 		 
 		id = "valid_stream_id";
@@ -1403,55 +1403,25 @@ public class BroadcastRestServiceV2UnitTest {
 		
 		Mockito.doReturn(application).when(spyService).getApplication();
 		
-		spyService.zoomOutIPCamera(id, null).isSuccess();
-		Mockito.verify(onvifCamera).zoom(-0.1f);
-		spyService.zoomOutIPCamera(id, -0.5f).isSuccess();
-		Mockito.verify(onvifCamera).zoom(-0.5f);
-		spyService.zoomOutIPCamera(id, 0.5f).isSuccess();
-		Mockito.verify(onvifCamera, never()).zoom(0.5f);
+		spyService.moveIPCamera(id, null, null, null, null).isSuccess();
+		Mockito.verify(onvifCamera).moveRelative(0, 0, 0);
 		
-		onvifCamera = Mockito.mock(OnvifCamera.class);
-		Mockito.when(application.getOnvifCamera(anyString())).thenReturn(onvifCamera);
+		spyService.moveIPCamera(id, -0.5f, 0.5f, 0.3f, null).isSuccess();
+		Mockito.verify(onvifCamera).moveRelative(-0.5f, 0.5f, 0.3f);
+		spyService.moveIPCamera(id, 0.3f, 0.4f, 0.2f, "absolute").isSuccess();
+		Mockito.verify(onvifCamera).moveAbsolute(0.3f, 0.4f, 0.2f);
+		spyService.moveIPCamera(id, 0.3f, 0.4f, 0.2f, "relative").isSuccess();
+		Mockito.verify(onvifCamera).moveRelative(0.3f, 0.4f, 0.2f);
+		spyService.moveIPCamera(id, 0.3f, 0.4f, 0.2f, "continuous").isSuccess();
+		Mockito.verify(onvifCamera).moveContinous(0.3f, 0.4f, 0.2f);
 		
-		spyService.zoomInIPCamera(id, null).isSuccess();
-		Mockito.verify(onvifCamera).zoom(0.1f);
-		spyService.zoomInIPCamera(id, 0.5f).isSuccess();
-		Mockito.verify(onvifCamera).zoom(0.5f);
-		spyService.zoomInIPCamera(id, -0.5f).isSuccess();
-		Mockito.verify(onvifCamera, never()).zoom(-0.5f);
-		
-		spyService.moveDownIPCamera(id, null).isSuccess();
-		Mockito.verify(onvifCamera).moveY(-0.1f);
-		spyService.moveDownIPCamera(id, -0.5f).isSuccess();
-		Mockito.verify(onvifCamera).moveY(-0.5f);
-		spyService.moveDownIPCamera(id, 0.5f).isSuccess();
-		Mockito.verify(onvifCamera, never()).moveY(0.5f);
-		
-		onvifCamera = Mockito.mock(OnvifCamera.class);
-		Mockito.when(application.getOnvifCamera(anyString())).thenReturn(onvifCamera);
-		spyService.moveUpIPCamera(id, null).isSuccess();
-		Mockito.verify(onvifCamera).moveY(0.1f);
-		spyService.moveUpIPCamera(id, 0.5f).isSuccess();
-		Mockito.verify(onvifCamera).moveY(0.5f);
-		spyService.moveUpIPCamera(id, -0.5f).isSuccess();
-		Mockito.verify(onvifCamera, never()).moveY(-0.5f);
-		
-		spyService.moveRightIPCamera(id, null).isSuccess();
-		Mockito.verify(onvifCamera).moveX(0.1f);
-		spyService.moveRightIPCamera(id, 0.5f).isSuccess();
-		Mockito.verify(onvifCamera).moveX(0.5f);
-		spyService.moveRightIPCamera(id, -0.5f).isSuccess();
-		Mockito.verify(onvifCamera, never()).moveX(-0.5f);
+		spyService.stopMove(id);
+		Mockito.verify(onvifCamera).moveStop();
 		
 		
-		onvifCamera = Mockito.mock(OnvifCamera.class);
-		Mockito.when(application.getOnvifCamera(anyString())).thenReturn(onvifCamera);
-		spyService.moveLeftIPCamera(id, null).isSuccess();
-		Mockito.verify(onvifCamera).moveX(-0.1f);	
-		spyService.moveLeftIPCamera(id, -0.5f).isSuccess();
-		Mockito.verify(onvifCamera).moveX(-0.5f);	
-		spyService.moveLeftIPCamera(id, 0.5f).isSuccess();
-		Mockito.verify(onvifCamera, never()).moveX(0.5f);	
+		assertFalse(spyService.moveIPCamera(id, 0.3f, 0.4f, 0.2f, "false_value").isSuccess());
+		
+		
 		
 	}
 
