@@ -498,8 +498,11 @@ public class AntMediaApplicationAdaptorUnitTest {
 		MuxAdaptor muxerAdaptor = mock(MuxAdaptor.class);
 		adapter.muxAdaptorAdded(muxerAdaptor);
 
+		Broadcast broadcast = mock(Broadcast.class);
+		when(broadcast.getType()).thenReturn(AntMediaApplicationAdapter.LIVE_STREAM);
 		ClientBroadcastStream cbs = mock(ClientBroadcastStream.class);
 		when(muxerAdaptor.getBroadcastStream()).thenReturn(cbs);
+		when(muxerAdaptor.getBroadcast()).thenReturn(broadcast);
 
 
 		DataStore dataStore = mock(DataStore.class);

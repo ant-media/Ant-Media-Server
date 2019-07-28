@@ -65,7 +65,6 @@ public class MapDBStore extends DataStore {
 				.fileDB(dbName)
 				.fileMmapEnableIfSupported()
 				.transactionEnable()
-				.closeOnJvmShutdown()
 				.make();
 
 		map = db.treeMap(MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING).counterEnable()

@@ -349,6 +349,7 @@ public class StreamFetcher {
 			if (muxAdaptor != null) {
 				logger.info("Writing trailer in Muxadaptor {}", stream.getStreamId());
 				muxAdaptor.writeTrailer(inputFormatContext);
+				appInstance.muxAdaptorRemoved(muxAdaptor);
 				muxAdaptor = null;
 			}
 
