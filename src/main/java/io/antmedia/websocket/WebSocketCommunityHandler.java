@@ -27,13 +27,15 @@ import io.antmedia.recorder.FFmpegFrameRecorder;
 import io.antmedia.recorder.FrameRecorder;
 import io.antmedia.webrtc.adaptor.RTMPAdaptor;
 
-public abstract class WebSocketCommunityHandler {
+public class WebSocketCommunityHandler {
 
 	private static Logger logger = LoggerFactory.getLogger(WebSocketCommunityHandler.class);
 
 	private JSONParser jsonParser = new JSONParser();
 
 	private AppSettings appSettings;
+	
+	private ApplicationContext appContext;
 	
 	@OnOpen
 	public void onOpen(Session session, EndpointConfig config)
@@ -54,8 +56,6 @@ public abstract class WebSocketCommunityHandler {
 	public void onError(Session session, Throwable throwable) {
 
 	}
-
-	public abstract ApplicationContext getAppContext();
 
 	@OnMessage
 	public void onMessage(Session session, String message) {
@@ -317,5 +317,13 @@ public abstract class WebSocketCommunityHandler {
 		jsonResponse.put(WebSocketConstants.COMMAND, WebSocketConstants.ERROR_COMMAND);
 		jsonResponse.put(WebSocketConstants.DEFINITION, WebSocketConstants.INVALID_STREAM_NAME);
 		sendMessage(jsonResponse.toJSONString(), session);	
+	}
+
+	public ApplicationContext getAppContext() {
+		return appContext;
+	}
+
+	public void setAppContext(ApplicationContext appContext) {
+		this.appContext = appContext;
 	}
 }

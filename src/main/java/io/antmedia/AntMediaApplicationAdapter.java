@@ -100,8 +100,6 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	private AppSettings appSettings;
 	private Vertx vertx;
 	private IScope scope;
-	private ISchedulingService schedulingService;
-
 
 	public boolean appStart(IScope app) {
 		setScope(app);
@@ -112,7 +110,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 
 		addScheduledOnceJob(0, l->{
-				streamFetcherManager = new StreamFetcherManager(getSchedulingService(), getDataStore(),app);
+				streamFetcherManager = new StreamFetcherManager(vertx, getDataStore(),app);
 				streamFetcherManager.setRestartStreamFetcherPeriod(appSettings.getRestartStreamFetcherPeriod());
 				List<Broadcast> streams = getDataStore().getExternalStreamsList();
 				logger.info("Stream source size: {}", streams.size());
@@ -894,15 +892,5 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 	public void setScope(IScope scope) {
 		this.scope = scope;
-	}
-
-
-	public ISchedulingService getSchedulingService() {
-		return schedulingService;
-	}
-
-
-	public void setSchedulingService(ISchedulingService schedulingService) {
-		this.schedulingService = schedulingService;
 	}
 }

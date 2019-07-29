@@ -37,6 +37,7 @@ import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.RtmpMuxer;
 import io.antmedia.rest.model.Result;
+import io.vertx.core.Vertx;
 
 public class StreamFetcher {
 
@@ -74,11 +75,11 @@ public class StreamFetcher {
 
 	private ConcurrentLinkedQueue<AVPacket> availableBufferQueue = new ConcurrentLinkedQueue<>();
 
-	private ISchedulingService scheduler;
 	private AVRational avRationalTimeBaseMS;
 	private AppSettings appSettings;
+	private Vertx vertx;
 
-	public StreamFetcher(Broadcast stream, IScope scope, ISchedulingService scheduler)  {
+	public StreamFetcher(Broadcast stream, IScope scope, Vertx vertx)  {
 		if (stream == null || stream.getStreamId() == null || stream.getStreamUrl() == null) {
 			String streamId = null;
 			if (stream != null) {
@@ -94,7 +95,7 @@ public class StreamFetcher {
 
 		this.stream = stream;
 		this.scope = scope;
-		this.scheduler = scheduler;
+		this.vertx = vertx;
 
 
 		if (getAppSettings() == null) {
@@ -175,7 +176,7 @@ public class StreamFetcher {
 
 	}
 
-	public class WorkerThread extends Thread implements IScheduledJob {
+	public class WorkerThread extends Thread {
 
 		private static final int PACKET_WRITER_PERIOD_IN_MS = 10;
 
@@ -197,7 +198,7 @@ public class StreamFetcher {
 			long bufferDuration = 0;
 
 			AVPacket pkt = null;
-			String packetWriterJobName = null;
+			long packetWriterJobName = -1L;
 			try {
 				inputFormatContext = new AVFormatContext(null); 
 				pkt = avcodec.av_packet_alloc();
@@ -232,7 +233,13 @@ public class StreamFetcher {
 						getInstance().startPublish(stream.getStreamId());
 
 						if (bufferTime > 0) {
-							packetWriterJobName = scheduler.addScheduledJob(PACKET_WRITER_PERIOD_IN_MS, this);
+							packetWriterJobName = vertx.setPeriodic(PACKET_WRITER_PERIOD_IN_MS, l->{
+								try {
+									execute();
+								} catch (CloneNotSupportedException e) {
+									logger.error(ExceptionUtils.getMessage(e));;
+								}
+							});
 						}
 
 						int bufferLogCounter = 0;
@@ -338,9 +345,9 @@ public class StreamFetcher {
 			}
 
 
-			if (packetWriterJobName != null) {
+			if (packetWriterJobName != -1) {
 				logger.info("Removing packet writer job {}", packetWriterJobName);
-				scheduler.removeScheduledJob(packetWriterJobName);
+				vertx.cancelTimer(packetWriterJobName);
 			}
 
 			writeAllBufferedPackets();
@@ -425,8 +432,7 @@ public class StreamFetcher {
 			return stopRequestReceived;
 		}
 
-		@Override
-		public void execute(ISchedulingService service) throws CloneNotSupportedException 
+		public void execute() throws CloneNotSupportedException 
 		{
 			if (isJobRunning.compareAndSet(false, true)) 
 			{
