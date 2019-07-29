@@ -223,6 +223,12 @@ public class WebSocketConstants {
 	/**
 	 * Error definition it is send when stream name contains special characters
 	 */
-	public static final String INVALID_STREAM_NAME = "invalidStreamName.";
+	public static final String INVALID_STREAM_NAME = "invalidStreamName";
+	
+	/**
+	 * Error definition, it's send when video encoder is not opened 
+	 */
+	public static final String ENCODER_NOT_OPENED = "encoderNotOpened";
+	
 
 }
