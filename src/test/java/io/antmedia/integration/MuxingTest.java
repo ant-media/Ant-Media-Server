@@ -256,30 +256,23 @@ public class MuxingTest {
 		// make sure that ffmpeg is installed and in path
 		Process rtmpSendingProcess = execute(ffmpegPath + " -re -i src/test/resources/test.flv  -f flv rtmp://"
 				+ SERVER_ADDR + "/LiveApp/" + streamName);
-		System.out.println("1");
 		try {
 			Thread.sleep(10000);
-			System.out.println("2");
 			// TODO: check that when live stream is requested with rtsp, server
 			// should not be shutdown
 
 			// stop rtmp streaming
 			rtmpSendingProcess.destroy();
-			System.out.println("3");
 			Thread.sleep(5000);
-			System.out.println("4");
 			boolean testResult = testFile("rtmp://" + SERVER_ADDR + "/LiveApp/" + streamName + ".mp4");
 			assertTrue(testResult);
-			System.out.println("5");
 			// check that stream is not created by hls muxer
 			testResult = testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".m3u8");
 			assertFalse(testResult);
-			System.out.println("6");
 
 			// check that mp4 is not created
 			testResult = testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".mp4");
 			assertTrue(testResult);
-			System.out.println("7");
 
 			// TODO: check that when stream is requested with rtsp, server
 			// should not be shutdown
@@ -287,7 +280,6 @@ public class MuxingTest {
 			assertFalse(testFile("rtsp://" + SERVER_ADDR + ":5554/LiveApp/" + streamName));
 			// assert false because rtp does not support flv1
 
-			System.out.println("8");
 		} catch (Exception e) {
 			fail(e.getMessage());
 			e.printStackTrace();
@@ -458,19 +450,16 @@ public class MuxingTest {
 		int ret;
 
 		AVFormatContext inputFormatContext = avformat.avformat_alloc_context();
-		System.out.println("testFile 1");
 		if (inputFormatContext == null) {
 			System.out.println("cannot allocate input context");
 			return false;
 		}
 
-		System.out.println("testFile 2");
 		if ((ret = avformat_open_input(inputFormatContext, absolutePath, null, (AVDictionary) null)) < 0) {
 			System.out.println("cannot open input context: " + absolutePath);
 			return false;
 		}
 
-		System.out.println("testFile 3");
 		ret = avformat_find_stream_info(inputFormatContext, (AVDictionary) null);
 		if (ret < 0) {
 			System.out.println("Could not find stream information\n");
@@ -478,12 +467,10 @@ public class MuxingTest {
 		}
 
 		int streamCount = inputFormatContext.nb_streams();
-		System.out.println("testFile 4");
 		if (streamCount == 0) {
 			return false;
 		}
 
-		System.out.println("testFile 5");
 		boolean streamExists = false;
 		for (int i = 0; i < streamCount; i++) {
 			AVCodecContext codecContext = inputFormatContext.streams(i).codec();
@@ -497,12 +484,10 @@ public class MuxingTest {
 				streamExists = true;
 			}
 		}
-		System.out.println("testFile 6");
 		if (!streamExists) {
 			return streamExists;
 		}
 
-		System.out.println("testFile 7");
 		int i = 0;
 		while (fullRead || i < 3) {
 			AVPacket pkt = new AVPacket();
@@ -516,7 +501,6 @@ public class MuxingTest {
 			av_packet_unref(pkt);
 		}
 
-		System.out.println("testFile 8");
 		if (inputFormatContext.duration() != AV_NOPTS_VALUE) {
 			long durationInMS = inputFormatContext.duration() / 1000;
 
@@ -527,7 +511,6 @@ public class MuxingTest {
 				}
 			}
 		}
-		System.out.println("testFile 8");
 
 		avformat_close_input(inputFormatContext);
 		return true;
@@ -639,8 +622,6 @@ public class MuxingTest {
 			if (file.list().length == 0) {
 
 				file.delete();
-				// System.out.println("Directory is deleted : "
-				// + file.getAbsolutePath());
 
 			} else {
 
@@ -658,16 +639,12 @@ public class MuxingTest {
 				// check the directory again, if empty then delete it
 				if (file.list().length == 0) {
 					file.delete();
-					// System.out.println("Directory is deleted : "
-					// + file.getAbsolutePath());
 				}
 			}
 
 		} else {
 			// if file, then delete it
 			file.delete();
-			// System.out.println("File is deleted : " +
-			// file.getAbsolutePath());
 		}
 	}
 	

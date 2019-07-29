@@ -35,6 +35,7 @@ import io.antmedia.IResourceMonitor;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
+import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.rest.StreamsSourceRestService;
 import io.antmedia.rest.model.Result;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
@@ -129,7 +130,6 @@ public class StreamSourceRestServiceUnitTest {
 		assertTrue(result.isSuccess());
 
 	}
-
 
 	@Test
 	public void startStopStreamSource()  {

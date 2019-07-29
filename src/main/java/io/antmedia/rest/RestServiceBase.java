@@ -481,11 +481,14 @@ public abstract class RestServiceBase {
 		boolean success = false;
 		String message = null;
 		try {
-			Endpoint endpoint = new Endpoint();
-			endpoint.setRtmpUrl(rtmpUrl);
-			endpoint.type = "generic";
-
-			success = getDataStore().addEndpoint(id, endpoint);
+			if (validateStreamURL(rtmpUrl)) 
+			{
+				Endpoint endpoint = new Endpoint();
+				endpoint.setRtmpUrl(rtmpUrl);
+				endpoint.type = "generic";
+	
+				success = getDataStore().addEndpoint(id, endpoint);
+			}
 		} catch (Exception e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
 		}
@@ -713,7 +716,7 @@ public abstract class RestServiceBase {
 
 		Result connResult = new Result(false);
 
-		if(checkIPCamAddr(stream.getIpAddr())) {
+		if(validateStreamURL(stream.getIpAddr())) {
 			logger.info("type {}", stream.getType());
 
 			connResult = connectToCamera(stream);
@@ -802,11 +805,17 @@ public abstract class RestServiceBase {
 	}
 
 
-	protected static boolean checkIPCamAddr (String url) {
+	/**
+	 * Parse the string to check it's a valid url
+	 * It can parse protocol://username:passwrd@server.fqdn/stream format as well
+	 * @param url
+	 * @return
+	 */
+	protected static boolean validateStreamURL(String url) {
 
 		boolean ipAddrControl = false;
 		String[] ipAddrParts = null;
-		String ipAddr = url;
+		String serverAddr = url;
 
 		if(url != null && (url.startsWith(HTTP) ||
 				url.startsWith("https://") ||
@@ -815,30 +824,33 @@ public abstract class RestServiceBase {
 				url.startsWith(RTSP))) {
 
 			ipAddrParts = url.split("//");
-			ipAddr = ipAddrParts[1];
+			serverAddr = ipAddrParts[1];
 			ipAddrControl=true;
 
 		}
-		if (ipAddr != null) {
-			if (ipAddr.contains("@")){
+		if (serverAddr != null) {
+			if (serverAddr.contains("@")){
 
-				ipAddrParts = ipAddr.split("@");
-				ipAddr = ipAddrParts[1];
-
-			}
-			if (ipAddr.contains(":")){
-
-				ipAddrParts = ipAddr.split(":");
-				ipAddr = ipAddrParts[0];
+				ipAddrParts = serverAddr.split("@");
+				serverAddr = ipAddrParts[1];
 
 			}
-			if (ipAddr.contains("/")){
-				ipAddrParts = ipAddr.split("/");
-				ipAddr = ipAddrParts[0];
-			}
-			logger.info("IP: {}", ipAddr);
+			if (serverAddr.contains(":")){
 
-			if(ipAddr.split("\\.").length == 4 && validateIPaddress(ipAddr)){
+				ipAddrParts = serverAddr.split(":");
+				serverAddr = ipAddrParts[0];
+
+			}
+			if (serverAddr.contains("/")){
+				ipAddrParts = serverAddr.split("/");
+				serverAddr = ipAddrParts[0];
+			}
+			
+			if (logger.isInfoEnabled())  {
+				logger.info("IP: {}", serverAddr.replaceAll("[\n|\r|\t]", "_"));
+			}
+
+			if(serverAddr.split("\\.").length == 4 && validateIPaddress(serverAddr)){
 				ipAddrControl = true;
 			}
 		}
@@ -846,7 +858,6 @@ public abstract class RestServiceBase {
 	}
 
 	protected static boolean validateIPaddress(String ipaddress)  {
-		logger.info("inside check validateIPaddress{}", ipaddress);
 
 		final String IPV4_REGEX = "(([0-1]?[0-9]{1,2}\\.)|(2[0-4][0-9]\\.)|(25[0-5]\\.)){3}(([0-1]?[0-9]{1,2})|(2[0-4][0-9])|(25[0-5]))";
 		final String loopback_REGEX = "^localhost$|^127(?:\\.[0-9]+){0,2}\\.[0-9]+$|^(?:0*\\:)*?:?0*1$";
@@ -1400,7 +1411,7 @@ public abstract class RestServiceBase {
 	}
 
 
-	public Result stopStreamSource(String id) 
+	public Result stopStreaming(String id) 
 	{
 		Result result = new Result(false);
 		Broadcast broadcast = getDataStore().get(id);
@@ -1464,46 +1475,32 @@ public abstract class RestServiceBase {
 
 		return list;
 	}
-
-
-	protected Result moveUp(String id) {
+	
+	protected boolean moveRelative(String id, float valueX, float valueY, float valueZoom) {
 		boolean result = false;
 		OnvifCamera camera = getApplication().getOnvifCamera(id);
 		if (camera != null) {
-			camera.moveUp();
-			result = true;
+			result = camera.moveRelative(valueX, valueY, valueZoom);
 		}
-		return new Result(result);
+		return result;
+	}
+	
+	protected boolean moveAbsolute(String id, float valueX, float valueY, float valueZoom) {
+		boolean result = false;
+		OnvifCamera camera = getApplication().getOnvifCamera(id);
+		if (camera != null) {
+			result = camera.moveAbsolute(valueX, valueY, valueZoom);
+		}
+		return result;
 	}
 
-	protected Result moveDown(String id) {
+	protected boolean moveContinous(String id, float valueX, float valueY, float valueZoom) {
 		boolean result = false;
 		OnvifCamera camera = getApplication().getOnvifCamera(id);
 		if (camera != null) {
-			camera.moveDown();
-			result = true;
+			result = camera.moveContinous(valueX, valueY, valueZoom);
 		}
-		return new Result(result);
-	}
-
-	protected Result moveLeft(String id) {
-		boolean result = false;
-		OnvifCamera camera = getApplication().getOnvifCamera(id);
-		if (camera != null) {
-			camera.moveLeft();
-			result = true;
-		}
-		return new Result(result);
-	}
-
-	protected Result moveRight(String id) {
-		boolean result = false;
-		OnvifCamera camera = getApplication().getOnvifCamera(id);
-		if (camera != null) {
-			camera.moveRight();
-			result = true;
-		}
-		return new Result(result);
+		return result;
 	}
 
 	protected Result getViewerCountFromEndpoint(String endpointServiceId, String streamId) 

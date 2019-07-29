@@ -166,7 +166,7 @@ public class DBStoresUnitTest {
 		testClearAtStart(dataStore);
 		testClearAtStartCluster(dataStore);
 		testConferenceRoom(dataStore);
-
+		testStreamSourceList(dataStore);
 
 	}
 
@@ -1148,6 +1148,8 @@ public class DBStoresUnitTest {
 		//it should be zero because all tokens are revoked
 		assertEquals(0, tokens.size());
 		
+		
+		
 		//create token again
 		testToken = new Token();
 
@@ -1155,7 +1157,7 @@ public class DBStoresUnitTest {
 		testToken.setExpireDate(expireDate);
 		testToken.setType(Token.PLAY_TOKEN);
 		testToken.setTokenId("tokenID");
-		testToken.setRoomId("testRoom");
+
 
 		store.saveToken(testToken);
 		
@@ -1170,6 +1172,40 @@ public class DBStoresUnitTest {
 
 		assertNull(expiredToken);
 
+		
+		//create token again, this time create a room token
+		testToken = new Token();
+
+		testToken.setStreamId("1234");
+		testToken.setExpireDate(expireDate);
+		testToken.setType(Token.PLAY_TOKEN);
+		testToken.setTokenId("tokenID");
+		testToken.setRoomId("testRoom");
+
+		store.saveToken(testToken);
+		
+		//validate token
+		validatedToken = store.validateToken(testToken);
+
+		//token should be validated and returned
+		assertNotNull(validatedToken);
+
+		//this is again not null, because validated token is not deleted because it is a room token
+		expiredToken = store.validateToken(testToken);
+
+		assertNotNull(expiredToken);
+		
+		//change stream id of token
+		
+		testToken.setStreamId("changed");
+		
+		//validate token
+		validatedToken = store.validateToken(testToken);
+
+		//token should be validated and returned
+		assertNotNull(validatedToken);
+		
+		
 	}
 
 	@Test
@@ -1245,16 +1281,18 @@ public class DBStoresUnitTest {
 	}
 
 	public void testClearAtStart(DataStore dataStore) {
-		dataStore.clearStreamsOnThisServer();
+		deleteBroadcast((MongoStore) dataStore);
 		assertEquals(0, dataStore.getBroadcastCount());
 
 
 		Broadcast broadcast = new Broadcast();
 		broadcast.setName("test1");
+		broadcast.setZombi(true);
 		dataStore.save(broadcast);
 
 		Broadcast broadcast2 = new Broadcast();
 		broadcast2.setName("test2");
+		broadcast2.setZombi(true);
 		dataStore.save(broadcast2);
 
 		assertEquals(2, dataStore.getBroadcastCount());
@@ -1276,6 +1314,7 @@ public class DBStoresUnitTest {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+		broadcast.setZombi(true);
 		dataStore.save(broadcast);
 
 		StreamInfo si = new StreamInfo();
@@ -1348,6 +1387,11 @@ public class DBStoresUnitTest {
 		Query<StreamInfo> deleteQuery = dataStore.getDataStore().find(StreamInfo.class);
 		dataStore.getDataStore().delete(deleteQuery);
 	}
+	
+	public void deleteBroadcast(MongoStore dataStore) {
+		Query<Broadcast> deleteQuery = dataStore.getDataStore().find(Broadcast.class);
+		dataStore.getDataStore().delete(deleteQuery);
+	}
 
 	public void saveStreamInfo(DataStore dataStore, String host1, int videoPort1, int audioPort1,
 			String host2, int videoPort2, int audioPort2) {
@@ -1405,5 +1449,36 @@ public class DBStoresUnitTest {
 		assertTrue(datastore.deleteConferenceRoom(editedRoom.getRoomId()));
 
 		assertNull(datastore.getConferenceRoom(editedRoom.getRoomId()));
+	}
+	
+	/*
+	 * This test is written for mongostore
+	 */
+	private void testStreamSourceList(DataStore dataStore) {
+		deleteBroadcast((MongoStore) dataStore);
+		
+		Broadcast ss1 = new Broadcast("ss1");
+		ss1.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
+		ss1.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+		
+		Broadcast ss2 = new Broadcast("ss2");
+		ss2.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
+		ss2.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+		
+		Broadcast ss3 = new Broadcast("ss3");
+		ss3.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
+		ss3.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_PREPARING);
+		  
+		dataStore.save(ss1);
+		dataStore.save(ss2);
+		dataStore.save(ss3);
+		
+		List<Broadcast> list = dataStore.getExternalStreamsList();
+		assertEquals(1, list.size());
+
+		List<Broadcast> list2 = dataStore.getExternalStreamsList();
+		assertEquals(0, list2.size());
+
+		
 	}
 }
