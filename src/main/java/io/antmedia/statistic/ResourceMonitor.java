@@ -1,5 +1,6 @@
 package io.antmedia.statistic;
 
+import java.lang.management.ManagementFactory;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.Iterator;
@@ -156,6 +157,12 @@ public class ResourceMonitor implements IResourceMonitor, ApplicationContextAwar
 	public static final String INSTANCE_STATS_TOPIC_NAME = "ams-instance-stats";
 
 	public static final String WEBRTC_STATS_TOPIC_NAME = "ams-webrtc-stats";
+
+	private static final String UP_TIME = "up-time";
+
+	private static final String START_TIME = "start-time";
+
+	private static final String SERVER_TIMING = "server-timing";
 
 	private Producer<Long,String> kafkaProducer = null;
 
@@ -318,7 +325,21 @@ public class ResourceMonitor implements IResourceMonitor, ApplicationContextAwar
 	}
 
 
-	public static JsonObject getSystemResourcesInfo(Queue<IScope> scopes) {
+	/**
+	 * Returns server uptime and startime in milliseconds
+	 * @return
+	 */
+	public static JsonObject getServerTime() 
+	{
+		JsonObject jsonObject = new JsonObject();
+		jsonObject.addProperty(ResourceMonitor.UP_TIME, ManagementFactory.getRuntimeMXBean().getUptime());
+		jsonObject.addProperty(ResourceMonitor.START_TIME, ManagementFactory.getRuntimeMXBean().getStartTime());
+		return jsonObject;
+	}
+	
+	
+	public static JsonObject getSystemResourcesInfo(Queue<IScope> scopes) 
+	{
 		JsonObject jsonObject = new JsonObject();
 		jsonObject.addProperty(INSTANCE_ID, Launcher.getInstanceId());
 		jsonObject.add(CPU_USAGE, getCPUInfoJSObject());
@@ -349,7 +370,10 @@ public class ResourceMonitor implements IResourceMonitor, ApplicationContextAwar
 		//add local webrtc viewer size
 		jsonObject.addProperty(ResourceMonitor.LOCAL_WEBRTC_LIVE_STREAMS, localWebRTCStreams);
 		jsonObject.addProperty(ResourceMonitor.LOCAL_WEBRTC_VIEWERS, localWebRTCViewers);
-		jsonObject.addProperty(ResourceMonitor.LOCAL_HLS_VIEWERS, localHlsViewers);
+		jsonObject.addProperty(ResourceMonitor.LOCAL_HLS_VIEWERS, localHlsViewers);	
+		
+		//add timing info
+		jsonObject.add(ResourceMonitor.SERVER_TIMING, getServerTime());
 
 		return jsonObject;
 	}
