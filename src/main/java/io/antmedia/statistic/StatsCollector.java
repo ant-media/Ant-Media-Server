@@ -34,14 +34,17 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
-import io.antmedia.IResourceMonitor;
 import io.antmedia.SystemUtils;
 import io.antmedia.rest.WebRTCClientStats;
 import io.antmedia.statistic.GPUUtils.MemoryStatus;
+import io.antmedia.statistic.type.WebRTCAudioReceiveStats;
+import io.antmedia.statistic.type.WebRTCAudioSendStats;
+import io.antmedia.statistic.type.WebRTCVideoReceiveStats;
+import io.antmedia.statistic.type.WebRTCVideoSendStats;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.vertx.core.Vertx;
 
-public class ResourceMonitor implements IResourceMonitor, ApplicationContextAware {	
+public class StatsCollector implements IStatsCollector, ApplicationContextAware {	
 
 	public static final String IN_USE_SWAP_SPACE = "inUseSwapSpace";
 
@@ -119,7 +122,7 @@ public class ResourceMonitor implements IResourceMonitor, ApplicationContextAwar
 
 	private static final String TIME = "time";
 
-	protected static final Logger logger = LoggerFactory.getLogger(ResourceMonitor.class);
+	protected static final Logger logger = LoggerFactory.getLogger(StatsCollector.class);
 
 	private static final String MEASURED_BITRATE = "measured_bitrate";
 
@@ -135,6 +138,14 @@ public class ResourceMonitor implements IResourceMonitor, ApplicationContextAwar
 
 	private ConcurrentLinkedQueue<IScope> scopes = new ConcurrentLinkedQueue<>();
 
+	private WebRTCVideoReceiveStats webRTCVideoPublisherStats = new WebRTCVideoReceiveStats();
+	
+	private WebRTCAudioReceiveStats webRTCAudioPublisherStats = new WebRTCAudioReceiveStats();
+	
+	private WebRTCAudioSendStats webRTCAudioSendStats = new WebRTCAudioSendStats();
+	
+	private WebRTCVideoSendStats webRTCVideoSendStats = new WebRTCVideoSendStats();
+	
 	@Autowired
 	private Vertx vertx;
 	private Queue<Integer> cpuMeasurements = new ConcurrentLinkedQueue<>();
@@ -169,7 +180,8 @@ public class ResourceMonitor implements IResourceMonitor, ApplicationContextAwar
 	private long cpuMeasurementTimerId = -1;
 
 	private long kafkaTimerId = -1;
-
+	
+	
 	public void start() {
 		cpuMeasurementTimerId  = getVertx().setPeriodic(measurementPeriod, l -> addCpuMeasurement(SystemUtils.getSystemCpuLoad()));
 		startKafkaProducer();
@@ -233,9 +245,6 @@ public class ResourceMonitor implements IResourceMonitor, ApplicationContextAwar
 			//logstash cannot parse json array so that we send each info separately
 			send2Kafka(jsonObject, WEBRTC_STATS_TOPIC_NAME);
 		}
-
-
-
 	}
 
 	public Producer<Long, String> createKafkaProducer() {
@@ -270,7 +279,6 @@ public class ResourceMonitor implements IResourceMonitor, ApplicationContextAwar
 
 		return jsonObject;
 	}
-
 
 
 	public static JsonArray getGPUInfoJSObject() {
@@ -332,8 +340,8 @@ public class ResourceMonitor implements IResourceMonitor, ApplicationContextAwar
 	public static JsonObject getServerTime() 
 	{
 		JsonObject jsonObject = new JsonObject();
-		jsonObject.addProperty(ResourceMonitor.UP_TIME, ManagementFactory.getRuntimeMXBean().getUptime());
-		jsonObject.addProperty(ResourceMonitor.START_TIME, ManagementFactory.getRuntimeMXBean().getStartTime());
+		jsonObject.addProperty(StatsCollector.UP_TIME, ManagementFactory.getRuntimeMXBean().getUptime());
+		jsonObject.addProperty(StatsCollector.START_TIME, ManagementFactory.getRuntimeMXBean().getStartTime());
 		return jsonObject;
 	}
 	
@@ -349,7 +357,7 @@ public class ResourceMonitor implements IResourceMonitor, ApplicationContextAwar
 		jsonObject.add(FILE_SYSTEM_INFO, getFileSystemInfoJSObject());
 
 		//add gpu info 
-		jsonObject.add(ResourceMonitor.GPU_USAGE_INFO, ResourceMonitor.getGPUInfoJSObject());
+		jsonObject.add(StatsCollector.GPU_USAGE_INFO, StatsCollector.getGPUInfoJSObject());
 
 		int localHlsViewers = 0;
 		int localWebRTCViewers = 0;
@@ -368,12 +376,12 @@ public class ResourceMonitor implements IResourceMonitor, ApplicationContextAwar
 		}
 
 		//add local webrtc viewer size
-		jsonObject.addProperty(ResourceMonitor.LOCAL_WEBRTC_LIVE_STREAMS, localWebRTCStreams);
-		jsonObject.addProperty(ResourceMonitor.LOCAL_WEBRTC_VIEWERS, localWebRTCViewers);
-		jsonObject.addProperty(ResourceMonitor.LOCAL_HLS_VIEWERS, localHlsViewers);	
+		jsonObject.addProperty(StatsCollector.LOCAL_WEBRTC_LIVE_STREAMS, localWebRTCStreams);
+		jsonObject.addProperty(StatsCollector.LOCAL_WEBRTC_VIEWERS, localWebRTCViewers);
+		jsonObject.addProperty(StatsCollector.LOCAL_HLS_VIEWERS, localHlsViewers);	
 		
 		//add timing info
-		jsonObject.add(ResourceMonitor.SERVER_TIMING, getServerTime());
+		jsonObject.add(StatsCollector.SERVER_TIMING, getServerTime());
 
 		return jsonObject;
 	}
@@ -573,5 +581,25 @@ public class ResourceMonitor implements IResourceMonitor, ApplicationContextAwar
 	public void setScopes(ConcurrentLinkedQueue<IScope> scopes) {
 		this.scopes = scopes;
 	}
+
+	/**
+	 * Make it synch because several thread may enter at the same time and calculation may be wrong
+	 */
+	@Override
+	public synchronized void addWebRTCPublisherStats(int publisherHash, WebRTCAudioReceiveStats audioStats, WebRTCVideoReceiveStats videoStats) {
+		webRTCAudioPublisherStats.addAudioStats(audioStats);
+		webRTCVideoPublisherStats.addVideoStats(videoStats);
+	}
+	
+	/**
+	 * Make it synch because several thread may enter at the same time and calculation may be wrong
+	 */
+	@Override
+	public synchronized void addWebRTCPlayerStats(int playerHash, WebRTCAudioSendStats audioStats, WebRTCVideoSendStats videoStats) {
+		webRTCAudioSendStats.addAudioStats(audioStats);
+		webRTCVideoSendStats.addVideoStats(videoStats);
+	}
+	
+	
 
 }

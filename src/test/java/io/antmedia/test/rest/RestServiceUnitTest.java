@@ -69,7 +69,7 @@ import io.antmedia.social.ResourceOrigin;
 import io.antmedia.social.endpoint.PeriscopeEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
-import io.antmedia.statistic.ResourceMonitor;
+import io.antmedia.statistic.StatsCollector;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.vertx.core.Vertx;
 
@@ -1330,9 +1330,9 @@ public class RestServiceUnitTest {
 	@Test
 	public void testStreamSourceInvalidName() {
 		ApplicationContext context = mock(ApplicationContext.class);
-		ResourceMonitor monitor = mock(ResourceMonitor.class);
+		StatsCollector monitor = mock(StatsCollector.class);
 		when(monitor.enoughResource()).thenReturn(true);
-		when(context.getBean(ResourceMonitor.BEAN_NAME)).thenReturn(monitor);
+		when(context.getBean(StatsCollector.BEAN_NAME)).thenReturn(monitor);
 
 		StreamsSourceRestService restService = new StreamsSourceRestService();
 		restService.setAppCtx(context);

@@ -559,7 +559,7 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	}
 
 
-	@ApiOperation(value = "Move IP Camera right. It support continuous, relative and absolute move. By default it's relative move."
+	@ApiOperation(value = "Move IP Camera. It support continuous, relative and absolute move. By default it's relative move."
 			+ "Movement parameters should be given according to movement type. "
 			+ "Generally here are the values "
 			+ "For Absolute move, value X and value Y is between -1.0f and 1.0f. Zooom value is between 0.0f and 1.0f"
