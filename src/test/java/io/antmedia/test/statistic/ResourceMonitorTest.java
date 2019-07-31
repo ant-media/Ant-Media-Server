@@ -8,6 +8,7 @@ import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 
+import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -28,6 +29,7 @@ import org.red5.server.api.IContext;
 import org.red5.server.api.scope.IScope;
 import org.springframework.context.ApplicationContext;
 
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import io.antmedia.rest.WebRTCClientStats;
@@ -270,6 +272,22 @@ public class ResourceMonitorTest {
 		
 		verify(kafkaProducer, Mockito.times(1)).send(Mockito.any());		
 		
+	}
+	
+	@Test
+	public void testServertime() {
+		JsonObject serverTime = ResourceMonitor.getServerTime();
+		assertTrue(serverTime.has(ResourceMonitor.START_TIME));
+		assertTrue(serverTime.has(ResourceMonitor.UP_TIME));
+		
+		long startTime = serverTime.get(ResourceMonitor.START_TIME).getAsLong();
+		long upTime =  serverTime.get(ResourceMonitor.UP_TIME).getAsLong();
+		
+		assertEquals(ManagementFactory.getRuntimeMXBean().getUptime(), upTime, 100);
+		assertEquals(ManagementFactory.getRuntimeMXBean().getStartTime(), startTime, 100);
+		
+		assertTrue(startTime > 0);
+		assertTrue(upTime > 0);	
 	}
 	
 	@Test

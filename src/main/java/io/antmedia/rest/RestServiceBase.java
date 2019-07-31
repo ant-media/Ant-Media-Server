@@ -24,18 +24,12 @@ import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
 import javax.servlet.ServletContext;
-import javax.ws.rs.FormParam;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.red5.server.api.scope.IBroadcastScope;
 import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
@@ -47,7 +41,6 @@ import org.springframework.web.context.support.WebApplicationContextUtils;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.IResourceMonitor;
-import io.antmedia.StreamIdValidator;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
@@ -77,7 +70,6 @@ import io.antmedia.storage.StorageClient;
 import io.antmedia.storage.StorageClient.FileType;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
-import io.swagger.annotations.ApiParam;
 
 public abstract class RestServiceBase {
 
