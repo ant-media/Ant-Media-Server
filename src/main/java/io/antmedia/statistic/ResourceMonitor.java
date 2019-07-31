@@ -158,11 +158,11 @@ public class ResourceMonitor implements IResourceMonitor, ApplicationContextAwar
 
 	public static final String WEBRTC_STATS_TOPIC_NAME = "ams-webrtc-stats";
 
-	private static final String UP_TIME = "up-time";
+	public static final String UP_TIME = "up-time";
 
-	private static final String START_TIME = "start-time";
+	public static final String START_TIME = "start-time";
 
-	private static final String SERVER_TIMING = "server-timing";
+	public static final String SERVER_TIMING = "server-timing";
 
 	private Producer<Long,String> kafkaProducer = null;
 
