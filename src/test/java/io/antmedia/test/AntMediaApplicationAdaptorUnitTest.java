@@ -531,4 +531,16 @@ public class AntMediaApplicationAdaptorUnitTest {
 		verify(muxerAdaptor, times(1)).stop();
 
 	}
+	
+	@Test
+	public void testEncoderBlocked() {
+		assertEquals(0, adapter.getNumberOfEncodersBlocked());
+		assertEquals(0, adapter.getNumberOfEncoderNotOpenedErrors());
+		
+		adapter.incrementEncoderNotOpenedError();
+		adapter.incrementEncoderNotOpenedError();
+		adapter.incrementEncoderNotOpenedError();
+		
+		assertEquals(3, adapter.getNumberOfEncoderNotOpenedErrors());
+	}
 }

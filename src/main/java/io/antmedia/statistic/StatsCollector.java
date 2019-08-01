@@ -34,6 +34,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
+import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.SystemUtils;
 import io.antmedia.rest.WebRTCClientStats;
 import io.antmedia.statistic.GPUUtils.MemoryStatus;
@@ -169,6 +170,10 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 	public static final String START_TIME = "start-time";
 
 	public static final String SERVER_TIMING = "server-timing";
+
+	private static final String ENCODERS_BLOCKED = "encoders-blocked";
+
+	private static final String ENCODERS_NOT_OPENED = "encoders-not-opened";
 
 	private Producer<Long,String> kafkaProducer = null;
 
@@ -369,6 +374,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 		int localHlsViewers = 0;
 		int localWebRTCViewers = 0;
 		int localWebRTCStreams = 0;
+		int encodersBlocked = 0;
+		int encodersNotOpened = 0;
 		if (scopes != null) {
 			for (Iterator<IScope> iterator = scopes.iterator(); iterator.hasNext();) { 
 				IScope scope = iterator.next();
@@ -379,6 +386,9 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 					localWebRTCViewers += webrtcAdaptor.getNumberOfTotalViewers();
 					localWebRTCStreams += webrtcAdaptor.getNumberOfLiveStreams();
 				}
+				AntMediaApplicationAdapter adaptor = (AntMediaApplicationAdapter) scope.getContext().getApplicationContext().getBean(AntMediaApplicationAdapter.BEAN_NAME);
+				encodersBlocked += adaptor.getNumberOfEncodersBlocked();
+				encodersNotOpened += adaptor.getNumberOfEncoderNotOpenedErrors();
 			}
 		}
 
@@ -386,6 +396,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 		jsonObject.addProperty(StatsCollector.LOCAL_WEBRTC_LIVE_STREAMS, localWebRTCStreams);
 		jsonObject.addProperty(StatsCollector.LOCAL_WEBRTC_VIEWERS, localWebRTCViewers);
 		jsonObject.addProperty(StatsCollector.LOCAL_HLS_VIEWERS, localHlsViewers);	
+		jsonObject.addProperty(StatsCollector.ENCODERS_BLOCKED, encodersBlocked);
+		jsonObject.addProperty(StatsCollector.ENCODERS_NOT_OPENED, encodersNotOpened);
 		
 		//add timing info
 		jsonObject.add(StatsCollector.SERVER_TIMING, getServerTime());

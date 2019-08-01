@@ -96,6 +96,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	private Vertx vertx;
 
 	protected List<String> encoderBlockedStreams = new ArrayList<>();
+	private int numberOfEncoderNotOpenedErrors = 0;
 
 	@Override
 	public boolean appStart(IScope app) {
@@ -895,7 +896,21 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		return muxAdaptors;
 	}
 	
-	public boolean isEncoderBlocked() {
-		return encoderBlockedStreams.isEmpty();
+	
+	/**
+	 * Number of encoders blocked. 
+	 * @return
+	 */
+	public int getNumberOfEncodersBlocked() {
+		return encoderBlockedStreams.size();
+	}
+	
+	
+	public synchronized void incrementEncoderNotOpenedError() {
+		numberOfEncoderNotOpenedErrors ++;
+	}
+	
+	public int getNumberOfEncoderNotOpenedErrors() {
+		return numberOfEncoderNotOpenedErrors;
 	}
 }

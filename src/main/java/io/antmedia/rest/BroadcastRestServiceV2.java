@@ -108,21 +108,6 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 		}
 	}
 	
-	@ApiModel(value="Server health status", description="Server health status")
-	public static class ServerHealth 
-	{
-		@ApiModelProperty(value = "Status of the encoder. If true, encoder is healthy. If false encoder has a problem")
-		private final boolean encoderHealth;
-		
-		public ServerHealth(boolean encoderHealth) {
-			this.encoderHealth = encoderHealth;
-		}
-		
-		public boolean isEncoderHealth() {
-			return encoderHealth;
-		}
-	}
-	
 
 	@ApiOperation(value = "Creates a Broadcast, IP Camera or Stream Source and returns the full broadcast object with rtmp address and "
 			+ "other information. The different between Broadcast and IP Camera or Stream Source is that Broadcast is ingested by Ant Media Server"
@@ -455,18 +440,6 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 		
 		return Response.status(Status.BAD_REQUEST).entity(new Result(false, "WebRTC is enabled in this scope")).build();
 	}
-	
-	@ApiOperation(value = "Status of server. It's not mature yet", notes = "",response = WebRTCClientStats.class)
-	@GET
-	@Path("/server-health")
-	@Produces(MediaType.APPLICATION_JSON)
-	public ServerHealth getServerHealth() 
-	{
-		return new ServerHealth(!getApplication().isEncoderBlocked());
-	}
-	
-	
-	
 	
 	@ApiOperation(value = "Get WebRTC Client Statistics such as : Audio bitrate, Video bitrate, Target bitrate, Video Sent Period etc.", notes = "", responseContainer = "List",response = WebRTCClientStats.class)
 	@GET
