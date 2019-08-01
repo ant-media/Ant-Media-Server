@@ -30,6 +30,9 @@ import io.antmedia.rest.BroadcastRestService.BroadcastStatistics;
 import io.antmedia.rest.model.Interaction;
 import io.antmedia.rest.model.Result;
 import io.antmedia.social.LiveComment;
+import io.antmedia.statistic.type.WebRTCAudioSendStats;
+import io.antmedia.statistic.type.WebRTCVideoSendStats;
+import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
@@ -80,8 +83,46 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 		public long getNumber() {
 			return number;
 		}
-
 	}
+	
+	@ApiModel(value="WebRTCLowLevelSendStats", description="Aggregation of WebRTC Low Level Send Stats")
+	public static class WebRTCSendStats
+	{
+		@ApiModelProperty(value = "Audio send stats")
+		private final WebRTCAudioSendStats audioSendStats;
+		
+		@ApiModelProperty(value = "Video send stats")
+		private final WebRTCVideoSendStats videoSendStats;
+
+		public WebRTCSendStats(WebRTCAudioSendStats audioSendStats, WebRTCVideoSendStats videoSendStats) {
+			this.audioSendStats = audioSendStats;
+			this.videoSendStats = videoSendStats;
+		}
+
+		public WebRTCVideoSendStats getVideoSendStats() {
+			return videoSendStats;
+		}
+
+		public WebRTCAudioSendStats getAudioSendStats() {
+			return audioSendStats;
+		}
+	}
+	
+	@ApiModel(value="Server health status", description="Server health status")
+	public static class ServerHealth 
+	{
+		@ApiModelProperty(value = "Status of the encoder. If true, encoder is healthy. If false encoder has a problem")
+		private final boolean encoderHealth;
+		
+		public ServerHealth(boolean encoderHealth) {
+			this.encoderHealth = encoderHealth;
+		}
+		
+		public boolean isEncoderHealth() {
+			return encoderHealth;
+		}
+	}
+	
 
 	@ApiOperation(value = "Creates a Broadcast, IP Camera or Stream Source and returns the full broadcast object with rtmp address and "
 			+ "other information. The different between Broadcast and IP Camera or Stream Source is that Broadcast is ingested by Ant Media Server"
@@ -401,6 +442,32 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 		return super.getBroadcastStatistics(id);
 	}
 
+	@ApiOperation(value = "Get WebRTC Low Level stats in general", notes = "",response = WebRTCClientStats.class)
+	@GET
+	@Path("/webrtc-low-level-stats")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response getWebRTCLowLevelStats() 
+	{
+		IWebRTCAdaptor webRTCAdaptor = getWebRTCAdaptor();
+		if (webRTCAdaptor != null) {
+			Response.status(Status.OK).entity(new WebRTCSendStats(webRTCAdaptor.getWebRTCAudioSendStats(), webRTCAdaptor.getWebRTCVideoSendStats())).build();
+		}
+		
+		return Response.status(Status.BAD_REQUEST).entity(new Result(false, "WebRTC is enabled in this scope")).build();
+	}
+	
+	@ApiOperation(value = "Status of server. It's not mature yet", notes = "",response = WebRTCClientStats.class)
+	@GET
+	@Path("/server-health")
+	@Produces(MediaType.APPLICATION_JSON)
+	public ServerHealth getServerHealth() 
+	{
+		return new ServerHealth(!getApplication().isEncoderBlocked());
+	}
+	
+	
+	
+	
 	@ApiOperation(value = "Get WebRTC Client Statistics such as : Audio bitrate, Video bitrate, Target bitrate, Video Sent Period etc.", notes = "", responseContainer = "List",response = WebRTCClientStats.class)
 	@GET
 	@Path("/{stream_id}/webrtc-client-stats/{offset}/{size}")

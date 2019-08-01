@@ -138,14 +138,6 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 
 	private ConcurrentLinkedQueue<IScope> scopes = new ConcurrentLinkedQueue<>();
 
-	private WebRTCVideoReceiveStats webRTCVideoPublisherStats = new WebRTCVideoReceiveStats();
-	
-	private WebRTCAudioReceiveStats webRTCAudioPublisherStats = new WebRTCAudioReceiveStats();
-	
-	private WebRTCAudioSendStats webRTCAudioSendStats = new WebRTCAudioSendStats();
-	
-	private WebRTCVideoSendStats webRTCVideoSendStats = new WebRTCVideoSendStats();
-	
 	@Autowired
 	private Vertx vertx;
 	private Queue<Integer> cpuMeasurements = new ConcurrentLinkedQueue<>();
@@ -155,6 +147,9 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 	private int windowSize = 5;
 	private int measurementPeriod = 5000;
 	private int staticSendPeriod = 15000;
+	
+	private static final int LOW_LEVEL_STATS_COLLECT_PERIOD = 15000;
+	
 	private int cpuLoad;
 	private int cpuLimit = 70;
 	
@@ -185,6 +180,18 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 	public void start() {
 		cpuMeasurementTimerId  = getVertx().setPeriodic(measurementPeriod, l -> addCpuMeasurement(SystemUtils.getSystemCpuLoad()));
 		startKafkaProducer();
+		
+		getVertx().setPeriodic(LOW_LEVEL_STATS_COLLECT_PERIOD, l-> {
+			for (Iterator<IScope> iterator = scopes.iterator(); iterator.hasNext();) { 
+				IScope scope = iterator.next();
+
+				if( scope.getContext().getApplicationContext().containsBean(IWebRTCAdaptor.BEAN_NAME)) 
+				{
+					IWebRTCAdaptor webrtcAdaptor = (IWebRTCAdaptor)scope.getContext().getApplicationContext().getBean(IWebRTCAdaptor.BEAN_NAME);
+					webrtcAdaptor.calculateLowLevelWebRTCClientStats();							
+				}
+			}
+		});
 	}
 
 	private void startKafkaProducer() {
@@ -581,25 +588,5 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 	public void setScopes(ConcurrentLinkedQueue<IScope> scopes) {
 		this.scopes = scopes;
 	}
-
-	/**
-	 * Make it synch because several thread may enter at the same time and calculation may be wrong
-	 */
-	@Override
-	public synchronized void addWebRTCPublisherStats(int publisherHash, WebRTCAudioReceiveStats audioStats, WebRTCVideoReceiveStats videoStats) {
-		webRTCAudioPublisherStats.addAudioStats(audioStats);
-		webRTCVideoPublisherStats.addVideoStats(videoStats);
-	}
 	
-	/**
-	 * Make it synch because several thread may enter at the same time and calculation may be wrong
-	 */
-	@Override
-	public synchronized void addWebRTCPlayerStats(int playerHash, WebRTCAudioSendStats audioStats, WebRTCVideoSendStats videoStats) {
-		webRTCAudioSendStats.addAudioStats(audioStats);
-		webRTCVideoSendStats.addVideoStats(videoStats);
-	}
-	
-	
-
 }
