@@ -543,4 +543,38 @@ public class AntMediaApplicationAdaptorUnitTest {
 		
 		assertEquals(3, adapter.getNumberOfEncoderNotOpenedErrors());
 	}
+	
+	@Test
+	public void testPublishTimeout() {
+		assertEquals(0, adapter.getNumberOfPublishTimeoutError());
+		
+		adapter.publishTimeoutError("streamId");
+		
+		assertEquals(1, adapter.getNumberOfPublishTimeoutError());
+	}
+	
+	@Test
+	public void testEncoderBlockedList() {
+		
+		assertEquals(0, adapter.getNumberOfEncodersBlocked());
+		
+		adapter.encoderBlocked("stream1", false);
+		
+		assertEquals(0, adapter.getNumberOfEncodersBlocked());
+		
+		adapter.encoderBlocked("stream1", true);
+		
+		assertEquals(1, adapter.getNumberOfEncodersBlocked());
+		
+		adapter.encoderBlocked("stream2", true);
+		adapter.encoderBlocked("stream3", true);
+		
+		assertEquals(3, adapter.getNumberOfEncodersBlocked());
+		
+		adapter.encoderBlocked("stream2", false);
+		adapter.encoderBlocked("stream3", false);
+		adapter.encoderBlocked("stream1", false);
+		
+		assertEquals(0, adapter.getNumberOfEncodersBlocked());
+	}
 }

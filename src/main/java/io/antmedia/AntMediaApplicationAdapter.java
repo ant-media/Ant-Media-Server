@@ -97,6 +97,8 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 	protected List<String> encoderBlockedStreams = new ArrayList<>();
 	private int numberOfEncoderNotOpenedErrors = 0;
+	protected int publishTimeoutStreams = 0;
+	private List<String> publishTimeoutStreamsList = new ArrayList<>();
 
 	@Override
 	public boolean appStart(IScope app) {
@@ -905,6 +907,15 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		return encoderBlockedStreams.size();
 	}
 	
+	public synchronized void encoderBlocked(String streamId, boolean blocked) {
+		if (blocked) {
+			encoderBlockedStreams.add(streamId);
+		}
+		else {
+			encoderBlockedStreams.remove(streamId);
+		}
+	}
+
 	
 	public synchronized void incrementEncoderNotOpenedError() {
 		numberOfEncoderNotOpenedErrors ++;
@@ -912,5 +923,14 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	
 	public int getNumberOfEncoderNotOpenedErrors() {
 		return numberOfEncoderNotOpenedErrors;
+	}
+	
+	public int getNumberOfPublishTimeoutError() {
+		return publishTimeoutStreams;
+	}
+	
+	public synchronized void publishTimeoutError(String streamId) {
+		publishTimeoutStreams++;
+		publishTimeoutStreamsList.add(streamId);
 	}
 }

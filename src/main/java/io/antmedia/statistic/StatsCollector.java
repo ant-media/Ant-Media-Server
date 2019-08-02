@@ -175,6 +175,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 
 	private static final String ENCODERS_NOT_OPENED = "encoders-not-opened";
 
+	private static final String PUBLISH_TIMEOUT_ERRORS = "publish-timeout-errors";
+
 	private Producer<Long,String> kafkaProducer = null;
 
 	private long cpuMeasurementTimerId = -1;
@@ -376,6 +378,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 		int localWebRTCStreams = 0;
 		int encodersBlocked = 0;
 		int encodersNotOpened = 0;
+		int publishTimeoutError = 0;
 		if (scopes != null) {
 			for (Iterator<IScope> iterator = scopes.iterator(); iterator.hasNext();) { 
 				IScope scope = iterator.next();
@@ -389,6 +392,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 				AntMediaApplicationAdapter adaptor = (AntMediaApplicationAdapter) scope.getContext().getApplicationContext().getBean(AntMediaApplicationAdapter.BEAN_NAME);
 				encodersBlocked += adaptor.getNumberOfEncodersBlocked();
 				encodersNotOpened += adaptor.getNumberOfEncoderNotOpenedErrors();
+				publishTimeoutError += adaptor.getNumberOfPublishTimeoutError();
 			}
 		}
 
@@ -398,6 +402,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 		jsonObject.addProperty(StatsCollector.LOCAL_HLS_VIEWERS, localHlsViewers);	
 		jsonObject.addProperty(StatsCollector.ENCODERS_BLOCKED, encodersBlocked);
 		jsonObject.addProperty(StatsCollector.ENCODERS_NOT_OPENED, encodersNotOpened);
+		jsonObject.addProperty(StatsCollector.PUBLISH_TIMEOUT_ERRORS, publishTimeoutError);
 		
 		//add timing info
 		jsonObject.add(StatsCollector.SERVER_TIMING, getServerTime());
