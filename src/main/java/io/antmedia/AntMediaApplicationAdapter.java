@@ -841,10 +841,13 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 	@Override
 	public void serverShuttingdown() {
+
 		//logger.info("{} is shutting down.", getName());
-		Queue<StreamFetcher> fetchers = streamFetcherManager.getStreamFetcherList();
-		for (StreamFetcher streamFetcher : fetchers) {
-			streamFetcher.stopStream();
+		if (streamFetcherManager != null) {
+			Queue<StreamFetcher> fetchers = streamFetcherManager.getStreamFetcherList();
+			for (StreamFetcher streamFetcher : fetchers) {
+				streamFetcher.stopStream();
+			}
 		}
 		
 		logger.info("RTMP Broadcasts are closing.");
