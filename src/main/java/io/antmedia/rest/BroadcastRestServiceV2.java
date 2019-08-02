@@ -30,7 +30,9 @@ import io.antmedia.rest.BroadcastRestService.BroadcastStatistics;
 import io.antmedia.rest.model.Interaction;
 import io.antmedia.rest.model.Result;
 import io.antmedia.social.LiveComment;
+import io.antmedia.statistic.type.WebRTCAudioReceiveStats;
 import io.antmedia.statistic.type.WebRTCAudioSendStats;
+import io.antmedia.statistic.type.WebRTCVideoReceiveStats;
 import io.antmedia.statistic.type.WebRTCVideoSendStats;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.swagger.annotations.Api;
@@ -85,7 +87,7 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 		}
 	}
 	
-	@ApiModel(value="WebRTCLowLevelSendStats", description="Aggregation of WebRTC Low Level Send Stats")
+	@ApiModel(value="WebRTCSendStats", description="Aggregation of WebRTC Low Level Send Stats")
 	public static class WebRTCSendStats
 	{
 		@ApiModelProperty(value = "Audio send stats")
@@ -105,6 +107,29 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 
 		public WebRTCAudioSendStats getAudioSendStats() {
 			return audioSendStats;
+		}
+	}
+	
+	@ApiModel(value="WebRTCReceiveStats", description="Aggregation of WebRTC Low Level Receive Stats")
+	public static class WebRTCReceiveStats
+	{
+		@ApiModelProperty(value = "Audio receive stats")
+		private final WebRTCAudioReceiveStats audioReceiveStats;
+		
+		@ApiModelProperty(value = "Video receive stats")
+		private final WebRTCVideoReceiveStats videoReceiveStats;
+
+		public WebRTCReceiveStats(WebRTCAudioReceiveStats audioReceiveStats, WebRTCVideoReceiveStats videoReceiveStats) {
+			this.audioReceiveStats = audioReceiveStats;
+			this.videoReceiveStats = videoReceiveStats;
+		}
+
+		public WebRTCVideoReceiveStats getVideoReceiveStats() {
+			return videoReceiveStats;
+		}
+
+		public WebRTCAudioReceiveStats getAudioReceiveStats() {
+			return audioReceiveStats;
 		}
 	}
 	
@@ -427,19 +452,24 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 		return super.getBroadcastStatistics(id);
 	}
 
-	@ApiOperation(value = "Get WebRTC Low Level stats in general", notes = "",response = WebRTCClientStats.class)
+	@ApiOperation(value = "Get WebRTC Low Level Send stats in general", notes = "",response = WebRTCSendStats.class)
 	@GET
-	@Path("/webrtc-low-level-stats")
+	@Path("/webrtc-send-low-level-stats")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response getWebRTCLowLevelStats() 
+	public WebRTCSendStats getWebRTCLowLevelSendStats() 
 	{
-		IWebRTCAdaptor webRTCAdaptor = getWebRTCAdaptor();
-		if (webRTCAdaptor != null) {
-			Response.status(Status.OK).entity(new WebRTCSendStats(webRTCAdaptor.getWebRTCAudioSendStats(), webRTCAdaptor.getWebRTCVideoSendStats())).build();
-		}
-		
-		return Response.status(Status.BAD_REQUEST).entity(new Result(false, "WebRTC is enabled in this scope")).build();
+		return new WebRTCSendStats(getApplication().getWebRTCAudioSendStats(), getApplication().getWebRTCVideoSendStats());
 	}
+	
+	@ApiOperation(value = "Get WebRTC Low Level receive stats in general", notes = "",response = WebRTCSendStats.class)
+	@GET
+	@Path("/webrtc-receive-low-level-stats")
+	@Produces(MediaType.APPLICATION_JSON)
+	public WebRTCReceiveStats getWebRTCLowLevelReceiveStats() 
+	{
+		return new WebRTCReceiveStats(getApplication().getWebRTCAudioReceiveStats(), getApplication().getWebRTCVideoReceiveStats());
+	}
+	
 	
 	@ApiOperation(value = "Get WebRTC Client Statistics such as : Audio bitrate, Video bitrate, Target bitrate, Video Sent Period etc.", notes = "", responseContainer = "List",response = WebRTCClientStats.class)
 	@GET

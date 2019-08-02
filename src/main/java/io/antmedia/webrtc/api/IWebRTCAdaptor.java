@@ -74,15 +74,5 @@ public interface IWebRTCAdaptor extends IScopeService {
 	 * Returns the stream id in the WebRTCAdaptor
 	 */
 	Set<String> getStreams();
-	
-	/**
-	 * Calculates the low level webrtc stats
-	 */
-	void calculateLowLevelWebRTCClientStats();
-
-	
-	public WebRTCVideoSendStats getWebRTCVideoSendStats();
-
-	public WebRTCAudioSendStats getWebRTCAudioSendStats();
 
 }

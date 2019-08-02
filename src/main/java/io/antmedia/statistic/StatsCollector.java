@@ -38,10 +38,6 @@ import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.SystemUtils;
 import io.antmedia.rest.WebRTCClientStats;
 import io.antmedia.statistic.GPUUtils.MemoryStatus;
-import io.antmedia.statistic.type.WebRTCAudioReceiveStats;
-import io.antmedia.statistic.type.WebRTCAudioSendStats;
-import io.antmedia.statistic.type.WebRTCVideoReceiveStats;
-import io.antmedia.statistic.type.WebRTCVideoSendStats;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.vertx.core.Vertx;
 
@@ -149,8 +145,6 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 	private int measurementPeriod = 5000;
 	private int staticSendPeriod = 15000;
 	
-	private static final int LOW_LEVEL_STATS_COLLECT_PERIOD = 15000;
-	
 	private int cpuLoad;
 	private int cpuLimit = 70;
 	
@@ -187,18 +181,6 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 	public void start() {
 		cpuMeasurementTimerId  = getVertx().setPeriodic(measurementPeriod, l -> addCpuMeasurement(SystemUtils.getSystemCpuLoad()));
 		startKafkaProducer();
-		
-		getVertx().setPeriodic(LOW_LEVEL_STATS_COLLECT_PERIOD, l-> {
-			for (Iterator<IScope> iterator = scopes.iterator(); iterator.hasNext();) { 
-				IScope scope = iterator.next();
-
-				if( scope.getContext().getApplicationContext().containsBean(IWebRTCAdaptor.BEAN_NAME)) 
-				{
-					IWebRTCAdaptor webrtcAdaptor = (IWebRTCAdaptor)scope.getContext().getApplicationContext().getBean(IWebRTCAdaptor.BEAN_NAME);
-					webrtcAdaptor.calculateLowLevelWebRTCClientStats();							
-				}
-			}
-		});
 	}
 
 	private void startKafkaProducer() {
