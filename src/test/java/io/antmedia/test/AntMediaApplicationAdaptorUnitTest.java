@@ -15,6 +15,7 @@ import static org.mockito.Mockito.when;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.util.HashMap;
@@ -48,6 +49,10 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.integration.AppFunctionalTest;
 import io.antmedia.muxer.MuxAdaptor;
+import io.antmedia.statistic.type.WebRTCAudioReceiveStats;
+import io.antmedia.statistic.type.WebRTCAudioSendStats;
+import io.antmedia.statistic.type.WebRTCVideoReceiveStats;
+import io.antmedia.statistic.type.WebRTCVideoSendStats;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
 import io.vertx.core.Vertx;
@@ -551,6 +556,39 @@ public class AntMediaApplicationAdaptorUnitTest {
 		adapter.publishTimeoutError("streamId");
 		
 		assertEquals(1, adapter.getNumberOfPublishTimeoutError());
+	}
+	
+	@Test
+	public void testStats() {
+		WebRTCVideoReceiveStats receiveStats = new WebRTCVideoReceiveStats();
+		assertNotNull(receiveStats.getVideoBytesReceivedPerSecond());
+		assertEquals(BigInteger.ZERO, receiveStats.getVideoBytesReceivedPerSecond());
+		
+		assertNotNull(receiveStats.getVideoBytesReceived());
+		assertEquals(BigInteger.ZERO, receiveStats.getVideoBytesReceived());
+		
+		WebRTCAudioReceiveStats audioReceiveStats = new WebRTCAudioReceiveStats();
+		assertNotNull(audioReceiveStats.getAudioBytesReceivedPerSecond());
+		assertEquals(BigInteger.ZERO, audioReceiveStats.getAudioBytesReceivedPerSecond());
+		
+		
+		assertNotNull(audioReceiveStats.getAudioBytesReceived());
+		assertEquals(BigInteger.ZERO, audioReceiveStats.getAudioBytesReceived());
+		
+		
+		WebRTCVideoSendStats videoSendStats = new WebRTCVideoSendStats();
+		assertNotNull(videoSendStats.getVideoBytesSentPerSecond());
+		assertEquals(BigInteger.ZERO, videoSendStats.getVideoBytesSentPerSecond());
+		
+		assertNotNull(videoSendStats.getVideoBytesSent());
+		assertEquals(BigInteger.ZERO, videoSendStats.getVideoBytesSent());
+		
+		
+		WebRTCAudioSendStats audioSendStats = new WebRTCAudioSendStats();
+		assertEquals(BigInteger.ZERO, audioSendStats.getAudioBytesSent());
+		assertEquals(BigInteger.ZERO, audioSendStats.getAudioBytesSentPerSecond());
+		
+		
 	}
 	
 	@Test
