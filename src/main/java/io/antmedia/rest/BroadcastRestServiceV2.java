@@ -30,6 +30,11 @@ import io.antmedia.rest.BroadcastRestService.BroadcastStatistics;
 import io.antmedia.rest.model.Interaction;
 import io.antmedia.rest.model.Result;
 import io.antmedia.social.LiveComment;
+import io.antmedia.statistic.type.WebRTCAudioReceiveStats;
+import io.antmedia.statistic.type.WebRTCAudioSendStats;
+import io.antmedia.statistic.type.WebRTCVideoReceiveStats;
+import io.antmedia.statistic.type.WebRTCVideoSendStats;
+import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
@@ -80,8 +85,54 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 		public long getNumber() {
 			return number;
 		}
-
 	}
+	
+	@ApiModel(value="WebRTCSendStats", description="Aggregation of WebRTC Low Level Send Stats")
+	public static class WebRTCSendStats
+	{
+		@ApiModelProperty(value = "Audio send stats")
+		private final WebRTCAudioSendStats audioSendStats;
+		
+		@ApiModelProperty(value = "Video send stats")
+		private final WebRTCVideoSendStats videoSendStats;
+
+		public WebRTCSendStats(WebRTCAudioSendStats audioSendStats, WebRTCVideoSendStats videoSendStats) {
+			this.audioSendStats = audioSendStats;
+			this.videoSendStats = videoSendStats;
+		}
+
+		public WebRTCVideoSendStats getVideoSendStats() {
+			return videoSendStats;
+		}
+
+		public WebRTCAudioSendStats getAudioSendStats() {
+			return audioSendStats;
+		}
+	}
+	
+	@ApiModel(value="WebRTCReceiveStats", description="Aggregation of WebRTC Low Level Receive Stats")
+	public static class WebRTCReceiveStats
+	{
+		@ApiModelProperty(value = "Audio receive stats")
+		private final WebRTCAudioReceiveStats audioReceiveStats;
+		
+		@ApiModelProperty(value = "Video receive stats")
+		private final WebRTCVideoReceiveStats videoReceiveStats;
+
+		public WebRTCReceiveStats(WebRTCAudioReceiveStats audioReceiveStats, WebRTCVideoReceiveStats videoReceiveStats) {
+			this.audioReceiveStats = audioReceiveStats;
+			this.videoReceiveStats = videoReceiveStats;
+		}
+
+		public WebRTCVideoReceiveStats getVideoReceiveStats() {
+			return videoReceiveStats;
+		}
+
+		public WebRTCAudioReceiveStats getAudioReceiveStats() {
+			return audioReceiveStats;
+		}
+	}
+	
 
 	@ApiOperation(value = "Creates a Broadcast, IP Camera or Stream Source and returns the full broadcast object with rtmp address and "
 			+ "other information. The different between Broadcast and IP Camera or Stream Source is that Broadcast is ingested by Ant Media Server"
@@ -401,6 +452,25 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 		return super.getBroadcastStatistics(id);
 	}
 
+	@ApiOperation(value = "Get WebRTC Low Level Send stats in general", notes = "",response = WebRTCSendStats.class)
+	@GET
+	@Path("/webrtc-send-low-level-stats")
+	@Produces(MediaType.APPLICATION_JSON)
+	public WebRTCSendStats getWebRTCLowLevelSendStats() 
+	{
+		return new WebRTCSendStats(getApplication().getWebRTCAudioSendStats(), getApplication().getWebRTCVideoSendStats());
+	}
+	
+	@ApiOperation(value = "Get WebRTC Low Level receive stats in general", notes = "",response = WebRTCSendStats.class)
+	@GET
+	@Path("/webrtc-receive-low-level-stats")
+	@Produces(MediaType.APPLICATION_JSON)
+	public WebRTCReceiveStats getWebRTCLowLevelReceiveStats() 
+	{
+		return new WebRTCReceiveStats(getApplication().getWebRTCAudioReceiveStats(), getApplication().getWebRTCVideoReceiveStats());
+	}
+	
+	
 	@ApiOperation(value = "Get WebRTC Client Statistics such as : Audio bitrate, Video bitrate, Target bitrate, Video Sent Period etc.", notes = "", responseContainer = "List",response = WebRTCClientStats.class)
 	@GET
 	@Path("/{stream_id}/webrtc-client-stats/{offset}/{size}")
@@ -559,7 +629,7 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	}
 
 
-	@ApiOperation(value = "Move IP Camera right. It support continuous, relative and absolute move. By default it's relative move."
+	@ApiOperation(value = "Move IP Camera. It support continuous, relative and absolute move. By default it's relative move."
 			+ "Movement parameters should be given according to movement type. "
 			+ "Generally here are the values "
 			+ "For Absolute move, value X and value Y is between -1.0f and 1.0f. Zooom value is between 0.0f and 1.0f"

@@ -7,6 +7,8 @@ import org.red5.server.api.scope.IScopeService;
 
 import io.antmedia.cluster.IStreamInfo;
 import io.antmedia.rest.WebRTCClientStats;
+import io.antmedia.statistic.type.WebRTCAudioSendStats;
+import io.antmedia.statistic.type.WebRTCVideoSendStats;
 
 
 public interface IWebRTCAdaptor extends IScopeService {

@@ -34,16 +34,16 @@ import com.google.gson.JsonObject;
 
 import io.antmedia.rest.WebRTCClientStats;
 import io.antmedia.statistic.GPUUtils;
-import io.antmedia.statistic.ResourceMonitor;
+import io.antmedia.statistic.StatsCollector;
 import io.antmedia.statistic.GPUUtils.MemoryStatus;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.vertx.core.Vertx;
 
-public class ResourceMonitorTest {
+public class StatsCollectorTest {
 
 	@Test
 	public void testCpuAverage() {
-		ResourceMonitor monitor = new ResourceMonitor();
+		StatsCollector monitor = new StatsCollector();
 		monitor.setWindowSize(3);
 		
 		monitor.addCpuMeasurement(5);
@@ -62,72 +62,72 @@ public class ResourceMonitorTest {
 	
 	@Test
 	public void testJSObjects() {
-		JsonObject jsObject = ResourceMonitor.getCPUInfoJSObject();
-		assertTrue(jsObject.has(ResourceMonitor.PROCESS_CPU_TIME));
-		assertTrue(jsObject.has(ResourceMonitor.SYSTEM_CPU_LOAD));
-		assertTrue(jsObject.has(ResourceMonitor.PROCESS_CPU_LOAD));
+		JsonObject jsObject = StatsCollector.getCPUInfoJSObject();
+		assertTrue(jsObject.has(StatsCollector.PROCESS_CPU_TIME));
+		assertTrue(jsObject.has(StatsCollector.SYSTEM_CPU_LOAD));
+		assertTrue(jsObject.has(StatsCollector.PROCESS_CPU_LOAD));
 		
-		assertTrue(jsObject.get(ResourceMonitor.SYSTEM_CPU_LOAD).getAsInt() <= 100);
+		assertTrue(jsObject.get(StatsCollector.SYSTEM_CPU_LOAD).getAsInt() <= 100);
 		
 		
-		jsObject = ResourceMonitor.getJVMMemoryInfoJSObject();
-		assertTrue(jsObject.has(ResourceMonitor.IN_USE_MEMORY));
-		assertTrue(jsObject.has(ResourceMonitor.FREE_MEMORY));
-		assertTrue(jsObject.has(ResourceMonitor.TOTAL_MEMORY));
-		assertTrue(jsObject.has(ResourceMonitor.MAX_MEMORY));
+		jsObject = StatsCollector.getJVMMemoryInfoJSObject();
+		assertTrue(jsObject.has(StatsCollector.IN_USE_MEMORY));
+		assertTrue(jsObject.has(StatsCollector.FREE_MEMORY));
+		assertTrue(jsObject.has(StatsCollector.TOTAL_MEMORY));
+		assertTrue(jsObject.has(StatsCollector.MAX_MEMORY));
 		
 
-		jsObject = ResourceMonitor.getFileSystemInfoJSObject();
-		assertTrue(jsObject.has(ResourceMonitor.IN_USE_SPACE));
-		assertTrue(jsObject.has(ResourceMonitor.FREE_SPACE));
-		assertTrue(jsObject.has(ResourceMonitor.TOTAL_SPACE));
-		assertTrue(jsObject.has(ResourceMonitor.USABLE_SPACE));
+		jsObject = StatsCollector.getFileSystemInfoJSObject();
+		assertTrue(jsObject.has(StatsCollector.IN_USE_SPACE));
+		assertTrue(jsObject.has(StatsCollector.FREE_SPACE));
+		assertTrue(jsObject.has(StatsCollector.TOTAL_SPACE));
+		assertTrue(jsObject.has(StatsCollector.USABLE_SPACE));
 		
 		
-		jsObject = ResourceMonitor.getSystemInfoJSObject();
-		assertTrue(jsObject.has(ResourceMonitor.PROCESSOR_COUNT));
-		assertTrue(jsObject.has(ResourceMonitor.JAVA_VERSION));
-		assertTrue(jsObject.has(ResourceMonitor.OS_ARCH));
-		assertTrue(jsObject.has(ResourceMonitor.OS_NAME));
+		jsObject = StatsCollector.getSystemInfoJSObject();
+		assertTrue(jsObject.has(StatsCollector.PROCESSOR_COUNT));
+		assertTrue(jsObject.has(StatsCollector.JAVA_VERSION));
+		assertTrue(jsObject.has(StatsCollector.OS_ARCH));
+		assertTrue(jsObject.has(StatsCollector.OS_NAME));
 				
-		jsObject = ResourceMonitor.getSysteMemoryInfoJSObject();
-		assertTrue(jsObject.has(ResourceMonitor.VIRTUAL_MEMORY));
-		assertTrue(jsObject.has(ResourceMonitor.TOTAL_MEMORY));
-		assertTrue(jsObject.has(ResourceMonitor.FREE_MEMORY));
-		assertTrue(jsObject.has(ResourceMonitor.IN_USE_MEMORY));
-		assertTrue(jsObject.has(ResourceMonitor.TOTAL_SWAP_SPACE));
-		assertTrue(jsObject.has(ResourceMonitor.FREE_SWAP_SPACE));
-		assertTrue(jsObject.has(ResourceMonitor.IN_USE_SWAP_SPACE));
+		jsObject = StatsCollector.getSysteMemoryInfoJSObject();
+		assertTrue(jsObject.has(StatsCollector.VIRTUAL_MEMORY));
+		assertTrue(jsObject.has(StatsCollector.TOTAL_MEMORY));
+		assertTrue(jsObject.has(StatsCollector.FREE_MEMORY));
+		assertTrue(jsObject.has(StatsCollector.IN_USE_MEMORY));
+		assertTrue(jsObject.has(StatsCollector.TOTAL_SWAP_SPACE));
+		assertTrue(jsObject.has(StatsCollector.FREE_SWAP_SPACE));
+		assertTrue(jsObject.has(StatsCollector.IN_USE_SWAP_SPACE));
 		
 		Launcher.setInstanceIdFilePath("target/instanceId");
-		jsObject = ResourceMonitor.getSystemResourcesInfo(null);
-		assertTrue(jsObject.has(ResourceMonitor.CPU_USAGE));
-		assertTrue(jsObject.has(ResourceMonitor.JVM_MEMORY_USAGE));
-		assertTrue(jsObject.has(ResourceMonitor.SYSTEM_INFO));
-		assertTrue(jsObject.has(ResourceMonitor.SYSTEM_MEMORY_INFO));
-		assertTrue(jsObject.has(ResourceMonitor.FILE_SYSTEM_INFO));
-		assertTrue(jsObject.has(ResourceMonitor.GPU_USAGE_INFO));
-		assertTrue(jsObject.has(ResourceMonitor.LOCAL_WEBRTC_LIVE_STREAMS));
-		assertTrue(jsObject.has(ResourceMonitor.LOCAL_WEBRTC_VIEWERS));
-		assertTrue(jsObject.has(ResourceMonitor.LOCAL_HLS_VIEWERS));
+		jsObject = StatsCollector.getSystemResourcesInfo(null);
+		assertTrue(jsObject.has(StatsCollector.CPU_USAGE));
+		assertTrue(jsObject.has(StatsCollector.JVM_MEMORY_USAGE));
+		assertTrue(jsObject.has(StatsCollector.SYSTEM_INFO));
+		assertTrue(jsObject.has(StatsCollector.SYSTEM_MEMORY_INFO));
+		assertTrue(jsObject.has(StatsCollector.FILE_SYSTEM_INFO));
+		assertTrue(jsObject.has(StatsCollector.GPU_USAGE_INFO));
+		assertTrue(jsObject.has(StatsCollector.LOCAL_WEBRTC_LIVE_STREAMS));
+		assertTrue(jsObject.has(StatsCollector.LOCAL_WEBRTC_VIEWERS));
+		assertTrue(jsObject.has(StatsCollector.LOCAL_HLS_VIEWERS));
 		
 		GPUUtils gpuUtils = Mockito.mock(GPUUtils.class);
 		MemoryStatus memoryStatus = Mockito.mock(MemoryStatus.class);
 		Mockito.when(gpuUtils.getMemoryStatus(0)).thenReturn(memoryStatus);
-		jsObject = ResourceMonitor.getGPUInfoJSObject(0, gpuUtils);
-		assertTrue(jsObject.has(ResourceMonitor.GPU_DEVICE_INDEX));
-		assertTrue(jsObject.has(ResourceMonitor.GPU_UTILIZATION));
-		assertTrue(jsObject.has(ResourceMonitor.GPU_MEMORY_UTILIZATION));
-		assertTrue(jsObject.has(ResourceMonitor.GPU_MEMORY_TOTAL));
-		assertTrue(jsObject.has(ResourceMonitor.GPU_MEMORY_FREE));
-		assertTrue(jsObject.has(ResourceMonitor.GPU_MEMORY_USED));
-		assertTrue(jsObject.has(ResourceMonitor.GPU_DEVICE_NAME));
+		jsObject = StatsCollector.getGPUInfoJSObject(0, gpuUtils);
+		assertTrue(jsObject.has(StatsCollector.GPU_DEVICE_INDEX));
+		assertTrue(jsObject.has(StatsCollector.GPU_UTILIZATION));
+		assertTrue(jsObject.has(StatsCollector.GPU_MEMORY_UTILIZATION));
+		assertTrue(jsObject.has(StatsCollector.GPU_MEMORY_TOTAL));
+		assertTrue(jsObject.has(StatsCollector.GPU_MEMORY_FREE));
+		assertTrue(jsObject.has(StatsCollector.GPU_MEMORY_USED));
+		assertTrue(jsObject.has(StatsCollector.GPU_DEVICE_NAME));
 		
 	}
 	
 	@Test
 	public void testGetterSetter() {
-		ResourceMonitor resMonitor = new ResourceMonitor();
+		StatsCollector resMonitor = new StatsCollector();
 		
 		assertEquals(70, resMonitor.getCpuLimit());
 		resMonitor.setCpuLimit(45);
@@ -157,7 +157,7 @@ public class ResourceMonitorTest {
 	
 	@Test
 	public void testSendInstanceKafkaStats() {
-		ResourceMonitor resMonitor = Mockito.spy(new ResourceMonitor());
+		StatsCollector resMonitor = Mockito.spy(new StatsCollector());
 		
 		Producer<Long, String> kafkaProducer = Mockito.mock(Producer.class);
 		
@@ -178,12 +178,12 @@ public class ResourceMonitorTest {
 		
 		verify(kafkaProducer).send(producerRecord.capture());
 		
-		assertEquals(ResourceMonitor.INSTANCE_STATS_TOPIC_NAME, producerRecord.getValue().topic());
+		assertEquals(StatsCollector.INSTANCE_STATS_TOPIC_NAME, producerRecord.getValue().topic());
 	}
 	
 	@Test
 	public void testSendWebRTCKafkaStats() {
-		ResourceMonitor resMonitor = Mockito.spy(new ResourceMonitor());
+		StatsCollector resMonitor = Mockito.spy(new StatsCollector());
 		
 		Producer<Long, String> kafkaProducer = Mockito.mock(Producer.class);
 		
@@ -208,13 +208,13 @@ public class ResourceMonitorTest {
 		
 		verify(kafkaProducer).send(producerRecord.capture());
 		
-		assertEquals(ResourceMonitor.WEBRTC_STATS_TOPIC_NAME, producerRecord.getValue().topic());
+		assertEquals(StatsCollector.WEBRTC_STATS_TOPIC_NAME, producerRecord.getValue().topic());
 	}
 	
 	@Test
 	public void testCreateKafka() {
 		Launcher.setInstanceIdFilePath("target/instanceId");
-		ResourceMonitor resMonitor = new ResourceMonitor();
+		StatsCollector resMonitor = new StatsCollector();
 		try {
 			Producer<Long, String> kafkaProducer = resMonitor.createKafkaProducer();
 			//it should throw exception
@@ -233,7 +233,7 @@ public class ResourceMonitorTest {
 	@Test
 	public void testCollectAndSendWebRTCStats() {
 		Launcher.setInstanceIdFilePath("target/instanceId");
-		ResourceMonitor resMonitor = new ResourceMonitor();
+		StatsCollector resMonitor = new StatsCollector();
 		Producer<Long, String> kafkaProducer = Mockito.mock(Producer.class);
 		resMonitor.setKafkaProducer(kafkaProducer);
 		
@@ -276,12 +276,12 @@ public class ResourceMonitorTest {
 	
 	@Test
 	public void testServertime() {
-		JsonObject serverTime = ResourceMonitor.getServerTime();
-		assertTrue(serverTime.has(ResourceMonitor.START_TIME));
-		assertTrue(serverTime.has(ResourceMonitor.UP_TIME));
+		JsonObject serverTime = StatsCollector.getServerTime();
+		assertTrue(serverTime.has(StatsCollector.START_TIME));
+		assertTrue(serverTime.has(StatsCollector.UP_TIME));
 		
-		long startTime = serverTime.get(ResourceMonitor.START_TIME).getAsLong();
-		long upTime =  serverTime.get(ResourceMonitor.UP_TIME).getAsLong();
+		long startTime = serverTime.get(StatsCollector.START_TIME).getAsLong();
+		long upTime =  serverTime.get(StatsCollector.UP_TIME).getAsLong();
 		
 		assertEquals(ManagementFactory.getRuntimeMXBean().getUptime(), upTime, 100);
 		assertEquals(ManagementFactory.getRuntimeMXBean().getStartTime(), startTime, 100);
@@ -293,7 +293,7 @@ public class ResourceMonitorTest {
 	@Test
 	public void testCheckSystemResources() {
 		
-		ResourceMonitor monitor = Mockito.spy(new ResourceMonitor());
+		StatsCollector monitor = Mockito.spy(new StatsCollector());
 		
 		//Cpu Limit = 70 & RAM Limit = 200 MB
 		

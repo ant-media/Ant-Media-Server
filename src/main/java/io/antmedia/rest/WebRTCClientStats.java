@@ -1,5 +1,7 @@
 package io.antmedia.rest;
 
+import io.antmedia.statistic.type.WebRTCAudioSendStats;
+import io.antmedia.statistic.type.WebRTCVideoSendStats;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 
@@ -26,6 +28,12 @@ public class WebRTCClientStats {
 
 	@ApiModelProperty(value = "Number of audio packets sent")
 	private long audioPacketCount;
+	
+	@ApiModelProperty(value = "Video sent low level stats")
+	private WebRTCVideoSendStats videoSentStats;
+	
+	@ApiModelProperty(value = "Audio sent low level stats")
+	private WebRTCAudioSendStats audioSentStats;
 
 	public WebRTCClientStats(int measuredBitrate, int sendBitrate, double videoFrameSendPeriod, double audioFrameSendPeriod, 
 			long videoPacketCount, long audioPacketCount, int clientId) {
@@ -92,6 +100,22 @@ public class WebRTCClientStats {
 
 	public void setVideoPacketCount(long videoPacketCount) {
 		this.videoPacketCount = videoPacketCount;
+	}
+
+	public WebRTCAudioSendStats getAudioSentStats() {
+		return audioSentStats;
+	}
+
+	public void setAudioSentStats(WebRTCAudioSendStats audioSentStats) {
+		this.audioSentStats = audioSentStats;
+	}
+
+	public WebRTCVideoSendStats getVideoSentStats() {
+		return videoSentStats;
+	}
+
+	public void setVideoSentStats(WebRTCVideoSendStats videoSentStats) {
+		this.videoSentStats = videoSentStats;
 	}
 	
 }

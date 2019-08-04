@@ -49,7 +49,6 @@ import org.springframework.test.context.ContextConfiguration;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
-import io.antmedia.IResourceMonitor;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
@@ -80,7 +79,8 @@ import io.antmedia.social.ResourceOrigin;
 import io.antmedia.social.endpoint.PeriscopeEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
-import io.antmedia.statistic.ResourceMonitor;
+import io.antmedia.statistic.IStatsCollector;
+import io.antmedia.statistic.StatsCollector;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.test.StreamFetcherUnitTest;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
@@ -1301,9 +1301,9 @@ public class BroadcastRestServiceV2UnitTest {
 
 		streamSourceRest.setAppCtx(appContext);
 
-		ResourceMonitor monitorService = new ResourceMonitor(); 
+		StatsCollector monitorService = new StatsCollector(); 
 		
-		when(appContext.getBean(IResourceMonitor.BEAN_NAME)).thenReturn(monitorService);
+		when(appContext.getBean(IStatsCollector.BEAN_NAME)).thenReturn(monitorService);
 
 		//define CPU load above limit
 		int cpuLoad = 90;
@@ -1504,9 +1504,9 @@ public class BroadcastRestServiceV2UnitTest {
 
 		streamSourceRest.setAppCtx(appContext);
 
-		ResourceMonitor monitorService = new ResourceMonitor(); 
+		StatsCollector monitorService = new StatsCollector(); 
 		
-		when(appContext.getBean(IResourceMonitor.BEAN_NAME)).thenReturn(monitorService);
+		when(appContext.getBean(IStatsCollector.BEAN_NAME)).thenReturn(monitorService);
 
 		//define CPU load below limit
 		int cpuLoad2 = 70;
@@ -1585,9 +1585,9 @@ public class BroadcastRestServiceV2UnitTest {
 
 		streamSourceRest.setAppCtx(appContext);
 
-		ResourceMonitor monitorService = new ResourceMonitor();
+		StatsCollector monitorService = new StatsCollector();
 
-		when(appContext.getBean(IResourceMonitor.BEAN_NAME)).thenReturn(monitorService);
+		when(appContext.getBean(IStatsCollector.BEAN_NAME)).thenReturn(monitorService);
 
 		//define CPU load below limit
 		int cpuLoad2 = 70;

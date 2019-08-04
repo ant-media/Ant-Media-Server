@@ -34,14 +34,14 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
-import io.antmedia.IResourceMonitor;
+import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.SystemUtils;
 import io.antmedia.rest.WebRTCClientStats;
 import io.antmedia.statistic.GPUUtils.MemoryStatus;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.vertx.core.Vertx;
 
-public class ResourceMonitor implements IResourceMonitor, ApplicationContextAware {	
+public class StatsCollector implements IStatsCollector, ApplicationContextAware {	
 
 	public static final String IN_USE_SWAP_SPACE = "inUseSwapSpace";
 
@@ -119,7 +119,7 @@ public class ResourceMonitor implements IResourceMonitor, ApplicationContextAwar
 
 	private static final String TIME = "time";
 
-	protected static final Logger logger = LoggerFactory.getLogger(ResourceMonitor.class);
+	protected static final Logger logger = LoggerFactory.getLogger(StatsCollector.class);
 
 	private static final String MEASURED_BITRATE = "measured_bitrate";
 
@@ -144,6 +144,7 @@ public class ResourceMonitor implements IResourceMonitor, ApplicationContextAwar
 	private int windowSize = 5;
 	private int measurementPeriod = 5000;
 	private int staticSendPeriod = 15000;
+	
 	private int cpuLoad;
 	private int cpuLimit = 70;
 	
@@ -164,12 +165,19 @@ public class ResourceMonitor implements IResourceMonitor, ApplicationContextAwar
 
 	public static final String SERVER_TIMING = "server-timing";
 
+	private static final String ENCODERS_BLOCKED = "encoders-blocked";
+
+	private static final String ENCODERS_NOT_OPENED = "encoders-not-opened";
+
+	private static final String PUBLISH_TIMEOUT_ERRORS = "publish-timeout-errors";
+
 	private Producer<Long,String> kafkaProducer = null;
 
 	private long cpuMeasurementTimerId = -1;
 
 	private long kafkaTimerId = -1;
-
+	
+	
 	public void start() {
 		cpuMeasurementTimerId  = getVertx().setPeriodic(measurementPeriod, l -> addCpuMeasurement(SystemUtils.getSystemCpuLoad()));
 		startKafkaProducer();
@@ -233,9 +241,6 @@ public class ResourceMonitor implements IResourceMonitor, ApplicationContextAwar
 			//logstash cannot parse json array so that we send each info separately
 			send2Kafka(jsonObject, WEBRTC_STATS_TOPIC_NAME);
 		}
-
-
-
 	}
 
 	public Producer<Long, String> createKafkaProducer() {
@@ -270,7 +275,6 @@ public class ResourceMonitor implements IResourceMonitor, ApplicationContextAwar
 
 		return jsonObject;
 	}
-
 
 
 	public static JsonArray getGPUInfoJSObject() {
@@ -332,8 +336,8 @@ public class ResourceMonitor implements IResourceMonitor, ApplicationContextAwar
 	public static JsonObject getServerTime() 
 	{
 		JsonObject jsonObject = new JsonObject();
-		jsonObject.addProperty(ResourceMonitor.UP_TIME, ManagementFactory.getRuntimeMXBean().getUptime());
-		jsonObject.addProperty(ResourceMonitor.START_TIME, ManagementFactory.getRuntimeMXBean().getStartTime());
+		jsonObject.addProperty(StatsCollector.UP_TIME, ManagementFactory.getRuntimeMXBean().getUptime());
+		jsonObject.addProperty(StatsCollector.START_TIME, ManagementFactory.getRuntimeMXBean().getStartTime());
 		return jsonObject;
 	}
 	
@@ -349,11 +353,14 @@ public class ResourceMonitor implements IResourceMonitor, ApplicationContextAwar
 		jsonObject.add(FILE_SYSTEM_INFO, getFileSystemInfoJSObject());
 
 		//add gpu info 
-		jsonObject.add(ResourceMonitor.GPU_USAGE_INFO, ResourceMonitor.getGPUInfoJSObject());
+		jsonObject.add(StatsCollector.GPU_USAGE_INFO, StatsCollector.getGPUInfoJSObject());
 
 		int localHlsViewers = 0;
 		int localWebRTCViewers = 0;
 		int localWebRTCStreams = 0;
+		int encodersBlocked = 0;
+		int encodersNotOpened = 0;
+		int publishTimeoutError = 0;
 		if (scopes != null) {
 			for (Iterator<IScope> iterator = scopes.iterator(); iterator.hasNext();) { 
 				IScope scope = iterator.next();
@@ -364,16 +371,23 @@ public class ResourceMonitor implements IResourceMonitor, ApplicationContextAwar
 					localWebRTCViewers += webrtcAdaptor.getNumberOfTotalViewers();
 					localWebRTCStreams += webrtcAdaptor.getNumberOfLiveStreams();
 				}
+				AntMediaApplicationAdapter adaptor = (AntMediaApplicationAdapter) scope.getContext().getApplicationContext().getBean(AntMediaApplicationAdapter.BEAN_NAME);
+				encodersBlocked += adaptor.getNumberOfEncodersBlocked();
+				encodersNotOpened += adaptor.getNumberOfEncoderNotOpenedErrors();
+				publishTimeoutError += adaptor.getNumberOfPublishTimeoutError();
 			}
 		}
 
 		//add local webrtc viewer size
-		jsonObject.addProperty(ResourceMonitor.LOCAL_WEBRTC_LIVE_STREAMS, localWebRTCStreams);
-		jsonObject.addProperty(ResourceMonitor.LOCAL_WEBRTC_VIEWERS, localWebRTCViewers);
-		jsonObject.addProperty(ResourceMonitor.LOCAL_HLS_VIEWERS, localHlsViewers);	
+		jsonObject.addProperty(StatsCollector.LOCAL_WEBRTC_LIVE_STREAMS, localWebRTCStreams);
+		jsonObject.addProperty(StatsCollector.LOCAL_WEBRTC_VIEWERS, localWebRTCViewers);
+		jsonObject.addProperty(StatsCollector.LOCAL_HLS_VIEWERS, localHlsViewers);	
+		jsonObject.addProperty(StatsCollector.ENCODERS_BLOCKED, encodersBlocked);
+		jsonObject.addProperty(StatsCollector.ENCODERS_NOT_OPENED, encodersNotOpened);
+		jsonObject.addProperty(StatsCollector.PUBLISH_TIMEOUT_ERRORS, publishTimeoutError);
 		
 		//add timing info
-		jsonObject.add(ResourceMonitor.SERVER_TIMING, getServerTime());
+		jsonObject.add(StatsCollector.SERVER_TIMING, getServerTime());
 
 		return jsonObject;
 	}
@@ -573,5 +587,5 @@ public class ResourceMonitor implements IResourceMonitor, ApplicationContextAwar
 	public void setScopes(ConcurrentLinkedQueue<IScope> scopes) {
 		this.scopes = scopes;
 	}
-
+	
 }

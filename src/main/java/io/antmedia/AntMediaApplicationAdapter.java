@@ -54,6 +54,10 @@ import io.antmedia.shutdown.IShutdownListener;
 import io.antmedia.social.endpoint.PeriscopeEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
+import io.antmedia.statistic.type.WebRTCAudioReceiveStats;
+import io.antmedia.statistic.type.WebRTCAudioSendStats;
+import io.antmedia.statistic.type.WebRTCVideoReceiveStats;
+import io.antmedia.statistic.type.WebRTCVideoSendStats;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
 import io.vertx.core.Vertx;
@@ -95,6 +99,19 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	private AppSettings appSettings;
 	private Vertx vertx;
 
+	protected List<String> encoderBlockedStreams = new ArrayList<>();
+	private int numberOfEncoderNotOpenedErrors = 0;
+	protected int publishTimeoutStreams = 0;
+	private List<String> publishTimeoutStreamsList = new ArrayList<>();
+	
+	protected WebRTCVideoReceiveStats webRTCVideoReceiveStats = new WebRTCVideoReceiveStats();
+
+	protected WebRTCAudioReceiveStats webRTCAudioReceiveStats = new WebRTCAudioReceiveStats();
+	
+	
+	protected WebRTCVideoSendStats webRTCVideoSendStats = new WebRTCVideoSendStats();
+
+	protected WebRTCAudioSendStats webRTCAudioSendStats = new WebRTCAudioSendStats();
 
 	@Override
 	public boolean appStart(IScope app) {
@@ -892,5 +909,61 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 			muxAdaptors = Collections.synchronizedList(new ArrayList());
 		}
 		return muxAdaptors;
+	}
+	
+	
+	/**
+	 * Number of encoders blocked. 
+	 * @return
+	 */
+	public int getNumberOfEncodersBlocked() {
+		return encoderBlockedStreams.size();
+	}
+	
+	public synchronized void encoderBlocked(String streamId, boolean blocked) {
+		if (blocked) {
+			encoderBlockedStreams.add(streamId);
+		}
+		else {
+			encoderBlockedStreams.remove(streamId);
+		}
+	}
+
+	
+	public synchronized void incrementEncoderNotOpenedError() {
+		numberOfEncoderNotOpenedErrors ++;
+	}
+	
+	public int getNumberOfEncoderNotOpenedErrors() {
+		return numberOfEncoderNotOpenedErrors;
+	}
+	
+	public int getNumberOfPublishTimeoutError() {
+		return publishTimeoutStreams;
+	}
+	
+	public synchronized void publishTimeoutError(String streamId) {
+		publishTimeoutStreams++;
+		publishTimeoutStreamsList.add(streamId);
+	}
+
+	public WebRTCAudioReceiveStats getWebRTCAudioReceiveStats() {
+		return webRTCAudioReceiveStats;
+	}
+	
+	public WebRTCVideoReceiveStats getWebRTCVideoReceiveStats() {
+		return webRTCVideoReceiveStats;
+	}
+	
+	public WebRTCAudioSendStats getWebRTCAudioSendStats() {
+		return webRTCAudioSendStats;
+	}
+	
+	public WebRTCVideoSendStats getWebRTCVideoSendStats() {
+		return webRTCVideoSendStats;
+	} 
+	
+	public Vertx getVertx() {
+		return vertx;
 	}
 }
