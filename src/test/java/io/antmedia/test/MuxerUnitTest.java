@@ -1249,61 +1249,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
     }
 
-    @Test
-    public void testRTSPMuxing() {
-
-        if (appScope == null) {
-            appScope = (WebScope) applicationContext.getBean("web.scope");
-            logger.debug("Application / web scope: {}", appScope);
-            assertTrue(appScope.getDepth() == 1);
-        }
-
-        try {
-
-            File file = new File("target/test-classes/test.flv"); //ResourceUtils.getFile(this.getClass().getResource("test.flv"));
-            PacketSenderRunnable rtspPacketSender = new PacketSenderRunnable(null);
-
-            String sdpDescription = rtspPacketSender.getSdpDescription(file.getAbsolutePath());
-            assertNotNull(sdpDescription);
-            assertTrue(sdpDescription.length() > 0);
-            int[] clientPort = new int[2];
-            clientPort[0] = 23458;
-            clientPort[1] = 45567;
-            int[] serverPort = new int[2];
-            boolean result = rtspPacketSender.prepareOutputContext(0, "127.0.0.1", clientPort, serverPort);
-            assertTrue(result);
-
-            int[] clientPort2 = new int[2];
-            clientPort2[0] = 23452;
-            clientPort2[1] = 44557;
-            int[] serverPort2 = new int[2];
-            result = rtspPacketSender.prepareOutputContext(1, "127.0.0.1", clientPort2, serverPort2);
-            assertTrue(result);
-
-            ThreadPoolTaskScheduler scheduler = (ThreadPoolTaskScheduler) applicationContext.getBean("scheduler");
-            assertNotNull(scheduler);
-
-            scheduler.scheduleAtFixedRate(rtspPacketSender, 10);
-
-            Thread.sleep(10000);
-
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    @Test
-    public void testSDPCreateBug() {
-        String file = "target/test-classes/test.flv";
-        PacketSenderRunnable packetSender = new PacketSenderRunnable(null);
-        String sdpDescription = packetSender.getSdpDescription(file);
-        assertNotNull(sdpDescription);
-        assertTrue(sdpDescription.length() > 0);
-        System.out.println(sdpDescription);
-
-    }
-
     public AppSettings getAppSettings() {
         if (appSettings == null) {
             appSettings = (AppSettings) applicationContext.getBean(AppSettings.BEAN_NAME);
