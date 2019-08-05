@@ -1,6 +1,5 @@
 package io.antmedia.test;
 
-import com.antstreaming.rtsp.PacketSenderRunnable;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.types.Broadcast;
@@ -37,7 +36,6 @@ import org.red5.server.scope.WebScope;
 import org.red5.server.service.mp4.impl.MP4Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
