@@ -190,11 +190,6 @@ public class MuxingTest {
 			// testFile("http://"+SERVER_ADDR+":5080/LiveApp/streams/" +
 			// streamName + ".m3u8");
 			// assertTrue(testResult);
-
-			// TODO: check that when stream is requested with rtsp, server
-			// should not be shutdown
-			testResult = testFile("rtsp://" + SERVER_ADDR + ":5554/LiveApp/" + streamName + ".mp4");
-			assertTrue(testResult);
 			
 			//let the server update stats
 			//wait a little to let the server finish state after rtsp fetching
