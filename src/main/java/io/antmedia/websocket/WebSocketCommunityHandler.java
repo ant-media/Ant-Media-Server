@@ -132,7 +132,7 @@ public class WebSocketCommunityHandler {
 	private void startRTMPAdaptor(Session session, final String streamId) {
 
 		//get scope and use its name
-		String outputURL = "rtmp://127.0.0.1/WebRTCApp/" + streamId;
+		String outputURL = "rtmp://127.0.0.1/StreamApp/" + streamId;
 
 		RTMPAdaptor connectionContext = getNewRTMPAdaptor(outputURL);
 

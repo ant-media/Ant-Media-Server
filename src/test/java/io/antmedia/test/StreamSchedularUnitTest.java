@@ -52,6 +52,7 @@ import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.model.Result;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
+import io.vertx.core.Vertx;
 
 @ContextConfiguration(locations = { "test.xml" })
 @DirtiesContext(classMode = ClassMode.AFTER_CLASS)
@@ -83,8 +84,9 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		};
 	};
 	private AntMediaApplicationAdapter appInstance;
-	private QuartzSchedulingService scheduler;
 	private AppSettings appSettings;
+	private Vertx vertx;
+
 
 	@BeforeClass
 	public static void beforeClass() {
@@ -115,7 +117,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			assertTrue(appScope.getDepth() == 1);
 		}
 
-		scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
+		vertx = (Vertx) applicationContext.getBean(AntMediaApplicationAdapter.VERTX_BEAN_NAME);
 
 		//reset to default
 		Application.enableSourceHealthUpdate = false;
@@ -178,9 +180,6 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		logger.info("running testStreamSchedularConnectionTimeout");
 		try {
 
-			assertEquals(1, scheduler.getScheduledJobNames().size());
-
-
 			AVFormatContext inputFormatContext = new AVFormatContext();
 
 			Broadcast newCam = new Broadcast("testSchedular2", "10.2.40.64:8080", "admin", "admin",
@@ -203,9 +202,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 			logger.info("leaving testStreamSchedularConnectionTimeout");
 
-			Awaitility.await().atMost(7, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-				return scheduler.getScheduledJobNames().size()== 1;
-			});
+			Thread.sleep(7000);
 
 			assertFalse(streamScheduler.isStreamAlive());
 
@@ -221,8 +218,6 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 	@Test
 	public void testPrepareInput() throws InterruptedException {
-		assertEquals(1, scheduler.getScheduledJobNames().size());
-
 		try {
 
 			Broadcast newCam = null;
@@ -246,15 +241,11 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 		catch (Exception e) {
 		}
-		assertEquals(1, scheduler.getScheduledJobNames().size());
-
 	}
 
 
 	@Test
 	public void testAddCameraBug() {
-
-		assertEquals(1, scheduler.getScheduledJobNames().size());
 
 		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnExit();
 
@@ -263,7 +254,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		DataStore dataStore = new MapDBStore("target/testAddCamera.db"); //applicationContext.getBean(IDataStore.BEAN_NAME);
 
 		assertNotNull(dataStore);
-		StreamFetcherManager streamFetcherManager = new StreamFetcherManager(scheduler, dataStore, appScope);
+		StreamFetcherManager streamFetcherManager = new StreamFetcherManager(vertx, dataStore, appScope);
 		//app.setDataStore(dataStore);
 
 		//set mapdb datastore to stream fetcher because in memory datastore just have references and updating broadcst
@@ -304,9 +295,12 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			return !streamFetcher.isThreadActive();
 		});
 
-		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->  {
-			return 1 == scheduler.getScheduledJobNames().size();
-		});
+		try {
+			Thread.sleep(10000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 
 		getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
 		Application.enableSourceHealthUpdate = false;
@@ -330,7 +324,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		service.setDataStore(dataStore);
 		
 		//create a stream fetcher
-		StreamFetcherManager streamFetcherManager = new StreamFetcherManager(scheduler, dataStore, appScope);
+		StreamFetcherManager streamFetcherManager = new StreamFetcherManager(vertx, dataStore, appScope);
 		
 		app.setStreamFetcherManager(streamFetcherManager);
 		
@@ -375,9 +369,12 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		
 		//check that there is no job related left related with stream fetching
-		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->  {
-			return 1 == scheduler.getScheduledJobNames().size();
-		});
+		try {
+			Thread.sleep(10000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 
 		//convert to original settings
 		getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
@@ -403,7 +400,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		service.setDataStore(dataStore);
 		
 		//create a stream fetcher
-		StreamFetcherManager streamFetcherManager = new StreamFetcherManager(scheduler, dataStore, appScope);
+		StreamFetcherManager streamFetcherManager = new StreamFetcherManager(vertx, dataStore, appScope);
 		
 		app.setStreamFetcherManager(streamFetcherManager);
 		
@@ -446,9 +443,12 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		
 		//check that there is no job related left related with stream fetching
-		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->  {
-			return 1 == scheduler.getScheduledJobNames().size();
-		});
+		try {
+			Thread.sleep(10000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 
 		//convert to original settings
 		getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
@@ -521,8 +521,6 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	 */
 	@Test
 	public void testBandwidth() {
-
-		assertEquals(1, scheduler.getScheduledJobNames().size());
 
 		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnExit();
 		getAppSettings().setDeleteHLSFilesOnEnded(false);
@@ -655,8 +653,6 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		Application.enableSourceHealthUpdate = false;
 
 		getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
-
-		assertEquals(1, scheduler.getScheduledJobNames().size());
 
 		stopCameraEmulator()	;	
 
