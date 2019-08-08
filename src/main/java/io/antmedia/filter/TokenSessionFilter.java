@@ -15,8 +15,6 @@ public class TokenSessionFilter implements HttpSessionListener {
 	private ITokenService tokenService;
 	protected static Logger logger = LoggerFactory.getLogger(TokenSessionFilter.class);
 
-
-
 	ApplicationContext context;
 
 	@Override
@@ -34,7 +32,7 @@ public class TokenSessionFilter implements HttpSessionListener {
 	}
 
 
-	private ITokenService getTokenService() {
+	public ITokenService getTokenService() {
 		if (tokenService == null) 
 		{
 			if (context != null) {
@@ -49,6 +47,10 @@ public class TokenSessionFilter implements HttpSessionListener {
 	
 	public void setTokenService(ITokenService tokenService) {
 		this.tokenService = tokenService;
+	}
+	
+	public void setContext(ApplicationContext context) {
+		this.context = context;
 	}
 
 }

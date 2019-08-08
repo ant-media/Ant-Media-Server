@@ -39,7 +39,7 @@ public class TokenFilterManager extends AbstractFilter   {
 		String tokenId = ((HttpServletRequest) request).getParameter("token");
 		String sessionId = httpRequest.getSession().getId();
 		String streamId = getStreamId(httpRequest.getRequestURI());
-		String clientIP = httpRequest.getRemoteAddr();
+		String clientIP = httpRequest.getRemoteAddr().replaceAll("[\n|\r|\t]", "_");
 
 		
 		AppSettings appSettings = getAppSettings();
