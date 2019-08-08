@@ -22,6 +22,7 @@ import io.antmedia.security.ITokenService;
 
 public class TokenFilterManager extends AbstractFilter   {
 
+	private static final String REPLACE_CHARS_REGEX = "[\n|\r|\t]";
 	protected static Logger logger = LoggerFactory.getLogger(TokenFilterManager.class);
 	private ITokenService tokenService;
 
@@ -36,10 +37,13 @@ public class TokenFilterManager extends AbstractFilter   {
 		HttpServletResponse httpResponse = (HttpServletResponse)response;
 
 		String method = httpRequest.getMethod();
-		String tokenId = ((HttpServletRequest) request).getParameter("token");
+		String tokenId = ((HttpServletRequest) request).getParameter("token").replaceAll(REPLACE_CHARS_REGEX, "_");
 		String sessionId = httpRequest.getSession().getId();
 		String streamId = getStreamId(httpRequest.getRequestURI());
-		String clientIP = httpRequest.getRemoteAddr().replaceAll("[\n|\r|\t]", "_");
+		if (streamId != null) {
+			streamId = streamId.replaceAll(REPLACE_CHARS_REGEX, "_");
+		}
+		String clientIP = httpRequest.getRemoteAddr().replaceAll(REPLACE_CHARS_REGEX, "_");
 
 		
 		AppSettings appSettings = getAppSettings();
