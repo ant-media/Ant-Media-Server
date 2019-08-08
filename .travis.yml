@@ -100,7 +100,7 @@ after_failure:
 
 deploy:
   - provider: script
-    script: "mvn deploy -P assemble -DskipTests --quiet --settings mvn-settings.xml"
+    script: "mvn deploy -P assemble -DskipTests --settings mvn-settings.xml"
     skip_cleanup: true
     on:
       tags: false
