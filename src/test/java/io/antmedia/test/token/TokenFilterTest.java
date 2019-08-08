@@ -27,6 +27,7 @@ import org.junit.Test;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
+import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -69,6 +70,70 @@ public class TokenFilterTest {
 		};
 	};
 
+	
+	@Test
+	public void testUninitializedBean() {
+		FilterConfig filterconfig = mock(FilterConfig.class);
+	
+		ServletContext servletContext = mock(ServletContext.class);
+		ApplicationContext context = mock(ApplicationContext.class);
+		when(servletContext.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE))
+		.thenReturn(context);
+		
+		when(filterconfig.getServletContext()).thenReturn(servletContext);
+		
+		tokenFilter.setConfig(filterconfig);
+		
+		assertNull(tokenFilter.getAppSettings());
+		
+		HttpServletRequest mockRequest = mock(HttpServletRequest.class);
+		
+		HttpSession session = mock(HttpSession.class);
+		
+		when(mockRequest.getSession()).thenReturn(session);
+		when(mockRequest.getMethod()).thenReturn("GET");
+		
+		String clientIP = "10.0.0.1";
+		when(mockRequest.getRemoteAddr()).thenReturn(clientIP);
+
+		String tokenId = RandomStringUtils.randomAlphanumeric(8);
+		when(mockRequest.getParameter("token")).thenReturn(tokenId);
+
+		String streamId = RandomStringUtils.randomAlphanumeric(8);
+		when(mockRequest.getRequestURI()).thenReturn("/LiveApp/streams/"+streamId+".m3u8");
+		
+		FilterChain mockChain = mock(FilterChain.class);
+		HttpServletResponse mockResponse = mock(HttpServletResponse.class);
+		
+		when(mockResponse.getStatus()).thenReturn(HttpServletResponse.SC_OK);
+		
+		
+		try {
+			tokenFilter.doFilter(mockRequest, mockResponse, mockChain);
+		
+		
+			TokenFilterManager spyFilter = Mockito.spy(tokenFilter);
+			
+			AppSettings settings = new AppSettings();
+			settings.setTokenControlEnabled(true);
+			Mockito.doReturn(settings).when(spyFilter).getAppSettings();
+		
+		
+
+			
+			spyFilter.doFilter(mockRequest, mockResponse, mockChain);
+		
+		} catch (IOException e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+			fail(ExceptionUtils.getStackTrace(e));
+		} catch (ServletException e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+			fail(ExceptionUtils.getStackTrace(e));
+		}
+		
+		
+		
+	}
 
 	@Test
 	public void testDoFilter() {
@@ -121,11 +186,11 @@ public class TokenFilterTest {
 
 
 		} catch (ServletException|IOException e) {
-			e.printStackTrace();
+			logger.error(ExceptionUtils.getStackTrace(e));
 			fail(ExceptionUtils.getStackTrace(e));
 		} 
 		catch (Exception e) {
-			e.printStackTrace();
+			logger.error(ExceptionUtils.getStackTrace(e));
 			fail(ExceptionUtils.getStackTrace(e));
 		}
 	}

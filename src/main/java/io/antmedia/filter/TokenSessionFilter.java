@@ -27,13 +27,22 @@ public class TokenSessionFilter implements HttpSessionListener {
 
 	@Override
 	public void sessionDestroyed(HttpSessionEvent se) {
-		getTokenService().getAuthenticatedMap().remove(se.getSession().getId());
+		ITokenService tokenServiceTmp = getTokenService();
+		if (tokenServiceTmp != null) {
+			tokenServiceTmp.getAuthenticatedMap().remove(se.getSession().getId());
+		}
 	}
 
 
-	public ITokenService getTokenService() {
-		if (tokenService == null) {
-			tokenService = (ITokenService)context.getBean(ITokenService.BeanName.TOKEN_SERVICE.toString());
+	private ITokenService getTokenService() {
+		if (tokenService == null) 
+		{
+			if (context != null) {
+				tokenService = (ITokenService)context.getBean(ITokenService.BeanName.TOKEN_SERVICE.toString());
+			}
+			else {
+				logger.warn("Context is null");
+			}
 		}
 		return tokenService;
 	}
