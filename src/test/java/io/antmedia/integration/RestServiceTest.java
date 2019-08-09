@@ -131,6 +131,12 @@ public class RestServiceTest {
 		avformat.av_register_all();
 		avformat.avformat_network_init();
 		avutil.av_log_set_level(avutil.AV_LOG_INFO);
+		
+		//delete broadcast in the db before starting
+		List<Broadcast> broadcastList = callGetBroadcastList();
+		for (Broadcast broadcast : broadcastList) {
+			deleteBroadcast(broadcast.getStreamId());
+		}
 	}
 
 	@Before
@@ -1080,7 +1086,7 @@ public class RestServiceTest {
 		return null;
 	}
 
-	public Result deleteBroadcast(String id) {
+	public static Result deleteBroadcast(String id) {
 		try {
 			// delete broadcast
 			String url = ROOT_SERVICE_URL + "/broadcast/delete/" + id;
