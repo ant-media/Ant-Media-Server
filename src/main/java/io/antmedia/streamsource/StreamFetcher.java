@@ -135,7 +135,7 @@ public class StreamFetcher {
 
 		if ((ret = avformat_open_input(inputFormatContext, stream.getStreamUrl(), null, optionsDictionary)) < 0) {
 
-			byte[] data = new byte[1024];
+			byte[] data = new byte[100];
 			avutil.av_strerror(ret, data, data.length);
 
 			String errorStr=new String(data, 0, data.length);
