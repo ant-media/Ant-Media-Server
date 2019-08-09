@@ -102,7 +102,7 @@
 
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.6.0</version>
+                <version>3.6.1</version>
                 <configuration>
                     <source>1.8</source>
                     <target>1.8</target>
@@ -323,6 +323,11 @@
             <artifactId>ant-media-server-common</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
+        <dependency>
+		    <groupId>commons-io</groupId>
+		    <artifactId>commons-io</artifactId>
+		    <version>${commons-io}</version>
+		</dependency>
         <dependency>
             <groupId>org.red5</groupId>
             <artifactId>red5-io</artifactId>
