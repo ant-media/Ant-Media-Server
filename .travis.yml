@@ -2,7 +2,7 @@ dist: xenial
 language: java
 jdk:
   - openjdk8
-node_js: "8.12.0"
+
 
 sudo: required
 
