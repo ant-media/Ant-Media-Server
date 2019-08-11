@@ -318,7 +318,7 @@ public class StreamSourceRestServiceUnitTest {
 
 		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
 		Mockito.doReturn(store).when(streamSourceRest).getDataStore();
-		Mockito.doReturn(settings).when(adaptor).getAppSettings();
+		Mockito.doReturn(settings).when(streamSourceRest).getAppSettings();
 		when(settings.getVodFolder()).thenReturn(vodFolder);
 		Mockito.doReturn(true).when(adaptor).synchUserVoDFolder(null, vodFolder);
 

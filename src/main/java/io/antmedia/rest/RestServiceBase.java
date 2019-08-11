@@ -289,7 +289,7 @@ public abstract class RestServiceBase {
 		return hostaddress;
 	}
 
-	protected AppSettings getAppSettings() {
+	public AppSettings getAppSettings() {
 		if (appSettings == null) {
 			ApplicationContext appContext = getAppContext();
 			if (appContext != null) {
@@ -1095,7 +1095,7 @@ public abstract class RestServiceBase {
 		int errorId = -1;
 		String message = "";
 
-		String vodFolder = getApplication().getAppSettings().getVodFolder();
+		String vodFolder = getAppSettings().getVodFolder();
 
 		logger.info("synch user vod list vod folder is {}", vodFolder);
 

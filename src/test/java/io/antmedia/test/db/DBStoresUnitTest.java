@@ -1270,13 +1270,12 @@ public class DBStoresUnitTest {
 
 	private DataStore createDB(String type, boolean writeStats) {
 		DataStoreFactory dsf = new DataStoreFactory();
-		AppSettings settings = new AppSettings();
-		settings.setWriteStatsToDatastore(writeStats);
-		dsf.setAppSettings(settings);
+		dsf.setWriteStatsToDatastore(writeStats);
 		dsf.setDbType(type);
 		dsf.setDbName("testdb");
 		dsf.setAppName("testApp");
 		dsf.setDbHost("localhost");
+		dsf.init();
 		return dsf.getDataStore();
 	}
 

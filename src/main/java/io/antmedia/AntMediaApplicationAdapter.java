@@ -752,29 +752,11 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		this.streamPublishSecurityList = streamPublishSecurityList;
 	}
 
+	
 	public AppSettings getAppSettings() {
-
-		if(appSettings == null) {
-
-			AppSettings appSettingsTmp = new AppSettings();
-
-			appSettingsTmp.setMp4MuxingEnabled(true);
-			appSettingsTmp.setAddDateTimeToMp4FileName(true);
-			appSettingsTmp.setWebRTCEnabled(false);
-			appSettingsTmp.setHlsMuxingEnabled(true);
-			appSettingsTmp.setObjectDetectionEnabled(false);
-			appSettingsTmp.setAdaptiveResolutionList(null);
-			appSettingsTmp.setHlsListSize(null);
-			appSettingsTmp.setHlsTime(null);
-			appSettingsTmp.setHlsPlayListType(null);
-			appSettingsTmp.setDeleteHLSFilesOnEnded(true);
-			appSettingsTmp.setPreviewOverwrite(false);
-			appSettingsTmp.setTokenControlEnabled(false);
-			this.appSettings=appSettingsTmp;
-		}
-
 		return appSettings;
 	}
+	
 
 	public void setAppSettings(AppSettings appSettings) {
 		this.appSettings = appSettings;
