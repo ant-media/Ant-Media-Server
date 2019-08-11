@@ -44,9 +44,7 @@ public class TokenFilterManager extends AbstractFilter   {
 		 
 		String sessionId = httpRequest.getSession().getId();
 		String streamId = getStreamId(httpRequest.getRequestURI());
-		if (streamId != null) {
-			streamId = streamId.replaceAll(REPLACE_CHARS_REGEX, "_");
-		}
+		
 		String clientIP = httpRequest.getRemoteAddr().replaceAll(REPLACE_CHARS_REGEX, "_");
 
 		
@@ -124,6 +122,9 @@ public class TokenFilterManager extends AbstractFilter   {
 	}
 
 	public static String getStreamId(String requestURI) {
+		
+		requestURI = requestURI.replaceAll(REPLACE_CHARS_REGEX, "_");
+		
 		int endIndex;
 		int startIndex = requestURI.lastIndexOf('/');
 
