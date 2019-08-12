@@ -249,14 +249,9 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 					if (listenerHookURL != null && listenerHookURL.length() > 0) {
 						final String name = broadcast.getName();
 						final String category = broadcast.getCategory();
-						addScheduledOnceJob(100, new IScheduledJob() {
-
-							@Override
-							public void execute(ISchedulingService service) throws CloneNotSupportedException {
-								notifyHook(listenerHookURL, streamId, HOOK_ACTION_END_LIVE_STREAM, name, category,
-										null, null);
-							}
-						});
+						
+						vertx.runOnContext(e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_END_LIVE_STREAM, name, category,
+								null, null));
 					}
 
 					stopPublishingSocialEndpoints(broadcast);
@@ -411,14 +406,8 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 					if (listenerHookURL != null && listenerHookURL.length() > 0) {
 						final String name = broadcast.getName();
 						final String category = broadcast.getCategory();
-						addScheduledOnceJob(100, new IScheduledJob() {
-
-							@Override
-							public void execute(ISchedulingService service) throws CloneNotSupportedException {
-								notifyHook(listenerHookURL, streamId, HOOK_ACTION_START_LIVE_STREAM, name, category,
-										null, null);
-							}
-						});
+						vertx.runOnContext(e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_START_LIVE_STREAM, name, category,
+								null, null));
 					}
 
 					publishSocialEndpoints(broadcast.getEndPointList());
@@ -534,12 +523,9 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 			final String baseName = vodName.substring(0, index);
 			String finalListenerHookURL = listenerHookURL;
 			
-			vertx.executeBlocking(b-> {
-				notifyHook(finalListenerHookURL, streamId, HOOK_ACTION_VOD_READY, null, null, baseName, vodId);
-				b.complete();
-			}, r -> {
-				
-			});
+			vertx.runOnContext(e ->
+				notifyHook(finalListenerHookURL, streamId, HOOK_ACTION_VOD_READY, null, null, baseName, vodId)	
+			);
 		
 		}
 
