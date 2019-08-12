@@ -2,13 +2,14 @@ package io.antmedia.datastore.db;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 
 import io.antmedia.AppSettings;
 import io.antmedia.cluster.DBReader;
 
-public class DataStoreFactory implements IDataStoreFactory{
+public class DataStoreFactory implements IDataStoreFactory, InitializingBean{
 
 	public static final String DB_TYPE_MEMORYDB = "memorydb";
 	public static final String DB_TYPE_MAPDB = "mapdb";
@@ -20,14 +21,14 @@ public class DataStoreFactory implements IDataStoreFactory{
 	public static final String SETTINGS_DB_USER = "db.user";
 	public static final String SETTINGS_DB_PASS = "db.password";
 
-	@Autowired
-	private AppSettings appSettings;
 
 	private static Logger logger = LoggerFactory.getLogger(DataStoreFactory.class);
 
 	
 	private DataStore dataStore;
-	
+	 
+	@Value( "${" + AppSettings.SETTINGS_WRITE_STATS_TO_DATASTORE +":true}")
+	private boolean writeStatsToDatastore;
 	
 	@Value( "${"+SETTINGS_DB_APP_NAME+":#{null}}" )
 	private String appName;
@@ -91,32 +92,41 @@ public class DataStoreFactory implements IDataStoreFactory{
 		this.dbPassword = dbPassword;
 	}
 	
-	public DataStore getDataStore() {
-		if (dataStore == null) {
-			if(dbType.contentEquals(DB_TYPE_MONGODB))
-			{
-				dataStore = new MongoStore(dbHost, dbUser, dbPassword, dbName);
-			}
-			else if(dbType .contentEquals(DB_TYPE_MAPDB))
-			{
-				dataStore = new MapDBStore(dbName+".db");
-			}
-			else if(dbType .contentEquals(DB_TYPE_MEMORYDB))
-			{
-				dataStore = new InMemoryDataStore(dbName);
-			}
-			else {
-				logger.error("Undefined Datastore:{} app:{} db name:{}", dbType, appName, dbName);
-			}
-			
-			logger.info("Used Datastore:{} app:{} db name:{}", getDbType(), getAppName(), getDbName());
-			
-			if(dataStore != null) {
-				dataStore.setWriteStatsToDatastore(getAppSettings().isWriteStatsToDatastore());
-				DBReader.instance.addDataStore(appName, dataStore);
-				dataStore.clearStreamsOnThisServer();
-			}
+	public void init()  
+	{
+		if(dbType.contentEquals(DB_TYPE_MONGODB))
+		{
+			dataStore = new MongoStore(dbHost, dbUser, dbPassword, dbName);
 		}
+		else if(dbType .contentEquals(DB_TYPE_MAPDB))
+		{
+			dataStore = new MapDBStore(dbName+".db");
+		}
+		else if(dbType .contentEquals(DB_TYPE_MEMORYDB))
+		{
+			dataStore = new InMemoryDataStore(dbName);
+		}
+		else {
+			logger.error("Undefined Datastore:{} app:{} db name:{}", dbType, appName, dbName);
+		}
+		
+		logger.info("Used Datastore:{} app:{} db name:{}", getDbType(), getAppName(), getDbName());
+		
+		if(dataStore != null) {
+			dataStore.setWriteStatsToDatastore(isWriteStatsToDatastore());
+			DBReader.instance.addDataStore(appName, dataStore);
+			dataStore.clearStreamsOnThisServer();
+		}
+	}
+	
+	@Override
+	public void afterPropertiesSet() throws Exception 
+	{
+		init();
+	}
+	
+	
+	public DataStore getDataStore() {
 		return dataStore;
 	}
 	
@@ -134,12 +144,12 @@ public class DataStoreFactory implements IDataStoreFactory{
 		this.appName = appName;
 	}
 
-	public AppSettings getAppSettings() {
-		return appSettings;
+	public boolean isWriteStatsToDatastore() {
+		return writeStatsToDatastore;
 	}
 
-	public void setAppSettings(AppSettings appSettings) {
-		this.appSettings = appSettings;
+	public void setWriteStatsToDatastore(boolean writeStatsToDatastore) {
+		this.writeStatsToDatastore = writeStatsToDatastore;
 	}
 
 }

@@ -128,6 +128,13 @@ public class RestServiceV2Test {
 		avformat.av_register_all();
 		avformat.avformat_network_init();
 		avutil.av_log_set_level(avutil.AV_LOG_INFO);
+		
+		
+		//delete broadcast in the db before starting
+		List<Broadcast> broadcastList = callGetBroadcastList();
+		for (Broadcast broadcast : broadcastList) {
+			deleteBroadcast(broadcast.getStreamId());
+		}
 	}
 
 	@Test
@@ -1015,7 +1022,7 @@ public class RestServiceV2Test {
 		return null;
 	}
 
-	public Result deleteBroadcast(String id) {
+	public static Result deleteBroadcast(String id) {
 		try {
 			// delete broadcast
 			String url = ROOT_SERVICE_URL + "/v2/broadcasts/" + id;
@@ -1491,7 +1498,7 @@ public class RestServiceV2Test {
 	@Test
 	public void testAddEndpointCrossCheck() {
 		try {
-
+			
 			List<Broadcast> broadcastList = callGetBroadcastList();
 			int size = broadcastList.size();
 			Broadcast broadcast = createBroadcast(null);
@@ -1529,7 +1536,10 @@ public class RestServiceV2Test {
 			assertTrue(result.isSuccess());
 
 			Awaitility.await().atMost(20, TimeUnit.SECONDS)
-			.pollInterval(2, TimeUnit.SECONDS).until(() -> {
+			.pollInterval(2, TimeUnit.SECONDS).until(() -> 
+			{
+				int broadcastListSize = callGetBroadcastList().size();
+				logger.info("broadcast list size: {} and it should be:{}", broadcastListSize, size);
 				return size == callGetBroadcastList().size();
 			});
 

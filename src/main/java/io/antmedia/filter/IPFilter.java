@@ -22,14 +22,9 @@ import org.springframework.web.context.WebApplicationContext;
 import io.antmedia.AppSettings;
 
 
-public class IPFilter implements Filter {
+public class IPFilter extends AbstractFilter {
 
-	protected Logger log = LoggerFactory.getLogger(IPFilter.class);
-	private FilterConfig config;
-
-	public void init(FilterConfig filterConfig) throws ServletException {
-		this.config = filterConfig;
-	}
+	protected static Logger log = LoggerFactory.getLogger(IPFilter.class);
 
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
 		if (isAllowed(request.getRemoteAddr())) {
@@ -39,25 +34,6 @@ public class IPFilter implements Filter {
 		((HttpServletResponse) response).sendError(HttpServletResponse.SC_FORBIDDEN, "Not allowed IP");
 	}
 
-
-	public AppSettings getAppSettings() 
-	{
-		AppSettings appSettings = null;
-		ApplicationContext context = getAppContext();
-		if (context != null) {
-			appSettings = (AppSettings)context.getBean(AppSettings.BEAN_NAME);
-		}
-		return appSettings;
-
-	}
-
-	public ApplicationContext getAppContext() {
-		return (ApplicationContext) config.getServletContext().getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
-	}
-
-	public void destroy() {
-		//nothing to clean up
-	}
 
 
 	/**

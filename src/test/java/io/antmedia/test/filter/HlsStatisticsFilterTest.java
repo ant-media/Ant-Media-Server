@@ -68,7 +68,49 @@ public class HlsStatisticsFilterTest {
 	   };
 	};
 	
-	
+	@Test
+	public void testUninitialized() {
+		FilterConfig filterconfig = mock(FilterConfig.class);
+		
+		ServletContext servletContext = mock(ServletContext.class);
+		ApplicationContext context = mock(ApplicationContext.class);
+		when(servletContext.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE))
+		.thenReturn(context);
+		
+		when(filterconfig.getServletContext()).thenReturn(servletContext);
+		
+		hlsStatisticsFilter.setConfig(filterconfig);
+		
+		
+		assertNull(hlsStatisticsFilter.getStreamStats());
+		
+		
+		
+		HttpServletRequest mockRequest = mock(HttpServletRequest.class);
+		HttpServletResponse mockResponse = mock(HttpServletResponse.class);
+		FilterChain mockChain = mock(FilterChain.class);
+		
+		HttpSession session = mock(HttpSession.class);
+		String sessionId = RandomStringUtils.randomAlphanumeric(16);
+		when(session.getId()).thenReturn(sessionId);
+		when(mockRequest.getSession()).thenReturn(session);
+		when(mockRequest.getMethod()).thenReturn("GET");
+		
+		String streamId = RandomStringUtils.randomAlphanumeric(8);
+		when(mockRequest.getRequestURI()).thenReturn("/LiveApp/streams/"+streamId+".m3u8");
+		
+		when(mockResponse.getStatus()).thenReturn(HttpServletResponse.SC_OK);
+		
+		try {
+			hlsStatisticsFilter.doFilter(mockRequest, mockResponse, mockChain);
+		} catch (IOException e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+			fail(ExceptionUtils.getStackTrace(e));
+		} catch (ServletException e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+			fail(ExceptionUtils.getStackTrace(e));
+		}
+	}
 	
 	@Test
 	public void testDoFilter() {
@@ -113,11 +155,11 @@ public class HlsStatisticsFilterTest {
 			
 			
 		} catch (ServletException|IOException e) {
-			e.printStackTrace();
+			logger.error(ExceptionUtils.getStackTrace(e));
 			fail(ExceptionUtils.getStackTrace(e));
 		} 
 		catch (Exception e) {
-			e.printStackTrace();
+			logger.error(ExceptionUtils.getStackTrace(e));
 			fail(ExceptionUtils.getStackTrace(e));
 		}
 		

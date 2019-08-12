@@ -236,4 +236,8 @@ public class Launcher {
 		Launcher.instanceIdFilePath = instanceIdFilePath;
 	}
 
+	public void cancelHeartBeat() {
+		heartbeat.cancel();
+	}
+
 }
