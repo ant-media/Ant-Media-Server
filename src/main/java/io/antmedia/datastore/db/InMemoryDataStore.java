@@ -291,7 +291,23 @@ public class InMemoryDataStore implements IDataStore {
 
 		for (Broadcast broadcast : values)
 		{
-			if(broadcast.getType().equals("ipCamera"))
+			Boolean isEqual = false;
+
+			if (type.equals("channel")) {
+				isEqual = broadcast.getCategory().equals(value);
+			} else if (type.equals("status")) {
+				isEqual = broadcast.getStatus().equals(value);
+			} else if (type.equals("stream")) {
+				isEqual = broadcast.getStreamId().equals(value);
+			} else if (type.equals("type")) {
+				isEqual = broadcast.getType().equals(value);
+			} else if (type.equals("name")) {
+				isEqual = broadcast.getName().equals(value);
+			} else if (type.equals("description")) {
+				isEqual = broadcast.getDescription().equals(value);
+			}
+
+			if (isEqual)
 			{
 				if (t < offset) {
 					t++;

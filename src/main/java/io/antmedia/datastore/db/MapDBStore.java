@@ -479,14 +479,35 @@ public class MapDBStore implements IDataStore {
 
 			List<Broadcast> filterList = new ArrayList<>();
 			for (int i = 0; i < broadcastArray.length; i++) {
-
-				if (broadcastArray[i].getType().equals(type)) {
-					filterList.add(gson.fromJson((String) objectArray[i], Broadcast.class));
+				if (type.equals("channel")) {
+					if (broadcastArray[i].getCategory().equals(value)) {
+						filterList.add(gson.fromJson((String) objectArray[i], Broadcast.class));
+					}
+				} else if (type.equals("status")) {
+					if (broadcastArray[i].getStatus().equals(value)) {
+						filterList.add(gson.fromJson((String) objectArray[i], Broadcast.class));
+					}
+				} else if (type.equals("stream")) {
+					if (broadcastArray[i].getStreamId().equals(value)) {
+						filterList.add(gson.fromJson((String) objectArray[i], Broadcast.class));
+					}
+				} else if (type.equals("type")) {
+					if (broadcastArray[i].getType().equals(value)) {
+						filterList.add(gson.fromJson((String) objectArray[i], Broadcast.class));
+					}
+				} else if (type.equals("name")) {
+					if (broadcastArray[i].getName().equals(value)) {
+						filterList.add(gson.fromJson((String) objectArray[i], Broadcast.class));
+					}
+				} else if (type.equals("description")) {
+					if (broadcastArray[i].getDescription().equals(value)) {
+						filterList.add(gson.fromJson((String) objectArray[i], Broadcast.class));
+					}
 				}
 			}
 			Iterator<Broadcast> iterator = filterList.iterator();
 
-			while(itemCount < size && iterator.hasNext()) {
+			while (itemCount < size && iterator.hasNext()) {
 				if (t < offset) {
 					t++;
 					iterator.next();

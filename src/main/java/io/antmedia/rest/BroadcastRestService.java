@@ -1182,7 +1182,7 @@ public class BroadcastRestService {
 	@Produces(MediaType.APPLICATION_JSON)
 	public List<Broadcast> filterBroadcastListByType(@PathParam("offset") int offset, @PathParam("size") int size,
 			@PathParam("type") String type, @PathParam("value") String value) {
-		return getDataStore().filterBroadcastListByType(offset, size, type);
+		return getDataStore().filterBroadcastListByType(offset, size, type, value);
 	}
 
 	@POST

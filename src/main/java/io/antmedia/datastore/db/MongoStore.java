@@ -343,7 +343,13 @@ public class MongoStore implements IDataStore {
 	@Override
 	public List<Broadcast> filterBroadcastListByType(int offset, int size, String type, String value) {
 		try {
-			return datastore.find(Broadcast.class).field("type").equal(type).asList(new FindOptions().skip(offset).limit(size));
+			if (type.equals("channel")) {
+				type = "category";
+			} else if (type.equals("stream")) {
+				type = "streamId";
+			}
+
+			return datastore.find(Broadcast.class).field(type).equal(value).asList(new FindOptions().skip(offset).limit(size));
 		} catch (Exception e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
 		}
