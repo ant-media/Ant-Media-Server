@@ -6,8 +6,6 @@
 
 	<bean id="placeholderConfig"
 		class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
-		<property name="ignoreResourceNotFound" value="true" />
-		<property name="ignoreUnresolvablePlaceholders" value="true" />
 		<property name="locations">
 			<list>
 				<value>file:///${user.dir}/src/main/server/conf/red5.properties</value>
