@@ -31,6 +31,7 @@ import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
+import org.springframework.web.context.ConfigurableWebApplicationContext;
 import org.springframework.web.context.WebApplicationContext;
 
 import io.antmedia.AppSettings;
@@ -76,7 +77,8 @@ public class TokenFilterTest {
 		FilterConfig filterconfig = mock(FilterConfig.class);
 	
 		ServletContext servletContext = mock(ServletContext.class);
-		ApplicationContext context = mock(ApplicationContext.class);
+		ConfigurableWebApplicationContext context = mock(ConfigurableWebApplicationContext.class);
+		when(context.isRunning()).thenReturn(true);
 		when(servletContext.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE))
 		.thenReturn(context);
 		
@@ -140,8 +142,8 @@ public class TokenFilterTest {
 
 		FilterConfig filterconfig = mock(FilterConfig.class);
 		ServletContext servletContext = mock(ServletContext.class);
-		ApplicationContext context = mock(ApplicationContext.class);
-
+		ConfigurableWebApplicationContext context = mock(ConfigurableWebApplicationContext.class);
+		when(context.isRunning()).thenReturn(true);
 
 		MockTokenService tokenService = mock(MockTokenService.class);
 		AppSettings settings = new AppSettings();
