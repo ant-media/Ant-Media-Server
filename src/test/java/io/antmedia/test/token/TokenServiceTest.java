@@ -21,6 +21,7 @@ import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
+import org.springframework.web.context.ConfigurableWebApplicationContext;
 
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
@@ -80,7 +81,9 @@ public class TokenServiceTest {
 		ITokenService iTokenService = tokenSessionFilter.getTokenService();
 		assertNull(iTokenService);
 		
-		ApplicationContext context = mock(ApplicationContext.class);
+		ConfigurableWebApplicationContext context = mock(ConfigurableWebApplicationContext.class);
+		when(context.isRunning()).thenReturn(true);
+		
 		when(context.getBean(Mockito.anyString())).thenReturn(mock(ITokenService.class));
 		
 		tokenSessionFilter.setContext(context);

@@ -39,17 +39,26 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 	static {
 		System.setProperty("red5.deployment.type", "junit");
 		System.setProperty("red5.root", ".");
+		
 	}
 	
 	@Test
-	public void testDefaultSettings() {
-
-		if (appScope == null) {
+	public void testDefaultSettings() 
+	{
+		if (appScope == null) 
+		{
 			appScope = (WebScope) applicationContext.getBean("web.scope");
 			assertTrue(appScope.getDepth() == 1);
 		}
 		
 		AppSettings appSettings = (AppSettings) applicationContext.getBean("app.settings");
+		
+		assertEquals("stun:stun.l.google.com:19302", appSettings.getStunServerURI());
+		assertEquals(true, appSettings.isWebRTCTcpCandidatesEnabled());
+		assertNull(appSettings.getEncoderName());
+		assertEquals(480, appSettings.getPreviewHeight());
+		assertFalse(appSettings.isUseOriginalWebRTCEnabled());
+		assertEquals(5000, appSettings.getCreatePreviewPeriod());
 		
 		List<NetMask> allowedCIDRList = appSettings.getAllowedCIDRList();
 		System.out.println("allowedCIDRList ->" + allowedCIDRList.size());
