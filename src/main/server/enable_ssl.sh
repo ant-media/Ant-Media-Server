@@ -86,7 +86,8 @@ get_new_certificate(){
 
 if [ "$fullChainFileExist" == false ]; then
     #  install letsencrypt and get the certificate
-
+ 	echo "creating new certificate"
+ 	
     # Install required libraries
     $SUDO apt-get update -y -qq
     OUT=$?
@@ -354,7 +355,6 @@ then
 
 elif [ "$renew_flag" == "false" ]
 then
-   echo "creating new certificate"
 
     #install letsencrypt and get the certificate
     get_new_certificate
