@@ -130,6 +130,15 @@ if [ "$fullChainFileExist" == false ]; then
       echo -e $ERROR_MESSAGE
       exit $OUT
     fi
+    
+    file="/etc/letsencrypt/live/$domain/keystore.jks"
+    delete_alias $file
+    
+    file="/etc/letsencrypt/live/$domain/truststore.jks"
+    delete_alias $file
+
+    FULL_CHAIN_FILE="/etc/letsencrypt/live/$domain/fullchain.pem"
+    PRIVATE_KEY_FILE="/etc/letsencrypt/live/$domain/privkey.pem"
 
 fi
 }
@@ -150,14 +159,6 @@ renew_certificate(){
 
 auth_tomcat(){
     echo ""
-    file="/etc/letsencrypt/live/$domain/keystore.jks"
-    delete_alias $file
-    
-    file="/etc/letsencrypt/live/$domain/truststore.jks"
-    delete_alias $file
-
-    FULL_CHAIN_FILE="/etc/letsencrypt/live/$domain/fullchain.pem"
-    PRIVATE_KEY_FILE="/etc/letsencrypt/live/$domain/privkey.pem"
 
 	TEMP_DIR=$INSTALL_DIRECTORY/$domain
 	if [ ! -d "$TEMP_DIR" ]; then
