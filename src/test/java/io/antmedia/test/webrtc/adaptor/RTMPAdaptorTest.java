@@ -185,6 +185,13 @@ public class RTMPAdaptorTest {
 
 
 	}
+	
+	@Test
+	public void testVideoDecoderFactory() {
+		//Video decoder factory should return null otherwise it does not work
+		RTMPAdaptor rtmpAdaptor = new RTMPAdaptor(null, null);
+		assertNull(rtmpAdaptor.getVideoDecoderFactory());
+	}
 
 
 	@Test

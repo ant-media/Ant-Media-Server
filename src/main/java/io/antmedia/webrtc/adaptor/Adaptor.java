@@ -60,6 +60,7 @@ public abstract class Adaptor implements Observer, SdpObserver
 		if (newState == IceConnectionState.DISCONNECTED || newState == IceConnectionState.FAILED
 				|| newState == IceConnectionState.CLOSED) 
 		{
+			log.info("Ice connection state changed to {} so it's stopping", newState);
 			stop();
 		}
 	}

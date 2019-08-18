@@ -70,6 +70,18 @@ public class WebSocketCommunityHandlerTest {
 	}
 
 
+	@Test
+	public void testPingPong() {
+		JSONObject publishObject = new JSONObject();
+		publishObject.put(WebSocketConstants.COMMAND, WebSocketConstants.PING_COMMAND);
+		
+		wsHandler.onMessage(session, publishObject.toJSONString());
+		
+		verify(wsHandler).sendPongMessage(session);
+		
+		verify(wsHandler, Mockito.never()).sendNoStreamIdSpecifiedError(session);
+	}
+	
 
 	@Test
 	public void testSendNoStreamId() {
