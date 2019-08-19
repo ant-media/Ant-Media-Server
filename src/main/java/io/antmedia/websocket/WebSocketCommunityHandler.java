@@ -65,17 +65,18 @@ public abstract class WebSocketCommunityHandler {
 				logger.error("Received message null for session id: {}" , session.getId());
 				return;
 			}
-
+			
 			JSONObject jsonObject = (JSONObject) jsonParser.parse(message);
 
 			String cmd = (String) jsonObject.get(WebSocketConstants.COMMAND);
 			if (cmd == null) {
 				logger.error("Received message does not contain any command for session id: {}" , session.getId());
 				return;
-			}
+			}				
 
 			final String streamId = (String) jsonObject.get(WebSocketConstants.STREAM_ID);
-			if (streamId == null || streamId.isEmpty()) 
+			if ((streamId == null || streamId.isEmpty())
+					&& !cmd.equals(WebSocketConstants.PING_COMMAND)) 
 			{
 				sendNoStreamIdSpecifiedError(session);
 				return;
@@ -119,6 +120,9 @@ public abstract class WebSocketCommunityHandler {
 					logger.warn("Connection context is null for stop. Wrong message order for stream: {}", streamId);
 
 				}
+			}
+			else if (cmd.equals(WebSocketConstants.PING_COMMAND)) {
+				sendPongMessage(session);
 			}
 
 
@@ -204,6 +208,14 @@ public abstract class WebSocketCommunityHandler {
 
 		sendMessage(jsonObj.toJSONString(), session);
 	}
+	
+	@SuppressWarnings("unchecked")
+	public void sendPongMessage(Session session) {
+		JSONObject jsonResponseObject = new JSONObject();
+		jsonResponseObject.put(WebSocketConstants.COMMAND, WebSocketConstants.PONG_COMMAND);
+		sendMessage(jsonResponseObject.toJSONString(), session);
+	}
+	
 
 	@SuppressWarnings("unchecked")
 	public  void sendPublishFinishedMessage(String streamId, Session session) {
@@ -259,7 +271,7 @@ public abstract class WebSocketCommunityHandler {
 	}
 
 	@SuppressWarnings("unchecked")
-	protected  final  void sendNoStreamIdSpecifiedError(Session session)  {
+	public  final  void sendNoStreamIdSpecifiedError(Session session)  {
 		JSONObject jsonResponse = new JSONObject();
 		jsonResponse.put(WebSocketConstants.COMMAND, WebSocketConstants.ERROR_COMMAND);
 		jsonResponse.put(WebSocketConstants.DEFINITION, WebSocketConstants.NO_STREAM_ID_SPECIFIED);
