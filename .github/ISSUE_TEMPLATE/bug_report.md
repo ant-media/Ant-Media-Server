@@ -7,6 +7,10 @@ assignees: ''
 
 ---
 
+***Attention:*** *For your support questions, ask at [stackoverflow](https://stackoverflow.com/questions/tagged/ant-media-server) or [our community forum](https://groups.google.com/forum/#!forum/ant-media-server).*
+
+***PLEASE FILL THE FOLLOWINGS AS MUCH AS POSSIBLE FOR FASTER SOLUTION***
+
 **Describe the bug**
 A clear and concise description of what the bug is.
 
