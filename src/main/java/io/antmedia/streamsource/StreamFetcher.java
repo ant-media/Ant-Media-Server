@@ -305,7 +305,7 @@ public class StreamFetcher {
 
 									bufferLogCounter++;
 									if (bufferLogCounter % 100 == 0) {
-										logger.info("Buffer status {}, buffer duration {}ms buffer time {}ms", buffering, bufferDuration, bufferTime);
+										logger.debug("Buffer status {}, buffer duration {}ms buffer time {}ms", buffering, bufferDuration, bufferTime);
 										bufferLogCounter = 0;
 									}
 								}

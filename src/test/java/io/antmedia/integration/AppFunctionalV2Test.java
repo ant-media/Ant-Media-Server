@@ -612,7 +612,7 @@ public class AppFunctionalV2Test {
 			// call web service to get stream info and check status
 			broadcast = restService.getBroadcast(broadcast.getStreamId().toString());
 			assertNotNull(broadcast);
-			assertEquals(broadcast.getStatus(), Application.BROADCAST_STATUS_BROADCASTING);
+			assertEquals(Application.BROADCAST_STATUS_BROADCASTING, broadcast.getStatus());
 
 			process.destroy();
 
