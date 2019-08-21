@@ -13,12 +13,14 @@ import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.context.ApplicationContext;
 
 import io.antmedia.AntMediaApplicationAdapter;
@@ -52,6 +54,55 @@ public class AppSettingsManagerTest {
 		deleteDir(new File("webapps"));
 	}
 
+	
+	@Test
+	public void testZeroEncoderSettings() {
+		
+		AppSettingsModel settings = new AppSettingsModel();
+		
+		ApplicationContext mockContext = mock(ApplicationContext.class);
+		AppSettings mockSettings = mock(AppSettings.class);
+		AntMediaApplicationAdapter mockApplicationAdapter = mock(AntMediaApplicationAdapter.class);	
+		
+		when(mockContext.containsBean(AppSettings.BEAN_NAME)).thenReturn(true);
+		when(mockContext.getBean(AppSettings.BEAN_NAME)).thenReturn(mockSettings);
+		when(mockContext.getApplicationName()).thenReturn(appName);
+		when(mockContext.getBean("web.handler")).thenReturn(mockApplicationAdapter);
+		
+		//null case
+		assertTrue(AppSettingsManager.updateAppSettings(mockContext, settings, false));
+		verify(mockSettings, times(1)).setAdaptiveResolutionList(null);
+		
+		
+		List<EncoderSettings> encoderSettings = new ArrayList<>();
+		encoderSettings.add(new EncoderSettings(720, 2500000, 128000)); //correct 
+		encoderSettings.add(new EncoderSettings(0, 2500000, 128000)); //wrong setting
+		encoderSettings.add(new EncoderSettings(720, 0, 128000)); //wrong setting
+		encoderSettings.add(new EncoderSettings(720, 2500000, 0)); //wrong setting
+		settings.setEncoderSettings(encoderSettings);
+		
+		
+		assertTrue(AppSettingsManager.updateAppSettings(mockContext, settings, false));
+		
+		AppSettingsModel savedSettings = AppSettingsManager.getAppSettings(appName);
+		
+		assertEquals(1, savedSettings.getEncoderSettings().size()); //wrong settings not applied, it is 1
+		assertEquals(720, savedSettings.getEncoderSettings().get(0).getHeight());
+		assertEquals(2500000, savedSettings.getEncoderSettings().get(0).getVideoBitrate());
+		assertEquals(128000, savedSettings.getEncoderSettings().get(0).getAudioBitrate());
+		
+		
+		
+		ArgumentCaptor<List<EncoderSettings>> encoderSettingsCapture = ArgumentCaptor.forClass(List.class);
+		verify(mockSettings, times(2)).setAdaptiveResolutionList(encoderSettingsCapture.capture());
+		
+		List<EncoderSettings> encoderSettings2 = encoderSettingsCapture.getValue();
+		
+		assertEquals(720, encoderSettings2.get(0).getHeight());
+		assertEquals(2500000, encoderSettings2.get(0).getVideoBitrate());
+		assertEquals(128000, encoderSettings2.get(0).getAudioBitrate());
+		
+	}
 	
 	@Test
 	public void testChangeAndGetSettings() {
@@ -91,7 +142,10 @@ public class AppSettingsManagerTest {
 		settings.setHlsTime(17);
 		settings.setHlsPlayListType("event");
 		List<EncoderSettings> encoderSettings = new ArrayList<>();
-		encoderSettings.add(new EncoderSettings(720, 2500000, 128000));
+		encoderSettings.add(new EncoderSettings(720, 2500000, 128000)); //correct 
+		encoderSettings.add(new EncoderSettings(0, 2500000, 128000)); //wrong setting
+		encoderSettings.add(new EncoderSettings(720, 0, 128000)); //wrong setting
+		encoderSettings.add(new EncoderSettings(720, 2500000, 0)); //wrong setting
 		settings.setEncoderSettings(encoderSettings);
 		settings.setPreviewOverwrite(false);
 		
@@ -102,10 +156,12 @@ public class AppSettingsManagerTest {
 		assertEquals("/mnt/storage", savedSettings.getVodFolder());
 		assertEquals(17, savedSettings.getHlsTime());
 		assertEquals("event", savedSettings.getHlsPlayListType());
-		assertEquals(1, savedSettings.getEncoderSettings().size());
+		assertEquals(1, savedSettings.getEncoderSettings().size()); //wrong settings not applied, it is 1
 		assertEquals(720, savedSettings.getEncoderSettings().get(0).getHeight());
 		assertEquals(2500000, savedSettings.getEncoderSettings().get(0).getVideoBitrate());
 		assertEquals(128000, savedSettings.getEncoderSettings().get(0).getAudioBitrate());
+		
+
 		
 		
 			
