@@ -330,4 +330,20 @@ public abstract class WebSocketCommunityHandler {
 		jsonResponse.put(WebSocketConstants.DEFINITION, WebSocketConstants.INVALID_STREAM_NAME);
 		sendMessage(jsonResponse.toJSONString(), session);	
 	}
+	
+	public void sendRemoteDescriptionSetFailure(Session session, String streamId) {
+		JSONObject jsonObject = new JSONObject();
+		jsonObject.put(WebSocketConstants.COMMAND, WebSocketConstants.ERROR_COMMAND);
+		jsonObject.put(WebSocketConstants.DEFINITION, WebSocketConstants.NOT_SET_REMOTE_DESCRIPTION);
+		jsonObject.put(WebSocketConstants.STREAM_ID, streamId);
+		sendMessage(jsonObject.toJSONString(), session);
+	}
+	
+	public void sendLocalDescriptionSetFailure(Session session, String streamId) {
+		JSONObject jsonObject = new JSONObject();
+		jsonObject.put(WebSocketConstants.COMMAND, WebSocketConstants.ERROR_COMMAND);
+		jsonObject.put(WebSocketConstants.DEFINITION, WebSocketConstants.NOT_SET_LOCAL_DESCRIPTION);
+		jsonObject.put(WebSocketConstants.STREAM_ID, streamId);
+		sendMessage(jsonObject.toJSONString(), session);
+	}
 }
