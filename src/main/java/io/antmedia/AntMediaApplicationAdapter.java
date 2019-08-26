@@ -173,6 +173,9 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		return true;
 	}
 
+	public void appStop(IScope app) 
+	{
+	}
 
 	public boolean synchUserVoDFolder(String oldFolderPath, String vodFolderPath) 
 	{
