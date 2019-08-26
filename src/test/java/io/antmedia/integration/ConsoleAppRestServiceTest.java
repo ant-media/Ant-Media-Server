@@ -459,6 +459,77 @@ public class ConsoleAppRestServiceTest{
 		}
 
 	}
+	
+	@Test
+	public void testZeroEncoderSettings() {
+		try {
+			User user = new User();
+			user.setEmail(TEST_USER_EMAIL);
+			user.setPassword(TEST_USER_PASS);
+			Result authenticatedUserResult = callAuthenticateUser(user);
+			assertTrue(authenticatedUserResult.isSuccess());
+			
+			//get the applications from server
+			String applications = callGetApplications();
+
+			JSONObject appsJSON = (JSONObject) new JSONParser().parse(applications);
+			JSONArray jsonArray = (JSONArray) appsJSON.get("applications");
+			//choose the one of them
+
+			int index = (int)(Math.random()*jsonArray.size());
+			String appName = (String) jsonArray.get(index);
+
+			log.info("appName: {}", appName);
+			
+			AppSettingsModel appSettingsOriginal = callGetAppSettings(appName);
+			
+			
+			AppSettingsModel appSettings = callGetAppSettings(appName);
+			int size = appSettings.getEncoderSettings().size();
+			appSettings.getEncoderSettings().add(new EncoderSettings(0, 200000, 300000));
+			Result result = callSetAppSettings(appName, appSettings);
+			assertTrue(result.isSuccess());
+			
+			appSettings = callGetAppSettings(appName);
+			//it should not change the size because encoder setting is false, height should not be zero
+			assertEquals(size, appSettings.getEncoderSettings().size());
+			
+			
+			
+			appSettings.getEncoderSettings().add(new EncoderSettings(480, 0, 300000));
+			result = callSetAppSettings(appName, appSettings);
+			assertTrue(result.isSuccess());
+			appSettings = callGetAppSettings(appName);
+			//it should not change the size because encoder setting is false, height should not be zero
+			assertEquals(size, appSettings.getEncoderSettings().size());
+			
+			
+			appSettings.getEncoderSettings().add(new EncoderSettings(480, 2000, 0));
+			result = callSetAppSettings(appName, appSettings);
+			assertTrue(result.isSuccess());
+			appSettings = callGetAppSettings(appName);
+			//it should not change the size because encoder setting is false, height should not be zero
+			assertEquals(size, appSettings.getEncoderSettings().size());
+			
+			
+			
+			appSettings.getEncoderSettings().add(new EncoderSettings(480, 2000, 30000));
+			result = callSetAppSettings(appName, appSettings);
+			assertTrue(result.isSuccess());
+			appSettings = callGetAppSettings(appName);
+			//it should change the size because parameters are correct
+			assertEquals((size+1), appSettings.getEncoderSettings().size());
+			
+			
+			//restore settings
+			result = callSetAppSettings(appName, appSettingsOriginal);
+			assertTrue(result.isSuccess());
+		}
+		catch(Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+	}
 
 
 	@Test

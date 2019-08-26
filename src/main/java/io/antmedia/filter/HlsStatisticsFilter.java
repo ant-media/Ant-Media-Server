@@ -18,16 +18,12 @@ import org.springframework.web.context.WebApplicationContext;
 import io.antmedia.statistic.HlsViewerStats;
 import io.antmedia.statistic.IStreamStats;
 
-public class HlsStatisticsFilter implements javax.servlet.Filter {
+public class HlsStatisticsFilter extends AbstractFilter {
 
 	protected static Logger logger = LoggerFactory.getLogger(HlsStatisticsFilter.class);
 	private IStreamStats streamStats;
-	private FilterConfig filterConfig;
 
-	@Override
-	public void init(FilterConfig filterConfig) throws ServletException {
-		this.filterConfig = filterConfig;
-	}
+
 
 	@Override
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
@@ -52,7 +48,10 @@ public class HlsStatisticsFilter implements javax.servlet.Filter {
 				
 				if (streamId != null) {
 					logger.debug("req ip {} session id {} stream id {} status {}", request.getRemoteHost(), sessionId, streamId, status);
-					getStreamStats().registerNewViewer(streamId, sessionId);
+					IStreamStats stats = getStreamStats();
+					if (stats != null) {
+						stats.registerNewViewer(streamId, sessionId);
+					}
 				}
 			}
 		}
@@ -62,19 +61,13 @@ public class HlsStatisticsFilter implements javax.servlet.Filter {
 
 	}
 
-
-
-	@Override
-	public void destroy() {
-		//There is no need to implement destroy right now
-	}
-
-
 	public IStreamStats getStreamStats() {
 		if (streamStats == null) {
-			ApplicationContext context = (ApplicationContext) filterConfig.getServletContext().getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
-			streamStats = (IStreamStats)context.getBean(HlsViewerStats.BEAN_NAME);
-
+			ApplicationContext context = getAppContext();
+			if (context != null) 
+			{
+				streamStats = (IStreamStats)context.getBean(HlsViewerStats.BEAN_NAME);
+			}
 		}
 		return streamStats;
 	}

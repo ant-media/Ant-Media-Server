@@ -229,6 +229,21 @@ public class WebSocketConstants {
 	 * Error definition, it's send when video encoder is not opened 
 	 */
 	public static final String ENCODER_NOT_OPENED = "encoderNotOpened";
-	
 
+	/**
+	 * Error definition, it's send when video encoder is blocked
+	 */
+	public static final String ENCODER_BLOCKED = "encoderBlocked";
+
+	/**
+	 * Error definition, it's send when publishing has not started and timeout 
+	 */
+	public static final String PUBLISH_TIMEOUT_ERROR = "publishTimeoutError";
+
+	/**
+	 * Error definition, it's send when remote description is not set, it's generally due to 
+	 * encoder incompatibilities
+	 */
+	public static final Object NOT_SET_REMOTE_DESCRIPTION = "notSetRemoteDescription";
+	
 }

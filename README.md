@@ -40,6 +40,19 @@ Ant Media Server is an open source media server that supports:
  
 
 ## Releases 
+### [Ant Media Server Community 1.8.0 (Aug 25, 2019)](https://github.com/ant-media/Ant-Media-Server/releases/download/ams-v1.8.0/ant-media-server-1.8.0-community-1.8.0-20190825_1136.zip)
+* Make WebRTC Publishing/Playing Load Balancer friendly [#1340](https://github.com/ant-media/Ant-Media-Server/issues/1340)
+* Handover of streams between nodes in auto-scale mode [#585](https://github.com/ant-media/Ant-Media-Server/issues/585)
+* Support Screen + webcam(PIP) broadcasting [#1247](https://github.com/ant-media/Ant-Media-Server/issues/1247)
+* Support ONVIF Zoom-in/Zoom-out methods in REST [#1339](https://github.com/ant-media/Ant-Media-Server/issues/1339)
+* Support Room Token in Conference calls [#1337](https://github.com/ant-media/Ant-Media-Server/issues/1337) [#1268](https://github.com/ant-media/Ant-Media-Server/issues/1268)
+* Create REST Service v2 [#1317](https://github.com/ant-media/Ant-Media-Server/issues/1317)
+* Support Chat Solution [#431](https://github.com/ant-media/Ant-Media-Server/issues/431)
+* Remove RTSP support completely for playing/ingesting [#1423](https://github.com/ant-media/Ant-Media-Server/issues/1423)
+* Make CPU limit configurable [#1143](https://github.com/ant-media/Ant-Media-Server/issues/1143)
+* Upgrade Spring Framework [#1212](https://github.com/ant-media/Ant-Media-Server/issues/1212)
+* Improvements and fixes [#1408](https://github.com/ant-media/Ant-Media-Server/issues/1408) [#1249](https://github.com/ant-media/Ant-Media-Server/issues/1249) [#1343](https://github.com/ant-media/Ant-Media-Server/issues/1343) [#934](https://github.com/ant-media/Ant-Media-Server/issues/934) [#1395](https://github.com/ant-media/Ant-Media-Server/issues/1395) [#1204](https://github.com/ant-media/Ant-Media-Server/issues/1204) [#1336](https://github.com/ant-media/Ant-Media-Server/issues/1336) [#307](https://github.com/ant-media/Ant-Media-Server/issues/307) [#1257](https://github.com/ant-media/Ant-Media-Server/issues/1257) [#1254](https://github.com/ant-media/Ant-Media-Server/issues/1254) [#1258](https://github.com/ant-media/Ant-Media-Server/issues/1258) [#1266](https://github.com/ant-media/Ant-Media-Server/issues/1266) [#1319](https://github.com/ant-media/Ant-Media-Server/issues/1319) [#1425](https://github.com/ant-media/Ant-Media-Server/issues/1425) [#1409](https://github.com/ant-media/Ant-Media-Server/issues/1409)
+
 
 ### [Ant Media Server Community 1.7.2 (June 2, 2019)](https://github.com/ant-media/Ant-Media-Server/releases/download/ams-v1.7.2/ant-media-server-community-1.7.2-20190602_1447.zip)
  * %40 Performance Improvement in WebRTC Streams [#1130](https://github.com/ant-media/Ant-Media-Server/issues/1130), [#1147](https://github.com/ant-media/Ant-Media-Server/issues/1147), [#1068](https://github.com/ant-media/Ant-Media-Server/issues/1068)

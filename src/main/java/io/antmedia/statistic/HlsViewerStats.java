@@ -13,6 +13,7 @@ import org.springframework.context.ApplicationContextAware;
 
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStoreFactory;
+import io.antmedia.datastore.db.IDataStoreFactory;
 import io.antmedia.datastore.db.DataStore;
 
 public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
@@ -22,6 +23,8 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 	public static final String BEAN_NAME = "hls.viewerstats";
 
 	private DataStore dataStore;
+	
+	
 	private DataStoreFactory dataStoreFactory;
 
 	public static final int DEFAULT_TIME_PERIOD_FOR_VIEWER_COUNT = 10000;
@@ -76,7 +79,7 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 
 	@Override
 	public void setApplicationContext(ApplicationContext applicationContext)  {
-		dataStoreFactory = (DataStoreFactory) applicationContext.getBean("dataStoreFactory");
+		dataStoreFactory = (DataStoreFactory) applicationContext.getBean(IDataStoreFactory.BEAN_NAME);
 
 		
 		ISchedulingService scheduler = (ISchedulingService) applicationContext.getBean(ISchedulingService.BEAN_NAME);
@@ -114,7 +117,7 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 						
 						numberOfDecrement = -1 * numberOfDecrement;
 						
-						getDataStoreFactory().getDataStore().updateHLSViewerCount(streamViewerEntry.getKey(), numberOfDecrement);
+						getDataStore().updateHLSViewerCount(streamViewerEntry.getKey(), numberOfDecrement);
 						
 					}
 					

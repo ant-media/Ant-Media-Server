@@ -58,6 +58,10 @@ import io.antmedia.shutdown.IShutdownListener;
 import io.antmedia.social.endpoint.PeriscopeEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
+import io.antmedia.statistic.type.WebRTCAudioReceiveStats;
+import io.antmedia.statistic.type.WebRTCAudioSendStats;
+import io.antmedia.statistic.type.WebRTCVideoReceiveStats;
+import io.antmedia.statistic.type.WebRTCVideoSendStats;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
 import io.vertx.core.Handler;
@@ -100,6 +104,20 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	private AppSettings appSettings;
 	private Vertx vertx;
 	private IScope scope;
+
+	protected List<String> encoderBlockedStreams = new ArrayList<>();
+	private int numberOfEncoderNotOpenedErrors = 0;
+	protected int publishTimeoutStreams = 0;
+	private List<String> publishTimeoutStreamsList = new ArrayList<>();
+	
+	protected WebRTCVideoReceiveStats webRTCVideoReceiveStats = new WebRTCVideoReceiveStats();
+
+	protected WebRTCAudioReceiveStats webRTCAudioReceiveStats = new WebRTCAudioReceiveStats();
+	
+	
+	protected WebRTCVideoSendStats webRTCVideoSendStats = new WebRTCVideoSendStats();
+
+	protected WebRTCAudioSendStats webRTCAudioSendStats = new WebRTCAudioSendStats();
 
 	public boolean appStart(IScope app) {
 		setScope(app);
@@ -226,10 +244,9 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 					if (listenerHookURL != null && listenerHookURL.length() > 0) {
 						final String name = broadcast.getName();
 						final String category = broadcast.getCategory();
-						addScheduledOnceJob(100, l-> {
-								notifyHook(listenerHookURL, streamId, HOOK_ACTION_END_LIVE_STREAM, name, category,
-										null, null);
-						});
+						
+						vertx.runOnContext(e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_END_LIVE_STREAM, name, category,
+								null, null));
 					}
 
 					stopPublishingSocialEndpoints(broadcast);
@@ -381,10 +398,8 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 					if (listenerHookURL != null && listenerHookURL.length() > 0) {
 						final String name = broadcast.getName();
 						final String category = broadcast.getCategory();
-						addScheduledOnceJob(100, l-> {
-								notifyHook(listenerHookURL, streamId, HOOK_ACTION_START_LIVE_STREAM, name, category,
-										null, null);
-						});
+						vertx.runOnContext(e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_START_LIVE_STREAM, name, category,
+								null, null));
 					}
 
 					publishSocialEndpoints(broadcast.getEndPointList());
@@ -499,10 +514,10 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		{
 			final String baseName = vodName.substring(0, index);
 			String finalListenerHookURL = listenerHookURL;
-			addScheduledOnceJob(100, l -> {
-				notifyHook(finalListenerHookURL, streamId, HOOK_ACTION_VOD_READY, null, null, baseName, vodId);
-			});
-		
+			
+			vertx.runOnContext(e ->
+				notifyHook(finalListenerHookURL, streamId, HOOK_ACTION_VOD_READY, null, null, baseName, vodId)	
+			);
 		}
 
 		String muxerFinishScript = appSettings.getMuxerFinishScript();
@@ -715,29 +730,11 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		this.streamPublishSecurityList = streamPublishSecurityList;
 	}
 
+	
 	public AppSettings getAppSettings() {
-
-		if(appSettings == null) {
-
-			AppSettings appSettingsTmp = new AppSettings();
-
-			appSettingsTmp.setMp4MuxingEnabled(true);
-			appSettingsTmp.setAddDateTimeToMp4FileName(true);
-			appSettingsTmp.setWebRTCEnabled(false);
-			appSettingsTmp.setHlsMuxingEnabled(true);
-			appSettingsTmp.setObjectDetectionEnabled(false);
-			appSettingsTmp.setAdaptiveResolutionList(null);
-			appSettingsTmp.setHlsListSize(null);
-			appSettingsTmp.setHlsTime(null);
-			appSettingsTmp.setHlsPlayListType(null);
-			appSettingsTmp.setDeleteHLSFilesOnEnded(true);
-			appSettingsTmp.setPreviewOverwrite(false);
-			appSettingsTmp.setTokenControlEnabled(false);
-			this.appSettings=appSettingsTmp;
-		}
-
 		return appSettings;
 	}
+	
 
 	public void setAppSettings(AppSettings appSettings) {
 		this.appSettings = appSettings;
@@ -887,7 +884,6 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		return muxAdaptors;
 	}
 
-
 	public IScope getScope() {
 		return scope;
 	}
@@ -895,5 +891,60 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 	public void setScope(IScope scope) {
 		this.scope = scope;
+	}
+	
+	/**
+	 * Number of encoders blocked. 
+	 * @return
+	 */
+	public int getNumberOfEncodersBlocked() {
+		return encoderBlockedStreams.size();
+	}
+	
+	public synchronized void encoderBlocked(String streamId, boolean blocked) {
+		if (blocked) {
+			encoderBlockedStreams.add(streamId);
+		}
+		else {
+			encoderBlockedStreams.remove(streamId);
+		}
+	}
+
+	
+	public synchronized void incrementEncoderNotOpenedError() {
+		numberOfEncoderNotOpenedErrors ++;
+	}
+	
+	public int getNumberOfEncoderNotOpenedErrors() {
+		return numberOfEncoderNotOpenedErrors;
+	}
+	
+	public int getNumberOfPublishTimeoutError() {
+		return publishTimeoutStreams;
+	}
+	
+	public synchronized void publishTimeoutError(String streamId) {
+		publishTimeoutStreams++;
+		publishTimeoutStreamsList.add(streamId);
+	}
+
+	public WebRTCAudioReceiveStats getWebRTCAudioReceiveStats() {
+		return webRTCAudioReceiveStats;
+	}
+	
+	public WebRTCVideoReceiveStats getWebRTCVideoReceiveStats() {
+		return webRTCVideoReceiveStats;
+	}
+	
+	public WebRTCAudioSendStats getWebRTCAudioSendStats() {
+		return webRTCAudioSendStats;
+	}
+	
+	public WebRTCVideoSendStats getWebRTCVideoSendStats() {
+		return webRTCVideoSendStats;
+	} 
+	
+	public Vertx getVertx() {
+		return vertx;
 	}
 }

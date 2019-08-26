@@ -57,12 +57,15 @@ public class LauncherUnitTest {
 			assertTrue(launcher.startHeartBeats("version", "type", 1000));
 			
 
-			Awaitility.await().with().pollDelay(10,TimeUnit.SECONDS).atMost(20, TimeUnit.SECONDS)
+			//wait to make sure timer task ender the block
+			Awaitility.await().pollDelay(5,TimeUnit.SECONDS).atMost(20, TimeUnit.SECONDS)
 			.pollInterval(1, TimeUnit.SECONDS)
 			.until(()->{
-				return launcher.startHeartBeats("version", "type", 1000);
+				return true;
 			});
-
+			
+			
+			launcher.cancelHeartBeat();
 	}
 	
 	@Test

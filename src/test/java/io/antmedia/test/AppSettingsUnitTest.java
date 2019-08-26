@@ -15,10 +15,15 @@ import org.apache.catalina.util.NetMask;
 import org.junit.Test;
 import org.red5.server.Launcher;
 import org.red5.server.scope.WebScope;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
+import org.springframework.mock.web.MockServletContext;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
+import org.springframework.web.context.support.XmlWebApplicationContext;
 
 import io.antmedia.AppSettings;
 import io.antmedia.EncoderSettings;
@@ -34,21 +39,60 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 	static {
 		System.setProperty("red5.deployment.type", "junit");
 		System.setProperty("red5.root", ".");
+		
 	}
 	
 	@Test
-	public void testDefaultSettings() {
-
-		if (appScope == null) {
+	public void testDefaultSettings() 
+	{
+		if (appScope == null) 
+		{
 			appScope = (WebScope) applicationContext.getBean("web.scope");
 			assertTrue(appScope.getDepth() == 1);
 		}
 		
 		AppSettings appSettings = (AppSettings) applicationContext.getBean("app.settings");
 		
+		assertEquals("stun:stun.l.google.com:19302", appSettings.getStunServerURI());
+		assertEquals(true, appSettings.isWebRTCTcpCandidatesEnabled());
+		assertNull(appSettings.getEncoderName());
+		assertEquals(480, appSettings.getPreviewHeight());
+		assertFalse(appSettings.isUseOriginalWebRTCEnabled());
+		assertEquals(5000, appSettings.getCreatePreviewPeriod());
+		
 		List<NetMask> allowedCIDRList = appSettings.getAllowedCIDRList();
 		System.out.println("allowedCIDRList ->" + allowedCIDRList.size());
 	}
+	
+	/*
+	@Test
+	public void testXMLApplication() {
+		
+		XmlWebApplicationContext applicationContext = new XmlWebApplicationContext();
+		    applicationContext.setConfigLocations(
+		            "red5-web.xml");
+		    applicationContext.setServletContext(new MockServletContext(new ResourceLoader() {
+				
+				@Override
+				public Resource getResource(String location) {
+					return new FileSystemResource("src/test/resources/WEB-INF/xml/" + location);
+				}
+				
+				@Override
+				public ClassLoader getClassLoader() {
+					return getClassLoader();
+				}
+			}));
+		    applicationContext.refresh();
+		    
+		    
+		    assertNotNull(applicationContext);
+		    
+		   
+		
+		 
+	}
+	*/
 	
 	
 	@Test

@@ -31,7 +31,6 @@ import org.springframework.test.context.ContextConfiguration;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
-import io.antmedia.IResourceMonitor;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
@@ -39,7 +38,8 @@ import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.rest.StreamsSourceRestService;
 import io.antmedia.rest.model.Result;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
-import io.antmedia.statistic.ResourceMonitor;
+import io.antmedia.statistic.IStatsCollector;
+import io.antmedia.statistic.StatsCollector;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.test.StreamFetcherUnitTest;
 
@@ -94,9 +94,9 @@ public class StreamSourceRestServiceUnitTest {
 
 		streamSourceRest.setAppCtx(appContext);
 
-		ResourceMonitor monitorService = new ResourceMonitor(); 
+		StatsCollector monitorService = new StatsCollector(); 
 		
-		when(appContext.getBean(IResourceMonitor.BEAN_NAME)).thenReturn(monitorService);
+		when(appContext.getBean(IStatsCollector.BEAN_NAME)).thenReturn(monitorService);
 
 		//define CPU load above limit
 		int cpuLoad = 90;
@@ -252,9 +252,9 @@ public class StreamSourceRestServiceUnitTest {
 
 		streamSourceRest.setAppCtx(appContext);
 
-		ResourceMonitor monitorService = new ResourceMonitor(); 
+		StatsCollector monitorService = new StatsCollector(); 
 		
-		when(appContext.getBean(IResourceMonitor.BEAN_NAME)).thenReturn(monitorService);
+		when(appContext.getBean(IStatsCollector.BEAN_NAME)).thenReturn(monitorService);
 
 		//define CPU load below limit
 		int cpuLoad2 = 70;
@@ -318,7 +318,7 @@ public class StreamSourceRestServiceUnitTest {
 
 		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
 		Mockito.doReturn(store).when(streamSourceRest).getDataStore();
-		Mockito.doReturn(settings).when(adaptor).getAppSettings();
+		Mockito.doReturn(settings).when(streamSourceRest).getAppSettings();
 		when(settings.getVodFolder()).thenReturn(vodFolder);
 		Mockito.doReturn(true).when(adaptor).synchUserVoDFolder(null, vodFolder);
 
@@ -356,9 +356,9 @@ public class StreamSourceRestServiceUnitTest {
 
 		streamSourceRest.setAppCtx(appContext);
 
-		ResourceMonitor monitorService = new ResourceMonitor();
+		StatsCollector monitorService = new StatsCollector();
 
-		when(appContext.getBean(IResourceMonitor.BEAN_NAME)).thenReturn(monitorService);
+		when(appContext.getBean(IStatsCollector.BEAN_NAME)).thenReturn(monitorService);
 
 		//define CPU load below limit
 		int cpuLoad2 = 70;

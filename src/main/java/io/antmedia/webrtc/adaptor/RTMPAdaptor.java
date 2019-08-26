@@ -23,7 +23,6 @@ import org.webrtc.PeerConnection.IceServer;
 import org.webrtc.PeerConnection.TcpCandidatePolicy;
 import org.webrtc.PeerConnectionFactory;
 import org.webrtc.SessionDescription;
-import org.webrtc.SoftwareVideoDecoderFactory;
 import org.webrtc.SoftwareVideoEncoderFactory;
 import org.webrtc.VideoFrame;
 import org.webrtc.VideoFrame.Buffer;
@@ -82,6 +81,11 @@ public class RTMPAdaptor extends Adaptor {
 				new MediaConstraints.KeyValuePair("OfferToReceiveVideo", "true"));
 	}
 
+	public org.webrtc.VideoDecoderFactory getVideoDecoderFactory() {
+		//let webrtc decode it
+		return null;
+	}
+	
 	public PeerConnectionFactory createPeerConnectionFactory(){
 		PeerConnectionFactory.initialize(
 				PeerConnectionFactory.InitializationOptions.builder(null)
@@ -89,10 +93,11 @@ public class RTMPAdaptor extends Adaptor {
 
 
 		SoftwareVideoEncoderFactory encoderFactory = new SoftwareVideoEncoderFactory();
-		SoftwareVideoDecoderFactory decoderFactory = new SoftwareVideoDecoderFactory();
+		org.webrtc.VideoDecoderFactory decoderFactory = getVideoDecoderFactory();
 
 		PeerConnectionFactory.Options options = new PeerConnectionFactory.Options();
 		options.disableNetworkMonitor = true;
+		options.networkIgnoreMask = PeerConnectionFactory.Options.ADAPTER_TYPE_LOOPBACK;
 
 
 		// in receiving stream only Audio Track should be enabled
@@ -251,9 +256,6 @@ public class RTMPAdaptor extends Adaptor {
 			enableAudio = true;
 		}
 
-
-
-
 		if (!stream.videoTracks.isEmpty()) {
 
 			VideoTrack videoTrack = stream.videoTracks.get(0);
@@ -334,7 +336,7 @@ public class RTMPAdaptor extends Adaptor {
 							}
 							else {
 								dropFrameCount ++;
-								logger.trace("dropping video, total drop count: {} frame number: {} recorder frame number: {}", 
+								logger.debug("dropping video, total drop count: {} frame number: {} recorder frame number: {}", 
 										dropFrameCount, frameNumber, lastFrameNumber);
 							}
 							frame.release();
@@ -343,6 +345,9 @@ public class RTMPAdaptor extends Adaptor {
 					}
 				});
 			}
+		}
+		else {
+			logger.warn("There is no video track for stream: {}", getStreamId());
 		}
 
 

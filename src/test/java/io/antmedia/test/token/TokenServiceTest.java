@@ -1,6 +1,7 @@
 package io.antmedia.test.token;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -15,16 +16,19 @@ import javax.servlet.http.HttpSessionEvent;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
+import org.springframework.web.context.ConfigurableWebApplicationContext;
 
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.filter.TokenFilterManager;
 import io.antmedia.filter.TokenSessionFilter;
+import io.antmedia.security.ITokenService;
 import io.antmedia.security.MockTokenService;
 
 public class TokenServiceTest {
@@ -69,6 +73,25 @@ public class TokenServiceTest {
 		// it should be true because mock service always replies as true
 		assertTrue(flag);
 
+	}
+	
+	
+	@Test
+	public void testGetTokenService() {
+		ITokenService iTokenService = tokenSessionFilter.getTokenService();
+		assertNull(iTokenService);
+		
+		ConfigurableWebApplicationContext context = mock(ConfigurableWebApplicationContext.class);
+		when(context.isRunning()).thenReturn(true);
+		
+		when(context.getBean(Mockito.anyString())).thenReturn(mock(ITokenService.class));
+		
+		tokenSessionFilter.setContext(context);
+		
+		iTokenService = tokenSessionFilter.getTokenService();
+		assertNotNull(iTokenService);
+		
+		
 	}
 
 	@Test

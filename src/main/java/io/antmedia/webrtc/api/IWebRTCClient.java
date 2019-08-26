@@ -5,6 +5,9 @@ import java.nio.ByteBuffer;
 import org.webrtc.IceCandidate;
 import org.webrtc.SessionDescription;
 
+import io.antmedia.statistic.type.WebRTCAudioSendStats;
+import io.antmedia.statistic.type.WebRTCVideoSendStats;
+
 public interface IWebRTCClient {
 	
 	
@@ -83,4 +86,14 @@ public interface IWebRTCClient {
 	 * @return number of times audio packet send called
 	 */
 	long getSendAudioPacketCallCount();
+	
+	/**
+	 * @return low level video stats
+	 */
+	public WebRTCVideoSendStats getVideoStats();
+	
+	/**
+	 * @return low level audio stats
+	 */
+	public WebRTCAudioSendStats getAudioStats();
 }

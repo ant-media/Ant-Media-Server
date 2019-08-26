@@ -1,6 +1,5 @@
 package io.antmedia.test;
 
-import com.antstreaming.rtsp.PacketSenderRunnable;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.types.Broadcast;
@@ -37,7 +36,6 @@ import org.red5.server.scope.WebScope;
 import org.red5.server.service.mp4.impl.MP4Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
@@ -166,7 +164,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
         }
     }
 
-    ;
 
     @Test
     public void testMuxAdaptorEnableSettingsPreviewCreatePeriod() {
@@ -571,7 +568,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		
         assertEquals(Application.id, streamId);
 		assertEquals(Application.file.getName(), streamId + ".mp4");
-		assertEquals(697182L, Application.duration);
+		assertEquals(697225l, Application.duration);
 
         broadcast = appAdaptor.getDataStore().get(streamId);
         //we do not save duration of the finished live streams
@@ -1246,61 +1243,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
             e.printStackTrace();
             fail(e.getMessage());
         }
-
-    }
-
-    @Test
-    public void testRTSPMuxing() {
-
-        if (appScope == null) {
-            appScope = (WebScope) applicationContext.getBean("web.scope");
-            logger.debug("Application / web scope: {}", appScope);
-            assertTrue(appScope.getDepth() == 1);
-        }
-
-        try {
-
-            File file = new File("target/test-classes/test.flv"); //ResourceUtils.getFile(this.getClass().getResource("test.flv"));
-            PacketSenderRunnable rtspPacketSender = new PacketSenderRunnable(null);
-
-            String sdpDescription = rtspPacketSender.getSdpDescription(file.getAbsolutePath());
-            assertNotNull(sdpDescription);
-            assertTrue(sdpDescription.length() > 0);
-            int[] clientPort = new int[2];
-            clientPort[0] = 23458;
-            clientPort[1] = 45567;
-            int[] serverPort = new int[2];
-            boolean result = rtspPacketSender.prepareOutputContext(0, "127.0.0.1", clientPort, serverPort);
-            assertTrue(result);
-
-            int[] clientPort2 = new int[2];
-            clientPort2[0] = 23452;
-            clientPort2[1] = 44557;
-            int[] serverPort2 = new int[2];
-            result = rtspPacketSender.prepareOutputContext(1, "127.0.0.1", clientPort2, serverPort2);
-            assertTrue(result);
-
-            ThreadPoolTaskScheduler scheduler = (ThreadPoolTaskScheduler) applicationContext.getBean("scheduler");
-            assertNotNull(scheduler);
-
-            scheduler.scheduleAtFixedRate(rtspPacketSender, 10);
-
-            Thread.sleep(10000);
-
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    @Test
-    public void testSDPCreateBug() {
-        String file = "target/test-classes/test.flv";
-        PacketSenderRunnable packetSender = new PacketSenderRunnable(null);
-        String sdpDescription = packetSender.getSdpDescription(file);
-        assertNotNull(sdpDescription);
-        assertTrue(sdpDescription.length() > 0);
-        System.out.println(sdpDescription);
 
     }
 

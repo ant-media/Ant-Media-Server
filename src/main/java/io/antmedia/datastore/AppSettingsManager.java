@@ -1,5 +1,8 @@
 package io.antmedia.datastore;
 
+import java.util.Iterator;
+import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -7,6 +10,7 @@ import org.springframework.context.ApplicationContext;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.AppSettingsModel;
+import io.antmedia.EncoderSettings;
 import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.datastore.preference.PreferenceStore;
 import io.antmedia.security.AcceptOnlyStreamsInDataStore;
@@ -21,6 +25,19 @@ public class AppSettingsManager {
 
 	public static boolean updateAppSettings(ApplicationContext applicationContext, AppSettingsModel settingsModel, boolean sendToCluster) {
 		boolean result = false;
+		
+		//if there is any wrong encoder settings, remove it at first
+		List<EncoderSettings> encoderSettingsList = settingsModel.getEncoderSettings();
+		if (encoderSettingsList != null) {
+			for (Iterator<EncoderSettings> iterator = encoderSettingsList.iterator(); iterator.hasNext();) {
+				EncoderSettings encoderSettings = iterator.next();
+				if (encoderSettings.getHeight() == 0 || encoderSettings.getVideoBitrate() == 0 || encoderSettings.getAudioBitrate() == 0)
+				{
+					iterator.remove();
+				}
+			}
+		}
+		
 		if (updateAppSettingsFile(applicationContext.getApplicationName(), settingsModel))
 		{
 			if (applicationContext.containsBean(AcceptOnlyStreamsInDataStore.BEAN_NAME)) {
@@ -33,46 +50,54 @@ public class AppSettingsManager {
 				cluster.sendAppSettings(applicationContext.getApplicationName(), settingsModel);
 			}
 			
-			if (applicationContext.containsBean(AppSettings.BEAN_NAME)) {
-				AppSettings appSettings = (AppSettings) applicationContext.getBean(AppSettings.BEAN_NAME);
-
-				appSettings.setMp4MuxingEnabled(settingsModel.isMp4MuxingEnabled());
-				appSettings.setAddDateTimeToMp4FileName(settingsModel.isAddDateTimeToMp4FileName());
-				appSettings.setHlsMuxingEnabled(settingsModel.isHlsMuxingEnabled());
-				appSettings.setObjectDetectionEnabled(settingsModel.isObjectDetectionEnabled());
-				appSettings.setHlsListSize(String.valueOf(settingsModel.getHlsListSize()));
-				appSettings.setHlsTime(String.valueOf(settingsModel.getHlsTime()));
-				appSettings.setHlsPlayListType(settingsModel.getHlsPlayListType());
-				appSettings.setAcceptOnlyStreamsInDataStore(settingsModel.isAcceptOnlyStreamsInDataStore());
-				appSettings.setTokenControlEnabled(settingsModel.isTokenControlEnabled());
-				appSettings.setWebRTCEnabled(settingsModel.isWebRTCEnabled());
-				appSettings.setWebRTCFrameRate(settingsModel.getWebRTCFrameRate());
-				appSettings.setHashControlPublishEnabled(settingsModel.isHashControlPublishEnabled());
-				appSettings.setHashControlPlayEnabled(settingsModel.isHashControlPlayEnabled());
-				appSettings.setTokenHashSecret(settingsModel.getTokenHashSecret());
-
-				appSettings.setRemoteAllowedCIDR(settingsModel.getRemoteAllowedCIDR());
-				
-				appSettings.setAdaptiveResolutionList(settingsModel.getEncoderSettings());
-
-				String oldVodFolder = appSettings.getVodFolder();
-
-				appSettings.setVodFolder(settingsModel.getVodFolder());
-				appSettings.setPreviewOverwrite(settingsModel.isPreviewOverwrite());
-
-				AntMediaApplicationAdapter bean = (AntMediaApplicationAdapter) applicationContext.getBean("web.handler");
-
-				bean.synchUserVoDFolder(oldVodFolder, settingsModel.getVodFolder());
-
-				log.warn("app settings updated for {}", applicationContext.getApplicationName());	
-				result = true;
-			}
-			else {
-				log.warn("App{} has no app.settings bean to update ", applicationContext.getApplicationName());
-				result = false;
-			}
+			
+			result = updateAppSettingsBean(applicationContext, settingsModel);
 		}
 
+		return result;
+	}
+
+	private static boolean updateAppSettingsBean(ApplicationContext applicationContext,
+			AppSettingsModel settingsModel) {
+		boolean result;
+		if (applicationContext.containsBean(AppSettings.BEAN_NAME)) {
+			AppSettings appSettings = (AppSettings) applicationContext.getBean(AppSettings.BEAN_NAME);
+
+			appSettings.setMp4MuxingEnabled(settingsModel.isMp4MuxingEnabled());
+			appSettings.setAddDateTimeToMp4FileName(settingsModel.isAddDateTimeToMp4FileName());
+			appSettings.setHlsMuxingEnabled(settingsModel.isHlsMuxingEnabled());
+			appSettings.setObjectDetectionEnabled(settingsModel.isObjectDetectionEnabled());
+			appSettings.setHlsListSize(String.valueOf(settingsModel.getHlsListSize()));
+			appSettings.setHlsTime(String.valueOf(settingsModel.getHlsTime()));
+			appSettings.setHlsPlayListType(settingsModel.getHlsPlayListType());
+			appSettings.setAcceptOnlyStreamsInDataStore(settingsModel.isAcceptOnlyStreamsInDataStore());
+			appSettings.setTokenControlEnabled(settingsModel.isTokenControlEnabled());
+			appSettings.setWebRTCEnabled(settingsModel.isWebRTCEnabled());
+			appSettings.setWebRTCFrameRate(settingsModel.getWebRTCFrameRate());
+			appSettings.setHashControlPublishEnabled(settingsModel.isHashControlPublishEnabled());
+			appSettings.setHashControlPlayEnabled(settingsModel.isHashControlPlayEnabled());
+			appSettings.setTokenHashSecret(settingsModel.getTokenHashSecret());
+
+			appSettings.setRemoteAllowedCIDR(settingsModel.getRemoteAllowedCIDR());
+			
+			appSettings.setAdaptiveResolutionList(settingsModel.getEncoderSettings());
+
+			String oldVodFolder = appSettings.getVodFolder();
+
+			appSettings.setVodFolder(settingsModel.getVodFolder());
+			appSettings.setPreviewOverwrite(settingsModel.isPreviewOverwrite());
+
+			AntMediaApplicationAdapter bean = (AntMediaApplicationAdapter) applicationContext.getBean("web.handler");
+
+			bean.synchUserVoDFolder(oldVodFolder, settingsModel.getVodFolder());
+
+			log.warn("app settings updated for {}", applicationContext.getApplicationName());	
+			result = true;
+		}
+		else {
+			log.warn("App{} has no app.settings bean to update ", applicationContext.getApplicationName());
+			result = false;
+		}
 		return result;
 	}
 
