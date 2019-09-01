@@ -11,6 +11,7 @@ import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.AppSettingsModel;
 import io.antmedia.EncoderSettings;
+import io.antmedia.IApplicationAdaptorFactory;
 import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.datastore.preference.PreferenceStore;
 import io.antmedia.security.AcceptOnlyStreamsInDataStore;
@@ -87,7 +88,7 @@ public class AppSettingsManager {
 			appSettings.setVodFolder(settingsModel.getVodFolder());
 			appSettings.setPreviewOverwrite(settingsModel.isPreviewOverwrite());
 
-			AntMediaApplicationAdapter bean = (AntMediaApplicationAdapter) applicationContext.getBean("web.handler");
+			AntMediaApplicationAdapter bean = ((IApplicationAdaptorFactory) applicationContext.getBean("web.handler")).getAppAdaptor();
 
 			bean.synchUserVoDFolder(oldVodFolder, settingsModel.getVodFolder());
 
