@@ -548,7 +548,7 @@
             <dependencies>
                 <dependency>
                     <groupId>io.antmedia.webrtc</groupId>
-                    <artifactId>WebRTCApp</artifactId>
+                    <artifactId>StreamApp</artifactId>
                     <version>${project.parent.version}</version>
                     <type>war</type>
                     <scope>provided</scope>
@@ -556,13 +556,6 @@
                 <dependency>
                     <groupId>io.antmedia.app</groupId>
                     <artifactId>root</artifactId>
-                    <version>${project.parent.version}</version>
-                    <type>war</type>
-                    <scope>provided</scope>
-                </dependency>
-                <dependency>
-                    <groupId>io.antmedia.app</groupId>
-                    <artifactId>LiveApp</artifactId>
                     <version>${project.parent.version}</version>
                     <type>war</type>
                     <scope>provided</scope>
@@ -642,19 +635,11 @@
                                     <artifactItems>
                                         <artifactItem>
                                             <groupId>io.antmedia.webrtc</groupId>
-                                            <artifactId>WebRTCApp</artifactId>
+                                            <artifactId>StreamApp</artifactId>
                                             <version>${project.parent.version}</version>
                                             <type>war</type>
                                             <overWrite>true</overWrite>
-                                            <outputDirectory>${project.build.directory}/webapps</outputDirectory>
-                                        </artifactItem>
-                                        <artifactItem>
-                                            <groupId>io.antmedia.app</groupId>
-                                            <artifactId>LiveApp</artifactId>
-                                            <version>${project.parent.version}</version>
-                                            <type>war</type>
-                                            <overWrite>true</overWrite>
-                                            <outputDirectory>${project.build.directory}/webapps</outputDirectory>
+                                            <outputDirectory>${project.build.directory}/streamapp</outputDirectory>
                                         </artifactItem>
                                         <artifactItem>
                                             <groupId>io.antmedia.app</groupId>
@@ -720,13 +705,7 @@
             <dependencies>
                 <dependency>
                     <groupId>io.antmedia.webrtc</groupId>
-                    <artifactId>WebRTCAppEE</artifactId>
-                    <version>${project.parent.version}</version>
-                    <type>war</type>
-                </dependency>
-                <dependency>
-                    <groupId>io.antmedia.app</groupId>
-                    <artifactId>LiveApp</artifactId>
+                    <artifactId>StreamApp</artifactId>
                     <version>${project.parent.version}</version>
                     <type>war</type>
                 </dependency>
@@ -785,19 +764,11 @@
                                     <artifactItems>
                                         <artifactItem>
                                             <groupId>io.antmedia.webrtc</groupId>
-                                            <artifactId>WebRTCAppEE</artifactId>
+                                            <artifactId>StreamApp</artifactId>
                                             <version>${project.parent.version}</version>
                                             <type>war</type>
                                             <overWrite>true</overWrite>
-                                            <outputDirectory>${project.build.directory}/webapps</outputDirectory>
-                                        </artifactItem>
-                                        <artifactItem>
-                                            <groupId>io.antmedia.app</groupId>
-                                            <artifactId>LiveApp</artifactId>
-                                            <version>${project.parent.version}</version>
-                                            <type>war</type>
-                                            <overWrite>true</overWrite>
-                                            <outputDirectory>${project.build.directory}/webapps</outputDirectory>
+                                            <outputDirectory>${project.build.directory}/streamapp</outputDirectory>
                                         </artifactItem>
                                         <artifactItem>
                                             <groupId>io.antmedia.app</groupId>

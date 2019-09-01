@@ -64,7 +64,7 @@ before_install:
    
   - git clone --depth=1 https://github.com/ant-media/red5-plugins.git && cd red5-plugins/tomcat/ && mvn clean install -Dmaven.javadoc.skip=true -Dmaven.test.skip=true --quiet && cd ../..
   - mvn clean package -U -P assemble -Dmaven.javadoc.skip=true -Dmaven.test.skip=true -DskipTests=true --quiet
-  - wget https://raw.githubusercontent.com/ant-media/Scripts/master/install_ant-media-server.sh -O target/install_ant-media-server.sh  # install script
+  - wget https://raw.githubusercontent.com/ant-media/Scripts/commonApplication/install_ant-media-server.sh -O target/install_ant-media-server.sh  # install script
   - chmod 755 target/install_ant-media-server.sh
   - cd target 
   - ./install_ant-media-server.sh ant-media-server-community*.zip
