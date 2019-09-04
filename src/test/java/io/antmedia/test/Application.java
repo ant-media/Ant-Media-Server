@@ -2,10 +2,13 @@ package io.antmedia.test;
 
 import java.io.File;
 
+import org.red5.server.adapter.MultiThreadedApplicationAdapter;
+
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.muxer.IAntMediaStreamHandler;
+import io.antmedia.muxer.MuxAdaptor;
 
-public class Application extends AntMediaApplicationAdapter implements IAntMediaStreamHandler {
+public class Application extends MultiThreadedApplicationAdapter implements IAntMediaStreamHandler {
 
 	public static String id = null;
 	public static File file = null;
@@ -20,10 +23,12 @@ public class Application extends AntMediaApplicationAdapter implements IAntMedia
 
 	public static boolean enableSourceHealthUpdate = false;
 	public static String notifyVodId = null;
+	
+	AntMediaApplicationAdapter adaptor = new AntMediaApplicationAdapter();
 
 	@Override
 	public void muxingFinished(String id, File file, long duration, int resolution) {
-		super.muxingFinished(id, file, duration, resolution);
+		adaptor.muxingFinished(id, file, duration, resolution);
 		Application.id = id;
 		Application.file = file;
 		Application.duration = duration;
@@ -42,7 +47,6 @@ public class Application extends AntMediaApplicationAdapter implements IAntMedia
 
 	}
 
-	@Override
 	public StringBuilder notifyHook(String url, String id, String action, String streamName, String category,
 			String vodName, String vodId) {
 		notifyHookAction = action;
@@ -59,8 +63,20 @@ public class Application extends AntMediaApplicationAdapter implements IAntMedia
 	@Override
 	public void setQualityParameters(String id, String quality, double speed, int pendingPacketSize) {
 		if (enableSourceHealthUpdate) {
-			super.setQualityParameters(id, quality, speed, pendingPacketSize);
+			adaptor.setQualityParameters(id, quality, speed, pendingPacketSize);
 		}
+	}
+
+	@Override
+	public void muxAdaptorAdded(MuxAdaptor muxAdaptor) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void muxAdaptorRemoved(MuxAdaptor muxAdaptor) {
+		// TODO Auto-generated method stub
+		
 	}
 
 }
