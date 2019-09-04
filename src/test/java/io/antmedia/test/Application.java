@@ -24,11 +24,11 @@ public class Application extends MultiThreadedApplicationAdapter implements IAnt
 	public static boolean enableSourceHealthUpdate = false;
 	public static String notifyVodId = null;
 	
-	AntMediaApplicationAdapter adaptor = new AntMediaApplicationAdapter();
+	private AntMediaApplicationAdapter adaptor = new AntMediaApplicationAdapter();
 
 	@Override
 	public void muxingFinished(String id, File file, long duration, int resolution) {
-		adaptor.muxingFinished(id, file, duration, resolution);
+		getAdaptor().muxingFinished(id, file, duration, resolution);
 		Application.id = id;
 		Application.file = file;
 		Application.duration = duration;
@@ -63,7 +63,7 @@ public class Application extends MultiThreadedApplicationAdapter implements IAnt
 	@Override
 	public void setQualityParameters(String id, String quality, double speed, int pendingPacketSize) {
 		if (enableSourceHealthUpdate) {
-			adaptor.setQualityParameters(id, quality, speed, pendingPacketSize);
+			getAdaptor().setQualityParameters(id, quality, speed, pendingPacketSize);
 		}
 	}
 
@@ -77,6 +77,14 @@ public class Application extends MultiThreadedApplicationAdapter implements IAnt
 	public void muxAdaptorRemoved(MuxAdaptor muxAdaptor) {
 		// TODO Auto-generated method stub
 		
+	}
+
+	public AntMediaApplicationAdapter getAdaptor() {
+		return adaptor;
+	}
+
+	public void setAdaptor(AntMediaApplicationAdapter adaptor) {
+		this.adaptor = adaptor;
 	}
 
 }

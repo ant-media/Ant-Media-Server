@@ -574,7 +574,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
         //we do not save duration of the finished live streams
         //assertEquals((long)broadcast.getDuration(), 697132L);
 
-        assertEquals(Application.HOOK_ACTION_VOD_READY, Application.notifyHookAction);
+        assertEquals(AntMediaApplicationAdapter.HOOK_ACTION_VOD_READY, Application.notifyHookAction);
         assertEquals(Application.notitfyURL, hookUrl);
         assertEquals(Application.notifyId, streamId);
         assertEquals(null, Application.notifyStreamName);
@@ -595,7 +595,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
         //we do not save duration of the finished live streams
         //assertEquals((long)broadcast.getDuration(), 10080L);
 
-        assertEquals(Application.HOOK_ACTION_VOD_READY, Application.notifyHookAction);
+        assertEquals(AntMediaApplicationAdapter.HOOK_ACTION_VOD_READY, Application.notifyHookAction);
         assertEquals(Application.notitfyURL, hookUrl);
         assertEquals(Application.notifyId, streamId);
         assertEquals(null, Application.notifyStreamName);

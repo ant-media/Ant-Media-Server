@@ -625,7 +625,7 @@ public class AppFunctionalTest {
 			// call web service to get stream info and check status
 			broadcast = restService.getBroadcast(broadcast.getStreamId().toString());
 			assertNotNull(broadcast);
-			assertEquals(broadcast.getStatus(), Application.BROADCAST_STATUS_BROADCASTING);
+			assertEquals(broadcast.getStatus(), AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 
 			process.destroy();
 
@@ -634,7 +634,7 @@ public class AppFunctionalTest {
 			// call web service to get stream info and check status
 			broadcast = restService.getBroadcast(broadcast.getStreamId().toString());
 			assertNotNull(broadcast);
-			assertEquals(broadcast.getStatus(), Application.BROADCAST_STATUS_FINISHED);
+			assertEquals(broadcast.getStatus(), AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
 
 		} catch (InterruptedException e) {
 			e.printStackTrace();
