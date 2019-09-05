@@ -5,10 +5,11 @@ import java.io.File;
 import org.red5.server.adapter.MultiThreadedApplicationAdapter;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.IApplicationAdaptorFactory;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 
-public class Application extends MultiThreadedApplicationAdapter implements IAntMediaStreamHandler {
+public class Application extends MultiThreadedApplicationAdapter implements IAntMediaStreamHandler, IApplicationAdaptorFactory {
 
 	public static String id = null;
 	public static File file = null;
@@ -85,6 +86,12 @@ public class Application extends MultiThreadedApplicationAdapter implements IAnt
 
 	public void setAdaptor(AntMediaApplicationAdapter adaptor) {
 		this.adaptor = adaptor;
+	}
+
+	@Override
+	public AntMediaApplicationAdapter getAppAdaptor() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }
