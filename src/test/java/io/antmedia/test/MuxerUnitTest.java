@@ -2,6 +2,7 @@ package io.antmedia.test;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
+import io.antmedia.IApplicationAdaptorFactory;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
@@ -460,7 +461,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
     
 	@Test
 	public void testPublishAndUnpublishSocialEndpoints() {
-		AntMediaApplicationAdapter appAdaptor = (AntMediaApplicationAdapter) applicationContext.getBean("web.handler");
+		AntMediaApplicationAdapter appAdaptor = ((IApplicationAdaptorFactory) applicationContext.getBean("web.handler")).getAppAdaptor();
 		assertNotNull(appAdaptor);
 		
 		
@@ -512,7 +513,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
     @Test
     public void testVideoServiceEndpoint() {
-        AntMediaApplicationAdapter appAdaptor = (AntMediaApplicationAdapter) applicationContext.getBean("web.handler");
+        AntMediaApplicationAdapter appAdaptor = ((IApplicationAdaptorFactory) applicationContext.getBean("web.handler")).getAppAdaptor();
         assertNotNull(appAdaptor);
 
         VideoServiceEndpoint endpointService = Mockito.mock(VideoServiceEndpoint.class);
@@ -554,7 +555,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
         assertEquals(null, Application.notifyCategory);
         assertEquals(null, Application.notifyVodName);
 
-        AntMediaApplicationAdapter appAdaptor = (AntMediaApplicationAdapter) applicationContext.getBean("web.handler");
+        AntMediaApplicationAdapter appAdaptor = ((IApplicationAdaptorFactory) applicationContext.getBean("web.handler")).getAppAdaptor();
         assertNotNull(appAdaptor);
         //just check below value that it is not null, this is not related to this case but it should be tested
         assertNotNull(appAdaptor.getVideoServiceEndpoints());

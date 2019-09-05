@@ -27,6 +27,7 @@ import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.AppSettingsModel;
 import io.antmedia.EncoderSettings;
+import io.antmedia.IApplicationAdaptorFactory;
 import io.antmedia.datastore.AppSettingsManager;
 
 public class AppSettingsManagerTest {
@@ -57,17 +58,23 @@ public class AppSettingsManagerTest {
 	
 	@Test
 	public void testZeroEncoderSettings() {
-		
 		AppSettingsModel settings = new AppSettingsModel();
 		
 		ApplicationContext mockContext = mock(ApplicationContext.class);
 		AppSettings mockSettings = mock(AppSettings.class);
 		AntMediaApplicationAdapter mockApplicationAdapter = mock(AntMediaApplicationAdapter.class);	
 		
+		IApplicationAdaptorFactory application = new IApplicationAdaptorFactory() {
+			@Override
+			public AntMediaApplicationAdapter getAppAdaptor() {
+				return mockApplicationAdapter;
+			}
+		};
+		
 		when(mockContext.containsBean(AppSettings.BEAN_NAME)).thenReturn(true);
 		when(mockContext.getBean(AppSettings.BEAN_NAME)).thenReturn(mockSettings);
 		when(mockContext.getApplicationName()).thenReturn(appName);
-		when(mockContext.getBean("web.handler")).thenReturn(mockApplicationAdapter);
+		when(mockContext.getBean("web.handler")).thenReturn(application);
 		
 		//null case
 		assertTrue(AppSettingsManager.updateAppSettings(mockContext, settings, false));
@@ -118,10 +125,17 @@ public class AppSettingsManagerTest {
 		AppSettings mockSettings = mock(AppSettings.class);
 		AntMediaApplicationAdapter mockApplicationAdapter = mock(AntMediaApplicationAdapter.class);	
 		
+		IApplicationAdaptorFactory application = new IApplicationAdaptorFactory() {
+			@Override
+			public AntMediaApplicationAdapter getAppAdaptor() {
+				return mockApplicationAdapter;
+			}
+		};
+		
 		when(mockContext.containsBean(AppSettings.BEAN_NAME)).thenReturn(true);
 		when(mockContext.getBean(AppSettings.BEAN_NAME)).thenReturn(mockSettings);
 		when(mockContext.getApplicationName()).thenReturn(appName);
-		when(mockContext.getBean("web.handler")).thenReturn(mockApplicationAdapter);
+		when(mockContext.getBean("web.handler")).thenReturn(application);
 						
 		AppSettingsManager.updateAppSettings(mockContext, settings, false);
 		verify(mockSettings, times(1)).setMp4MuxingEnabled(settings.isMp4MuxingEnabled());
