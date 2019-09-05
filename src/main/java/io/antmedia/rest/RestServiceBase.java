@@ -700,7 +700,11 @@ public abstract class RestServiceBase {
 		IWebRTCAdaptor adaptor = null;
 		ApplicationContext appContext = getAppContext();
 		if (appContext != null && appContext.containsBean(IWebRTCAdaptor.BEAN_NAME)) {
-			adaptor = (IWebRTCAdaptor) appContext.getBean(IWebRTCAdaptor.BEAN_NAME);
+			Object webRTCAdaptorBean = appContext.getBean(IWebRTCAdaptor.BEAN_NAME);
+			
+			if(webRTCAdaptorBean != null) {
+				adaptor = (IWebRTCAdaptor) webRTCAdaptorBean;
+			}
 		}
 		return adaptor;
 	}
