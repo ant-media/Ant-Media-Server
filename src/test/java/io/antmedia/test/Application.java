@@ -29,7 +29,7 @@ public class Application extends MultiThreadedApplicationAdapter implements IAnt
 
 	@Override
 	public void muxingFinished(String id, File file, long duration, int resolution) {
-		getAdaptor().muxingFinished(id, file, duration, resolution);
+		getAppAdaptor().muxingFinished(id, file, duration, resolution);
 		Application.id = id;
 		Application.file = file;
 		Application.duration = duration;
@@ -64,7 +64,7 @@ public class Application extends MultiThreadedApplicationAdapter implements IAnt
 	@Override
 	public void setQualityParameters(String id, String quality, double speed, int pendingPacketSize) {
 		if (enableSourceHealthUpdate) {
-			getAdaptor().setQualityParameters(id, quality, speed, pendingPacketSize);
+			getAppAdaptor().setQualityParameters(id, quality, speed, pendingPacketSize);
 		}
 	}
 
@@ -80,18 +80,13 @@ public class Application extends MultiThreadedApplicationAdapter implements IAnt
 		
 	}
 
-	public AntMediaApplicationAdapter getAdaptor() {
-		return adaptor;
-	}
-
 	public void setAdaptor(AntMediaApplicationAdapter adaptor) {
 		this.adaptor = adaptor;
 	}
 
 	@Override
 	public AntMediaApplicationAdapter getAppAdaptor() {
-		// TODO Auto-generated method stub
-		return null;
+		return adaptor;
 	}
 
 }
