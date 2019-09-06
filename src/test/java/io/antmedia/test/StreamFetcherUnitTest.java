@@ -973,7 +973,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 	public AntMediaApplicationAdapter getInstance() {
 		if (appInstance == null) {
-			appInstance = (AntMediaApplicationAdapter) applicationContext.getBean("web.handler");
+			appInstance = ((IApplicationAdaptorFactory) applicationContext.getBean("web.handler")).getAppAdaptor();
 		}
 		return appInstance;
 	}
