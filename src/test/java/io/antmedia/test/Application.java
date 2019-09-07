@@ -3,9 +3,12 @@ package io.antmedia.test;
 import java.io.File;
 
 import org.red5.server.adapter.MultiThreadedApplicationAdapter;
+import org.red5.server.api.scope.IScope;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.AppSettings;
 import io.antmedia.IApplicationAdaptorFactory;
+import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 
@@ -25,8 +28,20 @@ public class Application extends MultiThreadedApplicationAdapter implements IAnt
 	public static boolean enableSourceHealthUpdate = false;
 	public static String notifyVodId = null;
 	
-	private AntMediaApplicationAdapter adaptor = new AntMediaApplicationAdapter();
-
+	private AntMediaApplicationAdapter appAdaptor;
+	private DataStoreFactory dataStoreFactory;
+	private AppSettings appSettings;
+	
+	@Override
+	public boolean appStart(IScope app) {
+		appAdaptor = new AntMediaApplicationAdapter();
+		appAdaptor.setAppSettings(getAppSettings());
+		appAdaptor.setDataStoreFactory(getDataStoreFactory());
+		appAdaptor.appStart(app);
+		
+		return super.appStart(app);
+	}
+	
 	@Override
 	public void muxingFinished(String id, File file, long duration, int resolution) {
 		getAppAdaptor().muxingFinished(id, file, duration, resolution);
@@ -81,12 +96,28 @@ public class Application extends MultiThreadedApplicationAdapter implements IAnt
 	}
 
 	public void setAdaptor(AntMediaApplicationAdapter adaptor) {
-		this.adaptor = adaptor;
+		this.appAdaptor = adaptor;
 	}
 
 	@Override
 	public AntMediaApplicationAdapter getAppAdaptor() {
-		return adaptor;
+		return appAdaptor;
+	}
+	
+	public DataStoreFactory getDataStoreFactory() {
+		return dataStoreFactory;
+	}
+
+	public void setDataStoreFactory(DataStoreFactory dataStoreFactory) {
+		this.dataStoreFactory = dataStoreFactory;
+	}
+
+	public AppSettings getAppSettings() {
+		return appSettings;
+	}
+
+	public void setAppSettings(AppSettings appSettings) {
+		this.appSettings = appSettings;
 	}
 
 }
