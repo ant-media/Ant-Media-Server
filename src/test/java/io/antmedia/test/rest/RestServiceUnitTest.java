@@ -39,6 +39,7 @@ import org.springframework.test.context.ContextConfiguration;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
+import io.antmedia.IApplicationAdaptorFactory;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
@@ -236,9 +237,16 @@ public class RestServiceUnitTest {
 
 		AntMediaApplicationAdapter app = mock(AntMediaApplicationAdapter.class);
 		when(app.getScope()).thenReturn(scope);
+		
+		IApplicationAdaptorFactory application = new IApplicationAdaptorFactory() {
+			@Override
+			public AntMediaApplicationAdapter getAppAdaptor() {
+				return app;
+			}
+		};
 
 		ApplicationContext context = mock(ApplicationContext.class);
-		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
+		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(application);
 
 		restServiceReal.setAppCtx(context);
 
@@ -358,9 +366,16 @@ public class RestServiceUnitTest {
 
 		AntMediaApplicationAdapter app = mock(AntMediaApplicationAdapter.class);
 		when(app.getScope()).thenReturn(scope);
+		
+		IApplicationAdaptorFactory application = new IApplicationAdaptorFactory() {
+			@Override
+			public AntMediaApplicationAdapter getAppAdaptor() {
+				return app;
+			}
+		};
 
 		ApplicationContext context = mock(ApplicationContext.class);
-		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
+		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(application);
 		restServiceReal.setAppCtx(context);
 
 		InMemoryDataStore dataStore = new InMemoryDataStore("testdb");
@@ -393,7 +408,13 @@ public class RestServiceUnitTest {
 		AntMediaApplicationAdapter app = new AntMediaApplicationAdapter();
 		app.setAppSettings(settings);
 
-
+		IApplicationAdaptorFactory application = new IApplicationAdaptorFactory() {
+			@Override
+			public AntMediaApplicationAdapter getAppAdaptor() {
+				return app;
+			}
+		};
+		
 		restServiceReal.setApplication(app);
 		restServiceReal.setScope(scope);
 		restServiceReal.setDataStore(new InMemoryDataStore("testdb"));
@@ -1383,8 +1404,15 @@ public class RestServiceUnitTest {
 		AntMediaApplicationAdapter app = mock(AntMediaApplicationAdapter.class);
 		when(app.getScope()).thenReturn(scope);
 
+		IApplicationAdaptorFactory application = new IApplicationAdaptorFactory() {
+			@Override
+			public AntMediaApplicationAdapter getAppAdaptor() {
+				return app;
+			}
+		};
+		
 		ApplicationContext context = mock(ApplicationContext.class);
-		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
+		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(application);
 
 		restServiceReal.setAppCtx(context);
 		Broadcast broadcast = new Broadcast();
