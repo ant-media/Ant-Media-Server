@@ -55,20 +55,17 @@ public class MockWebRTCAdaptor implements IWebRTCAdaptor{
 
 	@Override
 	public int getNumberOfLiveStreams() {
-		// TODO Auto-generated method stub
-		return 0;
+		return -1;
 	}
 
 	@Override
 	public int getNumberOfTotalViewers() {
-		// TODO Auto-generated method stub
-		return 0;
+		return -1;
 	}
 
 	@Override
 	public int getNumberOfViewers(String streamId) {
-		// TODO Auto-generated method stub
-		return 0;
+		return -1;
 	}
 
 	@Override
