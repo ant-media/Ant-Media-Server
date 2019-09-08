@@ -118,6 +118,28 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	protected WebRTCVideoSendStats webRTCVideoSendStats = new WebRTCVideoSendStats();
 
 	protected WebRTCAudioSendStats webRTCAudioSendStats = new WebRTCAudioSendStats();
+	private Hook lastHook;
+	
+	public class Hook {
+		public String notifyHookAction = null;
+		public String notitfyURL = null;
+		public String notifyId = null;
+		public String notifyStreamName = null;
+		public String notifyCategory = null;
+		public String notifyVodName = null;
+		public String notifyVodId = null;
+		
+		public Hook(String url, String id, String action, String streamName, String category,
+				String vodName, String vodId) {
+			notifyHookAction = action;
+			notitfyURL = url;
+			notifyId = id;
+			notifyStreamName = streamName;
+			notifyCategory = category;
+			notifyVodName = vodName;
+			notifyVodId  = vodId;
+		}
+	}
 
 	public boolean appStart(IScope app) {
 		setScope(app);
@@ -646,6 +668,8 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	 */
 	public StringBuilder notifyHook(String url, String id, String action, String streamName, String category,
 			String vodName, String vodId) {
+		
+		lastHook = new Hook(url, id, action, streamName, category, vodName, vodId);
 
 		StringBuilder response = null;
 
@@ -949,5 +973,9 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	
 	public Vertx getVertx() {
 		return vertx;
+	}
+
+	public Hook getLastHook() {
+		return lastHook;
 	}
 }
