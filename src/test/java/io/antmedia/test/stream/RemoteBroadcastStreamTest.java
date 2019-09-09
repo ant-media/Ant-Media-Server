@@ -120,12 +120,12 @@ public class RemoteBroadcastStreamTest extends AbstractJUnit4SpringContextTests{
 		});
 		rbs.start();
 		
-
-
-		while(scheduler.getScheduledJobNames().size() != 1) {
+		long testVideoDuration = 150000;
+		long t0 = System.currentTimeMillis();
+		while (System.currentTimeMillis() - t0 < testVideoDuration) {
 			Awaitility.waitAtMost(10, TimeUnit.SECONDS)
-					.pollDelay(5, TimeUnit.SECONDS)
-					.until(() -> !RemoteBroadcastStream.isExceptionExist());
+			.pollDelay(5, TimeUnit.SECONDS)
+			.until(() -> !RemoteBroadcastStream.isExceptionExist());
 		}
 
 		flvWriter.close();
