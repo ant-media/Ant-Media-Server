@@ -85,14 +85,12 @@ public class Application extends MultiThreadedApplicationAdapter implements IAnt
 
 	@Override
 	public void muxAdaptorAdded(MuxAdaptor muxAdaptor) {
-		// TODO Auto-generated method stub
-		
+		appAdaptor.muxAdaptorAdded(muxAdaptor);
 	}
 
 	@Override
 	public void muxAdaptorRemoved(MuxAdaptor muxAdaptor) {
-		// TODO Auto-generated method stub
-		
+		appAdaptor.muxAdaptorRemoved(muxAdaptor);		
 	}
 
 	public void setAdaptor(AntMediaApplicationAdapter adaptor) {
