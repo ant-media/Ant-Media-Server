@@ -6,6 +6,8 @@ import com.brsanthu.googleanalytics.GoogleAnalytics;
 import com.google.common.annotations.VisibleForTesting;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.rest.BroadcastRestService;
+import io.antmedia.statistic.StatsCollector;
+
 import org.red5.server.Launcher;
 
 import java.io.File;
@@ -45,6 +47,6 @@ class GoogleAnalyticsLoggerImp implements GoogleAnalyticsLogger {
         return GoogleAnalytics.builder()
                 .withAppVersion(implementationVersion)
                 .withAppName(type)
-                .withTrackingId(Launcher.GA_TRACKING_ID).build();
+                .withTrackingId(StatsCollector.GA_TRACKING_ID).build();
     }
 }
