@@ -60,6 +60,7 @@ import io.antmedia.statistic.type.WebRTCVideoReceiveStats;
 import io.antmedia.statistic.type.WebRTCVideoSendStats;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
+import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.vertx.core.Vertx;
 
 public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter implements IAntMediaStreamHandler, IShutdownListener {
@@ -171,7 +172,14 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		logger.info("AppStart scheduled job name: {}", scheduledJobName);
 		
 		AMSShutdownManager.getInstance().subscribe(this);
-
+		
+		//With the common app structure, we won't need to null check for WebRTCAdaptor
+		if (getContext().hasBean(IWebRTCAdaptor.BEAN_NAME)) 
+		{
+			IWebRTCAdaptor webRTCAdaptor = (IWebRTCAdaptor) getContext().getBean(IWebRTCAdaptor.BEAN_NAME);
+			webRTCAdaptor.setExcessiveBandwidthValue(appSettings.getExcessiveBandwidthValue());
+			webRTCAdaptor.setExcessiveBandwidthCallThreshold(appSettings.getExcessiveBandwidthCallThreshold());
+		}
 
 		return super.appStart(app);
 	}

@@ -11,6 +11,7 @@ import io.antmedia.muxer.HLSMuxer;
 import io.antmedia.muxer.Mp4Muxer;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.Muxer;
+import io.antmedia.muxer.RtmpMuxer;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.tika.io.IOUtils;
@@ -716,6 +717,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
         logger.info("leaving testMp4Muxing");
         return null;
     }
+    
 
     @Test
     public void testMp4MuxingSubtitledVideo() {

@@ -75,4 +75,16 @@ public interface IWebRTCAdaptor extends IScopeService {
 	 */
 	Set<String> getStreams();
 
+	/**
+	 * Sets the excessive bandwidth threshold value
+	 * @param excessiveBandwidthValue
+	 */
+	void setExcessiveBandwidthValue(int excessiveBandwidthValue);
+
+	/**
+	 * Sets the excessive bandwidth call threshold value
+	 * @param excessiveBandwidthCallThreshold
+	 */
+	void setExcessiveBandwidthCallThreshold(int excessiveBandwidthCallThreshold);
+
 }

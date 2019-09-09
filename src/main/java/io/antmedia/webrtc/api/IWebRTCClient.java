@@ -96,4 +96,20 @@ public interface IWebRTCClient {
 	 * @return low level audio stats
 	 */
 	public WebRTCAudioSendStats getAudioStats();
+
+	/**
+	 * It's called when there is excessive bandwidth than the current one
+	 */
+	public void increaseExcessiveBandwidthCount();
+	
+	/**
+	 * Number of consecutive calls of increaseExcessiveBandwidthCount
+	 * @return
+	 */
+	public int getExcessiveBandwidthCount();
+	
+	/**
+	 * Reset the excessive bandwidth count
+	 */
+	public void resetExcessiveBandwidthCount();
 }
