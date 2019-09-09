@@ -573,7 +573,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		});
 	}
 
-	private static class AuthCheckJob implements IScheduledJob {
+	private static class AuthCheckJob {
 
 		private int count;
 		private VideoServiceEndpoint videoServiceEndpoint;
@@ -587,15 +587,20 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			this.appAdapter = adapter;
 		}
 
-		@Override
-		public void execute(ISchedulingService service) throws CloneNotSupportedException {
+		public void execute() throws CloneNotSupportedException {
 
 			try {
 				if (!videoServiceEndpoint.askIfDeviceAuthenticated()) {
 					count++;
 					if (count < 10) {
 						if (videoServiceEndpoint.getError() == null) {
-							service.addScheduledOnceJob(interval, new AuthCheckJob(count, interval, videoServiceEndpoint, appAdapter));
+							appAdapter.getVertx().setPeriodic(interval, l->{
+								try {
+									new AuthCheckJob(count, interval, videoServiceEndpoint, appAdapter).execute();
+								} catch (CloneNotSupportedException e) {
+									logger.error(ExceptionUtils.getStackTrace(e));
+								}
+								});
 							logger.info("Asking authetnication for {}", videoServiceEndpoint.getName());
 						}
 						else {
@@ -623,8 +628,13 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	public void startDeviceAuthStatusPolling(VideoServiceEndpoint videoServiceEndpoint,
 			DeviceAuthParameters askDeviceAuthParameters) {
 		int timeDelta = askDeviceAuthParameters.interval * 1000;
-		
-	//TODO	addScheduledOnceJob(timeDelta, new AuthCheckJob(0, timeDelta, videoServiceEndpoint, this));
+		getVertx().setTimer(timeDelta, l->{
+			try {
+				new AuthCheckJob(0, timeDelta, videoServiceEndpoint, this).execute();
+			} catch (CloneNotSupportedException e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+			});
 	}
 
 	public Map<String, VideoServiceEndpoint> getVideoServiceEndpoints() {
