@@ -148,6 +148,9 @@
    			</bean>
    		</constructor-arg>	
    	</bean>
+   	
+   	<bean id="ant.media.server.settings" class="io.antmedia.settings.ServerSettings">
+	</bean>
 
 	<bean id="statsCollector" class="io.antmedia.statistic.StatsCollector" init-method="start">
    		<property name="cpuLimit" value="100"/>
