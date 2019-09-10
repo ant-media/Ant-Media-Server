@@ -957,6 +957,10 @@ public class BroadcastRestServiceV2UnitTest {
 		AppSettings settings = mock(AppSettings.class);
 		when(settings.getListenerHookURL()).thenReturn(null);
 		restServiceReal.setAppSettings(settings);
+		
+		ServerSettings serverSettings = Mockito.mock(ServerSettings.class);
+		restServiceReal.setServerSettings(serverSettings);
+		
 
 		Scope scope = mock(Scope.class);
 		String scopeName = "scope";
@@ -1011,10 +1015,13 @@ public class BroadcastRestServiceV2UnitTest {
 
 		restServiceReal.setScope(scope);
 
-
 		Broadcast broadcast = new Broadcast(null, "name");
 		DataStore store = new InMemoryDataStore("testdb");
 		restServiceReal.setDataStore(store);
+		
+		ServerSettings serverSettings = Mockito.mock(ServerSettings.class);
+		restServiceReal.setServerSettings(serverSettings);
+		
 		Broadcast createBroadcast = (Broadcast) restServiceReal.createBroadcast(broadcast, null, false).getEntity();
 
 		assertNotNull(createBroadcast);
@@ -1096,6 +1103,9 @@ public class BroadcastRestServiceV2UnitTest {
 		when(settings.getListenerHookURL()).thenReturn(null);
 		restServiceSpy.setAppSettings(settings);
 
+		ServerSettings serverSettings = Mockito.mock(ServerSettings.class);
+		restServiceSpy.setServerSettings(serverSettings);
+		
 		Scope scope = mock(Scope.class);
 		when(scope.getName()).thenReturn(scopeValue);
 
