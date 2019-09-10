@@ -61,6 +61,7 @@ import io.antmedia.rest.model.Interaction;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.Version;
 import io.antmedia.security.ITokenService;
+import io.antmedia.settings.ServerSettings;
 import io.antmedia.social.LiveComment;
 import io.antmedia.social.endpoint.PeriscopeEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
@@ -103,6 +104,11 @@ public abstract class RestServiceBase {
 	private static String hostaddress;
 
 	private ProcessBuilderFactory processBuilderFactory = null;
+	
+	public static final String IPV4_REGEX = "(([0-1]?[0-9]{1,2}\\.)|(2[0-4][0-9]\\.)|(25[0-5]\\.)){3}(([0-1]?[0-9]{1,2})|(2[0-4][0-9])|(25[0-5]))";
+	
+	public static final String LOOPBACK_REGEX = "^localhost$|^127(?:\\.[0-9]+){0,2}\\.[0-9]+$|^(?:0*\\:)*?:?0*1$";
+
 
 	@Context
 	protected ServletContext servletContext;
@@ -113,6 +119,8 @@ public abstract class RestServiceBase {
 	protected AntMediaApplicationAdapter appInstance;
 
 	private AppSettings appSettings;
+
+	private ServerSettings serverSettings;
 
 	protected boolean addSocialEndpoints(Broadcast broadcast, String socialEndpointIds) {	
 		boolean success = false;
@@ -228,7 +236,7 @@ public abstract class RestServiceBase {
 		AppSettings appSettingsLocal = getAppSettings();
 		if (appSettingsLocal != null) {
 			settingsListenerHookURL = appSettingsLocal.getListenerHookURL();
-			fqdn = appSettingsLocal.getServerName();
+			fqdn = getServerSettings().getServerName();
 		}
 
 		return saveBroadcast(broadcast, AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, getScope().getName(),
@@ -265,7 +273,7 @@ public abstract class RestServiceBase {
 		return broadcast;
 	}
 
-	protected static String getHostAddress() {
+	public static String getHostAddress() {
 
 		if (hostaddress == null) {
 			long startTime = System.currentTimeMillis();
@@ -298,11 +306,27 @@ public abstract class RestServiceBase {
 		}
 		return appSettings;
 	}
-
+	
 	public void setAppSettings(AppSettings appSettings) {
 		this.appSettings = appSettings;
 	}
 
+	
+	public ServerSettings getServerSettings() {
+		if (serverSettings == null) {
+			ApplicationContext appContext = getAppContext();
+			if (appContext != null) {
+				serverSettings = (ServerSettings) appContext.getBean(ServerSettings.BEAN_NAME);
+			}
+		}
+		return serverSettings;
+	}
+	
+	public void setServerSettings(ServerSettings serverSettings) {
+		this.serverSettings = serverSettings;
+	}
+
+	
 	protected Result deleteBroadcast(String id) {
 		Result result = new Result (false);
 		boolean stopResult = false;
@@ -519,7 +543,7 @@ public abstract class RestServiceBase {
 			insertQueryString.append("DELETE FROM stalker_db.ch_links;");
 			insertQueryString.append("DELETE FROM stalker_db.itv;");
 
-			String fqdn = getAppSettings().getServerName();
+			String fqdn = getServerSettings().getServerName();
 			if (fqdn == null || fqdn.length() == 0) {
 				fqdn = getHostAddress();
 			}
@@ -636,8 +660,7 @@ public abstract class RestServiceBase {
 					vodList.addAll(getDataStore().getVodList(i*DataStore.MAX_ITEM_IN_ONE_LIST, DataStore.MAX_ITEM_IN_ONE_LIST));
 				}
 
-
-				String fqdn = getAppSettings().getServerName();
+				String fqdn = getServerSettings().getServerName();
 				if (fqdn == null || fqdn.length() == 0) {
 					fqdn = getHostAddress();
 				}
@@ -851,11 +874,8 @@ public abstract class RestServiceBase {
 
 	protected static boolean validateIPaddress(String ipaddress)  {
 
-		final String IPV4_REGEX = "(([0-1]?[0-9]{1,2}\\.)|(2[0-4][0-9]\\.)|(25[0-5]\\.)){3}(([0-1]?[0-9]{1,2})|(2[0-4][0-9])|(25[0-5]))";
-		final String loopback_REGEX = "^localhost$|^127(?:\\.[0-9]+){0,2}\\.[0-9]+$|^(?:0*\\:)*?:?0*1$";
-
 		Pattern patternIP4 = Pattern.compile(IPV4_REGEX);
-		Pattern patternLoopBack = Pattern.compile(loopback_REGEX);
+		Pattern patternLoopBack = Pattern.compile(LOOPBACK_REGEX);
 
 		return patternIP4.matcher(ipaddress).matches() || patternLoopBack.matcher(ipaddress).matches() ;
 

@@ -49,6 +49,7 @@ import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.model.Result;
+import io.antmedia.settings.ServerSettings;
 import io.antmedia.shutdown.AMSShutdownManager;
 import io.antmedia.shutdown.IShutdownListener;
 import io.antmedia.social.endpoint.PeriscopeEndpoint;
@@ -78,6 +79,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	public static final String VERTX_BEAN_NAME = "vertxCore";
 
 	protected static Logger logger = LoggerFactory.getLogger(AntMediaApplicationAdapter.class);
+	private ServerSettings serverSettings;
 	public static final String LIVE_STREAM = "liveStream";
 	public static final String IP_CAMERA = "ipCamera";
 	public static final String STREAM_SOURCE = "streamSource";
@@ -410,7 +412,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 					if (broadcast == null) {
 
-						broadcast = saveUndefinedBroadcast(streamName, getScope().getName(), dataStoreLocal, appSettings);
+						broadcast = saveUndefinedBroadcast(streamName, getScope().getName(), dataStoreLocal, appSettings, getServerSettings().getServerName());
 
 					} else {
 
@@ -440,6 +442,15 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		logger.info("start publish leaved");
 	}
 	
+	private ServerSettings getServerSettings() 
+	{
+		if (serverSettings == null) {
+			serverSettings = (ServerSettings)scope.getContext().getApplicationContext().getBean(ServerSettings.BEAN_NAME);
+		}
+		return serverSettings;
+	}
+
+
 	public void publishSocialEndpoints(List<Endpoint> endPointList) 
 	{
 		if (endPointList != null) 
@@ -463,11 +474,11 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	
 	
 
-	public static Broadcast saveUndefinedBroadcast(String streamId, String scopeName, DataStore dataStore, AppSettings appSettings) {
-		return saveUndefinedBroadcast(streamId, scopeName, dataStore, appSettings, AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+	public static Broadcast saveUndefinedBroadcast(String streamId, String scopeName, DataStore dataStore, AppSettings appSettings, String fqdn) {
+		return saveUndefinedBroadcast(streamId, scopeName, dataStore, appSettings, AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, fqdn);
 	}
 	
-	public static Broadcast saveUndefinedBroadcast(String streamId, String scopeName, DataStore dataStore, AppSettings appSettings, String streamStatus) {
+	public static Broadcast saveUndefinedBroadcast(String streamId, String scopeName, DataStore dataStore, AppSettings appSettings, String streamStatus, String fqdn) {
 		Broadcast newBroadcast = new Broadcast();
 		newBroadcast.setDate(System.currentTimeMillis());
 		newBroadcast.setZombi(true);
@@ -475,12 +486,10 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 			newBroadcast.setStreamId(streamId);
 
 			String settingsListenerHookURL = null; 
-			String fqdn = null;
 			if (appSettings != null) {
 				settingsListenerHookURL = appSettings.getListenerHookURL();
-				fqdn = appSettings.getServerName();
 			}
-
+			
 			return BroadcastRestService.saveBroadcast(newBroadcast,
 					streamStatus, scopeName, dataStore,
 					settingsListenerHookURL, fqdn);
@@ -490,6 +499,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 		return null;
 	}
+
 
 	public VideoServiceEndpoint getVideoServiceEndPoint(String id) {
 		if (videoServiceEndpoints != null) {

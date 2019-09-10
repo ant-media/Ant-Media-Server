@@ -74,6 +74,7 @@ import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.User;
 import io.antmedia.rest.model.Version;
 import io.antmedia.security.ITokenService;
+import io.antmedia.settings.ServerSettings;
 import io.antmedia.social.LiveComment;
 import io.antmedia.social.ResourceOrigin;
 import io.antmedia.social.endpoint.PeriscopeEndpoint;
@@ -145,7 +146,11 @@ public class BroadcastRestServiceV2UnitTest {
 		when(settings.getStalkerDBServer()).thenReturn("192.168.1.29");
 		when(settings.getStalkerDBUsername()).thenReturn("stalker");
 		when(settings.getStalkerDBPassword()).thenReturn("1");
-		when(settings.getServerName()).thenReturn(null);
+		//when(settings.getServerName()).thenReturn(null);
+		
+		ServerSettings serverSettings = mock(ServerSettings.class);
+		when(serverSettings.getServerName()).thenReturn(null);
+		restServiceReal.setServerSettings(serverSettings);
 
 		Scope scope = mock(Scope.class);
 		String scopeName = "scope";
@@ -195,7 +200,10 @@ public class BroadcastRestServiceV2UnitTest {
 		when(settings.getStalkerDBServer()).thenReturn("192.168.1.29");
 		when(settings.getStalkerDBUsername()).thenReturn("stalker");
 		when(settings.getStalkerDBPassword()).thenReturn("1");
-		when(settings.getServerName()).thenReturn("localhost");
+
+		ServerSettings serverSettings = mock(ServerSettings.class);
+		when(serverSettings.getServerName()).thenReturn("localhost");
+		restServiceReal.setServerSettings(serverSettings);
 
 		String vodFolderPath = "webapps/junit/streams/vod_folder";
 
@@ -532,7 +540,10 @@ public class BroadcastRestServiceV2UnitTest {
 		when(settings.getListenerHookURL()).thenReturn(hookURL);
 
 		String serverName = "fually.qualified.domain.name";
-		when(settings.getServerName()).thenReturn(serverName);
+		
+		ServerSettings serverSettings = mock(ServerSettings.class);
+		when(serverSettings.getServerName()).thenReturn(serverName);
+		restServiceReal.setServerSettings(serverSettings);
 
 		Scope scope = mock(Scope.class);
 		String scopeName = "scope";
@@ -555,7 +566,9 @@ public class BroadcastRestServiceV2UnitTest {
 
 
 		//this makes the test code enter getHostAddress method
-		when(settings.getServerName()).thenReturn(null);
+		when(serverSettings.getServerName()).thenReturn(null);
+
+		
 
 		Response response = (Response) restServiceReal.createBroadcast(broadcast, null, false);
 		//return bad request because there is already a broadcast with the same id
@@ -572,8 +585,12 @@ public class BroadcastRestServiceV2UnitTest {
 	public void testAddEndpoint() {
 		AppSettings settings = mock(AppSettings.class);
 		String serverName = "fully.qualified.domain.name";
-		when(settings.getServerName()).thenReturn(serverName);
 		restServiceReal.setAppSettings(settings);
+		
+		ServerSettings serverSettings = mock(ServerSettings.class);
+		when(serverSettings.getServerName()).thenReturn(serverName);
+		restServiceReal.setServerSettings(serverSettings);
+
 
 		Broadcast broadcast = new Broadcast(null, "name");
 		DataStore store = new InMemoryDataStore("testdb");
@@ -609,8 +626,12 @@ public class BroadcastRestServiceV2UnitTest {
 	public void testAddSocialEndpoint() {
 		AppSettings settings = mock(AppSettings.class);
 		String serverName = "fully.qualified.domain.name";
-		when(settings.getServerName()).thenReturn(serverName);
 		restServiceReal.setAppSettings(settings);
+		
+		ServerSettings serverSettings = mock(ServerSettings.class);
+		when(serverSettings.getServerName()).thenReturn(serverName);
+		restServiceReal.setServerSettings(serverSettings);
+
 
 		Broadcast broadcast = new Broadcast(null, "name");
 		DataStore store = new InMemoryDataStore("testdb");
@@ -824,8 +845,12 @@ public class BroadcastRestServiceV2UnitTest {
 	public void testDeleteBroadcast() {
 		AppSettings settings = mock(AppSettings.class);
 		String serverName = "fully.qualified.domain.name";
-		when(settings.getServerName()).thenReturn(serverName);
 		restServiceReal.setAppSettings(settings);
+		ServerSettings serverSettings = mock(ServerSettings.class);
+		when(serverSettings.getServerName()).thenReturn(serverName);
+		restServiceReal.setServerSettings(serverSettings);
+
+		
 
 
 		DataStore store = new InMemoryDataStore("testdb");
@@ -880,7 +905,11 @@ public class BroadcastRestServiceV2UnitTest {
 	public void testServerNameAndRtmpURL() {
 		AppSettings settings = mock(AppSettings.class);
 		String serverName = "fully.qualified.domain.name";
-		when(settings.getServerName()).thenReturn(serverName);
+		
+		ServerSettings serverSettings = mock(ServerSettings.class);
+		when(serverSettings.getServerName()).thenReturn(serverName);
+		restServiceReal.setServerSettings(serverSettings);
+
 
 		Scope scope = mock(Scope.class);
 		String scopeName = "scope";
@@ -896,7 +925,8 @@ public class BroadcastRestServiceV2UnitTest {
 
 		assertEquals("rtmp://" + serverName + "/" + scopeName + "/" + broadcast.getStreamId() , createBroadcast.getRtmpURL());
 
-		when(settings.getServerName()).thenReturn(null);
+		when(serverSettings.getServerName()).thenReturn(null);
+
 
 		broadcast = new Broadcast(null, "name");
 		Response response = restServiceReal.createBroadcast(broadcast, null, false);
@@ -908,7 +938,8 @@ public class BroadcastRestServiceV2UnitTest {
 			fail(e.getMessage());
 		}
 
-		when(settings.getServerName()).thenReturn("");
+		when(serverSettings.getServerName()).thenReturn("");
+
 
 		broadcast = new Broadcast(null, "name");
 		Broadcast createBroadcast3 = (Broadcast) restServiceReal.createBroadcast(broadcast, null, false).getEntity();

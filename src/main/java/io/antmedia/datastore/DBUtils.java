@@ -16,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.antmedia.datastore.preference.PreferenceStore;
+import io.antmedia.rest.RestServiceBase;
 
 
 public class DBUtils {
@@ -26,6 +27,7 @@ public class DBUtils {
 	private String ip;
 
 	private DBUtils() {
+		//TODO: Don't access the properties file directly. Get parameters from bean
 		PreferenceStore store = new PreferenceStore("red5.properties");
 		store.setFullPath("conf/red5.properties");
 
@@ -44,22 +46,7 @@ public class DBUtils {
 	}
 
 	public static String getLocalHostAddress() {
-
-		ArrayList<String> hostAddresses = new ArrayList<>();
-		try {
-			for (NetworkInterface ni : Collections.list(NetworkInterface.getNetworkInterfaces())) {
-				if (!ni.isLoopback() && ni.isUp() && ni.getHardwareAddress() != null) {
-					for (InterfaceAddress ia : ni.getInterfaceAddresses()) {
-						if (ia.getBroadcast() != null) {  //If limited to IPV4
-							hostAddresses.add(ia.getAddress().getHostAddress());
-						}
-					}
-				}
-			}
-		} catch (SocketException e) {
-			logger.error(ExceptionUtils.getStackTrace(e));
-		}
-		return hostAddresses.get(0);
+		return RestServiceBase.getHostAddress();
 	}
 
 	public static String getGlobalHostAddress(){
