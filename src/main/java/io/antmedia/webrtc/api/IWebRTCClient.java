@@ -112,4 +112,47 @@ public interface IWebRTCClient {
 	 * Reset the excessive bandwidth count
 	 */
 	public void resetExcessiveBandwidthCount();
+
+
+	/**
+	 * Return the round trip time measurement 
+	 * @return
+	 */
+	int getRttMeasurement();
+
+
+	/**
+	 * Returns the packetloss rate
+	 * @return
+	 */
+	int getPacketLoss();
+
+	/**
+	 * 
+	 * @param tryCountBeforeSwitchback
+	 */
+	void setTryCountBeforeSwitchBack(int tryCountBeforeSwitchback);
+	
+	/**
+	 * 
+	 * @return decrease
+	 */
+	int getTryCountBeforeSwitchBack();
+
+
+	/**
+	 * Cache current channel parameters like round trip time and packet loss
+	 */
+	public void cacheChannelParameters();
+	
+	/**
+	 * @return cached packet loss
+	 */
+	int getCachedPacketLoss();
+	
+	/**
+	 * 
+	 * @return cache rtt measurement
+	 */
+	int getCachedRttMeasurement();
 }

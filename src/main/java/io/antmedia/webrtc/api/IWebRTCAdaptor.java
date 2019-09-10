@@ -87,4 +87,30 @@ public interface IWebRTCAdaptor extends IScopeService {
 	 */
 	void setExcessiveBandwidthCallThreshold(int excessiveBandwidthCallThreshold);
 
+	/**
+	 * Enable or disable excessive bandwidth algorithm
+	 * @param excessiveBandwidthAlgorithmEnabled
+	 */
+	void setExcessiveBandwidthAlgorithmEnabled(boolean excessiveBandwidthAlgorithmEnabled);
+
+	/**
+	 * Set packet loss threshold if packetLoss is bigger than this value in ExcessiveBandwidth
+	 * algorithm, it switches back to lower quality without try every attempts {@link #setTryCountBeforeSwitchback(int)}
+	 * @param packetLossDiffThresholdForSwitchback
+	 */
+	void setPacketLossDiffThresholdForSwitchback(int packetLossDiffThresholdForSwitchback);
+
+	/**
+	 * Set rtt measurement threshold if rttMeasurement is bigger than this value in ExcessiveBandwidth
+	 * algorithm, it switches back to lower quality without try every attempts {@link #setTryCountBeforeSwitchback(int)}
+	 * @param rttMeasurementDiffThresholdForSwitchback
+	 */
+	void setRttMeasurementDiffThresholdForSwitchback(int rttMeasurementDiffThresholdForSwitchback);
+
+	/**
+	 * Number of tries to switch back to lower quality in ExcessiveBandwidth
+	 * @param tryCountBeforeSwitchback
+	 */
+	void setTryCountBeforeSwitchback(int tryCountBeforeSwitchback);
+
 }
