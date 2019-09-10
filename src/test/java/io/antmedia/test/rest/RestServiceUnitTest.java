@@ -1003,6 +1003,9 @@ public class RestServiceUnitTest {
 		AppSettings settings = mock(AppSettings.class);
 		when(settings.getListenerHookURL()).thenReturn(null);
 		restServiceReal.setAppSettings(settings);
+		
+		ServerSettings serverSettings = Mockito.mock(ServerSettings.class);
+		restServiceReal.setServerSettings(serverSettings);
 
 		Scope scope = mock(Scope.class);
 		String scopeName = "scope";
@@ -1053,6 +1056,9 @@ public class RestServiceUnitTest {
 		AppSettings settings = mock(AppSettings.class);
 		when(settings.getListenerHookURL()).thenReturn(null);
 		restServiceReal.setAppSettings(settings);
+		
+		ServerSettings serverSettings = Mockito.mock(ServerSettings.class);
+		restServiceReal.setServerSettings(serverSettings);
 
 		Scope scope = mock(Scope.class);
 		String scopeName = "scope";
@@ -1144,6 +1150,9 @@ public class RestServiceUnitTest {
 		AppSettings settings = mock(AppSettings.class);
 		when(settings.getListenerHookURL()).thenReturn(null);
 		restServiceSpy.setAppSettings(settings);
+		
+		ServerSettings serverSettings = Mockito.mock(ServerSettings.class);
+		restServiceSpy.setServerSettings(serverSettings);
 
 		Scope scope = mock(Scope.class);
 		when(scope.getName()).thenReturn(scopeValue);
@@ -1414,6 +1423,10 @@ public class RestServiceUnitTest {
 		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
 
 		restServiceReal.setAppCtx(context);
+		
+		ServerSettings serverSettings = Mockito.mock(ServerSettings.class);
+		restServiceReal.setServerSettings(serverSettings);
+		
 		Broadcast broadcast = new Broadcast();
 		try {
 			broadcast.setStreamId("stream1");
