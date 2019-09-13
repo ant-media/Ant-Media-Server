@@ -9,7 +9,7 @@ import javax.servlet.ServletContext;
 
 import org.springframework.web.context.ServletContextAware;
 
-public class PreferenceStore implements ServletContextAware{
+public class PreferenceStore{
 
 	private String fileName;
 	private Properties prop;
@@ -92,11 +92,6 @@ public class PreferenceStore implements ServletContextAware{
 			}
 		}
 		return result;
-	}
-
-	@Override
-	public void setServletContext(ServletContext servletContext) {
-		fullPath = servletContext.getRealPath(fileName);		
 	}
 
 	public void setFullPath(String fullpath) {

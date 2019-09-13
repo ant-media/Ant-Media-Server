@@ -97,7 +97,7 @@ public class ServerSettings implements ApplicationContextAware {
 		this.heartbeatEnabled = heartbeatEnabled;
 	}
 	
-	//this "static"  should be removed
+	//TODO: "static"  should be removed
 	public static String getHostAddress() {
 		return hostAddress;
 	}
