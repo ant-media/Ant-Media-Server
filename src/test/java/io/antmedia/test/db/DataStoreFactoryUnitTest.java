@@ -12,14 +12,11 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.AppSettings;
-import io.antmedia.cluster.DBReader;
-import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.DataStore;
+import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.MongoStore;
-import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.StreamsSourceRestService;
 import io.antmedia.security.AcceptOnlyStreamsInDataStore;
