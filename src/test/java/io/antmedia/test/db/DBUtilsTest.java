@@ -8,7 +8,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.antmedia.datastore.DBUtils;
+import io.antmedia.settings.ServerSettings;
 
 public class DBUtilsTest {
 	
@@ -24,15 +24,15 @@ public class DBUtilsTest {
 	
     @Test
     public void testDBUtils() {
-    	assertNotEquals(DBUtils.getHostAddress(), DBUtils.getGlobalHostAddress());
-    	assertEquals(DBUtils.getHostAddress(), DBUtils.getLocalHostAddress());
+    		assertNotEquals(ServerSettings.getLocalHostAddress(), ServerSettings.getGlobalHostAddress());
+    		assertEquals(ServerSettings.getHostAddress(), ServerSettings.getLocalHostAddress());
     }
     
     @Test
     public void testIpFormat() {
-    	String gip = DBUtils.getGlobalHostAddress();
+    		String gip = ServerSettings.getGlobalHostAddress();
     	
-    	assertTrue(gip.matches(IP4_REGEX));
+    		assertTrue(gip.matches(IP4_REGEX));
     }
     
 }

@@ -25,7 +25,6 @@ import com.mongodb.WriteResult;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.cluster.StreamInfo;
-import io.antmedia.datastore.DBUtils;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
@@ -34,6 +33,7 @@ import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.muxer.MuxAdaptor;
+import io.antmedia.settings.ServerSettings;
 
 public class MongoStore extends DataStore {
 
@@ -58,7 +58,7 @@ public class MongoStore extends DataStore {
 		morphia.mapPackage("io.antmedia.datastore.db.types");
 		morphia.map(StreamInfo.class);
 
-		String uri = DBUtils.getMongoConnectionUri(host, username, password);
+		String uri = getMongoConnectionUri(host, username, password);
 
 		MongoClientURI mongoUri = new MongoClientURI(uri);
 		MongoClient client = new MongoClient(mongoUri);
@@ -78,6 +78,19 @@ public class MongoStore extends DataStore {
 		conferenceRoomDatastore.ensureIndexes();
 
 	}
+	
+	public static String getMongoConnectionUri(String host, String username, String password) {
+		String credential = "";
+		if(username != null && !username.isEmpty()) {
+			credential = username+":"+password+"@";
+		}
+
+		String uri = "mongodb://"+credential+host;
+
+		logger.info("uri:{}",uri);
+
+		return uri;
+	}
 
 	/*
 	 * (non-Javadoc)
@@ -92,7 +105,7 @@ public class MongoStore extends DataStore {
 			return null;
 		}
 		try {
-			broadcast.setOriginAdress(DBUtils.getHostAddress());
+			broadcast.setOriginAdress(ServerSettings.getHostAddress());
 			String streamId = null;
 			if (broadcast.getStreamId() == null) {
 				streamId = RandomStringUtils.randomAlphanumeric(12) + System.currentTimeMillis();
@@ -881,7 +894,7 @@ public class MongoStore extends DataStore {
 	@Override
 	public void clearStreamsOnThisServer() {
 		synchronized(this) {
-			String ip = DBUtils.getHostAddress();
+			String ip = ServerSettings.getHostAddress();
 			Query<Broadcast> query = datastore.createQuery(Broadcast.class);
 			query.and(
 					query.or(
@@ -1008,7 +1021,7 @@ public class MongoStore extends DataStore {
 	@Override
 	public long getLocalLiveBroadcastCount() {
 		synchronized(this) {
-			String ip = DBUtils.getHostAddress();
+			String ip = ServerSettings.getHostAddress();
 			Query<Broadcast> query = datastore.createQuery(Broadcast.class);
 			query.and(
 					query.or(

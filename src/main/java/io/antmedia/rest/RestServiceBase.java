@@ -101,8 +101,6 @@ public abstract class RestServiceBase {
 
 	protected static Logger logger = LoggerFactory.getLogger(RestServiceBase.class);
 
-	private static String hostaddress;
-
 	private ProcessBuilderFactory processBuilderFactory = null;
 	
 	//TODO: This REGEX does not fully match 10.10.157.200. It ignores the last 0 it matches 10.10.157.20 and it cause problem in replacements
@@ -262,7 +260,7 @@ public abstract class RestServiceBase {
 		}
 
 		if (fqdn == null || fqdn.length() == 0) {
-			fqdn = getHostAddress(); 
+			fqdn = ServerSettings.getHostAddress(); 
 		}
 
 		if (fqdn != null && fqdn.length() >= 0) {
@@ -273,29 +271,7 @@ public abstract class RestServiceBase {
 		return broadcast;
 	}
 
-	public static String getHostAddress() {
-
-		if (hostaddress == null) {
-			long startTime = System.currentTimeMillis();
-			try {
-				/*
-				 * InetAddress.getLocalHost().getHostAddress() takes long time(5sec in macos) to return.
-				 * Let it is run once
-				 */
-				hostaddress = InetAddress.getLocalHost().getHostAddress();
-			} catch (UnknownHostException e) {
-				logger.error(ExceptionUtils.getStackTrace(e));
-			}
-			long diff = System.currentTimeMillis() - startTime;
-			if (diff > 1000) {
-				logger.warn("Getting host adress took {}ms. it's cached now and will return immediately from now on. You can "
-						+ " alternatively set serverName in conf/red5.properties file ", diff);
-			}
-		}
-
-
-		return hostaddress;
-	}
+	
 
 	public AppSettings getAppSettings() {
 		if (appSettings == null) {
@@ -545,7 +521,7 @@ public abstract class RestServiceBase {
 
 			String fqdn = getServerSettings().getServerName();
 			if (fqdn == null || fqdn.length() == 0) {
-				fqdn = getHostAddress();
+				fqdn = ServerSettings.getHostAddress();
 			}
 
 			int number = 1;
@@ -662,7 +638,7 @@ public abstract class RestServiceBase {
 
 				String fqdn = getServerSettings().getServerName();
 				if (fqdn == null || fqdn.length() == 0) {
-					fqdn = getHostAddress();
+					fqdn = ServerSettings.getHostAddress();
 				}
 
 				StringBuilder insertQueryString = new StringBuilder();

@@ -47,7 +47,8 @@ public class AppSettingsManager {
 			
 			if(sendToCluster && applicationContext.getParent().containsBean(IClusterNotifier.BEAN_NAME)) {
 				IClusterNotifier cluster = (IClusterNotifier) applicationContext.getParent().getBean(IClusterNotifier.BEAN_NAME);
-				cluster.sendAppSettings(applicationContext.getApplicationName(), settingsModel);
+				//TODO Critical fix the updating settings in all clusters
+				//cluster.sendAppSettings(applicationContext.getApplicationName(), settingsModel);
 			}
 			
 			
