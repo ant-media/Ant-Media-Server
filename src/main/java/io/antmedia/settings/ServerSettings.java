@@ -159,4 +159,12 @@ public class ServerSettings implements ApplicationContextAware {
 		
 	}
 
+	public boolean isUseGlobalIp() {
+		return useGlobalIp;
+	}
+
+	public void setUseGlobalIp(boolean useGlobalIp) {
+		this.useGlobalIp = useGlobalIp;
+	}
+
 }
