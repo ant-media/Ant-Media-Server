@@ -24,11 +24,12 @@ import com.mongodb.MongoClientURI;
 import com.mongodb.WriteResult;
 
 import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.cluster.StreamInfo;
+import io.antmedia.AppSettingsModel;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
+import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
@@ -56,7 +57,6 @@ public class MongoStore extends DataStore {
 	public MongoStore(String host, String username, String password, String dbName) {
 		morphia = new Morphia();
 		morphia.mapPackage("io.antmedia.datastore.db.types");
-		morphia.map(StreamInfo.class);
 
 		String uri = getMongoConnectionUri(host, username, password);
 
@@ -76,6 +76,8 @@ public class MongoStore extends DataStore {
 		endpointCredentialsDS.ensureIndexes();
 		detectionMap.ensureIndexes();
 		conferenceRoomDatastore.ensureIndexes();
+		
+		//TODO periodically check if settings is updated in the server side
 
 	}
 	
@@ -1033,5 +1035,13 @@ public class MongoStore extends DataStore {
 			return query.count();
 		}
 	}
+	
+	@Override
+	public boolean updateAppSettings(String appName, AppSettingsModel appsettings) {
+		// TODO implement app settings
+		return super.updateAppSettings(appName, appsettings);
+	}
+	
+	
 
 }

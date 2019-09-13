@@ -389,14 +389,17 @@ public class BroadcastRestServiceV2UnitTest {
 		Scope scope = mock(Scope.class);
 		String scopeName = "scope";
 		when(scope.getName()).thenReturn(scopeName);
-
-		AntMediaApplicationAdapter app = new AntMediaApplicationAdapter();
+		
+		InMemoryDataStore dbStore = new InMemoryDataStore("testdb");
+		AntMediaApplicationAdapter app = Mockito.spy(new AntMediaApplicationAdapter());
 		app.setAppSettings(settings);
+		Mockito.doReturn(dbStore).when(app).getDataStore();
+
 
 
 		restServiceReal.setApplication(app);
 		restServiceReal.setScope(scope);
-		restServiceReal.setDataStore(new InMemoryDataStore("testdb"));
+		restServiceReal.setDataStore(dbStore);
 
 		restServiceReal.setAppSettings(settings);
 

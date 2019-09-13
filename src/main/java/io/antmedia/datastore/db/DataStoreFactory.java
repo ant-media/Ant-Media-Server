@@ -113,7 +113,6 @@ public class DataStoreFactory implements IDataStoreFactory, InitializingBean{
 		
 		if(dataStore != null) {
 			dataStore.setWriteStatsToDatastore(isWriteStatsToDatastore());
-			DBReader.instance.addDataStore(appName, dataStore);
 			dataStore.clearStreamsOnThisServer();
 		}
 	}
