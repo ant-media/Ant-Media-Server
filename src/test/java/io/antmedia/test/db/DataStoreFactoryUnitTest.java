@@ -117,29 +117,4 @@ public class DataStoreFactoryUnitTest {
 
 	}
 
-
-	@Test
-	public void testDBReader() {
-		dsf.setDbType("memorydb");
-		dsf.init();
-		DataStore datastore = dsf.getDataStore();
-
-		String host = DBReader.instance.getHost("myStream", "myApp");
-		assertNull(host);
-
-		Broadcast broadcast = new Broadcast();
-		try {
-			broadcast.setStreamId("myStream");
-			broadcast.setOriginAdress("1.1.1.1");
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-
-		datastore.save(broadcast);
-
-		host = DBReader.instance.getHost("myStream", "myApp");
-
-		assertTrue(host.contentEquals("1.1.1.1"));
-	}
-
 }
