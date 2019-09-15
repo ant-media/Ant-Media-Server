@@ -27,7 +27,6 @@ import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.AppSettingsModel;
 import io.antmedia.EncoderSettings;
-import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.security.AcceptOnlyStreamsInDataStore;
 
@@ -62,7 +61,7 @@ public class AppSettingsTest {
 		
 		AppSettingsModel settings = new AppSettingsModel();
 		
-		AppSettings mockSettings = mock(AppSettings.class);
+		AppSettings mockSettings = Mockito.spy(new AppSettings());
 		
 		AntMediaApplicationAdapter mockApplicationAdapter = Mockito.spy(new AntMediaApplicationAdapter());			
 		mockApplicationAdapter.setAppSettings(mockSettings);
@@ -93,7 +92,7 @@ public class AppSettingsTest {
 		
 		assertTrue(mockApplicationAdapter.updateSettings(settings));
 		
-		AppSettingsModel savedSettings = DataStore.getAppSettings(appName);
+		AppSettings savedSettings = mockApplicationAdapter.getAppSettings();
 		
 		assertEquals(1, savedSettings.getEncoderSettings().size()); //wrong settings not applied, it is 1
 		assertEquals(720, savedSettings.getEncoderSettings().get(0).getHeight());
@@ -116,13 +115,11 @@ public class AppSettingsTest {
 	@Test
 	public void testChangeAndGetSettings() {
 		
-		AppSettingsModel savedSettings = DataStore.getAppSettings(appName);
-		assertEquals(0, savedSettings.getWebRTCFrameRate());
 		
 		AppSettingsModel settings = new AppSettingsModel();
 		settings.setMp4MuxingEnabled(true);
 		
-		AppSettings mockSettings = mock(AppSettings.class);
+		AppSettings mockSettings = Mockito.spy(new AppSettings());
 		AntMediaApplicationAdapter mockApplicationAdapter = Mockito.spy(new AntMediaApplicationAdapter());	
 		
 		mockApplicationAdapter.setAppSettings(mockSettings);
@@ -144,11 +141,11 @@ public class AppSettingsTest {
 		verify(mockApplicationAdapter, times(1)).synchUserVoDFolder(any(), any());
 		assertNotEquals(0, settingsFile.length());
 		
-		savedSettings = DataStore.getAppSettings(appName);
+		AppSettings savedSettings = mockApplicationAdapter.getAppSettings();
 		assertTrue(savedSettings.isMp4MuxingEnabled());
-		assertEquals(5, savedSettings.getHlsListSize());
+		assertEquals("5", savedSettings.getHlsListSize());
 		assertEquals("", savedSettings.getVodFolder());
-		assertEquals(2, savedSettings.getHlsTime());
+		assertEquals("1", savedSettings.getHlsTime());
 		assertEquals("", savedSettings.getHlsPlayListType());
 		assertEquals(0, savedSettings.getEncoderSettings().size());
 		
@@ -167,10 +164,10 @@ public class AppSettingsTest {
 		
 		mockApplicationAdapter.updateSettings(settings);
 		
-		savedSettings = DataStore.getAppSettings(appName);
-		assertEquals(12, savedSettings.getHlsListSize());
+		savedSettings = mockApplicationAdapter.getAppSettings();
+		assertEquals("12", savedSettings.getHlsListSize());
 		assertEquals("/mnt/storage", savedSettings.getVodFolder());
-		assertEquals(17, savedSettings.getHlsTime());
+		assertEquals("17", savedSettings.getHlsTime());
 		assertEquals("event", savedSettings.getHlsPlayListType());
 		assertEquals(1, savedSettings.getEncoderSettings().size()); //wrong settings not applied, it is 1
 		assertEquals(720, savedSettings.getEncoderSettings().get(0).getHeight());

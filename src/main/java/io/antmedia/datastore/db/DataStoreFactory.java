@@ -4,14 +4,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
+
 import io.antmedia.AppSettings;
 
 public class DataStoreFactory implements IDataStoreFactory, InitializingBean{
 
+	//TODO: I think all settings should be get from AppSettings bean
+	
 	public static final String DB_TYPE_MEMORYDB = "memorydb";
 	public static final String DB_TYPE_MAPDB = "mapdb";
 	public static final String DB_TYPE_MONGODB = "mongodb";
-	public static final String SETTINGS_DB_APP_NAME = "db.app.name";
+	
 	public static final String SETTINGS_DB_NAME = "db.name";
 	public static final String SETTINGS_DB_TYPE = "db.type";
 	public static final String SETTINGS_DB_HOST = "db.host";
@@ -27,8 +30,6 @@ public class DataStoreFactory implements IDataStoreFactory, InitializingBean{
 	@Value( "${" + AppSettings.SETTINGS_WRITE_STATS_TO_DATASTORE +":true}")
 	private boolean writeStatsToDatastore;
 	
-	@Value( "${"+SETTINGS_DB_APP_NAME+":#{null}}" )
-	private String appName;
 	
 	@Value( "${"+SETTINGS_DB_NAME+":#{null}}" )
 	private String dbName;
@@ -104,10 +105,10 @@ public class DataStoreFactory implements IDataStoreFactory, InitializingBean{
 			dataStore = new InMemoryDataStore(dbName);
 		}
 		else {
-			logger.error("Undefined Datastore:{} app:{} db name:{}", dbType, appName, dbName);
+			logger.error("Undefined Datastore:{}  db name:{}", dbType, dbName);
 		}
 		
-		logger.info("Used Datastore:{} app:{} db name:{}", getDbType(), getAppName(), getDbName());
+		logger.info("Used Datastore:{}  db name:{}", getDbType(), getDbName());
 		
 		if(dataStore != null) {
 			dataStore.setWriteStatsToDatastore(isWriteStatsToDatastore());
@@ -128,16 +129,6 @@ public class DataStoreFactory implements IDataStoreFactory, InitializingBean{
 	
 	public void setDataStore(DataStore dataStore) {
 		this.dataStore = dataStore;
-	}
-
-	public String getAppName()
-	{
-		return appName;
-	}
-	
-	public void setAppName(String appName)
-	{
-		this.appName = appName;
 	}
 
 	public boolean isWriteStatsToDatastore() {

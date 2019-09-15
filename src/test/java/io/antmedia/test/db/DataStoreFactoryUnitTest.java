@@ -30,7 +30,6 @@ public class DataStoreFactoryUnitTest {
 	public void before() {
 		deleteMapDB();
 		dsf =  new DataStoreFactory();
-		dsf.setAppName("myApp");
 		dsf.setDbName("myDB");
 		dsf.setDbHost("localhost");
 		dsf.setDbUser(null);

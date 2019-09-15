@@ -25,6 +25,7 @@ import com.mongodb.WriteResult;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettingsModel;
+import io.antmedia.IAppSettingsUpdateListener;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
@@ -35,6 +36,7 @@ import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.settings.ServerSettings;
+import io.vertx.core.Vertx;
 
 public class MongoStore extends DataStore {
 
@@ -46,14 +48,12 @@ public class MongoStore extends DataStore {
 	private Datastore detectionMap;
 	private Datastore conferenceRoomDatastore;
 
-
 	protected static Logger logger = LoggerFactory.getLogger(MongoStore.class);
 
 	public static final String IMAGE_ID = "imageId"; 
 	public static final String STATUS = "status";
 	private static final String ORIGIN_ADDRESS = "originAdress"; 
-
-
+	
 	public MongoStore(String host, String username, String password, String dbName) {
 		morphia = new Morphia();
 		morphia.mapPackage("io.antmedia.datastore.db.types");
@@ -62,6 +62,10 @@ public class MongoStore extends DataStore {
 
 		MongoClientURI mongoUri = new MongoClientURI(uri);
 		MongoClient client = new MongoClient(mongoUri);
+		
+		
+		
+		//TODO: Refactor these stores so that we don't have separate datastore for each class
 		datastore = morphia.createDatastore(client, dbName);
 		vodDatastore=morphia.createDatastore(client, dbName+"VoD");
 		endpointCredentialsDS = morphia.createDatastore(client, dbName+"_endpointCredentials");
@@ -69,6 +73,9 @@ public class MongoStore extends DataStore {
 		detectionMap = morphia.createDatastore(client, dbName + "detection");
 		conferenceRoomDatastore = morphia.createDatastore(client, dbName + "room");
 
+		//*************************************************
+		//do not create data store for each type as we do above
+		//*************************************************
 
 		tokenDatastore.ensureIndexes();
 		datastore.ensureIndexes();
@@ -76,9 +83,6 @@ public class MongoStore extends DataStore {
 		endpointCredentialsDS.ensureIndexes();
 		detectionMap.ensureIndexes();
 		conferenceRoomDatastore.ensureIndexes();
-		
-		//TODO periodically check if settings is updated in the server side
-
 	}
 	
 	public static String getMongoConnectionUri(String host, String username, String password) {
@@ -1035,13 +1039,5 @@ public class MongoStore extends DataStore {
 			return query.count();
 		}
 	}
-	
-	@Override
-	public boolean updateAppSettings(String appName, AppSettingsModel appsettings) {
-		// TODO implement app settings
-		return super.updateAppSettings(appName, appsettings);
-	}
-	
-	
 
 }

@@ -11,9 +11,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 
-import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.IDataStoreFactory;
+import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
 
 public class HlsViewerStats implements IStreamStats, ApplicationContextAware{

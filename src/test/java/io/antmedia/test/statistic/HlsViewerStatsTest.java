@@ -14,8 +14,10 @@ import java.util.concurrent.TimeUnit;
 
 import org.awaitility.Awaitility;
 import org.springframework.context.ApplicationContext;
-import org.springframework.test.context.ContextConfiguration;import io.antmedia.AppSettings;
+import org.springframework.test.context.ContextConfiguration;
+
 import io.antmedia.datastore.db.DataStoreFactory;
+import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
@@ -71,7 +73,6 @@ public class HlsViewerStatsTest {
 			scheduler.afterPropertiesSet();
 
 			DataStoreFactory dsf = new DataStoreFactory();
-			dsf.setAppName("liveapp");
 			dsf.setDbType("memorydb");
 			dsf.setDbName("datastore");
 			when(context.getBean(DataStoreFactory.BEAN_NAME)).thenReturn(dsf);

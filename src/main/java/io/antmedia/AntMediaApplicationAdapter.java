@@ -82,6 +82,8 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	public static final String HOOK_ACTION_VOD_READY = "vodReady";
 
 	public static final String VERTX_BEAN_NAME = "vertxCore";
+	
+	public static final String DEFAULT_LOCALHOST = "127.0.0.1";
 
 	protected static Logger logger = LoggerFactory.getLogger(AntMediaApplicationAdapter.class);
 	private ServerSettings serverSettings;
@@ -102,7 +104,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	protected StreamFetcherManager streamFetcherManager;
 	protected List<MuxAdaptor> muxAdaptors;
 	private DataStore dataStore;
-	DataStoreFactory dataStoreFactory;
+	private DataStoreFactory dataStoreFactory;
 
 	private AppSettings appSettings;
 	private Vertx vertx;
@@ -128,56 +130,56 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		//initalize to access the data store directly in the code
 		getDataStore();
 
-
-		if (getStreamPublishSecurityList() != null) {
-			for (IStreamPublishSecurity streamPublishSecurity : getStreamPublishSecurityList()) {
-				registerStreamPublishSecurity(streamPublishSecurity);
-			}
+		if (getContext().hasBean(IClusterNotifier.BEAN_NAME)) {
+			//which means it's in cluster mode
+			IClusterNotifier clusterNotifier = (IClusterNotifier) getContext().getBean(IClusterNotifier.BEAN_NAME);
+			clusterNotifier.registerSettingUpdateListener(getAppSettings().getAppName(), settings -> {
+				
+			});
 		}
-		String scheduledJobName = addScheduledOnceJob(0, new IScheduledJob() {
 
-			@Override
-			public void execute(ISchedulingService service) throws CloneNotSupportedException {
-				streamFetcherManager = new StreamFetcherManager(AntMediaApplicationAdapter.this, getDataStore(),app);
-				streamFetcherManager.setRestartStreamFetcherPeriod(appSettings.getRestartStreamFetcherPeriod());
-				List<Broadcast> streams = getDataStore().getExternalStreamsList();
-				logger.info("Stream source size: {}", streams.size());
-				streamFetcherManager.startStreams(streams);
+		for (IStreamPublishSecurity streamPublishSecurity : getStreamPublishSecurityList()) {
+			registerStreamPublishSecurity(streamPublishSecurity);
+		}
+		
+		
+		
+		vertx.runOnContext(l -> {
+			streamFetcherManager = new StreamFetcherManager(AntMediaApplicationAdapter.this, getDataStore(),app);
+			streamFetcherManager.setRestartStreamFetcherPeriod(appSettings.getRestartStreamFetcherPeriod());
+			List<Broadcast> streams = getDataStore().getExternalStreamsList();
+			logger.info("Stream source size: {}", streams.size());
+			streamFetcherManager.startStreams(streams);
 
-				List<SocialEndpointCredentials> socialEndpoints = getDataStore().getSocialEndpoints(0, END_POINT_LIMIT);
+			List<SocialEndpointCredentials> socialEndpoints = getDataStore().getSocialEndpoints(0, END_POINT_LIMIT);
 
-				logger.info("socialEndpoints size: {}", socialEndpoints.size());
+			logger.info("socialEndpoints size: {}", socialEndpoints.size());
 
-				for (SocialEndpointCredentials socialEndpointCredentials : socialEndpoints) 
+			for (SocialEndpointCredentials socialEndpointCredentials : socialEndpoints) 
+			{
+				VideoServiceEndpoint endPointService = null;
+				if (socialEndpointCredentials.getServiceName().equals(FACEBOOK)) 
 				{
-					VideoServiceEndpoint endPointService = null;
-					if (socialEndpointCredentials.getServiceName().equals(FACEBOOK)) 
-					{
-						endPointService = getEndpointService(FACEBOOK_ENDPOINT_CLASS, socialEndpointCredentials, appSettings.getFacebookClientId(), appSettings.getFacebookClientSecret());
-					}
-					else if (socialEndpointCredentials.getServiceName().equals(PERISCOPE)) 
-					{
-						endPointService = getEndpointService(PeriscopeEndpoint.class.getName(), socialEndpointCredentials, appSettings.getPeriscopeClientId(), appSettings.getPeriscopeClientSecret());
-					}
-					else if (socialEndpointCredentials.getServiceName().equals(YOUTUBE)) 
-					{
-						endPointService = getEndpointService(YOUTUBE_ENDPOINT_CLASS, socialEndpointCredentials, appSettings.getYoutubeClientId(), appSettings.getYoutubeClientSecret());
-					}
-
-					if (endPointService != null) {
-						endPointService.setCollectInteractivity(appSettings.isCollectSocialMediaActivity());
-						videoServiceEndpoints.put(endPointService.getCredentials().getId(), endPointService);
-					}
+					endPointService = getEndpointService(FACEBOOK_ENDPOINT_CLASS, socialEndpointCredentials, appSettings.getFacebookClientId(), appSettings.getFacebookClientSecret());
+				}
+				else if (socialEndpointCredentials.getServiceName().equals(PERISCOPE)) 
+				{
+					endPointService = getEndpointService(PeriscopeEndpoint.class.getName(), socialEndpointCredentials, appSettings.getPeriscopeClientId(), appSettings.getPeriscopeClientSecret());
+				}
+				else if (socialEndpointCredentials.getServiceName().equals(YOUTUBE)) 
+				{
+					endPointService = getEndpointService(YOUTUBE_ENDPOINT_CLASS, socialEndpointCredentials, appSettings.getYoutubeClientId(), appSettings.getYoutubeClientSecret());
 				}
 
-				if (appSettings != null) {
-					synchUserVoDFolder(null, appSettings.getVodFolder());
+				if (endPointService != null) {
+					endPointService.setCollectInteractivity(appSettings.isCollectSocialMediaActivity());
+					videoServiceEndpoints.put(endPointService.getCredentials().getId(), endPointService);
 				}
 			}
+			
+			synchUserVoDFolder(null, appSettings.getVodFolder());
 		});
-
-		logger.info("AppStart scheduled job name: {}", scheduledJobName);
-
+		
 		AMSShutdownManager.getInstance().subscribe(this);
 
 		//With the common app structure, we won't need to null check for WebRTCAdaptor
@@ -964,18 +966,72 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 				}
 			}
 		}
+		
+		if (settingsModel.getHlsListSize() < 5) {
+			settingsModel.setHlsListSize(5);
+		}
+		
+		if (settingsModel.getHlsTime() < 1) {
+			settingsModel.setHlsTime(1);
+		}
+		
+		if (settingsModel.getVodFolder() == null) {
+			settingsModel.setVodFolder("");
+		}
+		
+		if (settingsModel.getHlsPlayListType() == null) {
+			settingsModel.setHlsPlayListType("");
+		}
 
-		if (getDataStore().updateAppSettings(getScope().getName(), settingsModel))
+		if (settingsModel.getTokenHashSecret() == null) {
+			settingsModel.setTokenHashSecret("");
+		}
+
+
+		if (updateAppSettings(getScope().getName(), settingsModel))
 		{
 			AcceptOnlyStreamsInDataStore securityHandler = (AcceptOnlyStreamsInDataStore)  getContext().getBean(AcceptOnlyStreamsInDataStore.BEAN_NAME);
 			securityHandler.setEnabled(settingsModel.isAcceptOnlyStreamsInDataStore());
 
 			updateAppSettingsBean(appSettings, settingsModel);
+			
+			//TODO if cluster mode update to cluster db
 			result = true;
 		}
 
 		return result;
 	}
+	
+	
+	private boolean updateAppSettings(String appName, AppSettingsModel appsettingsModel) {
+		PreferenceStore store = new PreferenceStore("webapps/"+appName+"/WEB-INF/red5-web.properties");
+
+		store.put(AppSettings.SETTINGS_MP4_MUXING_ENABLED, String.valueOf(appsettingsModel.isMp4MuxingEnabled()));
+		store.put(AppSettings.SETTINGS_ADD_DATE_TIME_TO_MP4_FILE_NAME, String.valueOf(appsettingsModel.isAddDateTimeToMp4FileName()));
+		store.put(AppSettings.SETTINGS_HLS_MUXING_ENABLED, String.valueOf(appsettingsModel.isHlsMuxingEnabled()));
+		store.put(AppSettings.SETTINGS_ACCEPT_ONLY_STREAMS_IN_DATA_STORE, String.valueOf(appsettingsModel.isAcceptOnlyStreamsInDataStore()));
+		store.put(AppSettings.SETTINGS_OBJECT_DETECTION_ENABLED, String.valueOf(appsettingsModel.isObjectDetectionEnabled()));
+		store.put(AppSettings.SETTINGS_TOKEN_CONTROL_ENABLED, String.valueOf(appsettingsModel.isTokenControlEnabled()));
+		store.put(AppSettings.SETTINGS_WEBRTC_ENABLED, String.valueOf(appsettingsModel.isWebRTCEnabled()));
+		store.put(AppSettings.SETTINGS_WEBRTC_FRAME_RATE, String.valueOf(appsettingsModel.getWebRTCFrameRate()));
+		store.put(AppSettings.SETTINGS_HASH_CONTROL_PUBLISH_ENABLED, String.valueOf(appsettingsModel.isHashControlPublishEnabled()));
+		store.put(AppSettings.SETTINGS_HASH_CONTROL_PLAY_ENABLED, String.valueOf(appsettingsModel.isHashControlPlayEnabled()));
+		
+		store.put(AppSettings.SETTINGS_REMOTE_ALLOWED_CIDR, appsettingsModel.getRemoteAllowedCIDR() != null 
+																? appsettingsModel.getRemoteAllowedCIDR() 
+																: DEFAULT_LOCALHOST);
+		
+		store.put(AppSettings.SETTINGS_VOD_FOLDER, appsettingsModel.getVodFolder());
+		store.put(AppSettings.SETTINGS_HLS_LIST_SIZE, String.valueOf(appsettingsModel.getHlsListSize()));
+		store.put(AppSettings.SETTINGS_HLS_TIME, String.valueOf(appsettingsModel.getHlsTime()));
+		store.put(AppSettings.SETTINGS_HLS_PLAY_LIST_TYPE, appsettingsModel.getHlsPlayListType());
+		store.put(AppSettings.SETTINGS_ENCODER_SETTINGS_STRING, AppSettings.encodersList2Str(appsettingsModel.getEncoderSettings()));
+		store.put(AppSettings.TOKEN_HASH_SECRET, appsettingsModel.getTokenHashSecret());
+		store.put(AppSettings.SETTINGS_PREVIEW_OVERWRITE, String.valueOf(appsettingsModel.isPreviewOverwrite()));
+
+		return store.save();
+	}
+
 
 	private void updateAppSettingsBean(AppSettings appSettings, AppSettingsModel settingsModel) 
 	{	
@@ -997,6 +1053,8 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		appSettings.setRemoteAllowedCIDR(settingsModel.getRemoteAllowedCIDR());
 
 		appSettings.setAdaptiveResolutionList(settingsModel.getEncoderSettings());
+		
+		//appSettings.setEncoderSettingsString(AppSettings.encodersList2Str(encoderSettingsList));
 
 		String oldVodFolder = appSettings.getVodFolder();
 
@@ -1007,6 +1065,5 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 		logger.warn("app settings updated for {}", getScope().getName());	
 	}
-
 
 }

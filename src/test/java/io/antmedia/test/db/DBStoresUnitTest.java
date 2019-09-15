@@ -1272,7 +1272,6 @@ public class DBStoresUnitTest {
 		dsf.setWriteStatsToDatastore(writeStats);
 		dsf.setDbType(type);
 		dsf.setDbName("testdb");
-		dsf.setAppName("testApp");
 		dsf.setDbHost("localhost");
 		dsf.init();
 		return dsf.getDataStore();
