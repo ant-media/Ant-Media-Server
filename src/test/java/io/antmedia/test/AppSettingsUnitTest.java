@@ -150,17 +150,17 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertNull(appSettings.getHlsListSize());
 		assertNull(appSettings.getHlsTime());
 		assertNull(appSettings.getHlsPlayListType());
-		assertNull(appSettings.getAdaptiveResolutionList());
+		assertNull(appSettings.getEncoderSettings());
 	}
 	
 	@Test
 	public void testEncoderSettingsAtStartUp() {
 		AppSettings appSettings = new AppSettings();
 		String encSettings = "480,500000,96000,240,300000,64000";
-		assertNull(appSettings.getAdaptiveResolutionList());
+		assertNull(appSettings.getEncoderSettings());
 		appSettings.setEncoderSettingsString(encSettings);
-		assertNotNull(appSettings.getAdaptiveResolutionList());
-		assertEquals(2, appSettings.getAdaptiveResolutionList().size());
+		assertNotNull(appSettings.getEncoderSettings());
+		assertEquals(2, appSettings.getEncoderSettings().size());
 	}
 
 }

@@ -25,7 +25,7 @@
 		name="protocol" value="org.apache.coyote.http11.Http11NioProtocol" /> -->
 
  
-	<bean id="tomcat.cluster" class="io.antmedia.enterprise.cluster.TcpCluster" init-method="initDBCluster">
+	<bean id="tomcat.cluster" class="io.antmedia.enterprise.cluster.TcpCluster">
 		<property name="clusterStore">
 			<bean class="io.antmedia.enterprise.cluster.ClusterStore">
 				<constructor-arg value="${clusterdb.host}" />

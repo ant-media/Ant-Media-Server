@@ -35,6 +35,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.red5.server.api.IContext;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.stream.ClientBroadcastStream;
 
@@ -42,6 +43,8 @@ import com.jmatio.io.stream.ByteBufferInputStream;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
+import io.antmedia.cluster.IClusterNotifier;
+import io.antmedia.cluster.IClusterStore;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
@@ -49,6 +52,7 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.integration.AppFunctionalTest;
 import io.antmedia.muxer.MuxAdaptor;
+import io.antmedia.security.AcceptOnlyStreamsInDataStore;
 import io.antmedia.statistic.type.WebRTCAudioReceiveStats;
 import io.antmedia.statistic.type.WebRTCAudioSendStats;
 import io.antmedia.statistic.type.WebRTCVideoReceiveStats;
@@ -76,11 +80,78 @@ public class AntMediaApplicationAdaptorUnitTest {
 			e.printStackTrace();
 		}
 
+		File webApps = new File("webapps");
+		if (!webApps.exists()) {
+			webApps.mkdirs();
+		}
+		File junit = new File(webApps, "junit");
+		if (!junit.exists()) {
+			junit.mkdirs();
+		}
+		
+		File webinf = new File(junit, "WEB-INF");
+		if (!webinf.exists()) {
+			webinf.mkdirs();
+		}
+
 	}
 
 	@After
 	public void after() {
 		adapter = null;
+
+		try {
+			AppFunctionalTest.delete(new File("webapps"));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+
+	@Test
+	public void testAppSettings() 
+	{
+		AppSettings settings = new AppSettings();
+
+		AppSettings newSettings = Mockito.spy(new AppSettings());
+		newSettings.setVodFolder("");
+		newSettings.setHlsPlayListType("");
+		newSettings.setTokenHashSecret("");
+
+		IScope scope = mock(IScope.class);
+
+		when(scope.getName()).thenReturn("junit");
+
+		AntMediaApplicationAdapter spyAdapter = Mockito.spy(adapter);
+		IContext context = mock(IContext.class);
+		when(context.getBean(Mockito.any())).thenReturn(mock(AcceptOnlyStreamsInDataStore.class));
+		
+		Mockito.doReturn(mock(DataStore.class)).when(spyAdapter).getDataStore();
+		
+		Mockito.doReturn(context).when(spyAdapter).getContext();
+		
+		spyAdapter.setAppSettings(settings);
+		spyAdapter.setScope(scope);
+		spyAdapter.updateSettings(newSettings, true);
+		
+		
+
+		IClusterNotifier clusterNotifier = mock(IClusterNotifier.class);
+
+		IClusterStore clusterStore = mock(IClusterStore.class);
+
+		when(clusterNotifier.getClusterStore()).thenReturn(clusterStore);
+		spyAdapter.setClusterNotifier(clusterNotifier);
+
+		spyAdapter.updateSettings(newSettings, true);
+
+		verify(clusterNotifier, times(1)).getClusterStore();
+		verify(clusterStore, times(1)).saveSettings(settings);
+		
+		spyAdapter.updateSettings(newSettings, false);
+		//it should not change times(1) because we don't want it to update the datastore
+		verify(clusterNotifier, times(1)).getClusterStore();
+		verify(clusterStore, times(1)).saveSettings(settings);
 	}
 
 	@Test
@@ -315,13 +386,13 @@ public class AntMediaApplicationAdaptorUnitTest {
 		DataStoreFactory dsf = Mockito.mock(DataStoreFactory.class);
 		Mockito.when(dsf.getDataStore()).thenReturn(dataStore);
 		spyAdaptor.setDataStoreFactory(dsf);
-		
+
 		//get sample mp4 file from test resources
 		File anyFile = new File("src/test/resources/sample_MP4_480.mp4");
-		
+
 		//create new broadcast
 		Broadcast broadcast = new Broadcast();
-		
+
 		//save this broadcast to db
 		String streamId = dataStore.save(broadcast);
 
@@ -329,7 +400,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		 * Scenario 1; Stream is saved to DB, but no Hook URL is defined either for stream and in AppSettings
 		 * So, no hook is posted
 		 */
-		
+
 
 		ArgumentCaptor<String> captureUrl = ArgumentCaptor.forClass(String.class);
 		ArgumentCaptor<String> captureId = ArgumentCaptor.forClass(String.class);
@@ -341,7 +412,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		//call muxingFinished function
 		spyAdaptor.muxingFinished(streamId, anyFile, 100, 480);
-		
+
 		//verify that notifyHook is never called
 		verify(spyAdaptor, never()).notifyHook(captureUrl.capture(), captureId.capture(), captureAction.capture(), 
 				captureStreamName.capture(), captureCategory.capture(), captureVodName.capture(), captureVodId.capture());
@@ -351,21 +422,21 @@ public class AntMediaApplicationAdaptorUnitTest {
 		 * Scenario 2; hook URL is defined for stream and stream is in DB
 		 * So hook is posted
 		 */
-		
+
 		//define hook URL for stream specific
 		broadcast.setListenerHookURL("listenerHookURL");
 		broadcast.setName("name");
-		
+
 		//update broadcast
 		dataStore.updateBroadcastFields(streamId, broadcast);
 
 		//call muxingFinished function
 		spyAdaptor.muxingFinished(streamId, anyFile, 100, 480);	
-		
+
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> {
 			boolean called = false;
 			try {
-				
+
 				//verify that notifyHook is called 1 time
 				verify(spyAdaptor, times(1)).notifyHook(captureUrl.capture(), captureId.capture(), captureAction.capture(), 
 						captureStreamName.capture(), captureCategory.capture(), captureVodName.capture(), captureVodId.capture());
@@ -388,21 +459,21 @@ public class AntMediaApplicationAdaptorUnitTest {
 		 * also no HookURL is defined in AppSettins
 		 * so no hook is posted
 		 */
-		
+
 		//delete broadcast from db
 		dataStore.delete(streamId);
-		
+
 		//call muxingFinished function
 		spyAdaptor.muxingFinished(streamId, anyFile, 100, 480);	
 
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> {
 			boolean called = false;
 			try {
-				
+
 				//verify that no new notifyHook is called 
 				verify(spyAdaptor, times(1)).notifyHook(captureUrl.capture(), captureId.capture(), captureAction.capture(), 
 						captureStreamName.capture(), captureCategory.capture(), captureVodName.capture(), captureVodId.capture());
-				
+
 				called = true;
 			}
 			catch (Exception e) {
@@ -417,17 +488,17 @@ public class AntMediaApplicationAdaptorUnitTest {
 		 * but HookURL is defined in AppSettins
 		 * so new hook is posted
 		 */
-		
+
 		//set common hook URL
 		appSettings.setListenerHookURL("listenerHookURL");
-		
+
 		//call muxingFinished function
 		spyAdaptor.muxingFinished(streamId, anyFile, 100, 480);	
 
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> {
 			boolean called = false;
 			try {
-				
+
 				//verify that notifyHook is called 2 times
 				verify(spyAdaptor, times(2)).notifyHook(captureUrl.capture(), captureId.capture(), captureAction.capture(), 
 						captureStreamName.capture(), captureCategory.capture(), captureVodName.capture(), captureVodId.capture());
@@ -435,7 +506,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 				assertEquals(captureUrl.getValue(), broadcast.getListenerHookURL());
 				assertEquals(captureId.getValue(), broadcast.getStreamId());
 				assertEquals(captureVodName.getValue()+".mp4", anyFile.getName());
-				
+
 				called = true;
 			}
 			catch (Exception e) {
@@ -536,83 +607,83 @@ public class AntMediaApplicationAdaptorUnitTest {
 		verify(muxerAdaptor, times(1)).stop();
 
 	}
-	
+
 	@Test
 	public void testEncoderBlocked() {
 		assertEquals(0, adapter.getNumberOfEncodersBlocked());
 		assertEquals(0, adapter.getNumberOfEncoderNotOpenedErrors());
-		
+
 		adapter.incrementEncoderNotOpenedError();
 		adapter.incrementEncoderNotOpenedError();
 		adapter.incrementEncoderNotOpenedError();
-		
+
 		assertEquals(3, adapter.getNumberOfEncoderNotOpenedErrors());
 	}
-	
+
 	@Test
 	public void testPublishTimeout() {
 		assertEquals(0, adapter.getNumberOfPublishTimeoutError());
-		
+
 		adapter.publishTimeoutError("streamId");
-		
+
 		assertEquals(1, adapter.getNumberOfPublishTimeoutError());
 	}
-	
+
 	@Test
 	public void testStats() {
 		WebRTCVideoReceiveStats receiveStats = new WebRTCVideoReceiveStats();
 		assertNotNull(receiveStats.getVideoBytesReceivedPerSecond());
 		assertEquals(BigInteger.ZERO, receiveStats.getVideoBytesReceivedPerSecond());
-		
+
 		assertNotNull(receiveStats.getVideoBytesReceived());
 		assertEquals(BigInteger.ZERO, receiveStats.getVideoBytesReceived());
-		
+
 		WebRTCAudioReceiveStats audioReceiveStats = new WebRTCAudioReceiveStats();
 		assertNotNull(audioReceiveStats.getAudioBytesReceivedPerSecond());
 		assertEquals(BigInteger.ZERO, audioReceiveStats.getAudioBytesReceivedPerSecond());
-		
-		
+
+
 		assertNotNull(audioReceiveStats.getAudioBytesReceived());
 		assertEquals(BigInteger.ZERO, audioReceiveStats.getAudioBytesReceived());
-		
-		
+
+
 		WebRTCVideoSendStats videoSendStats = new WebRTCVideoSendStats();
 		assertNotNull(videoSendStats.getVideoBytesSentPerSecond());
 		assertEquals(BigInteger.ZERO, videoSendStats.getVideoBytesSentPerSecond());
-		
+
 		assertNotNull(videoSendStats.getVideoBytesSent());
 		assertEquals(BigInteger.ZERO, videoSendStats.getVideoBytesSent());
-		
-		
+
+
 		WebRTCAudioSendStats audioSendStats = new WebRTCAudioSendStats();
 		assertEquals(BigInteger.ZERO, audioSendStats.getAudioBytesSent());
 		assertEquals(BigInteger.ZERO, audioSendStats.getAudioBytesSentPerSecond());
-		
-		
+
+
 	}
-	
+
 	@Test
 	public void testEncoderBlockedList() {
-		
+
 		assertEquals(0, adapter.getNumberOfEncodersBlocked());
-		
+
 		adapter.encoderBlocked("stream1", false);
-		
+
 		assertEquals(0, adapter.getNumberOfEncodersBlocked());
-		
+
 		adapter.encoderBlocked("stream1", true);
-		
+
 		assertEquals(1, adapter.getNumberOfEncodersBlocked());
-		
+
 		adapter.encoderBlocked("stream2", true);
 		adapter.encoderBlocked("stream3", true);
-		
+
 		assertEquals(3, adapter.getNumberOfEncodersBlocked());
-		
+
 		adapter.encoderBlocked("stream2", false);
 		adapter.encoderBlocked("stream3", false);
 		adapter.encoderBlocked("stream1", false);
-		
+
 		assertEquals(0, adapter.getNumberOfEncodersBlocked());
 	}
 }

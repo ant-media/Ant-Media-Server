@@ -24,8 +24,6 @@ import com.mongodb.MongoClientURI;
 import com.mongodb.WriteResult;
 
 import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.AppSettingsModel;
-import io.antmedia.IAppSettingsUpdateListener;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
@@ -36,7 +34,6 @@ import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.settings.ServerSettings;
-import io.vertx.core.Vertx;
 
 public class MongoStore extends DataStore {
 

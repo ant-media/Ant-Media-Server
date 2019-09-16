@@ -13,10 +13,17 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 import java.util.Queue;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import org.apache.commons.configuration2.FileBasedConfiguration;
+import org.apache.commons.configuration2.PropertiesConfiguration;
+import org.apache.commons.configuration2.builder.ReloadingFileBasedConfigurationBuilder;
+import org.apache.commons.configuration2.builder.fluent.Parameters;
+import org.apache.commons.configuration2.ex.ConfigurationException;
+import org.apache.commons.configuration2.reloading.PeriodicReloadingTrigger;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.HttpEntity;
@@ -38,7 +45,6 @@ import org.red5.server.api.stream.IStreamPublishSecurity;
 import org.red5.server.api.stream.ISubscriberStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationContext;
 
 import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.datastore.db.DataStore;
@@ -122,20 +128,22 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	protected WebRTCVideoSendStats webRTCVideoSendStats = new WebRTCVideoSendStats();
 
 	protected WebRTCAudioSendStats webRTCAudioSendStats = new WebRTCAudioSendStats();
+	private IClusterNotifier clusterNotifier;
 
 	@Override
 	public boolean appStart(IScope app) {
 		vertx = (Vertx) getContext().getBean(VERTX_BEAN_NAME);
-
+		
+	
 		//initalize to access the data store directly in the code
 		getDataStore();
 
 		if (getContext().hasBean(IClusterNotifier.BEAN_NAME)) {
 			//which means it's in cluster mode
-			IClusterNotifier clusterNotifier = (IClusterNotifier) getContext().getBean(IClusterNotifier.BEAN_NAME);
-			clusterNotifier.registerSettingUpdateListener(getAppSettings().getAppName(), settings -> {
-				
-			});
+			clusterNotifier = (IClusterNotifier) getContext().getBean(IClusterNotifier.BEAN_NAME);
+			
+			clusterNotifier.registerSettingUpdateListener(getAppSettings().getAppName(), 
+					settings -> updateSettings(settings, false));
 		}
 
 		for (IStreamPublishSecurity streamPublishSecurity : getStreamPublishSecurityList()) {
@@ -952,116 +960,97 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	}
 
 
-	public boolean updateSettings(AppSettingsModel settingsModel) {
+	public boolean updateSettings(AppSettings newSettings, boolean notifyCluster) {
 
 		boolean result = false;
-		//if there is any wrong encoder settings, remove it at first
-		List<EncoderSettings> encoderSettingsList = settingsModel.getEncoderSettings();
-		if (encoderSettingsList != null) {
-			for (Iterator<EncoderSettings> iterator = encoderSettingsList.iterator(); iterator.hasNext();) {
-				EncoderSettings encoderSettings = iterator.next();
-				if (encoderSettings.getHeight() == 0 || encoderSettings.getVideoBitrate() == 0 || encoderSettings.getAudioBitrate() == 0)
-				{
-					iterator.remove();
-				}
-			}
-		}
-		
-		if (settingsModel.getHlsListSize() < 5) {
-			settingsModel.setHlsListSize(5);
-		}
-		
-		if (settingsModel.getHlsTime() < 1) {
-			settingsModel.setHlsTime(1);
-		}
-		
-		if (settingsModel.getVodFolder() == null) {
-			settingsModel.setVodFolder("");
-		}
-		
-		if (settingsModel.getHlsPlayListType() == null) {
-			settingsModel.setHlsPlayListType("");
-		}
 
-		if (settingsModel.getTokenHashSecret() == null) {
-			settingsModel.setTokenHashSecret("");
-		}
-
-
-		if (updateAppSettings(getScope().getName(), settingsModel))
+		//************************************
+		//ATTENTION: When a new settings added both updateAppSettingsFile 
+		// && updateAppSettingsBean should be updated
+		//*************************************
+		if (updateAppSettingsFile(getScope().getName(), newSettings))
 		{
 			AcceptOnlyStreamsInDataStore securityHandler = (AcceptOnlyStreamsInDataStore)  getContext().getBean(AcceptOnlyStreamsInDataStore.BEAN_NAME);
-			securityHandler.setEnabled(settingsModel.isAcceptOnlyStreamsInDataStore());
+			securityHandler.setEnabled(newSettings.isAcceptOnlyStreamsInDataStore());
 
-			updateAppSettingsBean(appSettings, settingsModel);
+			updateAppSettingsBean(appSettings, newSettings);
 			
-			//TODO if cluster mode update to cluster db
+			if (notifyCluster && clusterNotifier != null) {
+				clusterNotifier.getClusterStore().saveSettings(appSettings);
+			}
+			
 			result = true;
+		}
+		else {
+			logger.warn("Settings cannot be saved for {}", getScope().getName());
 		}
 
 		return result;
 	}
 	
+	public void setClusterNotifier(IClusterNotifier clusterNotifier) {
+		this.clusterNotifier = clusterNotifier;
+	}
 	
-	private boolean updateAppSettings(String appName, AppSettingsModel appsettingsModel) {
+	
+	private boolean updateAppSettingsFile(String appName, AppSettings appsettings) 
+	{
 		PreferenceStore store = new PreferenceStore("webapps/"+appName+"/WEB-INF/red5-web.properties");
 
-		store.put(AppSettings.SETTINGS_MP4_MUXING_ENABLED, String.valueOf(appsettingsModel.isMp4MuxingEnabled()));
-		store.put(AppSettings.SETTINGS_ADD_DATE_TIME_TO_MP4_FILE_NAME, String.valueOf(appsettingsModel.isAddDateTimeToMp4FileName()));
-		store.put(AppSettings.SETTINGS_HLS_MUXING_ENABLED, String.valueOf(appsettingsModel.isHlsMuxingEnabled()));
-		store.put(AppSettings.SETTINGS_ACCEPT_ONLY_STREAMS_IN_DATA_STORE, String.valueOf(appsettingsModel.isAcceptOnlyStreamsInDataStore()));
-		store.put(AppSettings.SETTINGS_OBJECT_DETECTION_ENABLED, String.valueOf(appsettingsModel.isObjectDetectionEnabled()));
-		store.put(AppSettings.SETTINGS_TOKEN_CONTROL_ENABLED, String.valueOf(appsettingsModel.isTokenControlEnabled()));
-		store.put(AppSettings.SETTINGS_WEBRTC_ENABLED, String.valueOf(appsettingsModel.isWebRTCEnabled()));
-		store.put(AppSettings.SETTINGS_WEBRTC_FRAME_RATE, String.valueOf(appsettingsModel.getWebRTCFrameRate()));
-		store.put(AppSettings.SETTINGS_HASH_CONTROL_PUBLISH_ENABLED, String.valueOf(appsettingsModel.isHashControlPublishEnabled()));
-		store.put(AppSettings.SETTINGS_HASH_CONTROL_PLAY_ENABLED, String.valueOf(appsettingsModel.isHashControlPlayEnabled()));
+		store.put(AppSettings.SETTINGS_MP4_MUXING_ENABLED, String.valueOf(appsettings.isMp4MuxingEnabled()));
+		store.put(AppSettings.SETTINGS_ADD_DATE_TIME_TO_MP4_FILE_NAME, String.valueOf(appsettings.isAddDateTimeToMp4FileName()));
+		store.put(AppSettings.SETTINGS_HLS_MUXING_ENABLED, String.valueOf(appsettings.isHlsMuxingEnabled()));
+		store.put(AppSettings.SETTINGS_ACCEPT_ONLY_STREAMS_IN_DATA_STORE, String.valueOf(appsettings.isAcceptOnlyStreamsInDataStore()));
+		store.put(AppSettings.SETTINGS_OBJECT_DETECTION_ENABLED, String.valueOf(appsettings.isObjectDetectionEnabled()));
+		store.put(AppSettings.SETTINGS_TOKEN_CONTROL_ENABLED, String.valueOf(appsettings.isTokenControlEnabled()));
+		store.put(AppSettings.SETTINGS_WEBRTC_ENABLED, String.valueOf(appsettings.isWebRTCEnabled()));
+		store.put(AppSettings.SETTINGS_WEBRTC_FRAME_RATE, String.valueOf(appsettings.getWebRTCFrameRate()));
+		store.put(AppSettings.SETTINGS_HASH_CONTROL_PUBLISH_ENABLED, String.valueOf(appsettings.isHashControlPublishEnabled()));
+		store.put(AppSettings.SETTINGS_HASH_CONTROL_PLAY_ENABLED, String.valueOf(appsettings.isHashControlPlayEnabled()));
 		
-		store.put(AppSettings.SETTINGS_REMOTE_ALLOWED_CIDR, appsettingsModel.getRemoteAllowedCIDR() != null 
-																? appsettingsModel.getRemoteAllowedCIDR() 
+		store.put(AppSettings.SETTINGS_REMOTE_ALLOWED_CIDR, appsettings.getRemoteAllowedCIDR() != null 
+																? appsettings.getRemoteAllowedCIDR() 
 																: DEFAULT_LOCALHOST);
 		
-		store.put(AppSettings.SETTINGS_VOD_FOLDER, appsettingsModel.getVodFolder());
-		store.put(AppSettings.SETTINGS_HLS_LIST_SIZE, String.valueOf(appsettingsModel.getHlsListSize()));
-		store.put(AppSettings.SETTINGS_HLS_TIME, String.valueOf(appsettingsModel.getHlsTime()));
-		store.put(AppSettings.SETTINGS_HLS_PLAY_LIST_TYPE, appsettingsModel.getHlsPlayListType());
-		store.put(AppSettings.SETTINGS_ENCODER_SETTINGS_STRING, AppSettings.encodersList2Str(appsettingsModel.getEncoderSettings()));
-		store.put(AppSettings.TOKEN_HASH_SECRET, appsettingsModel.getTokenHashSecret());
-		store.put(AppSettings.SETTINGS_PREVIEW_OVERWRITE, String.valueOf(appsettingsModel.isPreviewOverwrite()));
+		store.put(AppSettings.SETTINGS_VOD_FOLDER, appsettings.getVodFolder());
+		store.put(AppSettings.SETTINGS_HLS_LIST_SIZE, String.valueOf(appsettings.getHlsListSize()));
+		store.put(AppSettings.SETTINGS_HLS_TIME, String.valueOf(appsettings.getHlsTime()));
+		store.put(AppSettings.SETTINGS_HLS_PLAY_LIST_TYPE, appsettings.getHlsPlayListType());
+		store.put(AppSettings.SETTINGS_ENCODER_SETTINGS_STRING, AppSettings.encodersList2Str(appsettings.getEncoderSettings()));
+		store.put(AppSettings.TOKEN_HASH_SECRET, appsettings.getTokenHashSecret());
+		store.put(AppSettings.SETTINGS_PREVIEW_OVERWRITE, String.valueOf(appsettings.isPreviewOverwrite()));
 
 		return store.save();
 	}
 
 
-	private void updateAppSettingsBean(AppSettings appSettings, AppSettingsModel settingsModel) 
+	private void updateAppSettingsBean(AppSettings appSettings, AppSettings newSettings) 
 	{	
-		appSettings.setMp4MuxingEnabled(settingsModel.isMp4MuxingEnabled());
-		appSettings.setAddDateTimeToMp4FileName(settingsModel.isAddDateTimeToMp4FileName());
-		appSettings.setHlsMuxingEnabled(settingsModel.isHlsMuxingEnabled());
-		appSettings.setObjectDetectionEnabled(settingsModel.isObjectDetectionEnabled());
-		appSettings.setHlsListSize(String.valueOf(settingsModel.getHlsListSize()));
-		appSettings.setHlsTime(String.valueOf(settingsModel.getHlsTime()));
-		appSettings.setHlsPlayListType(settingsModel.getHlsPlayListType());
-		appSettings.setAcceptOnlyStreamsInDataStore(settingsModel.isAcceptOnlyStreamsInDataStore());
-		appSettings.setTokenControlEnabled(settingsModel.isTokenControlEnabled());
-		appSettings.setWebRTCEnabled(settingsModel.isWebRTCEnabled());
-		appSettings.setWebRTCFrameRate(settingsModel.getWebRTCFrameRate());
-		appSettings.setHashControlPublishEnabled(settingsModel.isHashControlPublishEnabled());
-		appSettings.setHashControlPlayEnabled(settingsModel.isHashControlPlayEnabled());
-		appSettings.setTokenHashSecret(settingsModel.getTokenHashSecret());
+		appSettings.setMp4MuxingEnabled(newSettings.isMp4MuxingEnabled());
+		appSettings.setAddDateTimeToMp4FileName(newSettings.isAddDateTimeToMp4FileName());
+		appSettings.setHlsMuxingEnabled(newSettings.isHlsMuxingEnabled());
+		appSettings.setObjectDetectionEnabled(newSettings.isObjectDetectionEnabled());
+		appSettings.setHlsListSize(String.valueOf(newSettings.getHlsListSize()));
+		appSettings.setHlsTime(String.valueOf(newSettings.getHlsTime()));
+		appSettings.setHlsPlayListType(newSettings.getHlsPlayListType());
+		appSettings.setAcceptOnlyStreamsInDataStore(newSettings.isAcceptOnlyStreamsInDataStore());
+		appSettings.setTokenControlEnabled(newSettings.isTokenControlEnabled());
+		appSettings.setWebRTCEnabled(newSettings.isWebRTCEnabled());
+		appSettings.setWebRTCFrameRate(newSettings.getWebRTCFrameRate());
+		appSettings.setHashControlPublishEnabled(newSettings.isHashControlPublishEnabled());
+		appSettings.setHashControlPlayEnabled(newSettings.isHashControlPlayEnabled());
+		appSettings.setTokenHashSecret(newSettings.getTokenHashSecret());
 
-		appSettings.setRemoteAllowedCIDR(settingsModel.getRemoteAllowedCIDR());
-
-		appSettings.setAdaptiveResolutionList(settingsModel.getEncoderSettings());
+		appSettings.setRemoteAllowedCIDR(newSettings.getRemoteAllowedCIDR());
 		
-		//appSettings.setEncoderSettingsString(AppSettings.encodersList2Str(encoderSettingsList));
-
+		appSettings.setEncoderSettings(newSettings.getEncoderSettings());
+		
 		String oldVodFolder = appSettings.getVodFolder();
 
-		appSettings.setVodFolder(settingsModel.getVodFolder());
-		appSettings.setPreviewOverwrite(settingsModel.isPreviewOverwrite());
+		appSettings.setVodFolder(newSettings.getVodFolder());
+		appSettings.setPreviewOverwrite(newSettings.isPreviewOverwrite());
 
-		synchUserVoDFolder(oldVodFolder, settingsModel.getVodFolder());
+		synchUserVoDFolder(oldVodFolder, newSettings.getVodFolder());
 
 		logger.warn("app settings updated for {}", getScope().getName());	
 	}

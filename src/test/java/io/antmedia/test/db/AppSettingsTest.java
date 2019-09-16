@@ -25,7 +25,6 @@ import org.red5.server.api.scope.IScope;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
-import io.antmedia.AppSettingsModel;
 import io.antmedia.EncoderSettings;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.security.AcceptOnlyStreamsInDataStore;
@@ -59,7 +58,7 @@ public class AppSettingsTest {
 	@Test
 	public void testZeroEncoderSettings() {
 		
-		AppSettingsModel settings = new AppSettingsModel();
+		AppSettings settings = new AppSettings();
 		
 		AppSettings mockSettings = Mockito.spy(new AppSettings());
 		
@@ -78,8 +77,8 @@ public class AppSettingsTest {
 		Mockito.doReturn(scope).when(mockApplicationAdapter).getScope();		
 		
 		//null case
-		assertTrue(mockApplicationAdapter.updateSettings(settings));
-		verify(mockSettings, times(1)).setAdaptiveResolutionList(null);
+		assertTrue(mockApplicationAdapter.updateSettings(settings, false));
+		verify(mockSettings, times(1)).setEncoderSettings(null);
 		
 		
 		List<EncoderSettings> encoderSettings = new ArrayList<>();
@@ -90,7 +89,7 @@ public class AppSettingsTest {
 		settings.setEncoderSettings(encoderSettings);
 		
 		
-		assertTrue(mockApplicationAdapter.updateSettings(settings));
+		assertTrue(mockApplicationAdapter.updateSettings(settings, false));
 		
 		AppSettings savedSettings = mockApplicationAdapter.getAppSettings();
 		
@@ -102,7 +101,7 @@ public class AppSettingsTest {
 		
 		
 		ArgumentCaptor<List<EncoderSettings>> encoderSettingsCapture = ArgumentCaptor.forClass(List.class);
-		verify(mockSettings, times(2)).setAdaptiveResolutionList(encoderSettingsCapture.capture());
+		verify(mockSettings, times(2)).setEncoderSettings(encoderSettingsCapture.capture());
 		
 		List<EncoderSettings> encoderSettings2 = encoderSettingsCapture.getValue();
 		
@@ -116,7 +115,7 @@ public class AppSettingsTest {
 	public void testChangeAndGetSettings() {
 		
 		
-		AppSettingsModel settings = new AppSettingsModel();
+		AppSettings settings = new AppSettings();
 		settings.setMp4MuxingEnabled(true);
 		
 		AppSettings mockSettings = Mockito.spy(new AppSettings());
@@ -135,7 +134,7 @@ public class AppSettingsTest {
 		when(scope.getName()).thenReturn(appName);
 		Mockito.doReturn(scope).when(mockApplicationAdapter).getScope();		
 								
-		mockApplicationAdapter.updateSettings(settings);
+		mockApplicationAdapter.updateSettings(settings, false);
 		
 		verify(mockSettings, times(1)).setMp4MuxingEnabled(settings.isMp4MuxingEnabled());
 		verify(mockApplicationAdapter, times(1)).synchUserVoDFolder(any(), any());
@@ -150,9 +149,9 @@ public class AppSettingsTest {
 		assertEquals(0, savedSettings.getEncoderSettings().size());
 		
 		
-		settings.setHlsListSize(12);
+		settings.setHlsListSize("12");
 		settings.setVodFolder("/mnt/storage");
-		settings.setHlsTime(17);
+		settings.setHlsTime("17");
 		settings.setHlsPlayListType("event");
 		List<EncoderSettings> encoderSettings = new ArrayList<>();
 		encoderSettings.add(new EncoderSettings(720, 2500000, 128000)); //correct 
@@ -162,7 +161,7 @@ public class AppSettingsTest {
 		settings.setEncoderSettings(encoderSettings);
 		settings.setPreviewOverwrite(false);
 		
-		mockApplicationAdapter.updateSettings(settings);
+		mockApplicationAdapter.updateSettings(settings, false);
 		
 		savedSettings = mockApplicationAdapter.getAppSettings();
 		assertEquals("12", savedSettings.getHlsListSize());
