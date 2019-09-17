@@ -97,8 +97,12 @@ public class ServerSettings implements ApplicationContextAware {
 		this.heartbeatEnabled = heartbeatEnabled;
 	}
 	
-	//TODO: "static"  should be removed
 	public  String getHostAddress() {
+		if (hostAddress == null ) {
+			//which means that context is not initialized yet so that return localhost address
+			logger.warn("ServerSettings is not initialized yet so that return local host address: {}", getLocalHostAddress());
+			return getLocalHostAddress();
+		}
 		return hostAddress;
 	}
 	

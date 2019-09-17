@@ -909,7 +909,8 @@ public class BroadcastRestServiceV2UnitTest {
 		AppSettings settings = mock(AppSettings.class);
 		String serverName = "fully.qualified.domain.name";
 		
-		ServerSettings serverSettings = mock(ServerSettings.class);
+		ServerSettings serverSettings = Mockito.spy(new ServerSettings());
+		
 		when(serverSettings.getServerName()).thenReturn(serverName);
 		restServiceReal.setServerSettings(serverSettings);
 

@@ -230,15 +230,9 @@ public abstract class RestServiceBase {
 	}
 
 	public Broadcast createBroadcastWithStreamID(Broadcast broadcast) {
-		String settingsListenerHookURL = null; 
-		String fqdn = null;
-		AppSettings appSettingsLocal = getAppSettings();
-		if (appSettingsLocal != null) {
-			settingsListenerHookURL = appSettingsLocal.getListenerHookURL();
-		}
-		fqdn = getServerSettings().getServerName();
+	
 		return saveBroadcast(broadcast, AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, getScope().getName(),
-				getDataStore(), settingsListenerHookURL, fqdn, getServerSettings().getHostAddress());
+				getDataStore(), getAppSettings().getListenerHookURL(), getServerSettings().getServerName(), getServerSettings().getHostAddress());
 	}
 
 	public static Broadcast saveBroadcast(Broadcast broadcast, String status, String scopeName, DataStore dataStore,
