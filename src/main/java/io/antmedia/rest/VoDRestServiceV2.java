@@ -19,6 +19,7 @@ import org.springframework.stereotype.Component;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.rest.BroadcastRestServiceV2.SimpleStat;
 import io.antmedia.rest.model.Result;
+import io.antmedia.settings.ServerSettings;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
@@ -113,5 +114,6 @@ public class VoDRestServiceV2 extends RestServiceBase{
 	public Result synchUserVodList() {
 		return super.synchUserVodList();
 	}
+
 	
 }

@@ -45,7 +45,7 @@ import org.slf4j.LoggerFactory;
 import com.google.gson.Gson;
 
 import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.AppSettingsModel;
+import io.antmedia.AppSettings;
 import io.antmedia.EncoderSettings;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.VoD;
@@ -255,7 +255,7 @@ public class AppFunctionalTest {
 
 			boolean found240p = false;
 			List<EncoderSettings> encoderSettingsActive = null;
-			AppSettingsModel appSettingsModel = null;
+			AppSettings appSettingsModel = null;
 			boolean mp4MuxingEnabled = false;
 			Broadcast broadcast=rest.createBroadcast("RTMP_stream");
 			{

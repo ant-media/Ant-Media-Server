@@ -39,6 +39,7 @@ import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.mockito.Mockito;
+import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IClientBroadcastStream;
 import org.red5.server.api.stream.IStreamCapableConnection;
 import org.red5.server.scope.Scope;
@@ -74,6 +75,7 @@ import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.User;
 import io.antmedia.rest.model.Version;
 import io.antmedia.security.ITokenService;
+import io.antmedia.settings.ServerSettings;
 import io.antmedia.social.LiveComment;
 import io.antmedia.social.ResourceOrigin;
 import io.antmedia.social.endpoint.PeriscopeEndpoint;
@@ -145,7 +147,11 @@ public class BroadcastRestServiceV2UnitTest {
 		when(settings.getStalkerDBServer()).thenReturn("192.168.1.29");
 		when(settings.getStalkerDBUsername()).thenReturn("stalker");
 		when(settings.getStalkerDBPassword()).thenReturn("1");
-		when(settings.getServerName()).thenReturn(null);
+		//when(settings.getServerName()).thenReturn(null);
+		
+		ServerSettings serverSettings = mock(ServerSettings.class);
+		when(serverSettings.getServerName()).thenReturn(null);
+		restServiceReal.setServerSettings(serverSettings);
 
 		Scope scope = mock(Scope.class);
 		String scopeName = "scope";
@@ -195,7 +201,10 @@ public class BroadcastRestServiceV2UnitTest {
 		when(settings.getStalkerDBServer()).thenReturn("192.168.1.29");
 		when(settings.getStalkerDBUsername()).thenReturn("stalker");
 		when(settings.getStalkerDBPassword()).thenReturn("1");
-		when(settings.getServerName()).thenReturn("localhost");
+
+		ServerSettings serverSettings = mock(ServerSettings.class);
+		when(serverSettings.getServerName()).thenReturn("localhost");
+		restServiceReal.setServerSettings(serverSettings);
 
 		String vodFolderPath = "webapps/junit/streams/vod_folder";
 
@@ -381,14 +390,17 @@ public class BroadcastRestServiceV2UnitTest {
 		Scope scope = mock(Scope.class);
 		String scopeName = "scope";
 		when(scope.getName()).thenReturn(scopeName);
-
-		AntMediaApplicationAdapter app = new AntMediaApplicationAdapter();
+		
+		InMemoryDataStore dbStore = new InMemoryDataStore("testdb");
+		AntMediaApplicationAdapter app = Mockito.spy(new AntMediaApplicationAdapter());
 		app.setAppSettings(settings);
+		Mockito.doReturn(dbStore).when(app).getDataStore();
+
 
 
 		restServiceReal.setApplication(app);
 		restServiceReal.setScope(scope);
-		restServiceReal.setDataStore(new InMemoryDataStore("testdb"));
+		restServiceReal.setDataStore(dbStore);
 
 		restServiceReal.setAppSettings(settings);
 
@@ -532,7 +544,10 @@ public class BroadcastRestServiceV2UnitTest {
 		when(settings.getListenerHookURL()).thenReturn(hookURL);
 
 		String serverName = "fually.qualified.domain.name";
-		when(settings.getServerName()).thenReturn(serverName);
+		
+		ServerSettings serverSettings = mock(ServerSettings.class);
+		when(serverSettings.getServerName()).thenReturn(serverName);
+		restServiceReal.setServerSettings(serverSettings);
 
 		Scope scope = mock(Scope.class);
 		String scopeName = "scope";
@@ -555,7 +570,9 @@ public class BroadcastRestServiceV2UnitTest {
 
 
 		//this makes the test code enter getHostAddress method
-		when(settings.getServerName()).thenReturn(null);
+		when(serverSettings.getServerName()).thenReturn(null);
+
+		
 
 		Response response = (Response) restServiceReal.createBroadcast(broadcast, null, false);
 		//return bad request because there is already a broadcast with the same id
@@ -572,8 +589,12 @@ public class BroadcastRestServiceV2UnitTest {
 	public void testAddEndpoint() {
 		AppSettings settings = mock(AppSettings.class);
 		String serverName = "fully.qualified.domain.name";
-		when(settings.getServerName()).thenReturn(serverName);
 		restServiceReal.setAppSettings(settings);
+		
+		ServerSettings serverSettings = mock(ServerSettings.class);
+		when(serverSettings.getServerName()).thenReturn(serverName);
+		restServiceReal.setServerSettings(serverSettings);
+
 
 		Broadcast broadcast = new Broadcast(null, "name");
 		DataStore store = new InMemoryDataStore("testdb");
@@ -609,8 +630,12 @@ public class BroadcastRestServiceV2UnitTest {
 	public void testAddSocialEndpoint() {
 		AppSettings settings = mock(AppSettings.class);
 		String serverName = "fully.qualified.domain.name";
-		when(settings.getServerName()).thenReturn(serverName);
 		restServiceReal.setAppSettings(settings);
+		
+		ServerSettings serverSettings = mock(ServerSettings.class);
+		when(serverSettings.getServerName()).thenReturn(serverName);
+		restServiceReal.setServerSettings(serverSettings);
+
 
 		Broadcast broadcast = new Broadcast(null, "name");
 		DataStore store = new InMemoryDataStore("testdb");
@@ -824,8 +849,12 @@ public class BroadcastRestServiceV2UnitTest {
 	public void testDeleteBroadcast() {
 		AppSettings settings = mock(AppSettings.class);
 		String serverName = "fully.qualified.domain.name";
-		when(settings.getServerName()).thenReturn(serverName);
 		restServiceReal.setAppSettings(settings);
+		ServerSettings serverSettings = mock(ServerSettings.class);
+		when(serverSettings.getServerName()).thenReturn(serverName);
+		restServiceReal.setServerSettings(serverSettings);
+
+		
 
 
 		DataStore store = new InMemoryDataStore("testdb");
@@ -880,7 +909,12 @@ public class BroadcastRestServiceV2UnitTest {
 	public void testServerNameAndRtmpURL() {
 		AppSettings settings = mock(AppSettings.class);
 		String serverName = "fully.qualified.domain.name";
-		when(settings.getServerName()).thenReturn(serverName);
+		
+		ServerSettings serverSettings = Mockito.spy(new ServerSettings());
+		
+		when(serverSettings.getServerName()).thenReturn(serverName);
+		restServiceReal.setServerSettings(serverSettings);
+
 
 		Scope scope = mock(Scope.class);
 		String scopeName = "scope";
@@ -896,7 +930,8 @@ public class BroadcastRestServiceV2UnitTest {
 
 		assertEquals("rtmp://" + serverName + "/" + scopeName + "/" + broadcast.getStreamId() , createBroadcast.getRtmpURL());
 
-		when(settings.getServerName()).thenReturn(null);
+		when(serverSettings.getServerName()).thenReturn(null);
+
 
 		broadcast = new Broadcast(null, "name");
 		Response response = restServiceReal.createBroadcast(broadcast, null, false);
@@ -908,7 +943,8 @@ public class BroadcastRestServiceV2UnitTest {
 			fail(e.getMessage());
 		}
 
-		when(settings.getServerName()).thenReturn("");
+		when(serverSettings.getServerName()).thenReturn("");
+
 
 		broadcast = new Broadcast(null, "name");
 		Broadcast createBroadcast3 = (Broadcast) restServiceReal.createBroadcast(broadcast, null, false).getEntity();
@@ -926,6 +962,10 @@ public class BroadcastRestServiceV2UnitTest {
 		AppSettings settings = mock(AppSettings.class);
 		when(settings.getListenerHookURL()).thenReturn(null);
 		restServiceReal.setAppSettings(settings);
+		
+		ServerSettings serverSettings = Mockito.mock(ServerSettings.class);
+		restServiceReal.setServerSettings(serverSettings);
+		
 
 		Scope scope = mock(Scope.class);
 		String scopeName = "scope";
@@ -980,10 +1020,13 @@ public class BroadcastRestServiceV2UnitTest {
 
 		restServiceReal.setScope(scope);
 
-
 		Broadcast broadcast = new Broadcast(null, "name");
 		DataStore store = new InMemoryDataStore("testdb");
 		restServiceReal.setDataStore(store);
+		
+		ServerSettings serverSettings = Mockito.mock(ServerSettings.class);
+		restServiceReal.setServerSettings(serverSettings);
+		
 		Broadcast createBroadcast = (Broadcast) restServiceReal.createBroadcast(broadcast, null, false).getEntity();
 
 		assertNotNull(createBroadcast);
@@ -1065,6 +1108,9 @@ public class BroadcastRestServiceV2UnitTest {
 		when(settings.getListenerHookURL()).thenReturn(null);
 		restServiceSpy.setAppSettings(settings);
 
+		ServerSettings serverSettings = Mockito.mock(ServerSettings.class);
+		restServiceSpy.setServerSettings(serverSettings);
+		
 		Scope scope = mock(Scope.class);
 		when(scope.getName()).thenReturn(scopeValue);
 
@@ -1295,6 +1341,13 @@ public class BroadcastRestServiceV2UnitTest {
 		Mockito.doReturn(fetcher).when(adaptor).startStreaming(newCam);
 		Mockito.doReturn(new InMemoryDataStore("testAddIPCamera")).when(streamSourceRest).getDataStore();
 
+		Mockito.doReturn(new ServerSettings()).when(streamSourceRest).getServerSettings();
+		Mockito.doReturn(new AppSettings()).when(streamSourceRest).getAppSettings();
+		
+		IScope scope = mock(IScope.class);
+		when(scope.getName()).thenReturn("junit");
+		
+		Mockito.doReturn(scope).when(streamSourceRest).getScope();
 
 		
 		ApplicationContext appContext = mock(ApplicationContext.class);
@@ -1358,6 +1411,14 @@ public class BroadcastRestServiceV2UnitTest {
 		Mockito.doReturn(new Result(true)).when(adaptor).stopStreaming(newCam);
 		Mockito.doReturn(new InMemoryDataStore("startStopStreamSource")).when(streamSourceRest).getDataStore();
 
+		Mockito.doReturn(new ServerSettings()).when(streamSourceRest).getServerSettings();
+		Mockito.doReturn(new AppSettings()).when(streamSourceRest).getAppSettings();
+		
+		IScope scope = mock(IScope.class);
+		when(scope.getName()).thenReturn("junit");
+		
+		Mockito.doReturn(scope).when(streamSourceRest).getScope();
+		
 		//add IP Camera first
 		assertTrue(streamSourceRest.addIPCamera(newCam, null).isSuccess());
 
@@ -1499,6 +1560,14 @@ public class BroadcastRestServiceV2UnitTest {
 		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
 		Mockito.doReturn(new InMemoryDataStore("testAddStreamSource")).when(streamSourceRest).getDataStore();
 		Mockito.doReturn(streamFetcher).when(adaptor).startStreaming(Mockito.any());
+		
+		Mockito.doReturn(new ServerSettings()).when(streamSourceRest).getServerSettings();
+		Mockito.doReturn(new AppSettings()).when(streamSourceRest).getAppSettings();
+		
+		IScope scope = mock(IScope.class);
+		when(scope.getName()).thenReturn("junit");
+		
+		Mockito.doReturn(scope).when(streamSourceRest).getScope();
 
 		ApplicationContext appContext = mock(ApplicationContext.class);
 
@@ -1579,6 +1648,14 @@ public class BroadcastRestServiceV2UnitTest {
 		Mockito.doReturn(videoServiceEndpoints).when(adaptor).getVideoServiceEndpoints();
 		StreamFetcher fetcher = mock (StreamFetcher.class);
 		Mockito.doReturn(fetcher).when(adaptor).startStreaming(source);
+		
+		Mockito.doReturn(new ServerSettings()).when(streamSourceRest).getServerSettings();
+		Mockito.doReturn(new AppSettings()).when(streamSourceRest).getAppSettings();
+		
+		IScope scope = mock(IScope.class);
+		when(scope.getName()).thenReturn("junit");
+		
+		Mockito.doReturn(scope).when(streamSourceRest).getScope();
 
 
 		ApplicationContext appContext = mock(ApplicationContext.class);

@@ -56,7 +56,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.AppSettingsModel;
+import io.antmedia.AppSettings;
 import io.antmedia.EncoderSettings;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Licence;
@@ -252,7 +252,7 @@ public class ConsoleAppRestServiceTest{
 				appName = "WebRTCAppEE";
 			}
 
-			AppSettingsModel appSettingsModel = callGetAppSettings(appName);
+			AppSettings appSettingsModel = callGetAppSettings(appName);
 			assertEquals("", appSettingsModel.getVodFolder());
 
 			appSettingsModel = callGetAppSettings("LiveApp");
@@ -349,7 +349,7 @@ public class ConsoleAppRestServiceTest{
 			Result authenticatedUserResult = callAuthenticateUser(user);
 			assertTrue(authenticatedUserResult.isSuccess());
 
-			AppSettingsModel appSettingsModel = callGetAppSettings("LiveApp");
+			AppSettings appSettingsModel = callGetAppSettings("LiveApp");
 
 			// Change app settings and make mp4 and hls muxing false
 			appSettingsModel.setMp4MuxingEnabled(false);
@@ -404,7 +404,7 @@ public class ConsoleAppRestServiceTest{
 			result = callSetAppSettings("LiveApp", appSettingsModel);
 			assertTrue(result.isSuccess());
 
-			AppSettingsModel callGetAppSettings = callGetAppSettings("LiveApp");
+			AppSettings callGetAppSettings = callGetAppSettings("LiveApp");
 			assertTrue(callGetAppSettings.getEncoderSettings().size() > 0);
 
 		} catch (Exception e) {
@@ -481,44 +481,50 @@ public class ConsoleAppRestServiceTest{
 
 			log.info("appName: {}", appName);
 			
-			AppSettingsModel appSettingsOriginal = callGetAppSettings(appName);
+			AppSettings appSettingsOriginal = callGetAppSettings(appName);
 			
-			
-			AppSettingsModel appSettings = callGetAppSettings(appName);
+			AppSettings appSettings = callGetAppSettings(appName);
 			int size = appSettings.getEncoderSettings().size();
-			appSettings.getEncoderSettings().add(new EncoderSettings(0, 200000, 300000));
+			List<EncoderSettings> settingsList = new ArrayList<>();
+			
+			settingsList.add(new EncoderSettings(0, 200000, 300000));
+			
+			appSettings.setEncoderSettings(settingsList);
 			Result result = callSetAppSettings(appName, appSettings);
 			assertTrue(result.isSuccess());
 			
 			appSettings = callGetAppSettings(appName);
 			//it should not change the size because encoder setting is false, height should not be zero
-			assertEquals(size, appSettings.getEncoderSettings().size());
+			assertEquals(0, appSettings.getEncoderSettings().size());
 			
 			
 			
-			appSettings.getEncoderSettings().add(new EncoderSettings(480, 0, 300000));
+			settingsList.add(new EncoderSettings(480, 0, 300000));
+			appSettings.setEncoderSettings(settingsList);
 			result = callSetAppSettings(appName, appSettings);
 			assertTrue(result.isSuccess());
 			appSettings = callGetAppSettings(appName);
 			//it should not change the size because encoder setting is false, height should not be zero
-			assertEquals(size, appSettings.getEncoderSettings().size());
+			assertEquals(0, appSettings.getEncoderSettings().size());
 			
 			
-			appSettings.getEncoderSettings().add(new EncoderSettings(480, 2000, 0));
+			settingsList.add(new EncoderSettings(480, 2000, 0));
+			appSettings.setEncoderSettings(settingsList);
 			result = callSetAppSettings(appName, appSettings);
 			assertTrue(result.isSuccess());
 			appSettings = callGetAppSettings(appName);
 			//it should not change the size because encoder setting is false, height should not be zero
-			assertEquals(size, appSettings.getEncoderSettings().size());
+			assertEquals(0, appSettings.getEncoderSettings().size());
 			
+						
+			settingsList.add(new EncoderSettings(480, 2000, 30000));
+			appSettings.setEncoderSettings(settingsList);
 			
-			
-			appSettings.getEncoderSettings().add(new EncoderSettings(480, 2000, 30000));
 			result = callSetAppSettings(appName, appSettings);
 			assertTrue(result.isSuccess());
 			appSettings = callGetAppSettings(appName);
 			//it should change the size because parameters are correct
-			assertEquals((size+1), appSettings.getEncoderSettings().size());
+			assertEquals(1, appSettings.getEncoderSettings().size());
 			
 			
 			//restore settings
@@ -560,7 +566,7 @@ public class ConsoleAppRestServiceTest{
 			//assert that it's successfull
 			assertNotNull(broadcastList);
 
-			AppSettingsModel appSettings = callGetAppSettings(appName);
+			AppSettings appSettings = callGetAppSettings(appName);
 
 			String remoteAllowedCIDR = appSettings.getRemoteAllowedCIDR();
 			assertEquals("127.0.0.1", remoteAllowedCIDR);
@@ -652,7 +658,7 @@ public class ConsoleAppRestServiceTest{
 			}
 
 			//get app settings
-			AppSettingsModel appSettingsModel = callGetAppSettings("LiveApp");
+			AppSettings appSettingsModel = callGetAppSettings("LiveApp");
 
 
 			//check that preview overwrite is false by default
@@ -763,7 +769,7 @@ public class ConsoleAppRestServiceTest{
 			assertTrue(authenticatedUserResult.isSuccess());
 
 			// get settings from the app
-			AppSettingsModel appSettingsModel = callGetAppSettings("LiveApp");
+			AppSettings appSettingsModel = callGetAppSettings("LiveApp");
 
 			// assertFalse(appSettingsModel.acceptOnlyStreamsInDataStore);
 
@@ -817,7 +823,7 @@ public class ConsoleAppRestServiceTest{
 			result = callSetAppSettings("LiveApp", appSettingsModel);
 			assertTrue(result.isSuccess());
 
-			AppSettingsModel callGetAppSettings = callGetAppSettings("LiveApp");
+			AppSettings callGetAppSettings = callGetAppSettings("LiveApp");
 			assertFalse(appSettingsModel.isAcceptOnlyStreamsInDataStore());
 
 			// send anonymous stream
@@ -950,7 +956,7 @@ public class ConsoleAppRestServiceTest{
 			}
 
 			// get settings from the app
-			AppSettingsModel appSettings = callGetAppSettings("LiveApp");
+			AppSettings appSettings = callGetAppSettings("LiveApp");
 
 			appSettings.setTokenControlEnabled(true);
 			appSettings.setMp4MuxingEnabled(true);
@@ -1121,7 +1127,7 @@ public class ConsoleAppRestServiceTest{
 			}
 
 			// get settings from the app
-			AppSettingsModel appSettings = callGetAppSettings("LiveApp");
+			AppSettings appSettings = callGetAppSettings("LiveApp");
 
 			//set hash publish control enabled
 			appSettings.setHashControlPublishEnabled(true);
@@ -1302,7 +1308,7 @@ public class ConsoleAppRestServiceTest{
 			assertTrue(authenticatedUserResult.isSuccess());
 
 			// get settings from the app
-			AppSettingsModel appSettings = callGetAppSettings("LiveApp");
+			AppSettings appSettings = callGetAppSettings("LiveApp");
 
 			//disable mp4 muxing
 			appSettings.setMp4MuxingEnabled(false);
@@ -1550,7 +1556,7 @@ public class ConsoleAppRestServiceTest{
 		return tmp;
 	}
 
-	public static Result callSetAppSettings(String appName, AppSettingsModel appSettingsModel) throws Exception {
+	public static Result callSetAppSettings(String appName, AppSettings appSettingsModel) throws Exception {
 		String url = ROOT_SERVICE_URL + "/changeSettings/" + appName;
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
 				.setDefaultCookieStore(httpCookieStore).build();
@@ -1700,7 +1706,7 @@ public class ConsoleAppRestServiceTest{
 
 	}
 
-	public static AppSettingsModel callGetAppSettings(String appName) throws Exception {
+	public static AppSettings callGetAppSettings(String appName) throws Exception {
 
 		String url = ROOT_SERVICE_URL + "/getSettings/" + appName;
 
@@ -1719,7 +1725,7 @@ public class ConsoleAppRestServiceTest{
 			throw new Exception(result.toString());
 		}
 		log.info("result string: " + result.toString());
-		AppSettingsModel tmp = gson.fromJson(result.toString(), AppSettingsModel.class);
+		AppSettings tmp = gson.fromJson(result.toString(), AppSettings.class);
 		assertNotNull(tmp);
 		return tmp;
 	}

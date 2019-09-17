@@ -13,7 +13,6 @@ import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -21,15 +20,17 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
-import org.springframework.context.ApplicationContext;
+import org.mockito.Mockito;
+import org.red5.server.api.IContext;
+import org.red5.server.api.scope.IScope;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
-import io.antmedia.AppSettingsModel;
 import io.antmedia.EncoderSettings;
-import io.antmedia.datastore.AppSettingsManager;
+import io.antmedia.datastore.db.InMemoryDataStore;
+import io.antmedia.security.AcceptOnlyStreamsInDataStore;
 
-public class AppSettingsManagerTest {
+public class AppSettingsTest {
 	String appName = "TestApp";
 	String path = "webapps/"+appName+"/WEB-INF/red5-web.properties";
 	File settingsFile = new File(path);
@@ -58,20 +59,27 @@ public class AppSettingsManagerTest {
 	@Test
 	public void testZeroEncoderSettings() {
 		
-		AppSettingsModel settings = new AppSettingsModel();
+		AppSettings settings = new AppSettings();
 		
-		ApplicationContext mockContext = mock(ApplicationContext.class);
-		AppSettings mockSettings = mock(AppSettings.class);
-		AntMediaApplicationAdapter mockApplicationAdapter = mock(AntMediaApplicationAdapter.class);	
+		AppSettings mockSettings = Mockito.spy(new AppSettings());
 		
-		when(mockContext.containsBean(AppSettings.BEAN_NAME)).thenReturn(true);
-		when(mockContext.getBean(AppSettings.BEAN_NAME)).thenReturn(mockSettings);
-		when(mockContext.getApplicationName()).thenReturn(appName);
-		when(mockContext.getBean("web.handler")).thenReturn(mockApplicationAdapter);
+		AntMediaApplicationAdapter mockApplicationAdapter = Mockito.spy(new AntMediaApplicationAdapter());			
+		mockApplicationAdapter.setAppSettings(mockSettings);
+		
+		Mockito.doReturn(new InMemoryDataStore("")).when(mockApplicationAdapter).getDataStore();
+		
+		IContext context = mock(IContext.class);
+		Mockito.doReturn(context).when(mockApplicationAdapter).getContext();
+		when(context.getBean(AcceptOnlyStreamsInDataStore.BEAN_NAME)).thenReturn(mock(AcceptOnlyStreamsInDataStore.class));
+		
+		
+		IScope scope = mock(IScope.class);
+		when(scope.getName()).thenReturn(appName);
+		Mockito.doReturn(scope).when(mockApplicationAdapter).getScope();		
 		
 		//null case
-		assertTrue(AppSettingsManager.updateAppSettings(mockContext, settings, false));
-		verify(mockSettings, times(1)).setAdaptiveResolutionList(null);
+		assertTrue(mockApplicationAdapter.updateSettings(settings, false));
+		verify(mockSettings, times(1)).setEncoderSettings(settings.getEncoderSettings());
 		
 		
 		List<EncoderSettings> encoderSettings = new ArrayList<>();
@@ -82,9 +90,9 @@ public class AppSettingsManagerTest {
 		settings.setEncoderSettings(encoderSettings);
 		
 		
-		assertTrue(AppSettingsManager.updateAppSettings(mockContext, settings, false));
+		assertTrue(mockApplicationAdapter.updateSettings(settings, false));
 		
-		AppSettingsModel savedSettings = AppSettingsManager.getAppSettings(appName);
+		AppSettings savedSettings = mockApplicationAdapter.getAppSettings();
 		
 		assertEquals(1, savedSettings.getEncoderSettings().size()); //wrong settings not applied, it is 1
 		assertEquals(720, savedSettings.getEncoderSettings().get(0).getHeight());
@@ -94,7 +102,7 @@ public class AppSettingsManagerTest {
 		
 		
 		ArgumentCaptor<List<EncoderSettings>> encoderSettingsCapture = ArgumentCaptor.forClass(List.class);
-		verify(mockSettings, times(2)).setAdaptiveResolutionList(encoderSettingsCapture.capture());
+		verify(mockSettings, times(2)).setEncoderSettings(encoderSettingsCapture.capture());
 		
 		List<EncoderSettings> encoderSettings2 = encoderSettingsCapture.getValue();
 		
@@ -107,39 +115,44 @@ public class AppSettingsManagerTest {
 	@Test
 	public void testChangeAndGetSettings() {
 		
-		AppSettingsModel savedSettings = AppSettingsManager.getAppSettings(appName);
-		assertEquals(0, savedSettings.getWebRTCFrameRate());
 		
-		
-		AppSettingsModel settings = new AppSettingsModel();
+		AppSettings settings = new AppSettings();
 		settings.setMp4MuxingEnabled(true);
 		
-		ApplicationContext mockContext = mock(ApplicationContext.class);
-		AppSettings mockSettings = mock(AppSettings.class);
-		AntMediaApplicationAdapter mockApplicationAdapter = mock(AntMediaApplicationAdapter.class);	
+		AppSettings mockSettings = Mockito.spy(new AppSettings());
+		AntMediaApplicationAdapter mockApplicationAdapter = Mockito.spy(new AntMediaApplicationAdapter());	
 		
-		when(mockContext.containsBean(AppSettings.BEAN_NAME)).thenReturn(true);
-		when(mockContext.getBean(AppSettings.BEAN_NAME)).thenReturn(mockSettings);
-		when(mockContext.getApplicationName()).thenReturn(appName);
-		when(mockContext.getBean("web.handler")).thenReturn(mockApplicationAdapter);
-						
-		AppSettingsManager.updateAppSettings(mockContext, settings, false);
+		mockApplicationAdapter.setAppSettings(mockSettings);
+		
+		Mockito.doReturn(new InMemoryDataStore("")).when(mockApplicationAdapter).getDataStore();
+		
+		IContext context = mock(IContext.class);
+		Mockito.doReturn(context).when(mockApplicationAdapter).getContext();
+		when(context.getBean(AcceptOnlyStreamsInDataStore.BEAN_NAME)).thenReturn(mock(AcceptOnlyStreamsInDataStore.class));
+		
+		
+		IScope scope = mock(IScope.class);
+		when(scope.getName()).thenReturn(appName);
+		Mockito.doReturn(scope).when(mockApplicationAdapter).getScope();		
+								
+		mockApplicationAdapter.updateSettings(settings, false);
+		
 		verify(mockSettings, times(1)).setMp4MuxingEnabled(settings.isMp4MuxingEnabled());
 		verify(mockApplicationAdapter, times(1)).synchUserVoDFolder(any(), any());
 		assertNotEquals(0, settingsFile.length());
 		
-		savedSettings = AppSettingsManager.getAppSettings(appName);
+		AppSettings savedSettings = mockApplicationAdapter.getAppSettings();
 		assertTrue(savedSettings.isMp4MuxingEnabled());
-		assertEquals(5, savedSettings.getHlsListSize());
-		assertEquals("", savedSettings.getVodFolder());
-		assertEquals(2, savedSettings.getHlsTime());
-		assertEquals("", savedSettings.getHlsPlayListType());
+		assertEquals("5", savedSettings.getHlsListSize());
+		assertNull(savedSettings.getVodFolder());
+		assertEquals("1", savedSettings.getHlsTime());
+		assertNull(savedSettings.getHlsPlayListType());
 		assertEquals(0, savedSettings.getEncoderSettings().size());
 		
 		
-		settings.setHlsListSize(12);
+		settings.setHlsListSize("12");
 		settings.setVodFolder("/mnt/storage");
-		settings.setHlsTime(17);
+		settings.setHlsTime("17");
 		settings.setHlsPlayListType("event");
 		List<EncoderSettings> encoderSettings = new ArrayList<>();
 		encoderSettings.add(new EncoderSettings(720, 2500000, 128000)); //correct 
@@ -149,21 +162,17 @@ public class AppSettingsManagerTest {
 		settings.setEncoderSettings(encoderSettings);
 		settings.setPreviewOverwrite(false);
 		
-		AppSettingsManager.updateAppSettings(mockContext, settings, false);
+		mockApplicationAdapter.updateSettings(settings, false);
 		
-		savedSettings = AppSettingsManager.getAppSettings(appName);
-		assertEquals(12, savedSettings.getHlsListSize());
+		savedSettings = mockApplicationAdapter.getAppSettings();
+		assertEquals("12", savedSettings.getHlsListSize());
 		assertEquals("/mnt/storage", savedSettings.getVodFolder());
-		assertEquals(17, savedSettings.getHlsTime());
+		assertEquals("17", savedSettings.getHlsTime());
 		assertEquals("event", savedSettings.getHlsPlayListType());
 		assertEquals(1, savedSettings.getEncoderSettings().size()); //wrong settings not applied, it is 1
 		assertEquals(720, savedSettings.getEncoderSettings().get(0).getHeight());
 		assertEquals(2500000, savedSettings.getEncoderSettings().get(0).getVideoBitrate());
 		assertEquals(128000, savedSettings.getEncoderSettings().get(0).getAudioBitrate());
-		
-
-		
-		
 			
 	}
 	

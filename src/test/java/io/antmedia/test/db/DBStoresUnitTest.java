@@ -26,9 +26,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.AppSettings;
-import io.antmedia.cluster.StreamInfo;
-import io.antmedia.datastore.DBUtils;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
@@ -38,10 +35,12 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
+import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.muxer.MuxAdaptor;
+import io.antmedia.settings.ServerSettings;
 
 public class DBStoresUnitTest {
 
@@ -1273,7 +1272,6 @@ public class DBStoresUnitTest {
 		dsf.setWriteStatsToDatastore(writeStats);
 		dsf.setDbType(type);
 		dsf.setDbName("testdb");
-		dsf.setAppName("testApp");
 		dsf.setDbHost("localhost");
 		dsf.init();
 		return dsf.getDataStore();
@@ -1296,17 +1294,18 @@ public class DBStoresUnitTest {
 
 		assertEquals(2, dataStore.getBroadcastCount());
 
-		dataStore.clearStreamsOnThisServer();
+		dataStore.clearStreamsOnThisServer(ServerSettings.getLocalHostAddress());
 
 		assertEquals(0, dataStore.getBroadcastCount());
 	}
 
 	public void testClearAtStartCluster(DataStore dataStore) {
-		dataStore.clearStreamsOnThisServer();
+		
+		dataStore.clearStreamsOnThisServer(ServerSettings.getLocalHostAddress());
 		assertEquals(0, dataStore.getBroadcastCount());
 
 		Broadcast broadcast = new Broadcast();
-		broadcast.setOriginAdress(DBUtils.getHostAddress());
+		broadcast.setOriginAdress(ServerSettings.getLocalHostAddress());
 		broadcast.setName("test1");
 		try {
 			broadcast.setStreamId("test1");
@@ -1317,13 +1316,13 @@ public class DBStoresUnitTest {
 		dataStore.save(broadcast);
 
 		StreamInfo si = new StreamInfo();
-		si.setHost(DBUtils.getHostAddress());
+		si.setHost(ServerSettings.getLocalHostAddress());
 		si.setStreamId(broadcast.getStreamId());
 
 		dataStore.saveStreamInfo(si);
 
 		StreamInfo si2 = new StreamInfo();
-		si2.setHost(DBUtils.getHostAddress());
+		si2.setHost(ServerSettings.getLocalHostAddress());
 		si2.setStreamId(broadcast.getStreamId());
 		si2.setVideoPort(1000);
 		si2.setAudioPort(1100);
@@ -1336,7 +1335,7 @@ public class DBStoresUnitTest {
 		assertEquals(1, dataStore.getBroadcastCount());
 		assertEquals(2, dataStore.getStreamInfoList(broadcast.getStreamId()).size());
 
-		dataStore.clearStreamsOnThisServer();
+		dataStore.clearStreamsOnThisServer(ServerSettings.getLocalHostAddress());
 
 		assertEquals(0, dataStore.getBroadcastCount());
 		assertEquals(0, dataStore.getStreamInfoList(broadcast.getStreamId()).size());

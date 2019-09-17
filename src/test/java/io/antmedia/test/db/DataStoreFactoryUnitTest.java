@@ -12,14 +12,11 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.AppSettings;
-import io.antmedia.cluster.DBReader;
-import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.DataStore;
+import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.MongoStore;
-import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.StreamsSourceRestService;
 import io.antmedia.security.AcceptOnlyStreamsInDataStore;
@@ -33,7 +30,6 @@ public class DataStoreFactoryUnitTest {
 	public void before() {
 		deleteMapDB();
 		dsf =  new DataStoreFactory();
-		dsf.setAppName("myApp");
 		dsf.setDbName("myDB");
 		dsf.setDbHost("localhost");
 		dsf.setDbUser(null);
@@ -115,31 +111,6 @@ public class DataStoreFactoryUnitTest {
 		hvs.setDataStoreFactory(dsf);
 		assertEquals(datastore, hvs.getDataStore());
 
-	}
-
-
-	@Test
-	public void testDBReader() {
-		dsf.setDbType("memorydb");
-		dsf.init();
-		DataStore datastore = dsf.getDataStore();
-
-		String host = DBReader.instance.getHost("myStream", "myApp");
-		assertNull(host);
-
-		Broadcast broadcast = new Broadcast();
-		try {
-			broadcast.setStreamId("myStream");
-			broadcast.setOriginAdress("1.1.1.1");
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-
-		datastore.save(broadcast);
-
-		host = DBReader.instance.getHost("myStream", "myApp");
-
-		assertTrue(host.contentEquals("1.1.1.1"));
 	}
 
 }

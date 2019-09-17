@@ -24,16 +24,16 @@ import com.mongodb.MongoClientURI;
 import com.mongodb.WriteResult;
 
 import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.cluster.StreamInfo;
-import io.antmedia.datastore.DBUtils;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
+import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.muxer.MuxAdaptor;
+import io.antmedia.settings.ServerSettings;
 
 public class MongoStore extends DataStore {
 
@@ -45,23 +45,24 @@ public class MongoStore extends DataStore {
 	private Datastore detectionMap;
 	private Datastore conferenceRoomDatastore;
 
-
 	protected static Logger logger = LoggerFactory.getLogger(MongoStore.class);
 
 	public static final String IMAGE_ID = "imageId"; 
 	public static final String STATUS = "status";
 	private static final String ORIGIN_ADDRESS = "originAdress"; 
-
-
+	
 	public MongoStore(String host, String username, String password, String dbName) {
 		morphia = new Morphia();
 		morphia.mapPackage("io.antmedia.datastore.db.types");
-		morphia.map(StreamInfo.class);
 
-		String uri = DBUtils.getMongoConnectionUri(host, username, password);
+		String uri = getMongoConnectionUri(host, username, password);
 
 		MongoClientURI mongoUri = new MongoClientURI(uri);
 		MongoClient client = new MongoClient(mongoUri);
+		
+		
+		
+		//TODO: Refactor these stores so that we don't have separate datastore for each class
 		datastore = morphia.createDatastore(client, dbName);
 		vodDatastore=morphia.createDatastore(client, dbName+"VoD");
 		endpointCredentialsDS = morphia.createDatastore(client, dbName+"_endpointCredentials");
@@ -69,6 +70,9 @@ public class MongoStore extends DataStore {
 		detectionMap = morphia.createDatastore(client, dbName + "detection");
 		conferenceRoomDatastore = morphia.createDatastore(client, dbName + "room");
 
+		//*************************************************
+		//do not create data store for each type as we do above
+		//*************************************************
 
 		tokenDatastore.ensureIndexes();
 		datastore.ensureIndexes();
@@ -76,7 +80,19 @@ public class MongoStore extends DataStore {
 		endpointCredentialsDS.ensureIndexes();
 		detectionMap.ensureIndexes();
 		conferenceRoomDatastore.ensureIndexes();
+	}
+	
+	public static String getMongoConnectionUri(String host, String username, String password) {
+		String credential = "";
+		if(username != null && !username.isEmpty()) {
+			credential = username+":"+password+"@";
+		}
 
+		String uri = "mongodb://"+credential+host;
+
+		logger.info("uri:{}",uri);
+
+		return uri;
 	}
 
 	/*
@@ -92,7 +108,6 @@ public class MongoStore extends DataStore {
 			return null;
 		}
 		try {
-			broadcast.setOriginAdress(DBUtils.getHostAddress());
 			String streamId = null;
 			if (broadcast.getStreamId() == null) {
 				streamId = RandomStringUtils.randomAlphanumeric(12) + System.currentTimeMillis();
@@ -879,21 +894,20 @@ public class MongoStore extends DataStore {
 	}
 
 	@Override
-	public void clearStreamsOnThisServer() {
+	public void clearStreamsOnThisServer(String hostAddress) {
 		synchronized(this) {
-			String ip = DBUtils.getHostAddress();
 			Query<Broadcast> query = datastore.createQuery(Broadcast.class);
 			query.and(
 					query.or(
 							query.criteria(ORIGIN_ADDRESS).doesNotExist(), //check for non cluster mode
-							query.criteria(ORIGIN_ADDRESS).equal(ip)
+							query.criteria(ORIGIN_ADDRESS).equal(hostAddress)
 							),
 					query.criteria("zombi").equal(true)
 					);
 			long count = query.count();
 			
 			if(count > 0) {
-				logger.error("There are {} streams for {} at start. They are deleted now.", count, ip);
+				logger.error("There are {} streams for {} at start. They are deleted now.", count, hostAddress);
 
 				WriteResult res = datastore.delete(query);
 				if(res.getN() != count) {
@@ -901,10 +915,10 @@ public class MongoStore extends DataStore {
 				}
 			}
 
-			Query<StreamInfo> querySI = datastore.createQuery(StreamInfo.class).field("host").equal(ip);
+			Query<StreamInfo> querySI = datastore.createQuery(StreamInfo.class).field("host").equal(hostAddress);
 			count = querySI.count();
 			if(count > 0) {
-				logger.error("There are {} stream info adressing {} at start. They are deleted now.", count, ip);
+				logger.error("There are {} stream info adressing {} at start. They are deleted now.", count, hostAddress);
 				WriteResult res = datastore.delete(querySI);
 				if(res.getN() != count) {
 					logger.error("Only {} stream info were deleted out of {} streams.", res.getN(), count);
@@ -1006,14 +1020,13 @@ public class MongoStore extends DataStore {
 	}
 	
 	@Override
-	public long getLocalLiveBroadcastCount() {
+	public long getLocalLiveBroadcastCount(String hostAddress) {
 		synchronized(this) {
-			String ip = DBUtils.getHostAddress();
 			Query<Broadcast> query = datastore.createQuery(Broadcast.class);
 			query.and(
 					query.or(
 							query.criteria(ORIGIN_ADDRESS).doesNotExist(), //check for non cluster mode
-							query.criteria(ORIGIN_ADDRESS).equal(ip)
+							query.criteria(ORIGIN_ADDRESS).equal(hostAddress)
 							),
 					query.criteria(STATUS).equal(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)
 					);

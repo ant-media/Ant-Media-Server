@@ -29,6 +29,7 @@ import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContextAware;
 
+import com.brsanthu.googleanalytics.GoogleAnalytics;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -37,6 +38,8 @@ import com.google.gson.JsonObject;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.SystemUtils;
 import io.antmedia.rest.WebRTCClientStats;
+import io.antmedia.settings.ServerSettings;
+import io.antmedia.shutdown.AMSShutdownManager;
 import io.antmedia.statistic.GPUUtils.MemoryStatus;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.vertx.core.Vertx;
@@ -133,8 +136,10 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 
 	private static final String WEBRTC_CLIENT_ID = "webrtcClientId";
 
-	private ConcurrentLinkedQueue<IScope> scopes = new ConcurrentLinkedQueue<>();
+	private Queue<IScope> scopes = new ConcurrentLinkedQueue<>();
 
+	public static final String GA_TRACKING_ID = "UA-93263926-3";
+	
 	@Autowired
 	private Vertx vertx;
 	private Queue<Integer> cpuMeasurements = new ConcurrentLinkedQueue<>();
@@ -177,10 +182,28 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 
 	private long kafkaTimerId = -1;
 	
+	private boolean heartBeatEnabled = true;
+
+	private long hearbeatPeriodicTask;
+	
+	private int heartbeatPeriodMs = 300000;
 	
 	public void start() {
 		cpuMeasurementTimerId  = getVertx().setPeriodic(measurementPeriod, l -> addCpuMeasurement(SystemUtils.getSystemCpuLoad()));
 		startKafkaProducer();
+		
+		if (heartBeatEnabled) {
+			logger.info("Starting heartbeats for the version:{} and type:{}", Launcher.getVersion(), Launcher.getVersionType());
+			startAnalytic(Launcher.getVersion(), Launcher.getVersionType());
+
+			startHeartBeats(Launcher.getVersion(), Launcher.getVersionType(), heartbeatPeriodMs);
+			
+			notifyShutDown(Launcher.getVersion(), Launcher.getVersionType());
+		}
+		else {
+			logger.info("Heartbeats are disabled for this instance");
+		}
+		
 	}
 
 	private void startKafkaProducer() {
@@ -194,6 +217,15 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 		}	
 	}
 
+	
+	public GoogleAnalytics getGoogleAnalytic(String implementationVersion, String type) {
+		return GoogleAnalytics.builder()
+				.withAppVersion(implementationVersion)
+				.withAppName(type)
+				.withTrackingId(GA_TRACKING_ID).build();
+
+	}
+	
 	private void sendWebRTCClientStats() {
 		getVertx().executeBlocking(
 				b -> {
@@ -562,6 +594,9 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 				scopes.add(scope);
 			}
 		});
+		
+		ServerSettings serverSettings = (ServerSettings) applicationContext.getBean(ServerSettings.BEAN_NAME);
+		heartBeatEnabled = serverSettings.isHeartbeatEnabled();
 	}
 
 	public int getStaticSendPeriod() {
@@ -584,8 +619,78 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 		this.kafkaBrokers = kafkaBrokers;
 	}
 
-	public void setScopes(ConcurrentLinkedQueue<IScope> scopes) {
+	public void setScopes(Queue<IScope> scopes) {
 		this.scopes = scopes;
+	}
+	
+	public boolean startHeartBeats(String implementationVersion, String type, int periodMS) {
+		boolean result = false;
+
+		hearbeatPeriodicTask = vertx.setPeriodic(periodMS, 
+			l -> {
+				if(logger != null) {
+					logger.info("-Heartbeat-");
+				}
+				getGoogleAnalytic(implementationVersion, type).event()
+				.eventCategory("server_status")
+				.eventAction("heartbeat")
+				.eventLabel("")
+				.clientId(Launcher.getInstanceId())
+				.send();
+			}
+		);
+		
+		return result;
+	}
+
+	public void startAnalytic(String implementationVersion, String type) {
+		vertx.runOnContext(l -> 
+			getGoogleAnalytic(implementationVersion, type).screenView()
+			.sessionControl("start")
+			.clientId(Launcher.getInstanceId())
+			.send()
+		);
+	}
+	
+	public boolean notifyShutDown(String implementationVersion, String type) {
+		boolean result = false;
+
+		Runtime.getRuntime().addShutdownHook(new Thread() {
+
+			@Override
+			public void run() {
+				AMSShutdownManager.getInstance().notifyShutdown();
+				if(logger != null) {
+					logger.info("Shutting down just a sec");
+				}
+				getGoogleAnalytic(implementationVersion, type).screenView()
+				.clientId(Launcher.getInstanceId())
+				.sessionControl("end")
+				.send();
+			}
+		});
+		result = true;
+		return result;
+	}
+	
+	public void cancelHeartBeat() {
+		vertx.cancelTimer(hearbeatPeriodicTask);
+	}
+
+	public boolean isHeartBeatEnabled() {
+		return heartBeatEnabled;
+	}
+
+	public void setHeartBeatEnabled(boolean heartBeatEnabled) {
+		this.heartBeatEnabled = heartBeatEnabled;
+	}
+
+	public int getHeartbeatPeriodMs() {
+		return heartbeatPeriodMs;
+	}
+
+	public void setHeartbeatPeriodMs(int heartbeatPeriodMs) {
+		this.heartbeatPeriodMs = heartbeatPeriodMs;
 	}
 	
 }
