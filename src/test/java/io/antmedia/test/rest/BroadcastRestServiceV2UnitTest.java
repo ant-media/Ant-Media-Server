@@ -39,6 +39,7 @@ import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.mockito.Mockito;
+import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IClientBroadcastStream;
 import org.red5.server.api.stream.IStreamCapableConnection;
 import org.red5.server.scope.Scope;
@@ -1340,6 +1341,13 @@ public class BroadcastRestServiceV2UnitTest {
 		Mockito.doReturn(fetcher).when(adaptor).startStreaming(newCam);
 		Mockito.doReturn(new InMemoryDataStore("testAddIPCamera")).when(streamSourceRest).getDataStore();
 
+		Mockito.doReturn(new ServerSettings()).when(streamSourceRest).getServerSettings();
+		Mockito.doReturn(new AppSettings()).when(streamSourceRest).getAppSettings();
+		
+		IScope scope = mock(IScope.class);
+		when(scope.getName()).thenReturn("junit");
+		
+		Mockito.doReturn(scope).when(streamSourceRest).getScope();
 
 		
 		ApplicationContext appContext = mock(ApplicationContext.class);
@@ -1403,6 +1411,14 @@ public class BroadcastRestServiceV2UnitTest {
 		Mockito.doReturn(new Result(true)).when(adaptor).stopStreaming(newCam);
 		Mockito.doReturn(new InMemoryDataStore("startStopStreamSource")).when(streamSourceRest).getDataStore();
 
+		Mockito.doReturn(new ServerSettings()).when(streamSourceRest).getServerSettings();
+		Mockito.doReturn(new AppSettings()).when(streamSourceRest).getAppSettings();
+		
+		IScope scope = mock(IScope.class);
+		when(scope.getName()).thenReturn("junit");
+		
+		Mockito.doReturn(scope).when(streamSourceRest).getScope();
+		
 		//add IP Camera first
 		assertTrue(streamSourceRest.addIPCamera(newCam, null).isSuccess());
 
@@ -1544,6 +1560,14 @@ public class BroadcastRestServiceV2UnitTest {
 		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
 		Mockito.doReturn(new InMemoryDataStore("testAddStreamSource")).when(streamSourceRest).getDataStore();
 		Mockito.doReturn(streamFetcher).when(adaptor).startStreaming(Mockito.any());
+		
+		Mockito.doReturn(new ServerSettings()).when(streamSourceRest).getServerSettings();
+		Mockito.doReturn(new AppSettings()).when(streamSourceRest).getAppSettings();
+		
+		IScope scope = mock(IScope.class);
+		when(scope.getName()).thenReturn("junit");
+		
+		Mockito.doReturn(scope).when(streamSourceRest).getScope();
 
 		ApplicationContext appContext = mock(ApplicationContext.class);
 
@@ -1624,6 +1648,14 @@ public class BroadcastRestServiceV2UnitTest {
 		Mockito.doReturn(videoServiceEndpoints).when(adaptor).getVideoServiceEndpoints();
 		StreamFetcher fetcher = mock (StreamFetcher.class);
 		Mockito.doReturn(fetcher).when(adaptor).startStreaming(source);
+		
+		Mockito.doReturn(new ServerSettings()).when(streamSourceRest).getServerSettings();
+		Mockito.doReturn(new AppSettings()).when(streamSourceRest).getAppSettings();
+		
+		IScope scope = mock(IScope.class);
+		when(scope.getName()).thenReturn("junit");
+		
+		Mockito.doReturn(scope).when(streamSourceRest).getScope();
 
 
 		ApplicationContext appContext = mock(ApplicationContext.class);
