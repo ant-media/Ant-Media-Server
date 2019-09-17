@@ -23,6 +23,9 @@ import java.util.concurrent.TimeUnit;
 import org.awaitility.Awaitility;
 import org.bytedeco.javacpp.avformat;
 import org.bytedeco.javacpp.avutil;
+import org.bytedeco.javacpp.avcodec.AVCodecParameters;
+import org.bytedeco.javacpp.avformat.AVFormatContext;
+import org.bytedeco.javacpp.avformat.AVStream;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -40,7 +43,7 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
-
+import static org.bytedeco.javacpp.avutil.*;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.IApplicationAdaptorFactory;
@@ -52,6 +55,7 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.integration.AppFunctionalTest;
 import io.antmedia.integration.MuxingTest;
 import io.antmedia.ipcamera.OnvifCamera;
+import io.antmedia.muxer.Mp4Muxer;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.rest.model.Result;
 import io.antmedia.streamsource.StreamFetcher;
@@ -154,6 +158,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 	}
 
+	
+	
 
 	@Test
 	public void testBugUpdateStreamFetcherStatus() {
@@ -680,7 +686,32 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		testFetchStreamSources("src/test/resources/test_video_360p.flv", false);	
 		logger.info("leaving testFLVSource");
 	}
-
+	
+	@Test
+	public void testBugUnexpectedStream() 
+	{
+		
+		AVFormatContext inputFormatContext = Mockito.mock(AVFormatContext.class);
+		when(inputFormatContext.nb_streams()).thenReturn(1);
+		
+		AVStream stream = Mockito.mock(AVStream.class);
+		when(inputFormatContext.streams(0)).thenReturn(stream);
+		AVCodecParameters pars = Mockito.mock(AVCodecParameters.class);
+		when(stream.codecpar()).thenReturn(pars);
+		
+		when(pars.codec_type()).thenReturn(AVMEDIA_TYPE_DATA);
+		stream.codecpar(pars);
+		
+		Mp4Muxer mp4Muxer = Mockito.spy(new Mp4Muxer(null, null));
+		
+		mp4Muxer.init(appScope, "test", 480);
+		
+		Mockito.doReturn(true).when(mp4Muxer).isCodecSupported(Mockito.any());
+		
+		mp4Muxer.prepare(inputFormatContext);
+		
+		Mockito.verify(mp4Muxer, Mockito.never()).avNewStream(Mockito.any());
+	}
 
 	@Test
 	public void testRTSPSource() {
