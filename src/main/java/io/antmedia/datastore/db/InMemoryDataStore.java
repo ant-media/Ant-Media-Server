@@ -769,11 +769,6 @@ public class InMemoryDataStore extends DataStore {
 	}
 
 	@Override
-	public void clearStreamsOnThisServer() {
-		//no need to implement for InMemoryDb
-	}
-
-	@Override
 	public boolean createConferenceRoom(ConferenceRoom room) {
 
 		boolean result = false;

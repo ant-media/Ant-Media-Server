@@ -108,7 +108,6 @@ public class MongoStore extends DataStore {
 			return null;
 		}
 		try {
-			broadcast.setOriginAdress(ServerSettings.getHostAddress());
 			String streamId = null;
 			if (broadcast.getStreamId() == null) {
 				streamId = RandomStringUtils.randomAlphanumeric(12) + System.currentTimeMillis();
@@ -895,21 +894,20 @@ public class MongoStore extends DataStore {
 	}
 
 	@Override
-	public void clearStreamsOnThisServer() {
+	public void clearStreamsOnThisServer(String hostAddress) {
 		synchronized(this) {
-			String ip = ServerSettings.getHostAddress();
 			Query<Broadcast> query = datastore.createQuery(Broadcast.class);
 			query.and(
 					query.or(
 							query.criteria(ORIGIN_ADDRESS).doesNotExist(), //check for non cluster mode
-							query.criteria(ORIGIN_ADDRESS).equal(ip)
+							query.criteria(ORIGIN_ADDRESS).equal(hostAddress)
 							),
 					query.criteria("zombi").equal(true)
 					);
 			long count = query.count();
 			
 			if(count > 0) {
-				logger.error("There are {} streams for {} at start. They are deleted now.", count, ip);
+				logger.error("There are {} streams for {} at start. They are deleted now.", count, hostAddress);
 
 				WriteResult res = datastore.delete(query);
 				if(res.getN() != count) {
@@ -917,10 +915,10 @@ public class MongoStore extends DataStore {
 				}
 			}
 
-			Query<StreamInfo> querySI = datastore.createQuery(StreamInfo.class).field("host").equal(ip);
+			Query<StreamInfo> querySI = datastore.createQuery(StreamInfo.class).field("host").equal(hostAddress);
 			count = querySI.count();
 			if(count > 0) {
-				logger.error("There are {} stream info adressing {} at start. They are deleted now.", count, ip);
+				logger.error("There are {} stream info adressing {} at start. They are deleted now.", count, hostAddress);
 				WriteResult res = datastore.delete(querySI);
 				if(res.getN() != count) {
 					logger.error("Only {} stream info were deleted out of {} streams.", res.getN(), count);
@@ -1022,14 +1020,13 @@ public class MongoStore extends DataStore {
 	}
 	
 	@Override
-	public long getLocalLiveBroadcastCount() {
+	public long getLocalLiveBroadcastCount(String hostAddress) {
 		synchronized(this) {
-			String ip = ServerSettings.getHostAddress();
 			Query<Broadcast> query = datastore.createQuery(Broadcast.class);
 			query.and(
 					query.or(
 							query.criteria(ORIGIN_ADDRESS).doesNotExist(), //check for non cluster mode
-							query.criteria(ORIGIN_ADDRESS).equal(ip)
+							query.criteria(ORIGIN_ADDRESS).equal(hostAddress)
 							),
 					query.criteria(STATUS).equal(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)
 					);

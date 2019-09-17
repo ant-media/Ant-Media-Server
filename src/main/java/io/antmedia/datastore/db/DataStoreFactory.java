@@ -2,12 +2,16 @@ package io.antmedia.datastore.db;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
 
 import io.antmedia.AppSettings;
+import io.antmedia.settings.ServerSettings;
 
-public class DataStoreFactory implements IDataStoreFactory, InitializingBean{
+public class DataStoreFactory implements IDataStoreFactory, ApplicationContextAware{
 
 	//TODO: I think all settings should be get from AppSettings bean
 	
@@ -49,6 +53,7 @@ public class DataStoreFactory implements IDataStoreFactory, InitializingBean{
 	
 	@Value( "${"+SETTINGS_DB_PASS+":#{null}}" )
 	private String dbPassword;
+	private String hostAddress;
 	
 	public String getDbName() {
 		return dbName;
@@ -111,17 +116,10 @@ public class DataStoreFactory implements IDataStoreFactory, InitializingBean{
 		logger.info("Used Datastore:{}  db name:{}", getDbType(), getDbName());
 		
 		if(dataStore != null) {
-			dataStore.setWriteStatsToDatastore(isWriteStatsToDatastore());
-			dataStore.clearStreamsOnThisServer();
+			dataStore.setWriteStatsToDatastore(writeStatsToDatastore);
+			dataStore.clearStreamsOnThisServer(hostAddress);
 		}
-	}
-	
-	@Override
-	public void afterPropertiesSet() throws Exception 
-	{
-		init();
-	}
-	
+	}	
 	
 	public DataStore getDataStore() {
 		return dataStore;
@@ -137,6 +135,13 @@ public class DataStoreFactory implements IDataStoreFactory, InitializingBean{
 
 	public void setWriteStatsToDatastore(boolean writeStatsToDatastore) {
 		this.writeStatsToDatastore = writeStatsToDatastore;
+	}
+
+	@Override
+	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+		ServerSettings serverSettings = (ServerSettings) applicationContext.getBean(ServerSettings.BEAN_NAME);
+		hostAddress = serverSettings.getHostAddress();
+		init();
 	}
 
 }

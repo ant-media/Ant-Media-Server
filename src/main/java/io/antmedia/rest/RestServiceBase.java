@@ -102,10 +102,10 @@ public abstract class RestServiceBase {
 	protected static Logger logger = LoggerFactory.getLogger(RestServiceBase.class);
 
 	private ProcessBuilderFactory processBuilderFactory = null;
-	
+
 	//TODO: This REGEX does not fully match 10.10.157.200. It ignores the last 0 it matches 10.10.157.20 and it cause problem in replacements
 	public static final String IPV4_REGEX = "(([0-1]?[0-9]{1,2}\\.)|(2[0-4][0-9]\\.)|(25[0-5]\\.)){3}(([0-1]?[0-9]{1,2})|(2[0-4][0-9])|(25[0-5]))";
-	
+
 	public static final String LOOPBACK_REGEX = "^localhost$|^127(?:\\.[0-9]+){0,2}\\.[0-9]+$|^(?:0*\\:)*?:?0*1$";
 
 
@@ -238,16 +238,16 @@ public abstract class RestServiceBase {
 		}
 		fqdn = getServerSettings().getServerName();
 		return saveBroadcast(broadcast, AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, getScope().getName(),
-				getDataStore(), settingsListenerHookURL, fqdn);
+				getDataStore(), settingsListenerHookURL, fqdn, getServerSettings().getHostAddress());
 	}
 
 	public static Broadcast saveBroadcast(Broadcast broadcast, String status, String scopeName, DataStore dataStore,
-			String settingsListenerHookURL, String fqdn) {
+			String settingsListenerHookURL, String fqdn, String hostAddress) {
 
 		if (broadcast == null) {
 			broadcast = new Broadcast();
 		}
-		
+
 		broadcast.setStatus(status);
 		broadcast.setDate(System.currentTimeMillis());
 
@@ -260,8 +260,9 @@ public abstract class RestServiceBase {
 		}
 
 		if (fqdn == null || fqdn.length() == 0) {
-			fqdn = ServerSettings.getHostAddress(); 
+			fqdn = hostAddress; 
 		}
+		broadcast.setOriginAdress(hostAddress);
 
 		if (fqdn != null && fqdn.length() >= 0) {
 			broadcast.setRtmpURL("rtmp://" + fqdn + "/" + scopeName + "/");
@@ -271,7 +272,7 @@ public abstract class RestServiceBase {
 		return broadcast;
 	}
 
-	
+
 
 	public AppSettings getAppSettings() {
 		if (appSettings == null) {
@@ -282,12 +283,12 @@ public abstract class RestServiceBase {
 		}
 		return appSettings;
 	}
-	
+
 	public void setAppSettings(AppSettings appSettings) {
 		this.appSettings = appSettings;
 	}
 
-	
+
 	public ServerSettings getServerSettings() {
 		if (serverSettings == null) {
 			ApplicationContext appContext = getAppContext();
@@ -297,12 +298,12 @@ public abstract class RestServiceBase {
 		}
 		return serverSettings;
 	}
-	
+
 	public void setServerSettings(ServerSettings serverSettings) {
 		this.serverSettings = serverSettings;
 	}
 
-	
+
 	protected Result deleteBroadcast(String id) {
 		Result result = new Result (false);
 		boolean stopResult = false;
@@ -478,7 +479,7 @@ public abstract class RestServiceBase {
 				Endpoint endpoint = new Endpoint();
 				endpoint.setRtmpUrl(rtmpUrl);
 				endpoint.type = "generic";
-	
+
 				success = getDataStore().addEndpoint(id, endpoint);
 			}
 		} catch (Exception e) {
@@ -521,7 +522,7 @@ public abstract class RestServiceBase {
 
 			String fqdn = getServerSettings().getServerName();
 			if (fqdn == null || fqdn.length() == 0) {
-				fqdn = ServerSettings.getHostAddress();
+				fqdn = getServerSettings().getHostAddress();
 			}
 
 			int number = 1;
@@ -638,7 +639,7 @@ public abstract class RestServiceBase {
 
 				String fqdn = getServerSettings().getServerName();
 				if (fqdn == null || fqdn.length() == 0) {
-					fqdn = ServerSettings.getHostAddress();
+					fqdn = getServerSettings().getHostAddress();
 				}
 
 				StringBuilder insertQueryString = new StringBuilder();
@@ -722,25 +723,21 @@ public abstract class RestServiceBase {
 				long unixTime = currentDate.getTime();
 
 				stream.setDate(unixTime);
-				stream.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
 
-				String id = getDataStore().save(stream);
+				Broadcast savedBroadcast = saveBroadcast(stream, AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, getScope().getName(), getDataStore(), getAppSettings().getListenerHookURL(), getServerSettings().getServerName(), getServerSettings().getHostAddress());
 
-
-				if (id.length() > 0) {
-					Broadcast newCam = getDataStore().get(stream.getStreamId());
-					if (socialEndpointIds != null && socialEndpointIds.length()>0) {
-						addSocialEndpoints(newCam, socialEndpointIds);
-					}
-
-					StreamFetcher streamFetcher = getApplication().startStreaming(newCam);
-					//if IP Camera is not being started while adding, do not record it to datastore
-					if (streamFetcher == null) {
-						getDataStore().delete(stream.getStreamId());
-						connResult.setSuccess(false);
-						connResult.setErrorId(FETCHER_NOT_STARTED_ERROR);
-					}
+				if (socialEndpointIds != null && socialEndpointIds.length()>0) {
+					addSocialEndpoints(savedBroadcast, socialEndpointIds);
 				}
+
+				StreamFetcher streamFetcher = getApplication().startStreaming(savedBroadcast);
+				//if IP Camera is not being started while adding, do not record it to datastore
+				if (streamFetcher == null) {
+					getDataStore().delete(savedBroadcast.getStreamId());
+					connResult.setSuccess(false);
+					connResult.setErrorId(FETCHER_NOT_STARTED_ERROR);
+				}
+
 			}
 		}
 
@@ -836,7 +833,7 @@ public abstract class RestServiceBase {
 				ipAddrParts = serverAddr.split("/");
 				serverAddr = ipAddrParts[0];
 			}
-			
+
 			if (logger.isInfoEnabled())  {
 				logger.info("IP: {}", serverAddr.replaceAll("[\n|\r|\t]", "_"));
 			}
@@ -905,30 +902,27 @@ public abstract class RestServiceBase {
 			long unixTime = currentDate.getTime();
 
 			stream.setDate(unixTime);
-			stream.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
-
-			String id = getDataStore().save(stream);
-			if (id.length() > 0) {
-
-				Broadcast newSource = getDataStore().get(stream.getStreamId());
-				if (socialEndpointIds != null && socialEndpointIds.length()>0) {
-					addSocialEndpoints(newSource, socialEndpointIds);
-				}
-
-				StreamFetcher streamFetcher = getApplication().startStreaming(newSource);
 
 
-				result.setMessage(id);
+			Broadcast savedBroadcast = saveBroadcast(stream, AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, getScope().getName(), getDataStore(), getAppSettings().getListenerHookURL(), getServerSettings().getServerName(), getServerSettings().getHostAddress());
 
-				//if it's not started while adding, do not record it to datastore
-				if (streamFetcher != null) {
-					result.setSuccess(true);
-				}
-				else {
-					getDataStore().delete(stream.getStreamId());
-					result.setErrorId(FETCHER_NOT_STARTED_ERROR);
-					result.setSuccess(false);
-				}
+			if (socialEndpointIds != null && socialEndpointIds.length()>0) {
+				addSocialEndpoints(savedBroadcast, socialEndpointIds);
+			}
+
+			StreamFetcher streamFetcher = getApplication().startStreaming(savedBroadcast);
+
+
+			result.setMessage(savedBroadcast.getStreamId());
+
+			//if it's not started while adding, do not record it to datastore
+			if (streamFetcher != null) {
+				result.setSuccess(true);
+			}
+			else {
+				getDataStore().delete(savedBroadcast.getStreamId());
+				result.setErrorId(FETCHER_NOT_STARTED_ERROR);
+				result.setSuccess(false);
 			}
 
 		}
@@ -1463,7 +1457,7 @@ public abstract class RestServiceBase {
 
 		return list;
 	}
-	
+
 	protected boolean moveRelative(String id, float valueX, float valueY, float valueZoom) {
 		boolean result = false;
 		OnvifCamera camera = getApplication().getOnvifCamera(id);
@@ -1472,7 +1466,7 @@ public abstract class RestServiceBase {
 		}
 		return result;
 	}
-	
+
 	protected boolean moveAbsolute(String id, float valueX, float valueY, float valueZoom) {
 		boolean result = false;
 		OnvifCamera camera = getApplication().getOnvifCamera(id);

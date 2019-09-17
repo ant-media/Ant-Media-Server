@@ -1052,10 +1052,7 @@ public class MapDBStore extends DataStore {
 		//no need to implement this method, it is used in cluster mode
 	}
 
-	@Override
-	public void clearStreamsOnThisServer() {
-		//no need to implement for MapDB
-	}
+
 
 	@Override
 	public boolean createConferenceRoom(ConferenceRoom room) {

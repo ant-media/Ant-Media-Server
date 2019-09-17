@@ -21,6 +21,7 @@ import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.HlsViewerStats;
 import io.antmedia.statistic.IStreamStats;
 
@@ -87,6 +88,7 @@ public class HlsViewerStatsTest {
 			when(settings.getHlsTime()).thenReturn("1");
 			
 			when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(settings);
+			when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(new ServerSettings());
 			
 			HlsViewerStats viewerStats = new HlsViewerStats();
 			
@@ -98,7 +100,7 @@ public class HlsViewerStatsTest {
 			broadcast.setName("name");
 			
 			dsf.setWriteStatsToDatastore(true);
-			dsf.afterPropertiesSet();
+			dsf.setApplicationContext(context);
 			String streamId = dsf.getDataStore().save(broadcast);
 			
 			String sessionId = "sessionId" + (int)(Math.random() * 10000);

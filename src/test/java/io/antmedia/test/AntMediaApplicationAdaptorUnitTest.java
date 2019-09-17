@@ -582,7 +582,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 
 		DataStore dataStore = mock(DataStore.class);
-		when(dataStore.getLocalLiveBroadcastCount()).thenReturn(1L);
+		when(dataStore.getLocalLiveBroadcastCount(Mockito.any())).thenReturn(1L);
 
 		DataStoreFactory dataStoreFactory = mock(DataStoreFactory.class);
 		when(dataStoreFactory.getDataStore()).thenReturn(dataStore);
@@ -596,7 +596,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
-				when(dataStore.getLocalLiveBroadcastCount()).thenReturn(0L);
+				when(dataStore.getLocalLiveBroadcastCount(Mockito.any())).thenReturn(0L);
 			};
 		}.start();
 

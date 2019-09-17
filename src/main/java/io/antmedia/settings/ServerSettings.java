@@ -98,7 +98,7 @@ public class ServerSettings implements ApplicationContextAware {
 	}
 	
 	//TODO: "static"  should be removed
-	public static String getHostAddress() {
+	public  String getHostAddress() {
 		return hostAddress;
 	}
 	

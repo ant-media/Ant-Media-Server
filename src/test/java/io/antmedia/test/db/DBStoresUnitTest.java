@@ -1294,13 +1294,14 @@ public class DBStoresUnitTest {
 
 		assertEquals(2, dataStore.getBroadcastCount());
 
-		dataStore.clearStreamsOnThisServer();
+		dataStore.clearStreamsOnThisServer(ServerSettings.getLocalHostAddress());
 
 		assertEquals(0, dataStore.getBroadcastCount());
 	}
 
 	public void testClearAtStartCluster(DataStore dataStore) {
-		dataStore.clearStreamsOnThisServer();
+		
+		dataStore.clearStreamsOnThisServer(ServerSettings.getLocalHostAddress());
 		assertEquals(0, dataStore.getBroadcastCount());
 
 		Broadcast broadcast = new Broadcast();
@@ -1334,7 +1335,7 @@ public class DBStoresUnitTest {
 		assertEquals(1, dataStore.getBroadcastCount());
 		assertEquals(2, dataStore.getStreamInfoList(broadcast.getStreamId()).size());
 
-		dataStore.clearStreamsOnThisServer();
+		dataStore.clearStreamsOnThisServer(ServerSettings.getLocalHostAddress());
 
 		assertEquals(0, dataStore.getBroadcastCount());
 		assertEquals(0, dataStore.getStreamInfoList(broadcast.getStreamId()).size());

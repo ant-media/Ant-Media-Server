@@ -251,7 +251,7 @@ public class BroadcastRestService extends RestServiceBase{
 		fqdn = getServerSettings().getServerName();
 
 		return saveBroadcast(broadcast, AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, getScope().getName(),
-				getDataStore(), settingsListenerHookURL, fqdn);
+				getDataStore(), settingsListenerHookURL, fqdn, getServerSettings().getHostAddress());
 	}
 
 

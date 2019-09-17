@@ -483,10 +483,13 @@ public class ConsoleAppRestServiceTest{
 			
 			AppSettings appSettingsOriginal = callGetAppSettings(appName);
 			
-			
 			AppSettings appSettings = callGetAppSettings(appName);
 			int size = appSettings.getEncoderSettings().size();
-			appSettings.getEncoderSettings().add(new EncoderSettings(0, 200000, 300000));
+			List<EncoderSettings> settingsList = new ArrayList<>();
+			
+			settingsList.add(new EncoderSettings(0, 200000, 300000));
+			
+			appSettings.setEncoderSettings(settingsList);
 			Result result = callSetAppSettings(appName, appSettings);
 			assertTrue(result.isSuccess());
 			
@@ -496,7 +499,8 @@ public class ConsoleAppRestServiceTest{
 			
 			
 			
-			appSettings.getEncoderSettings().add(new EncoderSettings(480, 0, 300000));
+			settingsList.add(new EncoderSettings(480, 0, 300000));
+			appSettings.setEncoderSettings(settingsList);
 			result = callSetAppSettings(appName, appSettings);
 			assertTrue(result.isSuccess());
 			appSettings = callGetAppSettings(appName);
@@ -504,16 +508,18 @@ public class ConsoleAppRestServiceTest{
 			assertEquals(size, appSettings.getEncoderSettings().size());
 			
 			
-			appSettings.getEncoderSettings().add(new EncoderSettings(480, 2000, 0));
+			settingsList.add(new EncoderSettings(480, 2000, 0));
+			appSettings.setEncoderSettings(settingsList);
 			result = callSetAppSettings(appName, appSettings);
 			assertTrue(result.isSuccess());
 			appSettings = callGetAppSettings(appName);
 			//it should not change the size because encoder setting is false, height should not be zero
 			assertEquals(size, appSettings.getEncoderSettings().size());
 			
+						
+			settingsList.add(new EncoderSettings(480, 2000, 30000));
+			appSettings.setEncoderSettings(settingsList);
 			
-			
-			appSettings.getEncoderSettings().add(new EncoderSettings(480, 2000, 30000));
 			result = callSetAppSettings(appName, appSettings);
 			assertTrue(result.isSuccess());
 			appSettings = callGetAppSettings(appName);

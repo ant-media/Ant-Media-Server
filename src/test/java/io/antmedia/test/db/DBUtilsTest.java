@@ -24,8 +24,9 @@ public class DBUtilsTest {
 	
     @Test
     public void testDBUtils() {
+    		ServerSettings serverSettings = new ServerSettings();
     		assertNotEquals(ServerSettings.getLocalHostAddress(), ServerSettings.getGlobalHostAddress());
-    		assertEquals(ServerSettings.getHostAddress(), ServerSettings.getLocalHostAddress());
+    		assertEquals(serverSettings.getHostAddress(), ServerSettings.getLocalHostAddress());
     }
     
     @Test

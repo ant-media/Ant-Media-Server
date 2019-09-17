@@ -409,7 +409,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 				if (broadcast == null) {
 
-					broadcast = saveUndefinedBroadcast(streamName, getScope().getName(), dataStoreLocal, appSettings, getServerSettings().getServerName());
+					broadcast = saveUndefinedBroadcast(streamName, getScope().getName(), dataStoreLocal, appSettings, getServerSettings().getServerName(), getServerSettings().getHostAddress());
 
 				} else {
 
@@ -471,11 +471,11 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 
 
-	public static Broadcast saveUndefinedBroadcast(String streamId, String scopeName, DataStore dataStore, AppSettings appSettings, String fqdn) {
-		return saveUndefinedBroadcast(streamId, scopeName, dataStore, appSettings, AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, fqdn);
+	public static Broadcast saveUndefinedBroadcast(String streamId, String scopeName, DataStore dataStore, AppSettings appSettings, String fqdn, String hostAddress) {
+		return saveUndefinedBroadcast(streamId, scopeName, dataStore, appSettings, AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, fqdn, hostAddress);
 	}
 
-	public static Broadcast saveUndefinedBroadcast(String streamId, String scopeName, DataStore dataStore, AppSettings appSettings, String streamStatus, String fqdn) {
+	public static Broadcast saveUndefinedBroadcast(String streamId, String scopeName, DataStore dataStore, AppSettings appSettings, String streamStatus, String fqdn, String hostAddress) {
 		Broadcast newBroadcast = new Broadcast();
 		newBroadcast.setDate(System.currentTimeMillis());
 		newBroadcast.setZombi(true);
@@ -489,7 +489,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 			return BroadcastRestService.saveBroadcast(newBroadcast,
 					streamStatus, scopeName, dataStore,
-					settingsListenerHookURL, fqdn);
+					settingsListenerHookURL, fqdn, hostAddress);
 		} catch (Exception e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
 		}
@@ -874,7 +874,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 			}
 		}
 
-		while(getDataStore().getLocalLiveBroadcastCount() > 0) {
+		while(getDataStore().getLocalLiveBroadcastCount(getServerSettings().getHostAddress()) > 0) {
 			try {
 				Thread.sleep(1000);
 			} catch (InterruptedException e) {
