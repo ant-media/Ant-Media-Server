@@ -409,7 +409,7 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 
 				if (broadcast == null) {
 
-					broadcast = saveUndefinedBroadcast(streamName, getScope().getName(), dataStoreLocal, appSettings, getServerSettings().getServerName(), getServerSettings().getHostAddress());
+					broadcast = saveUndefinedBroadcast(streamName, getScope().getName(), dataStoreLocal, appSettings,  AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, getServerSettings().getServerName(), getServerSettings().getHostAddress());
 
 				} else {
 
@@ -467,13 +467,6 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 	}
 
 
-
-
-
-
-	public static Broadcast saveUndefinedBroadcast(String streamId, String scopeName, DataStore dataStore, AppSettings appSettings, String fqdn, String hostAddress) {
-		return saveUndefinedBroadcast(streamId, scopeName, dataStore, appSettings, AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, fqdn, hostAddress);
-	}
 
 	public static Broadcast saveUndefinedBroadcast(String streamId, String scopeName, DataStore dataStore, AppSettings appSettings, String streamStatus, String fqdn, String hostAddress) {
 		Broadcast newBroadcast = new Broadcast();
