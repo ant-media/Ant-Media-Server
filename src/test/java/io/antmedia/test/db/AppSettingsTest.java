@@ -3,6 +3,7 @@ package io.antmedia.test.db;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -78,7 +79,7 @@ public class AppSettingsTest {
 		
 		//null case
 		assertTrue(mockApplicationAdapter.updateSettings(settings, false));
-		verify(mockSettings, times(1)).setEncoderSettings(null);
+		verify(mockSettings, times(1)).setEncoderSettings(settings.getEncoderSettings());
 		
 		
 		List<EncoderSettings> encoderSettings = new ArrayList<>();
@@ -143,9 +144,9 @@ public class AppSettingsTest {
 		AppSettings savedSettings = mockApplicationAdapter.getAppSettings();
 		assertTrue(savedSettings.isMp4MuxingEnabled());
 		assertEquals("5", savedSettings.getHlsListSize());
-		assertEquals("", savedSettings.getVodFolder());
+		assertNull(savedSettings.getVodFolder());
 		assertEquals("1", savedSettings.getHlsTime());
-		assertEquals("", savedSettings.getHlsPlayListType());
+		assertNull(savedSettings.getHlsPlayListType());
 		assertEquals(0, savedSettings.getEncoderSettings().size());
 		
 		

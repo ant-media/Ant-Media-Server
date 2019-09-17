@@ -960,7 +960,7 @@ public class RestServiceUnitTest {
 		AppSettings settings = mock(AppSettings.class);
 		String serverName = "fully.qualified.domain.name";
 		
-		ServerSettings serverSettings = mock(ServerSettings.class);
+		ServerSettings serverSettings = Mockito.spy(new ServerSettings());
 		when(serverSettings.getServerName()).thenReturn(serverName);
 		restServiceReal.setServerSettings(serverSettings);
 
@@ -1424,6 +1424,9 @@ public class RestServiceUnitTest {
 
 		ApplicationContext context = mock(ApplicationContext.class);
 		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
+		
+		restServiceReal.setServerSettings(Mockito.spy(new ServerSettings()));
+		restServiceReal.setAppSettings(Mockito.spy(new AppSettings()));
 
 		restServiceReal.setAppCtx(context);
 		

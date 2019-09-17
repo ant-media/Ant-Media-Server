@@ -53,6 +53,7 @@ import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.integration.AppFunctionalTest;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.security.AcceptOnlyStreamsInDataStore;
+import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.type.WebRTCAudioReceiveStats;
 import io.antmedia.statistic.type.WebRTCAudioSendStats;
 import io.antmedia.statistic.type.WebRTCVideoReceiveStats;
@@ -562,6 +563,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 		IScope scope = mock(IScope.class);
 		when(scope.getName()).thenReturn("test");
 		adapter.setScope(scope);
+		
+		adapter.setServerSettings(Mockito.spy(new ServerSettings()));
 
 		StreamFetcherManager sfm = mock(StreamFetcherManager.class);
 		adapter.setStreamFetcherManager(sfm);

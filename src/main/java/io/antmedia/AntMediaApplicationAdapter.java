@@ -952,10 +952,32 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		return vertx;
 	}
 
-
 	public boolean updateSettings(AppSettings newSettings, boolean notifyCluster) {
 
 		boolean result = false;
+		
+		//if there is any wrong encoder settings, remove it at first
+		List<EncoderSettings> encoderSettingsList = newSettings.getEncoderSettings();
+		if (encoderSettingsList != null) {
+			for (Iterator<EncoderSettings> iterator = encoderSettingsList.iterator(); iterator.hasNext();) {
+				EncoderSettings encoderSettings = iterator.next();
+				if (encoderSettings.getHeight() == 0 || encoderSettings.getVideoBitrate() == 0 || encoderSettings.getAudioBitrate() == 0)
+				{
+					iterator.remove();
+				}
+			}
+		}
+		//synch again because of string to list mapping- TODO: There is a better way for string to list mapping
+		//in properties files
+		newSettings.setEncoderSettings(encoderSettingsList);
+		
+		if (newSettings.getHlsListSize() == null || Integer.valueOf(newSettings.getHlsListSize()) < 5) {
+			newSettings.setHlsListSize("5");
+		}
+		
+		if (newSettings.getHlsTime() == null || Integer.valueOf(newSettings.getHlsTime()) < 1) {
+			newSettings.setHlsTime("1");
+		}
 
 		//************************************
 		//ATTENTION: When a new settings added both updateAppSettingsFile 
@@ -1005,12 +1027,12 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 																? appsettings.getRemoteAllowedCIDR() 
 																: DEFAULT_LOCALHOST);
 		
-		store.put(AppSettings.SETTINGS_VOD_FOLDER, appsettings.getVodFolder());
+		store.put(AppSettings.SETTINGS_VOD_FOLDER, appsettings.getVodFolder() != null ? appsettings.getVodFolder() : "");
 		store.put(AppSettings.SETTINGS_HLS_LIST_SIZE, String.valueOf(appsettings.getHlsListSize()));
 		store.put(AppSettings.SETTINGS_HLS_TIME, String.valueOf(appsettings.getHlsTime()));
-		store.put(AppSettings.SETTINGS_HLS_PLAY_LIST_TYPE, appsettings.getHlsPlayListType());
+		store.put(AppSettings.SETTINGS_HLS_PLAY_LIST_TYPE, appsettings.getHlsPlayListType() != null ?  appsettings.getHlsPlayListType() : "");
 		store.put(AppSettings.SETTINGS_ENCODER_SETTINGS_STRING, AppSettings.encodersList2Str(appsettings.getEncoderSettings()));
-		store.put(AppSettings.TOKEN_HASH_SECRET, appsettings.getTokenHashSecret());
+		store.put(AppSettings.TOKEN_HASH_SECRET, appsettings.getTokenHashSecret() != null ? appsettings.getTokenHashSecret() : "");
 		store.put(AppSettings.SETTINGS_PREVIEW_OVERWRITE, String.valueOf(appsettings.isPreviewOverwrite()));
 
 		return store.save();
@@ -1046,6 +1068,10 @@ public class AntMediaApplicationAdapter extends MultiThreadedApplicationAdapter 
 		synchUserVoDFolder(oldVodFolder, newSettings.getVodFolder());
 
 		logger.warn("app settings updated for {}", getScope().getName());	
+	}
+	
+	public void setServerSettings(ServerSettings serverSettings) {
+		this.serverSettings = serverSettings;
 	}
 
 }
