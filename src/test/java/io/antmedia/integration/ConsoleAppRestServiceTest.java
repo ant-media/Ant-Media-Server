@@ -85,7 +85,7 @@ public class ConsoleAppRestServiceTest{
 	private static String TEST_USER_EMAIL = "test@antmedia.io";
 	private static String TEST_USER_PASS = "testtest";
 	private static Process tmpExec;
-	private static final String SERVER_ADDR = "127.0.0.1"; 
+	private static final String SERVER_ADDR = ServerSettings.getLocalHostAddress(); 
 	private static final String SERVICE_URL = "http://localhost:5080/LiveApp/rest";
 	private static Gson gson = new Gson();
 
@@ -96,12 +96,8 @@ public class ConsoleAppRestServiceTest{
 
 	static {
 
-		try {
-			ROOT_SERVICE_URL = "http://" + InetAddress.getLocalHost().getHostAddress() + ":5080/rest";
-		} catch (UnknownHostException e) {
-			e.printStackTrace();
-		}
-
+		ROOT_SERVICE_URL = "http://" + SERVER_ADDR + ":5080/rest";
+		
 		System.out.println("ROOT SERVICE URL: " + ROOT_SERVICE_URL);
 
 	}
