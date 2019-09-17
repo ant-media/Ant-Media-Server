@@ -22,6 +22,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -37,6 +38,7 @@ import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.rest.StreamsSourceRestService;
 import io.antmedia.rest.model.Result;
+import io.antmedia.settings.ServerSettings;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.statistic.IStatsCollector;
 import io.antmedia.statistic.StatsCollector;
@@ -87,6 +89,14 @@ public class StreamSourceRestServiceUnitTest {
 		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
 		Mockito.doReturn(fetcher).when(adaptor).startStreaming(newCam);
 		Mockito.doReturn(new InMemoryDataStore("testAddIPCamera")).when(streamSourceRest).getDataStore();
+		
+		Mockito.doReturn(new ServerSettings()).when(streamSourceRest).getServerSettings();
+		Mockito.doReturn(new AppSettings()).when(streamSourceRest).getAppSettings();
+		
+		IScope scope = mock(IScope.class);
+		when(scope.getName()).thenReturn("junit");
+		
+		Mockito.doReturn(scope).when(streamSourceRest).getScope();
 
 
 		
@@ -149,6 +159,14 @@ public class StreamSourceRestServiceUnitTest {
 		Mockito.doReturn(fetcher).when(adaptor).startStreaming(newCam);
 		Mockito.doReturn(new Result(true)).when(adaptor).stopStreaming(newCam);
 		Mockito.doReturn(new InMemoryDataStore("startStopStreamSource")).when(streamSourceRest).getDataStore();
+		
+		Mockito.doReturn(new ServerSettings()).when(streamSourceRest).getServerSettings();
+		Mockito.doReturn(new AppSettings()).when(streamSourceRest).getAppSettings();
+		
+		IScope scope = mock(IScope.class);
+		when(scope.getName()).thenReturn("junit");
+		
+		Mockito.doReturn(scope).when(streamSourceRest).getScope();
 
 		//add IP Camera first
 		assertTrue(streamSourceRest.addIPCamera(newCam, null).isSuccess());
@@ -245,6 +263,14 @@ public class StreamSourceRestServiceUnitTest {
 		StreamFetcher streamFetcher = mock(StreamFetcher.class);
 
 		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
+		Mockito.doReturn(new ServerSettings()).when(streamSourceRest).getServerSettings();
+		Mockito.doReturn(new AppSettings()).when(streamSourceRest).getAppSettings();
+		
+		IScope scope = mock(IScope.class);
+		when(scope.getName()).thenReturn("junit");
+		
+		Mockito.doReturn(scope).when(streamSourceRest).getScope();
+		
 		Mockito.doReturn(new InMemoryDataStore("testAddStreamSource")).when(streamSourceRest).getDataStore();
 		Mockito.doReturn(streamFetcher).when(adaptor).startStreaming(Mockito.any());
 
@@ -343,6 +369,14 @@ public class StreamSourceRestServiceUnitTest {
 
 		StreamsSourceRestService streamSourceRest = Mockito.spy(restService);
 		AntMediaApplicationAdapter adaptor = mock (AntMediaApplicationAdapter.class);
+		
+		Mockito.doReturn(new ServerSettings()).when(streamSourceRest).getServerSettings();
+		Mockito.doReturn(new AppSettings()).when(streamSourceRest).getAppSettings();
+		
+		IScope scope = mock(IScope.class);
+		when(scope.getName()).thenReturn("junit");
+		
+		Mockito.doReturn(scope).when(streamSourceRest).getScope();
 
 		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
 		Mockito.doReturn(new InMemoryDataStore("testAddStreamSourceWithEndPoint")).when(streamSourceRest).getDataStore();
