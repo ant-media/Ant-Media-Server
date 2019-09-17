@@ -150,7 +150,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertNull(appSettings.getHlsListSize());
 		assertNull(appSettings.getHlsTime());
 		assertNull(appSettings.getHlsPlayListType());
-		assertNull(appSettings.getEncoderSettings());
+		assertTrue(appSettings.getEncoderSettings().isEmpty());
 	}
 	
 	@Test
