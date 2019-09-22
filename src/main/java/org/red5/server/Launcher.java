@@ -119,7 +119,9 @@ public class Launcher {
 		try {
 			Files.write(new File(absolutePath).toPath(), content.getBytes(), StandardOpenOption.CREATE);
 		} catch (IOException e) {
-			logger.error(e.toString());	
+			if (logger != null) {
+				logger.error(e.toString());
+			}
 		}
 
 	}
