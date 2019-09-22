@@ -91,8 +91,8 @@ public class RTMPAdaptor extends Adaptor {
 				PeerConnectionFactory.InitializationOptions.builder(null)
 				.createInitializationOptions());
 
-
-		SoftwareVideoEncoderFactory encoderFactory = new SoftwareVideoEncoderFactory();
+        //support internal webrtc codecs
+		SoftwareVideoEncoderFactory encoderFactory = null;
 		org.webrtc.VideoDecoderFactory decoderFactory = getVideoDecoderFactory();
 
 		PeerConnectionFactory.Options options = new PeerConnectionFactory.Options();
