@@ -18,3 +18,8 @@ sed -i 's^db.name=.*^db.name='$APP_NAME_LOWER'^' $RED5_PROPERTIES_FILE
 
 sed -i 's^<display-name>StreamApp^<display-name>'$APP_NAME'^' $WEB_XML_FILE
 sed -i 's^<param-value>/StreamApp^<param-value>/'$APP_NAME'^' $WEB_XML_FILE
+
+jar -cvf $APP_NAME.war *
+cd ..
+cp $APP_NAME/$APP_NAME.war .
+rm -r $APP_DIR
