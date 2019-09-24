@@ -79,4 +79,40 @@ public class MockWebRTCAdaptor implements IWebRTCAdaptor{
 		// TODO Auto-generated method stub
 		return null;
 	}
+
+	@Override
+	public void setExcessiveBandwidthValue(int excessiveBandwidthValue) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void setExcessiveBandwidthCallThreshold(int excessiveBandwidthCallThreshold) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void setExcessiveBandwidthAlgorithmEnabled(boolean excessiveBandwidthAlgorithmEnabled) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void setPacketLossDiffThresholdForSwitchback(int packetLossDiffThresholdForSwitchback) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void setRttMeasurementDiffThresholdForSwitchback(int rttMeasurementDiffThresholdForSwitchback) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void setTryCountBeforeSwitchback(int tryCountBeforeSwitchback) {
+		// TODO Auto-generated method stub
+		
+	}
 }
