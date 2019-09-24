@@ -1026,7 +1026,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		//*************************************
 		if (updateAppSettingsFile(getScope().getName(), newSettings))
 		{
-			AcceptOnlyStreamsInDataStore securityHandler = (AcceptOnlyStreamsInDataStore)  scope.getContext().getBean(AcceptOnlyStreamsInDataStore.BEAN_NAME);
+			AcceptOnlyStreamsInDataStore securityHandler = (AcceptOnlyStreamsInDataStore)  getScope().getContext().getBean(AcceptOnlyStreamsInDataStore.BEAN_NAME);
 			securityHandler.setEnabled(newSettings.isAcceptOnlyStreamsInDataStore());
 
 			updateAppSettingsBean(appSettings, newSettings);
