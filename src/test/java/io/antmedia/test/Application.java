@@ -1,9 +1,11 @@
 package io.antmedia.test;
 
 import java.io.File;
+import java.util.List;
 
 import org.red5.server.adapter.MultiThreadedApplicationAdapter;
 import org.red5.server.api.scope.IScope;
+import org.red5.server.api.stream.IStreamPublishSecurity;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
@@ -31,11 +33,21 @@ public class Application extends MultiThreadedApplicationAdapter implements IAnt
 	private AntMediaApplicationAdapter appAdaptor;
 	private DataStoreFactory dataStoreFactory;
 	private AppSettings appSettings;
+	private List<IStreamPublishSecurity> streamPublishSecurityList;
+
 	
 	@Override
 	public boolean appStart(IScope app) {
 		appAdaptor = new AntMediaApplicationAdapter();
 		appAdaptor.setAppSettings(getAppSettings());
+
+		appAdaptor.setStreamPublishSecurityList(getStreamPublishSecurityList());
+
+		if (getStreamPublishSecurityList() != null) {
+			for (IStreamPublishSecurity streamPublishSecurity : getStreamPublishSecurityList()) {
+				registerStreamPublishSecurity(streamPublishSecurity);
+			}
+		}
 		appAdaptor.setDataStoreFactory(getDataStoreFactory());
 		appAdaptor.appStart(app);
 		
@@ -118,4 +130,11 @@ public class Application extends MultiThreadedApplicationAdapter implements IAnt
 		this.appSettings = appSettings;
 	}
 
+	public List<IStreamPublishSecurity> getStreamPublishSecurityList() {
+		return streamPublishSecurityList;
+	}
+
+	public void setStreamPublishSecurityList(List<IStreamPublishSecurity> streamPublishSecurityList) {
+		this.streamPublishSecurityList = streamPublishSecurityList;
+	}
 }
