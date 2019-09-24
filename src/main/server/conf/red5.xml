@@ -60,9 +60,11 @@
 		<property name="serverName" value="${server.name}" />
 		<property name="licenceKey" value="${server.licence_key}" />
 		<property name="buildForMarket" value="${server.market_build}" />	
+		<property name="logLevel" value="${logLevel}"/>
 	</bean>
 	
 	<bean id="logSettings" class="io.antmedia.settings.LogSettings">
+	<!-- Delete this class  -->
 		<property name="logLevel" value="${logLevel}"/>   
   	</bean>
 

@@ -48,24 +48,6 @@ public class LauncherUnitTest {
 				e.printStackTrace();
 			}
 			
-			Launcher.setInstanceIdFilePath("target/instanceId");
-			
-			assertTrue(launcher.notifyShutDown("version", "type"));
-			
-			assertTrue(launcher.startAnalytic("version", "type"));	
-			
-			assertTrue(launcher.startHeartBeats("version", "type", 1000));
-			
-
-			//wait to make sure timer task ender the block
-			Awaitility.await().pollDelay(5,TimeUnit.SECONDS).atMost(20, TimeUnit.SECONDS)
-			.pollInterval(1, TimeUnit.SECONDS)
-			.until(()->{
-				return true;
-			});
-			
-			
-			launcher.cancelHeartBeat();
 	}
 	
 	@Test

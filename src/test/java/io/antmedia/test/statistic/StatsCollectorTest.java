@@ -1,6 +1,7 @@
 package io.antmedia.test.statistic;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -152,6 +153,50 @@ public class StatsCollectorTest {
 		assertNull(resMonitor.getKafkaBrokers());
 		resMonitor.setKafkaBrokers(kafkaBroker);
 		assertEquals(kafkaBroker, resMonitor.getKafkaBrokers());
+		
+	}
+	
+	@Test
+	public void testHeartbeat() {
+
+		StatsCollector resMonitor = Mockito.spy(new StatsCollector());
+		//check default value
+		assertEquals(300000, resMonitor.getHeartbeatPeriodMs());
+		
+		resMonitor.setHeartbeatPeriodMs(3000);
+		resMonitor.setVertx(Vertx.vertx());
+		Launcher.setInstanceIdFilePath("target/instanceId");
+		resMonitor.start();
+		
+		assertTrue(resMonitor.isHeartBeatEnabled());
+		
+		
+		Awaitility.await().pollDelay(5,TimeUnit.SECONDS).atMost(20, TimeUnit.SECONDS)
+		.pollInterval(1, TimeUnit.SECONDS)
+		.until(()->{
+			return true;
+		});
+		
+		Mockito.verify(resMonitor, Mockito.times(1)).startAnalytic(Launcher.getVersion(), Launcher.getVersionType());
+		
+		Mockito.verify(resMonitor, Mockito.times(1)).notifyShutDown(Launcher.getVersion(), Launcher.getVersionType());
+		
+		Mockito.verify(resMonitor, Mockito.times(1)).startHeartBeats(Launcher.getVersion(), Launcher.getVersionType(), 3000);
+		
+		resMonitor.cancelHeartBeat();
+		
+		
+		
+		resMonitor.setHeartBeatEnabled(false);
+		resMonitor.start();
+		assertFalse(resMonitor.isHeartBeatEnabled());
+		Mockito.verify(resMonitor, Mockito.times(1)).startAnalytic(Launcher.getVersion(), Launcher.getVersionType());
+		
+		Mockito.verify(resMonitor, Mockito.times(1)).notifyShutDown(Launcher.getVersion(), Launcher.getVersionType());
+		
+		Mockito.verify(resMonitor, Mockito.times(1)).startHeartBeats(Launcher.getVersion(), Launcher.getVersionType(), 3000);
+		
+		resMonitor.cancelHeartBeat();
 		
 	}
 	

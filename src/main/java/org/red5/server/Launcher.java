@@ -51,16 +51,13 @@ import io.antmedia.shutdown.AMSShutdownManager;
  */
 public class Launcher {
 
-	public static final String GA_TRACKING_ID = "UA-93263926-3";
 	public static final String RED5_ROOT = "red5.root";
 	private static Logger logger;
 	private static String instanceId = null;
 	private static final String INSTANCE_ID_DEFAULT_PATH = "conf/instanceId";
-	private static String instanceIdFilePath = INSTANCE_ID_DEFAULT_PATH; 
-
-
-	Timer heartbeat = new Timer("heartbeat", true);
-
+	private static String instanceIdFilePath = INSTANCE_ID_DEFAULT_PATH;
+	private static String implementationVersion;
+	private static String versionType;  //community or enterprise
 
 	/**
 	 * Launch Red5 under it's own classloader
@@ -88,9 +85,9 @@ public class Launcher {
 		setLog(log);
 
 		// version info banner
-		String implementationVersion = AntMediaApplicationAdapter.class.getPackage().getImplementationVersion();
-		String type = BroadcastRestService.isEnterprise() ? "Enterprise" : "Community";
-		log.info("Ant Media Server {} {}", type, implementationVersion);
+		implementationVersion = AntMediaApplicationAdapter.class.getPackage().getImplementationVersion();
+		versionType = BroadcastRestService.isEnterprise() ? "Enterprise" : "Community";
+		log.info("Ant Media Server {} {}", versionType, implementationVersion);
 		printLogo();
 		
 		if (log.isDebugEnabled()) {
@@ -104,17 +101,12 @@ public class Launcher {
 		root.setId(RED5_ROOT);
 		root.setBeanName(RED5_ROOT);
 
-		startAnalytic(implementationVersion, type);
-
-		startHeartBeats(implementationVersion, type, 300000);
-
 		// refresh must be called before accessing the bean factory
 		log.trace("Refreshing root server context");
 		root.refresh();
 		log.trace("Root server context refreshed");
 		log.debug("Launcher exit");
-
-		notifyShutDown(implementationVersion, type);
+		
 	}
 
 
@@ -123,79 +115,13 @@ public class Launcher {
 	}
 
 
-	public boolean notifyShutDown(String implementationVersion, String type) {
-		boolean result = false;
-
-		Runtime.getRuntime().addShutdownHook(new Thread() {
-
-			@Override
-			public void run() {
-				AMSShutdownManager.getInstance().notifyShutdown();
-				if(logger != null) {
-					logger.info("Shutting down just a sec");
-				}
-				getGoogleAnalytic(implementationVersion, type).screenView()
-				.clientId(getInstanceId())
-				.sessionControl("end")
-				.send();
-			}
-		});
-		result = true;
-		return result;
-	}
-
-	public boolean startHeartBeats(String implementationVersion, String type, int periodMS) {
-		boolean result = false;
-
-		heartbeat.scheduleAtFixedRate(new TimerTask() {
-
-			@Override
-			public void run() {
-				if(logger != null) {
-					logger.info("-Heartbeat-");
-				}
-				getGoogleAnalytic(implementationVersion, type).event()
-				.eventCategory("server_status")
-				.eventAction("heartbeat")
-				.eventLabel("")
-				.clientId(getInstanceId())
-				.send();
-
-			}
-		}, periodMS, periodMS);
-		result = true;
-		return result;
-	}
-
-	public boolean startAnalytic(String implementationVersion, String type) {
-		boolean  result = false;
-		heartbeat.schedule(new TimerTask() {
-
-			@Override
-			public void run() {
-				getGoogleAnalytic(implementationVersion, type).screenView()
-				.sessionControl("start")
-				.clientId(getInstanceId())
-				.send();
-			}
-		}, 0);
-		result = true;
-		return result;
-	}
-
-	public GoogleAnalytics getGoogleAnalytic(String implementationVersion, String type) {
-		return GoogleAnalytics.builder()
-				.withAppVersion(implementationVersion)
-				.withAppName(type)
-				.withTrackingId(GA_TRACKING_ID).build();
-
-	}
-
 	public static void writeToFile(String absolutePath, String content) {
 		try {
 			Files.write(new File(absolutePath).toPath(), content.getBytes(), StandardOpenOption.CREATE);
 		} catch (IOException e) {
-			logger.error(e.toString());	
+			if (logger != null) {
+				logger.error(e.toString());
+			}
 		}
 
 	}
@@ -235,9 +161,13 @@ public class Launcher {
 	public static void setInstanceIdFilePath(String instanceIdFilePath) {
 		Launcher.instanceIdFilePath = instanceIdFilePath;
 	}
-
-	public void cancelHeartBeat() {
-		heartbeat.cancel();
+	
+	public static String getVersion() {
+		return implementationVersion;
+	}
+	
+	public static String getVersionType() {
+		return versionType;
 	}
 
 }

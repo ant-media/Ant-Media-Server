@@ -45,7 +45,7 @@ import org.slf4j.LoggerFactory;
 import com.google.gson.Gson;
 
 import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.AppSettingsModel;
+import io.antmedia.AppSettings;
 import io.antmedia.EncoderSettings;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.VoD;
@@ -54,13 +54,14 @@ import io.antmedia.rest.BroadcastRestService.BroadcastStatistics;
 import io.antmedia.rest.BroadcastRestService.LiveStatistics;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.Version;
+import io.antmedia.settings.ServerSettings;
 import io.antmedia.test.Application;
 
 public class AppFunctionalTest {
 	
 
 	private BroadcastRestService restService = null;
-	private static final String SERVER_ADDR = "127.0.0.1"; 
+	private static final String SERVER_ADDR = ServerSettings.getLocalHostAddress(); 
 	protected static Logger logger = LoggerFactory.getLogger(AppFunctionalTest.class);
 
 	public static Process process;
@@ -72,12 +73,7 @@ public class AppFunctionalTest {
 	public static final int WINDOWS = 2;
 	private static BasicCookieStore httpCookieStore;
 	static {
-
-		try {
-			ROOT_SERVICE_URL = "http://" + InetAddress.getLocalHost().getHostAddress() + ":5080/rest";
-		} catch (UnknownHostException e) {
-			e.printStackTrace();
-		}
+		ROOT_SERVICE_URL = "http://" + SERVER_ADDR + ":5080/rest";
 
 		logger.info("ROOT SERVICE URL: " + ROOT_SERVICE_URL);
 
@@ -255,7 +251,7 @@ public class AppFunctionalTest {
 
 			boolean found240p = false;
 			List<EncoderSettings> encoderSettingsActive = null;
-			AppSettingsModel appSettingsModel = null;
+			AppSettings appSettingsModel = null;
 			boolean mp4MuxingEnabled = false;
 			Broadcast broadcast=rest.createBroadcast("RTMP_stream");
 			{

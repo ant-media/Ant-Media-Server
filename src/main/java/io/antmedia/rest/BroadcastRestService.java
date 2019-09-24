@@ -247,11 +247,11 @@ public class BroadcastRestService extends RestServiceBase{
 		AppSettings appSettingsLocal = getAppSettings();
 		if (appSettingsLocal != null) {
 			settingsListenerHookURL = appSettingsLocal.getListenerHookURL();
-			fqdn = appSettingsLocal.getServerName();
 		}
+		fqdn = getServerSettings().getServerName();
 
 		return saveBroadcast(broadcast, AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, getScope().getName(),
-				getDataStore(), settingsListenerHookURL, fqdn);
+				getDataStore(), settingsListenerHookURL, fqdn, getServerSettings().getHostAddress());
 	}
 
 

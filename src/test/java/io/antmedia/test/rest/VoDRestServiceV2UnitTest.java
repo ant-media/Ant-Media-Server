@@ -2,78 +2,41 @@ package io.antmedia.test.rest;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import javax.ws.rs.core.Response;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.red5.server.api.stream.IClientBroadcastStream;
-import org.red5.server.api.stream.IStreamCapableConnection;
 import org.red5.server.scope.Scope;
 import org.springframework.context.ApplicationContext;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
 
+
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.IApplicationAdaptorFactory;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
-import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.datastore.db.types.ConferenceRoom;
-import io.antmedia.datastore.db.types.Endpoint;
-import io.antmedia.datastore.db.types.SocialEndpointCredentials;
-import io.antmedia.datastore.db.types.TensorFlowObject;
-import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.integration.MuxingTest;
-import io.antmedia.muxer.HLSMuxer;
-import io.antmedia.muxer.Mp4Muxer;
-import io.antmedia.muxer.MuxAdaptor;
-import io.antmedia.muxer.Muxer;
-import io.antmedia.rest.BroadcastRestService;
-import io.antmedia.rest.BroadcastRestService.BroadcastStatistics;
 import io.antmedia.rest.BroadcastRestService.ProcessBuilderFactory;
-import io.antmedia.rest.BroadcastRestServiceV2;
-import io.antmedia.rest.StreamsSourceRestService;
 import io.antmedia.rest.VoDRestServiceV2;
-import io.antmedia.rest.WebRTCClientStats;
-import io.antmedia.rest.model.Interaction;
 import io.antmedia.rest.model.Result;
-import io.antmedia.rest.model.User;
-import io.antmedia.rest.model.Version;
-import io.antmedia.security.ITokenService;
-import io.antmedia.social.LiveComment;
-import io.antmedia.social.ResourceOrigin;
-import io.antmedia.social.endpoint.PeriscopeEndpoint;
-import io.antmedia.social.endpoint.VideoServiceEndpoint;
-import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
-import io.antmedia.webrtc.api.IWebRTCAdaptor;
+import io.antmedia.settings.ServerSettings;
 import io.vertx.core.Vertx;
 
 
@@ -138,8 +101,7 @@ public class VoDRestServiceV2UnitTest {
 		when(settings.getStalkerDBServer()).thenReturn("192.168.1.29");
 		when(settings.getStalkerDBUsername()).thenReturn("stalker");
 		when(settings.getStalkerDBPassword()).thenReturn("1");
-		when(settings.getServerName()).thenReturn("localhost");
-
+		
 		String vodFolderPath = "webapps/junit/streams/vod_folder";
 
 		File vodFolder = new File(vodFolderPath);
@@ -153,6 +115,10 @@ public class VoDRestServiceV2UnitTest {
 		restServiceReal.setScope(scope);
 
 		restServiceReal.setAppSettings(settings);
+		
+		ServerSettings serverSettings = mock(ServerSettings.class);
+		when(serverSettings.getServerName()).thenReturn("localhost");
+		restServiceReal.setServerSettings(serverSettings);
 
 		//Vod vod = new Vod();
 		File file = new File(vodFolder, "test_file");

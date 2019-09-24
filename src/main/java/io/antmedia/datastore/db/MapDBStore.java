@@ -24,11 +24,11 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
 import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.cluster.StreamInfo;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
+import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
@@ -1052,10 +1052,7 @@ public class MapDBStore extends DataStore {
 		//no need to implement this method, it is used in cluster mode
 	}
 
-	@Override
-	public void clearStreamsOnThisServer() {
-		//no need to implement for MapDB
-	}
+
 
 	@Override
 	public boolean createConferenceRoom(ConferenceRoom room) {
