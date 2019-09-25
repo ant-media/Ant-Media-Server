@@ -126,10 +126,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 		AntMediaApplicationAdapter spyAdapter = Mockito.spy(adapter);
 		IContext context = mock(IContext.class);
 		when(context.getBean(Mockito.any())).thenReturn(mock(AcceptOnlyStreamsInDataStore.class));
-		
+		when(scope.getContext()).thenReturn(context);
 		Mockito.doReturn(mock(DataStore.class)).when(spyAdapter).getDataStore();
-		
-		Mockito.doReturn(context).when(spyAdapter).getContext();
 		
 		spyAdapter.setAppSettings(settings);
 		spyAdapter.setScope(scope);

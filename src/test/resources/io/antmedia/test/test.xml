@@ -90,7 +90,7 @@
 	
 	<bean id="app.settings" class="io.antmedia.AppSettings"></bean>
 	
-	<bean id="web.handler" class="io.antmedia.test.Application" >
+	<bean id="web.handler" class="io.antmedia.test.Application">
 		<property name="dataStoreFactory" ref="dataStoreFactory" />
 		<property name="appSettings" ref="app.settings" />
 		<property name="streamPublishSecurityList">

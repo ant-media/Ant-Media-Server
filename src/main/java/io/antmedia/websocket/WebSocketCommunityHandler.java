@@ -27,13 +27,15 @@ import io.antmedia.recorder.FFmpegFrameRecorder;
 import io.antmedia.recorder.FrameRecorder;
 import io.antmedia.webrtc.adaptor.RTMPAdaptor;
 
-public abstract class WebSocketCommunityHandler {
+public class WebSocketCommunityHandler {
 
 	private static Logger logger = LoggerFactory.getLogger(WebSocketCommunityHandler.class);
 
 	private JSONParser jsonParser = new JSONParser();
 
 	private AppSettings appSettings;
+	
+	private ApplicationContext appContext;
 	
 	@OnOpen
 	public void onOpen(Session session, EndpointConfig config)
@@ -52,10 +54,8 @@ public abstract class WebSocketCommunityHandler {
 
 	@OnError
 	public void onError(Session session, Throwable throwable) {
-
+		//not used for now
 	}
-
-	public abstract ApplicationContext getAppContext();
 
 	@OnMessage
 	public void onMessage(Session session, String message) {
@@ -136,7 +136,7 @@ public abstract class WebSocketCommunityHandler {
 	private void startRTMPAdaptor(Session session, final String streamId) {
 
 		//get scope and use its name
-		String outputURL = "rtmp://127.0.0.1/WebRTCApp/" + streamId;
+		String outputURL = "rtmp://127.0.0.1/StreamApp/" + streamId;
 
 		RTMPAdaptor connectionContext = getNewRTMPAdaptor(outputURL);
 
@@ -329,6 +329,14 @@ public abstract class WebSocketCommunityHandler {
 		jsonResponse.put(WebSocketConstants.COMMAND, WebSocketConstants.ERROR_COMMAND);
 		jsonResponse.put(WebSocketConstants.DEFINITION, WebSocketConstants.INVALID_STREAM_NAME);
 		sendMessage(jsonResponse.toJSONString(), session);	
+	}
+
+	public ApplicationContext getAppContext() {
+		return appContext;
+	}
+
+	public void setAppContext(ApplicationContext appContext) {
+		this.appContext = appContext;
 	}
 	
 	public void sendRemoteDescriptionSetFailure(Session session, String streamId) {

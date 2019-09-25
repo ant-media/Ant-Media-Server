@@ -69,11 +69,11 @@ public class AppSettingsTest {
 		Mockito.doReturn(new InMemoryDataStore("")).when(mockApplicationAdapter).getDataStore();
 		
 		IContext context = mock(IContext.class);
-		Mockito.doReturn(context).when(mockApplicationAdapter).getContext();
 		when(context.getBean(AcceptOnlyStreamsInDataStore.BEAN_NAME)).thenReturn(mock(AcceptOnlyStreamsInDataStore.class));
 		
 		
 		IScope scope = mock(IScope.class);
+		when(scope.getContext()).thenReturn(context);
 		when(scope.getName()).thenReturn(appName);
 		Mockito.doReturn(scope).when(mockApplicationAdapter).getScope();		
 		
@@ -127,11 +127,11 @@ public class AppSettingsTest {
 		Mockito.doReturn(new InMemoryDataStore("")).when(mockApplicationAdapter).getDataStore();
 		
 		IContext context = mock(IContext.class);
-		Mockito.doReturn(context).when(mockApplicationAdapter).getContext();
 		when(context.getBean(AcceptOnlyStreamsInDataStore.BEAN_NAME)).thenReturn(mock(AcceptOnlyStreamsInDataStore.class));
 		
 		
 		IScope scope = mock(IScope.class);
+		when(scope.getContext()).thenReturn(context);
 		when(scope.getName()).thenReturn(appName);
 		Mockito.doReturn(scope).when(mockApplicationAdapter).getScope();		
 								

@@ -543,7 +543,7 @@
             <dependencies>
                 <dependency>
                     <groupId>io.antmedia.webrtc</groupId>
-                    <artifactId>WebRTCApp</artifactId>
+                    <artifactId>StreamApp</artifactId>
                     <version>${project.parent.version}</version>
                     <type>war</type>
                     <scope>provided</scope>
@@ -551,13 +551,6 @@
                 <dependency>
                     <groupId>io.antmedia.app</groupId>
                     <artifactId>root</artifactId>
-                    <version>${project.parent.version}</version>
-                    <type>war</type>
-                    <scope>provided</scope>
-                </dependency>
-                <dependency>
-                    <groupId>io.antmedia.app</groupId>
-                    <artifactId>LiveApp</artifactId>
                     <version>${project.parent.version}</version>
                     <type>war</type>
                     <scope>provided</scope>
@@ -637,19 +630,11 @@
                                     <artifactItems>
                                         <artifactItem>
                                             <groupId>io.antmedia.webrtc</groupId>
-                                            <artifactId>WebRTCApp</artifactId>
+                                            <artifactId>StreamApp</artifactId>
                                             <version>${project.parent.version}</version>
                                             <type>war</type>
                                             <overWrite>true</overWrite>
-                                            <outputDirectory>${project.build.directory}/webapps</outputDirectory>
-                                        </artifactItem>
-                                        <artifactItem>
-                                            <groupId>io.antmedia.app</groupId>
-                                            <artifactId>LiveApp</artifactId>
-                                            <version>${project.parent.version}</version>
-                                            <type>war</type>
-                                            <overWrite>true</overWrite>
-                                            <outputDirectory>${project.build.directory}/webapps</outputDirectory>
+                                            <outputDirectory>${project.build.directory}</outputDirectory>
                                         </artifactItem>
                                         <artifactItem>
                                             <groupId>io.antmedia.app</groupId>
@@ -685,6 +670,41 @@
                         </executions>
                     </plugin>
                     <plugin>
+			            <groupId>org.codehaus.mojo</groupId>
+						<artifactId>exec-maven-plugin</artifactId>
+						<version>1.3.2</version>
+						<executions>
+							<execution>
+							    <id>create-liveapp</id>
+								<phase>package</phase>
+								<goals>
+									<goal>exec</goal>
+								</goals>
+								<configuration>
+							    <executable>src/main/server/create_app.sh</executable>
+									<arguments>
+										<argument>LiveApp</argument>
+										<argument>${project.build.directory}</argument>
+									</arguments>
+								</configuration>
+							</execution>
+							<execution>
+								<id>create-webrtcapp</id>
+								<phase>package</phase>
+								<goals>
+									<goal>exec</goal>
+								</goals>
+								<configuration>
+							    <executable>src/main/server/create_app.sh</executable>
+									<arguments>
+										<argument>WebRTCApp</argument>
+										<argument>${project.build.directory}</argument>
+									</arguments>
+								</configuration>
+							</execution>
+						</executions>
+			        </plugin>
+                    <plugin>
                         <artifactId>maven-assembly-plugin</artifactId>
                         <version>2.6</version>
                         <configuration>
@@ -715,13 +735,7 @@
             <dependencies>
                 <dependency>
                     <groupId>io.antmedia.webrtc</groupId>
-                    <artifactId>WebRTCAppEE</artifactId>
-                    <version>${project.parent.version}</version>
-                    <type>war</type>
-                </dependency>
-                <dependency>
-                    <groupId>io.antmedia.app</groupId>
-                    <artifactId>LiveApp</artifactId>
+                    <artifactId>StreamApp</artifactId>
                     <version>${project.parent.version}</version>
                     <type>war</type>
                 </dependency>
@@ -780,19 +794,11 @@
                                     <artifactItems>
                                         <artifactItem>
                                             <groupId>io.antmedia.webrtc</groupId>
-                                            <artifactId>WebRTCAppEE</artifactId>
+                                            <artifactId>StreamApp</artifactId>
                                             <version>${project.parent.version}</version>
                                             <type>war</type>
                                             <overWrite>true</overWrite>
-                                            <outputDirectory>${project.build.directory}/webapps</outputDirectory>
-                                        </artifactItem>
-                                        <artifactItem>
-                                            <groupId>io.antmedia.app</groupId>
-                                            <artifactId>LiveApp</artifactId>
-                                            <version>${project.parent.version}</version>
-                                            <type>war</type>
-                                            <overWrite>true</overWrite>
-                                            <outputDirectory>${project.build.directory}/webapps</outputDirectory>
+                                            <outputDirectory>${project.build.directory}</outputDirectory>
                                         </artifactItem>
                                         <artifactItem>
                                             <groupId>io.antmedia.app</groupId>
@@ -846,6 +852,41 @@
                             </execution>
                         </executions>
                     </plugin>
+                    <plugin>
+			            <groupId>org.codehaus.mojo</groupId>
+						<artifactId>exec-maven-plugin</artifactId>
+						<version>1.3.2</version>
+						<executions>
+							<execution>
+							    <id>create-liveapp</id>
+								<phase>package</phase>
+								<goals>
+									<goal>exec</goal>
+								</goals>
+								<configuration>
+							    <executable>src/main/server/create_app.sh</executable>
+									<arguments>
+										<argument>LiveApp</argument>
+										<argument>${project.build.directory}</argument>
+									</arguments>
+								</configuration>
+							</execution>
+							<execution>
+								<id>create-webrtcappee</id>
+								<phase>package</phase>
+								<goals>
+									<goal>exec</goal>
+								</goals>
+								<configuration>
+							    <executable>src/main/server/create_app.sh</executable>
+									<arguments>
+										<argument>WebRTCAppEE</argument>
+										<argument>${project.build.directory}</argument>
+									</arguments>
+								</configuration>
+							</execution>
+						</executions>
+			        </plugin>
                     <plugin>
                         <artifactId>maven-assembly-plugin</artifactId>
                         <version>2.6</version>

@@ -7,8 +7,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.Nonnull;
 
-import org.red5.server.api.scheduling.IScheduledJob;
-import org.red5.server.api.scheduling.ISchedulingService;
 import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,6 +15,7 @@ import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.rest.model.Result;
+import io.vertx.core.Vertx;
 
 
 /**
@@ -37,13 +36,11 @@ public class StreamFetcherManager {
 	 */
 	private int streamCheckerIntervalMs = 10000;
 
-	private ISchedulingService schedulingService;
-
 	private DataStore datastore;
 
 	private IScope scope;
 
-	private String streamFetcherScheduleJobName;
+	private long streamFetcherScheduleJobName = -1L;
 
 	protected AtomicBoolean isJobRunning = new AtomicBoolean(false);
 
@@ -54,14 +51,16 @@ public class StreamFetcherManager {
 	 */
 	private int restartStreamFetcherPeriodSeconds;
 
-	public StreamFetcherManager(ISchedulingService schedulingService, DataStore datastore,IScope scope) {
-		this.schedulingService = schedulingService;
+	private Vertx vertx;
+
+	public StreamFetcherManager(Vertx vertx, DataStore datastore,IScope scope) {
+		this.vertx = vertx;
 		this.datastore = datastore;
 		this.scope=scope;
 	}
 
-	public StreamFetcher make(Broadcast stream, IScope scope, ISchedulingService schedulingService) {
-		return new StreamFetcher(stream, scope, schedulingService);
+	public StreamFetcher make(Broadcast stream, IScope scope, Vertx vertx) {
+		return new StreamFetcher(stream, scope, vertx);
 	}
 
 	public int getStreamCheckerInterval() {
@@ -105,7 +104,7 @@ public class StreamFetcherManager {
 		if (!alreadyFetching) {
 			
 			try {
-				streamScheduler =  make(broadcast, scope, schedulingService);
+				streamScheduler =  make(broadcast, scope, vertx);
 				streamScheduler.setRestartStream(restartStreamAutomatically);
 				streamScheduler.startStream();
 
@@ -113,7 +112,7 @@ public class StreamFetcherManager {
 					streamFetcherList.add(streamScheduler);
 				}
 
-				if (streamFetcherScheduleJobName == null) {
+				if (streamFetcherScheduleJobName == -1) {
 					scheduleStreamFetcherJob();
 				}
 			}
@@ -142,9 +141,9 @@ public class StreamFetcherManager {
 	}
 
 	public void stopCheckerJob() {
-		if (streamFetcherScheduleJobName != null) {
-			schedulingService.removeScheduledJob(streamFetcherScheduleJobName);
-			streamFetcherScheduleJobName = null;
+		if (streamFetcherScheduleJobName != -1) {
+			vertx.cancelTimer(streamFetcherScheduleJobName);
+			streamFetcherScheduleJobName = -1;
 		}
 	}
 
@@ -158,16 +157,13 @@ public class StreamFetcherManager {
 	}
 
 	private void scheduleStreamFetcherJob() {
-		if (streamFetcherScheduleJobName != null) {
-			schedulingService.removeScheduledJob(streamFetcherScheduleJobName);
+		if (streamFetcherScheduleJobName != -1) {
+			vertx.cancelTimer(streamFetcherScheduleJobName);
 		}
 
-		streamFetcherScheduleJobName = schedulingService.addScheduledJobAfterDelay(streamCheckerIntervalMs, new IScheduledJob() {
+		streamFetcherScheduleJobName = vertx.setPeriodic(streamCheckerIntervalMs, l-> {
 
-			private int lastRestartCount = 0;
-
-			@Override
-			public void execute(ISchedulingService service) throws CloneNotSupportedException {
+			int lastRestartCount = 0;
 
 				if (!streamFetcherList.isEmpty()) {
 
@@ -191,9 +187,8 @@ public class StreamFetcherManager {
 						checkStreamFetchersStatus();
 					}
 				}
-			}
 
-		}, streamCheckerIntervalMs);
+		});
 
 		logger.info("StreamFetcherSchedule job name {}", streamFetcherScheduleJobName);
 	}

@@ -16,6 +16,10 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import javax.websocket.RemoteEndpoint;
@@ -34,10 +38,15 @@ import org.webrtc.PeerConnectionFactory;
 import org.webrtc.SessionDescription;
 import org.webrtc.SessionDescription.Type;
 
+import io.antmedia.cluster.IStreamInfo;
 import io.antmedia.integration.MuxingTest;
 import io.antmedia.recorder.FFmpegFrameRecorder;
 import io.antmedia.recorder.Frame;
+import io.antmedia.rest.WebRTCClientStats;
+import io.antmedia.webrtc.MockWebRTCAdaptor;
 import io.antmedia.webrtc.adaptor.RTMPAdaptor;
+import io.antmedia.webrtc.api.IWebRTCClient;
+import io.antmedia.webrtc.api.IWebRTCMuxer;
 import io.antmedia.websocket.WebSocketCommunityHandler;
 import io.antmedia.websocket.WebSocketConstants;
 
@@ -403,5 +412,30 @@ public class RTMPAdaptorTest {
 		}
 
 	}
-
+	
+	/*
+	 * This test is only for sonar coverage for now. Because tested class is mock and not doing anything
+	 */
+	@Test
+	public void testMockWebRTCAdaptor() {
+		MockWebRTCAdaptor mock = new MockWebRTCAdaptor();
+		mock.registerMuxer(null, null);
+		mock.unRegisterMuxer(null, null);
+		mock.registerWebRTCClient(null, null);
+		mock.streamExists(null);
+		mock.getStreamOptions(null);
+		mock.adaptStreamingQuality(null, null);
+		mock.registerWebRTCClient(null, null, 0);
+		assertEquals(-1, mock.getNumberOfLiveStreams());
+		assertEquals(-1, mock.getNumberOfTotalViewers());
+		assertEquals(-1, mock.getNumberOfViewers(null));
+		assertTrue(mock.getWebRTCClientStats(null).isEmpty());
+		assertTrue(mock.getStreams().isEmpty());
+		mock.setExcessiveBandwidthValue(0);
+		mock.setExcessiveBandwidthCallThreshold(0);
+		mock.setExcessiveBandwidthAlgorithmEnabled(true);
+		mock.setPacketLossDiffThresholdForSwitchback(0);
+		mock.setRttMeasurementDiffThresholdForSwitchback(0);
+		mock.setTryCountBeforeSwitchback(0);
+	}
 }

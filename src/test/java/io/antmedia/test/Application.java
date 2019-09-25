@@ -1,11 +1,20 @@
 package io.antmedia.test;
 
 import java.io.File;
+import java.util.List;
+
+import org.red5.server.adapter.MultiThreadedApplicationAdapter;
+import org.red5.server.api.scope.IScope;
+import org.red5.server.api.stream.IStreamPublishSecurity;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.AppSettings;
+import io.antmedia.IApplicationAdaptorFactory;
+import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.muxer.IAntMediaStreamHandler;
+import io.antmedia.muxer.MuxAdaptor;
 
-public class Application extends AntMediaApplicationAdapter implements IAntMediaStreamHandler {
+public class Application extends MultiThreadedApplicationAdapter implements IAntMediaStreamHandler, IApplicationAdaptorFactory {
 
 	public static String id = null;
 	public static File file = null;
@@ -20,10 +29,34 @@ public class Application extends AntMediaApplicationAdapter implements IAntMedia
 
 	public static boolean enableSourceHealthUpdate = false;
 	public static String notifyVodId = null;
+	
+	private AntMediaApplicationAdapter appAdaptor;
+	private DataStoreFactory dataStoreFactory;
+	private AppSettings appSettings;
+	private List<IStreamPublishSecurity> streamPublishSecurityList;
 
+	
+	@Override
+	public boolean appStart(IScope app) {
+		appAdaptor = new AntMediaApplicationAdapter();
+		appAdaptor.setAppSettings(getAppSettings());
+
+		appAdaptor.setStreamPublishSecurityList(getStreamPublishSecurityList());
+
+		if (getStreamPublishSecurityList() != null) {
+			for (IStreamPublishSecurity streamPublishSecurity : getStreamPublishSecurityList()) {
+				registerStreamPublishSecurity(streamPublishSecurity);
+			}
+		}
+		appAdaptor.setDataStoreFactory(getDataStoreFactory());
+		appAdaptor.appStart(app);
+		
+		return super.appStart(app);
+	}
+	
 	@Override
 	public void muxingFinished(String id, File file, long duration, int resolution) {
-		super.muxingFinished(id, file, duration, resolution);
+		getAppAdaptor().muxingFinished(id, file, duration, resolution);
 		Application.id = id;
 		Application.file = file;
 		Application.duration = duration;
@@ -42,7 +75,6 @@ public class Application extends AntMediaApplicationAdapter implements IAntMedia
 
 	}
 
-	@Override
 	public StringBuilder notifyHook(String url, String id, String action, String streamName, String category,
 			String vodName, String vodId) {
 		notifyHookAction = action;
@@ -59,8 +91,50 @@ public class Application extends AntMediaApplicationAdapter implements IAntMedia
 	@Override
 	public void setQualityParameters(String id, String quality, double speed, int pendingPacketSize) {
 		if (enableSourceHealthUpdate) {
-			super.setQualityParameters(id, quality, speed, pendingPacketSize);
+			getAppAdaptor().setQualityParameters(id, quality, speed, pendingPacketSize);
 		}
 	}
 
+	@Override
+	public void muxAdaptorAdded(MuxAdaptor muxAdaptor) {
+		appAdaptor.muxAdaptorAdded(muxAdaptor);
+	}
+
+	@Override
+	public void muxAdaptorRemoved(MuxAdaptor muxAdaptor) {
+		appAdaptor.muxAdaptorRemoved(muxAdaptor);		
+	}
+
+	public void setAdaptor(AntMediaApplicationAdapter adaptor) {
+		this.appAdaptor = adaptor;
+	}
+
+	@Override
+	public AntMediaApplicationAdapter getAppAdaptor() {
+		return appAdaptor;
+	}
+	
+	public DataStoreFactory getDataStoreFactory() {
+		return dataStoreFactory;
+	}
+
+	public void setDataStoreFactory(DataStoreFactory dataStoreFactory) {
+		this.dataStoreFactory = dataStoreFactory;
+	}
+
+	public AppSettings getAppSettings() {
+		return appSettings;
+	}
+
+	public void setAppSettings(AppSettings appSettings) {
+		this.appSettings = appSettings;
+	}
+
+	public List<IStreamPublishSecurity> getStreamPublishSecurityList() {
+		return streamPublishSecurityList;
+	}
+
+	public void setStreamPublishSecurityList(List<IStreamPublishSecurity> streamPublishSecurityList) {
+		this.streamPublishSecurityList = streamPublishSecurityList;
+	}
 }

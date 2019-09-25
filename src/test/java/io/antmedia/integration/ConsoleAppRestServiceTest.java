@@ -362,7 +362,7 @@ public class ConsoleAppRestServiceTest{
 			// send stream
 			Broadcast broadcastCreated = RestServiceTest.callCreateBroadcast(10000);
 			assertNotNull(broadcastCreated.getStreamId());
-			assertEquals(Application.BROADCAST_STATUS_CREATED, broadcastCreated.getStatus());
+			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, broadcastCreated.getStatus());
 
 			AppFunctionalTest.executeProcess(ffmpegPath
 					+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
@@ -798,7 +798,7 @@ public class ConsoleAppRestServiceTest{
 			{
 				Broadcast broadcastCreated = RestServiceTest.callCreateBroadcast(10000);
 				assertNotNull(broadcastCreated.getStreamId());
-				assertEquals(broadcastCreated.getStatus(), Application.BROADCAST_STATUS_CREATED);
+				assertEquals(broadcastCreated.getStatus(), AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
 
 				AppFunctionalTest.executeProcess(ffmpegPath
 						+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
@@ -809,7 +809,7 @@ public class ConsoleAppRestServiceTest{
 
 				broadcast = RestServiceTest.callGetBroadcast(broadcastCreated.getStreamId());
 				assertNotNull(broadcast);
-				assertEquals(broadcast.getStatus(), Application.BROADCAST_STATUS_BROADCASTING);
+				assertEquals(broadcast.getStatus(), AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 
 				AppFunctionalTest.destroyProcess();
 			}
@@ -844,7 +844,7 @@ public class ConsoleAppRestServiceTest{
 			{
 				Broadcast broadcastCreated = RestServiceTest.callCreateBroadcast(10000);
 				assertNotNull(broadcastCreated.getStreamId());
-				assertEquals(broadcastCreated.getStatus(), Application.BROADCAST_STATUS_CREATED);
+				assertEquals(broadcastCreated.getStatus(), AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
 
 				AppFunctionalTest.executeProcess(ffmpegPath
 						+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
@@ -855,7 +855,7 @@ public class ConsoleAppRestServiceTest{
 
 				broadcast = RestServiceTest.callGetBroadcast(broadcastCreated.getStreamId());
 				assertNotNull(broadcast);
-				assertEquals(broadcast.getStatus(), Application.BROADCAST_STATUS_BROADCASTING);
+				assertEquals(broadcast.getStatus(), AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 
 				AppFunctionalTest.destroyProcess();
 			}
@@ -891,7 +891,7 @@ public class ConsoleAppRestServiceTest{
 			{
 				Broadcast broadcastCreated = RestServiceTest.callCreateBroadcast(10000);
 				assertNotNull(broadcastCreated.getStreamId());
-				assertEquals(broadcastCreated.getStatus(), Application.BROADCAST_STATUS_CREATED);
+				assertEquals(broadcastCreated.getStatus(), AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
 
 				AppFunctionalTest.executeProcess(ffmpegPath
 						+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
@@ -908,7 +908,7 @@ public class ConsoleAppRestServiceTest{
 				{
 					Broadcast broadcast2 = RestServiceTest.callGetBroadcast(broadcastCreated.getStreamId());
 					assertNotNull(broadcast2);
-					return broadcast2 != null && broadcast2.getStatus().equals(Application.BROADCAST_STATUS_BROADCASTING);
+					return broadcast2 != null && broadcast2.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 				});
 				
 				

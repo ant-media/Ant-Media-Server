@@ -36,6 +36,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.IApplicationAdaptorFactory;
 import io.antmedia.SystemUtils;
 import io.antmedia.rest.WebRTCClientStats;
 import io.antmedia.settings.ServerSettings;
@@ -403,7 +404,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 					localWebRTCViewers += webrtcAdaptor.getNumberOfTotalViewers();
 					localWebRTCStreams += webrtcAdaptor.getNumberOfLiveStreams();
 				}
-				AntMediaApplicationAdapter adaptor = (AntMediaApplicationAdapter) scope.getContext().getApplicationContext().getBean(AntMediaApplicationAdapter.BEAN_NAME);
+				AntMediaApplicationAdapter adaptor = ((IApplicationAdaptorFactory) scope.getContext().getApplicationContext().getBean(AntMediaApplicationAdapter.BEAN_NAME)).getAppAdaptor();
 				encodersBlocked += adaptor.getNumberOfEncodersBlocked();
 				encodersNotOpened += adaptor.getNumberOfEncoderNotOpenedErrors();
 				publishTimeoutError += adaptor.getNumberOfPublishTimeoutError();

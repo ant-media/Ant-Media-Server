@@ -40,6 +40,7 @@ import org.springframework.web.context.support.WebApplicationContextUtils;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
+import io.antmedia.IApplicationAdaptorFactory;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
@@ -183,7 +184,7 @@ public abstract class RestServiceBase {
 		if (appInstance == null) {
 			ApplicationContext appContext = getAppContext();
 			if (appContext != null) {
-				appInstance = (AntMediaApplicationAdapter) appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME);
+				appInstance = ((IApplicationAdaptorFactory) appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME)).getAppAdaptor();
 			}
 		}
 		return appInstance;
@@ -693,7 +694,11 @@ public abstract class RestServiceBase {
 		IWebRTCAdaptor adaptor = null;
 		ApplicationContext appContext = getAppContext();
 		if (appContext != null && appContext.containsBean(IWebRTCAdaptor.BEAN_NAME)) {
-			adaptor = (IWebRTCAdaptor) appContext.getBean(IWebRTCAdaptor.BEAN_NAME);
+			Object webRTCAdaptorBean = appContext.getBean(IWebRTCAdaptor.BEAN_NAME);
+			
+			if(webRTCAdaptorBean != null) {
+				adaptor = (IWebRTCAdaptor) webRTCAdaptorBean;
+			}
 		}
 		return adaptor;
 	}
