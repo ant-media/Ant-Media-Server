@@ -1,5 +1,7 @@
 package io.antmedia.webrtc;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -13,43 +15,36 @@ public class MockWebRTCAdaptor implements IWebRTCAdaptor{
 
 	@Override
 	public void registerMuxer(String streamId, IWebRTCMuxer webRTCMuxer) {
-		// TODO Auto-generated method stub
-		
+		//No implementation since this is mock
 	}
 
 	@Override
 	public void unRegisterMuxer(String streamId, IWebRTCMuxer webRTCMuxer) {
-		// TODO Auto-generated method stub
-		
+		//No implementation since this is mock
 	}
 
 	@Override
 	public boolean registerWebRTCClient(String streamId, IWebRTCClient webRTCClient) {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
 	@Override
 	public boolean streamExists(String streamId) {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
 	@Override
 	public List<IStreamInfo> getStreamOptions(String streamId) {
-		// TODO Auto-generated method stub
-		return null;
+		return new ArrayList<>();
 	}
 
 	@Override
 	public void adaptStreamingQuality(String streamId, IWebRTCClient webRTCClient) {
-		// TODO Auto-generated method stub
-		
+		//No implementation since this is mock
 	}
 
 	@Override
 	public boolean registerWebRTCClient(String streamId, IWebRTCClient webRTCClusterClient, int resolutionHeight) {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
@@ -70,49 +65,41 @@ public class MockWebRTCAdaptor implements IWebRTCAdaptor{
 
 	@Override
 	public List<WebRTCClientStats> getWebRTCClientStats(String streamId) {
-		// TODO Auto-generated method stub
-		return null;
+		return new ArrayList<>();
 	}
 
 	@Override
 	public Set<String> getStreams() {
-		// TODO Auto-generated method stub
-		return null;
+		return new HashSet<>();
 	}
 
 	@Override
 	public void setExcessiveBandwidthValue(int excessiveBandwidthValue) {
-		// TODO Auto-generated method stub
-		
+		//No implementation since this is mock
 	}
 
 	@Override
 	public void setExcessiveBandwidthCallThreshold(int excessiveBandwidthCallThreshold) {
-		// TODO Auto-generated method stub
-		
+		//No implementation since this is mock
 	}
 
 	@Override
 	public void setExcessiveBandwidthAlgorithmEnabled(boolean excessiveBandwidthAlgorithmEnabled) {
-		// TODO Auto-generated method stub
-		
+		//No implementation since this is mock
 	}
 
 	@Override
 	public void setPacketLossDiffThresholdForSwitchback(int packetLossDiffThresholdForSwitchback) {
-		// TODO Auto-generated method stub
-		
+		//No implementation since this is mock
 	}
 
 	@Override
 	public void setRttMeasurementDiffThresholdForSwitchback(int rttMeasurementDiffThresholdForSwitchback) {
-		// TODO Auto-generated method stub
-		
+		//No implementation since this is mock
 	}
 
 	@Override
 	public void setTryCountBeforeSwitchback(int tryCountBeforeSwitchback) {
-		// TODO Auto-generated method stub
-		
+		//No implementation since this is mock
 	}
 }
