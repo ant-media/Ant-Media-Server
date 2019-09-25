@@ -27,9 +27,6 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
-import org.red5.server.adapter.MultiThreadedApplicationAdapter;
-import org.red5.server.api.scheduling.IScheduledJob;
-import org.red5.server.api.scheduling.ISchedulingService;
 import org.red5.server.api.scope.IBroadcastScope;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IBroadcastStream;
@@ -69,7 +66,6 @@ import io.antmedia.statistic.type.WebRTCVideoReceiveStats;
 import io.antmedia.statistic.type.WebRTCVideoSendStats;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
-import io.vertx.core.Handler;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.vertx.core.Vertx;
 
@@ -128,28 +124,6 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 	protected WebRTCAudioSendStats webRTCAudioSendStats = new WebRTCAudioSendStats();
 	
-	private Hook lastHook;
-	//This class is used for testing. It can be deleted.
-	public class Hook {
-		public String notifyHookAction = null;
-		public String notitfyURL = null;
-		public String notifyId = null;
-		public String notifyStreamName = null;
-		public String notifyCategory = null;
-		public String notifyVodName = null;
-		public String notifyVodId = null;
-		
-		public Hook(String url, String id, String action, String streamName, String category,
-				String vodName, String vodId) {
-			notifyHookAction = action;
-			notitfyURL = url;
-			notifyId = id;
-			notifyStreamName = streamName;
-			notifyCategory = category;
-			notifyVodName = vodName;
-			notifyVodId  = vodId;
-		}
-	}
 	private IClusterNotifier clusterNotifier;
 
 	public boolean appStart(IScope app) {
@@ -224,6 +198,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 	public void appStop(IScope app) 
 	{
+		//not used
 	}
 
 	public boolean synchUserVoDFolder(String oldFolderPath, String vodFolderPath) 
@@ -385,11 +360,11 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	}
 
 
-	public void streamPlayItemPlay(ISubscriberStream stream, IPlayItem item, boolean isLive) {
+	public void streamPlayItemPlay(IPlayItem item, boolean isLive) {
 		vertx.runOnContext(l -> getDataStore().updateRtmpViewerCount(item.getName(), true));
 	}
 
-	public void streamPlayItemStop(ISubscriberStream stream, IPlayItem item) {
+	public void streamPlayItemStop(IPlayItem item) {
 		vertx.runOnContext(l -> getDataStore().updateRtmpViewerCount(item.getName(), false));
 	}
 
@@ -591,20 +566,15 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			this.appAdapter = adapter;
 		}
 
-		public void execute() throws CloneNotSupportedException {
-
+		public void execute() {
 			try {
 				if (!videoServiceEndpoint.askIfDeviceAuthenticated()) {
 					count++;
 					if (count < 10) {
 						if (videoServiceEndpoint.getError() == null) {
 							appAdapter.getVertx().setPeriodic(interval, l->{
-								try {
-									new AuthCheckJob(count, interval, videoServiceEndpoint, appAdapter).execute();
-								} catch (CloneNotSupportedException e) {
-									logger.error(ExceptionUtils.getStackTrace(e));
-								}
-								});
+								new AuthCheckJob(count, interval, videoServiceEndpoint, appAdapter).execute();
+							});
 							logger.info("Asking authetnication for {}", videoServiceEndpoint.getName());
 						}
 						else {
@@ -633,12 +603,8 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			DeviceAuthParameters askDeviceAuthParameters) {
 		int timeDelta = askDeviceAuthParameters.interval * 1000;
 		getVertx().setTimer(timeDelta, l->{
-			try {
-				new AuthCheckJob(0, timeDelta, videoServiceEndpoint, this).execute();
-			} catch (CloneNotSupportedException e) {
-				logger.error(ExceptionUtils.getStackTrace(e));
-			}
-			});
+			new AuthCheckJob(0, timeDelta, videoServiceEndpoint, this).execute();
+		});
 	}
 
 	public Map<String, VideoServiceEndpoint> getVideoServiceEndpoints() {
@@ -682,9 +648,6 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	 */
 	public StringBuilder notifyHook(String url, String id, String action, String streamName, String category,
 			String vodName, String vodId) {
-		
-		lastHook = new Hook(url, id, action, streamName, category, vodName, vodId);
-
 		StringBuilder response = null;
 
 		if (url != null && url.length() > 0) {
@@ -987,10 +950,6 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	
 	public Vertx getVertx() {
 		return vertx;
-	}
-
-	public Hook getLastHook() {
-		return lastHook;
 	}
 
 	public boolean updateSettings(AppSettings newSettings, boolean notifyCluster) {

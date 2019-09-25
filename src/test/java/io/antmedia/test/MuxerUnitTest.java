@@ -25,6 +25,8 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.*;
+
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -570,17 +572,12 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
     public void testMp4MuxingAndNotifyCallback() {
         System.out.println("running testMp4MuxingAndNotifyCallback");
         
-        AntMediaApplicationAdapter appAdaptor = ((IApplicationAdaptorFactory) applicationContext.getBean("web.handler")).getAppAdaptor();
+        Application app =  (Application) applicationContext.getBean("web.handler");
+        AntMediaApplicationAdapter appAdaptorReal = app.getAppAdaptor();
+        AntMediaApplicationAdapter appAdaptor = Mockito.spy(appAdaptorReal);
+        app.setAdaptor(appAdaptor);
+        doReturn(new StringBuilder("")).when(appAdaptor).notifyHook(anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), anyString());
         assertNotNull(appAdaptor);
-        
-        appAdaptor.notifyHook(null, null, null, null, null, null, null);
-        assertEquals(null, appAdaptor.getLastHook().notifyHookAction);
-        assertEquals(null, appAdaptor.getLastHook().notitfyURL);
-        assertEquals(null, appAdaptor.getLastHook().notifyId);
-        assertEquals(null, appAdaptor.getLastHook().notifyStreamName);
-        assertEquals(null, appAdaptor.getLastHook().notifyCategory);
-        assertEquals(null, appAdaptor.getLastHook().notifyVodName);
-
         
         //just check below value that it is not null, this is not related to this case but it should be tested
         assertNotNull(appAdaptor.getVideoServiceEndpoints());
@@ -600,18 +597,12 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
         //we do not save duration of the finished live streams
         //assertEquals((long)broadcast.getDuration(), 697132L);
 
-        assertEquals(AntMediaApplicationAdapter.HOOK_ACTION_VOD_READY, appAdaptor.getLastHook().notifyHookAction);
-        assertEquals(appAdaptor.getLastHook().notitfyURL, hookUrl);
-        assertEquals(appAdaptor.getLastHook().notifyId, streamId);
-        assertEquals(null, appAdaptor.getLastHook().notifyStreamName);
-        assertEquals(null, appAdaptor.getLastHook().notifyCategory);
-        assertEquals(appAdaptor.getLastHook().notifyVodName, streamId);
-        assertNotNull(appAdaptor.getLastHook().notifyVodId);
-
-
+        verify(appAdaptor, times(1)).notifyHook(eq(hookUrl), eq(streamId), eq(AntMediaApplicationAdapter.HOOK_ACTION_VOD_READY), eq(null), eq(null), eq(streamId), anyString());
         Application.resetFields();
         //test with same id again
         testMp4Muxing(streamId, true, true);
+
+        verify(appAdaptor, times(1)).notifyHook(eq(hookUrl), eq(streamId), eq(AntMediaApplicationAdapter.HOOK_ACTION_VOD_READY), eq(null), eq(null), eq(streamId+"_1"), anyString());
 
         assertEquals(Application.id, streamId);
         assertEquals(Application.file.getName(), streamId + "_1.mp4");
@@ -621,14 +612,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
         //we do not save duration of the finished live streams
         //assertEquals((long)broadcast.getDuration(), 10080L);
 
-        assertEquals(AntMediaApplicationAdapter.HOOK_ACTION_VOD_READY, appAdaptor.getLastHook().notifyHookAction);
-        assertEquals(appAdaptor.getLastHook().notitfyURL, hookUrl);
-        assertEquals(appAdaptor.getLastHook().notifyId, streamId);
-        assertEquals(null, appAdaptor.getLastHook().notifyStreamName);
-        assertEquals(null, appAdaptor.getLastHook().notifyCategory);
-        assertEquals(appAdaptor.getLastHook().notifyVodName, streamId + "_1"); //vod name must be changed
-
-
+        app.setAdaptor(appAdaptorReal);
         System.out.println("leaving testMp4MuxingAndNotifyCallback");
     }
 

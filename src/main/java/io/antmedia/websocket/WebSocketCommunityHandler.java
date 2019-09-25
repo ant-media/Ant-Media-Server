@@ -54,7 +54,7 @@ public class WebSocketCommunityHandler {
 
 	@OnError
 	public void onError(Session session, Throwable throwable) {
-
+		//not used for now
 	}
 
 	@OnMessage

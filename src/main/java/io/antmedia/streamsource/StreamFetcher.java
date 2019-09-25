@@ -23,8 +23,6 @@ import org.bytedeco.javacpp.avformat.AVFormatContext;
 import org.bytedeco.javacpp.avutil;
 import org.bytedeco.javacpp.avutil.AVDictionary;
 import org.bytedeco.javacpp.avutil.AVRational;
-import org.red5.server.api.scheduling.IScheduledJob;
-import org.red5.server.api.scheduling.ISchedulingService;
 import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -234,13 +232,7 @@ public class StreamFetcher {
 						getInstance().startPublish(stream.getStreamId());
 
 						if (bufferTime > 0) {
-							packetWriterJobName = vertx.setPeriodic(PACKET_WRITER_PERIOD_IN_MS, l->{
-								try {
-									execute();
-								} catch (CloneNotSupportedException e) {
-									logger.error(ExceptionUtils.getMessage(e));;
-								}
-							});
+							packetWriterJobName = vertx.setPeriodic(PACKET_WRITER_PERIOD_IN_MS, l->execute());
 						}
 
 						int bufferLogCounter = 0;
@@ -433,7 +425,7 @@ public class StreamFetcher {
 			return stopRequestReceived;
 		}
 
-		public void execute() throws CloneNotSupportedException 
+		public void execute() 
 		{
 			if (isJobRunning.compareAndSet(false, true)) 
 			{
