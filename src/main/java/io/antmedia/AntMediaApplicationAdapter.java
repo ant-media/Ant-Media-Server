@@ -1034,6 +1034,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		store.put(AppSettings.SETTINGS_ENCODER_SETTINGS_STRING, AppSettings.encodersList2Str(appsettings.getEncoderSettings()));
 		store.put(AppSettings.TOKEN_HASH_SECRET, appsettings.getTokenHashSecret() != null ? appsettings.getTokenHashSecret() : "");
 		store.put(AppSettings.SETTINGS_PREVIEW_OVERWRITE, String.valueOf(appsettings.isPreviewOverwrite()));
+		store.put(AppSettings.SETTINGS_ALLOWED_PUBLISHER_IPS, String.valueOf(appsettings.getAllowedPublisherIps()));
 
 		return store.save();
 	}
@@ -1062,6 +1063,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		
 		String oldVodFolder = appSettings.getVodFolder();
 
+		appSettings.setAllowedPublisherIps(newSettings.getAllowedPublisherIps());
 		appSettings.setVodFolder(newSettings.getVodFolder());
 		appSettings.setPreviewOverwrite(newSettings.isPreviewOverwrite());
 
