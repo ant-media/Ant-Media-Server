@@ -10,7 +10,6 @@ import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.time.Instant;
 import java.util.ArrayList;
