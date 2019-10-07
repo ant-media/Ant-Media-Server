@@ -1,6 +1,6 @@
 APP_NAME=$1
 AMS_DIR=$2
-APP_NAME_LOWER=$(echo $APP_NAME | sed 's/./\L&/g')
+APP_NAME_LOWER=$(echo $APP_NAME | awk '{print tolower($0)}') 
 APP_DIR=$AMS_DIR/webapps/$APP_NAME
 RED5_PROPERTIES_FILE=$APP_DIR/WEB-INF/red5-web.properties
 WEB_XML_FILE=$APP_DIR/WEB-INF/web.xml
