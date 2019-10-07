@@ -1247,6 +1247,7 @@ public abstract class RestServiceBase {
 				Mp4Muxer mp4Muxer = getMp4Muxer(muxAdaptor);
 				if (mp4Muxer == null) {
 					//avoid multiple call of rest api adding new mp4muxers
+					//TODO: if webrtc recording is active by default, it likely does not catch it. 
 					muxAdaptor.startRecording();
 				}
 				result = true;
