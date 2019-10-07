@@ -25,6 +25,7 @@ OS_NAME=`uname`
 
 if [[ "$OS_NAME" == 'Darwin' ]]; then
   AMS_INSTALL_LOCATION=`pwd`
+  SED_COMPATIBILITY='.bak'
 fi
 
 USE_GLOBAL_IP="false"
@@ -57,17 +58,20 @@ WEBRTCAPP_PROPERTIES_FILE=$AMS_INSTALL_LOCATION/webapps/WebRTCAppEE/WEB-INF/red5
 CONSOLEAPP_PROPERTIES_FILE=$AMS_INSTALL_LOCATION/webapps/root/WEB-INF/red5-web.properties
 RED5_PROPERTIES_FILE=$AMS_INSTALL_LOCATION/conf/red5.properties
 
-sed -i '' 's/clusterdb.host=.*/clusterdb.host='$MONGO_SERVER_IP'/' $RED5_PROPERTIES_FILE
-sed -i '' 's/useGlobalIp=.*/useGlobalIp='$USE_GLOBAL_IP'/' $RED5_PROPERTIES_FILE
 
-sed -i '' 's/db.type=.*/db.type='$DB_TYPE'/' $LIVEAPP_PROPERTIES_FILE
-sed -i '' 's/db.host=.*/db.host='$MONGO_SERVER_IP'/' $LIVEAPP_PROPERTIES_FILE
 
-sed -i '' 's/db.type=.*/db.type='$DB_TYPE'/' $WEBRTCAPP_PROPERTIES_FILE
-sed -i '' 's/db.host=.*/db.host='$MONGO_SERVER_IP'/' $WEBRTCAPP_PROPERTIES_FILE
 
-sed -i '' 's/db.type=.*/db.type='$DB_TYPE'/' $CONSOLEAPP_PROPERTIES_FILE
-sed -i '' 's/db.host=.*/db.host='$MONGO_SERVER_IP'/' $CONSOLEAPP_PROPERTIES_FILE
+sed -i $SED_COMPATIBILITY 's/clusterdb.host=.*/clusterdb.host='$MONGO_SERVER_IP'/' $RED5_PROPERTIES_FILE
+sed -i $SED_COMPATIBILITY 's/useGlobalIp=.*/useGlobalIp='$USE_GLOBAL_IP'/' $RED5_PROPERTIES_FILE
+
+sed -i $SED_COMPATIBILITY 's/db.type=.*/db.type='$DB_TYPE'/' $LIVEAPP_PROPERTIES_FILE
+sed -i $SED_COMPATIBILITY 's/db.host=.*/db.host='$MONGO_SERVER_IP'/' $LIVEAPP_PROPERTIES_FILE
+
+sed -i $SED_COMPATIBILITY 's/db.type=.*/db.type='$DB_TYPE'/' $WEBRTCAPP_PROPERTIES_FILE
+sed -i $SED_COMPATIBILITY 's/db.host=.*/db.host='$MONGO_SERVER_IP'/' $WEBRTCAPP_PROPERTIES_FILE
+
+sed -i $SED_COMPATIBILITY 's/db.type=.*/db.type='$DB_TYPE'/' $CONSOLEAPP_PROPERTIES_FILE
+sed -i $SED_COMPATIBILITY 's/db.host=.*/db.host='$MONGO_SERVER_IP'/' $CONSOLEAPP_PROPERTIES_FILE
 
 
 

@@ -46,20 +46,6 @@ import io.swagger.annotations.Info;
 import io.swagger.annotations.License;
 import io.swagger.annotations.SwaggerDefinition;
 
-@Api(value = "BroadcastRestService")
-@SwaggerDefinition(
-        info = @Info(
-                description = "Ant Media Server REST API Reference",
-                version = "V1.0",
-                title = "Ant Media Server REST API Reference",
-                contact = @Contact(name = "Ant Media Info", email = "contact@antmedia.io", url = "https://antmedia.io"),
-                license = @License(name = "Apache 2.0", url = "http://www.apache.org")),
-        consumes = {"application/json"},
-        produces = {"application/json"},
-        schemes = {SwaggerDefinition.Scheme.HTTP, SwaggerDefinition.Scheme.HTTPS},
-        externalDocs = @ExternalDocs(value = "External Docs", url = "https://antmedia.io"),
-        basePath = "/"
-)
 @Component
 @Path("/")
 public class BroadcastRestService extends RestServiceBase{
@@ -122,7 +108,6 @@ public class BroadcastRestService extends RestServiceBase{
 	 * @return {@link io.antmedia.datastore.db.types.Broadcast}
 	 * 
 	 */
-	@ApiOperation(value = "Creates a broadcast and returns the full broadcast object with rtmp address and other information.", notes = "Notes here", response = Broadcast.class)
 	@POST
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/broadcast/create")
@@ -149,7 +134,6 @@ public class BroadcastRestService extends RestServiceBase{
 	 * @return {@link io.antmedia.datastore.db.types.Broadcast}
 	 * 
 	 */
-	@ApiOperation(value = "Creates a broadcast without reset StreamID and returns the full broadcast object with rtmp address and other information.", notes = "Ant Media Server does not use this rest service by default", response = Broadcast.class)
 	@POST
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/broadcast/createWithStreamID")
@@ -178,7 +162,6 @@ public class BroadcastRestService extends RestServiceBase{
 	 * @return {@link io.antmedia.datastore.db.types.ConferenceRoom}
 	 * 
 	 */
-	@ApiOperation(value = "Creates a conference room with the parameters. The room name is key so if this is called with the same room name then new room is overwritten to old one", response = ConferenceRoom.class)
 	@POST
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/broadcast/createConferenceRoom")
@@ -195,7 +178,6 @@ public class BroadcastRestService extends RestServiceBase{
 	 * @return {@link io.antmedia.datastore.db.types.ConferenceRoom}
 	 * 
 	 */
-	@ApiOperation(value = "Edits previously saved conference room", response = ConferenceRoom.class)
 	@POST
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/broadcast/editConferenceRoom")
@@ -212,7 +194,6 @@ public class BroadcastRestService extends RestServiceBase{
 	 * @return true if successfully deleted, false if not 
 	 * 
 	 */
-	@ApiOperation(value = "Deletes a conference room. The room name is key so if this is called with the same room name then new room is overwritten to old one", response = ConferenceRoom.class)
 	@POST
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/broadcast/deleteConferenceRoom")
@@ -231,7 +212,6 @@ public class BroadcastRestService extends RestServiceBase{
 	 * 
 	 * deprecated use createBroadcast with listenerHookURL , it will be deleted.
 	 */
-	@ApiOperation(value = "Use createBroadcast with listenerHookURL", notes = "Notes here", response = Broadcast.class)
 	@POST
 	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	@Path("/broadcast/createPortalBroadcast")
@@ -272,7 +252,6 @@ public class BroadcastRestService extends RestServiceBase{
 	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
 	 * 
 	 */
-	@ApiOperation(value = "Create broadcast and bind social networks at the same time Server should be authorized in advance to make this service return success", notes = "Notes here", response = Broadcast.class)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/broadcast/createWithSocial")
@@ -299,7 +278,6 @@ public class BroadcastRestService extends RestServiceBase{
 	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
 	 */
 
-	@ApiOperation(value = "Stops broadcasting of requested stream", notes = "", response = Result.class)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/broadcast/stop/{streamId}")
@@ -323,7 +301,6 @@ public class BroadcastRestService extends RestServiceBase{
 	 *          						 like Facebook, Periscope,Youtube etc.
 	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
 	 */
-	@ApiOperation(value = "Updates the properties of the broadcast", notes = "", response = Result.class)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/broadcast/update")
@@ -341,7 +318,6 @@ public class BroadcastRestService extends RestServiceBase{
 	 * @param endpointId the social network endpoint id of the social network account
 	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
 	 */
-	@ApiOperation(value = "Revoke authorization from a social network account that is authorized before", notes = "", response = Result.class)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/broadcast/revokeSocialNetwork/{endpointId}")
@@ -364,7 +340,6 @@ public class BroadcastRestService extends RestServiceBase{
 	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
 	 * 
 	 */
-	@ApiOperation(value = "Add social endpoint to a stream. ", notes = "", response = Result.class)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/broadcast/addSocialEndpointJS/{id}/{endpointServiceId}")
@@ -387,7 +362,6 @@ public class BroadcastRestService extends RestServiceBase{
 	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
 	 * 
 	 */
-	@ApiOperation(value = "Add social endpoint to a stream. Use the JSON version of this method ", notes = "", response = Result.class)
 	@POST
 	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	@Path("/broadcast/addSocialEndpoint")
@@ -413,7 +387,6 @@ public class BroadcastRestService extends RestServiceBase{
 	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
 	 * 
 	 */
-	@ApiOperation(value = "Add a third pary rtmp end point to the stream. When broadcast is started,it will send rtmp stream to this rtmp url as well. ", notes = "", response = Result.class)
 	@POST
 	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	@Path("/broadcast/addEndpoint")
@@ -433,7 +406,6 @@ public class BroadcastRestService extends RestServiceBase{
 	 * @param batch number of items to be returned
 	 * @return {@link io.antmedia.social.LiveComment }
 	 */
-	@ApiOperation(value = "Returns live comments from a specific endpoint like Facebook, Youtube, PSCP, etc. It works If interactivity is collected which can be enabled/disabled by properties file.", notes = "Notes here", responseContainer = "List", response = LiveComment.class)
 	@GET
 	@Path("/broadcast/getLiveComments/{endpointServiceId}/{streamId}/{offset}/{batch}")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -459,7 +431,6 @@ public class BroadcastRestService extends RestServiceBase{
 	 * @param streamId- the id of the stream
 	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
 	 */
-	@ApiOperation(value = "Return the number of live views in specified video service endpoint. It works If interactivity is collected which can be enabled/disabled by properties file.", notes = "", response = Result.class)
 	@GET
 	@Path("/broadcast/getLiveViewsCount/{endpointServiceId}/{streamId}")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -481,7 +452,6 @@ public class BroadcastRestService extends RestServiceBase{
 	 * @param streamId- the id of the stream
 	 * @return @return {@link io.antmedia.rest.BroadcastRestService.Result}
 	 */
-	@ApiOperation(value = "Returns the number of live comment count from a specific video service endpoint. It works If interactivity is collected which can be enabled/disabled by properties file.", notes = "", response = Result.class)
 	@GET
 	@Path("/broadcast/getLiveCommentsCount/{endpointServiceId}/{streamId}")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -499,7 +469,6 @@ public class BroadcastRestService extends RestServiceBase{
 	 * @param streamId- the id of the stream
 	 * @return {@link io.antmedia.rest.model.Interaction }
 	 */
-	@ApiOperation(value = "Return the interaction from a specific endpoint like Facebook, Youtube, PSCP, etc. It works If interactivity is collected which can be enabled/disabled by properties file.", notes = "", response = Interaction.class)
 	@GET
 	@Path("/broadcast/getInteraction/{endpointServiceId}/{streamId}")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -517,7 +486,6 @@ public class BroadcastRestService extends RestServiceBase{
 	 * @return broadcast object nothing if broadcast is not found
 	 * 
 	 */
-	@ApiOperation(value = "Get broadcast object", notes = "", response = Broadcast.class)
 	@GET
 	@Path("/broadcast/get")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -537,7 +505,6 @@ public class BroadcastRestService extends RestServiceBase{
 	 * @param id- id of the VoD
 	 * @return {@link io.antmedia.datastore.db.types.VoD}
 	 */
-	@ApiOperation(value = "VoD file from database", notes = "", response = VoD.class)
 	@GET
 	@Path("/broadcast/getVoD")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -553,7 +520,6 @@ public class BroadcastRestService extends RestServiceBase{
 	 * 
 	 * @return  the list of TensorFlowObject objects {@link io.antmedia.datastore.db.types.TensorFlowObject}
 	 */
-	@ApiOperation(value = "Get Detected objects", notes = "",responseContainer = "List", response = TensorFlowObject.class)
 	@GET
 	@Path("/detection/get")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -582,7 +548,6 @@ public class BroadcastRestService extends RestServiceBase{
 	 * @return the list of TensorFlowObject objects {@link io.antmedia.datastore.db.types.TensorFlowObject}
 	 */
 
-	@ApiOperation(value = "Get detected objects from the stream based on offset and size", notes = "",responseContainer = "List", response = TensorFlowObject.class)
 	@GET
 	@Path("/detection/getList/{offset}/{size}")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -602,7 +567,6 @@ public class BroadcastRestService extends RestServiceBase{
 	 * @return number of detected objects
 	 * 
 	 */
-	@ApiOperation(value = "Get total number of detected objects", notes = "", response = Long.class)
 	@GET
 	@Path("/detection/getObjectDetectedTotal")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -625,7 +589,6 @@ public class BroadcastRestService extends RestServiceBase{
 	 * @return JSON list of broadcast objects
 	 * 
 	 */
-	@ApiOperation(value = "Gets the broadcast list from database", notes = "",responseContainer = "List", response = Broadcast.class)
 	@GET
 	@Path("/broadcast/getList/{offset}/{size}")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -641,7 +604,6 @@ public class BroadcastRestService extends RestServiceBase{
 	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
 	 */
 
-	@ApiOperation(value = "Import Live Streams to Stalker Portal", notes = "", response = Result.class)
 	@POST
 	@Path("/importLiveStreamsToStalker")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -658,7 +620,6 @@ public class BroadcastRestService extends RestServiceBase{
 	 * 
 	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
 	 */
-	@ApiOperation(value = "Import VoDs to Stalker Portal", notes = "", response = Result.class)
 	@POST
 	@Path("/importVoDsToStalker")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -682,7 +643,6 @@ public class BroadcastRestService extends RestServiceBase{
 	 * @return JSON list of VoD objects
 	 * 
 	 */
-	@ApiOperation(value = " Get the VoD list from database", notes = "", responseContainer = "List",response = VoD.class)
 	@GET
 	@Path("/broadcast/getVodList/{offset}/{size}")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -697,7 +657,6 @@ public class BroadcastRestService extends RestServiceBase{
 	 * @return the number of total VoDs
 	 */
 
-	@ApiOperation(value = "Get the total number of VoDs", notes = "", response = Long.class)
 	@GET
 	@Path("/broadcast/getTotalVodNumber")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -711,7 +670,6 @@ public class BroadcastRestService extends RestServiceBase{
 	 * TO DO: Change endpoint from /broadcast/getVersion to /getVersion 
 	 * @return {@link io.antmedia.rest.model.Version}
 	 */
-	@ApiOperation(value = "", notes = "", response = Version.class)
 	@GET
 	@Path("/broadcast/getVersion")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -726,7 +684,6 @@ public class BroadcastRestService extends RestServiceBase{
 	 * @return the number of total broadcasts
 	 */
 
-	@ApiOperation(value = "Get the total number of broadcasts", notes = "", response = Long.class)
 	@GET
 	@Path("/broadcast/getTotalBroadcastNumber")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -740,7 +697,6 @@ public class BroadcastRestService extends RestServiceBase{
 	 * 
 	 * @return {@link LiveStatistics}
 	 */
-	@ApiOperation(value = "Return the statistics of the  total live streams, total RTMP watchers, total HLS and total WebRTC watchers", notes = "", response = LiveStatistics.class)
 	@GET
 	@Path("/broadcast/getAppLiveStatistics")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -757,7 +713,6 @@ public class BroadcastRestService extends RestServiceBase{
 	 * @param roomName - room Name that token belongs to)
 	 * @return  {@link io.antmedia.datastore.db.types.Token}
 	 */
-	@ApiOperation(value = "Generates random one-time token for specified stream", notes = "", response = Token.class)
 	@GET
 	@Path("/broadcast/getToken")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -777,7 +732,6 @@ public class BroadcastRestService extends RestServiceBase{
 	 * @param token - sent token for validation
 	 * @return validated token {@link io.antmedia.datastore.db.types.Token}, either null or token. Null means not validated
 	 */
-	@ApiOperation(value = "Perform validation of token for requested stream", notes = "", response = Token.class)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/broadcast/validateToken")
@@ -793,7 +747,6 @@ public class BroadcastRestService extends RestServiceBase{
 	 * @param streamId - the id of the stream
 	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
 	 */
-	@ApiOperation(value = " Removes all tokens related with requested stream", notes = "", response = Result.class)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/broadcast/revokeTokens")
@@ -811,7 +764,6 @@ public class BroadcastRestService extends RestServiceBase{
 	 * @param size - size of the return list (max:50 )
 	 * @return token list of stream,  if no active tokens then returns null
 	 */
-	@ApiOperation(value = "Get the all tokens of requested stream", notes = "",responseContainer = "List", response = Token.class)
 	@GET
 	@Path("/broadcast/listTokens/{streamId}/{offset}/{size}")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -838,7 +790,6 @@ public class BroadcastRestService extends RestServiceBase{
 	 * @return {@link BroadcastStatistics} if broadcast exists, null or 204(no
 	 *         content) if no broadcast exists with that id
 	 */
-	@ApiOperation(value = "Get the broadcast live statistics total RTMP watcher count, total HLS watcher count, total WebRTC watcher count", notes = "", response = BroadcastStatistics.class)
 	@GET
 	@Path("/broadcast/getBroadcastLiveStatistics")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -855,7 +806,6 @@ public class BroadcastRestService extends RestServiceBase{
 	 * @return the list of {@link io.antmedia.rest.WebRTCClientStats }
 	 */
 
-	@ApiOperation(value = "Get WebRTC Client Statistics such as : Audio bitrate, Video bitrate, Target bitrate, Video Sent Period etc.", notes = "", responseContainer = "List",response = WebRTCClientStats.class)
 	@GET
 	@Path("/broadcast/getWebRTCClientStats/{stream_id}")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -883,7 +833,6 @@ public class BroadcastRestService extends RestServiceBase{
 	 * @return the list of {@link io.antmedia.rest.WebRTCClientStats }
 	 */
 
-	@ApiOperation(value = "Get WebRTC Client Statistics such as : Audio bitrate, Video bitrate, Target bitrate, Video Sent Period etc.", notes = "", responseContainer = "List",response = WebRTCClientStats.class)
 	@GET
 	@Path("/broadcast/getWebRTCClientStatsList/{offset}/{size}/{stream_id}")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -903,7 +852,6 @@ public class BroadcastRestService extends RestServiceBase{
 	 * @param type - type of the stream
 	 * @return list of the broadcast objects
 	 */
-	@ApiOperation(value = "Returns filtered broadcast list", notes = "",responseContainer = "List",response = Broadcast.class)
 	@GET
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/broadcast/filterList/{offset}/{size}/{type}")
@@ -924,7 +872,6 @@ public class BroadcastRestService extends RestServiceBase{
 	 * @param type -type of the VoD file
 	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
 	 */
-	@ApiOperation(value = "Delete specific VoD File. Deprecated -> Use deleteVoD method (/broadcast/deleteVoD/{id})", notes = "", response = Result.class)
 	@POST
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/broadcast/deleteVoDFile/{name}/{id}/{type}")
@@ -942,7 +889,6 @@ public class BroadcastRestService extends RestServiceBase{
 	 * @param id - the id of the VoD file
 	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
 	 */
-	@ApiOperation(value = "Delete specific VoD File", notes = "", response = Result.class)
 	@POST
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/broadcast/deleteVoD/{id}")
@@ -960,7 +906,6 @@ public class BroadcastRestService extends RestServiceBase{
 	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
 	 */
 
-	@ApiOperation(value = "Upload external VoD file to Ant Media Server", notes = "", response = Result.class)
 	@POST
 	@Consumes({MediaType.MULTIPART_FORM_DATA})
 	@Path("/broadcast/uploadVoDFile/{name}")
@@ -982,7 +927,6 @@ public class BroadcastRestService extends RestServiceBase{
 	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
 	 * 
 	 */
-	@ApiOperation(value = "Delete broadcast from data store", notes = "", response = Result.class)
 	@POST
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/broadcast/delete/{id}")
@@ -1010,7 +954,6 @@ public class BroadcastRestService extends RestServiceBase{
 	 *         If not successful, it returns with Result object with message
 	 * 
 	 */
-	@ApiOperation(value = "Get device parameters for social network authorization.", notes = "", response = Object.class)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/broadcast/getDeviceAuthParameters/{serviceName}")
@@ -1033,11 +976,6 @@ public class BroadcastRestService extends RestServiceBase{
 	 *         authenticated if false, not authenticated
 	 * 
 	 */
-	@ApiOperation(value = "Check if device is authenticated in the social network. In authorization phase, " +
-			"this function may be polled periodically until it returns success." +
-			"Server checks social network service for about 1 minute so that if user" +
-			"does not enter DeviceAuthParameters in a 1 minute, this function will" +
-			"never return true", notes = "", response = Result.class)
 	@POST
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/broadcast/checkDeviceAuthStatus/{userCode}")
@@ -1053,7 +991,6 @@ public class BroadcastRestService extends RestServiceBase{
 	 * @param size - size of the return list (max:50 )
 	 * @return - list of {@link io.antmedia.datastore.db.types.SocialEndpointCredentials}
 	 */
-	@ApiOperation(value = "Get Credentials of Social Endpoints", notes = "", responseContainer = "List",response = SocialEndpointCredentials.class)
 	@GET
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/broadcast/getSocialEndpoints/{offset}/{size}")
@@ -1075,9 +1012,6 @@ public class BroadcastRestService extends RestServiceBase{
 	 * @return {@link io.antmedia.datastore.db.types.SocialEndpointChannel}
 	 * 
 	 */
-	@ApiOperation(value = "Some social networks have different channels especially for facebook," +
-			"Live stream can be published on Facebook Page or Personal account, this" +
-			"service returns the related information about that.", notes = "", response = SocialEndpointChannel.class)
 	@GET
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/broadcast/getSocialNetworkChannel/{endpointId}")
@@ -1099,7 +1033,6 @@ public class BroadcastRestService extends RestServiceBase{
 	 *         {@link io.antmedia.datastore.db.types.SocialEndpointChannel}
 	 * 
 	 */
-	@ApiOperation(value = "Returns available social network channels for the specific service", notes = "",responseContainer = "List",response = SocialEndpointChannel.class)
 	@GET
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/broadcast/getSocialNetworkChannelList/{endpointId}/{type}")
@@ -1119,9 +1052,6 @@ public class BroadcastRestService extends RestServiceBase{
 	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
 	 * 
 	 */
-	@ApiOperation(value = "If there are multiple channels in a social network," +
-			"this method sets specific channel for that endpoint" +
-			"If a user has pages in Facebook, this method sets the specific page to publish live stream to", notes = "", response = Result.class)
 	@POST
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/broadcast/setSocialNetworkChannel/{endpointId}/{type}/{id}")
@@ -1145,7 +1075,6 @@ public class BroadcastRestService extends RestServiceBase{
      * @param enableMp4 - the integer value for Mp4 Muxing, 1 = Enable Muxing, -1 = Disable Muxing, 0 = No Settings
      * @return {@link io.antmedia.rest.BroadcastRestService.Result}
      */
-    @ApiOperation(value = "Set stream specific Mp4 Muxing setting, this setting overrides general Mp4 Muxing Setting", notes = "", response = Result.class)
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Path("/broadcast/enableMp4Muxing")

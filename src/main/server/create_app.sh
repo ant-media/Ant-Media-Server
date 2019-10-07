@@ -11,13 +11,18 @@ cd $APP_DIR
 jar -xf StreamApp*.war
 rm StreamApp*.war
 
-sed -i 's^webapp.dbName=.*^webapp.dbName='$APP_NAME_LOWER'.db^' $RED5_PROPERTIES_FILE
-sed -i 's^webapp.contextPath=.*^webapp.contextPath=/'$APP_NAME'^' $RED5_PROPERTIES_FILE
-sed -i 's^db.app.name=.*^db.app.name='$APP_NAME'^' $RED5_PROPERTIES_FILE
-sed -i 's^db.name=.*^db.name='$APP_NAME_LOWER'^' $RED5_PROPERTIES_FILE
+OS_NAME=`uname`
 
-sed -i 's^<display-name>StreamApp^<display-name>'$APP_NAME'^' $WEB_XML_FILE
-sed -i 's^<param-value>/StreamApp^<param-value>/'$APP_NAME'^' $WEB_XML_FILE
+if [[ "$OS_NAME" == 'Darwin' ]]; then
+  SED_COMPATIBILITY='.bak'
+fi
+sed -i $SED_COMPATIBILITY 's^webapp.dbName=.*^webapp.dbName='$APP_NAME_LOWER'.db^' $RED5_PROPERTIES_FILE
+sed -i $SED_COMPATIBILITY 's^webapp.contextPath=.*^webapp.contextPath=/'$APP_NAME'^' $RED5_PROPERTIES_FILE
+sed -i $SED_COMPATIBILITY 's^db.app.name=.*^db.app.name='$APP_NAME'^' $RED5_PROPERTIES_FILE
+sed -i $SED_COMPATIBILITY 's^db.name=.*^db.name='$APP_NAME_LOWER'^' $RED5_PROPERTIES_FILE
+
+sed -i $SED_COMPATIBILITY 's^<display-name>StreamApp^<display-name>'$APP_NAME'^' $WEB_XML_FILE
+sed -i $SED_COMPATIBILITY 's^<param-value>/StreamApp^<param-value>/'$APP_NAME'^' $WEB_XML_FILE
 
 jar -cvf $APP_NAME.war *
 cd ..
