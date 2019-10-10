@@ -42,7 +42,7 @@ public class WebSocketCommunityHandlerTest {
 
 	public class WebSocketEndpoint extends WebSocketCommunityHandler {
 		public WebSocketEndpoint(ApplicationContext appContext) {
-			super(appContext);
+			super(appContext, null);
 			// TODO Auto-generated constructor stub
 		}
 

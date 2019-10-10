@@ -241,7 +241,7 @@ public class RTMPAdaptorTest {
 	private WebSocketCommunityHandler getSpyWebSocketHandler() {
 		ApplicationContext context = mock(ApplicationContext.class);
 		when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(mock(AppSettings.class));
-		WebSocketCommunityHandler webSocketHandler = new WebSocketCommunityHandler(context);
+		WebSocketCommunityHandler webSocketHandler = new WebSocketCommunityHandler(context, null);
 
 		return spy(webSocketHandler);
 	}

@@ -31,9 +31,12 @@ public class WebSocketCommunityHandler {
 	private AppSettings appSettings;
 	
 	private ApplicationContext appContext;
+
+	protected Session session;
 	
-	public WebSocketCommunityHandler(ApplicationContext appContext) {
+	public WebSocketCommunityHandler(ApplicationContext appContext, Session session) {
 		this.appContext = appContext;
+		this.session = session;
 		appSettings = (AppSettings) getAppContext().getBean(AppSettings.BEAN_NAME);
 	}
 	
