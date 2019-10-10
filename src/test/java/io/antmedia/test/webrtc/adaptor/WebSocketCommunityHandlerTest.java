@@ -41,8 +41,10 @@ public class WebSocketCommunityHandlerTest {
 	private ApplicationContext appContext;
 
 	public class WebSocketEndpoint extends WebSocketCommunityHandler {
-
-		
+		public WebSocketEndpoint(ApplicationContext appContext) {
+			super(appContext);
+			// TODO Auto-generated constructor stub
+		}
 
 		@Override
 		public ApplicationContext getAppContext() {
@@ -56,7 +58,7 @@ public class WebSocketCommunityHandlerTest {
 		appContext = Mockito.mock(ApplicationContext.class);
 		when(appContext.getBean(AppSettings.BEAN_NAME)).thenReturn(new AppSettings());
 		
-		wsHandlerReal = new WebSocketEndpoint();
+		wsHandlerReal = new WebSocketEndpoint(appContext);
 		wsHandler = Mockito.spy(wsHandlerReal);
 
 		session = mock(Session.class);
@@ -105,11 +107,7 @@ public class WebSocketCommunityHandlerTest {
 	@Test
 	public void testPublishAndDisconnect() {
 		String sessionId = String.valueOf((int)(Math.random()*10000));
-
-
 		when(session.getId()).thenReturn(sessionId);
-		wsHandler.onOpen(session, null);
-
 
 		String streamId = "streamId" + (int)(Math.random()*1000);
 
@@ -140,8 +138,6 @@ public class WebSocketCommunityHandlerTest {
 
 
 		when(session.getId()).thenReturn(sessionId);
-		wsHandler.onOpen(null, null);
-
 
 		String streamId = "streamId" + (int)(Math.random()*1000);
 
@@ -218,8 +214,6 @@ public class WebSocketCommunityHandlerTest {
 
 
 		when(session.getId()).thenReturn(sessionId);
-		wsHandler.onOpen(null, null);
-
 
 		String streamId = "streamId" + (int)(Math.random()*1000);
 

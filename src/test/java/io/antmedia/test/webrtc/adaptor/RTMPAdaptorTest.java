@@ -38,6 +38,7 @@ import org.webrtc.PeerConnectionFactory;
 import org.webrtc.SessionDescription;
 import org.webrtc.SessionDescription.Type;
 
+import io.antmedia.AppSettings;
 import io.antmedia.cluster.IStreamInfo;
 import io.antmedia.integration.MuxingTest;
 import io.antmedia.recorder.FFmpegFrameRecorder;
@@ -63,15 +64,7 @@ public class RTMPAdaptorTest {
 
 		FFmpegFrameRecorder recorder = mock(FFmpegFrameRecorder.class);
 
-		WebSocketCommunityHandler webSocketHandlerReal = new WebSocketCommunityHandler() {
-
-			@Override
-			public ApplicationContext getAppContext() {
-				return null;
-			}
-		};
-
-		WebSocketCommunityHandler webSocketHandler = spy(webSocketHandlerReal);
+		WebSocketCommunityHandler webSocketHandler = mock(WebSocketCommunityHandler.class);
 
 		RTMPAdaptor adaptorReal = new RTMPAdaptor(recorder, webSocketHandler);
 		RTMPAdaptor rtmpAdaptor = spy(adaptorReal);
@@ -206,15 +199,7 @@ public class RTMPAdaptorTest {
 	@Test
 	public void testIsStarted() {
 		FFmpegFrameRecorder recorder = mock(FFmpegFrameRecorder.class);
-		WebSocketCommunityHandler webSocketHandlerReal = new WebSocketCommunityHandler() {
-
-			@Override
-			public ApplicationContext getAppContext() {
-				return null;
-			}
-		};
-
-		WebSocketCommunityHandler webSocketHandler = spy(webSocketHandlerReal);
+		WebSocketCommunityHandler webSocketHandler = getSpyWebSocketHandler();
 
 		RTMPAdaptor rtmpAdaptor = new RTMPAdaptor(recorder, webSocketHandler);
 
@@ -253,19 +238,20 @@ public class RTMPAdaptorTest {
 
 	}
 
+	private WebSocketCommunityHandler getSpyWebSocketHandler() {
+		ApplicationContext context = mock(ApplicationContext.class);
+		when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(mock(AppSettings.class));
+		WebSocketCommunityHandler webSocketHandler = new WebSocketCommunityHandler(context);
+
+		return spy(webSocketHandler);
+	}
+
+
 	@Test
 	public void testCandidate() {
 		FFmpegFrameRecorder recorder = mock(FFmpegFrameRecorder.class);
 
-		WebSocketCommunityHandler webSocketHandlerReal = new WebSocketCommunityHandler() {
-
-			@Override
-			public ApplicationContext getAppContext() {
-				return null;
-			}
-		};
-
-		WebSocketCommunityHandler webSocketHandler = spy(webSocketHandlerReal);
+		WebSocketCommunityHandler webSocketHandler = getSpyWebSocketHandler();
 
 		RTMPAdaptor adaptorReal = new RTMPAdaptor(recorder, webSocketHandler);
 		RTMPAdaptor rtmpAdaptor = spy(adaptorReal);
@@ -306,15 +292,7 @@ public class RTMPAdaptorTest {
 
 		FFmpegFrameRecorder recorder = mock(FFmpegFrameRecorder.class);
 
-		WebSocketCommunityHandler webSocketHandlerReal = new WebSocketCommunityHandler() {
-
-			@Override
-			public ApplicationContext getAppContext() {
-				return null;
-			}
-		};
-
-		WebSocketCommunityHandler webSocketHandler = spy(webSocketHandlerReal);
+		WebSocketCommunityHandler webSocketHandler = getSpyWebSocketHandler();
 
 		RTMPAdaptor adaptorReal = new RTMPAdaptor(recorder, webSocketHandler);
 		RTMPAdaptor rtmpAdaptor = spy(adaptorReal);
