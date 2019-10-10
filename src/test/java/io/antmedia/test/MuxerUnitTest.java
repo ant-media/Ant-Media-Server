@@ -125,7 +125,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
         getAppSettings().setAddDateTimeToMp4FileName(false);
     }
 
-    @After
+    //@After
     public void after() {
 
 
@@ -851,11 +851,12 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
             fis.close();
 
+            long now = System.currentTimeMillis();
             ByteBuffer encodedVideoFrame = ByteBuffer.wrap(byteArray);
 
             for (int i = 0; i < 100; i++) {
                 //add packet
-                mp4Muxer.writeVideoBuffer(encodedVideoFrame, i * 100, 0, 0);
+                mp4Muxer.writeVideoBuffer(encodedVideoFrame, now + i * 100, 0, 0, true, 0);
             }
 
         } catch (IOException e) {
