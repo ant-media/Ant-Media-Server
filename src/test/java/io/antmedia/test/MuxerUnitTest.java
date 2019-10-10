@@ -355,8 +355,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
             }
 
-            //Thread.sleep(15000);
-
             int count = 0;
             for (MuxAdaptor muxAdaptor : muxAdaptorList) {
                 List<Muxer> muxerList = muxAdaptor.getMuxerList();
@@ -851,11 +849,12 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
             fis.close();
 
+            long now = System.currentTimeMillis();
             ByteBuffer encodedVideoFrame = ByteBuffer.wrap(byteArray);
 
             for (int i = 0; i < 100; i++) {
                 //add packet
-                mp4Muxer.writeVideoBuffer(encodedVideoFrame, i * 100, 0, 0);
+                mp4Muxer.writeVideoBuffer(encodedVideoFrame, now + i * 100, 0, 0, true, 0);
             }
 
         } catch (IOException e) {
@@ -871,6 +870,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
                 .until(() -> {
                     return MuxingTest.testFile("webapps/junit/streams/" + streamName + ".mp4", 10000);
                 });
+        
+        
     }
 
     @Test
@@ -1159,7 +1160,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
             file = new File("target/test-classes/test_video_360p_subtitle.flv"); //ResourceUtils.getFile(this.getClass().getResource("test.flv"));
             final FLVReader flvReader = new FLVReader(file);
 
-            logger.info("f path:" + file.getAbsolutePath());
+            logger.info("f path: {}" , file.getAbsolutePath());
             assertTrue(file.exists());
 
             boolean result = muxAdaptor.init(appScope, "hls_video_subtitle", false);
