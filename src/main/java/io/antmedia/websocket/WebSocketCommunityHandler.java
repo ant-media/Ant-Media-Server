@@ -2,11 +2,6 @@ package io.antmedia.websocket;
 
 import java.io.IOException;
 
-import javax.websocket.EndpointConfig;
-import javax.websocket.OnClose;
-import javax.websocket.OnError;
-import javax.websocket.OnMessage;
-import javax.websocket.OnOpen;
 import javax.websocket.Session;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -36,15 +31,15 @@ public class WebSocketCommunityHandler {
 	private AppSettings appSettings;
 	
 	private ApplicationContext appContext;
-	
-	@OnOpen
-	public void onOpen(Session session, EndpointConfig config)
-	{
-		appSettings = (AppSettings) getAppContext().getBean(AppSettings.BEAN_NAME);
-		
-	}
 
-	@OnClose
+	protected Session session;
+	
+	public WebSocketCommunityHandler(ApplicationContext appContext, Session session) {
+		this.appContext = appContext;
+		this.session = session;
+		appSettings = (AppSettings) getAppContext().getBean(AppSettings.BEAN_NAME);
+	}
+	
 	public void onClose(Session session) {
 		RTMPAdaptor connectionContext = (RTMPAdaptor) session.getUserProperties().get(session.getId());
 		if (connectionContext != null) {
@@ -52,12 +47,10 @@ public class WebSocketCommunityHandler {
 		}
 	}
 
-	@OnError
 	public void onError(Session session, Throwable throwable) {
 		//not used for now
 	}
 
-	@OnMessage
 	public void onMessage(Session session, String message) {
 		try {
 
