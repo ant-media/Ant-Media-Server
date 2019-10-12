@@ -1266,7 +1266,7 @@ public abstract class RestServiceBase {
 		return mp4Muxer;
 	}
 
-	protected Result startMp4Muxing(String streamId) {
+	protected boolean startMp4Muxing(String streamId) {
 		boolean result = false;
 		MuxAdaptor muxAdaptor = getMuxAdaptor(streamId);
 		if (muxAdaptor != null) 
@@ -1274,10 +1274,10 @@ public abstract class RestServiceBase {
 			result = muxAdaptor.startRecording();
 		}
 
-		return new Result(result);
+		return result;
 	}
 
-	protected Result stopMp4Muxing(String streamId) 
+	protected boolean stopMp4Muxing(String streamId) 
 	{
 		boolean result = false;
 		MuxAdaptor muxAdaptor = getMuxAdaptor(streamId);
@@ -1287,7 +1287,7 @@ public abstract class RestServiceBase {
 			result = muxAdaptor.stopRecording();
 		}
 
-		return new Result(result);
+		return result;
 	}
 
 	protected List<VideoServiceEndpoint> getEndpointsHavingErrorList(){

@@ -46,8 +46,14 @@ import io.swagger.annotations.Info;
 import io.swagger.annotations.License;
 import io.swagger.annotations.SwaggerDefinition;
 
+/**
+ * Use BroadcastRestServiceV2
+ * @author mekya
+ *
+ */
 @Component
 @Path("/")
+@Deprecated
 public class BroadcastRestService extends RestServiceBase{
 
 

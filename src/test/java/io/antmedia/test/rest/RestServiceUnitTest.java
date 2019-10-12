@@ -1206,13 +1206,13 @@ public class RestServiceUnitTest {
 
 		assertTrue(restServiceSpy.enableMp4Muxing(testBroadcast.getStreamId(),MuxAdaptor.MP4_ENABLED_FOR_STREAM).isSuccess());
 
-		verify(mockMuxAdaptor,never()).startRecording();
+		verify(mockMuxAdaptor).startRecording();
 
 		mockMuxers.clear();
 		mockMuxers.add(mockHLSMuxer);
 
 		assertTrue(restServiceSpy.enableMp4Muxing(testBroadcast.getStreamId(),MuxAdaptor.MP4_ENABLED_FOR_STREAM).isSuccess());
-		verify(mockMuxAdaptor).startRecording();
+		verify(mockMuxAdaptor, Mockito.times(2)).startRecording();
 
 		mockMuxers.add(mockMp4Muxer);
 

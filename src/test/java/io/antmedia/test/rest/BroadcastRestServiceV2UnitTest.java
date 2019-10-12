@@ -1106,12 +1106,13 @@ public class BroadcastRestServiceV2UnitTest {
 	}
 
 	@Test
-    public void testEnableMp4Muxing() throws Exception{
+    public void testEnableMp4Muxing() throws Exception 
+	{
 		final String scopeValue = "scope";
 		final String dbName = "testdb";
 		final String broadcastName = "testBroadcast";
 
-        BroadcastRestService restServiceSpy = Mockito.spy(new BroadcastRestService());
+        BroadcastRestServiceV2 restServiceSpy = Mockito.spy(new BroadcastRestServiceV2());
 		AppSettings settings = mock(AppSettings.class);
 		when(settings.getListenerHookURL()).thenReturn(null);
 		restServiceSpy.setAppSettings(settings);
@@ -1135,6 +1136,10 @@ public class BroadcastRestServiceV2UnitTest {
 
         MuxAdaptor mockMuxAdaptor = Mockito.mock(MuxAdaptor.class);
         when(mockMuxAdaptor.getMuxerList()).thenReturn(mockMuxers);
+        
+        when(mockMuxAdaptor.startRecording()).thenReturn(true);
+        
+        when(mockMuxAdaptor.stopRecording()).thenReturn(true);
 
         ArrayList<MuxAdaptor> mockMuxAdaptors = new ArrayList<>();
         mockMuxAdaptors.add(mockMuxAdaptor);
@@ -1142,24 +1147,30 @@ public class BroadcastRestServiceV2UnitTest {
         when(application.getMuxAdaptors()).thenReturn(mockMuxAdaptors);
         when(restServiceSpy.getApplication()).thenReturn(application);
 
-        Broadcast testBroadcast = restServiceSpy.createBroadcast(new Broadcast(broadcastName));
+        Response response = restServiceSpy.createBroadcast(new Broadcast(broadcastName), null, false);
+        Broadcast testBroadcast = (Broadcast) response.getEntity();
 		when(mockMuxAdaptor.getStreamId()).thenReturn(testBroadcast.getStreamId());
 
-        assertTrue(restServiceSpy.enableMp4Muxing(testBroadcast.getStreamId(),MuxAdaptor.MP4_ENABLED_FOR_STREAM).isSuccess());
+        assertTrue(restServiceSpy.enableMp4Muxing(testBroadcast.getStreamId(), true).isSuccess());
 
         verify(mockMuxAdaptor,never()).startRecording();
 
 		mockMuxers.clear();
 		mockMuxers.add(mockHLSMuxer);
-
-		assertTrue(restServiceSpy.enableMp4Muxing(testBroadcast.getStreamId(),MuxAdaptor.MP4_ENABLED_FOR_STREAM).isSuccess());
+		
+		//disable
+		assertTrue(restServiceSpy.enableMp4Muxing(testBroadcast.getStreamId(), false).isSuccess());
+		
+		store.updateStatus(testBroadcast.getStreamId(), AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+		
+		assertTrue(restServiceSpy.enableMp4Muxing(testBroadcast.getStreamId(), true).isSuccess());
 		verify(mockMuxAdaptor).startRecording();
 
 		mockMuxers.add(mockMp4Muxer);
 
-        assertEquals(MuxAdaptor.MP4_ENABLED_FOR_STREAM, restServiceSpy.getBroadcast(testBroadcast.getStreamId()).getMp4Enabled());
+        assertEquals(MuxAdaptor.MP4_ENABLED_FOR_STREAM, ((Broadcast)restServiceSpy.getBroadcast(testBroadcast.getStreamId()).getEntity()).getMp4Enabled());
 
-        assertTrue(restServiceSpy.enableMp4Muxing(testBroadcast.getStreamId(),MuxAdaptor.MP4_DISABLED_FOR_STREAM).isSuccess());
+        assertTrue(restServiceSpy.enableMp4Muxing(testBroadcast.getStreamId(), false).isSuccess());
         verify(mockMuxAdaptor).stopRecording();
     }
 

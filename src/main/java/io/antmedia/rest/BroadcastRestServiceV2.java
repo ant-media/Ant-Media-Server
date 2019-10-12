@@ -610,7 +610,8 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result enableMp4Muxing(@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String streamId,
 			@ApiParam(value = "Change recording status. If true, starts recording. If false stop recording", required = true) @PathParam("recording-status") boolean enableRecording) {
-		Result result = new Result(false);
+		boolean result = false;
+		String message = null;
 		if (streamId != null) 
 		{
 			Broadcast broadcast = getDataStore().get(streamId);
@@ -621,39 +622,47 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 					
 					if (broadcast.getMp4Enabled() != MP4_ENABLE) 
 					{
+						result = getDataStore().setMp4Muxing(streamId, MP4_ENABLE);
 						//if it's not enabled, start it
 						if (broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING))
 						{
 							result = startMp4Muxing(streamId);
+							if (!result) {
+								logger.warn("Mp4 recording could not be started for stream: {}", streamId);
+							}
 						}
-						getDataStore().setMp4Muxing(streamId, MP4_ENABLE);
+						
+						
 					}
 					else 
 					{
 						if (broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) 
 						{
-							result.setSuccess(false);
-							result.setMessage("Recording is already active. Please stop it first");
+							message = "Recording is already active. Please stop it first";
 						}
 					}
 				}
 				else 
 				{
+					
 					if (broadcast.getMp4Enabled() == MP4_ENABLE && broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) 
 					{
 						//we can stop recording
 						result = stopMp4Muxing(streamId);
+						if (!result) {
+							logger.warn("Mp4 recording could not be stopped for stream: {}", streamId);
+						}
 					}
-					getDataStore().setMp4Muxing(streamId, MP4_DISABLE);
+					result = getDataStore().setMp4Muxing(streamId, MP4_DISABLE);
 				}
 			}
 			else 
 			{
-				result.setMessage("no stream for this id: " + streamId + " or wrong setting parameter");
+				message = "no stream for this id: " + streamId + " or wrong setting parameter";
 			}
 		}
 
-		return result;
+		return new Result(result, message);
 	}
 
 
