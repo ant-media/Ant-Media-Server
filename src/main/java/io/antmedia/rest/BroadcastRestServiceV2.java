@@ -162,7 +162,7 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 
 		}
 
-		Object returnObject = new Result(false, "unexptected parameters received");
+		Object returnObject = new Result(false, "unexpected parameters received");
 
 		if (autoStart)  
 		{
@@ -279,14 +279,54 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 		return addSocialEndpoint(id, endpointServiceId);
 	}
 
-	@ApiOperation(value = "Add a third pary rtmp end point to the stream. When broadcast is started,it will send rtmp stream to this rtmp url as well. ", notes = "", response = Result.class)
+	@ApiOperation(value = "Add a third pary rtmp end point to the stream. It supports adding after broadcast is started ", notes = "", response = Result.class)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/endpoint")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result addEndpointV2(@ApiParam(value = "Broadcast id", required = true) @PathParam("id") String id,
-			@ApiParam(value = "RTMP url of the endpoint that stream will be republished. URL Encode the stream if required", required = true) @QueryParam("rtmpUrl") String rtmpUrl) {
-		return super.addEndpoint(id, rtmpUrl);
+			@ApiParam(value = "RTMP url of the endpoint that stream will be republished. If required, please encode the URL", required = true) @QueryParam("rtmpUrl") String rtmpUrl) {
+		
+		Result result = super.addEndpoint(id, rtmpUrl);
+		if (result.isSuccess()) 
+		{
+			String status = getDataStore().get(id).getStatus();
+			if (status.equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) 
+			{
+				boolean started = getMuxAdaptor(id).startRtmpStreaming(rtmpUrl);
+				result.setSuccess(started);
+			}
+		}
+		else {
+			logger.error("Rtmp endpoint({}) was not added to the stream: {}", rtmpUrl, id);
+		}
+		
+		return result;
+	}
+	
+	@ApiOperation(value = "Remove third pary rtmp end point from the stream. For the stream that is broadcasting, it will stop immediately", notes = "", response = Result.class)
+	@DELETE
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/{id}/endpoint")
+	@Produces(MediaType.APPLICATION_JSON)
+	@Override
+	public Result removeEndpoint(@ApiParam(value = "Broadcast id", required = true) @PathParam("id") String id, 
+			@ApiParam(value = "RTMP url of the endpoint that will be stopped.", required = true) @QueryParam("rtmpUrl") String rtmpUrl ) {
+		Result result = super.removeEndpoint(id, rtmpUrl);
+		if (result.isSuccess()) 
+		{
+			String status = getDataStore().get(id).getStatus();
+			if (status.equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) 
+			{
+				boolean started = getMuxAdaptor(id).stopRtmpStreaming(rtmpUrl);
+				result.setSuccess(started);
+			}
+		}
+		else {
+			logger.error("Rtmp endpoint({}) was not removed from the stream: {}", rtmpUrl, id);
+		}
+		
+		return result;
 	}
 
 	@ApiOperation(value = "Returns live comments from a specific endpoint like Facebook, Youtube, PSCP, etc. It works If interactivity is collected which can be enabled/disabled by properties file.", notes = "Notes here", responseContainer = "List", response = LiveComment.class)
@@ -561,7 +601,8 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 			@ApiParam(value = "id", required = true) @PathParam("id") String channelId) {
 		return super.setSocialNetworkChannelList(endpointId, type, channelId);
 	}
-
+	
+	
 	@ApiOperation(value = "Set stream specific recording setting, this setting overrides general Mp4 Muxing Setting", notes = "", response = Result.class)
 	@PUT
 	@Consumes(MediaType.APPLICATION_JSON)
@@ -570,18 +611,44 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	public Result enableMp4Muxing(@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String streamId,
 			@ApiParam(value = "Change recording status. If true, starts recording. If false stop recording", required = true) @PathParam("recording-status") boolean enableRecording) {
 		Result result = new Result(false);
-		if (streamId != null) {
-
-			if (getDataStore().setMp4Muxing(streamId, enableRecording ? MP4_ENABLE : MP4_DISABLE)) 
+		if (streamId != null) 
+		{
+			Broadcast broadcast = getDataStore().get(streamId);
+			if (broadcast != null) 
 			{
-				if (enableRecording) {
-					startMp4Muxing(streamId);
-				} else {
-					stopMp4Muxing(streamId);
+				if (enableRecording) 
+				{
+					
+					if (broadcast.getMp4Enabled() != MP4_ENABLE) 
+					{
+						//if it's not enabled, start it
+						if (broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING))
+						{
+							result = startMp4Muxing(streamId);
+						}
+						getDataStore().setMp4Muxing(streamId, MP4_ENABLE);
+					}
+					else 
+					{
+						if (broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) 
+						{
+							result.setSuccess(false);
+							result.setMessage("Recording is already active. Please stop it first");
+						}
+					}
 				}
-				result.setSuccess(true);
-				result.setMessage("streamId:" + streamId);
-			} else {
+				else 
+				{
+					if (broadcast.getMp4Enabled() == MP4_ENABLE && broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) 
+					{
+						//we can stop recording
+						result = stopMp4Muxing(streamId);
+					}
+					getDataStore().setMp4Muxing(streamId, MP4_DISABLE);
+				}
+			}
+			else 
+			{
 				result.setMessage("no stream for this id: " + streamId + " or wrong setting parameter");
 			}
 		}

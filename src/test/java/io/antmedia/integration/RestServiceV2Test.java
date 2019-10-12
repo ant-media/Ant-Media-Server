@@ -1152,8 +1152,31 @@ public class RestServiceV2Test {
 		System.out.println("Leaving testUpdate");
 
 	}
+	
+	public static Result removeEndpoint(String broadcastId, String rtmpUrl) throws Exception 
+	{
+		String url = ROOT_SERVICE_URL + "/v2/broadcasts/"+ broadcastId +"/endpoint?rtmpUrl=" + rtmpUrl;
+		
+		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+		
+		HttpUriRequest request = RequestBuilder.delete().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json").build();
+	
+		CloseableHttpResponse response = client.execute(request);
+		
+		StringBuffer result = readResponse(response);
+		
+		if (response.getStatusLine().getStatusCode() != 200) {
+			throw new Exception(result.toString());
+		}
+		
+		Gson gson = new Gson();
+		System.out.println("result string: " + result.toString());
+		Result tmp = gson.fromJson(result.toString(), Result.class);
 
-	public Result addEndpoint(String broadcastId, String rtmpUrl) throws Exception 
+		return tmp;
+	}
+
+	public static Result addEndpoint(String broadcastId, String rtmpUrl) throws Exception 
 	{
 		String url = ROOT_SERVICE_URL + "/v2/broadcasts/"+ broadcastId +"/endpoint?rtmpUrl=" + rtmpUrl;
 		
