@@ -301,7 +301,9 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 			if (rtmpUrl != null) {
 				rtmpUrl = rtmpUrl.replaceAll("[\n|\r|\t]", "_");
 			}
-			logger.error("Rtmp endpoint({}) was not added to the stream: {}", rtmpUrl, id);
+			if (logger.isErrorEnabled()) {
+				logger.error("Rtmp endpoint({}) was not added to the stream: {}", rtmpUrl, id.replaceAll("[\n|\r|\t]", "_"));
+			}
 		}
 		
 		return result;
@@ -325,9 +327,13 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 				result.setSuccess(started);
 			}
 		}
-		else {
-			rtmpUrl = rtmpUrl.replaceAll("[\n|\r|\t]", "_");
-			logger.error("Rtmp endpoint({}) was not removed from the stream: {}", rtmpUrl, id);
+		else {	
+			if (rtmpUrl != null) {
+				rtmpUrl = rtmpUrl.replaceAll("[\n|\r|\t]", "_");
+			}
+			if (logger.isErrorEnabled()) {
+				logger.error("Rtmp endpoint({}) was not removed from the stream: {}", rtmpUrl, id.replaceAll("[\n|\r|\t]", "_"));
+			}
 		}
 		
 		return result;
