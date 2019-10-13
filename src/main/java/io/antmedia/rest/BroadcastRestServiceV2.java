@@ -298,6 +298,9 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 			}
 		}
 		else {
+			if (rtmpUrl != null) {
+				rtmpUrl = rtmpUrl.replaceAll("[\n|\r|\t]", "_");
+			}
 			logger.error("Rtmp endpoint({}) was not added to the stream: {}", rtmpUrl, id);
 		}
 		
@@ -323,6 +326,7 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 			}
 		}
 		else {
+			rtmpUrl = rtmpUrl.replaceAll("[\n|\r|\t]", "_");
 			logger.error("Rtmp endpoint({}) was not removed from the stream: {}", rtmpUrl, id);
 		}
 		
@@ -628,11 +632,10 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 						{
 							result = startMp4Muxing(streamId);
 							if (!result) {
+								streamId = streamId.replaceAll("[\n|\r|\t]", "_");
 								logger.warn("Mp4 recording could not be started for stream: {}", streamId);
 							}
-						}
-						
-						
+						}	
 					}
 					else 
 					{
@@ -644,12 +647,12 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 				}
 				else 
 				{
-					
 					if (broadcast.getMp4Enabled() == MP4_ENABLE && broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) 
 					{
 						//we can stop recording
 						result = stopMp4Muxing(streamId);
 						if (!result) {
+							streamId = streamId.replaceAll("[\n|\r|\t]", "_");
 							logger.warn("Mp4 recording could not be stopped for stream: {}", streamId);
 						}
 					}

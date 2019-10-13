@@ -1224,7 +1224,7 @@ public abstract class RestServiceBase {
 		return new Result(authenticated, endpointId, message);
 	}
 
-	protected MuxAdaptor getMuxAdaptor(String streamId) 
+	public MuxAdaptor getMuxAdaptor(String streamId) 
 	{
 		AntMediaApplicationAdapter application = getApplication();
 		MuxAdaptor selectedMuxAdaptor = null;
