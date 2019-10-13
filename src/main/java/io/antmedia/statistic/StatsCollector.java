@@ -660,10 +660,11 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 
 			@Override
 			public void run() {
-				AMSShutdownManager.getInstance().notifyShutdown();
+				
 				if(logger != null) {
 					logger.info("Shutting down just a sec");
 				}
+				AMSShutdownManager.getInstance().notifyShutdown();
 				getGoogleAnalytic(implementationVersion, type).screenView()
 				.clientId(Launcher.getInstanceId())
 				.sessionControl("end")

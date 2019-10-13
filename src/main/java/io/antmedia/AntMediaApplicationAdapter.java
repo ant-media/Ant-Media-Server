@@ -572,7 +572,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 					count++;
 					if (count < 10) {
 						if (videoServiceEndpoint.getError() == null) {
-							appAdapter.getVertx().setPeriodic(interval, l->{
+							appAdapter.getVertx().setTimer(interval, l->{
 								new AuthCheckJob(count, interval, videoServiceEndpoint, appAdapter).execute();
 							});
 							logger.info("Asking authetnication for {}", videoServiceEndpoint.getName());
@@ -838,17 +838,9 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	public void setVertx(Vertx vertx) {
 		this.vertx = vertx;
 	}
-
-
-	@Override
-	public void serverShuttingdown() {
-		if (streamFetcherManager != null) {
-			Queue<StreamFetcher> fetchers = streamFetcherManager.getStreamFetcherList();
-			for (StreamFetcher streamFetcher : fetchers) {
-				streamFetcher.stopStream();
-			}
-		}
-		
+	
+	public void closeRTMPStreams() 
+	{
 		logger.info("RTMP Broadcasts are closing.");
 		for (MuxAdaptor adaptor : getMuxAdaptors()) {
 			if(adaptor.getBroadcast().getType().equals(AntMediaApplicationAdapter.LIVE_STREAM)) {
@@ -856,7 +848,18 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 				adaptor.stop();
 			}
 		}
-
+	}
+	
+	public void closeStreamFetchers() {
+		if (streamFetcherManager != null) {
+			Queue<StreamFetcher> fetchers = streamFetcherManager.getStreamFetcherList();
+			for (StreamFetcher streamFetcher : fetchers) {
+				streamFetcher.stopStream();
+			}
+		}
+	}
+	
+	public void waitUntilLiveStreamsStopped() {
 		while(getDataStore().getLocalLiveBroadcastCount(getServerSettings().getHostAddress()) > 0) {
 			try {
 				Thread.sleep(1000);
@@ -865,6 +868,15 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 				Thread.currentThread().interrupt();
 			}
 		}
+	}
+
+
+	@Override
+	public void serverShuttingdown() {
+		
+		closeStreamFetchers();
+		closeRTMPStreams();
+		waitUntilLiveStreamsStopped();
 		
 		getDataStore().close();
 	}
