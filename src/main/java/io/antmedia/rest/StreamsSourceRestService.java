@@ -18,8 +18,13 @@ import io.antmedia.rest.model.Result;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 
+/**
+ * Use BroadcastRestServiceV2 or VoDRestServiceV2 versions
+ * @author mekya
+ */
 @Component
 @Path("/streamSource")
+@Deprecated
 public class StreamsSourceRestService extends RestServiceBase{
 
 	private static final String HIGH_RESOURCE_USAGE = "current system resources not enough";
