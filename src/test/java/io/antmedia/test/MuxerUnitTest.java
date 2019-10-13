@@ -302,7 +302,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
             getAppSettings().setAddDateTimeToMp4FileName(false);
 
             List<MuxAdaptor> muxAdaptorList = new ArrayList<MuxAdaptor>();
-            for (int j = 0; j < 20; j++) {
+            for (int j = 0; j < 5; j++) {
                 MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null, false, appScope);
                 muxAdaptorList.add(muxAdaptor);
             }

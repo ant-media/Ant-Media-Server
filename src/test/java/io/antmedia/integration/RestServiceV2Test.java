@@ -644,7 +644,7 @@ public class RestServiceV2Test {
 		return -1;
 	}
 
-	public BroadcastStatistics callGetBroadcastStatistics(String streamId) {
+	public static BroadcastStatistics callGetBroadcastStatistics(String streamId) {
 		try {
 
 			String url = ROOT_SERVICE_URL + "/v2/broadcasts/"+ streamId +"/broadcast-statistics";
@@ -854,11 +854,10 @@ public class RestServiceV2Test {
 			System.out.println("broadcast stream id: " + broadcast.getStreamId());
 
 			Thread.sleep(2000);
-
 			Process execute = execute(ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy "
 					+ "	-vcodec copy -f flv rtmp://localhost/LiveApp/" + broadcast.getStreamId());
 
-			Thread.sleep(5000);
+			Thread.sleep(2000);
 
 			broadcast = callGetBroadcast(broadcast.getStreamId());
 
@@ -866,18 +865,19 @@ public class RestServiceV2Test {
 
 			execute.destroy();
 
-			broadcast = callCreateBroadcast(5000);
+			Broadcast broadcastTemp = callCreateBroadcast(5000);
 			System.out.println("broadcast stream id: " + broadcast.getStreamId());
 
 			execute = execute(ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy "
-					+ "	-vcodec copy -f flv rtmp://localhost/LiveApp/" + broadcast.getStreamId());
+					+ "	-vcodec copy -f flv rtmp://localhost/LiveApp/" + broadcastTemp.getStreamId());
 
-			Thread.sleep(5000);
 
-			broadcast = callGetBroadcast(broadcast.getStreamId());
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				Broadcast broadcast2 = callGetBroadcast(broadcastTemp.getStreamId());
 
-			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, broadcast.getStatus());
-
+				return AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(broadcast2.getStatus());
+			});
+			
 			execute.destroy();
 
 		} catch (Exception e) {
