@@ -365,7 +365,7 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	@Path("/{id}/social-endpoints/{endpointServiceId}/live-comments-count")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result getLiveCommentsCountV2(@ApiParam(value = " the id of the endpoint", required = true) @PathParam("endpointServiceId") String endpointServiceId,
-			@ApiParam(value = "the id of the stream", required = true)  @PathParam("streamId") String streamId) {
+			@ApiParam(value = "the id of the stream", required = true)  @PathParam("id") String streamId) {
 		return super.getLiveCommentsCount(endpointServiceId, streamId);
 	}
 
