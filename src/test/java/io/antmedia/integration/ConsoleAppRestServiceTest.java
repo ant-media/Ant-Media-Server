@@ -734,9 +734,8 @@ public class ConsoleAppRestServiceTest{
 
 			//check that second preview with the same created.
 			
-			Awaitility.await()
-			.atMost(10, TimeUnit.SECONDS)
-			.pollInterval(1, TimeUnit.SECONDS).until(() -> checkURLExist("http://localhost:5080/LiveApp/previews/"+streamId2+".png"));
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+			.until(() -> checkURLExist("http://localhost:5080/LiveApp/previews/"+streamId2+".png"));
 
 			appSettingsModel.setPreviewOverwrite(false);
 			result = callSetAppSettings("LiveApp", appSettingsModel);
@@ -766,8 +765,6 @@ public class ConsoleAppRestServiceTest{
 
 			// get settings from the app
 			AppSettings appSettingsModel = callGetAppSettings("LiveApp");
-
-			// assertFalse(appSettingsModel.acceptOnlyStreamsInDataStore);
 
 			// change settings test testAllowOnlyStreamsInDataStore is true
 			appSettingsModel.setAcceptOnlyStreamsInDataStore(true);
@@ -804,12 +801,14 @@ public class ConsoleAppRestServiceTest{
 						+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
 						+ broadcastCreated.getStreamId());
 
-				Thread.sleep(5000);
-				assertTrue(AppFunctionalTest.isProcessAlive());
+				Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+				.until(() -> AppFunctionalTest.isProcessAlive());
 
-				broadcast = RestServiceTest.callGetBroadcast(broadcastCreated.getStreamId());
-				assertNotNull(broadcast);
-				assertEquals(broadcast.getStatus(), AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+				Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+				.until(() -> {
+					Broadcast broadcast2 = RestServiceTest.callGetBroadcast(broadcastCreated.getStreamId());
+					return broadcast2 != null && broadcast2.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+				});
 
 				AppFunctionalTest.destroyProcess();
 			}
@@ -824,18 +823,18 @@ public class ConsoleAppRestServiceTest{
 
 			// send anonymous stream
 			{
-				streamId = "zombiStreamId";
+				String streamId2 = "zombiStreamId";
 				AppFunctionalTest.executeProcess(ffmpegPath
 						+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
-						+ streamId);
-
-				Thread.sleep(5000);
+						+ streamId2);
 
 				// check that it is accepted
-				broadcast = RestServiceTest.callGetBroadcast(streamId);
-				assertNotNull(broadcast.getStreamId());
-				assertEquals(broadcast.getStatus(), AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
-
+				Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+				.until(() -> {
+					Broadcast broadcast2 = RestServiceTest.callGetBroadcast(streamId2);
+					return broadcast2 != null && broadcast2.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+				});
+			
 				AppFunctionalTest.destroyProcess();
 			}
 
@@ -850,12 +849,14 @@ public class ConsoleAppRestServiceTest{
 						+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
 						+ broadcastCreated.getStreamId());
 
-				Thread.sleep(5000);
-				assertTrue(AppFunctionalTest.isProcessAlive());
+				Awaitility.await().atMost(10, TimeUnit.SECONDS)
+					.until(() -> AppFunctionalTest.isProcessAlive());
 
-				broadcast = RestServiceTest.callGetBroadcast(broadcastCreated.getStreamId());
-				assertNotNull(broadcast);
-				assertEquals(broadcast.getStatus(), AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+				Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+				.until(() -> {
+					Broadcast broadcast2 = RestServiceTest.callGetBroadcast(broadcastCreated.getStreamId());
+					return broadcast2 != null && broadcast2.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+				});
 
 				AppFunctionalTest.destroyProcess();
 			}

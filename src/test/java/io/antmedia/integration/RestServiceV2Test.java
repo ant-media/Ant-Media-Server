@@ -644,7 +644,7 @@ public class RestServiceV2Test {
 		return -1;
 	}
 
-	public BroadcastStatistics callGetBroadcastStatistics(String streamId) {
+	public static BroadcastStatistics callGetBroadcastStatistics(String streamId) {
 		try {
 
 			String url = ROOT_SERVICE_URL + "/v2/broadcasts/"+ streamId +"/broadcast-statistics";
@@ -854,11 +854,10 @@ public class RestServiceV2Test {
 			System.out.println("broadcast stream id: " + broadcast.getStreamId());
 
 			Thread.sleep(2000);
-
 			Process execute = execute(ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy "
 					+ "	-vcodec copy -f flv rtmp://localhost/LiveApp/" + broadcast.getStreamId());
 
-			Thread.sleep(5000);
+			Thread.sleep(2000);
 
 			broadcast = callGetBroadcast(broadcast.getStreamId());
 
@@ -866,18 +865,19 @@ public class RestServiceV2Test {
 
 			execute.destroy();
 
-			broadcast = callCreateBroadcast(5000);
+			Broadcast broadcastTemp = callCreateBroadcast(5000);
 			System.out.println("broadcast stream id: " + broadcast.getStreamId());
 
 			execute = execute(ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy "
-					+ "	-vcodec copy -f flv rtmp://localhost/LiveApp/" + broadcast.getStreamId());
+					+ "	-vcodec copy -f flv rtmp://localhost/LiveApp/" + broadcastTemp.getStreamId());
 
-			Thread.sleep(5000);
 
-			broadcast = callGetBroadcast(broadcast.getStreamId());
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				Broadcast broadcast2 = callGetBroadcast(broadcastTemp.getStreamId());
 
-			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, broadcast.getStatus());
-
+				return AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(broadcast2.getStatus());
+			});
+			
 			execute.destroy();
 
 		} catch (Exception e) {
@@ -1152,8 +1152,31 @@ public class RestServiceV2Test {
 		System.out.println("Leaving testUpdate");
 
 	}
+	
+	public static Result removeEndpoint(String broadcastId, String rtmpUrl) throws Exception 
+	{
+		String url = ROOT_SERVICE_URL + "/v2/broadcasts/"+ broadcastId +"/endpoint?rtmpUrl=" + rtmpUrl;
+		
+		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+		
+		HttpUriRequest request = RequestBuilder.delete().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json").build();
+	
+		CloseableHttpResponse response = client.execute(request);
+		
+		StringBuffer result = readResponse(response);
+		
+		if (response.getStatusLine().getStatusCode() != 200) {
+			throw new Exception(result.toString());
+		}
+		
+		Gson gson = new Gson();
+		System.out.println("result string: " + result.toString());
+		Result tmp = gson.fromJson(result.toString(), Result.class);
 
-	public Result addEndpoint(String broadcastId, String rtmpUrl) throws Exception 
+		return tmp;
+	}
+
+	public static Result addEndpoint(String broadcastId, String rtmpUrl) throws Exception 
 	{
 		String url = ROOT_SERVICE_URL + "/v2/broadcasts/"+ broadcastId +"/endpoint?rtmpUrl=" + rtmpUrl;
 		

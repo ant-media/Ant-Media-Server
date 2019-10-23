@@ -10,7 +10,6 @@ import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -231,7 +230,7 @@ public abstract class RestServiceBase {
 	}
 
 	public Broadcast createBroadcastWithStreamID(Broadcast broadcast) {
-	
+
 		return saveBroadcast(broadcast, AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, getScope().getName(),
 				getDataStore(), getAppSettings().getListenerHookURL(), getServerSettings().getServerName(), getServerSettings().getHostAddress());
 	}
@@ -483,6 +482,17 @@ public abstract class RestServiceBase {
 
 		return new Result(success, message);
 	}
+	
+	
+	public Result removeEndpoint(String id, String rtmpUrl) 
+	{
+		Endpoint endpoint = new Endpoint();
+		endpoint.setRtmpUrl(rtmpUrl);
+		endpoint.type = "generic";
+		
+		boolean removed = getDataStore().removeEndpoint(id, endpoint);
+		return new Result(removed);
+	}
 
 
 	public Result importLiveStreams2Stalker() 
@@ -695,7 +705,7 @@ public abstract class RestServiceBase {
 		ApplicationContext appContext = getAppContext();
 		if (appContext != null && appContext.containsBean(IWebRTCAdaptor.BEAN_NAME)) {
 			Object webRTCAdaptorBean = appContext.getBean(IWebRTCAdaptor.BEAN_NAME);
-			
+
 			if(webRTCAdaptorBean != null) {
 				adaptor = (IWebRTCAdaptor) webRTCAdaptorBean;
 			}
@@ -1214,19 +1224,35 @@ public abstract class RestServiceBase {
 		return new Result(authenticated, endpointId, message);
 	}
 
-	protected List<MuxAdaptor> getMuxAdaptors(String streamId) {
+	public MuxAdaptor getMuxAdaptor(String streamId) 
+	{
 		AntMediaApplicationAdapter application = getApplication();
-		List<MuxAdaptor> muxAdaptors = new ArrayList<>();
-		if(application != null){
-			muxAdaptors = application.getMuxAdaptors();
-		}
-		List<MuxAdaptor> matchedMuxAdaptors = new ArrayList<>();
-		for (MuxAdaptor muxAdaptor : muxAdaptors) {
-			if (streamId.equals(muxAdaptor.getStreamId())) {
-				matchedMuxAdaptors.add(muxAdaptor);
+		MuxAdaptor selectedMuxAdaptor = null;
+
+		if(application != null)
+		{
+			List<MuxAdaptor> muxAdaptors = application.getMuxAdaptors();
+			for (MuxAdaptor muxAdaptor : muxAdaptors) 
+			{
+				if (streamId.equals(muxAdaptor.getStreamId())) 
+				{
+					selectedMuxAdaptor = muxAdaptor;
+					break;
+				}
 			}
 		}
-		return matchedMuxAdaptors;
+
+		return selectedMuxAdaptor;
+	}
+	
+	public boolean addRtmpMuxerToMuxAdaptor(String streamId, String rtmpURL) {
+		MuxAdaptor muxAdaptor = getMuxAdaptor(streamId);
+		boolean result = false;
+		if (muxAdaptor != null) {
+			//result = muxAdaptor.addRTMPEndpoint(rtmpURL);
+		}
+		
+		return result;
 	}
 
 	@Nullable
@@ -1240,36 +1266,28 @@ public abstract class RestServiceBase {
 		return mp4Muxer;
 	}
 
-	protected Result startMp4Muxing(String streamId) {
+	protected boolean startMp4Muxing(String streamId) {
 		boolean result = false;
-		List<MuxAdaptor> muxAdaptors = getMuxAdaptors(streamId);
-		for (MuxAdaptor muxAdaptor : muxAdaptors) {
-			if (muxAdaptor != null) {
-				Mp4Muxer mp4Muxer = getMp4Muxer(muxAdaptor);
-				if (mp4Muxer == null) {
-					//avoid multiple call of rest api adding new mp4muxers
-					muxAdaptor.startRecording();
-				}
-				result = true;
-			}
+		MuxAdaptor muxAdaptor = getMuxAdaptor(streamId);
+		if (muxAdaptor != null) 
+		{
+			result = muxAdaptor.startRecording();
 		}
-		return new Result(result);
+
+		return result;
 	}
 
-	protected Result stopMp4Muxing(String streamId) {
+	protected boolean stopMp4Muxing(String streamId) 
+	{
 		boolean result = false;
-		List<MuxAdaptor> muxAdaptors = getMuxAdaptors(streamId);
-		for (MuxAdaptor muxAdaptor : muxAdaptors) {
-			if (muxAdaptor != null) {
-				Mp4Muxer mp4Muxer = getMp4Muxer(muxAdaptor);
-				if (mp4Muxer != null) {
-					//avoid multiple call of rest api stopping mp4 muxer
-					muxAdaptor.stopRecording();
-				}
-				result = true;
-			}
+		MuxAdaptor muxAdaptor = getMuxAdaptor(streamId);
+
+		if (muxAdaptor != null) 
+		{
+			result = muxAdaptor.stopRecording();
 		}
-		return new Result(result);
+
+		return result;
 	}
 
 	protected List<VideoServiceEndpoint> getEndpointsHavingErrorList(){

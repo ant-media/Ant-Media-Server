@@ -88,10 +88,10 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		protected void failed(Throwable e, Description description) {
 			System.out.println("Failed test: " + description.getMethodName() );
 			e.printStackTrace();
-		};
+		}
 		protected void finished(Description description) {
 			System.out.println("Finishing test: " + description.getMethodName());
-		};
+		}
 	};
 
 	@BeforeClass
@@ -128,7 +128,6 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		if (app == null) 
 		{
-
 			app = ((IApplicationAdaptorFactory) applicationContext.getBean("web.handler")).getAppAdaptor();
 			logger.debug("Application / web scope: {}", appScope);
 			assertTrue(appScope.getDepth() == 1);
@@ -258,7 +257,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	@Test
 	public void testRestartPeriodStreamFetcher() {
 
-		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnExit();
+		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnEnded();
 		getAppSettings().setDeleteHLSFilesOnEnded(false);
 		try {
 			//Create Stream Fetcher Manager
@@ -335,7 +334,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testThreadStopStart() {
 
 		logger.info("starting testThreadStopStart");
-		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnExit();
+		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnEnded();
 		getAppSettings().setDeleteHLSFilesOnEnded(false);
 
 		try {
@@ -624,7 +623,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	@Test
 	public void testCameraStartedProperly() {
 
-		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnExit();
+		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnEnded();
 		try {
 
 			getAppSettings().setDeleteHLSFilesOnEnded(false);
@@ -764,7 +763,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testFetchStreamSources(String source, boolean restartStream) {
 
 		Application.enableSourceHealthUpdate = true;
-		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnExit();
+		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnEnded();
 		try {
 			getAppSettings().setDeleteHLSFilesOnEnded(false);
 
@@ -849,7 +848,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	@Test
 	public void testHLSFlagResult() {
 
-		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnExit();
+		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnEnded();
 		getAppSettings().setDeleteHLSFilesOnEnded(false);
 		//getAppSettings().setHlsflags("+omit_endlist+append_list+split_by_time");
 		getAppSettings().setHlsListSize("20");

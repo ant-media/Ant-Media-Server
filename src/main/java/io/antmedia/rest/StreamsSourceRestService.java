@@ -7,8 +7,6 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,13 +15,16 @@ import org.springframework.stereotype.Component;
 import io.antmedia.StreamIdValidator;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.rest.model.Result;
-import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 
-@Api(value = "StreamsSourceRestService")
+/**
+ * Use BroadcastRestServiceV2 or VoDRestServiceV2 versions
+ * @author mekya
+ */
 @Component
 @Path("/streamSource")
+@Deprecated
 public class StreamsSourceRestService extends RestServiceBase{
 
 	private static final String HIGH_RESOURCE_USAGE = "current system resources not enough";
@@ -44,7 +45,6 @@ public class StreamsSourceRestService extends RestServiceBase{
 	 * @param stream - broadcast object of IP Camera or Stream Source
 	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
 	 */
-	@ApiOperation(value = "Add IP Camera and Stream Sources to the system as broadcast", notes = "Notes here", response = Result.class)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/addStreamSource")
@@ -75,7 +75,6 @@ public class StreamsSourceRestService extends RestServiceBase{
 	 * @param id - the id of the stream
 	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
 	 */
-	@ApiOperation(value = "Get IP Camera Error after connection failure", notes = "Notes here", response = Result.class)
 	@GET
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/getCameraError")
@@ -90,7 +89,6 @@ public class StreamsSourceRestService extends RestServiceBase{
 	 * @param id - the id of the stream
 	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
 	 */
-	@ApiOperation(value = "Start external sources (IP Cameras and Stream Sources) again if it is added and stopped before", response = Result.class)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/startStreamSource")
@@ -106,7 +104,6 @@ public class StreamsSourceRestService extends RestServiceBase{
 	 * @param id - the id of the stream
 	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
 	 */
-	@ApiOperation(value = "Stop external sources (IP Cameras and Stream Sources)", response = Result.class)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/stopStreamSource")
@@ -122,7 +119,6 @@ public class StreamsSourceRestService extends RestServiceBase{
 	 * 
 	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
 	 */
-	@ApiOperation(value = "Synchronize VoD Folder and add them to VoD database if any file exist and create symbolic links to that folder", notes = "Notes here", response = Result.class)
 	@POST
 	@Path("/synchUserVoDList")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -138,7 +134,6 @@ public class StreamsSourceRestService extends RestServiceBase{
 	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
 	 */
 
-	@ApiOperation(value = "Update IP Camera and Stream Sources' Parameters", notes = "Notes here", response = Result.class)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/updateCamInfo")
@@ -154,7 +149,6 @@ public class StreamsSourceRestService extends RestServiceBase{
 	 * 
 	 * @return - list of discovered ONVIF URLs
 	 */
-	@ApiOperation(value = "Get Discovered ONVIF IP Cameras, this service perform a discovery inside of internal network and get automatically  ONVIF enabled camera information", notes = "Notes here", response = Result.class)
 	@GET
 	@Path("/searchOnvifDevices")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -169,7 +163,6 @@ public class StreamsSourceRestService extends RestServiceBase{
 	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
 	 */
 
-	@ApiOperation(value = "Move IP Camera Up", notes = "Notes here", response = Result.class)
 	@GET
 	@Path("/moveUp")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -182,7 +175,6 @@ public class StreamsSourceRestService extends RestServiceBase{
 	 * @param id - the id of the IP Camera
 	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
 	 */
-	@ApiOperation(value = "Move IP Camera Down", notes = "Notes here", response = Result.class)
 	@GET
 	@Path("/moveDown")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -195,7 +187,6 @@ public class StreamsSourceRestService extends RestServiceBase{
 	 * @param id - the id of the IP Camera
 	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
 	 */
-	@ApiOperation(value = "Move IP Camera Left", notes = "Notes here", response = Result.class)
 	@GET
 	@Path("/moveLeft")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -208,7 +199,6 @@ public class StreamsSourceRestService extends RestServiceBase{
 	 * @param id - the id of the IP Camera
 	 * @return {@link io.antmedia.rest.BroadcastRestService.Result}
 	 */
-	@ApiOperation(value = "Move IP Camera Right", notes = "Notes here", response = Result.class)
 	@GET
 	@Path("/moveRight")
 	@Produces(MediaType.APPLICATION_JSON)

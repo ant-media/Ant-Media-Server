@@ -247,7 +247,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	@Test
 	public void testAddCameraBug() {
 
-		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnExit();
+		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnEnded();
 
 		getAppSettings().setDeleteHLSFilesOnEnded(false);
 
@@ -315,7 +315,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			
 		service.setApplication(app.getAppAdaptor());
 
-		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnExit();
+		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnEnded();
 
 		getAppSettings().setDeleteHLSFilesOnEnded(false);
 
@@ -391,7 +391,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			
 		service.setApplication(app.getAppAdaptor());
 
-		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnExit();
+		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnEnded();
 
 		getAppSettings().setDeleteHLSFilesOnEnded(false);
 
@@ -522,7 +522,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	@Test
 	public void testBandwidth() {
 
-		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnExit();
+		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnEnded();
 		getAppSettings().setDeleteHLSFilesOnEnded(false);
 
 		File f = new File("target/test.db");

@@ -14,9 +14,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
-import java.net.InetAddress;
 import java.net.URL;
-import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
@@ -55,7 +53,6 @@ import io.antmedia.rest.BroadcastRestService.LiveStatistics;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.Version;
 import io.antmedia.settings.ServerSettings;
-import io.antmedia.test.Application;
 
 public class AppFunctionalTest {
 	
