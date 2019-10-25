@@ -672,5 +672,28 @@ public class MuxingTest {
 		}
 		return null;
 	}
+	
+	@Test
+	public void testVideoOnlyStreaming() {
+		Process rtmpSendingProcess = null;
+		String streamName = "live_test"  + (int)(Math.random() * 999999);
+
+		try {
+			rtmpSendingProcess = execute(
+					ffmpegPath + " -re -i src/test/resources/test.flv -c copy -an -f flv rtmp://"
+							+ SERVER_ADDR + "/LiveApp/" + streamName);
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+		}
+		RestServiceTest restService = new RestServiceTest();
+
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			Broadcast broadcast = restService.getBroadcast(streamName);
+			return broadcast.getQuality() != null;
+		});
+
+		rtmpSendingProcess.destroy();
+	}
 
 }
