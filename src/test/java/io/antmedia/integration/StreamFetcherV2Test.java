@@ -203,8 +203,8 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 		Broadcast broadcast = restService.getBroadcast(endpointStream.getStreamId());
 		assertNotNull(broadcast);
 		long now = System.currentTimeMillis();
-		//broadcast start time should be at most 1 sec before now
-		assertTrue((now-broadcast.getStartTime()) < 1000);
+		//broadcast start time should be at most 5 sec before now
+		assertTrue((now-broadcast.getStartTime()) < 5000);
 		
 		//stop stream fetcher
 		streamFetcher.stopStream();
