@@ -49,7 +49,9 @@ public class MongoStore extends DataStore {
 
 	public static final String IMAGE_ID = "imageId"; 
 	public static final String STATUS = "status";
-	private static final String ORIGIN_ADDRESS = "originAdress"; 
+	private static final String ORIGIN_ADDRESS = "originAdress";
+	private static final String START_TIME = "startTime"; 
+
 	
 	public MongoStore(String host, String username, String password, String dbName) {
 		morphia = new Morphia();
@@ -176,6 +178,10 @@ public class MongoStore extends DataStore {
 
 				UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set(STATUS, status);
 
+				if(status.contentEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
+					ops.set(START_TIME, System.currentTimeMillis());
+				}
+				
 				UpdateResults update = datastore.update(query, ops);
 				return update.getUpdatedCount() == 1;
 			} catch (Exception e) {

@@ -451,8 +451,11 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	
 	
 
-	public static Broadcast saveUndefinedBroadcast(String streamId, String scopeName, DataStore dataStore, AppSettings appSettings, String streamStatus, String fqdn, String hostAddress) {		Broadcast newBroadcast = new Broadcast();
-		newBroadcast.setDate(System.currentTimeMillis());
+	public static Broadcast saveUndefinedBroadcast(String streamId, String scopeName, DataStore dataStore, AppSettings appSettings, String streamStatus, String fqdn, String hostAddress) {		
+		Broadcast newBroadcast = new Broadcast();
+		long now = System.currentTimeMillis();
+		newBroadcast.setDate(now);
+		newBroadcast.setStartTime(now);
 		newBroadcast.setZombi(true);
 		try {
 			newBroadcast.setStreamId(streamId);

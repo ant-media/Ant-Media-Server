@@ -1,6 +1,7 @@
 package io.antmedia.integration;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
@@ -197,6 +198,13 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 			.until(() -> {
 				return restService.getBroadcast(endpointStream.getStreamId()).getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 			});
+		
+		//Check start time
+		Broadcast broadcast = restService.getBroadcast(endpointStream.getStreamId());
+		assertNotNull(broadcast);
+		long now = System.currentTimeMillis();
+		//broadcast start time should be at most 5 sec before now
+		assertTrue((now-broadcast.getStartTime()) < 5000);
 		
 		//stop stream fetcher
 		streamFetcher.stopStream();

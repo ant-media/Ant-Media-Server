@@ -93,9 +93,8 @@ public class DBStoresUnitTest {
 		testRTMPViewerCount(dataStore);
 		testTokenOperations(dataStore);
 		testConferenceRoom(dataStore);
-
+		testUpdateStatus(dataStore);
 	}
-
 
 
 	@Test
@@ -121,7 +120,7 @@ public class DBStoresUnitTest {
 		testRTMPViewerCount(dataStore);
 		testTokenOperations(dataStore);
 		testConferenceRoom(dataStore);
-
+		testUpdateStatus(dataStore);
 	}
 
 	@Test
@@ -166,7 +165,7 @@ public class DBStoresUnitTest {
 		testClearAtStartCluster(dataStore);
 		testConferenceRoom(dataStore);
 		testStreamSourceList(dataStore);
-
+		testUpdateStatus(dataStore);
 	}
 
 	public void clear(DataStore dataStore) 
@@ -1479,4 +1478,42 @@ public class DBStoresUnitTest {
 
 		
 	}
+	
+	private void testUpdateStatus(DataStore dataStore) {
+		String streamId = "test";
+		Broadcast broadcast = new Broadcast();
+		try {
+			broadcast.setStreamId(streamId);
+		} catch (Exception e1) {
+			e1.printStackTrace();
+		}
+		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
+		dataStore.save(broadcast);
+		
+		Broadcast broadcastFromStore = dataStore.get(streamId);
+		assertNotNull(broadcastFromStore);
+		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, broadcastFromStore.getStatus());
+		assertEquals(0, broadcastFromStore.getStartTime());
+
+		long now = System.currentTimeMillis();
+		dataStore.updateStatus(streamId, AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+		
+		broadcastFromStore = dataStore.get(streamId);
+		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, broadcastFromStore.getStatus());
+		assertEquals(now, broadcastFromStore.getStartTime());
+		
+		//wait to be sure time changed from we set now
+		try {
+			Thread.sleep(10);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		
+		dataStore.updateStatus(streamId, AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+		
+		broadcastFromStore = dataStore.get(streamId);
+		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, broadcastFromStore.getStatus());
+		assertEquals(now, broadcastFromStore.getStartTime());
+	}
+
 }
