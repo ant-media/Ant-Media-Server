@@ -88,6 +88,9 @@ public class InMemoryDataStore extends DataStore {
 		boolean result = false;
 		if (broadcast != null) {
 			broadcast.setStatus(status);
+			if(status.contentEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
+				broadcast.setStartTime(System.currentTimeMillis());
+			}
 			broadcastMap.put(id, broadcast);
 			result = true;
 		}

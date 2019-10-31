@@ -20,6 +20,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import javax.validation.constraints.AssertTrue;
+
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpUriRequest;
@@ -444,6 +446,10 @@ public class AppFunctionalTest {
 
 			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, broadcast.getStatus());
 
+			long now = System.currentTimeMillis();
+			//broadcast start time should be at most 20 sec before (it is max wait time above) 
+			assertTrue((now-broadcast.getStartTime()) < 20000);
+			
 
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				return MuxingTest.isURLAvailable("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" +streamId+ ".m3u8" );
@@ -619,9 +625,12 @@ public class AppFunctionalTest {
 			broadcast = restService.getBroadcast(broadcast.getStreamId().toString());
 			assertNotNull(broadcast);
 			assertEquals(broadcast.getStatus(), AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
-
+			
+			long now = System.currentTimeMillis();
+			//broadcast start time should be at most 15 sec before (it is 10sec sleep + 5sec start margin)
+			assertTrue((now-broadcast.getStartTime()) < 15000);
+			
 			process.destroy();
-
 			Thread.sleep(10000);
 
 			// call web service to get stream info and check status
