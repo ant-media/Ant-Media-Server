@@ -22,14 +22,9 @@ import org.springframework.web.context.WebApplicationContext;
 import io.antmedia.AppSettings;
 
 
-public class IPFilter implements Filter {
+public class IPFilter extends AbstractFilter {
 
-	protected Logger log = LoggerFactory.getLogger(IPFilter.class);
-	private FilterConfig config;
-
-	public void init(FilterConfig filterConfig) throws ServletException {
-		this.config = filterConfig;
-	}
+	protected static Logger log = LoggerFactory.getLogger(IPFilter.class);
 
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
 		if (isAllowed(request.getRemoteAddr())) {
@@ -40,15 +35,6 @@ public class IPFilter implements Filter {
 	}
 
 
-	public AppSettings getAppSettings() {
-		ApplicationContext context = (ApplicationContext) config.getServletContext().getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
-		return (AppSettings) context.getBean(AppSettings.BEAN_NAME);
-	}
-	
-	public void destroy() {
-		//nothing to clean up
-	}
-
 
 	/**
 	 * Test if a remote's IP address is allowed to proceed.
@@ -56,25 +42,28 @@ public class IPFilter implements Filter {
 	 * @param property The remote's IP address, as a string
 	 * @return true if allowed
 	 */
-	private boolean isAllowed(final String property) {
-		final InetAddress addr;
-
-		try {
-			addr = InetAddress.getByName(property);
-		} catch (UnknownHostException e) {
-			// This should be in the 'could never happen' category but handle it
-			// to be safe.
-			log.error("error", e);
-			return false;
-		}
-		List<NetMask> allowedCIDRList = getAppSettings().getAllowedCIDRList();
+	public boolean isAllowed(final String property) 
+	{
 		
-		for (final NetMask nm : allowedCIDRList) {
-			if (nm.matches(addr)) {
-				return true;
+		AppSettings appSettings = getAppSettings();
+		if (appSettings != null) 
+		{
+			try {
+				InetAddress addr = InetAddress.getByName(property);
+				List<NetMask> allowedCIDRList = appSettings.getAllowedCIDRList();
+
+				for (final NetMask nm : allowedCIDRList) {
+					if (nm.matches(addr)) {
+						return true;
+					}
+				}
+				
+			} catch (UnknownHostException e) {
+				// This should be in the 'could never happen' category but handle it
+				// to be safe.
+				log.error("error", e);
 			}
 		}
-
 		// Deny this request
 		return false;
 	}

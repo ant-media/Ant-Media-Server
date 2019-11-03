@@ -69,6 +69,8 @@ public class WebSocketConstants {
 
 	public static final String JOIN_COMMAND = "join";
 	
+	public static final String SERVER_WILL_STOP = "server_will_stop";
+	
 	/**
 	 * this is for leaving from room in 1-N and N-N connection
 	 */
@@ -134,6 +136,17 @@ public class WebSocketConstants {
 	 * joining the video conference
 	 */
 	public static final String NO_ROOM_SPECIFIED = "no_room_specified";
+	
+	/**
+	 * This is sent back to the user when context is not initialized yet
+	 */
+	public static final String NOT_INITIALIZED_YET = "not_initialized_yet";
+	
+	/**
+	 * This is sent back to the user when there is no room specified in 
+	 * joining the video conference
+	 */
+	public static final String ROOM_TIME_INVALID = "room_not_active_or_expired";
 	
 	
 	public static final String UNAUTHORIZED = "unauthorized_access";
@@ -207,5 +220,30 @@ public class WebSocketConstants {
 	 * Error definition it is send when cpu usage exceeds the limit
 	 */
 	public static final String HIGH_RESOURCE_USAGE = "highResourceUsage";
+	/**
+	 * Error definition it is send when stream name contains special characters
+	 */
+	public static final String INVALID_STREAM_NAME = "invalidStreamName";
+	
+	/**
+	 * Error definition, it's send when video encoder is not opened 
+	 */
+	public static final String ENCODER_NOT_OPENED = "encoderNotOpened";
 
+	/**
+	 * Error definition, it's send when video encoder is blocked
+	 */
+	public static final String ENCODER_BLOCKED = "encoderBlocked";
+
+	/**
+	 * Error definition, it's send when publishing has not started and timeout 
+	 */
+	public static final String PUBLISH_TIMEOUT_ERROR = "publishTimeoutError";
+
+	/**
+	 * Error definition, it's send when remote description is not set, it's generally due to 
+	 * encoder incompatibilities
+	 */
+	public static final Object NOT_SET_REMOTE_DESCRIPTION = "notSetRemoteDescription";
+	
 }

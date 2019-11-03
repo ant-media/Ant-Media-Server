@@ -2,30 +2,58 @@ package io.antmedia.datastore.db;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
 
-import io.antmedia.cluster.DBReader;
+import io.antmedia.AppSettings;
+import io.antmedia.settings.ServerSettings;
 
-public class DataStoreFactory implements IDataStoreFactory{
+public class DataStoreFactory implements IDataStoreFactory, ApplicationContextAware{
 
+	//TODO: I think all settings should be get from AppSettings bean
+	
 	public static final String DB_TYPE_MEMORYDB = "memorydb";
 	public static final String DB_TYPE_MAPDB = "mapdb";
 	public static final String DB_TYPE_MONGODB = "mongodb";
+	
+	public static final String SETTINGS_DB_NAME = "db.name";
+	public static final String SETTINGS_DB_TYPE = "db.type";
+	public static final String SETTINGS_DB_HOST = "db.host";
+	public static final String SETTINGS_DB_USER = "db.user";
+	public static final String SETTINGS_DB_PASS = "db.password";
 
 
 	private static Logger logger = LoggerFactory.getLogger(DataStoreFactory.class);
 
 	
 	private DataStore dataStore;
-	private String appName;
+	 
+	@Value( "${" + AppSettings.SETTINGS_WRITE_STATS_TO_DATASTORE +":true}")
+	private boolean writeStatsToDatastore;
+	
+	
+	@Value( "${"+SETTINGS_DB_NAME+":#{null}}" )
 	private String dbName;
 	
 	/**
 	 * One of the DB_TYPE_*
 	 */
+	
+	@Value( "${"+SETTINGS_DB_TYPE+":#{null}}" )
 	private String dbType;
+	
+	@Value( "${"+SETTINGS_DB_HOST+":#{null}}" )
 	private String dbHost;
+	
+	@Value( "${"+SETTINGS_DB_USER+":#{null}}" )
 	private String dbUser;
+	
+	@Value( "${"+SETTINGS_DB_PASS+":#{null}}" )
 	private String dbPassword;
+	private String hostAddress;
 	
 	public String getDbName() {
 		return dbName;
@@ -67,30 +95,33 @@ public class DataStoreFactory implements IDataStoreFactory{
 		this.dbPassword = dbPassword;
 	}
 	
-	public DataStore getDataStore() {
-		if (dataStore == null) {
-			if(dbType.contentEquals(DB_TYPE_MONGODB))
-			{
-				dataStore = new MongoStore(dbHost, dbUser, dbPassword, dbName);
-			}
-			else if(dbType .contentEquals(DB_TYPE_MAPDB))
-			{
-				dataStore = new MapDBStore(dbName+".db");
-			}
-			else if(dbType .contentEquals(DB_TYPE_MEMORYDB))
-			{
-				dataStore = new InMemoryDataStore(dbName);
-			}
-			else {
-				logger.error("Undefined Datastore:{} app:{} db name:{}", dbType, appName, dbName);
-			}
-			
-			logger.info("Used Datastore:{} app:{} db name:{}", getDbType(), getAppName(), getDbName());
-			
-			if(dataStore != null) {
-				DBReader.instance.addDataStore(appName, dataStore);
-			}
+	public void init()  
+	{
+		if(dbType.contentEquals(DB_TYPE_MONGODB))
+		{
+			dataStore = new MongoStore(dbHost, dbUser, dbPassword, dbName);
 		}
+		else if(dbType .contentEquals(DB_TYPE_MAPDB))
+		{
+			dataStore = new MapDBStore(dbName+".db");
+		}
+		else if(dbType .contentEquals(DB_TYPE_MEMORYDB))
+		{
+			dataStore = new InMemoryDataStore(dbName);
+		}
+		else {
+			logger.error("Undefined Datastore:{}  db name:{}", dbType, dbName);
+		}
+		
+		logger.info("Used Datastore:{}  db name:{}", getDbType(), getDbName());
+		
+		if(dataStore != null) {
+			dataStore.setWriteStatsToDatastore(writeStatsToDatastore);
+			dataStore.clearStreamsOnThisServer(hostAddress);
+		}
+	}	
+	
+	public DataStore getDataStore() {
 		return dataStore;
 	}
 	
@@ -98,14 +129,19 @@ public class DataStoreFactory implements IDataStoreFactory{
 		this.dataStore = dataStore;
 	}
 
-	public String getAppName()
-	{
-		return appName;
+	public boolean isWriteStatsToDatastore() {
+		return writeStatsToDatastore;
 	}
-	
-	public void setAppName(String appName)
-	{
-		this.appName = appName;
+
+	public void setWriteStatsToDatastore(boolean writeStatsToDatastore) {
+		this.writeStatsToDatastore = writeStatsToDatastore;
+	}
+
+	@Override
+	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+		ServerSettings serverSettings = (ServerSettings) applicationContext.getBean(ServerSettings.BEAN_NAME);
+		hostAddress = serverSettings.getHostAddress();
+		init();
 	}
 
 }

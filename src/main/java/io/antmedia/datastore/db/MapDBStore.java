@@ -2,6 +2,7 @@ package io.antmedia.datastore.db;
 
 import java.io.File;
 import java.lang.reflect.Type;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -23,10 +24,11 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
 import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.cluster.StreamInfo;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
+import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
@@ -42,6 +44,8 @@ public class MapDBStore extends DataStore {
 	private BTreeMap<String, String> userVodMap;
 	private BTreeMap<String, String> socialEndpointsCredentialsMap;
 	private BTreeMap<String, String> tokenMap;
+	private BTreeMap<String, String> conferenceRoomMap;
+
 
 	private Gson gson;
 	protected static Logger logger = LoggerFactory.getLogger(MapDBStore.class);
@@ -51,6 +55,8 @@ public class MapDBStore extends DataStore {
 	private static final String USER_MAP_NAME = "USER_VOD";
 	private static final String TOKEN = "TOKEN";
 	private static final String SOCIAL_ENDPONT_CREDENTIALS_MAP_NAME = "SOCIAL_ENDPONT_CREDENTIALS_MAP_NAME";
+	private static final String CONFERENCE_ROOM_MAP_NAME = "CONFERENCE_ROOM";
+
 
 
 	public MapDBStore(String dbName) {
@@ -59,7 +65,6 @@ public class MapDBStore extends DataStore {
 				.fileDB(dbName)
 				.fileMmapEnableIfSupported()
 				.transactionEnable()
-				.closeOnJvmShutdown()
 				.make();
 
 		map = db.treeMap(MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING).counterEnable()
@@ -77,6 +82,9 @@ public class MapDBStore extends DataStore {
 				.counterEnable().createOrOpen();
 
 		tokenMap = db.treeMap(TOKEN).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
+				.counterEnable().createOrOpen();
+
+		conferenceRoomMap = db.treeMap(CONFERENCE_ROOM_MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
 				.counterEnable().createOrOpen();
 
 		GsonBuilder builder = new GsonBuilder();
@@ -176,25 +184,6 @@ public class MapDBStore extends DataStore {
 	}
 
 	@Override
-	public boolean updateName(String id, String name, String description) {
-		boolean result = false;
-		synchronized (this) {
-			if (id != null) {
-				String jsonString = map.get(id);
-				if (jsonString != null) {
-					Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
-					broadcast.setName(name);
-					broadcast.setDescription(description);
-					map.replace(id, gson.toJson(broadcast));
-					db.commit();
-					result = true;
-				}
-			}
-		}
-		return result;
-	}
-
-	@Override
 	public boolean updateStatus(String id, String status) {
 		boolean result = false;
 		synchronized (this) {
@@ -203,6 +192,9 @@ public class MapDBStore extends DataStore {
 				if (jsonString != null) {
 					Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
 					broadcast.setStatus(status);
+					if(status.contentEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
+						broadcast.setStartTime(System.currentTimeMillis());
+					}
 					String jsonVal = gson.toJson(broadcast);
 					String previousValue = map.replace(id, jsonVal);
 					db.commit();
@@ -410,7 +402,7 @@ public class MapDBStore extends DataStore {
 	@Override
 	public List<Broadcast> filterBroadcastList(int offset, int size, String type) {
 
-		List<Broadcast> list = new ArrayList<Broadcast>();
+		List<Broadcast> list = new ArrayList<>();
 		synchronized (this) {
 			int t = 0;
 			int itemCount = 0;
@@ -567,7 +559,7 @@ public class MapDBStore extends DataStore {
 					String fileExtension = FilenameUtils.getExtension(file.getName());
 
 					if (file.isFile() && 
-							(fileExtension.equals("mp4") || fileExtension.equals("flv") || fileExtension.equals("mkv"))) {
+							("mp4".equals(fileExtension) || "flv".equals(fileExtension) || "mkv".equals(fileExtension))) {
 
 						long fileSize = file.length();
 						long unixTime = System.currentTimeMillis();
@@ -596,7 +588,7 @@ public class MapDBStore extends DataStore {
 
 
 	@Override
-	public boolean updateSourceQualityParameters(String id, String quality, double speed, int pendingPacketQueue) {
+	protected boolean updateSourceQualityParametersLocal(String id, String quality, double speed, int pendingPacketQueue) {
 		boolean result = false;
 		synchronized (this) {
 			if (id != null) {
@@ -757,6 +749,10 @@ public class MapDBStore extends DataStore {
 			int offsetCount = 0;
 			int batchCount = 0;
 
+			if (batchSize > MAX_ITEM_IN_ONE_LIST) {
+				batchSize = MAX_ITEM_IN_ONE_LIST;
+			}
+
 			for (Iterator<String> keyIterator =  detectionMap.keyIterator(); keyIterator.hasNext();) {
 				String keyValue = keyIterator.next();
 				if (keyValue.startsWith(idFilter)) 
@@ -798,25 +794,29 @@ public class MapDBStore extends DataStore {
 		return list.size();
 	}
 
+
+	/**
+	 * Updates the stream's name, description, userName, password, IP address, stream URL if these values is not null
+	 * @param streamId
+	 * @param broadcast
+	 * @return
+	 */
 	@Override
-	public boolean editStreamSourceInfo(Broadcast broadcast) {
+	public boolean updateBroadcastFields(String streamId, Broadcast broadcast) {
 		boolean result = false;
 		synchronized (this) {
 			try {
 				logger.debug("inside of editStreamSourceInfo {}", broadcast.getStreamId());
-				Broadcast oldBroadcast = get(broadcast.getStreamId());
+				Broadcast oldBroadcast = get(streamId);
+				if (oldBroadcast != null) 
+				{
 
-				oldBroadcast.setName(broadcast.getName());
-				oldBroadcast.setUsername(broadcast.getUsername());
-				oldBroadcast.setPassword(broadcast.getPassword());
-				oldBroadcast.setIpAddr(broadcast.getIpAddr());
-				oldBroadcast.setStreamUrl(broadcast.getStreamUrl());
-				oldBroadcast.setStreamUrl(broadcast.getStreamUrl());
+					updateStreamInfo(oldBroadcast, broadcast.getName(), broadcast.getDescription(), broadcast.getUsername(), broadcast.getPassword(), broadcast.getIpAddr(), broadcast.getStreamUrl());
+					getMap().replace(streamId, gson.toJson(oldBroadcast));
 
-				getMap().replace(oldBroadcast.getStreamId(), gson.toJson(oldBroadcast));
-
-				db.commit();
-				result = true;
+					db.commit();
+					result = true;
+				}
 			} catch (Exception e) {
 				result = false;
 			}
@@ -827,7 +827,7 @@ public class MapDBStore extends DataStore {
 	}
 
 	@Override
-	public synchronized boolean updateHLSViewerCount(String streamId, int diffCount) {
+	protected synchronized boolean updateHLSViewerCountLocal(String streamId, int diffCount) {
 		boolean result = false;
 
 		if (streamId != null) {
@@ -846,7 +846,7 @@ public class MapDBStore extends DataStore {
 	}
 
 	@Override
-	public synchronized boolean updateWebRTCViewerCount(String streamId, boolean increment) {
+	protected synchronized boolean updateWebRTCViewerCountLocal(String streamId, boolean increment) {
 		boolean result = false;
 		if (streamId != null) {
 			Broadcast broadcast = get(streamId);
@@ -867,7 +867,7 @@ public class MapDBStore extends DataStore {
 	}
 
 	@Override
-	public synchronized boolean updateRtmpViewerCount(String streamId, boolean increment) {
+	protected synchronized boolean updateRtmpViewerCountLocal(String streamId, boolean increment) {
 		boolean result = false;
 		if (streamId != null) {
 			Broadcast broadcast = get(streamId);
@@ -886,16 +886,16 @@ public class MapDBStore extends DataStore {
 		}
 		return result;
 	}
-	
+
 	@Override
 	public void addStreamInfoList(List<StreamInfo> streamInfoList) {
 		//used in mongo for cluster mode. useless here.
 	}
-	
+
 	public List<StreamInfo> getStreamInfoList(String streamId) {
 		return new ArrayList<>();
 	}
-	
+
 	public void clearStreamInfoList(String streamId) {
 		//used in mongo for cluster mode. useless here.
 	}
@@ -931,10 +931,21 @@ public class MapDBStore extends DataStore {
 				String jsonToken = tokenMap.get(token.getTokenId());
 				if (jsonToken != null) {
 					fetchedToken = gson.fromJson((String) jsonToken, Token.class);
-					if(fetchedToken.getStreamId().equals(token.getStreamId()) && fetchedToken.getType().equals(token.getType())) {
-						boolean result = tokenMap.remove(token.getTokenId()) != null;
-						if (result) {
-							db.commit();
+
+					if( fetchedToken.getType().equals(token.getType())
+							&& Instant.now().getEpochSecond() < fetchedToken.getExpireDate()) {
+						
+						if(token.getRoomId() == null || token.getRoomId().isEmpty() ) {
+							if(fetchedToken.getStreamId().equals(token.getStreamId())) {
+
+								boolean result = tokenMap.remove(token.getTokenId()) != null;
+								if (result) {
+									db.commit();
+								}
+							}
+							else{
+								fetchedToken = null;
+							}
 						}
 						return fetchedToken;
 					}
@@ -1026,7 +1037,7 @@ public class MapDBStore extends DataStore {
 			if (streamId != null) {
 				String jsonString = map.get(streamId);
 				if (jsonString != null && (enabled == MuxAdaptor.MP4_ENABLED_FOR_STREAM || enabled == MuxAdaptor.MP4_NO_SET_FOR_STREAM || enabled == MuxAdaptor.MP4_DISABLED_FOR_STREAM)) {			
-					
+
 					Broadcast broadcast =  gson.fromJson(jsonString, Broadcast.class);	
 					broadcast.setMp4Enabled(enabled);
 					map.replace(streamId, gson.toJson(broadcast));
@@ -1038,9 +1049,97 @@ public class MapDBStore extends DataStore {
 		}
 		return result;
 	}
-	
+
 	@Override
 	public void saveStreamInfo(StreamInfo streamInfo) {
 		//no need to implement this method, it is used in cluster mode
+	}
+
+
+
+	@Override
+	public boolean createConferenceRoom(ConferenceRoom room) {
+		synchronized (this) {
+			boolean result = false;
+
+			if (room != null && room.getRoomId() != null) {
+				conferenceRoomMap.put(room.getRoomId(), gson.toJson(room));
+				db.commit();
+				result = true;
+			}
+
+			return result;
+		}
+	}
+
+	@Override
+	public boolean editConferenceRoom(String roomId, ConferenceRoom room) {
+		synchronized (this) {
+			boolean result = false;
+
+			if (room != null && room.getRoomId() != null) {
+				conferenceRoomMap.replace(room.getRoomId(), gson.toJson(room));
+				db.commit();
+				result = true;
+			}
+			return result;
+		}
+	}
+
+	@Override
+	public boolean deleteConferenceRoom(String roomId) {
+		synchronized (this) 
+		{		
+			boolean result = false;
+
+			if (roomId != null && !roomId.isEmpty()) {
+				conferenceRoomMap.remove(roomId);
+				db.commit();
+				result = true;
+			}
+			return result;
+		}
+	}
+
+	@Override
+	public ConferenceRoom getConferenceRoom(String roomId) {
+		synchronized (this) {
+			if (roomId != null) {
+				String jsonString = conferenceRoomMap.get(roomId);
+				if (jsonString != null) {
+					return gson.fromJson(jsonString, ConferenceRoom.class);
+				}
+			}
+		}
+		return null;
+	}
+
+	@Override
+	public boolean deleteToken(String tokenId) {
+
+		boolean result = false;
+
+		synchronized (this) {
+			result = tokenMap.remove(tokenId) != null;
+			if (result) {
+				db.commit();
+			}
+		}
+		return result;
+	}
+
+	@Override
+	public Token getToken(String tokenId) {
+		Token token = null;
+		synchronized (this) {
+			if (tokenId != null) {
+				String jsonString = tokenMap.get(tokenId);
+				if (jsonString != null) {
+					token = gson.fromJson(jsonString, Token.class);
+				}
+			}
+		}
+		return token;
+
 	}
 }

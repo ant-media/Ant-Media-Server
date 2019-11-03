@@ -20,78 +20,98 @@ import io.antmedia.datastore.db.types.Token;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.security.ITokenService;
 
-public class TokenFilterManager implements javax.servlet.Filter   {
+public class TokenFilterManager extends AbstractFilter   {
 
+	private static final String REPLACE_CHARS_REGEX = "[\n|\r|\t]";
 	protected static Logger logger = LoggerFactory.getLogger(TokenFilterManager.class);
-	private FilterConfig filterConfig;
-	private AppSettings settings;
 	private ITokenService tokenService;
 
-
-	@Override
-	public void init(FilterConfig filterConfig) throws ServletException {
-		this.filterConfig = filterConfig;
-
-	}
 
 	@Override
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
 			throws IOException, ServletException {
 
 		boolean result = false;
-
+		
 		HttpServletRequest httpRequest =(HttpServletRequest)request;
 		HttpServletResponse httpResponse = (HttpServletResponse)response;
 
 		String method = httpRequest.getMethod();
 		String tokenId = ((HttpServletRequest) request).getParameter("token");
+		if (tokenId != null) {
+			tokenId = tokenId.replaceAll(REPLACE_CHARS_REGEX, "_");
+		}
+		 
 		String sessionId = httpRequest.getSession().getId();
 		String streamId = getStreamId(httpRequest.getRequestURI());
-		String clientIP = httpRequest.getRemoteAddr();
+		
+		String clientIP = httpRequest.getRemoteAddr().replaceAll(REPLACE_CHARS_REGEX, "_");
+
+		
+		AppSettings appSettings = getAppSettings();
+		if (appSettings == null) {
+			httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN,"Server is getting initialized.");
+			logger.warn("AppSettings not initialized. Server is getting started for stream id:{} from request: {}", streamId, clientIP);
+			return;
+		}
 
 
-		logger.info("Client IP: {}, request url:  {}, token:  {}, sessionId: {},streamId:  {} ",clientIP 
+		logger.debug("Client IP: {}, request url:  {}, token:  {}, sessionId: {},streamId:  {} ",clientIP 
 				,httpRequest.getRequestURI(), tokenId, sessionId, streamId);
 
 
-		if (method.equals("GET")) {
-			if(getAppSettings().isTokenControlEnabled()) {
-
-				result = getTokenService().checkToken(tokenId, streamId, sessionId, Token.PLAY_TOKEN);
-				if(!result) {
-					httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN,"Invalid Token");
-					logger.warn("token {} is not valid", tokenId);
-					return; 
-				}
-				chain.doFilter(request, response);
-			}
-
-			else if (getAppSettings().isHashControlPlayEnabled()) {
-				result = getTokenService().checkHash(tokenId, streamId, sessionId, Token.PLAY_TOKEN);
-
-				if(!result) {
-					httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN,"Invalid Hash");
-					logger.warn("hash {} is not valid", tokenId);
-					return; 
-				}
-
-				chain.doFilter(request, response);
-			}else {
+		if ("GET".equals(method)) 
+		{
+			
+			if(appSettings.isTokenControlEnabled()) 
+			{
 				
-				chain.doFilter(request, response);
+				ITokenService tokenServiceTmp = getTokenService();
+				if (tokenServiceTmp != null) 
+				{
+					if (!tokenServiceTmp.checkToken(tokenId, streamId, sessionId, Token.PLAY_TOKEN)) {
+						httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid Token");
+						logger.warn("token {} is not valid", tokenId);
+						return; 
+					}
+				}
+				else {
+					httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Not initialized");
+					logger.warn("Token service is not initialized. Server is getting started for stream id:{} from request: {}", streamId, clientIP);
+					return;
+				}
 			}
+
+			else if (appSettings.isHashControlPlayEnabled()) 
+			{
+				ITokenService tokenServiceTmp = getTokenService();
+				if (tokenServiceTmp != null) 
+				{
+					if (!tokenServiceTmp.checkHash(tokenId, streamId, sessionId, Token.PLAY_TOKEN)) {
+						httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN,"Invalid Hash");
+						logger.warn("hash {} is not valid", tokenId);
+						return; 
+					}
+				}
+				else {
+					httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Not initialized");
+					logger.warn("Token service is not initialized. Server is getting started for stream id:{} from request: {}", streamId, clientIP);
+					return;
+				}
+			}
+			
 		}
-		else {
-			chain.doFilter(httpRequest, response);
-		}
+	
+		chain.doFilter(request, response);
 
 	}
 
 	public ITokenService getTokenService() {
 		if (tokenService == null) {
-			ApplicationContext context = (ApplicationContext) filterConfig.getServletContext().getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
-			tokenService = (ITokenService)context.getBean(ITokenService.BeanName.TOKEN_SERVICE.toString());
-
+			ApplicationContext context = getAppContext();
+			if (context != null) {
+				tokenService = (ITokenService)context.getBean(ITokenService.BeanName.TOKEN_SERVICE.toString());
+			}
 		}
 		return tokenService;
 	}
@@ -101,16 +121,10 @@ public class TokenFilterManager implements javax.servlet.Filter   {
 		this.tokenService = tokenService;
 	}
 
-	public AppSettings getAppSettings() {
-		if (settings == null) {
-			ApplicationContext context = (ApplicationContext) filterConfig.getServletContext().getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
-			settings = (AppSettings)context.getBean(AppSettings.BEAN_NAME);
-
-		}
-		return settings;
-	}
-
 	public static String getStreamId(String requestURI) {
+		
+		requestURI = requestURI.replaceAll(REPLACE_CHARS_REGEX, "_");
+		
 		int endIndex;
 		int startIndex = requestURI.lastIndexOf('/');
 
@@ -147,20 +161,5 @@ public class TokenFilterManager implements javax.servlet.Filter   {
 
 		return null;
 	}
-
-	@Override
-	public void destroy() {
-
-		//no need to deploy
-	}
-
-
-
-
-
-
-
-
-
 
 }

@@ -28,8 +28,7 @@ public class PreferenceStoreTest {
 				Files.delete(f.toPath());
 			}
 
-			PreferenceStore dataStore = new PreferenceStore("data.properties");
-			dataStore.setFullPath(fullPath);
+			PreferenceStore dataStore = new PreferenceStore(fullPath);
 			assertNull(dataStore.get("data1"));
 
 			dataStore.put("data1", "value1");
@@ -42,14 +41,27 @@ public class PreferenceStoreTest {
 
 			assertEquals(dataStore.get("data1"), "value1");
 
-			dataStore = new PreferenceStore("data.properties");
-			dataStore.setFullPath(fullPath);
+			dataStore = new PreferenceStore(fullPath);
 			assertNotNull(dataStore.get("data1"));
 			assertEquals(dataStore.get("data1"), "value1");
 			dataStore.put("data4", "value4");
 			assertTrue(dataStore.save());
 
 			assertEquals(dataStore.get("data3"), "value3");
+			
+			dataStore.remove("data4");
+			
+			assertNull(dataStore.get("data4"));
+			
+			//create store with full path
+			dataStore = new PreferenceStore("data.properties");
+			
+			dataStore.put("data1", "value1");
+			
+			assertTrue(dataStore.save());
+			assertNotNull(dataStore.get("data1"));
+			assertEquals( "value1", dataStore.get("data1"));
+
 
 		} catch (IOException e) {
 			e.printStackTrace();

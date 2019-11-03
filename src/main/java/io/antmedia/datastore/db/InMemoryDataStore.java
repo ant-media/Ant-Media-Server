@@ -1,6 +1,7 @@
 package io.antmedia.datastore.db;
 
 import java.io.File;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -17,10 +18,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.cluster.StreamInfo;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
+import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
@@ -28,14 +30,13 @@ import io.antmedia.muxer.MuxAdaptor;
 
 public class InMemoryDataStore extends DataStore {
 
-
 	protected static Logger logger = LoggerFactory.getLogger(InMemoryDataStore.class);
 	private Map<String, Broadcast> broadcastMap = new LinkedHashMap<>();
 	private Map<String, VoD> vodMap = new LinkedHashMap<>();
 	private Map<String, List<TensorFlowObject>> detectionMap = new LinkedHashMap<>();
 	private Map<String, SocialEndpointCredentials> socialEndpointCredentialsMap = new LinkedHashMap<>();
 	private Map<String, Token> tokenMap = new LinkedHashMap<>();
-
+	private Map<String, ConferenceRoom> roomMap = new LinkedHashMap<>();
 
 	public InMemoryDataStore(String dbName) {
 	}
@@ -82,24 +83,14 @@ public class InMemoryDataStore extends DataStore {
 	}
 
 	@Override
-	public boolean updateName(String id, String name, String description) {
-		Broadcast broadcast = broadcastMap.get(id);
-		boolean result = false;
-		if (broadcast != null) {
-			broadcast.setName(name);
-			broadcast.setDescription(description);
-			broadcastMap.put(id, broadcast);
-			result = true;
-		}
-		return result;
-	}
-
-	@Override
 	public boolean updateStatus(String id, String status) {
 		Broadcast broadcast = broadcastMap.get(id);
 		boolean result = false;
 		if (broadcast != null) {
 			broadcast.setStatus(status);
+			if(status.contentEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
+				broadcast.setStartTime(System.currentTimeMillis());
+			}
 			broadcastMap.put(id, broadcast);
 			result = true;
 		}
@@ -252,11 +243,11 @@ public class InMemoryDataStore extends DataStore {
 
 		Collection<Broadcast> values =broadcastMap.values();
 
-		List<Broadcast> list = new ArrayList();
+		List<Broadcast> list = new ArrayList<>();
 
 		for (Broadcast broadcast : values) 
 		{
-			if(broadcast.getType().equals("ipCamera")) 
+			if(type.equals(broadcast.getType())) 
 			{
 				if (t < offset) {
 					t++;
@@ -383,7 +374,7 @@ public class InMemoryDataStore extends DataStore {
 				String fileExtension = FilenameUtils.getExtension(file.getName());
 
 				if (file.isFile() && 
-						(fileExtension.equals("mp4") || fileExtension.equals("flv") || fileExtension.equals("mkv"))) 
+						("mp4".equals(fileExtension) || "flv".equals(fileExtension) || "mkv".equals(fileExtension))) 
 				{
 					long fileSize = file.length();
 					long unixTime = System.currentTimeMillis();
@@ -411,7 +402,7 @@ public class InMemoryDataStore extends DataStore {
 
 
 	@Override
-	public boolean updateSourceQualityParameters(String id, String quality, double speed, int pendingPacketSize) {
+	public boolean updateSourceQualityParametersLocal(String id, String quality, double speed, int pendingPacketSize) {
 		boolean result = false;
 		if (id != null) {
 			Broadcast broadcast = broadcastMap.get(id);
@@ -511,9 +502,13 @@ public class InMemoryDataStore extends DataStore {
 
 	@Override
 	public List<TensorFlowObject> getDetectionList(String idFilter, int offsetSize, int batchSize) {
-		int offsetCount=0, batchCount=0;
+		int offsetCount=0; 
+		int batchCount=0;
 		List<TensorFlowObject> list = new ArrayList<>();
 		Set<String> keySet = detectionMap.keySet();
+		if (batchSize > MAX_ITEM_IN_ONE_LIST) {
+			batchSize = MAX_ITEM_IN_ONE_LIST;
+		}
 		for(String keyValue: keySet) {
 			if (keyValue.startsWith(idFilter)) 
 			{
@@ -559,23 +554,19 @@ public class InMemoryDataStore extends DataStore {
 	}
 
 	@Override
-	public boolean editStreamSourceInfo(Broadcast broadcast) {		
+	public boolean updateBroadcastFields(String streamId, Broadcast broadcast) {		
 		boolean result = false;
 		try {
-			logger.warn("inside of editCameraInfo");
+			Broadcast oldBroadcast = get(streamId);
 
-			Broadcast oldBroadcast = get(broadcast.getStreamId());
+			if (oldBroadcast != null) {
+				updateStreamInfo(oldBroadcast, broadcast.getName(), broadcast.getDescription(), broadcast.getUsername(), broadcast.getPassword(), broadcast.getIpAddr(), broadcast.getStreamUrl());
+				broadcastMap.replace(oldBroadcast.getStreamId(), oldBroadcast);
 
-			oldBroadcast.setName(broadcast.getName());
-			oldBroadcast.setUsername(broadcast.getUsername());
-			oldBroadcast.setPassword(broadcast.getPassword());
-			oldBroadcast.setIpAddr(broadcast.getIpAddr());
-			oldBroadcast.setStreamUrl(broadcast.getStreamUrl());
-
-			broadcastMap.replace(oldBroadcast.getStreamId(), oldBroadcast);
-
-			result = true;
+				result = true;
+			}
 		} catch (Exception e) {
+			logger.error("error in editStreamSourceInfo: {}",  ExceptionUtils.getStackTrace(e));
 			result = false;
 		}
 
@@ -583,7 +574,7 @@ public class InMemoryDataStore extends DataStore {
 	}
 
 	@Override
-	public synchronized boolean updateHLSViewerCount(String streamId, int diffCount) {
+	public synchronized boolean updateHLSViewerCountLocal(String streamId, int diffCount) {
 		boolean result = false;
 		if (streamId != null) {
 			Broadcast broadcast = broadcastMap.get(streamId);
@@ -600,7 +591,7 @@ public class InMemoryDataStore extends DataStore {
 	}
 
 	@Override
-	public synchronized boolean updateWebRTCViewerCount(String streamId, boolean increment) {
+	public synchronized boolean updateWebRTCViewerCountLocal(String streamId, boolean increment) {
 		boolean result = false;
 		if (streamId != null) {
 			Broadcast broadcast = broadcastMap.get(streamId);
@@ -622,7 +613,7 @@ public class InMemoryDataStore extends DataStore {
 	}
 
 	@Override
-	public synchronized boolean updateRtmpViewerCount(String streamId, boolean increment) {
+	public synchronized boolean updateRtmpViewerCountLocal(String streamId, boolean increment) {
 		boolean result = false;
 		if (streamId != null) {
 			Broadcast broadcast = broadcastMap.get(streamId);
@@ -665,8 +656,18 @@ public class InMemoryDataStore extends DataStore {
 		Token fetchedToken = null;
 		if (token.getTokenId() != null) {
 			fetchedToken = tokenMap.get(token.getTokenId());
-			if (fetchedToken != null && fetchedToken.getStreamId().equals(token.getStreamId()) && fetchedToken.getType().equals(token.getType())) {
-				tokenMap.remove(token.getTokenId());
+			if (fetchedToken != null 
+					&& fetchedToken.getType().equals(token.getType()) 
+					&& Instant.now().getEpochSecond() < fetchedToken.getExpireDate()) {
+
+				if(token.getRoomId() == null || token.getRoomId().isEmpty()) {
+					if(fetchedToken.getStreamId().equals(token.getStreamId())) {
+						tokenMap.remove(token.getTokenId());
+					}
+					else {
+						fetchedToken = null;
+					}
+				}
 				return fetchedToken;
 			}else {
 				fetchedToken = null;
@@ -764,9 +765,66 @@ public class InMemoryDataStore extends DataStore {
 
 		return result;
 	}
-	
+
 	@Override
 	public void saveStreamInfo(StreamInfo streamInfo) {
 		//no need to implement this method, it is used in cluster mode
+	}
+
+	@Override
+	public boolean createConferenceRoom(ConferenceRoom room) {
+
+		boolean result = false;
+
+		if (room != null && room.getRoomId() != null) {
+			roomMap.put(room.getRoomId(), room);
+			result = true;
+		}
+
+		return result;
+	}
+
+	@Override
+	public boolean editConferenceRoom(String roomId, ConferenceRoom room) {
+
+		boolean result = false;
+
+		if (room != null && room.getRoomId() != null) {
+			roomMap.replace(roomId, room);
+			result = true;
+		}
+		return result;
+	}
+
+	@Override
+	public boolean deleteConferenceRoom(String roomName) {
+
+		boolean result = false;
+
+		if (roomName != null && roomName.length() > 0 ) {
+			roomMap.remove(roomName);
+			result = true;
+		}
+		return result;
+
+	}
+
+	@Override
+	public ConferenceRoom getConferenceRoom(String roomName) {
+		return roomMap.get(roomName);
+	}
+
+	@Override
+	public boolean deleteToken(String tokenId) {
+
+		return tokenMap.remove(tokenId) != null;
+
+	}
+
+	@Override
+	public Token getToken(String tokenId) {
+
+		return tokenMap.get(tokenId);
+
 	}
 }

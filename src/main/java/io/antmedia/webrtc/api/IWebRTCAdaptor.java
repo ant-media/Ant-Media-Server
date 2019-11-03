@@ -1,11 +1,14 @@
 package io.antmedia.webrtc.api;
 
 import java.util.List;
+import java.util.Set;
 
 import org.red5.server.api.scope.IScopeService;
 
 import io.antmedia.cluster.IStreamInfo;
 import io.antmedia.rest.WebRTCClientStats;
+import io.antmedia.statistic.type.WebRTCAudioSendStats;
+import io.antmedia.statistic.type.WebRTCVideoSendStats;
 
 
 public interface IWebRTCAdaptor extends IScopeService {
@@ -66,5 +69,48 @@ public interface IWebRTCAdaptor extends IScopeService {
 	 * @return
 	 */
 	List<WebRTCClientStats> getWebRTCClientStats(String streamId);
+	
+	/**
+	 * Returns the stream id in the WebRTCAdaptor
+	 */
+	Set<String> getStreams();
+
+	/**
+	 * Sets the excessive bandwidth threshold value
+	 * @param excessiveBandwidthValue
+	 */
+	void setExcessiveBandwidthValue(int excessiveBandwidthValue);
+
+	/**
+	 * Sets the excessive bandwidth call threshold value
+	 * @param excessiveBandwidthCallThreshold
+	 */
+	void setExcessiveBandwidthCallThreshold(int excessiveBandwidthCallThreshold);
+
+	/**
+	 * Enable or disable excessive bandwidth algorithm
+	 * @param excessiveBandwidthAlgorithmEnabled
+	 */
+	void setExcessiveBandwidthAlgorithmEnabled(boolean excessiveBandwidthAlgorithmEnabled);
+
+	/**
+	 * Set packet loss threshold if packetLoss is bigger than this value in ExcessiveBandwidth
+	 * algorithm, it switches back to lower quality without try every attempts {@link #setTryCountBeforeSwitchback(int)}
+	 * @param packetLossDiffThresholdForSwitchback
+	 */
+	void setPacketLossDiffThresholdForSwitchback(int packetLossDiffThresholdForSwitchback);
+
+	/**
+	 * Set rtt measurement threshold if rttMeasurement is bigger than this value in ExcessiveBandwidth
+	 * algorithm, it switches back to lower quality without try every attempts {@link #setTryCountBeforeSwitchback(int)}
+	 * @param rttMeasurementDiffThresholdForSwitchback
+	 */
+	void setRttMeasurementDiffThresholdForSwitchback(int rttMeasurementDiffThresholdForSwitchback);
+
+	/**
+	 * Number of tries to switch back to lower quality in ExcessiveBandwidth
+	 * @param tryCountBeforeSwitchback
+	 */
+	void setTryCountBeforeSwitchback(int tryCountBeforeSwitchback);
 
 }

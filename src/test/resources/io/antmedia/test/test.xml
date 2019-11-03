@@ -6,12 +6,10 @@
 
 	<bean id="placeholderConfig"
 		class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
-		<property name="ignoreResourceNotFound" value="true" />
-		<property name="ignoreUnresolvablePlaceholders" value="true" />
 		<property name="locations">
 			<list>
-				<value>file:///${user.dir}/src/main/server/conf/red5.properties
-				</value>
+				<value>file:///${user.dir}/src/main/server/conf/red5.properties</value>
+				<value>file:///${user.dir}/src/test/resources/WEB-INF/red5-web.properties</value>
 			</list>
 		</property>
 	</bean>
@@ -83,7 +81,6 @@
 	</bean>
  -->
     <bean id="dataStoreFactory" class="io.antmedia.datastore.db.DataStoreFactory">
-		<property name="appName" value="junit" />
 		<property name="dbName" value="junit.db" />
 		<property name="dbType" value="memorydb" />
 		<property name="dbHost" value="" />
@@ -93,9 +90,16 @@
 	
 	<bean id="app.settings" class="io.antmedia.AppSettings"></bean>
 	
-	<bean id="web.handler" class="io.antmedia.test.Application" >
+	<bean id="web.handler" class="io.antmedia.test.Application">
 		<property name="dataStoreFactory" ref="dataStoreFactory" />
 		<property name="appSettings" ref="app.settings" />
+		<property name="streamPublishSecurityList">
+			<list>			  	
+				<bean class="io.antmedia.security.ExpireStreamPublishSecurity" >
+					<property name="dataStoreFactory"  ref="dataStoreFactory"/>
+				</bean>
+			</list>
+		</property>
 	</bean>
 
 	<!-- Streamable file factory -->
@@ -150,9 +154,13 @@
    			</bean>
    		</constructor-arg>	
    	</bean>
+   	
+   	<bean id="ant.media.server.settings" class="io.antmedia.settings.ServerSettings">
+	</bean>
 
-	<bean id="resourceMonitor" class="io.antmedia.statistic.ResourceMonitor" init-method="start">
+	<bean id="statsCollector" class="io.antmedia.statistic.StatsCollector" init-method="start">
    		<property name="cpuLimit" value="100"/>
+   		<property name="minFreeRamSize" value="20"/>
    	</bean>
 
 

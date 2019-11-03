@@ -5,6 +5,9 @@ import java.nio.ByteBuffer;
 import org.webrtc.IceCandidate;
 import org.webrtc.SessionDescription;
 
+import io.antmedia.statistic.type.WebRTCAudioSendStats;
+import io.antmedia.statistic.type.WebRTCVideoSendStats;
+
 public interface IWebRTCClient {
 	
 	
@@ -74,17 +77,82 @@ public interface IWebRTCClient {
 	 */
 	float getAudioFrameSentPeriod();
 	
-	/**
-	 * Return the period of entering audio thread interval in milliseconds
-	 * @return
+	/** 
+	 * @return the number of times video packet send called
 	 */
-	float getAudioThreadCheckInterval();
+	long getSendVideoPacketCallCount();
 	
 	/**
-	 * Return the priod of entering video thread interval in milliseconds
-	 * @return
+	 * @return number of times audio packet send called
 	 */
-	float getVideoThreadCheckInterval();
+	long getSendAudioPacketCallCount();
+	
+	/**
+	 * @return low level video stats
+	 */
+	public WebRTCVideoSendStats getVideoStats();
+	
+	/**
+	 * @return low level audio stats
+	 */
+	public WebRTCAudioSendStats getAudioStats();
 
+	/**
+	 * It's called when there is excessive bandwidth than the current one
+	 */
+	public void increaseExcessiveBandwidthCount();
 	
+	/**
+	 * Number of consecutive calls of increaseExcessiveBandwidthCount
+	 * @return
+	 */
+	public int getExcessiveBandwidthCount();
+	
+	/**
+	 * Reset the excessive bandwidth count
+	 */
+	public void resetExcessiveBandwidthCount();
+
+
+	/**
+	 * Return the round trip time measurement 
+	 * @return
+	 */
+	int getRttMeasurement();
+
+
+	/**
+	 * Returns the packetloss rate
+	 * @return
+	 */
+	int getPacketLoss();
+
+	/**
+	 * 
+	 * @param tryCountBeforeSwitchback
+	 */
+	void setTryCountBeforeSwitchBack(int tryCountBeforeSwitchback);
+	
+	/**
+	 * 
+	 * @return decrease
+	 */
+	int getTryCountBeforeSwitchBack();
+
+
+	/**
+	 * Cache current channel parameters like round trip time and packet loss
+	 */
+	public void cacheChannelParameters();
+	
+	/**
+	 * @return cached packet loss
+	 */
+	int getCachedPacketLoss();
+	
+	/**
+	 * 
+	 * @return cache rtt measurement
+	 */
+	int getCachedRttMeasurement();
 }

@@ -2,12 +2,6 @@ package io.antmedia.websocket;
 
 import java.io.IOException;
 
-import javax.annotation.Nonnull;
-import javax.websocket.EndpointConfig;
-import javax.websocket.OnClose;
-import javax.websocket.OnError;
-import javax.websocket.OnMessage;
-import javax.websocket.OnOpen;
 import javax.websocket.Session;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -23,26 +17,29 @@ import org.webrtc.SessionDescription;
 import org.webrtc.SessionDescription.Type;
 
 import io.antmedia.AppSettings;
+import io.antmedia.StreamIdValidator;
 import io.antmedia.recorder.FFmpegFrameRecorder;
 import io.antmedia.recorder.FrameRecorder;
 import io.antmedia.webrtc.adaptor.RTMPAdaptor;
 
-public abstract class WebSocketCommunityHandler {
+public class WebSocketCommunityHandler {
 
 	private static Logger logger = LoggerFactory.getLogger(WebSocketCommunityHandler.class);
 
 	private JSONParser jsonParser = new JSONParser();
 
 	private AppSettings appSettings;
+	
+	private ApplicationContext appContext;
 
-	@OnOpen
-	public void onOpen(Session session, EndpointConfig config)
-	{
+	protected Session session;
+	
+	public WebSocketCommunityHandler(ApplicationContext appContext, Session session) {
+		this.appContext = appContext;
+		this.session = session;
 		appSettings = (AppSettings) getAppContext().getBean(AppSettings.BEAN_NAME);
-		
 	}
-
-	@OnClose
+	
 	public void onClose(Session session) {
 		RTMPAdaptor connectionContext = (RTMPAdaptor) session.getUserProperties().get(session.getId());
 		if (connectionContext != null) {
@@ -50,15 +47,10 @@ public abstract class WebSocketCommunityHandler {
 		}
 	}
 
-	@OnError
 	public void onError(Session session, Throwable throwable) {
-
+		//not used for now
 	}
 
-	@Nonnull
-	public abstract ApplicationContext getAppContext();
-
-	@OnMessage
 	public void onMessage(Session session, String message) {
 		try {
 
@@ -66,19 +58,25 @@ public abstract class WebSocketCommunityHandler {
 				logger.error("Received message null for session id: {}" , session.getId());
 				return;
 			}
-
+			
 			JSONObject jsonObject = (JSONObject) jsonParser.parse(message);
 
 			String cmd = (String) jsonObject.get(WebSocketConstants.COMMAND);
 			if (cmd == null) {
 				logger.error("Received message does not contain any command for session id: {}" , session.getId());
 				return;
-			}
+			}				
 
 			final String streamId = (String) jsonObject.get(WebSocketConstants.STREAM_ID);
-			if (streamId == null || streamId.isEmpty()) 
+			if ((streamId == null || streamId.isEmpty())
+					&& !cmd.equals(WebSocketConstants.PING_COMMAND)) 
 			{
 				sendNoStreamIdSpecifiedError(session);
+				return;
+			}
+			
+			if(!StreamIdValidator.isStreamIdValid(streamId)) {
+				sendInvalidStreamNameError(session);
 				return;
 			}
 
@@ -116,6 +114,9 @@ public abstract class WebSocketCommunityHandler {
 
 				}
 			}
+			else if (cmd.equals(WebSocketConstants.PING_COMMAND)) {
+				sendPongMessage(session);
+			}
 
 
 		}
@@ -128,7 +129,7 @@ public abstract class WebSocketCommunityHandler {
 	private void startRTMPAdaptor(Session session, final String streamId) {
 
 		//get scope and use its name
-		String outputURL = "rtmp://127.0.0.1/WebRTCApp/" + streamId;
+		String outputURL = "rtmp://127.0.0.1/StreamApp/" + streamId;
 
 		RTMPAdaptor connectionContext = getNewRTMPAdaptor(outputURL);
 
@@ -163,7 +164,7 @@ public abstract class WebSocketCommunityHandler {
 	private void setRemoteDescription(RTMPAdaptor connectionContext, String typeString, String sdpDescription, String streamId) {
 		if (connectionContext != null) {
 			SessionDescription.Type type;
-			if (typeString.equals("offer")) {
+			if ("offer".equals(typeString)) {
 				type = Type.OFFER;
 				logger.info("received sdp type is offer {}", streamId);
 			}
@@ -200,6 +201,14 @@ public abstract class WebSocketCommunityHandler {
 
 		sendMessage(jsonObj.toJSONString(), session);
 	}
+	
+	@SuppressWarnings("unchecked")
+	public void sendPongMessage(Session session) {
+		JSONObject jsonResponseObject = new JSONObject();
+		jsonResponseObject.put(WebSocketConstants.COMMAND, WebSocketConstants.PONG_COMMAND);
+		sendMessage(jsonResponseObject.toJSONString(), session);
+	}
+	
 
 	@SuppressWarnings("unchecked")
 	public  void sendPublishFinishedMessage(String streamId, Session session) {
@@ -255,7 +264,7 @@ public abstract class WebSocketCommunityHandler {
 	}
 
 	@SuppressWarnings("unchecked")
-	protected  final  void sendNoStreamIdSpecifiedError(Session session)  {
+	public  final  void sendNoStreamIdSpecifiedError(Session session)  {
 		JSONObject jsonResponse = new JSONObject();
 		jsonResponse.put(WebSocketConstants.COMMAND, WebSocketConstants.ERROR_COMMAND);
 		jsonResponse.put(WebSocketConstants.DEFINITION, WebSocketConstants.NO_STREAM_ID_SPECIFIED);
@@ -307,5 +316,35 @@ public abstract class WebSocketCommunityHandler {
 		return jsonResponseObject;
 	}
 
+	@SuppressWarnings("unchecked")
+	public void sendInvalidStreamNameError(Session session)  {
+		JSONObject jsonResponse = new JSONObject();
+		jsonResponse.put(WebSocketConstants.COMMAND, WebSocketConstants.ERROR_COMMAND);
+		jsonResponse.put(WebSocketConstants.DEFINITION, WebSocketConstants.INVALID_STREAM_NAME);
+		sendMessage(jsonResponse.toJSONString(), session);	
+	}
 
+	public ApplicationContext getAppContext() {
+		return appContext;
+	}
+
+	public void setAppContext(ApplicationContext appContext) {
+		this.appContext = appContext;
+	}
+	
+	public void sendRemoteDescriptionSetFailure(Session session, String streamId) {
+		JSONObject jsonObject = new JSONObject();
+		jsonObject.put(WebSocketConstants.COMMAND, WebSocketConstants.ERROR_COMMAND);
+		jsonObject.put(WebSocketConstants.DEFINITION, WebSocketConstants.NOT_SET_REMOTE_DESCRIPTION);
+		jsonObject.put(WebSocketConstants.STREAM_ID, streamId);
+		sendMessage(jsonObject.toJSONString(), session);
+	}
+	
+	public void sendLocalDescriptionSetFailure(Session session, String streamId) {
+		JSONObject jsonObject = new JSONObject();
+		jsonObject.put(WebSocketConstants.COMMAND, WebSocketConstants.ERROR_COMMAND);
+		jsonObject.put(WebSocketConstants.DEFINITION, WebSocketConstants.NOT_SET_LOCAL_DESCRIPTION);
+		jsonObject.put(WebSocketConstants.STREAM_ID, streamId);
+		sendMessage(jsonObject.toJSONString(), session);
+	}
 }

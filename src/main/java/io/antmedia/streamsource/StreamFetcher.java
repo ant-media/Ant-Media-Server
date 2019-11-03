@@ -23,20 +23,20 @@ import org.bytedeco.javacpp.avformat.AVFormatContext;
 import org.bytedeco.javacpp.avutil;
 import org.bytedeco.javacpp.avutil.AVDictionary;
 import org.bytedeco.javacpp.avutil.AVRational;
-import org.red5.server.api.scheduling.IScheduledJob;
-import org.red5.server.api.scheduling.ISchedulingService;
 import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
+import io.antmedia.IApplicationAdaptorFactory;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.RtmpMuxer;
 import io.antmedia.rest.model.Result;
+import io.vertx.core.Vertx;
 
 public class StreamFetcher {
 
@@ -54,7 +54,7 @@ public class StreamFetcher {
 	 */
 	private long lastPacketReceivedTime = 0;
 	private boolean threadActive = false;
-	private Result cameraError=new Result(false,"");
+	private Result cameraError = new Result(false,"");
 	private static final int PACKET_RECEIVED_INTERVAL_TIMEOUT = 3000;
 	private IScope scope;
 	private AntMediaApplicationAdapter appInstance;
@@ -74,11 +74,11 @@ public class StreamFetcher {
 
 	private ConcurrentLinkedQueue<AVPacket> availableBufferQueue = new ConcurrentLinkedQueue<>();
 
-	private ISchedulingService scheduler;
 	private AVRational avRationalTimeBaseMS;
 	private AppSettings appSettings;
+	private Vertx vertx;
 
-	public StreamFetcher(Broadcast stream, IScope scope, ISchedulingService scheduler)  {
+	public StreamFetcher(Broadcast stream, IScope scope, Vertx vertx)  {
 		if (stream == null || stream.getStreamId() == null || stream.getStreamUrl() == null) {
 			String streamId = null;
 			if (stream != null) {
@@ -94,7 +94,7 @@ public class StreamFetcher {
 
 		this.stream = stream;
 		this.scope = scope;
-		this.scheduler = scheduler;
+		this.vertx = vertx;
 
 
 		if (getAppSettings() == null) {
@@ -106,8 +106,6 @@ public class StreamFetcher {
 		avRationalTimeBaseMS = new AVRational();
 		avRationalTimeBaseMS.num(1);
 		avRationalTimeBaseMS.den(1000);
-
-		logger.debug(":::::::::::scope is {}" , scope.getName());
 
 	}
 
@@ -137,14 +135,14 @@ public class StreamFetcher {
 
 		if ((ret = avformat_open_input(inputFormatContext, stream.getStreamUrl(), null, optionsDictionary)) < 0) {
 
-			byte[] data = new byte[1024];
+			byte[] data = new byte[100];
 			avutil.av_strerror(ret, data, data.length);
 
 			String errorStr=new String(data, 0, data.length);
 
 			result.setMessage(errorStr);		
 
-			logger.debug("cannot open input context with error:: {}",  result.getMessage());
+			logger.error("cannot open stream: {} with error:: {}",  stream.getStreamUrl(), result.getMessage());
 			return result;
 		}
 
@@ -152,9 +150,8 @@ public class StreamFetcher {
 
 		ret = avformat_find_stream_info(inputFormatContext, (AVDictionary) null);
 		if (ret < 0) {
-
 			result.setMessage("Could not find stream information\n");
-			logger.info(result.getMessage());
+			logger.error(result.getMessage());
 			return result;
 		}
 
@@ -178,7 +175,7 @@ public class StreamFetcher {
 
 	}
 
-	public class WorkerThread extends Thread implements IScheduledJob {
+	public class WorkerThread extends Thread {
 
 		private static final int PACKET_WRITER_PERIOD_IN_MS = 10;
 
@@ -200,10 +197,11 @@ public class StreamFetcher {
 			long bufferDuration = 0;
 
 			AVPacket pkt = null;
-			String packetWriterJobName = null;
+			long packetWriterJobName = -1L;
 			try {
 				inputFormatContext = new AVFormatContext(null); 
 				pkt = avcodec.av_packet_alloc();
+				logger.info("Preparing the StreamFetcher for {}", stream.getStreamUrl());
 				Result result = prepare(inputFormatContext);
 
 
@@ -214,7 +212,6 @@ public class StreamFetcher {
 						logger.debug(" codec: {}", inputFormatContext.streams(0).codecpar().codec_id());
 
 					}
-
 					muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null,true, scope);
 					// if there is only audio, firstKeyFrameReceivedChecked should be true in advance
 					// because there is no video frame
@@ -235,7 +232,7 @@ public class StreamFetcher {
 						getInstance().startPublish(stream.getStreamId());
 
 						if (bufferTime > 0) {
-							packetWriterJobName = scheduler.addScheduledJob(PACKET_WRITER_PERIOD_IN_MS, this);
+							packetWriterJobName = vertx.setPeriodic(PACKET_WRITER_PERIOD_IN_MS, l->execute());
 						}
 
 						int bufferLogCounter = 0;
@@ -308,7 +305,7 @@ public class StreamFetcher {
 
 									bufferLogCounter++;
 									if (bufferLogCounter % 100 == 0) {
-										logger.info("Buffer status {}, buffer duration {}ms buffer time {}ms", buffering, bufferDuration, bufferTime);
+										logger.debug("Buffer status {}, buffer duration {}ms buffer time {}ms", buffering, bufferDuration, bufferTime);
 										bufferLogCounter = 0;
 									}
 								}
@@ -326,11 +323,14 @@ public class StreamFetcher {
 
 					}
 					else {
-						logger.debug("Prepare for {} returned false", stream.getName());
+						logger.error("MuxAdaptor.Prepare for {} returned false", stream.getName());
 					}
 
 					setCameraError(result);
 				} 
+				else {
+					logger.error("Prepare for opening the {} has failed", stream.getStreamUrl());
+				}
 			}
 			catch (OutOfMemoryError | Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
@@ -338,9 +338,9 @@ public class StreamFetcher {
 			}
 
 
-			if (packetWriterJobName != null) {
+			if (packetWriterJobName != -1) {
 				logger.info("Removing packet writer job {}", packetWriterJobName);
-				scheduler.removeScheduledJob(packetWriterJobName);
+				vertx.cancelTimer(packetWriterJobName);
 			}
 
 			writeAllBufferedPackets();
@@ -349,6 +349,7 @@ public class StreamFetcher {
 			if (muxAdaptor != null) {
 				logger.info("Writing trailer in Muxadaptor {}", stream.getStreamId());
 				muxAdaptor.writeTrailer(inputFormatContext);
+				appInstance.muxAdaptorRemoved(muxAdaptor);
 				muxAdaptor = null;
 			}
 
@@ -424,8 +425,7 @@ public class StreamFetcher {
 			return stopRequestReceived;
 		}
 
-		@Override
-		public void execute(ISchedulingService service) throws CloneNotSupportedException 
+		public void execute() 
 		{
 			if (isJobRunning.compareAndSet(false, true)) 
 			{
@@ -580,7 +580,7 @@ public class StreamFetcher {
 
 	public AntMediaApplicationAdapter getInstance() {
 		if (appInstance == null) {
-			appInstance = (AntMediaApplicationAdapter) scope.getContext().getApplicationContext().getBean(AntMediaApplicationAdapter.BEAN_NAME);
+			appInstance = ((IApplicationAdaptorFactory) scope.getContext().getApplicationContext().getBean(AntMediaApplicationAdapter.BEAN_NAME)).getAppAdaptor();
 		}
 		return appInstance;
 	}

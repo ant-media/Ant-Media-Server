@@ -11,6 +11,7 @@ import org.onvif.ver10.schema.Date;
 import org.onvif.ver10.schema.DateTime;
 import org.onvif.ver10.schema.FocusConfiguration20;
 import org.onvif.ver10.schema.ImagingSettings20;
+import org.onvif.ver10.schema.PTZVector;
 import org.onvif.ver10.schema.Profile;
 import org.onvif.ver10.schema.Time;
 import org.slf4j.Logger;
@@ -25,24 +26,55 @@ public class OnvifCamera implements IOnvifCamera {
 	PtzDevices ptzDevices;
 	List<Profile> profiles;
 
+	public static final int CONNECTION_SUCCESS = 0;
+	public static final int CONNECT_ERROR = -1;
+	public static final int AUTHENTICATION_ERROR = -2;
 	String profileToken;
-	
+	private static final String HTTP = "http://";
+
+
 	protected static Logger logger = LoggerFactory.getLogger(OnvifCamera.class);
 
 	@Override
-	public boolean connect(String address, String username, String password) {
-		boolean result = false;
+	public int connect(String address, String username, String password) {
+		int result = CONNECT_ERROR;
+		String camIP = "";
 		try {
-			nvt = new OnvifDevice(address, username, password);
+			
+			camIP = getURL(address);
+			
+			nvt = new OnvifDevice(camIP, username, password);
+			nvt.getSoap().setLogging(false);
 			nvt.getDevices().getCapabilities().getDevice();
 			nvt.getDevices().getServices(false);
 			ptzDevices = nvt.getPtz();
 			profiles = nvt.getDevices().getProfiles();
-			profileToken = profiles.get(0).getToken();
-			result = true;
+
+
+			if (profiles != null) 
+			{
+				for (Profile profile : profiles) {
+					if (profile.getPTZConfiguration() != null) {
+						profileToken = profile.getToken();
+						break;
+					}
+				}
+				if (profileToken == null) {
+					profileToken = profiles.get(0).getToken();
+				}
+				
+				result = CONNECTION_SUCCESS;
+			}
+			else {
+				//it is likely authentication error but maybe something else
+				//inform user to check username and password
+				result = AUTHENTICATION_ERROR;
+			}
+
 		} catch (ConnectException | SOAPException e) {
-			logger.error(ExceptionUtils.getStackTrace(e));
-			result = false;
+
+			//connection error. Let the user check ip address
+			result = CONNECT_ERROR;
 		} 
 		return result;
 	}
@@ -55,97 +87,54 @@ public class OnvifCamera implements IOnvifCamera {
 
 	@Override
 	public String getRTSPStreamURI() {
-		String PTSPURL = null;
+		String rtspURL = null;
 
 		try {
-			PTSPURL = nvt.getMedia().getRTSPStreamUri(profileToken);
+			rtspURL = nvt.getMedia().getRTSPStreamUri(profileToken);
 
 		} catch (NullPointerException | ConnectException | SOAPException e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
 		}
-		return PTSPURL;
+		return rtspURL;
 	}
 
 	@Override
 	public String getTCPStreamURI() {
-		String PTSPURL = null;
+		String rtspURL = null;
 
 		try {
-			PTSPURL = nvt.getMedia().getTCPStreamUri(profileToken);
+			rtspURL = nvt.getMedia().getTCPStreamUri(profileToken);
 
 		} catch (ConnectException | SOAPException e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
 		} 
-		return PTSPURL;
+		return rtspURL;
 	}
-
-	@Override
-	public boolean MoveUp() {
-
-		ptzDevices.relativeMove(profileToken, 0f, 0.1f, 0f);
-
+	
+	
+	public boolean moveContinous(float x, float y, float zoom) {
+		return ptzDevices.continuousMove(profileToken, x, y, zoom);
+	}
+	
+	public boolean moveRelative(float x, float y, float zoom) {
+		return ptzDevices.relativeMove(profileToken, x, y, zoom);
+	}
+	
+	public boolean moveAbsolute(float x, float y, float zoom) {
+		boolean result = false;
 		try {
-			Thread.sleep(500);
-
-			ptzDevices.stopMove(profileToken);
-		} catch (InterruptedException e) {
-			logger.error(ExceptionUtils.getStackTrace(e));
-			Thread.currentThread().interrupt();
+			result = ptzDevices.absoluteMove(profileToken, x, y, zoom);
 		}
-		return true;
+		catch (SOAPException e) {
+			result = false;
+			logger.error(ExceptionUtils.getStackTrace(e));
+		}
+		return result;
 	}
 
 	@Override
-	public boolean MoveDown() {
-
-		ptzDevices.relativeMove(profileToken, 0f, -0.1f, 0f);
-		try {
-			Thread.sleep(500);
-
-			ptzDevices.stopMove(profileToken);
-		} catch (InterruptedException e) {
-			logger.error(ExceptionUtils.getStackTrace(e));
-			Thread.currentThread().interrupt();
-		}
-
-		return true;
-	}
-
-	@Override
-	public boolean MoveRight() {
-		ptzDevices.relativeMove(profileToken, 1f, 0f, 0f);
-
-		try {
-			Thread.sleep(500);
-
-			ptzDevices.stopMove(profileToken);
-		} catch (InterruptedException e) {
-			logger.error(ExceptionUtils.getStackTrace(e));
-			Thread.currentThread().interrupt();
-		}
-
-		return true;
-	}
-
-	@Override
-	public boolean MoveLeft() {
-		ptzDevices.relativeMove(profileToken, -1f, 0f, 0f);
-		try {
-			Thread.sleep(500);
-
-			ptzDevices.stopMove(profileToken);
-		} catch (InterruptedException e) {
-			logger.error(ExceptionUtils.getStackTrace(e));
-			Thread.currentThread().interrupt();
-		}
-
-		return true;
-	}
-
-	@Override
-	public boolean MoveStop() {
-		ptzDevices.stopMove(profileToken);
-		return true;
+	public boolean moveStop() {
+		return ptzDevices.stopMove(profileToken);
 	}
 
 	@Override
@@ -170,35 +159,6 @@ public class OnvifCamera implements IOnvifCamera {
 		return nvt.getDate();
 	}
 
-	public boolean setDateTime(Date date, Time time) {
-
-		DateTime dt = new DateTime();
-
-		/*
-		 * Date date = new Date();
-		 * 
-		 * date.setDay(1);
-		 * 
-		 * date.setMonth(1);
-		 * 
-		 * date.setYear(2005);
-		 * 
-		 * 
-		 * Time time = new Time();
-		 * 
-		 * time.setHour(10);
-		 * 
-		 * time.setMinute(10);
-		 * 
-		 * time.setSecond(10);
-		 */
-
-		dt.setDate(date);
-
-		dt.setTime(time);
-
-		return true;
-	}
 
 	@Override
 	public boolean setBrightness(float brightness) {
@@ -271,12 +231,39 @@ public class OnvifCamera implements IOnvifCamera {
 	public boolean isFocusModeAuto() {
 		ImagingSettings20 image_set = nvt.getImaging().getImagingSettings(profileToken);
 		FocusConfiguration20 focus = image_set.getFocus();
-		return focus.getAutoFocusMode().value().equals("AUTO");
+		return "AUTO".equals(focus.getAutoFocusMode().value());
 	}
 
 	@Override
 	public boolean setDateTime(java.sql.Date date, java.sql.Time time) {
 		return false;
+	}
+	
+	public String getURL (String url) {
+
+		String[] ipAddrParts = null;
+		String ipAddr = url;
+
+		if(url != null && (url.startsWith(HTTP) ||
+				url.startsWith("https://") ||
+				url.startsWith("rtmp://") ||
+				url.startsWith("rtmps://") ||
+				url.startsWith("rtsp://"))) {
+
+			ipAddrParts = url.split("//");
+			ipAddr = ipAddrParts[1];
+		}
+		if (ipAddr != null) {
+
+			if (ipAddr.contains("/")){
+				ipAddrParts = ipAddr.split("/");
+				ipAddr = ipAddrParts[0];
+			}
+			logger.info("IP: {}", ipAddr);
+
+
+		}
+		return ipAddr;
 	}
 
 }

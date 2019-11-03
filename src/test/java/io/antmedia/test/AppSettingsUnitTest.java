@@ -15,13 +15,19 @@ import org.apache.catalina.util.NetMask;
 import org.junit.Test;
 import org.red5.server.Launcher;
 import org.red5.server.scope.WebScope;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
+import org.springframework.mock.web.MockServletContext;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
+import org.springframework.web.context.support.XmlWebApplicationContext;
 
 import io.antmedia.AppSettings;
 import io.antmedia.EncoderSettings;
+import io.antmedia.SystemUtils;
 import io.antmedia.rest.BroadcastRestService;
 
 @ContextConfiguration(locations = { "test.xml" })
@@ -33,21 +39,60 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 	static {
 		System.setProperty("red5.deployment.type", "junit");
 		System.setProperty("red5.root", ".");
+		
 	}
 	
 	@Test
-	public void testDefaultSettings() {
-
-		if (appScope == null) {
+	public void testDefaultSettings() 
+	{
+		if (appScope == null) 
+		{
 			appScope = (WebScope) applicationContext.getBean("web.scope");
 			assertTrue(appScope.getDepth() == 1);
 		}
 		
 		AppSettings appSettings = (AppSettings) applicationContext.getBean("app.settings");
 		
+		assertEquals("stun:stun.l.google.com:19302", appSettings.getStunServerURI());
+		assertEquals(true, appSettings.isWebRTCTcpCandidatesEnabled());
+		assertNull(appSettings.getEncoderName());
+		assertEquals(480, appSettings.getPreviewHeight());
+		assertFalse(appSettings.isUseOriginalWebRTCEnabled());
+		assertEquals(5000, appSettings.getCreatePreviewPeriod());
+		
 		List<NetMask> allowedCIDRList = appSettings.getAllowedCIDRList();
 		System.out.println("allowedCIDRList ->" + allowedCIDRList.size());
 	}
+	
+	/*
+	@Test
+	public void testXMLApplication() {
+		
+		XmlWebApplicationContext applicationContext = new XmlWebApplicationContext();
+		    applicationContext.setConfigLocations(
+		            "red5-web.xml");
+		    applicationContext.setServletContext(new MockServletContext(new ResourceLoader() {
+				
+				@Override
+				public Resource getResource(String location) {
+					return new FileSystemResource("src/test/resources/WEB-INF/xml/" + location);
+				}
+				
+				@Override
+				public ClassLoader getClassLoader() {
+					return getClassLoader();
+				}
+			}));
+		    applicationContext.refresh();
+		    
+		    
+		    assertNotNull(applicationContext);
+		    
+		   
+		
+		 
+	}
+	*/
 	
 	
 	@Test
@@ -86,26 +131,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		assertEquals(encoderSettingString, appSettings.encodersList2Str(list));
 	}
-	
-	
-	@Test
-	public void testReadWriteSimple() {
-			Launcher launcher = new Launcher();
-			File f = new File("testFile");
-			String content = "contentntntnt";
-			launcher.writeToFile(f.getAbsolutePath(), content);
-			
-			String fileContent = launcher.getFileContent(f.getAbsolutePath());
-			
-			assertEquals(fileContent, content);
-			
-			try {
-				Files.delete(f.toPath());
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-	}
-	
+
 	@Test
 	public void isCommunity() {
 		assertFalse(BroadcastRestService.isEnterprise());
@@ -119,22 +145,22 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertFalse(appSettings.isAddDateTimeToMp4FileName());
 		assertTrue(appSettings.isHlsMuxingEnabled());
 		assertFalse(appSettings.isWebRTCEnabled());
-		assertTrue(appSettings.isDeleteHLSFilesOnExit());
+		assertTrue(appSettings.isDeleteHLSFilesOnEnded());
 		assertFalse(appSettings.isMp4MuxingEnabled());
 		assertNull(appSettings.getHlsListSize());
 		assertNull(appSettings.getHlsTime());
 		assertNull(appSettings.getHlsPlayListType());
-		assertNull(appSettings.getAdaptiveResolutionList());
+		assertTrue(appSettings.getEncoderSettings().isEmpty());
 	}
 	
 	@Test
 	public void testEncoderSettingsAtStartUp() {
 		AppSettings appSettings = new AppSettings();
 		String encSettings = "480,500000,96000,240,300000,64000";
-		assertNull(appSettings.getAdaptiveResolutionList());
+		assertNull(appSettings.getEncoderSettings());
 		appSettings.setEncoderSettingsString(encSettings);
-		assertNotNull(appSettings.getAdaptiveResolutionList());
-		assertEquals(2, appSettings.getAdaptiveResolutionList().size());
+		assertNotNull(appSettings.getEncoderSettings());
+		assertEquals(2, appSettings.getEncoderSettings().size());
 	}
 
 }

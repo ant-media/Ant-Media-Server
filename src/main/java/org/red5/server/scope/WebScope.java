@@ -33,8 +33,11 @@ import org.red5.server.api.scope.ScopeType;
 import org.red5.server.jmx.mxbeans.WebScopeMXBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.web.context.ServletContextAware;
 
@@ -82,11 +85,14 @@ public class WebScope extends Scope implements ServletContextAware, WebScopeMXBe
     /**
      * Context path
      */
+    
+    @Value("${webapp.contextPath}")
     protected String contextPath;
 
     /**
      * Virtual hosts list as string
      */
+    @Value("${webapp.virtualHosts}")
     protected String virtualHosts;
 
     /**
@@ -110,8 +116,11 @@ public class WebScope extends Scope implements ServletContextAware, WebScopeMXBe
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        register();
+    		super.setName(contextPath.substring(1));
+    		splitHostNames(virtualHosts);
+    		register();
     }
+    
 
     @Override
     public void destroy() throws Exception {
@@ -200,11 +209,15 @@ public class WebScope extends Scope implements ServletContextAware, WebScopeMXBe
      */
     public void setVirtualHosts(String virtualHosts) {
         this.virtualHosts = virtualHosts;
-        // Split string into array of vhosts
+        splitHostNames(virtualHosts);
+    }
+    
+    private void splitHostNames(String virtualHosts) {
+    	 // Split string into array of vhosts
         hostnames = virtualHosts.split(",");
         for (int i = 0; i < hostnames.length; i++) {
             hostnames[i] = hostnames[i].trim();
-            if (hostnames[i].equals("*")) {
+            if ("*".equals(hostnames[i])) {
                 hostnames[i] = "";
             }
         }

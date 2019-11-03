@@ -2,7 +2,6 @@ package io.antmedia.integration;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
@@ -21,8 +20,6 @@ import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.mockito.Mockito;
-import org.red5.server.api.IContext;
-import org.red5.server.api.scope.IScope;
 import org.red5.server.scheduling.QuartzSchedulingService;
 import org.red5.server.scope.WebScope;
 import org.slf4j.Logger;
@@ -34,14 +31,13 @@ import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
-import io.antmedia.datastore.db.DataStoreFactory;
+import io.antmedia.IApplicationAdaptorFactory;
 import io.antmedia.datastore.db.DataStore;
-import io.antmedia.datastore.db.InMemoryDataStore;
+import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.rest.model.Result;
 import io.antmedia.streamsource.StreamFetcher;
-import io.antmedia.test.StreamFetcherUnitTest;
 
 @ContextConfiguration(locations = { "../test/test.xml" })
 @DirtiesContext(classMode = ClassMode.AFTER_CLASS)
@@ -71,7 +67,7 @@ public class StreamFetcherTest extends AbstractJUnit4SpringContextTests{
 	
 	
 	private WebScope appScope;
-	protected static Logger logger = LoggerFactory.getLogger(StreamFetcherUnitTest.class);
+	protected static Logger logger = LoggerFactory.getLogger(StreamFetcherTest.class);
 	public AntMediaApplicationAdapter app = null;
 	private AntMediaApplicationAdapter appInstance;
 	private AppSettings appSettings;
@@ -133,7 +129,7 @@ public class StreamFetcherTest extends AbstractJUnit4SpringContextTests{
 		if (app == null) 
 		{
 
-			app = (AntMediaApplicationAdapter) applicationContext.getBean("web.handler");
+			app = ((IApplicationAdaptorFactory) applicationContext.getBean("web.handler")).getAppAdaptor();
 			logger.debug("Application / web scope: {}", appScope);
 			assertTrue(appScope.getDepth() == 1);
 		}

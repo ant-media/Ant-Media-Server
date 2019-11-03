@@ -1,15 +1,18 @@
 package io.antmedia.test.filter;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.io.IOException;
 
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
@@ -26,14 +29,10 @@ import org.junit.runner.Description;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
+import org.springframework.web.context.ConfigurableWebApplicationContext;
 import org.springframework.web.context.WebApplicationContext;
 
-import static org.mockito.Mockito.*;
-
-import java.io.IOException;
-
 import io.antmedia.filter.HlsStatisticsFilter;
-import io.antmedia.integration.RestServiceTest;
 import io.antmedia.statistic.HlsViewerStats;
 import io.antmedia.statistic.IStreamStats;
 
@@ -68,14 +67,57 @@ public class HlsStatisticsFilterTest {
 	   };
 	};
 	
-	
+	@Test
+	public void testUninitialized() {
+		FilterConfig filterconfig = mock(FilterConfig.class);
+		
+		ServletContext servletContext = mock(ServletContext.class);
+		ApplicationContext context = mock(ConfigurableWebApplicationContext.class);
+		when(servletContext.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE))
+		.thenReturn(context);
+		
+		when(filterconfig.getServletContext()).thenReturn(servletContext);
+		
+		hlsStatisticsFilter.setConfig(filterconfig);
+		
+		
+		assertNull(hlsStatisticsFilter.getStreamStats());
+		
+		
+		
+		HttpServletRequest mockRequest = mock(HttpServletRequest.class);
+		HttpServletResponse mockResponse = mock(HttpServletResponse.class);
+		FilterChain mockChain = mock(FilterChain.class);
+		
+		HttpSession session = mock(HttpSession.class);
+		String sessionId = RandomStringUtils.randomAlphanumeric(16);
+		when(session.getId()).thenReturn(sessionId);
+		when(mockRequest.getSession()).thenReturn(session);
+		when(mockRequest.getMethod()).thenReturn("GET");
+		
+		String streamId = RandomStringUtils.randomAlphanumeric(8);
+		when(mockRequest.getRequestURI()).thenReturn("/LiveApp/streams/"+streamId+".m3u8");
+		
+		when(mockResponse.getStatus()).thenReturn(HttpServletResponse.SC_OK);
+		
+		try {
+			hlsStatisticsFilter.doFilter(mockRequest, mockResponse, mockChain);
+		} catch (IOException e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+			fail(ExceptionUtils.getStackTrace(e));
+		} catch (ServletException e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+			fail(ExceptionUtils.getStackTrace(e));
+		}
+	}
 	
 	@Test
 	public void testDoFilter() {
 		FilterConfig filterconfig = mock(FilterConfig.class);
 		ServletContext servletContext = mock(ServletContext.class);
-		ApplicationContext context = mock(ApplicationContext.class);
+		ConfigurableWebApplicationContext context = mock(ConfigurableWebApplicationContext.class);
 		
+		when(context.isRunning()).thenReturn(true);
 		IStreamStats streamStats = mock(IStreamStats.class);
 		
 		when(context.getBean(HlsViewerStats.BEAN_NAME)).thenReturn(streamStats);
@@ -113,11 +155,11 @@ public class HlsStatisticsFilterTest {
 			
 			
 		} catch (ServletException|IOException e) {
-			e.printStackTrace();
+			logger.error(ExceptionUtils.getStackTrace(e));
 			fail(ExceptionUtils.getStackTrace(e));
 		} 
 		catch (Exception e) {
-			e.printStackTrace();
+			logger.error(ExceptionUtils.getStackTrace(e));
 			fail(ExceptionUtils.getStackTrace(e));
 		}
 		

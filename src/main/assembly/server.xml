@@ -123,6 +123,7 @@
 				<include>*.policy</include>
 				<include>*.globals</include>
 				<include>*.jmx</include>
+				<include>*.json</include>
 			</includes>
 			<excludes>
 				<exclude>build_standalone.properties</exclude>
@@ -176,6 +177,13 @@
 		<fileSet>
 			<directory>${project.build.directory}/webapps</directory>
 			<outputDirectory>webapps</outputDirectory>
+			<includes>
+				<include>*.war</include>
+			</includes>
+		</fileSet>
+		<fileSet>
+			<directory>${project.build.directory}</directory>
+			<outputDirectory></outputDirectory>
 			<includes>
 				<include>*.war</include>
 			</includes>

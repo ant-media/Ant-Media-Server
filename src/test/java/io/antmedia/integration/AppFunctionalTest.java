@@ -14,13 +14,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
-import java.net.InetAddress;
 import java.net.URL;
-import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+
+import javax.validation.constraints.AssertTrue;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -46,7 +46,6 @@ import com.google.gson.Gson;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
-import io.antmedia.AppSettingsModel;
 import io.antmedia.EncoderSettings;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.VoD;
@@ -55,14 +54,13 @@ import io.antmedia.rest.BroadcastRestService.BroadcastStatistics;
 import io.antmedia.rest.BroadcastRestService.LiveStatistics;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.Version;
-import io.antmedia.test.Application;
+import io.antmedia.settings.ServerSettings;
 
 public class AppFunctionalTest {
+	
 
 	private BroadcastRestService restService = null;
-	private AppSettings appSettings;
-	private static final Logger log = LoggerFactory.getLogger(AppFunctionalTest.class);
-	private static final String SERVER_ADDR = "127.0.0.1"; 
+	private static final String SERVER_ADDR = ServerSettings.getLocalHostAddress(); 
 	protected static Logger logger = LoggerFactory.getLogger(AppFunctionalTest.class);
 
 	public static Process process;
@@ -74,14 +72,9 @@ public class AppFunctionalTest {
 	public static final int WINDOWS = 2;
 	private static BasicCookieStore httpCookieStore;
 	static {
+		ROOT_SERVICE_URL = "http://" + SERVER_ADDR + ":5080/rest";
 
-		try {
-			ROOT_SERVICE_URL = "http://" + InetAddress.getLocalHost().getHostAddress() + ":5080/rest";
-		} catch (UnknownHostException e) {
-			e.printStackTrace();
-		}
-
-		log.info("ROOT SERVICE URL: " + ROOT_SERVICE_URL);
+		logger.info("ROOT SERVICE URL: " + ROOT_SERVICE_URL);
 
 	}
 
@@ -165,7 +158,7 @@ public class AppFunctionalTest {
 
 		Broadcast broadcast = restService.createBroadcast("TOBB Demo");
 
-		log.info("broadcast id:{}", broadcast.getStreamId());
+		logger.info("broadcast id:{}", broadcast.getStreamId());
 
 	}
 
@@ -241,7 +234,7 @@ public class AppFunctionalTest {
 
 			int currentVodNumber = rest.callTotalVoDNumber();
 
-			log.info("current vod number before test {}", String.valueOf(currentVodNumber));
+			logger.info("current vod number before test {}", String.valueOf(currentVodNumber));
 			
 			//delete vods
 			List<VoD> voDList = rest.callGetVoDList();
@@ -252,11 +245,12 @@ public class AppFunctionalTest {
 			}
 			
 			currentVodNumber = rest.callTotalVoDNumber();
-			log.info("vod number after deletion {}", String.valueOf(currentVodNumber));
+			logger.info("vod number after deletion {}", String.valueOf(currentVodNumber));
+
 
 			boolean found240p = false;
 			List<EncoderSettings> encoderSettingsActive = null;
-			AppSettingsModel appSettingsModel = null;
+			AppSettings appSettingsModel = null;
 			boolean mp4MuxingEnabled = false;
 			Broadcast broadcast=rest.createBroadcast("RTMP_stream");
 			{
@@ -314,9 +308,11 @@ public class AppFunctionalTest {
 					return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + "_240p.mp4");
 				});
 				Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+
 					
 					int vodNumber = rest.callTotalVoDNumber();
-					log.info("vod number after test {}", vodNumber);
+					logger.info("vod number after test {}", vodNumber);
+
 					//2 more VoDs should be added to DB, one is original other one ise 240p mp4 files
 					//480p is not created because original stream is 360p
 					
@@ -342,7 +338,7 @@ public class AppFunctionalTest {
 			else {
 				Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
 					int lastVodNumber = rest.callTotalVoDNumber();
-					log.info("vod number after test {}", lastVodNumber);
+					logger.info("vod number after test {}", lastVodNumber);
 					//2 more VoDs should be added to DB, one is original other one ise 240p mp4 files
 					//480p is not created because original stream is 360p
 
@@ -427,7 +423,7 @@ public class AppFunctionalTest {
 			int size = broadcastList.size();
 			
 			int currentVodNumber = restService.callTotalVoDNumber();
-			log.info("current vod number: {}", currentVodNumber);
+			logger.info("current vod number: {}", currentVodNumber);
 			// publish live stream to the server
 			String streamId = "zombiStreamId"  + (int)(Math.random()*999999);
 			executeProcess(ffmpegPath
@@ -450,6 +446,10 @@ public class AppFunctionalTest {
 
 			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, broadcast.getStatus());
 
+			long now = System.currentTimeMillis();
+			//broadcast start time should be at most 20 sec before (it is max wait time above) 
+			assertTrue((now-broadcast.getStartTime()) < 20000);
+			
 
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				return MuxingTest.isURLAvailable("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" +streamId+ ".m3u8" );
@@ -585,7 +585,7 @@ public class AppFunctionalTest {
 			fail(e.getMessage());
 		}
 	}
-
+	
 	// Before running test all endpoints should be authenticated
 	@Test
 	public void testBroadcastStream() {
@@ -624,16 +624,19 @@ public class AppFunctionalTest {
 			// call web service to get stream info and check status
 			broadcast = restService.getBroadcast(broadcast.getStreamId().toString());
 			assertNotNull(broadcast);
-			assertEquals(broadcast.getStatus(), Application.BROADCAST_STATUS_BROADCASTING);
-
+			assertEquals(broadcast.getStatus(), AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+			
+			long now = System.currentTimeMillis();
+			//broadcast start time should be at most 15 sec before (it is 10sec sleep + 5sec start margin)
+			assertTrue((now-broadcast.getStartTime()) < 15000);
+			
 			process.destroy();
-
 			Thread.sleep(10000);
 
 			// call web service to get stream info and check status
 			broadcast = restService.getBroadcast(broadcast.getStreamId().toString());
 			assertNotNull(broadcast);
-			assertEquals(broadcast.getStatus(), Application.BROADCAST_STATUS_FINISHED);
+			assertEquals(broadcast.getStatus(), AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
 
 		} catch (InterruptedException e) {
 			e.printStackTrace();

@@ -1,7 +1,8 @@
+dist: xenial
 language: java
 jdk:
   - openjdk8
-node_js: "8.12.0"
+
 
 sudo: required
 
@@ -18,13 +19,25 @@ before_install:
   - gpg --fast-import codesigning.asc
   - sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 2930ADAE8CAF5059EE73BB4B58712A2291FA4AD5
   - echo "deb [ arch=amd64 ] https://repo.mongodb.org/apt/ubuntu trusty/mongodb-org/3.6 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-3.6.list
-  - sudo add-apt-repository ppa:mc3man/trusty-media -y  # this for ffmpeg
   - sudo apt-get update -qq
   - sudo apt-get install -y mongodb-org #install mongodb
   - sudo apt-get install ffmpeg -qq # start ffmpeg
   - sudo service mongod start  # start mongo db
   - sudo apt-get install wondershaper
   - sudo git clone --depth=1 https://github.com/ant-media/utilities.git /usr/local/onvif
+    # get parent project
+  - (if [ $(git ls-remote https://github.com/ant-media/ant-media-server-parent.git $TRAVIS_BRANCH  | wc -l) == "1" ];  
+      then 
+        echo " $TRAVIS_BRANCH branch found";  
+        git clone --depth=1 -b $TRAVIS_BRANCH https://github.com/ant-media/ant-media-server-parent.git;  
+      else
+        echo "branch not found"; 
+        git clone --depth=1 https://github.com/ant-media/ant-media-server-parent.git;  
+    fi)
+  - cd ant-media-server-parent
+  - mvn clean install -DskipTests -Dmaven.javadoc.skip=true -Dgpg.skip=true --quiet
+  - cd ..
+    #get common project
   - (if [ $(git ls-remote https://github.com/ant-media/Ant-Media-Server-Common.git $TRAVIS_BRANCH  | wc -l) == "1" ];  
       then 
        echo " $TRAVIS_BRANCH branch found";  
@@ -35,9 +48,22 @@ before_install:
      fi)
   - cd Ant-Media-Server-Common
   - mvn clean install -DskipTests -Dmaven.javadoc.skip=true -Dgpg.skip=true --quiet
-  - cd ..  
+  - cd .. 
+  
+  #get service project
+  - (if [ $(git ls-remote https://github.com/ant-media/Ant-Media-Server-Service.git $TRAVIS_BRANCH  | wc -l) == "1" ];  
+     then 
+       echo " $TRAVIS_BRANCH branch found";  
+       git clone --depth=1 -b $TRAVIS_BRANCH https://github.com/ant-media/Ant-Media-Server-Service.git; 
+       cd Ant-Media-Server-Service; 
+       mvn install -DskipTests=true -Dmaven.javadoc.skip=true -Dgpg.skip=true -B -V --quiet;
+       cd ..;
+     else
+       echo "branch not found. Using version in sonatype"; 
+    fi) 
+   
   - git clone --depth=1 https://github.com/ant-media/red5-plugins.git && cd red5-plugins/tomcat/ && mvn clean install -Dmaven.javadoc.skip=true -Dmaven.test.skip=true --quiet && cd ../..
-  - mvn clean package -U -P assemble -Dmaven.javadoc.skip=true -Dmaven.test.skip=true -DskipTests=true --quiet 
+  - mvn clean package -U -P assemble -Dmaven.javadoc.skip=true -Dmaven.test.skip=true -DskipTests=true --quiet
   - wget https://raw.githubusercontent.com/ant-media/Scripts/master/install_ant-media-server.sh -O target/install_ant-media-server.sh  # install script
   - chmod 755 target/install_ant-media-server.sh
   - cd target 
@@ -60,7 +86,6 @@ install:
 script:
   - export RELEASE_VERSION="$(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)"
   - echo $RELEASE_VERSION
-  - echo $(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)
   - mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent package sonar:sonar -Dmaven.javadoc.skip=true
   
 
@@ -75,7 +100,7 @@ after_failure:
 
 deploy:
   - provider: script
-    script: "mvn deploy -P assemble -DskipTests --quiet --settings mvn-settings.xml"
+    script: "mvn deploy -P assemble -DskipTests --settings mvn-settings.xml"
     skip_cleanup: true
     on:
       tags: false
@@ -84,12 +109,20 @@ deploy:
       condition:  $(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)  = *"SNAPSHOT"* 
   
   - provider: script
-    script: "mvn deploy -P assemble -DskipTests --quiet --settings mvn-settings.xml && curl -g --ftp-create-dirs -T target/swagger/swagger.json -u $SWAGGER_FTP_USERNAME:$SWAGGER_FTP_PASSWORD $SWAGGER_FTP_URL/$RELEASE_VERSION/"
+    script: "mvn deploy -P assemble -DskipTests --settings mvn-settings.xml"
     skip_cleanup: true
     on:
       #deploy to maven if it is a release tagged
       tags: true
-      condition: $TRAVIS_TAG =~ ^release 
+      condition: $TRAVIS_TAG =~ ^ams-v 
+  
+  - provider: script
+    script: "curl -g --ftp-create-dirs -T target/swagger/swagger.json -u $SWAGGER_FTP_USERNAME:$SWAGGER_FTP_PASSWORD $SWAGGER_FTP_URL/$RELEASE_VERSION/"
+    skip_cleanup: true
+    on:
+      #deploy to website if it is a release tagged
+      tags: true
+      condition: $TRAVIS_TAG =~ ^ams-v
   
   - provider: releases
     api_key: $GITHUB_OAUTH_TOKEN
@@ -101,6 +134,6 @@ deploy:
     on:
       #deploy to github if it is a release tagged
       tags: true
-      condition: $TRAVIS_TAG =~ ^release
+      condition: $TRAVIS_TAG =~ ^ams-v
       
 #above configuration prevents deploying a new release(not snapshot) if it is not tagged       

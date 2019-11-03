@@ -1,38 +1,17 @@
 package io.antmedia.test;
 
-import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.AppSettings;
-import io.antmedia.datastore.db.DataStoreFactory;
-import io.antmedia.datastore.db.DataStore;
-import io.antmedia.datastore.db.InMemoryDataStore;
-import io.antmedia.datastore.db.MapDBStore;
-import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.integration.AppFunctionalTest;
-import io.antmedia.integration.MuxingTest;
-import io.antmedia.muxer.MuxAdaptor;
-import io.antmedia.rest.model.Result;
-import io.antmedia.streamsource.StreamFetcher;
-import io.antmedia.streamsource.StreamFetcherManager;
-
-import org.awaitility.Awaitility;
-import org.bytedeco.javacpp.avformat;
-import org.bytedeco.javacpp.avutil;
-import org.junit.*;
-import org.junit.rules.TestRule;
-import org.junit.rules.TestWatcher;
-import org.junit.runner.Description;
-import org.mockito.Mockito;
-import org.red5.server.scheduling.QuartzSchedulingService;
-import org.red5.server.scope.WebScope;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.BeanUtils;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.annotation.DirtiesContext.ClassMode;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
-
-import ch.qos.logback.core.joran.util.beans.BeanUtil;
+import static org.bytedeco.javacpp.avutil.AVMEDIA_TYPE_DATA;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -42,8 +21,47 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
+import org.awaitility.Awaitility;
+import org.bytedeco.javacpp.avcodec.AVCodecParameters;
+import org.bytedeco.javacpp.avformat;
+import org.bytedeco.javacpp.avformat.AVFormatContext;
+import org.bytedeco.javacpp.avformat.AVStream;
+import org.bytedeco.javacpp.avutil;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TestRule;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
+import org.mockito.Mockito;
+import org.red5.server.scheduling.QuartzSchedulingService;
+import org.red5.server.scope.WebScope;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.annotation.DirtiesContext.ClassMode;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
+
+import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.AppSettings;
+import io.antmedia.IApplicationAdaptorFactory;
+import io.antmedia.datastore.db.DataStore;
+import io.antmedia.datastore.db.DataStoreFactory;
+import io.antmedia.datastore.db.InMemoryDataStore;
+import io.antmedia.datastore.db.MapDBStore;
+import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.integration.AppFunctionalTest;
+import io.antmedia.integration.MuxingTest;
+import io.antmedia.ipcamera.OnvifCamera;
+import io.antmedia.muxer.Mp4Muxer;
+import io.antmedia.muxer.MuxAdaptor;
+import io.antmedia.rest.model.Result;
+import io.antmedia.streamsource.StreamFetcher;
+import io.antmedia.streamsource.StreamFetcherManager;
+import io.vertx.core.Vertx;
 
 @ContextConfiguration(locations = { "test.xml" })
 @DirtiesContext(classMode = ClassMode.AFTER_CLASS)
@@ -54,26 +72,26 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	public AntMediaApplicationAdapter app = null;
 	private AntMediaApplicationAdapter appInstance;
 	private AppSettings appSettings;
-	private QuartzSchedulingService scheduler;
-	
+	private Vertx vertx;
+
 	static {
 		System.setProperty("red5.deployment.type", "junit");
 		System.setProperty("red5.root", ".");
 	}
-	
+
 	@Rule
 	public TestRule watcher = new TestWatcher() {
-	   protected void starting(Description description) {
-	      System.out.println("Starting test: " + description.getMethodName());
-	   }
-	   
-	   protected void failed(Throwable e, Description description) {
-		   System.out.println("Failed test: " + description.getMethodName() );
-		   e.printStackTrace();
-	   };
-	   protected void finished(Description description) {
-		   System.out.println("Finishing test: " + description.getMethodName());
-	   };
+		protected void starting(Description description) {
+			System.out.println("Starting test: " + description.getMethodName());
+		}
+
+		protected void failed(Throwable e, Description description) {
+			System.out.println("Failed test: " + description.getMethodName() );
+			e.printStackTrace();
+		}
+		protected void finished(Description description) {
+			System.out.println("Finishing test: " + description.getMethodName());
+		}
 	};
 
 	@BeforeClass
@@ -110,13 +128,12 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		if (app == null) 
 		{
-
-			app = (AntMediaApplicationAdapter) applicationContext.getBean("web.handler");
+			app = ((IApplicationAdaptorFactory) applicationContext.getBean("web.handler")).getAppAdaptor();
 			logger.debug("Application / web scope: {}", appScope);
 			assertTrue(appScope.getDepth() == 1);
 		}
 
-		scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
+		vertx = (Vertx) applicationContext.getBean(AntMediaApplicationAdapter.VERTX_BEAN_NAME);
 
 
 		stopCameraEmulator();
@@ -125,7 +142,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		getAppSettings().resetDefaults();
 		getAppSettings().setMp4MuxingEnabled(true);
 	}
-	
+
 	@After
 	public void after() {
 
@@ -140,6 +157,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			e.printStackTrace();
 		}
 	}
+
+	
 	
 
 	@Test
@@ -147,15 +166,13 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		logger.info("starting testBugUpdateStreamFetcherStatus");
 
-		assertEquals(1, scheduler.getScheduledJobNames().size());
-
 		//create ip camera broadcast
 		DataStore dataStore = new MapDBStore("target/testbug.db"); //applicationContext.getBean(IDataStore.BEAN_NAME);
 
 		assertNotNull(dataStore);
 		DataStoreFactory dsf = Mockito.mock(DataStoreFactory.class);
 		Mockito.when(dsf.getDataStore()).thenReturn(dataStore);
-		
+
 		app.setDataStoreFactory(dsf);
 
 		//set mapdb datastore to stream fetcher because in memory datastore just have references and updating broadcst
@@ -183,8 +200,6 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		//start StreamFetcher
 		app.getStreamFetcherManager().startStreams(Arrays.asList(broadcast));
-
-		assertEquals(1, scheduler.getScheduledJobNames().size());
 
 		assertEquals(1, app.getStreamFetcherManager().getStreamFetcherList().size());
 
@@ -234,9 +249,6 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		app.stopStreaming(newCam);
 
-		assertEquals(1, scheduler.getScheduledJobNames().size());
-
-
 		logger.info("leaving testBugUpdateStreamFetcherStatus");
 
 	}
@@ -245,11 +257,10 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	@Test
 	public void testRestartPeriodStreamFetcher() {
 
-		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnExit();
+		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnEnded();
 		getAppSettings().setDeleteHLSFilesOnEnded(false);
 		try {
 			//Create Stream Fetcher Manager
-			assertEquals(1, scheduler.getScheduledJobNames().size());
 
 			InMemoryDataStore memoryDataStore = new InMemoryDataStore("testdb");
 
@@ -265,10 +276,10 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			when(streamFetcher.isStreamAlive()).thenReturn(true);
 			when(streamFetcher.getCameraError()).thenReturn(new Result(true));
 
-			StreamFetcherManager fetcherManager_ = new StreamFetcherManager(scheduler, memoryDataStore, appScope);
+			StreamFetcherManager fetcherManager_ = new StreamFetcherManager(vertx, memoryDataStore, appScope);
 			StreamFetcherManager fetcherManager = Mockito.spy(fetcherManager_);
 
-			Mockito.doReturn(streamFetcher).when(fetcherManager).make(stream, appScope, scheduler);
+			Mockito.doReturn(streamFetcher).when(fetcherManager).make(stream, appScope, vertx);
 
 			//set checker interval to 3 seconds
 			fetcherManager.setStreamCheckerInterval(4000);
@@ -300,7 +311,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			fetcherManager.setRestartStreamFetcherPeriod(5);
 
 			//wait 10-12 seconds
-		
+
 			//check that stream fetcher stop and start stream is not called
 			verify(streamFetcher, timeout(14000).atLeast(4)).stopStream();
 			verify(streamFetcher, atLeast(5)).startStream(); 
@@ -314,8 +325,6 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			fail(e.getMessage());
 		}
 
-		assertEquals(1, scheduler.getScheduledJobNames().size());
-
 		getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
 
 
@@ -325,10 +334,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testThreadStopStart() {
 
 		logger.info("starting testThreadStopStart");
-		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnExit();
+		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnEnded();
 		getAppSettings().setDeleteHLSFilesOnEnded(false);
-
-		assertEquals(1, scheduler.getScheduledJobNames().size());
 
 		try {
 
@@ -347,7 +354,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			assertNotNull(newCam.getStreamId());
 
-			StreamFetcher fetcher = new StreamFetcher(newCam, appScope, scheduler);
+			StreamFetcher fetcher = new StreamFetcher(newCam, appScope, vertx);
 
 
 			startCameraEmulator();
@@ -408,10 +415,43 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 
 		logger.info("leaving testThreadStopStart");
-		assertEquals(1, scheduler.getScheduledJobNames().size());
 		getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
 
 	}
+
+	@Test
+	public void testOnvifError() {
+
+		startCameraEmulator();
+
+		Broadcast newCam = new Broadcast("onvifCam22", "127.0.0.1:8080", "admin", "admin", null,
+				AntMediaApplicationAdapter.IP_CAMERA);
+
+
+		OnvifCamera onvif = new OnvifCamera();
+
+		int connResult = onvif.connect(newCam.getIpAddr(), newCam.getUsername(), newCam.getPassword());
+
+		logger.info("connResult {}", connResult);
+
+		//it should be 0 because URL and credentials are correct
+		assertEquals(0, connResult);
+
+		//define incorrect URL and test
+		newCam.setIpAddr("127.0.0.11:8080");
+
+		connResult = onvif.connect(newCam.getIpAddr(), newCam.getUsername(), newCam.getPassword());
+
+		logger.info("connResult {}", connResult);
+
+		//it should be -1 because there is a connection error
+		assertEquals(-1, connResult);
+
+		stopCameraEmulator();
+
+	}
+
+
 
 	@Test
 	public void testCameraErrorCodes() {
@@ -419,8 +459,6 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		logger.info("starting testCameraErrorCodes");
 
 		try {
-			assertEquals(1, scheduler.getScheduledJobNames().size());
-
 			// start stream fetcher
 
 			Broadcast newCam = new Broadcast("onvifCam2", "127.0.0.1:8080", "admin", "admin", "rtsp://10.122.59.79:6554/test.flv",
@@ -436,11 +474,11 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			assertNotNull(newCam.getStreamId());
 
-			StreamFetcher fetcher = new StreamFetcher(newCam, appScope, scheduler);
+			StreamFetcher fetcher = new StreamFetcher(newCam, appScope, vertx);
 			fetcher.setRestartStream(false);
 			// thread start 
 			fetcher.startStream();
-			
+
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->  {
 				String message = fetcher.getCameraError().getMessage();
 				return message != null && !message.isEmpty();
@@ -448,7 +486,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			//Thread.sleep(8000);
 
-			String str=fetcher.getCameraError().getMessage();
+			String str = fetcher.getCameraError().getMessage();
 			logger.info("error:   "+str);
 
 			assertNotNull(fetcher.getCameraError().getMessage());
@@ -476,7 +514,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			assertNotNull(newCam2.getStreamId());
 
-			StreamFetcher fetcher2 = new StreamFetcher(newCam2, appScope, scheduler);
+			StreamFetcher fetcher2 = new StreamFetcher(newCam2, appScope, vertx);
 			fetcher2.setRestartStream(false);
 			// thread start 
 			fetcher2.startStream();
@@ -486,7 +524,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 				return message != null && !message.isEmpty();
 			});
 
-			String str2=fetcher2.getCameraError().getMessage();
+			String str2 = fetcher2.getCameraError().getMessage();
 			logger.info("error2:   "+str2);
 
 			assertTrue(fetcher2.getCameraError().getMessage().contains("Connection refused"));
@@ -500,10 +538,6 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->  {
-			return scheduler.getScheduledJobNames().size() == 1;
-		});
-
 	}
 
 
@@ -512,7 +546,6 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testStreamFetcherBuffer() {
 
 		try {	
-			assertEquals(1, scheduler.getScheduledJobNames().size());
 			getAppSettings().setDeleteHLSFilesOnEnded(false);
 
 			Broadcast newCam = new Broadcast("streamSource", "127.0.0.1:8080", "admin", "admin", 
@@ -525,7 +558,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			assertNotNull(newCam.getStreamId());
 
-			StreamFetcher fetcher = new StreamFetcher(newCam, appScope, scheduler);
+			StreamFetcher fetcher = new StreamFetcher(newCam, appScope, vertx);
 
 			fetcher.setBufferTime(20000);
 
@@ -583,13 +616,6 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			fail(e.getMessage());
 		}
 
-		List<String> scheduledJobNames = scheduler.getScheduledJobNames();
-		for (String jobName : scheduledJobNames) {
-			logger.info("Schedule name: {}", jobName);
-		}
-
-		assertEquals(1, scheduler.getScheduledJobNames().size());
-
 		getAppSettings().setDeleteHLSFilesOnEnded(true);
 
 	}
@@ -597,10 +623,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	@Test
 	public void testCameraStartedProperly() {
 
-		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnExit();
+		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnEnded();
 		try {
-
-			assertEquals(1, scheduler.getScheduledJobNames().size());
 
 			getAppSettings().setDeleteHLSFilesOnEnded(false);
 
@@ -622,13 +646,15 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			Thread.sleep(3000);
 
 
-			StreamFetcher fetcher3 = new StreamFetcher(newCam3, appScope, scheduler);
+			StreamFetcher fetcher3 = new StreamFetcher(newCam3, appScope, vertx);
 			fetcher3.setRestartStream(false);
 
 			// thread start 
 			fetcher3.startStream();
 
 			Thread.sleep(6000);
+			
+			assertEquals(1, getInstance().getMuxAdaptors().size());
 
 			String str3=fetcher3.getCameraError().getMessage();
 			logger.info("error:   "+str3);
@@ -636,23 +662,23 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			assertNull(fetcher3.getCameraError().getMessage());
 			assertTrue(fetcher3.isStreamAlive());
 
-
-
 			fetcher3.stopStream();
 
 			Thread.sleep(2000);
+			
+			assertEquals(0, getInstance().getMuxAdaptors().size());
+
 			stopCameraEmulator();
 		}
 		catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-		assertEquals(1, scheduler.getScheduledJobNames().size());
 
 		getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
 	}
 
-	
+
 	@Test
 	public void testFLVSource() {
 		logger.info("running testFLVSource");
@@ -660,7 +686,32 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		testFetchStreamSources("src/test/resources/test_video_360p.flv", false);	
 		logger.info("leaving testFLVSource");
 	}
-
+	
+	@Test
+	public void testBugUnexpectedStream() 
+	{
+		
+		AVFormatContext inputFormatContext = Mockito.mock(AVFormatContext.class);
+		when(inputFormatContext.nb_streams()).thenReturn(1);
+		
+		AVStream stream = Mockito.mock(AVStream.class);
+		when(inputFormatContext.streams(0)).thenReturn(stream);
+		AVCodecParameters pars = Mockito.mock(AVCodecParameters.class);
+		when(stream.codecpar()).thenReturn(pars);
+		
+		when(pars.codec_type()).thenReturn(AVMEDIA_TYPE_DATA);
+		stream.codecpar(pars);
+		
+		Mp4Muxer mp4Muxer = Mockito.spy(new Mp4Muxer(null, null));
+		
+		mp4Muxer.init(appScope, "test", 480);
+		
+		Mockito.doReturn(true).when(mp4Muxer).isCodecSupported(Mockito.any());
+		
+		mp4Muxer.prepare(inputFormatContext);
+		
+		Mockito.verify(mp4Muxer, Mockito.never()).avNewStream(Mockito.any());
+	}
 
 	@Test
 	public void testRTSPSource() {
@@ -683,7 +734,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		logger.info("leaving testHLSSource");
 	}
 
-	
+
 	@Test
 	public void testTSSourceAndBugStreamSpeed() {
 		logger.info("running testTSSource");
@@ -691,15 +742,15 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		testFetchStreamSources("src/test/resources/nba.ts", false);
 		logger.info("leaving testTSSource");
 	}
-	
+
 	@Test
 	public void testShoutcastSource() {
 		logger.info("running testShoutcastSource");
 		//test Southcast Source
-		testFetchStreamSources("http://198.178.123.14:7848/;stream/1", false);
+		testFetchStreamSources("http://powerfm.listenpowerapp.com/powerfm/mpeg/icecast.audio", false);
 		logger.info("leaving testShoutcastSource");
 	}
-	
+
 	@Test
 	public void testAudioOnlySource() {
 		logger.info("running testAudioOnlySource");
@@ -712,23 +763,21 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testFetchStreamSources(String source, boolean restartStream) {
 
 		Application.enableSourceHealthUpdate = true;
-		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnExit();
+		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnEnded();
 		try {
 			getAppSettings().setDeleteHLSFilesOnEnded(false);
-
-			assertEquals(1, scheduler.getScheduledJobNames().size());
 
 			Broadcast newCam = new Broadcast("streamSource", "127.0.0.1:8080", "admin", "admin", source,
 					AntMediaApplicationAdapter.STREAM_SOURCE);
 
 			assertNotNull(newCam.getStreamUrl());
 			DataStore dataStore = getInstance().getDataStore();
-			
+
 			String id = dataStore.save(newCam);
 
 			assertNotNull(newCam.getStreamId());
 
-			StreamFetcher fetcher = new StreamFetcher(newCam, appScope, scheduler);
+			StreamFetcher fetcher = new StreamFetcher(newCam, appScope, vertx);
 
 			fetcher.setRestartStream(restartStream);
 
@@ -744,7 +793,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
-			
+
 			double speed = dataStore.get(newCam.getStreamId()).getSpeed();
 			//this value was so high over 9000. After using first packet time it's value is about 100-200
 			//it is still high and it is normal because it reads vod from disk it does not read live stream.
@@ -757,15 +806,15 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			fetcher.stopStream();
 
 			String mp4File = "webapps/junit/streams/"+newCam.getStreamId() +".mp4";
-			
+
 			Awaitility.waitAtMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				return new File(mp4File).exists();
 			});
-			
+
 			assertFalse(fetcher.isThreadActive());
 
 			logger.info("before test m3u8 file");
-			
+
 			speed = dataStore.get(newCam.getStreamId()).getSpeed();
 			logger.info("Speed of the stream: {}", speed);
 
@@ -789,9 +838,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			fail(e.getMessage());
 		}
 
-		assertEquals(1, scheduler.getScheduledJobNames().size());
 		getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
-		
+
 		Application.enableSourceHealthUpdate = false;
 
 
@@ -800,7 +848,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	@Test
 	public void testHLSFlagResult() {
 
-		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnExit();
+		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnEnded();
 		getAppSettings().setDeleteHLSFilesOnEnded(false);
 		//getAppSettings().setHlsflags("+omit_endlist+append_list+split_by_time");
 		getAppSettings().setHlsListSize("20");
@@ -809,8 +857,6 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		try {
 			String textInFile;
-
-			assertEquals(1, scheduler.getScheduledJobNames().size());
 
 			Broadcast newCam = new Broadcast("streamSource", "127.0.0.1:8080", "admin", "admin", "src/test/resources/nba.ts",
 					AntMediaApplicationAdapter.STREAM_SOURCE);
@@ -821,7 +867,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			assertNotNull(newCam.getStreamId());
 
-			StreamFetcher fetcher = new StreamFetcher(newCam, appScope, scheduler);
+			StreamFetcher fetcher = new StreamFetcher(newCam, appScope, vertx);
 
 			fetcher.setRestartStream(false);
 
@@ -905,7 +951,6 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-		assertEquals(1, scheduler.getScheduledJobNames().size());
 
 		getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
 		getAppSettings().setHlsflags(null);
@@ -959,7 +1004,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 	public AntMediaApplicationAdapter getInstance() {
 		if (appInstance == null) {
-			appInstance = (AntMediaApplicationAdapter) applicationContext.getBean("web.handler");
+			appInstance = ((IApplicationAdaptorFactory) applicationContext.getBean("web.handler")).getAppAdaptor();
 		}
 		return appInstance;
 	}

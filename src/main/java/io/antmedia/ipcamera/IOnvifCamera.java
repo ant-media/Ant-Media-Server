@@ -5,6 +5,10 @@ package io.antmedia.ipcamera;
 import java.sql.Date;
 import java.sql.Time;
 
+import javax.xml.soap.SOAPException;
+
+import org.apache.commons.lang3.exception.ExceptionUtils;
+
 
 
 public interface IOnvifCamera {
@@ -16,7 +20,7 @@ public interface IOnvifCamera {
 	 * @return true if connected
 	 * 		   false if not connected
 	 */
-	boolean connect(String address, String username, String password);
+	int connect(String address, String username, String password);
 	
 	void disconnect();
 	
@@ -61,18 +65,43 @@ public interface IOnvifCamera {
 
 	boolean isFocusModeAuto();
 
-	boolean MoveUp();
+	
 
-	boolean MoveStop();
+	/**
+	 * Stop IP Camera any movement
+	 * @return
+	 */
+	boolean moveStop();
 
-	boolean MoveDown();
+	/**
+	 * Move camera continously
+	 * @param x speed in pan
+	 * @param y speed in tilt
+	 * @param zoom 
+	 * @return true if successful, false if failed
+	 */
+	boolean moveContinous(float x, float y, float zoom);
+	
+	/**
+	 * Move camera relatively
+	 * @param x
+	 * @param y
+	 * @param zoom
+	 * @return
+	 */
+	boolean moveRelative(float x, float y, float zoom);
+	
+	/**
+	 * Move camera absolutely in the x,y and zoom positions
+	 * @param x
+	 * @param y
+	 * @param zoom
+	 * @return
+	 */
+	boolean moveAbsolute(float x, float y, float zoom);
+	
 
-	boolean MoveRight();
-
-	boolean MoveLeft();
 
 	String getTCPStreamURI();
-
-
-	
+		
 }

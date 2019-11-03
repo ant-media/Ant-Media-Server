@@ -14,11 +14,14 @@ import java.util.concurrent.TimeUnit;
 
 import org.awaitility.Awaitility;
 import org.springframework.context.ApplicationContext;
-import org.springframework.test.context.ContextConfiguration;import io.antmedia.AppSettings;
+import org.springframework.test.context.ContextConfiguration;
+
 import io.antmedia.datastore.db.DataStoreFactory;
+import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.HlsViewerStats;
 import io.antmedia.statistic.IStreamStats;
 
@@ -71,7 +74,6 @@ public class HlsViewerStatsTest {
 			scheduler.afterPropertiesSet();
 
 			DataStoreFactory dsf = new DataStoreFactory();
-			dsf.setAppName("liveapp");
 			dsf.setDbType("memorydb");
 			dsf.setDbName("datastore");
 			when(context.getBean(DataStoreFactory.BEAN_NAME)).thenReturn(dsf);
@@ -86,6 +88,7 @@ public class HlsViewerStatsTest {
 			when(settings.getHlsTime()).thenReturn("1");
 			
 			when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(settings);
+			when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(new ServerSettings());
 			
 			HlsViewerStats viewerStats = new HlsViewerStats();
 			
@@ -95,6 +98,9 @@ public class HlsViewerStatsTest {
 			
 			Broadcast broadcast = new Broadcast();
 			broadcast.setName("name");
+			
+			dsf.setWriteStatsToDatastore(true);
+			dsf.setApplicationContext(context);
 			String streamId = dsf.getDataStore().save(broadcast);
 			
 			String sessionId = "sessionId" + (int)(Math.random() * 10000);
