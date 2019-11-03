@@ -221,7 +221,6 @@ public class StreamFetcher {
 
 					muxAdaptor.init(scope, stream.getStreamId(), false);
 
-
 					logger.info("{} stream count in stream {} is {}", stream.getStreamId(), stream.getStreamUrl(), inputFormatContext.nb_streams());
 
 					if(muxAdaptor.prepareInternal(inputFormatContext)) {
@@ -348,7 +347,7 @@ public class StreamFetcher {
 
 			if (muxAdaptor != null) {
 				logger.info("Writing trailer in Muxadaptor {}", stream.getStreamId());
-				muxAdaptor.writeTrailer(inputFormatContext);
+				muxAdaptor.writeTrailer();
 				appInstance.muxAdaptorRemoved(muxAdaptor);
 				muxAdaptor = null;
 			}
