@@ -788,12 +788,19 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			fetcher.startStream();
 
 			//wait for fetching stream
+			
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(fetcher::isStreamAlive);
+
+			//check inputformat context. This issue is the check of #1600
+			assertNotNull(fetcher.getMuxAdaptor().getInputFormatContext());
+			
 			try {
-				Thread.sleep(10000);
+				Thread.sleep(5000);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
-
+			
+			
 			double speed = dataStore.get(newCam.getStreamId()).getSpeed();
 			//this value was so high over 9000. After using first packet time it's value is about 100-200
 			//it is still high and it is normal because it reads vod from disk it does not read live stream.
