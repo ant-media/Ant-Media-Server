@@ -1,7 +1,6 @@
 #!/bin/bash
 
 INSTALL_DIRECTORY=/usr/local/antmedia
-PASS="pass"
 
 
 FULL_CHAIN_FILE=
@@ -12,21 +11,16 @@ renew_flag='false'
 
 while getopts i:d:p:f:r option
 do
-	case "${option}"
-		in
-		f) FULL_CHAIN_FILE=${OPTARG};;
-p) PRIVATE_KEY_FILE=${OPTARG};;
-i) INSTALL_DIRECTORY=${OPTARG};;
-d) domain=${OPTARG};;
-r) renew_flag='true';;
-
-
-
-esac
+	case "${option}" in
+	    f) FULL_CHAIN_FILE=${OPTARG};;
+        p) PRIVATE_KEY_FILE=${OPTARG};;
+        i) INSTALL_DIRECTORY=${OPTARG};;
+        d) domain=${OPTARG};;
+        r) renew_flag='true';;
+        esac
 done
 
 ERROR_MESSAGE="There is a problem in installing SSL to Ant Media Server.\n Please take a look at the logs above and try to fix.\n If you do not have any idea, contact@antmedia.io"
-
 
 usage() {
 	echo "Usage:"
@@ -37,20 +31,15 @@ usage() {
 }
 
 get_password() {
-
-
-
-
 	until [ ! -z "$password" ]
 	do
 		read -sp 'Enter Password For SSL Certificate:' password
 		if [ -z "$password" ]
 		then
-			echo 
+			echo
 			echo "Password cannot be empty. "
 		fi
-	done			
-
+	done
 }
 
 SUDO="sudo"
@@ -69,9 +58,6 @@ delete_alias() {
 }
 
 
-
-
-
 fullChainFileExist=false
 if [ ! -z "$FULL_CHAIN_FILE" ] && [ -f "$FULL_CHAIN_FILE" ]; then
 	fullChainFileExist=true
@@ -88,10 +74,6 @@ if [ "$fullChainFileExist" != "$privateKeyFileExist" ]; then
 	exit 1
 fi
 
-
-
-
-
 if [ ! -d "$INSTALL_DIRECTORY" ]; then
   # Control will enter here if $DIRECTORY doesn't exist.
   echo "Ant Media Server does not seem to be installed to $INSTALL_DIRECTORY"
@@ -101,13 +83,13 @@ if [ ! -d "$INSTALL_DIRECTORY" ]; then
 fi
 
 is_debian(){
-	
+
 	if [ -f /etc/debian_version ]; then
 		true
 	else
 		false
 	fi
-	
+
 }
 
 # Centos Functions
@@ -115,9 +97,9 @@ is_debian(){
 update_centos(){
 
 	# update centos for requirements
-	
+
 	$SUDO yum -y update
-	
+
 	OUT=$?
 	if [ $OUT -ne 0 ]; then
 		echo -e $ERROR_MESSAGE
@@ -126,7 +108,7 @@ update_centos(){
 }
 
 install_certbot_centos(){
-	
+
 	$SUDO yum install certbot -y
 	OUT=$?
 	if [ $OUT -ne 0 ]; then
@@ -140,20 +122,20 @@ install_certbot_centos(){
 update_ubuntu(){
 
 	# update ubuntu for requirements
-	
+
 	$SUDO apt-get update -y -qq
 	OUT=$?
 	if [ $OUT -ne 0 ]; then
 		echo -e $ERROR_MESSAGE
 		exit $OUT
 	fi
-	
+
 }
 
 install_common_ubuntu(){
 
 	#install common requirements in ubuntu
-	
+
 	$SUDO apt-get install software-properties-common -y -qq
 	OUT=$?
 	if [ $OUT -ne 0 ]; then
@@ -165,7 +147,7 @@ install_common_ubuntu(){
 add_repository_certbot_ubuntu(){
 
 	#add certbot in repository
-	
+
 	$SUDO add-apt-repository ppa:certbot/certbot -y
 	OUT=$?
 	if [ $OUT -ne 0 ]; then
@@ -175,9 +157,9 @@ add_repository_certbot_ubuntu(){
 }
 
 install_certbot_ubuntu(){
-	
+
 	#install certbot in ubuntu
-	
+
 	$SUDO apt-get install certbot -qq -y
 	OUT=$?
 	if [ $OUT -ne 0 ]; then
@@ -187,15 +169,24 @@ install_certbot_ubuntu(){
 }
 
 get_certificate(){
-	
+
 	#Get certificate section is same with ubuntu and centos
-	
+
 	$SUDO certbot certonly --standalone -d $domain
 	OUT=$?
 	if [ $OUT -ne 0 ]; then
 		echo -e $ERROR_MESSAGE
 		exit $OUT
 	fi
+
+    file="/etc/letsencrypt/live/$domain/keystore.jks"
+    delete_alias $file
+
+    file="/etc/letsencrypt/live/$domain/truststore.jks"
+    delete_alias $file
+
+    FULL_CHAIN_FILE="/etc/letsencrypt/live/$domain/fullchain.pem"
+    PRIVATE_KEY_FILE="/etc/letsencrypt/live/$domain/privkey.pem"
 }
 
 
@@ -203,44 +194,43 @@ get_new_certificate(){
 
 	if [ "$fullChainFileExist" == false ]; then
     #  install letsencrypt and get the certificate
+    echo "creating new certificate"
 
 	#Detect which os system Centos or Ubuntu
 	if is_debian; then
 
-	#update ubuntu
-	update_ubuntu
-	
-	#install common requirements in ubuntu
-	install_common_ubuntu
-	
-	#add certbot in repository
-	add_repository_certbot_ubuntu
+        #update ubuntu
+        update_ubuntu
 
-	#install certbot in ubuntu
-	install_certbot_ubuntu
-	
-	#update ubuntu
-	update_ubuntu
-	
-else
-	
-	#update centos
-	update_centos
-	
-	#install certbot in centos
-	install_certbot_centos
-	
-	#update centos
-	update_centos
-	
-fi
+        #install common requirements in ubuntu
+        install_common_ubuntu
+
+        #add certbot in repository
+        add_repository_certbot_ubuntu
+
+        #install certbot in ubuntu
+        install_certbot_ubuntu
+
+        #update ubuntu
+        update_ubuntu
+
+    else
+
+        #update centos
+        update_centos
+
+        #install certbot in centos
+        install_certbot_centos
+
+        #update centos
+        update_centos
+
+    fi
 
 	#Get certificate section is same with ubuntu and centos
 	get_certificate
-	
-fi
 
-
+    fi
 }
 
 renew_certificate(){
@@ -262,17 +252,6 @@ renew_certificate(){
 auth_tomcat(){
 
 	echo ""
-
-
-	file="/etc/letsencrypt/live/$domain/keystore.jks"
-	delete_alias $file
-
-	file="/etc/letsencrypt/live/$domain/truststore.jks"
-	delete_alias $file
-
-	FULL_CHAIN_FILE="/etc/letsencrypt/live/$domain/fullchain.pem"
-	PRIVATE_KEY_FILE="/etc/letsencrypt/live/$domain/privkey.pem"
-
 
 	TEMP_DIR=$INSTALL_DIRECTORY/$domain
 	if [ ! -d "$TEMP_DIR" ]; then
@@ -480,8 +459,6 @@ then
 
 elif [ "$renew_flag" == "false" ]
 	then
-		echo "creating new certificate"
-
 
     #install letsencrypt and get the certificate
     get_new_certificate
