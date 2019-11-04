@@ -45,7 +45,10 @@ public class HttpForwardFilter extends AbstractFilter {
 					String[] extension = httpForwardingExtension.split(COMMA);
 					for (int i = 0; i < extension.length; i++) 
 					{
-						if (requestURI.endsWith(extension[i]) && isURISafe(requestURI)) {
+						if (requestURI.endsWith(extension[i])) {
+							if (!isURISafe(requestURI)) {
+								throw new IOException("URI is not well formatted");
+							}
 							String redirectUri = httpForwardingBaseURL + requestURI;
 							HttpServletResponse httpResponse = (HttpServletResponse) response;
 							httpResponse.sendRedirect(redirectUri);

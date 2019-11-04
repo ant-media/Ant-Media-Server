@@ -1,6 +1,7 @@
 package io.antmedia.test.filter;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 
@@ -96,22 +97,32 @@ public class HttpForwardFilterTest {
 	         Mockito.verify(filterChain, Mockito.times(9)).doFilter(httpServletRequest, httpServletResponse);
 	         
 	         appSettings.setHttpForwardingExtension("mp4");
-	         httpServletRequest.setRequestURI("/LiveApp/rest/../broadcast.mp4");
-	         httpForwardFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
-	         //it should increase because it's not expected to have double dots..
-	         Mockito.verify(filterChain, Mockito.times(10)).doFilter(httpServletRequest, httpServletResponse);
-	         
-	         appSettings.setHttpForwardingExtension("mp4");
-	         httpServletRequest.setRequestURI("/LiveApp/rest/../broadcast.mp4");
-	         httpForwardFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
-	         //it should increase because it's not expected to have double dots..
-	         Mockito.verify(filterChain, Mockito.times(11)).doFilter(httpServletRequest, httpServletResponse);
+	         try {
+	        	 	httpServletRequest.setRequestURI("/LiveApp/rest/../broadcast.mp4");
+	        	 	httpForwardFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
+	         	fail("It should throw exception");
+	         }
+	         catch (IOException e) {
+	        	 
+	         }
+	         //it should not  increase because it throws exception
+	         Mockito.verify(filterChain, Mockito.times(9)).doFilter(httpServletRequest, httpServletResponse);
+	         try {
+		         appSettings.setHttpForwardingExtension("mp4");
+		         httpServletRequest.setRequestURI("/LiveApp/rest/../broadcast.mp4");
+		         httpForwardFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
+	         }
+	         catch (IOException e) {
+	        	 
+	         }
+	         //it should not increase because it throws exception
+	         Mockito.verify(filterChain, Mockito.times(9)).doFilter(httpServletRequest, httpServletResponse);
 	         
 	         appSettings.setHttpForwardingExtension("mp4");
 	         httpServletRequest.setRequestURI("/LiveApp/rest/broadcast.mp4");
 	         httpForwardFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
 	         //it should not increase because it's  ok to forward
-	         Mockito.verify(filterChain, Mockito.times(11)).doFilter(httpServletRequest, httpServletResponse);
+	         Mockito.verify(filterChain, Mockito.times(9)).doFilter(httpServletRequest, httpServletResponse);
 	          
 	         
 	    }
