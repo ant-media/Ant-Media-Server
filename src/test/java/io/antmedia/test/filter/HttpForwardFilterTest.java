@@ -94,6 +94,24 @@ public class HttpForwardFilterTest {
 	         httpForwardFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
 	         //it shoud  increase because comma separated mp4
 	         Mockito.verify(filterChain, Mockito.times(9)).doFilter(httpServletRequest, httpServletResponse);
+	         
+	         appSettings.setHttpForwardingExtension("mp4");
+	         httpServletRequest.setRequestURI("/LiveApp/rest/../broadcast.mp4");
+	         httpForwardFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
+	         //it should increase because it's not expected to have double dots..
+	         Mockito.verify(filterChain, Mockito.times(10)).doFilter(httpServletRequest, httpServletResponse);
+	         
+	         appSettings.setHttpForwardingExtension("mp4");
+	         httpServletRequest.setRequestURI("/LiveApp/rest/../broadcast.mp4");
+	         httpForwardFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
+	         //it should increase because it's not expected to have double dots..
+	         Mockito.verify(filterChain, Mockito.times(11)).doFilter(httpServletRequest, httpServletResponse);
+	         
+	         appSettings.setHttpForwardingExtension("mp4");
+	         httpServletRequest.setRequestURI("/LiveApp/rest/broadcast.mp4");
+	         httpForwardFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
+	         //it should not increase because it's  ok to forward
+	         Mockito.verify(filterChain, Mockito.times(11)).doFilter(httpServletRequest, httpServletResponse);
 	          
 	         
 	    }

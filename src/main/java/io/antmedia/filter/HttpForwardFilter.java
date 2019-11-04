@@ -1,6 +1,9 @@
 package io.antmedia.filter;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
@@ -18,6 +21,9 @@ public class HttpForwardFilter extends AbstractFilter {
 
 	protected static Logger logger = LoggerFactory.getLogger(HttpForwardFilter.class);
 	private static final String COMMA = ",";
+	
+	private static final List<String> BLACK_LIST =  Arrays.asList("..", "http:","https:", "://" );
+	
 
 	@Override
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
@@ -34,7 +40,8 @@ public class HttpForwardFilter extends AbstractFilter {
 				String httpForwardingBaseURL = appSettings.getHttpForwardingBaseURL();
 
 				if (httpForwardingExtension != null && !httpForwardingExtension.isEmpty() &&
-						httpForwardingBaseURL != null && !httpForwardingBaseURL.isEmpty()) 
+						httpForwardingBaseURL != null && !httpForwardingBaseURL.isEmpty() &&
+						isURISafe(requestURI)) 
 				{
 					String[] extension = httpForwardingExtension.split(COMMA);
 					for (int i = 0; i < extension.length; i++) 
@@ -56,6 +63,18 @@ public class HttpForwardFilter extends AbstractFilter {
 		}
 
 		chain.doFilter(request, response);
+	}
+	
+	private static boolean isURISafe(String requestURI) 
+	{
+		for (String item : BLACK_LIST) 
+		{
+			if (requestURI.contains(item)) 
+			{
+				return false;
+			}
+		}
+		return true;
 	}
 
 }
