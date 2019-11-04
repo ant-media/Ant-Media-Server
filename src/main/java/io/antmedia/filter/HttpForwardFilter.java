@@ -40,13 +40,12 @@ public class HttpForwardFilter extends AbstractFilter {
 				String httpForwardingBaseURL = appSettings.getHttpForwardingBaseURL();
 
 				if (httpForwardingExtension != null && !httpForwardingExtension.isEmpty() &&
-						httpForwardingBaseURL != null && !httpForwardingBaseURL.isEmpty() &&
-						isURISafe(requestURI)) 
+						httpForwardingBaseURL != null && !httpForwardingBaseURL.isEmpty()) 
 				{
 					String[] extension = httpForwardingExtension.split(COMMA);
 					for (int i = 0; i < extension.length; i++) 
 					{
-						if (requestURI.endsWith(extension[i])) {
+						if (requestURI.endsWith(extension[i]) && isURISafe(requestURI)) {
 							String redirectUri = httpForwardingBaseURL + requestURI;
 							HttpServletResponse httpResponse = (HttpServletResponse) response;
 							httpResponse.sendRedirect(redirectUri);
