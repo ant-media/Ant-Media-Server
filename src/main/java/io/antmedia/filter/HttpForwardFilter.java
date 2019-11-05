@@ -21,7 +21,7 @@ public class HttpForwardFilter extends AbstractFilter {
 	protected static Logger logger = LoggerFactory.getLogger(HttpForwardFilter.class);
 	private static final String COMMA = ",";
 	
-	private static final List<String> BLACK_LIST =  Arrays.asList("..");
+	private static final String DOUBLE_DOT =  "..";
 	
 
 	@Override
@@ -48,7 +48,7 @@ public class HttpForwardFilter extends AbstractFilter {
 							
 							String redirectUri = httpForwardingBaseURL + requestURI;
 							HttpServletResponse httpResponse = (HttpServletResponse) response;
-							if (!isURISafe(redirectUri)) {
+							if (redirectUri.contains(DOUBLE_DOT)) {
 								throw new IOException("URI is not well formatted");
 							}
 							httpResponse.sendRedirect(redirectUri);
@@ -67,16 +67,6 @@ public class HttpForwardFilter extends AbstractFilter {
 		chain.doFilter(request, response);
 	}
 	
-	private static boolean isURISafe(String requestURI) 
-	{
-		for (String item : BLACK_LIST) 
-		{
-			if (requestURI.contains(item)) 
-			{
-				return false;
-			}
-		}
-		return true;
-	}
+	
 
 }
