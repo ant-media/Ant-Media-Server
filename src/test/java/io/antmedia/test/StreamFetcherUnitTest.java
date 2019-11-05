@@ -683,7 +683,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testFLVSource() {
 		logger.info("running testFLVSource");
 		//test FLV Source
-		testFetchStreamSources("src/test/resources/test_video_360p.flv", false);	
+		//this also tests bug about #1600
+		testFetchStreamSources("src/test/resources/test_video_360p.flv", false, true);	
 		logger.info("leaving testFLVSource");
 	}
 	
@@ -718,7 +719,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		startCameraEmulator();
 		logger.info("running testRTSPSource");
 		//test RTSP Source
-		testFetchStreamSources("rtsp://127.0.0.1:6554/test.flv", false);	
+		testFetchStreamSources("rtsp://127.0.0.1:6554/test.flv", false, true);	
 		logger.info("leaving testRTSPSource");
 		stopCameraEmulator();
 	}
@@ -730,7 +731,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		logger.info("running testHLSSource");
 
 		//test HLS Source
-		testFetchStreamSources("src/test/resources/test.m3u8", false);	
+		testFetchStreamSources("src/test/resources/test.m3u8", false, false);	
 		logger.info("leaving testHLSSource");
 	}
 
@@ -739,7 +740,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testTSSourceAndBugStreamSpeed() {
 		logger.info("running testTSSource");
 		//test TS Source
-		testFetchStreamSources("src/test/resources/nba.ts", false);
+		testFetchStreamSources("src/test/resources/nba.ts", false, false);
 		logger.info("leaving testTSSource");
 	}
 
@@ -747,7 +748,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testShoutcastSource() {
 		logger.info("running testShoutcastSource");
 		//test Southcast Source
-		testFetchStreamSources("http://powerfm.listenpowerapp.com/powerfm/mpeg/icecast.audio", false);
+		testFetchStreamSources("http://powerfm.listenpowerapp.com/powerfm/mpeg/icecast.audio", false, false);
 		logger.info("leaving testShoutcastSource");
 	}
 
@@ -755,12 +756,12 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testAudioOnlySource() {
 		logger.info("running testAudioOnlySource");
 		//test AudioOnly Source
-		testFetchStreamSources("rtmp://37.247.100.100/shoutcast/karadenizfm.stream", false);
+		testFetchStreamSources("rtmp://37.247.100.100/shoutcast/karadenizfm.stream", false, false);
 		logger.info("leaving testAudioOnlySource");
 	}
 
 
-	public void testFetchStreamSources(String source, boolean restartStream) {
+	public void testFetchStreamSources(String source, boolean restartStream, boolean checkContext) {
 
 		Application.enableSourceHealthUpdate = true;
 		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnEnded();
@@ -788,11 +789,12 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			fetcher.startStream();
 
 			//wait for fetching stream
-			
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
-				// This issue is the check of #1600
-				return fetcher.getMuxAdaptor() != null && fetcher.getMuxAdaptor().getInputFormatContext() != null;
-			});
+			if (checkContext) {
+				Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
+					// This issue is the check of #1600
+					return fetcher.getMuxAdaptor() != null && fetcher.getMuxAdaptor().getInputFormatContext() != null;
+				});
+			}
 	
 			
 			try {
