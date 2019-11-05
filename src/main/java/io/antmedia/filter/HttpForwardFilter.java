@@ -1,7 +1,6 @@
 package io.antmedia.filter;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -22,7 +21,7 @@ public class HttpForwardFilter extends AbstractFilter {
 	protected static Logger logger = LoggerFactory.getLogger(HttpForwardFilter.class);
 	private static final String COMMA = ",";
 	
-	private static final List<String> BLACK_LIST =  Arrays.asList("..", "http:","https:", "://" );
+	private static final List<String> BLACK_LIST =  Arrays.asList("..");
 	
 
 	@Override
@@ -46,11 +45,12 @@ public class HttpForwardFilter extends AbstractFilter {
 					for (int i = 0; i < extension.length; i++) 
 					{
 						if (requestURI.endsWith(extension[i])) {
-							if (!isURISafe(requestURI)) {
-								throw new IOException("URI is not well formatted");
-							}
+							
 							String redirectUri = httpForwardingBaseURL + requestURI;
 							HttpServletResponse httpResponse = (HttpServletResponse) response;
+							if (!isURISafe(redirectUri)) {
+								throw new IOException("URI is not well formatted");
+							}
 							httpResponse.sendRedirect(redirectUri);
 							//return immediately
 							return;
