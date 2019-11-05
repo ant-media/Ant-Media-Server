@@ -789,10 +789,11 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			//wait for fetching stream
 			
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(fetcher::isStreamAlive);
-
-			//check inputformat context. This issue is the check of #1600
-			assertNotNull(fetcher.getMuxAdaptor().getInputFormatContext());
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
+				// This issue is the check of #1600
+				return fetcher.getMuxAdaptor() != null && fetcher.getMuxAdaptor().getInputFormatContext() != null;
+			});
+	
 			
 			try {
 				Thread.sleep(5000);
