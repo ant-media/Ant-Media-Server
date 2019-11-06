@@ -1500,7 +1500,7 @@ public class DBStoresUnitTest {
 		
 		broadcastFromStore = dataStore.get(streamId);
 		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, broadcastFromStore.getStatus());
-		assertEquals(now, broadcastFromStore.getStartTime());
+		assertTrue(Math.abs(now-broadcastFromStore.getStartTime()) < 100);
 		
 		//wait to be sure time changed from we set now
 		try {
@@ -1513,7 +1513,7 @@ public class DBStoresUnitTest {
 		
 		broadcastFromStore = dataStore.get(streamId);
 		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, broadcastFromStore.getStatus());
-		assertEquals(now, broadcastFromStore.getStartTime());
+		assertTrue(Math.abs(now-broadcastFromStore.getStartTime()) < 100);
 	}
 
 }
