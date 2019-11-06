@@ -1344,9 +1344,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
             //2 jobs in the scheduler one of them is the job streamFetcherManager and and the other one is
             //job in MuxAdaptor
             Awaitility.await().atMost(90, TimeUnit.SECONDS).until(() -> scheduler.getScheduledJobNames().size() == 1);
-            Awaitility.await().atMost(90, TimeUnit.SECONDS).until(() -> muxAdaptor.isRecording());
+            Awaitility.await().atMost(90, TimeUnit.SECONDS).until(muxAdaptor::isRecording);
 
-            logger.info("9");
             assertEquals(1, scheduler.getScheduledJobNames().size());
             assertTrue(muxAdaptor.isRecording());
             final String finalFilePath = muxAdaptor.getMuxerList().get(0).getFile().getAbsolutePath();
@@ -1366,7 +1365,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
                 logger.info("--Scheduler job name {}", jobName);
             }
 
-            Awaitility.await().atMost(20, TimeUnit.SECONDS).until(() -> scheduler.getScheduledJobNames().size() == 0);
+            Awaitility.await().atMost(20, TimeUnit.SECONDS).until(() -> scheduler.getScheduledJobNames().isEmpty());
             assertEquals(0, scheduler.getScheduledJobNames().size());
             assertTrue(MuxingTest.testFile(finalFilePath, lastTimeStamp-startOfRecordingTimeStamp));
 
