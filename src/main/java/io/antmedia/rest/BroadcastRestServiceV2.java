@@ -649,21 +649,22 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 				}
 				else 
 				{
+					boolean stopAttempted = false;
 					if (broadcast.getMp4Enabled() == MP4_ENABLE && broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) 
 					{
+						stopAttempted = true;
 						//we can stop recording
 						result = stopMp4Muxing(streamId);
-						if (result) 
+						if (!result) 
 						{
-							result = getDataStore().setMp4Muxing(streamId, MP4_DISABLE);
-						}
-						else {
 							streamId = streamId.replaceAll("[\n|\r|\t]", "_");
 							logger.warn("Mp4 recording could not be stopped for stream: {}", streamId);
 						}
 						
 					}
+					boolean dataStoreResult = getDataStore().setMp4Muxing(streamId, MP4_DISABLE);
 					
+					result = stopAttempted ? (result && dataStoreResult) : dataStoreResult;
 				}
 			}
 			else 

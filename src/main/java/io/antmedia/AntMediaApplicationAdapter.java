@@ -690,8 +690,6 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		try (CloseableHttpClient httpClient = getHttpClient()) 
 		{
 			HttpPost httpPost = new HttpPost(url);
-			httpPost.addHeader("User-Agent", "Daaavuuuuuttttt https://www.youtube.com/watch?v=cbyTDRgW4Jg");
-
 			List<NameValuePair> urlParameters = new ArrayList<>();
 			Set<Entry<String, String>> entrySet = variables.entrySet();
 			for (Entry<String, String> entry : entrySet) {
