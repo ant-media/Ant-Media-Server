@@ -568,7 +568,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	@Test
 	public void testMp4MuxingAndNotifyCallback() {
-		System.out.println("running testMp4MuxingAndNotifyCallback");
 
 		Application app =  (Application) applicationContext.getBean("web.handler");
 		AntMediaApplicationAdapter appAdaptorReal = app.getAppAdaptor();
@@ -579,7 +578,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		//just check below value that it is not null, this is not related to this case but it should be tested
 		assertNotNull(appAdaptor.getVideoServiceEndpoints());
-		String hookUrl = "hook_url";
+		String hookUrl = "http://hook_url";
 		String name = "namer123";
 		Broadcast broadcast = new Broadcast(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, name);
 		broadcast.setListenerHookURL(hookUrl);
@@ -589,7 +588,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		assertEquals(Application.id, streamId);
 		assertEquals(Application.file.getName(), streamId + ".mp4");
-		assertEquals(697225l, Application.duration);
+		assertTrue(Math.abs(697202l - Application.duration) < 250);
 
 		broadcast = appAdaptor.getDataStore().get(streamId);
 		//we do not save duration of the finished live streams
@@ -611,7 +610,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		//assertEquals((long)broadcast.getDuration(), 10080L);
 
 		app.setAdaptor(appAdaptorReal);
-		System.out.println("leaving testMp4MuxingAndNotifyCallback");
 	}
 
 	@Test
