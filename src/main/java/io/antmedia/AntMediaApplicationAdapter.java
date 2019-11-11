@@ -32,6 +32,7 @@ import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IBroadcastStream;
 import org.red5.server.api.stream.IClientBroadcastStream;
 import org.red5.server.api.stream.IPlayItem;
+import org.red5.server.api.stream.IStreamCapableConnection;
 import org.red5.server.api.stream.IStreamPublishSecurity;
 import org.red5.server.api.stream.IStreamService;
 import org.red5.server.api.stream.ISubscriberStream;
@@ -689,8 +690,6 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		try (CloseableHttpClient httpClient = getHttpClient()) 
 		{
 			HttpPost httpPost = new HttpPost(url);
-			httpPost.addHeader("User-Agent", "Daaavuuuuuttttt https://www.youtube.com/watch?v=cbyTDRgW4Jg");
-
 			List<NameValuePair> urlParameters = new ArrayList<>();
 			Set<Entry<String, String>> entrySet = variables.entrySet();
 			for (Entry<String, String> entry : entrySet) {
@@ -768,7 +767,14 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			IBroadcastStream broadcastStream = getBroadcastStream(getScope(), broadcast.getStreamId());
 			if (broadcastStream != null) 
 			{
-				((IClientBroadcastStream) broadcastStream).getConnection().close();
+				
+				IStreamCapableConnection connection = ((IClientBroadcastStream) broadcastStream).getConnection();
+				if (connection != null) {
+					connection.close();
+				}
+				else {
+					logger.warn("Connection is null. It should not happen for stream: {}. Analyze the logs", broadcast.getStreamId());
+				}
 				result.setSuccess(true);
 			}
 		}
@@ -812,7 +818,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 	@Override
 	public void setQualityParameters(String id, String quality, double speed, int pendingPacketSize) {
-		logger.info("update source quality for stream: {} quality:{} speed:{}", id, quality, speed);
+		logger.debug("update source quality for stream: {} quality:{} speed:{}", id, quality, speed);
 		getDataStore().updateSourceQualityParameters(id, quality, speed, pendingPacketSize);
 
 	}
