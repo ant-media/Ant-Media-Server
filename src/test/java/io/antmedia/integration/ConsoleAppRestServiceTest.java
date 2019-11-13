@@ -939,6 +939,7 @@ public class ConsoleAppRestServiceTest{
 		Result enterpriseResult;
 		try {
 
+			String appName = "LiveApp";
 			// authenticate user
 			User user = new User();
 			user.setEmail(TEST_USER_EMAIL);
@@ -953,73 +954,79 @@ public class ConsoleAppRestServiceTest{
 			}
 
 			// get settings from the app
-			AppSettings appSettings = callGetAppSettings("LiveApp");
+			AppSettings appSettings = callGetAppSettings(appName);
 
 			appSettings.setTokenControlEnabled(true);
 			appSettings.setMp4MuxingEnabled(true);
 
 
-			Result result = callSetAppSettings("LiveApp", appSettings);
+			Result result = callSetAppSettings(appName, appSettings);
 			assertTrue(result.isSuccess());
 
-			appSettings = callGetAppSettings("LiveApp");
+			appSettings = callGetAppSettings(appName);
 			assertTrue(appSettings.isTokenControlEnabled());
 
 			//define a valid expire date
 			long expireDate = Instant.now().getEpochSecond() + 1000;
 			
 			Broadcast broadcast = RestServiceTest.callCreateRegularBroadcast();
-			Token accessToken = callGetToken(broadcast.getStreamId(), Token.PLAY_TOKEN, expireDate);
+			Token accessToken = callGetToken( "http://localhost:5080/"+appName+"/rest/broadcast/getToken", broadcast.getStreamId(), Token.PLAY_TOKEN, expireDate);
 			assertNotNull(accessToken);
 
 
 			Process rtmpSendingProcess = execute(ffmpegPath
-					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
+					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/"+ appName + "/"
 					+ broadcast.getStreamId());
 
 
 			//it should be false, because publishing is not allowed and hls files are not created
 			Awaitility.await().pollDelay(5, TimeUnit.SECONDS).atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-				return ConsoleAppRestServiceTest.getStatusCode("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + ".m3u8?token=" + accessToken.getTokenId())==404;
+				return ConsoleAppRestServiceTest.getStatusCode("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" + broadcast.getStreamId() + ".m3u8?token=" + accessToken.getTokenId())==404;
 			});
 
 			rtmpSendingProcess.destroy();
 
 
 			//create token for publishing
-			Token publishToken = callGetToken(broadcast.getStreamId(), Token.PUBLISH_TOKEN, expireDate);
+			Token publishToken = callGetToken("http://localhost:5080/"+appName+"/rest/broadcast/getToken", broadcast.getStreamId(), Token.PUBLISH_TOKEN, expireDate);
 			assertNotNull(publishToken);
 
 			//create token for playing/accessing file
-			Token accessToken2 = callGetToken(broadcast.getStreamId(), Token.PLAY_TOKEN, expireDate);
+			Token accessToken2 = callGetToken("http://localhost:5080/"+appName+"/rest/broadcast/getToken", broadcast.getStreamId(), Token.PLAY_TOKEN, expireDate);
 			assertNotNull(accessToken2);
 
 			Process rtmpSendingProcessToken = execute(ffmpegPath
-					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
+					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/"+ appName + "/"
 					+ broadcast.getStreamId()+ "?token=" + publishToken.getTokenId());
 
 
 			//it should be false because token control is enabled but no token provided
-
 			Awaitility.await()
 			.pollDelay(5, TimeUnit.SECONDS)
 			.atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
-				return  !MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" 
-						+ broadcast.getStreamId() + ".mp4");
+				return  !MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" 
+						+ broadcast.getStreamId() + ".m3u8");
 			});
 
 			rtmpSendingProcessToken.destroy();
 
 			//this time, it should be true since valid token is provided
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" 
+				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" 
 						+ broadcast.getStreamId() + ".mp4?token=" + accessToken2.getTokenId());
 			});
-
+			
+			
+			//it should fail because there is no access token
+			
+			assertEquals(403, ConsoleAppRestServiceTest.getStatusCode("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" 
+					+ broadcast.getStreamId() + ".mp4"));
+			
+			
+			
 			appSettings.setTokenControlEnabled(false);
 
-
-			Result flag = callSetAppSettings("LiveApp", appSettings);
+			Result flag = callSetAppSettings(appName, appSettings);
 			assertTrue(flag.isSuccess());
 
 
@@ -1440,9 +1447,13 @@ public class ConsoleAppRestServiceTest{
 			fail(e.getMessage());
 		}
 	}
-
+	
+	
 	public static Token callGetToken(String streamId, String type, long expireDate) throws Exception {
-		String url = SERVICE_URL + "/broadcast/getToken";
+		return callGetToken(SERVICE_URL + "/broadcast/getToken", streamId, type, expireDate);
+	}
+
+	public static Token callGetToken(String url, String streamId, String type, long expireDate) throws Exception {
 
 		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 
