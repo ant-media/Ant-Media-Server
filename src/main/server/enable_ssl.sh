@@ -47,13 +47,18 @@ if ! [ -x "$(command -v sudo)" ]; then
   SUDO=""
 fi
 
+output() {
+	OUT=$?
+    	if [ $OUT -ne 0 ]; then
+      		echo -e $ERROR_MESSAGE
+      		exit $OUT
+  	fi
+}
+
 delete_alias() {
   if [ -f "$1" ]; then
 	 $SUDO keytool -delete -alias tomcat -storepass $password -keystore $file
-	 OUT=$?
-	 if [ $OUT -ne 0 ]; then
-	   echo -e $ERROR_MESSAGE
-	 fi
+	 output
   fi
 }
 
@@ -90,47 +95,23 @@ if [ "$fullChainFileExist" == false ]; then
  	
     # Install required libraries
     $SUDO apt-get update -y -qq
-    OUT=$?
-    if [ $OUT -ne 0 ]; then
-      echo -e $ERROR_MESSAGE
-      exit $OUT
-    fi
+    output
 
     $SUDO apt-get install software-properties-common -y -qq
-    OUT=$?
-    if [ $OUT -ne 0 ]; then
-      echo -e $ERROR_MESSAGE
-      exit $OUT
-    fi
+    output
 
     $SUDO add-apt-repository ppa:certbot/certbot -y
-    OUT=$?
-    if [ $OUT -ne 0 ]; then
-      echo -e $ERROR_MESSAGE
-      exit $OUT
-    fi
+    output
 
     $SUDO apt-get update -qq -y
-    OUT=$?
-    if [ $OUT -ne 0 ]; then
-      echo -e $ERROR_MESSAGE
-      exit $OUT
-    fi
+    output
 
     $SUDO apt-get install certbot -qq -y
-    OUT=$?
-    if [ $OUT -ne 0 ]; then
-      echo -e $ERROR_MESSAGE
-      exit $OUT
-    fi
+    output
 
     #Get certificate
     $SUDO certbot certonly --standalone -d $domain
-    OUT=$?
-    if [ $OUT -ne 0 ]; then
-      echo -e $ERROR_MESSAGE
-      exit $OUT
-    fi
+    output
     
     file="/etc/letsencrypt/live/$domain/keystore.jks"
     delete_alias $file
@@ -150,11 +131,7 @@ renew_certificate(){
 
    $SUDO certbot renew
 
-   OUT=$?
-   if [ $OUT -ne 0 ]; then
-         echo -e $ERROR_MESSAGE
-   exit $OUT
-   fi
+   output
 }
 
 
@@ -181,13 +158,7 @@ auth_tomcat(){
 	    -out $EXPORT_P12_FILE \
 	    -name tomcat \
 	    -password pass:$password
-	OUT=$?
-
-
-	if [ $OUT -ne 0 ]; then
-	  echo -e $ERROR_MESSAGE
-	  exit $OUT
-	fi
+	output
 	
 	
 	
@@ -200,11 +171,7 @@ auth_tomcat(){
 	       -srcstorepass $password \
 	       -alias tomcat \
 	       -deststoretype pkcs12
-	OUT=$?
-	if [ $OUT -ne 0 ]; then
-	  echo -e $ERROR_MESSAGE
-	  exit $OUT
-	fi
+	output
 	
 	
 	$SUDO keytool -export  \
@@ -212,109 +179,53 @@ auth_tomcat(){
 	         -deststorepass $password \
 	         -file $CER_FILE \
 	         -keystore $DEST_KEYSTORE
-	OUT=$?
-	if [ $OUT -ne 0 ]; then
-	 echo -e $ERROR_MESSAGE
-	 exit $OUT
-	fi
+	output
 
 
 	$SUDO keytool -import -trustcacerts -alias tomcat \
 	  -file $CER_FILE \
 	  -keystore $TRUST_STORE \
 	  -storepass $password -noprompt
-	OUT=$?
-	if [ $OUT -ne 0 ]; then
-	 echo -e $ERROR_MESSAGE
-	 exit $OUT
-	fi
+	output
 	
 	
 	$SUDO cp $TRUST_STORE $INSTALL_DIRECTORY/conf/
-	OUT=$?
-	if [ $OUT -ne 0 ]; then
-	 echo -e $ERROR_MESSAGE
-	 exit $OUT
-	fi
+	output
 
 
 	$SUDO cp $DEST_KEYSTORE $INSTALL_DIRECTORY/conf/
-	OUT=$?
-	if [ $OUT -ne 0 ]; then
-	 echo -e $ERROR_MESSAGE
-	 exit $OUT
-	fi
+	output
 	
 	
 	$SUDO sed -i "/rtmps.keystorepass=password/c\rtmps.keystorepass=$password"  $INSTALL_DIRECTORY/conf/red5.properties
-	OUT=$?
-	if [ $OUT -ne 0 ]; then
-	 echo -e $ERROR_MESSAGE
-	 exit $OUT
-	fi
+	output
 	
 	$SUDO sed -i "/rtmps.truststorepass=password/c\rtmps.truststorepass=$password"  $INSTALL_DIRECTORY/conf/red5.properties
-	OUT=$?
-	if [ $OUT -ne 0 ]; then
-	 echo -e $ERROR_MESSAGE
-	 exit $OUT
-	fi
+	output
 	
 	#cp default jee-container to jee-container-nossl
 	$SUDO cp $INSTALL_DIRECTORY/conf/jee-container.xml $INSTALL_DIRECTORY/conf/jee-container-nossl.xml
-	OUT=$?
-	if [ $OUT -ne 0 ]; then
-	 echo -e $ERROR_MESSAGE
-	 exit $OUT
-	fi
+	output
 
 	#cp jee-container-ssl to jee-container
 	$SUDO cp $INSTALL_DIRECTORY/conf/jee-container-ssl.xml $INSTALL_DIRECTORY/conf/jee-container.xml
-	OUT=$?
-	if [ $OUT -ne 0 ]; then
-	 echo -e $ERROR_MESSAGE
-	 exit $OUT
-	fi
+	output
 }
 
 create_cron_job(){
 
-	#add renew job to crontab
-	$SUDO crontab -l > mycron
-	
-	
-	#echo new cron into cron file
-	#run renew script in each 85 days
-	$SUDO echo "00 03 */85 * * cd $INSTALL_DIRECTORY && ./enable_ssl.sh -d $domain -r" >> mycron
-	
-	
-	OUT=$?
-	if [ $OUT -ne 0 ]; then
-	 echo -e $ERROR_MESSAGE
-	 exit $OUT
-	fi
+	#crontab file for root user
+	cronfile="/var/spool/cron/crontabs/root"
 
+	#Check if file does not exist
+        if [ ! -f $cronfile ]; then
+                $SUDO echo "00 03 */85 * * cd $INSTALL_DIRECTORY && ./enable_ssl.sh -d $domain -r" > $cronfile
+        elif [ $(grep -E "enable_ssl.sh.*$domain" $cronfile | wc -l) -eq "0" ]; then
+                $SUDO echo "00 03 */85 * * cd $INSTALL_DIRECTORY && ./enable_ssl.sh -d $domain -r" >> $cronfile
+        fi
 
-	#install new cron file
-	$SUDO crontab mycron
-	
-	OUT=$?
-	if [ $OUT -ne 0 ]; then
-	 echo -e $ERROR_MESSAGE
-	 exit $OUT
-	fi
+	output
 
-	#remove temp cron
-	$SUDO rm mycron
-	
-	#restart cron jobs
-	$SUDO systemctl restart cron
-	
-	OUT=$?
-	if [ $OUT -ne 0 ]; then
-	 echo -e $ERROR_MESSAGE
-	 exit $OUT
-	fi
 }
 
 generate_password(){
@@ -370,19 +281,11 @@ echo ""
 
 $SUDO service antmedia stop
 
-OUT=$?
-if [ $OUT -ne 0 ]; then
- echo -e $ERROR_MESSAGE
- exit $OUT
-fi
+output
 
 $SUDO service antmedia start
 
-OUT=$?
-if [ $OUT -ne 0 ]; then
- echo -e $ERROR_MESSAGE
- exit $OUT
-fi
+output
 
 echo "SSL certificate is installed."
 echo "Https port: 5443"
