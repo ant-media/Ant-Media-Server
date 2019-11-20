@@ -981,7 +981,7 @@ public class ConsoleAppRestServiceTest{
 
 			//it should be false, because publishing is not allowed and hls files are not created
 			Awaitility.await().pollDelay(5, TimeUnit.SECONDS).atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-				return ConsoleAppRestServiceTest.getStatusCode("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" + broadcast.getStreamId() + ".m3u8?token=" + accessToken.getTokenId())==404;
+				return ConsoleAppRestServiceTest.getStatusCode("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" + broadcast.getStreamId() + ".m3u8?token=" + accessToken.getTokenId(), true)==404;
 			});
 
 			rtmpSendingProcess.destroy();
@@ -1017,10 +1017,11 @@ public class ConsoleAppRestServiceTest{
 			});
 			
 			
+			
 			//it should fail because there is no access token
 			
 			assertEquals(403, ConsoleAppRestServiceTest.getStatusCode("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" 
-					+ broadcast.getStreamId() + ".mp4"));
+					+ broadcast.getStreamId() + ".mp4", false));
 			
 			
 			
@@ -1161,7 +1162,7 @@ public class ConsoleAppRestServiceTest{
 
 			//publishing is not allowed therefore hls files are not created
 			Awaitility.await().pollDelay(5, TimeUnit.SECONDS).atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-				return ConsoleAppRestServiceTest.getStatusCode("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + ".m3u8?token=hash" )==404;
+				return ConsoleAppRestServiceTest.getStatusCode("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + ".m3u8?token=hash" , true)==404;
 			});
 
 			rtmpSendingProcess.destroy();
@@ -1473,12 +1474,12 @@ public class ConsoleAppRestServiceTest{
 		return gson.fromJson(result.toString(), Token.class);
 	}
 
-	public static int getStatusCode(String url) throws Exception {
+	public static int getStatusCode(String url, boolean useCookie) throws Exception {
 
 		log.info("url: {}",url);
 
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
-				.setDefaultCookieStore(httpCookieStore).build();
+				.setDefaultCookieStore(useCookie ? httpCookieStore : null).build();
 
 		HttpUriRequest post = RequestBuilder.get().setUri(url).build();
 
@@ -1492,7 +1493,7 @@ public class ConsoleAppRestServiceTest{
 	}
 
 	public static boolean checkURLExist(String url) throws Exception {
-		int statusCode = getStatusCode(url);
+		int statusCode = getStatusCode(url, true);
 		if (statusCode == 200) {
 			return true;
 		}
