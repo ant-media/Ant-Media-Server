@@ -279,36 +279,15 @@ auth_tomcat(){
 
 create_cron_job(){
 
-	#add renew job to crontab
-	$SUDO crontab -l > mycron
+	#crontab file for root user
+	cronfile="/var/spool/cron/crontabs/root"
 	
-	
-	#echo new cron into cron file
-	#run renew script in each 85 days
-	$SUDO echo "00 03 */85 * * cd $INSTALL_DIRECTORY && ./enable_ssl.sh -d $domain -r" >> mycron
-	
-	
-	OUT=$?
-	if [ $OUT -ne 0 ]; then
-	 echo -e $ERROR_MESSAGE
-	 exit $OUT
-	fi
-
-
-	#install new cron file
-	$SUDO crontab mycron
-	
-	OUT=$?
-	if [ $OUT -ne 0 ]; then
-	 echo -e $ERROR_MESSAGE
-	 exit $OUT
-	fi
-
-	#remove temp cron
-	$SUDO rm mycron
-	
-	#restart cron jobs
-	$SUDO systemctl restart cron
+	#Check if file does not exist
+        if [ ! -f $cronfile ]; then
+                $SUDO echo "00 03 */85 * * cd $INSTALL_DIRECTORY && ./enable_ssl.sh -d $domain -r" > $cronfile
+        elif [ $(grep -E "enable_ssl.sh.*$domain" $cronfile | wc -l) -eq "0" ]; then
+                $SUDO echo "00 03 */85 * * cd $INSTALL_DIRECTORY && ./enable_ssl.sh -d $domain -r" >> $cronfile
+        fi
 	
 	OUT=$?
 	if [ $OUT -ne 0 ]; then
