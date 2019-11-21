@@ -697,8 +697,11 @@ public class MongoStore extends DataStore {
 					ops.set("streamUrl", broadcast.getStreamUrl());
 				}
 				
+				if ( broadcast.getDuration() != null) {
+					ops.set("duration", broadcast.getDuration());
+				}
+				
 				ops.set("receivedBytes", broadcast.getReceivedBytes());
-				ops.set("duration", broadcast.getDuration());
 				ops.set("bitrate", broadcast.getBitrate());
 				ops.set("userAgent", broadcast.getUserAgent());
 
