@@ -36,6 +36,7 @@ import org.red5.server.api.stream.IStreamCapableConnection;
 import org.red5.server.api.stream.IStreamPublishSecurity;
 import org.red5.server.api.stream.IStreamService;
 import org.red5.server.api.stream.ISubscriberStream;
+import org.red5.server.stream.ClientBroadcastStream;
 import org.red5.server.stream.StreamService;
 import org.red5.server.util.ScopeUtils;
 import org.slf4j.Logger;
@@ -850,11 +851,18 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	
 	public void closeRTMPStreams() 
 	{
-		logger.info("RTMP Broadcasts are closing.");
-		for (MuxAdaptor adaptor : getMuxAdaptors()) {
-			if(adaptor.getBroadcast().getType().equals(AntMediaApplicationAdapter.LIVE_STREAM)) {
-				adaptor.getBroadcastStream().stop();
-				adaptor.stop();
+		List<MuxAdaptor> adaptors = getMuxAdaptors();
+		synchronized (adaptors) 
+		{
+			for (MuxAdaptor adaptor : adaptors) {
+				if(adaptor.getBroadcast().getType().equals(AntMediaApplicationAdapter.LIVE_STREAM)) {
+					
+					ClientBroadcastStream broadcastStream = adaptor.getBroadcastStream();
+					if (broadcastStream != null) {
+						broadcastStream.stop();
+					}
+					adaptor.stop();
+				}
 			}
 		}
 	}
@@ -869,9 +877,17 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	}
 	
 	public void waitUntilLiveStreamsStopped() {
+		int i = 0;
+		int waitPeriod = 1000;
 		while(getDataStore().getLocalLiveBroadcastCount(getServerSettings().getHostAddress()) > 0) {
 			try {
-				Thread.sleep(1000);
+				if (i > 3) {
+					logger.warn("Waiting for active broadcasts number decrease to zero for app: {}"
+							+ "total wait time: {}ms", getScope().getName(), i*waitPeriod);
+				}
+				i++;
+				Thread.sleep(waitPeriod);
+				
 			} catch (InterruptedException e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 				Thread.currentThread().interrupt();
@@ -882,7 +898,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 	@Override
 	public void serverShuttingdown() {
-		
+		logger.info("{} is closing streams", getScope().getName());
 		closeStreamFetchers();
 		closeRTMPStreams();
 		waitUntilLiveStreamsStopped();
