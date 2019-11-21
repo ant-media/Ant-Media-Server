@@ -811,7 +811,7 @@ public class MapDBStore extends DataStore {
 				if (oldBroadcast != null) 
 				{
 
-					updateStreamInfo(oldBroadcast, broadcast.getName(), broadcast.getDescription(), broadcast.getUsername(), broadcast.getPassword(), broadcast.getIpAddr(), broadcast.getStreamUrl());
+					updateStreamInfo(oldBroadcast, broadcast);
 					getMap().replace(streamId, gson.toJson(oldBroadcast));
 
 					db.commit();

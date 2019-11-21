@@ -560,7 +560,7 @@ public class InMemoryDataStore extends DataStore {
 			Broadcast oldBroadcast = get(streamId);
 
 			if (oldBroadcast != null) {
-				updateStreamInfo(oldBroadcast, broadcast.getName(), broadcast.getDescription(), broadcast.getUsername(), broadcast.getPassword(), broadcast.getIpAddr(), broadcast.getStreamUrl());
+				updateStreamInfo(oldBroadcast, broadcast);
 				broadcastMap.replace(oldBroadcast.getStreamId(), oldBroadcast);
 
 				result = true;
