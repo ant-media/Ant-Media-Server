@@ -435,7 +435,7 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	public Response getTokenV2 (@ApiParam(value = "The id of the stream", required = true) @PathParam("id")String streamId,
 			@ApiParam(value = "The expire time of the token. It's in unix timestamp seconds", required = true) @QueryParam("expireDate") long expireDate,
 			@ApiParam(value = "Type of the token. It may be play or publish ", required = true) @QueryParam("type") String type,
-			@ApiParam(value = "Room Id that token belongs to ", required = true) @QueryParam("roomId") String roomId) 
+			@ApiParam(value = "Room Id that token belongs to. It's not mandatory ", required = false) @QueryParam("roomId") String roomId) 
 	{
 		Object result = super.getToken(streamId, expireDate, type, roomId);
 		if (result instanceof Token) {
@@ -452,7 +452,7 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/validate-token")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result validateTokenV2(@ApiParam(value = "token to be validated", required = true) Token token) 
+	public Result validateTokenV2(@ApiParam(value = "Token to be validated", required = true) Token token) 
 	{
 		boolean result =  false;
 		Token validateToken = super.validateToken(token);
