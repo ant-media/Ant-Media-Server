@@ -179,6 +179,8 @@ public class StreamFetcher {
 
 		private static final int PACKET_WRITER_PERIOD_IN_MS = 10;
 
+		private static final long STREAM_FETCH_RE_TRY_PERIOD_MS = 3000;
+
 		private volatile boolean stopRequestReceived = false;
 
 		private volatile boolean streamPublished = false;
@@ -374,8 +376,11 @@ public class StreamFetcher {
 
 			setThreadActive(false);
 			if(!stopRequestReceived && restartStream) {
-				thread = new WorkerThread();
-				thread.start();
+				logger.info("Stream fetcher will try to fetch source {} after {} ms", stream.getStreamUrl(), STREAM_FETCH_RE_TRY_PERIOD_MS);
+				vertx.setTimer(STREAM_FETCH_RE_TRY_PERIOD_MS, l -> {
+					thread = new WorkerThread();
+					thread.start();
+				});
 			}
 
 			logger.debug("Leaving thread for {}", stream.getStreamUrl());
