@@ -192,6 +192,8 @@ public class StreamFetcher {
 		protected AtomicBoolean isJobRunning = new AtomicBoolean(false);
 		AVFormatContext inputFormatContext = null;
 
+		
+		
 		private volatile boolean buffering = false;
 		private ConcurrentLinkedQueue<AVPacket> bufferQueue = new ConcurrentLinkedQueue<>();
 
@@ -502,11 +504,6 @@ public class StreamFetcher {
 		logger.warn("stop stream called for {}", stream.getStreamId());
 		stopRequestReceived = true;
 	}	
-	
-	public void setStopRequestReceived() {
-		logger.warn("inside of setStopRequestReceived for {}", stream.getStreamId());
-		stopRequestReceived = true;
-	}
 
 	public boolean isStopRequestReceived() {
 		return stopRequestReceived;
