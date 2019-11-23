@@ -68,6 +68,13 @@ public class StreamFetcher {
 	private boolean restartStream = true;
 
 	/**
+	 * This flag closes the stream in the worker thread. It should be a field of StreamFetcher. 
+	 * Because WorkerThread instance can be re-created and we can lost the flag value.
+	 * This case causes stream NOT TO BE STOPPED
+	 */
+	private volatile boolean stopRequestReceived = false;
+	
+	/**
 	 * Buffer time in milliseconds
 	 */
 	private int bufferTime = 0;
@@ -180,8 +187,6 @@ public class StreamFetcher {
 		private static final int PACKET_WRITER_PERIOD_IN_MS = 10;
 
 		private static final long STREAM_FETCH_RE_TRY_PERIOD_MS = 3000;
-
-		private volatile boolean stopRequestReceived = false;
 
 		private volatile boolean streamPublished = false;
 		protected AtomicBoolean isJobRunning = new AtomicBoolean(false);
@@ -420,15 +425,6 @@ public class StreamFetcher {
 			}
 		}
 
-		public void setStopRequestReceived() {
-			logger.warn("inside of setStopRequestReceived for {}", stream.getStreamId());
-			stopRequestReceived = true;
-		}
-
-		public boolean isStopRequestReceived() {
-			return stopRequestReceived;
-		}
-
 		public void execute() 
 		{
 			if (isJobRunning.compareAndSet(false, true)) 
@@ -503,17 +499,17 @@ public class StreamFetcher {
 
 	public void stopStream() 
 	{
-		if (getThread() != null) {
-			logger.warn("stop stream called for {}", stream.getStreamId());
-			getThread().setStopRequestReceived();
-
-		}else {
-			logger.warn("stop stream is called and thread is null {}",  stream.getStreamId());
-		}
+		logger.warn("stop stream called for {}", stream.getStreamId());
+		stopRequestReceived = true;
+	}	
+	
+	public void setStopRequestReceived() {
+		logger.warn("inside of setStopRequestReceived for {}", stream.getStreamId());
+		stopRequestReceived = true;
 	}
 
 	public boolean isStopRequestReceived() {
-		return getThread().isStopRequestReceived();
+		return stopRequestReceived;
 	}
 
 	public WorkerThread getThread() {
