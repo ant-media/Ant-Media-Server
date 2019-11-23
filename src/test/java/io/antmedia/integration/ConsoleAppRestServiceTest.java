@@ -21,6 +21,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.http.HttpHeaders;
@@ -35,6 +36,7 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.client.LaxRedirectStrategy;
 import org.awaitility.Awaitility;
+import org.codehaus.plexus.util.ExceptionUtils;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -66,7 +68,7 @@ import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.User;
 import io.antmedia.rest.model.Version;
 import io.antmedia.settings.ServerSettings;
-import io.antmedia.test.Application;
+
 
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
@@ -97,7 +99,7 @@ public class ConsoleAppRestServiceTest{
 	static {
 
 		ROOT_SERVICE_URL = "http://" + SERVER_ADDR + ":5080/rest";
-		
+
 		System.out.println("ROOT SERVICE URL: " + ROOT_SERVICE_URL);
 
 	}
@@ -126,7 +128,7 @@ public class ConsoleAppRestServiceTest{
 		httpCookieStore = null;
 
 	}
-	
+
 	@Rule
 	public TestRule watcher = new TestWatcher() {
 		protected void starting(Description description) {
@@ -443,8 +445,8 @@ public class ConsoleAppRestServiceTest{
 			tmpObject = (String) logJSON.get(LOG_LEVEL); 
 
 			assertEquals(LOG_LEVEL_WARN, tmpObject);
-			
-			
+
+
 			//restore the log 
 			callSetLogLevelTest = callSetLogLevel(LOG_LEVEL_INFO);
 			assertTrue(callSetLogLevelTest.isSuccess());
@@ -455,7 +457,7 @@ public class ConsoleAppRestServiceTest{
 		}
 
 	}
-	
+
 	@Test
 	public void testZeroEncoderSettings() {
 		try {
@@ -464,7 +466,7 @@ public class ConsoleAppRestServiceTest{
 			user.setPassword(TEST_USER_PASS);
 			Result authenticatedUserResult = callAuthenticateUser(user);
 			assertTrue(authenticatedUserResult.isSuccess());
-			
+
 			//get the applications from server
 			String applications = callGetApplications();
 
@@ -476,25 +478,25 @@ public class ConsoleAppRestServiceTest{
 			String appName = (String) jsonArray.get(index);
 
 			log.info("appName: {}", appName);
-			
+
 			AppSettings appSettingsOriginal = callGetAppSettings(appName);
-			
+
 			AppSettings appSettings = callGetAppSettings(appName);
 			int size = appSettings.getEncoderSettings().size();
 			List<EncoderSettings> settingsList = new ArrayList<>();
-			
+
 			settingsList.add(new EncoderSettings(0, 200000, 300000));
-			
+
 			appSettings.setEncoderSettings(settingsList);
 			Result result = callSetAppSettings(appName, appSettings);
 			assertTrue(result.isSuccess());
-			
+
 			appSettings = callGetAppSettings(appName);
 			//it should not change the size because encoder setting is false, height should not be zero
 			assertEquals(0, appSettings.getEncoderSettings().size());
-			
-			
-			
+
+
+
 			settingsList.add(new EncoderSettings(480, 0, 300000));
 			appSettings.setEncoderSettings(settingsList);
 			result = callSetAppSettings(appName, appSettings);
@@ -502,8 +504,8 @@ public class ConsoleAppRestServiceTest{
 			appSettings = callGetAppSettings(appName);
 			//it should not change the size because encoder setting is false, height should not be zero
 			assertEquals(0, appSettings.getEncoderSettings().size());
-			
-			
+
+
 			settingsList.add(new EncoderSettings(480, 2000, 0));
 			appSettings.setEncoderSettings(settingsList);
 			result = callSetAppSettings(appName, appSettings);
@@ -511,18 +513,18 @@ public class ConsoleAppRestServiceTest{
 			appSettings = callGetAppSettings(appName);
 			//it should not change the size because encoder setting is false, height should not be zero
 			assertEquals(0, appSettings.getEncoderSettings().size());
-			
-						
+
+
 			settingsList.add(new EncoderSettings(480, 2000, 30000));
 			appSettings.setEncoderSettings(settingsList);
-			
+
 			result = callSetAppSettings(appName, appSettings);
 			assertTrue(result.isSuccess());
 			appSettings = callGetAppSettings(appName);
 			//it should change the size because parameters are correct
 			assertEquals(1, appSettings.getEncoderSettings().size());
-			
-			
+
+
 			//restore settings
 			result = callSetAppSettings(appName, appSettingsOriginal);
 			assertTrue(result.isSuccess());
@@ -672,11 +674,11 @@ public class ConsoleAppRestServiceTest{
 			AppFunctionalTest.destroyProcess();
 
 			//check that preview is created
-			
+
 			Awaitility.await()
 			.atMost(10, TimeUnit.SECONDS)
 			.pollInterval(1, TimeUnit.SECONDS).until(() -> checkURLExist("http://localhost:5080/LiveApp/previews/"+streamId+".png"));
-	
+
 
 
 			//send a short stream with same name again
@@ -717,7 +719,7 @@ public class ConsoleAppRestServiceTest{
 			Awaitility.await()
 			.atMost(10, TimeUnit.SECONDS)
 			.pollInterval(1, TimeUnit.SECONDS).until(() -> checkURLExist("http://localhost:5080/LiveApp/previews/"+streamId2+".png"));
-	
+
 
 			//send a short stream with same name again
 			AppFunctionalTest.executeProcess(ffmpegPath
@@ -733,7 +735,7 @@ public class ConsoleAppRestServiceTest{
 			Thread.sleep(3000);
 
 			//check that second preview with the same created.
-			
+
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
 			.until(() -> checkURLExist("http://localhost:5080/LiveApp/previews/"+streamId2+".png"));
 
@@ -834,7 +836,7 @@ public class ConsoleAppRestServiceTest{
 					Broadcast broadcast2 = RestServiceTest.callGetBroadcast(streamId2);
 					return broadcast2 != null && broadcast2.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 				});
-			
+
 				AppFunctionalTest.destroyProcess();
 			}
 
@@ -850,7 +852,7 @@ public class ConsoleAppRestServiceTest{
 						+ broadcastCreated.getStreamId());
 
 				Awaitility.await().atMost(10, TimeUnit.SECONDS)
-					.until(() -> AppFunctionalTest.isProcessAlive());
+				.until(() -> AppFunctionalTest.isProcessAlive());
 
 				Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
 				.until(() -> {
@@ -901,18 +903,18 @@ public class ConsoleAppRestServiceTest{
 
 				Awaitility.await().atMost(10, TimeUnit.SECONDS)
 				.pollInterval(1, TimeUnit.SECONDS).until(AppFunctionalTest::isProcessAlive);
-						
+
 
 				Awaitility.await().pollDelay(3, TimeUnit.SECONDS)
-						.atMost(10, TimeUnit.SECONDS)
-						.pollInterval(1, TimeUnit.SECONDS).until(() -> 
+				.atMost(10, TimeUnit.SECONDS)
+				.pollInterval(1, TimeUnit.SECONDS).until(() -> 
 				{
 					Broadcast broadcast2 = RestServiceTest.callGetBroadcast(broadcastCreated.getStreamId());
 					assertNotNull(broadcast2);
 					return broadcast2 != null && broadcast2.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 				});
-				
-				
+
+
 				AppFunctionalTest.destroyProcess();
 			}
 
@@ -968,7 +970,7 @@ public class ConsoleAppRestServiceTest{
 
 			//define a valid expire date
 			long expireDate = Instant.now().getEpochSecond() + 1000;
-			
+
 			Broadcast broadcast = RestServiceTest.callCreateRegularBroadcast();
 			Token accessToken = callGetToken( "http://localhost:5080/"+appName+"/rest/broadcast/getToken", broadcast.getStreamId(), Token.PLAY_TOKEN, expireDate);
 			assertNotNull(accessToken);
@@ -1015,16 +1017,16 @@ public class ConsoleAppRestServiceTest{
 				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" 
 						+ broadcast.getStreamId() + ".mp4?token=" + accessToken2.getTokenId());
 			});
-			
-			
-			
+
+
+
 			//it should fail because there is no access token
-			
+
 			assertEquals(403, ConsoleAppRestServiceTest.getStatusCode("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" 
 					+ broadcast.getStreamId() + ".mp4", false));
-			
-			
-			
+
+
+
 			appSettings.setTokenControlEnabled(false);
 
 			Result flag = callSetAppSettings(appName, appSettings);
@@ -1068,7 +1070,7 @@ public class ConsoleAppRestServiceTest{
 
 			Result flag = callSetServerSettings(serverSettings);
 
-			
+
 			//request license check via rest service
 			Licence activeLicence = callGetLicenceStatus(serverSettings.getLicenceKey());
 
@@ -1085,7 +1087,7 @@ public class ConsoleAppRestServiceTest{
 			//check that setting is saved
 			assertTrue (flag.isSuccess());
 
-			
+
 			//check license status
 
 			activeLicence = callGetLicenceStatus(serverSettings.getLicenceKey());
@@ -1448,8 +1450,8 @@ public class ConsoleAppRestServiceTest{
 			fail(e.getMessage());
 		}
 	}
-	
-	
+
+
 	public static Token callGetToken(String streamId, String type, long expireDate) throws Exception {
 		return callGetToken(SERVICE_URL + "/broadcast/getToken", streamId, type, expireDate);
 	}
@@ -1875,6 +1877,88 @@ public class ConsoleAppRestServiceTest{
 		Result tmp = gson.fromJson(result.toString(), Result.class);
 
 		return tmp;
+	}
+
+	@Test
+	public void testPublishIPFilter() 
+	{
+
+		Result result;
+		try {
+			result = callIsEnterpriseEdition();
+			if (!result.isSuccess()) {
+				log.info("This is not enterprise edition so skipping this test");
+				return;
+			}
+
+			final String streamId = "testIPFilter"+new Random(50000).nextInt();
+
+
+			AppFunctionalTest.executeProcess(ffmpegPath
+					+ " -re -i src/test/resources/test_video_sky_diving_short.flv -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
+					+ streamId);
+
+			Awaitility.await().atMost(10, TimeUnit.SECONDS)
+			.pollInterval(2, TimeUnit.SECONDS)
+			.until(() -> {
+				Broadcast broadcast = RestServiceV2Test.getBroadcast(streamId);
+				return broadcast != null
+						&& broadcast.getStreamId() != null
+						&& broadcast.getStreamId().contentEquals(streamId);
+			});
+
+			AppFunctionalTest.process.destroy();
+
+			Awaitility.await().atMost(50, TimeUnit.SECONDS)
+			.pollInterval(2, TimeUnit.SECONDS)
+			.until(() -> {
+				Broadcast broadcast = RestServiceV2Test.getBroadcast(streamId);
+				return broadcast == null
+						|| broadcast.getStreamId() == null
+						|| !broadcast.getStreamId().contentEquals(streamId);
+			});
+
+
+
+			AppSettings appSettings = callGetAppSettings("LiveApp");
+			appSettings.getAllowedPublisherCIDR();
+			appSettings.setAllowedPublisherCIDR("127.0.0.2");
+			result = callSetAppSettings("LiveApp", appSettings);
+			assertTrue(result.isSuccess());
+			
+			AppFunctionalTest.execute(ffmpegPath
+					+ " -re -i src/test/resources/test_video_sky_diving_short.flv -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
+					+ streamId);
+
+
+			boolean available = false;
+			for (int i = 0; i < 5; i++) {
+				Broadcast broadcast = RestServiceV2Test.getBroadcast(streamId);
+				if(broadcast != null
+						&& broadcast.getStreamId() != null
+						&& broadcast.getStreamId().contentEquals(streamId)) {
+					available = true;
+					break;
+				}
+				try {
+					Thread.sleep(2000);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
+
+			assertFalse(available);
+
+
+			appSettings = callGetAppSettings("LiveApp");
+			appSettings.setAllowedPublisherCIDR("");
+			result = callSetAppSettings("LiveApp", appSettings);
+			assertTrue(result.isSuccess());
+		} 
+		catch (Exception e) {
+			log.error(ExceptionUtils.getStackTrace(e));
+			fail(e.getMessage());
+		}
 	}
 
 
