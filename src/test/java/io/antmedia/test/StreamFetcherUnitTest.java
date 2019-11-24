@@ -380,6 +380,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			//change the flag that shows thread is still running
 			fetcher.setThreadActive(true);
 
+			fetcher.debugSetStopRequestReceived(false);
 			//start thread
 			fetcher.startStream();
 

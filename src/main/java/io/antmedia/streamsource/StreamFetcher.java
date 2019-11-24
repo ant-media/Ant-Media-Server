@@ -616,6 +616,14 @@ public class StreamFetcher {
 		}
 		return appSettings;
 	}
+	
+	/**
+	 * This is for test purposes
+	 * @param stopRequest
+	 */
+	public void debugSetStopRequestReceived(boolean stopRequest) {
+		stopRequestReceived = stopRequest;
+	}
 
 
 }
