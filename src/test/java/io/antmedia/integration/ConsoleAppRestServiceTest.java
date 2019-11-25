@@ -1885,6 +1885,11 @@ public class ConsoleAppRestServiceTest{
 
 		Result result;
 		try {
+			
+			Result authenticatedUserResult = authenticateDefaultUser();
+			assertTrue(authenticatedUserResult.isSuccess());
+
+			
 			result = callIsEnterpriseEdition();
 			if (!result.isSuccess()) {
 				log.info("This is not enterprise edition so skipping this test");
@@ -1895,7 +1900,7 @@ public class ConsoleAppRestServiceTest{
 
 
 			AppFunctionalTest.executeProcess(ffmpegPath
-					+ " -re -i src/test/resources/test_video_sky_diving_short.flv -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
+					+ " -re -i src/test/resources/test.flv -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
 					+ streamId);
 
 			Awaitility.await().atMost(10, TimeUnit.SECONDS)
@@ -1907,7 +1912,7 @@ public class ConsoleAppRestServiceTest{
 						&& broadcast.getStreamId().contentEquals(streamId);
 			});
 
-			AppFunctionalTest.process.destroy();
+			AppFunctionalTest.destroyProcess();
 
 			Awaitility.await().atMost(50, TimeUnit.SECONDS)
 			.pollInterval(2, TimeUnit.SECONDS)
@@ -1927,7 +1932,7 @@ public class ConsoleAppRestServiceTest{
 			assertTrue(result.isSuccess());
 			
 			AppFunctionalTest.execute(ffmpegPath
-					+ " -re -i src/test/resources/test_video_sky_diving_short.flv -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
+					+ " -re -i src/test/resources/test.flv -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
 					+ streamId);
 
 
@@ -1948,7 +1953,8 @@ public class ConsoleAppRestServiceTest{
 			}
 
 			assertFalse(available);
-
+			
+			AppFunctionalTest.destroyProcess();
 
 			appSettings = callGetAppSettings("LiveApp");
 			appSettings.setAllowedPublisherCIDR("");
