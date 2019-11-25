@@ -1047,6 +1047,14 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	
 	private boolean updateAppSettingsFile(String appName, AppSettings appsettings) 
 	{
+		/*
+		 * Remember remember the 23th of November
+		 * 
+		 * String.valueof(null) returns "null" string. 
+		 * 
+		 * If we know the case above, we will write better codes. 
+		 * 
+		 */
 		PreferenceStore store = new PreferenceStore("webapps/"+appName+"/WEB-INF/red5-web.properties");
 
 		store.put(AppSettings.SETTINGS_MP4_MUXING_ENABLED, String.valueOf(appsettings.isMp4MuxingEnabled()));
@@ -1071,7 +1079,9 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		store.put(AppSettings.SETTINGS_ENCODER_SETTINGS_STRING, AppSettings.encodersList2Str(appsettings.getEncoderSettings()));
 		store.put(AppSettings.TOKEN_HASH_SECRET, appsettings.getTokenHashSecret() != null ? appsettings.getTokenHashSecret() : "");
 		store.put(AppSettings.SETTINGS_PREVIEW_OVERWRITE, String.valueOf(appsettings.isPreviewOverwrite()));
-		store.put(AppSettings.SETTINGS_ALLOWED_PUBLISHER_IPS, String.valueOf(appsettings.getAllowedPublisherIps()));
+		store.put(AppSettings.SETTINGS_ALLOWED_PUBLISHER_IPS, appsettings.getAllowedPublisherCIDR() != null ? 
+																	String.valueOf(appsettings.getAllowedPublisherCIDR())
+																	: "");
 
 		return store.save();
 	}
@@ -1100,7 +1110,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		
 		String oldVodFolder = appSettings.getVodFolder();
 
-		appSettings.setAllowedPublisherIps(newSettings.getAllowedPublisherIps());
+		appSettings.setAllowedPublisherCIDR(newSettings.getAllowedPublisherCIDR());
 		appSettings.setVodFolder(newSettings.getVodFolder());
 		appSettings.setPreviewOverwrite(newSettings.isPreviewOverwrite());
 
