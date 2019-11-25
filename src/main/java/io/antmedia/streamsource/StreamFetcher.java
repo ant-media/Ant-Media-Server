@@ -68,6 +68,13 @@ public class StreamFetcher {
 	private boolean restartStream = true;
 
 	/**
+	 * This flag closes the stream in the worker thread. It should be a field of StreamFetcher. 
+	 * Because WorkerThread instance can be re-created and we can lost the flag value.
+	 * This case causes stream NOT TO BE STOPPED
+	 */
+	private volatile boolean stopRequestReceived = false;
+	
+	/**
 	 * Buffer time in milliseconds
 	 */
 	private int bufferTime = 0;
@@ -179,12 +186,14 @@ public class StreamFetcher {
 
 		private static final int PACKET_WRITER_PERIOD_IN_MS = 10;
 
-		private volatile boolean stopRequestReceived = false;
+		private static final long STREAM_FETCH_RE_TRY_PERIOD_MS = 3000;
 
 		private volatile boolean streamPublished = false;
 		protected AtomicBoolean isJobRunning = new AtomicBoolean(false);
 		AVFormatContext inputFormatContext = null;
 
+		
+		
 		private volatile boolean buffering = false;
 		private ConcurrentLinkedQueue<AVPacket> bufferQueue = new ConcurrentLinkedQueue<>();
 
@@ -374,8 +383,11 @@ public class StreamFetcher {
 
 			setThreadActive(false);
 			if(!stopRequestReceived && restartStream) {
-				thread = new WorkerThread();
-				thread.start();
+				logger.info("Stream fetcher will try to fetch source {} after {} ms", stream.getStreamUrl(), STREAM_FETCH_RE_TRY_PERIOD_MS);
+				vertx.setTimer(STREAM_FETCH_RE_TRY_PERIOD_MS, l -> {
+					thread = new WorkerThread();
+					thread.start();
+				});
 			}
 
 			logger.debug("Leaving thread for {}", stream.getStreamUrl());
@@ -413,15 +425,6 @@ public class StreamFetcher {
 			while ((pkt = bufferQueue.poll()) != null) {
 				pkt.close();
 			}
-		}
-
-		public void setStopRequestReceived() {
-			logger.warn("inside of setStopRequestReceived for {}", stream.getStreamId());
-			stopRequestReceived = true;
-		}
-
-		public boolean isStopRequestReceived() {
-			return stopRequestReceived;
 		}
 
 		public void execute() 
@@ -498,17 +501,12 @@ public class StreamFetcher {
 
 	public void stopStream() 
 	{
-		if (getThread() != null) {
-			logger.warn("stop stream called for {}", stream.getStreamId());
-			getThread().setStopRequestReceived();
-
-		}else {
-			logger.warn("stop stream is called and thread is null {}",  stream.getStreamId());
-		}
-	}
+		logger.warn("stop stream called for {}", stream.getStreamId());
+		stopRequestReceived = true;
+	}	
 
 	public boolean isStopRequestReceived() {
-		return getThread().isStopRequestReceived();
+		return stopRequestReceived;
 	}
 
 	public WorkerThread getThread() {
@@ -617,6 +615,14 @@ public class StreamFetcher {
 			appSettings = (AppSettings) scope.getContext().getApplicationContext().getBean(AppSettings.BEAN_NAME);
 		}
 		return appSettings;
+	}
+	
+	/**
+	 * This is for test purposes
+	 * @param stopRequest
+	 */
+	public void debugSetStopRequestReceived(boolean stopRequest) {
+		stopRequestReceived = stopRequest;
 	}
 
 
