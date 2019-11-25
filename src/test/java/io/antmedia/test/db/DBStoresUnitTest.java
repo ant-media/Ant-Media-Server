@@ -299,7 +299,7 @@ public class DBStoresUnitTest {
 		totalVodCount = datastore.getTotalVodNumber();
 		assertEquals(5, totalVodCount);
 
-		List<VoD> vodList = datastore.getVodList(0, 50);
+		List<VoD> vodList = datastore.getVodList(0, 50, null, null);
 		assertEquals(5, vodList.size());
 		for (VoD voD : vodList) {
 			assertEquals("streams/resources/"+voD.getVodName(), voD.getFilePath());

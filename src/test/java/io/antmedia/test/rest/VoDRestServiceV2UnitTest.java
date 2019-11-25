@@ -13,12 +13,15 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.List;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.mongodb.morphia.Datastore;
+import org.mongodb.morphia.query.Query;
 import org.red5.server.scope.Scope;
 import org.springframework.context.ApplicationContext;
 import org.springframework.test.annotation.DirtiesContext;
@@ -31,6 +34,9 @@ import io.antmedia.AppSettings;
 import io.antmedia.IApplicationAdaptorFactory;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
+import io.antmedia.datastore.db.MapDBStore;
+import io.antmedia.datastore.db.MongoStore;
+import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.integration.MuxingTest;
 import io.antmedia.rest.BroadcastRestService.ProcessBuilderFactory;
@@ -197,11 +203,11 @@ public class VoDRestServiceV2UnitTest {
 		assertEquals(streamVod.getVodName(), voD.getVodName());
 		assertEquals(streamVod.getFilePath(), voD.getFilePath());
 
-		assertEquals(1, restServiceReal.getVodList(0, 50).size());
+		assertEquals(1, restServiceReal.getVodList(0, 50, null, null).size());
 
 		restServiceReal.deleteVoD(vodId);
 
-		assertEquals(0, restServiceReal.getVodList(0, 50).size());
+		assertEquals(0, restServiceReal.getVodList(0, 50, null, null).size());
 
 		assertNull(datastore.getVoD(vodId));
 
@@ -251,6 +257,99 @@ public class VoDRestServiceV2UnitTest {
 		}
 
 	}
+	
+	@Test
+	public void testVoDSorting() {
+		InMemoryDataStore imDatastore = new InMemoryDataStore("datastore");
+		vodSorting(imDatastore);
+		
+		MapDBStore mapDataStore = new MapDBStore("testdb");
+		vodSorting(mapDataStore);
+		
+		DataStore mongoDataStore = new MongoStore("localhost", "", "", "testdb");
+		Datastore store = ((MongoStore) mongoDataStore).getVodDatastore();
+		Query<VoD> deleteQuery = store.find(VoD.class);
+		store.delete(deleteQuery);
+		vodSorting(mongoDataStore);
+	}
+	
+	public void vodSorting(DataStore datastore) {
+		restServiceReal.setDataStore(datastore);
 
+		VoD vod1 = new VoD("streamName", "streamId", "filePath", "vodName2", 333, 111, 111, VoD.STREAM_VOD, "vod_1");
+		VoD vod2 = new VoD("streamName", "streamId", "filePath", "vodName1", 222, 111, 111, VoD.STREAM_VOD, "vod_2");
+		VoD vod3 = new VoD("streamName", "streamId", "filePath", "vodName3", 111, 111, 111, VoD.STREAM_VOD, "vod_3");
+		
+		datastore.addVod(vod1);
+		datastore.addVod(vod2);
+		datastore.addVod(vod3);
 
+		Scope scope = mock(Scope.class);
+		String scopeName = "junit";
+		when(scope.getName()).thenReturn(scopeName);
+
+		AntMediaApplicationAdapter app = mock(AntMediaApplicationAdapter.class);
+		when(app.getScope()).thenReturn(scope);
+		
+		IApplicationAdaptorFactory application = new IApplicationAdaptorFactory() {
+			@Override
+			public AntMediaApplicationAdapter getAppAdaptor() {
+				return app;
+			}
+		};
+
+		ApplicationContext context = mock(ApplicationContext.class);
+		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(application);
+
+		restServiceReal.setAppCtx(context);
+		
+		List<VoD> vodList = restServiceReal.getVodList(0, 50, null, null);
+		assertEquals(3, vodList.size());
+		assertEquals(vodList.get(0).getVodId(), vod1.getVodId());
+		assertEquals(vodList.get(1).getVodId(), vod2.getVodId());
+		assertEquals(vodList.get(2).getVodId(), vod3.getVodId());
+		
+		vodList = restServiceReal.getVodList(0, 50, "", "");
+		assertEquals(3, vodList.size());
+		assertEquals(vodList.get(0).getVodId(), vod1.getVodId());
+		assertEquals(vodList.get(1).getVodId(), vod2.getVodId());
+		assertEquals(vodList.get(2).getVodId(), vod3.getVodId());
+		
+		
+		vodList = restServiceReal.getVodList(0, 50, "name", "asc");
+		assertEquals(3, vodList.size());
+		assertEquals(vodList.get(0).getVodId(), vod2.getVodId());
+		assertEquals(vodList.get(1).getVodId(), vod1.getVodId());
+		assertEquals(vodList.get(2).getVodId(), vod3.getVodId());
+		
+		vodList = restServiceReal.getVodList(0, 50, "name", "desc");
+		assertEquals(3, vodList.size());
+		assertEquals(vodList.get(0).getVodId(), vod3.getVodId());
+		assertEquals(vodList.get(1).getVodId(), vod1.getVodId());
+		assertEquals(vodList.get(2).getVodId(), vod2.getVodId());
+		
+		vodList = restServiceReal.getVodList(0, 50, "date", "asc");
+		assertEquals(3, vodList.size());
+		assertEquals(vodList.get(0).getVodId(), vod3.getVodId());
+		assertEquals(vodList.get(1).getVodId(), vod2.getVodId());
+		assertEquals(vodList.get(2).getVodId(), vod1.getVodId());
+		
+		vodList = restServiceReal.getVodList(0, 50, "date", "desc");
+		assertEquals(3, vodList.size());
+		assertEquals(vodList.get(0).getVodId(), vod1.getVodId());
+		assertEquals(vodList.get(1).getVodId(), vod2.getVodId());
+		assertEquals(vodList.get(2).getVodId(), vod3.getVodId());
+		
+		vodList = restServiceReal.getVodList(0, 2, "name", "desc");
+		assertEquals(2, vodList.size());
+		assertEquals(vodList.get(0).getVodId(), vod3.getVodId());
+		assertEquals(vodList.get(1).getVodId(), vod1.getVodId());
+		
+		datastore.deleteVod(vod1.getVodId());
+		datastore.deleteVod(vod2.getVodId());
+		datastore.deleteVod(vod3.getVodId());
+		
+		vodList = restServiceReal.getVodList(0, 50, null, null);
+		assertEquals(0, vodList.size());
+	}
 }

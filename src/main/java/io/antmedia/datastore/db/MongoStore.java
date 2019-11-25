@@ -396,8 +396,19 @@ public class MongoStore extends DataStore {
 	}
 
 	@Override
-	public List<VoD> getVodList(int offset, int size) {	
+	public List<VoD> getVodList(int offset, int size, String sortBy, String orderBy) {
 		synchronized(this) {
+			if(sortBy != null && orderBy != null && !sortBy.isEmpty() && !orderBy.isEmpty()) {
+				String sortString = "creationDate";
+				sortString = orderBy.contentEquals("desc") ? "-" : "";
+				if(sortBy.contentEquals("name")) {
+					sortString += "vodName";
+				}
+				else if(sortBy.contentEquals("date")) {
+					sortString += "creationDate";
+				}
+				return vodDatastore.find(VoD.class).order(sortString).asList(new FindOptions().skip(offset).limit(size));
+			}
 			return vodDatastore.find(VoD.class).asList(new FindOptions().skip(offset).limit(size));
 		}
 	}
