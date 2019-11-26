@@ -35,11 +35,15 @@ public class WebSocketCommunityHandler {
 	private ApplicationContext appContext;
 
 	protected Session session;
+
+	private String appName;
 	
 	public WebSocketCommunityHandler(ApplicationContext appContext, Session session) {
 		this.appContext = appContext;
 		this.session = session;
 		appSettings = (AppSettings) getAppContext().getBean(AppSettings.BEAN_NAME);
+		MultiThreadedApplicationAdapter application = (MultiThreadedApplicationAdapter) appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME);
+		appName = application.getScope().getName();
 	}
 	
 	public void onClose(Session session) {
@@ -135,8 +139,7 @@ public class WebSocketCommunityHandler {
 	private void startRTMPAdaptor(Session session, final String streamId) {
 
 		//get scope and use its name
-		MultiThreadedApplicationAdapter application = (MultiThreadedApplicationAdapter) appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME);
-		String outputURL = "rtmp://127.0.0.1/"+ application.getScope().getName() +"/" + streamId;
+		String outputURL = "rtmp://127.0.0.1/"+ appName +"/" + streamId;
 
 		RTMPAdaptor connectionContext = getNewRTMPAdaptor(outputURL);
 

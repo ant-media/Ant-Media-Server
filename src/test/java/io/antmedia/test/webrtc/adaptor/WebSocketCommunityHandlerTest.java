@@ -21,6 +21,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.red5.server.adapter.MultiThreadedApplicationAdapter;
+import org.red5.server.api.scope.IScope;
+import org.red5.server.scope.BasicScope;
 import org.springframework.context.ApplicationContext;
 import org.webrtc.IceCandidate;
 import org.webrtc.SessionDescription;
@@ -57,6 +60,13 @@ public class WebSocketCommunityHandlerTest {
 	public void before() {
 		appContext = Mockito.mock(ApplicationContext.class);
 		when(appContext.getBean(AppSettings.BEAN_NAME)).thenReturn(new AppSettings());
+		MultiThreadedApplicationAdapter app = Mockito.mock(MultiThreadedApplicationAdapter.class);
+		IScope scope = Mockito.mock(IScope.class);
+		when(scope.getName()).thenReturn("junit");
+		
+		when(app.getScope()).thenReturn(scope);
+		
+		when(appContext.getBean("web.handler")).thenReturn(app);
 		
 		wsHandlerReal = new WebSocketEndpoint(appContext);
 		wsHandler = Mockito.spy(wsHandlerReal);
