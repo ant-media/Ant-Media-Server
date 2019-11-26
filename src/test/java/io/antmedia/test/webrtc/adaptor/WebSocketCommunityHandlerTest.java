@@ -116,6 +116,31 @@ public class WebSocketCommunityHandlerTest {
 			fail(e.getMessage());
 		}
 	}
+	
+	@Test
+	public void testGetStreamInfo() {
+		JSONObject publishObject = new JSONObject();
+		publishObject.put(WebSocketConstants.COMMAND, WebSocketConstants.GET_STREAM_INFO_COMMAND);
+		
+		String streamId = "streamId" + (int)(Math.random()*1000);
+		publishObject.put(WebSocketConstants.STREAM_ID, streamId);
+		
+		wsHandler.onMessage(session, publishObject.toJSONString());
+		
+		JSONObject jsonResponse = new JSONObject();
+		jsonResponse.put(WebSocketConstants.COMMAND, WebSocketConstants.ERROR_COMMAND);
+		jsonResponse.put(WebSocketConstants.ERROR_CODE, "404");
+		jsonResponse.put(WebSocketConstants.DEFINITION, WebSocketConstants.NO_STREAM_EXIST);
+		jsonResponse.put(WebSocketConstants.STREAM_ID, streamId);
+		
+		try {
+			verify(basicRemote).sendText(jsonResponse.toJSONString());
+		} catch (IOException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		
+	}
 
 	@Test
 	public void testPublishAndDisconnect() {
