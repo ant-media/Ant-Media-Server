@@ -29,7 +29,9 @@ import org.webrtc.IceCandidate;
 import org.webrtc.SessionDescription;
 import org.webrtc.SessionDescription.Type;
 
+import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
+import io.antmedia.IApplicationAdaptorFactory;
 import io.antmedia.webrtc.adaptor.RTMPAdaptor;
 import io.antmedia.websocket.WebSocketCommunityHandler;
 import io.antmedia.websocket.WebSocketConstants;
@@ -60,13 +62,14 @@ public class WebSocketCommunityHandlerTest {
 	public void before() {
 		appContext = Mockito.mock(ApplicationContext.class);
 		when(appContext.getBean(AppSettings.BEAN_NAME)).thenReturn(new AppSettings());
-		MultiThreadedApplicationAdapter app = Mockito.mock(MultiThreadedApplicationAdapter.class);
+		IApplicationAdaptorFactory appFactory = Mockito.mock(IApplicationAdaptorFactory.class);
+		AntMediaApplicationAdapter adaptor = Mockito.mock(AntMediaApplicationAdapter.class);
+		when(appFactory.getAppAdaptor()).thenReturn(adaptor);
 		IScope scope = Mockito.mock(IScope.class);
 		when(scope.getName()).thenReturn("junit");
-		
-		when(app.getScope()).thenReturn(scope);
-		
-		when(appContext.getBean("web.handler")).thenReturn(app);
+
+		when(adaptor.getScope()).thenReturn(scope);
+		when(appContext.getBean("web.handler")).thenReturn(appFactory);
 		
 		wsHandlerReal = new WebSocketEndpoint(appContext);
 		wsHandler = Mockito.spy(wsHandlerReal);

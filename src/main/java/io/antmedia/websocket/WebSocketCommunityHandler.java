@@ -9,7 +9,6 @@ import org.bytedeco.javacpp.avcodec;
 import org.bytedeco.javacpp.avutil;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
-import org.red5.server.adapter.MultiThreadedApplicationAdapter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -19,6 +18,7 @@ import org.webrtc.SessionDescription.Type;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
+import io.antmedia.IApplicationAdaptorFactory;
 import io.antmedia.StreamIdValidator;
 import io.antmedia.recorder.FFmpegFrameRecorder;
 import io.antmedia.recorder.FrameRecorder;
@@ -42,8 +42,9 @@ public class WebSocketCommunityHandler {
 		this.appContext = appContext;
 		this.session = session;
 		appSettings = (AppSettings) getAppContext().getBean(AppSettings.BEAN_NAME);
-		MultiThreadedApplicationAdapter application = (MultiThreadedApplicationAdapter) appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME);
-		appName = application.getScope().getName();
+		AntMediaApplicationAdapter appAdaptor = ((IApplicationAdaptorFactory)appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME)).getAppAdaptor();
+		
+		appName = appAdaptor.getScope().getName();
 	}
 	
 	public void onClose(Session session) {
