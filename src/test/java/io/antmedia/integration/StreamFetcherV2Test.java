@@ -39,6 +39,7 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.rest.model.Result;
 import io.antmedia.streamsource.StreamFetcher;
+import io.vertx.core.Vertx;
 
 @ContextConfiguration(locations = { "../test/test.xml" })
 @DirtiesContext(classMode = ClassMode.AFTER_CLASS)
@@ -187,7 +188,7 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 		app.setDataStoreFactory(dsf);
 		
 		//create stream fetcher
-		StreamFetcher streamFetcher = new StreamFetcher(localStream, appScope, null);
+		StreamFetcher streamFetcher = new StreamFetcher(localStream, appScope, Vertx.vertx());
 
 		//start stream fetcher
 		streamFetcher.startStream();
