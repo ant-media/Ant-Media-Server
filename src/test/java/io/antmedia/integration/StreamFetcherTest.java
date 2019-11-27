@@ -188,6 +188,7 @@ public class StreamFetcherTest extends AbstractJUnit4SpringContextTests{
 		//create stream fetcher
 		StreamFetcher streamFetcher = new StreamFetcher(localStream, appScope, null);
 
+		streamFetcher.setRestartStream(false);
 		//start stream fetcher
 		streamFetcher.startStream();
 		
