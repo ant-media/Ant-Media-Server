@@ -296,7 +296,7 @@ public class RestServiceV2Test {
 
 	}
 
-	public Broadcast getBroadcast(String streamId) {
+	public static Broadcast getBroadcast(String streamId) {
 		try {
 			/// get broadcast
 			String url = ROOT_SERVICE_URL + "/v2/broadcasts/"+streamId;

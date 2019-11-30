@@ -23,7 +23,7 @@ fi
 AMS_INSTALL_LOCATION=/usr/local/antmedia
 OS_NAME=`uname`
 
-if [[ "$OS_NAME" == 'Darwin' ]]; then
+if [ "$OS_NAME" = "Darwin" ]; then
   AMS_INSTALL_LOCATION=`pwd`
   SED_COMPATIBILITY='.bak'
 fi
@@ -75,7 +75,7 @@ sed -i $SED_COMPATIBILITY 's/db.host=.*/db.host='$MONGO_SERVER_IP'/' $CONSOLEAPP
 
 
 
-if [[ "$OS_NAME" == 'Darwin' ]]; then
+if [ "$OS_NAME" = "Darwin" ]; then
   echo "You can re-start Ant Media Server on your Macos"
   exit 0
 fi

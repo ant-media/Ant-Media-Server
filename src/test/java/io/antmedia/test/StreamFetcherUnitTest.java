@@ -250,6 +250,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		logger.info("leaving testBugUpdateStreamFetcherStatus");
 
 	}
+	
+
 
 
 	@Test
@@ -378,6 +380,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			//change the flag that shows thread is still running
 			fetcher.setThreadActive(true);
 
+			fetcher.debugSetStopRequestReceived(false);
 			//start thread
 			fetcher.startStream();
 
@@ -758,7 +761,6 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		logger.info("leaving testAudioOnlySource");
 	}
 
-
 	public void testFetchStreamSources(String source, boolean restartStream, boolean checkContext) {
 
 		Application.enableSourceHealthUpdate = true;
@@ -850,7 +852,31 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		Application.enableSourceHealthUpdate = false;
 
+	}
+	
+	@Test
+	public void testStopRequestReceived() {
+		Broadcast stream = new Broadcast("streamSource", "127.0.0.1:8080", "admin", "admin", "rtsp://localhost:44332/this_does_not_exist",
+				AntMediaApplicationAdapter.STREAM_SOURCE);
+		DataStore dataStore = getInstance().getDataStore();
+		String id = dataStore.save(stream);
+		
+		StreamFetcher fetcher = new StreamFetcher(stream, appScope, vertx);
+		
+		fetcher.setRestartStream(true);
+		
+		assertFalse(fetcher.isThreadActive());
+		assertFalse(fetcher.isStreamAlive());
 
+		// start 
+		fetcher.startStream();
+		
+		Awaitility.await().pollDelay(3, TimeUnit.SECONDS).atMost(6, TimeUnit.SECONDS).until(() -> !fetcher.isStreamAlive());
+		
+		fetcher.stopStream();
+		
+		Awaitility.await().pollDelay(4, TimeUnit.SECONDS).atMost(7, TimeUnit.SECONDS).until(fetcher::isStopRequestReceived);	
+		
 	}
 
 	@Test

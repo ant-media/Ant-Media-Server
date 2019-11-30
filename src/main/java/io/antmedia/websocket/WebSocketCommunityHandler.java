@@ -16,7 +16,9 @@ import org.webrtc.IceCandidate;
 import org.webrtc.SessionDescription;
 import org.webrtc.SessionDescription.Type;
 
+import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
+import io.antmedia.IApplicationAdaptorFactory;
 import io.antmedia.StreamIdValidator;
 import io.antmedia.recorder.FFmpegFrameRecorder;
 import io.antmedia.recorder.FrameRecorder;
@@ -33,11 +35,16 @@ public class WebSocketCommunityHandler {
 	private ApplicationContext appContext;
 
 	protected Session session;
+
+	private String appName;
 	
 	public WebSocketCommunityHandler(ApplicationContext appContext, Session session) {
 		this.appContext = appContext;
 		this.session = session;
 		appSettings = (AppSettings) getAppContext().getBean(AppSettings.BEAN_NAME);
+		AntMediaApplicationAdapter appAdaptor = ((IApplicationAdaptorFactory)appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME)).getAppAdaptor();
+		
+		appName = appAdaptor.getScope().getName();
 	}
 	
 	public void onClose(Session session) {
@@ -117,6 +124,10 @@ public class WebSocketCommunityHandler {
 			else if (cmd.equals(WebSocketConstants.PING_COMMAND)) {
 				sendPongMessage(session);
 			}
+			else if (cmd.equals(WebSocketConstants.GET_STREAM_INFO_COMMAND)) 
+			{
+				sendNotFoundJSON(streamId, session);
+			}
 
 
 		}
@@ -129,7 +140,7 @@ public class WebSocketCommunityHandler {
 	private void startRTMPAdaptor(Session session, final String streamId) {
 
 		//get scope and use its name
-		String outputURL = "rtmp://127.0.0.1/StreamApp/" + streamId;
+		String outputURL = "rtmp://127.0.0.1/"+ appName +"/" + streamId;
 
 		RTMPAdaptor connectionContext = getNewRTMPAdaptor(outputURL);
 
@@ -346,5 +357,15 @@ public class WebSocketCommunityHandler {
 		jsonObject.put(WebSocketConstants.DEFINITION, WebSocketConstants.NOT_SET_LOCAL_DESCRIPTION);
 		jsonObject.put(WebSocketConstants.STREAM_ID, streamId);
 		sendMessage(jsonObject.toJSONString(), session);
+	}
+	
+	@SuppressWarnings("unchecked")
+	public void sendNotFoundJSON(String streamId, Session session) {
+		JSONObject jsonResponse = new JSONObject();
+		jsonResponse.put(WebSocketConstants.COMMAND, WebSocketConstants.ERROR_COMMAND);
+		jsonResponse.put(WebSocketConstants.ERROR_CODE, "404");
+		jsonResponse.put(WebSocketConstants.DEFINITION, WebSocketConstants.NO_STREAM_EXIST);
+		jsonResponse.put(WebSocketConstants.STREAM_ID, streamId);
+		sendMessage(jsonResponse.toJSONString(), session);
 	}
 }

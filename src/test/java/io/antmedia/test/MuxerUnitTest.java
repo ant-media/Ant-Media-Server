@@ -151,13 +151,10 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			System.out.println("Failed test: " + description.getMethodName());
 		}
 
-		;
-
 		protected void finished(Description description) {
 			System.out.println("Finishing test: " + description.getMethodName());
 		}
 
-		;
 	};
 
 	public class StreamPacket implements IStreamPacket {
@@ -403,7 +400,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertTrue(file.exists());
 	}
 
-
 	@Test
 	public void testMp4MuxingWithSameName() {
 		logger.info("running testMp4MuxingWithSameName");
@@ -620,6 +616,22 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	public File testMp4Muxing(String name) {
 		return testMp4Muxing(name, false, true);
+	}
+	
+	@Test
+	public void testMuxAdaptorClose() {
+		
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		
+		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null, false, appScope);
+		String streamId = "stream_id" + (int)(Math.random()*10000);
+		
+		boolean result = muxAdaptor.init(appScope, streamId, false);
+
+		assertTrue(result);
+		
+		muxAdaptor.closeResources();
+		
 	}
 	
 	public File testMp4Muxing(String name, boolean shortVersion, boolean checkDuration) {
