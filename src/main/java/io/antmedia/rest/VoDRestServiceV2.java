@@ -1,6 +1,8 @@
 package io.antmedia.rest;
 
 import java.io.InputStream;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 import javax.ws.rs.Consumes;
@@ -72,8 +74,17 @@ public class VoDRestServiceV2 extends RestServiceBase{
 	@Path("/list/{offset}/{size}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public List<VoD> getVodList(@ApiParam(value = "offset of the list", required = true) @PathParam("offset") int offset,
-			@ApiParam(value = "Number of items that will be fetched", required = true) @PathParam("size") int size) {
-		return getDataStore().getVodList(offset, size);
+			@ApiParam(value = "Number of items that will be fetched", required = true) @PathParam("size") int size,
+			@ApiParam(value = "Field to sort", required = false) @QueryParam("sort_by") String sortBy,
+			@ApiParam(value = "asc for Ascending, desc Descening order", required = false) @QueryParam("order_by") String orderBy) {
+		
+		long t0 = System.currentTimeMillis();
+		List<VoD> vodList = getDataStore().getVodList(offset, size, sortBy, orderBy);
+		long dt = System.currentTimeMillis() - t0;
+		if(dt > 1000) {
+			logger.warn("getVodList longs {}", dt);
+		}
+		return vodList;
 	}
 	
 	@ApiOperation(value = "Get the total number of VoDs", response = Long.class)

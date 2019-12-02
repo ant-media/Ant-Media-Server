@@ -654,7 +654,7 @@ public class BroadcastRestService extends RestServiceBase{
 	@Produces(MediaType.APPLICATION_JSON)
 	public List<VoD> getVodList(@ApiParam(value = "offset of the list", required = true) @PathParam("offset") int offset,
 			@ApiParam(value = "Number of items that will be fetched", required = true) @PathParam("size") int size) {
-		return getDataStore().getVodList(offset, size);
+		return getDataStore().getVodList(offset, size, null, null);
 	}
 
 	/**
