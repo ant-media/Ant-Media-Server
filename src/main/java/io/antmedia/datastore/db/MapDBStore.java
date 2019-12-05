@@ -310,13 +310,15 @@ public class MapDBStore extends DataStore {
 
 	@Override
 	public long getActiveBroadcastCount() {
-		Collection<String> values = map.values();
 		int activeBroadcastCount = 0;
-		for (String broadcastString : values) {
-			Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
-			String status = broadcast.getStatus();
-			if (status != null && status.equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
-				activeBroadcastCount++;
+		synchronized (this) {
+			Collection<String> values = map.values();
+			for (String broadcastString : values) {
+				Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
+				String status = broadcast.getStatus();
+				if (status != null && status.equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
+					activeBroadcastCount++;
+				}
 			}
 		}
 		return activeBroadcastCount;
@@ -480,7 +482,9 @@ public class MapDBStore extends DataStore {
 
 	@Override
 	public void close() {
-		db.close();
+		synchronized (this) {
+			db.close();
+		}
 	}
 
 	@Override
@@ -808,38 +812,42 @@ public class MapDBStore extends DataStore {
 	@Override
 	protected synchronized boolean updateHLSViewerCountLocal(String streamId, int diffCount) {
 		boolean result = false;
-
-		if (streamId != null) {
-			Broadcast broadcast = get(streamId);
-			if (broadcast != null) {
-				int hlsViewerCount = broadcast.getHlsViewerCount();
-				hlsViewerCount += diffCount;
-				broadcast.setHlsViewerCount(hlsViewerCount);
-				map.replace(streamId, gson.toJson(broadcast));
-				db.commit();
-				result = true;
+		synchronized (this) {
+			
+			if (streamId != null) {
+				Broadcast broadcast = get(streamId);
+				if (broadcast != null) {
+					int hlsViewerCount = broadcast.getHlsViewerCount();
+					hlsViewerCount += diffCount;
+					broadcast.setHlsViewerCount(hlsViewerCount);
+					map.replace(streamId, gson.toJson(broadcast));
+					db.commit();
+					result = true;
+				}
 			}
 		}
-
 		return result;
 	}
 
 	@Override
 	protected synchronized boolean updateWebRTCViewerCountLocal(String streamId, boolean increment) {
 		boolean result = false;
-		if (streamId != null) {
-			Broadcast broadcast = get(streamId);
-			if (broadcast != null) {
-				int webRTCViewerCount = broadcast.getWebRTCViewerCount();
-				if (increment) {
-					webRTCViewerCount++;
+		synchronized (this) {
+				
+			if (streamId != null) {
+				Broadcast broadcast = get(streamId);
+				if (broadcast != null) {
+					int webRTCViewerCount = broadcast.getWebRTCViewerCount();
+					if (increment) {
+						webRTCViewerCount++;
+					}
+					else {
+						webRTCViewerCount--;
+					}
+					broadcast.setWebRTCViewerCount(webRTCViewerCount);
+					map.replace(streamId, gson.toJson(broadcast));
+					result = true;
 				}
-				else {
-					webRTCViewerCount--;
-				}
-				broadcast.setWebRTCViewerCount(webRTCViewerCount);
-				map.replace(streamId, gson.toJson(broadcast));
-				result = true;
 			}
 		}
 		return result;
@@ -848,19 +856,21 @@ public class MapDBStore extends DataStore {
 	@Override
 	protected synchronized boolean updateRtmpViewerCountLocal(String streamId, boolean increment) {
 		boolean result = false;
-		if (streamId != null) {
-			Broadcast broadcast = get(streamId);
-			if (broadcast != null) {
-				int rtmpViewerCount = broadcast.getRtmpViewerCount();
-				if (increment) {
-					rtmpViewerCount++;
+		synchronized (this) {
+			if (streamId != null) {
+				Broadcast broadcast = get(streamId);
+				if (broadcast != null) {
+					int rtmpViewerCount = broadcast.getRtmpViewerCount();
+					if (increment) {
+						rtmpViewerCount++;
+					}
+					else { 
+						rtmpViewerCount--;
+					}
+					broadcast.setRtmpViewerCount(rtmpViewerCount);
+					map.replace(streamId, gson.toJson(broadcast));
+					result = true;
 				}
-				else { 
-					rtmpViewerCount--;
-				}
-				broadcast.setRtmpViewerCount(rtmpViewerCount);
-				map.replace(streamId, gson.toJson(broadcast));
-				result = true;
 			}
 		}
 		return result;
