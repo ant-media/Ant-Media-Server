@@ -1,7 +1,9 @@
 [![Build Status](https://travis-ci.org/ant-media/Ant-Media-Server.svg?branch=master)](https://travis-ci.org/ant-media/Ant-Media-Server) 
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.antmedia/ant-media-server/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.antmedia/ant-media-server)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=io.antmedia%3Aant-media-server&metric=alert_status)](https://sonarcloud.io/dashboard?id=io.antmedia%3Aant-media-server)
 
-![Quality Gate](https://sonarcloud.io/api/project_badges/quality_gate?project=io.antmedia%3Aant-media-server)
+###### 1083 Active Instances in 103 Countries at 09:08 AM GMT on Nov 28, 2019
+
 
 Ant Media Server 
 ====
@@ -20,10 +22,8 @@ Ant Media Server is an open source media server that supports:
  * Object Detection in **Enterprise Edition**
  
 ## Quick Launch
- Launch Ant Media Server instantly
  
 <b>Launch in [Amazon Web Services](https://aws.amazon.com/marketplace/search/results?x=0&y=0&searchTerms=Ant+Media+Server&page=1&ref_=nav_search_box)</b>
-
 
  <a href="https://aws.amazon.com/marketplace/search/results?x=0&y=0&searchTerms=Ant+Media+Server&page=1&ref_=nav_search_box"><img src="https://i1.wp.com/antmedia.io/wp-content/uploads/2019/06/1200px-Amazon_Web_Services_Logo.svg-300x180.png" width=90/></a>
  
@@ -40,6 +40,22 @@ Ant Media Server is an open source media server that supports:
  
 
 ## Releases 
+
+### [Ant Media Server Community 1.9.0 (Nov 27, 2019)](https://github.com/ant-media/Ant-Media-Server/releases/download/ams-v1.9.0/ant-media-server-community-1.9.0-20191127_1738.zip)
+* Excessive Bandwidth Algorithm [#1516](https://github.com/ant-media/Ant-Media-Server/issues/1516)
+* Built-in HTTP Forwarding for services like S3 [#1615](https://github.com/ant-media/Ant-Media-Server/issues/1615
+* S3 Multipart upload support [#1663](https://github.com/ant-media/Ant-Media-Server/issues/1663)
+* More control of STUN, UDP candidates [#1514](https://github.com/ant-media/Ant-Media-Server/issues/1514)
+* Start/Stop MP4 Recording while stream is broadcasting [#1270](https://github.com/ant-media/Ant-Media-Server/issues/1270) [#1310](https://github.com/ant-media/Ant-Media-Server/issues/1310)
+* Add/Remove RTMP end points while stream is broadcasting [#1510](https://github.com/ant-media/Ant-Media-Server/issues/1510)
+* IP Filter(CIDR) for RTMP publishing [#1462](https://github.com/ant-media/Ant-Media-Server/issues/1462)
+* Generic App Structure [#686](https://github.com/ant-media/Ant-Media-Server/issues/686)
+* Support VP8 in Publishing in Community and Adaptive Enable in Enterprise [#1529](https://github.com/ant-media/Ant-Media-Server/issues/1529)
+* Support form in the web panel [#1543](https://github.com/ant-media/Ant-Media-Server/issues/1543)
+* Refactor in cluster mode that is cleaner and faster [#1517](https://github.com/ant-media/Ant-Media-Server/issues/1517)
+* Faster response for single track (audio or video only) streams [#1502](https://github.com/ant-media/Ant-Media-Server/issues/1502)
+* Improvements and fixes: [#1597](https://github.com/ant-media/Ant-Media-Server/issues/1597) - [#1581](https://github.com/ant-media/Ant-Media-Server/issues/1581) - [#1567](https://github.com/ant-media/Ant-Media-Server/issues/1567) - [#1557](https://github.com/ant-media/Ant-Media-Server/issues/1557) - [#1556](https://github.com/ant-media/Ant-Media-Server/issues/1556) - [#1555](https://github.com/ant-media/Ant-Media-Server/issues/1555) - [#1515](https://github.com/ant-media/Ant-Media-Server/issues/) - [#1513](https://github.com/ant-media/Ant-Media-Server/issues/) - [#1512](https://github.com/ant-media/Ant-Media-Server/issues/1515) - [#1490](https://github.com/ant-media/Ant-Media-Server/issues/1490) - [#1486](https://github.com/ant-media/Ant-Media-Server/issues/1486) - [#1116](https://github.com/ant-media/Ant-Media-Server/issues/1116) - [#1617](https://github.com/ant-media/Ant-Media-Server/issues/1617) - [#1577](https://github.com/ant-media/Ant-Media-Server/issues/1577) - [#1558](https://github.com/ant-media/Ant-Media-Server/issues/1558) - [#1537](https://github.com/ant-media/Ant-Media-Server/issues/1537) - [#1536](https://github.com/ant-media/Ant-Media-Server/issues/1536)
+
 ### [Ant Media Server Community 1.8.1 (Aug 28, 2019)](https://github.com/ant-media/Ant-Media-Server/releases/download/ams-v1.8.1/ant-media-server-community-1.8.1-20190828_0800.zip)
 * Make WebRTC Publishing/Playing Load Balancer friendly [#1340](https://github.com/ant-media/Ant-Media-Server/issues/1340)
 * Handover of streams between nodes in auto-scale mode [#585](https://github.com/ant-media/Ant-Media-Server/issues/585)
@@ -103,20 +119,6 @@ Ant Media Server is an open source media server that supports:
 *   WebRTCApp HLS preview doesn't work in Community Edition [#1014](https://github.com/ant-media/Ant-Media-Server/issues/1014)  [#965](https://github.com/ant-media/Ant-Media-Server/issues/965)
 *   Unique play.html [#690](https://github.com/ant-media/Ant-Media-Server/issues/690)
 *   Simultaneous Periscope accounts issue [#802](https://github.com/ant-media/Ant-Media-Server/issues/802)
-
- ### [Ant Media Server Community 1.6.1 (Jan 8, 2019)](https://github.com/ant-media/Ant-Media-Server/releases/download/release-1.6.1/ant-media-server-1.6.1-community-1.6.1-190108_1656.zip)
-*   Use GPU resources respectively in the system [#663](https://github.com/ant-media/Ant-Media-Server/issues/663)
-*   Transcoding is not enabled by default [#734](https://github.com/ant-media/Ant-Media-Server/issues/734)
-*   Inject app properties to the AppSettings bean in run time(No injection through xml is used anymore) [#727](https://github.com/ant-media/Ant-Media-Server/issues/727)
-*   Make Transcoder frame rate parametric through app properties file [#664](https://github.com/ant-media/Ant-Media-Server/issues/664)
-*   Unnecessary edge connection is starting up in some cases [#662](https://github.com/ant-media/Ant-Media-Server/issues/662)
-*   Forward video without transcoding for SFU [#436](https://github.com/ant-media/Ant-Media-Server/issues/436)
-*   Start to use auto -generated documentation for Rest Services [#187](https://github.com/ant-media/Ant-Media-Server/issues/187)
-*   Periscope title does not support utf-8 characters [#769](https://github.com/ant-media/Ant-Media-Server/issues/769)
-*   Frame rotation issue in SFU mode [#680](https://github.com/ant-media/Ant-Media-Server/issues/680)
-*   Stop broadcast method does not support stopping streams in pulling mode [#661](https://github.com/ant-media/Ant-Media-Server/issues/661)
-*   HLS does not updated properly in SFU mode [#701](https://github.com/ant-media/Ant-Media-Server/issues/701)
-*   "Undefined" JS app request settings which causes exception [#698](https://github.com/ant-media/Ant-Media-Server/issues/698)
 
 
 Previous releases

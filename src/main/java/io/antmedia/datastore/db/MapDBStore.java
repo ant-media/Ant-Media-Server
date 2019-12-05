@@ -366,36 +366,15 @@ public class MapDBStore extends DataStore {
 	}
 
 	@Override
-	public List<VoD> getVodList(int offset, int size) {
-
-		List<VoD> list = new ArrayList<>();
+	public List<VoD> getVodList(int offset, int size, String sortBy, String orderBy) {
+		ArrayList<VoD> vods = new ArrayList<>();
 		synchronized (this) {
-
 			Collection<String> values = vodMap.values();
-			int t = 0;
-			int itemCount = 0;
-			if (size > MAX_ITEM_IN_ONE_LIST) {
-				size = MAX_ITEM_IN_ONE_LIST;
-			}
-			if (offset < 0) {
-				offset = 0;
-			}
-
 			for (String vodString : values) {
-				if (t < offset) {
-					t++;
-					continue;
-				}
-				list.add(gson.fromJson(vodString, VoD.class));
-				itemCount++;
-
-				if (itemCount >= size) {
-					break;
-				}
-
+				vods.add(gson.fromJson(vodString, VoD.class));
 			}
+			return sortAndCropVodList(vods, offset, size, sortBy, orderBy);
 		}
-		return list;
 	}
 
 

@@ -21,12 +21,17 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.red5.server.adapter.MultiThreadedApplicationAdapter;
+import org.red5.server.api.scope.IScope;
+import org.red5.server.scope.BasicScope;
 import org.springframework.context.ApplicationContext;
 import org.webrtc.IceCandidate;
 import org.webrtc.SessionDescription;
 import org.webrtc.SessionDescription.Type;
 
+import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
+import io.antmedia.IApplicationAdaptorFactory;
 import io.antmedia.webrtc.adaptor.RTMPAdaptor;
 import io.antmedia.websocket.WebSocketCommunityHandler;
 import io.antmedia.websocket.WebSocketConstants;
@@ -57,6 +62,14 @@ public class WebSocketCommunityHandlerTest {
 	public void before() {
 		appContext = Mockito.mock(ApplicationContext.class);
 		when(appContext.getBean(AppSettings.BEAN_NAME)).thenReturn(new AppSettings());
+		IApplicationAdaptorFactory appFactory = Mockito.mock(IApplicationAdaptorFactory.class);
+		AntMediaApplicationAdapter adaptor = Mockito.mock(AntMediaApplicationAdapter.class);
+		when(appFactory.getAppAdaptor()).thenReturn(adaptor);
+		IScope scope = Mockito.mock(IScope.class);
+		when(scope.getName()).thenReturn("junit");
+
+		when(adaptor.getScope()).thenReturn(scope);
+		when(appContext.getBean("web.handler")).thenReturn(appFactory);
 		
 		wsHandlerReal = new WebSocketEndpoint(appContext);
 		wsHandler = Mockito.spy(wsHandlerReal);
@@ -102,6 +115,31 @@ public class WebSocketCommunityHandlerTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+	}
+	
+	@Test
+	public void testGetStreamInfo() {
+		JSONObject publishObject = new JSONObject();
+		publishObject.put(WebSocketConstants.COMMAND, WebSocketConstants.GET_STREAM_INFO_COMMAND);
+		
+		String streamId = "streamId" + (int)(Math.random()*1000);
+		publishObject.put(WebSocketConstants.STREAM_ID, streamId);
+		
+		wsHandler.onMessage(session, publishObject.toJSONString());
+		
+		JSONObject jsonResponse = new JSONObject();
+		jsonResponse.put(WebSocketConstants.COMMAND, WebSocketConstants.ERROR_COMMAND);
+		jsonResponse.put(WebSocketConstants.ERROR_CODE, "404");
+		jsonResponse.put(WebSocketConstants.DEFINITION, WebSocketConstants.NO_STREAM_EXIST);
+		jsonResponse.put(WebSocketConstants.STREAM_ID, streamId);
+		
+		try {
+			verify(basicRemote).sendText(jsonResponse.toJSONString());
+		} catch (IOException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		
 	}
 
 	@Test
