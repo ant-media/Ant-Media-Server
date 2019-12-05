@@ -309,6 +309,9 @@ public class MongoStore extends DataStore {
 	@Override
 	public List<Broadcast> getBroadcastList(int offset, int size) {
 		synchronized(this) {
+			if (size > MAX_ITEM_IN_ONE_LIST) {
+				size = MAX_ITEM_IN_ONE_LIST;
+			}
 			return datastore.find(Broadcast.class).asList(new FindOptions().skip(offset).limit(size));
 		}
 	}
@@ -356,7 +359,9 @@ public class MongoStore extends DataStore {
 
 	@Override
 	public void close() {
-		datastore.getMongo().close();
+		synchronized(this) {
+			datastore.getMongo().close();
+		}
 	}
 
 	@Override
