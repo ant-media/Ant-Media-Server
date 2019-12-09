@@ -52,6 +52,7 @@ import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.mockito.Mockito;
+import org.red5.codec.StreamCodecInfo;
 import org.red5.io.ITag;
 import org.red5.io.flv.impl.FLVReader;
 import org.red5.server.api.scope.IScope;
@@ -60,6 +61,7 @@ import org.red5.server.api.stream.IStreamPacket;
 import org.red5.server.scheduling.QuartzSchedulingService;
 import org.red5.server.scope.WebScope;
 import org.red5.server.service.mp4.impl.MP4Service;
+import org.red5.server.stream.ClientBroadcastStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.test.annotation.DirtiesContext;
@@ -682,7 +684,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 				ITag readTag = flvReader.readTag();
 				StreamPacket streamPacket = new StreamPacket(readTag);
 				muxAdaptor.packetReceived(null, streamPacket);
-
 			}
 
 			for (String jobName : scheduler.getScheduledJobNames()) {
@@ -728,6 +729,51 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 		logger.info("leaving testMp4Muxing");
 		return null;
+	}
+	
+	@Test
+	public void testNonZeroStartingFrame() {
+		
+		try {
+			ClientBroadcastStream clientBroadcastStream = new ClientBroadcastStream();
+			StreamCodecInfo info = new StreamCodecInfo();
+			info.setHasAudio(true);
+			info.setHasVideo(true);
+			clientBroadcastStream.setCodecInfo(info);
+			
+			appScope = (WebScope) applicationContext.getBean("web.scope");
+			
+			MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, false, appScope);
+	
+			boolean result = muxAdaptor.init(appScope, "video_with_subtitle_stream", false);
+			assertTrue(result);
+			muxAdaptor.setEnableAudio(false);
+			muxAdaptor.setEnableVideo(false);
+	
+			File file = new File("target/test-classes/test_video_360p_subtitle.flv"); 
+	
+			final FLVReader flvReader = new FLVReader(file);
+			
+			ITag readTag = flvReader.readTag();
+			readTag.setTimestamp(5000 + readTag.getTimestamp());
+			StreamPacket streamPacket = new StreamPacket(readTag);
+			muxAdaptor.packetReceived(null, streamPacket);
+		
+		
+			muxAdaptor.checkStreams();
+			
+			assertTrue(muxAdaptor.isEnableAudio());
+			assertTrue(muxAdaptor.isEnableVideo());
+			
+			flvReader.close();
+		
+		} 
+		catch (InterruptedException | IOException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		
+		
 	}
 
 	@Test
