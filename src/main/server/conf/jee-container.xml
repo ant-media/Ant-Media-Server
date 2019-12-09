@@ -24,12 +24,23 @@
 		value="org.apache.coyote.http11.Http11Protocol" /> Non-blocking I/O: <property 
 		name="protocol" value="org.apache.coyote.http11.Http11NioProtocol" /> -->
 
+	<!-- cluster start
+	<bean id="tomcat.cluster" class="io.antmedia.enterprise.cluster.TcpCluster">
+		<property name="clusterStore">
+			<bean class="io.antmedia.enterprise.cluster.ClusterStore">
+				<constructor-arg value="${clusterdb.host}" />
+				<constructor-arg value="${clusterdb.user}" />
+				<constructor-arg value="${clusterdb.password}" />
+			</bean>
+		</property>
+	</bean>
+	cluster end -->
 
 
 	<!-- Tomcat without SSL enabled -->
 	<bean id="tomcat.server" class="org.red5.server.tomcat.TomcatLoader"
 		depends-on="context.loader,warDeployer" lazy-init="true">
-		<!-- <property name="cluster" ref="tomcat.cluster" /> -->
+		<!-- cluster --><!-- property name="cluster" ref="tomcat.cluster" /--><!-- cluster -->
 		<property name="webappFolder" value="${red5.root}/webapps" />
 
 		<property name="connectors">
@@ -46,6 +57,34 @@
 						</map>
 					</property>
 				</bean>
+				<!-- https start
+				<bean name="httpsConnector" class="org.red5.server.tomcat.TomcatConnector"> 
+						<property name="secure" value="true" /> 
+						<property name="protocol" value="org.apache.coyote.http11.Http11NioProtocol"/> 
+						<property name="address" value="${http.host}:${https.port}" /> 
+						<property name="redirectPort" value="${http.port}" /> 
+						<property name="connectionProperties"> 
+							<map> 
+								<entry key="port" value="${https.port}" /> 
+								<entry key="redirectPort" value="${http.port}" /> 
+								<entry key="SSLEnabled" value="true" /> 
+								<entry key="sslProtocol" value="TLS" /> 
+								<entry key="keystoreFile" value="${rtmps.keystorefile}" /> 
+								<entry key="keystorePass" value="${rtmps.keystorepass}" /> 
+								<entry key="truststoreFile" value="${rtmps.truststorefile}" /> 
+								<entry key="truststorePass" value="${rtmps.truststorepass}" /> 
+								<entry key="clientAuth" value="false" /> 
+								<entry key="allowUnsafeLegacyRenegotiation" value="true" /> 
+								<entry key="maxKeepAliveRequests" value="${http.max_keep_alive_requests}"/> 
+								<entry key="keepAliveTimout" value="-1"/> 
+								<entry key="useExecutor" value="true"/> 
+								<entry key="maxThreads" value="${http.max_threads}"/> 
+								<entry key="acceptorThreadCount" value="${http.acceptor_thread_count}"/> 
+								<entry key="processorCache" value="${http.processor_cache}"/> 
+							</map> 
+						</property> 
+					</bean>
+					https end -->
 			</list>
 		</property>
 
@@ -65,7 +104,9 @@
 					<property name="rotatable" value="true" />
 				</bean>
 				
-				
+				<!-- cluster start
+				<bean id="valve.cluster" class="io.antmedia.enterprise.cluster.HttpLiveStreamValve"/>
+				cluster end --> 
 			</list>
 		</property>
 
