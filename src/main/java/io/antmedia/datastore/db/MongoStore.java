@@ -309,6 +309,9 @@ public class MongoStore extends DataStore {
 	@Override
 	public List<Broadcast> getBroadcastList(int offset, int size) {
 		synchronized(this) {
+			if (size > MAX_ITEM_IN_ONE_LIST) {
+				size = MAX_ITEM_IN_ONE_LIST;
+			}
 			return datastore.find(Broadcast.class).asList(new FindOptions().skip(offset).limit(size));
 		}
 	}
@@ -356,7 +359,9 @@ public class MongoStore extends DataStore {
 
 	@Override
 	public void close() {
-		datastore.getMongo().close();
+		synchronized(this) {
+			datastore.getMongo().close();
+		}
 	}
 
 	@Override
@@ -396,8 +401,19 @@ public class MongoStore extends DataStore {
 	}
 
 	@Override
-	public List<VoD> getVodList(int offset, int size) {	
+	public List<VoD> getVodList(int offset, int size, String sortBy, String orderBy) {
 		synchronized(this) {
+			if(sortBy != null && orderBy != null && !sortBy.isEmpty() && !orderBy.isEmpty()) {
+				String sortString = "creationDate";
+				sortString = orderBy.contentEquals("desc") ? "-" : "";
+				if(sortBy.contentEquals("name")) {
+					sortString += "vodName";
+				}
+				else if(sortBy.contentEquals("date")) {
+					sortString += "creationDate";
+				}
+				return vodDatastore.find(VoD.class).order(sortString).asList(new FindOptions().skip(offset).limit(size));
+			}
 			return vodDatastore.find(VoD.class).asList(new FindOptions().skip(offset).limit(size));
 		}
 	}

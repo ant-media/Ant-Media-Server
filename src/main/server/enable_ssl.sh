@@ -216,15 +216,15 @@ create_cron_job(){
 
 	#crontab file for root user
 	cronfile="/var/spool/cron/crontabs/root"
-
 	#Check if file does not exist
-        if [ ! -f $cronfile ]; then
-                $SUDO echo "00 03 */85 * * cd $INSTALL_DIRECTORY && ./enable_ssl.sh -d $domain -r" > $cronfile
-        elif [ $(grep -E "enable_ssl.sh.*$domain" $cronfile | wc -l) -eq "0" ]; then
-                $SUDO echo "00 03 */85 * * cd $INSTALL_DIRECTORY && ./enable_ssl.sh -d $domain -r" >> $cronfile
-        fi
+  if [ ! -f $cronfile ]; then
+    $SUDO echo "00 03 */85 * * cd $INSTALL_DIRECTORY && ./enable_ssl.sh -d $domain -r" > $cronfile
+  elif [ $(grep -E "enable_ssl.sh.*$domain" $cronfile | wc -l) -eq "0" ]; then
+    $SUDO echo "00 03 */85 * * cd $INSTALL_DIRECTORY && ./enable_ssl.sh -d $domain -r" >> $cronfile
+  fi
 
 	output
+
 
 }
 

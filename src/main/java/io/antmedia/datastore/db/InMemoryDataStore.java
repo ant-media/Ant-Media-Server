@@ -290,36 +290,10 @@ public class InMemoryDataStore extends DataStore {
 	}
 
 	@Override
-	public List<VoD> getVodList(int offset, int size) {
-		Collection<VoD> values = vodMap.values();
-		int t = 0;
-		int itemCount = 0;
-		if (size > MAX_ITEM_IN_ONE_LIST) {
-			size = MAX_ITEM_IN_ONE_LIST;
-		}
-		if (offset < 0) {
-			offset = 0;
-		}
-		List<VoD> list = new ArrayList<>();
-
-		for (VoD vodString : values) {
-			if (t < offset) {
-				t++;
-			}
-			else {
-				list.add(vodString);
-				itemCount++;
-
-				if (itemCount >= size) {
-					break;
-				}
-			}
-
-		}
-		return list;
+	public List<VoD> getVodList(int offset, int size, String sortBy, String orderBy) {
+		ArrayList<VoD> vods = new ArrayList<>(vodMap.values());
+		return sortAndCropVodList(vods, offset, size, sortBy, orderBy);
 	}
-
-
 
 	@Override
 	public boolean deleteVod(String id) {
