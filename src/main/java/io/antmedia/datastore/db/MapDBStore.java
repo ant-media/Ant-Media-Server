@@ -584,7 +584,6 @@ public class MapDBStore extends DataStore {
 					map.replace(id, gson.toJson(broadcast));
 					db.commit();
 					result = true;
-
 				}
 			}
 		}
