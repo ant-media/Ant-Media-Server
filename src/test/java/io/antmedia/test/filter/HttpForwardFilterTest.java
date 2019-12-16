@@ -66,7 +66,7 @@ public class HttpForwardFilterTest {
 	         httpForwardFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
 	         //chain filter should not be called because  base url is et
 	         Mockito.verify(filterChain, Mockito.times(5)).doFilter(httpServletRequest, httpServletResponse);
-	         Mockito.verify(httpServletResponse).sendRedirect("http://url//LiveApp/streams/test.m3u8");
+	         Mockito.verify(httpServletResponse).sendRedirect("http://url//streams/test.m3u8");
 	       
 	         
 	         httpServletRequest.setRequestURI(null);

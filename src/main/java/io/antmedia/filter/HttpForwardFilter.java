@@ -18,6 +18,7 @@ import io.antmedia.AppSettings;
 
 public class HttpForwardFilter extends AbstractFilter {
 
+	private static final String SLASH = "/";
 	protected static Logger logger = LoggerFactory.getLogger(HttpForwardFilter.class);
 	private static final String COMMA = ",";
 	
@@ -46,7 +47,7 @@ public class HttpForwardFilter extends AbstractFilter {
 					{
 						if (requestURI.endsWith(extension[i])) {
 							
-							String redirectUri = httpForwardingBaseURL + requestURI;
+							String redirectUri = httpForwardingBaseURL + requestURI.substring(requestURI.indexOf(SLASH, 1));
 							HttpServletResponse httpResponse = (HttpServletResponse) response;
 							if (redirectUri.contains(DOUBLE_DOT)) {
 								throw new IOException("URI is not well formatted");
