@@ -27,6 +27,7 @@ import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
+import io.antmedia.datastore.db.types.P2PConnection;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.datastore.db.types.TensorFlowObject;
@@ -1130,5 +1131,23 @@ public class MapDBStore extends DataStore {
 		}
 		return token;
 
+	}
+	
+	@Override
+	public boolean createP2PConnection(P2PConnection conn) {
+		// No need to implement. It used in cluster mode
+		return false;
+	}
+
+	@Override
+	public boolean deleteP2PConnection(String streamId) {
+		// No need to implement. It used in cluster mode
+		return false;
+	}
+	
+	@Override
+	public P2PConnection getP2PConnection(String streamId) {
+		// No need to implement. It used in cluster mode
+		return null;
 	}
 }
