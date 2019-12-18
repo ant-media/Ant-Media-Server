@@ -28,12 +28,12 @@ public class IPFilter extends AbstractFilter {
 	protected static Logger log = LoggerFactory.getLogger(IPFilter.class);
 
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
-		if(((HttpServletRequest)request).getPathInfo().contains("rest/v2/acm")) {
+		if (isAllowed(request.getRemoteAddr())) {
 			chain.doFilter(request, response);
 			return;
 		}
 		
-		if (isAllowed(request.getRemoteAddr())) {
+		if(((HttpServletRequest)request).getPathInfo().contains("rest/v2/acm")) {
 			chain.doFilter(request, response);
 			return;
 		}

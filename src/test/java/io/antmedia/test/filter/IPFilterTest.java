@@ -78,6 +78,8 @@ public class IPFilterTest {
         appSettings.setRemoteAllowedCIDR("127.0.0.1/8");
         Mockito.doReturn(appSettings).when(ipFilter).getAppSettings();
         
+        httpServletRequest.setPathInfo("");
+        
         ipFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
 
         assertEquals(HttpStatus.FORBIDDEN.value(),httpServletResponse.getStatus());
