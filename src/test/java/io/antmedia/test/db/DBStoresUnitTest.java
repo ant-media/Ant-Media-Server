@@ -8,6 +8,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -1531,6 +1532,13 @@ public class DBStoresUnitTest {
 			assertEquals("dummy", conn.getOriginNode());
 			assertTrue(dataStore.deleteP2PConnection(streamId));
 			assertNull(dataStore.getP2PConnection(streamId));
+			
+			
+			assertFalse(dataStore.createP2PConnection(null));
+			assertNull(dataStore.getP2PConnection(streamId));
+			assertFalse(dataStore.deleteP2PConnection(streamId));
+			
+			
 		}
 		else {
 			assertFalse(dataStore.createP2PConnection(p2pConn));
