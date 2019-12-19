@@ -95,6 +95,7 @@ public class DBStoresUnitTest {
 		testTokenOperations(dataStore);
 		testConferenceRoom(dataStore);
 		testUpdateStatus(dataStore);
+		testP2PConnection(dataStore);
 	}
 
 
@@ -122,6 +123,7 @@ public class DBStoresUnitTest {
 		testTokenOperations(dataStore);
 		testConferenceRoom(dataStore);
 		testUpdateStatus(dataStore);
+		testP2PConnection(dataStore);
 	}
 
 	@Test
@@ -1519,14 +1521,22 @@ public class DBStoresUnitTest {
 	
 	private void testP2PConnection(DataStore dataStore) {
 		String streamId = "p2pstream"+Math.random()*100;
-		assertNull(dataStore.getP2PConnection(streamId));
-		assertTrue(dataStore.createP2PConnection(new P2PConnection(streamId, "dummy")));
-		P2PConnection conn = dataStore.getP2PConnection(streamId);
-		assertNotNull(conn);
-		assertEquals(streamId, conn.getStreamId());
-		assertEquals("dummy", conn.getOriginNode());
-		assertTrue(dataStore.deleteP2PConnection(streamId));
-		assertNull(dataStore.getP2PConnection(streamId));
+		P2PConnection p2pConn = new P2PConnection(streamId, "dummy");
+		if(dataStore instanceof MongoStore) {
+			assertNull(dataStore.getP2PConnection(streamId));
+			assertTrue(dataStore.createP2PConnection(p2pConn));
+			P2PConnection conn = dataStore.getP2PConnection(streamId);
+			assertNotNull(conn);
+			assertEquals(streamId, conn.getStreamId());
+			assertEquals("dummy", conn.getOriginNode());
+			assertTrue(dataStore.deleteP2PConnection(streamId));
+			assertNull(dataStore.getP2PConnection(streamId));
+		}
+		else {
+			assertFalse(dataStore.createP2PConnection(p2pConn));
+			assertNull(dataStore.getP2PConnection(streamId));
+			assertFalse(dataStore.deleteP2PConnection(streamId));
+		}
 	}
 
 }
