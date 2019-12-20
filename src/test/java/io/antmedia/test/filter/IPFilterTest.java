@@ -136,4 +136,18 @@ public class IPFilterTest {
     	
     }
 
+    @Test
+    public void testACMRest() throws IOException, ServletException {
+        IPFilter ipFilter = Mockito.spy(new IPFilter());
+        Mockito.doReturn(true).when(ipFilter).isAllowed(Mockito.anyString());
+
+        MockHttpServletRequest httpServletRequest = new MockHttpServletRequest();
+        httpServletRequest.setPathInfo("http://127.0.0.1:5080/WebRTCAppEE/rest/v2/acm/msg");
+        MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
+        MockFilterChain filterChain = new MockFilterChain();
+        ipFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
+
+        assertEquals(HttpStatus.OK.value(), httpServletResponse.getStatus());
+    }
+    
 }
