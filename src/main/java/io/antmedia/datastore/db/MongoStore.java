@@ -714,6 +714,14 @@ public class MongoStore extends DataStore {
 				if ( broadcast.getStreamUrl() != null) {
 					ops.set("streamUrl", broadcast.getStreamUrl());
 				}
+				
+				if ( broadcast.getDuration() != null) {
+					ops.set("duration", broadcast.getDuration());
+				}
+				
+				ops.set("receivedBytes", broadcast.getReceivedBytes());
+				ops.set("bitrate", broadcast.getBitrate());
+				ops.set("userAgent", broadcast.getUserAgent());
 
 				UpdateResults update = datastore.update(query, ops);
 				return update.getUpdatedCount() == 1;
