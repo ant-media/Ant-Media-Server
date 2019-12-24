@@ -41,8 +41,9 @@ if [ $MODE = "cluster" ]
     		exit 1
     	fi
     
-    cp $AMS_INSTALL_LOCATION/conf/jee-container-cluster.xml $AMS_INSTALL_LOCATION/conf/jee-container.xml
-    
+    sed -i $SED_COMPATIBILITY 's^<!-- cluster start^<!-- cluster start -->^' $AMS_INSTALL_LOCATION/conf/jee-container.xml
+    sed -i $SED_COMPATIBILITY 's^cluster end -->^<!-- cluster end -->^' $AMS_INSTALL_LOCATION/conf/jee-container.xml
+        
     if [ ! -z "$3" ]; then
    	  USE_GLOBAL_IP=$3
 	fi
@@ -50,7 +51,8 @@ if [ $MODE = "cluster" ]
     echo "Mode: standalone"
     DB_TYPE=mapdb
     MONGO_SERVER_IP=localhost
-    cp $AMS_INSTALL_LOCATION/conf/jee-container-standalone.xml $AMS_INSTALL_LOCATION/conf/jee-container.xml
+    sed -i $SED_COMPATIBILITY 's^<!-- cluster start -->^<!-- cluster start^' $AMS_INSTALL_LOCATION/conf/jee-container.xml
+    sed -i $SED_COMPATIBILITY 's^<!-- cluster end -->^cluster end -->^' $AMS_INSTALL_LOCATION/conf/jee-container.xml
 fi
 
 LIVEAPP_PROPERTIES_FILE=$AMS_INSTALL_LOCATION/webapps/LiveApp/WEB-INF/red5-web.properties
