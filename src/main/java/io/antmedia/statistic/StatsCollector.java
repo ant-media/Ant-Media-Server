@@ -287,10 +287,10 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 
 	public static JsonObject getFileSystemInfoJSObject() {
 		JsonObject jsonObject = new JsonObject();
-		jsonObject.addProperty(USABLE_SPACE, SystemUtils.osHDUsableSpace(null,"B", false));
-		jsonObject.addProperty(TOTAL_SPACE, SystemUtils.osHDTotalSpace(null, "B", false));
-		jsonObject.addProperty(FREE_SPACE, SystemUtils.osHDFreeSpace(null,  "B", false));
-		jsonObject.addProperty(IN_USE_SPACE, SystemUtils.osHDInUseSpace(null, "B", false));
+		jsonObject.addProperty(USABLE_SPACE, SystemUtils.osHDUsableSpace(null));
+		jsonObject.addProperty(TOTAL_SPACE, SystemUtils.osHDTotalSpace(null));
+		jsonObject.addProperty(FREE_SPACE, SystemUtils.osHDFreeSpace(null));
+		jsonObject.addProperty(IN_USE_SPACE, SystemUtils.osHDInUseSpace(null));
 		return jsonObject;
 	}
 
@@ -332,10 +332,10 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 	public static JsonObject getJVMMemoryInfoJSObject() {
 		JsonObject jsonObject = new JsonObject();
 
-		jsonObject.addProperty(MAX_MEMORY, SystemUtils.jvmMaxMemory("B", false));
-		jsonObject.addProperty(TOTAL_MEMORY, SystemUtils.jvmTotalMemory("B", false));
-		jsonObject.addProperty(FREE_MEMORY, SystemUtils.jvmFreeMemory("B", false));
-		jsonObject.addProperty(IN_USE_MEMORY, SystemUtils.jvmInUseMemory("B", false));
+		jsonObject.addProperty(MAX_MEMORY, SystemUtils.jvmMaxMemory());
+		jsonObject.addProperty(TOTAL_MEMORY, SystemUtils.jvmTotalMemory());
+		jsonObject.addProperty(FREE_MEMORY, SystemUtils.jvmFreeMemory());
+		jsonObject.addProperty(IN_USE_MEMORY, SystemUtils.jvmInUseMemory());
 		return jsonObject;
 	}
 
@@ -351,13 +351,13 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 	public static JsonObject getSysteMemoryInfoJSObject() {
 		JsonObject jsonObject = new JsonObject();
 
-		jsonObject.addProperty(VIRTUAL_MEMORY, SystemUtils.osCommittedVirtualMemory("B", false));
-		jsonObject.addProperty(TOTAL_MEMORY, SystemUtils.osTotalPhysicalMemory("B", false));
-		jsonObject.addProperty(FREE_MEMORY, SystemUtils.osFreePhysicalMemory("B", false));
-		jsonObject.addProperty(IN_USE_MEMORY, SystemUtils.osInUsePhysicalMemory("B", false));
-		jsonObject.addProperty(TOTAL_SWAP_SPACE, SystemUtils.osTotalSwapSpace("B", false));
-		jsonObject.addProperty(FREE_SWAP_SPACE, SystemUtils.osFreeSwapSpace("B", false));
-		jsonObject.addProperty(IN_USE_SWAP_SPACE, SystemUtils.osInUseSwapSpace("B", false));
+		jsonObject.addProperty(VIRTUAL_MEMORY, SystemUtils.osCommittedVirtualMemory());
+		jsonObject.addProperty(TOTAL_MEMORY, SystemUtils.osTotalPhysicalMemory());
+		jsonObject.addProperty(FREE_MEMORY, SystemUtils.osFreePhysicalMemory());
+		jsonObject.addProperty(IN_USE_MEMORY, SystemUtils.osInUsePhysicalMemory());
+		jsonObject.addProperty(TOTAL_SWAP_SPACE, SystemUtils.osTotalSwapSpace());
+		jsonObject.addProperty(FREE_SWAP_SPACE, SystemUtils.osFreeSwapSpace());
+		jsonObject.addProperty(IN_USE_SWAP_SPACE, SystemUtils.osInUseSwapSpace());
 		return jsonObject;
 	}
 
@@ -631,6 +631,9 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 			l -> {
 				if(logger != null) {
 					logger.info("-Heartbeat-");
+				}
+				else {
+					System.out.println("-Heartbeat-");
 				}
 				getGoogleAnalytic(implementationVersion, type).event()
 				.eventCategory("server_status")
