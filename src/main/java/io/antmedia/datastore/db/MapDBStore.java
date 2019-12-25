@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.regex.Pattern;
 
 import org.apache.commons.io.FilenameUtils;
@@ -42,26 +43,25 @@ public class MapDBStore extends DataStore {
 	private BTreeMap<String, String> map;
 	private BTreeMap<String, String> vodMap;
 	private BTreeMap<String, String> detectionMap;
-	private BTreeMap<String, String> userVodMap;
 	private BTreeMap<String, String> socialEndpointsCredentialsMap;
 	private BTreeMap<String, String> tokenMap;
 	private BTreeMap<String, String> conferenceRoomMap;
 
 
 	private Gson gson;
+	private String dbName;
 	protected static Logger logger = LoggerFactory.getLogger(MapDBStore.class);
 	private static final String MAP_NAME = "BROADCAST";
 	private static final String VOD_MAP_NAME = "VOD";
 	private static final String DETECTION_MAP_NAME = "DETECTION";
-	private static final String USER_MAP_NAME = "USER_VOD";
 	private static final String TOKEN = "TOKEN";
 	private static final String SOCIAL_ENDPONT_CREDENTIALS_MAP_NAME = "SOCIAL_ENDPONT_CREDENTIALS_MAP_NAME";
 	private static final String CONFERENCE_ROOM_MAP_NAME = "CONFERENCE_ROOM";
 
 
-
 	public MapDBStore(String dbName) {
 
+		this.dbName = dbName;
 		db = DBMaker
 				.fileDB(dbName)
 				.fileMmapEnableIfSupported()
@@ -75,9 +75,6 @@ public class MapDBStore extends DataStore {
 
 		detectionMap = db.treeMap(DETECTION_MAP_NAME).keySerializer(Serializer.STRING)
 				.valueSerializer(Serializer.STRING).counterEnable().createOrOpen();
-
-		userVodMap = db.treeMap(USER_MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
-				.counterEnable().createOrOpen();
 
 		socialEndpointsCredentialsMap = db.treeMap(SOCIAL_ENDPONT_CREDENTIALS_MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
 				.counterEnable().createOrOpen();
@@ -93,13 +90,7 @@ public class MapDBStore extends DataStore {
 
 	}
 
-	public BTreeMap<String, String> getUserVodMap() {
 
-		return userVodMap;
-	}
-	public void setUserVodMap(BTreeMap<String, String> userVodMap) {
-		this.userVodMap = userVodMap;
-	}
 
 	public BTreeMap<String, String> getVodMap() {
 		return vodMap;
@@ -373,8 +364,15 @@ public class MapDBStore extends DataStore {
 		ArrayList<VoD> vods = new ArrayList<>();
 		synchronized (this) {
 			Collection<String> values = vodMap.values();
+			int length = values.size();
+			int i = 0;
 			for (String vodString : values) {
 				vods.add(gson.fromJson(vodString, VoD.class));
+				i++;
+				if (i > length) {
+					logger.error("Inconsistency in DB. It's likely db file({}) is damaged", dbName);
+					break;
+				}
 			}
 			return sortAndCropVodList(vods, offset, size, sortBy, orderBy);
 		}
@@ -519,21 +517,37 @@ public class MapDBStore extends DataStore {
 		int numberOfSavedFiles = 0;
 
 		synchronized (this) {
-			Object[] objectArray = vodMap.getValues().toArray();
-			VoD[] vodtArray = new VoD[objectArray.length];
-
-			for (int i = 0; i < objectArray.length; i++) {
-				vodtArray[i] = gson.fromJson((String) objectArray[i], VoD.class);
-			}
-
-			for (int i = 0; i < vodtArray.length; i++) {
-				if (vodtArray[i].getType().equals(VoD.USER_VOD)) {
-					vodMap.remove(vodtArray[i].getVodId());
-					db.commit();
+			int i = 0;
+			
+			Collection<String> vodFiles = vodMap.values();
+			
+			int size = vodFiles.size();
+			
+			List<VoD> vodList = new ArrayList<>();
+			
+			for (String vodString : vodFiles)  {
+				i++;
+				vodList.add(gson.fromJson((String) vodString, VoD.class));
+				if (i > size) {
+					logger.error("Inconsistency in DB. It's likely db file({}) is damaged", dbName);
+					break;
 				}
 			}
-
-
+			
+			boolean result = false;
+			for (VoD vod : vodList) 
+			{	
+				if (vod.getType().equals(VoD.USER_VOD)) {
+					result = vodMap.remove(vod.getVodId()) != null;
+					if (result) {
+						db.commit();
+					}
+					else {
+						logger.error("MapDB VoD is not synchronized. It's likely db files({}) is damaged", dbName);
+					}
+				}
+			}
+			
 			File[] listOfFiles = userfile.listFiles();
 
 			if (listOfFiles != null) 

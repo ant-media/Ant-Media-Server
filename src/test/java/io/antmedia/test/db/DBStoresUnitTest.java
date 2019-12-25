@@ -171,6 +171,17 @@ public class DBStoresUnitTest {
 		testUpdateStatus(dataStore);
 		testP2PConnection(dataStore);
 	}
+	
+	@Test
+	public void testBug() {
+		
+		MapDBStore dataStore = new MapDBStore("src/test/resources/damaged_webrtcappee.db");
+		
+		//Following methods does not return before the bug is fixed
+		dataStore.fetchUserVodList(new File(""));
+		
+		dataStore.getVodList(0, 10, "name", "asc");
+	}
 
 	public void clear(DataStore dataStore) 
 	{

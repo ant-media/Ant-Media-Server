@@ -1,25 +1,23 @@
 package io.antmedia.logger;
 
-import ch.qos.logback.classic.spi.IThrowableProxy;
-import ch.qos.logback.classic.spi.ThrowableProxyUtil;
-import com.brsanthu.googleanalytics.GoogleAnalytics;
-import com.google.common.annotations.VisibleForTesting;
-import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.rest.BroadcastRestService;
-import io.antmedia.statistic.StatsCollector;
-
-import org.red5.server.Launcher;
-
 import java.io.File;
 import java.util.UUID;
 
-class GoogleAnalyticsLoggerImp implements GoogleAnalyticsLogger {
+import org.red5.server.Launcher;
 
-    private final String implementationVersion = AntMediaApplicationAdapter.class.getPackage().getImplementationVersion();
-    private final String type = BroadcastRestService.isEnterprise() ? "Enterprise" : "Community";
+import com.brsanthu.googleanalytics.GoogleAnalytics;
+import com.google.common.annotations.VisibleForTesting;
+
+import ch.qos.logback.classic.spi.IThrowableProxy;
+import ch.qos.logback.classic.spi.ThrowableProxyUtil;
+import io.antmedia.statistic.StatsCollector;
+
+class GoogleAnalyticsLoggerImp implements GoogleAnalyticsLogger {
 
     @VisibleForTesting
     String instanceId;
+    
+    GoogleAnalytics googleAnalytics;
 
     public GoogleAnalyticsLoggerImp(String path) {
         File idFile = new File(path);
@@ -43,10 +41,12 @@ class GoogleAnalyticsLoggerImp implements GoogleAnalyticsLogger {
     }
 
     @VisibleForTesting
-    GoogleAnalytics getGoogleAnalytic() {
-        return GoogleAnalytics.builder()
-                .withAppVersion(implementationVersion)
-                .withAppName(type)
-                .withTrackingId(StatsCollector.GA_TRACKING_ID).build();
+    GoogleAnalytics getGoogleAnalytic() 
+    {
+    		if (googleAnalytics == null) {
+          googleAnalytics =  StatsCollector.getGoogleAnalyticInstance(Launcher.getVersion(), Launcher.getVersionType());
+    		}
+    		
+    		return googleAnalytics;
     }
 }

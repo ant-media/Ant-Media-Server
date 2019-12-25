@@ -3,7 +3,7 @@
     <property file="${red5.root}/conf/red5.properties"/>
     <appender class="ch.qos.logback.core.ConsoleAppender" name="CONSOLE">
         <encoder>
-            <pattern>[%p] [%thread] %logger - %msg%n</pattern>
+            <pattern>%d{ISO8601} [%thread] %logger - %msg%n</pattern>
         </encoder>
     </appender>
     
@@ -29,26 +29,6 @@
             <pattern>%d{ISO8601} [%thread] %-5level %logger{35} - %msg%n</pattern>
         </encoder>
     </appender>
-    
-    <appender class="ch.qos.logback.core.rolling.RollingFileAppender" name="ERROR_FILE">
-        <File>log/ant-media-server-error.log</File>
-        <Append>false</Append>
-		<filter class="ch.qos.logback.classic.filter.ThresholdFilter">
-            <level>ERROR</level>
-        </filter> 
-        <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-          <fileNamePattern>log/ant-media-server-error.%i.log.gz</fileNamePattern>
-          <minIndex>1</minIndex>
-          <maxIndex>2</maxIndex>
-        </rollingPolicy>
-        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
-          <maxFileSize>500MB</maxFileSize>
-        </triggeringPolicy>
-        <encoder>
-            <pattern>%d{ISO8601} [%thread] %-5level %logger{35} - %msg%n</pattern>
-        </encoder>
-    </appender>
-    
     
     <root level="${logLevel}">
         <appender-ref ref="CONSOLE" />
