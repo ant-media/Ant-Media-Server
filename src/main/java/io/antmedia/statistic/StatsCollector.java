@@ -188,6 +188,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 	private long hearbeatPeriodicTask;
 	
 	private int heartbeatPeriodMs = 300000;
+
+	private GoogleAnalytics googleAnalytics;
 	
 	public void start() {
 		cpuMeasurementTimerId  = getVertx().setPeriodic(measurementPeriod, l -> addCpuMeasurement(SystemUtils.getSystemCpuLoad()));
@@ -218,13 +220,18 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 		}	
 	}
 
-	
-	public GoogleAnalytics getGoogleAnalytic(String implementationVersion, String type) {
+	public static GoogleAnalytics getGoogleAnalyticInstance(String implementationVersion, String type) {
 		return GoogleAnalytics.builder()
 				.withAppVersion(implementationVersion)
 				.withAppName(type)
 				.withTrackingId(GA_TRACKING_ID).build();
-
+	}
+	
+	public GoogleAnalytics getGoogleAnalytic(String implementationVersion, String type) {
+		if (googleAnalytics  == null) {
+			googleAnalytics = getGoogleAnalyticInstance(implementationVersion, type);
+		}
+		return googleAnalytics;
 	}
 	
 	private void sendWebRTCClientStats() {
@@ -640,7 +647,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 				.eventAction("heartbeat")
 				.eventLabel("")
 				.clientId(Launcher.getInstanceId())
-				.send();
+				.sendAsync();
 			}
 		);
 		
@@ -652,7 +659,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 			getGoogleAnalytic(implementationVersion, type).screenView()
 			.sessionControl("start")
 			.clientId(Launcher.getInstanceId())
-			.send()
+			.sendAsync()
 		);
 	}
 	
@@ -671,7 +678,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 				getGoogleAnalytic(implementationVersion, type).screenView()
 				.clientId(Launcher.getInstanceId())
 				.sessionControl("end")
-				.send();
+				.sendAsync();
 			}
 		});
 		result = true;
