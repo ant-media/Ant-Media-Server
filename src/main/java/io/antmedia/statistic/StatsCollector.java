@@ -381,10 +381,12 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 	public static JsonObject getRAMMemoryInfoJSObject() {
 		JsonObject jsonObject = new JsonObject();
 		
-		jsonObject.addProperty(FREE_NATIVE_MEMORY, Pointer.availablePhysicalBytes());
-		jsonObject.addProperty(IN_USE_NATIVE_MEMORY, Pointer.physicalBytes());
-		jsonObject.addProperty(MAX_NATIVE_MEMORY, Pointer.maxPhysicalBytes());
-		jsonObject.addProperty(TOTAL_NATIVE_MEMORY, Pointer.totalPhysicalBytes());
+		long totalPhysicalBytes = Pointer.totalPhysicalBytes();
+		long physicalBytes = Pointer.availablePhysicalBytes();
+		
+		jsonObject.addProperty(FREE_NATIVE_MEMORY, physicalBytes);
+		jsonObject.addProperty(IN_USE_NATIVE_MEMORY, totalPhysicalBytes - physicalBytes);
+		jsonObject.addProperty(TOTAL_NATIVE_MEMORY, totalPhysicalBytes);
 		return jsonObject;
 	}
 
