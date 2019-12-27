@@ -47,6 +47,14 @@ import io.vertx.core.Vertx;
 
 public class StatsCollector implements IStatsCollector, ApplicationContextAware {	
 
+	public static final String FREE_NATIVE_MEMORY = "freeNativeMemory";
+	
+	public static final String TOTAL_NATIVE_MEMORY = "totalNativeMemory";
+	
+	public static final String MAX_NATIVE_MEMORY = "maxNativeMemory";
+
+	public static final String IN_USE_NATIVE_MEMORY = "inUseNativeMemory";
+	
 	public static final String IN_USE_SWAP_SPACE = "inUseSwapSpace";
 
 	public static final String FREE_SWAP_SPACE = "freeSwapSpace";
@@ -90,6 +98,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 	public static final String INSTANCE_ID = "instanceId";
 
 	public static final String JVM_MEMORY_USAGE = "jvmMemoryUsage";
+	
+	public static final String NATIVE_RAM_MEMORY_USAGE = "nativeRamMemoryUsage";
 
 	public static final String SYSTEM_INFO = "systemInfo";
 
@@ -367,6 +377,16 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 		jsonObject.addProperty(IN_USE_SWAP_SPACE, SystemUtils.osInUseSwapSpace());
 		return jsonObject;
 	}
+	
+	public static JsonObject getRAMMemoryInfoJSObject() {
+		JsonObject jsonObject = new JsonObject();
+		
+		jsonObject.addProperty(FREE_NATIVE_MEMORY, Pointer.availablePhysicalBytes());
+		jsonObject.addProperty(IN_USE_NATIVE_MEMORY, Pointer.physicalBytes());
+		jsonObject.addProperty(MAX_NATIVE_MEMORY, Pointer.maxPhysicalBytes());
+		jsonObject.addProperty(TOTAL_NATIVE_MEMORY, Pointer.totalPhysicalBytes());
+		return jsonObject;
+	}
 
 
 	/**
@@ -391,6 +411,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 		jsonObject.add(SYSTEM_INFO, getSystemInfoJSObject());
 		jsonObject.add(SYSTEM_MEMORY_INFO, getSysteMemoryInfoJSObject());
 		jsonObject.add(FILE_SYSTEM_INFO, getFileSystemInfoJSObject());
+		jsonObject.add(NATIVE_RAM_MEMORY_USAGE, getRAMMemoryInfoJSObject());
 
 		//add gpu info 
 		jsonObject.add(StatsCollector.GPU_USAGE_INFO, StatsCollector.getGPUInfoJSObject());
