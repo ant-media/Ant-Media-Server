@@ -1,93 +1,123 @@
-usage() {
-	echo ""
-	echo "This script change server mode to cluster or standalone"
-	echo "Please use the script as follows."
-	echo ""
-	echo "Usage: "
-	echo "Change server mode to cluster"
-	echo "$0  cluster {MONGO_DB_SERVER}"
-	echo ""
-	echo "Change server mode to standalone"
-	echo "$0  standalone"
-	echo ""
-	echo "If you have any question, send e-mail to contact@antmedia.io"
+#!/bin/bash
+
+AMS_INSTALL_LOCATION="/usr/local/antmedia"
+LIVEAPP_PROPERTIES_FILE=$AMS_INSTALL_LOCATION/webapps/LiveApp/WEB-INF/red5-web.properties
+WEBRTCAPP_PROPERTIES_FILE=$AMS_INSTALL_LOCATION/webapps/WebRTCAppEE/WEB-INF/red5-web.properties
+CONSOLEAPP_PROPERTIES_FILE=$AMS_INSTALL_LOCATION/webapps/root/WEB-INF/red5-web.properties
+RED5_PROPERTIES_FILE=$AMS_INSTALL_LOCATION/conf/red5.properties
+
+usage ()
+{
+    echo "Usage:"
+      echo -e "    $0 -m standalone"
+      echo -e "    $0 -m cluster -s mongodb_ip"
+      echo -e "    $0 -m cluster -s mongodb_ip -u username -p password"
+      echo -e "    $0 -h"
+      exit 0
 }
 
-MODE=$1
-if [ -z "$MODE" ]; then
-  echo "No server mode specified. Missing parameter"
+if [ "$#" -eq 0 ]; then
   usage
-  exit 1
 fi
-
-AMS_INSTALL_LOCATION=/usr/local/antmedia
-OS_NAME=`uname`
 
 if [ "$OS_NAME" = "Darwin" ]; then
   AMS_INSTALL_LOCATION=`pwd`
   SED_COMPATIBILITY='.bak'
 fi
 
-USE_GLOBAL_IP="false"
 
-if [ $MODE = "cluster" ]
-  then
+conf ()
+{
+    sed -i $SED_COMPATIBILITY 's/clusterdb.host=.*/clusterdb.host='$1'/' $RED5_PROPERTIES_FILE
+    sed -i $SED_COMPATIBILITY 's/useGlobalIp=.*/useGlobalIp='$2'/' $RED5_PROPERTIES_FILE
+
+    sed -i $SED_COMPATIBILITY 's/db.type=.*/db.type='$3'/' $LIVEAPP_PROPERTIES_FILE
+    sed -i $SED_COMPATIBILITY 's/db.host=.*/db.host='$1'/' $LIVEAPP_PROPERTIES_FILE
+
+    sed -i $SED_COMPATIBILITY 's/db.type=.*/db.type='$3'/' $WEBRTCAPP_PROPERTIES_FILE
+    sed -i $SED_COMPATIBILITY 's/db.host=.*/db.host='$1'/' $WEBRTCAPP_PROPERTIES_FILE
+
+    sed -i $SED_COMPATIBILITY 's/db.type=.*/db.type='$3'/' $CONSOLEAPP_PROPERTIES_FILE
+    sed -i $SED_COMPATIBILITY 's/db.host=.*/db.host='$1'/' $CONSOLEAPP_PROPERTIES_FILE
+
+    sed -i $SED_COMPATIBILITY 's/clusterdb.user=.*/clusterdb.user='$4'/' $RED5_PROPERTIES_FILE
+    sed -i $SED_COMPATIBILITY 's/clusterdb.password=.*/clusterdb.password='$5'/' $RED5_PROPERTIES_FILE
+}
+
+hostfile ()
+{
+
+    LOCAL_IPv4=`ifconfig | sed -En 's/127.0.0.1//;s/.*inet (addr:)?(([0-9]*\.){3}[0-9]*).*/\2/p'`
+    HOST_NAME=`cat /proc/sys/kernel/hostname`
+    HOST_LINE="$LOCAL_IPv4 $HOST_NAME"
+    sed -i '/'$HOST_NAME'/d' /etc/hosts
+    echo  "$HOST_LINE" | tee -a /etc/hosts
+
+}
+
+while getopts "m:s:u:p:h" opt; do
+  case ${opt} in
+    h )
+      usage
+      ;;
+    m )
+      m=${OPTARG}
+      ;;
+    s )
+      s=${OPTARG}
+      ;;
+    u )
+      u=${OPTARG}
+      ;;
+    p )
+      p=${OPTARG}
+      ;;
+
+    \? )
+      echo "Invalid Option: -$OPTARG" 1>&2
+      usage
+      exit 1
+      ;;
+  esac
+done
+shift $((OPTIND -1))
+
+if [[ "$m" == "cluster" && ! -z $s  &&  ! -z $u && ! -z $p ]];then
+    
     echo "Mode: cluster"
     DB_TYPE=mongodb
-    MONGO_SERVER_IP=$2
-    	if [ -z "$MONGO_SERVER_IP" ]; then
-    		echo "No Mongo DB Server specified. Missing parameter"
-    		usage
-    		exit 1
-    	fi
-    
     sed -i $SED_COMPATIBILITY 's^<!-- cluster start^<!-- cluster start -->^' $AMS_INSTALL_LOCATION/conf/jee-container.xml
     sed -i $SED_COMPATIBILITY 's^cluster end -->^<!-- cluster end -->^' $AMS_INSTALL_LOCATION/conf/jee-container.xml
-        
-    if [ ! -z "$3" ]; then
-   	  USE_GLOBAL_IP=$3
-	fi
-  else
+    conf $s false $DB_TYPE $u $p
+    cp -p $AMS_INSTALL_LOCATION/conf/jee-container-cluster.xml $AMS_INSTALL_LOCATION/conf/jee-container.xml
+    hostfile
+
+elif [ "$m" == "standalone" ]; then
+    
     echo "Mode: standalone"
     DB_TYPE=mapdb
     MONGO_SERVER_IP=localhost
     sed -i $SED_COMPATIBILITY 's^<!-- cluster start -->^<!-- cluster start^' $AMS_INSTALL_LOCATION/conf/jee-container.xml
     sed -i $SED_COMPATIBILITY 's^<!-- cluster end -->^cluster end -->^' $AMS_INSTALL_LOCATION/conf/jee-container.xml
+    conf $MONGO_SERVER_IP false $DB_TYPE
+    cp -p $AMS_INSTALL_LOCATION/conf/jee-container-standalone.xml $AMS_INSTALL_LOCATION/conf/jee-container.xml
+
+elif [[ "$m" == "cluster" && ! -z "$s" ]]; then
+    
+    echo "Mode: cluster"
+    DB_TYPE=mongodb
+    sed -i $SED_COMPATIBILITY 's^<!-- cluster start^<!-- cluster start -->^' $AMS_INSTALL_LOCATION/conf/jee-container.xml
+    sed -i $SED_COMPATIBILITY 's^cluster end -->^<!-- cluster end -->^' $AMS_INSTALL_LOCATION/conf/jee-container.xml
+    conf $s false $DB_TYPE 
+    cp -p $AMS_INSTALL_LOCATION/conf/jee-container-cluster.xml $AMS_INSTALL_LOCATION/conf/jee-container.xml
+    hostfile
+
+else
+
+    usage
+
 fi
 
-LIVEAPP_PROPERTIES_FILE=$AMS_INSTALL_LOCATION/webapps/LiveApp/WEB-INF/red5-web.properties
-WEBRTCAPP_PROPERTIES_FILE=$AMS_INSTALL_LOCATION/webapps/WebRTCAppEE/WEB-INF/red5-web.properties
-CONSOLEAPP_PROPERTIES_FILE=$AMS_INSTALL_LOCATION/webapps/root/WEB-INF/red5-web.properties
-RED5_PROPERTIES_FILE=$AMS_INSTALL_LOCATION/conf/red5.properties
-
-
-
-
-sed -i $SED_COMPATIBILITY 's/clusterdb.host=.*/clusterdb.host='$MONGO_SERVER_IP'/' $RED5_PROPERTIES_FILE
-sed -i $SED_COMPATIBILITY 's/useGlobalIp=.*/useGlobalIp='$USE_GLOBAL_IP'/' $RED5_PROPERTIES_FILE
-
-sed -i $SED_COMPATIBILITY 's/db.type=.*/db.type='$DB_TYPE'/' $LIVEAPP_PROPERTIES_FILE
-sed -i $SED_COMPATIBILITY 's/db.host=.*/db.host='$MONGO_SERVER_IP'/' $LIVEAPP_PROPERTIES_FILE
-
-sed -i $SED_COMPATIBILITY 's/db.type=.*/db.type='$DB_TYPE'/' $WEBRTCAPP_PROPERTIES_FILE
-sed -i $SED_COMPATIBILITY 's/db.host=.*/db.host='$MONGO_SERVER_IP'/' $WEBRTCAPP_PROPERTIES_FILE
-
-sed -i $SED_COMPATIBILITY 's/db.type=.*/db.type='$DB_TYPE'/' $CONSOLEAPP_PROPERTIES_FILE
-sed -i $SED_COMPATIBILITY 's/db.host=.*/db.host='$MONGO_SERVER_IP'/' $CONSOLEAPP_PROPERTIES_FILE
-
-
-
-if [ "$OS_NAME" = "Darwin" ]; then
-  echo "You can re-start Ant Media Server on your Macos"
-  exit 0
-fi
-
-LOCAL_IPv4=`ifconfig | sed -En 's/127.0.0.1//;s/.*inet (addr:)?(([0-9]*\.){3}[0-9]*).*/\2/p'`
-HOST_NAME=`cat /proc/sys/kernel/hostname`
-HOST_LINE="$LOCAL_IPv4 $HOST_NAME"
-
-sed -i '/'$HOST_NAME'/d' /etc/hosts
-echo  "$HOST_LINE" | tee -a /etc/hosts
-
-echo "Ant Media Server will be restarted in $MODE mode."
+echo "Ant Media Server will be restarted in $m mode."
 service antmedia restart
+
