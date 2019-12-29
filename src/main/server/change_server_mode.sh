@@ -8,6 +8,10 @@ RED5_PROPERTIES_FILE=$AMS_INSTALL_LOCATION/conf/red5.properties
 
 usage ()
 {
+    echo ""
+    echo "This script change server mode to cluster or standalone" 
+    echo "If you have any question, send e-mail to contact@antmedia.io"  
+    echo -e "Please use the script as follows.\n"
     echo "Usage:"
       echo -e "    $0 -m standalone"
       echo -e "    $0 -m cluster -s mongodb_ip"
