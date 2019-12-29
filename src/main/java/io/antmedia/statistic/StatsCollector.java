@@ -157,7 +157,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 	/**
 	 * Min Free Ram Size that free memory should be always more than min
 	 */
-	private int minFreeRamSize = 100;
+	private int minFreeRamSize = 500;
 
 	private String kafkaBrokers = null;
 
@@ -489,32 +489,19 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 		{
 			long freeJvmRamValue = getFreeRam();
 			
-			if (freeJvmRamValue > minFreeRamSize) 
-			{
-				
-				long availablePhysicalBytes = Pointer.availablePhysicalBytes();
-
-				if (availablePhysicalBytes > 0) 
-				{
-					long freeNativeMemory = SystemUtils.convertByteSize(availablePhysicalBytes, "MB"); 
-					if (freeNativeMemory > minFreeRamSize )
-					{
-						enoughResource = true;
-					}
-					else {
-						logger.error("Not enough resource. Due to no enough native memory. Current free memory:{} min free memory:{}", freeNativeMemory, minFreeRamSize);
-					}
+			if (freeJvmRamValue > minFreeRamSize) {
+				long freeNativeMemory = SystemUtils.convertByteSize(Pointer.availablePhysicalBytes(), "MB"); 
 					
-				}
-				else {
-					//if maxPhysicalBytes is not reported, just proceed
+				if (freeNativeMemory > minFreeRamSize ){
 					enoughResource = true;
+					}
+				else {
+					logger.error("Not enough resource. Due to no enough native memory. Current free memory:{} min free memory:{}", freeNativeMemory, minFreeRamSize);
+					}
 				}
-				
-			}
 			else {
 				logger.error("Not enough resource. Due to not free RAM. Free RAM should be more than  {} but it is: {}", minFreeRamSize, freeJvmRamValue);
-			}
+				}
 		}
 		else {
 			logger.error("Not enough resource. Due to high cpu load: {} cpu limit: {}", cpuLoad, cpuLimit);
