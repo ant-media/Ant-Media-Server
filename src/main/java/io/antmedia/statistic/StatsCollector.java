@@ -157,7 +157,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 	/**
 	 * Min Free Ram Size that free memory should be always more than min
 	 */
-	private int minFreeRamSize = 20;
+	private int minFreeRamSize = 100;
 
 	private String kafkaBrokers = null;
 
@@ -491,11 +491,12 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 			
 			if (freeJvmRamValue > minFreeRamSize) 
 			{
-				long maxPhysicalBytes = Pointer.maxPhysicalBytes();
-				long physicalBytes = Pointer.physicalBytes();
-				if (maxPhysicalBytes > 0) 
+				
+				long availablePhysicalBytes = Pointer.availablePhysicalBytes();
+
+				if (availablePhysicalBytes > 0) 
 				{
-					long freeNativeMemory = SystemUtils.convertByteSize(maxPhysicalBytes - physicalBytes, "MB"); 
+					long freeNativeMemory = SystemUtils.convertByteSize(availablePhysicalBytes, "MB"); 
 					if (freeNativeMemory > minFreeRamSize )
 					{
 						enoughResource = true;
