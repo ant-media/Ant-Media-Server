@@ -106,5 +106,7 @@ rm $NEW_HOST_FILE
 
 
 
-echo "Ant Media Server will be restarted in $MODE mode."
-service antmedia restart
+echo "Ant Media Server is restarting in $MODE mode."
+#service antmedia restart does not work if daemon is not running so that stop and start
+service antmedia stop
+service antmedia start
