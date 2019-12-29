@@ -86,8 +86,25 @@ LOCAL_IPv4=`ifconfig | sed -En 's/127.0.0.1//;s/.*inet (addr:)?(([0-9]*\.){3}[0-
 HOST_NAME=`cat /proc/sys/kernel/hostname`
 HOST_LINE="$LOCAL_IPv4 $HOST_NAME"
 
-sed -i '/'$HOST_NAME'/d' /etc/hosts
-echo  "$HOST_LINE" | tee -a /etc/hosts
+# Change /etc/hosts file
+# In docker changing /etc/hosts produces device or resource busy error. 
+# Above commands takes care the changing host file
+
+# temp hosts file  
+NEW_HOST_FILE=~/.hosts.new
+# cp hosts file
+cp /etc/hosts $NEW_HOST_FILE  
+# delete hostname line from the file  
+sed -i '/'$HOST_NAME'/d' $NEW_HOST_FILE
+# add host line to the file
+echo  "$HOST_LINE" | tee -a $NEW_HOST_FILE
+# change the /etc/hosts file - (mv does not work)
+cp -f $NEW_HOST_FILE /etc/hosts
+# remove temp hosts file
+rm $NEW_HOST_FILE
+
+
+
 
 echo "Ant Media Server will be restarted in $MODE mode."
 service antmedia restart
