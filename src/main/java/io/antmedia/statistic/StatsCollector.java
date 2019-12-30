@@ -140,7 +140,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 	private Queue<IScope> scopes = new ConcurrentLinkedQueue<>();
 
 	public static final String GA_TRACKING_ID = "UA-93263926-3";
-	
+
 	@Autowired
 	private Vertx vertx;
 	private Queue<Integer> cpuMeasurements = new ConcurrentLinkedQueue<>();
@@ -150,10 +150,10 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 	private int windowSize = 5;
 	private int measurementPeriod = 5000;
 	private int staticSendPeriod = 15000;
-	
+
 	private int cpuLoad;
 	private int cpuLimit = 70;
-	
+
 	/**
 	 * Min Free Ram Size that free memory should be always more than min
 	 */
@@ -182,31 +182,31 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 	private long cpuMeasurementTimerId = -1;
 
 	private long kafkaTimerId = -1;
-	
+
 	private boolean heartBeatEnabled = true;
 
 	private long hearbeatPeriodicTask;
-	
+
 	private int heartbeatPeriodMs = 300000;
 
 	private GoogleAnalytics googleAnalytics;
-	
+
 	public void start() {
 		cpuMeasurementTimerId  = getVertx().setPeriodic(measurementPeriod, l -> addCpuMeasurement(SystemUtils.getSystemCpuLoad()));
 		startKafkaProducer();
-		
+
 		if (heartBeatEnabled) {
 			logger.info("Starting heartbeats for the version:{} and type:{}", Launcher.getVersion(), Launcher.getVersionType());
 			startAnalytic(Launcher.getVersion(), Launcher.getVersionType());
 
 			startHeartBeats(Launcher.getVersion(), Launcher.getVersionType(), heartbeatPeriodMs);
-			
+
 			notifyShutDown(Launcher.getVersion(), Launcher.getVersionType());
 		}
 		else {
 			logger.info("Heartbeats are disabled for this instance");
 		}
-		
+
 	}
 
 	private void startKafkaProducer() {
@@ -226,14 +226,14 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 				.withAppName(type)
 				.withTrackingId(GA_TRACKING_ID).build();
 	}
-	
+
 	public GoogleAnalytics getGoogleAnalytic(String implementationVersion, String type) {
 		if (googleAnalytics  == null) {
 			googleAnalytics = getGoogleAnalyticInstance(implementationVersion, type);
 		}
 		return googleAnalytics;
 	}
-	
+
 	private void sendWebRTCClientStats() {
 		getVertx().executeBlocking(
 				b -> {
@@ -380,8 +380,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 		jsonObject.addProperty(StatsCollector.START_TIME, ManagementFactory.getRuntimeMXBean().getStartTime());
 		return jsonObject;
 	}
-	
-	
+
+
 	public static JsonObject getSystemResourcesInfo(Queue<IScope> scopes) 
 	{
 		JsonObject jsonObject = new JsonObject();
@@ -425,7 +425,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 		jsonObject.addProperty(StatsCollector.ENCODERS_BLOCKED, encodersBlocked);
 		jsonObject.addProperty(StatsCollector.ENCODERS_NOT_OPENED, encodersNotOpened);
 		jsonObject.addProperty(StatsCollector.PUBLISH_TIMEOUT_ERRORS, publishTimeoutError);
-		
+
 		//add timing info
 		jsonObject.add(StatsCollector.SERVER_TIMING, getServerTime());
 
@@ -488,20 +488,28 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 		if(cpuLoad < cpuLimit) 
 		{
 			long freeJvmRamValue = getFreeRam();
-			
+
 			if (freeJvmRamValue > minFreeRamSize) {
-				long freeNativeMemory = SystemUtils.convertByteSize(Pointer.availablePhysicalBytes(), "MB"); 
-					
-				if (freeNativeMemory > minFreeRamSize ){
-					enoughResource = true;
+				long maxPhysicalBytes = SystemUtils.convertByteSize(Pointer.maxPhysicalBytes(), "MB"); 
+				long physicalBytes = SystemUtils.convertByteSize(Pointer.physicalBytes(), "MB"); 
+
+				if ((maxPhysicalBytes-physicalBytes) > 0 ){
+					long freeNativeMemory = SystemUtils.convertByteSize(Pointer.availablePhysicalBytes(), "MB"); 										
+
+					if(freeNativeMemory > minFreeRamSize) {
+						enoughResource = true;
 					}
-				else {
-					logger.error("Not enough resource. Due to no enough native memory. Current free memory:{} min free memory:{}", freeNativeMemory, minFreeRamSize);
+					else {
+						logger.error("Not enough resource. Due to no enough native memory. Current free memory:{} min free memory:{}", freeNativeMemory, minFreeRamSize);	
 					}
 				}
+				else {
+					logger.error("Not enough resource. Physical memory usage is too high: physicalBytes ({}) > maxPhysicalBytes ({}) ", physicalBytes, maxPhysicalBytes);
+				}
+			}
 			else {
 				logger.error("Not enough resource. Due to not free RAM. Free RAM should be more than  {} but it is: {}", minFreeRamSize, freeJvmRamValue);
-				}
+			}
 		}
 		else {
 			logger.error("Not enough resource. Due to high cpu load: {} cpu limit: {}", cpuLoad, cpuLimit);
@@ -522,11 +530,11 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 	public int getMinFreeRamSize() {
 		return minFreeRamSize;
 	}
-	
+
 	public void setMinFreeRamSize(int ramLimit) {
 		this.minFreeRamSize = ramLimit;
 	}
-	
+
 	public void setCpuLoad(int cpuLoad) {
 		this.cpuLoad = cpuLoad;
 	}
@@ -590,7 +598,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 				scopes.add(scope);
 			}
 		});
-		
+
 		ServerSettings serverSettings = (ServerSettings) applicationContext.getBean(ServerSettings.BEAN_NAME);
 		heartBeatEnabled = serverSettings.isHeartbeatEnabled();
 	}
@@ -618,39 +626,39 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 	public void setScopes(Queue<IScope> scopes) {
 		this.scopes = scopes;
 	}
-	
+
 	public boolean startHeartBeats(String implementationVersion, String type, int periodMS) {
 		boolean result = false;
 
 		hearbeatPeriodicTask = vertx.setPeriodic(periodMS, 
-			l -> {
-				if(logger != null) {
-					logger.info("-Heartbeat-");
+				l -> {
+					if(logger != null) {
+						logger.info("-Heartbeat-");
+					}
+					else {
+						System.out.println("-Heartbeat-");
+					}
+					getGoogleAnalytic(implementationVersion, type).event()
+					.eventCategory("server_status")
+					.eventAction("heartbeat")
+					.eventLabel("")
+					.clientId(Launcher.getInstanceId())
+					.sendAsync();
 				}
-				else {
-					System.out.println("-Heartbeat-");
-				}
-				getGoogleAnalytic(implementationVersion, type).event()
-				.eventCategory("server_status")
-				.eventAction("heartbeat")
-				.eventLabel("")
-				.clientId(Launcher.getInstanceId())
-				.sendAsync();
-			}
-		);
-		
+				);
+
 		return result;
 	}
 
 	public void startAnalytic(String implementationVersion, String type) {
 		vertx.runOnContext(l -> 
-			getGoogleAnalytic(implementationVersion, type).screenView()
-			.sessionControl("start")
-			.clientId(Launcher.getInstanceId())
-			.sendAsync()
-		);
+		getGoogleAnalytic(implementationVersion, type).screenView()
+		.sessionControl("start")
+		.clientId(Launcher.getInstanceId())
+		.sendAsync()
+				);
 	}
-	
+
 	public boolean notifyShutDown(String implementationVersion, String type) {
 		boolean result = false;
 
@@ -658,7 +666,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 
 			@Override
 			public void run() {
-				
+
 				if(logger != null) {
 					logger.info("Shutting down just a sec");
 				}
@@ -672,7 +680,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 		result = true;
 		return result;
 	}
-	
+
 	public void cancelHeartBeat() {
 		vertx.cancelTimer(hearbeatPeriodicTask);
 	}
@@ -692,5 +700,5 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 	public void setHeartbeatPeriodMs(int heartbeatPeriodMs) {
 		this.heartbeatPeriodMs = heartbeatPeriodMs;
 	}
-	
+
 }
