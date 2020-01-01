@@ -215,11 +215,16 @@
     <bean id="vertxCore" 
     		class="io.vertx.core.Vertx" 
    		factory-method="vertx">
+   		<!--  
    		<constructor-arg>
    			<bean class="io.vertx.core.VertxOptions">
    				<property name="eventLoopPoolSize" value="20"></property>
    			</bean>
    		</constructor-arg>	
+   		-->
+   		<!--    * The default number of event loop threads to be used  = 2 * number of cores on the machine
+  -->
+ 
    	</bean>
    	
    	<bean id="statsCollector" class="io.antmedia.statistic.StatsCollector" init-method="start">
