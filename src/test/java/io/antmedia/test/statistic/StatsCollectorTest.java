@@ -71,7 +71,6 @@ public class StatsCollectorTest {
 		JsonArray threadDumpJSON = StatsCollector.getThreadDumpJSON();
 		assertNotNull(threadDumpJSON);
 		
-		assertEquals(threadDump.length , threadDumpJSON.size());
 	}
 	
 	@Test
