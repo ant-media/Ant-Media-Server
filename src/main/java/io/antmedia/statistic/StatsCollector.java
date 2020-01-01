@@ -187,11 +187,11 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 
 	private static final String THREAD_DUMP = "thread-dump";
 
-	private static final String DEAD_LOCKED_THREAD = "dead-locked-thread";
+	public static final String DEAD_LOCKED_THREAD = "dead-locked-thread";
 
-	private static final String THREAD_COUNT = "thread-count";
+	public static final String THREAD_COUNT = "thread-count";
 
-	private static final String THREAD_PEEK_COUNT = "thread-peek-count";
+	public static final String THREAD_PEEK_COUNT = "thread-peek-count";
 
 	private static final String THREAD_NAME = "thread-name";
 
@@ -385,7 +385,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 		return threadMXBean.dumpAllThreads(true, true);
 	}
 	
-	public static JsonElement getThreadDumpJSON() {
+	public static JsonArray getThreadDumpJSON() {
 		ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
 		
 		ThreadInfo[] threadDump = threadMXBean.dumpAllThreads(true, true);
