@@ -10,6 +10,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 
 import java.lang.management.ManagementFactory;
+import java.lang.management.ThreadInfo;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -30,6 +31,7 @@ import org.red5.server.api.IContext;
 import org.red5.server.api.scope.IScope;
 import org.springframework.context.ApplicationContext;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
@@ -60,6 +62,16 @@ public class StatsCollectorTest {
 		assertEquals(9, monitor.getCpuLoad());
 	}
 	
+	
+	@Test
+	public void testThreadDump() {
+		ThreadInfo[] threadDump = StatsCollector.getThreadDump();
+		assertNotNull(threadDump);
+		
+		JsonArray threadDumpJSON = StatsCollector.getThreadDumpJSON();
+		assertNotNull(threadDumpJSON);
+		
+	}
 	
 	@Test
 	public void testJSObjects() {
@@ -124,6 +136,12 @@ public class StatsCollectorTest {
 		assertTrue(jsObject.has(StatsCollector.GPU_MEMORY_USED));
 		assertTrue(jsObject.has(StatsCollector.GPU_DEVICE_NAME));
 		
+		
+		jsObject = StatsCollector.getThreadInfoJSONObject();
+		assertTrue(jsObject.has(StatsCollector.DEAD_LOCKED_THREAD));
+		assertTrue(jsObject.has(StatsCollector.THREAD_COUNT));
+		assertTrue(jsObject.has(StatsCollector.THREAD_PEEK_COUNT));
+
 	}
 	
 	@Test
