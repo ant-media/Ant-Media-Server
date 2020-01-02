@@ -1,8 +1,12 @@
 package io.antmedia.statistic;
 
+import java.lang.management.LockInfo;
 import java.lang.management.ManagementFactory;
+import java.lang.management.ThreadInfo;
+import java.lang.management.ThreadMXBean;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
@@ -45,7 +49,11 @@ import io.antmedia.statistic.GPUUtils.MemoryStatus;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.vertx.core.Vertx;
 
+
+
 public class StatsCollector implements IStatsCollector, ApplicationContextAware {	
+	
+	
 
 	public static final String IN_USE_SWAP_SPACE = "inUseSwapSpace";
 
@@ -176,6 +184,42 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 	private static final String ENCODERS_NOT_OPENED = "encoders-not-opened";
 
 	private static final String PUBLISH_TIMEOUT_ERRORS = "publish-timeout-errors";
+
+	private static final String THREAD_DUMP = "thread-dump";
+
+	public static final String DEAD_LOCKED_THREAD = "dead-locked-thread";
+
+	public static final String THREAD_COUNT = "thread-count";
+
+	public static final String THREAD_PEEK_COUNT = "thread-peek-count";
+
+	private static final String THREAD_NAME = "thread-name";
+
+	private static final String THREAD_ID = "thread-id";
+
+	private static final String THREAD_BLOCKED_TIME = "blocked-time";
+
+	private static final String THREAD_BLOCKED_COUNT = "blocked-count";
+
+	private static final String THREAD_WAITED_TIME = "waited-time";
+
+	private static final String THREAD_WAITED_COUNT = "waited-count";
+
+	private static final String THREAD_LOCK_NAME = "lock-name";
+
+	private static final String THREAD_LOCK_OWNER_ID = "lock-owner-id";
+
+	private static final String THREAD_LOCK_OWNER_NAME = "lock-owner-name";
+
+	private static final String THREAD_IN_NATIVE = "in-native";
+
+	private static final String THREAD_SUSPENDED = "suspended";
+
+	private static final String THREAD_STATE = "state";
+
+	private static final String THREAD_CPU_TIME = "cpu-time";
+
+	private static final String THREAD_USER_TIME = "user-time";
 
 	private Producer<Long,String> kafkaProducer = null;
 
@@ -333,6 +377,62 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 		jsonObject.addProperty(PROCESS_CPU_TIME, SystemUtils.getProcessCpuTime());
 		jsonObject.addProperty(SYSTEM_CPU_LOAD, SystemUtils.getSystemCpuLoad());
 		jsonObject.addProperty(PROCESS_CPU_LOAD, SystemUtils.getProcessCpuLoad());
+		return jsonObject;
+	}
+	
+	public static ThreadInfo[] getThreadDump() {
+		ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
+		return threadMXBean.dumpAllThreads(true, true);
+	}
+	
+	public static JsonArray getThreadDumpJSON() {
+		ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
+		
+		ThreadInfo[] threadDump = threadMXBean.dumpAllThreads(true, true);
+		JsonArray jsonArray = new JsonArray();
+		
+		for (int i = 0; i < threadDump.length; i++) {
+			JsonObject jsonObject = new JsonObject();
+		
+			jsonObject.addProperty(THREAD_NAME, threadDump[i].getThreadName());
+			jsonObject.addProperty(THREAD_ID, threadDump[i].getThreadId());
+			jsonObject.addProperty(THREAD_BLOCKED_TIME, threadDump[i].getBlockedTime());
+			jsonObject.addProperty(THREAD_BLOCKED_COUNT, threadDump[i].getBlockedCount());
+			jsonObject.addProperty(THREAD_WAITED_TIME, threadDump[i].getWaitedTime());
+			jsonObject.addProperty(THREAD_WAITED_COUNT, threadDump[i].getWaitedCount());
+			jsonObject.addProperty(THREAD_LOCK_NAME, threadDump[i].getLockName());
+			jsonObject.addProperty(THREAD_LOCK_OWNER_ID, threadDump[i].getLockOwnerId());
+			jsonObject.addProperty(THREAD_LOCK_OWNER_NAME, threadDump[i].getLockOwnerName());
+			jsonObject.addProperty(THREAD_IN_NATIVE, threadDump[i].isInNative());
+			jsonObject.addProperty(THREAD_SUSPENDED, threadDump[i].isSuspended());
+			jsonObject.addProperty(THREAD_STATE, threadDump[i].getThreadState().toString());
+			jsonObject.addProperty(THREAD_CPU_TIME, threadMXBean.getThreadCpuTime(threadDump[i].getThreadId()));
+			jsonObject.addProperty(THREAD_USER_TIME, threadMXBean.getThreadUserTime(threadDump[i].getThreadId()));
+			
+			jsonArray.add(jsonObject);
+		}
+		
+		return jsonArray;
+		
+	}
+	
+	private static JsonArray getDeadLockedThreads(long[] deadLockedThreads) {
+		JsonArray jsonArray = new JsonArray();
+		if (deadLockedThreads != null) {
+			for (int i = 0; i < deadLockedThreads.length; i++) {
+				jsonArray.add(deadLockedThreads[i]);
+			}
+		}
+		return jsonArray;
+	}
+	
+	public static JsonObject getThreadInfoJSONObject() {
+		JsonObject jsonObject = new JsonObject();
+		ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
+		jsonObject.add(DEAD_LOCKED_THREAD, getDeadLockedThreads(threadMXBean.findDeadlockedThreads()));
+		jsonObject.addProperty(THREAD_COUNT, threadMXBean.getThreadCount());
+		jsonObject.addProperty(THREAD_PEEK_COUNT, threadMXBean.getPeakThreadCount());
+		
 		return jsonObject;
 	}
 
@@ -700,5 +800,4 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 	public void setHeartbeatPeriodMs(int heartbeatPeriodMs) {
 		this.heartbeatPeriodMs = heartbeatPeriodMs;
 	}
-
 }
