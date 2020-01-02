@@ -731,6 +731,41 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		return null;
 	}
 	
+	/**
+	 * 
+	 */
+	boolean checkStreamReturned = false;
+	@Test
+	public void testCheckStreams() {
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		ClientBroadcastStream clientBroadcastStream = new ClientBroadcastStream();
+		StreamCodecInfo info = new StreamCodecInfo();
+		info.setHasAudio(false);
+		info.setHasVideo(false);
+		clientBroadcastStream.setCodecInfo(info);
+		
+		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, false, appScope);
+		
+		checkStreamReturned = false;
+		new Thread() {
+			public void run() {
+				try {
+					muxAdaptor.checkStreams();
+					checkStreamReturned = true;
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
+			
+		}.start();
+
+		
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
+			return checkStreamReturned;
+		});
+
+	}
+	
 	@Test
 	public void testNonZeroStartingFrame() {
 		
