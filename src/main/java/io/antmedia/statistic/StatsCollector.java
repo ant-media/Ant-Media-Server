@@ -51,8 +51,6 @@ import io.vertx.core.Vertx;
 
 public class StatsCollector implements IStatsCollector, ApplicationContextAware {	
 	
-	
-
 	public static final String FREE_NATIVE_MEMORY = "freeNativeMemory";
 	
 	public static final String TOTAL_NATIVE_MEMORY = "totalNativeMemory";
@@ -484,10 +482,10 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 		JsonObject jsonObject = new JsonObject();
 		
 		long totalPhysicalBytes = Pointer.totalPhysicalBytes();
-		long physicalBytes = Pointer.availablePhysicalBytes();
+		long availablePhysicalBytes = Pointer.availablePhysicalBytes();
 		
-		jsonObject.addProperty(FREE_NATIVE_MEMORY, physicalBytes);
-		jsonObject.addProperty(IN_USE_NATIVE_MEMORY, totalPhysicalBytes - physicalBytes);
+		jsonObject.addProperty(FREE_NATIVE_MEMORY, availablePhysicalBytes);
+		jsonObject.addProperty(IN_USE_NATIVE_MEMORY, totalPhysicalBytes - availablePhysicalBytes);
 		jsonObject.addProperty(TOTAL_NATIVE_MEMORY, totalPhysicalBytes);
 		return jsonObject;
 	}
@@ -496,9 +494,9 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 		JsonObject jsonObject = new JsonObject();
 		
 		long maxPhysicalBytes = Pointer.maxPhysicalBytes();
-		long physicalBytes = Pointer.physicalBytes();
+		long inUsephysicalBytes = Pointer.physicalBytes();
 		
-		jsonObject.addProperty(IN_USE_JVM_NATIVE_MEMORY, physicalBytes);
+		jsonObject.addProperty(IN_USE_JVM_NATIVE_MEMORY, inUsephysicalBytes);
 		jsonObject.addProperty(MAX_JVM_NATIVE_MEMORY, maxPhysicalBytes);
 		return jsonObject;
 	}
