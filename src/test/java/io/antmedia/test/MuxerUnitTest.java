@@ -11,6 +11,7 @@ import io.antmedia.integration.MuxingTest;
 import io.antmedia.muxer.HLSMuxer;
 import io.antmedia.muxer.Mp4Muxer;
 import io.antmedia.muxer.MuxAdaptor;
+import io.antmedia.muxer.MuxAdaptor.InputContext;
 import io.antmedia.muxer.Muxer;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import static org.bytedeco.javacpp.avcodec.AV_CODEC_ID_H264;
@@ -36,11 +37,13 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.tika.io.IOUtils;
 import org.awaitility.Awaitility;
+import org.bytedeco.javacpp.Pointer;
 import org.bytedeco.javacpp.avcodec.AVCodecContext;
 import org.bytedeco.javacpp.avformat;
 import org.bytedeco.javacpp.avformat.*;
@@ -633,6 +636,47 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertTrue(result);
 		
 		muxAdaptor.closeResources();
+	}
+	
+	boolean prepareCalledMuxAdaptorStopWhilePreparing = false;
+	boolean prepareReturnedMuxAdaptorStopWhilePreparing = false;
+	@Test
+	public void testMuxAdaptorStopWhilePreparing() {
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		ClientBroadcastStream clientBroadcastStream = new ClientBroadcastStream();
+		StreamCodecInfo info = new StreamCodecInfo();
+		info.setHasAudio(false);
+		info.setHasVideo(false);
+		clientBroadcastStream.setCodecInfo(info);
+		
+		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, false, appScope);
+		String streamId = "stream_id" + (int)(Math.random()*10000);
+		
+		boolean result = muxAdaptor.init(appScope, streamId, false);
+		
+		new Thread() {
+			public void run() {
+				try {
+					prepareCalledMuxAdaptorStopWhilePreparing = true;
+					muxAdaptor.prepare();
+					prepareReturnedMuxAdaptorStopWhilePreparing = true;
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		}.start();
+		
+		Awaitility.await().pollInterval(1, TimeUnit.SECONDS).atMost(50, TimeUnit.SECONDS).until(() -> 
+			 prepareCalledMuxAdaptorStopWhilePreparing
+		);
+		
+		assertNotNull(muxAdaptor.getInputFormatContext());
+		
+		muxAdaptor.stop();
+		
+		Awaitility.await().pollInterval(1, TimeUnit.SECONDS).atMost(50, TimeUnit.SECONDS).until(() -> 
+			prepareReturnedMuxAdaptorStopWhilePreparing
+		);
 		
 	}
 	
