@@ -30,6 +30,21 @@ usage() {
 	echo "If you have any question, send e-mail to contact@antmedia.io"
 }
 
+ipt_remove() {
+        iptab=`iptables -t nat -n -L PREROUTING | grep -E "REDIRECT.*dpt:80.*5080"`
+        if [ "$iptab" ]; then
+                iptables-save > /tmp/iptables_save
+                iptables -t nat -D PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 5080
+                IPT="1"
+        fi
+}
+
+ipt_restore() {
+        if [ "$IPT" ]; then
+                iptables-restore < /tmp/iptables_save
+        fi
+}
+
 get_password() {	
   until [ ! -z "$password" ]
   do
@@ -213,17 +228,15 @@ auth_tomcat(){
 
 create_cron_job(){
 
-	#crontab file for root user
-	cronfile="/var/spool/cron/crontabs/root"
-	#Check if file does not exist
-  if [ ! -f $cronfile ]; then
-    $SUDO echo "00 03 */85 * * cd $INSTALL_DIRECTORY && ./enable_ssl.sh -d $domain -r" > $cronfile
-  elif [ $(grep -E "enable_ssl.sh.*$domain" $cronfile | wc -l) -eq "0" ]; then
-    $SUDO echo "00 03 */85 * * cd $INSTALL_DIRECTORY && ./enable_ssl.sh -d $domain -r" >> $cronfile
-  fi
-
-	output
-
+    #crontab file for root user
+    cronfile="/var/spool/cron/crontabs/root"
+    #Check if file does not exist
+    if [ ! -f $cronfile ]; then
+       $SUDO echo "00 03 */85 * * cd $INSTALL_DIRECTORY && ./enable_ssl.sh -d $domain -r" > $cronfile
+    elif [ $(grep -E "enable_ssl.sh.*$domain" $cronfile | wc -l) -eq "0" ]; then
+       $SUDO echo "00 03 */85 * * cd $INSTALL_DIRECTORY && ./enable_ssl.sh -d $domain -r" >> $cronfile
+    fi
+    output
 
 }
 
@@ -253,6 +266,8 @@ check_domain_name
 #generate password using domain name
 generate_password
 
+#remove iptables redirect rule
+ipt_remove
 
 if [ "$renew_flag" == "true" ]
 then
@@ -275,6 +290,9 @@ then
     #create cron job for auto renew
     create_cron_job
 fi
+
+#restore iptables redirect rule
+ipt_restore
 
 echo ""
 
