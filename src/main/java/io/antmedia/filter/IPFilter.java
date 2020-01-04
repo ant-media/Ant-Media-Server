@@ -11,6 +11,7 @@ import javax.servlet.FilterConfig;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.catalina.util.NetMask;
@@ -28,6 +29,11 @@ public class IPFilter extends AbstractFilter {
 
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
 		if (isAllowed(request.getRemoteAddr())) {
+			chain.doFilter(request, response);
+			return;
+		}
+		
+		if(((HttpServletRequest)request).getPathInfo().contains("rest/v2/acm")) {
 			chain.doFilter(request, response);
 			return;
 		}

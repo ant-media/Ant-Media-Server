@@ -139,11 +139,10 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			//which means it's in cluster mode
 			clusterNotifier = (IClusterNotifier) app.getContext().getBean(IClusterNotifier.BEAN_NAME);
 			
-			clusterNotifier.registerSettingUpdateListener(getAppSettings().getAppName(), 
-					settings -> updateSettings(settings, false));
+			clusterNotifier.registerSettingUpdateListener(getAppSettings().getAppName(), settings -> updateSettings(settings, false));
 		}
 
-				vertx.runOnContext(l -> {
+		vertx.runOnContext(l -> {
 				streamFetcherManager = new StreamFetcherManager(vertx, getDataStore(),app);
 				streamFetcherManager.setRestartStreamFetcherPeriod(appSettings.getRestartStreamFetcherPeriod());
 				List<Broadcast> streams = getDataStore().getExternalStreamsList();
@@ -176,7 +175,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 					}
 				}
 
-						synchUserVoDFolder(null, appSettings.getVodFolder());
+				synchUserVoDFolder(null, appSettings.getVodFolder());
 		});
 
 	

@@ -27,6 +27,7 @@ import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
+import io.antmedia.datastore.db.types.P2PConnection;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.datastore.db.types.TensorFlowObject;
@@ -72,6 +73,7 @@ public class MongoStore extends DataStore {
 		detectionMap = morphia.createDatastore(client, dbName + "detection");
 		conferenceRoomDatastore = morphia.createDatastore(client, dbName + "room");
 
+		
 		//*************************************************
 		//do not create data store for each type as we do above
 		//*************************************************
@@ -712,6 +714,14 @@ public class MongoStore extends DataStore {
 				if ( broadcast.getStreamUrl() != null) {
 					ops.set("streamUrl", broadcast.getStreamUrl());
 				}
+				
+				if ( broadcast.getDuration() != null) {
+					ops.set("duration", broadcast.getDuration());
+				}
+				
+				ops.set("receivedBytes", broadcast.getReceivedBytes());
+				ops.set("bitrate", broadcast.getBitrate());
+				ops.set("userAgent", broadcast.getUserAgent());
 
 				UpdateResults update = datastore.update(query, ops);
 				return update.getUpdatedCount() == 1;
@@ -1056,4 +1066,42 @@ public class MongoStore extends DataStore {
 		}
 	}
 
+	@Override
+	public boolean createP2PConnection(P2PConnection conn) {
+		synchronized(this) {
+			try {
+				datastore.save(conn);
+				return true;
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+		return false;
+	}
+
+	@Override
+	public boolean deleteP2PConnection(String streamId) {
+		synchronized(this) {
+			try {
+				Query<P2PConnection> query = datastore.createQuery(P2PConnection.class).field("streamId").equal(streamId);
+				WriteResult delete = datastore.delete(query);
+				return (delete.getN() == 1);
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+		return false;
+	}
+	
+	@Override
+	public P2PConnection getP2PConnection(String streamId) {
+		synchronized(this) {
+			try {
+				return datastore.find(P2PConnection.class).field("streamId").equal(streamId).get();
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+		return null;
+	}
 }

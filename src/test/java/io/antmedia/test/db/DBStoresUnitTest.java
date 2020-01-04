@@ -8,6 +8,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -34,6 +35,7 @@ import io.antmedia.datastore.db.MongoStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
+import io.antmedia.datastore.db.types.P2PConnection;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.datastore.db.types.TensorFlowObject;
@@ -94,6 +96,7 @@ public class DBStoresUnitTest {
 		testTokenOperations(dataStore);
 		testConferenceRoom(dataStore);
 		testUpdateStatus(dataStore);
+		testP2PConnection(dataStore);
 	}
 
 
@@ -121,6 +124,7 @@ public class DBStoresUnitTest {
 		testTokenOperations(dataStore);
 		testConferenceRoom(dataStore);
 		testUpdateStatus(dataStore);
+		testP2PConnection(dataStore);
 	}
 
 	@Test
@@ -141,7 +145,6 @@ public class DBStoresUnitTest {
 		store = ((MongoStore)dataStore).getVodDatastore();
 		Query<VoD> deleteVodQuery = store.find(VoD.class);
 		store.delete(deleteVodQuery);
-
 
 		testBugGetExternalStreamsList(dataStore);
 		testGetPagination(dataStore);
@@ -166,6 +169,18 @@ public class DBStoresUnitTest {
 		testConferenceRoom(dataStore);
 		testStreamSourceList(dataStore);
 		testUpdateStatus(dataStore);
+		testP2PConnection(dataStore);
+	}
+	
+	@Test
+	public void testBug() {
+		
+		MapDBStore dataStore = new MapDBStore("src/test/resources/damaged_webrtcappee.db");
+		
+		//Following methods does not return before the bug is fixed
+		dataStore.fetchUserVodList(new File(""));
+		
+		dataStore.getVodList(0, 10, "name", "asc");
 	}
 
 	public void clear(DataStore dataStore) 
@@ -1514,6 +1529,33 @@ public class DBStoresUnitTest {
 		broadcastFromStore = dataStore.get(streamId);
 		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, broadcastFromStore.getStatus());
 		assertTrue(Math.abs(now-broadcastFromStore.getStartTime()) < 100);
+	}
+	
+	private void testP2PConnection(DataStore dataStore) {
+		String streamId = "p2pstream"+Math.random()*100;
+		P2PConnection p2pConn = new P2PConnection(streamId, "dummy");
+		if(dataStore instanceof MongoStore) {
+			assertNull(dataStore.getP2PConnection(streamId));
+			assertTrue(dataStore.createP2PConnection(p2pConn));
+			P2PConnection conn = dataStore.getP2PConnection(streamId);
+			assertNotNull(conn);
+			assertEquals(streamId, conn.getStreamId());
+			assertEquals("dummy", conn.getOriginNode());
+			assertTrue(dataStore.deleteP2PConnection(streamId));
+			assertNull(dataStore.getP2PConnection(streamId));
+			
+			
+			assertFalse(dataStore.createP2PConnection(null));
+			assertNull(dataStore.getP2PConnection(streamId));
+			assertFalse(dataStore.deleteP2PConnection(streamId));
+			
+			
+		}
+		else {
+			assertFalse(dataStore.createP2PConnection(p2pConn));
+			assertNull(dataStore.getP2PConnection(streamId));
+			assertFalse(dataStore.deleteP2PConnection(streamId));
+		}
 	}
 
 }

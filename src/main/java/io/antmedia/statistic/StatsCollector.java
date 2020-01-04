@@ -1,8 +1,12 @@
 package io.antmedia.statistic;
 
+import java.lang.management.LockInfo;
 import java.lang.management.ManagementFactory;
+import java.lang.management.ThreadInfo;
+import java.lang.management.ThreadMXBean;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
@@ -45,7 +49,11 @@ import io.antmedia.statistic.GPUUtils.MemoryStatus;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.vertx.core.Vertx;
 
+
+
 public class StatsCollector implements IStatsCollector, ApplicationContextAware {	
+	
+	
 
 	public static final String IN_USE_SWAP_SPACE = "inUseSwapSpace";
 
@@ -177,6 +185,42 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 
 	private static final String PUBLISH_TIMEOUT_ERRORS = "publish-timeout-errors";
 
+	private static final String THREAD_DUMP = "thread-dump";
+
+	public static final String DEAD_LOCKED_THREAD = "dead-locked-thread";
+
+	public static final String THREAD_COUNT = "thread-count";
+
+	public static final String THREAD_PEEK_COUNT = "thread-peek-count";
+
+	private static final String THREAD_NAME = "thread-name";
+
+	private static final String THREAD_ID = "thread-id";
+
+	private static final String THREAD_BLOCKED_TIME = "blocked-time";
+
+	private static final String THREAD_BLOCKED_COUNT = "blocked-count";
+
+	private static final String THREAD_WAITED_TIME = "waited-time";
+
+	private static final String THREAD_WAITED_COUNT = "waited-count";
+
+	private static final String THREAD_LOCK_NAME = "lock-name";
+
+	private static final String THREAD_LOCK_OWNER_ID = "lock-owner-id";
+
+	private static final String THREAD_LOCK_OWNER_NAME = "lock-owner-name";
+
+	private static final String THREAD_IN_NATIVE = "in-native";
+
+	private static final String THREAD_SUSPENDED = "suspended";
+
+	private static final String THREAD_STATE = "state";
+
+	private static final String THREAD_CPU_TIME = "cpu-time";
+
+	private static final String THREAD_USER_TIME = "user-time";
+
 	private Producer<Long,String> kafkaProducer = null;
 
 	private long cpuMeasurementTimerId = -1;
@@ -188,6 +232,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 	private long hearbeatPeriodicTask;
 	
 	private int heartbeatPeriodMs = 300000;
+
+	private GoogleAnalytics googleAnalytics;
 	
 	public void start() {
 		cpuMeasurementTimerId  = getVertx().setPeriodic(measurementPeriod, l -> addCpuMeasurement(SystemUtils.getSystemCpuLoad()));
@@ -218,13 +264,18 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 		}	
 	}
 
-	
-	public GoogleAnalytics getGoogleAnalytic(String implementationVersion, String type) {
+	public static GoogleAnalytics getGoogleAnalyticInstance(String implementationVersion, String type) {
 		return GoogleAnalytics.builder()
 				.withAppVersion(implementationVersion)
 				.withAppName(type)
 				.withTrackingId(GA_TRACKING_ID).build();
-
+	}
+	
+	public GoogleAnalytics getGoogleAnalytic(String implementationVersion, String type) {
+		if (googleAnalytics  == null) {
+			googleAnalytics = getGoogleAnalyticInstance(implementationVersion, type);
+		}
+		return googleAnalytics;
 	}
 	
 	private void sendWebRTCClientStats() {
@@ -287,10 +338,10 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 
 	public static JsonObject getFileSystemInfoJSObject() {
 		JsonObject jsonObject = new JsonObject();
-		jsonObject.addProperty(USABLE_SPACE, SystemUtils.osHDUsableSpace(null,"B", false));
-		jsonObject.addProperty(TOTAL_SPACE, SystemUtils.osHDTotalSpace(null, "B", false));
-		jsonObject.addProperty(FREE_SPACE, SystemUtils.osHDFreeSpace(null,  "B", false));
-		jsonObject.addProperty(IN_USE_SPACE, SystemUtils.osHDInUseSpace(null, "B", false));
+		jsonObject.addProperty(USABLE_SPACE, SystemUtils.osHDUsableSpace(null));
+		jsonObject.addProperty(TOTAL_SPACE, SystemUtils.osHDTotalSpace(null));
+		jsonObject.addProperty(FREE_SPACE, SystemUtils.osHDFreeSpace(null));
+		jsonObject.addProperty(IN_USE_SPACE, SystemUtils.osHDInUseSpace(null));
 		return jsonObject;
 	}
 
@@ -328,14 +379,70 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 		jsonObject.addProperty(PROCESS_CPU_LOAD, SystemUtils.getProcessCpuLoad());
 		return jsonObject;
 	}
+	
+	public static ThreadInfo[] getThreadDump() {
+		ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
+		return threadMXBean.dumpAllThreads(true, true);
+	}
+	
+	public static JsonArray getThreadDumpJSON() {
+		ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
+		
+		ThreadInfo[] threadDump = threadMXBean.dumpAllThreads(true, true);
+		JsonArray jsonArray = new JsonArray();
+		
+		for (int i = 0; i < threadDump.length; i++) {
+			JsonObject jsonObject = new JsonObject();
+		
+			jsonObject.addProperty(THREAD_NAME, threadDump[i].getThreadName());
+			jsonObject.addProperty(THREAD_ID, threadDump[i].getThreadId());
+			jsonObject.addProperty(THREAD_BLOCKED_TIME, threadDump[i].getBlockedTime());
+			jsonObject.addProperty(THREAD_BLOCKED_COUNT, threadDump[i].getBlockedCount());
+			jsonObject.addProperty(THREAD_WAITED_TIME, threadDump[i].getWaitedTime());
+			jsonObject.addProperty(THREAD_WAITED_COUNT, threadDump[i].getWaitedCount());
+			jsonObject.addProperty(THREAD_LOCK_NAME, threadDump[i].getLockName());
+			jsonObject.addProperty(THREAD_LOCK_OWNER_ID, threadDump[i].getLockOwnerId());
+			jsonObject.addProperty(THREAD_LOCK_OWNER_NAME, threadDump[i].getLockOwnerName());
+			jsonObject.addProperty(THREAD_IN_NATIVE, threadDump[i].isInNative());
+			jsonObject.addProperty(THREAD_SUSPENDED, threadDump[i].isSuspended());
+			jsonObject.addProperty(THREAD_STATE, threadDump[i].getThreadState().toString());
+			jsonObject.addProperty(THREAD_CPU_TIME, threadMXBean.getThreadCpuTime(threadDump[i].getThreadId()));
+			jsonObject.addProperty(THREAD_USER_TIME, threadMXBean.getThreadUserTime(threadDump[i].getThreadId()));
+			
+			jsonArray.add(jsonObject);
+		}
+		
+		return jsonArray;
+		
+	}
+	
+	private static JsonArray getDeadLockedThreads(long[] deadLockedThreads) {
+		JsonArray jsonArray = new JsonArray();
+		if (deadLockedThreads != null) {
+			for (int i = 0; i < deadLockedThreads.length; i++) {
+				jsonArray.add(deadLockedThreads[i]);
+			}
+		}
+		return jsonArray;
+	}
+	
+	public static JsonObject getThreadInfoJSONObject() {
+		JsonObject jsonObject = new JsonObject();
+		ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
+		jsonObject.add(DEAD_LOCKED_THREAD, getDeadLockedThreads(threadMXBean.findDeadlockedThreads()));
+		jsonObject.addProperty(THREAD_COUNT, threadMXBean.getThreadCount());
+		jsonObject.addProperty(THREAD_PEEK_COUNT, threadMXBean.getPeakThreadCount());
+		
+		return jsonObject;
+	}
 
 	public static JsonObject getJVMMemoryInfoJSObject() {
 		JsonObject jsonObject = new JsonObject();
 
-		jsonObject.addProperty(MAX_MEMORY, SystemUtils.jvmMaxMemory("B", false));
-		jsonObject.addProperty(TOTAL_MEMORY, SystemUtils.jvmTotalMemory("B", false));
-		jsonObject.addProperty(FREE_MEMORY, SystemUtils.jvmFreeMemory("B", false));
-		jsonObject.addProperty(IN_USE_MEMORY, SystemUtils.jvmInUseMemory("B", false));
+		jsonObject.addProperty(MAX_MEMORY, SystemUtils.jvmMaxMemory());
+		jsonObject.addProperty(TOTAL_MEMORY, SystemUtils.jvmTotalMemory());
+		jsonObject.addProperty(FREE_MEMORY, SystemUtils.jvmFreeMemory());
+		jsonObject.addProperty(IN_USE_MEMORY, SystemUtils.jvmInUseMemory());
 		return jsonObject;
 	}
 
@@ -351,13 +458,13 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 	public static JsonObject getSysteMemoryInfoJSObject() {
 		JsonObject jsonObject = new JsonObject();
 
-		jsonObject.addProperty(VIRTUAL_MEMORY, SystemUtils.osCommittedVirtualMemory("B", false));
-		jsonObject.addProperty(TOTAL_MEMORY, SystemUtils.osTotalPhysicalMemory("B", false));
-		jsonObject.addProperty(FREE_MEMORY, SystemUtils.osFreePhysicalMemory("B", false));
-		jsonObject.addProperty(IN_USE_MEMORY, SystemUtils.osInUsePhysicalMemory("B", false));
-		jsonObject.addProperty(TOTAL_SWAP_SPACE, SystemUtils.osTotalSwapSpace("B", false));
-		jsonObject.addProperty(FREE_SWAP_SPACE, SystemUtils.osFreeSwapSpace("B", false));
-		jsonObject.addProperty(IN_USE_SWAP_SPACE, SystemUtils.osInUseSwapSpace("B", false));
+		jsonObject.addProperty(VIRTUAL_MEMORY, SystemUtils.osCommittedVirtualMemory());
+		jsonObject.addProperty(TOTAL_MEMORY, SystemUtils.osTotalPhysicalMemory());
+		jsonObject.addProperty(FREE_MEMORY, SystemUtils.osFreePhysicalMemory());
+		jsonObject.addProperty(IN_USE_MEMORY, SystemUtils.osInUsePhysicalMemory());
+		jsonObject.addProperty(TOTAL_SWAP_SPACE, SystemUtils.osTotalSwapSpace());
+		jsonObject.addProperty(FREE_SWAP_SPACE, SystemUtils.osFreeSwapSpace());
+		jsonObject.addProperty(IN_USE_SWAP_SPACE, SystemUtils.osInUseSwapSpace());
 		return jsonObject;
 	}
 
@@ -632,12 +739,15 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 				if(logger != null) {
 					logger.info("-Heartbeat-");
 				}
+				else {
+					System.out.println("-Heartbeat-");
+				}
 				getGoogleAnalytic(implementationVersion, type).event()
 				.eventCategory("server_status")
 				.eventAction("heartbeat")
 				.eventLabel("")
 				.clientId(Launcher.getInstanceId())
-				.send();
+				.sendAsync();
 			}
 		);
 		
@@ -649,7 +759,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 			getGoogleAnalytic(implementationVersion, type).screenView()
 			.sessionControl("start")
 			.clientId(Launcher.getInstanceId())
-			.send()
+			.sendAsync()
 		);
 	}
 	
@@ -668,7 +778,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 				getGoogleAnalytic(implementationVersion, type).screenView()
 				.clientId(Launcher.getInstanceId())
 				.sessionControl("end")
-				.send();
+				.sendAsync();
 			}
 		});
 		result = true;
@@ -694,5 +804,9 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 	public void setHeartbeatPeriodMs(int heartbeatPeriodMs) {
 		this.heartbeatPeriodMs = heartbeatPeriodMs;
 	}
+
+
+
+
 	
 }
