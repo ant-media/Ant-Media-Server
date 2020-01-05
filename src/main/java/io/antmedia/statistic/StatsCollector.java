@@ -1,12 +1,10 @@
 package io.antmedia.statistic;
 
-import java.lang.management.LockInfo;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
@@ -53,8 +51,12 @@ import io.vertx.core.Vertx;
 
 public class StatsCollector implements IStatsCollector, ApplicationContextAware {	
 	
+	public static final String FREE_NATIVE_MEMORY = "freeNativeMemory";
 	
+	public static final String TOTAL_NATIVE_MEMORY = "totalNativeMemory";
 
+	public static final String IN_USE_NATIVE_MEMORY = "inUseNativeMemory";
+	
 	public static final String IN_USE_SWAP_SPACE = "inUseSwapSpace";
 
 	public static final String FREE_SWAP_SPACE = "freeSwapSpace";
@@ -98,6 +100,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 	public static final String INSTANCE_ID = "instanceId";
 
 	public static final String JVM_MEMORY_USAGE = "jvmMemoryUsage";
+	
+	public static final String NATIVE_MEMORY_USAGE = "nativeMemoryUsage";
 
 	public static final String SYSTEM_INFO = "systemInfo";
 
@@ -220,6 +224,12 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 	private static final String THREAD_CPU_TIME = "cpu-time";
 
 	private static final String THREAD_USER_TIME = "user-time";
+
+	private static final String IN_USE_JVM_NATIVE_MEMORY = "inUseMemory";
+
+	private static final String MAX_JVM_NATIVE_MEMORY = "maxMemory";
+
+	private static final String JVM_NATIVE_MEMORY_USAGE = "jvmNativeMemoryUsage";
 
 	private Producer<Long,String> kafkaProducer = null;
 
@@ -467,6 +477,29 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 		jsonObject.addProperty(IN_USE_SWAP_SPACE, SystemUtils.osInUseSwapSpace());
 		return jsonObject;
 	}
+	
+	public static JsonObject getNativeMemoryInfoJSObject() {
+		JsonObject jsonObject = new JsonObject();
+		
+		long totalPhysicalBytes = Pointer.totalPhysicalBytes();
+		long availablePhysicalBytes = Pointer.availablePhysicalBytes();
+		
+		jsonObject.addProperty(FREE_NATIVE_MEMORY, availablePhysicalBytes);
+		jsonObject.addProperty(IN_USE_NATIVE_MEMORY, totalPhysicalBytes - availablePhysicalBytes);
+		jsonObject.addProperty(TOTAL_NATIVE_MEMORY, totalPhysicalBytes);
+		return jsonObject;
+	}
+	
+	public static JsonObject getJVMNativeMemoryInfoJSObject() {
+		JsonObject jsonObject = new JsonObject();
+		
+		long maxPhysicalBytes = Pointer.maxPhysicalBytes();
+		long inUsephysicalBytes = Pointer.physicalBytes();
+		
+		jsonObject.addProperty(IN_USE_JVM_NATIVE_MEMORY, inUsephysicalBytes);
+		jsonObject.addProperty(MAX_JVM_NATIVE_MEMORY, maxPhysicalBytes);
+		return jsonObject;
+	}
 
 
 	/**
@@ -491,6 +524,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 		jsonObject.add(SYSTEM_INFO, getSystemInfoJSObject());
 		jsonObject.add(SYSTEM_MEMORY_INFO, getSysteMemoryInfoJSObject());
 		jsonObject.add(FILE_SYSTEM_INFO, getFileSystemInfoJSObject());
+		jsonObject.add(NATIVE_MEMORY_USAGE, getNativeMemoryInfoJSObject());
+		jsonObject.add(JVM_NATIVE_MEMORY_USAGE, getJVMNativeMemoryInfoJSObject());
 
 		//add gpu info 
 		jsonObject.add(StatsCollector.GPU_USAGE_INFO, StatsCollector.getGPUInfoJSObject());
