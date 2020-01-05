@@ -169,7 +169,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 	/**
 	 * Min Free Ram Size that free memory should be always more than min
 	 */
-	private int minFreeRamSize = 20;
+	private int minFreeRamSize = 50;
 
 	private String kafkaBrokers = null;
 
