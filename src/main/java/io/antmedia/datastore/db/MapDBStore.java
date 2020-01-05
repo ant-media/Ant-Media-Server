@@ -630,7 +630,21 @@ public class MapDBStore extends DataStore {
 						db.commit();
 						addedCredential = credentials;
 					}
+					else {
+						logger.error("Credentials Map for social endpoint is null");
+					}
 					//if id is not matched with any value, do not record
+				}
+			}
+			else {
+				if (credentials != null) 
+				{
+					logger.error("Some of Credentials parameters are null. Accoutn name is null:{} token is null:{}, serviceName is null:{}",
+						 credentials.getAccountName() == null, credentials.getAccessToken() == null , 
+						 credentials.getServiceName() == null);
+				}
+				else {
+					logger.error("Credentials are null");
 				}
 			}
 		}
