@@ -594,14 +594,9 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 				long physicalBytes = SystemUtils.convertByteSize(Pointer.physicalBytes(), "MB"); 
 
 				if ((maxPhysicalBytes-physicalBytes) > minFreeRamSize ){
-					long freeNativeMemory = SystemUtils.convertByteSize(Pointer.availablePhysicalBytes(), "MB"); 										
-
-					if(freeNativeMemory > minFreeRamSize) {
-						enoughResource = true;
-					}
-					else {
-						logger.error("Not enough resource. Due to no enough native memory. Current free memory:{} min free memory:{}", freeNativeMemory, minFreeRamSize);	
-					}
+					
+					enoughResource = true;
+					
 				}
 				else {
 					logger.error("Not enough resource. Physical memory usage is too high: physicalBytes ({}) > maxPhysicalBytes ({}) ", physicalBytes, maxPhysicalBytes);
