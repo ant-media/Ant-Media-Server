@@ -219,9 +219,9 @@ auth_tomcat(){
 	output
 	
 	#uncomment ssl part in jee-container.xml
-	$SUDO sed -E -e 's/(<!-- https start|<!-- https start -->)/<!-- https start -->/g' $INSTALL_DIRECTORY/conf/jee-container.xml
+	$SUDO sed -i -E -e 's/(<!-- https start|<!-- https start -->)/<!-- https start -->/g' $INSTALL_DIRECTORY/conf/jee-container.xml
         output
-        $SUDO sed -E -e 's/(https end -->|<!-- https end -->)/<!-- https end -->/g' $INSTALL_DIRECTORY/conf/jee-container.xml
+        $SUDO sed -i -E -e 's/(https end -->|<!-- https end -->)/<!-- https end -->/g' $INSTALL_DIRECTORY/conf/jee-container.xml
 	output
 }
 
