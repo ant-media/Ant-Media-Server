@@ -97,8 +97,8 @@ public class DBStoresUnitTest {
 		testConferenceRoom(dataStore);
 		testUpdateStatus(dataStore);
 		testP2PConnection(dataStore);
+		testUpdateLocationParams(dataStore);
 	}
-
 
 	@Test
 	public void testMemoryDataStore() {
@@ -125,6 +125,7 @@ public class DBStoresUnitTest {
 		testConferenceRoom(dataStore);
 		testUpdateStatus(dataStore);
 		testP2PConnection(dataStore);
+		testUpdateLocationParams(dataStore);
 	}
 
 	@Test
@@ -170,6 +171,7 @@ public class DBStoresUnitTest {
 		testStreamSourceList(dataStore);
 		testUpdateStatus(dataStore);
 		testP2PConnection(dataStore);
+		testUpdateLocationParams(dataStore);
 	}
 	
 	@Test
@@ -1556,6 +1558,33 @@ public class DBStoresUnitTest {
 			assertNull(dataStore.getP2PConnection(streamId));
 			assertFalse(dataStore.deleteP2PConnection(streamId));
 		}
+	}
+	
+	private void testUpdateLocationParams(DataStore dataStore) {
+		String streamId = "test"+Math.random()*100;;
+		Broadcast broadcast = new Broadcast();
+		try {
+			broadcast.setStreamId(streamId);
+		} catch (Exception e1) {
+			e1.printStackTrace();
+		}
+		dataStore.save(broadcast);
+		
+		Broadcast broadcastFromStore = dataStore.get(streamId);
+		assertNull(broadcastFromStore.getLatitude());
+		assertNull(broadcastFromStore.getLongitude());
+		assertNull(broadcastFromStore.getAltitude());
+		
+		broadcastFromStore.setLatitude("51.507351");
+		broadcastFromStore.setLatitude("-0.127758");
+		broadcastFromStore.setLatitude("58.58");
+
+		dataStore.updateBroadcastFields(streamId, broadcastFromStore);
+		
+		Broadcast broadcastFromStore2 = dataStore.get(streamId);
+		assertEquals(broadcastFromStore.getLatitude(), broadcastFromStore2.getLatitude());
+		assertEquals(broadcastFromStore.getLongitude(), broadcastFromStore2.getLongitude());
+		assertEquals(broadcastFromStore.getAltitude(), broadcastFromStore2.getAltitude());
 	}
 
 }
