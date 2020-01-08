@@ -1576,8 +1576,8 @@ public class DBStoresUnitTest {
 		assertNull(broadcastFromStore.getAltitude());
 		
 		broadcastFromStore.setLatitude("51.507351");
-		broadcastFromStore.setLatitude("-0.127758");
-		broadcastFromStore.setLatitude("58.58");
+		broadcastFromStore.setLongitude("-0.127758");
+		broadcastFromStore.setAltitude("58.58");
 
 		dataStore.updateBroadcastFields(streamId, broadcastFromStore);
 		
