@@ -1582,7 +1582,7 @@ public class DBStoresUnitTest {
 		broadcastFromStore.setLongitude(longitude);
 		broadcastFromStore.setAltitude(altitude);
 		
-		dataStore.updateBroadcastFields(streamId, broadcastFromStore);
+		assertTrue(dataStore.updateBroadcastFields(streamId, broadcastFromStore));
 		
 		Broadcast broadcastFromStore2 = dataStore.get(streamId);
 		assertEquals(latitude, broadcastFromStore2.getLatitude());
