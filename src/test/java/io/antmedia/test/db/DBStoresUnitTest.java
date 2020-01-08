@@ -1559,7 +1559,7 @@ public class DBStoresUnitTest {
 		}
 	}
 	
-	private void testUpdateLocationParams(DataStore dataStore) {
+	public void testUpdateLocationParams(DataStore dataStore) {
 		String streamId = "test"+Math.random()*100;;
 		Broadcast broadcast = new Broadcast();
 		try {
