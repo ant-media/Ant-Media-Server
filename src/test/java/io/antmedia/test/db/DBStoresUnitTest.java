@@ -1560,6 +1560,8 @@ public class DBStoresUnitTest {
 	}
 	
 	public void testUpdateLocationParams(DataStore dataStore) {
+		logger.info("testUpdateLocationParams for {}", dataStore.getClass());
+
 		String streamId = "test"+Math.random()*100;;
 		Broadcast broadcast = new Broadcast();
 		try {
