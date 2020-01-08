@@ -391,21 +391,9 @@ public abstract class RestServiceBase {
 
 		if( checkStreamUrl(broadcast.getStreamUrl()) && broadcast.getStatus()!=null){
 
-			if(getDataStore().get(streamId).getStatus().equals("broadcasting")) {
-				resultStopStreaming = getApplication().stopStreaming(broadcast);
-			}
-			else {
-				resultStopStreaming.setSuccess(true);
-			}
+			resultStopStreaming = checkStopStreaming(resultStopStreaming, streamId, broadcast);
 
-			while (!resultStopStreaming.isSuccess()) {
-				try {
-					Thread.sleep(250);
-				} catch (InterruptedException e) {
-					logger.error(e.getMessage());
-					Thread.currentThread().interrupt();
-				}
-			}
+			waitStopStreaming(resultStopStreaming);
 
 			if(broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA)) {
 				String rtspURL = connectToCamera(broadcast).getMessage();
@@ -435,6 +423,31 @@ public abstract class RestServiceBase {
 			}
 		}
 		return new Result(result);
+	}
+	
+	public Result checkStopStreaming (Result resultStopStreaming, String streamId, Broadcast broadcast)
+	{
+		if(getDataStore().get(streamId).getStatus().equals("broadcasting")) {
+			return getApplication().stopStreaming(broadcast);
+		}
+		else {
+			resultStopStreaming.setSuccess(true);
+			return resultStopStreaming;
+			
+		}
+	}
+	
+	public void waitStopStreaming(Result resultStopStreaming) {
+		
+		while (!resultStopStreaming.isSuccess()) {
+			try {
+				Thread.sleep(250);
+			} catch (InterruptedException e) {
+				logger.error(e.getMessage());
+				Thread.currentThread().interrupt();
+			}
+		}
+		
 	}
 
 	protected Result addSocialEndpoint(String id, String endpointServiceId) 
