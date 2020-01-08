@@ -1574,16 +1574,20 @@ public class DBStoresUnitTest {
 		assertNull(broadcastFromStore.getLongitude());
 		assertNull(broadcastFromStore.getAltitude());
 		
-		broadcastFromStore.setLatitude("51.507351");
-		broadcastFromStore.setLongitude("-0.127758");
-		broadcastFromStore.setAltitude("58.58");
-
+		String latitude = "51.507351";
+		String longitude = "-0.127758";
+		String altitude = "58.58";
+		
+		broadcastFromStore.setLatitude(latitude);
+		broadcastFromStore.setLongitude(longitude);
+		broadcastFromStore.setAltitude(altitude);
+		
 		dataStore.updateBroadcastFields(streamId, broadcastFromStore);
 		
 		Broadcast broadcastFromStore2 = dataStore.get(streamId);
-		assertEquals(broadcastFromStore.getLatitude(), broadcastFromStore2.getLatitude());
-		assertEquals(broadcastFromStore.getLongitude(), broadcastFromStore2.getLongitude());
-		assertEquals(broadcastFromStore.getAltitude(), broadcastFromStore2.getAltitude());
+		assertEquals(latitude, broadcastFromStore2.getLatitude());
+		assertEquals(longitude, broadcastFromStore2.getLongitude());
+		assertEquals(altitude, broadcastFromStore2.getAltitude());
 	}
 
 }
