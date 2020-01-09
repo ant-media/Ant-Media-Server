@@ -721,17 +721,14 @@ public class MongoStore extends DataStore {
 				
 				if (broadcast.getLatitude() != null) {
 					ops.set("latitude", broadcast.getLatitude());
-					logger.info("latitude will be updated");
 				}
 				
 				if (broadcast.getLongitude() != null) {
 					ops.set("longitude", broadcast.getLongitude());
-					logger.info("longitude will be updated");
 				}
 				
 				if (broadcast.getAltitude() != null) {
 					ops.set("altitude", broadcast.getAltitude());
-					logger.info("altitude will be updated");
 				}
 				
 				ops.set("receivedBytes", broadcast.getReceivedBytes());
