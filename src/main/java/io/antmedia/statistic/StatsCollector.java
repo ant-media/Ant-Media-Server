@@ -225,11 +225,11 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 
 	private static final String THREAD_USER_TIME = "user-time";
 
-	private static final String IN_USE_JVM_NATIVE_MEMORY = "inUseMemory";
+	public static final String IN_USE_JVM_NATIVE_MEMORY = "inUseMemory";
 
-	private static final String MAX_JVM_NATIVE_MEMORY = "maxMemory";
+	public static final String MAX_JVM_NATIVE_MEMORY = "maxMemory";
 
-	private static final String JVM_NATIVE_MEMORY_USAGE = "jvmNativeMemoryUsage";
+	public static final String JVM_NATIVE_MEMORY_USAGE = "jvmNativeMemoryUsage";
 
 	private Producer<Long,String> kafkaProducer = null;
 
