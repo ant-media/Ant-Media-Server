@@ -385,15 +385,15 @@ public abstract class RestServiceBase {
 
 		boolean result = false;
 
-		Result resultStopStreaming = new Result(false);
+		boolean resultStopStreaming = false;
 
 		logger.debug("update cam info for stream {}", broadcast.getStreamId());
 
 		if( checkStreamUrl(broadcast.getStreamUrl()) && broadcast.getStatus()!=null){
 
-			resultStopStreaming = checkStopStreaming(resultStopStreaming, streamId, broadcast);
+			resultStopStreaming = checkStopStreaming(streamId, broadcast);
 
-			waitStopStreaming(resultStopStreaming);
+			waitStopStreaming(streamId,resultStopStreaming);
 
 			if(broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA)) {
 				String rtspURL = connectToCamera(broadcast).getMessage();
@@ -424,22 +424,25 @@ public abstract class RestServiceBase {
 		}
 		return new Result(result);
 	}
-	
-	public Result checkStopStreaming (Result resultStopStreaming, String streamId, Broadcast broadcast)
+
+	public boolean checkStopStreaming (String streamId, Broadcast broadcast)
 	{
-		if(getDataStore().get(streamId).getStatus().equals("broadcasting")) {
-			return getApplication().stopStreaming(broadcast);
+		// If broadcast status is broadcasting, this will force stop the streaming.
+		if(getDataStore().get(streamId).getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
+			return getApplication().stopStreaming(broadcast).isSuccess();
 		}
-		else {
-			resultStopStreaming.setSuccess(true);
-			return resultStopStreaming;
-			
+		else
+		{
+			// If broadcast status is stopped, this will return true. 
+			return true;
 		}
+
 	}
-	
-	public void waitStopStreaming(Result resultStopStreaming) {
-		
-		while (!resultStopStreaming.isSuccess()) {
+
+	public void waitStopStreaming(String streamId, Boolean resultStopStreaming) {
+
+		// Broadcast status finished is not enough to be sure about broadcast's status.
+		while (!getDataStore().get(streamId).getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED) && !resultStopStreaming.equals(true)) {
 			try {
 				Thread.sleep(250);
 			} catch (InterruptedException e) {
@@ -447,7 +450,7 @@ public abstract class RestServiceBase {
 				Thread.currentThread().interrupt();
 			}
 		}
-		
+
 	}
 
 	protected Result addSocialEndpoint(String id, String endpointServiceId) 
