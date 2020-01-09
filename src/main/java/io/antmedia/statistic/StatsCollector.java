@@ -620,21 +620,19 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 
 		boolean enoughResource = false;
 
-		if(cpuLoad < cpuLimit) 
+		if(getCpuLoad() < getCpuLimit()) 
 		{
 			long freeJvmRamValue = getFreeRam();
 
-			if (freeJvmRamValue > minFreeRamSize) {
-				long maxPhysicalBytes = SystemUtils.convertByteSize(Pointer.maxPhysicalBytes(), "MB"); 
-				long physicalBytes = SystemUtils.convertByteSize(Pointer.physicalBytes(), "MB"); 
-
-				if ((maxPhysicalBytes-physicalBytes) > minFreeRamSize ){
+			if (freeJvmRamValue > getMinFreeRamSize()) {
+				
+				if ((getMaxPhysicalBytes()-getPhysicalBytes()) > getMinFreeRamSize() ){
 					
 					enoughResource = true;
 					
 				}
 				else {
-					logger.error("Not enough resource. Physical memory usage is too high: physicalBytes ({}) > maxPhysicalBytes ({}) ", physicalBytes, maxPhysicalBytes);
+					logger.error("Not enough resource. Physical memory usage is too high: physicalBytes ({}) > maxPhysicalBytes ({}) ", getPhysicalBytes(), getMaxPhysicalBytes());
 				}
 			}
 			else {
@@ -646,6 +644,14 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 		}
 
 		return enoughResource; 
+	}
+	
+	public long getMaxPhysicalBytes(){
+		return SystemUtils.convertByteSize(Pointer.maxPhysicalBytes(), "MB"); 
+	}
+	
+	public long getPhysicalBytes(){
+		return SystemUtils.convertByteSize(Pointer.physicalBytes(), "MB"); 
 	}
 
 	@Override

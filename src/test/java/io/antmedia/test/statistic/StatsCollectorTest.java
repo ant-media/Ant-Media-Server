@@ -358,6 +358,9 @@ public class StatsCollectorTest {
 		
 		StatsCollector monitor = Mockito.spy(new StatsCollector());
 		
+		long minValue = 100;
+		long maxValue = 1000;
+		
 		//Cpu Limit = 70 & RAM Limit = 200 MB
 		
 		//check default values
@@ -384,8 +387,34 @@ public class StatsCollectorTest {
 		
 		assertEquals(false,monitor.enoughResource());
 		
+		// Check True values in Max and Current physical memory
 		
+		Mockito.when(monitor.getCpuLoad()).thenReturn(10);
 		
+		Mockito.when(monitor.getFreeRam()).thenReturn(500);
+		
+		Mockito.when(monitor.getMinFreeRamSize()).thenReturn(10);
+		
+		Mockito.when(monitor.getPhysicalBytes()).thenReturn(minValue);
+		
+		Mockito.when(monitor.getMaxPhysicalBytes()).thenReturn(maxValue);
+		
+		assertEquals(true,monitor.enoughResource());
+		
+		// Check false values in Max and Current physical memory
+		
+		Mockito.when(monitor.getCpuLoad()).thenReturn(10);
+		
+		Mockito.when(monitor.getFreeRam()).thenReturn(500);
+		
+		Mockito.when(monitor.getMinFreeRamSize()).thenReturn(10);
+		
+		Mockito.when(monitor.getPhysicalBytes()).thenReturn(maxValue);
+		
+		Mockito.when(monitor.getMaxPhysicalBytes()).thenReturn(minValue);
+		
+		assertEquals(true,monitor.enoughResource());
+
 		
 	}
 	
