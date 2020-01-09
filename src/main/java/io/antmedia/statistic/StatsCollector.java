@@ -622,9 +622,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 
 		if(getCpuLoad() < getCpuLimit()) 
 		{
-			long freeJvmRamValue = getFreeRam();
 
-			if (freeJvmRamValue > getMinFreeRamSize()) {
+			if (getFreeRam() > getMinFreeRamSize()) {
 				
 				if ((getMaxPhysicalBytes()-getPhysicalBytes()) > getMinFreeRamSize() ){
 					
@@ -636,7 +635,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 				}
 			}
 			else {
-				logger.error("Not enough resource. Due to not free RAM. Free RAM should be more than  {} but it is: {}", minFreeRamSize, freeJvmRamValue);
+				logger.error("Not enough resource. Due to not free RAM. Free RAM should be more than  {} but it is: {}", minFreeRamSize, getFreeRam());
 			}
 		}
 		else {
