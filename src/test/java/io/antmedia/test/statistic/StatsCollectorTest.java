@@ -373,7 +373,7 @@ public class StatsCollectorTest {
 		
 		//CPU value over 70
 		
-		monitor.setCpuLoad(80);
+		Mockito.when(monitor.getCpuLoad()).thenReturn(80);
 		
 		Mockito.when(monitor.getFreeRam()).thenReturn(500);
 		
