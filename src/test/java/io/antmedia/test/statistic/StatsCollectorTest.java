@@ -413,7 +413,7 @@ public class StatsCollectorTest {
 		
 		Mockito.when(monitor.getMaxPhysicalBytes()).thenReturn(minValue);
 		
-		assertEquals(true,monitor.enoughResource());
+		assertEquals(false,monitor.enoughResource());
 
 		
 	}
