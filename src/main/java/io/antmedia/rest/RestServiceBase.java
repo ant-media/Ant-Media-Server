@@ -382,7 +382,7 @@ public abstract class RestServiceBase {
 	 * @return
 	 */
 	protected Result updateStreamSource(String streamId, Broadcast broadcast, String socialNetworksToPublish) {
-
+		
 		boolean result = false;
 
 		boolean resultStopStreaming = false;

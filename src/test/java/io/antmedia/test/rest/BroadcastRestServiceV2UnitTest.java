@@ -69,6 +69,7 @@ import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.BroadcastRestService.BroadcastStatistics;
 import io.antmedia.rest.BroadcastRestService.ProcessBuilderFactory;
 import io.antmedia.rest.BroadcastRestServiceV2;
+
 import io.antmedia.rest.RootRestService;
 import io.antmedia.rest.WebRTCClientStats;
 import io.antmedia.rest.model.Interaction;
@@ -1684,6 +1685,73 @@ public class BroadcastRestServiceV2UnitTest {
 		//should be true, because CPU load is above limit and other parameters defined correctly
 		assertTrue(result.isSuccess());
 	}
+	
+	@Test
+	public void updateStreamSource() {
+
+		Result result = new Result(false);
+
+		BroadcastRestServiceV2 streamSourceRest = Mockito.spy(restServiceReal);
+		
+		AppSettings settings = mock(AppSettings.class);
+		when(settings.getListenerHookURL()).thenReturn(null);
+		streamSourceRest.setAppSettings(settings);
+		
+		AntMediaApplicationAdapter adaptor = mock (AntMediaApplicationAdapter.class);
+		
+		ServerSettings serverSettings = Mockito.mock(ServerSettings.class);
+		streamSourceRest.setServerSettings(serverSettings);
+
+		Scope scope = mock(Scope.class);
+		String scopeName = "scope";
+		when(scope.getName()).thenReturn(scopeName);
+
+		streamSourceRest.setScope(scope);
+		
+		Broadcast streamSource = new Broadcast("testAddStreamSource", null, null, null,
+				"rtsp://11.2.40.63:8554/live1.sdp", AntMediaApplicationAdapter.STREAM_SOURCE);
+
+		String socialNetworksToPublish = null;
+		
+		streamSource.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+		
+		StreamFetcher fetcher = mock (StreamFetcher.class);
+		
+		try {
+			streamSource.setStreamId("selimTest");
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		InMemoryDataStore store = new InMemoryDataStore("test");
+
+		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
+		Mockito.doReturn(fetcher).when(adaptor).startStreaming(streamSource);
+		Mockito.doReturn(store).when(streamSourceRest).getDataStore();
+
+		store.save(streamSource);
+		
+		// Test line 392 if condition
+
+		Mockito.doReturn(false).when(streamSourceRest).checkStreamUrl(any());
+		
+		result = streamSourceRest.updateBroadcast(streamSource.getStreamId(), streamSource,"endpoint_1");
+		
+		assertEquals(false, result.isSuccess());
+		
+		// Test line 392 if condition
+		
+		streamSource.setStatus(null);
+		
+		Mockito.doReturn(true).when(streamSourceRest).checkStreamUrl(any());
+		
+		result = streamSourceRest.updateBroadcast(streamSource.getStreamId(), streamSource,"endpoint_1");
+		
+		assertEquals(false, result.isSuccess());
+		
+	}
+	
 
 	@Test
 	public void testUpdateCamInfo()  {
