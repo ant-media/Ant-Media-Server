@@ -478,18 +478,6 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 		return jsonObject;
 	}
 	
-	public static JsonObject getNativeMemoryInfoJSObject() {
-		JsonObject jsonObject = new JsonObject();
-		
-		long totalPhysicalBytes = Pointer.totalPhysicalBytes();
-		long availablePhysicalBytes = Pointer.availablePhysicalBytes();
-		
-		jsonObject.addProperty(FREE_NATIVE_MEMORY, availablePhysicalBytes);
-		jsonObject.addProperty(IN_USE_NATIVE_MEMORY, totalPhysicalBytes - availablePhysicalBytes);
-		jsonObject.addProperty(TOTAL_NATIVE_MEMORY, totalPhysicalBytes);
-		return jsonObject;
-	}
-	
 	public static JsonObject getJVMNativeMemoryInfoJSObject() {
 		JsonObject jsonObject = new JsonObject();
 		
@@ -524,7 +512,6 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 		jsonObject.add(SYSTEM_INFO, getSystemInfoJSObject());
 		jsonObject.add(SYSTEM_MEMORY_INFO, getSysteMemoryInfoJSObject());
 		jsonObject.add(FILE_SYSTEM_INFO, getFileSystemInfoJSObject());
-		jsonObject.add(NATIVE_MEMORY_USAGE, getNativeMemoryInfoJSObject());
 		jsonObject.add(JVM_NATIVE_MEMORY_USAGE, getJVMNativeMemoryInfoJSObject());
 
 		//add gpu info 
