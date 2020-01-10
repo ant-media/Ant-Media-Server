@@ -112,11 +112,6 @@ public class StatsCollectorTest {
 		assertTrue(jsObject.has(StatsCollector.FREE_SWAP_SPACE));
 		assertTrue(jsObject.has(StatsCollector.IN_USE_SWAP_SPACE));
 		
-		jsObject = StatsCollector.getNativeMemoryInfoJSObject();
-		assertTrue(jsObject.has(StatsCollector.FREE_NATIVE_MEMORY));
-		assertTrue(jsObject.has(StatsCollector.IN_USE_NATIVE_MEMORY));
-		assertTrue(jsObject.has(StatsCollector.TOTAL_NATIVE_MEMORY));
-		
 		jsObject = StatsCollector.getJVMNativeMemoryInfoJSObject();
 		assertTrue(jsObject.has(StatsCollector.IN_USE_JVM_NATIVE_MEMORY));
 		assertTrue(jsObject.has(StatsCollector.MAX_JVM_NATIVE_MEMORY));
