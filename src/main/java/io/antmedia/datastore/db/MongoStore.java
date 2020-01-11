@@ -719,6 +719,18 @@ public class MongoStore extends DataStore {
 					ops.set("duration", broadcast.getDuration());
 				}
 				
+				if (broadcast.getLatitude() != null) {
+					ops.set("latitude", broadcast.getLatitude());
+				}
+				
+				if (broadcast.getLongitude() != null) {
+					ops.set("longitude", broadcast.getLongitude());
+				}
+				
+				if (broadcast.getAltitude() != null) {
+					ops.set("altitude", broadcast.getAltitude());
+				}
+				
 				ops.set("receivedBytes", broadcast.getReceivedBytes());
 				ops.set("bitrate", broadcast.getBitrate());
 				ops.set("userAgent", broadcast.getUserAgent());
