@@ -125,7 +125,7 @@ if [ "$fullChainFileExist" == false ]; then
     output
 
     #Get certificate
-    $SUDO certbot certonly --standalone -d $domain
+    $SUDO certbot certonly --standalone --non-interactive --agree-tos --email letsencrypt@antmedia.io -d $domain
     output
     
     file="/etc/letsencrypt/live/$domain/keystore.jks"
