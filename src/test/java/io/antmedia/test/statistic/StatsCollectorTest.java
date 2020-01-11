@@ -111,7 +111,7 @@ public class StatsCollectorTest {
 		assertTrue(jsObject.has(StatsCollector.TOTAL_SWAP_SPACE));
 		assertTrue(jsObject.has(StatsCollector.FREE_SWAP_SPACE));
 		assertTrue(jsObject.has(StatsCollector.IN_USE_SWAP_SPACE));
-		
+
 		jsObject = StatsCollector.getJVMNativeMemoryInfoJSObject();
 		assertTrue(jsObject.has(StatsCollector.IN_USE_JVM_NATIVE_MEMORY));
 		assertTrue(jsObject.has(StatsCollector.MAX_JVM_NATIVE_MEMORY));
@@ -123,7 +123,6 @@ public class StatsCollectorTest {
 		assertTrue(jsObject.has(StatsCollector.SYSTEM_INFO));
 		assertTrue(jsObject.has(StatsCollector.SYSTEM_MEMORY_INFO));
 		assertTrue(jsObject.has(StatsCollector.FILE_SYSTEM_INFO));
-		assertTrue(jsObject.has(StatsCollector.NATIVE_MEMORY_USAGE));
 		assertTrue(jsObject.has(StatsCollector.JVM_NATIVE_MEMORY_USAGE));
 		assertTrue(jsObject.has(StatsCollector.GPU_USAGE_INFO));
 		assertTrue(jsObject.has(StatsCollector.LOCAL_WEBRTC_LIVE_STREAMS));
