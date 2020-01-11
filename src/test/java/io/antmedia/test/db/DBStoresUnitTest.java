@@ -8,7 +8,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -97,8 +96,8 @@ public class DBStoresUnitTest {
 		testConferenceRoom(dataStore);
 		testUpdateStatus(dataStore);
 		testP2PConnection(dataStore);
+		testUpdateLocationParams(dataStore);
 	}
-
 
 	@Test
 	public void testMemoryDataStore() {
@@ -125,6 +124,7 @@ public class DBStoresUnitTest {
 		testConferenceRoom(dataStore);
 		testUpdateStatus(dataStore);
 		testP2PConnection(dataStore);
+		testUpdateLocationParams(dataStore);
 	}
 
 	@Test
@@ -170,6 +170,7 @@ public class DBStoresUnitTest {
 		testStreamSourceList(dataStore);
 		testUpdateStatus(dataStore);
 		testP2PConnection(dataStore);
+		testUpdateLocationParams(dataStore);
 	}
 	
 	@Test
@@ -1556,6 +1557,39 @@ public class DBStoresUnitTest {
 			assertNull(dataStore.getP2PConnection(streamId));
 			assertFalse(dataStore.deleteP2PConnection(streamId));
 		}
+	}
+	
+	public void testUpdateLocationParams(DataStore dataStore) {
+		logger.info("testUpdateLocationParams for {}", dataStore.getClass());
+
+		String streamId = "test"+Math.random()*100;;
+		Broadcast broadcast = new Broadcast();
+		try {
+			broadcast.setStreamId(streamId);
+		} catch (Exception e1) {
+			e1.printStackTrace();
+		}
+		dataStore.save(broadcast);
+		
+		Broadcast broadcastFromStore = dataStore.get(streamId);
+		assertNull(broadcastFromStore.getLatitude());
+		assertNull(broadcastFromStore.getLongitude());
+		assertNull(broadcastFromStore.getAltitude());
+		
+		String latitude = "51.507351";
+		String longitude = "-0.127758";
+		String altitude = "58.58";
+		
+		broadcastFromStore.setLatitude(latitude);
+		broadcastFromStore.setLongitude(longitude);
+		broadcastFromStore.setAltitude(altitude);
+		
+		assertTrue(dataStore.updateBroadcastFields(streamId, broadcastFromStore));
+		
+		Broadcast broadcastFromStore2 = dataStore.get(streamId);
+		assertEquals(latitude, broadcastFromStore2.getLatitude());
+		assertEquals(longitude, broadcastFromStore2.getLongitude());
+		assertEquals(altitude, broadcastFromStore2.getAltitude());
 	}
 
 }
