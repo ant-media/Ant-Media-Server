@@ -58,6 +58,3 @@ elif [ "$#" = 2 ]; then
 	replace
 
 fi
-
-sudo service stop antmedia
-sudo service start antmedia
