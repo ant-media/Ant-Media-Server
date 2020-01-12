@@ -50,13 +50,13 @@ elif [ "$#" = 1 ]; then
 	mkdir $APP_DIR_DEFAULT
 	unzip $AMS_DIR_DEFAULT/StreamApp*.war -d $APP_DIR_DEFAULT/
 	replace 
-	sudo systemctl restart antmedia.service
+	sudo service restart antmedia
 
 elif [ "$#" = 2 ]; then
 
 	mkdir $APP_DIR
 	unzip $AMS_DIR/StreamApp*.war -d $APP_DIR/
 	replace
-	sudo systemctl restart antmedia.service
+	sudo service restart antmedia
 
 fi
