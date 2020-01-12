@@ -39,11 +39,11 @@ replace() {
 
 }
 
-if [ "$#" = 0 ] || [ "$#" != 2 ]; then
+if [ "$#" == 0 ] || [ "$#" != 2 ]; then
 
 	usage
 
-elif [ "$#" = 1 ]; then
+elif [ "$#" == 1 ]; then
 
 	WEB_XML_FILE=$APP_DIR_DEFAULT/WEB-INF/web.xml
 	RED5_PROPERTIES_FILE=$APP_DIR_DEFAULT/WEB-INF/red5-web.properties
@@ -51,7 +51,7 @@ elif [ "$#" = 1 ]; then
 	unzip $AMS_DIR_DEFAULT/StreamApp*.war -d $APP_DIR_DEFAULT/
 	replace 
 
-elif [ "$#" = 2 ]; then
+elif [ "$#" == 2 ]; then
 
 	mkdir $APP_DIR
 	unzip $AMS_DIR/StreamApp*.war -d $APP_DIR/
