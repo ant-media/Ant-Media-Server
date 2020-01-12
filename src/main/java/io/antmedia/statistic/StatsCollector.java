@@ -1,6 +1,8 @@
 package io.antmedia.statistic;
 
 import java.lang.management.ManagementFactory;
+import java.lang.management.ThreadInfo;
+import java.lang.management.ThreadMXBean;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.Iterator;
@@ -45,8 +47,16 @@ import io.antmedia.statistic.GPUUtils.MemoryStatus;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.vertx.core.Vertx;
 
-public class StatsCollector implements IStatsCollector, ApplicationContextAware {	
 
+
+public class StatsCollector implements IStatsCollector, ApplicationContextAware {	
+	
+	public static final String FREE_NATIVE_MEMORY = "freeNativeMemory";
+	
+	public static final String TOTAL_NATIVE_MEMORY = "totalNativeMemory";
+
+	public static final String IN_USE_NATIVE_MEMORY = "inUseNativeMemory";
+	
 	public static final String IN_USE_SWAP_SPACE = "inUseSwapSpace";
 
 	public static final String FREE_SWAP_SPACE = "freeSwapSpace";
@@ -90,6 +100,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 	public static final String INSTANCE_ID = "instanceId";
 
 	public static final String JVM_MEMORY_USAGE = "jvmMemoryUsage";
+	
+	public static final String NATIVE_MEMORY_USAGE = "nativeMemoryUsage";
 
 	public static final String SYSTEM_INFO = "systemInfo";
 
@@ -140,7 +152,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 	private Queue<IScope> scopes = new ConcurrentLinkedQueue<>();
 
 	public static final String GA_TRACKING_ID = "UA-93263926-3";
-	
+
 	@Autowired
 	private Vertx vertx;
 	private Queue<Integer> cpuMeasurements = new ConcurrentLinkedQueue<>();
@@ -150,14 +162,14 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 	private int windowSize = 5;
 	private int measurementPeriod = 5000;
 	private int staticSendPeriod = 15000;
-	
+
 	private int cpuLoad;
 	private int cpuLimit = 70;
-	
+
 	/**
 	 * Min Free Ram Size that free memory should be always more than min
 	 */
-	private int minFreeRamSize = 20;
+	private int minFreeRamSize = 50;
 
 	private String kafkaBrokers = null;
 
@@ -177,34 +189,78 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 
 	private static final String PUBLISH_TIMEOUT_ERRORS = "publish-timeout-errors";
 
+	private static final String THREAD_DUMP = "thread-dump";
+
+	public static final String DEAD_LOCKED_THREAD = "dead-locked-thread";
+
+	public static final String THREAD_COUNT = "thread-count";
+
+	public static final String THREAD_PEEK_COUNT = "thread-peek-count";
+
+	private static final String THREAD_NAME = "thread-name";
+
+	private static final String THREAD_ID = "thread-id";
+
+	private static final String THREAD_BLOCKED_TIME = "blocked-time";
+
+	private static final String THREAD_BLOCKED_COUNT = "blocked-count";
+
+	private static final String THREAD_WAITED_TIME = "waited-time";
+
+	private static final String THREAD_WAITED_COUNT = "waited-count";
+
+	private static final String THREAD_LOCK_NAME = "lock-name";
+
+	private static final String THREAD_LOCK_OWNER_ID = "lock-owner-id";
+
+	private static final String THREAD_LOCK_OWNER_NAME = "lock-owner-name";
+
+	private static final String THREAD_IN_NATIVE = "in-native";
+
+	private static final String THREAD_SUSPENDED = "suspended";
+
+	private static final String THREAD_STATE = "state";
+
+	private static final String THREAD_CPU_TIME = "cpu-time";
+
+	private static final String THREAD_USER_TIME = "user-time";
+
+	private static final String IN_USE_JVM_NATIVE_MEMORY = "inUseMemory";
+
+	private static final String MAX_JVM_NATIVE_MEMORY = "maxMemory";
+
+	private static final String JVM_NATIVE_MEMORY_USAGE = "jvmNativeMemoryUsage";
+
 	private Producer<Long,String> kafkaProducer = null;
 
 	private long cpuMeasurementTimerId = -1;
 
 	private long kafkaTimerId = -1;
-	
+
 	private boolean heartBeatEnabled = true;
 
 	private long hearbeatPeriodicTask;
-	
+
 	private int heartbeatPeriodMs = 300000;
-	
+
+	private GoogleAnalytics googleAnalytics;
+
 	public void start() {
 		cpuMeasurementTimerId  = getVertx().setPeriodic(measurementPeriod, l -> addCpuMeasurement(SystemUtils.getSystemCpuLoad()));
 		startKafkaProducer();
-		
+
 		if (heartBeatEnabled) {
 			logger.info("Starting heartbeats for the version:{} and type:{}", Launcher.getVersion(), Launcher.getVersionType());
 			startAnalytic(Launcher.getVersion(), Launcher.getVersionType());
 
 			startHeartBeats(Launcher.getVersion(), Launcher.getVersionType(), heartbeatPeriodMs);
-			
+
 			notifyShutDown(Launcher.getVersion(), Launcher.getVersionType());
 		}
 		else {
 			logger.info("Heartbeats are disabled for this instance");
 		}
-		
+
 	}
 
 	private void startKafkaProducer() {
@@ -218,15 +274,20 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 		}	
 	}
 
-	
-	public GoogleAnalytics getGoogleAnalytic(String implementationVersion, String type) {
+	public static GoogleAnalytics getGoogleAnalyticInstance(String implementationVersion, String type) {
 		return GoogleAnalytics.builder()
 				.withAppVersion(implementationVersion)
 				.withAppName(type)
 				.withTrackingId(GA_TRACKING_ID).build();
-
 	}
-	
+
+	public GoogleAnalytics getGoogleAnalytic(String implementationVersion, String type) {
+		if (googleAnalytics  == null) {
+			googleAnalytics = getGoogleAnalyticInstance(implementationVersion, type);
+		}
+		return googleAnalytics;
+	}
+
 	private void sendWebRTCClientStats() {
 		getVertx().executeBlocking(
 				b -> {
@@ -287,10 +348,10 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 
 	public static JsonObject getFileSystemInfoJSObject() {
 		JsonObject jsonObject = new JsonObject();
-		jsonObject.addProperty(USABLE_SPACE, SystemUtils.osHDUsableSpace(null,"B", false));
-		jsonObject.addProperty(TOTAL_SPACE, SystemUtils.osHDTotalSpace(null, "B", false));
-		jsonObject.addProperty(FREE_SPACE, SystemUtils.osHDFreeSpace(null,  "B", false));
-		jsonObject.addProperty(IN_USE_SPACE, SystemUtils.osHDInUseSpace(null, "B", false));
+		jsonObject.addProperty(USABLE_SPACE, SystemUtils.osHDUsableSpace(null));
+		jsonObject.addProperty(TOTAL_SPACE, SystemUtils.osHDTotalSpace(null));
+		jsonObject.addProperty(FREE_SPACE, SystemUtils.osHDFreeSpace(null));
+		jsonObject.addProperty(IN_USE_SPACE, SystemUtils.osHDInUseSpace(null));
 		return jsonObject;
 	}
 
@@ -328,14 +389,70 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 		jsonObject.addProperty(PROCESS_CPU_LOAD, SystemUtils.getProcessCpuLoad());
 		return jsonObject;
 	}
+	
+	public static ThreadInfo[] getThreadDump() {
+		ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
+		return threadMXBean.dumpAllThreads(true, true);
+	}
+	
+	public static JsonArray getThreadDumpJSON() {
+		ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
+		
+		ThreadInfo[] threadDump = threadMXBean.dumpAllThreads(true, true);
+		JsonArray jsonArray = new JsonArray();
+		
+		for (int i = 0; i < threadDump.length; i++) {
+			JsonObject jsonObject = new JsonObject();
+		
+			jsonObject.addProperty(THREAD_NAME, threadDump[i].getThreadName());
+			jsonObject.addProperty(THREAD_ID, threadDump[i].getThreadId());
+			jsonObject.addProperty(THREAD_BLOCKED_TIME, threadDump[i].getBlockedTime());
+			jsonObject.addProperty(THREAD_BLOCKED_COUNT, threadDump[i].getBlockedCount());
+			jsonObject.addProperty(THREAD_WAITED_TIME, threadDump[i].getWaitedTime());
+			jsonObject.addProperty(THREAD_WAITED_COUNT, threadDump[i].getWaitedCount());
+			jsonObject.addProperty(THREAD_LOCK_NAME, threadDump[i].getLockName());
+			jsonObject.addProperty(THREAD_LOCK_OWNER_ID, threadDump[i].getLockOwnerId());
+			jsonObject.addProperty(THREAD_LOCK_OWNER_NAME, threadDump[i].getLockOwnerName());
+			jsonObject.addProperty(THREAD_IN_NATIVE, threadDump[i].isInNative());
+			jsonObject.addProperty(THREAD_SUSPENDED, threadDump[i].isSuspended());
+			jsonObject.addProperty(THREAD_STATE, threadDump[i].getThreadState().toString());
+			jsonObject.addProperty(THREAD_CPU_TIME, threadMXBean.getThreadCpuTime(threadDump[i].getThreadId()));
+			jsonObject.addProperty(THREAD_USER_TIME, threadMXBean.getThreadUserTime(threadDump[i].getThreadId()));
+			
+			jsonArray.add(jsonObject);
+		}
+		
+		return jsonArray;
+		
+	}
+	
+	private static JsonArray getDeadLockedThreads(long[] deadLockedThreads) {
+		JsonArray jsonArray = new JsonArray();
+		if (deadLockedThreads != null) {
+			for (int i = 0; i < deadLockedThreads.length; i++) {
+				jsonArray.add(deadLockedThreads[i]);
+			}
+		}
+		return jsonArray;
+	}
+	
+	public static JsonObject getThreadInfoJSONObject() {
+		JsonObject jsonObject = new JsonObject();
+		ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
+		jsonObject.add(DEAD_LOCKED_THREAD, getDeadLockedThreads(threadMXBean.findDeadlockedThreads()));
+		jsonObject.addProperty(THREAD_COUNT, threadMXBean.getThreadCount());
+		jsonObject.addProperty(THREAD_PEEK_COUNT, threadMXBean.getPeakThreadCount());
+		
+		return jsonObject;
+	}
 
 	public static JsonObject getJVMMemoryInfoJSObject() {
 		JsonObject jsonObject = new JsonObject();
 
-		jsonObject.addProperty(MAX_MEMORY, SystemUtils.jvmMaxMemory("B", false));
-		jsonObject.addProperty(TOTAL_MEMORY, SystemUtils.jvmTotalMemory("B", false));
-		jsonObject.addProperty(FREE_MEMORY, SystemUtils.jvmFreeMemory("B", false));
-		jsonObject.addProperty(IN_USE_MEMORY, SystemUtils.jvmInUseMemory("B", false));
+		jsonObject.addProperty(MAX_MEMORY, SystemUtils.jvmMaxMemory());
+		jsonObject.addProperty(TOTAL_MEMORY, SystemUtils.jvmTotalMemory());
+		jsonObject.addProperty(FREE_MEMORY, SystemUtils.jvmFreeMemory());
+		jsonObject.addProperty(IN_USE_MEMORY, SystemUtils.jvmInUseMemory());
 		return jsonObject;
 	}
 
@@ -351,13 +468,24 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 	public static JsonObject getSysteMemoryInfoJSObject() {
 		JsonObject jsonObject = new JsonObject();
 
-		jsonObject.addProperty(VIRTUAL_MEMORY, SystemUtils.osCommittedVirtualMemory("B", false));
-		jsonObject.addProperty(TOTAL_MEMORY, SystemUtils.osTotalPhysicalMemory("B", false));
-		jsonObject.addProperty(FREE_MEMORY, SystemUtils.osFreePhysicalMemory("B", false));
-		jsonObject.addProperty(IN_USE_MEMORY, SystemUtils.osInUsePhysicalMemory("B", false));
-		jsonObject.addProperty(TOTAL_SWAP_SPACE, SystemUtils.osTotalSwapSpace("B", false));
-		jsonObject.addProperty(FREE_SWAP_SPACE, SystemUtils.osFreeSwapSpace("B", false));
-		jsonObject.addProperty(IN_USE_SWAP_SPACE, SystemUtils.osInUseSwapSpace("B", false));
+		jsonObject.addProperty(VIRTUAL_MEMORY, SystemUtils.osCommittedVirtualMemory());
+		jsonObject.addProperty(TOTAL_MEMORY, SystemUtils.osTotalPhysicalMemory());
+		jsonObject.addProperty(FREE_MEMORY, SystemUtils.osFreePhysicalMemory());
+		jsonObject.addProperty(IN_USE_MEMORY, SystemUtils.osInUsePhysicalMemory());
+		jsonObject.addProperty(TOTAL_SWAP_SPACE, SystemUtils.osTotalSwapSpace());
+		jsonObject.addProperty(FREE_SWAP_SPACE, SystemUtils.osFreeSwapSpace());
+		jsonObject.addProperty(IN_USE_SWAP_SPACE, SystemUtils.osInUseSwapSpace());
+		return jsonObject;
+	}
+	
+	public static JsonObject getJVMNativeMemoryInfoJSObject() {
+		JsonObject jsonObject = new JsonObject();
+		
+		long maxPhysicalBytes = Pointer.maxPhysicalBytes();
+		long inUsephysicalBytes = Pointer.physicalBytes();
+		
+		jsonObject.addProperty(IN_USE_JVM_NATIVE_MEMORY, inUsephysicalBytes);
+		jsonObject.addProperty(MAX_JVM_NATIVE_MEMORY, maxPhysicalBytes);
 		return jsonObject;
 	}
 
@@ -373,8 +501,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 		jsonObject.addProperty(StatsCollector.START_TIME, ManagementFactory.getRuntimeMXBean().getStartTime());
 		return jsonObject;
 	}
-	
-	
+
+
 	public static JsonObject getSystemResourcesInfo(Queue<IScope> scopes) 
 	{
 		JsonObject jsonObject = new JsonObject();
@@ -384,6 +512,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 		jsonObject.add(SYSTEM_INFO, getSystemInfoJSObject());
 		jsonObject.add(SYSTEM_MEMORY_INFO, getSysteMemoryInfoJSObject());
 		jsonObject.add(FILE_SYSTEM_INFO, getFileSystemInfoJSObject());
+		jsonObject.add(JVM_NATIVE_MEMORY_USAGE, getJVMNativeMemoryInfoJSObject());
 
 		//add gpu info 
 		jsonObject.add(StatsCollector.GPU_USAGE_INFO, StatsCollector.getGPUInfoJSObject());
@@ -418,7 +547,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 		jsonObject.addProperty(StatsCollector.ENCODERS_BLOCKED, encodersBlocked);
 		jsonObject.addProperty(StatsCollector.ENCODERS_NOT_OPENED, encodersNotOpened);
 		jsonObject.addProperty(StatsCollector.PUBLISH_TIMEOUT_ERRORS, publishTimeoutError);
-		
+
 		//add timing info
 		jsonObject.add(StatsCollector.SERVER_TIMING, getServerTime());
 
@@ -481,28 +610,19 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 		if(cpuLoad < cpuLimit) 
 		{
 			long freeJvmRamValue = getFreeRam();
-			
-			if (freeJvmRamValue > minFreeRamSize) 
-			{
-				long maxPhysicalBytes = Pointer.maxPhysicalBytes();
-				long physicalBytes = Pointer.physicalBytes();
-				if (maxPhysicalBytes > 0) 
-				{
-					long freeNativeMemory = SystemUtils.convertByteSize(maxPhysicalBytes - physicalBytes, "MB"); 
-					if (freeNativeMemory > minFreeRamSize )
-					{
-						enoughResource = true;
-					}
-					else {
-						logger.error("Not enough resource. Due to no enough native memory. Current free memory:{} min free memory:{}", freeNativeMemory, minFreeRamSize);
-					}
+
+			if (freeJvmRamValue > minFreeRamSize) {
+				long maxPhysicalBytes = SystemUtils.convertByteSize(Pointer.maxPhysicalBytes(), "MB"); 
+				long physicalBytes = SystemUtils.convertByteSize(Pointer.physicalBytes(), "MB"); 
+
+				if ((maxPhysicalBytes-physicalBytes) > minFreeRamSize ){
+					
+					enoughResource = true;
 					
 				}
 				else {
-					//if maxPhysicalBytes is not reported, just proceed
-					enoughResource = true;
+					logger.error("Not enough resource. Physical memory usage is too high: physicalBytes ({}) > maxPhysicalBytes ({}) ", physicalBytes, maxPhysicalBytes);
 				}
-				
 			}
 			else {
 				logger.error("Not enough resource. Due to not free RAM. Free RAM should be more than  {} but it is: {}", minFreeRamSize, freeJvmRamValue);
@@ -527,11 +647,11 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 	public int getMinFreeRamSize() {
 		return minFreeRamSize;
 	}
-	
+
 	public void setMinFreeRamSize(int ramLimit) {
 		this.minFreeRamSize = ramLimit;
 	}
-	
+
 	public void setCpuLoad(int cpuLoad) {
 		this.cpuLoad = cpuLoad;
 	}
@@ -595,7 +715,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 				scopes.add(scope);
 			}
 		});
-		
+
 		ServerSettings serverSettings = (ServerSettings) applicationContext.getBean(ServerSettings.BEAN_NAME);
 		heartBeatEnabled = serverSettings.isHeartbeatEnabled();
 	}
@@ -623,36 +743,39 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 	public void setScopes(Queue<IScope> scopes) {
 		this.scopes = scopes;
 	}
-	
+
 	public boolean startHeartBeats(String implementationVersion, String type, int periodMS) {
 		boolean result = false;
 
 		hearbeatPeriodicTask = vertx.setPeriodic(periodMS, 
-			l -> {
-				if(logger != null) {
-					logger.info("-Heartbeat-");
+				l -> {
+					if(logger != null) {
+						logger.info("-Heartbeat-");
+					}
+					else {
+						System.out.println("-Heartbeat-");
+					}
+					getGoogleAnalytic(implementationVersion, type).event()
+					.eventCategory("server_status")
+					.eventAction("heartbeat")
+					.eventLabel("")
+					.clientId(Launcher.getInstanceId())
+					.sendAsync();
 				}
-				getGoogleAnalytic(implementationVersion, type).event()
-				.eventCategory("server_status")
-				.eventAction("heartbeat")
-				.eventLabel("")
-				.clientId(Launcher.getInstanceId())
-				.send();
-			}
-		);
-		
+				);
+
 		return result;
 	}
 
 	public void startAnalytic(String implementationVersion, String type) {
 		vertx.runOnContext(l -> 
-			getGoogleAnalytic(implementationVersion, type).screenView()
-			.sessionControl("start")
-			.clientId(Launcher.getInstanceId())
-			.send()
-		);
+		getGoogleAnalytic(implementationVersion, type).screenView()
+		.sessionControl("start")
+		.clientId(Launcher.getInstanceId())
+		.sendAsync()
+				);
 	}
-	
+
 	public boolean notifyShutDown(String implementationVersion, String type) {
 		boolean result = false;
 
@@ -660,7 +783,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 
 			@Override
 			public void run() {
-				
+
 				if(logger != null) {
 					logger.info("Shutting down just a sec");
 				}
@@ -668,13 +791,13 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 				getGoogleAnalytic(implementationVersion, type).screenView()
 				.clientId(Launcher.getInstanceId())
 				.sessionControl("end")
-				.send();
+				.sendAsync();
 			}
 		});
 		result = true;
 		return result;
 	}
-	
+
 	public void cancelHeartBeat() {
 		vertx.cancelTimer(hearbeatPeriodicTask);
 	}
@@ -694,5 +817,4 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 	public void setHeartbeatPeriodMs(int heartbeatPeriodMs) {
 		this.heartbeatPeriodMs = heartbeatPeriodMs;
 	}
-	
 }
