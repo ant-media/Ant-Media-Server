@@ -28,6 +28,7 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.P2PConnection;
+import io.antmedia.datastore.db.types.Playlist;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.datastore.db.types.TensorFlowObject;
@@ -44,6 +45,7 @@ public class MongoStore extends DataStore {
 	private Datastore endpointCredentialsDS;
 	private Datastore tokenDatastore;
 	private Datastore detectionMap;
+	private Datastore playlistDatastore;
 	private Datastore conferenceRoomDatastore;
 
 	protected static Logger logger = LoggerFactory.getLogger(MongoStore.class);
@@ -68,6 +70,7 @@ public class MongoStore extends DataStore {
 		//TODO: Refactor these stores so that we don't have separate datastore for each class
 		datastore = morphia.createDatastore(client, dbName);
 		vodDatastore=morphia.createDatastore(client, dbName+"VoD");
+		playlistDatastore=morphia.createDatastore(client, dbName+"playlist");
 		endpointCredentialsDS = morphia.createDatastore(client, dbName+"_endpointCredentials");
 		tokenDatastore = morphia.createDatastore(client, dbName + "_token");
 		detectionMap = morphia.createDatastore(client, dbName + "detection");
@@ -81,6 +84,7 @@ public class MongoStore extends DataStore {
 		tokenDatastore.ensureIndexes();
 		datastore.ensureIndexes();
 		vodDatastore.ensureIndexes();
+		playlistDatastore.ensureIndexes();
 		endpointCredentialsDS.ensureIndexes();
 		detectionMap.ensureIndexes();
 		conferenceRoomDatastore.ensureIndexes();
@@ -1115,5 +1119,44 @@ public class MongoStore extends DataStore {
 			}
 		}
 		return null;
+	}
+
+	@Override
+	public boolean createPlaylist(Playlist playlist) {
+		synchronized(this) {
+			try {
+				datastore.save(playlist);
+				return true;
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+		return false;
+	}
+
+	@Override
+	public Playlist getPlaylist(String playlistId) {
+		synchronized(this) {
+			try {
+				return datastore.find(Playlist.class).field("playlistId").equal(playlistId).get();
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+		return null;
+	}
+
+	@Override
+	public boolean deletePlaylist(String playlistId) {
+		synchronized(this) {
+			try {
+				Query<Playlist> query = datastore.createQuery(Playlist.class).field("playlistId").equal(playlistId);
+				WriteResult delete = datastore.delete(query);
+				return (delete.getN() == 1);
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+		return false;
 	}
 }

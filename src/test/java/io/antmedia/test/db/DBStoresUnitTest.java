@@ -35,6 +35,7 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.P2PConnection;
+import io.antmedia.datastore.db.types.Playlist;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.datastore.db.types.TensorFlowObject;
@@ -97,6 +98,7 @@ public class DBStoresUnitTest {
 		testUpdateStatus(dataStore);
 		testP2PConnection(dataStore);
 		testUpdateLocationParams(dataStore);
+		testPlaylist(dataStore);
 	}
 
 	@Test
@@ -125,6 +127,7 @@ public class DBStoresUnitTest {
 		testUpdateStatus(dataStore);
 		testP2PConnection(dataStore);
 		testUpdateLocationParams(dataStore);
+		testPlaylist(dataStore);
 	}
 
 	@Test
@@ -171,6 +174,7 @@ public class DBStoresUnitTest {
 		testUpdateStatus(dataStore);
 		testP2PConnection(dataStore);
 		testUpdateLocationParams(dataStore);
+		testPlaylist(dataStore);
 	}
 	
 	@Test
@@ -1590,6 +1594,35 @@ public class DBStoresUnitTest {
 		assertEquals(latitude, broadcastFromStore2.getLatitude());
 		assertEquals(longitude, broadcastFromStore2.getLongitude());
 		assertEquals(altitude, broadcastFromStore2.getAltitude());
+	}
+	
+	public void testPlaylist(DataStore dataStore) {
+		
+		//create a vod
+		String vodId = RandomStringUtils.randomNumeric(24);
+		VoD streamVod=new VoD("streamName", "streamId", "filePath", "vodName", 111, 111, 111, VoD.STREAM_VOD,vodId);
+		
+		List<VoD> vodList = new ArrayList<>();
+		
+		vodList.add(streamVod);
+		
+		Playlist playlist = new Playlist("12312","playlistName",111,111,vodList);
+
+		//create playlist
+		assertTrue(dataStore.createPlaylist(playlist));
+
+		//get new playlist		
+		Playlist playlist2 = dataStore.getPlaylist(playlist.getPlaylistId());
+
+		assertNotNull(playlist2);
+		
+		assertEquals("playlistName", playlist.getPlaylistName());
+
+		//delete playlist
+		assertTrue(dataStore.deletePlaylist(playlist.getPlaylistId()));
+
+		assertNull(dataStore.getPlaylist(playlist.getPlaylistId()));
+		
 	}
 
 }
