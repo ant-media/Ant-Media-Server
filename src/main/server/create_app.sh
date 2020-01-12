@@ -58,3 +58,5 @@ elif [ "$#" = 2 ]; then
 	replace
 
 fi
+
+service antmedia restart
