@@ -59,4 +59,4 @@ elif [ "$#" = 2 ]; then
 
 fi
 
-service antmedia restart
+sudo service antmedia restart
