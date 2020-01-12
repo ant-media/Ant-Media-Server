@@ -51,7 +51,7 @@ elif [ "$#" = 1 ]; then
 	unzip $AMS_DIR_DEFAULT/StreamApp*.war -d $APP_DIR_DEFAULT/
 	replace 
 	sudo service stop antmedia
-	sudo service stop antmedia
+	sudo service start antmedia
 
 elif [ "$#" = 2 ]; then
 
