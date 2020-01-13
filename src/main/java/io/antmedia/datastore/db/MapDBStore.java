@@ -1227,7 +1227,7 @@ public class MapDBStore extends DataStore {
 			boolean result = false;
 
 			if (playlist != null && playlist.getPlaylistId() != null) {
-				conferenceRoomMap.replace(playlist.getPlaylistId(), gson.toJson(playlist));
+				playlistMap.replace(playlist.getPlaylistId(), gson.toJson(playlist));
 				db.commit();
 				result = true;
 			}
