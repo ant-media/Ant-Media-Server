@@ -41,7 +41,7 @@ Ant Media Server is an open source media server that supports:
 
 ## Releases 
 
-### [Ant Media Server Community 1.9.1 (Jan 12, 2019)](https://github.com/ant-media/Ant-Media-Server/releases/download/ams-v1.9.1/ant-media-server-1.9.1-community-1.9.1-20200112_1622.zip)
+### [Ant Media Server Community 1.9.1 (Jan 12, 2020)](https://github.com/ant-media/Ant-Media-Server/releases/download/ams-v1.9.1/ant-media-server-1.9.1-community-1.9.1-20200112_1622.zip)
 * Thread blocking issues [#1757](https://github.com/ant-media/Ant-Media-Server/issues/1757) [#1781](https://github.com/ant-media/Ant-Media-Server/issues/1781) [#1784](https://github.com/ant-media/Ant-Media-Server/issues/1784)
 * Support IPv6 for ICE Candidates [#1714](https://github.com/ant-media/Ant-Media-Server/issues/1714)
 * Update Youtube App secrets [#1688](https://github.com/ant-media/Ant-Media-Server/issues/1688)
