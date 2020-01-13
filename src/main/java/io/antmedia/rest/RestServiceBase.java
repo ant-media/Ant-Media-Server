@@ -1722,5 +1722,19 @@ public abstract class RestServiceBase {
 		}
 		return result;
 	}
+	
+	protected Result editPlaylist(String playlistId, Playlist playlist) {
+		
+		Result result = new Result (false);
+		
+		try {
+			result.setSuccess(getDataStore().editPlaylist(playlistId,playlist));
+			return result;
+
+		} catch (Exception e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+		}
+		return result;
+	}
 
 }

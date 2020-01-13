@@ -1159,4 +1159,24 @@ public class MongoStore extends DataStore {
 		}
 		return false;
 	}
+	
+	@Override
+	public boolean editPlaylist(String playlistId, Playlist playlist) {
+		boolean result = false;
+		synchronized(this) {
+			try {
+				Query<Playlist> query = playlistDatastore.createQuery(Playlist.class).field("playlistId").equal(playlist.getPlaylistId());
+				
+				UpdateOperations<Playlist> ops = playlistDatastore.createUpdateOperations(Playlist.class).set("playlistId", playlist.getPlaylistId())
+						.set("playlistName", playlist.getPlaylistName()).set("creationDate", playlist.getCreationDate())
+						.set("duration", playlist.getDuration()).set("playlistVodList", playlist.getPlaylistVodList());
+
+				UpdateResults update = playlistDatastore.update(query, ops);
+				return update.getUpdatedCount() == 1;
+			} catch (Exception e) {
+				logger.error(e.getMessage());
+			}
+		}
+		return result;
+	}
 }

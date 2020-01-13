@@ -1221,4 +1221,18 @@ public class MapDBStore extends DataStore {
 		return playlistMap.remove(playlistId) != null;
 	}
 	
+	@Override
+	public boolean editPlaylist(String playlistId, Playlist playlist) {
+		synchronized (this) {
+			boolean result = false;
+
+			if (playlist != null && playlist.getPlaylistId() != null) {
+				conferenceRoomMap.replace(playlist.getPlaylistId(), gson.toJson(playlist));
+				db.commit();
+				result = true;
+			}
+			return result;
+		}
+	}
+	
 }

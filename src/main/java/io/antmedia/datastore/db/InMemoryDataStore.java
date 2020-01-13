@@ -846,4 +846,17 @@ public class InMemoryDataStore extends DataStore {
 	public boolean deletePlaylist(String playlistId) {
 		return playlistMap.remove(playlistId) != null;
 	}
+	
+	@Override
+	public boolean editPlaylist(String playlistId,Playlist playlist) {
+
+		boolean result = false;
+
+		if (playlist != null && playlist.getPlaylistId() != null) {
+			playlistMap.replace(playlistId, playlist);
+			result = true;
+		}
+		return result;
+	}
+
 }

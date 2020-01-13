@@ -1610,6 +1610,9 @@ public class DBStoresUnitTest {
 
 		//create playlist
 		assertTrue(dataStore.createPlaylist(playlist));
+		
+		//update playlist
+		assertTrue(dataStore.editPlaylist(playlist.getPlaylistId(), playlist));
 
 		//get new playlist		
 		Playlist playlist2 = dataStore.getPlaylist(playlist.getPlaylistId());
