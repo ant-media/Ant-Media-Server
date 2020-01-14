@@ -51,7 +51,7 @@ distro () {
     . $os_release
       id=$ID
   else
-      echo "Supports Ubuntu and Centos"
+      echo "Ubuntu and Centos are supported."
   fi
 }
 
