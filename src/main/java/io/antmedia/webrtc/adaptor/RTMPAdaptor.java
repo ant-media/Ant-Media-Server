@@ -88,7 +88,7 @@ public class RTMPAdaptor extends Adaptor {
 	
 	public PeerConnectionFactory createPeerConnectionFactory(){
 		PeerConnectionFactory.initialize(
-				PeerConnectionFactory.InitializationOptions.builder(null)
+				PeerConnectionFactory.InitializationOptions.builder()
 				.createInitializationOptions());
 
         //support internal webrtc codecs
