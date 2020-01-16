@@ -1125,7 +1125,7 @@ public class MongoStore extends DataStore {
 	public boolean createPlaylist(Playlist playlist) {
 		synchronized(this) {
 			try {
-				datastore.save(playlist);
+				playlistDatastore.save(playlist);
 				return true;
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
@@ -1138,7 +1138,7 @@ public class MongoStore extends DataStore {
 	public Playlist getPlaylist(String playlistId) {
 		synchronized(this) {
 			try {
-				return datastore.find(Playlist.class).field("playlistId").equal(playlistId).get();
+				return playlistDatastore.find(Playlist.class).field("playlistId").equal(playlistId).get();
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
@@ -1150,8 +1150,8 @@ public class MongoStore extends DataStore {
 	public boolean deletePlaylist(String playlistId) {
 		synchronized(this) {
 			try {
-				Query<Playlist> query = datastore.createQuery(Playlist.class).field("playlistId").equal(playlistId);
-				WriteResult delete = datastore.delete(query);
+				Query<Playlist> query = playlistDatastore.createQuery(Playlist.class).field("playlistId").equal(playlistId);
+				WriteResult delete = playlistDatastore.delete(query);
 				return (delete.getN() == 1);
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
