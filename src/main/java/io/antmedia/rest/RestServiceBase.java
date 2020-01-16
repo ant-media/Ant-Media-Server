@@ -441,10 +441,24 @@ public abstract class RestServiceBase {
 
 	public void waitStopStreaming(String streamId, Boolean resultStopStreaming) {
 
+		int i = 0;
+		int waitPeriod = 250;
+		
 		// Broadcast status finished is not enough to be sure about broadcast's status.
 		while (!getDataStore().get(streamId).getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED) && !resultStopStreaming.equals(true)) {
 			try {
-				Thread.sleep(250);
+				
+				i++;
+				logger.info("Waiting for stop broadcast: {} "
+						+ "total wait time: {}ms", streamId , i*waitPeriod);
+				
+				Thread.sleep(waitPeriod);
+				
+				if(i > 20) {
+					logger.warn("{} Stream ID broadcast could not be stopped."
+							+ "total wait time: {}ms", streamId , i*waitPeriod);
+					break;
+				}
 			} catch (InterruptedException e) {
 				logger.error(e.getMessage());
 				Thread.currentThread().interrupt();
