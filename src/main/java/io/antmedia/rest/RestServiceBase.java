@@ -1686,55 +1686,6 @@ public abstract class RestServiceBase {
 			return false;
 		}
 	}
+
 	
-	protected Playlist getPlaylist(String playlistId) {
-		Playlist playlist = null;
-		if (playlistId != null) {
-			playlist = getDataStore().getPlaylist(playlistId);
-		}
-		if (playlistId == null) {
-			playlist = new Playlist();
-		}
-		return playlist;
-	}
-
-	public Result deletePlaylist(String playlistId) {
-		
-		Result result = new Result (false);
-		
-		if(playlistId != null) {
-			result.setSuccess(getDataStore().deletePlaylist(playlistId));
-			return result;
-		}
-		return result;
-	}
-
-	protected Result createPlaylist(Playlist playlist) {
-		
-		Result result = new Result (false);
-		
-		try {
-			result.setSuccess(getDataStore().createPlaylist(playlist));
-			return result;
-
-		} catch (Exception e) {
-			logger.error(ExceptionUtils.getStackTrace(e));
-		}
-		return result;
-	}
-	
-	protected Result editPlaylist(String playlistId, Playlist playlist) {
-		
-		Result result = new Result (false);
-		
-		try {
-			result.setSuccess(getDataStore().editPlaylist(playlistId,playlist));
-			return result;
-
-		} catch (Exception e) {
-			logger.error(ExceptionUtils.getStackTrace(e));
-		}
-		return result;
-	}
-
 }
