@@ -448,6 +448,8 @@ public abstract class RestServiceBase {
 		while (!getDataStore().get(streamId).getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED) && !resultStopStreaming.equals(true)) {
 			try {
 				
+				streamId = streamId.replaceAll("[\n|\r|\t]", "_");
+				
 				i++;
 				logger.info("Waiting for stop broadcast: {} "
 						+ "total wait time: {}ms", streamId , i*waitPeriod);
