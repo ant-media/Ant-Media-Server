@@ -969,12 +969,12 @@ public class RestServiceUnitTest {
 	}
 
 
-//	@Test
-//	public void testGetVersion() {
-//		Version version = restServiceReal.getVersion();
-//		assertEquals(version.getVersionName(), AntMediaApplicationAdapter.class.getPackage().getImplementationVersion());
-//		assertEquals(BroadcastRestService.COMMUNITY_EDITION, version.getVersionType());
-//	}
+	@Test
+	public void testGetVersion() {
+		Version version = restServiceReal.getVersion();
+		assertEquals(version.getVersionName(), AntMediaApplicationAdapter.class.getPackage().getImplementationVersion());
+		assertEquals(BroadcastRestService.COMMUNITY_EDITION, version.getVersionType());
+	}
 
 	@Test
 	public void testServerNameAndRtmpURL() {
