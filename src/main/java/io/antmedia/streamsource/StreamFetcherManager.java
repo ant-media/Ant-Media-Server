@@ -1,5 +1,6 @@
 package io.antmedia.streamsource;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -7,14 +8,19 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.Nonnull;
 
+import org.bytedeco.javacpp.avformat.AVOutputFormat.Get_output_timestamp_AVFormatContext_int_LongPointer_LongPointer;
 import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.Playlist;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.rest.model.Result;
+import io.antmedia.streamsource.StreamFetcher.IStreamFetcherListener;
+import io.antmedia.streamsource.StreamFetcher.WorkerThread;
 import io.vertx.core.Vertx;
 
 
@@ -29,6 +35,8 @@ public class StreamFetcherManager {
 
 	private int streamCheckerCount = 0;
 
+	private WorkerThread thread;
+
 	private Queue<StreamFetcher> streamFetcherList = new ConcurrentLinkedQueue<>();
 
 	/**
@@ -41,6 +49,16 @@ public class StreamFetcherManager {
 	private IScope scope;
 
 	private long streamFetcherScheduleJobName = -1L;
+	
+	private long playlistFetcherScheduleJobName = -1L;
+
+	public long getPlaylistFetcherScheduleJobName() {
+		return playlistFetcherScheduleJobName;
+	}
+
+	public void setPlaylistFetcherScheduleJobName(long playlistFetcherScheduleJobName) {
+		this.playlistFetcherScheduleJobName = playlistFetcherScheduleJobName;
+	}
 
 	protected AtomicBoolean isJobRunning = new AtomicBoolean(false);
 
@@ -52,6 +70,9 @@ public class StreamFetcherManager {
 	private int restartStreamFetcherPeriodSeconds;
 
 	private Vertx vertx;
+
+	// "vod", "livestream"  
+	private String StreamMode;
 
 	public StreamFetcherManager(Vertx vertx, DataStore datastore,IScope scope) {
 		this.vertx = vertx;
@@ -99,13 +120,14 @@ public class StreamFetcherManager {
 				break;
 			}
 		}
-		
+
 		StreamFetcher streamScheduler = null;
 		if (!alreadyFetching) {
-			
+
 			try {
 				streamScheduler =  make(broadcast, scope, vertx);
-				streamScheduler.setRestartStream(restartStreamAutomatically);
+				//streamScheduler.setRestartStream(restartStreamAutomatically);
+				streamScheduler.setRestartStream(false);
 				streamScheduler.startStream();
 
 				if(!streamFetcherList.contains(streamScheduler)) {
@@ -147,6 +169,52 @@ public class StreamFetcherManager {
 		}
 	}
 
+	public void startPlaylistThread(Playlist playlist){
+		
+				Broadcast stream = playlist.getBroadcastItemList().get(playlist.getCurrentPlayIndex());
+		
+				StreamFetcher streamScheduler = new StreamFetcher(stream,scope,vertx);
+				
+				streamScheduler.startStream();
+				
+				streamScheduler.setStreamFetcherListener(new IStreamFetcherListener() {
+					
+					@Override
+					public void streamFinished(IStreamFetcherListener listener) {
+
+						int currentStreamIndex = playlist.getCurrentPlayIndex()+1;
+						
+						if(playlist.getBroadcastItemList().size() == currentStreamIndex) {
+
+							//update playlist first broadcast
+							playlist.setCurrentPlayIndex(0);
+							
+						}
+						
+						else {
+							
+							// update playlist currentPlayIndex value.
+							playlist.setCurrentPlayIndex(currentStreamIndex);
+							
+						}
+						
+						
+						
+						Broadcast stream = playlist.getBroadcastItemList().get(playlist.getCurrentPlayIndex());
+						
+						StreamFetcher streamScheduler = new StreamFetcher(stream,scope,vertx);
+						
+						streamScheduler.setStreamFetcherListener(listener);
+						
+						streamScheduler.startStream();
+						
+						
+					}
+				});
+
+	}
+
+
 	public void startStreams(List<Broadcast> streams) {
 
 		for (int i = 0; i < streams.size(); i++) {
@@ -165,28 +233,28 @@ public class StreamFetcherManager {
 
 			int lastRestartCount = 0;
 
-				if (!streamFetcherList.isEmpty()) {
+			if (!streamFetcherList.isEmpty()) {
 
-					streamCheckerCount++;
+				streamCheckerCount++;
 
-					logger.debug("StreamFetcher Check Count:{}" , streamCheckerCount);
+				logger.debug("StreamFetcher Check Count:{}" , streamCheckerCount);
 
-					int countToRestart = 0;
-					if (restartStreamFetcherPeriodSeconds > 0) 
-					{
-						int streamCheckIntervalSec = streamCheckerIntervalMs / 1000;
-						countToRestart = (streamCheckerCount * streamCheckIntervalSec) / restartStreamFetcherPeriodSeconds;
-					}
-
-
-					if (countToRestart > lastRestartCount) {
-						lastRestartCount = countToRestart;
-						logger.info("This is {} times that restarting streams", lastRestartCount);
-						restartStreamFetchers();
-					} else {
-						checkStreamFetchersStatus();
-					}
+				int countToRestart = 0;
+				if (restartStreamFetcherPeriodSeconds > 0) 
+				{
+					int streamCheckIntervalSec = streamCheckerIntervalMs / 1000;
+					countToRestart = (streamCheckerCount * streamCheckIntervalSec) / restartStreamFetcherPeriodSeconds;
 				}
+
+
+				if (countToRestart > lastRestartCount) {
+					lastRestartCount = countToRestart;
+					logger.info("This is {} times that restarting streams", lastRestartCount);
+					restartStreamFetchers();
+				} else {
+					checkStreamFetchersStatus();
+				}
+			}
 
 		});
 
@@ -258,6 +326,14 @@ public class StreamFetcherManager {
 
 	public void setStreamCheckerCount(int streamCheckerCount) {
 		this.streamCheckerCount = streamCheckerCount;
+	}
+
+	public String getStreamMode() {
+		return StreamMode;
+	}
+
+	public void setStreamMode(String streamMode) {
+		StreamMode = streamMode;
 	}
 
 }

@@ -1598,15 +1598,14 @@ public class DBStoresUnitTest {
 	
 	public void testPlaylist(DataStore dataStore) {
 		
-		//create a vod
-		String vodId = RandomStringUtils.randomNumeric(24);
-		VoD streamVod=new VoD("streamName", "streamId", "filePath", "vodName", 111, 111, 111, VoD.STREAM_VOD,vodId);
+		//create a broadcast
+		Broadcast broadcast=new Broadcast();
 		
-		List<VoD> vodList = new ArrayList<>();
+		List<Broadcast> broadcastList = new ArrayList<>();
 		
-		vodList.add(streamVod);
+		broadcastList.add(broadcast);
 		
-		Playlist playlist = new Playlist("12312","playlistName",111,111,vodList);
+		Playlist playlist = new Playlist("12312",0,"playlistName",111,111,broadcastList);
 
 		//create playlist
 		assertTrue(dataStore.createPlaylist(playlist));

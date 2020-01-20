@@ -483,14 +483,14 @@ public abstract class RestServiceBase {
 
 		return new Result(success, message);
 	}
-	
-	
+
+
 	public Result removeEndpoint(String id, String rtmpUrl) 
 	{
 		Endpoint endpoint = new Endpoint();
 		endpoint.setRtmpUrl(rtmpUrl);
 		endpoint.type = "generic";
-		
+
 		boolean removed = getDataStore().removeEndpoint(id, endpoint);
 		return new Result(removed);
 	}
@@ -754,6 +754,38 @@ public abstract class RestServiceBase {
 		return connResult;
 	}
 
+	public Result addPlaylistSource(Playlist playlist) {
+
+		Result result = new Result(false);
+
+		IStatsCollector monitor = (IStatsCollector) getAppContext().getBean(IStatsCollector.BEAN_NAME);
+
+		if(monitor.enoughResource()) 
+		{
+
+			Broadcast playlistBroadcastItem = playlist.getBroadcastItemList().get(playlist.getCurrentPlayIndex());
+
+			if(playlistBroadcastItem.getStreamId() != null && playlistBroadcastItem.getStreamUrl() != null ) {
+				getApplication().getStreamFetcherManager().startPlaylistThread(playlist);
+				result.setSuccess(true);
+			}
+			else {
+				result.setSuccess(false);
+			}
+
+			return result;
+		} 
+		else {
+
+			logger.error("Stream Fetcher can not be created due to high cpu load/limit: {}/{} ram free/minfree:{}/{}", 
+					monitor.getCpuLoad(), monitor.getCpuLimit(), monitor.getFreeRam(), monitor.getMinFreeRamSize());
+			result.setMessage("Resource usage is high");		
+			result.setErrorId(HIGH_CPU_ERROR);
+		}
+
+		return result;
+	}
+
 	public Result addStreamSource(Broadcast stream, String socialEndpointIds) {
 
 		Result result = new Result(false);
@@ -921,7 +953,6 @@ public abstract class RestServiceBase {
 			}
 
 			StreamFetcher streamFetcher = getApplication().startStreaming(savedBroadcast);
-
 
 			result.setMessage(savedBroadcast.getStreamId());
 
@@ -1245,14 +1276,14 @@ public abstract class RestServiceBase {
 
 		return selectedMuxAdaptor;
 	}
-	
+
 	public boolean addRtmpMuxerToMuxAdaptor(String streamId, String rtmpURL) {
 		MuxAdaptor muxAdaptor = getMuxAdaptor(streamId);
 		boolean result = false;
 		if (muxAdaptor != null) {
 			//result = muxAdaptor.addRTMPEndpoint(rtmpURL);
 		}
-		
+
 		return result;
 	}
 
@@ -1687,5 +1718,5 @@ public abstract class RestServiceBase {
 		}
 	}
 
-	
+
 }

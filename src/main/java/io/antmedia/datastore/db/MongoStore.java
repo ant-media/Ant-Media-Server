@@ -1169,7 +1169,7 @@ public class MongoStore extends DataStore {
 				
 				UpdateOperations<Playlist> ops = playlistDatastore.createUpdateOperations(Playlist.class).set("playlistId", playlist.getPlaylistId())
 						.set("playlistName", playlist.getPlaylistName()).set("creationDate", playlist.getCreationDate())
-						.set("duration", playlist.getDuration()).set("playlistVodList", playlist.getPlaylistVodList());
+						.set("duration", playlist.getDuration()).set("broadcastItemList", playlist.getBroadcastItemList());
 
 				UpdateResults update = playlistDatastore.update(query, ops);
 				return update.getUpdatedCount() == 1;

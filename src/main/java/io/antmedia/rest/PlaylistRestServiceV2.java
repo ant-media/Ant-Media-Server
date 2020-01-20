@@ -7,11 +7,14 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.stereotype.Component;
 
+import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Playlist;
 import io.antmedia.rest.model.Result;
 import io.swagger.annotations.Api;
@@ -79,17 +82,26 @@ public class PlaylistRestServiceV2 extends RestServiceBase{
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/create")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result createPlaylist(@ApiParam(value = "the name of the Playlist File", required = true) Playlist playlist) {
+	public Result createPlaylist(@ApiParam(value = "the name of the Playlist File", required = true) Playlist playlist,
+			@ApiParam(value = "If it's true, it starts automatically pulling playlist broadcasts. Default value is false by default", required = false, defaultValue="false") @QueryParam("autoStart") boolean autoStart
+			) {
 
 		Result result = new Result(false);
 
-		try {
-			result.setSuccess(getDataStore().createPlaylist(playlist));
-			return result;
+		if(playlist != null) {
 
-		} catch (Exception e) {
-			logger.error(ExceptionUtils.getStackTrace(e));
+			result.setSuccess(getDataStore().createPlaylist(playlist));
+
+			Broadcast savedBroadcast = saveBroadcast(playlist.getBroadcastItemList().get(playlist.getCurrentPlayIndex()), AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, getScope().getName(), getDataStore(), getAppSettings().getListenerHookURL(), getServerSettings().getServerName(), getServerSettings().getHostAddress());				
+
+			if(autoStart) {
+
+				result = addPlaylistSource(playlist);
+
+			}
+
 		}
+
 		return result;
 	}
 
