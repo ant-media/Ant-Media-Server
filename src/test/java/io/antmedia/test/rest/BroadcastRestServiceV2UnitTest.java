@@ -1812,5 +1812,20 @@ public class BroadcastRestServiceV2UnitTest {
 		assertEquals(1, source.getEndPointList().size());
 	}
 
+	@Test
+	public void testRTMPWebRTCStats()  {
+		Scope scope = mock(Scope.class);
+		String scopeName = "scope";
+		when(scope.getName()).thenReturn(scopeName);
 
+		AntMediaApplicationAdapter app = new AntMediaApplicationAdapter();
+
+		ApplicationContext context = mock(ApplicationContext.class);
+
+		restServiceReal.setAppCtx(context);
+		restServiceReal.setApplication(app);
+		restServiceReal.setScope(scope);
+		assertTrue(restServiceReal.getRTMPToWebRTCStats().isEmpty());
+	}
+	
 }
