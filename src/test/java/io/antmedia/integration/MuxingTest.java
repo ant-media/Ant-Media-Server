@@ -298,8 +298,9 @@ public class MuxingTest {
 			// check that stream can be watchable by rtsp
 			// use ipv4 address to play rtsp stream
 
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
-			.until(() -> testFile("rtmp://" + SERVER_ADDR + "/LiveApp/" + streamName));		
+			//no support rtmp playback anymore
+			//Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+			//.until(() -> testFile("rtmp://" + SERVER_ADDR + "/LiveApp/" + streamName));		
 			
 
 			// check that stream can be watchable by hls
