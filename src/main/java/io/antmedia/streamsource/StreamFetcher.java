@@ -65,9 +65,6 @@ public class StreamFetcher {
 	private long[] lastDTS;
 	private MuxAdaptor muxAdaptor = null;
 
-	// it should be "livestream" or "vod"
-	private String streamMode;
-
 	/**
 	 * If it is true, it restarts fetching everytime it disconnects
 	 * if it is false, it does not restart
@@ -366,9 +363,9 @@ public class StreamFetcher {
 
 									long dtsInMS= timeOffset + pktTime;
 
-									while(dtsInMS < durationInMs) {
-										Thread.sleep(10);
+									while(dtsInMS > durationInMs) {
 										durationInMs = System.currentTimeMillis() - firstPacketTime;
+										Thread.sleep(10);
 									}
 								}
 
@@ -437,7 +434,7 @@ public class StreamFetcher {
 			setThreadActive(false);
 
 			if(stream.getType().equals(STREAM_TYPE_VOD)) {
-
+				
 				stopRequestReceived = true;
 
 				restartStream = false;

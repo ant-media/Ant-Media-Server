@@ -88,15 +88,13 @@ public class PlaylistRestServiceV2 extends RestServiceBase{
 
 		Result result = new Result(false);
 
-		if(playlist != null) {
-
+		if(playlist.getPlaylistId() != null) {
+			
 			result.setSuccess(getDataStore().createPlaylist(playlist));
-
-			Broadcast savedBroadcast = saveBroadcast(playlist.getBroadcastItemList().get(playlist.getCurrentPlayIndex()), AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, getScope().getName(), getDataStore(), getAppSettings().getListenerHookURL(), getServerSettings().getServerName(), getServerSettings().getHostAddress());				
-
+			
 			if(autoStart) {
 
-				result = addPlaylistSource(playlist);
+				result = startPlaylist(playlist);
 
 			}
 

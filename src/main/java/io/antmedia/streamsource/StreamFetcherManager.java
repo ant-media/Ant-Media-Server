@@ -172,22 +172,23 @@ public class StreamFetcherManager {
 	public void startPlaylistThread(Playlist playlist){
 		
 				Broadcast stream = playlist.getBroadcastItemList().get(playlist.getCurrentPlayIndex());
-		
-				StreamFetcher streamScheduler = new StreamFetcher(stream,scope,vertx);
 				
-				streamScheduler.startStream();
+				StreamFetcher streamScheduler = new StreamFetcher(stream,scope,vertx);
 				
 				streamScheduler.setStreamFetcherListener(new IStreamFetcherListener() {
 					
 					@Override
 					public void streamFinished(IStreamFetcherListener listener) {
+						
 
+						//get playlist stream index
 						int currentStreamIndex = playlist.getCurrentPlayIndex()+1;
 						
 						if(playlist.getBroadcastItemList().size() == currentStreamIndex) {
-
+							
 							//update playlist first broadcast
 							playlist.setCurrentPlayIndex(0);
+							currentStreamIndex = 0;
 							
 						}
 						
@@ -198,9 +199,7 @@ public class StreamFetcherManager {
 							
 						}
 						
-						
-						
-						Broadcast stream = playlist.getBroadcastItemList().get(playlist.getCurrentPlayIndex());
+						Broadcast stream = playlist.getBroadcastItemList().get(currentStreamIndex);
 						
 						StreamFetcher streamScheduler = new StreamFetcher(stream,scope,vertx);
 						
@@ -208,9 +207,10 @@ public class StreamFetcherManager {
 						
 						streamScheduler.startStream();
 						
-						
 					}
 				});
+				
+				streamScheduler.startStream();
 
 	}
 
