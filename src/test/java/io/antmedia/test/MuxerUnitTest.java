@@ -6,7 +6,7 @@ import io.antmedia.IApplicationAdaptorFactory;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
-import io.antmedia.integration.AppFunctionalTest;
+import io.antmedia.integration.AppFunctionalV2Test;
 import io.antmedia.integration.MuxingTest;
 import io.antmedia.muxer.HLSMuxer;
 import io.antmedia.muxer.Mp4Muxer;
@@ -135,7 +135,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 		try {
-			AppFunctionalTest.delete(new File("webapps"));
+			AppFunctionalV2Test.delete(new File("webapps"));
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

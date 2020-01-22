@@ -110,7 +110,7 @@ public class ConsoleAppRestServiceTest{
 
 	@BeforeClass
 	public static void beforeClass() {
-		if (AppFunctionalTest.getOS() == AppFunctionalTest.MAC_OS_X) {
+		if (AppFunctionalV2Test.getOS() == AppFunctionalV2Test.MAC_OS_X) {
 			ffmpegPath = "/usr/local/bin/ffmpeg";
 		}
 	}
@@ -366,7 +366,7 @@ public class ConsoleAppRestServiceTest{
 			assertNotNull(broadcastCreated.getStreamId());
 			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, broadcastCreated.getStatus());
 
-			AppFunctionalTest.executeProcess(ffmpegPath
+			AppFunctionalV2Test.executeProcess(ffmpegPath
 					+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
 					+ broadcastCreated.getStreamId());
 
@@ -381,7 +381,7 @@ public class ConsoleAppRestServiceTest{
 			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, broadcast.getStatus());
 
 			// stop stream
-			AppFunctionalTest.destroyProcess();
+			AppFunctionalV2Test.destroyProcess();
 
 			Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->
 			{
@@ -664,14 +664,14 @@ public class ConsoleAppRestServiceTest{
 
 			//send a short stream
 			final String streamId = "test_stream_" + (int)(Math.random() * 1000);
-			AppFunctionalTest.executeProcess(ffmpegPath
+			AppFunctionalV2Test.executeProcess(ffmpegPath
 					+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
 					+ streamId);
 
 			Thread.sleep(5000);
 
 			//stop it
-			AppFunctionalTest.destroyProcess();
+			AppFunctionalV2Test.destroyProcess();
 
 			//check that preview is created
 
@@ -682,14 +682,14 @@ public class ConsoleAppRestServiceTest{
 
 
 			//send a short stream with same name again
-			AppFunctionalTest.executeProcess(ffmpegPath
+			AppFunctionalV2Test.executeProcess(ffmpegPath
 					+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
 					+ streamId);
 
 			Thread.sleep(5000);
 
 			//stop it
-			AppFunctionalTest.destroyProcess();
+			AppFunctionalV2Test.destroyProcess();
 
 			//let the muxing finish
 			Thread.sleep(3000);
@@ -706,14 +706,14 @@ public class ConsoleAppRestServiceTest{
 			assertTrue(appSettingsModel.isPreviewOverwrite());
 
 			String streamId2 = "test_stream_" + (int)(Math.random() * 1000);
-			AppFunctionalTest.executeProcess(ffmpegPath
+			AppFunctionalV2Test.executeProcess(ffmpegPath
 					+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
 					+ streamId2);
 
 			Thread.sleep(5000);
 
 			//stop it
-			AppFunctionalTest.destroyProcess();
+			AppFunctionalV2Test.destroyProcess();
 
 			//check that preview is created			
 			Awaitility.await()
@@ -722,7 +722,7 @@ public class ConsoleAppRestServiceTest{
 
 
 			//send a short stream with same name again
-			AppFunctionalTest.executeProcess(ffmpegPath
+			AppFunctionalV2Test.executeProcess(ffmpegPath
 					+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
 					+ streamId2);
 
@@ -730,7 +730,7 @@ public class ConsoleAppRestServiceTest{
 			Thread.sleep(5000);
 
 			//stop it
-			AppFunctionalTest.destroyProcess();
+			AppFunctionalV2Test.destroyProcess();
 
 			Thread.sleep(3000);
 
@@ -780,7 +780,7 @@ public class ConsoleAppRestServiceTest{
 
 			// send anonymous stream
 			String streamId = "zombiStreamId" + (int)(Math.random()*10000);
-			AppFunctionalTest.executeProcess(ffmpegPath
+			AppFunctionalV2Test.executeProcess(ffmpegPath
 					+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
 					+ streamId);
 
@@ -790,7 +790,7 @@ public class ConsoleAppRestServiceTest{
 			Broadcast broadcast = RestServiceTest.callGetBroadcast(streamId);
 			assertNull(broadcast.getStreamId());
 
-			AppFunctionalTest.destroyProcess();
+			AppFunctionalV2Test.destroyProcess();
 
 			// create a stream through rest service
 			// check that it is accepted
@@ -799,12 +799,12 @@ public class ConsoleAppRestServiceTest{
 				assertNotNull(broadcastCreated.getStreamId());
 				assertEquals(broadcastCreated.getStatus(), AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
 
-				AppFunctionalTest.executeProcess(ffmpegPath
+				AppFunctionalV2Test.executeProcess(ffmpegPath
 						+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
 						+ broadcastCreated.getStreamId());
 
 				Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
-				.until(() -> AppFunctionalTest.isProcessAlive());
+				.until(() -> AppFunctionalV2Test.isProcessAlive());
 
 				Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
 				.until(() -> {
@@ -812,7 +812,7 @@ public class ConsoleAppRestServiceTest{
 					return broadcast2 != null && broadcast2.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 				});
 
-				AppFunctionalTest.destroyProcess();
+				AppFunctionalV2Test.destroyProcess();
 			}
 
 			// change settings testAllowOnlyStreamsInDataStore to false
@@ -826,7 +826,7 @@ public class ConsoleAppRestServiceTest{
 			// send anonymous stream
 			{
 				String streamId2 = "zombiStreamId";
-				AppFunctionalTest.executeProcess(ffmpegPath
+				AppFunctionalV2Test.executeProcess(ffmpegPath
 						+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
 						+ streamId2);
 
@@ -837,7 +837,7 @@ public class ConsoleAppRestServiceTest{
 					return broadcast2 != null && broadcast2.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 				});
 
-				AppFunctionalTest.destroyProcess();
+				AppFunctionalV2Test.destroyProcess();
 			}
 
 			// create a stream through rest service
@@ -847,12 +847,12 @@ public class ConsoleAppRestServiceTest{
 				assertNotNull(broadcastCreated.getStreamId());
 				assertEquals(broadcastCreated.getStatus(), AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
 
-				AppFunctionalTest.executeProcess(ffmpegPath
+				AppFunctionalV2Test.executeProcess(ffmpegPath
 						+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
 						+ broadcastCreated.getStreamId());
 
 				Awaitility.await().atMost(10, TimeUnit.SECONDS)
-				.until(() -> AppFunctionalTest.isProcessAlive());
+				.until(() -> AppFunctionalV2Test.isProcessAlive());
 
 				Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
 				.until(() -> {
@@ -860,7 +860,7 @@ public class ConsoleAppRestServiceTest{
 					return broadcast2 != null && broadcast2.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 				});
 
-				AppFunctionalTest.destroyProcess();
+				AppFunctionalV2Test.destroyProcess();
 			}
 
 			{
@@ -877,7 +877,7 @@ public class ConsoleAppRestServiceTest{
 			// check that it is not accepted
 			{
 				streamId = "zombiStreamId" + (int)(Math.random()*100000);
-				AppFunctionalTest.executeProcess(ffmpegPath
+				AppFunctionalV2Test.executeProcess(ffmpegPath
 						+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
 						+ streamId);
 
@@ -886,7 +886,7 @@ public class ConsoleAppRestServiceTest{
 				// check that it is not accepted
 				broadcast = RestServiceTest.callGetBroadcast(streamId);
 				assertNull(broadcast.getStreamId());
-				AppFunctionalTest.destroyProcess();
+				AppFunctionalV2Test.destroyProcess();
 			}
 
 			// create a stream through rest service
@@ -896,13 +896,13 @@ public class ConsoleAppRestServiceTest{
 				assertNotNull(broadcastCreated.getStreamId());
 				assertEquals(broadcastCreated.getStatus(), AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
 
-				AppFunctionalTest.executeProcess(ffmpegPath
+				AppFunctionalV2Test.executeProcess(ffmpegPath
 						+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
 						+ broadcastCreated.getStreamId());
 
 
 				Awaitility.await().atMost(10, TimeUnit.SECONDS)
-				.pollInterval(1, TimeUnit.SECONDS).until(AppFunctionalTest::isProcessAlive);
+				.pollInterval(1, TimeUnit.SECONDS).until(AppFunctionalV2Test::isProcessAlive);
 
 
 				Awaitility.await().pollDelay(3, TimeUnit.SECONDS)
@@ -915,7 +915,7 @@ public class ConsoleAppRestServiceTest{
 				});
 
 
-				AppFunctionalTest.destroyProcess();
+				AppFunctionalV2Test.destroyProcess();
 			}
 
 			{
@@ -1899,7 +1899,7 @@ public class ConsoleAppRestServiceTest{
 			final String streamId = "testIPFilter"+new Random(50000).nextInt();
 
 
-			AppFunctionalTest.executeProcess(ffmpegPath
+			AppFunctionalV2Test.executeProcess(ffmpegPath
 					+ " -re -i src/test/resources/test.flv -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
 					+ streamId);
 
@@ -1912,7 +1912,7 @@ public class ConsoleAppRestServiceTest{
 						&& broadcast.getStreamId().contentEquals(streamId);
 			});
 
-			AppFunctionalTest.destroyProcess();
+			AppFunctionalV2Test.destroyProcess();
 
 			Awaitility.await().atMost(50, TimeUnit.SECONDS)
 			.pollInterval(2, TimeUnit.SECONDS)
@@ -1931,7 +1931,7 @@ public class ConsoleAppRestServiceTest{
 			result = callSetAppSettings("LiveApp", appSettings);
 			assertTrue(result.isSuccess());
 			
-			AppFunctionalTest.execute(ffmpegPath
+			AppFunctionalV2Test.execute(ffmpegPath
 					+ " -re -i src/test/resources/test.flv -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
 					+ streamId);
 
@@ -1954,7 +1954,7 @@ public class ConsoleAppRestServiceTest{
 
 			assertFalse(available);
 			
-			AppFunctionalTest.destroyProcess();
+			AppFunctionalV2Test.destroyProcess();
 
 			appSettings = callGetAppSettings("LiveApp");
 			appSettings.setAllowedPublisherCIDR("");
