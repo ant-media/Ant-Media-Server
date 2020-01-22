@@ -1,5 +1,6 @@
 package io.antmedia.rest;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.ws.rs.Consumes;
@@ -30,6 +31,7 @@ import io.antmedia.rest.BroadcastRestService.BroadcastStatistics;
 import io.antmedia.rest.model.Interaction;
 import io.antmedia.rest.model.Result;
 import io.antmedia.social.LiveComment;
+import io.antmedia.statistic.type.RTMPToWebRTCStats;
 import io.antmedia.statistic.type.WebRTCAudioReceiveStats;
 import io.antmedia.statistic.type.WebRTCAudioSendStats;
 import io.antmedia.statistic.type.WebRTCVideoReceiveStats;
@@ -513,6 +515,15 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	public WebRTCReceiveStats getWebRTCLowLevelReceiveStats() 
 	{
 		return new WebRTCReceiveStats(getApplication().getWebRTCAudioReceiveStats(), getApplication().getWebRTCVideoReceiveStats());
+	}
+	
+	@ApiOperation(value = "Get RTMP to WebRTC path stats in general", notes = "",response = RTMPToWebRTCStats.class)
+	@GET
+	@Path("/rtmp-to-webrtc-stats")
+	@Produces(MediaType.APPLICATION_JSON)
+	public List<RTMPToWebRTCStats> getRTMPToWebRTCStats() 
+	{
+		return getApplication().getRTMPToWebRTCStats();
 	}
 	
 	
