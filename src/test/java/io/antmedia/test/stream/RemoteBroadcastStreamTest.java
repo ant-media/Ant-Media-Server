@@ -8,6 +8,7 @@ import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -190,7 +191,7 @@ public class RemoteBroadcastStreamTest extends AbstractJUnit4SpringContextTests{
 		// we add the tag size
 		tagBuffer.putInt(RemoteBroadcastStream.TAG_HEADER_LENGTH + bodySize);
 		// flip so we can process from the beginning
-		tagBuffer.flip();
+		((Buffer)tagBuffer).flip();
 		// write the tag
 
 		return tagBuffer.array();
