@@ -407,7 +407,7 @@ public abstract class RestServiceBase {
 				}
 			}
 			
-			getDataStore().updateBroadcastFields(streamId, broadcast);
+			result = getDataStore().updateBroadcastFields(streamId, broadcast);
 
 			Broadcast fetchedBroadcast = getDataStore().get(streamId);
 			getDataStore().removeAllEndpoints(fetchedBroadcast.getStreamId());

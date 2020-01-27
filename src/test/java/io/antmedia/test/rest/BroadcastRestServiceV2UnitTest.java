@@ -1732,6 +1732,16 @@ public class BroadcastRestServiceV2UnitTest {
 
 		store.save(streamSource);
 		
+		// Check Stream source update working normal.
+		
+		Mockito.doReturn(true).when(streamSourceRest).checkStreamUrl(any());
+		
+		Mockito.doReturn(true).when(streamSourceRest).checkStopStreaming(any(),any());
+		
+		result = streamSourceRest.updateBroadcast(streamSource.getStreamId(), streamSource,socialNetworksToPublish);
+		
+		assertEquals(true, result.isSuccess());
+		
 		// Test line 392 if condition
 
 		Mockito.doReturn(false).when(streamSourceRest).checkStreamUrl(any());
@@ -1787,6 +1797,8 @@ public class BroadcastRestServiceV2UnitTest {
 		result = streamSourceRest.updateBroadcast(newCam.getStreamId(), newCam, null);
 
 		assertTrue(result.isSuccess());
+		
+		
 	}
 	
 	@Test
