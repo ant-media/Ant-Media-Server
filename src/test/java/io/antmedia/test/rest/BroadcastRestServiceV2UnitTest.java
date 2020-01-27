@@ -1687,6 +1687,52 @@ public class BroadcastRestServiceV2UnitTest {
 	}
 	
 	@Test
+	public void updateLiveStreamBroadcast() {
+
+		Result result = new Result(false);
+
+		BroadcastRestServiceV2 liveStreamRest = Mockito.spy(restServiceReal);
+		
+		AppSettings settings = mock(AppSettings.class);
+		when(settings.getListenerHookURL()).thenReturn(null);
+		liveStreamRest.setAppSettings(settings);
+		
+		AntMediaApplicationAdapter adaptor = mock (AntMediaApplicationAdapter.class);
+		
+		ServerSettings serverSettings = Mockito.mock(ServerSettings.class);
+		liveStreamRest.setServerSettings(serverSettings);
+
+		Scope scope = mock(Scope.class);
+		String scopeName = "scope";
+		when(scope.getName()).thenReturn(scopeName);
+
+		liveStreamRest.setScope(scope);
+		
+		Broadcast liveStreamBroadcast = new Broadcast("test_1");
+		
+		liveStreamBroadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+		
+		try {
+			liveStreamBroadcast.setStreamId("selimTest");
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		InMemoryDataStore store = new InMemoryDataStore("test");
+
+		Mockito.doReturn(adaptor).when(liveStreamRest).getApplication();
+		Mockito.doReturn(store).when(liveStreamRest).getDataStore();
+
+		store.save(liveStreamBroadcast);
+		
+		result = liveStreamRest.updateBroadcast(liveStreamBroadcast.getStreamId(), liveStreamBroadcast,null);
+		
+		assertEquals(true, result.isSuccess());
+		
+	}
+	
+	@Test
 	public void updateStreamSource() {
 
 		Result result = new Result(false);
@@ -1797,7 +1843,6 @@ public class BroadcastRestServiceV2UnitTest {
 		result = streamSourceRest.updateBroadcast(newCam.getStreamId(), newCam, null);
 
 		assertTrue(result.isSuccess());
-		
 		
 	}
 	
