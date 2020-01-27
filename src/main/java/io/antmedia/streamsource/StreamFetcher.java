@@ -365,7 +365,7 @@ public class StreamFetcher {
 
 									while(dtsInMS > durationInMs) {
 										durationInMs = System.currentTimeMillis() - firstPacketTime;
-										Thread.sleep(10);
+										Thread.sleep(1);
 									}
 								}
 
@@ -432,7 +432,7 @@ public class StreamFetcher {
 
 
 			setThreadActive(false);
-
+			
 			if(stream.getType().equals(STREAM_TYPE_VOD)) {
 				
 				stopRequestReceived = true;

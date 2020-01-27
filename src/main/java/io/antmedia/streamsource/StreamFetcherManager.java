@@ -71,9 +71,6 @@ public class StreamFetcherManager {
 
 	private Vertx vertx;
 
-	// "vod", "livestream"  
-	private String StreamMode;
-
 	public StreamFetcherManager(Vertx vertx, DataStore datastore,IScope scope) {
 		this.vertx = vertx;
 		this.datastore = datastore;
@@ -126,7 +123,43 @@ public class StreamFetcherManager {
 
 			try {
 				streamScheduler =  make(broadcast, scope, vertx);
-				//streamScheduler.setRestartStream(restartStreamAutomatically);
+				streamScheduler.setRestartStream(restartStreamAutomatically);
+
+				streamScheduler.startStream();
+
+				if(!streamFetcherList.contains(streamScheduler)) {
+					streamFetcherList.add(streamScheduler);
+				}
+
+				if (streamFetcherScheduleJobName == -1) {
+					scheduleStreamFetcherJob();
+				}
+			}
+			catch (Exception e) {
+				streamScheduler = null;
+				logger.error(e.getMessage());
+			}
+		}
+
+		return streamScheduler;
+	}
+	
+
+	public StreamFetcher playlistStartStreaming(@Nonnull Broadcast broadcast,StreamFetcher streamScheduler) {	
+
+		//check if broadcast is already being fetching
+		boolean alreadyFetching = false;
+		for (StreamFetcher 	streamFetcherCheck : streamFetcherList) {
+			if (streamFetcherCheck.getStream().getStreamId().equals(broadcast.getStreamId())) {
+				alreadyFetching = true;
+				break;
+			}
+		}
+		
+		if (!alreadyFetching) {
+
+			try {
+
 				streamScheduler.setRestartStream(false);
 				streamScheduler.startStream();
 
@@ -150,7 +183,7 @@ public class StreamFetcherManager {
 	public Result stopStreaming(Broadcast stream) {
 		logger.warn("inside of stopStreaming for {}", stream.getStreamId());
 		Result result = new Result(false);
-
+		
 		for (StreamFetcher scheduler : streamFetcherList) {
 			if (scheduler.getStream().getStreamId().equals(stream.getStreamId())) {
 				scheduler.stopStream();
@@ -172,23 +205,37 @@ public class StreamFetcherManager {
 	public void startPlaylistThread(Playlist playlist){
 		
 				Broadcast stream = playlist.getBroadcastItemList().get(playlist.getCurrentPlayIndex());
+
+				StreamFetcher streamScheduler = new StreamFetcher(stream, scope, vertx);
 				
-				StreamFetcher streamScheduler = new StreamFetcher(stream,scope,vertx);
+				playlist.setPlaylistStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+				
+				datastore.editPlaylist(playlist.getPlaylistId(), playlist);
 				
 				streamScheduler.setStreamFetcherListener(new IStreamFetcherListener() {
 					
 					@Override
 					public void streamFinished(IStreamFetcherListener listener) {
-						
 
+						if(datastore.get(stream.getStreamId()).getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED)) {
+							stopStreaming(stream);
+						}
+						
+						// Get playlist in database
+						Playlist playlist = datastore.getPlaylist(stream.getStreamId());
+						
+						if(playlist.getPlaylistStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
+							
+						 // veritabanına kaydet + test ekle. + currentPlaylisti veritabaına  yaz
 						//get playlist stream index
 						int currentStreamIndex = playlist.getCurrentPlayIndex()+1;
-						
+
 						if(playlist.getBroadcastItemList().size() == currentStreamIndex) {
 							
 							//update playlist first broadcast
 							playlist.setCurrentPlayIndex(0);
 							currentStreamIndex = 0;
+							datastore.editPlaylist(playlist.getPlaylistId(), playlist);
 							
 						}
 						
@@ -196,22 +243,31 @@ public class StreamFetcherManager {
 							
 							// update playlist currentPlayIndex value.
 							playlist.setCurrentPlayIndex(currentStreamIndex);
+							datastore.editPlaylist(playlist.getPlaylistId(), playlist);
 							
 						}
 						
-						Broadcast stream = playlist.getBroadcastItemList().get(currentStreamIndex);
+						//update broadcast informations
+						Broadcast fetchedBroadcast = playlist.getBroadcastItemList().get(currentStreamIndex);
+
+						Result result = new Result(false);
 						
-						StreamFetcher streamScheduler = new StreamFetcher(stream,scope,vertx);
+						result.setSuccess(datastore.updateBroadcastFields(fetchedBroadcast.getStreamId(), fetchedBroadcast));
+						
+						StreamFetcher streamScheduler = new StreamFetcher(fetchedBroadcast,scope,vertx);
 						
 						streamScheduler.setStreamFetcherListener(listener);
 						
-						streamScheduler.startStream();
+						playlistStartStreaming(stream,streamScheduler);
+						
+						}
 						
 					}
+					
 				});
 				
-				streamScheduler.startStream();
-
+				playlistStartStreaming(stream,streamScheduler);		
+				
 	}
 
 
@@ -264,6 +320,7 @@ public class StreamFetcherManager {
 	public void checkStreamFetchersStatus() {
 		for (StreamFetcher streamScheduler : streamFetcherList) {
 			Broadcast stream = streamScheduler.getStream();
+			
 			if (!streamScheduler.isStreamAlive() && datastore != null && stream.getStreamId() != null) 
 			{
 				logger.info("Stream is not alive and setting quality to poor of stream: {} url: {}", stream.getStreamId(), stream.getStreamUrl());
@@ -326,14 +383,6 @@ public class StreamFetcherManager {
 
 	public void setStreamCheckerCount(int streamCheckerCount) {
 		this.streamCheckerCount = streamCheckerCount;
-	}
-
-	public String getStreamMode() {
-		return StreamMode;
-	}
-
-	public void setStreamMode(String streamMode) {
-		StreamMode = streamMode;
 	}
 
 }

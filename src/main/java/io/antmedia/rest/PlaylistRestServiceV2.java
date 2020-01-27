@@ -17,6 +17,7 @@ import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Playlist;
 import io.antmedia.rest.model.Result;
+import io.antmedia.streamsource.StreamFetcher;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
@@ -60,6 +61,66 @@ public class PlaylistRestServiceV2 extends RestServiceBase{
 		return playlist;
 	}
 
+	@ApiOperation(value = "Playlist list from database", response = Result.class)
+	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/{playlistId}/stop")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result stopPlaylist(@ApiParam(value = "id of the Playlist", required = true) @PathParam("playlistId") String playlistId) {
+		Result result = new Result(false);
+
+		//Check playlistId is not null
+		if(playlistId != null) {
+			// Get playlist from Datastore
+			Playlist playlist = getDataStore().getPlaylist(playlistId);
+			// Get current broadcast from playlist
+			Broadcast broadcast = playlist.getBroadcastItemList().get(playlist.getCurrentPlayIndex());
+			
+			logger.error("\n \n \n  streamUrl -> " + broadcast.getType());
+			
+			if(!broadcast.getStreamId().isEmpty() && broadcast.getStreamId() != null) {
+				
+				playlist.setPlaylistStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+				boolean resultdb = getDataStore().editPlaylist(playlistId, playlist);
+				
+				result = getApplication().stopStreaming(broadcast);
+				logger.error("result -> " + result.isSuccess());
+				logger.error("resultdb"+resultdb);
+			}
+		}
+
+		return result;
+	}
+
+	@ApiOperation(value = "Playlist list from database", response = Result.class)
+	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/{playlistId}/start")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result startPlaylist(@ApiParam(value = "id of the Playlist", required = true) @PathParam("playlistId") String playlistId) {
+		Result result = new Result(false);
+
+		//Check playlistId is not null
+		if(playlistId != null) {
+			// Get playlist from Datastore
+			Playlist playlist = getDataStore().getPlaylist(playlistId);
+			// Get current broadcast from playlist
+			Broadcast broadcast = playlist.getBroadcastItemList().get(playlist.getCurrentPlayIndex());
+			
+			logger.error("\n \n \n  streamUrl -> " + broadcast.getType());
+			
+			if(!broadcast.getStreamId().isEmpty() && broadcast.getStreamId() != null) {
+				result = startPlaylist(playlist);
+				logger.error("result -> " + result.isSuccess());
+				playlist.setPlaylistStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+				boolean resultdb = getDataStore().editPlaylist(playlistId, playlist);
+				logger.error("resultdb"+resultdb);
+			}
+		}
+		return result;
+	}
+	
+
 	@ApiOperation(value = "Delete specific Playlist", response = Result.class)
 	@DELETE
 	@Consumes({ MediaType.APPLICATION_JSON })
@@ -89,9 +150,9 @@ public class PlaylistRestServiceV2 extends RestServiceBase{
 		Result result = new Result(false);
 
 		if(playlist.getPlaylistId() != null) {
-			
+
 			result.setSuccess(getDataStore().createPlaylist(playlist));
-			
+
 			if(autoStart) {
 
 				result = startPlaylist(playlist);
