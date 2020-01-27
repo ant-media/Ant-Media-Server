@@ -406,21 +406,18 @@ public abstract class RestServiceBase {
 					broadcast.setStreamUrl(rtspURLWithAuth);
 				}
 			}
+			
+			getDataStore().updateBroadcastFields(streamId, broadcast);
 
-			result = getDataStore().updateBroadcastFields(streamId, broadcast);
+			Broadcast fetchedBroadcast = getDataStore().get(streamId);
+			getDataStore().removeAllEndpoints(fetchedBroadcast.getStreamId());
 
-			if(result) {
-
-				Broadcast fetchedBroadcast = getDataStore().get(streamId);
-				getDataStore().removeAllEndpoints(fetchedBroadcast.getStreamId());
-
-				if (socialNetworksToPublish != null && socialNetworksToPublish.length() > 0) {
-					addSocialEndpoints(fetchedBroadcast, socialNetworksToPublish);
-				}
-
-				getApplication().startStreaming(fetchedBroadcast);
-
+			if (socialNetworksToPublish != null && socialNetworksToPublish.length() > 0) {
+				addSocialEndpoints(fetchedBroadcast, socialNetworksToPublish);
 			}
+
+			getApplication().startStreaming(fetchedBroadcast);
+				
 		}
 		return new Result(result);
 	}
@@ -451,14 +448,12 @@ public abstract class RestServiceBase {
 				streamId = streamId.replaceAll("[\n|\r|\t]", "_");
 				
 				i++;
-				logger.info("Waiting for stop broadcast: {} "
-						+ "total wait time: {}ms", streamId , i*waitPeriod);
+				logger.info("Waiting for stop broadcast: {} Total wait time: {}ms", streamId , i*waitPeriod);
 				
 				Thread.sleep(waitPeriod);
 				
 				if(i > 20) {
-					logger.warn("{} Stream ID broadcast could not be stopped."
-							+ "total wait time: {}ms", streamId , i*waitPeriod);
+					logger.warn("{} Stream ID broadcast could not be stopped. Total wait time: {}ms", streamId , i*waitPeriod);
 					break;
 				}
 			} catch (InterruptedException e) {
