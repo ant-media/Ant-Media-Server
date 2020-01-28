@@ -408,15 +408,17 @@ public abstract class RestServiceBase {
 			}
 			
 			result = getDataStore().updateBroadcastFields(streamId, broadcast);
+			
+			if(result) {
+				Broadcast fetchedBroadcast = getDataStore().get(streamId);
+				getDataStore().removeAllEndpoints(fetchedBroadcast.getStreamId());
 
-			Broadcast fetchedBroadcast = getDataStore().get(streamId);
-			getDataStore().removeAllEndpoints(fetchedBroadcast.getStreamId());
+				if (socialNetworksToPublish != null && socialNetworksToPublish.length() > 0) {
+					addSocialEndpoints(fetchedBroadcast, socialNetworksToPublish);
+				}
 
-			if (socialNetworksToPublish != null && socialNetworksToPublish.length() > 0) {
-				addSocialEndpoints(fetchedBroadcast, socialNetworksToPublish);
+				getApplication().startStreaming(fetchedBroadcast);
 			}
-
-			getApplication().startStreaming(fetchedBroadcast);
 				
 		}
 		return new Result(result);
@@ -436,7 +438,7 @@ public abstract class RestServiceBase {
 
 	}
 
-	public void waitStopStreaming(String streamId, Boolean resultStopStreaming) {
+	public boolean waitStopStreaming(String streamId, Boolean resultStopStreaming) {
 
 		int i = 0;
 		int waitPeriod = 250;
@@ -460,8 +462,9 @@ public abstract class RestServiceBase {
 				logger.error(e.getMessage());
 				Thread.currentThread().interrupt();
 			}
+			
 		}
-
+		return true;
 	}
 
 	protected Result addSocialEndpoint(String id, String endpointServiceId) 

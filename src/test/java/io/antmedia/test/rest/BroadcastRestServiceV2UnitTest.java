@@ -25,11 +25,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
 import org.apache.commons.lang3.RandomStringUtils;
+import org.awaitility.Awaitility;
 import org.bytedeco.javacpp.avformat;
 import org.junit.After;
 import org.junit.Before;
@@ -1687,52 +1689,6 @@ public class BroadcastRestServiceV2UnitTest {
 	}
 	
 	@Test
-	public void updateLiveStreamBroadcast() {
-
-		Result result = new Result(false);
-
-		BroadcastRestServiceV2 liveStreamRest = Mockito.spy(restServiceReal);
-		
-		AppSettings settings = mock(AppSettings.class);
-		when(settings.getListenerHookURL()).thenReturn(null);
-		liveStreamRest.setAppSettings(settings);
-		
-		AntMediaApplicationAdapter adaptor = mock (AntMediaApplicationAdapter.class);
-		
-		ServerSettings serverSettings = Mockito.mock(ServerSettings.class);
-		liveStreamRest.setServerSettings(serverSettings);
-
-		Scope scope = mock(Scope.class);
-		String scopeName = "scope";
-		when(scope.getName()).thenReturn(scopeName);
-
-		liveStreamRest.setScope(scope);
-		
-		Broadcast liveStreamBroadcast = new Broadcast("test_1");
-		
-		liveStreamBroadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
-		
-		try {
-			liveStreamBroadcast.setStreamId("selimTest");
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-		InMemoryDataStore store = new InMemoryDataStore("test");
-
-		Mockito.doReturn(adaptor).when(liveStreamRest).getApplication();
-		Mockito.doReturn(store).when(liveStreamRest).getDataStore();
-
-		store.save(liveStreamBroadcast);
-		
-		result = liveStreamRest.updateBroadcast(liveStreamBroadcast.getStreamId(), liveStreamBroadcast,null);
-		
-		assertEquals(true, result.isSuccess());
-		
-	}
-	
-	@Test
 	public void updateStreamSource() {
 
 		Result result = new Result(false);
@@ -1787,6 +1743,9 @@ public class BroadcastRestServiceV2UnitTest {
 		result = streamSourceRest.updateBroadcast(streamSource.getStreamId(), streamSource,socialNetworksToPublish);
 		
 		assertEquals(true, result.isSuccess());
+		
+		Awaitility.await().atMost(22*250, TimeUnit.MILLISECONDS)
+		.until(() -> streamSourceRest.waitStopStreaming(streamSource.getStreamId(),false));
 		
 		// Test line 392 if condition
 
