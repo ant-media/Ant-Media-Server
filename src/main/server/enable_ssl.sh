@@ -23,11 +23,11 @@ done
 ERROR_MESSAGE="There is a problem in installing SSL to Ant Media Server.\n Please take a look at the logs above and try to fix.\n If you do not have any idea, contact@antmedia.io"
 
 usage() {
-	echo "Usage:"
-	echo "$0 -d {DOMAIN_NAME} [-i {INSTALL_DIRECTORY}]"
-	echo "$0 -f {FULL_CHAIN_FILE} -p {PRIVATE_KEY_FILE} -d {DOMAIN_NAME} [-i {INSTALL_DIRECTORY}]"
-	echo " "
-	echo "If you have any question, send e-mail to contact@antmedia.io"
+  echo "Usage:"
+  echo "$0 -d {DOMAIN_NAME} [-i {INSTALL_DIRECTORY}]"
+  echo "$0 -f {FULL_CHAIN_FILE} -p {PRIVATE_KEY_FILE} -d {DOMAIN_NAME} [-i {INSTALL_DIRECTORY}]"
+  echo " "
+  echo "If you have any question, send e-mail to contact@antmedia.io"
 }
 
 ipt_remove() {
@@ -45,16 +45,27 @@ ipt_restore() {
         fi
 }
 
-get_password() {	
+distro () {
+  os_release="/etc/os-release"
+  if [ -f "$os_release" ]; then
+    . $os_release
+      id=$ID
+  else
+      echo "Ubuntu and Centos are supported."
+  fi
+}
+
+
+get_password() {  
   until [ ! -z "$password" ]
   do
     read -sp 'Enter Password For SSL Certificate:' password
-	if [ -z "$password" ]
-	then
-	  echo 
-	  echo "Password cannot be empty. "
-	fi
-  done			   
+  if [ -z "$password" ]
+  then
+    echo 
+    echo "Password cannot be empty. "
+  fi
+  done         
 }
 
 SUDO="sudo"
@@ -63,17 +74,17 @@ if ! [ -x "$(command -v sudo)" ]; then
 fi
 
 output() {
-	OUT=$?
-    	if [ $OUT -ne 0 ]; then
-      		echo -e $ERROR_MESSAGE
-      		exit $OUT
-  	fi
+  OUT=$?
+      if [ $OUT -ne 0 ]; then
+          echo -e $ERROR_MESSAGE
+          exit $OUT
+    fi
 }
 
 delete_alias() {
   if [ -f "$1" ]; then
-	 $SUDO keytool -delete -alias tomcat -storepass $password -keystore $file
-	 output
+   $SUDO keytool -delete -alias tomcat -storepass $password -keystore $file
+   output
   fi
 }
 
@@ -104,26 +115,25 @@ fi
 
 get_new_certificate(){
 
-if [ "$fullChainFileExist" == false ]; then
-    #  install letsencrypt and get the certificate
- 	echo "creating new certificate"
- 	
+  if [ "$fullChainFileExist" == false ]; then
+      #  install letsencrypt and get the certificate
+      echo "creating new certificate"
+      distro
+      if [ "$ID" == "ubuntu" ]; then
+          
+        $SUDO apt-get update -qq -y
+        output
+
+        $SUDO apt-get install certbot -qq -y
+        output
+          
+      elif [ "$ID" == "centos" ]; then
+        $SUDO yum -y install certbot
+        output
+      fi
+
     # Install required libraries
-    $SUDO apt-get update -y -qq
-    output
-
-    $SUDO apt-get install software-properties-common -y -qq
-    output
-
-    $SUDO add-apt-repository ppa:certbot/certbot -y
-    output
-
-    $SUDO apt-get update -qq -y
-    output
-
-    $SUDO apt-get install certbot -qq -y
-    output
-
+    
     #Get certificate
     $SUDO certbot certonly --standalone --non-interactive --agree-tos --email letsencrypt@antmedia.io -d $domain
     output
@@ -137,7 +147,7 @@ if [ "$fullChainFileExist" == false ]; then
     FULL_CHAIN_FILE="/etc/letsencrypt/live/$domain/fullchain.pem"
     PRIVATE_KEY_FILE="/etc/letsencrypt/live/$domain/privkey.pem"
 
-fi
+ fi
 }
 
 renew_certificate(){
@@ -153,89 +163,88 @@ renew_certificate(){
 auth_tomcat(){
     echo ""
 
-	TEMP_DIR=$INSTALL_DIRECTORY/$domain
-	if [ ! -d "$TEMP_DIR" ]; then
-	  $SUDO mkdir $TEMP_DIR
-	fi
+  TEMP_DIR=$INSTALL_DIRECTORY/$domain
+  if [ ! -d "$TEMP_DIR" ]; then
+    $SUDO mkdir $TEMP_DIR
+  fi
 
 
-	EXPORT_P12_FILE=$TEMP_DIR/fullchain_and_key.p12
-	
-	DEST_KEYSTORE=$TEMP_DIR/keystore.jks
-	
-	TRUST_STORE=$TEMP_DIR/truststore.jks
-	
-	CER_FILE=$INSTALL_DIRECTORY/$domain/tomcat.cer
-	
-	$SUDO openssl pkcs12 -export \
-	    -in $FULL_CHAIN_FILE \
-	    -inkey $PRIVATE_KEY_FILE \
-	    -out $EXPORT_P12_FILE \
-	    -name tomcat \
-	    -password pass:$password
-	output
-	
-	
-	
-	$SUDO keytool -importkeystore \
-	       -deststorepass $password \
-	       -destkeypass $password \
-	       -destkeystore $DEST_KEYSTORE \
-	       -srckeystore $EXPORT_P12_FILE \
-	       -srcstoretype pkcs12 \
-	       -srcstorepass $password \
-	       -alias tomcat \
-	       -deststoretype pkcs12
-	output
-	
-	
-	$SUDO keytool -export  \
-	         -alias tomcat \
-	         -deststorepass $password \
-	         -file $CER_FILE \
-	         -keystore $DEST_KEYSTORE
-	output
+  EXPORT_P12_FILE=$TEMP_DIR/fullchain_and_key.p12
+  
+  DEST_KEYSTORE=$TEMP_DIR/keystore.jks
+  
+  TRUST_STORE=$TEMP_DIR/truststore.jks
+  
+  CER_FILE=$INSTALL_DIRECTORY/$domain/tomcat.cer
+  
+  $SUDO openssl pkcs12 -export \
+      -in $FULL_CHAIN_FILE \
+      -inkey $PRIVATE_KEY_FILE \
+      -out $EXPORT_P12_FILE \
+      -name tomcat \
+      -password pass:$password
+  output
+  
+  
+  
+  $SUDO keytool -importkeystore \
+         -deststorepass $password \
+         -destkeypass $password \
+         -destkeystore $DEST_KEYSTORE \
+         -srckeystore $EXPORT_P12_FILE \
+         -srcstoretype pkcs12 \
+         -srcstorepass $password \
+         -alias tomcat \
+         -deststoretype pkcs12
+  output
+  
+  
+  $SUDO keytool -export  \
+           -alias tomcat \
+           -deststorepass $password \
+           -file $CER_FILE \
+           -keystore $DEST_KEYSTORE
+  output
 
 
-	$SUDO keytool -import -trustcacerts -alias tomcat \
-	  -file $CER_FILE \
-	  -keystore $TRUST_STORE \
-	  -storepass $password -noprompt
-	output
-	
-	
-	$SUDO cp $TRUST_STORE $INSTALL_DIRECTORY/conf/
-	output
+  $SUDO keytool -import -trustcacerts -alias tomcat \
+    -file $CER_FILE \
+    -keystore $TRUST_STORE \
+    -storepass $password -noprompt
+  output
+  
+  
+  $SUDO cp $TRUST_STORE $INSTALL_DIRECTORY/conf/
+  output
 
 
-	$SUDO cp $DEST_KEYSTORE $INSTALL_DIRECTORY/conf/
-	output
-	
-	
-	$SUDO sed -i "/rtmps.keystorepass=password/c\rtmps.keystorepass=$password"  $INSTALL_DIRECTORY/conf/red5.properties
-	output
-	
-	$SUDO sed -i "/rtmps.truststorepass=password/c\rtmps.truststorepass=$password"  $INSTALL_DIRECTORY/conf/red5.properties
-	output
-	
-	#uncomment ssl part in jee-container.xml
-	$SUDO sed -i -E -e 's/(<!-- https start|<!-- https start -->)/<!-- https start -->/g' $INSTALL_DIRECTORY/conf/jee-container.xml
-        output
-        $SUDO sed -i -E -e 's/(https end -->|<!-- https end -->)/<!-- https end -->/g' $INSTALL_DIRECTORY/conf/jee-container.xml
-	output
+  $SUDO cp $DEST_KEYSTORE $INSTALL_DIRECTORY/conf/
+  output
+  
+  
+  $SUDO sed -i "/rtmps.keystorepass=password/c\rtmps.keystorepass=$password"  $INSTALL_DIRECTORY/conf/red5.properties
+  output
+  
+  $SUDO sed -i "/rtmps.truststorepass=password/c\rtmps.truststorepass=$password"  $INSTALL_DIRECTORY/conf/red5.properties
+  output
+  
+  #uncomment ssl part in jee-container.xml
+  $SUDO sed -i -E -e 's/(<!-- https start|<!-- https start -->)/<!-- https start -->/g' $INSTALL_DIRECTORY/conf/jee-container.xml
+  output
+  $SUDO sed -i -E -e 's/(https end -->|<!-- https end -->)/<!-- https end -->/g' $INSTALL_DIRECTORY/conf/jee-container.xml
+  output
 }
 
 create_cron_job(){
 
-    #crontab file for root user
-    cronfile="/var/spool/cron/crontabs/root"
-    #Check if file does not exist
-    if [ ! -f $cronfile ]; then
-       $SUDO echo "00 03 */85 * * cd $INSTALL_DIRECTORY && ./enable_ssl.sh -d $domain -r" > $cronfile
-    elif [ $(grep -E "enable_ssl.sh.*$domain" $cronfile | wc -l) -eq "0" ]; then
-       $SUDO echo "00 03 */85 * * cd $INSTALL_DIRECTORY && ./enable_ssl.sh -d $domain -r" >> $cronfile
+    $SUDO crontab -l > /tmp/cronfile
+
+    if [ $(grep -E "enable_ssl.sh.*$domain" /tmp/cronfile | wc -l) -eq "0" ]; then
+      $SUDO echo "00 03 */85 * * cd $INSTALL_DIRECTORY && ./enable_ssl.sh -d $domain -r" >> /tmp/cronfile
+      $SUDO crontab /tmp/cronfile
+      output
     fi
-    output
+    rm /tmp/cronfile
 
 }
 
