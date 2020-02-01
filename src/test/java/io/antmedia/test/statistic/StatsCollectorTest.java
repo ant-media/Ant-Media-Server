@@ -111,6 +111,10 @@ public class StatsCollectorTest {
 		assertTrue(jsObject.has(StatsCollector.TOTAL_SWAP_SPACE));
 		assertTrue(jsObject.has(StatsCollector.FREE_SWAP_SPACE));
 		assertTrue(jsObject.has(StatsCollector.IN_USE_SWAP_SPACE));
+
+		jsObject = StatsCollector.getJVMNativeMemoryInfoJSObject();
+		assertTrue(jsObject.has(StatsCollector.IN_USE_JVM_NATIVE_MEMORY));
+		assertTrue(jsObject.has(StatsCollector.MAX_JVM_NATIVE_MEMORY));
 		
 		Launcher.setInstanceIdFilePath("target/instanceId");
 		jsObject = StatsCollector.getSystemResourcesInfo(null);
@@ -119,6 +123,7 @@ public class StatsCollectorTest {
 		assertTrue(jsObject.has(StatsCollector.SYSTEM_INFO));
 		assertTrue(jsObject.has(StatsCollector.SYSTEM_MEMORY_INFO));
 		assertTrue(jsObject.has(StatsCollector.FILE_SYSTEM_INFO));
+		assertTrue(jsObject.has(StatsCollector.JVM_NATIVE_MEMORY_USAGE));
 		assertTrue(jsObject.has(StatsCollector.GPU_USAGE_INFO));
 		assertTrue(jsObject.has(StatsCollector.LOCAL_WEBRTC_LIVE_STREAMS));
 		assertTrue(jsObject.has(StatsCollector.LOCAL_WEBRTC_VIEWERS));
@@ -358,7 +363,10 @@ public class StatsCollectorTest {
 		
 		StatsCollector monitor = Mockito.spy(new StatsCollector());
 		
-		//Cpu Limit = 70 & RAM Limit = 200 MB
+		long minValue = 100;
+		long maxValue = 1000;
+		
+		//Cpu Limit = 70 & Min Free Ram Size = 50 MB
 		
 		//check default values
 		
@@ -366,26 +374,56 @@ public class StatsCollectorTest {
 		
 		Mockito.when(monitor.getFreeRam()).thenReturn(500);
 		
+		Mockito.when(monitor.getMinFreeRamSize()).thenReturn(50);
+		
+		Mockito.when(monitor.getPhysicalBytes()).thenReturn(minValue);
+		
+		Mockito.when(monitor.getMaxPhysicalBytes()).thenReturn(maxValue);
+		
 		assertEquals(true,monitor.enoughResource());
 		
 		//CPU value over 70
 		
-		monitor.setCpuLoad(80);
+		Mockito.when(monitor.getCpuLoad()).thenReturn(80);
 		
 		Mockito.when(monitor.getFreeRam()).thenReturn(500);
 		
+		Mockito.when(monitor.getMinFreeRamSize()).thenReturn(50);
+		
+		Mockito.when(monitor.getPhysicalBytes()).thenReturn(minValue);
+		
+		Mockito.when(monitor.getMaxPhysicalBytes()).thenReturn(maxValue);
+		
 		assertEquals(false, monitor.enoughResource());
 		
-		//RAM free value under 200
+		//RAM free value under 50
 		
 		Mockito.when(monitor.getCpuLoad()).thenReturn(10);
 		
-		Mockito.when(monitor.getFreeRam()).thenReturn(100);
+		Mockito.when(monitor.getFreeRam()).thenReturn(10);
+		
+		Mockito.when(monitor.getMinFreeRamSize()).thenReturn(50);
+		
+		Mockito.when(monitor.getPhysicalBytes()).thenReturn(minValue);
+		
+		Mockito.when(monitor.getMaxPhysicalBytes()).thenReturn(maxValue);
 		
 		assertEquals(false,monitor.enoughResource());
 		
+		// Check false values in Max and Current physical memory
 		
+		Mockito.when(monitor.getCpuLoad()).thenReturn(10);
 		
+		Mockito.when(monitor.getFreeRam()).thenReturn(500);
+		
+		Mockito.when(monitor.getMinFreeRamSize()).thenReturn(50);
+		
+		Mockito.when(monitor.getPhysicalBytes()).thenReturn(maxValue);
+		
+		Mockito.when(monitor.getMaxPhysicalBytes()).thenReturn(minValue);
+		
+		assertEquals(false,monitor.enoughResource());
+
 		
 	}
 	
