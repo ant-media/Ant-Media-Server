@@ -533,10 +533,13 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 					localWebRTCViewers += webrtcAdaptor.getNumberOfTotalViewers();
 					localWebRTCStreams += webrtcAdaptor.getNumberOfLiveStreams();
 				}
-				AntMediaApplicationAdapter adaptor = ((IApplicationAdaptorFactory) scope.getContext().getApplicationContext().getBean(AntMediaApplicationAdapter.BEAN_NAME)).getAppAdaptor();
-				encodersBlocked += adaptor.getNumberOfEncodersBlocked();
-				encodersNotOpened += adaptor.getNumberOfEncoderNotOpenedErrors();
-				publishTimeoutError += adaptor.getNumberOfPublishTimeoutError();
+				
+				if (scope.getContext().getApplicationContext().containsBean(AntMediaApplicationAdapter.BEAN_NAME)) {
+					AntMediaApplicationAdapter adaptor = ((IApplicationAdaptorFactory) scope.getContext().getApplicationContext().getBean(AntMediaApplicationAdapter.BEAN_NAME)).getAppAdaptor();
+					encodersBlocked += adaptor.getNumberOfEncodersBlocked();
+					encodersNotOpened += adaptor.getNumberOfEncoderNotOpenedErrors();
+					publishTimeoutError += adaptor.getNumberOfPublishTimeoutError();
+				}
 			}
 		}
 
