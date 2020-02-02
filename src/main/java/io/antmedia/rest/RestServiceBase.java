@@ -763,17 +763,9 @@ public abstract class RestServiceBase {
 		if(monitor.enoughResource()) 
 		{
 
-			Broadcast playlistBroadcastItem = playlist.getBroadcastItemList().get(playlist.getCurrentPlayIndex());
-			
-			if(playlistBroadcastItem.getStreamId() != null && playlistBroadcastItem.getStreamUrl() != null ) {
-				Broadcast savedBroadcast = saveBroadcast(playlist.getBroadcastItemList().get(playlist.getCurrentPlayIndex()), AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, getScope().getName(), getDataStore(), getAppSettings().getListenerHookURL(), getServerSettings().getServerName(), getServerSettings().getHostAddress());				
-				getApplication().getStreamFetcherManager().startPlaylistThread(playlist);
-				result.setSuccess(true);
-			}
-			else {
-				result.setSuccess(false);
-			}
+			getApplication().getStreamFetcherManager().startPlaylistThread(playlist);
 
+			result.setSuccess(true);
 			return result;
 		} 
 		else {

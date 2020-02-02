@@ -9,15 +9,17 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.stereotype.Component;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.StreamIdValidator;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Playlist;
 import io.antmedia.rest.model.Result;
-import io.antmedia.streamsource.StreamFetcher;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
@@ -75,14 +77,14 @@ public class PlaylistRestServiceV2 extends RestServiceBase{
 			Playlist playlist = getDataStore().getPlaylist(playlistId);
 			// Get current broadcast from playlist
 			Broadcast broadcast = playlist.getBroadcastItemList().get(playlist.getCurrentPlayIndex());
-			
+
 			logger.error("\n \n \n  streamUrl -> " + broadcast.getType());
-			
+
 			if(!broadcast.getStreamId().isEmpty() && broadcast.getStreamId() != null) {
-				
+
 				playlist.setPlaylistStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
 				boolean resultdb = getDataStore().editPlaylist(playlistId, playlist);
-				
+
 				result = getApplication().stopStreaming(broadcast);
 				logger.error("result -> " + result.isSuccess());
 				logger.error("resultdb"+resultdb);
@@ -106,9 +108,7 @@ public class PlaylistRestServiceV2 extends RestServiceBase{
 			Playlist playlist = getDataStore().getPlaylist(playlistId);
 			// Get current broadcast from playlist
 			Broadcast broadcast = playlist.getBroadcastItemList().get(playlist.getCurrentPlayIndex());
-			
-			logger.error("\n \n \n  streamUrl -> " + broadcast.getType());
-			
+
 			if(!broadcast.getStreamId().isEmpty() && broadcast.getStreamId() != null) {
 				result = startPlaylist(playlist);
 				logger.error("result -> " + result.isSuccess());
@@ -119,7 +119,7 @@ public class PlaylistRestServiceV2 extends RestServiceBase{
 		}
 		return result;
 	}
-	
+
 
 	@ApiOperation(value = "Delete specific Playlist", response = Result.class)
 	@DELETE
@@ -138,30 +138,48 @@ public class PlaylistRestServiceV2 extends RestServiceBase{
 	}
 
 
-	@ApiOperation(value = "Create Playlist", notes = "", response = Result.class)
+	@ApiOperation(value = "Create Playlist", notes = "", response = Playlist.class)
 	@POST
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/create")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result createPlaylist(@ApiParam(value = "the name of the Playlist File", required = true) Playlist playlist,
+	public Response createPlaylist(@ApiParam(value = "the name of the Playlist File", required = true) Playlist playlist,
 			@ApiParam(value = "If it's true, it starts automatically pulling playlist broadcasts. Default value is false by default", required = false, defaultValue="false") @QueryParam("autoStart") boolean autoStart
 			) {
 
 		Result result = new Result(false);
 
-		if(playlist.getPlaylistId() != null) {
+		if(playlist.getPlaylistId() != null && playlist.getPlaylistId().isEmpty()) {
 
-			result.setSuccess(getDataStore().createPlaylist(playlist));
+			// Check Playlist ID for already there
+			Broadcast broadcastTmp = getDataStore().get(playlist.getPlaylistId());
 
-			if(autoStart) {
-
-				result = startPlaylist(playlist);
-
+			if (broadcastTmp != null) 
+			{
+				return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Playlist id is already being used. ")).build();
+			}
+			else if (!StreamIdValidator.isStreamIdValid(playlist.getPlaylistId())) 
+			{
+				return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Playlist id is not valid. ")).build();
 			}
 
 		}
 
-		return result;
+		Object returnObject = new Result(false, "unexpected parameters received");
+
+		result.setSuccess(getDataStore().createPlaylist(playlist));
+
+		if(result.isSuccess()) {
+
+			Broadcast savedBroadcast = saveBroadcast(playlist.getBroadcastItemList().get(playlist.getCurrentPlayIndex()), AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, getScope().getName(), getDataStore(), getAppSettings().getListenerHookURL(), getServerSettings().getServerName(), getServerSettings().getHostAddress());				
+
+			if(autoStart) {
+				result = startPlaylist(playlist);
+			}
+		}
+
+
+		return Response.status(Status.OK).entity(returnObject).build();
 	}
 
 	@ApiOperation(value = "Edit Playlist", notes = "", response = Result.class)
