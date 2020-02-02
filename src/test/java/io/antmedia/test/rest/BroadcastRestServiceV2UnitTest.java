@@ -25,11 +25,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
 import org.apache.commons.lang3.RandomStringUtils;
+import org.awaitility.Awaitility;
 import org.bytedeco.javacpp.avformat;
 import org.junit.After;
 import org.junit.Before;
@@ -69,6 +71,7 @@ import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.BroadcastRestService.BroadcastStatistics;
 import io.antmedia.rest.BroadcastRestService.ProcessBuilderFactory;
 import io.antmedia.rest.BroadcastRestServiceV2;
+
 import io.antmedia.rest.RootRestService;
 import io.antmedia.rest.WebRTCClientStats;
 import io.antmedia.rest.model.Interaction;
@@ -1684,6 +1687,86 @@ public class BroadcastRestServiceV2UnitTest {
 		//should be true, because CPU load is above limit and other parameters defined correctly
 		assertTrue(result.isSuccess());
 	}
+	
+	@Test
+	public void updateStreamSource() {
+
+		Result result = new Result(false);
+
+		BroadcastRestServiceV2 streamSourceRest = Mockito.spy(restServiceReal);
+		
+		AppSettings settings = mock(AppSettings.class);
+		when(settings.getListenerHookURL()).thenReturn(null);
+		streamSourceRest.setAppSettings(settings);
+		
+		AntMediaApplicationAdapter adaptor = mock (AntMediaApplicationAdapter.class);
+		
+		ServerSettings serverSettings = Mockito.mock(ServerSettings.class);
+		streamSourceRest.setServerSettings(serverSettings);
+
+		Scope scope = mock(Scope.class);
+		String scopeName = "scope";
+		when(scope.getName()).thenReturn(scopeName);
+
+		streamSourceRest.setScope(scope);
+		
+		Broadcast streamSource = new Broadcast("testAddStreamSource", null, null, null,
+				"rtsp://11.2.40.63:8554/live1.sdp", AntMediaApplicationAdapter.STREAM_SOURCE);
+
+		String socialNetworksToPublish = null;
+		
+		streamSource.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+		
+		StreamFetcher fetcher = mock (StreamFetcher.class);
+		
+		try {
+			streamSource.setStreamId("selimTest");
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		InMemoryDataStore store = new InMemoryDataStore("test");
+
+		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
+		Mockito.doReturn(fetcher).when(adaptor).startStreaming(streamSource);
+		Mockito.doReturn(store).when(streamSourceRest).getDataStore();
+
+		store.save(streamSource);
+		
+		// Check Stream source update working normal.
+		
+		Mockito.doReturn(true).when(streamSourceRest).checkStreamUrl(any());
+		
+		Mockito.doReturn(true).when(streamSourceRest).checkStopStreaming(any(),any());
+		
+		result = streamSourceRest.updateBroadcast(streamSource.getStreamId(), streamSource,socialNetworksToPublish);
+		
+		assertEquals(true, result.isSuccess());
+		
+		Awaitility.await().atMost(22*250, TimeUnit.MILLISECONDS)
+		.until(() -> streamSourceRest.waitStopStreaming(streamSource.getStreamId(),false));
+		
+		// Test line 392 if condition
+
+		Mockito.doReturn(false).when(streamSourceRest).checkStreamUrl(any());
+		
+		result = streamSourceRest.updateBroadcast(streamSource.getStreamId(), streamSource,"endpoint_1");
+		
+		assertEquals(false, result.isSuccess());
+		
+		// Test line 392 if condition
+		
+		streamSource.setStatus(null);
+		
+		Mockito.doReturn(true).when(streamSourceRest).checkStreamUrl(any());
+		
+		result = streamSourceRest.updateBroadcast(streamSource.getStreamId(), streamSource,"endpoint_1");
+		
+		assertEquals(false, result.isSuccess());
+		
+	}
+	
 
 	@Test
 	public void testUpdateCamInfo()  {
@@ -1719,6 +1802,7 @@ public class BroadcastRestServiceV2UnitTest {
 		result = streamSourceRest.updateBroadcast(newCam.getStreamId(), newCam, null);
 
 		assertTrue(result.isSuccess());
+		
 	}
 	
 	@Test
@@ -1812,5 +1896,20 @@ public class BroadcastRestServiceV2UnitTest {
 		assertEquals(1, source.getEndPointList().size());
 	}
 
+	@Test
+	public void testRTMPWebRTCStats()  {
+		Scope scope = mock(Scope.class);
+		String scopeName = "scope";
+		when(scope.getName()).thenReturn(scopeName);
 
+		AntMediaApplicationAdapter app = new AntMediaApplicationAdapter();
+
+		ApplicationContext context = mock(ApplicationContext.class);
+
+		restServiceReal.setAppCtx(context);
+		restServiceReal.setApplication(app);
+		restServiceReal.setScope(scope);
+		assertTrue(restServiceReal.getRTMPToWebRTCStats().isEmpty());
+	}
+	
 }

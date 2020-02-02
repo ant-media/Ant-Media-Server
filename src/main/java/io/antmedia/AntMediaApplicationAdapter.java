@@ -62,6 +62,7 @@ import io.antmedia.shutdown.IShutdownListener;
 import io.antmedia.social.endpoint.PeriscopeEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
+import io.antmedia.statistic.type.RTMPToWebRTCStats;
 import io.antmedia.statistic.type.WebRTCAudioReceiveStats;
 import io.antmedia.statistic.type.WebRTCAudioSendStats;
 import io.antmedia.statistic.type.WebRTCVideoReceiveStats;
@@ -1122,6 +1123,13 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	
 	public void setServerSettings(ServerSettings serverSettings) {
 		this.serverSettings = serverSettings;
+	}
+
+	/*
+	 * This method is overridden in enterprise edition since RTMP to WebRTC streaming is an enterprise feature.
+	 */
+	public List<RTMPToWebRTCStats> getRTMPToWebRTCStats() {
+		return new ArrayList<RTMPToWebRTCStats>();
 	}
 
 }
