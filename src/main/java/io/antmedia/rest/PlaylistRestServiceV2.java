@@ -12,6 +12,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.stereotype.Component;
 
@@ -78,16 +79,12 @@ public class PlaylistRestServiceV2 extends RestServiceBase{
 			// Get current broadcast from playlist
 			Broadcast broadcast = playlist.getBroadcastItemList().get(playlist.getCurrentPlayIndex());
 
-			logger.error("\n \n \n  streamUrl -> " + broadcast.getType());
-
 			if(!broadcast.getStreamId().isEmpty() && broadcast.getStreamId() != null) {
 
 				playlist.setPlaylistStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
 				boolean resultdb = getDataStore().editPlaylist(playlistId, playlist);
 
 				result = getApplication().stopStreaming(broadcast);
-				logger.error("result -> " + result.isSuccess());
-				logger.error("resultdb"+resultdb);
 			}
 		}
 
@@ -111,10 +108,8 @@ public class PlaylistRestServiceV2 extends RestServiceBase{
 
 			if(!broadcast.getStreamId().isEmpty() && broadcast.getStreamId() != null) {
 				result = startPlaylist(playlist);
-				logger.error("result -> " + result.isSuccess());
 				playlist.setPlaylistStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 				boolean resultdb = getDataStore().editPlaylist(playlistId, playlist);
-				logger.error("resultdb"+resultdb);
 			}
 		}
 		return result;
@@ -129,57 +124,94 @@ public class PlaylistRestServiceV2 extends RestServiceBase{
 	public Result deletePlaylist(@ApiParam(value = "the playlistId of the Playlist", required = true) @PathParam("playlistId") String playlistId) {
 
 		Result result = new Result(false);
-
+		
 		if(playlistId != null) {
-			result.setSuccess(getDataStore().deletePlaylist(playlistId));
+			
+				Broadcast broadcast = getDataStore().get(playlistId);
+				Boolean stopResult = stopBroadcastInternal(broadcast);
+
+				result.setSuccess(getDataStore().delete(playlistId));
+
+				if(result.isSuccess() && stopResult) {
+					logger.info("broadcast {} is deleted and stopped successfully", broadcast.getStreamId());
+					result.setMessage("brodcast is deleted and stopped successfully");
+
+				}
+				else if(result.isSuccess() && !stopResult) {
+					logger.info("broadcast {} is deleted but could not stopped", broadcast);
+					result.setMessage("brodcast is deleted but could not stopped ");
+				}
+			
+			result.setSuccess(getDataStore().deletePlaylist(playlistId));		
+			
 			return result;
 		}
 		return result;
 	}
 
 
-	@ApiOperation(value = "Create Playlist", notes = "", response = Playlist.class)
+	@ApiOperation(value = "Create Playlist", notes = "", response = Result.class)
 	@POST
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/create")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response createPlaylist(@ApiParam(value = "the name of the Playlist File", required = true) Playlist playlist,
+	public Result createPlaylist(@ApiParam(value = "the name of the Playlist File", required = true) Playlist playlist,
 			@ApiParam(value = "If it's true, it starts automatically pulling playlist broadcasts. Default value is false by default", required = false, defaultValue="false") @QueryParam("autoStart") boolean autoStart
 			) {
 
 		Result result = new Result(false);
 
-		if(playlist.getPlaylistId() != null && playlist.getPlaylistId().isEmpty()) {
+		// If Playlist ID is entered, check is not null & valid
+		
+		if(playlist.getPlaylistId().isEmpty() || playlist.getPlaylistId() != null) {
 
 			// Check Playlist ID for already there
-			Broadcast broadcastTmp = getDataStore().get(playlist.getPlaylistId());
+			Playlist playlistTmp = getDataStore().getPlaylist(playlist.getPlaylistId());
 
-			if (broadcastTmp != null) 
+			if (playlistTmp != null) 
 			{
-				return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Playlist id is already being used. ")).build();
+				result.setMessage("Playlist id is already being used");
+				return result;
 			}
 			else if (!StreamIdValidator.isStreamIdValid(playlist.getPlaylistId())) 
 			{
-				return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Playlist id is not valid. ")).build();
+				result.setMessage("Playlist id is not valid");
+				return result;
 			}
-
 		}
-
-		Object returnObject = new Result(false, "unexpected parameters received");
-
+		else {
+			playlist.setPlaylistId(RandomStringUtils.randomNumeric(24));
+		}
+		
+		// Check playlist ID and all stream IDs are same?		
+		
+		if(playlist.getBroadcastItemList().size() != 0) {
+		
+		for (Broadcast broadcast : playlist.getBroadcastItemList()) {
+			
+			try {
+				broadcast.setStreamId(playlist.getPlaylistId());
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		}
+		
 		result.setSuccess(getDataStore().createPlaylist(playlist));
-
+		
+		// If create Playlist is succeed, add broadcast and check autostart
 		if(result.isSuccess()) {
 
-			Broadcast savedBroadcast = saveBroadcast(playlist.getBroadcastItemList().get(playlist.getCurrentPlayIndex()), AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, getScope().getName(), getDataStore(), getAppSettings().getListenerHookURL(), getServerSettings().getServerName(), getServerSettings().getHostAddress());				
-
+			// Add Broadcast for the list in Broadcasts list
+			saveBroadcast(playlist.getBroadcastItemList().get(playlist.getCurrentPlayIndex()), AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, getScope().getName(), getDataStore(), getAppSettings().getListenerHookURL(), getServerSettings().getServerName(), getServerSettings().getHostAddress());
+			
 			if(autoStart) {
 				result = startPlaylist(playlist);
 			}
 		}
 
-
-		return Response.status(Status.OK).entity(returnObject).build();
+		return result;
 	}
 
 	@ApiOperation(value = "Edit Playlist", notes = "", response = Result.class)
@@ -191,13 +223,27 @@ public class PlaylistRestServiceV2 extends RestServiceBase{
 
 		Result result = new Result(false);
 
-		try {
+		if(playlistId != null || playlist.getPlaylistId() != null) {
 			result.setSuccess(getDataStore().editPlaylist(playlistId,playlist));
+			
+			// Check playlist ID and all stream IDs are same?		
+			
+			if(playlist.getBroadcastItemList().size() != 0) {
+			
+			for (Broadcast broadcast : playlist.getBroadcastItemList()) {
+				
+				try {
+					broadcast.setStreamId(playlist.getPlaylistId());
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+			}
+			
 			return result;
-
-		} catch (Exception e) {
-			logger.error(ExceptionUtils.getStackTrace(e));
 		}
+			
 		return result;
 	}
 
