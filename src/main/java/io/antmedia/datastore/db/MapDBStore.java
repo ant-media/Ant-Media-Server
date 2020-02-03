@@ -1178,4 +1178,24 @@ public class MapDBStore extends DataStore {
 		// No need to implement. It used in cluster mode
 		return null;
 	}
+	
+	@Override
+	public boolean addSubTrack(String mainTrackId, String subTrackId) {
+		boolean result = false;
+		synchronized (this) {
+			String json = map.get(mainTrackId);
+			Broadcast mainTrack = gson.fromJson(json, Broadcast.class);
+			List<String> subTracks = mainTrack.getSubTrackStreamIds();
+			if (subTracks == null) {
+				subTracks = new ArrayList<>();
+			}
+			subTracks.add(subTrackId);
+			mainTrack.setSubTrackStreamIds(subTracks);
+			map.replace(mainTrackId, gson.toJson(mainTrack));
+			db.commit();
+			result = true;
+		}
+
+		return result;
+	}
 }

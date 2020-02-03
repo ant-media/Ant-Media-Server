@@ -820,4 +820,18 @@ public class InMemoryDataStore extends DataStore {
 		// No need to implement. It used in cluster mode
 		return null;
 	}
+
+	@Override
+	public boolean addSubTrack(String mainTrackId, String subTrackId) {
+		boolean result = true;
+		Broadcast mainTrack = broadcastMap.get(mainTrackId);
+		List<String> subTracks = mainTrack.getSubTrackStreamIds();
+		if (subTracks == null) {
+			subTracks = new ArrayList<>();
+		}
+		subTracks.add(subTrackId);
+		mainTrack.setSubTrackStreamIds(subTracks);
+		broadcastMap.put(mainTrackId, mainTrack);
+		return result;
+	}
 }

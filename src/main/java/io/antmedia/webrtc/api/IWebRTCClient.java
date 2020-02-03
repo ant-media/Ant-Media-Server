@@ -18,8 +18,9 @@ public interface IWebRTCClient {
 	 * Send video packet to connected client
 	 * @param videoPacket
 	 * @param isKeyFrame
+	 * @param trackIndex 
 	 */
-	public void sendVideoPacket(ByteBuffer videoPacket, boolean isKeyFrame, long timestamp, int frameRotation);
+	public void sendVideoPacket(ByteBuffer videoPacket, boolean isKeyFrame, long timestamp, int frameRotation, int trackIndex);
 	
 	
 	/**

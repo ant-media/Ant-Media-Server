@@ -43,6 +43,14 @@ public interface IWebRTCMuxer extends IStreamInfo {
 	 */
 	public void sendVideoPacket(ByteBuffer videoPacket, boolean isKeyFrame, long timestamp, int frameRotation);
 	
+	/**
+	 * Send video packet to WebRTCClients
+	 * @param videoPacket
+	 * @param isKeyFrame
+	 * @param trackIndex
+	 */
+	public void sendTrackVideoPacket(ByteBuffer videoPacket, boolean isKeyFrame, long timestamp, int frameRotation,
+			int trackIndex);
 	
 	/**
 	 * Send audio packet to WebRTCClients
@@ -64,5 +72,4 @@ public interface IWebRTCMuxer extends IStreamInfo {
 	 * @return
 	 */
 	public Queue<IWebRTCClient> getClientList();
-	
 }

@@ -2,6 +2,7 @@ package io.antmedia.datastore.db;
 
 import java.io.File;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -731,6 +732,10 @@ public class MongoStore extends DataStore {
 					ops.set("altitude", broadcast.getAltitude());
 				}
 				
+				if (broadcast.getMainTrackStreamId() != null) {
+					ops.set("mainTrackStreamId", broadcast.getMainTrackStreamId());
+				}
+				
 				ops.set("receivedBytes", broadcast.getReceivedBytes());
 				ops.set("bitrate", broadcast.getBitrate());
 				ops.set("userAgent", broadcast.getUserAgent());
@@ -1115,5 +1120,23 @@ public class MongoStore extends DataStore {
 			}
 		}
 		return null;
+	}
+
+	@Override
+	public boolean addSubTrack(String mainTrackId, String subTrackId) {
+		synchronized(this) {
+			try {
+				Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(mainTrackId);
+
+				UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).push("subTrackStreamIds",
+						subTrackId);
+
+				UpdateResults update = datastore.update(query, ops);
+				return update.getUpdatedCount() == 1;
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+		return false;
 	}
 }
