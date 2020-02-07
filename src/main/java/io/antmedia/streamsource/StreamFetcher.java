@@ -129,8 +129,10 @@ public class StreamFetcher {
 		AVDictionary optionsDictionary = new AVDictionary();
 
 		String streamUrl = stream.getStreamUrl();
-		if (streamUrl.startsWith("rtsp://")) {
-			av_dict_set(optionsDictionary, "rtsp_transport", "tcp", 0);
+		String transportType = appSettings.getRtspPullTransportType();
+		if (streamUrl.startsWith("rtsp://") && !transportType.isEmpty()) {
+			logger.info("Setting rtsp transport type to {} for stream source: {}", transportType, streamUrl);
+			av_dict_set(optionsDictionary, "rtsp_transport", transportType, 0);
 		}
 
 		String timeoutStr = String.valueOf(this.timeout);
