@@ -795,7 +795,7 @@ public abstract class RestServiceBase {
 		return connResult;
 	}
 
-	public Result startPlaylist(Playlist playlist) {
+	public Result startPlaylistService(Playlist playlist) {
 
 		Result result = new Result(false);
 

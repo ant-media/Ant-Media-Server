@@ -74,6 +74,7 @@ public class PlaylistRestServiceV2 extends RestServiceBase{
 
 		//Check playlistId is not null
 		if(playlistId != null) {
+			
 			// Get playlist from Datastore
 			Playlist playlist = getDataStore().getPlaylist(playlistId);
 			// Get current broadcast from playlist
@@ -107,7 +108,7 @@ public class PlaylistRestServiceV2 extends RestServiceBase{
 			Broadcast broadcast = playlist.getBroadcastItemList().get(playlist.getCurrentPlayIndex());
 
 			if(!broadcast.getStreamId().isEmpty() && broadcast.getStreamId() != null) {
-				result = startPlaylist(playlist);
+				result = startPlaylistService(playlist);
 				playlist.setPlaylistStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 				boolean resultdb = getDataStore().editPlaylist(playlistId, playlist);
 			}
@@ -127,21 +128,10 @@ public class PlaylistRestServiceV2 extends RestServiceBase{
 		
 		if(playlistId != null) {
 			
-				Broadcast broadcast = getDataStore().get(playlistId);
-				Boolean stopResult = stopBroadcastInternal(broadcast);
+			Broadcast broadcast = getDataStore().get(playlistId);
+			stopBroadcastInternal(broadcast);
 
-				result.setSuccess(getDataStore().delete(playlistId));
-
-				if(result.isSuccess() && stopResult) {
-					logger.info("broadcast {} is deleted and stopped successfully", broadcast.getStreamId());
-					result.setMessage("brodcast is deleted and stopped successfully");
-
-				}
-				else if(result.isSuccess() && !stopResult) {
-					logger.info("broadcast {} is deleted but could not stopped", broadcast);
-					result.setMessage("brodcast is deleted but could not stopped ");
-				}
-			
+			getDataStore().delete(playlistId);
 			result.setSuccess(getDataStore().deletePlaylist(playlistId));		
 			
 			return result;
@@ -155,7 +145,7 @@ public class PlaylistRestServiceV2 extends RestServiceBase{
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/create")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result createPlaylist(@ApiParam(value = "the name of the Playlist File", required = true) Playlist playlist,
+	public Result createPlaylist(@ApiParam(value = "the name of the Playlist File", required = false) Playlist playlist,
 			@ApiParam(value = "If it's true, it starts automatically pulling playlist broadcasts. Default value is false by default", required = false, defaultValue="false") @QueryParam("autoStart") boolean autoStart
 			) {
 
@@ -163,7 +153,7 @@ public class PlaylistRestServiceV2 extends RestServiceBase{
 
 		// If Playlist ID is entered, check is not null & valid
 		
-		if(playlist.getPlaylistId().isEmpty() || playlist.getPlaylistId() != null) {
+		if(playlist.getPlaylistId() != null && !playlist.getPlaylistId().isEmpty()) {
 
 			// Check Playlist ID for already there
 			Playlist playlistTmp = getDataStore().getPlaylist(playlist.getPlaylistId());
@@ -207,7 +197,7 @@ public class PlaylistRestServiceV2 extends RestServiceBase{
 			saveBroadcast(playlist.getBroadcastItemList().get(playlist.getCurrentPlayIndex()), AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, getScope().getName(), getDataStore(), getAppSettings().getListenerHookURL(), getServerSettings().getServerName(), getServerSettings().getHostAddress());
 			
 			if(autoStart) {
-				result = startPlaylist(playlist);
+				result = startPlaylistService(playlist);
 			}
 		}
 
@@ -228,7 +218,7 @@ public class PlaylistRestServiceV2 extends RestServiceBase{
 			
 			// Check playlist ID and all stream IDs are same?		
 			
-			if(playlist.getBroadcastItemList().size() != 0) {
+			if(playlist.getBroadcastItemList() != null) {
 			
 			for (Broadcast broadcast : playlist.getBroadcastItemList()) {
 				

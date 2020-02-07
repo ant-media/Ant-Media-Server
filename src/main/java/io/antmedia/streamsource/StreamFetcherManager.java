@@ -228,104 +228,104 @@ public class StreamFetcherManager {
 		// Get current stream in Playlist
 		Broadcast playlistBroadcastItem = playlist.getBroadcastItemList().get(playlist.getCurrentPlayIndex());
 
-		if(playlistBroadcastItem.getStreamId() != null || playlistBroadcastItem.getStreamUrl() != null || !playlistBroadcastItem.getStreamUrl().isEmpty() ) 
-		{
+		// Check Stream URL is valid.
+		// If stream URL is not valid, it's trying next broadcast and trying.
+		try {
+			if(checkStreamUrlWithHTTP(playlistBroadcastItem.getStreamUrl()).isSuccess()) {
 
-			// Check Stream URL is valid.
-			// If stream URL is not valid, it's trying next broadcast and trying.
-			try {
-				if(checkStreamUrlWithHTTP(playlistBroadcastItem.getStreamUrl()).isSuccess()) {
+				// Create Stream Fetcher with Playlist Broadcast Item
+				StreamFetcher streamScheduler = new StreamFetcher(playlistBroadcastItem, scope, vertx);
 
-					// Create Stream Fetcher with Playlist Broadcast Item
-					StreamFetcher streamScheduler = new StreamFetcher(playlistBroadcastItem, scope, vertx);
+				// Update Playlist current playing status
+				playlist.setPlaylistStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 
-					// Update Playlist current playing status
-					playlist.setPlaylistStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
-					
-					// Update broadcast current playing status
-					playlist.getBroadcastItemList().get(playlist.getCurrentPlayIndex()).setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING); 
+				// Update broadcast current playing status
+				playlist.getBroadcastItemList().get(playlist.getCurrentPlayIndex()).setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING); 
 
-					// Update Datastore current play broadcast
-					datastore.editPlaylist(playlist.getPlaylistId(), playlist);
+				// Update Datastore current play broadcast
+				datastore.editPlaylist(playlist.getPlaylistId(), playlist);
 
-					streamScheduler.setStreamFetcherListener(new IStreamFetcherListener() {
+				streamScheduler.setStreamFetcherListener(new IStreamFetcherListener() {
 
-						@Override
-						public void streamFinished(IStreamFetcherListener listener) {
-														
-							stopStreaming(playlistBroadcastItem);
+					@Override
+					public void streamFinished(IStreamFetcherListener listener) {
 
-							if(playlist.getPlaylistStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) 
+						stopStreaming(playlistBroadcastItem);
+						
+						// Get current playlist in database
+						Playlist playlist = datastore.getPlaylist(playlistBroadcastItem.getStreamId());
+
+						if(playlist.getPlaylistStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) 
+						{
+
+							// Get Current Playlist Stream Index
+							int currentStreamIndex = playlist.getCurrentPlayIndex()+1;
+
+							if(playlist.getBroadcastItemList().size() == currentStreamIndex) 
 							{
-								// Get playlist in database
-								Playlist playlist = datastore.getPlaylist(playlistBroadcastItem.getStreamId());
-								
-								// Get Current Playlist Stream Index
-								int currentStreamIndex = playlist.getCurrentPlayIndex()+1;
 
-								if(playlist.getBroadcastItemList().size() == currentStreamIndex) 
-								{
-
-									//update playlist first broadcast
-									playlist.setCurrentPlayIndex(0);
-									currentStreamIndex = 0;
-									datastore.editPlaylist(playlist.getPlaylistId(), playlist);
-
-								}
-
-								else {
-
-									// update playlist currentPlayIndex value.
-									playlist.setCurrentPlayIndex(currentStreamIndex);
-									datastore.editPlaylist(playlist.getPlaylistId(), playlist);
-									
-									//update broadcast informations
-									Broadcast fetchedBroadcast = playlist.getBroadcastItemList().get(currentStreamIndex);
-
-									Result result = new Result(false);
-
-									result.setSuccess(datastore.updateBroadcastFields(fetchedBroadcast.getStreamId(), fetchedBroadcast));
-
-									StreamFetcher streamScheduler = new StreamFetcher(fetchedBroadcast,scope,vertx);
-
-									streamScheduler.setStreamFetcherListener(listener);
-
-									playlistStartStreaming(playlistBroadcastItem,streamScheduler);
-
-								}
+								//update playlist first broadcast
+								playlist.setCurrentPlayIndex(0);
+								currentStreamIndex = 0;
+								datastore.editPlaylist(playlist.getPlaylistId(), playlist);
 
 							}
 
+							else {
+
+								// update playlist currentPlayIndex value.
+								playlist.setCurrentPlayIndex(currentStreamIndex);
+								datastore.editPlaylist(playlist.getPlaylistId(), playlist);
+
+							}
+							
+							logger.error("current play index -> " + currentStreamIndex);
+							
+							//update broadcast informations
+							Broadcast fetchedBroadcast = playlist.getBroadcastItemList().get(currentStreamIndex);
+
+							Result result = new Result(false);
+
+							result.setSuccess(datastore.updateBroadcastFields(fetchedBroadcast.getStreamId(), fetchedBroadcast));
+
+							StreamFetcher streamScheduler = new StreamFetcher(fetchedBroadcast,scope,vertx);
+
+							streamScheduler.setStreamFetcherListener(listener);
+
+							playlistStartStreaming(playlistBroadcastItem,streamScheduler);
+
+
 						}
 
-					});
-					
-					playlistStartStreaming(playlistBroadcastItem,streamScheduler);	
+					}
 
+				});
+
+				playlistStartStreaming(playlistBroadcastItem,streamScheduler);
+
+			}
+			else {
+
+				// Check already playlist broadcast list is one
+				// If current playlist broadcast list size is 1, doesn't get a loop
+				if(playlist.getBroadcastItemList().size() <= playlist.getCurrentPlayIndex()+1 ) {
+					logger.info("All playlist URLs invalid");
 				}
 				else {
 
-					// Check already playlist broadcast list is one
-					// If current playlist broadcast list size is 1, doesn't get a loop
-					if(playlist.getBroadcastItemList().size() <= playlist.getCurrentPlayIndex()+1 ) {
-						logger.info("All playlist URLs invalid");
-					}
-					else {
+					// Try to next Broadcast Item 
+					playlist.setCurrentPlayIndex(playlist.getCurrentPlayIndex()+1);
 
-						// Try to next Broadcast Item 
-						playlist.setCurrentPlayIndex(playlist.getCurrentPlayIndex()+1);
+					// Update Db current playlist status
+					datastore.editPlaylist(playlist.getPlaylistId(), playlist);
 
-						// Update Db current playlist status
-						datastore.editPlaylist(playlist.getPlaylistId(), playlist);
-
-						startPlaylistThread(playlist);	
-					}
-
+					startPlaylistThread(playlist);	
 				}
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+
 			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 	}
 
