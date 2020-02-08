@@ -10,6 +10,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.Nonnull;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,7 +22,6 @@ import io.antmedia.datastore.db.types.Playlist;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.rest.model.Result;
 import io.antmedia.streamsource.StreamFetcher.IStreamFetcherListener;
-import io.antmedia.streamsource.StreamFetcher.WorkerThread;
 import io.vertx.core.Vertx;
 
 
@@ -35,8 +35,6 @@ public class StreamFetcherManager {
 	protected static Logger logger = LoggerFactory.getLogger(StreamFetcherManager.class);
 
 	private int streamCheckerCount = 0;
-
-	private WorkerThread thread;
 
 	private Queue<StreamFetcher> streamFetcherList = new ConcurrentLinkedQueue<>();
 
@@ -251,7 +249,7 @@ public class StreamFetcherManager {
 					public void streamFinished(IStreamFetcherListener listener) {
 
 						stopStreaming(playlistBroadcastItem);
-						
+
 						// Get current playlist in database
 						Playlist playlist = datastore.getPlaylist(playlistBroadcastItem.getStreamId());
 
@@ -278,9 +276,7 @@ public class StreamFetcherManager {
 								datastore.editPlaylist(playlist.getPlaylistId(), playlist);
 
 							}
-							
-							logger.error("current play index -> " + currentStreamIndex);
-							
+
 							//update broadcast informations
 							Broadcast fetchedBroadcast = playlist.getBroadcastItemList().get(currentStreamIndex);
 
@@ -324,8 +320,7 @@ public class StreamFetcherManager {
 
 			}
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 	}
 

@@ -383,7 +383,7 @@ public abstract class RestServiceBase {
 	 * @return
 	 */
 	protected Result updateStreamSource(String streamId, Broadcast broadcast, String socialNetworksToPublish) {
-		
+
 		boolean result = false;
 
 		boolean resultStopStreaming = false;
@@ -407,9 +407,9 @@ public abstract class RestServiceBase {
 					broadcast.setStreamUrl(rtspURLWithAuth);
 				}
 			}
-			
+
 			result = getDataStore().updateBroadcastFields(streamId, broadcast);
-			
+
 			if(result) {
 				Broadcast fetchedBroadcast = getDataStore().get(streamId);
 				getDataStore().removeAllEndpoints(fetchedBroadcast.getStreamId());
@@ -420,7 +420,7 @@ public abstract class RestServiceBase {
 
 				getApplication().startStreaming(fetchedBroadcast);
 			}
-				
+
 		}
 		return new Result(result);
 	}
@@ -443,18 +443,18 @@ public abstract class RestServiceBase {
 
 		int i = 0;
 		int waitPeriod = 250;
-		
+
 		// Broadcast status finished is not enough to be sure about broadcast's status.
 		while (!getDataStore().get(streamId).getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED) && !resultStopStreaming.equals(true)) {
 			try {
-				
+
 				streamId = streamId.replaceAll("[\n|\r|\t]", "_");
-				
+
 				i++;
 				logger.info("Waiting for stop broadcast: {} Total wait time: {}ms", streamId , i*waitPeriod);
-				
+
 				Thread.sleep(waitPeriod);
-				
+
 				if(i > 20) {
 					logger.warn("{} Stream ID broadcast could not be stopped. Total wait time: {}ms", streamId , i*waitPeriod);
 					break;
@@ -463,7 +463,7 @@ public abstract class RestServiceBase {
 				logger.error(e.getMessage());
 				Thread.currentThread().interrupt();
 			}
-			
+
 		}
 		return true;
 	}
@@ -805,6 +805,9 @@ public abstract class RestServiceBase {
 		{
 
 			getApplication().getStreamFetcherManager().startPlaylistThread(playlist);
+
+			playlist.setPlaylistStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+			getDataStore().editPlaylist(playlist.getPlaylistId(), playlist);
 
 			result.setSuccess(true);
 			return result;
