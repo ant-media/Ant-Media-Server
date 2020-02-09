@@ -338,7 +338,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		//create a test db
 		DataStore dataStore = new MapDBStore("target/testPlaylistThread.db"); 
 		
-		//create a stream fetcher
+		//create a stream Manager
 		StreamFetcherManager streamFetcherManager = new StreamFetcherManager(vertx, dataStore, appScope);
 		
 		//create a broadcast
@@ -402,7 +402,15 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		broadcastItem2.setStreamUrl(INVALID_MP4_URL);
 		
-		streamFetcherManager.startPlaylistThread(playlist);		
+		streamFetcherManager.startPlaylistThread(playlist);	
+		
+		playlist.setPlaylistStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+		
+		dataStore.editPlaylist(playlist.getPlaylistId(), playlist);
+		
+		streamFetcherManager.stopCheckerJob();
+		
+		streamFetcherManager.stopStreaming(playlist.getBroadcastItemList().get(playlist.getCurrentPlayIndex()));
 		
 	}
 	
@@ -535,7 +543,9 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			return !streamFetcherPlaylist.isThreadActive();
 		});
 		
-		streamFetcherManager.stopStreaming(newCam);
+		Result result = streamFetcherManager.stopStreaming(newCam);
+		
+		assertTrue(result.isSuccess());
 	}
 	
 	
