@@ -1605,7 +1605,7 @@ public class DBStoresUnitTest {
 		
 		broadcastList.add(broadcast);
 		
-		Playlist playlist = new Playlist("12312",0,"playlistName",111,111,broadcastList);
+		Playlist playlist = new Playlist("12312",0,"playlistName",AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED,111,111,broadcastList);
 
 		//create playlist
 		assertTrue(dataStore.createPlaylist(playlist));

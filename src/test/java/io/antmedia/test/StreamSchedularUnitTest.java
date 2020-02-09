@@ -33,6 +33,7 @@ import org.junit.Test;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
+import org.mockito.Mockito;
 import org.red5.server.scheduling.QuartzSchedulingService;
 import org.red5.server.scope.WebScope;
 import org.slf4j.Logger;
@@ -47,6 +48,7 @@ import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.Playlist;
 import io.antmedia.integration.AppFunctionalTest;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.model.Result;
@@ -59,6 +61,8 @@ import io.vertx.core.Vertx;
 public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 	public Application app = null;
+	public static String VALID_MP4_URL = "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4";
+	public static String INVALID_MP4_URL = "invalid_link";
 	private WebScope appScope;
 	protected static Logger logger = LoggerFactory.getLogger(StreamSchedularUnitTest.class);
 
@@ -379,11 +383,135 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		//convert to original settings
 		getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
 		Application.enableSourceHealthUpdate = false;
+		
+		
+		// Playlist Scenario
+		
+		StreamFetcher streamFetcherPlaylist = streamFetcherManager.playlistStartStreaming(newCam, streamFetcher);
+		
+		//check whether answer from StreamFetcherManager is true or not after new IPCamera is added
+		assertNotNull(streamFetcherPlaylist);
+
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->  {
+			return streamFetcherPlaylist.isThreadActive();
+		});
+		
+		streamFetcherManager.stopCheckerJob();
+
+		//check that fetcher is nor running
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->  {
+			return !streamFetcherPlaylist.isThreadActive();
+		});
+		
+		
+		//check that there is no job related left related with stream fetching
+		try {
+			Thread.sleep(10000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
 
 	}
 	
+	@Test
+	public void testCheckStreamUrlWithHTTP() {
+		
+		//create a test db
+		DataStore dataStore = new MapDBStore("target/testCheckStreamUrl.db"); 
+		
+		//create a stream fetcher
+		StreamFetcherManager streamFetcherManager = new StreamFetcherManager(vertx, dataStore, appScope);
+		
+		Result result;
+		
+		result = streamFetcherManager.checkStreamUrlWithHTTP(INVALID_MP4_URL);
+			
+		assertEquals(false, result.isSuccess());
+			
+		result = streamFetcherManager.checkStreamUrlWithHTTP(VALID_MP4_URL);
+			
+		assertEquals(true, result.isSuccess());
+		
+	}
 	
 	@Test
+	public void testStartPlaylistThread() {
+		
+		//create a test db
+		DataStore dataStore = new MapDBStore("target/testPlaylist.db"); 
+		
+		//create a stream fetcher
+		StreamFetcherManager streamFetcherManager = new StreamFetcherManager(vertx, dataStore, appScope);
+		
+		//create a broadcast
+		Broadcast broadcastItem1=new Broadcast();
+		
+		try {
+			broadcastItem1.setStreamId("testId");
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		broadcastItem1.setStreamUrl(VALID_MP4_URL);
+
+		//create a broadcast
+		Broadcast broadcastItem2=new Broadcast();
+		
+		try {
+			broadcastItem2.setStreamId("testId");
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		broadcastItem2.setStreamUrl(VALID_MP4_URL);
+		
+		//create a broadcast
+		Broadcast broadcastItem3=new Broadcast();
+		
+		try {
+			broadcastItem3.setStreamId("testId");
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		
+		broadcastItem3.setStreamUrl(VALID_MP4_URL);
+
+		List<Broadcast> broadcastList = new ArrayList<>();
+
+		broadcastList.add(broadcastItem1);
+		broadcastList.add(broadcastItem2);
+		broadcastList.add(broadcastItem3);
+
+		Playlist playlist = new Playlist("testId" ,0 ,"playlistName",AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, 111, 111, broadcastList);
+		
+		dataStore.createPlaylist(playlist);
+		
+		streamFetcherManager.startPlaylistThread(playlist);
+		
+		assertNotNull(streamFetcherManager);
+		
+		broadcastItem1.setStreamUrl(INVALID_MP4_URL);
+		
+		broadcastItem2.setStreamUrl(VALID_MP4_URL);
+		
+		streamFetcherManager.startPlaylistThread(playlist);
+		
+		broadcastItem1.setStreamUrl(INVALID_MP4_URL);
+		
+		broadcastItem2.setStreamUrl(INVALID_MP4_URL);
+		
+		streamFetcherManager.startPlaylistThread(playlist);		
+		
+	}
+	
+	
+	//@Test
 	public void testStopFetchingWhenStopCalled() {
 
 		

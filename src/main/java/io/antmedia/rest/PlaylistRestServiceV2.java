@@ -11,7 +11,6 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
 import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.stereotype.Component;
 
 import io.antmedia.AntMediaApplicationAdapter;
@@ -172,17 +171,7 @@ public class PlaylistRestServiceV2 extends RestServiceBase{
 
 		// Check playlist ID and all stream IDs are same?		
 
-		if(playlist.getBroadcastItemList() != null) {
-
-			for (Broadcast broadcast : playlist.getBroadcastItemList()) {
-
-				try {
-					broadcast.setStreamId(playlist.getPlaylistId());
-				} catch (Exception e) {
-					logger.error(ExceptionUtils.getStackTrace(e));
-				}
-			}
-		}
+		checkBroadcastIdsInPlaylist(playlist);
 
 		result.setSuccess(getDataStore().createPlaylist(playlist));
 
@@ -191,7 +180,7 @@ public class PlaylistRestServiceV2 extends RestServiceBase{
 
 			// Add Broadcast for the list in Broadcasts list
 			saveBroadcast(playlist.getBroadcastItemList().get(playlist.getCurrentPlayIndex()), AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, getScope().getName(), getDataStore(), getAppSettings().getListenerHookURL(), getServerSettings().getServerName(), getServerSettings().getHostAddress());
-
+			
 			if(autoStart) {
 				result = startPlaylistService(playlist);
 			}
@@ -213,18 +202,7 @@ public class PlaylistRestServiceV2 extends RestServiceBase{
 
 			// Check playlist ID and all stream IDs are same?		
 
-			if(playlist.getBroadcastItemList() != null) {
-
-				for (Broadcast broadcast : playlist.getBroadcastItemList()) {
-
-					try {
-						broadcast.setStreamId(playlistId);
-					} catch (Exception e) {
-						logger.error(ExceptionUtils.getStackTrace(e));
-					}
-
-				}
-			}
+			checkBroadcastIdsInPlaylist(playlist);
 
 			result.setSuccess(getDataStore().editPlaylist(playlistId,playlist));
 

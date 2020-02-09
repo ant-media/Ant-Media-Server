@@ -822,6 +822,29 @@ public abstract class RestServiceBase {
 
 		return result;
 	}
+	
+	public void checkBroadcastIdsInPlaylist(Playlist playlist) {
+		
+		if(playlist.getBroadcastItemList() != null) {
+
+			for (Broadcast broadcast : playlist.getBroadcastItemList()) {
+
+				try {
+					broadcast.setStreamId(playlist.getPlaylistId());
+				} catch (Exception e) {
+					logger.error(ExceptionUtils.getStackTrace(e));
+				}
+			}
+		}
+		else {
+			Broadcast broadcast = new Broadcast();
+			
+			List<Broadcast> broadcastItemList = new ArrayList<>();
+			broadcastItemList.add(broadcast);
+
+			playlist.setBroadcastItemList(broadcastItemList);
+		}
+	}
 
 	public Result addStreamSource(Broadcast stream, String socialEndpointIds) {
 
