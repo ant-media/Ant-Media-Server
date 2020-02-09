@@ -80,10 +80,10 @@ public class PlaylistRestServiceV2 extends RestServiceBase{
 
 			if(!broadcast.getStreamId().isEmpty() && broadcast.getStreamId() != null) {
 
+				result = getApplication().stopStreaming(broadcast);
+
 				playlist.setPlaylistStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
 				getDataStore().editPlaylist(playlistId, playlist);
-
-				result = getApplication().stopStreaming(broadcast);
 			}
 		}
 
@@ -125,10 +125,11 @@ public class PlaylistRestServiceV2 extends RestServiceBase{
 		if(playlistId != null) {
 
 			Broadcast broadcast = getDataStore().get(playlistId);
-			stopBroadcastInternal(broadcast);
 
+			result.setSuccess(getDataStore().deletePlaylist(playlistId));	
 			getDataStore().delete(playlistId);
-			result.setSuccess(getDataStore().deletePlaylist(playlistId));		
+
+			getApplication().stopStreaming(broadcast);
 
 			return result;
 		}
@@ -171,7 +172,7 @@ public class PlaylistRestServiceV2 extends RestServiceBase{
 
 		// Check playlist ID and all stream IDs are same?		
 
-		if(!playlist.getBroadcastItemList().isEmpty()) {
+		if(playlist.getBroadcastItemList() != null) {
 
 			for (Broadcast broadcast : playlist.getBroadcastItemList()) {
 
@@ -208,8 +209,7 @@ public class PlaylistRestServiceV2 extends RestServiceBase{
 
 		Result result = new Result(false);
 
-		if(playlistId != null || playlist.getPlaylistId() != null) {
-			result.setSuccess(getDataStore().editPlaylist(playlistId,playlist));
+		if(playlistId != null && playlist.getPlaylistId() != null) {
 
 			// Check playlist ID and all stream IDs are same?		
 
@@ -218,12 +218,15 @@ public class PlaylistRestServiceV2 extends RestServiceBase{
 				for (Broadcast broadcast : playlist.getBroadcastItemList()) {
 
 					try {
-						broadcast.setStreamId(playlist.getPlaylistId());
+						broadcast.setStreamId(playlistId);
 					} catch (Exception e) {
 						logger.error(ExceptionUtils.getStackTrace(e));
 					}
+
 				}
 			}
+
+			result.setSuccess(getDataStore().editPlaylist(playlistId,playlist));
 
 			return result;
 		}

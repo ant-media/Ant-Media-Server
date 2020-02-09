@@ -814,7 +814,7 @@ public abstract class RestServiceBase {
 		} 
 		else {
 
-			logger.error("Stream Fetcher can not be created due to high cpu load/limit: {}/{} ram free/minfree:{}/{}", 
+			logger.error("Playlist can not be created and started due to high cpu load/limit: {}/{} ram free/minfree:{}/{}", 
 					monitor.getCpuLoad(), monitor.getCpuLimit(), monitor.getFreeRam(), monitor.getMinFreeRamSize());
 			result.setMessage("Resource usage is high");		
 			result.setErrorId(HIGH_CPU_ERROR);

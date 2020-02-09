@@ -11,6 +11,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import javax.annotation.Nonnull;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.kafka.clients.admin.NewPartitions;
 import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,16 +49,6 @@ public class StreamFetcherManager {
 	private IScope scope;
 
 	private long streamFetcherScheduleJobName = -1L;
-
-	private long playlistFetcherScheduleJobName = -1L;
-
-	public long getPlaylistFetcherScheduleJobName() {
-		return playlistFetcherScheduleJobName;
-	}
-
-	public void setPlaylistFetcherScheduleJobName(long playlistFetcherScheduleJobName) {
-		this.playlistFetcherScheduleJobName = playlistFetcherScheduleJobName;
-	}
 
 	protected AtomicBoolean isJobRunning = new AtomicBoolean(false);
 
@@ -243,58 +234,53 @@ public class StreamFetcherManager {
 				// Update Datastore current play broadcast
 				datastore.editPlaylist(playlist.getPlaylistId(), playlist);
 
-				streamScheduler.setStreamFetcherListener(new IStreamFetcherListener() {
+				streamScheduler.setStreamFetcherListener(listener -> {
+					
+					// It's necessary for skip new Stream Fetcher
+					stopStreaming(playlistBroadcastItem);
 
-					@Override
-					public void streamFinished(IStreamFetcherListener listener) {
+					// Get current playlist in database
+					Playlist newPlaylist = datastore.getPlaylist(playlistBroadcastItem.getStreamId());
 
-						stopStreaming(playlistBroadcastItem);
-
-						// Get current playlist in database
-						Playlist playlist = datastore.getPlaylist(playlistBroadcastItem.getStreamId());
-
-						if(playlist.getPlaylistStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) 
-						{
-
+					//Check playlist is not deleted and not stopped
+					if(newPlaylist.getPlaylistId() != null && newPlaylist.getPlaylistStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING))
+					{
+						logger.error("\n \n \n \n ggggggggggggggg");
 							// Get Current Playlist Stream Index
-							int currentStreamIndex = playlist.getCurrentPlayIndex()+1;
+							int currentStreamIndex = newPlaylist.getCurrentPlayIndex()+1;
 
-							if(playlist.getBroadcastItemList().size() == currentStreamIndex) 
+							if(newPlaylist.getBroadcastItemList().size() == currentStreamIndex) 
 							{
 
 								//update playlist first broadcast
-								playlist.setCurrentPlayIndex(0);
+								newPlaylist.setCurrentPlayIndex(0);
 								currentStreamIndex = 0;
-								datastore.editPlaylist(playlist.getPlaylistId(), playlist);
+								datastore.editPlaylist(newPlaylist.getPlaylistId(), newPlaylist);
 
 							}
 
 							else {
 
 								// update playlist currentPlayIndex value.
-								playlist.setCurrentPlayIndex(currentStreamIndex);
-								datastore.editPlaylist(playlist.getPlaylistId(), playlist);
+								newPlaylist.setCurrentPlayIndex(currentStreamIndex);
+								datastore.editPlaylist(newPlaylist.getPlaylistId(), newPlaylist);
 
 							}
 
 							//update broadcast informations
-							Broadcast fetchedBroadcast = playlist.getBroadcastItemList().get(currentStreamIndex);
+							Broadcast fetchedBroadcast = newPlaylist.getBroadcastItemList().get(currentStreamIndex);
 
 							Result result = new Result(false);
 
 							result.setSuccess(datastore.updateBroadcastFields(fetchedBroadcast.getStreamId(), fetchedBroadcast));
 
-							StreamFetcher streamScheduler = new StreamFetcher(fetchedBroadcast,scope,vertx);
+							StreamFetcher newStreamScheduler = new StreamFetcher(fetchedBroadcast,scope,vertx);
 
-							streamScheduler.setStreamFetcherListener(listener);
+							newStreamScheduler.setStreamFetcherListener(listener);
 
-							playlistStartStreaming(playlistBroadcastItem,streamScheduler);
-
-
-						}
+							playlistStartStreaming(playlistBroadcastItem,newStreamScheduler);
 
 					}
-
 				});
 
 				playlistStartStreaming(playlistBroadcastItem,streamScheduler);
