@@ -200,7 +200,9 @@ public class PlaylistRestServiceV2UnitTest {
 		
 		playlist.setPlaylistId("testWithNullBroadcastList");
 		
-		playlist.setBroadcastItemList(null);
+		broadcastList.clear();
+		
+		playlist.setBroadcastItemList(broadcastList);
 		
 		result = restServiceReal.createPlaylist(playlist, false);
 
@@ -358,8 +360,10 @@ public class PlaylistRestServiceV2UnitTest {
 		playlist.setPlaylistId("afterTestPlaylistId");
 
 		playlist.setPlaylistName("afterTestPlaylistName");
+		
+		broadcastList.clear();
 
-		playlist.setBroadcastItemList(null);
+		playlist.setBroadcastItemList(broadcastList);
 
 		result = restServiceReal.editPlaylist(playlist.getPlaylistId(), playlist);
 

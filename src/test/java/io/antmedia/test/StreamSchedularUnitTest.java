@@ -412,6 +412,14 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		streamFetcherManager.stopStreaming(playlist.getBroadcastItemList().get(playlist.getCurrentPlayIndex()));
 		
+		//check that there is no job related left related with stream fetching
+		try {
+			Thread.sleep(10000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
 	}
 	
 	@Test
@@ -506,6 +514,8 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testPlaylistStartStreaming() {
 		
 		BroadcastRestService service = new BroadcastRestService();
+		
+		service.setApplication(app.getAppAdaptor());
 
 		//create a broadcast
 		Broadcast newCam = new Broadcast("test", "127.0.0.1:8080", "admin", "admin", "rtsp://127.0.0.1:6554/test.flv",
@@ -527,10 +537,13 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		//create a stream fetcher
 		StreamFetcherManager streamFetcherManager = new StreamFetcherManager(vertx, dataStore, appScope);
 		
+		app.getAppAdaptor().setStreamFetcherManager(streamFetcherManager);
+		
 		StreamFetcher streamFetcherPlaylist = streamFetcherManager.playlistStartStreaming(newCam, streamFetcher);
 		
 		//check whether answer from StreamFetcherManager is true or not after new IPCamera is added
 		assertNotNull(streamFetcherPlaylist);
+		
 
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->  {
 			return streamFetcherPlaylist.isThreadActive();
@@ -543,9 +556,26 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			return !streamFetcherPlaylist.isThreadActive();
 		});
 		
+		//check that there is no job related left related with stream fetching
+		try {
+			Thread.sleep(10000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
 		Result result = streamFetcherManager.stopStreaming(newCam);
 		
 		assertTrue(result.isSuccess());
+		
+		//check that there is no job related left related with stream fetching
+		try {
+			Thread.sleep(10000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
 	}
 	
 	
