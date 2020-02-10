@@ -189,7 +189,7 @@ public class StreamFetcherManager {
 		}
 	}
 
-	public Result checkStreamUrlWithHTTP(String url){
+	public static Result checkStreamUrlWithHTTP(String url){
 
 		Result result = new Result(false);
 

@@ -10,6 +10,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.io.IOException;
@@ -38,6 +40,7 @@ import org.red5.server.scheduling.QuartzSchedulingService;
 import org.red5.server.scope.WebScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationContext;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
@@ -45,12 +48,14 @@ import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
+import io.antmedia.IApplicationAdaptorFactory;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Playlist;
 import io.antmedia.integration.AppFunctionalTest;
 import io.antmedia.rest.BroadcastRestService;
+import io.antmedia.rest.PlaylistRestServiceV2;
 import io.antmedia.rest.model.Result;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
@@ -305,20 +310,104 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
+
 		getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
 		Application.enableSourceHealthUpdate = false;
 
+	}
+	
+	@Test
+	public void testPlaylistStartStreaming() {
+		
+		BroadcastRestService service = new BroadcastRestService();
+		
+		service.setApplication(app.getAppAdaptor());
 
+		//create a broadcast
+		Broadcast newCam = new Broadcast("test", "127.0.0.1:8080", "admin", "admin", "rtsp://wowzaec2demo.streamlock.net/vod/mp4:BigBuckBunny_115k.mov",
+				AntMediaApplicationAdapter.STREAM_SOURCE);
+		
+		//create a test db
+		DataStore dataStore = new MapDBStore("target/testPlaylistStartStreaming.db"); 
+		
+		service.setDataStore(dataStore);
+		
+
+		//add stream to data store
+		dataStore.save(newCam);
+		
+		StreamFetcher streamFetcher = new StreamFetcher(newCam, appScope, vertx); 
+		
+		service.setApplication(app.getAppAdaptor());
+		
+		
+		//create a stream fetcher
+		StreamFetcherManager streamFetcherManager = new StreamFetcherManager(vertx, dataStore, appScope);
+		
+		app.getAppAdaptor().setStreamFetcherManager(streamFetcherManager);
+		
+		StreamFetcher streamFetcherPlaylist = streamFetcherManager.playlistStartStreaming(newCam, streamFetcher);
+		
+		//check whether answer from StreamFetcherManager is true or not after new IPCamera is added
+		assertNotNull(streamFetcherPlaylist);
+		
+
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->  {
+			return streamFetcherPlaylist.isThreadActive();
+		});
+		
+		streamFetcherManager.stopCheckerJob();
+		Result result = streamFetcherManager.stopStreaming(newCam);
+
+		//check that fetcher is nor running
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->  {
+			return !streamFetcherPlaylist.isThreadActive();
+		});
+		
+		//check that there is no job related left related with stream fetching
+		try {
+			Thread.sleep(10000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		assertTrue(result.isSuccess());
+		
+		//check that there is no job related left related with stream fetching
+		try {
+			Thread.sleep(10000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
 	}
 	
 	@Test
 	public void testStartPlaylistThread() {
 		
+		PlaylistRestServiceV2 service = new PlaylistRestServiceV2();
+		
+		service.setApplication(app.getAppAdaptor());
+		
+		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnEnded();
+
+		getAppSettings().setDeleteHLSFilesOnEnded(false);
+		
+		ApplicationContext context = mock(ApplicationContext.class);
+		
+		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
+		
+		
 		Result result = new Result(false);
 				
 		//create a test db
-		DataStore dataStore = new MapDBStore("target/testPlaylistThread.db"); 
+		DataStore dataStore = new MapDBStore("target/testPlaylistThreat.db"); 
+		
+		service.setDataStore(dataStore);
+		
+		service.setAppCtx(context);
 		
 		//create a stream Manager
 		StreamFetcherManager streamFetcherManager = new StreamFetcherManager(vertx, dataStore, appScope);
@@ -372,13 +461,35 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		streamFetcherManager.startPlaylistThread(playlist);
 		
-		assertNotNull(streamFetcherManager);
+		assertNotNull(streamFetcherManager);		
 		
-		broadcastItem1.setStreamUrl(INVALID_MP4_URL);
+		playlist.setPlaylistStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
 		
-		broadcastItem2.setStreamUrl(VALID_MP4_URL);
+		dataStore.editPlaylist(playlist.getPlaylistId(), playlist);
 		
-		streamFetcherManager.startPlaylistThread(playlist);
+		service.stopPlaylist(playlist.getPlaylistId());
+		
+		streamFetcherManager.stopStreaming(playlist.getBroadcastItemList().get(playlist.getCurrentPlayIndex()));
+		
+		streamFetcherManager.stopCheckerJob();
+		
+		
+		
+		
+		//check that there is no job related left related with stream fetching
+		try {
+			Thread.sleep(10000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		
+		// restore playlist broadcast status
+		
+		playlist.setPlaylistStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+		
+		dataStore.editPlaylist(playlist.getPlaylistId(), playlist);
 		
 		broadcastItem1.setStreamUrl(INVALID_MP4_URL);
 		
@@ -389,6 +500,14 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		playlist.setPlaylistStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
 		
 		dataStore.editPlaylist(playlist.getPlaylistId(), playlist);
+		
+		service.stopPlaylist(playlist.getPlaylistId());
+		
+		streamFetcherManager.stopStreaming(playlist.getBroadcastItemList().get(playlist.getCurrentPlayIndex()));
+		
+		streamFetcherManager.stopCheckerJob();	
+		
+		
 		
 		//check that there is no job related left related with stream fetching
 		try {
@@ -401,18 +520,13 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		//Check Stream URL function
 		
-		result = streamFetcherManager.checkStreamUrlWithHTTP(INVALID_MP4_URL);
+		result = StreamFetcherManager.checkStreamUrlWithHTTP(INVALID_MP4_URL);
 		
 		assertEquals(false, result.isSuccess());
 			
-		result = streamFetcherManager.checkStreamUrlWithHTTP(VALID_MP4_URL);
+		result = StreamFetcherManager.checkStreamUrlWithHTTP(VALID_MP4_URL);
 			
 		assertEquals(true, result.isSuccess());
-		
-		
-		streamFetcherManager.stopCheckerJob();
-		
-		streamFetcherManager.stopStreaming(playlist.getBroadcastItemList().get(playlist.getCurrentPlayIndex()));
 		
 		//check that there is no job related left related with stream fetching
 		try {
@@ -421,6 +535,10 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		
+		//convert to original settings
+		getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
+		Application.enableSourceHealthUpdate = false;
 		
 	}
 	
@@ -496,89 +614,10 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		//convert to original settings
 		getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
 		Application.enableSourceHealthUpdate = false;
-		
-	
-		
-		
-		
-		//check that there is no job related left related with stream fetching
-		try {
-			Thread.sleep(10000);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
 
 	}
 	
-	@Test
-	public void testPlaylistStartStreaming() {
-		
-		BroadcastRestService service = new BroadcastRestService();
-		
-		service.setApplication(app.getAppAdaptor());
-
-		//create a broadcast
-		Broadcast newCam = new Broadcast("test", "127.0.0.1:8080", "admin", "admin", "rtsp://wowzaec2demo.streamlock.net/vod/mp4:BigBuckBunny_115k.mov",
-				AntMediaApplicationAdapter.STREAM_SOURCE);
-		
-		//create a test db
-		DataStore dataStore = new MapDBStore("target/testStartPlaylist.db"); 
-		
-		service.setDataStore(dataStore);
-		
-
-		//add stream to data store
-		dataStore.save(newCam);
-		
-		StreamFetcher streamFetcher = new StreamFetcher(newCam, appScope, vertx); 
-		
-		service.setApplication(app.getAppAdaptor());
-		
-		
-		//create a stream fetcher
-		StreamFetcherManager streamFetcherManager = new StreamFetcherManager(vertx, dataStore, appScope);
-		
-		app.getAppAdaptor().setStreamFetcherManager(streamFetcherManager);
-		
-		StreamFetcher streamFetcherPlaylist = streamFetcherManager.playlistStartStreaming(newCam, streamFetcher);
-		
-		//check whether answer from StreamFetcherManager is true or not after new IPCamera is added
-		assertNotNull(streamFetcherPlaylist);
-		
-
-		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->  {
-			return streamFetcherPlaylist.isThreadActive();
-		});
-		
-		streamFetcherManager.stopCheckerJob();
-		Result result = streamFetcherManager.stopStreaming(newCam);
-
-		//check that fetcher is nor running
-		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->  {
-			return !streamFetcherPlaylist.isThreadActive();
-		});
-		
-		//check that there is no job related left related with stream fetching
-		try {
-			Thread.sleep(10000);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-		assertTrue(result.isSuccess());
-		
-		//check that there is no job related left related with stream fetching
-		try {
-			Thread.sleep(10000);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-	}
+	
 	
 	
 	@Test
