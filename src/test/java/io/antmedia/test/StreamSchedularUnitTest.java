@@ -305,36 +305,18 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-
+		
 		getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
 		Application.enableSourceHealthUpdate = false;
 
-	}
-	
-	@Test
-	public void testCheckStreamUrlWithHTTP() {
-		
-		//create a test db
-		DataStore dataStore = new MapDBStore("target/testCheckStreamUrl.db"); 
-		
-		//create a stream fetcher
-		StreamFetcherManager streamFetcherManager = new StreamFetcherManager(vertx, dataStore, appScope);
-		
-		Result result;
-		
-		result = streamFetcherManager.checkStreamUrlWithHTTP(INVALID_MP4_URL);
-			
-		assertEquals(false, result.isSuccess());
-			
-		result = streamFetcherManager.checkStreamUrlWithHTTP(VALID_MP4_URL);
-			
-		assertEquals(true, result.isSuccess());
-		
+
 	}
 	
 	@Test
 	public void testStartPlaylistThread() {
 		
+		Result result = new Result(false);
+				
 		//create a test db
 		DataStore dataStore = new MapDBStore("target/testPlaylistThread.db"); 
 		
@@ -407,6 +389,26 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		playlist.setPlaylistStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
 		
 		dataStore.editPlaylist(playlist.getPlaylistId(), playlist);
+		
+		//check that there is no job related left related with stream fetching
+		try {
+			Thread.sleep(10000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		
+		//Check Stream URL function
+		
+		result = streamFetcherManager.checkStreamUrlWithHTTP(INVALID_MP4_URL);
+		
+		assertEquals(false, result.isSuccess());
+			
+		result = streamFetcherManager.checkStreamUrlWithHTTP(VALID_MP4_URL);
+			
+		assertEquals(true, result.isSuccess());
+		
 		
 		streamFetcherManager.stopCheckerJob();
 		
@@ -518,11 +520,12 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		service.setApplication(app.getAppAdaptor());
 
 		//create a broadcast
-		Broadcast newCam = new Broadcast("test", "127.0.0.1:8080", "admin", "admin", "rtsp://127.0.0.1:6554/test.flv",
-				AntMediaApplicationAdapter.IP_CAMERA);
+		Broadcast newCam = new Broadcast("test", "127.0.0.1:8080", "admin", "admin", "rtsp://wowzaec2demo.streamlock.net/vod/mp4:BigBuckBunny_115k.mov",
+				AntMediaApplicationAdapter.STREAM_SOURCE);
 		
 		//create a test db
 		DataStore dataStore = new MapDBStore("target/testStartPlaylist.db"); 
+		
 		service.setDataStore(dataStore);
 		
 
@@ -550,6 +553,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		});
 		
 		streamFetcherManager.stopCheckerJob();
+		Result result = streamFetcherManager.stopStreaming(newCam);
 
 		//check that fetcher is nor running
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->  {
@@ -563,8 +567,6 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
-		Result result = streamFetcherManager.stopStreaming(newCam);
 		
 		assertTrue(result.isSuccess());
 		
