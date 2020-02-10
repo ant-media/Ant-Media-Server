@@ -33,7 +33,6 @@ import io.antmedia.IApplicationAdaptorFactory;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
-import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.RtmpMuxer;
 import io.antmedia.rest.model.Result;
@@ -433,12 +432,12 @@ public class StreamFetcher {
 
 
 			setThreadActive(false);
-			
+
 			if(stream.getType().equals(STREAM_TYPE_VOD)) {
-		
+
 				stopRequestReceived = true;
 				restartStream = false;
-				
+
 			}
 
 			if(streamFetcherListener != null) {	

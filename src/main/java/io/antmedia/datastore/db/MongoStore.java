@@ -412,8 +412,7 @@ public class MongoStore extends DataStore {
 	public List<VoD> getVodList(int offset, int size, String sortBy, String orderBy) {
 		synchronized(this) {
 			if(sortBy != null && orderBy != null && !sortBy.isEmpty() && !orderBy.isEmpty()) {
-				String sortString = CREATION_DATE;
-				sortString = orderBy.contentEquals("desc") ? "-" : "";
+				String sortString = orderBy.contentEquals("desc") ? "-" : "";
 				if(sortBy.contentEquals("name")) {
 					sortString += "vodName";
 				}
