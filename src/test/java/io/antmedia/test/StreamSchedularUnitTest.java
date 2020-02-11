@@ -68,6 +68,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	public Application app = null;
 	public static String VALID_MP4_URL = "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4";
 	public static String INVALID_MP4_URL = "invalid_link";
+	public static String INVALID_403_MP4_URL = "https://httpstat.us/403";
 	private WebScope appScope;
 	protected static Logger logger = LoggerFactory.getLogger(StreamSchedularUnitTest.class);
 
@@ -374,13 +375,6 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		assertTrue(result.isSuccess());
 		
-		//check that there is no job related left related with stream fetching
-		try {
-			Thread.sleep(10000);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 		
 	}
 	
@@ -446,8 +440,20 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			e.printStackTrace();
 		}
 		
-		
 		broadcastItem3.setStreamUrl(VALID_MP4_URL);
+		
+		//create a broadcast
+		Broadcast broadcastItem4=new Broadcast();
+		
+		try {
+			broadcastItem4.setStreamId("testId");
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		
+		broadcastItem4.setStreamUrl(VALID_MP4_URL);
 
 		List<Broadcast> broadcastList = new ArrayList<>();
 
@@ -463,51 +469,50 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		assertNotNull(streamFetcherManager);		
 		
-		playlist.setPlaylistStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
-		
-		dataStore.editPlaylist(playlist.getPlaylistId(), playlist);
-		
-		service.stopPlaylist(playlist.getPlaylistId());
-		
-		streamFetcherManager.stopStreaming(playlist.getBroadcastItemList().get(playlist.getCurrentPlayIndex()));
-		
-		streamFetcherManager.stopCheckerJob();
-		
-		
-		
-		
 		//check that there is no job related left related with stream fetching
 		try {
-			Thread.sleep(10000);
+			Thread.sleep(30000);
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
 		
-		// restore playlist broadcast status
+		service.stopPlaylist(playlist.getPlaylistId());
 		
-		playlist.setPlaylistStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+		// Update playlist with DB
+		playlist = dataStore.getPlaylist(playlist.getPlaylistId());
 		
-		dataStore.editPlaylist(playlist.getPlaylistId(), playlist);
+		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, playlist.getPlaylistStatus());
 		
-		broadcastItem1.setStreamUrl(INVALID_MP4_URL);
 		
-		broadcastItem2.setStreamUrl(INVALID_MP4_URL);
+		// Restore play index
+		playlist.setCurrentPlayIndex(0);
+		
+		broadcastList.get(0).setStreamUrl(INVALID_MP4_URL);
+		broadcastList.get(1).setStreamUrl(INVALID_MP4_URL);
+		broadcastList.get(2).setStreamUrl(INVALID_MP4_URL);
+		
+		playlist.setBroadcastItemList(broadcastList);
 		
 		streamFetcherManager.startPlaylistThread(playlist);	
 		
-		playlist.setPlaylistStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
-		
-		dataStore.editPlaylist(playlist.getPlaylistId(), playlist);
-		
-		service.stopPlaylist(playlist.getPlaylistId());
-		
-		streamFetcherManager.stopStreaming(playlist.getBroadcastItemList().get(playlist.getCurrentPlayIndex()));
-		
-		streamFetcherManager.stopCheckerJob();	
+		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, playlist.getPlaylistStatus());	
 		
 		
+		
+		// Restore play index
+		playlist.setCurrentPlayIndex(0);
+		
+		broadcastList.get(0).setStreamUrl(INVALID_MP4_URL);
+		broadcastList.get(1).setStreamUrl(VALID_MP4_URL);
+		broadcastList.get(2).setStreamUrl(INVALID_MP4_URL);
+		// Valid new broadcast
+		broadcastList.add(broadcastItem4);
+		
+		playlist.setBroadcastItemList(broadcastList);
+		
+		streamFetcherManager.startPlaylistThread(playlist);	
 		
 		//check that there is no job related left related with stream fetching
 		try {
@@ -517,6 +522,12 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			e.printStackTrace();
 		}
 		
+		service.stopPlaylist(playlist.getPlaylistId());
+		
+		// Update playlist with DB
+		playlist = dataStore.getPlaylist(playlist.getPlaylistId());
+		
+		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, playlist.getPlaylistStatus());
 		
 		//Check Stream URL function
 		
@@ -526,15 +537,11 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			
 		result = StreamFetcherManager.checkStreamUrlWithHTTP(VALID_MP4_URL);
 			
-		assertEquals(true, result.isSuccess());
+		assertEquals(true, result.isSuccess());		
 		
-		//check that there is no job related left related with stream fetching
-		try {
-			Thread.sleep(10000);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		result = StreamFetcherManager.checkStreamUrlWithHTTP(INVALID_403_MP4_URL);
+		
+		assertEquals(false, result.isSuccess());		
 		
 		//convert to original settings
 		getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);

@@ -92,35 +92,56 @@ public class StreamFetcherManager {
 	public void setRestartStreamFetcherPeriod(int restartStreamFetcherPeriod) {
 		this.restartStreamFetcherPeriodSeconds = restartStreamFetcherPeriod;	
 	}
-
-
-	public StreamFetcher startStreaming(@Nonnull Broadcast broadcast) {	
-
-		//check if broadcast is already being fetching
+	
+	public boolean checkAlreadyFetch(Broadcast broadcast) {
+		
 		boolean alreadyFetching = false;
+		
 		for (StreamFetcher streamFetcher : streamFetcherList) {
 			if (streamFetcher.getStream().getStreamId().equals(broadcast.getStreamId())) {
 				alreadyFetching = true;
 				break;
 			}
 		}
+		
+		return alreadyFetching;
+		
+	}
+	
+	public void alreadyFetchProcess(StreamFetcher streamScheduler) {
+		
+		streamScheduler.startStream();
+
+		if(!streamFetcherList.contains(streamScheduler)) {
+			streamFetcherList.add(streamScheduler);
+		}
+
+		if (streamFetcherScheduleJobName == -1) {
+			scheduleStreamFetcherJob();
+		}
+		
+	}
+
+
+	public StreamFetcher startStreaming(@Nonnull Broadcast broadcast) {	
+
+		//check if broadcast is already being fetching
+		boolean alreadyFetching;
+		
+		alreadyFetching = checkAlreadyFetch(broadcast);
 
 		StreamFetcher streamScheduler = null;
+		
 		if (!alreadyFetching) {
 
 			try {
+				
 				streamScheduler =  make(broadcast, scope, vertx);
 				streamScheduler.setRestartStream(restartStreamAutomatically);
+				
+				alreadyFetchProcess(streamScheduler);
+				
 
-				streamScheduler.startStream();
-
-				if(!streamFetcherList.contains(streamScheduler)) {
-					streamFetcherList.add(streamScheduler);
-				}
-
-				if (streamFetcherScheduleJobName == -1) {
-					scheduleStreamFetcherJob();
-				}
 			}
 			catch (Exception e) {
 				streamScheduler = null;
@@ -136,27 +157,17 @@ public class StreamFetcherManager {
 
 		//check if broadcast is already being fetching
 		boolean alreadyFetching = false;
-		for (StreamFetcher 	streamFetcherCheck : streamFetcherList) {
-			if (streamFetcherCheck.getStream().getStreamId().equals(broadcast.getStreamId())) {
-				alreadyFetching = true;
-				break;
-			}
-		}
+		
+		alreadyFetching = checkAlreadyFetch(broadcast);
 
 		if (!alreadyFetching) {
 
 			try {
 
 				streamScheduler.setRestartStream(false);
-				streamScheduler.startStream();
-
-				if(!streamFetcherList.contains(streamScheduler)) {
-					streamFetcherList.add(streamScheduler);
-				}
-
-				if (streamFetcherScheduleJobName == -1) {
-					scheduleStreamFetcherJob();
-				}
+				
+				alreadyFetchProcess(streamScheduler);
+				
 			}
 			catch (Exception e) {
 				streamScheduler = null;
@@ -202,7 +213,7 @@ public class StreamFetcherManager {
 			huc = (HttpURLConnection) checkUrl.openConnection();
 			responseCode = huc.getResponseCode();
 
-			if(responseCode == HttpURLConnection.HTTP_OK) {
+			if(responseCode >= HttpURLConnection.HTTP_OK && responseCode < HttpURLConnection.HTTP_MOVED_PERM ) {
 				result.setSuccess(true);
 				return result;
 			}
@@ -251,7 +262,7 @@ public class StreamFetcherManager {
 				if(newPlaylist.getPlaylistStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING) && newPlaylist.getPlaylistId() != null)
 				{
 
-					newPlaylist = checkPlaylistQueue(newPlaylist);
+					newPlaylist = skipNextPlaylistQueue(newPlaylist);
 
 					// Get Current Playlist Stream Index
 					int currentStreamIndex = newPlaylist.getCurrentPlayIndex();
@@ -279,7 +290,7 @@ public class StreamFetcherManager {
 
 						logger.info("Current Playlist Stream URL -> {} is invalid", newPlaylist.getBroadcastItemList().get(currentStreamIndex).getStreamUrl());
 
-						newPlaylist = checkPlaylistQueue(newPlaylist);
+						newPlaylist = skipNextPlaylistQueue(newPlaylist);
 
 						startPlaylistThread(newPlaylist);
 
@@ -293,18 +304,24 @@ public class StreamFetcherManager {
 		}
 		else {
 
-			logger.info("Current Playlist Stream URL -> {} is invalid", playlist.getBroadcastItemList().get(playlist.getCurrentPlayIndex()).getStreamUrl());
-
-			playlist = checkPlaylistQueue(playlist);
+			logger.warn("Current Playlist Stream URL -> {} is invalid", playlistBroadcastItem.getStreamUrl());
+			
+			// This method skip next playlist item
+			playlist = skipNextPlaylistQueue(playlist);
 
 			if(checkStreamUrlWithHTTP(playlist.getBroadcastItemList().get(playlist.getCurrentPlayIndex()).getStreamUrl()).isSuccess()) {
 				startPlaylistThread(playlist);
+			}
+			else {
+				playlist.setPlaylistStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+				// Update Datastore current play broadcast
+				datastore.editPlaylist(playlist.getPlaylistId(), playlist);
 			}
 
 		}
 	}
 
-	public Playlist checkPlaylistQueue(Playlist playlist) {
+	public Playlist skipNextPlaylistQueue(Playlist playlist) {
 
 		// Get Current Playlist Stream Index
 		int currentStreamIndex = playlist.getCurrentPlayIndex()+1;
