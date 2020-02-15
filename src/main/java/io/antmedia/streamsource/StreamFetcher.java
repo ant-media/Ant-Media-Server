@@ -433,19 +433,12 @@ public class StreamFetcher {
 
 			setThreadActive(false);
 
-			if(stream.getType().equals(STREAM_TYPE_VOD)) {
-
+			if(streamFetcherListener != null) {	
 				stopRequestReceived = true;
 				restartStream = false;
 
-			}
-
-			if(streamFetcherListener != null) {	
-
 				streamFetcherListener.streamFinished(streamFetcherListener);
-
 			}
-
 
 			if(!stopRequestReceived && restartStream) {
 				logger.info("Stream fetcher will try to fetch source {} after {} ms", stream.getStreamUrl(), STREAM_FETCH_RE_TRY_PERIOD_MS);

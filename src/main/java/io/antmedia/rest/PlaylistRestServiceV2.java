@@ -74,16 +74,31 @@ public class PlaylistRestServiceV2 extends RestServiceBase{
 
 			// Get playlist from Datastore
 			Playlist playlist = getDataStore().getPlaylist(playlistId);
-			// Get current broadcast from playlist
-			Broadcast broadcast = playlist.getBroadcastItemList().get(playlist.getCurrentPlayIndex());
 
-			if(!broadcast.getStreamId().isEmpty() && broadcast.getStreamId() != null) {
+			// Check playlist is not null
+			if(playlist != null) {
 
-				result = getApplication().stopStreaming(broadcast);
+				if(playlist.getBroadcastItemList().size() > playlist.getCurrentPlayIndex()) {
 
-				playlist.setPlaylistStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
-				getDataStore().editPlaylist(playlistId, playlist);
+					// Get current broadcast from playlist
+					Broadcast broadcast = playlist.getBroadcastItemList().get(playlist.getCurrentPlayIndex());
+
+					if(!broadcast.getStreamId().isEmpty() && broadcast.getStreamId() != null) {
+
+						result = getApplication().stopStreaming(broadcast);
+						playlist.setPlaylistStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+						getDataStore().editPlaylist(playlistId, playlist);
+
+					}
+				}
+				else {
+					result.setMessage("Playlist Current Broadcast not found. Playlist Broadcast Size: " + playlist.getBroadcastItemList().size() + " Playlist Current Broadcast Index: "+playlist.getCurrentPlayIndex());
+				}
 			}
+			else {
+				result.setMessage("Playlist not found");
+			}
+
 		}
 
 		return result;
@@ -99,13 +114,27 @@ public class PlaylistRestServiceV2 extends RestServiceBase{
 
 		//Check playlistId is not null
 		if(playlistId != null) {
+
 			// Get playlist from Datastore
 			Playlist playlist = getDataStore().getPlaylist(playlistId);
-			// Get current broadcast from playlist
-			Broadcast broadcast = playlist.getBroadcastItemList().get(playlist.getCurrentPlayIndex());
 
-			if(!broadcast.getStreamId().isEmpty() && broadcast.getStreamId() != null) {
-				result = startPlaylistService(playlist);
+			// Check playlist is not null
+			if(playlist != null) {
+
+				if(playlist.getBroadcastItemList().size() > playlist.getCurrentPlayIndex()) {
+
+					// Get current broadcast from playlist
+					Broadcast broadcast = playlist.getBroadcastItemList().get(playlist.getCurrentPlayIndex());
+
+					if(!broadcast.getStreamId().isEmpty() && broadcast.getStreamId() != null) {
+						result = startPlaylistService(playlist);
+					}
+				}
+				else {
+					result.setMessage("Playlist Current Broadcast not found. Playlist Broadcast Size: " + playlist.getBroadcastItemList().size() + " Playlist Current Broadcast Index: "+playlist.getCurrentPlayIndex());	}
+			}
+			else {
+				result.setMessage("Playlist not found");
 			}
 		}
 		return result;
@@ -127,7 +156,6 @@ public class PlaylistRestServiceV2 extends RestServiceBase{
 
 			result.setSuccess(getDataStore().deletePlaylist(playlistId));	
 			getDataStore().delete(playlistId);
-
 			getApplication().stopStreaming(broadcast);
 
 			return result;
@@ -180,7 +208,7 @@ public class PlaylistRestServiceV2 extends RestServiceBase{
 
 			// Add Broadcast for the list in Broadcasts list
 			saveBroadcast(playlist.getBroadcastItemList().get(playlist.getCurrentPlayIndex()), AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, getScope().getName(), getDataStore(), getAppSettings().getListenerHookURL(), getServerSettings().getServerName(), getServerSettings().getHostAddress());
-			
+
 			if(autoStart) {
 				result = startPlaylistService(playlist);
 			}
@@ -201,9 +229,7 @@ public class PlaylistRestServiceV2 extends RestServiceBase{
 		if(playlistId != null && playlist.getPlaylistId() != null) {
 
 			// Check playlist ID and all stream IDs are same?		
-
 			checkBroadcastIdsInPlaylist(playlist);
-
 			result.setSuccess(getDataStore().editPlaylist(playlistId,playlist));
 
 			return result;

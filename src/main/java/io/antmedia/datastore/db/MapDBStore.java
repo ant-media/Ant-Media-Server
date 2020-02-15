@@ -7,7 +7,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.regex.Pattern;
 
 import org.apache.commons.io.FilenameUtils;
@@ -1218,7 +1217,9 @@ public class MapDBStore extends DataStore {
 	
 	@Override
 	public boolean deletePlaylist(String playlistId) {
-		return playlistMap.remove(playlistId) != null;
+		synchronized (this) {
+			return playlistMap.remove(playlistId) != null;
+		}
 	}
 	
 	@Override

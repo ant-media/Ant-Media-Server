@@ -822,11 +822,11 @@ public abstract class RestServiceBase {
 
 		return result;
 	}
-	
+
 	public void checkBroadcastIdsInPlaylist(Playlist playlist) {
-		
+
 		if( !playlist.getBroadcastItemList().isEmpty() && playlist.getBroadcastItemList() != null ) {
-			
+
 			for (Broadcast broadcast : playlist.getBroadcastItemList()) {
 
 				try {
@@ -837,25 +837,23 @@ public abstract class RestServiceBase {
 			}
 		}
 		else {
-			
+
 			Broadcast broadcast = new Broadcast();
-			
 			broadcast.setName(playlist.getPlaylistName());
-			
+
 			try {
 				broadcast.setStreamId(playlist.getPlaylistId());
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
-			
+
 			broadcast.setType(AntMediaApplicationAdapter.VOD);
-			
 			List<Broadcast> broadcastItemList = new ArrayList<>();
 			broadcastItemList.add(broadcast);
-
 			playlist.setBroadcastItemList(broadcastItemList);
+
 		}
-		
+
 	}
 
 	public Result addStreamSource(Broadcast stream, String socialEndpointIds) {

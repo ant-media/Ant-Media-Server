@@ -44,7 +44,6 @@ public class MongoStore extends DataStore {
 	private Datastore endpointCredentialsDS;
 	private Datastore tokenDatastore;
 	private Datastore detectionMap;
-	private Datastore playlistDatastore;
 	private Datastore conferenceRoomDatastore;
 
 	protected static Logger logger = LoggerFactory.getLogger(MongoStore.class);
@@ -72,7 +71,6 @@ public class MongoStore extends DataStore {
 		//TODO: Refactor these stores so that we don't have separate datastore for each class
 		datastore = morphia.createDatastore(client, dbName);
 		vodDatastore=morphia.createDatastore(client, dbName+"VoD");
-		playlistDatastore=morphia.createDatastore(client, dbName+"playlist");
 		endpointCredentialsDS = morphia.createDatastore(client, dbName+"_endpointCredentials");
 		tokenDatastore = morphia.createDatastore(client, dbName + "_token");
 		detectionMap = morphia.createDatastore(client, dbName + "detection");
@@ -86,7 +84,6 @@ public class MongoStore extends DataStore {
 		tokenDatastore.ensureIndexes();
 		datastore.ensureIndexes();
 		vodDatastore.ensureIndexes();
-		playlistDatastore.ensureIndexes();
 		endpointCredentialsDS.ensureIndexes();
 		detectionMap.ensureIndexes();
 		conferenceRoomDatastore.ensureIndexes();
@@ -1126,7 +1123,7 @@ public class MongoStore extends DataStore {
 	public boolean createPlaylist(Playlist playlist) {
 		synchronized(this) {
 			try {
-				playlistDatastore.save(playlist);
+				datastore.save(playlist);
 				return true;
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
@@ -1139,7 +1136,7 @@ public class MongoStore extends DataStore {
 	public Playlist getPlaylist(String playlistId) {
 		synchronized(this) {
 			try {
-				return playlistDatastore.find(Playlist.class).field(PLAYLIST_ID).equal(playlistId).get();
+				return datastore.find(Playlist.class).field(PLAYLIST_ID).equal(playlistId).get();
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
@@ -1151,8 +1148,8 @@ public class MongoStore extends DataStore {
 	public boolean deletePlaylist(String playlistId) {
 		synchronized(this) {
 			try {
-				Query<Playlist> query = playlistDatastore.createQuery(Playlist.class).field(PLAYLIST_ID).equal(playlistId);
-				WriteResult delete = playlistDatastore.delete(query);
+				Query<Playlist> query = datastore.createQuery(Playlist.class).field(PLAYLIST_ID).equal(playlistId);
+				WriteResult delete = datastore.delete(query);
 				return (delete.getN() == 1);
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
@@ -1166,14 +1163,14 @@ public class MongoStore extends DataStore {
 		boolean result = false;
 		synchronized(this) {
 			try {
-				Query<Playlist> query = playlistDatastore.createQuery(Playlist.class).field(PLAYLIST_ID).equal(playlist.getPlaylistId());
+				Query<Playlist> query = datastore.createQuery(Playlist.class).field(PLAYLIST_ID).equal(playlist.getPlaylistId());
 
-				UpdateOperations<Playlist> ops = playlistDatastore.createUpdateOperations(Playlist.class).set(PLAYLIST_ID, playlist.getPlaylistId())
+				UpdateOperations<Playlist> ops = datastore.createUpdateOperations(Playlist.class).set(PLAYLIST_ID, playlist.getPlaylistId())
 						.set("playlistName", playlist.getPlaylistName()).set("playlistStatus", playlist.getPlaylistStatus())
 						.set(CREATION_DATE, playlist.getCreationDate()).set(DURATION, playlist.getDuration())
 						.set("broadcastItemList", playlist.getBroadcastItemList());
 
-				UpdateResults update = playlistDatastore.update(query, ops);
+				UpdateResults update = datastore.update(query, ops);
 				return update.getUpdatedCount() == 1;
 			} catch (Exception e) {
 				logger.error(e.getMessage());
