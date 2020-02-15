@@ -225,11 +225,11 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 
 	private static final String THREAD_USER_TIME = "user-time";
 
-	private static final String IN_USE_JVM_NATIVE_MEMORY = "inUseMemory";
+	public static final String IN_USE_JVM_NATIVE_MEMORY = "inUseMemory";
 
-	private static final String MAX_JVM_NATIVE_MEMORY = "maxMemory";
+	public static final String MAX_JVM_NATIVE_MEMORY = "maxMemory";
 
-	private static final String JVM_NATIVE_MEMORY_USAGE = "jvmNativeMemoryUsage";
+	public static final String JVM_NATIVE_MEMORY_USAGE = "jvmNativeMemoryUsage";
 
 	private Producer<Long,String> kafkaProducer = null;
 
@@ -533,10 +533,13 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 					localWebRTCViewers += webrtcAdaptor.getNumberOfTotalViewers();
 					localWebRTCStreams += webrtcAdaptor.getNumberOfLiveStreams();
 				}
-				AntMediaApplicationAdapter adaptor = ((IApplicationAdaptorFactory) scope.getContext().getApplicationContext().getBean(AntMediaApplicationAdapter.BEAN_NAME)).getAppAdaptor();
-				encodersBlocked += adaptor.getNumberOfEncodersBlocked();
-				encodersNotOpened += adaptor.getNumberOfEncoderNotOpenedErrors();
-				publishTimeoutError += adaptor.getNumberOfPublishTimeoutError();
+				
+				if (scope.getContext().getApplicationContext().containsBean(AntMediaApplicationAdapter.BEAN_NAME)) {
+					AntMediaApplicationAdapter adaptor = ((IApplicationAdaptorFactory) scope.getContext().getApplicationContext().getBean(AntMediaApplicationAdapter.BEAN_NAME)).getAppAdaptor();
+					encodersBlocked += adaptor.getNumberOfEncodersBlocked();
+					encodersNotOpened += adaptor.getNumberOfEncoderNotOpenedErrors();
+					publishTimeoutError += adaptor.getNumberOfPublishTimeoutError();
+				}
 			}
 		}
 
@@ -607,25 +610,22 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 
 		boolean enoughResource = false;
 
-		if(cpuLoad < cpuLimit) 
+		if(getCpuLoad() < getCpuLimit()) 
 		{
-			long freeJvmRamValue = getFreeRam();
 
-			if (freeJvmRamValue > minFreeRamSize) {
-				long maxPhysicalBytes = SystemUtils.convertByteSize(Pointer.maxPhysicalBytes(), "MB"); 
-				long physicalBytes = SystemUtils.convertByteSize(Pointer.physicalBytes(), "MB"); 
-
-				if ((maxPhysicalBytes-physicalBytes) > minFreeRamSize ){
+			if (getFreeRam() > getMinFreeRamSize()) {
+				
+				if ((getMaxPhysicalBytes()-getPhysicalBytes()) > getMinFreeRamSize() ){
 					
 					enoughResource = true;
 					
 				}
 				else {
-					logger.error("Not enough resource. Physical memory usage is too high: physicalBytes ({}) > maxPhysicalBytes ({}) ", physicalBytes, maxPhysicalBytes);
+					logger.error("Not enough resource. Physical memory usage is too high: physicalBytes ({}) > maxPhysicalBytes ({}) ", getPhysicalBytes(), getMaxPhysicalBytes());
 				}
 			}
 			else {
-				logger.error("Not enough resource. Due to not free RAM. Free RAM should be more than  {} but it is: {}", minFreeRamSize, freeJvmRamValue);
+				logger.error("Not enough resource. Due to not free RAM. Free RAM should be more than  {} but it is: {}", minFreeRamSize, getFreeRam());
 			}
 		}
 		else {
@@ -633,6 +633,14 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 		}
 
 		return enoughResource; 
+	}
+	
+	public long getMaxPhysicalBytes(){
+		return SystemUtils.convertByteSize(Pointer.maxPhysicalBytes(), "MB"); 
+	}
+	
+	public long getPhysicalBytes(){
+		return SystemUtils.convertByteSize(Pointer.physicalBytes(), "MB"); 
 	}
 
 	@Override
