@@ -8,98 +8,91 @@ import org.springframework.context.ApplicationContext;
 
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
-import io.antmedia.rest.model.Result;
+import io.antmedia.muxer.IStreamAcceptFilter;
 
-public class StreamAcceptFilter {
+public class StreamAcceptFilter implements IStreamAcceptFilter{
 
 	private ApplicationContext appContext;
 
 	protected static Logger logger = LoggerFactory.getLogger(StreamAcceptFilter.class);
+
+	private int result;
 
 	@Autowired
 	private DataStoreFactory dataStoreFactory;
 
 	private DataStore dataStore;
 
-	@Value("${settings.maxFpsAccept}")
-	private String maxFpsAccept = null;
+	@Value("${settings.maxFpsAccept:#{null}}")
+	private String maxFpsAccept;
 
-	@Value("${settings.maxResolutionAccept}")
-	private String maxResolutionAccept = null;
+	@Value("${settings.maxResolutionAccept:#{null}}")
+	private String maxResolutionAccept;
 
-	@Value("${settings.maxBitrateAccept}")
-	private String maxBitrateAccept = null;
+	@Value("${settings.maxBitrateAccept:#{null}}")
+	private String maxBitrateAccept;
 
-	public Result checkStreamParameters(String parameters) {
+	/*
+	 * If return -1, this mean everything is fine
+	 * If return 0, this mean Stream FPS > Max FPS
+	 * If return 1, this mean Resolution FPS > Max Resolution
+	 * If return 2, this mean Bitrate FPS > Max Bitrate
+	 */
 
-		Result result;
+	public int checkStreamParameters(String[] parameters) {
 
-		// Check bitrate value
-		result = checkMaxBitrateAccept(Integer.parseInt(parameters));
+		// It's defined true
+		result = -1;
+
+		int streamFps = Integer.parseInt(parameters[0]);
+		int streamResolution = Integer.parseInt(parameters[1]);
+		int streamBitrate = Integer.parseInt(parameters[2]);
 
 		// Check FPS value
-		if(result.isSuccess()) {
-			result = checkMaxFPSAccept(Integer.parseInt(parameters));
+		if(getMaxFpsAccept() != null) {
+			result = checkMaxFPSAccept(streamFps);
 		}
 
 		// Check Resolution value
-		if(result.isSuccess()) {
-			result = checkResolutionAccept(Integer.parseInt(parameters));
+		if(result == -1 && getMaxResolutionAccept() != null) {
+			result = checkResolutionAccept(streamResolution);
+		}
+
+		// Check bitrate value
+		if(result == -1 && getMaxBitrateAccept() != null) {
+			result = checkMaxBitrateAccept(streamBitrate);
 		}
 
 		return result;
 	}
 
-	public Result checkMaxBitrateAccept(int streamBitrateValue) {
-		Result result = new Result(false);
-
-		if(getMaxBitrateAccept() != null) {
-			result.setSuccess(true);
-		}
-		else if(Integer.parseInt(getMaxBitrateAccept()) <= streamBitrateValue) {
-			result.setSuccess(false);
-			result.setMessage("Max Bitrate error");
+	public int checkMaxFPSAccept(int streamFPSValue) {
+		if(Integer.parseInt(getMaxFpsAccept()) <= streamFPSValue) {
+			result = 0;
 		}
 		else {
-			result.setSuccess(true);
+			result = -1;
 		}
-
 		return result;
-
 	} 
 
-	public Result checkMaxFPSAccept(int streamFPSValue) {
-		Result result = new Result(false);
-
-		if(getMaxFpsAccept() != null) {
-			result.setSuccess(true);
-		}
-		else if(Integer.parseInt(getMaxFpsAccept()) <= streamFPSValue) {
-			result.setSuccess(false);
-			result.setMessage("Max FPS error");
+	public int checkResolutionAccept(int streamResolutionValue) {
+		if(Integer.parseInt(getMaxResolutionAccept()) <= streamResolutionValue) {
+			result = 1;
 		}
 		else {
-			result.setSuccess(true);
+			result = -1;
 		}
-
 		return result;
-
 	} 
 
-	public Result checkResolutionAccept(int streamResolutionValue) {
-		Result result = new Result(false);
-
-		if(getMaxResolutionAccept() != null) {
-			result.setSuccess(true);
-		}
-		else if(Integer.parseInt(getMaxResolutionAccept()) <= streamResolutionValue) {
-			result.setSuccess(false);
-			result.setMessage("Max Resolution error");
+	public int checkMaxBitrateAccept(int streamBitrateValue) {
+		if(Integer.parseInt(getMaxBitrateAccept()) <= streamBitrateValue) {
+			result = 2;
 		}
 		else {
-			result.setSuccess(true);
+			result = -1;
 		}
-
 		return result;
 
 	} 
