@@ -23,7 +23,7 @@ public interface IWebRTCClient {
 	 * @param naluIndices 
 	 * @param trackIndex 
 	 */
-	public void sendVideoPacket(ByteBuffer videoPacket, boolean isKeyFrame, long timestamp, int frameRotation, List<NaluIndex> naluIndices, int trackIndex);
+	public void sendVideoPacket(ByteBuffer videoPacket, boolean isKeyFrame, long timestamp, int frameRotation, List<NaluIndex> naluIndices, String trackId);
 	
 	/**
 	 * Send audio packet to connected client

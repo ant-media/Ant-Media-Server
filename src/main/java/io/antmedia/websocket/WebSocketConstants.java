@@ -71,6 +71,10 @@ public class WebSocketConstants {
 	
 	public static final String SERVER_WILL_STOP = "server_will_stop";
 	
+	public static final String TRACK_ID = "trackId";
+
+	public static final String ENABLED = "enabled";
+
 	/**
 	 * this is for leaving from room in 1-N and N-N connection
 	 */
@@ -278,5 +282,11 @@ public class WebSocketConstants {
 	 * to start new connection with desired id
 	 */
 	public static final String START_NEW_P2P_CONNECTION_COMMAND = "startNewP2PConnection";
+
+	/**
+	 * This command used for multitrack stream 
+	 * to play or pause a tranck
+	 */
+	public static final String ENABLE_TRACK = "enableTrack";
 
 }
