@@ -11,6 +11,7 @@ import org.springframework.web.context.ConfigurableWebApplicationContext;
 import org.springframework.web.context.WebApplicationContext;
 
 import io.antmedia.AppSettings;
+import io.antmedia.settings.ServerSettings;
 
 public abstract class AbstractFilter implements Filter{
 
@@ -30,6 +31,16 @@ public abstract class AbstractFilter implements Filter{
 			appSettings = (AppSettings)context.getBean(AppSettings.BEAN_NAME);
 		}
 		return appSettings;
+	}
+	
+	public ServerSettings getServerSetting() 
+	{
+		ServerSettings serverSettings = null;
+		ConfigurableWebApplicationContext context = getAppContext();
+		if (context != null) {
+			serverSettings = (ServerSettings)context.getBean(ServerSettings.BEAN_NAME);
+		}
+		return serverSettings;
 	}
 	
 	

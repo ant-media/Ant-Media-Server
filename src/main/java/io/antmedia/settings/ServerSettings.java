@@ -6,6 +6,10 @@ import java.net.InetAddress;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -15,6 +19,7 @@ import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
+import org.apache.catalina.util.NetMask;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
@@ -27,6 +32,10 @@ public class ServerSettings implements ApplicationContextAware {
 	private static final String SETTINGS_HEART_BEAT_ENABLED = "server.heartbeatEnabled";
 	
 	private static final String SETTINGS_USE_GLOBAL_IP = "useGlobalIp";
+	
+	private String allowedDashboardCIDR;
+
+	private List<NetMask> allowedCIDRList = new ArrayList<>();
 
 	
 	private static Logger logger = LoggerFactory.getLogger(ServerSettings.class);
@@ -172,6 +181,58 @@ public class ServerSettings implements ApplicationContextAware {
 
 	public void setUseGlobalIp(boolean useGlobalIp) {
 		this.useGlobalIp = useGlobalIp;
+	}
+	
+	public String getAllowedDashboardCIDR() {
+		return allowedDashboardCIDR;
+	}
+	
+	/**
+	 * the getAllowedCIDRList and setAllowedCIDRList are synchronized because
+	 * ArrayList may throw concurrent modification
+	 * 
+	 * @param allowedDashboardCIDR
+	 */
+	public void setAllowedDashboardCIDR(String allowedDashboardCIDR) {
+		this.allowedDashboardCIDR = allowedDashboardCIDR;
+		allowedCIDRList = new ArrayList<>();
+		fillFromInput(allowedDashboardCIDR, allowedCIDRList);
+	}
+
+	public List<NetMask> getAllowedCIDRList() {
+		if (allowedCIDRList.isEmpty()) {
+			fillFromInput(allowedDashboardCIDR, allowedCIDRList);
+		}
+		return allowedCIDRList;
+	}
+
+	/**
+	 * Fill a {@link NetMask} list from a string input containing a comma-separated
+	 * list of (hopefully valid) {@link NetMask}s.
+	 *
+	 * @param input  The input string
+	 * @param target The list to fill
+	 * @return a string list of processing errors (empty when no errors)
+	 */
+	private List<String> fillFromInput(final String input, final List<NetMask> target) {
+		target.clear();
+		if (input == null || input.isEmpty()) {
+			return Collections.emptyList();
+		}
+
+		final List<String> messages = new LinkedList<>();
+		NetMask nm;
+
+		for (final String s : input.split("\\s*,\\s*")) {
+			try {
+				nm = new NetMask(s);
+				target.add(nm);
+			} catch (IllegalArgumentException e) {
+				messages.add(s + ": " + e.getMessage());
+			}
+		}
+
+		return Collections.unmodifiableList(messages);
 	}
 
 }

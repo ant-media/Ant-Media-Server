@@ -61,6 +61,7 @@
 		<property name="licenceKey" value="${server.licence_key}" />
 		<property name="buildForMarket" value="${server.market_build}" />	
 		<property name="logLevel" value="${logLevel}"/>
+		<property name="allowedDashboardCIDR" value="${server.allowed_dashboard_CIDR}"/>
 	</bean>
 	
 	<bean id="logSettings" class="io.antmedia.settings.LogSettings">
