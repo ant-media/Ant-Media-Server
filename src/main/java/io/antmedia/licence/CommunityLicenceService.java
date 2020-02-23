@@ -9,6 +9,10 @@ public class CommunityLicenceService implements ILicenceService{
 		//no need to implement for Community Edition
 	}
 
+	public void stop() {
+		//no need to implement for Community Edition
+	}
+
 	public Licence checkLicence (String key) {
 		//no need to implement for Community Edition
 		return null;

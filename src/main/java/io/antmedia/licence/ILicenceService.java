@@ -26,8 +26,14 @@ public interface ILicenceService {
 	 * Starts License operations
 	 */
 	public void start();
-	
-	
+
+
+	/**
+	 * Stops License operations
+	 */
+	public void stop();
+
+
 	/**
 	 * Check License Status
 	 * @param key of the license
