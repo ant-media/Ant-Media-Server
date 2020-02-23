@@ -13,6 +13,7 @@ import java.util.List;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.mongodb.morphia.annotations.NotSaved;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -21,6 +22,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.apache.catalina.util.NetMask;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @JsonIgnoreProperties(ignoreUnknown=true)
@@ -35,6 +37,8 @@ public class ServerSettings implements ApplicationContextAware {
 	
 	private String allowedDashboardCIDR;
 
+	@JsonIgnore
+	@NotSaved
 	private List<NetMask> allowedCIDRList = new ArrayList<>();
 
 	
@@ -183,10 +187,6 @@ public class ServerSettings implements ApplicationContextAware {
 		this.useGlobalIp = useGlobalIp;
 	}
 	
-	public String getAllowedDashboardCIDR() {
-		return allowedDashboardCIDR;
-	}
-	
 	/**
 	 * the getAllowedCIDRList and setAllowedCIDRList are synchronized because
 	 * ArrayList may throw concurrent modification
@@ -197,6 +197,10 @@ public class ServerSettings implements ApplicationContextAware {
 		this.allowedDashboardCIDR = allowedDashboardCIDR;
 		allowedCIDRList = new ArrayList<>();
 		fillFromInput(allowedDashboardCIDR, allowedCIDRList);
+	}
+	
+	public String getAllowedDashboardCIDR() {
+		return allowedDashboardCIDR;
 	}
 
 	public List<NetMask> getAllowedCIDRList() {
