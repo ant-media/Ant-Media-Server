@@ -2,35 +2,20 @@ package io.antmedia.filter;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
 
-import io.antmedia.datastore.db.DataStore;
-import io.antmedia.datastore.db.DataStoreFactory;
+import io.antmedia.AppSettings;
 import io.antmedia.muxer.IStreamAcceptFilter;
 
 public class StreamAcceptFilter implements IStreamAcceptFilter{
 
 	private ApplicationContext appContext;
+	
+	AppSettings appSettings;
 
 	protected static Logger logger = LoggerFactory.getLogger(StreamAcceptFilter.class);
 
 	private int result;
-
-	@Autowired
-	private DataStoreFactory dataStoreFactory;
-
-	private DataStore dataStore;
-
-	@Value("${settings.maxFpsAccept:#{null}}")
-	private String maxFpsAccept;
-
-	@Value("${settings.maxResolutionAccept:#{null}}")
-	private String maxResolutionAccept;
-
-	@Value("${settings.maxBitrateAccept:#{null}}")
-	private String maxBitrateAccept;
 
 	/*
 	 * If return -1, this mean everything is fine
@@ -49,17 +34,17 @@ public class StreamAcceptFilter implements IStreamAcceptFilter{
 		int streamBitrate = Integer.parseInt(parameters[2]);
 
 		// Check FPS value
-		if(getMaxFpsAccept() != null) {
+		if(getAppSetting().getMaxFpsAccept() != null) {
 			result = checkMaxFPSAccept(streamFps);
 		}
 
 		// Check Resolution value
-		if(result == -1 && getMaxResolutionAccept() != null) {
+		if(result == -1 && getAppSetting().getMaxResolutionAccept() != null) {
 			result = checkResolutionAccept(streamResolution);
 		}
 
 		// Check bitrate value
-		if(result == -1 && getMaxBitrateAccept() != null) {
+		if(result == -1 && getAppSetting().getMaxBitrateAccept() != null) {
 			result = checkMaxBitrateAccept(streamBitrate);
 		}
 
@@ -67,7 +52,7 @@ public class StreamAcceptFilter implements IStreamAcceptFilter{
 	}
 
 	public int checkMaxFPSAccept(int streamFPSValue) {
-		if(Integer.parseInt(getMaxFpsAccept()) <= streamFPSValue) {
+		if(Integer.parseInt(getAppSetting().getMaxFpsAccept()) <= streamFPSValue) {
 			result = 0;
 		}
 		else {
@@ -77,7 +62,7 @@ public class StreamAcceptFilter implements IStreamAcceptFilter{
 	} 
 
 	public int checkResolutionAccept(int streamResolutionValue) {
-		if(Integer.parseInt(getMaxResolutionAccept()) <= streamResolutionValue) {
+		if(Integer.parseInt(getAppSetting().getMaxResolutionAccept()) <= streamResolutionValue) {
 			result = 1;
 		}
 		else {
@@ -87,7 +72,7 @@ public class StreamAcceptFilter implements IStreamAcceptFilter{
 	} 
 
 	public int checkMaxBitrateAccept(int streamBitrateValue) {
-		if(Integer.parseInt(getMaxBitrateAccept()) <= streamBitrateValue) {
+		if(Integer.parseInt(getAppSetting().getMaxBitrateAccept()) <= streamBitrateValue) {
 			result = 2;
 		}
 		else {
@@ -96,6 +81,17 @@ public class StreamAcceptFilter implements IStreamAcceptFilter{
 		return result;
 
 	} 
+	
+	
+	public AppSettings getAppSetting() {
+		
+		if (appContext.containsBean(AppSettings.BEAN_NAME)) {
+			appSettings = (AppSettings)appContext.getBean(AppSettings.BEAN_NAME);
+		}
+		
+		return appSettings;
+
+	}
 
 	public ApplicationContext getAppContext() {
 		return appContext;
@@ -104,52 +100,5 @@ public class StreamAcceptFilter implements IStreamAcceptFilter{
 	public void setAppContext(ApplicationContext appContext) {
 		this.appContext = appContext;
 	}
-
-	public DataStore getDatastore() {
-		if (dataStore == null) {
-			dataStore = dataStoreFactory.getDataStore();
-		}
-		return dataStore;
-	}
-
-
-	public void setDataStore(DataStore dataStore) {
-		this.dataStore = dataStore;
-	}
-
-	public DataStoreFactory getDataStoreFactory() {
-		return dataStoreFactory;
-	}
-
-
-	public void setDataStoreFactory(DataStoreFactory dataStoreFactory) {
-		this.dataStoreFactory = dataStoreFactory;
-	}
-
-	public String getMaxFpsAccept() {
-		return maxFpsAccept;
-	}
-
-	public void setMaxFpsAccept(String maxFpsAccept) {
-		this.maxFpsAccept = maxFpsAccept;
-	}
-
-	public String getMaxResolutionAccept() {
-		return maxResolutionAccept;
-	}
-
-	public void setMaxResolutionAccept(String maxResolutionAccept) {
-		this.maxResolutionAccept = maxResolutionAccept;
-	}
-
-	public String getMaxBitrateAccept() {
-		return maxBitrateAccept;
-	}
-
-	public void setMaxBitrateAccept(String maxBitrateAccept) {
-		this.maxBitrateAccept = maxBitrateAccept;
-	}
-
-
 
 }
