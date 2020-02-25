@@ -40,8 +40,6 @@ public class IPFilter extends AbstractFilter {
 		((HttpServletResponse) response).sendError(HttpServletResponse.SC_FORBIDDEN, "Not allowed IP");
 	}
 
-
-
 	/**
 	 * Test if a remote's IP address is allowed to proceed.
 	 *
@@ -54,22 +52,9 @@ public class IPFilter extends AbstractFilter {
 		AppSettings appSettings = getAppSettings();
 		if (appSettings != null) 
 		{
-			try {
-				InetAddress addr = InetAddress.getByName(property);
-				List<NetMask> allowedCIDRList = appSettings.getAllowedCIDRList();
-
-				for (final NetMask nm : allowedCIDRList) {
-					if (nm.matches(addr)) {
-						return true;
-					}
-				}
-				
-			} catch (UnknownHostException e) {
-				// This should be in the 'could never happen' category but handle it
-				// to be safe.
-				log.error("error", e);
-			}
+			return checkCIDRList(appSettings.getAllowedCIDRList(),property);
 		}
+
 		// Deny this request
 		return false;
 	}

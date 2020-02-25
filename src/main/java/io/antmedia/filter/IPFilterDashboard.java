@@ -37,22 +37,9 @@ public class IPFilterDashboard extends AbstractFilter{
 		ServerSettings serverSettings = getServerSetting();
 
 		if (serverSettings != null) {
-			try {
-
-				InetAddress addr = InetAddress.getByName(property);
-				List<NetMask>  allowedCIDRList = serverSettings.getAllowedCIDRList();
-
-				for (final NetMask nm : allowedCIDRList) {
-					if (nm.matches(addr)) {
-						return true;
-					}
-				}
-
-			} catch (UnknownHostException e) {
-				// This should be in the 'could never happen' category but handle it
-				// to be safe.
-				logger.error("error", e);
-			}
+			
+			return checkCIDRList(serverSettings.getAllowedCIDRList(),property);
+			
 		}
 		// Deny this request
 		return false;

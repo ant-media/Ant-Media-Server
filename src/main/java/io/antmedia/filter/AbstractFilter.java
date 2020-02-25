@@ -1,9 +1,14 @@
 package io.antmedia.filter;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.List;
+
 import javax.servlet.Filter;
 import javax.servlet.FilterConfig;
 import javax.servlet.ServletException;
 
+import org.apache.catalina.util.NetMask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -41,6 +46,26 @@ public abstract class AbstractFilter implements Filter{
 			serverSettings = (ServerSettings)context.getBean(ServerSettings.BEAN_NAME);
 		}
 		return serverSettings;
+	}
+	
+	public boolean checkCIDRList(List<NetMask> allowedCIDRList, final String property) {
+		
+		try {
+		InetAddress addr = InetAddress.getByName(property);
+
+		for (final NetMask nm : allowedCIDRList) {
+			if (nm.matches(addr)) {
+				return true;
+			}
+		}
+		
+	} catch (UnknownHostException e) {
+		// This should be in the 'could never happen' category but handle it
+		// to be safe.
+		logger.error("error", e);
+	}
+		
+		return false;
 	}
 	
 	
