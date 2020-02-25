@@ -27,12 +27,10 @@ before_install:
   - sudo apt-get install wondershaper
   - sudo git clone --depth=1 https://github.com/ant-media/utilities.git /usr/local/onvif
     # get parent project
-  - export BRANCH=$(if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then echo $TRAVIS_BRANCH; else echo $TRAVIS_PULL_REQUEST_BRANCH; fi)
-  - echo "TRAVIS_BRANCH=$TRAVIS_BRANCH, PR=$PR, BRANCH=$BRANCH"
-  - (if [ $(git ls-remote https://github.com/ant-media/ant-media-server-parent.git $BRANCH  | wc -l) == "1" ];
+  - (if [ $(git ls-remote https://github.com/ant-media/ant-media-server-parent.git $TRAVIS_BRANCH  | wc -l) == "1" ];  
       then 
-        echo " $BRANCH branch found";
-        git clone --depth=1 -b $BRANCH https://github.com/ant-media/ant-media-server-parent.git;
+        echo " $TRAVIS_BRANCH branch found";  
+        git clone --depth=1 -b $TRAVIS_BRANCH https://github.com/ant-media/ant-media-server-parent.git;  
       else
         echo "branch not found"; 
         git clone --depth=1 https://github.com/ant-media/ant-media-server-parent.git;  
@@ -41,10 +39,10 @@ before_install:
   - mvn clean install -DskipTests -Dmaven.javadoc.skip=true -Dgpg.skip=true --quiet
   - cd ..
     #get common project
-  - (if [ $(git ls-remote https://github.com/ant-media/Ant-Media-Server-Common.git $BRANCH  | wc -l) == "1" ];
+  - (if [ $(git ls-remote https://github.com/ant-media/Ant-Media-Server-Common.git $TRAVIS_BRANCH  | wc -l) == "1" ];  
       then 
-       echo " $BRANCH branch found";
-       git clone --depth=1 -b $BRANCH https://github.com/ant-media/Ant-Media-Server-Common.git;
+       echo " $TRAVIS_BRANCH branch found";  
+       git clone --depth=1 -b $TRAVIS_BRANCH https://github.com/ant-media/Ant-Media-Server-Common.git;  
       else
        echo "branch not found"; 
        git clone --depth=1 https://github.com/ant-media/Ant-Media-Server-Common.git;  
@@ -54,10 +52,10 @@ before_install:
   - cd .. 
   
   #get service project
-  - (if [ $(git ls-remote https://github.com/ant-media/Ant-Media-Server-Service.git $BRANCH  | wc -l) == "1" ];
+  - (if [ $(git ls-remote https://github.com/ant-media/Ant-Media-Server-Service.git $TRAVIS_BRANCH  | wc -l) == "1" ];  
      then 
-       echo " $BRANCH branch found";
-       git clone --depth=1 -b $BRANCH https://github.com/ant-media/Ant-Media-Server-Service.git;
+       echo " $TRAVIS_BRANCH branch found";  
+       git clone --depth=1 -b $TRAVIS_BRANCH https://github.com/ant-media/Ant-Media-Server-Service.git; 
        cd Ant-Media-Server-Service; 
        mvn install -DskipTests=true -Dmaven.javadoc.skip=true -Dgpg.skip=true -B -V --quiet;
        cd ..;
@@ -140,4 +138,4 @@ deploy:
       tags: true
       condition: $TRAVIS_TAG =~ ^ams-v
       
-#above configuration prevents deploying a new release(not snapshot) if it is not tagged  
+#above configuration prevents deploying a new release(not snapshot) if it is not tagged       
