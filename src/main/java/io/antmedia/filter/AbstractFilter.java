@@ -11,7 +11,6 @@ import javax.servlet.ServletException;
 import org.apache.catalina.util.NetMask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationContext;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
 import org.springframework.web.context.WebApplicationContext;
 
@@ -22,12 +21,12 @@ public abstract class AbstractFilter implements Filter{
 
 	protected static Logger logger = LoggerFactory.getLogger(AbstractFilter.class);
 	protected FilterConfig config;
-	
+
 	@Override
 	public void init(FilterConfig filterConfig) throws ServletException {
 		this.config = filterConfig;
 	}
-	
+
 	public AppSettings getAppSettings() 
 	{
 		AppSettings appSettings = null;
@@ -37,7 +36,7 @@ public abstract class AbstractFilter implements Filter{
 		}
 		return appSettings;
 	}
-	
+
 	public ServerSettings getServerSetting() 
 	{
 		ServerSettings serverSettings = null;
@@ -47,28 +46,23 @@ public abstract class AbstractFilter implements Filter{
 		}
 		return serverSettings;
 	}
-	
-	public boolean checkCIDRList(List<NetMask> allowedCIDRList, final String property) {
-		
-		try {
-		InetAddress addr = InetAddress.getByName(property);
 
-		for (final NetMask nm : allowedCIDRList) {
-			if (nm.matches(addr)) {
-				return true;
+	public boolean checkCIDRList(List<NetMask> allowedCIDRList, final String remoteIPAdrress) {
+		try {
+			InetAddress addr = InetAddress.getByName(remoteIPAdrress);
+			for (final NetMask nm : allowedCIDRList) {
+				if (nm.matches(addr)) {
+					return true;
+				}
 			}
+		} catch (UnknownHostException e) {
+			// This should be in the 'could never happen' category but handle it
+			// to be safe.
+			logger.error("error", e);
 		}
-		
-	} catch (UnknownHostException e) {
-		// This should be in the 'could never happen' category but handle it
-		// to be safe.
-		logger.error("error", e);
-	}
-		
 		return false;
 	}
-	
-	
+
 	public ConfigurableWebApplicationContext getAppContext() {
 		ConfigurableWebApplicationContext appContext = (ConfigurableWebApplicationContext) getConfig().getServletContext().getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
 		if (appContext != null && appContext.isRunning()) {
@@ -82,19 +76,19 @@ public abstract class AbstractFilter implements Filter{
 				logger.warn("App context not running yet." );
 			}
 		}
-		
+
 		return null;
 	}
-	
+
 	public FilterConfig getConfig() {
 		return config;
 	}
-	
+
 	public void setConfig(FilterConfig config) {
 		this.config = config;
 	}
-	
-	
+
+
 
 	@Override
 	public void destroy() {

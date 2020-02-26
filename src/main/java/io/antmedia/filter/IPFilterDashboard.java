@@ -1,9 +1,6 @@
 package io.antmedia.filter;
 
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.util.List;
 
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
@@ -11,7 +8,6 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.catalina.util.NetMask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,14 +28,10 @@ public class IPFilterDashboard extends AbstractFilter{
 	}
 
 
-	public boolean isAllowedDashboard(final String property) {
-
+	public boolean isAllowedDashboard(final String remoteIPAdrress){
 		ServerSettings serverSettings = getServerSetting();
-
-		if (serverSettings != null) {
-			
-			return checkCIDRList(serverSettings.getAllowedCIDRList(),property);
-			
+		if (serverSettings != null){
+			return checkCIDRList(serverSettings.getAllowedCIDRList(),remoteIPAdrress);
 		}
 		// Deny this request
 		return false;
