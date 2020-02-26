@@ -29,6 +29,7 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.P2PConnection;
+import io.antmedia.datastore.db.types.Playlist;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.datastore.db.types.TensorFlowObject;
@@ -46,6 +47,7 @@ public class MapDBStore extends DataStore {
 	private BTreeMap<String, String> socialEndpointsCredentialsMap;
 	private BTreeMap<String, String> tokenMap;
 	private BTreeMap<String, String> conferenceRoomMap;
+	private BTreeMap<String, String> playlistMap;
 
 
 	private Gson gson;
@@ -53,6 +55,7 @@ public class MapDBStore extends DataStore {
 	protected static Logger logger = LoggerFactory.getLogger(MapDBStore.class);
 	private static final String MAP_NAME = "BROADCAST";
 	private static final String VOD_MAP_NAME = "VOD";
+	private static final String PLAYLIST_MAP_NAME = "PLAYLIST";
 	private static final String DETECTION_MAP_NAME = "DETECTION";
 	private static final String TOKEN = "TOKEN";
 	private static final String SOCIAL_ENDPONT_CREDENTIALS_MAP_NAME = "SOCIAL_ENDPONT_CREDENTIALS_MAP_NAME";
@@ -71,6 +74,9 @@ public class MapDBStore extends DataStore {
 		map = db.treeMap(MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING).counterEnable()
 				.createOrOpen();
 		vodMap = db.treeMap(VOD_MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
+				.counterEnable().createOrOpen();
+		
+		playlistMap = db.treeMap(PLAYLIST_MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
 				.counterEnable().createOrOpen();
 
 		detectionMap = db.treeMap(DETECTION_MAP_NAME).keySerializer(Serializer.STRING)
@@ -1198,4 +1204,57 @@ public class MapDBStore extends DataStore {
 
 		return result;
 	}
+		
+	@Override
+	public boolean createPlaylist(Playlist playlist) {
+		
+		synchronized (this) {
+			boolean result = false;
+
+			if (playlist != null && playlist.getPlaylistId() != null) {
+				playlistMap.put(playlist.getPlaylistId(), gson.toJson(playlist));
+				db.commit();
+				result = true;
+			}
+
+			return result;
+		}
+	}
+	
+	@Override
+	public Playlist getPlaylist(String playlistId) {
+
+		Playlist playlist = null;
+		synchronized (this) {
+			if (playlistId != null) {
+				String jsonString = playlistMap.get(playlistId);
+				if (jsonString != null) {
+					playlist = gson.fromJson(jsonString, Playlist.class);
+				}
+			}
+		}
+		return playlist;
+	}
+	
+	@Override
+	public boolean deletePlaylist(String playlistId) {
+		synchronized (this) {
+			return playlistMap.remove(playlistId) != null;
+		}
+	}
+	
+	@Override
+	public boolean editPlaylist(String playlistId, Playlist playlist) {
+		synchronized (this) {
+			boolean result = false;
+
+			if (playlist != null && playlist.getPlaylistId() != null) {
+				playlistMap.replace(playlist.getPlaylistId(), gson.toJson(playlist));
+				db.commit();
+				result = true;
+			}
+			return result;
+		}
+	}
+	
 }

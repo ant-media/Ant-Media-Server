@@ -29,6 +29,7 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.P2PConnection;
+import io.antmedia.datastore.db.types.Playlist;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.datastore.db.types.TensorFlowObject;
@@ -53,6 +54,9 @@ public class MongoStore extends DataStore {
 	public static final String STATUS = "status";
 	private static final String ORIGIN_ADDRESS = "originAdress";
 	private static final String START_TIME = "startTime"; 
+	private static final String DURATION = "duration"; 
+	private static final String CREATION_DATE = "creationDate";
+	private static final String PLAYLIST_ID = "playlistId";
 
 	
 	public MongoStore(String host, String username, String password, String dbName) {
@@ -207,7 +211,7 @@ public class MongoStore extends DataStore {
 			try {
 				Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(id);
 
-				UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set("duration",
+				UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set(DURATION,
 						duration);
 
 				UpdateResults update = datastore.update(query, ops);
@@ -407,13 +411,12 @@ public class MongoStore extends DataStore {
 	public List<VoD> getVodList(int offset, int size, String sortBy, String orderBy) {
 		synchronized(this) {
 			if(sortBy != null && orderBy != null && !sortBy.isEmpty() && !orderBy.isEmpty()) {
-				String sortString = "creationDate";
-				sortString = orderBy.contentEquals("desc") ? "-" : "";
+				String sortString = orderBy.contentEquals("desc") ? "-" : "";
 				if(sortBy.contentEquals("name")) {
 					sortString += "vodName";
 				}
 				else if(sortBy.contentEquals("date")) {
-					sortString += "creationDate";
+					sortString += CREATION_DATE;
 				}
 				return vodDatastore.find(VoD.class).order(sortString).asList(new FindOptions().skip(offset).limit(size));
 			}
@@ -717,7 +720,7 @@ public class MongoStore extends DataStore {
 				}
 				
 				if ( broadcast.getDuration() != null) {
-					ops.set("duration", broadcast.getDuration());
+					ops.set(DURATION, broadcast.getDuration());
 				}
 				
 				if (broadcast.getLatitude() != null) {
@@ -1139,4 +1142,66 @@ public class MongoStore extends DataStore {
 		}
 		return false;
 	}
+	
+	
+	@Override
+	public boolean createPlaylist(Playlist playlist) {
+		synchronized(this) {
+			try {
+				datastore.save(playlist);
+				return true;
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+		return false;
+	}
+
+	@Override
+	public Playlist getPlaylist(String playlistId) {
+		synchronized(this) {
+			try {
+				return datastore.find(Playlist.class).field(PLAYLIST_ID).equal(playlistId).get();
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+		return null;
+	}
+
+	@Override
+	public boolean deletePlaylist(String playlistId) {
+		synchronized(this) {
+			try {
+				Query<Playlist> query = datastore.createQuery(Playlist.class).field(PLAYLIST_ID).equal(playlistId);
+				WriteResult delete = datastore.delete(query);
+				return (delete.getN() == 1);
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+		return false;
+	}
+
+	@Override
+	public boolean editPlaylist(String playlistId, Playlist playlist) {
+		boolean result = false;
+		synchronized(this) {
+			try {
+				Query<Playlist> query = datastore.createQuery(Playlist.class).field(PLAYLIST_ID).equal(playlist.getPlaylistId());
+
+				UpdateOperations<Playlist> ops = datastore.createUpdateOperations(Playlist.class).set(PLAYLIST_ID, playlist.getPlaylistId())
+						.set("playlistName", playlist.getPlaylistName()).set("playlistStatus", playlist.getPlaylistStatus())
+						.set(CREATION_DATE, playlist.getCreationDate()).set(DURATION, playlist.getDuration())
+						.set("broadcastItemList", playlist.getBroadcastItemList());
+
+				UpdateResults update = datastore.update(query, ops);
+				return update.getUpdatedCount() == 1;
+			} catch (Exception e) {
+				logger.error(e.getMessage());
+			}
+		}
+		return result;
+	}
+	
 }

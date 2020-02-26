@@ -272,17 +272,21 @@ public class WebSocketConstants {
 
 	
 	/**
-	 * This command used for P2P conncetions with multipeers 
-	 * to connect new peers to generated new conections with desired id
+	 * This command used for P2P connections with multipeers 
+	 * to connect new peers to generated new connections with desired id
 	 */
 	public static final String CONNECT_WITH_NEW_ID_COMMAND = "connectWithNewId";
 	
 	/**
-	 * This command used for P2P conncetions with multipeers 
+	 * This command used for P2P connections with multipeers 
 	 * to start new connection with desired id
 	 */
 	public static final String START_NEW_P2P_CONNECTION_COMMAND = "startNewP2PConnection";
-
+	
+	/**
+	 * This command used for message and data transfer between peers 
+	 */
+	public static final String PEER_MESSAGE_COMMAND = "peerMessageCommand";
 	/**
 	 * This command used for multitrack stream 
 	 * to play or pause a tranck

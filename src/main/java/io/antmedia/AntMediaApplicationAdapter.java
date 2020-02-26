@@ -90,6 +90,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 	protected static Logger logger = LoggerFactory.getLogger(AntMediaApplicationAdapter.class);
 	private ServerSettings serverSettings;
+	public static final String VOD = "VoD";
 	public static final String LIVE_STREAM = "liveStream";
 	public static final String IP_CAMERA = "ipCamera";
 	public static final String STREAM_SOURCE = "streamSource";
@@ -759,7 +760,8 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	public Result stopStreaming(Broadcast broadcast) {
 		Result result = new Result(false);
 		if(broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA) ||
-				broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE)) 
+				broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE) ||
+						broadcast.getType().equals(AntMediaApplicationAdapter.VOD)) 
 		{
 			result = streamFetcherManager.stopStreaming(broadcast);
 		} 

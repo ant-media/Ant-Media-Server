@@ -22,6 +22,7 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.P2PConnection;
+import io.antmedia.datastore.db.types.Playlist;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.datastore.db.types.TensorFlowObject;
@@ -38,6 +39,7 @@ public class InMemoryDataStore extends DataStore {
 	private Map<String, SocialEndpointCredentials> socialEndpointCredentialsMap = new LinkedHashMap<>();
 	private Map<String, Token> tokenMap = new LinkedHashMap<>();
 	private Map<String, ConferenceRoom> roomMap = new LinkedHashMap<>();
+	private Map<String, Playlist> playlistMap = new LinkedHashMap<>();
 
 	public InMemoryDataStore(String dbName) {
 	}
@@ -834,4 +836,41 @@ public class InMemoryDataStore extends DataStore {
 		broadcastMap.put(mainTrackId, mainTrack);
 		return result;
 	}
+	
+	@Override
+	public boolean createPlaylist(Playlist playlist) {
+
+		boolean result = false;
+
+		if (playlist != null && playlist.getPlaylistId() != null) {
+			playlistMap.put(playlist.getPlaylistId(), playlist);
+			result = true;
+		}
+
+		return result;
+	}
+	
+	@Override
+	public Playlist getPlaylist(String playlistId) {
+
+		return playlistMap.get(playlistId);
+	}
+	
+	@Override
+	public boolean deletePlaylist(String playlistId) {
+		return playlistMap.remove(playlistId) != null;
+	}
+	
+	@Override
+	public boolean editPlaylist(String playlistId,Playlist playlist) {
+
+		boolean result = false;
+
+		if (playlist != null && playlist.getPlaylistId() != null) {
+			playlistMap.replace(playlistId, playlist);
+			result = true;
+		}
+		return result;
+	}
+	
 }

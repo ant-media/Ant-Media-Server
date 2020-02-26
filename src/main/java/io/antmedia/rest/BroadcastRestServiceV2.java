@@ -1,6 +1,5 @@
 package io.antmedia.rest;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import javax.ws.rs.Consumes;
@@ -36,7 +35,6 @@ import io.antmedia.statistic.type.WebRTCAudioReceiveStats;
 import io.antmedia.statistic.type.WebRTCAudioSendStats;
 import io.antmedia.statistic.type.WebRTCVideoReceiveStats;
 import io.antmedia.statistic.type.WebRTCVideoSendStats;
-import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
