@@ -44,6 +44,7 @@ public class ApplicationSchedulingService extends QuartzSchedulingService {
     private static Logger log = Red5LoggerFactory.getLogger(ApplicationSchedulingService.class);
 
     public static final String QUARTZ_FACTORY_KEY = "org.quartz.impl.StdSchedulerFactory.KEY";
+    public static final String SCHEDULING_APPLICATION_NAME = "org.red5.server:type=ApplicationSchedulingService,applicationName=";
 
     private String applicationName;
 
@@ -106,9 +107,9 @@ public class ApplicationSchedulingService extends QuartzSchedulingService {
         try {
             ObjectName oName = null;
             if (instanceId == null) {
-                oName = new ObjectName("org.red5.server:type=ApplicationSchedulingService,applicationName=" + applicationName);
+                oName = new ObjectName(SCHEDULING_APPLICATION_NAME + applicationName);
             } else {
-                oName = new ObjectName("org.red5.server:type=ApplicationSchedulingService,applicationName=" + applicationName + ",instanceId=" + instanceId);
+                oName = new ObjectName(SCHEDULING_APPLICATION_NAME + applicationName + ",instanceId=" + instanceId);
             }
             mbeanServer.registerMBean(new StandardMBean(this, QuartzSchedulingServiceMXBean.class, true), oName);
         } catch (Exception e) {
@@ -121,9 +122,9 @@ public class ApplicationSchedulingService extends QuartzSchedulingService {
         try {
             ObjectName oName = null;
             if (instanceId == null) {
-                oName = new ObjectName("org.red5.server:type=ApplicationSchedulingService,applicationName=" + applicationName);
+                oName = new ObjectName(SCHEDULING_APPLICATION_NAME + applicationName);
             } else {
-                oName = new ObjectName("org.red5.server:type=ApplicationSchedulingService,applicationName=" + applicationName + ",instanceId=" + instanceId);
+                oName = new ObjectName(SCHEDULING_APPLICATION_NAME + applicationName + ",instanceId=" + instanceId);
             }
             mbs.unregisterMBean(oName);
         } catch (Exception e) {

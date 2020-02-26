@@ -28,13 +28,13 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.P2PConnection;
+import io.antmedia.datastore.db.types.Playlist;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.muxer.MuxAdaptor;
-import io.antmedia.settings.ServerSettings;
 
 public class MongoStore extends DataStore {
 
@@ -52,8 +52,11 @@ public class MongoStore extends DataStore {
 	public static final String STATUS = "status";
 	private static final String ORIGIN_ADDRESS = "originAdress";
 	private static final String START_TIME = "startTime"; 
+	private static final String DURATION = "duration"; 
+	private static final String CREATION_DATE = "creationDate";
+	private static final String PLAYLIST_ID = "playlistId";
 
-	
+
 	public MongoStore(String host, String username, String password, String dbName) {
 		morphia = new Morphia();
 		morphia.mapPackage("io.antmedia.datastore.db.types");
@@ -62,9 +65,9 @@ public class MongoStore extends DataStore {
 
 		MongoClientURI mongoUri = new MongoClientURI(uri);
 		MongoClient client = new MongoClient(mongoUri);
-		
-		
-		
+
+
+
 		//TODO: Refactor these stores so that we don't have separate datastore for each class
 		datastore = morphia.createDatastore(client, dbName);
 		vodDatastore=morphia.createDatastore(client, dbName+"VoD");
@@ -73,7 +76,7 @@ public class MongoStore extends DataStore {
 		detectionMap = morphia.createDatastore(client, dbName + "detection");
 		conferenceRoomDatastore = morphia.createDatastore(client, dbName + "room");
 
-		
+
 		//*************************************************
 		//do not create data store for each type as we do above
 		//*************************************************
@@ -85,7 +88,7 @@ public class MongoStore extends DataStore {
 		detectionMap.ensureIndexes();
 		conferenceRoomDatastore.ensureIndexes();
 	}
-	
+
 	public static String getMongoConnectionUri(String host, String username, String password) {
 		String credential = "";
 		if(username != null && !username.isEmpty()) {
@@ -183,7 +186,7 @@ public class MongoStore extends DataStore {
 				if(status.contentEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
 					ops.set(START_TIME, System.currentTimeMillis());
 				}
-				
+
 				UpdateResults update = datastore.update(query, ops);
 				return update.getUpdatedCount() == 1;
 			} catch (Exception e) {
@@ -206,7 +209,7 @@ public class MongoStore extends DataStore {
 			try {
 				Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(id);
 
-				UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set("duration",
+				UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set(DURATION,
 						duration);
 
 				UpdateResults update = datastore.update(query, ops);
@@ -340,16 +343,16 @@ public class MongoStore extends DataStore {
 								query.criteria(STATUS).notEqual(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)
 								)
 						);
-				
+
 				List<Broadcast> streamList = query.asList();
-				
+
 				UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set(STATUS, AntMediaApplicationAdapter.BROADCAST_STATUS_PREPARING);
 				UpdateResults update = datastore.update(query, ops);
 				int updatedCount = update.getUpdatedCount();
 				if(updatedCount != streamList.size()) {
 					logger.error("Only {} stream status updated out of {}", updatedCount, streamList.size());
 				}
-						
+
 				return streamList;
 			} catch (Exception e) {
 
@@ -406,13 +409,12 @@ public class MongoStore extends DataStore {
 	public List<VoD> getVodList(int offset, int size, String sortBy, String orderBy) {
 		synchronized(this) {
 			if(sortBy != null && orderBy != null && !sortBy.isEmpty() && !orderBy.isEmpty()) {
-				String sortString = "creationDate";
-				sortString = orderBy.contentEquals("desc") ? "-" : "";
+				String sortString = orderBy.contentEquals("desc") ? "-" : "";
 				if(sortBy.contentEquals("name")) {
 					sortString += "vodName";
 				}
 				else if(sortBy.contentEquals("date")) {
-					sortString += "creationDate";
+					sortString += CREATION_DATE;
 				}
 				return vodDatastore.find(VoD.class).order(sortString).asList(new FindOptions().skip(offset).limit(size));
 			}
@@ -714,23 +716,23 @@ public class MongoStore extends DataStore {
 				if ( broadcast.getStreamUrl() != null) {
 					ops.set("streamUrl", broadcast.getStreamUrl());
 				}
-				
+
 				if ( broadcast.getDuration() != null) {
-					ops.set("duration", broadcast.getDuration());
+					ops.set(DURATION, broadcast.getDuration());
 				}
-				
+
 				if (broadcast.getLatitude() != null) {
 					ops.set("latitude", broadcast.getLatitude());
 				}
-				
+
 				if (broadcast.getLongitude() != null) {
 					ops.set("longitude", broadcast.getLongitude());
 				}
-				
+
 				if (broadcast.getAltitude() != null) {
 					ops.set("altitude", broadcast.getAltitude());
 				}
-				
+
 				ops.set("receivedBytes", broadcast.getReceivedBytes());
 				ops.set("bitrate", broadcast.getBitrate());
 				ops.set("userAgent", broadcast.getUserAgent());
@@ -949,7 +951,7 @@ public class MongoStore extends DataStore {
 					query.criteria("zombi").equal(true)
 					);
 			long count = query.count();
-			
+
 			if(count > 0) {
 				logger.error("There are {} streams for {} at start. They are deleted now.", count, hostAddress);
 
@@ -1062,7 +1064,7 @@ public class MongoStore extends DataStore {
 		}
 		return token;
 	}
-	
+
 	@Override
 	public long getLocalLiveBroadcastCount(String hostAddress) {
 		synchronized(this) {
@@ -1104,7 +1106,7 @@ public class MongoStore extends DataStore {
 		}
 		return false;
 	}
-	
+
 	@Override
 	public P2PConnection getP2PConnection(String streamId) {
 		synchronized(this) {
@@ -1115,5 +1117,65 @@ public class MongoStore extends DataStore {
 			}
 		}
 		return null;
+	}
+
+	@Override
+	public boolean createPlaylist(Playlist playlist) {
+		synchronized(this) {
+			try {
+				datastore.save(playlist);
+				return true;
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+		return false;
+	}
+
+	@Override
+	public Playlist getPlaylist(String playlistId) {
+		synchronized(this) {
+			try {
+				return datastore.find(Playlist.class).field(PLAYLIST_ID).equal(playlistId).get();
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+		return null;
+	}
+
+	@Override
+	public boolean deletePlaylist(String playlistId) {
+		synchronized(this) {
+			try {
+				Query<Playlist> query = datastore.createQuery(Playlist.class).field(PLAYLIST_ID).equal(playlistId);
+				WriteResult delete = datastore.delete(query);
+				return (delete.getN() == 1);
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+		return false;
+	}
+
+	@Override
+	public boolean editPlaylist(String playlistId, Playlist playlist) {
+		boolean result = false;
+		synchronized(this) {
+			try {
+				Query<Playlist> query = datastore.createQuery(Playlist.class).field(PLAYLIST_ID).equal(playlist.getPlaylistId());
+
+				UpdateOperations<Playlist> ops = datastore.createUpdateOperations(Playlist.class).set(PLAYLIST_ID, playlist.getPlaylistId())
+						.set("playlistName", playlist.getPlaylistName()).set("playlistStatus", playlist.getPlaylistStatus())
+						.set(CREATION_DATE, playlist.getCreationDate()).set(DURATION, playlist.getDuration())
+						.set("broadcastItemList", playlist.getBroadcastItemList());
+
+				UpdateResults update = datastore.update(query, ops);
+				return update.getUpdatedCount() == 1;
+			} catch (Exception e) {
+				logger.error(e.getMessage());
+			}
+		}
+		return result;
 	}
 }
