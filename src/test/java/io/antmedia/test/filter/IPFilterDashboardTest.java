@@ -33,7 +33,7 @@ public class IPFilterDashboardTest {
 		 assertFalse(ipFilter.isAllowedDashboard("127.0.0.1"));
 		 
 
-		// Mockito.doReturn(null).when(ipFilter).getAppSettings();
+		 Mockito.doReturn(null).when(ipFilter).getServerSetting();
 		 assertFalse(ipFilter.isAllowedDashboard("127.0.0.1"));
 		 
 		 
