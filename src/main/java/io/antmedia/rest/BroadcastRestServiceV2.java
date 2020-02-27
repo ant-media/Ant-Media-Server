@@ -844,7 +844,7 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/subtrack")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result addESubTrack(@ApiParam(value = "Broadcast id", required = true) @PathParam("id") String id,
+	public Result addSubTrack(@ApiParam(value = "Broadcast id", required = true) @PathParam("id") String id,
 			@ApiParam(value = "Subtrack Stream Id", required = true) @QueryParam("id") String subTrackId) {
 		
 		Broadcast subTrack = getDataStore().get(subTrackId);
