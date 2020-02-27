@@ -71,6 +71,10 @@ public class WebSocketConstants {
 	
 	public static final String SERVER_WILL_STOP = "server_will_stop";
 	
+	public static final String TRACK_ID = "trackId";
+
+	public static final String ENABLED = "enabled";
+	
 	/**
 	 * this is for leaving from room in 1-N and N-N connection
 	 */
@@ -283,4 +287,21 @@ public class WebSocketConstants {
 	 * This command used for message and data transfer between peers 
 	 */
 	public static final String PEER_MESSAGE_COMMAND = "peerMessageCommand";
+	/**
+	 * This command used for multitrack stream 
+	 * to play or pause a tranck
+	 */
+	public static final String ENABLE_TRACK = "enableTrack";
+	
+	/**
+	 * This command used to get subtracks for a stream id
+	 */
+	public static final String  GET_TRACK_LIST = "getTrackList";
+
+	/**
+	 * This command used to send subtracks for a stream id
+	 */
+	public static final String  TRACK_LIST = "trackList";
+
+
 }

@@ -1084,6 +1084,9 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		store.put(AppSettings.SETTINGS_ALLOWED_PUBLISHER_IPS, appsettings.getAllowedPublisherCIDR() != null ? 
 																	String.valueOf(appsettings.getAllowedPublisherCIDR())
 																	: "");
+		store.put(AppSettings.SETTINGS_H264_ENABLED, String.valueOf(appsettings.isH264Enabled()));
+		store.put(AppSettings.SETTINGS_VP8_ENABLED, String.valueOf(appsettings.isVp8Enabled()));
+
 
 		return store.save();
 	}
@@ -1117,7 +1120,11 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		appSettings.setPreviewOverwrite(newSettings.isPreviewOverwrite());
 
 		synchUserVoDFolder(oldVodFolder, newSettings.getVodFolder());
+		
+		appSettings.setH264Enabled(newSettings.isH264Enabled());
+		appSettings.setVp8Enabled(newSettings.isVp8Enabled());
 
+		
 		logger.warn("app settings updated for {}", getScope().getName());	
 	}
 	

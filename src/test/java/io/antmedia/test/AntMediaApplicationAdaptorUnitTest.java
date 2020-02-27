@@ -50,7 +50,7 @@ import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.VoD;
-import io.antmedia.integration.AppFunctionalTest;
+import io.antmedia.integration.AppFunctionalV2Test;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.security.AcceptOnlyStreamsInDataStore;
 import io.antmedia.settings.ServerSettings;
@@ -76,7 +76,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		adapter.setVertx(vertx);
 		File f = new File(streamsFolderPath);
 		try {
-			AppFunctionalTest.delete(f);
+			AppFunctionalV2Test.delete(f);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -102,7 +102,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		adapter = null;
 
 		try {
-			AppFunctionalTest.delete(new File("webapps"));
+			AppFunctionalV2Test.delete(new File("webapps"));
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

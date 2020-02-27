@@ -107,7 +107,7 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 	public void before() {
 
 		try {
-			AppFunctionalTest.delete(new File("webapps/junit/streams"));
+			AppFunctionalV2Test.delete(new File("webapps/junit/streams"));
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -162,7 +162,7 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 		DataStore dataStore = app.getDataStore();
 		
 		String streamId = RandomStringUtils.randomAlphanumeric(8);
-		Process rtmpSendingProcess = AppFunctionalTest.execute(ffmpegPath
+		Process rtmpSendingProcess = AppFunctionalV2Test.execute(ffmpegPath
 				+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
 				+ streamId);
 		
