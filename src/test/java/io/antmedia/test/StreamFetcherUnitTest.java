@@ -51,7 +51,7 @@ import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.integration.AppFunctionalTest;
+import io.antmedia.integration.AppFunctionalV2Test;
 import io.antmedia.integration.MuxingTest;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.muxer.Mp4Muxer;
@@ -103,7 +103,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	public void before() {
 
 		try {
-			AppFunctionalTest.delete(new File("webapps/junit/streams"));
+			AppFunctionalV2Test.delete(new File("webapps/junit/streams"));
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -150,7 +150,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		app = null;
 
 		try {
-			AppFunctionalTest.delete(new File("webapps"));
+			AppFunctionalV2Test.delete(new File("webapps"));
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
