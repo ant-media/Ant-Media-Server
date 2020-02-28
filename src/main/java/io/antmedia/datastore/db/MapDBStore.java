@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.regex.Pattern;
 
 import org.apache.commons.io.FilenameUtils;
@@ -1184,6 +1185,26 @@ public class MapDBStore extends DataStore {
 		return null;
 	}
 	
+	@Override
+	public boolean addSubTrack(String mainTrackId, String subTrackId) {
+		boolean result = false;
+		synchronized (this) {
+			String json = map.get(mainTrackId);
+			Broadcast mainTrack = gson.fromJson(json, Broadcast.class);
+			List<String> subTracks = mainTrack.getSubTrackStreamIds();
+			if (subTracks == null) {
+				subTracks = new ArrayList<>();
+			}
+			subTracks.add(subTrackId);
+			mainTrack.setSubTrackStreamIds(subTracks);
+			map.replace(mainTrackId, gson.toJson(mainTrack));
+			db.commit();
+			result = true;
+		}
+
+		return result;
+	}
+		
 	@Override
 	public boolean createPlaylist(Playlist playlist) {
 		

@@ -42,6 +42,7 @@ import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.muxer.MuxAdaptor;
+import io.antmedia.rest.BroadcastRestServiceV2;
 import io.antmedia.settings.ServerSettings;
 
 public class DBStoresUnitTest {
@@ -99,6 +100,7 @@ public class DBStoresUnitTest {
 		testP2PConnection(dataStore);
 		testUpdateLocationParams(dataStore);
 		testPlaylist(dataStore);
+		testAddTrack(dataStore);
 	}
 
 	@Test
@@ -128,6 +130,8 @@ public class DBStoresUnitTest {
 		testP2PConnection(dataStore);
 		testUpdateLocationParams(dataStore);
 		testPlaylist(dataStore);
+		testAddTrack(dataStore);
+
 	}
 
 	@Test
@@ -175,6 +179,8 @@ public class DBStoresUnitTest {
 		testP2PConnection(dataStore);
 		testUpdateLocationParams(dataStore);
 		testPlaylist(dataStore);
+		testAddTrack(dataStore);
+
 	}
 	
 	@Test
@@ -1625,6 +1631,43 @@ public class DBStoresUnitTest {
 
 		assertNull(dataStore.getPlaylist(playlist.getPlaylistId()));
 		
+	}
+
+	public void testAddTrack(DataStore dataStore) {
+
+		String mainTrackId = RandomStringUtils.randomAlphanumeric(8);
+		String subTrackId = RandomStringUtils.randomAlphanumeric(8);
+
+		Broadcast mainTrack= new Broadcast();
+		try {
+			mainTrack.setStreamId(mainTrackId);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		Broadcast subtrack= new Broadcast();
+		try {
+			subtrack.setStreamId(subTrackId);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		dataStore.save(mainTrack);
+		dataStore.save(subtrack);
+
+		assertNull(mainTrack.getSubTrackStreamIds());
+		assertNull(subtrack.getMainTrackStreamId());
+
+		subtrack.setMainTrackStreamId(mainTrackId);
+		assertTrue(dataStore.updateBroadcastFields(subTrackId, subtrack));
+
+		dataStore.addSubTrack(mainTrackId, subTrackId);
+		mainTrack = dataStore.get(mainTrackId);
+		subtrack = dataStore.get(subTrackId);
+		assertEquals(1, mainTrack.getSubTrackStreamIds().size());
+		assertEquals(subTrackId, mainTrack.getSubTrackStreamIds().get(0));
+		assertEquals(mainTrackId, subtrack.getMainTrackStreamId());
+
 	}
 
 }

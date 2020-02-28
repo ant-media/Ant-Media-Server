@@ -1912,4 +1912,41 @@ public class BroadcastRestServiceV2UnitTest {
 		assertTrue(restServiceReal.getRTMPToWebRTCStats().isEmpty());
 	}
 	
+	@Test
+	public void testAddSubtrack()  {
+		String mainTrackId = RandomStringUtils.randomAlphanumeric(8);
+		String subTrackId = RandomStringUtils.randomAlphanumeric(8);
+		
+		Broadcast mainTrack= new Broadcast();
+		try {
+			mainTrack.setStreamId(mainTrackId);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		Broadcast subtrack= new Broadcast();
+		try {
+			subtrack.setStreamId(subTrackId);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		BroadcastRestServiceV2 broadcastRestService = new BroadcastRestServiceV2();
+		DataStore datastore = new InMemoryDataStore("dummy");
+		datastore.save(mainTrack);
+		datastore.save(subtrack);
+		broadcastRestService.setDataStore(datastore);
+
+		assertNull(mainTrack.getSubTrackStreamIds());
+		assertNull(subtrack.getMainTrackStreamId());
+		
+		broadcastRestService.addSubTrack(mainTrackId, subTrackId);
+		
+		assertEquals(1, mainTrack.getSubTrackStreamIds().size());
+		assertEquals(subTrackId, mainTrack.getSubTrackStreamIds().get(0));
+		assertEquals(mainTrackId, subtrack.getMainTrackStreamId());
+
+		
+	}
+	
 }

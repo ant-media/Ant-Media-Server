@@ -53,7 +53,7 @@ import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Playlist;
-import io.antmedia.integration.AppFunctionalTest;
+import io.antmedia.integration.AppFunctionalV2Test;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.PlaylistRestServiceV2;
 import io.antmedia.rest.model.Result;
@@ -138,7 +138,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	public void after() {
 
 		try {
-			AppFunctionalTest.delete(new File("webapps"));
+			AppFunctionalV2Test.delete(new File("webapps"));
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -623,8 +623,6 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		Application.enableSourceHealthUpdate = false;
 
 	}
-	
-	
 	
 	
 	@Test

@@ -16,10 +16,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import javax.websocket.RemoteEndpoint;
@@ -39,19 +35,14 @@ import org.webrtc.MediaStream;
 import org.webrtc.PeerConnectionFactory;
 import org.webrtc.SessionDescription;
 import org.webrtc.SessionDescription.Type;
-
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.IApplicationAdaptorFactory;
-import io.antmedia.cluster.IStreamInfo;
 import io.antmedia.integration.MuxingTest;
 import io.antmedia.recorder.FFmpegFrameRecorder;
 import io.antmedia.recorder.Frame;
-import io.antmedia.rest.WebRTCClientStats;
 import io.antmedia.webrtc.MockWebRTCAdaptor;
 import io.antmedia.webrtc.adaptor.RTMPAdaptor;
-import io.antmedia.webrtc.api.IWebRTCClient;
-import io.antmedia.webrtc.api.IWebRTCMuxer;
 import io.antmedia.websocket.WebSocketCommunityHandler;
 import io.antmedia.websocket.WebSocketConstants;
 
