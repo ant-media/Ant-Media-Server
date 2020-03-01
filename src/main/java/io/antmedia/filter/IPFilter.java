@@ -1,24 +1,16 @@
 package io.antmedia.filter;
 
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.util.List;
 
-import javax.servlet.Filter;
 import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.catalina.util.NetMask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationContext;
-import org.springframework.web.context.WebApplicationContext;
 
 import io.antmedia.AppSettings;
 
@@ -32,7 +24,7 @@ public class IPFilter extends AbstractFilter {
 			chain.doFilter(request, response);
 			return;
 		}
-		
+
 		if(((HttpServletRequest)request).getPathInfo().contains("rest/v2/acm")) {
 			chain.doFilter(request, response);
 			return;
@@ -40,38 +32,18 @@ public class IPFilter extends AbstractFilter {
 		((HttpServletResponse) response).sendError(HttpServletResponse.SC_FORBIDDEN, "Not allowed IP");
 	}
 
-
-
 	/**
 	 * Test if a remote's IP address is allowed to proceed.
 	 *
-	 * @param property The remote's IP address, as a string
+	 * @param remoteIPAdrress The remote's IP address, as a string
 	 * @return true if allowed
 	 */
-	public boolean isAllowed(final String property) 
-	{
-		
+	public boolean isAllowed(final String remoteIPAdrress) {
 		AppSettings appSettings = getAppSettings();
-		if (appSettings != null) 
-		{
-			try {
-				InetAddress addr = InetAddress.getByName(property);
-				List<NetMask> allowedCIDRList = appSettings.getAllowedCIDRList();
-
-				for (final NetMask nm : allowedCIDRList) {
-					if (nm.matches(addr)) {
-						return true;
-					}
-				}
-				
-			} catch (UnknownHostException e) {
-				// This should be in the 'could never happen' category but handle it
-				// to be safe.
-				log.error("error", e);
-			}
+		if (appSettings != null) {
+			return checkCIDRList(appSettings.getAllowedCIDRList(),remoteIPAdrress);
 		}
 		// Deny this request
 		return false;
 	}
-
 }
