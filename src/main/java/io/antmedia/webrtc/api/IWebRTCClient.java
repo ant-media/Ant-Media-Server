@@ -1,8 +1,10 @@
 package io.antmedia.webrtc.api;
 
 import java.nio.ByteBuffer;
+import java.util.List;
 
 import org.webrtc.IceCandidate;
+import org.webrtc.NaluIndex;
 import org.webrtc.SessionDescription;
 
 import io.antmedia.statistic.type.WebRTCAudioSendStats;
@@ -18,9 +20,10 @@ public interface IWebRTCClient {
 	 * Send video packet to connected client
 	 * @param videoPacket
 	 * @param isKeyFrame
+	 * @param naluIndices 
+	 * @param trackIndex 
 	 */
-	public void sendVideoPacket(ByteBuffer videoPacket, boolean isKeyFrame, long timestamp, int frameRotation);
-	
+	public void sendVideoPacket(ByteBuffer videoPacket, boolean isKeyFrame, long timestamp, int frameRotation, List<NaluIndex> naluIndices, String trackId);
 	
 	/**
 	 * Send audio packet to connected client

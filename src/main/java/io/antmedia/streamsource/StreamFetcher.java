@@ -40,6 +40,8 @@ import io.vertx.core.Vertx;
 
 public class StreamFetcher {
 
+	private static final String STREAM_TYPE_VOD = "VoD";
+
 	protected static Logger logger = LoggerFactory.getLogger(StreamFetcher.class);
 	private Broadcast stream;
 	private WorkerThread thread;
@@ -73,7 +75,7 @@ public class StreamFetcher {
 	 * This case causes stream NOT TO BE STOPPED
 	 */
 	private volatile boolean stopRequestReceived = false;
-	
+
 	/**
 	 * Buffer time in milliseconds
 	 */
@@ -84,6 +86,22 @@ public class StreamFetcher {
 	private AVRational avRationalTimeBaseMS;
 	private AppSettings appSettings;
 	private Vertx vertx;
+
+	public interface IStreamFetcherListener {
+
+		void streamFinished (IStreamFetcherListener listener);
+
+	}
+
+	IStreamFetcherListener streamFetcherListener;
+
+	public IStreamFetcherListener getStreamFetcherListener() {
+		return streamFetcherListener;
+	}
+
+	public void setStreamFetcherListener(IStreamFetcherListener streamFetcherListener) {
+		this.streamFetcherListener = streamFetcherListener;
+	}
 
 	public StreamFetcher(Broadcast stream, IScope scope, Vertx vertx)  {
 		if (stream == null || stream.getStreamId() == null || stream.getStreamUrl() == null) {
@@ -129,8 +147,10 @@ public class StreamFetcher {
 		AVDictionary optionsDictionary = new AVDictionary();
 
 		String streamUrl = stream.getStreamUrl();
-		if (streamUrl.startsWith("rtsp://")) {
-			av_dict_set(optionsDictionary, "rtsp_transport", "tcp", 0);
+		String transportType = appSettings.getRtspPullTransportType();
+		if (streamUrl.startsWith("rtsp://") && !transportType.isEmpty()) {
+			logger.info("Setting rtsp transport type to {} for stream source: {}", transportType, streamUrl);
+			av_dict_set(optionsDictionary, "rtsp_transport", transportType, 0);
 		}
 
 		String timeoutStr = String.valueOf(this.timeout);
@@ -192,8 +212,8 @@ public class StreamFetcher {
 		protected AtomicBoolean isJobRunning = new AtomicBoolean(false);
 		AVFormatContext inputFormatContext = null;
 
-		
-		
+
+
 		private volatile boolean buffering = false;
 		private ConcurrentLinkedQueue<AVPacket> bufferQueue = new ConcurrentLinkedQueue<>();
 
@@ -204,6 +224,7 @@ public class StreamFetcher {
 			long lastPacketTime = 0;
 			long firstPacketTime = 0;
 			long bufferDuration = 0;
+			long timeOffset = 0;
 
 			AVPacket pkt = null;
 			long packetWriterJobName = -1L;
@@ -262,6 +283,7 @@ public class StreamFetcher {
 								pkt.pts(pkt.dts());
 							}
 
+
 							/***************************************************
 							 *  Memory of being paranoid or failing while looking for excellence without understanding the whole picture
 							 *  
@@ -319,7 +341,36 @@ public class StreamFetcher {
 								}
 							}
 							else {
+
+								if(stream.getType().equals(STREAM_TYPE_VOD)) {
+
+									if(firstPacketTime == 0) {
+										int streamIndex = pkt.stream_index();
+										firstPacketTime = System.currentTimeMillis();
+										long firstPacketDtsInMs = av_rescale_q(pkt.dts(), inputFormatContext.streams(streamIndex).time_base(), avRationalTimeBaseMS);
+										timeOffset = 0 - firstPacketDtsInMs;
+									}
+
+									long latestTime = System.currentTimeMillis();
+
+									int streamIndex = pkt.stream_index();
+
+									AVRational timeBase = inputFormatContext.streams(streamIndex).time_base();
+
+									long pktTime = av_rescale_q(pkt.dts(), timeBase, avRationalTimeBaseMS);
+
+									long durationInMs = latestTime - firstPacketTime;
+
+									long dtsInMS= timeOffset + pktTime;
+
+									while(dtsInMS > durationInMs) {
+										durationInMs = System.currentTimeMillis() - firstPacketTime;
+										Thread.sleep(1);
+									}
+								}
+
 								muxAdaptor.writePacket(inputFormatContext.streams(pkt.stream_index()), pkt);
+
 							}
 							av_packet_unref(pkt);
 							if (stopRequestReceived) {
@@ -327,7 +378,6 @@ public class StreamFetcher {
 								break;
 							}
 						}
-						logger.info("Leaving the loop for {}", stream.getStreamId());
 
 					}
 					else {
@@ -382,9 +432,18 @@ public class StreamFetcher {
 
 
 			setThreadActive(false);
+
+			if(streamFetcherListener != null) {	
+				stopRequestReceived = true;
+				restartStream = false;
+
+				streamFetcherListener.streamFinished(streamFetcherListener);
+			}
+
 			if(!stopRequestReceived && restartStream) {
 				logger.info("Stream fetcher will try to fetch source {} after {} ms", stream.getStreamUrl(), STREAM_FETCH_RE_TRY_PERIOD_MS);
 				vertx.setTimer(STREAM_FETCH_RE_TRY_PERIOD_MS, l -> {
+
 					thread = new WorkerThread();
 					thread.start();
 				});
@@ -393,7 +452,9 @@ public class StreamFetcher {
 			logger.debug("Leaving thread for {}", stream.getStreamUrl());
 
 
+
 		}
+
 
 		private void setUpEndPoints(String publishedName, MuxAdaptor muxAdaptor) {
 			DataStore dataStore = getInstance().getDataStore();
@@ -415,7 +476,7 @@ public class StreamFetcher {
 		{
 			logger.info("write all buffered packets for stream: {}", stream.getStreamId());
 			while (!bufferQueue.isEmpty()) {
-				
+
 				AVPacket pkt = bufferQueue.poll();
 				muxAdaptor.writePacket(inputFormatContext.streams(pkt.stream_index()), pkt);
 				av_packet_unref(pkt);
@@ -475,9 +536,6 @@ public class StreamFetcher {
 		}.start();
 
 	}
-
-
-
 
 	public AVPacket getAVPacket() {
 		if (!availableBufferQueue.isEmpty()) {
@@ -616,7 +674,7 @@ public class StreamFetcher {
 		}
 		return appSettings;
 	}
-	
+
 	/**
 	 * This is for test purposes
 	 * @param stopRequest

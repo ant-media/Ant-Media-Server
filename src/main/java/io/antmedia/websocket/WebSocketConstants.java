@@ -71,6 +71,10 @@ public class WebSocketConstants {
 	
 	public static final String SERVER_WILL_STOP = "server_will_stop";
 	
+	public static final String TRACK_ID = "trackId";
+
+	public static final String ENABLED = "enabled";
+	
 	/**
 	 * this is for leaving from room in 1-N and N-N connection
 	 */
@@ -246,4 +250,58 @@ public class WebSocketConstants {
 	 */
 	public static final Object NOT_SET_REMOTE_DESCRIPTION = "notSetRemoteDescription";
 	
+	/**
+	 * P2P Mode used in session user parameters
+	 */
+	public static final String ATTR_P2P_MULTIPEER = "multiPeer";
+	
+	/**
+	 * P2P Mode used in session user parameters
+	 */
+	public static final String ATTR_P2P_MODE = "mode";
+	
+	/**
+	 * P2P Mode play
+	 */
+	public static final String P2P_MODE_PLAY = "play";
+	
+	/**
+	 * P2P Mode both
+	 */
+	public static final String P2P_MODE_BOTH = "both";
+
+	
+	/**
+	 * This command used for P2P connections with multipeers 
+	 * to connect new peers to generated new connections with desired id
+	 */
+	public static final String CONNECT_WITH_NEW_ID_COMMAND = "connectWithNewId";
+	
+	/**
+	 * This command used for P2P connections with multipeers 
+	 * to start new connection with desired id
+	 */
+	public static final String START_NEW_P2P_CONNECTION_COMMAND = "startNewP2PConnection";
+	
+	/**
+	 * This command used for message and data transfer between peers 
+	 */
+	public static final String PEER_MESSAGE_COMMAND = "peerMessageCommand";
+	/**
+	 * This command used for multitrack stream 
+	 * to play or pause a tranck
+	 */
+	public static final String ENABLE_TRACK = "enableTrack";
+	
+	/**
+	 * This command used to get subtracks for a stream id
+	 */
+	public static final String  GET_TRACK_LIST = "getTrackList";
+
+	/**
+	 * This command used to send subtracks for a stream id
+	 */
+	public static final String  TRACK_LIST = "trackList";
+
+
 }

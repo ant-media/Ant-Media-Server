@@ -45,6 +45,7 @@ import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
+import io.antmedia.datastore.db.types.Playlist;
 import io.antmedia.datastore.db.types.SocialEndpointChannel;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.TensorFlowObject;
@@ -384,16 +385,17 @@ public abstract class RestServiceBase {
 	protected Result updateStreamSource(String streamId, Broadcast broadcast, String socialNetworksToPublish) {
 
 		boolean result = false;
+
+		boolean resultStopStreaming = false;
+
 		logger.debug("update cam info for stream {}", broadcast.getStreamId());
 
 		if( checkStreamUrl(broadcast.getStreamUrl()) && broadcast.getStatus()!=null){
-			getApplication().stopStreaming(broadcast);
-			try {
-				Thread.sleep(1000);
-			} catch (InterruptedException e) {
-				logger.error(e.getMessage());
-				Thread.currentThread().interrupt();
-			}
+
+			resultStopStreaming = checkStopStreaming(streamId, broadcast);
+
+			waitStopStreaming(streamId,resultStopStreaming);
+
 			if(broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA)) {
 				String rtspURL = connectToCamera(broadcast).getMessage();
 
@@ -406,24 +408,64 @@ public abstract class RestServiceBase {
 				}
 			}
 
+			result = getDataStore().updateBroadcastFields(streamId, broadcast);
+
+			if(result) {
+				Broadcast fetchedBroadcast = getDataStore().get(streamId);
+				getDataStore().removeAllEndpoints(fetchedBroadcast.getStreamId());
+
+				if (socialNetworksToPublish != null && socialNetworksToPublish.length() > 0) {
+					addSocialEndpoints(fetchedBroadcast, socialNetworksToPublish);
+				}
+
+				getApplication().startStreaming(fetchedBroadcast);
+			}
+
+		}
+		return new Result(result);
+	}
+
+	public boolean checkStopStreaming (String streamId, Broadcast broadcast)
+	{
+		// If broadcast status is broadcasting, this will force stop the streaming.
+		if(getDataStore().get(streamId).getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
+			return getApplication().stopStreaming(broadcast).isSuccess();
+		}
+		else
+		{
+			// If broadcast status is stopped, this will return true. 
+			return true;
+		}
+
+	}
+
+	public boolean waitStopStreaming(String streamId, Boolean resultStopStreaming) {
+
+		int i = 0;
+		int waitPeriod = 250;
+
+		// Broadcast status finished is not enough to be sure about broadcast's status.
+		while (!getDataStore().get(streamId).getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED) && !resultStopStreaming.equals(true)) {
 			try {
-				Thread.sleep(1000);
+
+				streamId = streamId.replaceAll("[\n|\r|\t]", "_");
+
+				i++;
+				logger.info("Waiting for stop broadcast: {} Total wait time: {}ms", streamId , i*waitPeriod);
+
+				Thread.sleep(waitPeriod);
+
+				if(i > 20) {
+					logger.warn("{} Stream ID broadcast could not be stopped. Total wait time: {}ms", streamId , i*waitPeriod);
+					break;
+				}
 			} catch (InterruptedException e) {
 				logger.error(e.getMessage());
 				Thread.currentThread().interrupt();
 			}
 
-			result = getDataStore().updateBroadcastFields(streamId, broadcast);
-			Broadcast fetchedBroadcast = getDataStore().get(broadcast.getStreamId());
-			getDataStore().removeAllEndpoints(fetchedBroadcast.getStreamId());
-
-			if (socialNetworksToPublish != null && socialNetworksToPublish.length() > 0) {
-				addSocialEndpoints(fetchedBroadcast, socialNetworksToPublish);
-			}
-
-			getApplication().startStreaming(broadcast);
 		}
-		return new Result(result);
+		return true;
 	}
 
 	protected Result addSocialEndpoint(String id, String endpointServiceId) 
@@ -482,14 +524,14 @@ public abstract class RestServiceBase {
 
 		return new Result(success, message);
 	}
-	
-	
+
+
 	public Result removeEndpoint(String id, String rtmpUrl) 
 	{
 		Endpoint endpoint = new Endpoint();
 		endpoint.setRtmpUrl(rtmpUrl);
 		endpoint.type = "generic";
-		
+
 		boolean removed = getDataStore().removeEndpoint(id, endpoint);
 		return new Result(removed);
 	}
@@ -753,6 +795,67 @@ public abstract class RestServiceBase {
 		return connResult;
 	}
 
+	public Result startPlaylistService(Playlist playlist) {
+
+		Result result = new Result(false);
+
+		IStatsCollector monitor = (IStatsCollector) getAppContext().getBean(IStatsCollector.BEAN_NAME);
+
+		if(monitor.enoughResource()) 
+		{
+
+			getApplication().getStreamFetcherManager().startPlaylistThread(playlist);
+
+			playlist.setPlaylistStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+			getDataStore().editPlaylist(playlist.getPlaylistId(), playlist);
+
+			result.setSuccess(true);
+			return result;
+		} 
+		else {
+
+			logger.error("Playlist can not be created and started due to high cpu load/limit: {}/{} ram free/minfree:{}/{}", 
+					monitor.getCpuLoad(), monitor.getCpuLimit(), monitor.getFreeRam(), monitor.getMinFreeRamSize());
+			result.setMessage("Resource usage is high");		
+			result.setErrorId(HIGH_CPU_ERROR);
+		}
+
+		return result;
+	}
+
+	public void checkBroadcastIdsInPlaylist(Playlist playlist) {
+
+		if( !playlist.getBroadcastItemList().isEmpty() && playlist.getBroadcastItemList() != null ) {
+
+			for (Broadcast broadcast : playlist.getBroadcastItemList()) {
+
+				try {
+					broadcast.setStreamId(playlist.getPlaylistId());
+				} catch (Exception e) {
+					logger.error(ExceptionUtils.getStackTrace(e));
+				}
+			}
+		}
+		else {
+
+			Broadcast broadcast = new Broadcast();
+			broadcast.setName(playlist.getPlaylistName());
+
+			try {
+				broadcast.setStreamId(playlist.getPlaylistId());
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+
+			broadcast.setType(AntMediaApplicationAdapter.VOD);
+			List<Broadcast> broadcastItemList = new ArrayList<>();
+			broadcastItemList.add(broadcast);
+			playlist.setBroadcastItemList(broadcastItemList);
+
+		}
+
+	}
+
 	public Result addStreamSource(Broadcast stream, String socialEndpointIds) {
 
 		Result result = new Result(false);
@@ -920,7 +1023,6 @@ public abstract class RestServiceBase {
 			}
 
 			StreamFetcher streamFetcher = getApplication().startStreaming(savedBroadcast);
-
 
 			result.setMessage(savedBroadcast.getStreamId());
 
@@ -1244,14 +1346,14 @@ public abstract class RestServiceBase {
 
 		return selectedMuxAdaptor;
 	}
-	
+
 	public boolean addRtmpMuxerToMuxAdaptor(String streamId, String rtmpURL) {
 		MuxAdaptor muxAdaptor = getMuxAdaptor(streamId);
 		boolean result = false;
 		if (muxAdaptor != null) {
 			//result = muxAdaptor.addRTMPEndpoint(rtmpURL);
 		}
-		
+
 		return result;
 	}
 

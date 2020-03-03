@@ -1,6 +1,5 @@
 package io.antmedia.rest;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import javax.ws.rs.Consumes;
@@ -36,7 +35,6 @@ import io.antmedia.statistic.type.WebRTCAudioReceiveStats;
 import io.antmedia.statistic.type.WebRTCAudioSendStats;
 import io.antmedia.statistic.type.WebRTCVideoReceiveStats;
 import io.antmedia.statistic.type.WebRTCVideoSendStats;
-import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
@@ -840,7 +838,19 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 	public Result deleteConferenceRoomV2(@ApiParam(value = "the id of the conference room", required = true) @PathParam("room_id") String roomId) {
 		return new Result(super.deleteConferenceRoom(roomId));
 	}
-
-
-
+	
+	@ApiOperation(value = "Add a subtrack to a main track (broadcast).", notes = "", response = Result.class)
+	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/{id}/subtrack")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result addSubTrack(@ApiParam(value = "Broadcast id", required = true) @PathParam("id") String id,
+			@ApiParam(value = "Subtrack Stream Id", required = true) @QueryParam("id") String subTrackId) {
+		
+		Broadcast subTrack = getDataStore().get(subTrackId);
+		subTrack.setMainTrackStreamId(id);
+		boolean success = getDataStore().updateBroadcastFields(subTrackId, subTrack);
+		success = success && getDataStore().addSubTrack(id, subTrackId);
+		return new Result(success);
+	}
 }

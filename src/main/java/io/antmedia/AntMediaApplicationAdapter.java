@@ -90,6 +90,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 	protected static Logger logger = LoggerFactory.getLogger(AntMediaApplicationAdapter.class);
 	private ServerSettings serverSettings;
+	public static final String VOD = "VoD";
 	public static final String LIVE_STREAM = "liveStream";
 	public static final String IP_CAMERA = "ipCamera";
 	public static final String STREAM_SOURCE = "streamSource";
@@ -759,7 +760,8 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	public Result stopStreaming(Broadcast broadcast) {
 		Result result = new Result(false);
 		if(broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA) ||
-				broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE)) 
+				broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE) ||
+						broadcast.getType().equals(AntMediaApplicationAdapter.VOD)) 
 		{
 			result = streamFetcherManager.stopStreaming(broadcast);
 		} 
@@ -1082,6 +1084,9 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		store.put(AppSettings.SETTINGS_ALLOWED_PUBLISHER_IPS, appsettings.getAllowedPublisherCIDR() != null ? 
 																	String.valueOf(appsettings.getAllowedPublisherCIDR())
 																	: "");
+		store.put(AppSettings.SETTINGS_H264_ENABLED, String.valueOf(appsettings.isH264Enabled()));
+		store.put(AppSettings.SETTINGS_VP8_ENABLED, String.valueOf(appsettings.isVp8Enabled()));
+
 
 		return store.save();
 	}
@@ -1115,7 +1120,11 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		appSettings.setPreviewOverwrite(newSettings.isPreviewOverwrite());
 
 		synchUserVoDFolder(oldVodFolder, newSettings.getVodFolder());
+		
+		appSettings.setH264Enabled(newSettings.isH264Enabled());
+		appSettings.setVp8Enabled(newSettings.isVp8Enabled());
 
+		
 		logger.warn("app settings updated for {}", getScope().getName());	
 	}
 	
