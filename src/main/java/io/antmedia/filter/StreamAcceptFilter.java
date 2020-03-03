@@ -8,9 +8,8 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 
 import io.antmedia.AppSettings;
-import io.antmedia.muxer.IStreamAcceptFilter;
 
-public class StreamAcceptFilter implements IStreamAcceptFilter,ApplicationContextAware{
+public class StreamAcceptFilter implements ApplicationContextAware{
 
 	private AppSettings appSettings;
 
