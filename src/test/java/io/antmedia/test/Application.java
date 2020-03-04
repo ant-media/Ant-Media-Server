@@ -3,6 +3,8 @@ package io.antmedia.test;
 import java.io.File;
 import java.util.List;
 
+import org.bytedeco.javacpp.avcodec.AVPacket;
+import org.bytedeco.javacpp.avformat.AVFormatContext;
 import org.red5.server.adapter.MultiThreadedApplicationAdapter;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IStreamPublishSecurity;
@@ -11,6 +13,7 @@ import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.IApplicationAdaptorFactory;
 import io.antmedia.datastore.db.DataStoreFactory;
+import io.antmedia.filter.StreamAcceptFilter;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 
@@ -34,6 +37,7 @@ public class Application extends MultiThreadedApplicationAdapter implements IAnt
 	private DataStoreFactory dataStoreFactory;
 	private AppSettings appSettings;
 	private List<IStreamPublishSecurity> streamPublishSecurityList;
+	private StreamAcceptFilter streamAcceptFilter;
 
 	
 	@Override
@@ -136,5 +140,18 @@ public class Application extends MultiThreadedApplicationAdapter implements IAnt
 
 	public void setStreamPublishSecurityList(List<IStreamPublishSecurity> streamPublishSecurityList) {
 		this.streamPublishSecurityList = streamPublishSecurityList;
+	}
+
+	public StreamAcceptFilter getStreamAcceptFilter() {
+		return streamAcceptFilter;
+	}
+	
+
+	public void setStreamAcceptFilter(StreamAcceptFilter streamAcceptFilter) {
+		this.streamAcceptFilter = streamAcceptFilter;
+	}
+
+	public boolean isValidStreamParameters(AVFormatContext inputFormatContext,AVPacket pkt) {
+		return streamAcceptFilter.isValidStreamParameters(inputFormatContext, pkt);
 	}
 }
