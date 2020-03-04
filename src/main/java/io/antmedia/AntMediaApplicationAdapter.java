@@ -205,10 +205,6 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	{
 		//not used
 	}
-	public boolean isValidStreamParameters(AVFormatContext inputFormatContext,AVPacket pkt) {
-		return false;
-	}
-
 
 	public boolean synchUserVoDFolder(String oldFolderPath, String vodFolderPath) 
 	{
