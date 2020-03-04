@@ -17,6 +17,8 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import org.bytedeco.javacpp.avcodec.AVPacket;
+import org.bytedeco.javacpp.avformat.AVFormatContext;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.HttpEntity;
@@ -203,6 +205,10 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	{
 		//not used
 	}
+	public boolean isValidStreamParameters(AVFormatContext inputFormatContext,AVPacket pkt) {
+		return false;
+	}
+
 
 	public boolean synchUserVoDFolder(String oldFolderPath, String vodFolderPath) 
 	{
