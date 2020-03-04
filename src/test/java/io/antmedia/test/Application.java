@@ -52,6 +52,9 @@ public class Application extends MultiThreadedApplicationAdapter implements IAnt
 				registerStreamPublishSecurity(streamPublishSecurity);
 			}
 		}
+		
+		appAdaptor.setStreamAcceptFilter(getStreamAcceptFilter());
+		
 		appAdaptor.setDataStoreFactory(getDataStoreFactory());
 		appAdaptor.appStart(app);
 		
