@@ -185,7 +185,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 
-	//@Test
+	@Test
 	public void testStreamSchedularConnectionTimeout() throws InterruptedException {
 		logger.info("running testStreamSchedularConnectionTimeout");
 		try {
@@ -226,7 +226,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	//@Test
+	@Test
 	public void testPrepareInput() throws InterruptedException {
 		try {
 
@@ -254,7 +254,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 
-	//@Test
+	@Test
 	public void testAddCameraBug() {
 
 		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnEnded();
@@ -549,7 +549,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		
 	}
 	
-	//@Test
+	@Test
 	public void testStopFetchingWhenDeleted() {
 		
 		
@@ -625,7 +625,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 	
 	
-	//@Test
+	@Test
 	public void testStopFetchingWhenStopCalled() {
 
 		
@@ -761,7 +761,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	 * automatically.
 	 * 
 	 */
-	//@Test
+	@Test
 	public void testBandwidth() {
 
 		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnEnded();
