@@ -92,6 +92,8 @@
 	<bean id="streamAcceptFilter" class="io.antmedia.filter.StreamAcceptFilter"/>
 	
 	
+	<bean id="streamAcceptFilter" class="io.antmedia.filter.StreamAcceptFilter"/>
+	 
 	<bean id="web.handler" class="io.antmedia.test.Application">
 		<property name="dataStoreFactory" ref="dataStoreFactory" />
 		<property name="appSettings" ref="app.settings" />
