@@ -928,7 +928,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 			Thread.sleep(500);
 
-			assertEquals(1, scheduler.getScheduledJobNames().size());
+			assertEquals(0, scheduler.getScheduledJobNames().size());
 			assertTrue(muxAdaptor.isRecording());
 
 			muxAdaptor.stop();

@@ -39,7 +39,7 @@ import io.antmedia.datastore.db.MongoStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.integration.MuxingTest;
-import io.antmedia.rest.BroadcastRestService.ProcessBuilderFactory;
+import io.antmedia.rest.RestServiceBase.ProcessBuilderFactory;
 import io.antmedia.rest.VoDRestServiceV2;
 import io.antmedia.rest.model.Result;
 import io.antmedia.settings.ServerSettings;

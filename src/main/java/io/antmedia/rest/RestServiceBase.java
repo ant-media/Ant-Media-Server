@@ -56,8 +56,6 @@ import io.antmedia.ipcamera.onvifdiscovery.OnvifDiscovery;
 import io.antmedia.muxer.Mp4Muxer;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.Muxer;
-import io.antmedia.rest.BroadcastRestService.BroadcastStatistics;
-import io.antmedia.rest.BroadcastRestService.ProcessBuilderFactory;
 import io.antmedia.rest.model.Interaction;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.Version;
@@ -72,9 +70,46 @@ import io.antmedia.storage.StorageClient;
 import io.antmedia.storage.StorageClient.FileType;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
 
 public abstract class RestServiceBase {
 
+	@ApiModel(value="BroadcastStatistics", description="The statistics class of the broadcasts")
+	public static class BroadcastStatistics {
+
+		@ApiModelProperty(value = "the total RTMP viewers of the stream")
+		public final int totalRTMPWatchersCount;
+
+		@ApiModelProperty(value = "the total HLS viewers of the stream")
+		public final int totalHLSWatchersCount;
+
+		@ApiModelProperty(value = "the total WebRTC viewers of the stream")
+		public final int totalWebRTCWatchersCount;
+
+		public BroadcastStatistics(int totalRTMPWatchersCount, int totalHLSWatchersCount,
+				int totalWebRTCWatchersCount) {
+			this.totalRTMPWatchersCount = totalRTMPWatchersCount;
+			this.totalHLSWatchersCount = totalHLSWatchersCount;
+			this.totalWebRTCWatchersCount = totalWebRTCWatchersCount;
+		}
+	}
+
+	@ApiModel(value="LiveStatistics", description="The statistics class of the broadcasts live stream count")
+	public static class LiveStatistics  {
+
+		@ApiModelProperty(value = "the total live stream count of the stream")
+		public final long totalLiveStreamCount;
+
+		public LiveStatistics(long totalLiveStreamCount) {
+			this.totalLiveStreamCount = totalLiveStreamCount;
+		}
+	}
+	
+	public interface ProcessBuilderFactory {
+		Process make(String...args);
+	}
+	
 	/**
 	 * Key for Manifest entry of Build number. It should match with the value in pom.xml
 	 */

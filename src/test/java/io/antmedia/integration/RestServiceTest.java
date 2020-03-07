@@ -69,9 +69,9 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.VoD;
-import io.antmedia.rest.BroadcastRestService;
-import io.antmedia.rest.BroadcastRestService.BroadcastStatistics;
-import io.antmedia.rest.BroadcastRestService.LiveStatistics;
+import io.antmedia.rest.BroadcastRestServiceV2;
+import io.antmedia.rest.RestServiceBase.BroadcastStatistics;
+import io.antmedia.rest.RestServiceBase.LiveStatistics;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.Version;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
@@ -83,7 +83,7 @@ public class RestServiceTest {
 	private static final String ROOT_SERVICE_URL = "http://localhost:5080/LiveApp/rest";
 	private static final String SERVER_ADDR = "127.0.0.1";
 	private static Process tmpExec;
-	private BroadcastRestService restService = null;
+	private BroadcastRestServiceV2 restService = null;
 	protected static Logger logger = LoggerFactory.getLogger(RestServiceTest.class);
 	public AntMediaApplicationAdapter app = null;
 
@@ -141,7 +141,7 @@ public class RestServiceTest {
 
 	@Before
 	public void before() {
-		restService = new BroadcastRestService();	
+		restService = new BroadcastRestServiceV2();	
 
 	}
 

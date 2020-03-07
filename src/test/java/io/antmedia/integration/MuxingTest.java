@@ -41,7 +41,8 @@ import org.junit.Test;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
-import io.antmedia.rest.BroadcastRestService.LiveStatistics;
+
+import io.antmedia.rest.RestServiceBase.LiveStatistics;
 import io.antmedia.rest.model.Result;
 
 

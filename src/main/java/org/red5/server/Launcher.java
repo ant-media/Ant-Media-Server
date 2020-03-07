@@ -24,8 +24,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.UUID;
 
 import org.bytedeco.javacpp.avformat;
@@ -36,12 +34,9 @@ import org.slf4j.Logger;
 import org.slf4j.bridge.SLF4JBridgeHandler;
 import org.springframework.context.support.FileSystemXmlApplicationContext;
 
-import com.brsanthu.googleanalytics.GoogleAnalytics;
-
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AsciiArt;
-import io.antmedia.rest.BroadcastRestService;
-import io.antmedia.shutdown.AMSShutdownManager;
+import io.antmedia.rest.RestServiceBase;
 
 /**
  * Launches Red5.
@@ -86,7 +81,7 @@ public class Launcher {
 
 		// version info banner
 		implementationVersion = AntMediaApplicationAdapter.class.getPackage().getImplementationVersion();
-		versionType = BroadcastRestService.isEnterprise() ? "Enterprise" : "Community";
+		versionType = RestServiceBase.isEnterprise() ? "Enterprise" : "Community";
 		log.info("Ant Media Server {} {}", versionType, implementationVersion);
 		printLogo();
 		

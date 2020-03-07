@@ -67,11 +67,10 @@ import io.antmedia.muxer.HLSMuxer;
 import io.antmedia.muxer.Mp4Muxer;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.Muxer;
-import io.antmedia.rest.BroadcastRestService;
-import io.antmedia.rest.BroadcastRestService.BroadcastStatistics;
-import io.antmedia.rest.BroadcastRestService.ProcessBuilderFactory;
 import io.antmedia.rest.BroadcastRestServiceV2;
-
+import io.antmedia.rest.RestServiceBase;
+import io.antmedia.rest.RestServiceBase.BroadcastStatistics;
+import io.antmedia.rest.RestServiceBase.ProcessBuilderFactory;
 import io.antmedia.rest.RootRestService;
 import io.antmedia.rest.WebRTCClientStats;
 import io.antmedia.rest.model.Interaction;
@@ -420,7 +419,7 @@ public class BroadcastRestServiceV2UnitTest {
 
 		// it should be facebook is not defined in this scope
 		assertFalse(object.isSuccess());
-		assertEquals(BroadcastRestService.ERROR_SOCIAL_ENDPOINT_UNDEFINED_ENDPOINT, object.getErrorId());
+		assertEquals(RestServiceBase.ERROR_SOCIAL_ENDPOINT_UNDEFINED_ENDPOINT, object.getErrorId());
 
 		//make client id and client secret has value for facebook
 		when(settings.getFacebookClientId()).thenReturn("12313");
@@ -431,7 +430,7 @@ public class BroadcastRestServiceV2UnitTest {
 
 		//it should be again facebook is not defined in this scope
 		assertFalse(object.isSuccess());
-		assertEquals(BroadcastRestService.ERROR_SOCIAL_ENDPOINT_UNDEFINED_ENDPOINT, object.getErrorId());
+		assertEquals(RestServiceBase.ERROR_SOCIAL_ENDPOINT_UNDEFINED_ENDPOINT, object.getErrorId());
 
 		//make the same test for youtube and expect same results
 		when(settings.getYoutubeClientId()).thenReturn(null);
@@ -439,7 +438,7 @@ public class BroadcastRestServiceV2UnitTest {
 		object = (Result)restServiceReal.getDeviceAuthParametersV2("youtube");
 
 		assertFalse(object.isSuccess());
-		assertEquals(BroadcastRestService.ERROR_SOCIAL_ENDPOINT_UNDEFINED_ENDPOINT, object.getErrorId());
+		assertEquals(RestServiceBase.ERROR_SOCIAL_ENDPOINT_UNDEFINED_ENDPOINT, object.getErrorId());
 
 		when(settings.getYoutubeClientId()).thenReturn("121212");
 		when(settings.getYoutubeClientSecret()).thenReturn("1212121");
@@ -447,7 +446,7 @@ public class BroadcastRestServiceV2UnitTest {
 		object = (Result)restServiceReal.getDeviceAuthParametersV2("youtube");
 
 		assertFalse(object.isSuccess());
-		assertEquals(BroadcastRestService.ERROR_SOCIAL_ENDPOINT_UNDEFINED_ENDPOINT, object.getErrorId());
+		assertEquals(RestServiceBase.ERROR_SOCIAL_ENDPOINT_UNDEFINED_ENDPOINT, object.getErrorId());
 
 		//make client id and clien secret null for periscope
 		when(settings.getPeriscopeClientId()).thenReturn(null);
@@ -458,7 +457,7 @@ public class BroadcastRestServiceV2UnitTest {
 
 		//it should be client id and client secret missing
 		assertFalse(object.isSuccess());
-		assertEquals(BroadcastRestService.ERROR_SOCIAL_ENDPOINT_UNDEFINED_CLIENT_ID, object.getErrorId());
+		assertEquals(RestServiceBase.ERROR_SOCIAL_ENDPOINT_UNDEFINED_CLIENT_ID, object.getErrorId());
 
 		//make client id and client secret have value for periscope
 		when(settings.getPeriscopeClientId()).thenReturn("121212");
@@ -467,7 +466,7 @@ public class BroadcastRestServiceV2UnitTest {
 		//it should be different error because client id and cleint secret is not correct
 		object  = (Result) restServiceReal.getDeviceAuthParametersV2("periscope");
 		assertFalse(object.isSuccess());
-		assertEquals(BroadcastRestService.ERROR_SOCIAL_ENDPOINT_EXCEPTION_IN_ASKING_AUTHPARAMS, object.getErrorId());
+		assertEquals(RestServiceBase.ERROR_SOCIAL_ENDPOINT_EXCEPTION_IN_ASKING_AUTHPARAMS, object.getErrorId());
 	}
 
 
@@ -987,7 +986,7 @@ public class BroadcastRestServiceV2UnitTest {
 		RootRestService rootRestService = new RootRestService();
 		Version version = rootRestService.getVersion();
 		assertEquals(version.getVersionName(), AntMediaApplicationAdapter.class.getPackage().getImplementationVersion());
-		assertEquals(BroadcastRestService.COMMUNITY_EDITION, version.getVersionType());
+		assertEquals(RestServiceBase.COMMUNITY_EDITION, version.getVersionType());
 	}
 
 	@Test
@@ -1349,7 +1348,7 @@ public class BroadcastRestServiceV2UnitTest {
 
 	@Test
 	public void testStopLiveStream() {
-		BroadcastRestService restService = new BroadcastRestService();
+		BroadcastRestServiceV2 restService = new BroadcastRestServiceV2();
 		AntMediaApplicationAdapter app = Mockito.spy(new AntMediaApplicationAdapter());
 		DataStore ds = Mockito.mock(DataStore.class);
 		String streamId = "test-stream";
@@ -1366,7 +1365,7 @@ public class BroadcastRestServiceV2UnitTest {
 		restService.setDataStore(ds);
 		restService.setApplication(app);
 
-		restService.stopBroadcast(streamId);
+		restService.stopStreamingV2(streamId);
 
 		Mockito.verify(app, Mockito.times(1)).getBroadcastStream(null, streamId);
 	}
