@@ -5,8 +5,8 @@ import java.io.IOException;
 import javax.websocket.Session;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.bytedeco.javacpp.avcodec;
-import org.bytedeco.javacpp.avutil;
+import org.bytedeco.ffmpeg.global.avcodec;
+import org.bytedeco.ffmpeg.global.avutil;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.slf4j.Logger;

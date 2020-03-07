@@ -1,6 +1,6 @@
 package io.antmedia.webrtc.adaptor;
 
-import static org.bytedeco.javacpp.avutil.AV_PIX_FMT_YUV420P;
+import static org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_YUV420P;
 
 import java.nio.ByteBuffer;
 import java.nio.ShortBuffer;

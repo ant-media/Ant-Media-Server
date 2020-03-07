@@ -1,19 +1,19 @@
 package io.antmedia.statistic;
 
-import static org.bytedeco.javacpp.nvml.NVML_SUCCESS;
-import static org.bytedeco.javacpp.nvml.nvmlDeviceGetCount_v2;
-import static org.bytedeco.javacpp.nvml.nvmlDeviceGetHandleByIndex_v2;
-import static org.bytedeco.javacpp.nvml.nvmlDeviceGetMemoryInfo;
-import static org.bytedeco.javacpp.nvml.nvmlDeviceGetName;
-import static org.bytedeco.javacpp.nvml.nvmlDeviceGetUtilizationRates;
-import static org.bytedeco.javacpp.nvml.nvmlInit_v2;
+import static org.bytedeco.cuda.global.nvml.NVML_SUCCESS;
+import static org.bytedeco.cuda.global.nvml.nvmlDeviceGetCount_v2;
+import static org.bytedeco.cuda.global.nvml.nvmlDeviceGetHandleByIndex_v2;
+import static org.bytedeco.cuda.global.nvml.nvmlDeviceGetMemoryInfo;
+import static org.bytedeco.cuda.global.nvml.nvmlDeviceGetName;
+import static org.bytedeco.cuda.global.nvml.nvmlDeviceGetUtilizationRates;
+import static org.bytedeco.cuda.global.nvml.nvmlInit_v2;
 
 import org.bytedeco.javacpp.IntPointer;
 import org.bytedeco.javacpp.Loader;
-import org.bytedeco.javacpp.nvml;
-import org.bytedeco.javacpp.nvml.nvmlDevice_st;
-import org.bytedeco.javacpp.nvml.nvmlMemory_t;
-import org.bytedeco.javacpp.nvml.nvmlUtilization_t;
+import org.bytedeco.cuda.global.nvml;
+import org.bytedeco.cuda.nvml.nvmlDevice_st;
+import org.bytedeco.cuda.nvml.nvmlMemory_t;
+import org.bytedeco.cuda.nvml.nvmlUtilization_t;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -127,7 +127,7 @@ public class GPUUtils {
 		if ((device = getDevice(deviceNo)) != null) {
 			nvmlMemory_t nvmlMemory = new nvmlMemory_t();
 			if (nvmlDeviceGetMemoryInfo(device, nvmlMemory) == NVML_SUCCESS) {
-				return new MemoryStatus(nvmlMemory.total(), nvmlMemory.used(), nvmlMemory.free());
+				return new MemoryStatus(nvmlMemory.total(), nvmlMemory.used(), nvmlMemory._free());
 			}
 		}
 		return null;
