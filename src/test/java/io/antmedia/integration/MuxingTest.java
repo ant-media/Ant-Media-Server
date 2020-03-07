@@ -1,20 +1,20 @@
 package io.antmedia.integration;
 
-import static org.bytedeco.javacpp.avcodec.av_packet_unref;
-import static org.bytedeco.javacpp.avformat.av_read_frame;
-import static org.bytedeco.javacpp.avformat.av_register_all;
-import static org.bytedeco.javacpp.avformat.avformat_close_input;
-import static org.bytedeco.javacpp.avformat.avformat_find_stream_info;
-import static org.bytedeco.javacpp.avformat.avformat_network_init;
-import static org.bytedeco.javacpp.avformat.avformat_open_input;
-import static org.bytedeco.javacpp.avutil.AVMEDIA_TYPE_AUDIO;
-import static org.bytedeco.javacpp.avutil.AVMEDIA_TYPE_VIDEO;
-import static org.bytedeco.javacpp.avutil.AV_NOPTS_VALUE;
-import static org.bytedeco.javacpp.avutil.AV_PIX_FMT_NONE;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.muxer.MuxAdaptor;
+import io.antmedia.rest.BroadcastRestService.LiveStatistics;
+import io.antmedia.rest.model.Result;
+import org.awaitility.Awaitility;
+import org.bytedeco.ffmpeg.avcodec.AVCodecContext;
+import org.bytedeco.ffmpeg.avcodec.AVPacket;
+import org.bytedeco.ffmpeg.avformat.AVFormatContext;
+import org.bytedeco.ffmpeg.avutil.AVDictionary;
+import org.bytedeco.ffmpeg.global.avformat;
+import org.junit.*;
+import org.junit.rules.TestRule;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 import java.io.File;
 import java.io.IOException;
@@ -23,26 +23,10 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.concurrent.TimeUnit;
 
-import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.muxer.MuxAdaptor;
-import org.awaitility.Awaitility;
-import org.bytedeco.javacpp.avcodec.AVCodecContext;
-import org.bytedeco.javacpp.avcodec.AVPacket;
-import org.bytedeco.javacpp.avformat;
-import org.bytedeco.javacpp.avformat.AVFormatContext;
-import org.bytedeco.javacpp.avutil.AVDictionary;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestRule;
-import org.junit.rules.TestWatcher;
-import org.junit.runner.Description;
-import io.antmedia.rest.BroadcastRestService.LiveStatistics;
-import io.antmedia.rest.model.Result;
+import static org.bytedeco.ffmpeg.global.avcodec.av_packet_unref;
+import static org.bytedeco.ffmpeg.global.avformat.*;
+import static org.bytedeco.ffmpeg.global.avutil.*;
+import static org.junit.Assert.*;
 
 
 public class MuxingTest {

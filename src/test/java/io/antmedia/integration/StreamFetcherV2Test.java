@@ -1,18 +1,19 @@
 package io.antmedia.integration;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-
+import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.AppSettings;
+import io.antmedia.IApplicationAdaptorFactory;
+import io.antmedia.datastore.db.DataStore;
+import io.antmedia.datastore.db.DataStoreFactory;
+import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.Endpoint;
+import io.antmedia.rest.model.Result;
+import io.antmedia.streamsource.StreamFetcher;
+import io.vertx.core.Vertx;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.awaitility.Awaitility;
-import org.bytedeco.javacpp.avformat;
-import org.bytedeco.javacpp.avutil;
+import org.bytedeco.ffmpeg.global.avformat;
+import org.bytedeco.ffmpeg.global.avutil;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -30,16 +31,12 @@ import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 
-import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.AppSettings;
-import io.antmedia.IApplicationAdaptorFactory;
-import io.antmedia.datastore.db.DataStore;
-import io.antmedia.datastore.db.DataStoreFactory;
-import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.datastore.db.types.Endpoint;
-import io.antmedia.rest.model.Result;
-import io.antmedia.streamsource.StreamFetcher;
-import io.vertx.core.Vertx;
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import static org.junit.Assert.*;
 
 @ContextConfiguration(locations = { "../test/test.xml" })
 @DirtiesContext(classMode = ClassMode.AFTER_CLASS)

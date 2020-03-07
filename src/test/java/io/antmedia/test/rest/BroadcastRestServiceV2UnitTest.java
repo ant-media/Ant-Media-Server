@@ -32,7 +32,7 @@ import javax.ws.rs.core.Response.Status;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.awaitility.Awaitility;
-import org.bytedeco.javacpp.avformat;
+import org.bytedeco.ffmpeg.global.avformat;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;

@@ -3,7 +3,7 @@ package io.antmedia.test.statistic;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
-import org.bytedeco.javacpp.nvml.nvmlDevice_st;
+import org.bytedeco.cuda.nvml.nvmlDevice_st;
 import org.junit.Test;
 import org.mockito.Mockito;
 

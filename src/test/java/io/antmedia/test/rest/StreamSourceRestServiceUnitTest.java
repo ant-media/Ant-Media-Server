@@ -1,23 +1,19 @@
 package io.antmedia.test.rest;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-
-import org.bytedeco.javacpp.avformat;
+import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.AppSettings;
+import io.antmedia.datastore.db.InMemoryDataStore;
+import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.Endpoint;
+import io.antmedia.rest.StreamsSourceRestService;
+import io.antmedia.rest.model.Result;
+import io.antmedia.settings.ServerSettings;
+import io.antmedia.social.endpoint.VideoServiceEndpoint;
+import io.antmedia.statistic.IStatsCollector;
+import io.antmedia.statistic.StatsCollector;
+import io.antmedia.streamsource.StreamFetcher;
+import io.antmedia.test.StreamFetcherUnitTest;
+import org.bytedeco.ffmpeg.global.avformat;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -30,20 +26,13 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
 
-import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.AppSettings;
-import io.antmedia.datastore.db.InMemoryDataStore;
-import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.datastore.db.types.Endpoint;
-import io.antmedia.ipcamera.OnvifCamera;
-import io.antmedia.rest.StreamsSourceRestService;
-import io.antmedia.rest.model.Result;
-import io.antmedia.settings.ServerSettings;
-import io.antmedia.social.endpoint.VideoServiceEndpoint;
-import io.antmedia.statistic.IStatsCollector;
-import io.antmedia.statistic.StatsCollector;
-import io.antmedia.streamsource.StreamFetcher;
-import io.antmedia.test.StreamFetcherUnitTest;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.junit.Assert.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 @ContextConfiguration(locations = { "test.xml" })
 @DirtiesContext(classMode = ClassMode.AFTER_CLASS)

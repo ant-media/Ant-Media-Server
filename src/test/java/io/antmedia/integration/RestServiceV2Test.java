@@ -1,36 +1,24 @@
 package io.antmedia.integration;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.lang.reflect.Type;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-
-import javax.servlet.ServletContext;
-import javax.ws.rs.core.Context;
-
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.Endpoint;
+import io.antmedia.datastore.db.types.SocialEndpointCredentials;
+import io.antmedia.datastore.db.types.VoD;
+import io.antmedia.rest.BroadcastRestService.BroadcastStatistics;
+import io.antmedia.rest.BroadcastRestServiceV2.SimpleStat;
+import io.antmedia.rest.model.Result;
+import io.antmedia.rest.model.Version;
+import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
-import org.apache.http.NameValuePair;
 import org.apache.http.client.HttpClient;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpUriRequest;
@@ -42,12 +30,11 @@ import org.apache.http.entity.mime.content.FileBody;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.client.LaxRedirectStrategy;
-import org.apache.http.message.BasicNameValuePair;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.awaitility.Awaitility;
-import org.bytedeco.javacpp.avformat;
-import org.bytedeco.javacpp.avutil;
+import org.bytedeco.ffmpeg.global.avformat;
+import org.bytedeco.ffmpeg.global.avutil;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -57,22 +44,14 @@ import org.junit.runner.Description;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
+import javax.servlet.ServletContext;
+import javax.ws.rs.core.Context;
+import java.io.*;
+import java.lang.reflect.Type;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
-import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.datastore.db.types.Endpoint;
-import io.antmedia.datastore.db.types.SocialEndpointCredentials;
-import io.antmedia.datastore.db.types.VoD;
-import io.antmedia.rest.BroadcastRestServiceV2.SimpleStat;
-import io.antmedia.rest.BroadcastRestService.BroadcastStatistics;
-import io.antmedia.rest.BroadcastRestService.LiveStatistics;
-import io.antmedia.rest.model.Result;
-import io.antmedia.rest.model.Version;
-import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
+import static org.junit.Assert.*;
 
 public class RestServiceV2Test {
 

@@ -14,8 +14,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.catalina.filters.CorsFilter;
-import org.bytedeco.javacpp.avcodec.AVPacket;
-import org.bytedeco.javacpp.avformat.AVFormatContext;
+import org.bytedeco.ffmpeg.avcodec.AVPacket;
+import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

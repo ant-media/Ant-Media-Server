@@ -1,29 +1,18 @@
 package io.antmedia.test.webrtc.adaptor;
 
-import static org.bytedeco.javacpp.avutil.AV_PIX_FMT_YUV420P;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.io.File;
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.file.Files;
-import java.util.concurrent.TimeUnit;
-
-import javax.websocket.RemoteEndpoint;
-import javax.websocket.Session;
-
+import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.AppSettings;
+import io.antmedia.IApplicationAdaptorFactory;
+import io.antmedia.integration.MuxingTest;
+import io.antmedia.recorder.FFmpegFrameRecorder;
+import io.antmedia.recorder.Frame;
+import io.antmedia.webrtc.MockWebRTCAdaptor;
+import io.antmedia.webrtc.adaptor.RTMPAdaptor;
+import io.antmedia.websocket.WebSocketCommunityHandler;
+import io.antmedia.websocket.WebSocketConstants;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.awaitility.Awaitility;
-import org.bytedeco.javacpp.avutil.AVFrame;
+import org.bytedeco.ffmpeg.avutil.AVFrame;
 import org.json.simple.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
@@ -35,16 +24,18 @@ import org.webrtc.MediaStream;
 import org.webrtc.PeerConnectionFactory;
 import org.webrtc.SessionDescription;
 import org.webrtc.SessionDescription.Type;
-import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.AppSettings;
-import io.antmedia.IApplicationAdaptorFactory;
-import io.antmedia.integration.MuxingTest;
-import io.antmedia.recorder.FFmpegFrameRecorder;
-import io.antmedia.recorder.Frame;
-import io.antmedia.webrtc.MockWebRTCAdaptor;
-import io.antmedia.webrtc.adaptor.RTMPAdaptor;
-import io.antmedia.websocket.WebSocketCommunityHandler;
-import io.antmedia.websocket.WebSocketConstants;
+
+import javax.websocket.RemoteEndpoint;
+import javax.websocket.Session;
+import java.io.File;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.file.Files;
+import java.util.concurrent.TimeUnit;
+
+import static org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_YUV420P;
+import static org.junit.Assert.*;
+import static org.mockito.Mockito.*;
 
 public class RTMPAdaptorTest {
 
