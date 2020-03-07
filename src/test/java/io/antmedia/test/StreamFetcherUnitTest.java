@@ -757,9 +757,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testAudioOnlySource() {
 		logger.info("running testAudioOnlySource");
 		//test AudioOnly Source
-		startCameraEmulator();
-		testFetchStreamSources("rtsp://127.0.0.1:6554/test_audio_only.flv", false, false);
-		stopCameraEmulator();
+		testFetchStreamSources("rtmp://37.247.100.100/shoutcast/karadenizfm.stream", false, false);
 		logger.info("leaving testAudioOnlySource");
 	}
 
