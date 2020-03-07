@@ -87,8 +87,6 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	public static final String HOOK_ACTION_END_LIVE_STREAM = "liveStreamEnded";
 	public static final String HOOK_ACTION_START_LIVE_STREAM = "liveStreamStarted";
 	public static final String HOOK_ACTION_VOD_READY = "vodReady";
-
-	public static final String VERTX_BEAN_NAME = "vertxCore";
 	
 	public static final String DEFAULT_LOCALHOST = "127.0.0.1";
 
