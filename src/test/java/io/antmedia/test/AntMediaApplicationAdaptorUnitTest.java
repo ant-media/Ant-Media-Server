@@ -72,7 +72,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 	Vertx vertx = Vertx.vertx();
 
 	@BeforeClass
-	public void deleteHelloScriptBeforeTest(){
+	public static void deleteHelloScriptBeforeTest(){
 		File f = new File ("src/test/resources/hello_script");
 		if(f.exists()) f.delete();
 	}
