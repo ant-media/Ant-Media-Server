@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
@@ -24,6 +25,11 @@ import org.mongodb.morphia.Datastore;
 import org.mongodb.morphia.query.Query;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.test.annotation.DirtiesContext;
+
+import com.mongodb.MongoClient;
+import com.mongodb.MongoClientURI;
+import com.mongodb.client.MongoIterable;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.DataStore;
@@ -42,18 +48,32 @@ import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.muxer.MuxAdaptor;
-import io.antmedia.rest.BroadcastRestServiceV2;
 import io.antmedia.settings.ServerSettings;
 
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 public class DBStoresUnitTest {
 
 	protected static Logger logger = LoggerFactory.getLogger(DBStoresUnitTest.class);
 
-
 	@Before
 	public void before() {
 		deleteMapDBFile();
+		dropAllDatabases();		
+	}
 
+	private void dropAllDatabases() {
+		String uri = MongoStore.getMongoConnectionUri("localhost", "", "");
+
+		MongoClientURI mongoUri = new MongoClientURI(uri);
+		MongoClient client = new MongoClient(mongoUri);
+		List<String> doNotDelete = new ArrayList<String>(Arrays.asList("admin", "config", "local"));
+		MongoIterable<String> databaseNames = client.listDatabaseNames();
+		for(String dbname: databaseNames) {
+			if(!doNotDelete.contains(dbname)) {
+				client.dropDatabase(dbname);
+			}
+		}
+		client.close();
 	}
 
 	@After
@@ -149,7 +169,7 @@ public class DBStoresUnitTest {
 		Query<SocialEndpointCredentials> deleteQuery2 = store.find(SocialEndpointCredentials.class);
 		store.delete(deleteQuery2);
 
-		store = ((MongoStore)dataStore).getVodDatastore();
+		store = ((MongoStore) dataStore).getVodDatastore();
 		Query<VoD> deleteVodQuery = store.find(VoD.class);
 		store.delete(deleteVodQuery);
 
@@ -160,7 +180,7 @@ public class DBStoresUnitTest {
 		testRemoveEndpoint(dataStore);
 		testRTMPURL(dataStore);
 		testStreamWithId(dataStore);
-		//testSaveDetection(dataStore);
+		// testSaveDetection(dataStore);
 		testFilterSearchOperations(dataStore);
 		testAddSocialEndpointCredentials(dataStore);
 		testVoDFunctions(dataStore);
@@ -182,20 +202,19 @@ public class DBStoresUnitTest {
 		testAddTrack(dataStore);
 
 	}
-	
+
 	@Test
 	public void testBug() {
-		
+
 		MapDBStore dataStore = new MapDBStore("src/test/resources/damaged_webrtcappee.db");
-		
-		//Following methods does not return before the bug is fixed
+
+		// Following methods does not return before the bug is fixed
 		dataStore.fetchUserVodList(new File(""));
-		
+
 		dataStore.getVodList(0, 10, "name", "asc");
 	}
 
-	public void clear(DataStore dataStore) 
-	{
+	public void clear(DataStore dataStore) {
 		long numberOfStreams = dataStore.getBroadcastCount();
 		int pageSize = 10;
 		long pageCount = numberOfStreams / pageSize + ((numberOfStreams % pageSize) > 0 ? 1 : 0);
@@ -216,14 +235,13 @@ public class DBStoresUnitTest {
 
 	public void testGetActiveBroadcastCount(DataStore dataStore) {
 
-		//save random number of streams with status created
-		//long broadcastCountInDataStore = dataStore.getBroadcastCount();
+		// save random number of streams with status created
+		// long broadcastCountInDataStore = dataStore.getBroadcastCount();
 		clear(dataStore);
 
 		assertEquals(0, dataStore.getBroadcastCount());
 
-
-		long streamCount = (int)(Math.random()  * 500);
+		long streamCount = (int) (Math.random() * 500);
 
 		if (streamCount < 10) {
 			streamCount = 10;
@@ -237,77 +255,78 @@ public class DBStoresUnitTest {
 
 		assertEquals(streamCount, dataStore.getBroadcastCount());
 
-		//check that no active broadcast exist
+		// check that no active broadcast exist
 		assertEquals(0, dataStore.getActiveBroadcastCount());
 
-		//change random number of streams status to broadcasting
-		long numberOfStatusChangeStreams = (int)(Math.random() * 500);
+		// change random number of streams status to broadcasting
+		long numberOfStatusChangeStreams = (int) (Math.random() * 500);
 		if (streamCount < numberOfStatusChangeStreams) {
 			numberOfStatusChangeStreams = streamCount;
 		}
 
 		int pageSize = 10;
-		numberOfStatusChangeStreams = (numberOfStatusChangeStreams / pageSize) * pageSize; //normalize
+		numberOfStatusChangeStreams = (numberOfStatusChangeStreams / pageSize) * pageSize; // normalize
 		long pageCount = numberOfStatusChangeStreams / pageSize;
 		int numberOfCall = 0;
-		System.out.println("Number of status change stream count: " + numberOfStatusChangeStreams + 
-				" page Count: " + pageCount);
+		System.out.println(
+				"Number of status change stream count: " + numberOfStatusChangeStreams + " page Count: " + pageCount);
 		for (int i = 0; i < pageCount; i++) {
 
 			List<Broadcast> broadcastList = dataStore.getBroadcastList(i * pageSize, pageSize);
 			for (Broadcast broadcast : broadcastList) {
 				numberOfCall++;
-				assertTrue(dataStore.updateStatus(broadcast.getStreamId(), AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING));;
+				assertTrue(dataStore.updateStatus(broadcast.getStreamId(),
+						AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING));
+				;
 			}
 
 		}
 
 		assertEquals(numberOfCall, numberOfStatusChangeStreams);
-		//check that active broadcast exactly the same as changed above
+		// check that active broadcast exactly the same as changed above
 		assertEquals(numberOfStatusChangeStreams, dataStore.getActiveBroadcastCount());
 
-		//change all streams to finished
+		// change all streams to finished
 		streamCount = dataStore.getBroadcastCount();
 		pageCount = streamCount / pageSize + ((streamCount % pageSize) > 0 ? 1 : 0);
 		for (int i = 0; i < pageCount; i++) {
 
 			List<Broadcast> broadcastList = dataStore.getBroadcastList(i * pageSize, pageSize);
 			for (Broadcast broadcast : broadcastList) {
-				assertTrue(dataStore.updateStatus(broadcast.getStreamId(), AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED));
+				assertTrue(dataStore.updateStatus(broadcast.getStreamId(),
+						AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED));
 			}
 
 		}
 
-		//check that no active broadcast
+		// check that no active broadcast
 		assertEquals(0, dataStore.getActiveBroadcastCount());
 	}
 
-
 	public void testBugGetExternalStreamsList(DataStore datastore) {
 
-
-		// add ip camera 
-		Broadcast broadcast = new Broadcast("name", "ipAddr", "username", "password", "rtspUrl", AntMediaApplicationAdapter.IP_CAMERA);
+		// add ip camera
+		Broadcast broadcast = new Broadcast("name", "ipAddr", "username", "password", "rtspUrl",
+				AntMediaApplicationAdapter.IP_CAMERA);
 		datastore.save(broadcast);
 
-		//add stream source 
+		// add stream source
 		Broadcast streamSource = new Broadcast("name_stream_source");
 		streamSource.setStreamUrl("rtsp urdfdfdl");
 		streamSource.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
 		datastore.save(streamSource);
 
-		//get external list
+		// get external list
 		List<Broadcast> streamsList = datastore.getExternalStreamsList();
 		assertNotNull(streamsList);
 
 		assertEquals(2, streamsList.size());
 
-		//check that there are two streams and values are same as added above
+		// check that there are two streams and values are same as added above
 
 	}
 
 	public void testSaveStreamInDirectory(DataStore datastore) {
-
 
 		File f = new File("src/test/resources");
 
@@ -315,12 +334,12 @@ public class DBStoresUnitTest {
 		assertEquals(0, totalVodCount);
 		assertEquals(5, datastore.fetchUserVodList(f));
 
-		//we know there are 5 files there
-		//test_short.flv
-		//test_video_360p_subtitle.flv
-		//test_Video_360p.flv
-		//test.flv
-		//sample_MP4_480.mp4
+		// we know there are 5 files there
+		// test_short.flv
+		// test_video_360p_subtitle.flv
+		// test_Video_360p.flv
+		// test.flv
+		// sample_MP4_480.mp4
 
 		totalVodCount = datastore.getTotalVodNumber();
 		assertEquals(5, totalVodCount);
@@ -328,16 +347,13 @@ public class DBStoresUnitTest {
 		List<VoD> vodList = datastore.getVodList(0, 50, null, null);
 		assertEquals(5, vodList.size());
 		for (VoD voD : vodList) {
-			assertEquals("streams/resources/"+voD.getVodName(), voD.getFilePath());
+			assertEquals("streams/resources/" + voD.getVodName(), voD.getFilePath());
 		}
-
 
 		f = new File("not_exist");
 		assertEquals(0, datastore.fetchUserVodList(f));
 
-
 		assertEquals(0, datastore.fetchUserVodList(null));
-
 
 	}
 
@@ -408,17 +424,17 @@ public class DBStoresUnitTest {
 	}
 
 	public void testVoDFunctions(DataStore datastore) {
-		//fail("Write test codes about saveVod, AddVod, AddUserVod, delete vod ");
+		// fail("Write test codes about saveVod, AddVod, AddUserVod, delete vod ");
 
-		//create a vod
+		// create a vod
 		String vodId = RandomStringUtils.randomNumeric(24);
-		VoD streamVod=new VoD("streamName", "streamId", "filePath", "vodName", 111, 111, 111, VoD.STREAM_VOD,vodId);
+		VoD streamVod = new VoD("streamName", "streamId", "filePath", "vodName", 111, 111, 111, VoD.STREAM_VOD, vodId);
 
-		//save stream vod
+		// save stream vod
 
 		datastore.addVod(streamVod);
 
-		//check vod number
+		// check vod number
 
 		assertEquals(1, datastore.getTotalVodNumber());
 		VoD voD = datastore.getVoD(vodId);
@@ -427,13 +443,13 @@ public class DBStoresUnitTest {
 		assertEquals(streamVod.getStreamName(), voD.getStreamName());
 		assertEquals(streamVod.getType(), voD.getType());
 
-		//add uservod
+		// add uservod
 		vodId = RandomStringUtils.randomNumeric(24);
-		VoD userVod=new VoD("streamName", "streamId", "filePath", "vodName", 111, 111, 111, VoD.USER_VOD,vodId);
+		VoD userVod = new VoD("streamName", "streamId", "filePath", "vodName", 111, 111, 111, VoD.USER_VOD, vodId);
 
 		datastore.addVod(userVod);
 
-		//check vod number
+		// check vod number
 
 		assertEquals(2, datastore.getTotalVodNumber());
 		voD = datastore.getVoD(userVod.getVodId());
@@ -442,48 +458,49 @@ public class DBStoresUnitTest {
 		assertEquals(userVod.getStreamName(), voD.getStreamName());
 		assertEquals(userVod.getType(), voD.getType());
 
-		//delete streamVod
+		// delete streamVod
 		datastore.deleteVod(streamVod.getVodId());
 		assertNull(datastore.getVoD(streamVod.getVodId()));
 
 		assertEquals(1, datastore.getTotalVodNumber());
 
-		//delete userVod
+		// delete userVod
 		datastore.deleteVod(userVod.getVodId());
 		assertNull(datastore.getVoD(voD.getVodId()));
 
-		//check vod number
+		// check vod number
 		assertEquals(0, datastore.getTotalVodNumber());
 
 	}
 
 	public void testEditCameraInfo(DataStore datastore) {
 
-		//fail("Write test codes about getCamera, getExternalStreamList ");
+		// fail("Write test codes about getCamera, getExternalStreamList ");
 
-		//create an IP Camera
-		Broadcast camera= new Broadcast("old_name", "0.0.0.0", "username", "password", "rtspUrl", AntMediaApplicationAdapter.IP_CAMERA);	
+		// create an IP Camera
+		Broadcast camera = new Broadcast("old_name", "0.0.0.0", "username", "password", "rtspUrl",
+				AntMediaApplicationAdapter.IP_CAMERA);
 
-		//save this cam
+		// save this cam
 		datastore.save(camera);
 
-		//check it is saved
+		// check it is saved
 		assertNotNull(camera.getStreamId());
 
-		//change cam info
+		// change cam info
 		camera.setName("new_name");
 		camera.setIpAddr("1.1.1.1");
 
 		datastore.updateBroadcastFields(camera.getStreamId(), camera);
 
-		//check whether is changed or not
+		// check whether is changed or not
 		assertEquals("1.1.1.1", camera.getIpAddr());
 		assertEquals("new_name", camera.getName());
 		datastore.delete(camera.getStreamId());
 	}
 
 	public void testUpdateHLSViewerCount(DataStore dataStore) {
-		//create a stream
+		// create a stream
 		Broadcast broadcast = new Broadcast();
 		broadcast.setName("test");
 		String key = dataStore.save(broadcast);
@@ -492,12 +509,12 @@ public class DBStoresUnitTest {
 		broadcast2.setName("test2");
 		String key2 = dataStore.save(broadcast2);
 
-		//update hls viewer several times 
-		//check hls viewer count
+		// update hls viewer several times
+		// check hls viewer count
 		int totalCountFor1 = 0;
 		int totalCountFor2 = 0;
 		for (int i = 0; i < 50; i++) {
-			int viewerCount = (int)(Math.random()*99999);
+			int viewerCount = (int) (Math.random() * 99999);
 			if (viewerCount % 2 == 0) {
 				viewerCount = -1 * viewerCount;
 			}
@@ -505,7 +522,7 @@ public class DBStoresUnitTest {
 
 			totalCountFor1 += viewerCount;
 
-			int viewerCount2 = (int)(Math.random()*99999);
+			int viewerCount2 = (int) (Math.random() * 99999);
 			if (viewerCount2 % 2 == 0) {
 				viewerCount2 = -1 * viewerCount2;
 			}
@@ -518,7 +535,7 @@ public class DBStoresUnitTest {
 	}
 
 	public void testWebRTCViewerCount(DataStore dataStore) {
-		//create a stream
+		// create a stream
 		Broadcast broadcast = new Broadcast();
 		broadcast.setName("test");
 		String key = dataStore.save(broadcast);
@@ -531,24 +548,22 @@ public class DBStoresUnitTest {
 		int totalViewerCountFor2 = 0;
 		for (int i = 0; i < 150; i++) {
 
-			boolean increment = false; 
-			int randomValue = (int)(Math.random()*99999);
+			boolean increment = false;
+			int randomValue = (int) (Math.random() * 99999);
 			if (randomValue % 2 == 0) {
 				increment = true;
 				totalViewerCountFor1++;
-			}
-			else {
+			} else {
 				totalViewerCountFor1--;
 			}
 			assertTrue(dataStore.updateWebRTCViewerCount(key, increment));
 
-			increment = false; 
-			randomValue = (int)(Math.random()*99999);
+			increment = false;
+			randomValue = (int) (Math.random() * 99999);
 			if (randomValue % 2 == 0) {
 				increment = true;
 				totalViewerCountFor2++;
-			}
-			else {
+			} else {
 				totalViewerCountFor2--;
 			}
 
@@ -560,7 +575,7 @@ public class DBStoresUnitTest {
 	}
 
 	public void testRTMPViewerCount(DataStore dataStore) {
-		//create a stream
+		// create a stream
 		Broadcast broadcast = new Broadcast();
 		broadcast.setName("test");
 		String key = dataStore.save(broadcast);
@@ -573,24 +588,22 @@ public class DBStoresUnitTest {
 		int totalViewerCountFor2 = 0;
 		for (int i = 0; i < 150; i++) {
 
-			boolean increment = false; 
-			int randomValue = (int)(Math.random()*99999);
+			boolean increment = false;
+			int randomValue = (int) (Math.random() * 99999);
 			if (randomValue % 2 == 0) {
 				increment = true;
 				totalViewerCountFor1++;
-			}
-			else {
+			} else {
 				totalViewerCountFor1--;
 			}
 			assertTrue(dataStore.updateRtmpViewerCount(key, increment));
 
-			increment = false; 
-			randomValue = (int)(Math.random()*99999);
+			increment = false;
+			randomValue = (int) (Math.random() * 99999);
 			if (randomValue % 2 == 0) {
 				increment = true;
 				totalViewerCountFor2++;
-			}
-			else {
+			} else {
 				totalViewerCountFor2--;
 			}
 
@@ -646,8 +659,7 @@ public class DBStoresUnitTest {
 		assertEquals(10, broadcastList.size());
 		for (int i = 0; i < broadcastList.size(); i++) {
 			/*
-			 * int count = 20 + i; assertEquals(count +"",
-			 * broadcastList.get(i).getName());
+			 * int count = 20 + i; assertEquals(count +"", broadcastList.get(i).getName());
 			 */
 
 			assertTrue(0 <= Integer.valueOf(broadcastList.get(i).getName()));
@@ -660,8 +672,7 @@ public class DBStoresUnitTest {
 		assertEquals(6, broadcastList.size());
 		for (int i = 0; i < broadcastList.size(); i++) {
 			/*
-			 * int count = 30 + i; assertEquals(count +"",
-			 * broadcastList.get(i).getName());
+			 * int count = 30 + i; assertEquals(count +"", broadcastList.get(i).getName());
 			 */
 
 			assertTrue(0 <= Integer.valueOf(broadcastList.get(i).getName()));
@@ -687,15 +698,16 @@ public class DBStoresUnitTest {
 		assertEquals(description, broadcast2.getDescription());
 
 		String rtmpUrl = "rtmp:((ksklasjflakjflaskjflsadfkjsal";
-		Endpoint endPoint = new Endpoint("broacdast id", "stream id", null, broadcast2.getName(), rtmpUrl, "generic", null);
+		Endpoint endPoint = new Endpoint("broacdast id", "stream id", null, broadcast2.getName(), rtmpUrl, "generic",
+				null);
 
 		boolean result = dataStore.addEndpoint(broadcast2.getStreamId().toString(), endPoint);
 		assertTrue(result);
 
 		rtmpUrl = "rtmp:(sdfsfsf(ksklasjflakjflaskjflsadfkjsal";
 		String endpointStreamId = "stream id 2";
-		Endpoint endPoint2 = new Endpoint("broacdast id 2", endpointStreamId, broadcast2.getName(), rtmpUrl,
-				"facebook", null, null);
+		Endpoint endPoint2 = new Endpoint("broacdast id 2", endpointStreamId, broadcast2.getName(), rtmpUrl, "facebook",
+				null, null);
 
 		result = dataStore.addEndpoint(broadcast2.getStreamId().toString(), endPoint2);
 		assertTrue(result);
@@ -728,13 +740,15 @@ public class DBStoresUnitTest {
 		// add new enpoints
 		rtmpUrl = "rtmp:(sdfsfsf(ksklasjflakjflaskjflsadfkjsal";
 		endpointStreamId = "stream id 2";
-		endPoint = new Endpoint("broacdast id 2", endpointStreamId, broadcast2.getName(), rtmpUrl, "facebook", null, null);
+		endPoint = new Endpoint("broacdast id 2", endpointStreamId, broadcast2.getName(), rtmpUrl, "facebook", null,
+				null);
 
 		assertTrue(dataStore.addEndpoint(broadcast2.getStreamId(), endPoint));
 
 		String rtmpUrl2 = "rtmp:(sdfsfskmkmkmkmf(ksklasjflakjflaskjflsadfkjsal";
 		endpointStreamId = "stream id 2";
-		endPoint2 = new Endpoint("broacdast id 2", endpointStreamId, broadcast2.getName(), rtmpUrl2, "facebook", null, null);
+		endPoint2 = new Endpoint("broacdast id 2", endpointStreamId, broadcast2.getName(), rtmpUrl2, "facebook", null,
+				null);
 
 		assertTrue(dataStore.addEndpoint(broadcast2.getStreamId(), endPoint2));
 
@@ -807,7 +821,8 @@ public class DBStoresUnitTest {
 			assertEquals(null, broadcast2.getEndPointList());
 
 			String rtmpUrl = "rtmp:((ksklasjflakjflaskjflsadfkjsal";
-			Endpoint endPoint = new Endpoint("broacdast id", "stream id", broadcast2.getName(), rtmpUrl, "generic", null, null);
+			Endpoint endPoint = new Endpoint("broacdast id", "stream id", broadcast2.getName(), rtmpUrl, "generic",
+					null, null);
 
 			result = dataStore.addEndpoint(broadcast2.getStreamId().toString(), endPoint);
 			assertTrue(result);
@@ -822,7 +837,8 @@ public class DBStoresUnitTest {
 			assertEquals(broadcast2.getEndPointList().get(0).getRtmpUrl(), rtmpUrl);
 
 			rtmpUrl = "rtmp:(sdfsfsf(ksklasjflakjflaskjflsadfkjsal";
-			endPoint = new Endpoint("broacdast id 2", "stream id 2", broadcast2.getName(), rtmpUrl, "facebook", null, null);
+			endPoint = new Endpoint("broacdast id 2", "stream id 2", broadcast2.getName(), rtmpUrl, "facebook", null,
+					null);
 
 			result = dataStore.addEndpoint(broadcast2.getStreamId().toString(), endPoint);
 			assertTrue(result);
@@ -847,29 +863,27 @@ public class DBStoresUnitTest {
 
 			assertEquals("good", dataStore.get(broadcast3.getStreamId()).getQuality());
 
-			//set mp4 muxing to true
+			// set mp4 muxing to true
 			result = dataStore.setMp4Muxing(key, MuxAdaptor.MP4_ENABLED_FOR_STREAM);
 
-			//check that setting is saved
+			// check that setting is saved
 			assertTrue(result);
 
-			//check that setting is saved correctly
+			// check that setting is saved correctly
 			assertEquals(MuxAdaptor.MP4_ENABLED_FOR_STREAM, dataStore.get(key).getMp4Enabled());
 
-
-			//check null case
+			// check null case
 			result = dataStore.setMp4Muxing(null, MuxAdaptor.MP4_DISABLED_FOR_STREAM);
 
 			assertFalse(result);
 
-
-			//set mp4 muxing to false
+			// set mp4 muxing to false
 			result = dataStore.setMp4Muxing(key, MuxAdaptor.MP4_DISABLED_FOR_STREAM);
 
-			//check that setting is saved
+			// check that setting is saved
 			assertTrue(result);
 
-			//check that setting is saved correctly
+			// check that setting is saved correctly
 			assertEquals(MuxAdaptor.MP4_DISABLED_FOR_STREAM, dataStore.get(key).getMp4Enabled());
 
 			result = dataStore.delete(key);
@@ -877,16 +891,12 @@ public class DBStoresUnitTest {
 
 			assertNull(dataStore.get(key));
 
-
-
-
 		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
 
 	}
-
 
 	private void testFilterSearchOperations(DataStore dataStore) {
 
@@ -910,11 +920,16 @@ public class DBStoresUnitTest {
 
 		assertEquals(1, returnList.size());
 
-		VoD newVod =  new VoD("streamName", "1112233" + (int)(Math.random() * 1000), "path", "vod", 1517239908, 17933, 1190425, VoD.STREAM_VOD, "1112233" + (int)(Math.random() * 91000));
-		VoD newVod2 = new VoD("davut", "111223" + (int)(Math.random() * 1000),  "path", "vod", 1517239808, 17933, 1190525, VoD.STREAM_VOD, "1112233" + (int)(Math.random() * 91000));
-		VoD newVod3 = new VoD("oguz", "11122" + (int)(Math.random() * 1000),  "path", "vod", 1517239708, 17933, 1190625, VoD.STREAM_VOD, "1112233" + (int)(Math.random() * 91000));
-		VoD newVod4 = new VoD("ahmet", "111" + (int)(Math.random() * 1000),  "path", "vod", 1517239608, 17933, 1190725, VoD.STREAM_VOD, "1112233" + (int)(Math.random() * 91000));
-		VoD newVod5 = new VoD("mehmet", "11" + (int)(Math.random() * 1000), "path", "vod", 1517239508, 17933, 1190825, VoD.STREAM_VOD, "1112233" + (int)(Math.random() * 91000));
+		VoD newVod = new VoD("streamName", "1112233" + (int) (Math.random() * 1000), "path", "vod", 1517239908, 17933,
+				1190425, VoD.STREAM_VOD, "1112233" + (int) (Math.random() * 91000));
+		VoD newVod2 = new VoD("davut", "111223" + (int) (Math.random() * 1000), "path", "vod", 1517239808, 17933,
+				1190525, VoD.STREAM_VOD, "1112233" + (int) (Math.random() * 91000));
+		VoD newVod3 = new VoD("oguz", "11122" + (int) (Math.random() * 1000), "path", "vod", 1517239708, 17933, 1190625,
+				VoD.STREAM_VOD, "1112233" + (int) (Math.random() * 91000));
+		VoD newVod4 = new VoD("ahmet", "111" + (int) (Math.random() * 1000), "path", "vod", 1517239608, 17933, 1190725,
+				VoD.STREAM_VOD, "1112233" + (int) (Math.random() * 91000));
+		VoD newVod5 = new VoD("mehmet", "11" + (int) (Math.random() * 1000), "path", "vod", 1517239508, 17933, 1190825,
+				VoD.STREAM_VOD, "1112233" + (int) (Math.random() * 91000));
 
 		String vodId = dataStore.addVod(newVod);
 		assertNotNull(vodId);
@@ -936,7 +951,6 @@ public class DBStoresUnitTest {
 		assertNotNull(vodId);
 		System.out.println("Vod id 5 " + vodId);
 
-
 		long totalVodNumber = dataStore.getTotalVodNumber();
 		assertEquals(5, totalVodNumber);
 
@@ -951,25 +965,22 @@ public class DBStoresUnitTest {
 		totalVodNumber = dataStore.getTotalVodNumber();
 		assertEquals(0, totalVodNumber);
 
-
 	}
 
-
-	public void testAddSocialEndpointCredentials(DataStore dataStore) 
-	{
-		// add social endpoint credential 
+	public void testAddSocialEndpointCredentials(DataStore dataStore) {
+		// add social endpoint credential
 
 		assertNull(dataStore.addSocialEndpointCredentials(null));
 
-		String name = "name" + (int)(Math.random()*10000000);
-		String serviceName = "serviceName"  + (int)(Math.random()*10000000);
-		String authTime = "authtime" + (int)(Math.random()*10000000);
-		String expireTimeInSeconds = "expireTimeInSeconds" + (int)(Math.random()*10000000);
-		String tokenType = "tokenType" + (int)(Math.random()*10000000);
-		String accessToken = "accessToken" + (int)(Math.random()*10000000);
-		String refreshToken = "refreshToken" + (int)(Math.random()*10000000);
-		SocialEndpointCredentials credentials = new SocialEndpointCredentials(name, serviceName, authTime, expireTimeInSeconds, tokenType, accessToken, refreshToken);
-
+		String name = "name" + (int) (Math.random() * 10000000);
+		String serviceName = "serviceName" + (int) (Math.random() * 10000000);
+		String authTime = "authtime" + (int) (Math.random() * 10000000);
+		String expireTimeInSeconds = "expireTimeInSeconds" + (int) (Math.random() * 10000000);
+		String tokenType = "tokenType" + (int) (Math.random() * 10000000);
+		String accessToken = "accessToken" + (int) (Math.random() * 10000000);
+		String refreshToken = "refreshToken" + (int) (Math.random() * 10000000);
+		SocialEndpointCredentials credentials = new SocialEndpointCredentials(name, serviceName, authTime,
+				expireTimeInSeconds, tokenType, accessToken, refreshToken);
 
 		SocialEndpointCredentials addedCredential = dataStore.addSocialEndpointCredentials(credentials);
 
@@ -979,11 +990,12 @@ public class DBStoresUnitTest {
 
 		credentials.setServiceName(null);
 		assertNull(dataStore.addSocialEndpointCredentials(credentials));
-		//restore service name because it is used below to check values
+		// restore service name because it is used below to check values
 		credentials.setServiceName(serviceName);
 
 		// get id of the social endpoint
-		SocialEndpointCredentials socialEndpointCredentials = dataStore.getSocialEndpointCredentials(addedCredential.getId());
+		SocialEndpointCredentials socialEndpointCredentials = dataStore
+				.getSocialEndpointCredentials(addedCredential.getId());
 
 		assertNotNull(socialEndpointCredentials);
 		// check fields
@@ -996,15 +1008,16 @@ public class DBStoresUnitTest {
 		assertEquals(socialEndpointCredentials.getExpireTimeInSeconds(), credentials.getExpireTimeInSeconds());
 		assertEquals(socialEndpointCredentials.getAuthTimeInMilliseconds(), credentials.getAuthTimeInMilliseconds());
 
-		// add social endpoint 
-		name = "name" + (int)(Math.random()*10000000);
-		serviceName = "serviceName"  + (int)(Math.random()*10000000);
-		authTime = "authtime" + (int)(Math.random()*10000000);
-		expireTimeInSeconds = "expireTimeInSeconds" + (int)(Math.random()*10000000);
+		// add social endpoint
+		name = "name" + (int) (Math.random() * 10000000);
+		serviceName = "serviceName" + (int) (Math.random() * 10000000);
+		authTime = "authtime" + (int) (Math.random() * 10000000);
+		expireTimeInSeconds = "expireTimeInSeconds" + (int) (Math.random() * 10000000);
 		tokenType = null;
-		accessToken = "accessToken" + (int)(Math.random()*10000000);
+		accessToken = "accessToken" + (int) (Math.random() * 10000000);
 		refreshToken = null;
-		credentials = new SocialEndpointCredentials(name, serviceName, authTime, expireTimeInSeconds, tokenType, accessToken, refreshToken);
+		credentials = new SocialEndpointCredentials(name, serviceName, authTime, expireTimeInSeconds, tokenType,
+				accessToken, refreshToken);
 
 		addedCredential = dataStore.addSocialEndpointCredentials(credentials);
 
@@ -1012,7 +1025,7 @@ public class DBStoresUnitTest {
 		assertNotNull(addedCredential.getId());
 		assertTrue(addedCredential.getId().length() >= 6);
 
-		//get credentials
+		// get credentials
 		socialEndpointCredentials = dataStore.getSocialEndpointCredentials(addedCredential.getId());
 
 		// check fields
@@ -1026,14 +1039,15 @@ public class DBStoresUnitTest {
 		assertEquals(socialEndpointCredentials.getAuthTimeInMilliseconds(), credentials.getAuthTimeInMilliseconds());
 
 		// add other social endpoint
-		name = "name" + (int)(Math.random()*10000000);
-		serviceName = "serviceName"  + (int)(Math.random()*10000000);
-		authTime = "authtime" + (int)(Math.random()*10000000);
-		expireTimeInSeconds = "expireTimeInSeconds" + (int)(Math.random()*10000000);
-		tokenType = "tokenType" + (int)(Math.random()*10000000);
-		accessToken = "accessToken" + (int)(Math.random()*10000000);
-		refreshToken = "refreshToken" + (int)(Math.random()*10000000);
-		credentials = new SocialEndpointCredentials(name, serviceName, authTime, expireTimeInSeconds, tokenType, accessToken, refreshToken);
+		name = "name" + (int) (Math.random() * 10000000);
+		serviceName = "serviceName" + (int) (Math.random() * 10000000);
+		authTime = "authtime" + (int) (Math.random() * 10000000);
+		expireTimeInSeconds = "expireTimeInSeconds" + (int) (Math.random() * 10000000);
+		tokenType = "tokenType" + (int) (Math.random() * 10000000);
+		accessToken = "accessToken" + (int) (Math.random() * 10000000);
+		refreshToken = "refreshToken" + (int) (Math.random() * 10000000);
+		credentials = new SocialEndpointCredentials(name, serviceName, authTime, expireTimeInSeconds, tokenType,
+				accessToken, refreshToken);
 
 		addedCredential = dataStore.addSocialEndpointCredentials(credentials);
 
@@ -1041,10 +1055,11 @@ public class DBStoresUnitTest {
 		assertNotNull(addedCredential.getId());
 		assertTrue(addedCredential.getId().length() >= 6);
 
-		//it should not accept credential having id because there is already one in the db
+		// it should not accept credential having id because there is already one in the
+		// db
 		assertNotNull(dataStore.addSocialEndpointCredentials(credentials));
 
-		//get credentials
+		// get credentials
 		socialEndpointCredentials = dataStore.getSocialEndpointCredentials(addedCredential.getId());
 
 		// check fields
@@ -1057,11 +1072,11 @@ public class DBStoresUnitTest {
 		assertEquals(socialEndpointCredentials.getExpireTimeInSeconds(), credentials.getExpireTimeInSeconds());
 		assertEquals(socialEndpointCredentials.getAuthTimeInMilliseconds(), credentials.getAuthTimeInMilliseconds());
 
-		//it should not save
-		credentials = new SocialEndpointCredentials(name, serviceName, authTime, expireTimeInSeconds, tokenType, accessToken, refreshToken);
+		// it should not save
+		credentials = new SocialEndpointCredentials(name, serviceName, authTime, expireTimeInSeconds, tokenType,
+				accessToken, refreshToken);
 		credentials.setId("not_id_in_db");
 		assertNull(dataStore.addSocialEndpointCredentials(credentials));
-
 
 		// get list of the social endpoint
 		List<SocialEndpointCredentials> socialEndpoints = dataStore.getSocialEndpoints(0, 10);
@@ -1072,7 +1087,7 @@ public class DBStoresUnitTest {
 		// remove social endpoint
 		assertTrue(dataStore.removeSocialEndpointCredentials(socialEndpoints.get(0).getId()));
 
-		//remove same social endpoint
+		// remove same social endpoint
 		assertFalse(dataStore.removeSocialEndpointCredentials(socialEndpoints.get(0).getId()));
 
 		assertFalse(dataStore.removeSocialEndpointCredentials("any_id_not_exist"));
@@ -1098,8 +1113,7 @@ public class DBStoresUnitTest {
 		assertEquals(0, socialEndpoints.size());
 	}
 
-
-	public void testSaveDetection(DataStore dataStore){
+	public void testSaveDetection(DataStore dataStore) {
 		String item1 = "item1";
 		long detectionTime = 434234L;
 		float probability1 = 0.1f;
@@ -1109,18 +1123,18 @@ public class DBStoresUnitTest {
 		dataStore.saveDetection("id", detectionTime, detectedObjects);
 
 		List<TensorFlowObject> list = dataStore.getDetectionList("id", 0, 10);
-		assertEquals(1,list.size());
+		assertEquals(1, list.size());
 		assertEquals(item1, list.get(0).objectName);
-		assertEquals(probability1, list.get(0).probability,0.1F);
-		assertEquals(detectionTime, list.get(0).detectionTime);	
+		assertEquals(probability1, list.get(0).probability, 0.1F);
+		assertEquals(detectionTime, list.get(0).detectionTime);
 	}
 
 	public void testTokenOperations(DataStore store) {
 
-		//create token
+		// create token
 		Token testToken = new Token();
-		
-		//define a valid expire date
+
+		// define a valid expire date
 		long expireDate = Instant.now().getEpochSecond() + 1000;
 
 		testToken.setStreamId("1234");
@@ -1132,21 +1146,21 @@ public class DBStoresUnitTest {
 
 		assertNotNull(testToken.getTokenId());
 
-		//get tokens of stream
-		List <Token> tokens = store.listAllTokens(testToken.getStreamId(), 0, 10);
+		// get tokens of stream
+		List<Token> tokens = store.listAllTokens(testToken.getStreamId(), 0, 10);
 
 		assertEquals(1, tokens.size());
 
-		//revoke tokens
+		// revoke tokens
 		store.revokeTokens(testToken.getStreamId());
 
-		//get tokens of stream
+		// get tokens of stream
 		tokens = store.listAllTokens(testToken.getStreamId(), 0, 10);
 
-		//it should be zero because all tokens are revoked
+		// it should be zero because all tokens are revoked
 		assertEquals(0, tokens.size());
 
-		//create token again
+		// create token again
 		testToken = new Token();
 
 		testToken.setStreamId("1234");
@@ -1156,25 +1170,22 @@ public class DBStoresUnitTest {
 		testToken.setRoomId("testRoom");
 
 		store.saveToken(testToken);
-		
-		//get this token
+
+		// get this token
 		Token retrievedToken = store.getToken(testToken.getTokenId());
-		
+
 		assertNotNull(retrievedToken);
 		assertEquals("testRoom", retrievedToken.getRoomId());
-		
-		
-		//delete this token
+
+		// delete this token
 		assertTrue(store.deleteToken(testToken.getTokenId()));
-		
-		tokens = store.listAllTokens(testToken.getStreamId(),0 , 10);
-		
-		//it should be zero because all tokens are revoked
+
+		tokens = store.listAllTokens(testToken.getStreamId(), 0, 10);
+
+		// it should be zero because all tokens are revoked
 		assertEquals(0, tokens.size());
-		
-		
-		
-		//create token again
+
+		// create token again
 		testToken = new Token();
 
 		testToken.setStreamId("1234");
@@ -1182,22 +1193,20 @@ public class DBStoresUnitTest {
 		testToken.setType(Token.PLAY_TOKEN);
 		testToken.setTokenId("tokenID");
 
-
 		store.saveToken(testToken);
-		
-		//validate token
+
+		// validate token
 		Token validatedToken = store.validateToken(testToken);
 
-		//token should be validated and returned
+		// token should be validated and returned
 		assertNotNull(validatedToken);
 
-		//this should be false, because validated token is deleted after consumed
+		// this should be false, because validated token is deleted after consumed
 		Token expiredToken = store.validateToken(testToken);
 
 		assertNull(expiredToken);
 
-		
-		//create token again, this time create a room token
+		// create token again, this time create a room token
 		testToken = new Token();
 
 		testToken.setStreamId("1234");
@@ -1207,49 +1216,48 @@ public class DBStoresUnitTest {
 		testToken.setRoomId("testRoom");
 
 		store.saveToken(testToken);
-		
-		//validate token
+
+		// validate token
 		validatedToken = store.validateToken(testToken);
 
-		//token should be validated and returned
+		// token should be validated and returned
 		assertNotNull(validatedToken);
 
-		//this is again not null, because validated token is not deleted because it is a room token
+		// this is again not null, because validated token is not deleted because it is
+		// a room token
 		expiredToken = store.validateToken(testToken);
 
 		assertNotNull(expiredToken);
-		
-		//change stream id of token
-		
+
+		// change stream id of token
+
 		testToken.setStreamId("changed");
-		
-		//validate token
+
+		// validate token
 		validatedToken = store.validateToken(testToken);
 
-		//token should be validated and returned
+		// token should be validated and returned
 		assertNotNull(validatedToken);
-		
-		
+
 	}
 
 	@Test
-	public void testDontWriteStatsToDB () {
+	public void testDontWriteStatsToDB() {
 		DataStore ds = createDB("memorydb", false);
-		assertTrue(ds instanceof InMemoryDataStore);	
+		assertTrue(ds instanceof InMemoryDataStore);
 		testDontWriteStatsToDB(ds);
 
 		ds = createDB("mapdb", false);
-		assertTrue(ds instanceof MapDBStore);	
+		assertTrue(ds instanceof MapDBStore);
 		testDontWriteStatsToDB(ds);
 
 		ds = createDB("mongodb", false);
-		assertTrue(ds instanceof MongoStore);	
+		assertTrue(ds instanceof MongoStore);
 		testDontWriteStatsToDB(ds);
-
 
 	}
 
-	public void testDontWriteStatsToDB (DataStore dataStore) {
+	public void testDontWriteStatsToDB(DataStore dataStore) {
 		testDontUpdateRtmpViewerStats(dataStore);
 		testDontUpdateHLSViewerStats(dataStore);
 		testDontUpdateWebRTCViewerStats(dataStore);
@@ -1306,7 +1314,6 @@ public class DBStoresUnitTest {
 		deleteBroadcast((MongoStore) dataStore);
 		assertEquals(0, dataStore.getBroadcastCount());
 
-
 		Broadcast broadcast = new Broadcast();
 		broadcast.setName("test1");
 		broadcast.setZombi(true);
@@ -1325,7 +1332,7 @@ public class DBStoresUnitTest {
 	}
 
 	public void testClearAtStartCluster(DataStore dataStore) {
-		
+
 		dataStore.clearStreamsOnThisServer(ServerSettings.getLocalHostAddress());
 		assertEquals(0, dataStore.getBroadcastCount());
 
@@ -1352,7 +1359,6 @@ public class DBStoresUnitTest {
 		si2.setVideoPort(1000);
 		si2.setAudioPort(1100);
 
-
 		dataStore.saveStreamInfo(si2);
 
 		dataStore.getStreamInfoList(broadcast.getStreamId());
@@ -1371,35 +1377,37 @@ public class DBStoresUnitTest {
 		MongoStore dataStore = new MongoStore("localhost", "", "", "testdb");
 		deleteStreamInfos(dataStore);
 
-		//same ports different host => there will be 2 SIs
+		// same ports different host => there will be 2 SIs
 		saveStreamInfo(dataStore, "host1", 1000, 2000, "host2", 1000, 2000);
 		assertEquals(2, dataStore.getDataStore().find(StreamInfo.class).count());
 		deleteStreamInfos(dataStore);
 
-		//different ports same host => there will be 2 SIs
+		// different ports same host => there will be 2 SIs
 		saveStreamInfo(dataStore, "host1", 1000, 2000, "host1", 1100, 2100);
 		assertEquals(2, dataStore.getDataStore().find(StreamInfo.class).count());
 		deleteStreamInfos(dataStore);
 
-		//same video ports same host => first SI should be deleted
+		// same video ports same host => first SI should be deleted
 		saveStreamInfo(dataStore, "host1", 1000, 2000, "host1", 1000, 2100);
 		assertEquals(1, dataStore.getDataStore().find(StreamInfo.class).count());
 		assertTrue(dataStore.getStreamInfoList("test1").isEmpty());
 		deleteStreamInfos(dataStore);
 
-		//same audio ports same host => first SI should be deleted
+		// same audio ports same host => first SI should be deleted
 		saveStreamInfo(dataStore, "host1", 1000, 2000, "host1", 1100, 2000);
 		assertEquals(1, dataStore.getDataStore().find(StreamInfo.class).count());
 		assertTrue(dataStore.getStreamInfoList("test1").isEmpty());
 		deleteStreamInfos(dataStore);
 
-		//first video port same with second audio port and same host => first SI should be deleted
+		// first video port same with second audio port and same host => first SI should
+		// be deleted
 		saveStreamInfo(dataStore, "host1", 1000, 2000, "host1", 1100, 1000);
 		assertEquals(1, dataStore.getDataStore().find(StreamInfo.class).count());
 		assertTrue(dataStore.getStreamInfoList("test1").isEmpty());
 		deleteStreamInfos(dataStore);
 
-		//first audio port same with second video port and same host => first SI should be deleted
+		// first audio port same with second video port and same host => first SI should
+		// be deleted
 		saveStreamInfo(dataStore, "host1", 1000, 2000, "host1", 2000, 2100);
 		assertEquals(1, dataStore.getDataStore().find(StreamInfo.class).count());
 		assertTrue(dataStore.getStreamInfoList("test1").isEmpty());
@@ -1410,14 +1418,14 @@ public class DBStoresUnitTest {
 		Query<StreamInfo> deleteQuery = dataStore.getDataStore().find(StreamInfo.class);
 		dataStore.getDataStore().delete(deleteQuery);
 	}
-	
+
 	public void deleteBroadcast(MongoStore dataStore) {
 		Query<Broadcast> deleteQuery = dataStore.getDataStore().find(Broadcast.class);
 		dataStore.getDataStore().delete(deleteQuery);
 	}
 
-	public void saveStreamInfo(DataStore dataStore, String host1, int videoPort1, int audioPort1,
-			String host2, int videoPort2, int audioPort2) {
+	public void saveStreamInfo(DataStore dataStore, String host1, int videoPort1, int audioPort1, String host2,
+			int videoPort2, int audioPort2) {
 
 		StreamInfo si = new StreamInfo();
 		si.setHost(host1);
@@ -1436,7 +1444,6 @@ public class DBStoresUnitTest {
 		dataStore.saveStreamInfo(si);
 	}
 
-
 	public void testConferenceRoom(DataStore datastore) {
 
 		ConferenceRoom room = new ConferenceRoom();
@@ -1445,13 +1452,13 @@ public class DBStoresUnitTest {
 
 		room.setRoomId("roomName");
 		room.setStartDate(now);
-		//1 hour later
+		// 1 hour later
 		room.setEndDate(now + 3600);
 
-		//create room
+		// create room
 		assertTrue(datastore.createConferenceRoom(room));
 
-		//get room		
+		// get room
 		ConferenceRoom dbRoom = datastore.getConferenceRoom(room.getRoomId());
 
 		assertNotNull(dbRoom);
@@ -1459,52 +1466,50 @@ public class DBStoresUnitTest {
 
 		dbRoom.setEndDate(now + 7200);
 
-		//edit room
+		// edit room
 		assertTrue(datastore.editConferenceRoom(dbRoom.getRoomId(), dbRoom));
-
 
 		ConferenceRoom editedRoom = datastore.getConferenceRoom(dbRoom.getRoomId());
 
 		assertNotNull(editedRoom);
 		assertEquals(now + 7200, editedRoom.getEndDate());
 
-		//delete room
+		// delete room
 		assertTrue(datastore.deleteConferenceRoom(editedRoom.getRoomId()));
 
 		assertNull(datastore.getConferenceRoom(editedRoom.getRoomId()));
 	}
-	
+
 	/*
 	 * This test is written for mongostore
 	 */
 	private void testStreamSourceList(DataStore dataStore) {
 		deleteBroadcast((MongoStore) dataStore);
-		
+
 		Broadcast ss1 = new Broadcast("ss1");
 		ss1.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
 		ss1.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
-		
+
 		Broadcast ss2 = new Broadcast("ss2");
 		ss2.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
 		ss2.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
-		
+
 		Broadcast ss3 = new Broadcast("ss3");
 		ss3.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
 		ss3.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_PREPARING);
-		  
+
 		dataStore.save(ss1);
 		dataStore.save(ss2);
 		dataStore.save(ss3);
-		
+
 		List<Broadcast> list = dataStore.getExternalStreamsList();
 		assertEquals(1, list.size());
 
 		List<Broadcast> list2 = dataStore.getExternalStreamsList();
 		assertEquals(0, list2.size());
 
-		
 	}
-	
+
 	private void testUpdateStatus(DataStore dataStore) {
 		String streamId = "test";
 		Broadcast broadcast = new Broadcast();
@@ -1515,7 +1520,7 @@ public class DBStoresUnitTest {
 		}
 		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
 		dataStore.save(broadcast);
-		
+
 		Broadcast broadcastFromStore = dataStore.get(streamId);
 		assertNotNull(broadcastFromStore);
 		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, broadcastFromStore.getStatus());
@@ -1523,29 +1528,29 @@ public class DBStoresUnitTest {
 
 		long now = System.currentTimeMillis();
 		dataStore.updateStatus(streamId, AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
-		
+
 		broadcastFromStore = dataStore.get(streamId);
 		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, broadcastFromStore.getStatus());
-		assertTrue(Math.abs(now-broadcastFromStore.getStartTime()) < 100);
-		
-		//wait to be sure time changed from we set now
+		assertTrue(Math.abs(now - broadcastFromStore.getStartTime()) < 100);
+
+		// wait to be sure time changed from we set now
 		try {
 			Thread.sleep(10);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
-		
+
 		dataStore.updateStatus(streamId, AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
-		
+
 		broadcastFromStore = dataStore.get(streamId);
 		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, broadcastFromStore.getStatus());
-		assertTrue(Math.abs(now-broadcastFromStore.getStartTime()) < 100);
+		assertTrue(Math.abs(now - broadcastFromStore.getStartTime()) < 100);
 	}
-	
+
 	private void testP2PConnection(DataStore dataStore) {
-		String streamId = "p2pstream"+Math.random()*100;
+		String streamId = "p2pstream" + Math.random() * 100;
 		P2PConnection p2pConn = new P2PConnection(streamId, "dummy");
-		if(dataStore instanceof MongoStore) {
+		if (dataStore instanceof MongoStore) {
 			assertNull(dataStore.getP2PConnection(streamId));
 			assertTrue(dataStore.createP2PConnection(p2pConn));
 			P2PConnection conn = dataStore.getP2PConnection(streamId);
@@ -1554,25 +1559,23 @@ public class DBStoresUnitTest {
 			assertEquals("dummy", conn.getOriginNode());
 			assertTrue(dataStore.deleteP2PConnection(streamId));
 			assertNull(dataStore.getP2PConnection(streamId));
-			
-			
+
 			assertFalse(dataStore.createP2PConnection(null));
 			assertNull(dataStore.getP2PConnection(streamId));
 			assertFalse(dataStore.deleteP2PConnection(streamId));
-			
-			
-		}
-		else {
+
+		} else {
 			assertFalse(dataStore.createP2PConnection(p2pConn));
 			assertNull(dataStore.getP2PConnection(streamId));
 			assertFalse(dataStore.deleteP2PConnection(streamId));
 		}
 	}
-	
+
 	public void testUpdateLocationParams(DataStore dataStore) {
 		logger.info("testUpdateLocationParams for {}", dataStore.getClass());
 
-		String streamId = "test"+Math.random()*100;;
+		String streamId = "test" + Math.random() * 100;
+		;
 		Broadcast broadcast = new Broadcast();
 		try {
 			broadcast.setStreamId(streamId);
@@ -1580,57 +1583,58 @@ public class DBStoresUnitTest {
 			e1.printStackTrace();
 		}
 		dataStore.save(broadcast);
-		
+
 		Broadcast broadcastFromStore = dataStore.get(streamId);
 		assertNull(broadcastFromStore.getLatitude());
 		assertNull(broadcastFromStore.getLongitude());
 		assertNull(broadcastFromStore.getAltitude());
-		
+
 		String latitude = "51.507351";
 		String longitude = "-0.127758";
 		String altitude = "58.58";
-		
+
 		broadcastFromStore.setLatitude(latitude);
 		broadcastFromStore.setLongitude(longitude);
 		broadcastFromStore.setAltitude(altitude);
-		
+
 		assertTrue(dataStore.updateBroadcastFields(streamId, broadcastFromStore));
-		
+
 		Broadcast broadcastFromStore2 = dataStore.get(streamId);
 		assertEquals(latitude, broadcastFromStore2.getLatitude());
 		assertEquals(longitude, broadcastFromStore2.getLongitude());
 		assertEquals(altitude, broadcastFromStore2.getAltitude());
 	}
-	
-	public void testPlaylist(DataStore dataStore) {
-		
-		//create a broadcast
-		Broadcast broadcast=new Broadcast();
-		
-		List<Broadcast> broadcastList = new ArrayList<>();
-		
-		broadcastList.add(broadcast);
-		
-		Playlist playlist = new Playlist("12312",0,"playlistName",AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED,111,111,broadcastList);
 
-		//create playlist
+	public void testPlaylist(DataStore dataStore) {
+
+		// create a broadcast
+		Broadcast broadcast = new Broadcast();
+
+		List<Broadcast> broadcastList = new ArrayList<>();
+
+		broadcastList.add(broadcast);
+
+		Playlist playlist = new Playlist("12312", 0, "playlistName",
+				AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, 111, 111, broadcastList);
+
+		// create playlist
 		assertTrue(dataStore.createPlaylist(playlist));
-		
-		//update playlist
+
+		// update playlist
 		assertTrue(dataStore.editPlaylist(playlist.getPlaylistId(), playlist));
 
-		//get new playlist		
+		// get new playlist
 		Playlist playlist2 = dataStore.getPlaylist(playlist.getPlaylistId());
 
 		assertNotNull(playlist2);
-		
+
 		assertEquals("playlistName", playlist.getPlaylistName());
 
-		//delete playlist
+		// delete playlist
 		assertTrue(dataStore.deletePlaylist(playlist.getPlaylistId()));
 
 		assertNull(dataStore.getPlaylist(playlist.getPlaylistId()));
-		
+
 	}
 
 	public void testAddTrack(DataStore dataStore) {
@@ -1638,14 +1642,14 @@ public class DBStoresUnitTest {
 		String mainTrackId = RandomStringUtils.randomAlphanumeric(8);
 		String subTrackId = RandomStringUtils.randomAlphanumeric(8);
 
-		Broadcast mainTrack= new Broadcast();
+		Broadcast mainTrack = new Broadcast();
 		try {
 			mainTrack.setStreamId(mainTrackId);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 
-		Broadcast subtrack= new Broadcast();
+		Broadcast subtrack = new Broadcast();
 		try {
 			subtrack.setStreamId(subTrackId);
 		} catch (Exception e) {
