@@ -27,6 +27,8 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
+import org.bytedeco.javacpp.avcodec.AVPacket;
+import org.bytedeco.javacpp.avformat.AVFormatContext;
 import org.red5.server.api.scope.IBroadcastScope;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IBroadcastStream;
@@ -50,8 +52,10 @@ import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.datastore.preference.PreferenceStore;
+import io.antmedia.filter.StreamAcceptFilter;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.muxer.IAntMediaStreamHandler;
+import io.antmedia.muxer.IStreamAcceptFilter;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.model.Result;
@@ -110,6 +114,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	private DataStore dataStore;
 	private DataStoreFactory dataStoreFactory;
 
+	private StreamAcceptFilter streamAcceptFilter;
 	private AppSettings appSettings;
 	private Vertx vertx;
 	private IScope scope;
@@ -746,6 +751,19 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 	public void setAppSettings(AppSettings appSettings) {
 		this.appSettings = appSettings;
+	}
+	
+	public StreamAcceptFilter getStreamAcceptFilter() {
+		return streamAcceptFilter;
+	}
+	
+
+	public void setStreamAcceptFilter(StreamAcceptFilter streamAcceptFilter) {
+		this.streamAcceptFilter = streamAcceptFilter;
+	}
+	
+	public boolean isValidStreamParameters(AVFormatContext inputFormatContext,AVPacket pkt) {
+		return streamAcceptFilter.isValidStreamParameters(inputFormatContext, pkt);
 	}
 
 

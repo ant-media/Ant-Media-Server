@@ -609,24 +609,24 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 	public boolean enoughResource(){
 
 		boolean enoughResource = false;
-
+		
 		if(getCpuLoad() < getCpuLimit()) 
-		{
-
-			if (getFreeRam() > getMinFreeRamSize()) {
-				
-				if ((getMaxPhysicalBytes()-getPhysicalBytes()) > getMinFreeRamSize() ){
-					
+		{			
+			if (getFreeRam() > getMinFreeRamSize()) 
+			{
+				long freeMemoryMB = SystemUtils.convertByteSize(SystemUtils.osFreePhysicalMemory(),"MB") ;
+				if (freeMemoryMB > getMinFreeRamSize())
+				{
 					enoughResource = true;
-					
 				}
 				else {
-					logger.error("Not enough resource. Physical memory usage is too high: physicalBytes ({}) > maxPhysicalBytes ({}) ", getPhysicalBytes(), getMaxPhysicalBytes());
+					logger.error("Not enough resource. There is no enough free memory. Current free memory ({}) < min free memory({}) ", freeMemoryMB, getMinFreeRamSize());
 				}
 			}
 			else {
 				logger.error("Not enough resource. Due to not free RAM. Free RAM should be more than  {} but it is: {}", minFreeRamSize, getFreeRam());
 			}
+			
 		}
 		else {
 			logger.error("Not enough resource. Due to high cpu load: {} cpu limit: {}", cpuLoad, cpuLimit);
@@ -635,14 +635,6 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 		return enoughResource; 
 	}
 	
-	public long getMaxPhysicalBytes(){
-		return SystemUtils.convertByteSize(Pointer.maxPhysicalBytes(), "MB"); 
-	}
-	
-	public long getPhysicalBytes(){
-		return SystemUtils.convertByteSize(Pointer.physicalBytes(), "MB"); 
-	}
-
 	@Override
 	public int getFreeRam() {
 		//return the allocatable free ram which means max memory - inuse memory
@@ -758,10 +750,10 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 		hearbeatPeriodicTask = vertx.setPeriodic(periodMS, 
 				l -> {
 					if(logger != null) {
-						logger.info("-Heartbeat-");
+						logger.info("-Heartbeat-> System cpu load: {} Free memory: {} KB", cpuLoad, SystemUtils.convertByteSize(SystemUtils.osFreePhysicalMemory(),"KB"));
 					}
 					else {
-						System.out.println("-Heartbeat-");
+						System.out.println("-Heartbeat-> System cpu load:" + cpuLoad + " Free memory: {} KB" + SystemUtils.convertByteSize(SystemUtils.osFreePhysicalMemory(),"KB"));
 					}
 					getGoogleAnalytic(implementationVersion, type).event()
 					.eventCategory("server_status")
