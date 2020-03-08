@@ -152,10 +152,9 @@ public class MuxingTest {
 			e.printStackTrace();
 		}
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
-			RestServiceTest restService = new RestServiceTest();
+			RestServiceV2Test restService = new RestServiceV2Test();
 
-			SimpleStat liveStatistics = restService.callGetLiveStatistics();
-			return 0 == liveStatistics.number;
+			return 0 == restService.callGetLiveStatistics();
 		});
 		
 	}
@@ -191,10 +190,9 @@ public class MuxingTest {
 		}
 		
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
-			RestServiceTest restService = new RestServiceTest();
+			RestServiceV2Test restService = new RestServiceV2Test();
 
-			SimpleStat liveStatistics = restService.callGetLiveStatistics();
-			return 0 == liveStatistics.number;
+			return 0 == restService.callGetLiveStatistics();
 		});
 
 	}
@@ -231,10 +229,9 @@ public class MuxingTest {
 		}
 		
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
-			RestServiceTest restService = new RestServiceTest();
+			RestServiceV2Test restService = new RestServiceV2Test();
 
-			SimpleStat liveStatistics = restService.callGetLiveStatistics();
-			return 0 == liveStatistics.number;
+			return 0 == restService.callGetLiveStatistics();
 		});
 
 	}
@@ -275,10 +272,9 @@ public class MuxingTest {
 		Awaitility.await().atMost(10, TimeUnit.SECONDS)
 			.pollInterval(1, TimeUnit.SECONDS)
 			.until(() -> {
-				RestServiceTest restService = new RestServiceTest();
+				RestServiceV2Test restService = new RestServiceV2Test();
 	
-				SimpleStat liveStatistics = restService.callGetLiveStatistics();
-				return 0 == liveStatistics.number;
+				return 0 == restService.callGetLiveStatistics();
 			});
 		
 	}
@@ -321,10 +317,9 @@ public class MuxingTest {
 			fail(e.getMessage());
 		}
 		
-		RestServiceTest restService = new RestServiceTest();
+		RestServiceV2Test restService = new RestServiceV2Test();
 
-		SimpleStat liveStatistics = restService.callGetLiveStatistics();
-		assertEquals(0, liveStatistics.number);
+		assertEquals(0, restService.callGetLiveStatistics());
 	}
 	
 	@Test
@@ -387,12 +382,12 @@ public class MuxingTest {
                 return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName+ ".m3u8");
             });
 
-            Result result = RestServiceTest.callEnableMp4Muxing(streamName, true);
+            Result result = RestServiceV2Test.callEnableMp4Muxing(streamName, 1);
             assertTrue(result.isSuccess());
 
 			Thread.sleep(5000);
 
-			result = RestServiceTest.callEnableMp4Muxing(streamName, false);
+			result = RestServiceV2Test.callEnableMp4Muxing(streamName, 0);
 			assertTrue(result.isSuccess());
 
             //it should be true this time, because stream mp4 setting is 1 although general setting is disabled
@@ -690,7 +685,7 @@ public class MuxingTest {
 		}
 
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-			Broadcast broadcast = RestServiceTest.callGetBroadcast(streamName);
+			Broadcast broadcast = RestServiceV2Test.callGetBroadcast(streamName);
 			return broadcast.getQuality() != null;
 		});
 
@@ -712,7 +707,7 @@ public class MuxingTest {
 		}
 		
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-			Broadcast broadcast = RestServiceTest.callGetBroadcast(streamName);
+			Broadcast broadcast = RestServiceV2Test.callGetBroadcast(streamName);
 			return broadcast.getQuality() != null;
 		});
 

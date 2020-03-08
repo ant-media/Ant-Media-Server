@@ -224,7 +224,7 @@ public class AppFunctionalV2Test {
 			List<VoD> voDList = rest.callGetVoDList();
 			if (voDList != null) {
 				for (VoD voD : voDList) {
-					RestServiceTest.deleteVoD(voD.getVodId());
+					RestServiceV2Test.deleteVoD(voD.getVodId());
 				}
 			}
 			
@@ -368,13 +368,13 @@ public class AppFunctionalV2Test {
 			assertTrue(found);
 			assertNotNull(vod1);
 			assertTrue(MuxingTest.isURLAvailable("http://" + SERVER_ADDR + ":5080/LiveApp/"+ vod1.getFilePath()));
-			assertTrue(RestServiceTest.deleteVoD(vod1.getVodId()).isSuccess());
+			assertTrue(RestServiceV2Test.deleteVoD(vod1.getVodId()).isSuccess());
 			assertFalse(MuxingTest.isURLAvailable("http://" + SERVER_ADDR + ":5080/LiveApp/"+ vod1.getFilePath()));
 
 			if (isEnterprise) {
 				assertNotNull(vod2);
 				assertTrue(MuxingTest.isURLAvailable("http://" + SERVER_ADDR + ":5080/LiveApp/"+ vod2.getFilePath()));
-				assertTrue(RestServiceTest.deleteVoD(vod2.getVodId()).isSuccess());
+				assertTrue(RestServiceV2Test.deleteVoD(vod2.getVodId()).isSuccess());
 				assertFalse(MuxingTest.isURLAvailable("http://" + SERVER_ADDR + ":5080/LiveApp/"+ vod2.getFilePath()));
 			}
 

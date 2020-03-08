@@ -1592,11 +1592,14 @@ public class RestServiceV2Test {
 			//define invalid stream url
 			broadcast.setStreamUrl("rrtsp://admin:Admin12345@71.234.93.90:5011/12");
 			
-			result = gson.fromJson(callAddStreamSource(broadcast), Result.class);
-
-			//it should be false because url is invalid
-			assertFalse(result.isSuccess());
-
+			try {
+				gson.fromJson(callAddStreamSource(broadcast), Result.class);
+				//it should throw exceptionbecause url is invalid
+				fail("it should throw exceptionbecause url is invalid");
+			}
+			catch (Exception e) {
+				//it should throw exceptionbecause url is invalid
+			}
 			//define valid stream url
 			broadcast.setStreamUrl("rtsp://admin:Admin12345@71.234.93.90:5011/12");
 
