@@ -32,6 +32,7 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
@@ -70,6 +71,11 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 	Vertx vertx = Vertx.vertx();
 
+	@BeforeClass
+	public void deleteHelloScriptBeforeTest(){
+		File f = new File ("src/test/resources/hello_script");
+		if(f.exists()) f.delete();
+	}
 	@Before
 	public void before() {
 		adapter = new AntMediaApplicationAdapter();
