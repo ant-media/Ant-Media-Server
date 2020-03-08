@@ -255,6 +255,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 	@Test
 	public void testRunMuxerScript() {
 		File f = new File ("src/test/resources/hello_script");
+		System.out.println(f.getAbsolutePath());
 		assertFalse(f.exists());
 
 		adapter.setVertx(Vertx.vertx());
