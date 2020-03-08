@@ -189,7 +189,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		//wait 5seconds because connectivity time out is 4sec by default
 		try {
-			Thread.sleep(5000);
+			Thread.sleep(10000);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
