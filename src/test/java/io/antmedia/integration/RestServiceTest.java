@@ -348,42 +348,16 @@ public class RestServiceTest {
 
 	@Test
 	public void testBroadcasGetUnknown() {
-		Broadcast tmp2 = getBroadcast("dsfsfsfs");
-		assertNotNull(tmp2);
-		assertEquals(null, tmp2.getStreamId());
-
-	}
-
-	public Broadcast getBroadcast(String streamId) {
+		Broadcast tmp2;
 		try {
-			/// get broadcast
-			String url = ROOT_SERVICE_URL + "/broadcast/get";
-
-			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
-			Gson gson = new Gson();
-
-
-			HttpUriRequest get = RequestBuilder.get().setUri(url + "?id=" + streamId)
-					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
-					// .setEntity(new StringEntity(gson.toJson(broadcast)))
-					.build();
-
-			CloseableHttpResponse response = client.execute(get);
-
-			StringBuffer result = readResponse(response);
-
-			if (response.getStatusLine().getStatusCode() != 200) {
-				throw new Exception(result.toString());
-			}
-			System.out.println("result string: " + result.toString());
-			assertFalse(result.toString().contains("dbId"));
-			Broadcast tmp2 = gson.fromJson(result.toString(), Broadcast.class);
-			return tmp2;
+			tmp2 = callGetBroadcast("dsfsfsfs");
+			assertNotNull(tmp2);
+			assertEquals(null, tmp2.getStreamId());
 		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-		return null;
+
 	}
 
 	public List<SocialEndpointCredentials> getSocialEndpointServices() {
@@ -1152,7 +1126,7 @@ public class RestServiceTest {
 
 			// check that name is updated
 			// get broadcast
-			broadcast = getBroadcast(broadcast.getStreamId().toString());
+			broadcast = callGetBroadcast(broadcast.getStreamId().toString());
 
 			// check name and description
 			assertEquals(broadcast.getName(), name);
@@ -1161,7 +1135,7 @@ public class RestServiceTest {
 
 
 			// get broacdast
-			broadcast = getBroadcast(broadcast.getStreamId().toString());
+			broadcast = callGetBroadcast(broadcast.getStreamId().toString());
 
 			// check publish info
 			assertEquals(broadcast.getName(), name);
@@ -1177,7 +1151,7 @@ public class RestServiceTest {
 			result = updateBroadcast(broadcast.getStreamId(), name, description, socialEndpointServices.get(0).getId());
 			assertTrue(result.isSuccess());
 
-			broadcast = getBroadcast(broadcast.getStreamId().toString());
+			broadcast = callGetBroadcast(broadcast.getStreamId().toString());
 			assertEquals(broadcast.getName(), name);
 			assertEquals(broadcast.getDescription(), description);
 
@@ -1189,7 +1163,7 @@ public class RestServiceTest {
 
 			// check that name is updated on stream name and social end point
 			// stream name
-			broadcast = getBroadcast(broadcast.getStreamId().toString());
+			broadcast = callGetBroadcast(broadcast.getStreamId().toString());
 			assertEquals(broadcast.getName(), name);
 			assertEquals(broadcast.getDescription(), description);
 
@@ -1199,7 +1173,7 @@ public class RestServiceTest {
 			result = updateBroadcast(broadcast.getStreamId(), name, description, "");
 
 			// check that social endpoint is removed
-			broadcast = getBroadcast(broadcast.getStreamId().toString());
+			broadcast = callGetBroadcast(broadcast.getStreamId().toString());
 			assertNull(broadcast.getEndPointList());
 
 		} catch (Exception e) {
@@ -1359,13 +1333,13 @@ public class RestServiceTest {
 			assertTrue(result.isSuccess());
 
 			// get endpoint list
-			broadcast = getBroadcast(broadcast.getStreamId().toString());
+			broadcast = callGetBroadcast(broadcast.getStreamId().toString());
 
 			// check that 1 element exist
 			assertNotNull(broadcast.getEndPointList());
 			assertEquals(1, broadcast.getEndPointList().size());
 
-			broadcast = getBroadcast(broadcast.getStreamId().toString());
+			broadcast = callGetBroadcast(broadcast.getStreamId().toString());
 			List<Endpoint> endpointList = broadcast.getEndPointList();
 
 			for (Endpoint endpoint : endpointList) {
@@ -1385,7 +1359,7 @@ public class RestServiceTest {
 			// networks
 			Thread.sleep(15000);
 
-			broadcast = getBroadcast(broadcast.getStreamId().toString());
+			broadcast = callGetBroadcast(broadcast.getStreamId().toString());
 			List<Endpoint> endpointList2 = broadcast.getEndPointList();
 			assertEquals(1, endpointList2.size());
 
@@ -1549,7 +1523,7 @@ public class RestServiceTest {
 			assertTrue(result.isSuccess());
 
 			// get endpoint list
-			broadcast = getBroadcast(broadcast.getStreamId().toString());
+			broadcast = callGetBroadcast(broadcast.getStreamId().toString());
 
 			// check that 2 element exist
 			assertNotNull(broadcast.getEndPointList());
@@ -1577,7 +1551,7 @@ public class RestServiceTest {
 			assertTrue(result.isSuccess());
 
 			// get endpoint list
-			broadcast = getBroadcast(broadcast.getStreamId().toString());
+			broadcast = callGetBroadcast(broadcast.getStreamId().toString());
 
 			// check that 4 element exist
 			assertNotNull(broadcast.getEndPointList());

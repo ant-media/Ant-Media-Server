@@ -688,10 +688,9 @@ public class MuxingTest {
 		catch (Exception e) {
 			e.printStackTrace();
 		}
-		RestServiceTest restService = new RestServiceTest();
 
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-			Broadcast broadcast = restService.getBroadcast(streamName);
+			Broadcast broadcast = RestServiceTest.callGetBroadcast(streamName);
 			return broadcast.getQuality() != null;
 		});
 
@@ -711,10 +710,9 @@ public class MuxingTest {
 		catch (Exception e) {
 			e.printStackTrace();
 		}
-		RestServiceTest restService = new RestServiceTest();
 		
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-			Broadcast broadcast = restService.getBroadcast(streamName);
+			Broadcast broadcast = RestServiceTest.callGetBroadcast(streamName);
 			return broadcast.getQuality() != null;
 		});
 
