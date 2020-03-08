@@ -482,7 +482,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 		JsonObject jsonObject = new JsonObject();
 		
 		long maxPhysicalBytes = Pointer.maxPhysicalBytes();
-		long inUsephysicalBytes = Pointer.physicalBytes();
+		long inUsephysicalBytes = 0;
 		
 		jsonObject.addProperty(IN_USE_JVM_NATIVE_MEMORY, inUsephysicalBytes);
 		jsonObject.addProperty(MAX_JVM_NATIVE_MEMORY, maxPhysicalBytes);
