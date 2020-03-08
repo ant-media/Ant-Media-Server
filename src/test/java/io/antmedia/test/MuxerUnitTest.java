@@ -1521,12 +1521,10 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 				logger.info("testMP4Muxing -- Scheduler job name {}", jobName);
 			}
 
-			//2 jobs in the scheduler one of them is the job streamFetcherManager and and the other one is
-			//job in MuxAdaptor
-			Awaitility.await().atMost(90, TimeUnit.SECONDS).until(() -> scheduler.getScheduledJobNames().size() == 1);
+			Awaitility.await().atMost(90, TimeUnit.SECONDS).until(() -> scheduler.getScheduledJobNames().size() == 0);
 			Awaitility.await().atMost(90, TimeUnit.SECONDS).until(muxAdaptor::isRecording);
 
-			assertEquals(1, scheduler.getScheduledJobNames().size());
+			assertEquals(0, scheduler.getScheduledJobNames().size());
 			assertTrue(muxAdaptor.isRecording());
 			final String finalFilePath = muxAdaptor.getMuxerList().get(0).getFile().getAbsolutePath();
 
