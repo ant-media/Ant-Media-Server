@@ -787,8 +787,13 @@ public class ConsoleAppRestServiceTest{
 			Thread.sleep(5000);
 
 			// check that it is not accepted
-			Broadcast broadcast = RestServiceTest.callGetBroadcast(streamId);
-			assertNull(broadcast.getStreamId());
+			try {
+				RestServiceTest.callGetBroadcast(streamId);
+				fail("it should throw exception because stream is not accepted");
+			}
+			catch (Exception e) {
+				//it should throw exception because stream is not accepted
+			}
 
 			AppFunctionalV2Test.destroyProcess();
 
@@ -884,8 +889,15 @@ public class ConsoleAppRestServiceTest{
 				Thread.sleep(5000);
 
 				// check that it is not accepted
-				broadcast = RestServiceTest.callGetBroadcast(streamId);
-				assertNull(broadcast.getStreamId());
+				try {
+					RestServiceTest.callGetBroadcast(streamId);
+					fail("it should throw exception because stream is not accepted");
+				}
+				catch (Exception e) {
+					//it should throw exception because stream is not accepted
+				}
+				
+				
 				AppFunctionalV2Test.destroyProcess();
 			}
 
