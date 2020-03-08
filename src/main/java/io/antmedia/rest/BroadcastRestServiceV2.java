@@ -173,8 +173,12 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 			}
 		}
 		else {
-			Broadcast createdBroadcast = createBroadcastWithStreamID(broadcast);
+			//TODO we need to refactor this method.
+			if (broadcast != null && broadcast.getStreamUrl() != null && !checkStreamUrl(broadcast.getStreamUrl())) {
+				return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Stream url is not valid. ")).build();
+			}
 
+			Broadcast createdBroadcast = createBroadcastWithStreamID(broadcast);
 			if (createdBroadcast.getStreamId() != null && socialEndpointIds != null) {
 				String[] endpointIds = socialEndpointIds.split(",");
 				for (String endpointId : endpointIds) {

@@ -1354,7 +1354,7 @@ public class ConsoleAppRestServiceTest{
 			Broadcast broadcast2 = RestServiceTest.callCreateRegularBroadcast();
 
 			//set stream specific mp4 setting to 1, general setting is still disabled
-			result = RestServiceTest.callEnableMp4Muxing(broadcast2.getStreamId(), MuxAdaptor.MP4_ENABLED_FOR_STREAM);
+			result = RestServiceTest.callEnableMp4Muxing(broadcast2.getStreamId(), true);
 
 			assertTrue(result.isSuccess());
 
@@ -1388,8 +1388,8 @@ public class ConsoleAppRestServiceTest{
 			result = callSetAppSettings("LiveApp", appSettings);
 			assertTrue(result.isSuccess());
 
-			//set stream spesific mp4 settings to 0
-			result = RestServiceTest.callEnableMp4Muxing(broadcast3.getStreamId(), MuxAdaptor.MP4_NO_SET_FOR_STREAM);
+			//set stream spesific mp4 settings to false
+			result = RestServiceTest.callEnableMp4Muxing(broadcast3.getStreamId(), false);
 			assertTrue(result.isSuccess());
 
 
@@ -1405,9 +1405,9 @@ public class ConsoleAppRestServiceTest{
 
 			rtmpSendingProcess.destroy();
 
-			//it should be true this time also, because stream mp4 setting is 0 but general setting is enabled
-			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast3.getStreamId() + ".mp4");
+			//it should be false this time also, because stream mp4 setting is false
+			Awaitility.await().pollDelay(10, TimeUnit.SECONDS).atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return !MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast3.getStreamId() + ".mp4");
 			});
 
 			/**
@@ -1418,7 +1418,7 @@ public class ConsoleAppRestServiceTest{
 			Broadcast broadcast4 = RestServiceTest.callCreateRegularBroadcast();
 
 			// general setting is still enabled and set stream spesific mp4 settings to -1
-			result = RestServiceTest.callEnableMp4Muxing(broadcast4.getStreamId(), MuxAdaptor.MP4_DISABLED_FOR_STREAM);
+			result = RestServiceTest.callEnableMp4Muxing(broadcast4.getStreamId(), false);
 			assertTrue(result.isSuccess());
 
 			//send stream

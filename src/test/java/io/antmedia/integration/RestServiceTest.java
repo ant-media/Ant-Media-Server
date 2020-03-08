@@ -70,8 +70,8 @@ import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.rest.BroadcastRestServiceV2;
+import io.antmedia.rest.BroadcastRestServiceV2.SimpleStat;
 import io.antmedia.rest.RestServiceBase.BroadcastStatistics;
-import io.antmedia.rest.RestServiceBase.LiveStatistics;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.Version;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
@@ -453,7 +453,7 @@ public class RestServiceTest {
 
 	public static Broadcast callCreateBroadcast(int expireTimeMS) throws Exception {
 
-		String url = ROOT_SERVICE_URL + "/broadcast/create";
+		String url = ROOT_SERVICE_URL + "/v2/broadcasts/create";
 
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 		Gson gson = new Gson();
@@ -480,14 +480,14 @@ public class RestServiceTest {
 
 	}
 
-	public static Result callEnableMp4Muxing(String streamId, int mode) throws Exception {
+	public static Result callEnableMp4Muxing(String streamId, boolean recording) throws Exception {
 
-		String url = ROOT_SERVICE_URL + "/broadcast/enableMp4Muxing?id="+ streamId + "&enableMp4=" + mode;
+		String url = ROOT_SERVICE_URL + "/v2/broadcasts/"+ streamId + "/recording/" + recording;
 
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 
 
-		HttpUriRequest post = RequestBuilder.post().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json").build();
+		HttpUriRequest post = RequestBuilder.put().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json").build();
 
 		HttpResponse response = client.execute(post);
 
@@ -506,7 +506,7 @@ public class RestServiceTest {
 
 	public static Broadcast callCreateRegularBroadcast() throws Exception {
 
-		String url = ROOT_SERVICE_URL + "/broadcast/create";
+		String url = ROOT_SERVICE_URL + "/v2/broadcasts/create";
 
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 		Gson gson = new Gson();
@@ -531,9 +531,9 @@ public class RestServiceTest {
 
 	}
 
-	public static Result callAddStreamSource(Broadcast broadcast) throws Exception {
+	public static String callAddStreamSource(Broadcast broadcast) throws Exception {
 
-		String url = ROOT_SERVICE_URL + "/streamSource/addStreamSource";
+		String url = ROOT_SERVICE_URL + "/v2/broadcasts/create";
 
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 		Gson gson = new Gson();
@@ -545,21 +545,13 @@ public class RestServiceTest {
 
 		StringBuffer result = readResponse(response);
 
-		if (response.getStatusLine().getStatusCode() != 200) {
-			throw new Exception(result.toString());
-		}
-		System.out.println("result string: " + result.toString());
-		Result tmp = gson.fromJson(result.toString(), Result.class);
-		assertNotNull(tmp);
-
-		return tmp;
-
+		return result.toString();
 	}
 
 
 	public static Result callUploadVod(File file) throws Exception {
 
-		String url = ROOT_SERVICE_URL + "/broadcast/uploadVoDFile/" + file.getName();
+		String url = ROOT_SERVICE_URL + "/v2/vods/create?name=" + file.getName();
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 
 		HttpPost post = new HttpPost(url);
@@ -618,12 +610,12 @@ public class RestServiceTest {
 
 	public static Result callUpdateStreamSource(Broadcast broadcast) throws Exception {
 
-		String url = ROOT_SERVICE_URL + "/streamSource/updateCamInfo";
+		String url = ROOT_SERVICE_URL + "/v2/broadcasts/"+broadcast.getStreamId();
 
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 		Gson gson = new Gson();
 
-		HttpUriRequest post = RequestBuilder.post().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+		HttpUriRequest post = RequestBuilder.put().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
 				.setEntity(new StringEntity(gson.toJson(broadcast))).build();
 
 		HttpResponse response = client.execute(post);
@@ -682,10 +674,10 @@ public class RestServiceTest {
 	}
 
 
-	public LiveStatistics callGetLiveStatistics() {
+	public SimpleStat callGetLiveStatistics() {
 		try {
 
-			String url = ROOT_SERVICE_URL + "/broadcast/getAppLiveStatistics";
+			String url = ROOT_SERVICE_URL + "/v2/broadcasts/active-live-stream-count";
 
 			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 
@@ -703,7 +695,7 @@ public class RestServiceTest {
 			}
 			System.out.println("result string: " + result.toString());
 
-			return gson.fromJson(result.toString(), LiveStatistics.class);
+			return gson.fromJson(result.toString(), SimpleStat.class);
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -714,7 +706,7 @@ public class RestServiceTest {
 	public BroadcastStatistics callGetBroadcastStatistics(String streamId) {
 		try {
 
-			String url = ROOT_SERVICE_URL + "/broadcast/getBroadcastLiveStatistics";
+			String url = ROOT_SERVICE_URL + "/v2/broadcasts/"+streamId+"/broadcast-statistics";
 
 			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 
@@ -744,7 +736,7 @@ public class RestServiceTest {
 	public static List<Broadcast> callGetBroadcastList() {
 		try {
 
-			String url = ROOT_SERVICE_URL + "/broadcast/getList/0/50";
+			String url = ROOT_SERVICE_URL + "/v2/broadcasts/list/0/50";
 
 			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 
@@ -779,7 +771,7 @@ public class RestServiceTest {
 	public static List<VoD> callGetVoDList(int offset, int size) {
 		try {
 
-			String url = ROOT_SERVICE_URL + "/broadcast/getVodList/"+offset+"/" + size;
+			String url = ROOT_SERVICE_URL + "/v2/vods/list/"+offset+"/" + size;
 
 			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 
@@ -810,7 +802,7 @@ public class RestServiceTest {
 	public VoD callGetVoD(String id) {
 		try {
 
-			String url = ROOT_SERVICE_URL + "/broadcast/getVoD?id="+id;
+			String url = ROOT_SERVICE_URL + "/v2/vods/"+id;
 
 			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 
@@ -839,11 +831,11 @@ public class RestServiceTest {
 	}
 
 	public static Broadcast callGetBroadcast(String streamId) throws Exception {
-		String url = ROOT_SERVICE_URL + "/broadcast/get";
+		String url = ROOT_SERVICE_URL + "/v2/broadcasts/" +streamId;
 
 		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 
-		HttpUriRequest get = RequestBuilder.get().setUri(url + "?id=" + streamId)
+		HttpUriRequest get = RequestBuilder.get().setUri(url)
 				.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
 				// .setEntity(new StringEntity(gson.toJson(broadcast)))
 				.build();
@@ -889,12 +881,12 @@ public class RestServiceTest {
 	}
 
 	public boolean callStopBroadcastService(String streamId) throws Exception {
-		String url = ROOT_SERVICE_URL + "/broadcast/stop";
+		String url = ROOT_SERVICE_URL + "/v2/broadcasts/"+ streamId +"/stop";
 
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 		Gson gson = new Gson();
 
-		HttpUriRequest post = RequestBuilder.post().setUri(url + "/" + streamId)
+		HttpUriRequest post = RequestBuilder.post().setUri(url)
 				.setHeader(HttpHeaders.CONTENT_TYPE, "application/json").build();
 
 		HttpResponse response = client.execute(post);
@@ -1091,13 +1083,13 @@ public class RestServiceTest {
 	public static Result deleteBroadcast(String id) {
 		try {
 			// delete broadcast
-			String url = ROOT_SERVICE_URL + "/broadcast/delete/" + id;
+			String url = ROOT_SERVICE_URL + "/v2/broadcasts/" + id;
 
 			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 
-			HttpUriRequest post = RequestBuilder.post().setUri(url)
+			HttpUriRequest post = RequestBuilder.delete().setUri(url)
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json").build();
-
+			
 			CloseableHttpResponse response = client.execute(post);
 
 			StringBuffer result = readResponse(response);
@@ -1118,11 +1110,11 @@ public class RestServiceTest {
 	public static Result deleteVoD(String id) {
 		try {
 			// delete broadcast
-			String url = ROOT_SERVICE_URL + "/broadcast/deleteVoD/" + id;
+			String url = ROOT_SERVICE_URL + "/v2/vods/" + id;
 
 			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 
-			HttpUriRequest post = RequestBuilder.post().setUri(url)
+			HttpUriRequest post = RequestBuilder.delete().setUri(url)
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json").build();
 
 			CloseableHttpResponse response = client.execute(post);
@@ -1627,7 +1619,7 @@ public class RestServiceTest {
 
 		//create broadcast
 		Broadcast broadcast = new Broadcast();
-		Result result = new Result (false);
+		String result;
 
 		try {
 
@@ -1644,26 +1636,29 @@ public class RestServiceTest {
 			result = callAddStreamSource(broadcast);
 
 			//it should be false because url is invalid
-			assertFalse(result.isSuccess());
+			Result tmp = gson.fromJson(result.toString(), Result.class);
+			
+			assertFalse(tmp.isSuccess());
 
 			//define valid stream url
 			broadcast.setStreamUrl("rtsp://admin:Admin12345@71.234.93.90:5011/12");
 
 			result = callAddStreamSource(broadcast);
 
+			Broadcast broadcastResult = gson.fromJson(result.toString(), Broadcast.class);
 			//it should be true because url is valid
-			assertTrue(result.isSuccess());
+			assertNotNull(broadcastResult.getStreamId());
 
-			Broadcast fetchedBroadcast = callGetBroadcast(result.getMessage());
+			Broadcast fetchedBroadcast = callGetBroadcast(broadcastResult.getStreamId());
 
 			//change url
 
 			fetchedBroadcast.setStreamUrl("rtsp://admin:Admin12345@71.234.93.90:5014/11");
 
 			//update broadcast
-			result = callUpdateStreamSource(fetchedBroadcast);
+			Result resultObj = callUpdateStreamSource(fetchedBroadcast);
 
-			assertTrue(result.isSuccess());
+			assertTrue(resultObj.isSuccess());
 
 			fetchedBroadcast = callGetBroadcast(fetchedBroadcast.getStreamId());
 
@@ -1674,6 +1669,7 @@ public class RestServiceTest {
 
 		} catch (Exception e) {
 			e.printStackTrace();
+			fail(e.getMessage());
 		}
 	}
 

@@ -94,17 +94,6 @@ public abstract class RestServiceBase {
 			this.totalWebRTCWatchersCount = totalWebRTCWatchersCount;
 		}
 	}
-
-	@ApiModel(value="LiveStatistics", description="The statistics class of the broadcasts live stream count")
-	public static class LiveStatistics  {
-
-		@ApiModelProperty(value = "the total live stream count of the stream")
-		public final long totalLiveStreamCount;
-
-		public LiveStatistics(long totalLiveStreamCount) {
-			this.totalLiveStreamCount = totalLiveStreamCount;
-		}
-	}
 	
 	public interface ProcessBuilderFactory {
 		Process make(String...args);
@@ -266,7 +255,6 @@ public abstract class RestServiceBase {
 	}
 
 	public Broadcast createBroadcastWithStreamID(Broadcast broadcast) {
-
 		return saveBroadcast(broadcast, AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, getScope().getName(),
 				getDataStore(), getAppSettings().getListenerHookURL(), getServerSettings().getServerName(), getServerSettings().getHostAddress());
 	}

@@ -42,7 +42,7 @@ import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 
-import io.antmedia.rest.RestServiceBase.LiveStatistics;
+import io.antmedia.rest.BroadcastRestServiceV2.SimpleStat;
 import io.antmedia.rest.model.Result;
 
 
@@ -154,8 +154,8 @@ public class MuxingTest {
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
 			RestServiceTest restService = new RestServiceTest();
 
-			LiveStatistics liveStatistics = restService.callGetLiveStatistics();
-			return 0 == liveStatistics.totalLiveStreamCount;
+			SimpleStat liveStatistics = restService.callGetLiveStatistics();
+			return 0 == liveStatistics.number;
 		});
 		
 	}
@@ -193,8 +193,8 @@ public class MuxingTest {
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
 			RestServiceTest restService = new RestServiceTest();
 
-			LiveStatistics liveStatistics = restService.callGetLiveStatistics();
-			return 0 == liveStatistics.totalLiveStreamCount;
+			SimpleStat liveStatistics = restService.callGetLiveStatistics();
+			return 0 == liveStatistics.number;
 		});
 
 	}
@@ -233,8 +233,8 @@ public class MuxingTest {
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
 			RestServiceTest restService = new RestServiceTest();
 
-			LiveStatistics liveStatistics = restService.callGetLiveStatistics();
-			return 0 == liveStatistics.totalLiveStreamCount;
+			SimpleStat liveStatistics = restService.callGetLiveStatistics();
+			return 0 == liveStatistics.number;
 		});
 
 	}
@@ -277,8 +277,8 @@ public class MuxingTest {
 			.until(() -> {
 				RestServiceTest restService = new RestServiceTest();
 	
-				LiveStatistics liveStatistics = restService.callGetLiveStatistics();
-				return 0 == liveStatistics.totalLiveStreamCount;
+				SimpleStat liveStatistics = restService.callGetLiveStatistics();
+				return 0 == liveStatistics.number;
 			});
 		
 	}
@@ -323,8 +323,8 @@ public class MuxingTest {
 		
 		RestServiceTest restService = new RestServiceTest();
 
-		LiveStatistics liveStatistics = restService.callGetLiveStatistics();
-		assertEquals(0, liveStatistics.totalLiveStreamCount);
+		SimpleStat liveStatistics = restService.callGetLiveStatistics();
+		assertEquals(0, liveStatistics.number);
 	}
 	
 	@Test
@@ -387,12 +387,12 @@ public class MuxingTest {
                 return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName+ ".m3u8");
             });
 
-            Result result = RestServiceTest.callEnableMp4Muxing(streamName,MuxAdaptor.MP4_ENABLED_FOR_STREAM);
+            Result result = RestServiceTest.callEnableMp4Muxing(streamName, true);
             assertTrue(result.isSuccess());
 
 			Thread.sleep(5000);
 
-			result = RestServiceTest.callEnableMp4Muxing(streamName,MuxAdaptor.MP4_DISABLED_FOR_STREAM);
+			result = RestServiceTest.callEnableMp4Muxing(streamName, false);
 			assertTrue(result.isSuccess());
 
             //it should be true this time, because stream mp4 setting is 1 although general setting is disabled
