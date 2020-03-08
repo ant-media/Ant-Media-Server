@@ -533,7 +533,7 @@ public class AppFunctionalV2Test {
 			BroadcastStatistics broadcastStatistics = restService.callGetBroadcastStatistics(streamId);
 			assertEquals(0, broadcastStatistics.totalHLSWatchersCount); 
 			assertEquals(0, broadcastStatistics.totalRTMPWatchersCount);
-			assertEquals(-1, broadcastStatistics.totalWebRTCWatchersCount); // -1 mean it is not available 
+			assertEquals(0, broadcastStatistics.totalWebRTCWatchersCount); 
 
 
 			broadcastStatistics = restService.callGetBroadcastStatistics("unknown_stream_id");
@@ -747,7 +747,7 @@ public class AppFunctionalV2Test {
 
 	public Result callIsEnterpriseEdition() throws Exception {
 
-		String url = "http://localhost:5080/LiveApp/rest/broadcast/getVersion";
+		String url = "http://localhost:5080/LiveApp/rest/v2/version";
 		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 		Gson gson = new Gson();
 
