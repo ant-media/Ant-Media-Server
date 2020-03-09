@@ -972,7 +972,7 @@ public class ConsoleAppRestServiceTest{
 			long expireDate = Instant.now().getEpochSecond() + 1000;
 
 			Broadcast broadcast = RestServiceV2Test.callCreateRegularBroadcast();
-			Token accessToken = callGetToken( "http://localhost:5080/"+appName+"/rest/broadcast/getToken", broadcast.getStreamId(), Token.PLAY_TOKEN, expireDate);
+			Token accessToken = callGetToken( "http://localhost:5080/"+appName+"/rest/v2/broadcasts/"+broadcast.getStreamId()+"/token", Token.PLAY_TOKEN, expireDate);
 			assertNotNull(accessToken);
 
 
@@ -990,11 +990,11 @@ public class ConsoleAppRestServiceTest{
 
 
 			//create token for publishing
-			Token publishToken = callGetToken("http://localhost:5080/"+appName+"/rest/broadcast/getToken", broadcast.getStreamId(), Token.PUBLISH_TOKEN, expireDate);
+			Token publishToken = callGetToken("http://localhost:5080/"+appName+"/rest/v2/broadcasts/"+broadcast.getStreamId()+"/token" , Token.PUBLISH_TOKEN, expireDate);
 			assertNotNull(publishToken);
 
 			//create token for playing/accessing file
-			Token accessToken2 = callGetToken("http://localhost:5080/"+appName+"/rest/broadcast/getToken", broadcast.getStreamId(), Token.PLAY_TOKEN, expireDate);
+			Token accessToken2 = callGetToken("http://localhost:5080/"+appName+"/rest/v2/broadcasts/"+broadcast.getStreamId()+"/token", Token.PLAY_TOKEN, expireDate);
 			assertNotNull(accessToken2);
 
 			Process rtmpSendingProcessToken = execute(ffmpegPath
@@ -1452,15 +1452,15 @@ public class ConsoleAppRestServiceTest{
 	}
 
 
-	public static Token callGetToken(String streamId, String type, long expireDate) throws Exception {
-		return callGetToken(SERVICE_URL + "/broadcast/getToken", streamId, type, expireDate);
-	}
+	//public static Token callGetToken(String streamId, String type, long expireDate) throws Exception {
+	//	return callGetToken(SERVICE_URL + "/broadcast/getToken", streamId, type, expireDate);
+	//}
 
-	public static Token callGetToken(String url, String streamId, String type, long expireDate) throws Exception {
+	public static Token callGetToken(String url, String type, long expireDate) throws Exception {
 
 		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 
-		HttpUriRequest get = RequestBuilder.get().setUri(url + "?id=" + streamId + "&expireDate=" + expireDate + "&type=" + type)
+		HttpUriRequest get = RequestBuilder.get().setUri(url + "?expireDate=" + expireDate + "&type=" + type)
 				.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
 				.build();
 
