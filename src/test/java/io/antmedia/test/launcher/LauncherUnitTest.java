@@ -1,6 +1,7 @@
 package io.antmedia.test.launcher;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
@@ -48,6 +49,14 @@ public class LauncherUnitTest {
 				e.printStackTrace();
 			}
 			
+	}
+	
+	@Test
+	public void testLaunch() {
+		Launcher launcher = new Launcher();
+		assertEquals("Community", Launcher.getVersionType());
+		assertEquals("Community", launcher.getVersionType()); //increase coverage
+		Launcher.getVersion();
 	}
 	
 	@Test

@@ -1414,10 +1414,65 @@ public class BroadcastRestServiceV2UnitTest {
 		
 		//check that room does not exist  in db 
 		assertNull(restServiceReal.getDataStore().getConferenceRoom(room.getRoomId()));
-
+	}
+	
+	@Test
+	public void testAddIPCameraViaCreateBroadcast() 
+	{
+		
+		BroadcastRestServiceV2 restService = Mockito.spy(restServiceReal);
+		
+		AntMediaApplicationAdapter adaptor = mock (AntMediaApplicationAdapter.class);
+		Mockito.doReturn(adaptor).when(restService).getApplication();
+		IScope scope = mock(IScope.class);
+		when(scope.getName()).thenReturn("junit");
+		Mockito.doReturn(new InMemoryDataStore("testAddIPCamera")).when(restService).getDataStore();
+		
+		Mockito.doReturn(scope).when(restService).getScope();
+		
+		ApplicationContext appContext = mock(ApplicationContext.class);
+		restService.setAppCtx(appContext);
+		Mockito.doReturn(new ServerSettings()).when(restService).getServerSettings();
+		Mockito.doReturn(new AppSettings()).when(restService).getAppSettings();
+		
+		Broadcast broadcast = new Broadcast("testAddIPCamera", "10.2.40.64:8080", "admin", "admin",
+				"rtsp://11.2.40.63:8554/live1.sdp", AntMediaApplicationAdapter.STREAM_SOURCE);
+		Response createBroadcastResponse = restService.createBroadcast(broadcast, null, false);
+		assertEquals(200, createBroadcastResponse.getStatus());
+		
+		broadcast = new Broadcast("testAddIPCamera", null, "admin", "admin",
+				null, AntMediaApplicationAdapter.STREAM_SOURCE);
+		
+		createBroadcastResponse = restService.createBroadcast(broadcast, null, false);
+		assertEquals(400, createBroadcastResponse.getStatus());
+		
+		broadcast = new Broadcast("testAddIPCamera", "10.2.40.64:8080", "admin", "admin",
+				"rtsdfdfdfd-invalid-url", AntMediaApplicationAdapter.STREAM_SOURCE);
+		
+		createBroadcastResponse = restService.createBroadcast(broadcast, null, false);
+		assertEquals(400, createBroadcastResponse.getStatus());
+		
+		createBroadcastResponse = restService.createBroadcast(null, null, false);
+		assertEquals(200, createBroadcastResponse.getStatus());
+		
+		broadcast = new Broadcast("testAddIPCamera", "10.2.40.64:8080", "admin", "admin",
+				null, AntMediaApplicationAdapter.IP_CAMERA);
+		createBroadcastResponse = restService.createBroadcast(null, null, false);
+		assertEquals(200, createBroadcastResponse.getStatus());
+		
+		broadcast = new Broadcast("testAddIPCamera", "false_ip_addr", "admin", "admin",
+				null, AntMediaApplicationAdapter.IP_CAMERA);
+		createBroadcastResponse = restService.createBroadcast(broadcast, null, false);
+		assertEquals(400, createBroadcastResponse.getStatus());
+		
+		broadcast = new Broadcast("testAddIPCamera", "10.2.40.64:8080", "admin", "admin",
+				"rtsdfdfdfd-invalid-url", AntMediaApplicationAdapter.IP_CAMERA);
+		createBroadcastResponse = restService.createBroadcast(broadcast, null, false);
+		assertEquals(200, createBroadcastResponse.getStatus());
+		
+		
 		
 	}
-
 	
 	@Test
 	public void testAddIPCamera()  {

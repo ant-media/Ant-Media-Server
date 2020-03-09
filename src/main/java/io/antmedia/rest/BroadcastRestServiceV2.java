@@ -173,8 +173,13 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 			}
 		}
 		else {
-			//TODO we need to refactor this method.
-			if (broadcast != null && broadcast.getStreamUrl() != null && !checkStreamUrl(broadcast.getStreamUrl())) {
+			//TODO we need to refactor this method. Refactor validateStreamURL and checkStramURL
+			if (broadcast != null && 
+				    ((AntMediaApplicationAdapter.IP_CAMERA.equals(broadcast.getType()) && !validateStreamURL(broadcast.getIpAddr()))
+					|| 
+					(AntMediaApplicationAdapter.STREAM_SOURCE.equals(broadcast.getType()) && !checkStreamUrl(broadcast.getStreamUrl()))
+					)
+			   ) {
 				return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Stream url is not valid. ")).build();
 			}
 

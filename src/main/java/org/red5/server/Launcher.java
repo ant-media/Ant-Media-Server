@@ -52,7 +52,7 @@ public class Launcher {
 	private static final String INSTANCE_ID_DEFAULT_PATH = "conf/instanceId";
 	private static String instanceIdFilePath = INSTANCE_ID_DEFAULT_PATH;
 	private static String implementationVersion;
-	private static String versionType;  //community or enterprise
+	private static String versionType = null;  //community or enterprise
 
 	/**
 	 * Launch Red5 under it's own classloader
@@ -80,9 +80,7 @@ public class Launcher {
 		setLog(log);
 
 		// version info banner
-		implementationVersion = AntMediaApplicationAdapter.class.getPackage().getImplementationVersion();
-		versionType = RestServiceBase.isEnterprise() ? "Enterprise" : "Community";
-		log.info("Ant Media Server {} {}", versionType, implementationVersion);
+		log.info("Ant Media Server {} {}", getVersionType(), getVersion());
 		printLogo();
 		
 		if (log.isDebugEnabled()) {
@@ -158,10 +156,16 @@ public class Launcher {
 	}
 	
 	public static String getVersion() {
+		if (implementationVersion == null) {
+			implementationVersion = AntMediaApplicationAdapter.class.getPackage().getImplementationVersion();
+		}
 		return implementationVersion;
 	}
 	
 	public static String getVersionType() {
+		if (versionType == null) {
+			versionType = RestServiceBase.isEnterprise() ? "Enterprise" : "Community";
+		}
 		return versionType;
 	}
 
