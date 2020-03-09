@@ -67,11 +67,10 @@ import io.antmedia.muxer.HLSMuxer;
 import io.antmedia.muxer.Mp4Muxer;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.Muxer;
-import io.antmedia.rest.BroadcastRestService;
-import io.antmedia.rest.BroadcastRestService.BroadcastStatistics;
-import io.antmedia.rest.BroadcastRestService.ProcessBuilderFactory;
 import io.antmedia.rest.BroadcastRestServiceV2;
-
+import io.antmedia.rest.RestServiceBase;
+import io.antmedia.rest.RestServiceBase.BroadcastStatistics;
+import io.antmedia.rest.RestServiceBase.ProcessBuilderFactory;
 import io.antmedia.rest.RootRestService;
 import io.antmedia.rest.WebRTCClientStats;
 import io.antmedia.rest.model.Interaction;
@@ -420,7 +419,7 @@ public class BroadcastRestServiceV2UnitTest {
 
 		// it should be facebook is not defined in this scope
 		assertFalse(object.isSuccess());
-		assertEquals(BroadcastRestService.ERROR_SOCIAL_ENDPOINT_UNDEFINED_ENDPOINT, object.getErrorId());
+		assertEquals(RestServiceBase.ERROR_SOCIAL_ENDPOINT_UNDEFINED_ENDPOINT, object.getErrorId());
 
 		//make client id and client secret has value for facebook
 		when(settings.getFacebookClientId()).thenReturn("12313");
@@ -431,7 +430,7 @@ public class BroadcastRestServiceV2UnitTest {
 
 		//it should be again facebook is not defined in this scope
 		assertFalse(object.isSuccess());
-		assertEquals(BroadcastRestService.ERROR_SOCIAL_ENDPOINT_UNDEFINED_ENDPOINT, object.getErrorId());
+		assertEquals(RestServiceBase.ERROR_SOCIAL_ENDPOINT_UNDEFINED_ENDPOINT, object.getErrorId());
 
 		//make the same test for youtube and expect same results
 		when(settings.getYoutubeClientId()).thenReturn(null);
@@ -439,7 +438,7 @@ public class BroadcastRestServiceV2UnitTest {
 		object = (Result)restServiceReal.getDeviceAuthParametersV2("youtube");
 
 		assertFalse(object.isSuccess());
-		assertEquals(BroadcastRestService.ERROR_SOCIAL_ENDPOINT_UNDEFINED_ENDPOINT, object.getErrorId());
+		assertEquals(RestServiceBase.ERROR_SOCIAL_ENDPOINT_UNDEFINED_ENDPOINT, object.getErrorId());
 
 		when(settings.getYoutubeClientId()).thenReturn("121212");
 		when(settings.getYoutubeClientSecret()).thenReturn("1212121");
@@ -447,7 +446,7 @@ public class BroadcastRestServiceV2UnitTest {
 		object = (Result)restServiceReal.getDeviceAuthParametersV2("youtube");
 
 		assertFalse(object.isSuccess());
-		assertEquals(BroadcastRestService.ERROR_SOCIAL_ENDPOINT_UNDEFINED_ENDPOINT, object.getErrorId());
+		assertEquals(RestServiceBase.ERROR_SOCIAL_ENDPOINT_UNDEFINED_ENDPOINT, object.getErrorId());
 
 		//make client id and clien secret null for periscope
 		when(settings.getPeriscopeClientId()).thenReturn(null);
@@ -458,7 +457,7 @@ public class BroadcastRestServiceV2UnitTest {
 
 		//it should be client id and client secret missing
 		assertFalse(object.isSuccess());
-		assertEquals(BroadcastRestService.ERROR_SOCIAL_ENDPOINT_UNDEFINED_CLIENT_ID, object.getErrorId());
+		assertEquals(RestServiceBase.ERROR_SOCIAL_ENDPOINT_UNDEFINED_CLIENT_ID, object.getErrorId());
 
 		//make client id and client secret have value for periscope
 		when(settings.getPeriscopeClientId()).thenReturn("121212");
@@ -467,7 +466,7 @@ public class BroadcastRestServiceV2UnitTest {
 		//it should be different error because client id and cleint secret is not correct
 		object  = (Result) restServiceReal.getDeviceAuthParametersV2("periscope");
 		assertFalse(object.isSuccess());
-		assertEquals(BroadcastRestService.ERROR_SOCIAL_ENDPOINT_EXCEPTION_IN_ASKING_AUTHPARAMS, object.getErrorId());
+		assertEquals(RestServiceBase.ERROR_SOCIAL_ENDPOINT_EXCEPTION_IN_ASKING_AUTHPARAMS, object.getErrorId());
 	}
 
 
@@ -987,7 +986,7 @@ public class BroadcastRestServiceV2UnitTest {
 		RootRestService rootRestService = new RootRestService();
 		Version version = rootRestService.getVersion();
 		assertEquals(version.getVersionName(), AntMediaApplicationAdapter.class.getPackage().getImplementationVersion());
-		assertEquals(BroadcastRestService.COMMUNITY_EDITION, version.getVersionType());
+		assertEquals(RestServiceBase.COMMUNITY_EDITION, version.getVersionType());
 	}
 
 	@Test
@@ -1349,7 +1348,7 @@ public class BroadcastRestServiceV2UnitTest {
 
 	@Test
 	public void testStopLiveStream() {
-		BroadcastRestService restService = new BroadcastRestService();
+		BroadcastRestServiceV2 restService = new BroadcastRestServiceV2();
 		AntMediaApplicationAdapter app = Mockito.spy(new AntMediaApplicationAdapter());
 		DataStore ds = Mockito.mock(DataStore.class);
 		String streamId = "test-stream";
@@ -1366,7 +1365,7 @@ public class BroadcastRestServiceV2UnitTest {
 		restService.setDataStore(ds);
 		restService.setApplication(app);
 
-		restService.stopBroadcast(streamId);
+		restService.stopStreamingV2(streamId);
 
 		Mockito.verify(app, Mockito.times(1)).getBroadcastStream(null, streamId);
 	}
@@ -1415,10 +1414,65 @@ public class BroadcastRestServiceV2UnitTest {
 		
 		//check that room does not exist  in db 
 		assertNull(restServiceReal.getDataStore().getConferenceRoom(room.getRoomId()));
-
+	}
+	
+	@Test
+	public void testAddIPCameraViaCreateBroadcast() 
+	{
+		
+		BroadcastRestServiceV2 restService = Mockito.spy(restServiceReal);
+		
+		AntMediaApplicationAdapter adaptor = mock (AntMediaApplicationAdapter.class);
+		Mockito.doReturn(adaptor).when(restService).getApplication();
+		IScope scope = mock(IScope.class);
+		when(scope.getName()).thenReturn("junit");
+		Mockito.doReturn(new InMemoryDataStore("testAddIPCamera")).when(restService).getDataStore();
+		
+		Mockito.doReturn(scope).when(restService).getScope();
+		
+		ApplicationContext appContext = mock(ApplicationContext.class);
+		restService.setAppCtx(appContext);
+		Mockito.doReturn(new ServerSettings()).when(restService).getServerSettings();
+		Mockito.doReturn(new AppSettings()).when(restService).getAppSettings();
+		
+		Broadcast broadcast = new Broadcast("testAddIPCamera", "10.2.40.64:8080", "admin", "admin",
+				"rtsp://11.2.40.63:8554/live1.sdp", AntMediaApplicationAdapter.STREAM_SOURCE);
+		Response createBroadcastResponse = restService.createBroadcast(broadcast, null, false);
+		assertEquals(200, createBroadcastResponse.getStatus());
+		
+		broadcast = new Broadcast("testAddIPCamera", null, "admin", "admin",
+				null, AntMediaApplicationAdapter.STREAM_SOURCE);
+		
+		createBroadcastResponse = restService.createBroadcast(broadcast, null, false);
+		assertEquals(400, createBroadcastResponse.getStatus());
+		
+		broadcast = new Broadcast("testAddIPCamera", "10.2.40.64:8080", "admin", "admin",
+				"rtsdfdfdfd-invalid-url", AntMediaApplicationAdapter.STREAM_SOURCE);
+		
+		createBroadcastResponse = restService.createBroadcast(broadcast, null, false);
+		assertEquals(400, createBroadcastResponse.getStatus());
+		
+		createBroadcastResponse = restService.createBroadcast(null, null, false);
+		assertEquals(200, createBroadcastResponse.getStatus());
+		
+		broadcast = new Broadcast("testAddIPCamera", "10.2.40.64:8080", "admin", "admin",
+				null, AntMediaApplicationAdapter.IP_CAMERA);
+		createBroadcastResponse = restService.createBroadcast(null, null, false);
+		assertEquals(200, createBroadcastResponse.getStatus());
+		
+		broadcast = new Broadcast("testAddIPCamera", "false_ip_addr", "admin", "admin",
+				null, AntMediaApplicationAdapter.IP_CAMERA);
+		createBroadcastResponse = restService.createBroadcast(broadcast, null, false);
+		assertEquals(400, createBroadcastResponse.getStatus());
+		
+		broadcast = new Broadcast("testAddIPCamera", "10.2.40.64:8080", "admin", "admin",
+				"rtsdfdfdfd-invalid-url", AntMediaApplicationAdapter.IP_CAMERA);
+		createBroadcastResponse = restService.createBroadcast(broadcast, null, false);
+		assertEquals(200, createBroadcastResponse.getStatus());
+		
+		
 		
 	}
-
 	
 	@Test
 	public void testAddIPCamera()  {

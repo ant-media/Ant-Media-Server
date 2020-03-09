@@ -54,7 +54,7 @@ import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Playlist;
 import io.antmedia.integration.AppFunctionalV2Test;
-import io.antmedia.rest.BroadcastRestService;
+import io.antmedia.rest.BroadcastRestServiceV2;
 import io.antmedia.rest.PlaylistRestServiceV2;
 import io.antmedia.rest.model.Result;
 import io.antmedia.streamsource.StreamFetcher;
@@ -320,7 +320,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	@Test
 	public void testPlaylistStartStreaming() {
 
-		BroadcastRestService service = new BroadcastRestService();
+		BroadcastRestServiceV2 service = new BroadcastRestServiceV2();
 
 		service.setApplication(app.getAppAdaptor());
 
@@ -524,7 +524,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testStopFetchingWhenDeleted() {
 
 
-		BroadcastRestService service = new BroadcastRestService();
+		BroadcastRestServiceV2 service = new BroadcastRestServiceV2();
 
 		service.setApplication(app.getAppAdaptor());
 
@@ -600,7 +600,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testStopFetchingWhenStopCalled() {
 
 
-		BroadcastRestService service = new BroadcastRestService();
+		BroadcastRestServiceV2 service = new BroadcastRestServiceV2();
 
 		service.setApplication(app.getAppAdaptor());
 
@@ -641,7 +641,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		});
 
 		//just delete broadcast instead of calling stop
-		Result result = service.stopBroadcast(newCam.getStreamId());
+		Result result = service.stopStreaming(newCam.getStreamId());
 
 		assertTrue(result.isSuccess());
 		//stop emulator

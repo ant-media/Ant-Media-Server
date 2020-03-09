@@ -57,7 +57,7 @@ import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.IStreamAcceptFilter;
 import io.antmedia.muxer.MuxAdaptor;
-import io.antmedia.rest.BroadcastRestService;
+import io.antmedia.rest.RestServiceBase;
 import io.antmedia.rest.model.Result;
 import io.antmedia.security.AcceptOnlyStreamsInDataStore;
 import io.antmedia.settings.ServerSettings;
@@ -87,8 +87,6 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	public static final String HOOK_ACTION_END_LIVE_STREAM = "liveStreamEnded";
 	public static final String HOOK_ACTION_START_LIVE_STREAM = "liveStreamStarted";
 	public static final String HOOK_ACTION_VOD_READY = "vodReady";
-
-	public static final String VERTX_BEAN_NAME = "vertxCore";
 	
 	public static final String DEFAULT_LOCALHOST = "127.0.0.1";
 
@@ -473,7 +471,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 				settingsListenerHookURL = appSettings.getListenerHookURL();
 			}
 
-			return BroadcastRestService.saveBroadcast(newBroadcast,
+			return RestServiceBase.saveBroadcast(newBroadcast,
 					streamStatus, scopeName, dataStore,
 					settingsListenerHookURL, fqdn, hostAddress);
 		} catch (Exception e) {

@@ -68,8 +68,7 @@ import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.rest.BroadcastRestServiceV2.SimpleStat;
-import io.antmedia.rest.BroadcastRestService.BroadcastStatistics;
-import io.antmedia.rest.BroadcastRestService.LiveStatistics;
+import io.antmedia.rest.RestServiceBase.BroadcastStatistics;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.Version;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
@@ -427,7 +426,7 @@ public class RestServiceV2Test {
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 
 
-		HttpUriRequest post = RequestBuilder.post().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json").build();
+		HttpUriRequest post = RequestBuilder.put().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json").build();
 
 		HttpResponse response = client.execute(post);
 
@@ -1593,11 +1592,14 @@ public class RestServiceV2Test {
 			//define invalid stream url
 			broadcast.setStreamUrl("rrtsp://admin:Admin12345@71.234.93.90:5011/12");
 			
-			result = gson.fromJson(callAddStreamSource(broadcast), Result.class);
-
-			//it should be false because url is invalid
-			assertFalse(result.isSuccess());
-
+			try {
+				gson.fromJson(callAddStreamSource(broadcast), Result.class);
+				//it should throw exceptionbecause url is invalid
+				fail("it should throw exceptionbecause url is invalid");
+			}
+			catch (Exception e) {
+				//it should throw exceptionbecause url is invalid
+			}
 			//define valid stream url
 			broadcast.setStreamUrl("rtsp://admin:Admin12345@71.234.93.90:5011/12");
 

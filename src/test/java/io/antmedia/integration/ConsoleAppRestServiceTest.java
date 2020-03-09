@@ -362,7 +362,7 @@ public class ConsoleAppRestServiceTest{
 			assertTrue(result.isSuccess());
 
 			// send stream
-			Broadcast broadcastCreated = RestServiceTest.callCreateBroadcast(10000);
+			Broadcast broadcastCreated = RestServiceV2Test.callCreateBroadcast(10000);
 			assertNotNull(broadcastCreated.getStreamId());
 			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, broadcastCreated.getStatus());
 
@@ -373,11 +373,11 @@ public class ConsoleAppRestServiceTest{
 			// check stream status is broadcasting
 			Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->
 			{
-				Broadcast broadcast = RestServiceTest.callGetBroadcast(broadcastCreated.getStreamId());
+				Broadcast broadcast = RestServiceV2Test.callGetBroadcast(broadcastCreated.getStreamId());
 				return broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 			});
 
-			Broadcast broadcast = RestServiceTest.callGetBroadcast(broadcastCreated.getStreamId());
+			Broadcast broadcast = RestServiceV2Test.callGetBroadcast(broadcastCreated.getStreamId());
 			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, broadcast.getStatus());
 
 			// stop stream
@@ -385,12 +385,12 @@ public class ConsoleAppRestServiceTest{
 
 			Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->
 			{
-				Broadcast broadcastTmp = RestServiceTest.callGetBroadcast(broadcastCreated.getStreamId());
+				Broadcast broadcastTmp = RestServiceV2Test.callGetBroadcast(broadcastCreated.getStreamId());
 				return broadcastTmp.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
 			});
 
 			// check stream status is finished
-			broadcast = RestServiceTest.callGetBroadcast(broadcastCreated.getStreamId());
+			broadcast = RestServiceV2Test.callGetBroadcast(broadcastCreated.getStreamId());
 
 			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, broadcast.getStatus());
 
@@ -600,7 +600,7 @@ public class ConsoleAppRestServiceTest{
 	public static List<Broadcast> callGetBroadcastList(String appName) {
 		try {
 
-			String url = "http://127.0.0.1:5080/" + appName + "/rest/broadcast/getList/0/50";
+			String url = "http://127.0.0.1:5080/" + appName + "/rest/v2/broadcasts/list/0/50";
 
 			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 			// Gson gson = new Gson();
@@ -787,15 +787,15 @@ public class ConsoleAppRestServiceTest{
 			Thread.sleep(5000);
 
 			// check that it is not accepted
-			Broadcast broadcast = RestServiceTest.callGetBroadcast(streamId);
-			assertNull(broadcast.getStreamId());
+			Broadcast broadcast = RestServiceV2Test.callGetBroadcast(streamId);
+			assertNull(broadcast);
 
 			AppFunctionalV2Test.destroyProcess();
 
 			// create a stream through rest service
 			// check that it is accepted
 			{
-				Broadcast broadcastCreated = RestServiceTest.callCreateBroadcast(10000);
+				Broadcast broadcastCreated = RestServiceV2Test.callCreateBroadcast(10000);
 				assertNotNull(broadcastCreated.getStreamId());
 				assertEquals(broadcastCreated.getStatus(), AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
 
@@ -808,7 +808,7 @@ public class ConsoleAppRestServiceTest{
 
 				Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
 				.until(() -> {
-					Broadcast broadcast2 = RestServiceTest.callGetBroadcast(broadcastCreated.getStreamId());
+					Broadcast broadcast2 = RestServiceV2Test.callGetBroadcast(broadcastCreated.getStreamId());
 					return broadcast2 != null && broadcast2.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 				});
 
@@ -833,7 +833,7 @@ public class ConsoleAppRestServiceTest{
 				// check that it is accepted
 				Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
 				.until(() -> {
-					Broadcast broadcast2 = RestServiceTest.callGetBroadcast(streamId2);
+					Broadcast broadcast2 = RestServiceV2Test.callGetBroadcast(streamId2);
 					return broadcast2 != null && broadcast2.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 				});
 
@@ -843,7 +843,7 @@ public class ConsoleAppRestServiceTest{
 			// create a stream through rest service
 			// check that it is accepted
 			{
-				Broadcast broadcastCreated = RestServiceTest.callCreateBroadcast(10000);
+				Broadcast broadcastCreated = RestServiceV2Test.callCreateBroadcast(10000);
 				assertNotNull(broadcastCreated.getStreamId());
 				assertEquals(broadcastCreated.getStatus(), AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
 
@@ -856,7 +856,7 @@ public class ConsoleAppRestServiceTest{
 
 				Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
 				.until(() -> {
-					Broadcast broadcast2 = RestServiceTest.callGetBroadcast(broadcastCreated.getStreamId());
+					Broadcast broadcast2 = RestServiceV2Test.callGetBroadcast(broadcastCreated.getStreamId());
 					return broadcast2 != null && broadcast2.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 				});
 
@@ -884,15 +884,15 @@ public class ConsoleAppRestServiceTest{
 				Thread.sleep(5000);
 
 				// check that it is not accepted
-				broadcast = RestServiceTest.callGetBroadcast(streamId);
-				assertNull(broadcast.getStreamId());
+				assertNull(RestServiceV2Test.callGetBroadcast(streamId));
+				
 				AppFunctionalV2Test.destroyProcess();
 			}
 
 			// create a stream through rest service
 			// check that it is accepted
 			{
-				Broadcast broadcastCreated = RestServiceTest.callCreateBroadcast(10000);
+				Broadcast broadcastCreated = RestServiceV2Test.callCreateBroadcast(10000);
 				assertNotNull(broadcastCreated.getStreamId());
 				assertEquals(broadcastCreated.getStatus(), AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
 
@@ -909,7 +909,7 @@ public class ConsoleAppRestServiceTest{
 				.atMost(10, TimeUnit.SECONDS)
 				.pollInterval(1, TimeUnit.SECONDS).until(() -> 
 				{
-					Broadcast broadcast2 = RestServiceTest.callGetBroadcast(broadcastCreated.getStreamId());
+					Broadcast broadcast2 = RestServiceV2Test.callGetBroadcast(broadcastCreated.getStreamId());
 					assertNotNull(broadcast2);
 					return broadcast2 != null && broadcast2.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 				});
@@ -971,7 +971,7 @@ public class ConsoleAppRestServiceTest{
 			//define a valid expire date
 			long expireDate = Instant.now().getEpochSecond() + 1000;
 
-			Broadcast broadcast = RestServiceTest.callCreateRegularBroadcast();
+			Broadcast broadcast = RestServiceV2Test.callCreateRegularBroadcast();
 			Token accessToken = callGetToken( "http://localhost:5080/"+appName+"/rest/broadcast/getToken", broadcast.getStreamId(), Token.PLAY_TOKEN, expireDate);
 			assertNotNull(accessToken);
 
@@ -1154,7 +1154,7 @@ public class ConsoleAppRestServiceTest{
 			assertTrue(appSettings.isHashControlPublishEnabled());
 
 			//create a broadcast
-			Broadcast broadcast = RestServiceTest.callCreateRegularBroadcast();
+			Broadcast broadcast = RestServiceV2Test.callCreateRegularBroadcast();
 
 			//publish stream
 			Process rtmpSendingProcess = execute(ffmpegPath
@@ -1324,7 +1324,7 @@ public class ConsoleAppRestServiceTest{
 			assertTrue(result.isSuccess());
 
 			// create broadcast
-			Broadcast broadcast = RestServiceTest.callCreateRegularBroadcast();
+			Broadcast broadcast = RestServiceV2Test.callCreateRegularBroadcast();
 
 			/**
 			 * CASE 1: General setting is disabled (default) and stream setting is 0 (default)
@@ -1351,10 +1351,10 @@ public class ConsoleAppRestServiceTest{
 			 */
 
 			//create new stream to avoid same stream name
-			Broadcast broadcast2 = RestServiceTest.callCreateRegularBroadcast();
+			Broadcast broadcast2 = RestServiceV2Test.callCreateRegularBroadcast();
 
 			//set stream specific mp4 setting to 1, general setting is still disabled
-			result = RestServiceTest.callEnableMp4Muxing(broadcast2.getStreamId(), MuxAdaptor.MP4_ENABLED_FOR_STREAM);
+			result = RestServiceV2Test.callEnableMp4Muxing(broadcast2.getStreamId(), 1);
 
 			assertTrue(result.isSuccess());
 
@@ -1381,15 +1381,15 @@ public class ConsoleAppRestServiceTest{
 			 */
 
 			//create new stream to avoid same stream name
-			Broadcast broadcast3 = RestServiceTest.callCreateRegularBroadcast();
+			Broadcast broadcast3 = RestServiceV2Test.callCreateRegularBroadcast();
 
 			//enable mp4 muxing
 			appSettings.setMp4MuxingEnabled(true);
 			result = callSetAppSettings("LiveApp", appSettings);
 			assertTrue(result.isSuccess());
 
-			//set stream spesific mp4 settings to 0
-			result = RestServiceTest.callEnableMp4Muxing(broadcast3.getStreamId(), MuxAdaptor.MP4_NO_SET_FOR_STREAM);
+			//set stream spesific mp4 settings to false
+			result = RestServiceV2Test.callEnableMp4Muxing(broadcast3.getStreamId(), 0);
 			assertTrue(result.isSuccess());
 
 
@@ -1405,9 +1405,9 @@ public class ConsoleAppRestServiceTest{
 
 			rtmpSendingProcess.destroy();
 
-			//it should be true this time also, because stream mp4 setting is 0 but general setting is enabled
-			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast3.getStreamId() + ".mp4");
+			//it should be false this time also, because stream mp4 setting is false
+			Awaitility.await().pollDelay(10, TimeUnit.SECONDS).atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return !MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast3.getStreamId() + ".mp4");
 			});
 
 			/**
@@ -1415,10 +1415,10 @@ public class ConsoleAppRestServiceTest{
 			 */
 
 			// create new broadcast because mp4 files exist with same streamId
-			Broadcast broadcast4 = RestServiceTest.callCreateRegularBroadcast();
+			Broadcast broadcast4 = RestServiceV2Test.callCreateRegularBroadcast();
 
 			// general setting is still enabled and set stream spesific mp4 settings to -1
-			result = RestServiceTest.callEnableMp4Muxing(broadcast4.getStreamId(), MuxAdaptor.MP4_DISABLED_FOR_STREAM);
+			result = RestServiceV2Test.callEnableMp4Muxing(broadcast4.getStreamId(), 0);
 			assertTrue(result.isSuccess());
 
 			//send stream
@@ -1487,7 +1487,7 @@ public class ConsoleAppRestServiceTest{
 
 		HttpResponse response = client.execute(post);
 
-		StringBuffer result = RestServiceTest.readResponse(response);
+		StringBuffer result = RestServiceV2Test.readResponse(response);
 
 		log.info("response status code: {}",response.getStatusLine().getStatusCode());
 
@@ -1513,7 +1513,7 @@ public class ConsoleAppRestServiceTest{
 
 		HttpResponse response = client.execute(post);
 
-		StringBuffer result = RestServiceTest.readResponse(response);
+		StringBuffer result = RestServiceV2Test.readResponse(response);
 
 		if (response.getStatusLine().getStatusCode() != 200) {
 			throw new Exception(result.toString());
@@ -1535,7 +1535,7 @@ public class ConsoleAppRestServiceTest{
 
 		HttpResponse response = client.execute(post);
 
-		StringBuffer result = RestServiceTest.readResponse(response);
+		StringBuffer result = RestServiceV2Test.readResponse(response);
 
 		if (response.getStatusLine().getStatusCode() != 200) {
 			throw new Exception(result.toString());
@@ -1556,7 +1556,7 @@ public class ConsoleAppRestServiceTest{
 
 		HttpResponse response = client.execute(post);
 
-		StringBuffer result = RestServiceTest.readResponse(response);
+		StringBuffer result = RestServiceV2Test.readResponse(response);
 
 		if (response.getStatusLine().getStatusCode() != 200) {
 			throw new Exception(result.toString());
@@ -1578,7 +1578,7 @@ public class ConsoleAppRestServiceTest{
 
 		HttpResponse response = client.execute(post);
 
-		StringBuffer result = RestServiceTest.readResponse(response);
+		StringBuffer result = RestServiceV2Test.readResponse(response);
 
 		if (response.getStatusLine().getStatusCode() != 200) {
 			throw new Exception(result.toString());
@@ -1603,7 +1603,7 @@ public class ConsoleAppRestServiceTest{
 
 		HttpResponse response = client.execute(post);
 
-		StringBuffer result = RestServiceTest.readResponse(response);
+		StringBuffer result = RestServiceV2Test.readResponse(response);
 
 		if (response.getStatusLine().getStatusCode() != 200) {
 			throw new Exception(result.toString());
@@ -1627,7 +1627,7 @@ public class ConsoleAppRestServiceTest{
 
 		HttpResponse response = client.execute(post);
 
-		StringBuffer result = RestServiceTest.readResponse(response);
+		StringBuffer result = RestServiceV2Test.readResponse(response);
 		if (response.getStatusLine().getStatusCode() != 200) {
 			throw new Exception(result.toString());
 		}
@@ -1647,7 +1647,7 @@ public class ConsoleAppRestServiceTest{
 
 		HttpResponse response = client.execute(post);
 
-		StringBuffer result = RestServiceTest.readResponse(response);
+		StringBuffer result = RestServiceV2Test.readResponse(response);
 		if (response.getStatusLine().getStatusCode() != 200) {
 			throw new Exception(result.toString());
 		}
@@ -1666,7 +1666,7 @@ public class ConsoleAppRestServiceTest{
 
 		HttpResponse response = client.execute(post);
 
-		StringBuffer result = RestServiceTest.readResponse(response);
+		StringBuffer result = RestServiceV2Test.readResponse(response);
 		if (response.getStatusLine().getStatusCode() != 200) {
 			throw new Exception(result.toString());
 		}
@@ -1685,7 +1685,7 @@ public class ConsoleAppRestServiceTest{
 
 		HttpResponse response = client.execute(post);
 
-		StringBuffer result = RestServiceTest.readResponse(response);
+		StringBuffer result = RestServiceV2Test.readResponse(response);
 		if (response.getStatusLine().getStatusCode() != 200) {
 			throw new Exception(result.toString());
 		}
@@ -1706,7 +1706,7 @@ public class ConsoleAppRestServiceTest{
 
 		HttpResponse response = client.execute(post);
 
-		StringBuffer result = RestServiceTest.readResponse(response);
+		StringBuffer result = RestServiceV2Test.readResponse(response);
 		if (response.getStatusLine().getStatusCode() != 200) {
 			throw new Exception(result.toString());
 		}
@@ -1729,7 +1729,7 @@ public class ConsoleAppRestServiceTest{
 
 		HttpResponse response = client.execute(post);
 
-		StringBuffer result = RestServiceTest.readResponse(response);
+		StringBuffer result = RestServiceV2Test.readResponse(response);
 
 		if (response.getStatusLine().getStatusCode() != 200) {
 			System.out.println("status code: " + response.getStatusLine().getStatusCode());
@@ -1753,7 +1753,7 @@ public class ConsoleAppRestServiceTest{
 
 		HttpResponse response = client.execute(post);
 
-		StringBuffer result = RestServiceTest.readResponse(response);
+		StringBuffer result = RestServiceV2Test.readResponse(response);
 
 		if (response.getStatusLine().getStatusCode() != 200) {
 			System.out.println("status code: " + response.getStatusLine().getStatusCode());
@@ -1779,7 +1779,7 @@ public class ConsoleAppRestServiceTest{
 
 		HttpResponse response = client.execute(post);
 
-		StringBuffer result = RestServiceTest.readResponse(response);
+		StringBuffer result = RestServiceV2Test.readResponse(response);
 
 		log.info("callGetLicenceStatus result string: " + result.toString());
 		tmp = gson.fromJson(result.toString(), Licence.class);
@@ -1842,7 +1842,7 @@ public class ConsoleAppRestServiceTest{
 
 		HttpResponse response = client.execute(post);
 
-		StringBuffer result = RestServiceTest.readResponse(response);
+		StringBuffer result = RestServiceV2Test.readResponse(response);
 
 		if (response.getStatusLine().getStatusCode() != 200) {
 			System.out.println("status code: " + response.getStatusLine().getStatusCode());
@@ -1866,7 +1866,7 @@ public class ConsoleAppRestServiceTest{
 
 		HttpResponse response = client.execute(post);
 
-		StringBuffer result = RestServiceTest.readResponse(response);
+		StringBuffer result = RestServiceV2Test.readResponse(response);
 
 		if (response.getStatusLine().getStatusCode() != 200) {
 			System.out.println("status code: " + response.getStatusLine().getStatusCode());
