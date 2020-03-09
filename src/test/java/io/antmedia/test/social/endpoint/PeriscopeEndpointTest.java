@@ -347,8 +347,11 @@ public class PeriscopeEndpointTest {
 
 			boolean started = false;
 
-			endPoint.publishBroadcast(endpoint);
-
+			Awaitility.await().pollDelay(5, TimeUnit.SECONDS).atMost(10, TimeUnit.SECONDS).until(()-> {
+				endPoint.publishBroadcast(endpoint);
+				return true;
+			});
+			
 
 			Awaitility.await().atMost(60, TimeUnit.SECONDS)
 			.pollInterval(2, TimeUnit.SECONDS)
