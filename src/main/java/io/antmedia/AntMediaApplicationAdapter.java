@@ -147,7 +147,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			clusterNotifier.registerSettingUpdateListener(getAppSettings().getAppName(), settings -> updateSettings(settings, false));
 		}
 
-		vertx.runOnContext(l -> {
+		vertx.setTimer(1, l -> {
 				streamFetcherManager = new StreamFetcherManager(vertx, getDataStore(),app);
 				streamFetcherManager.setRestartStreamFetcherPeriod(appSettings.getRestartStreamFetcherPeriod());
 				List<Broadcast> streams = getDataStore().getExternalStreamsList();
@@ -277,7 +277,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 						final String name = broadcast.getName();
 						final String category = broadcast.getCategory();
 						
-						vertx.runOnContext(e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_END_LIVE_STREAM, name, category,
+						vertx.setTimer(1, e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_END_LIVE_STREAM, name, category,
 								null, null));
 					}
 
@@ -367,15 +367,15 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 
 	public void streamPlayItemPlay(IPlayItem item, boolean isLive) {
-		vertx.runOnContext(l -> getDataStore().updateRtmpViewerCount(item.getName(), true));
+		vertx.setTimer(1, l -> getDataStore().updateRtmpViewerCount(item.getName(), true));
 	}
 
 	public void streamPlayItemStop(IPlayItem item) {
-		vertx.runOnContext(l -> getDataStore().updateRtmpViewerCount(item.getName(), false));
+		vertx.setTimer(1, l -> getDataStore().updateRtmpViewerCount(item.getName(), false));
 	}
 
 	public void streamSubscriberClose(ISubscriberStream stream) {
-		vertx.runOnContext(l -> getDataStore().updateRtmpViewerCount(stream.getBroadcastStreamPublishName(), false));
+		vertx.setTimer(1, l -> getDataStore().updateRtmpViewerCount(stream.getBroadcastStreamPublishName(), false));
 	}
 
 	public void streamPublishStart(final IBroadcastStream stream) {
@@ -408,7 +408,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 					if (listenerHookURL != null && listenerHookURL.length() > 0) {
 						final String name = broadcast.getName();
 						final String category = broadcast.getCategory();
-						vertx.runOnContext(e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_START_LIVE_STREAM, name, category,
+						vertx.setTimer(1, e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_START_LIVE_STREAM, name, category,
 								null, null));
 					}
 
@@ -530,7 +530,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			final String baseName = vodName.substring(0, index);
 			String finalListenerHookURL = listenerHookURL;
 			
-			vertx.runOnContext(e ->	notifyHook(finalListenerHookURL, streamId, HOOK_ACTION_VOD_READY, null, null, baseName, vodId));
+			vertx.setTimer(1, e ->	notifyHook(finalListenerHookURL, streamId, HOOK_ACTION_VOD_READY, null, null, baseName, vodId));
 		}
 
 		String muxerFinishScript = appSettings.getMuxerFinishScript();

@@ -768,7 +768,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 	}
 
 	public void startAnalytic(String implementationVersion, String type) {
-		vertx.runOnContext(l -> 
+		vertx.setTimer(1, l -> 
 		getGoogleAnalytic(implementationVersion, type).screenView()
 		.sessionControl("start")
 		.clientId(Launcher.getInstanceId())
