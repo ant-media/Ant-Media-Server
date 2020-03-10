@@ -1103,7 +1103,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		store.put(AppSettings.SETTINGS_H264_ENABLED, String.valueOf(appsettings.isH264Enabled()));
 		store.put(AppSettings.SETTINGS_VP8_ENABLED, String.valueOf(appsettings.isVp8Enabled()));
 		store.put(AppSettings.SETTINGS_DATA_CHANNEL_ENABLED, String.valueOf(appsettings.isDataChannelEnabled()));
-		store.put(AppSettings.SETTINGS_DATA_CHANNEL_PLAYER_DISTRIBUTION, appsettings.getDataChannelPlayerDistribution());
+		store.put(AppSettings.SETTINGS_DATA_CHANNEL_PLAYER_DISTRIBUTION, String.valueOf(appsettings.getDataChannelPlayerDistribution()));
 
 		return store.save();
 	}
