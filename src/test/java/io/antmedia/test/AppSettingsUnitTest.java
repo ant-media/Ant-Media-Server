@@ -28,7 +28,7 @@ import org.springframework.web.context.support.XmlWebApplicationContext;
 import io.antmedia.AppSettings;
 import io.antmedia.EncoderSettings;
 import io.antmedia.SystemUtils;
-import io.antmedia.rest.BroadcastRestService;
+import io.antmedia.rest.RestServiceBase;
 
 @ContextConfiguration(locations = { "test.xml" })
 @DirtiesContext(classMode = ClassMode.AFTER_CLASS)
@@ -134,7 +134,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 
 	@Test
 	public void isCommunity() {
-		assertFalse(BroadcastRestService.isEnterprise());
+		assertFalse(RestServiceBase.isEnterprise());
 	}
 	
 	@Test

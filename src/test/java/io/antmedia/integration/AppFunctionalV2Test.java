@@ -47,8 +47,8 @@ import io.antmedia.AppSettings;
 import io.antmedia.EncoderSettings;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.VoD;
-import io.antmedia.rest.BroadcastRestService.BroadcastStatistics;
 import io.antmedia.rest.BroadcastRestServiceV2;
+import io.antmedia.rest.RestServiceBase.BroadcastStatistics;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.Version;
 import io.antmedia.settings.ServerSettings;
@@ -224,7 +224,7 @@ public class AppFunctionalV2Test {
 			List<VoD> voDList = rest.callGetVoDList();
 			if (voDList != null) {
 				for (VoD voD : voDList) {
-					RestServiceTest.deleteVoD(voD.getVodId());
+					RestServiceV2Test.deleteVoD(voD.getVodId());
 				}
 			}
 			
@@ -368,13 +368,13 @@ public class AppFunctionalV2Test {
 			assertTrue(found);
 			assertNotNull(vod1);
 			assertTrue(MuxingTest.isURLAvailable("http://" + SERVER_ADDR + ":5080/LiveApp/"+ vod1.getFilePath()));
-			assertTrue(RestServiceTest.deleteVoD(vod1.getVodId()).isSuccess());
+			assertTrue(RestServiceV2Test.deleteVoD(vod1.getVodId()).isSuccess());
 			assertFalse(MuxingTest.isURLAvailable("http://" + SERVER_ADDR + ":5080/LiveApp/"+ vod1.getFilePath()));
 
 			if (isEnterprise) {
 				assertNotNull(vod2);
 				assertTrue(MuxingTest.isURLAvailable("http://" + SERVER_ADDR + ":5080/LiveApp/"+ vod2.getFilePath()));
-				assertTrue(RestServiceTest.deleteVoD(vod2.getVodId()).isSuccess());
+				assertTrue(RestServiceV2Test.deleteVoD(vod2.getVodId()).isSuccess());
 				assertFalse(MuxingTest.isURLAvailable("http://" + SERVER_ADDR + ":5080/LiveApp/"+ vod2.getFilePath()));
 			}
 
@@ -533,7 +533,7 @@ public class AppFunctionalV2Test {
 			BroadcastStatistics broadcastStatistics = restService.callGetBroadcastStatistics(streamId);
 			assertEquals(0, broadcastStatistics.totalHLSWatchersCount); 
 			assertEquals(0, broadcastStatistics.totalRTMPWatchersCount);
-			assertEquals(-1, broadcastStatistics.totalWebRTCWatchersCount); // -1 mean it is not available 
+			assertEquals(-1, broadcastStatistics.totalWebRTCWatchersCount); 
 
 
 			broadcastStatistics = restService.callGetBroadcastStatistics("unknown_stream_id");
@@ -747,7 +747,7 @@ public class AppFunctionalV2Test {
 
 	public Result callIsEnterpriseEdition() throws Exception {
 
-		String url = "http://localhost:5080/LiveApp/rest/broadcast/getVersion";
+		String url = "http://localhost:5080/LiveApp/rest/v2/version";
 		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 		Gson gson = new Gson();
 

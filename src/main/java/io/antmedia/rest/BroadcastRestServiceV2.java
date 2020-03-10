@@ -26,7 +26,6 @@ import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.ipcamera.OnvifCamera;
-import io.antmedia.rest.BroadcastRestService.BroadcastStatistics;
 import io.antmedia.rest.model.Interaction;
 import io.antmedia.rest.model.Result;
 import io.antmedia.social.LiveComment;
@@ -174,8 +173,17 @@ public class BroadcastRestServiceV2 extends RestServiceBase{
 			}
 		}
 		else {
-			Broadcast createdBroadcast = createBroadcastWithStreamID(broadcast);
+			//TODO we need to refactor this method. Refactor validateStreamURL and checkStramURL
+			if (broadcast != null && 
+				    ((AntMediaApplicationAdapter.IP_CAMERA.equals(broadcast.getType()) && !validateStreamURL(broadcast.getIpAddr()))
+					|| 
+					(AntMediaApplicationAdapter.STREAM_SOURCE.equals(broadcast.getType()) && !checkStreamUrl(broadcast.getStreamUrl()))
+					)
+			   ) {
+				return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Stream url is not valid. ")).build();
+			}
 
+			Broadcast createdBroadcast = createBroadcastWithStreamID(broadcast);
 			if (createdBroadcast.getStreamId() != null && socialEndpointIds != null) {
 				String[] endpointIds = socialEndpointIds.split(",");
 				for (String endpointId : endpointIds) {
