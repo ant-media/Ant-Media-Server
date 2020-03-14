@@ -1005,7 +1005,8 @@ public class MongoStore extends DataStore {
 				Query<ConferenceRoom> query = conferenceRoomDatastore.createQuery(ConferenceRoom.class).field("roomId").equal(room.getRoomId());
 
 				UpdateOperations<ConferenceRoom> ops = conferenceRoomDatastore.createUpdateOperations(ConferenceRoom.class).set("roomId", room.getRoomId())
-						.set("startDate", room.getStartDate()).set("endDate", room.getEndDate());
+						.set("startDate", room.getStartDate()).set("endDate", room.getEndDate())
+						.set("roomStreamList", room.getRoomStreamList());
 
 				UpdateResults update = conferenceRoomDatastore.update(query, ops);
 				return update.getUpdatedCount() == 1;

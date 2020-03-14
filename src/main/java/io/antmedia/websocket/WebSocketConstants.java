@@ -18,7 +18,13 @@ public class WebSocketConstants {
 	public static final String COMMAND = "command";
 
 	public static final String ATTR_SIGNALLING_CONNECTION = "ATTR_SIGNALLING_CONNECTION";
+	
+	public static final String ATTR_CONFERENCE_CONNECTION = "ATTR_CONFERENCE_CONNECTION";
 
+	public static final String SIGNALLING = "signalling";
+	
+	public static final String CONFERENCE = "conference";
+	
 	public static final String STREAM_ID = "streamId";
 
 	public static final String DEFINITION = "definition";
