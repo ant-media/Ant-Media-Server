@@ -1022,9 +1022,6 @@ public abstract class RestServiceBase {
 				ipAddr = ipAddrParts[0];
 
 			}
-			if(ipAddr.split("\\.").length == 4 && !validateIPaddress(ipAddr)){
-				streamUrlControl = false;
-			}
 		}
 		return streamUrlControl;
 	}
