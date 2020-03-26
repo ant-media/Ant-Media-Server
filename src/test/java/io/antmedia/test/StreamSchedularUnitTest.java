@@ -819,13 +819,6 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		assertNotNull(fetchedBroadcast.getQuality());
 		assertNotNull(fetchedBroadcast.getSpeed());
 
-		Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-			Broadcast stream = dataStore.get(newSource.getStreamId());
-			logger.info("quality {}" , stream.getQuality()) ;
-			logger.info("speed {}" , stream.getSpeed()) ;
-
-			return stream != null && stream.getQuality() != null && stream.getQuality().equals("good");
-		});
 
 		Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 			Broadcast stream = dataStore.get(newSource.getStreamId());
@@ -844,8 +837,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			logger.info("speed {}" , streamTmp.getSpeed()) ;
 			logger.info("quality {}" , streamTmp.getQuality()) ;
 
-			return streamTmp != null && streamTmp.getQuality() != null 
-					&& streamTmp.getSpeed() < 0.7;
+			return streamTmp != null && streamTmp.getSpeed() < 0.7;
 			// the critical thing is the speed which less that 0.7
 		});
 
