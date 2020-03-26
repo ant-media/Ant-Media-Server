@@ -708,7 +708,7 @@ public class MuxingTest {
 		
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 			Broadcast broadcast = RestServiceV2Test.callGetBroadcast(streamName);
-			return broadcast.getQuality() != null;
+			return broadcast.getSpeed() != 0;
 		});
 
 		rtmpSendingProcess.destroy();
