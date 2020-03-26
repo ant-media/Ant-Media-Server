@@ -765,7 +765,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		File file = new File("target/test-classes/test.flv");
 		
-		String streamId = "streamId " + (int)(Math.random()*10000);
+		String streamId = "streamId" + (int)(Math.random()*10000);
 		
 		boolean result = muxAdaptor.init(appScope, streamId, false);
 		assertTrue(result);
