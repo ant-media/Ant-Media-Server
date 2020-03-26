@@ -837,9 +837,11 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 	@Override
 	public void setQualityParameters(String id, String quality, double speed, int pendingPacketSize) {
-		logger.debug("update source quality for stream: {} quality:{} speed:{}", id, quality, speed);
-		getDataStore().updateSourceQualityParameters(id, quality, speed, pendingPacketSize);
-
+		
+		vertx.setTimer(5, h -> {
+			logger.debug("update source quality for stream: {} quality:{} speed:{}", id, quality, speed);
+			getDataStore().updateSourceQualityParameters(id, quality, speed, pendingPacketSize);
+		});
 	}
 
 	public DataStore getDataStore() {

@@ -83,7 +83,6 @@ public class StreamFetcher {
 
 	private ConcurrentLinkedQueue<AVPacket> availableBufferQueue = new ConcurrentLinkedQueue<>();
 
-	private AVRational avRationalTimeBaseMS;
 	private AppSettings appSettings;
 	private Vertx vertx;
 
@@ -127,11 +126,6 @@ public class StreamFetcher {
 		}
 
 		this.bufferTime = getAppSettings().getStreamFetcherBufferTime();
-
-		avRationalTimeBaseMS = new AVRational();
-		avRationalTimeBaseMS.num(1);
-		avRationalTimeBaseMS.den(1000);
-
 	}
 
 	public Result prepareInput(AVFormatContext inputFormatContext) {
@@ -217,6 +211,10 @@ public class StreamFetcher {
 		private volatile boolean buffering = false;
 		private ConcurrentLinkedQueue<AVPacket> bufferQueue = new ConcurrentLinkedQueue<>();
 
+		private long bufferingFinishTimeMs;
+
+		private long firstPacketReadyToSentTimeMs;
+
 		@Override
 		public void run() {
 
@@ -261,7 +259,14 @@ public class StreamFetcher {
 						getInstance().startPublish(stream.getStreamId());
 
 						if (bufferTime > 0) {
-							packetWriterJobName = vertx.setPeriodic(PACKET_WRITER_PERIOD_IN_MS, l->execute());
+							packetWriterJobName = vertx.setPeriodic(PACKET_WRITER_PERIOD_IN_MS, l-> 
+								vertx.executeBlocking(h-> {
+									writeBufferedPacket();
+									h.complete();
+								}, false, r-> {
+									//no care
+								})
+							);
 						}
 
 						int bufferLogCounter = 0;
@@ -325,11 +330,18 @@ public class StreamFetcher {
 								 * It's a very rare case to happen so that check if it's null
 								 */
 								if (pktHead != null) {
-									lastPacketTime = av_rescale_q(pkt.pts(), inputFormatContext.streams(pkt.stream_index()).time_base(), avRationalTimeBaseMS);
-									firstPacketTime = av_rescale_q(pktHead.pts(), inputFormatContext.streams(pktHead.stream_index()).time_base(), avRationalTimeBaseMS);
+									lastPacketTime = av_rescale_q(pkt.pts(), inputFormatContext.streams(pkt.stream_index()).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
+									firstPacketTime = av_rescale_q(pktHead.pts(), inputFormatContext.streams(pktHead.stream_index()).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
 									bufferDuration = (lastPacketTime - firstPacketTime);
 
 									if ( bufferDuration > bufferTime) {
+										
+										if (buffering) {
+											//have the buffering finish time ms
+											bufferingFinishTimeMs = System.currentTimeMillis();
+											//have the first packet sent time
+											firstPacketReadyToSentTimeMs  = firstPacketTime;
+										}
 										buffering = false;
 									}
 
@@ -347,7 +359,7 @@ public class StreamFetcher {
 									if(firstPacketTime == 0) {
 										int streamIndex = pkt.stream_index();
 										firstPacketTime = System.currentTimeMillis();
-										long firstPacketDtsInMs = av_rescale_q(pkt.dts(), inputFormatContext.streams(streamIndex).time_base(), avRationalTimeBaseMS);
+										long firstPacketDtsInMs = av_rescale_q(pkt.dts(), inputFormatContext.streams(streamIndex).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
 										timeOffset = 0 - firstPacketDtsInMs;
 									}
 
@@ -357,7 +369,7 @@ public class StreamFetcher {
 
 									AVRational timeBase = inputFormatContext.streams(streamIndex).time_base();
 
-									long pktTime = av_rescale_q(pkt.dts(), timeBase, avRationalTimeBaseMS);
+									long pktTime = av_rescale_q(pkt.dts(), timeBase, MuxAdaptor.TIME_BASE_FOR_MS);
 
 									long durationInMs = latestTime - firstPacketTime;
 
@@ -488,20 +500,33 @@ public class StreamFetcher {
 			}
 		}
 
-		public void execute() 
+		//TODO: Code dumplication with MuxAdaptor.writeBufferedPacket. It should be refactored.
+		public void writeBufferedPacket() 
 		{
 			if (isJobRunning.compareAndSet(false, true)) 
 			{
 				if (!buffering) {
-					AVPacket pkt = bufferQueue.poll();
-					if (pkt != null) {
-						muxAdaptor.writePacket(inputFormatContext.streams(pkt.stream_index()), pkt);
-						av_packet_unref(pkt);
-						availableBufferQueue.offer(pkt);
+					while(!bufferQueue.isEmpty()) {
+						AVPacket tempPacket = bufferQueue.peek(); 
+						long pktTime = av_rescale_q(tempPacket.pts(), inputFormatContext.streams(tempPacket.stream_index()).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
+						long now = System.currentTimeMillis();
+						long pktTimeDifferenceMs = pktTime - firstPacketReadyToSentTimeMs; 
+						long passedTime = now - bufferingFinishTimeMs;
+						if (pktTimeDifferenceMs < passedTime) {
+							muxAdaptor.writePacket(inputFormatContext.streams(tempPacket.stream_index()), tempPacket);
+							av_packet_unref(tempPacket);
+							bufferQueue.remove(); //remove the packet from the queue
+							availableBufferQueue.offer(tempPacket);
+						}
+						else {
+							//break the loop and don't block the thread because it's not correct time to send the packet
+							break;
+						}
+						
 					}
-					else {
-						buffering = true;
-					}
+					
+					//update buffering. If bufferQueue is empty, it should start buffering
+					buffering = bufferQueue.isEmpty();
 				}
 				isJobRunning.compareAndSet(true, false);
 			}
