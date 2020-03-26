@@ -42,7 +42,7 @@ import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.muxer.MuxAdaptor;
-import io.antmedia.rest.BroadcastRestServiceV2;
+import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.settings.ServerSettings;
 
 public class DBStoresUnitTest {

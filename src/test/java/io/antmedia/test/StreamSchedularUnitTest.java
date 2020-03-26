@@ -54,8 +54,8 @@ import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Playlist;
 import io.antmedia.integration.AppFunctionalV2Test;
-import io.antmedia.rest.BroadcastRestServiceV2;
-import io.antmedia.rest.PlaylistRestServiceV2;
+import io.antmedia.rest.BroadcastRestService;
+import io.antmedia.rest.PlaylistRestService;
 import io.antmedia.rest.model.Result;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
@@ -320,7 +320,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	@Test
 	public void testPlaylistStartStreaming() {
 
-		BroadcastRestServiceV2 service = new BroadcastRestServiceV2();
+		BroadcastRestService service = new BroadcastRestService();
 
 		service.setApplication(app.getAppAdaptor());
 
@@ -381,7 +381,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	@Test
 	public void testStartPlaylistThread() {
 
-		PlaylistRestServiceV2 service = new PlaylistRestServiceV2();
+		PlaylistRestService service = new PlaylistRestService();
 
 		service.setApplication(app.getAppAdaptor());
 
@@ -524,7 +524,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testStopFetchingWhenDeleted() {
 
 
-		BroadcastRestServiceV2 service = new BroadcastRestServiceV2();
+		BroadcastRestService service = new BroadcastRestService();
 
 		service.setApplication(app.getAppAdaptor());
 
@@ -600,7 +600,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testStopFetchingWhenStopCalled() {
 
 
-		BroadcastRestServiceV2 service = new BroadcastRestServiceV2();
+		BroadcastRestService service = new BroadcastRestService();
 
 		service.setApplication(app.getAppAdaptor());
 

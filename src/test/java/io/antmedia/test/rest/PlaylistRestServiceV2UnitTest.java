@@ -24,7 +24,7 @@ import io.antmedia.IApplicationAdaptorFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Playlist;
-import io.antmedia.rest.PlaylistRestServiceV2;
+import io.antmedia.rest.PlaylistRestService;
 import io.antmedia.rest.model.Result;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.StatsCollector;
@@ -36,7 +36,7 @@ import io.vertx.core.Vertx;
 @DirtiesContext(classMode = ClassMode.AFTER_CLASS)
 public class PlaylistRestServiceV2UnitTest {
 
-	private PlaylistRestServiceV2 restServiceReal = null;
+	private PlaylistRestService restServiceReal = null;
 	public AntMediaApplicationAdapter app = null;
 
 	static {
@@ -49,7 +49,7 @@ public class PlaylistRestServiceV2UnitTest {
 
 	@Before
 	public void before() {
-		restServiceReal = new PlaylistRestServiceV2();
+		restServiceReal = new PlaylistRestService();
 	}
 
 	@After
@@ -215,7 +215,7 @@ public class PlaylistRestServiceV2UnitTest {
 	@Test
 	public void testDeletePlaylist() {
 
-		PlaylistRestServiceV2 restServiceSpy = Mockito.spy(restServiceReal);
+		PlaylistRestService restServiceSpy = Mockito.spy(restServiceReal);
 
 		AntMediaApplicationAdapter adptr = mock(AntMediaApplicationAdapter.class);
 
@@ -378,7 +378,7 @@ public class PlaylistRestServiceV2UnitTest {
 	@Test
 	public void testStopPlaylist() {
 
-		PlaylistRestServiceV2 restServiceSpy = Mockito.spy(restServiceReal);
+		PlaylistRestService restServiceSpy = Mockito.spy(restServiceReal);
 
 		AntMediaApplicationAdapter adptr = mock(AntMediaApplicationAdapter.class);
 

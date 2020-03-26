@@ -63,7 +63,7 @@ import io.swagger.annotations.SwaggerDefinition;
 		)
 @Component
 @Path("/v2/broadcasts")
-public class BroadcastRestServiceV2 extends RestServiceBase{
+public class BroadcastRestService extends RestServiceBase{
 
 	
 	private static final String VALUE_IS_LESS_THAN_ZERO = "Value is less than zero";
