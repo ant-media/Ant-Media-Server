@@ -795,7 +795,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 		Awaitility.await().atMost(12, TimeUnit.SECONDS).until(() -> {
-			return dataStore.get(newZombiSource.getStreamId()).getQuality() != null;
+			return dataStore.get(newZombiSource.getStreamId()).getSpeed() != 0;
 		});
 
 		logger.info("before first control");
@@ -816,7 +816,6 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		assertNotNull(fetchedBroadcast);
 		assertEquals(fetchedBroadcast.getStreamId(), newZombiSource.getStreamId());
-		assertNotNull(fetchedBroadcast.getQuality());
 		assertNotNull(fetchedBroadcast.getSpeed());
 
 
