@@ -760,6 +760,9 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, false, appScope);
 		
 		getAppSettings().setRtmpIngestBufferTimeMs(1000);
+		getAppSettings().setMp4MuxingEnabled(false);
+		getAppSettings().setHlsMuxingEnabled(false);
+		
 		File file = new File("target/test-classes/test.flv");
 		
 		String streamId = "streamId " + (int)(Math.random()*10000);
@@ -768,6 +771,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertTrue(result);
 		
 		muxAdaptor.start();
+		
+		QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
 		
 		try {
 			final FLVReader flvReader = new FLVReader(file);
@@ -821,7 +826,9 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			
 			muxAdaptor.stop();
 			
-			Awaitility.await().atMost(4, TimeUnit.SECONDS).until(() -> !muxAdaptor.isRecording());	
+			Awaitility.await().atMost(4, TimeUnit.SECONDS).until(() -> !muxAdaptor.isRecording());
+			
+			assertEquals(0, scheduler.getScheduledJobNames().size());
 		}
 		catch (Exception e) {
 			e.printStackTrace();
