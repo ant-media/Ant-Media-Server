@@ -118,6 +118,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		newSettings.setVodFolder("");
 		newSettings.setHlsPlayListType("");
 		newSettings.setTokenHashSecret("");
+		newSettings.setDataChannelPlayerDistribution("");
 
 		IScope scope = mock(IScope.class);
 
