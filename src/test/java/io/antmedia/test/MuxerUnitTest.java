@@ -786,8 +786,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 				}
 			}
 			
-			Awaitility.await().atMost(4, TimeUnit.SECONDS).until(muxAdaptor::isRecording);	
-			Awaitility.await().atMost(4, TimeUnit.SECONDS).until(() -> !muxAdaptor.isBuffering());	
+			Awaitility.await().atMost(5, TimeUnit.SECONDS).until(muxAdaptor::isRecording);	
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> !muxAdaptor.isBuffering());	
 			
 			long bufferedDurationMs = muxAdaptor.getBufferedDurationMs();
 			
@@ -827,6 +827,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+		
+		getAppSettings().setRtmpIngestBufferTimeMs(0);
 		
 	}
 	
