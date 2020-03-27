@@ -13,26 +13,28 @@ public class AsciiArt {
 
 	public static final String LOGO = ""+
 			ANSI_RED+
-			"                                                            \n" + 
-			"                                                  `-        \n" + 
-			"                                                 :y/        \n" + 
-			"                                                :ys         \n" + 
-			"                                               .yy.         \n" + 
-			"                                               sy+          \n" + 
-			"                                              :yy`          \n" + 
-			"      ./syyyyyso/.                           `yy:           \n" + 
-			"        ```..--/oys-             `.-:-.`     /ys  `.://::-  \n" + 
-			"        -/osyys+:.+y+ -/:.     .oyo+++oyo`   sy:/oys+:--..  \n" + 
-			"      :syo/-``.:oyosyo.:+ss/  :y+`     `yo  -yyyo:`         \n" + 
-			"    .sy/`  //.   .oyyy/   -ss:y+        yo  +ys.            \n" + 
-			"   /yo`    yyys/.  -syy`   `syy.       .y/  ys``+o-         \n" + 
-			" `oy+      yyyyyyo  `oy:    .yy        /y` `y+  :/- +:      \n" + 
-			" /yy-      yyys/.   -oy/     os        so  `ys      `ss.    \n" + 
-			"  :sys+-.  /:` `-/oyyyy-     -o       .y/   oyo.``-/oy+`    \n" + 
-			"    ./osyyyyyyys+/:./yo       /       .y+    /syyyyo/`      \n" + 
-			"         ````     `oyo`                         ``          \n" + 
-			"                  :yo-                                      \n" + 
-			"                  -`                                        \n" +
+					"             `..-:/++oosssyyyyyyyysssoo++/::..`             \n" + 
+					"        .:+osyyyyysooo++///::::::///++ooosyyyyyso+:.        \n" + 
+					"     -+syyso/:-.`         ```````          `.-:/osyyy+-     \n" + 
+					"   .oyyo:.    ``.-:/+oossyyyyyys:`.+o+: `..`      `-+yys.   \n" + 
+					"   oyy-   `.-:://:::::///++ooo-`-oyo:../sys/`.::.    .yys   \n" + 
+					"   syy+`                       `.-. -oys/..:oys+:`   :yyy   \n" + 
+					"   syyyo-`                           `. `+so/.`   `-oyyyy   \n" + 
+					"   syy+sys+:.`                           ``   `.:+syyoyyy   \n" + 
+					"   syy``:+syyso`       `..`                 `osyyso:. syy   \n" + 
+					"   syy`   `.oyy.      :syyso:.`             `yys.`    syy   \n" + 
+					"   syy`     +yy.      syy:+syys+-`          `yyo      syy   \n" + 
+					"   syy`     +yy.      yyy  `.:osyso/.`      `yyo      syy   \n" + 
+					"   syy`     +yy.      yyy      `-/syys+.    `yyo      syy   \n" + 
+					"   syy`     +yy.      yyy         `./yyy    `yyo      syy   \n" + 
+					"   syy`     +yy.      yyy       `./oyys/    `yyo      syy   \n" + 
+					"   syy`     +yy.      yyy    .:+syyo/-`     `yyo      syy   \n" + 
+					"   syy`     +yy.      yyy`-/syys+:.         `yyo      syy   \n" + 
+					"   syy`     +yy.      +yyyyyo/.`            `yyo      yyy   \n" + 
+					"   /yy/     +yy.       -::-`                `yyo     :yy+   \n" + 
+					"    +yyo:.  +yy.                            `yyo  .-oyy+`   \n" + 
+					"     .+yyyysyyy.                            `yyysyyyy+-     \n" + 
+					"        .:/+++/                              :+//:-.        \n" + 			
 			ANSI_RESET+
 			"\n"
 			;
