@@ -105,7 +105,6 @@ public class DBStoresUnitTest {
 
 	@Test
 	public void testMemoryDataStore() {
-
 		DataStore dataStore = new InMemoryDataStore("testdb");
 		testBugGetExternalStreamsList(dataStore);
 		testGetPagination(dataStore);
