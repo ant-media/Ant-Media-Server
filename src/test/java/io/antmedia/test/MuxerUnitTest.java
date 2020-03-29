@@ -792,28 +792,16 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			}
 			
 			Awaitility.await().atMost(5, TimeUnit.SECONDS).until(muxAdaptor::isRecording);	
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> !muxAdaptor.isBuffering());	
-			
-			long bufferedDurationMs = muxAdaptor.getBufferedDurationMs();
-			
-			long timeToWaitMs = 2000;
-			Awaitility.await().pollDelay(timeToWaitMs, TimeUnit.MILLISECONDS)
-				.atMost(timeToWaitMs+500, TimeUnit.MILLISECONDS).until(() -> 
-				{
-					//buffered time should increase more than timeToWaitMs
-					return bufferedDurationMs - muxAdaptor.getBufferedDurationMs() > timeToWaitMs;
-			});
+			//let the buffered time finish and buffering state is true
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(muxAdaptor::isBuffering);	
 			
 			
-			Awaitility.await().atMost(6, TimeUnit.SECONDS).until(muxAdaptor::isBuffering);
-			
-			
+			//load again for 5 more seconds
 			while (flvReader.hasMoreTags()) 
 			{
 				ITag readTag = flvReader.readTag();
 				
-				if (readTag.getTimestamp() - lastTimeStamp  < 2000) {
-					Thread.sleep(10);
+				if (readTag.getTimestamp() - lastTimeStamp  < 5000) {
 					StreamPacket streamPacket = new StreamPacket(readTag);
 					muxAdaptor.packetReceived(null, streamPacket);
 				}
@@ -821,9 +809,12 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 					break;
 				}
 			}
+			//buffering should be false after a while because it's loaded with 5 seconds
+			Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> !muxAdaptor.isBuffering());	
 			
-			Awaitility.await().atMost(1, TimeUnit.SECONDS).until(() -> !muxAdaptor.isBuffering() );
-			
+			//after 6 seconds buffering should be also true again because it's finished
+			Awaitility.await().atMost(6, TimeUnit.SECONDS).until(muxAdaptor::isBuffering);
+						
 			muxAdaptor.stop();
 			
 			Awaitility.await().atMost(4, TimeUnit.SECONDS).until(() -> !muxAdaptor.isRecording());
