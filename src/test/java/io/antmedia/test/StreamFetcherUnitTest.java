@@ -796,8 +796,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			}
 	
 			
-			
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
+			Awaitility.await().pollDelay(5, TimeUnit.SECONDS).atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
 				double speed = dataStore.get(newCam.getStreamId()).getSpeed();
 				//this value was so high over 9000. After using first packet time it's value is about 100-200
 				//it is still high and it is normal because it reads vod from disk it does not read live stream.
