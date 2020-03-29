@@ -384,7 +384,9 @@ public class InMemoryDataStore extends DataStore {
 		if (id != null) {
 			Broadcast broadcast = broadcastMap.get(id);
 			if (broadcast != null) {
-				broadcast.setQuality(quality);
+				if (quality != null) {
+					broadcast.setQuality(quality);
+				}
 				broadcast.setSpeed(speed);
 				broadcast.setPendingPacketSize(pendingPacketSize);
 				broadcastMap.replace(id, broadcast);
