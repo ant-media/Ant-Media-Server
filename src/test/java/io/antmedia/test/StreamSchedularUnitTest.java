@@ -54,8 +54,8 @@ import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Playlist;
 import io.antmedia.integration.AppFunctionalV2Test;
-import io.antmedia.rest.BroadcastRestServiceV2;
-import io.antmedia.rest.PlaylistRestServiceV2;
+import io.antmedia.rest.BroadcastRestService;
+import io.antmedia.rest.PlaylistRestService;
 import io.antmedia.rest.model.Result;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
@@ -320,7 +320,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	@Test
 	public void testPlaylistStartStreaming() {
 
-		BroadcastRestServiceV2 service = new BroadcastRestServiceV2();
+		BroadcastRestService service = new BroadcastRestService();
 
 		service.setApplication(app.getAppAdaptor());
 
@@ -381,7 +381,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	@Test
 	public void testStartPlaylistThread() {
 
-		PlaylistRestServiceV2 service = new PlaylistRestServiceV2();
+		PlaylistRestService service = new PlaylistRestService();
 
 		service.setApplication(app.getAppAdaptor());
 
@@ -524,7 +524,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testStopFetchingWhenDeleted() {
 
 
-		BroadcastRestServiceV2 service = new BroadcastRestServiceV2();
+		BroadcastRestService service = new BroadcastRestService();
 
 		service.setApplication(app.getAppAdaptor());
 
@@ -600,7 +600,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testStopFetchingWhenStopCalled() {
 
 
-		BroadcastRestServiceV2 service = new BroadcastRestServiceV2();
+		BroadcastRestService service = new BroadcastRestService();
 
 		service.setApplication(app.getAppAdaptor());
 
@@ -795,7 +795,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 		Awaitility.await().atMost(12, TimeUnit.SECONDS).until(() -> {
-			return dataStore.get(newZombiSource.getStreamId()).getQuality() != null;
+			return dataStore.get(newZombiSource.getStreamId()).getSpeed() != 0;
 		});
 
 		logger.info("before first control");
@@ -816,16 +816,8 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		assertNotNull(fetchedBroadcast);
 		assertEquals(fetchedBroadcast.getStreamId(), newZombiSource.getStreamId());
-		assertNotNull(fetchedBroadcast.getQuality());
 		assertNotNull(fetchedBroadcast.getSpeed());
 
-		Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-			Broadcast stream = dataStore.get(newSource.getStreamId());
-			logger.info("quality {}" , stream.getQuality()) ;
-			logger.info("speed {}" , stream.getSpeed()) ;
-
-			return stream != null && stream.getQuality() != null && stream.getQuality().equals("good");
-		});
 
 		Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 			Broadcast stream = dataStore.get(newSource.getStreamId());
@@ -844,8 +836,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			logger.info("speed {}" , streamTmp.getSpeed()) ;
 			logger.info("quality {}" , streamTmp.getQuality()) ;
 
-			return streamTmp != null && streamTmp.getQuality() != null 
-					&& streamTmp.getSpeed() < 0.7;
+			return streamTmp != null && streamTmp.getSpeed() < 0.7;
 			// the critical thing is the speed which less that 0.7
 		});
 

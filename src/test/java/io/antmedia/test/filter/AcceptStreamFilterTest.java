@@ -98,9 +98,9 @@ public class AcceptStreamFilterTest extends AbstractJUnit4SpringContextTests {
 		
 		Mockito.doReturn(appSettings).when(acceptStreamFilterSpy).getAppSettings();
 		
-		assertEquals(null,acceptStreamFilterSpy.getMaxFpsAccept());
-		assertEquals(null,acceptStreamFilterSpy.getMaxResolutionAccept());
-		assertEquals(null,acceptStreamFilterSpy.getMaxBitrateAccept());
+		assertEquals(0,acceptStreamFilterSpy.getMaxFps());
+		assertEquals(0,acceptStreamFilterSpy.getMaxResolution());
+		assertEquals(0,acceptStreamFilterSpy.getMaxBitrate());
 		
 		Mockito.doReturn(30).when(acceptStreamFilterSpy).getStreamFps(Mockito.any(),Mockito.any());
 		Mockito.doReturn(1080).when(acceptStreamFilterSpy).getStreamResolution(Mockito.any(),Mockito.any());
@@ -110,9 +110,9 @@ public class AcceptStreamFilterTest extends AbstractJUnit4SpringContextTests {
 		
 		// Default Scenario
 		 
-		Mockito.when(acceptStreamFilterSpy.getMaxFpsAccept()).thenReturn("100");
-		Mockito.when(acceptStreamFilterSpy.getMaxResolutionAccept()).thenReturn("1080");
-		Mockito.when(acceptStreamFilterSpy.getMaxBitrateAccept()).thenReturn("2000000");
+		acceptStreamFilterSpy.setMaxFps(100);
+		acceptStreamFilterSpy.setMaxResolution(1080);
+		acceptStreamFilterSpy.setMaxBitrate(2000000);
 		
 		Mockito.doReturn(60).when(acceptStreamFilterSpy).getStreamFps(Mockito.any(),Mockito.any());
 		Mockito.doReturn(720).when(acceptStreamFilterSpy).getStreamResolution(Mockito.any(),Mockito.any());
@@ -122,9 +122,9 @@ public class AcceptStreamFilterTest extends AbstractJUnit4SpringContextTests {
 		
 		// Stream FPS > Max FPS Scenario
 		
-		Mockito.when(acceptStreamFilterSpy.getMaxFpsAccept()).thenReturn("30");
-		Mockito.when(acceptStreamFilterSpy.getMaxResolutionAccept()).thenReturn("1080");
-		Mockito.when(acceptStreamFilterSpy.getMaxBitrateAccept()).thenReturn("2000000");
+		acceptStreamFilterSpy.setMaxFps(30);
+		acceptStreamFilterSpy.setMaxResolution(1080);
+		acceptStreamFilterSpy.setMaxBitrate(2000000);
 		
 		
 		Mockito.doReturn(60).when(acceptStreamFilterSpy).getStreamFps(Mockito.any(),Mockito.any());
@@ -134,10 +134,9 @@ public class AcceptStreamFilterTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(false,acceptStreamFilterSpy.isValidStreamParameters(inputFormatContext,pkt));		
 		
 		// Stream Resolution > Max Resolution Scenario
-		
-		Mockito.when(acceptStreamFilterSpy.getMaxFpsAccept()).thenReturn("100");
-		Mockito.when(acceptStreamFilterSpy.getMaxResolutionAccept()).thenReturn("480");
-		Mockito.when(acceptStreamFilterSpy.getMaxBitrateAccept()).thenReturn("2000000");
+		acceptStreamFilterSpy.setMaxFps(100);
+		acceptStreamFilterSpy.setMaxResolution(480);
+		acceptStreamFilterSpy.setMaxBitrate(2000000);
 		
 		// Stream parameters 
 		Mockito.doReturn(60).when(acceptStreamFilterSpy).getStreamFps(Mockito.any(),Mockito.any());
@@ -147,10 +146,9 @@ public class AcceptStreamFilterTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(false,acceptStreamFilterSpy.isValidStreamParameters(inputFormatContext,pkt));	
 		
 		// Stream Bitrate > Max Bitrate Scenario
-		
-		Mockito.when(acceptStreamFilterSpy.getMaxFpsAccept()).thenReturn("100");
-		Mockito.when(acceptStreamFilterSpy.getMaxResolutionAccept()).thenReturn("1080");
-		Mockito.when(acceptStreamFilterSpy.getMaxBitrateAccept()).thenReturn("2000000");
+		acceptStreamFilterSpy.setMaxFps(100);
+		acceptStreamFilterSpy.setMaxResolution(1080);
+		acceptStreamFilterSpy.setMaxBitrate(2000000);
 		
 		// Stream parameters 
 		Mockito.doReturn(60).when(acceptStreamFilterSpy).getStreamFps(Mockito.any(),Mockito.any());
@@ -160,10 +158,9 @@ public class AcceptStreamFilterTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(false,acceptStreamFilterSpy.isValidStreamParameters(inputFormatContext,pkt));	
 		
 		// Stream Bitrate > Max Bitrate Scenario && getMaxResolutionAccept = null
-		
-		Mockito.when(acceptStreamFilterSpy.getMaxFpsAccept()).thenReturn("100");
-		Mockito.when(acceptStreamFilterSpy.getMaxResolutionAccept()).thenReturn(null);
-		Mockito.when(acceptStreamFilterSpy.getMaxBitrateAccept()).thenReturn("2000000");
+		acceptStreamFilterSpy.setMaxFps(100);
+		acceptStreamFilterSpy.setMaxResolution(0);
+		acceptStreamFilterSpy.setMaxBitrate(2000000);
 		
 		// Stream parameters 
 		Mockito.doReturn(60).when(acceptStreamFilterSpy).getStreamFps(Mockito.any(),Mockito.any());
@@ -173,10 +170,9 @@ public class AcceptStreamFilterTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(false,acceptStreamFilterSpy.isValidStreamParameters(inputFormatContext,pkt));	
 		
 		// Normal Scenario & getMaxBitrateAccept = null
-		
-		Mockito.when(acceptStreamFilterSpy.getMaxFpsAccept()).thenReturn("100");
-		Mockito.when(acceptStreamFilterSpy.getMaxResolutionAccept()).thenReturn("1080");
-		Mockito.when(acceptStreamFilterSpy.getMaxBitrateAccept()).thenReturn(null);
+		acceptStreamFilterSpy.setMaxFps(100);
+		acceptStreamFilterSpy.setMaxResolution(1080);
+		acceptStreamFilterSpy.setMaxBitrate(0);
 		
 		// Stream parameters 
 		Mockito.doReturn(60).when(acceptStreamFilterSpy).getStreamFps(Mockito.any(),Mockito.any());
@@ -186,10 +182,9 @@ public class AcceptStreamFilterTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(true,acceptStreamFilterSpy.isValidStreamParameters(inputFormatContext,pkt));	
 		
 		// Normal Scenario & getMaxFpsAccept = null & getMaxBitrateAccept = null
-		
-		Mockito.when(acceptStreamFilterSpy.getMaxFpsAccept()).thenReturn(null);
-		Mockito.when(acceptStreamFilterSpy.getMaxResolutionAccept()).thenReturn("1080");
-		Mockito.when(acceptStreamFilterSpy.getMaxBitrateAccept()).thenReturn(null);
+		acceptStreamFilterSpy.setMaxFps(0);
+		acceptStreamFilterSpy.setMaxResolution(1080);
+		acceptStreamFilterSpy.setMaxBitrate(0);
 		
 		// Stream parameters 
 		Mockito.doReturn(60).when(acceptStreamFilterSpy).getStreamFps(Mockito.any(),Mockito.any());

@@ -67,7 +67,7 @@ import io.antmedia.muxer.HLSMuxer;
 import io.antmedia.muxer.Mp4Muxer;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.Muxer;
-import io.antmedia.rest.BroadcastRestServiceV2;
+import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.RestServiceBase;
 import io.antmedia.rest.RestServiceBase.BroadcastStatistics;
 import io.antmedia.rest.RestServiceBase.ProcessBuilderFactory;
@@ -97,7 +97,7 @@ import io.vertx.core.Vertx;
 public class BroadcastRestServiceV2UnitTest {
 
 
-	private BroadcastRestServiceV2 restServiceReal = null;
+	private BroadcastRestService restServiceReal = null;
 	public AntMediaApplicationAdapter app = null;
 
 	static {
@@ -111,7 +111,7 @@ public class BroadcastRestServiceV2UnitTest {
 
 	@Before
 	public void before() {
-		restServiceReal = new BroadcastRestServiceV2();
+		restServiceReal = new BroadcastRestService();
 	}
 
 	@After
@@ -290,7 +290,7 @@ public class BroadcastRestServiceV2UnitTest {
 	public void testWebRTCClientStats() {
 		//create stream
 		String streamId = RandomStringUtils.randomAlphanumeric(8);
-		BroadcastRestServiceV2 restServiceSpy = Mockito.spy(restServiceReal);
+		BroadcastRestService restServiceSpy = Mockito.spy(restServiceReal);
 		//mock webrtc adaptor
 		IWebRTCAdaptor webrtcAdaptor = Mockito.mock(IWebRTCAdaptor.class);
 
@@ -633,7 +633,7 @@ public class BroadcastRestServiceV2UnitTest {
 		}
 		
 		{
-			BroadcastRestServiceV2 restServiceSpy = Mockito.spy(restServiceReal);
+			BroadcastRestService restServiceSpy = Mockito.spy(restServiceReal);
 			MuxAdaptor muxAdaptor = Mockito.mock(MuxAdaptor.class);
 			
 			Mockito.doReturn(muxAdaptor).when(restServiceSpy).getMuxAdaptor(streamId);
@@ -692,7 +692,7 @@ public class BroadcastRestServiceV2UnitTest {
 		assertEquals("generic", endpoint.type);
 		
 		{
-			BroadcastRestServiceV2 restServiceSpy = Mockito.spy(restServiceReal);
+			BroadcastRestService restServiceSpy = Mockito.spy(restServiceReal);
 			MuxAdaptor muxAdaptor = Mockito.mock(MuxAdaptor.class);
 			
 			Mockito.doReturn(muxAdaptor).when(restServiceSpy).getMuxAdaptor(broadcast.getStreamId());
@@ -797,7 +797,7 @@ public class BroadcastRestServiceV2UnitTest {
 
 	@Test
 	public void testGetSocialEndpoints() {
-		BroadcastRestServiceV2 restServiceSpy = Mockito.spy(restServiceReal);
+		BroadcastRestService restServiceSpy = Mockito.spy(restServiceReal);
 		AntMediaApplicationAdapter application = mock(AntMediaApplicationAdapter.class);
 		Map<String, VideoServiceEndpoint> endpointMap = new HashMap<>();
 
@@ -819,7 +819,7 @@ public class BroadcastRestServiceV2UnitTest {
 
 	@Test
 	public void testCheckDeviceAuthStatus() {
-		BroadcastRestServiceV2 restServiceSpy = Mockito.spy(restServiceReal);
+		BroadcastRestService restServiceSpy = Mockito.spy(restServiceReal);
 
 		AntMediaApplicationAdapter application = mock(AntMediaApplicationAdapter.class);
 		Map<String, VideoServiceEndpoint> endpointMap = new HashMap<>();
@@ -867,7 +867,7 @@ public class BroadcastRestServiceV2UnitTest {
 
 	@Test
 	public void testGetInteractionsFromEndpoint() {
-		BroadcastRestServiceV2 restServiceSpy = Mockito.spy(restServiceReal);
+		BroadcastRestService restServiceSpy = Mockito.spy(restServiceReal);
 
 		AntMediaApplicationAdapter application = mock(AntMediaApplicationAdapter.class);
 
@@ -1188,7 +1188,7 @@ public class BroadcastRestServiceV2UnitTest {
 		final String dbName = "testdb";
 		final String broadcastName = "testBroadcast";
 
-        BroadcastRestServiceV2 restServiceSpy = Mockito.spy(new BroadcastRestServiceV2());
+        BroadcastRestService restServiceSpy = Mockito.spy(new BroadcastRestService());
 		AppSettings settings = mock(AppSettings.class);
 		when(settings.getListenerHookURL()).thenReturn(null);
 		restServiceSpy.setAppSettings(settings);
@@ -1348,7 +1348,7 @@ public class BroadcastRestServiceV2UnitTest {
 
 	@Test
 	public void testStopLiveStream() {
-		BroadcastRestServiceV2 restService = new BroadcastRestServiceV2();
+		BroadcastRestService restService = new BroadcastRestService();
 		AntMediaApplicationAdapter app = Mockito.spy(new AntMediaApplicationAdapter());
 		DataStore ds = Mockito.mock(DataStore.class);
 		String streamId = "test-stream";
@@ -1420,7 +1420,7 @@ public class BroadcastRestServiceV2UnitTest {
 	public void testAddIPCameraViaCreateBroadcast() 
 	{
 		
-		BroadcastRestServiceV2 restService = Mockito.spy(restServiceReal);
+		BroadcastRestService restService = Mockito.spy(restServiceReal);
 		
 		AntMediaApplicationAdapter adaptor = mock (AntMediaApplicationAdapter.class);
 		Mockito.doReturn(adaptor).when(restService).getApplication();
@@ -1482,7 +1482,7 @@ public class BroadcastRestServiceV2UnitTest {
 		Broadcast newCam = new Broadcast("testAddIPCamera", "10.2.40.64:8080", "admin", "admin",
 				"rtsp://11.2.40.63:8554/live1.sdp", AntMediaApplicationAdapter.IP_CAMERA);
 
-		BroadcastRestServiceV2 streamSourceRest = Mockito.spy(restServiceReal);
+		BroadcastRestService streamSourceRest = Mockito.spy(restServiceReal);
 		AntMediaApplicationAdapter adaptor = mock (AntMediaApplicationAdapter.class);
 		StreamFetcher fetcher = mock (StreamFetcher.class);
 		Result connResult = new Result(true);
@@ -1555,7 +1555,7 @@ public class BroadcastRestServiceV2UnitTest {
 				null, AntMediaApplicationAdapter.IP_CAMERA);
 
 		//simulate required operations
-		BroadcastRestServiceV2 streamSourceRest = Mockito.spy(restServiceReal);
+		BroadcastRestService streamSourceRest = Mockito.spy(restServiceReal);
 		AntMediaApplicationAdapter adaptor = mock (AntMediaApplicationAdapter.class);
 		StreamFetcher fetcher = mock (StreamFetcher.class);
 		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
@@ -1597,7 +1597,7 @@ public class BroadcastRestServiceV2UnitTest {
 	@Test
 	public void testOnvifPTZ() {
 		
-		BroadcastRestServiceV2 spyService = Mockito.spy(restServiceReal);
+		BroadcastRestService spyService = Mockito.spy(restServiceReal);
 		
 		String id = "invalid_?stream_id";
 		assertFalse(spyService.moveIPCamera(id, null, null, null, null).isSuccess());
@@ -1648,7 +1648,7 @@ public class BroadcastRestServiceV2UnitTest {
 				"rtsp://11.2.40.63:8554/live1.sdp", AntMediaApplicationAdapter.IP_CAMERA);
 
 		//simulate required operations
-		BroadcastRestServiceV2 streamSourceRest = Mockito.spy(restServiceReal);
+		BroadcastRestService streamSourceRest = Mockito.spy(restServiceReal);
 		AntMediaApplicationAdapter adaptor = mock (AntMediaApplicationAdapter.class);
 		StreamFetcher fetcher = mock (StreamFetcher.class);
 
@@ -1684,7 +1684,7 @@ public class BroadcastRestServiceV2UnitTest {
 		//start ONVIF Cam emulator
 		StreamFetcherUnitTest.startCameraEmulator();
 
-		BroadcastRestServiceV2 streamSourceRest = Mockito.spy(restServiceReal);
+		BroadcastRestService streamSourceRest = Mockito.spy(restServiceReal);
 
 		//start ONVIF discovery
 		String result[] = streamSourceRest.searchOnvifDevicesV2();
@@ -1705,7 +1705,7 @@ public class BroadcastRestServiceV2UnitTest {
 		Broadcast newCam = new Broadcast("testAddStreamSource", "10.2.40.64:8080", "admin", "admin",
 				"rtsp://11.2.40.63:8554/live1.sdp", AntMediaApplicationAdapter.STREAM_SOURCE);
 
-		BroadcastRestServiceV2 streamSourceRest = Mockito.spy(restServiceReal);
+		BroadcastRestService streamSourceRest = Mockito.spy(restServiceReal);
 		AntMediaApplicationAdapter adaptor = mock (AntMediaApplicationAdapter.class);
 		StreamFetcher streamFetcher = mock(StreamFetcher.class);
 
@@ -1747,7 +1747,7 @@ public class BroadcastRestServiceV2UnitTest {
 
 		Result result = new Result(false);
 
-		BroadcastRestServiceV2 streamSourceRest = Mockito.spy(restServiceReal);
+		BroadcastRestService streamSourceRest = Mockito.spy(restServiceReal);
 		
 		AppSettings settings = mock(AppSettings.class);
 		when(settings.getListenerHookURL()).thenReturn(null);
@@ -1838,7 +1838,7 @@ public class BroadcastRestServiceV2UnitTest {
 			e.printStackTrace();
 		}
 
-		BroadcastRestServiceV2 streamSourceRest = Mockito.spy(restServiceReal);
+		BroadcastRestService streamSourceRest = Mockito.spy(restServiceReal);
 		AntMediaApplicationAdapter adaptor = mock (AntMediaApplicationAdapter.class);
 		StreamFetcher fetcher = mock (StreamFetcher.class);
 		InMemoryDataStore store = new InMemoryDataStore("test");
@@ -1872,7 +1872,7 @@ public class BroadcastRestServiceV2UnitTest {
 		source.setPublicStream(false);
 		source.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
 
-		BroadcastRestServiceV2 streamSourceRest = Mockito.spy(restServiceReal);
+		BroadcastRestService streamSourceRest = Mockito.spy(restServiceReal);
 		AntMediaApplicationAdapter adaptor = mock (AntMediaApplicationAdapter.class);
 
 		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
@@ -1985,7 +1985,7 @@ public class BroadcastRestServiceV2UnitTest {
 			e.printStackTrace();
 		}
 		
-		BroadcastRestServiceV2 broadcastRestService = new BroadcastRestServiceV2();
+		BroadcastRestService broadcastRestService = new BroadcastRestService();
 		DataStore datastore = new InMemoryDataStore("dummy");
 		datastore.save(mainTrack);
 		datastore.save(subtrack);

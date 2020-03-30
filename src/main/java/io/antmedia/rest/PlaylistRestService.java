@@ -43,7 +43,7 @@ import io.swagger.annotations.SwaggerDefinition;
 		)
 @Component
 @Path("/v2/playlists")
-public class PlaylistRestServiceV2 extends RestServiceBase{
+public class PlaylistRestService extends RestServiceBase{
 
 
 	@ApiOperation(value = "Playlist list from database", response = Playlist.class)

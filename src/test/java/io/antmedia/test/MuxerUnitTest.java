@@ -38,6 +38,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.mina.core.buffer.IoBuffer;
@@ -45,6 +46,7 @@ import org.apache.tika.io.IOUtils;
 import org.awaitility.Awaitility;
 import org.bytedeco.javacpp.Pointer;
 import org.bytedeco.javacpp.avcodec.AVCodecContext;
+import org.bytedeco.javacpp.avcodec.AVPacket;
 import org.bytedeco.javacpp.avformat;
 import org.bytedeco.javacpp.avformat.*;
 import org.bytedeco.javacpp.avutil;
@@ -690,6 +692,141 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		Awaitility.await().pollInterval(1, TimeUnit.SECONDS).atMost(50, TimeUnit.SECONDS).until(() -> 
 			prepareReturnedMuxAdaptorStopWhilePreparing
 		);
+		
+	}
+	
+	@Test
+	public void testWriteBufferedPacket() {
+		
+		if (appScope == null) {
+			appScope = (WebScope) applicationContext.getBean("web.scope");
+			logger.debug("Application / web scope: {}", appScope);
+			assertTrue(appScope.getDepth() == 1);
+		}
+		
+		MuxAdaptor muxAdaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(null, false, appScope));
+		
+		muxAdaptor.setBuffering(true);
+		muxAdaptor.writeBufferedPacket();
+		assertTrue(muxAdaptor.isBuffering());
+		
+		muxAdaptor.setBuffering(false);
+		muxAdaptor.writeBufferedPacket();
+		//it should false because there is no packet in the queue
+		assertTrue(muxAdaptor.isBuffering());
+		
+		Queue<AVPacket> bufferQueue = muxAdaptor.getBufferQueue();
+		muxAdaptor.setBuffering(false);
+		AVFormatContext inputFormatContext = Mockito.mock(AVFormatContext.class);
+		AVStream stream = Mockito.mock(AVStream.class);
+		when(stream.time_base()).thenReturn(MuxAdaptor.TIME_BASE_FOR_MS);
+		
+		when(inputFormatContext.streams(0)).thenReturn(stream);
+		
+		muxAdaptor.setInputFormatContext(inputFormatContext);
+		AVPacket pkt = new AVPacket();
+		pkt.pts(1000L);
+		pkt.stream_index(0);
+		
+		bufferQueue.add(pkt);
+		
+		doNothing().when(muxAdaptor).writePacket(any(), any());
+		muxAdaptor.writeBufferedPacket();
+		verify(muxAdaptor).writePacket(any(), any());
+		assertTrue(muxAdaptor.isBuffering());
+		
+		muxAdaptor.setBuffering(false);
+		pkt.pts(System.currentTimeMillis()+1000);
+		bufferQueue.add(pkt);
+		muxAdaptor.writeBufferedPacket();
+		assertFalse(muxAdaptor.isBuffering());
+		
+	}
+	
+	@Test
+	public void testRtmpIngestBufferTime() 
+	{
+		if (appScope == null) {
+			appScope = (WebScope) applicationContext.getBean("web.scope");
+			logger.debug("Application / web scope: {}", appScope);
+			assertTrue(appScope.getDepth() == 1);
+		}
+		ClientBroadcastStream clientBroadcastStream = new ClientBroadcastStream();
+		StreamCodecInfo info = new StreamCodecInfo();
+		info.setHasAudio(true);
+		info.setHasVideo(true);
+		clientBroadcastStream.setCodecInfo(info);
+		
+		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, false, appScope);
+		
+		getAppSettings().setRtmpIngestBufferTimeMs(1000);
+		getAppSettings().setMp4MuxingEnabled(false);
+		getAppSettings().setHlsMuxingEnabled(false);
+		
+		File file = new File("target/test-classes/test.flv");
+		
+		String streamId = "streamId" + (int)(Math.random()*10000);
+		
+		boolean result = muxAdaptor.init(appScope, streamId, false);
+		assertTrue(result);
+		
+		muxAdaptor.start();
+		
+		QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
+		
+		try {
+			final FLVReader flvReader = new FLVReader(file);
+	
+			long lastTimeStamp = 0;
+			while (flvReader.hasMoreTags()) 
+			{
+				ITag readTag = flvReader.readTag();
+				lastTimeStamp = readTag.getTimestamp();
+				if (lastTimeStamp < 5000) {
+					StreamPacket streamPacket = new StreamPacket(readTag);
+					muxAdaptor.packetReceived(null, streamPacket);
+				}
+				else {
+					break;
+				}
+			}
+			
+			Awaitility.await().atMost(5, TimeUnit.SECONDS).until(muxAdaptor::isRecording);	
+			//let the buffered time finish and buffering state is true
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(muxAdaptor::isBuffering);	
+			
+			
+			//load again for 5 more seconds
+			while (flvReader.hasMoreTags()) 
+			{
+				ITag readTag = flvReader.readTag();
+				
+				if (readTag.getTimestamp() - lastTimeStamp  < 5000) {
+					StreamPacket streamPacket = new StreamPacket(readTag);
+					muxAdaptor.packetReceived(null, streamPacket);
+				}
+				else {
+					break;
+				}
+			}
+			//buffering should be false after a while because it's loaded with 5 seconds
+			Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> !muxAdaptor.isBuffering());	
+			
+			//after 6 seconds buffering should be also true again because it's finished
+			Awaitility.await().atMost(6, TimeUnit.SECONDS).until(muxAdaptor::isBuffering);
+						
+			muxAdaptor.stop();
+			
+			Awaitility.await().atMost(4, TimeUnit.SECONDS).until(() -> !muxAdaptor.isRecording());
+			
+			assertEquals(0, scheduler.getScheduledJobNames().size());
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		
+		getAppSettings().setRtmpIngestBufferTimeMs(0);
 		
 	}
 	
