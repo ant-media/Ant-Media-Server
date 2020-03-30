@@ -15,10 +15,6 @@ public class StreamAcceptFilter implements ApplicationContextAware{
 
 	protected static Logger logger = LoggerFactory.getLogger(StreamAcceptFilter.class);
 	
-	private int maxFps = 0;
-	private int maxResolution = 0;
-	private int maxBitrate = 0;
-
 	public boolean isValidStreamParameters(AVFormatContext inputFormatContext,AVPacket pkt) 
 	{
 		// Check FPS value
@@ -29,8 +25,8 @@ public class StreamAcceptFilter implements ApplicationContextAware{
 
 	public boolean checkFPSAccept(int streamFPSValue) 
 	{
-		if(maxFps > 0 && maxFps < streamFPSValue) {
-			logger.error("Exceeding Max FPS({}) limit. FPS is: {}", maxFps, streamFPSValue);
+		if(getMaxFps() > 0 && getMaxFps()  < streamFPSValue) {
+			logger.error("Exceeding Max FPS({}) limit. FPS is: {}", getMaxFps(), streamFPSValue);
 			return false;
 		}		
 		return true;
@@ -38,8 +34,8 @@ public class StreamAcceptFilter implements ApplicationContextAware{
 
 	public boolean checkResolutionAccept(int streamResolutionValue) 
 	{
-		if (maxResolution > 0 && maxResolution < streamResolutionValue) {
-			logger.error("Exceeding Max Resolution({}) acceptable limit. Resolution is: {}", maxResolution, streamResolutionValue);
+		if (getMaxResolution() > 0 && getMaxResolution() < streamResolutionValue) {
+			logger.error("Exceeding Max Resolution({}) acceptable limit. Resolution is: {}", getMaxResolution(), streamResolutionValue);
 			return false;
 		}
 		return true;
@@ -48,8 +44,8 @@ public class StreamAcceptFilter implements ApplicationContextAware{
 
 	public boolean checkBitrateAccept(long streamBitrateValue) 
 	{
-		if (maxBitrate > 0 && maxBitrate < streamBitrateValue) {
-			logger.error("Exceeding Max Bitrate({}) acceptable limit. Stream Bitrate is: {}", maxBitrate, streamBitrateValue);
+		if (getMaxBitrate() > 0 && getMaxBitrate() < streamBitrateValue) {
+			logger.error("Exceeding Max Bitrate({}) acceptable limit. Stream Bitrate is: {}", getMaxBitrate(), streamBitrateValue);
 			return false;
 		}
 		return true;
@@ -82,38 +78,32 @@ public class StreamAcceptFilter implements ApplicationContextAware{
 	public void setApplicationContext(ApplicationContext applicationContext) {
 		if (applicationContext.containsBean(AppSettings.BEAN_NAME)) {
 			appSettings = (AppSettings)applicationContext.getBean(AppSettings.BEAN_NAME);
-			maxFps = appSettings.getMaxFpsAccept();
-			maxResolution = appSettings.getMaxResolutionAccept();
-			maxBitrate = appSettings.getMaxBitrateAccept();
-			
 		}
 	}
 	
-	public void setMaxFps(int maxFps) {
-		this.maxFps = maxFps;
-	}
-	
-	public void setMaxResolution(int maxResolution) {
-		this.maxResolution = maxResolution;
-	}
-	
-	public void setMaxBitrate(int maxBitrate) {
-		this.maxBitrate = maxBitrate;
-	}
 
 	public AppSettings getAppSettings() {
 		return appSettings;
 	}
 	
 	public int getMaxFps() {
-		return maxFps;
+		if (appSettings != null) {
+			return appSettings.getMaxFpsAccept();
+		}
+		return 0;
 	}
 	
 	public int getMaxResolution() {
-		return maxResolution;
+		if (appSettings != null) {
+			return appSettings.getMaxResolutionAccept();
+		}
+		return 0;
 	}
 
 	public int getMaxBitrate() {
-		return maxBitrate;
+		if (appSettings != null) {
+			return appSettings.getMaxBitrateAccept();
+		}
+		return 0;
 	}
 }
