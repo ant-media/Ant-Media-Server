@@ -211,9 +211,9 @@ public class StreamFetcher {
 		private volatile boolean buffering = false;
 		private ConcurrentLinkedQueue<AVPacket> bufferQueue = new ConcurrentLinkedQueue<>();
 
-		private long bufferingFinishTimeMs;
+		private volatile long bufferingFinishTimeMs;
 
-		private long firstPacketReadyToSentTimeMs;
+		private volatile long firstPacketReadyToSentTimeMs;
 
 		@Override
 		public void run() {
