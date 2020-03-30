@@ -18,6 +18,7 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.http.HttpResponse;
@@ -208,6 +209,93 @@ public class AppFunctionalV2Test {
 
 	}
 
+	
+	@Test
+	public void testStreamAcceptFilter() {
+		
+		ConsoleAppRestServiceTest.resetCookieStore();
+		Result result;
+		try {
+			result = ConsoleAppRestServiceTest.callisFirstLogin();
+		
+			if (result.isSuccess()) {
+				Result createInitialUser = ConsoleAppRestServiceTest.createDefaultInitialUser();
+				assertTrue(createInitialUser.isSuccess());
+			}
+			
+			result = ConsoleAppRestServiceTest.authenticateDefaultUser();
+			assertTrue(result.isSuccess());
+			Random r = new Random();
+			String streamId = "streamId" + r.nextInt();
+
+			AppSettings appSettingsModel = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
+			{
+				appSettingsModel.setMaxResolutionAccept(144);
+				
+				result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettingsModel);
+				assertTrue(result.isSuccess());
+				
+				//this process should be terminated autotimacally because test.flv has 25fps and 360p
+				
+				Process rtmpSendingProcess = execute(ffmpegPath
+						+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
+						+ streamId);
+				
+				Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> {
+					return !rtmpSendingProcess.isAlive();
+				});
+			}
+			
+			{
+				appSettingsModel.setMaxResolutionAccept(1080);
+			    appSettingsModel.setMaxFpsAccept(5);
+				
+				result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettingsModel);
+				assertTrue(result.isSuccess());
+				Process rtmpSendingProcess2 = execute(ffmpegPath
+						+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
+						+ streamId);
+				
+				//this process should be terminated autotimacally because test.flv has 25fps 
+				Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> {
+					return !rtmpSendingProcess2.isAlive();
+				});
+			}
+			
+			
+			{
+				appSettingsModel.setMaxResolutionAccept(0);
+			    appSettingsModel.setMaxFpsAccept(0);
+				
+				result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettingsModel);
+				assertTrue(result.isSuccess());
+				Process rtmpSendingProcess2 = execute(ffmpegPath
+						+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
+						+ streamId);
+				
+				//this process should NOT be terminated autotimacally because test.flv has 25fps 
+				Awaitility.await().pollDelay(9, TimeUnit.SECONDS).atMost(10, TimeUnit.SECONDS).until(()-> {
+					return rtmpSendingProcess2.isAlive();
+				});
+				
+				rtmpSendingProcess2.destroy();
+			}
+			
+			
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+				RestServiceV2Test restService = new RestServiceV2Test();
+				return 0 == restService.callGetLiveStatistics();
+			});
+
+			
+			
+		
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		
+	}
 
 
 	@Test
