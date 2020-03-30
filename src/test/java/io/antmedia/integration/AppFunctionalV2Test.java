@@ -47,7 +47,7 @@ import io.antmedia.AppSettings;
 import io.antmedia.EncoderSettings;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.VoD;
-import io.antmedia.rest.BroadcastRestServiceV2;
+import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.RestServiceBase.BroadcastStatistics;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.Version;
@@ -56,7 +56,7 @@ import io.antmedia.settings.ServerSettings;
 public class AppFunctionalV2Test {
 	
 
-	private BroadcastRestServiceV2 restService = null;
+	private BroadcastRestService restService = null;
 	private static final String SERVER_ADDR = ServerSettings.getLocalHostAddress(); 
 	protected static Logger logger = LoggerFactory.getLogger(AppFunctionalV2Test.class);
 
@@ -116,7 +116,7 @@ public class AppFunctionalV2Test {
 
 	@Before
 	public void before() {
-		restService = new BroadcastRestServiceV2();
+		restService = new BroadcastRestService();
 
 		File webApps = new File("webapps");
 		if (!webApps.exists()) {

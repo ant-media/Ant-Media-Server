@@ -19,7 +19,7 @@ import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.springframework.stereotype.Component;
 
 import io.antmedia.datastore.db.types.VoD;
-import io.antmedia.rest.BroadcastRestServiceV2.SimpleStat;
+import io.antmedia.rest.BroadcastRestService.SimpleStat;
 import io.antmedia.rest.model.Result;
 import io.antmedia.settings.ServerSettings;
 import io.swagger.annotations.Api;
@@ -47,7 +47,7 @@ import io.swagger.annotations.SwaggerDefinition;
 )
 @Component
 @Path("/v2/vods")
-public class VoDRestServiceV2 extends RestServiceBase{
+public class VoDRestService extends RestServiceBase{
 	
 	@ApiOperation(value = "VoD file from database", response = VoD.class)
 	@GET

@@ -15,6 +15,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Random;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
@@ -42,7 +43,7 @@ import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.muxer.MuxAdaptor;
-import io.antmedia.rest.BroadcastRestServiceV2;
+import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.settings.ServerSettings;
 
 public class DBStoresUnitTest {
@@ -750,11 +751,13 @@ public class DBStoresUnitTest {
 
 			Broadcast broadcast = new Broadcast(null, null);
 			String key = dataStore.save(broadcast);
+			
 
 			assertNotNull(key);
 			assertNotNull(broadcast.getStreamId());
 
 			assertEquals(broadcast.getStreamId().toString(), key);
+			assertNull(dataStore.get(broadcast.getStreamId()).getQuality());
 
 			Broadcast broadcast2 = dataStore.get(key);
 			assertEquals(broadcast.getStreamId(), broadcast2.getStreamId());
@@ -834,17 +837,18 @@ public class DBStoresUnitTest {
 			assertEquals(broadcast2.getEndPointList().get(1).getRtmpUrl(), rtmpUrl);
 
 			Broadcast broadcast3 = new Broadcast("test3");
-
 			broadcast3.setQuality("poor");
-
 			assertNotNull(broadcast3.getQuality());
-
 			dataStore.save(broadcast3);
-
-			result = dataStore.updateSourceQualityParameters(broadcast3.getStreamId(), "good", 0, 0);
-
+			
+			result = dataStore.updateSourceQualityParameters(broadcast3.getStreamId(), null, 0, 0);
 			assertTrue(result);
+			//it's poor because it's not updated because of null
+			assertEquals("poor", dataStore.get(broadcast3.getStreamId()).getQuality());
 
+			
+			result = dataStore.updateSourceQualityParameters(broadcast3.getStreamId(), "good", 0, 0);
+			assertTrue(result);
 			assertEquals("good", dataStore.get(broadcast3.getStreamId()).getQuality());
 
 			//set mp4 muxing to true
@@ -1123,7 +1127,9 @@ public class DBStoresUnitTest {
 		//define a valid expire date
 		long expireDate = Instant.now().getEpochSecond() + 1000;
 
-		testToken.setStreamId("1234");
+		Random r = new Random();
+		String streamId = "streamId" + r.nextInt();
+		testToken.setStreamId(streamId);
 		testToken.setExpireDate(expireDate);
 		testToken.setType(Token.PLAY_TOKEN);
 		testToken.setTokenId("tokenID");
@@ -1149,10 +1155,11 @@ public class DBStoresUnitTest {
 		//create token again
 		testToken = new Token();
 
-		testToken.setStreamId("1234");
+		testToken.setStreamId(streamId);
 		testToken.setExpireDate(expireDate);
 		testToken.setType(Token.PLAY_TOKEN);
-		testToken.setTokenId("tokenID");
+		String tokenId = "tokenId" + (int)(Math.random()*99999);
+		testToken.setTokenId(tokenId);
 		testToken.setRoomId("testRoom");
 
 		store.saveToken(testToken);
@@ -1177,10 +1184,10 @@ public class DBStoresUnitTest {
 		//create token again
 		testToken = new Token();
 
-		testToken.setStreamId("1234");
+		testToken.setStreamId(streamId);
 		testToken.setExpireDate(expireDate);
 		testToken.setType(Token.PLAY_TOKEN);
-		testToken.setTokenId("tokenID");
+		testToken.setTokenId("tokenID" + r.nextInt());
 
 
 		store.saveToken(testToken);
@@ -1200,10 +1207,10 @@ public class DBStoresUnitTest {
 		//create token again, this time create a room token
 		testToken = new Token();
 
-		testToken.setStreamId("1234");
+		testToken.setStreamId(streamId);
 		testToken.setExpireDate(expireDate);
 		testToken.setType(Token.PLAY_TOKEN);
-		testToken.setTokenId("tokenID");
+		testToken.setTokenId("tokenID" + r.nextInt());
 		testToken.setRoomId("testRoom");
 
 		store.saveToken(testToken);

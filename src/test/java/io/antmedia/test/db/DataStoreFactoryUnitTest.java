@@ -17,8 +17,8 @@ import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.MongoStore;
-import io.antmedia.rest.BroadcastRestServiceV2;
-import io.antmedia.rest.VoDRestServiceV2;
+import io.antmedia.rest.BroadcastRestService;
+import io.antmedia.rest.VoDRestService;
 import io.antmedia.security.AcceptOnlyStreamsInDataStore;
 import io.antmedia.security.ExpireStreamPublishSecurity;
 import io.antmedia.statistic.HlsViewerStats;
@@ -91,7 +91,7 @@ public class DataStoreFactoryUnitTest {
 		aosid.setDataStoreFactory(dsf);
 		assertEquals(datastore, aosid.getDatastore());
 
-		BroadcastRestServiceV2 brs = new BroadcastRestServiceV2();
+		BroadcastRestService brs = new BroadcastRestService();
 		brs.setDataStoreFactory(dsf);
 		assertEquals(datastore, brs.getDataStore());
 
@@ -99,7 +99,7 @@ public class DataStoreFactoryUnitTest {
 		esps.setDataStoreFactory(dsf);
 		assertEquals(datastore, esps.getDatastore());
 
-		VoDRestServiceV2 ssrs = new VoDRestServiceV2();
+		VoDRestService ssrs = new VoDRestService();
 		ssrs.setDataStoreFactory(dsf);
 		assertEquals(datastore, ssrs.getDataStore());
 
