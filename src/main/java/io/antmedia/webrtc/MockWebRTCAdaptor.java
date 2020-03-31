@@ -24,7 +24,7 @@ public class MockWebRTCAdaptor implements IWebRTCAdaptor{
 	}
 
 	@Override
-	public boolean registerWebRTCClient(String streamId, IWebRTCClient webRTCClient) {
+	public boolean registerWebRTCClient(String streamId, IWebRTCClient webRTCClient, VideoCodec codec) {
 		return false;
 	}
 
