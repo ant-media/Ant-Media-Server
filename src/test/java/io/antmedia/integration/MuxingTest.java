@@ -42,7 +42,7 @@ import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 
-import io.antmedia.rest.BroadcastRestServiceV2.SimpleStat;
+import io.antmedia.rest.BroadcastRestService.SimpleStat;
 import io.antmedia.rest.model.Result;
 
 
@@ -686,7 +686,7 @@ public class MuxingTest {
 
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 			Broadcast broadcast = RestServiceV2Test.callGetBroadcast(streamName);
-			return broadcast.getQuality() != null;
+			return broadcast.getSpeed() != 0;
 		});
 
 		rtmpSendingProcess.destroy();
@@ -708,7 +708,7 @@ public class MuxingTest {
 		
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 			Broadcast broadcast = RestServiceV2Test.callGetBroadcast(streamName);
-			return broadcast.getQuality() != null;
+			return broadcast.getSpeed() != 0;
 		});
 
 		rtmpSendingProcess.destroy();

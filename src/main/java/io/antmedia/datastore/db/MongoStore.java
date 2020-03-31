@@ -509,8 +509,11 @@ public class MongoStore extends DataStore {
 			try {
 				Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(id);
 				UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class)
-						.set("quality", quality).set("speed", speed).set("pendingPacketSize", pendingPacketQueue);
+						.set("speed", speed).set("pendingPacketSize", pendingPacketQueue);
 
+				if (quality != null) {
+					ops.set("quality", quality);
+				}
 				UpdateResults update = datastore.update(query, ops);
 				return update.getUpdatedCount() == 1;
 			} catch (Exception e) {

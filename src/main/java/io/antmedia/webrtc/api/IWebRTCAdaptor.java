@@ -7,8 +7,7 @@ import org.red5.server.api.scope.IScopeService;
 
 import io.antmedia.cluster.IStreamInfo;
 import io.antmedia.rest.WebRTCClientStats;
-import io.antmedia.statistic.type.WebRTCAudioSendStats;
-import io.antmedia.statistic.type.WebRTCVideoSendStats;
+import io.antmedia.webrtc.VideoCodec;
 
 
 public interface IWebRTCAdaptor extends IScopeService {
@@ -20,7 +19,7 @@ public interface IWebRTCAdaptor extends IScopeService {
 
 	void unRegisterMuxer(String streamId, IWebRTCMuxer webRTCMuxer);
 
-	boolean registerWebRTCClient(String streamId, IWebRTCClient webRTCClient);
+	boolean registerWebRTCClient(String streamId, IWebRTCClient webRTCClient, VideoCodec codec);
 
 	boolean streamExists(String streamId);
 	
