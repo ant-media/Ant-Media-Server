@@ -2,6 +2,7 @@ package io.antmedia.websocket;
 
 public class WebSocketConstants {
 	
+
 	private WebSocketConstants() {
 	}
 	
@@ -91,6 +92,7 @@ public class WebSocketConstants {
 	
 	public static final String LEAVED_THE_ROOM = "leavedFromRoom";
 	
+	public static String ALREADY_PLAYING = "AlreadyPlaying";
 	
 	
 	/**
