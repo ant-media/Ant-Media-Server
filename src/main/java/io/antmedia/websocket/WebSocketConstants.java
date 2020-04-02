@@ -2,6 +2,7 @@ package io.antmedia.websocket;
 
 public class WebSocketConstants {
 	
+
 	private WebSocketConstants() {
 	}
 	
@@ -97,8 +98,6 @@ public class WebSocketConstants {
 	
 	public static final String LEAVED_THE_ROOM = "leavedFromRoom";
 	
-	
-	
 	/**
 	 * this token is used to access resources or start broadcast when token security is enabled
 	 */
@@ -160,6 +159,13 @@ public class WebSocketConstants {
 	
 	
 	public static final String UNAUTHORIZED = "unauthorized_access";
+	
+	/**
+	 * This is sent back to the user when a new play message received while
+	 * it is playing or it is just to play 
+	 */
+	public static final String ALREADY_PLAYING = "already_playing";
+
 
 	/**
 	 * Command that let server returns information about a specific stream.
