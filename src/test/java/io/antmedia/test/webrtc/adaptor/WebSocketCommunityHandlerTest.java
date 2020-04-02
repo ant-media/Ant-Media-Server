@@ -282,9 +282,11 @@ public class WebSocketCommunityHandlerTest {
 		wsHandler.onMessage(session, publishObject2.toJSONString());
 		
 		verify(wsHandler, Mockito.timeout(1)).sendInvalidStreamNameError(Mockito.any());
-
-
-		
+	}
+	
+	@Test
+	public void testWebSocketConstants() {
+		assertEquals("already_playing", WebSocketConstants.ALREADY_PLAYING);
 	}
 	
 }
