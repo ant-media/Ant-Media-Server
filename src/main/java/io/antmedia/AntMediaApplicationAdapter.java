@@ -21,6 +21,7 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.NameValuePair;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
@@ -695,6 +696,11 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		try (CloseableHttpClient httpClient = getHttpClient()) 
 		{
 			HttpPost httpPost = new HttpPost(url);
+			RequestConfig requestConfig =RequestConfig.custom()
+					.setConnectTimeout(2000)
+					.setConnectionRequestTimeout(2000)
+					.setSocketTimeout(2000).build();
+			httpPost.setConfig(requestConfig);
 			List<NameValuePair> urlParameters = new ArrayList<>();
 			Set<Entry<String, String>> entrySet = variables.entrySet();
 			for (Entry<String, String> entry : entrySet) {
@@ -723,10 +729,10 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			}
 
 		}
-
-
+		catch (Exception e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+		}
 		return response;
-
 	}
 	
 	public CloseableHttpClient getHttpClient() {
