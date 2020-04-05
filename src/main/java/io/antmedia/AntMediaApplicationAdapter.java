@@ -729,9 +729,6 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			}
 
 		}
-		catch (Exception e) {
-			logger.error(ExceptionUtils.getStackTrace(e));
-		}
 		return response;
 	}
 	
