@@ -599,7 +599,26 @@ public class AppFunctionalV2Test {
 	public void testStatistics() {
 
 		try {
+			
+			ConsoleAppRestServiceTest.resetCookieStore();
+			Result result = ConsoleAppRestServiceTest.callisFirstLogin();
+			if (result.isSuccess()) {
+				Result createInitialUser = ConsoleAppRestServiceTest.createDefaultInitialUser();
+				assertTrue(createInitialUser.isSuccess());
+			}
+
+			result = ConsoleAppRestServiceTest.authenticateDefaultUser();
+			assertTrue(result.isSuccess());
+			
 			RestServiceV2Test restService = new RestServiceV2Test();
+			
+			
+			AppSettings appSettings = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
+			//make webrtc enabled false because it's enabled by true
+			appSettings.setWebRTCEnabled(false);
+			result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettings);
+			assertTrue(result.isSuccess());
+			
 
 			List<Broadcast> broadcastList = restService.callGetBroadcastList();
 			for (Broadcast broadcast : broadcastList) {
@@ -642,10 +661,14 @@ public class AppFunctionalV2Test {
 
 
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
-
 				return 0 == restService.callGetLiveStatistics();
 			});
-
+			
+			
+			//make webrtc enabled false because it's enabled by true
+			appSettings.setWebRTCEnabled(true);
+			result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettings);
+			assertTrue(result.isSuccess());
 
 		} catch (Exception e) {
 			e.printStackTrace();
