@@ -600,7 +600,9 @@ public class MapDBStore extends DataStore {
 				if (jsonString != null) {
 					Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
 					broadcast.setSpeed(speed);
-					broadcast.setQuality(quality);
+					if (quality != null) {
+						broadcast.setQuality(quality);
+					}
 					broadcast.setPendingPacketSize(pendingPacketQueue);
 					map.replace(id, gson.toJson(broadcast));
 					db.commit();

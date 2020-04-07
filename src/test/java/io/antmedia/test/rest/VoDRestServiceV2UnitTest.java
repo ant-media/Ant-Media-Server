@@ -40,7 +40,7 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.integration.MuxingTest;
 import io.antmedia.rest.RestServiceBase.ProcessBuilderFactory;
-import io.antmedia.rest.VoDRestServiceV2;
+import io.antmedia.rest.VoDRestService;
 import io.antmedia.rest.model.Result;
 import io.antmedia.settings.ServerSettings;
 import io.vertx.core.Vertx;
@@ -51,7 +51,7 @@ import io.vertx.core.Vertx;
 public class VoDRestServiceV2UnitTest {
 
 
-	private VoDRestServiceV2 restServiceReal = null;
+	private VoDRestService restServiceReal = null;
 	public AntMediaApplicationAdapter app = null;
 
 	static {
@@ -64,7 +64,7 @@ public class VoDRestServiceV2UnitTest {
 
 	@Before
 	public void before() {
-		restServiceReal = new VoDRestServiceV2();
+		restServiceReal = new VoDRestService();
 	}
 
 	@After
@@ -78,7 +78,7 @@ public class VoDRestServiceV2UnitTest {
 		Result result = new Result(false);
 
 		String vodFolder = "vodFolder";
-		VoDRestServiceV2 streamSourceRest = Mockito.spy(restServiceReal);
+		VoDRestService streamSourceRest = Mockito.spy(restServiceReal);
 		AntMediaApplicationAdapter adaptor = mock (AntMediaApplicationAdapter.class);
 		InMemoryDataStore store = new InMemoryDataStore("test");
 		AppSettings settings = mock(AppSettings.class);

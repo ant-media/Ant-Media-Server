@@ -231,7 +231,6 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		//check that broadcast status in datastore in finished or not broadcasting
 		broadcast = dataStore.get(id);
 		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, broadcast.getStatus());
-		assertEquals(MuxAdaptor.QUALITY_POOR, broadcast.getQuality());
 		assertEquals(0, broadcast.getSpeed(), 2L);
 
 
@@ -797,20 +796,15 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			}
 	
 			
-			try {
-				Thread.sleep(5000);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-			
-			
-			double speed = dataStore.get(newCam.getStreamId()).getSpeed();
-			//this value was so high over 9000. After using first packet time it's value is about 100-200
-			//it is still high and it is normal because it reads vod from disk it does not read live stream.
-			//Btw, nba.ts , in testTSSourceAndBugStreamSpeed, is generated specifically by copying timestamps directy
-			//from live stream by using copyts parameter in ffmpeg 
-			logger.info("Speed of the stream: {}", speed);
-			assertTrue( speed < 1000); // make it 1000 tmake sure it passes
+			Awaitility.await().pollDelay(5, TimeUnit.SECONDS).atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
+				double speed = dataStore.get(newCam.getStreamId()).getSpeed();
+				//this value was so high over 9000. After using first packet time it's value is about 100-200
+				//it is still high and it is normal because it reads vod from disk it does not read live stream.
+				//Btw, nba.ts , in testTSSourceAndBugStreamSpeed, is generated specifically by copying timestamps directy
+				//from live stream by using copyts parameter in ffmpeg 
+				logger.info("Speed of the stream: {}", speed);
+				return speed < 1000;
+			});
 
 			//wait for packaging files
 			fetcher.stopStream();
@@ -825,7 +819,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			logger.info("before test m3u8 file");
 
-			speed = dataStore.get(newCam.getStreamId()).getSpeed();
+			double speed = dataStore.get(newCam.getStreamId()).getSpeed();
 			logger.info("Speed of the stream: {}", speed);
 
 			assertTrue(MuxingTest.testFile("webapps/junit/streams/"+newCam.getStreamId() +".m3u8"));

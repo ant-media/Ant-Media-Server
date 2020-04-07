@@ -42,6 +42,7 @@ import io.antmedia.integration.MuxingTest;
 import io.antmedia.recorder.FFmpegFrameRecorder;
 import io.antmedia.recorder.Frame;
 import io.antmedia.webrtc.MockWebRTCAdaptor;
+import io.antmedia.webrtc.VideoCodec;
 import io.antmedia.webrtc.adaptor.RTMPAdaptor;
 import io.antmedia.websocket.WebSocketCommunityHandler;
 import io.antmedia.websocket.WebSocketConstants;
@@ -407,7 +408,7 @@ public class RTMPAdaptorTest {
 		MockWebRTCAdaptor mock = new MockWebRTCAdaptor();
 		mock.registerMuxer(null, null);
 		mock.unRegisterMuxer(null, null);
-		mock.registerWebRTCClient(null, null);
+		mock.registerWebRTCClient(null, null, VideoCodec.H264);
 		mock.streamExists(null);
 		mock.getStreamOptions(null);
 		mock.adaptStreamingQuality(null, null);
