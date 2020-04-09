@@ -908,6 +908,12 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 					logger.warn("Waiting for active broadcasts number decrease to zero for app: {}"
 							+ "total wait time: {}ms", getScope().getName(), i*waitPeriod);
 				}
+				if (i>10) {
+					logger.error("*********************************************************************************");
+					logger.error("Not all live streams're stopped. It's even breaking the loop to finish the server");
+					logger.error("*********************************************************************************");
+					break;
+				}
 				i++;
 				Thread.sleep(waitPeriod);
 				
