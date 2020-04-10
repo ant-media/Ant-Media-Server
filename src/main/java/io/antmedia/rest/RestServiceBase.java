@@ -123,6 +123,7 @@ public abstract class RestServiceBase {
 
 	public static final String HTTP = "http://";
 	public static final String RTSP = "rtsp://";
+	public static final String ENDPOINT_GENERIC = "generic";
 
 	protected static Logger logger = LoggerFactory.getLogger(RestServiceBase.class);
 
@@ -538,7 +539,7 @@ public abstract class RestServiceBase {
 			{
 				Endpoint endpoint = new Endpoint();
 				endpoint.setRtmpUrl(rtmpUrl);
-				endpoint.type = "generic";
+				endpoint.setType(ENDPOINT_GENERIC);
 
 				success = getDataStore().addEndpoint(id, endpoint);
 			}
@@ -553,6 +554,9 @@ public abstract class RestServiceBase {
 	public Result addEndpoint(String id, Endpoint endpoint) {
 		boolean success = false;
 		String message = null;
+		
+		endpoint.setType(ENDPOINT_GENERIC);
+		
 		try {
 			if (validateStreamURL(endpoint.getRtmpUrl())) 
 			{
@@ -565,12 +569,11 @@ public abstract class RestServiceBase {
 		return new Result(success, message);
 	}
 
-
 	public Result removeEndpoint(String id, String rtmpUrl) 
 	{
 		Endpoint endpoint = new Endpoint();
 		endpoint.setRtmpUrl(rtmpUrl);
-		endpoint.type = "generic";
+		endpoint.setType(ENDPOINT_GENERIC);
 
 		boolean removed = getDataStore().removeEndpoint(id, endpoint);
 		return new Result(removed);

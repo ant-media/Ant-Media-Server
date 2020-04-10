@@ -1176,9 +1176,8 @@ public class RestServiceV2Test {
 	}
 
 	public static Result addEndpoint(String broadcastId, Endpoint endpoint) throws Exception 
-	{
-		
-		String url = ROOT_SERVICE_URL + "/v2/broadcasts/"+ broadcastId +"/endpoint";
+	{		
+		String url = ROOT_SERVICE_URL + "/v2/broadcasts/"+ broadcastId +"/endpointV3";
 		
 		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 
@@ -1536,10 +1535,10 @@ public class RestServiceV2Test {
 			String streamId = RandomStringUtils.randomAlphabetic(6);
 			
 			String rtmpUrl = "rtmp://localhost/LiveApp/" + streamId;
+			String endpointServiceId = "custom"+RandomStringUtils.randomAlphabetic(6);
 			
-			Endpoint endpoint = new Endpoint();
-			endpoint.setRtmpUrl(rtmpUrl);
-			
+			Endpoint endpoint = new Endpoint(endpointServiceId, "generic", rtmpUrl);
+
 			// add generic endpoint
 			Result result = addEndpoint(broadcast.getStreamId().toString(), endpoint);
 

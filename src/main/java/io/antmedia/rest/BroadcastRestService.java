@@ -287,6 +287,8 @@ public class BroadcastRestService extends RestServiceBase{
 			@ApiParam(value = "the id of the service in order to have successfull operation. Social network must be authorized in advance", required = true) @PathParam("endpointServiceId") String endpointServiceId) {
 		return addSocialEndpoint(id, endpointServiceId);
 	}
+	
+	
 
 	@Deprecated
 	@ApiOperation(value = "Add a third pary rtmp end point to the stream. It supports adding after broadcast is started ", notes = "", response = Result.class)
@@ -319,15 +321,17 @@ public class BroadcastRestService extends RestServiceBase{
 	@ApiOperation(value = "Add a third pary rtmp end point to the stream. It supports adding after broadcast is started ", notes = "", response = Result.class)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
-	@Path("/{id}/endpoint")
+	@Path("/{id}/endpointV3")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result addEndpointV2(@ApiParam(value = "Broadcast id", required = true) @PathParam("id") String id,
+	public Result addEndpointV3(@ApiParam(value = "Broadcast id", required = true) @PathParam("id") String id,
 			@ApiParam(value = "RTMP url of the endpoint that stream will be republished. If required, please encode the URL", required = true) Endpoint endpoint) {
 		
 		String rtmpUrl = null;
 		Result result = new Result(false);
+
 		
-		if(endpoint != null && endpoint.getRtmpUrl() != null) {
+		if(endpoint != null && endpoint.getRtmpUrl() != null && endpoint.getEndpointServiceId() != null) {
+
 			rtmpUrl = endpoint.getRtmpUrl();
 			result = super.addEndpoint(id, endpoint);
 		}
@@ -357,13 +361,13 @@ public class BroadcastRestService extends RestServiceBase{
 	@Produces(MediaType.APPLICATION_JSON)
 	@Override
 	public Result removeEndpoint(@ApiParam(value = "Broadcast id", required = true) @PathParam("id") String id, 
-			@ApiParam(value = "RTMP url of the endpoint that will be stopped.", required = true) @QueryParam("endpointServiceId") String endpointServiceId ) {
+			@ApiParam(value = "RTMP url of the endpoint that will be stopped.", required = true) @QueryParam("endpointServiceId") String endpointServiceId
+			){
 		
 		//Get rtmpURL with broadcast
-		
 		String rtmpUrl = null;
 		
-		if(endpointServiceId != null && getDataStore().get(id) != null) {
+		if(endpointServiceId != null && getDataStore().get(id) != null && !getDataStore().get(id).getEndPointList().isEmpty()) {
 			for(Endpoint endpoint: getDataStore().get(id).getEndPointList()) {
 				if(endpoint.getEndpointServiceId().equals(endpointServiceId)) {
 					rtmpUrl = endpoint.getRtmpUrl();
