@@ -385,7 +385,7 @@ public class BroadcastRestService extends RestServiceBase{
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/rtmp-endpoint")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result removeEndpointV3(@ApiParam(value = "Broadcast id", required = true) @PathParam("id") String id, 
+	public Result removeEndpointV2(@ApiParam(value = "Broadcast id", required = true) @PathParam("id") String id, 
 			@ApiParam(value = "RTMP url of the endpoint that will be stopped.", required = true) @QueryParam("endpointServiceId") String endpointServiceId
 			){
 		

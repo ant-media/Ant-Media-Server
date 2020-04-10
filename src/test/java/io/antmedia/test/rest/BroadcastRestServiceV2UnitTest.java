@@ -616,7 +616,7 @@ public class BroadcastRestServiceV2UnitTest {
 		when(scope.getName()).thenReturn(scopeName);
 		restServiceReal.setScope(scope);
 		
-		assertFalse(restServiceReal.removeEndpoint("any_stream_not_registered", "rtmp://test.endpoint.url/server_test").isSuccess());
+		assertFalse(restServiceReal.removeEndpointV2("any_stream_not_registered", "rtmp://test.endpoint.url/server_test").isSuccess());
 		String streamId = null;
 		{
 			Broadcast createBroadcast = (Broadcast) restServiceReal.createBroadcast(broadcast, null, false).getEntity();
@@ -632,7 +632,7 @@ public class BroadcastRestServiceV2UnitTest {
 			assertTrue(result.isSuccess());
 			
 			assertEquals(1, store.get(streamId).getEndPointList().size());
-			assertTrue(restServiceReal.removeEndpointV3(streamId, endpoint.getEndpointServiceId()).isSuccess());
+			assertTrue(restServiceReal.removeEndpointV2(streamId, store.get(streamId).getEndPointList().get(0).getEndpointServiceId()).isSuccess());
 		}
 		
 		{			
@@ -656,7 +656,7 @@ public class BroadcastRestServiceV2UnitTest {
 			
 			store.updateStatus(streamId, AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 			
-			assertTrue(restServiceSpy.removeEndpointV3(streamId, endpoint.getEndpointServiceId()).isSuccess());
+			assertTrue(restServiceSpy.removeEndpointV2(streamId, store.get(streamId).getEndPointList().get(0).getEndpointServiceId()).isSuccess());
 		}
 
 	}

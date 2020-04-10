@@ -356,7 +356,9 @@ public class MuxingTest {
 					 return false;
 			 	});
 			 
-			 result = RestServiceV2Test.removeEndpoint(streamId, endpoint.getEndpointServiceId());
+			 Broadcast broadcast = RestServiceV2Test.callGetBroadcast(streamId);
+			 
+			 result = RestServiceV2Test.removeEndpoint(streamId, broadcast.getEndPointList().get(0).getEndpointServiceId());
 			 assertTrue(result.isSuccess());
 			 
 			 Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
