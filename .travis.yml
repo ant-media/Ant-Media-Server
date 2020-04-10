@@ -16,14 +16,13 @@ addons:
 
 before_install:
   - openssl aes-256-cbc -K $encrypted_5fef4fa28306_key -iv $encrypted_5fef4fa28306_iv -in codesigning.asc.enc -out codesigning.asc -d
-  - gpg --fast-import codesigning.asc
+  - gpg --batch --fast-import codesigning.asc
   - sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 2930ADAE8CAF5059EE73BB4B58712A2291FA4AD5
   - echo "deb [ arch=amd64 ] https://repo.mongodb.org/apt/ubuntu trusty/mongodb-org/3.6 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-3.6.list
   - sudo apt-get update -qq
-  - sudo apt-get install -y mongodb-org #install mongodb
-  - sudo apt-get install ffmpeg -qq # start ffmpeg
+  #install mongodb ffmpeg wondershaper
+  - sudo apt-get install mongodb-org ffmpeg wondershaper -qq -y
   - sudo service mongod start  # start mongo db
-  - sudo apt-get install wondershaper
   - sudo git clone --depth=1 https://github.com/ant-media/utilities.git /usr/local/onvif
     # get parent project
   - (if [ $(git ls-remote https://github.com/ant-media/ant-media-server-parent.git $TRAVIS_BRANCH  | wc -l) == "1" ];  
