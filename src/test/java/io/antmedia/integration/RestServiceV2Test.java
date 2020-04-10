@@ -1152,9 +1152,9 @@ public class RestServiceV2Test {
 
 	}
 	
-	public static Result removeEndpoint(String broadcastId, String serviceEndpointId) throws Exception 
+	public static Result removeEndpoint(String broadcastId, String endpointServiceId) throws Exception 
 	{
-		String url = ROOT_SERVICE_URL + "/v2/broadcasts/"+ broadcastId +"/endpoint?serviceEndpointId=" + serviceEndpointId;
+		String url = ROOT_SERVICE_URL + "/v2/broadcasts/"+ broadcastId +"/endpoint?endpointServiceId=" + endpointServiceId;
 		
 		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 		
