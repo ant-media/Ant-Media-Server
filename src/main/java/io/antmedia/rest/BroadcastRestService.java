@@ -21,6 +21,7 @@ import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.StreamIdValidator;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConferenceRoom;
+import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointChannel;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.TensorFlowObject;
@@ -287,6 +288,7 @@ public class BroadcastRestService extends RestServiceBase{
 		return addSocialEndpoint(id, endpointServiceId);
 	}
 
+	@Deprecated
 	@ApiOperation(value = "Add a third pary rtmp end point to the stream. It supports adding after broadcast is started ", notes = "", response = Result.class)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
@@ -314,6 +316,40 @@ public class BroadcastRestService extends RestServiceBase{
 		return result;
 	}
 	
+	@ApiOperation(value = "Add a third pary rtmp end point to the stream. It supports adding after broadcast is started ", notes = "", response = Result.class)
+	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/{id}/endpoint")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result addEndpointV2(@ApiParam(value = "Broadcast id", required = true) @PathParam("id") String id,
+			@ApiParam(value = "RTMP url of the endpoint that stream will be republished. If required, please encode the URL", required = true) Endpoint endpoint) {
+		
+		String rtmpUrl = null;
+		Result result = new Result(false);
+		
+		if(endpoint != null && endpoint.getRtmpUrl() != null) {
+			rtmpUrl = endpoint.getRtmpUrl();
+			result = super.addEndpoint(id, endpoint);
+		}
+		
+		if (result.isSuccess()) 
+		{
+			String status = getDataStore().get(id).getStatus();
+			if (status.equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) 
+			{
+				boolean started = getMuxAdaptor(id).startRtmpStreaming(rtmpUrl);
+				result.setSuccess(started);
+			}
+		}
+		else {
+			if (logger.isErrorEnabled()) {
+				logger.error("Rtmp endpoint({}) was not added to the stream: {}", rtmpUrl != null ? rtmpUrl.replaceAll("[\n|\r|\t]", "_") : null , id.replaceAll("[\n|\r|\t]", "_"));
+			}
+		}
+		
+		return result;
+	}
+	
 	@ApiOperation(value = "Remove third pary rtmp end point from the stream. For the stream that is broadcasting, it will stop immediately", notes = "", response = Result.class)
 	@DELETE
 	@Consumes(MediaType.APPLICATION_JSON)
@@ -321,8 +357,22 @@ public class BroadcastRestService extends RestServiceBase{
 	@Produces(MediaType.APPLICATION_JSON)
 	@Override
 	public Result removeEndpoint(@ApiParam(value = "Broadcast id", required = true) @PathParam("id") String id, 
-			@ApiParam(value = "RTMP url of the endpoint that will be stopped.", required = true) @QueryParam("rtmpUrl") String rtmpUrl ) {
+			@ApiParam(value = "RTMP url of the endpoint that will be stopped.", required = true) @QueryParam("endpointServiceId") String endpointServiceId ) {
+		
+		//Get rtmpURL with broadcast
+		
+		String rtmpUrl = null;
+		
+		if(endpointServiceId != null && getDataStore().get(id) != null) {
+			for(Endpoint endpoint: getDataStore().get(id).getEndPointList()) {
+				if(endpoint.getEndpointServiceId().equals(endpointServiceId)) {
+					rtmpUrl = endpoint.getRtmpUrl();
+				}
+			}
+		}
+		
 		Result result = super.removeEndpoint(id, rtmpUrl);
+		
 		if (result.isSuccess()) 
 		{
 			String status = getDataStore().get(id).getStatus();
@@ -332,13 +382,9 @@ public class BroadcastRestService extends RestServiceBase{
 				result.setSuccess(started);
 			}
 		}
-		else {	
-		
-			if (logger.isErrorEnabled()) {
-				logger.error("Rtmp endpoint({}) was not removed from the stream: {}", rtmpUrl != null ? rtmpUrl.replaceAll("[\n|\r|\t]", "_") : null , id.replaceAll("[\n|\r|\t]", "_"));
-			}
+		else if (logger.isErrorEnabled()) {	
+			logger.error("Rtmp endpoint({}) was not removed from the stream: {}", rtmpUrl != null ? rtmpUrl.replaceAll("[\n|\r|\t]", "_") : null , id.replaceAll("[\n|\r|\t]", "_"));
 		}
-		
 		return result;
 	}
 

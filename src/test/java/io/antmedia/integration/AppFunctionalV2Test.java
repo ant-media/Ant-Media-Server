@@ -47,6 +47,7 @@ import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.EncoderSettings;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.RestServiceBase.BroadcastStatistics;
@@ -166,9 +167,11 @@ public class AppFunctionalV2Test {
 			RestServiceV2Test restService = new RestServiceV2Test();
 
 			Broadcast source=restService.createBroadcast("source_stream");
-			Broadcast endpoint=restService.createBroadcast("endpoint_stream");
+			Broadcast endpointStream=restService.createBroadcast("endpoint_stream");
 
-			restService.addEndpoint(source.getStreamId(), endpoint.getRtmpURL());
+			Endpoint endpoint = new Endpoint();
+			endpoint.setRtmpUrl(null);
+			restService.addEndpoint(source.getStreamId(), endpoint);
 
 			Thread.sleep(1000);
 

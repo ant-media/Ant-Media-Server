@@ -25,6 +25,7 @@ import java.util.concurrent.TimeUnit;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.muxer.MuxAdaptor;
 import org.awaitility.Awaitility;
 import org.bytedeco.javacpp.avcodec.AVCodecContext;
@@ -337,8 +338,14 @@ public class MuxingTest {
 		
 		 String streamIdDynamic = "dynamic_stream" + (int)(Math.random() * 999999);
 		 String dynamicRtmpURL = "rtmp://localhost/LiveApp/" + streamIdDynamic;
+		 String dynamicEndpointServiceId = "custom123";
+		 
+		 Endpoint endpoint = new Endpoint();
+		 endpoint.setRtmpUrl(dynamicRtmpURL);
+		 endpoint.setEndpointServiceId(dynamicEndpointServiceId);
+		 
 		 try {
-			Result result = RestServiceV2Test.addEndpoint(streamId, dynamicRtmpURL);
+			Result result = RestServiceV2Test.addEndpoint(streamId, endpoint);
 			assertTrue(result.isSuccess());
 			
 			
@@ -351,7 +358,7 @@ public class MuxingTest {
 					 return false;
 			 	});
 			 
-			 result = RestServiceV2Test.removeEndpoint(streamId, dynamicRtmpURL);
+			 result = RestServiceV2Test.removeEndpoint(streamId, endpoint.getEndpointServiceId());
 			 assertTrue(result.isSuccess());
 			 
 			 Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)

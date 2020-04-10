@@ -1152,9 +1152,9 @@ public class RestServiceV2Test {
 
 	}
 	
-	public static Result removeEndpoint(String broadcastId, String rtmpUrl) throws Exception 
+	public static Result removeEndpoint(String broadcastId, String serviceEndpointId) throws Exception 
 	{
-		String url = ROOT_SERVICE_URL + "/v2/broadcasts/"+ broadcastId +"/endpoint?rtmpUrl=" + rtmpUrl;
+		String url = ROOT_SERVICE_URL + "/v2/broadcasts/"+ broadcastId +"/endpoint?serviceEndpointId=" + serviceEndpointId;
 		
 		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 		
@@ -1175,14 +1175,16 @@ public class RestServiceV2Test {
 		return tmp;
 	}
 
-	public static Result addEndpoint(String broadcastId, String rtmpUrl) throws Exception 
+	public static Result addEndpoint(String broadcastId, Endpoint endpoint) throws Exception 
 	{
-		String url = ROOT_SERVICE_URL + "/v2/broadcasts/"+ broadcastId +"/endpoint?rtmpUrl=" + rtmpUrl;
+		
+		String url = ROOT_SERVICE_URL + "/v2/broadcasts/"+ broadcastId +"/endpoint";
 		
 		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 
 		HttpUriRequest post = RequestBuilder.post().setUri(url)
-				.setHeader(HttpHeaders.CONTENT_TYPE, "application/json").build();
+				.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+				.setEntity(new StringEntity(gson.toJson(endpoint))).build();
 
 		CloseableHttpResponse response = client.execute(post);
 
@@ -1497,9 +1499,15 @@ public class RestServiceV2Test {
 
 			// check that it is succes full
 			assertTrue(result.isSuccess());
+			
+			
+			String rtmpUrl = "rtmp://dfjdksafjlaskfjalkfj";
+			
+			Endpoint endpoint = new Endpoint();
+			endpoint.setRtmpUrl(rtmpUrl);
 
 			// add generic endpoint
-			result = addEndpoint(broadcast.getStreamId().toString(), "rtmp://dfjdksafjlaskfjalkfj");
+			result = addEndpoint(broadcast.getStreamId().toString(), endpoint);
 
 			// check that it is successfull
 			assertTrue(result.isSuccess());
@@ -1526,8 +1534,14 @@ public class RestServiceV2Test {
 			Broadcast broadcast = createBroadcast(null);
 
 			String streamId = RandomStringUtils.randomAlphabetic(6);
+			
+			String rtmpUrl = "rtmp://localhost/LiveApp/" + streamId;
+			
+			Endpoint endpoint = new Endpoint();
+			endpoint.setRtmpUrl(rtmpUrl);
+			
 			// add generic endpoint
-			Result result = addEndpoint(broadcast.getStreamId().toString(), "rtmp://localhost/LiveApp/" + streamId);
+			Result result = addEndpoint(broadcast.getStreamId().toString(), endpoint);
 
 			// check that it is successfull
 			assertTrue(result.isSuccess());

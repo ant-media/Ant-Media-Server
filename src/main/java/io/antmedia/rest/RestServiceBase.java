@@ -529,6 +529,7 @@ public abstract class RestServiceBase {
 		return new Result(result, message);
 	}
 
+	@Deprecated
 	public Result addEndpoint(String id, String rtmpUrl) {
 		boolean success = false;
 		String message = null;
@@ -539,6 +540,22 @@ public abstract class RestServiceBase {
 				endpoint.setRtmpUrl(rtmpUrl);
 				endpoint.type = "generic";
 
+				success = getDataStore().addEndpoint(id, endpoint);
+			}
+		} catch (Exception e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+		}
+
+		return new Result(success, message);
+	}
+
+
+	public Result addEndpoint(String id, Endpoint endpoint) {
+		boolean success = false;
+		String message = null;
+		try {
+			if (validateStreamURL(endpoint.getRtmpUrl())) 
+			{
 				success = getDataStore().addEndpoint(id, endpoint);
 			}
 		} catch (Exception e) {
