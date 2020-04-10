@@ -170,7 +170,8 @@ public class AppFunctionalV2Test {
 			Broadcast endpointStream=restService.createBroadcast("endpoint_stream");
 
 			Endpoint endpoint = new Endpoint();
-			endpoint.setRtmpUrl(null);
+			endpoint.setRtmpUrl(endpointStream.getRtmpURL());
+			
 			restService.addEndpoint(source.getStreamId(), endpoint);
 
 			Thread.sleep(1000);

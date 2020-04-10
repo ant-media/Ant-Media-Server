@@ -796,7 +796,7 @@ public class RestServiceV2Test {
 	}
 
 	@Test
-	public void testBroadcasGet() {
+	public void testBroadcastGet() {
 		try {
 
 			Broadcast tmp = callCreateBroadcast(0);
@@ -1154,7 +1154,7 @@ public class RestServiceV2Test {
 	
 	public static Result removeEndpoint(String broadcastId, String endpointServiceId) throws Exception 
 	{
-		String url = ROOT_SERVICE_URL + "/v2/broadcasts/"+ broadcastId +"/endpoint?endpointServiceId=" + endpointServiceId;
+		String url = ROOT_SERVICE_URL + "/v2/broadcasts/"+ broadcastId +"/rtmp-endpoint?endpointServiceId=" + endpointServiceId;
 		
 		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 		
@@ -1177,7 +1177,7 @@ public class RestServiceV2Test {
 
 	public static Result addEndpoint(String broadcastId, Endpoint endpoint) throws Exception 
 	{		
-		String url = ROOT_SERVICE_URL + "/v2/broadcasts/"+ broadcastId +"/endpointV3";
+		String url = ROOT_SERVICE_URL + "/v2/broadcasts/"+ broadcastId +"/rtmp-endpoint";
 		
 		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 
@@ -1535,9 +1535,9 @@ public class RestServiceV2Test {
 			String streamId = RandomStringUtils.randomAlphabetic(6);
 			
 			String rtmpUrl = "rtmp://localhost/LiveApp/" + streamId;
-			String endpointServiceId = "custom"+RandomStringUtils.randomAlphabetic(6);
 			
-			Endpoint endpoint = new Endpoint(endpointServiceId, "generic", rtmpUrl);
+			Endpoint endpoint = new Endpoint();
+			endpoint.setRtmpUrl(rtmpUrl);
 
 			// add generic endpoint
 			Result result = addEndpoint(broadcast.getStreamId().toString(), endpoint);

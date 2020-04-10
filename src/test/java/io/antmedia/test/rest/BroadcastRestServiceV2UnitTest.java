@@ -627,13 +627,12 @@ public class BroadcastRestServiceV2UnitTest {
 			
 			Endpoint endpoint = new Endpoint();
 			endpoint.setRtmpUrl(endpointURL);
-			endpoint.setEndpointServiceId("custom1234");
 			
 			Result result = restServiceReal.addEndpointV3(streamId, endpoint);
 			assertTrue(result.isSuccess());
 			
 			assertEquals(1, store.get(streamId).getEndPointList().size());
-			assertTrue(restServiceReal.removeEndpoint(streamId, endpoint.getEndpointServiceId()).isSuccess());
+			assertTrue(restServiceReal.removeEndpointV3(streamId, endpoint.getEndpointServiceId()).isSuccess());
 		}
 		
 		{			
@@ -649,7 +648,6 @@ public class BroadcastRestServiceV2UnitTest {
 			
 			Endpoint endpoint = new Endpoint();
 			endpoint.setRtmpUrl(endpointURL);
-			endpoint.setEndpointServiceId("custom1234");
 
 			Result result = restServiceSpy.addEndpointV3(streamId, endpoint);
 			assertTrue(result.isSuccess());
@@ -658,7 +656,7 @@ public class BroadcastRestServiceV2UnitTest {
 			
 			store.updateStatus(streamId, AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 			
-			assertTrue(restServiceSpy.removeEndpoint(streamId, endpoint.getEndpointServiceId()).isSuccess());
+			assertTrue(restServiceSpy.removeEndpointV3(streamId, endpoint.getEndpointServiceId()).isSuccess());
 		}
 
 	}
@@ -688,9 +686,9 @@ public class BroadcastRestServiceV2UnitTest {
 		assertNotNull(streamId);
 		
 		String endpointURL = "rtmp://test.endpoint.url/test";
-		String endpointServiceId = "custom123";
 		
-		Endpoint endpoint = new Endpoint(endpointServiceId,"generic", endpointURL);
+		Endpoint endpoint = new Endpoint();
+		endpoint.setRtmpUrl(endpointURL);
 
 		Result result = restServiceReal.addEndpointV3(streamId, endpoint);
 		assertTrue(result.isSuccess());
@@ -717,7 +715,6 @@ public class BroadcastRestServiceV2UnitTest {
 			
 			Endpoint endpoint3 = new Endpoint();
 			endpoint3.setRtmpUrl("rtmp://test.endpoint.url/any_stream_test");
-			endpoint3.setEndpointServiceId("custom123");
 			
 			store.updateStatus(broadcast.getStreamId(), AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 			assertTrue(restServiceSpy.addEndpointV3(streamId, endpoint3).isSuccess());

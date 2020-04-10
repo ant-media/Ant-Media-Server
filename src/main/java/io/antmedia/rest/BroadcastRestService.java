@@ -15,6 +15,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.stereotype.Component;
 
 import io.antmedia.AntMediaApplicationAdapter;
@@ -291,7 +292,6 @@ public class BroadcastRestService extends RestServiceBase{
 	
 
 	@Deprecated
-	@ApiOperation(value = "Add a third pary rtmp end point to the stream. It supports adding after broadcast is started ", notes = "", response = Result.class)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/endpoint")
@@ -321,16 +321,15 @@ public class BroadcastRestService extends RestServiceBase{
 	@ApiOperation(value = "Add a third pary rtmp end point to the stream. It supports adding after broadcast is started ", notes = "", response = Result.class)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
-	@Path("/{id}/endpointV3")
+	@Path("/{id}/rtmp-endpoint")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result addEndpointV3(@ApiParam(value = "Broadcast id", required = true) @PathParam("id") String id,
 			@ApiParam(value = "RTMP url of the endpoint that stream will be republished. If required, please encode the URL", required = true) Endpoint endpoint) {
 		
 		String rtmpUrl = null;
 		Result result = new Result(false);
-
 		
-		if(endpoint != null && endpoint.getRtmpUrl() != null && endpoint.getEndpointServiceId() != null) {
+		if(endpoint != null && endpoint.getRtmpUrl() != null) {
 
 			rtmpUrl = endpoint.getRtmpUrl();
 			result = super.addEndpoint(id, endpoint);
@@ -354,13 +353,39 @@ public class BroadcastRestService extends RestServiceBase{
 		return result;
 	}
 	
-	@ApiOperation(value = "Remove third pary rtmp end point from the stream. For the stream that is broadcasting, it will stop immediately", notes = "", response = Result.class)
+	@Deprecated
 	@DELETE
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/endpoint")
 	@Produces(MediaType.APPLICATION_JSON)
-	@Override
 	public Result removeEndpoint(@ApiParam(value = "Broadcast id", required = true) @PathParam("id") String id, 
+			@ApiParam(value = "RTMP url of the endpoint that will be stopped.", required = true) @QueryParam("rtmpUrl") String rtmpUrl ) {
+		Result result = super.removeEndpoint(id, rtmpUrl);
+		if (result.isSuccess()) 
+		{
+			String status = getDataStore().get(id).getStatus();
+			if (status.equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) 
+			{
+				boolean started = getMuxAdaptor(id).stopRtmpStreaming(rtmpUrl);
+				result.setSuccess(started);
+			}
+		}
+		else {	
+		
+			if (logger.isErrorEnabled()) {
+				logger.error("Rtmp endpoint({}) was not removed from the stream: {}", rtmpUrl != null ? rtmpUrl.replaceAll("[\n|\r|\t]", "_") : null , id.replaceAll("[\n|\r|\t]", "_"));
+			}
+		}
+		
+		return result;
+	}
+	
+	@ApiOperation(value = "Remove third pary rtmp end point from the stream. For the stream that is broadcasting, it will stop immediately", notes = "", response = Result.class)
+	@DELETE
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/{id}/rtmp-endpoint")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result removeEndpointV3(@ApiParam(value = "Broadcast id", required = true) @PathParam("id") String id, 
 			@ApiParam(value = "RTMP url of the endpoint that will be stopped.", required = true) @QueryParam("endpointServiceId") String endpointServiceId
 			){
 		

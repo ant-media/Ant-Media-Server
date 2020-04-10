@@ -556,6 +556,10 @@ public abstract class RestServiceBase {
 		String message = null;
 		
 		endpoint.setType(ENDPOINT_GENERIC);
+		//generate custom endpoint invidual ID
+		String endpointServiceId = "custom"+RandomStringUtils.randomAlphabetic(6);		
+		endpoint.setEndpointServiceId(endpointServiceId);
+
 		
 		try {
 			if (validateStreamURL(endpoint.getRtmpUrl())) 
@@ -569,6 +573,7 @@ public abstract class RestServiceBase {
 		return new Result(success, message);
 	}
 
+	
 	public Result removeEndpoint(String id, String rtmpUrl) 
 	{
 		Endpoint endpoint = new Endpoint();

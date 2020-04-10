@@ -338,11 +338,9 @@ public class MuxingTest {
 		
 		 String streamIdDynamic = "dynamic_stream" + (int)(Math.random() * 999999);
 		 String dynamicRtmpURL = "rtmp://localhost/LiveApp/" + streamIdDynamic;
-		 String dynamicEndpointServiceId = "custom123";
 		 
 		 Endpoint endpoint = new Endpoint();
 		 endpoint.setRtmpUrl(dynamicRtmpURL);
-		 endpoint.setEndpointServiceId(dynamicEndpointServiceId);
 		 
 		 try {
 			Result result = RestServiceV2Test.addEndpoint(streamId, endpoint);
