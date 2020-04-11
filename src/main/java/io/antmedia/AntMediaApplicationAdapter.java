@@ -56,7 +56,6 @@ import io.antmedia.datastore.preference.PreferenceStore;
 import io.antmedia.filter.StreamAcceptFilter;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.muxer.IAntMediaStreamHandler;
-import io.antmedia.muxer.IStreamAcceptFilter;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.rest.RestServiceBase;
 import io.antmedia.rest.model.Result;
@@ -147,6 +146,11 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			
 			clusterNotifier.registerSettingUpdateListener(getAppSettings().getAppName(), settings -> updateSettings(settings, false));
 		}
+		//Reset Broadcasts status & Broadcasts viewer counts
+		else {
+			Result result = resetBroadcast();
+			logger.info("Result: {}" + " Message: {} ", result.isSuccess() , result.getMessage());
+		}
 
 		vertx.setTimer(1, l -> {
 				streamFetcherManager = new StreamFetcherManager(vertx, getDataStore(),app);
@@ -208,6 +212,43 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		//not used
 	}
 
+	public Result resetBroadcast(){
+		Result result = new Result(false);
+		
+		long broadcastCount = getDataStore().getBroadcastCount();
+		int successfulOperations = 0;
+		int zombieStreamCount = 0;
+		for (int i = 0; (i * DataStore.MAX_ITEM_IN_ONE_LIST) < broadcastCount; i++) {
+			List<Broadcast> broadcastList = getDataStore().getBroadcastList(i*DataStore.MAX_ITEM_IN_ONE_LIST, DataStore.MAX_ITEM_IN_ONE_LIST);
+			for (Broadcast broadcast : broadcastList) 
+			{
+				if (broadcast.isZombi()) {
+					zombieStreamCount++;
+					dataStore.delete(broadcast.getStreamId());	
+				}
+				else {
+					broadcast.setHlsViewerCount(0);
+					broadcast.setWebRTCViewerCount(0);
+					broadcast.setRtmpViewerCount(0);
+					broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+					String streamId = getDataStore().save(broadcast);
+					
+					if (streamId != null) {
+						successfulOperations++;
+					}
+				}
+			}
+		}
+		
+		result.setMessage("");
+		
+		if (successfulOperations == broadcastCount) {
+			result.setSuccess(true);
+			result.setMessage("Successfull operations: "+ successfulOperations + " total operations: " + broadcastCount + " total deleted zombie streams: " + zombieStreamCount);
+		}
+		return result;
+	}
+	
 	public boolean synchUserVoDFolder(String oldFolderPath, String vodFolderPath) 
 	{
 		boolean result = false;
