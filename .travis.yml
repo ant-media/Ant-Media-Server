@@ -4,8 +4,6 @@ jdk:
   - openjdk8
 
 
-sudo: required
-
 # Sonar cloud addons on travis has some issues so that it's used directly 
 addons:
   sonarcloud:
@@ -100,7 +98,7 @@ after_failure:
 deploy:
   - provider: script
     script: "mvn deploy -P assemble -DskipTests --settings mvn-settings.xml"
-    skip_cleanup: true
+    cleanup: true
     on:
       tags: false
       all_branches: true
@@ -109,7 +107,7 @@ deploy:
   
   - provider: script
     script: "mvn deploy -P assemble -DskipTests --settings mvn-settings.xml"
-    skip_cleanup: true
+    cleanup: true
     on:
       #deploy to maven if it is a release tagged
       tags: true
@@ -117,7 +115,7 @@ deploy:
   
   - provider: script
     script: "curl -g --ftp-create-dirs -T target/swagger/swagger.json -u $SWAGGER_FTP_USERNAME:$SWAGGER_FTP_PASSWORD $SWAGGER_FTP_URL/$RELEASE_VERSION/"
-    skip_cleanup: true
+    cleanup: true
     on:
       #deploy to website if it is a release tagged
       tags: true
