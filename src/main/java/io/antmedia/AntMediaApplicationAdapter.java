@@ -895,6 +895,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			Queue<StreamFetcher> fetchers = streamFetcherManager.getStreamFetcherList();
 			for (StreamFetcher streamFetcher : fetchers) {
 				streamFetcher.stopStream();
+				fetchers.remove(streamFetcher);
 			}
 		}
 	}
