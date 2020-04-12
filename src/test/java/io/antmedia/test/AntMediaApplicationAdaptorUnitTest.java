@@ -153,6 +153,69 @@ public class AntMediaApplicationAdaptorUnitTest {
 		verify(clusterNotifier, times(1)).getClusterStore();
 		verify(clusterStore, times(1)).saveSettings(settings);
 	}
+	
+	@Test
+	public void testResetBroadcasts() 
+	{
+		IScope scope = mock(IScope.class);
+		when(scope.getName()).thenReturn("junit");
+		
+		DataStore dataStore = new InMemoryDataStore("dbname");
+		DataStoreFactory dsf = Mockito.mock(DataStoreFactory.class);
+		Mockito.when(dsf.getDataStore()).thenReturn(dataStore);
+		
+		AntMediaApplicationAdapter spyAdapter = Mockito.spy(adapter);
+		IContext context = mock(IContext.class);
+		when(context.getBean(spyAdapter.VERTX_BEAN_NAME)).thenReturn(vertx);
+		
+		when(scope.getContext()).thenReturn(context);
+		spyAdapter.setDataStoreFactory(dsf);
+		
+		Mockito.doReturn(dataStore).when(spyAdapter).getDataStore();
+		spyAdapter.setScope(scope);
+		
+		
+		// Add 1. Broadcast
+		Broadcast broadcast = new Broadcast();
+		broadcast.setZombi(true);		
+		
+		
+		// Add 2. Broadcast
+		Broadcast broadcast2 = new Broadcast();
+		
+		broadcast2.setWebRTCViewerCount(100);
+		broadcast2.setRtmpViewerCount(10);
+		broadcast2.setHlsViewerCount(1000);
+		
+		broadcast2.setStatus(spyAdapter.BROADCAST_STATUS_BROADCASTING);
+		
+		
+		// Add 3. Broadcast
+		Broadcast broadcast3 = new Broadcast();
+		broadcast3.setStatus(spyAdapter.BROADCAST_STATUS_PREPARING);
+
+		dataStore.save(broadcast);
+		dataStore.save(broadcast2);
+		dataStore.save(broadcast3);
+		
+		// Should 3 broadcast in DB
+		assertEquals(3, dataStore.getBroadcastCount());
+
+		spyAdapter.appStart(scope);
+		
+		// Should 2 broadcast in DB, because delete zombie stream
+		assertEquals(2, dataStore.getBroadcastCount());
+		
+		List<Broadcast> broadcastList = dataStore.getBroadcastList(0, 10);
+		for (Broadcast testBroadcast : broadcastList) 
+		{
+			assertEquals(0, testBroadcast.getWebRTCViewerCount());
+			assertEquals(0, testBroadcast.getHlsViewerCount());
+			assertEquals(0, testBroadcast.getRtmpViewerCount());
+			
+			assertEquals(spyAdapter.BROADCAST_STATUS_FINISHED, testBroadcast.getStatus());
+		}		
+	}
 
 	@Test
 	public void testSynchUserVoD() {

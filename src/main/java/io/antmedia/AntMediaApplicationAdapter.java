@@ -148,7 +148,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		}
 		//Reset Broadcasts status & Broadcasts viewer counts
 		else {
-			Result result = resetBroadcast();
+			Result result = resetBroadcasts();
 			logger.info("Result: {}" + " Message: {} ", result.isSuccess() , result.getMessage());
 		}
 
@@ -212,7 +212,8 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		//not used
 	}
 
-	public Result resetBroadcast(){
+	public Result resetBroadcasts(){
+		
 		Result result = new Result(false);
 		
 		long broadcastCount = getDataStore().getBroadcastCount();
@@ -220,11 +221,12 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		int zombieStreamCount = 0;
 		for (int i = 0; (i * DataStore.MAX_ITEM_IN_ONE_LIST) < broadcastCount; i++) {
 			List<Broadcast> broadcastList = getDataStore().getBroadcastList(i*DataStore.MAX_ITEM_IN_ONE_LIST, DataStore.MAX_ITEM_IN_ONE_LIST);
+
 			for (Broadcast broadcast : broadcastList) 
 			{
 				if (broadcast.isZombi()) {
 					zombieStreamCount++;
-					dataStore.delete(broadcast.getStreamId());	
+					getDataStore().delete(broadcast.getStreamId());	
 				}
 				else {
 					broadcast.setHlsViewerCount(0);
@@ -242,7 +244,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		
 		result.setMessage("");
 		
-		if (successfulOperations == broadcastCount) {
+		if ((successfulOperations+zombieStreamCount) == broadcastCount) {
 			result.setSuccess(true);
 			result.setMessage("Successfull operations: "+ successfulOperations + " total operations: " + broadcastCount + " total deleted zombie streams: " + zombieStreamCount);
 		}
