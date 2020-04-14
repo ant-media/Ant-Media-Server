@@ -400,7 +400,7 @@ public class MuxingTest {
 			 
 			 Broadcast broadcast = RestServiceV2Test.callGetBroadcast(streamId);
 			 
-			 result = RestServiceV2Test.removeEndpoint(streamId, broadcast.getEndPointList().get(0).getEndpointServiceId());
+			 result = RestServiceV2Test.removeEndpointV2(streamId, broadcast.getEndPointList().get(0).getEndpointServiceId());
 			 assertTrue(result.isSuccess());
 			 
 			 Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
