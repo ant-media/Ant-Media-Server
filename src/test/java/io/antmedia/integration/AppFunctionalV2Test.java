@@ -167,12 +167,62 @@ public class AppFunctionalV2Test {
 			RestServiceV2Test restService = new RestServiceV2Test();
 
 			Broadcast source=restService.createBroadcast("source_stream");
+			Broadcast endpoint=restService.createBroadcast("endpoint_stream");
+
+			restService.addEndpoint(source.getStreamId(), endpoint.getRtmpURL());
+
+			Thread.sleep(1000);
+
+			assertNotNull(restService.getBroadcast(source.getStreamId()).getEndPointList());
+
+			Process rtmpSendingProcess = execute(ffmpegPath
+					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
+					+ source.getStreamId());
+
+			//wait for fetching stream
+			Thread.sleep(5000);
+
+			rtmpSendingProcess.destroy();
+
+			//wait for creating mp4 files
+
+			String sourceURL = "http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + source.getStreamId() + ".mp4";
+
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
+				return MuxingTest.getByteArray(sourceURL) != null;
+			});
+
+			String endpointURL = "http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + endpoint.getStreamId() + ".mp4";
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
+				return MuxingTest.getByteArray(endpointURL) != null;
+			});
+
+			//test mp4 files
+			assertTrue(MuxingTest.testFile(sourceURL));
+			assertTrue(MuxingTest.testFile(endpointURL));
+
+			restService.deleteBroadcast(source.getStreamId());
+			restService.deleteBroadcast(endpoint.getStreamId());
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+	}
+	
+	@Test
+	public void testSetUpEndPointsV2() {
+
+		try {
+			RestServiceV2Test restService = new RestServiceV2Test();
+
+			Broadcast source=restService.createBroadcast("source_stream");
 			Broadcast endpointStream=restService.createBroadcast("endpoint_stream");
 
 			Endpoint endpoint = new Endpoint();
 			endpoint.setRtmpUrl(endpointStream.getRtmpURL());
 			
-			restService.addEndpoint(source.getStreamId(), endpoint);
+			restService.addEndpointV2(source.getStreamId(), endpoint);
 
 			Thread.sleep(1000);
 

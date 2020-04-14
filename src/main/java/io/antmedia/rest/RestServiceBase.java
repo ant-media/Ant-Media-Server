@@ -550,7 +550,6 @@ public abstract class RestServiceBase {
 		return new Result(success, message);
 	}
 
-
 	public Result addEndpoint(String id, Endpoint endpoint) {
 		boolean success = false;
 		String message = null;
@@ -573,7 +572,7 @@ public abstract class RestServiceBase {
 		return new Result(success, message);
 	}
 
-	
+
 	public Result removeEndpoint(String id, String rtmpUrl) 
 	{
 		Endpoint endpoint = new Endpoint();

@@ -1152,7 +1152,30 @@ public class RestServiceV2Test {
 
 	}
 	
-	public static Result removeEndpoint(String broadcastId, String endpointServiceId) throws Exception 
+	public static Result removeEndpoint(String broadcastId, String rtmpUrl) throws Exception 
+	{
+		String url = ROOT_SERVICE_URL + "/v2/broadcasts/"+ broadcastId +"/endpoint?rtmpUrl=" + rtmpUrl;
+		
+		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+		
+		HttpUriRequest request = RequestBuilder.delete().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json").build();
+	
+		CloseableHttpResponse response = client.execute(request);
+		
+		StringBuffer result = readResponse(response);
+		
+		if (response.getStatusLine().getStatusCode() != 200) {
+			throw new Exception(result.toString());
+		}
+		
+		Gson gson = new Gson();
+		System.out.println("result string: " + result.toString());
+		Result tmp = gson.fromJson(result.toString(), Result.class);
+
+		return tmp;
+	}
+	
+	public static Result removeEndpointV2(String broadcastId, String endpointServiceId) throws Exception 
 	{
 		String url = ROOT_SERVICE_URL + "/v2/broadcasts/"+ broadcastId +"/rtmp-endpoint?endpointServiceId=" + endpointServiceId;
 		
@@ -1174,8 +1197,31 @@ public class RestServiceV2Test {
 
 		return tmp;
 	}
+	
+	public static Result addEndpoint(String broadcastId, String rtmpUrl) throws Exception 
+	{
+		String url = ROOT_SERVICE_URL + "/v2/broadcasts/"+ broadcastId +"/endpoint?rtmpUrl=" + rtmpUrl;
+		
+		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 
-	public static Result addEndpoint(String broadcastId, Endpoint endpoint) throws Exception 
+		HttpUriRequest post = RequestBuilder.post().setUri(url)
+				.setHeader(HttpHeaders.CONTENT_TYPE, "application/json").build();
+
+		CloseableHttpResponse response = client.execute(post);
+
+		StringBuffer result = readResponse(response);
+
+		if (response.getStatusLine().getStatusCode() != 200) {
+			throw new Exception(result.toString());
+		}
+		Gson gson = new Gson();
+		System.out.println("result string: " + result.toString());
+		Result tmp = gson.fromJson(result.toString(), Result.class);
+
+		return tmp;
+	}
+
+	public static Result addEndpointV2(String broadcastId, Endpoint endpoint) throws Exception 
 	{		
 		String url = ROOT_SERVICE_URL + "/v2/broadcasts/"+ broadcastId +"/rtmp-endpoint";
 		
@@ -1498,15 +1544,9 @@ public class RestServiceV2Test {
 
 			// check that it is succes full
 			assertTrue(result.isSuccess());
-			
-			
-			String rtmpUrl = "rtmp://dfjdksafjlaskfjalkfj";
-			
-			Endpoint endpoint = new Endpoint();
-			endpoint.setRtmpUrl(rtmpUrl);
 
 			// add generic endpoint
-			result = addEndpoint(broadcast.getStreamId().toString(), endpoint);
+			result = addEndpoint(broadcast.getStreamId().toString(), "rtmp://dfjdksafjlaskfjalkfj");
 
 			// check that it is successfull
 			assertTrue(result.isSuccess());
@@ -1525,7 +1565,102 @@ public class RestServiceV2Test {
 	}
 
 	@Test
+	public void testAddEndpointV2() {
+		try {
+
+			Broadcast broadcast = createBroadcast(null);
+
+			List<SocialEndpointCredentials> socialEndpointServices = getSocialEndpointServices();
+			assertTrue(!socialEndpointServices.isEmpty());
+			// add twitter endpoint
+			Result result = addSocialEndpoint(broadcast.getStreamId().toString(), socialEndpointServices.get(0).getId());
+
+			// check that it is succes full
+			assertTrue(result.isSuccess());
+			
+			
+			String rtmpUrl = "rtmp://dfjdksafjlaskfjalkfj";
+			
+			Endpoint endpoint = new Endpoint();
+			endpoint.setRtmpUrl(rtmpUrl);
+
+			// add generic endpoint
+			result = addEndpointV2(broadcast.getStreamId().toString(), endpoint);
+
+			// check that it is successfull
+			assertTrue(result.isSuccess());
+
+			// get endpoint list
+			broadcast = getBroadcast(broadcast.getStreamId().toString());
+
+			// check that 2 element exist
+			assertNotNull(broadcast.getEndPointList());
+			assertEquals(2, broadcast.getEndPointList().size());
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+	}
+	
+	@Test
 	public void testAddEndpointCrossCheck() {
+		try {
+			
+			List<Broadcast> broadcastList = callGetBroadcastList();
+			int size = broadcastList.size();
+			Broadcast broadcast = createBroadcast(null);
+
+			String streamId = RandomStringUtils.randomAlphabetic(6);
+			// add generic endpoint
+			Result result = addEndpoint(broadcast.getStreamId().toString(), "rtmp://localhost/LiveApp/" + streamId);
+
+			// check that it is successfull
+			assertTrue(result.isSuccess());
+
+			// get endpoint list
+			broadcast = getBroadcast(broadcast.getStreamId().toString());
+
+			// check that 4 element exist
+			assertNotNull(broadcast.getEndPointList());
+			assertEquals(1, broadcast.getEndPointList().size());
+
+			broadcastList = callGetBroadcastList();
+			assertEquals(size+1, broadcastList.size());
+
+			Process execute = execute(
+					ffmpegPath + " -re -i src/test/resources/test.flv -codec copy -f flv rtmp://localhost/LiveApp/"
+							+ broadcast.getStreamId());
+
+
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+				//size should +2 because we restream again into the server
+				return size+2 == callGetBroadcastList().size();
+			});
+
+			execute.destroy();
+
+			result = deleteBroadcast(broadcast.getStreamId());
+			assertTrue(result.isSuccess());
+
+			Awaitility.await().atMost(20, TimeUnit.SECONDS)
+			.pollInterval(2, TimeUnit.SECONDS).until(() -> 
+			{
+				int broadcastListSize = callGetBroadcastList().size();
+				logger.info("broadcast list size: {} and it should be:{}", broadcastListSize, size);
+				return size == callGetBroadcastList().size();
+			});
+
+
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+	}
+
+	@Test
+	public void testAddEndpointCrossCheckV2() {
 		try {
 			
 			List<Broadcast> broadcastList = callGetBroadcastList();
@@ -1540,7 +1675,7 @@ public class RestServiceV2Test {
 			endpoint.setRtmpUrl(rtmpUrl);
 
 			// add generic endpoint
-			Result result = addEndpoint(broadcast.getStreamId().toString(), endpoint);
+			Result result = addEndpointV2(broadcast.getStreamId().toString(), endpoint);
 
 			// check that it is successfull
 			assertTrue(result.isSuccess());

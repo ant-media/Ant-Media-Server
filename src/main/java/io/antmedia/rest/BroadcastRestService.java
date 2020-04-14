@@ -15,7 +15,6 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
-import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.stereotype.Component;
 
 import io.antmedia.AntMediaApplicationAdapter;
@@ -288,8 +287,6 @@ public class BroadcastRestService extends RestServiceBase{
 			@ApiParam(value = "the id of the service in order to have successfull operation. Social network must be authorized in advance", required = true) @PathParam("endpointServiceId") String endpointServiceId) {
 		return addSocialEndpoint(id, endpointServiceId);
 	}
-	
-	
 
 	@Deprecated
 	@POST
@@ -379,7 +376,7 @@ public class BroadcastRestService extends RestServiceBase{
 		
 		return result;
 	}
-	
+
 	@ApiOperation(value = "Remove third pary rtmp end point from the stream. For the stream that is broadcasting, it will stop immediately", notes = "", response = Result.class)
 	@DELETE
 	@Consumes(MediaType.APPLICATION_JSON)
