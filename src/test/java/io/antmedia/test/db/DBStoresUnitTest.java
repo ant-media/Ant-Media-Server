@@ -717,7 +717,7 @@ public class DBStoresUnitTest {
 
 		//
 		Endpoint endPoint3Clone = new Endpoint(endPoint2.getBroadcastId(), endPoint2.getStreamId(), endPoint2.getName(),
-				endPoint2.getRtmpUrl(), endPoint2.type, null, null);
+				endPoint2.getRtmpUrl(), endPoint2.getType(), null, null);
 
 		// remove end point2
 		result = dataStore.removeEndpoint(broadcast2.getStreamId(), endPoint3Clone);

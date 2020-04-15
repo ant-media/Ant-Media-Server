@@ -319,7 +319,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		List<Endpoint> addList = new ArrayList<>();
 		for (Endpoint endpoint : endPointList) {
 
-			if (!"".equals(endpoint.type)) 
+			if (!"".equals(endpoint.getType())) 
 			{
 				VideoServiceEndpoint videoServiceEndPoint = getVideoServiceEndPoint(endpoint.getEndpointServiceId());
 				if (videoServiceEndPoint != null) 
@@ -778,6 +778,9 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 	public Result stopStreaming(Broadcast broadcast) {
 		Result result = new Result(false);
+		// Reset Broadcast Stats
+		resetViewerStats(broadcast);
+		
 		if(broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA) ||
 				broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE) ||
 						broadcast.getType().equals(AntMediaApplicationAdapter.VOD)) 
@@ -801,6 +804,12 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			}
 		}
 		return result;
+	}
+	
+	public void resetViewerStats(Broadcast broadcast) {
+		broadcast.setWebRTCViewerCount(0);
+		broadcast.setHlsViewerCount(0);
+		broadcast.setRtmpViewerCount(0);
 	}
 
 	public IBroadcastStream getBroadcastStream(IScope scope, String name) {
