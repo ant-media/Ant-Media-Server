@@ -173,13 +173,10 @@
 			</includes>
 		</fileSet>
 		
-		<!-- Copy War files -->
+		<!-- Copy webapps -->
 		<fileSet>
 			<directory>${project.build.directory}/webapps</directory>
 			<outputDirectory>webapps</outputDirectory>
-			<includes>
-				<include>*.war</include>
-			</includes>
 		</fileSet>
 		<fileSet>
 			<directory>${project.build.directory}</directory>
