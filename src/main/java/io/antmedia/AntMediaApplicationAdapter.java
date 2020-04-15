@@ -319,7 +319,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		List<Endpoint> addList = new ArrayList<>();
 		for (Endpoint endpoint : endPointList) {
 
-			if (!"".equals(endpoint.getType())) 
+			if (!"".equals(endpoint.type)) 
 			{
 				VideoServiceEndpoint videoServiceEndPoint = getVideoServiceEndPoint(endpoint.getEndpointServiceId());
 				if (videoServiceEndPoint != null) 

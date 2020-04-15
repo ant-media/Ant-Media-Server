@@ -689,7 +689,7 @@ public class BroadcastRestServiceV2UnitTest {
 		assertEquals(1, broadcast2.getEndPointList().size());
 		Endpoint endpoint = broadcast2.getEndPointList().get(0);
 		assertEquals(endpointURL, endpoint.getRtmpUrl());
-		assertEquals("generic", endpoint.getType());
+		assertEquals("generic", endpoint.type);
 		
 		{
 			BroadcastRestService restServiceSpy = Mockito.spy(restServiceReal);

@@ -537,7 +537,7 @@ public abstract class RestServiceBase {
 			{
 				Endpoint endpoint = new Endpoint();
 				endpoint.setRtmpUrl(rtmpUrl);
-				endpoint.setType("generic");
+				endpoint.type = "generic";
 
 				success = getDataStore().addEndpoint(id, endpoint);
 			}
@@ -553,7 +553,7 @@ public abstract class RestServiceBase {
 	{
 		Endpoint endpoint = new Endpoint();
 		endpoint.setRtmpUrl(rtmpUrl);
-		endpoint.setType("generic");
+		endpoint.type = "generic";
 
 		boolean removed = getDataStore().removeEndpoint(id, endpoint);
 		return new Result(removed);
