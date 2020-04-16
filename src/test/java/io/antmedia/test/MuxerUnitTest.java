@@ -14,12 +14,6 @@ import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.MuxAdaptor.InputContext;
 import io.antmedia.muxer.Muxer;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
-import static org.bytedeco.javacpp.avcodec.AV_CODEC_ID_H264;
-import static org.bytedeco.javacpp.avformat.avformat_close_input;
-import static org.bytedeco.javacpp.avformat.avformat_find_stream_info;
-import static org.bytedeco.javacpp.avformat.avformat_open_input;
-import static org.bytedeco.javacpp.avutil.AVMEDIA_TYPE_VIDEO;
-import static org.bytedeco.javacpp.avutil.av_dict_get;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -45,13 +39,6 @@ import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.tika.io.IOUtils;
 import org.awaitility.Awaitility;
 import org.bytedeco.javacpp.Pointer;
-import org.bytedeco.javacpp.avcodec.AVCodecContext;
-import org.bytedeco.javacpp.avcodec.AVPacket;
-import org.bytedeco.javacpp.avformat;
-import org.bytedeco.javacpp.avformat.*;
-import org.bytedeco.javacpp.avutil;
-import org.bytedeco.javacpp.avutil.AVDictionary;
-import org.bytedeco.javacpp.avutil.AVDictionaryEntry;
 import org.junit.*;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
@@ -84,11 +71,21 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static org.bytedeco.javacpp.avcodec.AV_CODEC_ID_H264;
-import static org.bytedeco.javacpp.avformat.*;
-import static org.bytedeco.javacpp.avutil.AVMEDIA_TYPE_VIDEO;
-import static org.bytedeco.javacpp.avutil.av_dict_get;
 import static org.junit.Assert.*;
+
+import org.bytedeco.ffmpeg.global.*;
+import org.bytedeco.ffmpeg.avcodec.*;
+import org.bytedeco.ffmpeg.avformat.*;
+import org.bytedeco.ffmpeg.avutil.*;
+import org.bytedeco.ffmpeg.swresample.*;
+import org.bytedeco.ffmpeg.swscale.*;
+
+import static org.bytedeco.ffmpeg.global.avutil.*;
+import static org.bytedeco.ffmpeg.global.avformat.*;
+import static org.bytedeco.ffmpeg.global.avcodec.*;
+import static org.bytedeco.ffmpeg.global.avdevice.*;
+import static org.bytedeco.ffmpeg.global.swresample.*;
+import static org.bytedeco.ffmpeg.global.swscale.*;
 
 
 @ContextConfiguration(locations = {"test.xml"})

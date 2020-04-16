@@ -1,7 +1,5 @@
 package io.antmedia.webrtc.adaptor;
 
-import static org.bytedeco.javacpp.avutil.AV_PIX_FMT_YUV420P;
-
 import java.nio.ByteBuffer;
 import java.nio.ShortBuffer;
 import java.util.ArrayList;
@@ -37,6 +35,20 @@ import io.antmedia.recorder.Frame;
 import io.antmedia.recorder.FrameRecorder;
 import io.antmedia.webrtc.api.IAudioTrackListener;
 import io.antmedia.websocket.WebSocketCommunityHandler;
+
+import org.bytedeco.ffmpeg.global.*;
+import org.bytedeco.ffmpeg.avcodec.*;
+import org.bytedeco.ffmpeg.avformat.*;
+import org.bytedeco.ffmpeg.avutil.*;
+import org.bytedeco.ffmpeg.swresample.*;
+import org.bytedeco.ffmpeg.swscale.*;
+
+import static org.bytedeco.ffmpeg.global.avutil.*;
+import static org.bytedeco.ffmpeg.global.avformat.*;
+import static org.bytedeco.ffmpeg.global.avcodec.*;
+import static org.bytedeco.ffmpeg.global.avdevice.*;
+import static org.bytedeco.ffmpeg.global.swresample.*;
+import static org.bytedeco.ffmpeg.global.swscale.*;
 
 public class RTMPAdaptor extends Adaptor {
 

@@ -1,28 +1,10 @@
 package io.antmedia.streamsource;
 
-import static org.bytedeco.javacpp.avcodec.av_packet_free;
-import static org.bytedeco.javacpp.avcodec.av_packet_ref;
-import static org.bytedeco.javacpp.avcodec.av_packet_unref;
-import static org.bytedeco.javacpp.avformat.av_read_frame;
-import static org.bytedeco.javacpp.avformat.avformat_close_input;
-import static org.bytedeco.javacpp.avformat.avformat_find_stream_info;
-import static org.bytedeco.javacpp.avformat.avformat_open_input;
-import static org.bytedeco.javacpp.avutil.AVMEDIA_TYPE_AUDIO;
-import static org.bytedeco.javacpp.avutil.av_dict_free;
-import static org.bytedeco.javacpp.avutil.av_dict_set;
-import static org.bytedeco.javacpp.avutil.av_rescale_q;
-
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.bytedeco.javacpp.avcodec;
-import org.bytedeco.javacpp.avcodec.AVPacket;
-import org.bytedeco.javacpp.avformat.AVFormatContext;
-import org.bytedeco.javacpp.avutil;
-import org.bytedeco.javacpp.avutil.AVDictionary;
-import org.bytedeco.javacpp.avutil.AVRational;
 import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,6 +19,20 @@ import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.RtmpMuxer;
 import io.antmedia.rest.model.Result;
 import io.vertx.core.Vertx;
+
+import org.bytedeco.ffmpeg.global.*;
+import org.bytedeco.ffmpeg.avcodec.*;
+import org.bytedeco.ffmpeg.avformat.*;
+import org.bytedeco.ffmpeg.avutil.*;
+import org.bytedeco.ffmpeg.swresample.*;
+import org.bytedeco.ffmpeg.swscale.*;
+
+import static org.bytedeco.ffmpeg.global.avutil.*;
+import static org.bytedeco.ffmpeg.global.avformat.*;
+import static org.bytedeco.ffmpeg.global.avcodec.*;
+import static org.bytedeco.ffmpeg.global.avdevice.*;
+import static org.bytedeco.ffmpeg.global.swresample.*;
+import static org.bytedeco.ffmpeg.global.swscale.*;
 
 public class StreamFetcher {
 

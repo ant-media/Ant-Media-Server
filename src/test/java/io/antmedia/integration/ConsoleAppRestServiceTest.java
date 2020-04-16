@@ -1,7 +1,5 @@
 package io.antmedia.integration;
 
-import static org.bytedeco.javacpp.avformat.av_register_all;
-import static org.bytedeco.javacpp.avformat.avformat_network_init;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -69,7 +67,19 @@ import io.antmedia.rest.model.User;
 import io.antmedia.rest.model.Version;
 import io.antmedia.settings.ServerSettings;
 
+import org.bytedeco.ffmpeg.global.*;
+import org.bytedeco.ffmpeg.avcodec.*;
+import org.bytedeco.ffmpeg.avformat.*;
+import org.bytedeco.ffmpeg.avutil.*;
+import org.bytedeco.ffmpeg.swresample.*;
+import org.bytedeco.ffmpeg.swscale.*;
 
+import static org.bytedeco.ffmpeg.global.avutil.*;
+import static org.bytedeco.ffmpeg.global.avformat.*;
+import static org.bytedeco.ffmpeg.global.avcodec.*;
+import static org.bytedeco.ffmpeg.global.avdevice.*;
+import static org.bytedeco.ffmpeg.global.swresample.*;
+import static org.bytedeco.ffmpeg.global.swscale.*;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class ConsoleAppRestServiceTest{

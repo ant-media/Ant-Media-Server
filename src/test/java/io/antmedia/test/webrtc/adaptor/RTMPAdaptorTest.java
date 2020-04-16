@@ -1,6 +1,5 @@
 package io.antmedia.test.webrtc.adaptor;
 
-import static org.bytedeco.javacpp.avutil.AV_PIX_FMT_YUV420P;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -23,7 +22,6 @@ import javax.websocket.Session;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.awaitility.Awaitility;
-import org.bytedeco.javacpp.avutil.AVFrame;
 import org.json.simple.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
@@ -46,6 +44,20 @@ import io.antmedia.webrtc.VideoCodec;
 import io.antmedia.webrtc.adaptor.RTMPAdaptor;
 import io.antmedia.websocket.WebSocketCommunityHandler;
 import io.antmedia.websocket.WebSocketConstants;
+
+import org.bytedeco.ffmpeg.global.*;
+import org.bytedeco.ffmpeg.avcodec.*;
+import org.bytedeco.ffmpeg.avformat.*;
+import org.bytedeco.ffmpeg.avutil.*;
+import org.bytedeco.ffmpeg.swresample.*;
+import org.bytedeco.ffmpeg.swscale.*;
+
+import static org.bytedeco.ffmpeg.global.avutil.*;
+import static org.bytedeco.ffmpeg.global.avformat.*;
+import static org.bytedeco.ffmpeg.global.avcodec.*;
+import static org.bytedeco.ffmpeg.global.avdevice.*;
+import static org.bytedeco.ffmpeg.global.swresample.*;
+import static org.bytedeco.ffmpeg.global.swscale.*;
 
 public class RTMPAdaptorTest {
 
