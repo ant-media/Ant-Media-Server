@@ -94,6 +94,11 @@ public class InMemoryDataStore extends DataStore {
 			if(status.contentEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
 				broadcast.setStartTime(System.currentTimeMillis());
 			}
+			else if(status.contentEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED)) {
+				broadcast.setWebRTCViewerCount(0);
+				broadcast.setHlsViewerCount(0);
+				broadcast.setRtmpViewerCount(0);
+			}
 			broadcastMap.put(id, broadcast);
 			result = true;
 		}

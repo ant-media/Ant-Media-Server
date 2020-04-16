@@ -274,8 +274,10 @@ public class DBStoresUnitTest {
 			List<Broadcast> broadcastList = dataStore.getBroadcastList(i * pageSize, pageSize);
 			for (Broadcast broadcast : broadcastList) {
 				assertTrue(dataStore.updateStatus(broadcast.getStreamId(), AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED));
+				assertEquals(0, broadcast.getWebRTCViewerCount());
+				assertEquals(0, broadcast.getHlsViewerCount());
+				assertEquals(0, broadcast.getRtmpViewerCount());
 			}
-
 		}
 
 		//check that no active broadcast
@@ -805,6 +807,9 @@ public class DBStoresUnitTest {
 			assertEquals(description, broadcast2.getDescription());
 			assertEquals(100000, (long) broadcast2.getDuration());
 			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, broadcast2.getStatus());
+			assertEquals(0, broadcast2.getWebRTCViewerCount());
+			assertEquals(0, broadcast2.getHlsViewerCount());
+			assertEquals(0, broadcast2.getRtmpViewerCount());
 
 			assertEquals(null, broadcast2.getEndPointList());
 
@@ -1519,6 +1524,11 @@ public class DBStoresUnitTest {
 		} catch (Exception e1) {
 			e1.printStackTrace();
 		}
+		
+		broadcast.setWebRTCViewerCount(10);
+		broadcast.setHlsViewerCount(1000);
+		broadcast.setRtmpViewerCount(100);
+		
 		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
 		dataStore.save(broadcast);
 		
@@ -1546,6 +1556,10 @@ public class DBStoresUnitTest {
 		broadcastFromStore = dataStore.get(streamId);
 		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, broadcastFromStore.getStatus());
 		assertTrue(Math.abs(now-broadcastFromStore.getStartTime()) < 100);
+		
+		assertEquals(0, broadcastFromStore.getWebRTCViewerCount());
+		assertEquals(0, broadcastFromStore.getRtmpViewerCount());
+		assertEquals(0, broadcastFromStore.getHlsViewerCount());
 	}
 	
 	private void testP2PConnection(DataStore dataStore) {
