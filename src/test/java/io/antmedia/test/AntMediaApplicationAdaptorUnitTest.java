@@ -52,6 +52,7 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.integration.AppFunctionalV2Test;
 import io.antmedia.muxer.MuxAdaptor;
+import io.antmedia.rest.model.Result;
 import io.antmedia.security.AcceptOnlyStreamsInDataStore;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.type.WebRTCAudioReceiveStats;
@@ -751,4 +752,87 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		assertEquals(0, adapter.getNumberOfEncodersBlocked());
 	}
+	
+
+	@Test
+	public void testCreateShutdownFile() {
+		
+		IScope scope = mock(IScope.class);
+		when(scope.getName()).thenReturn("junit");
+		
+		String closedFilePath = "webapps/"+scope.getName()+"/.closed";
+		File closedFile = new File(closedFilePath);
+		
+		// First stop
+		adapter.createShutdownFile(scope.getName());
+		
+		assertEquals(true, closedFile.exists());
+		
+	}
+	
+	@Test
+	public void testInitializationFile() {
+		
+		IScope scope = mock(IScope.class);
+		when(scope.getName()).thenReturn("junit");
+		
+		String initializedFilePath = "webapps/"+scope.getName()+"/.initialized";
+		File initializedFile = new File(initializedFilePath);
+		
+		String closedFilePath = "webapps/"+scope.getName()+"/.closed";
+		File closedFile = new File(closedFilePath);
+		
+		Result result = new Result(false); 
+		
+		// After the upgrade First initialization
+		//initialization file not exist
+		//closed file not exist
+		result = adapter.createInitializationProcess(scope.getName());
+		
+		assertEquals(false, closedFile.exists());
+		assertEquals(true, initializedFile.exists());
+		assertEquals(true, result.isSuccess());
+		assertEquals("Initialized file created in "+ scope.getName(), result.getMessage());
+		
+		
+		//After the upgrade repeated initialization
+		//initialization file exist
+		//closed file not exist
+		try {
+			initializedFile.createNewFile();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		result = adapter.createInitializationProcess(scope.getName());
+		
+		assertEquals(false, closedFile.exists());
+		assertEquals(true, initializedFile.exists());
+		assertEquals(false, result.isSuccess());
+		assertEquals("Something wrong in "+ scope.getName(), result.getMessage());
+		
+		
+		//After the upgrade repeated initialization
+		//initialization file exist
+		//closed file exist
+
+		try {
+			initializedFile.createNewFile();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+		try {
+			closedFile.createNewFile();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		result = adapter.createInitializationProcess(scope.getName());
+		
+		assertEquals(false, closedFile.exists());
+		assertEquals(true, initializedFile.exists());
+		assertEquals(true, result.isSuccess());
+		assertEquals("System works, deleted closed file in "+ scope.getName(), result.getMessage());
+		
+	}
+	
 }

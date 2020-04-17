@@ -56,6 +56,7 @@ import io.antmedia.datastore.preference.PreferenceStore;
 import io.antmedia.filter.StreamAcceptFilter;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.muxer.IAntMediaStreamHandler;
+import io.antmedia.muxer.IStreamAcceptFilter;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.rest.RestServiceBase;
 import io.antmedia.rest.model.Result;
@@ -139,6 +140,9 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 		//initalize to access the data store directly in the code
 		getDataStore();
+		
+		// Create initialized file in application
+		Result result = createInitializationProcess(app.getName());
 
 		if (app.getContext().hasBean(IClusterNotifier.BEAN_NAME)) {
 			//which means it's in cluster mode
@@ -146,11 +150,14 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			
 			clusterNotifier.registerSettingUpdateListener(getAppSettings().getAppName(), settings -> updateSettings(settings, false));
 		}
-		//Reset Broadcasts status & Broadcasts viewer counts
-		else {
-			Result result = resetBroadcasts();
-			logger.info("Result: {}" + " Message: {} ", result.isSuccess() , result.getMessage());
+		else if (result.isSuccess()) {
+			
+			getDataStore().setIsClosedNormal(result.isSuccess());
+			
+			// Reset Broadcast Stats
+			resetBroadcasts();
 		}
+
 
 		vertx.setTimer(1, l -> {
 				streamFetcherManager = new StreamFetcherManager(vertx, getDataStore(),app);
@@ -976,6 +983,84 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		waitUntilLiveStreamsStopped();
 		
 		getDataStore().close();
+	}
+	
+
+public Result createInitializationProcess(String appName){
+		
+		Result result = new Result(false);
+		
+		String initializedFilePath = "webapps/"+appName+"/.initialized";
+		File initializedFile = new File(initializedFilePath);
+		
+		String closedFilePath = "webapps/"+appName+"/.closed";
+		File closedFile = new File(closedFilePath);
+		
+		try {
+			// Check first start
+			if(!initializedFile.exists() && !closedFile.exists()) {
+				if(initializedFile.createNewFile()) {
+					result.setMessage("Initialized file created in " + appName);
+					result.setSuccess(true);
+					logger.info("Initialized file created in {}",appName);
+				}
+				else {
+					result.setMessage("Initialized file couldn't create in " + appName);
+					result.setSuccess(false);
+					logger.info("Initialized file couldn't create in {}",appName);
+				}
+			}
+			// Check repeated starting - It's normal start
+			else if(initializedFile.exists() && closedFile.exists()) {
+				// Delete old .closed file in application
+				Files.delete(closedFile.toPath());
+				
+				if(!closedFile.exists()) {
+					result.setMessage("System works, deleted closed file in " + appName);
+					result.setSuccess(true);
+					logger.info("Delete closed file in {}",appName);
+				}
+				else {
+					result.setMessage("Delete couldn't closed file in " + appName);
+					result.setSuccess(false);
+					logger.info("Delete couldn't closed file in {}",appName);
+				}
+			}
+			// It means didn't close normal (unexpected stop)
+			else if(initializedFile.exists() && !closedFile.exists()) {
+				// It's problem here
+				// Notify user to send logs
+				result.setMessage("Something wrong in " + appName);
+				result.setSuccess(false);
+				logger.error("Something wrong in {}",appName);
+			}
+			// Other odd is initialization file doesn't exist and closed file exist.
+			// It's important to happen.
+		} catch (IOException e) {
+			logger.error(e.getMessage());
+		}
+		
+		return result;
+	}
+	
+	
+	public void createShutdownFile(String appName){
+		
+		String closedFilePath = "webapps/"+appName+"/.closed";
+		File closedFile = new File(closedFilePath);
+		
+		try {
+			if(!closedFile.exists()) {
+				if(closedFile.createNewFile()) {
+					logger.info("Closed file created in {}",appName);
+				}
+				else {
+					logger.error("Closed file couldn't create in {}",appName);
+				}
+			}
+		} catch (IOException e) {
+			logger.error(e.getMessage());
+		}
 	}
 
 	@Override
