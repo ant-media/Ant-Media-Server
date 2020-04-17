@@ -1354,10 +1354,6 @@ public class BroadcastRestServiceV2UnitTest {
 		String streamId = "test-stream";
 
 		Broadcast broadcast = new Broadcast();
-		broadcast.setWebRTCViewerCount(100);
-		broadcast.setHlsViewerCount(1000);
-		broadcast.setRtmpViewerCount(10);
-		
 		try {
 			broadcast.setStreamId(streamId);
 		} catch (Exception e) {
@@ -1372,13 +1368,6 @@ public class BroadcastRestServiceV2UnitTest {
 		restService.stopStreamingV2(streamId);
 
 		Mockito.verify(app, Mockito.times(1)).getBroadcastStream(null, streamId);
-		
-		Broadcast broadcastInDB = ds.get(streamId);
-		
-		assertEquals(0, broadcastInDB.getRtmpViewerCount());
-		assertEquals(0, broadcastInDB.getWebRTCViewerCount());
-		assertEquals(0, broadcastInDB.getHlsViewerCount());
-		
 	}
 
 	@Test
