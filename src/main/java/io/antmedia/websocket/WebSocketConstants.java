@@ -166,6 +166,11 @@ public class WebSocketConstants {
 	 */
 	public static final String ALREADY_PLAYING = "already_playing";
 
+	/**
+	 * This is sent back to the user when a new publish message received while
+	 * there it's publishing or it's just to publish
+	 */
+	public static final String ALREADY_PUBLISHING = "already_publishing";
 
 	/**
 	 * Command that let server returns information about a specific stream.
@@ -314,6 +319,5 @@ public class WebSocketConstants {
 	 * This command used to send subtracks for a stream id
 	 */
 	public static final String  TRACK_LIST = "trackList";
-
 
 }
