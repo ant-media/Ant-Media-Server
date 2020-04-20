@@ -1176,5 +1176,23 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	public List<RTMPToWebRTCStats> getRTMPToWebRTCStats() {
 		return new ArrayList<RTMPToWebRTCStats>();
 	}
+	
+	public boolean isDataChannelEnabled() {
+		return false;
+	}
+	
+	public boolean isDataChannelMessagingSupported() {
+		
+		return false;
+	}
+	
+	public boolean sendDataChannelMessage(String streamId, String message) {
+		
+		return false;
+	}
+	
+	public boolean doesWebRTCStreamExist(String streamId) {
+		return false;
+	}
 
 }
