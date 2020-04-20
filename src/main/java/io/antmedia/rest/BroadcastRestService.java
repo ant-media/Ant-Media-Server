@@ -397,7 +397,7 @@ public class BroadcastRestService extends RestServiceBase{
 			}
 		}
 		
-		Result result = super.removeEndpoint(id, rtmpUrl);
+		Result result = super.removeRTMPEndpoint(id, rtmpUrl);
 		
 		if (result.isSuccess()) 
 		{

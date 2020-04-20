@@ -572,7 +572,7 @@ public abstract class RestServiceBase {
 		return new Result(success, message);
 	}
 
-
+	@Deprecated
 	public Result removeEndpoint(String id, String rtmpUrl) 
 	{
 		Endpoint endpoint = new Endpoint();
@@ -581,6 +581,19 @@ public abstract class RestServiceBase {
 
 		boolean removed = getDataStore().removeEndpoint(id, endpoint);
 		return new Result(removed);
+	}
+	
+	public Result removeRTMPEndpoint(String id, String rtmpServiceId) 
+	{
+		//TODO RTMP service ID
+		Endpoint endpoint = new Endpoint();
+		endpoint.setRtmpUrl("");
+		endpoint.setType(ENDPOINT_GENERIC);
+
+		boolean removed = getDataStore().removeEndpoint(id, endpoint);
+		
+		return new Result(removed);
+	
 	}
 
 
