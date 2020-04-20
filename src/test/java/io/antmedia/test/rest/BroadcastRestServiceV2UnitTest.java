@@ -2056,4 +2056,26 @@ public class BroadcastRestServiceV2UnitTest {
 		
 	}
 	
+	@Test
+	public void testSendMessage()  {
+		Scope scope = mock(Scope.class);
+		String scopeName = "scope";
+		when(scope.getName()).thenReturn(scopeName);
+		
+		String streamId = "stream1";
+		String message = "hi";
+		
+		// test the case of data channels not enabled
+		AntMediaApplicationAdapter app = new AntMediaApplicationAdapter();
+		AntMediaApplicationAdapter appSpy = Mockito.spy(app);
+
+		ApplicationContext context = mock(ApplicationContext.class);
+
+		restServiceReal.setAppCtx(context);
+		restServiceReal.setApplication(appSpy);
+		restServiceReal.setScope(scope);
+		
+		Result res = restServiceReal.sendMessage(message,streamId);
+		assertEquals(false, res.isSuccess());
+	}	
 }
