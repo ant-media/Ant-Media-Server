@@ -202,6 +202,7 @@ public class StreamFetcher {
 
 		private static final long STREAM_FETCH_RE_TRY_PERIOD_MS = 3000;
 
+		private volatile boolean streamPublished = false;
 		protected AtomicBoolean isJobRunning = new AtomicBoolean(false);
 		AVFormatContext inputFormatContext = null;
 
@@ -271,6 +272,7 @@ public class StreamFetcher {
 						int bufferLogCounter = 0;
 						while (av_read_frame(inputFormatContext, pkt) >= 0) {
 
+							streamPublished = true;
 							lastPacketReceivedTime = System.currentTimeMillis();
 
 							/**
@@ -435,6 +437,12 @@ public class StreamFetcher {
 				inputFormatContext = null;
 			}
 
+			if(streamPublished) {
+				getInstance().closeBroadcast(stream.getStreamId());
+				streamPublished=false;
+			}
+
+
 			setThreadActive(false);
 
 			if(streamFetcherListener != null) {	
@@ -451,9 +459,6 @@ public class StreamFetcher {
 					thread = new WorkerThread();
 					thread.start();
 				});
-			}
-			else {
-				getInstance().closeBroadcast(stream.getStreamId());
 			}
 
 			logger.debug("Leaving thread for {}", stream.getStreamUrl());
