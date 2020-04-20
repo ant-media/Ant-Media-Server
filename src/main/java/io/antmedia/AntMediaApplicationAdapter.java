@@ -150,9 +150,9 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			
 			clusterNotifier.registerSettingUpdateListener(getAppSettings().getAppName(), settings -> updateSettings(settings, false));
 		}
-		else if (result.isSuccess()) {
-			
-			getDataStore().setIsClosedNormal(result.isSuccess());
+		else if (!result.isSuccess()) {
+			//Save App Setting
+			appSettings.setShutdownProperly("false");
 			
 			// Reset Broadcast Stats
 			resetBroadcasts();
@@ -1009,7 +1009,7 @@ public Result createInitializationProcess(String appName){
 					result.setSuccess(false);
 					logger.info("Initialized file couldn't create in {}",appName);
 				}
-			}
+			} 
 			// Check repeated starting - It's normal start
 			else if(initializedFile.exists() && closedFile.exists()) {
 				// Delete old .closed file in application

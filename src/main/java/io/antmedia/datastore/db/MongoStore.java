@@ -1213,38 +1213,4 @@ public class MongoStore extends DataStore {
 		}
 		return result;
 	}
-
-	@Override
-	public boolean setIsClosedNormal(boolean result) {
-		
-		ServerSettings serverSetting = new ServerSettings();
-		serverSetting.setIsClosedNormal(result);
-		
-		boolean processResult = false;
-		synchronized(this) {
-			try {
-				Query<ServerSettings> query = datastore.createQuery(ServerSettings.class);
-
-				UpdateOperations<ServerSettings> ops = datastore.createUpdateOperations(ServerSettings.class).set("isClosedNormal", serverSetting.getClosedNormal());
-
-				UpdateResults update = datastore.update(query, ops);
-				return update.getUpdatedCount() == 1;
-			} catch (Exception e) {
-				logger.error(e.getMessage());
-			}
-		}
-		return processResult;
-	}
-	
-	@Override
-	public boolean getIsClosedNormal() {
-		synchronized(this) {
-			try {
-				return datastore.find(ServerSettings.class).get().getClosedNormal();
-			} catch (Exception e) {
-				logger.error(ExceptionUtils.getStackTrace(e));
-			}
-		}
-		return false;
-	}	
 }
