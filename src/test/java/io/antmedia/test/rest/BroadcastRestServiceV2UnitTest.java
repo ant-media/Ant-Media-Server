@@ -2077,5 +2077,5 @@ public class BroadcastRestServiceV2UnitTest {
 		
 		Result res = restServiceReal.sendMessage(message,streamId);
 		assertEquals(false, res.isSuccess());
-	}	
+	}
 }
