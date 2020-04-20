@@ -122,7 +122,8 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	private int numberOfEncoderNotOpenedErrors = 0;
 	protected int publishTimeoutStreams = 0;
 	private List<String> publishTimeoutStreamsList = new ArrayList<>();
-	
+	private boolean shutdownProperly;
+
 	protected WebRTCVideoReceiveStats webRTCVideoReceiveStats = new WebRTCVideoReceiveStats();
 
 	protected WebRTCAudioReceiveStats webRTCAudioReceiveStats = new WebRTCAudioReceiveStats();
@@ -152,7 +153,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		}
 		else if (!result.isSuccess()) {
 			//Save App Setting
-			appSettings.setShutdownProperly("false");
+			setShutdownProperly(false);
 			
 			// Reset Broadcast Stats
 			resetBroadcasts();
@@ -369,7 +370,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		List<Endpoint> addList = new ArrayList<>();
 		for (Endpoint endpoint : endPointList) {
 
-			if (!"".equals(endpoint.type)) 
+			if (!"".equals(endpoint.getType())) 
 			{
 				VideoServiceEndpoint videoServiceEndPoint = getVideoServiceEndPoint(endpoint.getEndpointServiceId());
 				if (videoServiceEndPoint != null) 
@@ -1061,6 +1062,14 @@ public Result createInitializationProcess(String appName){
 		} catch (IOException e) {
 			logger.error(e.getMessage());
 		}
+	}
+	
+	public boolean isShutdownProperly() {
+		return shutdownProperly;
+	}
+
+	public void setShutdownProperly(boolean shutdownProperly) {
+		this.shutdownProperly = shutdownProperly;
 	}
 
 	@Override

@@ -65,19 +65,6 @@ public class ServerSettings implements ApplicationContextAware {
 	private boolean buildForMarket = false;
 	
 	
-	/**
-	 * This stores, server closes normal.
-	 */
-	private boolean isClosedNormal = true;
-	
-	public boolean getClosedNormal() {
-		return isClosedNormal;
-	}
-
-	public void setIsClosedNormal(boolean isClosedNormal) {
-		this.isClosedNormal = isClosedNormal;
-	}
-
 	private String logLevel = null;
 	
 	@Value( "${"+SETTINGS_HEART_BEAT_ENABLED+":true}" )
