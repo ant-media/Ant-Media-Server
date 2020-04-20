@@ -870,6 +870,7 @@ public class BroadcastRestService extends RestServiceBase{
 	}
 	
 <<<<<<< Upstream, based on master
+<<<<<<< Upstream, based on master
 	@ApiOperation(value = "Returns the stream info(width, height, bitrates and video codec) of the stream", response= BasicStreamInfo[].class)
 	@GET
 	@Consumes(MediaType.APPLICATION_JSON)
@@ -973,4 +974,42 @@ public class BroadcastRestService extends RestServiceBase{
 	}	
 	
 >>>>>>> eab4f33 added send_message rest method to send datachannel messages to all webrtc stream participants
+=======
+	@ApiOperation(value = "Send stream participants a message through Data Channel in a WebRTC stream", notes = "", response = Result.class)
+	@POST
+	@Consumes(MediaType.TEXT_PLAIN)
+	@Path("/{id}/send_message")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result sendMessage(@ApiParam(value = "Message through Data Channel which will be sent to all WebRTC stream participants", required = true) String message, 
+			@ApiParam(value = "Broadcast id", required = true) @PathParam("id") String id) {
+
+		AntMediaApplicationAdapter application = getApplication();
+		// check if WebRTC data channels are supported in this edition
+		if(application != null && application.isDataChannelMessagingSupported()) {
+			// check if data channel is enabled in the settings
+			if(application.isDataChannelEnabled()) {
+				// check if stream with given stream id exists
+				if(application.doesWebRTCStreamExist(id)) {
+					 // send the message through the application
+					 boolean status = application.sendDataChannelMessage(id,message);
+					 if(status) {
+						 return new Result(true);
+					 } else {
+						 return new Result(false, "Operation not completed");
+					 }
+					
+				} else {
+					return new Result(false, "Requested WebRTC stream does not exist");
+				}
+				
+			} else {
+				return new Result(false, "Data channels are not enabled");
+			}
+			
+		} else {
+			return new Result(false, "Operation not supported in this version");
+		}
+	}	
+	
+>>>>>>> f5b5ad9 added send_message rest method to send datachannel messages to all webrtc stream participants
 }

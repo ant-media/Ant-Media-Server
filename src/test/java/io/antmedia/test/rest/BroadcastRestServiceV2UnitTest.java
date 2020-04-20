@@ -65,6 +65,7 @@ import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
+import io.antmedia.enterprise.webrtc.WebRTCApplication;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.muxer.HLSMuxer;
 import io.antmedia.muxer.Mp4Muxer;
@@ -2009,6 +2010,7 @@ public class BroadcastRestServiceV2UnitTest {
 	}
 	
 	@Test
+<<<<<<< Upstream, based on master
 	public void testGetStreamInfo() {
 		BroadcastRestService broadcastRestService = Mockito.spy(new BroadcastRestService());
 		MongoStore datastore = new MongoStore("localhost", "", "", "testdb");
@@ -2113,5 +2115,27 @@ public class BroadcastRestServiceV2UnitTest {
 		assertEquals(false, res.isSuccess());
 		assertEquals("Operation not completed", res.getMessage());
 		
+=======
+	public void testSendMessage()  {
+		Scope scope = mock(Scope.class);
+		String scopeName = "scope";
+		when(scope.getName()).thenReturn(scopeName);
+		
+		String streamId = "stream1";
+		String message = "hi";
+		
+		// test the case of data channels not enabled
+		AntMediaApplicationAdapter app = new AntMediaApplicationAdapter();
+		AntMediaApplicationAdapter appSpy = Mockito.spy(app);
+
+		ApplicationContext context = mock(ApplicationContext.class);
+
+		restServiceReal.setAppCtx(context);
+		restServiceReal.setApplication(appSpy);
+		restServiceReal.setScope(scope);
+		
+		Result res = restServiceReal.sendMessage(message,streamId);
+		assertEquals(false, res.isSuccess());
+>>>>>>> f5b5ad9 added send_message rest method to send datachannel messages to all webrtc stream participants
 	}
 }
