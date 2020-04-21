@@ -983,6 +983,8 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		closeRTMPStreams();
 		waitUntilLiveStreamsStopped();
 		
+		createShutdownFile(getScope().getName());
+		
 		getDataStore().close();
 	}
 	
