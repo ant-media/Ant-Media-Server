@@ -248,7 +248,6 @@ public class MapDBStore extends DataStore {
 		return result;
 	}
 
-	//TODO add 3. parameter checkRTMPUrl 
 	@Override
 	public boolean removeEndpoint(String id, Endpoint endpoint, boolean checkRTMPUrl) {
 		boolean result = false;
@@ -269,12 +268,10 @@ public class MapDBStore extends DataStore {
 									break;
 								}
 							}
-							else {
-								if (endpointItem.getEndpointServiceId().equals(endpoint.getEndpointServiceId())) {
-									iterator.remove();
-									result = true;
-									break;
-								}
+							else if (endpointItem.getEndpointServiceId().equals(endpoint.getEndpointServiceId())) {
+								iterator.remove();
+								result = true;
+								break;
 							}
 						}
 

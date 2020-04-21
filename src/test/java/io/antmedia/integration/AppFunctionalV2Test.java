@@ -200,16 +200,11 @@ public class AppFunctionalV2Test {
 
 			restService.addEndpoint(source.getStreamId(), endpoint.getRtmpURL());
 
-			Thread.sleep(1000);
-
 			assertNotNull(restService.getBroadcast(source.getStreamId()).getEndPointList());
 
 			Process rtmpSendingProcess = execute(ffmpegPath
 					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
 					+ source.getStreamId());
-
-			//wait for fetching stream
-			Thread.sleep(5000);
 
 			rtmpSendingProcess.destroy();
 
@@ -253,16 +248,11 @@ public class AppFunctionalV2Test {
 			
 			restService.addEndpointV2(source.getStreamId(), endpoint);
 
-			Thread.sleep(1000);
-
 			assertNotNull(restService.getBroadcast(source.getStreamId()).getEndPointList());
 
 			Process rtmpSendingProcess = execute(ffmpegPath
 					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
 					+ source.getStreamId());
-
-			//wait for fetching stream
-			Thread.sleep(5000);
 
 			rtmpSendingProcess.destroy();
 

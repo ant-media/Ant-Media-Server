@@ -146,12 +146,10 @@ public class InMemoryDataStore extends DataStore {
 							break;
 						}
 					}
-					else {
-						if (endpointItem.getEndpointServiceId().equals(endpoint.getEndpointServiceId())) {
-							iterator.remove();
-							result = true;
-							break;
-						}
+					else if (endpointItem.getEndpointServiceId().equals(endpoint.getEndpointServiceId())) {
+						iterator.remove();
+						result = true;
+						break;
 					}
 				}
 
