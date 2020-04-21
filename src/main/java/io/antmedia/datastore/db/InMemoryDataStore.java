@@ -150,6 +150,27 @@ public class InMemoryDataStore extends DataStore {
 		}
 		return result;
 	}
+	
+	@Override
+	public boolean removeRTMPEndpoint(String id, Endpoint endpoint) {
+		boolean result = false;
+		Broadcast broadcast = broadcastMap.get(id);
+		if (broadcast != null && endpoint != null) {
+			List<Endpoint> endPointList = broadcast.getEndPointList();
+			if (endPointList != null) {
+				for (Iterator<Endpoint> iterator = endPointList.iterator(); iterator.hasNext();) {
+					Endpoint endpointItem = iterator.next();
+					if (endpointItem.getEndpointServiceId().equals(endpoint.getEndpointServiceId())) {
+						iterator.remove();
+						result = true;
+						break;
+					}
+				}
+
+			}
+		}
+		return result;
+	}
 
 	@Override
 	public long getBroadcastCount() {

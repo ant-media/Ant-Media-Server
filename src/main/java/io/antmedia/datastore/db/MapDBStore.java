@@ -279,6 +279,38 @@ public class MapDBStore extends DataStore {
 		}
 		return result;
 	}
+	
+	@Override
+	public boolean removeRTMPEndpoint(String id, Endpoint endpoint) {
+		boolean result = false;
+		synchronized (this) {
+
+			if (id != null && endpoint != null) {
+				String jsonString = map.get(id);
+				if (jsonString != null) {
+					Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
+					List<Endpoint> endPointList = broadcast.getEndPointList();
+					if (endPointList != null) {
+						for (Iterator<Endpoint> iterator = endPointList.iterator(); iterator.hasNext();) {
+							Endpoint endpointItem = iterator.next();
+							if (endpointItem.getEndpointServiceId().equals(endpoint.getEndpointServiceId())) {
+								iterator.remove();
+								result = true;
+								break;
+							}
+						}
+
+						if (result) {
+							broadcast.setEndPointList(endPointList);
+							map.replace(id, gson.toJson(broadcast));
+							db.commit();
+						}
+					}
+				}
+			}
+		}
+		return result;
+	}
 
 	@Override
 	public boolean removeAllEndpoints(String id) {

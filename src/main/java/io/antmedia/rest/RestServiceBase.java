@@ -583,14 +583,13 @@ public abstract class RestServiceBase {
 		return new Result(removed);
 	}
 	
-	public Result removeRTMPEndpoint(String id, String rtmpServiceId) 
+	public Result removeRTMPEndpoint(String id, String endpointServiceId) 
 	{
-		//TODO RTMP service ID
 		Endpoint endpoint = new Endpoint();
-		endpoint.setRtmpUrl("");
 		endpoint.setType(ENDPOINT_GENERIC);
+		endpoint.setEndpointServiceId(endpointServiceId);
 
-		boolean removed = getDataStore().removeEndpoint(id, endpoint);
+		boolean removed = getDataStore().removeRTMPEndpoint(id, endpoint);
 		
 		return new Result(removed);
 	

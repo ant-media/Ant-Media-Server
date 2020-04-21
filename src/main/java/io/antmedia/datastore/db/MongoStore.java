@@ -266,6 +266,23 @@ public class MongoStore extends DataStore {
 		}
 		return result;
 	}
+	
+	@Override
+	public boolean removeRTMPEndpoint(String id, Endpoint endpoint) {
+		boolean result = false;
+		synchronized(this) {
+			if (id != null && endpoint != null) {
+				Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(id);
+				UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class)
+
+						.removeAll("endPointList", endpoint);
+				UpdateResults update = datastore.update(query, ops);
+				return update.getUpdatedCount() == 1;
+			}
+		}
+		return result;
+	}
+
 
 	@Override
 	public boolean removeAllEndpoints(String id) {
