@@ -388,9 +388,10 @@ public class BroadcastRestService extends RestServiceBase{
 		
 		//Get rtmpURL with broadcast
 		String rtmpUrl = null;
+		Broadcast broadcast = getDataStore().get(id);
 		
-		if(endpointServiceId != null && getDataStore().get(id) != null && !getDataStore().get(id).getEndPointList().isEmpty()) {
-			for(Endpoint endpoint: getDataStore().get(id).getEndPointList()) {
+		if(endpointServiceId != null && broadcast != null && !broadcast.getEndPointList().isEmpty() && broadcast.getEndPointList() != null) {
+			for(Endpoint endpoint: broadcast.getEndPointList()) {
 				if(endpoint.getEndpointServiceId().equals(endpointServiceId)) {
 					rtmpUrl = endpoint.getRtmpUrl();
 				}

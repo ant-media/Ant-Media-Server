@@ -248,8 +248,9 @@ public class MapDBStore extends DataStore {
 		return result;
 	}
 
+	//TODO add 3. parameter checkRTMPUrl 
 	@Override
-	public boolean removeEndpoint(String id, Endpoint endpoint) {
+	public boolean removeEndpoint(String id, Endpoint endpoint, boolean checkRTMPUrl) {
 		boolean result = false;
 		synchronized (this) {
 
@@ -261,42 +262,19 @@ public class MapDBStore extends DataStore {
 					if (endPointList != null) {
 						for (Iterator<Endpoint> iterator = endPointList.iterator(); iterator.hasNext();) {
 							Endpoint endpointItem = iterator.next();
-							if (endpointItem.getRtmpUrl().equals(endpoint.getRtmpUrl())) {
-								iterator.remove();
-								result = true;
-								break;
+							if(checkRTMPUrl) {
+								if (endpointItem.getRtmpUrl().equals(endpoint.getRtmpUrl())) {
+									iterator.remove();
+									result = true;
+									break;
+								}
 							}
-						}
-
-						if (result) {
-							broadcast.setEndPointList(endPointList);
-							map.replace(id, gson.toJson(broadcast));
-							db.commit();
-						}
-					}
-				}
-			}
-		}
-		return result;
-	}
-	
-	@Override
-	public boolean removeRTMPEndpoint(String id, Endpoint endpoint) {
-		boolean result = false;
-		synchronized (this) {
-
-			if (id != null && endpoint != null) {
-				String jsonString = map.get(id);
-				if (jsonString != null) {
-					Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
-					List<Endpoint> endPointList = broadcast.getEndPointList();
-					if (endPointList != null) {
-						for (Iterator<Endpoint> iterator = endPointList.iterator(); iterator.hasNext();) {
-							Endpoint endpointItem = iterator.next();
-							if (endpointItem.getEndpointServiceId().equals(endpoint.getEndpointServiceId())) {
-								iterator.remove();
-								result = true;
-								break;
+							else {
+								if (endpointItem.getEndpointServiceId().equals(endpoint.getEndpointServiceId())) {
+									iterator.remove();
+									result = true;
+									break;
+								}
 							}
 						}
 

@@ -339,7 +339,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			}
 		}
 		for (Endpoint endpoint : removeList) {
-			getDataStore().removeEndpoint(broadcast.getStreamId(), endpoint);
+			getDataStore().removeEndpoint(broadcast.getStreamId(), endpoint, true);
 		}
 		
 		for (Endpoint endpoint : addList) {

@@ -83,7 +83,7 @@ public class DBStoresUnitTest {
 		testNullCheck(dataStore);
 		testSimpleOperations(dataStore);
 		testRemoveEndpoint(dataStore);
-		testRemoveRTMPEndpoint(dataStore);
+		testRemoveEndpointWithServiceEndpoint(dataStore);
 		testRTMPURL(dataStore);
 		testStreamWithId(dataStore);
 		testSaveDetection(dataStore);
@@ -113,7 +113,7 @@ public class DBStoresUnitTest {
 		testNullCheck(dataStore);
 		testSimpleOperations(dataStore);
 		testRemoveEndpoint(dataStore);
-		testRemoveRTMPEndpoint(dataStore);
+		testRemoveEndpointWithServiceEndpoint(dataStore);
 		testRTMPURL(dataStore);
 		testStreamWithId(dataStore);
 		testSaveDetection(dataStore);
@@ -160,6 +160,7 @@ public class DBStoresUnitTest {
 		testNullCheck(dataStore);
 		testSimpleOperations(dataStore);
 		testRemoveEndpoint(dataStore);
+		testRemoveEndpointWithServiceEndpoint(dataStore);
 		testRTMPURL(dataStore);
 		testStreamWithId(dataStore);
 		//testSaveDetection(dataStore);
@@ -707,7 +708,7 @@ public class DBStoresUnitTest {
 		assertEquals(2, broadcast2.getEndPointList().size());
 
 		// remove end point
-		result = dataStore.removeEndpoint(broadcast2.getStreamId(), endPoint);
+		result = dataStore.removeEndpoint(broadcast2.getStreamId(), endPoint, true);
 		assertTrue(result);
 		broadcast2 = dataStore.get(key);
 		assertNotNull(broadcast2.getEndPointList());
@@ -722,7 +723,7 @@ public class DBStoresUnitTest {
 				endPoint2.getRtmpUrl(), endPoint2.getType(), null, null);
 
 		// remove end point2
-		result = dataStore.removeEndpoint(broadcast2.getStreamId(), endPoint3Clone);
+		result = dataStore.removeEndpoint(broadcast2.getStreamId(), endPoint3Clone, true);
 		assertTrue(result);
 		broadcast2 = dataStore.get(key);
 		assertTrue(broadcast2.getEndPointList() == null || broadcast2.getEndPointList().size() == 0);
@@ -747,7 +748,7 @@ public class DBStoresUnitTest {
 
 	}
 	
-	public void testRemoveRTMPEndpoint(DataStore dataStore) {
+	public void testRemoveEndpointWithServiceEndpoint(DataStore dataStore) {
 		Broadcast broadcast = new Broadcast(null, null);
 		String name = "name 1";
 		String description = "description 2";
@@ -782,7 +783,7 @@ public class DBStoresUnitTest {
 		assertEquals(2, broadcast2.getEndPointList().size());
 
 		// remove end point
-		result = dataStore.removeRTMPEndpoint(broadcast2.getStreamId(), endPoint);
+		result = dataStore.removeEndpoint(broadcast2.getStreamId(), endPoint, false);
 		assertTrue(result);
 		broadcast2 = dataStore.get(key);
 		assertNotNull(broadcast2.getEndPointList());
@@ -797,7 +798,7 @@ public class DBStoresUnitTest {
 				endPoint2.getRtmpUrl(), endPoint2.getType(), "generic_2", null);
 
 		// remove end point2
-		result = dataStore.removeRTMPEndpoint(broadcast2.getStreamId(), endPoint3Clone);
+		result = dataStore.removeEndpoint(broadcast2.getStreamId(), endPoint3Clone, false);
 		assertTrue(result);
 		broadcast2 = dataStore.get(key);
 		assertTrue(broadcast2.getEndPointList() == null || broadcast2.getEndPointList().size() == 0);

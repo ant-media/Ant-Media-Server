@@ -579,7 +579,7 @@ public abstract class RestServiceBase {
 		endpoint.setRtmpUrl(rtmpUrl);
 		endpoint.setType(ENDPOINT_GENERIC);
 
-		boolean removed = getDataStore().removeEndpoint(id, endpoint);
+		boolean removed = getDataStore().removeEndpoint(id, endpoint, true);
 		return new Result(removed);
 	}
 	
@@ -589,7 +589,7 @@ public abstract class RestServiceBase {
 		endpoint.setType(ENDPOINT_GENERIC);
 		endpoint.setEndpointServiceId(endpointServiceId);
 
-		boolean removed = getDataStore().removeRTMPEndpoint(id, endpoint);
+		boolean removed = getDataStore().removeEndpoint(id, endpoint, false);
 		
 		return new Result(removed);
 	
