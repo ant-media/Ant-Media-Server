@@ -222,10 +222,10 @@ auth_tomcat(){
   output
   
   
-  $SUDO sed -i "/rtmps.keystorepass=password/c\rtmps.keystorepass=$password"  $INSTALL_DIRECTORY/conf/red5.properties
+  $SUDO sed -i "/rtmps.keystorepass=/c\rtmps.keystorepass=$password"  $INSTALL_DIRECTORY/conf/red5.properties
   output
   
-  $SUDO sed -i "/rtmps.truststorepass=password/c\rtmps.truststorepass=$password"  $INSTALL_DIRECTORY/conf/red5.properties
+  $SUDO sed -i "/rtmps.truststorepass=/c\rtmps.truststorepass=$password"  $INSTALL_DIRECTORY/conf/red5.properties
   output
   
   #uncomment ssl part in jee-container.xml
