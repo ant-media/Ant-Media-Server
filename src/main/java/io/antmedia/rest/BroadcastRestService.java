@@ -968,7 +968,7 @@ public class BroadcastRestService extends RestServiceBase{
 			}
 			
 		} else {
-			return new Result(false, "Operation not supported in this version");
+			return new Result(false, "Operation not supported in the Community Edition. Check the Enterprise version for more features.");
 		}
 	}	
 	
