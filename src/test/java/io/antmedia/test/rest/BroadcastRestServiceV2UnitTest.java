@@ -2077,5 +2077,41 @@ public class BroadcastRestServiceV2UnitTest {
 		
 		Result res = restServiceReal.sendMessage(message,streamId);
 		assertEquals(false, res.isSuccess());
+		
+		// test the case of data channels not enabled
+		AntMediaApplicationAdapter app2 = new AntMediaApplicationAdapter();
+		AntMediaApplicationAdapter appSpy2 = Mockito.spy(app2);
+		Mockito.doReturn(true).when(appSpy2).isDataChannelMessagingSupported();
+		restServiceReal.setApplication(appSpy2);
+		
+		res = restServiceReal.sendMessage(message,streamId);
+		assertEquals(false, res.isSuccess());
+		assertEquals("Data channels are not enabled", res.getMessage());
+		
+		AntMediaApplicationAdapter app3 = new AntMediaApplicationAdapter();
+		AntMediaApplicationAdapter appSpy3 = Mockito.spy(app3);
+		Mockito.doReturn(true).when(appSpy3).isDataChannelMessagingSupported();
+		Mockito.doReturn(true).when(appSpy3).isDataChannelEnabled();
+		
+		restServiceReal.setApplication(appSpy3);
+		
+		res = restServiceReal.sendMessage(message,streamId);
+		assertEquals(false, res.isSuccess());
+		assertEquals("Requested WebRTC stream does not exist", res.getMessage());
+		
+		AntMediaApplicationAdapter app4 = new AntMediaApplicationAdapter();
+		AntMediaApplicationAdapter appSpy4 = Mockito.spy(app4);
+		Mockito.doReturn(true).when(appSpy4).isDataChannelMessagingSupported();
+		Mockito.doReturn(true).when(appSpy4).isDataChannelEnabled();
+		Mockito.doReturn(true).when(appSpy4).doesWebRTCStreamExist(streamId);
+		
+		restServiceReal.setApplication(appSpy4);
+	    
+		res = restServiceReal.sendMessage(message,streamId);
+		
+		// check if returned result is true
+		assertEquals(false, res.isSuccess());
+		assertEquals("Operation not completed", res.getMessage());
+		
 	}
 }
