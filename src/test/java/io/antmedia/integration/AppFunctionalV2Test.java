@@ -211,14 +211,13 @@ public class AppFunctionalV2Test {
 					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
 					+ source.getStreamId());
 			
-			
 			//Check Stream list size and Streams status		
 			Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> {
-				return restService.callGetBroadcastList().size() == 2 
+				return restService.callGetLiveStatistics() == 2 
 						&& restService.callGetBroadcast(source.getStreamId()).getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)
 						&& restService.callGetBroadcast(endpoint.getStreamId()).getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 			});
-
+			
 			rtmpSendingProcess.destroy();
 
 			//wait for creating mp4 files
@@ -277,9 +276,9 @@ public class AppFunctionalV2Test {
 
 			//Check Stream list size and Streams status
 			Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> {
-				return restService.callGetBroadcastList().size() == 2 
-						&& restService.callGetBroadcast(source.getStreamId()).getStatus() == AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING
-						&& restService.callGetBroadcast(endpointStream.getStreamId()).getStatus() == AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING;
+				return restService.callGetLiveStatistics() == 2 
+						&& restService.callGetBroadcast(source.getStreamId()).getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)
+						&& restService.callGetBroadcast(endpointStream.getStreamId()).getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 			});
 
 			rtmpSendingProcess.destroy();
@@ -292,7 +291,7 @@ public class AppFunctionalV2Test {
 				return MuxingTest.getByteArray(sourceURL) != null;
 			});
 
-			String endpointURL = "http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + endpoint.getStreamId() + ".mp4";
+			String endpointURL = "http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + endpointStream.getStreamId() + ".mp4";
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
 				return MuxingTest.getByteArray(endpointURL) != null;
 			});
@@ -302,7 +301,7 @@ public class AppFunctionalV2Test {
 			assertTrue(MuxingTest.testFile(endpointURL));
 
 			restService.deleteBroadcast(source.getStreamId());
-			restService.deleteBroadcast(endpoint.getStreamId());
+			restService.deleteBroadcast(endpointStream.getStreamId());
 
 		} catch (Exception e) {
 			e.printStackTrace();
