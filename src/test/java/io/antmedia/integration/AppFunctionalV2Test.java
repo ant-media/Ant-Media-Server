@@ -198,7 +198,10 @@ public class AppFunctionalV2Test {
 			Broadcast source=restService.createBroadcast("source_stream");
 			Broadcast endpoint=restService.createBroadcast("endpoint_stream");
 			
-			Thread.sleep(1000);
+			
+			Awaitility.await().atMost(2, TimeUnit.SECONDS).until(() -> {
+				return (restService.getBroadcast(source.getStreamId()) != null) && (restService.getBroadcast(endpoint.getStreamId()) != null);
+			});
 
 			restService.addEndpoint(source.getStreamId(), endpoint.getRtmpURL());
 
@@ -208,8 +211,13 @@ public class AppFunctionalV2Test {
 					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
 					+ source.getStreamId());
 			
-			//wait for fetching stream
-			Thread.sleep(5000);
+			
+			//Check Stream list size and Streams status		
+			Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> {
+				return restService.callGetBroadcastList().size() == 2 
+						&& restService.callGetBroadcast(source.getStreamId()).getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)
+						&& restService.callGetBroadcast(endpoint.getStreamId()).getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+			});
 
 			rtmpSendingProcess.destroy();
 
@@ -247,22 +255,32 @@ public class AppFunctionalV2Test {
 
 			Broadcast source=restService.createBroadcast("source_stream");
 			Broadcast endpointStream=restService.createBroadcast("endpoint_stream");
+			
+			Awaitility.await().atMost(2, TimeUnit.SECONDS).until(() -> {
+				return (restService.getBroadcast(source.getStreamId()) != null) && (restService.getBroadcast(endpointStream.getStreamId()) != null);
+			});
 
 			Endpoint endpoint = new Endpoint();
 			endpoint.setRtmpUrl(endpointStream.getRtmpURL());
 			
 			restService.addEndpointV2(source.getStreamId(), endpoint);
 			
-			Thread.sleep(1000);
+			Awaitility.await().atMost(1, TimeUnit.SECONDS).until(() -> {
+				return restService.getBroadcast(source.getStreamId()) != null;
+			});
 
 			assertNotNull(restService.getBroadcast(source.getStreamId()).getEndPointList());
 
 			Process rtmpSendingProcess = execute(ffmpegPath
 					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
 					+ source.getStreamId());
-			
-			//wait for fetching stream
-			Thread.sleep(5000);
+
+			//Check Stream list size and Streams status
+			Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> {
+				return restService.callGetBroadcastList().size() == 2 
+						&& restService.callGetBroadcast(source.getStreamId()).getStatus() == AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING
+						&& restService.callGetBroadcast(endpointStream.getStreamId()).getStatus() == AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING;
+			});
 
 			rtmpSendingProcess.destroy();
 
