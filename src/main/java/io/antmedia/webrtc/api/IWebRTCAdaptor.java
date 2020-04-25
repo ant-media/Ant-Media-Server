@@ -23,7 +23,7 @@ public interface IWebRTCAdaptor extends IScopeService {
 
 	boolean streamExists(String streamId);
 	
-	List<IStreamInfo> getStreamOptions(String streamId);
+	List<IStreamInfo> getStreamInfo(String streamId);
 
 	/**
 	 * Try to find the best bitrate for the client

@@ -34,7 +34,7 @@ public class MockWebRTCAdaptor implements IWebRTCAdaptor{
 	}
 
 	@Override
-	public List<IStreamInfo> getStreamOptions(String streamId) {
+	public List<IStreamInfo> getStreamInfo(String streamId) {
 		return new ArrayList<>();
 	}
 

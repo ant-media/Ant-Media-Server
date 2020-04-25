@@ -411,7 +411,7 @@ public class RTMPAdaptorTest {
 		mock.unRegisterMuxer(null, null);
 		mock.registerWebRTCClient(null, null, VideoCodec.H264);
 		mock.streamExists(null);
-		mock.getStreamOptions(null);
+		mock.getStreamInfo(null);
 		mock.adaptStreamingQuality(null, null);
 		mock.registerWebRTCClient(null, null, 0);
 		assertEquals(-1, mock.getNumberOfLiveStreams());
