@@ -16,6 +16,11 @@ usage() {
   echo "If you have any question, send e-mail to contact@antmedia.io"
 }
 
+
+AMS_INSTALL_LOCATION=/usr/local/antmedia
+LIST_APPS=`ls -d $AMS_INSTALL_LOCATION/webapps/*/`
+
+
 MODE=$1
 if [ -z "$MODE" ]; then
   echo "No server mode specified. Missing parameter"
@@ -23,7 +28,6 @@ if [ -z "$MODE" ]; then
   exit 1
 fi
 
-AMS_INSTALL_LOCATION=/usr/local/antmedia
 OS_NAME=`uname`
 
 if [ "$OS_NAME" = "Darwin" ]; then
@@ -55,32 +59,20 @@ if [ $MODE = "cluster" ]
     sed -i $SED_COMPATIBILITY -E -e 's/(<!-- cluster end -->|cluster end -->)/cluster end -->/g' $AMS_INSTALL_LOCATION/conf/jee-container.xml
 fi
 
-LIVEAPP_PROPERTIES_FILE=$AMS_INSTALL_LOCATION/webapps/LiveApp/WEB-INF/red5-web.properties
-WEBRTCAPP_PROPERTIES_FILE=$AMS_INSTALL_LOCATION/webapps/WebRTCAppEE/WEB-INF/red5-web.properties
-CONSOLEAPP_PROPERTIES_FILE=$AMS_INSTALL_LOCATION/webapps/root/WEB-INF/red5-web.properties
-RED5_PROPERTIES_FILE=$AMS_INSTALL_LOCATION/conf/red5.properties
 
+sed -i $SED_COMPATIBILITY 's/clusterdb.host=.*/clusterdb.host='$MONGO_SERVER_IP'/' $AMS_INSTALL_LOCATION/conf/red5.properties
+sed -i $SED_COMPATIBILITY 's/useGlobalIp=.*/useGlobalIp='$USE_GLOBAL_IP'/' $AMS_INSTALL_LOCATION/conf/red5.properties
+sed -i $SED_COMPATIBILITY 's/clusterdb.user=.*/clusterdb.user='$3'/' $AMS_INSTALL_LOCATION/conf/red5.properties
+sed -i $SED_COMPATIBILITY 's/clusterdb.password=.*/clusterdb.password='$4'/' $AMS_INSTALL_LOCATION/conf/red5.properties
 
-sed -i $SED_COMPATIBILITY 's/clusterdb.host=.*/clusterdb.host='$MONGO_SERVER_IP'/' $RED5_PROPERTIES_FILE
-sed -i $SED_COMPATIBILITY 's/useGlobalIp=.*/useGlobalIp='$USE_GLOBAL_IP'/' $RED5_PROPERTIES_FILE
-sed -i $SED_COMPATIBILITY 's/clusterdb.user=.*/clusterdb.user='$3'/' $RED5_PROPERTIES_FILE
-sed -i $SED_COMPATIBILITY 's/clusterdb.password=.*/clusterdb.password='$4'/' $RED5_PROPERTIES_FILE
+for i in $LIST_APPS; do 
 
-sed -i $SED_COMPATIBILITY 's/db.type=.*/db.type='$DB_TYPE'/' $LIVEAPP_PROPERTIES_FILE
-sed -i $SED_COMPATIBILITY 's/db.host=.*/db.host='$MONGO_SERVER_IP'/' $LIVEAPP_PROPERTIES_FILE
-sed -i $SED_COMPATIBILITY 's/db.user=.*/db.user='$3'/' $LIVEAPP_PROPERTIES_FILE
-sed -i $SED_COMPATIBILITY 's/db.password=.*/db.password='$4'/' $LIVEAPP_PROPERTIES_FILE
+  sed -i $SED_COMPATIBILITY 's/db.type=.*/db.type='$DB_TYPE'/' $i/WEB-INF/red5-web.properties
+  sed -i $SED_COMPATIBILITY 's/db.host=.*/db.host='$MONGO_SERVER_IP'/' $i/WEB-INF/red5-web.properties
+  sed -i $SED_COMPATIBILITY 's/db.user=.*/db.user='$3'/' $i/WEB-INF/red5-web.properties
+  sed -i $SED_COMPATIBILITY 's/db.password=.*/db.password='$4'/' $i/WEB-INF/red5-web.properties
 
-sed -i $SED_COMPATIBILITY 's/db.type=.*/db.type='$DB_TYPE'/' $WEBRTCAPP_PROPERTIES_FILE
-sed -i $SED_COMPATIBILITY 's/db.host=.*/db.host='$MONGO_SERVER_IP'/' $WEBRTCAPP_PROPERTIES_FILE
-sed -i $SED_COMPATIBILITY 's/db.user=.*/db.user='$3'/' $WEBRTCAPP_PROPERTIES_FILE
-sed -i $SED_COMPATIBILITY 's/db.password=.*/db.password='$4'/' $WEBRTCAPP_PROPERTIES_FILE
-
-sed -i $SED_COMPATIBILITY 's/db.type=.*/db.type='$DB_TYPE'/' $CONSOLEAPP_PROPERTIES_FILE
-sed -i $SED_COMPATIBILITY 's/db.host=.*/db.host='$MONGO_SERVER_IP'/' $CONSOLEAPP_PROPERTIES_FILE
-sed -i $SED_COMPATIBILITY 's/db.user=.*/db.user='$3'/' $CONSOLEAPP_PROPERTIES_FILE
-sed -i $SED_COMPATIBILITY 's/db.password=.*/db.password='$4'/' $CONSOLEAPP_PROPERTIES_FILE
-
+done
 
 if [ "$OS_NAME" = "Darwin" ]; then
   echo "You can re-start Ant Media Server on your Macos"
