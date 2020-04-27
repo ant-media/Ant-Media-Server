@@ -30,7 +30,7 @@ public interface IWebRTCAdaptor extends IScopeService {
 	 * @param streamId
 	 * @param webRTCClient
 	 */
-	void adaptStreamingQuality(String streamId, IWebRTCClient webRTCClient);
+	void adaptStreamingQuality(String streamId, IWebRTCClient webRTCClient, VideoCodec codec);
 
 	/**
 	 * Register to specific resolution

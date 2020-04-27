@@ -39,7 +39,7 @@ public class MockWebRTCAdaptor implements IWebRTCAdaptor{
 	}
 
 	@Override
-	public void adaptStreamingQuality(String streamId, IWebRTCClient webRTCClient) {
+	public void adaptStreamingQuality(String streamId, IWebRTCClient webRTCClient, VideoCodec codec) {
 		//No implementation since this is mock
 	}
 
