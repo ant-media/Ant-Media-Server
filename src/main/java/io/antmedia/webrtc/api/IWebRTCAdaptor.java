@@ -41,7 +41,7 @@ public interface IWebRTCAdaptor extends IScopeService {
 	 * @param webRTCClusterClient
 	 * @param resolutionHeight
 	 */
-	boolean registerWebRTCClient(String streamId, IWebRTCClient webRTCClusterClient, int resolutionHeight);
+	boolean registerWebRTCClient(String streamId, IWebRTCClient webRTCClusterClient, int resolutionHeight, VideoCodec codec);
 	
 	/**
 	 * Returns number of active live streams 

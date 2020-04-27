@@ -413,7 +413,7 @@ public class RTMPAdaptorTest {
 		mock.streamExists(null);
 		mock.getStreamInfo(null);
 		mock.adaptStreamingQuality(null, null);
-		mock.registerWebRTCClient(null, null, 0);
+		mock.registerWebRTCClient(null, null, 0, null);
 		assertEquals(-1, mock.getNumberOfLiveStreams());
 		assertEquals(-1, mock.getNumberOfTotalViewers());
 		assertEquals(-1, mock.getNumberOfViewers(null));
