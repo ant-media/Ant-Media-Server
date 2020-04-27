@@ -17,6 +17,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.test.context.ContextConfiguration;
 
 import io.antmedia.datastore.db.DataStoreFactory;
+import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
@@ -97,6 +98,7 @@ public class HlsViewerStatsTest {
 			viewerStats.setApplicationContext(context);
 			
 			Broadcast broadcast = new Broadcast();
+			broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 			broadcast.setName("name");
 			
 			dsf.setWriteStatsToDatastore(true);

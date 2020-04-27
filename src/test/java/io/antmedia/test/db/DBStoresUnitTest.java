@@ -487,10 +487,12 @@ public class DBStoresUnitTest {
 	public void testUpdateHLSViewerCount(DataStore dataStore) {
 		//create a stream
 		Broadcast broadcast = new Broadcast();
+		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 		broadcast.setName("test");
 		String key = dataStore.save(broadcast);
 
 		Broadcast broadcast2 = new Broadcast();
+		broadcast2.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 		broadcast2.setName("test2");
 		String key2 = dataStore.save(broadcast2);
 
@@ -516,16 +518,22 @@ public class DBStoresUnitTest {
 
 			assertEquals(totalCountFor1, dataStore.get(key).getHlsViewerCount());
 			assertEquals(totalCountFor2, dataStore.get(key2).getHlsViewerCount());
+			
+			// If broadcast finished
+			
+			
 		}
 	}
 
 	public void testWebRTCViewerCount(DataStore dataStore) {
 		//create a stream
 		Broadcast broadcast = new Broadcast();
+		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 		broadcast.setName("test");
 		String key = dataStore.save(broadcast);
 
 		Broadcast broadcast2 = new Broadcast();
+		broadcast2.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 		broadcast2.setName("test2");
 		String key2 = dataStore.save(broadcast2);
 
@@ -564,10 +572,12 @@ public class DBStoresUnitTest {
 	public void testRTMPViewerCount(DataStore dataStore) {
 		//create a stream
 		Broadcast broadcast = new Broadcast();
+		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 		broadcast.setName("test");
 		String key = dataStore.save(broadcast);
 
 		Broadcast broadcast2 = new Broadcast();
+		broadcast2.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 		broadcast2.setName("test2");
 		String key2 = dataStore.save(broadcast2);
 

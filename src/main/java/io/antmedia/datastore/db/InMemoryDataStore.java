@@ -95,9 +95,9 @@ public class InMemoryDataStore extends DataStore {
 				broadcast.setStartTime(System.currentTimeMillis());
 			}
 			else if(status.contentEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED)) {
+				broadcast.setRtmpViewerCount(0);
 				broadcast.setWebRTCViewerCount(0);
 				broadcast.setHlsViewerCount(0);
-				broadcast.setRtmpViewerCount(0);
 			}
 			broadcastMap.put(id, broadcast);
 			result = true;
@@ -562,7 +562,7 @@ public class InMemoryDataStore extends DataStore {
 		boolean result = false;
 		if (streamId != null) {
 			Broadcast broadcast = broadcastMap.get(streamId);
-			if (broadcast != null) {
+			if (broadcast != null && broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
 				int hlsViewerCount = broadcast.getHlsViewerCount();
 				hlsViewerCount += diffCount;
 
@@ -579,7 +579,7 @@ public class InMemoryDataStore extends DataStore {
 		boolean result = false;
 		if (streamId != null) {
 			Broadcast broadcast = broadcastMap.get(streamId);
-			if (broadcast != null) {
+			if (broadcast != null && broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
 				int webRTCViewerCount = broadcast.getWebRTCViewerCount();
 				if (increment) {
 					webRTCViewerCount++;
@@ -601,7 +601,7 @@ public class InMemoryDataStore extends DataStore {
 		boolean result = false;
 		if (streamId != null) {
 			Broadcast broadcast = broadcastMap.get(streamId);
-			if (broadcast != null) {
+			if (broadcast != null && broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
 				int rtmpViewerCount = broadcast.getRtmpViewerCount();
 				if (increment) {
 					rtmpViewerCount++;

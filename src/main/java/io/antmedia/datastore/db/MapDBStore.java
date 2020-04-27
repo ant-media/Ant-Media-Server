@@ -859,7 +859,7 @@ public class MapDBStore extends DataStore {
 			
 			if (streamId != null) {
 				Broadcast broadcast = get(streamId);
-				if (broadcast != null) {
+				if (broadcast != null && broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
 					int hlsViewerCount = broadcast.getHlsViewerCount();
 					hlsViewerCount += diffCount;
 					broadcast.setHlsViewerCount(hlsViewerCount);
@@ -879,7 +879,7 @@ public class MapDBStore extends DataStore {
 				
 			if (streamId != null) {
 				Broadcast broadcast = get(streamId);
-				if (broadcast != null) {
+				if (broadcast != null && broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
 					int webRTCViewerCount = broadcast.getWebRTCViewerCount();
 					if (increment) {
 						webRTCViewerCount++;
@@ -902,7 +902,7 @@ public class MapDBStore extends DataStore {
 		synchronized (this) {
 			if (streamId != null) {
 				Broadcast broadcast = get(streamId);
-				if (broadcast != null) {
+				if (broadcast != null && broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
 					int rtmpViewerCount = broadcast.getRtmpViewerCount();
 					if (increment) {
 						rtmpViewerCount++;

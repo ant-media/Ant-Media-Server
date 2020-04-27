@@ -377,6 +377,7 @@ public class BroadcastRestServiceV2UnitTest {
 		InMemoryDataStore dataStore = new InMemoryDataStore("testdb");
 		restServiceReal.setDataStore(dataStore);
 		Broadcast broadcast = new Broadcast();
+		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 		String streamId = dataStore.save(broadcast);
 
 		dataStore.updateHLSViewerCount(streamId, 30);
