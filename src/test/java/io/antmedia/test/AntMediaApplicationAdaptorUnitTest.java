@@ -202,6 +202,10 @@ public class AntMediaApplicationAdaptorUnitTest {
 		// Should 3 broadcast in DB
 		assertEquals(3, dataStore.getBroadcastCount());
 
+		Result result = new Result(false);
+		Mockito.when(spyAdapter.createInitializationProcess(Mockito.anyString())).thenReturn(result);
+		//When createInitializationProcess(scope.getName());
+		
 		spyAdapter.appStart(scope);
 		
 		// Should 2 broadcast in DB, because delete zombie stream
