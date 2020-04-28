@@ -2,6 +2,7 @@ package io.antmedia.datastore.db;
 
 import java.io.File;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -13,6 +14,7 @@ import org.bson.types.ObjectId;
 import org.mongodb.morphia.Datastore;
 import org.mongodb.morphia.Key;
 import org.mongodb.morphia.Morphia;
+import org.mongodb.morphia.query.Criteria;
 import org.mongodb.morphia.query.FindOptions;
 import org.mongodb.morphia.query.Query;
 import org.mongodb.morphia.query.UpdateOperations;
@@ -814,13 +816,31 @@ public class MongoStore extends DataStore {
 	public void saveStreamInfo(StreamInfo streamInfo) {
 		synchronized(this) {
 			Query<StreamInfo> query = datastore.createQuery(StreamInfo.class);
+			
+			List<Criteria> criteriaList = new ArrayList<>();
+			if (streamInfo.getVideoPort() != 0) {
+				criteriaList.add(query.criteria("videoPort").equal(streamInfo.getVideoPort()));
+				criteriaList.add(query.criteria("audioPort").equal(streamInfo.getVideoPort()));
+				criteriaList.add(query.criteria("dataChannelPort").equal(streamInfo.getVideoPort()));
+			}
+			if (streamInfo.getAudioPort() != 0) {
+				criteriaList.add(query.criteria("videoPort").equal(streamInfo.getAudioPort()));
+				criteriaList.add(query.criteria("audioPort").equal(streamInfo.getAudioPort()));
+				criteriaList.add(query.criteria("dataChannelPort").equal(streamInfo.getAudioPort()));
+			}
+			
+			if (streamInfo.getDataChannelPort() != 0) {
+				criteriaList.add(query.criteria("videoPort").equal(streamInfo.getDataChannelPort()));
+				criteriaList.add(query.criteria("audioPort").equal(streamInfo.getDataChannelPort()));
+				criteriaList.add(query.criteria("dataChannelPort").equal(streamInfo.getDataChannelPort()));
+			}
+			
+			Criteria[] criteriaArray = new Criteria[criteriaList.size()];
+			criteriaList.toArray(criteriaArray);
 			query.and(
 					query.criteria("host").equal(streamInfo.getHost()),
 					query.or(
-							query.criteria("videoPort").equal(streamInfo.getVideoPort()),
-							query.criteria("videoPort").equal(streamInfo.getAudioPort()),
-							query.criteria("audioPort").equal(streamInfo.getVideoPort()),
-							query.criteria("audioPort").equal(streamInfo.getAudioPort())
+							criteriaArray
 							)
 					);
 			long count = query.count();
