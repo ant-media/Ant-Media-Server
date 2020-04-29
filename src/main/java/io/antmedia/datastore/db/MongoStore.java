@@ -837,12 +837,20 @@ public class MongoStore extends DataStore {
 			
 			Criteria[] criteriaArray = new Criteria[criteriaList.size()];
 			criteriaList.toArray(criteriaArray);
-			query.and(
-					query.criteria("host").equal(streamInfo.getHost()),
-					query.or(
-							criteriaArray
-							)
-					);
+			if (criteriaArray.length > 0) {
+				query.and(
+						query.criteria("host").equal(streamInfo.getHost()),
+						query.or(
+								criteriaArray
+								)
+						);
+			}
+			else {
+				query.and(
+						query.criteria("host").equal(streamInfo.getHost())
+						);
+			}
+			
 			long count = query.count();
 			if(count > 0) {
 				logger.error("{} port duplications are detected for host: {}, video port: {}, audio port:{}",
