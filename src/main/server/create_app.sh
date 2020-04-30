@@ -13,6 +13,7 @@ usage() {
 }
 
 ERROR_MESSAGE="Error: App is not created. Please check the error in the terminal and take a look at the instructions below"
+FILE=`cat ./conf/red5.properties |grep -c "clusterdb.host=localhost"`
 
 check_result() {
   OUT=$?
@@ -80,6 +81,15 @@ sed -i $SED_COMPATIBILITY 's^<display-name>StreamApp^<display-name>'$APP_NAME'^'
 check_result
 sed -i $SED_COMPATIBILITY 's^<param-value>/StreamApp^<param-value>/'$APP_NAME'^' $WEB_XML_FILE
 check_result
+
+chown -R antmedia:antmedia $APP_DIR
+
+if [ $FILE != "1" ]; then
+  grep "clusterdb.host=" $AMS_DIR/conf/red5.properties | sed 's/clusterdb.host/db.host/g' | xargs -I '{}' sed -i 's/db.host=.*/{}/g' $AMS_DIR/webapps/$APP_NAME/WEB-INF/red5-web.properties
+  grep "clusterdb.user=" $AMS_DIR/conf/red5.properties | sed 's/clusterdb.user/db.user/g' | xargs -I '{}' sed -i 's/db.user=.*/{}/g' $AMS_DIR/webapps/$APP_NAME/WEB-INF/red5-web.properties
+  grep "clusterdb.password=" $AMS_DIR/conf/red5.properties | sed 's/clusterdb.password/db.password/g' | xargs -I '{}' sed -i 's/db.password=.*/{}/g' $AMS_DIR/webapps/$APP_NAME/WEB-INF/red5-web.properties
+  sed -i $SED_COMPATIBILITY 's/db.type=.*/db.type='mongodb'/' $AMS_DIR/$APP_NAME/WEB-INF/red5-web.properties
+fi
 
 echo "$APP_NAME is created."
 
