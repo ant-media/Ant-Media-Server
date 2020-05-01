@@ -38,6 +38,19 @@ public class HlsViewerStatsTest {
 		viewerStats.setDataStore(dataStore);
 		
 		String streamId = String.valueOf((Math.random() * 999999));
+		
+		Broadcast broadcast = new Broadcast();
+		
+		try {
+			broadcast.setStreamId(streamId);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		// Set broadcast status broadcasting
+		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+		dataStore.save(broadcast);
+		
 		for (int i = 0; i < 100; i++) {
 			String sessionId = String.valueOf((Math.random() * 999999));
 			viewerStats.registerNewViewer(streamId, sessionId);

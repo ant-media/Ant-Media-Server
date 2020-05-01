@@ -562,7 +562,7 @@ public class InMemoryDataStore extends DataStore {
 		boolean result = false;
 		if (streamId != null) {
 			Broadcast broadcast = broadcastMap.get(streamId);
-			if (broadcast != null && broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
+			if (broadcast != null) {
 				int hlsViewerCount = broadcast.getHlsViewerCount();
 				hlsViewerCount += diffCount;
 
@@ -579,7 +579,7 @@ public class InMemoryDataStore extends DataStore {
 		boolean result = false;
 		if (streamId != null) {
 			Broadcast broadcast = broadcastMap.get(streamId);
-			if (broadcast != null && broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
+			if (broadcast != null) {
 				int webRTCViewerCount = broadcast.getWebRTCViewerCount();
 				if (increment) {
 					webRTCViewerCount++;
@@ -601,7 +601,7 @@ public class InMemoryDataStore extends DataStore {
 		boolean result = false;
 		if (streamId != null) {
 			Broadcast broadcast = broadcastMap.get(streamId);
-			if (broadcast != null && broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
+			if (broadcast != null) {
 				int rtmpViewerCount = broadcast.getRtmpViewerCount();
 				if (increment) {
 					rtmpViewerCount++;

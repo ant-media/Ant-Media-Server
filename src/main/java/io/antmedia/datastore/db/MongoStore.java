@@ -769,14 +769,11 @@ public class MongoStore extends DataStore {
 	public boolean updateHLSViewerCountLocal(String streamId, int diffCount) {
 		synchronized(this) {
 			try {
-				Broadcast broadcast = get(streamId);
-				if(broadcast != null && broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
-					Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(streamId);
-					UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).inc(HLS_VIEWER_COUNT, diffCount);
+				Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(streamId);
+				UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).inc(HLS_VIEWER_COUNT, diffCount);
 
-					UpdateResults update = datastore.update(query, ops);
-					return update.getUpdatedCount() == 1;
-				}
+				UpdateResults update = datastore.update(query, ops);
+				return update.getUpdatedCount() == 1;
 			} catch (Exception e) {
 				logger.error(e.getMessage());
 			}
@@ -800,21 +797,18 @@ public class MongoStore extends DataStore {
 	private boolean updateViewerField(String streamId, boolean increment, String fieldName) {
 		synchronized(this) {
 			try {
-				Broadcast broadcast = get(streamId);
-				if(broadcast != null && broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
-					Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(streamId);
-					UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class);
-					String field = fieldName;
-					if (increment) {
-						ops.inc(field);
-					}
-					else {
-						ops.dec(field);
-					}
-	
-					UpdateResults update = datastore.update(query, ops);
-					return update.getUpdatedCount() == 1;
+				Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(streamId);
+				UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class);
+				String field = fieldName;
+				if (increment) {
+					ops.inc(field);
 				}
+				else {
+					ops.dec(field);
+				}
+
+				UpdateResults update = datastore.update(query, ops);
+				return update.getUpdatedCount() == 1;
 			} catch (Exception e) {
 				logger.error(e.getMessage());
 			}

@@ -13,6 +13,8 @@ import org.springframework.context.ApplicationContextAware;
 
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.IDataStoreFactory;
+import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
 
@@ -44,18 +46,23 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 	@Override
 	public void registerNewViewer(String streamId, String sessionId) 
 	{
-		Map<String, Long> viewerMap = streamsViewerMap.get(streamId);
-		if (viewerMap == null) {
-			viewerMap = new ConcurrentHashMap<>();
-		}
-		if (!viewerMap.containsKey(sessionId)) {
-			//if sessionId is not in the map, this is the first time for getting stream,
-			//increment viewer count
-			getDataStore().updateHLSViewerCount(streamId, 1);
-		}
-		viewerMap.put(sessionId, System.currentTimeMillis());
+		Broadcast broadcast = getDataStore().get(streamId);
+		
+		if(broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
 
-		streamsViewerMap.put(streamId, viewerMap);
+			Map<String, Long> viewerMap = streamsViewerMap.get(streamId);
+			if (viewerMap == null) {
+				viewerMap = new ConcurrentHashMap<>();
+			}
+			if (!viewerMap.containsKey(sessionId)) {
+				//if sessionId is not in the map, this is the first time for getting stream,
+				//increment viewer count
+				getDataStore().updateHLSViewerCount(streamId, 1);
+			}
+			viewerMap.put(sessionId, System.currentTimeMillis());
+
+			streamsViewerMap.put(streamId, viewerMap);
+		}
 	}
 
 	@Override
@@ -122,6 +129,17 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 					}
 					
 				}, timePeriodMS);
+	}
+	
+	public void resetHLSViewerMap(String streamID) {	
+		if(streamsViewerMap.get(streamID) != null) {
+			streamsViewerMap.get(streamID).clear();
+			streamsViewerMap.remove(streamID);
+			logger.error("Reset HLS Stream ID: {} removed successfully", streamID);			
+		}
+		else {
+			logger.error("Reset HLS Stream ID: {} remove failed or null", streamID);
+		}
 	}
 
 	public static int getTimeoutMSFromSettings(AppSettings settings, int defaultValue) {
