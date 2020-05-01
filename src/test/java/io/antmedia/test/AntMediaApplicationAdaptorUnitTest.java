@@ -18,6 +18,7 @@ import java.io.InputStream;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
+import java.util.ConcurrentModificationException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,6 +42,7 @@ import org.red5.server.stream.ClientBroadcastStream;
 
 import com.jmatio.io.stream.ByteBufferInputStream;
 
+import ch.qos.logback.classic.Logger;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.cluster.IClusterNotifier;
@@ -638,7 +640,13 @@ public class AntMediaApplicationAdaptorUnitTest {
 		
 		assertEquals(2, fetcherManager.getStreamFetcherList().size());
 		
-		adapter.serverShuttingdown();
+		try {
+			adapter.serverShuttingdown();
+		}
+		catch (ConcurrentModificationException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
 
 		verify(streamFetcher, times(1)).stopStream();
 		verify(streamFetcher2, times(1)).stopStream();
