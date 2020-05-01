@@ -17,11 +17,7 @@ import org.awaitility.Awaitility;
 import org.bytedeco.javacpp.avformat;
 import org.bytedeco.javacpp.avutil;
 import org.junit.BeforeClass;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TestRule;
-import org.junit.rules.TestWatcher;
-import org.junit.runner.Description;
 import org.red5.codec.AudioCodec;
 import org.red5.codec.VideoCodec;
 import org.red5.io.ITag;
@@ -68,20 +64,6 @@ public class RemoteBroadcastStreamTest extends AbstractJUnit4SpringContextTests{
 		avutil.av_log_set_level(avutil.AV_LOG_INFO);
 	}
 
-	@Rule
-	public TestRule watcher = new TestWatcher() {
-		protected void starting(Description description) {
-			System.out.println("Starting test: " + description.getMethodName());
-		}
-
-		protected void failed(Throwable e, Description description) {
-			System.out.println("Failed test: " + description.getMethodName());
-			e.printStackTrace();
-		};
-		protected void finished(Description description) {
-			System.out.println("Finishing test: " + description.getMethodName());
-		};
-	};	
 
 	/**
 	 * Bug this case occurs in test_video_360p.flv file 
