@@ -1,5 +1,6 @@
 package io.antmedia;
 
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -8,6 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.ConcurrentModificationException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -892,10 +894,15 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	
 	public void closeStreamFetchers() {
 		if (streamFetcherManager != null) {
-			Queue<StreamFetcher> fetchers = streamFetcherManager.getStreamFetcherList();
-			for (StreamFetcher streamFetcher : fetchers) {
-				streamFetcher.stopStream();
-				fetchers.remove(streamFetcher);
+			try {
+				Queue<StreamFetcher> fetchers = streamFetcherManager.getStreamFetcherList();
+				for (StreamFetcher streamFetcher : fetchers) {
+					streamFetcher.stopStream();
+					fetchers.remove(streamFetcher);
+				}
+			}
+			catch (ConcurrentModificationException e) {
+				logger.error(e.getMessage());
 			}
 		}
 	}
