@@ -325,8 +325,9 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		service.setApplication(app.getAppAdaptor());
 
 		//create a broadcast
-		Broadcast newCam = new Broadcast("test", "127.0.0.1:8080", "admin", "admin", "rtsp://wowzaec2demo.streamlock.net/vod/mp4:BigBuckBunny_115k.mov",
-				AntMediaApplicationAdapter.STREAM_SOURCE);
+		Broadcast mp4Stream = new Broadcast();
+		mp4Stream.setType(AntMediaApplicationAdapter.VOD);
+		mp4Stream.setStreamUrl(VALID_MP4_URL);
 
 		//create a test db
 		DataStore dataStore = new MapDBStore("target/testPlaylistStartStreaming.db"); 
@@ -335,9 +336,9 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 		//add stream to data store
-		dataStore.save(newCam);
+		dataStore.save(mp4Stream);
 
-		StreamFetcher streamFetcher = new StreamFetcher(newCam, appScope, vertx); 
+		StreamFetcher streamFetcher = new StreamFetcher(mp4Stream, appScope, vertx); 
 
 		service.setApplication(app.getAppAdaptor());
 
@@ -347,7 +348,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		app.getAppAdaptor().setStreamFetcherManager(streamFetcherManager);
 
-		StreamFetcher streamFetcherPlaylist = streamFetcherManager.playlistStartStreaming(newCam, streamFetcher);
+		StreamFetcher streamFetcherPlaylist = streamFetcherManager.playlistStartStreaming(mp4Stream, streamFetcher);
 
 		//check whether answer from StreamFetcherManager is true or not after new IPCamera is added
 		assertNotNull(streamFetcherPlaylist);
@@ -358,7 +359,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		});
 
 		streamFetcherManager.stopCheckerJob();
-		Result result = streamFetcherManager.stopStreaming(newCam);
+		Result result = streamFetcherManager.stopStreaming(mp4Stream);
 
 		//check that fetcher is nor running
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->  {
@@ -417,11 +418,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 			//create a broadcast
 			Broadcast broadcastItem3=new Broadcast();
-
-
 			broadcastItem3.setStreamId("testId");
-
-
 			broadcastItem3.setStreamUrl(VALID_MP4_URL);
 
 			//create a broadcast
@@ -444,16 +441,17 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			assertNotNull(streamFetcherManager);		
 
 			//check that there is no job related left related with stream fetching
-
-			Thread.sleep(30000);
-
+			
+			Awaitility.await().atMost(30, TimeUnit.SECONDS)
+			.until(() ->dataStore.getPlaylist("testId").getCurrentPlayIndex() == 2 && dataStore.getPlaylist("testId").getPlaylistStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING));
 
 			service.stopPlaylist(playlist.getPlaylistId());
 
-			// Update playlist with DB
+			// Get playlist with DB
 			playlist = dataStore.getPlaylist(playlist.getPlaylistId());
 
 			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, playlist.getPlaylistStatus());
+			assertEquals(2, playlist.getCurrentPlayIndex());
 
 
 			// Restore play index
@@ -468,7 +466,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			streamFetcherManager.startPlaylistThread(playlist);	
 
 			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, playlist.getPlaylistStatus());	
-
+			assertEquals(1, playlist.getCurrentPlayIndex());
 
 
 			// Restore play index
@@ -484,9 +482,8 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 			streamFetcherManager.startPlaylistThread(playlist);
 
-
-			Thread.sleep(10000);
-
+			Awaitility.await().atMost(10, TimeUnit.SECONDS)
+			.until(() ->dataStore.getPlaylist("testId").getCurrentPlayIndex() == 1);
 
 			service.stopPlaylist(playlist.getPlaylistId());
 
@@ -494,6 +491,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			playlist = dataStore.getPlaylist(playlist.getPlaylistId());
 
 			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, playlist.getPlaylistStatus());
+			assertEquals(1, dataStore.getPlaylist("testId").getCurrentPlayIndex());
 
 			//Check Stream URL function
 
