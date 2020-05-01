@@ -602,9 +602,13 @@ public class AntMediaApplicationAdaptorUnitTest {
 			};
 		}.start();
 
+		assertEquals(1, sfm.getStreamFetcherList().size());
+
 		adapter.serverShuttingdown();
 
 		verify(sf, times(1)).stopStream();
+		assertEquals(0, sfm.getStreamFetcherList().size());
+
 		verify(cbs, times(1)).stop();
 		verify(muxerAdaptor, times(1)).stop();
 
