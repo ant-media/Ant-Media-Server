@@ -564,14 +564,55 @@ public class AntMediaApplicationAdaptorUnitTest {
 		adapter.setScope(scope);
 		
 		adapter.setServerSettings(Mockito.spy(new ServerSettings()));
+		
+		DataStore dataStore = mock(DataStore.class);
+		DataStoreFactory dataStoreFactory = mock(DataStoreFactory.class);
+		when(dataStoreFactory.getDataStore()).thenReturn(dataStore);
 
-		StreamFetcherManager sfm = mock(StreamFetcherManager.class);
-		adapter.setStreamFetcherManager(sfm);
+		adapter.setDataStoreFactory(dataStoreFactory);
+		
+		//Add first broadcast with wrong URL
+		Broadcast stream = new Broadcast();
+		try {
+			stream.setStreamId(String.valueOf((Math.random() * 100000)));
+		} catch (Exception e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
 
-		StreamFetcher sf = mock(StreamFetcher.class);
+		stream.setStreamUrl("anyurl");
+		dataStore.save(stream);
+		
+		//Add second broadcast with correct URL
+		Broadcast stream2 = new Broadcast();
+		try {
+			stream2.setStreamId(String.valueOf((Math.random() * 100000)));
+		} catch (Exception e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+
+		stream2.setStreamUrl("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4");		
+		dataStore.save(stream2);
+		
+		StreamFetcherManager sfm = new StreamFetcherManager(vertx, dataStore, scope);
+		StreamFetcherManager fetcherManager = Mockito.spy(sfm);
+		
+		StreamFetcher streamFetcher = mock(StreamFetcher.class);
+		StreamFetcher streamFetcher2 = mock(StreamFetcher.class);
+
+
+		Mockito.doReturn(streamFetcher).when(fetcherManager).make(stream, scope, vertx);
+		Mockito.doReturn(streamFetcher2).when(fetcherManager).make(stream2, scope, vertx);
+
+		
 		Queue<StreamFetcher> sfQueue = new ConcurrentLinkedQueue<StreamFetcher>();
-		sfQueue.add(sf);
-		when(sfm.getStreamFetcherList()).thenReturn(sfQueue);
+		sfQueue.add(streamFetcher);
+		sfQueue.add(streamFetcher2);
+		
+		fetcherManager.setStreamFetcherList(sfQueue);
+		adapter.setStreamFetcherManager(fetcherManager);
+
 
 		MuxAdaptor muxerAdaptor = mock(MuxAdaptor.class);
 		adapter.muxAdaptorAdded(muxerAdaptor);
@@ -582,14 +623,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		when(muxerAdaptor.getBroadcastStream()).thenReturn(cbs);
 		when(muxerAdaptor.getBroadcast()).thenReturn(broadcast);
 
-
-		DataStore dataStore = mock(DataStore.class);
 		when(dataStore.getLocalLiveBroadcastCount(Mockito.any())).thenReturn(1L);
-
-		DataStoreFactory dataStoreFactory = mock(DataStoreFactory.class);
-		when(dataStoreFactory.getDataStore()).thenReturn(dataStore);
-
-		adapter.setDataStoreFactory(dataStoreFactory);
 
 		new Thread() {
 			public void run() {
@@ -601,13 +635,15 @@ public class AntMediaApplicationAdaptorUnitTest {
 				when(dataStore.getLocalLiveBroadcastCount(Mockito.any())).thenReturn(0L);
 			};
 		}.start();
-
-		assertEquals(1, sfm.getStreamFetcherList().size());
-
+		
+		assertEquals(2, fetcherManager.getStreamFetcherList().size());
+		
 		adapter.serverShuttingdown();
 
-		verify(sf, times(1)).stopStream();
-		assertEquals(0, sfm.getStreamFetcherList().size());
+		verify(streamFetcher, times(1)).stopStream();
+		verify(streamFetcher2, times(1)).stopStream();
+		
+		assertEquals(0, fetcherManager.getStreamFetcherList().size());
 
 		verify(cbs, times(1)).stop();
 		verify(muxerAdaptor, times(1)).stop();
