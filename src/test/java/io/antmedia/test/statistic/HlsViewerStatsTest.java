@@ -58,7 +58,20 @@ public class HlsViewerStatsTest {
 
 		int viewerCount = viewerStats.getViewerCount(streamId);
 		assertEquals(100, viewerCount);
-
+		
+		
+		// Set broadcast status finished
+		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+		dataStore.save(broadcast);
+		
+		for (int i = 0; i < 100; i++) {
+			String sessionId = String.valueOf((Math.random() * 999999));
+			viewerStats.registerNewViewer(streamId, sessionId);
+		}
+		
+		viewerCount = viewerStats.getViewerCount(streamId);
+		assertEquals(100, viewerCount);
+		
 		assertEquals(0, viewerStats.getViewerCount("no_streamid"));
 
 	}
