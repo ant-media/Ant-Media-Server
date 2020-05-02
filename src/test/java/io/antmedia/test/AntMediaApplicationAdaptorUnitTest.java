@@ -639,23 +639,46 @@ public class AntMediaApplicationAdaptorUnitTest {
 		}.start();
 		
 		assertEquals(2, fetcherManager.getStreamFetcherList().size());
+		assertEquals(2, sfQueue.size());
 		
-		try {
-			adapter.serverShuttingdown();
-		}
-		catch (ConcurrentModificationException e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
+		adapter.serverShuttingdown();
+
 
 		verify(streamFetcher, times(1)).stopStream();
 		verify(streamFetcher2, times(1)).stopStream();
 		
 		assertEquals(0, fetcherManager.getStreamFetcherList().size());
+		assertEquals(0, sfQueue.size());
 
 		verify(cbs, times(1)).stop();
 		verify(muxerAdaptor, times(1)).stop();
 
+	}
+	
+	@Test
+	public void testCloseStreamFetchers() {
+		
+		Queue<StreamFetcher> streamFetcherList= new ConcurrentLinkedQueue<>();
+		
+		StreamFetcher streamFetcher = mock(StreamFetcher.class);
+		StreamFetcher streamFetcher2 = mock(StreamFetcher.class);
+		StreamFetcher streamFetcher3 = mock(StreamFetcher.class);
+		StreamFetcher streamFetcher4 = mock(StreamFetcher.class);
+		
+		streamFetcherList.add(streamFetcher);
+		streamFetcherList.add(streamFetcher2);
+		streamFetcherList.add(streamFetcher3);
+		streamFetcherList.add(streamFetcher4);
+		
+		StreamFetcherManager fetcherManager = mock(StreamFetcherManager.class);
+		when(fetcherManager.getStreamFetcherList()).thenReturn(streamFetcherList);
+		adapter.setStreamFetcherManager(fetcherManager);
+		
+		assertEquals(4, streamFetcherList.size());
+		
+		adapter.closeStreamFetchers();
+
+		assertEquals(0, streamFetcherList.size());
 	}
 
 	@Test
