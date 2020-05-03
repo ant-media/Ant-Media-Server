@@ -10,6 +10,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.Nonnull;
 
+import org.apache.tika.utils.ExceptionUtils;
 import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -171,7 +172,7 @@ public class StreamFetcherManager {
 			}
 			catch (Exception e) {
 				streamScheduler = null;
-				logger.error(e.getMessage());
+				logger.error(ExceptionUtils.getStackTrace(e));
 			}
 		}
 
