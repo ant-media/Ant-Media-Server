@@ -1022,14 +1022,15 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 		boolean result = false;
 		
-		//if there is any wrong encoder settings, remove it at first
+		//if there is any wrong encoder settings, return false
 		List<EncoderSettings> encoderSettingsList = newSettings.getEncoderSettings();
 		if (encoderSettingsList != null) {
 			for (Iterator<EncoderSettings> iterator = encoderSettingsList.iterator(); iterator.hasNext();) {
 				EncoderSettings encoderSettings = iterator.next();
-				if (encoderSettings.getHeight() == 0 || encoderSettings.getVideoBitrate() == 0 || encoderSettings.getAudioBitrate() == 0)
+				if (encoderSettings.getHeight() <= 0 || encoderSettings.getVideoBitrate() <= 0 || encoderSettings.getAudioBitrate() <= 0)
 				{
-					iterator.remove();
+					logger.error("Unexpected encoder parameter. None of the parameters(height:{}, video bitrate:{}, audio bitrate:{}) can be zero or less", encoderSettings.getHeight(), encoderSettings.getVideoBitrate(), encoderSettings.getAudioBitrate());
+					return false;
 				}
 			}
 		}
