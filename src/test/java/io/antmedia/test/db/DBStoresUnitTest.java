@@ -1378,38 +1378,51 @@ public class DBStoresUnitTest {
 		deleteStreamInfos(dataStore);
 
 		//same ports different host => there will be 2 SIs
-		saveStreamInfo(dataStore, "host1", 1000, 2000, "host2", 1000, 2000);
+		saveStreamInfo(dataStore, "host1", 1000, 2000, 0, "host2", 1000, 2000, 0);
 		assertEquals(2, dataStore.getDataStore().find(StreamInfo.class).count());
 		deleteStreamInfos(dataStore);
 
 		//different ports same host => there will be 2 SIs
-		saveStreamInfo(dataStore, "host1", 1000, 2000, "host1", 1100, 2100);
+		saveStreamInfo(dataStore, "host1", 1000, 2000, 0, "host1", 1100, 2100, 0);
 		assertEquals(2, dataStore.getDataStore().find(StreamInfo.class).count());
 		deleteStreamInfos(dataStore);
 
 		//same video ports same host => first SI should be deleted
-		saveStreamInfo(dataStore, "host1", 1000, 2000, "host1", 1000, 2100);
+		saveStreamInfo(dataStore, "host1", 1000, 2000, 0, "host1", 1000, 2100, 0);
 		assertEquals(1, dataStore.getDataStore().find(StreamInfo.class).count());
 		assertTrue(dataStore.getStreamInfoList("test1").isEmpty());
 		deleteStreamInfos(dataStore);
 
 		//same audio ports same host => first SI should be deleted
-		saveStreamInfo(dataStore, "host1", 1000, 2000, "host1", 1100, 2000);
+		saveStreamInfo(dataStore, "host1", 1000, 2000, 0, "host1", 1100, 2000, 0);
 		assertEquals(1, dataStore.getDataStore().find(StreamInfo.class).count());
 		assertTrue(dataStore.getStreamInfoList("test1").isEmpty());
 		deleteStreamInfos(dataStore);
 
 		//first video port same with second audio port and same host => first SI should be deleted
-		saveStreamInfo(dataStore, "host1", 1000, 2000, "host1", 1100, 1000);
+		saveStreamInfo(dataStore, "host1", 1000, 2000, 0, "host1", 1100, 1000, 0);
 		assertEquals(1, dataStore.getDataStore().find(StreamInfo.class).count());
 		assertTrue(dataStore.getStreamInfoList("test1").isEmpty());
 		deleteStreamInfos(dataStore);
 
 		//first audio port same with second video port and same host => first SI should be deleted
-		saveStreamInfo(dataStore, "host1", 1000, 2000, "host1", 2000, 2100);
+		saveStreamInfo(dataStore, "host1", 1000, 2000, 0, "host1", 2000, 2100, 0);
 		assertEquals(1, dataStore.getDataStore().find(StreamInfo.class).count());
 		assertTrue(dataStore.getStreamInfoList("test1").isEmpty());
 		deleteStreamInfos(dataStore);
+		
+		//host and port duplication exist so first SI should be deleted
+		saveStreamInfo(dataStore, "host1", 1000, 2000, 2100, "host1", 2000, 2100, 3000);
+		assertEquals(1, dataStore.getDataStore().find(StreamInfo.class).count());
+		assertTrue(dataStore.getStreamInfoList("test1").isEmpty());
+		deleteStreamInfos(dataStore);
+		
+		//host and port duplication exist so first SI should be deleted
+		saveStreamInfo(dataStore, "host1", 1000, 2000, 3000, "host1", 4000, 5000, 1000);
+		assertEquals(1, dataStore.getDataStore().find(StreamInfo.class).count());
+		assertTrue(dataStore.getStreamInfoList("test1").isEmpty());
+		deleteStreamInfos(dataStore);
+		
 	}
 
 	public void deleteStreamInfos(MongoStore dataStore) {
@@ -1422,13 +1435,14 @@ public class DBStoresUnitTest {
 		dataStore.getDataStore().delete(deleteQuery);
 	}
 
-	public void saveStreamInfo(DataStore dataStore, String host1, int videoPort1, int audioPort1,
-			String host2, int videoPort2, int audioPort2) {
+	public void saveStreamInfo(DataStore dataStore, String host1, int videoPort1, int audioPort1, int dataPort1,
+			String host2, int videoPort2, int audioPort2, int dataPort2) {
 
 		StreamInfo si = new StreamInfo();
 		si.setHost(host1);
 		si.setVideoPort(videoPort1);
 		si.setAudioPort(audioPort1);
+		si.setDataChannelPort(dataPort1);
 		si.setStreamId("test1");
 		dataStore.saveStreamInfo(si);
 
@@ -1438,6 +1452,7 @@ public class DBStoresUnitTest {
 		si.setHost(host2);
 		si.setVideoPort(videoPort2);
 		si.setAudioPort(audioPort2);
+		si.setDataChannelPort(dataPort2);
 		si.setStreamId("test2");
 		dataStore.saveStreamInfo(si);
 	}
