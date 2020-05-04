@@ -154,7 +154,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		verify(clusterNotifier, times(1)).getClusterStore();
 		verify(clusterStore, times(1)).saveSettings(settings);
 	}
-	
+
 	@Test
 	public void testResetBroadcasts() 
 	{
@@ -219,7 +219,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 			assertEquals(0, testBroadcast.getRtmpViewerCount());
 			
 			assertEquals(spyAdapter.BROADCAST_STATUS_FINISHED, testBroadcast.getStatus());
-		}		
+		}	
 	}
 
 	@Test

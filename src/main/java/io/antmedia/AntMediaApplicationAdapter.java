@@ -104,7 +104,9 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	public static final String YOUTUBE = "youtube";
 	public static final String FACEBOOK_ENDPOINT_CLASS = "io.antmedia.enterprise.social.endpoint.FacebookEndpoint";
 	public static final String YOUTUBE_ENDPOINT_CLASS = "io.antmedia.enterprise.social.endpoint.YoutubeEndpoint";
+	public static final String WEBAPPS_PATH = "webapps/";
 
+	
 	private Map<String, VideoServiceEndpoint> videoServiceEndpoints = new HashMap<>();
 	private List<VideoServiceEndpoint> videoServiceEndpointsHavingError = new ArrayList<>();
 	private List<IStreamPublishSecurity> streamPublishSecurityList;
@@ -155,7 +157,6 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		else if (!result.isSuccess()) {
 			//Save App Setting
 			setShutdownProperly(false);
-			
 			// Reset Broadcast Stats
 			resetBroadcasts();
 		}
@@ -263,7 +264,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	public boolean synchUserVoDFolder(String oldFolderPath, String vodFolderPath) 
 	{
 		boolean result = false;
-		File streamsFolder = new File("webapps/" + getScope().getName() + "/streams");
+		File streamsFolder = new File(WEBAPPS_PATH + getScope().getName() + "/streams");
 
 		try {
 			deleteOldFolderPath(oldFolderPath, streamsFolder);
@@ -350,7 +351,6 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	}
 	
 	public void resetHLSStats(String streamId) {
-		
 		if (scope.getContext().getApplicationContext().containsBean(HlsViewerStats.BEAN_NAME)) {
 			HlsViewerStats hlsViewerStats = (HlsViewerStats) scope.getContext().getApplicationContext().getBean(HlsViewerStats.BEAN_NAME);
 			if (hlsViewerStats != null) {
@@ -1011,10 +1011,10 @@ public Result createInitializationProcess(String appName){
 		
 		Result result = new Result(false);
 		
-		String initializedFilePath = "webapps/"+appName+"/.initialized";
+		String initializedFilePath =WEBAPPS_PATH + appName + "/.initialized";
 		File initializedFile = new File(initializedFilePath);
 		
-		String closedFilePath = "webapps/"+appName+"/.closed";
+		String closedFilePath =WEBAPPS_PATH + appName + "/.closed";
 		File closedFile = new File(closedFilePath);
 		
 		try {
@@ -1067,7 +1067,7 @@ public Result createInitializationProcess(String appName){
 	
 	public void createShutdownFile(String appName){
 		
-		String closedFilePath = "webapps/"+appName+"/.closed";
+		String closedFilePath =WEBAPPS_PATH + appName + "/.closed";
 		File closedFile = new File(closedFilePath);
 		
 		try {
@@ -1242,7 +1242,7 @@ public Result createInitializationProcess(String appName){
 		 * If we know the case above, we will write better codes. 
 		 * 
 		 */
-		PreferenceStore store = new PreferenceStore("webapps/"+appName+"/WEB-INF/red5-web.properties");
+		PreferenceStore store = new PreferenceStore(WEBAPPS_PATH + appName + "/WEB-INF/red5-web.properties");
 
 		store.put(AppSettings.SETTINGS_MP4_MUXING_ENABLED, String.valueOf(newAppsettings.isMp4MuxingEnabled()));
 		store.put(AppSettings.SETTINGS_ADD_DATE_TIME_TO_MP4_FILE_NAME, String.valueOf(newAppsettings.isAddDateTimeToMp4FileName()));

@@ -30,8 +30,6 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 	@Autowired
 	private Vertx vertx;
 	
-	private long hlsCountPeriodicTask;
-	
 	private DataStoreFactory dataStoreFactory;
 
 	public static final int DEFAULT_TIME_PERIOD_FOR_VIEWER_COUNT = 10000;
@@ -41,26 +39,24 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 	private int timePeriodMS = DEFAULT_TIME_PERIOD_FOR_VIEWER_COUNT;
 
 	Map<String, Map<String, Long>> streamsViewerMap = new ConcurrentHashMap<>();
-	
+
 	Map<String, Integer> increaseCounterMap = new ConcurrentHashMap<>();
-	
+
 	/**
 	 * Time out value in milliseconds, it is regarded as user is not watching stream 
 	 * if last request time is older than timeout value
 	 */
 	private int timeoutMS = 20000;
-	
+
 	@Override
 	public void registerNewViewer(String streamId, String sessionId) 
 	{
 		int streamIncrementCounter = 0;
 		Map<String, Long> viewerMap = streamsViewerMap.get(streamId);
-
 		if (viewerMap == null) {
 			viewerMap = new ConcurrentHashMap<>();
 		}
 		if (!viewerMap.containsKey(sessionId)) {
-				
 			if( increaseCounterMap.get(streamId) != null) {
 				streamIncrementCounter = increaseCounterMap.get(streamId);
 			}
@@ -79,7 +75,7 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 		}
 		return increaseCounter;
 	}
-	
+
 	@Override
 	public int getViewerCount(String streamId) {
 		Map<String, Long> viewerMap = streamsViewerMap.get(streamId);
@@ -98,7 +94,6 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 		}
 		return viewerCount;
 	}
-	
 	public void setVertx(Vertx vertx) {
 		this.vertx = vertx;
 	}
@@ -112,7 +107,7 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 			timeoutMS = getTimeoutMSFromSettings(settings, timeoutMS);
 		}
 		
-		hlsCountPeriodicTask = vertx.setPeriodic(timeoutMS, yt-> 
+		vertx.setPeriodic(timeoutMS, yt-> 
 		{
 			Iterator<Entry<String, Map<String, Long>>> streamIterator = streamsViewerMap.entrySet().iterator();
 			
@@ -187,7 +182,7 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 			logger.info("Reset HLS Stream ID: {} remove failed or null", streamID);
 		}
 	}
-	
+
 	public static int getTimeoutMSFromSettings(AppSettings settings, int defaultValue) {
 		int newTimePeriodMS = defaultValue;
 		String hlsTime = settings.getHlsTime();

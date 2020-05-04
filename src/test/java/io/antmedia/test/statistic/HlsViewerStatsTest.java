@@ -1,12 +1,9 @@
 package io.antmedia.test.statistic;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import org.junit.Test;
-import org.red5.server.api.scheduling.ISchedulingService;
-import org.red5.server.scheduling.QuartzSchedulingService;
 
 import static org.mockito.Mockito.*;
 
@@ -14,7 +11,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.awaitility.Awaitility;
 import org.springframework.context.ApplicationContext;
-import org.springframework.test.context.ContextConfiguration;
 
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.AntMediaApplicationAdapter;
@@ -24,7 +20,6 @@ import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.HlsViewerStats;
-import io.antmedia.statistic.IStreamStats;
 import io.vertx.core.Vertx;
 
 
@@ -38,16 +33,16 @@ public class HlsViewerStatsTest {
 		viewerStats.setDataStore(dataStore);
 		
 		String streamId = String.valueOf((Math.random() * 999999));
-		
+
 		Broadcast broadcast = new Broadcast();
-		
+
 		try {
 			broadcast.setStreamId(streamId);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
+
 		for (int i = 0; i < 100; i++) {
 			String sessionId = String.valueOf((Math.random() * 999999));
 			viewerStats.registerNewViewer(streamId, sessionId);
@@ -55,16 +50,16 @@ public class HlsViewerStatsTest {
 
 		int viewerCount = viewerStats.getViewerCount(streamId);
 		assertEquals(100, viewerCount);
-		
+
 		assertEquals(0, viewerStats.getViewerCount("no_streamid"));
-		
+
 		//Add same session ID
 		for (int i = 0; i < 10; i++) {
 			String sessionId = "sameSessionID";
 			viewerStats.registerNewViewer(streamId, sessionId);
 		}
-		
-		
+
+
 		viewerCount = viewerStats.getViewerCount(streamId);
 		assertEquals(101, viewerCount);
 
@@ -88,20 +83,20 @@ public class HlsViewerStatsTest {
 	@Test
 	public void testSetApplicationContext() {
 		ApplicationContext context = mock(ApplicationContext.class);
-		
+
 		Vertx vertx = io.vertx.core.Vertx.vertx();		
-		
+
 		try {
 
 			DataStoreFactory dsf = new DataStoreFactory();
 			dsf.setDbType("memorydb");
 			dsf.setDbName("datastore");
 			when(context.getBean(DataStoreFactory.BEAN_NAME)).thenReturn(dsf);
-			
+
 			when(context.containsBean(AppSettings.BEAN_NAME)).thenReturn(true);
-			
+
 			AppSettings settings = mock(AppSettings.class);
-			
+
 			//set hls time to 1
 			when(settings.getHlsTime()).thenReturn("1");
 			
@@ -121,12 +116,12 @@ public class HlsViewerStatsTest {
 			dsf.setWriteStatsToDatastore(true);
 			dsf.setApplicationContext(context);
 			String streamId = dsf.getDataStore().save(broadcast);
-			
+
 			assertEquals(1000, viewerStats.getTimePeriodMS());
 			assertEquals(10000, viewerStats.getTimeoutMS());
-			
+
 			String sessionId = "sessionId" + (int)(Math.random() * 10000);
-			
+
 			viewerStats.registerNewViewer(streamId, sessionId);
 			
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
