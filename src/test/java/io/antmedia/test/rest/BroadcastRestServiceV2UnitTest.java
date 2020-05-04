@@ -2056,6 +2056,7 @@ public class BroadcastRestServiceV2UnitTest {
 		
 	}
 	
+	@Test
 	public void testSendMessage()  {
 		Scope scope = mock(Scope.class);
 		String scopeName = "scope";
