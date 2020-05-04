@@ -2009,7 +2009,6 @@ public class BroadcastRestServiceV2UnitTest {
 	}
 	
 	@Test
-<<<<<<< HEAD
 	public void testGetStreamInfo() {
 		BroadcastRestService broadcastRestService = Mockito.spy(new BroadcastRestService());
 		MongoStore datastore = new MongoStore("localhost", "", "", "testdb");
