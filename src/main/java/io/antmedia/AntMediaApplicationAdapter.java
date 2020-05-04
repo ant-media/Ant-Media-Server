@@ -402,7 +402,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 						broadcast.setStatus(BROADCAST_STATUS_BROADCASTING);
 						broadcast.setStartTime(System.currentTimeMillis());
-						broadcast.setOriginAdress(serverSettings.getHostAddress());
+						broadcast.setOriginAdress(getServerSettings().getHostAddress());
 						boolean result = dataStoreLocal.updateBroadcastFields(broadcast.getStreamId(), broadcast);
 						
 						logger.info(" Status of stream {} is set to Broadcasting with result: {}", broadcast.getStreamId(), result);
