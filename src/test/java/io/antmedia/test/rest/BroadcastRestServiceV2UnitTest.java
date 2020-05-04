@@ -22,6 +22,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -55,10 +56,12 @@ import io.antmedia.AppSettings;
 import io.antmedia.IApplicationAdaptorFactory;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
+import io.antmedia.datastore.db.MongoStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
+import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
@@ -73,6 +76,7 @@ import io.antmedia.rest.RestServiceBase.BroadcastStatistics;
 import io.antmedia.rest.RestServiceBase.ProcessBuilderFactory;
 import io.antmedia.rest.RootRestService;
 import io.antmedia.rest.WebRTCClientStats;
+import io.antmedia.rest.model.BasicStreamInfo;
 import io.antmedia.rest.model.Interaction;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.User;
@@ -88,6 +92,7 @@ import io.antmedia.statistic.IStatsCollector;
 import io.antmedia.statistic.StatsCollector;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.test.StreamFetcherUnitTest;
+import io.antmedia.webrtc.VideoCodec;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.vertx.core.Vertx;
 
@@ -2001,6 +2006,54 @@ public class BroadcastRestServiceV2UnitTest {
 		assertEquals(subTrackId, mainTrack.getSubTrackStreamIds().get(0));
 		assertEquals(mainTrackId, subtrack.getMainTrackStreamId());
 
+		
+	}
+	
+	@Test
+	public void testGetStreamInfo() {
+		BroadcastRestService broadcastRestService = Mockito.spy(new BroadcastRestService());
+		MongoStore datastore = new MongoStore("localhost", "", "", "testdb");
+		broadcastRestService.setDataStore(datastore);
+		StreamInfo streamInfo = new StreamInfo(true, 720, 1080, 300, true, 64, 1000, 1000, VideoCodec.H264);
+		String streamId = "streamId" + (int)(Math.random()*10000);
+		streamInfo.setStreamId(streamId);
+		
+		datastore.saveStreamInfo(streamInfo);
+	
+		ApplicationContext context = mock(ApplicationContext.class);
+		Mockito.doReturn(context).when(broadcastRestService).getAppContext();
+		when(context.containsBean(any())).thenReturn(true);
+		
+		BasicStreamInfo[] streamInfo2 = broadcastRestService.getStreamInfo(streamId);
+		
+		assertEquals(1, streamInfo2.length);
+		assertEquals(64, streamInfo2[0].getAudioBitrate());
+		assertEquals(300, streamInfo2[0].getVideoBitrate());
+		assertEquals(1080, streamInfo2[0].getVideoWidth());
+		assertEquals(720, streamInfo2[0].getVideoHeight());
+		assertEquals(VideoCodec.H264, streamInfo2[0].getVideoCodec());
+		
+		
+		when(context.containsBean(any())).thenReturn(false);
+		IWebRTCAdaptor webrtcAdaptor = Mockito.mock(IWebRTCAdaptor.class);
+		when(context.getBean(IWebRTCAdaptor.BEAN_NAME)).thenReturn(webrtcAdaptor);
+		streamInfo2 = broadcastRestService.getStreamInfo(streamId);
+		assertEquals(0, streamInfo2.length);
+		
+		Mockito.when(webrtcAdaptor.getStreamInfo(streamId)).thenReturn(Arrays.asList(streamInfo));
+		streamInfo2 = broadcastRestService.getStreamInfo(streamId);
+		assertEquals(1, streamInfo2.length);
+		assertEquals(64, streamInfo2[0].getAudioBitrate());
+		assertEquals(300, streamInfo2[0].getVideoBitrate());
+		assertEquals(1080, streamInfo2[0].getVideoWidth());
+		assertEquals(720, streamInfo2[0].getVideoHeight());
+		assertEquals(VideoCodec.H264, streamInfo2[0].getVideoCodec());
+		
+		
+		Mockito.when(webrtcAdaptor.getStreamInfo(streamId)).thenReturn(null);
+		streamInfo2 = broadcastRestService.getStreamInfo(streamId);
+		assertEquals(0, streamInfo2.length);
+		
 		
 	}
 	

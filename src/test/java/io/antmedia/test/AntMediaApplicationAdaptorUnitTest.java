@@ -658,6 +658,12 @@ public class AntMediaApplicationAdaptorUnitTest {
 		when(dataStoreFactory.getDataStore()).thenReturn(dataStore);
 
 		adapter.setDataStoreFactory(dataStoreFactory);
+		
+		//it should return after 10 seconds
+		adapter.serverShuttingdown();
+		verify(sf, times(1)).stopStream();
+		verify(cbs, times(1)).stop();
+		verify(muxerAdaptor, times(1)).stop();
 
 		new Thread() {
 			public void run() {
@@ -672,9 +678,9 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		adapter.serverShuttingdown();
 
-		verify(sf, times(1)).stopStream();
-		verify(cbs, times(1)).stop();
-		verify(muxerAdaptor, times(1)).stop();
+		verify(sf, times(2)).stopStream();
+		verify(cbs, times(2)).stop();
+		verify(muxerAdaptor, times(2)).stop();
 
 	}
 

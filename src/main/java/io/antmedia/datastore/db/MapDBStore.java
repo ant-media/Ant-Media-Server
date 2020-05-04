@@ -192,6 +192,7 @@ public class MapDBStore extends DataStore {
 					broadcast.setStatus(status);
 					if(status.contentEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
 						broadcast.setStartTime(System.currentTimeMillis());
+						
 					}
 					else if(status.contentEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED)) {
 						broadcast.setRtmpViewerCount(0);

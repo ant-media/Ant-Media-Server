@@ -34,17 +34,17 @@ public class MockWebRTCAdaptor implements IWebRTCAdaptor{
 	}
 
 	@Override
-	public List<IStreamInfo> getStreamOptions(String streamId) {
+	public List<IStreamInfo> getStreamInfo(String streamId) {
 		return new ArrayList<>();
 	}
 
 	@Override
-	public void adaptStreamingQuality(String streamId, IWebRTCClient webRTCClient) {
+	public void adaptStreamingQuality(String streamId, IWebRTCClient webRTCClient, VideoCodec codec) {
 		//No implementation since this is mock
 	}
 
 	@Override
-	public boolean registerWebRTCClient(String streamId, IWebRTCClient webRTCClusterClient, int resolutionHeight) {
+	public boolean registerWebRTCClient(String streamId, IWebRTCClient webRTCClusterClient, int resolutionHeight, VideoCodec codec) {
 		return false;
 	}
 

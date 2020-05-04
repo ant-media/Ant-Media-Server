@@ -462,10 +462,14 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 					if (broadcast == null) {
 
 						broadcast = saveUndefinedBroadcast(streamName, getScope().getName(), dataStoreLocal, appSettings,  AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, getServerSettings().getServerName(), getServerSettings().getHostAddress());
+					} 
+					else {
 
-					} else {
-
-						boolean result = dataStoreLocal.updateStatus(streamName, BROADCAST_STATUS_BROADCASTING);
+						broadcast.setStatus(BROADCAST_STATUS_BROADCASTING);
+						broadcast.setStartTime(System.currentTimeMillis());
+						broadcast.setOriginAdress(getServerSettings().getHostAddress());
+						boolean result = dataStoreLocal.updateBroadcastFields(broadcast.getStreamId(), broadcast);
+						
 						logger.info(" Status of stream {} is set to Broadcasting with result: {}", broadcast.getStreamId(), result);
 					}
 
@@ -1175,14 +1179,15 @@ public Result createInitializationProcess(String appName){
 
 		boolean result = false;
 		
-		//if there is any wrong encoder settings, remove it at first
+		//if there is any wrong encoder settings, return false
 		List<EncoderSettings> encoderSettingsList = newSettings.getEncoderSettings();
 		if (encoderSettingsList != null) {
 			for (Iterator<EncoderSettings> iterator = encoderSettingsList.iterator(); iterator.hasNext();) {
 				EncoderSettings encoderSettings = iterator.next();
-				if (encoderSettings.getHeight() == 0 || encoderSettings.getVideoBitrate() == 0 || encoderSettings.getAudioBitrate() == 0)
+				if (encoderSettings.getHeight() <= 0 || encoderSettings.getVideoBitrate() <= 0 || encoderSettings.getAudioBitrate() <= 0)
 				{
-					iterator.remove();
+					logger.error("Unexpected encoder parameter. None of the parameters(height:{}, video bitrate:{}, audio bitrate:{}) can be zero or less", encoderSettings.getHeight(), encoderSettings.getVideoBitrate(), encoderSettings.getAudioBitrate());
+					return false;
 				}
 			}
 		}
