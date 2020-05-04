@@ -344,9 +344,9 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 		//add stream to data store
-		dataStore.save(mp4Stream);
+		dataStore.save(newCam);
 
-		StreamFetcher streamFetcher = new StreamFetcher(mp4Stream, appScope, vertx); 
+		StreamFetcher streamFetcher = new StreamFetcher(newCam, appScope, vertx); 
 
 		service.setApplication(app.getAppAdaptor());
 
@@ -356,7 +356,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		app.getAppAdaptor().setStreamFetcherManager(streamFetcherManager);
 
-		StreamFetcher streamFetcherPlaylist = streamFetcherManager.playlistStartStreaming(mp4Stream, streamFetcher);
+		StreamFetcher streamFetcherPlaylist = streamFetcherManager.playlistStartStreaming(newCam, streamFetcher);
 
 		//check whether answer from StreamFetcherManager is true or not after new IPCamera is added
 		assertNotNull(streamFetcherPlaylist);
@@ -372,7 +372,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		
 
 		streamFetcherManager.stopCheckerJob();
-		Result result = streamFetcherManager.stopStreaming(mp4Stream);
+		Result result = streamFetcherManager.stopStreaming(newCam);
 
 		//check that fetcher is nor running
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->  {

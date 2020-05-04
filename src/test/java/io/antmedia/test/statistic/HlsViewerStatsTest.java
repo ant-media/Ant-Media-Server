@@ -171,17 +171,16 @@ public class HlsViewerStatsTest {
 			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(
 					()-> dsf.getDataStore().get(streamId).getHlsViewerCount() == 0);
 			
-			System.out.println("ggwp");
 			// Check Viewer 
-			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(
 					()-> viewerStats.getViewerCount(streamId) == 0);
 			
-			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(
 					()-> viewerStats.getIncreaseCounterMap(streamId) == 0);
-			/*
-			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(
+			
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(
 					()-> viewerStats.getTotalViewerCount() == 0);
-			*/
+			
 			
 		} catch (Exception e) {
 			e.printStackTrace();
