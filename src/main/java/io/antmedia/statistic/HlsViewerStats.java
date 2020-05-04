@@ -28,7 +28,7 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 	private DataStore dataStore;
 	
 	@Autowired
-	public Vertx vertx;
+	private Vertx vertx;
 	
 	private long hlsCountPeriodicTask;
 	
@@ -53,7 +53,6 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 	@Override
 	public void registerNewViewer(String streamId, String sessionId) 
 	{
-		
 		int streamIncrementCounter = 0;
 		Map<String, Long> viewerMap = streamsViewerMap.get(streamId);
 
@@ -65,26 +64,19 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 			if( increaseCounterMap.get(streamId) != null) {
 				streamIncrementCounter = increaseCounterMap.get(streamId);
 			}
-				
 			streamIncrementCounter++;
 			increaseCounterMap.put(streamId, streamIncrementCounter);
-
 		}
-			
 		viewerMap.put(sessionId, System.currentTimeMillis());
-		streamsViewerMap.put(streamId, viewerMap);
-			
-			
+		streamsViewerMap.put(streamId, viewerMap);	
 	}
 	
 	public int getIncreaseCounterMap(String streamId) {
 		
 		int increaseCounter = 0;
-		
 		if( increaseCounterMap.get(streamId) != null) {
 			increaseCounter = increaseCounterMap.get(streamId);
 		}
-		
 		return increaseCounter;
 	}
 	
@@ -106,6 +98,10 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 		}
 		return viewerCount;
 	}
+	
+	public void setVertx(Vertx vertx) {
+		this.vertx = vertx;
+	}
 
 	@Override
 	public void setApplicationContext(ApplicationContext applicationContext)  {
@@ -118,7 +114,6 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 		
 		hlsCountPeriodicTask = vertx.setPeriodic(timeoutMS, yt-> 
 		{
-			
 			Iterator<Entry<String, Map<String, Long>>> streamIterator = streamsViewerMap.entrySet().iterator();
 			
 			Iterator<Entry<String, Long>> viewerIterator;
@@ -130,48 +125,54 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 			while (streamIterator.hasNext()) 
 			{
 				streamViewerEntry = streamIterator.next();
-				viewerMapEntry = streamViewerEntry.getValue();
-				
-				int numberOfDecrement = 0;
-				viewerIterator = viewerMapEntry.entrySet().iterator();
-				
-				while (viewerIterator.hasNext()) 
-				{
-
-					Entry<String, Long> viewer = viewerIterator.next();
-
-					if (viewer.getValue() < (now - getTimeoutMS())) 
-					{
-						// regard it as not a viewer
-						viewerIterator.remove();
-						numberOfDecrement++;
-					}
-				}
-
-				
-				numberOfDecrement = -1 * numberOfDecrement;
 				
 				String streamId = streamViewerEntry.getKey();
 				Broadcast broadcast = getDataStore().get(streamId);
 				
-				if((increaseCounterMap.get(streamId) != 0 || numberOfDecrement != 0) && (broadcast == null || broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING) )) {
+				boolean isBroadcasting = false;
 				
-					logger.error("Update HLS viewer in stream ID: {}", streamId);
+				// Check if it's deleted.
+				// This case for the deleted streams(zombi streams)
+				if(broadcast != null) {
+				
+					int numberOfDecrement = 0;
 					
-					int numberOfIncrement = increaseCounterMap.get(streamId);
+					viewerMapEntry = streamViewerEntry.getValue();
+					viewerIterator = viewerMapEntry.entrySet().iterator();
+				
+					while (viewerIterator.hasNext()) 
+					{
+						Entry<String, Long> viewer = viewerIterator.next();
+
+						if (viewer.getValue() < (now - getTimeoutMS())) 
+						{
+							// regard it as not a viewer
+							viewerIterator.remove();
+							numberOfDecrement++;
+						}
+					}
 					
-					int hlsDiffCount = numberOfIncrement + numberOfDecrement;
-					
-					getDataStore().updateHLSViewerCount(streamViewerEntry.getKey(), hlsDiffCount);
-					increaseCounterMap.put(streamId, 0);
-				}				
-				if(broadcast == null || !broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
-					
+					if(broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
+						isBroadcasting = true;
+					}
+				
+					numberOfDecrement = -1 * numberOfDecrement;
+
+					if((increaseCounterMap.get(streamId) != 0 || numberOfDecrement != 0) && isBroadcasting) {
+						logger.info("Update HLS viewer in stream ID: {}", streamId);
+
+						int numberOfIncrement = increaseCounterMap.get(streamId);
+						int hlsDiffCount = numberOfIncrement + numberOfDecrement;
+
+						getDataStore().updateHLSViewerCount(streamViewerEntry.getKey(), hlsDiffCount);
+						increaseCounterMap.put(streamId, 0);
+					}
+				}
+				if (!isBroadcasting) {
 					streamIterator.remove();
 					increaseCounterMap.put(streamId, 0);
 				}
 			}
-
 		});	
 	}
 	
@@ -180,10 +181,10 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 		if(streamsViewerMap.get(streamID) != null) {
 			streamsViewerMap.get(streamID).clear();
 			streamsViewerMap.remove(streamID);
-			logger.error("Reset HLS Stream ID: {} removed successfully", streamID);			
+			logger.info("Reset HLS Stream ID: {} removed successfully", streamID);			
 		}
 		else {
-			logger.error("Reset HLS Stream ID: {} remove failed or null", streamID);
+			logger.info("Reset HLS Stream ID: {} remove failed or null", streamID);
 		}
 	}
 	
