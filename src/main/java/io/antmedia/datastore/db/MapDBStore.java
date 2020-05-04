@@ -856,12 +856,12 @@ public class MapDBStore extends DataStore {
 	protected synchronized boolean updateHLSViewerCountLocal(String streamId, int diffCount) {
 		boolean result = false;
 		synchronized (this) {
-			
 			if (streamId != null) {
 				Broadcast broadcast = get(streamId);
 				if (broadcast != null) {
 					int hlsViewerCount = broadcast.getHlsViewerCount();
 					hlsViewerCount += diffCount;
+					
 					broadcast.setHlsViewerCount(hlsViewerCount);
 					map.replace(streamId, gson.toJson(broadcast));
 					db.commit();
