@@ -2,7 +2,7 @@
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.antmedia/ant-media-server/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.antmedia/ant-media-server)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=io.antmedia%3Aant-media-server&metric=alert_status)](https://sonarcloud.io/dashboard?id=io.antmedia%3Aant-media-server)
 
-###### 1083 Active Instances in 103 Countries at 09:08 AM GMT on Nov 28, 2019
+#### 1527 Active Instances in 110 Countries at 11:41 AM GMT on April 27, 2020
 
 
 Ant Media Server 
