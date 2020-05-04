@@ -103,7 +103,7 @@ public class HlsViewerStatsTest {
 			AppSettings settings = mock(AppSettings.class);
 			
 			//set hls time to 1
-			when(settings.getHlsTime()).thenReturn("4");
+			when(settings.getHlsTime()).thenReturn("1");
 			
 			when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(settings);
 			when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(new ServerSettings());
@@ -124,62 +124,56 @@ public class HlsViewerStatsTest {
 			dsf.setApplicationContext(context);
 			String streamId = dsf.getDataStore().save(broadcast);
 			
+			assertEquals(1000, viewerStats.getTimePeriodMS());
+			assertEquals(10000, viewerStats.getTimeoutMS());
+			
+			
+			
+			
+			// This sleep for the vertx timeout
+			Thread.sleep(8000);
+			
 			String sessionId = "sessionId" + (int)(Math.random() * 10000);
 			viewerStats.registerNewViewer(streamId, sessionId);
 			viewerStats.registerNewViewer(streamId, sessionId);
 			
-			/*Awaitility.await().atMost(20, TimeUnit.SECONDS).until(
+			assertEquals(1, viewerStats.getViewerCount(streamId));
+			assertEquals(1, viewerStats.getIncreaseCounterMap(streamId));
+			assertEquals(1, viewerStats.getTotalViewerCount());
+			
+			
+			// Check viwer is online
+			Awaitility.await().atMost(5, TimeUnit.SECONDS).until(
 					()-> dsf.getDataStore().get(streamId).getHlsViewerCount() == 1);
-			*/
-			/*
-			Awaitility.await().atLeast(5, TimeUnit.SECONDS).atMost(12, TimeUnit.SECONDS).until(() -> {
-				return dsf.getDataStore().get(streamId).getHlsViewerCount() == 1;
-			});
-			*/
-			/*
-			Awaitility.await().atLeast(5, TimeUnit.SECONDS).atMost(20, TimeUnit.SECONDS).until(() -> {
-				return dsf.getDataStore().get(streamId).getHlsViewerCount() == 1;
-			});
-			*/
-			/*
-			Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
-			.until(() -> dsf.getDataStore().get(streamId).getHlsViewerCount() == 1);
-			*/
-			/*
-			Awaitility.await().atLeast(7, TimeUnit.SECONDS).atMost(9, TimeUnit.SECONDS).until(() -> {
-				return dsf.getDataStore().get(streamId).getHlsViewerCount() == 1;
-			});
 			
-			assertEquals(1, dsf.getDataStore().get(streamId).getHlsViewerCount());
+			// Wait some time for detect disconnect
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(
+					()-> dsf.getDataStore().get(streamId).getHlsViewerCount() == 0);
 			
-			//we set hls time to 1 above, user should be dropped after 1*10 seconds. 
-			Awaitility.await().atLeast(9, TimeUnit.SECONDS).atMost(12, TimeUnit.SECONDS).until(() -> {
-				return dsf.getDataStore().get(streamId).getHlsViewerCount() == 0;
-			});
-			*/
+			assertEquals(0, viewerStats.getViewerCount(streamId));
+			assertEquals(0, viewerStats.getIncreaseCounterMap(streamId));
+			assertEquals(0, viewerStats.getTotalViewerCount());
 			
-			assertEquals(1000, viewerStats.getTimePeriodMS());
-			assertEquals(10000, viewerStats.getTimeoutMS());
+			// Broadcast finished test
+			broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+			dsf.getDataStore().save(broadcast);
+			
+			viewerStats.registerNewViewer(streamId, sessionId);
 			
 			assertEquals(1, viewerStats.getViewerCount(streamId));
+			assertEquals(1, viewerStats.getIncreaseCounterMap(streamId));
+			assertEquals(1, viewerStats.getTotalViewerCount());
 			
-			/*
-			//we set hls time to 1 above, user should be dropped after 1*10 seconds. 
-			Awaitility.await().atLeast(9, TimeUnit.SECONDS).atMost(12, TimeUnit.SECONDS).until(() -> {
-				return viewerStats.getViewerCount(streamId) == 0;
-			});
-			*/
-
-			/*
-			//we set hls time to 1 above, user should be dropped after 1*10 seconds. 
-			Awaitility.await().atLeast(9, TimeUnit.SECONDS).atMost(12, TimeUnit.SECONDS).until(() -> {
-				return viewerStats.getViewerCount(streamId) == 0;
-			});
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(
+					()-> dsf.getDataStore().get(streamId).getHlsViewerCount() == 0);
 			
-			*/
-		//	assertEquals(0, dsf.getDataStore().get(streamId).getHlsViewerCount());
 			
-		
+			Thread.sleep(5000);
+			
+			assertEquals(0, viewerStats.getViewerCount(streamId));
+			assertEquals(0, viewerStats.getIncreaseCounterMap(streamId));
+			assertEquals(0, viewerStats.getTotalViewerCount());
+			
 		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());

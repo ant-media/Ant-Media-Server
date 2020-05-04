@@ -154,7 +154,7 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 				String streamId = streamViewerEntry.getKey();
 				Broadcast broadcast = getDataStore().get(streamId);
 				
-				if((increaseCounterMap.get(streamId) != 0 || numberOfDecrement != 0) && broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
+				if((increaseCounterMap.get(streamId) != 0 || numberOfDecrement != 0) && (broadcast == null || broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING) )) {
 				
 					logger.error("Update HLS viewer in stream ID: {}", streamId);
 					
@@ -165,7 +165,8 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 					getDataStore().updateHLSViewerCount(streamViewerEntry.getKey(), hlsDiffCount);
 					increaseCounterMap.put(streamId, 0);
 				}				
-				if(!broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
+				if(broadcast == null || !broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
+					
 					streamIterator.remove();
 					increaseCounterMap.put(streamId, 0);
 				}
