@@ -136,13 +136,10 @@ public class StreamFetcherManager {
 		if (!alreadyFetching) {
 
 			try {
-				
 				streamScheduler =  make(broadcast, scope, vertx);
 				streamScheduler.setRestartStream(restartStreamAutomatically);
 				
 				alreadyFetchProcess(streamScheduler);
-				
-
 			}
 			catch (Exception e) {
 				streamScheduler = null;
@@ -161,14 +158,11 @@ public class StreamFetcherManager {
 		
 		alreadyFetching = checkAlreadyFetch(broadcast);
 
-		if (!alreadyFetching) {
-
+		if (!alreadyFetching) 
+		{
 			try {
-
 				streamScheduler.setRestartStream(false);
-				
 				alreadyFetchProcess(streamScheduler);
-				
 			}
 			catch (Exception e) {
 				streamScheduler = null;

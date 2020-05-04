@@ -762,11 +762,19 @@ public class DBStoresUnitTest {
 			assertEquals(broadcast.getStreamId(), broadcast2.getStreamId());
 			assertTrue(broadcast2.isPublish());
 
+			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, broadcast.getStatus());
+			assertEquals(0, broadcast.getStartTime());
+			assertNull(broadcast.getOriginAdress());
+			
 			String name = "name 1";
 			String description = "description 2";
 			Broadcast tmp = new Broadcast();
 			tmp.setName(name);
 			tmp.setDescription(description);
+			tmp.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+			long now = System.currentTimeMillis();
+			tmp.setStartTime(now);
+			tmp.setOriginAdress(ServerSettings.getLocalHostAddress());
 			boolean result = dataStore.updateBroadcastFields(broadcast.getStreamId(), tmp);
 			assertTrue(result);
 
@@ -774,6 +782,9 @@ public class DBStoresUnitTest {
 
 			assertEquals(name, broadcast2.getName());
 			assertEquals(description, broadcast2.getDescription());
+			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, broadcast2.getStatus());
+			assertEquals(now, broadcast2.getStartTime());
+			assertEquals(ServerSettings.getLocalHostAddress(), tmp.getOriginAdress());
 
 			result = dataStore.updateDuration(broadcast.getStreamId().toString(), 100000);
 			assertTrue(result);
@@ -1593,7 +1604,7 @@ public class DBStoresUnitTest {
 	public void testUpdateLocationParams(DataStore dataStore) {
 		logger.info("testUpdateLocationParams for {}", dataStore.getClass());
 
-		String streamId = "test"+Math.random()*100;;
+		String streamId = "test"+Math.random()*100;
 		Broadcast broadcast = new Broadcast();
 		try {
 			broadcast.setStreamId(streamId);
@@ -1611,16 +1622,22 @@ public class DBStoresUnitTest {
 		String longitude = "-0.127758";
 		String altitude = "58.58";
 		
+		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, broadcastFromStore.getStatus());
+		
 		broadcastFromStore.setLatitude(latitude);
 		broadcastFromStore.setLongitude(longitude);
 		broadcastFromStore.setAltitude(altitude);
-		
+		broadcastFromStore.setStatus(null);
 		assertTrue(dataStore.updateBroadcastFields(streamId, broadcastFromStore));
 		
 		Broadcast broadcastFromStore2 = dataStore.get(streamId);
 		assertEquals(latitude, broadcastFromStore2.getLatitude());
 		assertEquals(longitude, broadcastFromStore2.getLongitude());
 		assertEquals(altitude, broadcastFromStore2.getAltitude());
+		
+		if (!(dataStore instanceof InMemoryDataStore)) {
+			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, broadcastFromStore2.getStatus());
+		}
 	}
 	
 	public void testPlaylist(DataStore dataStore) {

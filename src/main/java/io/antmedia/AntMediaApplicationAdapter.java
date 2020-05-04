@@ -397,10 +397,14 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 					if (broadcast == null) {
 
 						broadcast = saveUndefinedBroadcast(streamName, getScope().getName(), dataStoreLocal, appSettings,  AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, getServerSettings().getServerName(), getServerSettings().getHostAddress());
+					} 
+					else {
 
-					} else {
-
-						boolean result = dataStoreLocal.updateStatus(streamName, BROADCAST_STATUS_BROADCASTING);
+						broadcast.setStatus(BROADCAST_STATUS_BROADCASTING);
+						broadcast.setStartTime(System.currentTimeMillis());
+						broadcast.setOriginAdress(serverSettings.getHostAddress());
+						boolean result = dataStoreLocal.updateBroadcastFields(broadcast.getStreamId(), broadcast);
+						
 						logger.info(" Status of stream {} is set to Broadcasting with result: {}", broadcast.getStreamId(), result);
 					}
 
