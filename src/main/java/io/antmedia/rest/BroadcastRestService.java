@@ -875,15 +875,14 @@ public class BroadcastRestService extends RestServiceBase{
 	@Path("/{id}/stream-info")
 	@Produces(MediaType.APPLICATION_JSON)
 	public BasicStreamInfo[] getStreamInfo(@PathParam("id") String streamId) 
-	{
-		WebApplicationContext ctxt = WebApplicationContextUtils.getWebApplicationContext(servletContext);
-		boolean isCluster = ctxt.containsBean(IClusterNotifier.BEAN_NAME);
+	{	
+		boolean isCluster = getAppContext().containsBean(IClusterNotifier.BEAN_NAME);
 		List<? extends IStreamInfo> streamInfoList;
 		if (isCluster) {
 			streamInfoList = getDataStore().getStreamInfoList(streamId);
 		}
 		else {
-			IWebRTCAdaptor webRTCAdaptor = (IWebRTCAdaptor) ctxt.getBean(IWebRTCAdaptor.BEAN_NAME);
+			IWebRTCAdaptor webRTCAdaptor = (IWebRTCAdaptor) getAppContext().getBean(IWebRTCAdaptor.BEAN_NAME);
 			streamInfoList = webRTCAdaptor.getStreamInfo(streamId);
 		}
 		BasicStreamInfo[] basicStreamInfo = new BasicStreamInfo[0];
