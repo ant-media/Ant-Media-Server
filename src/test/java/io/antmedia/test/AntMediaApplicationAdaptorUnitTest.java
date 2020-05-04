@@ -643,7 +643,6 @@ public class AntMediaApplicationAdaptorUnitTest {
 		
 		adapter.serverShuttingdown();
 
-
 		verify(streamFetcher, times(1)).stopStream();
 		verify(streamFetcher2, times(1)).stopStream();
 		
@@ -652,6 +651,9 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		verify(cbs, times(1)).stop();
 		verify(muxerAdaptor, times(1)).stop();
+
+		verify(cbs, times(2)).stop();
+		verify(muxerAdaptor, times(2)).stop();
 
 	}
 	

@@ -188,9 +188,8 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	@Test
 	public void testStreamSchedularConnectionTimeout() throws InterruptedException {
 		logger.info("running testStreamSchedularConnectionTimeout");
-		try {
+		try (AVFormatContext inputFormatContext = new AVFormatContext()) {
 
-			AVFormatContext inputFormatContext = new AVFormatContext();
 
 			Broadcast newCam = new Broadcast("testSchedular2", "10.2.40.64:8080", "admin", "admin",
 					"rtsp://11.2.40.63:8554/live1.sdp", AntMediaApplicationAdapter.IP_CAMERA);
@@ -200,23 +199,30 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			StreamFetcher streamScheduler = new StreamFetcher(newCam, appScope, null);
 
 			assertFalse(streamScheduler.isExceptionInThread());
-
+			
 			streamScheduler.startStream();
 
 			streamScheduler.setConnectionTimeout(2000);
 
+			
+			Awaitility.await().pollDelay(3, TimeUnit.SECONDS).until(() -> 
+				!streamScheduler.isStreamAlive()
+			);
 			//this should be false because stream is not alive 
 			assertFalse(streamScheduler.isStreamAlive());
 
 			streamScheduler.stopStream();
 
-			logger.info("leaving testStreamSchedularConnectionTimeout");
 
-			Thread.sleep(7000);
+			Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> 
+				!streamScheduler.isThreadActive());
 
 			assertFalse(streamScheduler.isStreamAlive());
 
 			assertFalse(streamScheduler.isExceptionInThread());
+			
+			logger.info("leaving testStreamSchedularConnectionTimeout");
+
 		}
 		catch (Exception e) {
 			e.printStackTrace();
@@ -320,14 +326,16 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	@Test
 	public void testPlaylistStartStreaming() {
 
+		startCameraEmulator();
+		
 		BroadcastRestService service = new BroadcastRestService();
 
 		service.setApplication(app.getAppAdaptor());
 
 		//create a broadcast
-		Broadcast mp4Stream = new Broadcast();
-		mp4Stream.setType(AntMediaApplicationAdapter.VOD);
-		mp4Stream.setStreamUrl(VALID_MP4_URL);
+		//use internal source 
+		Broadcast newCam = new Broadcast("test", "127.0.0.1:8080", "admin", "admin", "rtsp://127.0.0.1:6554/test.flv",
+				AntMediaApplicationAdapter.ST
 
 		//create a test db
 		DataStore dataStore = new MapDBStore("target/testPlaylistStartStreaming.db"); 
@@ -336,9 +344,9 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 		//add stream to data store
-		dataStore.save(mp4Stream);
+		dataStore.save(newCam);
 
-		StreamFetcher streamFetcher = new StreamFetcher(mp4Stream, appScope, vertx); 
+		StreamFetcher streamFetcher = new StreamFetcher(newCam, appScope, vertx); 
 
 		service.setApplication(app.getAppAdaptor());
 
@@ -348,18 +356,23 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		app.getAppAdaptor().setStreamFetcherManager(streamFetcherManager);
 
-		StreamFetcher streamFetcherPlaylist = streamFetcherManager.playlistStartStreaming(mp4Stream, streamFetcher);
+		StreamFetcher streamFetcherPlaylist = streamFetcherManager.playlistStartStreaming(newCam, streamFetcher);
 
 		//check whether answer from StreamFetcherManager is true or not after new IPCamera is added
 		assertNotNull(streamFetcherPlaylist);
 
 
-		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->  {
-			return streamFetcherPlaylist.isThreadActive();
-		});
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() ->  
+			streamFetcherPlaylist.isThreadActive()
+		);
+		
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() ->  
+			streamFetcherPlaylist.isStreamAlive()
+		);
+		
 
 		streamFetcherManager.stopCheckerJob();
-		Result result = streamFetcherManager.stopStreaming(mp4Stream);
+		Result result = streamFetcherManager.stopStreaming(newCam);
 
 		//check that fetcher is nor running
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->  {
@@ -375,6 +388,8 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 
 		assertTrue(result.isSuccess());
+		
+		stopCameraEmulator();
 
 
 	}

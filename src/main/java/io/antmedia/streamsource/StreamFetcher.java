@@ -245,6 +245,7 @@ public class StreamFetcher {
 					// because there is no video frame
 
 					muxAdaptor.setFirstKeyFrameReceivedChecked(audioOnly); 
+					muxAdaptor.setEnableVideo(!audioOnly);
 					setUpEndPoints(stream.getStreamId(), muxAdaptor);
 
 					muxAdaptor.init(scope, stream.getStreamId(), false);
