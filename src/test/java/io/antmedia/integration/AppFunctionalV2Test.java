@@ -17,6 +17,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
@@ -152,6 +153,8 @@ public class AppFunctionalV2Test {
 				currentVodNumber = restServiceTest.callTotalVoDNumber();
 				logger.info("vod number after deletion {}", String.valueOf(currentVodNumber));
 			}
+			
+			
 		}
 		catch (Exception e) {
 			e.printStackTrace();
@@ -570,10 +573,28 @@ public class AppFunctionalV2Test {
 	public void testZombiStream() {
 
 		try {
+			ConsoleAppRestServiceTest.resetCookieStore();
+			Result result = ConsoleAppRestServiceTest.callisFirstLogin();
+			if (result.isSuccess()) {
+				Result createInitialUser = ConsoleAppRestServiceTest.createDefaultInitialUser();
+				assertTrue(createInitialUser.isSuccess());
+			}
+
+			result = ConsoleAppRestServiceTest.authenticateDefaultUser();
+			assertTrue(result.isSuccess());
+			
+			AppSettings appSettings = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
+			//make webrtc enabled false because it's enabled by true
+			appSettings.setWebRTCEnabled(false);
+			appSettings.setH264Enabled(true);
+			appSettings.setEncoderSettings(Arrays.asList(new EncoderSettings(240, 300000, 64000)));
+			result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettings);
+			assertTrue(result.isSuccess());
+			
 			// just create RestServiceTest, do not create broadcast through rest
 			// service
 			RestServiceV2Test restService = new RestServiceV2Test();
-
+			
 			List<Broadcast> broadcastList = restService.callGetBroadcastList();
 			int size = broadcastList.size();
 			

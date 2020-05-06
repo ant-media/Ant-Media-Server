@@ -4,6 +4,7 @@ import java.nio.ByteBuffer;
 import java.util.Queue;
 
 import io.antmedia.cluster.IStreamInfo;
+import io.antmedia.webrtc.VideoCodec;
 
 public interface IWebRTCMuxer extends IStreamInfo {
 	
@@ -72,4 +73,9 @@ public interface IWebRTCMuxer extends IStreamInfo {
 	 * @return
 	 */
 	public Queue<IWebRTCClient> getClientList();
+	
+	/**
+	 * Return the video codec of the IWebRTCMuxer
+	 */
+	public VideoCodec getVideoCodec();
 }

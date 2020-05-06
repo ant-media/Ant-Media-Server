@@ -481,6 +481,11 @@ public class ConsoleAppRestServiceTest{
 
 			AppSettings appSettingsOriginal = callGetAppSettings(appName);
 
+			List<EncoderSettings> originalEncoderSettings = appSettingsOriginal.getEncoderSettings();
+			int encoderSettingSize = 0;
+			if (originalEncoderSettings != null) {
+				encoderSettingSize = originalEncoderSettings.size();
+			}
 			AppSettings appSettings = callGetAppSettings(appName);
 			int size = appSettings.getEncoderSettings().size();
 			List<EncoderSettings> settingsList = new ArrayList<>();
@@ -489,32 +494,33 @@ public class ConsoleAppRestServiceTest{
 
 			appSettings.setEncoderSettings(settingsList);
 			Result result = callSetAppSettings(appName, appSettings);
-			assertTrue(result.isSuccess());
+			assertFalse(result.isSuccess());
 
 			appSettings = callGetAppSettings(appName);
 			//it should not change the size because encoder setting is false, height should not be zero
-			assertEquals(0, appSettings.getEncoderSettings().size());
+			assertEquals(encoderSettingSize, appSettings.getEncoderSettings().size());
 
 
 
 			settingsList.add(new EncoderSettings(480, 0, 300000));
 			appSettings.setEncoderSettings(settingsList);
 			result = callSetAppSettings(appName, appSettings);
-			assertTrue(result.isSuccess());
+			assertFalse(result.isSuccess());
 			appSettings = callGetAppSettings(appName);
 			//it should not change the size because encoder setting is false, height should not be zero
-			assertEquals(0, appSettings.getEncoderSettings().size());
+			assertEquals(encoderSettingSize, appSettings.getEncoderSettings().size());
 
 
 			settingsList.add(new EncoderSettings(480, 2000, 0));
 			appSettings.setEncoderSettings(settingsList);
 			result = callSetAppSettings(appName, appSettings);
-			assertTrue(result.isSuccess());
+			assertFalse(result.isSuccess());
 			appSettings = callGetAppSettings(appName);
 			//it should not change the size because encoder setting is false, height should not be zero
-			assertEquals(0, appSettings.getEncoderSettings().size());
+			assertEquals(encoderSettingSize, appSettings.getEncoderSettings().size());
 
 
+			settingsList.clear();
 			settingsList.add(new EncoderSettings(480, 2000, 30000));
 			appSettings.setEncoderSettings(settingsList);
 
@@ -1569,24 +1575,27 @@ public class ConsoleAppRestServiceTest{
 
 	public static Result callSetAppSettings(String appName, AppSettings appSettingsModel) throws Exception {
 		String url = ROOT_SERVICE_URL + "/changeSettings/" + appName;
-		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
-				.setDefaultCookieStore(httpCookieStore).build();
-		Gson gson = new Gson();
-
-		HttpUriRequest post = RequestBuilder.post().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
-				.setEntity(new StringEntity(gson.toJson(appSettingsModel))).build();
-
-		HttpResponse response = client.execute(post);
-
-		StringBuffer result = RestServiceV2Test.readResponse(response);
-
-		if (response.getStatusLine().getStatusCode() != 200) {
-			throw new Exception(result.toString());
+		try (CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
+				.setDefaultCookieStore(httpCookieStore).build())
+		{
+			Gson gson = new Gson();
+	
+			HttpUriRequest post = RequestBuilder.post().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+					.setEntity(new StringEntity(gson.toJson(appSettingsModel))).build();
+	
+			try (CloseableHttpResponse response = client.execute(post)) {
+	
+				StringBuffer result = RestServiceV2Test.readResponse(response);
+		
+				if (response.getStatusLine().getStatusCode() != 200) {
+					throw new Exception(result.toString());
+				}
+				log.info("result string: " + result.toString());
+				Result tmp = gson.fromJson(result.toString(), Result.class);
+				assertNotNull(tmp);
+				return tmp;
+			}
 		}
-		log.info("result string: " + result.toString());
-		Result tmp = gson.fromJson(result.toString(), Result.class);
-		assertNotNull(tmp);
-		return tmp;
 
 	}
 
