@@ -188,7 +188,7 @@ public abstract class RestServiceBase {
 	}
 
 	@Nullable
-	protected ApplicationContext getAppContext() {
+	public ApplicationContext getAppContext() {
 		if (servletContext != null) {
 			appCtx = (ApplicationContext) servletContext
 					.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
