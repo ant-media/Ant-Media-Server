@@ -13,7 +13,7 @@ usage() {
 }
 
 ERROR_MESSAGE="Error: App is not created. Please check the error in the terminal and take a look at the instructions below"
-FILE=`cat ./conf/red5.properties |grep -c "clusterdb.host=localhost"`
+FILE=`cat /usr/local/antmedia/conf/red5.properties |grep -c "clusterdb.host=localhost"`
 
 check_result() {
   OUT=$?
