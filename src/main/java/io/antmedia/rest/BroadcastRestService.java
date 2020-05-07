@@ -1,5 +1,6 @@
 package io.antmedia.rest;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.ws.rs.Consumes;
@@ -16,9 +17,13 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
 import org.springframework.stereotype.Component;
+import org.springframework.web.context.WebApplicationContext;
+import org.springframework.web.context.support.WebApplicationContextUtils;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.StreamIdValidator;
+import io.antmedia.cluster.IClusterNotifier;
+import io.antmedia.cluster.IStreamInfo;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.SocialEndpointChannel;
@@ -26,6 +31,7 @@ import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.ipcamera.OnvifCamera;
+import io.antmedia.rest.model.BasicStreamInfo;
 import io.antmedia.rest.model.Interaction;
 import io.antmedia.rest.model.Result;
 import io.antmedia.social.LiveComment;
@@ -34,6 +40,7 @@ import io.antmedia.statistic.type.WebRTCAudioReceiveStats;
 import io.antmedia.statistic.type.WebRTCAudioSendStats;
 import io.antmedia.statistic.type.WebRTCVideoReceiveStats;
 import io.antmedia.statistic.type.WebRTCVideoSendStats;
+import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
@@ -860,5 +867,35 @@ public class BroadcastRestService extends RestServiceBase{
 		boolean success = getDataStore().updateBroadcastFields(subTrackId, subTrack);
 		success = success && getDataStore().addSubTrack(id, subTrackId);
 		return new Result(success);
+	}
+	
+	@ApiOperation(value = "Returns the stream info(width, height, bitrates and video codec) of the stream", response= BasicStreamInfo[].class)
+	@GET
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/{id}/stream-info")
+	@Produces(MediaType.APPLICATION_JSON)
+	public BasicStreamInfo[] getStreamInfo(@PathParam("id") String streamId) 
+	{	
+		boolean isCluster = getAppContext().containsBean(IClusterNotifier.BEAN_NAME);
+		List<? extends IStreamInfo> streamInfoList;
+		if (isCluster) {
+			streamInfoList = getDataStore().getStreamInfoList(streamId);
+		}
+		else {
+			IWebRTCAdaptor webRTCAdaptor = (IWebRTCAdaptor) getAppContext().getBean(IWebRTCAdaptor.BEAN_NAME);
+			streamInfoList = webRTCAdaptor.getStreamInfo(streamId);
+		}
+		BasicStreamInfo[] basicStreamInfo = new BasicStreamInfo[0];
+		if (streamInfoList != null) 
+		{
+			basicStreamInfo = new BasicStreamInfo[streamInfoList.size()];
+			for (int i = 0; i < basicStreamInfo.length; i++) {
+				IStreamInfo iStreamInfo = streamInfoList.get(i);
+				basicStreamInfo[i] = new BasicStreamInfo(iStreamInfo.getVideoHeight(), iStreamInfo.getVideoWidth(), 
+						iStreamInfo.getVideoBitrate(), iStreamInfo.getAudioBitrate(), iStreamInfo.getVideoCodec());
+			}
+		}
+		
+		return basicStreamInfo;
 	}
 }

@@ -23,14 +23,14 @@ public interface IWebRTCAdaptor extends IScopeService {
 
 	boolean streamExists(String streamId);
 	
-	List<IStreamInfo> getStreamOptions(String streamId);
+	List<IStreamInfo> getStreamInfo(String streamId);
 
 	/**
 	 * Try to find the best bitrate for the client
 	 * @param streamId
 	 * @param webRTCClient
 	 */
-	void adaptStreamingQuality(String streamId, IWebRTCClient webRTCClient);
+	void adaptStreamingQuality(String streamId, IWebRTCClient webRTCClient, VideoCodec codec);
 
 	/**
 	 * Register to specific resolution
@@ -41,7 +41,7 @@ public interface IWebRTCAdaptor extends IScopeService {
 	 * @param webRTCClusterClient
 	 * @param resolutionHeight
 	 */
-	boolean registerWebRTCClient(String streamId, IWebRTCClient webRTCClusterClient, int resolutionHeight);
+	boolean registerWebRTCClient(String streamId, IWebRTCClient webRTCClusterClient, int resolutionHeight, VideoCodec codec);
 	
 	/**
 	 * Returns number of active live streams 
