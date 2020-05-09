@@ -122,11 +122,6 @@ public class WebSocketConstants {
 	 */
 	public static final String LEAVED_STREAM = "leaved";
 
-	/**
-	 * This is sent back to the user when there is no encoder settings available
-	 * in publishing the stream
-	 */
-	public static final String NO_ENCODER_SETTINGS = "no_encoder_settings";
 
 	/**
 	 * This is sent back to the user if publisher wants to send a stream with an unregistered id
@@ -160,7 +155,18 @@ public class WebSocketConstants {
 	 */
 	public static final String ALREADY_PLAYING = "already_playing";
 
+	/**
+	 * This is sent back to the user when a new publish message received while
+	 * there it's publishing or it's just to publish
+	 */
+	public static final String ALREADY_PUBLISHING = "already_publishing";
 
+	/**
+	 * This is sent back to the user when there is no codec enabled in the server 
+	 * and someone try to make a publish
+	 */
+	public static final String NO_CODEC_ENABLED_IN_THE_SERVER = "no_codec_enabled_in_the_server";
+	
 	/**
 	 * Command that let server returns information about a specific stream.
 	 * This info includes height, bitrates, etc.
@@ -196,6 +202,11 @@ public class WebSocketConstants {
 	 * Field to specify the stream audio bitrate
 	 */
 	public static final String AUDIO_BITRATE = "audioBitrate";
+	
+	/**
+	 * Field to specify the stream video codec
+	 */
+	public static final String VIDEO_CODEC = "videoCodec";
 
 	/**
 	 * video field that defines if there is video
@@ -308,6 +319,5 @@ public class WebSocketConstants {
 	 * This command used to send subtracks for a stream id
 	 */
 	public static final String  TRACK_LIST = "trackList";
-
 
 }

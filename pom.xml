@@ -2,7 +2,7 @@
     <parent>
         <groupId>io.antmedia</groupId>
         <artifactId>parent</artifactId>
-        <version>2.0.0-SNAPSHOT</version>
+        <version>2.1.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>ant-media-server</artifactId>
@@ -157,6 +157,12 @@
                         <goals>
                             <goal>sign</goal>
                         </goals>
+                        <configuration>
+			                <gpgArguments>
+			                    <arg>--pinentry-mode</arg>
+			                    <arg>loopback</arg>
+			                </gpgArguments>
+          				</configuration>
                     </execution>
                 </executions>
             </plugin>
@@ -612,6 +618,25 @@
                                     <excludeTransitive>false</excludeTransitive>
                                 </configuration>
                             </execution>
+                             <execution>
+                               <id>unpack-root-app</id>
+					           <phase>package</phase>
+					           <goals>
+					             <goal>unpack</goal>
+					           </goals>
+					           <configuration>
+					             <artifactItems>
+						              <artifactItem>
+	                                      <groupId>io.antmedia.app</groupId>
+	                                      <artifactId>root</artifactId>
+	                                      <version>${project.parent.version}</version>
+	                                      <type>war</type>
+	                                      <overWrite>true</overWrite>
+	                                      <outputDirectory>${project.build.directory}/webapps/root</outputDirectory>
+	                                  </artifactItem>
+                                   </artifactItems>
+					           </configuration>
+                            </execution>
                             <execution>
                                 <id>copy-war-dependencies</id>
                                 <phase>package</phase>
@@ -627,14 +652,6 @@
                                             <type>war</type>
                                             <overWrite>true</overWrite>
                                             <outputDirectory>${project.build.directory}</outputDirectory>
-                                        </artifactItem>
-                                        <artifactItem>
-                                            <groupId>io.antmedia.app</groupId>
-                                            <artifactId>root</artifactId>
-                                            <version>${project.parent.version}</version>
-                                            <type>war</type>
-                                            <overWrite>true</overWrite>
-                                            <outputDirectory>${project.build.directory}/webapps</outputDirectory>
                                         </artifactItem>
                                     </artifactItems>
                                 </configuration>
@@ -777,6 +794,25 @@
                                 </configuration>
                             </execution>
                             <execution>
+                               <id>unpack-root-app</id>
+					           <phase>package</phase>
+					           <goals>
+					             <goal>unpack</goal>
+					           </goals>
+					           <configuration>
+					             <artifactItems>
+						              <artifactItem>
+	                                      <groupId>io.antmedia.app</groupId>
+	                                      <artifactId>root</artifactId>
+	                                      <version>${project.parent.version}</version>
+	                                      <type>war</type>
+	                                      <overWrite>true</overWrite>
+	                                      <outputDirectory>${project.build.directory}/webapps/root</outputDirectory>
+	                                  </artifactItem>
+                                   </artifactItems>
+					           </configuration>
+                            </execution>
+                            <execution>
                                 <id>copy-war-dependencies</id>
                                 <phase>package</phase>
                                 <goals>
@@ -791,14 +827,6 @@
                                             <type>war</type>
                                             <overWrite>true</overWrite>
                                             <outputDirectory>${project.build.directory}</outputDirectory>
-                                        </artifactItem>
-                                        <artifactItem>
-                                            <groupId>io.antmedia.app</groupId>
-                                            <artifactId>root</artifactId>
-                                            <version>${project.parent.version}</version>
-                                            <type>war</type>
-                                            <overWrite>true</overWrite>
-                                            <outputDirectory>${project.build.directory}/webapps</outputDirectory>
                                         </artifactItem>
                                     </artifactItems>
                                 </configuration>

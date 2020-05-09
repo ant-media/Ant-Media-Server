@@ -10,6 +10,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.Nonnull;
 
+import org.apache.tika.utils.ExceptionUtils;
 import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -135,13 +136,10 @@ public class StreamFetcherManager {
 		if (!alreadyFetching) {
 
 			try {
-				
 				streamScheduler =  make(broadcast, scope, vertx);
 				streamScheduler.setRestartStream(restartStreamAutomatically);
 				
 				alreadyFetchProcess(streamScheduler);
-				
-
 			}
 			catch (Exception e) {
 				streamScheduler = null;
@@ -160,18 +158,15 @@ public class StreamFetcherManager {
 		
 		alreadyFetching = checkAlreadyFetch(broadcast);
 
-		if (!alreadyFetching) {
-
+		if (!alreadyFetching) 
+		{
 			try {
-
 				streamScheduler.setRestartStream(false);
-				
 				alreadyFetchProcess(streamScheduler);
-				
 			}
 			catch (Exception e) {
 				streamScheduler = null;
-				logger.error(e.getMessage());
+				logger.error(ExceptionUtils.getStackTrace(e));
 			}
 		}
 

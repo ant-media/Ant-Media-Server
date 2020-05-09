@@ -188,7 +188,7 @@ public abstract class RestServiceBase {
 	}
 
 	@Nullable
-	protected ApplicationContext getAppContext() {
+	public ApplicationContext getAppContext() {
 		if (servletContext != null) {
 			appCtx = (ApplicationContext) servletContext
 					.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
@@ -537,7 +537,7 @@ public abstract class RestServiceBase {
 			{
 				Endpoint endpoint = new Endpoint();
 				endpoint.setRtmpUrl(rtmpUrl);
-				endpoint.type = "generic";
+				endpoint.setType("generic");
 
 				success = getDataStore().addEndpoint(id, endpoint);
 			}
@@ -553,7 +553,7 @@ public abstract class RestServiceBase {
 	{
 		Endpoint endpoint = new Endpoint();
 		endpoint.setRtmpUrl(rtmpUrl);
-		endpoint.type = "generic";
+		endpoint.setType("generic");
 
 		boolean removed = getDataStore().removeEndpoint(id, endpoint);
 		return new Result(removed);

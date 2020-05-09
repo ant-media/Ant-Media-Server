@@ -35,6 +35,7 @@ import org.webrtc.MediaStream;
 import org.webrtc.PeerConnectionFactory;
 import org.webrtc.SessionDescription;
 import org.webrtc.SessionDescription.Type;
+
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.IApplicationAdaptorFactory;
@@ -410,9 +411,9 @@ public class RTMPAdaptorTest {
 		mock.unRegisterMuxer(null, null);
 		mock.registerWebRTCClient(null, null, VideoCodec.H264);
 		mock.streamExists(null);
-		mock.getStreamOptions(null);
-		mock.adaptStreamingQuality(null, null);
-		mock.registerWebRTCClient(null, null, 0);
+		mock.getStreamInfo(null);
+		mock.adaptStreamingQuality(null, null, null);
+		mock.registerWebRTCClient(null, null, 0, null);
 		assertEquals(-1, mock.getNumberOfLiveStreams());
 		assertEquals(-1, mock.getNumberOfTotalViewers());
 		assertEquals(-1, mock.getNumberOfViewers(null));
