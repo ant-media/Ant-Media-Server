@@ -382,11 +382,14 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	public void streamPublishStart(final IBroadcastStream stream) {
 		String streamName = stream.getPublishedName();
 		logger.info("stream name in streamPublishStart: {}", streamName );
-
-		startPublish(streamName);
+		long absoluteStartTimeMs = 0;
+		if (stream instanceof ClientBroadcastStream) {
+			absoluteStartTimeMs = ((ClientBroadcastStream) stream).getAbsoluteStartTimeMs();
+		}
+		startPublish(streamName, absoluteStartTimeMs);
 	}
 
-	public void startPublish(String streamName) {
+	public void startPublish(String streamName, long absoluteStartTimeMs) {
 		vertx.executeBlocking( handler -> {
 			try {
 
@@ -396,13 +399,14 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 					if (broadcast == null) {
 
-						broadcast = saveUndefinedBroadcast(streamName, getScope().getName(), dataStoreLocal, appSettings,  AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, getServerSettings().getServerName(), getServerSettings().getHostAddress());
+						broadcast = saveUndefinedBroadcast(streamName, getScope().getName(), dataStoreLocal, appSettings,  AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, getServerSettings().getServerName(), getServerSettings().getHostAddress(), absoluteStartTimeMs);
 					} 
 					else {
 
 						broadcast.setStatus(BROADCAST_STATUS_BROADCASTING);
 						broadcast.setStartTime(System.currentTimeMillis());
 						broadcast.setOriginAdress(getServerSettings().getHostAddress());
+						broadcast.setAbsoluteStartTimeMs(absoluteStartTimeMs);
 						boolean result = dataStoreLocal.updateBroadcastFields(broadcast.getStreamId(), broadcast);
 						
 						logger.info(" Status of stream {} is set to Broadcasting with result: {}", broadcast.getStreamId(), result);
@@ -462,7 +466,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	
 	
 
-	public static Broadcast saveUndefinedBroadcast(String streamId, String scopeName, DataStore dataStore, AppSettings appSettings, String streamStatus, String fqdn, String hostAddress) {		
+	public static Broadcast saveUndefinedBroadcast(String streamId, String scopeName, DataStore dataStore, AppSettings appSettings, String streamStatus, String fqdn, String hostAddress, long absoluteStartTimeMs) {		
 		Broadcast newBroadcast = new Broadcast();
 		long now = System.currentTimeMillis();
 		newBroadcast.setDate(now);
@@ -478,7 +482,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 			return RestServiceBase.saveBroadcast(newBroadcast,
 					streamStatus, scopeName, dataStore,
-					settingsListenerHookURL, fqdn, hostAddress);
+					settingsListenerHookURL, fqdn, hostAddress, absoluteStartTimeMs);
 		} catch (Exception e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
 		}

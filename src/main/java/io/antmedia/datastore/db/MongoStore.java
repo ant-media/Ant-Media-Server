@@ -756,6 +756,10 @@ public class MongoStore extends DataStore {
 					ops.set(STATUS, broadcast.getStatus());
 				}
 				
+				if (broadcast.getAbsoluteStartTimeMs() != 0) {
+					ops.set("absoluteStartTimeMs", broadcast.getAbsoluteStartTimeMs());
+				}
+				
 				
 				ops.set("receivedBytes", broadcast.getReceivedBytes());
 				ops.set("bitrate", broadcast.getBitrate());
