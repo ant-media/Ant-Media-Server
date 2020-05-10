@@ -1122,12 +1122,14 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 																	: "");
 		store.put(AppSettings.SETTINGS_H264_ENABLED, String.valueOf(newAppsettings.isH264Enabled()));
 		store.put(AppSettings.SETTINGS_VP8_ENABLED, String.valueOf(newAppsettings.isVp8Enabled()));
+		store.put(AppSettings.SETTINGS_H265_ENABLED, String.valueOf(newAppsettings.isH265Enabled()));
 		store.put(AppSettings.SETTINGS_DATA_CHANNEL_ENABLED, String.valueOf(newAppsettings.isDataChannelEnabled()));
 		store.put(AppSettings.SETTINGS_DATA_CHANNEL_PLAYER_DISTRIBUTION, String.valueOf(newAppsettings.getDataChannelPlayerDistribution()));
 
 		store.put(AppSettings.SETTINGS_MAX_RESOLUTION_ACCEPT, String.valueOf(newAppsettings.getMaxResolutionAccept()));
 		store.put(AppSettings.SETTINGS_MAX_BITRATE_ACCEPT, String.valueOf(newAppsettings.getMaxBitrateAccept()));
 		store.put(AppSettings.SETTINGS_MAX_FPS_ACCEPT, String.valueOf(newAppsettings.getMaxFpsAccept()));
+		
 		
 		return store.save();
 	}
@@ -1164,6 +1166,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		
 		appSettings.setH264Enabled(newSettings.isH264Enabled());
 		appSettings.setVp8Enabled(newSettings.isVp8Enabled());
+		appSettings.setH265Enabled(newSettings.isH265Enabled());
 
 		appSettings.setDataChannelEnabled(newSettings.isDataChannelEnabled());
 		appSettings.setDataChannelPlayerDistribution(newSettings.getDataChannelPlayerDistribution());
