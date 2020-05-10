@@ -26,6 +26,7 @@ import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.cluster.IStreamInfo;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConferenceRoom;
+import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointChannel;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.TensorFlowObject;
@@ -294,7 +295,7 @@ public class BroadcastRestService extends RestServiceBase{
 		return addSocialEndpoint(id, endpointServiceId);
 	}
 
-	@ApiOperation(value = "Add a third pary rtmp end point to the stream. It supports adding after broadcast is started ", notes = "", response = Result.class)
+	@Deprecated
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/endpoint")
@@ -321,12 +322,46 @@ public class BroadcastRestService extends RestServiceBase{
 		return result;
 	}
 	
-	@ApiOperation(value = "Remove third pary rtmp end point from the stream. For the stream that is broadcasting, it will stop immediately", notes = "", response = Result.class)
+	@ApiOperation(value = "Add a third pary rtmp end point to the stream. It supports adding after broadcast is started ", notes = "", response = Result.class)
+	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/{id}/rtmp-endpoint")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result addEndpointV3(@ApiParam(value = "Broadcast id", required = true) @PathParam("id") String id,
+			@ApiParam(value = "RTMP url of the endpoint that stream will be republished. If required, please encode the URL", required = true) Endpoint endpoint) {
+		
+		String rtmpUrl = null;
+		Result result = new Result(false);
+		
+		if(endpoint != null && endpoint.getRtmpUrl() != null) {
+
+			rtmpUrl = endpoint.getRtmpUrl();
+			result = super.addEndpoint(id, endpoint);
+		}
+		
+		if (result.isSuccess()) 
+		{
+			String status = getDataStore().get(id).getStatus();
+			if (status.equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) 
+			{
+				boolean started = getMuxAdaptor(id).startRtmpStreaming(rtmpUrl);
+				result.setSuccess(started);
+			}
+		}
+		else {
+			if (logger.isErrorEnabled()) {
+				logger.error("Rtmp endpoint({}) was not added to the stream: {}", rtmpUrl != null ? rtmpUrl.replaceAll("[\n|\r|\t]", "_") : null , id.replaceAll("[\n|\r|\t]", "_"));
+			}
+		}
+		
+		return result;
+	}
+	
+	@Deprecated
 	@DELETE
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/endpoint")
 	@Produces(MediaType.APPLICATION_JSON)
-	@Override
 	public Result removeEndpoint(@ApiParam(value = "Broadcast id", required = true) @PathParam("id") String id, 
 			@ApiParam(value = "RTMP url of the endpoint that will be stopped.", required = true) @QueryParam("rtmpUrl") String rtmpUrl ) {
 		Result result = super.removeEndpoint(id, rtmpUrl);
@@ -346,6 +381,44 @@ public class BroadcastRestService extends RestServiceBase{
 			}
 		}
 		
+		return result;
+	}
+
+	@ApiOperation(value = "Remove third pary rtmp end point from the stream. For the stream that is broadcasting, it will stop immediately", notes = "", response = Result.class)
+	@DELETE
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/{id}/rtmp-endpoint")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result removeEndpointV2(@ApiParam(value = "Broadcast id", required = true) @PathParam("id") String id, 
+			@ApiParam(value = "RTMP url of the endpoint that will be stopped.", required = true) @QueryParam("endpointServiceId") String endpointServiceId
+			){
+		
+		//Get rtmpURL with broadcast
+		String rtmpUrl = null;
+		Broadcast broadcast = getDataStore().get(id);
+		
+		if(endpointServiceId != null && broadcast != null && !broadcast.getEndPointList().isEmpty() && broadcast.getEndPointList() != null) {
+			for(Endpoint endpoint: broadcast.getEndPointList()) {
+				if(endpoint.getEndpointServiceId().equals(endpointServiceId)) {
+					rtmpUrl = endpoint.getRtmpUrl();
+				}
+			}
+		}
+		
+		Result result = super.removeRTMPEndpoint(id, endpointServiceId);
+		
+		if (result.isSuccess()) 
+		{
+			String status = getDataStore().get(id).getStatus();
+			if (status.equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) 
+			{
+				boolean started = getMuxAdaptor(id).stopRtmpStreaming(rtmpUrl);
+				result.setSuccess(started);
+			}
+		}
+		else if (logger.isErrorEnabled()) {	
+			logger.error("Rtmp endpoint({}) was not removed from the stream: {}", rtmpUrl != null ? rtmpUrl.replaceAll("[\n|\r|\t]", "_") : null , id.replaceAll("[\n|\r|\t]", "_"));
+		}
 		return result;
 	}
 

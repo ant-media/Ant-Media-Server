@@ -250,7 +250,7 @@ public class MapDBStore extends DataStore {
 	}
 
 	@Override
-	public boolean removeEndpoint(String id, Endpoint endpoint) {
+	public boolean removeEndpoint(String id, Endpoint endpoint, boolean checkRTMPUrl) {
 		boolean result = false;
 		synchronized (this) {
 
@@ -262,7 +262,14 @@ public class MapDBStore extends DataStore {
 					if (endPointList != null) {
 						for (Iterator<Endpoint> iterator = endPointList.iterator(); iterator.hasNext();) {
 							Endpoint endpointItem = iterator.next();
-							if (endpointItem.getRtmpUrl().equals(endpoint.getRtmpUrl())) {
+							if(checkRTMPUrl) {
+								if (endpointItem.getRtmpUrl().equals(endpoint.getRtmpUrl())) {
+									iterator.remove();
+									result = true;
+									break;
+								}
+							}
+							else if (endpointItem.getEndpointServiceId().equals(endpoint.getEndpointServiceId())) {
 								iterator.remove();
 								result = true;
 								break;
