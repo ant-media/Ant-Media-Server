@@ -49,6 +49,7 @@ import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.EncoderSettings;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.RestServiceBase.BroadcastStatistics;
@@ -199,20 +200,27 @@ public class AppFunctionalV2Test {
 
 			Broadcast source=restService.createBroadcast("source_stream");
 			Broadcast endpoint=restService.createBroadcast("endpoint_stream");
+			
+			
+			Awaitility.await().atMost(2, TimeUnit.SECONDS).until(() -> {
+				return (restService.getBroadcast(source.getStreamId()) != null) && (restService.getBroadcast(endpoint.getStreamId()) != null);
+			});
 
 			restService.addEndpoint(source.getStreamId(), endpoint.getRtmpURL());
-
-			Thread.sleep(1000);
 
 			assertNotNull(restService.getBroadcast(source.getStreamId()).getEndPointList());
 
 			Process rtmpSendingProcess = execute(ffmpegPath
 					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
 					+ source.getStreamId());
-
-			//wait for fetching stream
-			Thread.sleep(5000);
-
+			
+			//Check Stream list size and Streams status		
+			Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> {
+				return restService.callGetLiveStatistics() == 2 
+						&& restService.callGetBroadcast(source.getStreamId()).getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)
+						&& restService.callGetBroadcast(endpoint.getStreamId()).getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+			});
+			
 			rtmpSendingProcess.destroy();
 
 			//wait for creating mp4 files
@@ -234,6 +242,69 @@ public class AppFunctionalV2Test {
 
 			restService.deleteBroadcast(source.getStreamId());
 			restService.deleteBroadcast(endpoint.getStreamId());
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+	}
+	
+	@Test
+	public void testSetUpEndPointsV2() {
+
+		try {
+			RestServiceV2Test restService = new RestServiceV2Test();
+
+			Broadcast source=restService.createBroadcast("source_stream");
+			Broadcast endpointStream=restService.createBroadcast("endpoint_stream");
+			
+			Awaitility.await().atMost(2, TimeUnit.SECONDS).until(() -> {
+				return (restService.getBroadcast(source.getStreamId()) != null) && (restService.getBroadcast(endpointStream.getStreamId()) != null);
+			});
+
+			Endpoint endpoint = new Endpoint();
+			endpoint.setRtmpUrl(endpointStream.getRtmpURL());
+			
+			restService.addEndpointV2(source.getStreamId(), endpoint);
+			
+			Awaitility.await().atMost(1, TimeUnit.SECONDS).until(() -> {
+				return restService.getBroadcast(source.getStreamId()) != null;
+			});
+
+			assertNotNull(restService.getBroadcast(source.getStreamId()).getEndPointList());
+
+			Process rtmpSendingProcess = execute(ffmpegPath
+					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
+					+ source.getStreamId());
+
+			//Check Stream list size and Streams status
+			Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> {
+				return restService.callGetLiveStatistics() == 2 
+						&& restService.callGetBroadcast(source.getStreamId()).getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)
+						&& restService.callGetBroadcast(endpointStream.getStreamId()).getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+			});
+
+			rtmpSendingProcess.destroy();
+
+			//wait for creating mp4 files
+
+			String sourceURL = "http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + source.getStreamId() + ".mp4";
+
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
+				return MuxingTest.getByteArray(sourceURL) != null;
+			});
+
+			String endpointURL = "http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + endpointStream.getStreamId() + ".mp4";
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
+				return MuxingTest.getByteArray(endpointURL) != null;
+			});
+
+			//test mp4 files
+			assertTrue(MuxingTest.testFile(sourceURL));
+			assertTrue(MuxingTest.testFile(endpointURL));
+
+			restService.deleteBroadcast(source.getStreamId());
+			restService.deleteBroadcast(endpointStream.getStreamId());
 
 		} catch (Exception e) {
 			e.printStackTrace();

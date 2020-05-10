@@ -261,7 +261,7 @@ public class MongoStore extends DataStore {
 	}
 
 	@Override
-	public boolean removeEndpoint(String id, Endpoint endpoint) {
+	public boolean removeEndpoint(String id, Endpoint endpoint, boolean checkRTMPUrl) {
 		boolean result = false;
 		synchronized(this) {
 			if (id != null && endpoint != null) {
