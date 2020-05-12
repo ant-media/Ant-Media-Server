@@ -272,7 +272,7 @@
         <dependency>
             <groupId>org.tensorflow</groupId>
             <artifactId>tensorflow</artifactId>
-            <version>1.6.0</version>
+            <version>${tensorflow.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
