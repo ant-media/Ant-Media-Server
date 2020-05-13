@@ -38,6 +38,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.red5.logging.Red5LoggerFactory;
 import org.red5.server.ContextLoader;
 import org.red5.server.LoaderBase;
@@ -49,6 +50,8 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.ConfigurableApplicationContext;
+
+import io.antmedia.shutdown.AMSShutdownManager;
 
 /**
  * Server/service to perform orderly and controlled shutdown and clean up of Red5.
@@ -182,6 +185,8 @@ public class ShutdownServer implements ApplicationContextAware, InitializingBean
     }
 
     private void shutdownOrderly() {
+    	waitForAMSShutdown();
+    	
         // shutdown internal listener
         shutdown.compareAndSet(false, true);
         // shutdown the plug-in launcher
@@ -253,7 +258,22 @@ public class ShutdownServer implements ApplicationContextAware, InitializingBean
         System.exit(0);
     }
 
-    public void setPort(int port) {
+    private void waitForAMSShutdown() {
+    	AMSShutdownManager amsShutdownManager = AMSShutdownManager.getInstance();
+    	if(amsShutdownManager.getServerState() == AMSShutdownManager.RUNNING) {
+    		amsShutdownManager.notifyShutdown();
+    	}
+    	//wait until ant media server shut down
+    	while(amsShutdownManager.getServerState() != AMSShutdownManager.SHUT_DOWN) {
+    		try {
+				Thread.sleep(500);
+			} catch (Exception e) {
+				log.error(ExceptionUtils.getStackTrace(e));
+			}
+    	}	
+	}
+
+	public void setPort(int port) {
         this.port = port;
     }
 
