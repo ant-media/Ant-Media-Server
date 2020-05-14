@@ -1185,8 +1185,8 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	/*
 	 * This method is overridden in enterprise edition since RTMP to WebRTC streaming is an enterprise feature.
 	 */
-	public List<RTMPToWebRTCStats> getRTMPToWebRTCStats() {
-		return new ArrayList<RTMPToWebRTCStats>();
+	public RTMPToWebRTCStats getRTMPToWebRTCStats(String streamId) {
+		return new RTMPToWebRTCStats(streamId);
 	}
 
 }
