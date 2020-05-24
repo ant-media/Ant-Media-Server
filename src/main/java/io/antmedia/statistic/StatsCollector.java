@@ -5,6 +5,7 @@ import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
@@ -14,11 +15,15 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.LongSerializer;
+import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.bytedeco.javacpp.Pointer;
 import org.red5.server.Launcher;
@@ -152,6 +157,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 	private Queue<IScope> scopes = new ConcurrentLinkedQueue<>();
 
 	public static final String GA_TRACKING_ID = "UA-93263926-3";
+	
+	public static final String KAFKA_MONITOR_STRING = "monitor.antmedia.io:9092";
 
 	@Autowired
 	private Vertx vertx;
@@ -232,6 +239,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 	public static final String JVM_NATIVE_MEMORY_USAGE = "jvmNativeMemoryUsage";
 
 	private Producer<Long,String> kafkaProducer = null;
+	
+    private Consumer<String, String> kafkaConsumer = null;
 
 	private long cpuMeasurementTimerId = -1;
 
@@ -247,8 +256,9 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 
 	public void start() {
 		cpuMeasurementTimerId  = getVertx().setPeriodic(measurementPeriod, l -> addCpuMeasurement(SystemUtils.getSystemCpuLoad()));
-		startKafkaProducer();
-
+	
+		startKafkaProcess();
+		
 		if (heartBeatEnabled) {
 			logger.info("Starting heartbeats for the version:{} and type:{}", Launcher.getVersion(), Launcher.getVersionType());
 			startAnalytic(Launcher.getVersion(), Launcher.getVersionType());
@@ -263,14 +273,25 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 
 	}
 
-	private void startKafkaProducer() {
+	private void startKafkaProcess() {
+				
 		if (kafkaBrokers != null && !kafkaBrokers.isEmpty()) {
-			kafkaProducer = createKafkaProducer();		
-
-			kafkaTimerId  = getVertx().setPeriodic(staticSendPeriod, l -> {
-				sendInstanceStats(scopes);
-				sendWebRTCClientStats();
-			});
+			
+			List<String> kafkaItemList = Arrays.asList(kafkaBrokers.split("\\s*,\\s*"));
+			
+			for (String kafkaItem : kafkaItemList) {
+				if(kafkaItem.contentEquals(KAFKA_MONITOR_STRING)) {
+					kafkaTimerId  = getVertx().setPeriodic(staticSendPeriod, l -> {
+						sendInstanceStats(scopes);
+						sendWebRTCClientStats();
+					});
+				}
+				else {
+					kafkaConsumer.subscribe(Arrays.asList("test"));
+					kafkaConsumer = createKafkaConsumer(kafkaItem);	
+				}
+				kafkaProducer = createKafkaProducer(kafkaItem);	
+			}
 		}	
 	}
 
@@ -337,13 +358,30 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 		}
 	}
 
-	public Producer<Long, String> createKafkaProducer() {
+	public Producer<Long, String> createKafkaProducer(String kafkaProducerString) {
 		Properties props = new Properties();
-		props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaBrokers);
+		props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaProducerString);
 		props.put(ProducerConfig.CLIENT_ID_CONFIG, Launcher.getInstanceId());
 		props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, LongSerializer.class.getName());
 		props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
 		return new KafkaProducer<>(props);
+	}
+	
+	public Consumer<String, String> createKafkaConsumer(String kafkaConsumerString) {
+		Properties props = new Properties();
+		props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaConsumerString);
+		props.put(ConsumerConfig.CLIENT_ID_CONFIG, Launcher.getInstanceId());
+		
+		props.put(ConsumerConfig.GROUP_ID_CONFIG, "test");
+		
+		props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+		props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+		
+	 //	props.put("enable.auto.commit", "true");
+	 // props.put("auto.commit.interval.ms", "1000");
+	 // props.put("session.timeout.ms", "30000");
+		
+		return new KafkaConsumer<>(props);
 	}
 
 	public static JsonObject getFileSystemInfoJSObject() {
@@ -727,9 +765,23 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 	public void setStaticSendPeriod(int staticSendPeriod) {
 		this.staticSendPeriod = staticSendPeriod;
 	}
+	
+	@Override
+	public Producer<Long, String> getKafkaProducer() {
+		return kafkaProducer;
+	}
 
 	public void setKafkaProducer(Producer<Long, String> kafkaProducer) {
 		this.kafkaProducer = kafkaProducer;
+	}
+	
+	@Override
+	public Consumer<String, String> getKafkaConsumer() {
+		return kafkaConsumer;
+	}
+
+	public void setKafkaConsumer(KafkaConsumer<String, String> kafkaConsumer) {
+		this.kafkaConsumer = kafkaConsumer;
 	}
 
 	public String getKafkaBrokers() {
