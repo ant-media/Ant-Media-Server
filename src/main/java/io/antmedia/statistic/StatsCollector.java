@@ -57,6 +57,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 
 	public static final String IN_USE_NATIVE_MEMORY = "inUseNativeMemory";
 	
+	public static final String AVAILABLE_MEMORY = "availableMemory";
+	
 	public static final String IN_USE_SWAP_SPACE = "inUseSwapSpace";
 
 	public static final String FREE_SWAP_SPACE = "freeSwapSpace";
@@ -231,6 +233,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 
 	public static final String JVM_NATIVE_MEMORY_USAGE = "jvmNativeMemoryUsage";
 
+	private static final String HOST_ADDRESS = "host-address";
+
 	private Producer<Long,String> kafkaProducer = null;
 
 	private long cpuMeasurementTimerId = -1;
@@ -245,6 +249,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 
 	private GoogleAnalytics googleAnalytics;
 
+	private String hostAddress;
+	
 	public void start() {
 		cpuMeasurementTimerId  = getVertx().setPeriodic(measurementPeriod, l -> addCpuMeasurement(SystemUtils.getSystemCpuLoad()));
 		startKafkaProducer();
@@ -332,6 +338,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 			jsonObject.addProperty(MEASURED_BITRATE, webRTCClientStat.getMeasuredBitrate());
 			jsonObject.addProperty(SEND_BITRATE, webRTCClientStat.getSendBitrate());
 			jsonObject.addProperty(TIME, dateTime);
+			jsonObject.addProperty(HOST_ADDRESS, hostAddress);
 			//logstash cannot parse json array so that we send each info separately
 			send2Kafka(jsonObject, WEBRTC_STATS_TOPIC_NAME);
 		}
@@ -475,6 +482,10 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 		jsonObject.addProperty(TOTAL_SWAP_SPACE, SystemUtils.osTotalSwapSpace());
 		jsonObject.addProperty(FREE_SWAP_SPACE, SystemUtils.osFreeSwapSpace());
 		jsonObject.addProperty(IN_USE_SWAP_SPACE, SystemUtils.osInUseSwapSpace());
+		
+		jsonObject.addProperty(AVAILABLE_MEMORY, SystemUtils.OS_TYPE == SystemUtils.LINUX ? 
+														SystemUtils.osLinuxAvailableMemory() : 0);
+		
 		return jsonObject;
 	}
 	
@@ -572,6 +583,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 		JsonObject jsonObject = getSystemResourcesInfo(scopes);
 
 		jsonObject.addProperty(TIME, DateTimeFormatter.ISO_INSTANT.format(Instant.now()));
+		jsonObject.addProperty(HOST_ADDRESS, hostAddress);
 
 		send2Kafka(jsonObject, INSTANCE_STATS_TOPIC_NAME); 
 
@@ -718,6 +730,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 
 		ServerSettings serverSettings = (ServerSettings) applicationContext.getBean(ServerSettings.BEAN_NAME);
 		heartBeatEnabled = serverSettings.isHeartbeatEnabled();
+		hostAddress = serverSettings.getHostAddress();
 	}
 
 	public int getStaticSendPeriod() {
@@ -750,7 +763,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 		hearbeatPeriodicTask = vertx.setPeriodic(periodMS, 
 				l -> {
 					if(logger != null) {
-						logger.info("-Heartbeat-> System cpu load: {} Free memory: {} KB", cpuLoad, SystemUtils.convertByteSize(SystemUtils.osFreePhysicalMemory(),"KB"));
+						logger.info("-Heartbeat-> System cpu load: {} free memory: {} KB available memory: {} KB ", cpuLoad, SystemUtils.convertByteSize(SystemUtils.osFreePhysicalMemory(),"KB"), SystemUtils.OS_TYPE == SystemUtils.LINUX ? SystemUtils.convertByteSize(SystemUtils.osLinuxAvailableMemory(), "KB") : 0);
 					}
 					else {
 						System.out.println("-Heartbeat-> System cpu load:" + cpuLoad + " Free memory: {} KB" + SystemUtils.convertByteSize(SystemUtils.osFreePhysicalMemory(),"KB"));
