@@ -711,8 +711,19 @@ public class BroadcastRestService extends RestServiceBase{
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/recording/{recording-status}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result enableMp4Muxing(@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String streamId,
-			@ApiParam(value = "Change recording status. If true, starts recording. If false stop recording", required = true) @PathParam("recording-status") boolean enableRecording) {
+	public Result enableRecording(@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String streamId,
+			@ApiParam(value = "Change recording status. If true, starts recording. If false stop recording", required = true) @PathParam("recording-status") boolean enableRecording,
+			@ApiParam(value = "Record type:mp4 or webm", required = false) @QueryParam("recordType") String recordType) {
+		if(recordType != null && recordType.equals("webm")) {
+			return enableWebMMuxing(streamId, enableRecording);
+		}
+		else {
+			return enableMp4Muxing(streamId, enableRecording);
+		}
+	}
+	
+	
+	public Result enableMp4Muxing(String streamId, boolean enableRecording) {
 		boolean result = false;
 		String message = null;
 		if (streamId != null) 
@@ -774,13 +785,7 @@ public class BroadcastRestService extends RestServiceBase{
 		return new Result(result, message);
 	}
 	
-	@ApiOperation(value = "Set stream specific recording setting, this setting overrides general WebM Muxing Setting", notes = "", response = Result.class)
-	@PUT
-	@Consumes(MediaType.APPLICATION_JSON)
-	@Path("/{id}/recording/{recording-status}")
-	@Produces(MediaType.APPLICATION_JSON)
-	public Result enableWebMMuxing(@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String streamId,
-			@ApiParam(value = "Change recording status. If true, starts recording. If false stop recording", required = true) @PathParam("recording-status") boolean enableRecording) {
+	public Result enableWebMMuxing(String streamId, boolean enableRecording) {
 		boolean result = false;
 		String message = null;
 		if (streamId != null) 
