@@ -21,6 +21,7 @@ import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.RecordType;
 import io.antmedia.StreamIdValidator;
 import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.cluster.IStreamInfo;
@@ -722,13 +723,13 @@ public class BroadcastRestService extends RestServiceBase{
 				if (enableRecording) 
 				{
 					
-					if (broadcast.getMp4Enabled() != MP4_ENABLE) 
+					if (broadcast.getMp4Enabled() != RECORD_ENABLE) 
 					{
-						result = getDataStore().setMp4Muxing(streamId, MP4_ENABLE);
+						result = getDataStore().setMp4Muxing(streamId, RECORD_ENABLE);
 						//if it's not enabled, start it
 						if (broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING))
 						{
-							result = startMp4Muxing(streamId);
+							result = startRecord(streamId, RecordType.MP4);
 							if (!result) 
 							{
 								streamId = streamId.replaceAll("[\n|\r|\t]", "_");
@@ -747,11 +748,11 @@ public class BroadcastRestService extends RestServiceBase{
 				else 
 				{
 					boolean stopAttempted = false;
-					if (broadcast.getMp4Enabled() == MP4_ENABLE && broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) 
+					if (broadcast.getMp4Enabled() == RECORD_ENABLE && broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) 
 					{
 						stopAttempted = true;
 						//we can stop recording
-						result = stopMp4Muxing(streamId);
+						result = stopRecord(streamId, RecordType.MP4);
 						if (!result) 
 						{
 							streamId = streamId.replaceAll("[\n|\r|\t]", "_");
@@ -759,7 +760,75 @@ public class BroadcastRestService extends RestServiceBase{
 						}
 						
 					}
-					boolean dataStoreResult = getDataStore().setMp4Muxing(streamId, MP4_DISABLE);
+					boolean dataStoreResult = getDataStore().setMp4Muxing(streamId, RECORD_DISABLE);
+					
+					result = stopAttempted ? (result && dataStoreResult) : dataStoreResult;
+				}
+			}
+			else 
+			{
+				message = "no stream for this id: " + streamId + " or wrong setting parameter";
+			}
+		}
+
+		return new Result(result, message);
+	}
+	
+	@ApiOperation(value = "Set stream specific recording setting, this setting overrides general WebM Muxing Setting", notes = "", response = Result.class)
+	@PUT
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/{id}/recording/{recording-status}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result enableWebMMuxing(@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String streamId,
+			@ApiParam(value = "Change recording status. If true, starts recording. If false stop recording", required = true) @PathParam("recording-status") boolean enableRecording) {
+		boolean result = false;
+		String message = null;
+		if (streamId != null) 
+		{
+			Broadcast broadcast = getDataStore().get(streamId);
+			if (broadcast != null) 
+			{
+				if (enableRecording) 
+				{
+					
+					if (broadcast.getWebMEnabled() != RECORD_ENABLE) 
+					{
+						result = getDataStore().setWebMMuxing(streamId, RECORD_ENABLE);
+						//if it's not enabled, start it
+						if (broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING))
+						{
+							result = startRecord(streamId, RecordType.WEBM);
+							if (!result) 
+							{
+								streamId = streamId.replaceAll("[\n|\r|\t]", "_");
+								logger.warn("WebM recording could not be started for stream: {}", streamId);
+							}
+						}	
+					}
+					else 
+					{
+						if (broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) 
+						{
+							message = "Recording is already active. Please stop it first";
+						}
+					}
+				}
+				else 
+				{
+					boolean stopAttempted = false;
+					if (broadcast.getWebMEnabled() == RECORD_ENABLE && broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) 
+					{
+						stopAttempted = true;
+						//we can stop recording
+						result = stopRecord(streamId, RecordType.WEBM);
+						if (!result) 
+						{
+							streamId = streamId.replaceAll("[\n|\r|\t]", "_");
+							logger.warn("WebM recording could not be stopped for stream: {}", streamId);
+						}
+						
+					}
+					boolean dataStoreResult = getDataStore().setWebMMuxing(streamId, RECORD_DISABLE);
 					
 					result = stopAttempted ? (result && dataStoreResult) : dataStoreResult;
 				}

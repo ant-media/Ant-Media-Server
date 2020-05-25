@@ -975,9 +975,27 @@ public class MongoStore extends DataStore {
 	public boolean setMp4Muxing(String streamId, int enabled) {
 		synchronized(this) {
 			try {
-				if (streamId != null && (enabled == MuxAdaptor.MP4_ENABLED_FOR_STREAM || enabled == MuxAdaptor.MP4_NO_SET_FOR_STREAM || enabled == MuxAdaptor.MP4_DISABLED_FOR_STREAM)) {
+				if (streamId != null && (enabled == MuxAdaptor.RECORDING_ENABLED_FOR_STREAM || enabled == MuxAdaptor.RECORDING_NO_SET_FOR_STREAM || enabled == MuxAdaptor.RECORDING_DISABLED_FOR_STREAM)) {
 					Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(streamId);
 					UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set("mp4Enabled", enabled);
+					UpdateResults update = datastore.update(query, ops);
+					return update.getUpdatedCount() == 1;
+				}
+			} catch (Exception e) {
+				logger.error(e.getMessage());
+			}
+		}
+		return false;
+
+	}
+	
+	@Override
+	public boolean setWebMMuxing(String streamId, int enabled) {
+		synchronized(this) {
+			try {
+				if (streamId != null && (enabled == MuxAdaptor.RECORDING_ENABLED_FOR_STREAM || enabled == MuxAdaptor.RECORDING_NO_SET_FOR_STREAM || enabled == MuxAdaptor.RECORDING_DISABLED_FOR_STREAM)) {
+					Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(streamId);
+					UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set("webMEnabled", enabled);
 					UpdateResults update = datastore.update(query, ops);
 					return update.getUpdatedCount() == 1;
 				}
