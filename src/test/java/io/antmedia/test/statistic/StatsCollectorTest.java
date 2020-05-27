@@ -32,9 +32,9 @@ import org.red5.server.api.scope.IScope;
 import org.springframework.context.ApplicationContext;
 
 import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
+import io.antmedia.SystemUtils;
 import io.antmedia.rest.WebRTCClientStats;
 import io.antmedia.statistic.GPUUtils;
 import io.antmedia.statistic.StatsCollector;
@@ -409,6 +409,15 @@ public class StatsCollectorTest {
 		assertEquals(true,monitor.enoughResource());
 
 		
+	}
+	
+	@Test
+	public void testMemInfo() {
+		SystemUtils.setLinuxMemoryFile("src/test/resources/meminfo");
+		
+		long osLinuxAvailableMemory = SystemUtils.osLinuxAvailableMemory();
+		
+		assertEquals(11946299392L, osLinuxAvailableMemory);
 	}
 	
 }

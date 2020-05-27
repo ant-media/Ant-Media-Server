@@ -1023,7 +1023,14 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		return vertx;
 	}
 
-	public boolean updateSettings(AppSettings newSettings, boolean notifyCluster) {
+	/*
+	 * This method can be called by multiple threads especially in cluster mode
+	 * and this cause some issues for settings synchronization. So that it's synchronized
+	 * @param newSettings
+	 * @param notifyCluster
+	 * @return
+	 */
+	public synchronized boolean updateSettings(AppSettings newSettings, boolean notifyCluster) {
 
 		boolean result = false;
 		
