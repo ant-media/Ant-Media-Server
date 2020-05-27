@@ -107,7 +107,7 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 			timeoutMS = getTimeoutMSFromSettings(settings, timeoutMS);
 		}
 		
-		vertx.setPeriodic(timeoutMS, yt-> 
+		vertx.setPeriodic(DEFAULT_TIME_PERIOD_FOR_VIEWER_COUNT, yt-> 
 		{
 			Iterator<Entry<String, Map<String, Long>>> streamIterator = streamsViewerMap.entrySet().iterator();
 			
