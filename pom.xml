@@ -387,7 +387,7 @@
         </dependency>
         <!-- Runtime plugin deps -->
         <dependency>
-            <groupId>io.antmedia</groupId>
+            <groupId>org.red5</groupId>
             <artifactId>tomcatplugin</artifactId>
             <version>${tomcatplugin.version}</version>
             <scope>provided</scope>
@@ -571,26 +571,23 @@
                             </plugins>
                         </configuration>
                     </plugin>
+                    <!-- TODO: Enable this later. There is a bug in the plugin with the start of the new year 
                     <plugin>
                         <groupId>org.owasp</groupId>
                         <artifactId>dependency-check-maven</artifactId>
-                        <version>${dependency-check-maven.version}</version>
                         <executions>
                             <execution>
-                                <id>check-vulnerability-nvd</id>
-                            	   <phase>package</phase>
                                 <goals>
                                     <goal>check</goal>
                                 </goals>
-                                <configuration>
-								   <failBuildOnCVSS>7</failBuildOnCVSS>
-								</configuration>
                             </execution>
                         </executions>
                     </plugin>
+                     -->
                     <plugin>
                         <artifactId>maven-dependency-plugin</artifactId>
                         <version>2.10</version>
+
                         <executions>
                             <execution>
                                 <id>copy-dependencies</id>
@@ -766,23 +763,6 @@
             </dependencies>
             <build>
                 <plugins>
-                   <plugin>
-                        <groupId>org.owasp</groupId>
-                        <artifactId>dependency-check-maven</artifactId>
-                        <version>${dependency-check-maven.version}</version>
-                        <executions>
-                            <execution>
-                                <id>check-vulnerability-nvd</id>
-                            	   <phase>package</phase>
-                                <goals>
-                                    <goal>check</goal>
-                                </goals>
-                                <configuration>
-								   <failBuildOnCVSS>7</failBuildOnCVSS>
-								</configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
                     <plugin>
                         <artifactId>maven-dependency-plugin</artifactId>
                         <version>2.10</version>
