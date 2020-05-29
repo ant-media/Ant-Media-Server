@@ -40,6 +40,7 @@ import org.springframework.web.context.support.WebApplicationContextUtils;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.IApplicationAdaptorFactory;
+import io.antmedia.RecordType;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
@@ -113,9 +114,9 @@ public abstract class RestServiceBase {
 	public static final int ERROR_SOCIAL_ENDPOINT_UNDEFINED_ENDPOINT = -2;
 	public static final int ERROR_SOCIAL_ENDPOINT_EXCEPTION_IN_ASKING_AUTHPARAMS = -3;
 
-	public static final int MP4_ENABLE = 1;
-	public static final int MP4_DISABLE = -1;
-	public static final int MP4_NO_SET = 0;
+	public static final int RECORD_ENABLE = 1;
+	public static final int RECORD_DISABLE = -1;
+	public static final int RECORD_NO_SET = 0;
 
 	public static final int HIGH_CPU_ERROR = -3;
 	public static final int FETCHER_NOT_STARTED_ERROR = -4;
@@ -1424,25 +1425,25 @@ public abstract class RestServiceBase {
 		return mp4Muxer;
 	}
 
-	protected boolean startMp4Muxing(String streamId) {
+	protected boolean startRecord(String streamId, RecordType recordType) {
 		boolean result = false;
 		MuxAdaptor muxAdaptor = getMuxAdaptor(streamId);
 		if (muxAdaptor != null) 
 		{
-			result = muxAdaptor.startRecording();
+			result = muxAdaptor.startRecording(recordType);
 		}
 
 		return result;
 	}
 
-	protected boolean stopMp4Muxing(String streamId) 
+	protected boolean stopRecord(String streamId, RecordType recordType) 
 	{
 		boolean result = false;
 		MuxAdaptor muxAdaptor = getMuxAdaptor(streamId);
 
 		if (muxAdaptor != null) 
 		{
-			result = muxAdaptor.stopRecording();
+			result = muxAdaptor.stopRecording(recordType);
 		}
 
 		return result;
