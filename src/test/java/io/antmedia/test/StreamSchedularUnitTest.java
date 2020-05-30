@@ -1008,7 +1008,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	private void startCameraEmulator() {
 		stopCameraEmulator();
 
-		ProcessBuilder pb = new ProcessBuilder("/usr/local/onvif/runme.sh");
+		ProcessBuilder pb = new ProcessBuilder("src/test/resources/onvif/runme.sh");
 		Process p = null;
 		try {
 			p = pb.start();
