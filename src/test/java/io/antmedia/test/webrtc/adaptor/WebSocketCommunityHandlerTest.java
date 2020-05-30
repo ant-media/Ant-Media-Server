@@ -287,6 +287,9 @@ public class WebSocketCommunityHandlerTest {
 	@Test
 	public void testWebSocketConstants() {
 		assertEquals("already_playing", WebSocketConstants.ALREADY_PLAYING);
+		assertEquals("targetBitrate", WebSocketConstants.TARGET_BITRATE);
+		assertEquals("bitrateMeasurement", WebSocketConstants.BITRATE_MEASUREMENT);
+
 	}
 	
 }
