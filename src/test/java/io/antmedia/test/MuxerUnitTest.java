@@ -3,6 +3,7 @@ package io.antmedia.test;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.IApplicationAdaptorFactory;
+import io.antmedia.RecordType;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
@@ -14,6 +15,9 @@ import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.MuxAdaptor.InputContext;
 import io.antmedia.muxer.Muxer;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
+import io.antmedia.storage.StorageClient;
+import io.antmedia.storage.StorageClient.FileType;
+
 import static org.bytedeco.javacpp.avcodec.AV_CODEC_ID_H264;
 import static org.bytedeco.javacpp.avformat.avformat_close_input;
 import static org.bytedeco.javacpp.avformat.avformat_find_stream_info;
@@ -1009,6 +1013,38 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		
 	}
+	
+	@Test
+	public void testMp4StorageClientWithDateTime() {
+		StorageClient storageClient = Mockito.mock(StorageClient.class);
+		QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		String streamId = "streamId" + (int)(Math.random()*10000);
+		{
+			Mp4Muxer mp4Muxer = new Mp4Muxer(storageClient, scheduler);
+			
+			mp4Muxer.setAddDateTimeToSourceName(false);
+			
+			mp4Muxer.init(appScope, streamId, 0);
+			assertEquals(streamId+".mp4", mp4Muxer.getFile().getName());
+		}
+		
+		{
+			Mp4Muxer mp4Muxer = new Mp4Muxer(storageClient, scheduler);
+			mp4Muxer.setAddDateTimeToSourceName(true);
+			mp4Muxer.init(appScope, streamId, 0);
+			
+			assertNotEquals(streamId+".mp4", mp4Muxer.getFile().getName());
+			
+			File mockFile = Mockito.mock(File.class);
+			mp4Muxer.saveToStorage(mockFile);
+			
+			Mockito.verify(storageClient, timeout(5000)).save(FileType.TYPE_STREAM.getValue()+ "/" + mp4Muxer.getFile().getName() , mockFile);
+		}
+		
+		
+		
+	}
 
 	@Test
 	public void testMp4MuxingSubtitledVideo() {
@@ -1645,7 +1681,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 					Awaitility.await().atMost(90, TimeUnit.SECONDS).until(() -> muxAdaptor.getInputQueueSize() == 0);
 					logger.info("----input queue size: {}", muxAdaptor.getInputQueueSize());
 					startOfRecordingTimeStamp = streamPacket.getTimestamp();
-					muxAdaptor.startRecording();
+					muxAdaptor.startRecording(RecordType.MP4);
 				}
 				packetNumber++;
 
@@ -1666,7 +1702,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			final String finalFilePath = muxAdaptor.getMuxerList().get(0).getFile().getAbsolutePath();
 
 
-			muxAdaptor.stopRecording();
+			muxAdaptor.stopRecording(RecordType.MP4);
 			muxAdaptor.stop();
 
 			flvReader.close();

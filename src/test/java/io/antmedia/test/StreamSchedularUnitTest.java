@@ -193,7 +193,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 			newCam.setStreamId("new_cam" + (int)(Math.random()*10000));
 
-			StreamFetcher streamScheduler = new StreamFetcher(newCam, appScope, null);
+			StreamFetcher streamScheduler = new StreamFetcher(newCam, appScope, vertx);
 
 			assertFalse(streamScheduler.isExceptionInThread());
 			

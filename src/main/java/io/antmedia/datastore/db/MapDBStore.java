@@ -517,7 +517,7 @@ public class MapDBStore extends DataStore {
 	@Override
 	public long getTotalVodNumber() {
 		synchronized (this) {
-			return getVodMap().size();
+			return vodMap.size();
 		}
 	}
 
@@ -731,7 +731,7 @@ public class MapDBStore extends DataStore {
 
 	public long getTotalBroadcastNumber() {
 		synchronized (this) {
-			return getMap().size();
+			return map.size();
 		}
 	}
 
@@ -840,7 +840,7 @@ public class MapDBStore extends DataStore {
 				{
 
 					updateStreamInfo(oldBroadcast, broadcast);
-					getMap().replace(streamId, gson.toJson(oldBroadcast));
+					map.replace(streamId, gson.toJson(oldBroadcast));
 
 					db.commit();
 					result = true;
@@ -1070,7 +1070,7 @@ public class MapDBStore extends DataStore {
 		synchronized (this) {
 			if (streamId != null) {
 				String jsonString = map.get(streamId);
-				if (jsonString != null && (enabled == MuxAdaptor.MP4_ENABLED_FOR_STREAM || enabled == MuxAdaptor.MP4_NO_SET_FOR_STREAM || enabled == MuxAdaptor.MP4_DISABLED_FOR_STREAM)) {			
+				if (jsonString != null && (enabled == MuxAdaptor.RECORDING_ENABLED_FOR_STREAM || enabled == MuxAdaptor.RECORDING_NO_SET_FOR_STREAM || enabled == MuxAdaptor.RECORDING_DISABLED_FOR_STREAM)) {			
 
 					Broadcast broadcast =  gson.fromJson(jsonString, Broadcast.class);	
 					broadcast.setMp4Enabled(enabled);
@@ -1084,6 +1084,26 @@ public class MapDBStore extends DataStore {
 		return result;
 	}
 
+	@Override
+	public boolean setWebMMuxing(String streamId, int enabled) {
+		boolean result = false;
+		synchronized (this) {
+			if (streamId != null) {
+				String jsonString = map.get(streamId);
+				if (jsonString != null && (enabled == MuxAdaptor.RECORDING_ENABLED_FOR_STREAM || enabled == MuxAdaptor.RECORDING_NO_SET_FOR_STREAM || enabled == MuxAdaptor.RECORDING_DISABLED_FOR_STREAM)) {			
+
+					Broadcast broadcast =  gson.fromJson(jsonString, Broadcast.class);	
+					broadcast.setWebMEnabled(enabled);
+					map.replace(streamId, gson.toJson(broadcast));
+
+					db.commit();
+					result = true;
+				}
+			}
+		}
+		return result;
+	}
+	
 	@Override
 	public void saveStreamInfo(StreamInfo streamInfo) {
 		//no need to implement this method, it is used in cluster mode

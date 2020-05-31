@@ -266,8 +266,13 @@ public class ConsoleAppRestServiceTest{
 			assertTrue(result.isSuccess());
 
 			// get app settings and assert settings has changed - check vod folder has changed
-			appSettingsModel = callGetAppSettings("LiveApp");
-			assertEquals(new_vod_folder, appSettingsModel.getVodFolder());
+			
+			//for some odd cases, it may be updated via cluster in second turn
+			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(5, TimeUnit.SECONDS).until(()-> {
+				AppSettings local = callGetAppSettings("LiveApp");
+				return new_vod_folder.equals(local.getVodFolder());
+			});
+			
 
 			// check the related file to make sure settings changed for restart
 			// return back to default values
