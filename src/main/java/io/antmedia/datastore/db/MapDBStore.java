@@ -517,7 +517,7 @@ public class MapDBStore extends DataStore {
 	@Override
 	public long getTotalVodNumber() {
 		synchronized (this) {
-			return getVodMap().size();
+			return vodMap.size();
 		}
 	}
 
@@ -731,7 +731,7 @@ public class MapDBStore extends DataStore {
 
 	public long getTotalBroadcastNumber() {
 		synchronized (this) {
-			return getMap().size();
+			return map.size();
 		}
 	}
 
@@ -840,7 +840,7 @@ public class MapDBStore extends DataStore {
 				{
 
 					updateStreamInfo(oldBroadcast, broadcast);
-					getMap().replace(streamId, gson.toJson(oldBroadcast));
+					map.replace(streamId, gson.toJson(oldBroadcast));
 
 					db.commit();
 					result = true;
