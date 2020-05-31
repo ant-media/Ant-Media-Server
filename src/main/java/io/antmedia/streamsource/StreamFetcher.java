@@ -164,10 +164,13 @@ public class StreamFetcher {
 			result.setMessage(errorStr);		
 
 			logger.error("cannot open stream: {} with error:: {}",  stream.getStreamUrl(), result.getMessage());
+			av_dict_free(optionsDictionary);
+			optionsDictionary.close();
 			return result;
 		}
 
 		av_dict_free(optionsDictionary);
+		optionsDictionary.close();
 
 		ret = avformat_find_stream_info(inputFormatContext, (AVDictionary) null);
 		if (ret < 0) {
@@ -426,6 +429,7 @@ public class StreamFetcher {
 
 			if (pkt != null) {
 				av_packet_free(pkt);
+				pkt.close();
 			}
 
 			if (inputFormatContext != null) {

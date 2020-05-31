@@ -780,22 +780,23 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			HttpEntity postParams = new UrlEncodedFormEntity(urlParameters);
 			httpPost.setEntity(postParams);
 
-			CloseableHttpResponse httpResponse = httpClient.execute(httpPost);
-			logger.info("POST Response Status:: {}" , httpResponse.getStatusLine().getStatusCode());
-
-			HttpEntity entity = httpResponse.getEntity();
-			if (entity != null) 
-			{ 
-				//read entity if it's available
-				BufferedReader reader = new BufferedReader(new InputStreamReader(entity.getContent()));
-
-				String inputLine;
-				response = new StringBuilder();
-
-				while ((inputLine = reader.readLine()) != null) {
-					response.append(inputLine);
-				}
-				reader.close();
+			try (CloseableHttpResponse httpResponse = httpClient.execute(httpPost)) {
+				logger.info("POST Response Status:: {}" , httpResponse.getStatusLine().getStatusCode());
+	
+				HttpEntity entity = httpResponse.getEntity();
+				if (entity != null) 
+				{ 
+					//read entity if it's available
+					BufferedReader reader = new BufferedReader(new InputStreamReader(entity.getContent()));
+	
+					String inputLine;
+					response = new StringBuilder();
+	
+					while ((inputLine = reader.readLine()) != null) {
+						response.append(inputLine);
+					}
+					reader.close();
+			}
 			}
 
 		}

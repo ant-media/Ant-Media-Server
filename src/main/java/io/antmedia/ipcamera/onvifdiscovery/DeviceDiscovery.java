@@ -138,9 +138,8 @@ public class DeviceDiscovery {
 			if (!useIpv4 && address instanceof Inet4Address)
 				continue;
 
-			try {
+			try (DatagramSocket socket = new DatagramSocket(port)){
 
-				DatagramSocket socket = new DatagramSocket(port);
 				port = port + 1;
 				Thread probeReceiver = new ProbeReceiverThread(addresses, serverStarted, socket, serverFinished);
 				Thread probeSender = new ProbeSenderThread(address, socket, probeMsgTemplate, serverStarted,
