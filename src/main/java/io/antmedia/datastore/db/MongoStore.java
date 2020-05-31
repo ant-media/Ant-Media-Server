@@ -254,7 +254,7 @@ public class MongoStore extends DataStore {
 	}
 
 	@Override
-	public boolean removeEndpoint(String id, Endpoint endpoint) {
+	public boolean removeEndpoint(String id, Endpoint endpoint, boolean checkRTMPUrl) {
 		boolean result = false;
 		synchronized(this) {
 			if (id != null && endpoint != null) {
@@ -973,11 +973,20 @@ public class MongoStore extends DataStore {
 
 	@Override
 	public boolean setMp4Muxing(String streamId, int enabled) {
+		return setRecordMuxing(streamId, enabled, "mp4Enabled");
+	}
+	
+	@Override
+	public boolean setWebMMuxing(String streamId, int enabled) {
+		return setRecordMuxing(streamId, enabled, "webMEnabled");
+	}
+	
+	private boolean setRecordMuxing(String streamId, int enabled, String field) {
 		synchronized(this) {
 			try {
-				if (streamId != null && (enabled == MuxAdaptor.MP4_ENABLED_FOR_STREAM || enabled == MuxAdaptor.MP4_NO_SET_FOR_STREAM || enabled == MuxAdaptor.MP4_DISABLED_FOR_STREAM)) {
+				if (streamId != null && (enabled == MuxAdaptor.RECORDING_ENABLED_FOR_STREAM || enabled == MuxAdaptor.RECORDING_NO_SET_FOR_STREAM || enabled == MuxAdaptor.RECORDING_DISABLED_FOR_STREAM)) {
 					Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(streamId);
-					UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set("mp4Enabled", enabled);
+					UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set(field, enabled);
 					UpdateResults update = datastore.update(query, ops);
 					return update.getUpdatedCount() == 1;
 				}

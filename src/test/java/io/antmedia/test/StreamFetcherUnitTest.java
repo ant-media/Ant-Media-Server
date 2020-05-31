@@ -756,7 +756,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testAudioOnlySource() {
 		logger.info("running testAudioOnlySource");
 		//test AudioOnly Source
-		testFetchStreamSources("rtmp://37.247.100.100/shoutcast/karadenizfm.stream", false, false);
+		testFetchStreamSources("https://moondigitaledge.radyotvonline.net/karadenizfm/playlist.m3u8", false, false);
 		logger.info("leaving testAudioOnlySource");
 	}
 
