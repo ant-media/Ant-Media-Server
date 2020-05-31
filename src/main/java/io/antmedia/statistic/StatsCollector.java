@@ -623,17 +623,12 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 		boolean enoughResource = false;
 		
 		if(getCpuLoad() < getCpuLimit()) 
-		{			
-			if (getFreeRam() > getMinFreeRamSize()) 
+		{		
+			int freeRam = getFreeRam();
+			if (freeRam > getMinFreeRamSize() || freeRam == -1)  
 			{
-				long freeMemoryMB = SystemUtils.convertByteSize(SystemUtils.osFreePhysicalMemory(),"MB") ;
-				if (freeMemoryMB > getMinFreeRamSize())
-				{
-					enoughResource = true;
-				}
-				else {
-					logger.error("Not enough resource. There is no enough free memory. Current free memory ({}) < min free memory({}) ", freeMemoryMB, getMinFreeRamSize());
-				}
+				//if it does not calculate the free ram, return true
+				enoughResource = true;		
 			}
 			else {
 				logger.error("Not enough resource. Due to not free RAM. Free RAM should be more than  {} but it is: {}", minFreeRamSize, getFreeRam());
@@ -651,8 +646,10 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 	public int getFreeRam() {
 		//return the allocatable free ram which means max memory - inuse memory
 		//inuse memory means total memory - free memory
-		long inuseMemory = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-		return (int)SystemUtils.convertByteSize(Runtime.getRuntime().maxMemory() - inuseMemory, "MB");
+		if (SystemUtils.OS_TYPE == SystemUtils.LINUX) {
+			return (int)SystemUtils.convertByteSize(SystemUtils.osLinuxAvailableMemory(), "MB");
+		}
+		return -1;
 	}
 
 	@Override
