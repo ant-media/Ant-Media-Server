@@ -3,6 +3,7 @@ package io.antmedia.test;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.IApplicationAdaptorFactory;
+import io.antmedia.RecordType;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
@@ -1645,7 +1646,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 					Awaitility.await().atMost(90, TimeUnit.SECONDS).until(() -> muxAdaptor.getInputQueueSize() == 0);
 					logger.info("----input queue size: {}", muxAdaptor.getInputQueueSize());
 					startOfRecordingTimeStamp = streamPacket.getTimestamp();
-					muxAdaptor.startRecording();
+					muxAdaptor.startRecording(RecordType.MP4);
 				}
 				packetNumber++;
 
@@ -1666,7 +1667,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			final String finalFilePath = muxAdaptor.getMuxerList().get(0).getFile().getAbsolutePath();
 
 
-			muxAdaptor.stopRecording();
+			muxAdaptor.stopRecording(RecordType.MP4);
 			muxAdaptor.stop();
 
 			flvReader.close();

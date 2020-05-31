@@ -595,7 +595,8 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		
 		//HOOK_ACTION_VOD_READY is called only the listenerHookURL is defined either for stream or in AppSettings
 		if (listenerHookURL != null && !listenerHookURL.isEmpty() && 
-				(index = vodName.lastIndexOf(".mp4")) != -1) 
+				((index = vodName.lastIndexOf(".mp4")) != -1) 
+				|| ((index = vodName.lastIndexOf(".webm")) != -1) )
 		{
 			final String baseName = vodName.substring(0, index);
 			String finalListenerHookURL = listenerHookURL;
@@ -1175,7 +1176,14 @@ public Result createInitializationProcess(String appName){
 		return vertx;
 	}
 
-	public boolean updateSettings(AppSettings newSettings, boolean notifyCluster) {
+	/*
+	 * This method can be called by multiple threads especially in cluster mode
+	 * and this cause some issues for settings synchronization. So that it's synchronized
+	 * @param newSettings
+	 * @param notifyCluster
+	 * @return
+	 */
+	public synchronized boolean updateSettings(AppSettings newSettings, boolean notifyCluster) {
 
 		boolean result = false;
 		
@@ -1245,6 +1253,7 @@ public Result createInitializationProcess(String appName){
 		PreferenceStore store = new PreferenceStore(WEBAPPS_PATH + appName + "/WEB-INF/red5-web.properties");
 
 		store.put(AppSettings.SETTINGS_MP4_MUXING_ENABLED, String.valueOf(newAppsettings.isMp4MuxingEnabled()));
+		store.put(AppSettings.SETTINGS_WEBM_MUXING_ENABLED, String.valueOf(newAppsettings.isWebMMuxingEnabled()));
 		store.put(AppSettings.SETTINGS_ADD_DATE_TIME_TO_MP4_FILE_NAME, String.valueOf(newAppsettings.isAddDateTimeToMp4FileName()));
 		store.put(AppSettings.SETTINGS_HLS_MUXING_ENABLED, String.valueOf(newAppsettings.isHlsMuxingEnabled()));
 		store.put(AppSettings.SETTINGS_ACCEPT_ONLY_STREAMS_IN_DATA_STORE, String.valueOf(newAppsettings.isAcceptOnlyStreamsInDataStore()));
@@ -1285,6 +1294,7 @@ public Result createInitializationProcess(String appName){
 	private void updateAppSettingsBean(AppSettings appSettings, AppSettings newSettings) 
 	{	
 		appSettings.setMp4MuxingEnabled(newSettings.isMp4MuxingEnabled());
+		appSettings.setWebMMuxingEnabled(newSettings.isWebMMuxingEnabled());
 		appSettings.setAddDateTimeToMp4FileName(newSettings.isAddDateTimeToMp4FileName());
 		appSettings.setHlsMuxingEnabled(newSettings.isHlsMuxingEnabled());
 		appSettings.setObjectDetectionEnabled(newSettings.isObjectDetectionEnabled());

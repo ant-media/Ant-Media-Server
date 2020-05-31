@@ -955,30 +955,56 @@ public class DBStoresUnitTest {
 			assertEquals("good", dataStore.get(broadcast3.getStreamId()).getQuality());
 
 			//set mp4 muxing to true
-			result = dataStore.setMp4Muxing(key, MuxAdaptor.MP4_ENABLED_FOR_STREAM);
+			result = dataStore.setMp4Muxing(key, MuxAdaptor.RECORDING_ENABLED_FOR_STREAM);
 
 			//check that setting is saved
 			assertTrue(result);
 
 			//check that setting is saved correctly
-			assertEquals(MuxAdaptor.MP4_ENABLED_FOR_STREAM, dataStore.get(key).getMp4Enabled());
+			assertEquals(MuxAdaptor.RECORDING_ENABLED_FOR_STREAM, dataStore.get(key).getMp4Enabled());
 
 
 			//check null case
-			result = dataStore.setMp4Muxing(null, MuxAdaptor.MP4_DISABLED_FOR_STREAM);
+			result = dataStore.setMp4Muxing(null, MuxAdaptor.RECORDING_DISABLED_FOR_STREAM);
 
 			assertFalse(result);
 
 
 			//set mp4 muxing to false
-			result = dataStore.setMp4Muxing(key, MuxAdaptor.MP4_DISABLED_FOR_STREAM);
+			result = dataStore.setMp4Muxing(key, MuxAdaptor.RECORDING_DISABLED_FOR_STREAM);
 
 			//check that setting is saved
 			assertTrue(result);
 
 			//check that setting is saved correctly
-			assertEquals(MuxAdaptor.MP4_DISABLED_FOR_STREAM, dataStore.get(key).getMp4Enabled());
+			assertEquals(MuxAdaptor.RECORDING_DISABLED_FOR_STREAM, dataStore.get(key).getMp4Enabled());
 
+			//set webm muxing to true
+			result = dataStore.setWebMMuxing(key, MuxAdaptor.RECORDING_ENABLED_FOR_STREAM);
+
+			//check that setting is saved
+			assertTrue(result);
+
+			//check that setting is saved correctly
+			assertEquals(MuxAdaptor.RECORDING_ENABLED_FOR_STREAM, dataStore.get(key).getWebMEnabled());
+
+
+			//check null case
+			result = dataStore.setWebMMuxing(null, MuxAdaptor.RECORDING_DISABLED_FOR_STREAM);
+
+			assertFalse(result);
+
+
+			//set webm muxing to false
+			result = dataStore.setWebMMuxing(key, MuxAdaptor.RECORDING_DISABLED_FOR_STREAM);
+
+			//check that setting is saved
+			assertTrue(result);
+
+			//check that setting is saved correctly
+			assertEquals(MuxAdaptor.RECORDING_DISABLED_FOR_STREAM, dataStore.get(key).getWebMEnabled());
+
+			
 			result = dataStore.delete(key);
 			assertTrue(result);
 
