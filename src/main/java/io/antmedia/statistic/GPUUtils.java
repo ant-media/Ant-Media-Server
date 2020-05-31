@@ -95,7 +95,6 @@ public class GPUUtils {
 			else {
 				deviceCount = 0;
 			}
-			count.close();
 		}
 		return deviceCount;
 	}
@@ -118,7 +117,6 @@ public class GPUUtils {
 			if (nvmlDeviceGetUtilizationRates(device, deviceUtilization) == NVML_SUCCESS) {
 				return deviceUtilization;
 			}
-			device.close();
 		}
 		return null;
 	} 
@@ -126,50 +124,41 @@ public class GPUUtils {
 
 	public MemoryStatus getMemoryStatus(int deviceNo) {
 		nvmlDevice_st device = null;
-		MemoryStatus memoryStatus =  null;
 		if ((device = getDevice(deviceNo)) != null) {
 			nvmlMemory_t nvmlMemory = new nvmlMemory_t();
 			if (nvmlDeviceGetMemoryInfo(device, nvmlMemory) == NVML_SUCCESS) {
-				memoryStatus = new MemoryStatus(nvmlMemory.total(), nvmlMemory.used(), nvmlMemory.free());
+				return new MemoryStatus(nvmlMemory.total(), nvmlMemory.used(), nvmlMemory.free());
 			}
-			device.close();
-			nvmlMemory.close();
 		}
-		return memoryStatus;
+		return null;
 	}
 	
 	public String getDeviceName(int deviceIndex) {
 		nvmlDevice_st device = null;
-		String name = null;
 		if ((device = getDevice(deviceIndex)) != null) {
 			byte[] nameByte = new byte[64];
 			if (nvmlDeviceGetName(device, nameByte, nameByte.length) == NVML_SUCCESS) {
-				String fullName = new String(nameByte, 0, nameByte.length);
+				String name = new String(nameByte, 0, nameByte.length);
 				int indexOf = name.indexOf("\u0000");	
-				name = fullName.substring(0, indexOf > 0 ? indexOf : name.length());
+				return name.substring(0, indexOf > 0 ? indexOf : name.length());
 			}
-			device.close();
 		}
 		return null;
 	}
 	
 	public int getMemoryUtilization(int deviceNo) {
 		nvmlUtilization_t utilization = getUtilization(deviceNo);
-		int value = -1;
 		if(utilization != null) {
-			value = utilization.memory();
-			utilization.close();
+			return utilization.memory();
 		}
-		return value;
+		return -1;
 	}
 
 	public int getGPUUtilization(int deviceNo) {
 		nvmlUtilization_t utilization = getUtilization(deviceNo);
-		int value = -1;
 		if(utilization != null) {
-			value = utilization.gpu();
-			utilization.close();
+			return utilization.gpu();
 		}
-		return value;
+		return -1;
 	}
 }
