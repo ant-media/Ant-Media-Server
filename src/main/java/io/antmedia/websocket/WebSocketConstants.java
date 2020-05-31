@@ -211,6 +211,11 @@ public class WebSocketConstants {
 	public static final String AUDIO_BITRATE = "audioBitrate";
 	
 	/**
+	 * Field to specify the measured bitrate for a WebRTCClient
+	 */
+	public static final String TARGET_BITRATE = "targetBitrate";
+	
+	/**
 	 * Field to specify the stream video codec
 	 */
 	public static final String VIDEO_CODEC = "videoCodec";
@@ -326,5 +331,10 @@ public class WebSocketConstants {
 	 * This command used to send subtracks for a stream id
 	 */
 	public static final String  TRACK_LIST = "trackList";
+
+	/**
+	 * Notification to send measured bitrate
+	 */
+	public static final String BITRATE_MEASUREMENT = "bitrateMeasurement";
 
 }
