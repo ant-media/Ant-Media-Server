@@ -327,7 +327,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 					Endpoint newEndpoint;
 					try {
 						newEndpoint = videoServiceEndPoint.createBroadcast(broadcast.getName(),
-								broadcast.getDescription(), broadcast.getStreamId(), broadcast.isIs360(), broadcast.isPublicStream(), 720, true);
+								broadcast.getDescription(), broadcast.getStreamId(), broadcast.isIs360(), broadcast.isPublicStream(), 2160, true);
 						removeList.add(endpoint);
 						addList.add(newEndpoint);
 						
