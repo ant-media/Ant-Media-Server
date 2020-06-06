@@ -52,6 +52,7 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.integration.AppFunctionalV2Test;
 import io.antmedia.muxer.MuxAdaptor;
+import io.antmedia.rest.model.Result;
 import io.antmedia.security.AcceptOnlyStreamsInDataStore;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.type.WebRTCAudioReceiveStats;
@@ -152,6 +153,73 @@ public class AntMediaApplicationAdaptorUnitTest {
 		//it should not change times(1) because we don't want it to update the datastore
 		verify(clusterNotifier, times(1)).getClusterStore();
 		verify(clusterStore, times(1)).saveSettings(settings);
+	}
+
+	@Test
+	public void testResetBroadcasts() 
+	{
+		IScope scope = mock(IScope.class);
+		when(scope.getName()).thenReturn("junit");
+		
+		DataStore dataStore = new InMemoryDataStore("dbname");
+		DataStoreFactory dsf = Mockito.mock(DataStoreFactory.class);
+		Mockito.when(dsf.getDataStore()).thenReturn(dataStore);
+		
+		AntMediaApplicationAdapter spyAdapter = Mockito.spy(adapter);
+		IContext context = mock(IContext.class);
+		when(context.getBean(spyAdapter.VERTX_BEAN_NAME)).thenReturn(vertx);
+		
+		when(scope.getContext()).thenReturn(context);
+		spyAdapter.setDataStoreFactory(dsf);
+		
+		Mockito.doReturn(dataStore).when(spyAdapter).getDataStore();
+		spyAdapter.setScope(scope);
+		
+		
+		// Add 1. Broadcast
+		Broadcast broadcast = new Broadcast();
+		broadcast.setZombi(true);		
+		
+		
+		// Add 2. Broadcast
+		Broadcast broadcast2 = new Broadcast();
+		
+		broadcast2.setWebRTCViewerCount(100);
+		broadcast2.setRtmpViewerCount(10);
+		broadcast2.setHlsViewerCount(1000);
+		
+		broadcast2.setStatus(spyAdapter.BROADCAST_STATUS_BROADCASTING);
+		
+		
+		// Add 3. Broadcast
+		Broadcast broadcast3 = new Broadcast();
+		broadcast3.setStatus(spyAdapter.BROADCAST_STATUS_PREPARING);
+
+		dataStore.save(broadcast);
+		dataStore.save(broadcast2);
+		dataStore.save(broadcast3);
+		
+		// Should 3 broadcast in DB
+		assertEquals(3, dataStore.getBroadcastCount());
+
+		Result result = new Result(false);
+		Mockito.when(spyAdapter.createInitializationProcess(Mockito.anyString())).thenReturn(result);
+		//When createInitializationProcess(scope.getName());
+		
+		spyAdapter.appStart(scope);
+		
+		// Should 2 broadcast in DB, because delete zombie stream
+		assertEquals(2, dataStore.getBroadcastCount());
+		
+		List<Broadcast> broadcastList = dataStore.getBroadcastList(0, 10);
+		for (Broadcast testBroadcast : broadcastList) 
+		{
+			assertEquals(0, testBroadcast.getWebRTCViewerCount());
+			assertEquals(0, testBroadcast.getHlsViewerCount());
+			assertEquals(0, testBroadcast.getRtmpViewerCount());
+			
+			assertEquals(spyAdapter.BROADCAST_STATUS_FINISHED, testBroadcast.getStatus());
+		}	
 	}
 
 	@Test
@@ -755,4 +823,87 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		assertEquals(0, adapter.getNumberOfEncodersBlocked());
 	}
+	
+
+	@Test
+	public void testCreateShutdownFile() {
+		
+		IScope scope = mock(IScope.class);
+		when(scope.getName()).thenReturn("junit");
+		
+		String closedFilePath = "webapps/"+scope.getName()+"/.closed";
+		File closedFile = new File(closedFilePath);
+		
+		// First stop
+		adapter.createShutdownFile(scope.getName());
+		
+		assertEquals(true, closedFile.exists());
+		
+	}
+	
+	@Test
+	public void testInitializationFile() {
+		
+		IScope scope = mock(IScope.class);
+		when(scope.getName()).thenReturn("junit");
+		
+		String initializedFilePath = "webapps/"+scope.getName()+"/.initialized";
+		File initializedFile = new File(initializedFilePath);
+		
+		String closedFilePath = "webapps/"+scope.getName()+"/.closed";
+		File closedFile = new File(closedFilePath);
+		
+		Result result = new Result(false); 
+		
+		// After the upgrade First initialization
+		//initialization file not exist
+		//closed file not exist
+		result = adapter.createInitializationProcess(scope.getName());
+		
+		assertEquals(false, closedFile.exists());
+		assertEquals(true, initializedFile.exists());
+		assertEquals(true, result.isSuccess());
+		assertEquals("Initialized file created in "+ scope.getName(), result.getMessage());
+		
+		
+		//After the upgrade repeated initialization
+		//initialization file exist
+		//closed file not exist
+		try {
+			initializedFile.createNewFile();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		result = adapter.createInitializationProcess(scope.getName());
+		
+		assertEquals(false, closedFile.exists());
+		assertEquals(true, initializedFile.exists());
+		assertEquals(false, result.isSuccess());
+		assertEquals("Something wrong in "+ scope.getName(), result.getMessage());
+		
+		
+		//After the upgrade repeated initialization
+		//initialization file exist
+		//closed file exist
+
+		try {
+			initializedFile.createNewFile();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+		try {
+			closedFile.createNewFile();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		result = adapter.createInitializationProcess(scope.getName());
+		
+		assertEquals(false, closedFile.exists());
+		assertEquals(true, initializedFile.exists());
+		assertEquals(true, result.isSuccess());
+		assertEquals("System works, deleted closed file in "+ scope.getName(), result.getMessage());
+		
+	}
+	
 }
