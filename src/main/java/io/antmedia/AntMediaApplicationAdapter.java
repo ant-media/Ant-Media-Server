@@ -56,7 +56,6 @@ import io.antmedia.datastore.preference.PreferenceStore;
 import io.antmedia.filter.StreamAcceptFilter;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.muxer.IAntMediaStreamHandler;
-import io.antmedia.muxer.IStreamAcceptFilter;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.rest.RestServiceBase;
 import io.antmedia.rest.model.Result;
@@ -966,6 +965,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			Queue<StreamFetcher> fetchers = streamFetcherManager.getStreamFetcherList();
 			for (StreamFetcher streamFetcher : fetchers) {
 				streamFetcher.stopStream();
+				fetchers.remove(streamFetcher);
 			}
 		}
 	}
