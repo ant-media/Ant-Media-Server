@@ -49,7 +49,7 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 	private int timeoutMS = 20000;
 
 	@Override
-	public void registerNewViewer(String streamId, String sessionId) 
+	public synchronized void registerNewViewer(String streamId, String sessionId) 
 	{
 		int streamIncrementCounter = 0;
 		Map<String, Long> viewerMap = streamsViewerMap.get(streamId);
@@ -67,13 +67,11 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 		streamsViewerMap.put(streamId, viewerMap);	
 	}
 	
-	public int getIncreaseCounterMap(String streamId) {
+	public int getIncreaseCounterMap(String streamId) 
+	{
+		Integer increaseCounter = increaseCounterMap.get(streamId);
 		
-		int increaseCounter = 0;
-		if( increaseCounterMap.get(streamId) != null) {
-			increaseCounter = increaseCounterMap.get(streamId);
-		}
-		return increaseCounter;
+		return increaseCounter != null ? increaseCounter : 0;
 	}
 
 	@Override
