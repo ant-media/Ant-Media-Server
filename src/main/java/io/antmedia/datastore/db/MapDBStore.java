@@ -194,6 +194,12 @@ public class MapDBStore extends DataStore {
 						broadcast.setStartTime(System.currentTimeMillis());
 						
 					}
+					else if(status.contentEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED)) {
+						broadcast.setRtmpViewerCount(0);
+						broadcast.setWebRTCViewerCount(0);
+						broadcast.setHlsViewerCount(0);
+					}
+					
 					String jsonVal = gson.toJson(broadcast);
 					String previousValue = map.replace(id, jsonVal);
 					db.commit();
