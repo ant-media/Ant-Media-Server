@@ -185,7 +185,10 @@ public class ShutdownServer implements ApplicationContextAware, InitializingBean
     }
 
     private void shutdownOrderly() {
+    	log.info("\n######### 1 #########");
     	waitForAMSShutdown();
+    	log.info("\n######### 2 #########");
+
     	
         // shutdown internal listener
         shutdown.compareAndSet(false, true);
@@ -254,6 +257,8 @@ public class ShutdownServer implements ApplicationContextAware, InitializingBean
 			e.printStackTrace();
 			Thread.currentThread().interrupt();
         }
+    	log.info("\n######### 3 #########");
+
         // exit
         System.exit(0);
     }

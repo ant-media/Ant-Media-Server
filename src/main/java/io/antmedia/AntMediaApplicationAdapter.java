@@ -76,6 +76,8 @@ import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonObject;
+import io.vertx.ext.dropwizard.MetricsService;
 
 public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShutdownListener {
 
@@ -929,12 +931,25 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		}
 	}
 
+	
+	public void waitUntilThreadsStop() {
+		logger.info("AntMediaApplicationAdapter.waitUntilThreadsStop()");
+		MetricsService metricsService = MetricsService.create(vertx);
+		JsonObject metrics = metricsService.getMetricsSnapshot("vertx.pools.worker.vert.x-worker-thread.queue-size");
+		
+		logger.info("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+		logger.info("metrics:"+metrics);
+		logger.info("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+	}
+
 
 	@Override
 	public void serverShuttingdown() {
 		logger.info("{} is closing streams", getScope().getName());
 		closeStreamFetchers();
 		closeRTMPStreams();
+		
+		waitUntilThreadsStop();
 		waitUntilLiveStreamsStopped();
 		
 		getDataStore().close();

@@ -261,7 +261,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 
 			startHeartBeats(Launcher.getVersion(), Launcher.getVersionType(), heartbeatPeriodMs);
 
-			notifyShutDown(Launcher.getVersion(), Launcher.getVersionType());
+			//notifyShutDown(Launcher.getVersion(), Launcher.getVersionType());
 		}
 		else {
 			logger.info("Heartbeats are disabled for this instance");
