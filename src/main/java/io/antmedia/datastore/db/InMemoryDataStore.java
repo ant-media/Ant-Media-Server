@@ -94,6 +94,11 @@ public class InMemoryDataStore extends DataStore {
 			if(status.contentEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
 				broadcast.setStartTime(System.currentTimeMillis());
 			}
+			else if(status.contentEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED)) {
+				broadcast.setRtmpViewerCount(0);
+				broadcast.setWebRTCViewerCount(0);
+				broadcast.setHlsViewerCount(0);
+			}
 			broadcastMap.put(id, broadcast);
 			result = true;
 		}
@@ -131,7 +136,7 @@ public class InMemoryDataStore extends DataStore {
 	}
 
 	@Override
-	public boolean removeEndpoint(String id, Endpoint endpoint) {
+	public boolean removeEndpoint(String id, Endpoint endpoint, boolean checkRTMPUrl) {
 		boolean result = false;
 		Broadcast broadcast = broadcastMap.get(id);
 		if (broadcast != null && endpoint != null) {
@@ -139,7 +144,14 @@ public class InMemoryDataStore extends DataStore {
 			if (endPointList != null) {
 				for (Iterator<Endpoint> iterator = endPointList.iterator(); iterator.hasNext();) {
 					Endpoint endpointItem = iterator.next();
-					if (endpointItem.getRtmpUrl().equals(endpoint.getRtmpUrl())) {
+					if(checkRTMPUrl) {
+						if (endpointItem.getRtmpUrl().equals(endpoint.getRtmpUrl())) {
+							iterator.remove();
+							result = true;
+							break;
+						}
+					}
+					else if (endpointItem.getEndpointServiceId().equals(endpoint.getEndpointServiceId())) {
 						iterator.remove();
 						result = true;
 						break;
@@ -735,8 +747,24 @@ public class InMemoryDataStore extends DataStore {
 
 		if (streamId != null) {
 			Broadcast broadcast = broadcastMap.get(streamId);
-			if (broadcast != null && (enabled == MuxAdaptor.MP4_ENABLED_FOR_STREAM || enabled == MuxAdaptor.MP4_NO_SET_FOR_STREAM || enabled == MuxAdaptor.MP4_DISABLED_FOR_STREAM)) {
+			if (broadcast != null && (enabled == MuxAdaptor.RECORDING_ENABLED_FOR_STREAM || enabled == MuxAdaptor.RECORDING_NO_SET_FOR_STREAM || enabled == MuxAdaptor.RECORDING_DISABLED_FOR_STREAM)) {
 				broadcast.setMp4Enabled(enabled);
+				broadcastMap.replace(streamId, broadcast);
+				result = true;
+			}
+		}
+
+		return result;
+	}
+	
+	@Override
+	public boolean setWebMMuxing(String streamId, int enabled) {
+		boolean result = false;
+
+		if (streamId != null) {
+			Broadcast broadcast = broadcastMap.get(streamId);
+			if (broadcast != null && (enabled == MuxAdaptor.RECORDING_ENABLED_FOR_STREAM || enabled == MuxAdaptor.RECORDING_NO_SET_FOR_STREAM || enabled == MuxAdaptor.RECORDING_DISABLED_FOR_STREAM)) {
+				broadcast.setWebMEnabled(enabled);
 				broadcastMap.replace(streamId, broadcast);
 				result = true;
 			}

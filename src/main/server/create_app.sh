@@ -91,5 +91,6 @@ if [ $FILE != "1" ]; then
   sed -i $SED_COMPATIBILITY 's/db.type=.*/db.type='mongodb'/' $AMS_DIR/$APP_NAME/WEB-INF/red5-web.properties
 fi
 
+
 echo "$APP_NAME is created."
 

@@ -83,6 +83,7 @@ public class DBStoresUnitTest {
 		testNullCheck(dataStore);
 		testSimpleOperations(dataStore);
 		testRemoveEndpoint(dataStore);
+		testRemoveEndpointWithServiceEndpoint(dataStore);
 		testRTMPURL(dataStore);
 		testStreamWithId(dataStore);
 		testSaveDetection(dataStore);
@@ -112,6 +113,7 @@ public class DBStoresUnitTest {
 		testNullCheck(dataStore);
 		testSimpleOperations(dataStore);
 		testRemoveEndpoint(dataStore);
+		testRemoveEndpointWithServiceEndpoint(dataStore);
 		testRTMPURL(dataStore);
 		testStreamWithId(dataStore);
 		testSaveDetection(dataStore);
@@ -158,6 +160,7 @@ public class DBStoresUnitTest {
 		testNullCheck(dataStore);
 		testSimpleOperations(dataStore);
 		testRemoveEndpoint(dataStore);
+		testRemoveEndpointWithServiceEndpoint(dataStore);
 		testRTMPURL(dataStore);
 		testStreamWithId(dataStore);
 		//testSaveDetection(dataStore);
@@ -274,8 +277,10 @@ public class DBStoresUnitTest {
 			List<Broadcast> broadcastList = dataStore.getBroadcastList(i * pageSize, pageSize);
 			for (Broadcast broadcast : broadcastList) {
 				assertTrue(dataStore.updateStatus(broadcast.getStreamId(), AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED));
+				assertEquals(0, broadcast.getWebRTCViewerCount());
+				assertEquals(0, broadcast.getHlsViewerCount());
+				assertEquals(0, broadcast.getRtmpViewerCount());
 			}
-
 		}
 
 		//check that no active broadcast
@@ -485,10 +490,12 @@ public class DBStoresUnitTest {
 	public void testUpdateHLSViewerCount(DataStore dataStore) {
 		//create a stream
 		Broadcast broadcast = new Broadcast();
+		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 		broadcast.setName("test");
 		String key = dataStore.save(broadcast);
 
 		Broadcast broadcast2 = new Broadcast();
+		broadcast2.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 		broadcast2.setName("test2");
 		String key2 = dataStore.save(broadcast2);
 
@@ -514,16 +521,22 @@ public class DBStoresUnitTest {
 
 			assertEquals(totalCountFor1, dataStore.get(key).getHlsViewerCount());
 			assertEquals(totalCountFor2, dataStore.get(key2).getHlsViewerCount());
+			
+			// If broadcast finished
+			
+			
 		}
 	}
 
 	public void testWebRTCViewerCount(DataStore dataStore) {
 		//create a stream
 		Broadcast broadcast = new Broadcast();
+		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 		broadcast.setName("test");
 		String key = dataStore.save(broadcast);
 
 		Broadcast broadcast2 = new Broadcast();
+		broadcast2.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 		broadcast2.setName("test2");
 		String key2 = dataStore.save(broadcast2);
 
@@ -562,10 +575,12 @@ public class DBStoresUnitTest {
 	public void testRTMPViewerCount(DataStore dataStore) {
 		//create a stream
 		Broadcast broadcast = new Broadcast();
+		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 		broadcast.setName("test");
 		String key = dataStore.save(broadcast);
 
 		Broadcast broadcast2 = new Broadcast();
+		broadcast2.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 		broadcast2.setName("test2");
 		String key2 = dataStore.save(broadcast2);
 
@@ -705,7 +720,7 @@ public class DBStoresUnitTest {
 		assertEquals(2, broadcast2.getEndPointList().size());
 
 		// remove end point
-		result = dataStore.removeEndpoint(broadcast2.getStreamId(), endPoint);
+		result = dataStore.removeEndpoint(broadcast2.getStreamId(), endPoint, true);
 		assertTrue(result);
 		broadcast2 = dataStore.get(key);
 		assertNotNull(broadcast2.getEndPointList());
@@ -720,7 +735,7 @@ public class DBStoresUnitTest {
 				endPoint2.getRtmpUrl(), endPoint2.getType(), null, null);
 
 		// remove end point2
-		result = dataStore.removeEndpoint(broadcast2.getStreamId(), endPoint3Clone);
+		result = dataStore.removeEndpoint(broadcast2.getStreamId(), endPoint3Clone, true);
 		assertTrue(result);
 		broadcast2 = dataStore.get(key);
 		assertTrue(broadcast2.getEndPointList() == null || broadcast2.getEndPointList().size() == 0);
@@ -735,6 +750,81 @@ public class DBStoresUnitTest {
 		String rtmpUrl2 = "rtmp:(sdfsfskmkmkmkmf(ksklasjflakjflaskjflsadfkjsal";
 		endpointStreamId = "stream id 2";
 		endPoint2 = new Endpoint("broacdast id 2", endpointStreamId, broadcast2.getName(), rtmpUrl2, "facebook", null, null);
+
+		assertTrue(dataStore.addEndpoint(broadcast2.getStreamId(), endPoint2));
+
+		assertTrue(dataStore.removeAllEndpoints(broadcast2.getStreamId()));
+
+		broadcast2 = dataStore.get(broadcast2.getStreamId());
+		assertTrue(broadcast2.getEndPointList() == null || broadcast2.getEndPointList().size() == 0);
+
+	}
+	
+	public void testRemoveEndpointWithServiceEndpoint(DataStore dataStore) {
+		Broadcast broadcast = new Broadcast(null, null);
+		String name = "name 1";
+		String description = "description 2";
+		broadcast.setName(name);
+		broadcast.setDescription(description);
+		String key = dataStore.save(broadcast);
+
+		assertNotNull(key);
+		assertNotNull(broadcast.getStreamId());
+
+		Broadcast broadcast2 = dataStore.get(key);
+
+		assertEquals(name, broadcast2.getName());
+		assertEquals(description, broadcast2.getDescription());
+
+		String rtmpUrl = "rtmp:((ksklasjflakjflaskjflsadfkjsal";
+		Endpoint endPoint = new Endpoint("broacdast id", "stream id", null, broadcast2.getName(), rtmpUrl, "generic", null);
+
+		boolean result = dataStore.addEndpoint(broadcast2.getStreamId().toString(), endPoint);
+		assertTrue(result);
+
+		rtmpUrl = "rtmp:(sdfsfsf(ksklasjflakjflaskjflsadfkjsal";
+		String endpointStreamId = "stream id 2";
+		Endpoint endPoint2 = new Endpoint("broacdast id 2", endpointStreamId, broadcast2.getName(), rtmpUrl,
+				"facebook", "generic_2", null);
+
+		result = dataStore.addEndpoint(broadcast2.getStreamId().toString(), endPoint2);
+		assertTrue(result);
+
+		broadcast2 = dataStore.get(key);
+		assertNotNull(broadcast2.getEndPointList());
+		assertEquals(2, broadcast2.getEndPointList().size());
+
+		// remove end point
+		result = dataStore.removeEndpoint(broadcast2.getStreamId(), endPoint, false);
+		assertTrue(result);
+		broadcast2 = dataStore.get(key);
+		assertNotNull(broadcast2.getEndPointList());
+		// its size should be 1
+		assertEquals(1, broadcast2.getEndPointList().size());
+
+		// endpoint2 should be in the list, check stream id
+		assertEquals(broadcast2.getEndPointList().get(0).getStreamId(), endpointStreamId);
+
+		//
+		Endpoint endPoint3Clone = new Endpoint(endPoint2.getBroadcastId(), endPoint2.getStreamId(), endPoint2.getName(),
+				endPoint2.getRtmpUrl(), endPoint2.getType(), "generic_2", null);
+
+		// remove end point2
+		result = dataStore.removeEndpoint(broadcast2.getStreamId(), endPoint3Clone, false);
+		assertTrue(result);
+		broadcast2 = dataStore.get(key);
+		assertTrue(broadcast2.getEndPointList() == null || broadcast2.getEndPointList().size() == 0);
+
+		// add new enpoints
+		rtmpUrl = "rtmp:(sdfsfsf(ksklasjflakjflaskjflsadfkjsal";
+		endpointStreamId = "stream id 2";
+		endPoint = new Endpoint("broacdast id 2", endpointStreamId, broadcast2.getName(), rtmpUrl, "facebook", "generic_2", null);
+
+		assertTrue(dataStore.addEndpoint(broadcast2.getStreamId(), endPoint));
+
+		String rtmpUrl2 = "rtmp:(sdfsfskmkmkmkmf(ksklasjflakjflaskjflsadfkjsal";
+		endpointStreamId = "stream id 2";
+		endPoint2 = new Endpoint("broadcast id 2", endpointStreamId, broadcast2.getName(), rtmpUrl2, "facebook", "generic_3", null);
 
 		assertTrue(dataStore.addEndpoint(broadcast2.getStreamId(), endPoint2));
 
@@ -762,11 +852,19 @@ public class DBStoresUnitTest {
 			assertEquals(broadcast.getStreamId(), broadcast2.getStreamId());
 			assertTrue(broadcast2.isPublish());
 
+			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, broadcast.getStatus());
+			assertEquals(0, broadcast.getStartTime());
+			assertNull(broadcast.getOriginAdress());
+			
 			String name = "name 1";
 			String description = "description 2";
 			Broadcast tmp = new Broadcast();
 			tmp.setName(name);
 			tmp.setDescription(description);
+			tmp.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+			long now = System.currentTimeMillis();
+			tmp.setStartTime(now);
+			tmp.setOriginAdress(ServerSettings.getLocalHostAddress());
 			boolean result = dataStore.updateBroadcastFields(broadcast.getStreamId(), tmp);
 			assertTrue(result);
 
@@ -774,6 +872,9 @@ public class DBStoresUnitTest {
 
 			assertEquals(name, broadcast2.getName());
 			assertEquals(description, broadcast2.getDescription());
+			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, broadcast2.getStatus());
+			assertEquals(now, broadcast2.getStartTime());
+			assertEquals(ServerSettings.getLocalHostAddress(), tmp.getOriginAdress());
 
 			result = dataStore.updateDuration(broadcast.getStreamId().toString(), 100000);
 			assertTrue(result);
@@ -805,6 +906,9 @@ public class DBStoresUnitTest {
 			assertEquals(description, broadcast2.getDescription());
 			assertEquals(100000, (long) broadcast2.getDuration());
 			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, broadcast2.getStatus());
+			assertEquals(0, broadcast2.getWebRTCViewerCount());
+			assertEquals(0, broadcast2.getHlsViewerCount());
+			assertEquals(0, broadcast2.getRtmpViewerCount());
 
 			assertEquals(null, broadcast2.getEndPointList());
 
@@ -851,30 +955,56 @@ public class DBStoresUnitTest {
 			assertEquals("good", dataStore.get(broadcast3.getStreamId()).getQuality());
 
 			//set mp4 muxing to true
-			result = dataStore.setMp4Muxing(key, MuxAdaptor.MP4_ENABLED_FOR_STREAM);
+			result = dataStore.setMp4Muxing(key, MuxAdaptor.RECORDING_ENABLED_FOR_STREAM);
 
 			//check that setting is saved
 			assertTrue(result);
 
 			//check that setting is saved correctly
-			assertEquals(MuxAdaptor.MP4_ENABLED_FOR_STREAM, dataStore.get(key).getMp4Enabled());
+			assertEquals(MuxAdaptor.RECORDING_ENABLED_FOR_STREAM, dataStore.get(key).getMp4Enabled());
 
 
 			//check null case
-			result = dataStore.setMp4Muxing(null, MuxAdaptor.MP4_DISABLED_FOR_STREAM);
+			result = dataStore.setMp4Muxing(null, MuxAdaptor.RECORDING_DISABLED_FOR_STREAM);
 
 			assertFalse(result);
 
 
 			//set mp4 muxing to false
-			result = dataStore.setMp4Muxing(key, MuxAdaptor.MP4_DISABLED_FOR_STREAM);
+			result = dataStore.setMp4Muxing(key, MuxAdaptor.RECORDING_DISABLED_FOR_STREAM);
 
 			//check that setting is saved
 			assertTrue(result);
 
 			//check that setting is saved correctly
-			assertEquals(MuxAdaptor.MP4_DISABLED_FOR_STREAM, dataStore.get(key).getMp4Enabled());
+			assertEquals(MuxAdaptor.RECORDING_DISABLED_FOR_STREAM, dataStore.get(key).getMp4Enabled());
 
+			//set webm muxing to true
+			result = dataStore.setWebMMuxing(key, MuxAdaptor.RECORDING_ENABLED_FOR_STREAM);
+
+			//check that setting is saved
+			assertTrue(result);
+
+			//check that setting is saved correctly
+			assertEquals(MuxAdaptor.RECORDING_ENABLED_FOR_STREAM, dataStore.get(key).getWebMEnabled());
+
+
+			//check null case
+			result = dataStore.setWebMMuxing(null, MuxAdaptor.RECORDING_DISABLED_FOR_STREAM);
+
+			assertFalse(result);
+
+
+			//set webm muxing to false
+			result = dataStore.setWebMMuxing(key, MuxAdaptor.RECORDING_DISABLED_FOR_STREAM);
+
+			//check that setting is saved
+			assertTrue(result);
+
+			//check that setting is saved correctly
+			assertEquals(MuxAdaptor.RECORDING_DISABLED_FOR_STREAM, dataStore.get(key).getWebMEnabled());
+
+			
 			result = dataStore.delete(key);
 			assertTrue(result);
 
@@ -1378,38 +1508,51 @@ public class DBStoresUnitTest {
 		deleteStreamInfos(dataStore);
 
 		//same ports different host => there will be 2 SIs
-		saveStreamInfo(dataStore, "host1", 1000, 2000, "host2", 1000, 2000);
+		saveStreamInfo(dataStore, "host1", 1000, 2000, 0, "host2", 1000, 2000, 0);
 		assertEquals(2, dataStore.getDataStore().find(StreamInfo.class).count());
 		deleteStreamInfos(dataStore);
 
 		//different ports same host => there will be 2 SIs
-		saveStreamInfo(dataStore, "host1", 1000, 2000, "host1", 1100, 2100);
+		saveStreamInfo(dataStore, "host1", 1000, 2000, 0, "host1", 1100, 2100, 0);
 		assertEquals(2, dataStore.getDataStore().find(StreamInfo.class).count());
 		deleteStreamInfos(dataStore);
 
 		//same video ports same host => first SI should be deleted
-		saveStreamInfo(dataStore, "host1", 1000, 2000, "host1", 1000, 2100);
+		saveStreamInfo(dataStore, "host1", 1000, 2000, 0, "host1", 1000, 2100, 0);
 		assertEquals(1, dataStore.getDataStore().find(StreamInfo.class).count());
 		assertTrue(dataStore.getStreamInfoList("test1").isEmpty());
 		deleteStreamInfos(dataStore);
 
 		//same audio ports same host => first SI should be deleted
-		saveStreamInfo(dataStore, "host1", 1000, 2000, "host1", 1100, 2000);
+		saveStreamInfo(dataStore, "host1", 1000, 2000, 0, "host1", 1100, 2000, 0);
 		assertEquals(1, dataStore.getDataStore().find(StreamInfo.class).count());
 		assertTrue(dataStore.getStreamInfoList("test1").isEmpty());
 		deleteStreamInfos(dataStore);
 
 		//first video port same with second audio port and same host => first SI should be deleted
-		saveStreamInfo(dataStore, "host1", 1000, 2000, "host1", 1100, 1000);
+		saveStreamInfo(dataStore, "host1", 1000, 2000, 0, "host1", 1100, 1000, 0);
 		assertEquals(1, dataStore.getDataStore().find(StreamInfo.class).count());
 		assertTrue(dataStore.getStreamInfoList("test1").isEmpty());
 		deleteStreamInfos(dataStore);
 
 		//first audio port same with second video port and same host => first SI should be deleted
-		saveStreamInfo(dataStore, "host1", 1000, 2000, "host1", 2000, 2100);
+		saveStreamInfo(dataStore, "host1", 1000, 2000, 0, "host1", 2000, 2100, 0);
 		assertEquals(1, dataStore.getDataStore().find(StreamInfo.class).count());
 		assertTrue(dataStore.getStreamInfoList("test1").isEmpty());
 		deleteStreamInfos(dataStore);
+		
+		//host and port duplication exist so first SI should be deleted
+		saveStreamInfo(dataStore, "host1", 1000, 2000, 2100, "host1", 2000, 2100, 3000);
+		assertEquals(1, dataStore.getDataStore().find(StreamInfo.class).count());
+		assertTrue(dataStore.getStreamInfoList("test1").isEmpty());
+		deleteStreamInfos(dataStore);
+		
+		//host and port duplication exist so first SI should be deleted
+		saveStreamInfo(dataStore, "host1", 1000, 2000, 3000, "host1", 4000, 5000, 1000);
+		assertEquals(1, dataStore.getDataStore().find(StreamInfo.class).count());
+		assertTrue(dataStore.getStreamInfoList("test1").isEmpty());
+		deleteStreamInfos(dataStore);
+		
 	}
 
 	public void deleteStreamInfos(MongoStore dataStore) {
@@ -1422,13 +1565,14 @@ public class DBStoresUnitTest {
 		dataStore.getDataStore().delete(deleteQuery);
 	}
 
-	public void saveStreamInfo(DataStore dataStore, String host1, int videoPort1, int audioPort1,
-			String host2, int videoPort2, int audioPort2) {
+	public void saveStreamInfo(DataStore dataStore, String host1, int videoPort1, int audioPort1, int dataPort1,
+			String host2, int videoPort2, int audioPort2, int dataPort2) {
 
 		StreamInfo si = new StreamInfo();
 		si.setHost(host1);
 		si.setVideoPort(videoPort1);
 		si.setAudioPort(audioPort1);
+		si.setDataChannelPort(dataPort1);
 		si.setStreamId("test1");
 		dataStore.saveStreamInfo(si);
 
@@ -1438,6 +1582,7 @@ public class DBStoresUnitTest {
 		si.setHost(host2);
 		si.setVideoPort(videoPort2);
 		si.setAudioPort(audioPort2);
+		si.setDataChannelPort(dataPort2);
 		si.setStreamId("test2");
 		dataStore.saveStreamInfo(si);
 	}
@@ -1519,6 +1664,11 @@ public class DBStoresUnitTest {
 		} catch (Exception e1) {
 			e1.printStackTrace();
 		}
+		
+		broadcast.setWebRTCViewerCount(10);
+		broadcast.setHlsViewerCount(1000);
+		broadcast.setRtmpViewerCount(100);
+		
 		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
 		dataStore.save(broadcast);
 		
@@ -1546,6 +1696,10 @@ public class DBStoresUnitTest {
 		broadcastFromStore = dataStore.get(streamId);
 		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, broadcastFromStore.getStatus());
 		assertTrue(Math.abs(now-broadcastFromStore.getStartTime()) < 100);
+		
+		assertEquals(0, broadcastFromStore.getWebRTCViewerCount());
+		assertEquals(0, broadcastFromStore.getRtmpViewerCount());
+		assertEquals(0, broadcastFromStore.getHlsViewerCount());
 	}
 	
 	private void testP2PConnection(DataStore dataStore) {
@@ -1578,7 +1732,7 @@ public class DBStoresUnitTest {
 	public void testUpdateLocationParams(DataStore dataStore) {
 		logger.info("testUpdateLocationParams for {}", dataStore.getClass());
 
-		String streamId = "test"+Math.random()*100;;
+		String streamId = "test"+Math.random()*100;
 		Broadcast broadcast = new Broadcast();
 		try {
 			broadcast.setStreamId(streamId);
@@ -1596,16 +1750,22 @@ public class DBStoresUnitTest {
 		String longitude = "-0.127758";
 		String altitude = "58.58";
 		
+		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, broadcastFromStore.getStatus());
+		
 		broadcastFromStore.setLatitude(latitude);
 		broadcastFromStore.setLongitude(longitude);
 		broadcastFromStore.setAltitude(altitude);
-		
+		broadcastFromStore.setStatus(null);
 		assertTrue(dataStore.updateBroadcastFields(streamId, broadcastFromStore));
 		
 		Broadcast broadcastFromStore2 = dataStore.get(streamId);
 		assertEquals(latitude, broadcastFromStore2.getLatitude());
 		assertEquals(longitude, broadcastFromStore2.getLongitude());
 		assertEquals(altitude, broadcastFromStore2.getAltitude());
+		
+		if (!(dataStore instanceof InMemoryDataStore)) {
+			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, broadcastFromStore2.getStatus());
+		}
 	}
 	
 	public void testPlaylist(DataStore dataStore) {

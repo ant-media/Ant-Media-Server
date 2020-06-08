@@ -16,6 +16,7 @@ import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.filter.StreamAcceptFilter;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
+import io.antmedia.settings.ServerSettings;
 
 public class Application extends MultiThreadedApplicationAdapter implements IAntMediaStreamHandler, IApplicationAdaptorFactory {
 
@@ -38,13 +39,14 @@ public class Application extends MultiThreadedApplicationAdapter implements IAnt
 	private AppSettings appSettings;
 	private List<IStreamPublishSecurity> streamPublishSecurityList;
 	private StreamAcceptFilter streamAcceptFilter;
+	private ServerSettings serverSettings;
 
 	
 	@Override
 	public boolean appStart(IScope app) {
 		appAdaptor = new AntMediaApplicationAdapter();
 		appAdaptor.setAppSettings(getAppSettings());
-
+		appAdaptor.setServerSettings(serverSettings);
 		appAdaptor.setStreamPublishSecurityList(getStreamPublishSecurityList());
 
 		if (getStreamPublishSecurityList() != null) {
@@ -156,5 +158,9 @@ public class Application extends MultiThreadedApplicationAdapter implements IAnt
 
 	public boolean isValidStreamParameters(AVFormatContext inputFormatContext,AVPacket pkt) {
 		return streamAcceptFilter.isValidStreamParameters(inputFormatContext, pkt);
+	}
+	
+	public void setServerSettings(ServerSettings serverSettings) {
+		this.serverSettings = serverSettings;
 	}
 }

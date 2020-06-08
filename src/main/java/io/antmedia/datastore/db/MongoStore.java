@@ -2,6 +2,7 @@ package io.antmedia.datastore.db;
 
 import java.io.File;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -13,6 +14,7 @@ import org.bson.types.ObjectId;
 import org.mongodb.morphia.Datastore;
 import org.mongodb.morphia.Key;
 import org.mongodb.morphia.Morphia;
+import org.mongodb.morphia.query.Criteria;
 import org.mongodb.morphia.query.FindOptions;
 import org.mongodb.morphia.query.Query;
 import org.mongodb.morphia.query.UpdateOperations;
@@ -57,7 +59,9 @@ public class MongoStore extends DataStore {
 	private static final String DURATION = "duration"; 
 	private static final String CREATION_DATE = "creationDate";
 	private static final String PLAYLIST_ID = "playlistId";
-
+	private static final String RTMP_VIEWER_COUNT = "rtmpViewerCount";
+	private static final String HLS_VIEWER_COUNT = "hlsViewerCount";
+	private static final String WEBRTC_VIEWER_COUNT = "webRTCViewerCount";
 	
 	public MongoStore(String host, String username, String password, String dbName) {
 		morphia = new Morphia();
@@ -188,6 +192,11 @@ public class MongoStore extends DataStore {
 				if(status.contentEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
 					ops.set(START_TIME, System.currentTimeMillis());
 				}
+				else if(status.contentEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED)) {
+					ops.set(WEBRTC_VIEWER_COUNT, 0);
+					ops.set(HLS_VIEWER_COUNT, 0);
+					ops.set(RTMP_VIEWER_COUNT, 0);
+				}
 				
 				UpdateResults update = datastore.update(query, ops);
 				return update.getUpdatedCount() == 1;
@@ -252,7 +261,7 @@ public class MongoStore extends DataStore {
 	}
 
 	@Override
-	public boolean removeEndpoint(String id, Endpoint endpoint) {
+	public boolean removeEndpoint(String id, Endpoint endpoint, boolean checkRTMPUrl) {
 		boolean result = false;
 		synchronized(this) {
 			if (id != null && endpoint != null) {
@@ -742,6 +751,19 @@ public class MongoStore extends DataStore {
 					ops.set("mainTrackStreamId", broadcast.getMainTrackStreamId());
 				}
 				
+				if (broadcast.getStartTime() != 0) {
+					ops.set(START_TIME, broadcast.getStartTime());
+				}
+				
+				if (broadcast.getOriginAdress() != null) {
+					ops.set(ORIGIN_ADDRESS, broadcast.getOriginAdress());
+				}
+				
+				if (broadcast.getStatus() != null) {
+					ops.set(STATUS, broadcast.getStatus());
+				}
+				
+				
 				ops.set("receivedBytes", broadcast.getReceivedBytes());
 				ops.set("bitrate", broadcast.getBitrate());
 				ops.set("userAgent", broadcast.getUserAgent());
@@ -763,7 +785,7 @@ public class MongoStore extends DataStore {
 		synchronized(this) {
 			try {
 				Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(streamId);
-				UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).inc("hlsViewerCount", diffCount);
+				UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).inc(HLS_VIEWER_COUNT, diffCount);
 
 				UpdateResults update = datastore.update(query, ops);
 				return update.getUpdatedCount() == 1;
@@ -779,12 +801,12 @@ public class MongoStore extends DataStore {
 	 */
 	@Override
 	public boolean updateWebRTCViewerCountLocal(String streamId, boolean increment) {
-		return updateViewerField(streamId, increment, "webRTCViewerCount");
+		return updateViewerField(streamId, increment, WEBRTC_VIEWER_COUNT);
 	}
 
 	@Override
 	public boolean updateRtmpViewerCountLocal(String streamId, boolean increment) {
-		return updateViewerField(streamId, increment, "rtmpViewerCount");
+		return updateViewerField(streamId, increment, RTMP_VIEWER_COUNT);
 	}
 
 	private boolean updateViewerField(String streamId, boolean increment, String fieldName) {
@@ -814,15 +836,41 @@ public class MongoStore extends DataStore {
 	public void saveStreamInfo(StreamInfo streamInfo) {
 		synchronized(this) {
 			Query<StreamInfo> query = datastore.createQuery(StreamInfo.class);
-			query.and(
-					query.criteria("host").equal(streamInfo.getHost()),
-					query.or(
-							query.criteria("videoPort").equal(streamInfo.getVideoPort()),
-							query.criteria("videoPort").equal(streamInfo.getAudioPort()),
-							query.criteria("audioPort").equal(streamInfo.getVideoPort()),
-							query.criteria("audioPort").equal(streamInfo.getAudioPort())
-							)
-					);
+			
+			List<Criteria> criteriaList = new ArrayList<>();
+			if (streamInfo.getVideoPort() != 0) {
+				criteriaList.add(query.criteria("videoPort").equal(streamInfo.getVideoPort()));
+				criteriaList.add(query.criteria("audioPort").equal(streamInfo.getVideoPort()));
+				criteriaList.add(query.criteria("dataChannelPort").equal(streamInfo.getVideoPort()));
+			}
+			if (streamInfo.getAudioPort() != 0) {
+				criteriaList.add(query.criteria("videoPort").equal(streamInfo.getAudioPort()));
+				criteriaList.add(query.criteria("audioPort").equal(streamInfo.getAudioPort()));
+				criteriaList.add(query.criteria("dataChannelPort").equal(streamInfo.getAudioPort()));
+			}
+			
+			if (streamInfo.getDataChannelPort() != 0) {
+				criteriaList.add(query.criteria("videoPort").equal(streamInfo.getDataChannelPort()));
+				criteriaList.add(query.criteria("audioPort").equal(streamInfo.getDataChannelPort()));
+				criteriaList.add(query.criteria("dataChannelPort").equal(streamInfo.getDataChannelPort()));
+			}
+			
+			Criteria[] criteriaArray = new Criteria[criteriaList.size()];
+			criteriaList.toArray(criteriaArray);
+			if (criteriaArray.length > 0) {
+				query.and(
+						query.criteria("host").equal(streamInfo.getHost()),
+						query.or(
+								criteriaArray
+								)
+						);
+			}
+			else {
+				query.and(
+						query.criteria("host").equal(streamInfo.getHost())
+						);
+			}
+			
 			long count = query.count();
 			if(count > 0) {
 				logger.error("{} port duplications are detected for host: {}, video port: {}, audio port:{}",
@@ -932,11 +980,20 @@ public class MongoStore extends DataStore {
 
 	@Override
 	public boolean setMp4Muxing(String streamId, int enabled) {
+		return setRecordMuxing(streamId, enabled, "mp4Enabled");
+	}
+	
+	@Override
+	public boolean setWebMMuxing(String streamId, int enabled) {
+		return setRecordMuxing(streamId, enabled, "webMEnabled");
+	}
+	
+	private boolean setRecordMuxing(String streamId, int enabled, String field) {
 		synchronized(this) {
 			try {
-				if (streamId != null && (enabled == MuxAdaptor.MP4_ENABLED_FOR_STREAM || enabled == MuxAdaptor.MP4_NO_SET_FOR_STREAM || enabled == MuxAdaptor.MP4_DISABLED_FOR_STREAM)) {
+				if (streamId != null && (enabled == MuxAdaptor.RECORDING_ENABLED_FOR_STREAM || enabled == MuxAdaptor.RECORDING_NO_SET_FOR_STREAM || enabled == MuxAdaptor.RECORDING_DISABLED_FOR_STREAM)) {
 					Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(streamId);
-					UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set("mp4Enabled", enabled);
+					UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set(field, enabled);
 					UpdateResults update = datastore.update(query, ops);
 					return update.getUpdatedCount() == 1;
 				}
@@ -1206,5 +1263,4 @@ public class MongoStore extends DataStore {
 		}
 		return result;
 	}
-	
 }
