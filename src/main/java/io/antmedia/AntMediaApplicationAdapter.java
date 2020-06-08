@@ -1288,6 +1288,8 @@ public Result createInitializationProcess(String appName){
 		store.put(AppSettings.SETTINGS_MAX_BITRATE_ACCEPT, String.valueOf(newAppsettings.getMaxBitrateAccept()));
 		store.put(AppSettings.SETTINGS_MAX_FPS_ACCEPT, String.valueOf(newAppsettings.getMaxFpsAccept()));
 		
+		store.put(AppSettings.SETTINGS_LISTENER_HOOK_URL, newAppsettings.getListenerHookURL() != null ? newAppsettings.getListenerHookURL() : "");
+		
 		return store.save();
 	}
 
@@ -1331,6 +1333,8 @@ public Result createInitializationProcess(String appName){
 		appSettings.setMaxBitrateAccept(newSettings.getMaxBitrateAccept());
 		appSettings.setMaxFpsAccept(newSettings.getMaxFpsAccept());
 		appSettings.setMaxResolutionAccept(newSettings.getMaxResolutionAccept());
+		
+		appSettings.setListenerHookURL(newSettings.getListenerHookURL());
 		
 		logger.warn("app settings updated for {}", getScope().getName());	
 	}
