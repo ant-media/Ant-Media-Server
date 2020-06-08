@@ -59,7 +59,9 @@ public class MongoStore extends DataStore {
 	private static final String DURATION = "duration"; 
 	private static final String CREATION_DATE = "creationDate";
 	private static final String PLAYLIST_ID = "playlistId";
-
+	private static final String RTMP_VIEWER_COUNT = "rtmpViewerCount";
+	private static final String HLS_VIEWER_COUNT = "hlsViewerCount";
+	private static final String WEBRTC_VIEWER_COUNT = "webRTCViewerCount";
 	
 	public MongoStore(String host, String username, String password, String dbName) {
 		morphia = new Morphia();
@@ -189,6 +191,11 @@ public class MongoStore extends DataStore {
 
 				if(status.contentEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
 					ops.set(START_TIME, System.currentTimeMillis());
+				}
+				else if(status.contentEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED)) {
+					ops.set(WEBRTC_VIEWER_COUNT, 0);
+					ops.set(HLS_VIEWER_COUNT, 0);
+					ops.set(RTMP_VIEWER_COUNT, 0);
 				}
 				
 				UpdateResults update = datastore.update(query, ops);
@@ -778,7 +785,7 @@ public class MongoStore extends DataStore {
 		synchronized(this) {
 			try {
 				Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(streamId);
-				UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).inc("hlsViewerCount", diffCount);
+				UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).inc(HLS_VIEWER_COUNT, diffCount);
 
 				UpdateResults update = datastore.update(query, ops);
 				return update.getUpdatedCount() == 1;
@@ -794,12 +801,12 @@ public class MongoStore extends DataStore {
 	 */
 	@Override
 	public boolean updateWebRTCViewerCountLocal(String streamId, boolean increment) {
-		return updateViewerField(streamId, increment, "webRTCViewerCount");
+		return updateViewerField(streamId, increment, WEBRTC_VIEWER_COUNT);
 	}
 
 	@Override
 	public boolean updateRtmpViewerCountLocal(String streamId, boolean increment) {
-		return updateViewerField(streamId, increment, "rtmpViewerCount");
+		return updateViewerField(streamId, increment, RTMP_VIEWER_COUNT);
 	}
 
 	private boolean updateViewerField(String streamId, boolean increment, String fieldName) {
@@ -1256,5 +1263,4 @@ public class MongoStore extends DataStore {
 		}
 		return result;
 	}
-	
 }
