@@ -2,7 +2,7 @@
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.antmedia/ant-media-server/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.antmedia/ant-media-server)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=io.antmedia%3Aant-media-server&metric=alert_status)](https://sonarcloud.io/dashboard?id=io.antmedia%3Aant-media-server)
 
-#### 1527 Active Instances in 110 Countries at 11:41 AM GMT on April 27, 2020
+### 1551 Running Instances in 110 Countries at 07:11 AM GMT on May 5, 2020
 
 
 Ant Media Server 
@@ -12,14 +12,20 @@ Ant Media Server is an open source media server that supports:
 
  * Ultra Low Latency Adaptive One to Many WebRTC Live Streaming in **Enterprise Edition**
  * Adaptive Bitrate for Live Streams (WebRTC, MP4, HLS) in **Enterprise Edition**
+ * VP8 & H264 Support in WebRTC **Enterprise Edition**
+ * Data Channel Support in WebRTC **Enterprise Editio** 
+ * Horizontal(Clustering) and Vertical Scaling **Enterprise Edition**
  * SFU in One to Many WebRTC Streams in **Enterprise Edition**
- * Live Stream Publishing with RTMP and WebRTC
+ * Live Stream Publishing from RTMP to WebRTC **Enterprise Edition**
+ * RTMP Ingesting
  * WebRTC to RTMP Adapter
  * IP Camera Support
  * Recording Live Streams (MP4 and HLS)
  * Restream to Social Media Simultaneously(Facebook and Youtube in **Enterprise Edition**)
  * One-Time Token Control in **Enterprise Edition**
  * Object Detection in **Enterprise Edition**
+ 
+ [Comparison table for Community and Enterprise Edition](https://github.com/ant-media/Ant-Media-Server/wiki#community-edition--enterprise-edition)
  
 ## Quick Launch
  
@@ -34,12 +40,26 @@ Ant Media Server is an open source media server that supports:
  
  ### Links
  
- * [Documentation](https://antmedia.io/documentation) 
+ * [Documentation](http://docs.antmedia.io/) 
  * [Web site](https://antmedia.io)
- * [Community Edition vs. Enterprise Edition](https://antmedia.io/#comparison_table)
+ * [Community Edition vs. Enterprise Edition](https://github.com/ant-media/Ant-Media-Server/wiki#community-edition--enterprise-edition)
  
 
-## Releases 
+## Releases
+
+### [Ant Media Server Community 2.0.0 (May 4, 2020)](https://github.com/ant-media/Ant-Media-Server/releases/download/ams-v2.0.0/ant-media-server-2.0.0-community-2.0.0-20200504_1842.zip)
+* VP8 Support in Playing, Ingesting, Transcoding and Clustering [#1816](https://github.com/ant-media/Ant-Media-Server/issues/1816) [#1962](https://github.com/ant-media/Ant-Media-Server/issues/1962) [#2013](https://github.com/ant-media/Ant-Media-Server/issues/2013) [#1994](https://github.com/ant-media/Ant-Media-Server/issues/1994) 
+* Data Channel Support in Playing, Ingesting, Clustering [#1737](https://github.com/ant-media/Ant-Media-Server/issues/1737) [#2004](https://github.com/ant-media/Ant-Media-Server/issues/2004) [#2011](https://github.com/ant-media/Ant-Media-Server/issues/2001) [#2045](https://github.com/ant-media/Ant-Media-Server/issues/2045) [#1866](https://github.com/ant-media/Ant-Media-Server/issues/1866) 
+* 4K 60 FPS RTMP -> WebRTC Streaming Support [#1854](https://github.com/ant-media/Ant-Media-Server/issues/1854) [#1867](https://github.com/ant-media/Ant-Media-Server/issues/1867) [#1759](https://github.com/ant-media/Ant-Media-Server/issues/1759) [#1775](https://github.com/ant-media/Ant-Media-Server/issues/1775)
+* WebRTC Stack is updated to WebRTC M79 [#1818](https://github.com/ant-media/Ant-Media-Server/issues/1818) [#1838](https://github.com/ant-media/Ant-Media-Server/issues/1838) [#1827](https://github.com/ant-media/Ant-Media-Server/issues/1827) 
+* Official Ubuntu 18.04 support [#1655](https://github.com/ant-media/Ant-Media-Server/issues/1655)
+* Cluster Monitoring Support [#1897](https://github.com/ant-media/Ant-Media-Server/issues/1897) 
+* Playlist Support [#199](https://github.com/ant-media/Ant-Media-Server/issues/199)
+* Native Screen Share Support without extension [#1662](https://github.com/ant-media/Ant-Media-Server/issues/1662)
+* Add RTMP Buffering for Smooth WebRTC Play [#1975](https://github.com/ant-media/Ant-Media-Server/issues/1975)
+* Remote JMX Connection Support [#1595](https://github.com/ant-media/Ant-Media-Server/issues/1595)
+* Make Admin Panel accesible via IP Filter [#1891](https://github.com/ant-media/Ant-Media-Server/issues/1891)  
+* Fixes and Improvements [#1845](https://github.com/ant-media/Ant-Media-Server/issues/1845) [#1913](https://github.com/ant-media/Ant-Media-Server/issues/1913) [#1954](https://github.com/ant-media/Ant-Media-Server/issues/1954) [#1967](https://github.com/ant-media/Ant-Media-Server/issues/1967) [#1960](https://github.com/ant-media/Ant-Media-Server/issues/1960) [#1940](https://github.com/ant-media/Ant-Media-Server/issues/1940) [#2045](https://github.com/ant-media/Ant-Media-Server/issues/2045) [#1991](https://github.com/ant-media/Ant-Media-Server/issues/1991) [#1923](https://github.com/ant-media/Ant-Media-Server/issues/1923) [#2043](https://github.com/ant-media/Ant-Media-Server/issues/2043) [#1992](https://github.com/ant-media/Ant-Media-Server/issues/1992) [#1907](https://github.com/ant-media/Ant-Media-Server/issues/1907) [#1932](https://github.com/ant-media/Ant-Media-Server/issues/1932)  
 
 ### [Ant Media Server Community 1.9.1 (Jan 12, 2020)](https://github.com/ant-media/Ant-Media-Server/releases/download/ams-v1.9.1/ant-media-server-1.9.1-community-1.9.1-20200112_1622.zip)
 * Thread blocking issues [#1757](https://github.com/ant-media/Ant-Media-Server/issues/1757) [#1781](https://github.com/ant-media/Ant-Media-Server/issues/1781) [#1784](https://github.com/ant-media/Ant-Media-Server/issues/1784)
@@ -80,55 +100,6 @@ Ant Media Server is an open source media server that supports:
 * Improvements and fixes [#1408](https://github.com/ant-media/Ant-Media-Server/issues/1408) [#1249](https://github.com/ant-media/Ant-Media-Server/issues/1249) [#1343](https://github.com/ant-media/Ant-Media-Server/issues/1343) [#934](https://github.com/ant-media/Ant-Media-Server/issues/934) [#1395](https://github.com/ant-media/Ant-Media-Server/issues/1395) [#1204](https://github.com/ant-media/Ant-Media-Server/issues/1204) [#1336](https://github.com/ant-media/Ant-Media-Server/issues/1336) [#307](https://github.com/ant-media/Ant-Media-Server/issues/307) [#1257](https://github.com/ant-media/Ant-Media-Server/issues/1257) [#1254](https://github.com/ant-media/Ant-Media-Server/issues/1254) [#1258](https://github.com/ant-media/Ant-Media-Server/issues/1258) [#1266](https://github.com/ant-media/Ant-Media-Server/issues/1266) [#1319](https://github.com/ant-media/Ant-Media-Server/issues/1319) [#1425](https://github.com/ant-media/Ant-Media-Server/issues/1425) [#1409](https://github.com/ant-media/Ant-Media-Server/issues/1409) [#1477](https://github.com/ant-media/Ant-Media-Server/issues/1477)
 
 
-### [Ant Media Server Community 1.7.2 (June 2, 2019)](https://github.com/ant-media/Ant-Media-Server/releases/download/ams-v1.7.2/ant-media-server-community-1.7.2-20190602_1447.zip)
- * %40 Performance Improvement in WebRTC Streams [#1130](https://github.com/ant-media/Ant-Media-Server/issues/1130), [#1147](https://github.com/ant-media/Ant-Media-Server/issues/1147), [#1068](https://github.com/ant-media/Ant-Media-Server/issues/1068)
- * View Logs on Web Panel [#100](https://github.com/ant-media/Ant-Media-Server/issues/100)
- * Licence Control for Enterprise Edition [#762](https://github.com/ant-media/Ant-Media-Server/issues/762)
- * Web Panel  Improvements [#1057](https://github.com/ant-media/Ant-Media-Server/issues/1057), [#1059](https://github.com/ant-media/Ant-Media-Server/issues/1059), [#1055](https://github.com/ant-media/Ant-Media-Server/issues/1055), [#437](https://github.com/ant-media/Ant-Media-Server/issues/437)
- * REST API method to get all system stats [#907](https://github.com/ant-media/Ant-Media-Server/issues/907)
- * Optimize Memory Operations in WebRTC native side [#971](https://github.com/ant-media/Ant-Media-Server/issues/971)
- * Better error handling for stream fetching [#955](https://github.com/ant-media/Ant-Media-Server/issues/955)
- * Enable/Disable stats update to data stores [#1131](https://github.com/ant-media/Ant-Media-Server/issues/1131)
- * Built-in Apache Kafka Producer for monitoring nodes [#1164](https://github.com/ant-media/Ant-Media-Server/issues/1164)
- * Reliability: Create unique host and port for cluster nodes [#1215](https://github.com/ant-media/Ant-Media-Server/issues/1215), [#1214](https://github.com/ant-media/Ant-Media-Server/issues/1214)
- * Bug fix: MP4 rotation in SFU mode [#825](https://github.com/ant-media/Ant-Media-Server/issues/825)
- * Bug fix: Sudden Connection Drop [#978](https://github.com/ant-media/Ant-Media-Server/issues/978)
- * Bug fix: Cluster Edge-Origin Reconnect [#1106](https://github.com/ant-media/Ant-Media-Server/issues/1106)
- * Bug fix: Stop WebRTC streams through REST Stop Method [#1160](https://github.com/ant-media/Ant-Media-Server/issues/1160)
- * Bug fix: Stream Sources Deleting [#1272](https://github.com/ant-media/Ant-Media-Server/issues/1272)
- * Bug fix: Stream stop does not stop immediately in edge [#1257](https://github.com/ant-media/Ant-Media-Server/issues/1257)
- * Bug fix: Web panel IP Camera adding failure
- 
-
-
- ### [Ant Media Server Community 1.6.2 (March 25, 2019)](https://github.com/ant-media/Ant-Media-Server/releases/download/release-1.6.2/ant-media-server-1.6.2-community-1.6.2-20190323_0616.zip)
-*   Rest Filtering based on IP Address [#361](https://github.com/ant-media/Ant-Media-Server/issues/361) [#360](https://github.com/ant-media/Ant-Media-Server/issues/360)
-*   Update embedded tomcat version to 8.5.38 [#520](https://github.com/ant-media/Ant-Media-Server/issues/520)
-*   Configure WebRTC port-ranges for both publishing/playing [#884](https://github.com/ant-media/Ant-Media-Server/issues/884)
-*   Auto renew SSL certificates before time-out [#523](https://github.com/ant-media/Ant-Media-Server/issues/523)
-*   Add a rest method that accept user-assigned stream id [#1007](https://github.com/ant-media/Ant-Media-Server/issues/1007)
-*   Make encoder settings configurable [#826](https://github.com/ant-media/Ant-Media-Server/issues/826)
-*   Receive build number from Root app, instead of LiveApp/WebRTCAppEE [#957](https://github.com/ant-media/Ant-Media-Server/issues/957)
-*   Vod section add download button [#776](https://github.com/ant-media/Ant-Media-Server/issues/776)
-*   Secret based streams authorization without rest api calls [#717](https://github.com/ant-media/Ant-Media-Server/issues/717)
-*   Websocket signaling ping/pong request [#718](https://github.com/ant-media/Ant-Media-Server/issues/718)
-*   Update ffmpeg, make it compatible with cuda javacpp version [#769](https://github.com/ant-media/Ant-Media-Server/issues/752)
-*   Collect exceptions in the instances in order to have better quality # [#909](https://github.com/ant-media/Ant-Media-Server/issues/909)
-
-#### Fixes and Refactors
-*   HLS delete files in the edge nodes [#853](https://github.com/ant-media/Ant-Media-Server/issues/853)
-*   Collect previews from origin in the cluster [#726](https://github.com/ant-media/Ant-Media-Server/issues/726)
-*   WebRTC number of viewers is seen even if stream is not alive [#824](https://github.com/ant-media/Ant-Media-Server/issues/824)
-*   WebRTC embed code sometimes does not play automatically [#799](https://github.com/ant-media/Ant-Media-Server/issues/799)
-*   Some cases ICE Connection Fails [#869](https://github.com/ant-media/Ant-Media-Server/issues/869)
-*   WebRTC playing from edge with the same Id does not start after origin restart during the streaming [#877](https://github.com/ant-media/Ant-Media-Server/issues/877)
-*   High Idle load time after some rtsp operations [#855](https://github.com/ant-media/Ant-Media-Server/issues/855)
-*   Refactor on webrtc client stats graph [#702](https://github.com/ant-media/Ant-Media-Server/issues/702)
-*   Change Rest Service method(GET->POST) of Mp4Muxing for streams [#798](https://github.com/ant-media/Ant-Media-Server/issues/798)
-*   Inconsistency in stream number in dashboard [#547](https://github.com/ant-media/Ant-Media-Server/issues/547)
-*   WebRTCApp HLS preview doesn't work in Community Edition [#1014](https://github.com/ant-media/Ant-Media-Server/issues/1014)  [#965](https://github.com/ant-media/Ant-Media-Server/issues/965)
-*   Unique play.html [#690](https://github.com/ant-media/Ant-Media-Server/issues/690)
-*   Simultaneous Periscope accounts issue [#802](https://github.com/ant-media/Ant-Media-Server/issues/802)
 
 
 Previous releases

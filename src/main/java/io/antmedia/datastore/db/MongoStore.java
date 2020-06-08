@@ -59,7 +59,9 @@ public class MongoStore extends DataStore {
 	private static final String DURATION = "duration"; 
 	private static final String CREATION_DATE = "creationDate";
 	private static final String PLAYLIST_ID = "playlistId";
-
+	private static final String RTMP_VIEWER_COUNT = "rtmpViewerCount";
+	private static final String HLS_VIEWER_COUNT = "hlsViewerCount";
+	private static final String WEBRTC_VIEWER_COUNT = "webRTCViewerCount";
 	
 	public MongoStore(String host, String username, String password, String dbName) {
 		morphia = new Morphia();
@@ -190,6 +192,11 @@ public class MongoStore extends DataStore {
 				if(status.contentEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
 					ops.set(START_TIME, System.currentTimeMillis());
 				}
+				else if(status.contentEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED)) {
+					ops.set(WEBRTC_VIEWER_COUNT, 0);
+					ops.set(HLS_VIEWER_COUNT, 0);
+					ops.set(RTMP_VIEWER_COUNT, 0);
+				}
 				
 				UpdateResults update = datastore.update(query, ops);
 				return update.getUpdatedCount() == 1;
@@ -254,7 +261,7 @@ public class MongoStore extends DataStore {
 	}
 
 	@Override
-	public boolean removeEndpoint(String id, Endpoint endpoint) {
+	public boolean removeEndpoint(String id, Endpoint endpoint, boolean checkRTMPUrl) {
 		boolean result = false;
 		synchronized(this) {
 			if (id != null && endpoint != null) {
@@ -778,7 +785,7 @@ public class MongoStore extends DataStore {
 		synchronized(this) {
 			try {
 				Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(streamId);
-				UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).inc("hlsViewerCount", diffCount);
+				UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).inc(HLS_VIEWER_COUNT, diffCount);
 
 				UpdateResults update = datastore.update(query, ops);
 				return update.getUpdatedCount() == 1;
@@ -794,12 +801,12 @@ public class MongoStore extends DataStore {
 	 */
 	@Override
 	public boolean updateWebRTCViewerCountLocal(String streamId, boolean increment) {
-		return updateViewerField(streamId, increment, "webRTCViewerCount");
+		return updateViewerField(streamId, increment, WEBRTC_VIEWER_COUNT);
 	}
 
 	@Override
 	public boolean updateRtmpViewerCountLocal(String streamId, boolean increment) {
-		return updateViewerField(streamId, increment, "rtmpViewerCount");
+		return updateViewerField(streamId, increment, RTMP_VIEWER_COUNT);
 	}
 
 	private boolean updateViewerField(String streamId, boolean increment, String fieldName) {
@@ -973,11 +980,20 @@ public class MongoStore extends DataStore {
 
 	@Override
 	public boolean setMp4Muxing(String streamId, int enabled) {
+		return setRecordMuxing(streamId, enabled, "mp4Enabled");
+	}
+	
+	@Override
+	public boolean setWebMMuxing(String streamId, int enabled) {
+		return setRecordMuxing(streamId, enabled, "webMEnabled");
+	}
+	
+	private boolean setRecordMuxing(String streamId, int enabled, String field) {
 		synchronized(this) {
 			try {
-				if (streamId != null && (enabled == MuxAdaptor.MP4_ENABLED_FOR_STREAM || enabled == MuxAdaptor.MP4_NO_SET_FOR_STREAM || enabled == MuxAdaptor.MP4_DISABLED_FOR_STREAM)) {
+				if (streamId != null && (enabled == MuxAdaptor.RECORDING_ENABLED_FOR_STREAM || enabled == MuxAdaptor.RECORDING_NO_SET_FOR_STREAM || enabled == MuxAdaptor.RECORDING_DISABLED_FOR_STREAM)) {
 					Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(streamId);
-					UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set("mp4Enabled", enabled);
+					UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set(field, enabled);
 					UpdateResults update = datastore.update(query, ops);
 					return update.getUpdatedCount() == 1;
 				}
@@ -1247,5 +1263,4 @@ public class MongoStore extends DataStore {
 		}
 		return result;
 	}
-	
 }
