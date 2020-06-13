@@ -117,6 +117,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		AppSettings newSettings = Mockito.spy(new AppSettings());
 		newSettings.setVodFolder("");
+		newSettings.setListenerHookURL("");
 		newSettings.setHlsPlayListType("");
 		newSettings.setTokenHashSecret("");
 		newSettings.setDataChannelPlayerDistribution("");
