@@ -503,6 +503,10 @@ public class StreamFetcher {
 			while ((pkt = bufferQueue.poll()) != null) {
 				pkt.close();
 			}
+			
+			while ((pkt = availableBufferQueue.poll()) != null) {
+				pkt.close();
+			}
 		}
 
 		//TODO: Code dumplication with MuxAdaptor.writeBufferedPacket. It should be refactored.

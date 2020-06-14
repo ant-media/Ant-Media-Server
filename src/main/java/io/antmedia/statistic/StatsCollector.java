@@ -759,17 +759,23 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 		hearbeatPeriodicTask = vertx.setPeriodic(periodMS, 
 				l -> {
 					if(logger != null) {
-						logger.info("-Heartbeat-> System cpu load: {} free memory: {} KB available memory: {} KB ", cpuLoad, SystemUtils.convertByteSize(SystemUtils.osFreePhysicalMemory(),"KB"), SystemUtils.convertByteSize(SystemUtils.osAvailableMemory(), "KB"));
+						logger.info("-Heartbeat-> System cpu load: {} process cpu load:{} free memory: {} KB available memory: {} KB used memory(RSS): {} KB", cpuLoad, SystemUtils.getProcessCpuLoad(), SystemUtils.convertByteSize(SystemUtils.osFreePhysicalMemory(),"KB"), SystemUtils.convertByteSize(SystemUtils.osAvailableMemory(), "KB"), SystemUtils.convertByteSize(Pointer.physicalBytes(), "KB"));
 					}
 					else {
 						System.out.println("-Heartbeat-> System cpu load:" + cpuLoad + " Free memory: {} KB" + SystemUtils.convertByteSize(SystemUtils.osFreePhysicalMemory(),"KB"));
 					}
+					
+					//try garbage collector to ease phantom(native) references remove
+					System.gc();
+					
 					getGoogleAnalytic(implementationVersion, type).event()
 					.eventCategory("server_status")
 					.eventAction("heartbeat")
 					.eventLabel("")
 					.clientId(Launcher.getInstanceId())
 					.sendAsync();
+					
+					
 				}
 				);
 
