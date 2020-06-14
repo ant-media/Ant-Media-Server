@@ -124,7 +124,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	private int numberOfEncoderNotOpenedErrors = 0;
 	protected int publishTimeoutStreams = 0;
 	private List<String> publishTimeoutStreamsList = new ArrayList<>();
-	private boolean shutdownProperly;
+	private boolean shutdownProperly = true;
 
 	protected WebRTCVideoReceiveStats webRTCVideoReceiveStats = new WebRTCVideoReceiveStats();
 
