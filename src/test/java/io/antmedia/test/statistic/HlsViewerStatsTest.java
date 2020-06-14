@@ -24,11 +24,14 @@ import io.vertx.core.Vertx;
 
 
 public class HlsViewerStatsTest {
+	
+	Vertx vertx = io.vertx.core.Vertx.vertx();	
 
 	@Test
 	public void testHLSViewerCount() {
 		HlsViewerStats viewerStats = new HlsViewerStats();
-
+			
+		viewerStats.setVertx(vertx);
 		DataStore dataStore = new InMemoryDataStore("datastore");
 		viewerStats.setDataStore(dataStore);
 		
@@ -48,6 +51,9 @@ public class HlsViewerStatsTest {
 			viewerStats.registerNewViewer(streamId, sessionId);
 		}
 
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
+				()->viewerStats.getViewerCount(streamId) == 100 );
+		
 		int viewerCount = viewerStats.getViewerCount(streamId);
 		assertEquals(100, viewerCount);
 
@@ -59,6 +65,8 @@ public class HlsViewerStatsTest {
 			viewerStats.registerNewViewer(streamId, sessionId);
 		}
 
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
+				()->viewerStats.getViewerCount(streamId) == 101 );
 
 		viewerCount = viewerStats.getViewerCount(streamId);
 		assertEquals(101, viewerCount);
@@ -83,8 +91,6 @@ public class HlsViewerStatsTest {
 	@Test
 	public void testSetApplicationContext() {
 		ApplicationContext context = mock(ApplicationContext.class);
-
-		Vertx vertx = io.vertx.core.Vertx.vertx();		
 
 		try {
 
@@ -157,6 +163,9 @@ public class HlsViewerStatsTest {
 			
 			
 			viewerStats.registerNewViewer(streamId, sessionId);
+			
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(
+					()-> viewerStats.getViewerCount(streamId) == 1);
 			
 			assertEquals(1, viewerStats.getViewerCount(streamId));
 			assertEquals(1, viewerStats.getIncreaseCounterMap(streamId));
