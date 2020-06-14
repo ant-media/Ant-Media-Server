@@ -56,7 +56,6 @@ import io.antmedia.datastore.preference.PreferenceStore;
 import io.antmedia.filter.StreamAcceptFilter;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.muxer.IAntMediaStreamHandler;
-import io.antmedia.muxer.IStreamAcceptFilter;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.rest.RestServiceBase;
 import io.antmedia.rest.model.Result;
@@ -67,6 +66,7 @@ import io.antmedia.shutdown.IShutdownListener;
 import io.antmedia.social.endpoint.PeriscopeEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
+import io.antmedia.statistic.HlsViewerStats;
 import io.antmedia.statistic.type.RTMPToWebRTCStats;
 import io.antmedia.statistic.type.WebRTCAudioReceiveStats;
 import io.antmedia.statistic.type.WebRTCAudioSendStats;
@@ -103,7 +103,9 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	public static final String YOUTUBE = "youtube";
 	public static final String FACEBOOK_ENDPOINT_CLASS = "io.antmedia.enterprise.social.endpoint.FacebookEndpoint";
 	public static final String YOUTUBE_ENDPOINT_CLASS = "io.antmedia.enterprise.social.endpoint.YoutubeEndpoint";
+	public static final String WEBAPPS_PATH = "webapps/";
 
+	
 	private Map<String, VideoServiceEndpoint> videoServiceEndpoints = new HashMap<>();
 	private List<VideoServiceEndpoint> videoServiceEndpointsHavingError = new ArrayList<>();
 	private List<IStreamPublishSecurity> streamPublishSecurityList;
@@ -122,7 +124,8 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	private int numberOfEncoderNotOpenedErrors = 0;
 	protected int publishTimeoutStreams = 0;
 	private List<String> publishTimeoutStreamsList = new ArrayList<>();
-	
+	private boolean shutdownProperly = true;
+
 	protected WebRTCVideoReceiveStats webRTCVideoReceiveStats = new WebRTCVideoReceiveStats();
 
 	protected WebRTCAudioReceiveStats webRTCAudioReceiveStats = new WebRTCAudioReceiveStats();
@@ -140,6 +143,9 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 		//initalize to access the data store directly in the code
 		getDataStore();
+		
+		// Create initialized file in application
+		Result result = createInitializationProcess(app.getName());
 
 		if (app.getContext().hasBean(IClusterNotifier.BEAN_NAME)) {
 			//which means it's in cluster mode
@@ -147,6 +153,13 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			
 			clusterNotifier.registerSettingUpdateListener(getAppSettings().getAppName(), settings -> updateSettings(settings, false));
 		}
+		else if (!result.isSuccess()) {
+			//Save App Setting
+			setShutdownProperly(false);
+			// Reset Broadcast Stats
+			resetBroadcasts();
+		}
+
 
 		vertx.setTimer(1, l -> {
 				streamFetcherManager = new StreamFetcherManager(vertx, getDataStore(),app);
@@ -208,10 +221,49 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		//not used
 	}
 
+	public Result resetBroadcasts(){
+		
+		Result result = new Result(false);
+		
+		long broadcastCount = getDataStore().getBroadcastCount();
+		int successfulOperations = 0;
+		int zombieStreamCount = 0;
+		for (int i = 0; (i * DataStore.MAX_ITEM_IN_ONE_LIST) < broadcastCount; i++) {
+			List<Broadcast> broadcastList = getDataStore().getBroadcastList(i*DataStore.MAX_ITEM_IN_ONE_LIST, DataStore.MAX_ITEM_IN_ONE_LIST);
+
+			for (Broadcast broadcast : broadcastList) 
+			{
+				if (broadcast.isZombi()) {
+					zombieStreamCount++;
+					getDataStore().delete(broadcast.getStreamId());	
+				}
+				else {
+					broadcast.setHlsViewerCount(0);
+					broadcast.setWebRTCViewerCount(0);
+					broadcast.setRtmpViewerCount(0);
+					broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+					String streamId = getDataStore().save(broadcast);
+					
+					if (streamId != null) {
+						successfulOperations++;
+					}
+				}
+			}
+		}
+		
+		result.setMessage("");
+		
+		if ((successfulOperations+zombieStreamCount) == broadcastCount) {
+			result.setSuccess(true);
+			result.setMessage("Successfull operations: "+ successfulOperations + " total operations: " + broadcastCount + " total deleted zombie streams: " + zombieStreamCount);
+		}
+		return result;
+	}
+	
 	public boolean synchUserVoDFolder(String oldFolderPath, String vodFolderPath) 
 	{
 		boolean result = false;
-		File streamsFolder = new File("webapps/" + getScope().getName() + "/streams");
+		File streamsFolder = new File(WEBAPPS_PATH + getScope().getName() + "/streams");
 
 		try {
 			deleteOldFolderPath(oldFolderPath, streamsFolder);
@@ -287,10 +339,22 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 					if (broadcast.isZombi()) {
 						getDataStore().delete(streamName);
 					}
-
+					else {
+						// This is resets Viewer map in HLS Viewer Stats
+						resetHLSStats(streamId);
+					}
 				}
 		} catch (Exception e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
+		}
+	}
+	
+	public void resetHLSStats(String streamId) {
+		if (scope.getContext().getApplicationContext().containsBean(HlsViewerStats.BEAN_NAME)) {
+			HlsViewerStats hlsViewerStats = (HlsViewerStats) scope.getContext().getApplicationContext().getBean(HlsViewerStats.BEAN_NAME);
+			if (hlsViewerStats != null) {
+				hlsViewerStats.resetHLSViewerMap(streamId);
+			}
 		}
 	}
 	
@@ -327,7 +391,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 					Endpoint newEndpoint;
 					try {
 						newEndpoint = videoServiceEndPoint.createBroadcast(broadcast.getName(),
-								broadcast.getDescription(), broadcast.getStreamId(), broadcast.isIs360(), broadcast.isPublicStream(), 720, true);
+								broadcast.getDescription(), broadcast.getStreamId(), broadcast.isIs360(), broadcast.isPublicStream(), 2160, true);
 						removeList.add(endpoint);
 						addList.add(newEndpoint);
 						
@@ -901,6 +965,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			Queue<StreamFetcher> fetchers = streamFetcherManager.getStreamFetcherList();
 			for (StreamFetcher streamFetcher : fetchers) {
 				streamFetcher.stopStream();
+				fetchers.remove(streamFetcher);
 			}
 		}
 	}
@@ -938,7 +1003,95 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		closeRTMPStreams();
 		waitUntilLiveStreamsStopped();
 		
+		createShutdownFile(getScope().getName());
+		
 		getDataStore().close();
+	}
+	
+
+public Result createInitializationProcess(String appName){
+		
+		Result result = new Result(false);
+		
+		String initializedFilePath =WEBAPPS_PATH + appName + "/.initialized";
+		File initializedFile = new File(initializedFilePath);
+		
+		String closedFilePath =WEBAPPS_PATH + appName + "/.closed";
+		File closedFile = new File(closedFilePath);
+		
+		try {
+			// Check first start
+			if(!initializedFile.exists() && !closedFile.exists()) {
+				if(initializedFile.createNewFile()) {
+					result.setMessage("Initialized file created in " + appName);
+					result.setSuccess(true);
+					logger.info("Initialized file created in {}",appName);
+				}
+				else {
+					result.setMessage("Initialized file couldn't create in " + appName);
+					result.setSuccess(false);
+					logger.info("Initialized file couldn't create in {}",appName);
+				}
+			} 
+			// Check repeated starting - It's normal start
+			else if(initializedFile.exists() && closedFile.exists()) {
+				// Delete old .closed file in application
+				Files.delete(closedFile.toPath());
+				
+				if(!closedFile.exists()) {
+					result.setMessage("System works, deleted closed file in " + appName);
+					result.setSuccess(true);
+					logger.info("Delete closed file in {}",appName);
+				}
+				else {
+					result.setMessage("Delete couldn't closed file in " + appName);
+					result.setSuccess(false);
+					logger.info("Delete couldn't closed file in {}",appName);
+				}
+			}
+			// It means didn't close normal (unexpected stop)
+			else if(initializedFile.exists() && !closedFile.exists()) {
+				// It's problem here
+				// Notify user to send logs
+				result.setMessage("Something wrong in " + appName);
+				result.setSuccess(false);
+				logger.error("Something wrong in {}",appName);
+			}
+			// Other odd is initialization file doesn't exist and closed file exist.
+			// It's important to happen.
+		} catch (IOException e) {
+			logger.error(e.getMessage());
+		}
+		
+		return result;
+	}
+	
+	
+	public void createShutdownFile(String appName){
+		
+		String closedFilePath =WEBAPPS_PATH + appName + "/.closed";
+		File closedFile = new File(closedFilePath);
+		
+		try {
+			if(!closedFile.exists()) {
+				if(closedFile.createNewFile()) {
+					logger.info("Closed file created in {}",appName);
+				}
+				else {
+					logger.error("Closed file couldn't create in {}",appName);
+				}
+			}
+		} catch (IOException e) {
+			logger.error(e.getMessage());
+		}
+	}
+	
+	public boolean isShutdownProperly() {
+		return shutdownProperly;
+	}
+
+	public void setShutdownProperly(boolean shutdownProperly) {
+		this.shutdownProperly = shutdownProperly;
 	}
 
 	@Override
@@ -1098,7 +1251,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		 * If we know the case above, we will write better codes. 
 		 * 
 		 */
-		PreferenceStore store = new PreferenceStore("webapps/"+appName+"/WEB-INF/red5-web.properties");
+		PreferenceStore store = new PreferenceStore(WEBAPPS_PATH + appName + "/WEB-INF/red5-web.properties");
 
 		store.put(AppSettings.SETTINGS_MP4_MUXING_ENABLED, String.valueOf(newAppsettings.isMp4MuxingEnabled()));
 		store.put(AppSettings.SETTINGS_WEBM_MUXING_ENABLED, String.valueOf(newAppsettings.isWebMMuxingEnabled()));
@@ -1134,6 +1287,8 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		store.put(AppSettings.SETTINGS_MAX_RESOLUTION_ACCEPT, String.valueOf(newAppsettings.getMaxResolutionAccept()));
 		store.put(AppSettings.SETTINGS_MAX_BITRATE_ACCEPT, String.valueOf(newAppsettings.getMaxBitrateAccept()));
 		store.put(AppSettings.SETTINGS_MAX_FPS_ACCEPT, String.valueOf(newAppsettings.getMaxFpsAccept()));
+		
+		store.put(AppSettings.SETTINGS_LISTENER_HOOK_URL, newAppsettings.getListenerHookURL() != null ? newAppsettings.getListenerHookURL() : "");
 		
 		return store.save();
 	}
@@ -1178,6 +1333,8 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		appSettings.setMaxBitrateAccept(newSettings.getMaxBitrateAccept());
 		appSettings.setMaxFpsAccept(newSettings.getMaxFpsAccept());
 		appSettings.setMaxResolutionAccept(newSettings.getMaxResolutionAccept());
+		
+		appSettings.setListenerHookURL(newSettings.getListenerHookURL());
 		
 		logger.warn("app settings updated for {}", getScope().getName());	
 	}
