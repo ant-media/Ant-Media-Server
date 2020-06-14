@@ -413,9 +413,8 @@ public class StatsCollectorTest {
 	
 	@Test
 	public void testMemInfo() {
-		SystemUtils.setLinuxMemoryFile("src/test/resources/meminfo");
 		
-		long osLinuxAvailableMemory = SystemUtils.osLinuxAvailableMemory();
+		long osLinuxAvailableMemory = SystemUtils.osAvailableMemory();
 		
 		assertEquals(11946299392L, osLinuxAvailableMemory);
 	}

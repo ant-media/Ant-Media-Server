@@ -483,8 +483,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 		jsonObject.addProperty(FREE_SWAP_SPACE, SystemUtils.osFreeSwapSpace());
 		jsonObject.addProperty(IN_USE_SWAP_SPACE, SystemUtils.osInUseSwapSpace());
 		
-		jsonObject.addProperty(AVAILABLE_MEMORY, SystemUtils.OS_TYPE == SystemUtils.LINUX ? 
-														SystemUtils.osLinuxAvailableMemory() : 0);
+		
+		jsonObject.addProperty(AVAILABLE_MEMORY, SystemUtils.osAvailableMemory());
 		
 		return jsonObject;
 	}
@@ -644,10 +644,9 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 	
 	@Override
 	public int getFreeRam() {
-		//return the allocatable free ram which means max memory - inuse memory
-		//inuse memory means total memory - free memory
-		if (SystemUtils.OS_TYPE == SystemUtils.LINUX) {
-			return (int)SystemUtils.convertByteSize(SystemUtils.osLinuxAvailableMemory(), "MB");
+		long availableMemory = SystemUtils.osAvailableMemory();
+		if (availableMemory != 0) {
+			return (int)SystemUtils.convertByteSize(availableMemory, "MB");
 		}
 		return -1;
 	}
@@ -760,7 +759,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 		hearbeatPeriodicTask = vertx.setPeriodic(periodMS, 
 				l -> {
 					if(logger != null) {
-						logger.info("-Heartbeat-> System cpu load: {} free memory: {} KB available memory: {} KB ", cpuLoad, SystemUtils.convertByteSize(SystemUtils.osFreePhysicalMemory(),"KB"), SystemUtils.OS_TYPE == SystemUtils.LINUX ? SystemUtils.convertByteSize(SystemUtils.osLinuxAvailableMemory(), "KB") : 0);
+						logger.info("-Heartbeat-> System cpu load: {} free memory: {} KB available memory: {} KB ", cpuLoad, SystemUtils.convertByteSize(SystemUtils.osFreePhysicalMemory(),"KB"), SystemUtils.convertByteSize(SystemUtils.osAvailableMemory(), "KB"));
 					}
 					else {
 						System.out.println("-Heartbeat-> System cpu load:" + cpuLoad + " Free memory: {} KB" + SystemUtils.convertByteSize(SystemUtils.osFreePhysicalMemory(),"KB"));
