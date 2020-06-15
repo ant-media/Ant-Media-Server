@@ -933,15 +933,37 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 	
 	public void waitUntilThreadsStop() {
-		logger.info("AntMediaApplicationAdapter.waitUntilThreadsStop()");
-		MetricsService metricsService = MetricsService.create(vertx);
-		JsonObject metrics = metricsService.getMetricsSnapshot("vertx.pools.worker.vert.x-worker-thread.queue-size");
-		
-		logger.info("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
-		logger.info("metrics:"+metrics);
-		logger.info("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+		int i = 0;
+		int waitPeriod = 1000;
+		int activeVertxThreadCount = 0;
+		while((activeVertxThreadCount = getActiveVertxThreadCount()) > 0) {
+			try {
+				if (i > 3) {
+					logger.warn("Waiting for active vertx threads count({}) decrease to zero for app: {}"
+							+ "total wait time: {}ms", activeVertxThreadCount, getScope().getName(), i*waitPeriod);
+				}
+				if (i>10) {
+					logger.error("*********************************************************************");
+					logger.error("Not all active vertx threads are stopped. It's even breaking the loop");
+					logger.error("*********************************************************************");
+					break;
+				}
+				i++;
+				Thread.sleep(waitPeriod);
+				
+			} catch (InterruptedException e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+				Thread.currentThread().interrupt();
+			}
+		}
 	}
 
+	private int getActiveVertxThreadCount() {
+		MetricsService metricsService = MetricsService.create(vertx);
+		String activeThreadKey = "vertx.pools.worker.vert.x-worker-thread.in-use";
+		JsonObject metrics = metricsService.getMetricsSnapshot(activeThreadKey);
+		return metrics.getJsonObject(activeThreadKey).getInteger("count");
+	}
 
 	@Override
 	public void serverShuttingdown() {
@@ -949,8 +971,8 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		closeStreamFetchers();
 		closeRTMPStreams();
 		
-		waitUntilThreadsStop();
 		waitUntilLiveStreamsStopped();
+		waitUntilThreadsStop();
 		
 		getDataStore().close();
 	}
