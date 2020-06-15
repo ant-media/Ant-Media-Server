@@ -711,7 +711,7 @@ public class AppFunctionalV2Test {
 		//src/test/resources/test.flv
 		
 		Process rtmpSendingProcess = execute(ffmpegPath
-				+ " -re -i https://www.radiantmediaplayer.com/media/bbb-360p.mp4  -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
+				+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
 				+ stream.getStreamId());
 		
 		//Wait for the m3u8 file is available
