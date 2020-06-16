@@ -60,7 +60,7 @@ public class StreamFetcher {
 	private static final int PACKET_RECEIVED_INTERVAL_TIMEOUT = 3000;
 	private IScope scope;
 	private AntMediaApplicationAdapter appInstance;
-	private long[] lastDTS;
+	private volatile long[] lastDTS;
 	private MuxAdaptor muxAdaptor = null;
 
 	/**
@@ -80,7 +80,7 @@ public class StreamFetcher {
 	 * Buffer time in milliseconds
 	 */
 	private int bufferTime = 0;
-
+	
 	private ConcurrentLinkedQueue<AVPacket> availableBufferQueue = new ConcurrentLinkedQueue<>();
 
 	private AppSettings appSettings;
@@ -292,7 +292,6 @@ public class StreamFetcher {
 								pkt.pts(pkt.dts());
 							}
 
-
 							/***************************************************
 							 *  Memory of being paranoid or failing while looking for excellence without understanding the whole picture
 							 *  
@@ -394,6 +393,7 @@ public class StreamFetcher {
 								break;
 							}
 						}
+						logger.info("Leaving the stream fetcher loop for stream: {}", stream.getStreamId());
 
 					}
 					else {
@@ -416,7 +416,6 @@ public class StreamFetcher {
 				logger.info("Removing packet writer job {}", packetWriterJobName);
 				vertx.cancelTimer(packetWriterJobName);
 			}
-
 			writeAllBufferedPackets();
 
 
@@ -491,53 +490,62 @@ public class StreamFetcher {
 
 		private void writeAllBufferedPackets() 
 		{
-			logger.info("write all buffered packets for stream: {}", stream.getStreamId());
-			while (!bufferQueue.isEmpty()) {
-
-				AVPacket pkt = bufferQueue.poll();
-				muxAdaptor.writePacket(inputFormatContext.streams(pkt.stream_index()), pkt);
-				av_packet_unref(pkt);
-			}
-
-			AVPacket pkt;
-			while ((pkt = bufferQueue.poll()) != null) {
-				pkt.close();
+			synchronized (this) {
+				//different threads may write writeBufferedPacket and this method at the same time
+				
+				logger.info("write all buffered packets for stream: {}", stream.getStreamId());
+				while (!bufferQueue.isEmpty()) {
+	
+					AVPacket pkt = bufferQueue.poll();
+					muxAdaptor.writePacket(inputFormatContext.streams(pkt.stream_index()), pkt);
+					av_packet_unref(pkt);
+				}
+	
+				AVPacket pkt;
+				while ((pkt = bufferQueue.poll()) != null) {
+					pkt.close();
+				}
+				
+				while ((pkt = availableBufferQueue.poll()) != null) {
+					pkt.close();
+				}
 			}
 			
-			while ((pkt = availableBufferQueue.poll()) != null) {
-				pkt.close();
-			}
 		}
 
 		//TODO: Code dumplication with MuxAdaptor.writeBufferedPacket. It should be refactored.
 		public void writeBufferedPacket() 
 		{
-			if (isJobRunning.compareAndSet(false, true)) 
-			{
-				if (!buffering) {
-					while(!bufferQueue.isEmpty()) {
-						AVPacket tempPacket = bufferQueue.peek(); 
-						long pktTime = av_rescale_q(tempPacket.pts(), inputFormatContext.streams(tempPacket.stream_index()).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
-						long now = System.currentTimeMillis();
-						long pktTimeDifferenceMs = pktTime - firstPacketReadyToSentTimeMs; 
-						long passedTime = now - bufferingFinishTimeMs;
-						if (pktTimeDifferenceMs < passedTime) {
-							muxAdaptor.writePacket(inputFormatContext.streams(tempPacket.stream_index()), tempPacket);
-							av_packet_unref(tempPacket);
-							bufferQueue.remove(); //remove the packet from the queue
-							availableBufferQueue.offer(tempPacket);
-						}
-						else {
-							//break the loop and don't block the thread because it's not correct time to send the packet
-							break;
+			synchronized (this) {
+			
+				if (isJobRunning.compareAndSet(false, true)) 
+				{
+					if (!buffering) {
+						while(!bufferQueue.isEmpty()) {
+							AVPacket tempPacket = bufferQueue.peek(); 
+							long pktTime = av_rescale_q(tempPacket.pts(), inputFormatContext.streams(tempPacket.stream_index()).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
+							long now = System.currentTimeMillis();
+							long pktTimeDifferenceMs = pktTime - firstPacketReadyToSentTimeMs; 
+							long passedTime = now - bufferingFinishTimeMs;
+							if (pktTimeDifferenceMs < passedTime) {
+								muxAdaptor.writePacket(inputFormatContext.streams(tempPacket.stream_index()), tempPacket);
+								av_packet_unref(tempPacket);
+								bufferQueue.remove(); //remove the packet from the queue
+								availableBufferQueue.offer(tempPacket);
+							}
+							else {
+								//break the loop and don't block the thread because it's not correct time to send the packet
+								break;
+							}
+							
 						}
 						
+						//update buffering. If bufferQueue is empty, it should start buffering
+						buffering = bufferQueue.isEmpty();
 					}
-					
-					//update buffering. If bufferQueue is empty, it should start buffering
-					buffering = bufferQueue.isEmpty();
+					isJobRunning.compareAndSet(true, false);
 				}
-				isJobRunning.compareAndSet(true, false);
+			
 			}
 		}
 	}
