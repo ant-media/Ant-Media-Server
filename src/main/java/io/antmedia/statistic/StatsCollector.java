@@ -764,10 +764,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 					else {
 						System.out.println("-Heartbeat-> System cpu load:" + cpuLoad + " Free memory: {} KB" + SystemUtils.convertByteSize(SystemUtils.osFreePhysicalMemory(),"KB"));
 					}
-					
-					//try garbage collector to ease phantom(native) references remove
-					System.gc();
-					
+										
 					getGoogleAnalytic(implementationVersion, type).event()
 					.eventCategory("server_status")
 					.eventAction("heartbeat")

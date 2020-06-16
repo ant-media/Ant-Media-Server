@@ -60,7 +60,7 @@ public class StreamFetcher {
 	private static final int PACKET_RECEIVED_INTERVAL_TIMEOUT = 3000;
 	private IScope scope;
 	private AntMediaApplicationAdapter appInstance;
-	private volatile long[] lastDTS;
+	private long[] lastDTS;
 	private MuxAdaptor muxAdaptor = null;
 
 	/**
