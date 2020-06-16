@@ -7,36 +7,35 @@ assignees: ''
 
 ---
 
-***Attention:*** *For your support questions, ask at [stackoverflow](https://stackoverflow.com/questions/tagged/ant-media-server) or [our community forum](https://groups.google.com/forum/#!forum/ant-media-server).*
 
-***PLEASE FILL THE FOLLOWINGS AS MUCH AS POSSIBLE FOR FASTER SOLUTION***
+### Short description
+__Brief description of what happened__
 
-**Describe the bug**
-A clear and concise description of what the bug is.
 
-**To Reproduce**
-Steps to reproduce the behavior:
-1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
-4. See error
+### Environment
 
-**Expected behavior**
-A clear and concise description of what you expected to happen.
+* Operating system and version:
+* Java version: 
+* Ant Media Server version:
+* Browser name and version:
 
-**Screenshots**
-If applicable, add screenshots to help explain your problem.
+### Steps to reproduce
+1. 
+2. 
+3.
 
-**Desktop (please complete the following information):**
- - OS: [e.g. iOS]
- - Browser [e.g. chrome, safari]
- - Version [e.g. 22]
+### Expected behavior
+__Put as much detail here as possible__
 
-**Smartphone (please complete the following information):**
- - Device: [e.g. iPhone6]
- - OS: [e.g. iOS8.1]
- - Browser [e.g. stock browser, safari]
- - Version [e.g. 22]
+### Actual behavior
+__Put as much detail here as possible__
 
-**Additional context**
-Add any other context about the problem here such as server logs, etc...
+ 
+
+
+### Logs
+__Place logs on [pastebin](http://pastebin.com/) or elsewhere and put links here__
+
+Join [Google Group](https://groups.google.com/forum/#!forum/ant-media-server) and be a part of Ant Media Server Community.
+
+
