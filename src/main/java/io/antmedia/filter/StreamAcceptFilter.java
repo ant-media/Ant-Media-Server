@@ -1,7 +1,5 @@
 package io.antmedia.filter;
 
-import java.time.Instant;
-
 import org.bytedeco.javacpp.avcodec.AVPacket;
 import org.bytedeco.javacpp.avformat.AVFormatContext;
 import org.slf4j.Logger;
@@ -10,45 +8,19 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 
 import io.antmedia.AppSettings;
-import io.antmedia.datastore.db.DataStore;
-import io.antmedia.datastore.db.DataStoreFactory;
-import io.antmedia.datastore.db.IDataStoreFactory;
-import io.antmedia.datastore.db.types.Broadcast;
 
 public class StreamAcceptFilter implements ApplicationContextAware{
 
 	private AppSettings appSettings;
-	private DataStore dataStore;
-	private ApplicationContext applicationContext;
-	private DataStoreFactory dataStoreFactory;
 
 	protected static Logger logger = LoggerFactory.getLogger(StreamAcceptFilter.class);
 	
-	public boolean isValidStreamParameters(AVFormatContext inputFormatContext,AVPacket pkt, String streamId) 
+	public boolean isValidStreamParameters(AVFormatContext inputFormatContext,AVPacket pkt) 
 	{
-		Broadcast broadcast = getDataStore().get(streamId);
-		
-		return  checkStreamDate(broadcast) &&
-				checkFPSAccept(getStreamFps(inputFormatContext, pkt)) && 
+		return  checkFPSAccept(getStreamFps(inputFormatContext, pkt)) && 
 				checkResolutionAccept(getStreamResolution(inputFormatContext, pkt)) &&
 				checkBitrateAccept(getStreamBitrate(inputFormatContext, pkt));
 	}
-	
-	public boolean checkStreamDate(Broadcast broadcast) 
-	{
-		// if there is a broadcast previously added to db before
-		// check that its date parameters
-		if (broadcast != null && broadcast.getPlannedStartDate() != null && broadcast.getPlannedEndDate() != null)
-		{
-			long now = Instant.now().getEpochSecond();
-			// check that its date parameters (unix timestamp)
-			if (now < broadcast.getPlannedStartDate() || now > broadcast.getPlannedEndDate()) {
-				logger.error("Stream Planned Date Parameters are unacceptable. Stream Start Date({}) & Stream Start Date({})", broadcast.getPlannedStartDate(), broadcast.getPlannedEndDate());
-				return false;
-				}
-			}
-		return true;
-		}
 
 	public boolean checkFPSAccept(int streamFPSValue) 
 	{
@@ -132,17 +104,6 @@ public class StreamAcceptFilter implements ApplicationContextAware{
 			return appSettings.getMaxBitrateAccept();
 		}
 		return 0;
-	}
-	
-	public DataStore getDataStore() {
-		if(dataStore == null) {
-			dataStore = ((DataStoreFactory) applicationContext.getBean(IDataStoreFactory.BEAN_NAME)).getDataStore();
-		}
-		return dataStore;
-	}
-	
-	public DataStoreFactory getDataStoreFactory() {
-		return dataStoreFactory;
 	}
 	
 }

@@ -95,7 +95,6 @@ public class AcceptStreamFilterTest extends AbstractJUnit4SpringContextTests {
 		Mockito.when(dsf.getDataStore()).thenReturn(dataStore);
 		spyAdapter.setDataStoreFactory(dsf);
 		
-		Mockito.doReturn(dataStore).when(acceptStreamFilterSpy).getDataStore();
 		Mockito.doReturn(appSettings).when(acceptStreamFilterSpy).getAppSettings();
 		
 		assertEquals(0,acceptStreamFilterSpy.getMaxFps());
@@ -106,7 +105,7 @@ public class AcceptStreamFilterTest extends AbstractJUnit4SpringContextTests {
 		Mockito.doReturn(1080).when(acceptStreamFilterSpy).getStreamResolution(Mockito.any(),Mockito.any());
 		Mockito.doReturn(2000000l).when(acceptStreamFilterSpy).getStreamBitrate(Mockito.any(),Mockito.any());
 		
-		assertEquals(true,acceptStreamFilterSpy.isValidStreamParameters(inputFormatContext,pkt,streamId));
+		assertEquals(true,acceptStreamFilterSpy.isValidStreamParameters(inputFormatContext,pkt));
 		
 		// Default Scenario
 		
@@ -118,7 +117,7 @@ public class AcceptStreamFilterTest extends AbstractJUnit4SpringContextTests {
 		Mockito.doReturn(720).when(acceptStreamFilterSpy).getStreamResolution(Mockito.any(),Mockito.any());
 		Mockito.doReturn(1000000l).when(acceptStreamFilterSpy).getStreamBitrate(Mockito.any(),Mockito.any());
 		
-		assertEquals(true,acceptStreamFilterSpy.isValidStreamParameters(inputFormatContext,pkt,streamId));		
+		assertEquals(true,acceptStreamFilterSpy.isValidStreamParameters(inputFormatContext,pkt));		
 		
 		// Stream FPS > Max FPS Scenario
 		
@@ -131,7 +130,7 @@ public class AcceptStreamFilterTest extends AbstractJUnit4SpringContextTests {
 		Mockito.doReturn(720).when(acceptStreamFilterSpy).getStreamResolution(Mockito.any(),Mockito.any());
 		Mockito.doReturn(1000000l).when(acceptStreamFilterSpy).getStreamBitrate(Mockito.any(),Mockito.any());
 		
-		assertEquals(false,acceptStreamFilterSpy.isValidStreamParameters(inputFormatContext,pkt,streamId));		
+		assertEquals(false,acceptStreamFilterSpy.isValidStreamParameters(inputFormatContext,pkt));		
 		
 		// Stream Resolution > Max Resolution Scenario
 		Mockito.doReturn(100).when(acceptStreamFilterSpy).getMaxFps();
@@ -143,7 +142,7 @@ public class AcceptStreamFilterTest extends AbstractJUnit4SpringContextTests {
 		Mockito.doReturn(720).when(acceptStreamFilterSpy).getStreamResolution(Mockito.any(),Mockito.any());
 		Mockito.doReturn(1000000l).when(acceptStreamFilterSpy).getStreamBitrate(Mockito.any(),Mockito.any());
 		
-		assertEquals(false,acceptStreamFilterSpy.isValidStreamParameters(inputFormatContext,pkt,streamId));	
+		assertEquals(false,acceptStreamFilterSpy.isValidStreamParameters(inputFormatContext,pkt));	
 		
 		// Stream Bitrate > Max Bitrate Scenario
 		Mockito.doReturn(100).when(acceptStreamFilterSpy).getMaxFps();
@@ -155,7 +154,7 @@ public class AcceptStreamFilterTest extends AbstractJUnit4SpringContextTests {
 		Mockito.doReturn(720).when(acceptStreamFilterSpy).getStreamResolution(Mockito.any(),Mockito.any());
 		Mockito.doReturn(5000000l).when(acceptStreamFilterSpy).getStreamBitrate(Mockito.any(),Mockito.any());
 		
-		assertEquals(false,acceptStreamFilterSpy.isValidStreamParameters(inputFormatContext,pkt,streamId));	
+		assertEquals(false,acceptStreamFilterSpy.isValidStreamParameters(inputFormatContext,pkt));	
 		
 		// Stream Bitrate > Max Bitrate Scenario && getMaxResolutionAccept = null
 		Mockito.doReturn(100).when(acceptStreamFilterSpy).getMaxFps();
@@ -167,7 +166,7 @@ public class AcceptStreamFilterTest extends AbstractJUnit4SpringContextTests {
 		Mockito.doReturn(720).when(acceptStreamFilterSpy).getStreamResolution(Mockito.any(),Mockito.any());
 		Mockito.doReturn(5000000l).when(acceptStreamFilterSpy).getStreamBitrate(Mockito.any(),Mockito.any());
 		
-		assertEquals(false,acceptStreamFilterSpy.isValidStreamParameters(inputFormatContext,pkt,streamId));	
+		assertEquals(false,acceptStreamFilterSpy.isValidStreamParameters(inputFormatContext,pkt));	
 		
 		// Normal Scenario & getMaxBitrateAccept = null
 		Mockito.doReturn(100).when(acceptStreamFilterSpy).getMaxFps();
@@ -179,7 +178,7 @@ public class AcceptStreamFilterTest extends AbstractJUnit4SpringContextTests {
 		Mockito.doReturn(720).when(acceptStreamFilterSpy).getStreamResolution(Mockito.any(),Mockito.any());
 		Mockito.doReturn(5000000l).when(acceptStreamFilterSpy).getStreamBitrate(Mockito.any(),Mockito.any());
 		
-		assertEquals(true,acceptStreamFilterSpy.isValidStreamParameters(inputFormatContext,pkt,streamId));	
+		assertEquals(true,acceptStreamFilterSpy.isValidStreamParameters(inputFormatContext,pkt));	
 		
 		// Normal Scenario & getMaxFpsAccept = null & getMaxBitrateAccept = null
 		Mockito.doReturn(0).when(acceptStreamFilterSpy).getMaxFps();
@@ -191,7 +190,7 @@ public class AcceptStreamFilterTest extends AbstractJUnit4SpringContextTests {
 		Mockito.doReturn(720).when(acceptStreamFilterSpy).getStreamResolution(Mockito.any(),Mockito.any());
 		Mockito.doReturn(5000000l).when(acceptStreamFilterSpy).getStreamBitrate(Mockito.any(),Mockito.any());
 
-		assertEquals(true,acceptStreamFilterSpy.isValidStreamParameters(inputFormatContext,pkt,streamId));	
+		assertEquals(true,acceptStreamFilterSpy.isValidStreamParameters(inputFormatContext,pkt));	
 		
 		// For the Stream Planned Start / End Data Parameters Scenarios
 		// Normal Scenario Stream Parameters which are getMaxFpsAccept = null & getMaxResolution = null & getMaxBitrateAccept = null 
@@ -199,63 +198,6 @@ public class AcceptStreamFilterTest extends AbstractJUnit4SpringContextTests {
 		Mockito.doReturn(0).when(acceptStreamFilterSpy).getMaxResolution();
 		Mockito.doReturn(0).when(acceptStreamFilterSpy).getMaxBitrate();
 		
-		Broadcast broadcast = new Broadcast();
-		
-		try {
-			broadcast.setStreamId(streamId);
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-		dataStore.save(broadcast);
-		
-		// Scenario-1
-		// Broadcasts getPlannedStartDate = null & getPlannedEndDate = null
-		assertEquals(true,acceptStreamFilterSpy.isValidStreamParameters(inputFormatContext,pkt,streamId));	
-		
-		// Scenario-2
-		// Broadcast getPlannedStartDate > now & getPlannedEndDate > now
-		broadcast.setPlannedStartDate(9999999999l);
-		broadcast.setPlannedEndDate(9999999999l);
-		
-		assertEquals(false,acceptStreamFilterSpy.isValidStreamParameters(inputFormatContext,pkt,streamId));	
-		
-		// Scenario-3
-		// Broadcast getPlannedStartDate < now & getPlannedEndDate > now
-		broadcast.setPlannedStartDate(99l);
-		broadcast.setPlannedEndDate(9999999999l);
-		
-		assertEquals(true,acceptStreamFilterSpy.isValidStreamParameters(inputFormatContext,pkt,streamId));	
-		
-		// Scenario-4
-		// Broadcast getPlannedStartDate > now & getPlannedEndDate < now
-		broadcast.setPlannedStartDate(9999999999l);
-		broadcast.setPlannedEndDate(99l);
-		
-		assertEquals(false,acceptStreamFilterSpy.isValidStreamParameters(inputFormatContext,pkt,streamId));	
-		
-		// Scenario-5
-		// Broadcast getPlannedStartDate < now & getPlannedEndDate < now
-		broadcast.setPlannedStartDate(99l);
-		broadcast.setPlannedEndDate(99l);
-		
-		assertEquals(false,acceptStreamFilterSpy.isValidStreamParameters(inputFormatContext,pkt,streamId));	
-		
-		// Scenario-6
-		// Broadcast getPlannedStartDate = null & getPlannedEndDate < now
-		broadcast.setPlannedStartDate(null);
-		broadcast.setPlannedEndDate(99l);
-		
-		assertEquals(true,acceptStreamFilterSpy.isValidStreamParameters(inputFormatContext,pkt,streamId));	
-		
-		// Scenario-7
-		// Broadcast getPlannedStartDate > now & getPlannedEndDate = null
-		broadcast.setPlannedStartDate(9999999999l);
-		broadcast.setPlannedEndDate(null);
-		
-		assertEquals(true,acceptStreamFilterSpy.isValidStreamParameters(inputFormatContext,pkt,streamId));
-
 	}
 	
 	public AppSettings getAppSettings() {
