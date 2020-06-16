@@ -23,6 +23,7 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.awaitility.Awaitility;
+import org.bytedeco.javacpp.avutil.AVRational;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
@@ -414,9 +415,8 @@ public class StatsCollectorTest {
 	@Test
 	public void testMemInfo() {
 		
-		long osLinuxAvailableMemory = SystemUtils.osAvailableMemory();
-		
-		assertEquals(11946299392L, osLinuxAvailableMemory);
+		AVRational rational = new AVRational();
+		assertTrue( 0 != SystemUtils.osAvailableMemory());
 	}
 	
 }
