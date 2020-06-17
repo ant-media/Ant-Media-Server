@@ -41,6 +41,8 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 	Map<String, Map<String, Long>> streamsViewerMap = new ConcurrentHashMap<>();
 
 	Map<String, Integer> increaseCounterMap = new ConcurrentHashMap<>();
+	
+	private Object lock = new Object();
 
 	/**
 	 * Time out value in milliseconds, it is regarded as user is not watching stream 
@@ -49,28 +51,39 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 	private int timeoutMS = 20000;
 
 	@Override
-	public synchronized void registerNewViewer(String streamId, String sessionId) 
+	public void registerNewViewer(String streamId, String sessionId) 
 	{
-		int streamIncrementCounter = 0;
-		Map<String, Long> viewerMap = streamsViewerMap.get(streamId);
-		if (viewerMap == null) {
-			viewerMap = new ConcurrentHashMap<>();
-		}
-		if (!viewerMap.containsKey(sessionId)) {
-			if( increaseCounterMap.get(streamId) != null) {
-				streamIncrementCounter = increaseCounterMap.get(streamId);
+		//do not block the thread, run in vertx event queue 
+		vertx.runOnContext((h) -> {
+			
+			synchronized (lock) {
+				//synchronize with database update calculations, because some odd cases may happen
+				
+				Map<String, Long> viewerMap = streamsViewerMap.get(streamId);
+				if (viewerMap == null) {
+					viewerMap = new ConcurrentHashMap<>();
+				}
+				if (!viewerMap.containsKey(sessionId)) 
+				{
+					int streamIncrementCounter = getIncreaseCounterMap(streamId);
+					streamIncrementCounter++;
+					increaseCounterMap.put(streamId, streamIncrementCounter);
+					logger.info("delete this log after fix: hls new viewer increment count {} for stream {}", streamIncrementCounter, streamId);
+					
+				}
+				logger.info("delete this log after fix: Updating the sessionId timestamp for session: {}", sessionId);
+				viewerMap.put(sessionId, System.currentTimeMillis());
+				streamsViewerMap.put(streamId, viewerMap);	
+				logger.info("delete this log after fix: Updated the sessionId timestamp for session: {}", sessionId);
 			}
-			streamIncrementCounter++;
-			increaseCounterMap.put(streamId, streamIncrementCounter);
-		}
-		viewerMap.put(sessionId, System.currentTimeMillis());
-		streamsViewerMap.put(streamId, viewerMap);	
+			
+		});
+		
 	}
 	
 	public int getIncreaseCounterMap(String streamId) 
 	{
 		Integer increaseCounter = increaseCounterMap.get(streamId);
-		
 		return increaseCounter != null ? increaseCounter : 0;
 	}
 
@@ -107,63 +120,67 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 		
 		vertx.setPeriodic(DEFAULT_TIME_PERIOD_FOR_VIEWER_COUNT, yt-> 
 		{
-			Iterator<Entry<String, Map<String, Long>>> streamIterator = streamsViewerMap.entrySet().iterator();
-			
-			Iterator<Entry<String, Long>> viewerIterator;
-			Entry<String, Map<String, Long>> streamViewerEntry;
-			Map<String, Long> viewerMapEntry;
-			
-			long now = System.currentTimeMillis();
-			
-			while (streamIterator.hasNext()) 
-			{
-				streamViewerEntry = streamIterator.next();
+			synchronized (lock) {
 				
-				String streamId = streamViewerEntry.getKey();
-				Broadcast broadcast = getDataStore().get(streamId);
+				Iterator<Entry<String, Map<String, Long>>> streamIterator = streamsViewerMap.entrySet().iterator();
 				
-				boolean isBroadcasting = false;
+				Iterator<Entry<String, Long>> viewerIterator;
+				Entry<String, Map<String, Long>> streamViewerEntry;
+				Map<String, Long> viewerMapEntry;
 				
-				// Check if it's deleted.
-				// This case for the deleted streams(zombi streams)
-				if(broadcast != null) {
+				long now = System.currentTimeMillis();
 				
-					int numberOfDecrement = 0;
+				while (streamIterator.hasNext()) 
+				{
+					streamViewerEntry = streamIterator.next();
 					
-					viewerMapEntry = streamViewerEntry.getValue();
-					viewerIterator = viewerMapEntry.entrySet().iterator();
-				
-					while (viewerIterator.hasNext()) 
-					{
-						Entry<String, Long> viewer = viewerIterator.next();
-
-						if (viewer.getValue() < (now - getTimeoutMS())) 
+					String streamId = streamViewerEntry.getKey();
+					Broadcast broadcast = getDataStore().get(streamId);
+					
+					boolean isBroadcasting = false;
+					
+					// Check if it's deleted.
+					// This case for the deleted streams(zombi streams)
+					if(broadcast != null) {
+					
+						int numberOfDecrement = 0;
+						
+						viewerMapEntry = streamViewerEntry.getValue();
+						viewerIterator = viewerMapEntry.entrySet().iterator();
+					
+						while (viewerIterator.hasNext()) 
 						{
-							// regard it as not a viewer
-							viewerIterator.remove();
-							numberOfDecrement++;
+							Entry<String, Long> viewer = viewerIterator.next();
+	
+							if (viewer.getValue() < (now - getTimeoutMS())) 
+							{
+								// regard it as not a viewer
+								viewerIterator.remove();
+								numberOfDecrement++;
+							}
+						}
+						
+						if(broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
+							isBroadcasting = true;
+						}
+					
+						numberOfDecrement = -1 * numberOfDecrement;
+	
+						int numberOfIncrement = getIncreaseCounterMap(streamId);
+						if((numberOfIncrement != 0 || numberOfDecrement != 0) && isBroadcasting) {
+							
+							int hlsDiffCount = numberOfIncrement + numberOfDecrement;
+	
+							logger.info("Update HLS viewer in stream ID:{} increment count:{} decrement count:{} diff:{}", streamId, numberOfIncrement, numberOfDecrement, hlsDiffCount);
+	
+							getDataStore().updateHLSViewerCount(streamViewerEntry.getKey(), hlsDiffCount);
+							increaseCounterMap.put(streamId, 0);
 						}
 					}
-					
-					if(broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
-						isBroadcasting = true;
+					if (!isBroadcasting) {
+						streamIterator.remove();
+						increaseCounterMap.remove(streamId);
 					}
-				
-					numberOfDecrement = -1 * numberOfDecrement;
-
-					if((increaseCounterMap.get(streamId) != 0 || numberOfDecrement != 0) && isBroadcasting) {
-						logger.info("Update HLS viewer in stream ID: {}", streamId);
-
-						int numberOfIncrement = increaseCounterMap.get(streamId);
-						int hlsDiffCount = numberOfIncrement + numberOfDecrement;
-
-						getDataStore().updateHLSViewerCount(streamViewerEntry.getKey(), hlsDiffCount);
-						increaseCounterMap.put(streamId, 0);
-					}
-				}
-				if (!isBroadcasting) {
-					streamIterator.remove();
-					increaseCounterMap.put(streamId, 0);
 				}
 			}
 		});	

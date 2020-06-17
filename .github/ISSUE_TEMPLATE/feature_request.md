@@ -7,8 +7,6 @@ assignees: ''
 
 ---
 
-***Attention:*** *For your support questions, ask at [stackoverflow](https://stackoverflow.com/questions/tagged/ant-media-server) or [our community forum](https://groups.google.com/forum/#!forum/ant-media-server).*
-
 **Is your feature request related to a problem? Please describe.**
 A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
 

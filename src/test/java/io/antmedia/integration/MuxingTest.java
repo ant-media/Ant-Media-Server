@@ -147,8 +147,8 @@ public class MuxingTest {
 
 
 		} catch (Exception e) {
-			fail(e.getMessage());
 			e.printStackTrace();
+			fail(e.getMessage());
 		}
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
 			RestServiceV2Test restService = new RestServiceV2Test();
@@ -385,8 +385,11 @@ public class MuxingTest {
 		 endpoint.setRtmpUrl(dynamicRtmpURL);
 		 
 		 try {
-			Result result = RestServiceV2Test.addEndpointV2(streamId, endpoint);
-			assertTrue(result.isSuccess());
+			 Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+				 //if stream is being prepared, it may return false, so try again 
+				 Result result = RestServiceV2Test.addEndpointV2(streamId, endpoint);
+				 return result.isSuccess();
+			 });
 			
 			
 			 Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
@@ -400,7 +403,7 @@ public class MuxingTest {
 			 
 			 Broadcast broadcast = RestServiceV2Test.callGetBroadcast(streamId);
 			 
-			 result = RestServiceV2Test.removeEndpointV2(streamId, broadcast.getEndPointList().get(0).getEndpointServiceId());
+			 Result result = RestServiceV2Test.removeEndpointV2(streamId, broadcast.getEndPointList().get(0).getEndpointServiceId());
 			 assertTrue(result.isSuccess());
 			 
 			 Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
