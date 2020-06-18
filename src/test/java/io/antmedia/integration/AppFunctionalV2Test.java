@@ -14,6 +14,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.ProtocolException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -630,7 +632,7 @@ public class AppFunctionalV2Test {
 
 			assertTrue(MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" +streamId+ ".m3u8" ));
 
-			Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				return restService.callGetBroadcast(streamId).getHlsViewerCount() == 1;
 			});
 
@@ -695,7 +697,94 @@ public class AppFunctionalV2Test {
 		});
 
 	}
+	
+	@Test
+	public void testHLSStatistics() {
+		
+		RestServiceV2Test restService = new RestServiceV2Test();
+		
+		Random r = new Random();
+		String streamId = "streamId" + r.nextInt();
+		
+		Broadcast stream=restService.createBroadcast(streamId);
+		
+		//src/test/resources/test.flv
+		
+		Process rtmpSendingProcess = execute(ffmpegPath
+				+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
+				+ stream.getStreamId());
+		
+		//Wait for the m3u8 file is available
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
+			return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" +stream.getStreamId()+ ".m3u8" );
+		});	
+		
+		Process hlsPlayProcess = execute("ffmpeg -re -i http://"+SERVER_ADDR+":5080/LiveApp/streams/"+stream.getStreamId()+".m3u8 -codec copy -f null /dev/null");
+		
+		Process hlsPlayProcess2 = execute("ffmpeg -re -i http://"+SERVER_ADDR+":5080/LiveApp/streams/"+stream.getStreamId()+".m3u8 -codec copy -f null /dev/null");
+		
+		Process hlsPlayProcess3 = execute("ffmpeg -re -i http://"+SERVER_ADDR+":5080/LiveApp/streams/"+stream.getStreamId()+".m3u8 -codec copy -f null /dev/null");
+		
+		Process hlsPlayProcess4 = execute("ffmpeg -re -i http://"+SERVER_ADDR+":5080/LiveApp/streams/"+stream.getStreamId()+".m3u8 -codec copy -f null /dev/null");
+		
+		Process hlsPlayProcess5 = execute("ffmpeg -re -i http://"+SERVER_ADDR+":5080/LiveApp/streams/"+stream.getStreamId()+".m3u8 -codec copy -f null /dev/null");
+		
+		Process hlsPlayProcess6 = execute("ffmpeg -re -i http://"+SERVER_ADDR+":5080/LiveApp/streams/"+stream.getStreamId()+".m3u8 -codec copy -f null /dev/null");
+		
+		Process hlsPlayProcess7 = execute("ffmpeg -re -i http://"+SERVER_ADDR+":5080/LiveApp/streams/"+stream.getStreamId()+".m3u8 -codec copy -f null /dev/null");
+		
+		Process hlsPlayProcess8 = execute("ffmpeg -re -i http://"+SERVER_ADDR+":5080/LiveApp/streams/"+stream.getStreamId()+".m3u8 -codec copy -f null /dev/null");
+		
+		Process hlsPlayProcess9 = execute("ffmpeg -re -i http://"+SERVER_ADDR+":5080/LiveApp/streams/"+stream.getStreamId()+".m3u8 -codec copy -f null /dev/null");
+		
+		Process hlsPlayProcess10 = execute("ffmpeg -re -i http://"+SERVER_ADDR+":5080/LiveApp/streams/"+stream.getStreamId()+".m3u8 -codec copy -f null /dev/null");
+		
+		//Check Stream list size and Streams status		
+		Awaitility.await().atMost(30, TimeUnit.SECONDS).until(() -> {
+			return restService.callGetBroadcast(stream.getStreamId()).getHlsViewerCount() == 10 ;
+		});
+		
+		hlsPlayProcess10.destroy();
+		
+		//Check Stream list size and Streams status		
+		Awaitility.await().atMost(30, TimeUnit.SECONDS).until(() -> {
+			return restService.callGetBroadcast(stream.getStreamId()).getHlsViewerCount() == 9 ;
+		});
+		
+		
+		hlsPlayProcess9.destroy();
+		hlsPlayProcess8.destroy();
+		
+		//Check Stream list size and Streams status		
+		Awaitility.await().atMost(30, TimeUnit.SECONDS).until(() -> {
+			return restService.callGetBroadcast(stream.getStreamId()).getHlsViewerCount() == 7 ;
+		});
+		
+		hlsPlayProcess7.destroy();
+		hlsPlayProcess6.destroy();
+		hlsPlayProcess5.destroy();
+		hlsPlayProcess4.destroy();
+		
+		//Check Stream list size and Streams status		
+		Awaitility.await().atMost(30, TimeUnit.SECONDS).until(() -> {
+			return restService.callGetBroadcast(stream.getStreamId()).getHlsViewerCount() == 3 ;
+		});
 
+		
+		rtmpSendingProcess.destroy();
+		
+		//Check Stream list size and Streams status		
+		Awaitility.await().atMost(30, TimeUnit.SECONDS).until(() -> {
+			return restService.callGetBroadcast(stream.getStreamId()).getHlsViewerCount() == 0 ;
+		});
+		
+		hlsPlayProcess3.destroy();
+		hlsPlayProcess2.destroy();
+		hlsPlayProcess.destroy();
+
+	}
+	
+	
 	/**
 	 * TODO: This test case should be improved
 	 */

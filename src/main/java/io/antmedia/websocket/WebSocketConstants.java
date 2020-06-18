@@ -147,6 +147,13 @@ public class WebSocketConstants {
 	public static final String ROOM_TIME_INVALID = "room_not_active_or_expired";
 	
 	
+	/**
+	 * This is sent back to the user when stream plannedStartDate and plannedEndDate 
+	 * values are in interval or not.
+	 */
+	public static final String STREAM_TIME_INVALID = "stream_not_active_or_expired";
+	
+	
 	public static final String UNAUTHORIZED = "unauthorized_access";
 	
 	/**
@@ -202,6 +209,11 @@ public class WebSocketConstants {
 	 * Field to specify the stream audio bitrate
 	 */
 	public static final String AUDIO_BITRATE = "audioBitrate";
+	
+	/**
+	 * Field to specify the measured bitrate for a WebRTCClient
+	 */
+	public static final String TARGET_BITRATE = "targetBitrate";
 	
 	/**
 	 * Field to specify the stream video codec
@@ -319,5 +331,10 @@ public class WebSocketConstants {
 	 * This command used to send subtracks for a stream id
 	 */
 	public static final String  TRACK_LIST = "trackList";
+
+	/**
+	 * Notification to send measured bitrate
+	 */
+	public static final String BITRATE_MEASUREMENT = "bitrateMeasurement";
 
 }

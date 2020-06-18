@@ -149,11 +149,13 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		appScope = null;
 		app = null;
 
+		/*
 		try {
 			AppFunctionalV2Test.delete(new File("webapps"));
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		*/
 	}
 
 	
@@ -580,11 +582,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			//wait for packaging files
 			fetcher.stopStream();
 
-			try {
-				Thread.sleep(8000);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
+			Awaitility.await().atMost(15,  TimeUnit.SECONDS).until(() -> !fetcher.isThreadActive());
 			assertFalse(fetcher.isThreadActive());
 
 			logger.info("before test m3u8 file");

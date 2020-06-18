@@ -17,7 +17,6 @@ public class StreamAcceptFilter implements ApplicationContextAware{
 	
 	public boolean isValidStreamParameters(AVFormatContext inputFormatContext,AVPacket pkt) 
 	{
-		// Check FPS value
 		return  checkFPSAccept(getStreamFps(inputFormatContext, pkt)) && 
 				checkResolutionAccept(getStreamResolution(inputFormatContext, pkt)) &&
 				checkBitrateAccept(getStreamBitrate(inputFormatContext, pkt));
@@ -106,4 +105,5 @@ public class StreamAcceptFilter implements ApplicationContextAware{
 		}
 		return 0;
 	}
+	
 }

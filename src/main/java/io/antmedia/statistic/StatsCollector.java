@@ -483,8 +483,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 		jsonObject.addProperty(FREE_SWAP_SPACE, SystemUtils.osFreeSwapSpace());
 		jsonObject.addProperty(IN_USE_SWAP_SPACE, SystemUtils.osInUseSwapSpace());
 		
-		jsonObject.addProperty(AVAILABLE_MEMORY, SystemUtils.OS_TYPE == SystemUtils.LINUX ? 
-														SystemUtils.osLinuxAvailableMemory() : 0);
+		
+		jsonObject.addProperty(AVAILABLE_MEMORY, SystemUtils.osAvailableMemory());
 		
 		return jsonObject;
 	}
@@ -623,17 +623,12 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 		boolean enoughResource = false;
 		
 		if(getCpuLoad() < getCpuLimit()) 
-		{			
-			if (getFreeRam() > getMinFreeRamSize()) 
+		{		
+			int freeRam = getFreeRam();
+			if (freeRam > getMinFreeRamSize() || freeRam == -1)  
 			{
-				long freeMemoryMB = SystemUtils.convertByteSize(SystemUtils.osFreePhysicalMemory(),"MB") ;
-				if (freeMemoryMB > getMinFreeRamSize())
-				{
-					enoughResource = true;
-				}
-				else {
-					logger.error("Not enough resource. There is no enough free memory. Current free memory ({}) < min free memory({}) ", freeMemoryMB, getMinFreeRamSize());
-				}
+				//if it does not calculate the free ram, return true
+				enoughResource = true;		
 			}
 			else {
 				logger.error("Not enough resource. Due to not free RAM. Free RAM should be more than  {} but it is: {}", minFreeRamSize, getFreeRam());
@@ -649,10 +644,11 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 	
 	@Override
 	public int getFreeRam() {
-		//return the allocatable free ram which means max memory - inuse memory
-		//inuse memory means total memory - free memory
-		long inuseMemory = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-		return (int)SystemUtils.convertByteSize(Runtime.getRuntime().maxMemory() - inuseMemory, "MB");
+		long availableMemory = SystemUtils.osAvailableMemory();
+		if (availableMemory != 0) {
+			return (int)SystemUtils.convertByteSize(availableMemory, "MB");
+		}
+		return -1;
 	}
 
 	@Override
@@ -763,17 +759,20 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 		hearbeatPeriodicTask = vertx.setPeriodic(periodMS, 
 				l -> {
 					if(logger != null) {
-						logger.info("-Heartbeat-> System cpu load: {} free memory: {} KB available memory: {} KB ", cpuLoad, SystemUtils.convertByteSize(SystemUtils.osFreePhysicalMemory(),"KB"), SystemUtils.OS_TYPE == SystemUtils.LINUX ? SystemUtils.convertByteSize(SystemUtils.osLinuxAvailableMemory(), "KB") : 0);
+						logger.info("-Heartbeat-> System cpu load: {} process cpu load:{} free memory: {} KB available memory: {} KB used memory(RSS): {} KB", cpuLoad, SystemUtils.getProcessCpuLoad(), SystemUtils.convertByteSize(SystemUtils.osFreePhysicalMemory(),"KB"), SystemUtils.convertByteSize(SystemUtils.osAvailableMemory(), "KB"), SystemUtils.convertByteSize(Pointer.physicalBytes(), "KB"));
 					}
 					else {
 						System.out.println("-Heartbeat-> System cpu load:" + cpuLoad + " Free memory: {} KB" + SystemUtils.convertByteSize(SystemUtils.osFreePhysicalMemory(),"KB"));
 					}
+										
 					getGoogleAnalytic(implementationVersion, type).event()
 					.eventCategory("server_status")
 					.eventAction("heartbeat")
 					.eventLabel("")
 					.clientId(Launcher.getInstanceId())
 					.sendAsync();
+					
+					
 				}
 				);
 

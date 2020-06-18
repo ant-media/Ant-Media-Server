@@ -43,10 +43,10 @@ class GoogleAnalyticsLoggerImp implements GoogleAnalyticsLogger {
     @VisibleForTesting
     GoogleAnalytics getGoogleAnalytic() 
     {
-    		if (googleAnalytics == null) {
+    	if (googleAnalytics == null) {
           googleAnalytics =  StatsCollector.getGoogleAnalyticInstance(Launcher.getVersion(), Launcher.getVersionType());
-    		}
+    	}
     		
-    		return googleAnalytics;
+    	return googleAnalytics;
     }
 }

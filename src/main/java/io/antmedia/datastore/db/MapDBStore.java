@@ -194,6 +194,12 @@ public class MapDBStore extends DataStore {
 						broadcast.setStartTime(System.currentTimeMillis());
 						
 					}
+					else if(status.contentEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED)) {
+						broadcast.setRtmpViewerCount(0);
+						broadcast.setWebRTCViewerCount(0);
+						broadcast.setHlsViewerCount(0);
+					}
+					
 					String jsonVal = gson.toJson(broadcast);
 					String previousValue = map.replace(id, jsonVal);
 					db.commit();
@@ -517,7 +523,7 @@ public class MapDBStore extends DataStore {
 	@Override
 	public long getTotalVodNumber() {
 		synchronized (this) {
-			return getVodMap().size();
+			return vodMap.size();
 		}
 	}
 
@@ -731,7 +737,7 @@ public class MapDBStore extends DataStore {
 
 	public long getTotalBroadcastNumber() {
 		synchronized (this) {
-			return getMap().size();
+			return map.size();
 		}
 	}
 
@@ -840,7 +846,7 @@ public class MapDBStore extends DataStore {
 				{
 
 					updateStreamInfo(oldBroadcast, broadcast);
-					getMap().replace(streamId, gson.toJson(oldBroadcast));
+					map.replace(streamId, gson.toJson(oldBroadcast));
 
 					db.commit();
 					result = true;

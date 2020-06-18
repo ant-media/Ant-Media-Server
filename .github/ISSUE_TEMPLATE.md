@@ -11,6 +11,10 @@ __Brief description of what happened__
 * Ant Media Server version:
 * Browser name and version:
 
+### Steps to reproduce
+1. 
+2. 
+3.
 
 ### Expected behavior
 __Put as much detail here as possible__
@@ -18,10 +22,7 @@ __Put as much detail here as possible__
 ### Actual behavior
 __Put as much detail here as possible__
 
-### Steps to reproduce
-1. 
-2. 
-3. 
+ 
 
 
 ### Logs

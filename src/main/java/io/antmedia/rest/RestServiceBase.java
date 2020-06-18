@@ -176,7 +176,7 @@ public abstract class RestServiceBase {
 		try {
 			endpoint = socialEndpoint.createBroadcast(broadcast.getName(),
 					broadcast.getDescription(), broadcast.getStreamId(), broadcast.isIs360(), broadcast.isPublicStream(),
-					720, true);
+					2160, true);
 			return getDataStore().addEndpoint(broadcast.getStreamId(), endpoint);
 
 		} catch (Exception e) {
