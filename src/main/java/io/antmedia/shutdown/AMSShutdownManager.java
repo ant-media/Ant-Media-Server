@@ -8,8 +8,9 @@ import org.slf4j.LoggerFactory;
 
 public class AMSShutdownManager {
 	private static AMSShutdownManager instance = new AMSShutdownManager();
-	protected static Logger logger = LoggerFactory.getLogger(AMSShutdownManager.class);
-
+	
+	private boolean isShuttingDown = false;
+	
 	private ArrayList<IShutdownListener> listeners = new ArrayList<>();
 	
 	//this is not included to the list to guarantee called at the last
@@ -32,10 +33,15 @@ public class AMSShutdownManager {
 	}
 	
 	public void notifyShutdown() {
-		for (IShutdownListener listener : getListeners()) {
-			listener.serverShuttingdown();
+		if(!isShuttingDown) {
+			isShuttingDown = true;
+			for (IShutdownListener listener : getListeners()) {
+				listener.serverShuttingdown();
+			}
 		}
-		shutdownServer.serverShuttingdown();
+		if(shutdownServer != null) {
+			shutdownServer.serverShuttingdown();
+		}
 	}
 
 	public List<IShutdownListener> getListeners() {
