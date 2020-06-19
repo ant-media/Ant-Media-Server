@@ -62,6 +62,8 @@ import io.antmedia.statistic.type.WebRTCVideoSendStats;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
 import io.vertx.core.Vertx;
+import io.vertx.core.VertxOptions;
+import io.vertx.ext.dropwizard.DropwizardMetricsOptions;
 
 
 public class AntMediaApplicationAdaptorUnitTest {
@@ -905,6 +907,42 @@ public class AntMediaApplicationAdaptorUnitTest {
 		assertEquals(true, result.isSuccess());
 		assertEquals("System works, deleted closed file in "+ scope.getName(), result.getMessage());
 		
+	}
+	
+	boolean threadStarted = false; 
+	@Test
+	public void testVertexThreadWait() {
+		
+		Vertx tempVertx = Vertx.vertx(new VertxOptions()
+				.setMetricsOptions(new DropwizardMetricsOptions().setEnabled(true)));
+		AntMediaApplicationAdapter antMediaApplicationAdapter = new AntMediaApplicationAdapter();
+		antMediaApplicationAdapter.setVertx(tempVertx);
+		IScope scope = mock(IScope.class);
+		when(scope.getName()).thenReturn("junit");
+
+		antMediaApplicationAdapter.setScope(scope);
+		int sleepTime = 5000;
+		
+		tempVertx.executeBlocking(l->{
+			try {
+				threadStarted = true;
+				Thread.sleep(sleepTime);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}, r->{});
+		
+		while (!threadStarted) {
+			System.out.println("aa");
+		}
+		
+		long t0 = System.currentTimeMillis();
+		antMediaApplicationAdapter.waitUntilThreadsStop();
+		long t1 = System.currentTimeMillis();
+		long dt = t1 - t0;
+		assertTrue(Math.abs(dt - sleepTime) < 100);
+
+		tempVertx.close();
 	}
 	
 }

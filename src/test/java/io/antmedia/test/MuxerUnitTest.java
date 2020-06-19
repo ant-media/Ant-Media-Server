@@ -15,8 +15,7 @@ import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.MuxAdaptor.InputContext;
 import io.antmedia.muxer.Muxer;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
-import io.antmedia.storage.StorageClient;
-import io.antmedia.storage.StorageClient.FileType;
+import io.vertx.core.Vertx;
 
 import static org.bytedeco.javacpp.avcodec.AV_CODEC_ID_H264;
 import static org.bytedeco.javacpp.avformat.avformat_close_input;
@@ -69,7 +68,6 @@ import org.red5.io.flv.impl.FLVReader;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IBroadcastStream;
 import org.red5.server.api.stream.IStreamPacket;
-import org.red5.server.scheduling.QuartzSchedulingService;
 import org.red5.server.scope.WebScope;
 import org.red5.server.service.mp4.impl.MP4Service;
 import org.red5.server.stream.ClientBroadcastStream;
@@ -79,23 +77,6 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FilenameFilter;
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-
-import static org.bytedeco.javacpp.avcodec.AV_CODEC_ID_H264;
-import static org.bytedeco.javacpp.avformat.*;
-import static org.bytedeco.javacpp.avutil.AVMEDIA_TYPE_VIDEO;
-import static org.bytedeco.javacpp.avutil.av_dict_get;
-import static org.junit.Assert.*;
-
 
 @ContextConfiguration(locations = {"test.xml"})
 //@ContextConfiguration(classes = {AppConfig.class})
@@ -234,7 +215,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		getAppSettings().setAddDateTimeToMp4FileName(false);
 		getAppSettings().setHlsMuxingEnabled(true);
 		getAppSettings().setDeleteHLSFilesOnEnded(false);
-
+		
 		ClientBroadcastStream clientBroadcastStream = new ClientBroadcastStream();
 		StreamCodecInfo info = new StreamCodecInfo();
 		info.setHasAudio(true);
@@ -248,13 +229,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		File file = null;
 
 		try {
-
-			QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
-			assertNotNull(scheduler);
-			logger.info("name    " + String.valueOf(scheduler.getJobName().toCharArray()));
-
-			assertEquals(0, scheduler.getScheduledJobNames().size());
-
 			file = new File("target/test-classes/test.flv"); //ResourceUtils.getFile(this.getClass().getResource("test.flv"));
 			final FLVReader flvReader = new FLVReader(file);
 
@@ -311,7 +285,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 
 		try {
-
+			
 			ClientBroadcastStream clientBroadcastStream = new ClientBroadcastStream();
 			StreamCodecInfo info = new StreamCodecInfo();
 			info.setHasAudio(true);
@@ -394,13 +368,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			long diff = (System.nanoTime() - startTime) / 1000000;
 
 			System.out.println(" time diff: " + diff + " ms");
-
-			QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
-			assertNotNull(scheduler);
-
-			assertEquals(0, scheduler.getScheduledJobNames().size());
-
-
 		} catch (Exception e) {
 
 			e.printStackTrace();
@@ -643,22 +610,22 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	public File testMp4Muxing(String name) {
 		return testMp4Muxing(name, false, true);
 	}
-
+	
 	@Test
 	public void testMuxAdaptorClose() {
-
+		
 		appScope = (WebScope) applicationContext.getBean("web.scope");
-
+		
 		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null, false, appScope);
 		String streamId = "stream_id" + (int)(Math.random()*10000);
-
+		
 		boolean result = muxAdaptor.init(appScope, streamId, false);
 
 		assertTrue(result);
-
+		
 		muxAdaptor.closeResources();
 	}
-
+	
 	boolean prepareCalledMuxAdaptorStopWhilePreparing = false;
 	boolean prepareReturnedMuxAdaptorStopWhilePreparing = false;
 	@Test
@@ -669,12 +636,12 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		info.setHasAudio(false);
 		info.setHasVideo(false);
 		clientBroadcastStream.setCodecInfo(info);
-
+		
 		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, false, appScope);
 		String streamId = "stream_id" + (int)(Math.random()*10000);
-
+		
 		boolean result = muxAdaptor.init(appScope, streamId, false);
-
+		
 		new Thread() {
 			public void run() {
 				try {
@@ -686,69 +653,69 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 				}
 			}
 		}.start();
-
+		
 		Awaitility.await().pollInterval(1, TimeUnit.SECONDS).atMost(50, TimeUnit.SECONDS).until(() -> 
-		prepareCalledMuxAdaptorStopWhilePreparing
-				);
-
+			 prepareCalledMuxAdaptorStopWhilePreparing
+		);
+		
 		assertNotNull(muxAdaptor.getInputFormatContext());
-
+		
 		muxAdaptor.stop();
-
+		
 		Awaitility.await().pollInterval(1, TimeUnit.SECONDS).atMost(50, TimeUnit.SECONDS).until(() -> 
-		prepareReturnedMuxAdaptorStopWhilePreparing
-				);
-
+			prepareReturnedMuxAdaptorStopWhilePreparing
+		);
+		
 	}
-
+	
 	@Test
 	public void testWriteBufferedPacket() {
-
+		
 		if (appScope == null) {
 			appScope = (WebScope) applicationContext.getBean("web.scope");
 			logger.debug("Application / web scope: {}", appScope);
 			assertTrue(appScope.getDepth() == 1);
 		}
-
+		
 		MuxAdaptor muxAdaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(null, false, appScope));
-
+		
 		muxAdaptor.setBuffering(true);
 		muxAdaptor.writeBufferedPacket();
 		assertTrue(muxAdaptor.isBuffering());
-
+		
 		muxAdaptor.setBuffering(false);
 		muxAdaptor.writeBufferedPacket();
 		//it should false because there is no packet in the queue
 		assertTrue(muxAdaptor.isBuffering());
-
+		
 		Queue<AVPacket> bufferQueue = muxAdaptor.getBufferQueue();
 		muxAdaptor.setBuffering(false);
 		AVFormatContext inputFormatContext = Mockito.mock(AVFormatContext.class);
 		AVStream stream = Mockito.mock(AVStream.class);
 		when(stream.time_base()).thenReturn(MuxAdaptor.TIME_BASE_FOR_MS);
-
+		
 		when(inputFormatContext.streams(0)).thenReturn(stream);
-
+		
 		muxAdaptor.setInputFormatContext(inputFormatContext);
 		AVPacket pkt = new AVPacket();
 		pkt.pts(1000L);
 		pkt.stream_index(0);
-
+		
 		bufferQueue.add(pkt);
-
+		
 		doNothing().when(muxAdaptor).writePacket(any(), any());
 		muxAdaptor.writeBufferedPacket();
 		verify(muxAdaptor).writePacket(any(), any());
 		assertTrue(muxAdaptor.isBuffering());
-
+		
 		muxAdaptor.setBuffering(false);
 		pkt.pts(System.currentTimeMillis()+1000);
 		bufferQueue.add(pkt);
 		muxAdaptor.writeBufferedPacket();
 		assertFalse(muxAdaptor.isBuffering());
-
+		
 	}
-
+	
 	@Test
 	public void testRtmpIngestBufferTime() 
 	{
@@ -779,8 +746,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			assertTrue(result);
 
 			muxAdaptor.start();
-
-			QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
 
 
 			final FLVReader flvReader = new FLVReader(file);
@@ -827,8 +792,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 			Awaitility.await().atMost(4, TimeUnit.SECONDS).until(() -> !muxAdaptor.isRecording());
 
-			assertEquals(0, scheduler.getScheduledJobNames().size());
-
 		}
 		catch (Exception e) {
 			e.printStackTrace();
@@ -838,7 +801,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		getAppSettings().setRtmpIngestBufferTimeMs(0);
 
 	}
-
+	
 	public File testMp4Muxing(String name, boolean shortVersion, boolean checkDuration) {
 
 		logger.info("running testMp4Muxing");
@@ -848,7 +811,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			logger.debug("Application / web scope: {}", appScope);
 			assertTrue(appScope.getDepth() == 1);
 		}
-
+		
 		ClientBroadcastStream clientBroadcastStream = new ClientBroadcastStream();
 		StreamCodecInfo info = new StreamCodecInfo();
 		info.setHasAudio(true);
@@ -865,11 +828,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		File file = null;
 
 		try {
-
-
-			QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
-			assertNotNull(scheduler);
-			assertEquals(0, scheduler.getScheduledJobNames().size());
 
 			if (shortVersion) {
 				file = new File("target/test-classes/test_short.flv"); //ResourceUtils.getFile(this.getClass().getResource("test.flv"));
@@ -895,15 +853,10 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 				muxAdaptor.packetReceived(null, streamPacket);
 			}
 
-			for (String jobName : scheduler.getScheduledJobNames()) {
-				logger.info("testMP4Muxing -- Scheduler job name {}", jobName);
-			}
 
 
-			Awaitility.await().atMost(90, TimeUnit.SECONDS).until(() -> scheduler.getScheduledJobNames().size() == 0);
 			Awaitility.await().atMost(90, TimeUnit.SECONDS).until(() -> muxAdaptor.isRecording());
 
-			assertEquals(0, scheduler.getScheduledJobNames().size());
 			assertTrue(muxAdaptor.isRecording());
 
 			muxAdaptor.stop();
@@ -915,13 +868,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 			assertFalse(muxAdaptor.isRecording());
 
-			// if there is listenerHookURL, a task will be scheduled, so wait a little to make the call happen
-			for (String jobName : scheduler.getScheduledJobNames()) {
-				logger.info("--Scheduler job name {}", jobName);
-			}
-
-			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(() -> scheduler.getScheduledJobNames().size() == 0);
-			assertEquals(0, scheduler.getScheduledJobNames().size());
 			int duration = 697000;
 			if (shortVersion) {
 				duration = 10080;
@@ -938,7 +884,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		logger.info("leaving testMp4Muxing");
 		return null;
 	}
-
+	
 	/**
 	 * 
 	 */
@@ -951,9 +897,9 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		info.setHasAudio(false);
 		info.setHasVideo(false);
 		clientBroadcastStream.setCodecInfo(info);
-
+		
 		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, false, appScope);
-
+		
 		checkStreamReturned = false;
 		new Thread() {
 			public void run() {
@@ -964,91 +910,59 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 					e.printStackTrace();
 				}
 			}
-
+			
 		}.start();
 
-
+		
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
 			return checkStreamReturned;
 		});
 
 	}
-
+	
 	@Test
 	public void testNonZeroStartingFrame() {
-
+		
 		try {
 			ClientBroadcastStream clientBroadcastStream = new ClientBroadcastStream();
 			StreamCodecInfo info = new StreamCodecInfo();
 			info.setHasAudio(true);
 			info.setHasVideo(true);
 			clientBroadcastStream.setCodecInfo(info);
-
+			
 			appScope = (WebScope) applicationContext.getBean("web.scope");
-
+			
 			MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, false, appScope);
-
+	
 			boolean result = muxAdaptor.init(appScope, "video_with_subtitle_stream", false);
 			assertTrue(result);
 			muxAdaptor.setEnableAudio(false);
 			muxAdaptor.setEnableVideo(false);
-
+	
 			File file = new File("target/test-classes/test_video_360p_subtitle.flv"); 
-
+	
 			final FLVReader flvReader = new FLVReader(file);
-
+			
 			ITag readTag = flvReader.readTag();
 			readTag.setTimestamp(5000 + readTag.getTimestamp());
 			StreamPacket streamPacket = new StreamPacket(readTag);
 			muxAdaptor.packetReceived(null, streamPacket);
-
-
+		
+		
 			muxAdaptor.checkStreams();
-
+			
 			assertTrue(muxAdaptor.isEnableAudio());
 			assertTrue(muxAdaptor.isEnableVideo());
-
+			
 			flvReader.close();
-
+		
 		} 
 		catch (InterruptedException | IOException e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-
-
-	}
-
-	@Test
-	public void testMp4StorageClientWithDateTime() {
-		StorageClient storageClient = Mockito.mock(StorageClient.class);
-		QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
-		appScope = (WebScope) applicationContext.getBean("web.scope");
-		String streamId = "streamId" + (int)(Math.random()*10000);
-		{
-			Mp4Muxer mp4Muxer = new Mp4Muxer(storageClient, scheduler);
-
-			mp4Muxer.setAddDateTimeToSourceName(false);
-
-			mp4Muxer.init(appScope, streamId, 0);
-			assertEquals(streamId+".mp4", mp4Muxer.getFile().getName());
-		}
-
-		{
-			Mp4Muxer mp4Muxer = new Mp4Muxer(storageClient, scheduler);
-			mp4Muxer.setAddDateTimeToSourceName(true);
-			mp4Muxer.init(appScope, streamId, 0);
-
-			assertNotEquals(streamId+".mp4", mp4Muxer.getFile().getName());
-
-			File mockFile = Mockito.mock(File.class);
-			mp4Muxer.saveToStorage(mockFile);
-
-			Mockito.verify(storageClient, timeout(5000)).save(FileType.TYPE_STREAM.getValue()+ "/" + mp4Muxer.getFile().getName() , mockFile);
-		}
-
-
-
+		
+		
 	}
 
 	@Test
@@ -1064,7 +978,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			logger.debug("Application / web scope: {}", appScope);
 			assertTrue(appScope.getDepth() == 1);
 		}
-
+		
 		ClientBroadcastStream clientBroadcastStream = new ClientBroadcastStream();
 		StreamCodecInfo info = new StreamCodecInfo();
 		info.setHasAudio(true);
@@ -1077,11 +991,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		File file = null;
 
 		try {
-
-			QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
-			assertNotNull(scheduler);
-			assertEquals(0, scheduler.getScheduledJobNames().size());
-
 
 			file = new File("target/test-classes/test_video_360p_subtitle.flv"); //ResourceUtils.getFile(this.getClass().getResource("test.flv"));
 
@@ -1106,7 +1015,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 			Thread.sleep(500);
 
-			assertEquals(0, scheduler.getScheduledJobNames().size());
 			assertTrue(muxAdaptor.isRecording());
 
 			muxAdaptor.stop();
@@ -1122,7 +1030,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			// if there is listenerHookURL, a task will be scheduled, so wait a little to make the call happen
 			Thread.sleep(200);
 
-			assertEquals(0, scheduler.getScheduledJobNames().size());
 			int duration = 146401;
 
 			assertTrue(MuxingTest.testFile(muxAdaptor.getMuxerList().get(0).getFile().getAbsolutePath(), duration));
@@ -1154,10 +1061,10 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	@Test
 	public void testMp4MuxingWithDirectParams() {
-		QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
-		assertNotNull(scheduler);
+		Vertx vertx = (Vertx) applicationContext.getBean(AntMediaApplicationAdapter.VERTX_BEAN_NAME);
+		assertNotNull(vertx);
 
-		Mp4Muxer mp4Muxer = new Mp4Muxer(null, scheduler);
+		Mp4Muxer mp4Muxer = new Mp4Muxer(null, vertx);
 
 		if (appScope == null) {
 			appScope = (WebScope) applicationContext.getBean("web.scope");
@@ -1234,13 +1141,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		info.setHasAudio(true);
 		info.setHasVideo(true);
 		clientBroadcastStream.setCodecInfo(info);
-
+		
 		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, false, appScope);
-
-		QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
-		assertNotNull(scheduler);
-
-		assertEquals(0, scheduler.getScheduledJobNames().size());
 
 		appScope.createChildScope("child");
 
@@ -1286,7 +1188,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			}
 
 			assertFalse(muxAdaptor.isRecording());
-			assertEquals(1, scheduler.getScheduledJobNames().size());
 
 
 			List<Muxer> muxerList = muxAdaptor.getMuxerList();
@@ -1367,7 +1268,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			logger.debug("Application / web scope: {}", appScope);
 			assertTrue(appScope.getDepth() == 1);
 		}
-
+		
 		ClientBroadcastStream clientBroadcastStream = new ClientBroadcastStream();
 		StreamCodecInfo info = new StreamCodecInfo();
 		info.setHasAudio(true);
@@ -1378,10 +1279,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		File file = null;
 		try {
-
-			QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
-			assertNotNull(scheduler);
-			assertEquals(0, scheduler.getScheduledJobNames().size());
 
 			file = new File("target/test-classes/test.flv"); //ResourceUtils.getFile(this.getClass().getResource("test.flv"));
 			final FLVReader flvReader = new FLVReader(file);
@@ -1412,7 +1309,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			}
 
 			assertFalse(muxAdaptor.isRecording());
-			assertEquals(1, scheduler.getScheduledJobNames().size());
 
 
 			List<Muxer> muxerList = muxAdaptor.getMuxerList();
@@ -1505,10 +1401,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		File file = null;
 		try {
 
-			QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
-			assertNotNull(scheduler);
-			assertEquals(0, scheduler.getScheduledJobNames().size());
-
 			file = new File("target/test-classes/test_video_360p_subtitle.flv"); //ResourceUtils.getFile(this.getClass().getResource("test.flv"));
 			final FLVReader flvReader = new FLVReader(file);
 
@@ -1539,7 +1431,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 			assertFalse(muxAdaptor.isRecording());
 			// delete job in the list
-			assertEquals(1, scheduler.getScheduledJobNames().size());
 
 
 			List<Muxer> muxerList = muxAdaptor.getMuxerList();
@@ -1623,7 +1514,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			logger.debug("Application / web scope: {}", appScope);
 			assertTrue(appScope.getDepth() == 1);
 		}
-
+		
 		ClientBroadcastStream clientBroadcastStream = new ClientBroadcastStream();
 		StreamCodecInfo info = new StreamCodecInfo();
 		info.setHasAudio(true);
@@ -1641,12 +1532,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		try {
 
-			QuartzSchedulingService scheduler = (QuartzSchedulingService) applicationContext.getBean(QuartzSchedulingService.BEAN_NAME);
-			assertNotNull(scheduler);
-
-			//by default, stream source job is scheduled
-			assertEquals(0, scheduler.getScheduledJobNames().size());
-
 			file = new File("target/test-classes/test.flv");
 
 			final FLVReader flvReader = new FLVReader(file);
@@ -1655,9 +1540,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			assertTrue(file.exists());
 
 			logger.info("1");
-			for (String jobName : scheduler.getScheduledJobNames()) {
-				logger.info("testMP4Muxing1 -- Scheduler job name {}", jobName);
-			}
 			boolean result = muxAdaptor.init(appScope, name, false);
 
 			assertTrue(result);
@@ -1695,14 +1577,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 				}
 			}
 
-			for (String jobName : scheduler.getScheduledJobNames()) {
-				logger.info("testMP4Muxing -- Scheduler job name {}", jobName);
-			}
-
-			Awaitility.await().atMost(90, TimeUnit.SECONDS).until(() -> scheduler.getScheduledJobNames().size() == 0);
 			Awaitility.await().atMost(90, TimeUnit.SECONDS).until(muxAdaptor::isRecording);
 
-			assertEquals(0, scheduler.getScheduledJobNames().size());
 			assertTrue(muxAdaptor.isRecording());
 			final String finalFilePath = muxAdaptor.getMuxerList().get(0).getFile().getAbsolutePath();
 
@@ -1716,13 +1592,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 			assertFalse(muxAdaptor.isRecording());
 
-			// if there is listenerHookURL, a task will be scheduled, so wait a little to make the call happen
-			for (String jobName : scheduler.getScheduledJobNames()) {
-				logger.info("--Scheduler job name {}", jobName);
-			}
-
-			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(() -> scheduler.getScheduledJobNames().isEmpty());
-			assertEquals(0, scheduler.getScheduledJobNames().size());
 			assertTrue(MuxingTest.testFile(finalFilePath, lastTimeStamp-startOfRecordingTimeStamp));
 
 		} catch (Exception e) {
@@ -1731,7 +1600,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 		logger.info("leaving testRecording");
 	}
-
 
 
 
