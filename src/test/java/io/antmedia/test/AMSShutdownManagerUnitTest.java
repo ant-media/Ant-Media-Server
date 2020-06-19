@@ -45,6 +45,7 @@ public class AMSShutdownManagerUnitTest {
 
 	@Test
 	public void testShutdownServerRegister() {
+		AMSShutdownManager.getInstance().setShutdownServer(null);
 		assertNull(AMSShutdownManager.getInstance().getShutdownServer());
 		ShutdownServer ss = new ShutdownServer();
 		ss.start();
