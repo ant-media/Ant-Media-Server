@@ -795,7 +795,6 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 
 			@Override
 			public void run() {
-
 				if(logger != null) {
 					logger.info("Shutting down just a sec");
 				}

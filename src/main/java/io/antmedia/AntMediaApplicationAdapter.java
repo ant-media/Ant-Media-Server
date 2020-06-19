@@ -76,6 +76,8 @@ import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonObject;
+import io.vertx.ext.dropwizard.MetricsService;
 
 public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShutdownListener {
 
@@ -995,13 +997,55 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		}
 	}
 
+	
+	public void waitUntilThreadsStop() {
+		int i = 0;
+		int waitPeriod = 1000;
+		int activeVertxThreadCount = 0;
+		while((activeVertxThreadCount = getActiveVertxThreadCount()) > 0) {
+			try {
+				if (i > 3) {
+					logger.warn("Waiting for active vertx threads count({}) decrease to zero for app: {}"
+							+ "total wait time: {}ms", activeVertxThreadCount, getScope().getName(), i*waitPeriod);
+				}
+				if (i>10) {
+					logger.error("*********************************************************************");
+					logger.error("Not all active vertx threads are stopped. It's even breaking the loop");
+					logger.error("*********************************************************************");
+					break;
+				}
+				i++;
+				Thread.sleep(waitPeriod);
+				
+			} catch (InterruptedException e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+				Thread.currentThread().interrupt();
+			}
+		}
+	}
+
+	private int getActiveVertxThreadCount() {
+		int activeVertexThreadCount = 0;
+		try {
+			MetricsService metricsService = MetricsService.create(vertx);
+			String activeThreadKey = "vertx.pools.worker.vert.x-worker-thread.in-use";
+			JsonObject metrics = metricsService.getMetricsSnapshot(activeThreadKey);
+			activeVertexThreadCount = metrics.getJsonObject(activeThreadKey).getInteger("count");
+		}
+		catch (Exception e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+		}
+		return activeVertexThreadCount;
+	}
 
 	@Override
 	public void serverShuttingdown() {
 		logger.info("{} is closing streams", getScope().getName());
 		closeStreamFetchers();
 		closeRTMPStreams();
+		
 		waitUntilLiveStreamsStopped();
+		waitUntilThreadsStop();
 		
 		createShutdownFile(getScope().getName());
 		

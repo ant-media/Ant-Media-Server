@@ -9,6 +9,9 @@ public class AMSShutdownManager {
 	private boolean isShuttingDown = false;
 	
 	private ArrayList<IShutdownListener> listeners = new ArrayList<>();
+	
+	//this is not included to the list to guarantee called at the last
+	private IShutdownListener shutdownServer;
 
 	public static AMSShutdownManager getInstance() {
 		return instance;
@@ -19,7 +22,7 @@ public class AMSShutdownManager {
 	}
 	
 	public void subscribe(IShutdownListener listener) {
-		getListeners().add(listener);
+		listeners.add(listener);
 	}
 	
 	public void notifyShutdown() {
@@ -28,10 +31,21 @@ public class AMSShutdownManager {
 			for (IShutdownListener listener : getListeners()) {
 				listener.serverShuttingdown();
 			}
+			if(shutdownServer != null) {
+				shutdownServer.serverShuttingdown();
+			}
 		}
 	}
 
 	public List<IShutdownListener> getListeners() {
 		return listeners;
+	}
+
+	public void setShutdownServer(IShutdownListener shutdownServer) {
+		this.shutdownServer = shutdownServer;
+	}
+	
+	public IShutdownListener getShutdownServer() {
+		return shutdownServer;
 	}
 }
