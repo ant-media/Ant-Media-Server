@@ -31,6 +31,7 @@ import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
+import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.filter.CorsHeaderFilter;
 import io.antmedia.filter.StreamAcceptFilter;
 import io.antmedia.security.AcceptOnlyStreamsInDataStore;
@@ -85,7 +86,7 @@ public class AcceptStreamFilterTest extends AbstractJUnit4SpringContextTests {
 		
 		AVFormatContext inputFormatContext = null;
 		AVPacket pkt = null;
-
+		String streamId = "test-gg";
 		
 		AntMediaApplicationAdapter spyAdapter = Mockito.spy(AntMediaApplicationAdapter.class);
 		
@@ -93,8 +94,6 @@ public class AcceptStreamFilterTest extends AbstractJUnit4SpringContextTests {
 		DataStoreFactory dsf = Mockito.mock(DataStoreFactory.class);
 		Mockito.when(dsf.getDataStore()).thenReturn(dataStore);
 		spyAdapter.setDataStoreFactory(dsf);
-		
-		//Mockito.when(acceptStreamFilterSpy.getAppSetting()).thenReturn(getAppSettings());
 		
 		Mockito.doReturn(appSettings).when(acceptStreamFilterSpy).getAppSettings();
 		
@@ -192,6 +191,13 @@ public class AcceptStreamFilterTest extends AbstractJUnit4SpringContextTests {
 		Mockito.doReturn(5000000l).when(acceptStreamFilterSpy).getStreamBitrate(Mockito.any(),Mockito.any());
 
 		assertEquals(true,acceptStreamFilterSpy.isValidStreamParameters(inputFormatContext,pkt));	
+		
+		// For the Stream Planned Start / End Data Parameters Scenarios
+		// Normal Scenario Stream Parameters which are getMaxFpsAccept = null & getMaxResolution = null & getMaxBitrateAccept = null 
+		Mockito.doReturn(0).when(acceptStreamFilterSpy).getMaxFps();
+		Mockito.doReturn(0).when(acceptStreamFilterSpy).getMaxResolution();
+		Mockito.doReturn(0).when(acceptStreamFilterSpy).getMaxBitrate();
+		
 	}
 	
 	public AppSettings getAppSettings() {
