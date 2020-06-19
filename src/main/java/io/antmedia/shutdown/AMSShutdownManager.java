@@ -3,9 +3,6 @@ package io.antmedia.shutdown;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 public class AMSShutdownManager {
 	private static AMSShutdownManager instance = new AMSShutdownManager();
 	
@@ -28,19 +25,15 @@ public class AMSShutdownManager {
 		listeners.add(listener);
 	}
 	
-	public void setShutDo(IShutdownListener listener) {
-		listeners.add(listener);
-	}
-	
 	public void notifyShutdown() {
 		if(!isShuttingDown) {
 			isShuttingDown = true;
 			for (IShutdownListener listener : getListeners()) {
 				listener.serverShuttingdown();
 			}
-		}
-		if(shutdownServer != null) {
-			shutdownServer.serverShuttingdown();
+			if(shutdownServer != null) {
+				shutdownServer.serverShuttingdown();
+			}
 		}
 	}
 
@@ -50,5 +43,9 @@ public class AMSShutdownManager {
 
 	public void setShutdownServer(IShutdownListener shutdownServer) {
 		this.shutdownServer = shutdownServer;
+	}
+	
+	public IShutdownListener getShutdownServer() {
+		return shutdownServer;
 	}
 }
