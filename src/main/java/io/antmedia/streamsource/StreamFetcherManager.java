@@ -59,6 +59,8 @@ public class StreamFetcherManager {
 
 	private Vertx vertx;
 
+	private int lastRestartCount;
+
 	public StreamFetcherManager(Vertx vertx, DataStore datastore,IScope scope) {
 		this.vertx = vertx;
 		this.datastore = datastore;
@@ -335,8 +337,6 @@ public class StreamFetcherManager {
 		}
 
 		streamFetcherScheduleJobName = vertx.setPeriodic(streamCheckerIntervalMs, l-> {
-
-			int lastRestartCount = 0;
 
 			if (!streamFetcherList.isEmpty()) {
 
