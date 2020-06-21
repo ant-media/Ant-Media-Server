@@ -159,7 +159,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			//Save App Setting
 			setShutdownProperly(false);
 			// Reset Broadcast Stats
-			resetBroadcasts();
+			resetBroadcasts(app.getName());
 		}
 
 
@@ -223,8 +223,14 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		//not used
 	}
 
-	public Result resetBroadcasts(){
+	/**
+	 * This method is called in standalone mode.
+	 * It should not be run in cluster mode
+	 * @return
+	 */
+	public Result resetBroadcasts(String appName){
 		
+		logger.info("Resetting streams viewer numbers because there is an unexpected stop happened in app: {}", appName);
 		Result result = new Result(false);
 		
 		long broadcastCount = getDataStore().getBroadcastCount();
@@ -1069,12 +1075,12 @@ public Result createInitializationProcess(String appName){
 				if(initializedFile.createNewFile()) {
 					result.setMessage("Initialized file created in " + appName);
 					result.setSuccess(true);
-					logger.info("Initialized file created in {}",appName);
+					logger.info("Initialized file is created in {}",appName);
 				}
 				else {
 					result.setMessage("Initialized file couldn't create in " + appName);
 					result.setSuccess(false);
-					logger.info("Initialized file couldn't create in {}",appName);
+					logger.info("Initialized file couldn't be created in {}",appName);
 				}
 			} 
 			// Check repeated starting - It's normal start
@@ -1085,12 +1091,12 @@ public Result createInitializationProcess(String appName){
 				if(!closedFile.exists()) {
 					result.setMessage("System works, deleted closed file in " + appName);
 					result.setSuccess(true);
-					logger.info("Delete closed file in {}",appName);
+					logger.info("Delete the \".closed\" file in {}",appName);
 				}
 				else {
 					result.setMessage("Delete couldn't closed file in " + appName);
 					result.setSuccess(false);
-					logger.info("Delete couldn't closed file in {}",appName);
+					logger.info("Not deleted the \".closed\" file in {}",appName);
 				}
 			}
 			// It means didn't close normal (unexpected stop)
@@ -1125,6 +1131,10 @@ public Result createInitializationProcess(String appName){
 					logger.error("Closed file couldn't create in {}",appName);
 				}
 			}
+			else {
+				logger.error("Closed file already exists for app: {}", appName);
+			}
+			
 		} catch (IOException e) {
 			logger.error(e.getMessage());
 		}
