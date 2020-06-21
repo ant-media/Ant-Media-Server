@@ -337,8 +337,8 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 					if (listenerHookURL != null && listenerHookURL.length() > 0) {
 						final String name = broadcast.getName();
 						final String category = broadcast.getCategory();
-						
-						vertx.setTimer(1, e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_END_LIVE_STREAM, name, category,
+						logger.info("Setting timer to call live stream ended hook for stream:{}",streamId );
+						vertx.setTimer(10, e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_END_LIVE_STREAM, name, category,
 								null, null));
 					}
 
@@ -485,7 +485,8 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 					if (listenerHookURL != null && listenerHookURL.length() > 0) {
 						final String name = broadcast.getName();
 						final String category = broadcast.getCategory();
-						vertx.setTimer(1, e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_START_LIVE_STREAM, name, category,
+						logger.info("Setting timer to call live stream started hook for stream:{}",streamId );
+						vertx.setTimer(10, e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_START_LIVE_STREAM, name, category,
 								null, null));
 					}
 
@@ -607,8 +608,8 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		{
 			final String baseName = vodName.substring(0, index);
 			String finalListenerHookURL = listenerHookURL;
-			
-			vertx.setTimer(1, e ->	notifyHook(finalListenerHookURL, streamId, HOOK_ACTION_VOD_READY, null, null, baseName, vodId));
+			logger.info("Setting timer for calling vod ready hook for stream:{}", streamId);
+			vertx.setTimer(10, e ->	notifyHook(finalListenerHookURL, streamId, HOOK_ACTION_VOD_READY, null, null, baseName, vodId));
 		}
 
 		String muxerFinishScript = appSettings.getMuxerFinishScript();
@@ -736,7 +737,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	public StringBuilder notifyHook(String url, String id, String action, String streamName, String category,
 			String vodName, String vodId) {
 		StringBuilder response = null;
-
+		logger.info("Running notify hook url:{} stream id: {} action:{} vod name:{} vod id:{}", url, id, action, vodName, vodId);
 		if (url != null && url.length() > 0) {
 			Map<String, String> variables = new HashMap<>();
 
