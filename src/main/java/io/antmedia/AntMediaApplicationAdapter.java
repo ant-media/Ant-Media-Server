@@ -338,8 +338,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 						final String name = broadcast.getName();
 						final String category = broadcast.getCategory();
 						logger.info("Setting timer to call live stream ended hook for stream:{}",streamId );
-						vertx.setTimer(10, e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_END_LIVE_STREAM, name, category,
-								null, null));
+						vertx.setTimer(10, e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_END_LIVE_STREAM, name, category, null, null));
 					}
 
 					stopPublishingSocialEndpoints(broadcast);
@@ -933,6 +932,10 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		}
 		return dataStore;
 	}
+	
+	public void setDataStore(DataStore dataStore) {
+		this.dataStore = dataStore;
+	}
 
 	public DataStoreFactory getDataStoreFactory() {
 		return dataStoreFactory;
@@ -1133,7 +1136,7 @@ public Result createInitializationProcess(String appName){
 				}
 			}
 			else {
-				logger.error("Closed file already exists for app: {}", appName);
+				logger.warn("Closed file already exists for app: {}", appName);
 			}
 			
 		} catch (IOException e) {

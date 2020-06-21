@@ -478,6 +478,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 		Broadcast broadcast = new Broadcast();
+		broadcast.setListenerHookURL("any_url");
 		appAdaptor.getDataStore().save(broadcast);
 		IBroadcastStream stream = Mockito.mock(IBroadcastStream.class);
 		Mockito.when(stream.getPublishedName()).thenReturn(broadcast.getStreamId());

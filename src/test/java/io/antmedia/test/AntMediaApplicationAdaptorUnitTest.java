@@ -40,6 +40,7 @@ import org.red5.server.api.scope.IScope;
 import org.red5.server.stream.ClientBroadcastStream;
 
 import com.jmatio.io.stream.ByteBufferInputStream;
+import com.restfb.types.Application.ApplicationContext;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
@@ -63,6 +64,7 @@ import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
+import io.vertx.core.impl.VertxImpl;
 import io.vertx.ext.dropwizard.DropwizardMetricsOptions;
 
 
@@ -842,6 +844,33 @@ public class AntMediaApplicationAdaptorUnitTest {
 		
 		assertEquals(true, closedFile.exists());
 		
+		adapter.createShutdownFile(scope.getName());
+		
+	}
+	
+	@Test
+	public void testCloseBroadcast() {
+		
+		DataStore db = new InMemoryDataStore("db");
+		Broadcast broadcast = new Broadcast();
+		broadcast.setListenerHookURL("url");
+		db.save(broadcast);
+		
+		Vertx vertx = Mockito.mock(VertxImpl.class);
+		adapter.setDataStore(db);
+		
+		IScope scope = mock(IScope.class);
+		when(scope.getName()).thenReturn("junit");
+		IContext context = Mockito.mock(IContext.class);
+		when(context.getApplicationContext()).thenReturn(Mockito.mock(org.springframework.context.ApplicationContext.class));
+		when(scope.getContext()).thenReturn(context);
+		
+		adapter.setScope(scope);
+		adapter.setVertx(vertx);
+		
+		adapter.closeBroadcast(broadcast.getStreamId());
+		
+		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, broadcast.getStatus());
 	}
 	
 	@Test
