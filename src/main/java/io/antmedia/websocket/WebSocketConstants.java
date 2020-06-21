@@ -179,7 +179,13 @@ public class WebSocketConstants {
 	 * This info includes height, bitrates, etc.
 	 */
 	public static final String GET_STREAM_INFO_COMMAND = "getStreamInfo";
-
+	
+	/**
+	 * Command that stream set resolution request.
+	 */
+	
+	public static final String SET_STREAM_RESOLUTION = "setStreamResolution";
+	
 	/**
 	 * Notification field used when returning stream information
 	 */

@@ -158,4 +158,10 @@ public interface IWebRTCClient {
 	 * @return cache rtt measurement
 	 */
 	int getCachedRttMeasurement();
+	
+	/**
+	 * 
+	 * @return stream resolution current value
+	 */
+	public int getFixedStreamResolution();
 }
