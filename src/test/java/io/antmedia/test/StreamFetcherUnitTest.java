@@ -867,7 +867,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		fetcher.stopStream();
 		
-		Awaitility.await().pollDelay(4, TimeUnit.SECONDS).atMost(7, TimeUnit.SECONDS).until(fetcher::isStopRequestReceived);	
+		Awaitility.await().pollDelay(4, TimeUnit.SECONDS).atMost(7, TimeUnit.SECONDS).until(() -> !fetcher.isThreadActive());	
 		
 	}
 
