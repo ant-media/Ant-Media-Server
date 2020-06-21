@@ -1,5 +1,6 @@
 package io.antmedia.test.webrtc.adaptor;
 
+import static org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_YUV420P;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -22,6 +23,7 @@ import javax.websocket.Session;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.awaitility.Awaitility;
+import org.bytedeco.ffmpeg.avutil.AVFrame;
 import org.json.simple.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
@@ -33,6 +35,7 @@ import org.webrtc.MediaStream;
 import org.webrtc.PeerConnectionFactory;
 import org.webrtc.SessionDescription;
 import org.webrtc.SessionDescription.Type;
+
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.IApplicationAdaptorFactory;
@@ -44,20 +47,6 @@ import io.antmedia.webrtc.VideoCodec;
 import io.antmedia.webrtc.adaptor.RTMPAdaptor;
 import io.antmedia.websocket.WebSocketCommunityHandler;
 import io.antmedia.websocket.WebSocketConstants;
-
-import org.bytedeco.ffmpeg.global.*;
-import org.bytedeco.ffmpeg.avcodec.*;
-import org.bytedeco.ffmpeg.avformat.*;
-import org.bytedeco.ffmpeg.avutil.*;
-import org.bytedeco.ffmpeg.swresample.*;
-import org.bytedeco.ffmpeg.swscale.*;
-
-import static org.bytedeco.ffmpeg.global.avutil.*;
-import static org.bytedeco.ffmpeg.global.avformat.*;
-import static org.bytedeco.ffmpeg.global.avcodec.*;
-import static org.bytedeco.ffmpeg.global.avdevice.*;
-import static org.bytedeco.ffmpeg.global.swresample.*;
-import static org.bytedeco.ffmpeg.global.swscale.*;
 
 public class RTMPAdaptorTest {
 
@@ -422,9 +411,9 @@ public class RTMPAdaptorTest {
 		mock.unRegisterMuxer(null, null);
 		mock.registerWebRTCClient(null, null, VideoCodec.H264);
 		mock.streamExists(null);
-		mock.getStreamOptions(null);
-		mock.adaptStreamingQuality(null, null);
-		mock.registerWebRTCClient(null, null, 0);
+		mock.getStreamInfo(null);
+		mock.adaptStreamingQuality(null, null, null);
+		mock.registerWebRTCClient(null, null, 0, null);
 		assertEquals(-1, mock.getNumberOfLiveStreams());
 		assertEquals(-1, mock.getNumberOfTotalViewers());
 		assertEquals(-1, mock.getNumberOfViewers(null));

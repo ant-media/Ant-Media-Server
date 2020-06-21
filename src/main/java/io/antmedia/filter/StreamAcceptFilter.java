@@ -1,25 +1,13 @@
 package io.antmedia.filter;
 
+import org.bytedeco.ffmpeg.avcodec.AVPacket;
+import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 
 import io.antmedia.AppSettings;
-
-import org.bytedeco.ffmpeg.global.*;
-import org.bytedeco.ffmpeg.avcodec.*;
-import org.bytedeco.ffmpeg.avformat.*;
-import org.bytedeco.ffmpeg.avutil.*;
-import org.bytedeco.ffmpeg.swresample.*;
-import org.bytedeco.ffmpeg.swscale.*;
-
-import static org.bytedeco.ffmpeg.global.avutil.*;
-import static org.bytedeco.ffmpeg.global.avformat.*;
-import static org.bytedeco.ffmpeg.global.avcodec.*;
-import static org.bytedeco.ffmpeg.global.avdevice.*;
-import static org.bytedeco.ffmpeg.global.swresample.*;
-import static org.bytedeco.ffmpeg.global.swscale.*;
 
 public class StreamAcceptFilter implements ApplicationContextAware{
 
@@ -29,7 +17,6 @@ public class StreamAcceptFilter implements ApplicationContextAware{
 	
 	public boolean isValidStreamParameters(AVFormatContext inputFormatContext,AVPacket pkt) 
 	{
-		// Check FPS value
 		return  checkFPSAccept(getStreamFps(inputFormatContext, pkt)) && 
 				checkResolutionAccept(getStreamResolution(inputFormatContext, pkt)) &&
 				checkBitrateAccept(getStreamBitrate(inputFormatContext, pkt));
@@ -118,4 +105,5 @@ public class StreamAcceptFilter implements ApplicationContextAware{
 		}
 		return 0;
 	}
+	
 }

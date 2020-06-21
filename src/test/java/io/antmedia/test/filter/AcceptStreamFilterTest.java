@@ -1,24 +1,15 @@
 package io.antmedia.test.filter;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.io.File;
-import java.io.IOException;
-import java.util.HashSet;
 
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import org.apache.catalina.filters.CorsFilter;
+import org.bytedeco.ffmpeg.avcodec.AVPacket;
+import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.red5.server.scope.WebScope;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
@@ -29,23 +20,7 @@ import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
-import io.antmedia.filter.CorsHeaderFilter;
 import io.antmedia.filter.StreamAcceptFilter;
-import io.antmedia.security.AcceptOnlyStreamsInDataStore;
-
-import org.bytedeco.ffmpeg.global.*;
-import org.bytedeco.ffmpeg.avcodec.*;
-import org.bytedeco.ffmpeg.avformat.*;
-import org.bytedeco.ffmpeg.avutil.*;
-import org.bytedeco.ffmpeg.swresample.*;
-import org.bytedeco.ffmpeg.swscale.*;
-
-import static org.bytedeco.ffmpeg.global.avutil.*;
-import static org.bytedeco.ffmpeg.global.avformat.*;
-import static org.bytedeco.ffmpeg.global.avcodec.*;
-import static org.bytedeco.ffmpeg.global.avdevice.*;
-import static org.bytedeco.ffmpeg.global.swresample.*;
-import static org.bytedeco.ffmpeg.global.swscale.*;
 
 @ContextConfiguration(locations = {"../test.xml"})
 @DirtiesContext(classMode = ClassMode.AFTER_CLASS)
@@ -97,7 +72,7 @@ public class AcceptStreamFilterTest extends AbstractJUnit4SpringContextTests {
 		
 		AVFormatContext inputFormatContext = null;
 		AVPacket pkt = null;
-
+		String streamId = "test-gg";
 		
 		AntMediaApplicationAdapter spyAdapter = Mockito.spy(AntMediaApplicationAdapter.class);
 		
@@ -105,8 +80,6 @@ public class AcceptStreamFilterTest extends AbstractJUnit4SpringContextTests {
 		DataStoreFactory dsf = Mockito.mock(DataStoreFactory.class);
 		Mockito.when(dsf.getDataStore()).thenReturn(dataStore);
 		spyAdapter.setDataStoreFactory(dsf);
-		
-		//Mockito.when(acceptStreamFilterSpy.getAppSetting()).thenReturn(getAppSettings());
 		
 		Mockito.doReturn(appSettings).when(acceptStreamFilterSpy).getAppSettings();
 		
@@ -204,6 +177,13 @@ public class AcceptStreamFilterTest extends AbstractJUnit4SpringContextTests {
 		Mockito.doReturn(5000000l).when(acceptStreamFilterSpy).getStreamBitrate(Mockito.any(),Mockito.any());
 
 		assertEquals(true,acceptStreamFilterSpy.isValidStreamParameters(inputFormatContext,pkt));	
+		
+		// For the Stream Planned Start / End Data Parameters Scenarios
+		// Normal Scenario Stream Parameters which are getMaxFpsAccept = null & getMaxResolution = null & getMaxBitrateAccept = null 
+		Mockito.doReturn(0).when(acceptStreamFilterSpy).getMaxFps();
+		Mockito.doReturn(0).when(acceptStreamFilterSpy).getMaxResolution();
+		Mockito.doReturn(0).when(acceptStreamFilterSpy).getMaxBitrate();
+		
 	}
 	
 	public AppSettings getAppSettings() {

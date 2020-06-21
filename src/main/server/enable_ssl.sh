@@ -168,6 +168,9 @@ auth_tomcat(){
     $SUDO mkdir $TEMP_DIR
   fi
 
+  PRIVATE_KEY_FILE="/etc/letsencrypt/live/$domain/privkey.pem"
+  
+  FULL_CHAIN_FILE="/etc/letsencrypt/live/$domain/fullchain.pem"
 
   EXPORT_P12_FILE=$TEMP_DIR/fullchain_and_key.p12
   
@@ -222,10 +225,10 @@ auth_tomcat(){
   output
   
   
-  $SUDO sed -i "/rtmps.keystorepass=password/c\rtmps.keystorepass=$password"  $INSTALL_DIRECTORY/conf/red5.properties
+  $SUDO sed -i "/rtmps.keystorepass=/c\rtmps.keystorepass=$password"  $INSTALL_DIRECTORY/conf/red5.properties
   output
   
-  $SUDO sed -i "/rtmps.truststorepass=password/c\rtmps.truststorepass=$password"  $INSTALL_DIRECTORY/conf/red5.properties
+  $SUDO sed -i "/rtmps.truststorepass=/c\rtmps.truststorepass=$password"  $INSTALL_DIRECTORY/conf/red5.properties
   output
   
   #uncomment ssl part in jee-container.xml

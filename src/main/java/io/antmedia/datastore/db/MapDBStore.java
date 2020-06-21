@@ -7,7 +7,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.regex.Pattern;
 
 import org.apache.commons.io.FilenameUtils;
@@ -192,7 +191,14 @@ public class MapDBStore extends DataStore {
 					broadcast.setStatus(status);
 					if(status.contentEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
 						broadcast.setStartTime(System.currentTimeMillis());
+						
 					}
+					else if(status.contentEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED)) {
+						broadcast.setRtmpViewerCount(0);
+						broadcast.setWebRTCViewerCount(0);
+						broadcast.setHlsViewerCount(0);
+					}
+					
 					String jsonVal = gson.toJson(broadcast);
 					String previousValue = map.replace(id, jsonVal);
 					db.commit();
@@ -249,7 +255,7 @@ public class MapDBStore extends DataStore {
 	}
 
 	@Override
-	public boolean removeEndpoint(String id, Endpoint endpoint) {
+	public boolean removeEndpoint(String id, Endpoint endpoint, boolean checkRTMPUrl) {
 		boolean result = false;
 		synchronized (this) {
 
@@ -261,7 +267,14 @@ public class MapDBStore extends DataStore {
 					if (endPointList != null) {
 						for (Iterator<Endpoint> iterator = endPointList.iterator(); iterator.hasNext();) {
 							Endpoint endpointItem = iterator.next();
-							if (endpointItem.getRtmpUrl().equals(endpoint.getRtmpUrl())) {
+							if(checkRTMPUrl) {
+								if (endpointItem.getRtmpUrl().equals(endpoint.getRtmpUrl())) {
+									iterator.remove();
+									result = true;
+									break;
+								}
+							}
+							else if (endpointItem.getEndpointServiceId().equals(endpoint.getEndpointServiceId())) {
 								iterator.remove();
 								result = true;
 								break;
@@ -509,7 +522,7 @@ public class MapDBStore extends DataStore {
 	@Override
 	public long getTotalVodNumber() {
 		synchronized (this) {
-			return getVodMap().size();
+			return vodMap.size();
 		}
 	}
 
@@ -723,7 +736,7 @@ public class MapDBStore extends DataStore {
 
 	public long getTotalBroadcastNumber() {
 		synchronized (this) {
-			return getMap().size();
+			return map.size();
 		}
 	}
 
@@ -832,7 +845,7 @@ public class MapDBStore extends DataStore {
 				{
 
 					updateStreamInfo(oldBroadcast, broadcast);
-					getMap().replace(streamId, gson.toJson(oldBroadcast));
+					map.replace(streamId, gson.toJson(oldBroadcast));
 
 					db.commit();
 					result = true;
@@ -1062,7 +1075,7 @@ public class MapDBStore extends DataStore {
 		synchronized (this) {
 			if (streamId != null) {
 				String jsonString = map.get(streamId);
-				if (jsonString != null && (enabled == MuxAdaptor.MP4_ENABLED_FOR_STREAM || enabled == MuxAdaptor.MP4_NO_SET_FOR_STREAM || enabled == MuxAdaptor.MP4_DISABLED_FOR_STREAM)) {			
+				if (jsonString != null && (enabled == MuxAdaptor.RECORDING_ENABLED_FOR_STREAM || enabled == MuxAdaptor.RECORDING_NO_SET_FOR_STREAM || enabled == MuxAdaptor.RECORDING_DISABLED_FOR_STREAM)) {			
 
 					Broadcast broadcast =  gson.fromJson(jsonString, Broadcast.class);	
 					broadcast.setMp4Enabled(enabled);
@@ -1076,6 +1089,26 @@ public class MapDBStore extends DataStore {
 		return result;
 	}
 
+	@Override
+	public boolean setWebMMuxing(String streamId, int enabled) {
+		boolean result = false;
+		synchronized (this) {
+			if (streamId != null) {
+				String jsonString = map.get(streamId);
+				if (jsonString != null && (enabled == MuxAdaptor.RECORDING_ENABLED_FOR_STREAM || enabled == MuxAdaptor.RECORDING_NO_SET_FOR_STREAM || enabled == MuxAdaptor.RECORDING_DISABLED_FOR_STREAM)) {			
+
+					Broadcast broadcast =  gson.fromJson(jsonString, Broadcast.class);	
+					broadcast.setWebMEnabled(enabled);
+					map.replace(streamId, gson.toJson(broadcast));
+
+					db.commit();
+					result = true;
+				}
+			}
+		}
+		return result;
+	}
+	
 	@Override
 	public void saveStreamInfo(StreamInfo streamInfo) {
 		//no need to implement this method, it is used in cluster mode

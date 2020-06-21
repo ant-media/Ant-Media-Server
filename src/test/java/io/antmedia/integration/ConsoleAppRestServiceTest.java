@@ -1,5 +1,7 @@
 package io.antmedia.integration;
 
+import static org.bytedeco.ffmpeg.global.avformat.av_register_all;
+import static org.bytedeco.ffmpeg.global.avformat.avformat_network_init;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -13,8 +15,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Type;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -61,25 +61,10 @@ import io.antmedia.EncoderSettings;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Licence;
 import io.antmedia.datastore.db.types.Token;
-import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.User;
 import io.antmedia.rest.model.Version;
 import io.antmedia.settings.ServerSettings;
-
-import org.bytedeco.ffmpeg.global.*;
-import org.bytedeco.ffmpeg.avcodec.*;
-import org.bytedeco.ffmpeg.avformat.*;
-import org.bytedeco.ffmpeg.avutil.*;
-import org.bytedeco.ffmpeg.swresample.*;
-import org.bytedeco.ffmpeg.swscale.*;
-
-import static org.bytedeco.ffmpeg.global.avutil.*;
-import static org.bytedeco.ffmpeg.global.avformat.*;
-import static org.bytedeco.ffmpeg.global.avcodec.*;
-import static org.bytedeco.ffmpeg.global.avdevice.*;
-import static org.bytedeco.ffmpeg.global.swresample.*;
-import static org.bytedeco.ffmpeg.global.swscale.*;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class ConsoleAppRestServiceTest{
@@ -276,8 +261,13 @@ public class ConsoleAppRestServiceTest{
 			assertTrue(result.isSuccess());
 
 			// get app settings and assert settings has changed - check vod folder has changed
-			appSettingsModel = callGetAppSettings("LiveApp");
-			assertEquals(new_vod_folder, appSettingsModel.getVodFolder());
+			
+			//for some odd cases, it may be updated via cluster in second turn
+			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(5, TimeUnit.SECONDS).until(()-> {
+				AppSettings local = callGetAppSettings("LiveApp");
+				return new_vod_folder.equals(local.getVodFolder());
+			});
+			
 
 			// check the related file to make sure settings changed for restart
 			// return back to default values
@@ -491,6 +481,11 @@ public class ConsoleAppRestServiceTest{
 
 			AppSettings appSettingsOriginal = callGetAppSettings(appName);
 
+			List<EncoderSettings> originalEncoderSettings = appSettingsOriginal.getEncoderSettings();
+			int encoderSettingSize = 0;
+			if (originalEncoderSettings != null) {
+				encoderSettingSize = originalEncoderSettings.size();
+			}
 			AppSettings appSettings = callGetAppSettings(appName);
 			int size = appSettings.getEncoderSettings().size();
 			List<EncoderSettings> settingsList = new ArrayList<>();
@@ -499,32 +494,33 @@ public class ConsoleAppRestServiceTest{
 
 			appSettings.setEncoderSettings(settingsList);
 			Result result = callSetAppSettings(appName, appSettings);
-			assertTrue(result.isSuccess());
+			assertFalse(result.isSuccess());
 
 			appSettings = callGetAppSettings(appName);
 			//it should not change the size because encoder setting is false, height should not be zero
-			assertEquals(0, appSettings.getEncoderSettings().size());
+			assertEquals(encoderSettingSize, appSettings.getEncoderSettings().size());
 
 
 
 			settingsList.add(new EncoderSettings(480, 0, 300000));
 			appSettings.setEncoderSettings(settingsList);
 			result = callSetAppSettings(appName, appSettings);
-			assertTrue(result.isSuccess());
+			assertFalse(result.isSuccess());
 			appSettings = callGetAppSettings(appName);
 			//it should not change the size because encoder setting is false, height should not be zero
-			assertEquals(0, appSettings.getEncoderSettings().size());
+			assertEquals(encoderSettingSize, appSettings.getEncoderSettings().size());
 
 
 			settingsList.add(new EncoderSettings(480, 2000, 0));
 			appSettings.setEncoderSettings(settingsList);
 			result = callSetAppSettings(appName, appSettings);
-			assertTrue(result.isSuccess());
+			assertFalse(result.isSuccess());
 			appSettings = callGetAppSettings(appName);
 			//it should not change the size because encoder setting is false, height should not be zero
-			assertEquals(0, appSettings.getEncoderSettings().size());
+			assertEquals(encoderSettingSize, appSettings.getEncoderSettings().size());
 
 
+			settingsList.clear();
 			settingsList.add(new EncoderSettings(480, 2000, 30000));
 			appSettings.setEncoderSettings(settingsList);
 
@@ -1579,24 +1575,27 @@ public class ConsoleAppRestServiceTest{
 
 	public static Result callSetAppSettings(String appName, AppSettings appSettingsModel) throws Exception {
 		String url = ROOT_SERVICE_URL + "/changeSettings/" + appName;
-		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
-				.setDefaultCookieStore(httpCookieStore).build();
-		Gson gson = new Gson();
-
-		HttpUriRequest post = RequestBuilder.post().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
-				.setEntity(new StringEntity(gson.toJson(appSettingsModel))).build();
-
-		HttpResponse response = client.execute(post);
-
-		StringBuffer result = RestServiceV2Test.readResponse(response);
-
-		if (response.getStatusLine().getStatusCode() != 200) {
-			throw new Exception(result.toString());
+		try (CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
+				.setDefaultCookieStore(httpCookieStore).build())
+		{
+			Gson gson = new Gson();
+	
+			HttpUriRequest post = RequestBuilder.post().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+					.setEntity(new StringEntity(gson.toJson(appSettingsModel))).build();
+	
+			try (CloseableHttpResponse response = client.execute(post)) {
+	
+				StringBuffer result = RestServiceV2Test.readResponse(response);
+		
+				if (response.getStatusLine().getStatusCode() != 200) {
+					throw new Exception(result.toString());
+				}
+				log.info("result string: " + result.toString());
+				Result tmp = gson.fromJson(result.toString(), Result.class);
+				assertNotNull(tmp);
+				return tmp;
+			}
 		}
-		log.info("result string: " + result.toString());
-		Result tmp = gson.fromJson(result.toString(), Result.class);
-		assertNotNull(tmp);
-		return tmp;
 
 	}
 

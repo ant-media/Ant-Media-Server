@@ -1,10 +1,28 @@
 package io.antmedia.streamsource;
 
+import static org.bytedeco.ffmpeg.global.avcodec.av_packet_free;
+import static org.bytedeco.ffmpeg.global.avcodec.av_packet_ref;
+import static org.bytedeco.ffmpeg.global.avcodec.av_packet_unref;
+import static org.bytedeco.ffmpeg.global.avformat.av_read_frame;
+import static org.bytedeco.ffmpeg.global.avformat.avformat_close_input;
+import static org.bytedeco.ffmpeg.global.avformat.avformat_find_stream_info;
+import static org.bytedeco.ffmpeg.global.avformat.avformat_open_input;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
+import static org.bytedeco.ffmpeg.global.avutil.av_dict_free;
+import static org.bytedeco.ffmpeg.global.avutil.av_dict_set;
+import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
+
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.bytedeco.ffmpeg.avcodec.AVPacket;
+import org.bytedeco.ffmpeg.avformat.AVFormatContext;
+import org.bytedeco.ffmpeg.avutil.AVDictionary;
+import org.bytedeco.ffmpeg.avutil.AVRational;
+import org.bytedeco.ffmpeg.global.avcodec;
+import org.bytedeco.ffmpeg.global.avutil;
 import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,20 +37,6 @@ import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.RtmpMuxer;
 import io.antmedia.rest.model.Result;
 import io.vertx.core.Vertx;
-
-import org.bytedeco.ffmpeg.global.*;
-import org.bytedeco.ffmpeg.avcodec.*;
-import org.bytedeco.ffmpeg.avformat.*;
-import org.bytedeco.ffmpeg.avutil.*;
-import org.bytedeco.ffmpeg.swresample.*;
-import org.bytedeco.ffmpeg.swscale.*;
-
-import static org.bytedeco.ffmpeg.global.avutil.*;
-import static org.bytedeco.ffmpeg.global.avformat.*;
-import static org.bytedeco.ffmpeg.global.avcodec.*;
-import static org.bytedeco.ffmpeg.global.avdevice.*;
-import static org.bytedeco.ffmpeg.global.swresample.*;
-import static org.bytedeco.ffmpeg.global.swscale.*;
 
 public class StreamFetcher {
 
@@ -76,7 +80,7 @@ public class StreamFetcher {
 	 * Buffer time in milliseconds
 	 */
 	private int bufferTime = 0;
-
+	
 	private ConcurrentLinkedQueue<AVPacket> availableBufferQueue = new ConcurrentLinkedQueue<>();
 
 	private AppSettings appSettings;
@@ -160,10 +164,13 @@ public class StreamFetcher {
 			result.setMessage(errorStr);		
 
 			logger.error("cannot open stream: {} with error:: {}",  stream.getStreamUrl(), result.getMessage());
+			av_dict_free(optionsDictionary);
+			optionsDictionary.close();
 			return result;
 		}
 
 		av_dict_free(optionsDictionary);
+		optionsDictionary.close();
 
 		ret = avformat_find_stream_info(inputFormatContext, (AVDictionary) null);
 		if (ret < 0) {
@@ -241,6 +248,7 @@ public class StreamFetcher {
 					// because there is no video frame
 
 					muxAdaptor.setFirstKeyFrameReceivedChecked(audioOnly); 
+					muxAdaptor.setEnableVideo(!audioOnly);
 					setUpEndPoints(stream.getStreamId(), muxAdaptor);
 
 					muxAdaptor.init(scope, stream.getStreamId(), false);
@@ -283,7 +291,6 @@ public class StreamFetcher {
 								logger.info("dts ({}) is bigger than pts({})", pkt.dts(), pkt.pts());
 								pkt.pts(pkt.dts());
 							}
-
 
 							/***************************************************
 							 *  Memory of being paranoid or failing while looking for excellence without understanding the whole picture
@@ -386,6 +393,7 @@ public class StreamFetcher {
 								break;
 							}
 						}
+						logger.info("Leaving the stream fetcher loop for stream: {}", stream.getStreamId());
 
 					}
 					else {
@@ -408,7 +416,6 @@ public class StreamFetcher {
 				logger.info("Removing packet writer job {}", packetWriterJobName);
 				vertx.cancelTimer(packetWriterJobName);
 			}
-
 			writeAllBufferedPackets();
 
 
@@ -421,6 +428,7 @@ public class StreamFetcher {
 
 			if (pkt != null) {
 				av_packet_free(pkt);
+				pkt.close();
 			}
 
 			if (inputFormatContext != null) {
@@ -482,49 +490,62 @@ public class StreamFetcher {
 
 		private void writeAllBufferedPackets() 
 		{
-			logger.info("write all buffered packets for stream: {}", stream.getStreamId());
-			while (!bufferQueue.isEmpty()) {
-
-				AVPacket pkt = bufferQueue.poll();
-				muxAdaptor.writePacket(inputFormatContext.streams(pkt.stream_index()), pkt);
-				av_packet_unref(pkt);
+			synchronized (this) {
+				//different threads may write writeBufferedPacket and this method at the same time
+				
+				logger.info("write all buffered packets for stream: {}", stream.getStreamId());
+				while (!bufferQueue.isEmpty()) {
+	
+					AVPacket pkt = bufferQueue.poll();
+					muxAdaptor.writePacket(inputFormatContext.streams(pkt.stream_index()), pkt);
+					av_packet_unref(pkt);
+				}
+	
+				AVPacket pkt;
+				while ((pkt = bufferQueue.poll()) != null) {
+					pkt.close();
+				}
+				
+				while ((pkt = availableBufferQueue.poll()) != null) {
+					pkt.close();
+				}
 			}
-
-			AVPacket pkt;
-			while ((pkt = bufferQueue.poll()) != null) {
-				pkt.close();
-			}
+			
 		}
 
 		//TODO: Code dumplication with MuxAdaptor.writeBufferedPacket. It should be refactored.
 		public void writeBufferedPacket() 
 		{
-			if (isJobRunning.compareAndSet(false, true)) 
-			{
-				if (!buffering) {
-					while(!bufferQueue.isEmpty()) {
-						AVPacket tempPacket = bufferQueue.peek(); 
-						long pktTime = av_rescale_q(tempPacket.pts(), inputFormatContext.streams(tempPacket.stream_index()).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
-						long now = System.currentTimeMillis();
-						long pktTimeDifferenceMs = pktTime - firstPacketReadyToSentTimeMs; 
-						long passedTime = now - bufferingFinishTimeMs;
-						if (pktTimeDifferenceMs < passedTime) {
-							muxAdaptor.writePacket(inputFormatContext.streams(tempPacket.stream_index()), tempPacket);
-							av_packet_unref(tempPacket);
-							bufferQueue.remove(); //remove the packet from the queue
-							availableBufferQueue.offer(tempPacket);
-						}
-						else {
-							//break the loop and don't block the thread because it's not correct time to send the packet
-							break;
+			synchronized (this) {
+			
+				if (isJobRunning.compareAndSet(false, true)) 
+				{
+					if (!buffering) {
+						while(!bufferQueue.isEmpty()) {
+							AVPacket tempPacket = bufferQueue.peek(); 
+							long pktTime = av_rescale_q(tempPacket.pts(), inputFormatContext.streams(tempPacket.stream_index()).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
+							long now = System.currentTimeMillis();
+							long pktTimeDifferenceMs = pktTime - firstPacketReadyToSentTimeMs; 
+							long passedTime = now - bufferingFinishTimeMs;
+							if (pktTimeDifferenceMs < passedTime) {
+								muxAdaptor.writePacket(inputFormatContext.streams(tempPacket.stream_index()), tempPacket);
+								av_packet_unref(tempPacket);
+								bufferQueue.remove(); //remove the packet from the queue
+								availableBufferQueue.offer(tempPacket);
+							}
+							else {
+								//break the loop and don't block the thread because it's not correct time to send the packet
+								break;
+							}
+							
 						}
 						
+						//update buffering. If bufferQueue is empty, it should start buffering
+						buffering = bufferQueue.isEmpty();
 					}
-					
-					//update buffering. If bufferQueue is empty, it should start buffering
-					buffering = bufferQueue.isEmpty();
+					isJobRunning.compareAndSet(true, false);
 				}
-				isJobRunning.compareAndSet(true, false);
+			
 			}
 		}
 	}

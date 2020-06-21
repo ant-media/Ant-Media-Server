@@ -1,51 +1,74 @@
 package io.antmedia.test.statistic;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-
-import org.junit.Test;
-import org.red5.server.api.scheduling.ISchedulingService;
-import org.red5.server.scheduling.QuartzSchedulingService;
-
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.concurrent.TimeUnit;
 
 import org.awaitility.Awaitility;
+import org.junit.Test;
 import org.springframework.context.ApplicationContext;
-import org.springframework.test.context.ContextConfiguration;
 
-import io.antmedia.datastore.db.DataStoreFactory;
+import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
+import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.HlsViewerStats;
-import io.antmedia.statistic.IStreamStats;
+import io.vertx.core.Vertx;
 
 
 public class HlsViewerStatsTest {
-
+	
+	Vertx vertx = io.vertx.core.Vertx.vertx();	
 
 	@Test
 	public void testHLSViewerCount() {
 		HlsViewerStats viewerStats = new HlsViewerStats();
-
+			
+		viewerStats.setVertx(vertx);
 		DataStore dataStore = new InMemoryDataStore("datastore");
 		viewerStats.setDataStore(dataStore);
 		
 		String streamId = String.valueOf((Math.random() * 999999));
+
+		Broadcast broadcast = new Broadcast();
+
+		try {
+			broadcast.setStreamId(streamId);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
 		for (int i = 0; i < 100; i++) {
 			String sessionId = String.valueOf((Math.random() * 999999));
 			viewerStats.registerNewViewer(streamId, sessionId);
 		}
 
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
+				()->viewerStats.getViewerCount(streamId) == 100 );
+		
 		int viewerCount = viewerStats.getViewerCount(streamId);
 		assertEquals(100, viewerCount);
 
 		assertEquals(0, viewerStats.getViewerCount("no_streamid"));
+
+		//Add same session ID
+		for (int i = 0; i < 10; i++) {
+			String sessionId = "sameSessionID";
+			viewerStats.registerNewViewer(streamId, sessionId);
+		}
+
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
+				()->viewerStats.getViewerCount(streamId) == 101 );
+
+		viewerCount = viewerStats.getViewerCount(streamId);
+		assertEquals(101, viewerCount);
 
 	}
 
@@ -68,22 +91,17 @@ public class HlsViewerStatsTest {
 	public void testSetApplicationContext() {
 		ApplicationContext context = mock(ApplicationContext.class);
 
-		QuartzSchedulingService scheduler = new QuartzSchedulingService();
-		scheduler.setConfigFile("src/main/server/conf/quartz.properties");
 		try {
-			scheduler.afterPropertiesSet();
 
 			DataStoreFactory dsf = new DataStoreFactory();
 			dsf.setDbType("memorydb");
 			dsf.setDbName("datastore");
 			when(context.getBean(DataStoreFactory.BEAN_NAME)).thenReturn(dsf);
-			
-			when(context.getBean(ISchedulingService.BEAN_NAME)).thenReturn(scheduler);
-			
+
 			when(context.containsBean(AppSettings.BEAN_NAME)).thenReturn(true);
-			
+
 			AppSettings settings = mock(AppSettings.class);
-			
+
 			//set hls time to 1
 			when(settings.getHlsTime()).thenReturn("1");
 			
@@ -92,41 +110,81 @@ public class HlsViewerStatsTest {
 			
 			HlsViewerStats viewerStats = new HlsViewerStats();
 			
+			viewerStats.setVertx(vertx);
 			viewerStats.setTimePeriodMS(1000);
-			
 			viewerStats.setApplicationContext(context);
 			
 			Broadcast broadcast = new Broadcast();
+			broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 			broadcast.setName("name");
 			
 			dsf.setWriteStatsToDatastore(true);
 			dsf.setApplicationContext(context);
 			String streamId = dsf.getDataStore().save(broadcast);
-			
-			String sessionId = "sessionId" + (int)(Math.random() * 10000);
-			viewerStats.registerNewViewer(streamId, sessionId);
-			viewerStats.registerNewViewer(streamId, sessionId);
-			
-			assertEquals(1, dsf.getDataStore().get(streamId).getHlsViewerCount());
-			
+
 			assertEquals(1000, viewerStats.getTimePeriodMS());
-			
 			assertEquals(10000, viewerStats.getTimeoutMS());
+
+			String sessionId = "sessionId" + (int)(Math.random() * 10000);
+
+			viewerStats.registerNewViewer(streamId, sessionId);
+			
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
+					()->viewerStats.getViewerCount(streamId) == 1 );
+
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
+					()->viewerStats.getIncreaseCounterMap(streamId) == 1 );
+			
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
+					()->viewerStats.getTotalViewerCount() == 1 );
+			
+			//Viewer timeout increase
+			viewerStats.registerNewViewer(streamId, sessionId);
+			
+			// Check viewer is online
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(
+					()-> dsf.getDataStore().get(streamId).getHlsViewerCount() == 1);
+			
+			// Wait some time for detect disconnect
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(
+					()-> dsf.getDataStore().get(streamId).getHlsViewerCount() == 0);
+			
+			assertEquals(0, viewerStats.getViewerCount(streamId));
+			assertEquals(0, viewerStats.getIncreaseCounterMap(streamId));
+			assertEquals(0, viewerStats.getTotalViewerCount());
+			
+			// Broadcast finished test
+			broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+			dsf.getDataStore().save(broadcast);
+			
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(
+					()-> dsf.getDataStore().save(broadcast).equals(streamId));
+			
+			
+			viewerStats.registerNewViewer(streamId, sessionId);
+			
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(
+					()-> viewerStats.getViewerCount(streamId) == 1);
 			
 			assertEquals(1, viewerStats.getViewerCount(streamId));
+			assertEquals(1, viewerStats.getIncreaseCounterMap(streamId));
+			assertEquals(1, viewerStats.getTotalViewerCount());
 			
-			//we set hls time to 1 above, user should be dropped after 1*10 seconds. 
-			Awaitility.await().atLeast(9, TimeUnit.SECONDS).atMost(12, TimeUnit.SECONDS).until(() -> {
-				return viewerStats.getViewerCount(streamId) == 0;
-			});
+			// Wait some time for detect disconnect
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(
+					()-> dsf.getDataStore().get(streamId).getHlsViewerCount() == 0);
+			
+			// Check Viewer 
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(
+					()-> viewerStats.getViewerCount(streamId) == 0);
+			
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(
+					()-> viewerStats.getIncreaseCounterMap(streamId) == 0);
+			
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(
+					()-> viewerStats.getTotalViewerCount() == 0);
 			
 			
-			assertEquals(0, dsf.getDataStore().get(streamId).getHlsViewerCount());
-			
-			
-			scheduler.destroy();
-			
-		
 		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());

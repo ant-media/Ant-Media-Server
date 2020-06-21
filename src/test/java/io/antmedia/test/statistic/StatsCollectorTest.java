@@ -23,6 +23,7 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.awaitility.Awaitility;
+import org.bytedeco.ffmpeg.avutil.AVRational;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
@@ -32,13 +33,13 @@ import org.red5.server.api.scope.IScope;
 import org.springframework.context.ApplicationContext;
 
 import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
+import io.antmedia.SystemUtils;
 import io.antmedia.rest.WebRTCClientStats;
 import io.antmedia.statistic.GPUUtils;
-import io.antmedia.statistic.StatsCollector;
 import io.antmedia.statistic.GPUUtils.MemoryStatus;
+import io.antmedia.statistic.StatsCollector;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.vertx.core.Vertx;
 
@@ -409,6 +410,13 @@ public class StatsCollectorTest {
 		assertEquals(true,monitor.enoughResource());
 
 		
+	}
+	
+	@Test
+	public void testMemInfo() {
+		
+		AVRational rational = new AVRational();
+		assertTrue( 0 != SystemUtils.osAvailableMemory());
 	}
 	
 }

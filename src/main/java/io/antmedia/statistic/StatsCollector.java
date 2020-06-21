@@ -57,6 +57,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 
 	public static final String IN_USE_NATIVE_MEMORY = "inUseNativeMemory";
 	
+	public static final String AVAILABLE_MEMORY = "availableMemory";
+	
 	public static final String IN_USE_SWAP_SPACE = "inUseSwapSpace";
 
 	public static final String FREE_SWAP_SPACE = "freeSwapSpace";
@@ -231,6 +233,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 
 	public static final String JVM_NATIVE_MEMORY_USAGE = "jvmNativeMemoryUsage";
 
+	private static final String HOST_ADDRESS = "host-address";
+
 	private Producer<Long,String> kafkaProducer = null;
 
 	private long cpuMeasurementTimerId = -1;
@@ -245,6 +249,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 
 	private GoogleAnalytics googleAnalytics;
 
+	private String hostAddress;
+	
 	public void start() {
 		cpuMeasurementTimerId  = getVertx().setPeriodic(measurementPeriod, l -> addCpuMeasurement(SystemUtils.getSystemCpuLoad()));
 		startKafkaProducer();
@@ -332,6 +338,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 			jsonObject.addProperty(MEASURED_BITRATE, webRTCClientStat.getMeasuredBitrate());
 			jsonObject.addProperty(SEND_BITRATE, webRTCClientStat.getSendBitrate());
 			jsonObject.addProperty(TIME, dateTime);
+			jsonObject.addProperty(HOST_ADDRESS, hostAddress);
 			//logstash cannot parse json array so that we send each info separately
 			send2Kafka(jsonObject, WEBRTC_STATS_TOPIC_NAME);
 		}
@@ -475,6 +482,10 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 		jsonObject.addProperty(TOTAL_SWAP_SPACE, SystemUtils.osTotalSwapSpace());
 		jsonObject.addProperty(FREE_SWAP_SPACE, SystemUtils.osFreeSwapSpace());
 		jsonObject.addProperty(IN_USE_SWAP_SPACE, SystemUtils.osInUseSwapSpace());
+		
+		
+		jsonObject.addProperty(AVAILABLE_MEMORY, SystemUtils.osAvailableMemory());
+		
 		return jsonObject;
 	}
 	
@@ -572,6 +583,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 		JsonObject jsonObject = getSystemResourcesInfo(scopes);
 
 		jsonObject.addProperty(TIME, DateTimeFormatter.ISO_INSTANT.format(Instant.now()));
+		jsonObject.addProperty(HOST_ADDRESS, hostAddress);
 
 		send2Kafka(jsonObject, INSTANCE_STATS_TOPIC_NAME); 
 
@@ -611,17 +623,12 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 		boolean enoughResource = false;
 		
 		if(getCpuLoad() < getCpuLimit()) 
-		{			
-			if (getFreeRam() > getMinFreeRamSize()) 
+		{		
+			int freeRam = getFreeRam();
+			if (freeRam > getMinFreeRamSize() || freeRam == -1)  
 			{
-				long freeMemoryMB = SystemUtils.convertByteSize(SystemUtils.osFreePhysicalMemory(),"MB") ;
-				if (freeMemoryMB > getMinFreeRamSize())
-				{
-					enoughResource = true;
-				}
-				else {
-					logger.error("Not enough resource. There is no enough free memory. Current free memory ({}) < min free memory({}) ", freeMemoryMB, getMinFreeRamSize());
-				}
+				//if it does not calculate the free ram, return true
+				enoughResource = true;		
 			}
 			else {
 				logger.error("Not enough resource. Due to not free RAM. Free RAM should be more than  {} but it is: {}", minFreeRamSize, getFreeRam());
@@ -637,10 +644,11 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 	
 	@Override
 	public int getFreeRam() {
-		//return the allocatable free ram which means max memory - inuse memory
-		//inuse memory means total memory - free memory
-		long inuseMemory = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-		return (int)SystemUtils.convertByteSize(Runtime.getRuntime().maxMemory() - inuseMemory, "MB");
+		long availableMemory = SystemUtils.osAvailableMemory();
+		if (availableMemory != 0) {
+			return (int)SystemUtils.convertByteSize(availableMemory, "MB");
+		}
+		return -1;
 	}
 
 	@Override
@@ -718,6 +726,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 
 		ServerSettings serverSettings = (ServerSettings) applicationContext.getBean(ServerSettings.BEAN_NAME);
 		heartBeatEnabled = serverSettings.isHeartbeatEnabled();
+		hostAddress = serverSettings.getHostAddress();
 	}
 
 	public int getStaticSendPeriod() {
@@ -750,17 +759,20 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 		hearbeatPeriodicTask = vertx.setPeriodic(periodMS, 
 				l -> {
 					if(logger != null) {
-						logger.info("-Heartbeat-> System cpu load: {} Free memory: {} KB", cpuLoad, SystemUtils.convertByteSize(SystemUtils.osFreePhysicalMemory(),"KB"));
+						logger.info("-Heartbeat-> System cpu load: {} process cpu load:{} free memory: {} KB available memory: {} KB used memory(RSS): {} KB", cpuLoad, SystemUtils.getProcessCpuLoad(), SystemUtils.convertByteSize(SystemUtils.osFreePhysicalMemory(),"KB"), SystemUtils.convertByteSize(SystemUtils.osAvailableMemory(), "KB"), SystemUtils.convertByteSize(Pointer.physicalBytes(), "KB"));
 					}
 					else {
 						System.out.println("-Heartbeat-> System cpu load:" + cpuLoad + " Free memory: {} KB" + SystemUtils.convertByteSize(SystemUtils.osFreePhysicalMemory(),"KB"));
 					}
+										
 					getGoogleAnalytic(implementationVersion, type).event()
 					.eventCategory("server_status")
 					.eventAction("heartbeat")
 					.eventLabel("")
 					.clientId(Launcher.getInstanceId())
 					.sendAsync();
+					
+					
 				}
 				);
 
@@ -783,7 +795,6 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 
 			@Override
 			public void run() {
-
 				if(logger != null) {
 					logger.info("Shutting down just a sec");
 				}

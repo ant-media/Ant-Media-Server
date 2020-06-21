@@ -1,13 +1,13 @@
 package io.antmedia.logger;
 
+import java.io.File;
+
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.File;
 
 public class LoggerUtilsTest {
     private static final Logger logger = LoggerFactory.getLogger(LoggerUtilsTest.class);

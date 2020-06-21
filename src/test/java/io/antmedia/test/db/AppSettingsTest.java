@@ -90,25 +90,20 @@ public class AppSettingsTest {
 		settings.setEncoderSettings(encoderSettings);
 		
 		
-		assertTrue(mockApplicationAdapter.updateSettings(settings, false));
+		assertFalse(mockApplicationAdapter.updateSettings(settings, false));
 		
 		AppSettings savedSettings = mockApplicationAdapter.getAppSettings();
 		
-		assertEquals(1, savedSettings.getEncoderSettings().size()); //wrong settings not applied, it is 1
-		assertEquals(720, savedSettings.getEncoderSettings().get(0).getHeight());
-		assertEquals(2500000, savedSettings.getEncoderSettings().get(0).getVideoBitrate());
-		assertEquals(128000, savedSettings.getEncoderSettings().get(0).getAudioBitrate());
-		
+		assertEquals(0, savedSettings.getEncoderSettings().size()); //wrong settings so that none of them is applied, it is 0
 		
 		
 		ArgumentCaptor<List<EncoderSettings>> encoderSettingsCapture = ArgumentCaptor.forClass(List.class);
-		verify(mockSettings, times(2)).setEncoderSettings(encoderSettingsCapture.capture());
+		verify(mockSettings, times(1)).setEncoderSettings(encoderSettingsCapture.capture());
 		
 		List<EncoderSettings> encoderSettings2 = encoderSettingsCapture.getValue();
 		
-		assertEquals(720, encoderSettings2.get(0).getHeight());
-		assertEquals(2500000, encoderSettings2.get(0).getVideoBitrate());
-		assertEquals(128000, encoderSettings2.get(0).getAudioBitrate());
+		assertEquals(0, encoderSettings2.size());
+		
 		
 	}
 	
@@ -162,9 +157,27 @@ public class AppSettingsTest {
 		settings.setEncoderSettings(encoderSettings);
 		settings.setPreviewOverwrite(false);
 		
-		mockApplicationAdapter.updateSettings(settings, false);
+		boolean updateSettings = mockApplicationAdapter.updateSettings(settings, false);
+		assertFalse(updateSettings);
 		
 		savedSettings = mockApplicationAdapter.getAppSettings();
+		
+		//settings should not be changed because wron encoder parameter
+		assertEquals("5", savedSettings.getHlsListSize());
+		assertNull(savedSettings.getVodFolder());
+		assertEquals("1", savedSettings.getHlsTime());
+		assertNull(savedSettings.getHlsPlayListType());
+		assertEquals(0, savedSettings.getEncoderSettings().size()); //wrong settings not applied, it is 0
+		
+		
+		encoderSettings = new ArrayList<>();
+		encoderSettings.add(new EncoderSettings(720, 2500000, 128000)); //correct 
+		settings.setEncoderSettings(encoderSettings);
+		settings.setPreviewOverwrite(false);
+		
+		updateSettings = mockApplicationAdapter.updateSettings(settings, false);
+		assertTrue(updateSettings);
+		
 		assertEquals("12", savedSettings.getHlsListSize());
 		assertEquals("/mnt/storage", savedSettings.getVodFolder());
 		assertEquals("17", savedSettings.getHlsTime());

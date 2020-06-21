@@ -40,6 +40,7 @@ import org.springframework.web.context.support.WebApplicationContextUtils;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.IApplicationAdaptorFactory;
+import io.antmedia.RecordType;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
@@ -113,9 +114,9 @@ public abstract class RestServiceBase {
 	public static final int ERROR_SOCIAL_ENDPOINT_UNDEFINED_ENDPOINT = -2;
 	public static final int ERROR_SOCIAL_ENDPOINT_EXCEPTION_IN_ASKING_AUTHPARAMS = -3;
 
-	public static final int MP4_ENABLE = 1;
-	public static final int MP4_DISABLE = -1;
-	public static final int MP4_NO_SET = 0;
+	public static final int RECORD_ENABLE = 1;
+	public static final int RECORD_DISABLE = -1;
+	public static final int RECORD_NO_SET = 0;
 
 	public static final int HIGH_CPU_ERROR = -3;
 	public static final int FETCHER_NOT_STARTED_ERROR = -4;
@@ -123,6 +124,7 @@ public abstract class RestServiceBase {
 
 	public static final String HTTP = "http://";
 	public static final String RTSP = "rtsp://";
+	public static final String ENDPOINT_GENERIC = "generic";
 
 	protected static Logger logger = LoggerFactory.getLogger(RestServiceBase.class);
 
@@ -174,7 +176,7 @@ public abstract class RestServiceBase {
 		try {
 			endpoint = socialEndpoint.createBroadcast(broadcast.getName(),
 					broadcast.getDescription(), broadcast.getStreamId(), broadcast.isIs360(), broadcast.isPublicStream(),
-					720, true);
+					2160, true);
 			return getDataStore().addEndpoint(broadcast.getStreamId(), endpoint);
 
 		} catch (Exception e) {
@@ -188,7 +190,7 @@ public abstract class RestServiceBase {
 	}
 
 	@Nullable
-	protected ApplicationContext getAppContext() {
+	public ApplicationContext getAppContext() {
 		if (servletContext != null) {
 			appCtx = (ApplicationContext) servletContext
 					.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
@@ -529,6 +531,7 @@ public abstract class RestServiceBase {
 		return new Result(result, message);
 	}
 
+	@Deprecated
 	public Result addEndpoint(String id, String rtmpUrl) {
 		boolean success = false;
 		String message = null;
@@ -537,7 +540,7 @@ public abstract class RestServiceBase {
 			{
 				Endpoint endpoint = new Endpoint();
 				endpoint.setRtmpUrl(rtmpUrl);
-				endpoint.type = "generic";
+				endpoint.setType(ENDPOINT_GENERIC);
 
 				success = getDataStore().addEndpoint(id, endpoint);
 			}
@@ -548,15 +551,49 @@ public abstract class RestServiceBase {
 		return new Result(success, message);
 	}
 
+	public Result addEndpoint(String id, Endpoint endpoint) {
+		boolean success = false;
+		String message = null;
+		
+		endpoint.setType(ENDPOINT_GENERIC);
+		//generate custom endpoint invidual ID
+		String endpointServiceId = "custom"+RandomStringUtils.randomAlphabetic(6);		
+		endpoint.setEndpointServiceId(endpointServiceId);
 
+		
+		try {
+			if (validateStreamURL(endpoint.getRtmpUrl())) 
+			{
+				success = getDataStore().addEndpoint(id, endpoint);
+			}
+		} catch (Exception e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+		}
+
+		return new Result(success, message);
+	}
+
+	@Deprecated
 	public Result removeEndpoint(String id, String rtmpUrl) 
 	{
 		Endpoint endpoint = new Endpoint();
 		endpoint.setRtmpUrl(rtmpUrl);
-		endpoint.type = "generic";
+		endpoint.setType(ENDPOINT_GENERIC);
 
-		boolean removed = getDataStore().removeEndpoint(id, endpoint);
+		boolean removed = getDataStore().removeEndpoint(id, endpoint, true);
 		return new Result(removed);
+	}
+	
+	public Result removeRTMPEndpoint(String id, String endpointServiceId) 
+	{
+		Endpoint endpoint = new Endpoint();
+		endpoint.setType(ENDPOINT_GENERIC);
+		endpoint.setEndpointServiceId(endpointServiceId);
+
+		boolean removed = getDataStore().removeEndpoint(id, endpoint, false);
+		
+		return new Result(removed);
+	
 	}
 
 
@@ -1388,25 +1425,25 @@ public abstract class RestServiceBase {
 		return mp4Muxer;
 	}
 
-	protected boolean startMp4Muxing(String streamId) {
+	protected boolean startRecord(String streamId, RecordType recordType) {
 		boolean result = false;
 		MuxAdaptor muxAdaptor = getMuxAdaptor(streamId);
 		if (muxAdaptor != null) 
 		{
-			result = muxAdaptor.startRecording();
+			result = muxAdaptor.startRecording(recordType);
 		}
 
 		return result;
 	}
 
-	protected boolean stopMp4Muxing(String streamId) 
+	protected boolean stopRecord(String streamId, RecordType recordType) 
 	{
 		boolean result = false;
 		MuxAdaptor muxAdaptor = getMuxAdaptor(streamId);
 
 		if (muxAdaptor != null) 
 		{
-			result = muxAdaptor.stopRecording();
+			result = muxAdaptor.stopRecording(recordType);
 		}
 
 		return result;
