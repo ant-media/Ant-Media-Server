@@ -1551,6 +1551,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			int packetNumber = 0;
 			int lastTimeStamp = 0;
 			int startOfRecordingTimeStamp = 0;
+			ArrayList<Integer> timeStamps = new ArrayList<>();
 			while (flvReader.hasMoreTags()) {
 
 				ITag readTag = flvReader.readTag();
@@ -1560,7 +1561,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 				if(packetNumber == 0){
 					logger.info("timeStamp 1 "+streamPacket.getTimestamp());
 				}
-
+				timeStamps.add(lastTimeStamp);
 				muxAdaptor.packetReceived(null, streamPacket);
 
 
@@ -1583,8 +1584,14 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			assertTrue(muxAdaptor.isRecording());
 			final String finalFilePath = muxAdaptor.getMuxerList().get(0).getFile().getAbsolutePath();
 
-
+			int inputQueueSize = muxAdaptor.getInputQueueSize();
+			logger.info("----input queue size before stop recording: {}", inputQueueSize);
+			int estimatedLastTimeStamp = lastTimeStamp;
+			if (inputQueueSize > 0) {
+				estimatedLastTimeStamp = timeStamps.get((timeStamps.size() - inputQueueSize));
+			}
 			assertTrue(muxAdaptor.stopRecording(RecordType.MP4));
+			
 			muxAdaptor.stop();
 
 			flvReader.close();
@@ -1593,7 +1600,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 			assertFalse(muxAdaptor.isRecording());
 			
-			assertTrue(MuxingTest.testFile(finalFilePath, lastTimeStamp-startOfRecordingTimeStamp));
+			assertTrue(MuxingTest.testFile(finalFilePath, estimatedLastTimeStamp-startOfRecordingTimeStamp));
 
 		} catch (Exception e) {
 			e.printStackTrace();
