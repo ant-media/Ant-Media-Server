@@ -337,9 +337,11 @@ public class MuxingTest {
 		 String streamIdDynamic = "dynamic_stream" + (int)(Math.random() * 999999);
 		 String dynamicRtmpURL = "rtmp://localhost/LiveApp/" + streamIdDynamic;
 		 try {
-			Result result = RestServiceV2Test.addEndpoint(streamId, dynamicRtmpURL);
-			assertTrue(result.isSuccess());
-			
+			 Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+				 //if stream is being prepared, it may return false, so try again 
+				 Result result = RestServiceV2Test.addEndpoint(streamId, dynamicRtmpURL);
+				 return result.isSuccess();
+			 });
 			
 			 Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
 			 .until(() -> { 
@@ -350,7 +352,7 @@ public class MuxingTest {
 					 return false;
 			 	});
 			 
-			 result = RestServiceV2Test.removeEndpoint(streamId, dynamicRtmpURL);
+			 Result result = RestServiceV2Test.removeEndpoint(streamId, dynamicRtmpURL);
 			 assertTrue(result.isSuccess());
 			 
 			 Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
