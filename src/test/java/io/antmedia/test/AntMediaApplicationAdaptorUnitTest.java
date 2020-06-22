@@ -293,7 +293,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		Mockito.when(dsf.getDataStore()).thenReturn(dataStore);
 		adapter.setDataStoreFactory(dsf);
 
-		adapter.setVertx(Vertx.vertx());
+		adapter.setVertx(vertx);
 
 		File anyFile = new File("src/test/resources/sample_MP4_480.mp4");
 
@@ -331,7 +331,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		File f = new File ("src/test/resources/hello_script");
 		assertFalse(f.exists());
 
-		adapter.setVertx(Vertx.vertx());
+		adapter.setVertx(vertx);
 		adapter.runScript("src/test/resources/echo.sh");
 
 		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(()-> f.exists());

@@ -1040,7 +1040,9 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			MetricsService metricsService = MetricsService.create(vertx);
 			String activeThreadKey = "vertx.pools.worker.vert.x-worker-thread.in-use";
 			JsonObject metrics = metricsService.getMetricsSnapshot(activeThreadKey);
-			activeVertexThreadCount = metrics.getJsonObject(activeThreadKey).getInteger("count");
+			if (metrics != null) {
+				activeVertexThreadCount = metrics.getJsonObject(activeThreadKey).getInteger("count");
+			}
 		}
 		catch (Exception e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
