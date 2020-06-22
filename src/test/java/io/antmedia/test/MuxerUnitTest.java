@@ -1569,7 +1569,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 					Awaitility.await().atMost(90, TimeUnit.SECONDS).until(() -> muxAdaptor.getInputQueueSize() == 0);
 					logger.info("----input queue size: {}", muxAdaptor.getInputQueueSize());
 					startOfRecordingTimeStamp = streamPacket.getTimestamp();
-					muxAdaptor.startRecording(RecordType.MP4);
+					assertTrue(muxAdaptor.startRecording(RecordType.MP4));
 				}
 				packetNumber++;
 
@@ -1584,7 +1584,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			final String finalFilePath = muxAdaptor.getMuxerList().get(0).getFile().getAbsolutePath();
 
 
-			muxAdaptor.stopRecording(RecordType.MP4);
+			assertTrue(muxAdaptor.stopRecording(RecordType.MP4));
 			muxAdaptor.stop();
 
 			flvReader.close();
@@ -1592,7 +1592,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(() -> !muxAdaptor.isRecording());
 
 			assertFalse(muxAdaptor.isRecording());
-
+			
 			assertTrue(MuxingTest.testFile(finalFilePath, lastTimeStamp-startOfRecordingTimeStamp));
 
 		} catch (Exception e) {

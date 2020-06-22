@@ -530,7 +530,7 @@ public class MuxingTest {
 
 			if (expectedDurationInMS != 0) {
 				if ((durationInMS < (expectedDurationInMS - 2000)) || (durationInMS > (expectedDurationInMS + 2000))) {
-					System.out.println("Failed: duration of the stream: " + durationInMS);
+					System.out.println("Failed: duration of the stream: " + durationInMS + " expected duration is: " + expectedDurationInMS);
 					return false;
 				}
 			}
