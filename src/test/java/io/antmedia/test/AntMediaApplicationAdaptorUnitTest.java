@@ -636,6 +636,11 @@ public class AntMediaApplicationAdaptorUnitTest {
 		when(scope.getName()).thenReturn("test");
 		adapter.setScope(scope);
 		
+		IContext context = mock(IContext.class);
+		when(scope.getContext()).thenReturn(context);
+		when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(new AppSettings());
+
+		
 		adapter.setServerSettings(Mockito.spy(new ServerSettings()));
 		
 		DataStore dataStore = mock(DataStore.class);
