@@ -159,7 +159,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			//Save App Setting
 			setShutdownProperly(false);
 			// Reset Broadcast Stats
-			resetBroadcasts(app.getName());
+			resetBroadcasts();
 		}
 
 
@@ -228,9 +228,9 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	 * It should not be run in cluster mode
 	 * @return
 	 */
-	public Result resetBroadcasts(String appName){
+	public Result resetBroadcasts(){
 		
-		logger.info("Resetting streams viewer numbers because there is an unexpected stop happened in app: {}", appName);
+		logger.info("Resetting streams viewer numbers because there is an unexpected stop happened in app: {}", getScope() != null? getScope().getName() : "[scope is null]");
 		Result result = new Result(false);
 		
 		long broadcastCount = getDataStore().getBroadcastCount();
