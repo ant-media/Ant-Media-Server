@@ -1006,40 +1006,6 @@ public class MongoStore extends DataStore {
 	}
 
 	@Override
-	public void clearStreamsOnThisServer(String hostAddress) {
-		synchronized(this) {
-			Query<Broadcast> query = datastore.createQuery(Broadcast.class);
-			query.and(
-					query.or(
-							query.criteria(ORIGIN_ADDRESS).doesNotExist(), //check for non cluster mode
-							query.criteria(ORIGIN_ADDRESS).equal(hostAddress)
-							),
-					query.criteria("zombi").equal(true)
-					);
-			long count = query.count();
-			
-			if(count > 0) {
-				logger.error("There are {} streams for {} at start. They are deleted now.", count, hostAddress);
-
-				WriteResult res = datastore.delete(query);
-				if(res.getN() != count) {
-					logger.error("Only {} streams were deleted ou of {} streams.", res.getN(), count);
-				}
-			}
-
-			Query<StreamInfo> querySI = datastore.createQuery(StreamInfo.class).field("host").equal(hostAddress);
-			count = querySI.count();
-			if(count > 0) {
-				logger.error("There are {} stream info adressing {} at start. They are deleted now.", count, hostAddress);
-				WriteResult res = datastore.delete(querySI);
-				if(res.getN() != count) {
-					logger.error("Only {} stream info were deleted out of {} streams.", res.getN(), count);
-				}
-			}
-		}
-	}
-
-	@Override
 	public boolean createConferenceRoom(ConferenceRoom room) {
 		boolean result = false;
 		synchronized(this) {
@@ -1262,5 +1228,85 @@ public class MongoStore extends DataStore {
 			}
 		}
 		return result;
+	}
+	
+	@Override
+	public int resetBroadcasts(String hostAddress) 
+	{
+		int totalOperationCount = 0;
+		synchronized(this) {
+			{
+				//delete zombi streams that are belong to origin address
+				Query<Broadcast> query = datastore.createQuery(Broadcast.class);
+				query.and(
+						query.or(
+								query.criteria(ORIGIN_ADDRESS).doesNotExist(), //check for non cluster mode
+								query.criteria(ORIGIN_ADDRESS).equal(hostAddress)
+								),
+						query.criteria("zombi").equal(true)
+						);
+				long count = query.count();
+				
+				if(count > 0) 
+				{
+					logger.error("There are {} streams for {} at start. They are deleted now.", count, hostAddress);
+	
+					WriteResult res = datastore.delete(query);
+					if(res.getN() != count) {
+						logger.error("Only {} streams were deleted out of {} streams.", res.getN(), count);
+					}
+					totalOperationCount += res.getN();
+				}
+			}
+			
+			{
+				//reset the broadcasts viewer numbers
+				Query<Broadcast> queryUpdateStatus = datastore.createQuery(Broadcast.class);
+				queryUpdateStatus.and(queryUpdateStatus.criteria(ORIGIN_ADDRESS).equal(hostAddress));
+				
+				long broadcastCount = queryUpdateStatus.count();
+	
+				if (broadcastCount > 0) 
+				{
+					UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class);
+					ops.set(WEBRTC_VIEWER_COUNT, 0);
+					ops.set(HLS_VIEWER_COUNT, 0);
+					ops.set(RTMP_VIEWER_COUNT, 0);
+					ops.set(STATUS, AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+					
+					UpdateResults update = datastore.update(queryUpdateStatus, ops);
+					
+					if (update.getUpdatedCount() == broadcastCount) 
+					{
+						logger.info("{} of Broadcasts are reset. ", broadcastCount);
+					}
+					else 
+					{
+						logger.error("Broadcast reset count is not correct. {} stream info were updated out of {} streams.", update.getUpdatedCount(), broadcastCount);
+					}
+					
+					totalOperationCount += update.getUpdatedCount();
+				}
+				
+			}
+			
+			{
+				//delete streaminfo 
+				Query<StreamInfo> querySI = datastore.createQuery(StreamInfo.class).field("host").equal(hostAddress);
+				long count = querySI.count();
+				if(count > 0) 
+				{
+					logger.error("There are {} stream info adressing {} at start. They are deleted now.", count, hostAddress);
+					WriteResult res = datastore.delete(querySI);
+					if(res.getN() != count) {
+						logger.error("Only {} stream info were deleted out of {} streams.", res.getN(), count);
+					}
+					totalOperationCount += res.getN();
+				}
+			}
+			
+		}
+		
+		return totalOperationCount;
 	}
 }

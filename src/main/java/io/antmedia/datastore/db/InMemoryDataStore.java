@@ -903,4 +903,10 @@ public class InMemoryDataStore extends DataStore {
 		return result;
 	}
 	
+	@Override
+	public int resetBroadcasts(String hostAddress) {
+		//No need to implement because it's already in memory
+		return 0;
+	}
+	
 }
