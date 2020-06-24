@@ -183,8 +183,7 @@ public class WebSocketConstants {
 	/**
 	 * Command that stream set resolution request.
 	 */
-	
-	public static final String SET_STREAM_RESOLUTION = "setStreamResolution";
+	public static final String FORCE_STREAM_QUALITY = "forceStreamQuality";
 	
 	/**
 	 * Notification field used when returning stream information

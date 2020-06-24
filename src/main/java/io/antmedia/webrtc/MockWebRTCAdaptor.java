@@ -102,4 +102,9 @@ public class MockWebRTCAdaptor implements IWebRTCAdaptor{
 	public void setTryCountBeforeSwitchback(int tryCountBeforeSwitchback) {
 		//No implementation since this is mock
 	}
+
+	@Override
+	public void forceStreamingQuality(String streamId, IWebRTCClient webRTCClient, int streamHeight) {
+		//No implementation since this is mock
+	}
 }

@@ -161,7 +161,14 @@ public interface IWebRTCClient {
 	
 	/**
 	 * 
+	 * @return stream resolution forced value
+	 * If it's automatic, it returns 0
+	 */
+	public int getForceStreamHeight();
+	
+	/**
+	 * 
 	 * @return stream resolution current value
 	 */
-	public int getFixedStreamResolution();
+	public void forceStreamQuality(int streamHeight);
 }
