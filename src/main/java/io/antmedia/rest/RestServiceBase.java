@@ -1845,5 +1845,11 @@ public abstract class RestServiceBase {
 		}
 	}
 
+	protected List<String> getVoDIdByStreamId(String streamID) {
+		if(streamID!=null){
+			return getDataStore().getVoDIdByStreamId(streamID);
+		}
+		return null;
+	}
 
 }

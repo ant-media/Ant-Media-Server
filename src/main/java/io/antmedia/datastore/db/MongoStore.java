@@ -1263,4 +1263,17 @@ public class MongoStore extends DataStore {
 		}
 		return result;
 	}
+
+	@Override
+	public List<String> getVoDIdByStreamId(String streamID) {
+		List<String> vodIds=new ArrayList<>();
+		synchronized(this){
+			List<VoD> vods=vodDatastore.find(VoD.class).asList();
+			for(VoD vod:vods){
+				if(vod.getStreamId().equals(streamID))
+					vodIds.add(vod.getVodId());
+			}
+		}
+		return vodIds;
+	}
 }

@@ -16,14 +16,18 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Type;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 import javax.servlet.ServletContext;
 import javax.ws.rs.core.Context;
 
+import io.antmedia.AppSettings;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
@@ -1837,6 +1841,104 @@ public class RestServiceV2Test {
 			}
 		}
 		return result;
+	}
+
+	@Test
+	public void testVoDIdListByStreamId() {
+		ConsoleAppRestServiceTest.resetCookieStore();
+		Result result;
+		try {
+			result = ConsoleAppRestServiceTest.callisFirstLogin();
+
+			if (result.isSuccess()) {
+				Result createInitialUser = ConsoleAppRestServiceTest.createDefaultInitialUser();
+				assertTrue(createInitialUser.isSuccess());
+			}
+
+			result = ConsoleAppRestServiceTest.authenticateDefaultUser();
+			assertTrue(result.isSuccess());
+			Random r = new Random();
+			String streamId = "streamId" + r.nextInt();
+
+			AppSettings appSettingsModel = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
+
+			appSettingsModel.setMp4MuxingEnabled(true);
+
+			result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettingsModel);
+			assertTrue(result.isSuccess());
+
+			//this process should be terminated autotimacally because test.flv has 25fps and 360p
+
+			startStopRTMPBroadcast(streamId);
+
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> {
+				return isUrlExist("http://localhost:5080/LiveApp/streams/"+streamId+".mp4");
+			});
+
+			startStopRTMPBroadcast(streamId);
+
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> {
+				return isUrlExist("http://localhost:5080/LiveApp/streams/"+streamId+"_1.mp4");
+			});
+
+			startStopRTMPBroadcast("dummyStreamId");
+
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> {
+				return isUrlExist("http://localhost:5080/LiveApp/streams/"+"dummyStreamId.mp4");
+			});
+			String url = ROOT_SERVICE_URL + "/v2/vods/list?streamId="+streamId;
+			HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
+					.setDefaultCookieStore(ConsoleAppRestServiceTest.getHttpCookieStore()).build();
+			Gson gson = new Gson();
+
+			HttpUriRequest get = RequestBuilder.get().setUri(url).build();
+
+			HttpResponse response = client.execute(get);
+
+			StringBuffer restResult = RestServiceV2Test.readResponse(response);
+
+			if (response.getStatusLine().getStatusCode() != 200) {
+				System.out.println("status code: " + response.getStatusLine().getStatusCode());
+				throw new Exception(restResult.toString());
+			}
+			logger.info("result string: " + restResult.toString());
+			Type listType = new TypeToken<List<String>>() {}.getType();
+
+			List<String> vodIdList = gson.fromJson(restResult.toString(), listType);
+			assertNotNull(vodIdList);
+
+			assertEquals(2, vodIdList.size());
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+	}
+
+	private void startStopRTMPBroadcast(String streamId) throws InterruptedException {
+		Process rtmpSendingProcess = AppFunctionalV2Test.execute(ffmpegPath
+				+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
+				+ streamId);
+
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> {
+			return rtmpSendingProcess.isAlive();
+		});
+
+		Thread.sleep(5000);
+
+		rtmpSendingProcess.destroy();
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> {
+			return !rtmpSendingProcess.isAlive();
+		});
+	}
+
+	private boolean isUrlExist(String url) {
+		try {
+			return ((HttpURLConnection) new URL(url).openConnection()).getResponseCode() == 200;
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return false;
 	}
 
 }

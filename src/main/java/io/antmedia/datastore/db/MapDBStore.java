@@ -1292,5 +1292,26 @@ public class MapDBStore extends DataStore {
 			return result;
 		}
 	}
-	
+
+	@Override
+	public List<String> getVoDIdByStreamId(String streamID) {
+		List<String> vodIds=new ArrayList<>();
+		synchronized (this){
+			Collection<String> values=vodMap.values();
+			int i=0;
+			int length=values.size();
+			for(String vodString:values){
+				VoD vod=gson.fromJson(vodString, VoD.class);
+				if(vod.getStreamId().equals(streamID))
+					vodIds.add(vod.getVodId());
+				i++;
+				if(i>length) {
+					logger.error("Inconsistency in DB. It's likely db file({}) is damaged", dbName);
+					break;
+				}
+			}
+			return vodIds;
+		}
+	}
+
 }

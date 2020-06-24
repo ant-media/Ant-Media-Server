@@ -57,7 +57,7 @@ public class VoDRestService extends RestServiceBase{
 	public VoD getVoD(@ApiParam(value = "id of the VoD", required = true) @PathParam("id") String id) {
 		return super.getVoD(id);
 	}
-	
+
 	@ApiOperation(value = "Import VoDs to Stalker Portal", response = Result.class)
 	@POST
 	@Path("/import-to-stalker")
@@ -126,5 +126,12 @@ public class VoDRestService extends RestServiceBase{
 		return super.synchUserVodList();
 	}
 
-	
+	@ApiOperation(value = "Get Vod Id list by the Stream Id", response = VoD.class)
+	@GET
+	@Path("/list")
+	@Produces(MediaType.APPLICATION_JSON)
+	@Override
+	public List<String> getVoDIdByStreamId(@ApiParam(value = "Id of the stream", required = true) @QueryParam("streamId") String streamId) {
+		return getDataStore().getVoDIdByStreamId(streamId);
+	}
 }

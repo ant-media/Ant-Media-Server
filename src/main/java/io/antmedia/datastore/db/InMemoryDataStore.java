@@ -902,5 +902,15 @@ public class InMemoryDataStore extends DataStore {
 		}
 		return result;
 	}
-	
+
+	@Override
+	public List<String> getVoDIdByStreamId(String streamID) {
+		List<String> vodIds=new ArrayList<>();
+		for(VoD vod:vodMap.values()){
+			if(vod.getStreamId().equals(streamID))
+				vodIds.add(vod.getVodId());
+		}
+		return vodIds;
+	}
+
 }
