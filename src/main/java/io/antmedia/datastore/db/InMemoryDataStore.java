@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -905,8 +906,28 @@ public class InMemoryDataStore extends DataStore {
 	
 	@Override
 	public int resetBroadcasts(String hostAddress) {
-		//No need to implement because it's already in memory
-		return 0;
+		Set<Entry<String,Broadcast>> entrySet = broadcastMap.entrySet();
+		
+		Iterator<Entry<String, Broadcast>> iterator = entrySet.iterator();
+		int i = 0;
+		while (iterator.hasNext()) {
+			Entry<String, Broadcast> next = iterator.next();
+			if (next.getValue().isZombi()) {
+				iterator.remove();
+				i++;
+			}
+			if (next.getValue().getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING) ||
+					next.getValue().getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_PREPARING))
+			{
+				next.getValue().setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+				next.getValue().setWebRTCViewerCount(0);
+				next.getValue().setHlsViewerCount(0);
+				next.getValue().setRtmpViewerCount(0);
+			}
+		}
+		
+		
+		return i++;
 	}
 	
 }
