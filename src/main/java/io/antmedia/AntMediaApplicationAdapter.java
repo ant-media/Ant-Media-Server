@@ -235,7 +235,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		
 		logger.info("Resetting streams viewer numbers because there is an unexpected stop happened in app: {}", getScope() != null? getScope().getName() : "[scope is null]");
 
-		int operationCount = getDataStore().resetBroadcasts(serverSettings.getHostAddress());
+		int operationCount = getDataStore().resetBroadcasts(getServerSettings().getHostAddress());
 		
 		Result result = new Result(true);
 		result.setMessage("Successfull operations: "+ operationCount);
