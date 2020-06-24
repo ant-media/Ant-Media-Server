@@ -291,7 +291,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			info.setHasAudio(true);
 			info.setHasVideo(true);
 			clientBroadcastStream.setCodecInfo(info);
-
+			
+			getAppSettings().setMaxAnalyzeDurationMS(50000);
 			getAppSettings().setHlsMuxingEnabled(false);
 			getAppSettings().setMp4MuxingEnabled(true);
 			getAppSettings().setAddDateTimeToMp4FileName(false);
@@ -735,6 +736,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 			MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, false, appScope);
 
+			//increase max analyze duration to some higher value because it's also to close connections if packet is not received
+			getAppSettings().setMaxAnalyzeDurationMS(5000); 
 			getAppSettings().setRtmpIngestBufferTimeMs(1000);
 			getAppSettings().setMp4MuxingEnabled(false);
 			getAppSettings().setHlsMuxingEnabled(false);
