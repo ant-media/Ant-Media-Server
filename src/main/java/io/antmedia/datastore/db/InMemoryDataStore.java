@@ -188,8 +188,7 @@ public class InMemoryDataStore extends DataStore {
 		Broadcast broadcast = broadcastMap.get(id);
 		boolean result = false;
 		if (broadcast != null) {
-			broadcastMap.remove(id);
-			result = true;
+			result = broadcastMap.remove(id) != null ? true : false;
 		}
 		return result;
 	}

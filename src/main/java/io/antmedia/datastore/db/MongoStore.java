@@ -1262,7 +1262,8 @@ public class MongoStore extends DataStore {
 			{
 				//reset the broadcasts viewer numbers
 				Query<Broadcast> queryUpdateStatus = datastore.createQuery(Broadcast.class);
-				queryUpdateStatus.and(queryUpdateStatus.criteria(ORIGIN_ADDRESS).equal(hostAddress));
+				queryUpdateStatus.or(queryUpdateStatus.criteria(ORIGIN_ADDRESS).equal(hostAddress),
+						queryUpdateStatus.criteria(ORIGIN_ADDRESS).doesNotExist());
 				
 				long broadcastCount = queryUpdateStatus.count();
 	
