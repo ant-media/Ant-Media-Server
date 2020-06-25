@@ -151,6 +151,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 
 	private static final String WEBRTC_CLIENT_ID = "webrtcClientId";
 
+	private static Thread shutdownHook;
+
 	private Queue<IScope> scopes = new ConcurrentLinkedQueue<>();
 
 	public static final String GA_TRACKING_ID = "UA-93263926-3";
@@ -787,35 +789,38 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 		.sendAsync()
 				);
 	}
-
-	public boolean notifyShutDown(String implementationVersion, String type) {
-		boolean result = false;
-
-		Runtime.getRuntime().addShutdownHook(new Thread() {
-			
-			@Override
-			public void run() {
-				if(logger != null) {
-					logger.info("Shutting down just a sec");
-				}
-				AMSShutdownManager.getInstance().notifyShutdown();
+	
+	public static Thread getShutdownHook(boolean heartBeatEnabled, GoogleAnalytics googleAnalytics) {
+		if (shutdownHook == null) {
+			shutdownHook = new Thread() {
 				
-				if (heartBeatEnabled) 
-				{  
-					//send session end if heartBeatEnabled 
-					getGoogleAnalytic(implementationVersion, type).screenView()
-					.clientId(Launcher.getInstanceId())
-					.sessionControl("end")
-					.sendAsync();
+				@Override
+				public void run() {
+					if(logger != null) {
+						logger.info("Shutting down just a sec");
+					}
+					AMSShutdownManager.getInstance().notifyShutdown();
+					
+					if (heartBeatEnabled) 
+					{  
+						//send session end if heartBeatEnabled 
+						googleAnalytics.screenView()
+						.clientId(Launcher.getInstanceId())
+						.sessionControl("end")
+						.sendAsync();
+					}
+					if(logger != null) {
+						logger.info("Bye...");
+					}
+					
 				}
-				if(logger != null) {
-					logger.info("Bye...");
-				}
-				
-			}
-		});
-		result = true;
-		return result;
+			};
+		}
+		return shutdownHook;
+	}
+
+	public void notifyShutDown(String implementationVersion, String type) {
+		Runtime.getRuntime().addShutdownHook(getShutdownHook(heartBeatEnabled, getGoogleAnalytic(implementationVersion, type)));
 	}
 
 	public void cancelHeartBeat() {
