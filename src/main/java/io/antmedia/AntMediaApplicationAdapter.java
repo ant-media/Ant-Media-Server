@@ -163,11 +163,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			clusterNotifier.registerSettingUpdateListener(getAppSettings().getAppName(), settings -> updateSettings(settings, false));
 		}
 		
-		
-		
-
-
-		vertx.setTimer(1, l -> {
+		vertx.setTimer(10, l -> {
 				streamFetcherManager = new StreamFetcherManager(vertx, getDataStore(),app);
 				streamFetcherManager.setRestartStreamFetcherPeriod(appSettings.getRestartStreamFetcherPeriod());
 				List<Broadcast> streams = getDataStore().getExternalStreamsList();

@@ -5,36 +5,48 @@ import java.util.List;
 
 public class AMSShutdownManager {
 	private static AMSShutdownManager instance = new AMSShutdownManager();
-	
+
 	private boolean isShuttingDown = false;
-	
+
 	private ArrayList<IShutdownListener> listeners = new ArrayList<>();
-	
+
 	//this is not included to the list to guarantee called at the last
 	private IShutdownListener shutdownServer;
 
 	public static AMSShutdownManager getInstance() {
 		return instance;
 	}
-	
+
 	//make a private constructor for singleton instance
 	private AMSShutdownManager() {
 	}
-	
+
 	public void subscribe(IShutdownListener listener) {
 		listeners.add(listener);
 	}
-	
+
 	public synchronized void notifyShutdown() {
 		if(!isShuttingDown) 
 		{
-			isShuttingDown = true;
-			for (IShutdownListener listener : listeners) {
-				listener.serverShuttingdown();
+			try {
+				System.out.println("notify shutdown --");
+				isShuttingDown = true;
+				for (IShutdownListener listener : listeners) {
+					System.out.println("before serverShutdown -- " + listener.getClass().getCanonicalName());
+					listener.serverShuttingdown();
+					System.out.println("after servershutdown --");
+				}
+				System.out.println("Before shutdownServer ---");
+				if(shutdownServer != null) {
+					shutdownServer.serverShuttingdown();
+				}
+				System.out.println("After Shutdown server ---");
 			}
-			if(shutdownServer != null) {
-				shutdownServer.serverShuttingdown();
+			catch (Exception e) {
+				e.printStackTrace();
 			}
+
+
 		}
 	}
 
@@ -45,7 +57,7 @@ public class AMSShutdownManager {
 	public void setShutdownServer(IShutdownListener shutdownServer) {
 		this.shutdownServer = shutdownServer;
 	}
-	
+
 	public IShutdownListener getShutdownServer() {
 		return shutdownServer;
 	}
