@@ -29,14 +29,14 @@ public class AMSShutdownManager {
 		if(!isShuttingDown) 
 		{
 			try {
-				System.out.println("notify shutdown --");
+				System.out.println("notify shutdown -- number of listener count: " + listeners.size());
 				isShuttingDown = true;
 				for (IShutdownListener listener : listeners) {
 					System.out.println("before serverShutdown -- " + listener.getClass().getCanonicalName());
 					listener.serverShuttingdown();
 					System.out.println("after servershutdown --");
 				}
-				System.out.println("Before shutdownServer ---");
+				System.out.println("Before shutdownServer --- " + shutdownServer);
 				if(shutdownServer != null) {
 					shutdownServer.serverShuttingdown();
 				}
