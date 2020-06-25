@@ -260,12 +260,12 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 			startAnalytic(Launcher.getVersion(), Launcher.getVersionType());
 
 			startHeartBeats(Launcher.getVersion(), Launcher.getVersionType(), heartbeatPeriodMs);
-
-			notifyShutDown(Launcher.getVersion(), Launcher.getVersionType());
 		}
 		else {
 			logger.info("Heartbeats are disabled for this instance");
 		}
+		
+		notifyShutDown(Launcher.getVersion(), Launcher.getVersionType());
 
 	}
 
@@ -792,17 +792,26 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 		boolean result = false;
 
 		Runtime.getRuntime().addShutdownHook(new Thread() {
-
+			
 			@Override
 			public void run() {
 				if(logger != null) {
 					logger.info("Shutting down just a sec");
 				}
 				AMSShutdownManager.getInstance().notifyShutdown();
-				getGoogleAnalytic(implementationVersion, type).screenView()
-				.clientId(Launcher.getInstanceId())
-				.sessionControl("end")
-				.sendAsync();
+				
+				if (heartBeatEnabled) 
+				{  
+					//send session end if heartBeatEnabled 
+					getGoogleAnalytic(implementationVersion, type).screenView()
+					.clientId(Launcher.getInstanceId())
+					.sessionControl("end")
+					.sendAsync();
+				}
+				if(logger != null) {
+					logger.info("Bye...");
+				}
+				
 			}
 		});
 		result = true;

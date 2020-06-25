@@ -25,10 +25,11 @@ public class AMSShutdownManager {
 		listeners.add(listener);
 	}
 	
-	public void notifyShutdown() {
-		if(!isShuttingDown) {
+	public synchronized void notifyShutdown() {
+		if(!isShuttingDown) 
+		{
 			isShuttingDown = true;
-			for (IShutdownListener listener : getListeners()) {
+			for (IShutdownListener listener : listeners) {
 				listener.serverShuttingdown();
 			}
 			if(shutdownServer != null) {

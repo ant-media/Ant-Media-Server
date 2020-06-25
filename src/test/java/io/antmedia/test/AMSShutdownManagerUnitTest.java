@@ -29,6 +29,7 @@ public class AMSShutdownManagerUnitTest {
 		AMSShutdownManager.getInstance().setShutdownServer(shutdownServer);
 
 		
+		
 		AMSShutdownManager.getInstance().notifyShutdown();
 		verify(listener1, times(1)).serverShuttingdown();
 		verify(listener2, times(1)).serverShuttingdown();
@@ -41,6 +42,11 @@ public class AMSShutdownManagerUnitTest {
 		verify(listener1, times(1)).serverShuttingdown();
 		verify(listener2, times(1)).serverShuttingdown();
 		verify(shutdownServer, times(1)).serverShuttingdown();
+		
+		AMSShutdownManager.getInstance().getListeners().clear();
+		
+		AMSShutdownManager.getInstance().setShutdownServer(null);
+		
 	}
 
 	@Test
@@ -50,7 +56,8 @@ public class AMSShutdownManagerUnitTest {
 		ShutdownServer ss = new ShutdownServer();
 		ss.start();
 		assertNotNull(AMSShutdownManager.getInstance().getShutdownServer());
-
 		
+		AMSShutdownManager.getInstance().setShutdownServer(null);
+
 	}
 }
