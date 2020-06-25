@@ -799,6 +799,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 					if(logger != null) {
 						logger.info("Shutting down just a sec");
 					}
+					/*
 					AMSShutdownManager.getInstance().notifyShutdown();
 					
 					if (heartBeatEnabled) 
@@ -809,6 +810,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 						.sessionControl("end")
 						.sendAsync();
 					}
+					*/
 					if(logger != null) {
 						logger.info("Bye...");
 					}
