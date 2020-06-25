@@ -820,6 +820,9 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 	}
 
 	public void notifyShutDown(String implementationVersion, String type) {
+		//this singleton remove and add hook is critical for testing. It has no effect in server side
+		Runtime.getRuntime().removeShutdownHook(getShutdownHook(heartBeatEnabled, getGoogleAnalytic(implementationVersion, type)));
+		
 		Runtime.getRuntime().addShutdownHook(getShutdownHook(heartBeatEnabled, getGoogleAnalytic(implementationVersion, type)));
 	}
 
