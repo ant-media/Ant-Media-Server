@@ -33,7 +33,13 @@ public class AMSShutdownManager {
 				isShuttingDown = true;
 				for (IShutdownListener listener : listeners) {
 					System.out.println("before serverShutdown -- " + listener.getClass().getCanonicalName());
-					listener.serverShuttingdown();
+					try {
+						listener.serverShuttingdown();
+					}
+					catch (Exception e) {
+						System.out.println("++++++++++++++");
+						e.printStackTrace();
+					}
 					System.out.println("after servershutdown --");
 				}
 				System.out.println("Before shutdownServer --- " + shutdownServer);
@@ -43,6 +49,7 @@ public class AMSShutdownManager {
 				System.out.println("After Shutdown server ---");
 			}
 			catch (Exception e) {
+				System.out.println("-------------");
 				e.printStackTrace();
 			}
 
