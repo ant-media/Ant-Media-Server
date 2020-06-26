@@ -38,6 +38,7 @@ import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.ConfigurableApplicationContext;
 
 import io.antmedia.shutdown.AMSShutdownManager;
+import io.antmedia.shutdown.IShutdownListener;
 
 /**
  * Server/service to perform orderly and controlled shutdown and clean up of Red5.
@@ -117,7 +118,14 @@ public class ShutdownServer implements ApplicationContextAware, InitializingBean
      */
     public void start() {
     	AMSShutdownManager amsShutdownManager = AMSShutdownManager.getInstance();
-    	amsShutdownManager.setShutdownServer(this::shutdownOrderly);
+    	amsShutdownManager.setShutdownServer(new IShutdownListener() {
+			
+			@Override
+			public void serverShuttingdown() {
+				shutdownOrderly();
+				
+			}
+		});
     }
 
     private void shutdownOrderly() {
