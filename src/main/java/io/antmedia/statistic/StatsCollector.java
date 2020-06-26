@@ -799,7 +799,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 					if(logger != null) {
 						logger.info("Shutting down just a sec");
 					}
-					/*
+					
 					AMSShutdownManager.getInstance().notifyShutdown();
 					
 					if (heartBeatEnabled) 
@@ -810,7 +810,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 						.sessionControl("end")
 						.sendAsync();
 					}
-					*/
+					
 					if(logger != null) {
 						logger.info("Bye...");
 					}
@@ -823,9 +823,9 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 
 	public void notifyShutDown(String implementationVersion, String type) {
 		//this singleton remove and add hook is critical for testing. It has no effect in server side
-		Runtime.getRuntime().removeShutdownHook(getShutdownHook(heartBeatEnabled, getGoogleAnalytic(implementationVersion, type)));
+		//Runtime.getRuntime().removeShutdownHook(getShutdownHook(heartBeatEnabled, getGoogleAnalytic(implementationVersion, type)));
 		
-		Runtime.getRuntime().addShutdownHook(getShutdownHook(heartBeatEnabled, getGoogleAnalytic(implementationVersion, type)));
+		//Runtime.getRuntime().addShutdownHook(getShutdownHook(heartBeatEnabled, getGoogleAnalytic(implementationVersion, type)));
 	}
 
 	public void cancelHeartBeat() {
