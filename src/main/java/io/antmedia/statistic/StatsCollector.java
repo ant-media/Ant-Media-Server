@@ -819,10 +819,13 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		if (heartBeatEnabled) 
 		{  
 			//send session end if heartBeatEnabled 
+			if(logger != null) {
+				logger.info("Ending analytic session");
+			}
 			getGoogleAnalytic(Launcher.getVersion(), Launcher.getVersionType()).screenView()
 			.clientId(Launcher.getInstanceId())
 			.sessionControl("end")
-			.sendAsync();
+			.send(); //send directly don't use async
 		}
 		
 		vertx.close();
