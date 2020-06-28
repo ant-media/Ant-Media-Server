@@ -118,7 +118,7 @@ public class ShutdownServer implements ApplicationContextAware, InitializingBean
      */
     public void start() {
     	AMSShutdownManager amsShutdownManager = AMSShutdownManager.getInstance();
-    	/*
+    	
     	amsShutdownManager.setShutdownServer(new IShutdownListener() {
 			
 			@Override
@@ -127,7 +127,7 @@ public class ShutdownServer implements ApplicationContextAware, InitializingBean
 				
 			}
 		});
-		*/
+		
     }
 
     private void shutdownOrderly() {

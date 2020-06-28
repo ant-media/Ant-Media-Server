@@ -26,8 +26,6 @@ public class AMSShutdownManager {
 	}
 
 	public synchronized void notifyShutdown() {
-		System.out.println("notify shutdown ----> " + System.currentTimeMillis());
-		/*
 		if(!isShuttingDown) 
 		{
 			try {
@@ -57,7 +55,7 @@ public class AMSShutdownManager {
 
 
 		}
-		*/
+		
 	}
 
 	public List<IShutdownListener> getListeners() {
