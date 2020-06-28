@@ -28,6 +28,7 @@ import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContextAware;
 
@@ -49,7 +50,7 @@ import io.vertx.core.Vertx;
 
 
 
-public class StatsCollector implements IStatsCollector, ApplicationContextAware {	
+public class StatsCollector implements IStatsCollector, ApplicationContextAware, DisposableBean {	
 	
 	public static final String FREE_NATIVE_MEMORY = "freeNativeMemory";
 	
@@ -266,9 +267,6 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 		else {
 			logger.info("Heartbeats are disabled for this instance");
 		}
-		
-		notifyShutDown(Launcher.getVersion(), Launcher.getVersionType());
-
 	}
 
 	private void startKafkaProducer() {
@@ -789,44 +787,6 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 		.sendAsync()
 				);
 	}
-	
-	public static Thread getShutdownHook(boolean heartBeatEnabled, GoogleAnalytics googleAnalytics) {
-		if (shutdownHook == null) {
-			shutdownHook = new Thread() {
-				
-				@Override
-				public void run() {
-					if(logger != null) {
-						logger.info("Shutting down just a sec -> "+ System.currentTimeMillis());
-					}
-					
-					AMSShutdownManager.getInstance().notifyShutdown();
-					
-					if (heartBeatEnabled) 
-					{  
-						//send session end if heartBeatEnabled 
-						googleAnalytics.screenView()
-						.clientId(Launcher.getInstanceId())
-						.sessionControl("end")
-						.sendAsync();
-					}
-					
-					if(logger != null) {
-						logger.info("Bye... -> " + System.currentTimeMillis());
-					}
-					
-				}
-			};
-		}
-		return shutdownHook;
-	}
-
-	public void notifyShutDown(String implementationVersion, String type) {
-		//this singleton remove and add hook is critical for testing. It has no effect in server side
-		Runtime.getRuntime().removeShutdownHook(getShutdownHook(heartBeatEnabled, getGoogleAnalytic(implementationVersion, type)));
-		
-		Runtime.getRuntime().addShutdownHook(getShutdownHook(heartBeatEnabled, getGoogleAnalytic(implementationVersion, type)));
-	}
 
 	public void cancelHeartBeat() {
 		vertx.cancelTimer(hearbeatPeriodicTask);
@@ -846,5 +806,28 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 
 	public void setHeartbeatPeriodMs(int heartbeatPeriodMs) {
 		this.heartbeatPeriodMs = heartbeatPeriodMs;
+	}
+	
+	@Override
+	public void destroy() throws Exception {
+		if(logger != null) {
+			logger.info("Shutting down Stats Collector and Vertx -> "+ System.currentTimeMillis());
+		}
+		
+		AMSShutdownManager.getInstance().notifyShutdown();
+		
+		if (heartBeatEnabled) 
+		{  
+			//send session end if heartBeatEnabled 
+			getGoogleAnalytic(Launcher.getVersion(), Launcher.getVersionType()).screenView()
+			.clientId(Launcher.getInstanceId())
+			.sessionControl("end")
+			.sendAsync();
+		}
+		
+		vertx.close();
+		if(logger != null) {
+			logger.info("Vertx is closed... -> " + System.currentTimeMillis());
+		}
 	}
 }
