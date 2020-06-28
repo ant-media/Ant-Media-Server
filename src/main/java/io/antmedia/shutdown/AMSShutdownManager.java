@@ -26,13 +26,15 @@ public class AMSShutdownManager {
 	}
 
 	public synchronized void notifyShutdown() {
+		System.out.println("notify shutdown ----> " + System.currentTimeMillis());
+		/*
 		if(!isShuttingDown) 
 		{
 			try {
-				System.out.println("notify shutdown -- number of listener count: " + listeners.size());
+				System.out.println("notify shutdown -- number of listener count: " + listeners.size() + " time: " + System.currentTimeMillis());
 				isShuttingDown = true;
 				for (IShutdownListener listener : listeners) {
-					System.out.println("before serverShutdown -- " + listener.getClass().getCanonicalName());
+					System.out.println("before serverShutdown -- " + listener.getClass().getCanonicalName() + " time: " + System.currentTimeMillis());
 					try {
 						listener.serverShuttingdown();
 					}
@@ -55,6 +57,7 @@ public class AMSShutdownManager {
 
 
 		}
+		*/
 	}
 
 	public List<IShutdownListener> getListeners() {

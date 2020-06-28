@@ -797,7 +797,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 				@Override
 				public void run() {
 					if(logger != null) {
-						logger.info("Shutting down just a sec");
+						logger.info("Shutting down just a sec -> "+ System.currentTimeMillis());
 					}
 					
 					AMSShutdownManager.getInstance().notifyShutdown();
@@ -812,7 +812,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 					}
 					
 					if(logger != null) {
-						logger.info("Bye...");
+						logger.info("Bye... -> " + System.currentTimeMillis());
 					}
 					
 				}
