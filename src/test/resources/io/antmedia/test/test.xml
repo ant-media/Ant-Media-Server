@@ -149,19 +149,14 @@
 	</bean>
 	
 	
-	 <bean id="vertxCore" 
+	  <bean id="vertxCore" 
     		class="io.vertx.core.Vertx" 
-   		factory-method="vertx" >
+   		factory-method="vertx">
    		<constructor-arg>
    			<bean class="io.vertx.core.VertxOptions">
-				<property name="fileSystemOptions" >
-					<bean id="vertxFileSystemOptions" class="io.vertx.core.file.FileSystemOptions">
-						<property name="fileCachingEnabled" value="false" />
-					</bean>
-				</property>
+   				<property name="eventLoopPoolSize" value="20"></property>
    			</bean>
    		</constructor-arg>	
-   		
    	</bean>
    	
    	<bean id="ant.media.server.settings" class="io.antmedia.settings.ServerSettings">
