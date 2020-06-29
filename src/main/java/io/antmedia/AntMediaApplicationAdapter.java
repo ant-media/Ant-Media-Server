@@ -987,7 +987,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			try {
 				if (i > 3) {
 					logger.warn("Waiting for active vertx threads count({}) decrease to zero for app: {}"
-							+ "total wait time: {}ms", activeVertxThreadCount, getScope().getName(), i*waitPeriod);
+							+ " total wait time: {}ms", activeVertxThreadCount, getScope().getName(), i*waitPeriod);
 				}
 				if (i>10) {
 					logger.error("*********************************************************************");
