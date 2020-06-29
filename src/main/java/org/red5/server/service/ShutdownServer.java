@@ -152,9 +152,9 @@ public class ShutdownServer implements ApplicationContextAware, InitializingBean
             // write to file
             Path path = Files.createFile(Paths.get(shutdownTokenFileName));
             File tokenFile = path.toFile();
-            RandomAccessFile raf = new RandomAccessFile(tokenFile, "rws");
-            raf.write(token.getBytes());
-            raf.close();
+            try (RandomAccessFile raf = new RandomAccessFile(tokenFile, "rws")) {
+            	raf.write(token.getBytes());
+            }
         } catch (Exception e) {
             log.warn("Exception handling token file", e);
         }

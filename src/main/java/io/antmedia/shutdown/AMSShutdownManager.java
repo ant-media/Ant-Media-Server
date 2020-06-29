@@ -3,7 +3,14 @@ package io.antmedia.shutdown;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+
 public class AMSShutdownManager {
+	
+	protected Logger logger = LoggerFactory.getLogger(AMSShutdownManager.class);
 	private static AMSShutdownManager instance = new AMSShutdownManager();
 
 	private volatile boolean isShuttingDown = false;
@@ -31,7 +38,7 @@ public class AMSShutdownManager {
 					listener.serverShuttingdown();
 				}
 				catch (Exception e) {
-					e.printStackTrace();
+					logger.error(ExceptionUtils.getStackTrace(e));
 				}
 			}
 		}
