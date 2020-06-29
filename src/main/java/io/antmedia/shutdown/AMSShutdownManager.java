@@ -10,9 +10,6 @@ public class AMSShutdownManager {
 
 	private ArrayList<IShutdownListener> listeners = new ArrayList<>();
 
-	//this is not included to the list to guarantee called at the last
-	private IShutdownListener shutdownServer;
-
 	public static AMSShutdownManager getInstance() {
 		return instance;
 	}
@@ -30,7 +27,6 @@ public class AMSShutdownManager {
 		{
 			isShuttingDown = true;
 			for (IShutdownListener listener : listeners) {
-				System.out.println("before serverShutdown -- " + listener.getClass().getCanonicalName() + " time: " + System.currentTimeMillis());
 				try {
 					listener.serverShuttingdown();
 				}

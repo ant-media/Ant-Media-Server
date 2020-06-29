@@ -813,11 +813,9 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	@Override
 	public void destroy() throws Exception {
 		if(logger != null) {
-			logger.info("Shutting down Stats Collector and Vertx -> "+ System.currentTimeMillis());
+			logger.info("Shutting down stats collector ");
 		}
-		
-		AMSShutdownManager.getInstance().notifyShutdown();
-		
+				
 		if (heartBeatEnabled) 
 		{  
 			//send session end if heartBeatEnabled 
@@ -830,6 +828,11 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 			.send(); //send directly don't use async
 			
 			getGoogleAnalytic(Launcher.getVersion(), Launcher.getVersionType()).close();
+		}
+		
+		vertx.close();
+		if(logger != null) {
+			logger.info("Closing vertx ");
 		}
 		
 	}

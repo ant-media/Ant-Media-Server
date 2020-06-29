@@ -49,7 +49,7 @@
 
 	<!-- Internal shutdown mechanism -->
 	<bean id="shutdownServer" class="org.red5.server.service.ShutdownServer">
-		<property name="shutdownDelay" value="10" />
+		<property name="shutdownDelay" value="5" />
 		<property name="coreContext" ref="red5.core" />
 		<property name="commonContext" ref="red5.common" />
 		<property name="contextLoader" ref="context.loader" />

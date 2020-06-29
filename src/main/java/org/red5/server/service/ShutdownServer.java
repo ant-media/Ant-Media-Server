@@ -169,8 +169,8 @@ public class ShutdownServer implements ApplicationContextAware, InitializingBean
                 String inputLine = in.readLine();
                 if (inputLine != null && token.equals(inputLine)) {
                     log.info("Shutdown request validated using token");
-                    out.println("Ok");
                     shutdownOrderly();
+                    out.println("Ok");
                 } else {
                     out.println("Bye");
                 }
