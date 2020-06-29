@@ -158,6 +158,15 @@ public class ShutdownServer implements ApplicationContextAware, InitializingBean
         } catch (Exception e) {
             log.warn("Exception handling token file", e);
         }
+        Runtime.getRuntime().addShutdownHook(new Thread() {
+        	@Override
+        	public void run() {
+        		//notify shutdown is both called in hook and shutdownOrderly
+        		//it's a synchronized method one-shot
+        		AMSShutdownManager.getInstance().notifyShutdown();
+        	}
+        });
+        
         while (!shutdown.get()) {
             try (
                     ServerSocket serverSocket = new ServerSocket(port); 
@@ -184,6 +193,8 @@ public class ShutdownServer implements ApplicationContextAware, InitializingBean
     }
 
     private void shutdownOrderly() {
+    	//notify shutdown is both called in hook and shutdownOrderly
+		//it's a synchronized method one-shot
     	AMSShutdownManager.getInstance().notifyShutdown();
         // shutdown internal listener
         shutdown.compareAndSet(false, true);

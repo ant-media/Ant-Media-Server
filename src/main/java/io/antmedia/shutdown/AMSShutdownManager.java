@@ -6,7 +6,7 @@ import java.util.List;
 public class AMSShutdownManager {
 	private static AMSShutdownManager instance = new AMSShutdownManager();
 
-	private boolean isShuttingDown = false;
+	private volatile boolean isShuttingDown = false;
 
 	private ArrayList<IShutdownListener> listeners = new ArrayList<>();
 
