@@ -18,6 +18,19 @@
 
 package org.red5.server.service;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.io.RandomAccessFile;
+import java.net.BindException;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -38,7 +51,6 @@ import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.ConfigurableApplicationContext;
 
 import io.antmedia.shutdown.AMSShutdownManager;
-import io.antmedia.shutdown.IShutdownListener;
 
 /**
  * Server/service to perform orderly and controlled shutdown and clean up of Red5.
@@ -50,9 +62,19 @@ public class ShutdownServer implements ApplicationContextAware, InitializingBean
     private Logger log = Red5LoggerFactory.getLogger(ShutdownServer.class);
 
     /**
+     * Port to which the server listens for shutdown requests. Default is 9999.
+     */
+    private int port = 9999;
+
+    /**
      * Delay or wait time in seconds before exiting.
      */
     private int shutdownDelay = 30;
+
+    /**
+     * Name for the file containing the shutdown token
+     */
+    private String shutdownTokenFileName = "shutdown.token";
 
     /**
      * Spring Application context
@@ -73,6 +95,9 @@ public class ShutdownServer implements ApplicationContextAware, InitializingBean
      * Red5 context loader
      */
     private ContextLoader contextLoader;
+
+    // random token to verify shutdown request is genuine
+    private final String token = UUID.randomUUID().toString();
 
     // whether the server is shutdown
     private AtomicBoolean shutdown = new AtomicBoolean(false);
@@ -110,6 +135,7 @@ public class ShutdownServer implements ApplicationContextAware, InitializingBean
 
     @Override
     public void destroy() throws Exception {
+        shutdownOrderly();
         future.cancel(true);
     }
 
@@ -117,21 +143,48 @@ public class ShutdownServer implements ApplicationContextAware, InitializingBean
      * Starts internal server listening for shutdown requests.
      */
     public void start() {
-    	AMSShutdownManager amsShutdownManager = AMSShutdownManager.getInstance();
-    	
-    	amsShutdownManager.setShutdownServer(new IShutdownListener() {
-			
-			@Override
-			public void serverShuttingdown() {
-				shutdownOrderly();
-				
-			}
-		});
-		
+        // dump to stdout
+        System.out.printf("Token: %s%n", token);
+        // write out the token to a file so that red5 may be shutdown external to this VM instance.
+        try {
+            // delete existing file
+            Files.deleteIfExists(Paths.get(shutdownTokenFileName));
+            // write to file
+            Path path = Files.createFile(Paths.get(shutdownTokenFileName));
+            File tokenFile = path.toFile();
+            RandomAccessFile raf = new RandomAccessFile(tokenFile, "rws");
+            raf.write(token.getBytes());
+            raf.close();
+        } catch (Exception e) {
+            log.warn("Exception handling token file", e);
+        }
+        while (!shutdown.get()) {
+            try (
+                    ServerSocket serverSocket = new ServerSocket(port); 
+                    Socket clientSocket = serverSocket.accept(); 
+                    PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true); 
+                    BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+                 ) {
+                log.info("Connected - local: {} remote: {}", clientSocket.getLocalSocketAddress(), clientSocket.getRemoteSocketAddress());
+                String inputLine = in.readLine();
+                if (inputLine != null && token.equals(inputLine)) {
+                    log.info("Shutdown request validated using token");
+                    out.println("Ok");
+                    shutdownOrderly();
+                } else {
+                    out.println("Bye");
+                }
+            } catch (BindException be) {
+                log.error("Cannot bind to port: {}, ensure no other instances are bound or choose another port", port, be);
+                shutdownOrderly();
+            } catch (IOException e) {
+                log.warn("Exception caught when trying to listen on port {} or listening for a connection", port, e);
+            }
+        }
     }
 
     private void shutdownOrderly() {
-    	log.info("Shutdown orderly");
+    	AMSShutdownManager.getInstance().notifyShutdown();
         // shutdown internal listener
         shutdown.compareAndSet(false, true);
         // shutdown the plug-in launcher
@@ -188,7 +241,6 @@ public class ShutdownServer implements ApplicationContextAware, InitializingBean
                 }
             }
         }).start();
-        
         try {
             if (latch.await(shutdownDelay, TimeUnit.SECONDS)) {
                 log.info("Application contexts are closed");
@@ -200,10 +252,20 @@ public class ShutdownServer implements ApplicationContextAware, InitializingBean
 			e.printStackTrace();
 			Thread.currentThread().interrupt();
         }
+        // exit
+        System.exit(0);
+    }
+
+    public void setPort(int port) {
+        this.port = port;
     }
 
     public void setShutdownDelay(int shutdownDelay) {
         this.shutdownDelay = shutdownDelay;
+    }
+
+    public void setShutdownTokenFileName(String shutdownTokenFileName) {
+        this.shutdownTokenFileName = shutdownTokenFileName;
     }
 
     @Override

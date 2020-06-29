@@ -28,45 +28,22 @@ public class AMSShutdownManager {
 	public synchronized void notifyShutdown() {
 		if(!isShuttingDown) 
 		{
-			try {
-				System.out.println("notify shutdown -- number of listener count: " + listeners.size() + " time: " + System.currentTimeMillis());
-				isShuttingDown = true;
-				for (IShutdownListener listener : listeners) {
-					System.out.println("before serverShutdown -- " + listener.getClass().getCanonicalName() + " time: " + System.currentTimeMillis());
-					try {
-						listener.serverShuttingdown();
-					}
-					catch (Exception e) {
-						System.out.println("++++++++++++++");
-						e.printStackTrace();
-					}
-					System.out.println("after servershutdown --");
+			isShuttingDown = true;
+			for (IShutdownListener listener : listeners) {
+				System.out.println("before serverShutdown -- " + listener.getClass().getCanonicalName() + " time: " + System.currentTimeMillis());
+				try {
+					listener.serverShuttingdown();
 				}
-				System.out.println("Before shutdownServer --- " + shutdownServer);
-				if(shutdownServer != null) {
-					shutdownServer.serverShuttingdown();
+				catch (Exception e) {
+					e.printStackTrace();
 				}
-				System.out.println("After Shutdown server ---");
 			}
-			catch (Exception e) {
-				System.out.println("-------------");
-				e.printStackTrace();
-			}
-
-
 		}
-		
+
 	}
 
 	public List<IShutdownListener> getListeners() {
 		return listeners;
 	}
 
-	public void setShutdownServer(IShutdownListener shutdownServer) {
-		this.shutdownServer = shutdownServer;
-	}
-
-	public IShutdownListener getShutdownServer() {
-		return shutdownServer;
-	}
 }

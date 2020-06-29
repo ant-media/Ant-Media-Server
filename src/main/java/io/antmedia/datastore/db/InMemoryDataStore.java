@@ -922,11 +922,12 @@ public class InMemoryDataStore extends DataStore {
 				next.getValue().setWebRTCViewerCount(0);
 				next.getValue().setHlsViewerCount(0);
 				next.getValue().setRtmpViewerCount(0);
+				i++;
 			}
 		}
 		
 		
-		return i++;
+		return i;
 	}
 	
 }

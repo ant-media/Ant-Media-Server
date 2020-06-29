@@ -46,6 +46,8 @@ import io.antmedia.settings.ServerSettings;
 import io.antmedia.shutdown.AMSShutdownManager;
 import io.antmedia.statistic.GPUUtils.MemoryStatus;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 
 
@@ -826,11 +828,9 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 			.clientId(Launcher.getInstanceId())
 			.sessionControl("end")
 			.send(); //send directly don't use async
+			
+			getGoogleAnalytic(Launcher.getVersion(), Launcher.getVersionType()).close();
 		}
 		
-		vertx.close();
-		if(logger != null) {
-			logger.info("Vertx is closed... -> " + System.currentTimeMillis());
-		}
 	}
 }

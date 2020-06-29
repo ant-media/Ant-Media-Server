@@ -20,20 +20,16 @@ public class AMSShutdownManagerUnitTest {
 		AMSShutdownManager.getInstance().getListeners().clear();
 		IShutdownListener listener1 = mock(IShutdownListener.class);
 		IShutdownListener listener2 = mock(IShutdownListener.class);
-		IShutdownListener shutdownServer = mock(IShutdownListener.class);
 
 		
 		AMSShutdownManager.getInstance().subscribe(listener1);
 		AMSShutdownManager.getInstance().subscribe(listener2);
 		
-		AMSShutdownManager.getInstance().setShutdownServer(shutdownServer);
-
 		
 		
 		AMSShutdownManager.getInstance().notifyShutdown();
 		verify(listener1, times(1)).serverShuttingdown();
 		verify(listener2, times(1)).serverShuttingdown();
-		verify(shutdownServer, times(1)).serverShuttingdown();
 
 		
 		//notification can be made only one times 
@@ -41,23 +37,8 @@ public class AMSShutdownManagerUnitTest {
 		AMSShutdownManager.getInstance().notifyShutdown();
 		verify(listener1, times(1)).serverShuttingdown();
 		verify(listener2, times(1)).serverShuttingdown();
-		verify(shutdownServer, times(1)).serverShuttingdown();
 		
 		AMSShutdownManager.getInstance().getListeners().clear();
-		
-		AMSShutdownManager.getInstance().setShutdownServer(null);
-		
-	}
-
-	@Test
-	public void testShutdownServerRegister() {
-		AMSShutdownManager.getInstance().setShutdownServer(null);
-		assertNull(AMSShutdownManager.getInstance().getShutdownServer());
-		ShutdownServer ss = new ShutdownServer();
-		ss.start();
-		assertNotNull(AMSShutdownManager.getInstance().getShutdownServer());
-		
-		AMSShutdownManager.getInstance().setShutdownServer(null);
-
+				
 	}
 }
