@@ -456,6 +456,9 @@ public abstract class RestServiceBase {
 		if(getDataStore().get(streamId).getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
 			return getApplication().stopStreaming(broadcast).isSuccess();
 		}
+		else if(getApplication().getStreamFetcherManager().checkAlreadyFetch(broadcast)) {
+			return getApplication().stopStreaming(broadcast).isSuccess();
+		}
 		else
 		{
 			// If broadcast status is stopped, this will return true. 

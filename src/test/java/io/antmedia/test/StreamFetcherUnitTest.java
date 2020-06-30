@@ -286,7 +286,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			fetcherManager.setStreamCheckerInterval(4000);
 
 			//set restart period to 5 seconds
-			fetcherManager.setRestartStreamFetcherPeriod(5);
+			appSettings.setRestartStreamFetcherPeriod(5);
 
 			//Start stream fetcher
 			StreamFetcher result = fetcherManager.startStreaming(stream);
@@ -300,7 +300,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			verify(streamFetcher, times(3)).startStream(); 
 
 			//set restart period to 0 seconds
-			fetcherManager.setRestartStreamFetcherPeriod(0);
+			appSettings.setRestartStreamFetcherPeriod(0);
 
 			//wait 10-12 seconds
 
@@ -309,7 +309,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			verify(streamFetcher, times(3)).startStream(); 
 
 			//set restart period to 5 seconds
-			fetcherManager.setRestartStreamFetcherPeriod(5);
+			appSettings.setRestartStreamFetcherPeriod(5);
 
 			//wait 10-12 seconds
 
@@ -317,7 +317,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			verify(streamFetcher, timeout(14000).atLeast(4)).stopStream();
 			verify(streamFetcher, atLeast(5)).startStream(); 
 
-			fetcherManager.setRestartStreamFetcherPeriod(0);
+			appSettings.setRestartStreamFetcherPeriod(0);
 
 			fetcherManager.stopCheckerJob();
 
@@ -867,7 +867,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		fetcher.stopStream();
 		
-		Awaitility.await().pollDelay(4, TimeUnit.SECONDS).atMost(7, TimeUnit.SECONDS).until(fetcher::isStopRequestReceived);	
+		Awaitility.await().pollDelay(4, TimeUnit.SECONDS).atMost(7, TimeUnit.SECONDS).until(() -> !fetcher.isThreadActive());	
 		
 	}
 

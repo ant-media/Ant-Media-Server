@@ -474,8 +474,7 @@ public class StreamFetcher {
 
 			logger.debug("Leaving thread for {}", stream.getStreamUrl());
 
-
-
+			stopRequestReceived = false;
 		}
 
 
