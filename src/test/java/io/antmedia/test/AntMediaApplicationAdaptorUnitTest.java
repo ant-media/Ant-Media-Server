@@ -211,6 +211,10 @@ public class AntMediaApplicationAdaptorUnitTest {
 		Mockito.when(spyAdapter.createInitializationProcess(Mockito.anyString())).thenReturn(result);
 		//When createInitializationProcess(scope.getName());
 		
+		spyAdapter.setDataStore(dataStore);
+		
+		spyAdapter.setServerSettings(new ServerSettings());
+		
 		spyAdapter.appStart(scope);
 		
 		// Should 2 broadcast in DB, because delete zombie stream

@@ -10,6 +10,7 @@ addons:
     organization: "ant-media"
     token: $SONAR_TOKEN
 
+
 before_install:
   - openssl aes-256-cbc -K $encrypted_5fef4fa28306_key -iv $encrypted_5fef4fa28306_iv -in codesigning.asc.enc -out codesigning.asc -d
   - export GPG_TTY=$(tty) #-> https://github.com/keybase/keybase-issues/issues/2798
