@@ -165,7 +165,6 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		
 		vertx.setTimer(10, l -> {
 				streamFetcherManager = new StreamFetcherManager(vertx, getDataStore(),app);
-				streamFetcherManager.setRestartStreamFetcherPeriod(appSettings.getRestartStreamFetcherPeriod());
 				List<Broadcast> streams = getDataStore().getExternalStreamsList();
 				logger.info("Stream source size: {}", streams.size());
 				streamFetcherManager.startStreams(streams);
@@ -1321,6 +1320,8 @@ public Result createInitializationProcess(String appName){
 		
 		store.put(AppSettings.SETTINGS_LISTENER_HOOK_URL, newAppsettings.getListenerHookURL() != null ? newAppsettings.getListenerHookURL() : "");
 		
+		store.put(AppSettings.SETTINGS_STREAM_FETCHER_RESTART_PERIOD, String.valueOf(newAppsettings.getRestartStreamFetcherPeriod()));
+
 		return store.save();
 	}
 
@@ -1366,6 +1367,8 @@ public Result createInitializationProcess(String appName){
 		appSettings.setMaxResolutionAccept(newSettings.getMaxResolutionAccept());
 		
 		appSettings.setListenerHookURL(newSettings.getListenerHookURL());
+
+		appSettings.setRestartStreamFetcherPeriod(newSettings.getRestartStreamFetcherPeriod());
 		
 		logger.warn("app settings updated for {}", getScope().getName());	
 	}
