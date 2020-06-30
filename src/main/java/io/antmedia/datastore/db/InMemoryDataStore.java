@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -187,8 +188,7 @@ public class InMemoryDataStore extends DataStore {
 		Broadcast broadcast = broadcastMap.get(id);
 		boolean result = false;
 		if (broadcast != null) {
-			broadcastMap.remove(id);
-			result = true;
+			result = broadcastMap.remove(id) != null ? true : false;
 		}
 		return result;
 	}
@@ -902,8 +902,35 @@ public class InMemoryDataStore extends DataStore {
 		}
 		return result;
 	}
-
+  
 	@Override
+	public int resetBroadcasts(String hostAddress) {
+		Set<Entry<String,Broadcast>> entrySet = broadcastMap.entrySet();
+		
+		Iterator<Entry<String, Broadcast>> iterator = entrySet.iterator();
+		int i = 0;
+		while (iterator.hasNext()) {
+			Entry<String, Broadcast> next = iterator.next();
+			if (next.getValue().isZombi()) {
+				iterator.remove();
+				i++;
+			}
+			if (next.getValue().getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING) ||
+					next.getValue().getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_PREPARING))
+			{
+				next.getValue().setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+				next.getValue().setWebRTCViewerCount(0);
+				next.getValue().setHlsViewerCount(0);
+				next.getValue().setRtmpViewerCount(0);
+				i++;
+			}
+		}
+		
+		
+		return i;
+	}
+	
+  @Override
 	public List<String> getVoDIdByStreamId(String streamID) {
 		List<String> vodIds=new ArrayList<>();
 		for(VoD vod:vodMap.values()){
@@ -912,5 +939,5 @@ public class InMemoryDataStore extends DataStore {
 		}
 		return vodIds;
 	}
-
+  
 }

@@ -8,6 +8,7 @@ import static org.bytedeco.javacpp.avformat.avformat_close_input;
 import static org.bytedeco.javacpp.avformat.avformat_find_stream_info;
 import static org.bytedeco.javacpp.avformat.avformat_open_input;
 import static org.bytedeco.javacpp.avutil.AVMEDIA_TYPE_AUDIO;
+import static org.bytedeco.javacpp.avutil.AVMEDIA_TYPE_VIDEO;
 import static org.bytedeco.javacpp.avutil.av_dict_free;
 import static org.bytedeco.javacpp.avutil.av_dict_set;
 import static org.bytedeco.javacpp.avutil.av_rescale_q;
@@ -237,18 +238,24 @@ public class StreamFetcher {
 
 
 				if (result.isSuccess()) {
-					boolean audioOnly = false;
-					if(inputFormatContext.nb_streams() == 1) {
-						audioOnly  = (inputFormatContext.streams(0).codecpar().codec_type() == AVMEDIA_TYPE_AUDIO);
-						logger.debug(" codec: {}", inputFormatContext.streams(0).codecpar().codec_id());
-
+					boolean audioExist = false;
+					boolean videoExist = false;
+					for (int i = 0; i < inputFormatContext.nb_streams(); i++) {
+						if (inputFormatContext.streams(i).codecpar().codec_type() == AVMEDIA_TYPE_AUDIO) {
+							audioExist = true;
+						}
+						else if (inputFormatContext.streams(i).codecpar().codec_type() == AVMEDIA_TYPE_VIDEO) {
+							videoExist = true;
+						}
 					}
+					
 					muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null,true, scope);
 					// if there is only audio, firstKeyFrameReceivedChecked should be true in advance
 					// because there is no video frame
-
-					muxAdaptor.setFirstKeyFrameReceivedChecked(audioOnly); 
-					muxAdaptor.setEnableVideo(!audioOnly);
+					muxAdaptor.setFirstKeyFrameReceivedChecked(!videoExist); 
+					muxAdaptor.setEnableVideo(videoExist);
+					muxAdaptor.setEnableAudio(audioExist);
+										
 					setUpEndPoints(stream.getStreamId(), muxAdaptor);
 
 					muxAdaptor.init(scope, stream.getStreamId(), false);

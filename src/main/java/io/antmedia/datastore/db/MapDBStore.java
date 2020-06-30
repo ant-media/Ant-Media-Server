@@ -1294,6 +1294,46 @@ public class MapDBStore extends DataStore {
 	}
 
 	@Override
+	public int resetBroadcasts(String hostAddress) 
+	{
+		synchronized (this) {
+			
+			Collection<String> broadcastsRawJSON = map.values();
+			int size = broadcastsRawJSON.size();
+			int updateOperations = 0;
+			int zombieStreamCount = 0;
+			int i = 0;
+			for (String broadcastRaw : broadcastsRawJSON) {
+				i++;
+				if (broadcastRaw != null) {
+					Broadcast broadcast = gson.fromJson(broadcastRaw, Broadcast.class);
+					if (broadcast.isZombi()) {
+						zombieStreamCount++;
+						map.remove(broadcast.getStreamId());
+					}
+					else {
+						updateOperations++;
+						broadcast.setHlsViewerCount(0);
+						broadcast.setWebRTCViewerCount(0);
+						broadcast.setRtmpViewerCount(0);
+						broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+						map.put(broadcast.getStreamId(), gson.toJson(broadcast));
+					}
+				}
+				
+				if (i > size) {
+					logger.error("Inconsistency in DB found in resetting broadcasts. It's likely db file({}) is damaged", dbName);
+					break;
+				}
+			}
+			logger.info("Reset broadcasts result in deleting {} zombi streams and {} update operations", zombieStreamCount, updateOperations );
+			
+			db.commit();
+			return updateOperations + zombieStreamCount;
+		}
+	}
+
+  	@Override
 	public List<String> getVoDIdByStreamId(String streamID) {
 		List<String> vodIds=new ArrayList<>();
 		synchronized (this){
@@ -1313,5 +1353,5 @@ public class MapDBStore extends DataStore {
 			return vodIds;
 		}
 	}
-
+  
 }

@@ -28,6 +28,7 @@ import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContextAware;
 
@@ -45,11 +46,13 @@ import io.antmedia.settings.ServerSettings;
 import io.antmedia.shutdown.AMSShutdownManager;
 import io.antmedia.statistic.GPUUtils.MemoryStatus;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 
 
 
-public class StatsCollector implements IStatsCollector, ApplicationContextAware {	
+public class StatsCollector implements IStatsCollector, ApplicationContextAware, DisposableBean {	
 	
 	public static final String FREE_NATIVE_MEMORY = "freeNativeMemory";
 	
@@ -150,6 +153,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 	private static final String STREAM_ID = "streamId";
 
 	private static final String WEBRTC_CLIENT_ID = "webrtcClientId";
+
+	private static Thread shutdownHook;
 
 	private Queue<IScope> scopes = new ConcurrentLinkedQueue<>();
 
@@ -260,13 +265,10 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 			startAnalytic(Launcher.getVersion(), Launcher.getVersionType());
 
 			startHeartBeats(Launcher.getVersion(), Launcher.getVersionType(), heartbeatPeriodMs);
-
-			notifyShutDown(Launcher.getVersion(), Launcher.getVersionType());
 		}
 		else {
 			logger.info("Heartbeats are disabled for this instance");
 		}
-
 	}
 
 	private void startKafkaProducer() {
@@ -788,27 +790,6 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 				);
 	}
 
-	public boolean notifyShutDown(String implementationVersion, String type) {
-		boolean result = false;
-
-		Runtime.getRuntime().addShutdownHook(new Thread() {
-
-			@Override
-			public void run() {
-				if(logger != null) {
-					logger.info("Shutting down just a sec");
-				}
-				AMSShutdownManager.getInstance().notifyShutdown();
-				getGoogleAnalytic(implementationVersion, type).screenView()
-				.clientId(Launcher.getInstanceId())
-				.sessionControl("end")
-				.sendAsync();
-			}
-		});
-		result = true;
-		return result;
-	}
-
 	public void cancelHeartBeat() {
 		vertx.cancelTimer(hearbeatPeriodicTask);
 	}
@@ -827,5 +808,32 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware 
 
 	public void setHeartbeatPeriodMs(int heartbeatPeriodMs) {
 		this.heartbeatPeriodMs = heartbeatPeriodMs;
+	}
+	
+	@Override
+	public void destroy() throws Exception {
+		if(logger != null) {
+			logger.info("Shutting down stats collector ");
+		}
+				
+		if (heartBeatEnabled) 
+		{  
+			//send session end if heartBeatEnabled 
+			if(logger != null) {
+				logger.info("Ending analytic session");
+			}
+			getGoogleAnalytic(Launcher.getVersion(), Launcher.getVersionType()).screenView()
+			.clientId(Launcher.getInstanceId())
+			.sessionControl("end")
+			.send(); //send directly don't use async
+			
+			getGoogleAnalytic(Launcher.getVersion(), Launcher.getVersionType()).close();
+		}
+		
+		vertx.close();
+		if(logger != null) {
+			logger.info("Closing vertx ");
+		}
+		
 	}
 }
