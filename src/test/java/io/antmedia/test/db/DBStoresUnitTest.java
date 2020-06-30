@@ -104,7 +104,7 @@ public class DBStoresUnitTest {
 		testPlaylist(dataStore);
 		testAddTrack(dataStore);
 		testClearAtStart(dataStore);
-    testGetVoDIdByStreamId(dataStore);
+    	testGetVoDIdByStreamId(dataStore);
 	}
 
 	@Test
@@ -137,7 +137,7 @@ public class DBStoresUnitTest {
 		testPlaylist(dataStore);
 		testAddTrack(dataStore);
 		testClearAtStart(dataStore);
-    testGetVoDIdByStreamId(dataStore);
+    	testGetVoDIdByStreamId(dataStore);
 	}
 
 	@Test
