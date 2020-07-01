@@ -82,6 +82,10 @@ public class StreamFetcher {
 	 */
 	private int bufferTime = 0;
 	
+	private static final int COUNT_TO_LOG_BUFFER = 500;
+	
+	private int bufferLogCounter;
+	
 	private ConcurrentLinkedQueue<AVPacket> availableBufferQueue = new ConcurrentLinkedQueue<>();
 
 	private AppSettings appSettings;
@@ -219,11 +223,12 @@ public class StreamFetcher {
 
 		private volatile long firstPacketReadyToSentTimeMs;
 
+		private long lastPacketTimeMsInQueue;
+
 		@Override
 		public void run() {
 
 			setThreadActive(true);
-			long lastPacketTime = 0;
 			long firstPacketTime = 0;
 			long bufferDuration = 0;
 			long timeOffset = 0;
@@ -291,7 +296,9 @@ public class StreamFetcher {
 							 */
 							int packetIndex = pkt.stream_index();
 							if (lastDTS[packetIndex] >= pkt.dts()) {
+								logger.info("last dts{} is bigger than incoming dts {}", pkt.dts(), lastDTS[packetIndex]);
 								pkt.dts(lastDTS[packetIndex] + 1);
+								
 							}
 							lastDTS[packetIndex] = pkt.dts();
 							if (pkt.dts() > pkt.pts()) {
@@ -340,9 +347,9 @@ public class StreamFetcher {
 								 * It's a very rare case to happen so that check if it's null
 								 */
 								if (pktHead != null) {
-									lastPacketTime = av_rescale_q(pkt.pts(), inputFormatContext.streams(pkt.stream_index()).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
+									lastPacketTimeMsInQueue = av_rescale_q(pkt.pts(), inputFormatContext.streams(pkt.stream_index()).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
 									firstPacketTime = av_rescale_q(pktHead.pts(), inputFormatContext.streams(pktHead.stream_index()).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
-									bufferDuration = (lastPacketTime - firstPacketTime);
+									bufferDuration = (lastPacketTimeMsInQueue - firstPacketTime);
 
 									if ( bufferDuration > bufferTime) {
 										
@@ -549,12 +556,29 @@ public class StreamFetcher {
 						//update buffering. If bufferQueue is empty, it should start buffering
 						buffering = bufferQueue.isEmpty();
 					}
+					bufferLogCounter++; //we use this parameter in execute method as well 
+					if (bufferLogCounter % COUNT_TO_LOG_BUFFER  == 0) {
+						logger.info("WriteBufferedPacket -> Buffering status {}, buffer duration {}ms buffer time {}ms stream: {}", buffering, getBufferedDurationMs(), bufferTime, stream.getStreamId());
+						bufferLogCounter = 0;
+					}
 					isJobRunning.compareAndSet(true, false);
 				}
 			
 			}
 		}
+		
+		
+		public long getBufferedDurationMs() {
+			AVPacket pktHead = bufferQueue.peek();
+			if (pktHead != null) {
+				long firstPacketInQueueTime = av_rescale_q(pktHead.pts(), inputFormatContext.streams(pktHead.stream_index()).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
+				return lastPacketTimeMsInQueue - firstPacketInQueueTime;
+			}
+			return 0;
+		}
 	}
+	
+	
 
 	public void startStream() {
 		new Thread() {
