@@ -407,7 +407,16 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		File file = testMp4Muxing("test_test");
 		assertEquals("test_test.mp4", file.getName());
 
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> {
+			return "test_test".equals(Application.id);
+		});
+		
 		assertEquals("test_test", Application.id);
+		
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> {
+			return "test_test.mp4".equals(Application.file.getName());
+		});
+		
 		assertEquals("test_test.mp4", Application.file.getName());
 		assertNotEquals(0L, Application.duration);
 
@@ -420,7 +429,16 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		file = testMp4Muxing("test_test");
 		assertEquals("test_test_1.mp4", file.getName());
 
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> {
+			return "test_test".equals(Application.id);
+		});
+		
 		assertEquals("test_test", Application.id);
+		
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> {
+			return "test_test_1.mp4".equals(Application.file.getName());
+		});
+		
 		assertEquals("test_test_1.mp4", Application.file.getName());
 		assertNotEquals(0L, Application.duration);
 
@@ -433,7 +451,16 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		file = testMp4Muxing("test_test");
 		assertEquals("test_test_2.mp4", file.getName());
 
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> {
+			return "test_test".equals(Application.id);
+		});
+		
 		assertEquals("test_test", Application.id);
+		
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> {
+			return "test_test_2.mp4".equals(Application.file.getName());
+		});
+		
 		assertEquals("test_test_2.mp4", Application.file.getName());
 		assertNotEquals(0L, Application.duration);
 
