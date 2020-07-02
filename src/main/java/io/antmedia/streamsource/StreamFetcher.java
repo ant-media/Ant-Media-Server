@@ -285,7 +285,6 @@ public class StreamFetcher {
 							);
 						}
 
-						int bufferLogCounter = 0;
 						while (av_read_frame(inputFormatContext, pkt) >= 0) {
 
 							streamPublished = true;
@@ -350,7 +349,7 @@ public class StreamFetcher {
 									lastPacketTimeMsInQueue = av_rescale_q(pkt.pts(), inputFormatContext.streams(pkt.stream_index()).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
 									firstPacketTime = av_rescale_q(pktHead.pts(), inputFormatContext.streams(pktHead.stream_index()).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
 									bufferDuration = (lastPacketTimeMsInQueue - firstPacketTime);
-
+									
 									if ( bufferDuration > bufferTime) {
 										
 										if (buffering) {
@@ -362,11 +361,7 @@ public class StreamFetcher {
 										buffering = false;
 									}
 
-									bufferLogCounter++;
-									if (bufferLogCounter % 100 == 0) {
-										logger.debug("Buffer status {}, buffer duration {}ms buffer time {}ms", buffering, bufferDuration, bufferTime);
-										bufferLogCounter = 0;
-									}
+									logBufferStatus();
 								}
 							}
 							else {
@@ -556,17 +551,24 @@ public class StreamFetcher {
 						//update buffering. If bufferQueue is empty, it should start buffering
 						buffering = bufferQueue.isEmpty();
 					}
-					bufferLogCounter++; //we use this parameter in execute method as well 
-					if (bufferLogCounter % COUNT_TO_LOG_BUFFER  == 0) {
-						logger.info("WriteBufferedPacket -> Buffering status {}, buffer duration {}ms buffer time {}ms stream: {}", buffering, getBufferedDurationMs(), bufferTime, stream.getStreamId());
-						bufferLogCounter = 0;
-					}
+					
+					logBufferStatus();
+					
+					System.out.println("buffer log counter: " + bufferLogCounter);
 					isJobRunning.compareAndSet(true, false);
 				}
 			
 			}
 		}
 		
+		
+		public void logBufferStatus() {
+			bufferLogCounter++; //we use this parameter in execute method as well 
+			if (bufferLogCounter % COUNT_TO_LOG_BUFFER  == 0) {
+				logger.info("WriteBufferedPacket -> Buffering status {}, buffer duration {}ms buffer time {}ms stream: {}", buffering, getBufferedDurationMs(), bufferTime, stream.getStreamId());
+				bufferLogCounter = 0;
+			}
+		}
 		
 		public long getBufferedDurationMs() {
 			AVPacket pktHead = bufferQueue.peek();
