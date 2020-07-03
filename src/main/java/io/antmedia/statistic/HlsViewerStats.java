@@ -68,13 +68,10 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 					int streamIncrementCounter = getIncreaseCounterMap(streamId);
 					streamIncrementCounter++;
 					increaseCounterMap.put(streamId, streamIncrementCounter);
-					logger.info("delete this log after fix: hls new viewer increment count {} for stream {}", streamIncrementCounter, streamId);
 					
 				}
-				logger.info("delete this log after fix: Updating the sessionId timestamp for session: {}", sessionId);
 				viewerMap.put(sessionId, System.currentTimeMillis());
 				streamsViewerMap.put(streamId, viewerMap);	
-				logger.info("delete this log after fix: Updated the sessionId timestamp for session: {}", sessionId);
 			}
 			
 		});

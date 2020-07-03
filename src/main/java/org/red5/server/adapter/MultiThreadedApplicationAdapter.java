@@ -491,7 +491,6 @@ public class MultiThreadedApplicationAdapter extends StatefulScopeWrappingAdapte
 	 */
 	@Override
 	public void stop(IScope scope) {
-		log.debug("stop: {}", scope.getName());
 		// stop the app / room / etc
 		if (ScopeUtils.isApp(scope)) {
 			// we don't allow connections after we stop
@@ -591,7 +590,6 @@ public class MultiThreadedApplicationAdapter extends StatefulScopeWrappingAdapte
 	 *            Scope object
 	 */
 	public void appStop(IScope app) {
-		log.debug("appStop: {}", app);
 		for (IApplication listener : listeners) {
 			listener.appStop(app);
 		}

@@ -148,6 +148,13 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		
 		// Create initialized file in application
 		Result result = createInitializationProcess(app.getName());
+		
+		if (!result.isSuccess()) {
+			//Save App Setting
+			this.shutdownProperly = false;
+			// Reset Broadcast Stats
+			resetBroadcasts();
+		}
 
 		if (app.getContext().hasBean(IClusterNotifier.BEAN_NAME)) {
 			//which means it's in cluster mode
@@ -155,17 +162,9 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			
 			clusterNotifier.registerSettingUpdateListener(getAppSettings().getAppName(), settings -> updateSettings(settings, false));
 		}
-		else if (!result.isSuccess()) {
-			//Save App Setting
-			setShutdownProperly(false);
-			// Reset Broadcast Stats
-			resetBroadcasts();
-		}
-
-
-		vertx.setTimer(1, l -> {
+		
+		vertx.setTimer(10, l -> {
 				streamFetcherManager = new StreamFetcherManager(vertx, getDataStore(),app);
-				streamFetcherManager.setRestartStreamFetcherPeriod(appSettings.getRestartStreamFetcherPeriod());
 				List<Broadcast> streams = getDataStore().getExternalStreamsList();
 				logger.info("Stream source size: {}", streams.size());
 				streamFetcherManager.startStreams(streams);
@@ -224,47 +223,18 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	}
 
 	/**
-	 * This method is called in standalone mode.
-	 * It should not be run in cluster mode
+	 * This method is called after ungraceful shutdown
 	 * @return
 	 */
 	public Result resetBroadcasts(){
 		
 		logger.info("Resetting streams viewer numbers because there is an unexpected stop happened in app: {}", getScope() != null? getScope().getName() : "[scope is null]");
-		Result result = new Result(false);
-		
-		long broadcastCount = getDataStore().getBroadcastCount();
-		int successfulOperations = 0;
-		int zombieStreamCount = 0;
-		for (int i = 0; (i * DataStore.MAX_ITEM_IN_ONE_LIST) < broadcastCount; i++) {
-			List<Broadcast> broadcastList = getDataStore().getBroadcastList(i*DataStore.MAX_ITEM_IN_ONE_LIST, DataStore.MAX_ITEM_IN_ONE_LIST);
 
-			for (Broadcast broadcast : broadcastList) 
-			{
-				if (broadcast.isZombi()) {
-					zombieStreamCount++;
-					getDataStore().delete(broadcast.getStreamId());	
-				}
-				else {
-					broadcast.setHlsViewerCount(0);
-					broadcast.setWebRTCViewerCount(0);
-					broadcast.setRtmpViewerCount(0);
-					broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
-					String streamId = getDataStore().save(broadcast);
-					
-					if (streamId != null) {
-						successfulOperations++;
-					}
-				}
-			}
-		}
+		int operationCount = getDataStore().resetBroadcasts(getServerSettings().getHostAddress());
 		
-		result.setMessage("");
+		Result result = new Result(true);
+		result.setMessage("Successfull operations: "+ operationCount);
 		
-		if ((successfulOperations+zombieStreamCount) == broadcastCount) {
-			result.setSuccess(true);
-			result.setMessage("Successfull operations: "+ successfulOperations + " total operations: " + broadcastCount + " total deleted zombie streams: " + zombieStreamCount);
-		}
 		return result;
 	}
 	
@@ -1016,7 +986,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			try {
 				if (i > 3) {
 					logger.warn("Waiting for active vertx threads count({}) decrease to zero for app: {}"
-							+ "total wait time: {}ms", activeVertxThreadCount, getScope().getName(), i*waitPeriod);
+							+ " total wait time: {}ms", activeVertxThreadCount, getScope().getName(), i*waitPeriod);
 				}
 				if (i>10) {
 					logger.error("*********************************************************************");
@@ -1350,6 +1320,8 @@ public Result createInitializationProcess(String appName){
 		
 		store.put(AppSettings.SETTINGS_LISTENER_HOOK_URL, newAppsettings.getListenerHookURL() != null ? newAppsettings.getListenerHookURL() : "");
 		
+		store.put(AppSettings.SETTINGS_STREAM_FETCHER_RESTART_PERIOD, String.valueOf(newAppsettings.getRestartStreamFetcherPeriod()));
+
 		return store.save();
 	}
 
@@ -1395,6 +1367,8 @@ public Result createInitializationProcess(String appName){
 		appSettings.setMaxResolutionAccept(newSettings.getMaxResolutionAccept());
 		
 		appSettings.setListenerHookURL(newSettings.getListenerHookURL());
+
+		appSettings.setRestartStreamFetcherPeriod(newSettings.getRestartStreamFetcherPeriod());
 		
 		logger.warn("app settings updated for {}", getScope().getName());	
 	}
