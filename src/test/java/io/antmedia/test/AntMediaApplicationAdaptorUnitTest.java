@@ -212,6 +212,10 @@ public class AntMediaApplicationAdaptorUnitTest {
 		Mockito.when(spyAdapter.createInitializationProcess(Mockito.anyString())).thenReturn(result);
 		//When createInitializationProcess(scope.getName());
 		
+		spyAdapter.setDataStore(dataStore);
+		
+		spyAdapter.setServerSettings(new ServerSettings());
+		
 		spyAdapter.appStart(scope);
 		
 		// Should 2 broadcast in DB, because delete zombie stream
@@ -636,6 +640,11 @@ public class AntMediaApplicationAdaptorUnitTest {
 		IScope scope = mock(IScope.class);
 		when(scope.getName()).thenReturn("test");
 		adapter.setScope(scope);
+		
+		IContext context = mock(IContext.class);
+		when(scope.getContext()).thenReturn(context);
+		when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(new AppSettings());
+
 		
 		adapter.setServerSettings(Mockito.spy(new ServerSettings()));
 		

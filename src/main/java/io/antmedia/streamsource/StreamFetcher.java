@@ -8,6 +8,7 @@ import static org.bytedeco.javacpp.avformat.avformat_close_input;
 import static org.bytedeco.javacpp.avformat.avformat_find_stream_info;
 import static org.bytedeco.javacpp.avformat.avformat_open_input;
 import static org.bytedeco.javacpp.avutil.AVMEDIA_TYPE_AUDIO;
+import static org.bytedeco.javacpp.avutil.AVMEDIA_TYPE_VIDEO;
 import static org.bytedeco.javacpp.avutil.av_dict_free;
 import static org.bytedeco.javacpp.avutil.av_dict_set;
 import static org.bytedeco.javacpp.avutil.av_rescale_q;
@@ -80,6 +81,10 @@ public class StreamFetcher {
 	 * Buffer time in milliseconds
 	 */
 	private int bufferTime = 0;
+	
+	private static final int COUNT_TO_LOG_BUFFER = 500;
+	
+	private int bufferLogCounter;
 	
 	private ConcurrentLinkedQueue<AVPacket> availableBufferQueue = new ConcurrentLinkedQueue<>();
 
@@ -218,11 +223,12 @@ public class StreamFetcher {
 
 		private volatile long firstPacketReadyToSentTimeMs;
 
+		private long lastPacketTimeMsInQueue;
+
 		@Override
 		public void run() {
 
 			setThreadActive(true);
-			long lastPacketTime = 0;
 			long firstPacketTime = 0;
 			long bufferDuration = 0;
 			long timeOffset = 0;
@@ -237,18 +243,24 @@ public class StreamFetcher {
 
 
 				if (result.isSuccess()) {
-					boolean audioOnly = false;
-					if(inputFormatContext.nb_streams() == 1) {
-						audioOnly  = (inputFormatContext.streams(0).codecpar().codec_type() == AVMEDIA_TYPE_AUDIO);
-						logger.debug(" codec: {}", inputFormatContext.streams(0).codecpar().codec_id());
-
+					boolean audioExist = false;
+					boolean videoExist = false;
+					for (int i = 0; i < inputFormatContext.nb_streams(); i++) {
+						if (inputFormatContext.streams(i).codecpar().codec_type() == AVMEDIA_TYPE_AUDIO) {
+							audioExist = true;
+						}
+						else if (inputFormatContext.streams(i).codecpar().codec_type() == AVMEDIA_TYPE_VIDEO) {
+							videoExist = true;
+						}
 					}
+					
 					muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null,true, scope);
 					// if there is only audio, firstKeyFrameReceivedChecked should be true in advance
 					// because there is no video frame
-
-					muxAdaptor.setFirstKeyFrameReceivedChecked(audioOnly); 
-					muxAdaptor.setEnableVideo(!audioOnly);
+					muxAdaptor.setFirstKeyFrameReceivedChecked(!videoExist); 
+					muxAdaptor.setEnableVideo(videoExist);
+					muxAdaptor.setEnableAudio(audioExist);
+										
 					setUpEndPoints(stream.getStreamId(), muxAdaptor);
 
 					muxAdaptor.init(scope, stream.getStreamId(), false);
@@ -273,7 +285,6 @@ public class StreamFetcher {
 							);
 						}
 
-						int bufferLogCounter = 0;
 						while (av_read_frame(inputFormatContext, pkt) >= 0) {
 
 							streamPublished = true;
@@ -284,7 +295,9 @@ public class StreamFetcher {
 							 */
 							int packetIndex = pkt.stream_index();
 							if (lastDTS[packetIndex] >= pkt.dts()) {
+								logger.info("last dts{} is bigger than incoming dts {}", pkt.dts(), lastDTS[packetIndex]);
 								pkt.dts(lastDTS[packetIndex] + 1);
+								
 							}
 							lastDTS[packetIndex] = pkt.dts();
 							if (pkt.dts() > pkt.pts()) {
@@ -333,10 +346,10 @@ public class StreamFetcher {
 								 * It's a very rare case to happen so that check if it's null
 								 */
 								if (pktHead != null) {
-									lastPacketTime = av_rescale_q(pkt.pts(), inputFormatContext.streams(pkt.stream_index()).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
+									lastPacketTimeMsInQueue = av_rescale_q(pkt.pts(), inputFormatContext.streams(pkt.stream_index()).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
 									firstPacketTime = av_rescale_q(pktHead.pts(), inputFormatContext.streams(pktHead.stream_index()).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
-									bufferDuration = (lastPacketTime - firstPacketTime);
-
+									bufferDuration = (lastPacketTimeMsInQueue - firstPacketTime);
+									
 									if ( bufferDuration > bufferTime) {
 										
 										if (buffering) {
@@ -348,11 +361,7 @@ public class StreamFetcher {
 										buffering = false;
 									}
 
-									bufferLogCounter++;
-									if (bufferLogCounter % 100 == 0) {
-										logger.debug("Buffer status {}, buffer duration {}ms buffer time {}ms", buffering, bufferDuration, bufferTime);
-										bufferLogCounter = 0;
-									}
+									logBufferStatus();
 								}
 							}
 							else {
@@ -467,8 +476,7 @@ public class StreamFetcher {
 
 			logger.debug("Leaving thread for {}", stream.getStreamUrl());
 
-
-
+			stopRequestReceived = false;
 		}
 
 
@@ -543,12 +551,36 @@ public class StreamFetcher {
 						//update buffering. If bufferQueue is empty, it should start buffering
 						buffering = bufferQueue.isEmpty();
 					}
+					
+					logBufferStatus();
+					
+					System.out.println("buffer log counter: " + bufferLogCounter);
 					isJobRunning.compareAndSet(true, false);
 				}
 			
 			}
 		}
+		
+		
+		public void logBufferStatus() {
+			bufferLogCounter++; //we use this parameter in execute method as well 
+			if (bufferLogCounter % COUNT_TO_LOG_BUFFER  == 0) {
+				logger.info("WriteBufferedPacket -> Buffering status {}, buffer duration {}ms buffer time {}ms stream: {}", buffering, getBufferedDurationMs(), bufferTime, stream.getStreamId());
+				bufferLogCounter = 0;
+			}
+		}
+		
+		public long getBufferedDurationMs() {
+			AVPacket pktHead = bufferQueue.peek();
+			if (pktHead != null) {
+				long firstPacketInQueueTime = av_rescale_q(pktHead.pts(), inputFormatContext.streams(pktHead.stream_index()).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
+				return lastPacketTimeMsInQueue - firstPacketInQueueTime;
+			}
+			return 0;
+		}
 	}
+	
+	
 
 	public void startStream() {
 		new Thread() {
