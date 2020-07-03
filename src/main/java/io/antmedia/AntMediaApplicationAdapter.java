@@ -165,7 +165,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		
 		vertx.setTimer(10, l -> {
 				
-				getStreamFetcherManager().setRestartStreamFetcherPeriod(appSettings.getRestartStreamFetcherPeriod());
+				getStreamFetcherManager();
 				if(appSettings.isStartStreamFetcherAutomatically()) {
 					List<Broadcast> streams = getDataStore().getExternalStreamsList();
 					logger.info("Stream source size: {}", streams.size());
@@ -883,7 +883,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 	public StreamFetcherManager getStreamFetcherManager() {
 		if(streamFetcherManager == null) {
-			streamFetcherManager = new StreamFetcherManager(vertx, getDataStore(),app);
+			streamFetcherManager = new StreamFetcherManager(vertx, getDataStore(), scope);
 		}
 		return streamFetcherManager;
 	}
