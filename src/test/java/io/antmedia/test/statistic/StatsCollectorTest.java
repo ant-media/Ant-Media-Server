@@ -183,6 +183,7 @@ public class StatsCollectorTest {
 	@Test
 	public void testHeartbeat() {
 
+		AVRational rat = new AVRational();
 		StatsCollector resMonitor = Mockito.spy(new StatsCollector());
 		//check default value
 		assertEquals(300000, resMonitor.getHeartbeatPeriodMs());
@@ -202,9 +203,7 @@ public class StatsCollectorTest {
 		});
 		
 		Mockito.verify(resMonitor, Mockito.times(1)).startAnalytic(Launcher.getVersion(), Launcher.getVersionType());
-		
-		Mockito.verify(resMonitor, Mockito.times(1)).notifyShutDown(Launcher.getVersion(), Launcher.getVersionType());
-		
+				
 		Mockito.verify(resMonitor, Mockito.times(1)).startHeartBeats(Launcher.getVersion(), Launcher.getVersionType(), 3000);
 		
 		resMonitor.cancelHeartBeat();
@@ -215,9 +214,7 @@ public class StatsCollectorTest {
 		resMonitor.start();
 		assertFalse(resMonitor.isHeartBeatEnabled());
 		Mockito.verify(resMonitor, Mockito.times(1)).startAnalytic(Launcher.getVersion(), Launcher.getVersionType());
-		
-		Mockito.verify(resMonitor, Mockito.times(1)).notifyShutDown(Launcher.getVersion(), Launcher.getVersionType());
-		
+				
 		Mockito.verify(resMonitor, Mockito.times(1)).startHeartBeats(Launcher.getVersion(), Launcher.getVersionType(), 3000);
 		
 		resMonitor.cancelHeartBeat();

@@ -102,11 +102,14 @@ public class DBStoresUnitTest {
 		testUpdateLocationParams(dataStore);
 		testPlaylist(dataStore);
 		testAddTrack(dataStore);
+		testClearAtStart(dataStore);
+
 	}
 
 	@Test
 	public void testMemoryDataStore() {
 		DataStore dataStore = new InMemoryDataStore("testdb");
+		
 		testBugGetExternalStreamsList(dataStore);
 		testGetPagination(dataStore);
 		testNullCheck(dataStore);
@@ -132,6 +135,7 @@ public class DBStoresUnitTest {
 		testUpdateLocationParams(dataStore);
 		testPlaylist(dataStore);
 		testAddTrack(dataStore);
+		testClearAtStart(dataStore);
 
 	}
 
@@ -1438,10 +1442,30 @@ public class DBStoresUnitTest {
 	}
 
 	public void testClearAtStart(DataStore dataStore) {
-		deleteBroadcast((MongoStore) dataStore);
+		
+		if (dataStore instanceof MongoStore) {
+			deleteBroadcast((MongoStore) dataStore);
+			assertEquals(0, dataStore.getBroadcastCount());
+		}
+		else  {
+			long broadcastCount = dataStore.getBroadcastCount();
+			System.out.println("broadcast count: " + broadcastCount);
+			int j = 0;
+			List<Broadcast> broadcastList;
+			while ((broadcastList = dataStore.getBroadcastList(0, 50)) != null)
+			{
+				if (broadcastList.size() == 0) {
+					break;
+				}
+				for (Broadcast broadcast : broadcastList) {
+					assertTrue(dataStore.delete(broadcast.getStreamId()));
+					System.out.println("number of delete count: " + j++);
+				}
+			}
+			
+		}
+		
 		assertEquals(0, dataStore.getBroadcastCount());
-
-
 		Broadcast broadcast = new Broadcast();
 		broadcast.setName("test1");
 		broadcast.setZombi(true);
@@ -1451,19 +1475,41 @@ public class DBStoresUnitTest {
 		broadcast2.setName("test2");
 		broadcast2.setZombi(true);
 		dataStore.save(broadcast2);
+		
+		Broadcast broadcast3 = new Broadcast();
+		broadcast3.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);	
+		broadcast3.setWebRTCViewerCount(104);
+		broadcast3.setHlsViewerCount(305);
+		broadcast3.setRtmpViewerCount(506);
+		dataStore.save(broadcast3);
+		
+		Broadcast broadcast4 = new Broadcast();
+		broadcast4.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_PREPARING);
+		broadcast4.setWebRTCViewerCount(10);
+		broadcast4.setHlsViewerCount(30);
+		broadcast4.setRtmpViewerCount(50);
+		dataStore.save(broadcast4);
+		
+		assertEquals(4, dataStore.getBroadcastCount());
+
+		dataStore.resetBroadcasts(ServerSettings.getLocalHostAddress());
 
 		assertEquals(2, dataStore.getBroadcastCount());
-
-		dataStore.clearStreamsOnThisServer(ServerSettings.getLocalHostAddress());
-
-		assertEquals(0, dataStore.getBroadcastCount());
+		List<Broadcast> broadcastList = dataStore.getBroadcastList(0, 10);
+		for (Broadcast tmp : broadcastList) {
+			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, tmp.getStatus());
+			assertEquals(0, tmp.getWebRTCViewerCount());
+			assertEquals(0, tmp.getHlsViewerCount());
+			assertEquals(0, tmp.getRtmpViewerCount());
+		}
+		
 	}
 
 	public void testClearAtStartCluster(DataStore dataStore) {
 		
-		dataStore.clearStreamsOnThisServer(ServerSettings.getLocalHostAddress());
-		assertEquals(0, dataStore.getBroadcastCount());
-
+		
+		deleteBroadcast((MongoStore) dataStore);
+		
 		Broadcast broadcast = new Broadcast();
 		broadcast.setOriginAdress(ServerSettings.getLocalHostAddress());
 		broadcast.setName("test1");
@@ -1495,10 +1541,11 @@ public class DBStoresUnitTest {
 		assertEquals(1, dataStore.getBroadcastCount());
 		assertEquals(2, dataStore.getStreamInfoList(broadcast.getStreamId()).size());
 
-		dataStore.clearStreamsOnThisServer(ServerSettings.getLocalHostAddress());
+		dataStore.resetBroadcasts(ServerSettings.getLocalHostAddress());
 
 		assertEquals(0, dataStore.getBroadcastCount());
 		assertEquals(0, dataStore.getStreamInfoList(broadcast.getStreamId()).size());
+		
 	}
 
 	@Test
