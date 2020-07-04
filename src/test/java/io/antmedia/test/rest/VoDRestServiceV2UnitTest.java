@@ -203,11 +203,11 @@ public class VoDRestServiceV2UnitTest {
 		assertEquals(streamVod.getVodName(), voD.getVodName());
 		assertEquals(streamVod.getFilePath(), voD.getFilePath());
 
-		assertEquals(1, restServiceReal.getVodList(0, 50, null, null).size());
+		assertEquals(1, restServiceReal.getVodList(0, 50, null, null, null).size());
 
 		restServiceReal.deleteVoD(vodId);
 
-		assertEquals(0, restServiceReal.getVodList(0, 50, null, null).size());
+		assertEquals(0, restServiceReal.getVodList(0, 50, null, null, null).size());
 
 		assertNull(datastore.getVoD(vodId));
 
@@ -303,44 +303,44 @@ public class VoDRestServiceV2UnitTest {
 
 		restServiceReal.setAppCtx(context);
 		
-		List<VoD> vodList = restServiceReal.getVodList(0, 50, null, null);
+		List<VoD> vodList = restServiceReal.getVodList(0, 50, null, null, null);
 		assertEquals(3, vodList.size());
 		assertEquals(vodList.get(0).getVodId(), vod1.getVodId());
 		assertEquals(vodList.get(1).getVodId(), vod2.getVodId());
 		assertEquals(vodList.get(2).getVodId(), vod3.getVodId());
 		
-		vodList = restServiceReal.getVodList(0, 50, "", "");
+		vodList = restServiceReal.getVodList(0, 50, "", "", "");
 		assertEquals(3, vodList.size());
 		assertEquals(vodList.get(0).getVodId(), vod1.getVodId());
 		assertEquals(vodList.get(1).getVodId(), vod2.getVodId());
 		assertEquals(vodList.get(2).getVodId(), vod3.getVodId());
 		
 		
-		vodList = restServiceReal.getVodList(0, 50, "name", "asc");
+		vodList = restServiceReal.getVodList(0, 50, "name", "asc", "");
 		assertEquals(3, vodList.size());
 		assertEquals(vodList.get(0).getVodId(), vod2.getVodId());
 		assertEquals(vodList.get(1).getVodId(), vod1.getVodId());
 		assertEquals(vodList.get(2).getVodId(), vod3.getVodId());
 		
-		vodList = restServiceReal.getVodList(0, 50, "name", "desc");
+		vodList = restServiceReal.getVodList(0, 50, "name", "desc", null);
 		assertEquals(3, vodList.size());
 		assertEquals(vodList.get(0).getVodId(), vod3.getVodId());
 		assertEquals(vodList.get(1).getVodId(), vod1.getVodId());
 		assertEquals(vodList.get(2).getVodId(), vod2.getVodId());
 		
-		vodList = restServiceReal.getVodList(0, 50, "date", "asc");
+		vodList = restServiceReal.getVodList(0, 50, "date", "asc", null);
 		assertEquals(3, vodList.size());
 		assertEquals(vodList.get(0).getVodId(), vod3.getVodId());
 		assertEquals(vodList.get(1).getVodId(), vod2.getVodId());
 		assertEquals(vodList.get(2).getVodId(), vod1.getVodId());
 		
-		vodList = restServiceReal.getVodList(0, 50, "date", "desc");
+		vodList = restServiceReal.getVodList(0, 50, "date", "desc", null);
 		assertEquals(3, vodList.size());
 		assertEquals(vodList.get(0).getVodId(), vod1.getVodId());
 		assertEquals(vodList.get(1).getVodId(), vod2.getVodId());
 		assertEquals(vodList.get(2).getVodId(), vod3.getVodId());
 		
-		vodList = restServiceReal.getVodList(0, 2, "name", "desc");
+		vodList = restServiceReal.getVodList(0, 2, "name", "desc", null);
 		assertEquals(2, vodList.size());
 		assertEquals(vodList.get(0).getVodId(), vod3.getVodId());
 		assertEquals(vodList.get(1).getVodId(), vod1.getVodId());
@@ -349,7 +349,7 @@ public class VoDRestServiceV2UnitTest {
 		datastore.deleteVod(vod2.getVodId());
 		datastore.deleteVod(vod3.getVodId());
 		
-		vodList = restServiceReal.getVodList(0, 50, null, null);
+		vodList = restServiceReal.getVodList(0, 50, null, null, null);
 		assertEquals(0, vodList.size());
 	}
 
@@ -370,10 +370,21 @@ public class VoDRestServiceV2UnitTest {
 		dataStore.addVod(vod2);
 		dataStore.addVod(vod3);
 
-		List<String> result = restService.getVoDIdByStreamId(streamId);
+		List<VoD> vodResult = restService.getVodList(0, 50, null, null, streamId);
 
-		assertTrue(result.contains(vodId1));
-		assertTrue(result.contains(vodId2));
-		assertFalse(result.contains(vodId3));
+		boolean vod1Match = false, vod2Match = false;
+		for (VoD vod : vodResult) {
+			if (vod.getVodId().equals(vod1.getVodId())) {
+				vod1Match = true;
+			}
+			else if (vod.getVodId().equals(vod2.getVodId())) {
+				vod2Match = true;
+			}
+			else if (vod.getVodId().equals(vod3.getVodId())) {
+				fail("vod3 should not be matched");
+			}
+		}
+		assertTrue(vod1Match);
+		assertTrue(vod2Match);
 	}
 }

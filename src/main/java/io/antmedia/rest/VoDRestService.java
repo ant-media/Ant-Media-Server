@@ -76,15 +76,10 @@ public class VoDRestService extends RestServiceBase{
 	public List<VoD> getVodList(@ApiParam(value = "offset of the list", required = true) @PathParam("offset") int offset,
 			@ApiParam(value = "Number of items that will be fetched", required = true) @PathParam("size") int size,
 			@ApiParam(value = "Field to sort", required = false) @QueryParam("sort_by") String sortBy,
-			@ApiParam(value = "asc for Ascending, desc Descening order", required = false) @QueryParam("order_by") String orderBy) {
-		
-		long t0 = System.currentTimeMillis();
-		List<VoD> vodList = getDataStore().getVodList(offset, size, sortBy, orderBy);
-		long dt = System.currentTimeMillis() - t0;
-		if(dt > 1000) {
-			logger.warn("getVodList longs {}", dt);
-		}
-		return vodList;
+			@ApiParam(value = "asc for Ascending, desc Descening order", required = false) @QueryParam("order_by") String orderBy,
+			@ApiParam(value = "Id of the stream to filter the results by stream id", required = true) @QueryParam("streamId") String streamId) 
+	{
+		return getDataStore().getVodList(offset, size, sortBy, orderBy, streamId);
 	}
 	
 	@ApiOperation(value = "Get the total number of VoDs", response = Long.class)
@@ -124,14 +119,5 @@ public class VoDRestService extends RestServiceBase{
 	@Override
 	public Result synchUserVodList() {
 		return super.synchUserVodList();
-	}
-
-	@ApiOperation(value = "Get Vod Id list by the Stream Id", response = VoD.class)
-	@GET
-	@Path("/list")
-	@Produces(MediaType.APPLICATION_JSON)
-	@Override
-	public List<String> getVoDIdByStreamId(@ApiParam(value = "Id of the stream", required = true) @QueryParam("streamId") String streamId) {
-		return getDataStore().getVoDIdByStreamId(streamId);
 	}
 }

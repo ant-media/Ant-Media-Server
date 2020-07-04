@@ -199,7 +199,7 @@ public class DBStoresUnitTest {
 		//Following methods does not return before the bug is fixed
 		dataStore.fetchUserVodList(new File(""));
 		
-		dataStore.getVodList(0, 10, "name", "asc");
+		dataStore.getVodList(0, 10, "name", "asc", null);
 	}
 
 	public void clear(DataStore dataStore) 
@@ -335,7 +335,7 @@ public class DBStoresUnitTest {
 		totalVodCount = datastore.getTotalVodNumber();
 		assertEquals(5, totalVodCount);
 
-		List<VoD> vodList = datastore.getVodList(0, 50, null, null);
+		List<VoD> vodList = datastore.getVodList(0, 50, null, null, null);
 		assertEquals(5, vodList.size());
 		for (VoD voD : vodList) {
 			assertEquals("streams/resources/"+voD.getVodName(), voD.getFilePath());
@@ -1896,11 +1896,23 @@ public class DBStoresUnitTest {
 		dataStore.addVod(vod2);
 		dataStore.addVod(vod3);
 
-		List<String> result = dataStore.getVoDIdByStreamId(streamId);
+		List<VoD> vodResult = dataStore.getVodList(0, 50, null, null, streamId);
 
-		assertTrue(result.contains(vodId1));
-		assertTrue(result.contains(vodId2));
-		assertFalse(result.contains(vodId3));
+		boolean vod1Match = false, vod2Match = false;
+		for (VoD vod : vodResult) {
+			if (vod.getVodId().equals(vod1.getVodId())) {
+				vod1Match = true;
+			}
+			else if (vod.getVodId().equals(vod2.getVodId())) {
+				vod2Match = true;
+			}
+			else if (vod.getVodId().equals(vod3.getVodId())) {
+				fail("vod3 should not be matched");
+			}
+		}
+		assertTrue(vod1Match);
+		assertTrue(vod2Match);
+
 
 	}
 

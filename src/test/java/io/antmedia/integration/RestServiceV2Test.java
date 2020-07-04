@@ -1886,7 +1886,7 @@ public class RestServiceV2Test {
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> {
 				return isUrlExist("http://localhost:5080/LiveApp/streams/"+"dummyStreamId.mp4");
 			});
-			String url = ROOT_SERVICE_URL + "/v2/vods/list?streamId="+streamId;
+			String url = ROOT_SERVICE_URL + "/v2/vods/list/0/50?streamId="+streamId;
 			HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
 					.setDefaultCookieStore(ConsoleAppRestServiceTest.getHttpCookieStore()).build();
 			Gson gson = new Gson();

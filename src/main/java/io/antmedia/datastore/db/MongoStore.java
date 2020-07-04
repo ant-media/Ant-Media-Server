@@ -417,8 +417,14 @@ public class MongoStore extends DataStore {
 	}
 
 	@Override
-	public List<VoD> getVodList(int offset, int size, String sortBy, String orderBy) {
+	public List<VoD> getVodList(int offset, int size, String sortBy, String orderBy, String filterStreamId) {
 		synchronized(this) {
+			Query<VoD> query = vodDatastore.find(VoD.class);
+			
+			if (filterStreamId != null && !filterStreamId.isEmpty()) {
+				query = query.field("streamId").equal(filterStreamId);
+			}
+			
 			if(sortBy != null && orderBy != null && !sortBy.isEmpty() && !orderBy.isEmpty()) {
 				String sortString = orderBy.contentEquals("desc") ? "-" : "";
 				if(sortBy.contentEquals("name")) {
@@ -427,9 +433,9 @@ public class MongoStore extends DataStore {
 				else if(sortBy.contentEquals("date")) {
 					sortString += CREATION_DATE;
 				}
-				return vodDatastore.find(VoD.class).order(sortString).asList(new FindOptions().skip(offset).limit(size));
+				query = query.order(sortString);
 			}
-			return vodDatastore.find(VoD.class).asList(new FindOptions().skip(offset).limit(size));
+			return query.asList(new FindOptions().skip(offset).limit(size));
 		}
 	}
 
@@ -1031,7 +1037,8 @@ public class MongoStore extends DataStore {
 				Query<ConferenceRoom> query = conferenceRoomDatastore.createQuery(ConferenceRoom.class).field("roomId").equal(room.getRoomId());
 
 				UpdateOperations<ConferenceRoom> ops = conferenceRoomDatastore.createUpdateOperations(ConferenceRoom.class).set("roomId", room.getRoomId())
-						.set("startDate", room.getStartDate()).set("endDate", room.getEndDate());
+						.set("startDate", room.getStartDate()).set("endDate", room.getEndDate())
+						.set("roomStreamList", room.getRoomStreamList());
 
 				UpdateResults update = conferenceRoomDatastore.update(query, ops);
 				return update.getUpdatedCount() == 1;
@@ -1310,17 +1317,4 @@ public class MongoStore extends DataStore {
 		
 		return totalOperationCount;
 	}
-  
-	@Override
-	public List<String> getVoDIdByStreamId(String streamID) {
-		List<String> vodIds=new ArrayList<>();
-		synchronized(this){
-			List<VoD> vods=vodDatastore.find(VoD.class).asList();
-			for(VoD vod:vods){
-				if(vod.getStreamId().equals(streamID))
-					vodIds.add(vod.getVodId());
-			}
-		}
-		return vodIds;
-  }
 }
