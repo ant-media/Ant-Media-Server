@@ -179,16 +179,32 @@ public class WebSocketConstants {
 	 * This info includes height, bitrates, etc.
 	 */
 	public static final String GET_STREAM_INFO_COMMAND = "getStreamInfo";
+	
+	/**
+	 * Command that let server returns information about a specific room.
+	 * This info includes stream ID's list in room.
+	 */
+	public static final String GET_ROOM_INFO_COMMAND = "getRoomInfo";
 
 	/**
 	 * Notification field used when returning stream information
 	 */
 	public static final String STREAM_INFORMATION_NOTIFICATION = "streamInformation";
+	
+	/**
+	 * Notification field used when returning room information
+	 */
+	public static final String ROOM_INFORMATION_NOTIFICATION = "roomInformation";
 
 	/**
 	 * Field in messaging to specify the stream info 
 	 */
 	public static final String STREAM_INFO = "streamInfo";
+	
+	/**
+	 * Field in messaging to specify the stream info 
+	 */
+	public static final String ROOM_INFO = "roomInfo";
 
 	/**
 	 * Field to specify the stream width
