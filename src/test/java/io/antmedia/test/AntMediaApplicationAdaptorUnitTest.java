@@ -1019,6 +1019,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		AppSettings settings = new AppSettings();
 		settings.setStartStreamFetcherAutomatically(true);
 		spyAdapter.setAppSettings(settings);
+		spyAdapter.setServerSettings(new ServerSettings());
 		spyAdapter.appStart(scope);
 
 		Awaitility.await().pollInterval(2,TimeUnit.SECONDS).atMost(3, TimeUnit.SECONDS).until(()-> true);
