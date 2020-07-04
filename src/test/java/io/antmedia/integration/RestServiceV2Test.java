@@ -1902,9 +1902,9 @@ public class RestServiceV2Test {
 				throw new Exception(restResult.toString());
 			}
 			logger.info("result string: " + restResult.toString());
-			Type listType = new TypeToken<List<String>>() {}.getType();
+			Type listType = new TypeToken<List<VoD>>() {}.getType();
 
-			List<String> vodIdList = gson.fromJson(restResult.toString(), listType);
+			List<VoD> vodIdList = gson.fromJson(restResult.toString(), listType);
 			assertNotNull(vodIdList);
 
 			assertEquals(2, vodIdList.size());
