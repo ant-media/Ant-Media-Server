@@ -12,7 +12,6 @@ import static org.bytedeco.javacpp.avutil.AVMEDIA_TYPE_VIDEO;
 import static org.bytedeco.javacpp.avutil.AV_NOPTS_VALUE;
 import static org.bytedeco.javacpp.avutil.AV_PIX_FMT_NONE;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -25,7 +24,7 @@ import java.util.concurrent.TimeUnit;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.muxer.MuxAdaptor;
+import io.antmedia.datastore.db.types.Endpoint;
 import org.awaitility.Awaitility;
 import org.bytedeco.javacpp.avcodec.AVCodecContext;
 import org.bytedeco.javacpp.avcodec.AVPacket;
@@ -148,8 +147,8 @@ public class MuxingTest {
 
 
 		} catch (Exception e) {
-			fail(e.getMessage());
 			e.printStackTrace();
+			fail(e.getMessage());
 		}
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
 			RestServiceV2Test restService = new RestServiceV2Test();
@@ -338,8 +337,61 @@ public class MuxingTest {
 		 String streamIdDynamic = "dynamic_stream" + (int)(Math.random() * 999999);
 		 String dynamicRtmpURL = "rtmp://localhost/LiveApp/" + streamIdDynamic;
 		 try {
-			Result result = RestServiceV2Test.addEndpoint(streamId, dynamicRtmpURL);
-			assertTrue(result.isSuccess());
+			 Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+				 //if stream is being prepared, it may return false, so try again 
+				 Result result = RestServiceV2Test.addEndpoint(streamId, dynamicRtmpURL);
+				 return result.isSuccess();
+			 });
+			
+			 Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+			 .until(() -> { 
+					 Broadcast broadcast = RestServiceV2Test.callGetBroadcast(streamIdDynamic);
+					 if (broadcast != null) {
+						 return broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING); 
+					 }
+					 return false;
+			 	});
+			 
+			 Result result = RestServiceV2Test.removeEndpoint(streamId, dynamicRtmpURL);
+			 assertTrue(result.isSuccess());
+			 
+			 Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+			 .until(() -> RestServiceV2Test.callGetBroadcast(streamIdDynamic) == null );
+			 
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		 
+		 rtmpSendingProcess.destroy();
+	}
+	
+	@Test
+	public void testDynamicAddRemoveRTMPV2() 
+	{
+		String streamId = "live_test"  + (int)(Math.random() * 999999);
+		
+		// make sure that ffmpeg is installed and in path
+		Process rtmpSendingProcess = execute(
+				ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://"
+						+ SERVER_ADDR + "/LiveApp/" + streamId);
+		
+		 Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+		 .until(() -> RestServiceV2Test.callGetBroadcast(streamId).getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING));
+		
+		 String streamIdDynamic = "dynamic_stream" + (int)(Math.random() * 999999);
+		 String dynamicRtmpURL = "rtmp://localhost/LiveApp/" + streamIdDynamic;
+		 
+		 Endpoint endpoint = new Endpoint();
+		 endpoint.setRtmpUrl(dynamicRtmpURL);
+		 
+		 try {
+			 Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+				 //if stream is being prepared, it may return false, so try again 
+				 Result result = RestServiceV2Test.addEndpointV2(streamId, endpoint);
+				 return result.isSuccess();
+			 });
 			
 			
 			 Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
@@ -351,7 +403,9 @@ public class MuxingTest {
 					 return false;
 			 	});
 			 
-			 result = RestServiceV2Test.removeEndpoint(streamId, dynamicRtmpURL);
+			 Broadcast broadcast = RestServiceV2Test.callGetBroadcast(streamId);
+			 
+			 Result result = RestServiceV2Test.removeEndpointV2(streamId, broadcast.getEndPointList().get(0).getEndpointServiceId());
 			 assertTrue(result.isSuccess());
 			 
 			 Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
@@ -476,7 +530,7 @@ public class MuxingTest {
 
 			if (expectedDurationInMS != 0) {
 				if ((durationInMS < (expectedDurationInMS - 2000)) || (durationInMS > (expectedDurationInMS + 2000))) {
-					System.out.println("Failed: duration of the stream: " + durationInMS);
+					System.out.println("Failed: duration of the stream: " + durationInMS + " expected duration is: " + expectedDurationInMS);
 					return false;
 				}
 			}

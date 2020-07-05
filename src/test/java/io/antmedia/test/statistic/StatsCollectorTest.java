@@ -23,6 +23,7 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.awaitility.Awaitility;
+import org.bytedeco.javacpp.avutil.AVRational;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
@@ -32,9 +33,9 @@ import org.red5.server.api.scope.IScope;
 import org.springframework.context.ApplicationContext;
 
 import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
+import io.antmedia.SystemUtils;
 import io.antmedia.rest.WebRTCClientStats;
 import io.antmedia.statistic.GPUUtils;
 import io.antmedia.statistic.StatsCollector;
@@ -182,6 +183,7 @@ public class StatsCollectorTest {
 	@Test
 	public void testHeartbeat() {
 
+		AVRational rat = new AVRational();
 		StatsCollector resMonitor = Mockito.spy(new StatsCollector());
 		//check default value
 		assertEquals(300000, resMonitor.getHeartbeatPeriodMs());
@@ -201,9 +203,7 @@ public class StatsCollectorTest {
 		});
 		
 		Mockito.verify(resMonitor, Mockito.times(1)).startAnalytic(Launcher.getVersion(), Launcher.getVersionType());
-		
-		Mockito.verify(resMonitor, Mockito.times(1)).notifyShutDown(Launcher.getVersion(), Launcher.getVersionType());
-		
+				
 		Mockito.verify(resMonitor, Mockito.times(1)).startHeartBeats(Launcher.getVersion(), Launcher.getVersionType(), 3000);
 		
 		resMonitor.cancelHeartBeat();
@@ -214,9 +214,7 @@ public class StatsCollectorTest {
 		resMonitor.start();
 		assertFalse(resMonitor.isHeartBeatEnabled());
 		Mockito.verify(resMonitor, Mockito.times(1)).startAnalytic(Launcher.getVersion(), Launcher.getVersionType());
-		
-		Mockito.verify(resMonitor, Mockito.times(1)).notifyShutDown(Launcher.getVersion(), Launcher.getVersionType());
-		
+				
 		Mockito.verify(resMonitor, Mockito.times(1)).startHeartBeats(Launcher.getVersion(), Launcher.getVersionType(), 3000);
 		
 		resMonitor.cancelHeartBeat();
@@ -409,6 +407,13 @@ public class StatsCollectorTest {
 		assertEquals(true,monitor.enoughResource());
 
 		
+	}
+	
+	@Test
+	public void testMemInfo() {
+		
+		AVRational rational = new AVRational();
+		assertTrue( 0 != SystemUtils.osAvailableMemory());
 	}
 	
 }

@@ -117,7 +117,6 @@ public class DataStoreFactory implements IDataStoreFactory, ApplicationContextAw
 		
 		if(dataStore != null) {
 			dataStore.setWriteStatsToDatastore(writeStatsToDatastore);
-			dataStore.clearStreamsOnThisServer(hostAddress);
 		}
 	}	
 	

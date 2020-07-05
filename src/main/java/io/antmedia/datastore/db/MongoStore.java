@@ -59,7 +59,9 @@ public class MongoStore extends DataStore {
 	private static final String DURATION = "duration"; 
 	private static final String CREATION_DATE = "creationDate";
 	private static final String PLAYLIST_ID = "playlistId";
-
+	private static final String RTMP_VIEWER_COUNT = "rtmpViewerCount";
+	private static final String HLS_VIEWER_COUNT = "hlsViewerCount";
+	private static final String WEBRTC_VIEWER_COUNT = "webRTCViewerCount";
 	
 	public MongoStore(String host, String username, String password, String dbName) {
 		morphia = new Morphia();
@@ -190,6 +192,11 @@ public class MongoStore extends DataStore {
 				if(status.contentEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
 					ops.set(START_TIME, System.currentTimeMillis());
 				}
+				else if(status.contentEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED)) {
+					ops.set(WEBRTC_VIEWER_COUNT, 0);
+					ops.set(HLS_VIEWER_COUNT, 0);
+					ops.set(RTMP_VIEWER_COUNT, 0);
+				}
 				
 				UpdateResults update = datastore.update(query, ops);
 				return update.getUpdatedCount() == 1;
@@ -254,7 +261,7 @@ public class MongoStore extends DataStore {
 	}
 
 	@Override
-	public boolean removeEndpoint(String id, Endpoint endpoint) {
+	public boolean removeEndpoint(String id, Endpoint endpoint, boolean checkRTMPUrl) {
 		boolean result = false;
 		synchronized(this) {
 			if (id != null && endpoint != null) {
@@ -724,7 +731,7 @@ public class MongoStore extends DataStore {
 					ops.set("streamUrl", broadcast.getStreamUrl());
 				}
 				
-				if ( broadcast.getDuration() != null) {
+				if ( broadcast.getDuration() != 0) {
 					ops.set(DURATION, broadcast.getDuration());
 				}
 				
@@ -782,7 +789,7 @@ public class MongoStore extends DataStore {
 		synchronized(this) {
 			try {
 				Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(streamId);
-				UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).inc("hlsViewerCount", diffCount);
+				UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).inc(HLS_VIEWER_COUNT, diffCount);
 
 				UpdateResults update = datastore.update(query, ops);
 				return update.getUpdatedCount() == 1;
@@ -798,12 +805,12 @@ public class MongoStore extends DataStore {
 	 */
 	@Override
 	public boolean updateWebRTCViewerCountLocal(String streamId, boolean increment) {
-		return updateViewerField(streamId, increment, "webRTCViewerCount");
+		return updateViewerField(streamId, increment, WEBRTC_VIEWER_COUNT);
 	}
 
 	@Override
 	public boolean updateRtmpViewerCountLocal(String streamId, boolean increment) {
-		return updateViewerField(streamId, increment, "rtmpViewerCount");
+		return updateViewerField(streamId, increment, RTMP_VIEWER_COUNT);
 	}
 
 	private boolean updateViewerField(String streamId, boolean increment, String fieldName) {
@@ -977,11 +984,20 @@ public class MongoStore extends DataStore {
 
 	@Override
 	public boolean setMp4Muxing(String streamId, int enabled) {
+		return setRecordMuxing(streamId, enabled, "mp4Enabled");
+	}
+	
+	@Override
+	public boolean setWebMMuxing(String streamId, int enabled) {
+		return setRecordMuxing(streamId, enabled, "webMEnabled");
+	}
+	
+	private boolean setRecordMuxing(String streamId, int enabled, String field) {
 		synchronized(this) {
 			try {
-				if (streamId != null && (enabled == MuxAdaptor.MP4_ENABLED_FOR_STREAM || enabled == MuxAdaptor.MP4_NO_SET_FOR_STREAM || enabled == MuxAdaptor.MP4_DISABLED_FOR_STREAM)) {
+				if (streamId != null && (enabled == MuxAdaptor.RECORDING_ENABLED_FOR_STREAM || enabled == MuxAdaptor.RECORDING_NO_SET_FOR_STREAM || enabled == MuxAdaptor.RECORDING_DISABLED_FOR_STREAM)) {
 					Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(streamId);
-					UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set("mp4Enabled", enabled);
+					UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set(field, enabled);
 					UpdateResults update = datastore.update(query, ops);
 					return update.getUpdatedCount() == 1;
 				}
@@ -991,40 +1007,6 @@ public class MongoStore extends DataStore {
 		}
 		return false;
 
-	}
-
-	@Override
-	public void clearStreamsOnThisServer(String hostAddress) {
-		synchronized(this) {
-			Query<Broadcast> query = datastore.createQuery(Broadcast.class);
-			query.and(
-					query.or(
-							query.criteria(ORIGIN_ADDRESS).doesNotExist(), //check for non cluster mode
-							query.criteria(ORIGIN_ADDRESS).equal(hostAddress)
-							),
-					query.criteria("zombi").equal(true)
-					);
-			long count = query.count();
-			
-			if(count > 0) {
-				logger.error("There are {} streams for {} at start. They are deleted now.", count, hostAddress);
-
-				WriteResult res = datastore.delete(query);
-				if(res.getN() != count) {
-					logger.error("Only {} streams were deleted ou of {} streams.", res.getN(), count);
-				}
-			}
-
-			Query<StreamInfo> querySI = datastore.createQuery(StreamInfo.class).field("host").equal(hostAddress);
-			count = querySI.count();
-			if(count > 0) {
-				logger.error("There are {} stream info adressing {} at start. They are deleted now.", count, hostAddress);
-				WriteResult res = datastore.delete(querySI);
-				if(res.getN() != count) {
-					logger.error("Only {} stream info were deleted out of {} streams.", res.getN(), count);
-				}
-			}
-		}
 	}
 
 	@Override
@@ -1053,7 +1035,8 @@ public class MongoStore extends DataStore {
 				Query<ConferenceRoom> query = conferenceRoomDatastore.createQuery(ConferenceRoom.class).field("roomId").equal(room.getRoomId());
 
 				UpdateOperations<ConferenceRoom> ops = conferenceRoomDatastore.createUpdateOperations(ConferenceRoom.class).set("roomId", room.getRoomId())
-						.set("startDate", room.getStartDate()).set("endDate", room.getEndDate());
+						.set("startDate", room.getStartDate()).set("endDate", room.getEndDate())
+						.set("roomStreamList", room.getRoomStreamList());
 
 				UpdateResults update = conferenceRoomDatastore.update(query, ops);
 				return update.getUpdatedCount() == 1;
@@ -1252,4 +1235,84 @@ public class MongoStore extends DataStore {
 		return result;
 	}
 	
+	@Override
+	public int resetBroadcasts(String hostAddress) 
+	{
+		int totalOperationCount = 0;
+		synchronized(this) {
+			{
+				//delete zombi streams that are belong to origin address
+				Query<Broadcast> query = datastore.createQuery(Broadcast.class);
+				query.and(
+						query.or(
+								query.criteria(ORIGIN_ADDRESS).doesNotExist(), //check for non cluster mode
+								query.criteria(ORIGIN_ADDRESS).equal(hostAddress)
+								),
+						query.criteria("zombi").equal(true)
+						);
+				long count = query.count();
+				
+				if(count > 0) 
+				{
+					logger.error("There are {} streams for {} at start. They are deleted now.", count, hostAddress);
+	
+					WriteResult res = datastore.delete(query);
+					if(res.getN() != count) {
+						logger.error("Only {} streams were deleted out of {} streams.", res.getN(), count);
+					}
+					totalOperationCount += res.getN();
+				}
+			}
+			
+			{
+				//reset the broadcasts viewer numbers
+				Query<Broadcast> queryUpdateStatus = datastore.createQuery(Broadcast.class);
+				queryUpdateStatus.or(queryUpdateStatus.criteria(ORIGIN_ADDRESS).equal(hostAddress),
+						queryUpdateStatus.criteria(ORIGIN_ADDRESS).doesNotExist());
+				
+				long broadcastCount = queryUpdateStatus.count();
+	
+				if (broadcastCount > 0) 
+				{
+					UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class);
+					ops.set(WEBRTC_VIEWER_COUNT, 0);
+					ops.set(HLS_VIEWER_COUNT, 0);
+					ops.set(RTMP_VIEWER_COUNT, 0);
+					ops.set(STATUS, AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+					
+					UpdateResults update = datastore.update(queryUpdateStatus, ops);
+					
+					if (update.getUpdatedCount() == broadcastCount) 
+					{
+						logger.info("{} of Broadcasts are reset. ", broadcastCount);
+					}
+					else 
+					{
+						logger.error("Broadcast reset count is not correct. {} stream info were updated out of {} streams.", update.getUpdatedCount(), broadcastCount);
+					}
+					
+					totalOperationCount += update.getUpdatedCount();
+				}
+				
+			}
+			
+			{
+				//delete streaminfo 
+				Query<StreamInfo> querySI = datastore.createQuery(StreamInfo.class).field("host").equal(hostAddress);
+				long count = querySI.count();
+				if(count > 0) 
+				{
+					logger.error("There are {} stream info adressing {} at start. They are deleted now.", count, hostAddress);
+					WriteResult res = datastore.delete(querySI);
+					if(res.getN() != count) {
+						logger.error("Only {} stream info were deleted out of {} streams.", res.getN(), count);
+					}
+					totalOperationCount += res.getN();
+				}
+			}
+			
+		}
+		
+		return totalOperationCount;
+	}
 }

@@ -149,11 +149,13 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		appScope = null;
 		app = null;
 
+		/*
 		try {
 			AppFunctionalV2Test.delete(new File("webapps"));
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		*/
 	}
 
 	
@@ -284,7 +286,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			fetcherManager.setStreamCheckerInterval(4000);
 
 			//set restart period to 5 seconds
-			fetcherManager.setRestartStreamFetcherPeriod(5);
+			appSettings.setRestartStreamFetcherPeriod(5);
 
 			//Start stream fetcher
 			StreamFetcher result = fetcherManager.startStreaming(stream);
@@ -298,7 +300,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			verify(streamFetcher, times(3)).startStream(); 
 
 			//set restart period to 0 seconds
-			fetcherManager.setRestartStreamFetcherPeriod(0);
+			appSettings.setRestartStreamFetcherPeriod(0);
 
 			//wait 10-12 seconds
 
@@ -307,7 +309,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			verify(streamFetcher, times(3)).startStream(); 
 
 			//set restart period to 5 seconds
-			fetcherManager.setRestartStreamFetcherPeriod(5);
+			appSettings.setRestartStreamFetcherPeriod(5);
 
 			//wait 10-12 seconds
 
@@ -315,7 +317,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			verify(streamFetcher, timeout(14000).atLeast(4)).stopStream();
 			verify(streamFetcher, atLeast(5)).startStream(); 
 
-			fetcherManager.setRestartStreamFetcherPeriod(0);
+			appSettings.setRestartStreamFetcherPeriod(0);
 
 			fetcherManager.stopCheckerJob();
 
@@ -580,11 +582,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			//wait for packaging files
 			fetcher.stopStream();
 
-			try {
-				Thread.sleep(8000);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
+			Awaitility.await().atMost(15,  TimeUnit.SECONDS).until(() -> !fetcher.isThreadActive());
 			assertFalse(fetcher.isThreadActive());
 
 			logger.info("before test m3u8 file");
@@ -756,7 +754,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testAudioOnlySource() {
 		logger.info("running testAudioOnlySource");
 		//test AudioOnly Source
-		testFetchStreamSources("rtmp://37.247.100.100/shoutcast/karadenizfm.stream", false, false);
+		testFetchStreamSources("https://moondigitaledge.radyotvonline.net/karadenizfm/playlist.m3u8", false, false);
 		logger.info("leaving testAudioOnlySource");
 	}
 
@@ -791,7 +789,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			if (checkContext) {
 				Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
 					// This issue is the check of #1600
-					return fetcher.getMuxAdaptor() != null && fetcher.getMuxAdaptor().getInputFormatContext() != null;
+					return fetcher.getMuxAdaptor() != null && fetcher.getMuxAdaptor().isEnableAudio() && fetcher.getMuxAdaptor().getInputFormatContext() != null;
 				});
 			}
 	
@@ -869,7 +867,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		fetcher.stopStream();
 		
-		Awaitility.await().pollDelay(4, TimeUnit.SECONDS).atMost(7, TimeUnit.SECONDS).until(fetcher::isStopRequestReceived);	
+		Awaitility.await().pollDelay(4, TimeUnit.SECONDS).atMost(7, TimeUnit.SECONDS).until(() -> !fetcher.isThreadActive());	
 		
 	}
 

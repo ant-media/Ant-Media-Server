@@ -168,6 +168,10 @@ auth_tomcat(){
     $SUDO mkdir $TEMP_DIR
   fi
 
+  if [ "$fullChainFileExist" == false ]; then
+    PRIVATE_KEY_FILE="/etc/letsencrypt/live/$domain/privkey.pem"
+    FULL_CHAIN_FILE="/etc/letsencrypt/live/$domain/fullchain.pem"
+  fi
 
   EXPORT_P12_FILE=$TEMP_DIR/fullchain_and_key.p12
   

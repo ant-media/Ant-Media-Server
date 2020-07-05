@@ -50,6 +50,8 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.ConfigurableApplicationContext;
 
+import io.antmedia.shutdown.AMSShutdownManager;
+
 /**
  * Server/service to perform orderly and controlled shutdown and clean up of Red5.
  * 
@@ -150,12 +152,21 @@ public class ShutdownServer implements ApplicationContextAware, InitializingBean
             // write to file
             Path path = Files.createFile(Paths.get(shutdownTokenFileName));
             File tokenFile = path.toFile();
-            RandomAccessFile raf = new RandomAccessFile(tokenFile, "rws");
-            raf.write(token.getBytes());
-            raf.close();
+            try (RandomAccessFile raf = new RandomAccessFile(tokenFile, "rws")) {
+            	raf.write(token.getBytes());
+            }
         } catch (Exception e) {
             log.warn("Exception handling token file", e);
         }
+        Runtime.getRuntime().addShutdownHook(new Thread() {
+        	@Override
+        	public void run() {
+        		//notify shutdown is both called in hook and shutdownOrderly
+        		//it's a synchronized method one-shot
+        		AMSShutdownManager.getInstance().notifyShutdown();
+        	}
+        });
+        
         while (!shutdown.get()) {
             try (
                     ServerSocket serverSocket = new ServerSocket(port); 
@@ -167,8 +178,8 @@ public class ShutdownServer implements ApplicationContextAware, InitializingBean
                 String inputLine = in.readLine();
                 if (inputLine != null && token.equals(inputLine)) {
                     log.info("Shutdown request validated using token");
-                    out.println("Ok");
                     shutdownOrderly();
+                    out.println("Ok");
                 } else {
                     out.println("Bye");
                 }
@@ -182,6 +193,9 @@ public class ShutdownServer implements ApplicationContextAware, InitializingBean
     }
 
     private void shutdownOrderly() {
+    	//notify shutdown is both called in hook and shutdownOrderly
+		//it's a synchronized method one-shot
+    	AMSShutdownManager.getInstance().notifyShutdown();
         // shutdown internal listener
         shutdown.compareAndSet(false, true);
         // shutdown the plug-in launcher
