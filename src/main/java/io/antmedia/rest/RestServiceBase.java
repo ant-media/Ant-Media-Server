@@ -1720,8 +1720,8 @@ public abstract class RestServiceBase {
 	protected Object getToken (String streamId, long expireDate, String type, String roomId) 
 	{
 		Token token = null;
-		String message = "Define stream Id and Expire Date (unix time)";
-		if(streamId != null && expireDate > 0) {
+		String message = "Define Stream ID, Token Type and Expire Date (unix time)";
+		if(streamId != null && type != null && expireDate > 0) {
 
 			ApplicationContext appContext = getAppContext();
 
