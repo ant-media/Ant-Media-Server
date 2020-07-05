@@ -164,10 +164,13 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		}
 		
 		vertx.setTimer(10, l -> {
-				streamFetcherManager = new StreamFetcherManager(vertx, getDataStore(),app);
-				List<Broadcast> streams = getDataStore().getExternalStreamsList();
-				logger.info("Stream source size: {}", streams.size());
-				streamFetcherManager.startStreams(streams);
+				
+				getStreamFetcherManager();
+				if(appSettings.isStartStreamFetcherAutomatically()) {
+					List<Broadcast> streams = getDataStore().getExternalStreamsList();
+					logger.info("Stream source size: {}", streams.size());
+					streamFetcherManager.startStreams(streams);
+				}
 
 				List<SocialEndpointCredentials> socialEndpoints = getDataStore().getSocialEndpoints(0, END_POINT_LIMIT);
 
@@ -879,6 +882,9 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	}
 
 	public StreamFetcherManager getStreamFetcherManager() {
+		if(streamFetcherManager == null) {
+			streamFetcherManager = new StreamFetcherManager(vertx, getDataStore(), scope);
+		}
 		return streamFetcherManager;
 	}
 	
