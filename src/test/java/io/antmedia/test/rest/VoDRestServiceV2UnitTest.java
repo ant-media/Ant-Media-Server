@@ -36,7 +36,6 @@ import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.MongoStore;
-import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.integration.MuxingTest;
 import io.antmedia.rest.RestServiceBase.ProcessBuilderFactory;
@@ -238,6 +237,8 @@ public class VoDRestServiceV2UnitTest {
 			assertNull(f.list());
 
 			assertEquals(0, store.getTotalVodNumber());
+			
+			assertEquals(0, restServiceReal.getTotalVodNumber().getNumber());
 
 			restServiceReal.uploadVoDFile(fileName, inputStream);
 
@@ -247,6 +248,8 @@ public class VoDRestServiceV2UnitTest {
 			assertEquals(1, f.list().length);
 
 			assertEquals(1, store.getTotalVodNumber());
+			
+			assertEquals(1, restServiceReal.getTotalVodNumber().getNumber());
 
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
