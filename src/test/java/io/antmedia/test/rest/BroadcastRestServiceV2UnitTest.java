@@ -550,6 +550,14 @@ public class BroadcastRestServiceV2UnitTest {
 			result = (Result) tokenReturn;
 			assertFalse(result.isSuccess());	
 		}
+		
+		{	
+			//set token type null and it should return false
+			tokenReturn = restServiceReal.getTokenV2(streamId, 123432, null, "testRoom").getEntity();
+			assertTrue(tokenReturn instanceof Result);
+			result = (Result) tokenReturn;
+			assertFalse(result.isSuccess());
+		}
 
 		Mockito.when(datastore.saveToken(Mockito.any())).thenReturn(true);
 		tokenReturn = (Object) restServiceReal.getTokenV2(streamId, 123432, Token.PLAY_TOKEN, "testRoom").getEntity();
