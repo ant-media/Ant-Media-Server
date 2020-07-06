@@ -1688,4 +1688,61 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		new File(rotated).delete();
 
 	}
+	
+	@Test
+	public void testMp4MuxingWithSameNameWhileRecording() {
+
+		/*
+		 * In this test we create such a case with spy Files
+		 * In recod directory
+		 * test.mp4						existing
+		 * test_1.mp4 					non-existing
+		 * test_2.mp4 					non-existing
+		 * test.mp4.tmp_extension		non-existing
+		 * test_1.mp4.tmp_extension		existing
+		 * test_2.mp4.tmp_extension		non-existing
+		 * 
+		 * So we check new record file must be temp_2.mp4
+		 */
+		
+		String streamId = "test";
+		Muxer mp4Muxer = spy(new Mp4Muxer(null, null));
+		IScope scope = mock(IScope.class);
+		
+		File parent = mock(File.class);
+		when(parent.exists()).thenReturn(true);
+		
+		File existingFile = spy(new File(streamId+".mp4"));
+		doReturn(true).when(existingFile).exists();
+		doReturn(parent).when(existingFile).getParentFile();
+
+		File nonExistingFile_1 = spy(new File(streamId+"_1.mp4"));
+		doReturn(false).when(nonExistingFile_1).exists();
+		
+		File nonExistingFile_2 = spy(new File(streamId+"_2.mp4"));
+		doReturn(false).when(nonExistingFile_2).exists();
+		
+		
+		File nonExistingTempFile = spy(new File(streamId+".mp4"+Muxer.TEMP_EXTENSION));
+		doReturn(true).when(nonExistingTempFile).exists();
+		
+		File existingTempFile_1 = spy(new File(streamId+"_1.mp4"+Muxer.TEMP_EXTENSION));
+		doReturn(true).when(existingTempFile_1).exists();
+		
+		File nonExistingTempFile_2 = spy(new File(streamId+"_2.mp4"+Muxer.TEMP_EXTENSION));
+		doReturn(false).when(nonExistingTempFile_2).exists();
+
+		doReturn(existingFile).when(mp4Muxer).getResourceFile(any(), eq(streamId), eq(".mp4"));
+		doReturn(nonExistingFile_1).when(mp4Muxer).getResourceFile(any(), eq(streamId+"_1"), eq(".mp4"));
+		doReturn(nonExistingFile_2).when(mp4Muxer).getResourceFile(any(), eq(streamId+"_2"), eq(".mp4"));
+
+		doReturn(nonExistingTempFile).when(mp4Muxer).getResourceFile(any(), eq(streamId), eq(".mp4"+Muxer.TEMP_EXTENSION));
+		doReturn(existingTempFile_1).when(mp4Muxer).getResourceFile(any(), eq(streamId+"_1"), eq(".mp4"+Muxer.TEMP_EXTENSION));
+		doReturn(nonExistingTempFile_2).when(mp4Muxer).getResourceFile(any(), eq(streamId+"_2"), eq(".mp4"+Muxer.TEMP_EXTENSION));
+		
+		mp4Muxer.init(scope, streamId, 0, false);
+		
+		assertEquals(nonExistingFile_2, mp4Muxer.getFile());
+		
+	}
 }
