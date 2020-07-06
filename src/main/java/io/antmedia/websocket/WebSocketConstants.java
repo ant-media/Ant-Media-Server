@@ -181,6 +181,11 @@ public class WebSocketConstants {
 	public static final String GET_STREAM_INFO_COMMAND = "getStreamInfo";
 	
 	/**
+	 * Command that stream set resolution request.
+	 */
+	public static final String FORCE_STREAM_QUALITY = "forceStreamQuality";
+	
+  /**
 	 * Command that let server returns information about a specific room.
 	 * This info includes stream ID's list in room.
 	 */

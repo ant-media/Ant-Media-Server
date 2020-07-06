@@ -33,6 +33,14 @@ public interface IWebRTCAdaptor extends IScopeService {
 	void adaptStreamingQuality(String streamId, IWebRTCClient webRTCClient, VideoCodec codec);
 
 	/**
+	 * Try to force defined stream quality for the client
+	 * @param streamId
+	 * @param webRTCClient
+	 * @param streamHeight
+	 */
+	void forceStreamingQuality(String streamId, IWebRTCClient webRTCClient, int streamHeight);
+
+	/**
 	 * Register to specific resolution
 	 * 
 	 * It is used in clustering
