@@ -41,6 +41,7 @@ import com.google.gson.JsonObject;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.IApplicationAdaptorFactory;
 import io.antmedia.SystemUtils;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.rest.WebRTCClientStats;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.shutdown.AMSShutdownManager;
@@ -160,7 +161,6 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 	public static final String GA_TRACKING_ID = "UA-93263926-3";
 
-	@Autowired
 	private Vertx vertx;
 	private Queue<Integer> cpuMeasurements = new ConcurrentLinkedQueue<>();
 
@@ -729,6 +729,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		ServerSettings serverSettings = (ServerSettings) applicationContext.getBean(ServerSettings.BEAN_NAME);
 		heartBeatEnabled = serverSettings.isHeartbeatEnabled();
 		hostAddress = serverSettings.getHostAddress();
+		vertx = (Vertx) applicationContext.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
 	}
 
 	public int getStaticSendPeriod() {
