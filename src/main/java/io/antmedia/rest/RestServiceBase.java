@@ -744,7 +744,7 @@ public abstract class RestServiceBase {
 
 				List<VoD> vodList = new ArrayList<>();
 				for (int i = 0; i < pageCount; i++) {
-					vodList.addAll(getDataStore().getVodList(i*DataStore.MAX_ITEM_IN_ONE_LIST, DataStore.MAX_ITEM_IN_ONE_LIST, null, null));
+					vodList.addAll(getDataStore().getVodList(i*DataStore.MAX_ITEM_IN_ONE_LIST, DataStore.MAX_ITEM_IN_ONE_LIST, null, null, null));
 				}
 
 				String fqdn = getServerSettings().getServerName();
@@ -1847,6 +1847,5 @@ public abstract class RestServiceBase {
 			return false;
 		}
 	}
-
 
 }

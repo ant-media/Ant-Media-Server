@@ -305,8 +305,26 @@ public class InMemoryDataStore extends DataStore {
 	}
 
 	@Override
-	public List<VoD> getVodList(int offset, int size, String sortBy, String orderBy) {
-		ArrayList<VoD> vods = new ArrayList<>(vodMap.values());
+	public List<VoD> getVodList(int offset, int size, String sortBy, String orderBy, String filterStreamId) 
+	{
+		ArrayList<VoD> vods = null;
+		
+		if (filterStreamId != null && !filterStreamId.isEmpty()) 
+		{
+			vods = new ArrayList<>();
+			
+			for (VoD vod : vodMap.values()) 
+			{
+				if(vod.getStreamId().equals(filterStreamId)) {
+					vods.add(vod);
+				}
+			}
+			
+		}
+		else {
+			vods = new ArrayList<>(vodMap.values());
+		}
+		
 		return sortAndCropVodList(vods, offset, size, sortBy, orderBy);
 	}
 
@@ -902,7 +920,7 @@ public class InMemoryDataStore extends DataStore {
 		}
 		return result;
 	}
-	
+  
 	@Override
 	public int resetBroadcasts(String hostAddress) {
 		Set<Entry<String,Broadcast>> entrySet = broadcastMap.entrySet();
@@ -929,5 +947,5 @@ public class InMemoryDataStore extends DataStore {
 		
 		return i;
 	}
-	
+  
 }
