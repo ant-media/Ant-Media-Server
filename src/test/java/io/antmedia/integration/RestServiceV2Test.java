@@ -1845,6 +1845,7 @@ public class RestServiceV2Test {
 
 	@Test
 	public void testVoDIdListByStreamId() {
+		
 		ConsoleAppRestServiceTest.resetCookieStore();
 		Result result;
 		try {
@@ -1867,7 +1868,7 @@ public class RestServiceV2Test {
 			result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettingsModel);
 			assertTrue(result.isSuccess());
 
-			//this process should be terminated autotimacally because test.flv has 25fps and 360p
+			//this process should be terminated automatically because test.flv has 25fps and 360p
 
 			startStopRTMPBroadcast(streamId);
 
@@ -1907,7 +1908,14 @@ public class RestServiceV2Test {
 			List<VoD> vodIdList = gson.fromJson(restResult.toString(), listType);
 			assertNotNull(vodIdList);
 
-			assertEquals(2, vodIdList.size());
+			boolean isEnterprise = callIsEnterpriseEdition().getMessage().contains("Enterprise");
+			// It's added due to Adaptive Settings added as default in Enterprise Edition. 
+			if(isEnterprise) {
+				assertEquals(4, vodIdList.size());
+			}
+			else {
+				assertEquals(2, vodIdList.size());
+			}
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -1939,6 +1947,36 @@ public class RestServiceV2Test {
 			e.printStackTrace();
 		}
 		return false;
+	}
+	
+	public Result callIsEnterpriseEdition() throws Exception {
+
+		String url = "http://localhost:5080/LiveApp/rest/v2/version";
+		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+		Gson gson = new Gson();
+
+		HttpUriRequest get = RequestBuilder.get().setUri(url).build();
+		CloseableHttpResponse response = client.execute(get);
+
+		StringBuffer result = readResponse(response);
+
+
+		if (response.getStatusLine().getStatusCode() != 200) {
+			throw new Exception(result.toString());
+		}
+		logger.info("result string: {} ",result.toString());
+
+		Version version = gson.fromJson(result.toString(),Version.class);
+
+
+
+		Result resultResponse = new Result(true, version.getVersionType());
+
+		assertNotNull(resultResponse);
+
+		return resultResponse;
+
+
 	}
 
 }
