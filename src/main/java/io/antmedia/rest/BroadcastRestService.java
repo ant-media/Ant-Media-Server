@@ -1049,7 +1049,7 @@ public class BroadcastRestService extends RestServiceBase{
 	@ApiOperation(value = "Send stream participants a message through Data Channel in a WebRTC stream", notes = "", response = Result.class)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
-	@Path("/{id}/send_message")
+	@Path("/{id}/data")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result sendMessage(@ApiParam(value = "Message through Data Channel which will be sent to all WebRTC stream participants", required = true) String message, 
 			@ApiParam(value = "Broadcast id", required = true) @PathParam("id") String id) {
