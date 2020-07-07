@@ -29,7 +29,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.DisposableBean;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContextAware;
 
 import com.brsanthu.googleanalytics.GoogleAnalytics;
@@ -44,13 +43,11 @@ import io.antmedia.SystemUtils;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.rest.WebRTCClientStats;
 import io.antmedia.settings.ServerSettings;
-import io.antmedia.shutdown.AMSShutdownManager;
 import io.antmedia.statistic.GPUUtils.MemoryStatus;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.antmedia.websocket.WebSocketCommunityHandler;
-import io.vertx.core.AsyncResult;
-import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
+import io.vertx.ext.dropwizard.MetricsService;
 
 
 
@@ -240,7 +237,9 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	public static final String JVM_NATIVE_MEMORY_USAGE = "jvmNativeMemoryUsage";
 
 	private static final String HOST_ADDRESS = "host-address";
-
+	
+	private static final String VERTX_WORKER_QUEUE_SIZE = "vertx.pools.worker.vert.x-worker-thread.queue-size";
+	
 	private Producer<Long,String> kafkaProducer = null;
 
 	private long cpuMeasurementTimerId = -1;
@@ -259,8 +258,37 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 	private Vertx webRTCVertx;
 	
+	private int time2Log = 0;
+
+	private MetricsService vertXMetrics;
+
+	private MetricsService webRTCVertxMetrics;
+	
 	public void start() {
-		cpuMeasurementTimerId  = getVertx().setPeriodic(measurementPeriod, l -> addCpuMeasurement(SystemUtils.getSystemCpuLoad()));
+		cpuMeasurementTimerId  = getVertx().setPeriodic(measurementPeriod, l -> 
+		{
+			addCpuMeasurement(SystemUtils.getSystemCpuLoad());
+		
+			//log every minute
+			if (60000/measurementPeriod == time2Log) {
+				if(logger != null) {
+					logger.info("System cpu load:{} process cpu load:{} available memory: {} KB used memory(RSS): {} KB", cpuLoad, SystemUtils.getProcessCpuLoad(), SystemUtils.convertByteSize(SystemUtils.osAvailableMemory(), "KB"), SystemUtils.convertByteSize(Pointer.physicalBytes(), "KB"));
+					
+					io.vertx.core.json.JsonObject queueSizeMetrics = vertXMetrics.getMetricsSnapshot(VERTX_WORKER_QUEUE_SIZE);
+					int vertxWorkerQueueSize = queueSizeMetrics.getJsonObject(VERTX_WORKER_QUEUE_SIZE).getInteger("count");
+					
+					
+					queueSizeMetrics = webRTCVertxMetrics.getMetricsSnapshot(VERTX_WORKER_QUEUE_SIZE);
+					int webRTCVertxWorkerQueueSize = queueSizeMetrics.getJsonObject(VERTX_WORKER_QUEUE_SIZE).getInteger("count");
+				
+					logger.info("Vertx worker queue size:{} WebRTCVertx worker queue size:{}", vertxWorkerQueueSize, webRTCVertxWorkerQueueSize);
+					
+				}
+				
+				time2Log = 0;
+			}
+			time2Log++;
+		});
 		startKafkaProducer();
 
 		if (heartBeatEnabled) {
@@ -734,7 +762,11 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		hostAddress = serverSettings.getHostAddress();
 		vertx = (Vertx) applicationContext.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
 		
+		vertXMetrics= MetricsService.create(vertx);
+		
 		webRTCVertx = (Vertx) applicationContext.getBean(WebSocketCommunityHandler.WebRTC_VERTX_BEAN_NAME);
+		
+		webRTCVertxMetrics =  MetricsService.create(webRTCVertx);
 	}
 
 	public int getStaticSendPeriod() {
@@ -766,12 +798,6 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 		hearbeatPeriodicTask = vertx.setPeriodic(periodMS, 
 				l -> {
-					if(logger != null) {
-						logger.info("-Heartbeat-> System cpu load: {} process cpu load:{} free memory: {} KB available memory: {} KB used memory(RSS): {} KB", cpuLoad, SystemUtils.getProcessCpuLoad(), SystemUtils.convertByteSize(SystemUtils.osFreePhysicalMemory(),"KB"), SystemUtils.convertByteSize(SystemUtils.osAvailableMemory(), "KB"), SystemUtils.convertByteSize(Pointer.physicalBytes(), "KB"));
-					}
-					else {
-						System.out.println("-Heartbeat-> System cpu load:" + cpuLoad + " Free memory: {} KB" + SystemUtils.convertByteSize(SystemUtils.osFreePhysicalMemory(),"KB"));
-					}
 										
 					getGoogleAnalytic(implementationVersion, type).event()
 					.eventCategory("server_status")
@@ -781,8 +807,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 					.sendAsync();
 					
 					
-				}
-				);
+				});
 
 		return result;
 	}
