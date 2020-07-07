@@ -16,10 +16,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Playlist;
-import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.rest.model.Result;
 import io.vertx.core.Vertx;
 
@@ -52,17 +52,18 @@ public class StreamFetcherManager {
 
 	private boolean restartStreamAutomatically = true;
 
-	/**
-	 * Time period in seconds for restarting stream fetchers
-	 */
-	private int restartStreamFetcherPeriodSeconds;
-
 	private Vertx vertx;
+
+	private int lastRestartCount;
+	
+	private AppSettings appSettings;
+
 
 	public StreamFetcherManager(Vertx vertx, DataStore datastore,IScope scope) {
 		this.vertx = vertx;
 		this.datastore = datastore;
 		this.scope=scope;
+		this.appSettings = (AppSettings) scope.getContext().getBean(AppSettings.BEAN_NAME);
 	}
 
 	public StreamFetcher make(Broadcast stream, IScope scope, Vertx vertx) {
@@ -84,16 +85,6 @@ public class StreamFetcherManager {
 		this.streamCheckerIntervalMs = streamCheckerInterval;
 	}
 
-	/**
-	 * Set stream fetcher restart period, this value is used in periodically stopping and starting
-	 * stream fetchers. If this value is zero it will not restart stream fetchers
-	 * 
-	 * @param restartStreamFetcherPeriod, time period of the stream fetcher restart period in seconds
-	 */
-	public void setRestartStreamFetcherPeriod(int restartStreamFetcherPeriod) {
-		this.restartStreamFetcherPeriodSeconds = restartStreamFetcherPeriod;	
-	}
-	
 	public boolean checkAlreadyFetch(Broadcast broadcast) {
 		
 		boolean alreadyFetching = false;
@@ -336,8 +327,6 @@ public class StreamFetcherManager {
 
 		streamFetcherScheduleJobName = vertx.setPeriodic(streamCheckerIntervalMs, l-> {
 
-			int lastRestartCount = 0;
-
 			if (!streamFetcherList.isEmpty()) {
 
 				streamCheckerCount++;
@@ -345,6 +334,7 @@ public class StreamFetcherManager {
 				logger.debug("StreamFetcher Check Count:{}" , streamCheckerCount);
 
 				int countToRestart = 0;
+				int restartStreamFetcherPeriodSeconds = appSettings.getRestartStreamFetcherPeriod();
 				if (restartStreamFetcherPeriodSeconds > 0) 
 				{
 					int streamCheckIntervalSec = streamCheckerIntervalMs / 1000;

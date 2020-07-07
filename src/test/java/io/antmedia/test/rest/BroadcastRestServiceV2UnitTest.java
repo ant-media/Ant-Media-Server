@@ -95,6 +95,7 @@ import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
 import io.antmedia.statistic.IStatsCollector;
 import io.antmedia.statistic.StatsCollector;
 import io.antmedia.streamsource.StreamFetcher;
+import io.antmedia.streamsource.StreamFetcherManager;
 import io.antmedia.test.StreamFetcherUnitTest;
 import io.antmedia.webrtc.VideoCodec;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
@@ -548,6 +549,14 @@ public class BroadcastRestServiceV2UnitTest {
 			assertTrue(tokenReturn instanceof Result);
 			result = (Result) tokenReturn;
 			assertFalse(result.isSuccess());	
+		}
+		
+		{	
+			//set token type null and it should return false
+			tokenReturn = restServiceReal.getTokenV2(streamId, 123432, null, "testRoom").getEntity();
+			assertTrue(tokenReturn instanceof Result);
+			result = (Result) tokenReturn;
+			assertFalse(result.isSuccess());
 		}
 
 		Mockito.when(datastore.saveToken(Mockito.any())).thenReturn(true);
@@ -2034,6 +2043,9 @@ public class BroadcastRestServiceV2UnitTest {
 		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
 		Mockito.doReturn(fetcher).when(adaptor).startStreaming(newCam);
 		Mockito.doReturn(store).when(streamSourceRest).getDataStore();
+		StreamFetcherManager sfm = mock (StreamFetcherManager.class);
+		Mockito.doReturn(sfm).when(adaptor).getStreamFetcherManager();
+		Mockito.doReturn(false).when(sfm).checkAlreadyFetch(any());
 
 		store.save(newCam);
 
@@ -2065,6 +2077,9 @@ public class BroadcastRestServiceV2UnitTest {
 		Mockito.doReturn(videoServiceEndpoints).when(adaptor).getVideoServiceEndpoints();
 		StreamFetcher fetcher = mock (StreamFetcher.class);
 		Mockito.doReturn(fetcher).when(adaptor).startStreaming(source);
+		StreamFetcherManager sfm = mock (StreamFetcherManager.class);
+		Mockito.doReturn(sfm).when(adaptor).getStreamFetcherManager();
+		Mockito.doReturn(false).when(sfm).checkAlreadyFetch(any());
 		
 		Mockito.doReturn(new ServerSettings()).when(streamSourceRest).getServerSettings();
 		Mockito.doReturn(new AppSettings()).when(streamSourceRest).getAppSettings();

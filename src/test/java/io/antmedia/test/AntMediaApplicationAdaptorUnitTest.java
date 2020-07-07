@@ -30,6 +30,7 @@ import org.apache.http.StatusLine;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.awaitility.Awaitility;
+import org.glassfish.jersey.jaxb.internal.XmlCollectionJaxbProvider.App;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -40,6 +41,7 @@ import org.red5.server.api.scope.IScope;
 import org.red5.server.stream.ClientBroadcastStream;
 
 import com.jmatio.io.stream.ByteBufferInputStream;
+import com.restfb.types.Application.ApplicationContext;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
@@ -62,6 +64,9 @@ import io.antmedia.statistic.type.WebRTCVideoSendStats;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
 import io.vertx.core.Vertx;
+import io.vertx.core.VertxOptions;
+import io.vertx.core.impl.VertxImpl;
+import io.vertx.ext.dropwizard.DropwizardMetricsOptions;
 
 
 public class AntMediaApplicationAdaptorUnitTest {
@@ -207,6 +212,10 @@ public class AntMediaApplicationAdaptorUnitTest {
 		Mockito.when(spyAdapter.createInitializationProcess(Mockito.anyString())).thenReturn(result);
 		//When createInitializationProcess(scope.getName());
 		
+		spyAdapter.setDataStore(dataStore);
+		
+		spyAdapter.setServerSettings(new ServerSettings());
+		
 		spyAdapter.appStart(scope);
 		
 		// Should 2 broadcast in DB, because delete zombie stream
@@ -264,7 +273,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		//test_Video_360p.flv
 		//test.flv
 		//sample_MP4_480.mp4
-		List<VoD> vodList = dataStore.getVodList(0, 50, null, null);
+		List<VoD> vodList = dataStore.getVodList(0, 50, null, null, null);
 		assertEquals(5, vodList.size());
 
 		for (VoD voD : vodList) {
@@ -289,7 +298,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		Mockito.when(dsf.getDataStore()).thenReturn(dataStore);
 		adapter.setDataStoreFactory(dsf);
 
-		adapter.setVertx(Vertx.vertx());
+		adapter.setVertx(vertx);
 
 		File anyFile = new File("src/test/resources/sample_MP4_480.mp4");
 
@@ -327,7 +336,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		File f = new File ("src/test/resources/hello_script");
 		assertFalse(f.exists());
 
-		adapter.setVertx(Vertx.vertx());
+		adapter.setVertx(vertx);
 		adapter.runScript("src/test/resources/echo.sh");
 
 		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(()-> f.exists());
@@ -632,6 +641,11 @@ public class AntMediaApplicationAdaptorUnitTest {
 		when(scope.getName()).thenReturn("test");
 		adapter.setScope(scope);
 		
+		IContext context = mock(IContext.class);
+		when(scope.getContext()).thenReturn(context);
+		when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(new AppSettings());
+
+		
 		adapter.setServerSettings(Mockito.spy(new ServerSettings()));
 		
 		DataStore dataStore = mock(DataStore.class);
@@ -840,6 +854,33 @@ public class AntMediaApplicationAdaptorUnitTest {
 		
 		assertEquals(true, closedFile.exists());
 		
+		adapter.createShutdownFile(scope.getName());
+		
+	}
+	
+	@Test
+	public void testCloseBroadcast() {
+		
+		DataStore db = new InMemoryDataStore("db");
+		Broadcast broadcast = new Broadcast();
+		broadcast.setListenerHookURL("url");
+		db.save(broadcast);
+		
+		Vertx vertx = Mockito.mock(VertxImpl.class);
+		adapter.setDataStore(db);
+		
+		IScope scope = mock(IScope.class);
+		when(scope.getName()).thenReturn("junit");
+		IContext context = Mockito.mock(IContext.class);
+		when(context.getApplicationContext()).thenReturn(Mockito.mock(org.springframework.context.ApplicationContext.class));
+		when(scope.getContext()).thenReturn(context);
+		
+		adapter.setScope(scope);
+		adapter.setVertx(vertx);
+		
+		adapter.closeBroadcast(broadcast.getStreamId());
+		
+		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, broadcast.getStatus());
 	}
 	
 	@Test
@@ -907,4 +948,131 @@ public class AntMediaApplicationAdaptorUnitTest {
 		
 	}
 	
+	boolean threadStarted = false; 
+	@Test
+	public void testVertexThreadWait() {
+		
+		Vertx tempVertx = Vertx.vertx(new VertxOptions()
+				.setMetricsOptions(new DropwizardMetricsOptions().setEnabled(true)));
+		AntMediaApplicationAdapter antMediaApplicationAdapter = new AntMediaApplicationAdapter();
+		antMediaApplicationAdapter.setVertx(tempVertx);
+		IScope scope = mock(IScope.class);
+		when(scope.getName()).thenReturn("junit");
+
+		antMediaApplicationAdapter.setScope(scope);
+		int sleepTime = 5000;
+		
+		tempVertx.executeBlocking(l->{
+			try {
+				threadStarted = true;
+				Thread.sleep(sleepTime);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}, r->{});
+		
+		while (!threadStarted) {
+			System.out.println("aa");
+		}
+		
+		long t0 = System.currentTimeMillis();
+		antMediaApplicationAdapter.waitUntilThreadsStop();
+		long t1 = System.currentTimeMillis();
+		long dt = t1 - t0;
+		assertTrue(Math.abs(dt - sleepTime) < 100);
+
+		tempVertx.close();
+	}
+	
+	@Test
+	public void testStreamFetcherStartAutomatically() 
+	{
+		IScope scope = mock(IScope.class);
+		when(scope.getName()).thenReturn("junit");
+		
+		DataStore dataStore = new InMemoryDataStore("dbname");
+		DataStoreFactory dsf = Mockito.mock(DataStoreFactory.class);
+		Mockito.when(dsf.getDataStore()).thenReturn(dataStore);
+		
+		AntMediaApplicationAdapter spyAdapter = Mockito.spy(adapter);
+		IContext context = mock(IContext.class);
+		when(context.getBean(spyAdapter.VERTX_BEAN_NAME)).thenReturn(vertx);
+		
+		when(scope.getContext()).thenReturn(context);
+		spyAdapter.setDataStoreFactory(dsf);
+		
+		Mockito.doReturn(dataStore).when(spyAdapter).getDataStore();
+		spyAdapter.setScope(scope);
+
+
+		Broadcast broadcast = new Broadcast();
+		broadcast.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
+		dataStore.save(broadcast);
+
+		Result result = new Result(false);
+		Mockito.when(spyAdapter.createInitializationProcess(Mockito.anyString())).thenReturn(result);
+		//When createInitializationProcess(scope.getName());
+
+		StreamFetcherManager streamFetcherManager = mock(StreamFetcherManager.class);
+
+		spyAdapter.setStreamFetcherManager(streamFetcherManager);
+		AppSettings settings = new AppSettings();
+		settings.setStartStreamFetcherAutomatically(true);
+		spyAdapter.setAppSettings(settings);
+		spyAdapter.setServerSettings(new ServerSettings());
+		spyAdapter.appStart(scope);
+
+		Awaitility.await().pollInterval(2,TimeUnit.SECONDS).atMost(3, TimeUnit.SECONDS).until(()-> true);
+
+		ArgumentCaptor<List<Broadcast>> broadcastListCaptor = ArgumentCaptor.forClass(List.class);
+		verify(streamFetcherManager, times(1)).startStreams(broadcastListCaptor.capture());
+		
+		assertEquals(1,  broadcastListCaptor.getValue().size());
+		assertEquals(broadcast,  broadcastListCaptor.getValue().get(0));
+	}
+	
+	@Test
+	public void testStreamFetcherNotStartAutomatically() 
+	{
+		IScope scope = mock(IScope.class);
+		when(scope.getName()).thenReturn("junit");
+		
+		DataStore dataStore = new InMemoryDataStore("dbname");
+		DataStoreFactory dsf = Mockito.mock(DataStoreFactory.class);
+		Mockito.when(dsf.getDataStore()).thenReturn(dataStore);
+		
+		AntMediaApplicationAdapter spyAdapter = Mockito.spy(adapter);
+		IContext context = mock(IContext.class);
+		when(context.getBean(spyAdapter.VERTX_BEAN_NAME)).thenReturn(vertx);
+		
+		when(scope.getContext()).thenReturn(context);
+		spyAdapter.setDataStoreFactory(dsf);
+		
+		Mockito.doReturn(dataStore).when(spyAdapter).getDataStore();
+		spyAdapter.setScope(scope);
+
+
+		Broadcast broadcast = new Broadcast();
+		broadcast.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
+		dataStore.save(broadcast);
+
+		Result result = new Result(false);
+		Mockito.when(spyAdapter.createInitializationProcess(Mockito.anyString())).thenReturn(result);
+		//When createInitializationProcess(scope.getName());
+
+		StreamFetcherManager streamFetcherManager = mock(StreamFetcherManager.class);
+
+		spyAdapter.setStreamFetcherManager(streamFetcherManager);
+		AppSettings settings = new AppSettings();
+		settings.setStartStreamFetcherAutomatically(false);
+		spyAdapter.setAppSettings(settings);
+		spyAdapter.setServerSettings(new ServerSettings());
+		spyAdapter.appStart(scope);
+
+		Awaitility.await().pollInterval(2,TimeUnit.SECONDS).atMost(3, TimeUnit.SECONDS).until(()-> true);
+
+		ArgumentCaptor<List<Broadcast>> broadcastListCaptor = ArgumentCaptor.forClass(List.class);
+		verify(streamFetcherManager, never()).startStreams(broadcastListCaptor.capture());
+	}
+
 }
