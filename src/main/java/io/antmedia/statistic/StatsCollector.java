@@ -240,6 +240,11 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	
 	private static final String VERTX_WORKER_QUEUE_SIZE = "vertx.pools.worker.vert.x-worker-thread.queue-size";
 	
+	private static final String VERTX_WORKER_THREAD_QUEUE_SIZE = "vertx-worker-thread-queue-size";
+	
+	private static final String WEBRTC_VERTX_WORKER_THREAD_QUEUE_SIZE = "webrtc-vertx-worker-thread-queue-size";
+	
+	
 	private Producer<Long,String> kafkaProducer = null;
 
 	private long cpuMeasurementTimerId = -1;
@@ -260,27 +265,24 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	
 	private int time2Log = 0;
 
-	private MetricsService vertXMetrics;
+	private static MetricsService vertXMetrics;
 
-	private MetricsService webRTCVertxMetrics;
+	private static MetricsService webRTCVertxMetrics;
 	
 	public void start() {
 		cpuMeasurementTimerId  = getVertx().setPeriodic(measurementPeriod, l -> 
 		{
 			addCpuMeasurement(SystemUtils.getSystemCpuLoad());
 		
-			//log every minute
-			if (60000/measurementPeriod == time2Log) {
+			//log every 5 minute
+			if (300000/measurementPeriod == time2Log) {
 				if(logger != null) {
 					logger.info("System cpu load:{} process cpu load:{} available memory: {} KB used memory(RSS): {} KB", cpuLoad, SystemUtils.getProcessCpuLoad(), SystemUtils.convertByteSize(SystemUtils.osAvailableMemory(), "KB"), SystemUtils.convertByteSize(Pointer.physicalBytes(), "KB"));
 					
-					io.vertx.core.json.JsonObject queueSizeMetrics = vertXMetrics.getMetricsSnapshot(VERTX_WORKER_QUEUE_SIZE);
-					int vertxWorkerQueueSize = queueSizeMetrics.getJsonObject(VERTX_WORKER_QUEUE_SIZE).getInteger("count");
+					int vertxWorkerQueueSize = getVertWorkerQueueSize();
 					
+					int webRTCVertxWorkerQueueSize = getWebRTCVertxWorkerQueueSize();
 					
-					queueSizeMetrics = webRTCVertxMetrics.getMetricsSnapshot(VERTX_WORKER_QUEUE_SIZE);
-					int webRTCVertxWorkerQueueSize = queueSizeMetrics.getJsonObject(VERTX_WORKER_QUEUE_SIZE).getInteger("count");
-				
 					logger.info("Vertx worker queue size:{} WebRTCVertx worker queue size:{}", vertxWorkerQueueSize, webRTCVertxWorkerQueueSize);
 					
 				}
@@ -311,6 +313,16 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 				sendWebRTCClientStats();
 			});
 		}	
+	}
+	
+	private static int getVertWorkerQueueSize() {
+		io.vertx.core.json.JsonObject queueSizeMetrics = vertXMetrics.getMetricsSnapshot(VERTX_WORKER_QUEUE_SIZE);
+		return  queueSizeMetrics.getJsonObject(VERTX_WORKER_QUEUE_SIZE).getInteger("count");
+	}
+	
+	private static int getWebRTCVertxWorkerQueueSize() {
+		io.vertx.core.json.JsonObject queueSizeMetrics = webRTCVertxMetrics.getMetricsSnapshot(VERTX_WORKER_QUEUE_SIZE);
+		return queueSizeMetrics.getJsonObject(VERTX_WORKER_QUEUE_SIZE).getInteger("count");
 	}
 
 	public static GoogleAnalytics getGoogleAnalyticInstance(String implementationVersion, String type) {
@@ -594,6 +606,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		jsonObject.addProperty(StatsCollector.ENCODERS_BLOCKED, encodersBlocked);
 		jsonObject.addProperty(StatsCollector.ENCODERS_NOT_OPENED, encodersNotOpened);
 		jsonObject.addProperty(StatsCollector.PUBLISH_TIMEOUT_ERRORS, publishTimeoutError);
+		jsonObject.addProperty(StatsCollector.VERTX_WORKER_THREAD_QUEUE_SIZE, getVertWorkerQueueSize());
+		jsonObject.addProperty(StatsCollector.WEBRTC_VERTX_WORKER_THREAD_QUEUE_SIZE, getWebRTCVertxWorkerQueueSize());
 
 		//add timing info
 		jsonObject.add(StatsCollector.SERVER_TIMING, getServerTime());
