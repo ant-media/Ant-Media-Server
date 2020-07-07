@@ -47,6 +47,7 @@ import io.antmedia.settings.ServerSettings;
 import io.antmedia.shutdown.AMSShutdownManager;
 import io.antmedia.statistic.GPUUtils.MemoryStatus;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
+import io.antmedia.websocket.WebSocketCommunityHandler;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
@@ -255,6 +256,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	private GoogleAnalytics googleAnalytics;
 
 	private String hostAddress;
+
+	private Vertx webRTCVertx;
 	
 	public void start() {
 		cpuMeasurementTimerId  = getVertx().setPeriodic(measurementPeriod, l -> addCpuMeasurement(SystemUtils.getSystemCpuLoad()));
@@ -730,6 +733,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		heartBeatEnabled = serverSettings.isHeartbeatEnabled();
 		hostAddress = serverSettings.getHostAddress();
 		vertx = (Vertx) applicationContext.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
+		
+		webRTCVertx = (Vertx) applicationContext.getBean(WebSocketCommunityHandler.WebRTC_VERTX_BEAN_NAME);
 	}
 
 	public int getStaticSendPeriod() {
@@ -830,8 +835,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 			
 			getGoogleAnalytic(Launcher.getVersion(), Launcher.getVersionType()).close();
 		}
-		
 		vertx.close();
+		webRTCVertx.close();
 		if(logger != null) {
 			logger.info("Closing vertx ");
 		}
