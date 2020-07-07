@@ -30,6 +30,7 @@ import org.apache.http.StatusLine;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.awaitility.Awaitility;
+import org.glassfish.jersey.jaxb.internal.XmlCollectionJaxbProvider.App;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -272,7 +273,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		//test_Video_360p.flv
 		//test.flv
 		//sample_MP4_480.mp4
-		List<VoD> vodList = dataStore.getVodList(0, 50, null, null);
+		List<VoD> vodList = dataStore.getVodList(0, 50, null, null, null);
 		assertEquals(5, vodList.size());
 
 		for (VoD voD : vodList) {
@@ -983,4 +984,95 @@ public class AntMediaApplicationAdaptorUnitTest {
 		tempVertx.close();
 	}
 	
+	@Test
+	public void testStreamFetcherStartAutomatically() 
+	{
+		IScope scope = mock(IScope.class);
+		when(scope.getName()).thenReturn("junit");
+		
+		DataStore dataStore = new InMemoryDataStore("dbname");
+		DataStoreFactory dsf = Mockito.mock(DataStoreFactory.class);
+		Mockito.when(dsf.getDataStore()).thenReturn(dataStore);
+		
+		AntMediaApplicationAdapter spyAdapter = Mockito.spy(adapter);
+		IContext context = mock(IContext.class);
+		when(context.getBean(spyAdapter.VERTX_BEAN_NAME)).thenReturn(vertx);
+		
+		when(scope.getContext()).thenReturn(context);
+		spyAdapter.setDataStoreFactory(dsf);
+		
+		Mockito.doReturn(dataStore).when(spyAdapter).getDataStore();
+		spyAdapter.setScope(scope);
+
+
+		Broadcast broadcast = new Broadcast();
+		broadcast.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
+		dataStore.save(broadcast);
+
+		Result result = new Result(false);
+		Mockito.when(spyAdapter.createInitializationProcess(Mockito.anyString())).thenReturn(result);
+		//When createInitializationProcess(scope.getName());
+
+		StreamFetcherManager streamFetcherManager = mock(StreamFetcherManager.class);
+
+		spyAdapter.setStreamFetcherManager(streamFetcherManager);
+		AppSettings settings = new AppSettings();
+		settings.setStartStreamFetcherAutomatically(true);
+		spyAdapter.setAppSettings(settings);
+		spyAdapter.setServerSettings(new ServerSettings());
+		spyAdapter.appStart(scope);
+
+		Awaitility.await().pollInterval(2,TimeUnit.SECONDS).atMost(3, TimeUnit.SECONDS).until(()-> true);
+
+		ArgumentCaptor<List<Broadcast>> broadcastListCaptor = ArgumentCaptor.forClass(List.class);
+		verify(streamFetcherManager, times(1)).startStreams(broadcastListCaptor.capture());
+		
+		assertEquals(1,  broadcastListCaptor.getValue().size());
+		assertEquals(broadcast,  broadcastListCaptor.getValue().get(0));
+	}
+	
+	@Test
+	public void testStreamFetcherNotStartAutomatically() 
+	{
+		IScope scope = mock(IScope.class);
+		when(scope.getName()).thenReturn("junit");
+		
+		DataStore dataStore = new InMemoryDataStore("dbname");
+		DataStoreFactory dsf = Mockito.mock(DataStoreFactory.class);
+		Mockito.when(dsf.getDataStore()).thenReturn(dataStore);
+		
+		AntMediaApplicationAdapter spyAdapter = Mockito.spy(adapter);
+		IContext context = mock(IContext.class);
+		when(context.getBean(spyAdapter.VERTX_BEAN_NAME)).thenReturn(vertx);
+		
+		when(scope.getContext()).thenReturn(context);
+		spyAdapter.setDataStoreFactory(dsf);
+		
+		Mockito.doReturn(dataStore).when(spyAdapter).getDataStore();
+		spyAdapter.setScope(scope);
+
+
+		Broadcast broadcast = new Broadcast();
+		broadcast.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
+		dataStore.save(broadcast);
+
+		Result result = new Result(false);
+		Mockito.when(spyAdapter.createInitializationProcess(Mockito.anyString())).thenReturn(result);
+		//When createInitializationProcess(scope.getName());
+
+		StreamFetcherManager streamFetcherManager = mock(StreamFetcherManager.class);
+
+		spyAdapter.setStreamFetcherManager(streamFetcherManager);
+		AppSettings settings = new AppSettings();
+		settings.setStartStreamFetcherAutomatically(false);
+		spyAdapter.setAppSettings(settings);
+		spyAdapter.setServerSettings(new ServerSettings());
+		spyAdapter.appStart(scope);
+
+		Awaitility.await().pollInterval(2,TimeUnit.SECONDS).atMost(3, TimeUnit.SECONDS).until(()-> true);
+
+		ArgumentCaptor<List<Broadcast>> broadcastListCaptor = ArgumentCaptor.forClass(List.class);
+		verify(streamFetcherManager, never()).startStreams(broadcastListCaptor.capture());
+	}
+
 }

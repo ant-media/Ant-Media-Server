@@ -158,4 +158,17 @@ public interface IWebRTCClient {
 	 * @return cache rtt measurement
 	 */
 	int getCachedRttMeasurement();
+	
+	/**
+	 * 
+	 * @return stream resolution forced value
+	 * If it's automatic, it returns 0
+	 */
+	public int getForceStreamHeight();
+	
+	/**
+	 * 
+	 * @return stream resolution current value
+	 */
+	public void forceStreamQuality(int streamHeight);
 }

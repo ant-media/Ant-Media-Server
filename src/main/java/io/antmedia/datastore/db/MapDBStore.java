@@ -379,15 +379,29 @@ public class MapDBStore extends DataStore {
 		return list;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
-	public List<VoD> getVodList(int offset, int size, String sortBy, String orderBy) {
+	public List<VoD> getVodList(int offset, int size, String sortBy, String orderBy, String streamId) {
 		ArrayList<VoD> vods = new ArrayList<>();
 		synchronized (this) {
 			Collection<String> values = vodMap.values();
 			int length = values.size();
 			int i = 0;
-			for (String vodString : values) {
-				vods.add(gson.fromJson(vodString, VoD.class));
+			for (String vodString : values) 
+			{
+				VoD vod = gson.fromJson(vodString, VoD.class);
+				if (streamId != null && !streamId.isEmpty()) 
+				{
+					if (vod.getStreamId().equals(streamId)) {
+						vods.add(vod);
+					}
+				}
+				else {
+					vods.add(vod);
+				}
+				
 				i++;
 				if (i > length) {
 					logger.error("Inconsistency in DB. It's likely db file({}) is damaged", dbName);
@@ -1292,7 +1306,7 @@ public class MapDBStore extends DataStore {
 			return result;
 		}
 	}
-	
+
 	@Override
 	public int resetBroadcasts(String hostAddress) 
 	{
@@ -1331,6 +1345,5 @@ public class MapDBStore extends DataStore {
 			db.commit();
 			return updateOperations + zombieStreamCount;
 		}
-	}
-	
+	}  
 }

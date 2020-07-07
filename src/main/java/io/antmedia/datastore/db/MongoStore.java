@@ -417,8 +417,14 @@ public class MongoStore extends DataStore {
 	}
 
 	@Override
-	public List<VoD> getVodList(int offset, int size, String sortBy, String orderBy) {
+	public List<VoD> getVodList(int offset, int size, String sortBy, String orderBy, String filterStreamId) {
 		synchronized(this) {
+			Query<VoD> query = vodDatastore.find(VoD.class);
+			
+			if (filterStreamId != null && !filterStreamId.isEmpty()) {
+				query = query.field("streamId").equal(filterStreamId);
+			}
+			
 			if(sortBy != null && orderBy != null && !sortBy.isEmpty() && !orderBy.isEmpty()) {
 				String sortString = orderBy.contentEquals("desc") ? "-" : "";
 				if(sortBy.contentEquals("name")) {
@@ -427,9 +433,9 @@ public class MongoStore extends DataStore {
 				else if(sortBy.contentEquals("date")) {
 					sortString += CREATION_DATE;
 				}
-				return vodDatastore.find(VoD.class).order(sortString).asList(new FindOptions().skip(offset).limit(size));
+				query = query.order(sortString);
 			}
-			return vodDatastore.find(VoD.class).asList(new FindOptions().skip(offset).limit(size));
+			return query.asList(new FindOptions().skip(offset).limit(size));
 		}
 	}
 
