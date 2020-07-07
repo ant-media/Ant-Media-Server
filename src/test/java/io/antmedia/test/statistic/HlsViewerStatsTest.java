@@ -3,6 +3,8 @@ package io.antmedia.test.statistic;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import static org.mockito.Mockito.*;
@@ -18,6 +20,7 @@ import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.HlsViewerStats;
 import io.vertx.core.Vertx;
@@ -25,7 +28,18 @@ import io.vertx.core.Vertx;
 
 public class HlsViewerStatsTest {
 	
-	Vertx vertx = io.vertx.core.Vertx.vertx();	
+	static Vertx vertx;	
+	
+	
+	@BeforeClass
+	public static void beforeClass() {
+		vertx = io.vertx.core.Vertx.vertx();
+	}
+	
+	@AfterClass
+	public static void afterClass() {
+		vertx.close();
+	}
 
 	@Test
 	public void testHLSViewerCount() {
@@ -100,6 +114,8 @@ public class HlsViewerStatsTest {
 			when(context.getBean(DataStoreFactory.BEAN_NAME)).thenReturn(dsf);
 
 			when(context.containsBean(AppSettings.BEAN_NAME)).thenReturn(true);
+			
+			when(context.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
 
 			AppSettings settings = mock(AppSettings.class);
 
@@ -111,7 +127,6 @@ public class HlsViewerStatsTest {
 			
 			HlsViewerStats viewerStats = new HlsViewerStats();
 			
-			viewerStats.setVertx(vertx);
 			viewerStats.setTimePeriodMS(1000);
 			viewerStats.setApplicationContext(context);
 			
