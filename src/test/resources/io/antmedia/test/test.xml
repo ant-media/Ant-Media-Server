@@ -154,10 +154,18 @@
    		factory-method="vertx">
    		<constructor-arg>
    			<bean class="io.vertx.core.VertxOptions">
-   				<property name="eventLoopPoolSize" value="20"></property>
+   				<property name="maxWorkerExecuteTime" value="2000000000"></property>
    			</bean>
    		</constructor-arg>	
    	</bean>
+   	
+   	 <bean id="webRTCVertx" class="io.vertx.core.Vertx" factory-method="vertx">
+    	<constructor-arg>
+    		<bean class="io.vertx.core.VertxOptions">
+    			<property name="maxWorkerExecuteTime" value="2000000000"></property> <!-- make max worker execute time 2 seconds -->
+    		</bean>
+    	</constructor-arg>
+    </bean>
    	
    	<bean id="ant.media.server.settings" class="io.antmedia.settings.ServerSettings">
 	</bean>
