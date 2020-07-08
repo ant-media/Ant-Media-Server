@@ -1694,7 +1694,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		/*
 		 * In this test we create such a case with spy Files
-		 * In recod directory
+		 * In record directory
 		 * test.mp4						existing
 		 * test_1.mp4 					non-existing
 		 * test_2.mp4 					non-existing
@@ -1743,6 +1743,52 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		mp4Muxer.init(scope, streamId, 0, false);
 		
 		assertEquals(nonExistingFile_2, mp4Muxer.getFile());
+		
+	}
+	
+	@Test
+	public void testMp4MuxingWhileTempFileExist() {
+
+		/*
+		 * In this test we create such a case with spy Files
+		 * In record directory
+		 * test.mp4						non-existing
+		 * test_1.mp4 					non-existing
+		 * test.mp4.tmp_extension		existing
+		 * test_1.mp4.tmp_extension		non-existing
+		 * 
+		 * So we check new record file must be temp_1.mp4
+		 */
+		
+		String streamId = "test";
+		Muxer mp4Muxer = spy(new Mp4Muxer(null, null));
+		IScope scope = mock(IScope.class);
+		
+		File parent = mock(File.class);
+		when(parent.exists()).thenReturn(true);
+		
+		File nonExistingFile = spy(new File(streamId+".mp4"));
+		doReturn(false).when(nonExistingFile).exists();
+		doReturn(parent).when(nonExistingFile).getParentFile();
+
+		File nonExistingFile_1 = spy(new File(streamId+"_1.mp4"));
+		doReturn(false).when(nonExistingFile_1).exists();
+		
+		File existingTempFile = spy(new File(streamId+".mp4"+Muxer.TEMP_EXTENSION));
+		doReturn(true).when(existingTempFile).exists();
+		
+		File nonExistingTempFile_1 = spy(new File(streamId+"_1.mp4"+Muxer.TEMP_EXTENSION));
+		doReturn(false).when(nonExistingTempFile_1).exists();
+		
+		doReturn(nonExistingFile).when(mp4Muxer).getResourceFile(any(), eq(streamId), eq(".mp4"));
+		doReturn(nonExistingFile_1).when(mp4Muxer).getResourceFile(any(), eq(streamId+"_1"), eq(".mp4"));
+
+		doReturn(existingTempFile).when(mp4Muxer).getResourceFile(any(), eq(streamId), eq(".mp4"+Muxer.TEMP_EXTENSION));
+		doReturn(nonExistingTempFile_1).when(mp4Muxer).getResourceFile(any(), eq(streamId+"_1"), eq(".mp4"+Muxer.TEMP_EXTENSION));
+
+		mp4Muxer.init(scope, streamId, 0, false);
+		
+		assertEquals(nonExistingFile_1, mp4Muxer.getFile());
 		
 	}
 }
