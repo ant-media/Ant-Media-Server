@@ -792,7 +792,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		setVertx((Vertx) applicationContext.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME));
 		
 		
-		setVertx((Vertx) applicationContext.getBean(WebSocketCommunityHandler.WebRTC_VERTX_BEAN_NAME));
+		setWebRTCVertx((Vertx) applicationContext.getBean(WebSocketCommunityHandler.WebRTC_VERTX_BEAN_NAME));
 		
 	}
 
