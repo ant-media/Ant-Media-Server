@@ -317,12 +317,20 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	
 	private static int getVertWorkerQueueSize() {
 		io.vertx.core.json.JsonObject queueSizeMetrics = vertXMetrics.getMetricsSnapshot(VERTX_WORKER_QUEUE_SIZE);
-		return  queueSizeMetrics.getJsonObject(VERTX_WORKER_QUEUE_SIZE).getInteger("count");
+		io.vertx.core.json.JsonObject jsonObject = null;
+		if (queueSizeMetrics != null) {
+			jsonObject = queueSizeMetrics.getJsonObject(VERTX_WORKER_QUEUE_SIZE);
+		}
+		return jsonObject != null ? jsonObject.getInteger("count") : -1;
 	}
 	
 	private static int getWebRTCVertxWorkerQueueSize() {
 		io.vertx.core.json.JsonObject queueSizeMetrics = webRTCVertxMetrics.getMetricsSnapshot(VERTX_WORKER_QUEUE_SIZE);
-		return queueSizeMetrics.getJsonObject(VERTX_WORKER_QUEUE_SIZE).getInteger("count");
+		io.vertx.core.json.JsonObject jsonObject = null;
+		if (queueSizeMetrics != null) {
+			jsonObject = queueSizeMetrics.getJsonObject(VERTX_WORKER_QUEUE_SIZE);
+		}
+		return jsonObject != null ? jsonObject.getInteger("count") : -1;
 	}
 
 	public static GoogleAnalytics getGoogleAnalyticInstance(String implementationVersion, String type) {
@@ -734,6 +742,12 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 	public void setVertx(Vertx vertx) {
 		this.vertx = vertx;
+		vertXMetrics= MetricsService.create(vertx);
+	}
+	
+	public void setWebRTCVertx(Vertx webRTCVertx) {
+		this.webRTCVertx = webRTCVertx;
+		webRTCVertxMetrics =  MetricsService.create(webRTCVertx);
 	}
 
 
@@ -774,13 +788,12 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		ServerSettings serverSettings = (ServerSettings) applicationContext.getBean(ServerSettings.BEAN_NAME);
 		heartBeatEnabled = serverSettings.isHeartbeatEnabled();
 		hostAddress = serverSettings.getHostAddress();
-		vertx = (Vertx) applicationContext.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
 		
-		vertXMetrics= MetricsService.create(vertx);
+		setVertx((Vertx) applicationContext.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME));
 		
-		webRTCVertx = (Vertx) applicationContext.getBean(WebSocketCommunityHandler.WebRTC_VERTX_BEAN_NAME);
 		
-		webRTCVertxMetrics =  MetricsService.create(webRTCVertx);
+		setVertx((Vertx) applicationContext.getBean(WebSocketCommunityHandler.WebRTC_VERTX_BEAN_NAME));
+		
 	}
 
 	public int getStaticSendPeriod() {
