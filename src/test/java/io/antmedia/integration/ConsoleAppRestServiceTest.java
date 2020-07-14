@@ -1275,6 +1275,7 @@ public class ConsoleAppRestServiceTest{
 
 		}
 		catch (Exception e) {
+			e.printStackTrace();
 			fail(e.getMessage());
 		}
 
