@@ -443,7 +443,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 					if (broadcast == null) {
 
-						broadcast = saveUndefinedBroadcast(streamName, getScope().getName(), dataStoreLocal, appSettings,  AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, getServerSettings().getServerName(), getServerSettings().getHostAddress(), absoluteStartTimeMs);
+						broadcast = saveUndefinedBroadcast(streamName, getScope().getName(), dataStoreLocal, appSettings,  AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, getServerSettings(), absoluteStartTimeMs);
 					} 
 					else {
 
@@ -511,7 +511,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	
 	
 
-	public static Broadcast saveUndefinedBroadcast(String streamId, String scopeName, DataStore dataStore, AppSettings appSettings, String streamStatus, String fqdn, String hostAddress, long absoluteStartTimeMs) {		
+	public static Broadcast saveUndefinedBroadcast(String streamId, String scopeName, DataStore dataStore, AppSettings appSettings, String streamStatus, ServerSettings serverSettings, long absoluteStartTimeMs) {		
 		Broadcast newBroadcast = new Broadcast();
 		long now = System.currentTimeMillis();
 		newBroadcast.setDate(now);
@@ -527,7 +527,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 			return RestServiceBase.saveBroadcast(newBroadcast,
 					streamStatus, scopeName, dataStore,
-					settingsListenerHookURL, fqdn, hostAddress, absoluteStartTimeMs);
+					settingsListenerHookURL, serverSettings, absoluteStartTimeMs);
 		} catch (Exception e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
 		}

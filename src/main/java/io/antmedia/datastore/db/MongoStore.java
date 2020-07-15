@@ -737,10 +737,6 @@ public class MongoStore extends DataStore {
 					ops.set("streamUrl", broadcast.getStreamUrl());
 				}
 				
-				if ( broadcast.getDuration() != 0) {
-					ops.set(DURATION, broadcast.getDuration());
-				}
-				
 				if (broadcast.getLatitude() != null) {
 					ops.set("latitude", broadcast.getLatitude());
 				}
@@ -757,21 +753,7 @@ public class MongoStore extends DataStore {
 					ops.set("mainTrackStreamId", broadcast.getMainTrackStreamId());
 				}
 				
-				if (broadcast.getStartTime() != 0) {
-					ops.set(START_TIME, broadcast.getStartTime());
-				}
-				
-				if (broadcast.getOriginAdress() != null) {
-					ops.set(ORIGIN_ADDRESS, broadcast.getOriginAdress());
-				}
-				
-				if (broadcast.getStatus() != null) {
-					ops.set(STATUS, broadcast.getStatus());
-				}
-				
-				if (broadcast.getAbsoluteStartTimeMs() != 0) {
-					ops.set("absoluteStartTimeMs", broadcast.getAbsoluteStartTimeMs());
-				}
+				prepareFields(broadcast, ops);
 				
 				
 				ops.set("receivedBytes", broadcast.getReceivedBytes());
@@ -785,6 +767,29 @@ public class MongoStore extends DataStore {
 			}
 		}
 		return false;
+	}
+	
+	private void prepareFields(Broadcast broadcast, UpdateOperations<Broadcast> ops ) {
+		
+		if ( broadcast.getDuration() != 0) {
+			ops.set(DURATION, broadcast.getDuration());
+		}
+		
+		if (broadcast.getStartTime() != 0) {
+			ops.set(START_TIME, broadcast.getStartTime());
+		}
+		
+		if (broadcast.getOriginAdress() != null) {
+			ops.set(ORIGIN_ADDRESS, broadcast.getOriginAdress());
+		}
+		
+		if (broadcast.getStatus() != null) {
+			ops.set(STATUS, broadcast.getStatus());
+		}
+		
+		if (broadcast.getAbsoluteStartTimeMs() != 0) {
+			ops.set("absoluteStartTimeMs", broadcast.getAbsoluteStartTimeMs());
+		}
 	}
 
 	/**

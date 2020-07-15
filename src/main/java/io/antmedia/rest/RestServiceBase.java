@@ -258,11 +258,11 @@ public abstract class RestServiceBase {
 
 	public Broadcast createBroadcastWithStreamID(Broadcast broadcast) {
 		return saveBroadcast(broadcast, AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, getScope().getName(),
-				getDataStore(), getAppSettings().getListenerHookURL(), getServerSettings().getServerName(), getServerSettings().getHostAddress(), 0);
+				getDataStore(), getAppSettings().getListenerHookURL(), getServerSettings(), 0);
 	}
 
 	public static Broadcast saveBroadcast(Broadcast broadcast, String status, String scopeName, DataStore dataStore,
-			String settingsListenerHookURL, String fqdn, String hostAddress, long absoluteStartTimeMs) {
+			String settingsListenerHookURL, ServerSettings serverSettings, long absoluteStartTimeMs) {
 
 		if (broadcast == null) {
 			broadcast = new Broadcast();
@@ -278,11 +278,12 @@ public abstract class RestServiceBase {
 
 			broadcast.setListenerHookURL(settingsListenerHookURL);
 		}
+		String fqdn = serverSettings.getServerName();
 
 		if (fqdn == null || fqdn.length() == 0) {
-			fqdn = hostAddress; 
+			fqdn = serverSettings.getHostAddress(); 
 		}
-		broadcast.setOriginAdress(hostAddress);
+		broadcast.setOriginAdress(serverSettings.getHostAddress());
 		broadcast.setAbsoluteStartTimeMs(absoluteStartTimeMs);
 
 		if (fqdn != null && fqdn.length() >= 0) {
@@ -839,7 +840,7 @@ public abstract class RestServiceBase {
 
 				stream.setDate(unixTime);
 
-				Broadcast savedBroadcast = saveBroadcast(stream, AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, getScope().getName(), getDataStore(), getAppSettings().getListenerHookURL(), getServerSettings().getServerName(), getServerSettings().getHostAddress(), 0);
+				Broadcast savedBroadcast = saveBroadcast(stream, AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, getScope().getName(), getDataStore(), getAppSettings().getListenerHookURL(), getServerSettings(), 0);
 
 				if (socialEndpointIds != null && socialEndpointIds.length()>0) {
 					addSocialEndpoints(savedBroadcast, socialEndpointIds);
@@ -1077,7 +1078,7 @@ public abstract class RestServiceBase {
 			stream.setDate(unixTime);
 
 
-			Broadcast savedBroadcast = saveBroadcast(stream, AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, getScope().getName(), getDataStore(), getAppSettings().getListenerHookURL(), getServerSettings().getServerName(), getServerSettings().getHostAddress(), 0);
+			Broadcast savedBroadcast = saveBroadcast(stream, AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, getScope().getName(), getDataStore(), getAppSettings().getListenerHookURL(), getServerSettings(), 0);
 
 			if (socialEndpointIds != null && socialEndpointIds.length()>0) {
 				addSocialEndpoints(savedBroadcast, socialEndpointIds);
