@@ -103,7 +103,7 @@ public class DBStoresUnitTest {
 		testPlaylist(dataStore);
 		testAddTrack(dataStore);
 		testClearAtStart(dataStore);
-
+    	testGetVoDIdByStreamId(dataStore);
 	}
 
 	@Test
@@ -136,7 +136,7 @@ public class DBStoresUnitTest {
 		testPlaylist(dataStore);
 		testAddTrack(dataStore);
 		testClearAtStart(dataStore);
-
+    	testGetVoDIdByStreamId(dataStore);
 	}
 
 	@Test
@@ -186,6 +186,7 @@ public class DBStoresUnitTest {
 		testUpdateLocationParams(dataStore);
 		testPlaylist(dataStore);
 		testAddTrack(dataStore);
+		testGetVoDIdByStreamId(dataStore);
 
 	}
 	
@@ -197,7 +198,7 @@ public class DBStoresUnitTest {
 		//Following methods does not return before the bug is fixed
 		dataStore.fetchUserVodList(new File(""));
 		
-		dataStore.getVodList(0, 10, "name", "asc");
+		dataStore.getVodList(0, 10, "name", "asc", null);
 	}
 
 	public void clear(DataStore dataStore) 
@@ -333,7 +334,7 @@ public class DBStoresUnitTest {
 		totalVodCount = datastore.getTotalVodNumber();
 		assertEquals(5, totalVodCount);
 
-		List<VoD> vodList = datastore.getVodList(0, 50, null, null);
+		List<VoD> vodList = datastore.getVodList(0, 50, null, null, null);
 		assertEquals(5, vodList.size());
 		for (VoD voD : vodList) {
 			assertEquals("streams/resources/"+voD.getVodName(), voD.getFilePath());
@@ -1879,6 +1880,38 @@ public class DBStoresUnitTest {
 		assertEquals(1, mainTrack.getSubTrackStreamIds().size());
 		assertEquals(subTrackId, mainTrack.getSubTrackStreamIds().get(0));
 		assertEquals(mainTrackId, subtrack.getMainTrackStreamId());
+
+	}
+	public void testGetVoDIdByStreamId(DataStore dataStore) {
+		String streamId=RandomStringUtils.randomNumeric(24);
+		String vodId1="vod_1";
+		String vodId2="vod_2";
+		String vodId3="vod_3";
+		VoD vod1 = new VoD("streamName", streamId, "filePath", "vodName2", 333, 111, 111, VoD.STREAM_VOD, vodId1);
+		VoD vod2 = new VoD("streamName", streamId, "filePath", "vodName1", 222, 111, 111, VoD.STREAM_VOD, vodId2);
+		VoD vod3 = new VoD("streamName", "streamId123", "filePath", "vodName3", 111, 111, 111, VoD.STREAM_VOD, vodId3);
+
+		dataStore.addVod(vod1);
+		dataStore.addVod(vod2);
+		dataStore.addVod(vod3);
+
+		List<VoD> vodResult = dataStore.getVodList(0, 50, null, null, streamId);
+
+		boolean vod1Match = false, vod2Match = false;
+		for (VoD vod : vodResult) {
+			if (vod.getVodId().equals(vod1.getVodId())) {
+				vod1Match = true;
+			}
+			else if (vod.getVodId().equals(vod2.getVodId())) {
+				vod2Match = true;
+			}
+			else if (vod.getVodId().equals(vod3.getVodId())) {
+				fail("vod3 should not be matched");
+			}
+		}
+		assertTrue(vod1Match);
+		assertTrue(vod2Match);
+
 
 	}
 

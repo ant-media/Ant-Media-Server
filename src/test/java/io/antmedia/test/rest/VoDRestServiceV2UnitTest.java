@@ -201,11 +201,11 @@ public class VoDRestServiceV2UnitTest {
 		assertEquals(streamVod.getVodName(), voD.getVodName());
 		assertEquals(streamVod.getFilePath(), voD.getFilePath());
 
-		assertEquals(1, restServiceReal.getVodList(0, 50, null, null).size());
+		assertEquals(1, restServiceReal.getVodList(0, 50, null, null, null).size());
 
 		restServiceReal.deleteVoD(vodId);
 
-		assertEquals(0, restServiceReal.getVodList(0, 50, null, null).size());
+		assertEquals(0, restServiceReal.getVodList(0, 50, null, null, null).size());
 
 		assertNull(datastore.getVoD(vodId));
 
@@ -236,6 +236,8 @@ public class VoDRestServiceV2UnitTest {
 			assertNull(f.list());
 
 			assertEquals(0, store.getTotalVodNumber());
+			
+			assertEquals(0, restServiceReal.getTotalVodNumber().getNumber());
 
 			restServiceReal.uploadVoDFile(fileName, inputStream);
 
@@ -245,6 +247,8 @@ public class VoDRestServiceV2UnitTest {
 			assertEquals(1, f.list().length);
 
 			assertEquals(1, store.getTotalVodNumber());
+			
+			assertEquals(1, restServiceReal.getTotalVodNumber().getNumber());
 
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
@@ -301,44 +305,44 @@ public class VoDRestServiceV2UnitTest {
 
 		restServiceReal.setAppCtx(context);
 		
-		List<VoD> vodList = restServiceReal.getVodList(0, 50, null, null);
+		List<VoD> vodList = restServiceReal.getVodList(0, 50, null, null, null);
 		assertEquals(3, vodList.size());
 		assertEquals(vodList.get(0).getVodId(), vod1.getVodId());
 		assertEquals(vodList.get(1).getVodId(), vod2.getVodId());
 		assertEquals(vodList.get(2).getVodId(), vod3.getVodId());
 		
-		vodList = restServiceReal.getVodList(0, 50, "", "");
+		vodList = restServiceReal.getVodList(0, 50, "", "", "");
 		assertEquals(3, vodList.size());
 		assertEquals(vodList.get(0).getVodId(), vod1.getVodId());
 		assertEquals(vodList.get(1).getVodId(), vod2.getVodId());
 		assertEquals(vodList.get(2).getVodId(), vod3.getVodId());
 		
 		
-		vodList = restServiceReal.getVodList(0, 50, "name", "asc");
+		vodList = restServiceReal.getVodList(0, 50, "name", "asc", "");
 		assertEquals(3, vodList.size());
 		assertEquals(vodList.get(0).getVodId(), vod2.getVodId());
 		assertEquals(vodList.get(1).getVodId(), vod1.getVodId());
 		assertEquals(vodList.get(2).getVodId(), vod3.getVodId());
 		
-		vodList = restServiceReal.getVodList(0, 50, "name", "desc");
+		vodList = restServiceReal.getVodList(0, 50, "name", "desc", null);
 		assertEquals(3, vodList.size());
 		assertEquals(vodList.get(0).getVodId(), vod3.getVodId());
 		assertEquals(vodList.get(1).getVodId(), vod1.getVodId());
 		assertEquals(vodList.get(2).getVodId(), vod2.getVodId());
 		
-		vodList = restServiceReal.getVodList(0, 50, "date", "asc");
+		vodList = restServiceReal.getVodList(0, 50, "date", "asc", null);
 		assertEquals(3, vodList.size());
 		assertEquals(vodList.get(0).getVodId(), vod3.getVodId());
 		assertEquals(vodList.get(1).getVodId(), vod2.getVodId());
 		assertEquals(vodList.get(2).getVodId(), vod1.getVodId());
 		
-		vodList = restServiceReal.getVodList(0, 50, "date", "desc");
+		vodList = restServiceReal.getVodList(0, 50, "date", "desc", null);
 		assertEquals(3, vodList.size());
 		assertEquals(vodList.get(0).getVodId(), vod1.getVodId());
 		assertEquals(vodList.get(1).getVodId(), vod2.getVodId());
 		assertEquals(vodList.get(2).getVodId(), vod3.getVodId());
 		
-		vodList = restServiceReal.getVodList(0, 2, "name", "desc");
+		vodList = restServiceReal.getVodList(0, 2, "name", "desc", null);
 		assertEquals(2, vodList.size());
 		assertEquals(vodList.get(0).getVodId(), vod3.getVodId());
 		assertEquals(vodList.get(1).getVodId(), vod1.getVodId());
@@ -347,7 +351,42 @@ public class VoDRestServiceV2UnitTest {
 		datastore.deleteVod(vod2.getVodId());
 		datastore.deleteVod(vod3.getVodId());
 		
-		vodList = restServiceReal.getVodList(0, 50, null, null);
+		vodList = restServiceReal.getVodList(0, 50, null, null, null);
 		assertEquals(0, vodList.size());
+	}
+
+	@Test
+	public void testGetVoDIdByStreamId()  {
+		VoDRestService restService=new VoDRestService();
+		InMemoryDataStore dataStore = new InMemoryDataStore("test");
+		restService.setDataStore(dataStore);
+		String streamId=RandomStringUtils.randomNumeric(24);
+		String vodId1="vod_1";
+		String vodId2="vod_2";
+		String vodId3="vod_3";
+		VoD vod1 = new VoD("streamName", streamId, "filePath", "vodName2", 333, 111, 111, VoD.STREAM_VOD, vodId1);
+		VoD vod2 = new VoD("streamName", streamId, "filePath", "vodName1", 222, 111, 111, VoD.STREAM_VOD, vodId2);
+		VoD vod3 = new VoD("streamName", "streamId123", "filePath", "vodName3", 111, 111, 111, VoD.STREAM_VOD, vodId3);
+
+		dataStore.addVod(vod1);
+		dataStore.addVod(vod2);
+		dataStore.addVod(vod3);
+
+		List<VoD> vodResult = restService.getVodList(0, 50, null, null, streamId);
+
+		boolean vod1Match = false, vod2Match = false;
+		for (VoD vod : vodResult) {
+			if (vod.getVodId().equals(vod1.getVodId())) {
+				vod1Match = true;
+			}
+			else if (vod.getVodId().equals(vod2.getVodId())) {
+				vod2Match = true;
+			}
+			else if (vod.getVodId().equals(vod3.getVodId())) {
+				fail("vod3 should not be matched");
+			}
+		}
+		assertTrue(vod1Match);
+		assertTrue(vod2Match);
 	}
 }

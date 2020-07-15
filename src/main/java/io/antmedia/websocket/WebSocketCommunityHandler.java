@@ -26,6 +26,8 @@ import io.antmedia.webrtc.adaptor.RTMPAdaptor;
 
 public class WebSocketCommunityHandler {
 
+	public static final String WebRTC_VERTX_BEAN_NAME = "webRTCVertx";
+	
 	private static Logger logger = LoggerFactory.getLogger(WebSocketCommunityHandler.class);
 
 	private JSONParser jsonParser = new JSONParser();

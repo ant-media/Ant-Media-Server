@@ -86,7 +86,6 @@ public class ConsoleAppRestServiceTest{
 	private static final String SERVICE_URL = "http://localhost:5080/LiveApp/rest";
 	private static Gson gson = new Gson();
 
-
 	private static BasicCookieStore httpCookieStore;
 	private static final Logger log = LoggerFactory.getLogger(ConsoleAppRestServiceTest.class);
 
@@ -1271,6 +1270,7 @@ public class ConsoleAppRestServiceTest{
 
 		}
 		catch (Exception e) {
+			e.printStackTrace();
 			fail(e.getMessage());
 		}
 
@@ -1977,5 +1977,11 @@ public class ConsoleAppRestServiceTest{
 	}
 
 
+	public static BasicCookieStore getHttpCookieStore() {
+		return httpCookieStore;
+	}
 
+	public static void setHttpCookieStore(BasicCookieStore httpCookieStore) {
+		ConsoleAppRestServiceTest.httpCookieStore = httpCookieStore;
+	}
 }

@@ -24,6 +24,8 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.awaitility.Awaitility;
 import org.bytedeco.ffmpeg.avutil.AVRational;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
@@ -38,12 +40,34 @@ import com.google.gson.JsonObject;
 import io.antmedia.SystemUtils;
 import io.antmedia.rest.WebRTCClientStats;
 import io.antmedia.statistic.GPUUtils;
-import io.antmedia.statistic.GPUUtils.MemoryStatus;
 import io.antmedia.statistic.StatsCollector;
+import io.antmedia.statistic.GPUUtils.MemoryStatus;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.vertx.core.Vertx;
 
 public class StatsCollectorTest {
+	
+	static {
+		//just init javacpp
+		AVRational rat = new AVRational();
+		
+	}
+	
+	static Vertx vertx;
+	static Vertx webRTCVertx;
+	
+	@BeforeClass
+	public static void beforeClass() {
+		vertx = Vertx.vertx();
+		webRTCVertx = Vertx.vertx();
+		
+	}
+	
+	@AfterClass
+	public static void afterClass() {
+		vertx.close();
+		webRTCVertx.close();
+	}
 
 	@Test
 	public void testCpuAverage() {
@@ -224,6 +248,9 @@ public class StatsCollectorTest {
 	@Test
 	public void testSendInstanceKafkaStats() {
 		StatsCollector resMonitor = Mockito.spy(new StatsCollector());
+		
+		resMonitor.setVertx(vertx);
+		resMonitor.setWebRTCVertx(webRTCVertx);
 		
 		Producer<Long, String> kafkaProducer = Mockito.mock(Producer.class);
 		

@@ -223,9 +223,19 @@
    			<bean class="io.vertx.core.VertxOptions">
    				<!--property name="eventLoopPoolSize" value="20"></property-->
 				<property name="metricsOptions" ref="vertxMetricOptions"></property>
+				<property name="maxWorkerExecuteTime" value="2000000000"></property> <!--  make max worker execute time 2 seconds -->
    			</bean>
    		</constructor-arg>	
    		<!--    * The default number of event loop threads to be used  = 2 * number of cores on the machine -->
+    </bean>
+    
+    <bean id="webRTCVertx" class="io.vertx.core.Vertx" factory-method="vertx">
+    	<constructor-arg>
+    		<bean class="io.vertx.core.VertxOptions">
+    			<property name="metricsOptions" ref="vertxMetricOptions"></property>
+    			<property name="maxWorkerExecuteTime" value="2000000000"></property> <!-- make max worker execute time 2 seconds -->
+    		</bean>
+    	</constructor-arg>
     </bean>
    	
    	<bean id="statsCollector" class="io.antmedia.statistic.StatsCollector" init-method="start">

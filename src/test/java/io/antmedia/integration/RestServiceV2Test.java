@@ -2,6 +2,7 @@ package io.antmedia.integration;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
@@ -15,17 +16,25 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Type;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 import javax.servlet.ServletContext;
 import javax.ws.rs.core.Context;
 
+import io.antmedia.AppSettings;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
+import org.apache.http.NameValuePair;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpUriRequest;
@@ -37,6 +46,7 @@ import org.apache.http.entity.mime.content.FileBody;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.client.LaxRedirectStrategy;
+import org.apache.http.message.BasicNameValuePair;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.awaitility.Awaitility;
@@ -1831,6 +1841,142 @@ public class RestServiceV2Test {
 			}
 		}
 		return result;
+	}
+
+	@Test
+	public void testVoDIdListByStreamId() {
+		
+		ConsoleAppRestServiceTest.resetCookieStore();
+		Result result;
+		try {
+			result = ConsoleAppRestServiceTest.callisFirstLogin();
+
+			if (result.isSuccess()) {
+				Result createInitialUser = ConsoleAppRestServiceTest.createDefaultInitialUser();
+				assertTrue(createInitialUser.isSuccess());
+			}
+
+			result = ConsoleAppRestServiceTest.authenticateDefaultUser();
+			assertTrue(result.isSuccess());
+			Random r = new Random();
+			String streamId = "streamId" + r.nextInt();
+
+			AppSettings appSettingsModel = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
+
+			appSettingsModel.setMp4MuxingEnabled(true);
+
+			result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettingsModel);
+			assertTrue(result.isSuccess());
+
+			//this process should be terminated automatically because test.flv has 25fps and 360p
+
+			startStopRTMPBroadcast(streamId);
+
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> {
+				return isUrlExist("http://localhost:5080/LiveApp/streams/"+streamId+".mp4");
+			});
+
+			startStopRTMPBroadcast(streamId);
+
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> {
+				return isUrlExist("http://localhost:5080/LiveApp/streams/"+streamId+"_1.mp4");
+			});
+
+			startStopRTMPBroadcast("dummyStreamId");
+
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> {
+				return isUrlExist("http://localhost:5080/LiveApp/streams/"+"dummyStreamId.mp4");
+			});
+			String url = ROOT_SERVICE_URL + "/v2/vods/list/0/50?streamId="+streamId;
+			HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
+					.setDefaultCookieStore(ConsoleAppRestServiceTest.getHttpCookieStore()).build();
+			Gson gson = new Gson();
+
+			HttpUriRequest get = RequestBuilder.get().setUri(url).build();
+
+			HttpResponse response = client.execute(get);
+
+			StringBuffer restResult = RestServiceV2Test.readResponse(response);
+
+			if (response.getStatusLine().getStatusCode() != 200) {
+				System.out.println("status code: " + response.getStatusLine().getStatusCode());
+				throw new Exception(restResult.toString());
+			}
+			logger.info("result string: " + restResult.toString());
+			Type listType = new TypeToken<List<VoD>>() {}.getType();
+
+			List<VoD> vodIdList = gson.fromJson(restResult.toString(), listType);
+			assertNotNull(vodIdList);
+
+			boolean isEnterprise = callIsEnterpriseEdition().getMessage().contains("Enterprise");
+			// It's added due to Adaptive Settings added as default in Enterprise Edition. 
+			if(isEnterprise) {
+				assertEquals(4, vodIdList.size());
+			}
+			else {
+				assertEquals(2, vodIdList.size());
+			}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+	}
+
+	private void startStopRTMPBroadcast(String streamId) throws InterruptedException {
+		Process rtmpSendingProcess = AppFunctionalV2Test.execute(ffmpegPath
+				+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
+				+ streamId);
+
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> {
+			return rtmpSendingProcess.isAlive();
+		});
+
+		Thread.sleep(5000);
+
+		rtmpSendingProcess.destroy();
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> {
+			return !rtmpSendingProcess.isAlive();
+		});
+	}
+
+	private boolean isUrlExist(String url) {
+		try {
+			return ((HttpURLConnection) new URL(url).openConnection()).getResponseCode() == 200;
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return false;
+	}
+	
+	public Result callIsEnterpriseEdition() throws Exception {
+
+		String url = "http://localhost:5080/LiveApp/rest/v2/version";
+		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+		Gson gson = new Gson();
+
+		HttpUriRequest get = RequestBuilder.get().setUri(url).build();
+		CloseableHttpResponse response = client.execute(get);
+
+		StringBuffer result = readResponse(response);
+
+
+		if (response.getStatusLine().getStatusCode() != 200) {
+			throw new Exception(result.toString());
+		}
+		logger.info("result string: {} ",result.toString());
+
+		Version version = gson.fromJson(result.toString(),Version.class);
+
+
+
+		Result resultResponse = new Result(true, version.getVersionType());
+
+		assertNotNull(resultResponse);
+
+		return resultResponse;
+
+
 	}
 
 }

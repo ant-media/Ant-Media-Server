@@ -18,6 +18,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -610,6 +611,10 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		testMp4Muxing(streamId, false, true);
 
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> {
+			return streamId.equals(Application.id);
+		});
+		
 		assertEquals(Application.id, streamId);
 		assertEquals(Application.file.getName(), streamId + ".mp4");
 		assertTrue(Math.abs(697202l - Application.duration) < 250);
@@ -618,13 +623,16 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		//we do not save duration of the finished live streams
 		//assertEquals((long)broadcast.getDuration(), 697132L);
 
-		verify(appAdaptor, times(1)).notifyHook(eq(hookUrl), eq(streamId), eq(AntMediaApplicationAdapter.HOOK_ACTION_VOD_READY), eq(null), eq(null), eq(streamId), anyString());
+		verify(appAdaptor,  timeout(1000).times(1)).notifyHook(eq(hookUrl), eq(streamId), eq(AntMediaApplicationAdapter.HOOK_ACTION_VOD_READY), eq(null), eq(null), eq(streamId), anyString());
 		Application.resetFields();
 		//test with same id again
 		testMp4Muxing(streamId, true, true);
 
-		verify(appAdaptor, times(1)).notifyHook(eq(hookUrl), eq(streamId), eq(AntMediaApplicationAdapter.HOOK_ACTION_VOD_READY), eq(null), eq(null), eq(streamId+"_1"), anyString());
+		verify(appAdaptor, timeout(1000).times(1)).notifyHook(eq(hookUrl), eq(streamId), eq(AntMediaApplicationAdapter.HOOK_ACTION_VOD_READY), eq(null), eq(null), eq(streamId+"_1"), anyString());
 
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> {
+			return streamId.equals(Application.id);
+		});
 		assertEquals(Application.id, streamId);
 		assertEquals(Application.file.getName(), streamId + "_1.mp4");
 		assertEquals(10080L, Application.duration);
