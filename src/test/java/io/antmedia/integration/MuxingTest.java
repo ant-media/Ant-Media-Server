@@ -446,7 +446,10 @@ public class MuxingTest {
 
             //it should be true this time, because stream mp4 setting is 1 although general setting is disabled
             Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-                return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName+ ".mp4", 5000);
+            	Process ffprobe = execute(
+    					"ffprobe http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName+ ".mp4");
+            	ffprobe.destroy();
+            	return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName+ ".mp4", 5000);
             });
 
             rtmpSendingProcess.destroy();
