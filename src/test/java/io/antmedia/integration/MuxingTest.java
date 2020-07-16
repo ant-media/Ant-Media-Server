@@ -470,6 +470,7 @@ public class MuxingTest {
 
 	public static boolean testFile(String absolutePath, int expectedDurationInMS, boolean fullRead) {
 		int ret;
+		System.out.println("Tested File:"+absolutePath);
 
 		AVFormatContext inputFormatContext = avformat.avformat_alloc_context();
 		if (inputFormatContext == null) {
