@@ -78,4 +78,12 @@ public interface IWebRTCMuxer extends IStreamInfo {
 	 * Return the video codec of the IWebRTCMuxer
 	 */
 	public VideoCodec getVideoCodec();
+
+	/**
+	 * Set the frame id in webrtc stack and relative capture time ms
+	 * This let us calculate the absolute latency
+	 * @param frameId
+	 * @param captureTimeMs
+	 */
+	public void setFrameIdAndCaptureTimeMs(long frameId, long captureTimeMs);
 }

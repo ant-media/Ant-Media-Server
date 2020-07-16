@@ -2160,7 +2160,7 @@ public class BroadcastRestServiceV2UnitTest {
 		restServiceReal.setAppCtx(context);
 		restServiceReal.setApplication(app);
 		restServiceReal.setScope(scope);
-		assertTrue(restServiceReal.getRTMPToWebRTCStats().isEmpty());
+		assertNotNull(restServiceReal.getRTMPToWebRTCStats("stream1"));
 	}
 	
 	@Test
