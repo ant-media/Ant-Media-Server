@@ -38,13 +38,13 @@ public class ServerSettings implements ApplicationContextAware {
 
 	private static final String SETTINGS_USE_GLOBAL_IP = "useGlobalIp";
 
-	private static final String LOG_LEVEL_ALL = "ALL";
-	private static final String LOG_LEVEL_TRACE = "TRACE";
-	private static final String LOG_LEVEL_DEBUG = "DEBUG";
-	private static final String LOG_LEVEL_INFO = "INFO";
-	private static final String LOG_LEVEL_WARN = "WARN";
-	private static final String LOG_LEVEL_ERROR = "ERROR";
-	private static final String LOG_LEVEL_OFF = "OFF";
+	public static final String LOG_LEVEL_ALL = "ALL";
+	public static final String LOG_LEVEL_TRACE = "TRACE";
+	public static final String LOG_LEVEL_DEBUG = "DEBUG";
+	public static final String LOG_LEVEL_INFO = "INFO";
+	public static final String LOG_LEVEL_WARN = "WARN";
+	public static final String LOG_LEVEL_ERROR = "ERROR";
+	public static final String LOG_LEVEL_OFF = "OFF";
 
 	private String allowedDashboardCIDR;
 
