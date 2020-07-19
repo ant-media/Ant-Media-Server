@@ -866,13 +866,16 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		clientBroadcastStream.setCodecInfo(info);
 
 		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, false, appScope);
-		Broadcast broadcast = new Broadcast();
-		try {
-			broadcast.setStreamId(name);
-		} catch (Exception e1) {
-			e1.printStackTrace();
+		
+		if(getDataStore().get(name) == null) {
+			Broadcast broadcast = new Broadcast();
+			try {
+				broadcast.setStreamId(name);
+			} catch (Exception e1) {
+				e1.printStackTrace();
+			}
+			getDataStore().save(broadcast);
 		}
-		getDataStore().save(broadcast);
 		getAppSettings().setMp4MuxingEnabled(true);
 		getAppSettings().setHlsMuxingEnabled(false);
 
