@@ -4,6 +4,8 @@ import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.IApplicationAdaptorFactory;
 import io.antmedia.RecordType;
+import io.antmedia.datastore.db.DataStore;
+import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
@@ -234,8 +236,11 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 			logger.debug("f path:" + file.getAbsolutePath());
 			assertTrue(file.exists());
-
-			boolean result = muxAdaptor.init(appScope, "test", false);
+			String streamId = "test" + (int) (Math.random() * 991000);
+			Broadcast broadcast = new Broadcast();
+			broadcast.setStreamId(streamId);
+			getDataStore().save(broadcast);
+			boolean result = muxAdaptor.init(appScope, streamId, false);
 			assertTrue(result);
 
 			muxAdaptor.start();
@@ -313,6 +318,10 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 				for (Iterator<MuxAdaptor> iterator = muxAdaptorList.iterator(); iterator.hasNext(); ) {
 					MuxAdaptor muxAdaptor = (MuxAdaptor) iterator.next();
 					String streamId = "test" + (int) (Math.random() * 991000);
+					Broadcast broadcast = new Broadcast();
+					broadcast.setStreamId(streamId);
+					getDataStore().save(broadcast);
+					
 					boolean result = muxAdaptor.init(appScope, streamId, false);
 					assertTrue(result);
 					muxAdaptor.start();
@@ -857,6 +866,13 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		clientBroadcastStream.setCodecInfo(info);
 
 		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, false, appScope);
+		Broadcast broadcast = new Broadcast();
+		try {
+			broadcast.setStreamId(name);
+		} catch (Exception e1) {
+			e1.printStackTrace();
+		}
+		getDataStore().save(broadcast);
 		getAppSettings().setMp4MuxingEnabled(true);
 		getAppSettings().setHlsMuxingEnabled(false);
 
@@ -927,6 +943,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	 * 
 	 */
 	boolean checkStreamReturned = false;
+	private DataStore datastore;
 	@Test
 	public void testCheckStreams() {
 		appScope = (WebScope) applicationContext.getBean("web.scope");
@@ -1537,6 +1554,13 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			appSettings = (AppSettings) applicationContext.getBean(AppSettings.BEAN_NAME);
 		}
 		return appSettings;
+	}
+	
+	public DataStore getDataStore() {
+		if (datastore == null) {
+			datastore = ((DataStoreFactory) applicationContext.getBean(DataStoreFactory.BEAN_NAME)).getDataStore();
+		}
+		return datastore;
 	}
 
 	@Test
