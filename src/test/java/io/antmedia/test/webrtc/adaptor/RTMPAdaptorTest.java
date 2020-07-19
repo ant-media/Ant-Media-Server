@@ -45,7 +45,6 @@ import io.antmedia.recorder.Frame;
 import io.antmedia.webrtc.MockWebRTCAdaptor;
 import io.antmedia.webrtc.VideoCodec;
 import io.antmedia.webrtc.adaptor.RTMPAdaptor;
-import io.antmedia.webrtc.api.IWebRTCClient;
 import io.antmedia.websocket.WebSocketCommunityHandler;
 import io.antmedia.websocket.WebSocketConstants;
 

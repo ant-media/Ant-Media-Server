@@ -606,11 +606,11 @@ public class BroadcastRestService extends RestServiceBase{
 	
 	@ApiOperation(value = "Get RTMP to WebRTC path stats in general", notes = "",response = RTMPToWebRTCStats.class)
 	@GET
-	@Path("/rtmp-to-webrtc-stats")
+	@Path("/{id}/rtmp-to-webrtc-stats")
 	@Produces(MediaType.APPLICATION_JSON)
-	public List<RTMPToWebRTCStats> getRTMPToWebRTCStats() 
+	public RTMPToWebRTCStats getRTMPToWebRTCStats(@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String id) 
 	{
-		return getApplication().getRTMPToWebRTCStats();
+		return getApplication().getRTMPToWebRTCStats(id);
 	}
 	
 	

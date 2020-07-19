@@ -207,7 +207,7 @@ public class PlaylistRestService extends RestServiceBase{
 		if(result.isSuccess()) {
 
 			// Add Broadcast for the list in Broadcasts list
-			saveBroadcast(playlist.getBroadcastItemList().get(playlist.getCurrentPlayIndex()), AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, getScope().getName(), getDataStore(), getAppSettings().getListenerHookURL(), getServerSettings().getServerName(), getServerSettings().getHostAddress());
+			saveBroadcast(playlist.getBroadcastItemList().get(playlist.getCurrentPlayIndex()), AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, getScope().getName(), getDataStore(), getAppSettings().getListenerHookURL(), getServerSettings(), 0);
 
 			if(autoStart) {
 				result = startPlaylistService(playlist);
