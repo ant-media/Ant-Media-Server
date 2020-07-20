@@ -29,7 +29,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.DisposableBean;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContextAware;
 
 import com.brsanthu.googleanalytics.GoogleAnalytics;
@@ -41,14 +40,14 @@ import com.google.gson.JsonObject;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.IApplicationAdaptorFactory;
 import io.antmedia.SystemUtils;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.rest.WebRTCClientStats;
 import io.antmedia.settings.ServerSettings;
-import io.antmedia.shutdown.AMSShutdownManager;
 import io.antmedia.statistic.GPUUtils.MemoryStatus;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
-import io.vertx.core.AsyncResult;
-import io.vertx.core.Handler;
+import io.antmedia.websocket.WebSocketCommunityHandler;
 import io.vertx.core.Vertx;
+import io.vertx.ext.dropwizard.MetricsService;
 
 
 
@@ -160,7 +159,6 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 	public static final String GA_TRACKING_ID = "UA-93263926-3";
 
-	@Autowired
 	private Vertx vertx;
 	private Queue<Integer> cpuMeasurements = new ConcurrentLinkedQueue<>();
 
@@ -239,7 +237,14 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	public static final String JVM_NATIVE_MEMORY_USAGE = "jvmNativeMemoryUsage";
 
 	private static final String HOST_ADDRESS = "host-address";
-
+	
+	private static final String VERTX_WORKER_QUEUE_SIZE = "vertx.pools.worker.vert.x-worker-thread.queue-size";
+	
+	private static final String VERTX_WORKER_THREAD_QUEUE_SIZE = "vertx-worker-thread-queue-size";
+	
+	private static final String WEBRTC_VERTX_WORKER_THREAD_QUEUE_SIZE = "webrtc-vertx-worker-thread-queue-size";
+	
+	
 	private Producer<Long,String> kafkaProducer = null;
 
 	private long cpuMeasurementTimerId = -1;
@@ -255,9 +260,37 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	private GoogleAnalytics googleAnalytics;
 
 	private String hostAddress;
+
+	private Vertx webRTCVertx;
+	
+	private int time2Log = 0;
+
+	private static MetricsService vertXMetrics;
+
+	private static MetricsService webRTCVertxMetrics;
 	
 	public void start() {
-		cpuMeasurementTimerId  = getVertx().setPeriodic(measurementPeriod, l -> addCpuMeasurement(SystemUtils.getSystemCpuLoad()));
+		cpuMeasurementTimerId  = getVertx().setPeriodic(measurementPeriod, l -> 
+		{
+			addCpuMeasurement(SystemUtils.getSystemCpuLoad());
+		
+			//log every 5 minute
+			if (300000/measurementPeriod == time2Log) {
+				if(logger != null) {
+					logger.info("System cpu load:{} process cpu load:{} available memory: {} KB used memory(RSS): {} KB", cpuLoad, SystemUtils.getProcessCpuLoad(), SystemUtils.convertByteSize(SystemUtils.osAvailableMemory(), "KB"), SystemUtils.convertByteSize(Pointer.physicalBytes(), "KB"));
+					
+					int vertxWorkerQueueSize = getVertWorkerQueueSize();
+					
+					int webRTCVertxWorkerQueueSize = getWebRTCVertxWorkerQueueSize();
+					
+					logger.info("Vertx worker queue size:{} WebRTCVertx worker queue size:{}", vertxWorkerQueueSize, webRTCVertxWorkerQueueSize);
+					
+				}
+				
+				time2Log = 0;
+			}
+			time2Log++;
+		});
 		startKafkaProducer();
 
 		if (heartBeatEnabled) {
@@ -280,6 +313,24 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 				sendWebRTCClientStats();
 			});
 		}	
+	}
+	
+	private static int getVertWorkerQueueSize() {
+		io.vertx.core.json.JsonObject queueSizeMetrics = vertXMetrics.getMetricsSnapshot(VERTX_WORKER_QUEUE_SIZE);
+		io.vertx.core.json.JsonObject jsonObject = null;
+		if (queueSizeMetrics != null) {
+			jsonObject = queueSizeMetrics.getJsonObject(VERTX_WORKER_QUEUE_SIZE);
+		}
+		return jsonObject != null ? jsonObject.getInteger("count") : -1;
+	}
+	
+	private static int getWebRTCVertxWorkerQueueSize() {
+		io.vertx.core.json.JsonObject queueSizeMetrics = webRTCVertxMetrics.getMetricsSnapshot(VERTX_WORKER_QUEUE_SIZE);
+		io.vertx.core.json.JsonObject jsonObject = null;
+		if (queueSizeMetrics != null) {
+			jsonObject = queueSizeMetrics.getJsonObject(VERTX_WORKER_QUEUE_SIZE);
+		}
+		return jsonObject != null ? jsonObject.getInteger("count") : -1;
 	}
 
 	public static GoogleAnalytics getGoogleAnalyticInstance(String implementationVersion, String type) {
@@ -563,6 +614,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		jsonObject.addProperty(StatsCollector.ENCODERS_BLOCKED, encodersBlocked);
 		jsonObject.addProperty(StatsCollector.ENCODERS_NOT_OPENED, encodersNotOpened);
 		jsonObject.addProperty(StatsCollector.PUBLISH_TIMEOUT_ERRORS, publishTimeoutError);
+		jsonObject.addProperty(StatsCollector.VERTX_WORKER_THREAD_QUEUE_SIZE, getVertWorkerQueueSize());
+		jsonObject.addProperty(StatsCollector.WEBRTC_VERTX_WORKER_THREAD_QUEUE_SIZE, getWebRTCVertxWorkerQueueSize());
 
 		//add timing info
 		jsonObject.add(StatsCollector.SERVER_TIMING, getServerTime());
@@ -689,6 +742,12 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 	public void setVertx(Vertx vertx) {
 		this.vertx = vertx;
+		vertXMetrics= MetricsService.create(vertx);
+	}
+	
+	public void setWebRTCVertx(Vertx webRTCVertx) {
+		this.webRTCVertx = webRTCVertx;
+		webRTCVertxMetrics =  MetricsService.create(webRTCVertx);
 	}
 
 
@@ -729,6 +788,12 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		ServerSettings serverSettings = (ServerSettings) applicationContext.getBean(ServerSettings.BEAN_NAME);
 		heartBeatEnabled = serverSettings.isHeartbeatEnabled();
 		hostAddress = serverSettings.getHostAddress();
+		
+		setVertx((Vertx) applicationContext.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME));
+		
+		
+		setWebRTCVertx((Vertx) applicationContext.getBean(WebSocketCommunityHandler.WebRTC_VERTX_BEAN_NAME));
+		
 	}
 
 	public int getStaticSendPeriod() {
@@ -760,12 +825,6 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 		hearbeatPeriodicTask = vertx.setPeriodic(periodMS, 
 				l -> {
-					if(logger != null) {
-						logger.info("-Heartbeat-> System cpu load: {} process cpu load:{} free memory: {} KB available memory: {} KB used memory(RSS): {} KB", cpuLoad, SystemUtils.getProcessCpuLoad(), SystemUtils.convertByteSize(SystemUtils.osFreePhysicalMemory(),"KB"), SystemUtils.convertByteSize(SystemUtils.osAvailableMemory(), "KB"), SystemUtils.convertByteSize(Pointer.physicalBytes(), "KB"));
-					}
-					else {
-						System.out.println("-Heartbeat-> System cpu load:" + cpuLoad + " Free memory: {} KB" + SystemUtils.convertByteSize(SystemUtils.osFreePhysicalMemory(),"KB"));
-					}
 										
 					getGoogleAnalytic(implementationVersion, type).event()
 					.eventCategory("server_status")
@@ -775,8 +834,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 					.sendAsync();
 					
 					
-				}
-				);
+				});
 
 		return result;
 	}
@@ -829,8 +887,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 			
 			getGoogleAnalytic(Launcher.getVersion(), Launcher.getVersionType()).close();
 		}
-		
 		vertx.close();
+		webRTCVertx.close();
 		if(logger != null) {
 			logger.info("Closing vertx ");
 		}

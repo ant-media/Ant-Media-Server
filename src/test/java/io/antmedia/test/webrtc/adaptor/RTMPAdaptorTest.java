@@ -425,5 +425,6 @@ public class RTMPAdaptorTest {
 		mock.setPacketLossDiffThresholdForSwitchback(0);
 		mock.setRttMeasurementDiffThresholdForSwitchback(0);
 		mock.setTryCountBeforeSwitchback(0);
+		mock.forceStreamingQuality(null,null,0);
 	}
 }

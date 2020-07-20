@@ -60,13 +60,10 @@
 		<property name="licenceKey" value="${server.licence_key}" />
 		<property name="buildForMarket" value="${server.market_build}" />	
 		<property name="logLevel" value="${logLevel}"/>
+		<property name="nativeLogLevel" value="${nativeLogLevel}" />
 		<property name="allowedDashboardCIDR" value="${server.allowed_dashboard_CIDR}"/>
 	</bean>
 	
-	<bean id="logSettings" class="io.antmedia.settings.LogSettings">
-	<!-- Delete this class  -->
-		<property name="logLevel" value="${logLevel}"/>   
-  	</bean>
 
 	<bean id="ant.media.licence.service" class="#{ T(io.antmedia.rest.RestServiceBase).isEnterprise() ? 'io.antmedia.enterprise.licence.LicenceService' : 'io.antmedia.licence.CommunityLicenceService' }"
 	init-method="start">

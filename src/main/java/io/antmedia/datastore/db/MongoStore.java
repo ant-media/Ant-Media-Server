@@ -417,8 +417,14 @@ public class MongoStore extends DataStore {
 	}
 
 	@Override
-	public List<VoD> getVodList(int offset, int size, String sortBy, String orderBy) {
+	public List<VoD> getVodList(int offset, int size, String sortBy, String orderBy, String filterStreamId) {
 		synchronized(this) {
+			Query<VoD> query = vodDatastore.find(VoD.class);
+			
+			if (filterStreamId != null && !filterStreamId.isEmpty()) {
+				query = query.field("streamId").equal(filterStreamId);
+			}
+			
 			if(sortBy != null && orderBy != null && !sortBy.isEmpty() && !orderBy.isEmpty()) {
 				String sortString = orderBy.contentEquals("desc") ? "-" : "";
 				if(sortBy.contentEquals("name")) {
@@ -427,9 +433,9 @@ public class MongoStore extends DataStore {
 				else if(sortBy.contentEquals("date")) {
 					sortString += CREATION_DATE;
 				}
-				return vodDatastore.find(VoD.class).order(sortString).asList(new FindOptions().skip(offset).limit(size));
+				query = query.order(sortString);
 			}
-			return vodDatastore.find(VoD.class).asList(new FindOptions().skip(offset).limit(size));
+			return query.asList(new FindOptions().skip(offset).limit(size));
 		}
 	}
 
@@ -731,10 +737,6 @@ public class MongoStore extends DataStore {
 					ops.set("streamUrl", broadcast.getStreamUrl());
 				}
 				
-				if ( broadcast.getDuration() != 0) {
-					ops.set(DURATION, broadcast.getDuration());
-				}
-				
 				if (broadcast.getLatitude() != null) {
 					ops.set("latitude", broadcast.getLatitude());
 				}
@@ -751,17 +753,7 @@ public class MongoStore extends DataStore {
 					ops.set("mainTrackStreamId", broadcast.getMainTrackStreamId());
 				}
 				
-				if (broadcast.getStartTime() != 0) {
-					ops.set(START_TIME, broadcast.getStartTime());
-				}
-				
-				if (broadcast.getOriginAdress() != null) {
-					ops.set(ORIGIN_ADDRESS, broadcast.getOriginAdress());
-				}
-				
-				if (broadcast.getStatus() != null) {
-					ops.set(STATUS, broadcast.getStatus());
-				}
+				prepareFields(broadcast, ops);
 				
 				
 				ops.set("receivedBytes", broadcast.getReceivedBytes());
@@ -775,6 +767,29 @@ public class MongoStore extends DataStore {
 			}
 		}
 		return false;
+	}
+	
+	private void prepareFields(Broadcast broadcast, UpdateOperations<Broadcast> ops ) {
+		
+		if ( broadcast.getDuration() != 0) {
+			ops.set(DURATION, broadcast.getDuration());
+		}
+		
+		if (broadcast.getStartTime() != 0) {
+			ops.set(START_TIME, broadcast.getStartTime());
+		}
+		
+		if (broadcast.getOriginAdress() != null) {
+			ops.set(ORIGIN_ADDRESS, broadcast.getOriginAdress());
+		}
+		
+		if (broadcast.getStatus() != null) {
+			ops.set(STATUS, broadcast.getStatus());
+		}
+		
+		if (broadcast.getAbsoluteStartTimeMs() != 0) {
+			ops.set("absoluteStartTimeMs", broadcast.getAbsoluteStartTimeMs());
+		}
 	}
 
 	/**
@@ -1031,7 +1046,8 @@ public class MongoStore extends DataStore {
 				Query<ConferenceRoom> query = conferenceRoomDatastore.createQuery(ConferenceRoom.class).field("roomId").equal(room.getRoomId());
 
 				UpdateOperations<ConferenceRoom> ops = conferenceRoomDatastore.createUpdateOperations(ConferenceRoom.class).set("roomId", room.getRoomId())
-						.set("startDate", room.getStartDate()).set("endDate", room.getEndDate());
+						.set("startDate", room.getStartDate()).set("endDate", room.getEndDate())
+						.set("roomStreamList", room.getRoomStreamList());
 
 				UpdateResults update = conferenceRoomDatastore.update(query, ops);
 				return update.getUpdatedCount() == 1;
