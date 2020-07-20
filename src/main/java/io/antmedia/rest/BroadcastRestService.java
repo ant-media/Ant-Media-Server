@@ -1044,5 +1044,42 @@ public class BroadcastRestService extends RestServiceBase{
 		}
 		
 		return basicStreamInfo;
-	}
+	}	
+
+	@ApiOperation(value = "Send stream participants a message through Data Channel in a WebRTC stream", notes = "", response = Result.class)
+	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/{id}/data")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result sendMessage(@ApiParam(value = "Message through Data Channel which will be sent to all WebRTC stream participants", required = true) String message, 
+			@ApiParam(value = "Broadcast id", required = true) @PathParam("id") String id) {
+
+		AntMediaApplicationAdapter application = getApplication();
+		// check if WebRTC data channels are supported in this edition
+		if(application != null && application.isDataChannelMessagingSupported()) {
+			// check if data channel is enabled in the settings
+			if(application.isDataChannelEnabled()) {
+				// check if stream with given stream id exists
+				if(application.doesWebRTCStreamExist(id)) {
+					 // send the message through the application
+					 boolean status = application.sendDataChannelMessage(id,message);
+					 if(status) {
+						 return new Result(true);
+					 } else {
+						 return new Result(false, "Operation not completed");
+					 }
+					
+				} else {
+					return new Result(false, "Requested WebRTC stream does not exist");
+				}
+				
+			} else {
+				return new Result(false, "Data channels are not enabled");
+			}
+			
+		} else {
+			return new Result(false, "Operation not supported in the Community Edition. Check the Enterprise version for more features.");
+		}
+	}	
+	
 }
