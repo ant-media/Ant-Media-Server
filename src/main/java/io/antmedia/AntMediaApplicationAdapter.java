@@ -1394,5 +1394,23 @@ public Result createInitializationProcess(String appName){
 	public RTMPToWebRTCStats getRTMPToWebRTCStats(String streamId) {
 		return new RTMPToWebRTCStats(streamId);
 	}
+	
+	public boolean isDataChannelEnabled() {
+		return false;
+	}
+	
+	public boolean isDataChannelMessagingSupported() {
+		
+		return false;
+	}
+	
+	public boolean sendDataChannelMessage(String streamId, String message) {
+		
+		return false;
+	}
+	
+	public boolean doesWebRTCStreamExist(String streamId) {
+		return false;
+	}
 
 }
