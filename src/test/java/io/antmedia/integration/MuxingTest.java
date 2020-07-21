@@ -12,6 +12,7 @@ import static org.bytedeco.javacpp.avutil.AVMEDIA_TYPE_VIDEO;
 import static org.bytedeco.javacpp.avutil.AV_NOPTS_VALUE;
 import static org.bytedeco.javacpp.avutil.AV_PIX_FMT_NONE;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -437,7 +438,8 @@ public class MuxingTest {
             });
 
             Result result = RestServiceV2Test.callEnableMp4Muxing(streamName, 1);
-            assertTrue(result.isSuccess());
+            assertFalse(result.isSuccess());
+            assertEquals("Recording is already active. Please stop it first", result.getMessage());
 
 			Thread.sleep(5000);
 
@@ -446,10 +448,7 @@ public class MuxingTest {
 
             //it should be true this time, because stream mp4 setting is 1 although general setting is disabled
             Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-            	Process ffprobe = execute(
-    					"ffprobe http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName+ ".mp4");
-            	ffprobe.destroy();
-            	return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName+ ".mp4", 5000);
+            	return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName+ ".mp4", 8000);
             });
 
             rtmpSendingProcess.destroy();
