@@ -24,6 +24,7 @@ import java.net.URL;
 import java.util.concurrent.TimeUnit;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import org.awaitility.Awaitility;
@@ -437,10 +438,17 @@ public class MuxingTest {
                 return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName+ ".m3u8");
             });
 
+			AppSettings appSettings = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
+            
             Result result = RestServiceV2Test.callEnableMp4Muxing(streamName, 1);
-            assertFalse(result.isSuccess());
-            assertEquals("Recording is already active. Please stop it first", result.getMessage());
-
+           
+            if(appSettings.isMp4MuxingEnabled()) {
+            	assertFalse(result.isSuccess());
+            	assertEquals("Recording is already active. Please stop it first", result.getMessage());
+            }
+            else {
+                assertTrue(result.isSuccess());
+            }
 			Thread.sleep(5000);
 
 			result = RestServiceV2Test.callEnableMp4Muxing(streamName, 0);
