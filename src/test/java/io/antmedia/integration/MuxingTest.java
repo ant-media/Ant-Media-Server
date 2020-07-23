@@ -438,9 +438,11 @@ public class MuxingTest {
                 return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName+ ".m3u8");
             });
 
+			Result result = ConsoleAppRestServiceTest.authenticateDefaultUser();
+			assertTrue(result.isSuccess());
 			AppSettings appSettings = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
             
-            Result result = RestServiceV2Test.callEnableMp4Muxing(streamName, 1);
+            result = RestServiceV2Test.callEnableMp4Muxing(streamName, 1);
            
             if(appSettings.isMp4MuxingEnabled()) {
             	assertFalse(result.isSuccess());
