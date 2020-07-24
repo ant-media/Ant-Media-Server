@@ -1193,7 +1193,7 @@ public abstract class RestServiceBase {
 		String fileExtension = FilenameUtils.getExtension(fileName);
 		try {
 
-			if ("mp4".equals(fileExtension)) {
+			if ("mp4".equalsIgnoreCase(fileExtension)) {
 
 
 				File streamsDirectory = new File(
