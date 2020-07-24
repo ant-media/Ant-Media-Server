@@ -426,6 +426,14 @@ public class MuxingTest {
 	public void testMp4Muxing() {
 
 		try {
+			ConsoleAppRestServiceTest.resetCookieStore();
+			Result result = ConsoleAppRestServiceTest.authenticateDefaultUser();
+			assertTrue(result.isSuccess());
+			AppSettings appSettings = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
+			appSettings.setMp4MuxingEnabled(false);
+			ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettings);
+	            
+			
 			// send rtmp stream with ffmpeg to red5
 			String streamName = "live_test"  + (int)(Math.random() * 999999);
 
@@ -438,27 +446,17 @@ public class MuxingTest {
                 return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName+ ".m3u8");
             });
 
-			Result result = ConsoleAppRestServiceTest.authenticateDefaultUser();
-			assertTrue(result.isSuccess());
-			AppSettings appSettings = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
-            
             result = RestServiceV2Test.callEnableMp4Muxing(streamName, 1);
-           
-            if(appSettings.isMp4MuxingEnabled()) {
-            	assertFalse(result.isSuccess());
-            	assertEquals("Recording is already active. Please stop it first", result.getMessage());
-            }
-            else {
-                assertTrue(result.isSuccess());
-            }
-			Thread.sleep(5000);
+            assertTrue(result.isSuccess());
+			
+            Thread.sleep(5000);
 
 			result = RestServiceV2Test.callEnableMp4Muxing(streamName, 0);
 			assertTrue(result.isSuccess());
 
             //it should be true this time, because stream mp4 setting is 1 although general setting is disabled
             Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-            	return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName+ ".mp4", 8000);
+            	return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName+ ".mp4", 5000);
             });
 
             rtmpSendingProcess.destroy();
