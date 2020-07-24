@@ -436,6 +436,7 @@ public class MuxingTest {
 			result = ConsoleAppRestServiceTest.authenticateDefaultUser();
 			assertTrue(result.isSuccess());
 			AppSettings appSettings = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
+			boolean mp4Enabled = appSettings.isMp4MuxingEnabled();
 			appSettings.setMp4MuxingEnabled(false);
 			ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettings);
 	            
@@ -466,6 +467,9 @@ public class MuxingTest {
             });
 
             rtmpSendingProcess.destroy();
+            
+			appSettings.setMp4MuxingEnabled(mp4Enabled);
+			ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettings);
 
 
 		} catch (Exception e) {
