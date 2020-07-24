@@ -427,7 +427,13 @@ public class MuxingTest {
 
 		try {
 			ConsoleAppRestServiceTest.resetCookieStore();
-			Result result = ConsoleAppRestServiceTest.authenticateDefaultUser();
+			Result result = ConsoleAppRestServiceTest.callisFirstLogin();
+			if (result.isSuccess()) {
+				Result createInitialUser = ConsoleAppRestServiceTest.createDefaultInitialUser();
+				assertTrue(createInitialUser.isSuccess());
+			}
+
+			result = ConsoleAppRestServiceTest.authenticateDefaultUser();
 			assertTrue(result.isSuccess());
 			AppSettings appSettings = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
 			appSettings.setMp4MuxingEnabled(false);
