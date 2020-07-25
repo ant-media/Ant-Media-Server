@@ -418,16 +418,21 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>org.bytedeco</groupId>
-            <artifactId>ffmpeg-platform</artifactId>
+    		<groupId>org.bytedeco</groupId>
+    		<artifactId>ffmpeg</artifactId>
             <version>${javacpp.ffmpeg.version}</version>
             <scope>provided</scope>
         </dependency>
-        <dependency>
+        <!-- dependency>
 			<groupId>org.bytedeco.javacpp-presets</groupId>
 			<artifactId>cuda-platform</artifactId>
 			<version>${javacpp.cuda.version}</version>
 			<scope>provided</scope>
+		</dependency -->
+		<dependency>
+			<groupId>org.bytedeco</groupId>
+			<artifactId>cuda</artifactId>
+			<version>${javacpp.cuda.version}</version>
 		</dependency>
         <dependency>
             <groupId>io.antmedia.api.periscope</groupId>
