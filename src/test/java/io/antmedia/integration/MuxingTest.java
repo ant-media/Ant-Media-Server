@@ -28,6 +28,7 @@ import org.bytedeco.ffmpeg.avcodec.AVPacket;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avutil.AVDictionary;
 import org.bytedeco.ffmpeg.global.avformat;
+import org.bytedeco.ffmpeg.global.avutil;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -480,6 +481,10 @@ public class MuxingTest {
 
 		if ((ret = avformat_open_input(inputFormatContext, absolutePath, null, (AVDictionary) null)) < 0) {
 			System.out.println("cannot open input context: " + absolutePath);
+			byte[] data = new byte[100];
+			avutil.av_strerror(ret, data, data.length);
+
+			String errorStr=new String(data, 0, data.length);
 			return false;
 		}
 
