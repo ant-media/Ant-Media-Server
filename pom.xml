@@ -419,7 +419,7 @@
         </dependency>
         <dependency>
     		<groupId>org.bytedeco</groupId>
-    		<artifactId>ffmpeg</artifactId>
+    		<artifactId>ffmpeg-platform</artifactId>
             <version>${javacpp.ffmpeg.version}</version>
             <scope>provided</scope>
         </dependency>
@@ -431,7 +431,7 @@
 		</dependency -->
 		<dependency>
 			<groupId>org.bytedeco</groupId>
-			<artifactId>cuda</artifactId>
+			<artifactId>cuda-platform</artifactId>
 			<version>${javacpp.cuda.version}</version>
 		</dependency>
         <dependency>
