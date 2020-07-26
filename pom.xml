@@ -423,12 +423,6 @@
             <version>${javacpp.ffmpeg.version}</version>
             <scope>provided</scope>
         </dependency>
-        <!-- dependency>
-			<groupId>org.bytedeco.javacpp-presets</groupId>
-			<artifactId>cuda-platform</artifactId>
-			<version>${javacpp.cuda.version}</version>
-			<scope>provided</scope>
-		</dependency -->
 		<dependency>
 			<groupId>org.bytedeco</groupId>
 			<artifactId>cuda-platform</artifactId>
