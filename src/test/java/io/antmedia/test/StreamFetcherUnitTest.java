@@ -783,6 +783,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			// start 
 			fetcher.startStream();
+			
+			System.out.println("debug 1");
 
 			//wait for fetching stream
 			if (checkContext) {
@@ -792,6 +794,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 				});
 			}
 	
+			System.out.println("debug 2");
+
 			
 			Awaitility.await().pollDelay(5, TimeUnit.SECONDS).atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
 				double speed = dataStore.get(newCam.getStreamId()).getSpeed();
@@ -802,15 +806,24 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 				logger.info("Speed of the stream: {}", speed);
 				return speed < 1000;
 			});
+			
+			System.out.println("debug 3");
+
 
 			//wait for packaging files
 			fetcher.stopStream();
+			
+			System.out.println("debug 4");
+
 
 			String mp4File = "webapps/junit/streams/"+newCam.getStreamId() +".mp4";
 
 			Awaitility.waitAtMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				return new File(mp4File).exists();
 			});
+			
+			System.out.println("debug 5");
+
 
 			assertFalse(fetcher.isThreadActive());
 
@@ -818,8 +831,20 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			double speed = dataStore.get(newCam.getStreamId()).getSpeed();
 			logger.info("Speed of the stream: {}", speed);
+			
+			System.out.println("debug 6");
+
 
 			assertTrue(MuxingTest.testFile("webapps/junit/streams/"+newCam.getStreamId() +".m3u8"));
+			
+			
+			File dir = new File("webapps/junit/streams");
+			for(File f : dir.listFiles()) {
+				System.out.println("file:"+f.getName());
+			}
+			
+			System.out.println("debug 7");
+
 
 			logger.info("after test m3u8 file");
 			//tmp file should be deleted
