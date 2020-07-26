@@ -834,14 +834,15 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			
 			System.out.println("debug 6");
 
-
-			assertTrue(MuxingTest.testFile("webapps/junit/streams/"+newCam.getStreamId() +".m3u8"));
-			
-			
 			File dir = new File("webapps/junit/streams");
 			for(File f : dir.listFiles()) {
 				System.out.println("file:"+f.getName());
 			}
+			
+			assertTrue(MuxingTest.testFile("webapps/junit/streams/"+newCam.getStreamId() +".m3u8"));
+			
+			
+			
 			
 			System.out.println("debug 7");
 
