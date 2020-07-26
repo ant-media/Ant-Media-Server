@@ -1076,7 +1076,6 @@ public class AppFunctionalV2Test {
 
 		return resultResponse;
 
-
 	}
 	public static StringBuffer readResponse(HttpResponse response) throws IOException {
 		BufferedReader rd = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));

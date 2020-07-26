@@ -473,10 +473,14 @@ public class RestServiceV2Test {
 		return tmp;
 
 	}
-
+	
 	public static String callAddStreamSource(Broadcast broadcast) throws Exception {
+		return callAddStreamSource(broadcast, false);
+	}
 
-		String url = ROOT_SERVICE_URL + "/v2/broadcasts/create";
+	public static String callAddStreamSource(Broadcast broadcast, boolean autoStart) throws Exception {
+
+		String url = ROOT_SERVICE_URL + "/v2/broadcasts/create?autoStart="+autoStart;
 
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 		Gson gson = new Gson();

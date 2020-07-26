@@ -20,6 +20,7 @@ import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
@@ -68,6 +69,7 @@ import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.User;
 import io.antmedia.rest.model.Version;
 import io.antmedia.settings.ServerSettings;
+import io.antmedia.test.StreamFetcherUnitTest;
 
 
 
@@ -1461,8 +1463,99 @@ public class ConsoleAppRestServiceTest{
 			fail(e.getMessage());
 		}
 	}
+	
+	@Test
+	public void testRTSPSourceNoAdaptive() {
+		rtspSource(null);
+	}
+	
+	
+	@Test
+	public void testRTSPSourceWithAdaptiveBitrate() {
+		try {
+			Result result = callIsEnterpriseEdition();
+			
+			if (!result.isSuccess()) {
+				//if it's not the enterprise edition, just return
+				return;
+			}
+			
+			rtspSource(Arrays.asList(new EncoderSettings(144, 150000, 16000)));
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		
+	}
+	
+	
 
-
+	public void rtspSource(List<EncoderSettings> appEncoderSettings) {
+		try {
+			
+			
+			// authenticate user
+			User user = new User();
+			user.setEmail(TEST_USER_EMAIL);
+			user.setPassword(TEST_USER_PASS);
+			Result authenticatedUserResult;
+			authenticatedUserResult = callAuthenticateUser(user);
+			assertTrue(authenticatedUserResult.isSuccess());
+	
+			// get settings from the app
+			AppSettings appSettings = callGetAppSettings("LiveApp");
+			
+			boolean hlsMuxingEnabled = appSettings.isHlsMuxingEnabled();
+			
+			appSettings.setHlsMuxingEnabled(true);
+			
+			List<EncoderSettings> encoderSettings = appSettings.getEncoderSettings();
+			appSettings.setEncoderSettings(appEncoderSettings);
+			
+			Result result = callSetAppSettings("LiveApp", appSettings);
+			assertTrue(result.isSuccess());
+			
+			StreamFetcherUnitTest.startCameraEmulator();
+			
+			Broadcast broadcast = new Broadcast("rtsp_source", null, null, null, "rtsp://127.0.0.1:6554/test.flv",
+					AntMediaApplicationAdapter.STREAM_SOURCE);
+			
+			
+			String returnResponse = RestServiceV2Test.callAddStreamSource(broadcast);
+			Broadcast broadcastCreated = gson.fromJson(returnResponse, Broadcast.class);
+		
+			
+			//wait until stream is broadcasted
+			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcastCreated.getStreamId() + ".m3u8");
+			});
+			
+			if (encoderSettings != null) {
+				Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+					return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcastCreated.getStreamId() + "_adaptive.m3u8");
+				});
+			}
+			
+			broadcast = RestServiceV2Test.callGetBroadcast(broadcastCreated.getStreamId());
+			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, broadcast.getStatus());
+			
+			result = RestServiceV2Test.deleteBroadcast(broadcastCreated.getStreamId());
+			assertTrue(result.isSuccess());
+			
+			appSettings.setHlsMuxingEnabled(hlsMuxingEnabled);
+			appSettings.setEncoderSettings(encoderSettings);
+			result = callSetAppSettings("LiveApp", appSettings);
+			assertTrue(result.isSuccess());
+			
+			StreamFetcherUnitTest.stopCameraEmulator();
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+	}
+	
 	//public static Token callGetToken(String streamId, String type, long expireDate) throws Exception {
 	//	return callGetToken(SERVICE_URL + "/broadcast/getToken", streamId, type, expireDate);
 	//}
