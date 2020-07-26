@@ -784,8 +784,6 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			// start 
 			fetcher.startStream();
 			
-			System.out.println("debug 1");
-
 			//wait for fetching stream
 			if (checkContext) {
 				Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
@@ -794,9 +792,6 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 				});
 			}
 	
-			System.out.println("debug 2");
-
-			
 			Awaitility.await().pollDelay(5, TimeUnit.SECONDS).atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
 				double speed = dataStore.get(newCam.getStreamId()).getSpeed();
 				//this value was so high over 9000. After using first packet time it's value is about 100-200
@@ -807,15 +802,12 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 				return speed < 1000;
 			});
 			
-			System.out.println("debug 3");
 
 			Thread.sleep(3000);
 
 			//wait for packaging files
 			fetcher.stopStream();
 			
-			System.out.println("debug 4");
-
 
 			String mp4File = "webapps/junit/streams/"+newCam.getStreamId() +".mp4";
 
@@ -823,8 +815,6 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 				return new File(mp4File).exists();
 			});
 			
-			System.out.println("debug 5");
-
 
 			assertFalse(fetcher.isThreadActive());
 
@@ -833,21 +823,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			double speed = dataStore.get(newCam.getStreamId()).getSpeed();
 			logger.info("Speed of the stream: {}", speed);
 			
-			System.out.println("debug 6");
-
-			File dir = new File("webapps/junit/streams");
-			for(File f : dir.listFiles()) {
-				System.out.println("file:"+f.getName());
-			}
-			
 			assertTrue(MuxingTest.testFile("webapps/junit/streams/"+newCam.getStreamId() +".m3u8"));
 			
-			
-			
-			
-			System.out.println("debug 7");
-
-
 			logger.info("after test m3u8 file");
 			//tmp file should be deleted
 			File f = new File("webapps/junit/streams/"+newCam.getStreamId() +".mp4.tmp_extension");

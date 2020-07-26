@@ -174,7 +174,7 @@
 
                     <useSystemClassLoader>false</useSystemClassLoader>
 
-                    <argLine>-Xmx750M -XX:+UseG1GC -XX:MaxGCPauseMillis=100
+                    <argLine>@{argLine} -Xmx750M -XX:+UseG1GC -XX:MaxGCPauseMillis=100
                         -Djava.library.path=${project.basedir}/../Ant-Media-Server/src/main/server/lib/native
                     </argLine>
                 </configuration>
