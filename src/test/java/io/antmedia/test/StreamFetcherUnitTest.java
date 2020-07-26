@@ -809,6 +809,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			
 			System.out.println("debug 3");
 
+			Thread.sleep(3000);
 
 			//wait for packaging files
 			fetcher.stopStream();

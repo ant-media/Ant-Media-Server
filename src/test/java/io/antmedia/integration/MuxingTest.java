@@ -487,10 +487,6 @@ public class MuxingTest {
 		ret = avformat_find_stream_info(inputFormatContext, (AVDictionary) null);
 		if (ret < 0) {
 			System.out.println("Could not find stream information\n");
-			byte[] data = new byte[100];
-			avutil.av_strerror(ret, data, data.length);
-
-			String errorStr=new String(data, 0, data.length);
 			return false;
 		}
 
