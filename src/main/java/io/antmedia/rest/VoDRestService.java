@@ -40,7 +40,7 @@ import io.swagger.annotations.SwaggerDefinition;
         produces = {"application/json"},
         schemes = {SwaggerDefinition.Scheme.HTTP, SwaggerDefinition.Scheme.HTTPS},
         externalDocs = @ExternalDocs(value = "External Docs", url = "https://antmedia.io"),
-        basePath = "/v2/VoD"
+        basePath = "/v2/vods"
 )
 @Component
 @Path("/v2/vods")
