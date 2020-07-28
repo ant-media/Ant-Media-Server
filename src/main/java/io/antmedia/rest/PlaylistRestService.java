@@ -54,7 +54,7 @@ public class PlaylistRestService extends RestServiceBase{
 		return getOrCreatePlaylist(playlistId);
 	}
 
-	private Playlist getOrCreatePlaylist(String playlistId) {
+	public Playlist getOrCreatePlaylist(String playlistId) {
 		Playlist playlist = null;
 		if (playlistId != null) {
 			playlist  = getDataStore().getPlaylist(playlistId);
