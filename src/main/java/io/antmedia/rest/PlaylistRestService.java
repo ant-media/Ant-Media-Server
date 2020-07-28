@@ -51,11 +51,15 @@ public class PlaylistRestService extends RestServiceBase{
 	@Path("/{playlistId}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Playlist getPlaylist(@ApiParam(value = "id of the Playlist", required = true) @PathParam("playlistId") String playlistId) {
+		return getOrCreatePlaylist(playlistId);
+	}
+
+	private Playlist getOrCreatePlaylist(String playlistId) {
 		Playlist playlist = null;
 		if (playlistId != null) {
-			playlist = getDataStore().getPlaylist(playlistId);
+			playlist  = getDataStore().getPlaylist(playlistId);
 		}
-		if (playlistId == null) {
+		else {
 			playlist = new Playlist();
 		}
 		return playlist;
