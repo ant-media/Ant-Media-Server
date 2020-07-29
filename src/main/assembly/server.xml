@@ -185,5 +185,14 @@
 				<include>*.war</include>
 			</includes>
 		</fileSet>
+
+		<!-- Readme File -->
+		<fileSet>
+			<directory>${project.basedir}</directory>
+			<outputDirectory></outputDirectory>
+			<includes>
+				<include>README.md</include>
+			</includes>
+		</fileSet>
 	</fileSets>
 </assembly>
