@@ -1,10 +1,10 @@
 package io.antmedia.test;
 
-import static org.bytedeco.javacpp.avcodec.av_packet_unref;
-import static org.bytedeco.javacpp.avformat.av_read_frame;
-import static org.bytedeco.javacpp.avformat.avformat_alloc_context;
-import static org.bytedeco.javacpp.avformat.avformat_find_stream_info;
-import static org.bytedeco.javacpp.avformat.avformat_open_input;
+import static org.bytedeco.ffmpeg.global.avcodec.av_packet_unref;
+import static org.bytedeco.ffmpeg.global.avformat.av_read_frame;
+import static org.bytedeco.ffmpeg.global.avformat.avformat_alloc_context;
+import static org.bytedeco.ffmpeg.global.avformat.avformat_find_stream_info;
+import static org.bytedeco.ffmpeg.global.avformat.avformat_open_input;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -22,11 +22,11 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.awaitility.Awaitility;
-import org.bytedeco.javacpp.avcodec.AVPacket;
-import org.bytedeco.javacpp.avformat;
-import org.bytedeco.javacpp.avformat.AVFormatContext;
-import org.bytedeco.javacpp.avutil;
-import org.bytedeco.javacpp.avutil.AVDictionary;
+import org.bytedeco.ffmpeg.avcodec.AVPacket;
+import org.bytedeco.ffmpeg.avformat.AVFormatContext;
+import org.bytedeco.ffmpeg.avutil.AVDictionary;
+import org.bytedeco.ffmpeg.global.avformat;
+import org.bytedeco.ffmpeg.global.avutil;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;

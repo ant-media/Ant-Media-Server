@@ -23,7 +23,7 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.awaitility.Awaitility;
-import org.bytedeco.javacpp.avutil.AVRational;
+import org.bytedeco.ffmpeg.avutil.AVRational;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;

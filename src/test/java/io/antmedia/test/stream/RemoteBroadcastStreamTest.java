@@ -1,7 +1,6 @@
 package io.antmedia.test.stream;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -12,10 +11,9 @@ import java.nio.ByteBuffer;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.tika.utils.ExceptionUtils;
 import org.awaitility.Awaitility;
-import org.bytedeco.javacpp.avformat;
-import org.bytedeco.javacpp.avutil;
+import org.bytedeco.ffmpeg.global.avformat;
+import org.bytedeco.ffmpeg.global.avutil;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.red5.codec.AudioCodec;
@@ -38,7 +36,6 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 
 import io.antmedia.integration.MuxingTest;
-import io.antmedia.test.MuxerUnitTest;
 
 @ContextConfiguration(locations = { 
 		"../test.xml" 

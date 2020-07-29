@@ -16,7 +16,6 @@ import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
-import io.antmedia.AppSettings;
 import io.antmedia.filter.IPFilterDashboard;
 import io.antmedia.settings.ServerSettings;
 

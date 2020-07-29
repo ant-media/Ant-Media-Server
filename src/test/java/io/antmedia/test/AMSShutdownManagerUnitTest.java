@@ -1,13 +1,14 @@
 package io.antmedia.test;
 
 
-import org.junit.Test;
-import org.red5.server.service.ShutdownServer;
-
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+
+import org.junit.Test;
+import org.red5.server.service.ShutdownServer;
 
 import io.antmedia.shutdown.AMSShutdownManager;
 import io.antmedia.shutdown.IShutdownListener;

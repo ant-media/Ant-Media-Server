@@ -57,7 +57,7 @@
 				<exclude>red5-server-1*.jar</exclude>
 				<exclude>red5-service-*.jar</exclude>
 				<exclude>ffmpeg-*.jar</exclude>
-				<exclude>javacpp-*.jar</exclude>
+				<exclude>javacpp-*-*.jar</exclude>
 				<exclude>cuda-*.jar</exclude>
 			</excludes>
 		</fileSet>

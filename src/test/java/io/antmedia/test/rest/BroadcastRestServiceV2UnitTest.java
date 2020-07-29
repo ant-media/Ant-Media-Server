@@ -34,7 +34,7 @@ import javax.ws.rs.core.Response.Status;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.awaitility.Awaitility;
-import org.bytedeco.javacpp.avformat;
+import org.bytedeco.ffmpeg.global.avformat;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -98,7 +98,6 @@ import io.antmedia.test.StreamFetcherUnitTest;
 import io.antmedia.webrtc.VideoCodec;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.vertx.core.Vertx;
-
 
 @ContextConfiguration(locations = { "test.xml" })
 @DirtiesContext(classMode = ClassMode.AFTER_CLASS)

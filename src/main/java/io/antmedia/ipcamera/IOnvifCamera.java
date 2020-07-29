@@ -5,10 +5,6 @@ package io.antmedia.ipcamera;
 import java.sql.Date;
 import java.sql.Time;
 
-import javax.xml.soap.SOAPException;
-
-import org.apache.commons.lang3.exception.ExceptionUtils;
-
 
 
 public interface IOnvifCamera {
