@@ -8,11 +8,8 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.RandomStringUtils;
@@ -28,10 +25,8 @@ import org.junit.runners.MethodSorters;
 
 import com.google.api.services.youtube.model.LiveStreamStatus;
 
-import io.antmedia.api.periscope.type.Broadcast;
 import io.antmedia.api.periscope.type.IChatListener;
 import io.antmedia.api.periscope.type.User;
-import io.antmedia.api.periscope.type.User.ProfileImageUrls;
 import io.antmedia.api.periscope.type.chatEndpointTypes.ChatMessage;
 import io.antmedia.api.periscope.type.chatEndpointTypes.HeartMessage;
 import io.antmedia.api.periscope.type.chatEndpointTypes.ViewerCountMessage;
@@ -41,9 +36,7 @@ import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.types.BroadcastStatus;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
-import io.antmedia.datastore.preference.PreferenceStore;
 import io.antmedia.integration.MuxingTest;
-import io.antmedia.rest.model.UserType;
 import io.antmedia.social.LiveComment;
 import io.antmedia.social.endpoint.PeriscopeEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;

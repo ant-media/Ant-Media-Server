@@ -13,7 +13,7 @@ import java.util.List;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.bytedeco.javacpp.avutil;
+import org.bytedeco.ffmpeg.global.avutil;
 import org.mongodb.morphia.annotations.NotSaved;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,8 +21,8 @@ import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
-import org.webrtc.Logging;
 import org.apache.catalina.util.NetMask;
+import org.webrtc.Logging;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -52,15 +52,15 @@ public class ServerSettings implements ApplicationContextAware {
 	@NotSaved
 	private List<NetMask> allowedCIDRList = new ArrayList<>();
 
-
+	
 	private static Logger logger = LoggerFactory.getLogger(ServerSettings.class);
 
 	private static String localHostAddress;
-
+	
 	private static String globalHostAddress;
-
+	
 	private static String hostAddress;
-
+	
 	/**
 	 * Fully Qualified Domain Name
 	 */
@@ -69,14 +69,14 @@ public class ServerSettings implements ApplicationContextAware {
 	 * Customer License Key
 	 */
 	private String licenceKey;
-
+	
 	/**
 	 * The setting for customized marketplace build
 	 */
 	private boolean buildForMarket = false;
-
-
-
+	
+	
+	
 	private String logLevel = null;
 
 	/**
@@ -158,7 +158,7 @@ public class ServerSettings implements ApplicationContextAware {
 
 		return globalHostAddress;
 	}
-
+	
 	public static String getLocalHostAddress() {
 
 		if (localHostAddress == null) {
@@ -185,7 +185,7 @@ public class ServerSettings implements ApplicationContextAware {
 
 	@Override
 	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-
+	
 		if (useGlobalIp) {
 			hostAddress = getGlobalHostAddress();
 		}
@@ -195,7 +195,7 @@ public class ServerSettings implements ApplicationContextAware {
 			//delaying initialization may cause some after issues
 			hostAddress = getLocalHostAddress();
 		}
-
+		
 	}
 
 	public boolean isUseGlobalIp() {
@@ -205,7 +205,7 @@ public class ServerSettings implements ApplicationContextAware {
 	public void setUseGlobalIp(boolean useGlobalIp) {
 		this.useGlobalIp = useGlobalIp;
 	}
-
+	
 	/**
 	 * the getAllowedCIDRList and setAllowedCIDRList are synchronized because
 	 * ArrayList may throw concurrent modification
@@ -217,7 +217,7 @@ public class ServerSettings implements ApplicationContextAware {
 		allowedCIDRList = new ArrayList<>();
 		fillFromInput(allowedDashboardCIDR, allowedCIDRList);
 	}
-
+	
 	public String getAllowedDashboardCIDR() {
 		return allowedDashboardCIDR;
 	}

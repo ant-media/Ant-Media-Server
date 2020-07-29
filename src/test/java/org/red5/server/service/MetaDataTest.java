@@ -18,9 +18,9 @@
 
 package org.red5.server.service;
 
-import junit.framework.TestCase;
-
 import org.red5.io.flv.meta.MetaData;
+
+import junit.framework.TestCase;
 
 /**
  * MetaData TestCase

@@ -13,6 +13,7 @@ public class AsciiArt {
 
 	public static final String LOGO = ""+
 			ANSI_RED+
+					"                                                            \n" +
 					"             `..-:/++oosssyyyyyyyysssoo++/::..`             \n" + 
 					"        .:+osyyyyysooo++///::::::///++ooosyyyyyso+:.        \n" + 
 					"     -+syyso/:-.`         ```````          `.-:/osyyy+-     \n" + 
@@ -34,7 +35,8 @@ public class AsciiArt {
 					"   /yy/     +yy.       -::-`                `yyo     :yy+   \n" + 
 					"    +yyo:.  +yy.                            `yyo  .-oyy+`   \n" + 
 					"     .+yyyysyyy.                            `yyysyyyy+-     \n" + 
-					"        .:/+++/                              :+//:-.        \n" + 			
+					"        .:/+++/                              :+//:-.        \n" + 	
+					"                                                            \n" +
 			ANSI_RESET+
 			"\n"
 			;

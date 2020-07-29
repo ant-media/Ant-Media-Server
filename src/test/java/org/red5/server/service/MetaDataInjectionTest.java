@@ -22,8 +22,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.TreeSet;
 
-import junit.framework.TestCase;
-
 import org.apache.mina.core.buffer.IoBuffer;
 import org.red5.cache.impl.NoCacheImpl;
 import org.red5.io.ITag;
@@ -39,6 +37,8 @@ import org.red5.io.flv.meta.MetaCue;
 import org.red5.io.object.Serializer;
 import org.red5.server.service.flv.IFLVService;
 import org.red5.server.service.flv.impl.FLVService;
+
+import junit.framework.TestCase;
 
 /**
  * @author The Red5 Project

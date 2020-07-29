@@ -18,7 +18,7 @@
 
 package org.red5.server;
 
-import static org.bytedeco.javacpp.avformat.av_register_all;
+import static org.bytedeco.ffmpeg.global.avformat.av_register_all;
 
 import java.io.File;
 import java.io.IOException;
@@ -26,8 +26,8 @@ import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 import java.util.UUID;
 
-import org.bytedeco.javacpp.avformat;
-import org.bytedeco.javacpp.avutil;
+import org.bytedeco.ffmpeg.global.avformat;
+import org.bytedeco.ffmpeg.global.avutil;
 import org.red5.logging.Red5LoggerFactory;
 import org.red5.server.api.Red5;
 import org.slf4j.Logger;

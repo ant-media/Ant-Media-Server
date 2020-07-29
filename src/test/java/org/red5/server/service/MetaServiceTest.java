@@ -21,8 +21,6 @@ package org.red5.server.service;
 import java.io.File;
 import java.io.IOException;
 
-import junit.framework.TestCase;
-
 import org.red5.cache.impl.NoCacheImpl;
 import org.red5.io.flv.IFLV;
 import org.red5.io.flv.meta.ICueType;
@@ -31,6 +29,8 @@ import org.red5.io.flv.meta.MetaCue;
 import org.red5.io.flv.meta.MetaData;
 import org.red5.io.flv.meta.MetaService;
 import org.red5.server.service.flv.impl.FLVService;
+
+import junit.framework.TestCase;
 
 public class MetaServiceTest extends TestCase {
 
