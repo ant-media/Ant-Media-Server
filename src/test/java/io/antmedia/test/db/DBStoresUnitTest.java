@@ -209,7 +209,7 @@ public class DBStoresUnitTest {
 		int numberOfCall = 0;
 		List<Broadcast> totalBroadcastList = new ArrayList<>();
 		for (int i = 0; i < pageCount; i++) {
-			totalBroadcastList.addAll(dataStore.getBroadcastList(i * pageSize, pageSize));
+			totalBroadcastList.addAll(dataStore.getBroadcastList(i * pageSize, pageSize, null, null));
 		}
 
 		for (Broadcast broadcast : totalBroadcastList) {
@@ -261,7 +261,7 @@ public class DBStoresUnitTest {
 				" page Count: " + pageCount);
 		for (int i = 0; i < pageCount; i++) {
 
-			List<Broadcast> broadcastList = dataStore.getBroadcastList(i * pageSize, pageSize);
+			List<Broadcast> broadcastList = dataStore.getBroadcastList(i * pageSize, pageSize, null, null);
 			for (Broadcast broadcast : broadcastList) {
 				numberOfCall++;
 				assertTrue(dataStore.updateStatus(broadcast.getStreamId(), AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING));;
@@ -278,7 +278,7 @@ public class DBStoresUnitTest {
 		pageCount = streamCount / pageSize + ((streamCount % pageSize) > 0 ? 1 : 0);
 		for (int i = 0; i < pageCount; i++) {
 
-			List<Broadcast> broadcastList = dataStore.getBroadcastList(i * pageSize, pageSize);
+			List<Broadcast> broadcastList = dataStore.getBroadcastList(i * pageSize, pageSize, null, null);
 			for (Broadcast broadcast : broadcastList) {
 				assertTrue(dataStore.updateStatus(broadcast.getStreamId(), AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED));
 				assertEquals(0, broadcast.getWebRTCViewerCount());
@@ -622,7 +622,7 @@ public class DBStoresUnitTest {
 
 	public void testGetPagination(DataStore dataStore) {
 
-		List<Broadcast> broadcastList2 = dataStore.getBroadcastList(0, 50);
+		List<Broadcast> broadcastList2 = dataStore.getBroadcastList(0, 50, null, null);
 		for (Iterator iterator = broadcastList2.iterator(); iterator.hasNext();) {
 			Broadcast broadcast = (Broadcast) iterator.next();
 			dataStore.delete(broadcast.getStreamId());
@@ -639,7 +639,7 @@ public class DBStoresUnitTest {
 			assertEquals(dataStore.get(key).getName(), i + "");
 		}
 
-		List<Broadcast> broadcastList = dataStore.getBroadcastList(0, 10);
+		List<Broadcast> broadcastList = dataStore.getBroadcastList(0, 10, null, null);
 		assertNotNull(broadcastList);
 		assertEquals(10, broadcastList.size());
 		for (int i = 0; i < broadcastList.size(); i++) {
@@ -649,7 +649,7 @@ public class DBStoresUnitTest {
 			assertTrue(36 > Integer.valueOf(broadcastList.get(i).getName()));
 		}
 
-		broadcastList = dataStore.getBroadcastList(10, 10);
+		broadcastList = dataStore.getBroadcastList(10, 10, null, null);
 		assertNotNull(broadcastList);
 		assertEquals(10, broadcastList.size());
 		for (int i = 0; i < broadcastList.size(); i++) {
@@ -660,7 +660,7 @@ public class DBStoresUnitTest {
 			assertTrue(36 > Integer.valueOf(broadcastList.get(i).getName()));
 		}
 
-		broadcastList = dataStore.getBroadcastList(20, 10);
+		broadcastList = dataStore.getBroadcastList(20, 10, null, null);
 		assertNotNull(broadcastList);
 		assertEquals(10, broadcastList.size());
 		for (int i = 0; i < broadcastList.size(); i++) {
@@ -674,7 +674,7 @@ public class DBStoresUnitTest {
 			assertTrue(36 > Integer.valueOf(broadcastList.get(i).getName()));
 		}
 
-		broadcastList = dataStore.getBroadcastList(30, 10);
+		broadcastList = dataStore.getBroadcastList(30, 10, null, null);
 		assertNotNull(broadcastList);
 		assertEquals(6, broadcastList.size());
 		for (int i = 0; i < broadcastList.size(); i++) {
@@ -1043,7 +1043,7 @@ public class DBStoresUnitTest {
 		assertEquals("ipCamera", type);
 		assertEquals("liveStream", live_type);
 
-		List<Broadcast> returnList = dataStore.filterBroadcastList(0, 10, "ipCamera");
+		List<Broadcast> returnList = dataStore.filterBroadcastList(0, 10, "ipCamera", null, null);
 
 		assertEquals(1, returnList.size());
 
@@ -1453,7 +1453,7 @@ public class DBStoresUnitTest {
 			System.out.println("broadcast count: " + broadcastCount);
 			int j = 0;
 			List<Broadcast> broadcastList;
-			while ((broadcastList = dataStore.getBroadcastList(0, 50)) != null)
+			while ((broadcastList = dataStore.getBroadcastList(0, 50, null, null)) != null)
 			{
 				if (broadcastList.size() == 0) {
 					break;
@@ -1496,7 +1496,7 @@ public class DBStoresUnitTest {
 		dataStore.resetBroadcasts(ServerSettings.getLocalHostAddress());
 
 		assertEquals(2, dataStore.getBroadcastCount());
-		List<Broadcast> broadcastList = dataStore.getBroadcastList(0, 10);
+		List<Broadcast> broadcastList = dataStore.getBroadcastList(0, 10, null, null);
 		for (Broadcast tmp : broadcastList) {
 			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, tmp.getStatus());
 			assertEquals(0, tmp.getWebRTCViewerCount());

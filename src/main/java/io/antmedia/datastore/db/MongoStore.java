@@ -321,12 +321,30 @@ public class MongoStore extends DataStore {
 	}
 
 	@Override
-	public List<Broadcast> getBroadcastList(int offset, int size) {
+	public List<Broadcast> getBroadcastList(int offset, int size, String sortBy, String orderBy) {
 		synchronized(this) {
+			
+			Query<Broadcast> query = datastore.find(Broadcast.class);
+			
 			if (size > MAX_ITEM_IN_ONE_LIST) {
 				size = MAX_ITEM_IN_ONE_LIST;
 			}
-			return datastore.find(Broadcast.class).asList(new FindOptions().skip(offset).limit(size));
+			
+			if(sortBy != null && orderBy != null && !sortBy.isEmpty() && !orderBy.isEmpty()) {
+				String sortString = orderBy.contentEquals("desc") ? "-" : "";
+				if(sortBy.contentEquals("name")) {
+					sortString += "name";
+				}
+				else if(sortBy.contentEquals("date")) {
+					sortString += CREATION_DATE;
+				}
+				else if(sortBy.contentEquals(STATUS)) {
+					sortString += STATUS;
+				}
+				query = query.order(sortString);
+			}
+			
+			return query.asList(new FindOptions().skip(offset).limit(size));
 		}
 	}
 
@@ -379,10 +397,32 @@ public class MongoStore extends DataStore {
 	}
 
 	@Override
-	public List<Broadcast> filterBroadcastList(int offset, int size, String type) {
+	public List<Broadcast> filterBroadcastList(int offset, int size, String type, String sortBy, String orderBy) {
 		synchronized(this) {
 			try {
-				return datastore.find(Broadcast.class).field("type").equal(type).asList(new FindOptions().skip(offset).limit(size));
+				
+				Query<Broadcast> query = datastore.find(Broadcast.class);
+				
+				if (size > MAX_ITEM_IN_ONE_LIST) {
+					size = MAX_ITEM_IN_ONE_LIST;
+				}
+				
+				if(sortBy != null && orderBy != null && !sortBy.isEmpty() && !orderBy.isEmpty()) {
+					String sortString = orderBy.contentEquals("desc") ? "-" : "";
+					if(sortBy.contentEquals("name")) {
+						sortString += "name";
+					}
+					else if(sortBy.contentEquals("date")) {
+						sortString += CREATION_DATE;
+					}
+					else if(sortBy.contentEquals(STATUS)) {
+						sortString += STATUS;
+					}
+					query = query.order(sortString);
+				}
+				
+				return query.field("type").equal(type).asList(new FindOptions().skip(offset).limit(size));
+				
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}

@@ -348,7 +348,7 @@ public class MapDBStore extends DataStore {
 	}
 
 	@Override
-	public List<Broadcast> getBroadcastList(int offset, int size) {
+	public List<Broadcast> getBroadcastList(int offset, int size, String sortBy, String orderBy) {
 		List<Broadcast> list = new ArrayList<>();
 		synchronized (this) {
 			Collection<String> values = map.values();
@@ -375,7 +375,7 @@ public class MapDBStore extends DataStore {
 			}
 
 		}
-		return list;
+		return sortAndCropBroadcastList(list, offset, size, sortBy, orderBy);
 	}
 
 	/**
@@ -413,7 +413,7 @@ public class MapDBStore extends DataStore {
 
 
 	@Override
-	public List<Broadcast> filterBroadcastList(int offset, int size, String type) {
+	public List<Broadcast> filterBroadcastList(int offset, int size, String type, String sortBy, String orderBy) {
 
 		List<Broadcast> list = new ArrayList<>();
 		synchronized (this) {
@@ -456,7 +456,7 @@ public class MapDBStore extends DataStore {
 			}
 
 		}
-		return list;
+		return sortAndCropBroadcastList(list, offset, size, sortBy, orderBy);
 
 	}
 
