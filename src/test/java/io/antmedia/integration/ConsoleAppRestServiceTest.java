@@ -1518,24 +1518,24 @@ public class ConsoleAppRestServiceTest{
 			
 			
 			String returnResponse = RestServiceV2Test.callAddStreamSource(broadcast, true);
-			Broadcast broadcastCreated = gson.fromJson(returnResponse, Broadcast.class);
+			Result addStreamSourceResult = gson.fromJson(returnResponse, Result.class);
 		
 			
 			//wait until stream is broadcasted
 			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcastCreated.getStreamId() + ".m3u8");
+				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + addStreamSourceResult.getDataId() + ".m3u8");
 			});
 			
 			if (encoderSettings != null) {
 				Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-					return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcastCreated.getStreamId() + "_adaptive.m3u8");
+					return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + addStreamSourceResult.getDataId() + "_adaptive.m3u8");
 				});
 			}
 			
-			broadcast = RestServiceV2Test.callGetBroadcast(broadcastCreated.getStreamId());
+			broadcast = RestServiceV2Test.callGetBroadcast(addStreamSourceResult.getDataId());
 			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, broadcast.getStatus());
 			
-			result = RestServiceV2Test.deleteBroadcast(broadcastCreated.getStreamId());
+			result = RestServiceV2Test.deleteBroadcast(addStreamSourceResult.getDataId());
 			assertTrue(result.isSuccess());
 			
 			appSettings.setHlsMuxingEnabled(hlsMuxingEnabled);
