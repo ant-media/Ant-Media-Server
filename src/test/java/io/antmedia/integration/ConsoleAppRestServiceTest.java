@@ -1461,13 +1461,25 @@ public class ConsoleAppRestServiceTest{
 	
 	@Test
 	public void testRTSPSourceNoAdaptive() {
-		rtspSource(null);
+		try {
+			Result authenticatedUserResult = authenticateDefaultUser();
+			assertTrue(authenticatedUserResult.isSuccess());
+			
+			rtspSource(null);
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
 	}
 	
 	
 	@Test
 	public void testRTSPSourceWithAdaptiveBitrate() {
 		try {
+			Result authenticatedUserResult = authenticateDefaultUser();
+			assertTrue(authenticatedUserResult.isSuccess());
+			
 			Result result = callIsEnterpriseEdition();
 			
 			if (!result.isSuccess()) {
@@ -1489,15 +1501,8 @@ public class ConsoleAppRestServiceTest{
 	public void rtspSource(List<EncoderSettings> appEncoderSettings) {
 		try {
 			
+			// user should be authenticated before executing this method
 			
-			// authenticate user
-			User user = new User();
-			user.setEmail(TEST_USER_EMAIL);
-			user.setPassword(TEST_USER_PASS);
-			Result authenticatedUserResult;
-			authenticatedUserResult = callAuthenticateUser(user);
-			assertTrue(authenticatedUserResult.isSuccess());
-	
 			// get settings from the app
 			AppSettings appSettings = callGetAppSettings("LiveApp");
 			
@@ -1526,7 +1531,8 @@ public class ConsoleAppRestServiceTest{
 				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + addStreamSourceResult.getDataId() + ".m3u8");
 			});
 			
-			if (encoderSettings != null) {
+			if (appEncoderSettings != null) 
+			{
 				Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 					return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + addStreamSourceResult.getDataId() + "_adaptive.m3u8");
 				});
