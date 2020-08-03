@@ -321,9 +321,9 @@ public class MongoStore extends DataStore {
 	}
 
 	@Override
-	public List<Broadcast> getBroadcastList(int offset, int size, String sortBy, String orderBy) {
+	public List<Broadcast> getBroadcastList(int offset, int size, String type, String sortBy, String orderBy) {
 		synchronized(this) {
-			
+			try {
 			Query<Broadcast> query = datastore.find(Broadcast.class);
 			
 			if (size > MAX_ITEM_IN_ONE_LIST) {
@@ -343,9 +343,19 @@ public class MongoStore extends DataStore {
 				}
 				query = query.order(sortString);
 			}
+
+			if(type != null && !type.isEmpty()) {
+				return query.field("type").equal(type).asList(new FindOptions().skip(offset).limit(size));
+			}
+			else {
+				return query.asList(new FindOptions().skip(offset).limit(size));
+			}
 			
-			return query.asList(new FindOptions().skip(offset).limit(size));
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
 		}
+		return null;
 	}
 
 	public Datastore getDataStore() {

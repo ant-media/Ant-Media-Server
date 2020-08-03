@@ -348,23 +348,28 @@ public class MapDBStore extends DataStore {
 	}
 
 	@Override
-	public List<Broadcast> getBroadcastList(int offset, int size, String sortBy, String orderBy) {
-		List<Broadcast> list = new ArrayList<>();
+	public List<Broadcast> getBroadcastList(int offset, int size, String type, String sortBy, String orderBy) {
+		ArrayList<Broadcast> list = new ArrayList<>();
 		synchronized (this) {
-			Collection<String> values = map.values();
 			
-			if(sortBy == null || sortBy.isEmpty()) {
-				sortBy = "date";
-			}
-			
-			if(orderBy == null || orderBy.isEmpty()) {
-				orderBy = "asc";
-			}
-			
-			Iterator<String> iterator = values.iterator();
+			Collection<String> broadcasts = map.getValues();
 
-			while(iterator.hasNext()) {
-				list.add(gson.fromJson(iterator.next(), Broadcast.class));
+			if(type != null && !type.isEmpty()) {
+				for (String broadcastString : broadcasts) 
+				{
+					Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
+					
+					if (broadcast.getType().equals(type)) {
+						list.add(broadcast);
+					}
+				}
+			}
+			else {
+				for (String broadcastString : broadcasts) 
+				{
+					Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
+					list.add(broadcast);
+				}
 			}
 
 		}
@@ -404,21 +409,13 @@ public class MapDBStore extends DataStore {
 		}
 	}
 
-
+	@Deprecated
 	@Override
 	public List<Broadcast> filterBroadcastList(int offset, int size, String type, String sortBy, String orderBy) {
 
 		List<Broadcast> list = new ArrayList<>();
 		
 		synchronized (this) {
-			
-			if(sortBy == null || sortBy.isEmpty()) {
-				sortBy = "date";
-			}
-			
-			if(orderBy == null || orderBy.isEmpty()) {
-				orderBy = "asc";
-			}
 
 			Object[] objectArray = map.getValues().toArray();
 

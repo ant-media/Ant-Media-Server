@@ -624,7 +624,7 @@ public abstract class RestServiceBase {
 
 			List<Broadcast> broadcastList = new ArrayList<>();
 			for (int i = 0; i < pageCount; i++) {
-				broadcastList.addAll(getDataStore().getBroadcastList(i*DataStore.MAX_ITEM_IN_ONE_LIST, DataStore.MAX_ITEM_IN_ONE_LIST,null,null));
+				broadcastList.addAll(getDataStore().getBroadcastList(i*DataStore.MAX_ITEM_IN_ONE_LIST, DataStore.MAX_ITEM_IN_ONE_LIST,null,null,null));
 			}
 
 			StringBuilder insertQueryString = new StringBuilder();

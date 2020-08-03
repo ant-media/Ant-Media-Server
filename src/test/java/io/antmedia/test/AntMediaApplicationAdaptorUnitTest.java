@@ -221,7 +221,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		// Should 2 broadcast in DB, because delete zombie stream
 		assertEquals(2, dataStore.getBroadcastCount());
 		
-		List<Broadcast> broadcastList = dataStore.getBroadcastList(0, 10, null, null);
+		List<Broadcast> broadcastList = dataStore.getBroadcastList(0, 10, null, null, null);
 		for (Broadcast testBroadcast : broadcastList) 
 		{
 			assertEquals(0, testBroadcast.getWebRTCViewerCount());

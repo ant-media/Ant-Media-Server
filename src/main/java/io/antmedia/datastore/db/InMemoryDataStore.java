@@ -194,17 +194,27 @@ public class InMemoryDataStore extends DataStore {
 	}
 
 	@Override
-	public List<Broadcast> getBroadcastList(int offset, int size, String sortBy, String orderBy) {
+	public List<Broadcast> getBroadcastList(int offset, int size, String type, String sortBy, String orderBy) {
+		
+		Collection<Broadcast> values =broadcastMap.values();
 
-		if(sortBy == null || sortBy.isEmpty()) {
-			sortBy = "date";
-		}
+		List<Broadcast> list = new ArrayList<>();
 		
-		if(orderBy == null || orderBy.isEmpty()) {
-			orderBy = "asc";
+		if(type != null && !type.isEmpty()) {
+			for (Broadcast broadcast : values) 
+			{
+				if(type.equals(broadcast.getType())) 
+				{
+					list.add(broadcast);
+				}
+			}
 		}
-		
-		List<Broadcast> list = new ArrayList<>(broadcastMap.values());
+		else {
+			for (Broadcast broadcast : values) 
+			{
+				list.add(broadcast);
+			}
+		}
 		
 		return sortAndCropBroadcastList(list, offset, size, sortBy, orderBy);
 	}
@@ -231,21 +241,14 @@ public class InMemoryDataStore extends DataStore {
 	public void close() {
 		//no need to implement 
 	}
-
+	
+	@Deprecated
 	@Override
 	public List<Broadcast> filterBroadcastList(int offset, int size, String type, String sortBy, String orderBy) {
 		
 		Collection<Broadcast> values =broadcastMap.values();
 
 		List<Broadcast> list = new ArrayList<>();
-		
-		if(sortBy == null || sortBy.isEmpty()) {
-			sortBy = "date";
-		}
-		
-		if(orderBy == null || orderBy.isEmpty()) {
-			orderBy = "asc";
-		}
 		
 		for (Broadcast broadcast : values) 
 		{
