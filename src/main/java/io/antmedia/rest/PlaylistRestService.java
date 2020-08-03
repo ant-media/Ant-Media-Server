@@ -39,7 +39,7 @@ import io.swagger.annotations.SwaggerDefinition;
 		produces = {"application/json"},
 		schemes = {SwaggerDefinition.Scheme.HTTP, SwaggerDefinition.Scheme.HTTPS},
 		externalDocs = @ExternalDocs(value = "External Docs", url = "https://antmedia.io"),
-		basePath = "/v2/Playlist"
+		basePath = "/v2/playlist"
 		)
 @Component
 @Path("/v2/playlists")
@@ -51,11 +51,15 @@ public class PlaylistRestService extends RestServiceBase{
 	@Path("/{playlistId}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Playlist getPlaylist(@ApiParam(value = "id of the Playlist", required = true) @PathParam("playlistId") String playlistId) {
+		return getOrCreatePlaylist(playlistId);
+	}
+
+	public Playlist getOrCreatePlaylist(String playlistId) {
 		Playlist playlist = null;
 		if (playlistId != null) {
-			playlist = getDataStore().getPlaylist(playlistId);
+			playlist  = getDataStore().getPlaylist(playlistId);
 		}
-		if (playlistId == null) {
+		else {
 			playlist = new Playlist();
 		}
 		return playlist;

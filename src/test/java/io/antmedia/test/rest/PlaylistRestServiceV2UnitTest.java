@@ -18,9 +18,12 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
 
+import com.google.common.base.Verify;
+
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.IApplicationAdaptorFactory;
+import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Playlist;
@@ -29,6 +32,7 @@ import io.antmedia.rest.model.Result;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.StatsCollector;
 import io.vertx.core.Vertx;
+import static org.mockito.Mockito.*;
 
 
 
@@ -593,6 +597,16 @@ public class PlaylistRestServiceV2UnitTest {
 
 		assertEquals("Playlist Current Broadcast not found. Playlist Broadcast Size: " + playlist.getBroadcastItemList().size() + " Playlist Current Broadcast Index: "+playlist.getCurrentPlayIndex(), result.getMessage());
 
+	}
+	
+	@Test
+	public void testGetOrCreatePlaylist() {
+		DataStore dataStore = mock(DataStore.class);
+		restServiceReal.setDataStore(dataStore );
+		assertNotNull(restServiceReal.getOrCreatePlaylist(null));
+		verify(dataStore, never()).getPlaylist(anyString());
+		restServiceReal.getOrCreatePlaylist("test");
+		verify(dataStore, times(1)).getPlaylist("test");
 	}
 
 

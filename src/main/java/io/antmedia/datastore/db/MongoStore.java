@@ -3,7 +3,6 @@ package io.antmedia.datastore.db;
 import java.io.File;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -38,7 +37,6 @@ import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.muxer.MuxAdaptor;
-import io.antmedia.settings.ServerSettings;
 
 public class MongoStore extends DataStore {
 
