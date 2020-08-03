@@ -1517,7 +1517,7 @@ public class ConsoleAppRestServiceTest{
 					AntMediaApplicationAdapter.STREAM_SOURCE);
 			
 			
-			String returnResponse = RestServiceV2Test.callAddStreamSource(broadcast);
+			String returnResponse = RestServiceV2Test.callAddStreamSource(broadcast, true);
 			Broadcast broadcastCreated = gson.fromJson(returnResponse, Broadcast.class);
 		
 			
