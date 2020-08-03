@@ -238,7 +238,7 @@ public class BroadcastRestService extends RestServiceBase{
 	@GET
 	@Path("/list/{offset}/{size}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public List<Broadcast> getBroadcastList(@ApiParam(value = "This is the offset of the list, it is useful for pagination", required = true) @PathParam("offset") int offset,
+	public List<Broadcast> getBroadcastList(@ApiParam(value = "This is the offset of the list, it is useful for pagination. If you want to use sort mechanism, we recommend using Mongo DB.", required = true) @PathParam("offset") int offset,
 			@ApiParam(value = "Number of items that will be fetched. If there is not enough item in the datastore, returned list size may less then this value", required = true) @PathParam("size") int size,
 			@ApiParam(value = "type of the stream. Possible values are \"liveStream\", \"ipCamera\", \"streamSource\", \"VoD\"", required = false) @PathParam("type_by") String typeBy,
 			@ApiParam(value = "field to sort", required = false) @QueryParam("sort_by") String sortBy,
@@ -627,7 +627,7 @@ public class BroadcastRestService extends RestServiceBase{
 	}
 
 	@Deprecated
-	@ApiOperation(value = "Returns filtered broadcast list according to type. It's useful for getting IP Camera and Stream Sources from the whole list", notes = "",responseContainer = "List",response = Broadcast.class)
+	@ApiOperation(value = "Returns filtered broadcast list according to type. It's useful for getting IP Camera and Stream Sources from the whole list. If you want to use sort mechanism, we recommend using Mongo DB.", notes = "",responseContainer = "List",response = Broadcast.class)
 	@GET
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/filter-list/{offset}/{size}/{type}")

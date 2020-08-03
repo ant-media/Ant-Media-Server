@@ -189,11 +189,10 @@ public class MapDBStore extends DataStore {
 				if (jsonString != null) {
 					Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
 					broadcast.setStatus(status);
-					if(status.contentEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
+					if(status.equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
 						broadcast.setStartTime(System.currentTimeMillis());
-						
 					}
-					else if(status.contentEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED)) {
+					else if(status.equals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED)) {
 						broadcast.setRtmpViewerCount(0);
 						broadcast.setWebRTCViewerCount(0);
 						broadcast.setHlsViewerCount(0);

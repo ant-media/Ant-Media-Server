@@ -187,10 +187,10 @@ public class MongoStore extends DataStore {
 
 				UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set(STATUS, status);
 
-				if(status.contentEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
+				if(status.equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
 					ops.set(START_TIME, System.currentTimeMillis());
 				}
-				else if(status.contentEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED)) {
+				else if(status.equals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED)) {
 					ops.set(WEBRTC_VIEWER_COUNT, 0);
 					ops.set(HLS_VIEWER_COUNT, 0);
 					ops.set(RTMP_VIEWER_COUNT, 0);
@@ -331,14 +331,14 @@ public class MongoStore extends DataStore {
 			}
 			
 			if(sortBy != null && orderBy != null && !sortBy.isEmpty() && !orderBy.isEmpty()) {
-				String sortString = orderBy.contentEquals("desc") ? "-" : "";
-				if(sortBy.contentEquals("name")) {
+				String sortString = orderBy.equals("desc") ? "-" : "";
+				if(sortBy.equals("name")) {
 					sortString += "name";
 				}
-				else if(sortBy.contentEquals("date")) {
+				else if(sortBy.equals("date")) {
 					sortString += "date";
 				}
-				else if(sortBy.contentEquals(STATUS)) {
+				else if(sortBy.equals(STATUS)) {
 					sortString += STATUS;
 				}
 				query = query.order(sortString);
@@ -418,14 +418,14 @@ public class MongoStore extends DataStore {
 				}
 				
 				if(sortBy != null && orderBy != null && !sortBy.isEmpty() && !orderBy.isEmpty()) {
-					String sortString = orderBy.contentEquals("desc") ? "-" : "";
-					if(sortBy.contentEquals("name")) {
+					String sortString = orderBy.equals("desc") ? "-" : "";
+					if(sortBy.equals("name")) {
 						sortString += "name";
 					}
-					else if(sortBy.contentEquals("date")) {
+					else if(sortBy.equals("date")) {
 						sortString += CREATION_DATE;
 					}
-					else if(sortBy.contentEquals(STATUS)) {
+					else if(sortBy.equals(STATUS)) {
 						sortString += STATUS;
 					}
 					query = query.order(sortString);
