@@ -104,6 +104,7 @@ public class DBStoresUnitTest {
 		testAddTrack(dataStore);
 		testClearAtStart(dataStore);
     	testGetVoDIdByStreamId(dataStore);
+    	testBroadcastListSorting(dataStore);
 	}
 
 	@Test
@@ -137,6 +138,7 @@ public class DBStoresUnitTest {
 		testAddTrack(dataStore);
 		testClearAtStart(dataStore);
     	testGetVoDIdByStreamId(dataStore);
+    	testBroadcastListSorting(dataStore);
 	}
 
 	@Test
@@ -187,7 +189,7 @@ public class DBStoresUnitTest {
 		testPlaylist(dataStore);
 		testAddTrack(dataStore);
 		testGetVoDIdByStreamId(dataStore);
-
+		testBroadcastListSorting(dataStore);
 	}
 	
 	@Test
@@ -264,7 +266,7 @@ public class DBStoresUnitTest {
 			List<Broadcast> broadcastList = dataStore.getBroadcastList(i * pageSize, pageSize, null, null);
 			for (Broadcast broadcast : broadcastList) {
 				numberOfCall++;
-				assertTrue(dataStore.updateStatus(broadcast.getStreamId(), AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING));;
+				assertTrue(dataStore.updateStatus(broadcast.getStreamId(), AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING));
 			}
 
 		}
@@ -687,6 +689,103 @@ public class DBStoresUnitTest {
 
 			assertTrue(36 > Integer.valueOf(broadcastList.get(i).getName()));
 		}
+	}
+	
+	public void testBroadcastListSorting(DataStore dataStore) {
+		
+		List<Broadcast> broadcastList2 = dataStore.getBroadcastList(0, 50, null, null);
+		for (Iterator iterator = broadcastList2.iterator(); iterator.hasNext();) {
+			Broadcast broadcast = (Broadcast) iterator.next();
+			dataStore.delete(broadcast.getStreamId());
+		}
+
+		Broadcast broadcast1 = new Broadcast(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, "bbbStream");
+		broadcast1.setDate(1000);
+		broadcast1.setType(AntMediaApplicationAdapter.LIVE_STREAM);
+		Broadcast broadcast2 = new Broadcast(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, "aaaStream");
+		broadcast2.setDate(100000);
+		broadcast2.setType(AntMediaApplicationAdapter.IP_CAMERA);
+		Broadcast broadcast3 = new Broadcast(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+		broadcast3.setDate(100000000);
+		broadcast3.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
+		
+		dataStore.save(broadcast1);
+		dataStore.save(broadcast2);
+		dataStore.save(broadcast3);
+		
+		List<Broadcast> broadcastList = dataStore.getBroadcastList(0, 50, null, null);
+		assertEquals(3, broadcastList.size());
+		assertEquals(broadcastList.get(0).getStreamId(), broadcast1.getStreamId());
+		assertEquals(broadcastList.get(1).getStreamId(), broadcast2.getStreamId());
+		assertEquals(broadcastList.get(2).getStreamId(), broadcast3.getStreamId());
+		
+		broadcastList = dataStore.getBroadcastList(0, 50, "", "");
+		assertEquals(3, broadcastList.size());
+		assertEquals(broadcastList.get(0).getStreamId(), broadcast1.getStreamId());
+		assertEquals(broadcastList.get(1).getStreamId(), broadcast2.getStreamId());
+		assertEquals(broadcastList.get(2).getStreamId(), broadcast3.getStreamId());
+		
+		
+		broadcastList = dataStore.getBroadcastList(0, 50, "name", "asc");
+		assertEquals(3, broadcastList.size());
+		assertEquals(broadcastList.get(0).getStreamId(), broadcast2.getStreamId());
+		assertEquals(broadcastList.get(1).getStreamId(), broadcast1.getStreamId());
+		assertEquals(broadcastList.get(2).getStreamId(), broadcast3.getStreamId());
+		
+		
+		broadcastList = dataStore.getBroadcastList(0, 50, "name", "desc");
+		assertEquals(3, broadcastList.size());
+		assertEquals(broadcastList.get(0).getStreamId(), broadcast3.getStreamId());
+		assertEquals(broadcastList.get(1).getStreamId(), broadcast1.getStreamId());
+		assertEquals(broadcastList.get(2).getStreamId(), broadcast2.getStreamId());
+		
+		
+		broadcastList = dataStore.getBroadcastList(0, 50, "date", "asc");
+		assertEquals(3, broadcastList.size());
+		assertEquals(broadcastList.get(0).getStreamId(), broadcast1.getStreamId());
+		assertEquals(broadcastList.get(1).getStreamId(), broadcast2.getStreamId());
+		assertEquals(broadcastList.get(2).getStreamId(), broadcast3.getStreamId());
+		
+		broadcastList = dataStore.getBroadcastList(0, 50, "date", "desc");
+		assertEquals(3, broadcastList.size());
+		assertEquals(broadcastList.get(0).getStreamId(), broadcast3.getStreamId());
+		assertEquals(broadcastList.get(1).getStreamId(), broadcast2.getStreamId());
+		assertEquals(broadcastList.get(2).getStreamId(), broadcast1.getStreamId());
+		
+		
+		broadcastList = dataStore.getBroadcastList(0, 50, "status", "asc");
+		assertEquals(3, broadcastList.size());
+		assertEquals(broadcastList.get(0).getStreamId(), broadcast1.getStreamId());
+		assertEquals(broadcastList.get(1).getStreamId(), broadcast3.getStreamId());
+		assertEquals(broadcastList.get(2).getStreamId(), broadcast2.getStreamId());
+		
+		broadcastList = dataStore.getBroadcastList(0, 50, "status", "desc");
+		assertEquals(3, broadcastList.size());
+		assertEquals(broadcastList.get(0).getStreamId(), broadcast2.getStreamId());
+		assertEquals(broadcastList.get(1).getStreamId(), broadcast3.getStreamId());
+		assertEquals(broadcastList.get(2).getStreamId(), broadcast1.getStreamId());
+		
+		
+		broadcastList = dataStore.getBroadcastList(0, 2, "status", "desc");
+		assertEquals(2, broadcastList.size());
+		assertEquals(broadcastList.get(0).getStreamId(), broadcast2.getStreamId());
+		assertEquals(broadcastList.get(1).getStreamId(), broadcast3.getStreamId());
+		
+		broadcastList = dataStore.getBroadcastList(2, 3, "status", "desc");
+		assertEquals(1, broadcastList.size());
+		assertEquals(broadcastList.get(0).getStreamId(), broadcast1.getStreamId());
+		
+		broadcastList = dataStore.filterBroadcastList(0, 3, AntMediaApplicationAdapter.IP_CAMERA, "status", "desc");
+		assertEquals(1, broadcastList.size());
+		assertEquals(broadcastList.get(0).getStreamId(), broadcast2.getStreamId());
+		
+		
+		dataStore.delete(broadcast1.getStreamId());
+		dataStore.delete(broadcast2.getStreamId());
+		dataStore.delete(broadcast3.getStreamId());
+		
+		broadcastList = dataStore.getBroadcastList(0, 50, null, null);
+		assertEquals(0, broadcastList.size());
 	}
 
 	public void testRemoveEndpoint(DataStore dataStore) {

@@ -336,7 +336,7 @@ public class MongoStore extends DataStore {
 					sortString += "name";
 				}
 				else if(sortBy.contentEquals("date")) {
-					sortString += CREATION_DATE;
+					sortString += "date";
 				}
 				else if(sortBy.contentEquals(STATUS)) {
 					sortString += STATUS;

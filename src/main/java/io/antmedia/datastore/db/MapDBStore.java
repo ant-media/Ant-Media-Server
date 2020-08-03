@@ -352,26 +352,19 @@ public class MapDBStore extends DataStore {
 		List<Broadcast> list = new ArrayList<>();
 		synchronized (this) {
 			Collection<String> values = map.values();
-			int t = 0;
-			int itemCount = 0;
-			if (size > MAX_ITEM_IN_ONE_LIST) {
-				size = MAX_ITEM_IN_ONE_LIST;
+			
+			if(sortBy == null || sortBy.isEmpty()) {
+				sortBy = "date";
 			}
-			if (offset < 0) {
-				offset = 0;
+			
+			if(orderBy == null || orderBy.isEmpty()) {
+				orderBy = "asc";
 			}
+			
 			Iterator<String> iterator = values.iterator();
 
-			while(itemCount < size && iterator.hasNext()) {
-				if (t < offset) {
-					t++;
-					iterator.next();
-				}
-				else {
-					list.add(gson.fromJson(iterator.next(), Broadcast.class));
-
-					itemCount++;	
-				}
+			while(iterator.hasNext()) {
+				list.add(gson.fromJson(iterator.next(), Broadcast.class));
 			}
 
 		}
@@ -416,14 +409,15 @@ public class MapDBStore extends DataStore {
 	public List<Broadcast> filterBroadcastList(int offset, int size, String type, String sortBy, String orderBy) {
 
 		List<Broadcast> list = new ArrayList<>();
+		
 		synchronized (this) {
-			int t = 0;
-			int itemCount = 0;
-			if (size > MAX_ITEM_IN_ONE_LIST) {
-				size = MAX_ITEM_IN_ONE_LIST;
+			
+			if(sortBy == null || sortBy.isEmpty()) {
+				sortBy = "date";
 			}
-			if (offset < 0) {
-				offset = 0;
+			
+			if(orderBy == null || orderBy.isEmpty()) {
+				orderBy = "asc";
 			}
 
 			Object[] objectArray = map.getValues().toArray();
@@ -434,24 +428,10 @@ public class MapDBStore extends DataStore {
 				broadcastArray[i] = gson.fromJson((String) objectArray[i], Broadcast.class);
 			}
 
-			List<Broadcast> filterList = new ArrayList<>();
 			for (int i = 0; i < broadcastArray.length; i++) {
 
 				if (broadcastArray[i].getType().equals(type)) {
-					filterList.add(gson.fromJson((String) objectArray[i], Broadcast.class));
-				}
-			}
-			Iterator<Broadcast> iterator = filterList.iterator();
-
-			while(itemCount < size && iterator.hasNext()) {
-				if (t < offset) {
-					t++;
-					iterator.next();
-				}
-				else {
-
-					list.add(iterator.next());
-					itemCount++;
+					list.add(gson.fromJson((String) objectArray[i], Broadcast.class));
 				}
 			}
 
