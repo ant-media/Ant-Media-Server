@@ -370,7 +370,6 @@ public class MapDBStore extends DataStore {
 					list.add(broadcast);
 				}
 			}
-
 		}
 		return sortAndCropBroadcastList(list, offset, size, sortBy, orderBy);
 	}
@@ -406,34 +405,6 @@ public class MapDBStore extends DataStore {
 			}
 			return sortAndCropVodList(vods, offset, size, sortBy, orderBy);
 		}
-	}
-
-	@Deprecated
-	@Override
-	public List<Broadcast> filterBroadcastList(int offset, int size, String type, String sortBy, String orderBy) {
-
-		List<Broadcast> list = new ArrayList<>();
-		
-		synchronized (this) {
-
-			Object[] objectArray = map.getValues().toArray();
-
-			Broadcast[] broadcastArray = new Broadcast[objectArray.length];
-
-			for (int i = 0; i < objectArray.length; i++) {
-				broadcastArray[i] = gson.fromJson((String) objectArray[i], Broadcast.class);
-			}
-
-			for (int i = 0; i < broadcastArray.length; i++) {
-
-				if (broadcastArray[i].getType().equals(type)) {
-					list.add(gson.fromJson((String) objectArray[i], Broadcast.class));
-				}
-			}
-
-		}
-		return sortAndCropBroadcastList(list, offset, size, sortBy, orderBy);
-
 	}
 
 	@Override

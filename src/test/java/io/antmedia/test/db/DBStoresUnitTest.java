@@ -773,11 +773,6 @@ public class DBStoresUnitTest {
 		assertEquals(1, broadcastList.size());
 		assertEquals(broadcastList.get(0).getStreamId(), broadcast2.getStreamId());
 		
-		broadcastList = dataStore.filterBroadcastList(-10, 100, AntMediaApplicationAdapter.IP_CAMERA, "status", "desc");
-		assertEquals(1, broadcastList.size());
-		assertEquals(broadcastList.get(0).getStreamId(), broadcast2.getStreamId());
-		
-		
 		dataStore.delete(broadcast1.getStreamId());
 		dataStore.delete(broadcast2.getStreamId());
 		dataStore.delete(broadcast3.getStreamId());
@@ -1140,7 +1135,7 @@ public class DBStoresUnitTest {
 		assertEquals("ipCamera", type);
 		assertEquals("liveStream", live_type);
 
-		List<Broadcast> returnList = dataStore.filterBroadcastList(0, 10, "ipCamera", null, null);
+		List<Broadcast> returnList = dataStore.getBroadcastList(0, 10, "ipCamera", null, null);
 
 		assertEquals(1, returnList.size());
 

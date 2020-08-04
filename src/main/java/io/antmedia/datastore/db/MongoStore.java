@@ -324,7 +324,7 @@ public class MongoStore extends DataStore {
 	public List<Broadcast> getBroadcastList(int offset, int size, String type, String sortBy, String orderBy) {
 		synchronized(this) {
 			try {
-			Query<Broadcast> query = datastore.find(Broadcast.class);
+				Query<Broadcast> query = datastore.find(Broadcast.class);
 			
 			if (size > MAX_ITEM_IN_ONE_LIST) {
 				size = MAX_ITEM_IN_ONE_LIST;
@@ -350,7 +350,6 @@ public class MongoStore extends DataStore {
 			else {
 				return query.asList(new FindOptions().skip(offset).limit(size));
 			}
-			
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
@@ -404,40 +403,6 @@ public class MongoStore extends DataStore {
 		synchronized(this) {
 			datastore.getMongo().close();
 		}
-	}
-
-	@Override
-	public List<Broadcast> filterBroadcastList(int offset, int size, String type, String sortBy, String orderBy) {
-		synchronized(this) {
-			try {
-				
-				Query<Broadcast> query = datastore.find(Broadcast.class);
-				
-				if (size > MAX_ITEM_IN_ONE_LIST) {
-					size = MAX_ITEM_IN_ONE_LIST;
-				}
-				
-				if(sortBy != null && orderBy != null && !sortBy.isEmpty() && !orderBy.isEmpty()) {
-					String sortString = orderBy.equals("desc") ? "-" : "";
-					if(sortBy.equals("name")) {
-						sortString += "name";
-					}
-					else if(sortBy.equals("date")) {
-						sortString += CREATION_DATE;
-					}
-					else if(sortBy.equals(STATUS)) {
-						sortString += STATUS;
-					}
-					query = query.order(sortString);
-				}
-				
-				return query.field("type").equal(type).asList(new FindOptions().skip(offset).limit(size));
-				
-			} catch (Exception e) {
-				logger.error(ExceptionUtils.getStackTrace(e));
-			}
-		}
-		return null;	
 	}
 
 	@Override

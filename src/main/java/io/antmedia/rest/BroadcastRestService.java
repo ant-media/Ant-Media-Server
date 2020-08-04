@@ -638,7 +638,7 @@ public class BroadcastRestService extends RestServiceBase{
 			@ApiParam(value = "field to sort", required = false) @QueryParam("sort_by") String sortBy,
 			@ApiParam(value = "asc for Ascending, desc Descending order", required = false) @QueryParam("order_by") String orderBy
 			) {
-		return getDataStore().filterBroadcastList(offset, size, type, sortBy, orderBy);
+		return getDataStore().getBroadcastList(offset, size, type, sortBy, orderBy);
 	}
 
 

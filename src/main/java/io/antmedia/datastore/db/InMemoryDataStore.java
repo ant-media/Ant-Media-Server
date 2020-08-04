@@ -196,7 +196,7 @@ public class InMemoryDataStore extends DataStore {
 	@Override
 	public List<Broadcast> getBroadcastList(int offset, int size, String type, String sortBy, String orderBy) {
 		
-		Collection<Broadcast> values =broadcastMap.values();
+		Collection<Broadcast> values = broadcastMap.values();
 
 		List<Broadcast> list = new ArrayList<>();
 		
@@ -215,7 +215,6 @@ public class InMemoryDataStore extends DataStore {
 				list.add(broadcast);
 			}
 		}
-		
 		return sortAndCropBroadcastList(list, offset, size, sortBy, orderBy);
 	}
 
@@ -240,25 +239,6 @@ public class InMemoryDataStore extends DataStore {
 	@Override
 	public void close() {
 		//no need to implement 
-	}
-	
-	@Deprecated
-	@Override
-	public List<Broadcast> filterBroadcastList(int offset, int size, String type, String sortBy, String orderBy) {
-		
-		Collection<Broadcast> values =broadcastMap.values();
-
-		List<Broadcast> list = new ArrayList<>();
-		
-		for (Broadcast broadcast : values) 
-		{
-			if(type.equals(broadcast.getType())) 
-			{
-				list.add(broadcast);
-			}
-		}
-
-		return sortAndCropBroadcastList(list, offset, size, sortBy, orderBy);
 	}
 
 	@Override
