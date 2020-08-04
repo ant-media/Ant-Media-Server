@@ -703,14 +703,14 @@ public class BroadcastRestService extends RestServiceBase{
 	}
 	
 	
-	@ApiOperation(value = "Set stream specific recording setting, this setting overrides general Mp4 Muxing Setting", notes = "", response = Result.class)
+	@ApiOperation(value = "Set stream specific recording setting, this setting overrides general Mp4 and WebM Muxing Setting", notes = "", response = Result.class)
 	@PUT
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/recording/{recording-status}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result enableRecording(@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String streamId,
 			@ApiParam(value = "Change recording status. If true, starts recording. If false stop recording", required = true) @PathParam("recording-status") boolean enableRecording,
-			@ApiParam(value = "Record type:mp4 or webm", required = false) @QueryParam("recordType") String recordType) {
+			@ApiParam(value = "Record type: 'mp4' or 'webm'. It's optional parameter.", required = false) @QueryParam("recordType") String recordType) {
 		if(recordType != null && recordType.equals("webm")) {
 			return enableWebMMuxing(streamId, enableRecording);
 		}
