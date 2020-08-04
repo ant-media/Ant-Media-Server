@@ -853,6 +853,7 @@ public abstract class RestServiceBase {
 					connResult.setSuccess(false);
 					connResult.setErrorId(FETCHER_NOT_STARTED_ERROR);
 				}
+				connResult.setDataId(savedBroadcast.getStreamId());
 
 			}
 		}
@@ -1097,6 +1098,7 @@ public abstract class RestServiceBase {
 				result.setErrorId(FETCHER_NOT_STARTED_ERROR);
 				result.setSuccess(false);
 			}
+			result.setDataId(savedBroadcast.getStreamId());
 
 		}
 		return result;

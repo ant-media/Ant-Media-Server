@@ -39,6 +39,7 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.rest.model.Result;
 import io.antmedia.streamsource.StreamFetcher;
+import io.antmedia.test.StreamFetcherUnitTest;
 import io.vertx.core.Vertx;
 
 @ContextConfiguration(locations = { "../test/test.xml" })
@@ -223,6 +224,8 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 		assertEquals(restService.callGetBroadcastList().size(), broadcastList.size());
 		
 	}
+	
+	
 
 
 }
