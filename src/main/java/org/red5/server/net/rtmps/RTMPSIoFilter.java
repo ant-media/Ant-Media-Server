@@ -51,7 +51,7 @@ public class RTMPSIoFilter extends RTMPEIoFilter {
         } else {
             String sessionId = (String) session.getAttribute(RTMPConnection.RTMP_SESSION_ID);
             if (sessionId != null) {
-                log.info("RTMPS Session id: {}", sessionId);
+                log.debug("RTMPS Session id: {}", sessionId);
                 RTMPMinaConnection conn = (RTMPMinaConnection) RTMPConnManager.getInstance().getConnectionBySessionId(sessionId);
                 // filter based on current connection state
                 RTMP rtmp = conn.getState();
