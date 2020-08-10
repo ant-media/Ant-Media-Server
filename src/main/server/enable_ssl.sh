@@ -243,15 +243,11 @@ create_cron_job(){
 
     $SUDO crontab -l > /tmp/cronfile
 
-    if [ $(grep -E "enable_ssl.sh" /tmp/cronfile | wc -l) -ne "0" ]; then
-        sed -i '/enable_ssl.sh/d' /tmp/cronfile
-        echo "00 03 */85 * * cd /tmp/ && ./enable_ssl.sh -d $domain -r" >> /tmp/cronfile
-        crontab /tmp/cronfile
-    else
-        echo "00 03 */85 * * cd /tmp/ && ./enable_ssl.sh -d $domain -r" >> /tmp/cronfile
-        crontab /tmp/cronfile
+    if [ $(grep -E "enable_ssl.sh.*$domain" /tmp/cronfile | wc -l) -eq "0" ]; then
+      $SUDO echo "00 03 */85 * * cd $INSTALL_DIRECTORY && ./enable_ssl.sh -d $domain -r" >> /tmp/cronfile
+      $SUDO crontab /tmp/cronfile
+      output
     fi
-
     rm /tmp/cronfile
 
 }
@@ -304,9 +300,9 @@ then
     auth_tomcat
 
     #create cron job for auto renew
-   # if [ "$fullChainFileExist" == false ]; then
-   #   create_cron_job
-   # fi
+    if [ "$fullChainFileExist" == false ]; then
+      create_cron_job
+    fi
     
 fi
 
