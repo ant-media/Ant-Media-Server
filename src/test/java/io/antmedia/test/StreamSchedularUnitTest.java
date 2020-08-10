@@ -810,7 +810,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		logger.info("before first control");
 
-		List<Broadcast> broadcastList =  dataStore.getBroadcastList(0,  20);
+		List<Broadcast> broadcastList =  dataStore.getBroadcastList(0,  20, null, null, null);
 
 		Broadcast fetchedBroadcast = null;
 
