@@ -23,6 +23,9 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.awaitility.Awaitility;
+import org.bytedeco.ffmpeg.avutil.AVRational;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
@@ -43,6 +46,28 @@ import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.vertx.core.Vertx;
 
 public class StatsCollectorTest {
+	
+	static {
+		//just init javacpp
+		AVRational rat = new AVRational();
+		
+	}
+	
+	static Vertx vertx;
+	static Vertx webRTCVertx;
+	
+	@BeforeClass
+	public static void beforeClass() {
+		vertx = Vertx.vertx();
+		webRTCVertx = Vertx.vertx();
+		
+	}
+	
+	@AfterClass
+	public static void afterClass() {
+		vertx.close();
+		webRTCVertx.close();
+	}
 
 	@Test
 	public void testCpuAverage() {
@@ -182,6 +207,7 @@ public class StatsCollectorTest {
 	@Test
 	public void testHeartbeat() {
 
+		AVRational rat = new AVRational();
 		StatsCollector resMonitor = Mockito.spy(new StatsCollector());
 		//check default value
 		assertEquals(300000, resMonitor.getHeartbeatPeriodMs());
@@ -201,9 +227,7 @@ public class StatsCollectorTest {
 		});
 		
 		Mockito.verify(resMonitor, Mockito.times(1)).startAnalytic(Launcher.getVersion(), Launcher.getVersionType());
-		
-		Mockito.verify(resMonitor, Mockito.times(1)).notifyShutDown(Launcher.getVersion(), Launcher.getVersionType());
-		
+				
 		Mockito.verify(resMonitor, Mockito.times(1)).startHeartBeats(Launcher.getVersion(), Launcher.getVersionType(), 3000);
 		
 		resMonitor.cancelHeartBeat();
@@ -214,9 +238,7 @@ public class StatsCollectorTest {
 		resMonitor.start();
 		assertFalse(resMonitor.isHeartBeatEnabled());
 		Mockito.verify(resMonitor, Mockito.times(1)).startAnalytic(Launcher.getVersion(), Launcher.getVersionType());
-		
-		Mockito.verify(resMonitor, Mockito.times(1)).notifyShutDown(Launcher.getVersion(), Launcher.getVersionType());
-		
+				
 		Mockito.verify(resMonitor, Mockito.times(1)).startHeartBeats(Launcher.getVersion(), Launcher.getVersionType(), 3000);
 		
 		resMonitor.cancelHeartBeat();
@@ -226,6 +248,9 @@ public class StatsCollectorTest {
 	@Test
 	public void testSendInstanceKafkaStats() {
 		StatsCollector resMonitor = Mockito.spy(new StatsCollector());
+		
+		resMonitor.setVertx(vertx);
+		resMonitor.setWebRTCVertx(webRTCVertx);
 		
 		Producer<Long, String> kafkaProducer = Mockito.mock(Producer.class);
 		
@@ -413,11 +438,9 @@ public class StatsCollectorTest {
 	
 	@Test
 	public void testMemInfo() {
-		SystemUtils.setLinuxMemoryFile("src/test/resources/meminfo");
 		
-		long osLinuxAvailableMemory = SystemUtils.osLinuxAvailableMemory();
-		
-		assertEquals(11946299392L, osLinuxAvailableMemory);
+		AVRational rational = new AVRational();
+		assertTrue( 0 != SystemUtils.osAvailableMemory());
 	}
 	
 }

@@ -13,10 +13,9 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.times;
-
 
 import java.io.File;
 import java.io.IOException;
@@ -35,7 +34,7 @@ import javax.ws.rs.core.Response.Status;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.awaitility.Awaitility;
-import org.bytedeco.javacpp.avformat;
+import org.bytedeco.ffmpeg.global.avformat;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -73,7 +72,6 @@ import io.antmedia.muxer.HLSMuxer;
 import io.antmedia.muxer.Mp4Muxer;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.Muxer;
-import io.antmedia.muxer.WebMMuxer;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.RestServiceBase;
 import io.antmedia.rest.RestServiceBase.BroadcastStatistics;
@@ -95,11 +93,11 @@ import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
 import io.antmedia.statistic.IStatsCollector;
 import io.antmedia.statistic.StatsCollector;
 import io.antmedia.streamsource.StreamFetcher;
+import io.antmedia.streamsource.StreamFetcherManager;
 import io.antmedia.test.StreamFetcherUnitTest;
 import io.antmedia.webrtc.VideoCodec;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.vertx.core.Vertx;
-
 
 @ContextConfiguration(locations = { "test.xml" })
 @DirtiesContext(classMode = ClassMode.AFTER_CLASS)
@@ -548,6 +546,14 @@ public class BroadcastRestServiceV2UnitTest {
 			assertTrue(tokenReturn instanceof Result);
 			result = (Result) tokenReturn;
 			assertFalse(result.isSuccess());	
+		}
+		
+		{	
+			//set token type null and it should return false
+			tokenReturn = restServiceReal.getTokenV2(streamId, 123432, null, "testRoom").getEntity();
+			assertTrue(tokenReturn instanceof Result);
+			result = (Result) tokenReturn;
+			assertFalse(result.isSuccess());
 		}
 
 		Mockito.when(datastore.saveToken(Mockito.any())).thenReturn(true);
@@ -2034,6 +2040,9 @@ public class BroadcastRestServiceV2UnitTest {
 		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
 		Mockito.doReturn(fetcher).when(adaptor).startStreaming(newCam);
 		Mockito.doReturn(store).when(streamSourceRest).getDataStore();
+		StreamFetcherManager sfm = mock (StreamFetcherManager.class);
+		Mockito.doReturn(sfm).when(adaptor).getStreamFetcherManager();
+		Mockito.doReturn(false).when(sfm).checkAlreadyFetch(any());
 
 		store.save(newCam);
 
@@ -2065,6 +2074,9 @@ public class BroadcastRestServiceV2UnitTest {
 		Mockito.doReturn(videoServiceEndpoints).when(adaptor).getVideoServiceEndpoints();
 		StreamFetcher fetcher = mock (StreamFetcher.class);
 		Mockito.doReturn(fetcher).when(adaptor).startStreaming(source);
+		StreamFetcherManager sfm = mock (StreamFetcherManager.class);
+		Mockito.doReturn(sfm).when(adaptor).getStreamFetcherManager();
+		Mockito.doReturn(false).when(sfm).checkAlreadyFetch(any());
 		
 		Mockito.doReturn(new ServerSettings()).when(streamSourceRest).getServerSettings();
 		Mockito.doReturn(new AppSettings()).when(streamSourceRest).getAppSettings();
@@ -2147,7 +2159,7 @@ public class BroadcastRestServiceV2UnitTest {
 		restServiceReal.setAppCtx(context);
 		restServiceReal.setApplication(app);
 		restServiceReal.setScope(scope);
-		assertTrue(restServiceReal.getRTMPToWebRTCStats().isEmpty());
+		assertNotNull(restServiceReal.getRTMPToWebRTCStats("stream1"));
 	}
 	
 	@Test
@@ -2235,4 +2247,62 @@ public class BroadcastRestServiceV2UnitTest {
 		
 	}
 	
+	@Test
+	public void testSendMessage()  {
+		Scope scope = mock(Scope.class);
+		String scopeName = "scope";
+		when(scope.getName()).thenReturn(scopeName);
+		
+		String streamId = "stream1";
+		String message = "hi";
+		
+		// test the case of data channels not enabled
+		AntMediaApplicationAdapter app = new AntMediaApplicationAdapter();
+		AntMediaApplicationAdapter appSpy = Mockito.spy(app);
+
+		ApplicationContext context = mock(ApplicationContext.class);
+
+		restServiceReal.setAppCtx(context);
+		restServiceReal.setApplication(appSpy);
+		restServiceReal.setScope(scope);
+		
+		Result res = restServiceReal.sendMessage(message,streamId);
+		assertEquals(false, res.isSuccess());
+		
+		// test the case of data channels not enabled
+		AntMediaApplicationAdapter app2 = new AntMediaApplicationAdapter();
+		AntMediaApplicationAdapter appSpy2 = Mockito.spy(app2);
+		Mockito.doReturn(true).when(appSpy2).isDataChannelMessagingSupported();
+		restServiceReal.setApplication(appSpy2);
+		
+		res = restServiceReal.sendMessage(message,streamId);
+		assertEquals(false, res.isSuccess());
+		assertEquals("Data channels are not enabled", res.getMessage());
+		
+		AntMediaApplicationAdapter app3 = new AntMediaApplicationAdapter();
+		AntMediaApplicationAdapter appSpy3 = Mockito.spy(app3);
+		Mockito.doReturn(true).when(appSpy3).isDataChannelMessagingSupported();
+		Mockito.doReturn(true).when(appSpy3).isDataChannelEnabled();
+		
+		restServiceReal.setApplication(appSpy3);
+		
+		res = restServiceReal.sendMessage(message,streamId);
+		assertEquals(false, res.isSuccess());
+		assertEquals("Requested WebRTC stream does not exist", res.getMessage());
+		
+		AntMediaApplicationAdapter app4 = new AntMediaApplicationAdapter();
+		AntMediaApplicationAdapter appSpy4 = Mockito.spy(app4);
+		Mockito.doReturn(true).when(appSpy4).isDataChannelMessagingSupported();
+		Mockito.doReturn(true).when(appSpy4).isDataChannelEnabled();
+		Mockito.doReturn(true).when(appSpy4).doesWebRTCStreamExist(streamId);
+		
+		restServiceReal.setApplication(appSpy4);
+	    
+		res = restServiceReal.sendMessage(message,streamId);
+		
+		// check if returned result is true
+		assertEquals(false, res.isSuccess());
+		assertEquals("Operation not completed", res.getMessage());
+		
+	}
 }

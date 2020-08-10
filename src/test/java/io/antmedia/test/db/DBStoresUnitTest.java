@@ -43,7 +43,6 @@ import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.muxer.MuxAdaptor;
-import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.settings.ServerSettings;
 
 public class DBStoresUnitTest {
@@ -103,11 +102,14 @@ public class DBStoresUnitTest {
 		testUpdateLocationParams(dataStore);
 		testPlaylist(dataStore);
 		testAddTrack(dataStore);
+		testClearAtStart(dataStore);
+    	testGetVoDIdByStreamId(dataStore);
 	}
 
 	@Test
 	public void testMemoryDataStore() {
 		DataStore dataStore = new InMemoryDataStore("testdb");
+		
 		testBugGetExternalStreamsList(dataStore);
 		testGetPagination(dataStore);
 		testNullCheck(dataStore);
@@ -133,7 +135,8 @@ public class DBStoresUnitTest {
 		testUpdateLocationParams(dataStore);
 		testPlaylist(dataStore);
 		testAddTrack(dataStore);
-
+		testClearAtStart(dataStore);
+    	testGetVoDIdByStreamId(dataStore);
 	}
 
 	@Test
@@ -183,6 +186,7 @@ public class DBStoresUnitTest {
 		testUpdateLocationParams(dataStore);
 		testPlaylist(dataStore);
 		testAddTrack(dataStore);
+		testGetVoDIdByStreamId(dataStore);
 
 	}
 	
@@ -194,7 +198,7 @@ public class DBStoresUnitTest {
 		//Following methods does not return before the bug is fixed
 		dataStore.fetchUserVodList(new File(""));
 		
-		dataStore.getVodList(0, 10, "name", "asc");
+		dataStore.getVodList(0, 10, "name", "asc", null);
 	}
 
 	public void clear(DataStore dataStore) 
@@ -330,7 +334,7 @@ public class DBStoresUnitTest {
 		totalVodCount = datastore.getTotalVodNumber();
 		assertEquals(5, totalVodCount);
 
-		List<VoD> vodList = datastore.getVodList(0, 50, null, null);
+		List<VoD> vodList = datastore.getVodList(0, 50, null, null, null);
 		assertEquals(5, vodList.size());
 		for (VoD voD : vodList) {
 			assertEquals("streams/resources/"+voD.getVodName(), voD.getFilePath());
@@ -1439,10 +1443,30 @@ public class DBStoresUnitTest {
 	}
 
 	public void testClearAtStart(DataStore dataStore) {
-		deleteBroadcast((MongoStore) dataStore);
+		
+		if (dataStore instanceof MongoStore) {
+			deleteBroadcast((MongoStore) dataStore);
+			assertEquals(0, dataStore.getBroadcastCount());
+		}
+		else  {
+			long broadcastCount = dataStore.getBroadcastCount();
+			System.out.println("broadcast count: " + broadcastCount);
+			int j = 0;
+			List<Broadcast> broadcastList;
+			while ((broadcastList = dataStore.getBroadcastList(0, 50)) != null)
+			{
+				if (broadcastList.size() == 0) {
+					break;
+				}
+				for (Broadcast broadcast : broadcastList) {
+					assertTrue(dataStore.delete(broadcast.getStreamId()));
+					System.out.println("number of delete count: " + j++);
+				}
+			}
+			
+		}
+		
 		assertEquals(0, dataStore.getBroadcastCount());
-
-
 		Broadcast broadcast = new Broadcast();
 		broadcast.setName("test1");
 		broadcast.setZombi(true);
@@ -1452,19 +1476,41 @@ public class DBStoresUnitTest {
 		broadcast2.setName("test2");
 		broadcast2.setZombi(true);
 		dataStore.save(broadcast2);
+		
+		Broadcast broadcast3 = new Broadcast();
+		broadcast3.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);	
+		broadcast3.setWebRTCViewerCount(104);
+		broadcast3.setHlsViewerCount(305);
+		broadcast3.setRtmpViewerCount(506);
+		dataStore.save(broadcast3);
+		
+		Broadcast broadcast4 = new Broadcast();
+		broadcast4.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_PREPARING);
+		broadcast4.setWebRTCViewerCount(10);
+		broadcast4.setHlsViewerCount(30);
+		broadcast4.setRtmpViewerCount(50);
+		dataStore.save(broadcast4);
+		
+		assertEquals(4, dataStore.getBroadcastCount());
+
+		dataStore.resetBroadcasts(ServerSettings.getLocalHostAddress());
 
 		assertEquals(2, dataStore.getBroadcastCount());
-
-		dataStore.clearStreamsOnThisServer(ServerSettings.getLocalHostAddress());
-
-		assertEquals(0, dataStore.getBroadcastCount());
+		List<Broadcast> broadcastList = dataStore.getBroadcastList(0, 10);
+		for (Broadcast tmp : broadcastList) {
+			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, tmp.getStatus());
+			assertEquals(0, tmp.getWebRTCViewerCount());
+			assertEquals(0, tmp.getHlsViewerCount());
+			assertEquals(0, tmp.getRtmpViewerCount());
+		}
+		
 	}
 
 	public void testClearAtStartCluster(DataStore dataStore) {
 		
-		dataStore.clearStreamsOnThisServer(ServerSettings.getLocalHostAddress());
-		assertEquals(0, dataStore.getBroadcastCount());
-
+		
+		deleteBroadcast((MongoStore) dataStore);
+		
 		Broadcast broadcast = new Broadcast();
 		broadcast.setOriginAdress(ServerSettings.getLocalHostAddress());
 		broadcast.setName("test1");
@@ -1496,10 +1542,11 @@ public class DBStoresUnitTest {
 		assertEquals(1, dataStore.getBroadcastCount());
 		assertEquals(2, dataStore.getStreamInfoList(broadcast.getStreamId()).size());
 
-		dataStore.clearStreamsOnThisServer(ServerSettings.getLocalHostAddress());
+		dataStore.resetBroadcasts(ServerSettings.getLocalHostAddress());
 
 		assertEquals(0, dataStore.getBroadcastCount());
 		assertEquals(0, dataStore.getStreamInfoList(broadcast.getStreamId()).size());
+		
 	}
 
 	@Test
@@ -1833,6 +1880,38 @@ public class DBStoresUnitTest {
 		assertEquals(1, mainTrack.getSubTrackStreamIds().size());
 		assertEquals(subTrackId, mainTrack.getSubTrackStreamIds().get(0));
 		assertEquals(mainTrackId, subtrack.getMainTrackStreamId());
+
+	}
+	public void testGetVoDIdByStreamId(DataStore dataStore) {
+		String streamId=RandomStringUtils.randomNumeric(24);
+		String vodId1="vod_1";
+		String vodId2="vod_2";
+		String vodId3="vod_3";
+		VoD vod1 = new VoD("streamName", streamId, "filePath", "vodName2", 333, 111, 111, VoD.STREAM_VOD, vodId1);
+		VoD vod2 = new VoD("streamName", streamId, "filePath", "vodName1", 222, 111, 111, VoD.STREAM_VOD, vodId2);
+		VoD vod3 = new VoD("streamName", "streamId123", "filePath", "vodName3", 111, 111, 111, VoD.STREAM_VOD, vodId3);
+
+		dataStore.addVod(vod1);
+		dataStore.addVod(vod2);
+		dataStore.addVod(vod3);
+
+		List<VoD> vodResult = dataStore.getVodList(0, 50, null, null, streamId);
+
+		boolean vod1Match = false, vod2Match = false;
+		for (VoD vod : vodResult) {
+			if (vod.getVodId().equals(vod1.getVodId())) {
+				vod1Match = true;
+			}
+			else if (vod.getVodId().equals(vod2.getVodId())) {
+				vod2Match = true;
+			}
+			else if (vod.getVodId().equals(vod3.getVodId())) {
+				fail("vod3 should not be matched");
+			}
+		}
+		assertTrue(vod1Match);
+		assertTrue(vod2Match);
+
 
 	}
 

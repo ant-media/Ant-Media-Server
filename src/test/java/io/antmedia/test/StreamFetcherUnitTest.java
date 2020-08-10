@@ -1,6 +1,6 @@
 package io.antmedia.test;
 
-import static org.bytedeco.javacpp.avutil.AVMEDIA_TYPE_DATA;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_DATA;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -21,11 +21,11 @@ import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
 import org.awaitility.Awaitility;
-import org.bytedeco.javacpp.avcodec.AVCodecParameters;
-import org.bytedeco.javacpp.avformat;
-import org.bytedeco.javacpp.avformat.AVFormatContext;
-import org.bytedeco.javacpp.avformat.AVStream;
-import org.bytedeco.javacpp.avutil;
+import org.bytedeco.ffmpeg.avcodec.AVCodecParameters;
+import org.bytedeco.ffmpeg.avformat.AVFormatContext;
+import org.bytedeco.ffmpeg.avformat.AVStream;
+import org.bytedeco.ffmpeg.global.avformat;
+import org.bytedeco.ffmpeg.global.avutil;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -55,7 +55,6 @@ import io.antmedia.integration.AppFunctionalV2Test;
 import io.antmedia.integration.MuxingTest;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.muxer.Mp4Muxer;
-import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.rest.model.Result;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
@@ -149,11 +148,13 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		appScope = null;
 		app = null;
 
+		/*
 		try {
 			AppFunctionalV2Test.delete(new File("webapps"));
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		*/
 	}
 
 	
@@ -284,7 +285,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			fetcherManager.setStreamCheckerInterval(4000);
 
 			//set restart period to 5 seconds
-			fetcherManager.setRestartStreamFetcherPeriod(5);
+			appSettings.setRestartStreamFetcherPeriod(5);
 
 			//Start stream fetcher
 			StreamFetcher result = fetcherManager.startStreaming(stream);
@@ -298,7 +299,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			verify(streamFetcher, times(3)).startStream(); 
 
 			//set restart period to 0 seconds
-			fetcherManager.setRestartStreamFetcherPeriod(0);
+			appSettings.setRestartStreamFetcherPeriod(0);
 
 			//wait 10-12 seconds
 
@@ -307,7 +308,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			verify(streamFetcher, times(3)).startStream(); 
 
 			//set restart period to 5 seconds
-			fetcherManager.setRestartStreamFetcherPeriod(5);
+			appSettings.setRestartStreamFetcherPeriod(5);
 
 			//wait 10-12 seconds
 
@@ -315,7 +316,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			verify(streamFetcher, timeout(14000).atLeast(4)).stopStream();
 			verify(streamFetcher, atLeast(5)).startStream(); 
 
-			fetcherManager.setRestartStreamFetcherPeriod(0);
+			appSettings.setRestartStreamFetcherPeriod(0);
 
 			fetcherManager.stopCheckerJob();
 
@@ -580,11 +581,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			//wait for packaging files
 			fetcher.stopStream();
 
-			try {
-				Thread.sleep(8000);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
+			Awaitility.await().atMost(15,  TimeUnit.SECONDS).until(() -> !fetcher.isThreadActive());
 			assertFalse(fetcher.isThreadActive());
 
 			logger.info("before test m3u8 file");
@@ -786,16 +783,15 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			// start 
 			fetcher.startStream();
-
+			
 			//wait for fetching stream
 			if (checkContext) {
 				Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
 					// This issue is the check of #1600
-					return fetcher.getMuxAdaptor() != null && fetcher.getMuxAdaptor().getInputFormatContext() != null;
+					return fetcher.getMuxAdaptor() != null && fetcher.getMuxAdaptor().isEnableAudio() && fetcher.getMuxAdaptor().getInputFormatContext() != null;
 				});
 			}
 	
-			
 			Awaitility.await().pollDelay(5, TimeUnit.SECONDS).atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
 				double speed = dataStore.get(newCam.getStreamId()).getSpeed();
 				//this value was so high over 9000. After using first packet time it's value is about 100-200
@@ -805,15 +801,20 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 				logger.info("Speed of the stream: {}", speed);
 				return speed < 1000;
 			});
+			
+
+			Thread.sleep(3000);
 
 			//wait for packaging files
 			fetcher.stopStream();
+			
 
 			String mp4File = "webapps/junit/streams/"+newCam.getStreamId() +".mp4";
 
 			Awaitility.waitAtMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				return new File(mp4File).exists();
 			});
+			
 
 			assertFalse(fetcher.isThreadActive());
 
@@ -821,9 +822,9 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			double speed = dataStore.get(newCam.getStreamId()).getSpeed();
 			logger.info("Speed of the stream: {}", speed);
-
+			
 			assertTrue(MuxingTest.testFile("webapps/junit/streams/"+newCam.getStreamId() +".m3u8"));
-
+			
 			logger.info("after test m3u8 file");
 			//tmp file should be deleted
 			File f = new File("webapps/junit/streams/"+newCam.getStreamId() +".mp4.tmp_extension");
@@ -869,7 +870,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		fetcher.stopStream();
 		
-		Awaitility.await().pollDelay(4, TimeUnit.SECONDS).atMost(7, TimeUnit.SECONDS).until(fetcher::isStopRequestReceived);	
+		Awaitility.await().pollDelay(4, TimeUnit.SECONDS).atMost(7, TimeUnit.SECONDS).until(() -> !fetcher.isThreadActive());	
 		
 	}
 

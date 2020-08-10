@@ -1,6 +1,6 @@
 package io.antmedia.test.webrtc.adaptor;
 
-import static org.bytedeco.javacpp.avutil.AV_PIX_FMT_YUV420P;
+import static org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_YUV420P;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -23,7 +23,7 @@ import javax.websocket.Session;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.awaitility.Awaitility;
-import org.bytedeco.javacpp.avutil.AVFrame;
+import org.bytedeco.ffmpeg.avutil.AVFrame;
 import org.json.simple.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
@@ -425,5 +425,6 @@ public class RTMPAdaptorTest {
 		mock.setPacketLossDiffThresholdForSwitchback(0);
 		mock.setRttMeasurementDiffThresholdForSwitchback(0);
 		mock.setTryCountBeforeSwitchback(0);
+		mock.forceStreamingQuality(null,null,0);
 	}
 }

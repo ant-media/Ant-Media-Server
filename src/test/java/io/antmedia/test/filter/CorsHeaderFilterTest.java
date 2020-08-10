@@ -1,6 +1,5 @@
 package io.antmedia.test.filter;
 
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;

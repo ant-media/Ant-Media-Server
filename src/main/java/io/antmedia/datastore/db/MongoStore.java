@@ -3,7 +3,6 @@ package io.antmedia.datastore.db;
 import java.io.File;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -38,7 +37,6 @@ import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.muxer.MuxAdaptor;
-import io.antmedia.settings.ServerSettings;
 
 public class MongoStore extends DataStore {
 
@@ -417,8 +415,14 @@ public class MongoStore extends DataStore {
 	}
 
 	@Override
-	public List<VoD> getVodList(int offset, int size, String sortBy, String orderBy) {
+	public List<VoD> getVodList(int offset, int size, String sortBy, String orderBy, String filterStreamId) {
 		synchronized(this) {
+			Query<VoD> query = vodDatastore.find(VoD.class);
+			
+			if (filterStreamId != null && !filterStreamId.isEmpty()) {
+				query = query.field("streamId").equal(filterStreamId);
+			}
+			
 			if(sortBy != null && orderBy != null && !sortBy.isEmpty() && !orderBy.isEmpty()) {
 				String sortString = orderBy.contentEquals("desc") ? "-" : "";
 				if(sortBy.contentEquals("name")) {
@@ -427,9 +431,9 @@ public class MongoStore extends DataStore {
 				else if(sortBy.contentEquals("date")) {
 					sortString += CREATION_DATE;
 				}
-				return vodDatastore.find(VoD.class).order(sortString).asList(new FindOptions().skip(offset).limit(size));
+				query = query.order(sortString);
 			}
-			return vodDatastore.find(VoD.class).asList(new FindOptions().skip(offset).limit(size));
+			return query.asList(new FindOptions().skip(offset).limit(size));
 		}
 	}
 
@@ -731,10 +735,6 @@ public class MongoStore extends DataStore {
 					ops.set("streamUrl", broadcast.getStreamUrl());
 				}
 				
-				if ( broadcast.getDuration() != null) {
-					ops.set(DURATION, broadcast.getDuration());
-				}
-				
 				if (broadcast.getLatitude() != null) {
 					ops.set("latitude", broadcast.getLatitude());
 				}
@@ -751,17 +751,7 @@ public class MongoStore extends DataStore {
 					ops.set("mainTrackStreamId", broadcast.getMainTrackStreamId());
 				}
 				
-				if (broadcast.getStartTime() != 0) {
-					ops.set(START_TIME, broadcast.getStartTime());
-				}
-				
-				if (broadcast.getOriginAdress() != null) {
-					ops.set(ORIGIN_ADDRESS, broadcast.getOriginAdress());
-				}
-				
-				if (broadcast.getStatus() != null) {
-					ops.set(STATUS, broadcast.getStatus());
-				}
+				prepareFields(broadcast, ops);
 				
 				
 				ops.set("receivedBytes", broadcast.getReceivedBytes());
@@ -775,6 +765,29 @@ public class MongoStore extends DataStore {
 			}
 		}
 		return false;
+	}
+	
+	private void prepareFields(Broadcast broadcast, UpdateOperations<Broadcast> ops ) {
+		
+		if ( broadcast.getDuration() != 0) {
+			ops.set(DURATION, broadcast.getDuration());
+		}
+		
+		if (broadcast.getStartTime() != 0) {
+			ops.set(START_TIME, broadcast.getStartTime());
+		}
+		
+		if (broadcast.getOriginAdress() != null) {
+			ops.set(ORIGIN_ADDRESS, broadcast.getOriginAdress());
+		}
+		
+		if (broadcast.getStatus() != null) {
+			ops.set(STATUS, broadcast.getStatus());
+		}
+		
+		if (broadcast.getAbsoluteStartTimeMs() != 0) {
+			ops.set("absoluteStartTimeMs", broadcast.getAbsoluteStartTimeMs());
+		}
 	}
 
 	/**
@@ -1006,40 +1019,6 @@ public class MongoStore extends DataStore {
 	}
 
 	@Override
-	public void clearStreamsOnThisServer(String hostAddress) {
-		synchronized(this) {
-			Query<Broadcast> query = datastore.createQuery(Broadcast.class);
-			query.and(
-					query.or(
-							query.criteria(ORIGIN_ADDRESS).doesNotExist(), //check for non cluster mode
-							query.criteria(ORIGIN_ADDRESS).equal(hostAddress)
-							),
-					query.criteria("zombi").equal(true)
-					);
-			long count = query.count();
-			
-			if(count > 0) {
-				logger.error("There are {} streams for {} at start. They are deleted now.", count, hostAddress);
-
-				WriteResult res = datastore.delete(query);
-				if(res.getN() != count) {
-					logger.error("Only {} streams were deleted ou of {} streams.", res.getN(), count);
-				}
-			}
-
-			Query<StreamInfo> querySI = datastore.createQuery(StreamInfo.class).field("host").equal(hostAddress);
-			count = querySI.count();
-			if(count > 0) {
-				logger.error("There are {} stream info adressing {} at start. They are deleted now.", count, hostAddress);
-				WriteResult res = datastore.delete(querySI);
-				if(res.getN() != count) {
-					logger.error("Only {} stream info were deleted out of {} streams.", res.getN(), count);
-				}
-			}
-		}
-	}
-
-	@Override
 	public boolean createConferenceRoom(ConferenceRoom room) {
 		boolean result = false;
 		synchronized(this) {
@@ -1065,7 +1044,8 @@ public class MongoStore extends DataStore {
 				Query<ConferenceRoom> query = conferenceRoomDatastore.createQuery(ConferenceRoom.class).field("roomId").equal(room.getRoomId());
 
 				UpdateOperations<ConferenceRoom> ops = conferenceRoomDatastore.createUpdateOperations(ConferenceRoom.class).set("roomId", room.getRoomId())
-						.set("startDate", room.getStartDate()).set("endDate", room.getEndDate());
+						.set("startDate", room.getStartDate()).set("endDate", room.getEndDate())
+						.set("roomStreamList", room.getRoomStreamList());
 
 				UpdateResults update = conferenceRoomDatastore.update(query, ops);
 				return update.getUpdatedCount() == 1;
@@ -1262,5 +1242,86 @@ public class MongoStore extends DataStore {
 			}
 		}
 		return result;
+	}
+	
+	@Override
+	public int resetBroadcasts(String hostAddress) 
+	{
+		int totalOperationCount = 0;
+		synchronized(this) {
+			{
+				//delete zombi streams that are belong to origin address
+				Query<Broadcast> query = datastore.createQuery(Broadcast.class);
+				query.and(
+						query.or(
+								query.criteria(ORIGIN_ADDRESS).doesNotExist(), //check for non cluster mode
+								query.criteria(ORIGIN_ADDRESS).equal(hostAddress)
+								),
+						query.criteria("zombi").equal(true)
+						);
+				long count = query.count();
+				
+				if(count > 0) 
+				{
+					logger.error("There are {} streams for {} at start. They are deleted now.", count, hostAddress);
+	
+					WriteResult res = datastore.delete(query);
+					if(res.getN() != count) {
+						logger.error("Only {} streams were deleted out of {} streams.", res.getN(), count);
+					}
+					totalOperationCount += res.getN();
+				}
+			}
+			
+			{
+				//reset the broadcasts viewer numbers
+				Query<Broadcast> queryUpdateStatus = datastore.createQuery(Broadcast.class);
+				queryUpdateStatus.or(queryUpdateStatus.criteria(ORIGIN_ADDRESS).equal(hostAddress),
+						queryUpdateStatus.criteria(ORIGIN_ADDRESS).doesNotExist());
+				
+				long broadcastCount = queryUpdateStatus.count();
+	
+				if (broadcastCount > 0) 
+				{
+					UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class);
+					ops.set(WEBRTC_VIEWER_COUNT, 0);
+					ops.set(HLS_VIEWER_COUNT, 0);
+					ops.set(RTMP_VIEWER_COUNT, 0);
+					ops.set(STATUS, AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+					
+					UpdateResults update = datastore.update(queryUpdateStatus, ops);
+					
+					if (update.getUpdatedCount() == broadcastCount) 
+					{
+						logger.info("{} of Broadcasts are reset. ", broadcastCount);
+					}
+					else 
+					{
+						logger.error("Broadcast reset count is not correct. {} stream info were updated out of {} streams.", update.getUpdatedCount(), broadcastCount);
+					}
+					
+					totalOperationCount += update.getUpdatedCount();
+				}
+				
+			}
+			
+			{
+				//delete streaminfo 
+				Query<StreamInfo> querySI = datastore.createQuery(StreamInfo.class).field("host").equal(hostAddress);
+				long count = querySI.count();
+				if(count > 0) 
+				{
+					logger.error("There are {} stream info adressing {} at start. They are deleted now.", count, hostAddress);
+					WriteResult res = datastore.delete(querySI);
+					if(res.getN() != count) {
+						logger.error("Only {} stream info were deleted out of {} streams.", res.getN(), count);
+					}
+					totalOperationCount += res.getN();
+				}
+			}
+			
+		}
+		
+		return totalOperationCount;
 	}
 }

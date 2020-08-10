@@ -1,16 +1,15 @@
 package io.antmedia.integration;
 
-import static org.bytedeco.javacpp.avcodec.av_packet_unref;
-import static org.bytedeco.javacpp.avformat.av_read_frame;
-import static org.bytedeco.javacpp.avformat.av_register_all;
-import static org.bytedeco.javacpp.avformat.avformat_close_input;
-import static org.bytedeco.javacpp.avformat.avformat_find_stream_info;
-import static org.bytedeco.javacpp.avformat.avformat_network_init;
-import static org.bytedeco.javacpp.avformat.avformat_open_input;
-import static org.bytedeco.javacpp.avutil.AVMEDIA_TYPE_AUDIO;
-import static org.bytedeco.javacpp.avutil.AVMEDIA_TYPE_VIDEO;
-import static org.bytedeco.javacpp.avutil.AV_NOPTS_VALUE;
-import static org.bytedeco.javacpp.avutil.AV_PIX_FMT_NONE;
+import static org.bytedeco.ffmpeg.global.avformat.av_read_frame;
+import static org.bytedeco.ffmpeg.global.avformat.av_register_all;
+import static org.bytedeco.ffmpeg.global.avformat.avformat_close_input;
+import static org.bytedeco.ffmpeg.global.avformat.avformat_find_stream_info;
+import static org.bytedeco.ffmpeg.global.avformat.avformat_network_init;
+import static org.bytedeco.ffmpeg.global.avformat.avformat_open_input;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
+import static org.bytedeco.ffmpeg.global.avutil.AV_NOPTS_VALUE;
+import static org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_NONE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -22,15 +21,15 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.concurrent.TimeUnit;
 
-import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.datastore.db.types.Endpoint;
 import org.awaitility.Awaitility;
-import org.bytedeco.javacpp.avcodec.AVCodecContext;
-import org.bytedeco.javacpp.avcodec.AVPacket;
-import org.bytedeco.javacpp.avformat;
-import org.bytedeco.javacpp.avformat.AVFormatContext;
-import org.bytedeco.javacpp.avutil.AVDictionary;
+import org.bytedeco.ffmpeg.avcodec.AVCodecContext;
+import org.bytedeco.ffmpeg.avcodec.AVPacket;
+import org.bytedeco.ffmpeg.avformat.AVFormatContext;
+import org.bytedeco.ffmpeg.avformat.AVInputFormat;
+import org.bytedeco.ffmpeg.avformat.AVStream;
+import org.bytedeco.ffmpeg.avutil.AVDictionary;
+import org.bytedeco.ffmpeg.global.avcodec;
+import org.bytedeco.ffmpeg.global.avformat;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -41,9 +40,11 @@ import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 
-import io.antmedia.rest.BroadcastRestService.SimpleStat;
+import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.Endpoint;
+import io.antmedia.muxer.RtmpMuxer;
 import io.antmedia.rest.model.Result;
-
 
 public class MuxingTest {
 
@@ -147,8 +148,8 @@ public class MuxingTest {
 
 
 		} catch (Exception e) {
-			fail(e.getMessage());
 			e.printStackTrace();
+			fail(e.getMessage());
 		}
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
 			RestServiceV2Test restService = new RestServiceV2Test();
@@ -321,6 +322,44 @@ public class MuxingTest {
 		assertEquals(0, restService.callGetLiveStatistics());
 	}
 	
+	//	@Test
+	public void testAzureRTMPSending() {
+		//read bigbunny ts file and send it to the azure
+		AVInputFormat findInputFormat = avformat.av_find_input_format("ts");
+		AVFormatContext inputFormatContext = avformat.avformat_alloc_context();
+		
+		//TODO put a ts file having video only below
+		int ret = avformat_open_input(inputFormatContext, "", findInputFormat, null);
+		
+		System.out.println("open input -> " + ret);
+		ret = avformat_find_stream_info(inputFormatContext, (AVDictionary)null);
+		System.out.println("find stream info -> " + ret);
+		
+		AVPacket pkt = avcodec.av_packet_alloc();
+		
+		RtmpMuxer rtmpMuxer = new RtmpMuxer("rtmp://test-rtmptest-usea.channel.media.azure.net:1935/live/e0c44eb42c2747869c67227f183fad59/test");
+		
+		//rtmpMuxer.prepare(inputFormatContext);
+		rtmpMuxer.addVideoStream(1280, 720, null, avcodec.AV_CODEC_ID_H264, 0, false, null);
+		
+		rtmpMuxer.prepareIO();
+		
+		while((ret = av_read_frame(inputFormatContext, pkt)) >= 0) 
+		{
+			AVStream stream = inputFormatContext.streams(pkt.stream_index());
+			if (stream.codecpar().codec_type() == AVMEDIA_TYPE_VIDEO) 
+			{
+				rtmpMuxer.writePacket(pkt, stream);
+			}
+		}
+		System.out.println("leaving from loop");
+		
+		pkt.close();
+		
+		avformat_close_input(inputFormatContext);
+		
+	}
+	
 	@Test
 	public void testDynamicAddRemoveRTMP() 
 	{
@@ -337,9 +376,11 @@ public class MuxingTest {
 		 String streamIdDynamic = "dynamic_stream" + (int)(Math.random() * 999999);
 		 String dynamicRtmpURL = "rtmp://localhost/LiveApp/" + streamIdDynamic;
 		 try {
-			Result result = RestServiceV2Test.addEndpoint(streamId, dynamicRtmpURL);
-			assertTrue(result.isSuccess());
-			
+			 Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+				 //if stream is being prepared, it may return false, so try again 
+				 Result result = RestServiceV2Test.addEndpoint(streamId, dynamicRtmpURL);
+				 return result.isSuccess();
+			 });
 			
 			 Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
 			 .until(() -> { 
@@ -350,7 +391,7 @@ public class MuxingTest {
 					 return false;
 			 	});
 			 
-			 result = RestServiceV2Test.removeEndpoint(streamId, dynamicRtmpURL);
+			 Result result = RestServiceV2Test.removeEndpoint(streamId, dynamicRtmpURL);
 			 assertTrue(result.isSuccess());
 			 
 			 Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
@@ -385,8 +426,11 @@ public class MuxingTest {
 		 endpoint.setRtmpUrl(dynamicRtmpURL);
 		 
 		 try {
-			Result result = RestServiceV2Test.addEndpointV2(streamId, endpoint);
-			assertTrue(result.isSuccess());
+			 Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+				 //if stream is being prepared, it may return false, so try again 
+				 Result result = RestServiceV2Test.addEndpointV2(streamId, endpoint);
+				 return result.isSuccess();
+			 });
 			
 			
 			 Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
@@ -400,7 +444,7 @@ public class MuxingTest {
 			 
 			 Broadcast broadcast = RestServiceV2Test.callGetBroadcast(streamId);
 			 
-			 result = RestServiceV2Test.removeEndpointV2(streamId, broadcast.getEndPointList().get(0).getEndpointServiceId());
+			 Result result = RestServiceV2Test.removeEndpointV2(streamId, broadcast.getEndPointList().get(0).getEndpointServiceId());
 			 assertTrue(result.isSuccess());
 			 
 			 Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
@@ -467,6 +511,7 @@ public class MuxingTest {
 
 	public static boolean testFile(String absolutePath, int expectedDurationInMS, boolean fullRead) {
 		int ret;
+		System.out.println("Tested File:"+absolutePath);
 
 		AVFormatContext inputFormatContext = avformat.avformat_alloc_context();
 		if (inputFormatContext == null) {
@@ -517,7 +562,7 @@ public class MuxingTest {
 
 			}
 			i++;
-			av_packet_unref(pkt);
+			avcodec.av_packet_unref(pkt);
 		}
 
 		if (inputFormatContext.duration() != AV_NOPTS_VALUE) {
@@ -525,7 +570,7 @@ public class MuxingTest {
 
 			if (expectedDurationInMS != 0) {
 				if ((durationInMS < (expectedDurationInMS - 2000)) || (durationInMS > (expectedDurationInMS + 2000))) {
-					System.out.println("Failed: duration of the stream: " + durationInMS);
+					System.out.println("Failed: duration of the stream: " + durationInMS + " expected duration is: " + expectedDurationInMS);
 					return false;
 				}
 			}

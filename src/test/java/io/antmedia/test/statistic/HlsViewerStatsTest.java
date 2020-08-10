@@ -3,6 +3,8 @@ package io.antmedia.test.statistic;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import static org.mockito.Mockito.*;
@@ -18,17 +20,32 @@ import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.HlsViewerStats;
 import io.vertx.core.Vertx;
 
 
 public class HlsViewerStatsTest {
+	
+	static Vertx vertx;	
+	
+	
+	@BeforeClass
+	public static void beforeClass() {
+		vertx = io.vertx.core.Vertx.vertx();
+	}
+	
+	@AfterClass
+	public static void afterClass() {
+		vertx.close();
+	}
 
 	@Test
 	public void testHLSViewerCount() {
 		HlsViewerStats viewerStats = new HlsViewerStats();
-
+			
+		viewerStats.setVertx(vertx);
 		DataStore dataStore = new InMemoryDataStore("datastore");
 		viewerStats.setDataStore(dataStore);
 		
@@ -48,6 +65,9 @@ public class HlsViewerStatsTest {
 			viewerStats.registerNewViewer(streamId, sessionId);
 		}
 
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
+				()->viewerStats.getViewerCount(streamId) == 100 );
+		
 		int viewerCount = viewerStats.getViewerCount(streamId);
 		assertEquals(100, viewerCount);
 
@@ -59,6 +79,8 @@ public class HlsViewerStatsTest {
 			viewerStats.registerNewViewer(streamId, sessionId);
 		}
 
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
+				()->viewerStats.getViewerCount(streamId) == 101 );
 
 		viewerCount = viewerStats.getViewerCount(streamId);
 		assertEquals(101, viewerCount);
@@ -84,8 +106,6 @@ public class HlsViewerStatsTest {
 	public void testSetApplicationContext() {
 		ApplicationContext context = mock(ApplicationContext.class);
 
-		Vertx vertx = io.vertx.core.Vertx.vertx();		
-
 		try {
 
 			DataStoreFactory dsf = new DataStoreFactory();
@@ -94,6 +114,8 @@ public class HlsViewerStatsTest {
 			when(context.getBean(DataStoreFactory.BEAN_NAME)).thenReturn(dsf);
 
 			when(context.containsBean(AppSettings.BEAN_NAME)).thenReturn(true);
+			
+			when(context.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
 
 			AppSettings settings = mock(AppSettings.class);
 
@@ -105,7 +127,6 @@ public class HlsViewerStatsTest {
 			
 			HlsViewerStats viewerStats = new HlsViewerStats();
 			
-			viewerStats.setVertx(vertx);
 			viewerStats.setTimePeriodMS(1000);
 			viewerStats.setApplicationContext(context);
 			
@@ -157,6 +178,9 @@ public class HlsViewerStatsTest {
 			
 			
 			viewerStats.registerNewViewer(streamId, sessionId);
+			
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(
+					()-> viewerStats.getViewerCount(streamId) == 1);
 			
 			assertEquals(1, viewerStats.getViewerCount(streamId));
 			assertEquals(1, viewerStats.getIncreaseCounterMap(streamId));

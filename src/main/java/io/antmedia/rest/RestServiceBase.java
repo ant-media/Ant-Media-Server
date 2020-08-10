@@ -258,11 +258,11 @@ public abstract class RestServiceBase {
 
 	public Broadcast createBroadcastWithStreamID(Broadcast broadcast) {
 		return saveBroadcast(broadcast, AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, getScope().getName(),
-				getDataStore(), getAppSettings().getListenerHookURL(), getServerSettings().getServerName(), getServerSettings().getHostAddress());
+				getDataStore(), getAppSettings().getListenerHookURL(), getServerSettings(), 0);
 	}
 
 	public static Broadcast saveBroadcast(Broadcast broadcast, String status, String scopeName, DataStore dataStore,
-			String settingsListenerHookURL, String fqdn, String hostAddress) {
+			String settingsListenerHookURL, ServerSettings serverSettings, long absoluteStartTimeMs) {
 
 		if (broadcast == null) {
 			broadcast = new Broadcast();
@@ -278,11 +278,13 @@ public abstract class RestServiceBase {
 
 			broadcast.setListenerHookURL(settingsListenerHookURL);
 		}
+		String fqdn = serverSettings.getServerName();
 
 		if (fqdn == null || fqdn.length() == 0) {
-			fqdn = hostAddress; 
+			fqdn = serverSettings.getHostAddress(); 
 		}
-		broadcast.setOriginAdress(hostAddress);
+		broadcast.setOriginAdress(serverSettings.getHostAddress());
+		broadcast.setAbsoluteStartTimeMs(absoluteStartTimeMs);
 
 		if (fqdn != null && fqdn.length() >= 0) {
 			broadcast.setRtmpURL("rtmp://" + fqdn + "/" + scopeName + "/");
@@ -454,6 +456,9 @@ public abstract class RestServiceBase {
 	{
 		// If broadcast status is broadcasting, this will force stop the streaming.
 		if(getDataStore().get(streamId).getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
+			return getApplication().stopStreaming(broadcast).isSuccess();
+		}
+		else if(getApplication().getStreamFetcherManager().checkAlreadyFetch(broadcast)) {
 			return getApplication().stopStreaming(broadcast).isSuccess();
 		}
 		else
@@ -741,7 +746,7 @@ public abstract class RestServiceBase {
 
 				List<VoD> vodList = new ArrayList<>();
 				for (int i = 0; i < pageCount; i++) {
-					vodList.addAll(getDataStore().getVodList(i*DataStore.MAX_ITEM_IN_ONE_LIST, DataStore.MAX_ITEM_IN_ONE_LIST, null, null));
+					vodList.addAll(getDataStore().getVodList(i*DataStore.MAX_ITEM_IN_ONE_LIST, DataStore.MAX_ITEM_IN_ONE_LIST, null, null, null));
 				}
 
 				String fqdn = getServerSettings().getServerName();
@@ -835,7 +840,7 @@ public abstract class RestServiceBase {
 
 				stream.setDate(unixTime);
 
-				Broadcast savedBroadcast = saveBroadcast(stream, AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, getScope().getName(), getDataStore(), getAppSettings().getListenerHookURL(), getServerSettings().getServerName(), getServerSettings().getHostAddress());
+				Broadcast savedBroadcast = saveBroadcast(stream, AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, getScope().getName(), getDataStore(), getAppSettings().getListenerHookURL(), getServerSettings(), 0);
 
 				if (socialEndpointIds != null && socialEndpointIds.length()>0) {
 					addSocialEndpoints(savedBroadcast, socialEndpointIds);
@@ -848,6 +853,7 @@ public abstract class RestServiceBase {
 					connResult.setSuccess(false);
 					connResult.setErrorId(FETCHER_NOT_STARTED_ERROR);
 				}
+				connResult.setDataId(savedBroadcast.getStreamId());
 
 			}
 		}
@@ -1073,7 +1079,7 @@ public abstract class RestServiceBase {
 			stream.setDate(unixTime);
 
 
-			Broadcast savedBroadcast = saveBroadcast(stream, AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, getScope().getName(), getDataStore(), getAppSettings().getListenerHookURL(), getServerSettings().getServerName(), getServerSettings().getHostAddress());
+			Broadcast savedBroadcast = saveBroadcast(stream, AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, getScope().getName(), getDataStore(), getAppSettings().getListenerHookURL(), getServerSettings(), 0);
 
 			if (socialEndpointIds != null && socialEndpointIds.length()>0) {
 				addSocialEndpoints(savedBroadcast, socialEndpointIds);
@@ -1092,6 +1098,7 @@ public abstract class RestServiceBase {
 				result.setErrorId(FETCHER_NOT_STARTED_ERROR);
 				result.setSuccess(false);
 			}
+			result.setDataId(savedBroadcast.getStreamId());
 
 		}
 		return result;
@@ -1188,7 +1195,7 @@ public abstract class RestServiceBase {
 		String fileExtension = FilenameUtils.getExtension(fileName);
 		try {
 
-			if ("mp4".equals(fileExtension)) {
+			if ("mp4".equalsIgnoreCase(fileExtension)) {
 
 
 				File streamsDirectory = new File(
@@ -1717,8 +1724,8 @@ public abstract class RestServiceBase {
 	protected Object getToken (String streamId, long expireDate, String type, String roomId) 
 	{
 		Token token = null;
-		String message = "Define stream Id and Expire Date (unix time)";
-		if(streamId != null && expireDate > 0) {
+		String message = "Define Stream ID, Token Type and Expire Date (unix time)";
+		if(streamId != null && type != null && expireDate > 0) {
 
 			ApplicationContext appContext = getAppContext();
 
@@ -1844,6 +1851,5 @@ public abstract class RestServiceBase {
 			return false;
 		}
 	}
-
 
 }

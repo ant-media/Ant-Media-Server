@@ -28,8 +28,8 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
-import org.bytedeco.javacpp.avcodec.AVPacket;
-import org.bytedeco.javacpp.avformat.AVFormatContext;
+import org.bytedeco.ffmpeg.avcodec.AVPacket;
+import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.red5.server.api.scope.IBroadcastScope;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IBroadcastStream;
@@ -76,6 +76,8 @@ import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonObject;
+import io.vertx.ext.dropwizard.MetricsService;
 
 public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShutdownListener {
 
@@ -124,7 +126,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	private int numberOfEncoderNotOpenedErrors = 0;
 	protected int publishTimeoutStreams = 0;
 	private List<String> publishTimeoutStreamsList = new ArrayList<>();
-	private boolean shutdownProperly;
+	private boolean shutdownProperly = true;
 
 	protected WebRTCVideoReceiveStats webRTCVideoReceiveStats = new WebRTCVideoReceiveStats();
 
@@ -146,6 +148,13 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		
 		// Create initialized file in application
 		Result result = createInitializationProcess(app.getName());
+		
+		if (!result.isSuccess()) {
+			//Save App Setting
+			this.shutdownProperly = false;
+			// Reset Broadcast Stats
+			resetBroadcasts();
+		}
 
 		if (app.getContext().hasBean(IClusterNotifier.BEAN_NAME)) {
 			//which means it's in cluster mode
@@ -153,20 +162,15 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			
 			clusterNotifier.registerSettingUpdateListener(getAppSettings().getAppName(), settings -> updateSettings(settings, false));
 		}
-		else if (!result.isSuccess()) {
-			//Save App Setting
-			setShutdownProperly(false);
-			// Reset Broadcast Stats
-			resetBroadcasts();
-		}
-
-
-		vertx.setTimer(1, l -> {
-				streamFetcherManager = new StreamFetcherManager(vertx, getDataStore(),app);
-				streamFetcherManager.setRestartStreamFetcherPeriod(appSettings.getRestartStreamFetcherPeriod());
-				List<Broadcast> streams = getDataStore().getExternalStreamsList();
-				logger.info("Stream source size: {}", streams.size());
-				streamFetcherManager.startStreams(streams);
+		
+		vertx.setTimer(10, l -> {
+				
+				getStreamFetcherManager();
+				if(appSettings.isStartStreamFetcherAutomatically()) {
+					List<Broadcast> streams = getDataStore().getExternalStreamsList();
+					logger.info("Stream source size: {}", streams.size());
+					streamFetcherManager.startStreams(streams);
+				}
 
 				List<SocialEndpointCredentials> socialEndpoints = getDataStore().getSocialEndpoints(0, END_POINT_LIMIT);
 
@@ -221,42 +225,19 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		//not used
 	}
 
+	/**
+	 * This method is called after ungraceful shutdown
+	 * @return
+	 */
 	public Result resetBroadcasts(){
 		
-		Result result = new Result(false);
-		
-		long broadcastCount = getDataStore().getBroadcastCount();
-		int successfulOperations = 0;
-		int zombieStreamCount = 0;
-		for (int i = 0; (i * DataStore.MAX_ITEM_IN_ONE_LIST) < broadcastCount; i++) {
-			List<Broadcast> broadcastList = getDataStore().getBroadcastList(i*DataStore.MAX_ITEM_IN_ONE_LIST, DataStore.MAX_ITEM_IN_ONE_LIST);
+		logger.info("Resetting streams viewer numbers because there is an unexpected stop happened in app: {}", getScope() != null? getScope().getName() : "[scope is null]");
 
-			for (Broadcast broadcast : broadcastList) 
-			{
-				if (broadcast.isZombi()) {
-					zombieStreamCount++;
-					getDataStore().delete(broadcast.getStreamId());	
-				}
-				else {
-					broadcast.setHlsViewerCount(0);
-					broadcast.setWebRTCViewerCount(0);
-					broadcast.setRtmpViewerCount(0);
-					broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
-					String streamId = getDataStore().save(broadcast);
-					
-					if (streamId != null) {
-						successfulOperations++;
-					}
-				}
-			}
-		}
+		int operationCount = getDataStore().resetBroadcasts(getServerSettings().getHostAddress());
 		
-		result.setMessage("");
+		Result result = new Result(true);
+		result.setMessage("Successfull operations: "+ operationCount);
 		
-		if ((successfulOperations+zombieStreamCount) == broadcastCount) {
-			result.setSuccess(true);
-			result.setMessage("Successfull operations: "+ successfulOperations + " total operations: " + broadcastCount + " total deleted zombie streams: " + zombieStreamCount);
-		}
 		return result;
 	}
 	
@@ -329,9 +310,8 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 					if (listenerHookURL != null && listenerHookURL.length() > 0) {
 						final String name = broadcast.getName();
 						final String category = broadcast.getCategory();
-						
-						vertx.setTimer(1, e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_END_LIVE_STREAM, name, category,
-								null, null));
+						logger.info("Setting timer to call live stream ended hook for stream:{}",streamId );
+						vertx.setTimer(10, e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_END_LIVE_STREAM, name, category, null, null));
 					}
 
 					stopPublishingSocialEndpoints(broadcast);
@@ -446,11 +426,14 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	public void streamPublishStart(final IBroadcastStream stream) {
 		String streamName = stream.getPublishedName();
 		logger.info("stream name in streamPublishStart: {}", streamName );
-
-		startPublish(streamName);
+		long absoluteStartTimeMs = 0;
+		if (stream instanceof ClientBroadcastStream) {
+			absoluteStartTimeMs = ((ClientBroadcastStream) stream).getAbsoluteStartTimeMs();
+		}
+		startPublish(streamName, absoluteStartTimeMs);
 	}
 
-	public void startPublish(String streamName) {
+	public void startPublish(String streamName, long absoluteStartTimeMs) {
 		vertx.executeBlocking( handler -> {
 			try {
 
@@ -460,13 +443,14 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 					if (broadcast == null) {
 
-						broadcast = saveUndefinedBroadcast(streamName, getScope().getName(), dataStoreLocal, appSettings,  AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, getServerSettings().getServerName(), getServerSettings().getHostAddress());
+						broadcast = saveUndefinedBroadcast(streamName, getScope().getName(), dataStoreLocal, appSettings,  AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, getServerSettings(), absoluteStartTimeMs);
 					} 
 					else {
 
 						broadcast.setStatus(BROADCAST_STATUS_BROADCASTING);
 						broadcast.setStartTime(System.currentTimeMillis());
 						broadcast.setOriginAdress(getServerSettings().getHostAddress());
+						broadcast.setAbsoluteStartTimeMs(absoluteStartTimeMs);
 						boolean result = dataStoreLocal.updateBroadcastFields(broadcast.getStreamId(), broadcast);
 						
 						logger.info(" Status of stream {} is set to Broadcasting with result: {}", broadcast.getStreamId(), result);
@@ -477,7 +461,8 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 					if (listenerHookURL != null && listenerHookURL.length() > 0) {
 						final String name = broadcast.getName();
 						final String category = broadcast.getCategory();
-						vertx.setTimer(1, e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_START_LIVE_STREAM, name, category,
+						logger.info("Setting timer to call live stream started hook for stream:{}",streamId );
+						vertx.setTimer(10, e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_START_LIVE_STREAM, name, category,
 								null, null));
 					}
 
@@ -526,7 +511,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	
 	
 
-	public static Broadcast saveUndefinedBroadcast(String streamId, String scopeName, DataStore dataStore, AppSettings appSettings, String streamStatus, String fqdn, String hostAddress) {		
+	public static Broadcast saveUndefinedBroadcast(String streamId, String scopeName, DataStore dataStore, AppSettings appSettings, String streamStatus, ServerSettings serverSettings, long absoluteStartTimeMs) {		
 		Broadcast newBroadcast = new Broadcast();
 		long now = System.currentTimeMillis();
 		newBroadcast.setDate(now);
@@ -542,7 +527,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 			return RestServiceBase.saveBroadcast(newBroadcast,
 					streamStatus, scopeName, dataStore,
-					settingsListenerHookURL, fqdn, hostAddress);
+					settingsListenerHookURL, serverSettings, absoluteStartTimeMs);
 		} catch (Exception e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
 		}
@@ -599,8 +584,8 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		{
 			final String baseName = vodName.substring(0, index);
 			String finalListenerHookURL = listenerHookURL;
-			
-			vertx.setTimer(1, e ->	notifyHook(finalListenerHookURL, streamId, HOOK_ACTION_VOD_READY, null, null, baseName, vodId));
+			logger.info("Setting timer for calling vod ready hook for stream:{}", streamId);
+			vertx.setTimer(10, e ->	notifyHook(finalListenerHookURL, streamId, HOOK_ACTION_VOD_READY, null, null, baseName, vodId));
 		}
 
 		String muxerFinishScript = appSettings.getMuxerFinishScript();
@@ -728,7 +713,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	public StringBuilder notifyHook(String url, String id, String action, String streamName, String category,
 			String vodName, String vodId) {
 		StringBuilder response = null;
-
+		logger.info("Running notify hook url:{} stream id: {} action:{} vod name:{} vod id:{}", url, id, action, vodName, vodId);
 		if (url != null && url.length() > 0) {
 			Map<String, String> variables = new HashMap<>();
 
@@ -901,6 +886,9 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	}
 
 	public StreamFetcherManager getStreamFetcherManager() {
+		if(streamFetcherManager == null) {
+			streamFetcherManager = new StreamFetcherManager(vertx, getDataStore(), scope);
+		}
 		return streamFetcherManager;
 	}
 	
@@ -923,6 +911,10 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			dataStore = dataStoreFactory.getDataStore();
 		}
 		return dataStore;
+	}
+	
+	public void setDataStore(DataStore dataStore) {
+		this.dataStore = dataStore;
 	}
 
 	public DataStoreFactory getDataStoreFactory() {
@@ -995,13 +987,57 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		}
 	}
 
+	
+	public void waitUntilThreadsStop() {
+		int i = 0;
+		int waitPeriod = 1000;
+		int activeVertxThreadCount = 0;
+		while((activeVertxThreadCount = getActiveVertxThreadCount()) > 0) {
+			try {
+				if (i > 3) {
+					logger.warn("Waiting for active vertx threads count({}) decrease to zero for app: {}"
+							+ " total wait time: {}ms", activeVertxThreadCount, getScope().getName(), i*waitPeriod);
+				}
+				if (i>10) {
+					logger.error("*********************************************************************");
+					logger.error("Not all active vertx threads are stopped. It's even breaking the loop");
+					logger.error("*********************************************************************");
+					break;
+				}
+				i++;
+				Thread.sleep(waitPeriod);
+				
+			} catch (InterruptedException e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+				Thread.currentThread().interrupt();
+			}
+		}
+	}
+
+	private int getActiveVertxThreadCount() {
+		int activeVertexThreadCount = 0;
+		try {
+			MetricsService metricsService = MetricsService.create(vertx);
+			String activeThreadKey = "vertx.pools.worker.vert.x-worker-thread.in-use";
+			JsonObject metrics = metricsService.getMetricsSnapshot(activeThreadKey);
+			if (metrics != null) {
+				activeVertexThreadCount = metrics.getJsonObject(activeThreadKey).getInteger("count");
+			}
+		}
+		catch (Exception e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+		}
+		return activeVertexThreadCount;
+	}
 
 	@Override
 	public void serverShuttingdown() {
 		logger.info("{} is closing streams", getScope().getName());
 		closeStreamFetchers();
 		closeRTMPStreams();
+		
 		waitUntilLiveStreamsStopped();
+		waitUntilThreadsStop();
 		
 		createShutdownFile(getScope().getName());
 		
@@ -1025,12 +1061,12 @@ public Result createInitializationProcess(String appName){
 				if(initializedFile.createNewFile()) {
 					result.setMessage("Initialized file created in " + appName);
 					result.setSuccess(true);
-					logger.info("Initialized file created in {}",appName);
+					logger.info("Initialized file is created in {}",appName);
 				}
 				else {
 					result.setMessage("Initialized file couldn't create in " + appName);
 					result.setSuccess(false);
-					logger.info("Initialized file couldn't create in {}",appName);
+					logger.info("Initialized file couldn't be created in {}",appName);
 				}
 			} 
 			// Check repeated starting - It's normal start
@@ -1041,12 +1077,12 @@ public Result createInitializationProcess(String appName){
 				if(!closedFile.exists()) {
 					result.setMessage("System works, deleted closed file in " + appName);
 					result.setSuccess(true);
-					logger.info("Delete closed file in {}",appName);
+					logger.info("Delete the \".closed\" file in {}",appName);
 				}
 				else {
 					result.setMessage("Delete couldn't closed file in " + appName);
 					result.setSuccess(false);
-					logger.info("Delete couldn't closed file in {}",appName);
+					logger.info("Not deleted the \".closed\" file in {}",appName);
 				}
 			}
 			// It means didn't close normal (unexpected stop)
@@ -1081,6 +1117,10 @@ public Result createInitializationProcess(String appName){
 					logger.error("Closed file couldn't create in {}",appName);
 				}
 			}
+			else {
+				logger.warn("Closed file already exists for app: {}", appName);
+			}
+			
 		} catch (IOException e) {
 			logger.error(e.getMessage());
 		}
@@ -1281,6 +1321,7 @@ public Result createInitializationProcess(String appName){
 																	: "");
 		store.put(AppSettings.SETTINGS_H264_ENABLED, String.valueOf(newAppsettings.isH264Enabled()));
 		store.put(AppSettings.SETTINGS_VP8_ENABLED, String.valueOf(newAppsettings.isVp8Enabled()));
+		store.put(AppSettings.SETTINGS_H265_ENABLED, String.valueOf(newAppsettings.isH265Enabled()));
 		store.put(AppSettings.SETTINGS_DATA_CHANNEL_ENABLED, String.valueOf(newAppsettings.isDataChannelEnabled()));
 		store.put(AppSettings.SETTINGS_DATA_CHANNEL_PLAYER_DISTRIBUTION, String.valueOf(newAppsettings.getDataChannelPlayerDistribution()));
 
@@ -1288,6 +1329,9 @@ public Result createInitializationProcess(String appName){
 		store.put(AppSettings.SETTINGS_MAX_BITRATE_ACCEPT, String.valueOf(newAppsettings.getMaxBitrateAccept()));
 		store.put(AppSettings.SETTINGS_MAX_FPS_ACCEPT, String.valueOf(newAppsettings.getMaxFpsAccept()));
 		
+		store.put(AppSettings.SETTINGS_LISTENER_HOOK_URL, newAppsettings.getListenerHookURL() != null ? newAppsettings.getListenerHookURL() : "");
+		
+		store.put(AppSettings.SETTINGS_STREAM_FETCHER_RESTART_PERIOD, String.valueOf(newAppsettings.getRestartStreamFetcherPeriod()));
 		return store.save();
 	}
 
@@ -1324,6 +1368,7 @@ public Result createInitializationProcess(String appName){
 		
 		appSettings.setH264Enabled(newSettings.isH264Enabled());
 		appSettings.setVp8Enabled(newSettings.isVp8Enabled());
+		appSettings.setH265Enabled(newSettings.isH265Enabled());
 
 		appSettings.setDataChannelEnabled(newSettings.isDataChannelEnabled());
 		appSettings.setDataChannelPlayerDistribution(newSettings.getDataChannelPlayerDistribution());
@@ -1331,6 +1376,10 @@ public Result createInitializationProcess(String appName){
 		appSettings.setMaxBitrateAccept(newSettings.getMaxBitrateAccept());
 		appSettings.setMaxFpsAccept(newSettings.getMaxFpsAccept());
 		appSettings.setMaxResolutionAccept(newSettings.getMaxResolutionAccept());
+		
+		appSettings.setListenerHookURL(newSettings.getListenerHookURL());
+
+		appSettings.setRestartStreamFetcherPeriod(newSettings.getRestartStreamFetcherPeriod());
 		
 		logger.warn("app settings updated for {}", getScope().getName());	
 	}
@@ -1342,8 +1391,26 @@ public Result createInitializationProcess(String appName){
 	/*
 	 * This method is overridden in enterprise edition since RTMP to WebRTC streaming is an enterprise feature.
 	 */
-	public List<RTMPToWebRTCStats> getRTMPToWebRTCStats() {
-		return new ArrayList<RTMPToWebRTCStats>();
+	public RTMPToWebRTCStats getRTMPToWebRTCStats(String streamId) {
+		return new RTMPToWebRTCStats(streamId);
+	}
+	
+	public boolean isDataChannelEnabled() {
+		return false;
+	}
+	
+	public boolean isDataChannelMessagingSupported() {
+		
+		return false;
+	}
+	
+	public boolean sendDataChannelMessage(String streamId, String message) {
+		
+		return false;
+	}
+	
+	public boolean doesWebRTCStreamExist(String streamId) {
+		return false;
 	}
 
 }

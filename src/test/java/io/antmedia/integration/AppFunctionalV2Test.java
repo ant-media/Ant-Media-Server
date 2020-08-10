@@ -1,7 +1,7 @@
 package io.antmedia.integration;
 
-import static org.bytedeco.javacpp.avformat.av_register_all;
-import static org.bytedeco.javacpp.avformat.avformat_network_init;
+import static org.bytedeco.ffmpeg.global.avformat.av_register_all;
+import static org.bytedeco.ffmpeg.global.avformat.avformat_network_init;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -14,8 +14,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.ProtocolException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -711,7 +709,7 @@ public class AppFunctionalV2Test {
 		//src/test/resources/test.flv
 		
 		Process rtmpSendingProcess = execute(ffmpegPath
-				+ " -re -i https://www.radiantmediaplayer.com/media/bbb-360p.mp4  -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
+				+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
 				+ stream.getStreamId());
 		
 		//Wait for the m3u8 file is available
@@ -1075,7 +1073,6 @@ public class AppFunctionalV2Test {
 		assertNotNull(resultResponse);
 
 		return resultResponse;
-
 
 	}
 	public static StringBuffer readResponse(HttpResponse response) throws IOException {
