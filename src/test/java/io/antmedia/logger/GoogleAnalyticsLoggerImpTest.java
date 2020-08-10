@@ -1,7 +1,11 @@
 package io.antmedia.logger;
 
-import ch.qos.logback.classic.spi.IThrowableProxy;
-import com.brsanthu.googleanalytics.GoogleAnalytics;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
+import java.util.UUID;
+
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -10,11 +14,9 @@ import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.StandardOpenOption;
-import java.util.UUID;
+import com.brsanthu.googleanalytics.GoogleAnalytics;
+
+import ch.qos.logback.classic.spi.IThrowableProxy;
 
 public class GoogleAnalyticsLoggerImpTest {
 
