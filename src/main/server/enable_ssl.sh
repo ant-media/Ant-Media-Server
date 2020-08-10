@@ -304,9 +304,9 @@ then
     auth_tomcat
 
     #create cron job for auto renew
-    if [ "$fullChainFileExist" == false ]; then
-      create_cron_job
-    fi
+   # if [ "$fullChainFileExist" == false ]; then
+   #   create_cron_job
+   # fi
     
 fi
 
