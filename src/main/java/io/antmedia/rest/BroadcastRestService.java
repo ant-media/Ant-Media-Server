@@ -1,6 +1,5 @@
 package io.antmedia.rest;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import javax.ws.rs.Consumes;
@@ -17,8 +16,6 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
 import org.springframework.stereotype.Component;
-import org.springframework.web.context.WebApplicationContext;
-import org.springframework.web.context.support.WebApplicationContextUtils;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.RecordType;
@@ -241,9 +238,13 @@ public class BroadcastRestService extends RestServiceBase{
 	@GET
 	@Path("/list/{offset}/{size}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public List<Broadcast> getBroadcastList(@ApiParam(value = "This is the offset of the list, it is useful for pagination", required = true) @PathParam("offset") int offset,
-			@ApiParam(value = "Number of items that will be fetched. If there is not enough item in the datastore, returned list size may less then this value", required = true) @PathParam("size") int size) {
-		return getDataStore().getBroadcastList(offset, size);
+	public List<Broadcast> getBroadcastList(@ApiParam(value = "This is the offset of the list, it is useful for pagination. If you want to use sort mechanism, we recommend using Mongo DB.", required = true) @PathParam("offset") int offset,
+			@ApiParam(value = "Number of items that will be fetched. If there is not enough item in the datastore, returned list size may less then this value", required = true) @PathParam("size") int size,
+			@ApiParam(value = "type of the stream. Possible values are \"liveStream\", \"ipCamera\", \"streamSource\", \"VoD\"", required = false) @PathParam("type_by") String typeBy,
+			@ApiParam(value = "field to sort", required = false) @QueryParam("sort_by") String sortBy,
+			@ApiParam(value = "asc for Ascending, desc Descending order", required = false) @QueryParam("order_by") String orderBy
+			) {
+		return getDataStore().getBroadcastList(offset, size, typeBy, sortBy, orderBy);
 	}
 
 
@@ -606,11 +607,11 @@ public class BroadcastRestService extends RestServiceBase{
 	
 	@ApiOperation(value = "Get RTMP to WebRTC path stats in general", notes = "",response = RTMPToWebRTCStats.class)
 	@GET
-	@Path("/rtmp-to-webrtc-stats")
+	@Path("/{id}/rtmp-to-webrtc-stats")
 	@Produces(MediaType.APPLICATION_JSON)
-	public List<RTMPToWebRTCStats> getRTMPToWebRTCStats() 
+	public RTMPToWebRTCStats getRTMPToWebRTCStats(@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String id) 
 	{
-		return getApplication().getRTMPToWebRTCStats();
+		return getApplication().getRTMPToWebRTCStats(id);
 	}
 	
 	
@@ -625,15 +626,19 @@ public class BroadcastRestService extends RestServiceBase{
 		return super.getWebRTCClientStatsList(offset, size, streamId);
 	}
 
-	@ApiOperation(value = "Returns filtered broadcast list according to type. It's useful for getting IP Camera and Stream Sources from the whole list", notes = "",responseContainer = "List",response = Broadcast.class)
+	@Deprecated
+	@ApiOperation(value = "Returns filtered broadcast list according to type. It's useful for getting IP Camera and Stream Sources from the whole list. If you want to use sort mechanism, we recommend using Mongo DB.", notes = "",responseContainer = "List",response = Broadcast.class)
 	@GET
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/filter-list/{offset}/{size}/{type}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public List<Broadcast> filterBroadcastListV2(@ApiParam(value = "starting point of the list", required = true) @PathParam("offset") int offset,
 			@ApiParam(value = "size of the return list (max:50 )", required = true) @PathParam("size") int size,
-			@ApiParam(value = "type of the stream. Possible values are \"liveStream\", \"ipCamera\", \"streamSource\", \"VoD\"", required = true) @PathParam("type") String type) {
-		return getDataStore().filterBroadcastList(offset, size, type);
+			@ApiParam(value = "type of the stream. Possible values are \"liveStream\", \"ipCamera\", \"streamSource\", \"VoD\"", required = true) @PathParam("type") String type,
+			@ApiParam(value = "field to sort", required = false) @QueryParam("sort_by") String sortBy,
+			@ApiParam(value = "asc for Ascending, desc Descending order", required = false) @QueryParam("order_by") String orderBy
+			) {
+		return getDataStore().getBroadcastList(offset, size, type, sortBy, orderBy);
 	}
 
 
@@ -706,14 +711,14 @@ public class BroadcastRestService extends RestServiceBase{
 	}
 	
 	
-	@ApiOperation(value = "Set stream specific recording setting, this setting overrides general Mp4 Muxing Setting", notes = "", response = Result.class)
+	@ApiOperation(value = "Set stream specific recording setting, this setting overrides general Mp4 and WebM Muxing Setting", notes = "", response = Result.class)
 	@PUT
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/recording/{recording-status}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result enableRecording(@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String streamId,
 			@ApiParam(value = "Change recording status. If true, starts recording. If false stop recording", required = true) @PathParam("recording-status") boolean enableRecording,
-			@ApiParam(value = "Record type:mp4 or webm", required = false) @QueryParam("recordType") String recordType) {
+			@ApiParam(value = "Record type: 'mp4' or 'webm'. It's optional parameter.", required = false) @QueryParam("recordType") String recordType) {
 		if(recordType != null && recordType.equals("webm")) {
 			return enableWebMMuxing(streamId, enableRecording);
 		}
@@ -1044,5 +1049,42 @@ public class BroadcastRestService extends RestServiceBase{
 		}
 		
 		return basicStreamInfo;
-	}
+	}	
+
+	@ApiOperation(value = "Send stream participants a message through Data Channel in a WebRTC stream", notes = "", response = Result.class)
+	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/{id}/data")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result sendMessage(@ApiParam(value = "Message through Data Channel which will be sent to all WebRTC stream participants", required = true) String message, 
+			@ApiParam(value = "Broadcast id", required = true) @PathParam("id") String id) {
+
+		AntMediaApplicationAdapter application = getApplication();
+		// check if WebRTC data channels are supported in this edition
+		if(application != null && application.isDataChannelMessagingSupported()) {
+			// check if data channel is enabled in the settings
+			if(application.isDataChannelEnabled()) {
+				// check if stream with given stream id exists
+				if(application.doesWebRTCStreamExist(id)) {
+					 // send the message through the application
+					 boolean status = application.sendDataChannelMessage(id,message);
+					 if(status) {
+						 return new Result(true);
+					 } else {
+						 return new Result(false, "Operation not completed");
+					 }
+					
+				} else {
+					return new Result(false, "Requested WebRTC stream does not exist");
+				}
+				
+			} else {
+				return new Result(false, "Data channels are not enabled");
+			}
+			
+		} else {
+			return new Result(false, "Operation not supported in the Community Edition. Check the Enterprise version for more features.");
+		}
+	}	
+	
 }

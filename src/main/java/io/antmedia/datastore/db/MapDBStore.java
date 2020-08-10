@@ -7,7 +7,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.regex.Pattern;
 
 import org.apache.commons.io.FilenameUtils;
@@ -190,11 +189,10 @@ public class MapDBStore extends DataStore {
 				if (jsonString != null) {
 					Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
 					broadcast.setStatus(status);
-					if(status.contentEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
+					if(status.equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
 						broadcast.setStartTime(System.currentTimeMillis());
-						
 					}
-					else if(status.contentEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED)) {
+					else if(status.equals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED)) {
 						broadcast.setRtmpViewerCount(0);
 						broadcast.setWebRTCViewerCount(0);
 						broadcast.setHlsViewerCount(0);
@@ -349,34 +347,31 @@ public class MapDBStore extends DataStore {
 	}
 
 	@Override
-	public List<Broadcast> getBroadcastList(int offset, int size) {
-		List<Broadcast> list = new ArrayList<>();
+	public List<Broadcast> getBroadcastList(int offset, int size, String type, String sortBy, String orderBy) {
+		ArrayList<Broadcast> list = new ArrayList<>();
 		synchronized (this) {
-			Collection<String> values = map.values();
-			int t = 0;
-			int itemCount = 0;
-			if (size > MAX_ITEM_IN_ONE_LIST) {
-				size = MAX_ITEM_IN_ONE_LIST;
-			}
-			if (offset < 0) {
-				offset = 0;
-			}
-			Iterator<String> iterator = values.iterator();
+			
+			Collection<String> broadcasts = map.getValues();
 
-			while(itemCount < size && iterator.hasNext()) {
-				if (t < offset) {
-					t++;
-					iterator.next();
-				}
-				else {
-					list.add(gson.fromJson(iterator.next(), Broadcast.class));
-
-					itemCount++;	
+			if(type != null && !type.isEmpty()) {
+				for (String broadcastString : broadcasts) 
+				{
+					Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
+					
+					if (broadcast.getType().equals(type)) {
+						list.add(broadcast);
+					}
 				}
 			}
-
+			else {
+				for (String broadcastString : broadcasts) 
+				{
+					Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
+					list.add(broadcast);
+				}
+			}
 		}
-		return list;
+		return sortAndCropBroadcastList(list, offset, size, sortBy, orderBy);
 	}
 
 	/**
@@ -410,55 +405,6 @@ public class MapDBStore extends DataStore {
 			}
 			return sortAndCropVodList(vods, offset, size, sortBy, orderBy);
 		}
-	}
-
-
-	@Override
-	public List<Broadcast> filterBroadcastList(int offset, int size, String type) {
-
-		List<Broadcast> list = new ArrayList<>();
-		synchronized (this) {
-			int t = 0;
-			int itemCount = 0;
-			if (size > MAX_ITEM_IN_ONE_LIST) {
-				size = MAX_ITEM_IN_ONE_LIST;
-			}
-			if (offset < 0) {
-				offset = 0;
-			}
-
-			Object[] objectArray = map.getValues().toArray();
-
-			Broadcast[] broadcastArray = new Broadcast[objectArray.length];
-
-			for (int i = 0; i < objectArray.length; i++) {
-				broadcastArray[i] = gson.fromJson((String) objectArray[i], Broadcast.class);
-			}
-
-			List<Broadcast> filterList = new ArrayList<>();
-			for (int i = 0; i < broadcastArray.length; i++) {
-
-				if (broadcastArray[i].getType().equals(type)) {
-					filterList.add(gson.fromJson((String) objectArray[i], Broadcast.class));
-				}
-			}
-			Iterator<Broadcast> iterator = filterList.iterator();
-
-			while(itemCount < size && iterator.hasNext()) {
-				if (t < offset) {
-					t++;
-					iterator.next();
-				}
-				else {
-
-					list.add(iterator.next());
-					itemCount++;
-				}
-			}
-
-		}
-		return list;
-
 	}
 
 	@Override

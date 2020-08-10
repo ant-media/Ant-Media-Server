@@ -1,5 +1,15 @@
 package io.antmedia.test.filter;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+
+import java.io.IOException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+import javax.servlet.ServletException;
+
 import org.awaitility.Awaitility;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -12,17 +22,6 @@ import org.springframework.mock.web.MockHttpServletResponse;
 
 import io.antmedia.AppSettings;
 import io.antmedia.filter.IPFilter;
-
-import javax.servlet.ServletException;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-
-import java.io.IOException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 public class IPFilterTest {
 	

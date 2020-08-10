@@ -1,26 +1,15 @@
 package io.antmedia.test.filter;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.io.File;
-import java.io.IOException;
-import java.util.HashSet;
 
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import org.apache.catalina.filters.CorsFilter;
-import org.bytedeco.javacpp.avcodec.AVPacket;
-import org.bytedeco.javacpp.avformat.AVFormatContext;
+import org.bytedeco.ffmpeg.avcodec.AVPacket;
+import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.red5.server.scope.WebScope;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
@@ -31,10 +20,7 @@ import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
-import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.filter.CorsHeaderFilter;
 import io.antmedia.filter.StreamAcceptFilter;
-import io.antmedia.security.AcceptOnlyStreamsInDataStore;
 
 @ContextConfiguration(locations = {"../test.xml"})
 @DirtiesContext(classMode = ClassMode.AFTER_CLASS)

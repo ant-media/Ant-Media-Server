@@ -7,13 +7,9 @@ import javax.xml.soap.SOAPException;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.onvif.ver10.schema.AutoFocusMode;
-import org.onvif.ver10.schema.Date;
-import org.onvif.ver10.schema.DateTime;
 import org.onvif.ver10.schema.FocusConfiguration20;
 import org.onvif.ver10.schema.ImagingSettings20;
-import org.onvif.ver10.schema.PTZVector;
 import org.onvif.ver10.schema.Profile;
-import org.onvif.ver10.schema.Time;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

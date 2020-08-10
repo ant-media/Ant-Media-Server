@@ -6,28 +6,18 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
 import java.util.List;
 
 import org.apache.catalina.util.NetMask;
 import org.junit.Test;
-import org.red5.server.Launcher;
 import org.red5.server.scope.WebScope;
-import org.springframework.core.io.FileSystemResource;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.ResourceLoader;
-import org.springframework.mock.web.MockServletContext;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
-import org.springframework.web.context.support.XmlWebApplicationContext;
 
 import io.antmedia.AppSettings;
 import io.antmedia.EncoderSettings;
-import io.antmedia.SystemUtils;
 import io.antmedia.rest.RestServiceBase;
 
 @ContextConfiguration(locations = { "test.xml" })
@@ -54,7 +44,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		AppSettings appSettings = (AppSettings) applicationContext.getBean("app.settings");
 		
 		assertEquals("stun:stun.l.google.com:19302", appSettings.getStunServerURI());
-		assertEquals(true, appSettings.isWebRTCTcpCandidatesEnabled());
+		assertEquals(false, appSettings.isWebRTCTcpCandidatesEnabled());
 		assertNull(appSettings.getEncoderName());
 		assertEquals(480, appSettings.getPreviewHeight());
 		assertFalse(appSettings.isUseOriginalWebRTCEnabled());

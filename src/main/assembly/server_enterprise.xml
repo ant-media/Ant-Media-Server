@@ -56,7 +56,7 @@
 				<exclude>red5-server-1*.jar</exclude>
 				<exclude>red5-service-*.jar</exclude>
 				<exclude>ffmpeg-*.jar</exclude>
-				<exclude>javacpp-*.jar</exclude>
+				<exclude>javacpp-*-*.jar</exclude>
 				<exclude>cuda-*.jar</exclude>
 				<exclude>ant-media-enterprise*.jar</exclude>
 			</excludes>
@@ -190,6 +190,15 @@
 			<outputDirectory></outputDirectory>
 			<includes>
 				<include>*.war</include>
+			</includes>
+		</fileSet>
+
+		<!-- Readme File-->
+		<fileSet>
+			<directory>${project.basedir}</directory>
+			<outputDirectory></outputDirectory>
+			<includes>
+				<include>README.md</include>
 			</includes>
 		</fileSet>
 	</fileSets>

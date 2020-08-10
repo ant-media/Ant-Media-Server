@@ -50,8 +50,8 @@ import org.apache.http.message.BasicNameValuePair;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.awaitility.Awaitility;
-import org.bytedeco.javacpp.avformat;
-import org.bytedeco.javacpp.avutil;
+import org.bytedeco.ffmpeg.global.avformat;
+import org.bytedeco.ffmpeg.global.avutil;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -473,10 +473,14 @@ public class RestServiceV2Test {
 		return tmp;
 
 	}
-
+	
 	public static String callAddStreamSource(Broadcast broadcast) throws Exception {
+		return callAddStreamSource(broadcast, false);
+	}
 
-		String url = ROOT_SERVICE_URL + "/v2/broadcasts/create";
+	public static String callAddStreamSource(Broadcast broadcast, boolean autoStart) throws Exception {
+
+		String url = ROOT_SERVICE_URL + "/v2/broadcasts/create?autoStart="+autoStart;
 
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 		Gson gson = new Gson();

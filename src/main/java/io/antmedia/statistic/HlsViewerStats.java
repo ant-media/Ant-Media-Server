@@ -11,13 +11,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 
-import io.antmedia.datastore.db.DataStoreFactory;
-import io.antmedia.datastore.db.IDataStoreFactory;
-import io.antmedia.datastore.db.types.Broadcast;
-import io.vertx.core.Vertx;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
+import io.antmedia.datastore.db.DataStoreFactory;
+import io.antmedia.datastore.db.IDataStoreFactory;
+import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.muxer.IAntMediaStreamHandler;
+import io.vertx.core.Vertx;
 
 public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 
@@ -27,7 +28,6 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 
 	private DataStore dataStore;
 	
-	@Autowired
 	private Vertx vertx;
 	
 	private DataStoreFactory dataStoreFactory;
@@ -109,11 +109,13 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 	@Override
 	public void setApplicationContext(ApplicationContext applicationContext)  {
 		dataStoreFactory = (DataStoreFactory) applicationContext.getBean(IDataStoreFactory.BEAN_NAME);
+		
+		vertx = (Vertx) applicationContext.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
 
-		if (applicationContext.containsBean(AppSettings.BEAN_NAME)) {
-			AppSettings settings = (AppSettings)applicationContext.getBean(AppSettings.BEAN_NAME);
-			timeoutMS = getTimeoutMSFromSettings(settings, timeoutMS);
-		}
+		
+		AppSettings settings = (AppSettings)applicationContext.getBean(AppSettings.BEAN_NAME);
+		timeoutMS = getTimeoutMSFromSettings(settings, timeoutMS);
+		
 		
 		vertx.setPeriodic(DEFAULT_TIME_PERIOD_FOR_VIEWER_COUNT, yt-> 
 		{
