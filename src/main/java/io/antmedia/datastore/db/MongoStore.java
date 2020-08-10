@@ -187,10 +187,10 @@ public class MongoStore extends DataStore {
 
 				UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set(STATUS, status);
 
-				if(status.contentEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
+				if(status.equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
 					ops.set(START_TIME, System.currentTimeMillis());
 				}
-				else if(status.contentEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED)) {
+				else if(status.equals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED)) {
 					ops.set(WEBRTC_VIEWER_COUNT, 0);
 					ops.set(HLS_VIEWER_COUNT, 0);
 					ops.set(RTMP_VIEWER_COUNT, 0);
@@ -321,13 +321,40 @@ public class MongoStore extends DataStore {
 	}
 
 	@Override
-	public List<Broadcast> getBroadcastList(int offset, int size) {
+	public List<Broadcast> getBroadcastList(int offset, int size, String type, String sortBy, String orderBy) {
 		synchronized(this) {
+			try {
+				Query<Broadcast> query = datastore.find(Broadcast.class);
+			
 			if (size > MAX_ITEM_IN_ONE_LIST) {
 				size = MAX_ITEM_IN_ONE_LIST;
 			}
-			return datastore.find(Broadcast.class).asList(new FindOptions().skip(offset).limit(size));
+			
+			if(sortBy != null && orderBy != null && !sortBy.isEmpty() && !orderBy.isEmpty()) {
+				String sortString = orderBy.equals("desc") ? "-" : "";
+				if(sortBy.equals("name")) {
+					sortString += "name";
+				}
+				else if(sortBy.equals("date")) {
+					sortString += "date";
+				}
+				else if(sortBy.equals(STATUS)) {
+					sortString += STATUS;
+				}
+				query = query.order(sortString);
+			}
+
+			if(type != null && !type.isEmpty()) {
+				return query.field("type").equal(type).asList(new FindOptions().skip(offset).limit(size));
+			}
+			else {
+				return query.asList(new FindOptions().skip(offset).limit(size));
+			}
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
 		}
+		return null;
 	}
 
 	public Datastore getDataStore() {
@@ -376,18 +403,6 @@ public class MongoStore extends DataStore {
 		synchronized(this) {
 			datastore.getMongo().close();
 		}
-	}
-
-	@Override
-	public List<Broadcast> filterBroadcastList(int offset, int size, String type) {
-		synchronized(this) {
-			try {
-				return datastore.find(Broadcast.class).field("type").equal(type).asList(new FindOptions().skip(offset).limit(size));
-			} catch (Exception e) {
-				logger.error(ExceptionUtils.getStackTrace(e));
-			}
-		}
-		return null;	
 	}
 
 	@Override
