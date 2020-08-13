@@ -1117,7 +1117,7 @@ public class BroadcastRestServiceV2UnitTest {
 			assertNotNull(broadcast2.getStreamId());
 		}
 
-		List<Broadcast> broadcastList = restServiceReal.getBroadcastList(0, 20);
+		List<Broadcast> broadcastList = restServiceReal.getBroadcastList(0, 20, null, null, null);
 		assertEquals(streamCount, broadcastList.size());
 
 		for (Broadcast item: broadcastList) {
@@ -2305,4 +2305,7 @@ public class BroadcastRestServiceV2UnitTest {
 		assertEquals("Operation not completed", res.getMessage());
 		
 	}
+	
+	
+	
 }
