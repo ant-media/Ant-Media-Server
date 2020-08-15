@@ -98,6 +98,7 @@
                 <directory>src/test/resources</directory>
             </testResource>
         </testResources>
+        <pluginManagement>
         <plugins>
             <plugin>
                 <artifactId>maven-jar-plugin</artifactId>
@@ -138,7 +139,7 @@
             <plugin>
                 <groupId>org.sonatype.plugins</groupId>
                 <artifactId>nexus-staging-maven-plugin</artifactId>
-                <version>1.6.7</version>
+                <version>${nexus-staging-maven-plugin.version}</version>
                 <extensions>true</extensions>
                 <configuration>
                     <serverId>ossrh</serverId>
@@ -149,7 +150,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-gpg-plugin</artifactId>
-                <version>1.6</version>
+                <version>${maven-gpg-plugin.version}</version>
                 <executions>
                     <execution>
                         <id>sign-artifacts</id>
@@ -182,7 +183,7 @@
             <plugin>
                 <groupId>com.github.kongchen</groupId>
                 <artifactId>swagger-maven-plugin</artifactId>
-                <version>3.1.5</version>
+                <version>3.1.8</version>
                 <configuration>
                     <apiSources>
                         <apiSource>
@@ -209,6 +210,7 @@
                 <configFile>enunciate.xml</configFile> <docsDir>${project.build.directory}</docsDir>
                 </configuration> </execution> </executions> </plugin> -->
         </plugins>
+         </pluginManagement>
     </build>
     <dependencies>
         <dependency>
@@ -278,7 +280,7 @@
         <dependency>
             <groupId>com.google.protobuf</groupId>
             <artifactId>protobuf-java</artifactId>
-            <version>3.5.1</version>
+            <version>${protobuf-java.version}</version>
             <scope>provided</scope>
         </dependency>
         <!-- <dependency> <groupId>uk.org.lidalia</groupId> <artifactId>sysout-over-slf4j</artifactId>
@@ -490,7 +492,7 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>2.11.0</version>
+            <version>${mockito-core.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -501,7 +503,7 @@
         <dependency>
             <groupId>org.awaitility</groupId>
             <artifactId>awaitility</artifactId>
-            <version>3.1.0</version>
+            <version>${awaitility.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -513,7 +515,7 @@
         <dependency>
             <groupId>org.glassfish.tyrus</groupId>
             <artifactId>tyrus-container-grizzly-server</artifactId>
-            <version>1.12</version>
+            <version>1.17</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -525,7 +527,7 @@
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpmime</artifactId>
-            <version>4.3.1</version>
+            <version>${httpmime.version}</version>
         </dependency>
         <dependency>
 		    <groupId>org.apache.kafka</groupId>
@@ -556,7 +558,7 @@
                     <plugin>
                         <groupId>com.github.spotbugs</groupId>
                         <artifactId>spotbugs-maven-plugin</artifactId>
-                        <version>3.1.1</version>
+                        <version>3.1.12.2</version>
                         <configuration>
                             <effort>Max</effort>
                             <threshold>Low</threshold>
@@ -585,7 +587,7 @@
                      -->
                     <plugin>
                         <artifactId>maven-dependency-plugin</artifactId>
-                        <version>2.10</version>
+                        <version>${maven-dependency-plugin.version}</version>
 
                         <executions>
                             <execution>
@@ -680,7 +682,7 @@
                     <plugin>
 			            <groupId>org.codehaus.mojo</groupId>
 						<artifactId>exec-maven-plugin</artifactId>
-						<version>1.3.2</version>
+						<version>${exec-maven-plugin.version}</version>
 						<executions>
 							<execution>
 							    <id>create-liveapp</id>
@@ -714,7 +716,7 @@
 			        </plugin>
                     <plugin>
                         <artifactId>maven-assembly-plugin</artifactId>
-                        <version>2.6</version>
+                        <version>${maven-assembly-plugin.version}</version>
                         <configuration>
                             <descriptors>
                                 <descriptor>src/main/assembly/server.xml</descriptor>
@@ -764,7 +766,7 @@
                 <plugins>
                     <plugin>
                         <artifactId>maven-dependency-plugin</artifactId>
-                        <version>2.10</version>
+                        <version>${maven-dependency-plugin.version}</version>
                         <executions>
                             <execution>
                                 <id>copy-dependencies</id>
@@ -873,7 +875,7 @@
                     <plugin>
 			            <groupId>org.codehaus.mojo</groupId>
 						<artifactId>exec-maven-plugin</artifactId>
-						<version>1.3.2</version>
+						<version>${exec-maven-plugin.version}</version>
 						<executions>
 							<execution>
 							    <id>create-liveapp</id>
@@ -907,7 +909,7 @@
 			        </plugin>
                     <plugin>
                         <artifactId>maven-assembly-plugin</artifactId>
-                        <version>2.6</version>
+                        <version>${maven-assembly-plugin.version}</version>
                         <configuration>
                             <descriptors>
                                 <descriptor>src/main/assembly/server_enterprise.xml</descriptor>
@@ -937,14 +939,14 @@
                 <plugins>
                     <plugin>
                         <artifactId>maven-war-plugin</artifactId>
-                        <version>2.6</version>
+                        <version>${maven-war-plugin.version}</version>
                         <configuration>
                             <packagingExcludes>WEB-INF/lib/*.jar</packagingExcludes>
                         </configuration>
                     </plugin>
                     <plugin>
                         <artifactId>maven-assembly-plugin</artifactId>
-                        <version>2.6</version>
+                        <version>${maven-assembly-plugin.version}</version>
                         <configuration>
                             <descriptors>
                                 <descriptor>src/main/assembly/war.xml</descriptor>
