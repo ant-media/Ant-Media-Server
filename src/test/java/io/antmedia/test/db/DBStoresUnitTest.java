@@ -1751,6 +1751,8 @@ public class DBStoresUnitTest {
 
 		//edit room
 		assertTrue(datastore.editConferenceRoom(dbRoom.getRoomId(), dbRoom));
+		
+		assertFalse(datastore.editConferenceRoom("room_not_exist", dbRoom));
 
 
 		ConferenceRoom editedRoom = datastore.getConferenceRoom(dbRoom.getRoomId());

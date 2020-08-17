@@ -1097,8 +1097,8 @@ public class MapDBStore extends DataStore {
 		synchronized (this) {
 			boolean result = false;
 
-			if (room != null && room.getRoomId() != null) {
-				result = conferenceRoomMap.replace(room.getRoomId(), gson.toJson(room)) != null;
+			if (roomId != null && room != null && room.getRoomId() != null) {
+				result = conferenceRoomMap.replace(roomId, gson.toJson(room)) != null;
 				if (result) {
 					db.commit();
 				}
