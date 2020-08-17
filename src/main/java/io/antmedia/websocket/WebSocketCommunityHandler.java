@@ -208,7 +208,8 @@ public class WebSocketCommunityHandler {
 		jsonObj.put(WebSocketConstants.STREAM_ID, streamId);
 
 		if(roomName != null) {
-			jsonObj.put(WebSocketConstants.ATTR_ROOM_NAME, roomName);
+			jsonObj.put(WebSocketConstants.ATTR_ROOM_NAME, roomName); //keep it for compatibility
+			jsonObj.put(WebSocketConstants.ROOM, roomName);
 		}
 
 		sendMessage(jsonObj.toJSONString(), session);

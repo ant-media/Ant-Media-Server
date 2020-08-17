@@ -1098,9 +1098,10 @@ public class MapDBStore extends DataStore {
 			boolean result = false;
 
 			if (room != null && room.getRoomId() != null) {
-				conferenceRoomMap.replace(room.getRoomId(), gson.toJson(room));
-				db.commit();
-				result = true;
+				result = conferenceRoomMap.replace(room.getRoomId(), gson.toJson(room)) != null;
+				if (result) {
+					db.commit();
+				}
 			}
 			return result;
 		}
@@ -1113,9 +1114,10 @@ public class MapDBStore extends DataStore {
 			boolean result = false;
 
 			if (roomId != null && !roomId.isEmpty()) {
-				conferenceRoomMap.remove(roomId);
-				db.commit();
-				result = true;
+				result = conferenceRoomMap.remove(roomId) != null;
+				if (result) {
+					db.commit();
+				}
 			}
 			return result;
 		}
