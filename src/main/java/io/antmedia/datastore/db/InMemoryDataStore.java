@@ -776,8 +776,7 @@ public class InMemoryDataStore extends DataStore {
 		boolean result = false;
 
 		if (room != null && room.getRoomId() != null) {
-			roomMap.replace(roomId, room);
-			result = true;
+			return roomMap.replace(roomId, room) != null;
 		}
 		return result;
 	}
