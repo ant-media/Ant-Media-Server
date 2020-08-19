@@ -39,7 +39,7 @@ public class HlsStatisticsFilter extends AbstractFilter {
 
 			String streamId = TokenFilterManager.getStreamId(httpRequest.getRequestURI());
 			Broadcast broadcast = getBroadcast(streamId);
-			if(broadcast.getHlsViewerCount() >= broadcast.getHlsViewerLimit()) {
+			if(broadcast != null && broadcast.getHlsViewerCount() >= broadcast.getHlsViewerLimit()) {
 				((HttpServletResponse) response).sendError(HttpServletResponse.SC_FORBIDDEN, "Viewer Limit Reached");
 				return;
 			}
