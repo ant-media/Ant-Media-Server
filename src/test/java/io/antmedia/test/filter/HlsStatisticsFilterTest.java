@@ -149,6 +149,12 @@ public class HlsStatisticsFilterTest {
 			when(mockRequest.getRequestURI()).thenReturn("/LiveApp/streams/"+streamId+".m3u8");
 			
 			when(mockResponse.getStatus()).thenReturn(HttpServletResponse.SC_OK);
+			
+			DataStoreFactory dsf = mock(DataStoreFactory.class);		
+			when(context.getBean(DataStoreFactory.BEAN_NAME)).thenReturn(dsf);
+			
+			DataStore dataStore = mock(DataStore.class);
+			when(dsf.getDataStore()).thenReturn(dataStore);
 
 			logger.info("session id {}, stream id {}", sessionId, streamId);
 			hlsStatisticsFilter.doFilter(mockRequest, mockResponse, mockChain);
