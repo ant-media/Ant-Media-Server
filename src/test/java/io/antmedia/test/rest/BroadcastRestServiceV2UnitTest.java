@@ -1961,7 +1961,7 @@ public class BroadcastRestServiceV2UnitTest {
 		
 		streamSource.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 		
-		StreamFetcher fetcher = mock (StreamFetcher.class);
+		StreamFetcher fetcher = mock(StreamFetcher.class);
 		
 		try {
 			streamSource.setStreamId("selimTest");
@@ -1982,14 +1982,14 @@ public class BroadcastRestServiceV2UnitTest {
 		
 		Mockito.doReturn(true).when(streamSourceRest).checkStreamUrl(any());
 		
-		Mockito.doReturn(true).when(streamSourceRest).checkStopStreaming(any(),any());
+		Mockito.doReturn(true).when(streamSourceRest).checkStopStreaming(any());
 		
 		result = streamSourceRest.updateBroadcast(streamSource.getStreamId(), streamSource,socialNetworksToPublish);
 		
 		assertEquals(true, result.isSuccess());
 		
 		Awaitility.await().atMost(22*250, TimeUnit.MILLISECONDS)
-		.until(() -> streamSourceRest.waitStopStreaming(streamSource.getStreamId(),false));
+		.until(() -> streamSourceRest.waitStopStreaming(streamSource,false));
 		
 		// Test line 392 if condition
 
@@ -2007,7 +2007,7 @@ public class BroadcastRestServiceV2UnitTest {
 		
 		result = streamSourceRest.updateBroadcast(streamSource.getStreamId(), streamSource,"endpoint_1");
 		
-		assertEquals(false, result.isSuccess());
+		assertEquals(true, result.isSuccess());
 		
 	}
 	
