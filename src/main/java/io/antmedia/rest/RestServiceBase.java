@@ -417,8 +417,8 @@ public abstract class RestServiceBase {
 
 		logger.debug("update cam info for stream {}", broadcast.getStreamId());
 
-		if( checkStreamUrl(broadcast.getStreamUrl()) && broadcast.getStatus()!=null){
-
+		if(checkStreamUrl(broadcast.getStreamUrl())) 
+		{
 			resultStopStreaming = checkStopStreaming(streamId, broadcast);
 
 			waitStopStreaming(streamId,resultStopStreaming);
@@ -925,7 +925,6 @@ public abstract class RestServiceBase {
 	public Result addStreamSource(Broadcast stream, String socialEndpointIds) {
 
 		Result result = new Result(false);
-
 
 		IStatsCollector monitor = (IStatsCollector) getAppContext().getBean(IStatsCollector.BEAN_NAME);
 
