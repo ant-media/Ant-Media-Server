@@ -452,6 +452,7 @@ public abstract class RestServiceBase {
 				}
 			}
 			else {
+				streamId = streamId.replaceAll("[\n|\r|\t]", "_");
 				logger.info("Broadcast with stream id: {} is null", streamId);
 			}
 
