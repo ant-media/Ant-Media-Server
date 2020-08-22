@@ -191,8 +191,14 @@ public class RestServiceV2Test {
 		}
 		return null;
 	}
+	
 
-	public Result updateBroadcast(String id, String name, String description, String socialNetworks) {
+	public Result updateBroadcast(String id, String name, String description, String socialNetworks, String streamUrl) {
+
+		return updateBroadcast(id, name, description, socialNetworks, streamUrl, null);
+	}
+
+	public Result updateBroadcast(String id, String name, String description, String socialNetworks, String streamUrl, String type) {
 		String url = ROOT_SERVICE_URL + "/v2/broadcasts/" + id;
 
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
@@ -205,6 +211,12 @@ public class RestServiceV2Test {
 		}
 		broadcast.setName(name);
 		broadcast.setDescription(description);
+		if (streamUrl != null) {
+			broadcast.setStreamUrl(streamUrl);
+		}
+		if (type != null) {
+			broadcast.setType(type);
+		}
 
 		try {
 
@@ -1096,7 +1108,7 @@ public class RestServiceV2Test {
 		// update name and description
 		try {
 			// update broadcast just name no social network
-			Result result = updateBroadcast(broadcast.getStreamId(), name, description, "");
+			Result result = updateBroadcast(broadcast.getStreamId(), name, description, "", null);
 			assertTrue(result.isSuccess());
 
 			// check that name is updated
@@ -1123,7 +1135,7 @@ public class RestServiceV2Test {
 			name = "name 2";
 			description = " description 2";
 			// update broadcast name and add social network
-			result = updateBroadcast(broadcast.getStreamId(), name, description, socialEndpointServices.get(0).getId());
+			result = updateBroadcast(broadcast.getStreamId(), name, description, socialEndpointServices.get(0).getId(), null);
 			assertTrue(result.isSuccess());
 
 			broadcast = getBroadcast(broadcast.getStreamId().toString());
@@ -1133,7 +1145,7 @@ public class RestServiceV2Test {
 			// update broadcast name
 			name = "name 3";
 			description = " description 3";
-			result = updateBroadcast(broadcast.getStreamId(), name, description, socialEndpointServices.get(0).getId());
+			result = updateBroadcast(broadcast.getStreamId(), name, description, socialEndpointServices.get(0).getId(), null);
 			assertTrue(result.isSuccess());
 
 			// check that name is updated on stream name and social end point
@@ -1145,7 +1157,7 @@ public class RestServiceV2Test {
 			assertEquals(broadcast.getEndPointList().get(0).getName(), name);
 
 			// update broadcast name and remove social endpoint
-			result = updateBroadcast(broadcast.getStreamId(), name, description, "");
+			result = updateBroadcast(broadcast.getStreamId(), name, description, "", null);
 
 			// check that social endpoint is removed
 			broadcast = getBroadcast(broadcast.getStreamId().toString());
