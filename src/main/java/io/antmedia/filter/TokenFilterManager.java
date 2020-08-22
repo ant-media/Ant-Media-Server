@@ -56,7 +56,8 @@ public class TokenFilterManager extends AbstractFilter   {
 				,httpRequest.getRequestURI(), tokenId, sessionId, streamId);
 
 
-		if ("GET".equals(method)) 
+		String clusterToken = (String) request.getAttribute("ClusterToken");
+		if ("GET".equals(method) && (clusterToken == null || !clusterToken.equals("mytoken"))) 
 		{
 			
 			if(appSettings.isTokenControlEnabled()) 
