@@ -260,6 +260,10 @@ public class WebSocketConstants {
 	 */
 	public static final String HIGH_RESOURCE_USAGE = "highResourceUsage";
 	/**
+	 * Error definition it is send when viewer limit reached
+	 */
+	public static final String VIEWER_LIMIT_REACHED = "viewerLimitReached";
+	/**
 	 * Error definition it is send when stream name contains special characters
 	 */
 	public static final String INVALID_STREAM_NAME = "invalidStreamName";
