@@ -110,7 +110,7 @@ public class TokenFilterManager extends AbstractFilter   {
 	private TokenGenerator getTokenGenerator() {
 		TokenGenerator tokenGenerator = null;
 		ConfigurableWebApplicationContext context = getAppContext();
-		if (context != null) {
+		if (context != null && context.containsBean(TokenGenerator.BEAN_NAME)) {
 			tokenGenerator = (TokenGenerator)context.getBean(TokenGenerator.BEAN_NAME);
 		}
 		return tokenGenerator;
