@@ -12,6 +12,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
+import org.springframework.web.context.ConfigurableWebApplicationContext;
 
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.types.Token;
@@ -45,6 +46,8 @@ public class TokenFilterManager extends AbstractFilter   {
 
 		
 		AppSettings appSettings = getAppSettings();
+		TokenGenerator tokenGenerator = getTokenGenerator();
+
 		if (appSettings == null) {
 			httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN,"Server is getting initialized.");
 			logger.warn("AppSettings not initialized. Server is getting started for stream id:{} from request: {}", streamId, clientIP);
@@ -57,7 +60,8 @@ public class TokenFilterManager extends AbstractFilter   {
 
 
 		String clusterToken = (String) request.getAttribute("ClusterToken");
-		if ("GET".equals(method) && (clusterToken == null || !clusterToken.equals("mytoken"))) 
+		if ("GET".equals(method) 
+				&& (tokenGenerator == null || clusterToken == null || !clusterToken.equals(tokenGenerator.getGenetaredToken()))) 
 		{
 			
 			if(appSettings.isTokenControlEnabled()) 
@@ -101,6 +105,15 @@ public class TokenFilterManager extends AbstractFilter   {
 	
 		chain.doFilter(request, response);
 
+	}
+
+	private TokenGenerator getTokenGenerator() {
+		TokenGenerator tokenGenerator = null;
+		ConfigurableWebApplicationContext context = getAppContext();
+		if (context != null) {
+			tokenGenerator = (TokenGenerator)context.getBean(TokenGenerator.BEAN_NAME);
+		}
+		return tokenGenerator;
 	}
 
 	public ITokenService getTokenService() {
