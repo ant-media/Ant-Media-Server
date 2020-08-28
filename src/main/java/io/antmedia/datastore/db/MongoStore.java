@@ -842,7 +842,7 @@ public class MongoStore extends DataStore {
 	private boolean updateViewerField(String streamId, boolean increment, String fieldName) {
 		synchronized(this) {
 			try {
-				Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(streamId);
+				Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(streamId).field(STATUS).equal(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 				UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class);
 				String field = fieldName;
 				if (increment) {
