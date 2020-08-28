@@ -1008,13 +1008,15 @@ public class ConsoleAppRestServiceTest{
 					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/"+ appName + "/"
 					+ broadcast.getStreamId()+ "?token=" + publishToken.getTokenId());
 
-
+			
+			Result clusterResult = callIsClusterMode();
+			
 			//it should be false because token control is enabled but no token provided
 			Awaitility.await()
 			.pollDelay(5, TimeUnit.SECONDS)
 			.atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
 				return  !MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" 
-						+ broadcast.getStreamId() + ".m3u8");
+						+ broadcast.getStreamId() + ".m3u8") || clusterResult.isSuccess();
 			});
 
 			rtmpSendingProcessToken.destroy();
