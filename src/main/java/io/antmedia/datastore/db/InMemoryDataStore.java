@@ -551,10 +551,11 @@ public class InMemoryDataStore extends DataStore {
 			if (broadcast != null) {
 				int hlsViewerCount = broadcast.getHlsViewerCount();
 				hlsViewerCount += diffCount;
-
-				broadcast.setHlsViewerCount(hlsViewerCount);
-				broadcastMap.replace(streamId, broadcast);
-				result = true;
+				if(hlsViewerCount >= 0) {
+					broadcast.setHlsViewerCount(hlsViewerCount);
+					broadcastMap.replace(streamId, broadcast);
+					result = true;
+				}
 			}
 		}
 		return result;

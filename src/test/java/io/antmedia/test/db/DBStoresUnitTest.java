@@ -497,21 +497,18 @@ public class DBStoresUnitTest {
 		//create a stream
 		Broadcast broadcast = new Broadcast();
 		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
-		broadcast.setHlsViewerCount(250);
-		
 		broadcast.setName("test");
 		String key = dataStore.save(broadcast);
 
 		Broadcast broadcast2 = new Broadcast();
 		broadcast2.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
-		broadcast2.setHlsViewerCount(250);
 		broadcast2.setName("test2");
 		String key2 = dataStore.save(broadcast2);
 
 		//update hls viewer several times 
 		//check hls viewer count
-		int totalCountFor1 = 250;
-		int totalCountFor2 = 250;
+		int totalCountFor1 = 0;
+		int totalCountFor2 = 0;
 		int increment = 0; 
 		for (int i = 0; i < 50; i++) {
 			int randomValue = (int)(Math.random()*99999);
@@ -524,11 +521,15 @@ public class DBStoresUnitTest {
 				totalCountFor1--;
 				increment = -1;
 			}
-
-			assertTrue(dataStore.updateHLSViewerCount(key, increment));
 			
-			//viewerCount += totalCountFor1;
-
+			if(dataStore.get(key).getHlsViewerCount()>0 || (dataStore.get(key).getHlsViewerCount()==0 && increment>0)) {
+				assertTrue(dataStore.updateHLSViewerCount(key, increment));
+			}
+			else {
+				assertFalse(dataStore.updateHLSViewerCount(key, increment));
+				totalCountFor1 = 0;
+			}
+			
 			randomValue = (int)(Math.random()*99999);
 			if (randomValue % 2 == 0) {
 				totalCountFor2++;
@@ -538,8 +539,15 @@ public class DBStoresUnitTest {
 				totalCountFor2--;
 				increment = -1;
 			}
-			assertTrue(dataStore.updateHLSViewerCount(key2, increment));
-
+			
+			if(dataStore.get(key2).getHlsViewerCount()>0 || (dataStore.get(key2).getHlsViewerCount()==0 && increment>0)) {
+				assertTrue(dataStore.updateHLSViewerCount(key2, increment));
+			}
+			else {
+				assertFalse(dataStore.updateHLSViewerCount(key2, increment));
+				totalCountFor2 = 0;
+			}
+			
 			assertEquals(totalCountFor1, dataStore.get(key).getHlsViewerCount());
 			assertEquals(totalCountFor2, dataStore.get(key2).getHlsViewerCount());
 		}
@@ -549,18 +557,16 @@ public class DBStoresUnitTest {
 		//create a stream
 		Broadcast broadcast = new Broadcast();
 		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
-		broadcast.setWebRTCViewerCount(250);
 		broadcast.setName("test");
 		String key = dataStore.save(broadcast);
 
 		Broadcast broadcast2 = new Broadcast();
 		broadcast2.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
-		broadcast2.setWebRTCViewerCount(250);
 		broadcast2.setName("test2");
 		String key2 = dataStore.save(broadcast2);
 
-		int totalViewerCountFor1 = 250;
-		int totalViewerCountFor2 = 250;
+		int totalViewerCountFor1 = 0;
+		int totalViewerCountFor2 = 0;
 		for (int i = 0; i < 150; i++) {
 
 			boolean increment = false; 
@@ -572,7 +578,14 @@ public class DBStoresUnitTest {
 			else {
 				totalViewerCountFor1--;
 			}
-			assertTrue(dataStore.updateWebRTCViewerCount(key, increment));
+			
+			if(dataStore.get(key).getWebRTCViewerCount()>0 || (dataStore.get(key).getWebRTCViewerCount()==0 && increment)) {
+				assertTrue(dataStore.updateWebRTCViewerCount(key, increment));
+			}
+			else {
+				assertFalse(dataStore.updateWebRTCViewerCount(key, increment));
+				totalViewerCountFor1 = 0;
+			}
 
 			increment = false; 
 			randomValue = (int)(Math.random()*99999);
@@ -584,7 +597,13 @@ public class DBStoresUnitTest {
 				totalViewerCountFor2--;
 			}
 
-			assertTrue(dataStore.updateWebRTCViewerCount(key2, increment));
+			if(dataStore.get(key2).getWebRTCViewerCount()>0 || (dataStore.get(key2).getWebRTCViewerCount()==0 && increment)) {
+				assertTrue(dataStore.updateWebRTCViewerCount(key2, increment));
+			}
+			else {
+				assertFalse(dataStore.updateWebRTCViewerCount(key2, increment));
+				totalViewerCountFor2 = 0;
+			}
 
 			assertEquals(totalViewerCountFor1, dataStore.get(key).getWebRTCViewerCount());
 			assertEquals(totalViewerCountFor2, dataStore.get(key2).getWebRTCViewerCount());
@@ -595,18 +614,16 @@ public class DBStoresUnitTest {
 		//create a stream
 		Broadcast broadcast = new Broadcast();
 		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
-		broadcast.setRtmpViewerCount(250);
 		broadcast.setName("test");
 		String key = dataStore.save(broadcast);
 
 		Broadcast broadcast2 = new Broadcast();
 		broadcast2.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
-		broadcast2.setRtmpViewerCount(250);
 		broadcast2.setName("test2");
 		String key2 = dataStore.save(broadcast2);
 
-		int totalViewerCountFor1 = 250;
-		int totalViewerCountFor2 = 250;
+		int totalViewerCountFor1 = 0;
+		int totalViewerCountFor2 = 0;
 		for (int i = 0; i < 150; i++) {
 
 			boolean increment = false; 
@@ -619,7 +636,13 @@ public class DBStoresUnitTest {
 				totalViewerCountFor1--;
 			}
 			
-			assertTrue(dataStore.updateRtmpViewerCount(key, increment));
+			if(dataStore.get(key).getRtmpViewerCount()>0 || (dataStore.get(key).getRtmpViewerCount()==0 && increment)) {
+				assertTrue(dataStore.updateRtmpViewerCount(key, increment));
+			}
+			else {
+				assertFalse(dataStore.updateRtmpViewerCount(key, increment));
+				totalViewerCountFor1 = 0;
+			}
 			
 			increment = false; 
 			randomValue = (int)(Math.random()*99999);
@@ -631,7 +654,13 @@ public class DBStoresUnitTest {
 				totalViewerCountFor2--;
 			}
 			
-			assertTrue(dataStore.updateRtmpViewerCount(key2, increment));
+			if(dataStore.get(key2).getRtmpViewerCount()>0 || (dataStore.get(key2).getRtmpViewerCount()==0 && increment)) {
+				assertTrue(dataStore.updateRtmpViewerCount(key2, increment));
+			}
+			else {
+				assertFalse(dataStore.updateRtmpViewerCount(key2, increment));
+				totalViewerCountFor2 = 0;
+			}
 			
 			assertEquals(totalViewerCountFor1, dataStore.get(key).getRtmpViewerCount());
 			assertEquals(totalViewerCountFor2, dataStore.get(key2).getRtmpViewerCount());
