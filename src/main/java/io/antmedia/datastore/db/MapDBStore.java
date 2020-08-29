@@ -830,10 +830,12 @@ public class MapDBStore extends DataStore {
 				if (broadcast != null) {
 					int hlsViewerCount = broadcast.getHlsViewerCount();
 					hlsViewerCount += diffCount;
-					broadcast.setHlsViewerCount(hlsViewerCount);
-					map.replace(streamId, gson.toJson(broadcast));
-					db.commit();
-					result = true;
+					if(hlsViewerCount >= 0) {
+						broadcast.setHlsViewerCount(hlsViewerCount);
+						map.replace(streamId, gson.toJson(broadcast));
+						db.commit();
+						result = true;
+					}
 				}
 			}
 		}
@@ -854,7 +856,6 @@ public class MapDBStore extends DataStore {
 					else {
 						webRTCViewerCount--;
 					}
-					
 					if(webRTCViewerCount >= 0) {
 						broadcast.setWebRTCViewerCount(webRTCViewerCount);
 						map.replace(streamId, gson.toJson(broadcast));
