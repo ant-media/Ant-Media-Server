@@ -1297,6 +1297,7 @@ public Result createInitializationProcess(String appName){
 		store.put(AppSettings.SETTINGS_WEBM_MUXING_ENABLED, String.valueOf(newAppsettings.isWebMMuxingEnabled()));
 		store.put(AppSettings.SETTINGS_ADD_DATE_TIME_TO_MP4_FILE_NAME, String.valueOf(newAppsettings.isAddDateTimeToMp4FileName()));
 		store.put(AppSettings.SETTINGS_HLS_MUXING_ENABLED, String.valueOf(newAppsettings.isHlsMuxingEnabled()));
+		store.put(AppSettings.SETTINGS_DASH_MUXING_ENABLED, String.valueOf(newAppsettings.isDashMuxingEnabled()));
 		store.put(AppSettings.SETTINGS_ACCEPT_ONLY_STREAMS_IN_DATA_STORE, String.valueOf(newAppsettings.isAcceptOnlyStreamsInDataStore()));
 		store.put(AppSettings.SETTINGS_OBJECT_DETECTION_ENABLED, String.valueOf(newAppsettings.isObjectDetectionEnabled()));
 		store.put(AppSettings.SETTINGS_TOKEN_CONTROL_ENABLED, String.valueOf(newAppsettings.isTokenControlEnabled()));
@@ -1342,6 +1343,7 @@ public Result createInitializationProcess(String appName){
 		appSettings.setWebMMuxingEnabled(newSettings.isWebMMuxingEnabled());
 		appSettings.setAddDateTimeToMp4FileName(newSettings.isAddDateTimeToMp4FileName());
 		appSettings.setHlsMuxingEnabled(newSettings.isHlsMuxingEnabled());
+		appSettings.setDashMuxingEnabled(newSettings.isDashMuxingEnabled());
 		appSettings.setObjectDetectionEnabled(newSettings.isObjectDetectionEnabled());
 		appSettings.setHlsListSize(String.valueOf(newSettings.getHlsListSize()));
 		appSettings.setHlsTime(String.valueOf(newSettings.getHlsTime()));
