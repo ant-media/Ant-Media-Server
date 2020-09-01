@@ -509,47 +509,28 @@ public class DBStoresUnitTest {
 		//check hls viewer count
 		int totalCountFor1 = 0;
 		int totalCountFor2 = 0;
-		int increment = 0; 
 		for (int i = 0; i < 50; i++) {
-			int randomValue = (int)(Math.random()*99999);
-			
-			if (randomValue % 2 == 0) {
-				totalCountFor1++;
-				increment = 1;
+			int viewerCount = (int)(Math.random()*99999);
+			if (viewerCount % 2 == 0) {
+				viewerCount = -1 * viewerCount;
 			}
-			else {
-				totalCountFor1--;
-				increment = -1;
+			assertTrue(dataStore.updateHLSViewerCount(key, viewerCount));
+
+			totalCountFor1 += viewerCount;
+
+			int viewerCount2 = (int)(Math.random()*99999);
+			if (viewerCount2 % 2 == 0) {
+				viewerCount2 = -1 * viewerCount2;
 			}
-			
-			if(dataStore.get(key).getHlsViewerCount()>0 || (dataStore.get(key).getHlsViewerCount()==0 && increment>0)) {
-				assertTrue(dataStore.updateHLSViewerCount(key, increment));
-			}
-			else {
-				assertFalse(dataStore.updateHLSViewerCount(key, increment));
-				totalCountFor1 = 0;
-			}
-			
-			randomValue = (int)(Math.random()*99999);
-			if (randomValue % 2 == 0) {
-				totalCountFor2++;
-				increment = 1;
-			}
-			else {
-				totalCountFor2--;
-				increment = -1;
-			}
-			
-			if(dataStore.get(key2).getHlsViewerCount()>0 || (dataStore.get(key2).getHlsViewerCount()==0 && increment>0)) {
-				assertTrue(dataStore.updateHLSViewerCount(key2, increment));
-			}
-			else {
-				assertFalse(dataStore.updateHLSViewerCount(key2, increment));
-				totalCountFor2 = 0;
-			}
-			
+			assertTrue(dataStore.updateHLSViewerCount(key2, viewerCount2));
+			totalCountFor2 += viewerCount2;
+
 			assertEquals(totalCountFor1, dataStore.get(key).getHlsViewerCount());
 			assertEquals(totalCountFor2, dataStore.get(key2).getHlsViewerCount());
+			
+			// If broadcast finished
+			
+			
 		}
 	}
 

@@ -830,12 +830,10 @@ public class MapDBStore extends DataStore {
 				if (broadcast != null) {
 					int hlsViewerCount = broadcast.getHlsViewerCount();
 					hlsViewerCount += diffCount;
-					if(hlsViewerCount >= 0) {
-						broadcast.setHlsViewerCount(hlsViewerCount);
-						map.replace(streamId, gson.toJson(broadcast));
-						db.commit();
-						result = true;
-					}
+					broadcast.setHlsViewerCount(hlsViewerCount);
+					map.replace(streamId, gson.toJson(broadcast));
+					db.commit();
+					result = true;
 				}
 			}
 		}
