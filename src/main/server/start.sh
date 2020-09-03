@@ -3,7 +3,7 @@
 # Options 
 # -g: Use global(Public) IP in network communication. Its value can be true or false. Default value is false.
 #
-# -s: Use Public IP as servername. Its value can be true or false. Default value is false.
+# -s: Use Public IP as server name. Its value can be true or false. Default value is false.
 #
 # -r: Replace candidate address with server name. Its value can be true or false. Default value is false
 #
@@ -70,6 +70,7 @@ replaceCandidateAddressWithServer() {
   # first parameter is the properties file of the application
   # second parameter is the value of the property
   if [ $(grep -E "settings.replaceCandidateAddrWithServerAddr" $1 | wc -l) -eq "0" ]; then
+    echo " " >> $1 #add new line
     echo "settings.replaceCandidateAddrWithServerAddr=$2" >> $1
   else
     sed -i $SED_COMPATIBILITY 's/settings.replaceCandidateAddrWithServerAddr=.*/settings.replaceCandidateAddrWithServerAddr='$2'/' $1 
