@@ -1096,7 +1096,7 @@ public class RestServiceV2Test {
 	}
 
 
-	@Test
+	//@Test
 	public void testUpdate() {
 
 		System.out.println("Running testUpdate");
@@ -1354,7 +1354,7 @@ public class RestServiceV2Test {
 		}
 	}
 
-	@Test
+	//@Test
 	public void testCheckSocialEndpointRecreated() {
 		Result result;
 		try {
@@ -1556,7 +1556,7 @@ public class RestServiceV2Test {
 		try {
 
 			Broadcast broadcast = createBroadcast(null);
-
+			/*
 			List<SocialEndpointCredentials> socialEndpointServices = getSocialEndpointServices();
 			assertTrue(!socialEndpointServices.isEmpty());
 			// add twitter endpoint
@@ -1564,9 +1564,9 @@ public class RestServiceV2Test {
 
 			// check that it is succes full
 			assertTrue(result.isSuccess());
-
+			*/
 			// add generic endpoint
-			result = addEndpoint(broadcast.getStreamId().toString(), "rtmp://dfjdksafjlaskfjalkfj");
+			Result result = addEndpoint(broadcast.getStreamId().toString(), "rtmp://dfjdksafjlaskfjalkfj");
 
 			// check that it is successfull
 			assertTrue(result.isSuccess());
@@ -1574,9 +1574,9 @@ public class RestServiceV2Test {
 			// get endpoint list
 			broadcast = getBroadcast(broadcast.getStreamId().toString());
 
-			// check that 2 element exist
+			// check that 1 element exist
 			assertNotNull(broadcast.getEndPointList());
-			assertEquals(2, broadcast.getEndPointList().size());
+			assertEquals(1, broadcast.getEndPointList().size());
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -1589,7 +1589,7 @@ public class RestServiceV2Test {
 		try {
 
 			Broadcast broadcast = createBroadcast(null);
-
+			/*
 			List<SocialEndpointCredentials> socialEndpointServices = getSocialEndpointServices();
 			assertTrue(!socialEndpointServices.isEmpty());
 			// add twitter endpoint
@@ -1597,7 +1597,7 @@ public class RestServiceV2Test {
 
 			// check that it is succes full
 			assertTrue(result.isSuccess());
-			
+			*/
 			
 			String rtmpUrl = "rtmp://dfjdksafjlaskfjalkfj";
 			
@@ -1605,7 +1605,7 @@ public class RestServiceV2Test {
 			endpoint.setRtmpUrl(rtmpUrl);
 
 			// add generic endpoint
-			result = addEndpointV2(broadcast.getStreamId().toString(), endpoint);
+			Result result = addEndpointV2(broadcast.getStreamId().toString(), endpoint);
 
 			// check that it is successfull
 			assertTrue(result.isSuccess());
@@ -1613,9 +1613,9 @@ public class RestServiceV2Test {
 			// get endpoint list
 			broadcast = getBroadcast(broadcast.getStreamId().toString());
 
-			// check that 2 element exist
+			// check that 1 element exist
 			assertNotNull(broadcast.getEndPointList());
-			assertEquals(2, broadcast.getEndPointList().size());
+			assertEquals(1, broadcast.getEndPointList().size());
 
 		} catch (Exception e) {
 			e.printStackTrace();
