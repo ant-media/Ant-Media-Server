@@ -95,7 +95,7 @@ before_install:
   - (if [[ -f /usr/local/antmedia/log/antmedia-error.log ]];
       then 
         sudo cat /usr/local/antmedia/log/antmedia-error.log;
-    fi)
+    fi) 
   - sudo cat /usr/local/antmedia/log/ant-media-server.log
   - sudo cp src/test/resources/preset-red5-web.properties  /usr/local/antmedia/webapps/LiveApp/WEB-INF/red5-web.properties
   - sudo cp src/test/resources/preset-red5-web.db  /usr/local/antmedia/liveapp.db
@@ -108,7 +108,6 @@ before_install:
 
 install:
   - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -Dgpg.skip=true -B -V --quiet
-
 before_script: 
   - sudo chmod -R 777 /tmp
   
