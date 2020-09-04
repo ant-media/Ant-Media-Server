@@ -88,7 +88,7 @@ before_install:
   - ./install_ant-media-server.sh ant-media-server-community*.zip
   - update-alternatives --list java
   - sudo mkdir $JAVA_HOME/lib/amd64 
-  - sudo ln -s $JAVA_HOME/lib/server $JAVA_HOME/lib/amd64/ 
+  - sudo ln -sfn $JAVA_HOME/lib/server $JAVA_HOME/lib/amd64/ 
   - cd ..
   - echo "Waiting a little to make sure server is started "
   - sleep 20
