@@ -86,6 +86,7 @@ before_install:
   - chmod 755 target/install_ant-media-server.sh
   - cd target 
   - ./install_ant-media-server.sh ant-media-server-community*.zip
+  - update-alternatives --list java
   - sudo mkdir -p $JAVA_HOME/lib/amd64
   - sudo ln -sfn $JAVA_HOME/lib/server $JAVA_HOME/lib/amd64/
   - cd ..
