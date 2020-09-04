@@ -86,11 +86,11 @@ before_install:
   - chmod 755 target/install_ant-media-server.sh
   - cd target 
   - ./install_ant-media-server.sh ant-media-server-community*.zip
+  - sudo mkdir $JAVA_HOME/lib/amd64
+  - sudo ln -s $JAVA_HOME/lib/server $JAVA_HOME/lib/amd64/
   - cd ..
   - echo "Waiting a little to make sure server is started "
   - sleep 20
-  - journalctl -u antmedia -b
-  - systemctl -l status antmedia
   - sudo cat /usr/local/antmedia/log/ant-media-server.log
   - sudo cp src/test/resources/preset-red5-web.properties  /usr/local/antmedia/webapps/LiveApp/WEB-INF/red5-web.properties
   - sudo cp src/test/resources/preset-red5-web.db  /usr/local/antmedia/liveapp.db
