@@ -105,6 +105,7 @@ before_install:
 
 install:
   - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -Dgpg.skip=true -B -V --quiet
+
 before_script:
   - sudo chmod -R 777 /tmp
   
