@@ -107,7 +107,7 @@ install:
   - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -Dgpg.skip=true -B -V --quiet
 
 before_script: 
-  - sudo chmod 666 /tmp
+  - sudo chmod -R 777 /tmp
   
 script:
   - export RELEASE_VERSION="$(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)"
