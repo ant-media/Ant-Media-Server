@@ -399,6 +399,81 @@ public class AppFunctionalV2Test {
 		}
 		
 	}
+	
+	@Test
+	public void testAdaptiveMasterFileBug() 
+	{
+		
+		try {
+			//check if enterprise edition
+			ConsoleAppRestServiceTest.resetCookieStore();
+			Result result = ConsoleAppRestServiceTest.callisFirstLogin();
+			if (result.isSuccess()) {
+				Result createInitialUser = ConsoleAppRestServiceTest.createDefaultInitialUser();
+				assertTrue(createInitialUser.isSuccess());
+			}
+	
+			result = ConsoleAppRestServiceTest.authenticateDefaultUser();
+			assertTrue(result.isSuccess());
+			
+			Result isEnterpriseEdition = ConsoleAppRestServiceTest.callIsEnterpriseEdition();
+			if (!isEnterpriseEdition.isSuccess()) {
+				//if it's not enterprise return
+				return;
+			}
+		
+		
+			//add adaptive settings
+			AppSettings appSettingsModel = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
+			List<EncoderSettings> encoderSettingsActive = appSettingsModel.getEncoderSettings();
+
+
+			List<EncoderSettings> settingsList = new ArrayList<>();
+			settingsList.add(new EncoderSettings(240, 300000, 64000));
+			appSettingsModel.setEncoderSettings(settingsList);
+			result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettingsModel);
+			assertTrue(result.isSuccess());
+			
+			//send stream with ffmpeg 
+			String streamId = "streamId_"  + (int)(Math.random()*100000);
+			Process rtmpSendingProcess = execute(ffmpegPath
+					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
+					+ streamId);
+			
+			//check adaptive.m3u8 file exists
+			//wait for creating  files
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamId + "_adaptive.m3u8");
+			});
+
+			
+			//stop streaming
+			rtmpSendingProcess.destroy();
+			rtmpSendingProcess.waitFor();
+			
+			//start streaming again immediately
+			rtmpSendingProcess = execute(ffmpegPath
+					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
+					+ streamId);
+			
+			//check that adaptive.m3u8 file is created
+			
+			//file should exist because previous streaming is just finished
+			assertTrue(MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamId + "_adaptive.m3u8"));
+			
+			//It should still exists after 15 seconds. The bug is that this file is not re-created again
+			Awaitility.await().pollDelay(15, TimeUnit.SECONDS).atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamId + "_adaptive.m3u8");
+			});
+			
+			rtmpSendingProcess.destroy();
+			rtmpSendingProcess.waitFor();
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+	}
 
 
 	@Test
@@ -424,7 +499,6 @@ public class AppFunctionalV2Test {
 				assertTrue(result.isSuccess());
 
 				appSettingsModel = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
-				List<EncoderSettings> encoderSettingsList = appSettingsModel.getEncoderSettings();
 				encoderSettingsActive = appSettingsModel.getEncoderSettings();
 
 
