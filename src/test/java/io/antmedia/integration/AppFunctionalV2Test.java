@@ -688,7 +688,7 @@ public class AppFunctionalV2Test {
 					+ streamId);
 
 
-			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> { 
 				return MuxingTest.isURLAvailable("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" +streamId+ "_0p0001.ts" );
 			});
 
@@ -711,7 +711,7 @@ public class AppFunctionalV2Test {
 
 			assertTrue(MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" +streamId+ ".m3u8" ));
 
-			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> { 
 				return restService.callGetBroadcast(streamId).getHlsViewerCount() == 1;
 			});
 
@@ -722,7 +722,7 @@ public class AppFunctionalV2Test {
 			// stop publishing live stream
 			destroyProcess();
 
-			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> { 
 				List<VoD> callGetVoDList = restService.callGetVoDList();
 				for (VoD vod : callGetVoDList) {
 					if (vod.getStreamId().equals(streamId)) {
@@ -740,7 +740,7 @@ public class AppFunctionalV2Test {
 			
 			boolean isEnterprise = callIsEnterpriseEdition().getMessage().contains("Enterprise");
 			if (isEnterprise) {
-				Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(3, TimeUnit.SECONDS).until(() -> {
+				Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(3, TimeUnit.SECONDS).until(() -> { 
 					int vodNumber = restService.callTotalVoDNumber();
 					int foundTime = 0;
 					for (int i = 0; i*50 < vodNumber; i++) {
@@ -770,7 +770,7 @@ public class AppFunctionalV2Test {
 		}
 
 
-		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> { 
 			RestServiceV2Test restService = new RestServiceV2Test();
 			return 0 == restService.callGetLiveStatistics();
 		});
@@ -794,8 +794,7 @@ public class AppFunctionalV2Test {
 				+ stream.getStreamId());
 		
 		//Wait for the m3u8 file is available
-		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
-			
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> { 
 			return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" +stream.getStreamId()+ ".m3u8" );
 		});	
 		
