@@ -352,7 +352,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 				flvReader.close();
 
 				for (MuxAdaptor muxAdaptor : muxAdaptorList) {
-					Awaitility.await().atMost(50, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> { 
+					Awaitility.await().atMost(50, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
 						return !muxAdaptor.isRecording();
 					});
 				}
@@ -1064,7 +1064,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 			flvReader.close();
 
-			Awaitility.await().atMost(30, TimeUnit.SECONDS).until(() -> !muxAdaptor.isRecording()); 
+			Awaitility.await().atMost(30, TimeUnit.SECONDS).until(() -> !muxAdaptor.isRecording());
 
 			// if there is listenerHookURL, a task will be scheduled, so wait a little to make the call happen
 			Thread.sleep(200);

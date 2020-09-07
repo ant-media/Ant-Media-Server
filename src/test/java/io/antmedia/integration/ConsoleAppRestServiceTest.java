@@ -810,10 +810,10 @@ public class ConsoleAppRestServiceTest{
 						+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
 						+ broadcastCreated.getStreamId());
 
-				Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+				Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
 				.until(() -> AppFunctionalV2Test.isProcessAlive());
 
-				Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+				Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
 				.until(() -> {
 					Broadcast broadcast2 = RestServiceV2Test.callGetBroadcast(broadcastCreated.getStreamId());
 					return broadcast2 != null && broadcast2.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
@@ -838,7 +838,7 @@ public class ConsoleAppRestServiceTest{
 						+ streamId2);
 
 				// check that it is accepted
-				Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+				Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
 				.until(() -> {
 					Broadcast broadcast2 = RestServiceV2Test.callGetBroadcast(streamId2);
 					return broadcast2 != null && broadcast2.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
@@ -858,10 +858,10 @@ public class ConsoleAppRestServiceTest{
 						+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
 						+ broadcastCreated.getStreamId());
 
-				Awaitility.await().atMost(20, TimeUnit.SECONDS)
+				Awaitility.await().atMost(10, TimeUnit.SECONDS)
 				.until(() -> AppFunctionalV2Test.isProcessAlive());
 
-				Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+				Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
 				.until(() -> {
 					Broadcast broadcast2 = RestServiceV2Test.callGetBroadcast(broadcastCreated.getStreamId());
 					return broadcast2 != null && broadcast2.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
@@ -908,12 +908,12 @@ public class ConsoleAppRestServiceTest{
 						+ broadcastCreated.getStreamId());
 
 
-				Awaitility.await().atMost(20, TimeUnit.SECONDS)
+				Awaitility.await().atMost(10, TimeUnit.SECONDS)
 				.pollInterval(1, TimeUnit.SECONDS).until(AppFunctionalV2Test::isProcessAlive);
 
 
 				Awaitility.await().pollDelay(3, TimeUnit.SECONDS)
-				.atMost(20, TimeUnit.SECONDS)
+				.atMost(10, TimeUnit.SECONDS)
 				.pollInterval(1, TimeUnit.SECONDS).until(() -> 
 				{
 					Broadcast broadcast2 = RestServiceV2Test.callGetBroadcast(broadcastCreated.getStreamId());
@@ -1349,7 +1349,7 @@ public class ConsoleAppRestServiceTest{
 					+ broadcast.getStreamId());
 
 			//wait until stream is broadcasted
-			Awaitility.await().atMost(40, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> { 
+			Awaitility.await().atMost(35, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + ".m3u8");
 			});
 

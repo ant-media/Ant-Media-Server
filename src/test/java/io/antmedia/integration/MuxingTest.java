@@ -178,7 +178,7 @@ public class MuxingTest {
 			});
 
 			// check that mp4 is not created
-			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> { 
+			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
 				return testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".mp4");
 			});
 			
