@@ -1349,7 +1349,7 @@ public class ConsoleAppRestServiceTest{
 					+ broadcast.getStreamId());
 
 			//wait until stream is broadcasted
-			Awaitility.await().atMost(40, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			Awaitility.await().atMost(40, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> { 
 				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + ".m3u8");
 			});
 

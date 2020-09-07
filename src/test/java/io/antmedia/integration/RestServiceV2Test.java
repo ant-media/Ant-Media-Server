@@ -620,14 +620,11 @@ public class RestServiceV2Test {
 
 			versionList = gson.fromJson(result.toString(), Version.class);
 			
-			System.out.println("Version: " + versionList.getVersionName());
-			System.out.println("Expected Version: " + model.getParent().getVersion());
 			//check that they are same
 			assertEquals(model.getParent().getVersion()
 					, versionList.getVersionName());
 
 			assertNotNull(versionList.getBuildNumber());
-			System.out.println("Build Number: " + versionList.getBuildNumber());
 			assertTrue(versionList.getBuildNumber().length() == 13); //format is yyyyMMdd_HHmm
 
 		}catch(Exception e){
