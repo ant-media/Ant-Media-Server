@@ -260,11 +260,11 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			flvReader.close();
 
 
-			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(() -> !muxAdaptor.isRecording());
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(() -> !muxAdaptor.isRecording()); 
 
 			assertFalse(muxAdaptor.isRecording());
 
-			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> { 
 				File f1 = new File(muxAdaptor.getMuxerList().get(0).getFile().getAbsolutePath());
 				File f2 = new File(muxAdaptor.getMuxerList().get(1).getFile().getAbsolutePath());
 				return f1.exists() && f2.exists();
@@ -339,7 +339,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 				for (MuxAdaptor muxAdaptor : muxAdaptorList) {
 					logger.info("Check if is recording: {}", muxAdaptor.getStreamId());
-					Awaitility.await().atMost(50, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+					Awaitility.await().atMost(50, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> { 
 						return muxAdaptor.isRecording();
 					});
 				}
@@ -352,7 +352,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 				flvReader.close();
 
 				for (MuxAdaptor muxAdaptor : muxAdaptorList) {
-					Awaitility.await().atMost(50, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+					Awaitility.await().atMost(50, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> { 
 						return !muxAdaptor.isRecording();
 					});
 				}
@@ -414,13 +414,13 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		File file = testMp4Muxing("test_test");
 		assertEquals("test_test.mp4", file.getName());
 
-		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> {
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> { 
 			return "test_test".equals(Application.id);
 		});
 		
 		assertEquals("test_test", Application.id);
 		
-		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> {
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> { 
 			return "test_test.mp4".equals(Application.file.getName());
 		});
 		
@@ -436,13 +436,13 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		file = testMp4Muxing("test_test");
 		assertEquals("test_test_1.mp4", file.getName());
 
-		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> { 
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> {
 			return "test_test".equals(Application.id);
 		});
 		
 		assertEquals("test_test", Application.id);
 		
-		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> { 
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> {
 			return "test_test_1.mp4".equals(Application.file.getName());
 		});
 		

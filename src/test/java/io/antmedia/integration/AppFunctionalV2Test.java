@@ -351,7 +351,7 @@ public class AppFunctionalV2Test {
 						+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
 						+ streamId);
 				
-				Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> {
+				Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> { 
 					return !rtmpSendingProcess.isAlive();
 				});
 			}
@@ -367,7 +367,7 @@ public class AppFunctionalV2Test {
 						+ streamId);
 				
 				//this process should be terminated autotimacally because test.flv has 25fps 
-				Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> { 
+				Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> {
 					return !rtmpSendingProcess2.isAlive();
 				});
 			}
@@ -384,7 +384,7 @@ public class AppFunctionalV2Test {
 						+ streamId);
 				
 				//this process should NOT be terminated autotimacally because test.flv has 25fps 
-				Awaitility.await().pollDelay(9, TimeUnit.SECONDS).atMost(10, TimeUnit.SECONDS).until(()-> { 
+				Awaitility.await().pollDelay(9, TimeUnit.SECONDS).atMost(10, TimeUnit.SECONDS).until(()-> {
 					return rtmpSendingProcess2.isAlive();
 				});
 				
@@ -392,7 +392,7 @@ public class AppFunctionalV2Test {
 			}
 			
 			
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> { 
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
 				RestServiceV2Test restService = new RestServiceV2Test();
 				return 0 == restService.callGetLiveStatistics();
 			});
