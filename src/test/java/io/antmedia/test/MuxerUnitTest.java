@@ -902,7 +902,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 			Awaitility.await().atMost(90, TimeUnit.SECONDS).until(() -> muxAdaptor.isRecording());
-
 			assertTrue(muxAdaptor.isRecording());
 
 			muxAdaptor.stop();
@@ -911,7 +910,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 			Awaitility.await().atMost(40, TimeUnit.SECONDS).until(() -> !muxAdaptor.isRecording());
-			assertFalse(muxAdaptor.isRecording());
+			assertFalse(muxAdaptor.isRecording()); 
 
 			int duration = 697000;
 			if (shortVersion) {
