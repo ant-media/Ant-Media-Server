@@ -936,7 +936,7 @@ public class AppFunctionalV2Test {
 
 			destroyProcess();
 
-			Thread.sleep(1000); 
+			Thread.sleep(1000);
 
 			broadcastStatistics = restService.callGetBroadcastStatistics(streamId);
 			assertNotNull(broadcastStatistics);
