@@ -278,7 +278,7 @@ public class AppFunctionalV2Test {
 					+ source.getStreamId());
 
 			//Check Stream list size and Streams status
-			Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> {
+			Awaitility.await().atMost(15, TimeUnit.SECONDS).until(() -> {
 				return restService.callGetLiveStatistics() == 2 
 						&& restService.callGetBroadcast(source.getStreamId()).getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)
 						&& restService.callGetBroadcast(endpointStream.getStreamId()).getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
@@ -385,7 +385,7 @@ public class AppFunctionalV2Test {
 			}
 			
 			
-			Awaitility.await().atMost(45, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+			Awaitility.await().atMost(60, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
 				RestServiceV2Test restService = new RestServiceV2Test();
 				return 0 == restService.callGetLiveStatistics();
 			});
@@ -689,7 +689,7 @@ public class AppFunctionalV2Test {
 		}
 
 
-		Awaitility.await().atMost(70, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+		Awaitility.await().atMost(90, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
 			RestServiceV2Test restService = new RestServiceV2Test();
 			return 0 == restService.callGetLiveStatistics();
 		});
@@ -816,7 +816,9 @@ public class AppFunctionalV2Test {
 				System.out.println("brodcast url: " + broadcast.getStreamId() + " status: " + broadcast.getStatus());
 			}
 			
-			assertEquals(0, restService.callGetLiveStatistics());
+			Awaitility.await().atMost(40, TimeUnit.SECONDS).until(() -> {
+				return 0 == restService.callGetLiveStatistics();
+			});
 
 			// publish live stream to the server
 			String streamId = "zombiStreamId1";
@@ -824,7 +826,7 @@ public class AppFunctionalV2Test {
 					+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
 					+ streamId);
 			
-			Awaitility.await().atMost(25, TimeUnit.SECONDS).until(() -> {
+			Awaitility.await().atMost(40, TimeUnit.SECONDS).until(() -> {
 				return 1 == restService.callGetLiveStatistics();
 			});
 
@@ -926,7 +928,7 @@ public class AppFunctionalV2Test {
 		//let the server update live stream count
 
 
-		Awaitility.await().atMost(55, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+		Awaitility.await().atMost(80, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
 			RestServiceV2Test restService = new RestServiceV2Test();
 
 			return 0 == restService.callGetLiveStatistics();
