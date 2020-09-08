@@ -1851,7 +1851,7 @@ public abstract class RestServiceBase {
 			} catch (MalformedURLException e) {
 				logger.error(e.getMessage());
 			}
-		}
+		} 
 		Manifest manifest;
 		
 		try {
