@@ -1292,8 +1292,11 @@ public class ConsoleAppRestServiceTest{
 			authenticatedUserResult = callAuthenticateUser(user);
 			assertTrue(authenticatedUserResult.isSuccess());
 
+			System.out.println("Get version console authenticated");
 			String version = callGetSoftwareVersion();
 
+			System.out.println("Version: " + version);
+			
 			Version versionObj = gson.fromJson(version, Version.class);
 
 			assertEquals(13 , versionObj.getBuildNumber().length());
@@ -1417,7 +1420,7 @@ public class ConsoleAppRestServiceTest{
 			rtmpSendingProcess.destroy();
 
 			//it should be false this time also, because stream mp4 setting is false
-			Awaitility.await().pollDelay(25, TimeUnit.SECONDS).atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			Awaitility.await().pollDelay(5, TimeUnit.SECONDS).atMost(25, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				return !MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast3.getStreamId() + ".mp4");
 			});
 
