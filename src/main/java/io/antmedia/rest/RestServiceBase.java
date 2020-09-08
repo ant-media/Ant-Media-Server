@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetAddress;
+import java.net.MalformedURLException;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.URL;
@@ -1831,14 +1832,38 @@ public abstract class RestServiceBase {
 		Version version = new Version();
 		version.setVersionName(AntMediaApplicationAdapter.class.getPackage().getImplementationVersion());
 
-		URLClassLoader cl = (URLClassLoader) AntMediaApplicationAdapter.class.getClassLoader();
-		URL url = cl.findResource("META-INF/MANIFEST.MF");
+		
+		ClassLoader cl = (ClassLoader) AntMediaApplicationAdapter.class.getClassLoader();
+		
+		URL url = null;
+		if(cl instanceof ClassLoader) { 
+			URLClassLoader urlCl= (URLClassLoader) cl;
+			url = urlCl.findResource("META-INF/MANIFEST.MF");
+		} else {
+			Class clazz = RestServiceBase.class;
+			String className = clazz.getSimpleName() + ".class";
+			String classPath = clazz.getResource(className).toString();
+			if (!classPath.startsWith("jar")) {
+			  // Class not from JAR
+			logger.error("getSoftwareVersion: class not from jar");
+			  return version;
+			}
+			String manifestPath = classPath.substring(0, classPath.lastIndexOf("!") + 1) + 
+			    "/META-INF/MANIFEST.MF";
+			
+			try {
+				url = new URL(manifestPath);
+			} catch (MalformedURLException e) {
+				logger.error(e.getMessage());
+			}
+		}
 		Manifest manifest;
+		
 		try {
 			manifest = new Manifest(url.openStream());
 			version.setBuildNumber(manifest.getMainAttributes().getValue(RestServiceBase.BUILD_NUMBER));
-		} catch (IOException e) {
-			//No need to implement
+		} catch (NullPointerException | IOException e) {
+			logger.error(e.getMessage());
 		}
 
 		version.setVersionType(isEnterprise() ? RestServiceBase.ENTERPRISE_EDITION : RestServiceBase.COMMUNITY_EDITION);

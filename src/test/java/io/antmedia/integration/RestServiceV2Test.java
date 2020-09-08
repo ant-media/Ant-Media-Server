@@ -1657,7 +1657,7 @@ public class RestServiceV2Test {
 							+ broadcast.getStreamId());
 
 
-			Awaitility.await().atMost(25, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+			Awaitility.await().atMost(35, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
 				//size should +2 because we restream again into the server
 				return size+2 == callGetBroadcastList().size();
 			});
@@ -1667,7 +1667,7 @@ public class RestServiceV2Test {
 			result = deleteBroadcast(broadcast.getStreamId());
 			assertTrue(result.isSuccess());
 
-			Awaitility.await().atMost(25, TimeUnit.SECONDS)
+			Awaitility.await().atMost(35, TimeUnit.SECONDS)
 			.pollInterval(2, TimeUnit.SECONDS).until(() -> 
 			{
 				int broadcastListSize = callGetBroadcastList().size();
