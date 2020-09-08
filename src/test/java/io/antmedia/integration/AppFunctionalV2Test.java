@@ -209,7 +209,7 @@ public class AppFunctionalV2Test {
 			Broadcast endpoint=restService.createBroadcast("endpoint_stream");
 			
 			
-			Awaitility.await().atMost(2, TimeUnit.SECONDS).until(() -> {
+			Awaitility.await().atMost(2, TimeUnit.SECONDS).until(() -> { 
 				return (restService.getBroadcast(source.getStreamId()) != null) && (restService.getBroadcast(endpoint.getStreamId()) != null);
 			});
 
@@ -222,7 +222,7 @@ public class AppFunctionalV2Test {
 					+ source.getStreamId());
 			
 			//Check Stream list size and Streams status		
-			Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> {
+			Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> { 
 				return restService.callGetLiveStatistics() == 2 
 						&& restService.callGetBroadcast(source.getStreamId()).getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)
 						&& restService.callGetBroadcast(endpoint.getStreamId()).getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
@@ -234,12 +234,12 @@ public class AppFunctionalV2Test {
 
 			String sourceURL = "http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + source.getStreamId() + ".mp4";
 
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> { 
 				return MuxingTest.getByteArray(sourceURL) != null;
 			});
 
 			String endpointURL = "http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + endpoint.getStreamId() + ".mp4";
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> { 
 				return MuxingTest.getByteArray(endpointURL) != null;
 			});
 
@@ -285,7 +285,7 @@ public class AppFunctionalV2Test {
 					+ source.getStreamId());
 
 			//Check Stream list size and Streams status
-			Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> {
+			Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> { 
 				return restService.callGetLiveStatistics() == 2 
 						&& restService.callGetBroadcast(source.getStreamId()).getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)
 						&& restService.callGetBroadcast(endpointStream.getStreamId()).getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
