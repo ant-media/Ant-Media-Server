@@ -232,9 +232,8 @@ public class RTMPAdaptorTest {
 		rtmpAdaptor.start();
 
 
-
 		Awaitility.await().pollDelay(1, TimeUnit.SECONDS)
-		.atMost(10, TimeUnit.SECONDS)
+		.atMost(20, TimeUnit.SECONDS)
 		.until(() -> rtmpAdaptor.isStarted());
 
 
@@ -245,13 +244,13 @@ public class RTMPAdaptorTest {
 		rtmpAdaptor.stop();
 
 		Awaitility.await().pollDelay(1, TimeUnit.SECONDS)
-		.atMost(10, TimeUnit.SECONDS)
+		.atMost(20, TimeUnit.SECONDS)
 		.until(() -> rtmpAdaptor.getAudioDataSchedulerFuture().isCancelled());
 
 		assertTrue(rtmpAdaptor.getAudioDataSchedulerFuture().isCancelled());
 
 		Awaitility.await().pollDelay(1, TimeUnit.SECONDS)
-		.atMost(10, TimeUnit.SECONDS)
+		.atMost(20, TimeUnit.SECONDS)
 		.until(() -> rtmpAdaptor.isStopped());
 
 	}
