@@ -276,7 +276,7 @@ public class PeriscopeEndpointTest {
 	}
 
 
-	//@Test
+	//@Test 
 	public void testCreateBroadcastNoName() {
 		DataStore dataStore = new MapDBStore(TARGET_TEST_PROPERTIES);
 		List<SocialEndpointCredentials> socialEndpoints = dataStore.getSocialEndpoints(0, 10);
@@ -302,12 +302,12 @@ public class PeriscopeEndpointTest {
 	//@Test
 	public void testConnectChatEndpoint() {
 		createBroadcast(true);
-	}
+	} 
 
 
 	
 
-	//@Test
+	//@Test 
 	public void testCreateBroadcast() {
 		createBroadcast(false);
 	}
@@ -373,7 +373,7 @@ public class PeriscopeEndpointTest {
 		}
 	}
 
-	//@Test
+	//@Test 
 	public void testChatEndpoint() {
 		DataStore dataStore = new MapDBStore(TARGET_TEST_PROPERTIES);
 		List<SocialEndpointCredentials> socialEndpoints = dataStore.getSocialEndpoints(0, 10);
