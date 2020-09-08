@@ -598,6 +598,7 @@ public class RestServiceV2Test {
 
 		MavenXpp3Reader reader = new MavenXpp3Reader();
 		try {
+			System.out.println("Getting Version");
 			//first, read version from pom.xml 
 			Model model = reader.read(new FileReader("pom.xml"));
 			logger.info(model.getParent().getVersion());
@@ -618,12 +619,15 @@ public class RestServiceV2Test {
 			Version versionList = null;
 
 			versionList = gson.fromJson(result.toString(), Version.class);
-
+			
+			System.out.println("Version: " + versionList.getVersionName());
+			System.out.println("Expected Version: " + model.getParent().getVersion());
 			//check that they are same
 			assertEquals(model.getParent().getVersion()
 					, versionList.getVersionName());
 
 			assertNotNull(versionList.getBuildNumber());
+			System.out.println("Build Number: " + versionList.getBuildNumber());
 			assertTrue(versionList.getBuildNumber().length() == 13); //format is yyyyMMdd_HHmm
 
 		}catch(Exception e){
@@ -1888,19 +1892,19 @@ public class RestServiceV2Test {
 
 			startStopRTMPBroadcast(streamId);
 
-			Awaitility.await().atMost(15, TimeUnit.SECONDS).until(()-> {
+			Awaitility.await().atMost(25, TimeUnit.SECONDS).until(()-> {
 				return isUrlExist("http://localhost:5080/LiveApp/streams/"+streamId+".mp4");
 			});
 
 			startStopRTMPBroadcast(streamId);
 
-			Awaitility.await().atMost(15, TimeUnit.SECONDS).until(()-> {
+			Awaitility.await().atMost(25, TimeUnit.SECONDS).until(()-> {
 				return isUrlExist("http://localhost:5080/LiveApp/streams/"+streamId+"_1.mp4");
 			});
 
 			startStopRTMPBroadcast("dummyStreamId");
 
-			Awaitility.await().atMost(15, TimeUnit.SECONDS).until(()-> {
+			Awaitility.await().atMost(25, TimeUnit.SECONDS).until(()-> {
 				return isUrlExist("http://localhost:5080/LiveApp/streams/"+"dummyStreamId.mp4");
 			});
 			String url = ROOT_SERVICE_URL + "/v2/vods/list/0/50?streamId="+streamId;

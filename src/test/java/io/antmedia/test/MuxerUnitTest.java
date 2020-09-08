@@ -260,11 +260,11 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			flvReader.close();
 
 
-			Awaitility.await().atMost(25, TimeUnit.SECONDS).until(() -> !muxAdaptor.isRecording());
+			Awaitility.await().atMost(30, TimeUnit.SECONDS).until(() -> !muxAdaptor.isRecording());
 
 			assertFalse(muxAdaptor.isRecording());
 
-			Awaitility.await().atMost(26, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+			Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
 				File f1 = new File(muxAdaptor.getMuxerList().get(0).getFile().getAbsolutePath());
 				File f2 = new File(muxAdaptor.getMuxerList().get(1).getFile().getAbsolutePath());
 				return f1.exists() && f2.exists();
@@ -339,7 +339,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 				for (MuxAdaptor muxAdaptor : muxAdaptorList) {
 					logger.info("Check if is recording: {}", muxAdaptor.getStreamId());
-					Awaitility.await().atMost(50, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+					Awaitility.await().atMost(70, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 						return muxAdaptor.isRecording();
 					});
 				}
@@ -352,7 +352,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 				flvReader.close();
 
 				for (MuxAdaptor muxAdaptor : muxAdaptorList) {
-					Awaitility.await().atMost(50, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+					Awaitility.await().atMost(76, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
 						return !muxAdaptor.isRecording();
 					});
 				}
@@ -414,13 +414,13 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		File file = testMp4Muxing("test_test");
 		assertEquals("test_test.mp4", file.getName());
 
-		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> {
+		Awaitility.await().atMost(7, TimeUnit.SECONDS).until(() -> {
 			return "test_test".equals(Application.id);
 		});
 		
 		assertEquals("test_test", Application.id);
 		
-		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> {
+		Awaitility.await().atMost(7, TimeUnit.SECONDS).until(() -> {
 			return "test_test.mp4".equals(Application.file.getName());
 		});
 		
@@ -442,7 +442,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		assertEquals("test_test", Application.id);
 		
-		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
+		Awaitility.await().atMost(15, TimeUnit.SECONDS).until(() -> {
 			return "test_test_1.mp4".equals(Application.file.getName());
 		});
 		
@@ -458,13 +458,13 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		file = testMp4Muxing("test_test");
 		assertEquals("test_test_2.mp4", file.getName());
 
-		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
+		Awaitility.await().atMost(15, TimeUnit.SECONDS).until(() -> {
 			return "test_test".equals(Application.id);
 		});
 		
 		assertEquals("test_test", Application.id);
 		
-		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
+		Awaitility.await().atMost(15, TimeUnit.SECONDS).until(() -> {
 			return "test_test_2.mp4".equals(Application.file.getName());
 		});
 		
@@ -533,7 +533,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
 =======
 		Awaitility.await()
-		.atMost(10, TimeUnit.SECONDS)
+		.atMost(15, TimeUnit.SECONDS)
 		.pollInterval(1, TimeUnit.SECONDS)
 >>>>>>> 25e23d0 increased awaitility waiting times for some tests. replaced Thread.sleep() calls with awaitility polling calls to decrease testing times in some tests
 		.until(() -> 
@@ -555,7 +555,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		broadcast.setZombi(true);
 		appAdaptor.streamBroadcastClose(stream);
 
-		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> appAdaptor.getDataStore().get(broadcast.getStreamId()) == null);
+		Awaitility.await().atMost(15, TimeUnit.SECONDS).until(() -> appAdaptor.getDataStore().get(broadcast.getStreamId()) == null);
 
 		try {
 			Mockito.verify(endpointService).stopBroadcast(endpoint);
@@ -619,7 +619,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		testMp4Muxing(streamId, false, true);
 
-		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
+		Awaitility.await().atMost(15, TimeUnit.SECONDS).until(() -> {
 			return streamId.equals(Application.id);
 		});
 		
@@ -906,13 +906,13 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 				muxAdaptor.packetReceived(null, streamPacket);
 			}
 
-			Awaitility.await().pollDelay(2, TimeUnit.SECONDS).atMost(10, TimeUnit.SECONDS).until(() -> muxAdaptor.isRecording());
+			Awaitility.await().pollDelay(2, TimeUnit.SECONDS).atMost(60, TimeUnit.SECONDS).until(() -> muxAdaptor.isRecording());
 
 			muxAdaptor.stop();
 
 			flvReader.close();
 
-			Awaitility.await().atMost(50, TimeUnit.SECONDS).until(() -> !muxAdaptor.isRecording());
+			Awaitility.await().atMost(60, TimeUnit.SECONDS).until(() -> !muxAdaptor.isRecording());
 
 
 			int duration = 697000;
