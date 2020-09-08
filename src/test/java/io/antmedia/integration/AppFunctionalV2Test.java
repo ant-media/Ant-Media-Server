@@ -344,7 +344,7 @@ public class AppFunctionalV2Test {
 						+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
 						+ streamId);
 				
-				Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> {
+				Awaitility.await().atMost(20, TimeUnit.SECONDS).until(()-> {
 					return !rtmpSendingProcess.isAlive();
 				});
 			}
@@ -360,7 +360,7 @@ public class AppFunctionalV2Test {
 						+ streamId);
 				
 				//this process should be terminated autotimacally because test.flv has 25fps 
-				Awaitility.await().atMost(15, TimeUnit.SECONDS).until(()-> {
+				Awaitility.await().atMost(20, TimeUnit.SECONDS).until(()-> {
 					return !rtmpSendingProcess2.isAlive();
 				});
 			}
@@ -377,7 +377,7 @@ public class AppFunctionalV2Test {
 						+ streamId);
 				
 				//this process should NOT be terminated autotimacally because test.flv has 25fps 
-				Awaitility.await().pollDelay(9, TimeUnit.SECONDS).atMost(10, TimeUnit.SECONDS).until(()-> {
+				Awaitility.await().pollDelay(1, TimeUnit.SECONDS).atMost(25, TimeUnit.SECONDS).until(()-> {
 					return rtmpSendingProcess2.isAlive();
 				});
 				
@@ -385,7 +385,7 @@ public class AppFunctionalV2Test {
 			}
 			
 			
-			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+			Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
 				RestServiceV2Test restService = new RestServiceV2Test();
 				return 0 == restService.callGetLiveStatistics();
 			});
@@ -607,7 +607,7 @@ public class AppFunctionalV2Test {
 					+ streamId);
 
 
-			Awaitility.await().atMost(40, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			Awaitility.await().atMost(45, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				return MuxingTest.isURLAvailable("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" +streamId+ "_0p0001.ts" );
 			});
 
@@ -823,10 +823,11 @@ public class AppFunctionalV2Test {
 			executeProcess(ffmpegPath
 					+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
 					+ streamId);
+			
+			Awaitility.await().atMost(25, TimeUnit.SECONDS).until(() -> {
+				return 1 == restService.callGetLiveStatistics();
+			});
 
-			Thread.sleep(7000);
-
-			assertEquals(1, restService.callGetLiveStatistics());
 
 			BroadcastStatistics broadcastStatistics = restService.callGetBroadcastStatistics(streamId);
 			assertEquals(0, broadcastStatistics.totalHLSWatchersCount); 
@@ -842,7 +843,7 @@ public class AppFunctionalV2Test {
 
 			destroyProcess();
 
-			Thread.sleep(5000);
+			Thread.sleep(15000);
 
 			broadcastStatistics = restService.callGetBroadcastStatistics(streamId);
 			assertNotNull(broadcastStatistics);
@@ -851,7 +852,7 @@ public class AppFunctionalV2Test {
 			assertEquals(-1, broadcastStatistics.totalWebRTCWatchersCount);
 
 
-			Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+			Awaitility.await().atMost(35, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
 				return 0 == restService.callGetLiveStatistics();
 			});
 			

@@ -175,12 +175,12 @@ public class MuxingTest {
 			// stop rtmp streaming
 			rtmpSendingProcess.destroy();
 
-			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
+			Awaitility.await().atMost(25, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
 				return testFile("rtmp://" + SERVER_ADDR + "/LiveApp/" + streamName + ".mp4");
 			});
 
 			// check that mp4 is not created
-			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
+			Awaitility.await().atMost(25, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
 				return testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".mp4");
 			});
 			
@@ -189,7 +189,7 @@ public class MuxingTest {
 			e.printStackTrace();
 		}
 		
-		Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
+		Awaitility.await().atMost(25, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
 			RestServiceV2Test restService = new RestServiceV2Test();
 
 			return 0 == restService.callGetLiveStatistics();
@@ -228,7 +228,7 @@ public class MuxingTest {
 			e.printStackTrace();
 		}
 		
-		Awaitility.await().atMost(25, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
+		Awaitility.await().atMost(35, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
 			RestServiceV2Test restService = new RestServiceV2Test();
 
 			return 0 == restService.callGetLiveStatistics();
@@ -269,7 +269,7 @@ public class MuxingTest {
 		
 		//wait a little more to let server update statistics
 		
-		Awaitility.await().atMost(15, TimeUnit.SECONDS)
+		Awaitility.await().atMost(30, TimeUnit.SECONDS)
 			.pollInterval(1, TimeUnit.SECONDS)
 			.until(() -> {
 				RestServiceV2Test restService = new RestServiceV2Test();
@@ -301,7 +301,7 @@ public class MuxingTest {
 			
 
 			// check that stream can be watchable by hls
-			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+			Awaitility.await().atMost(25, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
 			.until(() -> testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".m3u8"));
 
 			// stop rtmp streaming
@@ -782,7 +782,7 @@ public class MuxingTest {
 			e.printStackTrace();
 		}
 
-		Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+		Awaitility.await().atMost(25, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 			Broadcast broadcast = RestServiceV2Test.callGetBroadcast(streamName);
 			return broadcast.getSpeed() != 0;
 		});

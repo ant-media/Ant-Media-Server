@@ -299,13 +299,6 @@ public class PeriscopeEndpointTest {
 		dataStore.close();
 	}
 	
-	@Test
-	public void testConnectChatEndpoint() {
-		createBroadcast(true);
-	}
-
-
-	
 
 	@Test
 	public void testCreateBroadcast() {
