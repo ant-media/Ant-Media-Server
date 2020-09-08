@@ -906,13 +906,13 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 				muxAdaptor.packetReceived(null, streamPacket);
 			}
 
-			Awaitility.await().pollDelay(2, TimeUnit.SECONDS).atMost(60, TimeUnit.SECONDS).until(() -> muxAdaptor.isRecording());
+			Awaitility.await().pollDelay(2, TimeUnit.SECONDS).atMost(80, TimeUnit.SECONDS).until(() -> muxAdaptor.isRecording());
 
 			muxAdaptor.stop();
 
 			flvReader.close();
 
-			Awaitility.await().atMost(60, TimeUnit.SECONDS).until(() -> !muxAdaptor.isRecording());
+			Awaitility.await().atMost(80, TimeUnit.SECONDS).until(() -> !muxAdaptor.isRecording());
 
 
 			int duration = 697000;
