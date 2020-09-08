@@ -202,7 +202,7 @@ public class AppFunctionalV2Test {
 			Broadcast endpoint=restService.createBroadcast("endpoint_stream");
 			
 			
-			Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> {
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
 				return (restService.getBroadcast(source.getStreamId()) != null) && (restService.getBroadcast(endpoint.getStreamId()) != null);
 			});
 
@@ -215,7 +215,7 @@ public class AppFunctionalV2Test {
 					+ source.getStreamId());
 			
 			//Check Stream list size and Streams status		
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(() -> {
 				return restService.callGetLiveStatistics() == 2 
 						&& restService.callGetBroadcast(source.getStreamId()).getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)
 						&& restService.callGetBroadcast(endpoint.getStreamId()).getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
@@ -232,7 +232,7 @@ public class AppFunctionalV2Test {
 			});
 
 			String endpointURL = "http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + endpoint.getStreamId() + ".mp4";
-			Awaitility.await().atMost(15, TimeUnit.SECONDS).until(() -> {
+			Awaitility.await().atMost(25, TimeUnit.SECONDS).until(() -> {
 				return MuxingTest.getByteArray(endpointURL) != null;
 			});
 
@@ -344,7 +344,7 @@ public class AppFunctionalV2Test {
 						+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
 						+ streamId);
 				
-				Awaitility.await().atMost(40, TimeUnit.SECONDS).until(()-> {
+				Awaitility.await().atMost(50, TimeUnit.SECONDS).until(()-> {
 					return !rtmpSendingProcess.isAlive();
 				});
 			}
@@ -360,11 +360,10 @@ public class AppFunctionalV2Test {
 						+ streamId);
 				
 				//this process should be terminated autotimacally because test.flv has 25fps 
-				Awaitility.await().atMost(40, TimeUnit.SECONDS).until(()-> {
+				Awaitility.await().atMost(50, TimeUnit.SECONDS).until(()-> {
 					return !rtmpSendingProcess2.isAlive();
 				});
-			}
-			
+			}	
 			
 			{
 				appSettingsModel.setMaxResolutionAccept(0);
@@ -377,22 +376,18 @@ public class AppFunctionalV2Test {
 						+ streamId);
 				
 				//this process should NOT be terminated autotimacally because test.flv has 25fps 
-				Awaitility.await().pollDelay(1, TimeUnit.SECONDS).atMost(40, TimeUnit.SECONDS).until(()-> {
+				Awaitility.await().pollDelay(1, TimeUnit.SECONDS).atMost(50, TimeUnit.SECONDS).until(()-> {
 					return rtmpSendingProcess2.isAlive();
 				});
 				
 				rtmpSendingProcess2.destroy();
 			}
 			
-			
 			Awaitility.await().atMost(80, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
 				RestServiceV2Test restService = new RestServiceV2Test();
 				return 0 == restService.callGetLiveStatistics();
 			});
 
-			
-			
-		
 		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
@@ -713,7 +708,7 @@ public class AppFunctionalV2Test {
 				+ stream.getStreamId());
 		
 		//Wait for the m3u8 file is available
-		Awaitility.await().atMost(50, TimeUnit.SECONDS).until(() -> {
+		Awaitility.await().atMost(60, TimeUnit.SECONDS).until(() -> {
 			return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" +stream.getStreamId()+ ".m3u8" );
 		});	
 		
@@ -738,14 +733,14 @@ public class AppFunctionalV2Test {
 		Process hlsPlayProcess10 = execute("ffmpeg -re -i http://"+SERVER_ADDR+":5080/LiveApp/streams/"+stream.getStreamId()+".m3u8 -codec copy -f null /dev/null");
 		
 		//Check Stream list size and Streams status		
-		Awaitility.await().atMost(40, TimeUnit.SECONDS).until(() -> {
+		Awaitility.await().atMost(45, TimeUnit.SECONDS).until(() -> {
 			return restService.callGetBroadcast(stream.getStreamId()).getHlsViewerCount() == 10 ;
 		});
 		
 		hlsPlayProcess10.destroy();
 		
 		//Check Stream list size and Streams status		
-		Awaitility.await().atMost(40, TimeUnit.SECONDS).until(() -> {
+		Awaitility.await().atMost(45, TimeUnit.SECONDS).until(() -> {
 			return restService.callGetBroadcast(stream.getStreamId()).getHlsViewerCount() == 9 ;
 		});
 		
@@ -754,7 +749,7 @@ public class AppFunctionalV2Test {
 		hlsPlayProcess8.destroy();
 		
 		//Check Stream list size and Streams status		
-		Awaitility.await().atMost(40, TimeUnit.SECONDS).until(() -> {
+		Awaitility.await().atMost(45, TimeUnit.SECONDS).until(() -> {
 			return restService.callGetBroadcast(stream.getStreamId()).getHlsViewerCount() == 7 ;
 		});
 		
@@ -904,7 +899,7 @@ public class AppFunctionalV2Test {
 					+ broadcast.getStreamId());
 
 			
-			Awaitility.await().atMost(35, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+			Awaitility.await().atMost(45, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
 				// call web service to get stream info and check status
 				Broadcast broadcastTemp = RestServiceV2Test.getBroadcast(broadcast.getStreamId().toString());
 				return broadcastTemp != null && AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(broadcastTemp.getStatus());
@@ -914,7 +909,7 @@ public class AppFunctionalV2Test {
 			process.destroy();
 
 			// call web service to get stream info and check status
-			Awaitility.await().atMost(35, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+			Awaitility.await().atMost(45, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
 				// call web service to get stream info and check status
 				Broadcast broadcastTemp = RestServiceV2Test.getBroadcast(broadcast.getStreamId().toString());
 				return broadcastTemp != null && AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED.equals(broadcastTemp.getStatus());
@@ -926,8 +921,6 @@ public class AppFunctionalV2Test {
 		}
 
 		//let the server update live stream count
-
-
 		Awaitility.await().atMost(120, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
 			RestServiceV2Test restService = new RestServiceV2Test();
 
