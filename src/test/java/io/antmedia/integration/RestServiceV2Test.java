@@ -1892,19 +1892,19 @@ public class RestServiceV2Test {
 
 			startStopRTMPBroadcast(streamId);
 
-			Awaitility.await().atMost(25, TimeUnit.SECONDS).until(()-> {
+			Awaitility.await().atMost(50, TimeUnit.SECONDS).until(()-> {
 				return isUrlExist("http://localhost:5080/LiveApp/streams/"+streamId+".mp4");
 			});
 
 			startStopRTMPBroadcast(streamId);
 
-			Awaitility.await().atMost(25, TimeUnit.SECONDS).until(()-> {
+			Awaitility.await().atMost(50, TimeUnit.SECONDS).until(()-> {
 				return isUrlExist("http://localhost:5080/LiveApp/streams/"+streamId+"_1.mp4");
 			});
 
 			startStopRTMPBroadcast("dummyStreamId");
 
-			Awaitility.await().atMost(25, TimeUnit.SECONDS).until(()-> {
+			Awaitility.await().atMost(50, TimeUnit.SECONDS).until(()-> {
 				return isUrlExist("http://localhost:5080/LiveApp/streams/"+"dummyStreamId.mp4");
 			});
 			String url = ROOT_SERVICE_URL + "/v2/vods/list/0/50?streamId="+streamId;

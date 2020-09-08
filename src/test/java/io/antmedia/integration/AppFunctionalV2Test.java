@@ -385,7 +385,7 @@ public class AppFunctionalV2Test {
 			}
 			
 			
-			Awaitility.await().atMost(60, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+			Awaitility.await().atMost(80, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
 				RestServiceV2Test restService = new RestServiceV2Test();
 				return 0 == restService.callGetLiveStatistics();
 			});
@@ -689,7 +689,7 @@ public class AppFunctionalV2Test {
 		}
 
 
-		Awaitility.await().atMost(90, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+		Awaitility.await().atMost(120, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
 			RestServiceV2Test restService = new RestServiceV2Test();
 			return 0 == restService.callGetLiveStatistics();
 		});
@@ -816,7 +816,7 @@ public class AppFunctionalV2Test {
 				System.out.println("brodcast url: " + broadcast.getStreamId() + " status: " + broadcast.getStatus());
 			}
 			
-			Awaitility.await().atMost(40, TimeUnit.SECONDS).until(() -> {
+			Awaitility.await().atMost(50, TimeUnit.SECONDS).until(() -> {
 				return 0 == restService.callGetLiveStatistics();
 			});
 
@@ -826,7 +826,7 @@ public class AppFunctionalV2Test {
 					+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
 					+ streamId);
 			
-			Awaitility.await().atMost(40, TimeUnit.SECONDS).until(() -> {
+			Awaitility.await().atMost(50, TimeUnit.SECONDS).until(() -> {
 				return 1 == restService.callGetLiveStatistics();
 			});
 
@@ -854,7 +854,7 @@ public class AppFunctionalV2Test {
 			assertEquals(-1, broadcastStatistics.totalWebRTCWatchersCount);
 
 
-			Awaitility.await().atMost(35, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+			Awaitility.await().atMost(50, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
 				return 0 == restService.callGetLiveStatistics();
 			});
 			
@@ -928,7 +928,7 @@ public class AppFunctionalV2Test {
 		//let the server update live stream count
 
 
-		Awaitility.await().atMost(80, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+		Awaitility.await().atMost(120, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
 			RestServiceV2Test restService = new RestServiceV2Test();
 
 			return 0 == restService.callGetLiveStatistics();
