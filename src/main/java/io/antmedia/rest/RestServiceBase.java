@@ -1836,7 +1836,7 @@ public abstract class RestServiceBase {
 		ClassLoader cl = (ClassLoader) AntMediaApplicationAdapter.class.getClassLoader();
 		
 		URL url = null;
-		if(cl instanceof ClassLoader) { 
+		if(cl instanceof URLClassLoader) { 
 			URLClassLoader urlCl= (URLClassLoader) cl;
 			url = urlCl.findResource("META-INF/MANIFEST.MF");
 		} else {
