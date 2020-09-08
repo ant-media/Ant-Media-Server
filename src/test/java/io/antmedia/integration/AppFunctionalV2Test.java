@@ -704,7 +704,7 @@ public class AppFunctionalV2Test {
 			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, broadcast.getStatus());
 
 
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> { 
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				return MuxingTest.isURLAvailable("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" +streamId+ ".m3u8" );
 			});
 
