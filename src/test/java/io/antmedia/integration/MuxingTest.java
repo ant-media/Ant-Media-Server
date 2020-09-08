@@ -267,7 +267,7 @@ public class MuxingTest {
 		
 		//wait a little more to let server update statistics
 		
-		Awaitility.await().atMost(90, TimeUnit.SECONDS)
+		Awaitility.await().atMost(90, TimeUnit.SECONDS) 
 			.pollInterval(1, TimeUnit.SECONDS)
 			.until(() -> {
 				RestServiceV2Test restService = new RestServiceV2Test();
