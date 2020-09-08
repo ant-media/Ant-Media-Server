@@ -136,8 +136,8 @@ public class MuxingTest {
 			rtmpSendingProcess.destroy();
 
 			
-			Awaitility.await().atMost(20, TimeUnit.SECONDS)
-					.pollInterval(4, TimeUnit.SECONDS)
+			Awaitility.await().atMost(40, TimeUnit.SECONDS)
+					.pollInterval(2, TimeUnit.SECONDS)
 					.until(() -> testFile("rtmp://" + SERVER_ADDR + "/LiveApp/" + streamName + ".mp4", 5000));
 
 			// check that stream can be watchable by hls
