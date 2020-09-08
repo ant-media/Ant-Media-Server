@@ -908,17 +908,19 @@ public class AppFunctionalV2Test {
 				System.out.println("brodcast url: " + broadcast.getStreamId() + " status: " + broadcast.getStatus());
 			}
 			
-			assertEquals(0, restService.callGetLiveStatistics());
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
+				return 0 == restService.callGetLiveStatistics();
+			});
 
 			// publish live stream to the server
 			String streamId = "zombiStreamId1";
 			executeProcess(ffmpegPath
 					+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
 					+ streamId);
-
-			Thread.sleep(3000);
-
-			assertEquals(1, restService.callGetLiveStatistics());
+			
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
+				return 1 == restService.callGetLiveStatistics();
+			});
 
 			BroadcastStatistics broadcastStatistics = restService.callGetBroadcastStatistics(streamId);
 			assertEquals(0, broadcastStatistics.totalHLSWatchersCount); 
@@ -934,7 +936,7 @@ public class AppFunctionalV2Test {
 
 			destroyProcess();
 
-			Thread.sleep(1000);
+			Thread.sleep(1000); 
 
 			broadcastStatistics = restService.callGetBroadcastStatistics(streamId);
 			assertNotNull(broadcastStatistics);
@@ -967,10 +969,10 @@ public class AppFunctionalV2Test {
 
 			RestServiceV2Test restService = new RestServiceV2Test();
 
-			Broadcast broadcast = restService.createBroadcast("name");
+			final Broadcast broadcast = restService.createBroadcast("name");
 
-			broadcast = restService.getBroadcast(broadcast.getStreamId());
-			assertEquals("name", broadcast.getName());
+			Broadcast receivedBroadcast = restService.getBroadcast(broadcast.getStreamId());
+			assertEquals("name", receivedBroadcast.getName());
 
 			// TODO: add this to enterprise
 			/*
@@ -992,26 +994,24 @@ public class AppFunctionalV2Test {
 					+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
 					+ broadcast.getStreamId());
 
-			Thread.sleep(10000);
+			
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+				// call web service to get stream info and check status
+				Broadcast broadcastTemp = RestServiceV2Test.getBroadcast(broadcast.getStreamId().toString());
+				return broadcastTemp != null && AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(broadcastTemp.getStatus());
+			});
 
-			// call web service to get stream info and check status
-			broadcast = restService.getBroadcast(broadcast.getStreamId().toString());
-			assertNotNull(broadcast);
-			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, broadcast.getStatus());
 
 			process.destroy();
 
-			Thread.sleep(10000);
-
 			// call web service to get stream info and check status
-			broadcast = restService.getBroadcast(broadcast.getStreamId().toString());
-			assertNotNull(broadcast);
-			assertEquals(broadcast.getStatus(), AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+				// call web service to get stream info and check status
+				Broadcast broadcastTemp = RestServiceV2Test.getBroadcast(broadcast.getStreamId().toString());
+				return broadcastTemp != null && AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED.equals(broadcastTemp.getStatus());
+			});
 
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		} catch (Exception e) {
+		}  catch (Exception e) { 
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
@@ -1019,7 +1019,7 @@ public class AppFunctionalV2Test {
 		//let the server update live stream count
 
 
-		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> { 
 			RestServiceV2Test restService = new RestServiceV2Test();
 
 			return 0 == restService.callGetLiveStatistics();
