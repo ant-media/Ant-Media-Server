@@ -906,20 +906,14 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 				muxAdaptor.packetReceived(null, streamPacket);
 			}
 
-
-
-			Awaitility.await().atMost(140, TimeUnit.SECONDS).until(() -> muxAdaptor.isRecording());
-
-			assertTrue(muxAdaptor.isRecording());
+			Awaitility.await().pollDelay(2, TimeUnit.SECONDS).atMost(10, TimeUnit.SECONDS).until(() -> muxAdaptor.isRecording());
 
 			muxAdaptor.stop();
 
 			flvReader.close();
 
+			Awaitility.await().atMost(50, TimeUnit.SECONDS).until(() -> !muxAdaptor.isRecording());
 
-			Awaitility.await().atMost(45, TimeUnit.SECONDS).until(() -> !muxAdaptor.isRecording());
-
-			assertFalse(muxAdaptor.isRecording());
 
 			int duration = 697000;
 			if (shortVersion) {
@@ -1071,7 +1065,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 			flvReader.close();
 
-			Awaitility.await().atMost(30, TimeUnit.SECONDS).until(() -> !muxAdaptor.isRecording());
+			Awaitility.await().atMost(40, TimeUnit.SECONDS).until(() -> !muxAdaptor.isRecording());
 
 			// if there is listenerHookURL, a task will be scheduled, so wait a little to make the call happen
 			Thread.sleep(400);
