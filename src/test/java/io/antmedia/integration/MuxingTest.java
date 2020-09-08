@@ -143,7 +143,7 @@ public class MuxingTest {
 			// check that mp4 is created successfully and can be playable
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> 
 				testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".mp4", 5000)
-			); 
+			);
 
 		} catch (Exception e) {
 			e.printStackTrace();

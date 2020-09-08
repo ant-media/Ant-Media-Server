@@ -304,9 +304,6 @@ public class PeriscopeEndpointTest {
 		createBroadcast(true);
 	} 
 
-
-	
-
 	//@Test 
 	public void testCreateBroadcast() {
 		createBroadcast(false);

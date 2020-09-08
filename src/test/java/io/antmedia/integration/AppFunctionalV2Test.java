@@ -304,7 +304,7 @@ public class AppFunctionalV2Test {
 
 			String endpointURL = "http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + endpointStream.getStreamId() + ".mp4";
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
-				return MuxingTest.testFile(endpointURL); 
+				return MuxingTest.testFile(endpointURL);
 			});
 
 			//test mp4 files
