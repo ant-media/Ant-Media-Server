@@ -360,7 +360,7 @@ public class AppFunctionalV2Test {
 						+ streamId);
 				
 				//this process should be terminated autotimacally because test.flv has 25fps 
-				Awaitility.await().atMost(50, TimeUnit.SECONDS).until(()-> {
+				Awaitility.await().atMost(70, TimeUnit.SECONDS).until(()-> {
 					return !rtmpSendingProcess2.isAlive();
 				});
 			}	
@@ -376,7 +376,7 @@ public class AppFunctionalV2Test {
 						+ streamId);
 				
 				//this process should NOT be terminated autotimacally because test.flv has 25fps 
-				Awaitility.await().pollDelay(1, TimeUnit.SECONDS).atMost(50, TimeUnit.SECONDS).until(()-> {
+				Awaitility.await().pollDelay(1, TimeUnit.SECONDS).atMost(70, TimeUnit.SECONDS).until(()-> {
 					return rtmpSendingProcess2.isAlive();
 				});
 				
@@ -602,7 +602,7 @@ public class AppFunctionalV2Test {
 					+ streamId);
 
 
-			Awaitility.await().atMost(55, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			Awaitility.await().atMost(75, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				return MuxingTest.isURLAvailable("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" +streamId+ "_0p0001.ts" );
 			});
 
@@ -733,14 +733,14 @@ public class AppFunctionalV2Test {
 		Process hlsPlayProcess10 = execute("ffmpeg -re -i http://"+SERVER_ADDR+":5080/LiveApp/streams/"+stream.getStreamId()+".m3u8 -codec copy -f null /dev/null");
 		
 		//Check Stream list size and Streams status		
-		Awaitility.await().atMost(45, TimeUnit.SECONDS).until(() -> {
+		Awaitility.await().atMost(60, TimeUnit.SECONDS).until(() -> {
 			return restService.callGetBroadcast(stream.getStreamId()).getHlsViewerCount() == 10 ;
 		});
 		
 		hlsPlayProcess10.destroy();
 		
 		//Check Stream list size and Streams status		
-		Awaitility.await().atMost(45, TimeUnit.SECONDS).until(() -> {
+		Awaitility.await().atMost(60, TimeUnit.SECONDS).until(() -> {
 			return restService.callGetBroadcast(stream.getStreamId()).getHlsViewerCount() == 9 ;
 		});
 		
@@ -749,7 +749,7 @@ public class AppFunctionalV2Test {
 		hlsPlayProcess8.destroy();
 		
 		//Check Stream list size and Streams status		
-		Awaitility.await().atMost(45, TimeUnit.SECONDS).until(() -> {
+		Awaitility.await().atMost(60, TimeUnit.SECONDS).until(() -> {
 			return restService.callGetBroadcast(stream.getStreamId()).getHlsViewerCount() == 7 ;
 		});
 		
@@ -759,7 +759,7 @@ public class AppFunctionalV2Test {
 		hlsPlayProcess4.destroy();
 		
 		//Check Stream list size and Streams status		
-		Awaitility.await().atMost(45, TimeUnit.SECONDS).until(() -> {
+		Awaitility.await().atMost(60, TimeUnit.SECONDS).until(() -> {
 			return restService.callGetBroadcast(stream.getStreamId()).getHlsViewerCount() == 3 ;
 		});
 
@@ -767,7 +767,7 @@ public class AppFunctionalV2Test {
 		rtmpSendingProcess.destroy();
 		
 		//Check Stream list size and Streams status		
-		Awaitility.await().atMost(45, TimeUnit.SECONDS).until(() -> {
+		Awaitility.await().atMost(60, TimeUnit.SECONDS).until(() -> {
 			return restService.callGetBroadcast(stream.getStreamId()).getHlsViewerCount() == 0 ;
 		});
 		
@@ -811,7 +811,7 @@ public class AppFunctionalV2Test {
 				System.out.println("brodcast url: " + broadcast.getStreamId() + " status: " + broadcast.getStatus());
 			}
 			
-			Awaitility.await().atMost(90, TimeUnit.SECONDS).until(() -> {
+			Awaitility.await().atMost(120, TimeUnit.SECONDS).until(() -> {
 				return 0 == restService.callGetLiveStatistics();
 			});
 
@@ -899,7 +899,7 @@ public class AppFunctionalV2Test {
 					+ broadcast.getStreamId());
 
 			
-			Awaitility.await().atMost(45, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+			Awaitility.await().atMost(60, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
 				// call web service to get stream info and check status
 				Broadcast broadcastTemp = RestServiceV2Test.getBroadcast(broadcast.getStreamId().toString());
 				return broadcastTemp != null && AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(broadcastTemp.getStatus());
@@ -909,7 +909,7 @@ public class AppFunctionalV2Test {
 			process.destroy();
 
 			// call web service to get stream info and check status
-			Awaitility.await().atMost(45, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+			Awaitility.await().atMost(60, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
 				// call web service to get stream info and check status
 				Broadcast broadcastTemp = RestServiceV2Test.getBroadcast(broadcast.getStreamId().toString());
 				return broadcastTemp != null && AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED.equals(broadcastTemp.getStatus());
