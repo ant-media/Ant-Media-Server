@@ -619,7 +619,7 @@ public class RestServiceV2Test {
 			Version versionList = null;
 
 			versionList = gson.fromJson(result.toString(), Version.class);
-			//check that they are same  
+			//check that they are same 
 			assertEquals(model.getParent().getVersion()
 					, versionList.getVersionName());
 

@@ -138,7 +138,7 @@ public class MuxingTest {
 			// check that stream can be watchable by hls
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> 
 				testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".m3u8", 5000)
-			); 
+			);
 			
 			// check that mp4 is created successfully and can be playable
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() ->
