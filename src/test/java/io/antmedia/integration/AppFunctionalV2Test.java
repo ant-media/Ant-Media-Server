@@ -202,7 +202,7 @@ public class AppFunctionalV2Test {
 			Broadcast endpoint=restService.createBroadcast("endpoint_stream");
 			
 			
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
+			Awaitility.await().atMost(15, TimeUnit.SECONDS).until(() -> {
 				return (restService.getBroadcast(source.getStreamId()) != null) && (restService.getBroadcast(endpoint.getStreamId()) != null);
 			});
 
@@ -215,7 +215,7 @@ public class AppFunctionalV2Test {
 					+ source.getStreamId());
 			
 			//Check Stream list size and Streams status		
-			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(() -> {
+			Awaitility.await().atMost(60, TimeUnit.SECONDS).until(() -> {
 				return restService.callGetLiveStatistics() == 2 
 						&& restService.callGetBroadcast(source.getStreamId()).getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)
 						&& restService.callGetBroadcast(endpoint.getStreamId()).getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
@@ -227,12 +227,12 @@ public class AppFunctionalV2Test {
 
 			String sourceURL = "http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + source.getStreamId() + ".mp4";
 
-			Awaitility.await().atMost(15, TimeUnit.SECONDS).until(() -> {
+			Awaitility.await().atMost(30, TimeUnit.SECONDS).until(() -> {
 				return MuxingTest.getByteArray(sourceURL) != null;
 			});
 
 			String endpointURL = "http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + endpoint.getStreamId() + ".mp4";
-			Awaitility.await().atMost(25, TimeUnit.SECONDS).until(() -> {
+			Awaitility.await().atMost(35, TimeUnit.SECONDS).until(() -> {
 				return MuxingTest.getByteArray(endpointURL) != null;
 			});
 
@@ -295,7 +295,7 @@ public class AppFunctionalV2Test {
 			});
 
 			String endpointURL = "http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + endpointStream.getStreamId() + ".mp4";
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
+			Awaitility.await().atMost(15, TimeUnit.SECONDS).until(() -> {
 				return MuxingTest.getByteArray(endpointURL) != null;
 			});
 
@@ -811,7 +811,7 @@ public class AppFunctionalV2Test {
 				System.out.println("brodcast url: " + broadcast.getStreamId() + " status: " + broadcast.getStatus());
 			}
 			
-			Awaitility.await().atMost(50, TimeUnit.SECONDS).until(() -> {
+			Awaitility.await().atMost(90, TimeUnit.SECONDS).until(() -> {
 				return 0 == restService.callGetLiveStatistics();
 			});
 
