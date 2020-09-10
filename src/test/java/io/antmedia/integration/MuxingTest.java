@@ -187,7 +187,7 @@ public class MuxingTest {
 			e.printStackTrace();
 		}
 		
-		Awaitility.await().atMost(50, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
+		Awaitility.await().atMost(90, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
 			RestServiceV2Test restService = new RestServiceV2Test();
 
 			return 0 == restService.callGetLiveStatistics();
@@ -226,7 +226,7 @@ public class MuxingTest {
 			e.printStackTrace();
 		}
 		
-		Awaitility.await().atMost(80, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
+		Awaitility.await().atMost(120, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
 			RestServiceV2Test restService = new RestServiceV2Test();
 
 			return 0 == restService.callGetLiveStatistics();
@@ -267,7 +267,7 @@ public class MuxingTest {
 		
 		//wait a little more to let server update statistics
 		
-		Awaitility.await().atMost(60, TimeUnit.SECONDS)
+		Awaitility.await().atMost(90, TimeUnit.SECONDS)
 			.pollInterval(1, TimeUnit.SECONDS)
 			.until(() -> {
 				RestServiceV2Test restService = new RestServiceV2Test();
@@ -299,14 +299,14 @@ public class MuxingTest {
 			
 
 			// check that stream can be watchable by hls
-			Awaitility.await().atMost(35, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+			Awaitility.await().atMost(45, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
 			.until(() -> testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".m3u8"));
 
 			// stop rtmp streaming
 			rtmpSendingProcess.destroy();
 
 			// check that mp4 is created successfully and can be playable
-			Awaitility.await().atMost(35, TimeUnit.SECONDS).pollInterval(4, TimeUnit.SECONDS).until(()->{
+			Awaitility.await().atMost(45, TimeUnit.SECONDS).pollInterval(4, TimeUnit.SECONDS).until(()->{
 				return testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".mp4");
 			});
 			
