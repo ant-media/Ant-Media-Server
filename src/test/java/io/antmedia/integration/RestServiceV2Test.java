@@ -876,7 +876,7 @@ public class RestServiceV2Test {
 			Broadcast broadcast = callCreateBroadcast(1000);
 			System.out.println("broadcast stream id: " + broadcast.getStreamId());
 
-			Thread.sleep(3000);
+			Thread.sleep(5000);
 			Process execute = execute(ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy "
 					+ "	-vcodec copy -f flv rtmp://localhost/LiveApp/" + broadcast.getStreamId());
 
@@ -888,14 +888,14 @@ public class RestServiceV2Test {
 
 			execute.destroy();
 
-			Broadcast broadcastTemp = callCreateBroadcast(8000);
+			Broadcast broadcastTemp = callCreateBroadcast(10000);
 			System.out.println("broadcast stream id: " + broadcast.getStreamId());
 
 			execute = execute(ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy "
 					+ "	-vcodec copy -f flv rtmp://localhost/LiveApp/" + broadcastTemp.getStreamId());
 
 
-			Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			Awaitility.await().atMost(60, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				Broadcast broadcast2 = callGetBroadcast(broadcastTemp.getStreamId());
 
 				return AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(broadcast2.getStatus());
@@ -930,11 +930,10 @@ public class RestServiceV2Test {
 			Process execute = execute(ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy "
 					+ "	-vcodec copy -f flv rtmp://localhost/LiveApp/" + broadcast.getStreamId());
 
-			Thread.sleep(5000);
-
-			broadcastReturned = callGetBroadcast(broadcast.getStreamId());
-
-			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING , broadcastReturned.getStatus());
+			Awaitility.await().atMost(25, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				Broadcast broadcastReturnedTemp = callGetBroadcast(broadcast.getStreamId());
+				return (AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING) == broadcastReturnedTemp.getStatus();
+			});
 
 			// It should return true this time
 			assertTrue(callStopBroadcastService(broadcast.getStreamId()));
@@ -942,12 +941,11 @@ public class RestServiceV2Test {
 			// It should return false again because it is already closed
 			assertFalse(callStopBroadcastService(broadcast.getStreamId()));
 
-			Thread.sleep(10000);
 
-			broadcastReturned = callGetBroadcast(broadcast.getStreamId());
-
-			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, broadcastReturned.getStatus());
-
+			Awaitility.await().atMost(25, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				Broadcast broadcastReturnedTemp = callGetBroadcast(broadcast.getStreamId());
+				return (AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED) == broadcastReturnedTemp.getStatus();
+			});
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -1657,7 +1655,7 @@ public class RestServiceV2Test {
 							+ broadcast.getStreamId());
 
 
-			Awaitility.await().atMost(40, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+			Awaitility.await().atMost(60, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
 				//size should +2 because we restream again into the server
 				return size+2 == callGetBroadcastList().size();
 			});
@@ -1667,7 +1665,7 @@ public class RestServiceV2Test {
 			result = deleteBroadcast(broadcast.getStreamId());
 			assertTrue(result.isSuccess());
 
-			Awaitility.await().atMost(40, TimeUnit.SECONDS)
+			Awaitility.await().atMost(60, TimeUnit.SECONDS)
 			.pollInterval(2, TimeUnit.SECONDS).until(() -> 
 			{
 				int broadcastListSize = callGetBroadcastList().size();
@@ -1719,7 +1717,7 @@ public class RestServiceV2Test {
 							+ broadcast.getStreamId());
 
 
-			Awaitility.await().atMost(35, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+			Awaitility.await().atMost(45, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
 				//size should +2 because we restream again into the server
 				return size+2 == callGetBroadcastList().size();
 			});
@@ -1729,7 +1727,7 @@ public class RestServiceV2Test {
 			result = deleteBroadcast(broadcast.getStreamId());
 			assertTrue(result.isSuccess());
 
-			Awaitility.await().atMost(35, TimeUnit.SECONDS)
+			Awaitility.await().atMost(45, TimeUnit.SECONDS)
 			.pollInterval(2, TimeUnit.SECONDS).until(() -> 
 			{
 				int broadcastListSize = callGetBroadcastList().size();
@@ -1824,7 +1822,7 @@ public class RestServiceV2Test {
 					+ "	-vcodec copy -f flv rtmp://localhost/LiveApp/" + broadcastFetched.getStreamId());
 
 			/// get broadcast	
-			Awaitility.await().atMost(25, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(()-> {
+			Awaitility.await().atMost(40, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(()-> {
 				Broadcast broadcast2 = callGetBroadcast(broadcast.getStreamId());
 				return broadcast2 != null && AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(broadcast2.getStatus());
 			});

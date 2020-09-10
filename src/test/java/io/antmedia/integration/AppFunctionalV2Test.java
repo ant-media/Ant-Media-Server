@@ -367,11 +367,10 @@ public class AppFunctionalV2Test {
 						+ streamId);
 				
 				//this process should be terminated autotimacally because test.flv has 25fps 
-				Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> {
+				Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> { 
 					return !rtmpSendingProcess2.isAlive();
 				});
-			}
-			
+			} 
 			
 			{
 				appSettingsModel.setMaxResolutionAccept(0);

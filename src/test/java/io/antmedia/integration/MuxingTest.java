@@ -149,7 +149,7 @@ public class MuxingTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-		Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
+		Awaitility.await().atMost(55, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
 			RestServiceV2Test restService = new RestServiceV2Test();
 
 			return 0 == restService.callGetLiveStatistics();
@@ -187,7 +187,7 @@ public class MuxingTest {
 			e.printStackTrace();
 		}
 		
-		Awaitility.await().atMost(90, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
+		Awaitility.await().atMost(120, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
 			RestServiceV2Test restService = new RestServiceV2Test();
 
 			return 0 == restService.callGetLiveStatistics();
@@ -226,7 +226,7 @@ public class MuxingTest {
 			e.printStackTrace();
 		}
 		
-		Awaitility.await().atMost(120, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
+		Awaitility.await().atMost(140, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
 			RestServiceV2Test restService = new RestServiceV2Test();
 
 			return 0 == restService.callGetLiveStatistics();
@@ -316,7 +316,7 @@ public class MuxingTest {
 		}
 		
 		
-		 Awaitility.await().atMost(40, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+		 Awaitility.await().atMost(80, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
 		 .until(() -> {
 				RestServiceV2Test restService = new RestServiceV2Test();
 				
@@ -418,7 +418,7 @@ public class MuxingTest {
 				ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://"
 						+ SERVER_ADDR + "/LiveApp/" + streamId);
 		
-		 Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+		 Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
 		 .until(() -> RestServiceV2Test.callGetBroadcast(streamId).getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING));
 		
 		 String streamIdDynamic = "dynamic_stream" + (int)(Math.random() * 999999);
@@ -428,14 +428,14 @@ public class MuxingTest {
 		 endpoint.setRtmpUrl(dynamicRtmpURL);
 		 
 		 try {
-			 Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+			 Awaitility.await().atMost(25, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
 				 //if stream is being prepared, it may return false, so try again 
 				 Result result = RestServiceV2Test.addEndpointV2(streamId, endpoint);
 				 return result.isSuccess();
 			 });
 			
 			
-			 Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+			 Awaitility.await().atMost(25, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
 			 .until(() -> { 
 					 Broadcast broadcast = RestServiceV2Test.callGetBroadcast(streamIdDynamic);
 					 if (broadcast != null) {
@@ -449,7 +449,7 @@ public class MuxingTest {
 			 Result result = RestServiceV2Test.removeEndpointV2(streamId, broadcast.getEndPointList().get(0).getEndpointServiceId());
 			 assertTrue(result.isSuccess());
 			 
-			 Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+			 Awaitility.await().atMost(25, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
 			 .until(() -> RestServiceV2Test.callGetBroadcast(streamIdDynamic) == null );
 			 
 			
