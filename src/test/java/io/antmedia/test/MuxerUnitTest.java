@@ -515,6 +515,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		Broadcast broadcast = new Broadcast();
 		broadcast.setListenerHookURL("any_url");
 		appAdaptor.getDataStore().save(broadcast);
+		broadcast.setWebRTCViewerCount(10);
+		broadcast.setHlsViewerCount(20);
 		IBroadcastStream stream = Mockito.mock(IBroadcastStream.class);
 		Mockito.when(stream.getPublishedName()).thenReturn(broadcast.getStreamId());
 
@@ -528,13 +530,14 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		appAdaptor.streamPublishStart(stream);
 
-		Awaitility.await()
-		.atMost(5, TimeUnit.SECONDS)
-		.pollInterval(1, TimeUnit.SECONDS)
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
 		.until(() -> 
-		appAdaptor.getDataStore().get(broadcast.getStreamId())
-		.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING));
+			appAdaptor.getDataStore().get(broadcast.getStreamId())
+			.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING));
 
+		Broadcast dtBroadcast = appAdaptor.getDataStore().get(broadcast.getStreamId());
+		assertEquals(0, dtBroadcast.getWebRTCViewerCount());
+		assertEquals(0, dtBroadcast.getHlsViewerCount());
 
 		try {
 			Mockito.verify(endpointService).publishBroadcast(endpoint);
@@ -1630,6 +1633,9 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 			int inputQueueSize = muxAdaptor.getInputQueueSize();
 			logger.info("----input queue size before stop recording: {}", inputQueueSize);
+			Awaitility.await().atMost(90, TimeUnit.SECONDS).until(() -> muxAdaptor.getInputQueueSize() == 0);
+			
+			
 			int estimatedLastTimeStamp = lastTimeStamp;
 			if (inputQueueSize > 0) {
 				estimatedLastTimeStamp = timeStamps.get((timeStamps.size() - inputQueueSize));
