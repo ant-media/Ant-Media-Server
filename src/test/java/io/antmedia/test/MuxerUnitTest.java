@@ -1633,6 +1633,9 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 			int inputQueueSize = muxAdaptor.getInputQueueSize();
 			logger.info("----input queue size before stop recording: {}", inputQueueSize);
+			Awaitility.await().atMost(90, TimeUnit.SECONDS).until(() -> muxAdaptor.getInputQueueSize() == 0);
+			
+			
 			int estimatedLastTimeStamp = lastTimeStamp;
 			if (inputQueueSize > 0) {
 				estimatedLastTimeStamp = timeStamps.get((timeStamps.size() - inputQueueSize));
