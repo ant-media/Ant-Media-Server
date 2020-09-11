@@ -1749,7 +1749,8 @@ public class DBStoresUnitTest {
 
 		long now = Instant.now().getEpochSecond();
 
-		room.setRoomId("roomName");
+		String roomId = "roomId" + RandomStringUtils.random(10);
+		room.setRoomId(roomId);
 		room.setStartDate(now);
 		//1 hour later
 		room.setEndDate(now + 3600);
@@ -1761,12 +1762,17 @@ public class DBStoresUnitTest {
 		ConferenceRoom dbRoom = datastore.getConferenceRoom(room.getRoomId());
 
 		assertNotNull(dbRoom);
-		assertEquals("roomName", dbRoom.getRoomId());
+		assertEquals(roomId, dbRoom.getRoomId());
 
 		dbRoom.setEndDate(now + 7200);
 
 		//edit room
 		assertTrue(datastore.editConferenceRoom(dbRoom.getRoomId(), dbRoom));
+		
+		ConferenceRoom conferenceRoom = datastore.getConferenceRoom("room_not_exist");
+		assertNull(conferenceRoom);
+		
+		assertFalse(datastore.editConferenceRoom("room_not_exist", dbRoom));
 
 
 		ConferenceRoom editedRoom = datastore.getConferenceRoom(dbRoom.getRoomId());

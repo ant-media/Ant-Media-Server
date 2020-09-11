@@ -13,6 +13,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 
+import io.antmedia.datastore.db.DataStoreFactory;
+import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.statistic.HlsViewerStats;
 import io.antmedia.statistic.IStreamStats;
 
@@ -35,21 +37,25 @@ public class HlsStatisticsFilter extends AbstractFilter {
 			//only accept GET methods
 			String sessionId = httpRequest.getSession().getId();
 
+			String streamId = TokenFilterManager.getStreamId(httpRequest.getRequestURI());
+			Broadcast broadcast = getBroadcast(streamId);
+			if(broadcast != null 
+					&& broadcast.getHlsViewerLimit() != -1
+					&& broadcast.getHlsViewerCount() >= broadcast.getHlsViewerLimit()) {
+				((HttpServletResponse) response).sendError(HttpServletResponse.SC_FORBIDDEN, "Viewer Limit Reached");
+				return;
+			}
 		
 			chain.doFilter(request, response);
 
 			int status = ((HttpServletResponse) response).getStatus();
-			
-			if (HttpServletResponse.SC_OK <= status && status <= HttpServletResponse.SC_BAD_REQUEST) 
-			{
-				String streamId = TokenFilterManager.getStreamId(httpRequest.getRequestURI());
-				
-				if (streamId != null) {
-					logger.debug("req ip {} session id {} stream id {} status {}", request.getRemoteHost(), sessionId, streamId, status);
-					IStreamStats stats = getStreamStats();
-					if (stats != null) {
-						stats.registerNewViewer(streamId, sessionId);
-					}
+
+			if (HttpServletResponse.SC_OK <= status && status <= HttpServletResponse.SC_BAD_REQUEST && streamId != null) 
+			{				
+				logger.debug("req ip {} session id {} stream id {} status {}", request.getRemoteHost(), sessionId, streamId, status);
+				IStreamStats stats = getStreamStats();
+				if (stats != null) {
+					stats.registerNewViewer(streamId, sessionId);
 				}
 			}
 		}
@@ -68,6 +74,17 @@ public class HlsStatisticsFilter extends AbstractFilter {
 			}
 		}
 		return streamStats;
+	}
+	
+	public Broadcast getBroadcast(String streamId) {
+		Broadcast broadcast = null;	
+		ApplicationContext context = getAppContext();
+		if (context != null) 
+		{
+			DataStoreFactory dsf = (DataStoreFactory)context.getBean(DataStoreFactory.BEAN_NAME);
+			broadcast = dsf.getDataStore().get(streamId);
+		}
+		return broadcast;
 	}
 
 }

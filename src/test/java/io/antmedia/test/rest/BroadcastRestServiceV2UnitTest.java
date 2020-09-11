@@ -1933,6 +1933,24 @@ public class BroadcastRestServiceV2UnitTest {
 	}
 	
 	@Test
+	public void testcheckStopStreaming() 
+	{
+		BroadcastRestService streamSourceRest = Mockito.spy(restServiceReal);
+		AntMediaApplicationAdapter adaptor = mock (AntMediaApplicationAdapter.class);
+		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
+		Mockito.when(adaptor.getStreamFetcherManager()).thenReturn(mock(StreamFetcherManager.class));
+		Mockito.when(adaptor.stopStreaming(any())).thenReturn(new Result(false));
+		
+		Broadcast broadcast = new Broadcast();
+		//It means there is no stream to stop
+		assertTrue(streamSourceRest.checkStopStreaming(broadcast));
+		
+		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+		//it should return false because adaptor return false
+		assertFalse(streamSourceRest.checkStopStreaming(broadcast));
+	}
+	
+	@Test
 	public void updateStreamSource() {
 
 		Result result = new Result(false);
@@ -1961,7 +1979,7 @@ public class BroadcastRestServiceV2UnitTest {
 		
 		streamSource.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 		
-		StreamFetcher fetcher = mock (StreamFetcher.class);
+		StreamFetcher fetcher = mock(StreamFetcher.class);
 		
 		try {
 			streamSource.setStreamId("selimTest");
@@ -1982,14 +2000,14 @@ public class BroadcastRestServiceV2UnitTest {
 		
 		Mockito.doReturn(true).when(streamSourceRest).checkStreamUrl(any());
 		
-		Mockito.doReturn(true).when(streamSourceRest).checkStopStreaming(any(),any());
+		Mockito.doReturn(true).when(streamSourceRest).checkStopStreaming(any());
 		
 		result = streamSourceRest.updateBroadcast(streamSource.getStreamId(), streamSource,socialNetworksToPublish);
 		
 		assertEquals(true, result.isSuccess());
 		
 		Awaitility.await().atMost(22*250, TimeUnit.MILLISECONDS)
-		.until(() -> streamSourceRest.waitStopStreaming(streamSource.getStreamId(),false));
+		.until(() -> streamSourceRest.waitStopStreaming(streamSource,false));
 		
 		// Test line 392 if condition
 
@@ -2007,7 +2025,12 @@ public class BroadcastRestServiceV2UnitTest {
 		
 		result = streamSourceRest.updateBroadcast(streamSource.getStreamId(), streamSource,"endpoint_1");
 		
+		assertEquals(true, result.isSuccess());
+		
+		result = streamSourceRest.updateBroadcast("not_exists" + (int)(Math.random()*10000), streamSource,"endpoint_1");
+		
 		assertEquals(false, result.isSuccess());
+
 		
 	}
 	

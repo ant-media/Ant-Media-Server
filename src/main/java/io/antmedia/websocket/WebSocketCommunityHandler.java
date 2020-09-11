@@ -1,12 +1,11 @@
 package io.antmedia.websocket;
 
-import java.io.IOException;
-
 import javax.websocket.Session;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.bytedeco.ffmpeg.global.avcodec;
 import org.bytedeco.ffmpeg.global.avutil;
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.slf4j.Logger;
@@ -209,7 +208,8 @@ public class WebSocketCommunityHandler {
 		jsonObj.put(WebSocketConstants.STREAM_ID, streamId);
 
 		if(roomName != null) {
-			jsonObj.put(WebSocketConstants.ATTR_ROOM_NAME, roomName);
+			jsonObj.put(WebSocketConstants.ATTR_ROOM_NAME, roomName); //keep it for compatibility
+			jsonObj.put(WebSocketConstants.ROOM, roomName);
 		}
 
 		sendMessage(jsonObj.toJSONString(), session);
@@ -298,11 +298,35 @@ public class WebSocketCommunityHandler {
 			if (session.isOpen()) {
 				try {
 					session.getBasicRemote().sendText(message);
-				} catch (IOException e) {
+				} catch (Exception e) { 
+					//capture all exceptions because some unexpected events may happen it causes some internal errors
 					logger.error(ExceptionUtils.getStackTrace(e));
 				}
 			}
 		}
+	}
+	
+	public void sendRoomInformation(JSONArray jsonStreamArray , String roomId) 
+	{
+		JSONObject jsObject = new JSONObject();
+		jsObject.put(WebSocketConstants.COMMAND, WebSocketConstants.ROOM_INFORMATION_NOTIFICATION);
+		jsObject.put(WebSocketConstants.STREAMS_IN_ROOM, jsonStreamArray);	
+		jsObject.put(WebSocketConstants.ATTR_ROOM_NAME, roomId);
+		jsObject.put(WebSocketConstants.ROOM, roomId);
+		String jsonString = jsObject.toJSONString();
+		sendMessage(jsonString, session);
+	}
+	
+	public void sendJoinedRoomMessage(String room, String newStreamId, JSONArray jsonStreamArray) {
+		JSONObject jsonResponse = new JSONObject();
+		jsonResponse.put(WebSocketConstants.COMMAND, WebSocketConstants.NOTIFICATION_COMMAND);
+		jsonResponse.put(WebSocketConstants.DEFINITION, WebSocketConstants.JOINED_THE_ROOM);
+		jsonResponse.put(WebSocketConstants.STREAM_ID, newStreamId);
+		jsonResponse.put(WebSocketConstants.STREAMS_IN_ROOM, jsonStreamArray);	
+		jsonResponse.put(WebSocketConstants.ATTR_ROOM_NAME, room);	
+		jsonResponse.put(WebSocketConstants.ROOM, room);	
+
+		sendMessage(jsonResponse.toJSONString(), session);
 	}
 
 

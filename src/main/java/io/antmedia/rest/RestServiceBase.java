@@ -417,45 +417,55 @@ public abstract class RestServiceBase {
 
 		logger.debug("update cam info for stream {}", broadcast.getStreamId());
 
-		if( checkStreamUrl(broadcast.getStreamUrl()) && broadcast.getStatus()!=null){
-
-			resultStopStreaming = checkStopStreaming(streamId, broadcast);
-
-			waitStopStreaming(streamId,resultStopStreaming);
-
-			if(broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA)) {
-				String rtspURL = connectToCamera(broadcast).getMessage();
-
-				if (rtspURL != null) {
-
-					String authparam = broadcast.getUsername() + ":" + broadcast.getPassword() + "@";
-					String rtspURLWithAuth = RTSP + authparam + rtspURL.substring(RTSP.length());
-					logger.info("new RTSP URL: {}" , rtspURLWithAuth);
-					broadcast.setStreamUrl(rtspURLWithAuth);
+		if(checkStreamUrl(broadcast.getStreamUrl())) 
+		{
+			Broadcast broadcastInDB = getDataStore().get(streamId);
+			if (broadcastInDB != null) 
+			{
+				resultStopStreaming = checkStopStreaming(broadcastInDB);
+	
+				waitStopStreaming(broadcastInDB, resultStopStreaming);
+	
+				if (AntMediaApplicationAdapter.IP_CAMERA.equals(broadcast.getType())) {
+					String rtspURL = connectToCamera(broadcast).getMessage();
+	
+					if (rtspURL != null) {
+	
+						String authparam = broadcast.getUsername() + ":" + broadcast.getPassword() + "@";
+						String rtspURLWithAuth = RTSP + authparam + rtspURL.substring(RTSP.length());
+						logger.info("new RTSP URL: {}" , rtspURLWithAuth);
+						broadcast.setStreamUrl(rtspURLWithAuth);
+					}
+				}
+	
+				result = getDataStore().updateBroadcastFields(streamId, broadcast);
+	
+				if(result) {
+					Broadcast fetchedBroadcast = getDataStore().get(streamId);
+					getDataStore().removeAllEndpoints(fetchedBroadcast.getStreamId());
+	
+					if (socialNetworksToPublish != null && socialNetworksToPublish.length() > 0) {
+						addSocialEndpoints(fetchedBroadcast, socialNetworksToPublish);
+					}
+	
+					getApplication().startStreaming(fetchedBroadcast);
 				}
 			}
-
-			result = getDataStore().updateBroadcastFields(streamId, broadcast);
-
-			if(result) {
-				Broadcast fetchedBroadcast = getDataStore().get(streamId);
-				getDataStore().removeAllEndpoints(fetchedBroadcast.getStreamId());
-
-				if (socialNetworksToPublish != null && socialNetworksToPublish.length() > 0) {
-					addSocialEndpoints(fetchedBroadcast, socialNetworksToPublish);
-				}
-
-				getApplication().startStreaming(fetchedBroadcast);
+			else {
+				streamId = streamId.replaceAll("[\n|\r|\t]", "_");
+				logger.info("Broadcast with stream id: {} is null", streamId);
 			}
 
 		}
 		return new Result(result);
 	}
 
-	public boolean checkStopStreaming (String streamId, Broadcast broadcast)
+	public boolean checkStopStreaming(Broadcast broadcast)
 	{
-		// If broadcast status is broadcasting, this will force stop the streaming.
-		if(getDataStore().get(streamId).getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
+		// If broadcast status is broadcasting, this will force stop the streaming.	
+	
+		if(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus())) 
+		{
 			return getApplication().stopStreaming(broadcast).isSuccess();
 		}
 		else if(getApplication().getStreamFetcherManager().checkAlreadyFetch(broadcast)) {
@@ -466,27 +476,22 @@ public abstract class RestServiceBase {
 			// If broadcast status is stopped, this will return true. 
 			return true;
 		}
-
 	}
 
-	public boolean waitStopStreaming(String streamId, Boolean resultStopStreaming) {
+	public boolean waitStopStreaming(Broadcast broadcast, Boolean resultStopStreaming) {
 
 		int i = 0;
 		int waitPeriod = 250;
-
 		// Broadcast status finished is not enough to be sure about broadcast's status.
-		while (!getDataStore().get(streamId).getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED) && !resultStopStreaming.equals(true)) {
+		while (!AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED.equals(getDataStore().get(broadcast.getStreamId()).getStatus()) && !resultStopStreaming.equals(true)) {
 			try {
-
-				streamId = streamId.replaceAll("[\n|\r|\t]", "_");
-
 				i++;
-				logger.info("Waiting for stop broadcast: {} Total wait time: {}ms", streamId , i*waitPeriod);
+				logger.info("Waiting for stop broadcast: {} Total wait time: {}ms", broadcast.getStreamId() , i*waitPeriod);
 
 				Thread.sleep(waitPeriod);
 
 				if(i > 20) {
-					logger.warn("{} Stream ID broadcast could not be stopped. Total wait time: {}ms", streamId , i*waitPeriod);
+					logger.warn("{} Stream ID broadcast could not be stopped. Total wait time: {}ms", broadcast.getStreamId() , i*waitPeriod);
 					break;
 				}
 			} catch (InterruptedException e) {
@@ -925,7 +930,6 @@ public abstract class RestServiceBase {
 	public Result addStreamSource(Broadcast stream, String socialEndpointIds) {
 
 		Result result = new Result(false);
-
 
 		IStatsCollector monitor = (IStatsCollector) getAppContext().getBean(IStatsCollector.BEAN_NAME);
 
