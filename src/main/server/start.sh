@@ -18,7 +18,8 @@
 
 if [ -z "$RED5_HOME" ]; then 
   BASEDIR=$(dirname "$0")
-  export RED5_HOME=`pwd`/$BASEDIR; 
+  cd $BASEDIR
+  export RED5_HOME=`pwd`
 fi
 
 source $RED5_HOME/conf/functions.sh
