@@ -72,6 +72,7 @@ import io.swagger.annotations.SwaggerDefinition;
 public class BroadcastRestService extends RestServiceBase{
 
 	
+	private static final String WEBM = "webm";
 	private static final String VALUE_IS_LESS_THAN_ZERO = "Value is less than zero";
 	private static final String STREAM_ID_NOT_VALID = "Stream id not valid";
 	private static final String RELATIVE_MOVE = "relative";
@@ -719,7 +720,9 @@ public class BroadcastRestService extends RestServiceBase{
 	public Result enableRecording(@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String streamId,
 			@ApiParam(value = "Change recording status. If true, starts recording. If false stop recording", required = true) @PathParam("recording-status") boolean enableRecording,
 			@ApiParam(value = "Record type: 'mp4' or 'webm'. It's optional parameter.", required = false) @QueryParam("recordType") String recordType) {
-		if(recordType != null && recordType.equals("webm")) {
+		logger.info("Recording method is called for {} to make it {} and recordy Type: {}", streamId, enableRecording, recordType);
+		
+		if(WEBM.equals(recordType)) {
 			return enableWebMMuxing(streamId, enableRecording);
 		}
 		else {
@@ -729,6 +732,7 @@ public class BroadcastRestService extends RestServiceBase{
 	
 	
 	public Result enableMp4Muxing(String streamId, boolean enableRecording) {
+		
 		boolean result = false;
 		String message = null;
 		if (streamId != null) 
@@ -786,7 +790,7 @@ public class BroadcastRestService extends RestServiceBase{
 				message = "no stream for this id: " + streamId + " or wrong setting parameter";
 			}
 		}
-
+		
 		return new Result(result, message);
 	}
 	
