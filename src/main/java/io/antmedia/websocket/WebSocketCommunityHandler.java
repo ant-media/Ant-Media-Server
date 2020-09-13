@@ -143,7 +143,7 @@ public class WebSocketCommunityHandler {
 		//get scope and use its name
 		String outputURL = "rtmp://127.0.0.1/"+ appName +"/" + streamId;
 
-		RTMPAdaptor connectionContext = getNewRTMPAdaptor(outputURL);
+		RTMPAdaptor connectionContext = getNewRTMPAdaptor(outputURL, appSettings.getWidthRtmpForwarding(), appSettings.getHeightRtmpForwarding());
 
 		session.getUserProperties().put(session.getId(), connectionContext);
 
@@ -156,8 +156,8 @@ public class WebSocketCommunityHandler {
 		connectionContext.start();
 	}
 
-	public RTMPAdaptor getNewRTMPAdaptor(String outputURL) {
-		return new RTMPAdaptor(getNewRecorder(outputURL), this);
+	public RTMPAdaptor getNewRTMPAdaptor(String outputURL, int width, int height) {
+		return new RTMPAdaptor(getNewRecorder(outputURL, width, height), this);
 	}
 
 	public void addICECandidate(final String streamId, RTMPAdaptor connectionContext, String sdpMid, String sdp,
@@ -245,7 +245,7 @@ public class WebSocketCommunityHandler {
 
 
 	public static FFmpegFrameRecorder getNewRecorder(String outputURL) {
-		return getNewRecorder(outputURL, 640, 480);
+		return getNewRecorder(outputURL, 480, 360);
 	}
 	
 	public static FFmpegFrameRecorder getNewRecorder(String outputURL, int width, int height) {
