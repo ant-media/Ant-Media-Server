@@ -300,7 +300,6 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	public void closeBroadcast(String streamName) {
 
 		try {
-
 				getDataStore().updateStatus(streamName, BROADCAST_STATUS_FINISHED);
 				Broadcast broadcast = getDataStore().get(streamName);
 								
@@ -451,6 +450,8 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 						broadcast.setStartTime(System.currentTimeMillis());
 						broadcast.setOriginAdress(getServerSettings().getHostAddress());
 						broadcast.setAbsoluteStartTimeMs(absoluteStartTimeMs);
+						broadcast.setWebRTCViewerCount(0);
+						broadcast.setHlsViewerCount(0);
 						boolean result = dataStoreLocal.updateBroadcastFields(broadcast.getStreamId(), broadcast);
 						
 						logger.info(" Status of stream {} is set to Broadcasting with result: {}", broadcast.getStreamId(), result);
@@ -458,7 +459,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 					final String listenerHookURL = broadcast.getListenerHookURL();
 					final String streamId = broadcast.getStreamId();
-					if (listenerHookURL != null && listenerHookURL.length() > 0) {
+					if (listenerHookURL != null && !listenerHookURL.isEmpty()) {
 						final String name = broadcast.getName();
 						final String category = broadcast.getCategory();
 						logger.info("Setting timer to call live stream started hook for stream:{}",streamId );
