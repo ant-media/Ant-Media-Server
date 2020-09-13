@@ -844,7 +844,6 @@ public class MapDBStore extends DataStore {
 	protected synchronized boolean updateWebRTCViewerCountLocal(String streamId, boolean increment) {
 		boolean result = false;
 		synchronized (this) {
-				
 			if (streamId != null) {
 				Broadcast broadcast = get(streamId);
 				if (broadcast != null) {
@@ -855,9 +854,11 @@ public class MapDBStore extends DataStore {
 					else {
 						webRTCViewerCount--;
 					}
-					broadcast.setWebRTCViewerCount(webRTCViewerCount);
-					map.replace(streamId, gson.toJson(broadcast));
-					result = true;
+					if(webRTCViewerCount >= 0) {
+						broadcast.setWebRTCViewerCount(webRTCViewerCount);
+						map.replace(streamId, gson.toJson(broadcast));
+						result = true;
+					}
 				}
 			}
 		}
@@ -878,9 +879,11 @@ public class MapDBStore extends DataStore {
 					else { 
 						rtmpViewerCount--;
 					}
-					broadcast.setRtmpViewerCount(rtmpViewerCount);
-					map.replace(streamId, gson.toJson(broadcast));
-					result = true;
+					if(rtmpViewerCount >= 0) {
+						broadcast.setRtmpViewerCount(rtmpViewerCount);
+						map.replace(streamId, gson.toJson(broadcast));
+						result = true;
+					}
 				}
 			}
 		}

@@ -559,7 +559,14 @@ public class DBStoresUnitTest {
 			else {
 				totalViewerCountFor1--;
 			}
-			assertTrue(dataStore.updateWebRTCViewerCount(key, increment));
+			
+			if(dataStore.get(key).getWebRTCViewerCount()>0 || (dataStore.get(key).getWebRTCViewerCount()==0 && increment)) {
+				assertTrue(dataStore.updateWebRTCViewerCount(key, increment));
+			}
+			else {
+				assertFalse(dataStore.updateWebRTCViewerCount(key, increment));
+				totalViewerCountFor1 = 0;
+			}
 
 			increment = false; 
 			randomValue = (int)(Math.random()*99999);
@@ -571,7 +578,13 @@ public class DBStoresUnitTest {
 				totalViewerCountFor2--;
 			}
 
-			assertTrue(dataStore.updateWebRTCViewerCount(key2, increment));
+			if(dataStore.get(key2).getWebRTCViewerCount()>0 || (dataStore.get(key2).getWebRTCViewerCount()==0 && increment)) {
+				assertTrue(dataStore.updateWebRTCViewerCount(key2, increment));
+			}
+			else {
+				assertFalse(dataStore.updateWebRTCViewerCount(key2, increment));
+				totalViewerCountFor2 = 0;
+			}
 
 			assertEquals(totalViewerCountFor1, dataStore.get(key).getWebRTCViewerCount());
 			assertEquals(totalViewerCountFor2, dataStore.get(key2).getWebRTCViewerCount());
@@ -603,8 +616,15 @@ public class DBStoresUnitTest {
 			else {
 				totalViewerCountFor1--;
 			}
-			assertTrue(dataStore.updateRtmpViewerCount(key, increment));
-
+			
+			if(dataStore.get(key).getRtmpViewerCount()>0 || (dataStore.get(key).getRtmpViewerCount()==0 && increment)) {
+				assertTrue(dataStore.updateRtmpViewerCount(key, increment));
+			}
+			else {
+				assertFalse(dataStore.updateRtmpViewerCount(key, increment));
+				totalViewerCountFor1 = 0;
+			}
+			
 			increment = false; 
 			randomValue = (int)(Math.random()*99999);
 			if (randomValue % 2 == 0) {
@@ -614,9 +634,15 @@ public class DBStoresUnitTest {
 			else {
 				totalViewerCountFor2--;
 			}
-
-			assertTrue(dataStore.updateRtmpViewerCount(key2, increment));
-
+			
+			if(dataStore.get(key2).getRtmpViewerCount()>0 || (dataStore.get(key2).getRtmpViewerCount()==0 && increment)) {
+				assertTrue(dataStore.updateRtmpViewerCount(key2, increment));
+			}
+			else {
+				assertFalse(dataStore.updateRtmpViewerCount(key2, increment));
+				totalViewerCountFor2 = 0;
+			}
+			
 			assertEquals(totalViewerCountFor1, dataStore.get(key).getRtmpViewerCount());
 			assertEquals(totalViewerCountFor2, dataStore.get(key2).getRtmpViewerCount());
 		}
