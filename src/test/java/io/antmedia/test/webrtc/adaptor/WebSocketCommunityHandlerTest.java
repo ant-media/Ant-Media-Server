@@ -155,7 +155,7 @@ public class WebSocketCommunityHandlerTest {
 
 		RTMPAdaptor rtmpAdaptor = mock(RTMPAdaptor.class);
 
-		doReturn(rtmpAdaptor).when(wsHandler).getNewRTMPAdaptor(Mockito.anyString(), Mockito.anyInt(), Mockito.anyInt());
+		doReturn(rtmpAdaptor).when(wsHandler).getNewRTMPAdaptor(Mockito.anyString(), Mockito.anyInt());
 
 
 		JSONObject publishObject = new JSONObject();
@@ -185,7 +185,7 @@ public class WebSocketCommunityHandlerTest {
 
 		RTMPAdaptor rtmpAdaptor = mock(RTMPAdaptor.class);
 
-		doReturn(rtmpAdaptor).when(wsHandler).getNewRTMPAdaptor(Mockito.anyString(), Mockito.anyInt(), Mockito.anyInt());
+		doReturn(rtmpAdaptor).when(wsHandler).getNewRTMPAdaptor(Mockito.anyString(), Mockito.anyInt());
 
 
 		JSONObject publishObject = new JSONObject();
@@ -261,7 +261,7 @@ public class WebSocketCommunityHandlerTest {
 
 		RTMPAdaptor rtmpAdaptor = mock(RTMPAdaptor.class);
 
-		doReturn(rtmpAdaptor).when(wsHandler).getNewRTMPAdaptor(Mockito.anyString(), Mockito.anyInt(), Mockito.anyInt());
+		doReturn(rtmpAdaptor).when(wsHandler).getNewRTMPAdaptor(Mockito.anyString(), Mockito.anyInt());
 
 
 		JSONObject publishObject = new JSONObject();

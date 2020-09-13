@@ -63,7 +63,7 @@ public class RTMPAdaptorTest {
 
 		WebSocketCommunityHandler webSocketHandler = mock(WebSocketCommunityHandler.class);
 
-		RTMPAdaptor adaptorReal = new RTMPAdaptor(recorder, webSocketHandler);
+		RTMPAdaptor adaptorReal = new RTMPAdaptor("rtmp://url", webSocketHandler, 360);
 		RTMPAdaptor rtmpAdaptor = spy(adaptorReal);
 
 		String streamId = "stramId" + (int)(Math.random()*10000);
@@ -87,7 +87,7 @@ public class RTMPAdaptorTest {
 	public void testUnexpectedLineSize() {
 		//Create FFmpegFRameRecoder
 		File f = new File("target/test-classes/encoded_frame"+(int)(Math.random()*10010)+".flv");
-		FFmpegFrameRecorder recorder = WebSocketCommunityHandler.getNewRecorder(f.getAbsolutePath(), 640, 480);
+		FFmpegFrameRecorder recorder = RTMPAdaptor.getNewRecorder(f.getAbsolutePath(), 640, 480);
 
 		//give raw frame
 
@@ -138,7 +138,7 @@ public class RTMPAdaptorTest {
 	public void testEncode(int width, int height) {
 		//Create FFmpegFRameRecoder
 		File f = new File("target/test-classes/encoded_frame"+(int)(Math.random()*10010)+".flv");
-		FFmpegFrameRecorder recorder = WebSocketCommunityHandler.getNewRecorder(f.getAbsolutePath(), width, height);
+		FFmpegFrameRecorder recorder = RTMPAdaptor.getNewRecorder(f.getAbsolutePath(), width, height);
 
 		//give raw frame
 
@@ -188,17 +188,16 @@ public class RTMPAdaptorTest {
 	@Test
 	public void testVideoDecoderFactory() {
 		//Video decoder factory should return null otherwise it does not work
-		RTMPAdaptor rtmpAdaptor = new RTMPAdaptor(null, null);
+		RTMPAdaptor rtmpAdaptor = new RTMPAdaptor(null, null, 0);
 		assertNull(rtmpAdaptor.getVideoDecoderFactory());
 	}
 
 
 	@Test
 	public void testIsStarted() {
-		FFmpegFrameRecorder recorder = mock(FFmpegFrameRecorder.class);
 		WebSocketCommunityHandler webSocketHandler = getSpyWebSocketHandler();
 
-		RTMPAdaptor rtmpAdaptor = new RTMPAdaptor(recorder, webSocketHandler);
+		RTMPAdaptor rtmpAdaptor = new RTMPAdaptor("rtmp url", webSocketHandler, 360);
 
 		String streamId = "stramId" + (int)(Math.random()*10000);
 		rtmpAdaptor.setStreamId(streamId);
@@ -263,7 +262,7 @@ public class RTMPAdaptorTest {
 
 		WebSocketCommunityHandler webSocketHandler = getSpyWebSocketHandler();
 
-		RTMPAdaptor adaptorReal = new RTMPAdaptor(recorder, webSocketHandler);
+		RTMPAdaptor adaptorReal = new RTMPAdaptor("rtmp_url", webSocketHandler, 360);
 		RTMPAdaptor rtmpAdaptor = spy(adaptorReal);
 
 		String streamId = "stramId" + (int)(Math.random()*10000);
@@ -304,7 +303,7 @@ public class RTMPAdaptorTest {
 
 		WebSocketCommunityHandler webSocketHandler = getSpyWebSocketHandler();
 
-		RTMPAdaptor adaptorReal = new RTMPAdaptor(recorder, webSocketHandler);
+		RTMPAdaptor adaptorReal = new RTMPAdaptor("rtmp_url", webSocketHandler, 360);
 		RTMPAdaptor rtmpAdaptor = spy(adaptorReal);
 
 		String streamId = "stramId" + (int)(Math.random()*10000);
@@ -370,7 +369,7 @@ public class RTMPAdaptorTest {
 	public void testGetFileFormat() {
 
 
-		FFmpegFrameRecorder recorder = WebSocketCommunityHandler.initRecorder("rtmp://test", 640, 480);
+		FFmpegFrameRecorder recorder = RTMPAdaptor.initRecorder("rtmp://test", 640, 480);
 
 		assertEquals("flv", recorder.getFormat());
 	}
@@ -382,7 +381,7 @@ public class RTMPAdaptorTest {
 
 			WebSocketCommunityHandler handler = mock(WebSocketCommunityHandler.class);
 
-			RTMPAdaptor rtmpAdaptor = new RTMPAdaptor(null, handler);
+			RTMPAdaptor rtmpAdaptor = new RTMPAdaptor(null, handler, 360);
 
 			MediaStream stream = new MediaStream(0L);
 
