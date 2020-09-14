@@ -1300,7 +1300,8 @@ public Result createInitializationProcess(String appName){
 		store.put(AppSettings.SETTINGS_HLS_MUXING_ENABLED, String.valueOf(newAppsettings.isHlsMuxingEnabled()));
 		store.put(AppSettings.SETTINGS_ACCEPT_ONLY_STREAMS_IN_DATA_STORE, String.valueOf(newAppsettings.isAcceptOnlyStreamsInDataStore()));
 		store.put(AppSettings.SETTINGS_OBJECT_DETECTION_ENABLED, String.valueOf(newAppsettings.isObjectDetectionEnabled()));
-		store.put(AppSettings.SETTINGS_TOKEN_CONTROL_ENABLED, String.valueOf(newAppsettings.isTokenControlEnabled()));
+		store.put(AppSettings.SETTINGS_PUBLISH_TOKEN_CONTROL_ENABLED, String.valueOf(newAppsettings.isPublishTokenControlEnabled()));
+		store.put(AppSettings.SETTINGS_PLAY_TOKEN_CONTROL_ENABLED, String.valueOf(newAppsettings.isPlayTokenControlEnabled()));
 		store.put(AppSettings.SETTINGS_WEBRTC_ENABLED, String.valueOf(newAppsettings.isWebRTCEnabled()));
 		store.put(AppSettings.SETTINGS_WEBRTC_FRAME_RATE, String.valueOf(newAppsettings.getWebRTCFrameRate()));
 		store.put(AppSettings.SETTINGS_HASH_CONTROL_PUBLISH_ENABLED, String.valueOf(newAppsettings.isHashControlPublishEnabled()));
@@ -1348,7 +1349,8 @@ public Result createInitializationProcess(String appName){
 		appSettings.setHlsTime(String.valueOf(newSettings.getHlsTime()));
 		appSettings.setHlsPlayListType(newSettings.getHlsPlayListType());
 		appSettings.setAcceptOnlyStreamsInDataStore(newSettings.isAcceptOnlyStreamsInDataStore());
-		appSettings.setTokenControlEnabled(newSettings.isTokenControlEnabled());
+		appSettings.setPublishTokenControlEnabled(newSettings.isPublishTokenControlEnabled());
+		appSettings.setPlayTokenControlEnabled(newSettings.isPlayTokenControlEnabled());
 		appSettings.setWebRTCEnabled(newSettings.isWebRTCEnabled());
 		appSettings.setWebRTCFrameRate(newSettings.getWebRTCFrameRate());
 		appSettings.setHashControlPublishEnabled(newSettings.isHashControlPublishEnabled());
