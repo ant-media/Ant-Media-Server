@@ -78,7 +78,7 @@ public class AppFunctionalV2Test {
 	public static final int MAC_OS_X = 0;
 	public static final int LINUX = 1;
 	public static final int WINDOWS = 2;
-	private static BasicCookieStore httpCookieStore; 
+	private static BasicCookieStore httpCookieStore;
 	static {
 		ROOT_SERVICE_URL = "http://" + SERVER_ADDR + ":5080/rest";
 		logger.info("ROOT SERVICE URL: " + ROOT_SERVICE_URL);
