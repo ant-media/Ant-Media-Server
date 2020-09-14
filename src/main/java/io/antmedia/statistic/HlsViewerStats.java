@@ -54,7 +54,7 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 	public void registerNewViewer(String streamId, String sessionId) 
 	{
 		//do not block the thread, run in vertx event queue 
-		vertx.runOnContext((h) -> {
+		vertx.runOnContext(h -> {
 			
 			synchronized (lock) {
 				//synchronize with database update calculations, because some odd cases may happen
