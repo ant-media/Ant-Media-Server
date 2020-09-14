@@ -251,12 +251,12 @@ public class MuxingTest {
 			// stop rtmp streaming
 			rtmpSendingProcess.destroy();
 			
-			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> 
+			Awaitility.await().atMost(40, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> 
 				testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".m3u8")
 			);
 			
 			// check that mp4 is created
-			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> 
+			Awaitility.await().atMost(40, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> 
 				testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".mp4")
 			);
 			
