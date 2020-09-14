@@ -919,7 +919,7 @@ public class AppFunctionalV2Test {
 			
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
 				return 1 == restService.callGetLiveStatistics();
-			});
+			}); 
 
 			BroadcastStatistics broadcastStatistics = restService.callGetBroadcastStatistics(streamId);
 			assertEquals(0, broadcastStatistics.totalHLSWatchersCount); 
