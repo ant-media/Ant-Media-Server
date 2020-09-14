@@ -89,7 +89,7 @@ public class RTMPAdaptor extends Adaptor {
 		return recorder;
 	}
 	
-	public static FFmpegFrameRecorder getNewRecorder(String outputURL, int width, int height) {
+	public FFmpegFrameRecorder getNewRecorder(String outputURL, int width, int height) {
 
 		FFmpegFrameRecorder recorder = initRecorder(outputURL, width, height);
 
@@ -294,7 +294,6 @@ public class RTMPAdaptor extends Adaptor {
 			if (width % 2 == 1) {
 				width++;
 			}
-			
 			recorder = getNewRecorder(outputURL, width, height);
 		}
 	}

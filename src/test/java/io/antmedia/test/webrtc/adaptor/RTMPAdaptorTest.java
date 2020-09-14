@@ -26,7 +26,11 @@ import org.awaitility.Awaitility;
 import org.bytedeco.ffmpeg.avutil.AVFrame;
 import org.json.simple.JSONObject;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 import org.mockito.Mockito;
 import org.red5.server.api.scope.IScope;
 import org.springframework.context.ApplicationContext;
@@ -51,6 +55,20 @@ import io.antmedia.websocket.WebSocketCommunityHandler;
 import io.antmedia.websocket.WebSocketConstants;
 
 public class RTMPAdaptorTest {
+	
+	@Rule
+	public TestRule watcher = new TestWatcher() {
+		protected void starting(Description description) {
+			System.out.println("Starting test: " + description.getMethodName());
+		}
+
+		protected void failed(Throwable e, Description description) {
+			System.out.println("Failed test: " + description.getMethodName());
+		};
+		protected void finished(Description description) {
+			System.out.println("Finishing test: " + description.getMethodName());
+		};
+	};
 
 	@Before
 	public void setup() {
@@ -89,7 +107,8 @@ public class RTMPAdaptorTest {
 	public void testUnexpectedLineSize() {
 		//Create FFmpegFRameRecoder
 		File f = new File("target/test-classes/encoded_frame"+(int)(Math.random()*10010)+".flv");
-		FFmpegFrameRecorder recorder = RTMPAdaptor.getNewRecorder(f.getAbsolutePath(), 640, 480);
+		RTMPAdaptor adaptor = new RTMPAdaptor(f.getAbsolutePath(), null, 480);
+		FFmpegFrameRecorder recorder = adaptor.getNewRecorder(f.getAbsolutePath(), 640, 480);
 
 		//give raw frame
 
@@ -140,7 +159,8 @@ public class RTMPAdaptorTest {
 	public void testEncode(int width, int height) {
 		//Create FFmpegFRameRecoder
 		File f = new File("target/test-classes/encoded_frame"+(int)(Math.random()*10010)+".flv");
-		FFmpegFrameRecorder recorder = RTMPAdaptor.getNewRecorder(f.getAbsolutePath(), width, height);
+		RTMPAdaptor adaptor = new RTMPAdaptor(f.getAbsolutePath(), null, height);
+		FFmpegFrameRecorder recorder = adaptor.getNewRecorder(f.getAbsolutePath(), width, height);
 
 		//give raw frame
 
@@ -442,12 +462,12 @@ public class RTMPAdaptorTest {
 		VideoFrame frame = Mockito.mock(VideoFrame.class);
 		when(frame.getRotatedWidth()).thenReturn(480);
 		when(frame.getRotatedHeight()).thenReturn(360);
-		
+				
 		adaptorSpy.initializeRecorder(frame);
 		verify(adaptorSpy).getNewRecorder(rtmpUrl, 640, 480);
 		
 		adaptorSpy.initializeRecorder(frame);
-		verify(adaptorSpy).getNewRecorder(rtmpUrl, 640, 480);
+		verify(adaptorSpy, Mockito.times(1)).getNewRecorder(rtmpUrl, 640, 480);
 		
 	}
 	
