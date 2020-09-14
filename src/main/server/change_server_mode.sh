@@ -19,7 +19,7 @@ usage() {
  
 BASEDIR=$(dirname "$0")
 cd $BASEDIR
-AMS_INSTALL_LOCATION=`pwd`; 
+AMS_INSTALL_LOCATION=`pwd`
 
 
 source $AMS_INSTALL_LOCATION/conf/functions.sh
