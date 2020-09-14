@@ -608,7 +608,7 @@ public class MuxingTest {
 		while (tmpExec == null) {
 			try {
 				System.out.println("Waiting for exec get initialized...");
-				Thread.sleep(1000);
+				Thread.sleep(3000);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}

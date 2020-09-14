@@ -1935,7 +1935,7 @@ public class ConsoleAppRestServiceTest{
 		while (tmpExec == null) {
 			log.info("Waiting for exec get initialized...");
 
-			Awaitility.await().pollDelay(1, TimeUnit.SECONDS).atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			Awaitility.await().pollDelay(2, TimeUnit.SECONDS).atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				return tmpExec !=null;
 			});
 		}
