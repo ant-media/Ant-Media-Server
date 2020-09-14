@@ -930,7 +930,7 @@ public class RestServiceV2Test {
 			Process execute = execute(ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy "
 					+ "	-vcodec copy -f flv rtmp://localhost/LiveApp/" + broadcast.getStreamId());
 
-			Awaitility.await().atMost(25, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			Awaitility.await().atMost(90, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				Broadcast broadcastReturnedTemp = callGetBroadcast(broadcast.getStreamId());
 				return (AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING) == broadcastReturnedTemp.getStatus();
 			});
@@ -942,7 +942,7 @@ public class RestServiceV2Test {
 			assertFalse(callStopBroadcastService(broadcast.getStreamId()));
 
 
-			Awaitility.await().atMost(25, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			Awaitility.await().atMost(90, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				Broadcast broadcastReturnedTemp = callGetBroadcast(broadcast.getStreamId());
 				return (AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED) == broadcastReturnedTemp.getStatus();
 			});

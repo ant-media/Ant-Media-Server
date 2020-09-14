@@ -754,7 +754,7 @@ public class AppFunctionalV2Test {
 		
 		
 		//Check Stream list size and Streams status		
-		Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+		Awaitility.await().atMost(60, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
 			//it is +1 of the numberOfClientsInHLSPlay because previous MuxingTest.testFile creates a viewer as well
 			return restService.callGetBroadcast(stream.getStreamId()).getHlsViewerCount() == 10 ;
 		});
@@ -762,7 +762,7 @@ public class AppFunctionalV2Test {
 		numberOfClientsInHLSPlay--;
 		
 		//Check Stream list size and Streams status.		
-		Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+		Awaitility.await().atMost(60, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
 			//it decreases 2 because there is no MuxingTest.testFile request and numberOfClientsInHLSPlay decrease by one
 			return restService.callGetBroadcast(stream.getStreamId()).getHlsViewerCount() == 8 ;
 		});
@@ -771,14 +771,14 @@ public class AppFunctionalV2Test {
 		
 		
 		//Check Stream list size and Streams status		
-		Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+		Awaitility.await().atMost(60, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
 			return restService.callGetBroadcast(stream.getStreamId()).getHlsViewerCount() == 6 ;
 		});
 		
 		numberOfClientsInHLSPlay-=4;
 		
 		//Check Stream list size and Streams status		
-		Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+		Awaitility.await().atMost(60, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
 			return restService.callGetBroadcast(stream.getStreamId()).getHlsViewerCount() == 2 ;
 		});
 
@@ -786,7 +786,7 @@ public class AppFunctionalV2Test {
 		rtmpSendingProcess.destroy();
 		
 		//Check Stream list size and Streams status		
-		Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+		Awaitility.await().atMost(60, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
 			return restService.callGetBroadcast(stream.getStreamId()).getHlsViewerCount() == 0 ;
 		});
 		
