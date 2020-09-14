@@ -299,17 +299,6 @@ public class PeriscopeEndpointTest {
 		dataStore.close();
 	}
 	
-<<<<<<< Upstream, based on master
-	//@Test
-	public void testConnectChatEndpoint() {
-		createBroadcast(true);
-	}
-
-
-	
-=======
->>>>>>> 25e23d0 increased awaitility waiting times for some tests. replaced Thread.sleep() calls with awaitility polling calls to decrease testing times in some tests
-
 	//@Test
 	public void testCreateBroadcast() {
 		createBroadcast(false);
