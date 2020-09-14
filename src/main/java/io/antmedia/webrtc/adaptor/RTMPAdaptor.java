@@ -264,24 +264,39 @@ public class RTMPAdaptor extends Adaptor {
 			audioFrameCount++;
 			ByteBuffer playoutData = webRtcAudioTrack.getPlayoutData();
 
-			audioEncoderExecutor.execute(() -> {
-
-				ShortBuffer audioBuffer = playoutData.asShortBuffer();
-				try {
-					//null-check recorder because it's asynch and it may not be initialized in video encoder thread
-					if (recorder != null) {
-						
-						boolean result = recorder.recordSamples(webRtcAudioTrack.getSampleRate(), webRtcAudioTrack.getChannels(), audioBuffer);
-						if (!result) {
-							logger.info("could not audio sample for stream Id {}", getStreamId());
-						}
-					}
-				} catch (FrameRecorder.Exception e) {
-					logger.error(ExceptionUtils.getStackTrace(e));
-				}
-			});
+			audioEncoderExecutor.execute(() -> 
+				recordSamples(playoutData)
+			);
 
 		}, 0, 10, TimeUnit.MILLISECONDS);
+	}
+	
+	public void recordSamples(ByteBuffer playoutData) {
+		ShortBuffer audioBuffer = playoutData.asShortBuffer();
+		try {
+			//null-check recorder because it's asynch and it may not be initialized in video encoder thread
+			if (recorder != null) {
+				
+				boolean result = recorder.recordSamples(webRtcAudioTrack.getSampleRate(), webRtcAudioTrack.getChannels(), audioBuffer);
+				if (!result) {
+					logger.info("could not audio sample for stream Id {}", getStreamId());
+				}
+			}
+		} catch (Exception e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+		}
+	}
+	
+	public void initializeRecorder(VideoFrame frame) {
+		if (recorder == null) 
+		{
+			int width = (frame.getRotatedWidth() * height) / frame.getRotatedHeight();
+			if (width % 2 == 1) {
+				width++;
+			}
+			
+			recorder = getNewRecorder(outputURL, width, height);
+		}
 	}
 
 
@@ -339,15 +354,7 @@ public class RTMPAdaptor extends Adaptor {
 							}
 							
 							//initialize recorder if it's not initialized
-							if (recorder == null) 
-							{
-								int width = (frame.getRotatedWidth() * height) / frame.getRotatedHeight();
-								if (width % 2 == 1) {
-									width++;
-								}
-								
-								recorder = getNewRecorder(outputURL, width, height);
-							}
+							initializeRecorder(frame);
 							
 							frameNumber = (int)(pts * recorder.getFrameRate() / 1000f);
 
@@ -465,6 +472,14 @@ public class RTMPAdaptor extends Adaptor {
 	
 	public String getOutputURL() {
 		return outputURL;
+	}
+	
+	public void setRecorder(FFmpegFrameRecorder recorder) {
+		this.recorder = recorder;
+	}
+	
+	public void setWebRtcAudioTrack(WebRtcAudioTrack webRtcAudioTrack) {
+		this.webRtcAudioTrack = webRtcAudioTrack;
 	}
 
 }

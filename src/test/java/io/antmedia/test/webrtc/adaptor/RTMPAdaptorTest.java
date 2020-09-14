@@ -34,7 +34,9 @@ import org.webrtc.IceCandidate;
 import org.webrtc.MediaStream;
 import org.webrtc.PeerConnectionFactory;
 import org.webrtc.SessionDescription;
+import org.webrtc.VideoFrame;
 import org.webrtc.SessionDescription.Type;
+import org.webrtc.audio.WebRtcAudioTrack;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
@@ -398,6 +400,55 @@ public class RTMPAdaptorTest {
 
 		}
 
+	}
+	
+	@Test
+	public void testRecordSamples() {
+		RTMPAdaptor adaptor = new RTMPAdaptor("rtmp://", null, 360);
+		
+		FFmpegFrameRecorder recorder = Mockito.mock(FFmpegFrameRecorder.class);
+		adaptor.setWebRtcAudioTrack(Mockito.mock(WebRtcAudioTrack.class));
+		
+		ByteBuffer buffer = ByteBuffer.allocate(10);
+		adaptor.recordSamples(buffer);
+		
+		try {
+			verify(recorder, Mockito.never()).recordSamples(Mockito.anyInt(), Mockito.anyInt(), Mockito.any());
+		} catch (io.antmedia.recorder.FrameRecorder.Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		
+		
+		adaptor.setRecorder(recorder);
+		adaptor.recordSamples(buffer);
+		
+		try {
+			verify(recorder).recordSamples(Mockito.anyInt(), Mockito.anyInt(), Mockito.any());
+		} catch (io.antmedia.recorder.FrameRecorder.Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		
+	}
+	
+	@Test
+	public void testInitializeRecorder() {
+		
+		String rtmpUrl = "rtmp://"+(int)(Math.random()*10000);
+		RTMPAdaptor adaptor = new RTMPAdaptor(rtmpUrl, null, 480);
+		RTMPAdaptor adaptorSpy = Mockito.spy(adaptor);
+		
+		VideoFrame frame = Mockito.mock(VideoFrame.class);
+		when(frame.getRotatedWidth()).thenReturn(480);
+		when(frame.getRotatedHeight()).thenReturn(360);
+		
+		adaptorSpy.initializeRecorder(frame);
+		verify(adaptorSpy).getNewRecorder(rtmpUrl, 640, 480);
+		
+		adaptorSpy.initializeRecorder(frame);
+		verify(adaptorSpy).getNewRecorder(rtmpUrl, 640, 480);
+		
 	}
 	
 	/*
