@@ -793,7 +793,7 @@ public class AppFunctionalV2Test {
 				+ stream.getStreamId());
 		
 		//Wait for the m3u8 file is available
-		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> { 
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
 			return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" +stream.getStreamId()+ ".m3u8" );
 		});	
 		
