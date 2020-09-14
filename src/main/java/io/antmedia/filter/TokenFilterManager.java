@@ -59,7 +59,7 @@ public class TokenFilterManager extends AbstractFilter   {
 		if ("GET".equals(method)) 
 		{
 			
-			if(appSettings.isTokenControlEnabled()) 
+			if(appSettings.isPlayTokenControlEnabled()) 
 			{
 				
 				ITokenService tokenServiceTmp = getTokenService();
