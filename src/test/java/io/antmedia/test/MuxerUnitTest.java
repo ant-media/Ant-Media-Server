@@ -529,14 +529,9 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		appAdaptor.streamPublishStart(stream);
 
-<<<<<<< Upstream, based on master
-		Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
-=======
 		Awaitility.await()
 		.atMost(15, TimeUnit.SECONDS)
-		.pollInterval(1, TimeUnit.SECONDS)
->>>>>>> 25e23d0 increased awaitility waiting times for some tests. replaced Thread.sleep() calls with awaitility polling calls to decrease testing times in some tests
-		.until(() -> 
+		.pollInterval(1, TimeUnit.SECONDS).until(() -> 
 			appAdaptor.getDataStore().get(broadcast.getStreamId())
 			.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING));
 
