@@ -458,5 +458,13 @@ public class RTMPAdaptor extends Adaptor {
 	public void setTcpCandidatesEnabled(boolean tcpCandidatesEnabled) {
 		this.tcpCandidatesEnabled  = tcpCandidatesEnabled;
 	}
+	
+	public int getHeight() {
+		return height;
+	}
+	
+	public String getOutputURL() {
+		return outputURL;
+	}
 
 }

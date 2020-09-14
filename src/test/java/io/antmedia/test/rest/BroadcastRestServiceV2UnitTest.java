@@ -292,6 +292,32 @@ public class BroadcastRestServiceV2UnitTest {
 		assertEquals(-1, broadcastStatistics.totalRTMPWatchersCount);
 		assertEquals(-1, broadcastStatistics.totalWebRTCWatchersCount);
 	}
+	
+	@Test
+	public void testEnableRecording() {
+		BroadcastRestService restServiceSpy = Mockito.spy(restServiceReal);
+		
+		Mockito.doReturn(null).when(restServiceSpy).enableMp4Muxing(Mockito.anyString(), Mockito.anyBoolean());
+		Mockito.doReturn(null).when(restServiceSpy).enableWebMMuxing(Mockito.anyString(), Mockito.anyBoolean());
+		
+		
+		restServiceSpy.enableRecording("streamId", true, null);
+		verify(restServiceSpy).enableMp4Muxing("streamId", true);
+		
+		restServiceSpy.enableRecording("streamId", false, null);
+		verify(restServiceSpy).enableMp4Muxing("streamId", false);
+		
+		
+		restServiceSpy.enableRecording("streamId", true, "webm");
+		verify(restServiceSpy).enableWebMMuxing("streamId", true);
+		
+		restServiceSpy.enableRecording("streamId", false, "webm");
+		verify(restServiceSpy).enableWebMMuxing("streamId", false);
+		
+		restServiceSpy.enableRecording("streamId", true, "mp4");
+		verify(restServiceSpy, times(2)).enableMp4Muxing("streamId", true);
+		
+	}
 
 	@Test
 	public void testWebRTCClientStats() {

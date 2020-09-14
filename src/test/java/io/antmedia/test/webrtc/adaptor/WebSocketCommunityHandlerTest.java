@@ -145,6 +145,16 @@ public class WebSocketCommunityHandlerTest {
 		}
 		
 	}
+	
+	@Test
+	public void testGetNewRTMPAdaptor() {
+		String rtmpUrl = "rtmp://localhost/LiveApp/232323";
+		int height = 260;
+		RTMPAdaptor rtmpAdaptor = wsHandler.getNewRTMPAdaptor(rtmpUrl, height);
+		
+		assertEquals(height, rtmpAdaptor.getHeight());
+		assertEquals(rtmpUrl, rtmpAdaptor.getOutputURL());
+	}
 
 	@Test
 	public void testPublishAndDisconnect() {
