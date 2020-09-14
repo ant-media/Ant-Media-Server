@@ -1856,4 +1856,29 @@ public abstract class RestServiceBase {
 		}
 	}
 
+	public static List<String> getRoomInfoFromConference(String roomId, String streamId,DataStore store){
+		List<String> streamIdList = null;
+		if (roomId != null)
+		{
+			ConferenceRoom conferenceRoom = store.getConferenceRoom(roomId);
+			if (conferenceRoom == null) {
+				logger.warn("There is no room with id:{}", roomId);
+				return streamIdList;
+			}
+			streamIdList=new ArrayList<>();
+			List<String> tempList=conferenceRoom.getRoomStreamList();
+			if(tempList != null) {
+				for (String tmpStreamId : tempList)
+				{
+					Broadcast broadcast = store.get(tmpStreamId);
+					if (broadcast != null && broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING) && !tmpStreamId.equals(streamId))
+					{
+						streamIdList.add(tmpStreamId);
+					}
+				}
+			}
+		}
+		return streamIdList;
+	}
+
 }
