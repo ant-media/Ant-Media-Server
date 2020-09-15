@@ -315,6 +315,7 @@ public class AppFunctionalV2Test {
 
 		} catch (Exception e) {
 			e.printStackTrace();
+			fail(e.getMessage());
 		}
 
 	}
