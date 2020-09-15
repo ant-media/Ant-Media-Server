@@ -15,9 +15,11 @@ usage() {
   echo ""
   echo "If you have any question, send e-mail to contact@antmedia.io"
 }
-
+ 
 BASEDIR=$(dirname "$0")
-AMS_INSTALL_LOCATION=`pwd`/$BASEDIR; 
+cd $BASEDIR
+AMS_INSTALL_LOCATION=`pwd`
+
 
 source $AMS_INSTALL_LOCATION/conf/functions.sh
 

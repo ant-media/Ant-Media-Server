@@ -922,7 +922,9 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			}
 
 			if (checkDuration) {
-				assertTrue(MuxingTest.testFile(muxAdaptor.getMuxerList().get(0).getFile().getAbsolutePath(), duration));
+				int finalDuration = duration;
+				Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(()->
+					MuxingTest.testFile(muxAdaptor.getMuxerList().get(0).getFile().getAbsolutePath(), finalDuration));
 			}
 			return muxAdaptor.getMuxerList().get(0).getFile();
 		} catch (Exception e) {
@@ -1635,7 +1637,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			logger.info("----input queue size before stop recording: {}", inputQueueSize);
 			Awaitility.await().atMost(90, TimeUnit.SECONDS).until(() -> muxAdaptor.getInputQueueSize() == 0);
 			
-			
+			inputQueueSize = muxAdaptor.getInputQueueSize();
 			int estimatedLastTimeStamp = lastTimeStamp;
 			if (inputQueueSize > 0) {
 				estimatedLastTimeStamp = timeStamps.get((timeStamps.size() - inputQueueSize));

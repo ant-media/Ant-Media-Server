@@ -7,8 +7,8 @@
 #
 # -r: Replace candidate address with server name. Its value can be true or false. Default value is false
 #
-# -m: Server mode. It can be standalone or cluster. Its default value is standalone. If cluster mode is 
-#     specified then mongodb host, username and password should also be provided
+# -m: Server mode. It can be standalone or cluster. If cluster mode is specified then mongodb host, username and password should also be provided.
+#     There is no default value for mode
 #
 # -h: MongoDB host
 #
@@ -18,7 +18,8 @@
 
 if [ -z "$RED5_HOME" ]; then 
   BASEDIR=$(dirname "$0")
-  export RED5_HOME=`pwd`/$BASEDIR; 
+  cd $BASEDIR
+  export RED5_HOME=`pwd`
 fi
 
 source $RED5_HOME/conf/functions.sh
@@ -26,7 +27,7 @@ source $RED5_HOME/conf/functions.sh
 USE_GLOBAL_IP=false
 USE_PUBLIC_IP_AS_SERVER_NAME=false
 REPLACE_CANDIDATE_ADDRESS_WITH_SERVER_NAME=false
-SERVER_MODE=standalone
+SERVER_MODE=
 MONGODB_HOST=
 MONGODB_USERNAME=
 MONGODB_PASSWORD=
@@ -85,7 +86,9 @@ done
 
 ################################################
 # Set server mode cluster or standalone. Below method is available is functions.sh
-change_server_mode $SERVER_MODE $MONGODB_HOST $MONGODB_USERNAME $MONGODB_PASSWORD
+if [ ! -z "${SERVER_MODE}" ]; then
+  change_server_mode $SERVER_MODE $MONGODB_HOST $MONGODB_USERNAME $MONGODB_PASSWORD
+fi
 ################################################
 
 
