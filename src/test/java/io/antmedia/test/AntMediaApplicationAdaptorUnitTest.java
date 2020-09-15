@@ -990,6 +990,9 @@ public class AntMediaApplicationAdaptorUnitTest {
 			}
 		}, r->{});
 		
+		
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> threadStarted);
+		
 		long t0 = System.currentTimeMillis();
 		antMediaApplicationAdapter.waitUntilThreadsStop();
 		long t1 = System.currentTimeMillis();
