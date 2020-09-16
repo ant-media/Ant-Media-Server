@@ -2354,7 +2354,32 @@ public class BroadcastRestServiceV2UnitTest {
 		assertEquals("Operation not completed", res.getMessage());
 		
 	}
-	
-	
+
+
+
+	@Test
+	public void testGetRoomInfo()  {
+
+		ApplicationContext context = mock(ApplicationContext.class);
+		restServiceReal.setAppCtx(context);
+		DataStore store = new InMemoryDataStore("testdb");
+		restServiceReal.setDataStore(store);
+		BroadcastRestService restServiceSpy = Mockito.spy(restServiceReal);
+		ConferenceRoom room=new ConferenceRoom();
+		room.setRoomId("testroom");
+		List<String> streamIdList=new ArrayList<>();
+		streamIdList.add("stream1");
+		streamIdList.add("stream2");
+		room.setRoomStreamList(streamIdList);
+		store.createConferenceRoom(room);
+		RootRestService.RoomInfo testroom=restServiceSpy.getRoomInfo("testroom","stream1");
+		assertEquals("testroom",testroom.getRoomId());
+		System.out.println(testroom.getStreamIds().size());
+		System.out.println(testroom.getRoomId());
+		System.out.println(room.getRoomStreamList());
+		assertEquals(2,testroom.getStreamIds().size());
+
+
+	}
 	
 }
