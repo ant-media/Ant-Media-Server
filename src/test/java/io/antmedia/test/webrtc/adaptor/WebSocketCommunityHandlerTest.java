@@ -145,6 +145,16 @@ public class WebSocketCommunityHandlerTest {
 		}
 		
 	}
+	
+	@Test
+	public void testGetNewRTMPAdaptor() {
+		String rtmpUrl = "rtmp://localhost/LiveApp/232323";
+		int height = 260;
+		RTMPAdaptor rtmpAdaptor = wsHandler.getNewRTMPAdaptor(rtmpUrl, height);
+		
+		assertEquals(height, rtmpAdaptor.getHeight());
+		assertEquals(rtmpUrl, rtmpAdaptor.getOutputURL());
+	}
 
 	@Test
 	public void testPublishAndDisconnect() {
@@ -155,7 +165,7 @@ public class WebSocketCommunityHandlerTest {
 
 		RTMPAdaptor rtmpAdaptor = mock(RTMPAdaptor.class);
 
-		doReturn(rtmpAdaptor).when(wsHandler).getNewRTMPAdaptor(Mockito.anyString());
+		doReturn(rtmpAdaptor).when(wsHandler).getNewRTMPAdaptor(Mockito.anyString(), Mockito.anyInt());
 
 
 		JSONObject publishObject = new JSONObject();
@@ -185,7 +195,7 @@ public class WebSocketCommunityHandlerTest {
 
 		RTMPAdaptor rtmpAdaptor = mock(RTMPAdaptor.class);
 
-		doReturn(rtmpAdaptor).when(wsHandler).getNewRTMPAdaptor(Mockito.anyString());
+		doReturn(rtmpAdaptor).when(wsHandler).getNewRTMPAdaptor(Mockito.anyString(), Mockito.anyInt());
 
 
 		JSONObject publishObject = new JSONObject();
@@ -261,7 +271,7 @@ public class WebSocketCommunityHandlerTest {
 
 		RTMPAdaptor rtmpAdaptor = mock(RTMPAdaptor.class);
 
-		doReturn(rtmpAdaptor).when(wsHandler).getNewRTMPAdaptor(Mockito.anyString());
+		doReturn(rtmpAdaptor).when(wsHandler).getNewRTMPAdaptor(Mockito.anyString(), Mockito.anyInt());
 
 
 		JSONObject publishObject = new JSONObject();

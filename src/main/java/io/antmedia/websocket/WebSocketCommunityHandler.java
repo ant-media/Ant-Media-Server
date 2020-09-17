@@ -143,7 +143,7 @@ public class WebSocketCommunityHandler {
 		//get scope and use its name
 		String outputURL = "rtmp://127.0.0.1/"+ appName +"/" + streamId;
 
-		RTMPAdaptor connectionContext = getNewRTMPAdaptor(outputURL);
+		RTMPAdaptor connectionContext = getNewRTMPAdaptor(outputURL, appSettings.getHeightRtmpForwarding());
 
 		session.getUserProperties().put(session.getId(), connectionContext);
 
@@ -156,8 +156,8 @@ public class WebSocketCommunityHandler {
 		connectionContext.start();
 	}
 
-	public RTMPAdaptor getNewRTMPAdaptor(String outputURL) {
-		return new RTMPAdaptor(getNewRecorder(outputURL), this);
+	public RTMPAdaptor getNewRTMPAdaptor(String outputURL, int height) {
+		return new RTMPAdaptor(outputURL, this, height);
 	}
 
 	public void addICECandidate(final String streamId, RTMPAdaptor connectionContext, String sdpMid, String sdp,
@@ -243,38 +243,6 @@ public class WebSocketCommunityHandler {
 		sendMessage(jsonObject.toJSONString(), session);
 	}
 
-
-	public static FFmpegFrameRecorder getNewRecorder(String outputURL) {
-		return getNewRecorder(outputURL, 640, 480);
-	}
-	
-	public static FFmpegFrameRecorder getNewRecorder(String outputURL, int width, int height) {
-
-		FFmpegFrameRecorder recorder = initRecorder(outputURL, width, height);
-
-		try {
-			recorder.start();
-		} catch (FrameRecorder.Exception e) {
-			logger.error(ExceptionUtils.getStackTrace(e));
-		}
-
-		return recorder;
-	}
-
-	public static FFmpegFrameRecorder initRecorder(String outputURL, int width, int height) {
-		FFmpegFrameRecorder recorder = new FFmpegFrameRecorder(outputURL, width, height, 1);
-		recorder.setFormat("flv");
-		recorder.setSampleRate(44100);
-		// Set in the surface changed method
-		recorder.setFrameRate(20);
-		recorder.setPixelFormat(avutil.AV_PIX_FMT_YUV420P);
-		recorder.setVideoCodec(avcodec.AV_CODEC_ID_H264);
-		recorder.setAudioCodec(avcodec.AV_CODEC_ID_AAC);
-		recorder.setAudioChannels(2);
-		recorder.setGopSize(40);
-		recorder.setVideoQuality(29);
-		return recorder;
-	}
 
 	@SuppressWarnings("unchecked")
 	public  final  void sendNoStreamIdSpecifiedError(Session session)  {
