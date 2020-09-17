@@ -573,10 +573,11 @@ public class InMemoryDataStore extends DataStore {
 				else  {
 					webRTCViewerCount--;
 				}
-
-				broadcast.setWebRTCViewerCount(webRTCViewerCount);
-				broadcastMap.replace(streamId, broadcast);
-				result = true;
+				if(webRTCViewerCount >= 0) {
+					broadcast.setWebRTCViewerCount(webRTCViewerCount);
+					broadcastMap.replace(streamId, broadcast);
+					result = true;
+				}
 			}
 		}
 		return result;
@@ -595,10 +596,11 @@ public class InMemoryDataStore extends DataStore {
 				else  {
 					rtmpViewerCount--;
 				}
-
-				broadcast.setRtmpViewerCount(rtmpViewerCount);
-				broadcastMap.replace(streamId, broadcast);
-				result = true;
+				if(rtmpViewerCount >= 0) {
+					broadcast.setRtmpViewerCount(rtmpViewerCount);
+					broadcastMap.replace(streamId, broadcast);
+					result = true;
+				}
 			}
 		}
 		return result;
@@ -776,8 +778,7 @@ public class InMemoryDataStore extends DataStore {
 		boolean result = false;
 
 		if (room != null && room.getRoomId() != null) {
-			roomMap.replace(roomId, room);
-			result = true;
+			return roomMap.replace(roomId, room) != null;
 		}
 		return result;
 	}

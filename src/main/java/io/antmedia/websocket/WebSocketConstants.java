@@ -49,11 +49,7 @@ public class WebSocketConstants {
 	public static final String STOP_COMMAND = "stop";
 	
 	public static final String START_COMMAND = "start";
-
-	public static final String STREAM_LEAVED = "streamLeaved";
 	
-	public static final String STREAM_JOINED = "streamJoined";
-
 	public static final String PUBLISH_COMMAND = "publish";
 
 	public static final String PUBLISH_STARTED = "publish_started";
@@ -81,12 +77,6 @@ public class WebSocketConstants {
 	 */
 	
 	public static final String LEAVE_THE_ROOM = "leaveFromRoom";
-	
-	/**
-	 * this map includes streamId as key, room name as value  for active session
-	 */
-	
-	public static final String SESSION_STREAM_ROOM_MAP = "session_room_map";
 
 	public static final String JOINED_THE_ROOM = "joinedTheRoom";
 	
@@ -207,11 +197,6 @@ public class WebSocketConstants {
 	public static final String STREAM_INFO = "streamInfo";
 	
 	/**
-	 * Field in messaging to specify the stream info 
-	 */
-	public static final String ROOM_INFO = "roomInfo";
-
-	/**
 	 * Field to specify the stream width
 	 */
 	public static final String STREAM_WIDTH = "streamWidth";
@@ -274,6 +259,10 @@ public class WebSocketConstants {
 	 * Error definition it is send when cpu usage exceeds the limit
 	 */
 	public static final String HIGH_RESOURCE_USAGE = "highResourceUsage";
+	/**
+	 * Error definition it is send when viewer limit reached
+	 */
+	public static final String VIEWER_LIMIT_REACHED = "viewerLimitReached";
 	/**
 	 * Error definition it is send when stream name contains special characters
 	 */

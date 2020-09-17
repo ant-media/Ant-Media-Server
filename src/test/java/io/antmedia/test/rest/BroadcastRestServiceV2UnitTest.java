@@ -292,6 +292,32 @@ public class BroadcastRestServiceV2UnitTest {
 		assertEquals(-1, broadcastStatistics.totalRTMPWatchersCount);
 		assertEquals(-1, broadcastStatistics.totalWebRTCWatchersCount);
 	}
+	
+	@Test
+	public void testEnableRecording() {
+		BroadcastRestService restServiceSpy = Mockito.spy(restServiceReal);
+		
+		Mockito.doReturn(null).when(restServiceSpy).enableMp4Muxing(Mockito.anyString(), Mockito.anyBoolean());
+		Mockito.doReturn(null).when(restServiceSpy).enableWebMMuxing(Mockito.anyString(), Mockito.anyBoolean());
+		
+		
+		restServiceSpy.enableRecording("streamId", true, null);
+		verify(restServiceSpy).enableMp4Muxing("streamId", true);
+		
+		restServiceSpy.enableRecording("streamId", false, null);
+		verify(restServiceSpy).enableMp4Muxing("streamId", false);
+		
+		
+		restServiceSpy.enableRecording("streamId", true, "webm");
+		verify(restServiceSpy).enableWebMMuxing("streamId", true);
+		
+		restServiceSpy.enableRecording("streamId", false, "webm");
+		verify(restServiceSpy).enableWebMMuxing("streamId", false);
+		
+		restServiceSpy.enableRecording("streamId", true, "mp4");
+		verify(restServiceSpy, times(2)).enableMp4Muxing("streamId", true);
+		
+	}
 
 	@Test
 	public void testWebRTCClientStats() {
@@ -1933,6 +1959,24 @@ public class BroadcastRestServiceV2UnitTest {
 	}
 	
 	@Test
+	public void testcheckStopStreaming() 
+	{
+		BroadcastRestService streamSourceRest = Mockito.spy(restServiceReal);
+		AntMediaApplicationAdapter adaptor = mock (AntMediaApplicationAdapter.class);
+		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
+		Mockito.when(adaptor.getStreamFetcherManager()).thenReturn(mock(StreamFetcherManager.class));
+		Mockito.when(adaptor.stopStreaming(any())).thenReturn(new Result(false));
+		
+		Broadcast broadcast = new Broadcast();
+		//It means there is no stream to stop
+		assertTrue(streamSourceRest.checkStopStreaming(broadcast));
+		
+		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+		//it should return false because adaptor return false
+		assertFalse(streamSourceRest.checkStopStreaming(broadcast));
+	}
+	
+	@Test
 	public void updateStreamSource() {
 
 		Result result = new Result(false);
@@ -1961,7 +2005,7 @@ public class BroadcastRestServiceV2UnitTest {
 		
 		streamSource.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 		
-		StreamFetcher fetcher = mock (StreamFetcher.class);
+		StreamFetcher fetcher = mock(StreamFetcher.class);
 		
 		try {
 			streamSource.setStreamId("selimTest");
@@ -1982,14 +2026,14 @@ public class BroadcastRestServiceV2UnitTest {
 		
 		Mockito.doReturn(true).when(streamSourceRest).checkStreamUrl(any());
 		
-		Mockito.doReturn(true).when(streamSourceRest).checkStopStreaming(any(),any());
+		Mockito.doReturn(true).when(streamSourceRest).checkStopStreaming(any());
 		
 		result = streamSourceRest.updateBroadcast(streamSource.getStreamId(), streamSource,socialNetworksToPublish);
 		
 		assertEquals(true, result.isSuccess());
 		
 		Awaitility.await().atMost(22*250, TimeUnit.MILLISECONDS)
-		.until(() -> streamSourceRest.waitStopStreaming(streamSource.getStreamId(),false));
+		.until(() -> streamSourceRest.waitStopStreaming(streamSource,false));
 		
 		// Test line 392 if condition
 
@@ -2007,7 +2051,12 @@ public class BroadcastRestServiceV2UnitTest {
 		
 		result = streamSourceRest.updateBroadcast(streamSource.getStreamId(), streamSource,"endpoint_1");
 		
+		assertEquals(true, result.isSuccess());
+		
+		result = streamSourceRest.updateBroadcast("not_exists" + (int)(Math.random()*10000), streamSource,"endpoint_1");
+		
 		assertEquals(false, result.isSuccess());
+
 		
 	}
 	

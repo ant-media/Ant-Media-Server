@@ -15,11 +15,11 @@ public class StreamAcceptFilter implements ApplicationContextAware{
 
 	protected static Logger logger = LoggerFactory.getLogger(StreamAcceptFilter.class);
 	
-	public boolean isValidStreamParameters(AVFormatContext inputFormatContext,AVPacket pkt) 
+	public boolean isValidStreamParameters(AVFormatContext inputFormatContext,AVPacket pkt, String streamId) 
 	{
-		return  checkFPSAccept(getStreamFps(inputFormatContext, pkt)) && 
-				checkResolutionAccept(getStreamResolution(inputFormatContext, pkt)) &&
-				checkBitrateAccept(getStreamBitrate(inputFormatContext, pkt));
+		return  checkFPSAccept(getStreamFps(inputFormatContext, pkt, streamId)) && 
+				checkResolutionAccept(getStreamResolution(inputFormatContext, pkt, streamId)) &&
+				checkBitrateAccept(getStreamBitrate(inputFormatContext, pkt, streamId));
 	}
 
 	public boolean checkFPSAccept(int streamFPSValue) 
@@ -50,24 +50,24 @@ public class StreamAcceptFilter implements ApplicationContextAware{
 		return true;
 	} 
 
-	public int getStreamFps(AVFormatContext inputFormatContext,AVPacket pkt) 
+	public int getStreamFps(AVFormatContext inputFormatContext,AVPacket pkt, String streamId) 
 	{
 		int streamFPSValue = (inputFormatContext.streams(pkt.stream_index()).r_frame_rate().num()) / (inputFormatContext.streams(pkt.stream_index()).r_frame_rate().den());
-		logger.info("Stream FPS value: {}",streamFPSValue);
+		logger.info("Stream FPS value: {} for stream:{}",streamFPSValue, streamId);
 
 		return streamFPSValue;
 	}
 
-	public int getStreamResolution(AVFormatContext inputFormatContext,AVPacket pkt) {
+	public int getStreamResolution(AVFormatContext inputFormatContext,AVPacket pkt, String streamId) {
 		int streamResolutionValue = inputFormatContext.streams(pkt.stream_index()).codecpar().height();
-		logger.error("Stream Resolution value: {}",streamResolutionValue);
+		logger.error("Stream Resolution value: {} for stream:{}",streamResolutionValue, streamId);
 
 		return streamResolutionValue;
 	}
 
-	public long getStreamBitrate(AVFormatContext inputFormatContext,AVPacket pkt) {
+	public long getStreamBitrate(AVFormatContext inputFormatContext,AVPacket pkt, String streamId) {
 		long streamBitrateValue = inputFormatContext.streams(pkt.stream_index()).codecpar().bit_rate();
-		logger.error("Stream Bitrate value: {}",streamBitrateValue);
+		logger.error("Stream Bitrate value: {} for stream:{}",streamBitrateValue, streamId);
 
 		return streamBitrateValue;		
 	}

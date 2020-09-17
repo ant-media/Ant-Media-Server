@@ -3,6 +3,7 @@ package io.antmedia.integration;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
@@ -150,6 +151,38 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 			appSettings = (AppSettings) applicationContext.getBean(AppSettings.BEAN_NAME);
 		}
 		return appSettings;
+	}
+	
+	@Test
+	public void testUpdateStreamSource() {
+		RestServiceV2Test restService = new RestServiceV2Test();
+		String name = "test";
+		String streamUrl = "rtmp://127.0.0.1/LiveApp/streamtest";
+		Broadcast streamSource = restService.createBroadcast("test", "streamSource", "rtmp://127.0.0.1/LiveApp/streamtest");
+	
+		assertNotNull(streamSource);
+		assertEquals(name, streamSource.getName());
+		assertEquals(streamUrl, streamSource.getStreamUrl());
+		
+		name = "test2";
+		String streamUrl2 = "rtmp://localhost/LiveApp/test1234";
+		Result result = restService.updateBroadcast(streamSource.getStreamId(), name, null, "", streamUrl2, "streamSource");
+		assertTrue(result.isSuccess());
+		
+		Broadcast returnedBroadcast;
+		try {
+			returnedBroadcast = restService.callGetBroadcast(streamSource.getStreamId());
+			assertEquals(name, returnedBroadcast.getName());
+			assertEquals(streamUrl2, returnedBroadcast.getStreamUrl());
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		
+		
+	
+	
 	}
 	
 	@Test

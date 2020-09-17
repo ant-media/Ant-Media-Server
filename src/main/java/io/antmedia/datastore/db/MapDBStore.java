@@ -844,7 +844,6 @@ public class MapDBStore extends DataStore {
 	protected synchronized boolean updateWebRTCViewerCountLocal(String streamId, boolean increment) {
 		boolean result = false;
 		synchronized (this) {
-				
 			if (streamId != null) {
 				Broadcast broadcast = get(streamId);
 				if (broadcast != null) {
@@ -855,9 +854,11 @@ public class MapDBStore extends DataStore {
 					else {
 						webRTCViewerCount--;
 					}
-					broadcast.setWebRTCViewerCount(webRTCViewerCount);
-					map.replace(streamId, gson.toJson(broadcast));
-					result = true;
+					if(webRTCViewerCount >= 0) {
+						broadcast.setWebRTCViewerCount(webRTCViewerCount);
+						map.replace(streamId, gson.toJson(broadcast));
+						result = true;
+					}
 				}
 			}
 		}
@@ -878,9 +879,11 @@ public class MapDBStore extends DataStore {
 					else { 
 						rtmpViewerCount--;
 					}
-					broadcast.setRtmpViewerCount(rtmpViewerCount);
-					map.replace(streamId, gson.toJson(broadcast));
-					result = true;
+					if(rtmpViewerCount >= 0) {
+						broadcast.setRtmpViewerCount(rtmpViewerCount);
+						map.replace(streamId, gson.toJson(broadcast));
+						result = true;
+					}
 				}
 			}
 		}
@@ -1097,10 +1100,11 @@ public class MapDBStore extends DataStore {
 		synchronized (this) {
 			boolean result = false;
 
-			if (room != null && room.getRoomId() != null) {
-				conferenceRoomMap.replace(room.getRoomId(), gson.toJson(room));
-				db.commit();
-				result = true;
+			if (roomId != null && room != null && room.getRoomId() != null) {
+				result = conferenceRoomMap.replace(roomId, gson.toJson(room)) != null;
+				if (result) {
+					db.commit();
+				}
 			}
 			return result;
 		}
@@ -1113,9 +1117,10 @@ public class MapDBStore extends DataStore {
 			boolean result = false;
 
 			if (roomId != null && !roomId.isEmpty()) {
-				conferenceRoomMap.remove(roomId);
-				db.commit();
-				result = true;
+				result = conferenceRoomMap.remove(roomId) != null;
+				if (result) {
+					db.commit();
+				}
 			}
 			return result;
 		}
