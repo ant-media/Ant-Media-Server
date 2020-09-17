@@ -382,7 +382,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			fail(e.getMessage());
 		}
 
-		getAppSettings().setHlsMuxingEnabled(true);
+		getAppSettings().setHlsMuxingEnabled(true); 
 
 	}
 
