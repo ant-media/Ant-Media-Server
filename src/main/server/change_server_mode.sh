@@ -15,8 +15,13 @@ usage() {
   echo ""
   echo "If you have any question, send e-mail to contact@antmedia.io"
 }
+ 
+BASEDIR=$(dirname "$0")
+cd $BASEDIR
+AMS_INSTALL_LOCATION=`pwd`
 
-source conf/functions.sh
+
+source $AMS_INSTALL_LOCATION/conf/functions.sh
 
 USE_GLOBAL_IP="false"
 MODE=$1
@@ -26,10 +31,8 @@ if [ -z "$MODE" ]; then
   exit 1
 fi
 
-AMS_INSTALL_LOCATION=/usr/local/antmedia
 OS_NAME=`uname`
 if [ "$OS_NAME" = "Darwin" ]; then
-    AMS_INSTALL_LOCATION=`pwd`
     SED_COMPATIBILITY='.bak'
 fi
 
