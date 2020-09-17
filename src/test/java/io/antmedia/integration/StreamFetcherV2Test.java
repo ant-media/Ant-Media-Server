@@ -165,7 +165,7 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 		assertEquals(streamUrl, streamSource.getStreamUrl());
 		
 		name = "test2";
-		String streamUrl2 = "rtmp://localhost/WebRTCAppEE/test";
+		String streamUrl2 = "rtmp://localhost/LiveApp/test1234";
 		Result result = restService.updateBroadcast(streamSource.getStreamId(), name, null, "", streamUrl2, "streamSource");
 		assertTrue(result.isSuccess());
 		

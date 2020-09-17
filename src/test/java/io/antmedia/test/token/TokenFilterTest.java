@@ -117,12 +117,9 @@ public class TokenFilterTest {
 			TokenFilterManager spyFilter = Mockito.spy(tokenFilter);
 			
 			AppSettings settings = new AppSettings();
-			settings.setTokenControlEnabled(true);
+			settings.setPlayTokenControlEnabled(true);
 			Mockito.doReturn(settings).when(spyFilter).getAppSettings();
 		
-		
-
-			
 			spyFilter.doFilter(mockRequest, mockResponse, mockChain);
 		
 		} catch (IOException e) {
@@ -147,8 +144,7 @@ public class TokenFilterTest {
 
 		MockTokenService tokenService = mock(MockTokenService.class);
 		AppSettings settings = new AppSettings();
-		settings.setTokenControlEnabled(true);
-
+		settings.setPlayTokenControlEnabled(true);
 
 		when(context.getBean(ITokenService.BeanName.TOKEN_SERVICE.toString())).thenReturn(tokenService);
 		when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(settings);

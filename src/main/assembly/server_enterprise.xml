@@ -123,6 +123,7 @@
 				<include>*.globals</include>
 				<include>*.jmx</include>
 				<include>*.json</include>
+				<include>*.sh</include>
 			</includes>
 			<excludes>
 				<exclude>build_standalone.properties</exclude>

@@ -72,6 +72,8 @@ import io.swagger.annotations.SwaggerDefinition;
 public class BroadcastRestService extends RestServiceBase{
 
 	
+	private static final String REPLACE_CHARS = "[\n|\r|\t]";
+	private static final String WEBM = "webm";
 	private static final String VALUE_IS_LESS_THAN_ZERO = "Value is less than zero";
 	private static final String STREAM_ID_NOT_VALID = "Stream id not valid";
 	private static final String RELATIVE_MOVE = "relative";
@@ -317,7 +319,7 @@ public class BroadcastRestService extends RestServiceBase{
 		}
 		else {
 			if (logger.isErrorEnabled()) {
-				logger.error("Rtmp endpoint({}) was not added to the stream: {}", rtmpUrl != null ? rtmpUrl.replaceAll("[\n|\r|\t]", "_") : null , id.replaceAll("[\n|\r|\t]", "_"));
+				logger.error("Rtmp endpoint({}) was not added to the stream: {}", rtmpUrl != null ? rtmpUrl.replaceAll(REPLACE_CHARS, "_") : null , id.replaceAll(REPLACE_CHARS, "_"));
 			}
 		}
 		
@@ -352,7 +354,7 @@ public class BroadcastRestService extends RestServiceBase{
 		}
 		else {
 			if (logger.isErrorEnabled()) {
-				logger.error("Rtmp endpoint({}) was not added to the stream: {}", rtmpUrl != null ? rtmpUrl.replaceAll("[\n|\r|\t]", "_") : null , id.replaceAll("[\n|\r|\t]", "_"));
+				logger.error("Rtmp endpoint({}) was not added to the stream: {}", rtmpUrl != null ? rtmpUrl.replaceAll(REPLACE_CHARS, "_") : null , id.replaceAll(REPLACE_CHARS, "_"));
 			}
 		}
 		
@@ -379,7 +381,7 @@ public class BroadcastRestService extends RestServiceBase{
 		else {	
 		
 			if (logger.isErrorEnabled()) {
-				logger.error("Rtmp endpoint({}) was not removed from the stream: {}", rtmpUrl != null ? rtmpUrl.replaceAll("[\n|\r|\t]", "_") : null , id.replaceAll("[\n|\r|\t]", "_"));
+				logger.error("Rtmp endpoint({}) was not removed from the stream: {}", rtmpUrl != null ? rtmpUrl.replaceAll(REPLACE_CHARS, "_") : null , id.replaceAll(REPLACE_CHARS, "_"));
 			}
 		}
 		
@@ -419,7 +421,7 @@ public class BroadcastRestService extends RestServiceBase{
 			}
 		}
 		else if (logger.isErrorEnabled()) {	
-			logger.error("Rtmp endpoint({}) was not removed from the stream: {}", rtmpUrl != null ? rtmpUrl.replaceAll("[\n|\r|\t]", "_") : null , id.replaceAll("[\n|\r|\t]", "_"));
+			logger.error("Rtmp endpoint({}) was not removed from the stream: {}", rtmpUrl != null ? rtmpUrl.replaceAll(REPLACE_CHARS, "_") : null , id.replaceAll(REPLACE_CHARS, "_"));
 		}
 		return result;
 	}
@@ -719,7 +721,10 @@ public class BroadcastRestService extends RestServiceBase{
 	public Result enableRecording(@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String streamId,
 			@ApiParam(value = "Change recording status. If true, starts recording. If false stop recording", required = true) @PathParam("recording-status") boolean enableRecording,
 			@ApiParam(value = "Record type: 'mp4' or 'webm'. It's optional parameter.", required = false) @QueryParam("recordType") String recordType) {
-		if(recordType != null && recordType.equals("webm")) {
+		if (logger.isInfoEnabled()) {
+			logger.info("Recording method is called for {} to make it {} and recordy Type: {}", streamId.replaceAll(REPLACE_CHARS, "_"), enableRecording, recordType != null ? recordType.replaceAll(REPLACE_CHARS, "_") : null);
+		}
+		if(WEBM.equals(recordType)) {
 			return enableWebMMuxing(streamId, enableRecording);
 		}
 		else {
@@ -729,6 +734,7 @@ public class BroadcastRestService extends RestServiceBase{
 	
 	
 	public Result enableMp4Muxing(String streamId, boolean enableRecording) {
+		
 		boolean result = false;
 		String message = null;
 		if (streamId != null) 
@@ -748,7 +754,7 @@ public class BroadcastRestService extends RestServiceBase{
 							result = startRecord(streamId, RecordType.MP4);
 							if (!result) 
 							{
-								streamId = streamId.replaceAll("[\n|\r|\t]", "_");
+								streamId = streamId.replaceAll(REPLACE_CHARS, "_");
 								logger.warn("Mp4 recording could not be started for stream: {}", streamId);
 							}
 						}	
@@ -771,7 +777,7 @@ public class BroadcastRestService extends RestServiceBase{
 						result = stopRecord(streamId, RecordType.MP4);
 						if (!result) 
 						{
-							streamId = streamId.replaceAll("[\n|\r|\t]", "_");
+							streamId = streamId.replaceAll(REPLACE_CHARS, "_");
 							logger.warn("Mp4 recording could not be stopped for stream: {}", streamId);
 						}
 						
@@ -786,7 +792,7 @@ public class BroadcastRestService extends RestServiceBase{
 				message = "no stream for this id: " + streamId + " or wrong setting parameter";
 			}
 		}
-
+		
 		return new Result(result, message);
 	}
 	
@@ -810,7 +816,7 @@ public class BroadcastRestService extends RestServiceBase{
 							result = startRecord(streamId, RecordType.WEBM);
 							if (!result) 
 							{
-								streamId = streamId.replaceAll("[\n|\r|\t]", "_");
+								streamId = streamId.replaceAll(REPLACE_CHARS, "_");
 								logger.warn("WebM recording could not be started for stream: {}", streamId);
 							}
 						}	
@@ -833,7 +839,7 @@ public class BroadcastRestService extends RestServiceBase{
 						result = stopRecord(streamId, RecordType.WEBM);
 						if (!result) 
 						{
-							streamId = streamId.replaceAll("[\n|\r|\t]", "_");
+							streamId = streamId.replaceAll(REPLACE_CHARS, "_");
 							logger.warn("WebM recording could not be stopped for stream: {}", streamId);
 						}
 						

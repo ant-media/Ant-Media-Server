@@ -64,7 +64,7 @@ public class TokenFilterManager extends AbstractFilter   {
 				&& (tokenGenerator == null || clusterToken == null || !clusterToken.equals(tokenGenerator.getGenetaredToken()))) 
 		{
 			
-			if(appSettings.isTokenControlEnabled()) 
+			if(appSettings.isPlayTokenControlEnabled()) 
 			{
 				
 				ITokenService tokenServiceTmp = getTokenService();

@@ -965,7 +965,8 @@ public class ConsoleAppRestServiceTest{
 			// get settings from the app
 			AppSettings appSettings = callGetAppSettings(appName);
 
-			appSettings.setTokenControlEnabled(true);
+			appSettings.setPublishTokenControlEnabled(true);
+			appSettings.setPlayTokenControlEnabled(true);
 			appSettings.setMp4MuxingEnabled(true);
 
 
@@ -973,8 +974,9 @@ public class ConsoleAppRestServiceTest{
 			assertTrue(result.isSuccess());
 
 			appSettings = callGetAppSettings(appName);
-			assertTrue(appSettings.isTokenControlEnabled());
-
+			assertTrue(appSettings.isPublishTokenControlEnabled());
+			assertTrue(appSettings.isPlayTokenControlEnabled());
+			
 			//define a valid expire date
 			long expireDate = Instant.now().getEpochSecond() + 1000;
 
@@ -1036,8 +1038,9 @@ public class ConsoleAppRestServiceTest{
 
 
 
-			appSettings.setTokenControlEnabled(false);
-
+			appSettings.setPublishTokenControlEnabled(false);
+			appSettings.setPlayTokenControlEnabled(false);
+			
 			Result flag = callSetAppSettings(appName, appSettings);
 			assertTrue(flag.isSuccess());
 
