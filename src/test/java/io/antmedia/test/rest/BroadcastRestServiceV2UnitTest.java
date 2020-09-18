@@ -2359,7 +2359,6 @@ public class BroadcastRestServiceV2UnitTest {
 
 	@Test
 	public void testGetRoomInfo()  {
-
 		ApplicationContext context = mock(ApplicationContext.class);
 		restServiceReal.setAppCtx(context);
 		DataStore store = new InMemoryDataStore("testdb");
@@ -2367,19 +2366,34 @@ public class BroadcastRestServiceV2UnitTest {
 		BroadcastRestService restServiceSpy = Mockito.spy(restServiceReal);
 		ConferenceRoom room=new ConferenceRoom();
 		room.setRoomId("testroom");
+		Broadcast broadcast1=new Broadcast();
+		Broadcast broadcast2=new Broadcast();
+		try {
+			broadcast1.setStreamId("stream1");
+			broadcast1.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+			broadcast2.setStreamId("stream2");
+			broadcast2.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		store.save(broadcast1);
+		store.save(broadcast2);
 		List<String> streamIdList=new ArrayList<>();
 		streamIdList.add("stream1");
 		streamIdList.add("stream2");
 		room.setRoomStreamList(streamIdList);
 		store.createConferenceRoom(room);
+		//If the stream id is provided in the list, it won't return that stream id. This is query parameter in the rest.
 		RootRestService.RoomInfo testroom=restServiceSpy.getRoomInfo("testroom","stream1");
 		assertEquals("testroom",testroom.getRoomId());
-		System.out.println(testroom.getStreamIds().size());
-		System.out.println(testroom.getRoomId());
-		System.out.println(room.getRoomStreamList());
+		assertEquals(1,testroom.getStreamIds().size());
+		testroom=restServiceSpy.getRoomInfo("testroom","stream3");
+		assertEquals("testroom",testroom.getRoomId());
 		assertEquals(2,testroom.getStreamIds().size());
-
-
+		testroom=restServiceSpy.getRoomInfo("someunknownroom","stream1");
+		//Even though room is not defined yet, it will not return null.
+		assertNotNull(testroom);
+		assertEquals("someunknownroom",testroom.getRoomId());
 	}
 	
 }
