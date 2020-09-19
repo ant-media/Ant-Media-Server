@@ -1881,4 +1881,51 @@ public abstract class RestServiceBase {
 		return streamIdList;
 	}
 
+	public static boolean addStreamToConferenceRoom(String roomId,String streamId,DataStore store){
+		if(roomId!=null){
+			List<String> roomStreamList = null;
+			ConferenceRoom conferenceRoom = store.getConferenceRoom(roomId);
+			if(conferenceRoom!=null){
+				roomStreamList = conferenceRoom.getRoomStreamList();
+				if(!roomStreamList.contains(streamId)){
+					Broadcast broadcast=store.get(streamId);
+					if(broadcast != null && broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
+						roomStreamList.add(streamId);
+						conferenceRoom.setRoomStreamList(roomStreamList);
+						store.editConferenceRoom(roomId, conferenceRoom);
+						return true;
+					}
+				}
+			}
+		}
+	return false;
+	}
+
+
+	public static boolean removeStreamFromRoom(String roomId, String streamId,DataStore store)
+	{
+		if (roomId != null)
+		{
+			//remove from room-stream list
+			List<String> roomStreamList = null;
+			ConferenceRoom conferenceRoom = store.getConferenceRoom(roomId);
+
+			if(conferenceRoom != null)
+			{
+				roomStreamList = conferenceRoom.getRoomStreamList();
+
+				// This is for the Conference Room list
+				if(roomStreamList.contains(streamId))
+				{
+					roomStreamList.remove(streamId);
+					conferenceRoom.setRoomStreamList(roomStreamList);
+					store.editConferenceRoom(roomId, conferenceRoom);
+					return true;
+				}
+			}
+
+		}
+		return false;
+	}
+
 }
