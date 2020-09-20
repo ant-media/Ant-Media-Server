@@ -1358,9 +1358,20 @@ public class DBStoresUnitTest {
 		String item1 = "item1";
 		long detectionTime = 434234L;
 		float probability1 = 0.1f;
+		
+		double minX = 5.5;
+		double minY = 4.4;
+		double maxX = 3.3;
+		double maxY = 2.2;
 
 		List<TensorFlowObject> detectedObjects = new ArrayList<>();
-		detectedObjects.add(new TensorFlowObject(item1, probability1, "imageId"));
+		TensorFlowObject tfObject = new TensorFlowObject(item1, probability1, "imageId");
+		tfObject.setMinX(minX);
+		tfObject.setMinY(minY);
+		tfObject.setMaxX(maxX);
+		tfObject.setMaxY(maxY);
+
+		detectedObjects.add(tfObject);
 		dataStore.saveDetection("id", detectionTime, detectedObjects);
 
 		List<TensorFlowObject> list = dataStore.getDetectionList("id", 0, 10);
@@ -1368,6 +1379,11 @@ public class DBStoresUnitTest {
 		assertEquals(item1, list.get(0).objectName);
 		assertEquals(probability1, list.get(0).probability,0.1F);
 		assertEquals(detectionTime, list.get(0).detectionTime);	
+		
+		assertEquals(minX, list.get(0).getMinX(), 0.0001);	
+		assertEquals(minY, list.get(0).getMinY(), 0.0001);	
+		assertEquals(maxX, list.get(0).getMaxX(), 0.0001);	
+		assertEquals(maxY, list.get(0).getMaxY(), 0.0001);	
 	}
 
 	public void testTokenOperations(DataStore store) {
