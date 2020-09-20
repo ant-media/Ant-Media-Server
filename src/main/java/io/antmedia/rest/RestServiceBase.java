@@ -1844,7 +1844,7 @@ public abstract class RestServiceBase {
 			String className = clazz.getSimpleName() + ".class";
 			String classPath = clazz.getResource(className).toString();
 			String manifestPath = classPath.substring(0, classPath.lastIndexOf("!") + 1) + 
-			    "/META-INF/MANIFEST.MF";
+			    "/META-INF/MANIFEST.MF"; 
 			
 			try {
 				url = new URL(manifestPath);

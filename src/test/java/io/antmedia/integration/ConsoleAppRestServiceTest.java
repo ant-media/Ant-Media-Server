@@ -1356,7 +1356,7 @@ public class ConsoleAppRestServiceTest{
 			rtmpSendingProcess.destroy();
 
 			//it should be false, because mp4 settings is disabled and stream mp4 setting is 0, so mp4 file not created
-			Awaitility.await().atMost(40, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> { 
+			Awaitility.await().atMost(35, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> { 
 				return !MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + ".mp4");
 			});
 

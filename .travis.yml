@@ -109,6 +109,7 @@ install:
 before_script:
   - sudo chmod -R 777 /tmp
   
+  
 script:
   - export RELEASE_VERSION="$(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)"
   - echo $RELEASE_VERSION
