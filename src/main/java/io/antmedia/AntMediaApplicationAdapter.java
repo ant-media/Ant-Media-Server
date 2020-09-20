@@ -28,8 +28,8 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
-import org.bytedeco.javacpp.avcodec.AVPacket;
-import org.bytedeco.javacpp.avformat.AVFormatContext;
+import org.bytedeco.ffmpeg.avcodec.AVPacket;
+import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.red5.server.api.scope.IBroadcastScope;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IBroadcastStream;
@@ -300,7 +300,6 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	public void closeBroadcast(String streamName) {
 
 		try {
-
 				getDataStore().updateStatus(streamName, BROADCAST_STATUS_FINISHED);
 				Broadcast broadcast = getDataStore().get(streamName);
 								
@@ -451,6 +450,8 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 						broadcast.setStartTime(System.currentTimeMillis());
 						broadcast.setOriginAdress(getServerSettings().getHostAddress());
 						broadcast.setAbsoluteStartTimeMs(absoluteStartTimeMs);
+						broadcast.setWebRTCViewerCount(0);
+						broadcast.setHlsViewerCount(0);
 						boolean result = dataStoreLocal.updateBroadcastFields(broadcast.getStreamId(), broadcast);
 						
 						logger.info(" Status of stream {} is set to Broadcasting with result: {}", broadcast.getStreamId(), result);
@@ -458,7 +459,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 					final String listenerHookURL = broadcast.getListenerHookURL();
 					final String streamId = broadcast.getStreamId();
-					if (listenerHookURL != null && listenerHookURL.length() > 0) {
+					if (listenerHookURL != null && !listenerHookURL.isEmpty()) {
 						final String name = broadcast.getName();
 						final String category = broadcast.getCategory();
 						logger.info("Setting timer to call live stream started hook for stream:{}",streamId );
@@ -818,8 +819,8 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		this.streamAcceptFilter = streamAcceptFilter;
 	}
 	
-	public boolean isValidStreamParameters(AVFormatContext inputFormatContext,AVPacket pkt) {
-		return streamAcceptFilter.isValidStreamParameters(inputFormatContext, pkt);
+	public boolean isValidStreamParameters(AVFormatContext inputFormatContext,AVPacket pkt, String streamId) {
+		return streamAcceptFilter.isValidStreamParameters(inputFormatContext, pkt, streamId);
 	}
 
 
@@ -1299,7 +1300,8 @@ public Result createInitializationProcess(String appName){
 		store.put(AppSettings.SETTINGS_HLS_MUXING_ENABLED, String.valueOf(newAppsettings.isHlsMuxingEnabled()));
 		store.put(AppSettings.SETTINGS_ACCEPT_ONLY_STREAMS_IN_DATA_STORE, String.valueOf(newAppsettings.isAcceptOnlyStreamsInDataStore()));
 		store.put(AppSettings.SETTINGS_OBJECT_DETECTION_ENABLED, String.valueOf(newAppsettings.isObjectDetectionEnabled()));
-		store.put(AppSettings.SETTINGS_TOKEN_CONTROL_ENABLED, String.valueOf(newAppsettings.isTokenControlEnabled()));
+		store.put(AppSettings.SETTINGS_PUBLISH_TOKEN_CONTROL_ENABLED, String.valueOf(newAppsettings.isPublishTokenControlEnabled()));
+		store.put(AppSettings.SETTINGS_PLAY_TOKEN_CONTROL_ENABLED, String.valueOf(newAppsettings.isPlayTokenControlEnabled()));
 		store.put(AppSettings.SETTINGS_WEBRTC_ENABLED, String.valueOf(newAppsettings.isWebRTCEnabled()));
 		store.put(AppSettings.SETTINGS_WEBRTC_FRAME_RATE, String.valueOf(newAppsettings.getWebRTCFrameRate()));
 		store.put(AppSettings.SETTINGS_HASH_CONTROL_PUBLISH_ENABLED, String.valueOf(newAppsettings.isHashControlPublishEnabled()));
@@ -1347,7 +1349,8 @@ public Result createInitializationProcess(String appName){
 		appSettings.setHlsTime(String.valueOf(newSettings.getHlsTime()));
 		appSettings.setHlsPlayListType(newSettings.getHlsPlayListType());
 		appSettings.setAcceptOnlyStreamsInDataStore(newSettings.isAcceptOnlyStreamsInDataStore());
-		appSettings.setTokenControlEnabled(newSettings.isTokenControlEnabled());
+		appSettings.setPublishTokenControlEnabled(newSettings.isPublishTokenControlEnabled());
+		appSettings.setPlayTokenControlEnabled(newSettings.isPlayTokenControlEnabled());
 		appSettings.setWebRTCEnabled(newSettings.isWebRTCEnabled());
 		appSettings.setWebRTCFrameRate(newSettings.getWebRTCFrameRate());
 		appSettings.setHashControlPublishEnabled(newSettings.isHashControlPublishEnabled());

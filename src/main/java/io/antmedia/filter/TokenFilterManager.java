@@ -3,7 +3,6 @@ package io.antmedia.filter;
 import java.io.IOException;
 
 import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
@@ -13,7 +12,6 @@ import javax.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
-import org.springframework.web.context.WebApplicationContext;
 
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.types.Token;
@@ -61,7 +59,7 @@ public class TokenFilterManager extends AbstractFilter   {
 		if ("GET".equals(method)) 
 		{
 			
-			if(appSettings.isTokenControlEnabled()) 
+			if(appSettings.isPlayTokenControlEnabled()) 
 			{
 				
 				ITokenService tokenServiceTmp = getTokenService();

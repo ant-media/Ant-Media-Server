@@ -33,11 +33,9 @@ import org.red5.server.api.scope.ScopeType;
 import org.red5.server.jmx.mxbeans.WebScopeMXBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.web.context.ServletContextAware;
 

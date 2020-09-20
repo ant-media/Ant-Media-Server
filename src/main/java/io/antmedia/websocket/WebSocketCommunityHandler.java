@@ -1,12 +1,11 @@
 package io.antmedia.websocket;
 
-import java.io.IOException;
-
 import javax.websocket.Session;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.bytedeco.javacpp.avcodec;
-import org.bytedeco.javacpp.avutil;
+import org.bytedeco.ffmpeg.global.avcodec;
+import org.bytedeco.ffmpeg.global.avutil;
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.slf4j.Logger;
@@ -144,7 +143,7 @@ public class WebSocketCommunityHandler {
 		//get scope and use its name
 		String outputURL = "rtmp://127.0.0.1/"+ appName +"/" + streamId;
 
-		RTMPAdaptor connectionContext = getNewRTMPAdaptor(outputURL);
+		RTMPAdaptor connectionContext = getNewRTMPAdaptor(outputURL, appSettings.getHeightRtmpForwarding());
 
 		session.getUserProperties().put(session.getId(), connectionContext);
 
@@ -157,8 +156,8 @@ public class WebSocketCommunityHandler {
 		connectionContext.start();
 	}
 
-	public RTMPAdaptor getNewRTMPAdaptor(String outputURL) {
-		return new RTMPAdaptor(getNewRecorder(outputURL), this);
+	public RTMPAdaptor getNewRTMPAdaptor(String outputURL, int height) {
+		return new RTMPAdaptor(outputURL, this, height);
 	}
 
 	public void addICECandidate(final String streamId, RTMPAdaptor connectionContext, String sdpMid, String sdp,
@@ -209,7 +208,8 @@ public class WebSocketCommunityHandler {
 		jsonObj.put(WebSocketConstants.STREAM_ID, streamId);
 
 		if(roomName != null) {
-			jsonObj.put(WebSocketConstants.ATTR_ROOM_NAME, roomName);
+			jsonObj.put(WebSocketConstants.ATTR_ROOM_NAME, roomName); //keep it for compatibility
+			jsonObj.put(WebSocketConstants.ROOM, roomName);
 		}
 
 		sendMessage(jsonObj.toJSONString(), session);
@@ -244,38 +244,6 @@ public class WebSocketCommunityHandler {
 	}
 
 
-	public static FFmpegFrameRecorder getNewRecorder(String outputURL) {
-		return getNewRecorder(outputURL, 640, 480);
-	}
-	
-	public static FFmpegFrameRecorder getNewRecorder(String outputURL, int width, int height) {
-
-		FFmpegFrameRecorder recorder = initRecorder(outputURL, width, height);
-
-		try {
-			recorder.start();
-		} catch (FrameRecorder.Exception e) {
-			logger.error(ExceptionUtils.getStackTrace(e));
-		}
-
-		return recorder;
-	}
-
-	public static FFmpegFrameRecorder initRecorder(String outputURL, int width, int height) {
-		FFmpegFrameRecorder recorder = new FFmpegFrameRecorder(outputURL, width, height, 1);
-		recorder.setFormat("flv");
-		recorder.setSampleRate(44100);
-		// Set in the surface changed method
-		recorder.setFrameRate(20);
-		recorder.setPixelFormat(avutil.AV_PIX_FMT_YUV420P);
-		recorder.setVideoCodec(avcodec.AV_CODEC_ID_H264);
-		recorder.setAudioCodec(avcodec.AV_CODEC_ID_AAC);
-		recorder.setAudioChannels(2);
-		recorder.setGopSize(40);
-		recorder.setVideoQuality(29);
-		return recorder;
-	}
-
 	@SuppressWarnings("unchecked")
 	public  final  void sendNoStreamIdSpecifiedError(Session session)  {
 		JSONObject jsonResponse = new JSONObject();
@@ -298,11 +266,35 @@ public class WebSocketCommunityHandler {
 			if (session.isOpen()) {
 				try {
 					session.getBasicRemote().sendText(message);
-				} catch (IOException e) {
+				} catch (Exception e) { 
+					//capture all exceptions because some unexpected events may happen it causes some internal errors
 					logger.error(ExceptionUtils.getStackTrace(e));
 				}
 			}
 		}
+	}
+	
+	public void sendRoomInformation(JSONArray jsonStreamArray , String roomId) 
+	{
+		JSONObject jsObject = new JSONObject();
+		jsObject.put(WebSocketConstants.COMMAND, WebSocketConstants.ROOM_INFORMATION_NOTIFICATION);
+		jsObject.put(WebSocketConstants.STREAMS_IN_ROOM, jsonStreamArray);	
+		jsObject.put(WebSocketConstants.ATTR_ROOM_NAME, roomId);
+		jsObject.put(WebSocketConstants.ROOM, roomId);
+		String jsonString = jsObject.toJSONString();
+		sendMessage(jsonString, session);
+	}
+	
+	public void sendJoinedRoomMessage(String room, String newStreamId, JSONArray jsonStreamArray) {
+		JSONObject jsonResponse = new JSONObject();
+		jsonResponse.put(WebSocketConstants.COMMAND, WebSocketConstants.NOTIFICATION_COMMAND);
+		jsonResponse.put(WebSocketConstants.DEFINITION, WebSocketConstants.JOINED_THE_ROOM);
+		jsonResponse.put(WebSocketConstants.STREAM_ID, newStreamId);
+		jsonResponse.put(WebSocketConstants.STREAMS_IN_ROOM, jsonStreamArray);	
+		jsonResponse.put(WebSocketConstants.ATTR_ROOM_NAME, room);	
+		jsonResponse.put(WebSocketConstants.ROOM, room);	
+
+		sendMessage(jsonResponse.toJSONString(), session);
 	}
 
 

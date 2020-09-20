@@ -33,7 +33,11 @@ import org.awaitility.Awaitility;
 import org.glassfish.jersey.jaxb.internal.XmlCollectionJaxbProvider.App;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.red5.server.api.IContext;
@@ -75,6 +79,20 @@ public class AntMediaApplicationAdaptorUnitTest {
 	String streamsFolderPath = "webapps/test/streams";
 
 	Vertx vertx = Vertx.vertx();
+	
+	@Rule
+	public TestRule watcher = new TestWatcher() {
+		protected void starting(Description description) {
+			System.out.println("Starting test: " + description.getMethodName());
+		}
+
+		protected void failed(Throwable e, Description description) {
+			System.out.println("Failed test: " + description.getMethodName());
+		};
+		protected void finished(Description description) {
+			System.out.println("Finishing test: " + description.getMethodName());
+		};
+	};
 
 	@Before
 	public void before() {
@@ -180,6 +198,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		
 		Mockito.doReturn(dataStore).when(spyAdapter).getDataStore();
 		spyAdapter.setScope(scope);
+		spyAdapter.setAppSettings(new AppSettings());
 		
 		
 		// Add 1. Broadcast
@@ -221,7 +240,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		// Should 2 broadcast in DB, because delete zombie stream
 		assertEquals(2, dataStore.getBroadcastCount());
 		
-		List<Broadcast> broadcastList = dataStore.getBroadcastList(0, 10);
+		List<Broadcast> broadcastList = dataStore.getBroadcastList(0, 10, null, null, null);
 		for (Broadcast testBroadcast : broadcastList) 
 		{
 			assertEquals(0, testBroadcast.getWebRTCViewerCount());
@@ -971,9 +990,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 			}
 		}, r->{});
 		
-		while (!threadStarted) {
-			System.out.println("aa");
-		}
+		
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> threadStarted);
 		
 		long t0 = System.currentTimeMillis();
 		antMediaApplicationAdapter.waitUntilThreadsStop();

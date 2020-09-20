@@ -92,10 +92,10 @@ public class InMemoryDataStore extends DataStore {
 		boolean result = false;
 		if (broadcast != null) {
 			broadcast.setStatus(status);
-			if(status.contentEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
+			if(status.equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
 				broadcast.setStartTime(System.currentTimeMillis());
 			}
-			else if(status.contentEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED)) {
+			else if(status.equals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED)) {
 				broadcast.setRtmpViewerCount(0);
 				broadcast.setWebRTCViewerCount(0);
 				broadcast.setHlsViewerCount(0);
@@ -194,32 +194,28 @@ public class InMemoryDataStore extends DataStore {
 	}
 
 	@Override
-	public List<Broadcast> getBroadcastList(int offset, int size) {
+	public List<Broadcast> getBroadcastList(int offset, int size, String type, String sortBy, String orderBy) {
+		
 		Collection<Broadcast> values = broadcastMap.values();
-		int t = 0;
-		int itemCount = 0;
-		if (size > MAX_ITEM_IN_ONE_LIST) {
-			size = MAX_ITEM_IN_ONE_LIST;
-		}
-		if (offset < 0) {
-			offset = 0;
-		}
+
 		List<Broadcast> list = new ArrayList<>();
-		for (Broadcast broadcast : values) {
-
-			if (t < offset) {
-				t++;
-				continue;
+		
+		if(type != null && !type.isEmpty()) {
+			for (Broadcast broadcast : values) 
+			{
+				if(type.equals(broadcast.getType())) 
+				{
+					list.add(broadcast);
+				}
 			}
-			list.add(broadcast);
-			itemCount++;
-
-			if (itemCount >= size) {
-				break;
-			}
-
 		}
-		return list;
+		else {
+			for (Broadcast broadcast : values) 
+			{
+				list.add(broadcast);
+			}
+		}
+		return sortAndCropBroadcastList(list, offset, size, sortBy, orderBy);
 	}
 
 
@@ -243,41 +239,6 @@ public class InMemoryDataStore extends DataStore {
 	@Override
 	public void close() {
 		//no need to implement 
-	}
-
-	@Override
-	public List<Broadcast> filterBroadcastList(int offset, int size, String type) {
-		int t = 0;
-		int itemCount = 0;
-		if (size > MAX_ITEM_IN_ONE_LIST) {
-			size = MAX_ITEM_IN_ONE_LIST;
-		}
-		if (offset < 0) {
-			offset = 0;
-		}
-
-		Collection<Broadcast> values =broadcastMap.values();
-
-		List<Broadcast> list = new ArrayList<>();
-
-		for (Broadcast broadcast : values) 
-		{
-			if(type.equals(broadcast.getType())) 
-			{
-				if (t < offset) {
-					t++;
-					continue;
-				}
-				list.add(broadcast);
-
-				itemCount++;
-
-				if (itemCount >= size) {
-					break;
-				}
-			}
-		}
-		return list;
 	}
 
 	@Override
@@ -612,10 +573,11 @@ public class InMemoryDataStore extends DataStore {
 				else  {
 					webRTCViewerCount--;
 				}
-
-				broadcast.setWebRTCViewerCount(webRTCViewerCount);
-				broadcastMap.replace(streamId, broadcast);
-				result = true;
+				if(webRTCViewerCount >= 0) {
+					broadcast.setWebRTCViewerCount(webRTCViewerCount);
+					broadcastMap.replace(streamId, broadcast);
+					result = true;
+				}
 			}
 		}
 		return result;
@@ -634,10 +596,11 @@ public class InMemoryDataStore extends DataStore {
 				else  {
 					rtmpViewerCount--;
 				}
-
-				broadcast.setRtmpViewerCount(rtmpViewerCount);
-				broadcastMap.replace(streamId, broadcast);
-				result = true;
+				if(rtmpViewerCount >= 0) {
+					broadcast.setRtmpViewerCount(rtmpViewerCount);
+					broadcastMap.replace(streamId, broadcast);
+					result = true;
+				}
 			}
 		}
 		return result;
@@ -815,8 +778,7 @@ public class InMemoryDataStore extends DataStore {
 		boolean result = false;
 
 		if (room != null && room.getRoomId() != null) {
-			roomMap.replace(roomId, room);
-			result = true;
+			return roomMap.replace(roomId, room) != null;
 		}
 		return result;
 	}

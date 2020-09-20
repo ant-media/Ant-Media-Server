@@ -1,11 +1,9 @@
 package io.antmedia.test.webrtc.adaptor;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -16,18 +14,20 @@ import javax.websocket.RemoteEndpoint;
 import javax.websocket.RemoteEndpoint.Basic;
 import javax.websocket.Session;
 
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
-import org.red5.server.adapter.MultiThreadedApplicationAdapter;
 import org.red5.server.api.scope.IScope;
-import org.red5.server.scope.BasicScope;
 import org.springframework.context.ApplicationContext;
 import org.webrtc.IceCandidate;
 import org.webrtc.SessionDescription;
 import org.webrtc.SessionDescription.Type;
+
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
@@ -49,6 +49,10 @@ public class WebSocketCommunityHandlerTest {
 		public WebSocketEndpoint(ApplicationContext appContext) {
 			super(appContext, null);
 			// TODO Auto-generated constructor stub
+		}
+		
+		public void setSession(Session session) {
+			this.session = session;
 		}
 
 		@Override
@@ -141,6 +145,16 @@ public class WebSocketCommunityHandlerTest {
 		}
 		
 	}
+	
+	@Test
+	public void testGetNewRTMPAdaptor() {
+		String rtmpUrl = "rtmp://localhost/LiveApp/232323";
+		int height = 260;
+		RTMPAdaptor rtmpAdaptor = wsHandler.getNewRTMPAdaptor(rtmpUrl, height);
+		
+		assertEquals(height, rtmpAdaptor.getHeight());
+		assertEquals(rtmpUrl, rtmpAdaptor.getOutputURL());
+	}
 
 	@Test
 	public void testPublishAndDisconnect() {
@@ -151,7 +165,7 @@ public class WebSocketCommunityHandlerTest {
 
 		RTMPAdaptor rtmpAdaptor = mock(RTMPAdaptor.class);
 
-		doReturn(rtmpAdaptor).when(wsHandler).getNewRTMPAdaptor(Mockito.anyString());
+		doReturn(rtmpAdaptor).when(wsHandler).getNewRTMPAdaptor(Mockito.anyString(), Mockito.anyInt());
 
 
 		JSONObject publishObject = new JSONObject();
@@ -181,7 +195,7 @@ public class WebSocketCommunityHandlerTest {
 
 		RTMPAdaptor rtmpAdaptor = mock(RTMPAdaptor.class);
 
-		doReturn(rtmpAdaptor).when(wsHandler).getNewRTMPAdaptor(Mockito.anyString());
+		doReturn(rtmpAdaptor).when(wsHandler).getNewRTMPAdaptor(Mockito.anyString(), Mockito.anyInt());
 
 
 		JSONObject publishObject = new JSONObject();
@@ -257,7 +271,7 @@ public class WebSocketCommunityHandlerTest {
 
 		RTMPAdaptor rtmpAdaptor = mock(RTMPAdaptor.class);
 
-		doReturn(rtmpAdaptor).when(wsHandler).getNewRTMPAdaptor(Mockito.anyString());
+		doReturn(rtmpAdaptor).when(wsHandler).getNewRTMPAdaptor(Mockito.anyString(), Mockito.anyInt());
 
 
 		JSONObject publishObject = new JSONObject();
@@ -289,7 +303,94 @@ public class WebSocketCommunityHandlerTest {
 		assertEquals("already_playing", WebSocketConstants.ALREADY_PLAYING);
 		assertEquals("targetBitrate", WebSocketConstants.TARGET_BITRATE);
 		assertEquals("bitrateMeasurement", WebSocketConstants.BITRATE_MEASUREMENT);
-
+	}
+	
+	@Test
+	public void testSendRoomInformation() 
+	{
+		String roomId = "roomId12345";
+		JSONArray jsonStreamArray = new JSONArray();
+		jsonStreamArray.add("stream1");
+		jsonStreamArray.add("stream2");
+		jsonStreamArray.add("stream3");
+		jsonStreamArray.add("stream4");
+		wsHandler.setSession(session);
+		wsHandler.sendRoomInformation(jsonStreamArray, roomId);
+		
+		
+		ArgumentCaptor<String> argument = ArgumentCaptor.forClass(String.class);
+		verify(wsHandler).sendMessage(argument.capture(), Mockito.eq(session));
+		
+		JSONObject json;
+		try {
+			json = (JSONObject) new JSONParser().parse(argument.getValue());
+			assertEquals(WebSocketConstants.ROOM_INFORMATION_NOTIFICATION, json.get(WebSocketConstants.COMMAND));	
+			assertEquals(roomId, json.get(WebSocketConstants.ROOM));
+			assertEquals(jsonStreamArray, json.get(WebSocketConstants.STREAMS_IN_ROOM));
+			
+		} catch (ParseException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+	}
+	
+	@Test
+	public void testSendJoinedRoomInformation() {
+		String roomId = "roomId12345";
+		String streamId = "stream34567";
+		JSONArray jsonStreamArray = new JSONArray();
+		jsonStreamArray.add("stream1");
+		jsonStreamArray.add("stream2");
+		jsonStreamArray.add("stream3");
+		jsonStreamArray.add("stream4");
+		wsHandler.setSession(session);
+		
+		wsHandler.sendJoinedRoomMessage(roomId, streamId, jsonStreamArray);
+		
+		
+		ArgumentCaptor<String> argument = ArgumentCaptor.forClass(String.class);
+		verify(wsHandler).sendMessage(argument.capture(), Mockito.eq(session));
+		
+		JSONObject json;
+		try {
+			json = (JSONObject) new JSONParser().parse(argument.getValue());
+			assertEquals(WebSocketConstants.NOTIFICATION_COMMAND, json.get(WebSocketConstants.COMMAND));	
+			assertEquals(roomId, json.get(WebSocketConstants.ROOM));
+			assertEquals(jsonStreamArray, json.get(WebSocketConstants.STREAMS_IN_ROOM));
+			assertEquals(WebSocketConstants.JOINED_THE_ROOM, json.get(WebSocketConstants.DEFINITION));
+			assertEquals(streamId, json.get(WebSocketConstants.STREAM_ID));
+			
+		} catch (ParseException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+	}
+	
+	@Test
+	public void testSendPublishStarted() {
+		String roomId = "roomId12345";
+		String streamId = "stream34567";
+		JSONArray jsonStreamArray = new JSONArray();
+		
+		wsHandler.setSession(session);
+		
+		wsHandler.sendPublishStartedMessage(streamId,  session, roomId); 
+		
+		ArgumentCaptor<String> argument = ArgumentCaptor.forClass(String.class);
+		verify(wsHandler).sendMessage(argument.capture(), Mockito.eq(session));
+		
+		JSONObject json;
+		try {
+			json = (JSONObject) new JSONParser().parse(argument.getValue());
+			assertEquals(WebSocketConstants.NOTIFICATION_COMMAND, json.get(WebSocketConstants.COMMAND));	
+			assertEquals(roomId, json.get(WebSocketConstants.ROOM));
+			assertEquals(WebSocketConstants.PUBLISH_STARTED, json.get(WebSocketConstants.DEFINITION));
+			assertEquals(streamId, json.get(WebSocketConstants.STREAM_ID));
+			
+		} catch (ParseException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
 	}
 	
 }

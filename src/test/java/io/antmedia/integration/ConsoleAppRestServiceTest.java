@@ -1,7 +1,7 @@
 package io.antmedia.integration;
 
-import static org.bytedeco.javacpp.avformat.av_register_all;
-import static org.bytedeco.javacpp.avformat.avformat_network_init;
+import static org.bytedeco.ffmpeg.global.avformat.av_register_all;
+import static org.bytedeco.ffmpeg.global.avformat.avformat_network_init;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -15,11 +15,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Type;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
@@ -63,13 +62,11 @@ import io.antmedia.EncoderSettings;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Licence;
 import io.antmedia.datastore.db.types.Token;
-import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.User;
 import io.antmedia.rest.model.Version;
 import io.antmedia.settings.ServerSettings;
-
-
+import io.antmedia.test.StreamFetcherUnitTest;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class ConsoleAppRestServiceTest{
@@ -968,7 +965,8 @@ public class ConsoleAppRestServiceTest{
 			// get settings from the app
 			AppSettings appSettings = callGetAppSettings(appName);
 
-			appSettings.setTokenControlEnabled(true);
+			appSettings.setPublishTokenControlEnabled(true);
+			appSettings.setPlayTokenControlEnabled(true);
 			appSettings.setMp4MuxingEnabled(true);
 
 
@@ -976,8 +974,9 @@ public class ConsoleAppRestServiceTest{
 			assertTrue(result.isSuccess());
 
 			appSettings = callGetAppSettings(appName);
-			assertTrue(appSettings.isTokenControlEnabled());
-
+			assertTrue(appSettings.isPublishTokenControlEnabled());
+			assertTrue(appSettings.isPlayTokenControlEnabled());
+			
 			//define a valid expire date
 			long expireDate = Instant.now().getEpochSecond() + 1000;
 
@@ -1037,8 +1036,9 @@ public class ConsoleAppRestServiceTest{
 
 
 
-			appSettings.setTokenControlEnabled(false);
-
+			appSettings.setPublishTokenControlEnabled(false);
+			appSettings.setPlayTokenControlEnabled(false);
+			
 			Result flag = callSetAppSettings(appName, appSettings);
 			assertTrue(flag.isSuccess());
 
@@ -1461,8 +1461,105 @@ public class ConsoleAppRestServiceTest{
 			fail(e.getMessage());
 		}
 	}
+	
+	@Test
+	public void testRTSPSourceNoAdaptive() {
+		try {
+			Result authenticatedUserResult = authenticateDefaultUser();
+			assertTrue(authenticatedUserResult.isSuccess());
+			
+			rtspSource(null);
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+	}
+	
+	
+	@Test
+	public void testRTSPSourceWithAdaptiveBitrate() {
+		try {
+			Result authenticatedUserResult = authenticateDefaultUser();
+			assertTrue(authenticatedUserResult.isSuccess());
+			
+			Result result = callIsEnterpriseEdition();
+			
+			if (!result.isSuccess()) {
+				//if it's not the enterprise edition, just return
+				return;
+			}
+			
+			rtspSource(Arrays.asList(new EncoderSettings(144, 150000, 16000)));
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		
+	}
+	
+	
 
-
+	public void rtspSource(List<EncoderSettings> appEncoderSettings) {
+		try {
+			
+			// user should be authenticated before executing this method
+			
+			// get settings from the app
+			AppSettings appSettings = callGetAppSettings("LiveApp");
+			
+			boolean hlsMuxingEnabled = appSettings.isHlsMuxingEnabled();
+			
+			appSettings.setHlsMuxingEnabled(true);
+			
+			List<EncoderSettings> encoderSettings = appSettings.getEncoderSettings();
+			appSettings.setEncoderSettings(appEncoderSettings);
+			
+			Result result = callSetAppSettings("LiveApp", appSettings);
+			assertTrue(result.isSuccess());
+			
+			StreamFetcherUnitTest.startCameraEmulator();
+			
+			Broadcast broadcast = new Broadcast("rtsp_source", null, null, null, "rtsp://127.0.0.1:6554/test.flv",
+					AntMediaApplicationAdapter.STREAM_SOURCE);
+			
+			
+			String returnResponse = RestServiceV2Test.callAddStreamSource(broadcast, true);
+			Result addStreamSourceResult = gson.fromJson(returnResponse, Result.class);
+		
+			
+			//wait until stream is broadcasted
+			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + addStreamSourceResult.getDataId() + ".m3u8");
+			});
+			
+			if (appEncoderSettings != null) 
+			{
+				Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+					return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + addStreamSourceResult.getDataId() + "_adaptive.m3u8");
+				});
+			}
+			
+			broadcast = RestServiceV2Test.callGetBroadcast(addStreamSourceResult.getDataId());
+			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, broadcast.getStatus());
+			
+			result = RestServiceV2Test.deleteBroadcast(addStreamSourceResult.getDataId());
+			assertTrue(result.isSuccess());
+			
+			appSettings.setHlsMuxingEnabled(hlsMuxingEnabled);
+			appSettings.setEncoderSettings(encoderSettings);
+			result = callSetAppSettings("LiveApp", appSettings);
+			assertTrue(result.isSuccess());
+			
+			StreamFetcherUnitTest.stopCameraEmulator();
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+	}
+	
 	//public static Token callGetToken(String streamId, String type, long expireDate) throws Exception {
 	//	return callGetToken(SERVICE_URL + "/broadcast/getToken", streamId, type, expireDate);
 	//}
