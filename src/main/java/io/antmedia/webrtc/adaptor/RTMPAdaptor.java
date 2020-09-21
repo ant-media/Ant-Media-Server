@@ -67,7 +67,7 @@ public class RTMPAdaptor extends Adaptor {
 
 	public static final String DTLS_SRTP_KEY_AGREEMENT_CONSTRAINT = "DtlsSrtpKeyAgreement";
 
-	private String stunServerUri ="stun:stun.l.google.com:19302";
+	private String stunServerUri ="stun:stun1.l.google.com:19302";
 	private int portRangeMin = 0; 
 	private int portRangeMax = 0;
 	private boolean tcpCandidatesEnabled = true;
