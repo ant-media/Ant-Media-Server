@@ -2400,8 +2400,8 @@ public class BroadcastRestServiceV2UnitTest {
 
 	@Test
 	public void testaddStreamToTheRoom(){
-		ApplicationContext context = mock(ApplicationContext.class);
-		restServiceReal.setAppCtx(context);
+		ApplicationContext currentcontext = mock(ApplicationContext.class);
+		restServiceReal.setAppCtx(currentcontext);
 		DataStore store = new InMemoryDataStore("testdb");
 		restServiceReal.setDataStore(store);
 		BroadcastRestService restServiceSpy = Mockito.spy(restServiceReal);
@@ -2441,8 +2441,8 @@ public class BroadcastRestServiceV2UnitTest {
 
 	@Test
 	public void testremoveStreamFromRoom(){
-		ApplicationContext context = mock(ApplicationContext.class);
-		restServiceReal.setAppCtx(context);
+		ApplicationContext currentcontext = mock(ApplicationContext.class);
+		restServiceReal.setAppCtx(currentcontext);
 		DataStore store = new InMemoryDataStore("testdb");
 		restServiceReal.setDataStore(store);
 		BroadcastRestService restServiceSpy = Mockito.spy(restServiceReal);
