@@ -1104,7 +1104,7 @@ public class BroadcastRestService extends RestServiceBase{
 	}
 
 	@ApiOperation(value="Adds the specified stream with streamId to the room. ",response = Result.class)
-	@GET
+	@PUT
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/conference-rooms/{room_id}/add")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -1114,7 +1114,7 @@ public class BroadcastRestService extends RestServiceBase{
 	}
 
 	@ApiOperation(value="Deletes the specified stream correlated with streamId in the room. ",response = Result.class)
-	@GET
+	@PUT
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/conference-rooms/{room_id}/delete")
 	@Produces(MediaType.APPLICATION_JSON)
