@@ -1,24 +1,5 @@
 package io.antmedia.test;
 
-import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.AppSettings;
-import io.antmedia.IApplicationAdaptorFactory;
-import io.antmedia.RecordType;
-import io.antmedia.datastore.db.DataStore;
-import io.antmedia.datastore.db.DataStoreFactory;
-import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.datastore.db.types.Endpoint;
-import io.antmedia.datastore.db.types.SocialEndpointCredentials;
-import io.antmedia.integration.AppFunctionalV2Test;
-import io.antmedia.integration.MuxingTest;
-import io.antmedia.muxer.HLSMuxer;
-import io.antmedia.muxer.Mp4Muxer;
-import io.antmedia.muxer.MuxAdaptor;
-import io.antmedia.muxer.MuxAdaptor.InputContext;
-import io.antmedia.muxer.Muxer;
-import io.antmedia.social.endpoint.VideoServiceEndpoint;
-import io.vertx.core.Vertx;
-
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_H264;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_close_input;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_find_stream_info;
@@ -39,7 +20,7 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -260,11 +241,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 			logger.debug("f path:" + file.getAbsolutePath());
 			assertTrue(file.exists());
-			String streamId = "test" + (int) (Math.random() * 991000);
-			Broadcast broadcast = new Broadcast();
-			broadcast.setStreamId(streamId);
-			getDataStore().save(broadcast);
-			boolean result = muxAdaptor.init(appScope, streamId, false);
+
+			boolean result = muxAdaptor.init(appScope, "test", false);
 			assertTrue(result);
 
 			muxAdaptor.start();
@@ -342,10 +320,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 				for (Iterator<MuxAdaptor> iterator = muxAdaptorList.iterator(); iterator.hasNext(); ) {
 					MuxAdaptor muxAdaptor = (MuxAdaptor) iterator.next();
 					String streamId = "test" + (int) (Math.random() * 991000);
-					Broadcast broadcast = new Broadcast();
-					broadcast.setStreamId(streamId);
-					getDataStore().save(broadcast);
-					
 					boolean result = muxAdaptor.init(appScope, streamId, false);
 					assertTrue(result);
 					muxAdaptor.start();
@@ -893,16 +867,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		clientBroadcastStream.setCodecInfo(info);
 
 		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, false, appScope);
-		
-		if(getDataStore().get(name) == null) {
-			Broadcast broadcast = new Broadcast();
-			try {
-				broadcast.setStreamId(name);
-			} catch (Exception e1) {
-				e1.printStackTrace();
-			}
-			getDataStore().save(broadcast);
-		}
 		getAppSettings().setMp4MuxingEnabled(true);
 		getAppSettings().setHlsMuxingEnabled(false);
 
@@ -975,7 +939,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	 * 
 	 */
 	boolean checkStreamReturned = false;
-	private DataStore datastore;
 	@Test
 	public void testCheckStreams() {
 		appScope = (WebScope) applicationContext.getBean("web.scope");
@@ -1587,13 +1550,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 		return appSettings;
 	}
-	
-	public DataStore getDataStore() {
-		if (datastore == null) {
-			datastore = ((DataStoreFactory) applicationContext.getBean(DataStoreFactory.BEAN_NAME)).getDataStore();
-		}
-		return datastore;
-	}
 
 	@Test
 	public void testRecording() {
@@ -1746,108 +1702,5 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		new File(rotated).delete();
 
-	}
-	
-	@Test
-	public void testMp4MuxingWithSameNameWhileRecording() {
-
-		/*
-		 * In this test we create such a case with spy Files
-		 * In record directory
-		 * test.mp4						existing
-		 * test_1.mp4 					non-existing
-		 * test_2.mp4 					non-existing
-		 * test.mp4.tmp_extension		non-existing
-		 * test_1.mp4.tmp_extension		existing
-		 * test_2.mp4.tmp_extension		non-existing
-		 * 
-		 * So we check new record file must be temp_2.mp4
-		 */
-		
-		String streamId = "test";
-		Muxer mp4Muxer = spy(new Mp4Muxer(null, null));
-		IScope scope = mock(IScope.class);
-		
-		File parent = mock(File.class);
-		when(parent.exists()).thenReturn(true);
-		
-		File existingFile = spy(new File(streamId+".mp4"));
-		doReturn(true).when(existingFile).exists();
-		doReturn(parent).when(existingFile).getParentFile();
-
-		File nonExistingFile_1 = spy(new File(streamId+"_1.mp4"));
-		doReturn(false).when(nonExistingFile_1).exists();
-		
-		File nonExistingFile_2 = spy(new File(streamId+"_2.mp4"));
-		doReturn(false).when(nonExistingFile_2).exists();
-		
-		
-		File nonExistingTempFile = spy(new File(streamId+".mp4"+Muxer.TEMP_EXTENSION));
-		doReturn(true).when(nonExistingTempFile).exists();
-		
-		File existingTempFile_1 = spy(new File(streamId+"_1.mp4"+Muxer.TEMP_EXTENSION));
-		doReturn(true).when(existingTempFile_1).exists();
-		
-		File nonExistingTempFile_2 = spy(new File(streamId+"_2.mp4"+Muxer.TEMP_EXTENSION));
-		doReturn(false).when(nonExistingTempFile_2).exists();
-
-		doReturn(existingFile).when(mp4Muxer).getResourceFile(any(), eq(streamId), eq(".mp4"));
-		doReturn(nonExistingFile_1).when(mp4Muxer).getResourceFile(any(), eq(streamId+"_1"), eq(".mp4"));
-		doReturn(nonExistingFile_2).when(mp4Muxer).getResourceFile(any(), eq(streamId+"_2"), eq(".mp4"));
-
-		doReturn(nonExistingTempFile).when(mp4Muxer).getResourceFile(any(), eq(streamId), eq(".mp4"+Muxer.TEMP_EXTENSION));
-		doReturn(existingTempFile_1).when(mp4Muxer).getResourceFile(any(), eq(streamId+"_1"), eq(".mp4"+Muxer.TEMP_EXTENSION));
-		doReturn(nonExistingTempFile_2).when(mp4Muxer).getResourceFile(any(), eq(streamId+"_2"), eq(".mp4"+Muxer.TEMP_EXTENSION));
-		
-		mp4Muxer.init(scope, streamId, 0, false);
-		
-		assertEquals(nonExistingFile_2, mp4Muxer.getFile());
-		
-	}
-	
-	@Test
-	public void testMp4MuxingWhileTempFileExist() {
-
-		/*
-		 * In this test we create such a case with spy Files
-		 * In record directory
-		 * test.mp4						non-existing
-		 * test_1.mp4 					non-existing
-		 * test.mp4.tmp_extension		existing
-		 * test_1.mp4.tmp_extension		non-existing
-		 * 
-		 * So we check new record file must be temp_1.mp4
-		 */
-		
-		String streamId = "test";
-		Muxer mp4Muxer = spy(new Mp4Muxer(null, null));
-		IScope scope = mock(IScope.class);
-		
-		File parent = mock(File.class);
-		when(parent.exists()).thenReturn(true);
-		
-		File nonExistingFile = spy(new File(streamId+".mp4"));
-		doReturn(false).when(nonExistingFile).exists();
-		doReturn(parent).when(nonExistingFile).getParentFile();
-
-		File nonExistingFile_1 = spy(new File(streamId+"_1.mp4"));
-		doReturn(false).when(nonExistingFile_1).exists();
-		
-		File existingTempFile = spy(new File(streamId+".mp4"+Muxer.TEMP_EXTENSION));
-		doReturn(true).when(existingTempFile).exists();
-		
-		File nonExistingTempFile_1 = spy(new File(streamId+"_1.mp4"+Muxer.TEMP_EXTENSION));
-		doReturn(false).when(nonExistingTempFile_1).exists();
-		
-		doReturn(nonExistingFile).when(mp4Muxer).getResourceFile(any(), eq(streamId), eq(".mp4"));
-		doReturn(nonExistingFile_1).when(mp4Muxer).getResourceFile(any(), eq(streamId+"_1"), eq(".mp4"));
-
-		doReturn(existingTempFile).when(mp4Muxer).getResourceFile(any(), eq(streamId), eq(".mp4"+Muxer.TEMP_EXTENSION));
-		doReturn(nonExistingTempFile_1).when(mp4Muxer).getResourceFile(any(), eq(streamId+"_1"), eq(".mp4"+Muxer.TEMP_EXTENSION));
-
-		mp4Muxer.init(scope, streamId, 0, false);
-		
-		assertEquals(nonExistingFile_1, mp4Muxer.getFile());
-		
 	}
 }
