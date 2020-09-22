@@ -98,7 +98,7 @@ public class ServerSettings implements ApplicationContextAware {
 
 	
 	@Value( "${"+SETTINGS_NODE_GROUP+":"+DEFAULT_NODE_GROUP+"}" )
-	private String nodeGroup;
+	private String nodeGroup = DEFAULT_NODE_GROUP;
 
 	private Logging.Severity webrtcLogLevel = Logging.Severity.LS_WARNING;
 
