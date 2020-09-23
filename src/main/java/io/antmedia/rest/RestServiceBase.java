@@ -135,7 +135,6 @@ public abstract class RestServiceBase {
 
 	public static final String LOOPBACK_REGEX = "^localhost$|^127(?:\\.[0-9]+){0,2}\\.[0-9]+$|^(?:0*\\:)*?:?0*1$";
 
-
 	@Context
 	protected ServletContext servletContext;
 	protected DataStoreFactory dataStoreFactory;
@@ -1862,8 +1861,7 @@ public abstract class RestServiceBase {
 		{
 			ConferenceRoom conferenceRoom = store.getConferenceRoom(roomId);
 			if (conferenceRoom == null) {
-				roomId = roomId.replaceAll("[\n|\r|\t]", "_");
-				logger.warn("There is no room with id:{}", roomId);
+				logger.warn("There is no room with id:{}", roomId.replaceAll("[\n|\r|\t]", "_"));
 				return streamIdList;
 			}
 			streamIdList=new ArrayList<>();
