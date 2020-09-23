@@ -1862,6 +1862,7 @@ public abstract class RestServiceBase {
 		{
 			ConferenceRoom conferenceRoom = store.getConferenceRoom(roomId);
 			if (conferenceRoom == null) {
+				roomId = roomId.replaceAll("[\n|\r|\t]", "_");
 				logger.warn("There is no room with id:{}", roomId);
 				return streamIdList;
 			}
