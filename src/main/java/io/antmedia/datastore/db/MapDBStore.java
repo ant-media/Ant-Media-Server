@@ -8,6 +8,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -1296,5 +1297,19 @@ public class MapDBStore extends DataStore {
 			db.commit();
 			return updateOperations + zombieStreamCount;
 		}
+	}
+
+
+
+	@Override
+	public int getTotalWebRTCViewersCount() {
+		int total = 0;
+		synchronized (this) {
+			for (String json : map.getValues()) {
+				Broadcast broadcast = gson.fromJson(json, Broadcast.class);
+				total += broadcast.getWebRTCViewerCount();
+			}
+		}
+		return total;
 	}  
 }

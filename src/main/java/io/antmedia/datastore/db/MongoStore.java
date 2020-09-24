@@ -3,6 +3,7 @@ package io.antmedia.datastore.db;
 import java.io.File;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -13,6 +14,9 @@ import org.bson.types.ObjectId;
 import org.mongodb.morphia.Datastore;
 import org.mongodb.morphia.Key;
 import org.mongodb.morphia.Morphia;
+import org.mongodb.morphia.aggregation.Accumulator;
+import org.mongodb.morphia.aggregation.AggregationPipeline;
+import org.mongodb.morphia.aggregation.Group;
 import org.mongodb.morphia.query.Criteria;
 import org.mongodb.morphia.query.FindOptions;
 import org.mongodb.morphia.query.Query;
@@ -21,6 +25,8 @@ import org.mongodb.morphia.query.UpdateResults;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.mongodb.AggregationOptions;
+import com.mongodb.AggregationOptions.OutputMode;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import com.mongodb.WriteResult;
@@ -1345,5 +1351,34 @@ public class MongoStore extends DataStore {
 		}
 		
 		return totalOperationCount;
+	}
+	
+	static class Summation {
+		private int total;
+		public int getTotal() {
+			return total;
+		}
+		public void setTotal(int total) {
+			this.total = total;
+		}
+	}
+
+	@Override
+	public int getTotalWebRTCViewersCount() {
+		int total = 0;
+		synchronized(this) {
+			Query<Broadcast> query = datastore.createQuery(Broadcast.class);
+            query.field(STATUS).equal(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+            
+            Iterator<Summation> result = datastore.createAggregation(Broadcast.class)
+            		.match(query)
+                    .group("AllBroadcasts", Group.grouping("total", Group.sum(WEBRTC_VIEWER_COUNT)))
+                    .aggregate(Summation.class, AggregationOptions.builder().outputMode(OutputMode.CURSOR).build());
+            
+            if(result.hasNext()) {
+            	total = ((Summation) result.next()).getTotal();
+            }
+		}
+		return total;
 	}
 }

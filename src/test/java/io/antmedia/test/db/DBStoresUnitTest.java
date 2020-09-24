@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Random;
 
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.RandomUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -105,6 +106,7 @@ public class DBStoresUnitTest {
 		testClearAtStart(dataStore);
     	testGetVoDIdByStreamId(dataStore);
     	testBroadcastListSorting(dataStore);
+		testTotalWebRTCViewerCount(dataStore);
 	}
 
 	@Test
@@ -139,6 +141,7 @@ public class DBStoresUnitTest {
 		testClearAtStart(dataStore);
     	testGetVoDIdByStreamId(dataStore);
     	testBroadcastListSorting(dataStore);
+		testTotalWebRTCViewerCount(dataStore);
 	}
 
 	@Test
@@ -159,7 +162,7 @@ public class DBStoresUnitTest {
 		store = ((MongoStore)dataStore).getVodDatastore();
 		Query<VoD> deleteVodQuery = store.find(VoD.class);
 		store.delete(deleteVodQuery);
-
+		
 		testBugGetExternalStreamsList(dataStore);
 		testGetPagination(dataStore);
 		testNullCheck(dataStore);
@@ -190,6 +193,7 @@ public class DBStoresUnitTest {
 		testAddTrack(dataStore);
 		testGetVoDIdByStreamId(dataStore);
 		testBroadcastListSorting(dataStore);
+		testTotalWebRTCViewerCount(dataStore);
 	}
 	
 	@Test
@@ -2051,8 +2055,21 @@ public class DBStoresUnitTest {
 		}
 		assertTrue(vod1Match);
 		assertTrue(vod2Match);
-
-
 	}
 
+	
+	public void testTotalWebRTCViewerCount(DataStore dataStore) {
+		int total = 0;
+		for (int i = 0; i < 150; i++) {
+			Broadcast broadcast = new Broadcast();
+			broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+			broadcast.setName("test"+i);
+			int count = RandomUtils.nextInt(0, 50);
+			total += count;
+			broadcast.setWebRTCViewerCount(count);
+			dataStore.save(broadcast);
+		}
+		
+		assertEquals(total, dataStore.getTotalWebRTCViewersCount());	
+	}
 }

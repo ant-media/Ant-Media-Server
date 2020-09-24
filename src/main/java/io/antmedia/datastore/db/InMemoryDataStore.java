@@ -909,5 +909,14 @@ public class InMemoryDataStore extends DataStore {
 		
 		return i;
 	}
+
+	@Override
+	public int getTotalWebRTCViewersCount() {
+		int total = 0;
+		for (Broadcast broadcast : broadcastMap.values()) {
+			total += broadcast.getWebRTCViewerCount();
+		}
+		return total;
+	}
   
 }
