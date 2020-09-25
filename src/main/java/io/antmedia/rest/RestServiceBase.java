@@ -135,7 +135,6 @@ public abstract class RestServiceBase {
 
 	public static final String LOOPBACK_REGEX = "^localhost$|^127(?:\\.[0-9]+){0,2}\\.[0-9]+$|^(?:0*\\:)*?:?0*1$";
 
-
 	@Context
 	protected ServletContext servletContext;
 	protected DataStoreFactory dataStoreFactory;
@@ -1854,6 +1853,78 @@ public abstract class RestServiceBase {
 		} catch (ClassNotFoundException e) {
 			return false;
 		}
+	}
+
+	public static List<String> getRoomInfoFromConference(String roomId, String streamId,DataStore store){
+		List<String> streamIdList = null;
+		if (roomId != null)
+		{
+			ConferenceRoom conferenceRoom = store.getConferenceRoom(roomId);
+			if (conferenceRoom == null) {
+				logger.warn("There is no room with id:{}", roomId.replaceAll("[\n|\r|\t]", "_"));
+				return streamIdList;
+			}
+			streamIdList=new ArrayList<>();
+			List<String> tempList=conferenceRoom.getRoomStreamList();
+			if(tempList != null) {
+				for (String tmpStreamId : tempList)
+				{
+					Broadcast broadcast = store.get(tmpStreamId);
+					if (broadcast != null && broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING) && !tmpStreamId.equals(streamId))
+					{
+						streamIdList.add(tmpStreamId);
+					}
+				}
+			}
+		}
+		return streamIdList;
+	}
+
+	public static boolean addStreamToConferenceRoom(String roomId,String streamId,DataStore store){
+		if(roomId!=null){
+			List<String> roomStreamList = null;
+			ConferenceRoom conferenceRoom = store.getConferenceRoom(roomId);
+			if(conferenceRoom!=null){
+				roomStreamList = conferenceRoom.getRoomStreamList();
+				if(!roomStreamList.contains(streamId)){
+					Broadcast broadcast=store.get(streamId);
+					if(broadcast != null && broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
+						roomStreamList.add(streamId);
+						conferenceRoom.setRoomStreamList(roomStreamList);
+						store.editConferenceRoom(roomId, conferenceRoom);
+						return true;
+					}
+				}
+			}
+		}
+	return false;
+	}
+
+
+	public static boolean removeStreamFromRoom(String roomId, String streamId,DataStore store)
+	{
+		if (roomId != null)
+		{
+			//remove from room-stream list
+			List<String> roomStreamList = null;
+			ConferenceRoom conferenceRoom = store.getConferenceRoom(roomId);
+
+			if(conferenceRoom != null)
+			{
+				roomStreamList = conferenceRoom.getRoomStreamList();
+
+				// This is for the Conference Room list
+				if(roomStreamList.contains(streamId))
+				{
+					roomStreamList.remove(streamId);
+					conferenceRoom.setRoomStreamList(roomStreamList);
+					store.editConferenceRoom(roomId, conferenceRoom);
+					return true;
+				}
+			}
+
+		}
+		return false;
 	}
 
 }
