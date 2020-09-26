@@ -965,7 +965,8 @@ public class ConsoleAppRestServiceTest{
 			// get settings from the app
 			AppSettings appSettings = callGetAppSettings(appName);
 
-			appSettings.setTokenControlEnabled(true);
+			appSettings.setPublishTokenControlEnabled(true);
+			appSettings.setPlayTokenControlEnabled(true);
 			appSettings.setMp4MuxingEnabled(true);
 
 
@@ -973,8 +974,9 @@ public class ConsoleAppRestServiceTest{
 			assertTrue(result.isSuccess());
 
 			appSettings = callGetAppSettings(appName);
-			assertTrue(appSettings.isTokenControlEnabled());
-
+			assertTrue(appSettings.isPublishTokenControlEnabled());
+			assertTrue(appSettings.isPlayTokenControlEnabled());
+			
 			//define a valid expire date
 			long expireDate = Instant.now().getEpochSecond() + 1000;
 
@@ -1008,13 +1010,15 @@ public class ConsoleAppRestServiceTest{
 					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/"+ appName + "/"
 					+ broadcast.getStreamId()+ "?token=" + publishToken.getTokenId());
 
-
+			
+			Result clusterResult = callIsClusterMode();
+			
 			//it should be false because token control is enabled but no token provided
 			Awaitility.await()
 			.pollDelay(5, TimeUnit.SECONDS)
 			.atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
 				return  !MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" 
-						+ broadcast.getStreamId() + ".m3u8");
+						+ broadcast.getStreamId() + ".m3u8") || clusterResult.isSuccess();
 			});
 
 			rtmpSendingProcessToken.destroy();
@@ -1034,8 +1038,9 @@ public class ConsoleAppRestServiceTest{
 
 
 
-			appSettings.setTokenControlEnabled(false);
-
+			appSettings.setPublishTokenControlEnabled(false);
+			appSettings.setPlayTokenControlEnabled(false);
+			
 			Result flag = callSetAppSettings(appName, appSettings);
 			assertTrue(flag.isSuccess());
 

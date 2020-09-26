@@ -14,6 +14,7 @@ import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
 import static org.bytedeco.ffmpeg.global.avutil.AV_NOPTS_VALUE;
 import static org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_NONE;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -24,6 +25,10 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.concurrent.TimeUnit;
 
+import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.AppSettings;
+import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.Endpoint;
 import org.awaitility.Awaitility;
 import org.bytedeco.ffmpeg.avcodec.AVCodecContext;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
@@ -138,19 +143,23 @@ public class MuxingTest {
 			// stop rtmp streaming
 			rtmpSendingProcess.destroy();
 
-			
-			Awaitility.await().atMost(20, TimeUnit.SECONDS)
-					.pollInterval(4, TimeUnit.SECONDS)
-					.until(() -> testFile("rtmp://" + SERVER_ADDR + "/LiveApp/" + streamName + ".mp4", 5000));
-
 			// check that stream can be watchable by hls
+
 			assertTrue(testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".m3u8", 5000));
 			
 			// check that stream can be watchable by dash
 			assertTrue(testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".mpd", 5000));
+
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> 
+				testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".m3u8", 5000)
+			);
 			
 			// check that mp4 is created successfully and can be playable
 			assertTrue(testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".mp4", 5000));
+
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> 
+				testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".mp4", 5000)
+			);
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -468,6 +477,21 @@ public class MuxingTest {
 	public void testMp4Muxing() {
 
 		try {
+			ConsoleAppRestServiceTest.resetCookieStore();
+			Result result = ConsoleAppRestServiceTest.callisFirstLogin();
+			if (result.isSuccess()) {
+				Result createInitialUser = ConsoleAppRestServiceTest.createDefaultInitialUser();
+				assertTrue(createInitialUser.isSuccess());
+			}
+
+			result = ConsoleAppRestServiceTest.authenticateDefaultUser();
+			assertTrue(result.isSuccess());
+			AppSettings appSettings = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
+			boolean mp4Enabled = appSettings.isMp4MuxingEnabled();
+			appSettings.setMp4MuxingEnabled(false);
+			ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettings);
+	            
+			
 			// send rtmp stream with ffmpeg to red5
 			String streamName = "live_test"  + (int)(Math.random() * 999999);
 
@@ -480,20 +504,23 @@ public class MuxingTest {
                 return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName+ ".m3u8");
             });
 
-            Result result = RestServiceV2Test.callEnableMp4Muxing(streamName, 1);
+            result = RestServiceV2Test.callEnableMp4Muxing(streamName, 1);
             assertTrue(result.isSuccess());
-
-			Thread.sleep(5000);
+			
+            Thread.sleep(5000);
 
 			result = RestServiceV2Test.callEnableMp4Muxing(streamName, 0);
 			assertTrue(result.isSuccess());
 
             //it should be true this time, because stream mp4 setting is 1 although general setting is disabled
             Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-                return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName+ ".mp4", 5000);
+            	return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName+ ".mp4", 5000);
             });
 
             rtmpSendingProcess.destroy();
+            
+			appSettings.setMp4MuxingEnabled(mp4Enabled);
+			ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettings);
 
 
 		} catch (Exception e) {

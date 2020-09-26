@@ -843,6 +843,11 @@ public class MongoStore extends DataStore {
 		synchronized(this) {
 			try {
 				Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("streamId").equal(streamId);
+				
+				if(!increment) {
+					query = query.filter(fieldName+" >",0);
+				}
+				
 				UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class);
 				String field = fieldName;
 				if (increment) {
