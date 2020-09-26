@@ -39,6 +39,9 @@ if [[ ! -z "$2" ]]; then
     esac
 fi
 
+RED='\033[0;31m'
+NOCOLOR="\033[0m"
+
 #set the app name
 APP_NAME=$1
 
@@ -88,9 +91,14 @@ if [ $FILE != "1" ]; then
   grep "clusterdb.host=" $AMS_DIR/conf/red5.properties | sed 's/clusterdb.host/db.host/g' | xargs -I '{}' sed -i 's/db.host=.*/{}/g' $AMS_DIR/webapps/$APP_NAME/WEB-INF/red5-web.properties
   grep "clusterdb.user=" $AMS_DIR/conf/red5.properties | sed 's/clusterdb.user/db.user/g' | xargs -I '{}' sed -i 's/db.user=.*/{}/g' $AMS_DIR/webapps/$APP_NAME/WEB-INF/red5-web.properties
   grep "clusterdb.password=" $AMS_DIR/conf/red5.properties | sed 's/clusterdb.password/db.password/g' | xargs -I '{}' sed -i 's/db.password=.*/{}/g' $AMS_DIR/webapps/$APP_NAME/WEB-INF/red5-web.properties
-  sed -i $SED_COMPATIBILITY 's/db.type=.*/db.type='mongodb'/' $AMS_DIR/$APP_NAME/WEB-INF/red5-web.properties
+  sed -i $SED_COMPATIBILITY 's/db.type=.*/db.type='mongodb'/' $AMS_DIR/webapps/$APP_NAME/WEB-INF/red5-web.properties
+else
+  grep "clusterdb.host=" $AMS_DIR/conf/red5.properties | sed 's/clusterdb.host/db.host/g' | xargs -I '{}' sed -i 's/db.host=.*/{}/g' $AMS_DIR/webapps/$APP_NAME/WEB-INF/red5-web.properties
+  grep "clusterdb.user=" $AMS_DIR/conf/red5.properties | sed 's/clusterdb.user/db.user/g' | xargs -I '{}' sed -i 's/db.user=.*/{}/g' $AMS_DIR/webapps/$APP_NAME/WEB-INF/red5-web.properties
+  grep "clusterdb.password=" $AMS_DIR/conf/red5.properties | sed 's/clusterdb.password/db.password/g' | xargs -I '{}' sed -i 's/db.password=.*/{}/g' $AMS_DIR/webapps/$APP_NAME/WEB-INF/red5-web.properties
+  sed -i $SED_COMPATIBILITY 's/db.type=.*/db.type='mapdb'/' $AMS_DIR/webapps/$APP_NAME/WEB-INF/red5-web.properties
 fi
 
-
 echo "$APP_NAME is created."
+echo -e "${RED}Don't forget to restart Ant Media server.\nsystemctl restart antmedia${NOCOLOR}"
 
