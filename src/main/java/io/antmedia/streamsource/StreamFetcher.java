@@ -260,6 +260,9 @@ public class StreamFetcher {
 					muxAdaptor.setFirstKeyFrameReceivedChecked(!videoExist); 
 					muxAdaptor.setEnableVideo(videoExist);
 					muxAdaptor.setEnableAudio(audioExist);
+					
+					//if stream is rtsp, then it's not AVC
+					muxAdaptor.setAvc(!stream.getStreamUrl().toLowerCase().startsWith("rtsp"));
 										
 					setUpEndPoints(stream.getStreamId(), muxAdaptor);
 
