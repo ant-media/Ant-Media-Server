@@ -18,6 +18,8 @@ import io.swagger.annotations.Info;
 import io.swagger.annotations.License;
 import io.swagger.annotations.SwaggerDefinition;
 
+import java.util.List;
+
 @Api(value = "Rest Service")
 @SwaggerDefinition(
         info = @Info(
@@ -45,7 +47,31 @@ public class RootRestService extends RestServiceBase {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Version getVersion() {
 		return getSoftwareVersion();
-	}	
-	
-	
+	}
+
+	public static class RoomInfo{
+		private String roomId;
+		private List<String> streamIds;
+
+		public RoomInfo(String roomId, List<String> streamIds) {
+			this.roomId = roomId;
+			this.streamIds = streamIds;
+		}
+
+		public String getRoomId() {
+			return roomId;
+		}
+
+		public void setRoomId(String roomId) {
+			this.roomId = roomId;
+		}
+
+		public List<String> getStreamIds() {
+			return streamIds;
+		}
+
+		public void setStreamIds(List<String> streamIds) {
+			this.streamIds = streamIds;
+		}
+	}
 }
