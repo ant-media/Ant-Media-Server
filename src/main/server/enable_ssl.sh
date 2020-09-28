@@ -245,10 +245,10 @@ create_cron_job(){
 
     if [ $(grep -E "enable_ssl.sh" /tmp/cronfile | wc -l) -ne "0" ]; then
         sed -i '/enable_ssl.sh/d' /tmp/cronfile
-        echo "00 03 */85 * * cd /tmp/ && ./enable_ssl.sh -d $domain -r" >> /tmp/cronfile
+        echo "00 03 */85 * * cd $INSTALL_DIRECTORY && ./enable_ssl.sh -d $domain -r" >> /tmp/cronfile
         crontab /tmp/cronfile
     else
-        echo "00 03 */85 * * cd /tmp/ && ./enable_ssl.sh -d $domain -r" >> /tmp/cronfile
+        echo "00 03 */85 * * cd $INSTALL_DIRECTORY && ./enable_ssl.sh -d $domain -r" >> /tmp/cronfile
         crontab /tmp/cronfile
     fi
 
