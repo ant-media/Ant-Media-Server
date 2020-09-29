@@ -92,11 +92,11 @@ if [ $FILE != "1" ]; then
   grep "clusterdb.user=" $AMS_DIR/conf/red5.properties | sed 's/clusterdb.user/db.user/g' | xargs -I '{}' sed -i 's/db.user=.*/{}/g' $AMS_DIR/webapps/$APP_NAME/WEB-INF/red5-web.properties
   grep "clusterdb.password=" $AMS_DIR/conf/red5.properties | sed 's/clusterdb.password/db.password/g' | xargs -I '{}' sed -i 's/db.password=.*/{}/g' $AMS_DIR/webapps/$APP_NAME/WEB-INF/red5-web.properties
   sed -i $SED_COMPATIBILITY 's/db.type=.*/db.type='mongodb'/' $AMS_DIR/webapps/$APP_NAME/WEB-INF/red5-web.properties
-#else
-#  grep "clusterdb.host=" $AMS_DIR/conf/red5.properties | sed 's/clusterdb.host/db.host/g' | xargs -I '{}' sed -i 's/db.host=.*/{}/g' $AMS_DIR/webapps/$APP_NAME/WEB-INF/red5-web.properties
-#  grep "clusterdb.user=" $AMS_DIR/conf/red5.properties | sed 's/clusterdb.user/db.user/g' | xargs -I '{}' sed -i 's/db.user=.*/{}/g' $AMS_DIR/webapps/$APP_NAME/WEB-INF/red5-web.properties
-#  grep "clusterdb.password=" $AMS_DIR/conf/red5.properties | sed 's/clusterdb.password/db.password/g' | xargs -I '{}' sed -i 's/db.password=.*/{}/g' $AMS_DIR/webapps/$APP_NAME/WEB-INF/red5-web.properties
-#  sed -i $SED_COMPATIBILITY 's/db.type=.*/db.type='mapdb'/' $AMS_DIR/webapps/$APP_NAME/WEB-INF/red5-web.properties
+else
+  grep "clusterdb.host=" $AMS_DIR/conf/red5.properties | sed 's/clusterdb.host/db.host/g' | xargs -I '{}' sed -i 's/db.host=.*/{}/g' $AMS_DIR/webapps/$APP_NAME/WEB-INF/red5-web.properties
+  grep "clusterdb.user=" $AMS_DIR/conf/red5.properties | sed 's/clusterdb.user/db.user/g' | xargs -I '{}' sed -i 's/db.user=.*/{}/g' $AMS_DIR/webapps/$APP_NAME/WEB-INF/red5-web.properties
+  grep "clusterdb.password=" $AMS_DIR/conf/red5.properties | sed 's/clusterdb.password/db.password/g' | xargs -I '{}' sed -i 's/db.password=.*/{}/g' $AMS_DIR/webapps/$APP_NAME/WEB-INF/red5-web.properties
+  sed -i $SED_COMPATIBILITY 's/db.type=.*/db.type='mapdb'/' $AMS_DIR/webapps/$APP_NAME/WEB-INF/red5-web.properties
 fi
 
 echo "$APP_NAME is created."
