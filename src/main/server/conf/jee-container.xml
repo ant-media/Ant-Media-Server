@@ -34,6 +34,7 @@
 			</bean>
 		</property>
 	</bean>
+	<bean id="tokenGenerator" class="io.antmedia.filter.TokenGenerator" />
 	cluster end -->
 
 
@@ -108,7 +109,9 @@
 				</bean>
 				
 				<!-- cluster start
-				<bean id="valve.cluster" class="io.antmedia.enterprise.cluster.HttpLiveStreamValve"/>
+				<bean id="valve.cluster" class="io.antmedia.enterprise.cluster.HttpLiveStreamValve">
+					<property name="tokenGenerator" ref="tokenGenerator" />
+				</bean>
 				cluster end --> 
 			</list>
 		</property>
