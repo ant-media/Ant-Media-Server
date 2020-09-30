@@ -41,6 +41,7 @@ import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.IApplicationAdaptorFactory;
 import io.antmedia.RecordType;
+import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
@@ -603,6 +604,30 @@ public abstract class RestServiceBase {
 		
 		return new Result(removed);
 	
+	}
+	
+	public Result processRTMPEndpoint(Result result, String broadcastId, String rtmpUrl, String type) {
+		boolean isCluster = getAppContext().containsBean(IClusterNotifier.BEAN_NAME);
+		Broadcast broadcast = getDataStore().get(broadcastId);
+		boolean started;
+		
+		if (broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) 
+		{
+			if((broadcast.getOriginAdress().equals(getServerSettings().getHostAddress()) || !isCluster)) {
+				if(type.equals("Add")) {
+					started = getMuxAdaptor(broadcastId).startRtmpStreaming(rtmpUrl);
+				}
+				else {
+					started = getMuxAdaptor(broadcastId).stopRtmpStreaming(rtmpUrl);
+				}
+				result.setSuccess(started);
+			}
+			else {
+				logger.error("Please send a RTMP Endpoint request to the {} node or Add RTMP Endpoint in a stopped broadcast.", broadcast.getOriginAdress());
+				result.setSuccess(false);
+			}
+		}
+		return result;
 	}
 
 

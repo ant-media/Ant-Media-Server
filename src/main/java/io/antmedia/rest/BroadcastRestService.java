@@ -334,23 +334,18 @@ public class BroadcastRestService extends RestServiceBase{
 	public Result addEndpointV3(@ApiParam(value = "Broadcast id", required = true) @PathParam("id") String id,
 			@ApiParam(value = "RTMP url of the endpoint that stream will be republished. If required, please encode the URL", required = true) Endpoint endpoint) {
 		
+		String commandType = "Add"; 
 		String rtmpUrl = null;
 		Result result = new Result(false);
 		
 		if(endpoint != null && endpoint.getRtmpUrl() != null) {
-
 			rtmpUrl = endpoint.getRtmpUrl();
 			result = super.addEndpoint(id, endpoint);
 		}
 		
 		if (result.isSuccess()) 
 		{
-			String status = getDataStore().get(id).getStatus();
-			if (status.equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) 
-			{
-				boolean started = getMuxAdaptor(id).startRtmpStreaming(rtmpUrl);
-				result.setSuccess(started);
-			}
+			result = processRTMPEndpoint(result, id, rtmpUrl, commandType);
 		}
 		else {
 			if (logger.isErrorEnabled()) {
@@ -399,7 +394,9 @@ public class BroadcastRestService extends RestServiceBase{
 		
 		//Get rtmpURL with broadcast
 		String rtmpUrl = null;
+		String commandType = "Remove";
 		Broadcast broadcast = getDataStore().get(id);
+		Result result;
 		
 		if(endpointServiceId != null && broadcast != null && !broadcast.getEndPointList().isEmpty() && broadcast.getEndPointList() != null) {
 			for(Endpoint endpoint: broadcast.getEndPointList()) {
@@ -408,17 +405,12 @@ public class BroadcastRestService extends RestServiceBase{
 				}
 			}
 		}
-		
-		Result result = super.removeRTMPEndpoint(id, endpointServiceId);
+
+		result = super.removeRTMPEndpoint(id, endpointServiceId);
 		
 		if (result.isSuccess()) 
 		{
-			String status = getDataStore().get(id).getStatus();
-			if (status.equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) 
-			{
-				boolean started = getMuxAdaptor(id).stopRtmpStreaming(rtmpUrl);
-				result.setSuccess(started);
-			}
+			result = processRTMPEndpoint(result, id, rtmpUrl, commandType);
 		}
 		else if (logger.isErrorEnabled()) {	
 			logger.error("Rtmp endpoint({}) was not removed from the stream: {}", rtmpUrl != null ? rtmpUrl.replaceAll(REPLACE_CHARS, "_") : null , id.replaceAll(REPLACE_CHARS, "_"));
