@@ -623,7 +623,7 @@ public abstract class RestServiceBase {
 				result.setSuccess(started);
 			}
 			else {
-				logger.error("Please send a RTMP Endpoint request to the {} node or Add RTMP Endpoint in a stopped broadcast.", broadcast.getOriginAdress());
+				logger.error("Please send a RTMP Endpoint request to the {} node or {} RTMP Endpoint in a stopped broadcast.", broadcast.getOriginAdress(), type);
 				result.setSuccess(false);
 			}
 		}
