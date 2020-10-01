@@ -1091,6 +1091,36 @@ public class BroadcastRestService extends RestServiceBase{
 		} else {
 			return new Result(false, "Operation not supported in the Community Edition. Check the Enterprise version for more features.");
 		}
-	}	
-	
+	}
+
+	@ApiOperation(value="Returns the streams Ids in the room.",responseContainer ="List",response = String.class)
+	@GET
+	@Consumes({ MediaType.APPLICATION_JSON })
+	@Path("/conference-rooms/{room_id}/room-info")
+	@Produces(MediaType.APPLICATION_JSON)
+	public RootRestService.RoomInfo getRoomInfo(@ApiParam(value="Room id", required=true) @PathParam("room_id") String roomId,
+												@ApiParam(value="If Stream Id is entered, that stream id will be isolated from the result",required = false) @QueryParam("streamId") String streamId){
+		return new RootRestService.RoomInfo(roomId,RestServiceBase.getRoomInfoFromConference(roomId,streamId,getDataStore()));
+	}
+
+	@ApiOperation(value="Adds the specified stream with streamId to the room. ",response = Result.class)
+	@PUT
+	@Consumes({ MediaType.APPLICATION_JSON })
+	@Path("/conference-rooms/{room_id}/add")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result addStreamToTheRoom(@ApiParam(value="Room id", required=true) @PathParam("room_id") String roomId,
+												@ApiParam(value="Stream id to add to the conference room",required = true) @QueryParam("streamId") String streamId){
+		return new Result(RestServiceBase.addStreamToConferenceRoom(roomId,streamId,getDataStore()));
+	}
+
+	@ApiOperation(value="Deletes the specified stream correlated with streamId in the room. ",response = Result.class)
+	@PUT
+	@Consumes({ MediaType.APPLICATION_JSON })
+	@Path("/conference-rooms/{room_id}/delete")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result deleteStreamFromTheRoom(@ApiParam(value="Room id", required=true) @PathParam("room_id") String roomId,
+									  @ApiParam(value="Stream id to delete from the conference room",required = true) @QueryParam("streamId") String streamId){
+		return new Result(RestServiceBase.removeStreamFromRoom(roomId,streamId,getDataStore()));
+	}
+
 }
