@@ -17,6 +17,7 @@ import static org.junit.Assert.fail;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.ProcessHandle.Info;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.concurrent.TimeUnit;
@@ -131,18 +132,20 @@ public class MuxingTest {
 
 		try {
 			Thread.sleep(5000);
+			Info processInfo = rtmpSendingProcess.info();
 
 			// stop rtmp streaming
 			rtmpSendingProcess.destroy();
-
+			int duration = (int)(System.currentTimeMillis() - processInfo.startInstant().get().toEpochMilli());
+			
 			// check that stream can be watchable by hls
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> 
-				testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".m3u8", 5000)
+				testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".m3u8", duration)
 			);
 			
 			// check that mp4 is created successfully and can be playable
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() ->
-				testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".mp4", 5000)
+				testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".mp4", duration)
 			);
 
 		} catch (Exception e) {
