@@ -794,12 +794,8 @@ public class InMemoryDataStore extends DataStore {
 		boolean result = false;
 
 		if (subscriber != null) {
-			subscriber.setSubscriberId(streamId);
-
 			if (subscriber.getStreamId() != null && subscriber.getSubscriberId() != null) {
-
 				try {
-
 					subscriberMap.put(subscriber.getSubscriberKey(), subscriber);
 					result = true;
 				} catch (Exception e) {

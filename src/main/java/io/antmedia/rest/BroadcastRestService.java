@@ -615,19 +615,21 @@ public class BroadcastRestService extends RestServiceBase{
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/subscribers")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result addSubscriber(@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String streamId,
+	public Result addSubscriber(
+			@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String streamId,
 			@ApiParam(value = "Subscriber to be added to this stream", required = true) Subscriber subscriber) {
-		boolean result =  false;
-		// stats cannot be set from outside
-		subscriber.setStats(null);
-		// create a new stats object before adding to datastores
-		subscriber.setStats(new SubscriberStats());
-		if(streamId != null) {
-			result = getDataStore().addSubscriber(streamId, subscriber);
+		boolean result = false;
+		if (subscriber != null) {
+			// add stream id inside the Subscriber
+			subscriber.setStreamId(streamId);
+			// create a new stats object before adding to datastore
+			subscriber.setStats(new SubscriberStats());
+			if (streamId != null) {
+				result = getDataStore().addSubscriber(streamId, subscriber);
+			}
 		}
-
 		return new Result(result);
-	}	
+	}
 	
 	@ApiOperation(value = "Delete specific subscriber from data store for selected stream", response = Result.class)
 	@DELETE

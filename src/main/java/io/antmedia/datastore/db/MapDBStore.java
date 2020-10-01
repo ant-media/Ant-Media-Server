@@ -1137,8 +1137,7 @@ public class MapDBStore extends DataStore {
 	public boolean addSubscriber(String streamId, Subscriber subscriber) {
 		boolean result = false;
 
-		if (subscriber != null) {
-			subscriber.setStreamId(streamId);
+		if (subscriber != null) {		
 			synchronized (this) {
 
 				if (subscriber.getStreamId() != null && subscriber.getSubscriberId() != null) {

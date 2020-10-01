@@ -1041,7 +1041,6 @@ public class MongoStore extends DataStore {
 	public boolean addSubscriber(String streamId, Subscriber subscriber) {
 		boolean result = false;
 		if (subscriber != null) {
-			subscriber.setStreamId(streamId);
 			synchronized (this) {
 				if (subscriber.getStreamId() != null && subscriber.getSubscriberId() != null) {
 					try {
