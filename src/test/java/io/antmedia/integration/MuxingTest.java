@@ -213,16 +213,22 @@ public class MuxingTest {
 							+ SERVER_ADDR + "/LiveApp/" + streamName2);
 
 			Thread.sleep(5000);
+			
+			long rtmpSendingProcessStartTime = rtmpSendingProcess.info().startInstant().get().toEpochMilli();
 
+			long rtmpSendingProcessStartTime2 = rtmpSendingProcess2.info().startInstant().get().toEpochMilli();
 			rtmpSendingProcess.destroy();
+			int duration1 = (int)(System.currentTimeMillis() - rtmpSendingProcessStartTime);
+			
 			rtmpSendingProcess2.destroy();
+			int duration2 = (int)(System.currentTimeMillis() - rtmpSendingProcessStartTime2);
 
 			Awaitility.await().atMost(35, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> 
-				 testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName1 + ".mp4", 6000)
+				 testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName1 + ".mp4", duration1)
 			);
 			
 			Awaitility.await().atMost(35, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> 
-				testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName2 + ".mp4", 6000)
+				testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName2 + ".mp4", duration2)
 			);
 
 		} catch (Exception e) {
