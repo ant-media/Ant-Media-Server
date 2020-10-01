@@ -27,6 +27,8 @@ import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointChannel;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
+import io.antmedia.datastore.db.types.Subscriber;
+import io.antmedia.datastore.db.types.SubscriberStats;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.ipcamera.OnvifCamera;
@@ -579,7 +581,85 @@ public class BroadcastRestService extends RestServiceBase{
 		}
 		return tokens;
 	}
+	
+	@ApiOperation(value = "Get the all subscribers of the requested stream", notes = "",responseContainer = "List", response = Subscriber.class)
+	@GET
+	@Path("/{id}/subscribers/list/{offset}/{size}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public List<Subscriber> listSubscriberV2(@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String streamId,
+			@ApiParam(value = "the starting point of the list", required = true) @PathParam("offset") int offset,
+			@ApiParam(value = "size of the return list (max:50 )", required = true) @PathParam("size") int size) {
+		List<Subscriber> subscribers = null;
+		if(streamId != null) {
+			subscribers = getDataStore().listAllSubscribers(streamId, offset, size);
+		}
+		return subscribers;
+	}	
+	
+	@ApiOperation(value = "Get the all subscriber statistics of the requested stream", notes = "",responseContainer = "List", response = SubscriberStats.class)
+	@GET
+	@Path("/{id}/subscriber-stats/list/{offset}/{size}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public List<SubscriberStats> listSubscriberStatsV2(@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String streamId,
+			@ApiParam(value = "the starting point of the list", required = true) @PathParam("offset") int offset,
+			@ApiParam(value = "size of the return list (max:50 )", required = true) @PathParam("size") int size) {
+		List<SubscriberStats> subscriberStats = null;
+		if(streamId != null) {
+			subscriberStats = getDataStore().listAllSubscriberStats(streamId, offset, size);
+		}
+		return subscriberStats;
+	}
+	
+	@ApiOperation(value = "Add Subscriber to the requested stream ", response = Result.class)
+	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/{id}/subscribers")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result addSubscriber(@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String streamId,
+			@ApiParam(value = "Subscriber to be added to this stream", required = true) Subscriber subscriber) {
+		boolean result =  false;
+		// stats cannot be set from outside
+		subscriber.setStats(null);
+		// create a new stats object before adding to datastores
+		subscriber.setStats(new SubscriberStats());
+		if(streamId != null) {
+			result = getDataStore().addSubscriber(streamId, subscriber);
+		}
 
+		return new Result(result);
+	}	
+	
+	@ApiOperation(value = "Delete specific subscriber from data store for selected stream", response = Result.class)
+	@DELETE
+	@Consumes({ MediaType.APPLICATION_JSON })
+	@Path("/{id}/subscribers/{sid}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result deleteSubscriber(@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String streamId,
+			@ApiParam(value = "the id of the subscriber", required = true) @PathParam("sid") String subscriberId) {
+		boolean result =  false;
+				
+		if(streamId != null) {
+			result = getDataStore().deleteSubscriber(streamId, subscriberId);
+		}
+
+		return new Result(result);	
+	}
+
+	@ApiOperation(value = " Removes all subscriber related with the requested stream", notes = "", response = Result.class)
+	@DELETE
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/{id}/subscribers")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result revokeSubscribers(@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String streamId) {
+		boolean result =  false;
+		
+		if(streamId != null) {
+			result = getDataStore().revokeSubscribers(streamId);
+		}
+
+		return new Result(result);
+	}	
+	
 	@ApiOperation(value = "Get the broadcast live statistics total RTMP watcher count, total HLS watcher count, total WebRTC watcher count", notes = "", response = BroadcastStatistics.class)
 	@GET
 	@Path("/{id}/broadcast-statistics")

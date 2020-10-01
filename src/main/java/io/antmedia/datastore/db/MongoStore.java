@@ -33,6 +33,8 @@ import io.antmedia.datastore.db.types.P2PConnection;
 import io.antmedia.datastore.db.types.Playlist;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.StreamInfo;
+import io.antmedia.datastore.db.types.Subscriber;
+import io.antmedia.datastore.db.types.SubscriberStats;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
@@ -45,6 +47,7 @@ public class MongoStore extends DataStore {
 	private Datastore vodDatastore;
 	private Datastore endpointCredentialsDS;
 	private Datastore tokenDatastore;
+	private Datastore subscriberDatastore;
 	private Datastore detectionMap;
 	private Datastore conferenceRoomDatastore;
 
@@ -77,6 +80,7 @@ public class MongoStore extends DataStore {
 		vodDatastore=morphia.createDatastore(client, dbName+"VoD");
 		endpointCredentialsDS = morphia.createDatastore(client, dbName+"_endpointCredentials");
 		tokenDatastore = morphia.createDatastore(client, dbName + "_token");
+		subscriberDatastore = morphia.createDatastore(client, dbName + "_subscriber");
 		detectionMap = morphia.createDatastore(client, dbName + "detection");
 		conferenceRoomDatastore = morphia.createDatastore(client, dbName + "room");
 
@@ -86,6 +90,7 @@ public class MongoStore extends DataStore {
 		//*************************************************
 
 		tokenDatastore.ensureIndexes();
+		subscriberDatastore.ensureIndexes();
 		datastore.ensureIndexes();
 		vodDatastore.ensureIndexes();
 		endpointCredentialsDS.ensureIndexes();
@@ -1012,6 +1017,70 @@ public class MongoStore extends DataStore {
 			return 	tokenDatastore.find(Token.class).field("streamId").equal(streamId).asList(new FindOptions() .skip(offset).limit(size));
 		}
 	}
+	
+	@Override
+	public List<Subscriber> listAllSubscribers(String streamId, int offset, int size) {
+		synchronized(this) {
+			return 	subscriberDatastore.find(Subscriber.class).field("streamId").equal(streamId).asList(new FindOptions() .skip(offset).limit(size));
+		}
+	}
+
+	@Override
+	public List<SubscriberStats> listAllSubscriberStats(String streamId, int offset, int size) {
+		ArrayList<SubscriberStats> stats = new ArrayList<>();
+		synchronized(this) {
+			List<Subscriber> subscribers = subscriberDatastore.find(Subscriber.class).field("streamId").equal(streamId).asList(new FindOptions() .skip(offset).limit(size));
+			for (Subscriber subscriber: subscribers) {
+				stats.add(subscriber.getStats());
+			}
+			return stats;
+		}
+	}
+
+	@Override
+	public boolean addSubscriber(String streamId, Subscriber subscriber) {
+		boolean result = false;
+		if (subscriber != null) {
+			subscriber.setStreamId(streamId);
+			synchronized (this) {
+				if (subscriber.getStreamId() != null && subscriber.getSubscriberId() != null) {
+					try {
+						subscriberDatastore.save(subscriber);
+						result = true;
+					} catch (Exception e) {
+						logger.error(ExceptionUtils.getStackTrace(e));
+					}
+				}
+			}
+		}
+
+		return result;
+	}
+
+	@Override
+	public boolean deleteSubscriber(String streamId, String subscriberId) {
+		boolean result = false;
+		synchronized(this) {
+			try {
+				Query<Subscriber> query = subscriberDatastore.createQuery(Subscriber.class).field("streamId").equal(streamId).field("subscriberId").equal(subscriberId);
+				WriteResult delete = subscriberDatastore.delete(query);
+				result = delete.getN() == 1;
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+		return result;
+	}
+
+	@Override
+	public boolean revokeSubscribers(String streamId) {
+		synchronized(this) {
+			Query<Subscriber> query = subscriberDatastore.createQuery(Subscriber.class).field("streamId").equal(streamId);
+			WriteResult delete = subscriberDatastore.delete(query);
+
+			return delete.getN() >= 1;
+		}
+	}	
 
 	@Override
 	public boolean setMp4Muxing(String streamId, int enabled) {
@@ -1346,4 +1415,5 @@ public class MongoStore extends DataStore {
 		
 		return totalOperationCount;
 	}
+
 }
