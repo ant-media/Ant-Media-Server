@@ -928,7 +928,7 @@ public class RestServiceV2Test {
 
 			Awaitility.await().atMost(90, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				Broadcast broadcastReturnedTemp = callGetBroadcast(broadcast.getStreamId());
-				return (AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING) == broadcastReturnedTemp.getStatus();
+				return (AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING).equals(broadcastReturnedTemp.getStatus());
 			});
 
 			// It should return true this time
@@ -940,7 +940,7 @@ public class RestServiceV2Test {
 
 			Awaitility.await().atMost(90, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				Broadcast broadcastReturnedTemp = callGetBroadcast(broadcast.getStreamId());
-				return (AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED) == broadcastReturnedTemp.getStatus();
+				return (AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED).equals(broadcastReturnedTemp.getStatus());
 			});
 
 		} catch (Exception e) {
