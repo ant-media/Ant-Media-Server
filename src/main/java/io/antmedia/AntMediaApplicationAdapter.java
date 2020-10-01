@@ -1302,6 +1302,8 @@ public Result createInitializationProcess(String appName){
 		store.put(AppSettings.SETTINGS_OBJECT_DETECTION_ENABLED, String.valueOf(newAppsettings.isObjectDetectionEnabled()));
 		store.put(AppSettings.SETTINGS_PUBLISH_TOKEN_CONTROL_ENABLED, String.valueOf(newAppsettings.isPublishTokenControlEnabled()));
 		store.put(AppSettings.SETTINGS_PLAY_TOKEN_CONTROL_ENABLED, String.valueOf(newAppsettings.isPlayTokenControlEnabled()));
+		store.put(AppSettings.SETTINGS_TIME_TOKEN_SUBSCRIBER_ONLY, String.valueOf(newAppsettings.isTimeTokenSubscriberOnly()));
+		
 		store.put(AppSettings.SETTINGS_WEBRTC_ENABLED, String.valueOf(newAppsettings.isWebRTCEnabled()));
 		store.put(AppSettings.SETTINGS_WEBRTC_FRAME_RATE, String.valueOf(newAppsettings.getWebRTCFrameRate()));
 		store.put(AppSettings.SETTINGS_HASH_CONTROL_PUBLISH_ENABLED, String.valueOf(newAppsettings.isHashControlPublishEnabled()));
@@ -1351,6 +1353,8 @@ public Result createInitializationProcess(String appName){
 		appSettings.setAcceptOnlyStreamsInDataStore(newSettings.isAcceptOnlyStreamsInDataStore());
 		appSettings.setPublishTokenControlEnabled(newSettings.isPublishTokenControlEnabled());
 		appSettings.setPlayTokenControlEnabled(newSettings.isPlayTokenControlEnabled());
+		appSettings.setTimeTokenSubscriberOnly(newSettings.isTimeTokenSubscriberOnly());
+		
 		appSettings.setWebRTCEnabled(newSettings.isWebRTCEnabled());
 		appSettings.setWebRTCFrameRate(newSettings.getWebRTCFrameRate());
 		appSettings.setHashControlPublishEnabled(newSettings.isHashControlPublishEnabled());
