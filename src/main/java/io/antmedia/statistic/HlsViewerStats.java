@@ -39,7 +39,7 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 	private int timePeriodMS = DEFAULT_TIME_PERIOD_FOR_VIEWER_COUNT;
 
 	Map<String, Map<String, Long>> streamsViewerMap = new ConcurrentHashMap<>();
-
+	Map<String, String> sessionId2subscriberId = new ConcurrentHashMap<>();
 	Map<String, Integer> increaseCounterMap = new ConcurrentHashMap<>();
 	
 	private Object lock = new Object();
@@ -51,7 +51,7 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 	private int timeoutMS = 20000;
 
 	@Override
-	public void registerNewViewer(String streamId, String sessionId) 
+	public void registerNewViewer(String streamId, String sessionId, String subscriberId) 
 	{
 		//do not block the thread, run in vertx event queue 
 		vertx.runOnContext(h -> {
@@ -71,7 +71,13 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 					
 				}
 				viewerMap.put(sessionId, System.currentTimeMillis());
-				streamsViewerMap.put(streamId, viewerMap);	
+				streamsViewerMap.put(streamId, viewerMap);
+				if(subscriberId != null) {
+					// map sessionId to subscriberId
+					sessionId2subscriberId.put(sessionId, subscriberId);
+					// set status of stream connected
+					getDataStore().setSubscriberConnected(streamId, subscriberId, true);
+				}
 			}
 			
 		});
@@ -156,6 +162,14 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 								// regard it as not a viewer
 								viewerIterator.remove();
 								numberOfDecrement++;
+								
+								String sessionId = viewer.getKey();
+								String subscriberId = sessionId2subscriberId.get(sessionId);
+								// set subscriber status to not connected
+								if(subscriberId != null) {
+									// set status of stream not connected
+									getDataStore().setSubscriberConnected(streamId, subscriberId, false);
+								}
 							}
 						}
 						
@@ -176,7 +190,23 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 							increaseCounterMap.put(streamId, 0);
 						}
 					}
+
 					if (!isBroadcasting) {
+						// set all connection status information about the subscribers of the stream to false
+						viewerMapEntry = streamViewerEntry.getValue();
+						viewerIterator = viewerMapEntry.entrySet().iterator();
+						while (viewerIterator.hasNext()) {
+							Entry<String, Long> viewer = viewerIterator.next();
+							
+							String sessionId = viewer.getKey();
+							String subscriberId = sessionId2subscriberId.get(sessionId);
+							// set subscriber status to not connected
+							if(subscriberId != null) {
+								// set status of stream not connected
+								getDataStore().setSubscriberConnected(streamId, subscriberId, false);
+							}
+						}
+						
 						streamIterator.remove();
 						increaseCounterMap.remove(streamId);
 					}
@@ -185,9 +215,21 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 		});	
 	}
 	
-	public void resetHLSViewerMap(String streamID) {	
-		
-		if(streamsViewerMap.get(streamID) != null) {
+	public void resetHLSViewerMap(String streamID) {
+		Iterator<Entry<String, Long>> viewerIterator;
+		Map<String, Long> viewerMapEntry = streamsViewerMap.get(streamID);
+		if(viewerMapEntry != null) {
+			// remove all the subscribers associated with the sessions in the stream 
+			viewerIterator = viewerMapEntry.entrySet().iterator();
+			while (viewerIterator.hasNext()) {
+				Entry<String, Long> viewer = viewerIterator.next();
+				
+				String sessionId = viewer.getKey();
+				if(sessionId2subscriberId.containsKey(sessionId)) {
+					sessionId2subscriberId.remove(sessionId);					
+				}
+			}
+			
 			streamsViewerMap.get(streamID).clear();
 			streamsViewerMap.remove(streamID);
 			logger.info("Reset HLS Stream ID: {} removed successfully", streamID);			
