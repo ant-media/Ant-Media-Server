@@ -36,14 +36,10 @@ public class TokenFilterManager extends AbstractFilter   {
 		String method = httpRequest.getMethod();
 		String tokenId = ((HttpServletRequest) request).getParameter("token");
 		String subscriberId = ((HttpServletRequest) request).getParameter("subscriberId");
-		String subscriberCode = ((HttpServletRequest) request).getParameter("subscriberCode");
+		String subscriberCodeText = ((HttpServletRequest) request).getParameter("subscriberCode");
 		
 		if (tokenId != null) {
 			tokenId = tokenId.replaceAll(REPLACE_CHARS_REGEX, "_");
-		}
-		
-		if(subscriberCode != null) {
-			subscriberCode = subscriberCode.replaceAll(REPLACE_CHARS_REGEX, "_");
 		}
 		 
 		String sessionId = httpRequest.getSession().getId();
@@ -74,9 +70,9 @@ public class TokenFilterManager extends AbstractFilter   {
 			if(appSettings.isTimeTokenSubscriberOnly()) {
 				ITokenService tokenServiceTmp = getTokenService();
 				
-				if(!tokenServiceTmp.checkTimeBasedSubscriber(subscriberId, streamId, sessionId, subscriberCode)) {
+				if(!tokenServiceTmp.checkTimeBasedSubscriber(subscriberId, streamId, sessionId, subscriberCodeText)) {
 					httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Time Based subscriber id or code is invalid");
-					logger.warn("subscriber request for subscriberID {} and subscriberCode {} is not valid", subscriberId, subscriberCode);
+					logger.warn("subscriber request for subscriberID {} or subscriberCode {} is not valid", subscriberId, subscriberCodeText);
 					return; 					
 				}
 			}
