@@ -1216,6 +1216,65 @@ public class MapDBStore extends DataStore {
 		}
 		return subscriber;	
 	}		
+
+	@Override
+	public boolean isSubscriberConnected(String streamId, String subscriberId) {
+		Subscriber subscriber = getSubscriber(streamId, subscriberId);
+		
+		if(subscriber != null) {
+			 return subscriber.isConnected();
+		}
+		
+		return false;
+	}
+
+	@Override
+	public boolean setSubscriberConnected(String streamId, String subscriberId, boolean connected) {
+		boolean result = false;
+		Subscriber subscriber = getSubscriber(streamId, subscriberId);
+		if (subscriber != null) {
+			subscriber.setConnected(connected);
+			synchronized (this) {
+				if (subscriber.getStreamId() != null && subscriber.getSubscriberId() != null) {
+
+					try {
+						subscriberMap.put(subscriber.getSubscriberKey(), gson.toJson(subscriber));
+						db.commit();
+						result = true;
+					} catch (Exception e) {
+						logger.error(ExceptionUtils.getStackTrace(e));
+					}
+				}
+			}
+		}
+
+		return result;
+	}
+	
+	@Override
+	public boolean resetSubscribersConnectedStatus() {
+		synchronized (this) {
+			try {
+				Collection<String> subcribersRaw = subscriberMap.values();
+
+				for (String subscriberRaw : subcribersRaw) {
+					if (subscriberRaw != null) {
+						Subscriber subscriber = gson.fromJson(subscriberRaw, Subscriber.class);
+						if (subscriber != null) {
+							subscriber.setConnected(false);
+							map.put(subscriber.getSubscriberKey(), gson.toJson(subscriber));
+						}
+					}
+				}
+
+				db.commit();
+				return true;
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+				return false;
+			}
+		}
+	}
 	
 	@Override
 	public boolean setMp4Muxing(String streamId, int enabled) {
@@ -1481,5 +1540,4 @@ public class MapDBStore extends DataStore {
 			return updateOperations + zombieStreamCount;
 		}
 	}
-
 }

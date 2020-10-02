@@ -1095,6 +1095,55 @@ public class MongoStore extends DataStore {
 			}
 		}
 		return subscriber;
+	}
+	
+	@Override
+	public boolean isSubscriberConnected(String streamId, String subscriberId) {
+		Subscriber subscriber = getSubscriber(streamId, subscriberId);
+		
+		if(subscriber != null) {
+			 return subscriber.isConnected();
+		}
+		
+		return false;
+	}
+
+	@Override
+	public boolean setSubscriberConnected(String streamId, String subscriberId, boolean connected) {
+		boolean result = false;
+		Subscriber subscriber = getSubscriber(streamId, subscriberId);
+		if (subscriber != null) {
+			subscriber.setConnected(connected);
+			synchronized (this) {
+				if (subscriber.getStreamId() != null && subscriber.getSubscriberId() != null) {
+					try {
+						subscriberDatastore.save(subscriber);
+						result = true;
+					} catch (Exception e) {
+						logger.error(ExceptionUtils.getStackTrace(e));
+					}
+				}
+			}
+		}
+
+		return result;
+	}
+	
+	@Override
+	public boolean resetSubscribersConnectedStatus() {
+		boolean result = false;
+		synchronized (this) {
+			try {
+			Query<Subscriber> query = subscriberDatastore.createQuery(Subscriber.class);
+			UpdateOperations<Subscriber> ops = subscriberDatastore.createUpdateOperations(Subscriber.class).set("connected", false);
+
+			subscriberDatastore.update(query, ops);
+			result = true;
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+		return result;
 	}	
 
 	@Override

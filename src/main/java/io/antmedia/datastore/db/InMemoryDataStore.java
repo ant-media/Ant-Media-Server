@@ -843,6 +843,43 @@ public class InMemoryDataStore extends DataStore {
 	@Override
 	public Subscriber getSubscriber(String streamId, String subscriberId) {
 		return subscriberMap.get(Subscriber.getDBKey(streamId, subscriberId));
+	}
+	
+	@Override
+	public boolean isSubscriberConnected(String streamId, String subscriberId) {
+		Subscriber subscriber = getSubscriber(streamId, subscriberId);
+	
+		if(subscriber != null) {
+			 return subscriber.isConnected();
+		}
+		return false;
+	}
+
+	@Override
+	public boolean setSubscriberConnected(String streamId, String subscriberId, boolean connected) {
+		boolean result = false;
+		Subscriber subscriber = getSubscriber(streamId, subscriberId);
+		if (subscriber != null) {
+			subscriber.setConnected(connected);
+			try {
+				subscriberMap.put(subscriber.getSubscriberKey(), subscriber);
+				result = true;
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+
+		return result;
+	}
+	
+	@Override
+	public boolean resetSubscribersConnectedStatus() {
+		for(Subscriber subscriber: subscriberMap.values()) {
+			if (subscriber != null) {
+				subscriber.setConnected(false);
+			}
+		}
+		return true;
 	}	
 	
 	@Override
