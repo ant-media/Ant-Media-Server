@@ -841,6 +841,11 @@ public class InMemoryDataStore extends DataStore {
 	}
 	
 	@Override
+	public Subscriber getSubscriber(String streamId, String subscriberId) {
+		return subscriberMap.get(Subscriber.getDBKey(streamId, subscriberId));
+	}	
+	
+	@Override
 	public void addStreamInfoList(List<StreamInfo> streamInfoList) {
 		//used in mongo for cluster mode. useless here.
 
@@ -1042,6 +1047,5 @@ public class InMemoryDataStore extends DataStore {
 		
 		return i;
 	}
-
   
 }

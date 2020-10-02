@@ -1079,6 +1079,22 @@ public class MongoStore extends DataStore {
 
 			return delete.getN() >= 1;
 		}
+	}
+	
+	@Override
+	public Subscriber getSubscriber(String streamId, String subscriberId) {
+		Subscriber subscriber = null;
+		if (subscriberId != null && streamId != null) {
+			synchronized (this) {
+				try {
+					subscriber = subscriberDatastore.find(Subscriber.class).field("subscriberId").equal(subscriberId)
+							.field("streamId").equal(streamId).get();
+				} catch (Exception e) {
+					logger.error(ExceptionUtils.getStackTrace(e));
+				}
+			}
+		}
+		return subscriber;
 	}	
 
 	@Override

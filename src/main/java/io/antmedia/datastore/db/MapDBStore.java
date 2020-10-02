@@ -1203,6 +1203,19 @@ public class MapDBStore extends DataStore {
 		return result;
 	}
 	
+	@Override
+	public Subscriber getSubscriber(String streamId, String subscriberId) {
+		Subscriber subscriber = null;
+		synchronized (this) {
+			if (subscriberId != null && streamId != null) {
+				String jsonString = subscriberMap.get(Subscriber.getDBKey(streamId, subscriberId));
+				if (jsonString != null) {
+					subscriber = gson.fromJson(jsonString, Subscriber.class);
+				}
+			}
+		}
+		return subscriber;	
+	}		
 	
 	@Override
 	public boolean setMp4Muxing(String streamId, int enabled) {

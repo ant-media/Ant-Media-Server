@@ -37,4 +37,10 @@ public class MockTokenService implements  IStreamPublishSecurity, ITokenService{
 		return true;
 	}
 
+	@Override
+	public boolean checkTimeBasedSubscriber(String subscriberId, String streamId, String sessionId,
+			String subscriberCode) {
+		return true;
+	}
+
 }
