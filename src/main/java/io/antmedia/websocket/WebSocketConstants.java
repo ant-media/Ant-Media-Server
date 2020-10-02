@@ -87,7 +87,19 @@ public class WebSocketConstants {
 	 */
 	
 	public static final String TOKEN = "token";
-
+	
+	
+	/**
+	 * this subscriber id is used to access resources or start broadcast when time based subscriber security is enabled
+	 */
+	public static final String SUBSCRIBER_ID = "subscriberId";
+	
+	/**
+	 * this subscriber code is used to access resources or start broadcast when time based subscriber security is enabled
+	 */
+	public static final String SUBSCRIBER_CODE = "subscriberCode";
+	
+	
 	/**
 	 * This is peer to peer connection error definition.
 	 * It is sent back to the user when there is no peer associated with the stream
