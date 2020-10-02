@@ -235,6 +235,9 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 		int operationCount = getDataStore().resetBroadcasts(getServerSettings().getHostAddress());
 		
+		logger.info("Resetting subscriber connection status" );
+		getDataStore().resetSubscribersConnectedStatus();
+		
 		Result result = new Result(true);
 		result.setMessage("Successfull operations: "+ operationCount);
 		
