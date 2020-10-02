@@ -624,6 +624,9 @@ public class BroadcastRestService extends RestServiceBase{
 			subscriber.setStreamId(streamId);
 			// create a new stats object before adding to datastore
 			subscriber.setStats(new SubscriberStats());
+			// subscriber is not connected yet
+			subscriber.setConnected(false);
+			
 			if (streamId != null) {
 				result = getDataStore().addSubscriber(streamId, subscriber);
 			}
