@@ -64,6 +64,8 @@ import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.StreamInfo;
+import io.antmedia.datastore.db.types.Subscriber;
+import io.antmedia.datastore.db.types.SubscriberStats;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
@@ -1522,6 +1524,53 @@ public class BroadcastRestServiceV2UnitTest {
 		assertFalse(result.isSuccess());
 
 	}
+	
+	@Test
+	public void testTimeBasedSubscriberOperations() {
+
+		DataStore store = new InMemoryDataStore("testdb");
+		restServiceReal.setDataStore(store);
+
+		
+		//create subscribers
+		Subscriber subscriber = new Subscriber();
+		subscriber.setSubscriberId("timeSubscriber");
+		subscriber.setStreamId("stream1");
+		subscriber.setType(Subscriber.PLAY_TYPE);
+
+		Subscriber subscriber2 = new Subscriber();
+		subscriber2.setSubscriberId("timeSubscriber2");
+		subscriber2.setStreamId("stream1");
+		subscriber2.setType(Subscriber.PLAY_TYPE);
+		
+		assertTrue(restServiceReal.addSubscriber(subscriber.getStreamId(), subscriber).isSuccess());
+		assertTrue(restServiceReal.addSubscriber(subscriber2.getStreamId(), subscriber2).isSuccess());
+		
+		//get tokens of stream
+		List <Subscriber> subscribers = restServiceReal.listSubscriberV2(subscriber.getStreamId(), 0, 10);
+
+		List <SubscriberStats> subscriberStats = restServiceReal.listSubscriberStatsV2(subscriber.getStreamId(), 0, 10);
+		
+		assertEquals(2, subscribers.size());
+		assertEquals(2, subscriberStats.size());
+		
+		// remove subscriber
+		assertTrue(restServiceReal.deleteSubscriber(subscriber.getStreamId(), subscriber.getSubscriberId()).isSuccess());
+		
+		subscribers = restServiceReal.listSubscriberV2(subscriber.getStreamId(), 0, 10);
+		
+		assertEquals(1, subscribers.size());
+		
+		//revoke tokens
+		restServiceReal.revokeSubscribers(subscriber.getStreamId());
+
+		// get subscribers
+		subscribers = restServiceReal.listSubscriberV2(subscriber.getStreamId(), 0, 10);
+
+		//it should be zero because all tokens are revoked
+		assertEquals(0, subscribers.size());
+
+	}	
 
 	@Test
 	public void testObjectDetectionOperations() {
