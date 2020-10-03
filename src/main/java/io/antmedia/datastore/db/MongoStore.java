@@ -28,6 +28,7 @@ import com.mongodb.WriteResult;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConferenceRoom;
+import io.antmedia.datastore.db.types.ConnectionEvent;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.P2PConnection;
 import io.antmedia.datastore.db.types.Playlist;
@@ -1109,11 +1110,17 @@ public class MongoStore extends DataStore {
 	}
 
 	@Override
-	public boolean setSubscriberConnected(String streamId, String subscriberId, boolean connected) {
+	public boolean addSubscriberConnectionEvent(String streamId, String subscriberId, ConnectionEvent event) {
 		boolean result = false;
 		Subscriber subscriber = getSubscriber(streamId, subscriberId);
 		if (subscriber != null) {
-			subscriber.setConnected(connected);
+			if(ConnectionEvent.CONNECTED_EVENT.equals(event.getEventType())) {
+				subscriber.setConnected(true);
+			} else if(ConnectionEvent.DISCONNECTED_EVENT.equals(event.getEventType())) {
+				subscriber.setConnected(false);
+			}
+			subscriber.getStats().addConnectionEvent(event);
+			
 			synchronized (this) {
 				if (subscriber.getStreamId() != null && subscriber.getSubscriberId() != null) {
 					try {

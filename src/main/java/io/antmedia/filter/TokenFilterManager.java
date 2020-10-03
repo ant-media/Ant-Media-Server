@@ -36,8 +36,8 @@ public class TokenFilterManager extends AbstractFilter   {
 
 		String method = httpRequest.getMethod();
 		String tokenId = ((HttpServletRequest) request).getParameter("token");
-		String subscriberId = ((HttpServletRequest) request).getParameter(WebSocketConstants.SUBSCRIBER_ID);
-		String subscriberCodeText = ((HttpServletRequest) request).getParameter(WebSocketConstants.SUBSCRIBER_CODE);
+		String subscriberId = ((HttpServletRequest) request).getParameter("subscriberId");
+		String subscriberCodeText = ((HttpServletRequest) request).getParameter("subscriberCode");
 		
 		if (tokenId != null) {
 			tokenId = tokenId.replaceAll(REPLACE_CHARS_REGEX, "_");

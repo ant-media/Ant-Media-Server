@@ -1,5 +1,6 @@
 package io.antmedia.statistic;
 
+import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -17,6 +18,7 @@ import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.IDataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.ConnectionEvent;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.vertx.core.Vertx;
 
@@ -75,8 +77,12 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 				if(subscriberId != null) {
 					// map sessionId to subscriberId
 					sessionId2subscriberId.put(sessionId, subscriberId);
-					// set status of stream connected
-					getDataStore().setSubscriberConnected(streamId, subscriberId, true);
+					// add a connected event to the subscriber
+					ConnectionEvent event = new ConnectionEvent();
+					event.setEventType(ConnectionEvent.CONNECTED_EVENT);
+					Date curDate = new Date();
+					event.setTimestamp(curDate.getTime());
+					getDataStore().addSubscriberConnectionEvent(streamId, subscriberId, event);
 				}
 			}
 			
@@ -167,8 +173,12 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 								String subscriberId = sessionId2subscriberId.get(sessionId);
 								// set subscriber status to not connected
 								if(subscriberId != null) {
-									// set status of stream not connected
-									getDataStore().setSubscriberConnected(streamId, subscriberId, false);
+									// add a disconnected event to the subscriber
+									ConnectionEvent event = new ConnectionEvent();
+									event.setEventType(ConnectionEvent.DISCONNECTED_EVENT);
+									Date curDate = new Date();
+									event.setTimestamp(curDate.getTime());
+									getDataStore().addSubscriberConnectionEvent(streamId, subscriberId, event);
 								}
 							}
 						}
@@ -202,8 +212,12 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 							String subscriberId = sessionId2subscriberId.get(sessionId);
 							// set subscriber status to not connected
 							if(subscriberId != null) {
-								// set status of stream not connected
-								getDataStore().setSubscriberConnected(streamId, subscriberId, false);
+								// add a disconnected event to the subscriber
+								ConnectionEvent event = new ConnectionEvent();
+								event.setEventType(ConnectionEvent.DISCONNECTED_EVENT);
+								Date curDate = new Date();
+								event.setTimestamp(curDate.getTime());
+								getDataStore().addSubscriberConnectionEvent(streamId, subscriberId, event);
 							}
 						}
 						
