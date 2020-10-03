@@ -251,6 +251,14 @@ public class WebSocketCommunityHandler {
 		jsonResponse.put(WebSocketConstants.DEFINITION, WebSocketConstants.NO_STREAM_ID_SPECIFIED);
 		sendMessage(jsonResponse.toJSONString(), session);	
 	}
+	
+	@SuppressWarnings("unchecked")
+	public final void sendDataStoreNotAvailable(Session session) {
+		JSONObject jsonResponse = new JSONObject();
+		jsonResponse.put(WebSocketConstants.COMMAND, WebSocketConstants.ERROR_COMMAND);
+		jsonResponse.put(WebSocketConstants.DEFINITION, WebSocketConstants.DATA_STORE_NOT_AVAILABLE);
+		sendMessage(jsonResponse.toJSONString(), session);	
+	}
 
 	@SuppressWarnings("unchecked")
 	public void sendTakeCandidateMessage(long sdpMLineIndex, String sdpMid, String sdp, String streamId, Session session)
