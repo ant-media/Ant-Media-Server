@@ -18,6 +18,7 @@ import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.security.ITokenService;
+import io.antmedia.websocket.WebSocketConstants;
 
 public class TokenFilterManager extends AbstractFilter   {
 
@@ -35,8 +36,8 @@ public class TokenFilterManager extends AbstractFilter   {
 
 		String method = httpRequest.getMethod();
 		String tokenId = ((HttpServletRequest) request).getParameter("token");
-		String subscriberId = ((HttpServletRequest) request).getParameter("subscriberId");
-		String subscriberCodeText = ((HttpServletRequest) request).getParameter("subscriberCode");
+		String subscriberId = ((HttpServletRequest) request).getParameter(WebSocketConstants.SUBSCRIBER_ID);
+		String subscriberCodeText = ((HttpServletRequest) request).getParameter(WebSocketConstants.SUBSCRIBER_CODE);
 		
 		if (tokenId != null) {
 			tokenId = tokenId.replaceAll(REPLACE_CHARS_REGEX, "_");
@@ -70,7 +71,7 @@ public class TokenFilterManager extends AbstractFilter   {
 			if(appSettings.isTimeTokenSubscriberOnly()) {
 				ITokenService tokenServiceTmp = getTokenService();
 				
-				if(!tokenServiceTmp.checkTimeBasedSubscriber(subscriberId, streamId, sessionId, subscriberCodeText)) {
+				if(!tokenServiceTmp.checkTimeBasedSubscriber(subscriberId, streamId, sessionId, subscriberCodeText, false)) {
 					httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Time Based subscriber id or code is invalid");
 					logger.warn("subscriber request for subscriberID {} or subscriberCode {} is not valid", subscriberId, subscriberCodeText);
 					return; 					
