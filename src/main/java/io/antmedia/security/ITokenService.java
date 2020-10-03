@@ -53,7 +53,7 @@ public interface ITokenService {
 	 * @param subscriberCode - with TOTP generated code 
 	 * @return true or false
 	 */
-	boolean checkTimeBasedSubscriber(String subscriberId, String streamId, String sessionId, String subscriberCode);
+	boolean checkTimeBasedSubscriber(String subscriberId, String streamId, String sessionId, String subscriberCode, boolean forPublish);
 	
 	/**
 	 * creates token according to the provided parameters
@@ -72,5 +72,12 @@ public interface ITokenService {
 	 */
 
 	Map<String, String>  getAuthenticatedMap();
+	
+	/**
+	 * gets  map of authenticated subscriber sessions
+	 * @return list
+	 */
+
+	Map<String, String>  getSubscriberAuthenticatedMap();
 
 }
