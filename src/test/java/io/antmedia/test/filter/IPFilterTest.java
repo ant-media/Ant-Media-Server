@@ -74,8 +74,8 @@ public class IPFilterTest {
 		 
 		 //make context running true
 		 Mockito.when(webAppContext.isRunning()).thenReturn(true);
-		 //it should return null because there is no datastorefactory
-		 assertNull(ipFilter.getAppContext());
+		 //it should not return  null because there is no datastorefactory is null which means it's not instance of IDataStoreFactory
+		 assertNotNull(ipFilter.getAppContext());
 		 
 
 		 //Make datastorefactory available

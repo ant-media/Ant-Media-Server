@@ -71,10 +71,11 @@ public abstract class AbstractFilter implements Filter{
 		ConfigurableWebApplicationContext appContext = getWebApplicationContext();
 		if (appContext != null && appContext.isRunning()) 
 		{
-			IDataStoreFactory dataStoreFactory = (IDataStoreFactory) appContext.getBean(DataStoreFactory.BEAN_NAME);
-			if (dataStoreFactory != null) 
+			Object dataStoreFactory = appContext.getBean(DataStoreFactory.BEAN_NAME);
+			
+			if (dataStoreFactory instanceof IDataStoreFactory) 
 			{
-				DataStore dataStore = dataStoreFactory.getDataStore();
+				DataStore dataStore = ((IDataStoreFactory)dataStoreFactory).getDataStore();
 				if (dataStore.isAvailable()) 
 				{
 					return appContext;
@@ -83,9 +84,9 @@ public abstract class AbstractFilter implements Filter{
 					logger.warn("DataStore is not available. It may be closed or not initialized");
 				}
 			}
-			else 
-			{
-				logger.error("DataStoreFactory does not exist in the context.");
+			else {
+				//return app context if it's not app's IDataStoreFactory
+				return appContext;
 			}
 		}
 		else 
