@@ -92,6 +92,8 @@ public class MapDBStore extends DataStore {
 
 		GsonBuilder builder = new GsonBuilder();
 		gson = builder.create();
+		
+		available = true;
 
 	}
 
@@ -462,6 +464,7 @@ public class MapDBStore extends DataStore {
 	@Override
 	public void close() {
 		synchronized (this) {
+			available = false;
 			db.close();
 		}
 	}

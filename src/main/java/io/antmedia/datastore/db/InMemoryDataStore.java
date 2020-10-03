@@ -43,6 +43,8 @@ public class InMemoryDataStore extends DataStore {
 	private Map<String, Playlist> playlistMap = new LinkedHashMap<>();
 
 	public InMemoryDataStore(String dbName) {
+		
+		available = true;
 	}
 
 	@Override
@@ -239,6 +241,7 @@ public class InMemoryDataStore extends DataStore {
 	@Override
 	public void close() {
 		//no need to implement 
+		available = false;
 	}
 
 	@Override
