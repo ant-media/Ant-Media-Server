@@ -75,6 +75,19 @@ public class TokenServiceTest {
 
 	}
 	
+	@Test
+	public void testCheckTimeBasedSubscriber() {
+
+		datastore = new InMemoryDataStore("testDb");
+
+		//check subscriber
+		boolean flag = tokenService.checkTimeBasedSubscriber("subscriber2", "stream1", "sdafsd",
+				"fssdg", false);
+
+		// it should be true because mock service always replies as true
+		assertTrue(flag);
+	}
+	
 	
 	@Test
 	public void testGetTokenService() {
