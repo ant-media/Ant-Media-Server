@@ -1512,8 +1512,17 @@ public class DBStoresUnitTest {
 	}
 	
 	public void testTimeBasedSubscriberOperations(DataStore store) {
-		
+		// clean db in the begining of the test
 		String streamId = "stream1";
+		store.revokeSubscribers(streamId);
+		// null checks
+		assertFalse(store.addSubscriber("stream1", null));
+		
+		assertFalse(store.isSubscriberConnected("stream1", null));
+		assertNull(store.getSubscriber("stream1", null));
+		assertFalse(store.addSubscriberConnectionEvent("stream1", null, null));
+		
+		
 		// create a subscriber play
 		Subscriber subscriberPlay = new Subscriber();
 		subscriberPlay.setStreamId(streamId);
@@ -1611,6 +1620,7 @@ public class DBStoresUnitTest {
 		// connection status should false again
 		assertFalse(store.isSubscriberConnected(subscriberPlay.getStreamId(), subscriberPlay.getSubscriberId()));
 		
+		store.revokeSubscribers(streamId);
 	}
 	
 	@Test
