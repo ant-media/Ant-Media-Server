@@ -11,6 +11,7 @@ import org.junit.Test;
 import static org.mockito.Mockito.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.awaitility.Awaitility;
@@ -101,7 +102,9 @@ public class HlsViewerStatsTest {
 		viewerStats.setDataStore(dataStore);
 		
 		String streamId = "stream1";
-
+		
+		viewerStats.resetHLSViewerMap(streamId);
+		
 		// create a subscriber play
 		Subscriber subscriberPlay = new Subscriber();
 		subscriberPlay.setStreamId(streamId);
@@ -125,10 +128,12 @@ public class HlsViewerStatsTest {
 					eventExist = ConnectionEvent.CONNECTED_EVENT == event2.getEventType();
 				}
 
-				return (subData.isConnected()) && eventExist; });
-		
-		assertTrue(true);
+				return (subData.isConnected()) && eventExist; }
+		);
 	
+		viewerStats.resetHLSViewerMap(streamId);
+		Map<String, String> map = viewerStats.getSessionId2subscriberId();
+		assertTrue(map.isEmpty());
 		
 	}
 	

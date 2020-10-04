@@ -253,6 +253,14 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 		}
 	}
 
+	public Map<String, String> getSessionId2subscriberId() {
+		return sessionId2subscriberId;
+	}
+
+	public void setSessionId2subscriberId(Map<String, String> sessionId2subscriberId) {
+		this.sessionId2subscriberId = sessionId2subscriberId;
+	}
+
 	public static int getTimeoutMSFromSettings(AppSettings settings, int defaultValue) {
 		int newTimePeriodMS = defaultValue;
 		String hlsTime = settings.getHlsTime();
