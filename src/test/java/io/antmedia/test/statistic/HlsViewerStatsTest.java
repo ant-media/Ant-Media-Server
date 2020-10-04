@@ -1,6 +1,7 @@
 package io.antmedia.test.statistic;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import org.junit.AfterClass;
@@ -9,6 +10,7 @@ import org.junit.Test;
 
 import static org.mockito.Mockito.*;
 
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.awaitility.Awaitility;
@@ -20,6 +22,8 @@ import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.ConnectionEvent;
+import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.HlsViewerStats;
@@ -87,6 +91,46 @@ public class HlsViewerStatsTest {
 
 	}
 
+	@Test
+	public void testSubscriberEvents() {
+		HlsViewerStats viewerStats = new HlsViewerStats();
+		
+		viewerStats.setVertx(vertx);
+
+		DataStore dataStore = new InMemoryDataStore("datastore");
+		viewerStats.setDataStore(dataStore);
+		
+		String streamId = "stream1";
+
+		// create a subscriber play
+		Subscriber subscriberPlay = new Subscriber();
+		subscriberPlay.setStreamId(streamId);
+		subscriberPlay.setSubscriberId("subscriber1");
+		subscriberPlay.setB32Secret("6qsp6qhndryqs56zjmvs37i6gqtjsdvc");
+		subscriberPlay.setType(Subscriber.PLAY_TYPE);
+		dataStore.addSubscriber(subscriberPlay.getStreamId(), subscriberPlay);
+		
+		String sessionId = String.valueOf((Math.random() * 999999));
+		// check if viewer is added
+		viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay.getSubscriberId());
+		Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
+				()-> {
+				boolean eventExist = false;
+				Subscriber subData = dataStore.getSubscriber(streamId, subscriberPlay.getSubscriberId());
+				
+				List<ConnectionEvent> events = subData.getStats().getConnectionEvents();
+				
+				if(events.size() == 1) {
+					ConnectionEvent event2 = events.get(0);
+					eventExist = ConnectionEvent.CONNECTED_EVENT == event2.getEventType();
+				}
+
+				return (subData.isConnected()) && eventExist; });
+		
+		assertTrue(true);
+	
+		
+	}
 	
 	@Test
 	public void testGetTimeout() {
