@@ -794,14 +794,12 @@ public class InMemoryDataStore extends DataStore {
 	public boolean addSubscriber(String streamId, Subscriber subscriber) {
 		boolean result = false;
 
-		if (subscriber != null) {
-			if (subscriber.getStreamId() != null && subscriber.getSubscriberId() != null) {
-				try {
-					subscriberMap.put(subscriber.getSubscriberKey(), subscriber);
-					result = true;
-				} catch (Exception e) {
-					logger.error(ExceptionUtils.getStackTrace(e));
-				}
+		if (subscriber != null && subscriber.getStreamId() != null && subscriber.getSubscriberId() != null) {
+			try {
+				subscriberMap.put(subscriber.getSubscriberKey(), subscriber);
+				result = true;
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
 			}
 		}
 		return result;
@@ -814,7 +812,7 @@ public class InMemoryDataStore extends DataStore {
 		if(streamId != null && subscriberId != null) {
 			try {
 				 Subscriber sub = subscriberMap.remove(Subscriber.getDBKey(streamId, subscriberId));
-				result = sub == null ? false: true;
+				result = sub != null;
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}

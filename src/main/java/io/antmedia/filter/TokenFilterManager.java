@@ -18,7 +18,6 @@ import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.security.ITokenService;
-import io.antmedia.websocket.WebSocketConstants;
 
 public class TokenFilterManager extends AbstractFilter   {
 
@@ -41,6 +40,12 @@ public class TokenFilterManager extends AbstractFilter   {
 		
 		if (tokenId != null) {
 			tokenId = tokenId.replaceAll(REPLACE_CHARS_REGEX, "_");
+		}
+		if (subscriberId != null) {
+			subscriberId = subscriberId.replaceAll(REPLACE_CHARS_REGEX, "_");
+		}
+		if (subscriberCodeText != null) {
+			subscriberCodeText = subscriberCodeText.replaceAll(REPLACE_CHARS_REGEX, "_");
 		}
 		 
 		String sessionId = httpRequest.getSession().getId();
@@ -73,7 +78,7 @@ public class TokenFilterManager extends AbstractFilter   {
 				
 				if(!tokenServiceTmp.checkTimeBasedSubscriber(subscriberId, streamId, sessionId, subscriberCodeText, false)) {
 					httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Time Based subscriber id or code is invalid");
-					logger.warn("subscriber request for subscriberID {} or subscriberCode {} is not valid", subscriberId, subscriberCodeText);
+					logger.warn("subscriber request for subscriberIDor subscriberCode is not valid");
 					return; 					
 				}
 			}

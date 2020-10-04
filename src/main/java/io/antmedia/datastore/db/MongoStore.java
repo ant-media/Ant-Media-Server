@@ -1104,9 +1104,9 @@ public class MongoStore extends DataStore {
 		
 		if(subscriber != null) {
 			 return subscriber.isConnected();
-		}
-		
-		return false;
+		} else {
+			return false;
+		}	
 	}
 
 	@Override
