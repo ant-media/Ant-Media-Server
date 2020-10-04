@@ -1026,17 +1026,6 @@ public class MongoStore extends DataStore {
 		}
 	}
 
-	@Override
-	public List<SubscriberStats> listAllSubscriberStats(String streamId, int offset, int size) {
-		ArrayList<SubscriberStats> stats = new ArrayList<>();
-		synchronized(this) {
-			List<Subscriber> subscribers = subscriberDatastore.find(Subscriber.class).field("streamId").equal(streamId).asList(new FindOptions() .skip(offset).limit(size));
-			for (Subscriber subscriber: subscribers) {
-				stats.add(subscriber.getStats());
-			}
-			return stats;
-		}
-	}
 
 	@Override
 	public boolean addSubscriber(String streamId, Subscriber subscriber) {
@@ -1114,23 +1103,9 @@ public class MongoStore extends DataStore {
 		boolean result = false;
 		Subscriber subscriber = getSubscriber(streamId, subscriberId);
 		if (subscriber != null) {
-			if(ConnectionEvent.CONNECTED_EVENT.equals(event.getEventType())) {
-				subscriber.setConnected(true);
-			} else if(ConnectionEvent.DISCONNECTED_EVENT.equals(event.getEventType())) {
-				subscriber.setConnected(false);
-			}
-			subscriber.getStats().addConnectionEvent(event);
+			handleConnectionEvent(subscriber, event);
 			
-			synchronized (this) {
-				if (subscriber.getStreamId() != null && subscriber.getSubscriberId() != null) {
-					try {
-						subscriberDatastore.save(subscriber);
-						result = true;
-					} catch (Exception e) {
-						logger.error(ExceptionUtils.getStackTrace(e));
-					}
-				}
-			}
+			addSubscriber(streamId, subscriber);
 		}
 
 		return result;

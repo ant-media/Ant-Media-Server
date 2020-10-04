@@ -1086,54 +1086,6 @@ public class MapDBStore extends DataStore {
 		return listSubscriber;
 	}
 
-
-
-	@Override
-	public List<SubscriberStats> listAllSubscriberStats(String streamId, int offset, int size) {
-		List<SubscriberStats> list = new ArrayList<>();
-		List<SubscriberStats> listSubscriberStats = new ArrayList<>();
-
-		synchronized (this) {
-			Collection<String> values = subscriberMap.values();
-			int t = 0;
-			int itemCount = 0;
-			if (size > MAX_ITEM_IN_ONE_LIST) {
-				size = MAX_ITEM_IN_ONE_LIST;
-			}
-			if (offset < 0) {
-				offset = 0;
-			}
-
-			Iterator<String> iterator = values.iterator();
-
-			while(iterator.hasNext()) {
-				Subscriber subscriber = gson.fromJson(iterator.next(), Subscriber.class);
-
-				if(subscriber.getStreamId().equals(streamId)) {
-					list.add(subscriber.getStats());
-				}
-			}
-
-			Iterator<SubscriberStats> listIterator = list.iterator();
-
-			while(itemCount < size && listIterator.hasNext()) {
-				if (t < offset) {
-					t++;
-					listIterator.next();
-				}
-				else {
-
-					listSubscriberStats.add(listIterator.next());
-					itemCount++;
-
-				}
-			}
-
-		}
-		return listSubscriberStats;
-	}
-
-
 	@Override
 	public boolean addSubscriber(String streamId, Subscriber subscriber) {
 		boolean result = false;
@@ -1234,24 +1186,9 @@ public class MapDBStore extends DataStore {
 		boolean result = false;
 		Subscriber subscriber = getSubscriber(streamId, subscriberId);
 		if (subscriber != null) {
-			if(ConnectionEvent.CONNECTED_EVENT.equals(event.getEventType())) {
-				subscriber.setConnected(true);
-			} else if(ConnectionEvent.DISCONNECTED_EVENT.equals(event.getEventType())) {
-				subscriber.setConnected(false);
-			}
-			subscriber.getStats().addConnectionEvent(event);
-			synchronized (this) {
-				if (subscriber.getStreamId() != null && subscriber.getSubscriberId() != null) {
-
-					try {
-						subscriberMap.put(subscriber.getSubscriberKey(), gson.toJson(subscriber));
-						db.commit();
-						result = true;
-					} catch (Exception e) {
-						logger.error(ExceptionUtils.getStackTrace(e));
-					}
-				}
-			}
+			handleConnectionEvent(subscriber, event);
+			
+			addSubscriber(streamId, subscriber);
 		}
 
 		return result;

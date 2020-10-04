@@ -751,46 +751,6 @@ public class InMemoryDataStore extends DataStore {
 	}
 
 	@Override
-	public List<SubscriberStats> listAllSubscriberStats(String streamId, int offset, int size) {
-		List<SubscriberStats> list = new ArrayList<>();
-		List<SubscriberStats> returnList = new ArrayList<>();
-
-		Collection<Subscriber> valuesSubscriber = subscriberMap.values();
-		int t = 0;
-		int itemCount = 0;
-		if (size > MAX_ITEM_IN_ONE_LIST) {
-			size = MAX_ITEM_IN_ONE_LIST;
-		}
-		if (offset < 0) {
-			offset = 0;
-		}
-
-
-		for(Subscriber subscriber: valuesSubscriber) {
-			if (subscriber.getStreamId().equals(streamId)) {
-				list.add(subscriber.getStats());
-			}
-		}
-
-
-		Iterator<SubscriberStats> iterator = list.iterator();
-
-		while(itemCount < size && iterator.hasNext()) {
-			if (t < offset) {
-				t++;
-				iterator.next();
-			}
-			else {
-
-				returnList.add(iterator.next());
-				itemCount++;
-			}
-		}
-
-		return returnList;
-	}
-
-	@Override
 	public boolean addSubscriber(String streamId, Subscriber subscriber) {
 		boolean result = false;
 
@@ -859,19 +819,9 @@ public class InMemoryDataStore extends DataStore {
 		boolean result = false;
 		Subscriber subscriber = getSubscriber(streamId, subscriberId);
 		if (subscriber != null) {
-			if(ConnectionEvent.CONNECTED_EVENT.equals(event.getEventType())) {
-				subscriber.setConnected(true);
-			} else if(ConnectionEvent.DISCONNECTED_EVENT.equals(event.getEventType())) {
-				subscriber.setConnected(false);
-			}
-			subscriber.getStats().addConnectionEvent(event);
+			handleConnectionEvent(subscriber, event);
 			
-			try {
-				subscriberMap.put(subscriber.getSubscriberKey(), subscriber);
-				result = true;
-			} catch (Exception e) {
-				logger.error(ExceptionUtils.getStackTrace(e));
-			}
+			addSubscriber(streamId, subscriber);
 		}
 
 		return result;
