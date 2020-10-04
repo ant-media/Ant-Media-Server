@@ -805,29 +805,6 @@ public class InMemoryDataStore extends DataStore {
 	}
 	
 	@Override
-	public boolean isSubscriberConnected(String streamId, String subscriberId) {
-		Subscriber subscriber = getSubscriber(streamId, subscriberId);
-	
-		if(subscriber != null) {
-			 return subscriber.isConnected();
-		}
-		return false;
-	}
-
-	@Override
-	public boolean addSubscriberConnectionEvent(String streamId, String subscriberId, ConnectionEvent event) {
-		boolean result = false;
-		Subscriber subscriber = getSubscriber(streamId, subscriberId);
-		if (subscriber != null) {
-			handleConnectionEvent(subscriber, event);
-			
-			addSubscriber(streamId, subscriber);
-		}
-
-		return result;
-	}
-	
-	@Override
 	public boolean resetSubscribersConnectedStatus() {
 		for(Subscriber subscriber: subscriberMap.values()) {
 			if (subscriber != null) {
