@@ -912,11 +912,15 @@ public class InMemoryDataStore extends DataStore {
 
 	@Override
 	public int getTotalWebRTCViewersCount() {
-		int total = 0;
-		for (Broadcast broadcast : broadcastMap.values()) {
-			total += broadcast.getWebRTCViewerCount();
-		}
-		return total;
+		long now = System.currentTimeMillis();
+		if(now - totalWebRTCViewerCountLastUpdateTime > TOTAL_WEBRTC_VIEWER_COUNT_CACHE_TIME) {
+			int total = 0;
+			for (Broadcast broadcast : broadcastMap.values()) {
+				total += broadcast.getWebRTCViewerCount();
+			}
+			totalWebRTCViewerCount = total;
+			totalWebRTCViewerCountLastUpdateTime = now;
+		}  
+		return totalWebRTCViewerCount;
 	}
-  
 }

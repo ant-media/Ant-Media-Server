@@ -1365,20 +1365,26 @@ public class MongoStore extends DataStore {
 
 	@Override
 	public int getTotalWebRTCViewersCount() {
-		int total = 0;
-		synchronized(this) {
-			Query<Broadcast> query = datastore.createQuery(Broadcast.class);
-            query.field(STATUS).equal(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
-            
-            Iterator<Summation> result = datastore.createAggregation(Broadcast.class)
-            		.match(query)
-                    .group("AllBroadcasts", Group.grouping("total", Group.sum(WEBRTC_VIEWER_COUNT)))
-                    .aggregate(Summation.class, AggregationOptions.builder().outputMode(OutputMode.CURSOR).build());
-            
-            if(result.hasNext()) {
-            	total = ((Summation) result.next()).getTotal();
-            }
+		long now = System.currentTimeMillis();
+		if(now - totalWebRTCViewerCountLastUpdateTime > TOTAL_WEBRTC_VIEWER_COUNT_CACHE_TIME) {
+			synchronized(this) {
+				int total = 0;
+				Query<Broadcast> query = datastore.createQuery(Broadcast.class);
+				query.field(STATUS).equal(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+
+				Iterator<Summation> result = datastore.createAggregation(Broadcast.class)
+						.match(query)
+						.group("AllBroadcasts", Group.grouping("total", Group.sum(WEBRTC_VIEWER_COUNT)))
+						.aggregate(Summation.class, AggregationOptions.builder().outputMode(OutputMode.CURSOR).build());
+
+				if(result.hasNext()) {
+					total = ((Summation) result.next()).getTotal();
+				}
+				
+				totalWebRTCViewerCount = total;
+				totalWebRTCViewerCountLastUpdateTime = now;
+			}
 		}
-		return total;
+		return totalWebRTCViewerCount;
 	}
 }

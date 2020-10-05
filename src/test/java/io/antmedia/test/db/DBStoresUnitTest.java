@@ -16,9 +16,11 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
+import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -2071,5 +2073,27 @@ public class DBStoresUnitTest {
 		}
 		
 		assertEquals(total, dataStore.getTotalWebRTCViewersCount());	
-	}
+		
+		int total2 = 0;
+		for (int i = 0; i < 150; i++) {
+			Broadcast broadcast = new Broadcast();
+			broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+			broadcast.setName("test"+i);
+			int count = RandomUtils.nextInt(0, 50);
+			total2 += count;
+			broadcast.setWebRTCViewerCount(count);
+			dataStore.save(broadcast);
+		}
+		
+		//totalWebRTCViewersCount is still total but not total+total2 due to cache
+		assertEquals(total, dataStore.getTotalWebRTCViewersCount());	
+		
+
+		int finalTotal = total+total2;
+		
+		//Alter cache time it solud be total+total2
+		Awaitility.await().atMost(DataStore.TOTAL_WEBRTC_VIEWER_COUNT_CACHE_TIME+1100, TimeUnit.MILLISECONDS)
+			.pollDelay(1000, TimeUnit.MILLISECONDS)
+			.until(() -> (finalTotal == dataStore.getTotalWebRTCViewersCount()));
+	}	
 }

@@ -1,5 +1,7 @@
 package io.antmedia.datastore.db;
 
+import static io.antmedia.datastore.db.DataStore.TOTAL_WEBRTC_VIEWER_COUNT_CACHE_TIME;
+
 import java.io.File;
 import java.lang.reflect.Type;
 import java.time.Instant;
@@ -1303,13 +1305,18 @@ public class MapDBStore extends DataStore {
 
 	@Override
 	public int getTotalWebRTCViewersCount() {
-		int total = 0;
-		synchronized (this) {
-			for (String json : map.getValues()) {
-				Broadcast broadcast = gson.fromJson(json, Broadcast.class);
-				total += broadcast.getWebRTCViewerCount();
+		long now = System.currentTimeMillis();
+		if(now - totalWebRTCViewerCountLastUpdateTime > TOTAL_WEBRTC_VIEWER_COUNT_CACHE_TIME) {
+			int total = 0;
+			synchronized (this) {
+				for (String json : map.getValues()) {
+					Broadcast broadcast = gson.fromJson(json, Broadcast.class);
+					total += broadcast.getWebRTCViewerCount();
+				}
 			}
-		}
-		return total;
-	}  
+			totalWebRTCViewerCount = total;
+			totalWebRTCViewerCountLastUpdateTime = now;
+		}  
+		return totalWebRTCViewerCount;
+	}
 }
