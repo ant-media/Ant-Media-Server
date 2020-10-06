@@ -208,6 +208,7 @@ public class RTMPAdaptor extends Adaptor {
 	@Override
 	public void stop() {
 		if (isStopped) {
+			logger.info("Stopped already called. It's returning for stream: {}", getStreamId());
 			return;
 		}
 		isStopped  = true;
@@ -216,8 +217,10 @@ public class RTMPAdaptor extends Adaptor {
 			audioDataSchedulerFuture.cancel(false);
 		}
 
+		logger.info("Scheduling stop procedure for stream: {}", getStreamId());
 		signallingExecutor.execute(() -> {
 
+			logger.info("Executing stop procedure for stream: {}", getStreamId());
 			webSocketCommunityHandler.sendPublishFinishedMessage(getStreamId(), getSession());
 
 

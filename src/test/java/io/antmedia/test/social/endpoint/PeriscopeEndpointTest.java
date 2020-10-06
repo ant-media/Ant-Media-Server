@@ -302,12 +302,9 @@ public class PeriscopeEndpointTest {
 	//@Test
 	public void testConnectChatEndpoint() {
 		createBroadcast(true);
-	}
+	} 
 
-
-	
-
-	//@Test
+	//@Test 
 	public void testCreateBroadcast() {
 		createBroadcast(false);
 	}
