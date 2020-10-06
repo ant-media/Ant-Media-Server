@@ -146,7 +146,6 @@ public class DeviceDiscovery {
 						serverFinished, probeReceiver);
 				executorService.submit(probeSender);
 			} catch (SocketException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}

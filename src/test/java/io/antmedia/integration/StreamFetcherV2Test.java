@@ -200,7 +200,7 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 				+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
 				+ streamId);
 		
-		Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS)
+		Awaitility.await().atMost(40, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS)
 		.until(() -> {
 			Broadcast broadcast = restService.getBroadcast(streamId);
 			return broadcast != null && broadcast.getStatus() != null && 
@@ -229,7 +229,7 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 		
 		//check that server has the stream
 		
-		Awaitility.await().atMost(200, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS)
+		Awaitility.await().atMost(250, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS)
 			.until(() -> {
 				return restService.getBroadcast(endpointStream.getStreamId()).getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 			});

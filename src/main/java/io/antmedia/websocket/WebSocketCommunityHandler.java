@@ -3,8 +3,6 @@ package io.antmedia.websocket;
 import javax.websocket.Session;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.bytedeco.ffmpeg.global.avcodec;
-import org.bytedeco.ffmpeg.global.avutil;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -19,8 +17,6 @@ import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.IApplicationAdaptorFactory;
 import io.antmedia.StreamIdValidator;
-import io.antmedia.recorder.FFmpegFrameRecorder;
-import io.antmedia.recorder.FrameRecorder;
 import io.antmedia.webrtc.adaptor.RTMPAdaptor;
 
 public class WebSocketCommunityHandler {
@@ -251,7 +247,7 @@ public class WebSocketCommunityHandler {
 		jsonResponse.put(WebSocketConstants.DEFINITION, WebSocketConstants.NO_STREAM_ID_SPECIFIED);
 		sendMessage(jsonResponse.toJSONString(), session);	
 	}
-
+	
 	@SuppressWarnings("unchecked")
 	public void sendTakeCandidateMessage(long sdpMLineIndex, String sdpMid, String sdp, String streamId, Session session)
 	{
