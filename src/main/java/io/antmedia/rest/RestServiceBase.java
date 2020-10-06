@@ -1854,9 +1854,15 @@ public abstract class RestServiceBase {
 		Manifest manifest;
 		
 		try {
-			manifest = new Manifest(url.openStream());
-			version.setBuildNumber(manifest.getMainAttributes().getValue(RestServiceBase.BUILD_NUMBER));
-		} catch (NullPointerException | IOException e) {
+			if (url != null) 
+			{
+				manifest = new Manifest(url.openStream());
+				version.setBuildNumber(manifest.getMainAttributes().getValue(RestServiceBase.BUILD_NUMBER));
+			}
+			else {
+				logger.error("url(META-INF/MANIFEST.MF) is null when getting software version");
+			}
+		} catch (IOException e) {
 			logger.error(e.getMessage());
 		}
 

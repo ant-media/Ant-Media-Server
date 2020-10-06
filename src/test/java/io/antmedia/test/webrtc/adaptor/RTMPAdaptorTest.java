@@ -316,6 +316,28 @@ public class RTMPAdaptorTest {
 
 
 	}
+	
+	@Test
+	public void testCallStopMultipletime() {
+		FFmpegFrameRecorder recorder = mock(FFmpegFrameRecorder.class);
+
+		WebSocketCommunityHandler webSocketHandler = getSpyWebSocketHandler();
+
+		RTMPAdaptor adaptorReal = new RTMPAdaptor("rtmp_url", webSocketHandler, 360);
+		
+		adaptorReal.setSession(mock(Session.class));
+		
+		adaptorReal.start();
+
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> adaptorReal.isStarted());
+		
+		adaptorReal.stop();
+		
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> adaptorReal.getSignallingExecutor().isShutdown());
+		
+		adaptorReal.stop();
+		
+	}
 
 	@Test
 	public void testStartandStop() {
