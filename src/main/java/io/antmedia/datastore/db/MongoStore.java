@@ -70,8 +70,6 @@ public class MongoStore extends DataStore {
 		MongoClientURI mongoUri = new MongoClientURI(uri);
 		MongoClient client = new MongoClient(mongoUri);
 		
-		
-		
 		//TODO: Refactor these stores so that we don't have separate datastore for each class
 		datastore = morphia.createDatastore(client, dbName);
 		vodDatastore=morphia.createDatastore(client, dbName+"VoD");
@@ -91,6 +89,8 @@ public class MongoStore extends DataStore {
 		endpointCredentialsDS.ensureIndexes();
 		detectionMap.ensureIndexes();
 		conferenceRoomDatastore.ensureIndexes();
+		
+		available = true;
 	}
 	
 	public static String getMongoConnectionUri(String host, String username, String password) {
@@ -401,6 +401,7 @@ public class MongoStore extends DataStore {
 	@Override
 	public void close() {
 		synchronized(this) {
+			available = false;
 			datastore.getMongo().close();
 		}
 	}

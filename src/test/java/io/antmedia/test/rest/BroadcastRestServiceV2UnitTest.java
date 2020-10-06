@@ -1325,7 +1325,10 @@ public class BroadcastRestServiceV2UnitTest {
 	public void testGetVersion() {
 		RootRestService rootRestService = new RootRestService();
 		Version version = rootRestService.getVersion();
+		System.out.println("VersionName " + version.getVersionName());
+		System.out.println("Expected VersionName " + AntMediaApplicationAdapter.class.getPackage().getImplementationVersion());
 		assertEquals(version.getVersionName(), AntMediaApplicationAdapter.class.getPackage().getImplementationVersion());
+		System.out.println("VersionType " + version.getVersionType());
 		assertEquals(RestServiceBase.COMMUNITY_EDITION, version.getVersionType());
 	}
 
