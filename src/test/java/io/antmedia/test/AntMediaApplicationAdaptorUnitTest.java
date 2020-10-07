@@ -12,6 +12,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -30,7 +31,6 @@ import org.apache.http.StatusLine;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.awaitility.Awaitility;
-import org.glassfish.jersey.jaxb.internal.XmlCollectionJaxbProvider.App;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -43,9 +43,6 @@ import org.mockito.Mockito;
 import org.red5.server.api.IContext;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.stream.ClientBroadcastStream;
-
-import com.jmatio.io.stream.ByteBufferInputStream;
-import com.restfb.types.Application.ApplicationContext;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
@@ -386,7 +383,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 			assertNull(response);
 
 			HttpEntity entity = Mockito.mock(HttpEntity.class);
-			InputStream is = new ByteBufferInputStream(ByteBuffer.allocate(10), 10);
+			InputStream is = new ByteArrayInputStream(ByteBuffer.allocate(10).array());
 			Mockito.when(entity.getContent()).thenReturn(is);
 			Mockito.when(httpResponse.getEntity()).thenReturn(entity);
 			HashMap map = new HashMap();

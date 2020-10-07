@@ -232,9 +232,8 @@ public class RTMPAdaptorTest {
 		rtmpAdaptor.start();
 
 
-
 		Awaitility.await().pollDelay(1, TimeUnit.SECONDS)
-		.atMost(10, TimeUnit.SECONDS)
+		.atMost(20, TimeUnit.SECONDS)
 		.until(() -> rtmpAdaptor.isStarted());
 
 
@@ -245,13 +244,13 @@ public class RTMPAdaptorTest {
 		rtmpAdaptor.stop();
 
 		Awaitility.await().pollDelay(1, TimeUnit.SECONDS)
-		.atMost(10, TimeUnit.SECONDS)
+		.atMost(20, TimeUnit.SECONDS)
 		.until(() -> rtmpAdaptor.getAudioDataSchedulerFuture().isCancelled());
 
 		assertTrue(rtmpAdaptor.getAudioDataSchedulerFuture().isCancelled());
 
 		Awaitility.await().pollDelay(1, TimeUnit.SECONDS)
-		.atMost(10, TimeUnit.SECONDS)
+		.atMost(20, TimeUnit.SECONDS)
 		.until(() -> rtmpAdaptor.isStopped());
 
 	}
@@ -316,6 +315,28 @@ public class RTMPAdaptorTest {
 		}
 
 
+	}
+	
+	@Test
+	public void testCallStopMultipletime() {
+		FFmpegFrameRecorder recorder = mock(FFmpegFrameRecorder.class);
+
+		WebSocketCommunityHandler webSocketHandler = getSpyWebSocketHandler();
+
+		RTMPAdaptor adaptorReal = new RTMPAdaptor("rtmp_url", webSocketHandler, 360);
+		
+		adaptorReal.setSession(mock(Session.class));
+		
+		adaptorReal.start();
+
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> adaptorReal.isStarted());
+		
+		adaptorReal.stop();
+		
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> adaptorReal.getSignallingExecutor().isShutdown());
+		
+		adaptorReal.stop();
+		
 	}
 
 	@Test
