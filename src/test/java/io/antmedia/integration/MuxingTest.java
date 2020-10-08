@@ -21,6 +21,7 @@ import static org.junit.Assert.fail;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.ProcessHandle.Info;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.concurrent.TimeUnit;
@@ -139,25 +140,27 @@ public class MuxingTest {
 
 		try {
 			Thread.sleep(5000);
+			Info processInfo = rtmpSendingProcess.info();
 
 			// stop rtmp streaming
 			rtmpSendingProcess.destroy();
-
+			int duration = (int)(System.currentTimeMillis() - processInfo.startInstant().get().toEpochMilli());
+			
 			// check that stream can be watchable by hls
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> 
-				testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".m3u8", 5000)
+				testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".m3u8", duration)
 			);
 			
 			// check that mp4 is created successfully and can be playable
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> 
-				testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".mp4", 5000)
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() ->
+				testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".mp4", duration)
 			);
 
 		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
+		Awaitility.await().atMost(55, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> { 
 			RestServiceV2Test restService = new RestServiceV2Test();
 
 			return 0 == restService.callGetLiveStatistics();
@@ -548,28 +551,33 @@ public class MuxingTest {
 	public static boolean testFile(String absolutePath, int expectedDurationInMS, boolean fullRead) {
 		int ret;
 		System.out.println("Tested File:"+absolutePath);
+
+		//AVDictionary dic = null;
 		
-		AVInputFormat findInputFormat = null;
-		AVDictionary dic = null;
-		
+		/*
 		if(absolutePath.contains("mpd")) {
 			findInputFormat = avformat.av_find_input_format("dash");
 			av_dict_set(dic, "protocol_whitelist","mpd,mpeg,dash,m4s", 0);
 		}
-
+*/
 		AVFormatContext inputFormatContext = avformat.avformat_alloc_context();
 		if (inputFormatContext == null) {
 			System.out.println("cannot allocate input context");
 			return false;
 		}
 
-		if ((ret = avformat_open_input(inputFormatContext, absolutePath, findInputFormat, dic)) < 0) {
+		if ((ret = avformat_open_input(inputFormatContext, absolutePath, null, (AVDictionary) null)) < 0) {
+			System.out.println("cannot open input context: " + absolutePath);
+			return false;
+		}
+		
+		/*
 			byte[] data = new byte[2048];
 			av_strerror(ret, data, data.length);
 			throw new IllegalStateException("cannot open input context. Error is " + new String(data, 0, data.length));
-		}
+		 */
 	
-		av_dump_format(inputFormatContext,0,"test",0);
+		//av_dump_format(inputFormatContext,0,"test",0);
 
 		ret = avformat_find_stream_info(inputFormatContext, (AVDictionary) null);
 		if (ret < 0) {
