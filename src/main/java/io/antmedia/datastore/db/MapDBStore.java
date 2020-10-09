@@ -316,8 +316,8 @@ public class MapDBStore extends DataStore {
 	
 	/**
 	 * Use getTotalBroadcastNumber
+	 * @deprecated
 	 */
-	@Deprecated
 	@Override
 	public long getBroadcastCount() {
 		synchronized (this) {
