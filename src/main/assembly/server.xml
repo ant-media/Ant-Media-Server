@@ -146,9 +146,7 @@
 			<directory>${project.basedir}/src/main/server/lib/native</directory>
 			<outputDirectory>lib/native</outputDirectory>
 			<includes>
-				<include>*.dylib</include>
-				<include>*.so</include>
-				<include>*.dll</include>
+				<include>*</include>
 			</includes>
 		</fileSet>
 		<fileSet>
