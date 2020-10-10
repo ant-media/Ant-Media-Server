@@ -3,6 +3,8 @@ language: java
 jdk:
   - openjdk11
 
+git:
+  depth: false
 
 # Sonar cloud addons on travis has some issues so that it's used directly 
 addons:
