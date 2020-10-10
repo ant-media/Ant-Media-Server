@@ -15,10 +15,10 @@ public class Result {
 	private boolean success = false;
 
 	/**
-	 * Message may be filled error or information 
-	 * It is filled with error when  success if false so that developer may
-	 * understand what the problem is
-	 * It is filled with information if user makes a request it returns success as true with additional information
+	 * Message may be filled error or information. 
+	 * It is filled with error when success field 
+	 * is false so that developer may understand what the problem is.
+	 * It is filled with information if user makes a request, it returns success as true with additional information
 	 */
 	@ApiModelProperty(value = "the message of the operation result")
 	private String message;
