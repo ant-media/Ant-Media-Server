@@ -24,11 +24,12 @@ import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mongodb.morphia.Datastore;
-import org.mongodb.morphia.query.Query;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import dev.morphia.Datastore;
+import dev.morphia.query.Query;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
