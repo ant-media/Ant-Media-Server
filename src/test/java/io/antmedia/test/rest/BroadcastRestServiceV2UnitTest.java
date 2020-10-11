@@ -1910,6 +1910,9 @@ public class BroadcastRestServiceV2UnitTest {
 
 		//it should not null because discovery is performed
 		assertNotNull(result);
+		//make sure it finds the camera
+		assertEquals(1, result.length);
+		
 
 		//stop camera emulator
 		StreamFetcherUnitTest.stopCameraEmulator();

@@ -1635,8 +1635,8 @@ public abstract class RestServiceBase {
 			if (!onvifDevices.isEmpty()) {
 
 				for (int i = 0; i < onvifDevices.size(); i++) {
-
 					list[i] = StringUtils.substringBetween(onvifDevices.get(i).toString(), HTTP, "/");
+					logger.info("IP Camera found: {}", onvifDevices.get(i));
 				}
 			}
 
