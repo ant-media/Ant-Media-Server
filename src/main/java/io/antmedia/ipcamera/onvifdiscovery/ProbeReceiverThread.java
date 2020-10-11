@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -33,6 +34,7 @@ public class ProbeReceiverThread extends Thread {
 		this.serverFinished = serverFinished;
 	}
 
+	@Override
 	public void run() {
 	    try {
 	       final DatagramPacket packet = new DatagramPacket(new byte[4096], 4096);
@@ -46,7 +48,8 @@ public class ProbeReceiverThread extends Thread {
 	             addresses.add(key);
 	          }
 	       }
-	    } catch (SocketTimeoutException ignored) {
+	    } catch (SocketTimeoutException | SocketException ignored) {
+	    	//ignore this exception
 	    } catch (Exception e) {
 	       e.printStackTrace();
 	    } finally {
