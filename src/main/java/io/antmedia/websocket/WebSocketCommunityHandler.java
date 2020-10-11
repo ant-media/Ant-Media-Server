@@ -387,4 +387,13 @@ public class WebSocketCommunityHandler {
 		jsonResponse.put(WebSocketConstants.STREAM_ID, streamId);
 		sendMessage(jsonResponse.toJSONString(), session);
 	}
+
+	public void sendServerError(String streamId, Session session) {
+		JSONObject jsonResponse = new JSONObject();
+		jsonResponse.put(WebSocketConstants.COMMAND, WebSocketConstants.ERROR_COMMAND);
+		jsonResponse.put(WebSocketConstants.DEFINITION, WebSocketConstants.SERVER_ERROR_CHECK_LOGS);
+		jsonResponse.put(WebSocketConstants.STREAM_ID, streamId);
+		sendMessage(jsonResponse.toJSONString(), session);
+		
+	}
 }

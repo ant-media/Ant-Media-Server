@@ -483,14 +483,21 @@ public class RTMPAdaptorTest {
 		VideoFrame frame = Mockito.mock(VideoFrame.class);
 		when(frame.getRotatedWidth()).thenReturn(480);
 		when(frame.getRotatedHeight()).thenReturn(360);
+		
+		Mockito.doNothing().when(adaptorSpy).stop();
 				
 		adaptorSpy.initializeRecorder(frame);
 		verify(adaptorSpy).getNewRecorder(rtmpUrl, 640, 480);
+		
+		//stop should be called because rtmp url is not valid
+		verify(adaptorSpy).stop();
 		
 		adaptorSpy.initializeRecorder(frame);
 		verify(adaptorSpy, Mockito.times(1)).getNewRecorder(rtmpUrl, 640, 480);
 		
 	}
+	
+	
 	
 	/*
 	 * This test is only for sonar coverage for now. Because tested class is mock and not doing anything
