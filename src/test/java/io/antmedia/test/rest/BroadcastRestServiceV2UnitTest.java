@@ -1939,7 +1939,7 @@ public class BroadcastRestServiceV2UnitTest {
 		String[] ipArray = streamSourceRest.getIPArray(null);
 		assertNull(ipArray);
 		ipArray = streamSourceRest.getIPArray(new ArrayList<URL>());
-		assertNull(ipArray);
+		assertNotNull(ipArray);
 
 		try {
 			ipArray = streamSourceRest.getIPArray(Arrays.asList(new URL("http://192.168.3.23:8080/onvif/devices")));
