@@ -358,6 +358,10 @@ public class WebSocketCommunityHandler {
 		this.appContext = appContext;
 	}
 	
+	public void setAppAdaptor(AntMediaApplicationAdapter appAdaptor) {
+		this.appAdaptor = appAdaptor;
+	}
+	
 	public void sendRemoteDescriptionSetFailure(Session session, String streamId) {
 		JSONObject jsonObject = new JSONObject();
 		jsonObject.put(WebSocketConstants.COMMAND, WebSocketConstants.ERROR_COMMAND);
