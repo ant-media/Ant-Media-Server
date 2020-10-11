@@ -17,6 +17,7 @@ import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.IApplicationAdaptorFactory;
 import io.antmedia.StreamIdValidator;
+import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.webrtc.adaptor.RTMPAdaptor;
 
 public class WebSocketCommunityHandler {
@@ -34,12 +35,14 @@ public class WebSocketCommunityHandler {
 	protected Session session;
 
 	private String appName;
+
+	private AntMediaApplicationAdapter appAdaptor;
 	
 	public WebSocketCommunityHandler(ApplicationContext appContext, Session session) {
 		this.appContext = appContext;
 		this.session = session;
 		appSettings = (AppSettings) getAppContext().getBean(AppSettings.BEAN_NAME);
-		AntMediaApplicationAdapter appAdaptor = ((IApplicationAdaptorFactory)appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME)).getAppAdaptor();
+		appAdaptor = ((IApplicationAdaptorFactory)appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME)).getAppAdaptor();
 		
 		appName = appAdaptor.getScope().getName();
 	}
@@ -86,6 +89,19 @@ public class WebSocketCommunityHandler {
 
 			if (cmd.equals(WebSocketConstants.PUBLISH_COMMAND)) 
 			{
+				Broadcast broadcast = appAdaptor.getDataStore().get(streamId);
+				if (broadcast != null) {
+					String status = broadcast.getStatus();
+					if (status.endsWith(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)
+							||
+							status.endsWith(AntMediaApplicationAdapter.BROADCAST_STATUS_PREPARING)) 
+					{
+						logger.error("Sending stream id in use error for stream:{} session:{}", streamId, session.getId());
+						sendStreamIdInUse(session);
+						return;
+					}
+				}
+				
 				//get scope and use its name
 				startRTMPAdaptor(session, streamId);
 			}
@@ -133,6 +149,8 @@ public class WebSocketCommunityHandler {
 		}
 
 	}
+	
+	
 
 	private void startRTMPAdaptor(Session session, final String streamId) {
 
@@ -209,6 +227,13 @@ public class WebSocketCommunityHandler {
 		}
 
 		sendMessage(jsonObj.toJSONString(), session);
+	}
+	
+	public void sendStreamIdInUse(Session session) {
+		JSONObject jsonResponse = new JSONObject();
+		jsonResponse.put(WebSocketConstants.COMMAND, WebSocketConstants.ERROR_COMMAND);
+		jsonResponse.put(WebSocketConstants.DEFINITION, WebSocketConstants.STREAM_ID_IN_USE);
+		sendMessage(jsonResponse.toJSONString(), session);
 	}
 	
 	@SuppressWarnings("unchecked")
