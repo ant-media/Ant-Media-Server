@@ -315,7 +315,12 @@ public class MapDBStore extends DataStore {
 		}
 		return result;
 	}
-
+	
+	
+	/**
+	 * Use getTotalBroadcastNumber
+	 * @deprecated
+	 */
 	@Override
 	public long getBroadcastCount() {
 		synchronized (this) {
@@ -700,7 +705,6 @@ public class MapDBStore extends DataStore {
 	}
 
 	@Override
-
 	public long getTotalBroadcastNumber() {
 		synchronized (this) {
 			return map.size();
