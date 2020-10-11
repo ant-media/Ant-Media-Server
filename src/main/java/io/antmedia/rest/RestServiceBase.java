@@ -1641,7 +1641,7 @@ public abstract class RestServiceBase {
 	public String[] getIPArray(List<URL> onvifDevices) {
 		
 		String[] list = null;
-		if (onvifDevices != null && !onvifDevices.isEmpty()) 
+		if (onvifDevices != null) 
 		{
 			list = new String[onvifDevices.size()];
 			for (int i = 0; i < onvifDevices.size(); i++) {

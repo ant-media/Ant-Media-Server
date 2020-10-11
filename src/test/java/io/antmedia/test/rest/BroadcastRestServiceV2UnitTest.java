@@ -1954,10 +1954,11 @@ public class BroadcastRestServiceV2UnitTest {
 	@Test
 	public void testDeviceDiscovery() {
 		ExecutorService executor = Executors.newSingleThreadExecutor();
-		int result = DeviceDiscovery.tryAddress(null, null, null, null, executor, 100, null);
-		assertEquals(100, result);
+		int randomPort = (int)(Math.random()*5000) + 1024;
+		int result = DeviceDiscovery.tryAddress(null, null, null, null, executor, randomPort, null);
+		assertEquals(randomPort, result);
 		
-		result = DeviceDiscovery.tryAddress(null, null, null, null, executor, 100, null);
+		result = DeviceDiscovery.tryAddress(null, null, null, null, executor, randomPort, null);
 		assertEquals(-1, result);
 		
 		executor.shutdown();
