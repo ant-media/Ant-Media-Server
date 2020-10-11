@@ -3,6 +3,7 @@ package io.antmedia.datastore.db;
 import java.io.File;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -10,10 +11,10 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.bson.types.ObjectId;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.mongodb.AggregationOptions;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import com.mongodb.WriteResult;
@@ -21,6 +22,7 @@ import com.mongodb.WriteResult;
 import dev.morphia.Datastore;
 import dev.morphia.Key;
 import dev.morphia.Morphia;
+import dev.morphia.aggregation.Group;
 import dev.morphia.query.Criteria;
 import dev.morphia.query.FindOptions;
 import dev.morphia.query.Query;
@@ -1347,5 +1349,40 @@ public class MongoStore extends DataStore {
 		}
 		
 		return totalOperationCount;
+	}
+	
+	static class Summation {
+		private int total;
+		public int getTotal() {
+			return total;
+		}
+		public void setTotal(int total) {
+			this.total = total;
+		}
+	}
+
+	@Override
+	public int getTotalWebRTCViewersCount() {
+		long now = System.currentTimeMillis();
+		if(now - totalWebRTCViewerCountLastUpdateTime > TOTAL_WEBRTC_VIEWER_COUNT_CACHE_TIME) {
+			synchronized(this) {
+				int total = 0;
+				Query<Broadcast> query = datastore.createQuery(Broadcast.class);
+				query.field(STATUS).equal(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+
+				Iterator<Summation> result = datastore.createAggregation(Broadcast.class)
+						.match(query)
+						.group("AllBroadcasts", Group.grouping("total", Group.sum(WEBRTC_VIEWER_COUNT)))
+						.aggregate(Summation.class, AggregationOptions.builder().build());
+
+				if(result.hasNext()) {
+					total = ((Summation) result.next()).getTotal();
+				}
+				
+				totalWebRTCViewerCount = total;
+				totalWebRTCViewerCountLastUpdateTime = now;
+			}
+		}
+		return totalWebRTCViewerCount;
 	}
 }
