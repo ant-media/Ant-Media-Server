@@ -26,6 +26,7 @@ import dev.morphia.aggregation.Group;
 import dev.morphia.query.Criteria;
 import dev.morphia.query.FindOptions;
 import dev.morphia.query.Query;
+import dev.morphia.query.Sort;
 import dev.morphia.query.UpdateOperations;
 import dev.morphia.query.UpdateResults;
 import io.antmedia.AntMediaApplicationAdapter;
@@ -156,7 +157,7 @@ public class MongoStore extends DataStore {
 	public Broadcast get(String id) {
 		synchronized(this) {
 			try {
-				return datastore.find(Broadcast.class).field("streamId").equal(id).get();
+				return datastore.find(Broadcast.class).field("streamId").equal(id).first();
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
@@ -168,7 +169,7 @@ public class MongoStore extends DataStore {
 	public VoD getVoD(String id) {
 		synchronized(this) {
 			try {
-				return vodDatastore.find(VoD.class).field("vodId").equal(id).get();
+				return vodDatastore.find(VoD.class).field("vodId").equal(id).first();
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
@@ -299,7 +300,7 @@ public class MongoStore extends DataStore {
 	@Override
 	public long getBroadcastCount() {
 		synchronized(this) {
-			return datastore.getCount(Broadcast.class);
+			return datastore.createQuery(Broadcast.class).count();
 		}
 	}
 
@@ -334,24 +335,14 @@ public class MongoStore extends DataStore {
 			}
 			
 			if(sortBy != null && orderBy != null && !sortBy.isEmpty() && !orderBy.isEmpty()) {
-				String sortString = orderBy.equals("desc") ? "-" : "";
-				if(sortBy.equals("name")) {
-					sortString += "name";
-				}
-				else if(sortBy.equals("date")) {
-					sortString += "date";
-				}
-				else if(sortBy.equals(STATUS)) {
-					sortString += STATUS;
-				}
-				query = query.order(sortString);
+				query = query.order(orderBy.equals("desc") ? Sort.descending(sortBy) : Sort.ascending(sortBy));
 			}
 
 			if(type != null && !type.isEmpty()) {
-				return query.field("type").equal(type).asList(new FindOptions().skip(offset).limit(size));
+				return query.field("type").equal(type).find(new FindOptions().skip(offset).limit(size)).toList();
 			}
 			else {
-				return query.asList(new FindOptions().skip(offset).limit(size));
+				return query.find(new FindOptions().skip(offset).limit(size)).toList();
 			}
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
@@ -383,7 +374,7 @@ public class MongoStore extends DataStore {
 								)
 						);
 				
-				List<Broadcast> streamList = query.asList();
+				List<Broadcast> streamList = query.find().toList();
 				
 				UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set(STATUS, AntMediaApplicationAdapter.BROADCAST_STATUS_PREPARING);
 				UpdateResults update = datastore.update(query, ops);
@@ -452,7 +443,7 @@ public class MongoStore extends DataStore {
 				}
 				query = query.order(sortString);
 			}
-			return query.asList(new FindOptions().skip(offset).limit(size));
+			return query.find(new FindOptions().skip(offset).limit(size)).toList();
 		}
 	}
 
@@ -476,7 +467,7 @@ public class MongoStore extends DataStore {
 	@Override
 	public long getTotalVodNumber() {
 		synchronized(this) {
-			return vodDatastore.getCount(VoD.class);
+			return vodDatastore.createQuery(VoD.class).count();
 		}
 	}
 
@@ -611,7 +602,7 @@ public class MongoStore extends DataStore {
 	@Override
 	public List<SocialEndpointCredentials> getSocialEndpoints(int offset, int size) {
 		synchronized(this) {
-			return endpointCredentialsDS.find(SocialEndpointCredentials.class).asList(new FindOptions().skip(offset).limit(size));
+			return endpointCredentialsDS.find(SocialEndpointCredentials.class).find(new FindOptions().skip(offset).limit(size)).toList();
 		}
 	}
 
@@ -654,7 +645,7 @@ public class MongoStore extends DataStore {
 	@Override
 	public long getTotalBroadcastNumber() {
 		synchronized(this) {
-			return datastore.getCount(Broadcast.class);
+			return datastore.createQuery(Broadcast.class).count();
 		}
 	}
 
@@ -704,7 +695,7 @@ public class MongoStore extends DataStore {
 	public List<TensorFlowObject> getDetection(String id) {
 		synchronized(this) {
 			try {
-				return detectionMap.find(TensorFlowObject.class).field(IMAGE_ID).equal(id).asList();
+				return detectionMap.find(TensorFlowObject.class).field(IMAGE_ID).equal(id).find().toList();
 			} catch (Exception e) {
 				logger.error(e.getMessage());
 			}
@@ -715,7 +706,7 @@ public class MongoStore extends DataStore {
 	@Override
 	public long getObjectDetectedTotal(String id) {
 		synchronized(this) {
-			return detectionMap.find(TensorFlowObject.class).field(IMAGE_ID).equal(id).asList().size();
+			return detectionMap.find(TensorFlowObject.class).field(IMAGE_ID).equal(id).count();
 		}
 	}
 
@@ -975,7 +966,7 @@ public class MongoStore extends DataStore {
 		Token fetchedToken = null;
 		synchronized(this) {
 			if (token.getTokenId() != null) {
-				fetchedToken = tokenDatastore.find(Token.class).field("tokenId").equal(token.getTokenId()).get();
+				fetchedToken = tokenDatastore.find(Token.class).field("tokenId").equal(token.getTokenId()).first();
 				if (fetchedToken != null 
 						&& fetchedToken.getType().equals(token.getType())
 						&& Instant.now().getEpochSecond() < fetchedToken.getExpireDate()) {
@@ -1100,7 +1091,7 @@ public class MongoStore extends DataStore {
 	public ConferenceRoom getConferenceRoom(String roomId) {
 		synchronized(this) {
 			try {
-				return conferenceRoomDatastore.find(ConferenceRoom.class).field("roomId").equal(roomId).get();
+				return conferenceRoomDatastore.find(ConferenceRoom.class).field("roomId").equal(roomId).first();
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
@@ -1129,7 +1120,7 @@ public class MongoStore extends DataStore {
 
 		synchronized(this) {
 			try {
-				token =  tokenDatastore.find(Token.class).field("tokenId").equal(tokenId).get();
+				token =  tokenDatastore.find(Token.class).field("tokenId").equal(tokenId).first();
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
@@ -1183,7 +1174,7 @@ public class MongoStore extends DataStore {
 	public P2PConnection getP2PConnection(String streamId) {
 		synchronized(this) {
 			try {
-				return datastore.find(P2PConnection.class).field("streamId").equal(streamId).get();
+				return datastore.find(P2PConnection.class).field("streamId").equal(streamId).first();
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
@@ -1227,7 +1218,7 @@ public class MongoStore extends DataStore {
 	public Playlist getPlaylist(String playlistId) {
 		synchronized(this) {
 			try {
-				return datastore.find(Playlist.class).field(PLAYLIST_ID).equal(playlistId).get();
+				return datastore.find(Playlist.class).field(PLAYLIST_ID).equal(playlistId).first();
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}

@@ -49,6 +49,7 @@ public class ProbeReceiverThread extends Thread {
 	          }
 	       }
 	    } catch (SocketTimeoutException | SocketException ignored) {
+	    	//ignore this exception
 	    } catch (Exception e) {
 	       e.printStackTrace();
 	    } finally {

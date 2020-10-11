@@ -14,12 +14,10 @@ import java.net.SocketException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.UnknownHostException;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Enumeration;
 import java.util.List;
-import java.util.Random;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.CountDownLatch;
@@ -30,8 +28,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import io.antmedia.rest.RestServiceBase;
 
 public class DeviceDiscovery {
 	
@@ -171,7 +167,7 @@ public class DeviceDiscovery {
 		return addresses;
 	}
 
-	private static int tryAddress(String probeMsgTemplate, final Collection<String> addresses,
+	public static int tryAddress(String probeMsgTemplate, final Collection<String> addresses,
 			final CountDownLatch serverStarted, final CountDownLatch serverFinished, ExecutorService executorService,
 			int port, final InetAddress address) {
 		try {

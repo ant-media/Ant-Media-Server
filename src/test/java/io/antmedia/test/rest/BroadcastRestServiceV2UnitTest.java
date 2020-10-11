@@ -20,6 +20,8 @@ import static org.mockito.Mockito.when;
 import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.net.UnknownHostException;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -27,6 +29,9 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import javax.ws.rs.core.Response;
@@ -68,6 +73,7 @@ import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.ipcamera.OnvifCamera;
+import io.antmedia.ipcamera.onvifdiscovery.DeviceDiscovery;
 import io.antmedia.muxer.HLSMuxer;
 import io.antmedia.muxer.Mp4Muxer;
 import io.antmedia.muxer.MuxAdaptor;
@@ -1920,10 +1926,41 @@ public class BroadcastRestServiceV2UnitTest {
 		//*****************************************************************************
 		//*****************************************************************************
 		
-
+		
 		//stop camera emulator
 		StreamFetcherUnitTest.stopCameraEmulator();
 
+	}
+	
+	@Test
+	public void testGetIPArray() {
+		
+		BroadcastRestService streamSourceRest = Mockito.spy(restServiceReal);
+		String[] ipArray = streamSourceRest.getIPArray(null);
+		assertNull(ipArray);
+		ipArray = streamSourceRest.getIPArray(new ArrayList<URL>());
+		assertNull(ipArray);
+
+		try {
+			ipArray = streamSourceRest.getIPArray(Arrays.asList(new URL("http://192.168.3.23:8080/onvif/devices")));
+			assertEquals(1, ipArray.length);
+		} catch (MalformedURLException e) {
+		
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+	}
+	
+	@Test
+	public void testDeviceDiscovery() {
+		ExecutorService executor = Executors.newSingleThreadExecutor();
+		int result = DeviceDiscovery.tryAddress(null, null, null, null, executor, 100, null);
+		assertEquals(100, result);
+		
+		result = DeviceDiscovery.tryAddress(null, null, null, null, executor, 100, null);
+		assertEquals(-1, result);
+		
+		executor.shutdown();
 	}
 
 	@Test

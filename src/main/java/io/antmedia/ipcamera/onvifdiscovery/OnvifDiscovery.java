@@ -1,6 +1,5 @@
 package io.antmedia.ipcamera.onvifdiscovery;
 
-import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -11,6 +10,9 @@ import java.util.List;
  * @date 2015-06-18
  */
 public class OnvifDiscovery {
+	
+	private OnvifDiscovery() {
+	}
 
 	public static List<URL> discoverOnvifDevices(boolean useIpv4, List<String> addressList) {
 		final ArrayList<URL> onvifPointers = new ArrayList<>();

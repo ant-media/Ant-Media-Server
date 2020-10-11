@@ -1630,18 +1630,25 @@ public abstract class RestServiceBase {
 
 			List<URL> onvifDevices = OnvifDiscovery.discoverOnvifDevices(true, addressList);
 
-			list = new String[onvifDevices.size()];
-
-			if (!onvifDevices.isEmpty()) {
-
-				for (int i = 0; i < onvifDevices.size(); i++) {
-					list[i] = StringUtils.substringBetween(onvifDevices.get(i).toString(), HTTP, "/");
-					logger.info("IP Camera found: {}", onvifDevices.get(i));
-				}
-			}
+		
+			list = getIPArray(onvifDevices);
 
 		}
 
+		return list;
+	}
+
+	public String[] getIPArray(List<URL> onvifDevices) {
+		
+		String[] list = null;
+		if (onvifDevices != null && !onvifDevices.isEmpty()) 
+		{
+			list = new String[onvifDevices.size()];
+			for (int i = 0; i < onvifDevices.size(); i++) {
+				list[i] = StringUtils.substringBetween(onvifDevices.get(i).toString(), HTTP, "/");
+				logger.info("IP Camera found: {}", onvifDevices.get(i));
+			}
+		}
 		return list;
 	}
 
