@@ -19,7 +19,11 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.red5.server.api.scope.IScope;
@@ -32,6 +36,9 @@ import org.webrtc.SessionDescription.Type;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.IApplicationAdaptorFactory;
+import io.antmedia.datastore.db.DataStore;
+import io.antmedia.datastore.db.InMemoryDataStore;
+import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.webrtc.adaptor.RTMPAdaptor;
 import io.antmedia.websocket.WebSocketCommunityHandler;
 import io.antmedia.websocket.WebSocketConstants;
@@ -44,7 +51,8 @@ public class WebSocketCommunityHandlerTest {
 	private Basic basicRemote;
 	private HashMap userProperties;
 	private ApplicationContext appContext;
-
+	private DataStore dataStore;
+	
 	public class WebSocketEndpoint extends WebSocketCommunityHandler {
 		public WebSocketEndpoint(ApplicationContext appContext) {
 			super(appContext, null);
@@ -61,6 +69,20 @@ public class WebSocketCommunityHandlerTest {
 			return appContext;
 		}
 	}
+	
+	@Rule
+	public TestRule watcher = new TestWatcher() {
+		protected void starting(Description description) {
+			System.out.println("Starting test: " + description.getMethodName());
+		}
+
+		protected void failed(Throwable e, Description description) {
+			System.out.println("Failed test: " + description.getMethodName());
+		};
+		protected void finished(Description description) {
+			System.out.println("Finishing test: " + description.getMethodName());
+		};
+	};
 
 	@Before
 	public void before() {
@@ -73,14 +95,22 @@ public class WebSocketCommunityHandlerTest {
 		when(scope.getName()).thenReturn("junit");
 
 		when(adaptor.getScope()).thenReturn(scope);
+	
 		when(appContext.getBean("web.handler")).thenReturn(appFactory);
 		
 		wsHandlerReal = new WebSocketEndpoint(appContext);
+		wsHandlerReal.setAppAdaptor(adaptor);
+		
+		dataStore = new InMemoryDataStore("junit");
+		when(adaptor.getDataStore()).thenReturn(dataStore);
+		
 		wsHandler = Mockito.spy(wsHandlerReal);
 
+		
 		session = mock(Session.class);
 		basicRemote = mock(RemoteEndpoint.Basic.class);
 		when(session.getBasicRemote()).thenReturn(basicRemote);
+		
 
 		userProperties = new HashMap<>();
 		when(session.getUserProperties()).thenReturn(userProperties);
@@ -122,6 +152,78 @@ public class WebSocketCommunityHandlerTest {
 	}
 	
 	@Test
+	public void testSendStreamIdInUse() {
+		
+		//case status broadcasting
+		String streamId = "streamId" + (int)(Math.random()*10000);
+		JSONObject publishObject = new JSONObject();
+		publishObject.put(WebSocketConstants.COMMAND, WebSocketConstants.PUBLISH_COMMAND);
+		publishObject.put(WebSocketConstants.STREAM_ID, streamId);
+		
+		Broadcast broadcast = new Broadcast();
+		try {
+			broadcast.setStreamId(streamId);
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+		
+		dataStore.save(broadcast);
+		wsHandler.onMessage(session, publishObject.toJSONString());
+
+		verify(wsHandler).sendStreamIdInUse(session);
+		
+		
+		//case status preparing
+		streamId = "streamId" + (int)(Math.random()*10000);
+		broadcast = new Broadcast();
+		try {
+			broadcast.setStreamId(streamId);
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_PREPARING);
+		publishObject.put(WebSocketConstants.STREAM_ID, streamId);
+		dataStore.save(broadcast);
+		
+		wsHandler.onMessage(session, publishObject.toJSONString());
+
+		verify(wsHandler, Mockito.times(2)).sendStreamIdInUse(session);
+		
+		
+		// case no status
+		streamId = "streamId" + (int)(Math.random()*10000);
+		broadcast = new Broadcast();
+		try {
+			broadcast.setStreamId(streamId);
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		publishObject.put(WebSocketConstants.STREAM_ID, streamId);
+		dataStore.save(broadcast);
+		
+		wsHandler.onMessage(session, publishObject.toJSONString());
+
+		verify(wsHandler, Mockito.times(2)).sendStreamIdInUse(session);
+		
+		
+		
+		// case no status
+		streamId = "streamId" + (int)(Math.random()*10000);
+
+		publishObject.put(WebSocketConstants.STREAM_ID, streamId);
+		
+		wsHandler.onMessage(session, publishObject.toJSONString());
+
+		verify(wsHandler, Mockito.times(2)).sendStreamIdInUse(session);
+				
+		
+	}
+	
+	@Test
 	public void testGetStreamInfo() {
 		JSONObject publishObject = new JSONObject();
 		publishObject.put(WebSocketConstants.COMMAND, WebSocketConstants.GET_STREAM_INFO_COMMAND);
@@ -143,7 +245,6 @@ public class WebSocketCommunityHandlerTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-		
 	}
 	
 	@Test

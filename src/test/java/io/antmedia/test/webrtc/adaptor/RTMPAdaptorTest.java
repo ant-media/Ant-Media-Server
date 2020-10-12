@@ -232,9 +232,8 @@ public class RTMPAdaptorTest {
 		rtmpAdaptor.start();
 
 
-
 		Awaitility.await().pollDelay(1, TimeUnit.SECONDS)
-		.atMost(10, TimeUnit.SECONDS)
+		.atMost(20, TimeUnit.SECONDS)
 		.until(() -> rtmpAdaptor.isStarted());
 
 
@@ -245,13 +244,13 @@ public class RTMPAdaptorTest {
 		rtmpAdaptor.stop();
 
 		Awaitility.await().pollDelay(1, TimeUnit.SECONDS)
-		.atMost(10, TimeUnit.SECONDS)
+		.atMost(20, TimeUnit.SECONDS)
 		.until(() -> rtmpAdaptor.getAudioDataSchedulerFuture().isCancelled());
 
 		assertTrue(rtmpAdaptor.getAudioDataSchedulerFuture().isCancelled());
 
 		Awaitility.await().pollDelay(1, TimeUnit.SECONDS)
-		.atMost(10, TimeUnit.SECONDS)
+		.atMost(20, TimeUnit.SECONDS)
 		.until(() -> rtmpAdaptor.isStopped());
 
 	}
@@ -316,6 +315,28 @@ public class RTMPAdaptorTest {
 		}
 
 
+	}
+	
+	@Test
+	public void testCallStopMultipletime() {
+		FFmpegFrameRecorder recorder = mock(FFmpegFrameRecorder.class);
+
+		WebSocketCommunityHandler webSocketHandler = getSpyWebSocketHandler();
+
+		RTMPAdaptor adaptorReal = new RTMPAdaptor("rtmp_url", webSocketHandler, 360);
+		
+		adaptorReal.setSession(mock(Session.class));
+		
+		adaptorReal.start();
+
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> adaptorReal.isStarted());
+		
+		adaptorReal.stop();
+		
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> adaptorReal.getSignallingExecutor().isShutdown());
+		
+		adaptorReal.stop();
+		
 	}
 
 	@Test
@@ -456,20 +477,36 @@ public class RTMPAdaptorTest {
 	public void testInitializeRecorder() {
 		
 		String rtmpUrl = "rtmp://"+(int)(Math.random()*10000);
-		RTMPAdaptor adaptor = new RTMPAdaptor(rtmpUrl, null, 480);
+		
+		Session session = Mockito.mock(Session.class);
+		WebSocketCommunityHandler handler = getSpyWebSocketHandler(); //Mockito.spy(new WebSocketCommunityHandler(null, session));
+		handler.setSession(session);
+		
+		RTMPAdaptor adaptor = new RTMPAdaptor(rtmpUrl, handler, 480);
+		String streamId = "stream" + (int)(Math.random()*1000);
+		adaptor.setStreamId(streamId);
+		adaptor.setSession(session);
 		RTMPAdaptor adaptorSpy = Mockito.spy(adaptor);
 		
 		VideoFrame frame = Mockito.mock(VideoFrame.class);
 		when(frame.getRotatedWidth()).thenReturn(480);
 		when(frame.getRotatedHeight()).thenReturn(360);
+		
+		Mockito.doNothing().when(adaptorSpy).stop();
 				
 		adaptorSpy.initializeRecorder(frame);
 		verify(adaptorSpy).getNewRecorder(rtmpUrl, 640, 480);
 		
+		//stop should be called because rtmp url is not valid
+		verify(adaptorSpy).stop();
+		
 		adaptorSpy.initializeRecorder(frame);
 		verify(adaptorSpy, Mockito.times(1)).getNewRecorder(rtmpUrl, 640, 480);
+		verify(handler).sendServerError(streamId, session);
 		
 	}
+	
+	
 	
 	/*
 	 * This test is only for sonar coverage for now. Because tested class is mock and not doing anything
