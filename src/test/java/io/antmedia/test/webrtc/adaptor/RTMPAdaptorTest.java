@@ -477,7 +477,8 @@ public class RTMPAdaptorTest {
 	public void testInitializeRecorder() {
 		
 		String rtmpUrl = "rtmp://"+(int)(Math.random()*10000);
-		RTMPAdaptor adaptor = new RTMPAdaptor(rtmpUrl, null, 480);
+		WebSocketCommunityHandler handler = mock(WebSocketCommunityHandler.class);
+		RTMPAdaptor adaptor = new RTMPAdaptor(rtmpUrl, handler, 480);
 		RTMPAdaptor adaptorSpy = Mockito.spy(adaptor);
 		
 		VideoFrame frame = Mockito.mock(VideoFrame.class);
