@@ -396,4 +396,9 @@ public class WebSocketCommunityHandler {
 		sendMessage(jsonResponse.toJSONString(), session);
 		
 	}
+
+	public void setSession(Session session) {
+		this.session = session;
+		
+	}
 }

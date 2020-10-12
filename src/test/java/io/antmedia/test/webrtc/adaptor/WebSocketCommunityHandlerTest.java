@@ -154,6 +154,7 @@ public class WebSocketCommunityHandlerTest {
 	@Test
 	public void testSendStreamIdInUse() {
 		
+		//case status broadcasting
 		String streamId = "streamId" + (int)(Math.random()*10000);
 		JSONObject publishObject = new JSONObject();
 		publishObject.put(WebSocketConstants.COMMAND, WebSocketConstants.PUBLISH_COMMAND);
@@ -174,7 +175,7 @@ public class WebSocketCommunityHandlerTest {
 		verify(wsHandler).sendStreamIdInUse(session);
 		
 		
-		
+		//case status preparing
 		streamId = "streamId" + (int)(Math.random()*10000);
 		broadcast = new Broadcast();
 		try {
@@ -184,12 +185,41 @@ public class WebSocketCommunityHandlerTest {
 			fail(e.getMessage());
 		}
 		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_PREPARING);
+		publishObject.put(WebSocketConstants.STREAM_ID, streamId);
 		dataStore.save(broadcast);
 		
 		wsHandler.onMessage(session, publishObject.toJSONString());
 
 		verify(wsHandler, Mockito.times(2)).sendStreamIdInUse(session);
 		
+		
+		// case no status
+		streamId = "streamId" + (int)(Math.random()*10000);
+		broadcast = new Broadcast();
+		try {
+			broadcast.setStreamId(streamId);
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		publishObject.put(WebSocketConstants.STREAM_ID, streamId);
+		dataStore.save(broadcast);
+		
+		wsHandler.onMessage(session, publishObject.toJSONString());
+
+		verify(wsHandler, Mockito.times(2)).sendStreamIdInUse(session);
+		
+		
+		
+		// case no status
+		streamId = "streamId" + (int)(Math.random()*10000);
+
+		publishObject.put(WebSocketConstants.STREAM_ID, streamId);
+		
+		wsHandler.onMessage(session, publishObject.toJSONString());
+
+		verify(wsHandler, Mockito.times(2)).sendStreamIdInUse(session);
+				
 		
 	}
 	

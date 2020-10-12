@@ -477,8 +477,15 @@ public class RTMPAdaptorTest {
 	public void testInitializeRecorder() {
 		
 		String rtmpUrl = "rtmp://"+(int)(Math.random()*10000);
-		WebSocketCommunityHandler handler = mock(WebSocketCommunityHandler.class);
+		
+		Session session = Mockito.mock(Session.class);
+		WebSocketCommunityHandler handler = getSpyWebSocketHandler(); //Mockito.spy(new WebSocketCommunityHandler(null, session));
+		handler.setSession(session);
+		
 		RTMPAdaptor adaptor = new RTMPAdaptor(rtmpUrl, handler, 480);
+		String streamId = "stream" + (int)(Math.random()*1000);
+		adaptor.setStreamId(streamId);
+		adaptor.setSession(session);
 		RTMPAdaptor adaptorSpy = Mockito.spy(adaptor);
 		
 		VideoFrame frame = Mockito.mock(VideoFrame.class);
@@ -495,6 +502,7 @@ public class RTMPAdaptorTest {
 		
 		adaptorSpy.initializeRecorder(frame);
 		verify(adaptorSpy, Mockito.times(1)).getNewRecorder(rtmpUrl, 640, 480);
+		verify(handler).sendServerError(streamId, session);
 		
 	}
 	
