@@ -159,6 +159,8 @@ renew_certificate(){
    output
 }
 
+# We don't need keystore and truststore for Tomcat. We can use full chain and private key file directly. 
+# However we need to have keystore and truststore for rtmps.  
 
 auth_tomcat(){
     echo ""
@@ -231,6 +233,16 @@ auth_tomcat(){
   
   $SUDO sed -i "/rtmps.truststorepass=/c\rtmps.truststorepass=$password"  $INSTALL_DIRECTORY/conf/red5.properties
   output
+  
+  
+  $SUDO cp $FULL_CHAIN_FILE $INSTALL_DIRECTORY/conf/fullchain.pem
+  output
+  $SUDO chown antmedia:antmedia $INSTALL_DIRECTORY/conf/fullchain.pem
+  
+  
+  $SUDO cp $PRIVATE_KEY_FILE $INSTALL_DIRECTORY/conf/privkey.pem
+  output
+  $SUDO chown antmedia:antmedia $INSTALL_DIRECTORY/conf/privkey.pem
   
   #uncomment ssl part in jee-container.xml
   $SUDO sed -i -E -e 's/(<!-- https start|<!-- https start -->)/<!-- https start -->/g' $INSTALL_DIRECTORY/conf/jee-container.xml

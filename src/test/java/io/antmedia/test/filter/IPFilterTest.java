@@ -2,6 +2,8 @@ package io.antmedia.test.filter;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 import java.io.IOException;
 import java.util.concurrent.Executors;
@@ -19,8 +21,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.web.context.ConfigurableWebApplicationContext;
+
 
 import io.antmedia.AppSettings;
+import io.antmedia.datastore.db.DataStore;
+import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.filter.IPFilter;
 
 public class IPFilterTest {
@@ -39,9 +45,49 @@ public class IPFilterTest {
 
 		 Mockito.doReturn(null).when(ipFilter).getAppSettings();
 		 assertFalse(ipFilter.isAllowed("127.0.0.1"));
-		 
-		 
 		
+	}
+	
+	@Test
+	public void testDataStoreClosed() 
+	{
+		 IPFilter ipFilter = Mockito.spy(new IPFilter());
+		 ConfigurableWebApplicationContext webAppContext = Mockito.mock(ConfigurableWebApplicationContext.class);
+		
+		 
+		 DataStoreFactory dtFactory = Mockito.mock(DataStoreFactory.class);
+		 DataStore dtStore = Mockito.mock(DataStore.class);
+		 
+		 Mockito.when(dtFactory.getDataStore()).thenReturn(dtStore);
+		 Mockito.when(dtStore.isAvailable()).thenReturn(true);
+		 
+		 //make webApplicationContext null
+		 Mockito.doReturn(null).when(ipFilter).getWebApplicationContext();
+		 //it should be null because no context
+		 assertNull(ipFilter.getAppContext());
+		 
+		 Mockito.doReturn(webAppContext).when(ipFilter).getWebApplicationContext();
+		 //make context running false
+		 Mockito.when(webAppContext.isRunning()).thenReturn(false);
+		 //it should be false because context is not running
+		 assertNull(ipFilter.getAppContext());
+		 
+		 //make context running true
+		 Mockito.when(webAppContext.isRunning()).thenReturn(true);
+		 //it should not return  null because there is no datastorefactory is null which means it's not instance of IDataStoreFactory
+		 assertNotNull(ipFilter.getAppContext());
+		 
+
+		 //Make datastorefactory available
+		 Mockito.doReturn(dtFactory).when(webAppContext).getBean(DataStoreFactory.BEAN_NAME);
+		 //it should return notnull because everything is ok
+		 assertNotNull(ipFilter.getAppContext());
+		 
+		 //make data store not available
+		 Mockito.when(dtStore.isAvailable()).thenReturn(false);
+		 //it should be null because datastore is not available.
+		 assertNull(ipFilter.getAppContext());
+		 
 	}
 	
 	

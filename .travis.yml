@@ -1,8 +1,10 @@
 dist: bionic
 language: java
 jdk:
-  - openjdk8
+  - openjdk11
 
+git:
+  depth: false
 
 # Sonar cloud addons on travis has some issues so that it's used directly 
 addons:
@@ -57,17 +59,42 @@ before_install:
        cd ..;
      else
        echo "branch not found. Using version in sonatype"; 
-    fi) 
-   
-  - git clone --depth=1 https://github.com/ant-media/red5-plugins.git && cd red5-plugins/tomcat/ && mvn clean install -Dmaven.javadoc.skip=true -Dmaven.test.skip=true --quiet && cd ../..
+    fi)
+     
+    #get red5-plugins project
+  - (if [ $(git ls-remote https://github.com/ant-media/red5-plugins.git $TRAVIS_BRANCH  | wc -l) == "1" ];  
+     then 
+       echo " $TRAVIS_BRANCH branch found";  
+       git clone --depth=1 -b $TRAVIS_BRANCH https://github.com/ant-media/red5-plugins.git; 
+     else
+       echo "branch not found"; 
+       git clone --depth=1 https://github.com/ant-media/red5-plugins.git;
+    fi)
+  - cd red5-plugins/tomcat/
+  - mvn clean install -Dmaven.javadoc.skip=true -Dmaven.test.skip=true -Dgpg.skip=true --quiet 
+  - cd ../..    
   - mvn clean package -U -P assemble -Dmaven.javadoc.skip=true -Dmaven.test.skip=true -DskipTests=true --quiet
-  - wget https://raw.githubusercontent.com/ant-media/Scripts/master/install_ant-media-server.sh -O target/install_ant-media-server.sh  # install script
+  
+    #get install script
+  - (if [ $(git ls-remote https://github.com/ant-media/Scripts.git $TRAVIS_BRANCH  | wc -l) == "1" ];  
+     then 
+       echo " $TRAVIS_BRANCH branch found";  
+       wget https://raw.githubusercontent.com/ant-media/Scripts/$TRAVIS_BRANCH/install_ant-media-server.sh -O target/install_ant-media-server.sh;
+     else
+       echo "branch not found"; 
+       wget https://raw.githubusercontent.com/ant-media/Scripts/master/install_ant-media-server.sh -O target/install_ant-media-server.sh;
+    fi)
+
   - chmod 755 target/install_ant-media-server.sh
   - cd target 
   - ./install_ant-media-server.sh ant-media-server-community*.zip
   - cd ..
   - echo "Waiting a little to make sure server is started "
   - sleep 20
+  - (if [[ -f /usr/local/antmedia/log/antmedia-error.log ]];
+      then 
+        sudo cat /usr/local/antmedia/log/antmedia-error.log;
+    fi)
   - sudo cat /usr/local/antmedia/log/ant-media-server.log
   - sudo cp src/test/resources/preset-red5-web.properties  /usr/local/antmedia/webapps/LiveApp/WEB-INF/red5-web.properties
   - sudo cp src/test/resources/preset-red5-web.db  /usr/local/antmedia/liveapp.db
@@ -80,11 +107,15 @@ before_install:
 
 install:
   - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -Dgpg.skip=true -B -V --quiet
+
+before_script:
+  - sudo chmod -R 777 /tmp
+  
   
 script:
   - export RELEASE_VERSION="$(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)"
   - echo $RELEASE_VERSION
-  - mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent package org.jacoco:jacoco-maven-plugin:report sonar:sonar -Dmaven.javadoc.skip=true
+  - mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent package  org.jacoco:jacoco-maven-plugin:report sonar:sonar -Dmaven.javadoc.skip=true
 # option to add above (-Dtest="MuxerUnitTest")  for running custom tests
 
 
@@ -96,6 +127,7 @@ cache:
 after_failure:
   - sudo cat /usr/local/antmedia/log/ant-media-server.log
   - sudo cat /usr/local/antmedia/hs_err_pid*.log  # cat hs_err_pid file if it exists
+  - sudo cat hs_err_pid*.log  # cat hs_err_pid file if it exists
 
 deploy:
   - provider: script
