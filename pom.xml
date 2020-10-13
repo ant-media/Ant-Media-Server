@@ -403,7 +403,7 @@
         </dependency>
         <!-- Runtime plugin deps -->
         <dependency>
-            <groupId>org.red5</groupId>
+            <groupId>io.antmedia</groupId>
             <artifactId>tomcatplugin</artifactId>
             <version>${tomcatplugin.version}</version>
             <scope>provided</scope>
