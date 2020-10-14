@@ -1887,32 +1887,7 @@ public abstract class RestServiceBase {
 			return false;
 		}
 	}
-
-	public static long getEndDate(String roomId, String streamId,DataStore store) {
-		long endDate = 0;
-		if (roomId != null) {
-			ConferenceRoom conferenceRoom = store.getConferenceRoom(roomId);
-			if (conferenceRoom == null) {
-				logger.warn("There is no room with id:{}", roomId.replaceAll("[\n|\r|\t]", "_"));
-				return endDate;
-			}
-			endDate = conferenceRoom.getEndDate();
-		}
-		return endDate;
-	}
-	public static long getStartDate(String roomId, String streamId,DataStore store) {
-		long startDate = 0;
-		if (roomId != null) {
-			ConferenceRoom conferenceRoom = store.getConferenceRoom(roomId);
-			if (conferenceRoom == null) {
-				logger.warn("There is no room with id:{}", roomId.replaceAll("[\n|\r|\t]", "_"));
-				return startDate;
-			}
-			startDate = conferenceRoom.getStartDate();
-		}
-		return startDate;
-	}
-
+	
 	public static List<String> getRoomInfoFromConference(String roomId, String streamId,DataStore store){
 		List<String> streamIdList = null;
 		if (roomId != null)
