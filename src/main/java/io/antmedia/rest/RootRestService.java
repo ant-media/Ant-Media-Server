@@ -5,6 +5,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
+import io.antmedia.datastore.db.types.ConferenceRoom;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -52,15 +53,24 @@ public class RootRestService extends RestServiceBase {
 	public static class RoomInfo{
 		private String roomId;
 		private List<String> streamIds;
+		private long endDate;
+		private long startDate;
 
-		public RoomInfo(String roomId, List<String> streamIds) {
+		public RoomInfo(String roomId, List<String> streamIds, ConferenceRoom room) {
 			this.roomId = roomId;
 			this.streamIds = streamIds;
+			this.endDate = room.getEndDate();
+			this.startDate = room.getStartDate();
 		}
 
 		public String getRoomId() {
+
 			return roomId;
 		}
+
+		public long getEndDate() { return endDate; }
+
+		public long getStartDate() { return startDate;}
 
 		public void setRoomId(String roomId) {
 			this.roomId = roomId;
