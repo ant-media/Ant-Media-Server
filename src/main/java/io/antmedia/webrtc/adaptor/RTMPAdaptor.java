@@ -97,6 +97,9 @@ public class RTMPAdaptor extends Adaptor {
 			recorder.start();
 		} catch (FrameRecorder.Exception e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
+			webSocketCommunityHandler.sendServerError(getStreamId(), getSession());
+			//close the connection because it's useless
+			stop();
 		}
 
 		return recorder;
