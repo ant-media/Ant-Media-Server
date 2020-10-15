@@ -128,6 +128,7 @@ get_new_certificate(){
         output
           
       elif [ "$ID" == "centos" ]; then
+        $SUDO yum -y install epel-release
         $SUDO yum -y install certbot
         output
       fi
