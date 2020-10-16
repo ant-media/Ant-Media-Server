@@ -52,14 +52,16 @@ public class RootRestService extends RestServiceBase {
 	public static class RoomInfo{
 		private String roomId;
 		private List<String> streamIds;
-		private long endDate;
-		private long startDate;
+		private long endDate = 0;
+		private long startDate = 0;
 
 		public RoomInfo(String roomId, List<String> streamIds, ConferenceRoom room) {
 			this.roomId = roomId;
 			this.streamIds = streamIds;
-			this.endDate = room.getEndDate();
-			this.startDate = room.getStartDate();
+			if(room != null) {
+				this.endDate = room.getEndDate();
+				this.startDate = room.getStartDate();
+			}
 		}
 
 		public String getRoomId() {
