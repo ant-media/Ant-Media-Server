@@ -57,7 +57,7 @@ public class RootRestService extends RestServiceBase {
 
 		public RoomInfo(String roomId, List<String> streamIds, ConferenceRoom room) {
 			this.roomId = roomId;
-			this.streamIds = streamIds;
+			this.streamIds = room.getRoomStreamList();
 			this.endDate = room.getEndDate();
 			this.startDate = room.getStartDate();
 		}
