@@ -1100,7 +1100,8 @@ public class BroadcastRestService extends RestServiceBase{
 	@Produces(MediaType.APPLICATION_JSON)
 	public RootRestService.RoomInfo getRoomInfo(@ApiParam(value="Room id", required=true) @PathParam("room_id") String roomId,
 												@ApiParam(value="If Stream Id is entered, that stream id will be isolated from the result",required = false) @QueryParam("streamId") String streamId){
-		return new RootRestService.RoomInfo(roomId,RestServiceBase.getRoomInfoFromConference(roomId,streamId,getDataStore()));
+		ConferenceRoom room = getDataStore().getConferenceRoom(roomId);
+		return new RootRestService.RoomInfo(roomId,RestServiceBase.getRoomInfoFromConference(roomId,streamId,getDataStore()), room);
 	}
 
 	@ApiOperation(value="Adds the specified stream with streamId to the room. ",response = Result.class)
