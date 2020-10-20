@@ -6,6 +6,9 @@ import static org.bytedeco.ffmpeg.global.avformat.avformat_close_input;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_find_stream_info;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_network_init;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_open_input;
+import static org.bytedeco.ffmpeg.global.avformat.av_dump_format;
+import static org.bytedeco.ffmpeg.global.avutil.av_dict_set;
+import static org.bytedeco.ffmpeg.global.avutil.av_strerror;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
 import static org.bytedeco.ffmpeg.global.avutil.AV_NOPTS_VALUE;
@@ -544,6 +547,14 @@ public class MuxingTest {
 		int ret;
 		System.out.println("Tested File:"+absolutePath);
 
+		//AVDictionary dic = null;
+		
+		/*
+		if(absolutePath.contains("mpd")) {
+			findInputFormat = avformat.av_find_input_format("dash");
+			av_dict_set(dic, "protocol_whitelist","mpd,mpeg,dash,m4s", 0);
+		}
+*/
 		AVFormatContext inputFormatContext = avformat.avformat_alloc_context();
 		if (inputFormatContext == null) {
 			System.out.println("cannot allocate input context");
@@ -554,6 +565,14 @@ public class MuxingTest {
 			System.out.println("cannot open input context: " + absolutePath);
 			return false;
 		}
+		
+		/*
+			byte[] data = new byte[2048];
+			av_strerror(ret, data, data.length);
+			throw new IllegalStateException("cannot open input context. Error is " + new String(data, 0, data.length));
+		 */
+	
+		//av_dump_format(inputFormatContext,0,"test",0);
 
 		ret = avformat_find_stream_info(inputFormatContext, (AVDictionary) null);
 		if (ret < 0) {
