@@ -62,8 +62,6 @@ public class Launcher {
 	 */
 	public void launch()  {
 
-		av_register_all();
-		avformat.avformat_network_init();
 		avutil.av_log_set_level(avutil.AV_LOG_ERROR);
 		// check for the logback disable flag
 		boolean useLogback = Boolean.parseBoolean(System.getProperty("useLogback", "true"));
