@@ -1464,10 +1464,13 @@ public class BroadcastRestServiceV2UnitTest {
         
         MuxAdaptor mockMuxAdaptor = Mockito.mock(MuxAdaptor.class);
         doReturn(mockMuxAdaptor).when(restServiceSpy).getMuxAdaptor(streamId);
+        doReturn(true).when(mockMuxAdaptor).startRecording(RecordType.WEBM);
         when(mockMuxAdaptor.getStreamId()).thenReturn(streamId);
 
 
-        restServiceSpy.enableWebMMuxing(streamId, true).isSuccess();
+        Result result=restServiceSpy.enableWebMMuxing(streamId, true);
+        assertTrue(result.isSuccess());
+        assertNotNull(result.getMessage());
         verify(mockMuxAdaptor, times(1)).startRecording(RecordType.WEBM);
         assertEquals(MuxAdaptor.RECORDING_ENABLED_FOR_STREAM, store.get(streamId).getWebMEnabled());
         
