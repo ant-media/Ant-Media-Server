@@ -1,6 +1,13 @@
 package io.antmedia.statistic;
 
-import static org.bytedeco.cuda.global.nvml.*;
+import static org.bytedeco.cuda.global.nvml.NVML_SUCCESS;
+import static org.bytedeco.cuda.global.nvml.nvmlDeviceGetCount_v2;
+import static org.bytedeco.cuda.global.nvml.nvmlDeviceGetHandleByIndex_v2;
+import static org.bytedeco.cuda.global.nvml.nvmlDeviceGetMemoryInfo;
+import static org.bytedeco.cuda.global.nvml.nvmlDeviceGetName;
+import static org.bytedeco.cuda.global.nvml.nvmlDeviceGetUtilizationRates;
+import static org.bytedeco.cuda.global.nvml.nvmlInit_v2;
+
 import org.bytedeco.cuda.global.nvml;
 import org.bytedeco.cuda.nvml.nvmlDevice_st;
 import org.bytedeco.cuda.nvml.nvmlMemory_t;
@@ -51,7 +58,7 @@ public class GPUUtils {
 			instance = new GPUUtils();
 
 			try {
-				Class.forName("org.bytedeco.javacpp.nvml");
+				Class.forName("org.bytedeco.cuda.global.nvml");
 
 				Loader.load(nvml.class);
 				int result = nvmlInit_v2();

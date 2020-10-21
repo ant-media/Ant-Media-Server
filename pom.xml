@@ -443,6 +443,7 @@
 			<groupId>org.bytedeco</groupId>
 			<artifactId>cuda-platform</artifactId>
 			<version>${javacpp.cuda.version}</version>
+			<scope>provided</scope>
 		</dependency>
         <dependency>
             <groupId>io.antmedia.api.periscope</groupId>
