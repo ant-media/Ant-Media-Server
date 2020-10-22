@@ -50,19 +50,18 @@ Ant Media Server is an open source media server that supports:
 ### [Ant Media Server Community 2.2.0 (Oct 21, 2020)](https://github.com/ant-media/Ant-Media-Server/releases/download/ams-v2.2.0/ant-media-server-2.2.0-community-2.2.0-20201021_1516.zip) 
 
 Changelog - including Enterprise Edition
-- Support CMAF in DASH https://github.com/ant-media/Ant-Media-Server/issues/2471, https://github.com/ant-media/Ant-Media-Server/issues/2440
-- Update from Java 8 to Java 11 https://github.com/ant-media/Ant-Media-Server/issues/2394, https://github.com/ant-media/Ant-Media-Server/issues/2458
-- Tomcat performance improvement with APR and SSL https://github.com/ant-media/Ant-Media-Server/issues/2525
-- Support Kubernetes https://github.com/ant-media/Ant-Media-Server/issues/2390, https://github.com/ant-media/Ant-Media-Server/pull/2464
--  Create REST method equivalent of WebSocket's getRoomInfo https://github.com/ant-media/Ant-Media-Server/issues/2463, https://github.com/ant-media/Ant-Media-Server/issues/2596
--  Update default STUN server https://github.com/ant-media/Ant-Media-Server/issues/2472
--  Tomcat version is updated to 8.5.58 https://github.com/ant-media/Ant-Media-Server/issues/2447
--  Support custom resolutions from WebRTC to RTMP in Community Edition https://github.com/ant-media/Ant-Media-Server/issues/2485
-- Fix number of Viewers decrease less than zero https://github.com/ant-media/Ant-Media-Server/pull/2438
-- HLS token problem in Cluster https://github.com/ant-media/Ant-Media-Server/pull/2432
-- Support WebRTC and HLS Viewer Limit in Broadcasts https://github.com/ant-media/Ant-Media-Server/issues/2389
-
- [Full ChangeLog](https://github.com/ant-media/Ant-Media-Server/releases/tag/ams-v2.2.0) 
+- Support CMAF in DASH [2471](https://github.com/ant-media/Ant-Media-Server/issues/2471), [2440](https://github.com/ant-media/Ant-Media-Server/issues/2440)
+- Update from Java 8 to Java 11 [2394](https://github.com/ant-media/Ant-Media-Server/issues/2394), [2458](https://github.com/ant-media/Ant-Media-Server/issues/2458)
+- Tomcat performance improvement with APR and SSL [2525](https://github.com/ant-media/Ant-Media-Server/issues/2525)
+- Support Kubernetes [2390](https://github.com/ant-media/Ant-Media-Server/issues/2390), [2464](https://github.com/ant-media/Ant-Media-Server/pull/2464)
+-  Create REST method equivalent of WebSocket's getRoomInfo [2463](https://github.com/ant-media/Ant-Media-Server/issues/2463), [2596](https://github.com/ant-media/Ant-Media-Server/issues/2596)
+-  Update default STUN server [2472](https://github.com/ant-media/Ant-Media-Server/issues/2472)
+-  Tomcat version is updated to 8.5.58 [2447](https://github.com/ant-media/Ant-Media-Server/issues/2447)
+-  Support custom resolutions from WebRTC to RTMP in Community Edition [2485](https://github.com/ant-media/Ant-Media-Server/issues/2485)
+- Fix number of Viewers decrease less than zero [2438](https://github.com/ant-media/Ant-Media-Server/pull/2438)
+- HLS token problem in Cluster [2432](https://github.com/ant-media/Ant-Media-Server/pull/2432)
+- Support WebRTC and HLS Viewer Limit in Broadcasts [2489](https://github.com/ant-media/Ant-Media-Server/issues/2389)
+[Full ChangeLog](https://github.com/ant-media/Ant-Media-Server/releases/tag/ams-v2.2.0) 
 
 
 ### [Ant Media Server Community 2.1.0 (July 20, 2020)](https://github.com/ant-media/Ant-Media-Server/releases/download/ams-v2.1.0/ant-media-server-2.1.0-community-2.1.0-20200720_1340.zip) 
@@ -76,8 +75,7 @@ Features
 * Check broadcast start and end time before accepting the WebRTC Stream [#2181](https://github.com/ant-media/Ant-Media-Server/issues/2181)
 * Update video.js to the latest version for HLS and MP4 playback [#2231](https://github.com/ant-media/Ant-Media-Server/issues/2231)
 * Create a REST method that can send message to the viewers through Data channel [#2026](https://github.com/ant-media/Ant-Media-Server/issues/2026)
-
- [Full ChangeLog](https://github.com/ant-media/Ant-Media-Server/releases/tag/ams-v2.1.0) 
+[Full ChangeLog](https://github.com/ant-media/Ant-Media-Server/releases/tag/ams-v2.1.0) 
 
 ### [Ant Media Server Community 2.0.0 (May 4, 2020)](https://github.com/ant-media/Ant-Media-Server/releases/download/ams-v2.0.0/ant-media-server-2.0.0-community-2.0.0-20200504_1842.zip)
 * VP8 Support in Playing, Ingesting, Transcoding and Clustering [#1816](https://github.com/ant-media/Ant-Media-Server/issues/1816) [#1962](https://github.com/ant-media/Ant-Media-Server/issues/1962) [#2013](https://github.com/ant-media/Ant-Media-Server/issues/2013) [#1994](https://github.com/ant-media/Ant-Media-Server/issues/1994) 
@@ -86,8 +84,7 @@ Features
 * WebRTC Stack is updated to WebRTC M79 [#1818](https://github.com/ant-media/Ant-Media-Server/issues/1818) [#1838](https://github.com/ant-media/Ant-Media-Server/issues/1838) [#1827](https://github.com/ant-media/Ant-Media-Server/issues/1827) 
 * Official Ubuntu 18.04 support [#1655](https://github.com/ant-media/Ant-Media-Server/issues/1655)
 * Cluster Monitoring Support [#1897](https://github.com/ant-media/Ant-Media-Server/issues/1897) 
-
- [Full ChangeLog](https://github.com/ant-media/Ant-Media-Server/releases/tag/ams-v2.0.0) 
+[Full ChangeLog](https://github.com/ant-media/Ant-Media-Server/releases/tag/ams-v2.0.0) 
 
 
 Previous releases
