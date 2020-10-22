@@ -6,6 +6,9 @@ import static org.bytedeco.ffmpeg.global.avformat.avformat_close_input;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_find_stream_info;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_network_init;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_open_input;
+import static org.bytedeco.ffmpeg.global.avformat.av_dump_format;
+import static org.bytedeco.ffmpeg.global.avutil.av_dict_set;
+import static org.bytedeco.ffmpeg.global.avutil.av_strerror;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
 import static org.bytedeco.ffmpeg.global.avutil.AV_NOPTS_VALUE;
@@ -18,6 +21,7 @@ import static org.junit.Assert.fail;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.ProcessHandle.Info;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.concurrent.TimeUnit;
@@ -136,25 +140,27 @@ public class MuxingTest {
 
 		try {
 			Thread.sleep(5000);
+			Info processInfo = rtmpSendingProcess.info();
 
 			// stop rtmp streaming
 			rtmpSendingProcess.destroy();
-
+			int duration = (int)(System.currentTimeMillis() - processInfo.startInstant().get().toEpochMilli());
+			
 			// check that stream can be watchable by hls
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> 
-				testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".m3u8", 5000)
+				testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".m3u8", duration)
 			);
 			
 			// check that mp4 is created successfully and can be playable
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> 
-				testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".mp4", 5000)
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() ->
+				testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".mp4", duration)
 			);
 
 		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
+		Awaitility.await().atMost(55, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> { 
 			RestServiceV2Test restService = new RestServiceV2Test();
 
 			return 0 == restService.callGetLiveStatistics();
@@ -178,12 +184,12 @@ public class MuxingTest {
 			// stop rtmp streaming
 			rtmpSendingProcess.destroy();
 
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
+			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
 				return testFile("rtmp://" + SERVER_ADDR + "/LiveApp/" + streamName + ".mp4");
 			});
 
 			// check that mp4 is not created
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
+			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
 				return testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".mp4");
 			});
 			
@@ -192,7 +198,7 @@ public class MuxingTest {
 			e.printStackTrace();
 		}
 		
-		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
+		Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
 			RestServiceV2Test restService = new RestServiceV2Test();
 
 			return 0 == restService.callGetLiveStatistics();
@@ -215,23 +221,30 @@ public class MuxingTest {
 							+ SERVER_ADDR + "/LiveApp/" + streamName2);
 
 			Thread.sleep(5000);
+			
+			long rtmpSendingProcessStartTime = rtmpSendingProcess.info().startInstant().get().toEpochMilli();
 
+			long rtmpSendingProcessStartTime2 = rtmpSendingProcess2.info().startInstant().get().toEpochMilli();
 			rtmpSendingProcess.destroy();
+			int duration1 = (int)(System.currentTimeMillis() - rtmpSendingProcessStartTime);
+			
 			rtmpSendingProcess2.destroy();
+			int duration2 = (int)(System.currentTimeMillis() - rtmpSendingProcessStartTime2);
 
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> 
-				 testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName1 + ".mp4", 6000)
+			Awaitility.await().atMost(35, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> 
+				 testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName1 + ".mp4", duration1)
 			);
 			
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> 
-				testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName2 + ".mp4", 6000)
+			Awaitility.await().atMost(35, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> 
+				testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName2 + ".mp4", duration2)
 			);
 
 		} catch (Exception e) {
 			e.printStackTrace();
+			fail(e.getMessage());
 		}
 		
-		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
+		Awaitility.await().atMost(140, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
 			RestServiceV2Test restService = new RestServiceV2Test();
 
 			return 0 == restService.callGetLiveStatistics();
@@ -254,25 +267,25 @@ public class MuxingTest {
 			// stop rtmp streaming
 			rtmpSendingProcess.destroy();
 			
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> 
+			Awaitility.await().atMost(40, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> 
 				testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".m3u8")
 			);
 			
 			// check that mp4 is created
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> 
+			Awaitility.await().atMost(40, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> 
 				testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".mp4")
 			);
 			
 			assertTrue(testFile("rtmp://" + SERVER_ADDR + "/LiveApp/" + streamName + ".mp4"));
 
 		} catch (Exception e) {
-			fail(e.getMessage());
 			e.printStackTrace();
+			fail(e.getMessage());
 		}
 		
 		//wait a little more to let server update statistics
 		
-		Awaitility.await().atMost(10, TimeUnit.SECONDS)
+		Awaitility.await().atMost(90, TimeUnit.SECONDS)
 			.pollInterval(1, TimeUnit.SECONDS)
 			.until(() -> {
 				RestServiceV2Test restService = new RestServiceV2Test();
@@ -304,25 +317,29 @@ public class MuxingTest {
 			
 
 			// check that stream can be watchable by hls
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+			Awaitility.await().atMost(45, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
 			.until(() -> testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".m3u8"));
 
 			// stop rtmp streaming
 			rtmpSendingProcess.destroy();
 
 			// check that mp4 is created successfully and can be playable
-			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(4, TimeUnit.SECONDS).until(()->{
+			Awaitility.await().atMost(45, TimeUnit.SECONDS).pollInterval(4, TimeUnit.SECONDS).until(()->{
 				return testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".mp4");
 			});
-
+			
 		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
 		
-		RestServiceV2Test restService = new RestServiceV2Test();
-
-		assertEquals(0, restService.callGetLiveStatistics());
+		
+		 Awaitility.await().atMost(80, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+		 .until(() -> {
+				RestServiceV2Test restService = new RestServiceV2Test();
+				
+				return 0 == restService.callGetLiveStatistics();
+			});
 	}
 	
 	//	@Test
@@ -379,13 +396,13 @@ public class MuxingTest {
 		 String streamIdDynamic = "dynamic_stream" + (int)(Math.random() * 999999);
 		 String dynamicRtmpURL = "rtmp://localhost/LiveApp/" + streamIdDynamic;
 		 try {
-			 Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+			 Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
 				 //if stream is being prepared, it may return false, so try again 
 				 Result result = RestServiceV2Test.addEndpoint(streamId, dynamicRtmpURL);
 				 return result.isSuccess();
 			 });
 			
-			 Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+			 Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
 			 .until(() -> { 
 					 Broadcast broadcast = RestServiceV2Test.callGetBroadcast(streamIdDynamic);
 					 if (broadcast != null) {
@@ -397,7 +414,7 @@ public class MuxingTest {
 			 Result result = RestServiceV2Test.removeEndpoint(streamId, dynamicRtmpURL);
 			 assertTrue(result.isSuccess());
 			 
-			 Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+			 Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
 			 .until(() -> RestServiceV2Test.callGetBroadcast(streamIdDynamic) == null );
 			 
 			
@@ -419,7 +436,7 @@ public class MuxingTest {
 				ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://"
 						+ SERVER_ADDR + "/LiveApp/" + streamId);
 		
-		 Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+		 Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
 		 .until(() -> RestServiceV2Test.callGetBroadcast(streamId).getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING));
 		
 		 String streamIdDynamic = "dynamic_stream" + (int)(Math.random() * 999999);
@@ -429,14 +446,14 @@ public class MuxingTest {
 		 endpoint.setRtmpUrl(dynamicRtmpURL);
 		 
 		 try {
-			 Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+			 Awaitility.await().atMost(25, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
 				 //if stream is being prepared, it may return false, so try again 
 				 Result result = RestServiceV2Test.addEndpointV2(streamId, endpoint);
 				 return result.isSuccess();
 			 });
 			
 			
-			 Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+			 Awaitility.await().atMost(25, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
 			 .until(() -> { 
 					 Broadcast broadcast = RestServiceV2Test.callGetBroadcast(streamIdDynamic);
 					 if (broadcast != null) {
@@ -450,7 +467,7 @@ public class MuxingTest {
 			 Result result = RestServiceV2Test.removeEndpointV2(streamId, broadcast.getEndPointList().get(0).getEndpointServiceId());
 			 assertTrue(result.isSuccess());
 			 
-			 Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+			 Awaitility.await().atMost(25, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
 			 .until(() -> RestServiceV2Test.callGetBroadcast(streamIdDynamic) == null );
 			 
 			
@@ -489,7 +506,7 @@ public class MuxingTest {
 					ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://"
 							+ SERVER_ADDR + "/LiveApp/" + streamName);
 
-            Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+            Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
                 return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName+ ".m3u8");
             });
 
@@ -502,6 +519,7 @@ public class MuxingTest {
 			assertTrue(result.isSuccess());
 
             //it should be true this time, because stream mp4 setting is 1 although general setting is disabled
+
             Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
             	return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName+ ".mp4", 5000);
             });
@@ -534,6 +552,14 @@ public class MuxingTest {
 		int ret;
 		System.out.println("Tested File:"+absolutePath);
 
+		//AVDictionary dic = null;
+		
+		/*
+		if(absolutePath.contains("mpd")) {
+			findInputFormat = avformat.av_find_input_format("dash");
+			av_dict_set(dic, "protocol_whitelist","mpd,mpeg,dash,m4s", 0);
+		}
+*/
 		AVFormatContext inputFormatContext = avformat.avformat_alloc_context();
 		if (inputFormatContext == null) {
 			System.out.println("cannot allocate input context");
@@ -544,6 +570,14 @@ public class MuxingTest {
 			System.out.println("cannot open input context: " + absolutePath);
 			return false;
 		}
+		
+		/*
+			byte[] data = new byte[2048];
+			av_strerror(ret, data, data.length);
+			throw new IllegalStateException("cannot open input context. Error is " + new String(data, 0, data.length));
+		 */
+	
+		//av_dump_format(inputFormatContext,0,"test",0);
 
 		ret = avformat_find_stream_info(inputFormatContext, (AVDictionary) null);
 		if (ret < 0) {
@@ -625,7 +659,7 @@ public class MuxingTest {
 		while (tmpExec == null) {
 			try {
 				System.out.println("Waiting for exec get initialized...");
-				Thread.sleep(1000);
+				Thread.sleep(3000);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
@@ -799,7 +833,7 @@ public class MuxingTest {
 			e.printStackTrace();
 		}
 
-		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+		Awaitility.await().atMost(25, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 			Broadcast broadcast = RestServiceV2Test.callGetBroadcast(streamName);
 			return broadcast.getSpeed() != 0;
 		});
@@ -821,7 +855,7 @@ public class MuxingTest {
 			e.printStackTrace();
 		}
 		
-		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+		Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 			Broadcast broadcast = RestServiceV2Test.callGetBroadcast(streamName);
 			return broadcast.getSpeed() != 0;
 		});

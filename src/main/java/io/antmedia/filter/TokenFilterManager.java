@@ -68,6 +68,11 @@ public class TokenFilterManager extends AbstractFilter   {
 				,httpRequest.getRequestURI(), tokenId, sessionId, streamId);
 
 
+		/*
+		 * In cluster mode edges make HLS request to Origin. Token isn't passed with this requests.
+		 * So if token enabled, origin returns 403. So we generate an cluster secret, store it in ClusterToken attribute
+		 * then check it here to bypass token control.
+		 */
 		String clusterToken = (String) request.getAttribute("ClusterToken");
 		if ("GET".equals(method) 
 				&& (tokenGenerator == null || clusterToken == null || !clusterToken.equals(tokenGenerator.getGenetaredToken()))) 

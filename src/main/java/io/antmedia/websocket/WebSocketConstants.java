@@ -359,4 +359,15 @@ public class WebSocketConstants {
 	 */
 	public static final String BITRATE_MEASUREMENT = "bitrateMeasurement";
 
+	/**
+	 * Error definition. It's sent when data store is not available. 
+	 * It's not available if it's closed or not available;
+	 */
+	public static final String DATA_STORE_NOT_AVAILABLE = "data_store_not_available";
+
+	/**
+	 * It's send when community handler does not start streaming
+	 */
+	public static final String SERVER_ERROR_CHECK_LOGS = "server_error_check_logs";
+
 }

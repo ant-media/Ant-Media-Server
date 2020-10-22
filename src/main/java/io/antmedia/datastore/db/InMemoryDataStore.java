@@ -45,6 +45,8 @@ public class InMemoryDataStore extends DataStore {
 	private Map<String, Playlist> playlistMap = new LinkedHashMap<>();
 
 	public InMemoryDataStore(String dbName) {
+		
+		available = true;
 	}
 
 	@Override
@@ -241,6 +243,7 @@ public class InMemoryDataStore extends DataStore {
 	@Override
 	public void close() {
 		//no need to implement 
+		available = false;
 	}
 
 	@Override
@@ -1014,5 +1017,18 @@ public class InMemoryDataStore extends DataStore {
 		
 		return i;
 	}
-  
+
+	@Override
+	public int getTotalWebRTCViewersCount() {
+		long now = System.currentTimeMillis();
+		if(now - totalWebRTCViewerCountLastUpdateTime > TOTAL_WEBRTC_VIEWER_COUNT_CACHE_TIME) {
+			int total = 0;
+			for (Broadcast broadcast : broadcastMap.values()) {
+				total += broadcast.getWebRTCViewerCount();
+			}
+			totalWebRTCViewerCount = total;
+			totalWebRTCViewerCountLastUpdateTime = now;
+		}  
+		return totalWebRTCViewerCount;
+	}
 }

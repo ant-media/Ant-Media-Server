@@ -15,6 +15,9 @@ import org.springframework.web.context.ConfigurableWebApplicationContext;
 import org.springframework.web.context.WebApplicationContext;
 
 import io.antmedia.AppSettings;
+import io.antmedia.datastore.db.DataStore;
+import io.antmedia.datastore.db.DataStoreFactory;
+import io.antmedia.datastore.db.IDataStoreFactory;
 import io.antmedia.settings.ServerSettings;
 
 public abstract class AbstractFilter implements Filter{
@@ -63,12 +66,31 @@ public abstract class AbstractFilter implements Filter{
 		return false;
 	}
 
-	public ConfigurableWebApplicationContext getAppContext() {
-		ConfigurableWebApplicationContext appContext = (ConfigurableWebApplicationContext) getConfig().getServletContext().getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
-		if (appContext != null && appContext.isRunning()) {
-			return appContext;
+	public ConfigurableWebApplicationContext getAppContext() 
+	{
+		ConfigurableWebApplicationContext appContext = getWebApplicationContext();
+		if (appContext != null && appContext.isRunning()) 
+		{
+			Object dataStoreFactory = appContext.getBean(DataStoreFactory.BEAN_NAME);
+			
+			if (dataStoreFactory instanceof IDataStoreFactory) 
+			{
+				DataStore dataStore = ((IDataStoreFactory)dataStoreFactory).getDataStore();
+				if (dataStore.isAvailable()) 
+				{
+					return appContext;
+				}
+				else {
+					logger.warn("DataStore is not available. It may be closed or not initialized");
+				}
+			}
+			else {
+				//return app context if it's not app's IDataStoreFactory
+				return appContext;
+			}
 		}
-		else {
+		else 
+		{
 			if (appContext == null) {
 				logger.warn("App context not initialized ");
 			}
@@ -78,6 +100,11 @@ public abstract class AbstractFilter implements Filter{
 		}
 
 		return null;
+	}
+	
+	public ConfigurableWebApplicationContext getWebApplicationContext() 
+	{
+		return (ConfigurableWebApplicationContext) getConfig().getServletContext().getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
 	}
 
 	public FilterConfig getConfig() {

@@ -154,6 +154,7 @@ public class HlsStatisticsFilterTest {
 			when(context.getBean(DataStoreFactory.BEAN_NAME)).thenReturn(dsf);
 			
 			DataStore dataStore = mock(DataStore.class);
+			when(dataStore.isAvailable()).thenReturn(true);
 			when(dsf.getDataStore()).thenReturn(dataStore);
 
 			logger.info("session id {}, stream id {}", sessionId, streamId);
@@ -197,6 +198,7 @@ public class HlsStatisticsFilterTest {
 		when(filterconfig.getServletContext()).thenReturn(servletContext);
 		
 		DataStore dataStore = mock(DataStore.class);
+		when(dataStore.isAvailable()).thenReturn(true);
 		when(dsf.getDataStore()).thenReturn(dataStore);
 
 		Broadcast broadcast = new Broadcast();

@@ -1,5 +1,7 @@
 package io.antmedia.datastore.db;
 
+import static io.antmedia.datastore.db.DataStore.TOTAL_WEBRTC_VIEWER_COUNT_CACHE_TIME;
+
 import java.io.File;
 import java.lang.reflect.Type;
 import java.time.Instant;
@@ -8,6 +10,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -98,6 +101,8 @@ public class MapDBStore extends DataStore {
 
 		GsonBuilder builder = new GsonBuilder();
 		gson = builder.create();
+		
+		available = true;
 
 	}
 
@@ -316,7 +321,12 @@ public class MapDBStore extends DataStore {
 		}
 		return result;
 	}
-
+	
+	
+	/**
+	 * Use getTotalBroadcastNumber
+	 * @deprecated
+	 */
 	@Override
 	public long getBroadcastCount() {
 		synchronized (this) {
@@ -468,6 +478,7 @@ public class MapDBStore extends DataStore {
 	@Override
 	public void close() {
 		synchronized (this) {
+			available = false;
 			db.close();
 		}
 	}
@@ -700,7 +711,6 @@ public class MapDBStore extends DataStore {
 	}
 
 	@Override
-
 	public long getTotalBroadcastNumber() {
 		synchronized (this) {
 			return map.size();
@@ -1456,5 +1466,25 @@ public class MapDBStore extends DataStore {
 			db.commit();
 			return updateOperations + zombieStreamCount;
 		}
+	}
+	}
+
+
+
+	@Override
+	public int getTotalWebRTCViewersCount() {
+		long now = System.currentTimeMillis();
+		if(now - totalWebRTCViewerCountLastUpdateTime > TOTAL_WEBRTC_VIEWER_COUNT_CACHE_TIME) {
+			int total = 0;
+			synchronized (this) {
+				for (String json : map.getValues()) {
+					Broadcast broadcast = gson.fromJson(json, Broadcast.class);
+					total += broadcast.getWebRTCViewerCount();
+				}
+			}
+			totalWebRTCViewerCount = total;
+			totalWebRTCViewerCountLastUpdateTime = now;
+		}  
+		return totalWebRTCViewerCount;
 	}
 }

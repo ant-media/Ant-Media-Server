@@ -14,7 +14,6 @@ import java.util.List;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.bytedeco.ffmpeg.global.avutil;
-import org.mongodb.morphia.annotations.NotSaved;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -49,7 +48,6 @@ public class ServerSettings implements ApplicationContextAware {
 	private String allowedDashboardCIDR;
 
 	@JsonIgnore
-	@NotSaved
 	private List<NetMask> allowedCIDRList = new ArrayList<>();
 
 	

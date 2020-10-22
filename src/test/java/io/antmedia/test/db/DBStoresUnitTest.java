@@ -16,16 +16,20 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.RandomUtils;
+import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mongodb.morphia.Datastore;
-import org.mongodb.morphia.query.Query;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import dev.morphia.Datastore;
+import dev.morphia.query.Query;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
@@ -80,6 +84,11 @@ public class DBStoresUnitTest {
 	public void testMapDBStore() {
 
 		DataStore dataStore = new MapDBStore("testdb");
+		
+		
+		testUnexpectedBroadcastOffset(dataStore);
+		testUnexpectedVodOffset(dataStore);
+		
 		testBugGetExternalStreamsList(dataStore);
 		testGetPagination(dataStore);
 		testNullCheck(dataStore);
@@ -109,11 +118,18 @@ public class DBStoresUnitTest {
 		testClearAtStart(dataStore);
     	testGetVoDIdByStreamId(dataStore);
     	testBroadcastListSorting(dataStore);	
+        testGetVoDIdByStreamId(dataStore);
+    	testBroadcastListSorting(dataStore);
+		testTotalWebRTCViewerCount(dataStore);
+
 	}
 
 	@Test
 	public void testMemoryDataStore() {
 		DataStore dataStore = new InMemoryDataStore("testdb");
+		
+		testUnexpectedBroadcastOffset(dataStore);
+		testUnexpectedVodOffset(dataStore);
 		
 		testBugGetExternalStreamsList(dataStore);
 		testGetPagination(dataStore);
@@ -144,6 +160,7 @@ public class DBStoresUnitTest {
 		testClearAtStart(dataStore);
     	testGetVoDIdByStreamId(dataStore);
     	testBroadcastListSorting(dataStore);
+		testTotalWebRTCViewerCount(dataStore);
 	}
 
 	@Test
@@ -165,6 +182,9 @@ public class DBStoresUnitTest {
 		Query<VoD> deleteVodQuery = store.find(VoD.class);
 		store.delete(deleteVodQuery);
 
+
+		testUnexpectedBroadcastOffset(dataStore);
+		testUnexpectedVodOffset(dataStore);		
 		testBugGetExternalStreamsList(dataStore);
 		testGetPagination(dataStore);
 		testNullCheck(dataStore);
@@ -196,6 +216,7 @@ public class DBStoresUnitTest {
 		testAddTrack(dataStore);
 		testGetVoDIdByStreamId(dataStore);
 		testBroadcastListSorting(dataStore);
+		testTotalWebRTCViewerCount(dataStore);
 	}
 	
 	@Test
@@ -226,7 +247,78 @@ public class DBStoresUnitTest {
 		}
 
 		assertEquals(numberOfCall, numberOfStreams);
+		
+		long numberOfVods = dataStore.getTotalVodNumber();
+		pageSize = 50;
+		pageCount = numberOfVods / pageSize + ((numberOfVods % pageSize) > 0 ? 1 : 0);
+		numberOfCall = 0;
+		List<VoD> totalVoDList = new ArrayList<>();
+		for (int i = 0; i < pageCount; i++) {
+			totalVoDList.addAll(dataStore.getVodList(i * pageSize, pageSize, null, null, null));
+		}
+		
+		for (VoD vod : totalVoDList) {
+			numberOfCall++;
+			assertTrue(dataStore.deleteVod(vod.getVodId()));
+		}
 
+	}
+	
+	public void testUnexpectedVodOffset(DataStore dataStore) {
+		clear(dataStore);
+		
+		assertEquals(0, dataStore.getTotalVodNumber());
+		
+		
+		List<VoD> vodList = dataStore.getVodList(50, 50, null, null, null);
+		assertNotNull(vodList);
+		assertEquals(0, vodList.size());
+		
+		
+		vodList = dataStore.getVodList(50, 0, null, null, null);
+		assertNotNull(vodList);
+		assertEquals(0, vodList.size());
+		
+		for (int i = 0; i < 10; i++) {
+			dataStore.addVod(new VoD("stream", "111223" + (int)(Math.random() * 1000),  "path", "vod", 1517239808, 17933, 1190525, VoD.STREAM_VOD, "1112233" + (int)(Math.random() * 91000)));			
+		}
+		
+		vodList = dataStore.getVodList(6, 4, null, null, null);
+		assertNotNull(vodList);
+		assertEquals(4, vodList.size());
+		
+		vodList = dataStore.getVodList(20, 5, null, null, null);
+		assertNotNull(vodList);
+		assertEquals(0, vodList.size());
+		
+	}
+	
+	public void testUnexpectedBroadcastOffset(DataStore dataStore) {
+		clear(dataStore);
+		
+		assertEquals(0, dataStore.getBroadcastCount());
+		
+		
+		List<Broadcast> broadcastList = dataStore.getBroadcastList(50, 50, null, null, null);
+		assertNotNull(broadcastList);
+		assertEquals(0, broadcastList.size());
+		
+		
+		broadcastList = dataStore.getBroadcastList(50, 0, null, null, null);
+		assertNotNull(broadcastList);
+		assertEquals(0, broadcastList.size());
+		
+		for (int i = 0; i < 10; i++) {
+			dataStore.save(new Broadcast(null, null));
+		}
+		
+		broadcastList = dataStore.getBroadcastList(6, 4, null, null, null);
+		assertNotNull(broadcastList);
+		assertEquals(4, broadcastList.size());
+		
+		broadcastList = dataStore.getBroadcastList(20, 5, null, null, null);
+		assertNotNull(broadcastList);
+		assertEquals(0, broadcastList.size());
 	}
 
 	public void testGetActiveBroadcastCount(DataStore dataStore) {
@@ -1150,6 +1242,8 @@ public class DBStoresUnitTest {
 
 
 	private void testFilterSearchOperations(DataStore dataStore) {
+		
+		clear(dataStore);
 
 		Broadcast cameraBroadcast = new Broadcast("test", "192.168.1.100", "admin", "admin", "rtspUrl", "ipCamera");
 		Broadcast liveBroadcast = new Broadcast("live_test");
@@ -1711,7 +1805,7 @@ public class DBStoresUnitTest {
 				}
 				for (Broadcast broadcast : broadcastList) {
 					assertTrue(dataStore.delete(broadcast.getStreamId()));
-					System.out.println("number of delete count: " + j++);
+					
 				}
 			}
 			
@@ -2168,8 +2262,43 @@ public class DBStoresUnitTest {
 		}
 		assertTrue(vod1Match);
 		assertTrue(vod2Match);
-
-
 	}
 
+	
+	public void testTotalWebRTCViewerCount(DataStore dataStore) {
+		int total = 0;
+		for (int i = 0; i < 150; i++) {
+			Broadcast broadcast = new Broadcast();
+			broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+			broadcast.setName("test"+i);
+			int count = RandomUtils.nextInt(0, 50);
+			total += count;
+			broadcast.setWebRTCViewerCount(count);
+			dataStore.save(broadcast);
+		}
+		
+		assertEquals(total, dataStore.getTotalWebRTCViewersCount());	
+		
+		int total2 = 0;
+		for (int i = 0; i < 150; i++) {
+			Broadcast broadcast = new Broadcast();
+			broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+			broadcast.setName("test"+i);
+			int count = RandomUtils.nextInt(0, 50);
+			total2 += count;
+			broadcast.setWebRTCViewerCount(count);
+			dataStore.save(broadcast);
+		}
+		
+		//totalWebRTCViewersCount is still total but not total+total2 due to cache
+		assertEquals(total, dataStore.getTotalWebRTCViewersCount());	
+		
+
+		int finalTotal = total+total2;
+		
+		//Alter cache time it solud be total+total2
+		Awaitility.await().atMost(DataStore.TOTAL_WEBRTC_VIEWER_COUNT_CACHE_TIME+1100, TimeUnit.MILLISECONDS)
+			.pollDelay(1000, TimeUnit.MILLISECONDS)
+			.until(() -> (finalTotal == dataStore.getTotalWebRTCViewersCount()));
+	}	
 }
