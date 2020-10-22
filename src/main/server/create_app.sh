@@ -81,6 +81,9 @@ check_result
 sed -i $SED_COMPATIBILITY 's^<param-value>/StreamApp^<param-value>/'$APP_NAME'^' $WEB_XML_FILE
 check_result
 
+jar -cvf $AMS_DIR/webapps/$APP_NAME.war -C $APP_DIR .  
+rm -r $APP_DIR
+
 chown -R antmedia:antmedia $APP_DIR
 
 echo "$APP_NAME is created."
