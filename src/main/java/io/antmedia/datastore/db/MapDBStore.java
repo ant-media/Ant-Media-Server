@@ -1467,9 +1467,6 @@ public class MapDBStore extends DataStore {
 			return updateOperations + zombieStreamCount;
 		}
 	}
-	}
-
-
 
 	@Override
 	public int getTotalWebRTCViewersCount() {
