@@ -39,7 +39,6 @@ import io.antmedia.recorder.Frame;
 import io.antmedia.recorder.FrameRecorder;
 import io.antmedia.webrtc.api.IAudioTrackListener;
 import io.antmedia.websocket.WebSocketCommunityHandler;
-import io.antmedia.muxer.MuxAdaptor;
 
 public class RTMPAdaptor extends Adaptor {
 
