@@ -1115,10 +1115,10 @@ public class ConsoleAppRestServiceTest{
 			
 			//create subscriber for publishing 
 			Subscriber subscriberPub = new Subscriber();
-			subscriber.setStreamId(broadcast.getStreamId());
-			subscriber.setSubscriberId("subscriberPub");
-			subscriber.setB32Secret("6qsp6qhndryqs56zjmvs37i6gqtjsdvc");
-			subscriber.setType(Subscriber.PUBLISH_TYPE);
+			subscriberPub.setStreamId(broadcast.getStreamId());
+			subscriberPub.setSubscriberId("subscriberPub");
+			subscriberPub.setB32Secret("6qsp6qhndryqs56zjmvs37i6gqtjsdvc");
+			subscriberPub.setType(Subscriber.PUBLISH_TYPE);
 			
 			res = callAddSubscriber("http://localhost:5080/"+appName+"/rest/v2/broadcasts/"+broadcast.getStreamId()+"/subscribers", subscriberPub);
 			assertTrue(res);
@@ -1126,7 +1126,7 @@ public class ConsoleAppRestServiceTest{
 			
 			Process rtmpSendingProcessToken = execute(ffmpegPath
 					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/"+ appName + "/"
-					+ broadcast.getStreamId()+ "?subscriberId=" + subscriber.getSubscriberId() + "&subscriberCode=" + tmpSubscriberCode);
+					+ broadcast.getStreamId()+ "?subscriberId=" + subscriberPub.getSubscriberId() + "&subscriberCode=" + tmpSubscriberCode);
 			
 
 			Result clusterResult = callIsClusterMode();
@@ -1138,6 +1138,8 @@ public class ConsoleAppRestServiceTest{
 				return  !MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" 
 						+ broadcast.getStreamId() + ".m3u8") || clusterResult.isSuccess();
 			});
+			
+			Thread.sleep(5000);
 
 			rtmpSendingProcessToken.destroy();
 			
