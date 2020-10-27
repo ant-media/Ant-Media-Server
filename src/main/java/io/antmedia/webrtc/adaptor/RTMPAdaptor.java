@@ -39,6 +39,7 @@ import io.antmedia.recorder.Frame;
 import io.antmedia.recorder.FrameRecorder;
 import io.antmedia.webrtc.api.IAudioTrackListener;
 import io.antmedia.websocket.WebSocketCommunityHandler;
+import io.antmedia.muxer.MuxAdaptor;
 
 public class RTMPAdaptor extends Adaptor {
 
@@ -73,6 +74,8 @@ public class RTMPAdaptor extends Adaptor {
 	private boolean tcpCandidatesEnabled = true;
 	private int height;
 	private String outputURL;
+
+	private int errorLoopCount = 0;
 	
 	public static FFmpegFrameRecorder initRecorder(String outputURL, int width, int height) {
 		FFmpegFrameRecorder recorder = new FFmpegFrameRecorder(outputURL, width, height, 1);
@@ -358,7 +361,7 @@ public class RTMPAdaptor extends Adaptor {
 								pts = (System.currentTimeMillis() - startTime);
 							}
 							
-							//initialize recorder if it's not initialized
+							//initialize recorder if it's not initia lized
 							initializeRecorder(frame);
 							
 							frameNumber = (int)(pts * recorder.getFrameRate() / 1000f);
@@ -388,6 +391,11 @@ public class RTMPAdaptor extends Adaptor {
 
 									} catch (FrameRecorder.Exception e) {
 										logger.error(ExceptionUtils.getStackTrace(e));
+										errorLoopCount += 1;
+										if (errorLoopCount > 5){
+											webSocketCommunityHandler.sendServerError(getStreamId(), getSession());
+											stop();
+										}
 									}
 								}
 								else {
