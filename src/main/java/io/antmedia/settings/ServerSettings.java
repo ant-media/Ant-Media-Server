@@ -37,6 +37,9 @@ public class ServerSettings implements ApplicationContextAware {
 
 	private static final String SETTINGS_USE_GLOBAL_IP = "useGlobalIp";
 
+	private static final String SETTINGS_NODE_GROUP = "nodeGroup";
+
+	
 	public static final String LOG_LEVEL_ALL = "ALL";
 	public static final String LOG_LEVEL_TRACE = "TRACE";
 	public static final String LOG_LEVEL_DEBUG = "DEBUG";
@@ -44,6 +47,9 @@ public class ServerSettings implements ApplicationContextAware {
 	public static final String LOG_LEVEL_WARN = "WARN";
 	public static final String LOG_LEVEL_ERROR = "ERROR";
 	public static final String LOG_LEVEL_OFF = "OFF";
+	
+	public static final String DEFAULT_NODE_GROUP = "default";
+
 
 	private String allowedDashboardCIDR;
 
@@ -88,6 +94,9 @@ public class ServerSettings implements ApplicationContextAware {
 	@Value( "${"+SETTINGS_USE_GLOBAL_IP+":false}" )
 	private boolean useGlobalIp;
 
+	
+	@Value( "${"+SETTINGS_NODE_GROUP+":"+DEFAULT_NODE_GROUP+"}" )
+	private String nodeGroup = DEFAULT_NODE_GROUP;
 
 	private Logging.Severity webrtcLogLevel = Logging.Severity.LS_WARNING;
 
@@ -299,6 +308,14 @@ public class ServerSettings implements ApplicationContextAware {
 	
 	public Logging.Severity getWebRTCLogLevel() {
 		return webrtcLogLevel;
+	}
+
+	public String getNodeGroup() {
+		return nodeGroup;
+	}
+
+	public void setNodeGroup(String nodeGroup) {
+		this.nodeGroup = nodeGroup;
 	}
 
 }
