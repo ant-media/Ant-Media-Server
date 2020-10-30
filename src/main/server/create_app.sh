@@ -2,12 +2,13 @@
 
 usage() {
   echo "Usage:"
-  echo "$0  {APPLICATION_NAME} [{INSTALL_DIRECTORY}]"
+  echo "$0  {APPLICATION_NAME} {INSTALL_DIRECTORY} [{AS_WAR}]"
   echo "{APPLICATION_NAME} is the application name that you want to have. It's mandatory"
-  echo "{INSTALL_DIRECTORY} is the install location of ant media server which is /usr/local/antmedia by default. It's optional"
+  echo "{INSTALL_DIRECTORY} is the install location of ant media server which is /usr/local/antmedia by default. "
+  echo "{AS_WAR} is the flag to deploy application as war file. If you want to create application on fly, set it true. It's optional"
   echo " "
   echo "Example: "
-  echo "$0 live "
+  echo "$0 live . true"
   echo " "
   echo "If you have any question, send e-mail to contact@antmedia.io"
 }
@@ -81,8 +82,11 @@ check_result
 sed -i $SED_COMPATIBILITY 's^<param-value>/StreamApp^<param-value>/'$APP_NAME'^' $WEB_XML_FILE
 check_result
 
-jar -cvf $AMS_DIR/webapps/$APP_NAME.war -C $APP_DIR .  
-rm -r $APP_DIR
+if [ ! -z "$3" ] && [ "$3" == "true" ]; then
+  echo "Application will deployed as war" 
+  jar -cvf $AMS_DIR/webapps/$APP_NAME.war -C $APP_DIR .  
+  rm -r $APP_DIR
+fi
 
 chown -R antmedia:antmedia $APP_DIR
 
