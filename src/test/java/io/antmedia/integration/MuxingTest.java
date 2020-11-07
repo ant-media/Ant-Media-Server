@@ -180,18 +180,13 @@ public class MuxingTest {
 
 		try {
 			Thread.sleep(5000);
-
+			
+			assertFalse(testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".m3u8"));
+			
+			assertFalse(rtmpSendingProcess.isAlive());
+			
 			// stop rtmp streaming
 			rtmpSendingProcess.destroy();
-
-			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
-				return testFile("rtmp://" + SERVER_ADDR + "/LiveApp/" + streamName + ".mp4");
-			});
-
-			// check that mp4 is not created
-			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
-				return testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".mp4");
-			});
 			
 		} catch (Exception e) {
 			fail(e.getMessage());
