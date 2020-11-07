@@ -819,8 +819,9 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		this.streamAcceptFilter = streamAcceptFilter;
 	}
 	
-	public boolean isValidStreamParameters(AVFormatContext inputFormatContext,AVPacket pkt, String streamId) {
-		return streamAcceptFilter.isValidStreamParameters(inputFormatContext, pkt, streamId);
+	@Override
+	public boolean isValidStreamParameters(int width, int height, int fps, int bitrate, String streamId) {
+		return streamAcceptFilter.isValidStreamParameters(width, height, fps, bitrate, streamId);
 	}
 
 

@@ -1051,13 +1051,10 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		Queue<IStreamPacket> bufferQueue = muxAdaptor.getBufferQueue();
 		muxAdaptor.setBuffering(false);
-		AVFormatContext inputFormatContext = Mockito.mock(AVFormatContext.class);
 		AVStream stream = Mockito.mock(AVStream.class);
 		when(stream.time_base()).thenReturn(MuxAdaptor.TIME_BASE_FOR_MS);
 		
-		when(inputFormatContext.streams(0)).thenReturn(stream);
 		
-		muxAdaptor.setInputFormatContext(inputFormatContext);
 		ITag tag = mock(ITag.class);
 		when(tag.getTimestamp()).thenReturn(1000);
 		

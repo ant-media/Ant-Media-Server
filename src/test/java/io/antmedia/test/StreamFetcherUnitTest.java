@@ -788,7 +788,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			if (checkContext) {
 				Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
 					// This issue is the check of #1600
-					return fetcher.getMuxAdaptor() != null && fetcher.getMuxAdaptor().isEnableAudio() && fetcher.getMuxAdaptor().getInputFormatContext() != null;
+					return fetcher.getMuxAdaptor() != null && fetcher.getMuxAdaptor().isEnableAudio();
 				});
 			}
 	
