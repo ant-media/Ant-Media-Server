@@ -263,20 +263,15 @@ public class MuxingTest {
 				+ SERVER_ADDR + "/LiveApp/" + streamName);
 		try {
 			Thread.sleep(5000);
+			
+			assertFalse(testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".m3u8"));
+			
+			assertFalse(testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".mp4"));
 
+			assertFalse(rtmpSendingProcess.isAlive());
 			// stop rtmp streaming
 			rtmpSendingProcess.destroy();
-			
-			Awaitility.await().atMost(40, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> 
-				testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".m3u8")
-			);
-			
-			// check that mp4 is created
-			Awaitility.await().atMost(40, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> 
-				testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".mp4")
-			);
-			
-			assertTrue(testFile("rtmp://" + SERVER_ADDR + "/LiveApp/" + streamName + ".mp4"));
+						
 
 		} catch (Exception e) {
 			e.printStackTrace();
