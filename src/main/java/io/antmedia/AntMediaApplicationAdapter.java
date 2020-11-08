@@ -1332,8 +1332,6 @@ public Result createInitializationProcess(String appName){
 		store.put(AppSettings.SETTINGS_DATA_CHANNEL_PLAYER_DISTRIBUTION, String.valueOf(newAppsettings.getDataChannelPlayerDistribution()));
 
 		store.put(AppSettings.SETTINGS_MAX_RESOLUTION_ACCEPT, String.valueOf(newAppsettings.getMaxResolutionAccept()));
-		store.put(AppSettings.SETTINGS_MAX_BITRATE_ACCEPT, String.valueOf(newAppsettings.getMaxBitrateAccept()));
-		store.put(AppSettings.SETTINGS_MAX_FPS_ACCEPT, String.valueOf(newAppsettings.getMaxFpsAccept()));
 		
 		
 		store.put(AppSettings.SETTINGS_LISTENER_HOOK_URL, newAppsettings.getListenerHookURL() != null ? newAppsettings.getListenerHookURL() : "");
@@ -1383,8 +1381,6 @@ public Result createInitializationProcess(String appName){
 		appSettings.setDataChannelEnabled(newSettings.isDataChannelEnabled());
 		appSettings.setDataChannelPlayerDistribution(newSettings.getDataChannelPlayerDistribution());
 		
-		appSettings.setMaxBitrateAccept(newSettings.getMaxBitrateAccept());
-		appSettings.setMaxFpsAccept(newSettings.getMaxFpsAccept());
 		appSettings.setMaxResolutionAccept(newSettings.getMaxResolutionAccept());
 		
 		appSettings.setListenerHookURL(newSettings.getListenerHookURL());

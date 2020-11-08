@@ -64,9 +64,7 @@ public class StreamAcceptFilter implements ApplicationContextAware{
 	}
 	
 	public int getMaxFps() {
-		if (appSettings != null) {
-			return appSettings.getMaxFpsAccept();
-		}
+		//It's disabled for now because we don't directly get fps from stream in new rtmp ingesting method
 		return 0;
 	}
 	
@@ -78,9 +76,7 @@ public class StreamAcceptFilter implements ApplicationContextAware{
 	}
 
 	public int getMaxBitrate() {
-		if (appSettings != null) {
-			return appSettings.getMaxBitrateAccept();
-		}
+		//It's disabled for now because we don't directly get bitrate from stream in new rtmp ingesting method
 		return 0;
 	}
 	
