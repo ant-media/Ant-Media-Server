@@ -296,7 +296,7 @@ public class MuxingTest {
 	}
 	
 
-	@Test
+	//@Test
 	public void testRTMPSending() {
 
 		try {
@@ -479,7 +479,7 @@ public class MuxingTest {
 		 rtmpSendingProcess.destroy();
 	}
 
-	@Test
+	//@Test
 	public void testMp4Muxing() {
 
 		try {
