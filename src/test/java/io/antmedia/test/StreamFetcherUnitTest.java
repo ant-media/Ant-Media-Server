@@ -12,6 +12,7 @@ import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.bytedeco.ffmpeg.global.avcodec.*;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -55,6 +56,7 @@ import io.antmedia.integration.AppFunctionalV2Test;
 import io.antmedia.integration.MuxingTest;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.muxer.Mp4Muxer;
+import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.rest.model.Result;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
@@ -706,7 +708,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		Mockito.doReturn(true).when(mp4Muxer).isCodecSupported(Mockito.any());
 		
-		mp4Muxer.prepare(inputFormatContext);
+		mp4Muxer.addStream(pars, MuxAdaptor.TIME_BASE_FOR_MS);
 		
 		Mockito.verify(mp4Muxer, Mockito.never()).avNewStream(Mockito.any());
 	}
