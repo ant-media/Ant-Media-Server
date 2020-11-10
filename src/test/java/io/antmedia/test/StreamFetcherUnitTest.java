@@ -1050,6 +1050,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testMP4RecordingOnTheFly() throws InterruptedException {
 
 		try {
+			startCameraEmulator();
+
 			AppSettings apps = getAppSettings();
 			boolean mp4Recording = apps.isMp4MuxingEnabled();
 			apps.setMp4MuxingEnabled(false);
