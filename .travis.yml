@@ -124,7 +124,7 @@ cache:
     - '$HOME/.m2/repository'
     - '$HOME/.sonar/cache'
     
-after_script:
+after_failure:
   - sudo cat /usr/local/antmedia/log/ant-media-server.log
   - sudo cat /usr/local/antmedia/hs_err_pid*.log  # cat hs_err_pid file if it exists
   - sudo cat hs_err_pid*.log  # cat hs_err_pid file if it exists
