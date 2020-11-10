@@ -244,9 +244,10 @@ public class BroadcastRestService extends RestServiceBase{
 			@ApiParam(value = "Number of items that will be fetched. If there is not enough item in the datastore, returned list size may less then this value", required = true) @PathParam("size") int size,
 			@ApiParam(value = "type of the stream. Possible values are \"liveStream\", \"ipCamera\", \"streamSource\", \"VoD\"", required = false) @PathParam("type_by") String typeBy,
 			@ApiParam(value = "field to sort", required = false) @QueryParam("sort_by") String sortBy,
-			@ApiParam(value = "asc for Ascending, desc Descending order", required = false) @QueryParam("order_by") String orderBy
+			@ApiParam(value = "asc for Ascending, desc Descending order", required = false) @QueryParam("order_by") String orderBy,
+			@ApiParam(value = "Search string", required = false) @QueryParam("search") String search
 			) {
-		return getDataStore().getBroadcastList(offset, size, typeBy, sortBy, orderBy);
+		return getDataStore().getBroadcastList(offset, size, typeBy, sortBy, orderBy, search);
 	}
 
 
@@ -640,7 +641,7 @@ public class BroadcastRestService extends RestServiceBase{
 			@ApiParam(value = "field to sort", required = false) @QueryParam("sort_by") String sortBy,
 			@ApiParam(value = "asc for Ascending, desc Descending order", required = false) @QueryParam("order_by") String orderBy
 			) {
-		return getDataStore().getBroadcastList(offset, size, type, sortBy, orderBy);
+		return getDataStore().getBroadcastList(offset, size, type, sortBy, orderBy, null);
 	}
 
 

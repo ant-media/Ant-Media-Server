@@ -196,7 +196,7 @@ public class InMemoryDataStore extends DataStore {
 	}
 
 	@Override
-	public List<Broadcast> getBroadcastList(int offset, int size, String type, String sortBy, String orderBy) {
+	public List<Broadcast> getBroadcastList(int offset, int size, String type, String sortBy, String orderBy, String search) {
 		
 		Collection<Broadcast> values = broadcastMap.values();
 
