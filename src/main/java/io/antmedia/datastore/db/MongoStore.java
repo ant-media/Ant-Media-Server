@@ -14,6 +14,7 @@ import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.mongodb.BasicDBObject;
 import com.mongodb.AggregationOptions;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
@@ -327,7 +328,7 @@ public class MongoStore extends DataStore {
 	}
 
 	@Override
-	public List<Broadcast> getBroadcastList(int offset, int size, String type, String sortBy, String orderBy) {
+	public List<Broadcast> getBroadcastList(int offset, int size, String type, String sortBy, String orderBy, String search) {
 		synchronized(this) {
 			try {
 				Query<Broadcast> query = datastore.find(Broadcast.class);
@@ -338,6 +339,10 @@ public class MongoStore extends DataStore {
 			
 			if(sortBy != null && orderBy != null && !sortBy.isEmpty() && !orderBy.isEmpty()) {
 				query = query.order(orderBy.equals("desc") ? Sort.descending(sortBy) : Sort.ascending(sortBy));
+			}
+			logger.warn("getbroadcasti cagirdim");
+			if(search != null && !search.isEmpty()){
+				return query.search(search).find(new FindOptions().skip(offset).limit(size)).toList();
 			}
 
 			if(type != null && !type.isEmpty()) {
