@@ -18,7 +18,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.ProcessHandle.Info;
@@ -153,6 +155,13 @@ public class MuxingTest {
 			// stop rtmp streaming
 			rtmpSendingProcess.destroy();
 			int duration = (int)(System.currentTimeMillis() - processInfo.startInstant().get().toEpochMilli());
+			
+			
+			BufferedReader br = new BufferedReader(new FileReader("/usr/local/antmedia/log/ant-media-server.log"));
+			 String line;
+			 while ((line = br.readLine()) != null) {
+			   System.out.println(line);
+			 }
 			
 			// check that stream can be watchable by hls
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
