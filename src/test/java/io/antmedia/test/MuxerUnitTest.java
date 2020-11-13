@@ -19,6 +19,7 @@ import io.antmedia.muxer.parser.AACConfigParser;
 import io.antmedia.muxer.parser.AACConfigParser.AudioObjectTypes;
 import io.antmedia.muxer.parser.SpsParser;
 import io.antmedia.muxer.Muxer;
+import io.antmedia.muxer.WebMMuxer;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.vertx.core.Vertx;
 
@@ -434,6 +435,26 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 	
 	
+	@Test
+	public void testIsCodecSupported() {
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		
+		Mp4Muxer mp4Muxer = new Mp4Muxer(null, null);
+		mp4Muxer.init(appScope, "test", 0);
+		
+		
+		WebMMuxer webMMuxer = new WebMMuxer(null, null);
+		webMMuxer.init(appScope, "test", 0);
+		
+		
+		assertFalse(webMMuxer.isCodecSupported(AV_CODEC_ID_H264));
+		assertTrue(mp4Muxer.isCodecSupported(AV_CODEC_ID_H264));
+		
+		assertFalse(mp4Muxer.isCodecSupported(AV_CODEC_ID_VP8));
+		assertTrue(webMMuxer.isCodecSupported(AV_CODEC_ID_VP8));
+		
+		
+	}
 	
 	@Test
 	public void testMp4MuxerDirectStreaming() {
