@@ -31,7 +31,6 @@ import org.red5.server.jmx.mxbeans.CoreHandlerMXBean;
 import org.red5.server.net.IConnectionManager;
 import org.red5.server.net.rtmp.RTMPConnManager;
 import org.red5.server.net.rtmp.RTMPConnection;
-import org.red5.server.net.rtmpt.RTMPTConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -95,14 +94,7 @@ public class CoreHandler implements IScopeHandler, CoreHandlerMXBean {
                 IClient client = conn.getClient();
                 if (client == null) {
                     if (!clientRegistry.hasClient(id)) {
-                        if (conn instanceof RTMPTConnection) {
-                            log.debug("Creating new client for RTMPT connection");
-                            // create a new client using the session id as the client's id
-                            client = new Client(id, (ClientRegistry) clientRegistry);
-                            clientRegistry.addClient(client);
-                            // set the client on the connection
-                            conn.setClient(client);
-                        } else if (conn instanceof RTMPConnection) {
+                        if (conn instanceof RTMPConnection) {
                             log.debug("Creating new client for RTMP connection");
                             // this is a new connection, create a new client to hold it
                             client = clientRegistry.newClient(params);
@@ -119,9 +111,7 @@ public class CoreHandler implements IScopeHandler, CoreHandlerMXBean {
                 }
                 // add any rtmp connections to the manager
                 IConnectionManager<RTMPConnection> connManager = RTMPConnManager.getInstance();
-                if (conn instanceof RTMPTConnection) {
-                    connManager.setConnection((RTMPTConnection) conn);
-                } else if (conn instanceof RTMPConnection) {
+                if (conn instanceof RTMPConnection) {
                     connManager.setConnection((RTMPConnection) conn);
                 } else {
                     log.warn("Connection was not added to manager: {}", conn);
