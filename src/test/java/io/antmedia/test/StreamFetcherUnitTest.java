@@ -46,6 +46,7 @@ import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.IApplicationAdaptorFactory;
+import io.antmedia.RecordType;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
@@ -1044,5 +1045,45 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 		return appSettings;
 	}
+	
+	@Test
+	public void testMP4RecordingOnTheFly() throws InterruptedException {
+
+		try {
+			startCameraEmulator();
+
+			AppSettings apps = getAppSettings();
+			boolean mp4Recording = apps.isMp4MuxingEnabled();
+			apps.setMp4MuxingEnabled(false);
+			
+			String streamId = "Stream"+(int)(Math.random()*10000);
+			Broadcast newCam = new Broadcast("testOnvif", "127.0.0.1:8080", "admin", "admin", "rtsp://127.0.0.1:6554/test.flv",
+					AntMediaApplicationAdapter.IP_CAMERA);
+			
+			newCam.setStreamId(streamId);
+			
+			StreamFetcher camScheduler = new StreamFetcher(newCam, appScope, vertx);
+			
+			camScheduler.setConnectionTimeout(10000);
+
+			camScheduler.startStream();
+			
+			Awaitility.await().atMost(15, TimeUnit.SECONDS).until(() -> camScheduler.getMuxAdaptor() != null);			
+			Thread.sleep(2000);
+			assertTrue(camScheduler.getMuxAdaptor().startRecording(RecordType.MP4));
+			Thread.sleep(5000);
+			assertTrue(camScheduler.getMuxAdaptor().stopRecording(RecordType.MP4));
+			Thread.sleep(2000);
+			camScheduler.stopStream();
+			assertTrue(MuxingTest.testFile("webapps/junit/streams/"+newCam.getStreamId() +".mp4"));
+			apps.setMp4MuxingEnabled(mp4Recording);
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+
+	}
+
 
 }
