@@ -430,6 +430,8 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			absoluteStartTimeMs = ((ClientBroadcastStream) stream).getAbsoluteStartTimeMs();
 		}
 		startPublish(streamName, absoluteStartTimeMs);
+		
+	
 	}
 
 	public void startPublish(String streamName, long absoluteStartTimeMs) {
@@ -449,7 +451,6 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 						broadcast.setStatus(BROADCAST_STATUS_BROADCASTING);
 						broadcast.setStartTime(System.currentTimeMillis());
 						broadcast.setOriginAdress(getServerSettings().getHostAddress());
-						broadcast.setAbsoluteStartTimeMs(absoluteStartTimeMs);
 						broadcast.setWebRTCViewerCount(0);
 						broadcast.setHlsViewerCount(0);
 						boolean result = dataStoreLocal.updateBroadcastFields(broadcast.getStreamId(), broadcast);
@@ -476,6 +477,38 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			}
 			
 		}, null);
+		
+		
+		if (absoluteStartTimeMs == 0) 
+		{
+			vertx.setTimer(2000, h -> 
+			{
+				IBroadcastStream broadcastStream = getBroadcastStream(getScope(), streamName);
+				if (broadcastStream instanceof ClientBroadcastStream) 
+				{
+					long absoluteStarTime = ((ClientBroadcastStream)broadcastStream).getAbsoluteStartTimeMs();
+					if (absoluteStarTime != 0) 
+					{
+						Broadcast broadcast = getDataStore().get(streamName);
+						if (broadcast != null) 
+						{
+							broadcast.setAbsoluteStartTimeMs(absoluteStarTime);
+						
+							getDataStore().save(broadcast);
+							logger.info("Updating broadcast absolute time {} ms for stream:{}", absoluteStarTime, streamName);
+						}
+						else {
+							logger.info("Broadcast is not available in the database to update the absolute start time for stream:{}", streamName);
+						}
+						
+					}
+					else {
+						logger.info("Broadcast absolute time is not available for stream:{}", streamName);
+					}
+					
+				}
+			});
+		}
 		
 		logger.info("start publish leaved");
 	}
@@ -506,11 +539,6 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			}
 		}
 	}
-	
-	
-	
-	
-	
 
 	public static Broadcast saveUndefinedBroadcast(String streamId, String scopeName, DataStore dataStore, AppSettings appSettings, String streamStatus, ServerSettings serverSettings, long absoluteStartTimeMs) {		
 		Broadcast newBroadcast = new Broadcast();
