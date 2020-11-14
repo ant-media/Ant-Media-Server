@@ -38,6 +38,7 @@ import org.red5.server.api.scope.IBasicScope;
 import org.red5.server.jmx.mxbeans.RTMPMinaTransportMXBean;
 import org.red5.server.net.IConnectionManager;
 import org.red5.server.net.rtmp.codec.RTMP;
+import org.red5.server.net.rtmpt.RTMPTConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -120,7 +121,9 @@ public class RTMPConnManager implements IConnectionManager<RTMPConnection>, Appl
                                 if (log.isTraceEnabled()) {
                                     log.trace("Session - write queue: {} session count: {}", session.getWriteRequestQueue().size(), session.getService().getManagedSessionCount());
                                 }
-                            } 
+                            } else if (conn instanceof RTMPTConnection) {
+                                ioTime = System.currentTimeMillis() - ((RTMPTConnection) conn).getLastDataReceived();
+                            }
                             if (log.isDebugEnabled()) {
                                 log.debug("Session last io time: {} ms", ioTime);
                             }
@@ -315,6 +318,8 @@ public class RTMPConnManager implements IConnectionManager<RTMPConnection>, Appl
         RTMPConnection conn = null;
         if (cls == RTMPMinaConnection.class) {
             conn = (RTMPMinaConnection) applicationContext.getBean(RTMPMinaConnection.class);
+        } else if (cls == RTMPTConnection.class) {
+            conn = (RTMPTConnection) applicationContext.getBean(RTMPTConnection.class);
         } else {
             conn = (RTMPConnection) cls.newInstance();
         }
