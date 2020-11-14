@@ -18,9 +18,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.ProcessHandle.Info;
@@ -141,34 +139,16 @@ public class MuxingTest {
 						+ SERVER_ADDR + "/LiveApp/" + streamName);
 
 		try {
-
-			long t0 = System.currentTimeMillis();
-			
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> 
-			{
-				lsStreamsDir();
-				return t0+5000 < System.currentTimeMillis();
-			});
-			
+			Thread.sleep(5000);
 			Info processInfo = rtmpSendingProcess.info();
 
 			// stop rtmp streaming
 			rtmpSendingProcess.destroy();
 			int duration = (int)(System.currentTimeMillis() - processInfo.startInstant().get().toEpochMilli());
 			
-			
-			BufferedReader br = new BufferedReader(new FileReader("/usr/local/antmedia/log/ant-media-server.log"));
-			 String line;
-			 while ((line = br.readLine()) != null) {
-			   System.out.println(line);
-			 }
-			
 			// check that stream can be watchable by hls
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
-				lsStreamsDir();
-
-				return testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".m3u8", duration);
-			}
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> 
+				testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".m3u8", duration)
 			);
 			
 			// check that mp4 is created successfully and can be playable
@@ -188,15 +168,6 @@ public class MuxingTest {
 		
 	}
 
-
-	private void lsStreamsDir() {
-		File streamsDir = new File("/usr/local/antmedia/webapps/LiveApp/streams");
-		System.out.println("files:");
-		for (String file : streamsDir.list()) {
-			System.out.println(file);
-		}
-		
-	}
 
 	@Test
 	public void testSupportVideoCodecUnSupportedAudioCodec() {
