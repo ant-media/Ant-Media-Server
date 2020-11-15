@@ -2,17 +2,34 @@
 
 usage() {
   echo "Usage:"
-  echo "$0  {APPLICATION_NAME} [{INSTALL_DIRECTORY}]"
-  echo "{APPLICATION_NAME} is the application name that you want to have. It's mandatory"
-  echo "{INSTALL_DIRECTORY} is the install location of ant media server which is /usr/local/antmedia by default. It's optional"
+  echo "$0 [-n APPLICATION_NAME] [-p INSTALLATION_PATH] [-w]"
+  echo "Options:"
+  echo "-n: Application Name is the application name that you want to have. It's mandatory"
+  echo "-p: Path is the install location of Ant Media Server which is /usr/local/antmedia by default."
+  echo "-w: The flag to deploy application as war file. If you want to create application on fly, set it true."
+  echo "-h: print this usage"
   echo " "
   echo "Example: "
-  echo "$0 live "
+  echo "$0 -n live -w"
   echo " "
   echo "If you have any question, send e-mail to contact@antmedia.io"
 }
 
 ERROR_MESSAGE="Error: App is not created. Please check the error in the terminal and take a look at the instructions below"
+
+AMS_DIR=/usr/local/antmedia
+AS_WAR="false"
+
+while getopts 'n:p:w:h' option
+do
+  case "${option}" in
+    n) APP_NAME=${OPTARG};;
+    p) AMS_DIR=${OPTARG};;
+    w) AS_WAR="true";;
+    h) usage 
+       exit 1;;
+   esac
+done
 
 check_result() {
   OUT=$?
@@ -23,23 +40,24 @@ check_result() {
     fi
 }
 
-if [[ -z "$1" ]]; then
+if [ -z "$APP_NAME" ]; then
+  APP_NAME=$1
+
+  if [ ! -z "$2" ]; then
+    AMS_DIR=$2
+  fi
+fi
+
+if [[ -z "$APP_NAME" ]]; then
     echo "Error: Missing parameter APPLICATON_NAME. Check instructions below"
     usage
     exit 1
 fi
 
-AMS_DIR=/usr/local/antmedia
-if [[ ! -z "$2" ]]; then
-    echo "Using install directory as $2"  #because install directory is optional
-    case $2 in
-      /*) AMS_DIR=$2;;
-      *)  AMS_DIR=$PWD/$2;;
-    esac
-fi
-
-#set the app name
-APP_NAME=$1
+case $AMS_DIR in
+  /*) AMS_DIR=$AMS_DIR;;
+  *)  AMS_DIR=$PWD/$AMS_DIR;;
+esac
 
 APP_NAME_LOWER=$(echo $APP_NAME | awk '{print tolower($0)}')
 APP_DIR=$AMS_DIR/webapps/$APP_NAME
@@ -81,7 +99,12 @@ check_result
 sed -i $SED_COMPATIBILITY 's^<param-value>/StreamApp^<param-value>/'$APP_NAME'^' $WEB_XML_FILE
 check_result
 
+if [ $AS_WAR == "true" ]; then
+  echo "Application will deployed as war" 
+  jar -cvf $AMS_DIR/webapps/$APP_NAME.war -C $APP_DIR .  
+  rm -r $APP_DIR
+fi
+
 chown -R antmedia:antmedia $APP_DIR
 
 echo "$APP_NAME is created."
-

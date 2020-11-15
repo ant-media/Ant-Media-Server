@@ -748,16 +748,20 @@ public class BroadcastRestService extends RestServiceBase{
 					if (broadcast.getMp4Enabled() != RECORD_ENABLE) 
 					{
 						result = getDataStore().setMp4Muxing(streamId, RECORD_ENABLE);
+						
+						streamId = streamId.replaceAll(REPLACE_CHARS, "_");
 						//if it's not enabled, start it
 						if (broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING))
 						{
 							result = startRecord(streamId, RecordType.MP4);
 							if (!result) 
 							{
-								streamId = streamId.replaceAll(REPLACE_CHARS, "_");
 								logger.warn("Mp4 recording could not be started for stream: {}", streamId);
 							}
-						}	
+						}
+						else {
+							logger.info("Broadcast is not broadcasting status so recording only saved to the database for stream:{}", streamId);
+						}
 					}
 					else 
 					{

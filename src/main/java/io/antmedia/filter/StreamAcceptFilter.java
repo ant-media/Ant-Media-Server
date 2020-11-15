@@ -1,7 +1,5 @@
 package io.antmedia.filter;
 
-import org.bytedeco.ffmpeg.avcodec.AVPacket;
-import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -13,28 +11,31 @@ public class StreamAcceptFilter implements ApplicationContextAware{
 
 	private AppSettings appSettings;
 
+	private String streamId;
+
 	protected static Logger logger = LoggerFactory.getLogger(StreamAcceptFilter.class);
 	
-	public boolean isValidStreamParameters(AVFormatContext inputFormatContext,AVPacket pkt, String streamId) 
+	public boolean isValidStreamParameters(int width, int height, int fps, int bitrate, String streamId) 
 	{
-		return  checkFPSAccept(getStreamFps(inputFormatContext, pkt, streamId)) && 
-				checkResolutionAccept(getStreamResolution(inputFormatContext, pkt, streamId)) &&
-				checkBitrateAccept(getStreamBitrate(inputFormatContext, pkt, streamId));
+		this.streamId = streamId;
+		return  checkFPSAccept(fps) && 
+				checkResolutionAccept(width, height) &&
+				checkBitrateAccept(bitrate);
 	}
 
-	public boolean checkFPSAccept(int streamFPSValue) 
+	public boolean checkFPSAccept(int fps) 
 	{
-		if(getMaxFps() > 0 && getMaxFps()  < streamFPSValue) {
-			logger.error("Exceeding Max FPS({}) limit. FPS is: {}", getMaxFps(), streamFPSValue);
+		if(fps != 0 && getMaxFps() > 0 && getMaxFps()  < fps) {
+			logger.error("Exceeding Max FPS({}) limit. FPS is: {} streamId: {}", getMaxFps(), fps, streamId);
 			return false;
 		}		
 		return true;
 	} 
 
-	public boolean checkResolutionAccept(int streamResolutionValue) 
+	public boolean checkResolutionAccept(int width, int height) 
 	{
-		if (getMaxResolution() > 0 && getMaxResolution() < streamResolutionValue) {
-			logger.error("Exceeding Max Resolution({}) acceptable limit. Resolution is: {}", getMaxResolution(), streamResolutionValue);
+		if (height != 0 && getMaxResolution() > 0 && getMaxResolution() < height) {
+			logger.error("Exceeding Max Resolution({}) acceptable limit. Resolution is: {} streamId:{}", getMaxResolution(), height, streamId);
 			return false;
 		}
 		return true;
@@ -43,35 +44,12 @@ public class StreamAcceptFilter implements ApplicationContextAware{
 
 	public boolean checkBitrateAccept(long streamBitrateValue) 
 	{
-		if (getMaxBitrate() > 0 && getMaxBitrate() < streamBitrateValue) {
-			logger.error("Exceeding Max Bitrate({}) acceptable limit. Stream Bitrate is: {}", getMaxBitrate(), streamBitrateValue);
+		if (streamBitrateValue != 0 && getMaxBitrate() > 0 && getMaxBitrate() < streamBitrateValue) {
+			logger.error("Exceeding Max Bitrate({}) acceptable limit. Stream Bitrate is: {} streamId:{}", getMaxBitrate(), streamBitrateValue, streamId);
 			return false;
 		}
 		return true;
 	} 
-
-	public int getStreamFps(AVFormatContext inputFormatContext,AVPacket pkt, String streamId) 
-	{
-		int streamFPSValue = (inputFormatContext.streams(pkt.stream_index()).r_frame_rate().num()) / (inputFormatContext.streams(pkt.stream_index()).r_frame_rate().den());
-		logger.info("Stream FPS value: {} for stream:{}",streamFPSValue, streamId);
-
-		return streamFPSValue;
-	}
-
-	public int getStreamResolution(AVFormatContext inputFormatContext,AVPacket pkt, String streamId) {
-		int streamResolutionValue = inputFormatContext.streams(pkt.stream_index()).codecpar().height();
-		logger.error("Stream Resolution value: {} for stream:{}",streamResolutionValue, streamId);
-
-		return streamResolutionValue;
-	}
-
-	public long getStreamBitrate(AVFormatContext inputFormatContext,AVPacket pkt, String streamId) {
-		long streamBitrateValue = inputFormatContext.streams(pkt.stream_index()).codecpar().bit_rate();
-		logger.error("Stream Bitrate value: {} for stream:{}",streamBitrateValue, streamId);
-
-		return streamBitrateValue;		
-	}
-
 
 	@Override
 	public void setApplicationContext(ApplicationContext applicationContext) {
@@ -86,9 +64,7 @@ public class StreamAcceptFilter implements ApplicationContextAware{
 	}
 	
 	public int getMaxFps() {
-		if (appSettings != null) {
-			return appSettings.getMaxFpsAccept();
-		}
+		//It's disabled for now because we don't directly get fps from stream in new rtmp ingesting method
 		return 0;
 	}
 	
@@ -100,9 +76,7 @@ public class StreamAcceptFilter implements ApplicationContextAware{
 	}
 
 	public int getMaxBitrate() {
-		if (appSettings != null) {
-			return appSettings.getMaxBitrateAccept();
-		}
+		//It's disabled for now because we don't directly get bitrate from stream in new rtmp ingesting method
 		return 0;
 	}
 	
