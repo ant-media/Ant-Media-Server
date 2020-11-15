@@ -356,25 +356,10 @@ public class AppFunctionalV2Test {
 				});
 			}
 			
-			{
-				appSettingsModel.setMaxResolutionAccept(1080);
-			    appSettingsModel.setMaxFpsAccept(5);
-				
-				result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettingsModel);
-				assertTrue(result.isSuccess());
-				Process rtmpSendingProcess2 = execute(ffmpegPath
-						+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
-						+ streamId);
-				
-				//this process should be terminated autotimacally because test.flv has 25fps 
-				Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> { 
-					return !rtmpSendingProcess2.isAlive();
-				});
-			} 
 			
 			{
 				appSettingsModel.setMaxResolutionAccept(0);
-			    appSettingsModel.setMaxFpsAccept(0);
+			    //appSettingsModel.setMaxFpsAccept(0);
 				
 				result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettingsModel);
 				assertTrue(result.isSuccess());
