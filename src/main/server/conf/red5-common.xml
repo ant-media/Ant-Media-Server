@@ -202,16 +202,6 @@
         <property name="automaticHlsRecording" value="${broadcastream.auto.record.hls}"/>
     </bean>
     
-    <!-- Cluster Related -->
-	<bean id="remoteBroadcastStream" scope="prototype" lazy-init="true" class="org.red5.server.stream.RemoteBroadcastStream">
-        <property name="automaticRecording" value="false"/>
-        <property name="automaticMp4Recording" value="false"/>
-        <property name="automaticHlsRecording" value="false"/>
-        <!--  
-        <property name="scheduler" ref="rtmpScheduler" />
-        -->
-    </bean>
-    
     <bean id="vertxMetricOptions" class="io.vertx.ext.dropwizard.DropwizardMetricsOptions">
         <property name="enabled" value="true"/>        
     </bean>
