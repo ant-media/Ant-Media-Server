@@ -887,6 +887,42 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals("123456789.mp4", fileName);
 
 	}
+	
+	
+	@Test
+	public void testAbsoluteStartTimeMs() 
+	{
+		AntMediaApplicationAdapter appAdaptor = ((IApplicationAdaptorFactory) applicationContext.getBean("web.handler")).getAppAdaptor();
+		assertNotNull(appAdaptor);
+		
+		AntMediaApplicationAdapter spyAdaptor = Mockito.spy(appAdaptor);
+		
+		ClientBroadcastStream stream = Mockito.mock(ClientBroadcastStream.class);
+		
+		String streamId = "stream" + (int)(Math.random() * 10000000);
+		Mockito.when(stream.getPublishedName()).thenReturn(streamId);
+		
+		doReturn(stream).when(spyAdaptor).getBroadcastStream(Mockito.any(), Mockito.any());
+		spyAdaptor.streamPublishStart(stream);
+		
+		
+		long absoluteTimeMS = System.currentTimeMillis();
+		when(stream.getAbsoluteStartTimeMs()).thenReturn(absoluteTimeMS);
+		
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS) 
+		.until(() -> 
+			appAdaptor.getDataStore().get(streamId).getAbsoluteStartTimeMs() == absoluteTimeMS);
+		
+		spyAdaptor.streamBroadcastClose(stream);
+		
+		
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS) 
+		.until(() -> 
+			appAdaptor.getDataStore().get(streamId) == null);
+		
+		
+		
+	}
 
 	@Test
 	public void testPublishAndUnpublishSocialEndpoints() {
