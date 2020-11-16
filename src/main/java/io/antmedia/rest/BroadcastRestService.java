@@ -749,16 +749,20 @@ public class BroadcastRestService extends RestServiceBase{
 					if (broadcast.getMp4Enabled() != RECORD_ENABLE) 
 					{
 						result = getDataStore().setMp4Muxing(streamId, RECORD_ENABLE);
+						
+						streamId = streamId.replaceAll(REPLACE_CHARS, "_");
 						//if it's not enabled, start it
 						if (broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING))
 						{
 							result = startRecord(streamId, RecordType.MP4);
 							if (!result) 
 							{
-								streamId = streamId.replaceAll(REPLACE_CHARS, "_");
 								logger.warn("Mp4 recording could not be started for stream: {}", streamId);
 							}
-						}	
+						}
+						else {
+							logger.info("Broadcast is not broadcasting status so recording only saved to the database for stream:{}", streamId);
+						}
 					}
 					else 
 					{
@@ -1101,7 +1105,8 @@ public class BroadcastRestService extends RestServiceBase{
 	@Produces(MediaType.APPLICATION_JSON)
 	public RootRestService.RoomInfo getRoomInfo(@ApiParam(value="Room id", required=true) @PathParam("room_id") String roomId,
 												@ApiParam(value="If Stream Id is entered, that stream id will be isolated from the result",required = false) @QueryParam("streamId") String streamId){
-		return new RootRestService.RoomInfo(roomId,RestServiceBase.getRoomInfoFromConference(roomId,streamId,getDataStore()));
+		ConferenceRoom room = getDataStore().getConferenceRoom(roomId);
+		return new RootRestService.RoomInfo(roomId,RestServiceBase.getRoomInfoFromConference(roomId,streamId,getDataStore()), room);
 	}
 
 	@ApiOperation(value="Adds the specified stream with streamId to the room. ",response = Result.class)
