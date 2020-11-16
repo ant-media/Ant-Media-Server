@@ -122,55 +122,7 @@
     <bean id="keyframe.cache" class="org.red5.io.CachingFileKeyFrameMetaCache">
         <property name="maxCacheEntry" value="${keyframe.cache.entry.max}" />
     </bean>
-
-    <!--
-        Represents FLV files
-        Use injection to set the cache impl to be used with flvs
-    -->
-    <bean id="flv.impl" class="org.red5.io.flv.impl.FLV">
-        <property name="cache">
-            <ref bean="object.cache"/>
-        </property>
-        <!-- Writer post-process example -->
-        <!-- 
-        <property name="writerPostProcessor" value="org.red5.media.processor.GenericWriterPostProcessor" />
-        -->
-    </bean>
-
-    <!-- Use injection to set the keyframe cache for FLV files -->
-    <bean id="flvreader.impl" class="org.red5.io.flv.impl.FLVReader">
-        <property name="keyFrameCache">
-            <ref bean="keyframe.cache"/>
-        </property>
-    </bean>
-
-    <!-- Use injection to set the keyframe cache for MP4 files -->
-    <bean id="mp4reader.impl" class="org.red5.io.mp4.impl.MP4Reader"/>
-    
-    <!-- Use injection to set the keyframe cache for MP3 files -->
-    <bean id="mp3reader.impl" class="org.red5.io.mp3.impl.MP3Reader">
-        <property name="frameCache">
-            <ref bean="keyframe.cache"/>
-        </property>
-    </bean> 
-
-    <!-- Use injection to set the buffer type for reading FLV files -->
-    <bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
-        <property name="staticMethod">
-            <value>org.red5.io.flv.impl.FLVReader.setBufferType</value>
-        </property>
-        <!-- Three buffer types are available 'auto', 'heap', and 'direct' -->
-        <property name="arguments" value="auto"/>
-    </bean>
-
-    <!-- Use injection to set the buffer size for reading FLV files -->
-    <bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
-        <property name="staticMethod">
-            <value>org.red5.io.flv.impl.FLVReader.setBufferSize</value>
-        </property>
-        <!-- Three buffer types are available 'auto', 'heap', and 'direct' -->
-        <property name="arguments" value="4096"/>
-    </bean>
+  
 
     <!-- Low level access for recording to file -->
     <bean id="fileConsumer" scope="prototype" lazy-init="true" class="org.red5.server.stream.consumer.FileConsumer">
@@ -200,16 +152,6 @@
         <property name="automaticRecording" value="${broadcaststream.auto.record}"/>
         <property name="automaticMp4Recording" value="${broadcastream.auto.record.mp4}"/>
         <property name="automaticHlsRecording" value="${broadcastream.auto.record.hls}"/>
-    </bean>
-    
-    <!-- Cluster Related -->
-	<bean id="remoteBroadcastStream" scope="prototype" lazy-init="true" class="org.red5.server.stream.RemoteBroadcastStream">
-        <property name="automaticRecording" value="false"/>
-        <property name="automaticMp4Recording" value="false"/>
-        <property name="automaticHlsRecording" value="false"/>
-        <!--  
-        <property name="scheduler" ref="rtmpScheduler" />
-        -->
     </bean>
     
     <bean id="vertxMetricOptions" class="io.vertx.ext.dropwizard.DropwizardMetricsOptions">
