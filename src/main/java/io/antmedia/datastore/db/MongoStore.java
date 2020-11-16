@@ -19,6 +19,7 @@ import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import com.mongodb.WriteResult;
 
+import dev.morphia.utils.IndexType;
 import dev.morphia.Datastore;
 import dev.morphia.Key;
 import dev.morphia.Morphia;
@@ -75,7 +76,7 @@ public class MongoStore extends DataStore {
 
 		MongoClientURI mongoUri = new MongoClientURI(uri);
 		MongoClient client = new MongoClient(mongoUri);
-		
+
 		//TODO: Refactor these stores so that we don't have separate datastore for each class
 		datastore = morphia.createDatastore(client, dbName);
 		vodDatastore=morphia.createDatastore(client, dbName+"VoD");
@@ -84,7 +85,6 @@ public class MongoStore extends DataStore {
 		detectionMap = morphia.createDatastore(client, dbName + "detection");
 		conferenceRoomDatastore = morphia.createDatastore(client, dbName + "room");
 
-		
 		//*************************************************
 		//do not create data store for each type as we do above
 		//*************************************************
@@ -340,7 +340,10 @@ public class MongoStore extends DataStore {
 				query = query.order(orderBy.equals("desc") ? Sort.descending(sortBy) : Sort.ascending(sortBy));
 			}
 			if(search != null && !search.isEmpty()){
-				return query.search(search).find(new FindOptions().skip(offset).limit(size)).toList();
+				logger.info("Server side search is called for {}", search);
+				return query.search(search)
+						.order("name")
+						.asList();
 			}
 
 			if(type != null && !type.isEmpty()) {
