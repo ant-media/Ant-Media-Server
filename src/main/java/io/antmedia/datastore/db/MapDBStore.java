@@ -382,7 +382,7 @@ public class MapDBStore extends DataStore {
 			}
 		}
 		if(search != null && !search.isEmpty()){
-			logger.info("server side search called for String = " + search);
+			logger.info("server side search called for String = {}", search);
 			list = searchOnServer(list, search);
 		}
 		return sortAndCropBroadcastList(list, offset, size, sortBy, orderBy);
