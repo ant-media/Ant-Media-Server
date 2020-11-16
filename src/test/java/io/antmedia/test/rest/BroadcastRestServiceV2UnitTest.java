@@ -61,6 +61,7 @@ import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.IApplicationAdaptorFactory;
 import io.antmedia.RecordType;
+import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.MongoStore;
@@ -89,6 +90,7 @@ import io.antmedia.rest.model.Interaction;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.User;
 import io.antmedia.rest.model.Version;
+import io.antmedia.security.AcceptOnlyStreamsInDataStore;
 import io.antmedia.security.ITokenService;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.social.LiveComment;
@@ -1138,6 +1140,11 @@ public class BroadcastRestServiceV2UnitTest {
 		Mockito.doReturn(broadcastStream).when(appAdaptor).getBroadcastStream(Mockito.any(), Mockito.anyString());
 
 		restServiceReal.setApplication(appAdaptor);
+		
+		ApplicationContext context = mock(ApplicationContext.class);
+		restServiceReal.setAppCtx(context);
+		when(context.containsBean(any())).thenReturn(false);
+		
 
 		int streamCount = 15; 
 		for (int i = 0; i < streamCount; i++) {
@@ -1159,7 +1166,38 @@ public class BroadcastRestServiceV2UnitTest {
 
 		Mockito.verify(streamCapableConnection, Mockito.times(streamCount)).close();
 
+		// Test Cluster Method
+		/*
+		when(context.containsBean(any())).thenReturn(true);
+		
+		Broadcast broadcast = new Broadcast();
+		
+		broadcast.setOriginAdress("55.55.55.55");
+		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+		
+		store.save(broadcast);
+		
+		System.out.println("asddd broadcastCreated.getOriginAdress(): " + broadcast.getStatus());
+		
+		when(restServiceReal.getServerSettings().getHostAddress()).thenReturn("testggxd");
+		when(restServiceReal.getAppSettings().getJwtSecretKey()).thenReturn("testtesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttest");
+		//when(restServiceReal.createJWT()).thenReturn("testggxd");
 
+
+		restServiceReal.setAppSettings(settings);
+		
+		Result result = restServiceReal.deleteBroadcast(broadcast.getStreamId());
+
+		
+	//	when(broadcast.getOriginAdress()).thenReturn("testggxd");
+	//	when(broadcast.getStatus()).thenReturn(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+		
+		//broadcast.getOriginAdress()
+		//broadcast.getStatus()
+		
+		
+		assertFalse(result.isSuccess());
+*/
 	}
 
 	@Test

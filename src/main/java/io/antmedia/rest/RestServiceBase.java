@@ -65,6 +65,7 @@ import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
+import io.antmedia.filter.JWTFilter;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.ipcamera.onvifdiscovery.OnvifDiscovery;
 import io.antmedia.muxer.Mp4Muxer;
@@ -349,6 +350,8 @@ public abstract class RestServiceBase {
 		if (id != null) {
 			Broadcast broadcast = getDataStore().get(id);
 			
+			System.out.println("broadcast.getOriginAdress():" + broadcast.getOriginAdress());
+			
 			if(isCluster && !broadcast.getOriginAdress().equals(getServerSettings().getHostAddress()) && broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
 				return sendDeleteCommandToOtherNode(broadcast.getStreamId(),broadcast.getOriginAdress(),appSettings.getAppName());
 			}
@@ -384,7 +387,7 @@ public abstract class RestServiceBase {
 			
 			//Creating JWT Token
 			String token = createJWT();
-			httpRequest.addHeader("jwtToken", token);
+			httpRequest.addHeader(JWTFilter.JWT_TOKEN, token);
 			
 			//make sure response will be closed with try block
 			CloseableHttpResponse response = httpClient.execute(httpRequest);

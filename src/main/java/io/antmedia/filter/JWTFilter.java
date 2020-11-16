@@ -23,6 +23,8 @@ public class JWTFilter extends AbstractFilter {
 	
 	protected static Logger log = LoggerFactory.getLogger(JWTFilter.class);
 	
+	public static final String JWT_TOKEN = "jwtToken";
+	
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
 		
 		AppSettings appSettings = getAppSettings();
@@ -33,11 +35,18 @@ public class JWTFilter extends AbstractFilter {
 		
 		HttpServletRequest httpRequest = (HttpServletRequest) request;
 		
-		if(httpRequest.getHeader("jwtToken") != null && checkJWT(httpRequest.getHeader("jwtToken"))) {
+		
+		if(httpRequest.getHeader(JWT_TOKEN) == null) {
+			// Check IP Filter
 			chain.doFilter(request, response);
 			return;
 		}
-	
+		
+		if(httpRequest.getHeader(JWT_TOKEN) != null && checkJWT(httpRequest.getHeader(JWT_TOKEN))) {
+			// No need to check IP Filter
+			return;
+		}
+
 		((HttpServletResponse) response).sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid JWT Token");
 	}
 	

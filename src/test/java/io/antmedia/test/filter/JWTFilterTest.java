@@ -37,7 +37,6 @@ public class JWTFilterTest {
         MockFilterChain filterChain;
         
         AppSettings appSettings = new AppSettings();
-        appSettings.setRemoteAllowedCIDR("127.0.0.1/8");
         appSettings.setJwtSecretKey("testtesttesttesttesttesttesttesttesttest");
         appSettings.setJwtControlEnabled(true);
         
@@ -48,9 +47,7 @@ public class JWTFilterTest {
 		
 		String token = Jwts.builder().setSubject("token").signWith(key).compact();
 		String invalidToken = Jwts.builder().setSubject("token").signWith(invalidKey).compact();
-		
-		String nullToken = null;
-        
+
         // JWT Token enable and invalid token scenario
         {   
         	//reset filterchain
@@ -98,7 +95,7 @@ public class JWTFilterTest {
             
         }
         
-        // JWT Token enable and invalid token scenario
+        // JWT Token enable and valid token scenario
         {
         	//reset filterchains
         	filterChain = new MockFilterChain();
@@ -114,13 +111,13 @@ public class JWTFilterTest {
             
             Mockito.doReturn(appSettings).when(jwtFilter).getAppSettings();
             
-            httpServletRequest.addHeader("jwtToken", invalidToken);
+            httpServletRequest.addHeader("jwtToken", token);
             
             jwtFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
-            assertEquals(HttpStatus.FORBIDDEN.value(),httpServletResponse.getStatus());
+            assertEquals(HttpStatus.OK.value(),httpServletResponse.getStatus());
         }
         
-        // JWT Token enable and invalid token scenario
+        // JWT Token enable and null header token scenario
         {
         	//reset filterchains
         	filterChain = new MockFilterChain();
@@ -137,7 +134,7 @@ public class JWTFilterTest {
             Mockito.doReturn(appSettings).when(jwtFilter).getAppSettings();
             
             jwtFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
-            assertEquals(HttpStatus.FORBIDDEN.value(),httpServletResponse.getStatus());
+            assertEquals(HttpStatus.OK.value(),httpServletResponse.getStatus());
         }
         
     }
