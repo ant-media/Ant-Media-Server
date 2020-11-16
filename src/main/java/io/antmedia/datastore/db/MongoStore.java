@@ -340,7 +340,6 @@ public class MongoStore extends DataStore {
 			if(sortBy != null && orderBy != null && !sortBy.isEmpty() && !orderBy.isEmpty()) {
 				query = query.order(orderBy.equals("desc") ? Sort.descending(sortBy) : Sort.ascending(sortBy));
 			}
-			logger.warn("getbroadcasti cagirdim");
 			if(search != null && !search.isEmpty()){
 				return query.search(search).find(new FindOptions().skip(offset).limit(size)).toList();
 			}
