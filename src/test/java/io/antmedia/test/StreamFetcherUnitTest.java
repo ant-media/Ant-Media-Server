@@ -12,6 +12,7 @@ import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.bytedeco.ffmpeg.global.avcodec.*;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -46,6 +47,7 @@ import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.IApplicationAdaptorFactory;
+import io.antmedia.RecordType;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
@@ -55,6 +57,7 @@ import io.antmedia.integration.AppFunctionalV2Test;
 import io.antmedia.integration.MuxingTest;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.muxer.Mp4Muxer;
+import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.rest.model.Result;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
@@ -704,9 +707,9 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		mp4Muxer.init(appScope, "test", 480);
 		
-		Mockito.doReturn(true).when(mp4Muxer).isCodecSupported(Mockito.any());
+		Mockito.doReturn(true).when(mp4Muxer).isCodecSupported(Mockito.anyInt());
 		
-		mp4Muxer.prepare(inputFormatContext);
+		mp4Muxer.addStream(pars, MuxAdaptor.TIME_BASE_FOR_MS);
 		
 		Mockito.verify(mp4Muxer, Mockito.never()).avNewStream(Mockito.any());
 	}
@@ -788,7 +791,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			if (checkContext) {
 				Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
 					// This issue is the check of #1600
-					return fetcher.getMuxAdaptor() != null && fetcher.getMuxAdaptor().isEnableAudio() && fetcher.getMuxAdaptor().getInputFormatContext() != null;
+					return fetcher.getMuxAdaptor() != null && fetcher.getMuxAdaptor().isEnableAudio();
 				});
 			}
 	
@@ -1044,5 +1047,45 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 		return appSettings;
 	}
+	
+	@Test
+	public void testMP4RecordingOnTheFly() throws InterruptedException {
+
+		try {
+			startCameraEmulator();
+
+			AppSettings apps = getAppSettings();
+			boolean mp4Recording = apps.isMp4MuxingEnabled();
+			apps.setMp4MuxingEnabled(false);
+			
+			String streamId = "Stream"+(int)(Math.random()*10000);
+			Broadcast newCam = new Broadcast("testOnvif", "127.0.0.1:8080", "admin", "admin", "rtsp://127.0.0.1:6554/test.flv",
+					AntMediaApplicationAdapter.IP_CAMERA);
+			
+			newCam.setStreamId(streamId);
+			
+			StreamFetcher camScheduler = new StreamFetcher(newCam, appScope, vertx);
+			
+			camScheduler.setConnectionTimeout(10000);
+
+			camScheduler.startStream();
+			
+			Awaitility.await().atMost(15, TimeUnit.SECONDS).until(() -> camScheduler.getMuxAdaptor() != null);			
+			Thread.sleep(2000);
+			assertTrue(camScheduler.getMuxAdaptor().startRecording(RecordType.MP4));
+			Thread.sleep(5000);
+			assertTrue(camScheduler.getMuxAdaptor().stopRecording(RecordType.MP4));
+			Thread.sleep(2000);
+			camScheduler.stopStream();
+			assertTrue(MuxingTest.testFile("webapps/junit/streams/"+newCam.getStreamId() +".mp4"));
+			apps.setMp4MuxingEnabled(mp4Recording);
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+
+	}
+
 
 }
