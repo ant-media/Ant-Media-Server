@@ -155,6 +155,8 @@ public class DBStoresUnitTest {
     	testGetVoDIdByStreamId(dataStore);
     	testBroadcastListSorting(dataStore);
 		testTotalWebRTCViewerCount(dataStore);
+		testBroadcastListSearch(dataStore);
+
 	}
 
 	@Test
@@ -210,7 +212,7 @@ public class DBStoresUnitTest {
 		testGetVoDIdByStreamId(dataStore);
 		testBroadcastListSorting(dataStore);
 		testTotalWebRTCViewerCount(dataStore);
-		testBroadcastListSearchMongo(dataStore);
+		testBroadcastListSearch(dataStore);
 	}
 	
 	@Test
@@ -808,33 +810,7 @@ public class DBStoresUnitTest {
 			assertTrue(36 > Integer.valueOf(broadcastList.get(i).getName()));
 		}
 	}
-	public void testBroadcastListSearchMongo(DataStore dataStore){
-		Broadcast broadcast1 = new Broadcast(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, "bbbStream");
-		broadcast1.setDate(1000);
-		broadcast1.setType(AntMediaApplicationAdapter.LIVE_STREAM);
-		Broadcast broadcast2 = new Broadcast(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, "aaaStream");
-		broadcast2.setDate(100000);
-		broadcast2.setType(AntMediaApplicationAdapter.IP_CAMERA); // Ip Camera
-		Broadcast broadcast3 = new Broadcast(AntMediaApplicationAdapter.BROADCAST_STATUS_PREPARING, "cccStream");
-		broadcast3.setDate(100000000);
-		broadcast3.setType(AntMediaApplicationAdapter.STREAM_SOURCE); //Stream Source
 
-		dataStore.save(broadcast1);
-		dataStore.save(broadcast2);
-		dataStore.save(broadcast3);
-
-		List<Broadcast> broadcastList = dataStore.getBroadcastList(0, 50, null, null, null, broadcast2.getStreamId());
-		assertEquals(broadcastList.get(0).getStreamId(), broadcast2.getStreamId());
-		assertEquals(broadcastList.get(0).getName(), broadcast2.getName());
-
-		broadcastList = dataStore.getBroadcastList(0, 50, null, null, null, broadcast1.getStreamId());
-		assertEquals(broadcastList.get(0).getStreamId(), broadcast1.getStreamId());
-		assertEquals(broadcastList.get(0).getName(), broadcast1.getName());
-
-		broadcastList = dataStore.getBroadcastList(0, 50, null, null, null, broadcast3.getStreamId());
-		assertEquals(broadcastList.get(0).getStreamId(), broadcast3.getStreamId());
-		assertEquals(broadcastList.get(0).getName(), broadcast3.getName());
-	}
 	public void testBroadcastListSearch(DataStore dataStore){
 
 		Broadcast broadcast1 = new Broadcast(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, "bbbStream");

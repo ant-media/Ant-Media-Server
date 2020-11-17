@@ -24,6 +24,7 @@ import dev.morphia.Datastore;
 import dev.morphia.Key;
 import dev.morphia.Morphia;
 import dev.morphia.aggregation.Group;
+import dev.morphia.query.CriteriaContainer;
 import dev.morphia.query.Criteria;
 import dev.morphia.query.FindOptions;
 import dev.morphia.query.Query;
@@ -341,9 +342,12 @@ public class MongoStore extends DataStore {
 			}
 			if(search != null && !search.isEmpty()){
 				logger.info("Server side search is called for {}", search);
-				return query.search(search)
-						.order("name")
-						.asList();
+				Pattern regexp = Pattern.compile(search, Pattern.CASE_INSENSITIVE);
+				query.or(
+						query.criteria("name").containsIgnoreCase(search),
+						query.criteria("streamId").containsIgnoreCase(search)
+				);
+				return query.find(new FindOptions().skip(offset).limit(size)).toList();
 			}
 
 			if(type != null && !type.isEmpty()) {
