@@ -607,26 +607,31 @@ public abstract class RestServiceBase {
 	
 	}
 	
-	public Result processRTMPEndpoint(Result result, String broadcastId, String rtmpUrl, String type) {
-		boolean isCluster = getAppContext().containsBean(IClusterNotifier.BEAN_NAME);
-		Broadcast broadcast = getDataStore().get(broadcastId);
-		boolean started;
-		
-		if (broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) 
+	public Result processRTMPEndpoint(Result result, Broadcast broadcast, String rtmpUrl, boolean addEndpoint) {
+		if (broadcast != null) 
 		{
-			if((broadcast.getOriginAdress().equals(getServerSettings().getHostAddress()) || !isCluster)) {
-				if(type.equals("Add")) {
-					started = getMuxAdaptor(broadcastId).startRtmpStreaming(rtmpUrl);
+			boolean isCluster = getAppContext().containsBean(IClusterNotifier.BEAN_NAME);
+			boolean started;
+			
+			if (broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) 
+			{
+				if((broadcast.getOriginAdress().equals(getServerSettings().getHostAddress()) || !isCluster)) {
+					if(addEndpoint) {
+						started = getMuxAdaptor(broadcast.getStreamId()).startRtmpStreaming(rtmpUrl);
+					}
+					else {
+						started = getMuxAdaptor(broadcast.getStreamId()).stopRtmpStreaming(rtmpUrl);
+					}
+					result.setSuccess(started);
 				}
 				else {
-					started = getMuxAdaptor(broadcastId).stopRtmpStreaming(rtmpUrl);
+					logger.error("Please send a RTMP Endpoint request to the {} node or {} RTMP Endpoint in a stopped broadcast.", broadcast.getOriginAdress(), addEndpoint ? "add" : "remove");
+					result.setSuccess(false);
 				}
-				result.setSuccess(started);
 			}
-			else {
-				logger.error("Please send a RTMP Endpoint request to the {} node or {} RTMP Endpoint in a stopped broadcast.", broadcast.getOriginAdress(), type);
-				result.setSuccess(false);
-			}
+		}
+		else {
+			logger.warn("Broadcast is null so that there is no start/stop streaming from rtmp: {}", rtmpUrl);
 		}
 		return result;
 	}

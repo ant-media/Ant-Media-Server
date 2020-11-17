@@ -334,7 +334,6 @@ public class BroadcastRestService extends RestServiceBase{
 	public Result addEndpointV3(@ApiParam(value = "Broadcast id", required = true) @PathParam("id") String id,
 			@ApiParam(value = "RTMP url of the endpoint that stream will be republished. If required, please encode the URL", required = true) Endpoint endpoint) {
 		
-		String commandType = "Add"; 
 		String rtmpUrl = null;
 		Result result = new Result(false);
 		
@@ -345,7 +344,7 @@ public class BroadcastRestService extends RestServiceBase{
 		
 		if (result.isSuccess()) 
 		{
-			result = processRTMPEndpoint(result, id, rtmpUrl, commandType);
+			result = processRTMPEndpoint(result,  getDataStore().get(id), rtmpUrl, true);
 		}
 		else {
 			if (logger.isErrorEnabled()) {
@@ -394,7 +393,6 @@ public class BroadcastRestService extends RestServiceBase{
 		
 		//Get rtmpURL with broadcast
 		String rtmpUrl = null;
-		String commandType = "Remove";
 		Broadcast broadcast = getDataStore().get(id);
 		Result result;
 		
@@ -410,7 +408,7 @@ public class BroadcastRestService extends RestServiceBase{
 		
 		if (result.isSuccess()) 
 		{
-			result = processRTMPEndpoint(result, id, rtmpUrl, commandType);
+			result = processRTMPEndpoint(result, broadcast, rtmpUrl, false);
 		}
 		else if (logger.isErrorEnabled()) {	
 			logger.error("Rtmp endpoint({}) was not removed from the stream: {}", rtmpUrl != null ? rtmpUrl.replaceAll(REPLACE_CHARS, "_") : null , id.replaceAll(REPLACE_CHARS, "_"));
