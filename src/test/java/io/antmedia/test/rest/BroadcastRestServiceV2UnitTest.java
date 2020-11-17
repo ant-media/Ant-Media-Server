@@ -56,11 +56,14 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.web.context.ConfigurableWebApplicationContext;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.IApplicationAdaptorFactory;
 import io.antmedia.RecordType;
+import io.antmedia.cluster.IClusterNotifier;
+import io.antmedia.cluster.IClusterStore;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.MongoStore;
@@ -704,16 +707,25 @@ public class BroadcastRestServiceV2UnitTest {
 	@Test
 	public void testRemoveEndpointV2() 
 	{
+		ApplicationContext context = mock(ApplicationContext.class);
+		restServiceReal.setAppCtx(context);
+		when(context.containsBean(any())).thenReturn(false);
+		
 		AppSettings settings = mock(AppSettings.class);
 		String serverName = "fully.qualified.domain.name";
+		String serverHostAddress = "127.0.1.1";
 		restServiceReal.setAppSettings(settings);
 		
 		ServerSettings serverSettings = mock(ServerSettings.class);
 		when(serverSettings.getServerName()).thenReturn(serverName);
+		when(serverSettings.getHostAddress()).thenReturn(serverHostAddress);
 		restServiceReal.setServerSettings(serverSettings);
 
 
-		Broadcast broadcast = new Broadcast(null, "name");
+		Broadcast broadcast1 = new Broadcast(null, "name1");
+		Broadcast broadcast2 = new Broadcast(null, "name2");
+		Broadcast broadcast3 = new Broadcast(null, "name3");
+		Broadcast broadcast4 = new Broadcast(null, "name4");
 		DataStore store = new InMemoryDataStore("testdb");
 		restServiceReal.setDataStore(store);
 
@@ -724,8 +736,9 @@ public class BroadcastRestServiceV2UnitTest {
 		
 		assertFalse(restServiceReal.removeEndpointV2("any_stream_not_registered", "rtmp://test.endpoint.url/server_test").isSuccess());
 		String streamId = null;
-		{
-			Broadcast createBroadcast = (Broadcast) restServiceReal.createBroadcast(broadcast, null, false).getEntity();
+		// Standallone Remove RTMP Endpoint with same origin and broadcast
+		{			
+			Broadcast createBroadcast = (Broadcast) restServiceReal.createBroadcast(broadcast1, null, false).getEntity();
 			streamId = createBroadcast.getStreamId();
 			assertNotNull(streamId);
 			
@@ -738,10 +751,45 @@ public class BroadcastRestServiceV2UnitTest {
 			assertTrue(result.isSuccess());
 			
 			assertEquals(1, store.get(streamId).getEndPointList().size());
+			
+			serverHostAddress = "127.0.1.1";
+			when(serverSettings.getHostAddress()).thenReturn(serverHostAddress);
+			
 			assertTrue(restServiceReal.removeEndpointV2(streamId, store.get(streamId).getEndPointList().get(0).getEndpointServiceId()).isSuccess());
 		}
 		
-		{			
+		// Standallone Remove RTMP Endpoint with different origin and broadcast
+		{	
+			Broadcast createBroadcast = (Broadcast) restServiceReal.createBroadcast(broadcast2, null, false).getEntity();
+			streamId = createBroadcast.getStreamId();
+			assertNotNull(streamId);
+			
+			String endpointURL = "rtmp://test.endpoint.url/test";
+			
+			Endpoint endpoint = new Endpoint();
+			endpoint.setRtmpUrl(endpointURL);
+			
+			Result result = restServiceReal.addEndpointV3(streamId, endpoint);
+			assertTrue(result.isSuccess());
+			
+			assertEquals(1, store.get(streamId).getEndPointList().size());
+			
+			serverHostAddress = "55.55.55.55";
+			when(serverSettings.getHostAddress()).thenReturn(serverHostAddress);
+			
+			assertTrue(restServiceReal.removeEndpointV2(streamId, store.get(streamId).getEndPointList().get(0).getEndpointServiceId()).isSuccess());
+		}
+		
+		// enable Cluster mode with same origin and broadcast
+		{
+			// Set Default Host Address
+			serverHostAddress = "127.0.1.1";
+			when(serverSettings.getHostAddress()).thenReturn(serverHostAddress);
+			
+			Broadcast createBroadcast = (Broadcast) restServiceReal.createBroadcast(broadcast3, null, false).getEntity();
+			streamId = createBroadcast.getStreamId();
+			assertNotNull(streamId);
+			
 			BroadcastRestService restServiceSpy = Mockito.spy(restServiceReal);
 			MuxAdaptor muxAdaptor = Mockito.mock(MuxAdaptor.class);
 			
@@ -762,7 +810,53 @@ public class BroadcastRestServiceV2UnitTest {
 			
 			store.updateStatus(streamId, AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 			
+			when(context.containsBean(any())).thenReturn(true);
+			serverHostAddress = "127.0.1.1";
+			when(serverSettings.getHostAddress()).thenReturn(serverHostAddress);
+			
 			assertTrue(restServiceSpy.removeEndpointV2(streamId, store.get(streamId).getEndPointList().get(0).getEndpointServiceId()).isSuccess());
+		}
+		
+		// enable Cluster mode with different origin and broadcast
+		{
+			Broadcast createBroadcast = (Broadcast) restServiceReal.createBroadcast(broadcast4, null, false).getEntity();
+			streamId = createBroadcast.getStreamId();
+			assertNotNull(streamId);
+			
+			BroadcastRestService restServiceSpy = Mockito.spy(restServiceReal);
+			MuxAdaptor muxAdaptor = Mockito.mock(MuxAdaptor.class);
+			
+			Mockito.doReturn(muxAdaptor).when(restServiceSpy).getMuxAdaptor(streamId);
+			
+			Mockito.when(muxAdaptor.stopRtmpStreaming(Mockito.anyString())).thenReturn(true);
+			String endpointURL = "rtmp://test.endpoint.url/test";
+					
+			Endpoint endpoint = new Endpoint();
+			endpoint.setRtmpUrl(endpointURL);
+
+			Result result = restServiceSpy.addEndpointV3(streamId, endpoint);
+			assertTrue(result.isSuccess());
+					
+			assertEquals(1, store.get(streamId).getEndPointList().size());
+			
+			store.updateStatus(streamId, AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+			
+			when(context.containsBean(any())).thenReturn(true);
+			serverHostAddress = "55.55.55.55";
+			when(serverSettings.getHostAddress()).thenReturn(serverHostAddress);
+					
+			assertFalse(restServiceSpy.removeEndpointV2(streamId, store.get(streamId).getEndPointList().get(0).getEndpointServiceId()).isSuccess());
+		}
+				
+		{
+			// Set Default Host Address
+			serverHostAddress = "127.0.1.1";
+			when(serverSettings.getHostAddress()).thenReturn(serverHostAddress);
+			
+			Endpoint endpoint6 = new Endpoint();
+			endpoint6.setRtmpUrl("rtmp://test.endpoint.url/any_stream_test");
+			
+			assertFalse(restServiceReal.addEndpointV3("Not_regsitered_stream_id", endpoint6).isSuccess());
 		}
 
 	}
@@ -824,12 +918,19 @@ public class BroadcastRestServiceV2UnitTest {
 
 	@Test
 	public void testAddEndpointV2() {
+		
+		ApplicationContext context = mock(ApplicationContext.class);
+		restServiceReal.setAppCtx(context);
+		when(context.containsBean(any())).thenReturn(false);
+		
 		AppSettings settings = mock(AppSettings.class);
 		String serverName = "fully.qualified.domain.name";
+		String serverHostAddress = "127.0.1.1";
 		restServiceReal.setAppSettings(settings);
 		
 		ServerSettings serverSettings = mock(ServerSettings.class);
 		when(serverSettings.getServerName()).thenReturn(serverName);
+		when(serverSettings.getHostAddress()).thenReturn(serverHostAddress);
 		restServiceReal.setServerSettings(serverSettings);
 
 
@@ -866,6 +967,7 @@ public class BroadcastRestServiceV2UnitTest {
 		assertEquals(endpointURL, endpoint2.getRtmpUrl());
 		assertEquals("generic", endpoint2.getType());
 		
+		// Standallone Add RTMP Endpoint with same origin and broadcast
 		{
 			BroadcastRestService restServiceSpy = Mockito.spy(restServiceReal);
 			MuxAdaptor muxAdaptor = Mockito.mock(MuxAdaptor.class);
@@ -881,12 +983,75 @@ public class BroadcastRestServiceV2UnitTest {
 			assertTrue(restServiceSpy.addEndpointV3(streamId, endpoint3).isSuccess());
 		}
 		
+		// Standallone Add RTMP Endpoint with different origin and broadcast
 		{
+			serverHostAddress = "55.55.55.55";
+			when(serverSettings.getHostAddress()).thenReturn(serverHostAddress);
+			
+			BroadcastRestService restServiceSpy = Mockito.spy(restServiceReal);
+			MuxAdaptor muxAdaptor = Mockito.mock(MuxAdaptor.class);
+			
+			Mockito.doReturn(muxAdaptor).when(restServiceSpy).getMuxAdaptor(broadcast.getStreamId());
+			
+			Mockito.when(muxAdaptor.startRtmpStreaming(Mockito.anyString())).thenReturn(true);
+			
+			Endpoint endpoint3 = new Endpoint();
+			endpoint3.setRtmpUrl("rtmp://test.endpoint.url/any_stream_test");
+			
+			store.updateStatus(broadcast.getStreamId(), AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+			assertTrue(restServiceSpy.addEndpointV3(streamId, endpoint3).isSuccess());
+		}
+		
+		// enable Cluster mode with same origin and broadcast
+		{
+			when(context.containsBean(any())).thenReturn(true);
+			serverHostAddress = "127.0.1.1";
+			when(serverSettings.getHostAddress()).thenReturn(serverHostAddress);
+
+			
+			BroadcastRestService restServiceSpy = Mockito.spy(restServiceReal);
+			MuxAdaptor muxAdaptor = Mockito.mock(MuxAdaptor.class);
+			
+			Mockito.doReturn(muxAdaptor).when(restServiceSpy).getMuxAdaptor(broadcast.getStreamId());
+			
+			Mockito.when(muxAdaptor.startRtmpStreaming(Mockito.anyString())).thenReturn(true);
+			
 			Endpoint endpoint4 = new Endpoint();
 			endpoint4.setRtmpUrl("rtmp://test.endpoint.url/any_stream_test");
 			
-			assertFalse(restServiceReal.addEndpointV3("Not_regsitered_stream_id", endpoint4).isSuccess());
+			store.updateStatus(broadcast.getStreamId(), AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+			assertTrue(restServiceSpy.addEndpointV3(streamId, endpoint4).isSuccess());
+			
 		}
+		
+		// enable Cluster mode with different origin and broadcast
+		{
+			when(context.containsBean(any())).thenReturn(true);
+			serverHostAddress = "55.55.55.55";
+			when(serverSettings.getHostAddress()).thenReturn(serverHostAddress);
+			
+			BroadcastRestService restServiceSpy = Mockito.spy(restServiceReal);
+			MuxAdaptor muxAdaptor = Mockito.mock(MuxAdaptor.class);
+			
+			Mockito.doReturn(muxAdaptor).when(restServiceSpy).getMuxAdaptor(broadcast.getStreamId());
+			
+			Mockito.when(muxAdaptor.startRtmpStreaming(Mockito.anyString())).thenReturn(true);
+			
+			Endpoint endpoint5 = new Endpoint();
+			endpoint5.setRtmpUrl("rtmp://test.endpoint.url/any_stream_test");
+			
+			store.updateStatus(broadcast.getStreamId(), AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+			assertFalse(restServiceSpy.addEndpointV3(streamId, endpoint5).isSuccess());
+			
+		}
+		
+		{
+			Endpoint endpoint6 = new Endpoint();
+			endpoint6.setRtmpUrl("rtmp://test.endpoint.url/any_stream_test");
+			
+			assertFalse(restServiceReal.addEndpointV3("Not_regsitered_stream_id", endpoint6).isSuccess());
+		}
+
 	}
 
 
