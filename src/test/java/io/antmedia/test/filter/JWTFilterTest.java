@@ -59,7 +59,6 @@ public class JWTFilterTest {
         	//reset httpServletRequest
         	httpServletRequest = new MockHttpServletRequest();
         	
-            appSettings.setJwtSecretKey("testtesttesttesttesttesttesttesttesttest");
             appSettings.setJwtControlEnabled(true);
             
             Mockito.doReturn(appSettings).when(jwtFilter).getAppSettings();
@@ -68,7 +67,6 @@ public class JWTFilterTest {
 
             jwtFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
             assertEquals(HttpStatus.FORBIDDEN.value(),httpServletResponse.getStatus());
-            
         }
         
         // JWT Token disable and passed token scenario
@@ -82,8 +80,6 @@ public class JWTFilterTest {
         	//reset httpServletRequest
         	httpServletRequest = new MockHttpServletRequest();
         	
-           // appSettings.setRemoteAllowedCIDR("127.0.0.1/8");
-            appSettings.setJwtSecretKey("testtesttesttesttesttesttesttesttesttest");
             appSettings.setJwtControlEnabled(false);
             
             Mockito.doReturn(appSettings).when(jwtFilter).getAppSettings();
@@ -91,8 +87,7 @@ public class JWTFilterTest {
             httpServletRequest.addHeader("jwtToken", token);
             
             jwtFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
-            assertEquals(HttpStatus.OK.value(),httpServletResponse.getStatus());
-            
+            assertEquals(HttpStatus.OK.value(),httpServletResponse.getStatus()); 
         }
         
         // JWT Token enable and valid token scenario
@@ -106,7 +101,6 @@ public class JWTFilterTest {
         	//reset httpServletRequest
         	httpServletRequest = new MockHttpServletRequest();
         	
-            appSettings.setJwtSecretKey("testtesttesttesttesttesttesttesttesttest");
             appSettings.setJwtControlEnabled(true);
             
             Mockito.doReturn(appSettings).when(jwtFilter).getAppSettings();
@@ -128,7 +122,6 @@ public class JWTFilterTest {
         	//reset httpServletRequest
         	httpServletRequest = new MockHttpServletRequest();
         	
-            appSettings.setJwtSecretKey("testtesttesttesttesttesttesttesttesttest");
             appSettings.setJwtControlEnabled(true);
             
             Mockito.doReturn(appSettings).when(jwtFilter).getAppSettings();
@@ -136,7 +129,6 @@ public class JWTFilterTest {
             jwtFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
             assertEquals(HttpStatus.OK.value(),httpServletResponse.getStatus());
         }
-        
     }
 
 }
