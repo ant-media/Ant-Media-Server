@@ -156,8 +156,8 @@ public class Application extends MultiThreadedApplicationAdapter implements IAnt
 		this.streamAcceptFilter = streamAcceptFilter;
 	}
 
-	public boolean isValidStreamParameters(AVFormatContext inputFormatContext,AVPacket pkt, String streamId) {
-		return streamAcceptFilter.isValidStreamParameters(inputFormatContext, pkt, streamId);
+	public boolean isValidStreamParameters(int width, int height, int fps, int bitrate, String streamId) {
+		return streamAcceptFilter.isValidStreamParameters(width, height, fps, bitrate, streamId);
 	}
 	
 	public void setServerSettings(ServerSettings serverSettings) {

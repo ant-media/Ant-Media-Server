@@ -19,10 +19,12 @@ import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import com.mongodb.WriteResult;
 
+import dev.morphia.utils.IndexType;
 import dev.morphia.Datastore;
 import dev.morphia.Key;
 import dev.morphia.Morphia;
 import dev.morphia.aggregation.Group;
+import dev.morphia.query.CriteriaContainer;
 import dev.morphia.query.Criteria;
 import dev.morphia.query.FindOptions;
 import dev.morphia.query.Query;
@@ -75,7 +77,7 @@ public class MongoStore extends DataStore {
 
 		MongoClientURI mongoUri = new MongoClientURI(uri);
 		MongoClient client = new MongoClient(mongoUri);
-		
+
 		//TODO: Refactor these stores so that we don't have separate datastore for each class
 		datastore = morphia.createDatastore(client, dbName);
 		vodDatastore=morphia.createDatastore(client, dbName+"VoD");
@@ -84,7 +86,6 @@ public class MongoStore extends DataStore {
 		detectionMap = morphia.createDatastore(client, dbName + "detection");
 		conferenceRoomDatastore = morphia.createDatastore(client, dbName + "room");
 
-		
 		//*************************************************
 		//do not create data store for each type as we do above
 		//*************************************************
@@ -327,7 +328,7 @@ public class MongoStore extends DataStore {
 	}
 
 	@Override
-	public List<Broadcast> getBroadcastList(int offset, int size, String type, String sortBy, String orderBy) {
+	public List<Broadcast> getBroadcastList(int offset, int size, String type, String sortBy, String orderBy, String search) {
 		synchronized(this) {
 			try {
 				Query<Broadcast> query = datastore.find(Broadcast.class);
@@ -338,6 +339,15 @@ public class MongoStore extends DataStore {
 			
 			if(sortBy != null && orderBy != null && !sortBy.isEmpty() && !orderBy.isEmpty()) {
 				query = query.order(orderBy.equals("desc") ? Sort.descending(sortBy) : Sort.ascending(sortBy));
+			}
+			if(search != null && !search.isEmpty()){
+				logger.info("Server side search is called for {}", search);
+				Pattern regexp = Pattern.compile(search, Pattern.CASE_INSENSITIVE);
+				query.or(
+						query.criteria("name").containsIgnoreCase(search),
+						query.criteria("streamId").containsIgnoreCase(search)
+				);
+				return query.find(new FindOptions().skip(offset).limit(size)).toList();
 			}
 
 			if(type != null && !type.isEmpty()) {

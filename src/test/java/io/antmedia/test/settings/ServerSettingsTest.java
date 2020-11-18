@@ -51,5 +51,14 @@ public class ServerSettingsTest {
 		assertEquals(ServerSettings.LOG_LEVEL_WARN, settings.getNativeLogLevel());
 		
 	}
+	
+	@Test
+	public void testNodeGroup() {
+		ServerSettings settings = new ServerSettings();
+		assertEquals(ServerSettings.DEFAULT_NODE_GROUP, settings.getNodeGroup());
+		settings.setNodeGroup("group1");
+		assertEquals("group1", settings.getNodeGroup());
+		
+	}
 
 }
