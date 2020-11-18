@@ -382,7 +382,7 @@ public class MapDBStore extends DataStore {
 			}
 		}
 		if(search != null && !search.isEmpty()){
-			logger.info("server side search called for String = {}", search);
+			logger.info("server side search called for Broadcast searchString = {}", search);
 			list = searchOnServer(list, search);
 		}
 		return sortAndCropBroadcastList(list, offset, size, sortBy, orderBy);
@@ -392,7 +392,7 @@ public class MapDBStore extends DataStore {
 	 * {@inheritDoc}
 	 */
 	@Override
-	public List<VoD> getVodList(int offset, int size, String sortBy, String orderBy, String streamId) {
+	public List<VoD> getVodList(int offset, int size, String sortBy, String orderBy, String streamId, String search) {
 		ArrayList<VoD> vods = new ArrayList<>();
 		synchronized (this) {
 			Collection<String> values = vodMap.values();
@@ -416,6 +416,10 @@ public class MapDBStore extends DataStore {
 					logger.error("Inconsistency in DB. It's likely db file({}) is damaged", dbName);
 					break;
 				}
+			}
+			if(search != null && !search.isEmpty()){
+				logger.info("server side search called for VoD searchString = {}", search);
+				vods = searchOnServerVod(vods, search);
 			}
 			return sortAndCropVodList(vods, offset, size, sortBy, orderBy);
 		}

@@ -289,7 +289,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		//test_Video_360p.flv
 		//test.flv
 		//sample_MP4_480.mp4
-		List<VoD> vodList = dataStore.getVodList(0, 50, null, null, null);
+		List<VoD> vodList = dataStore.getVodList(0, 50, null, null, null, null);
 		assertEquals(5, vodList.size());
 
 		for (VoD voD : vodList) {

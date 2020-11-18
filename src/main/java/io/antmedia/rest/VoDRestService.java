@@ -74,9 +74,10 @@ public class VoDRestService extends RestServiceBase{
 			@ApiParam(value = "Number of items that will be fetched", required = true) @PathParam("size") int size,
 			@ApiParam(value = "Field to sort", required = false) @QueryParam("sort_by") String sortBy,
 			@ApiParam(value = "asc for Ascending, desc Descening order", required = false) @QueryParam("order_by") String orderBy,
-			@ApiParam(value = "Id of the stream to filter the results by stream id", required = true) @QueryParam("streamId") String streamId) 
+			@ApiParam(value = "Id of the stream to filter the results by stream id", required = true) @QueryParam("streamId") String streamId,
+			@ApiParam(value = "Search string", required = false) @QueryParam("search") String search)
 	{
-		return getDataStore().getVodList(offset, size, sortBy, orderBy, streamId);
+		return getDataStore().getVodList(offset, size, sortBy, orderBy, streamId, search);
 	}
 	
 	@ApiOperation(value = "Get the total number of VoDs", response = Long.class)
