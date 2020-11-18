@@ -754,7 +754,7 @@ public class BroadcastRestService extends RestServiceBase{
 							result = startRecord(streamId, RecordType.MP4);
 							if (!result) 
 							{
-								streamId = failedRecordingOperation(enableRecording,streamId,RecordType.MP4);
+								logFailedOperation(enableRecording,streamId,RecordType.MP4);
 							}
 							else
 							{
@@ -780,7 +780,7 @@ public class BroadcastRestService extends RestServiceBase{
 						result = stopRecord(streamId, RecordType.MP4);
 						if (!result) 
 						{
-							streamId = failedRecordingOperation(enableRecording,streamId,RecordType.MP4);
+							streamId = logFailedOperation(enableRecording,streamId,RecordType.MP4);
 						}
 						else{
 							message=Long.toString(System.currentTimeMillis());
@@ -821,7 +821,7 @@ public class BroadcastRestService extends RestServiceBase{
 							result = startRecord(streamId, RecordType.WEBM);
 							if (!result) 
 							{
-								streamId = failedRecordingOperation(enableRecording,streamId,RecordType.WEBM);
+								logFailedOperation(enableRecording,streamId,RecordType.WEBM);
 							}else{
 								message=Long.toString(System.currentTimeMillis());
 							}
@@ -845,7 +845,7 @@ public class BroadcastRestService extends RestServiceBase{
 						result = stopRecord(streamId, RecordType.WEBM);
 						if (!result) 
 						{
-							streamId = failedRecordingOperation(enableRecording,streamId,RecordType.WEBM);
+							logFailedOperation(enableRecording,streamId,RecordType.WEBM);
 						}
 						else{
 							message=Long.toString(System.currentTimeMillis());

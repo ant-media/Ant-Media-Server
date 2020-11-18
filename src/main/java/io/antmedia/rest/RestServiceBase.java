@@ -1960,17 +1960,17 @@ public abstract class RestServiceBase {
 		return false;
 	}
 
-	public static String failedRecordingOperation(boolean enableRecording,String streamId,RecordType type){
+	public static String logFailedOperation(boolean enableRecording,String streamId,RecordType type){
+		String id = streamId.replaceAll(REPLACE_CHARS, "_");
 		if (enableRecording)
 		{
-			logger.warn("{} recording could not be started for stream: {}", type,streamId);
-			return streamId.replaceAll(REPLACE_CHARS, "_");
+			logger.warn("{} recording could not be started for stream: {}", type,id);
 		}
 		else
 		{
-			logger.warn("{} recording could not be stopped for stream: {}",type, streamId);
-			return streamId.replaceAll(REPLACE_CHARS, "_");
+			logger.warn("{} recording could not be stopped for stream: {}",type, id);
 		}
+		return id;
 	}
 
 }
