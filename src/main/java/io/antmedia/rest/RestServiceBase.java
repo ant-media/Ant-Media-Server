@@ -42,6 +42,7 @@ import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.IApplicationAdaptorFactory;
 import io.antmedia.RecordType;
+import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
@@ -605,6 +606,35 @@ public abstract class RestServiceBase {
 		return new Result(removed);
 	
 	}
+	
+	public Result processRTMPEndpoint(Result result, Broadcast broadcast, String rtmpUrl, boolean addEndpoint) {
+		if (broadcast != null) 
+		{
+			boolean isCluster = getAppContext().containsBean(IClusterNotifier.BEAN_NAME);
+			boolean started;
+			
+			if (broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) 
+			{
+				if((broadcast.getOriginAdress().equals(getServerSettings().getHostAddress()) || !isCluster)) {
+					if(addEndpoint) {
+						started = getMuxAdaptor(broadcast.getStreamId()).startRtmpStreaming(rtmpUrl);
+					}
+					else {
+						started = getMuxAdaptor(broadcast.getStreamId()).stopRtmpStreaming(rtmpUrl);
+					}
+					result.setSuccess(started);
+				}
+				else {
+					logger.error("Please send a RTMP Endpoint request to the {} node or {} RTMP Endpoint in a stopped broadcast.", broadcast.getOriginAdress(), addEndpoint ? "add" : "remove");
+					result.setSuccess(false);
+				}
+			}
+		}
+		else {
+			logger.warn("Broadcast is null so that there is no start/stop streaming from rtmp: {}", rtmpUrl);
+		}
+		return result;
+	}
 
 
 	public Result importLiveStreams2Stalker() 
@@ -629,7 +659,7 @@ public abstract class RestServiceBase {
 
 			List<Broadcast> broadcastList = new ArrayList<>();
 			for (int i = 0; i < pageCount; i++) {
-				broadcastList.addAll(getDataStore().getBroadcastList(i*DataStore.MAX_ITEM_IN_ONE_LIST, DataStore.MAX_ITEM_IN_ONE_LIST,null,null,null));
+				broadcastList.addAll(getDataStore().getBroadcastList(i*DataStore.MAX_ITEM_IN_ONE_LIST, DataStore.MAX_ITEM_IN_ONE_LIST,null,null,null,null));
 			}
 
 			StringBuilder insertQueryString = new StringBuilder();
