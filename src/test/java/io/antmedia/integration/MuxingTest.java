@@ -13,10 +13,7 @@ import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
 import static org.bytedeco.ffmpeg.global.avutil.AV_NOPTS_VALUE;
 import static org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_NONE;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -494,7 +491,7 @@ public class MuxingTest {
 
             result = RestServiceV2Test.callEnableMp4Muxing(streamName, 1);
             assertTrue(result.isSuccess());
-			
+			assertNotNull(result.getMessage());
             Thread.sleep(5000);
 
 			result = RestServiceV2Test.callEnableMp4Muxing(streamName, 0);
@@ -510,8 +507,6 @@ public class MuxingTest {
             
 			appSettings.setMp4MuxingEnabled(mp4Enabled);
 			ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettings);
-
-
 		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
