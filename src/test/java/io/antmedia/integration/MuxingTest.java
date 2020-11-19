@@ -13,10 +13,7 @@ import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
 import static org.bytedeco.ffmpeg.global.avutil.AV_NOPTS_VALUE;
 import static org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_NONE;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -180,18 +177,13 @@ public class MuxingTest {
 
 		try {
 			Thread.sleep(5000);
-
+			
+			assertFalse(testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".m3u8"));
+			
+			assertFalse(rtmpSendingProcess.isAlive());
+			
 			// stop rtmp streaming
 			rtmpSendingProcess.destroy();
-
-			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
-				return testFile("rtmp://" + SERVER_ADDR + "/LiveApp/" + streamName + ".mp4");
-			});
-
-			// check that mp4 is not created
-			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
-				return testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".mp4");
-			});
 			
 		} catch (Exception e) {
 			fail(e.getMessage());
@@ -218,26 +210,18 @@ public class MuxingTest {
 			String streamName2 = "conccurent" + (int) (Math.random() * 1000);
 			Process rtmpSendingProcess2 = execute(
 					ffmpegPath + " -re -i src/test/resources/test.flv -acodec pcm_alaw -vcodec copy -f flv rtmp://"
-							+ SERVER_ADDR + "/LiveApp/" + streamName2);
+						+ SERVER_ADDR + "/LiveApp/" + streamName2);
 
 			Thread.sleep(5000);
 			
-			long rtmpSendingProcessStartTime = rtmpSendingProcess.info().startInstant().get().toEpochMilli();
+			assertFalse(testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName1 + ".mp4"));
+			assertFalse(testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName2 + ".mp4"));
+			
+			assertFalse(rtmpSendingProcess.isAlive());
+			assertFalse(rtmpSendingProcess2.isAlive());
 
-			long rtmpSendingProcessStartTime2 = rtmpSendingProcess2.info().startInstant().get().toEpochMilli();
 			rtmpSendingProcess.destroy();
-			int duration1 = (int)(System.currentTimeMillis() - rtmpSendingProcessStartTime);
-			
-			rtmpSendingProcess2.destroy();
-			int duration2 = (int)(System.currentTimeMillis() - rtmpSendingProcessStartTime2);
-
-			Awaitility.await().atMost(35, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> 
-				 testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName1 + ".mp4", duration1)
-			);
-			
-			Awaitility.await().atMost(35, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> 
-				testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName2 + ".mp4", duration2)
-			);
+		
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -263,20 +247,15 @@ public class MuxingTest {
 				+ SERVER_ADDR + "/LiveApp/" + streamName);
 		try {
 			Thread.sleep(5000);
+			
+			assertFalse(testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".m3u8"));
+			
+			assertFalse(testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".mp4"));
 
+			assertFalse(rtmpSendingProcess.isAlive());
 			// stop rtmp streaming
 			rtmpSendingProcess.destroy();
-			
-			Awaitility.await().atMost(40, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> 
-				testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".m3u8")
-			);
-			
-			// check that mp4 is created
-			Awaitility.await().atMost(40, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> 
-				testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".mp4")
-			);
-			
-			assertTrue(testFile("rtmp://" + SERVER_ADDR + "/LiveApp/" + streamName + ".mp4"));
+						
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -512,7 +491,7 @@ public class MuxingTest {
 
             result = RestServiceV2Test.callEnableMp4Muxing(streamName, 1);
             assertTrue(result.isSuccess());
-			
+			assertNotNull(result.getMessage());
             Thread.sleep(5000);
 
 			result = RestServiceV2Test.callEnableMp4Muxing(streamName, 0);
@@ -528,8 +507,6 @@ public class MuxingTest {
             
 			appSettings.setMp4MuxingEnabled(mp4Enabled);
 			ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettings);
-
-
 		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());

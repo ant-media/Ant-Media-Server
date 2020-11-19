@@ -363,7 +363,7 @@ public class MapDBStore extends DataStore {
 	}
 
 	@Override
-	public List<Broadcast> getBroadcastList(int offset, int size, String type, String sortBy, String orderBy) {
+	public List<Broadcast> getBroadcastList(int offset, int size, String type, String sortBy, String orderBy, String search) {
 		ArrayList<Broadcast> list = new ArrayList<>();
 		synchronized (this) {
 			
@@ -386,6 +386,10 @@ public class MapDBStore extends DataStore {
 					list.add(broadcast);
 				}
 			}
+		}
+		if(search != null && !search.isEmpty()){
+			logger.info("server side search called for String = {}", search);
+			list = searchOnServer(list, search);
 		}
 		return sortAndCropBroadcastList(list, offset, size, sortBy, orderBy);
 	}
