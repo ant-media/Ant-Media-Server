@@ -28,19 +28,13 @@ public class JWTFilter extends AbstractFilter {
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
 		
 		AppSettings appSettings = getAppSettings();
-
+		
 		if(!appSettings.isJwtControlEnabled()) {
+			chain.doFilter(request, response);
 			return;
 		}
 		
 		HttpServletRequest httpRequest = (HttpServletRequest) request;
-		
-		
-		if(httpRequest.getHeader(JWT_TOKEN) == null) {
-			// Check IP Filter
-			chain.doFilter(request, response);
-			return;
-		}
 		
 		if(httpRequest.getHeader(JWT_TOKEN) != null && checkJWT(httpRequest.getHeader(JWT_TOKEN))) {
 			// No need to check IP Filter

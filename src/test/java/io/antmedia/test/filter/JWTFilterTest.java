@@ -18,7 +18,6 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
 import io.antmedia.AppSettings;
-import io.antmedia.filter.IPFilter;
 import io.antmedia.filter.JWTFilter;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -37,7 +36,7 @@ public class JWTFilterTest {
         MockFilterChain filterChain;
         
         AppSettings appSettings = new AppSettings();
-        appSettings.setJwtSecretKey("testtesttesttesttesttesttesttesttesttest");
+        appSettings.setJwtSecretKey("testtesttesttesttesttesttesttest");       
         appSettings.setJwtControlEnabled(true);
         
         Mockito.doReturn(appSettings).when(jwtFilter).getAppSettings();
@@ -45,8 +44,10 @@ public class JWTFilterTest {
 		SecretKey key = Keys.hmacShaKeyFor(appSettings.getJwtSecretKey().getBytes(StandardCharsets.UTF_8));
 		SecretKey invalidKey = Keys.hmacShaKeyFor("invalid-key-invalid-key-invalid-key".getBytes(StandardCharsets.UTF_8));
 		
-		String token = Jwts.builder().setSubject("token").signWith(key).compact();
+		String token = Jwts.builder().setSubject("token").signWith(key).compact();		
 		String invalidToken = Jwts.builder().setSubject("token").signWith(invalidKey).compact();
+		
+		System.out.println("Valid Token: " + token);
 
         // JWT Token enable and invalid token scenario
         {   
@@ -127,7 +128,7 @@ public class JWTFilterTest {
             Mockito.doReturn(appSettings).when(jwtFilter).getAppSettings();
             
             jwtFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
-            assertEquals(HttpStatus.OK.value(),httpServletResponse.getStatus());
+            assertEquals(HttpStatus.FORBIDDEN.value(),httpServletResponse.getStatus());
         }
     }
 

@@ -11,7 +11,6 @@ import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -24,7 +23,6 @@ import java.util.jar.Manifest;
 import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
-import javax.crypto.SecretKey;
 import javax.servlet.ServletContext;
 import javax.ws.rs.core.Context;
 
@@ -32,15 +30,6 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.apache.http.NameValuePair;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpDelete;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.message.BasicNameValuePair;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
 import org.red5.server.api.scope.IBroadcastScope;
 import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
@@ -85,11 +74,8 @@ import io.antmedia.storage.StorageClient;
 import io.antmedia.storage.StorageClient.FileType;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
-import org.json.simple.parser.ParseException;
 
 public abstract class RestServiceBase {
 
@@ -345,21 +331,13 @@ public abstract class RestServiceBase {
 	protected Result deleteBroadcast(String id) {
 		Result result = new Result (false);
 		boolean stopResult = false;
-		boolean isCluster = getAppContext().containsBean(IClusterNotifier.BEAN_NAME);
 
 		if (id != null) {
 			Broadcast broadcast = getDataStore().get(id);
-			
-			System.out.println("broadcast.getOriginAdress():" + broadcast.getOriginAdress());
-			
-			if(isCluster && !broadcast.getOriginAdress().equals(getServerSettings().getHostAddress()) && broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
-				return sendDeleteCommandToOtherNode(broadcast.getStreamId(),broadcast.getOriginAdress(),appSettings.getAppName());
-			}
-			else {
-				stopResult = stopBroadcastInternal(broadcast);
-				result.setSuccess(getDataStore().delete(id));
-			}
-			
+			stopResult = stopBroadcastInternal(broadcast);
+
+			result.setSuccess(getDataStore().delete(id));
+
 			if(result.isSuccess() && stopResult) {
 				logger.info("broadcast {} is deleted and stopped successfully", broadcast.getStreamId());
 				result.setMessage("broadcast is deleted and stopped successfully");
@@ -371,48 +349,6 @@ public abstract class RestServiceBase {
 			}
 
 		}
-		return result;
-	}
-	
-	public Result sendDeleteCommandToOtherNode(String streamId, String originAddress, String appName){
-		Result result = new Result(false);
-		
-		String remoteUrl = "http://"+originAddress+":5080/"+appName+"/rest/v2/"+streamId;
-
-		//make sure httpclient will be closed with try block
-		try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-			HttpDelete httpRequest = new HttpDelete(remoteUrl);
-			List<NameValuePair> nameValuePairs = new ArrayList<>();
-			nameValuePairs.add(new BasicNameValuePair("Content-Type", "application/json;"));
-			
-			//Creating JWT Token
-			String token = createJWT();
-			httpRequest.addHeader(JWTFilter.JWT_TOKEN, token);
-			
-			//make sure response will be closed with try block
-			CloseableHttpResponse response = httpClient.execute(httpRequest);
-			
-			JSONParser parser = new JSONParser(); 
-			JSONObject jsonResponse = (JSONObject) parser.parse(response.toString());
-			
-			if (response.getStatusLine().getStatusCode() != 200) {
-				logger.error("Broadcast delete message couldn't send {} node, Status Code: {}", 
-						originAddress, response.getStatusLine().getStatusCode());
-			}
-			
-			boolean successStatus = (Boolean)jsonResponse.get("success");
-			String messageStatus = (String)jsonResponse.get("message");
-			
-			result.setSuccess(successStatus);
-			result.setMessage(messageStatus);
-
-			} catch (ClientProtocolException e) {
-				e.printStackTrace();
-			} catch (IOException e) {
-				e.printStackTrace();
-			} catch (ParseException e) {
-				e.printStackTrace();
-			}
 		return result;
 	}
 
@@ -2025,14 +1961,5 @@ public abstract class RestServiceBase {
 		}
 		return false;
 	}
-	
-		public String createJWT() {
-			
-			AppSettings appSettings = getAppSettings();
-			SecretKey key = Keys.hmacShaKeyFor(appSettings.getJwtSecretKey().getBytes(StandardCharsets.UTF_8));
-			
-		    //Builds the JWT and serializes it to a compact, URL-safe string
-		    return Jwts.builder().setSubject("token").signWith(key).compact();
-		}
 
 }
