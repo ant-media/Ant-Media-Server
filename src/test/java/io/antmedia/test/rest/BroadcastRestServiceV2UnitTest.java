@@ -1283,7 +1283,9 @@ public class BroadcastRestServiceV2UnitTest {
 		when(serverSettings.getServerName()).thenReturn(serverName);
 		restServiceReal.setServerSettings(serverSettings);
 
-		
+		ApplicationContext context = mock(ApplicationContext.class);
+		restServiceReal.setAppCtx(context);
+		when(context.containsBean(any())).thenReturn(false);
 
 
 		DataStore store = new InMemoryDataStore("testdb");
@@ -1323,6 +1325,65 @@ public class BroadcastRestServiceV2UnitTest {
 
 		Mockito.verify(streamCapableConnection, Mockito.times(streamCount)).close();
 
+		// Add test for Cluster
+		restServiceReal.setAppCtx(context);
+		when(context.containsBean(any())).thenReturn(true);
+				
+		// isCluster true / broadcast origin address != server host address / status = broadcasting
+		{
+			Broadcast broadcast = new Broadcast();
+			broadcast.setOriginAdress("55.55.55.55");
+			broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+			store.save(broadcast);
+			
+			when(restServiceReal.getServerSettings().getHostAddress()).thenReturn("127.0.0.1");
+			
+			Result result = restServiceReal.deleteBroadcast(broadcast.getStreamId());
+			assertFalse(result.isSuccess());
+		}
+		
+		// isCluster true / broadcast origin address == server host address / status = broadcasting
+		{
+			Broadcast broadcast = new Broadcast();
+			broadcast.setOriginAdress("55.55.55.55");
+			broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+			store.save(broadcast);
+			
+			when(restServiceReal.getServerSettings().getHostAddress()).thenReturn("55.55.55.55");
+			
+			Result result = restServiceReal.deleteBroadcast(broadcast.getStreamId());
+			assertTrue(result.isSuccess());
+		}
+		
+		// isCluster true / broadcast origin address != server host address / status = finished
+		{
+			when(restServiceReal.getServerSettings().getHostAddress()).thenReturn("127.0.0.1");
+			
+			Broadcast broadcast = new Broadcast();
+			broadcast.setOriginAdress("55.55.55.55");
+			broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+			store.save(broadcast);
+			
+			when(restServiceReal.getServerSettings().getHostAddress()).thenReturn("127.0.0.1");
+			
+			Result result = restServiceReal.deleteBroadcast(broadcast.getStreamId());
+			assertTrue(result.isSuccess());
+		}
+		
+		// isCluster true / broadcast origin address == server host address / status = finished
+		{
+			when(restServiceReal.getServerSettings().getHostAddress()).thenReturn("127.0.0.1");
+			
+			Broadcast broadcast = new Broadcast();
+			broadcast.setOriginAdress("55.55.55.55");
+			broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+			store.save(broadcast);
+			
+			when(restServiceReal.getServerSettings().getHostAddress()).thenReturn("55.55.55.55");
+			
+			Result result = restServiceReal.deleteBroadcast(broadcast.getStreamId());
+			assertTrue(result.isSuccess());
+		}
 
 	}
 

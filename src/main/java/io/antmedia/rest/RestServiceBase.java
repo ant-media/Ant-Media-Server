@@ -334,6 +334,14 @@ public abstract class RestServiceBase {
 
 		if (id != null) {
 			Broadcast broadcast = getDataStore().get(id);
+			boolean isCluster = getAppContext().containsBean(IClusterNotifier.BEAN_NAME);
+			
+			if (isCluster && !broadcast.getOriginAdress().equals(getServerSettings().getHostAddress()) && broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING))
+			{
+				logger.error("Please send a Delete Broadcast request to the {} node or Delete Broadcast in a stopped broadcast.", broadcast.getOriginAdress());
+				result.setSuccess(false);
+				return result;
+			}
 			stopResult = stopBroadcastInternal(broadcast);
 
 			result.setSuccess(getDataStore().delete(id));
