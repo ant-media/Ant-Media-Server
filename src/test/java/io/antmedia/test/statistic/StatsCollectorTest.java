@@ -104,6 +104,12 @@ public class StatsCollectorTest {
 	
 	@Test
 	public void testJSObjects() {
+		
+		StatsCollector statsCollector = new StatsCollector();
+		
+		statsCollector.setVertx(vertx);
+		statsCollector.setWebRTCVertx(webRTCVertx);
+		
 		JsonObject jsObject = StatsCollector.getCPUInfoJSObject();
 		assertTrue(jsObject.has(StatsCollector.PROCESS_CPU_TIME));
 		assertTrue(jsObject.has(StatsCollector.SYSTEM_CPU_LOAD));
@@ -387,9 +393,9 @@ public class StatsCollectorTest {
 		ApplicationContext context = Mockito.mock(ApplicationContext.class);
 		Mockito.when(context.getBean(IServer.ID)).thenReturn(Mockito.mock(IServer.class));
 		Mockito.when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(serverSettings);
-		Mockito.when(context.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(Mockito.mock(Vertx.class));
-		Mockito.when(context.getBean(WebSocketCommunityHandler.WebRTC_VERTX_BEAN_NAME)).thenReturn(Mockito.mock(Vertx.class));
 		
+		Mockito.when(context.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
+		Mockito.when(context.getBean(WebSocketCommunityHandler.WebRTC_VERTX_BEAN_NAME)).thenReturn(webRTCVertx);
 		//Call setApplicationContext
 		statsCollector.setApplicationContext(context);
 		
