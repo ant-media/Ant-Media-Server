@@ -896,4 +896,10 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		}
 		
 	}
+	
+	public int getMeasurementPeriod() {
+		return measurementPeriod;
+	}
+	
+	
 }
