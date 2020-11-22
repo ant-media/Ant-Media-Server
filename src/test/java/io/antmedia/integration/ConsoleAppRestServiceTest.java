@@ -1717,9 +1717,12 @@ public class ConsoleAppRestServiceTest{
 	public static boolean callAddSubscriber(String url, Subscriber subscriber) throws Exception {
 
 		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+		
+		String jsonSubscriber = gson.toJson(subscriber);
+		
 		Gson gson = new Gson();
 		HttpUriRequest post = RequestBuilder.post().setUri(url)
-				.setHeader(HttpHeaders.CONTENT_TYPE, "application/json").setEntity(new StringEntity(gson.toJson(subscriber)))
+				.setHeader(HttpHeaders.CONTENT_TYPE, "application/json").setEntity(new StringEntity(jsonSubscriber))
 				.build();
 
 		CloseableHttpResponse response = client.execute(post);
