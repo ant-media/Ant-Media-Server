@@ -40,7 +40,10 @@ public class IPFilter extends AbstractFilter {
 	 */
 	public boolean isAllowed(final String remoteIPAdrress) {
 		AppSettings appSettings = getAppSettings();
-		if (appSettings != null) {
+		if(appSettings != null && !appSettings.isIpFilterEnabled()) {
+			return true;
+		}
+		else if (appSettings != null && appSettings.isIpFilterEnabled()) {
 			return checkCIDRList(appSettings.getAllowedCIDRList(),remoteIPAdrress);
 		}
 		// Deny this request

@@ -1365,6 +1365,10 @@ public Result createInitializationProcess(String appName){
 		store.put(AppSettings.SETTINGS_LISTENER_HOOK_URL, newAppsettings.getListenerHookURL() != null ? newAppsettings.getListenerHookURL() : "");
 		
 		store.put(AppSettings.SETTINGS_STREAM_FETCHER_RESTART_PERIOD, String.valueOf(newAppsettings.getRestartStreamFetcherPeriod()));
+		
+		store.put(AppSettings.SETTINGS_JWT_CONTROL_ENABLED, String.valueOf(newAppsettings.isJwtControlEnabled()));
+		store.put(AppSettings.SETTINGS_JWT_SECRET_KEY, newAppsettings.getJwtSecretKey() != null ? newAppsettings.getJwtSecretKey() : "");
+		store.put(AppSettings.SETTINGS_IP_FILTER_ENABLED, String.valueOf(newAppsettings.isIpFilterEnabled()));
 		return store.save();
 	}
 
@@ -1414,6 +1418,9 @@ public Result createInitializationProcess(String appName){
 		appSettings.setListenerHookURL(newSettings.getListenerHookURL());
 
 		appSettings.setRestartStreamFetcherPeriod(newSettings.getRestartStreamFetcherPeriod());
+		appSettings.setIpFilterEnabled(newSettings.isIpFilterEnabled());
+		appSettings.setJwtControlEnabled(newSettings.isJwtControlEnabled());
+		appSettings.setJwtSecretKey(newSettings.getJwtSecretKey());
 		
 		logger.warn("app settings updated for {}", getScope().getName());	
 	}

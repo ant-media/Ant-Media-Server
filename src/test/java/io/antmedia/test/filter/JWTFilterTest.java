@@ -64,7 +64,7 @@ public class JWTFilterTest {
             
             Mockito.doReturn(appSettings).when(jwtFilter).getAppSettings();
             
-            httpServletRequest.addHeader("jwtToken", invalidToken);
+            httpServletRequest.addHeader("Authorization", invalidToken);
 
             jwtFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
             assertEquals(HttpStatus.FORBIDDEN.value(),httpServletResponse.getStatus());
@@ -85,7 +85,7 @@ public class JWTFilterTest {
             
             Mockito.doReturn(appSettings).when(jwtFilter).getAppSettings();
             
-            httpServletRequest.addHeader("jwtToken", token);
+            httpServletRequest.addHeader("Authorization", token);
             
             jwtFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
             assertEquals(HttpStatus.OK.value(),httpServletResponse.getStatus()); 
@@ -106,7 +106,7 @@ public class JWTFilterTest {
             
             Mockito.doReturn(appSettings).when(jwtFilter).getAppSettings();
             
-            httpServletRequest.addHeader("jwtToken", token);
+            httpServletRequest.addHeader("Authorization", token);
             
             jwtFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
             assertEquals(HttpStatus.OK.value(),httpServletResponse.getStatus());

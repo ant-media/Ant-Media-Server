@@ -23,21 +23,16 @@ public class JWTFilter extends AbstractFilter {
 	
 	protected static Logger log = LoggerFactory.getLogger(JWTFilter.class);
 	
-	public static final String JWT_TOKEN = "jwtToken";
+	public static final String JWT_TOKEN = "Authorization";
 	
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
 		
 		AppSettings appSettings = getAppSettings();
 		
-		if(!appSettings.isJwtControlEnabled()) {
-			chain.doFilter(request, response);
-			return;
-		}
-		
 		HttpServletRequest httpRequest = (HttpServletRequest) request;
 		
-		if(httpRequest.getHeader(JWT_TOKEN) != null && checkJWT(httpRequest.getHeader(JWT_TOKEN))) {
-			// No need to check IP Filter
+		if(!appSettings.isJwtControlEnabled() || (httpRequest.getHeader(JWT_TOKEN) != null && checkJWT(httpRequest.getHeader(JWT_TOKEN)))) {
+			chain.doFilter(request, response);
 			return;
 		}
 
