@@ -136,7 +136,7 @@ public abstract class RestServiceBase {
 	public static final String IPV4_REGEX = "(([0-1]?[0-9]{1,2}\\.)|(2[0-4][0-9]\\.)|(25[0-5]\\.)){3}(([0-1]?[0-9]{1,2})|(2[0-4][0-9])|(25[0-5]))";
 
 	public static final String LOOPBACK_REGEX = "^localhost$|^127(?:\\.[0-9]+){0,2}\\.[0-9]+$|^(?:0*\\:)*?:?0*1$";
-
+	private static final String REPLACE_CHARS = "[\n|\r|\t]";
 	@Context
 	protected ServletContext servletContext;
 	protected DataStoreFactory dataStoreFactory;
@@ -1988,6 +1988,19 @@ public abstract class RestServiceBase {
 
 		}
 		return false;
+	}
+
+	public static String logFailedOperation(boolean enableRecording,String streamId,RecordType type){
+		String id = streamId.replaceAll(REPLACE_CHARS, "_");
+		if (enableRecording)
+		{
+			logger.warn("{} recording could not be started for stream: {}", type,id);
+		}
+		else
+		{
+			logger.warn("{} recording could not be stopped for stream: {}",type, id);
+		}
+		return id;
 	}
 
 }

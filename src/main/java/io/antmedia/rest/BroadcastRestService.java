@@ -747,6 +747,11 @@ public class BroadcastRestService extends RestServiceBase{
 							result = startRecord(streamId, RecordType.MP4);
 							if (!result) 
 							{
+								logFailedOperation(enableRecording,streamId,RecordType.MP4);
+							}
+							else
+							{
+								message=Long.toString(System.currentTimeMillis());
 								logger.warn("Mp4 recording could not be started for stream: {}", streamId);
 							}
 						}
@@ -772,8 +777,10 @@ public class BroadcastRestService extends RestServiceBase{
 						result = stopRecord(streamId, RecordType.MP4);
 						if (!result) 
 						{
-							streamId = streamId.replaceAll(REPLACE_CHARS, "_");
-							logger.warn("Mp4 recording could not be stopped for stream: {}", streamId);
+							streamId = logFailedOperation(enableRecording,streamId,RecordType.MP4);
+						}
+						else{
+							message=Long.toString(System.currentTimeMillis());
 						}
 						
 					}
@@ -811,8 +818,9 @@ public class BroadcastRestService extends RestServiceBase{
 							result = startRecord(streamId, RecordType.WEBM);
 							if (!result) 
 							{
-								streamId = streamId.replaceAll(REPLACE_CHARS, "_");
-								logger.warn("WebM recording could not be started for stream: {}", streamId);
+								logFailedOperation(enableRecording,streamId,RecordType.WEBM);
+							}else{
+								message=Long.toString(System.currentTimeMillis());
 							}
 						}	
 					}
@@ -834,8 +842,10 @@ public class BroadcastRestService extends RestServiceBase{
 						result = stopRecord(streamId, RecordType.WEBM);
 						if (!result) 
 						{
-							streamId = streamId.replaceAll(REPLACE_CHARS, "_");
-							logger.warn("WebM recording could not be stopped for stream: {}", streamId);
+							logFailedOperation(enableRecording,streamId,RecordType.WEBM);
+						}
+						else{
+							message=Long.toString(System.currentTimeMillis());
 						}
 						
 					}

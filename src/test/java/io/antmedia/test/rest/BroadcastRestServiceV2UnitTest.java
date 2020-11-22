@@ -1440,6 +1440,48 @@ public class BroadcastRestServiceV2UnitTest {
 		assertEquals(Status.BAD_REQUEST.getStatusCode(), response.getStatus());
 
 	}
+	
+	
+	@Test
+	public void testRecordFails() {
+		AppSettings settings = mock(AppSettings.class);
+		when(settings.getListenerHookURL()).thenReturn(null);
+		restServiceReal.setAppSettings(settings);
+		
+		Scope scope = mock(Scope.class);
+		String scopeName = "scope";
+		when(scope.getName()).thenReturn(scopeName);
+
+		restServiceReal.setScope(scope);
+		
+		Broadcast broadcast = new Broadcast(null, "name");
+		DataStore store = new InMemoryDataStore("testdb");
+		restServiceReal.setDataStore(store);
+		
+		ServerSettings serverSettings = Mockito.mock(ServerSettings.class);
+		restServiceReal.setServerSettings(serverSettings);
+		
+		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+		store.save(broadcast);
+
+		Result result = restServiceReal.enableMp4Muxing(broadcast.getStreamId(), true);
+		assertFalse(result.isSuccess());
+		
+		result = restServiceReal.enableMp4Muxing(broadcast.getStreamId(), false);
+		assertFalse(result.isSuccess());
+		
+		
+		Broadcast broadcast2 = new Broadcast(null, "name");
+		broadcast2.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+		store.save(broadcast2);
+		
+		result = restServiceReal.enableWebMMuxing(broadcast2.getStreamId(), true);
+		assertFalse(result.isSuccess());
+		
+		result = restServiceReal.enableWebMMuxing(broadcast2.getStreamId(), false);
+		assertFalse(result.isSuccess());
+		
+	}
 
 	@Test
 	public void testAllInOne() {
@@ -1526,9 +1568,9 @@ public class BroadcastRestServiceV2UnitTest {
 		//check that setting is saved correctly
 		assertEquals(MuxAdaptor.RECORDING_ENABLED_FOR_STREAM, ((Broadcast)restServiceReal.getBroadcast(testBroadcast.getStreamId()).getEntity()).getMp4Enabled());
 
-
-
 	}
+	
+	
 
 	@Test
     public void testEnableMp4Muxing() throws Exception 
@@ -1629,10 +1671,13 @@ public class BroadcastRestServiceV2UnitTest {
         
         MuxAdaptor mockMuxAdaptor = Mockito.mock(MuxAdaptor.class);
         doReturn(mockMuxAdaptor).when(restServiceSpy).getMuxAdaptor(streamId);
+        doReturn(true).when(mockMuxAdaptor).startRecording(RecordType.WEBM);
         when(mockMuxAdaptor.getStreamId()).thenReturn(streamId);
 
 
-        restServiceSpy.enableWebMMuxing(streamId, true).isSuccess();
+        Result result=restServiceSpy.enableWebMMuxing(streamId, true);
+        assertTrue(result.isSuccess());
+        assertNotNull(result.getMessage());
         verify(mockMuxAdaptor, times(1)).startRecording(RecordType.WEBM);
         assertEquals(MuxAdaptor.RECORDING_ENABLED_FOR_STREAM, store.get(streamId).getWebMEnabled());
         
