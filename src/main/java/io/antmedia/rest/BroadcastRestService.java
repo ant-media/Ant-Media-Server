@@ -854,7 +854,7 @@ public class BroadcastRestService extends RestServiceBase{
 					}
 					boolean dataStoreResult = getDataStore().setWebMMuxing(streamId, RECORD_DISABLE);
 					
-					result = stopAttempted ? (result && dataStoreResult) : dataStoreResult;
+					result = (result && dataStoreResult);
 				}
 			}
 			else 
