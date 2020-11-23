@@ -811,16 +811,19 @@ public class BroadcastRestService extends RestServiceBase{
 					
 					if (broadcast.getWebMEnabled() != RECORD_ENABLE) 
 					{
-						result = getDataStore().setWebMMuxing(streamId, RECORD_ENABLE);
+						
 						//if it's not enabled, start it
 						if (broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING))
 						{
 							result = startRecord(streamId, RecordType.WEBM);
-							if (!result) 
+							if (result) 
+							{
+								result = getDataStore().setWebMMuxing(streamId, RECORD_ENABLE);
+								message=Long.toString(System.currentTimeMillis());
+							}
+							else
 							{
 								logFailedOperation(enableRecording,streamId,RecordType.WEBM);
-							}else{
-								message=Long.toString(System.currentTimeMillis());
 							}
 						}	
 					}
