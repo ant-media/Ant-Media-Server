@@ -811,16 +811,19 @@ public class BroadcastRestService extends RestServiceBase{
 					
 					if (broadcast.getWebMEnabled() != RECORD_ENABLE) 
 					{
-						result = getDataStore().setWebMMuxing(streamId, RECORD_ENABLE);
+						
 						//if it's not enabled, start it
 						if (broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING))
 						{
 							result = startRecord(streamId, RecordType.WEBM);
-							if (!result) 
+							if (result) 
+							{
+								result = getDataStore().setWebMMuxing(streamId, RECORD_ENABLE);
+								message=Long.toString(System.currentTimeMillis());
+							}
+							else
 							{
 								logFailedOperation(enableRecording,streamId,RecordType.WEBM);
-							}else{
-								message=Long.toString(System.currentTimeMillis());
 							}
 						}	
 					}
@@ -834,24 +837,22 @@ public class BroadcastRestService extends RestServiceBase{
 				}
 				else 
 				{
-					boolean stopAttempted = false;
 					if (broadcast.getWebMEnabled() == RECORD_ENABLE && broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) 
 					{
-						stopAttempted = true;
 						//we can stop recording
 						result = stopRecord(streamId, RecordType.WEBM);
-						if (!result) 
+						if (result) 
 						{
-							logFailedOperation(enableRecording,streamId,RecordType.WEBM);
+							message=Long.toString(System.currentTimeMillis());
 						}
 						else{
-							message=Long.toString(System.currentTimeMillis());
+							logFailedOperation(enableRecording,streamId,RecordType.WEBM);
 						}
 						
 					}
 					boolean dataStoreResult = getDataStore().setWebMMuxing(streamId, RECORD_DISABLE);
 					
-					result = stopAttempted ? (result && dataStoreResult) : dataStoreResult;
+					result = (result && dataStoreResult);
 				}
 			}
 			else 
