@@ -1444,6 +1444,7 @@ public class BroadcastRestServiceV2UnitTest {
 	
 	@Test
 	public void testRecordFails() {
+		
 		AppSettings settings = mock(AppSettings.class);
 		when(settings.getListenerHookURL()).thenReturn(null);
 		restServiceReal.setAppSettings(settings);
@@ -1455,7 +1456,7 @@ public class BroadcastRestServiceV2UnitTest {
 		restServiceReal.setScope(scope);
 		
 		Broadcast broadcast = new Broadcast(null, "name");
-		DataStore store = new InMemoryDataStore("testdb");
+		DataStore store = Mockito.spy(new InMemoryDataStore("testdb"));
 		restServiceReal.setDataStore(store);
 		
 		ServerSettings serverSettings = Mockito.mock(ServerSettings.class);
@@ -1472,15 +1473,27 @@ public class BroadcastRestServiceV2UnitTest {
 		
 		
 		Broadcast broadcast2 = new Broadcast(null, "name");
-		broadcast2.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 		store.save(broadcast2);
+		result = restServiceReal.enableWebMMuxing(broadcast2.getStreamId(), false);
+		assertFalse(result.isSuccess());
 		
 		result = restServiceReal.enableWebMMuxing(broadcast2.getStreamId(), true);
 		assertFalse(result.isSuccess());
 		
+		
 		result = restServiceReal.enableWebMMuxing(broadcast2.getStreamId(), false);
 		assertFalse(result.isSuccess());
 		
+		
+		Broadcast broadcast3 = new Broadcast(null, "name");
+		broadcast3.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+		store.save(broadcast3);
+		
+		doReturn(false).when(store).setWebMMuxing(Mockito.any(), Mockito.anyInt());
+		result = restServiceReal.enableWebMMuxing(broadcast3.getStreamId(), false);
+		assertFalse(result.isSuccess());
+		
+	
 	}
 
 	@Test
