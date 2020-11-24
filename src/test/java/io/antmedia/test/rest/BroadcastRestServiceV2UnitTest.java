@@ -1646,6 +1646,7 @@ public class BroadcastRestServiceV2UnitTest {
 	@Test
     public void testEnableWebMMuxing() throws Exception 
 	{
+		
 		final String scopeValue = "scope";
         
         BroadcastRestService restServiceSpy = Mockito.spy(new BroadcastRestService());
@@ -1674,8 +1675,13 @@ public class BroadcastRestServiceV2UnitTest {
         doReturn(true).when(mockMuxAdaptor).startRecording(RecordType.WEBM);
         when(mockMuxAdaptor.getStreamId()).thenReturn(streamId);
 
-
-        Result result=restServiceSpy.enableWebMMuxing(streamId, true);
+        
+        //try to stop recording
+        Result result = restServiceSpy.enableWebMMuxing(streamId, false);
+        //it should return false because there is no recording
+        assertFalse(result.isSuccess());
+       
+        result = restServiceSpy.enableWebMMuxing(streamId, true);
         assertTrue(result.isSuccess());
         assertNotNull(result.getMessage());
         verify(mockMuxAdaptor, times(1)).startRecording(RecordType.WEBM);
