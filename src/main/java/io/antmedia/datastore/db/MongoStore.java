@@ -457,7 +457,6 @@ public class MongoStore extends DataStore {
 			}
 			if(search != null && !search.isEmpty()){
 				logger.info("Server side search is called for VoD, searchString =  {}", search);
-				Pattern regexp = Pattern.compile(search, Pattern.CASE_INSENSITIVE);
 				query.or(
 						query.criteria("vodName").containsIgnoreCase(search),
 						query.criteria("vodId").containsIgnoreCase(search),

@@ -826,14 +826,23 @@ public class DBStoresUnitTest {
 		Broadcast broadcast3 = new Broadcast(AntMediaApplicationAdapter.BROADCAST_STATUS_PREPARING, "cccStream");
 		broadcast3.setDate(100000000);
 		broadcast3.setType(AntMediaApplicationAdapter.STREAM_SOURCE); //Stream Source
+		Broadcast broadcast4 = new Broadcast(null);
+		broadcast4.setDate(100000);
+		broadcast4.setType(AntMediaApplicationAdapter.LIVE_STREAM); //Null check
+
 
 		dataStore.save(broadcast1);
 		dataStore.save(broadcast2);
 		dataStore.save(broadcast3);
+		dataStore.save(broadcast4);
 
 		List<Broadcast> broadcastList = dataStore.getBroadcastList(0, 50, null, null, null, broadcast2.getStreamId());
 		assertEquals(broadcastList.get(0).getStreamId(), broadcast2.getStreamId());
 		assertEquals(broadcastList.get(0).getName(), broadcast2.getName());
+
+		broadcastList = dataStore.getBroadcastList(0, 50, null, null, null, broadcast4.getStreamId());
+		assertEquals(broadcastList.get(0).getStreamId(), broadcast4.getStreamId());
+		assertEquals(null, broadcast4.getName());
 
 		broadcastList = dataStore.getBroadcastList(0, 50, null, null, null, "tream");
 		assertEquals(3, broadcastList.size());
@@ -1299,18 +1308,35 @@ public class DBStoresUnitTest {
 	private void testVodSearch(DataStore dataStore){
 		clear(dataStore);
 
-		VoD newVod =  new VoD("streamName", "1112233" + (int)(Math.random() * 1000), "path", "aaVod", 1517239908, 17933, 1190425, VoD.STREAM_VOD, "1112233" + (int)(Math.random() * 91000));
-		VoD newVod2 = new VoD("oguz", "11122" + (int)(Math.random() * 1000),  "path", "cCVod", 1517239708, 17933, 1190625, VoD.STREAM_VOD, "1112233" + (int)(Math.random() * 91000));
-		VoD newVod3 = new VoD("ahmet", "111" + (int)(Math.random() * 1000),  "path", "TahIr", 1517239608, 17933, 1190725, VoD.STREAM_VOD, "1112233" + (int)(Math.random() * 91000));
+		VoD newVod =  new VoD("streamName", "1112233" + (int)(Math.random() * 1000), "path", "aaVod", 1517239908, 17933, 1190425, VoD.STREAM_VOD, "1149253" + (int)(Math.random() * 91000));
+		VoD newVod2 = new VoD("oguz", "123456" + (int)(Math.random() * 1000),  "path", "cCVod", 1517239708, 17933, 1190625, VoD.STREAM_VOD, "11503943" + (int)(Math.random() * 91000));
+		VoD newVod3 = new VoD("ahmet", "2341" + (int)(Math.random() * 1000),  "path", "TahIr", 1517239608, 17933, 1190725, VoD.STREAM_VOD, "11259243" + (int)(Math.random() * 91000));
+		VoD newVod4 = new VoD(null, null,  "path", null, 1517239608, 17933, 1190725, VoD.STREAM_VOD, "11827485" + (int)(Math.random() * 91000));
+		VoD newVod5 = new VoD("denem", null,  "path", null, 1517239608, 17933, 1190725, VoD.STREAM_VOD, null);
 
 		dataStore.addVod(newVod);
 		dataStore.addVod(newVod2);
 		dataStore.addVod(newVod3);
+		dataStore.addVod(newVod4);
+		dataStore.addVod(newVod5);
 
 		long totalVodNumber = dataStore.getTotalVodNumber();
-		assertEquals(3, totalVodNumber);
+		assertEquals(5, totalVodNumber);
 
-		List<VoD> vodList = dataStore.getVodList(0, 50, null, null, null, newVod.getVodName());
+		List<VoD> vodList = dataStore.getVodList(0, 50, null, null, null, newVod4.getVodId());
+		assertEquals(1, vodList.size());
+		assertEquals(newVod4.getVodName(), vodList.get(0).getVodName());
+		assertEquals(newVod4.getStreamName(), vodList.get(0).getStreamName());
+		assertEquals(newVod4.getStreamId(), vodList.get(0).getStreamId());
+		assertEquals(newVod4.getVodId(), vodList.get(0).getVodId());
+
+		vodList = dataStore.getVodList(0, 50, null, null, null, newVod5.getVodId());
+		assertNotNull(newVod5.getVodId());
+		assertEquals(1, vodList.size()); // VodId should never come null even if initialized as null.
+		assertEquals(vodList.get(0).getVodId(), newVod5.getVodId());
+		assertNull(vodList.get(0).getVodName());
+
+		vodList = dataStore.getVodList(0, 50, null, null, null, newVod.getVodName());
 		assertEquals(1, vodList.size());
 		assertEquals(newVod.getVodName(), vodList.get(0).getVodName());
 		assertEquals(newVod.getStreamName(), vodList.get(0).getStreamName());
