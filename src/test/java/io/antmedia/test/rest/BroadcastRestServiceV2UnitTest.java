@@ -1685,7 +1685,7 @@ public class BroadcastRestServiceV2UnitTest {
         
         MuxAdaptor mockMuxAdaptor = Mockito.mock(MuxAdaptor.class);
         doReturn(mockMuxAdaptor).when(restServiceSpy).getMuxAdaptor(streamId);
-        doReturn(true).when(mockMuxAdaptor).startRecording(RecordType.WEBM);
+        doReturn(false).when(mockMuxAdaptor).startRecording(RecordType.WEBM);
         when(mockMuxAdaptor.getStreamId()).thenReturn(streamId);
 
         
@@ -1693,17 +1693,33 @@ public class BroadcastRestServiceV2UnitTest {
         Result result = restServiceSpy.enableWebMMuxing(streamId, false);
         //it should return false because there is no recording
         assertFalse(result.isSuccess());
+        
+        
+        result = restServiceSpy.enableWebMMuxing(streamId, true);
+        assertFalse(result.isSuccess());
+        doReturn(true).when(mockMuxAdaptor).startRecording(RecordType.WEBM);
        
         result = restServiceSpy.enableWebMMuxing(streamId, true);
         assertTrue(result.isSuccess());
         assertNotNull(result.getMessage());
-        verify(mockMuxAdaptor, times(1)).startRecording(RecordType.WEBM);
+        verify(mockMuxAdaptor, times(2)).startRecording(RecordType.WEBM);
         assertEquals(MuxAdaptor.RECORDING_ENABLED_FOR_STREAM, store.get(streamId).getWebMEnabled());
         
         //disable
-		restServiceSpy.enableWebMMuxing(streamId, false).isSuccess();
+        doReturn(true).when(mockMuxAdaptor).stopRecording(RecordType.WEBM);
+		result = restServiceSpy.enableWebMMuxing(streamId, false);
+		assertTrue(result.isSuccess());
         verify(mockMuxAdaptor, times(1)).stopRecording(RecordType.WEBM);
         assertEquals(MuxAdaptor.RECORDING_DISABLED_FOR_STREAM, store.get(streamId).getWebMEnabled());
+        
+        
+        store.get(streamId).setWebMEnabled(MuxAdaptor.RECORDING_ENABLED_FOR_STREAM);
+        doReturn(false).when(mockMuxAdaptor).stopRecording(RecordType.WEBM);
+		result = restServiceSpy.enableWebMMuxing(streamId, false);
+		assertFalse(result.isSuccess());
+        
+        
+        
 	}
 
 	@Test
