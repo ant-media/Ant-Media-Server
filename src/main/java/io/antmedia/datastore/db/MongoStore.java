@@ -437,7 +437,7 @@ public class MongoStore extends DataStore {
 	}
 
 	@Override
-	public List<VoD> getVodList(int offset, int size, String sortBy, String orderBy, String filterStreamId) {
+	public List<VoD> getVodList(int offset, int size, String sortBy, String orderBy, String filterStreamId, String search) {
 		synchronized(this) {
 			Query<VoD> query = vodDatastore.find(VoD.class);
 			
@@ -454,6 +454,16 @@ public class MongoStore extends DataStore {
 					sortString += CREATION_DATE;
 				}
 				query = query.order(sortString);
+			}
+			if(search != null && !search.isEmpty()){
+				logger.info("Server side search is called for VoD, searchString =  {}", search);
+				query.or(
+						query.criteria("vodName").containsIgnoreCase(search),
+						query.criteria("vodId").containsIgnoreCase(search),
+						query.criteria("streamName").containsIgnoreCase(search),
+						query.criteria("streamId").containsIgnoreCase(search)
+				);
+				return query.find(new FindOptions().skip(offset).limit(size)).toList();
 			}
 			return query.find(new FindOptions().skip(offset).limit(size)).toList();
 		}
