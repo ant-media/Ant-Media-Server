@@ -42,10 +42,12 @@ import org.red5.server.stream.StreamService;
 import org.red5.server.util.ScopeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationContext;
 
 import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
+import io.antmedia.datastore.db.IDataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
@@ -431,42 +433,76 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		
 	
 	}
+	
+	/*
+	 * ApplicationContext applicationContext = conn.getScope().getContext().getApplicationContext();
+                        		
+                        		AppSettings appSettings = (AppSettings) applicationContext.getBean(AppSettings.BEAN_NAME);
+                        		                        		
+                        		if (appSettings.getIngestingStreamLimit() > 0) 
+                        		{
+                        			log.info("there is a webrtc ingesting stream limit:{}", appSettings.getIngestingStreamLimit());
+                        			
+                        			
+                        			IDataStoreFactory dataStoreFactory = (IDataStoreFactory) applicationContext.getBean(IDataStoreFactory.BEAN_NAME);
+                        			
+                        			DataStore dataStore = dataStoreFactory.getDataStore();
+                        			
+                        			long totalBroadcastNumber = dataStore.getTotalBroadcastNumber();
+                        			
+                        			log.info("total broadcast number:{} ", totalBroadcastNumber);
+                        			
+                        		}
+	 */
 
 	public void startPublish(String streamName, long absoluteStartTimeMs) {
 		vertx.executeBlocking( handler -> {
 			try {
 
-				DataStore dataStoreLocal = getDataStore();
-				
-					Broadcast broadcast = dataStoreLocal.get(streamName);
-
-					if (broadcast == null) {
-
-						broadcast = saveUndefinedBroadcast(streamName, getScope().getName(), dataStoreLocal, appSettings,  AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, getServerSettings(), absoluteStartTimeMs);
-					} 
-					else {
-
-						broadcast.setStatus(BROADCAST_STATUS_BROADCASTING);
-						broadcast.setStartTime(System.currentTimeMillis());
-						broadcast.setOriginAdress(getServerSettings().getHostAddress());
-						broadcast.setWebRTCViewerCount(0);
-						broadcast.setHlsViewerCount(0);
-						boolean result = dataStoreLocal.updateBroadcastFields(broadcast.getStreamId(), broadcast);
+						DataStore dataStoreLocal = getDataStore();
+			
+						Broadcast broadcast = dataStoreLocal.get(streamName);
+	
+						if (broadcast == null) {
+	
+							broadcast = saveUndefinedBroadcast(streamName, getScope().getName(), dataStoreLocal, appSettings,  AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, getServerSettings(), absoluteStartTimeMs);
+						} 
+						else {
+	
+							broadcast.setStatus(BROADCAST_STATUS_BROADCASTING);
+							broadcast.setStartTime(System.currentTimeMillis());
+							broadcast.setOriginAdress(getServerSettings().getHostAddress());
+							broadcast.setWebRTCViewerCount(0);
+							broadcast.setHlsViewerCount(0);
+							boolean result = dataStoreLocal.updateBroadcastFields(broadcast.getStreamId(), broadcast);
+							
+							logger.info(" Status of stream {} is set to Broadcasting with result: {}", broadcast.getStreamId(), result);
+						}
+	
+						final String listenerHookURL = broadcast.getListenerHookURL();
+						final String streamId = broadcast.getStreamId();
+						if (listenerHookURL != null && !listenerHookURL.isEmpty()) 
+						{
+							final String name = broadcast.getName();
+							final String category = broadcast.getCategory();
+							logger.info("Setting timer to call live stream started hook for stream:{}",streamId );
+							vertx.setTimer(10, e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_START_LIVE_STREAM, name, category,
+									null, null));
+						}
 						
-						logger.info(" Status of stream {} is set to Broadcasting with result: {}", broadcast.getStreamId(), result);
-					}
-
-					final String listenerHookURL = broadcast.getListenerHookURL();
-					final String streamId = broadcast.getStreamId();
-					if (listenerHookURL != null && !listenerHookURL.isEmpty()) {
-						final String name = broadcast.getName();
-						final String category = broadcast.getCategory();
-						logger.info("Setting timer to call live stream started hook for stream:{}",streamId );
-						vertx.setTimer(10, e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_START_LIVE_STREAM, name, category,
-								null, null));
-					}
-
-					publishSocialEndpoints(broadcast.getEndPointList());
+						int ingestingStreamLimit = appSettings.getIngestingStreamLimit();
+						
+						long activeBroadcastNumber = dataStore.getActiveBroadcastCount();
+						if (ingestingStreamLimit != -1 && activeBroadcastNumber > ingestingStreamLimit) 
+						{
+							logger.info("Active broadcast count({}) is more than ingesting stream limit:{} so stopping broadcast:{}", activeBroadcastNumber, ingestingStreamLimit, broadcast.getStreamId());
+							stopStreaming(broadcast);
+						}
+						else 
+						{
+							publishSocialEndpoints(broadcast.getEndPointList());
+						}
+					
 				
 				handler.complete();
 			} catch (Exception e) {
