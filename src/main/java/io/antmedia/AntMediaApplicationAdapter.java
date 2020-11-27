@@ -433,27 +433,6 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		
 	
 	}
-	
-	/*
-	 * ApplicationContext applicationContext = conn.getScope().getContext().getApplicationContext();
-                        		
-                        		AppSettings appSettings = (AppSettings) applicationContext.getBean(AppSettings.BEAN_NAME);
-                        		                        		
-                        		if (appSettings.getIngestingStreamLimit() > 0) 
-                        		{
-                        			log.info("there is a webrtc ingesting stream limit:{}", appSettings.getIngestingStreamLimit());
-                        			
-                        			
-                        			IDataStoreFactory dataStoreFactory = (IDataStoreFactory) applicationContext.getBean(IDataStoreFactory.BEAN_NAME);
-                        			
-                        			DataStore dataStore = dataStoreFactory.getDataStore();
-                        			
-                        			long totalBroadcastNumber = dataStore.getTotalBroadcastNumber();
-                        			
-                        			log.info("total broadcast number:{} ", totalBroadcastNumber);
-                        			
-                        		}
-	 */
 
 	public void startPublish(String streamName, long absoluteStartTimeMs) {
 		vertx.executeBlocking( handler -> {
