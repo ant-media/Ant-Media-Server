@@ -805,6 +805,24 @@ public class InMemoryDataStore extends DataStore {
 		return result;
 
 	}
+	@Override
+	public List<ConferenceRoom> getConferenceRoomList(int offset, int size, String sortBy, String orderBy, String search) {
+		Collection<ConferenceRoom> values = roomMap.values();
+
+		ArrayList<ConferenceRoom> list = new ArrayList<>();
+
+
+		for (ConferenceRoom room : values)
+		{
+			list.add(room);
+		}
+
+		if(search != null && !search.isEmpty()){
+			logger.info("server side search called for Conference Room = {}", search);
+			list = searchOnServerConferenceRoom(list, search);
+		}
+		return sortAndCropConferenceRoomList(list, offset, size, sortBy, orderBy);
+	}
 
 	@Override
 	public ConferenceRoom getConferenceRoom(String roomName) {

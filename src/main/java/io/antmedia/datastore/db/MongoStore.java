@@ -326,6 +326,34 @@ public class MongoStore extends DataStore {
 		}
 		return false;
 	}
+	@Override
+	public List<ConferenceRoom> getConferenceRoomList(int offset, int size, String sortBy, String orderBy, String search) {
+		synchronized(this) {
+			try {
+				Query<ConferenceRoom> query = conferenceRoomDatastore.createQuery(ConferenceRoom.class);
+
+				if (size > MAX_ITEM_IN_ONE_LIST) {
+					size = MAX_ITEM_IN_ONE_LIST;
+				}
+
+				if (sortBy != null && orderBy != null && !sortBy.isEmpty() && !orderBy.isEmpty()) {
+					query = query.order(orderBy.equals("desc") ? Sort.descending(sortBy) : Sort.ascending(sortBy));
+				}
+				if (search != null && !search.isEmpty()) {
+					logger.info("Server side search is called for Conference Rooom = {}", search);
+					Pattern regexp = Pattern.compile(search, Pattern.CASE_INSENSITIVE);
+					query.criteria("roomId").containsIgnoreCase(search);
+					return query.find(new FindOptions().skip(offset).limit(size)).toList();
+				}
+				return query.find(new FindOptions().skip(offset).limit(size)).toList();
+
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+		return null;
+	}
+
 
 	@Override
 	public List<Broadcast> getBroadcastList(int offset, int size, String type, String sortBy, String orderBy, String search) {

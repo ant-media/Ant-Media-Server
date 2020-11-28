@@ -355,19 +355,38 @@ public class MapDBStore extends DataStore {
 		}
 		return result;
 	}
+	@Override
+	public List<ConferenceRoom> getConferenceRoomList(int offset, int size, String sortBy, String orderBy, String search){
+		ArrayList<ConferenceRoom> list = new ArrayList<>();
+		synchronized (this) {
+			Collection<String> conferenceRooms = conferenceRoomMap.getValues();
+
+			for (String roomString : conferenceRooms)
+			{
+				ConferenceRoom room = gson.fromJson(roomString, ConferenceRoom.class);
+				list.add(room);
+			}
+		}
+		if(search != null && !search.isEmpty()){
+			logger.info("server side search called for Conference Room = {}", search);
+			list = searchOnServerConferenceRoom(list, search);
+		}
+		return sortAndCropConferenceRoomList(list, offset, size, sortBy, orderBy);
+	}
+
 
 	@Override
 	public List<Broadcast> getBroadcastList(int offset, int size, String type, String sortBy, String orderBy, String search) {
 		ArrayList<Broadcast> list = new ArrayList<>();
 		synchronized (this) {
-			
+
 			Collection<String> broadcasts = map.getValues();
 
 			if(type != null && !type.isEmpty()) {
-				for (String broadcastString : broadcasts) 
+				for (String broadcastString : broadcasts)
 				{
 					Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
-					
+
 					if (broadcast.getType().equals(type)) {
 						list.add(broadcast);
 					}
