@@ -117,6 +117,8 @@ public class DBStoresUnitTest {
 		testTotalWebRTCViewerCount(dataStore);
 		testBroadcastListSearch(dataStore);
 		testVodSearch(dataStore);
+		testConferenceRoomSorting(dataStore);
+		testConferenceRoomSearch(dataStore);
 
 	}
 
@@ -158,6 +160,8 @@ public class DBStoresUnitTest {
 		testTotalWebRTCViewerCount(dataStore);
 		testBroadcastListSearch(dataStore);
 		testVodSearch(dataStore);
+		testConferenceRoomSorting(dataStore);
+		testConferenceRoomSearch(dataStore);
 
 	}
 
@@ -216,6 +220,8 @@ public class DBStoresUnitTest {
 		testTotalWebRTCViewerCount(dataStore);
 		testBroadcastListSearch(dataStore);
 		testVodSearch(dataStore);
+		testConferenceRoomSorting(dataStore);
+		testConferenceRoomSearch(dataStore);
 	}
 	
 	@Test
@@ -747,7 +753,7 @@ public class DBStoresUnitTest {
 
 	public void testGetPagination(DataStore dataStore) {
 
-		List<Broadcast> broadcastList2 = dataStore.getBroadcastList(0, 50, null, null, null, null);
+		List<Broadcast> broadcastList2 = dataStore.getBroadcastList(0, 50, null, null, null,null);
 		for (Iterator iterator = broadcastList2.iterator(); iterator.hasNext();) {
 			Broadcast broadcast = (Broadcast) iterator.next();
 			dataStore.delete(broadcast.getStreamId());
@@ -815,7 +821,11 @@ public class DBStoresUnitTest {
 	}
 
 	public void testBroadcastListSearch(DataStore dataStore){
-		clear(dataStore);
+		List<Broadcast> broadcastList2 = dataStore.getBroadcastList(0, 50, null, null, null, null);
+		for (Iterator iterator = broadcastList2.iterator(); iterator.hasNext();) {
+			Broadcast broadcast = (Broadcast) iterator.next();
+			dataStore.delete(broadcast.getStreamId());
+		}
 
 		Broadcast broadcast1 = new Broadcast(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, "bbbStream");
 		broadcast1.setDate(1000);
@@ -854,6 +864,149 @@ public class DBStoresUnitTest {
 
 		broadcastList = dataStore.getBroadcastList(0, 50, null, null, null, "antme");
 		assertEquals(0, broadcastList.size());
+
+	}
+
+	public void testConferenceRoomSearch(DataStore dataStore) {
+		List<ConferenceRoom> roomList2 = dataStore.getConferenceRoomList(0, 50, null, null, null);
+		for (Iterator iterator = roomList2.iterator(); iterator.hasNext();) {
+			ConferenceRoom room = (ConferenceRoom) iterator.next();
+			dataStore.deleteConferenceRoom(room.getRoomId());
+		}
+
+		long now = Instant.now().getEpochSecond();
+		//Create rooms to check sorting
+		ConferenceRoom room = new ConferenceRoom();
+
+		String roomId = "aaaroom";
+		room.setRoomId(roomId);
+		room.setStartDate(now);
+		room.setEndDate(now + 3600);
+
+		ConferenceRoom room2 = new ConferenceRoom();
+		roomId = "bbbtahir";
+		room2.setRoomId(roomId);
+		room2.setStartDate(now + 150);
+		room2.setEndDate(now + 360);
+
+		ConferenceRoom room3 = new ConferenceRoom();
+		roomId = "cctast";
+		room3.setRoomId(roomId);
+		room3.setStartDate(now + 10);
+		room3.setEndDate(now + 36000);
+
+		dataStore.createConferenceRoom(room);
+		dataStore.createConferenceRoom(room2);
+		dataStore.createConferenceRoom(room3);
+
+		List<ConferenceRoom> roomList = dataStore.getConferenceRoomList(0,50,null,null,null);
+		assertEquals(3, roomList.size());
+
+		roomList = dataStore.getConferenceRoomList(0,50,"","","");
+		assertEquals(3, roomList.size());
+
+		roomList = dataStore.getConferenceRoomList(0,50,"","","ta");
+		assertEquals(2, roomList.size());
+
+		roomList = dataStore.getConferenceRoomList(0,50,"","","tahir");
+		assertEquals(1, roomList.size());
+		assertEquals(roomList.get(0).getRoomId(), room2.getRoomId());
+
+		roomList = dataStore.getConferenceRoomList(0,50,"","","ccta");
+		assertEquals(1, roomList.size());
+		assertEquals(roomList.get(0).getRoomId(), room3.getRoomId());
+
+		roomList = dataStore.getConferenceRoomList(0,50,"roomId","asc","ta");
+		assertEquals(2, roomList.size());
+		assertEquals(roomList.get(0).getRoomId(), room2.getRoomId());
+		assertEquals(roomList.get(1).getRoomId(), room3.getRoomId());
+
+		roomList = dataStore.getConferenceRoomList(0,50,"roomId","desc","ta");
+		assertEquals(2, roomList.size());
+		assertEquals(roomList.get(1).getRoomId(), room2.getRoomId());
+		assertEquals(roomList.get(0).getRoomId(), room3.getRoomId());
+
+	}
+
+	public void testConferenceRoomSorting(DataStore dataStore){
+		List<ConferenceRoom> roomList2 = dataStore.getConferenceRoomList(0, 50, null, null, null);
+		for (Iterator iterator = roomList2.iterator(); iterator.hasNext();) {
+			ConferenceRoom room = (ConferenceRoom) iterator.next();
+			dataStore.deleteConferenceRoom(room.getRoomId());
+		}
+
+		long now = Instant.now().getEpochSecond();
+		//Create rooms to check sorting
+		ConferenceRoom room = new ConferenceRoom();
+
+		String roomId = "aaaroom";
+		room.setRoomId(roomId);
+		room.setStartDate(now);
+		room.setEndDate(now + 3600);
+
+		ConferenceRoom room2 = new ConferenceRoom();
+		roomId = "bbbroom";
+		room2.setRoomId(roomId);
+		room2.setStartDate(now + 150);
+		room2.setEndDate(now + 360);
+
+		ConferenceRoom room3 = new ConferenceRoom();
+		roomId = "cccroom";
+		room3.setRoomId(roomId);
+		room3.setStartDate(now + 10);
+		room3.setEndDate(now + 36000);
+
+		dataStore.createConferenceRoom(room);
+		dataStore.createConferenceRoom(room2);
+		dataStore.createConferenceRoom(room3);
+
+		List<ConferenceRoom> roomList = dataStore.getConferenceRoomList(0,50,null,null,null);
+		assertEquals(3, roomList.size());
+
+		roomList = dataStore.getConferenceRoomList(0,50,"","","");
+		assertEquals(3, roomList.size());
+
+		roomList = dataStore.getConferenceRoomList(0,50,"roomId","asc", null);
+		assertEquals(3, roomList.size());
+		assertEquals(roomList.get(0).getRoomId(), room.getRoomId());
+		assertEquals(roomList.get(1).getRoomId(), room2.getRoomId());
+		assertEquals(roomList.get(2).getRoomId(), room3.getRoomId());
+
+		roomList = dataStore.getConferenceRoomList(0,50,"roomId","desc", null);
+		assertEquals(3, roomList.size());
+		assertEquals(roomList.get(2).getRoomId(), room.getRoomId());
+		assertEquals(roomList.get(1).getRoomId(), room2.getRoomId());
+		assertEquals(roomList.get(0).getRoomId(), room3.getRoomId());
+
+		roomList = dataStore.getConferenceRoomList(0,50,"startDate","asc", null);
+		assertEquals(3, roomList.size());
+		assertEquals(roomList.get(0).getRoomId(), room.getRoomId());
+		assertEquals(roomList.get(2).getRoomId(), room2.getRoomId());
+		assertEquals(roomList.get(1).getRoomId(), room3.getRoomId());
+
+		roomList = dataStore.getConferenceRoomList(0,50,"startDate","desc", null);
+		assertEquals(3, roomList.size());
+		assertEquals(roomList.get(2).getRoomId(), room.getRoomId());
+		assertEquals(roomList.get(0).getRoomId(), room2.getRoomId());
+		assertEquals(roomList.get(1).getRoomId(), room3.getRoomId());
+
+		roomList = dataStore.getConferenceRoomList(0,50,"startDate","desc", "room");
+		assertEquals(3, roomList.size());
+		assertEquals(roomList.get(2).getRoomId(), room.getRoomId());
+		assertEquals(roomList.get(0).getRoomId(), room2.getRoomId());
+		assertEquals(roomList.get(1).getRoomId(), room3.getRoomId());
+
+		roomList = dataStore.getConferenceRoomList(0,50,"endDate","asc", null);
+		assertEquals(3, roomList.size());
+		assertEquals(roomList.get(1).getRoomId(), room.getRoomId());
+		assertEquals(roomList.get(0).getRoomId(), room2.getRoomId());
+		assertEquals(roomList.get(2).getRoomId(), room3.getRoomId());
+
+		roomList = dataStore.getConferenceRoomList(0,50,"endDate","desc", null);
+		assertEquals(3, roomList.size());
+		assertEquals(roomList.get(1).getRoomId(), room.getRoomId());
+		assertEquals(roomList.get(2).getRoomId(), room2.getRoomId());
+		assertEquals(roomList.get(0).getRoomId(), room3.getRoomId());
 
 	}
 	
