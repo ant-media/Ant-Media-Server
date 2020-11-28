@@ -331,31 +331,38 @@ public abstract class RestServiceBase {
 	protected Result deleteBroadcast(String id) {
 		Result result = new Result (false);
 		boolean stopResult = false;
-
-		if (id != null) {
-			Broadcast broadcast = getDataStore().get(id);
-			boolean isCluster = getAppContext().containsBean(IClusterNotifier.BEAN_NAME);
-			
-			if (isCluster && !broadcast.getOriginAdress().equals(getServerSettings().getHostAddress()) && broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING))
-			{
-				logger.error("Please send a Delete Broadcast request to the {} node or Delete Broadcast in a stopped broadcast.", broadcast.getOriginAdress());
-				result.setSuccess(false);
-				return result;
-			}
-			stopResult = stopBroadcastInternal(broadcast);
-
-			result.setSuccess(getDataStore().delete(id));
-
-			if(result.isSuccess() && stopResult) {
-				logger.info("broadcast {} is deleted and stopped successfully", broadcast.getStreamId());
-				result.setMessage("broadcast is deleted and stopped successfully");
-
-			}
-			else if(result.isSuccess() && !stopResult) {
-				logger.info("broadcast {} is deleted but could not stopped", broadcast);
-				result.setMessage("broadcast is deleted but could not stopped ");
-			}
-
+		Broadcast broadcast = null;
+		
+		if (id != null && (broadcast = getDataStore().get(id)) != null) 
+		{
+				boolean isCluster = getAppContext().containsBean(IClusterNotifier.BEAN_NAME);
+				
+				if (isCluster && !broadcast.getOriginAdress().equals(getServerSettings().getHostAddress()) && broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING))
+				{
+					logger.error("Please send a Delete Broadcast request to the {} node or Delete Broadcast in a stopped broadcast.", broadcast.getOriginAdress());
+					result.setSuccess(false);
+				}
+				else {
+					stopResult = stopBroadcastInternal(broadcast);
+		
+					result.setSuccess(getDataStore().delete(id));
+		
+					if(result.isSuccess()) 
+					{
+						if (stopResult) {
+							logger.info("broadcast {} is deleted and stopped successfully", broadcast.getStreamId());
+							result.setMessage("broadcast is deleted and stopped successfully");
+						}
+						else {
+							logger.info("broadcast {} is deleted but could not stopped", broadcast);
+							result.setMessage("broadcast is deleted but could not stopped ");
+						}
+					}
+				}
+		}
+		else
+		{
+			logger.warn("Broadcast delete operation not successfull because broadcast is not found in db for stream id:{}", id);
 		}
 		return result;
 	}
