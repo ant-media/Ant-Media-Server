@@ -24,14 +24,16 @@ public class JWTFilter extends AbstractFilter {
 	protected static Logger log = LoggerFactory.getLogger(JWTFilter.class);
 	
 	public static final String JWT_TOKEN = "Authorization";
+
+	private AppSettings appSettings;
 	
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
 		
-		AppSettings appSettings = getAppSettings();
+		appSettings = getAppSettings();
 		
 		HttpServletRequest httpRequest = (HttpServletRequest) request;
 		
-		if(!appSettings.isJwtControlEnabled() || (httpRequest.getHeader(JWT_TOKEN) != null && checkJWT(httpRequest.getHeader(JWT_TOKEN)))) {
+		if(appSettings != null && !appSettings.isJwtControlEnabled() || (httpRequest.getHeader(JWT_TOKEN) != null && checkJWT(httpRequest.getHeader(JWT_TOKEN)))) {
 			chain.doFilter(request, response);
 			return;
 		}
@@ -41,7 +43,6 @@ public class JWTFilter extends AbstractFilter {
 	
 	private boolean checkJWT(String jwtString) {
 		
-		AppSettings appSettings = getAppSettings();
 		SecretKey key = Keys.hmacShaKeyFor(appSettings.getJwtSecretKey().getBytes(StandardCharsets.UTF_8));
 		boolean result = false;
 
