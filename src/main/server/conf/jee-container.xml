@@ -73,6 +73,7 @@
 								<entry key="sslProtocol" value="TLSv1.2" />
                             	<entry key="useServerCipherSuitesOrder" value="true" />
 								<entry key="SSLCertificateFile" value="${http.ssl_certificate_file}" />
+								<entry key="SSLCertificateChainFile" value="${http.ssl_certificate_chain_file}" />
                                 <entry key="SSLCertificateKeyFile" value="${http.ssl_certificate_key_file}" />
 								<entry key="clientAuth" value="false" /> 
 								<entry key="allowUnsafeLegacyRenegotiation" value="true" /> 
