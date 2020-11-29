@@ -362,7 +362,7 @@ public abstract class RestServiceBase {
 		}
 		else
 		{
-			logger.warn("Broadcast delete operation not successfull because broadcast is not found in db for stream id:{}", id.replaceAll("[\n|\r|\t]", "_"));
+			logger.warn("Broadcast delete operation not successfull because broadcast is not found in db for stream id:{}", id != null ? id.replaceAll(REPLACE_CHARS, "_") : null);
 		}
 		return result;
 	}
