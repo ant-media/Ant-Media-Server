@@ -361,19 +361,38 @@ public class MapDBStore extends DataStore {
 		}
 		return result;
 	}
+	@Override
+	public List<ConferenceRoom> getConferenceRoomList(int offset, int size, String sortBy, String orderBy, String search){
+		ArrayList<ConferenceRoom> list = new ArrayList<>();
+		synchronized (this) {
+			Collection<String> conferenceRooms = conferenceRoomMap.getValues();
+
+			for (String roomString : conferenceRooms)
+			{
+				ConferenceRoom room = gson.fromJson(roomString, ConferenceRoom.class);
+				list.add(room);
+			}
+		}
+		if(search != null && !search.isEmpty()){
+			logger.info("server side search called for Conference Room = {}", search);
+			list = searchOnServerConferenceRoom(list, search);
+		}
+		return sortAndCropConferenceRoomList(list, offset, size, sortBy, orderBy);
+	}
+
 
 	@Override
 	public List<Broadcast> getBroadcastList(int offset, int size, String type, String sortBy, String orderBy, String search) {
 		ArrayList<Broadcast> list = new ArrayList<>();
 		synchronized (this) {
-			
+
 			Collection<String> broadcasts = map.getValues();
 
 			if(type != null && !type.isEmpty()) {
-				for (String broadcastString : broadcasts) 
+				for (String broadcastString : broadcasts)
 				{
 					Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
-					
+
 					if (broadcast.getType().equals(type)) {
 						list.add(broadcast);
 					}
@@ -388,7 +407,7 @@ public class MapDBStore extends DataStore {
 			}
 		}
 		if(search != null && !search.isEmpty()){
-			logger.info("server side search called for String = {}", search);
+			logger.info("server side search called for Broadcast searchString = {}", search);
 			list = searchOnServer(list, search);
 		}
 		return sortAndCropBroadcastList(list, offset, size, sortBy, orderBy);
@@ -398,7 +417,7 @@ public class MapDBStore extends DataStore {
 	 * {@inheritDoc}
 	 */
 	@Override
-	public List<VoD> getVodList(int offset, int size, String sortBy, String orderBy, String streamId) {
+	public List<VoD> getVodList(int offset, int size, String sortBy, String orderBy, String streamId, String search) {
 		ArrayList<VoD> vods = new ArrayList<>();
 		synchronized (this) {
 			Collection<String> values = vodMap.values();
@@ -422,6 +441,10 @@ public class MapDBStore extends DataStore {
 					logger.error("Inconsistency in DB. It's likely db file({}) is damaged", dbName);
 					break;
 				}
+			}
+			if(search != null && !search.isEmpty()){
+				logger.info("server side search called for VoD searchString = {}", search);
+				vods = searchOnServerVod(vods, search);
 			}
 			return sortAndCropVodList(vods, offset, size, sortBy, orderBy);
 		}

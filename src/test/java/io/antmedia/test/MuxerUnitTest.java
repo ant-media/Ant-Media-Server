@@ -888,6 +888,33 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 	
+	@Test
+	public void testApplicationStreamLimit() 
+	{
+		AntMediaApplicationAdapter appAdaptor = Mockito.spy(((IApplicationAdaptorFactory) applicationContext.getBean("web.handler")).getAppAdaptor());
+		assertNotNull(appAdaptor);
+		
+		String streamId = "stream " + (int)(Math.random()*10000);
+		
+		
+		appSettings.setIngestingStreamLimit(2);
+		
+		
+		appAdaptor.startPublish(streamId, 0);
+		
+		streamId = "stream " + (int)(Math.random()*10000);
+		appAdaptor.startPublish(streamId, 0);
+		
+		
+		streamId = "stream " + (int)(Math.random()*10000);
+		appAdaptor.startPublish(streamId, 0);
+		
+		Mockito.verify(appAdaptor, timeout(1000)).stopStreaming(Mockito.any());
+		
+		
+		
+		
+	}
 	
 	@Test
 	public void testAbsoluteStartTimeMs() 

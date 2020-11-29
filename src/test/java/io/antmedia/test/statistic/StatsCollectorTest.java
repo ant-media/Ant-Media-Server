@@ -31,6 +31,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.red5.server.Launcher;
 import org.red5.server.api.IContext;
+import org.red5.server.api.IServer;
 import org.red5.server.api.scope.IScope;
 import org.springframework.context.ApplicationContext;
 
@@ -38,11 +39,14 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 import io.antmedia.SystemUtils;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.rest.WebRTCClientStats;
+import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.GPUUtils;
 import io.antmedia.statistic.StatsCollector;
 import io.antmedia.statistic.GPUUtils.MemoryStatus;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
+import io.antmedia.websocket.WebSocketCommunityHandler;
 import io.vertx.core.Vertx;
 
 public class StatsCollectorTest {
@@ -100,6 +104,12 @@ public class StatsCollectorTest {
 	
 	@Test
 	public void testJSObjects() {
+		
+		StatsCollector statsCollector = new StatsCollector();
+		
+		statsCollector.setVertx(vertx);
+		statsCollector.setWebRTCVertx(webRTCVertx);
+		
 		JsonObject jsObject = StatsCollector.getCPUInfoJSObject();
 		assertTrue(jsObject.has(StatsCollector.PROCESS_CPU_TIME));
 		assertTrue(jsObject.has(StatsCollector.SYSTEM_CPU_LOAD));
@@ -365,6 +375,33 @@ public class StatsCollectorTest {
 		
 		verify(kafkaProducer, Mockito.times(1)).send(Mockito.any());		
 		
+	}
+	
+	
+	@Test
+	public void testServerSettingsInteraction() {
+		//Create server settings
+		ServerSettings serverSettings = new ServerSettings();
+		
+		serverSettings.setCpuMeasurementPeriodMs(10000);
+		serverSettings.setCpuMeasurementWindowSize(10);
+		
+		//Create StatsCollector
+		StatsCollector statsCollector = new StatsCollector();
+		
+		//Create ApplicaitonContext mock and bind the server settings
+		ApplicationContext context = Mockito.mock(ApplicationContext.class);
+		Mockito.when(context.getBean(IServer.ID)).thenReturn(Mockito.mock(IServer.class));
+		Mockito.when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(serverSettings);
+		
+		Mockito.when(context.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
+		Mockito.when(context.getBean(WebSocketCommunityHandler.WebRTC_VERTX_BEAN_NAME)).thenReturn(webRTCVertx);
+		//Call setApplicationContext
+		statsCollector.setApplicationContext(context);
+		
+		//Check the fields
+		assertEquals(10000, statsCollector.getMeasurementPeriod());
+		assertEquals(10, statsCollector.getWindowSize());
 	}
 	
 	@Test

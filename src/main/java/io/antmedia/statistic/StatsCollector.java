@@ -165,7 +165,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	Gson gson = new Gson();
 
 	private int windowSize = 5;
-	private int measurementPeriod = 5000;
+	private int measurementPeriod = 1000;
 	private int staticSendPeriod = 15000;
 
 	private int cpuLoad;
@@ -788,6 +788,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		ServerSettings serverSettings = (ServerSettings) applicationContext.getBean(ServerSettings.BEAN_NAME);
 		heartBeatEnabled = serverSettings.isHeartbeatEnabled();
 		hostAddress = serverSettings.getHostAddress();
+		measurementPeriod = serverSettings.getCpuMeasurementPeriodMs();
+		windowSize = serverSettings.getCpuMeasurementWindowSize();
 		
 		setVertx((Vertx) applicationContext.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME));
 		
@@ -894,4 +896,10 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		}
 		
 	}
+	
+	public int getMeasurementPeriod() {
+		return measurementPeriod;
+	}
+	
+	
 }

@@ -247,7 +247,7 @@ public class BroadcastRestService extends RestServiceBase{
 			@ApiParam(value = "type of the stream. Possible values are \"liveStream\", \"ipCamera\", \"streamSource\", \"VoD\"", required = false) @PathParam("type_by") String typeBy,
 			@ApiParam(value = "field to sort", required = false) @QueryParam("sort_by") String sortBy,
 			@ApiParam(value = "asc for Ascending, desc Descending order", required = false) @QueryParam("order_by") String orderBy,
-			@ApiParam(value = "Search string", required = false) @QueryParam("search") String search
+			@ApiParam(value = "Search parameter, returns specific items that contains search string", required = false) @QueryParam("search") String search
 			) {
 		return getDataStore().getBroadcastList(offset, size, typeBy, sortBy, orderBy, search);
 	}
@@ -896,16 +896,19 @@ public class BroadcastRestService extends RestServiceBase{
 					
 					if (broadcast.getWebMEnabled() != RECORD_ENABLE) 
 					{
-						result = getDataStore().setWebMMuxing(streamId, RECORD_ENABLE);
+						
 						//if it's not enabled, start it
 						if (broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING))
 						{
 							result = startRecord(streamId, RecordType.WEBM);
-							if (!result) 
+							if (result) 
+							{
+								result = getDataStore().setWebMMuxing(streamId, RECORD_ENABLE);
+								message=Long.toString(System.currentTimeMillis());
+							}
+							else
 							{
 								logFailedOperation(enableRecording,streamId,RecordType.WEBM);
-							}else{
-								message=Long.toString(System.currentTimeMillis());
 							}
 						}	
 					}
@@ -919,24 +922,22 @@ public class BroadcastRestService extends RestServiceBase{
 				}
 				else 
 				{
-					boolean stopAttempted = false;
 					if (broadcast.getWebMEnabled() == RECORD_ENABLE && broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) 
 					{
-						stopAttempted = true;
 						//we can stop recording
 						result = stopRecord(streamId, RecordType.WEBM);
-						if (!result) 
+						if (result) 
 						{
-							logFailedOperation(enableRecording,streamId,RecordType.WEBM);
+							message=Long.toString(System.currentTimeMillis());
 						}
 						else{
-							message=Long.toString(System.currentTimeMillis());
+							logFailedOperation(enableRecording,streamId,RecordType.WEBM);
 						}
 						
 					}
 					boolean dataStoreResult = getDataStore().setWebMMuxing(streamId, RECORD_DISABLE);
 					
-					result = stopAttempted ? (result && dataStoreResult) : dataStoreResult;
+					result = (result && dataStoreResult);
 				}
 			}
 			else 
@@ -1181,6 +1182,18 @@ public class BroadcastRestService extends RestServiceBase{
 		} else {
 			return new Result(false, "Operation not supported in the Community Edition. Check the Enterprise version for more features.");
 		}
+	}
+	@ApiOperation(value = "Gets the conference room list from database", notes = "",responseContainer = "List", response = ConferenceRoom.class)
+	@GET
+	@Path("/conference-rooms/list/{offset}/{size}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public List<ConferenceRoom> getConferenceRoomList(@ApiParam(value = "This is the offset of the list, it is useful for pagination. If you want to use sort mechanism, we recommend using Mongo DB.", required = true) @PathParam("offset") int offset,
+											@ApiParam(value = "Number of items that will be fetched. If there is not enough item in the datastore, returned list size may less then this value", required = true) @PathParam("size") int size,
+											@ApiParam(value = "field to sort", required = false) @QueryParam("sort_by") String sortBy,
+											@ApiParam(value = "asc for Ascending, desc Descending order", required = false) @QueryParam("order_by") String orderBy,
+											@ApiParam(value = "Search parameter, returns specific items that contains search string", required = false) @QueryParam("search") String search
+	) {
+		return getDataStore().getConferenceRoomList(offset, size ,sortBy, orderBy, search);
 	}
 
 	@ApiOperation(value="Returns the streams Ids in the room.",responseContainer ="List",response = String.class)

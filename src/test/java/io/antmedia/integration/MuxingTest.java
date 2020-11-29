@@ -457,6 +457,45 @@ public class MuxingTest {
 		 
 		 rtmpSendingProcess.destroy();
 	}
+	
+	@Test
+	public void testVP8Muxing() {
+		try {
+			ConsoleAppRestServiceTest.resetCookieStore();
+			Result result = ConsoleAppRestServiceTest.callisFirstLogin();
+			if (result.isSuccess()) {
+				Result createInitialUser = ConsoleAppRestServiceTest.createDefaultInitialUser();
+				assertTrue(createInitialUser.isSuccess());
+			}
+
+			result = ConsoleAppRestServiceTest.authenticateDefaultUser();
+			assertTrue(result.isSuccess());
+			
+			// send rtmp stream with ffmpeg to red5
+			String streamName = "live_test"  + (int)(Math.random() * 999999);
+
+			// make sure that ffmpeg is installed and in path
+			Process rtmpSendingProcess = execute(
+					ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://"
+							+ SERVER_ADDR + "/LiveApp/" + streamName);
+
+            Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+                return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName+ ".m3u8");
+            });
+
+            result = RestServiceV2Test.callEnableRecording(streamName, 1, "webm");
+            //it should return false because WebM cannot be recorded with incoming RTMP stream.
+            //RTMP stream(H264, AAC)  codecs are not compatible with webm
+            
+            assertFalse(result.isSuccess());
+
+            rtmpSendingProcess.destroy();
+            
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+	}
 
 	@Test
 	public void testMp4Muxing() {

@@ -120,6 +120,9 @@ public class DBStoresUnitTest {
     	testBroadcastListSorting(dataStore);	
 		testTotalWebRTCViewerCount(dataStore);
 		testBroadcastListSearch(dataStore);
+		testVodSearch(dataStore);
+		testConferenceRoomSorting(dataStore);
+		testConferenceRoomSearch(dataStore);
 
 	}
 
@@ -161,6 +164,9 @@ public class DBStoresUnitTest {
     	testBroadcastListSorting(dataStore);
 		testTotalWebRTCViewerCount(dataStore);
 		testBroadcastListSearch(dataStore);
+		testVodSearch(dataStore);
+		testConferenceRoomSorting(dataStore);
+		testConferenceRoomSearch(dataStore);
 
 	}
 
@@ -219,6 +225,9 @@ public class DBStoresUnitTest {
 		testBroadcastListSorting(dataStore);
 		testTotalWebRTCViewerCount(dataStore);
 		testBroadcastListSearch(dataStore);
+		testVodSearch(dataStore);
+		testConferenceRoomSorting(dataStore);
+		testConferenceRoomSearch(dataStore);
 	}
 	
 	@Test
@@ -229,7 +238,7 @@ public class DBStoresUnitTest {
 		//Following methods does not return before the bug is fixed
 		dataStore.fetchUserVodList(new File(""));
 		
-		dataStore.getVodList(0, 10, "name", "asc", null);
+		dataStore.getVodList(0, 10, "name", "asc", null, null);
 	}
 
 	public void clear(DataStore dataStore) 
@@ -256,7 +265,7 @@ public class DBStoresUnitTest {
 		numberOfCall = 0;
 		List<VoD> totalVoDList = new ArrayList<>();
 		for (int i = 0; i < pageCount; i++) {
-			totalVoDList.addAll(dataStore.getVodList(i * pageSize, pageSize, null, null, null));
+			totalVoDList.addAll(dataStore.getVodList(i * pageSize, pageSize, null, null, null, null));
 		}
 		
 		for (VoD vod : totalVoDList) {
@@ -272,12 +281,12 @@ public class DBStoresUnitTest {
 		assertEquals(0, dataStore.getTotalVodNumber());
 		
 		
-		List<VoD> vodList = dataStore.getVodList(50, 50, null, null, null);
+		List<VoD> vodList = dataStore.getVodList(50, 50, null, null, null, null);
 		assertNotNull(vodList);
 		assertEquals(0, vodList.size());
 		
 		
-		vodList = dataStore.getVodList(50, 0, null, null, null);
+		vodList = dataStore.getVodList(50, 0, null, null, null, null);
 		assertNotNull(vodList);
 		assertEquals(0, vodList.size());
 		
@@ -285,11 +294,11 @@ public class DBStoresUnitTest {
 			dataStore.addVod(new VoD("stream", "111223" + (int)(Math.random() * 1000),  "path", "vod", 1517239808, 17933, 1190525, VoD.STREAM_VOD, "1112233" + (int)(Math.random() * 91000)));			
 		}
 		
-		vodList = dataStore.getVodList(6, 4, null, null, null);
+		vodList = dataStore.getVodList(6, 4, null, null, null, null);
 		assertNotNull(vodList);
 		assertEquals(4, vodList.size());
 		
-		vodList = dataStore.getVodList(20, 5, null, null, null);
+		vodList = dataStore.getVodList(20, 5, null, null, null, null);
 		assertNotNull(vodList);
 		assertEquals(0, vodList.size());
 		
@@ -436,7 +445,7 @@ public class DBStoresUnitTest {
 		totalVodCount = datastore.getTotalVodNumber();
 		assertEquals(5, totalVodCount);
 
-		List<VoD> vodList = datastore.getVodList(0, 50, null, null, null);
+		List<VoD> vodList = datastore.getVodList(0, 50, null, null, null, null);
 		assertEquals(5, vodList.size());
 		for (VoD voD : vodList) {
 			assertEquals("streams/resources/"+voD.getVodName(), voD.getFilePath());
@@ -750,7 +759,7 @@ public class DBStoresUnitTest {
 
 	public void testGetPagination(DataStore dataStore) {
 
-		List<Broadcast> broadcastList2 = dataStore.getBroadcastList(0, 50, null, null, null, null);
+		List<Broadcast> broadcastList2 = dataStore.getBroadcastList(0, 50, null, null, null,null);
 		for (Iterator iterator = broadcastList2.iterator(); iterator.hasNext();) {
 			Broadcast broadcast = (Broadcast) iterator.next();
 			dataStore.delete(broadcast.getStreamId());
@@ -818,6 +827,11 @@ public class DBStoresUnitTest {
 	}
 
 	public void testBroadcastListSearch(DataStore dataStore){
+		List<Broadcast> broadcastList2 = dataStore.getBroadcastList(0, 50, null, null, null, null);
+		for (Iterator iterator = broadcastList2.iterator(); iterator.hasNext();) {
+			Broadcast broadcast = (Broadcast) iterator.next();
+			dataStore.delete(broadcast.getStreamId());
+		}
 
 		Broadcast broadcast1 = new Broadcast(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, "bbbStream");
 		broadcast1.setDate(1000);
@@ -828,14 +842,23 @@ public class DBStoresUnitTest {
 		Broadcast broadcast3 = new Broadcast(AntMediaApplicationAdapter.BROADCAST_STATUS_PREPARING, "cccStream");
 		broadcast3.setDate(100000000);
 		broadcast3.setType(AntMediaApplicationAdapter.STREAM_SOURCE); //Stream Source
+		Broadcast broadcast4 = new Broadcast(null);
+		broadcast4.setDate(100000);
+		broadcast4.setType(AntMediaApplicationAdapter.LIVE_STREAM); //Null check
+
 
 		dataStore.save(broadcast1);
 		dataStore.save(broadcast2);
 		dataStore.save(broadcast3);
+		dataStore.save(broadcast4);
 
 		List<Broadcast> broadcastList = dataStore.getBroadcastList(0, 50, null, null, null, broadcast2.getStreamId());
 		assertEquals(broadcastList.get(0).getStreamId(), broadcast2.getStreamId());
 		assertEquals(broadcastList.get(0).getName(), broadcast2.getName());
+
+		broadcastList = dataStore.getBroadcastList(0, 50, null, null, null, broadcast4.getStreamId());
+		assertEquals(broadcastList.get(0).getStreamId(), broadcast4.getStreamId());
+		assertEquals(null, broadcast4.getName());
 
 		broadcastList = dataStore.getBroadcastList(0, 50, null, null, null, "tream");
 		assertEquals(3, broadcastList.size());
@@ -847,6 +870,149 @@ public class DBStoresUnitTest {
 
 		broadcastList = dataStore.getBroadcastList(0, 50, null, null, null, "antme");
 		assertEquals(0, broadcastList.size());
+
+	}
+
+	public void testConferenceRoomSearch(DataStore dataStore) {
+		List<ConferenceRoom> roomList2 = dataStore.getConferenceRoomList(0, 50, null, null, null);
+		for (Iterator iterator = roomList2.iterator(); iterator.hasNext();) {
+			ConferenceRoom room = (ConferenceRoom) iterator.next();
+			dataStore.deleteConferenceRoom(room.getRoomId());
+		}
+
+		long now = Instant.now().getEpochSecond();
+		//Create rooms to check sorting
+		ConferenceRoom room = new ConferenceRoom();
+
+		String roomId = "aaaroom";
+		room.setRoomId(roomId);
+		room.setStartDate(now);
+		room.setEndDate(now + 3600);
+
+		ConferenceRoom room2 = new ConferenceRoom();
+		roomId = "bbbtahir";
+		room2.setRoomId(roomId);
+		room2.setStartDate(now + 150);
+		room2.setEndDate(now + 360);
+
+		ConferenceRoom room3 = new ConferenceRoom();
+		roomId = "cctast";
+		room3.setRoomId(roomId);
+		room3.setStartDate(now + 10);
+		room3.setEndDate(now + 36000);
+
+		dataStore.createConferenceRoom(room);
+		dataStore.createConferenceRoom(room2);
+		dataStore.createConferenceRoom(room3);
+
+		List<ConferenceRoom> roomList = dataStore.getConferenceRoomList(0,50,null,null,null);
+		assertEquals(3, roomList.size());
+
+		roomList = dataStore.getConferenceRoomList(0,50,"","","");
+		assertEquals(3, roomList.size());
+
+		roomList = dataStore.getConferenceRoomList(0,50,"","","ta");
+		assertEquals(2, roomList.size());
+
+		roomList = dataStore.getConferenceRoomList(0,50,"","","tahir");
+		assertEquals(1, roomList.size());
+		assertEquals(roomList.get(0).getRoomId(), room2.getRoomId());
+
+		roomList = dataStore.getConferenceRoomList(0,50,"","","ccta");
+		assertEquals(1, roomList.size());
+		assertEquals(roomList.get(0).getRoomId(), room3.getRoomId());
+
+		roomList = dataStore.getConferenceRoomList(0,50,"roomId","asc","ta");
+		assertEquals(2, roomList.size());
+		assertEquals(roomList.get(0).getRoomId(), room2.getRoomId());
+		assertEquals(roomList.get(1).getRoomId(), room3.getRoomId());
+
+		roomList = dataStore.getConferenceRoomList(0,50,"roomId","desc","ta");
+		assertEquals(2, roomList.size());
+		assertEquals(roomList.get(1).getRoomId(), room2.getRoomId());
+		assertEquals(roomList.get(0).getRoomId(), room3.getRoomId());
+
+	}
+
+	public void testConferenceRoomSorting(DataStore dataStore){
+		List<ConferenceRoom> roomList2 = dataStore.getConferenceRoomList(0, 50, null, null, null);
+		for (Iterator iterator = roomList2.iterator(); iterator.hasNext();) {
+			ConferenceRoom room = (ConferenceRoom) iterator.next();
+			dataStore.deleteConferenceRoom(room.getRoomId());
+		}
+
+		long now = Instant.now().getEpochSecond();
+		//Create rooms to check sorting
+		ConferenceRoom room = new ConferenceRoom();
+
+		String roomId = "aaaroom";
+		room.setRoomId(roomId);
+		room.setStartDate(now);
+		room.setEndDate(now + 3600);
+
+		ConferenceRoom room2 = new ConferenceRoom();
+		roomId = "bbbroom";
+		room2.setRoomId(roomId);
+		room2.setStartDate(now + 150);
+		room2.setEndDate(now + 360);
+
+		ConferenceRoom room3 = new ConferenceRoom();
+		roomId = "cccroom";
+		room3.setRoomId(roomId);
+		room3.setStartDate(now + 10);
+		room3.setEndDate(now + 36000);
+
+		dataStore.createConferenceRoom(room);
+		dataStore.createConferenceRoom(room2);
+		dataStore.createConferenceRoom(room3);
+
+		List<ConferenceRoom> roomList = dataStore.getConferenceRoomList(0,50,null,null,null);
+		assertEquals(3, roomList.size());
+
+		roomList = dataStore.getConferenceRoomList(0,50,"","","");
+		assertEquals(3, roomList.size());
+
+		roomList = dataStore.getConferenceRoomList(0,50,"roomId","asc", null);
+		assertEquals(3, roomList.size());
+		assertEquals(roomList.get(0).getRoomId(), room.getRoomId());
+		assertEquals(roomList.get(1).getRoomId(), room2.getRoomId());
+		assertEquals(roomList.get(2).getRoomId(), room3.getRoomId());
+
+		roomList = dataStore.getConferenceRoomList(0,50,"roomId","desc", null);
+		assertEquals(3, roomList.size());
+		assertEquals(roomList.get(2).getRoomId(), room.getRoomId());
+		assertEquals(roomList.get(1).getRoomId(), room2.getRoomId());
+		assertEquals(roomList.get(0).getRoomId(), room3.getRoomId());
+
+		roomList = dataStore.getConferenceRoomList(0,50,"startDate","asc", null);
+		assertEquals(3, roomList.size());
+		assertEquals(roomList.get(0).getRoomId(), room.getRoomId());
+		assertEquals(roomList.get(2).getRoomId(), room2.getRoomId());
+		assertEquals(roomList.get(1).getRoomId(), room3.getRoomId());
+
+		roomList = dataStore.getConferenceRoomList(0,50,"startDate","desc", null);
+		assertEquals(3, roomList.size());
+		assertEquals(roomList.get(2).getRoomId(), room.getRoomId());
+		assertEquals(roomList.get(0).getRoomId(), room2.getRoomId());
+		assertEquals(roomList.get(1).getRoomId(), room3.getRoomId());
+
+		roomList = dataStore.getConferenceRoomList(0,50,"startDate","desc", "room");
+		assertEquals(3, roomList.size());
+		assertEquals(roomList.get(2).getRoomId(), room.getRoomId());
+		assertEquals(roomList.get(0).getRoomId(), room2.getRoomId());
+		assertEquals(roomList.get(1).getRoomId(), room3.getRoomId());
+
+		roomList = dataStore.getConferenceRoomList(0,50,"endDate","asc", null);
+		assertEquals(3, roomList.size());
+		assertEquals(roomList.get(1).getRoomId(), room.getRoomId());
+		assertEquals(roomList.get(0).getRoomId(), room2.getRoomId());
+		assertEquals(roomList.get(2).getRoomId(), room3.getRoomId());
+
+		roomList = dataStore.getConferenceRoomList(0,50,"endDate","desc", null);
+		assertEquals(3, roomList.size());
+		assertEquals(roomList.get(1).getRoomId(), room.getRoomId());
+		assertEquals(roomList.get(2).getRoomId(), room2.getRoomId());
+		assertEquals(roomList.get(0).getRoomId(), room3.getRoomId());
 
 	}
 	
@@ -883,6 +1049,12 @@ public class DBStoresUnitTest {
 		assertEquals(broadcastList.get(0).getStreamId(), broadcast2.getStreamId());
 		assertEquals(broadcastList.get(1).getStreamId(), broadcast1.getStreamId());
 		assertEquals(broadcastList.get(2).getStreamId(), broadcast3.getStreamId());
+
+		broadcastList = dataStore.getBroadcastList(0, 50, null, "name", "asc", "Stream");
+		assertEquals(3, broadcastList.size());
+		assertEquals(broadcastList.get(0).getStreamId(), broadcast2.getStreamId());
+		assertEquals(broadcastList.get(1).getStreamId(), broadcast1.getStreamId());
+		assertEquals(broadcastList.get(2).getStreamId(), broadcast3.getStreamId());
 		
 		
 		broadcastList = dataStore.getBroadcastList(0, 50, null, "name", "desc", null);
@@ -890,9 +1062,21 @@ public class DBStoresUnitTest {
 		assertEquals(broadcastList.get(0).getStreamId(), broadcast3.getStreamId());
 		assertEquals(broadcastList.get(1).getStreamId(), broadcast1.getStreamId());
 		assertEquals(broadcastList.get(2).getStreamId(), broadcast2.getStreamId());
+
+		broadcastList = dataStore.getBroadcastList(0, 50, null, "name", "desc", "str");
+		assertEquals(3, broadcastList.size());
+		assertEquals(broadcastList.get(0).getStreamId(), broadcast3.getStreamId());
+		assertEquals(broadcastList.get(1).getStreamId(), broadcast1.getStreamId());
+		assertEquals(broadcastList.get(2).getStreamId(), broadcast2.getStreamId());
 		
 		
 		broadcastList = dataStore.getBroadcastList(0, 50, null, "date", "asc" , null);
+		assertEquals(3, broadcastList.size());
+		assertEquals(broadcastList.get(0).getStreamId(), broadcast1.getStreamId());
+		assertEquals(broadcastList.get(1).getStreamId(), broadcast2.getStreamId());
+		assertEquals(broadcastList.get(2).getStreamId(), broadcast3.getStreamId());
+
+		broadcastList = dataStore.getBroadcastList(0, 50, null, "date", "asc" , "st");
 		assertEquals(3, broadcastList.size());
 		assertEquals(broadcastList.get(0).getStreamId(), broadcast1.getStreamId());
 		assertEquals(broadcastList.get(1).getStreamId(), broadcast2.getStreamId());
@@ -919,6 +1103,11 @@ public class DBStoresUnitTest {
 		
 		
 		broadcastList = dataStore.getBroadcastList(0, 2, null, "status", "desc", null);
+		assertEquals(2, broadcastList.size());
+		assertEquals(broadcastList.get(0).getStreamId(), broadcast3.getStreamId());
+		assertEquals(broadcastList.get(1).getStreamId(), broadcast2.getStreamId());
+
+		broadcastList = dataStore.getBroadcastList(0, 2, null, "status", "desc", "stream");
 		assertEquals(2, broadcastList.size());
 		assertEquals(broadcastList.get(0).getStreamId(), broadcast3.getStreamId());
 		assertEquals(broadcastList.get(1).getStreamId(), broadcast2.getStreamId());
@@ -1272,6 +1461,73 @@ public class DBStoresUnitTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+
+	}
+
+	private void testVodSearch(DataStore dataStore){
+		clear(dataStore);
+
+		VoD newVod =  new VoD("streamName", "1112233" + (int)(Math.random() * 1000), "path", "aaVod", 1517239908, 17933, 1190425, VoD.STREAM_VOD, "1149253" + (int)(Math.random() * 91000));
+		VoD newVod2 = new VoD("oguz", "123456" + (int)(Math.random() * 1000),  "path", "cCVod", 1517239708, 17933, 1190625, VoD.STREAM_VOD, "11503943" + (int)(Math.random() * 91000));
+		VoD newVod3 = new VoD("ahmet", "2341" + (int)(Math.random() * 1000),  "path", "TahIr", 1517239608, 17933, 1190725, VoD.STREAM_VOD, "11259243" + (int)(Math.random() * 91000));
+		VoD newVod4 = new VoD(null, null,  "path", null, 1517239608, 17933, 1190725, VoD.STREAM_VOD, "11827485" + (int)(Math.random() * 91000));
+		VoD newVod5 = new VoD("denem", null,  "path", null, 1517239608, 17933, 1190725, VoD.STREAM_VOD, null);
+
+		dataStore.addVod(newVod);
+		dataStore.addVod(newVod2);
+		dataStore.addVod(newVod3);
+		dataStore.addVod(newVod4);
+		dataStore.addVod(newVod5);
+
+		long totalVodNumber = dataStore.getTotalVodNumber();
+		assertEquals(5, totalVodNumber);
+
+		List<VoD> vodList = dataStore.getVodList(0, 50, null, null, null, newVod4.getVodId());
+		assertEquals(1, vodList.size());
+		assertEquals(newVod4.getVodName(), vodList.get(0).getVodName());
+		assertEquals(newVod4.getStreamName(), vodList.get(0).getStreamName());
+		assertEquals(newVod4.getStreamId(), vodList.get(0).getStreamId());
+		assertEquals(newVod4.getVodId(), vodList.get(0).getVodId());
+
+		vodList = dataStore.getVodList(0, 50, null, null, null, newVod5.getVodId());
+		assertNotNull(newVod5.getVodId());
+		assertEquals(1, vodList.size()); // VodId should never come null even if initialized as null.
+		assertEquals(vodList.get(0).getVodId(), newVod5.getVodId());
+		assertNull(vodList.get(0).getVodName());
+
+		vodList = dataStore.getVodList(0, 50, null, null, null, newVod.getVodName());
+		assertEquals(1, vodList.size());
+		assertEquals(newVod.getVodName(), vodList.get(0).getVodName());
+		assertEquals(newVod.getStreamName(), vodList.get(0).getStreamName());
+		assertEquals(newVod.getStreamId(), vodList.get(0).getStreamId());
+		assertEquals(newVod.getVodId(), vodList.get(0).getVodId());
+
+		vodList = dataStore.getVodList(0, 50, null, null, null, newVod.getStreamId());
+		assertEquals(1, vodList.size());
+		assertEquals(newVod.getVodName(), vodList.get(0).getVodName());
+		assertEquals(newVod.getStreamName(), vodList.get(0).getStreamName());
+		assertEquals(newVod.getStreamId(), vodList.get(0).getStreamId());
+		assertEquals(newVod.getVodId(), vodList.get(0).getVodId());
+
+		vodList = dataStore.getVodList(0, 50, null, null, null, newVod2.getVodId());
+		assertEquals(1, vodList.size());
+		assertEquals(newVod2.getVodName(), vodList.get(0).getVodName());
+		assertEquals(newVod2.getStreamName(), vodList.get(0).getStreamName());
+		assertEquals(newVod2.getStreamId(), vodList.get(0).getStreamId());
+		assertEquals(newVod2.getVodId(), vodList.get(0).getVodId());
+
+		vodList = dataStore.getVodList(0, 50, null, null, null, "vod");
+		assertEquals(2, vodList.size());
+
+		vodList = dataStore.getVodList(0, 50, null, null, null, "ahir");
+		assertEquals(1, vodList.size());
+		assertEquals(newVod3.getVodName(), vodList.get(0).getVodName());
+		assertEquals(newVod3.getStreamName(), vodList.get(0).getStreamName());
+		assertEquals(newVod3.getStreamId(), vodList.get(0).getStreamId());
+		assertEquals(newVod3.getVodId(), vodList.get(0).getVodId());
+
+		vodList = dataStore.getVodList(0, 50, null, null, null, "vassdfsdgs");
+		assertEquals(0, vodList.size());
 
 	}
 
@@ -2281,7 +2537,7 @@ public class DBStoresUnitTest {
 		dataStore.addVod(vod2);
 		dataStore.addVod(vod3);
 
-		List<VoD> vodResult = dataStore.getVodList(0, 50, null, null, streamId);
+		List<VoD> vodResult = dataStore.getVodList(0, 50, null, null, streamId, null);
 
 		boolean vod1Match = false, vod2Match = false;
 		for (VoD vod : vodResult) {

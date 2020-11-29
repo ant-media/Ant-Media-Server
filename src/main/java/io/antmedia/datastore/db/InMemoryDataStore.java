@@ -275,7 +275,7 @@ public class InMemoryDataStore extends DataStore {
 	}
 
 	@Override
-	public List<VoD> getVodList(int offset, int size, String sortBy, String orderBy, String filterStreamId) 
+	public List<VoD> getVodList(int offset, int size, String sortBy, String orderBy, String filterStreamId, String search)
 	{
 		ArrayList<VoD> vods = null;
 		
@@ -294,7 +294,10 @@ public class InMemoryDataStore extends DataStore {
 		else {
 			vods = new ArrayList<>(vodMap.values());
 		}
-		
+		if(search != null && !search.isEmpty()){
+			logger.info("server side search called for VoD searchString = {}", search);
+			vods = searchOnServerVod(vods, search);
+		}
 		return sortAndCropVodList(vods, offset, size, sortBy, orderBy);
 	}
 
@@ -906,6 +909,24 @@ public class InMemoryDataStore extends DataStore {
 		}
 		return result;
 
+	}
+	@Override
+	public List<ConferenceRoom> getConferenceRoomList(int offset, int size, String sortBy, String orderBy, String search) {
+		Collection<ConferenceRoom> values = roomMap.values();
+
+		ArrayList<ConferenceRoom> list = new ArrayList<>();
+
+
+		for (ConferenceRoom room : values)
+		{
+			list.add(room);
+		}
+
+		if(search != null && !search.isEmpty()){
+			logger.info("server side search called for Conference Room = {}", search);
+			list = searchOnServerConferenceRoom(list, search);
+		}
+		return sortAndCropConferenceRoomList(list, offset, size, sortBy, orderBy);
 	}
 
 	@Override

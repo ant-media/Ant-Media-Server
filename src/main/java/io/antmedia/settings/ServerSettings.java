@@ -51,6 +51,11 @@ public class ServerSettings implements ApplicationContextAware {
 	public static final String DEFAULT_NODE_GROUP = "default";
 
 
+	private static final String SETTINGS_CPU_MEASUREMENT_PERIOD_MS = "server.cpu_measurement_period_ms";
+	
+	private static final String SETTINGS_CPU_MEASUREMENT_WINDOW_SIZE = "server.cpu_measurement_window_size";
+
+
 	private String allowedDashboardCIDR;
 
 	@JsonIgnore
@@ -99,6 +104,22 @@ public class ServerSettings implements ApplicationContextAware {
 	private String nodeGroup = DEFAULT_NODE_GROUP;
 
 	private Logging.Severity webrtcLogLevel = Logging.Severity.LS_WARNING;
+	
+	
+	/**
+	 * CPU load is measured for every period and this measurement is used to understand 
+	 * if server has enough CPU to handle new requests
+	 */
+	@Value( "${"+SETTINGS_CPU_MEASUREMENT_PERIOD_MS+":1000}" )
+	private int cpuMeasurementPeriodMs;
+	
+	
+	/**
+	 * Measured CPU load are added to a list with this size and average of the measure CPU loads
+	 * are calculated. It's used to check CPU has enough CPU resource
+	 */
+	@Value( "${"+SETTINGS_CPU_MEASUREMENT_WINDOW_SIZE+":5}" )
+	private int cpuMeasurementWindowSize;
 
 	public boolean isBuildForMarket() {
 		return buildForMarket;
@@ -316,6 +337,22 @@ public class ServerSettings implements ApplicationContextAware {
 
 	public void setNodeGroup(String nodeGroup) {
 		this.nodeGroup = nodeGroup;
+	}
+
+	public int getCpuMeasurementPeriodMs() {
+		return cpuMeasurementPeriodMs;
+	}
+
+	public void setCpuMeasurementPeriodMs(int cpuMeasurementPeriodMs) {
+		this.cpuMeasurementPeriodMs = cpuMeasurementPeriodMs;
+	}
+
+	public int getCpuMeasurementWindowSize() {
+		return cpuMeasurementWindowSize;
+	}
+
+	public void setCpuMeasurementWindowSize(int cpuMeasurementWindowSize) {
+		this.cpuMeasurementWindowSize = cpuMeasurementWindowSize;
 	}
 
 }
