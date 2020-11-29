@@ -104,11 +104,26 @@ public class IPFilterTest {
         AppSettings appSettings = new AppSettings();
         appSettings.setRemoteAllowedCIDR("127.0.0.1/8");
         
+        appSettings.setIpFilterEnabled(true);
         Mockito.doReturn(appSettings).when(ipFilter).getAppSettings();
         
         ipFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
-
         assertEquals(HttpStatus.OK.value(),httpServletResponse.getStatus());
+        
+        // Add App Settings tests 
+        MockHttpServletRequest httpServletRequest2 = new MockHttpServletRequest();
+        httpServletRequest.setRemoteAddr("22.22.11.11");
+        
+        MockHttpServletResponse httpServletResponse2 = new MockHttpServletResponse();
+        MockFilterChain filterChain2 = new MockFilterChain();
+        
+        appSettings.setRemoteAllowedCIDR("null");
+        appSettings.setIpFilterEnabled(false);
+        Mockito.doReturn(appSettings).when(ipFilter).getAppSettings();
+        
+        ipFilter.doFilter(httpServletRequest2, httpServletResponse2, filterChain2);
+        assertEquals(HttpStatus.OK.value(),httpServletResponse.getStatus());
+        
     }
 
     @Test
@@ -120,6 +135,7 @@ public class IPFilterTest {
         MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
         MockFilterChain filterChain = new MockFilterChain();
         AppSettings appSettings = new AppSettings();
+        appSettings.setIpFilterEnabled(true);
         appSettings.setRemoteAllowedCIDR("127.0.0.1/8");
         Mockito.doReturn(appSettings).when(ipFilter).getAppSettings();
         
