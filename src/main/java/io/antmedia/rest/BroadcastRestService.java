@@ -1196,6 +1196,25 @@ public class BroadcastRestService extends RestServiceBase{
 		return getDataStore().getConferenceRoomList(offset, size ,sortBy, orderBy, search);
 	}
 
+	@ApiOperation(value = "Get conference room object")
+	@ApiResponses(value = { @ApiResponse(code = 200, message = "Return the ConferenceRoom object"),
+			@ApiResponse(code = 404, message = "ConferenceRoom object not found")})
+	@GET
+	@Path("/conference-rooms/{roomId}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response getConferenceRoom(@ApiParam(value = "id of the room", required = true) @PathParam("roomId") String id) {
+		ConferenceRoom room = null;
+		if (id != null) {
+			room = lookupConference(id);
+		}
+		if (room != null) {
+			return Response.status(Status.OK).entity(room).build();
+		}
+		else {
+			return Response.status(Status.NOT_FOUND).build();
+		}
+	}
+
 	@ApiOperation(value="Returns the streams Ids in the room.",responseContainer ="List",response = String.class)
 	@GET
 	@Consumes({ MediaType.APPLICATION_JSON })

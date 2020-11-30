@@ -1978,6 +1978,10 @@ public class BroadcastRestServiceV2UnitTest {
 
 		//define a start date
 		room.setStartDate(now);
+
+		//Test GET conference room by id rest service
+		assertNotNull(restServiceReal.getConferenceRoom(room.getRoomId()));
+		assertEquals(restServiceReal.getConferenceRoom(room.getRoomId()).getEntity(), room);
 		
 		//edit room with the new startDate
 		//should not be null because room is saved to database and edited room is returned
