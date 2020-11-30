@@ -155,13 +155,8 @@ public class CorsHeaderFilter extends CorsFilter {
 		// localhost:4200 -> This simplifies angular app development
 		// request.getHeader("Authorization") != null -> GET, POST and etc requests with JWT Control
 		// (request.getHeader(REQUEST_HEADER_ACCESS_CONTROL_REQUEST_HEADERS) != null && request.getHeader(REQUEST_HEADER_ACCESS_CONTROL_REQUEST_HEADERS).contains("authorization") -> For the option request
-		if(origin.equals("http://localhost:4200") || request.getHeader("Authorization") != null || (request.getHeader(REQUEST_HEADER_ACCESS_CONTROL_REQUEST_HEADERS) != null && request.getHeader(REQUEST_HEADER_ACCESS_CONTROL_REQUEST_HEADERS).contains("authorization"))) {
-			return true;
-		}
-		else {
-			return false;
-		}
 		
+		return origin.equals("http://localhost:4200") || request.getHeader("Authorization") != null || (request.getHeader(REQUEST_HEADER_ACCESS_CONTROL_REQUEST_HEADERS) != null && request.getHeader(REQUEST_HEADER_ACCESS_CONTROL_REQUEST_HEADERS).contains("authorization"));
 	}
 
 	private boolean isOriginAllowedInternal(final String origin) {
