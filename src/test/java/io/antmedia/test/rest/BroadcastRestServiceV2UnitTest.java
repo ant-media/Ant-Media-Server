@@ -29,7 +29,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -72,6 +71,8 @@ import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.StreamInfo;
+import io.antmedia.datastore.db.types.Subscriber;
+import io.antmedia.datastore.db.types.SubscriberStats;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
@@ -1284,7 +1285,9 @@ public class BroadcastRestServiceV2UnitTest {
 		when(serverSettings.getServerName()).thenReturn(serverName);
 		restServiceReal.setServerSettings(serverSettings);
 
-		
+		ApplicationContext context = mock(ApplicationContext.class);
+		restServiceReal.setAppCtx(context);
+		when(context.containsBean(any())).thenReturn(false);
 
 
 		DataStore store = new InMemoryDataStore("testdb");
@@ -1324,6 +1327,65 @@ public class BroadcastRestServiceV2UnitTest {
 
 		Mockito.verify(streamCapableConnection, Mockito.times(streamCount)).close();
 
+		// Add test for Cluster
+		restServiceReal.setAppCtx(context);
+		when(context.containsBean(any())).thenReturn(true);
+				
+		// isCluster true / broadcast origin address != server host address / status = broadcasting
+		{
+			Broadcast broadcast = new Broadcast();
+			broadcast.setOriginAdress("55.55.55.55");
+			broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+			store.save(broadcast);
+			
+			when(restServiceReal.getServerSettings().getHostAddress()).thenReturn("127.0.0.1");
+			
+			Result result = restServiceReal.deleteBroadcast(broadcast.getStreamId());
+			assertFalse(result.isSuccess());
+		}
+		
+		// isCluster true / broadcast origin address == server host address / status = broadcasting
+		{
+			Broadcast broadcast = new Broadcast();
+			broadcast.setOriginAdress("55.55.55.55");
+			broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+			store.save(broadcast);
+			
+			when(restServiceReal.getServerSettings().getHostAddress()).thenReturn("55.55.55.55");
+			
+			Result result = restServiceReal.deleteBroadcast(broadcast.getStreamId());
+			assertTrue(result.isSuccess());
+		}
+		
+		// isCluster true / broadcast origin address != server host address / status = finished
+		{
+			when(restServiceReal.getServerSettings().getHostAddress()).thenReturn("127.0.0.1");
+			
+			Broadcast broadcast = new Broadcast();
+			broadcast.setOriginAdress("55.55.55.55");
+			broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+			store.save(broadcast);
+			
+			when(restServiceReal.getServerSettings().getHostAddress()).thenReturn("127.0.0.1");
+			
+			Result result = restServiceReal.deleteBroadcast(broadcast.getStreamId());
+			assertTrue(result.isSuccess());
+		}
+		
+		// isCluster true / broadcast origin address == server host address / status = finished
+		{
+			when(restServiceReal.getServerSettings().getHostAddress()).thenReturn("127.0.0.1");
+			
+			Broadcast broadcast = new Broadcast();
+			broadcast.setOriginAdress("55.55.55.55");
+			broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+			store.save(broadcast);
+			
+			when(restServiceReal.getServerSettings().getHostAddress()).thenReturn("55.55.55.55");
+			
+			Result result = restServiceReal.deleteBroadcast(broadcast.getStreamId());
+			assertTrue(result.isSuccess());
+		}
 
 	}
 
@@ -1776,6 +1838,53 @@ public class BroadcastRestServiceV2UnitTest {
 		assertFalse(result.isSuccess());
 
 	}
+	
+	@Test
+	public void testTimeBasedSubscriberOperations() {
+
+		DataStore store = new InMemoryDataStore("testdb");
+		restServiceReal.setDataStore(store);
+
+		
+		//create subscribers
+		Subscriber subscriber = new Subscriber();
+		subscriber.setSubscriberId("timeSubscriber");
+		subscriber.setStreamId("stream1");
+		subscriber.setType(Subscriber.PLAY_TYPE);
+
+		Subscriber subscriber2 = new Subscriber();
+		subscriber2.setSubscriberId("timeSubscriber2");
+		subscriber2.setStreamId("stream1");
+		subscriber2.setType(Subscriber.PLAY_TYPE);
+		
+		assertTrue(restServiceReal.addSubscriber(subscriber.getStreamId(), subscriber).isSuccess());
+		assertTrue(restServiceReal.addSubscriber(subscriber2.getStreamId(), subscriber2).isSuccess());
+		
+		//get tokens of stream
+		List <Subscriber> subscribers = restServiceReal.listSubscriberV2(subscriber.getStreamId(), 0, 10);
+
+		List <SubscriberStats> subscriberStats = restServiceReal.listSubscriberStatsV2(subscriber.getStreamId(), 0, 10);
+		
+		assertEquals(2, subscribers.size());
+		assertEquals(2, subscriberStats.size());
+		
+		// remove subscriber
+		assertTrue(restServiceReal.deleteSubscriber(subscriber.getStreamId(), subscriber.getSubscriberId()).isSuccess());
+		
+		subscribers = restServiceReal.listSubscriberV2(subscriber.getStreamId(), 0, 10);
+		
+		assertEquals(1, subscribers.size());
+		
+		//revoke tokens
+		restServiceReal.revokeSubscribers(subscriber.getStreamId());
+
+		// get subscribers
+		subscribers = restServiceReal.listSubscriberV2(subscriber.getStreamId(), 0, 10);
+
+		//it should be zero because all tokens are revoked
+		assertEquals(0, subscribers.size());
+
+	}	
 
 	@Test
 	public void testObjectDetectionOperations() {

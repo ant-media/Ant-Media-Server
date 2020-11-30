@@ -26,6 +26,7 @@ import io.antmedia.datastore.db.types.P2PConnection;
 import io.antmedia.datastore.db.types.Playlist;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.StreamInfo;
+import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
@@ -39,6 +40,7 @@ public class InMemoryDataStore extends DataStore {
 	private Map<String, List<TensorFlowObject>> detectionMap = new LinkedHashMap<>();
 	private Map<String, SocialEndpointCredentials> socialEndpointCredentialsMap = new LinkedHashMap<>();
 	private Map<String, Token> tokenMap = new LinkedHashMap<>();
+	private Map<String, Subscriber> subscriberMap = new LinkedHashMap<>();
 	private Map<String, ConferenceRoom> roomMap = new LinkedHashMap<>();
 	private Map<String, Playlist> playlistMap = new LinkedHashMap<>();
 
@@ -336,7 +338,7 @@ public class InMemoryDataStore extends DataStore {
 		int numberOfSavedFiles = 0;
 		Collection<VoD> vodCollection = vodMap.values();
 
-		for (Iterator iterator = vodCollection.iterator(); iterator.hasNext();) {
+		for (Iterator<VoD> iterator = vodCollection.iterator(); iterator.hasNext();) {
 			VoD vod = (VoD) iterator.next();
 			if (vod.getType().equals(VoD.USER_VOD)) {
 				iterator.remove();
@@ -436,7 +438,7 @@ public class InMemoryDataStore extends DataStore {
 		if (offset < 0) {
 			offset = 0;
 		}
-		List<SocialEndpointCredentials> list = new ArrayList();
+		List<SocialEndpointCredentials> list = new ArrayList<>();
 		for (SocialEndpointCredentials credential : values) {
 			if (t < offset) {
 				t++;
@@ -663,7 +665,7 @@ public class InMemoryDataStore extends DataStore {
 		boolean result = false;
 		Collection<Token> tokenCollection = tokenMap.values();
 
-		for (Iterator iterator = tokenCollection.iterator(); iterator.hasNext();) {
+		for (Iterator<Token> iterator = tokenCollection.iterator(); iterator.hasNext();) {
 			Token token = (Token) iterator.next();
 			if (token.getStreamId().equals(streamId)) {
 				iterator.remove();
@@ -716,7 +718,110 @@ public class InMemoryDataStore extends DataStore {
 		return returnList;
 	}
 
+	@Override
+	public List<Subscriber> listAllSubscribers(String streamId, int offset, int size) {
+		List<Subscriber> list = new ArrayList<>();
+		List<Subscriber> returnList = new ArrayList<>();
 
+		Collection<Subscriber> values = subscriberMap.values();
+		int t = 0;
+		int itemCount = 0;
+		if (size > MAX_ITEM_IN_ONE_LIST) {
+			size = MAX_ITEM_IN_ONE_LIST;
+		}
+		if (offset < 0) {
+			offset = 0;
+		}
+
+
+		for(Subscriber subscriber: values) {
+			if (subscriber.getStreamId().equals(streamId)) {
+				list.add(subscriber);
+			}
+		}
+
+
+		Iterator<Subscriber> iterator = list.iterator();
+
+		while(itemCount < size && iterator.hasNext()) {
+			if (t < offset) {
+				t++;
+				iterator.next();
+			}
+			else {
+
+				returnList.add(iterator.next());
+				itemCount++;
+			}
+		}
+
+		return returnList;
+	}
+
+	@Override
+	public boolean addSubscriber(String streamId, Subscriber subscriber) {
+		boolean result = false;
+
+		if (subscriber != null && subscriber.getStreamId() != null && subscriber.getSubscriberId() != null) {
+			try {
+				subscriberMap.put(subscriber.getSubscriberKey(), subscriber);
+				result = true;
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+		return result;
+	}
+
+	@Override
+	public boolean deleteSubscriber(String streamId, String subscriberId) {
+		
+		boolean result = false;
+		if(streamId != null && subscriberId != null) {
+			try {
+				 Subscriber sub = subscriberMap.remove(Subscriber.getDBKey(streamId, subscriberId));
+				result = sub != null;
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+
+		return result;
+	}
+
+	@Override
+	public boolean revokeSubscribers(String streamId) {
+		boolean result = false;
+		Collection<Subscriber> subscriberCollection = subscriberMap.values();
+
+		for (Iterator<Subscriber> iterator = subscriberCollection.iterator(); iterator.hasNext();) {
+			Subscriber subscriber =  iterator.next();
+			String subscriberStreamId = subscriber.getStreamId();
+			if (subscriberStreamId != null && subscriberStreamId.equals(streamId)) {
+				iterator.remove();
+				subscriberMap.remove(subscriber.getSubscriberKey());
+			}
+			result = true;
+
+		}
+		return result;
+	}
+	
+	@Override
+	public Subscriber getSubscriber(String streamId, String subscriberId) {
+		return subscriberMap.get(Subscriber.getDBKey(streamId, subscriberId));
+	}
+	
+	@Override
+	public boolean resetSubscribersConnectedStatus() {
+		for(Subscriber subscriber: subscriberMap.values()) {
+			if (subscriber != null) {
+				subscriber.setConnected(false);
+			}
+		}
+		return true;
+	}	
+	
 	@Override
 	public void addStreamInfoList(List<StreamInfo> streamInfoList) {
 		//used in mongo for cluster mode. useless here.

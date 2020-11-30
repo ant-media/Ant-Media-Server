@@ -161,7 +161,7 @@ public class HlsStatisticsFilterTest {
 			hlsStatisticsFilter.doFilter(mockRequest, mockResponse, mockChain);
 			
 			
-			verify(streamStats, times(1)).registerNewViewer(streamId, sessionId);
+			verify(streamStats, times(1)).registerNewViewer(streamId, sessionId, null);
 			
 			
 			
@@ -210,15 +210,15 @@ public class HlsStatisticsFilterTest {
 			hlsStatisticsFilter.init(filterconfig);
 			
 			String sessionId = requestHls(streamId);		
-			verify(streamStats, times(1)).registerNewViewer(streamId, sessionId);
+			verify(streamStats, times(1)).registerNewViewer(streamId, sessionId, null);
 			broadcast.setHlsViewerCount(1);
 			
 			String sessionId2 = requestHls(streamId);		
-			verify(streamStats, times(1)).registerNewViewer(streamId, sessionId2);
+			verify(streamStats, times(1)).registerNewViewer(streamId, sessionId2, null);
 			broadcast.setHlsViewerCount(2);
 
 			String sessionId3 = requestHls(streamId);		
-			verify(streamStats, never()).registerNewViewer(streamId, sessionId3);
+			verify(streamStats, never()).registerNewViewer(streamId, sessionId3, null);
 		} catch (ServletException|IOException e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
 			fail(ExceptionUtils.getStackTrace(e));

@@ -192,7 +192,72 @@ public class TokenFilterTest {
 			fail(ExceptionUtils.getStackTrace(e));
 		}
 	}
+	
+	@Test
+	public void testDoFilterSubscriber() {
+		
+		FilterConfig filterconfig = mock(FilterConfig.class);
+		ServletContext servletContext = mock(ServletContext.class);
+		ConfigurableWebApplicationContext context = mock(ConfigurableWebApplicationContext.class);
+		when(context.isRunning()).thenReturn(true);
+		
+		ITokenService tokenService = mock(ITokenService.class);
+		AppSettings settings = new AppSettings();
+		settings.resetDefaults();
+		settings.setTimeTokenSubscriberOnly(true);
 
+		
+		when(context.getBean("token.service")).thenReturn(tokenService);
+		when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(settings);
+		
+		when(servletContext.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE))
+				.thenReturn(context);
+		
+		when(filterconfig.getServletContext()).thenReturn(servletContext);
+		
+		try {
+			tokenFilter.init(filterconfig);
+			
+			HttpServletRequest mockRequest = mock(HttpServletRequest.class);
+			HttpServletResponse mockResponse = mock(HttpServletResponse.class);
+			FilterChain mockChain = mock(FilterChain.class);
+			
+			String streamId = RandomStringUtils.randomAlphanumeric(8);
+			String subscriberId = "subscriberId1";
+			String subscriberCode = "546546";
+			
+			HttpSession session = mock(HttpSession.class);
+			String sessionId = RandomStringUtils.randomAlphanumeric(16);
+			String clientIP = "10.0.0.1";
+			when(session.getId()).thenReturn(sessionId);
+			when(mockRequest.getSession()).thenReturn(session);
+			when(mockRequest.getMethod()).thenReturn("GET");
+			when(mockRequest.getRemoteAddr()).thenReturn(clientIP);
+			
+			when(mockRequest.getParameter("subscriberId")).thenReturn(subscriberId);
+			when(mockRequest.getParameter("subscriberCode")).thenReturn(subscriberCode);
+			
+			when(mockRequest.getRequestURI()).thenReturn("/LiveApp/streams/"+streamId+".m3u8");
+			
+			when(mockResponse.getStatus()).thenReturn(HttpServletResponse.SC_OK);
+
+			logger.info("session id {}, stream id {}", sessionId, streamId);
+			tokenFilter.doFilter(mockRequest, mockResponse, mockChain);
+			
+			// checkTimeBasedSubscriber is called once
+			verify(tokenService, times(1)).checkTimeBasedSubscriber(subscriberId, streamId, sessionId, subscriberCode, false);
+			
+			
+			
+		} catch (ServletException|IOException e) {
+			e.printStackTrace();
+			fail(ExceptionUtils.getStackTrace(e));
+		} 
+		catch (Exception e) {
+			e.printStackTrace();
+			fail(ExceptionUtils.getStackTrace(e));
+		}
+	}	
 
 	@Test
 	public void testGetStreamId() {

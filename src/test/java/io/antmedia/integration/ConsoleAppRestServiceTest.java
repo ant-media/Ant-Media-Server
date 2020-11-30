@@ -6,6 +6,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -36,6 +37,8 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.client.LaxRedirectStrategy;
 import org.awaitility.Awaitility;
 import org.codehaus.plexus.util.ExceptionUtils;
+import org.cryptacular.generator.TOTPGenerator;
+import org.cryptacular.spec.DigestSpec;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -52,6 +55,7 @@ import org.junit.runners.MethodSorters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.amazonaws.util.Base32;
 import com.google.common.hash.Hashing;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -61,6 +65,7 @@ import io.antmedia.AppSettings;
 import io.antmedia.EncoderSettings;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Licence;
+import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.User;
@@ -1052,7 +1057,127 @@ public class ConsoleAppRestServiceTest{
 		}
 
 	}
+	
+	@Test
+	public void testTimeBasedSubscriberControl() {
+		Result enterpriseResult;
+		try {
 
+			String appName = "LiveApp";
+			// authenticate user
+			User user = new User();
+			user.setEmail(TEST_USER_EMAIL);
+			user.setPassword(TEST_USER_PASS);
+			Result authenticatedUserResult = callAuthenticateUser(user);
+			assertTrue(authenticatedUserResult.isSuccess());
+
+			enterpriseResult = callIsEnterpriseEdition();
+			if (!enterpriseResult.isSuccess()) {
+				//if it is not enterprise return
+				return ;
+			}
+
+			// get settings from the app
+			AppSettings appSettings = callGetAppSettings(appName);
+
+			appSettings.setTimeTokenSubscriberOnly(true);
+			appSettings.setMp4MuxingEnabled(true);
+			
+			Result result = callSetAppSettings(appName, appSettings);
+			assertTrue(result.isSuccess());
+
+			appSettings = callGetAppSettings(appName);
+			assertTrue(appSettings.isTimeTokenSubscriberOnly());
+			
+			Broadcast broadcast = RestServiceV2Test.callCreateRegularBroadcast();
+			
+			Subscriber subscriber = new Subscriber();
+			subscriber.setStreamId(broadcast.getStreamId());
+			subscriber.setSubscriberId("subscriber1");
+			subscriber.setB32Secret("6qsp6qhndryqs56zjmvs37i6gqtjsdvc");
+			subscriber.setType(Subscriber.PLAY_TYPE);
+			
+			boolean res = callAddSubscriber("http://localhost:5080/"+appName+"/rest/v2/broadcasts/"+broadcast.getStreamId()+"/subscribers", subscriber);
+			assertTrue(res);
+			
+			Process rtmpSendingProcess = execute(ffmpegPath
+					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/"+ appName + "/"
+					+ broadcast.getStreamId());
+
+
+			//it should be false, because publishing is not allowed and hls files are not created
+			Awaitility.await().pollDelay(5, TimeUnit.SECONDS).atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				String tmpSubscriberCode = getTimeBasedSubscriberCode(subscriber.getB32Secret());
+				return ConsoleAppRestServiceTest.getStatusCode("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" + broadcast.getStreamId() + ".m3u8?subscriberId=" + subscriber.getSubscriberId() + "&subscriberCode=" + tmpSubscriberCode, true)==404;
+			});
+
+			rtmpSendingProcess.destroy();
+			
+			//create subscriber for publishing 
+			Subscriber subscriberPub = new Subscriber();
+			subscriberPub.setStreamId(broadcast.getStreamId());
+			subscriberPub.setSubscriberId("subscriberPub");
+			subscriberPub.setB32Secret("6qsp6qhndryqs56zjmvs37i6gqtjsdvc");
+			subscriberPub.setType(Subscriber.PUBLISH_TYPE);
+			
+			res = callAddSubscriber("http://localhost:5080/"+appName+"/rest/v2/broadcasts/"+broadcast.getStreamId()+"/subscribers", subscriberPub);
+			assertTrue(res);
+			String tmpSubscriberCode = getTimeBasedSubscriberCode(subscriberPub.getB32Secret());
+			
+			Process rtmpSendingProcessToken = execute(ffmpegPath
+					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/"+ appName + "/"
+					+ broadcast.getStreamId()+ "?subscriberId=" + subscriberPub.getSubscriberId() + "&subscriberCode=" + tmpSubscriberCode);
+			
+
+			Result clusterResult = callIsClusterMode();
+			
+			//it should be false because subscriber control is enabled but no subscriber provided
+			Awaitility.await()
+			.pollDelay(5, TimeUnit.SECONDS)
+			.atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
+				return  !MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" 
+						+ broadcast.getStreamId() + ".m3u8") || clusterResult.isSuccess();
+			});
+			
+			Thread.sleep(5000);
+
+			rtmpSendingProcessToken.destroy();
+			
+			//this time, it should be true since valid token is provided
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				String tmpSubscriberCode2 = getTimeBasedSubscriberCode(subscriber.getB32Secret());
+				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" 
+						+ broadcast.getStreamId() + ".mp4?subscriberId=" + subscriber.getSubscriberId() + "&subscriberCode=" + tmpSubscriberCode2);
+			});			
+			
+			//it should fail because there is no subsccriber provided
+			assertEquals(403, ConsoleAppRestServiceTest.getStatusCode("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" 
+					+ broadcast.getStreamId() + ".mp4", false));
+			
+			// reset to old settings
+			appSettings.setTimeTokenSubscriberOnly(false);
+			
+			Result flag = callSetAppSettings(appName, appSettings);
+			assertTrue(flag.isSuccess());
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+	}
+	
+	
+	private String getTimeBasedSubscriberCode(String b32Secret) {
+		
+		// convert secret from base32 to bytes
+		byte[] secretBytes = Base32.decode(b32Secret);
+		TOTPGenerator generator = new TOTPGenerator();
+		generator.setDigestSpecification(new DigestSpec("SHA-1"));
+		generator.setTimeStep(60);
+		int code = generator.generate(secretBytes);
+
+		return ""+code;
+	}
 
 	@Test
 	public void testLicenseControl() {
@@ -1587,6 +1712,32 @@ public class ConsoleAppRestServiceTest{
 		System.out.println("result string: " + result.toString());
 
 		return gson.fromJson(result.toString(), Token.class);
+	}
+	
+	public static boolean callAddSubscriber(String url, Subscriber subscriber) throws Exception {
+
+		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+		
+		String jsonSubscriber = gson.toJson(subscriber);
+		
+		Gson gson = new Gson();
+		HttpUriRequest post = RequestBuilder.post().setUri(url)
+				.setHeader(HttpHeaders.CONTENT_TYPE, "application/json").setEntity(new StringEntity(jsonSubscriber))
+				.build();
+
+		CloseableHttpResponse response = client.execute(post);
+
+		StringBuffer result = readResponse(response);
+
+		if (response.getStatusLine().getStatusCode() != 200) {
+			throw new Exception(result.toString());
+		}
+		
+		System.out.println("result string: " + result.toString());
+		Result tmp = gson.fromJson(result.toString(), Result.class);
+		
+		return tmp.isSuccess();
+
 	}
 
 	public static int getStatusCode(String url, boolean useCookie) throws Exception {
