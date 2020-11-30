@@ -39,21 +39,30 @@ public class CorsHeaderFilterTest {
 		Mockito.doReturn(true).when(corsFilterSpy).isAnyOriginAllowed();
 		
 		HttpServletRequest request = Mockito.mock(HttpServletRequest.class);
-		HttpServletResponse response = Mockito.mock(HttpServletResponse.class);
-		FilterChain filterChain = Mockito.mock(FilterChain.class);
+		HttpServletResponse response =  Mockito.mock(HttpServletResponse.class);
+		FilterChain filterChain =  Mockito.mock(FilterChain.class);
 		
-		Mockito.when(request.getHeader(CorsFilter.REQUEST_HEADER_ORIGIN)).thenReturn("http://localhost:4200");
+		{	
+			// http://localhost:4200
+			Mockito.when(request.getHeader(CorsFilter.REQUEST_HEADER_ORIGIN)).thenReturn("http://localhost:4200");
+			corsFilterSpy.addStandardHeadersInternal(request, response, "http://localhost:4200");
+			Mockito.verify(response).addHeader(CorsFilter.RESPONSE_HEADER_ACCESS_CONTROL_ALLOW_ORIGIN, "http://localhost:4200");
+		}
+		{
+			// request.getHeader("Authorization")
+			Mockito.when(request.getHeader("Authorization")).thenReturn("JwtToken");
+			Mockito.when(request.getHeader(CorsFilter.REQUEST_HEADER_ORIGIN)).thenReturn("http://11.22.33.44:5080");
+			corsFilterSpy.addStandardHeadersInternal(request, response, "http://11.22.33.44:5080");
+			Mockito.verify(response).addHeader(CorsFilter.RESPONSE_HEADER_ACCESS_CONTROL_ALLOW_ORIGIN, "http://11.22.33.44:5080");
+		}
 		
-		corsFilterSpy.addStandardHeadersInternal(request, response, "http://localhost:4200");
-		
-		Mockito.verify(response).addHeader(CorsFilter.RESPONSE_HEADER_ACCESS_CONTROL_ALLOW_ORIGIN, "http://localhost:4200");
-		
-		
-		
-		Mockito.when(request.getHeader(CorsFilter.REQUEST_HEADER_ORIGIN)).thenReturn("localhost:4200");
-		corsFilterSpy.addStandardHeadersInternal(request, response, "localhost:4200");
-		Mockito.verify(response).addHeader(CorsFilter.RESPONSE_HEADER_ACCESS_CONTROL_ALLOW_ORIGIN, "*");
-		
+		{
+			//	(request.getHeader(REQUEST_HEADER_ACCESS_CONTROL_REQUEST_HEADERS) != null && request.getHeader(REQUEST_HEADER_ACCESS_CONTROL_REQUEST_HEADERS).contains("authorization")
+			Mockito.when(request.getHeader(CorsFilter.REQUEST_HEADER_ACCESS_CONTROL_REQUEST_HEADERS)).thenReturn("authorization");
+			Mockito.when(request.getHeader(CorsFilter.REQUEST_HEADER_ORIGIN)).thenReturn("http://55.66.77.88:5080");
+			corsFilterSpy.addStandardHeadersInternal(request, response, "http://55.66.77.88:5080");
+			Mockito.verify(response).addHeader(CorsFilter.RESPONSE_HEADER_ACCESS_CONTROL_ALLOW_ORIGIN, "http://55.66.77.88:5080");
+		}
 		
 		//below codes for increasing coverage
 		Mockito.when(request.getMethod()).thenReturn("OPTIONS");
