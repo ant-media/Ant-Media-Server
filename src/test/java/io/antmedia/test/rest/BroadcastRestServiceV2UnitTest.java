@@ -1982,7 +1982,16 @@ public class BroadcastRestServiceV2UnitTest {
 		//Test GET conference room by id rest service
 		assertNotNull(restServiceReal.getConferenceRoom(room.getRoomId()));
 		assertEquals(restServiceReal.getConferenceRoom(room.getRoomId()).getEntity(), room);
-		
+
+		Response getRoomResponse = restServiceReal.getConferenceRoom(room.getRoomId());
+		assertEquals(200,getRoomResponse.getStatus());
+
+		getRoomResponse = restServiceReal.getConferenceRoom(null);
+		assertEquals(404,getRoomResponse.getStatus());
+
+		getRoomResponse = restServiceReal.getConferenceRoom("nullllllllllllllllll");
+		assertEquals(404,getRoomResponse.getStatus());
+
 		//edit room with the new startDate
 		//should not be null because room is saved to database and edited room is returned
 		assertNotNull(restServiceReal.editConferenceRoom(room.getRoomId(), room));

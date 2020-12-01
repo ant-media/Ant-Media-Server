@@ -239,6 +239,7 @@ public class DBStoresUnitTest {
 		dataStore.fetchUserVodList(new File(""));
 		
 		dataStore.getVodList(0, 10, "name", "asc", null, null);
+		dataStore.getConferenceRoomList(0, 10, "asc", null, null);
 	}
 
 	public void clear(DataStore dataStore) 
@@ -301,7 +302,6 @@ public class DBStoresUnitTest {
 		vodList = dataStore.getVodList(20, 5, null, null, null, null);
 		assertNotNull(vodList);
 		assertEquals(0, vodList.size());
-		
 	}
 	
 	public void testUnexpectedBroadcastOffset(DataStore dataStore) {
