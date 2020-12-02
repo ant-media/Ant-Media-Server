@@ -235,6 +235,9 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 		int operationCount = getDataStore().resetBroadcasts(getServerSettings().getHostAddress());
 		
+		logger.info("Resetting subscriber connection status" );
+		getDataStore().resetSubscribersConnectedStatus();
+		
 		Result result = new Result(true);
 		result.setMessage("Successfull operations: "+ operationCount);
 		
@@ -1347,6 +1350,8 @@ public Result createInitializationProcess(String appName){
 		store.put(AppSettings.SETTINGS_OBJECT_DETECTION_ENABLED, String.valueOf(newAppsettings.isObjectDetectionEnabled()));
 		store.put(AppSettings.SETTINGS_PUBLISH_TOKEN_CONTROL_ENABLED, String.valueOf(newAppsettings.isPublishTokenControlEnabled()));
 		store.put(AppSettings.SETTINGS_PLAY_TOKEN_CONTROL_ENABLED, String.valueOf(newAppsettings.isPlayTokenControlEnabled()));
+		store.put(AppSettings.SETTINGS_TIME_TOKEN_SUBSCRIBER_ONLY, String.valueOf(newAppsettings.isTimeTokenSubscriberOnly()));
+		
 		store.put(AppSettings.SETTINGS_WEBRTC_ENABLED, String.valueOf(newAppsettings.isWebRTCEnabled()));
 		store.put(AppSettings.SETTINGS_WEBRTC_FRAME_RATE, String.valueOf(newAppsettings.getWebRTCFrameRate()));
 		store.put(AppSettings.SETTINGS_HASH_CONTROL_PUBLISH_ENABLED, String.valueOf(newAppsettings.isHashControlPublishEnabled()));
@@ -1378,6 +1383,10 @@ public Result createInitializationProcess(String appName){
 		store.put(AppSettings.SETTINGS_LISTENER_HOOK_URL, newAppsettings.getListenerHookURL() != null ? newAppsettings.getListenerHookURL() : "");
 		
 		store.put(AppSettings.SETTINGS_STREAM_FETCHER_RESTART_PERIOD, String.valueOf(newAppsettings.getRestartStreamFetcherPeriod()));
+		
+		store.put(AppSettings.SETTINGS_JWT_CONTROL_ENABLED, String.valueOf(newAppsettings.isJwtControlEnabled()));
+		store.put(AppSettings.SETTINGS_JWT_SECRET_KEY, newAppsettings.getJwtSecretKey() != null ? newAppsettings.getJwtSecretKey() : "");
+		store.put(AppSettings.SETTINGS_IP_FILTER_ENABLED, String.valueOf(newAppsettings.isIpFilterEnabled()));
 		return store.save();
 	}
 
@@ -1397,6 +1406,8 @@ public Result createInitializationProcess(String appName){
 		appSettings.setAcceptOnlyStreamsInDataStore(newSettings.isAcceptOnlyStreamsInDataStore());
 		appSettings.setPublishTokenControlEnabled(newSettings.isPublishTokenControlEnabled());
 		appSettings.setPlayTokenControlEnabled(newSettings.isPlayTokenControlEnabled());
+		appSettings.setTimeTokenSubscriberOnly(newSettings.isTimeTokenSubscriberOnly());
+		
 		appSettings.setWebRTCEnabled(newSettings.isWebRTCEnabled());
 		appSettings.setWebRTCFrameRate(newSettings.getWebRTCFrameRate());
 		appSettings.setHashControlPublishEnabled(newSettings.isHashControlPublishEnabled());
@@ -1427,6 +1438,9 @@ public Result createInitializationProcess(String appName){
 		appSettings.setListenerHookURL(newSettings.getListenerHookURL());
 
 		appSettings.setRestartStreamFetcherPeriod(newSettings.getRestartStreamFetcherPeriod());
+		appSettings.setIpFilterEnabled(newSettings.isIpFilterEnabled());
+		appSettings.setJwtControlEnabled(newSettings.isJwtControlEnabled());
+		appSettings.setJwtSecretKey(newSettings.getJwtSecretKey());
 		
 		logger.warn("app settings updated for {}", getScope().getName());	
 	}

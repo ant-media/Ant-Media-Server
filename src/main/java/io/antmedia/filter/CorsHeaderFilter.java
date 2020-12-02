@@ -195,6 +195,10 @@ public class CorsHeaderFilter extends CorsFilter {
 			handleInvalidCORSInternal(request, response, filterChain);
 			return;
 		}
+		
+		if(origin.equals("http://localhost:4200")) {
+			getAllowedHttpHeaders().add("authorization");
+		}
 
 		// Section 6.2.3
 		String accessControlRequestMethod = request.getHeader(

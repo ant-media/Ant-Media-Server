@@ -557,7 +557,6 @@ public class StreamFetcher {
 					
 					logBufferStatus();
 					
-					System.out.println("buffer log counter: " + bufferLogCounter);
 					isJobRunning.compareAndSet(true, false);
 				}
 			
