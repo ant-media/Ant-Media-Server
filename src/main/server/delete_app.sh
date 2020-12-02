@@ -2,14 +2,14 @@
 
 usage() {
   echo "Usage:"
-  echo "$0 [-n APPLICATION_NAME] [-p INSTALLATION_PATH] [-w]"
+  echo "$0 [-n APPLICATION_NAME] [-p INSTALLATION_PATH]"
   echo "Options:"
   echo "-n: Application Name is the application name that you want to have. It's mandatory"
   echo "-p: Path is the install location of Ant Media Server which is /usr/local/antmedia by default."
   echo "-h: print this usage"
   echo " "
   echo "Example: "
-  echo "$0 -n live -w"
+  echo "$0 -n live"
   echo " "
   echo "If you have any question, send e-mail to contact@antmedia.io"
 }
