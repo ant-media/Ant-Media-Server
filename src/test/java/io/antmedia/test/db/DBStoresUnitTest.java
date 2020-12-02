@@ -846,11 +846,19 @@ public class DBStoresUnitTest {
 		broadcast4.setDate(100000);
 		broadcast4.setType(AntMediaApplicationAdapter.LIVE_STREAM); //Null check
 
+		Broadcast broadcast5 = new Broadcast(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, "aaaStm");
+		broadcast5.setDate(100000);
+		broadcast5.setType(AntMediaApplicationAdapter.LIVE_STREAM);
+
 
 		dataStore.save(broadcast1);
 		dataStore.save(broadcast2);
 		dataStore.save(broadcast3);
 		dataStore.save(broadcast4);
+		dataStore.save(broadcast5);
+
+		long count = dataStore.getPartialBroadcastNumber("ast");
+		assertEquals(2, count);
 
 		List<Broadcast> broadcastList = dataStore.getBroadcastList(0, 50, null, null, null, broadcast2.getStreamId());
 		assertEquals(broadcastList.get(0).getStreamId(), broadcast2.getStreamId());

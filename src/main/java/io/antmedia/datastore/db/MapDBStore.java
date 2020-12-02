@@ -386,6 +386,24 @@ public class MapDBStore extends DataStore {
 		return sortAndCropConferenceRoomList(list, offset, size, sortBy, orderBy);
 	}
 
+	//GetBroadcastList method may be called without offset and size to get the full list without offset or size
+	//sortAndCrop method returns maximum 50 (hardcoded) of the broadcasts for an offset.
+	public List<Broadcast> getBroadcastListV2(String search) {
+		ArrayList<Broadcast> list = new ArrayList<>();
+		synchronized (this) {
+
+			Collection<String> broadcasts = map.getValues();
+				for (String broadcastString : broadcasts) {
+					Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
+					list.add(broadcast);
+				}
+			}
+		if (search != null && !search.isEmpty()) {
+			logger.info("server side search called for Broadcast searchString = {}", search);
+			list = searchOnServer(list, search);
+		}
+		return list;
+	}
 
 	@Override
 	public List<Broadcast> getBroadcastList(int offset, int size, String type, String sortBy, String orderBy, String search) {
@@ -417,6 +435,30 @@ public class MapDBStore extends DataStore {
 			list = searchOnServer(list, search);
 		}
 		return sortAndCropBroadcastList(list, offset, size, sortBy, orderBy);
+	}
+
+	public List<VoD> getVodListV2(String search) {
+		ArrayList<VoD> vods = new ArrayList<>();
+		synchronized (this) {
+			Collection<String> values = vodMap.values();
+			int length = values.size();
+			int i = 0;
+			for (String vodString : values) {
+				VoD vod = gson.fromJson(vodString, VoD.class);
+				vods.add(vod);
+
+				i++;
+				if (i > length) {
+					logger.error("Inconsistency in DB. It's likely db file({}) is damaged", dbName);
+					break;
+				}
+			}
+			if (search != null && !search.isEmpty()) {
+				logger.info("server side search called for VoD searchString = {}", search);
+				vods = searchOnServerVod(vods, search);
+			}
+			return vods;
+		}
 	}
 
 	/**
@@ -452,6 +494,7 @@ public class MapDBStore extends DataStore {
 				logger.info("server side search called for VoD searchString = {}", search);
 				vods = searchOnServerVod(vods, search);
 			}
+			//GetVodList method may be called without offset and size since the size is hardcoded to maximum 50
 			return sortAndCropVodList(vods, offset, size, sortBy, orderBy);
 		}
 	}
@@ -535,6 +578,12 @@ public class MapDBStore extends DataStore {
 		synchronized (this) {
 			return vodMap.size();
 		}
+	}
+
+	@Override
+	public long getPartialVodNumber(String search){
+		List<VoD> vods = getVodListV2(search);
+		return vods.size();
 	}
 
 	@Override
@@ -750,6 +799,11 @@ public class MapDBStore extends DataStore {
 		}
 	}
 
+	@Override
+	public long getPartialBroadcastNumber(String search) {
+		List<Broadcast> broadcasts = getBroadcastListV2(search);
+		return broadcasts.size();
+	}
 
 	public void saveDetection(String id, long timeElapsed, List<TensorFlowObject> detectedObjects) {
 		synchronized (this) {
