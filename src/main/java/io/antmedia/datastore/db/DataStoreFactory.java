@@ -27,8 +27,6 @@ public class DataStoreFactory implements IDataStoreFactory, ApplicationContextAw
 
 	private static Logger logger = LoggerFactory.getLogger(DataStoreFactory.class);
 	
-	public static final String BEAN_NAME = "dataStoreFactory";
-
 	
 	private DataStore dataStore;
 	 

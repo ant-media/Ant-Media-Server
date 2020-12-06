@@ -436,8 +436,14 @@ public class RestServiceV2Test {
 	}
 
 	public static Result callEnableMp4Muxing(String streamId, int mode) throws Exception {
-
+		return callEnableRecording(streamId, mode, null);
+	}
+	
+	
+	public static Result callEnableRecording(String streamId, int mode, String recordType)  throws Exception  {
 		String url = ROOT_SERVICE_URL + "/v2/broadcasts/"+ streamId +"/recording/" + (mode == 1  ? "true" : "false");
+		
+		url += recordType != null ? "?recordType="+recordType : "";
 
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 
@@ -456,7 +462,6 @@ public class RestServiceV2Test {
 		assertNotNull(tmp);
 
 		return tmp;
-
 	}
 
 	public static Broadcast callCreateRegularBroadcast() throws Exception {

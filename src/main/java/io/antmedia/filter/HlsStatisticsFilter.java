@@ -38,6 +38,7 @@ public class HlsStatisticsFilter extends AbstractFilter {
 			String sessionId = httpRequest.getSession().getId();
 
 			String streamId = TokenFilterManager.getStreamId(httpRequest.getRequestURI());
+			String subscriberId = ((HttpServletRequest) request).getParameter("subscriberId");
 			Broadcast broadcast = getBroadcast(streamId);
 			if(broadcast != null 
 					&& broadcast.getHlsViewerLimit() != -1
@@ -55,7 +56,8 @@ public class HlsStatisticsFilter extends AbstractFilter {
 				logger.debug("req ip {} session id {} stream id {} status {}", request.getRemoteHost(), sessionId, streamId, status);
 				IStreamStats stats = getStreamStats();
 				if (stats != null) {
-					stats.registerNewViewer(streamId, sessionId);
+					stats.registerNewViewer(streamId, sessionId, subscriberId);
+					
 				}
 			}
 		}

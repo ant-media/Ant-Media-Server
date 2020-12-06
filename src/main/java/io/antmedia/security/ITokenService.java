@@ -46,6 +46,16 @@ public interface ITokenService {
 	boolean checkToken (String tokenId, String streamId, String sessionId, String type);
 
 	/**
+	 * Checks the time based token validity
+	 * @param subscriberId - requested subscriberId
+	 * @param streamId - id of the stream
+	 * @param sessionId - id of the current session
+	 * @param subscriberCode - with TOTP generated code 
+	 * @return true or false
+	 */
+	boolean checkTimeBasedSubscriber(String subscriberId, String streamId, String sessionId, String subscriberCode, boolean forPublish);
+	
+	/**
 	 * creates token according to the provided parameters
 	 * @param streamId - id of the requested stream for token creation
 	 * @param exprireDate - expire date of the token
@@ -62,5 +72,12 @@ public interface ITokenService {
 	 */
 
 	Map<String, String>  getAuthenticatedMap();
+	
+	/**
+	 * gets  map of authenticated subscriber sessions
+	 * @return list
+	 */
+
+	Map<String, String>  getSubscriberAuthenticatedMap();
 
 }

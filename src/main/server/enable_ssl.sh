@@ -9,10 +9,11 @@ domain=""
 password=
 renew_flag='false'
 
-while getopts i:d:p:f:r option
+while getopts i:d:p:f:r:c option
 do
   case "${option}" in
     f) FULL_CHAIN_FILE=${OPTARG};;
+    c) CHAIN_FILE=${OPTARG};;
     p) PRIVATE_KEY_FILE=${OPTARG};;
     i) INSTALL_DIRECTORY=${OPTARG};;
     d) domain=${OPTARG};;
@@ -25,7 +26,7 @@ ERROR_MESSAGE="There is a problem in installing SSL to Ant Media Server.\n Pleas
 usage() {
   echo "Usage:"
   echo "$0 -d {DOMAIN_NAME} [-i {INSTALL_DIRECTORY}]"
-  echo "$0 -f {FULL_CHAIN_FILE} -p {PRIVATE_KEY_FILE} -d {DOMAIN_NAME} [-i {INSTALL_DIRECTORY}]"
+  echo "$0 -f {FULL_CHAIN_FILE} -p {PRIVATE_KEY_FILE} -c {CHAIN_FILE} -d {DOMAIN_NAME} [-i {INSTALL_DIRECTORY}]"
   echo " "
   echo "If you have any question, send e-mail to contact@antmedia.io"
 }
@@ -146,6 +147,7 @@ get_new_certificate(){
     delete_alias $file
 
     FULL_CHAIN_FILE="/etc/letsencrypt/live/$domain/fullchain.pem"
+    CHAIN_FILE="/etc/letsencrypt/live/$domain/chain.pem"
     PRIVATE_KEY_FILE="/etc/letsencrypt/live/$domain/privkey.pem"
 
  fi
@@ -174,6 +176,7 @@ auth_tomcat(){
   if [ "$fullChainFileExist" == false ]; then
     PRIVATE_KEY_FILE="/etc/letsencrypt/live/$domain/privkey.pem"
     FULL_CHAIN_FILE="/etc/letsencrypt/live/$domain/fullchain.pem"
+    CHAIN_FILE="/etc/letsencrypt/live/$domain/chain.pem"
   fi
 
   EXPORT_P12_FILE=$TEMP_DIR/fullchain_and_key.p12
@@ -240,6 +243,9 @@ auth_tomcat(){
   output
   $SUDO chown antmedia:antmedia $INSTALL_DIRECTORY/conf/fullchain.pem
   
+  $SUDO cp $CHAIN_FILE $INSTALL_DIRECTORY/conf/chain.pem
+  output
+  $SUDO chown antmedia:antmedia $INSTALL_DIRECTORY/conf/chain.pem
   
   $SUDO cp $PRIVATE_KEY_FILE $INSTALL_DIRECTORY/conf/privkey.pem
   output

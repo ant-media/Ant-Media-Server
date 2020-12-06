@@ -28,8 +28,6 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
-import org.bytedeco.ffmpeg.avcodec.AVPacket;
-import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.red5.server.api.scope.IBroadcastScope;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IBroadcastStream;
@@ -44,10 +42,12 @@ import org.red5.server.stream.StreamService;
 import org.red5.server.util.ScopeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationContext;
 
 import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
+import io.antmedia.datastore.db.IDataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
@@ -241,6 +241,9 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		logger.info("Resetting streams viewer numbers because there is an unexpected stop happened in app: {}", getScope() != null? getScope().getName() : "[scope is null]");
 
 		int operationCount = getDataStore().resetBroadcasts(getServerSettings().getHostAddress());
+		
+		logger.info("Resetting subscriber connection status" );
+		getDataStore().resetSubscribersConnectedStatus();
 		
 		Result result = new Result(true);
 		result.setMessage("Successfull operations: "+ operationCount);
@@ -445,37 +448,50 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		vertx.executeBlocking( handler -> {
 			try {
 
-				DataStore dataStoreLocal = getDataStore();
-				
-					Broadcast broadcast = dataStoreLocal.get(streamName);
-
-					if (broadcast == null) {
-
-						broadcast = saveUndefinedBroadcast(streamName, getScope().getName(), dataStoreLocal, appSettings,  AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, getServerSettings(), absoluteStartTimeMs);
-					} 
-					else {
-
-						broadcast.setStatus(BROADCAST_STATUS_BROADCASTING);
-						broadcast.setStartTime(System.currentTimeMillis());
-						broadcast.setOriginAdress(getServerSettings().getHostAddress());
-						broadcast.setWebRTCViewerCount(0);
-						broadcast.setHlsViewerCount(0);
-						boolean result = dataStoreLocal.updateBroadcastFields(broadcast.getStreamId(), broadcast);
+						DataStore dataStoreLocal = getDataStore();
+			
+						Broadcast broadcast = dataStoreLocal.get(streamName);
+	
+						if (broadcast == null) {
+	
+							broadcast = saveUndefinedBroadcast(streamName, getScope().getName(), dataStoreLocal, appSettings,  AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, getServerSettings(), absoluteStartTimeMs);
+						} 
+						else {
+	
+							broadcast.setStatus(BROADCAST_STATUS_BROADCASTING);
+							broadcast.setStartTime(System.currentTimeMillis());
+							broadcast.setOriginAdress(getServerSettings().getHostAddress());
+							broadcast.setWebRTCViewerCount(0);
+							broadcast.setHlsViewerCount(0);
+							boolean result = dataStoreLocal.updateBroadcastFields(broadcast.getStreamId(), broadcast);
+							
+							logger.info(" Status of stream {} is set to Broadcasting with result: {}", broadcast.getStreamId(), result);
+						}
+	
+						final String listenerHookURL = broadcast.getListenerHookURL();
+						final String streamId = broadcast.getStreamId();
+						if (listenerHookURL != null && !listenerHookURL.isEmpty()) 
+						{
+							final String name = broadcast.getName();
+							final String category = broadcast.getCategory();
+							logger.info("Setting timer to call live stream started hook for stream:{}",streamId );
+							vertx.setTimer(10, e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_START_LIVE_STREAM, name, category,
+									null, null));
+						}
 						
-						logger.info(" Status of stream {} is set to Broadcasting with result: {}", broadcast.getStreamId(), result);
-					}
-
-					final String listenerHookURL = broadcast.getListenerHookURL();
-					final String streamId = broadcast.getStreamId();
-					if (listenerHookURL != null && !listenerHookURL.isEmpty()) {
-						final String name = broadcast.getName();
-						final String category = broadcast.getCategory();
-						logger.info("Setting timer to call live stream started hook for stream:{}",streamId );
-						vertx.setTimer(10, e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_START_LIVE_STREAM, name, category,
-								null, null));
-					}
-
-					publishSocialEndpoints(broadcast.getEndPointList());
+						int ingestingStreamLimit = appSettings.getIngestingStreamLimit();
+						
+						long activeBroadcastNumber = dataStore.getActiveBroadcastCount();
+						if (ingestingStreamLimit != -1 && activeBroadcastNumber > ingestingStreamLimit) 
+						{
+							logger.info("Active broadcast count({}) is more than ingesting stream limit:{} so stopping broadcast:{}", activeBroadcastNumber, ingestingStreamLimit, broadcast.getStreamId());
+							stopStreaming(broadcast);
+						}
+						else 
+						{
+							publishSocialEndpoints(broadcast.getEndPointList());
+						}
+					
 				
 				handler.complete();
 			} catch (Exception e) {
@@ -1341,6 +1357,8 @@ public Result createInitializationProcess(String appName){
 		store.put(AppSettings.SETTINGS_OBJECT_DETECTION_ENABLED, String.valueOf(newAppsettings.isObjectDetectionEnabled()));
 		store.put(AppSettings.SETTINGS_PUBLISH_TOKEN_CONTROL_ENABLED, String.valueOf(newAppsettings.isPublishTokenControlEnabled()));
 		store.put(AppSettings.SETTINGS_PLAY_TOKEN_CONTROL_ENABLED, String.valueOf(newAppsettings.isPlayTokenControlEnabled()));
+		store.put(AppSettings.SETTINGS_TIME_TOKEN_SUBSCRIBER_ONLY, String.valueOf(newAppsettings.isTimeTokenSubscriberOnly()));
+		
 		store.put(AppSettings.SETTINGS_WEBRTC_ENABLED, String.valueOf(newAppsettings.isWebRTCEnabled()));
 		store.put(AppSettings.SETTINGS_WEBRTC_FRAME_RATE, String.valueOf(newAppsettings.getWebRTCFrameRate()));
 		store.put(AppSettings.SETTINGS_HASH_CONTROL_PUBLISH_ENABLED, String.valueOf(newAppsettings.isHashControlPublishEnabled()));
@@ -1372,6 +1390,10 @@ public Result createInitializationProcess(String appName){
 		store.put(AppSettings.SETTINGS_LISTENER_HOOK_URL, newAppsettings.getListenerHookURL() != null ? newAppsettings.getListenerHookURL() : "");
 		
 		store.put(AppSettings.SETTINGS_STREAM_FETCHER_RESTART_PERIOD, String.valueOf(newAppsettings.getRestartStreamFetcherPeriod()));
+		
+		store.put(AppSettings.SETTINGS_JWT_CONTROL_ENABLED, String.valueOf(newAppsettings.isJwtControlEnabled()));
+		store.put(AppSettings.SETTINGS_JWT_SECRET_KEY, newAppsettings.getJwtSecretKey() != null ? newAppsettings.getJwtSecretKey() : "");
+		store.put(AppSettings.SETTINGS_IP_FILTER_ENABLED, String.valueOf(newAppsettings.isIpFilterEnabled()));
 		return store.save();
 	}
 
@@ -1391,6 +1413,8 @@ public Result createInitializationProcess(String appName){
 		appSettings.setAcceptOnlyStreamsInDataStore(newSettings.isAcceptOnlyStreamsInDataStore());
 		appSettings.setPublishTokenControlEnabled(newSettings.isPublishTokenControlEnabled());
 		appSettings.setPlayTokenControlEnabled(newSettings.isPlayTokenControlEnabled());
+		appSettings.setTimeTokenSubscriberOnly(newSettings.isTimeTokenSubscriberOnly());
+		
 		appSettings.setWebRTCEnabled(newSettings.isWebRTCEnabled());
 		appSettings.setWebRTCFrameRate(newSettings.getWebRTCFrameRate());
 		appSettings.setHashControlPublishEnabled(newSettings.isHashControlPublishEnabled());
@@ -1421,6 +1445,9 @@ public Result createInitializationProcess(String appName){
 		appSettings.setListenerHookURL(newSettings.getListenerHookURL());
 
 		appSettings.setRestartStreamFetcherPeriod(newSettings.getRestartStreamFetcherPeriod());
+		appSettings.setIpFilterEnabled(newSettings.isIpFilterEnabled());
+		appSettings.setJwtControlEnabled(newSettings.isJwtControlEnabled());
+		appSettings.setJwtSecretKey(newSettings.getJwtSecretKey());
 		
 		logger.warn("app settings updated for {}", getScope().getName());	
 	}

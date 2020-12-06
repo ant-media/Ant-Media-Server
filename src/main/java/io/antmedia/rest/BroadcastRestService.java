@@ -27,6 +27,8 @@ import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointChannel;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
+import io.antmedia.datastore.db.types.Subscriber;
+import io.antmedia.datastore.db.types.SubscriberStats;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.ipcamera.OnvifCamera;
@@ -245,7 +247,7 @@ public class BroadcastRestService extends RestServiceBase{
 			@ApiParam(value = "type of the stream. Possible values are \"liveStream\", \"ipCamera\", \"streamSource\", \"VoD\"", required = false) @PathParam("type_by") String typeBy,
 			@ApiParam(value = "field to sort", required = false) @QueryParam("sort_by") String sortBy,
 			@ApiParam(value = "asc for Ascending, desc Descending order", required = false) @QueryParam("order_by") String orderBy,
-			@ApiParam(value = "Search string", required = false) @QueryParam("search") String search
+			@ApiParam(value = "Search parameter, returns specific items that contains search string", required = false) @QueryParam("search") String search
 			) {
 		return getDataStore().getBroadcastList(offset, size, typeBy, sortBy, orderBy, search);
 	}
@@ -570,7 +572,90 @@ public class BroadcastRestService extends RestServiceBase{
 		}
 		return tokens;
 	}
+	
+	@ApiOperation(value = "Get the all subscribers of the requested stream", notes = "",responseContainer = "List", response = Subscriber.class)
+	@GET
+	@Path("/{id}/subscribers/list/{offset}/{size}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public List<Subscriber> listSubscriberV2(@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String streamId,
+			@ApiParam(value = "the starting point of the list", required = true) @PathParam("offset") int offset,
+			@ApiParam(value = "size of the return list (max:50 )", required = true) @PathParam("size") int size) {
+		List<Subscriber> subscribers = null;
+		if(streamId != null) {
+			subscribers = getDataStore().listAllSubscribers(streamId, offset, size);
+		}
+		return subscribers;
+	}	
+	
+	@ApiOperation(value = "Get the all subscriber statistics of the requested stream", notes = "",responseContainer = "List", response = SubscriberStats.class)
+	@GET
+	@Path("/{id}/subscriber-stats/list/{offset}/{size}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public List<SubscriberStats> listSubscriberStatsV2(@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String streamId,
+			@ApiParam(value = "the starting point of the list", required = true) @PathParam("offset") int offset,
+			@ApiParam(value = "size of the return list (max:50 )", required = true) @PathParam("size") int size) {
+		List<SubscriberStats> subscriberStats = null;
+		if(streamId != null) {
+			subscriberStats = getDataStore().listAllSubscriberStats(streamId, offset, size);
+		}
+		return subscriberStats;
+	}
+	
+	@ApiOperation(value = "Add Subscriber to the requested stream ", response = Result.class)
+	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/{id}/subscribers")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result addSubscriber(
+			@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String streamId,
+			@ApiParam(value = "Subscriber to be added to this stream", required = true) Subscriber subscriber) {
+		boolean result = false;
+		if (subscriber != null) {
+			// add stream id inside the Subscriber
+			subscriber.setStreamId(streamId);
+			// create a new stats object before adding to datastore
+			subscriber.setStats(new SubscriberStats());
+			// subscriber is not connected yet
+			subscriber.setConnected(false);
+			
+			if (streamId != null) {
+				result = getDataStore().addSubscriber(streamId, subscriber);
+			}
+		}
+		return new Result(result);
+	}
+	
+	@ApiOperation(value = "Delete specific subscriber from data store for selected stream", response = Result.class)
+	@DELETE
+	@Consumes({ MediaType.APPLICATION_JSON })
+	@Path("/{id}/subscribers/{sid}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result deleteSubscriber(@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String streamId,
+			@ApiParam(value = "the id of the subscriber", required = true) @PathParam("sid") String subscriberId) {
+		boolean result =  false;
+				
+		if(streamId != null) {
+			result = getDataStore().deleteSubscriber(streamId, subscriberId);
+		}
 
+		return new Result(result);	
+	}
+
+	@ApiOperation(value = " Removes all subscriber related with the requested stream", notes = "", response = Result.class)
+	@DELETE
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/{id}/subscribers")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result revokeSubscribers(@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String streamId) {
+		boolean result =  false;
+		
+		if(streamId != null) {
+			result = getDataStore().revokeSubscribers(streamId);
+		}
+
+		return new Result(result);
+	}	
+	
 	@ApiOperation(value = "Get the broadcast live statistics total RTMP watcher count, total HLS watcher count, total WebRTC watcher count", notes = "", response = BroadcastStatistics.class)
 	@GET
 	@Path("/{id}/broadcast-statistics")
@@ -811,16 +896,19 @@ public class BroadcastRestService extends RestServiceBase{
 					
 					if (broadcast.getWebMEnabled() != RECORD_ENABLE) 
 					{
-						result = getDataStore().setWebMMuxing(streamId, RECORD_ENABLE);
+						
 						//if it's not enabled, start it
 						if (broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING))
 						{
 							result = startRecord(streamId, RecordType.WEBM);
-							if (!result) 
+							if (result) 
+							{
+								result = getDataStore().setWebMMuxing(streamId, RECORD_ENABLE);
+								message=Long.toString(System.currentTimeMillis());
+							}
+							else
 							{
 								logFailedOperation(enableRecording,streamId,RecordType.WEBM);
-							}else{
-								message=Long.toString(System.currentTimeMillis());
 							}
 						}	
 					}
@@ -834,24 +922,22 @@ public class BroadcastRestService extends RestServiceBase{
 				}
 				else 
 				{
-					boolean stopAttempted = false;
 					if (broadcast.getWebMEnabled() == RECORD_ENABLE && broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) 
 					{
-						stopAttempted = true;
 						//we can stop recording
 						result = stopRecord(streamId, RecordType.WEBM);
-						if (!result) 
+						if (result) 
 						{
-							logFailedOperation(enableRecording,streamId,RecordType.WEBM);
+							message=Long.toString(System.currentTimeMillis());
 						}
 						else{
-							message=Long.toString(System.currentTimeMillis());
+							logFailedOperation(enableRecording,streamId,RecordType.WEBM);
 						}
 						
 					}
 					boolean dataStoreResult = getDataStore().setWebMMuxing(streamId, RECORD_DISABLE);
 					
-					result = stopAttempted ? (result && dataStoreResult) : dataStoreResult;
+					result = (result && dataStoreResult);
 				}
 			}
 			else 
@@ -1096,6 +1182,18 @@ public class BroadcastRestService extends RestServiceBase{
 		} else {
 			return new Result(false, "Operation not supported in the Community Edition. Check the Enterprise version for more features.");
 		}
+	}
+	@ApiOperation(value = "Gets the conference room list from database", notes = "",responseContainer = "List", response = ConferenceRoom.class)
+	@GET
+	@Path("/conference-rooms/list/{offset}/{size}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public List<ConferenceRoom> getConferenceRoomList(@ApiParam(value = "This is the offset of the list, it is useful for pagination. If you want to use sort mechanism, we recommend using Mongo DB.", required = true) @PathParam("offset") int offset,
+											@ApiParam(value = "Number of items that will be fetched. If there is not enough item in the datastore, returned list size may less then this value", required = true) @PathParam("size") int size,
+											@ApiParam(value = "field to sort", required = false) @QueryParam("sort_by") String sortBy,
+											@ApiParam(value = "asc for Ascending, desc Descending order", required = false) @QueryParam("order_by") String orderBy,
+											@ApiParam(value = "Search parameter, returns specific items that contains search string", required = false) @QueryParam("search") String search
+	) {
+		return getDataStore().getConferenceRoomList(offset, size ,sortBy, orderBy, search);
 	}
 
 	@ApiOperation(value="Returns the streams Ids in the room.",responseContainer ="List",response = String.class)

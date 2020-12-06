@@ -35,6 +35,7 @@ import org.junit.Test;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
+import org.mockito.Mockito;
 import org.red5.server.scope.WebScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -533,8 +534,11 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	@Test
 	public void testStopFetchingWhenDeleted() {
 
-
 		BroadcastRestService service = new BroadcastRestService();
+		
+		ApplicationContext context = mock(ApplicationContext.class);
+		service.setAppCtx(context);
+		when(context.containsBean(Mockito.any())).thenReturn(false);
 
 		service.setApplication(app.getAppAdaptor());
 

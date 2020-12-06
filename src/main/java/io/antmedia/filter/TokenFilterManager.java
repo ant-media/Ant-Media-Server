@@ -35,8 +35,17 @@ public class TokenFilterManager extends AbstractFilter   {
 
 		String method = httpRequest.getMethod();
 		String tokenId = ((HttpServletRequest) request).getParameter("token");
+		String subscriberId = ((HttpServletRequest) request).getParameter("subscriberId");
+		String subscriberCodeText = ((HttpServletRequest) request).getParameter("subscriberCode");
+		
 		if (tokenId != null) {
 			tokenId = tokenId.replaceAll(REPLACE_CHARS_REGEX, "_");
+		}
+		if (subscriberId != null) {
+			subscriberId = subscriberId.replaceAll(REPLACE_CHARS_REGEX, "_");
+		}
+		if (subscriberCodeText != null) {
+			subscriberCodeText = subscriberCodeText.replaceAll(REPLACE_CHARS_REGEX, "_");
 		}
 		 
 		String sessionId = httpRequest.getSession().getId();
@@ -68,6 +77,16 @@ public class TokenFilterManager extends AbstractFilter   {
 		if ("GET".equals(method) 
 				&& (tokenGenerator == null || clusterToken == null || !clusterToken.equals(tokenGenerator.getGenetaredToken()))) 
 		{
+			
+			if(appSettings.isTimeTokenSubscriberOnly()) {
+				ITokenService tokenServiceTmp = getTokenService();
+				
+				if(!tokenServiceTmp.checkTimeBasedSubscriber(subscriberId, streamId, sessionId, subscriberCodeText, false)) {
+					httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Time Based subscriber id or code is invalid");
+					logger.warn("subscriber request for subscriberIDor subscriberCode is not valid");
+					return; 					
+				}
+			}
 			
 			if(appSettings.isPlayTokenControlEnabled()) 
 			{
