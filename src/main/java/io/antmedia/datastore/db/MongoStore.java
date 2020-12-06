@@ -715,6 +715,9 @@ public class MongoStore extends DataStore {
 				);
 				list = query.find(new FindOptions()).toList();
 			}
+			else{
+				return query.find(new FindOptions()).toList();;
+			}
 			return list.size();
 		}
 	}
@@ -731,6 +734,9 @@ public class MongoStore extends DataStore {
 						query.criteria("streamId").containsIgnoreCase(search)
 				);
 				list = query.find(new FindOptions()).toList();
+			}
+			else{
+				return query.find(new FindOptions()).toList();
 			}
 			return list.size();
 		}
