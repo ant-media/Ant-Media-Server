@@ -366,7 +366,6 @@ public class MapDBStore extends DataStore {
 		ArrayList<ConferenceRoom> list = new ArrayList<>();
 		synchronized (this) {
 			Collection<String> conferenceRooms = conferenceRoomMap.getValues();
-			int length = conferenceRooms.size();
 			for (String roomString : conferenceRooms)
 			{
 				ConferenceRoom room = gson.fromJson(roomString, ConferenceRoom.class);
@@ -413,7 +412,7 @@ public class MapDBStore extends DataStore {
 
 	@Override
 	public List<Broadcast> getBroadcastList(int offset, int size, String type, String sortBy, String orderBy, String search) {
-		List<Broadcast> list = new ArrayList<>();
+		List<Broadcast> list = null;
 		list = getBroadcastListV2(type ,search);
 		return sortAndCropBroadcastList(list, offset, size, sortBy, orderBy);
 	}
@@ -456,7 +455,7 @@ public class MapDBStore extends DataStore {
 	 */
 	@Override
 	public List<VoD> getVodList(int offset, int size, String sortBy, String orderBy, String streamId, String search) {
-		List<VoD> vods = new ArrayList<>();
+		List<VoD> vods = null;
 		vods = getVodListV2(streamId,search);
 		return sortAndCropVodList(vods, offset, size, sortBy, orderBy);
 	}
