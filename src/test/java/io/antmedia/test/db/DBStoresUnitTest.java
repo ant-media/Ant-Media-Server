@@ -860,6 +860,9 @@ public class DBStoresUnitTest {
 		long count = dataStore.getPartialBroadcastNumber("ast");
 		assertEquals(2, count);
 
+		count = dataStore.getPartialBroadcastNumber(null);
+		assertEquals(255, count);
+
 		List<Broadcast> broadcastList = dataStore.getBroadcastList(0, 50, null, null, null, broadcast2.getStreamId());
 		assertEquals(broadcastList.get(0).getStreamId(), broadcast2.getStreamId());
 		assertEquals(broadcastList.get(0).getName(), broadcast2.getName());
@@ -1489,6 +1492,12 @@ public class DBStoresUnitTest {
 
 		long totalVodNumber = dataStore.getTotalVodNumber();
 		assertEquals(5, totalVodNumber);
+
+		long partialVodNumber = dataStore.getPartialVodNumber("vod");
+		assertEquals(2, partialVodNumber);
+
+		partialVodNumber = dataStore.getPartialVodNumber(null);
+		assertEquals(5, partialVodNumber);
 
 		List<VoD> vodList = dataStore.getVodList(0, 50, null, null, null, newVod4.getVodId());
 		assertEquals(1, vodList.size());

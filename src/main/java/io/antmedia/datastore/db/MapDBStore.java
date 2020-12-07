@@ -367,16 +367,10 @@ public class MapDBStore extends DataStore {
 		synchronized (this) {
 			Collection<String> conferenceRooms = conferenceRoomMap.getValues();
 			int length = conferenceRooms.size();
-			int i = 0;
 			for (String roomString : conferenceRooms)
 			{
 				ConferenceRoom room = gson.fromJson(roomString, ConferenceRoom.class);
 				list.add(room);
-				i++;
-				if (i > length) {
-					logger.error("Inconsistency in DB. It's likely db file({}) is damaged", dbName);
-					break;
-				}
 			}
 		}
 		if(search != null && !search.isEmpty()){
@@ -388,30 +382,10 @@ public class MapDBStore extends DataStore {
 
 	//GetBroadcastList method may be called without offset and size to get the full list without offset or size
 	//sortAndCrop method returns maximum 50 (hardcoded) of the broadcasts for an offset.
-	public List<Broadcast> getBroadcastListV2(String search) {
+	public List<Broadcast> getBroadcastListV2(String type, String search) {
 		ArrayList<Broadcast> list = new ArrayList<>();
 		synchronized (this) {
-
 			Collection<String> broadcasts = map.getValues();
-				for (String broadcastString : broadcasts) {
-					Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
-					list.add(broadcast);
-				}
-			}
-		if (search != null && !search.isEmpty()) {
-			logger.info("server side search called for Broadcast searchString = {}", search);
-			list = searchOnServer(list, search);
-		}
-		return list;
-	}
-
-	@Override
-	public List<Broadcast> getBroadcastList(int offset, int size, String type, String sortBy, String orderBy, String search) {
-		ArrayList<Broadcast> list = new ArrayList<>();
-		synchronized (this) {
-
-			Collection<String> broadcasts = map.getValues();
-
 			if(type != null && !type.isEmpty()) {
 				for (String broadcastString : broadcasts)
 				{
@@ -423,7 +397,7 @@ public class MapDBStore extends DataStore {
 				}
 			}
 			else {
-				for (String broadcastString : broadcasts) 
+				for (String broadcastString : broadcasts)
 				{
 					Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
 					list.add(broadcast);
@@ -434,18 +408,34 @@ public class MapDBStore extends DataStore {
 			logger.info("server side search called for Broadcast searchString = {}", search);
 			list = searchOnServer(list, search);
 		}
+		return list;
+	}
+
+	@Override
+	public List<Broadcast> getBroadcastList(int offset, int size, String type, String sortBy, String orderBy, String search) {
+		List<Broadcast> list = new ArrayList<>();
+		list = getBroadcastListV2(type ,search);
 		return sortAndCropBroadcastList(list, offset, size, sortBy, orderBy);
 	}
 
-	public List<VoD> getVodListV2(String search) {
+	public List<VoD> getVodListV2(String streamId, String search) {
 		ArrayList<VoD> vods = new ArrayList<>();
 		synchronized (this) {
 			Collection<String> values = vodMap.values();
 			int length = values.size();
 			int i = 0;
-			for (String vodString : values) {
+			for (String vodString : values)
+			{
 				VoD vod = gson.fromJson(vodString, VoD.class);
-				vods.add(vod);
+				if (streamId != null && !streamId.isEmpty())
+				{
+					if (vod.getStreamId().equals(streamId)) {
+						vods.add(vod);
+					}
+				}
+				else {
+					vods.add(vod);
+				}
 
 				i++;
 				if (i > length) {
@@ -453,7 +443,7 @@ public class MapDBStore extends DataStore {
 					break;
 				}
 			}
-			if (search != null && !search.isEmpty()) {
+			if(search != null && !search.isEmpty()){
 				logger.info("server side search called for VoD searchString = {}", search);
 				vods = searchOnServerVod(vods, search);
 			}
@@ -466,37 +456,9 @@ public class MapDBStore extends DataStore {
 	 */
 	@Override
 	public List<VoD> getVodList(int offset, int size, String sortBy, String orderBy, String streamId, String search) {
-		ArrayList<VoD> vods = new ArrayList<>();
-		synchronized (this) {
-			Collection<String> values = vodMap.values();
-			int length = values.size();
-			int i = 0;
-			for (String vodString : values) 
-			{
-				VoD vod = gson.fromJson(vodString, VoD.class);
-				if (streamId != null && !streamId.isEmpty()) 
-				{
-					if (vod.getStreamId().equals(streamId)) {
-						vods.add(vod);
-					}
-				}
-				else {
-					vods.add(vod);
-				}
-				
-				i++;
-				if (i > length) {
-					logger.error("Inconsistency in DB. It's likely db file({}) is damaged", dbName);
-					break;
-				}
-			}
-			if(search != null && !search.isEmpty()){
-				logger.info("server side search called for VoD searchString = {}", search);
-				vods = searchOnServerVod(vods, search);
-			}
-			//GetVodList method may be called without offset and size since the size is hardcoded to maximum 50
-			return sortAndCropVodList(vods, offset, size, sortBy, orderBy);
-		}
+		List<VoD> vods = new ArrayList<>();
+		vods = getVodListV2(streamId,search);
+		return sortAndCropVodList(vods, offset, size, sortBy, orderBy);
 	}
 
 	@Override
@@ -582,7 +544,7 @@ public class MapDBStore extends DataStore {
 
 	@Override
 	public long getPartialVodNumber(String search){
-		List<VoD> vods = getVodListV2(search);
+		List<VoD> vods = getVodListV2(null, search);
 		return vods.size();
 	}
 
@@ -801,7 +763,7 @@ public class MapDBStore extends DataStore {
 
 	@Override
 	public long getPartialBroadcastNumber(String search) {
-		List<Broadcast> broadcasts = getBroadcastListV2(search);
+		List<Broadcast> broadcasts = getBroadcastListV2(null ,search);
 		return broadcasts.size();
 	}
 

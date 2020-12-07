@@ -725,12 +725,14 @@ public class MongoStore extends DataStore {
 	@Override
 	public long getPartialVodNumber(String search){
 		synchronized(this) {
-			Query<VoD> query = datastore.find(VoD.class);
+			Query<VoD> query = vodDatastore.find(VoD.class);
 			List<VoD> list = null;
 			if (search != null && !search.isEmpty()) {
 				logger.info("Server side search is called for {}", search);
 				query.or(
-						query.criteria("name").containsIgnoreCase(search),
+						query.criteria("vodName").containsIgnoreCase(search),
+						query.criteria("vodId").containsIgnoreCase(search),
+						query.criteria("streamName").containsIgnoreCase(search),
 						query.criteria("streamId").containsIgnoreCase(search)
 				);
 				list = query.find(new FindOptions()).toList();
