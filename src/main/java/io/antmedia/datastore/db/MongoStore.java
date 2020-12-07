@@ -716,7 +716,7 @@ public class MongoStore extends DataStore {
 				list = query.find(new FindOptions()).toList();
 			}
 			else{
-				return query.find(new FindOptions()).toList();;
+				return query.find(new FindOptions()).toList().size();
 			}
 			return list.size();
 		}
@@ -736,7 +736,7 @@ public class MongoStore extends DataStore {
 				list = query.find(new FindOptions()).toList();
 			}
 			else{
-				return query.find(new FindOptions()).toList();
+				return query.find(new FindOptions()).toList().size();
 			}
 			return list.size();
 		}
