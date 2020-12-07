@@ -367,16 +367,10 @@ public class MapDBStore extends DataStore {
 		synchronized (this) {
 			Collection<String> conferenceRooms = conferenceRoomMap.getValues();
 			int length = conferenceRooms.size();
-			int i = 0;
 			for (String roomString : conferenceRooms)
 			{
 				ConferenceRoom room = gson.fromJson(roomString, ConferenceRoom.class);
 				list.add(room);
-				i++;
-				if (i > length) {
-					logger.error("Inconsistency in DB. It's likely db file({}) is damaged", dbName);
-					break;
-				}
 			}
 		}
 		if(search != null && !search.isEmpty()){
