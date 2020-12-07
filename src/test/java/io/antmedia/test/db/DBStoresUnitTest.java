@@ -2289,6 +2289,10 @@ public class DBStoresUnitTest {
 		//get room		
 		ConferenceRoom dbRoom = datastore.getConferenceRoom(room.getRoomId());
 
+		//test null
+		ConferenceRoom nullRoom = datastore.getConferenceRoom(null);
+		assertNull(nullRoom);
+
 		assertNotNull(dbRoom);
 		assertEquals(roomId, dbRoom.getRoomId());
 
