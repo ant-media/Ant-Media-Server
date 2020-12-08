@@ -80,7 +80,7 @@ public class CorsHeaderFilter extends CorsFilter {
 		// response to be cached for CORS and non-CORS requests.
 
 		// Add a single Access-Control-Allow-Origin header.
-		if (isAnyOriginAllowed() && !origin.equals("http://localhost:4200"))  //this simplifies angular app development
+		if (isAnyOriginAllowed() && !internalOriginCheck(origin,request))  //this simplifies angular app development and JWT Filter requests
 		{
 			// If any origin is allowed, return header with '*'.
 			response.addHeader(CorsFilter.RESPONSE_HEADER_ACCESS_CONTROL_ALLOW_ORIGIN, "*");
@@ -103,7 +103,7 @@ public class CorsHeaderFilter extends CorsFilter {
 		// If the resource supports credentials, add a single
 		// Access-Control-Allow-Credentials header with the case-sensitive
 		// string "true" as value.
-		if (isSupportsCredentials() || origin.equals("http://localhost:4200")) {
+		if (isSupportsCredentials() || internalOriginCheck(origin,request)) {
 			response.addHeader(CorsFilter.RESPONSE_HEADER_ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
 		}
 
@@ -150,6 +150,14 @@ public class CorsHeaderFilter extends CorsFilter {
 			}
 		}
 	}
+	
+	private boolean internalOriginCheck(String origin, HttpServletRequest request) {
+		// localhost:4200 -> This simplifies angular app development
+		// request.getHeader("Authorization") != null -> GET, POST and etc requests with JWT Control
+		// (request.getHeader(REQUEST_HEADER_ACCESS_CONTROL_REQUEST_HEADERS) != null && request.getHeader(REQUEST_HEADER_ACCESS_CONTROL_REQUEST_HEADERS).contains("authorization") -> For the option request
+		
+		return origin.equals("http://localhost:4200") || request.getHeader("Authorization") != null || (request.getHeader(REQUEST_HEADER_ACCESS_CONTROL_REQUEST_HEADERS) != null && request.getHeader(REQUEST_HEADER_ACCESS_CONTROL_REQUEST_HEADERS).contains("authorization"));
+	}
 
 	private boolean isOriginAllowedInternal(final String origin) {
 		if (isAnyOriginAllowed()) {
@@ -194,10 +202,6 @@ public class CorsHeaderFilter extends CorsFilter {
 		if (!isOriginAllowedInternal(origin)) {
 			handleInvalidCORSInternal(request, response, filterChain);
 			return;
-		}
-		
-		if(origin.equals("http://localhost:4200")) {
-			getAllowedHttpHeaders().add("authorization");
 		}
 
 		// Section 6.2.3
