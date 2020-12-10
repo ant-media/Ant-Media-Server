@@ -827,11 +827,18 @@ public class DBStoresUnitTest {
 	}
 
 	public void testBroadcastListSearch(DataStore dataStore){
-		List<Broadcast> broadcastList2 = dataStore.getBroadcastList(0, 50, null, null, null, null);
-		for (Iterator iterator = broadcastList2.iterator(); iterator.hasNext();) {
-			Broadcast broadcast = (Broadcast) iterator.next();
-			dataStore.delete(broadcast.getStreamId());
+		long broadcastCount = dataStore.getBroadcastCount();
+		int pageCount = (int)(broadcastCount/50 + 1);
+		
+		for (int i = 0; i < pageCount; i++) {
+			List<Broadcast> broadcastList2 = dataStore.getBroadcastList(0, 50, null, null, null, null);
+			for (Iterator iterator = broadcastList2.iterator(); iterator.hasNext();) {
+				Broadcast broadcast = (Broadcast) iterator.next();
+				dataStore.delete(broadcast.getStreamId());
+			}
 		}
+		
+	
 
 		Broadcast broadcast1 = new Broadcast(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, "bbbStream");
 		broadcast1.setDate(1000);
@@ -861,7 +868,7 @@ public class DBStoresUnitTest {
 		assertEquals(2, count);
 
 		count = dataStore.getPartialBroadcastNumber(null);
-		assertEquals(255, count);
+		assertEquals(5, count);
 
 		List<Broadcast> broadcastList = dataStore.getBroadcastList(0, 50, null, null, null, broadcast2.getStreamId());
 		assertEquals(broadcastList.get(0).getStreamId(), broadcast2.getStreamId());
