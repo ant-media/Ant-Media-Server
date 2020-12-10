@@ -87,6 +87,16 @@ public class VoDRestService extends RestServiceBase{
 	public SimpleStat getTotalVodNumber() {
 		return new SimpleStat(getDataStore().getTotalVodNumber());
 	}
+
+	@ApiOperation(value = "Get the partial number of VoDs depending on the searched items", response = Long.class)
+	@GET
+	@Path("/count/{search}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public SimpleStat getTotalVodNumber(
+			@ApiParam(value = "Search parameter to get the number of items including it ", required = true) @PathParam("search") String search)
+	{
+		return new SimpleStat(getDataStore().getPartialVodNumber(search));
+	}
 	
 	@ApiOperation(value = "Delete specific VoD File", response = Result.class)
 	@DELETE

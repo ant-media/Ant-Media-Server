@@ -502,6 +502,16 @@ public class BroadcastRestService extends RestServiceBase{
 		return new SimpleStat(getDataStore().getTotalBroadcastNumber());
 	}
 
+	@ApiOperation(value = "Get the number of broadcasts depending on the searched items ", notes = "", response = SimpleStat.class)
+	@GET
+	@Path("/count/{search}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public SimpleStat getTotalBroadcastNumberV2(
+			@ApiParam(value = "Search parameter to get the number of items including it ", required = true) @PathParam("search") String search)
+	{
+		return new SimpleStat(getDataStore().getPartialBroadcastNumber(search));
+	}
+
 	@ApiOperation(value = "Return the active live streams", notes = "", response = SimpleStat.class)
 	@GET
 	@Path("/active-live-stream-count")
