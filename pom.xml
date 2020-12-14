@@ -548,13 +548,7 @@
 		    <groupId>org.apache.kafka</groupId>
 		    <artifactId>kafka-streams</artifactId>
         </dependency>
-        <dependency>
-    		<groupId>org.cryptacular</groupId>
-    		<artifactId>cryptacular</artifactId>
-    		<version>1.2.4</version>
-    		<scope>test</scope>
-  		</dependency>
-  		        <dependency>
+  		<dependency>
     		<groupId>io.jsonwebtoken</groupId>
     		<artifactId>jjwt-api</artifactId>
     		<version>0.11.2</version>
