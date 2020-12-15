@@ -8,7 +8,7 @@
 
 Ant Media Server is designed to provide live video streaming technology infrastructure with ultra-low latency(WebRTC) and low-latency(HLS, CMAF available in v2.2+). It can be used to enable streaming any type of live or on demand video to any devices including mobiles, PCs or IPTV boxes.
 
-### 2037 Running Instances in 111 Countries at 09:33 AM GMT on July 21, 2020
+### 2500+ Running Instances in 120+ Countries 
 
 
 Ant Media Server Features
