@@ -159,8 +159,15 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		if (app.getContext().hasBean(IClusterNotifier.BEAN_NAME)) {
 			//which means it's in cluster mode
 			clusterNotifier = (IClusterNotifier) app.getContext().getBean(IClusterNotifier.BEAN_NAME);
+			clusterNotifier.registerSettingUpdateListener(getAppSettings().getAppName(), settings -> {
+				updateSettings(settings, false);
+			});
+			AppSettings storedSettings = clusterNotifier.getClusterStore().getSettings(app.getName());
 			
-			clusterNotifier.registerSettingUpdateListener(getAppSettings().getAppName(), settings -> updateSettings(settings, false));
+			if(storedSettings == null) {
+				storedSettings = appSettings;
+			}
+			updateSettings(storedSettings, true);
 		}
 		
 		vertx.setTimer(10, l -> {

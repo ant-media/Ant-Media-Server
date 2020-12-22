@@ -9,7 +9,7 @@ domain=""
 password=
 renew_flag='false'
 
-while getopts i:d:p:f:r:c option
+while getopts i:d:p:f:rc: option
 do
   case "${option}" in
     f) FULL_CHAIN_FILE=${OPTARG};;

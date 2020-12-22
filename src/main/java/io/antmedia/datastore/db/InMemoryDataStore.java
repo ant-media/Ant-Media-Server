@@ -483,6 +483,24 @@ public class InMemoryDataStore extends DataStore {
 	}
 
 	@Override
+	public long getPartialBroadcastNumber(String search){
+		ArrayList<Broadcast> broadcasts = new ArrayList<>(broadcastMap.values());
+		if(search != null && !search.isEmpty()) {
+			broadcasts = searchOnServer(broadcasts, search);
+		}
+		return broadcasts.size();
+	}
+
+	@Override
+	public long getPartialVodNumber(String search){
+		ArrayList<VoD> vods = new ArrayList<>(vodMap.values());
+		if(search != null && !search.isEmpty()) {
+			vods = searchOnServerVod(vods, search);
+		}
+		return vods.size();
+	}
+
+	@Override
 	public List<TensorFlowObject> getDetectionList(String idFilter, int offsetSize, int batchSize) {
 		int offsetCount=0; 
 		int batchCount=0;

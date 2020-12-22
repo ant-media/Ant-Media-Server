@@ -374,7 +374,6 @@ public class MongoStore extends DataStore {
 			}
 			if(search != null && !search.isEmpty()){
 				logger.info("Server side search is called for {}", search);
-				Pattern regexp = Pattern.compile(search, Pattern.CASE_INSENSITIVE);
 				query.or(
 						query.criteria("name").containsIgnoreCase(search),
 						query.criteria("streamId").containsIgnoreCase(search)
@@ -700,6 +699,48 @@ public class MongoStore extends DataStore {
 	public long getTotalBroadcastNumber() {
 		synchronized(this) {
 			return datastore.createQuery(Broadcast.class).count();
+		}
+	}
+
+	@Override
+	public long getPartialBroadcastNumber(String search){
+		synchronized(this) {
+			Query<Broadcast> query = datastore.find(Broadcast.class);
+			List<Broadcast> list = null;
+			if (search != null && !search.isEmpty()) {
+				logger.info("Server side search is called for {}", search);
+				query.or(
+						query.criteria("name").containsIgnoreCase(search),
+						query.criteria("streamId").containsIgnoreCase(search)
+				);
+				list = query.find(new FindOptions()).toList();
+			}
+			else{
+				return query.find(new FindOptions()).toList().size();
+			}
+			return list.size();
+		}
+	}
+
+	@Override
+	public long getPartialVodNumber(String search){
+		synchronized(this) {
+			Query<VoD> query = vodDatastore.find(VoD.class);
+			List<VoD> list = null;
+			if (search != null && !search.isEmpty()) {
+				logger.info("Server side search is called for {}", search);
+				query.or(
+						query.criteria("vodName").containsIgnoreCase(search),
+						query.criteria("vodId").containsIgnoreCase(search),
+						query.criteria("streamName").containsIgnoreCase(search),
+						query.criteria("streamId").containsIgnoreCase(search)
+				);
+				list = query.find(new FindOptions()).toList();
+			}
+			else{
+				return query.find(new FindOptions()).toList().size();
+			}
+			return list.size();
 		}
 	}
 

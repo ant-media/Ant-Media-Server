@@ -7,6 +7,10 @@ usage() {
   echo "-n: Application Name is the application name that you want to have. It's mandatory"
   echo "-p: Path is the install location of Ant Media Server which is /usr/local/antmedia by default."
   echo "-w: The flag to deploy application as war file. If you want to create application on fly, set it true."
+  echo "-c: The flag to deploy application in cluster mode."
+  echo "-m: (Optional) Mongo DB host."
+  echo "-u: (Optional) Mongo DB user"
+  echo "-s: (Optional) Mongo DB password"
   echo "-h: print this usage"
   echo " "
   echo "Example: "
@@ -19,13 +23,18 @@ ERROR_MESSAGE="Error: App is not created. Please check the error in the terminal
 
 AMS_DIR=/usr/local/antmedia
 AS_WAR="false"
+IS_CLUSTER="false"
 
-while getopts 'n:p:w:h' option
+while getopts 'n:p:w:h:c:m:u:s' option
 do
   case "${option}" in
     n) APP_NAME=${OPTARG};;
     p) AMS_DIR=${OPTARG};;
     w) AS_WAR="true";;
+    c) IS_CLUSTER="true";;
+    m) MONGO_HOST=${OPTARG};;
+    u) MONGO_USER=${OPTARG};;
+    s) MONGO_PASS=${OPTARG};;
     h) usage 
        exit 1;;
    esac
@@ -98,6 +107,13 @@ sed -i $SED_COMPATIBILITY 's^<display-name>StreamApp^<display-name>'$APP_NAME'^'
 check_result
 sed -i $SED_COMPATIBILITY 's^<param-value>/StreamApp^<param-value>/'$APP_NAME'^' $WEB_XML_FILE
 check_result
+
+if [ $IS_CLUSTER == "true" ]; then
+	sed -i $SED_COMPATIBILITY 's/db.type=.*/db.type='mongodb'/' $RED5_PROPERTIES_FILE
+    sed -i $SED_COMPATIBILITY 's#db.host=.*#db.host='$MONGO_HOST'#' $RED5_PROPERTIES_FILE  
+    sed -i $SED_COMPATIBILITY 's/db.user=.*/db.user='$MONGO_USER'/' $RED5_PROPERTIES_FILE
+    sed -i $SED_COMPATIBILITY 's/db.password=.*/db.password='$MONGO_PASS'/' $RED5_PROPERTIES_FILE
+fi
 
 if [ $AS_WAR == "true" ]; then
   echo "Application will deployed as war" 
