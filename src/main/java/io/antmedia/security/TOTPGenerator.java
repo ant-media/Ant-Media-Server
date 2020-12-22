@@ -1,7 +1,7 @@
 package io.antmedia.security;
 
 
- import java.lang.reflect.UndeclaredThrowableException;
+import java.lang.reflect.UndeclaredThrowableException;
 import java.security.GeneralSecurityException;
 
 import javax.crypto.Mac;
@@ -27,8 +27,6 @@ import com.google.common.primitives.Longs;
       * @param keyBytes: the bytes to use for the HMAC key
       * @param text: the message or text to be authenticated
       */
-
-
      private static byte[] hmac_sha(String crypto, byte[] keyBytes, byte[] text){
          try {
              Mac hmac;
