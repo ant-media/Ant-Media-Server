@@ -391,6 +391,16 @@ public abstract class RestServiceBase {
 		return broadcast;
 	}
 
+	protected ConferenceRoom lookupConference(String id) {
+		ConferenceRoom room = null;
+		try {
+			room = getDataStore().getConferenceRoom(id);
+		} catch (Exception e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+		}
+		return room;
+	}
+
 	protected Result updateBroadcast(String streamId, Broadcast broadcast, String socialNetworksToPublish) {
 
 		boolean result = getDataStore().updateBroadcastFields(streamId, broadcast);

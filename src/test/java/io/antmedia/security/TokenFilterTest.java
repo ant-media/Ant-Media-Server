@@ -2,6 +2,7 @@ package io.antmedia.security;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -32,6 +33,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
 import org.springframework.web.context.WebApplicationContext;
+
+import com.amazonaws.util.Base32;
 
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.types.Token;
@@ -290,6 +293,14 @@ public class TokenFilterTest {
 			e.printStackTrace();
 			fail(ExceptionUtils.getStackTrace(e));
 		}
+	}
+	
+	@Test
+	public void testTOTPGenerator() {
+		byte[] secretBytes = Base32.decode("mysecret");
+		String code = TOTPGenerator.generateTOTP(secretBytes, 60, 6, "HmacSHA1");
+		int intCode = Integer.parseInt(code);	
+		assertTrue(intCode > 100000 && intCode < 1000000);
 	}
 	
 }
