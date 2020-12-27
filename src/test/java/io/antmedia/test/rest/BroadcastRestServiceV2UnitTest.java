@@ -334,6 +334,9 @@ public class BroadcastRestServiceV2UnitTest {
 		assertNotNull(broadcastStatistics);
 		assertEquals(0, broadcastStatistics.totalHLSWatchersCount);
 		assertEquals(0, broadcastStatistics.totalWebRTCWatchersCount);
+		
+		when(context.containsBean(IWebRTCAdaptor.BEAN_NAME)).thenReturn(true);
+		
 	}
 	
 	@Test
