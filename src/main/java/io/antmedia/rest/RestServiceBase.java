@@ -1255,7 +1255,7 @@ public abstract class RestServiceBase {
 		String fileExtension = FilenameUtils.getExtension(fileName);
 		try {
 
-			if ("mp4".equalsIgnoreCase(fileExtension)) {
+			if ("mp4".equalsIgnoreCase(fileExtension) || "webm".equalsIgnoreCase(fileExtension) ||  "mov".equalsIgnoreCase(fileExtension) ||  "avi".equalsIgnoreCase(fileExtension)) {
 
 
 				File streamsDirectory = new File(
@@ -1266,8 +1266,19 @@ public abstract class RestServiceBase {
 					streamsDirectory.mkdirs();
 				}
 				String vodId = RandomStringUtils.randomNumeric(24);
-				File savedFile = new File(String.format("%s/webapps/%s/%s", System.getProperty("red5.root"), appScopeName,
-						"streams/" + vodId + ".mp4"));
+				File savedFile = null;
+				List<String> videoExtensions = new ArrayList<String>();
+				videoExtensions.add("webm");
+				videoExtensions.add("mp4");
+				videoExtensions.add("mov");
+				videoExtensions.add("avi");
+				for(int i = 0; i < videoExtensions.size(); i++){
+					if(videoExtensions.get(i).equalsIgnoreCase(fileExtension)){
+						savedFile = new File(String.format("%s/webapps/%s/%s", System.getProperty("red5.root"), appScopeName,
+								"streams/" + vodId + "." + fileExtension));
+						break;
+					}
+				}
 
 				int read = 0;
 				byte[] bytes = new byte[2048];
