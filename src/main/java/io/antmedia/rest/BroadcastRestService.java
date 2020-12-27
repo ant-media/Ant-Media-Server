@@ -519,6 +519,8 @@ public class BroadcastRestService extends RestServiceBase{
 	public SimpleStat getAppLiveStatistics() {
 		return new SimpleStat(getDataStore().getActiveBroadcastCount());
 	}
+	
+
 
 
 	@ApiOperation(value = "Generates random one-time token for specified stream")
@@ -673,6 +675,15 @@ public class BroadcastRestService extends RestServiceBase{
 	@Override
 	public BroadcastStatistics getBroadcastStatistics(@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String id) {
 		return super.getBroadcastStatistics(id);
+	}
+	
+	@ApiOperation(value = "Get the total broadcast live statistics total HLS watcher count, total WebRTC watcher count", notes = "", response = TotalBroadcastStatistics.class)
+	@GET
+	@Path("/total-broadcast-statistics")
+	@Produces(MediaType.APPLICATION_JSON)
+	@Override
+	public TotalBroadcastStatistics getBroadcastTotalStatistics() {
+		return super.getBroadcastTotalStatistics();
 	}
 
 	@ApiOperation(value = "Get WebRTC Low Level Send stats in general", notes = "",response = WebRTCSendStats.class)
