@@ -100,21 +100,6 @@ public abstract class RestServiceBase {
 		}
 	}
 	
-	@ApiModel(value="TotalBroadcastStatistics", description="The statistics class of the broadcasts")
-	public static class TotalBroadcastStatistics {
-
-		@ApiModelProperty(value = "the total HLS viewers of the stream")
-		public final int totalHLSWatchersCount;
-
-		@ApiModelProperty(value = "the total WebRTC viewers of the stream")
-		public final int totalWebRTCWatchersCount;
-
-		public TotalBroadcastStatistics(int totalHLSWatchersCount, int totalWebRTCWatchersCount) {
-			this.totalHLSWatchersCount = totalHLSWatchersCount;
-			this.totalWebRTCWatchersCount = totalWebRTCWatchersCount;
-		}
-	}
-	
 	public interface ProcessBuilderFactory {
 		Process make(String...args);
 	}
@@ -1565,10 +1550,11 @@ public abstract class RestServiceBase {
 		return new BroadcastStatistics(totalRTMPViewer, totalHLSViewer, totalWebRTCViewer);
 	}
 	
-	protected TotalBroadcastStatistics getBroadcastTotalStatistics() {
+	protected BroadcastStatistics getBroadcastTotalStatistics() {
 
-		int totalWebRTCViewer = 0;
-		int totalHLSViewer = 0;
+		int totalRTMPViewer = -1;
+		int totalWebRTCViewer = -1;
+		int totalHLSViewer = -1;
 		
 		if (getAppContext().containsBean(HlsViewerStats.BEAN_NAME)) {
 			HlsViewerStats hlsViewerStats = (HlsViewerStats) getAppContext().getBean(HlsViewerStats.BEAN_NAME);
@@ -1582,7 +1568,7 @@ public abstract class RestServiceBase {
 			totalWebRTCViewer = webrtcAdaptor.getNumberOfTotalViewers();
 		}
 
-		return new TotalBroadcastStatistics(totalHLSViewer, totalWebRTCViewer);
+		return new BroadcastStatistics(totalRTMPViewer, totalHLSViewer, totalWebRTCViewer);
 	}
 
 	protected List<SocialEndpointCredentials> getSocialEndpoints(int offset, int size) {

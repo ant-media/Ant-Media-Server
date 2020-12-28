@@ -87,7 +87,6 @@ import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.RestServiceBase;
 import io.antmedia.rest.RestServiceBase.BroadcastStatistics;
 import io.antmedia.rest.RestServiceBase.ProcessBuilderFactory;
-import io.antmedia.rest.RestServiceBase.TotalBroadcastStatistics;
 import io.antmedia.rest.RootRestService;
 import io.antmedia.rest.WebRTCClientStats;
 import io.antmedia.rest.model.BasicStreamInfo;
@@ -330,7 +329,7 @@ public class BroadcastRestServiceV2UnitTest {
 		when(context.getBean(HlsViewerStats.BEAN_NAME)).thenReturn(hlsViewerStats);
 		when(context.containsBean(HlsViewerStats.BEAN_NAME)).thenReturn(true);
 		
-		TotalBroadcastStatistics broadcastStatistics = restServiceReal.getBroadcastTotalStatistics();
+		BroadcastStatistics broadcastStatistics = restServiceReal.getBroadcastTotalStatistics();
 		assertNotNull(broadcastStatistics);
 		assertEquals(0, broadcastStatistics.totalHLSWatchersCount);
 		assertEquals(0, broadcastStatistics.totalWebRTCWatchersCount);

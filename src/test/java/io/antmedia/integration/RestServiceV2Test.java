@@ -73,7 +73,6 @@ import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.rest.BroadcastRestService.SimpleStat;
 import io.antmedia.rest.RestServiceBase.BroadcastStatistics;
-import io.antmedia.rest.RestServiceBase.TotalBroadcastStatistics;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.Version;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
@@ -699,7 +698,7 @@ public class RestServiceV2Test {
 		return null;
 	}
 	
-	public static TotalBroadcastStatistics callGetTotalBroadcastStatistics() {
+	public static BroadcastStatistics callGetTotalBroadcastStatistics() {
 		try {
 
 			String url = ROOT_SERVICE_URL + "/v2/broadcasts/total-broadcast-statistics";
@@ -720,7 +719,7 @@ public class RestServiceV2Test {
 			}
 			System.out.println("result string: " + result.toString());
 
-			return gson.fromJson(result.toString(), TotalBroadcastStatistics.class);
+			return gson.fromJson(result.toString(), BroadcastStatistics.class);
 
 		} catch (Exception e) {
 			e.printStackTrace();

@@ -677,12 +677,12 @@ public class BroadcastRestService extends RestServiceBase{
 		return super.getBroadcastStatistics(id);
 	}
 	
-	@ApiOperation(value = "Get the total broadcast live statistics total HLS watcher count, total WebRTC watcher count", notes = "", response = TotalBroadcastStatistics.class)
+	@ApiOperation(value = "Get the total broadcast live statistics total HLS watcher count, total WebRTC watcher count", notes = "", response = BroadcastStatistics.class)
 	@GET
 	@Path("/total-broadcast-statistics")
 	@Produces(MediaType.APPLICATION_JSON)
 	@Override
-	public TotalBroadcastStatistics getBroadcastTotalStatistics() {
+	public BroadcastStatistics getBroadcastTotalStatistics() {
 		return super.getBroadcastTotalStatistics();
 	}
 

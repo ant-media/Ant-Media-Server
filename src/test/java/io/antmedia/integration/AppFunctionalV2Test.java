@@ -60,7 +60,6 @@ import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.RestServiceBase.BroadcastStatistics;
-import io.antmedia.rest.RestServiceBase.TotalBroadcastStatistics;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.Version;
 import io.antmedia.settings.ServerSettings;
@@ -703,7 +702,7 @@ public class AppFunctionalV2Test {
 			BroadcastStatistics broadcastStatistics = restService.callGetBroadcastStatistics(streamId);
 			assertEquals(1, broadcastStatistics.totalHLSWatchersCount);
 			
-			TotalBroadcastStatistics totalBroadcastStatistics = restService.callGetTotalBroadcastStatistics();
+			BroadcastStatistics totalBroadcastStatistics = restService.callGetTotalBroadcastStatistics();
 			assertEquals(1, totalBroadcastStatistics.totalHLSWatchersCount); 
 
 
@@ -915,7 +914,8 @@ public class AppFunctionalV2Test {
 			assertEquals(0, broadcastStatistics.totalRTMPWatchersCount);
 			assertEquals(-1, broadcastStatistics.totalWebRTCWatchersCount); 
 			
-			TotalBroadcastStatistics totalBroadcastStatistics = restService.callGetTotalBroadcastStatistics();
+			BroadcastStatistics totalBroadcastStatistics = restService.callGetTotalBroadcastStatistics();
+			assertEquals(-1, totalBroadcastStatistics.totalRTMPWatchersCount); 
 			assertEquals(0, totalBroadcastStatistics.totalHLSWatchersCount); 
 			assertEquals(0, totalBroadcastStatistics.totalWebRTCWatchersCount); 
 
