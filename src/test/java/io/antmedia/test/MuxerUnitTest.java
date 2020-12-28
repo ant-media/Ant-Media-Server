@@ -1486,7 +1486,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 			for (int i = 0; i < 100; i++) {
 				//add packet
-				mp4Muxer.writeVideoBuffer(encodedVideoFrame, now + i * 100, 0, 0, true, 0,  now + i);
+				mp4Muxer.writeVideoBuffer(encodedVideoFrame, now + i * 100, 0, 0, true, 0,  now + i* 100);
 			}
 
 		} catch (IOException e) {
