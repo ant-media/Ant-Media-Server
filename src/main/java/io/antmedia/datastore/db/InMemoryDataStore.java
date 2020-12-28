@@ -121,7 +121,28 @@ public class InMemoryDataStore extends DataStore {
 		}
 		return result;
 	}
-
+	@Override
+	public boolean updateEndpointStatus(String url, String id, String status){
+		Broadcast broadcast = broadcastMap.get(id);
+		boolean result = false;
+		List<Endpoint> endplist = broadcast.getEndPointList();
+		Endpoint endp;
+		if(endplist != null){
+			for (int i = 0; i < endplist.size(); i++) {
+				if (endplist.get(i).getRtmpUrl().equals(url)) {
+					endp = endplist.get(i);
+					endplist.remove(i);
+					endp.setMuxerStatus(status);
+					endplist.add(endp);
+					logger.info("Changing rtmp status to = {}", status);
+					result = true;
+				}
+			}
+		}
+		broadcast.setEndPointList(endplist);
+		broadcastMap.put(id, broadcast);
+		return result;
+	}
 
 	@Override
 	public boolean addEndpoint(String id, Endpoint endpoint) {

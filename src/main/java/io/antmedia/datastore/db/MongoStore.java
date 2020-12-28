@@ -241,7 +241,36 @@ public class MongoStore extends DataStore {
 		return false;
 	}
 
+	@Override
+	public boolean updateEndpointStatus(String url, String id, String status) {
+		synchronized (this) {
+			if (id != null) {
+				try {
+					Query<Broadcast> query = datastore.createQuery(Broadcast.class).field(STREAM_ID).equal(id);
+					Broadcast broadcast = query.field("streamId").equal(id).first();
+					List<Endpoint> endplist = broadcast.getEndPointList();
+					Endpoint endp;
+					for (int i = 0; i < endplist.size(); i++) {
+						if (endplist.get(i).getRtmpUrl().equals(url)) {
+							endp = endplist.get(i);
+							endplist.remove(i);
+							endp.setMuxerStatus(status);
+							endplist.add(endp);
+							logger.info("Changing rtmp status to = {}", status);
+						}
+					}
+					UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set("endPointList",
+							endplist);
 
+					UpdateResults update = datastore.update(query, ops);
+					return update.getUpdatedCount() == 1;
+				} catch (Exception e) {
+					logger.error(ExceptionUtils.getStackTrace(e));
+				}
+			}
+		}
+		return false;
+	}
 
 	/*
 	 * (non-Javadoc)

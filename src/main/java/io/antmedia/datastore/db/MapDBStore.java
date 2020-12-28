@@ -239,6 +239,34 @@ public class MapDBStore extends DataStore {
 		}
 		return result;
 	}
+	@Override
+	public boolean updateEndpointStatus(String url, String id, String status){
+		boolean result = false;
+		synchronized (this){
+			String jsonString = map.get(id);
+			if (jsonString != null) {
+				Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
+				List<Endpoint> endplist = broadcast.getEndPointList();
+				Endpoint endp;
+				if (endplist != null) {
+					for (int i = 0; i < endplist.size(); i++) {
+						if (endplist.get(i).getRtmpUrl().equals(url)) {
+							endp = endplist.get(i);
+							endplist.remove(i);
+							endp.setMuxerStatus(status);
+							endplist.add(endp);
+							logger.info("Changing rtmp status to = {}", status);
+							result = true;
+						}
+					}
+				}
+				broadcast.setEndPointList(endplist);
+				map.replace(id, gson.toJson(broadcast));
+				db.commit();
+			}
+		}
+		return result;
+	}
 
 
 	@Override
