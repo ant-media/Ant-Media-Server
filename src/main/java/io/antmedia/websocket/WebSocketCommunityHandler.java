@@ -171,7 +171,7 @@ public class WebSocketCommunityHandler {
 	}
 
 	public RTMPAdaptor getNewRTMPAdaptor(String outputURL, int height) {
-		return new RTMPAdaptor(outputURL, this, height);
+		return new RTMPAdaptor(outputURL, this, height, "flv");
 	}
 
 	public void addICECandidate(final String streamId, RTMPAdaptor connectionContext, String sdpMid, String sdp,

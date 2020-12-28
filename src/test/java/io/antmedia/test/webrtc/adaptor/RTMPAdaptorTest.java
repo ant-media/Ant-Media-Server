@@ -51,6 +51,7 @@ import io.antmedia.recorder.Frame;
 import io.antmedia.webrtc.MockWebRTCAdaptor;
 import io.antmedia.webrtc.VideoCodec;
 import io.antmedia.webrtc.adaptor.RTMPAdaptor;
+import io.antmedia.webrtc.adaptor.RTMPAdaptor.AudioFrame;
 import io.antmedia.websocket.WebSocketCommunityHandler;
 import io.antmedia.websocket.WebSocketConstants;
 
@@ -108,7 +109,7 @@ public class RTMPAdaptorTest {
 		//Create FFmpegFRameRecoder
 		File f = new File("target/test-classes/encoded_frame"+(int)(Math.random()*10010)+".flv");
 		RTMPAdaptor adaptor = new RTMPAdaptor(f.getAbsolutePath(), null, 480);
-		FFmpegFrameRecorder recorder = adaptor.getNewRecorder(f.getAbsolutePath(), 640, 480);
+		FFmpegFrameRecorder recorder = adaptor.getNewRecorder(f.getAbsolutePath(), 640, 480, "flv");
 
 		//give raw frame
 
@@ -160,7 +161,7 @@ public class RTMPAdaptorTest {
 		//Create FFmpegFRameRecoder
 		File f = new File("target/test-classes/encoded_frame"+(int)(Math.random()*10010)+".flv");
 		RTMPAdaptor adaptor = new RTMPAdaptor(f.getAbsolutePath(), null, height);
-		FFmpegFrameRecorder recorder = adaptor.getNewRecorder(f.getAbsolutePath(), width, height);
+		FFmpegFrameRecorder recorder = adaptor.getNewRecorder(f.getAbsolutePath(), width, height, "flv");
 
 		//give raw frame
 
@@ -412,7 +413,7 @@ public class RTMPAdaptorTest {
 	public void testGetFileFormat() {
 
 
-		FFmpegFrameRecorder recorder = RTMPAdaptor.initRecorder("rtmp://test", 640, 480);
+		FFmpegFrameRecorder recorder = RTMPAdaptor.initRecorder("rtmp://test", 640, 480, "flv");
 
 		assertEquals("flv", recorder.getFormat());
 	}
@@ -451,7 +452,7 @@ public class RTMPAdaptorTest {
 		adaptor.setWebRtcAudioTrack(Mockito.mock(WebRtcAudioTrack.class));
 		
 		ByteBuffer buffer = ByteBuffer.allocate(10);
-		adaptor.recordSamples(buffer);
+		adaptor.recordSamples(new AudioFrame(buffer, 1, 16000));
 		
 		try {
 			verify(recorder, Mockito.never()).recordSamples(Mockito.anyInt(), Mockito.anyInt(), Mockito.any());
@@ -462,7 +463,7 @@ public class RTMPAdaptorTest {
 		
 		
 		adaptor.setRecorder(recorder);
-		adaptor.recordSamples(buffer);
+		adaptor.recordSamples(new AudioFrame(buffer, 1, 16000));
 		
 		try {
 			verify(recorder).recordSamples(Mockito.anyInt(), Mockito.anyInt(), Mockito.any());
@@ -495,13 +496,13 @@ public class RTMPAdaptorTest {
 		Mockito.doNothing().when(adaptorSpy).stop();
 				
 		adaptorSpy.initializeRecorder(frame);
-		verify(adaptorSpy).getNewRecorder(rtmpUrl, 640, 480);
+		verify(adaptorSpy).getNewRecorder(rtmpUrl, 640, 480, "flv");
 		
 		//stop should be called because rtmp url is not valid
 		verify(adaptorSpy).stop();
 		
 		adaptorSpy.initializeRecorder(frame);
-		verify(adaptorSpy, Mockito.times(1)).getNewRecorder(rtmpUrl, 640, 480);
+		verify(adaptorSpy, Mockito.times(1)).getNewRecorder(rtmpUrl, 640, 480, "flv");
 		verify(handler).sendServerError(streamId, session);
 		
 	}

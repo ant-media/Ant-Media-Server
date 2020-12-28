@@ -545,7 +545,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 					ByteBuffer byteBuffer = ByteBuffer.allocateDirect(bodySize-5);
 					byteBuffer.put(streamPacket.getData().buf().position(5));
 					
-					mp4Muxer.writeVideoBuffer(byteBuffer, streamPacket.getTimestamp(), 0, 0, (frameType & 0xF0) == IVideoStreamCodec.FLV_FRAME_KEY, 0);
+					mp4Muxer.writeVideoBuffer(byteBuffer, streamPacket.getTimestamp(), 0, 0, (frameType & 0xF0) == IVideoStreamCodec.FLV_FRAME_KEY, 0, streamPacket.getTimestamp());
 				
 				}
 				else if (streamPacket.getDataType() == Constants.TYPE_AUDIO_DATA) {
@@ -1486,7 +1486,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 			for (int i = 0; i < 100; i++) {
 				//add packet
-				mp4Muxer.writeVideoBuffer(encodedVideoFrame, now + i * 100, 0, 0, true, 0);
+				mp4Muxer.writeVideoBuffer(encodedVideoFrame, now + i * 100, 0, 0, true, 0,  now + i);
 			}
 
 		} catch (IOException e) {
