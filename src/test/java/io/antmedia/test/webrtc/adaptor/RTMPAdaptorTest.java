@@ -233,11 +233,8 @@ public class RTMPAdaptorTest {
 		
 		adaptor.getAudioFrameQueue().offer(new AudioFrame(ByteBuffer.allocateDirect(1024), 1, 16000));
 		
-		
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> adaptor.getRecorder() != null);
-		
-		assertEquals(0, adaptor.getAudioFrameQueue().size());
-		
+				
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> !adaptor.getSignallingExecutor().isShutdown());
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> !adaptor.getVideoEncoderExecutor().isShutdown());
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> !adaptor.getAudioEncoderExecutor().isShutdown());
