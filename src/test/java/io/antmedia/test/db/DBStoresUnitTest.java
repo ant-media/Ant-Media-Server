@@ -123,6 +123,7 @@ public class DBStoresUnitTest {
 		testVodSearch(dataStore);
 		testConferenceRoomSorting(dataStore);
 		testConferenceRoomSearch(dataStore);
+		testUpdateEndpointStatus(dataStore);
 
 	}
 
@@ -167,6 +168,7 @@ public class DBStoresUnitTest {
 		testVodSearch(dataStore);
 		testConferenceRoomSorting(dataStore);
 		testConferenceRoomSearch(dataStore);
+		testUpdateEndpointStatus(dataStore);
 
 	}
 
@@ -228,6 +230,8 @@ public class DBStoresUnitTest {
 		testVodSearch(dataStore);
 		testConferenceRoomSorting(dataStore);
 		testConferenceRoomSearch(dataStore);
+		testUpdateEndpointStatus(dataStore);
+
 	}
 	
 	@Test
@@ -2371,6 +2375,54 @@ public class DBStoresUnitTest {
 		assertEquals(0, list2.size());
 
 		
+	}
+	private void testUpdateEndpointStatus(DataStore dataStore){
+		Broadcast broadcast = new Broadcast(null, null);
+		String name = "name 1";
+		String description = "description 2";
+		broadcast.setName(name);
+		broadcast.setDescription(description);
+		dataStore.save(broadcast);
+
+		assertNotNull(broadcast.getStreamId());
+
+		String rtmpUrl = "rtmp://rtmp1";
+		Endpoint endPoint = new Endpoint("broacdast id",broadcast.getStreamId(), broadcast.getName(), rtmpUrl, "generic", null, null);
+
+		boolean result = dataStore.addEndpoint(broadcast.getStreamId().toString(), endPoint);
+		assertTrue(result);
+
+		String rtmpUrl2 = "rtmp:(sdfsfsf(ksklasjflakjflaskjflsadfkjsal";
+		Endpoint endPoint2 = new Endpoint("broacdast id 2", broadcast.getStreamId(), broadcast.getName(), rtmpUrl2,
+				"generic", null, null);
+
+		result = dataStore.addEndpoint(broadcast.getStreamId().toString(), endPoint2);
+		assertTrue(result);
+
+		String rtmpUrl3 = "rtmp:(sdfsfasafadgsgsf(ksklasjflakjflaskjflsadfkjsal";
+		Endpoint endPoint3 = new Endpoint("broacdast id 3", broadcast.getStreamId(), broadcast.getName(), rtmpUrl3,
+				"generic", null, null);
+
+
+
+		result = dataStore.updateEndpointStatus(rtmpUrl, broadcast.getStreamId(), "failed");
+		assertTrue(result);
+		dataStore.updateEndpointStatus(rtmpUrl2, broadcast.getStreamId(), "running");
+		Broadcast updated = dataStore.get(broadcast.getStreamId());
+		List<Endpoint> endpList = updated.getEndPointList();
+		for(int i = 0; i < endpList.size(); i++){
+			Endpoint e = endpList.get(i);
+			System.out.println(e.getRtmpUrl() + " " + e.getMuxerStatus() + " " + e.getBroadcastId());
+			if(e.getRtmpUrl().equals(rtmpUrl)){
+				assertEquals("failed", e.getMuxerStatus());
+			}
+			else if(e.getRtmpUrl().equals(rtmpUrl2)){
+				assertEquals("running", e.getMuxerStatus());
+			}
+			else{
+				assertEquals("notInitialized", e.getMuxerStatus());
+			}
+		}
 	}
 	
 	private void testUpdateStatus(DataStore dataStore) {

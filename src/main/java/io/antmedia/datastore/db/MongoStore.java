@@ -257,6 +257,7 @@ public class MongoStore extends DataStore {
 							endp.setMuxerStatus(status);
 							endplist.add(endp);
 							logger.info("Changing rtmp status to = {}", status);
+							break;
 						}
 					}
 					UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set("endPointList",

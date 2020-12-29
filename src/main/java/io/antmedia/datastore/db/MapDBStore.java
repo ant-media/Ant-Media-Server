@@ -257,6 +257,7 @@ public class MapDBStore extends DataStore {
 							endplist.add(endp);
 							logger.info("Changing rtmp status to = {}", status);
 							result = true;
+							break;
 						}
 					}
 				}
