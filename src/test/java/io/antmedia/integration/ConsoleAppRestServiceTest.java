@@ -37,8 +37,6 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.client.LaxRedirectStrategy;
 import org.awaitility.Awaitility;
 import org.codehaus.plexus.util.ExceptionUtils;
-import org.cryptacular.generator.TOTPGenerator;
-import org.cryptacular.spec.DigestSpec;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -70,6 +68,7 @@ import io.antmedia.datastore.db.types.Token;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.User;
 import io.antmedia.rest.model.Version;
+import io.antmedia.security.TOTPGenerator;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.test.StreamFetcherUnitTest;
 
@@ -1168,15 +1167,10 @@ public class ConsoleAppRestServiceTest{
 	
 	
 	private String getTimeBasedSubscriberCode(String b32Secret) {
-		
 		// convert secret from base32 to bytes
 		byte[] secretBytes = Base32.decode(b32Secret);
-		TOTPGenerator generator = new TOTPGenerator();
-		generator.setDigestSpecification(new DigestSpec("SHA-1"));
-		generator.setTimeStep(60);
-		int code = generator.generate(secretBytes);
-
-		return ""+code;
+		String code = TOTPGenerator.generateTOTP(secretBytes, 60, 6, "HmacSHA1");
+		return code;
 	}
 
 	@Test
