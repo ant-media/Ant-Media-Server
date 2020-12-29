@@ -917,7 +917,7 @@ public class AppFunctionalV2Test {
 			BroadcastStatistics totalBroadcastStatistics = restService.callGetTotalBroadcastStatistics();
 			assertEquals(-1, totalBroadcastStatistics.totalRTMPWatchersCount); 
 			assertEquals(0, totalBroadcastStatistics.totalHLSWatchersCount); 
-			assertEquals(0, totalBroadcastStatistics.totalWebRTCWatchersCount); 
+			assertEquals(-1, totalBroadcastStatistics.totalWebRTCWatchersCount); 
 
 
 			broadcastStatistics = restService.callGetBroadcastStatistics("unknown_stream_id");
