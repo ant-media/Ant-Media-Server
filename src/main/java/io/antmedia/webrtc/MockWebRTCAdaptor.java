@@ -1,4 +1,4 @@
-package io.antmedia.test.webrtc.adaptor;
+package io.antmedia.webrtc;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -7,11 +7,15 @@ import java.util.Set;
 
 import io.antmedia.cluster.IStreamInfo;
 import io.antmedia.rest.WebRTCClientStats;
-import io.antmedia.webrtc.VideoCodec;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.antmedia.webrtc.api.IWebRTCClient;
 import io.antmedia.webrtc.api.IWebRTCMuxer;
 
+/**
+ * This class is used to mock the webrtc adaptor in community edition
+ * @author mekya
+ *
+ */
 public class MockWebRTCAdaptor implements IWebRTCAdaptor{
 
 	@Override
