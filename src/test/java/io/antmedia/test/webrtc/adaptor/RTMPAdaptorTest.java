@@ -50,7 +50,6 @@ import io.antmedia.integration.MuxingTest;
 import io.antmedia.recorder.FFmpegFrameRecorder;
 import io.antmedia.recorder.Frame;
 import io.antmedia.webrtc.AudioFrameContext;
-import io.antmedia.webrtc.MockWebRTCAdaptor;
 import io.antmedia.webrtc.VideoCodec;
 import io.antmedia.webrtc.VideoFrameContext;
 import io.antmedia.webrtc.adaptor.RTMPAdaptor;
