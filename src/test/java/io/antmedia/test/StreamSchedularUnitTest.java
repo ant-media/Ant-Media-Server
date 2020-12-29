@@ -48,6 +48,7 @@ import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
+import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Playlist;
@@ -400,25 +401,21 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		service.setApplication(app.getAppAdaptor());
 
 		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnEnded();
-
 		getAppSettings().setDeleteHLSFilesOnEnded(false);
 
 		ApplicationContext context = mock(ApplicationContext.class);
-
 		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
 
 		//create a test db
-		DataStore dataStore = new MapDBStore("target/testPlaylistThreat.db"); 
-
+		DataStore dataStore = new InMemoryDataStore("target/testPlaylistThreat.db"); 
 		service.setDataStore(dataStore);
-
 		service.setAppCtx(context);
 
 		//create a stream Manager
 		StreamFetcherManager streamFetcherManager = new StreamFetcherManager(vertx, dataStore, appScope);
 
 		//create a broadcast
-		Broadcast broadcastItem1=new Broadcast();
+		Broadcast broadcastItem1 = new Broadcast();
 
 		try {
 			broadcastItem1.setStreamId("testId");
@@ -492,7 +489,8 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			broadcastList.add(broadcastItem4);
 
 			playlist.setBroadcastItemList(broadcastList);
-
+			
+			
 			streamFetcherManager.startPlaylistThread(playlist);
 
 			Awaitility.await().atMost(10, TimeUnit.SECONDS)
@@ -523,7 +521,8 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			//convert to original settings
 			getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
 			Application.enableSourceHealthUpdate = false;
-
+			
+			
 		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());

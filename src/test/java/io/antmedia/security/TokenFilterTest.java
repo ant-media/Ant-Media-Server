@@ -300,6 +300,7 @@ public class TokenFilterTest {
 		byte[] secretBytes = Base32.decode("mysecret");
 		String code = TOTPGenerator.generateTOTP(secretBytes, 60, 6, "HmacSHA1");
 		int intCode = Integer.parseInt(code);	
+		logger.info("generated code: {} int value:{}", code, intCode);
 		assertTrue(intCode > 100000 && intCode < 1000000);
 	}
 	
