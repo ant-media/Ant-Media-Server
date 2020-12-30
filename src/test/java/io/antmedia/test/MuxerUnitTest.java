@@ -896,6 +896,26 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		String streamId = "stream " + (int)(Math.random()*10000);
 		
+		long activeBroadcastCount = appAdaptor.getDataStore().getActiveBroadcastCount();
+		
+		logger.info("Active broadcast count: {}", activeBroadcastCount);
+		long broadcastCount = appAdaptor.getDataStore().getBroadcastCount();
+		logger.info("Total broadcast count: {}", broadcastCount);
+		if (activeBroadcastCount > 0) 
+		{
+			long pageSize = broadcastCount / 50 + 1;
+			
+			for (int i = 0; i < pageSize; i++) 
+			{
+				List<Broadcast> broadcastList = appAdaptor.getDataStore().getBroadcastList(i*50, 50, "", "status", "", "");
+				
+				for (Broadcast broadcast : broadcastList) 
+				{
+					logger.info("Broadcast id: {} status:{}", broadcast.getStreamId(), broadcast.getStatus());
+				}
+			}
+		}
+		
 		
 		appSettings.setIngestingStreamLimit(2);
 		
@@ -1177,6 +1197,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 				logger.debug("Application / web scope: {}", appScope);
 				assertTrue(appScope.getDepth() == 1);
 			}
+			
 			ClientBroadcastStream clientBroadcastStream = new ClientBroadcastStream();
 			StreamCodecInfo info = new StreamCodecInfo();
 		
@@ -1224,7 +1245,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 					info.setVideoCodec(videoStreamCodec);
 					info.setHasVideo(true);
 					firstVideoPacketReceived = true;
-					
 				}
 				
 				
@@ -1261,9 +1281,9 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 			//after 6 seconds buffering should be also true again because it's finished
 			Awaitility.await().atMost(6, TimeUnit.SECONDS).until(muxAdaptor::isBuffering);
-
+			
 			muxAdaptor.stop();
-
+			
 			Awaitility.await().atMost(4, TimeUnit.SECONDS).until(() -> !muxAdaptor.isRecording());
 
 		}
