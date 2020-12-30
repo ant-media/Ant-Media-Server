@@ -247,23 +247,14 @@ public class MapDBStore extends DataStore {
 			if (jsonString != null) {
 				Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
 				List<Endpoint> endplist = broadcast.getEndPointList();
-				Endpoint endp;
-				if (endplist != null) {
-					for (int i = 0; i < endplist.size(); i++) {
-						if (endplist.get(i).getRtmpUrl().equals(url)) {
-							endp = endplist.get(i);
-							endplist.remove(i);
-							endp.setMuxerStatus(status);
-							endplist.add(endp);
-							logger.info("Changing rtmp status to = {}", status);
-							result = true;
-							break;
-						}
-					}
+				endplist = updateStatusInEndpointList(endplist, url, status);
+				if(endplist != null){
+					logger.info("Changing rtmp status to = {}", status);
+					broadcast.setEndPointList(endplist);
+					map.replace(id, gson.toJson(broadcast));
+					result = true;
+					db.commit();
 				}
-				broadcast.setEndPointList(endplist);
-				map.replace(id, gson.toJson(broadcast));
-				db.commit();
 			}
 		}
 		return result;
