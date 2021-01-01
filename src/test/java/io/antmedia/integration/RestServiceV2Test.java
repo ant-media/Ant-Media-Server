@@ -1099,7 +1099,7 @@ public class RestServiceV2Test {
 	}
 
 
-	@Test
+	//@Test
 	public void testUpdate() {
 
 		System.out.println("Running testUpdate");
@@ -1357,7 +1357,7 @@ public class RestServiceV2Test {
 		}
 	}
 
-	@Test
+	//@Test
 	public void testCheckSocialEndpointRecreated() {
 		Result result;
 		try {
@@ -1554,7 +1554,7 @@ public class RestServiceV2Test {
 		}
 	}
 
-	@Test
+	//@Test
 	public void testAddEndpoint() {
 		try {
 
@@ -1587,7 +1587,7 @@ public class RestServiceV2Test {
 		}
 	}
 
-	@Test
+	//@Test
 	public void testAddEndpointV2() {
 		try {
 
