@@ -283,14 +283,15 @@ public class AntMediaApplicationAdaptorUnitTest {
 		boolean result = spyAdapter.synchUserVoDFolder(null, realPath.getAbsolutePath());
 		assertTrue(result);
 
-		//we know there are 5 files in src/test/resources
+		//we know there are files in src/test/resources
 		//test_short.flv
 		//test_video_360p_subtitle.flv
 		//test_Video_360p.flv
 		//test.flv
 		//sample_MP4_480.mp4
+		//high_profile_delayed_video.flv
 		List<VoD> vodList = dataStore.getVodList(0, 50, null, null, null, null);
-		assertEquals(5, vodList.size());
+		assertEquals(6, vodList.size());
 
 		for (VoD voD : vodList) {
 			assertEquals("streams/resources/" + voD.getVodName(), voD.getFilePath());
