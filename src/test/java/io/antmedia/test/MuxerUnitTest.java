@@ -179,12 +179,12 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	@After
 	public void after() {
 
-		/*try {
+		try {
 			AppFunctionalV2Test.delete(new File("webapps"));
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-*/
+
 		//reset values in the bean
 		getAppSettings().resetDefaults();
 		getAppSettings().setAddDateTimeToMp4FileName(false);
