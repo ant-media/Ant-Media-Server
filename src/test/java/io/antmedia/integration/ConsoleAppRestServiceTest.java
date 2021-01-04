@@ -547,7 +547,7 @@ public class ConsoleAppRestServiceTest{
 	}
 
 
-	//@Test
+	@Test
 	public void testIPFilter() {
 		try {
 
