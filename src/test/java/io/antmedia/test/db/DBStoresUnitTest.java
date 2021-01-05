@@ -2488,8 +2488,9 @@ public class DBStoresUnitTest {
 	public void testPlaylist(DataStore dataStore) {
 		
 		//create a broadcast
-		Broadcast broadcast=new Broadcast();
-		
+		Broadcast broadcast=new Broadcast("tahir");
+		dataStore.save(broadcast);
+
 		List<Broadcast> broadcastList = new ArrayList<>();
 		
 		broadcastList.add(broadcast);
