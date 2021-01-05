@@ -682,7 +682,7 @@ public class BroadcastRestService extends RestServiceBase{
 	@Path("/total-broadcast-statistics")
 	@Produces(MediaType.APPLICATION_JSON)
 	@Override
-	public BroadcastStatistics getBroadcastTotalStatistics() {
+	public AppBroadcastStatistics getBroadcastTotalStatistics() {
 		return super.getBroadcastTotalStatistics();
 	}
 

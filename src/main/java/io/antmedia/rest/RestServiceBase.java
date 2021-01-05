@@ -91,6 +91,7 @@ public abstract class RestServiceBase {
 
 		@ApiModelProperty(value = "the total WebRTC viewers of the stream")
 		public final int totalWebRTCWatchersCount;
+		
 
 		public BroadcastStatistics(int totalRTMPWatchersCount, int totalHLSWatchersCount,
 				int totalWebRTCWatchersCount) {
@@ -98,6 +99,21 @@ public abstract class RestServiceBase {
 			this.totalHLSWatchersCount = totalHLSWatchersCount;
 			this.totalWebRTCWatchersCount = totalWebRTCWatchersCount;
 		}
+	}
+	
+	@ApiModel(value="AppBroadcastStatistics", description="The statistics class of the app. It provides total number of viewers and active live streams")
+	public static class AppBroadcastStatistics extends BroadcastStatistics {
+
+		@ApiModelProperty(value = "the total active live stream count")
+		public final int activeLiveStreamCount;
+		
+		public AppBroadcastStatistics(int totalRTMPWatchersCount, int totalHLSWatchersCount,
+				int totalWebRTCWatchersCount, int activeLiveStreamCount) 
+		{
+			super(totalRTMPWatchersCount, totalHLSWatchersCount, totalWebRTCWatchersCount);
+			this.activeLiveStreamCount = activeLiveStreamCount;
+		}
+		
 	}
 	
 	public interface ProcessBuilderFactory {
@@ -1550,9 +1566,8 @@ public abstract class RestServiceBase {
 		return new BroadcastStatistics(totalRTMPViewer, totalHLSViewer, totalWebRTCViewer);
 	}
 	
-	protected BroadcastStatistics getBroadcastTotalStatistics() {
+	protected AppBroadcastStatistics getBroadcastTotalStatistics() {
 
-		int totalRTMPViewer = -1;
 		int totalWebRTCViewer = -1;
 		int totalHLSViewer = -1;
 		
@@ -1567,8 +1582,10 @@ public abstract class RestServiceBase {
 			IWebRTCAdaptor webrtcAdaptor = (IWebRTCAdaptor)getAppContext().getBean(IWebRTCAdaptor.BEAN_NAME);
 			totalWebRTCViewer = webrtcAdaptor.getNumberOfTotalViewers();
 		}
+		
+		int activeBroadcastCount = (int)getDataStore().getActiveBroadcastCount();
 
-		return new BroadcastStatistics(totalRTMPViewer, totalHLSViewer, totalWebRTCViewer);
+		return new AppBroadcastStatistics(-1, totalHLSViewer, totalWebRTCViewer, activeBroadcastCount);
 	}
 
 	protected List<SocialEndpointCredentials> getSocialEndpoints(int offset, int size) {
