@@ -4,11 +4,11 @@ import org.bytedeco.ffmpeg.avutil.AVFrame;
 
 public class AudioFrameContext 
 {
-	long timestampMs;
-	int numberOfFrames;
-	int channels;
-	int sampleRate;
-	private AVFrame frame;
+	public long timestampMs;
+	public int numberOfFrames;
+	public int channels;
+	public int sampleRate;
+	public AVFrame frame;
 
 	public AudioFrameContext(AVFrame frame, long timestampMS, int numberOfFrames, int channels, int sampleRate) {
 		this.frame = frame;
