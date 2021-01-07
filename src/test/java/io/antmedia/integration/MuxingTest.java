@@ -13,6 +13,7 @@ import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
 import static org.bytedeco.ffmpeg.global.avutil.AV_NOPTS_VALUE;
 import static org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_NONE;
+import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
 import static org.junit.Assert.*;
 
 import java.io.File;
@@ -49,6 +50,7 @@ import org.junit.runner.Description;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
+import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.RtmpMuxer;
 import io.antmedia.rest.model.Result;
 
@@ -64,6 +66,8 @@ public class MuxingTest {
 	public static final int WINDOWS = 2;
 	private static int OS_TYPE;
 	private static String ffmpegPath = "ffmpeg";
+	public static long audioStartTimeMs;
+	public static long videoStartTimeMs;
 
 	static {
 		String osName = System.getProperty("os.name", "").toLowerCase();
@@ -609,13 +613,19 @@ public class MuxingTest {
 		boolean streamExists = false;
 		for (int i = 0; i < streamCount; i++) {
 			AVCodecContext codecContext = inputFormatContext.streams(i).codec();
+			
 			if (codecContext.codec_type() == AVMEDIA_TYPE_VIDEO) {
 				assertTrue(codecContext.width() != 0);
 				assertTrue(codecContext.height() != 0);
 				assertTrue(codecContext.pix_fmt() != AV_PIX_FMT_NONE);
+				videoStartTimeMs = av_rescale_q(inputFormatContext.streams(i).start_time(), inputFormatContext.streams(i).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
+				
+				
 				streamExists = true;
 			} else if (codecContext.codec_type() == AVMEDIA_TYPE_AUDIO) {
 				assertTrue(codecContext.sample_rate() != 0);
+				audioStartTimeMs = av_rescale_q(inputFormatContext.streams(i).start_time(), inputFormatContext.streams(i).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
+				
 				streamExists = true;
 			}
 		}

@@ -701,6 +701,9 @@ public class AppFunctionalV2Test {
 
 			BroadcastStatistics broadcastStatistics = restService.callGetBroadcastStatistics(streamId);
 			assertEquals(1, broadcastStatistics.totalHLSWatchersCount);
+			
+			BroadcastStatistics totalBroadcastStatistics = restService.callGetTotalBroadcastStatistics();
+			assertEquals(1, totalBroadcastStatistics.totalHLSWatchersCount); 
 
 
 			// stop publishing live stream
@@ -910,6 +913,11 @@ public class AppFunctionalV2Test {
 			assertEquals(0, broadcastStatistics.totalHLSWatchersCount); 
 			assertEquals(0, broadcastStatistics.totalRTMPWatchersCount);
 			assertEquals(-1, broadcastStatistics.totalWebRTCWatchersCount); 
+			
+			BroadcastStatistics totalBroadcastStatistics = restService.callGetTotalBroadcastStatistics();
+			assertEquals(-1, totalBroadcastStatistics.totalRTMPWatchersCount); 
+			assertEquals(0, totalBroadcastStatistics.totalHLSWatchersCount); 
+			assertEquals(-1, totalBroadcastStatistics.totalWebRTCWatchersCount); 
 
 
 			broadcastStatistics = restService.callGetBroadcastStatistics("unknown_stream_id");

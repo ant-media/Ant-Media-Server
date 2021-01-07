@@ -697,6 +697,37 @@ public class RestServiceV2Test {
 		}
 		return null;
 	}
+	
+	public static BroadcastStatistics callGetTotalBroadcastStatistics() {
+		try {
+
+			String url = ROOT_SERVICE_URL + "/v2/broadcasts/total-broadcast-statistics";
+
+			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+
+			HttpUriRequest get = RequestBuilder.get().setUri(url)
+					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+					// .setEntity(new StringEntity(gson.toJson(broadcast)))
+					.build();
+
+			CloseableHttpResponse response = client.execute(get);
+
+			StringBuffer result = readResponse(response);
+
+			if (response.getStatusLine().getStatusCode() != 200) {
+				throw new Exception(result.toString());
+			}
+			System.out.println("result string: " + result.toString());
+
+			return gson.fromJson(result.toString(), BroadcastStatistics.class);
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		return null;
+	}
+
 
 	public static List<Broadcast> callGetBroadcastList() {
 		try {
@@ -1099,7 +1130,7 @@ public class RestServiceV2Test {
 	}
 
 
-	//@Test
+	@Test
 	public void testUpdate() {
 
 		System.out.println("Running testUpdate");
@@ -1131,14 +1162,10 @@ public class RestServiceV2Test {
 			assertEquals(broadcast.getName(), name);
 			assertEquals(broadcast.getDescription(), description);
 
-
-			List<SocialEndpointCredentials> socialEndpointServices = getSocialEndpointServices();
-			assertTrue(socialEndpointServices.size() > 0);
-
 			name = "name 2";
 			description = " description 2";
 			// update broadcast name and add social network
-			result = updateBroadcast(broadcast.getStreamId(), name, description, socialEndpointServices.get(0).getId(), null);
+			result = updateBroadcast(broadcast.getStreamId(), name, description, "", null);
 			assertTrue(result.isSuccess());
 
 			broadcast = getBroadcast(broadcast.getStreamId().toString());
@@ -1148,7 +1175,7 @@ public class RestServiceV2Test {
 			// update broadcast name
 			name = "name 3";
 			description = " description 3";
-			result = updateBroadcast(broadcast.getStreamId(), name, description, socialEndpointServices.get(0).getId(), null);
+			result = updateBroadcast(broadcast.getStreamId(), name, description, "", null);
 			assertTrue(result.isSuccess());
 
 			// check that name is updated on stream name and social end point
@@ -1157,7 +1184,7 @@ public class RestServiceV2Test {
 			assertEquals(broadcast.getName(), name);
 			assertEquals(broadcast.getDescription(), description);
 
-			assertEquals(broadcast.getEndPointList().get(0).getName(), name);
+			assertNull(broadcast.getEndPointList());
 
 			// update broadcast name and remove social endpoint
 			result = updateBroadcast(broadcast.getStreamId(), name, description, "", null);
@@ -1357,94 +1384,7 @@ public class RestServiceV2Test {
 		}
 	}
 
-	//@Test
-	public void testCheckSocialEndpointRecreated() {
-		Result result;
-		try {
-			// create broadcast
-			Broadcast broadcast = createBroadcast("social_endpoint_check");
-			// add facebook endpoint
-
-			/*
-			 * 
-			 * in enterprise edition result =
-			 * addSocialEndpoint(broadcast.getStreamId().toString(),
-			 * "facebook")
-			 * 
-			 * //check that it is successfull assertTrue(result.success);
-			 */
-
-			/*
-			 * in enterprise edition //add youtube endpoint result =
-			 * addSocialEndpoint (broadcast.getStreamId().toString(), "youtube")
-			 * 
-			 * //check that it is succes full assertTrue(result.success)
-			 */
-
-			List<SocialEndpointCredentials> socialEndpointServices = getSocialEndpointServices();
-			assertTrue(socialEndpointServices.size() > 0);
-
-			// add twitter endpoint
-			result = addSocialEndpoint(broadcast.getStreamId().toString(), socialEndpointServices.get(0).getId());
-
-			// check that it is succes full
-			assertTrue(result.isSuccess());
-
-			// get endpoint list
-			broadcast = getBroadcast(broadcast.getStreamId().toString());
-
-			// check that 1 element exist
-			assertNotNull(broadcast.getEndPointList());
-			assertEquals(1, broadcast.getEndPointList().size());
-
-			broadcast = getBroadcast(broadcast.getStreamId().toString());
-			List<Endpoint> endpointList = broadcast.getEndPointList();
-
-			for (Endpoint endpoint : endpointList) {
-				System.out.println("endpoint url: " + endpoint.getRtmpUrl() + " broadcast.id=" + endpoint.getBroadcastId()
-				+ " stream id: " + endpoint.getStreamId());
-			}
-
-			Process execute = execute(
-					ffmpegPath + " -re -i src/test/resources/test.flv -codec copy -f flv rtmp://localhost/LiveApp/"
-							+ broadcast.getStreamId());
-
-			Thread.sleep(25000);
-
-			execute.destroy();
-
-			// this value is critical because server creates endpoints on social
-			// networks
-			Thread.sleep(20000);
-
-			broadcast = getBroadcast(broadcast.getStreamId().toString());
-			List<Endpoint> endpointList2 = broadcast.getEndPointList();
-			assertEquals(1, endpointList2.size());
-
-			for (Endpoint endpoint : endpointList2) {
-				System.out.println("new endpoint url: " + endpoint.getRtmpUrl() + " broadcast.id=" + endpoint.getBroadcastId()
-				+ " stream id: " + endpoint.getStreamId());
-
-			}
-
-			for (Endpoint endpoint : endpointList2) {
-				for (Endpoint endpointFirst : endpointList) {
-					System.out.println("new endpoint rtmp URL -> " + endpoint.getRtmpUrl() + " first endpoint URL -> " + endpointFirst.getRtmpUrl());
-					System.out.println("new broadcast id -> " + endpoint.getBroadcastId() + " first broadcast Id -> " + endpointFirst.getBroadcastId());
-					assertTrue(!endpoint.getRtmpUrl().equals(endpointFirst.getRtmpUrl())
-							|| !endpoint.getBroadcastId().equals(endpointFirst.getBroadcastId()));
-				}
-			}
-
-		} catch (Exception e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
-
-		System.out.println("Leaving testCheckSocialEndpointRecreated");
-	}
-
-	public static Process execute(final String command) {
+		public static Process execute(final String command) {
 		tmpExec = null;
 		new Thread() {
 			public void run() {
@@ -1484,92 +1424,16 @@ public class RestServiceV2Test {
 		return tmpExec;
 	}
 
-	//@Test
-	public void authenticateSocialEndpoints() {
-		Result result;
-		try {
-			// authenticate facebook
-			// get parameters
-			DeviceAuthParameters deviceAuthParameters = getDeviceAuthParameters("facebook");
-			System.out.println(" url: " + deviceAuthParameters.verification_url);
-			System.out.println(" user code: " + deviceAuthParameters.user_code);
-			assertNotNull(deviceAuthParameters.verification_url);
-			assertNotNull(deviceAuthParameters.user_code);
+	
 
-			// ask if authenticated
-			do {
-				System.out.println("You should enter this code: " + deviceAuthParameters.user_code + " to this url: "
-						+ deviceAuthParameters.verification_url);
-				System.out.println("Waiting before asking auth status");
-
-				Thread.sleep(deviceAuthParameters.interval * 1000);
-				result = checkDeviceAuthStatus("facebook");
-				System.out.println("auth status is " + result.isSuccess());
-
-			} while (!result.isSuccess());
-
-			assertTrue(result.isSuccess());
-
-			// authenticate twitter
-			deviceAuthParameters = getDeviceAuthParameters("periscope");
-			System.out.println(" url: " + deviceAuthParameters.verification_url);
-			System.out.println(" user code: " + deviceAuthParameters.user_code);
-			assertNotNull(deviceAuthParameters.verification_url);
-			assertNotNull(deviceAuthParameters.user_code);
-
-			do {
-				System.out.println("You should enter this code: " + deviceAuthParameters.user_code + " to this url: "
-						+ deviceAuthParameters.verification_url);
-				System.out.println("Waiting " + deviceAuthParameters.interval + " seconds before asking auth status");
-
-				Thread.sleep(deviceAuthParameters.interval * 1000);
-				result = checkDeviceAuthStatus("periscope");
-				System.out.println("auth status is " + result.isSuccess());
-
-			} while (!result.isSuccess());
-
-			assertTrue(result.isSuccess());
-
-			// authenticate youtube
-			deviceAuthParameters = getDeviceAuthParameters("youtube");
-			System.out.println(" url: " + deviceAuthParameters.verification_url);
-			System.out.println(" user code: " + deviceAuthParameters.user_code);
-			assertNotNull(deviceAuthParameters.verification_url);
-			assertNotNull(deviceAuthParameters.user_code);
-
-			do {
-				System.out.println("You should enter this code: " + deviceAuthParameters.user_code + " to this url: "
-						+ deviceAuthParameters.verification_url);
-				System.out.println("Waiting " + deviceAuthParameters.interval + " seconds before asking auth status");
-
-				Thread.sleep(deviceAuthParameters.interval * 1000);
-				result = checkDeviceAuthStatus("youtube");
-				System.out.println("auth status is " + result.isSuccess());
-
-			} while (!result.isSuccess());
-
-		} catch (Exception e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
-	}
-
-	//@Test
+	@Test
 	public void testAddEndpoint() {
 		try {
 
 			Broadcast broadcast = createBroadcast(null);
 
-			List<SocialEndpointCredentials> socialEndpointServices = getSocialEndpointServices();
-			assertTrue(!socialEndpointServices.isEmpty());
-			// add twitter endpoint
-			Result result = addSocialEndpoint(broadcast.getStreamId().toString(), socialEndpointServices.get(0).getId());
-
-			// check that it is succes full
-			assertTrue(result.isSuccess());
-
 			// add generic endpoint
-			result = addEndpoint(broadcast.getStreamId().toString(), "rtmp://dfjdksafjlaskfjalkfj");
+			Result result = addEndpoint(broadcast.getStreamId().toString(), "rtmp://dfjdksafjlaskfjalkfj");
 
 			// check that it is successfull
 			assertTrue(result.isSuccess());
@@ -1579,7 +1443,7 @@ public class RestServiceV2Test {
 
 			// check that 2 element exist
 			assertNotNull(broadcast.getEndPointList());
-			assertEquals(2, broadcast.getEndPointList().size());
+			assertEquals(1, broadcast.getEndPointList().size());
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -1587,20 +1451,12 @@ public class RestServiceV2Test {
 		}
 	}
 
-	//@Test
+	@Test
 	public void testAddEndpointV2() {
 		try {
 
 			Broadcast broadcast = createBroadcast(null);
 
-			List<SocialEndpointCredentials> socialEndpointServices = getSocialEndpointServices();
-			assertTrue(!socialEndpointServices.isEmpty());
-			// add twitter endpoint
-			Result result = addSocialEndpoint(broadcast.getStreamId().toString(), socialEndpointServices.get(0).getId());
-
-			// check that it is succes full
-			assertTrue(result.isSuccess());
-			
 			
 			String rtmpUrl = "rtmp://dfjdksafjlaskfjalkfj";
 			
@@ -1608,7 +1464,7 @@ public class RestServiceV2Test {
 			endpoint.setRtmpUrl(rtmpUrl);
 
 			// add generic endpoint
-			result = addEndpointV2(broadcast.getStreamId().toString(), endpoint);
+			Result result = addEndpointV2(broadcast.getStreamId().toString(), endpoint);
 
 			// check that it is successfull
 			assertTrue(result.isSuccess());
@@ -1616,9 +1472,9 @@ public class RestServiceV2Test {
 			// get endpoint list
 			broadcast = getBroadcast(broadcast.getStreamId().toString());
 
-			// check that 2 element exist
+			// check that 1 element exist
 			assertNotNull(broadcast.getEndPointList());
-			assertEquals(2, broadcast.getEndPointList().size());
+			assertEquals(1, broadcast.getEndPointList().size());
 
 		} catch (Exception e) {
 			e.printStackTrace();
