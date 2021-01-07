@@ -1,15 +1,17 @@
 package io.antmedia.webrtc;
 
+import org.bytedeco.ffmpeg.avutil.AVFrame;
+
 public class AudioFrameContext 
 {
-	public final byte[] data;
-	public final long timestampMs;
-	public final int numberOfFrames;
-	public final int channels;
-	public final int sampleRate;
+	long timestampMs;
+	int numberOfFrames;
+	int channels;
+	int sampleRate;
+	private AVFrame frame;
 
-	public AudioFrameContext(byte[] data, long timestampMS, int numberOfFrames, int channels, int sampleRate) {
-		this.data = data;
+	public AudioFrameContext(AVFrame frame, long timestampMS, int numberOfFrames, int channels, int sampleRate) {
+		this.frame = frame;
 		this.timestampMs = timestampMS;
 		this.numberOfFrames = numberOfFrames;
 		this.channels = channels;
