@@ -62,7 +62,7 @@ public interface ITokenService {
 	 * @param type - type of the token (play/publish)
 	 * @return true or false
 	 */
-	boolean checkJwtToken (String jwtTokenId, String streamId, String sessionId, String type);
+	boolean checkJwtToken (String jwtTokenId, String streamId, String type);
 	
 	/**
 	 * creates token according to the provided parameters

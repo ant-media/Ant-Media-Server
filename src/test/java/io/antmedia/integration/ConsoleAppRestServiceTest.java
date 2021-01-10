@@ -1200,8 +1200,9 @@ public class ConsoleAppRestServiceTest{
 			assertTrue(appSettings.isPlayJwtControlEnabled());
 			
 			//define a valid expire date
-			long expireDate = Instant.now().getEpochSecond() + 1000;
-
+			long expireDate = System.currentTimeMillis() + 20000; // add 20 seconds
+			
+			
 			Broadcast broadcast = RestServiceV2Test.callCreateRegularBroadcast();
 			Token accessToken = callGetJWTToken( "http://localhost:5080/"+appName+"/rest/v2/broadcasts/"+broadcast.getStreamId()+"/jwtToken", Token.PLAY_TOKEN, expireDate);
 			assertNotNull(accessToken);
@@ -1221,17 +1222,16 @@ public class ConsoleAppRestServiceTest{
 
 
 			//create token for publishing
-			Token publishToken = callGetToken("http://localhost:5080/"+appName+"/rest/v2/broadcasts/"+broadcast.getStreamId()+"/jwtToken" , Token.PUBLISH_TOKEN, expireDate);
+			Token publishToken = callGetJWTToken("http://localhost:5080/"+appName+"/rest/v2/broadcasts/"+broadcast.getStreamId()+"/jwtToken" , Token.PUBLISH_TOKEN, expireDate);
 			assertNotNull(publishToken);
 
 			//create token for playing/accessing file
-			Token accessToken2 = callGetToken("http://localhost:5080/"+appName+"/rest/v2/broadcasts/"+broadcast.getStreamId()+"/jwtToken", Token.PLAY_TOKEN, expireDate);
+			Token accessToken2 = callGetJWTToken("http://localhost:5080/"+appName+"/rest/v2/broadcasts/"+broadcast.getStreamId()+"/jwtToken", Token.PLAY_TOKEN, expireDate);
 			assertNotNull(accessToken2);
 
 			Process rtmpSendingProcessToken = execute(ffmpegPath
 					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/"+ appName + "/"
-					+ broadcast.getStreamId()+ "?token=" + publishToken.getTokenId());
-
+					+ broadcast.getStreamId()+ "?jwtToken=" + publishToken.getTokenId());
 			
 			Result clusterResult = callIsClusterMode();
 			
