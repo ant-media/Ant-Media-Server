@@ -592,6 +592,9 @@ public class ConsoleAppRestServiceTest{
 
 			result = callSetAppSettings(appName, appSettings);
 			assertTrue(result.isSuccess());
+			
+			appSettings = callGetAppSettings(appName);
+			assertEquals("", appSettings.getRemoteAllowedCIDR());
 
 			//call a rest service
 			broadcastList = callGetBroadcastList(appName);
