@@ -35,11 +35,15 @@ public class TokenFilterManager extends AbstractFilter   {
 
 		String method = httpRequest.getMethod();
 		String tokenId = ((HttpServletRequest) request).getParameter("token");
+		String jwtTokenId = ((HttpServletRequest) request).getParameter("jwtToken");
 		String subscriberId = ((HttpServletRequest) request).getParameter("subscriberId");
 		String subscriberCodeText = ((HttpServletRequest) request).getParameter("subscriberCode");
 		
 		if (tokenId != null) {
 			tokenId = tokenId.replaceAll(REPLACE_CHARS_REGEX, "_");
+		}
+		if (jwtTokenId != null) {
+			jwtTokenId = jwtTokenId.replaceAll(REPLACE_CHARS_REGEX, "_");
 		}
 		if (subscriberId != null) {
 			subscriberId = subscriberId.replaceAll(REPLACE_CHARS_REGEX, "_");
@@ -107,7 +111,7 @@ public class TokenFilterManager extends AbstractFilter   {
 				}
 			}
 
-			else if (appSettings.isHashControlPlayEnabled()) 
+			if (appSettings.isHashControlPlayEnabled()) 
 			{
 				ITokenService tokenServiceTmp = getTokenService();
 				if (tokenServiceTmp != null) 
@@ -121,6 +125,24 @@ public class TokenFilterManager extends AbstractFilter   {
 				else {
 					httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Not initialized");
 					logger.warn("Token service is not initialized. Server is getting started for stream id:{} from request: {}", streamId, clientIP);
+					return;
+				}
+			}
+			
+			else if (appSettings.isPlayJwtControlEnabled()) 
+			{
+				ITokenService tokenServiceTmp = getTokenService();
+				if (tokenServiceTmp != null) 
+				{
+					if (!tokenServiceTmp.checkJwtToken(jwtTokenId, streamId, sessionId, Token.PLAY_TOKEN)) {
+						httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN,"Invalid JWT Token");
+						logger.warn("JWT token {} is not valid", jwtTokenId);
+						return; 
+					}
+				}
+				else {
+					httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Not initialized");
+					logger.warn("JWT Token service is not initialized. Server is getting started for stream id:{} from request: {}", streamId, clientIP);
 					return;
 				}
 			}
