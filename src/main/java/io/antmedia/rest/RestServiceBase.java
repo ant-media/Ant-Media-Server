@@ -1568,7 +1568,7 @@ public abstract class RestServiceBase {
 	
 	protected AppBroadcastStatistics getBroadcastTotalStatistics() {
 
-		int totalWebRTCViewer = 0;
+		int totalWebRTCViewer = -1;
 		int totalHLSViewer = -1;
 		
 		if (getAppContext().containsBean(HlsViewerStats.BEAN_NAME)) {
