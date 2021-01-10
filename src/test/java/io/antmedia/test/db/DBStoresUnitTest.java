@@ -433,20 +433,21 @@ public class DBStoresUnitTest {
 
 		long totalVodCount = datastore.getTotalVodNumber();
 		assertEquals(0, totalVodCount);
-		assertEquals(5, datastore.fetchUserVodList(f));
+		assertEquals(6, datastore.fetchUserVodList(f));
 
-		//we know there are 5 files there
+		//we know there are files there
 		//test_short.flv
 		//test_video_360p_subtitle.flv
 		//test_Video_360p.flv
 		//test.flv
 		//sample_MP4_480.mp4
+		//high_profile_delayed_video.flv
 
 		totalVodCount = datastore.getTotalVodNumber();
-		assertEquals(5, totalVodCount);
+		assertEquals(6, totalVodCount);
 
 		List<VoD> vodList = datastore.getVodList(0, 50, null, null, null, null);
-		assertEquals(5, vodList.size());
+		assertEquals(6, vodList.size());
 		for (VoD voD : vodList) {
 			assertEquals("streams/resources/"+voD.getVodName(), voD.getFilePath());
 		}
@@ -2488,8 +2489,9 @@ public class DBStoresUnitTest {
 	public void testPlaylist(DataStore dataStore) {
 		
 		//create a broadcast
-		Broadcast broadcast=new Broadcast();
-		
+		Broadcast broadcast=new Broadcast("tahir");
+		dataStore.save(broadcast);
+
 		List<Broadcast> broadcastList = new ArrayList<>();
 		
 		broadcastList.add(broadcast);

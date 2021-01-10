@@ -47,6 +47,7 @@ import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.mockito.Mockito;
+import org.red5.server.api.IContext;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IClientBroadcastStream;
 import org.red5.server.api.stream.IStreamCapableConnection;
@@ -100,7 +101,9 @@ import io.antmedia.social.ResourceOrigin;
 import io.antmedia.social.endpoint.PeriscopeEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
+import io.antmedia.statistic.HlsViewerStats;
 import io.antmedia.statistic.IStatsCollector;
+import io.antmedia.statistic.IStreamStats;
 import io.antmedia.statistic.StatsCollector;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
@@ -301,6 +304,38 @@ public class BroadcastRestServiceV2UnitTest {
 		assertEquals(-1, broadcastStatistics.totalHLSWatchersCount);
 		assertEquals(-1, broadcastStatistics.totalRTMPWatchersCount);
 		assertEquals(-1, broadcastStatistics.totalWebRTCWatchersCount);
+	}
+	
+	@Test
+	public void testTotalBroadcastStatistic() {
+		Scope scope = mock(Scope.class);
+		String scopeName = "scope";
+		when(scope.getName()).thenReturn(scopeName);
+
+		AntMediaApplicationAdapter app = new AntMediaApplicationAdapter();
+
+		ApplicationContext context = mock(ApplicationContext.class);
+		
+		restServiceReal.setAppCtx(context);
+		restServiceReal.setApplication(app);
+		restServiceReal.setScope(scope);
+		restServiceReal.setDataStore(new InMemoryDataStore("testdb"));
+		
+		IWebRTCAdaptor webrtcAdaptor = Mockito.mock(IWebRTCAdaptor.class);
+		when(context.getBean(IWebRTCAdaptor.BEAN_NAME)).thenReturn(webrtcAdaptor);
+		when(context.containsBean(IWebRTCAdaptor.BEAN_NAME)).thenReturn(true);
+		
+		HlsViewerStats hlsViewerStats = mock(HlsViewerStats.class);
+		when(context.getBean(HlsViewerStats.BEAN_NAME)).thenReturn(hlsViewerStats);
+		when(context.containsBean(HlsViewerStats.BEAN_NAME)).thenReturn(true);
+		
+		BroadcastStatistics broadcastStatistics = restServiceReal.getBroadcastTotalStatistics();
+		assertNotNull(broadcastStatistics);
+		assertEquals(0, broadcastStatistics.totalHLSWatchersCount);
+		assertEquals(0, broadcastStatistics.totalWebRTCWatchersCount);
+		
+		when(context.containsBean(IWebRTCAdaptor.BEAN_NAME)).thenReturn(true);
+		
 	}
 	
 	@Test

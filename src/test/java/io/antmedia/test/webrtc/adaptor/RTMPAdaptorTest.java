@@ -35,6 +35,7 @@ import org.mockito.Mockito;
 import org.red5.server.api.scope.IScope;
 import org.springframework.context.ApplicationContext;
 import org.webrtc.IceCandidate;
+import org.webrtc.JavaI420Buffer;
 import org.webrtc.MediaStream;
 import org.webrtc.PeerConnectionFactory;
 import org.webrtc.SessionDescription;
@@ -48,9 +49,13 @@ import io.antmedia.IApplicationAdaptorFactory;
 import io.antmedia.integration.MuxingTest;
 import io.antmedia.recorder.FFmpegFrameRecorder;
 import io.antmedia.recorder.Frame;
+import io.antmedia.webrtc.AudioFrameContext;
 import io.antmedia.webrtc.MockWebRTCAdaptor;
 import io.antmedia.webrtc.VideoCodec;
+import io.antmedia.webrtc.VideoFrameContext;
 import io.antmedia.webrtc.adaptor.RTMPAdaptor;
+import io.antmedia.webrtc.adaptor.RTMPAdaptor.AudioFrame;
+import io.antmedia.webrtc.adaptor.RTMPAdaptor.WebRTCVideoSink;
 import io.antmedia.websocket.WebSocketCommunityHandler;
 import io.antmedia.websocket.WebSocketConstants;
 
@@ -108,7 +113,7 @@ public class RTMPAdaptorTest {
 		//Create FFmpegFRameRecoder
 		File f = new File("target/test-classes/encoded_frame"+(int)(Math.random()*10010)+".flv");
 		RTMPAdaptor adaptor = new RTMPAdaptor(f.getAbsolutePath(), null, 480);
-		FFmpegFrameRecorder recorder = adaptor.getNewRecorder(f.getAbsolutePath(), 640, 480);
+		FFmpegFrameRecorder recorder = adaptor.getNewRecorder(f.getAbsolutePath(), 640, 480, "flv");
 
 		//give raw frame
 
@@ -154,13 +159,12 @@ public class RTMPAdaptorTest {
 		
 		testEncode(480, 360);
 	}
-
 	
 	public void testEncode(int width, int height) {
 		//Create FFmpegFRameRecoder
 		File f = new File("target/test-classes/encoded_frame"+(int)(Math.random()*10010)+".flv");
 		RTMPAdaptor adaptor = new RTMPAdaptor(f.getAbsolutePath(), null, height);
-		FFmpegFrameRecorder recorder = adaptor.getNewRecorder(f.getAbsolutePath(), width, height);
+		FFmpegFrameRecorder recorder = adaptor.getNewRecorder(f.getAbsolutePath(), width, height, "flv");
 
 		//give raw frame
 
@@ -205,6 +209,43 @@ public class RTMPAdaptorTest {
 		}
 
 
+	}
+	
+	@Test
+	public void testVideoAudioQueue() 
+	{
+		File f = new File("target/test-classes/encoded_frame"+(int)(Math.random()*10010)+".flv");
+		RTMPAdaptor adaptor = new RTMPAdaptor(f.getAbsolutePath(), Mockito.mock(WebSocketCommunityHandler.class), 480);
+		
+		PeerConnectionFactory.initialize(PeerConnectionFactory.InitializationOptions.builder().createInitializationOptions());
+		
+		adaptor.start();
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> adaptor.isStarted());
+		
+		WebRTCVideoSink videoSink = adaptor.new WebRTCVideoSink();
+		
+		assertEquals(0, adaptor.getVideoFrameQueue().size());
+		
+		VideoFrame frame = new VideoFrame(JavaI420Buffer.allocate(360, 240), 0, 0);
+		
+		assertNull(adaptor.getRecorder());
+		videoSink.onFrame(frame);
+		
+		adaptor.getAudioFrameQueue().offer(new AudioFrame(ByteBuffer.allocateDirect(1024), 1, 16000));
+		
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> adaptor.getRecorder() != null);
+				
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> !adaptor.getSignallingExecutor().isShutdown());
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> !adaptor.getVideoEncoderExecutor().isShutdown());
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> !adaptor.getAudioEncoderExecutor().isShutdown());
+		
+		adaptor.stop();
+		
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> adaptor.getSignallingExecutor().isShutdown());
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> adaptor.getVideoEncoderExecutor().isShutdown());
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> adaptor.getAudioEncoderExecutor().isShutdown());
+		
+		
 	}
 	
 	@Test
@@ -412,7 +453,7 @@ public class RTMPAdaptorTest {
 	public void testGetFileFormat() {
 
 
-		FFmpegFrameRecorder recorder = RTMPAdaptor.initRecorder("rtmp://test", 640, 480);
+		FFmpegFrameRecorder recorder = RTMPAdaptor.initRecorder("rtmp://test", 640, 480, "flv");
 
 		assertEquals("flv", recorder.getFormat());
 	}
@@ -451,7 +492,7 @@ public class RTMPAdaptorTest {
 		adaptor.setWebRtcAudioTrack(Mockito.mock(WebRtcAudioTrack.class));
 		
 		ByteBuffer buffer = ByteBuffer.allocate(10);
-		adaptor.recordSamples(buffer);
+		adaptor.recordSamples(new AudioFrame(buffer, 1, 16000));
 		
 		try {
 			verify(recorder, Mockito.never()).recordSamples(Mockito.anyInt(), Mockito.anyInt(), Mockito.any());
@@ -462,7 +503,7 @@ public class RTMPAdaptorTest {
 		
 		
 		adaptor.setRecorder(recorder);
-		adaptor.recordSamples(buffer);
+		adaptor.recordSamples(new AudioFrame(buffer, 1, 16000));
 		
 		try {
 			verify(recorder).recordSamples(Mockito.anyInt(), Mockito.anyInt(), Mockito.any());
@@ -470,6 +511,26 @@ public class RTMPAdaptorTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+		
+	}
+	
+	@Test
+	public void testAudioVideoFrames() 
+	{
+		JavaI420Buffer buffer = Mockito.mock(JavaI420Buffer.class);
+		VideoFrame vframe = new VideoFrame(buffer, 90, 100);
+		VideoFrameContext videoFrameContext = new VideoFrameContext(vframe, 900);
+		
+		assertEquals(vframe, videoFrameContext.videoFrame);
+		assertEquals(900, videoFrameContext.timestampMS);
+		
+		byte[] data = new byte[100];
+		AudioFrameContext aframeContext = new AudioFrameContext(data, 10, 20, 30, 40);
+		assertEquals(data, aframeContext.data);
+		assertEquals(10, aframeContext.timestampMs);
+		assertEquals(20, aframeContext.numberOfFrames);
+		assertEquals(30, aframeContext.channels);
+		assertEquals(40, aframeContext.sampleRate);
 		
 	}
 	
@@ -495,13 +556,13 @@ public class RTMPAdaptorTest {
 		Mockito.doNothing().when(adaptorSpy).stop();
 				
 		adaptorSpy.initializeRecorder(frame);
-		verify(adaptorSpy).getNewRecorder(rtmpUrl, 640, 480);
+		verify(adaptorSpy).getNewRecorder(rtmpUrl, 640, 480, "flv");
 		
 		//stop should be called because rtmp url is not valid
 		verify(adaptorSpy).stop();
 		
 		adaptorSpy.initializeRecorder(frame);
-		verify(adaptorSpy, Mockito.times(1)).getNewRecorder(rtmpUrl, 640, 480);
+		verify(adaptorSpy, Mockito.times(1)).getNewRecorder(rtmpUrl, 640, 480, "flv");
 		verify(handler).sendServerError(streamId, session);
 		
 	}

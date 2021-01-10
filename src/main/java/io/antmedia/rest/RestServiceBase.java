@@ -69,6 +69,7 @@ import io.antmedia.social.LiveComment;
 import io.antmedia.social.endpoint.PeriscopeEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
+import io.antmedia.statistic.HlsViewerStats;
 import io.antmedia.statistic.IStatsCollector;
 import io.antmedia.storage.StorageClient;
 import io.antmedia.storage.StorageClient.FileType;
@@ -90,6 +91,7 @@ public abstract class RestServiceBase {
 
 		@ApiModelProperty(value = "the total WebRTC viewers of the stream")
 		public final int totalWebRTCWatchersCount;
+		
 
 		public BroadcastStatistics(int totalRTMPWatchersCount, int totalHLSWatchersCount,
 				int totalWebRTCWatchersCount) {
@@ -97,6 +99,21 @@ public abstract class RestServiceBase {
 			this.totalHLSWatchersCount = totalHLSWatchersCount;
 			this.totalWebRTCWatchersCount = totalWebRTCWatchersCount;
 		}
+	}
+	
+	@ApiModel(value="AppBroadcastStatistics", description="The statistics class of the app. It provides total number of viewers and active live streams")
+	public static class AppBroadcastStatistics extends BroadcastStatistics {
+
+		@ApiModelProperty(value = "the total active live stream count")
+		public final int activeLiveStreamCount;
+		
+		public AppBroadcastStatistics(int totalRTMPWatchersCount, int totalHLSWatchersCount,
+				int totalWebRTCWatchersCount, int activeLiveStreamCount) 
+		{
+			super(totalRTMPWatchersCount, totalHLSWatchersCount, totalWebRTCWatchersCount);
+			this.activeLiveStreamCount = activeLiveStreamCount;
+		}
+		
 	}
 	
 	public interface ProcessBuilderFactory {
@@ -1558,6 +1575,28 @@ public abstract class RestServiceBase {
 		}
 
 		return new BroadcastStatistics(totalRTMPViewer, totalHLSViewer, totalWebRTCViewer);
+	}
+	
+	protected AppBroadcastStatistics getBroadcastTotalStatistics() {
+
+		int totalWebRTCViewer = -1;
+		int totalHLSViewer = -1;
+		
+		if (getAppContext().containsBean(HlsViewerStats.BEAN_NAME)) {
+			HlsViewerStats hlsViewerStats = (HlsViewerStats) getAppContext().getBean(HlsViewerStats.BEAN_NAME);
+			if (hlsViewerStats != null) {
+				totalHLSViewer = hlsViewerStats.getTotalViewerCount();
+			}
+		}
+		
+		if(getAppContext().containsBean(IWebRTCAdaptor.BEAN_NAME)) {
+			IWebRTCAdaptor webrtcAdaptor = (IWebRTCAdaptor)getAppContext().getBean(IWebRTCAdaptor.BEAN_NAME);
+			totalWebRTCViewer = webrtcAdaptor.getNumberOfTotalViewers();
+		}
+		
+		int activeBroadcastCount = (int)getDataStore().getActiveBroadcastCount();
+
+		return new AppBroadcastStatistics(-1, totalHLSViewer, totalWebRTCViewer, activeBroadcastCount);
 	}
 
 	protected List<SocialEndpointCredentials> getSocialEndpoints(int offset, int size) {
