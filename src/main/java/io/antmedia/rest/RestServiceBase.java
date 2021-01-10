@@ -1295,6 +1295,9 @@ public abstract class RestServiceBase {
 								"streams/" + vodId + "." + fileExtension));
 						break;
 					}
+					else{
+						return Result(false, id, "Not supported file type");
+					}
 				}
 
 				int read = 0;
