@@ -621,7 +621,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, false, appScope);
 
 		//this value should be -1. It means it is uninitialized
-		assertEquals(-1, muxAdaptor.getFirstPacketTime());
+		assertEquals(0, muxAdaptor.getPacketTimeList().size());
 		File file = null;
 
 		try {
