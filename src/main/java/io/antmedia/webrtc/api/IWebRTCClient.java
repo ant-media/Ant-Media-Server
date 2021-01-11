@@ -174,7 +174,7 @@ public interface IWebRTCClient {
 
 	/**
 	 * 
-	 * @return free text viewer info
+	 * @return free text client info
 	 */
-	public String getViewerInfo();
+	public String getClientInfo();
 }

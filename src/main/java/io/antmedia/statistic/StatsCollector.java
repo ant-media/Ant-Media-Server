@@ -394,7 +394,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 			jsonObject.addProperty(SEND_BITRATE, webRTCClientStat.getSendBitrate());
 			jsonObject.addProperty(TIME, dateTime);
 			jsonObject.addProperty(HOST_ADDRESS, hostAddress);
-			jsonObject.addProperty(WEBRTC_VIEWER_INFO, webRTCClientStat.getViewerInfo());
+			jsonObject.addProperty(WEBRTC_VIEWER_INFO, webRTCClientStat.getClientInfo());
 
 			//logstash cannot parse json array so that we send each info separately
 			send2Kafka(jsonObject, WEBRTC_STATS_TOPIC_NAME);
