@@ -373,6 +373,6 @@ public class WebSocketConstants {
 	/**
 	 * Free text info for the viewer
 	 */
-	public static final String WIEVER_INFO = "viewer_info";
+	public static final String VIEWER_INFO = "viewer_info";
 
 }
