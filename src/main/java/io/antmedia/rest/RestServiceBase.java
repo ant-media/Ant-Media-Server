@@ -1295,11 +1295,10 @@ public abstract class RestServiceBase {
 								"streams/" + vodId + "." + fileExtension));
 						break;
 					}
-					else{
-						return new Result(false, id, "Not supported file type");
-					}
 				}
-
+				if(savedFile == null){
+					return new Result(false, id, "Not supported file type");
+				}
 				int read = 0;
 				byte[] bytes = new byte[2048];
 				try (OutputStream outpuStream = new FileOutputStream(savedFile))
