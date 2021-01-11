@@ -370,4 +370,9 @@ public class WebSocketConstants {
 	 */
 	public static final String SERVER_ERROR_CHECK_LOGS = "server_error_check_logs";
 
+	/**
+	 * Free text info for the viewer
+	 */
+	public static final String WIEVER_INFO = "viewer_info";
+
 }
