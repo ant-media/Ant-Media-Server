@@ -57,6 +57,8 @@ import io.antmedia.filter.StreamAcceptFilter;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
+import io.antmedia.plugin.api.IFrameListener;
+import io.antmedia.plugin.api.IPacketListener;
 import io.antmedia.rest.RestServiceBase;
 import io.antmedia.rest.model.Result;
 import io.antmedia.security.AcceptOnlyStreamsInDataStore;
@@ -1479,6 +1481,22 @@ public Result createInitializationProcess(String appName){
 	
 	public boolean doesWebRTCStreamExist(String streamId) {
 		return false;
+	}
+	
+	public void addPacketListener(String streamId, IPacketListener listener) {
+		List<MuxAdaptor> muxAdaptors = getMuxAdaptors();
+		for (MuxAdaptor muxAdaptor : muxAdaptors) 
+		{
+			if (streamId.equals(muxAdaptor.getStreamId())) 
+			{
+				muxAdaptor.addPacketListener(listener);
+				break;
+			}
+		}
+	}
+	
+	public void addFrameListener(IFrameListener listener) {
+		//for enterprise
 	}
 
 }
