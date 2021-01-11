@@ -1296,7 +1296,7 @@ public abstract class RestServiceBase {
 						break;
 					}
 					else{
-						return Result(false, id, "Not supported file type");
+						return new Result(false, id, "Not supported file type");
 					}
 				}
 
