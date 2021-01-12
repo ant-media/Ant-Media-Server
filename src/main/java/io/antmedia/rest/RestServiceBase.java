@@ -1578,9 +1578,11 @@ public abstract class RestServiceBase {
 			}
 		}
 		
-		if(getAppContext().containsBean(IWebRTCAdaptor.BEAN_NAME)) {
-			IWebRTCAdaptor webrtcAdaptor = (IWebRTCAdaptor)getAppContext().getBean(IWebRTCAdaptor.BEAN_NAME);
-			totalWebRTCViewer = webrtcAdaptor.getNumberOfTotalViewers();
+		
+		IWebRTCAdaptor webRTCAdaptor = getWebRTCAdaptor();
+		
+		if(webRTCAdaptor != null) {
+			totalWebRTCViewer = webRTCAdaptor.getNumberOfTotalViewers();
 		}
 		
 		int activeBroadcastCount = (int)getDataStore().getActiveBroadcastCount();

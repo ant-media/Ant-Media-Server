@@ -912,12 +912,13 @@ public class AppFunctionalV2Test {
 			BroadcastStatistics broadcastStatistics = restService.callGetBroadcastStatistics(streamId);
 			assertEquals(0, broadcastStatistics.totalHLSWatchersCount); 
 			assertEquals(0, broadcastStatistics.totalRTMPWatchersCount);
+			//we disable webrtc in starting the tests
 			assertEquals(-1, broadcastStatistics.totalWebRTCWatchersCount); 
 			
 			BroadcastStatistics totalBroadcastStatistics = restService.callGetTotalBroadcastStatistics();
 			assertEquals(-1, totalBroadcastStatistics.totalRTMPWatchersCount); 
 			assertEquals(0, totalBroadcastStatistics.totalHLSWatchersCount); 
-			assertEquals(-1, totalBroadcastStatistics.totalWebRTCWatchersCount); 
+			assertEquals(0, totalBroadcastStatistics.totalWebRTCWatchersCount); 
 
 
 			broadcastStatistics = restService.callGetBroadcastStatistics("unknown_stream_id");
