@@ -976,8 +976,8 @@ public class BroadcastRestService extends RestServiceBase{
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{ipAddr}/ip-camera-error")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result getCameraErrorV2(@ApiParam(value = "IP Addr of the Camera. This IP may contain port number", required = true) @PathParam("ipAddr") String ipAddr) {
-		return super.getCameraError(ipAddr);
+	public Result getCameraErrorV2(@ApiParam(value = "StreamId of the IP Camera Streaming.", required = true) @PathParam("streamId") String streamId) {
+		return super.getCameraErrorById(streamId);
 	}
 
 	@ApiOperation(value = "Start external sources (IP Cameras and Stream Sources) again if it is added and stopped before", response = Result.class)

@@ -99,6 +99,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	public static final String LIVE_STREAM = "liveStream";
 	public static final String IP_CAMERA = "ipCamera";
 	public static final String STREAM_SOURCE = "streamSource";
+	public static final String PLAY_LIST = "playlist";
 	protected static final int END_POINT_LIMIT = 20;
 	public static final String FACEBOOK = "facebook";
 	public static final String PERISCOPE = "periscope";
@@ -884,13 +885,16 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		return null;
 	}
 
-	public Result stopStreaming(Broadcast broadcast) {
+	public Result stopStreaming(Broadcast broadcast) 
+	{
 		Result result = new Result(false);
-		if(broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA) ||
+		
+		if (broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA) ||
 				broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE) ||
-						broadcast.getType().equals(AntMediaApplicationAdapter.VOD)) 
+						broadcast.getType().equals(AntMediaApplicationAdapter.VOD) ||
+						broadcast.getType().equals(AntMediaApplicationAdapter.PLAY_LIST)) 
 		{
-			result = streamFetcherManager.stopStreaming(broadcast);
+			result = getStreamFetcherManager().stopStreaming(broadcast.getStreamId());
 		} 
 		else if (broadcast.getType().equals(AntMediaApplicationAdapter.LIVE_STREAM)) 
 		{
@@ -940,7 +944,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 	public StreamFetcherManager getStreamFetcherManager() {
 		if(streamFetcherManager == null) {
-			streamFetcherManager = new StreamFetcherManager(vertx, getDataStore(), scope);
+			streamFetcherManager = new StreamFetcherManager(vertx, getDataStore(), getScope());
 		}
 		return streamFetcherManager;
 	}

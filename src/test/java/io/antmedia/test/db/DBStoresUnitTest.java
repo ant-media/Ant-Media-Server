@@ -37,11 +37,11 @@ import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.MongoStore;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.ConnectionEvent;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.P2PConnection;
-import io.antmedia.datastore.db.types.Playlist;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.datastore.db.types.Subscriber;
@@ -2489,32 +2489,35 @@ public class DBStoresUnitTest {
 	public void testPlaylist(DataStore dataStore) {
 		
 		//create a broadcast
-		Broadcast broadcast=new Broadcast("tahir");
-		dataStore.save(broadcast);
 
-		List<Broadcast> broadcastList = new ArrayList<>();
+		List<PlayListItem> broadcastList = new ArrayList<>();
 		
-		broadcastList.add(broadcast);
+		broadcastList.add(new PlayListItem("", null));
 		
-		Playlist playlist = new Playlist("12312",0,"playlistName",AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED,111,111,broadcastList);
+		Broadcast broadcast = new Broadcast();
+		broadcast.setName("playlistName");
+		broadcast.setType(AntMediaApplicationAdapter.PLAY_LIST);
+		broadcast.setPlayListItemList(broadcastList);
+		
 
 		//create playlist
-		assertTrue(dataStore.createPlaylist(playlist));
+		String streamId = dataStore.save(broadcast);
+		assertNotNull(streamId);
 		
 		//update playlist
-		assertTrue(dataStore.editPlaylist(playlist.getPlaylistId(), playlist));
+		assertTrue(dataStore.updateBroadcastFields(streamId, broadcast));
 
 		//get new playlist		
-		Playlist playlist2 = dataStore.getPlaylist(playlist.getPlaylistId());
+		Broadcast playlist2 = dataStore.get(streamId);
 
 		assertNotNull(playlist2);
 		
-		assertEquals("playlistName", playlist.getPlaylistName());
+		assertEquals("playlistName", broadcast.getName());
 
 		//delete playlist
-		assertTrue(dataStore.deletePlaylist(playlist.getPlaylistId()));
+		assertTrue(dataStore.delete(streamId));
 
-		assertNull(dataStore.getPlaylist(playlist.getPlaylistId()));
+		assertNull(dataStore.get(streamId));
 		
 	}
 

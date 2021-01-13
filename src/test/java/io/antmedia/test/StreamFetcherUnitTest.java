@@ -215,8 +215,11 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		//check that it is not started
 		boolean flag3 = false;
-		for (StreamFetcher camScheduler : app.getStreamFetcherManager().getStreamFetcherList()) {
-			if (camScheduler.getStream().getIpAddr().equals(newCam.getIpAddr())) {
+		for (StreamFetcher camScheduler : app.getStreamFetcherManager().getStreamFetcherList()) 
+		{
+			broadcast = dataStore.get(camScheduler.getStreamId());
+			if (broadcast.getIpAddr().equals(newCam.getIpAddr())) 
+			{
 				// it should be false because emulator has not been started yet
 				assertFalse(camScheduler.isStreamAlive());
 				flag3 = true;
@@ -238,7 +241,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(0, broadcast.getSpeed(), 2L);
 
 
-		app.getStreamFetcherManager().stopStreaming(newCam);
+		app.getStreamFetcherManager().stopStreaming(newCam.getStreamId());
 		assertEquals(0, app.getStreamFetcherManager().getStreamFetcherList().size());
 
 
@@ -271,11 +274,14 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			StreamFetcher streamFetcher = Mockito.mock(StreamFetcher.class);
 			Broadcast stream =  Mockito.mock(Broadcast.class);
 
-			stream.setStreamId(String.valueOf((Math.random() * 100000)));
+			String streamId = String.valueOf((Math.random() * 100000));
+			stream.setStreamId(streamId);
 
-			stream.setStreamUrl("anyurl");
-			streamFetcher.setStream(stream);
-			when(streamFetcher.getStream()).thenReturn(stream);
+			String streamUrl = "anyurl";
+			stream.setStreamUrl(streamUrl);
+			streamFetcher.setStreamId(stream.getStreamId());
+			streamFetcher.setStreamUrl(streamUrl);
+			
 			when(streamFetcher.isStreamAlive()).thenReturn(true);
 			when(streamFetcher.getCameraError()).thenReturn(new Result(true));
 
@@ -357,7 +363,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			assertNotNull(newCam.getStreamId());
 
-			StreamFetcher fetcher = new StreamFetcher(newCam, appScope, vertx);
+			StreamFetcher fetcher = new StreamFetcher(newCam.getStreamUrl(), newCam.getStreamId(), newCam.getType(), appScope, vertx);
 
 
 			startCameraEmulator();
@@ -478,7 +484,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			assertNotNull(newCam.getStreamId());
 
-			StreamFetcher fetcher = new StreamFetcher(newCam, appScope, vertx);
+			StreamFetcher fetcher = new StreamFetcher(newCam.getStreamUrl(), newCam.getStreamId(), newCam.getType(), appScope, vertx);
 			fetcher.setRestartStream(false);
 			// thread start 
 			fetcher.startStream();
@@ -518,7 +524,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			assertNotNull(newCam2.getStreamId());
 
-			StreamFetcher fetcher2 = new StreamFetcher(newCam2, appScope, vertx);
+			StreamFetcher fetcher2 = new StreamFetcher(newCam2.getStreamUrl(), newCam2.getStreamId(), newCam2.getType(), appScope, vertx);
 			fetcher2.setRestartStream(false);
 			// thread start 
 			fetcher2.startStream();
@@ -562,7 +568,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			assertNotNull(newCam.getStreamId());
 
-			StreamFetcher fetcher = new StreamFetcher(newCam, appScope, vertx);
+			StreamFetcher fetcher = new StreamFetcher(newCam.getStreamUrl(), newCam.getStreamId(), newCam.getType(), appScope, vertx);
 
 			fetcher.setBufferTime(20000);
 
@@ -646,7 +652,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			Thread.sleep(3000);
 
 
-			StreamFetcher fetcher3 = new StreamFetcher(newCam3, appScope, vertx);
+			StreamFetcher fetcher3 = new StreamFetcher(newCam3.getStreamUrl(), newCam3.getStreamId(), newCam3.getType(), appScope, vertx);
 			fetcher3.setRestartStream(false);
 
 			// thread start 
@@ -777,7 +783,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			assertNotNull(newCam.getStreamId());
 
-			StreamFetcher fetcher = new StreamFetcher(newCam, appScope, vertx);
+			StreamFetcher fetcher = new StreamFetcher(newCam.getStreamUrl(), newCam.getStreamId(), newCam.getType(), appScope, vertx);
 
 			fetcher.setRestartStream(restartStream);
 
@@ -859,7 +865,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		DataStore dataStore = getInstance().getDataStore();
 		String id = dataStore.save(stream);
 		
-		StreamFetcher fetcher = new StreamFetcher(stream, appScope, vertx);
+		StreamFetcher fetcher = new StreamFetcher(stream.getStreamUrl(), stream.getStreamId(), stream.getType(), appScope, vertx);
 		
 		fetcher.setRestartStream(true);
 		
@@ -899,7 +905,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			assertNotNull(newCam.getStreamId());
 
-			StreamFetcher fetcher = new StreamFetcher(newCam, appScope, vertx);
+			StreamFetcher fetcher = new StreamFetcher(newCam.getStreamUrl(), newCam.getStreamId(), newCam.getType(), appScope, vertx);
 
 			fetcher.setRestartStream(false);
 
@@ -1064,7 +1070,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			
 			newCam.setStreamId(streamId);
 			
-			StreamFetcher camScheduler = new StreamFetcher(newCam, appScope, vertx);
+			StreamFetcher camScheduler = new StreamFetcher(newCam.getStreamUrl(), newCam.getStreamId(), newCam.getType(), appScope, vertx);
 			
 			camScheduler.setConnectionTimeout(10000);
 

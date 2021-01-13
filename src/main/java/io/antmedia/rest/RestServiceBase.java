@@ -48,13 +48,11 @@ import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
-import io.antmedia.datastore.db.types.Playlist;
 import io.antmedia.datastore.db.types.SocialEndpointChannel;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
-import io.antmedia.filter.JWTFilter;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.ipcamera.onvifdiscovery.OnvifDiscovery;
 import io.antmedia.muxer.Mp4Muxer;
@@ -512,7 +510,7 @@ public abstract class RestServiceBase {
 		{
 			return getApplication().stopStreaming(broadcast).isSuccess();
 		}
-		else if(getApplication().getStreamFetcherManager().checkAlreadyFetch(broadcast)) {
+		else if(getApplication().getStreamFetcherManager().checkAlreadyFetch(broadcast.getStreamId())) {
 			return getApplication().stopStreaming(broadcast).isSuccess();
 		}
 		else
@@ -939,65 +937,44 @@ public abstract class RestServiceBase {
 		return connResult;
 	}
 
-	public Result startPlaylistService(Playlist playlist) {
+	public Result startPlaylistService(Broadcast playlist) {
 
 		Result result = new Result(false);
 
-		IStatsCollector monitor = (IStatsCollector) getAppContext().getBean(IStatsCollector.BEAN_NAME);
-
-		if(monitor.enoughResource()) 
+		if (playlist != null) 
 		{
-
-			getApplication().getStreamFetcherManager().startPlaylistThread(playlist);
-
-			playlist.setPlaylistStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
-			getDataStore().editPlaylist(playlist.getPlaylistId(), playlist);
-
-			result.setSuccess(true);
-			return result;
-		} 
+			IStatsCollector monitor = (IStatsCollector) getAppContext().getBean(IStatsCollector.BEAN_NAME);
+	
+			if(monitor.enoughResource()) 
+			{
+	
+				if (AntMediaApplicationAdapter.PLAY_LIST.equals(playlist.getType())) 
+				{
+					getApplication().getStreamFetcherManager().startPlaylistThread(playlist);
+		
+					playlist.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+					getDataStore().updateBroadcastFields(playlist.getStreamId(), playlist);
+		
+					result.setSuccess(true);
+				
+				}
+				else {
+					result.setMessage("Broacast("+ playlist.getStreamId() +") is not in play list type. Its type is " + playlist.getType());
+				}
+			} 
+			else {
+	
+				logger.error("Playlist can not be created and started due to high cpu load/limit: {}/{} ram free/minfree:{}/{}", 
+						monitor.getCpuLoad(), monitor.getCpuLimit(), monitor.getFreeRam(), monitor.getMinFreeRamSize());
+				result.setMessage("Resource usage is high");		
+				result.setErrorId(HIGH_CPU_ERROR);
+			}
+		}
 		else {
-
-			logger.error("Playlist can not be created and started due to high cpu load/limit: {}/{} ram free/minfree:{}/{}", 
-					monitor.getCpuLoad(), monitor.getCpuLimit(), monitor.getFreeRam(), monitor.getMinFreeRamSize());
-			result.setMessage("Resource usage is high");		
-			result.setErrorId(HIGH_CPU_ERROR);
+			logger.error("Playlist is null so it will not starting");
 		}
 
 		return result;
-	}
-
-	public void checkBroadcastIdsInPlaylist(Playlist playlist) {
-
-		if( !playlist.getBroadcastItemList().isEmpty() && playlist.getBroadcastItemList() != null ) {
-
-			for (Broadcast broadcast : playlist.getBroadcastItemList()) {
-
-				try {
-					broadcast.setStreamId(playlist.getPlaylistId());
-				} catch (Exception e) {
-					logger.error(ExceptionUtils.getStackTrace(e));
-				}
-			}
-		}
-		else {
-
-			Broadcast broadcast = new Broadcast();
-			broadcast.setName(playlist.getPlaylistName());
-
-			try {
-				broadcast.setStreamId(playlist.getPlaylistId());
-			} catch (Exception e) {
-				logger.error(ExceptionUtils.getStackTrace(e));
-			}
-
-			broadcast.setType(AntMediaApplicationAdapter.VOD);
-			List<Broadcast> broadcastItemList = new ArrayList<>();
-			broadcastItemList.add(broadcast);
-			playlist.setBroadcastItemList(broadcastItemList);
-
-		}
-
 	}
 
 	public Result addStreamSource(Broadcast stream, String socialEndpointIds) {
@@ -1635,17 +1612,21 @@ public abstract class RestServiceBase {
 		return new Result(result, null);
 	}
 
-	protected Result getCameraError(String id) {
+	
+	protected Result getCameraErrorById(String streamId) {
 		Result result = new Result(true);
 
-		for (StreamFetcher camScheduler : getApplication().getStreamFetcherManager().getStreamFetcherList()) {
-			if (camScheduler.getStream().getIpAddr().equals(id)) {
+		for (StreamFetcher camScheduler : getApplication().getStreamFetcherManager().getStreamFetcherList()) 
+		{
+			if (camScheduler.getStreamId().equals(streamId)) {
 				result = camScheduler.getCameraError();
 			}
 		}
 
 		return result;
 	}
+	
+	
 
 	public Result startStreamSource(String id) 
 	{
