@@ -311,6 +311,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	public void closeBroadcast(String streamName) {
 
 		try {
+				logger.info("Closing broadcast stream id: {}", streamName);
 				getDataStore().updateStatus(streamName, BROADCAST_STATUS_FINISHED);
 				Broadcast broadcast = getDataStore().get(streamName);
 								
@@ -891,11 +892,14 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		
 		if (broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA) ||
 				broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE) ||
-						broadcast.getType().equals(AntMediaApplicationAdapter.VOD) ||
-						broadcast.getType().equals(AntMediaApplicationAdapter.PLAY_LIST)) 
+						broadcast.getType().equals(AntMediaApplicationAdapter.VOD)) 
 		{
 			result = getStreamFetcherManager().stopStreaming(broadcast.getStreamId());
 		} 
+		else if (broadcast.getType().equals(AntMediaApplicationAdapter.PLAY_LIST)) 
+		{
+			result = getStreamFetcherManager().stopPlayList(broadcast.getStreamId());
+		}
 		else if (broadcast.getType().equals(AntMediaApplicationAdapter.LIVE_STREAM)) 
 		{
 			IBroadcastStream broadcastStream = getBroadcastStream(getScope(), broadcast.getStreamId());

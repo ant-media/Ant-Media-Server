@@ -950,7 +950,7 @@ public abstract class RestServiceBase {
 	
 				if (AntMediaApplicationAdapter.PLAY_LIST.equals(playlist.getType())) 
 				{
-					getApplication().getStreamFetcherManager().startPlaylistThread(playlist);
+					getApplication().getStreamFetcherManager().startPlaylist(playlist);
 		
 					playlist.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 					getDataStore().updateBroadcastFields(playlist.getStreamId(), playlist);

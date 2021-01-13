@@ -55,6 +55,7 @@ import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
 import io.antmedia.integration.AppFunctionalV2Test;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.model.Result;
+import io.antmedia.statistic.IStatsCollector;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
 import io.vertx.core.Vertx;
@@ -354,18 +355,17 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		app.getAppAdaptor().setStreamFetcherManager(streamFetcherManager);
 
-		StreamFetcher streamFetcherPlaylist = streamFetcherManager.playlistStartStreaming(newCam.getStreamId(), streamFetcher);
-
-		//check whether answer from StreamFetcherManager is true or not after new IPCamera is added
-		assertNotNull(streamFetcherPlaylist);
+		streamFetcher.setRestartStream(false);
+		streamFetcherManager.alreadyFetchProcess(streamFetcher);
+				
 
 
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() ->  
-			streamFetcherPlaylist.isThreadActive()
+			streamFetcher.isThreadActive()
 		);
 		
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() ->  
-			streamFetcherPlaylist.isStreamAlive()
+			streamFetcher.isStreamAlive()
 		);
 		
 
@@ -374,7 +374,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		//check that fetcher is nor running
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->  {
-			return !streamFetcherPlaylist.isThreadActive();
+			return !streamFetcher.isThreadActive();
 		});
 
 		//check that there is no job related left related with stream fetching
@@ -404,14 +404,21 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		ApplicationContext context = mock(ApplicationContext.class);
 		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
+		
+		IStatsCollector statCollector = Mockito.mock(IStatsCollector.class);
+		when(statCollector.enoughResource()).thenReturn(true);
+		when(context.getBean(IStatsCollector.BEAN_NAME)).thenReturn(statCollector);
 
 		//create a test db
-		DataStore dataStore = new InMemoryDataStore("target/testPlaylistThreat.db"); 
+		DataStore dataStore = app.getAppAdaptor().getDataStore();
+		assertNotNull(dataStore);
 		service.setDataStore(dataStore);
 		service.setAppCtx(context);
-
+		
+		//app.getAppAdaptor().setDataStore(dataStore);
+		
 		//create a stream Manager
-		StreamFetcherManager streamFetcherManager = new StreamFetcherManager(vertx, dataStore, appScope);
+		StreamFetcherManager streamFetcherManager = app.getAppAdaptor().getStreamFetcherManager();
 
 		//create a broadcast
 		PlayListItem broadcastItem1 = new PlayListItem(VALID_MP4_URL, AntMediaApplicationAdapter.VOD);
@@ -439,23 +446,30 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			playlist.setType(AntMediaApplicationAdapter.PLAY_LIST);
 			playlist.setPlayListItemList(broadcastList);
 			playlist.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
-			//,0 ,"playlistName",AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, 111, 111, broadcastList);
 
 			dataStore.save(playlist);
 
-			streamFetcherManager.startPlaylistThread(playlist);
+			streamFetcherManager.startPlaylist(playlist);
 
 			assertNotNull(streamFetcherManager);		
 
 			//check that there is no job related left related with stream fetching
 			
-			Awaitility.await().atMost(30, TimeUnit.SECONDS)
+			Awaitility.await().atMost(40, TimeUnit.SECONDS)
 			.until(() ->dataStore.get("testId").getCurrentPlayIndex() == 2 && dataStore.get("testId").getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING));
 
-			service.startPlaylistService(playlist);
-
-			// Get playlist with DB
-			playlist = dataStore.get(playlist.getStreamId());
+			
+			Result result = streamFetcherManager.stopPlayList("testId");
+			assertTrue(result.isSuccess());
+		
+			
+			String streamId = playlist.getStreamId();
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
+				// Get playlist with DB
+				Broadcast tmp = dataStore.get(streamId);
+				return AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED.equals(tmp.getStatus());
+			});
+			
 
 			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, playlist.getStatus());
 			assertEquals(2, playlist.getCurrentPlayIndex());
@@ -470,7 +484,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 			playlist.setPlayListItemList(broadcastList);
 
-			streamFetcherManager.startPlaylistThread(playlist);	
+			streamFetcherManager.startPlaylist(playlist);	
 
 			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, playlist.getStatus());	
 			assertEquals(1, playlist.getCurrentPlayIndex());
@@ -488,22 +502,30 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			playlist.setPlayListItemList(broadcastList);
 			
 			
-			streamFetcherManager.startPlaylistThread(playlist);
+			streamFetcherManager.startPlaylist(playlist);
 
 			Awaitility.await().atMost(10, TimeUnit.SECONDS)
 			.until(() ->dataStore.get("testId").getCurrentPlayIndex() == 1);
 
 			service.stopStreamingV2(playlist.getStreamId());
 
+			
 			// Update playlist with DB
-			playlist = dataStore.get(playlist.getStreamId());
+			
 
-			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, playlist.getStatus());
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
+				Broadcast tmp = dataStore.get("testId");
+				return AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED.equals(tmp.getStatus());
+			});
+			
+			playlist = dataStore.get(playlist.getStreamId());
+			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, playlist.getPlayListStatus());
+			
 			assertEquals(1, dataStore.get("testId").getCurrentPlayIndex());
 
 			//Check Stream URL function
 
-			Result result = StreamFetcherManager.checkStreamUrlWithHTTP(INVALID_MP4_URL);
+			result = StreamFetcherManager.checkStreamUrlWithHTTP(INVALID_MP4_URL);
 
 			assertEquals(false, result.isSuccess());
 

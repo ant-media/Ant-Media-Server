@@ -93,7 +93,7 @@ public class StreamFetcher {
 
 	public interface IStreamFetcherListener {
 
-		void streamFinished (IStreamFetcherListener listener);
+		void streamFinished(IStreamFetcherListener listener);
 
 	}
 
