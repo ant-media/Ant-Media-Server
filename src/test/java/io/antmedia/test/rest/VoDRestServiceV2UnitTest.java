@@ -250,6 +250,8 @@ public class VoDRestServiceV2UnitTest {
 			
 			assertEquals(1, restServiceReal.getTotalVodNumber().getNumber());
 
+			assertTrue(restServiceReal.getVoD(fileName).getDuration()>0);
+
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 			fail(e.getMessage());
