@@ -482,7 +482,7 @@ public class PlaylistRestServiceV2UnitTest {
 		// Playlist current broadcast is empty scenario
 		result = restServiceReal.stopStreamingV2(playlist.getStreamId());	
 
-		assertEquals(false, result.isSuccess());
+		assertEquals(true, result.isSuccess());
 
 		// Playlist ID is null scenario
 
@@ -500,7 +500,7 @@ public class PlaylistRestServiceV2UnitTest {
 
 		result = restServiceReal.stopStreamingV2(playlist.getStreamId());		
 
-		assertEquals(false, result.isSuccess());
+		assertEquals(true, result.isSuccess());
 
 		// Playlist is stop normal scenario
 		// Pllaylist current broadcast ID change back
