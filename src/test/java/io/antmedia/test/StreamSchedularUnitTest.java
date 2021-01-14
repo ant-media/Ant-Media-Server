@@ -508,17 +508,23 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 			playlist.setPlayListItemList(broadcastList);
 			
+			Awaitility.await().atMost(10, TimeUnit.SECONDS)
+			.until(() -> AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED.equals(dataStore.get("testId").getStatus()));
 			
-			streamFetcherManager.startPlaylist(playlist);
+			
+			assertTrue(streamFetcherManager.startPlaylist(playlist));
 
 			Awaitility.await().atMost(10, TimeUnit.SECONDS)
 			.until(() ->dataStore.get("testId").getCurrentPlayIndex() == 1);
+			
+			Awaitility.await().atMost(10, TimeUnit.SECONDS)
+			.until(() -> AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(dataStore.get("testId").getStatus()));
+			
 
-			service.stopStreamingV2(playlist.getStreamId());
+			assertTrue(service.stopStreamingV2(playlist.getStreamId()).isSuccess());
 
 			
 			// Update playlist with DB
-			
 
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
 				Broadcast tmp = dataStore.get("testId");
