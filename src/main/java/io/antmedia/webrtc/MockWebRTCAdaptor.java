@@ -60,7 +60,7 @@ public class MockWebRTCAdaptor implements IWebRTCAdaptor{
 
 	@Override
 	public int getNumberOfTotalViewers() {
-		return -1;
+		return 0;
 	}
 
 	@Override

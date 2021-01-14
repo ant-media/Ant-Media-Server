@@ -1668,7 +1668,7 @@ public class ConsoleAppRestServiceTest{
 			broadcast = RestServiceV2Test.callGetBroadcast(addStreamSourceResult.getDataId());
 			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, broadcast.getStatus());
 			
-			result = RestServiceV2Test.deleteBroadcast(addStreamSourceResult.getDataId());
+			result = RestServiceV2Test.callDeleteBroadcast(addStreamSourceResult.getDataId());
 			assertTrue(result.isSuccess());
 			
 			appSettings.setHlsMuxingEnabled(hlsMuxingEnabled);
