@@ -265,7 +265,7 @@ public class StreamFetcherManager {
 				// Create Stream Fetcher with Playlist Broadcast Item
 				StreamFetcher streamScheduler = new StreamFetcher(playlistBroadcastItem.getStreamUrl(), playlist.getStreamId(), playlistBroadcastItem.getType(), scope, vertx);
 				// Update Playlist current playing status
-				playlist.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+				playlist.setPlayListStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 				// Update Datastore current play broadcast
 				datastore.updateBroadcastFields(playlist.getStreamId(), playlist);
 
