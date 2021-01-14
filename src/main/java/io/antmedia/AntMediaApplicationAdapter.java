@@ -1495,7 +1495,7 @@ public Result createInitializationProcess(String appName){
 		}
 	}
 	
-	public void addFrameListener(IFrameListener listener) {
+	public void addFrameListener(String streamId, IFrameListener listener) {
 		//for enterprise
 	}
 
