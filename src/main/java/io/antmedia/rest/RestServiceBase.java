@@ -938,46 +938,6 @@ public abstract class RestServiceBase {
 		return connResult;
 	}
 
-	public Result startPlaylistService(Broadcast playlist) {
-
-		Result result = new Result(false);
-
-		if (playlist != null) 
-		{
-			IStatsCollector monitor = (IStatsCollector) getAppContext().getBean(IStatsCollector.BEAN_NAME);
-	
-			if(monitor.enoughResource()) 
-			{
-	
-				if (AntMediaApplicationAdapter.PLAY_LIST.equals(playlist.getType())) 
-				{
-					getApplication().getStreamFetcherManager().startPlaylist(playlist);
-		
-					playlist.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
-					getDataStore().updateBroadcastFields(playlist.getStreamId(), playlist);
-		
-					result.setSuccess(true);
-				
-				}
-				else {
-					result.setMessage("Broacast("+ playlist.getStreamId() +") is not in play list type. Its type is " + playlist.getType());
-				}
-			} 
-			else {
-	
-				logger.error("Playlist can not be created and started due to high cpu load/limit: {}/{} ram free/minfree:{}/{}", 
-						monitor.getCpuLoad(), monitor.getCpuLimit(), monitor.getFreeRam(), monitor.getMinFreeRamSize());
-				result.setMessage("Resource usage is high");		
-				result.setErrorId(HIGH_CPU_ERROR);
-			}
-		}
-		else {
-			logger.error("Playlist is null so it will not starting");
-		}
-
-		return result;
-	}
-
 	public Result addStreamSource(Broadcast stream, String socialEndpointIds) {
 
 		Result result = new Result(false);

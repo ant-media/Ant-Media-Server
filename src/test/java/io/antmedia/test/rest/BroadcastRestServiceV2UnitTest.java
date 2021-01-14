@@ -2110,10 +2110,12 @@ public class BroadcastRestServiceV2UnitTest {
 				"rtsp://11.2.40.63:8554/live1.sdp", AntMediaApplicationAdapter.IP_CAMERA);
 
 		BroadcastRestService streamSourceRest = Mockito.spy(restServiceReal);
-		AntMediaApplicationAdapter adaptor = mock (AntMediaApplicationAdapter.class);
+		AntMediaApplicationAdapter adaptor = Mockito.spy (new AntMediaApplicationAdapter());
 		StreamFetcher fetcher = mock (StreamFetcher.class);
 		Result connResult = new Result(true);
 		connResult.setMessage("rtsp://11.2.40.63:8554/live1.sdp");
+		DataStore dataStore = new InMemoryDataStore("db");
+		adaptor.setDataStore(dataStore);
 
 		Mockito.doReturn(connResult).when(streamSourceRest).connectToCamera(newCam);
 		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
@@ -2127,6 +2129,13 @@ public class BroadcastRestServiceV2UnitTest {
 		when(scope.getName()).thenReturn("junit");
 		
 		Mockito.doReturn(scope).when(streamSourceRest).getScope();
+		
+		IContext icontext = mock(IContext.class);
+		when(icontext.getBean(AppSettings.BEAN_NAME)).thenReturn(new AppSettings());
+		
+		Mockito.when(scope.getContext()).thenReturn(icontext);
+		adaptor.setScope(scope);
+		
 
 		
 		ApplicationContext appContext = mock(ApplicationContext.class);
@@ -2148,13 +2157,16 @@ public class BroadcastRestServiceV2UnitTest {
 
 		//try to add IP camera
 		result = streamSourceRest.addStreamSource(newCam,"");
-
+		
 		//should be false because load is above limit
 		assertFalse(result.isSuccess());
-
+		
 
 		//should be -3 because it is CPU Load Error Code
 		assertEquals(-3, result.getErrorId());
+		
+		Result cameraErrorV2 = streamSourceRest.getCameraErrorV2(newCam.getStreamId());
+		assertTrue(cameraErrorV2.isSuccess());
 
 		//define CPU load below limit
 		int cpuLoad2 = 70;

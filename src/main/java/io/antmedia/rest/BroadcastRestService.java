@@ -974,7 +974,7 @@ public class BroadcastRestService extends RestServiceBase{
 	@ApiOperation(value = "Get IP Camera Error after connection failure. If returns true, it means there is an error. If returns false, there is no error", notes = "Notes here", response = Result.class)
 	@GET
 	@Consumes(MediaType.APPLICATION_JSON)
-	@Path("/{ipAddr}/ip-camera-error")
+	@Path("/{streamId}/ip-camera-error")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result getCameraErrorV2(@ApiParam(value = "StreamId of the IP Camera Streaming.", required = true) @PathParam("streamId") String streamId) {
 		return super.getCameraErrorById(streamId);

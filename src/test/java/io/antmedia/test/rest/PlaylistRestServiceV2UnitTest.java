@@ -565,8 +565,11 @@ public class PlaylistRestServiceV2UnitTest {
 		restServiceReal.setAppCtx(context);
 
 		AntMediaApplicationAdapter app = Mockito.spy(new AntMediaApplicationAdapter());
+		
 		when(app.getScope()).thenReturn(scope);
 		app.setDataStore(dataStore);
+		//init stream fetcher
+		app.getStreamFetcherManager();
 
 		IApplicationAdaptorFactory application = new IApplicationAdaptorFactory() {
 			@Override
@@ -585,31 +588,31 @@ public class PlaylistRestServiceV2UnitTest {
 
 		// Playlist current broadcast is empty scenario
 
-		result = restServiceReal.startPlaylistService(playlist);
-		assertEquals(true, result.isSuccess());
+		result = restServiceReal.startStreamSourceV2(playlist.getStreamId());
+		assertEquals(false, result.isSuccess());
 
 
 		// Playlist ID is null scenario
 
-		result = restServiceReal.startPlaylistService(null);		
+		result = restServiceReal.startStreamSourceV2(null);		
 		assertEquals(false, result.isSuccess());
 
 		// Playlist is null scenario
 
 		Broadcast broadcast = new Broadcast();
 		dataStore.save(broadcast);
-		result = restServiceReal.startPlaylistService(broadcast);		
+		result = restServiceReal.startStreamSourceV2(broadcast.getStreamId());		
 
 		assertEquals(false, result.isSuccess());
 
 		// Playlist current Broadcast null scenario
 
 		playlist.setCurrentPlayIndex(99);
-		result = restServiceReal.startPlaylistService(playlist);		
-		assertEquals(true, result.isSuccess());
+		result = restServiceReal.startStreamSourceV2(playlist.getStreamId());
+		assertEquals(false, result.isSuccess());
 		
 		Broadcast broadcast2 = dataStore.get(playlist.getStreamId());
-		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, broadcast2.getStatus());
+		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, broadcast2.getStatus());
 
 		
 		
