@@ -2502,10 +2502,25 @@ public class DBStoresUnitTest {
 
 		//create playlist
 		String streamId = dataStore.save(broadcast);
+		
+		Broadcast broadcast2 = dataStore.get(streamId);
 		assertNotNull(streamId);
+		assertEquals(AntMediaApplicationAdapter.PLAY_LIST, broadcast2.getType());
+		assertEquals(1, broadcast2.getPlayListItemList().size());
+		assertNull(broadcast2.getPlayListStatus());
 		
 		//update playlist
+		
+		broadcast.setPlayListStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+		broadcastList.clear();
+		broadcast.setPlayListItemList(broadcastList);
+		broadcast.setCurrentPlayIndex(10);
 		assertTrue(dataStore.updateBroadcastFields(streamId, broadcast));
+		
+		broadcast2 = dataStore.get(streamId);
+		assertTrue(broadcast2.getPlayListItemList() == null || broadcast2.getPlayListItemList().isEmpty());
+		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, broadcast2.getPlayListStatus());
+		assertEquals(10, broadcast.getCurrentPlayIndex());
 
 		//get new playlist		
 		Broadcast playlist2 = dataStore.get(streamId);
