@@ -356,7 +356,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		app.getAppAdaptor().setStreamFetcherManager(streamFetcherManager);
 
 		streamFetcher.setRestartStream(false);
-		streamFetcherManager.alreadyFetchProcess(streamFetcher);
+		streamFetcherManager.startStreamScheduler(streamFetcher);
 				
 
 
@@ -398,6 +398,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		BroadcastRestService service = new BroadcastRestService();
 
 		service.setApplication(app.getAppAdaptor());
+		
 
 		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnEnded();
 		getAppSettings().setDeleteHLSFilesOnEnded(false);
@@ -410,15 +411,19 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		when(context.getBean(IStatsCollector.BEAN_NAME)).thenReturn(statCollector);
 
 		//create a test db
-		DataStore dataStore = app.getAppAdaptor().getDataStore();
+		DataStore dataStore = new InMemoryDataStore("dts");
 		assertNotNull(dataStore);
 		service.setDataStore(dataStore);
 		service.setAppCtx(context);
 		
-		//app.getAppAdaptor().setDataStore(dataStore);
+		app.getAppAdaptor().setDataStore(dataStore);
+		
 		
 		//create a stream Manager
-		StreamFetcherManager streamFetcherManager = app.getAppAdaptor().getStreamFetcherManager();
+		StreamFetcherManager streamFetcherManager = new StreamFetcherManager(vertx, dataStore, appScope);
+		//app.getAppAdaptor().getStreamFetcherManager();
+		
+		app.getAppAdaptor().setStreamFetcherManager(streamFetcherManager);
 
 		//create a broadcast
 		PlayListItem broadcastItem1 = new PlayListItem(VALID_MP4_URL, AntMediaApplicationAdapter.VOD);
@@ -548,6 +553,9 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 
 	}
+	
+	
+	
 
 	@Test
 	public void testStopFetchingWhenDeleted() {

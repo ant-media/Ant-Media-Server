@@ -88,7 +88,7 @@ public class StreamFetcherManager {
 		this.streamCheckerIntervalMs = streamCheckerInterval;
 	}
 
-	public boolean checkAlreadyFetch(String streamId) {
+	public boolean isStreamRunning(String streamId) {
 		
 		boolean alreadyFetching = false;
 		
@@ -103,7 +103,7 @@ public class StreamFetcherManager {
 		
 	}
 	
-	public void alreadyFetchProcess(StreamFetcher streamScheduler) {
+	public void startStreamScheduler(StreamFetcher streamScheduler) {
 		
 		streamScheduler.startStream();
 
@@ -123,17 +123,17 @@ public class StreamFetcherManager {
 		//check if broadcast is already being fetching
 		boolean alreadyFetching;
 		
-		alreadyFetching = checkAlreadyFetch(broadcast.getStreamId());
+		alreadyFetching = isStreamRunning(broadcast.getStreamId());
 
 		StreamFetcher streamScheduler = null;
 		
 		if (!alreadyFetching) {
 
 			try {
-				streamScheduler =  make(broadcast, scope, vertx);
+				streamScheduler = make(broadcast, scope, vertx);
 				streamScheduler.setRestartStream(restartStreamAutomatically);
 				
-				alreadyFetchProcess(streamScheduler);
+				startStreamScheduler(streamScheduler);
 			}
 			catch (Exception e) {
 				streamScheduler = null;
@@ -221,7 +221,7 @@ public class StreamFetcherManager {
 				StreamFetcher newStreamScheduler = new StreamFetcher(fetchedBroadcast.getStreamUrl(), streamId, fetchedBroadcast.getType(), scope,vertx);
 				newStreamScheduler.setStreamFetcherListener(listener);
 				newStreamScheduler.setRestartStream(false);
-				alreadyFetchProcess(newStreamScheduler);
+				startStreamScheduler(newStreamScheduler);
 			}
 			else 
 			{
@@ -236,7 +236,7 @@ public class StreamFetcherManager {
 	public void startPlaylist(Broadcast playlist){
 
 		
-		if (checkAlreadyFetch(playlist.getStreamId())) {
+		if (isStreamRunning(playlist.getStreamId())) {
 			logger.warn("Playlist is already running for stream:{}", playlist.getStreamId());
 			return;
 		}
@@ -270,7 +270,7 @@ public class StreamFetcherManager {
 			});
 
 			streamScheduler.setRestartStream(false);
-			alreadyFetchProcess(streamScheduler);
+			startStreamScheduler(streamScheduler);
 
 		}
 		else {

@@ -318,6 +318,28 @@ public class AppFunctionalV2Test {
 		}
 
 	}
+	
+	
+	@Test
+	public void testPlayList() {
+		//create playlist 
+		
+		//add new items to play list
+		
+		//start play list
+		
+		//play the play list
+		
+		//wait play list switch to next item
+		
+		//play the play list
+		
+		//stop the play list
+		
+		
+		//delete playlist
+		
+	}
 
 	
 	@Test

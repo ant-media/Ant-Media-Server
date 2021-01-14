@@ -2544,7 +2544,7 @@ public class BroadcastRestServiceV2UnitTest {
 		Mockito.doReturn(store).when(streamSourceRest).getDataStore();
 		StreamFetcherManager sfm = mock (StreamFetcherManager.class);
 		Mockito.doReturn(sfm).when(adaptor).getStreamFetcherManager();
-		Mockito.doReturn(false).when(sfm).checkAlreadyFetch(any());
+		Mockito.doReturn(false).when(sfm).isStreamRunning(any());
 
 		store.save(newCam);
 
@@ -2578,7 +2578,7 @@ public class BroadcastRestServiceV2UnitTest {
 		Mockito.doReturn(fetcher).when(adaptor).startStreaming(source);
 		StreamFetcherManager sfm = mock (StreamFetcherManager.class);
 		Mockito.doReturn(sfm).when(adaptor).getStreamFetcherManager();
-		Mockito.doReturn(false).when(sfm).checkAlreadyFetch(any());
+		Mockito.doReturn(false).when(sfm).isStreamRunning(any());
 		
 		Mockito.doReturn(new ServerSettings()).when(streamSourceRest).getServerSettings();
 		Mockito.doReturn(new AppSettings()).when(streamSourceRest).getAppSettings();
