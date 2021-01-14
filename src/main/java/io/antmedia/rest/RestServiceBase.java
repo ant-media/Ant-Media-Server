@@ -922,9 +922,10 @@ public abstract class RestServiceBase {
 					addSocialEndpoints(savedBroadcast, socialEndpointIds);
 				}
 
-				StreamFetcher streamFetcher = getApplication().startStreaming(savedBroadcast);
+				boolean streamingStarted = getApplication().startStreaming(savedBroadcast);
 				//if IP Camera is not being started while adding, do not record it to datastore
-				if (streamFetcher == null) {
+				if (!streamingStarted) 
+				{
 					getDataStore().delete(savedBroadcast.getStreamId());
 					connResult.setSuccess(false);
 					connResult.setErrorId(FETCHER_NOT_STARTED_ERROR);
@@ -1139,12 +1140,12 @@ public abstract class RestServiceBase {
 				addSocialEndpoints(savedBroadcast, socialEndpointIds);
 			}
 
-			StreamFetcher streamFetcher = getApplication().startStreaming(savedBroadcast);
+			boolean streamingStarted = getApplication().startStreaming(savedBroadcast);
 
 			result.setMessage(savedBroadcast.getStreamId());
 
 			//if it's not started while adding, do not record it to datastore
-			if (streamFetcher != null) {
+			if (streamingStarted) {
 				result.setSuccess(true);
 			}
 			else {
@@ -1649,10 +1650,7 @@ public abstract class RestServiceBase {
 				}
 			}
 
-			if(getApplication().startStreaming(broadcast) != null) {
-
-				result.setSuccess(true);
-			}
+			result.setSuccess(getApplication().startStreaming(broadcast));
 		}
 		return result;
 	}

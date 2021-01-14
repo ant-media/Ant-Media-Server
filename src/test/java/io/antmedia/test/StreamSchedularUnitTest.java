@@ -290,18 +290,20 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		dataStore.save(newCam);
 
 		//result=getInstance().startStreaming(newCam);
-		StreamFetcher streamFetcher = streamFetcherManager.startStreaming(newCam);
+		boolean streamingStarted = streamFetcherManager.startStreaming(newCam);
 
 		//check whether answer from StreamFetcherManager is true or not after new IPCamera is added
-		assertNotNull(streamFetcher);
+		assertTrue(streamingStarted);
 
+		StreamFetcher streamFetcher  = streamFetcherManager.getStreamFetcher(newCam.getStreamId());
+		
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->  {
 			return streamFetcher.isThreadActive();
 		});
 
 		//getInstance().stopStreaming(newCam);
-		Result result = streamFetcherManager.stopStreaming(newCam.getStreamId());
-		assertTrue(result.isSuccess());
+		boolean result = streamFetcherManager.stopStreaming(newCam.getStreamId());
+		assertTrue(result);
 		stopCameraEmulator();
 
 		streamFetcherManager.stopCheckerJob();
@@ -370,7 +372,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		
 
 		streamFetcherManager.stopCheckerJob();
-		Result result = streamFetcherManager.stopStreaming(newCam.getStreamId());
+		boolean result = streamFetcherManager.stopStreaming(newCam.getStreamId());
 
 		//check that fetcher is nor running
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->  {
@@ -385,7 +387,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			e.printStackTrace();
 		}
 
-		assertTrue(result.isSuccess());
+		assertTrue(result);
 		
 		stopCameraEmulator();
 
@@ -464,8 +466,8 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			.until(() ->dataStore.get("testId").getCurrentPlayIndex() == 2 && dataStore.get("testId").getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING));
 
 			
-			Result result = streamFetcherManager.stopPlayList("testId");
-			assertTrue(result.isSuccess());
+			boolean result = streamFetcherManager.stopPlayList("testId");
+			assertTrue(result);
 		
 			
 			String streamId = playlist.getStreamId();
@@ -530,17 +532,17 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 			//Check Stream URL function
 
-			result = StreamFetcherManager.checkStreamUrlWithHTTP(INVALID_MP4_URL);
+			Result checked = StreamFetcherManager.checkStreamUrlWithHTTP(INVALID_MP4_URL);
 
-			assertEquals(false, result.isSuccess());
+			assertEquals(false, checked.isSuccess());
 
-			result = StreamFetcherManager.checkStreamUrlWithHTTP(VALID_MP4_URL);
+			checked = StreamFetcherManager.checkStreamUrlWithHTTP(VALID_MP4_URL);
 
-			assertEquals(true, result.isSuccess());		
+			assertEquals(true, checked.isSuccess());		
 
-			result = StreamFetcherManager.checkStreamUrlWithHTTP(INVALID_403_MP4_URL);
+			checked = StreamFetcherManager.checkStreamUrlWithHTTP(INVALID_403_MP4_URL);
 
-			assertEquals(false, result.isSuccess());		
+			assertEquals(false, checked.isSuccess());		
 
 			//convert to original settings
 			getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
@@ -595,9 +597,11 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		//add stream to data store
 		dataStore.save(newCam);
 
-		StreamFetcher streamFetcher = streamFetcherManager.startStreaming(newCam);
-
+		boolean streamingStarted = streamFetcherManager.startStreaming(newCam);
+		assertTrue(streamingStarted);
+		
 		//check whether answer from StreamFetcherManager is true or not after new IPCamera is added
+		StreamFetcher streamFetcher  = streamFetcherManager.getStreamFetcher(newCam.getStreamId());
 		assertNotNull(streamFetcher);
 
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->  {
@@ -671,7 +675,14 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		//add stream to data store
 		dataStore.save(newCam);
 
-		StreamFetcher streamFetcher = streamFetcherManager.startStreaming(newCam);
+		
+		//result=getInstance().startStreaming(newCam);
+		boolean streamingStarted = streamFetcherManager.startStreaming(newCam);
+
+		//check whether answer from StreamFetcherManager is true or not after new IPCamera is added
+		assertTrue(streamingStarted);
+
+		StreamFetcher streamFetcher  = streamFetcherManager.getStreamFetcher(newCam.getStreamId());
 
 		//check whether answer from StreamFetcherManager is true or not after new IPCamera is added
 		assertNotNull(streamFetcher);

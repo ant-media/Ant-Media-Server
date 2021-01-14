@@ -878,17 +878,23 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	}
 
 
-	public StreamFetcher startStreaming(Broadcast broadcast) {
+	public boolean startStreaming(Broadcast broadcast) 
+	{
+		boolean result = false;
 		if(broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA) ||
 				broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE))  {
-			return streamFetcherManager.startStreaming(broadcast);
+			result = streamFetcherManager.startStreaming(broadcast);
 		}
-		return null;
+		else if (broadcast.getType().equals(AntMediaApplicationAdapter.PLAY_LIST)) {
+			result = streamFetcherManager.startPlaylist(broadcast);
+			
+		}
+		return result;
 	}
 
 	public Result stopStreaming(Broadcast broadcast) 
 	{
-		Result result = new Result(false);
+		boolean result = false;
 		
 		if (broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA) ||
 				broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE) ||
@@ -913,10 +919,10 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 				else {
 					logger.warn("Connection is null. It should not happen for stream: {}. Analyze the logs", broadcast.getStreamId());
 				}
-				result.setSuccess(true);
+				result = true;
 			}
 		}
-		return result;
+		return new Result(result);
 	}
 
 	public IBroadcastStream getBroadcastStream(IScope scope, String name) {

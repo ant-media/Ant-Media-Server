@@ -980,7 +980,7 @@ public class BroadcastRestService extends RestServiceBase{
 		return super.getCameraErrorById(streamId);
 	}
 
-	@ApiOperation(value = "Start external sources (IP Cameras and Stream Sources) again if it is added and stopped before", response = Result.class)
+	@ApiOperation(value = "Start streaming sources(IP Cameras, Stream Sources, PlayLists) ", response = Result.class)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/start")

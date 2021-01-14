@@ -854,6 +854,14 @@ public class MongoStore extends DataStore {
 					ops.set("mainTrackStreamId", broadcast.getMainTrackStreamId());
 				}
 				
+				if (broadcast.getPlayListItemList() != null) {
+					ops.set("playListItemList", broadcast.getPlayListItemList());
+				}
+				
+				if (broadcast.getPlayListStatus() != null) {
+					ops.set("playListStatus", broadcast.getPlayListStatus());
+				}
+				
 				prepareFields(broadcast, ops);
 				
 				ops.set("currentPlayIndex", broadcast.getCurrentPlayIndex());
