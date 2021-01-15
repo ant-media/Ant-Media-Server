@@ -76,6 +76,26 @@ public class TokenServiceTest {
 	}
 	
 	@Test
+	public void testCheckJwtToken() {
+
+		datastore = new InMemoryDataStore("testDb");
+
+		//create token
+		
+		Token token = new Token();
+		token.setStreamId("streamId");
+		token.setTokenId("tokenId");
+		token.setType(Token.PLAY_TOKEN);
+
+		//check token
+		boolean flag = tokenService.checkJwtToken(token.getTokenId(), token.getStreamId(), token.getType());
+
+		// it should be true because mock service always replies as true
+		assertTrue(flag);
+
+	}
+	
+	@Test
 	public void testCheckTimeBasedSubscriber() {
 
 		datastore = new InMemoryDataStore("testDb");
