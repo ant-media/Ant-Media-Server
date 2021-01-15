@@ -250,6 +250,19 @@ public class VoDRestServiceV2UnitTest {
 			
 			assertEquals(1, restServiceReal.getTotalVodNumber().getNumber());
 
+			inputStream = new FileInputStream("src/test/resources/big-buck-bunny_trailer.webm");
+
+			restServiceReal.uploadVoDFile(fileName, inputStream);
+
+
+			assertTrue(f.isDirectory());
+
+			assertEquals(2, f.list().length);
+
+			assertEquals(2, store.getTotalVodNumber());
+
+			assertEquals(2, restServiceReal.getTotalVodNumber().getNumber());
+
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 			fail(e.getMessage());
