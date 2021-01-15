@@ -35,15 +35,11 @@ public class TokenFilterManager extends AbstractFilter   {
 
 		String method = httpRequest.getMethod();
 		String tokenId = ((HttpServletRequest) request).getParameter("token");
-		String jwtTokenId = ((HttpServletRequest) request).getParameter("jwtToken");
 		String subscriberId = ((HttpServletRequest) request).getParameter("subscriberId");
 		String subscriberCodeText = ((HttpServletRequest) request).getParameter("subscriberCode");
 		
 		if (tokenId != null) {
 			tokenId = tokenId.replaceAll(REPLACE_CHARS_REGEX, "_");
-		}
-		if (jwtTokenId != null) {
-			jwtTokenId = jwtTokenId.replaceAll(REPLACE_CHARS_REGEX, "_");
 		}
 		if (subscriberId != null) {
 			subscriberId = subscriberId.replaceAll(REPLACE_CHARS_REGEX, "_");
@@ -134,9 +130,9 @@ public class TokenFilterManager extends AbstractFilter   {
 				ITokenService tokenServiceTmp = getTokenService();
 				if (tokenServiceTmp != null) 
 				{
-					if (!tokenServiceTmp.checkJwtToken(jwtTokenId, streamId, Token.PLAY_TOKEN)) {
+					if (!tokenServiceTmp.checkJwtToken(tokenId, streamId, Token.PLAY_TOKEN)) {
 						httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN,"Invalid JWT Token");
-						logger.warn("JWT token {} is not valid", jwtTokenId);
+						logger.warn("JWT token {} is not valid", tokenId);
 						return; 
 					}
 				}
