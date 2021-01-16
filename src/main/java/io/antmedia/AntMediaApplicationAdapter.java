@@ -139,6 +139,8 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	protected WebRTCAudioSendStats webRTCAudioSendStats = new WebRTCAudioSendStats();
 	
 	private IClusterNotifier clusterNotifier;
+	
+	protected boolean serverShuttingDown = false;
 
 	public boolean appStart(IScope app) {
 		setScope(app);
@@ -1100,6 +1102,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	@Override
 	public void serverShuttingdown() {
 		logger.info("{} is closing streams", getScope().getName());
+		serverShuttingDown = true;
 		closeStreamFetchers();
 		closeRTMPStreams();
 		
@@ -1496,6 +1499,11 @@ public Result createInitializationProcess(String appName){
 	
 	public boolean doesWebRTCStreamExist(String streamId) {
 		return false;
+	}
+	
+	@Override
+	public boolean isServerShuttingDown() {
+		return serverShuttingDown;
 	}
 
 }
