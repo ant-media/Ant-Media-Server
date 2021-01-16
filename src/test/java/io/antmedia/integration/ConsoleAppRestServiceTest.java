@@ -1216,7 +1216,7 @@ public class ConsoleAppRestServiceTest{
 
 			//it should be false, because publishing is not allowed and hls files are not created
 			Awaitility.await().pollDelay(5, TimeUnit.SECONDS).atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-				return ConsoleAppRestServiceTest.getStatusCode("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" + broadcast.getStreamId() + ".m3u8?jwtToken=" + accessToken.getTokenId(), true)==404;
+				return ConsoleAppRestServiceTest.getStatusCode("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" + broadcast.getStreamId() + ".m3u8?token=" + accessToken.getTokenId(), true)==404;
 			});
 
 			rtmpSendingProcess.destroy();
@@ -1232,7 +1232,7 @@ public class ConsoleAppRestServiceTest{
 
 			Process rtmpSendingProcessToken = execute(ffmpegPath
 					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/"+ appName + "/"
-					+ broadcast.getStreamId()+ "?jwtToken=" + publishToken.getTokenId());
+					+ broadcast.getStreamId()+ "?token=" + publishToken.getTokenId());
 			
 			Result clusterResult = callIsClusterMode();
 			
@@ -1249,7 +1249,7 @@ public class ConsoleAppRestServiceTest{
 			//this time, it should be true since valid token is provided
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" 
-						+ broadcast.getStreamId() + ".mp4?jwtToken=" + accessToken2.getTokenId());
+						+ broadcast.getStreamId() + ".mp4?token=" + accessToken2.getTokenId());
 			});
 
 			//it should fail because there is no access token
@@ -1263,14 +1263,14 @@ public class ConsoleAppRestServiceTest{
 			assertNotNull(invalidAccessToken);
 			
 			assertEquals(403, ConsoleAppRestServiceTest.getStatusCode("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" 
-					+ broadcast.getStreamId() + ".mp4?jwtToken=" + invalidAccessToken.getTokenId(), false));
+					+ broadcast.getStreamId() + ".mp4?token=" + invalidAccessToken.getTokenId(), false));
 			
 			//Test valid expire date and invalid stream ID
 			Token invalidAccessToken2 = callGetJWTToken( "http://localhost:5080/"+appName+"/rest/v2/broadcasts/invalidStreamID/jwtToken", Token.PLAY_TOKEN, validExpireDate);
 			assertNotNull(invalidAccessToken2);
 			
 			assertEquals(403, ConsoleAppRestServiceTest.getStatusCode("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" 
-					+ broadcast.getStreamId() + ".mp4?jwtToken=" + invalidAccessToken2.getTokenId(), false));
+					+ broadcast.getStreamId() + ".mp4?token=" + invalidAccessToken2.getTokenId(), false));
 
 
 			appSettings.setPublishTokenControlEnabled(false);
