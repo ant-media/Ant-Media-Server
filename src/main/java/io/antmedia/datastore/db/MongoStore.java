@@ -14,17 +14,16 @@ import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.api.services.youtube.model.Playlist;
 import com.mongodb.AggregationOptions;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import com.mongodb.WriteResult;
 
-import dev.morphia.utils.IndexType;
 import dev.morphia.Datastore;
 import dev.morphia.Key;
 import dev.morphia.Morphia;
 import dev.morphia.aggregation.Group;
-import dev.morphia.query.CriteriaContainer;
 import dev.morphia.query.Criteria;
 import dev.morphia.query.FindOptions;
 import dev.morphia.query.Query;
@@ -36,7 +35,6 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.P2PConnection;
-import io.antmedia.datastore.db.types.Playlist;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.datastore.db.types.Subscriber;
@@ -856,9 +854,17 @@ public class MongoStore extends DataStore {
 					ops.set("mainTrackStreamId", broadcast.getMainTrackStreamId());
 				}
 				
+				if (broadcast.getPlayListItemList() != null) {
+					ops.set("playListItemList", broadcast.getPlayListItemList());
+				}
+				
+				if (broadcast.getPlayListStatus() != null) {
+					ops.set("playListStatus", broadcast.getPlayListStatus());
+				}
+				
 				prepareFields(broadcast, ops);
 				
-				
+				ops.set("currentPlayIndex", broadcast.getCurrentPlayIndex());
 				ops.set("receivedBytes", broadcast.getReceivedBytes());
 				ops.set("bitrate", broadcast.getBitrate());
 				ops.set("userAgent", broadcast.getUserAgent());
@@ -1378,67 +1384,6 @@ public class MongoStore extends DataStore {
 			}
 		}
 		return false;
-	}
-	
-	
-	@Override
-	public boolean createPlaylist(Playlist playlist) {
-		synchronized(this) {
-			try {
-				datastore.save(playlist);
-				return true;
-			} catch (Exception e) {
-				logger.error(ExceptionUtils.getStackTrace(e));
-			}
-		}
-		return false;
-	}
-
-	@Override
-	public Playlist getPlaylist(String playlistId) {
-		synchronized(this) {
-			try {
-				return datastore.find(Playlist.class).field(PLAYLIST_ID).equal(playlistId).first();
-			} catch (Exception e) {
-				logger.error(ExceptionUtils.getStackTrace(e));
-			}
-		}
-		return null;
-	}
-
-	@Override
-	public boolean deletePlaylist(String playlistId) {
-		synchronized(this) {
-			try {
-				Query<Playlist> query = datastore.createQuery(Playlist.class).field(PLAYLIST_ID).equal(playlistId);
-				WriteResult delete = datastore.delete(query);
-				return (delete.getN() == 1);
-			} catch (Exception e) {
-				logger.error(ExceptionUtils.getStackTrace(e));
-			}
-		}
-		return false;
-	}
-
-	@Override
-	public boolean editPlaylist(String playlistId, Playlist playlist) {
-		boolean result = false;
-		synchronized(this) {
-			try {
-				Query<Playlist> query = datastore.createQuery(Playlist.class).field(PLAYLIST_ID).equal(playlist.getPlaylistId());
-
-				UpdateOperations<Playlist> ops = datastore.createUpdateOperations(Playlist.class).set(PLAYLIST_ID, playlist.getPlaylistId())
-						.set("playlistName", playlist.getPlaylistName()).set("playlistStatus", playlist.getPlaylistStatus())
-						.set(CREATION_DATE, playlist.getCreationDate()).set(DURATION, playlist.getDuration())
-						.set("broadcastItemList", playlist.getBroadcastItemList());
-
-				UpdateResults update = datastore.update(query, ops);
-				return update.getUpdatedCount() == 1;
-			} catch (Exception e) {
-				logger.error(e.getMessage());
-			}
-		}
-		return result;
 	}
 	
 	@Override
