@@ -1,7 +1,5 @@
 package io.antmedia.datastore.db;
 
-import static io.antmedia.datastore.db.DataStore.TOTAL_WEBRTC_VIEWER_COUNT_CACHE_TIME;
-
 import java.io.File;
 import java.lang.reflect.Type;
 import java.time.Instant;
@@ -10,7 +8,6 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -31,7 +28,6 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.P2PConnection;
-import io.antmedia.datastore.db.types.Playlist;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.datastore.db.types.Subscriber;
@@ -1442,58 +1438,6 @@ public class MapDBStore extends DataStore {
 		}
 
 		return result;
-	}
-		
-	@Override
-	public boolean createPlaylist(Playlist playlist) {
-		
-		synchronized (this) {
-			boolean result = false;
-
-			if (playlist != null && playlist.getPlaylistId() != null) {
-				playlistMap.put(playlist.getPlaylistId(), gson.toJson(playlist));
-				db.commit();
-				result = true;
-			}
-
-			return result;
-		}
-	}
-	
-	@Override
-	public Playlist getPlaylist(String playlistId) {
-
-		Playlist playlist = null;
-		synchronized (this) {
-			if (playlistId != null) {
-				String jsonString = playlistMap.get(playlistId);
-				if (jsonString != null) {
-					playlist = gson.fromJson(jsonString, Playlist.class);
-				}
-			}
-		}
-		return playlist;
-	}
-	
-	@Override
-	public boolean deletePlaylist(String playlistId) {
-		synchronized (this) {
-			return playlistMap.remove(playlistId) != null;
-		}
-	}
-	
-	@Override
-	public boolean editPlaylist(String playlistId, Playlist playlist) {
-		synchronized (this) {
-			boolean result = false;
-
-			if (playlist != null && playlist.getPlaylistId() != null) {
-				playlistMap.replace(playlist.getPlaylistId(), gson.toJson(playlist));
-				db.commit();
-				result = true;
-			}
-			return result;
-		}
 	}
 
 	@Override

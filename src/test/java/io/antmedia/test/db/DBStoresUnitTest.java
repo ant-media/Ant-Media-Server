@@ -37,11 +37,11 @@ import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.MongoStore;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.ConnectionEvent;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.P2PConnection;
-import io.antmedia.datastore.db.types.Playlist;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.datastore.db.types.Subscriber;
@@ -437,20 +437,21 @@ public class DBStoresUnitTest {
 
 		long totalVodCount = datastore.getTotalVodNumber();
 		assertEquals(0, totalVodCount);
-		assertEquals(5, datastore.fetchUserVodList(f));
+		assertEquals(6, datastore.fetchUserVodList(f));
 
-		//we know there are 5 files there
+		//we know there are files there
 		//test_short.flv
 		//test_video_360p_subtitle.flv
 		//test_Video_360p.flv
 		//test.flv
 		//sample_MP4_480.mp4
+		//high_profile_delayed_video.flv
 
 		totalVodCount = datastore.getTotalVodNumber();
-		assertEquals(5, totalVodCount);
+		assertEquals(6, totalVodCount);
 
 		List<VoD> vodList = datastore.getVodList(0, 50, null, null, null, null);
-		assertEquals(5, vodList.size());
+		assertEquals(6, vodList.size());
 		for (VoD voD : vodList) {
 			assertEquals("streams/resources/"+voD.getVodName(), voD.getFilePath());
 		}
@@ -2540,31 +2541,50 @@ public class DBStoresUnitTest {
 	public void testPlaylist(DataStore dataStore) {
 		
 		//create a broadcast
-		Broadcast broadcast=new Broadcast();
+
+		List<PlayListItem> broadcastList = new ArrayList<>();
 		
-		List<Broadcast> broadcastList = new ArrayList<>();
+		broadcastList.add(new PlayListItem("", null));
 		
-		broadcastList.add(broadcast);
+		Broadcast broadcast = new Broadcast();
+		broadcast.setName("playlistName");
+		broadcast.setType(AntMediaApplicationAdapter.PLAY_LIST);
+		broadcast.setPlayListItemList(broadcastList);
 		
-		Playlist playlist = new Playlist("12312",0,"playlistName",AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED,111,111,broadcastList);
 
 		//create playlist
-		assertTrue(dataStore.createPlaylist(playlist));
+		String streamId = dataStore.save(broadcast);
+		
+		Broadcast broadcast2 = dataStore.get(streamId);
+		assertNotNull(streamId);
+		assertEquals(AntMediaApplicationAdapter.PLAY_LIST, broadcast2.getType());
+		assertEquals(1, broadcast2.getPlayListItemList().size());
+		assertNull(broadcast2.getPlayListStatus());
 		
 		//update playlist
-		assertTrue(dataStore.editPlaylist(playlist.getPlaylistId(), playlist));
+		
+		broadcast.setPlayListStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+		broadcastList.clear();
+		broadcast.setPlayListItemList(broadcastList);
+		broadcast.setCurrentPlayIndex(10);
+		assertTrue(dataStore.updateBroadcastFields(streamId, broadcast));
+		
+		broadcast2 = dataStore.get(streamId);
+		assertTrue(broadcast2.getPlayListItemList() == null || broadcast2.getPlayListItemList().isEmpty());
+		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, broadcast2.getPlayListStatus());
+		assertEquals(10, broadcast.getCurrentPlayIndex());
 
 		//get new playlist		
-		Playlist playlist2 = dataStore.getPlaylist(playlist.getPlaylistId());
+		Broadcast playlist2 = dataStore.get(streamId);
 
 		assertNotNull(playlist2);
 		
-		assertEquals("playlistName", playlist.getPlaylistName());
+		assertEquals("playlistName", broadcast.getName());
 
 		//delete playlist
-		assertTrue(dataStore.deletePlaylist(playlist.getPlaylistId()));
+		assertTrue(dataStore.delete(streamId));
 
-		assertNull(dataStore.getPlaylist(playlist.getPlaylistId()));
+		assertNull(dataStore.get(streamId));
 		
 	}
 

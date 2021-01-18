@@ -5,6 +5,7 @@ import static org.bytedeco.ffmpeg.global.avformat.avformat_network_init;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -56,6 +57,7 @@ import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.EncoderSettings;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.rest.BroadcastRestService;
@@ -63,6 +65,7 @@ import io.antmedia.rest.RestServiceBase.BroadcastStatistics;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.Version;
 import io.antmedia.settings.ServerSettings;
+import io.antmedia.test.StreamSchedularUnitTest;
 
 public class AppFunctionalV2Test {
 	
@@ -247,8 +250,8 @@ public class AppFunctionalV2Test {
 			assertTrue(MuxingTest.testFile(sourceURL));
 			assertTrue(MuxingTest.testFile(endpointURL));
 
-			restService.deleteBroadcast(source.getStreamId());
-			restService.deleteBroadcast(endpoint.getStreamId());
+			restService.callDeleteBroadcast(source.getStreamId());
+			restService.callDeleteBroadcast(endpoint.getStreamId());
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -309,14 +312,94 @@ public class AppFunctionalV2Test {
 			//test mp4 files
 			assertTrue(MuxingTest.testFile(sourceURL));
 
-			restService.deleteBroadcast(source.getStreamId());
-			restService.deleteBroadcast(endpointStream.getStreamId());
+			restService.callDeleteBroadcast(source.getStreamId());
+			restService.callDeleteBroadcast(endpointStream.getStreamId());
 
 		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
 
+	}
+	
+	
+	@Test
+	public void testPlayList() {
+		
+		try {
+			//create playlist 
+			
+			Broadcast broadcast = RestServiceV2Test.createBroadcast("test stream", AntMediaApplicationAdapter.PLAY_LIST, null);
+			assertNotNull(broadcast);
+			
+			Broadcast broadcast2 = RestServiceV2Test.getBroadcast(broadcast.getStreamId());
+			assertEquals(AntMediaApplicationAdapter.PLAY_LIST, broadcast2.getType());
+			
+			assertEquals(broadcast.getStreamId(), broadcast2.getStreamId());
+			assertNull(broadcast.getPlayListItemList());
+			
+			boolean startBroadast = RestServiceV2Test.callStartBroadast(broadcast.getStreamId());
+			//it should be false because there is no item in the play list
+			assertFalse(startBroadast);
+			
+			//add new items to play list
+			List<PlayListItem> playList = new ArrayList<>();
+			playList.add(new PlayListItem(StreamSchedularUnitTest.VALID_MP4_URL, AntMediaApplicationAdapter.VOD));
+			playList.add(new PlayListItem(StreamSchedularUnitTest.VALID_MP4_URL, AntMediaApplicationAdapter.VOD));
+			
+			Result result = RestServiceV2Test.callUpdateBroadcast(broadcast.getStreamId(), null, null, "", null, null, playList);
+			assertTrue(result.isSuccess());
+			
+			broadcast2 = RestServiceV2Test.getBroadcast(broadcast.getStreamId());
+			assertNotNull(broadcast2.getPlayListItemList());
+			assertEquals(2, broadcast2.getPlayListItemList().size());
+			
+			//start play list
+			startBroadast = RestServiceV2Test.callStartBroadast(broadcast.getStreamId());
+			assertTrue(startBroadast);
+			
+			//play the play list
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + ".m3u8");
+			});
+			broadcast2 = RestServiceV2Test.getBroadcast(broadcast.getStreamId());
+			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, broadcast2.getStatus());
+
+			//wait play list switch to next item
+			Awaitility.await().atMost(25, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+				 Broadcast tmp = RestServiceV2Test.getBroadcast(broadcast.getStreamId());
+				 return tmp.getCurrentPlayIndex() == 1;
+			});
+			
+			
+			//play the play list
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + ".m3u8");
+			});
+			
+			//stop the play list
+			boolean stopBroadcast = RestServiceV2Test.callStopBroadcastService(broadcast.getStreamId());
+			assertTrue(stopBroadcast);
+			
+			
+			Awaitility.await().atMost(25, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+				 Broadcast tmp = RestServiceV2Test.getBroadcast(broadcast.getStreamId());
+				 return AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED.equals(tmp.getStatus())
+						 && AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED.equals(tmp.getPlayListStatus());
+			});			
+			
+			//delete playlist
+			result = RestServiceV2Test.callDeleteBroadcast(broadcast.getStreamId());
+			assertTrue(result.isSuccess());
+			
+			assertNull(RestServiceV2Test.callGetBroadcast(broadcast.getStreamId()));
+			
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		
 	}
 
 	
@@ -701,6 +784,9 @@ public class AppFunctionalV2Test {
 
 			BroadcastStatistics broadcastStatistics = restService.callGetBroadcastStatistics(streamId);
 			assertEquals(1, broadcastStatistics.totalHLSWatchersCount);
+			
+			BroadcastStatistics totalBroadcastStatistics = restService.callGetTotalBroadcastStatistics();
+			assertEquals(1, totalBroadcastStatistics.totalHLSWatchersCount); 
 
 
 			// stop publishing live stream
@@ -909,7 +995,13 @@ public class AppFunctionalV2Test {
 			BroadcastStatistics broadcastStatistics = restService.callGetBroadcastStatistics(streamId);
 			assertEquals(0, broadcastStatistics.totalHLSWatchersCount); 
 			assertEquals(0, broadcastStatistics.totalRTMPWatchersCount);
+			//we disable webrtc in starting the tests
 			assertEquals(-1, broadcastStatistics.totalWebRTCWatchersCount); 
+			
+			BroadcastStatistics totalBroadcastStatistics = restService.callGetTotalBroadcastStatistics();
+			assertEquals(-1, totalBroadcastStatistics.totalRTMPWatchersCount); 
+			assertEquals(0, totalBroadcastStatistics.totalHLSWatchersCount); 
+			assertEquals(0, totalBroadcastStatistics.totalWebRTCWatchersCount); 
 
 
 			broadcastStatistics = restService.callGetBroadcastStatistics("unknown_stream_id");

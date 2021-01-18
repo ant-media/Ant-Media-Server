@@ -6,11 +6,14 @@ import java.nio.ByteBuffer;
 import java.nio.ShortBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.bytedeco.ffmpeg.global.avcodec;
@@ -37,6 +40,8 @@ import org.webrtc.audio.WebRtcAudioTrack;
 import io.antmedia.recorder.FFmpegFrameRecorder;
 import io.antmedia.recorder.Frame;
 import io.antmedia.recorder.FrameRecorder;
+import io.antmedia.webrtc.AudioFrameContext;
+import io.antmedia.webrtc.VideoFrameContext;
 import io.antmedia.webrtc.api.IAudioTrackListener;
 import io.antmedia.websocket.WebSocketCommunityHandler;
 
@@ -49,14 +54,14 @@ public class RTMPAdaptor extends Adaptor {
 	public static final String AUDIO_NOISE_SUPPRESSION_CONSTRAINT = "googNoiseSuppression";
 
 	FFmpegFrameRecorder recorder;
-	private long startTime;
+	private volatile long startTime;
 
 	private static Logger logger = LoggerFactory.getLogger(RTMPAdaptor.class);
 
-	private ExecutorService videoEncoderExecutor; 
+	private ScheduledExecutorService videoEncoderExecutor; 
 
-	private ExecutorService audioEncoderExecutor;
-	private volatile boolean isStopped = false;
+	private ScheduledExecutorService audioEncoderExecutor;
+	private AtomicBoolean isStopped = new AtomicBoolean(false);
 	private ScheduledExecutorService signallingExecutor;
 	private boolean enableAudio = false;
 
@@ -75,10 +80,74 @@ public class RTMPAdaptor extends Adaptor {
 	private String outputURL;
 
 	private int errorLoopCount = 0;
-	
-	public static FFmpegFrameRecorder initRecorder(String outputURL, int width, int height) {
+	private String format = "flv";
+
+	private ConcurrentLinkedQueue<VideoFrameContext> videoFrameQueue = new ConcurrentLinkedQueue<>();
+
+	private ConcurrentLinkedQueue<AudioFrame> audioFrameQueue = new ConcurrentLinkedQueue<>();
+
+	private int lastFrameNumber = -1;
+	private int dropFrameCount = 0;
+	private ScheduledFuture<?> videoEncoderFuture = null;
+	private ScheduledFuture<?> audioEncoderFuture = null;
+	private int videoFrameCount = 0;
+
+	private long videoFrameLastTimestampMs;
+
+	public static class AudioFrame 
+	{
+		public final ByteBuffer data;
+		public final int channels;
+		public final int sampleRate;
+
+		public AudioFrame(ByteBuffer data, int channels, int sampleRate) {
+			this.data = data;
+			this.channels = channels;
+			this.sampleRate = sampleRate;
+		}
+	}
+
+	public class WebRTCVideoSink implements VideoSink {
+
+		private int videoFrameLogCounter = 0;
+
+		@Override
+		public void onFrame(VideoFrame frame) {
+			if (startTime == 0) {
+				startTime = System.currentTimeMillis();
+				logger.info("Set startTime to {} in onFrame for stream:{}", startTime, getStreamId());
+			}
+
+			if (videoEncoderExecutor == null || videoEncoderExecutor.isShutdown()) {
+				logger.warn("Video Encoder is null or shutdown for stream: {}", getStreamId());
+				return;
+			}
+
+			frame.retain();
+			videoFrameCount++;
+			videoFrameLogCounter++;
+
+			if (videoFrameLogCounter % 100 == 0) {
+				logger.info("Received total video frames: {}  received fps: {} frame rotated width:{} rotated height:{} width:{} height:{} rotation:{}" , 
+						videoFrameCount, videoFrameCount/((System.currentTimeMillis() - startTime)/1000), frame.getRotatedWidth(), frame.getRotatedHeight(), frame.getBuffer().getWidth(), frame.getBuffer().getHeight(), frame.getRotation());
+				videoFrameLogCounter = 0;
+			}
+
+			long timestampMS = System.currentTimeMillis() - startTime;
+			videoFrameLastTimestampMs = timestampMS;
+
+			VideoFrameContext videoFrameContext = new VideoFrameContext(frame, timestampMS);
+
+			videoFrameQueue.offer(videoFrameContext);
+
+		}
+
+	}
+
+
+	public static FFmpegFrameRecorder initRecorder(String outputURL, int width, int height, String format) {
 		FFmpegFrameRecorder recorder = new FFmpegFrameRecorder(outputURL, width, height, 1);
-		recorder.setFormat("flv");
+		recorder.setFormat(format);
 		recorder.setSampleRate(44100);
 		// Set in the surface changed method
 		recorder.setFrameRate(20);
@@ -88,12 +157,14 @@ public class RTMPAdaptor extends Adaptor {
 		recorder.setAudioChannels(2);
 		recorder.setGopSize(40);
 		recorder.setVideoQuality(29);
+		recorder.setMaxBFrames(0);
+		recorder.setVideoOption("tune", "zerolatency");
 		return recorder;
 	}
-	
-	public FFmpegFrameRecorder getNewRecorder(String outputURL, int width, int height) {
 
-		FFmpegFrameRecorder recorder = initRecorder(outputURL, width, height);
+	public FFmpegFrameRecorder getNewRecorder(String outputURL, int width, int height, String format) {
+
+		FFmpegFrameRecorder recorder = initRecorder(outputURL, width, height, format);
 
 		try {
 			recorder.start();
@@ -108,8 +179,13 @@ public class RTMPAdaptor extends Adaptor {
 	}
 
 	public RTMPAdaptor(String outputURL, WebSocketCommunityHandler webSocketHandler, int height) {
+		this(outputURL, webSocketHandler, height, "flv");
+	}
+
+	public RTMPAdaptor(String outputURL, WebSocketCommunityHandler webSocketHandler, int height, String format) {
 		super(webSocketHandler);
-		this.outputURL = outputURL;
+		this.outputURL =  outputURL;
+		this.format  = format;
 		this.height = height;
 
 		setSdpMediaConstraints(new MediaConstraints());
@@ -123,13 +199,13 @@ public class RTMPAdaptor extends Adaptor {
 		//let webrtc decode it
 		return null;
 	}
-	
+
 	public PeerConnectionFactory createPeerConnectionFactory(){
 		PeerConnectionFactory.initialize(
 				PeerConnectionFactory.InitializationOptions.builder()
 				.createInitializationOptions());
 
-        //support internal webrtc codecs
+		//support internal webrtc codecs
 		SoftwareVideoEncoderFactory encoderFactory = null;
 		org.webrtc.VideoDecoderFactory decoderFactory = getVideoDecoderFactory();
 
@@ -171,8 +247,8 @@ public class RTMPAdaptor extends Adaptor {
 
 	@Override
 	public void start() {
-		videoEncoderExecutor = Executors.newSingleThreadExecutor();
-		audioEncoderExecutor = Executors.newSingleThreadExecutor();
+		videoEncoderExecutor = Executors.newSingleThreadScheduledExecutor();
+		audioEncoderExecutor = Executors.newSingleThreadScheduledExecutor();
 		signallingExecutor = Executors.newSingleThreadScheduledExecutor();
 
 		signallingExecutor.execute(() -> {
@@ -200,6 +276,8 @@ public class RTMPAdaptor extends Adaptor {
 
 				webSocketCommunityHandler.sendStartMessage(getStreamId(), getSession());
 
+				videoEncoderFuture = videoEncoderExecutor.scheduleWithFixedDelay(this::encodeVideo, 10, 10, TimeUnit.MILLISECONDS);
+				audioEncoderFuture = audioEncoderExecutor.scheduleWithFixedDelay(this::encodeAudio, 10, 10, TimeUnit.MILLISECONDS);
 				started  = true;
 			}catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
@@ -212,15 +290,26 @@ public class RTMPAdaptor extends Adaptor {
 
 	@Override
 	public void stop() {
-		if (isStopped) {
+		if (isStopped.get()) {
 			logger.info("Stopped already called. It's returning for stream: {}", getStreamId());
 			return;
 		}
-		isStopped  = true;
+		isStopped.set(true);
 
 		if (audioDataSchedulerFuture != null) {
 			audioDataSchedulerFuture.cancel(false);
 		}
+
+		if (videoEncoderFuture != null) {
+			videoEncoderFuture.cancel(false);
+		}
+		logger.info("Video queue size: {} video frame last timestamp: {}", videoFrameQueue.size(), videoFrameLastTimestampMs);
+
+		if (audioEncoderFuture != null) {
+			audioEncoderFuture.cancel(false);
+		}
+
+		logger.info("Audio queue size: {} audio frame count: {}", audioFrameQueue.size(), audioFrameCount);
 
 		logger.info("Scheduling stop procedure for stream: {}", getStreamId());
 		signallingExecutor.execute(() -> {
@@ -263,49 +352,134 @@ public class RTMPAdaptor extends Adaptor {
 
 			if (startTime == 0) {
 				startTime = System.currentTimeMillis();
+				logger.info("Set startTime to {} in Audio Track executor:{}", startTime, getStreamId());
 			}
 
 			if (audioEncoderExecutor == null || audioEncoderExecutor.isShutdown()) {
+				logger.warn("Audio encoder is null or shutdown for stream:{} ", getStreamId());
 				return;
 			}
 
 			audioFrameCount++;
 			ByteBuffer playoutData = webRtcAudioTrack.getPlayoutData();
 
-			audioEncoderExecutor.execute(() -> 
-				recordSamples(playoutData)
-			);
+			audioFrameQueue.offer(new AudioFrame(playoutData, webRtcAudioTrack.getChannels(), webRtcAudioTrack.getSampleRate()));			
 
 		}, 0, 10, TimeUnit.MILLISECONDS);
 	}
-	
-	public void recordSamples(ByteBuffer playoutData) {
-		ShortBuffer audioBuffer = playoutData.asShortBuffer();
-		try {
-			//null-check recorder because it's asynch and it may not be initialized in video encoder thread
-			if (recorder != null) {
-				
-				boolean result = recorder.recordSamples(webRtcAudioTrack.getSampleRate(), webRtcAudioTrack.getChannels(), audioBuffer);
-				if (!result) {
-					logger.info("could not audio sample for stream Id {}", getStreamId());
+
+
+	private void encodeAudio() 
+	{	
+		//null-check recorder because it's asynch and it may not be initialized in video encoder thread
+		if (recorder != null) 
+		{
+			AudioFrame audioFrameContext = null;
+			while ((audioFrameContext = audioFrameQueue.poll()) != null) 
+			{
+				if (!isStopped.get()) 
+				{
+					recordSamples(audioFrameContext);
 				}
+				else {
+					logger.error("Stream has stopped but audio encoder is running for stream:{}", getStreamId());
+				}
+			}
+		}
+
+	}
+
+	public void recordSamples(AudioFrame audioFrameContext) 
+	{
+		try {
+
+			ShortBuffer audioBuffer = audioFrameContext.data.asShortBuffer();
+
+			boolean result = recorder.recordSamples(audioFrameContext.sampleRate, audioFrameContext.channels, audioBuffer);
+			if (!result) {
+				logger.info("could not audio sample for stream Id {}", getStreamId());
 			}
 		} catch (Exception e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 	}
-	
+
 	public void initializeRecorder(VideoFrame frame) {
 		if (recorder == null) 
 		{
+			long recorderStartTime = System.currentTimeMillis();
 			int width = (frame.getRotatedWidth() * height) / frame.getRotatedHeight();
 			if (width % 2 == 1) {
 				width++;
 			}
-			recorder = getNewRecorder(outputURL, width, height);
+			recorder = getNewRecorder(outputURL, width, height, format);
+			long diff = System.currentTimeMillis() - recorderStartTime;
+			logger.info("Initialize recorder takes {}ms for stream: {}", diff, getStreamId());
 		}
 	}
 
+
+	public void encodeVideo() 
+	{
+		VideoFrameContext videoFrameContext = null;
+		while ((videoFrameContext = videoFrameQueue.poll()) != null)
+		{
+			if (!isStopped.get()) {
+
+				//initialize recorder if it's not initialized
+				initializeRecorder(videoFrameContext.videoFrame);
+
+				int frameNumber = (int)(videoFrameContext.timestampMS * recorder.getFrameRate() / 1000f);
+
+				if (frameNumber > lastFrameNumber) 
+				{
+					recorder.setFrameNumber(frameNumber);
+					lastFrameNumber = frameNumber;
+
+					Frame frameCV = new Frame(videoFrameContext.videoFrame.getRotatedWidth(), videoFrameContext.videoFrame.getRotatedHeight(), Frame.DEPTH_UBYTE, 2);
+
+					Buffer buffer = videoFrameContext.videoFrame.getBuffer();
+					int[] stride = new int[3];
+					if (buffer instanceof WrappedNativeI420Buffer) {
+						WrappedNativeI420Buffer wrappedBuffer = (WrappedNativeI420Buffer) buffer;
+						((ByteBuffer)(frameCV.image[0].position(0))).put(wrappedBuffer.getDataY());
+						((ByteBuffer)(frameCV.image[0])).put(wrappedBuffer.getDataU());
+						((ByteBuffer)(frameCV.image[0])).put(wrappedBuffer.getDataV());
+
+						stride[0] = wrappedBuffer.getStrideY();
+						stride[1] = wrappedBuffer.getStrideU();
+						stride[2] = wrappedBuffer.getStrideV();
+
+						try {
+							recorder.recordImage(frameCV.imageWidth, frameCV.imageHeight, frameCV.imageDepth,
+									frameCV.imageChannels, stride, AV_PIX_FMT_YUV420P, frameCV.image);
+
+						} catch (FrameRecorder.Exception e) {
+							logger.error(ExceptionUtils.getStackTrace(e));
+							errorLoopCount += 1;
+							if (errorLoopCount > 5){
+								webSocketCommunityHandler.sendServerError(getStreamId(), getSession());
+								stop();
+							}
+						}
+					}
+					else {
+						logger.error("Buffer is not type of WrappedNativeI420Buffer for stream: {}", recorder.getFilename());
+					}
+				}
+				else {
+					dropFrameCount ++;
+					logger.debug("dropping video, total drop count: {} frame number: {} recorder frame number: {}", 
+							dropFrameCount, frameNumber, lastFrameNumber);
+				}
+			}
+			else {
+				logger.error("Stream has stopped but video encoder is running for stream:{}", getStreamId());
+			}
+			videoFrameContext.videoFrame.release();
+
+		}
+	}
 
 	@Override
 	public void onAddStream(MediaStream stream) {
@@ -320,97 +494,7 @@ public class RTMPAdaptor extends Adaptor {
 			VideoTrack videoTrack = stream.videoTracks.get(0);
 			if (videoTrack != null) {
 
-				videoTrack.addSink(new VideoSink() {
-
-					private int frameCount;
-					private int dropFrameCount = 0;
-					private long pts;
-					private int frameNumber;
-					private int videoFrameLogCounter = 0;
-					private int lastFrameNumber = -1;
-
-					@Override
-					public void onFrame(VideoFrame frame) {
-						if (startTime == 0) {
-							startTime = System.currentTimeMillis();
-						}
-
-						if (videoEncoderExecutor == null || videoEncoderExecutor.isShutdown()) {
-							return;
-						}
-
-						frame.retain();
-						frameCount++;
-						videoFrameLogCounter++;
-
-						if (videoFrameLogCounter % 100 == 0) {
-							logger.info("Received total video frames: {}  received fps: {} frame rotated width:{} rotated height:{} width:{} height:{} rotation:{}" , 
-									frameCount, frameCount/((System.currentTimeMillis() - startTime)/1000), frame.getRotatedWidth(), frame.getRotatedHeight(), frame.getBuffer().getWidth(), frame.getBuffer().getHeight(), frame.getRotation());
-							videoFrameLogCounter = 0;
-
-						}
-
-						videoEncoderExecutor.execute(() -> {
-							if (enableAudio) {
-								//each audio frame is 10 ms 
-								pts = (long)audioFrameCount * 10;
-								logger.trace("audio frame count: {}", audioFrameCount);
-							}
-							else {
-								pts = (System.currentTimeMillis() - startTime);
-							}
-							
-							//initialize recorder if it's not initia lized
-							initializeRecorder(frame);
-							
-							frameNumber = (int)(pts * recorder.getFrameRate() / 1000f);
-
-							if (frameNumber > lastFrameNumber) {
-
-								recorder.setFrameNumber(frameNumber);
-								lastFrameNumber = frameNumber;
-
-								Frame frameCV = new Frame(frame.getRotatedWidth(), frame.getRotatedHeight(), Frame.DEPTH_UBYTE, 2);
-
-								Buffer buffer = frame.getBuffer();
-								int[] stride = new int[3];
-								if (buffer instanceof WrappedNativeI420Buffer) {
-									WrappedNativeI420Buffer wrappedBuffer = (WrappedNativeI420Buffer) buffer;
-									((ByteBuffer)(frameCV.image[0].position(0))).put(wrappedBuffer.getDataY());
-									((ByteBuffer)(frameCV.image[0])).put(wrappedBuffer.getDataU());
-									((ByteBuffer)(frameCV.image[0])).put(wrappedBuffer.getDataV());
-
-									stride[0] = wrappedBuffer.getStrideY();
-									stride[1] = wrappedBuffer.getStrideU();
-									stride[2] = wrappedBuffer.getStrideV();
-
-									try {
-										recorder.recordImage(frameCV.imageWidth, frameCV.imageHeight, frameCV.imageDepth,
-												frameCV.imageChannels, stride, AV_PIX_FMT_YUV420P, frameCV.image);
-
-									} catch (FrameRecorder.Exception e) {
-										logger.error(ExceptionUtils.getStackTrace(e));
-										errorLoopCount += 1;
-										if (errorLoopCount > 5){
-											webSocketCommunityHandler.sendServerError(getStreamId(), getSession());
-											stop();
-										}
-									}
-								}
-								else {
-									logger.error("Buffer is not type of WrappedNativeI420Buffer for stream: {}", recorder.getFilename());
-								}
-							}
-							else {
-								dropFrameCount ++;
-								logger.debug("dropping video, total drop count: {} frame number: {} recorder frame number: {}", 
-										dropFrameCount, frameNumber, lastFrameNumber);
-							}
-							frame.release();
-						});
-
-					}
-				});
+				videoTrack.addSink(new WebRTCVideoSink());
 			}
 		}
 		else {
@@ -450,7 +534,7 @@ public class RTMPAdaptor extends Adaptor {
 	}
 
 	public boolean isStopped() {
-		return isStopped;
+		return isStopped.get();
 	}
 
 	public ScheduledFuture getAudioDataSchedulerFuture() {
@@ -477,21 +561,41 @@ public class RTMPAdaptor extends Adaptor {
 	public void setTcpCandidatesEnabled(boolean tcpCandidatesEnabled) {
 		this.tcpCandidatesEnabled  = tcpCandidatesEnabled;
 	}
-	
+
 	public int getHeight() {
 		return height;
 	}
-	
+
 	public String getOutputURL() {
 		return outputURL;
 	}
-	
+
 	public void setRecorder(FFmpegFrameRecorder recorder) {
 		this.recorder = recorder;
 	}
-	
+
 	public void setWebRtcAudioTrack(WebRtcAudioTrack webRtcAudioTrack) {
 		this.webRtcAudioTrack = webRtcAudioTrack;
 	}
 
+	public Queue<VideoFrameContext> getVideoFrameQueue() {
+		return videoFrameQueue;
+	}
+	
+	public Queue<AudioFrame> getAudioFrameQueue() {
+		return audioFrameQueue;
+	}
+	
+	public FFmpegFrameRecorder getRecorder() {
+		return recorder;
+	}
+	
+	public ScheduledExecutorService getVideoEncoderExecutor() {
+		return videoEncoderExecutor;
+	}
+	
+	public ScheduledExecutorService getAudioEncoderExecutor() {
+		return audioEncoderExecutor;
+	}
+	
 }

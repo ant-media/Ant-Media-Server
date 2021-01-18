@@ -295,12 +295,26 @@ public class TokenFilterTest {
 		}
 	}
 	
+
 	@Test
-	public void testTOTPGenerator() {
+	public void testTOTPGenerator() 
+	{
 		byte[] secretBytes = Base32.decode("mysecret");
 		String code = TOTPGenerator.generateTOTP(secretBytes, 60, 6, "HmacSHA1");
 		int intCode = Integer.parseInt(code);	
-		assertTrue(intCode > 100000 && intCode < 1000000);
+		logger.info("generated code: {} int value:{}", code, intCode);
+		assertEquals(6, code.length());
+		
+		if (code.charAt(0) == '0') {
+			//first character can be zero.
+			assertTrue(intCode > 10000);
+			//if both first two characters are zero, meet the ice bear in the desert :)
+		}
+		else {
+			assertTrue(intCode > 100000);
+		}
+		
+		assertTrue(intCode < 1000000);
 	}
 	
 }

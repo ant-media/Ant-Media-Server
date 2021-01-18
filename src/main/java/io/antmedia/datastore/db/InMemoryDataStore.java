@@ -18,12 +18,13 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.api.services.youtube.model.Playlist;
+
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.P2PConnection;
-import io.antmedia.datastore.db.types.Playlist;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.datastore.db.types.Subscriber;
@@ -1008,42 +1009,6 @@ public class InMemoryDataStore extends DataStore {
 		subTracks.add(subTrackId);
 		mainTrack.setSubTrackStreamIds(subTracks);
 		broadcastMap.put(mainTrackId, mainTrack);
-		return result;
-	}
-	
-	@Override
-	public boolean createPlaylist(Playlist playlist) {
-
-		boolean result = false;
-
-		if (playlist != null && playlist.getPlaylistId() != null) {
-			playlistMap.put(playlist.getPlaylistId(), playlist);
-			result = true;
-		}
-
-		return result;
-	}
-	
-	@Override
-	public Playlist getPlaylist(String playlistId) {
-
-		return playlistMap.get(playlistId);
-	}
-	
-	@Override
-	public boolean deletePlaylist(String playlistId) {
-		return playlistMap.remove(playlistId) != null;
-	}
-	
-	@Override
-	public boolean editPlaylist(String playlistId,Playlist playlist) {
-
-		boolean result = false;
-
-		if (playlist != null && playlist.getPlaylistId() != null) {
-			playlistMap.replace(playlistId, playlist);
-			result = true;
-		}
 		return result;
 	}
   

@@ -519,6 +519,8 @@ public class BroadcastRestService extends RestServiceBase{
 	public SimpleStat getAppLiveStatistics() {
 		return new SimpleStat(getDataStore().getActiveBroadcastCount());
 	}
+	
+
 
 
 	@ApiOperation(value = "Generates random one-time token for specified stream")
@@ -673,6 +675,15 @@ public class BroadcastRestService extends RestServiceBase{
 	@Override
 	public BroadcastStatistics getBroadcastStatistics(@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String id) {
 		return super.getBroadcastStatistics(id);
+	}
+	
+	@ApiOperation(value = "Get the total broadcast live statistics total HLS watcher count, total WebRTC watcher count", notes = "", response = BroadcastStatistics.class)
+	@GET
+	@Path("/total-broadcast-statistics")
+	@Produces(MediaType.APPLICATION_JSON)
+	@Override
+	public AppBroadcastStatistics getBroadcastTotalStatistics() {
+		return super.getBroadcastTotalStatistics();
 	}
 
 	@ApiOperation(value = "Get WebRTC Low Level Send stats in general", notes = "",response = WebRTCSendStats.class)
@@ -963,13 +974,13 @@ public class BroadcastRestService extends RestServiceBase{
 	@ApiOperation(value = "Get IP Camera Error after connection failure. If returns true, it means there is an error. If returns false, there is no error", notes = "Notes here", response = Result.class)
 	@GET
 	@Consumes(MediaType.APPLICATION_JSON)
-	@Path("/{ipAddr}/ip-camera-error")
+	@Path("/{streamId}/ip-camera-error")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result getCameraErrorV2(@ApiParam(value = "IP Addr of the Camera. This IP may contain port number", required = true) @PathParam("ipAddr") String ipAddr) {
-		return super.getCameraError(ipAddr);
+	public Result getCameraErrorV2(@ApiParam(value = "StreamId of the IP Camera Streaming.", required = true) @PathParam("streamId") String streamId) {
+		return super.getCameraErrorById(streamId);
 	}
 
-	@ApiOperation(value = "Start external sources (IP Cameras and Stream Sources) again if it is added and stopped before", response = Result.class)
+	@ApiOperation(value = "Start streaming sources(IP Cameras, Stream Sources, PlayLists) ", response = Result.class)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/start")

@@ -11,6 +11,11 @@ import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.antmedia.webrtc.api.IWebRTCClient;
 import io.antmedia.webrtc.api.IWebRTCMuxer;
 
+/**
+ * This class is used to mock the webrtc adaptor in community edition
+ * @author mekya
+ *
+ */
 public class MockWebRTCAdaptor implements IWebRTCAdaptor{
 
 	@Override
@@ -55,7 +60,7 @@ public class MockWebRTCAdaptor implements IWebRTCAdaptor{
 
 	@Override
 	public int getNumberOfTotalViewers() {
-		return -1;
+		return 0;
 	}
 
 	@Override

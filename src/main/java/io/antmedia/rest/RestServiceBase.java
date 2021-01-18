@@ -48,13 +48,11 @@ import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
-import io.antmedia.datastore.db.types.Playlist;
 import io.antmedia.datastore.db.types.SocialEndpointChannel;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
-import io.antmedia.filter.JWTFilter;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.ipcamera.onvifdiscovery.OnvifDiscovery;
 import io.antmedia.muxer.Mp4Muxer;
@@ -69,6 +67,7 @@ import io.antmedia.social.LiveComment;
 import io.antmedia.social.endpoint.PeriscopeEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
+import io.antmedia.statistic.HlsViewerStats;
 import io.antmedia.statistic.IStatsCollector;
 import io.antmedia.storage.StorageClient;
 import io.antmedia.storage.StorageClient.FileType;
@@ -90,6 +89,7 @@ public abstract class RestServiceBase {
 
 		@ApiModelProperty(value = "the total WebRTC viewers of the stream")
 		public final int totalWebRTCWatchersCount;
+		
 
 		public BroadcastStatistics(int totalRTMPWatchersCount, int totalHLSWatchersCount,
 				int totalWebRTCWatchersCount) {
@@ -97,6 +97,21 @@ public abstract class RestServiceBase {
 			this.totalHLSWatchersCount = totalHLSWatchersCount;
 			this.totalWebRTCWatchersCount = totalWebRTCWatchersCount;
 		}
+	}
+	
+	@ApiModel(value="AppBroadcastStatistics", description="The statistics class of the app. It provides total number of viewers and active live streams")
+	public static class AppBroadcastStatistics extends BroadcastStatistics {
+
+		@ApiModelProperty(value = "the total active live stream count")
+		public final int activeLiveStreamCount;
+		
+		public AppBroadcastStatistics(int totalRTMPWatchersCount, int totalHLSWatchersCount,
+				int totalWebRTCWatchersCount, int activeLiveStreamCount) 
+		{
+			super(totalRTMPWatchersCount, totalHLSWatchersCount, totalWebRTCWatchersCount);
+			this.activeLiveStreamCount = activeLiveStreamCount;
+		}
+		
 	}
 	
 	public interface ProcessBuilderFactory {
@@ -495,7 +510,7 @@ public abstract class RestServiceBase {
 		{
 			return getApplication().stopStreaming(broadcast).isSuccess();
 		}
-		else if(getApplication().getStreamFetcherManager().checkAlreadyFetch(broadcast)) {
+		else if(getApplication().getStreamFetcherManager().isStreamRunning(broadcast.getStreamId())) {
 			return getApplication().stopStreaming(broadcast).isSuccess();
 		}
 		else
@@ -907,9 +922,10 @@ public abstract class RestServiceBase {
 					addSocialEndpoints(savedBroadcast, socialEndpointIds);
 				}
 
-				StreamFetcher streamFetcher = getApplication().startStreaming(savedBroadcast);
+				boolean streamingStarted = getApplication().startStreaming(savedBroadcast);
 				//if IP Camera is not being started while adding, do not record it to datastore
-				if (streamFetcher == null) {
+				if (!streamingStarted) 
+				{
 					getDataStore().delete(savedBroadcast.getStreamId());
 					connResult.setSuccess(false);
 					connResult.setErrorId(FETCHER_NOT_STARTED_ERROR);
@@ -920,67 +936,6 @@ public abstract class RestServiceBase {
 		}
 
 		return connResult;
-	}
-
-	public Result startPlaylistService(Playlist playlist) {
-
-		Result result = new Result(false);
-
-		IStatsCollector monitor = (IStatsCollector) getAppContext().getBean(IStatsCollector.BEAN_NAME);
-
-		if(monitor.enoughResource()) 
-		{
-
-			getApplication().getStreamFetcherManager().startPlaylistThread(playlist);
-
-			playlist.setPlaylistStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
-			getDataStore().editPlaylist(playlist.getPlaylistId(), playlist);
-
-			result.setSuccess(true);
-			return result;
-		} 
-		else {
-
-			logger.error("Playlist can not be created and started due to high cpu load/limit: {}/{} ram free/minfree:{}/{}", 
-					monitor.getCpuLoad(), monitor.getCpuLimit(), monitor.getFreeRam(), monitor.getMinFreeRamSize());
-			result.setMessage("Resource usage is high");		
-			result.setErrorId(HIGH_CPU_ERROR);
-		}
-
-		return result;
-	}
-
-	public void checkBroadcastIdsInPlaylist(Playlist playlist) {
-
-		if( !playlist.getBroadcastItemList().isEmpty() && playlist.getBroadcastItemList() != null ) {
-
-			for (Broadcast broadcast : playlist.getBroadcastItemList()) {
-
-				try {
-					broadcast.setStreamId(playlist.getPlaylistId());
-				} catch (Exception e) {
-					logger.error(ExceptionUtils.getStackTrace(e));
-				}
-			}
-		}
-		else {
-
-			Broadcast broadcast = new Broadcast();
-			broadcast.setName(playlist.getPlaylistName());
-
-			try {
-				broadcast.setStreamId(playlist.getPlaylistId());
-			} catch (Exception e) {
-				logger.error(ExceptionUtils.getStackTrace(e));
-			}
-
-			broadcast.setType(AntMediaApplicationAdapter.VOD);
-			List<Broadcast> broadcastItemList = new ArrayList<>();
-			broadcastItemList.add(broadcast);
-			playlist.setBroadcastItemList(broadcastItemList);
-
-		}
-
 	}
 
 	public Result addStreamSource(Broadcast stream, String socialEndpointIds) {
@@ -1145,12 +1100,12 @@ public abstract class RestServiceBase {
 				addSocialEndpoints(savedBroadcast, socialEndpointIds);
 			}
 
-			StreamFetcher streamFetcher = getApplication().startStreaming(savedBroadcast);
+			boolean streamingStarted = getApplication().startStreaming(savedBroadcast);
 
 			result.setMessage(savedBroadcast.getStreamId());
 
 			//if it's not started while adding, do not record it to datastore
-			if (streamFetcher != null) {
+			if (streamingStarted) {
 				result.setSuccess(true);
 			}
 			else {
@@ -1255,7 +1210,7 @@ public abstract class RestServiceBase {
 		String fileExtension = FilenameUtils.getExtension(fileName);
 		try {
 
-			if ("mp4".equalsIgnoreCase(fileExtension)) {
+			if ("mp4".equalsIgnoreCase(fileExtension) || "webm".equalsIgnoreCase(fileExtension) ||  "mov".equalsIgnoreCase(fileExtension) ||  "avi".equalsIgnoreCase(fileExtension)) {
 
 
 				File streamsDirectory = new File(
@@ -1266,8 +1221,9 @@ public abstract class RestServiceBase {
 					streamsDirectory.mkdirs();
 				}
 				String vodId = RandomStringUtils.randomNumeric(24);
+				
 				File savedFile = new File(String.format("%s/webapps/%s/%s", System.getProperty("red5.root"), appScopeName,
-						"streams/" + vodId + ".mp4"));
+						"streams/" + vodId + "." + fileExtension));
 
 				int read = 0;
 				byte[] bytes = new byte[2048];
@@ -1548,6 +1504,30 @@ public abstract class RestServiceBase {
 
 		return new BroadcastStatistics(totalRTMPViewer, totalHLSViewer, totalWebRTCViewer);
 	}
+	
+	protected AppBroadcastStatistics getBroadcastTotalStatistics() {
+
+		int totalWebRTCViewer = -1;
+		int totalHLSViewer = -1;
+		
+		if (getAppContext().containsBean(HlsViewerStats.BEAN_NAME)) {
+			HlsViewerStats hlsViewerStats = (HlsViewerStats) getAppContext().getBean(HlsViewerStats.BEAN_NAME);
+			if (hlsViewerStats != null) {
+				totalHLSViewer = hlsViewerStats.getTotalViewerCount();
+			}
+		}
+		
+		
+		IWebRTCAdaptor webRTCAdaptor = getWebRTCAdaptor();
+		
+		if(webRTCAdaptor != null) {
+			totalWebRTCViewer = webRTCAdaptor.getNumberOfTotalViewers();
+		}
+		
+		int activeBroadcastCount = (int)getDataStore().getActiveBroadcastCount();
+
+		return new AppBroadcastStatistics(-1, totalHLSViewer, totalWebRTCViewer, activeBroadcastCount);
+	}
 
 	protected List<SocialEndpointCredentials> getSocialEndpoints(int offset, int size) {
 		List<SocialEndpointCredentials> endPointCredentials = new ArrayList<>();
@@ -1594,17 +1574,21 @@ public abstract class RestServiceBase {
 		return new Result(result, null);
 	}
 
-	protected Result getCameraError(String id) {
+	
+	protected Result getCameraErrorById(String streamId) {
 		Result result = new Result(true);
 
-		for (StreamFetcher camScheduler : getApplication().getStreamFetcherManager().getStreamFetcherList()) {
-			if (camScheduler.getStream().getIpAddr().equals(id)) {
+		for (StreamFetcher camScheduler : getApplication().getStreamFetcherManager().getStreamFetcherList()) 
+		{
+			if (camScheduler.getStreamId().equals(streamId)) {
 				result = camScheduler.getCameraError();
 			}
 		}
 
 		return result;
 	}
+	
+	
 
 	public Result startStreamSource(String id) 
 	{
@@ -1627,10 +1611,7 @@ public abstract class RestServiceBase {
 				}
 			}
 
-			if(getApplication().startStreaming(broadcast) != null) {
-
-				result.setSuccess(true);
-			}
+			result.setSuccess(getApplication().startStreaming(broadcast));
 		}
 		return result;
 	}

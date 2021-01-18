@@ -163,4 +163,11 @@ public class Application extends MultiThreadedApplicationAdapter implements IAnt
 	public void setServerSettings(ServerSettings serverSettings) {
 		this.serverSettings = serverSettings;
 	}
+
+	@Override
+	public boolean isServerShuttingDown() {
+		return false;
+	}
+	
+	
 }
