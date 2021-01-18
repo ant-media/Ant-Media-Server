@@ -185,6 +185,8 @@
        <property name="kafkaBrokers" value="${server.kafka_brokers}" />
        <property name="minFreeRamSize" value="${server.min_free_ram}"/>
    	</bean>
+   	
+   	
     
 
 </beans>

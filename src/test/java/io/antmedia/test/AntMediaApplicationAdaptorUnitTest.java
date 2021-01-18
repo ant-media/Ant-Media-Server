@@ -739,7 +739,12 @@ public class AntMediaApplicationAdaptorUnitTest {
 		assertEquals(2, fetcherManager.getStreamFetcherList().size());
 		assertEquals(2, sfQueue.size());
 		
+
+		assertFalse(adapter.isServerShuttingDown());
+		
 		adapter.serverShuttingdown();
+		
+		assertTrue(adapter.isServerShuttingDown());
 
 		verify(streamFetcher, times(1)).stopStream();
 		verify(streamFetcher2, times(1)).stopStream();

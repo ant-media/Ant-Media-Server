@@ -8,7 +8,7 @@ public class StreamWebRoot extends StandardRoot {
 	
 	 @Override
 	 public WebResource getResource(String path) {
-		 if (path.endsWith(".m3u8") || path.endsWith(".ts") || (path.endsWith(".png") && path.contains("/previews/"))) {
+		 if (path.endsWith(".m3u8") || path.endsWith(".ts") || path.endsWith(".mpd") || path.endsWith(".m4s") || (path.endsWith(".png") && path.contains("/previews/"))) {
 			 return getResourceInternal(path, true);
 		 }
 		 else {
