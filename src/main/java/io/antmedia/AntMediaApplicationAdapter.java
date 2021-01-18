@@ -538,7 +538,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		logger.info("start publish leaved");
 	}
 
-	private ServerSettings getServerSettings() 
+	protected ServerSettings getServerSettings() 
 	{
 		if (serverSettings == null) {
 			serverSettings = (ServerSettings)scope.getContext().getApplicationContext().getBean(ServerSettings.BEAN_NAME);
@@ -1497,6 +1497,10 @@ public Result createInitializationProcess(String appName){
 	
 	public void addFrameListener(String streamId, IFrameListener listener) {
 		//for enterprise
+	}
+	
+	public IFrameListener createCustomBroadcast(String streamId) {
+		return null;
 	}
 
 }
