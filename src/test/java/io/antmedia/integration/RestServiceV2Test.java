@@ -68,6 +68,7 @@ import com.google.gson.reflect.TypeToken;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.VoD;
@@ -136,7 +137,7 @@ public class RestServiceV2Test {
 		//delete broadcast in the db before starting
 		List<Broadcast> broadcastList = callGetBroadcastList();
 		for (Broadcast broadcast : broadcastList) {
-			deleteBroadcast(broadcast.getStreamId());
+			callDeleteBroadcast(broadcast.getStreamId());
 		}
 	}
 
@@ -149,7 +150,7 @@ public class RestServiceV2Test {
 		return createBroadcast(name, null, null);
 	}
 
-	public Broadcast createBroadcast(String name, String type, String streamUrl) {
+	public static Broadcast createBroadcast(String name, String type, String streamUrl) {
 		String url = ROOT_SERVICE_URL + "/v2/broadcasts/create";
 
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
@@ -192,13 +193,18 @@ public class RestServiceV2Test {
 		return null;
 	}
 	
+	
+	public Result startStreaming(String streamId) {
+		return null;
+	}
+	
 
 	public Result updateBroadcast(String id, String name, String description, String socialNetworks, String streamUrl) {
 
-		return updateBroadcast(id, name, description, socialNetworks, streamUrl, null);
+		return callUpdateBroadcast(id, name, description, socialNetworks, streamUrl, null, null);
 	}
 
-	public Result updateBroadcast(String id, String name, String description, String socialNetworks, String streamUrl, String type) {
+	public static Result callUpdateBroadcast(String id, String name, String description, String socialNetworks, String streamUrl, String type, List<PlayListItem> playList) {
 		String url = ROOT_SERVICE_URL + "/v2/broadcasts/" + id;
 
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
@@ -216,6 +222,9 @@ public class RestServiceV2Test {
 		}
 		if (type != null) {
 			broadcast.setType(type);
+		}
+		if (playList != null) {
+			broadcast.setPlayListItemList(playList);
 		}
 
 		try {
@@ -873,14 +882,37 @@ public class RestServiceV2Test {
 	@Test
 	public void testBroadcastDeleteNULL() {
 
-		Result result2 = deleteBroadcast(null);
+		Result result2 = callDeleteBroadcast(null);
 
 		assertNotNull(result2);
 		assertFalse(result2.isSuccess());
 	}
 
-	public boolean callStopBroadcastService(String streamId) throws Exception {
+	public static boolean callStopBroadcastService(String streamId) throws Exception {
 		String url = ROOT_SERVICE_URL + "/v2/broadcasts/"+ streamId +"/stop";
+
+		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+		Gson gson = new Gson();
+
+		HttpUriRequest post = RequestBuilder.post().setUri(url)
+				.setHeader(HttpHeaders.CONTENT_TYPE, "application/json").build();
+
+		HttpResponse response = client.execute(post);
+
+		StringBuffer result = readResponse(response);
+
+		if (response.getStatusLine().getStatusCode() != 200) {
+			throw new Exception(result.toString());
+		}
+		System.out.println("result string: " + result.toString());
+		Result responseResult = gson.fromJson(result.toString(), Result.class);
+		assertNotNull(responseResult);
+		return responseResult.isSuccess();
+	}
+	
+	
+	public static boolean callStartBroadast(String streamId) throws Exception {
+		String url = ROOT_SERVICE_URL + "/v2/broadcasts/"+ streamId +"/start";
 
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 		Gson gson = new Gson();
@@ -1075,7 +1107,7 @@ public class RestServiceV2Test {
 		return null;
 	}
 
-	public static Result deleteBroadcast(String id) {
+	public static Result callDeleteBroadcast(String id) {
 		try {
 			// delete broadcast
 			String url = ROOT_SERVICE_URL + "/v2/broadcasts/" + id;
@@ -1519,7 +1551,7 @@ public class RestServiceV2Test {
 
 			execute.destroy();
 
-			result = deleteBroadcast(broadcast.getStreamId());
+			result = callDeleteBroadcast(broadcast.getStreamId());
 			assertTrue(result.isSuccess());
 
 			Awaitility.await().atMost(60, TimeUnit.SECONDS)
@@ -1581,7 +1613,7 @@ public class RestServiceV2Test {
 
 			execute.destroy();
 
-			result = deleteBroadcast(broadcast.getStreamId());
+			result = callDeleteBroadcast(broadcast.getStreamId());
 			assertTrue(result.isSuccess());
 
 			Awaitility.await().atMost(45, TimeUnit.SECONDS)
@@ -1650,7 +1682,7 @@ public class RestServiceV2Test {
 
 			assertEquals("rtsp://admin:Admin12345@71.234.93.90:5014/11", fetchedBroadcast.getStreamUrl());
 
-			deleteBroadcast(fetchedBroadcast.getStreamId());
+			callDeleteBroadcast(fetchedBroadcast.getStreamId());
 
 
 		} catch (Exception e) {
@@ -1686,12 +1718,12 @@ public class RestServiceV2Test {
 
 
 			// delete broadcast
-			Result result = deleteBroadcast(broadcastFetched.getStreamId());
+			Result result = callDeleteBroadcast(broadcastFetched.getStreamId());
 			assertNotNull(result);
 			assertTrue(result.isSuccess());
 
 			//delete again
-			Result result2 = deleteBroadcast(broadcastFetched.getStreamId());
+			Result result2 = callDeleteBroadcast(broadcastFetched.getStreamId());
 			assertNotNull(result2);
 			assertFalse(result2.isSuccess());
 
