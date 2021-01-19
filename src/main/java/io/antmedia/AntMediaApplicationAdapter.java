@@ -99,6 +99,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	public static final String LIVE_STREAM = "liveStream";
 	public static final String IP_CAMERA = "ipCamera";
 	public static final String STREAM_SOURCE = "streamSource";
+	public static final String PLAY_LIST = "playlist";
 	protected static final int END_POINT_LIMIT = 20;
 	public static final String FACEBOOK = "facebook";
 	public static final String PERISCOPE = "periscope";
@@ -138,6 +139,8 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	protected WebRTCAudioSendStats webRTCAudioSendStats = new WebRTCAudioSendStats();
 	
 	private IClusterNotifier clusterNotifier;
+	
+	protected boolean serverShuttingDown = false;
 
 	public boolean appStart(IScope app) {
 		setScope(app);
@@ -310,6 +313,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	public void closeBroadcast(String streamName) {
 
 		try {
+				logger.info("Closing broadcast stream id: {}", streamName);
 				getDataStore().updateStatus(streamName, BROADCAST_STATUS_FINISHED);
 				Broadcast broadcast = getDataStore().get(streamName);
 								
@@ -876,22 +880,34 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	}
 
 
-	public StreamFetcher startStreaming(Broadcast broadcast) {
+	public boolean startStreaming(Broadcast broadcast) 
+	{
+		boolean result = false;
 		if(broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA) ||
 				broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE))  {
-			return streamFetcherManager.startStreaming(broadcast);
+			result = streamFetcherManager.startStreaming(broadcast);
 		}
-		return null;
+		else if (broadcast.getType().equals(AntMediaApplicationAdapter.PLAY_LIST)) {
+			result = streamFetcherManager.startPlaylist(broadcast);
+			
+		}
+		return result;
 	}
 
-	public Result stopStreaming(Broadcast broadcast) {
-		Result result = new Result(false);
-		if(broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA) ||
+	public Result stopStreaming(Broadcast broadcast) 
+	{
+		boolean result = false;
+		
+		if (broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA) ||
 				broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE) ||
 						broadcast.getType().equals(AntMediaApplicationAdapter.VOD)) 
 		{
-			result = streamFetcherManager.stopStreaming(broadcast);
+			result = getStreamFetcherManager().stopStreaming(broadcast.getStreamId());
 		} 
+		else if (broadcast.getType().equals(AntMediaApplicationAdapter.PLAY_LIST)) 
+		{
+			result = getStreamFetcherManager().stopPlayList(broadcast.getStreamId());
+		}
 		else if (broadcast.getType().equals(AntMediaApplicationAdapter.LIVE_STREAM)) 
 		{
 			IBroadcastStream broadcastStream = getBroadcastStream(getScope(), broadcast.getStreamId());
@@ -905,10 +921,10 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 				else {
 					logger.warn("Connection is null. It should not happen for stream: {}. Analyze the logs", broadcast.getStreamId());
 				}
-				result.setSuccess(true);
+				result = true;
 			}
 		}
-		return result;
+		return new Result(result);
 	}
 
 	public IBroadcastStream getBroadcastStream(IScope scope, String name) {
@@ -940,7 +956,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 	public StreamFetcherManager getStreamFetcherManager() {
 		if(streamFetcherManager == null) {
-			streamFetcherManager = new StreamFetcherManager(vertx, getDataStore(), scope);
+			streamFetcherManager = new StreamFetcherManager(vertx, getDataStore(), getScope());
 		}
 		return streamFetcherManager;
 	}
@@ -1086,6 +1102,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	@Override
 	public void serverShuttingdown() {
 		logger.info("{} is closing streams", getScope().getName());
+		serverShuttingDown = true;
 		closeStreamFetchers();
 		closeRTMPStreams();
 		
@@ -1479,6 +1496,11 @@ public Result createInitializationProcess(String appName){
 	
 	public boolean doesWebRTCStreamExist(String streamId) {
 		return false;
+	}
+	
+	@Override
+	public boolean isServerShuttingDown() {
+		return serverShuttingDown;
 	}
 
 }
