@@ -550,7 +550,7 @@ public class BroadcastRestService extends RestServiceBase{
 	@Path("/{id}/jwtToken")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response getJwtTokenV2 (@ApiParam(value = "The id of the stream", required = true) @PathParam("id")String streamId,
-			@ApiParam(value = "The expire time of the token. It's in unix timestamp miliseconds.", required = true) @QueryParam("expireDate") long expireDate,
+			@ApiParam(value = "The expire time of the token. It's in unix timestamp seconds.", required = true) @QueryParam("expireDate") long expireDate,
 			@ApiParam(value = "Type of the JWT token. It may be play or publish ", required = true) @QueryParam("type") String type,
 			@ApiParam(value = "Room Id that token belongs to. It's not mandatory ", required = false) @QueryParam("roomId") String roomId) 
 	{

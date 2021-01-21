@@ -1200,8 +1200,9 @@ public class ConsoleAppRestServiceTest{
 			assertTrue(appSettings.isPlayJwtControlEnabled());
 			
 			//Test expire dates
-			long validExpireDate = System.currentTimeMillis() + 999999999; // add 20 seconds
-			long invalidExpireDate = System.currentTimeMillis() - 20000; // add 20 seconds
+			
+			long validExpireDate = Instant.now().getEpochSecond() + 20; // add 20 seconds
+			long invalidExpireDate = Instant.now().getEpochSecond() - 20; // add 20 seconds
 			
 			
 			Broadcast broadcast = RestServiceV2Test.callCreateRegularBroadcast();

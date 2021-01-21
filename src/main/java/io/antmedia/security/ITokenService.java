@@ -78,7 +78,7 @@ public interface ITokenService {
 	/**
 	 * creates token according to the provided parameters
 	 * @param streamId - id of the requested stream for token creation
-	 * @param exprireDate - expire date of the token
+	 * @param exprireDate - expire date of the token (unix timestamp)
 	 * @param type type of the token (play/publish)
 	 * @param roomId- id of the room for playing streams in the room
 	 * @return token
