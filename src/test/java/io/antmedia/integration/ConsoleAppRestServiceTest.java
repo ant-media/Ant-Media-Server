@@ -1275,8 +1275,8 @@ public class ConsoleAppRestServiceTest{
 					+ broadcast.getStreamId() + ".mp4?token=" + invalidAccessToken2.getTokenId(), false));
 
 
-			appSettings.setPublishTokenControlEnabled(false);
-			appSettings.setPlayTokenControlEnabled(false);
+			appSettings.setPlayJwtControlEnabled(false);
+			appSettings.setPublishJwtControlEnabled(false);
 			appSettings.setMp4MuxingEnabled(false);
 			
 			Result flag = callSetAppSettings(appName, appSettings);
