@@ -1166,7 +1166,7 @@ public class ConsoleAppRestServiceTest{
 	}
 	
 	@Test
-	public void testJWTTokenControl() {
+	public void testJWTStreamControl() {
 		Result enterpriseResult;
 		try {
 
@@ -1189,6 +1189,7 @@ public class ConsoleAppRestServiceTest{
 
 			appSettings.setPublishJwtControlEnabled(true);
 			appSettings.setPlayJwtControlEnabled(true);
+			appSettings.setJwtStreamSecretKey("testtesttesttesttesttesttesttest");
 			appSettings.setMp4MuxingEnabled(true);
 
 
@@ -1276,6 +1277,7 @@ public class ConsoleAppRestServiceTest{
 
 			appSettings.setPublishTokenControlEnabled(false);
 			appSettings.setPlayTokenControlEnabled(false);
+			appSettings.setMp4MuxingEnabled(false);
 			
 			Result flag = callSetAppSettings(appName, appSettings);
 			assertTrue(flag.isSuccess());
