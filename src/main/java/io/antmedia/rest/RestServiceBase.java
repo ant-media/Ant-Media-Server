@@ -27,6 +27,7 @@ import javax.annotation.Nullable;
 import javax.servlet.ServletContext;
 import javax.ws.rs.core.Context;
 
+import io.antmedia.muxer.RecordMuxer;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -1266,7 +1267,7 @@ public abstract class RestServiceBase {
 
 					String relativePath = subDirs[pathLength-2]+ File.separator +subDirs[pathLength-1];
 
-					VoD newVod = new VoD(fileName, "file", relativePath, fileName, unixTime, 0, fileSize,
+					VoD newVod = new VoD(fileName, "file", relativePath, fileName, unixTime, RecordMuxer.getDurationInMs(savedFile,fileName), fileSize,
 							VoD.UPLOADED_VOD, vodId);
 
 					id = getDataStore().addVod(newVod);
