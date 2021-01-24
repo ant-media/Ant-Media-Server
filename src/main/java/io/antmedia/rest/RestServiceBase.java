@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Enumeration;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.jar.Manifest;
@@ -46,6 +47,7 @@ import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointChannel;
@@ -302,6 +304,8 @@ public abstract class RestServiceBase {
 		}
 		broadcast.setOriginAdress(serverSettings.getHostAddress());
 		broadcast.setAbsoluteStartTimeMs(absoluteStartTimeMs);
+		
+		removeEmptyPlayListItems(broadcast);
 
 		if (fqdn != null && fqdn.length() >= 0) {
 			broadcast.setRtmpURL("rtmp://" + fqdn + "/" + scopeName + "/");
@@ -417,7 +421,10 @@ public abstract class RestServiceBase {
 	}
 
 	protected Result updateBroadcast(String streamId, Broadcast broadcast, String socialNetworksToPublish) {
-
+		
+		
+		removeEmptyPlayListItems(broadcast);
+	
 		boolean result = getDataStore().updateBroadcastFields(streamId, broadcast);
 		StringBuilder message = new StringBuilder();
 		int errorId = 0;
@@ -443,6 +450,19 @@ public abstract class RestServiceBase {
 			message.append(" endpoint cannot be added");
 		}
 		return new Result(result, message.toString(), errorId);
+	}
+
+	private static void removeEmptyPlayListItems(Broadcast broadcast) {
+		List<PlayListItem> playListItemList = broadcast.getPlayListItemList();
+		if (playListItemList != null) {
+			Iterator<PlayListItem> iterator = playListItemList.iterator();
+			while (iterator.hasNext()) {
+				PlayListItem listItem = iterator.next();
+				if (listItem.getStreamUrl() == null || listItem.getStreamUrl().isEmpty()) {
+					iterator.remove();
+				}
+			}
+		}
 	}
 
 	/**
@@ -1576,12 +1596,13 @@ public abstract class RestServiceBase {
 
 	
 	protected Result getCameraErrorById(String streamId) {
-		Result result = new Result(true);
+		Result result = new Result(false);
 
 		for (StreamFetcher camScheduler : getApplication().getStreamFetcherManager().getStreamFetcherList()) 
 		{
 			if (camScheduler.getStreamId().equals(streamId)) {
 				result = camScheduler.getCameraError();
+				break;
 			}
 		}
 

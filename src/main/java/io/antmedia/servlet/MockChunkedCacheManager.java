@@ -1,5 +1,7 @@
 package io.antmedia.servlet;
 
+import io.antmedia.servlet.cmafutils.ICMAFChunkListener;
+
 public class MockChunkedCacheManager implements IChunkedCacheManager {
 
 	@Override
@@ -16,15 +18,19 @@ public class MockChunkedCacheManager implements IChunkedCacheManager {
 	public void append(String key, byte[] data) {
 		// no need to implement
 	}
-
+	
 	@Override
-	public byte[] getCache(String key, int index) {
-		return null;
+	public boolean hasCache(String key) {
+		return false;
 	}
 
 	@Override
-	public int size(String key) {
-		return 0;
+	public void registerChunkListener(String key, ICMAFChunkListener icmafChunkListener) {
+		// no need to implement
 	}
-
+	
+	@Override
+	public void removeChunkListener(String key, ICMAFChunkListener icmafChunkListener) {
+		// no need to implement
+	}
 }
