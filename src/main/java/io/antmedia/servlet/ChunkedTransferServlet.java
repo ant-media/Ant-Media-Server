@@ -7,11 +7,8 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.servlet.AsyncContext;
-import javax.servlet.AsyncEvent;
-import javax.servlet.AsyncListener;
 import javax.servlet.ServletException;
 import javax.servlet.ServletInputStream;
 import javax.servlet.ServletOutputStream;
@@ -20,25 +17,23 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.catalina.connector.ClientAbortException;
-import org.apache.catalina.connector.CoyoteOutputStream;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
 import org.springframework.web.context.WebApplicationContext;
 
-import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.servlet.cmafutils.AtomParser;
-import io.antmedia.servlet.cmafutils.ICMAFChunkListener;
 import io.antmedia.servlet.cmafutils.AtomParser.MockAtomParser;
+import io.antmedia.servlet.cmafutils.ICMAFChunkListener;
 import io.antmedia.servlet.cmafutils.IParser;
-import io.vertx.core.Handler;
-import io.vertx.core.Vertx;
 
 
 public class ChunkedTransferServlet extends HttpServlet {
 
 
+	private static final String STREAMS = "/streams";
+	private static final String WEBAPPS = "webapps";
 	protected static Logger logger = LoggerFactory.getLogger(ChunkedTransferServlet.class);
 
 	@Override
@@ -51,62 +46,80 @@ public class ChunkedTransferServlet extends HttpServlet {
 		{
 			String applicationName = appContext.getApplicationName();
 
-			String filepath = "webapps" + applicationName + "/streams" + req.getPathInfo();
+			String filepath = WEBAPPS + applicationName + STREAMS + req.getPathInfo();
 
 			File finalFile = new File(filepath);
 
 			String tmpFilepath = filepath + ".tmp"; 
 			File tmpFile = new File(tmpFilepath);
 
-			IChunkedCacheManager cacheManager = (IChunkedCacheManager) appContext.getBean(IChunkedCacheManager.BEAN_NAME);
+			File streamsDir = new File(WEBAPPS + applicationName + STREAMS);
+			File firstParent = finalFile.getParentFile();
+			File grandParent = firstParent.getParentFile();
 
-			logger.trace("doPut key:{}", finalFile.getAbsolutePath());
-
-			cacheManager.addCache(finalFile.getAbsolutePath());
-
-
-
-			IParser atomparser;
-
-			if (filepath.endsWith(".mpd")) 
+			if (firstParent.equals(streamsDir) || grandParent.equals(streamsDir)) 
 			{
-				//don't parse atom for mpd files because they are text files
+				int secondSlashIndex = req.getPathInfo().indexOf('/', 1);
+				if (secondSlashIndex != -1) {
+					String subDirName = req.getPathInfo().substring(0, secondSlashIndex);
+					
+					File subDir = new File( WEBAPPS + applicationName + STREAMS + subDirName);
+					if (!subDir.exists()) {
+						subDir.mkdir();
+					}
+				}
+				
+				IChunkedCacheManager cacheManager = (IChunkedCacheManager) appContext.getBean(IChunkedCacheManager.BEAN_NAME);
 
-				atomparser = new MockAtomParser();
+				logger.trace("doPut key:{}", finalFile.getAbsolutePath());
+
+				cacheManager.addCache(finalFile.getAbsolutePath());
+
+				IParser atomparser;
+
+				if (filepath.endsWith(".mpd") || filepath.endsWith(".m3u8")) 
+				{
+					//don't parse atom for mpd files because they are text files
+					atomparser = new MockAtomParser();
+				}
+				else {
+					atomparser = new AtomParser(completeChunk -> 
+					cacheManager.append(finalFile.getAbsolutePath(), completeChunk)
+							);
+				}
+
+				AsyncContext asyncContext = req.startAsync();
+
+				asyncContext.start(() -> 
+				{
+					try (FileOutputStream fos = new FileOutputStream(tmpFile)) {
+						byte[] data = new byte[2048];
+						int length = 0;
+
+						ServletInputStream inputStream  = asyncContext.getRequest().getInputStream();
+						while ((length = inputStream.read(data, 0, data.length)) > 0) 
+						{
+							atomparser.parse(data, 0, length);
+							fos.write(data, 0, length);
+						}
+
+						Files.move(tmpFile.toPath(), finalFile.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+						asyncContext.complete();
+					}
+					catch (IOException e) 
+					{
+						logger.error(ExceptionUtils.getStackTrace(e));
+					}
+					finally {
+						cacheManager.removeCache(finalFile.getAbsolutePath());
+					}
+					logger.trace("doPut done key:{}", finalFile.getAbsolutePath());
+
+				});
 			}
 			else {
-				atomparser = new AtomParser(completeChunk -> 
-				cacheManager.append(finalFile.getAbsolutePath(), completeChunk)
-						);
+				logger.info("AppContext is not running for write request to {}", req.getRequestURI());
 			}
-
-			AsyncContext asyncContext = req.startAsync();
-
-			asyncContext.start(() -> {
-				try (FileOutputStream fos = new FileOutputStream(tmpFile)) {
-					byte[] data = new byte[2048];
-					int length = 0;
-					
-					ServletInputStream inputStream  = asyncContext.getRequest().getInputStream();
-					while ((length = inputStream.read(data, 0, data.length)) > 0) 
-					{
-						atomparser.parse(data, 0, length);
-						fos.write(data, 0, length);
-					}
-
-					Files.move(tmpFile.toPath(), finalFile.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
-					asyncContext.complete();
-				}
-				catch (IOException e) 
-				{
-					logger.error(ExceptionUtils.getStackTrace(e));
-				}
-				finally {
-					cacheManager.removeCache(finalFile.getAbsolutePath());
-				}
-				logger.trace("doPut done key:{}", finalFile.getAbsolutePath());
-
-			});
 
 		}
 		else 
@@ -124,23 +137,38 @@ public class ChunkedTransferServlet extends HttpServlet {
 		if (appContext != null && appContext.isRunning()) 
 		{
 			String applicationName = appContext.getApplicationName();
-			String filepath = "webapps" + applicationName + "/streams" + req.getPathInfo();
+			String filepath = WEBAPPS + applicationName + STREAMS + req.getPathInfo();
 
 			File file = new File(filepath);
 
 
-			File streamsDir = new File("webapps" + applicationName + "/streams");
+			File streamsDir = new File(WEBAPPS + applicationName + STREAMS);
 
-			if (file.exists()) {
-
+			if (file.exists()) 
+			{
 				//make sure streamsDir is parent of file
 				File firstParent = file.getParentFile();
 				File grandParent = firstParent.getParentFile();
 
-				if (firstParent.equals(streamsDir) || grandParent.equals(streamsDir)) {
-					Files.delete(file.toPath());
+				if (firstParent.equals(streamsDir) || grandParent.equals(streamsDir)) 
+				{
+					Files.deleteIfExists(file.toPath());
+					
+					//delete the subdirectory if there is no file inside
+					int secondSlashIndex = req.getPathInfo().indexOf('/', 1);
+					if (secondSlashIndex != -1) 
+					{
+						String subDirName = req.getPathInfo().substring(0, req.getPathInfo().indexOf('/', 1));
+						File subDir = new File( WEBAPPS + applicationName + STREAMS + subDirName);
+						if (subDir.exists() && subDir.isDirectory() && subDir.getParentFile().equals(streamsDir) && subDir.list().length == 0) 
+						{
+							Files.deleteIfExists(subDir.toPath());
+						}
+					}
+					
 				}
-				else {
+				else 
+				{
 					logger.error("Parent or grant parent is not streams directory for DELETE operation {}", filepath);
 					resp.sendError(HttpServletResponse.SC_CONFLICT);
 				}
@@ -166,7 +194,7 @@ public class ChunkedTransferServlet extends HttpServlet {
 
 			if (file.exists()) 
 			{
-				logger.info("File exists: {}", file.getAbsolutePath());
+				logger.trace("File exists: {}", file.getAbsolutePath());
 
 				AsyncContext asyncContext = req.startAsync();
 
@@ -202,38 +230,38 @@ public class ChunkedTransferServlet extends HttpServlet {
 				if (cacheAvailable ) {
 
 					AsyncContext asyncContext = req.startAsync();
-					
-					
+
+
 					cacheManager.registerChunkListener(file.getAbsolutePath(), new ICMAFChunkListener() {
 
 						@Override
 						public void chunkCompleted(byte[] completeChunk) 
 						{			
-							
-								if (completeChunk != null) 
-								{
-									try {
-										ServletOutputStream oStream = asyncContext.getResponse().getOutputStream();
-										oStream.write(completeChunk);
-										oStream.flush();
-									}
-									catch (ClientAbortException e) {
-										logger.warn("Client aborted - Removing chunklistener this client for file: {}", file.getAbsolutePath());
-										cacheManager.removeChunkListener(file.getAbsolutePath(), this);									
-									}
-									catch (Exception e) {
-										logger.error(ExceptionUtils.getStackTrace(e));
-										
-									}
+
+							if (completeChunk != null) 
+							{
+								try {
+									ServletOutputStream oStream = asyncContext.getResponse().getOutputStream();
+									oStream.write(completeChunk);
+									oStream.flush();
 								}
-								else 
-								{
-									logger.info("context is completed for {}", file.getAbsolutePath());
-									//if it's null, it means related cache is finished
-									
-									asyncContext.complete();
+								catch (ClientAbortException e) {
+									logger.warn("Client aborted - Removing chunklistener this client for file: {}", file.getAbsolutePath());
+									cacheManager.removeChunkListener(file.getAbsolutePath(), this);									
 								}
-							
+								catch (Exception e) {
+									logger.error(ExceptionUtils.getStackTrace(e));
+
+								}
+							}
+							else 
+							{
+								logger.debug("context is completed for {}", file.getAbsolutePath());
+								//if it's null, it means related cache is finished
+
+								asyncContext.complete();
+							}
+
 
 						}
 					});
