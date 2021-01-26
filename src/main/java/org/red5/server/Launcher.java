@@ -54,7 +54,7 @@ public class Launcher {
 	private static String implementationVersion;
 	private static String versionType = null;  //community or enterprise
 	
-	public static final String instanceFile = System.getProperty("java.io.tmpdir") + File.separator + ".amsinstance";
+	public static final String INSTANCE_STARTED_FILE = System.getProperty("java.io.tmpdir") + File.separator + ".amsinstance";
 
 	/**
 	 * Launch Red5 under it's own classloader
@@ -138,7 +138,7 @@ public class Launcher {
 			else {
 				instanceId =  UUID.randomUUID().toString();
 				writeToFile(idFile.getAbsolutePath(), instanceId);
-				writeToFile(instanceFile, instanceId);
+				writeToFile(INSTANCE_STARTED_FILE, instanceId);
 			}
 		}
 		return instanceId;
