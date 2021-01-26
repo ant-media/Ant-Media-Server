@@ -44,7 +44,6 @@ public class StreamFetcher {
 	private static final String STREAM_TYPE_VOD = "VoD";
 
 	protected static Logger logger = LoggerFactory.getLogger(StreamFetcher.class);
-	//private Broadcast stream;
 	private WorkerThread thread;
 	/**
 	 * Connection setup timeout value

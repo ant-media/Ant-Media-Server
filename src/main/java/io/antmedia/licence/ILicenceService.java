@@ -50,8 +50,13 @@ public interface ILicenceService {
 	 */
 	public Licence getLastLicenseStatus();
 	
-	
-	
+	/**
+	 * Returns if license is blocked
+	 * 
+	 * @return true if license is blocked
+	 *         false if license can be used
+	 */
+	public boolean isLicenceSuspended();
 	
 
 }

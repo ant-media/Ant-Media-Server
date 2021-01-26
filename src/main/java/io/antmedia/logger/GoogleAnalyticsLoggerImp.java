@@ -19,15 +19,8 @@ class GoogleAnalyticsLoggerImp implements GoogleAnalyticsLogger {
     
     GoogleAnalytics googleAnalytics;
 
-    public GoogleAnalyticsLoggerImp(String path) {
-        File idFile = new File(path);
-        instanceId = null;
-        if (idFile.exists()) {
-            instanceId = LoggerUtils.getFileContent(idFile.getAbsolutePath());
-        } else {
-            instanceId = UUID.randomUUID().toString();
-            LoggerUtils.writeToFile(idFile.getAbsolutePath(), instanceId);
-        }
+    public GoogleAnalyticsLoggerImp(String instanceId) {
+       this.instanceId = instanceId;
     }
 
     @Override

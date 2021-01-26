@@ -370,4 +370,9 @@ public class WebSocketConstants {
 	 */
 	public static final String SERVER_ERROR_CHECK_LOGS = "server_error_check_logs";
 
+	/**
+	 * It's send when license is suspended
+	 */
+	public static final Object LICENCE_SUSPENDED = "license_suspended_please_renew_license";
+
 }
