@@ -2166,7 +2166,7 @@ public class BroadcastRestServiceV2UnitTest {
 		assertEquals(-3, result.getErrorId());
 		
 		Result cameraErrorV2 = streamSourceRest.getCameraErrorV2(newCam.getStreamId());
-		assertTrue(cameraErrorV2.isSuccess());
+		assertFalse(cameraErrorV2.isSuccess());
 
 		//define CPU load below limit
 		int cpuLoad2 = 70;
