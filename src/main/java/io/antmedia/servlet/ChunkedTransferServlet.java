@@ -144,6 +144,7 @@ public class ChunkedTransferServlet extends HttpServlet {
 
 			File streamsDir = new File(WEBAPPS + applicationName + STREAMS);
 
+			logger.debug("doDelete for file: {}", file.getAbsolutePath());
 			if (file.exists()) 
 			{
 				//make sure streamsDir is parent of file
