@@ -226,6 +226,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			webRTCAdaptor.setPacketLossDiffThresholdForSwitchback(appSettings.getPacketLossDiffThresholdForSwitchback());
 			webRTCAdaptor.setRttMeasurementDiffThresholdForSwitchback(appSettings.getRttMeasurementDiffThresholdForSwitchback());
 		}
+		logger.info("{} started", app.getName());
 
 		return true;
 	}
@@ -885,10 +886,10 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		boolean result = false;
 		if(broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA) ||
 				broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE))  {
-			result = streamFetcherManager.startStreaming(broadcast);
+			result = getStreamFetcherManager().startStreaming(broadcast);
 		}
 		else if (broadcast.getType().equals(AntMediaApplicationAdapter.PLAY_LIST)) {
-			result = streamFetcherManager.startPlaylist(broadcast);
+			result = getStreamFetcherManager().startPlaylist(broadcast);
 			
 		}
 		return result;
