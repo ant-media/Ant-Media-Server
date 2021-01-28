@@ -20,6 +20,7 @@ import org.apache.catalina.connector.ClientAbortException;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeansException;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
 import org.springframework.web.context.WebApplicationContext;
 
@@ -62,60 +63,66 @@ public class ChunkedTransferServlet extends HttpServlet {
 				int secondSlashIndex = req.getPathInfo().indexOf('/', 1);
 				if (secondSlashIndex != -1) {
 					String subDirName = req.getPathInfo().substring(0, secondSlashIndex);
-					
+
 					File subDir = new File( WEBAPPS + applicationName + STREAMS + subDirName);
 					if (!subDir.exists()) {
 						subDir.mkdir();
 					}
 				}
-				
-				IChunkedCacheManager cacheManager = (IChunkedCacheManager) appContext.getBean(IChunkedCacheManager.BEAN_NAME);
 
-				logger.trace("doPut key:{}", finalFile.getAbsolutePath());
+				try {
+					IChunkedCacheManager cacheManager = (IChunkedCacheManager) appContext.getBean(IChunkedCacheManager.BEAN_NAME);
+					logger.trace("doPut key:{}", finalFile.getAbsolutePath());
 
-				cacheManager.addCache(finalFile.getAbsolutePath());
+					cacheManager.addCache(finalFile.getAbsolutePath());
+					IParser atomparser;
 
-				IParser atomparser;
-
-				if (filepath.endsWith(".mpd") || filepath.endsWith(".m3u8")) 
-				{
-					//don't parse atom for mpd files because they are text files
-					atomparser = new MockAtomParser();
-				}
-				else {
-					atomparser = new AtomParser(completeChunk -> 
-					cacheManager.append(finalFile.getAbsolutePath(), completeChunk)
-							);
-				}
-
-				AsyncContext asyncContext = req.startAsync();
-
-				asyncContext.start(() -> 
-				{
-					try (FileOutputStream fos = new FileOutputStream(tmpFile)) {
-						byte[] data = new byte[2048];
-						int length = 0;
-
-						ServletInputStream inputStream  = asyncContext.getRequest().getInputStream();
-						while ((length = inputStream.read(data, 0, data.length)) > 0) 
-						{
-							atomparser.parse(data, 0, length);
-							fos.write(data, 0, length);
-						}
-
-						Files.move(tmpFile.toPath(), finalFile.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
-						asyncContext.complete();
-					}
-					catch (IOException e) 
+					if (filepath.endsWith(".mpd") || filepath.endsWith(".m3u8")) 
 					{
-						logger.error(ExceptionUtils.getStackTrace(e));
+						//don't parse atom for mpd files because they are text files
+						atomparser = new MockAtomParser();
 					}
-					finally {
-						cacheManager.removeCache(finalFile.getAbsolutePath());
+					else {
+						atomparser = new AtomParser(completeChunk -> 
+						cacheManager.append(finalFile.getAbsolutePath(), completeChunk)
+								);
 					}
-					logger.trace("doPut done key:{}", finalFile.getAbsolutePath());
 
-				});
+					AsyncContext asyncContext = req.startAsync();
+
+					asyncContext.start(() -> 
+					{
+						try (FileOutputStream fos = new FileOutputStream(tmpFile)) {
+							byte[] data = new byte[2048];
+							int length = 0;
+
+							ServletInputStream inputStream  = asyncContext.getRequest().getInputStream();
+							while ((length = inputStream.read(data, 0, data.length)) > 0) 
+							{
+								atomparser.parse(data, 0, length);
+								fos.write(data, 0, length);
+							}
+
+							Files.move(tmpFile.toPath(), finalFile.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+							asyncContext.complete();
+						}
+						catch (IOException e) 
+						{
+							logger.error(ExceptionUtils.getStackTrace(e));
+						}
+						finally {
+							cacheManager.removeCache(finalFile.getAbsolutePath());
+						}
+						logger.trace("doPut done key:{}", finalFile.getAbsolutePath());
+
+					});
+				}
+				catch (BeansException | IllegalStateException e) 
+				{
+					logger.error(ExceptionUtils.getStackTrace(e));
+					writeInternalError(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, null);
+				}
+
 			}
 			else {
 				logger.info("AppContext is not running for write request to {}", req.getRequestURI());
@@ -125,7 +132,8 @@ public class ChunkedTransferServlet extends HttpServlet {
 		else 
 		{
 			logger.info("AppContext is not running for write request to {}", req.getRequestURI());
-			writeInternalError(req, resp);
+			writeInternalError(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Server is not ready. It's likely starting. Please try a few seconds later. ");
+			
 		}
 
 	}
@@ -154,7 +162,7 @@ public class ChunkedTransferServlet extends HttpServlet {
 				if (firstParent.equals(streamsDir) || grandParent.equals(streamsDir)) 
 				{
 					Files.deleteIfExists(file.toPath());
-					
+
 					//delete the subdirectory if there is no file inside
 					int secondSlashIndex = req.getPathInfo().indexOf('/', 1);
 					if (secondSlashIndex != -1) 
@@ -166,12 +174,12 @@ public class ChunkedTransferServlet extends HttpServlet {
 							Files.deleteIfExists(subDir.toPath());
 						}
 					}
-					
+
 				}
 				else 
 				{
 					logger.error("Parent or grant parent is not streams directory for DELETE operation {}", filepath);
-					resp.sendError(HttpServletResponse.SC_CONFLICT);
+					writeInternalError(resp, HttpServletResponse.SC_CONFLICT, null);
 				}
 			}
 		}
@@ -197,97 +205,119 @@ public class ChunkedTransferServlet extends HttpServlet {
 			{
 				logger.trace("File exists: {}", file.getAbsolutePath());
 
-				AsyncContext asyncContext = req.startAsync();
+				try {
+					AsyncContext asyncContext = req.startAsync();
 
-				asyncContext.start(() -> 
-				{
-					try (FileInputStream fis = new FileInputStream(file)) {
-
-						int length = 0;
-						byte[] data = new byte[2048];
-						ServletOutputStream ostream = asyncContext.getResponse().getOutputStream();
-
-						while ((length = fis.read(data, 0, data.length)) > 0) {
-							ostream.write(data, 0, length);
-							ostream.flush();
-						}
-
-						asyncContext.complete();
-
-					} 
-					catch (IOException e) 
+					asyncContext.start(() -> 
 					{
-						logger.error(ExceptionUtils.getStackTrace(e));
-					}
-				});
+						try (FileInputStream fis = new FileInputStream(file)) {
 
+							int length = 0;
+							byte[] data = new byte[2048];
+							ServletOutputStream ostream = asyncContext.getResponse().getOutputStream();
+
+							while ((length = fis.read(data, 0, data.length)) > 0) {
+								ostream.write(data, 0, length);
+								ostream.flush();
+							}
+
+							asyncContext.complete();
+
+						} 
+						catch (IOException e) 
+						{
+							logger.error(ExceptionUtils.getStackTrace(e));
+						}
+					});
+				} 
+				catch (IllegalStateException e) 
+				{
+					logger.error(ExceptionUtils.getStackTrace(e));
+					writeInternalError(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, null);
+				}
 			}
 			else 
 			{
-				IChunkedCacheManager cacheManager = (IChunkedCacheManager) appContext.getBean(IChunkedCacheManager.BEAN_NAME);
+				try {
+					IChunkedCacheManager cacheManager = (IChunkedCacheManager) appContext.getBean(IChunkedCacheManager.BEAN_NAME);
 
-				boolean cacheAvailable = cacheManager.hasCache(file.getAbsolutePath());
+					boolean cacheAvailable = cacheManager.hasCache(file.getAbsolutePath());
 
-				if (cacheAvailable ) {
+					if (cacheAvailable ) {
 
-					AsyncContext asyncContext = req.startAsync();
+						AsyncContext asyncContext = req.startAsync();
 
 
-					cacheManager.registerChunkListener(file.getAbsolutePath(), new ICMAFChunkListener() {
+						cacheManager.registerChunkListener(file.getAbsolutePath(), new ICMAFChunkListener() {
 
-						@Override
-						public void chunkCompleted(byte[] completeChunk) 
-						{			
+							@Override
+							public void chunkCompleted(byte[] completeChunk) 
+							{			
 
-							if (completeChunk != null) 
-							{
-								try {
-									ServletOutputStream oStream = asyncContext.getResponse().getOutputStream();
-									oStream.write(completeChunk);
-									oStream.flush();
+								if (completeChunk != null) 
+								{
+									try {
+										ServletOutputStream oStream = asyncContext.getResponse().getOutputStream();
+										oStream.write(completeChunk);
+										oStream.flush();
+									}
+									catch (ClientAbortException e) {
+										logger.warn("Client aborted - Removing chunklistener this client for file: {}", file.getAbsolutePath());
+										cacheManager.removeChunkListener(file.getAbsolutePath(), this);									
+									}
+									catch (Exception e) {
+										logger.error(ExceptionUtils.getStackTrace(e));
+
+									}
 								}
-								catch (ClientAbortException e) {
-									logger.warn("Client aborted - Removing chunklistener this client for file: {}", file.getAbsolutePath());
-									cacheManager.removeChunkListener(file.getAbsolutePath(), this);									
-								}
-								catch (Exception e) {
-									logger.error(ExceptionUtils.getStackTrace(e));
+								else 
+								{
+									logger.debug("context is completed for {}", file.getAbsolutePath());
+									//if it's null, it means related cache is finished
 
+									asyncContext.complete();
 								}
+
+
 							}
-							else 
-							{
-								logger.debug("context is completed for {}", file.getAbsolutePath());
-								//if it's null, it means related cache is finished
+						});
 
-								asyncContext.complete();
-							}
-
-
-						}
-					});
-
+					}
+					else {
+						logger.debug("Sending not found error(404) for {}", file.getAbsolutePath());
+						writeInternalError(resp, HttpServletResponse.SC_NOT_FOUND, null);
+						
+					}
 				}
-				else {
-					logger.debug("Sending not found error(404) for {}", file.getAbsolutePath());
-					resp.sendError(HttpServletResponse.SC_NOT_FOUND);
-				}	
+				catch (BeansException | IllegalStateException e) 
+				{
+					logger.error(ExceptionUtils.getStackTrace(e));
+					writeInternalError(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, null);
+				}
 
 			}
 		}
 		else 
 		{
 			logger.info("AppContext is not running for get request {}", req.getRequestURI());
-			writeInternalError(req, resp);
+			writeInternalError(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Server is not ready. It's likely starting. Please try a few seconds later. ");
 		}
 	}
 
-	private void writeInternalError(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-
-		resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-		PrintWriter writer = resp.getWriter();
-		writer.print("Server is not ready. It's likely starting. Please try a few seconds later. ");
-		writer.close();
+	private void writeInternalError(HttpServletResponse resp, int status, String message) {
+	
+		try {
+			resp.setStatus(status);
+			PrintWriter writer;
+			writer = resp.getWriter();
+			if (message != null) {
+				writer.print(message);
+			}
+			writer.close();
+		} catch (IOException e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+		}
+		
 	}
 
 
