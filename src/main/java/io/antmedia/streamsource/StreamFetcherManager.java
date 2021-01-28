@@ -107,8 +107,9 @@ public class StreamFetcherManager {
 
 	}
 
-	public void startStreamScheduler(StreamFetcher streamScheduler) {
+	public boolean startStreamScheduler(StreamFetcher streamScheduler) {
 
+		boolean result = false;
 		if (!licenseService.isLicenceSuspended()) {
 			streamScheduler.startStream();
 	
@@ -119,10 +120,12 @@ public class StreamFetcherManager {
 			if (streamFetcherScheduleJobName == -1) {
 				scheduleStreamFetcherJob();
 			}
+			result = true;
 		}
 		else {
 			logger.error("License is suspend and new stream scheduler is not started {}", streamScheduler.getStreamUrl());
 		}
+		return result;
 
 	}
 
@@ -136,21 +139,22 @@ public class StreamFetcherManager {
 
 		StreamFetcher streamScheduler = null;
 
+		boolean result = false;
 		if (!alreadyFetching) {
 
 			try {
 				streamScheduler = make(broadcast, scope, vertx);
 				streamScheduler.setRestartStream(restartStreamAutomatically);
 
-				startStreamScheduler(streamScheduler);
+				result = startStreamScheduler(streamScheduler);
 			}
 			catch (Exception e) {
 				streamScheduler = null;
-				logger.error(e.getMessage());
+				logger.error(ExceptionUtils.getStackTrace(e));
 			}
 		}
 
-		return streamScheduler != null;
+		return result;
 	}
 
 	public boolean stopStreaming(String streamId) 

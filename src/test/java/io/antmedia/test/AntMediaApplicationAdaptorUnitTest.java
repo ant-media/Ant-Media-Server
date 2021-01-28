@@ -43,9 +43,11 @@ import org.mockito.Mockito;
 import org.red5.server.api.IContext;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.stream.ClientBroadcastStream;
+import org.springframework.context.ApplicationContext;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
+import io.antmedia.IApplicationAdaptorFactory;
 import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.cluster.IClusterStore;
 import io.antmedia.datastore.db.DataStore;
@@ -54,6 +56,7 @@ import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.integration.AppFunctionalV2Test;
+import io.antmedia.licence.ILicenceService;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.rest.model.Result;
 import io.antmedia.security.AcceptOnlyStreamsInDataStore;
@@ -1050,6 +1053,67 @@ public class AntMediaApplicationAdaptorUnitTest {
 		
 		assertEquals(1,  broadcastListCaptor.getValue().size());
 		assertEquals(broadcast,  broadcastListCaptor.getValue().get(0));
+	}
+	
+	@Test
+	public void testStartStreaming() {
+		IScope scope = mock(IScope.class);
+		when(scope.getName()).thenReturn("junit");
+		
+		DataStore dataStore = new InMemoryDataStore("dbname");
+		DataStoreFactory dsf = Mockito.mock(DataStoreFactory.class);
+		Mockito.when(dsf.getDataStore()).thenReturn(dataStore);
+		
+		AntMediaApplicationAdapter spyAdapter = Mockito.spy(adapter);
+		IContext context = mock(IContext.class);
+		when(context.getBean(spyAdapter.VERTX_BEAN_NAME)).thenReturn(vertx);
+		
+		
+		ApplicationContext appContext = Mockito.mock(ApplicationContext.class);
+		when(context.getApplicationContext()).thenReturn(appContext);
+		
+		
+		IApplicationAdaptorFactory appFactor = Mockito.mock(IApplicationAdaptorFactory.class);
+		when(appFactor.getAppAdaptor()).thenReturn(spyAdapter);
+		when(appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(appFactor);
+		
+		when(appContext.getBean(AppSettings.BEAN_NAME)).thenReturn(new AppSettings());
+		
+		when(scope.getContext()).thenReturn(context);
+		spyAdapter.setDataStoreFactory(dsf);
+		
+		Mockito.doReturn(dataStore).when(spyAdapter).getDataStore();
+		spyAdapter.setScope(scope);
+		
+		ILicenceService licenseService = Mockito.mock(ILicenceService.class);
+		Mockito.when(context.getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString())).thenReturn(licenseService);
+		when(licenseService.isLicenceSuspended()).thenReturn(false);
+				
+		
+		
+		Broadcast broadcast = new Broadcast();
+		broadcast.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
+		broadcast.setStreamUrl("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4");
+		dataStore.save(broadcast);
+
+		boolean startStreaming = spyAdapter.startStreaming(broadcast);
+		assertTrue(startStreaming);
+		assertTrue(spyAdapter.getStreamFetcherManager().isStreamRunning(broadcast.getStreamId()));
+		
+		StreamFetcher streamFetcher = spyAdapter.getStreamFetcherManager().getStreamFetcher(broadcast.getStreamId());
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> streamFetcher.isThreadActive());
+		
+		spyAdapter.getStreamFetcherManager().stopStreaming(broadcast.getStreamId());
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> !streamFetcher.isThreadActive());
+		
+		
+		
+		when(licenseService.isLicenceSuspended()).thenReturn(true);
+		startStreaming = spyAdapter.startStreaming(broadcast);
+		assertFalse(startStreaming);
+		
+		
+		
 	}
 	
 	@Test
