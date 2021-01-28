@@ -822,6 +822,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 				return new File(mp4File).exists();
 			});
 			
+			Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> !fetcher.isThreadActive());
 
 			assertFalse(fetcher.isThreadActive());
 
