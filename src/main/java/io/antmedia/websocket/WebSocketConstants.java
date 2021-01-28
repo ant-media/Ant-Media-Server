@@ -373,6 +373,6 @@ public class WebSocketConstants {
 	/**
 	 * It's send when license is suspended
 	 */
-	public static final Object LICENCE_SUSPENDED = "license_suspended_please_renew_license";
+	public static final String LICENCE_SUSPENDED = "license_suspended_please_renew_license";
 
 }

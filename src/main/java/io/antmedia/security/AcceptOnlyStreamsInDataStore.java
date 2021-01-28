@@ -2,6 +2,7 @@ package io.antmedia.security;
 
 import java.util.Map;
 
+import org.red5.server.api.IConnection;
 import org.red5.server.api.Red5;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IStreamPublishSecurity;
@@ -61,7 +62,14 @@ public class AcceptOnlyStreamsInDataStore implements IStreamPublishSecurity  {
 		
 		
 		if (!result) {
-			Red5.getConnectionLocal().close();
+			IConnection connectionLocal = Red5.getConnectionLocal();
+			if (connectionLocal != null) {
+				connectionLocal.close();
+			}
+			else {
+				logger.warn("Connection object is null for {}", name);
+			}
+			
 		}
 		
 		

@@ -1,55 +1,402 @@
 package io.antmedia.test.servlet;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.junit.Test;
+import javax.servlet.AsyncContext;
+import javax.servlet.ServletContext;
+import javax.servlet.ServletInputStream;
+import javax.servlet.ServletOutputStream;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
+import org.apache.catalina.connector.ClientAbortException;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Mockito;
+import org.springframework.web.context.ConfigurableWebApplicationContext;
+import org.springframework.web.context.WebApplicationContext;
+
+import com.google.common.io.Files;
+
+import io.antmedia.servlet.ChunkedTransferServlet;
+import io.antmedia.servlet.ChunkedTransferServlet.ChunkListener;
+import io.antmedia.servlet.IChunkedCacheManager;
+import io.antmedia.servlet.MockChunkedCacheManager;
 import io.antmedia.servlet.cmafutils.AtomParser;
 import io.antmedia.servlet.cmafutils.ICMAFChunkListener;
 
 public class ChunkedTransferServletTest {
+
+
+	@Before
+	public void before() {
+		File streamsDir = new File(ChunkedTransferServlet.WEBAPPS + "/junit" + ChunkedTransferServlet.STREAMS);
+		streamsDir.mkdirs();
+	}
+	
+	@After
+	public void after() {
+		
+	}
+
+	@Test
+	public void testHandleStream() {
+
+		try {
+			ChunkedTransferServlet servlet = new ChunkedTransferServlet();
+
+
+			HttpServletRequest req = Mockito.mock(HttpServletRequest.class);
+			HttpServletResponse resp = Mockito.mock(HttpServletResponse.class);
+
+			ServletContext servletContext = Mockito.mock(ServletContext.class);
+			Mockito.when(req.getServletContext()).thenReturn(servletContext);
+			Mockito.when(req.getPathInfo()).thenReturn("/stream" + (int)(Math.random()*10000));
+
+			ConfigurableWebApplicationContext appContext = Mockito.mock(ConfigurableWebApplicationContext.class);
+			Mockito.when(servletContext.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE)).thenReturn(appContext);
+			Mockito.when(appContext.getApplicationName()).thenReturn("/junit");
+			
+			IChunkedCacheManager cacheManager = Mockito.mock(IChunkedCacheManager.class);
+			Mockito.when(appContext.getBean(IChunkedCacheManager.BEAN_NAME)).thenReturn(cacheManager);
+			
+			AsyncContext asyncContext = Mockito.mock(AsyncContext.class);
+			Mockito.when(req.startAsync()).thenReturn(asyncContext);
+			
+			
+			Mockito.when(appContext.isRunning()).thenReturn(false);
+			Mockito.when(resp.getWriter()).thenReturn(Mockito.mock(PrintWriter.class));
+			servlet.handleStream(req, resp);
+			Mockito.verify(resp).setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+
+			
+			Mockito.when(asyncContext.getRequest()).thenReturn(req);
+			Mockito.when(req.getInputStream()).thenReturn(Mockito.mock(ServletInputStream.class));
+			
+			Mockito.when(appContext.isRunning()).thenReturn(true);
+			servlet.handleStream(req, resp);
+			Mockito.verify(asyncContext).start(Mockito.any());
+			
+			Mockito.when(req.getPathInfo()).thenReturn("/stream" + (int)(Math.random()*10000) + ".mpd");
+			servlet.handleStream(req, resp);
+			Mockito.verify(asyncContext, Mockito.times(2)).start(Mockito.any());
+			
+			
+			//no slash
+			Mockito.when(req.getPathInfo()).thenReturn("stream" + (int)(Math.random()*10000));
+			servlet.handleStream(req, resp);
+			//it should 2 again
+			Mockito.verify(asyncContext, Mockito.times(2)).start(Mockito.any());
+			
+			
+			//
+			String streamId = "stream" + (int)(Math.random()*10000);
+			Mockito.when(req.getPathInfo()).thenReturn("/" + streamId +"/" + streamId + ".mpd");
+			servlet.handleStream(req, resp);
+			//it should 3 
+			Mockito.verify(asyncContext, Mockito.times(3)).start(Mockito.any());
+			
+			servlet.handleStream(req, resp);
+			//it should 4 
+			Mockito.verify(asyncContext, Mockito.times(4)).start(Mockito.any());
+			
+
+
+		} catch (IOException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+
+	}
 	
 	
 	@Test
-	public void testParseChunks_stream0_00001() {
+	public void testReadInputStream() {
+		ChunkedTransferServlet servlet = new ChunkedTransferServlet();
+		
+		IChunkedCacheManager cacheManager = Mockito.mock(IChunkedCacheManager.class);
+		
+		String streamId = "streamId" + (int)(Math.random()*10000);
+		
+		File finalFile = new File(ChunkedTransferServlet.WEBAPPS + "/junit" + ChunkedTransferServlet.STREAMS + "/" + streamId);
+		assertFalse(finalFile.exists());
+		
+		File tmpFile = new File(ChunkedTransferServlet.WEBAPPS + "/junit" + ChunkedTransferServlet.STREAMS + "/" + streamId + ".tmp");
+		
+		AsyncContext asyncContext = Mockito.mock(AsyncContext.class);
+		ServletRequest req = Mockito.mock(ServletRequest.class);
+		
+		Mockito.when(asyncContext.getRequest()).thenReturn(req);
+		
+		
+		try (FileInputStream istream = new FileInputStream("src/test/resources/chunked-samples/chunk-stream0-00001.m4s")) 
+		{
+			servlet.readInputStream(finalFile, tmpFile, cacheManager, Mockito.mock(AtomParser.class), asyncContext, istream);
+			
+			
+			Mockito.verify(cacheManager).removeCache(finalFile.getAbsolutePath());
+			assertTrue(finalFile.exists());
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+	}
+	
+	
+	@Test
+	public void testDeleteRequest() 
+	{
+		try {
+			ChunkedTransferServlet servlet = new ChunkedTransferServlet();
+	
+			HttpServletRequest req = Mockito.mock(HttpServletRequest.class);
+			HttpServletResponse resp = Mockito.mock(HttpServletResponse.class);
+	
+			ServletContext servletContext = Mockito.mock(ServletContext.class);
+			Mockito.when(req.getServletContext()).thenReturn(servletContext);
+			Mockito.when(req.getPathInfo()).thenReturn("/stream" + (int)(Math.random()*10000));
+	
+			ConfigurableWebApplicationContext appContext = Mockito.mock(ConfigurableWebApplicationContext.class);
+			Mockito.when(servletContext.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE)).thenReturn(appContext);
+			Mockito.when(appContext.getApplicationName()).thenReturn("/junit");
+			
+			IChunkedCacheManager cacheManager = Mockito.mock(IChunkedCacheManager.class);
+			Mockito.when(appContext.getBean(IChunkedCacheManager.BEAN_NAME)).thenReturn(cacheManager);
+			
+			AsyncContext asyncContext = Mockito.mock(AsyncContext.class);
+			Mockito.when(req.startAsync()).thenReturn(asyncContext);
+			
+			
+			Mockito.when(appContext.isRunning()).thenReturn(false);
+			Mockito.when(resp.getWriter()).thenReturn(Mockito.mock(PrintWriter.class));
+			servlet.deleteRequest(req, resp);
+			Mockito.verify(resp).setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+			
+			
+			Mockito.when(appContext.isRunning()).thenReturn(true);
+			servlet.deleteRequest(req, resp);
+			Mockito.verify(resp, Mockito.times(1)).setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+			
+			File f = new File(ChunkedTransferServlet.WEBAPPS + "/junit" + ChunkedTransferServlet.STREAMS + req.getPathInfo());
+			assertFalse(f.exists());
+			
+			assertTrue(f.createNewFile());
+			assertTrue(f.exists());
+			servlet.deleteRequest(req, resp);
+			assertFalse(f.exists());
+			
+			
+			String streamId = "stream" + (int)(Math.random()*10000);
+			Mockito.when(req.getPathInfo()).thenReturn("/" + streamId + "/ "+ streamId);
+			f = new File(ChunkedTransferServlet.WEBAPPS + "/junit" + ChunkedTransferServlet.STREAMS + req.getPathInfo());
+			assertFalse(f.exists());
+			f.getParentFile().mkdirs();
+			assertTrue(f.createNewFile());
+			assertTrue(f.exists());
+			servlet.deleteRequest(req, resp);
+			assertFalse(f.exists());
+			
+			
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		
+	}
+
+	@Test
+	public void testMockChunckedCacheManger() {
+		MockChunkedCacheManager cacheManager = new MockChunkedCacheManager();
+
+
+		assertFalse(cacheManager.hasCache("key"));
+
+		cacheManager.addCache("key");
+
+		assertFalse(cacheManager.hasCache("key"));
+
+		cacheManager.removeCache("key");
+
+		assertFalse(cacheManager.hasCache("key"));
+
+		cacheManager.registerChunkListener("key", null);
+
+		cacheManager.append("key", null);
+
+		cacheManager.removeChunkListener("key", null);
+
+		assertFalse(cacheManager.hasCache("key"));
+
+	}
+	
+	
+	@Test
+	public void testHandleGetRequest() 
+	{
+		try {
+			ChunkedTransferServlet servlet = new ChunkedTransferServlet();
+			
+			HttpServletRequest req = Mockito.mock(HttpServletRequest.class);
+			HttpServletResponse resp = Mockito.mock(HttpServletResponse.class);
+	
+			ServletContext servletContext = Mockito.mock(ServletContext.class);
+			Mockito.when(req.getServletContext()).thenReturn(servletContext);
+			String streamId = "stream" + (int)(Math.random()*10000);
+			Mockito.when(req.getRequestURI()).thenReturn("/junit/streams/" + streamId);
+	
+			ConfigurableWebApplicationContext appContext = Mockito.mock(ConfigurableWebApplicationContext.class);
+			Mockito.when(servletContext.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE)).thenReturn(appContext);
+			Mockito.when(appContext.getApplicationName()).thenReturn("/junit");
+			
+			IChunkedCacheManager cacheManager = Mockito.mock(IChunkedCacheManager.class);
+			Mockito.when(appContext.getBean(IChunkedCacheManager.BEAN_NAME)).thenReturn(cacheManager);
+			
+			AsyncContext asyncContext = Mockito.mock(AsyncContext.class);
+			Mockito.when(req.startAsync()).thenReturn(asyncContext);
+			Mockito.when(asyncContext.getResponse()).thenReturn(resp);
+			
+			Mockito.when(appContext.isRunning()).thenReturn(false);
+			Mockito.when(resp.getWriter()).thenReturn(Mockito.mock(PrintWriter.class));
+			servlet.handleGetRequest(req, resp);
+			Mockito.verify(resp).setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+			
+			
+			Mockito.when(appContext.isRunning()).thenReturn(true);
+			servlet.handleGetRequest(req, resp);
+			Mockito.verify(resp).setStatus(HttpServletResponse.SC_NOT_FOUND);
+			
+			
+			File f = new File(ChunkedTransferServlet.WEBAPPS + "/junit" + ChunkedTransferServlet.STREAMS + "/" + streamId);
+			
+			Mockito.when(cacheManager.hasCache(f.getAbsolutePath())).thenReturn(true);
+			servlet.handleGetRequest(req, resp);
+			Mockito.verify(cacheManager).registerChunkListener(Mockito.anyString(), Mockito.any());
+			
+			assertFalse(f.exists());
+			File realFile = new File("src/test/resources/chunked-samples/chunk-stream0-00001.m4s");
+			f.getParentFile().mkdirs();
+			Files.copy(realFile, f);
+			
+			
+			Mockito.when(resp.getOutputStream()).thenReturn(Mockito.mock(ServletOutputStream.class));
+			
+			servlet.handleGetRequest(req, resp);
+			Mockito.verify(asyncContext).start(Mockito.any());
+			
+			
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+	}
+	
+	@Test
+	public void testChunkListener() {
 		
 		try {
+			AsyncContext asynContext = Mockito.mock(AsyncContext.class);
+			IChunkedCacheManager cacheManager = Mockito.mock(IChunkedCacheManager.class);
+			File file = new File("src/test/resources/chunked-samples/chunk-stream0-00001.m4s");
+			
+			
+			ServletResponse response = Mockito.mock(ServletResponse.class);
+			
+			Mockito.when(asynContext.getResponse()).thenReturn(response);
+			ServletOutputStream outputStream = Mockito.mock(ServletOutputStream.class);
+			Mockito.when(response.getOutputStream()).thenReturn(outputStream);
+	
+			ChunkListener listener = new ChunkListener(asynContext, cacheManager, file.getAbsolutePath());
+			
+			byte[] data = new byte[1024];
+			listener.chunkCompleted(data);
+			
+			Mockito.verify(outputStream).write(data);
+			
+			Mockito.doThrow(ClientAbortException.class).when(outputStream).flush();
+			listener.chunkCompleted(data);
+			Mockito.verify(cacheManager).removeChunkListener(file.getAbsolutePath(), listener);
+			
+			
+			listener.chunkCompleted(null);
+			Mockito.verify(asynContext).complete();
+			
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		
+	}
+	
+	@Test
+	public void testWriteOutputStream() 
+	{
+		ChunkedTransferServlet servlet = new ChunkedTransferServlet();
+		
+		File istream = new File("src/test/resources/chunked-samples/chunk-stream0-00001.m4s");
+		
+		OutputStream ostream = Mockito.mock(OutputStream.class);
+		AsyncContext asyncContext = Mockito.mock(AsyncContext.class);
+		
+		servlet.writeOutputStream(istream, asyncContext, ostream);
+		
+		
+		Mockito.verify(asyncContext).complete();
+		
+	}
+
+
+	@Test
+	public void testParseChunks_stream0_00001() {
+
+		try {
 			FileInputStream istream = new FileInputStream("src/test/resources/chunked-samples/chunk-stream0-00001.m4s");
-			
+
 			byte[] data = new byte[2048];
-			
+
 			int length = 0;
-			
+
 			List<byte[]> chunkedList = new ArrayList<>();
 			AtomParser chunkParser = new AtomParser(new ICMAFChunkListener() {
-				
+
 				@Override
 				public void chunkCompleted(byte[] completeChunk) {
 					chunkedList.add(completeChunk);
 				}
 			});
-			
+
 			while ((length = istream.read(data, 0, data.length)) > 0) {
 				chunkParser.parse(data, 0, length);
 			}
-			
+
 			istream.close();
-			
+
 			assertEquals(17, chunkedList.size());
-			
+
 			assertEquals(24, chunkedList.get(0).length);
 			assertEquals(160 + 28874, chunkedList.get(1).length);
 			assertEquals(208 + 34043, chunkedList.get(2).length);
 			assertEquals(0x9c + 0x56f0, chunkedList.get(3).length);
 			assertEquals(0xd0 + 0x85d4, chunkedList.get(4).length);
-			
+
 		} 
 		catch (FileNotFoundException e) 
 		{
@@ -61,42 +408,42 @@ public class ChunkedTransferServletTest {
 			fail(e.getMessage());
 		}
 	}
-	
-	
+
+
 	@Test
 	public void testParseChunks_stream0_00002() {
-		
+
 		try {
 			FileInputStream istream = new FileInputStream("src/test/resources/chunked-samples/chunk-stream0-00002.m4s");
-			
+
 			byte[] data = new byte[2048];
-			
+
 			int length = 0;
-			
+
 			List<byte[]> chunkedList = new ArrayList<>();
 			AtomParser chunkParser = new AtomParser(new ICMAFChunkListener() {
-				
+
 				@Override
 				public void chunkCompleted(byte[] completeChunk) {
 					chunkedList.add(completeChunk);
 				}
 			});
-			
+
 			while ((length = istream.read(data, 0, data.length)) > 0) {
 				chunkParser.parse(data, 0, length);
 			}
-			
-			
+
+
 			istream.close();
-			
+
 			assertEquals(17, chunkedList.size());
-			
+
 			assertEquals(24, chunkedList.get(0).length);
 			assertEquals(0xa0 + 0x8888, chunkedList.get(1).length);
 			assertEquals(0xd0 + 0x7a1d, chunkedList.get(2).length);
 			assertEquals(0x9c + 0x3bbc, chunkedList.get(3).length);
 			assertEquals(0xd0 + 0x808b, chunkedList.get(4).length);
-			
+
 		} 
 		catch (FileNotFoundException e) 
 		{
@@ -108,41 +455,41 @@ public class ChunkedTransferServletTest {
 			fail(e.getMessage());
 		}
 	}
-	
+
 	@Test
 	public void testParseChunk_stream1_00001() {
-		
+
 		try {
 			FileInputStream istream = new FileInputStream("src/test/resources/chunked-samples/chunk-stream1-00001.m4s");
-			
+
 			byte[] data = new byte[2048];
-			
+
 			int length = 0;
-			
+
 			List<byte[]> chunkedList = new ArrayList<>();
 			AtomParser chunkParser = new AtomParser(new ICMAFChunkListener() {
-				
+
 				@Override
 				public void chunkCompleted(byte[] completeChunk) {
 					chunkedList.add(completeChunk);
 				}
 			});
-			
+
 			while ((length = istream.read(data, 0, data.length)) > 0) {
 				chunkParser.parse(data, 0, length);
 			}
-			
-			
+
+
 			istream.close();
-			
+
 			assertEquals(17, chunkedList.size());
-			
+
 			assertEquals(24, chunkedList.get(0).length);
 			assertEquals(0x118 + 0x204f, chunkedList.get(1).length);
 			assertEquals(0x118 + 0x1ff1, chunkedList.get(2).length);
 			assertEquals(0x118 + 0x20ec, chunkedList.get(3).length);
 			assertEquals(0x118 + 0x1fde, chunkedList.get(4).length);
-			
+
 		} 
 		catch (FileNotFoundException e) 
 		{
@@ -154,37 +501,37 @@ public class ChunkedTransferServletTest {
 			fail(e.getMessage());
 		}
 	}
-	
+
 	@Test
 	public void testParseChunk_init_stream0() {
-		
+
 		try {
 			FileInputStream istream = new FileInputStream("src/test/resources/chunked-samples/init-stream0.m4s");
-			
+
 			byte[] data = new byte[2048];
-			
+
 			int length = 0;
-			
+
 			List<byte[]> chunkedList = new ArrayList<>();
 			AtomParser chunkParser = new AtomParser(new ICMAFChunkListener() {
-				
+
 				@Override
 				public void chunkCompleted(byte[] completeChunk) {
 					chunkedList.add(completeChunk);
 				}
 			});
-			
+
 			while ((length = istream.read(data, 0, data.length)) > 0) {
 				chunkParser.parse(data, 0, length);
 			}
-			
-			
+
+
 			istream.close();
-			
+
 			assertEquals(1, chunkedList.size());
-			
+
 			assertEquals(0x1c+0x2f0, chunkedList.get(0).length);
-			
+
 		} 
 		catch (FileNotFoundException e) 
 		{
@@ -196,36 +543,36 @@ public class ChunkedTransferServletTest {
 			fail(e.getMessage());
 		}
 	}
-	
+
 	@Test
 	public void testParseChunk_init_stream1() {
-		
+
 		try {
 			FileInputStream istream = new FileInputStream("src/test/resources/chunked-samples/init-stream1.m4s");
-			
+
 			byte[] data = new byte[2048];
-			
+
 			int length = 0;
-			
+
 			List<byte[]> chunkedList = new ArrayList<>();
 			AtomParser chunkParser = new AtomParser(new ICMAFChunkListener() {
-				
+
 				@Override
 				public void chunkCompleted(byte[] completeChunk) {
 					chunkedList.add(completeChunk);
 				}
 			});
-			
+
 			while ((length = istream.read(data, 0, data.length)) > 0) {
 				chunkParser.parse(data, 0, length);
 			}
-			
+
 			istream.close();
-			
+
 			assertEquals(1, chunkedList.size());
-			
+
 			assertEquals(0x1c+0x2a9, chunkedList.get(0).length);
-			
+
 		} 
 		catch (FileNotFoundException e) 
 		{
