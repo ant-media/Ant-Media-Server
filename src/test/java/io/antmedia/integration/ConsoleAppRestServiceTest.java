@@ -563,6 +563,11 @@ public class ConsoleAppRestServiceTest{
 			JSONObject appsJSON = (JSONObject) new JSONParser().parse(applications);
 			JSONArray jsonArray = (JSONArray) appsJSON.get("applications");
 			//choose the one of them
+			
+			//It's necessary for Enterprise tests. 
+			if(jsonArray.contains("junit")) {
+				jsonArray.remove("junit");
+			}
 
 			int index = (int)(Math.random()*jsonArray.size());
 			String appName = (String) jsonArray.get(index);
