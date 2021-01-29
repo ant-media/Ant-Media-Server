@@ -22,6 +22,7 @@ import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
+import io.antmedia.licence.ILicenceService;
 import io.antmedia.rest.model.Result;
 import io.antmedia.streamsource.StreamFetcher.IStreamFetcherListener;
 import io.vertx.core.Vertx;
@@ -61,12 +62,15 @@ public class StreamFetcherManager {
 
 	private AppSettings appSettings;
 
+	private ILicenceService licenseService;
+
 
 	public StreamFetcherManager(Vertx vertx, DataStore datastore,IScope scope) {
 		this.vertx = vertx;
 		this.datastore = datastore;
 		this.scope=scope;
 		this.appSettings = (AppSettings) scope.getContext().getBean(AppSettings.BEAN_NAME);
+		this.licenseService = (ILicenceService)scope.getContext().getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString());
 	}
 
 	public StreamFetcher make(Broadcast stream, IScope scope, Vertx vertx) {
@@ -103,17 +107,25 @@ public class StreamFetcherManager {
 
 	}
 
-	public void startStreamScheduler(StreamFetcher streamScheduler) {
+	public boolean startStreamScheduler(StreamFetcher streamScheduler) {
 
-		streamScheduler.startStream();
-
-		if(!streamFetcherList.contains(streamScheduler)) {
-			streamFetcherList.add(streamScheduler);
+		boolean result = false;
+		if (!licenseService.isLicenceSuspended()) {
+			streamScheduler.startStream();
+	
+			if(!streamFetcherList.contains(streamScheduler)) {
+				streamFetcherList.add(streamScheduler);
+			}
+	
+			if (streamFetcherScheduleJobName == -1) {
+				scheduleStreamFetcherJob();
+			}
+			result = true;
 		}
-
-		if (streamFetcherScheduleJobName == -1) {
-			scheduleStreamFetcherJob();
+		else {
+			logger.error("License is suspend and new stream scheduler is not started {}", streamScheduler.getStreamUrl());
 		}
+		return result;
 
 	}
 
@@ -127,21 +139,22 @@ public class StreamFetcherManager {
 
 		StreamFetcher streamScheduler = null;
 
+		boolean result = false;
 		if (!alreadyFetching) {
 
 			try {
 				streamScheduler = make(broadcast, scope, vertx);
 				streamScheduler.setRestartStream(restartStreamAutomatically);
 
-				startStreamScheduler(streamScheduler);
+				result = startStreamScheduler(streamScheduler);
 			}
 			catch (Exception e) {
 				streamScheduler = null;
-				logger.error(e.getMessage());
+				logger.error(ExceptionUtils.getStackTrace(e));
 			}
 		}
 
-		return streamScheduler != null;
+		return result;
 	}
 
 	public boolean stopStreaming(String streamId) 
