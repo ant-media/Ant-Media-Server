@@ -21,7 +21,7 @@ public class AntmediaAppender extends AppenderBase<ILoggingEvent> {
     }
 
     @Override
-    protected void append(ILoggingEvent iLoggingEvent) {
+    public void append(ILoggingEvent iLoggingEvent) {
         if (LoggerEnvironment.isManagingThread()) {
             return;
         }

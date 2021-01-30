@@ -1190,7 +1190,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 	public File testMp4Muxing(String name) {
-		return testMp4Muxing(name, false, true);
+		return testMp4Muxing(name, true, true);
 	}
 	
 	@Test
@@ -1526,19 +1526,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 	@Test
-	public void testChangeAppSettingsMP4andHLS() {
-		//fail("implement this test");
-
-		//change appsettings and make sure that mp4 and hls whether relavant files are created properly
-	}
-
-	@Test
-	public void testCheckDefaultAppSettings() {
-		//fail("implement this test");
-	}
-
-
-	@Test
 	public void testHLSNormal() {
 		testHLSMuxing("hlsmuxing_test");
 	}
@@ -1605,7 +1592,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testHLSMuxingWithinChildScope() {
 
 		int hlsTime = 2;
-		int hlsListSize = 5;
+		int hlsListSize = 3;
 
 		getAppSettings().setMp4MuxingEnabled(false);
 		getAppSettings().setAddDateTimeToMp4FileName(false);
@@ -1696,8 +1683,18 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			assertTrue(files.length < (int) Integer.valueOf(hlsMuxer.getHlsListSize()) * (Integer.valueOf(hlsMuxer.getHlsTime()) + 1));
 
 			//wait to let hls muxer delete ts and m3u8 file
-			Thread.sleep(hlsListSize * hlsTime * 1000 + 3000); 
 
+			Awaitility.await().atMost(hlsListSize * hlsTime * 1000 + 3000, TimeUnit.MILLISECONDS).pollInterval(1, TimeUnit.SECONDS)
+			.until(() -> {
+				File[] filesTmp = dir.listFiles(new FilenameFilter() {
+					@Override
+					public boolean accept(File dir, String name) {
+						return name.endsWith(".ts") || name.endsWith(".m3u8");
+					}
+				});
+				return 0 == filesTmp.length;
+			});
+			
 
 			assertFalse(hlsFile.exists());
 
@@ -1763,7 +1760,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testHLSMuxing(String name) {
 
 		//av_log_set_level (40);
-		int hlsListSize = 5;
+		int hlsListSize = 3;
 		int hlsTime = 2;
 
 		getAppSettings().setMp4MuxingEnabled(false);
@@ -1789,7 +1786,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		File file = null;
 		try {
 
-			file = new File("target/test-classes/test.flv"); //ResourceUtils.getFile(this.getClass().getResource("test.flv"));
+			file = new File("src/test/resources/test.flv"); //ResourceUtils.getFile(this.getClass().getResource("test.flv"));
 			final FLVReader flvReader = new FLVReader(file);
 
 			logger.info("f path:" + file.getAbsolutePath());
@@ -1847,17 +1844,18 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 			//wait to let hls muxer delete ts and m3u8 file
-			Thread.sleep(hlsListSize * hlsTime * 1000 + 3000); 
 
-
-			files = dir.listFiles(new FilenameFilter() {
-				@Override
-				public boolean accept(File dir, String name) {
-					return name.endsWith(".ts") || name.endsWith(".m3u8");
-				}
-			});
-
-			assertEquals(0, files.length);
+			Awaitility.await().atMost(hlsListSize * hlsTime * 1000 + 3000, TimeUnit.MILLISECONDS).pollInterval(1, TimeUnit.SECONDS)
+				.until(() -> {
+					File[] filesTmp = dir.listFiles(new FilenameFilter() {
+						@Override
+						public boolean accept(File dir, String name) {
+							return name.endsWith(".ts") || name.endsWith(".m3u8");
+						}
+					});
+					return 0 == filesTmp.length;
+				});
+			
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -1873,7 +1871,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testHLSMuxingWithSubtitle() {
 
 		//av_log_set_level (40);
-		int hlsListSize = 5;
+		int hlsListSize = 3;
 		int hlsTime = 2;
 
 		getAppSettings().setMp4MuxingEnabled(false);
@@ -1961,7 +1959,17 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			assertTrue(files.length < (int) Integer.valueOf(hlsMuxer.getHlsListSize()) * (Integer.valueOf(hlsMuxer.getHlsTime()) + 1));
 
 			//wait to let hls muxer delete ts and m3u8 file
-			Thread.sleep(hlsListSize * hlsTime * 1000 + 3000); 
+			Awaitility.await().atMost(hlsListSize * hlsTime * 1000 + 3000, TimeUnit.MILLISECONDS).pollInterval(1, TimeUnit.SECONDS)
+			.until(() -> {
+				File[] filesTmp = dir.listFiles(new FilenameFilter() {
+					@Override
+					public boolean accept(File dir, String name) {
+						return name.endsWith(".ts") || name.endsWith(".m3u8");
+					}
+				});
+				return 0 == filesTmp.length;
+			});
+			 
 
 
 			assertFalse(hlsFile.exists());

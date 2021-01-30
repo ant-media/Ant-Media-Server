@@ -1,10 +1,6 @@
-package io.antmedia.logger;
+package io.antmedia.test.logger;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.StandardOpenOption;
-import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -18,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import com.brsanthu.googleanalytics.GoogleAnalytics;
 
 import ch.qos.logback.classic.spi.IThrowableProxy;
+import io.antmedia.logger.GoogleAnalyticsLoggerImp;
 
 public class GoogleAnalyticsLoggerImpTest {
 
@@ -64,7 +61,7 @@ public class GoogleAnalyticsLoggerImpTest {
     @Test
     public void constructorFileNotExistTest(){
         GoogleAnalyticsLoggerImp googleAnalyticsLogger = new GoogleAnalyticsLoggerImp(Launcher.getInstanceId());
-        Assert.assertNotNull(googleAnalyticsLogger.instanceId);
+        Assert.assertNotNull(googleAnalyticsLogger.getInstanceId());
     }
 
 }
