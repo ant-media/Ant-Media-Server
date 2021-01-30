@@ -1223,8 +1223,11 @@ public class ConsoleAppRestServiceTest{
 
 			activeLicence = callGetLicenceStatus(serverSettings.getLicenceKey());
 
-			//it should be null because it is market build
-			assertNull(activeLicence);
+			//it should not be null because it is never null
+			assertNotNull(activeLicence);
+			
+			//its status is null
+			assertNull(activeLicence.getStatus());
 
 
 
