@@ -115,6 +115,7 @@
 				<!-- cluster start
 				<bean id="valve.cluster" class="io.antmedia.enterprise.cluster.HttpLiveStreamValve">
 					<property name="tokenGenerator" ref="tokenGenerator" />
+					<property name="asyncSupported" value="true" />
 				</bean>
 				cluster end --> 
 			</list>
