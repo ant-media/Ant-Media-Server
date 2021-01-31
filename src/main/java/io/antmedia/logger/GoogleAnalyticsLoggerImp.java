@@ -12,7 +12,7 @@ import ch.qos.logback.classic.spi.IThrowableProxy;
 import ch.qos.logback.classic.spi.ThrowableProxyUtil;
 import io.antmedia.statistic.StatsCollector;
 
-class GoogleAnalyticsLoggerImp implements GoogleAnalyticsLogger {
+public class GoogleAnalyticsLoggerImp implements GoogleAnalyticsLogger {
 
     @VisibleForTesting
     String instanceId;
@@ -29,12 +29,12 @@ class GoogleAnalyticsLoggerImp implements GoogleAnalyticsLogger {
         GoogleAnalytics googleAnalytic = getGoogleAnalytic();
         googleAnalytic.exception().
                 exceptionDescription(throwableStr).
-                clientId(instanceId).
+                clientId(getInstanceId()).
                 sendAsync();
     }
 
     @VisibleForTesting
-    GoogleAnalytics getGoogleAnalytic() 
+    public GoogleAnalytics getGoogleAnalytic() 
     {
     	if (googleAnalytics == null) {
           googleAnalytics =  StatsCollector.getGoogleAnalyticInstance(Launcher.getVersion(), Launcher.getVersionType());
@@ -42,4 +42,8 @@ class GoogleAnalyticsLoggerImp implements GoogleAnalyticsLogger {
     		
     	return googleAnalytics;
     }
+
+	public String getInstanceId() {
+		return instanceId;
+	}
 }
