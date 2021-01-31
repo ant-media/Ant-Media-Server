@@ -880,34 +880,6 @@ public class ConsoleAppRestServiceTest{
 				AppFunctionalV2Test.destroyProcess();
 			}
 
-			// create a stream through rest service
-			// check that it is accepted
-			{
-				Broadcast broadcastCreated = RestServiceV2Test.callCreateBroadcast(10000);
-				assertNotNull(broadcastCreated.getStreamId());
-				assertEquals(broadcastCreated.getStatus(), AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
-
-				AppFunctionalV2Test.executeProcess(ffmpegPath
-						+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
-						+ broadcastCreated.getStreamId());
-
-
-				Awaitility.await().atMost(10, TimeUnit.SECONDS)
-				.pollInterval(1, TimeUnit.SECONDS).until(AppFunctionalV2Test::isProcessAlive);
-
-
-				Awaitility.await().pollDelay(3, TimeUnit.SECONDS)
-				.atMost(10, TimeUnit.SECONDS)
-				.pollInterval(1, TimeUnit.SECONDS).until(() -> 
-				{
-					Broadcast broadcast2 = RestServiceV2Test.callGetBroadcast(broadcastCreated.getStreamId());
-					assertNotNull(broadcast2);
-					return broadcast2 != null && broadcast2.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
-				});
-
-
-				AppFunctionalV2Test.destroyProcess();
-			}
 
 			{
 				// change settings and accept only streams to false, because it
