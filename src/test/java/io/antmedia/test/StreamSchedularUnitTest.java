@@ -318,67 +318,6 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 	@Test
-	public void testPlaylistStartStreaming() {
-
-		startCameraEmulator();
-		
-		BroadcastRestService service = new BroadcastRestService();
-
-		service.setApplication(app.getAppAdaptor());
-
-		//create a broadcast
-		//use internal source 
-		Broadcast newCam = new Broadcast("test", "127.0.0.1:8080", "admin", "admin", "rtsp://127.0.0.1:6554/test.flv",
-				AntMediaApplicationAdapter.STREAM_SOURCE);
-	
-		//create a test db
-		DataStore dataStore = new InMemoryDataStore("target/testPlaylistStartStreaming.db"); 
-
-		service.setDataStore(dataStore);
-
-
-		//add stream to data store
-		dataStore.save(newCam);
-
-		StreamFetcher streamFetcher = new StreamFetcher(newCam.getStreamUrl(), newCam.getStreamId(), newCam.getType(), appScope, vertx); 
-
-		service.setApplication(app.getAppAdaptor());
-
-
-		//create a stream fetcher
-		StreamFetcherManager streamFetcherManager = new StreamFetcherManager(vertx, dataStore, appScope);
-
-		app.getAppAdaptor().setStreamFetcherManager(streamFetcherManager);
-
-		streamFetcher.setRestartStream(false);
-		streamFetcherManager.startStreamScheduler(streamFetcher);
-				
-
-		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() ->  
-			streamFetcher.isThreadActive()
-		);
-		
-		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() ->  
-			streamFetcher.isStreamAlive()
-		);
-		
-
-		streamFetcherManager.stopCheckerJob();
-		boolean result = streamFetcherManager.stopStreaming(newCam.getStreamId());
-
-		//check that fetcher is nor running
-		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->  {
-			return !streamFetcher.isThreadActive();
-		});
-
-		assertTrue(result);
-		
-		stopCameraEmulator();
-
-
-	}
-
-	@Test
 	public void testStartPlaylistThread() {
 
 		BroadcastRestService service = new BroadcastRestService();
