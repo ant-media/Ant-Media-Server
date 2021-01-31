@@ -138,7 +138,7 @@ public class ChunkedTransferServlet extends HttpServlet {
 
 					InputStream inputStream = asyncContext.getRequest().getInputStream();
 					asyncContext.start(() -> 
-					readInputStream(finalFile, tmpFile, cacheManager, atomparser, asyncContext, inputStream)
+						readInputStream(finalFile, tmpFile, cacheManager, atomparser, asyncContext, inputStream)
 							);
 				}
 				catch (BeansException | IllegalStateException | IOException e) 
@@ -320,8 +320,13 @@ public class ChunkedTransferServlet extends HttpServlet {
 
 					if (cacheAvailable ) 
 					{
-						AsyncContext asyncContext = req.startAsync();
-						cacheManager.registerChunkListener(file.getAbsolutePath(), new ChunkListener(asyncContext, cacheManager, file.getAbsolutePath()));
+						if (!req.isAsyncStarted()) 
+						{
+							//async can be started in HttpLiveStreamValve
+							req.startAsync();
+						}
+						
+						cacheManager.registerChunkListener(file.getAbsolutePath(), new ChunkListener(req.getAsyncContext(), cacheManager, file.getAbsolutePath()));
 					}
 					else 
 					{
