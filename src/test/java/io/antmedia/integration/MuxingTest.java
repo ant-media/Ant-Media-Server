@@ -339,7 +339,12 @@ public class MuxingTest {
 						+ SERVER_ADDR + "/LiveApp/" + streamId);
 		
 		 Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
-		 .until(() -> RestServiceV2Test.callGetBroadcast(streamId).getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING));
+		 .until(() -> {
+			 Broadcast broadcast = RestServiceV2Test.callGetBroadcast(streamId);
+			 
+			 return broadcast != null && AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus());
+			 
+		 });
 		
 		 String streamIdDynamic = "dynamic_stream" + (int)(Math.random() * 999999);
 		 String dynamicRtmpURL = "rtmp://localhost/LiveApp/" + streamIdDynamic;
