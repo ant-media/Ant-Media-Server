@@ -384,8 +384,9 @@ public class AppFunctionalV2Test {
 						+ streamId);
 				
 				//this process should NOT be terminated autotimacally because test.flv has 25fps 
-				Awaitility.await().pollDelay(9, TimeUnit.SECONDS).atMost(10, TimeUnit.SECONDS).until(()-> {
-					return rtmpSendingProcess2.isAlive();
+	
+				Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+					return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamId + ".m3u8");
 				});
 				
 				rtmpSendingProcess2.destroy();
@@ -944,7 +945,7 @@ public class AppFunctionalV2Test {
 		while (tmpExec == null) {
 			try {
 				System.out.println("Waiting for exec get initialized...");
-				Thread.sleep(1000);
+				Thread.sleep(500);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}

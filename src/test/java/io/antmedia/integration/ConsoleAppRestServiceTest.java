@@ -771,17 +771,18 @@ public class ConsoleAppRestServiceTest{
 
 			// send anonymous stream
 			String streamId = "zombiStreamId" + (int)(Math.random()*10000);
-			AppFunctionalV2Test.executeProcess(ffmpegPath
+			Process rtmpSendingProcess = AppFunctionalV2Test.execute(ffmpegPath
 					+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
 					+ streamId);
 
-			Thread.sleep(5000);
-
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> { 
+				return !rtmpSendingProcess.isAlive();
+			});
 			// check that it is not accepted
 			Broadcast broadcast = RestServiceV2Test.callGetBroadcast(streamId);
 			assertNull(broadcast);
 
-			AppFunctionalV2Test.destroyProcess();
+			rtmpSendingProcess.destroy();
 
 			// create a stream through rest service
 			// check that it is accepted
@@ -871,8 +872,9 @@ public class ConsoleAppRestServiceTest{
 				AppFunctionalV2Test.executeProcess(ffmpegPath
 						+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
 						+ streamId);
-
-				Thread.sleep(5000);
+				
+				Awaitility.await().atMost(10, TimeUnit.SECONDS)
+				.until(() -> !AppFunctionalV2Test.isProcessAlive());
 
 				// check that it is not accepted
 				assertNull(RestServiceV2Test.callGetBroadcast(streamId));
@@ -1077,8 +1079,6 @@ public class ConsoleAppRestServiceTest{
 				return  !MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" 
 						+ broadcast.getStreamId() + ".m3u8") || clusterResult.isSuccess();
 			});
-
-			Thread.sleep(5000);
 
 			rtmpSendingProcessToken.destroy();
 
@@ -1983,10 +1983,11 @@ public class ConsoleAppRestServiceTest{
 
 		while (tmpExec == null) {
 			log.info("Waiting for exec get initialized...");
-
-			Awaitility.await().pollDelay(2, TimeUnit.SECONDS).atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-				return tmpExec !=null;
-			});
+			try {
+				Thread.sleep(500);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
 		}
 
 		return tmpExec;
@@ -2067,7 +2068,7 @@ public class ConsoleAppRestServiceTest{
 					+ streamId);
 
 			Awaitility.await().atMost(15, TimeUnit.SECONDS)
-			.pollInterval(2, TimeUnit.SECONDS)
+			.pollInterval(1, TimeUnit.SECONDS)
 			.until(() -> {
 				Broadcast broadcast = RestServiceV2Test.getBroadcast(streamId);
 				return broadcast != null
@@ -2078,12 +2079,11 @@ public class ConsoleAppRestServiceTest{
 			AppFunctionalV2Test.destroyProcess();
 
 			Awaitility.await().atMost(60, TimeUnit.SECONDS)
-			.pollInterval(2, TimeUnit.SECONDS)
+			.pollInterval(1, TimeUnit.SECONDS)
 			.until(() -> {
 				Broadcast broadcast = RestServiceV2Test.getBroadcast(streamId);
 				return broadcast == null
-						|| broadcast.getStreamId() == null
-						|| !broadcast.getStreamId().contentEquals(streamId);
+						|| broadcast.getStreamId() == null;
 			});
 
 
@@ -2099,23 +2099,11 @@ public class ConsoleAppRestServiceTest{
 					+ streamId);
 
 
-			boolean available = false;
-			for (int i = 0; i < 5; i++) {
+			Awaitility.await().pollDelay(5, TimeUnit.SECONDS).atMost(7, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				Broadcast broadcast = RestServiceV2Test.getBroadcast(streamId);
-				if(broadcast != null
-						&& broadcast.getStreamId() != null
-						&& broadcast.getStreamId().contentEquals(streamId)) {
-					available = true;
-					break;
-				}
-				try {
-					Thread.sleep(4000);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-			}
+				return broadcast == null;
+			});
 
-			assertFalse(available);
 
 			AppFunctionalV2Test.destroyProcess();
 

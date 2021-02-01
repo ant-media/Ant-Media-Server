@@ -217,8 +217,14 @@ public class MuxingTest {
 			Process rtmpSendingProcess2 = execute(
 					ffmpegPath + " -re -i src/test/resources/test.flv -acodec pcm_alaw -vcodec copy -f flv rtmp://"
 						+ SERVER_ADDR + "/LiveApp/" + streamName2);
-
-			Thread.sleep(5000);
+			
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() ->
+				!rtmpSendingProcess.isAlive()
+			);
+			
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() ->
+				!rtmpSendingProcess2.isAlive()
+			);
 			
 			assertFalse(testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName1 + ".mp4"));
 			assertFalse(testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName2 + ".mp4"));
@@ -377,7 +383,7 @@ public class MuxingTest {
 	
 
 	@Test
-	public void testMp4AndVP8Muxing() {
+	public void testMp4Muxing() {
 
 		try {
 			ConsoleAppRestServiceTest.resetCookieStore();
@@ -565,7 +571,7 @@ public class MuxingTest {
 		while (tmpExec == null) {
 			try {
 				System.out.println("Waiting for exec get initialized...");
-				Thread.sleep(3000);
+				Thread.sleep(500);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}

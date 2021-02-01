@@ -311,6 +311,7 @@ public class ChunkedTransferServlet extends HttpServlet {
 					ServletOutputStream outputStream = asyncContext.getResponse().getOutputStream();
 					asyncContext.start(() -> writeOutputStream(file, asyncContext, outputStream));
 
+
 				}
 				else 
 				{
@@ -320,11 +321,8 @@ public class ChunkedTransferServlet extends HttpServlet {
 
 					if (cacheAvailable ) 
 					{
-						if (!req.isAsyncStarted()) 
-						{
-							//async can be started in HttpLiveStreamValve
-							req.startAsync();
-						}
+						
+						req.startAsync();
 						
 						cacheManager.registerChunkListener(file.getAbsolutePath(), new ChunkListener(req.getAsyncContext(), cacheManager, file.getAbsolutePath()));
 					}
