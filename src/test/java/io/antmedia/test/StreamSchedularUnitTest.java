@@ -292,7 +292,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		dataStore.save(newCam);
 
 		//result=getInstance().startStreaming(newCam);
-		boolean streamingStarted = streamFetcherManager.startStreaming(newCam);
+		boolean streamingStarted = streamFetcherManager.startStreaming(newCam).isSuccess();
 
 		//check whether answer from StreamFetcherManager is true or not after new IPCamera is added
 		assertTrue(streamingStarted);
@@ -304,7 +304,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		});
 
 		//getInstance().stopStreaming(newCam);
-		boolean result = streamFetcherManager.stopStreaming(newCam.getStreamId());
+		boolean result = streamFetcherManager.stopStreaming(newCam.getStreamId()).isSuccess();
 		assertTrue(result);
 		stopCameraEmulator();
 
@@ -374,7 +374,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		
 
 		streamFetcherManager.stopCheckerJob();
-		boolean result = streamFetcherManager.stopStreaming(newCam.getStreamId());
+		boolean result = streamFetcherManager.stopStreaming(newCam.getStreamId()).isSuccess();
 
 		//check that fetcher is nor running
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->  {
@@ -468,7 +468,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			.until(() ->dataStore.get("testId").getCurrentPlayIndex() == 2 && dataStore.get("testId").getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING));
 
 			
-			boolean result = streamFetcherManager.stopPlayList("testId");
+			boolean result = streamFetcherManager.stopPlayList("testId").isSuccess();
 			assertTrue(result);
 		
 			
@@ -514,7 +514,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			.until(() -> AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED.equals(dataStore.get("testId").getStatus()));
 			
 			
-			assertTrue(streamFetcherManager.startPlaylist(playlist));
+			assertTrue(streamFetcherManager.startPlaylist(playlist).isSuccess());
 
 			Awaitility.await().atMost(10, TimeUnit.SECONDS)
 			.until(() ->dataStore.get("testId").getCurrentPlayIndex() == 1);
@@ -605,7 +605,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		//add stream to data store
 		dataStore.save(newCam);
 
-		boolean streamingStarted = streamFetcherManager.startStreaming(newCam);
+		boolean streamingStarted = streamFetcherManager.startStreaming(newCam).isSuccess();
 		assertTrue(streamingStarted);
 		
 		//check whether answer from StreamFetcherManager is true or not after new IPCamera is added
@@ -685,7 +685,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		
 		//result=getInstance().startStreaming(newCam);
-		boolean streamingStarted = streamFetcherManager.startStreaming(newCam);
+		boolean streamingStarted = streamFetcherManager.startStreaming(newCam).isSuccess();
 
 		//check whether answer from StreamFetcherManager is true or not after new IPCamera is added
 		assertTrue(streamingStarted);

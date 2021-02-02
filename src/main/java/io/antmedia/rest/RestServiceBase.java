@@ -943,16 +943,12 @@ public abstract class RestServiceBase {
 					addSocialEndpoints(savedBroadcast, socialEndpointIds);
 				}
 
-				boolean streamingStarted = getApplication().startStreaming(savedBroadcast);
+				connResult = getApplication().startStreaming(savedBroadcast);
 				//if IP Camera is not being started while adding, do not record it to datastore
-				if (!streamingStarted) 
+				if (!connResult.isSuccess()) 
 				{
 					getDataStore().delete(savedBroadcast.getStreamId());
-					connResult.setSuccess(false);
-					connResult.setErrorId(FETCHER_NOT_STARTED_ERROR);
 				}
-				connResult.setDataId(savedBroadcast.getStreamId());
-
 			}
 		}
 
@@ -995,11 +991,11 @@ public abstract class RestServiceBase {
 			result.setSuccess(true);
 			//it means no connection or authentication error
 			//set RTMP URL
-			result.setMessage(onvif.getRTSPStreamURI());
+			result.setMessage("connected to:"+onvif.getRTSPStreamURI());
 		}else {
 			//there is an error
 			//set error code and send it
-			result.setMessage(String.valueOf(connResult));
+			result.setMessage("could not connected to:"+onvif.getRTSPStreamURI()+" result:"+String.valueOf(connResult));
 		}
 
 		return result;
@@ -1121,21 +1117,13 @@ public abstract class RestServiceBase {
 				addSocialEndpoints(savedBroadcast, socialEndpointIds);
 			}
 
-			boolean streamingStarted = getApplication().startStreaming(savedBroadcast);
-
-			result.setMessage(savedBroadcast.getStreamId());
+			result = getApplication().startStreaming(savedBroadcast);
 
 			//if it's not started while adding, do not record it to datastore
-			if (streamingStarted) {
-				result.setSuccess(true);
-			}
-			else {
+			if(!result.isSuccess()) {
 				getDataStore().delete(savedBroadcast.getStreamId());
 				result.setErrorId(FETCHER_NOT_STARTED_ERROR);
-				result.setSuccess(false);
 			}
-			result.setDataId(savedBroadcast.getStreamId());
-
 		}
 		return result;
 	}
@@ -1631,9 +1619,15 @@ public abstract class RestServiceBase {
 					logger.info("rtsp url with auth: {}", rtspURLWithAuth);
 					broadcast.setStreamUrl(rtspURLWithAuth);
 				}
+				else {
+					return connResult;
+				}
 			}
 
-			result.setSuccess(getApplication().startStreaming(broadcast));
+			result = getApplication().startStreaming(broadcast);
+		}
+		else {
+			result.setMessage("No Stream Exists with id:"+id);
 		}
 		return result;
 	}

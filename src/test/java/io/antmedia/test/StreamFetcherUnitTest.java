@@ -295,7 +295,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			appSettings.setRestartStreamFetcherPeriod(5);
 
 			//Start stream fetcher
-			boolean streamingStarted = fetcherManager.startStreaming(stream);
+			boolean streamingStarted = fetcherManager.startStreaming(stream).isSuccess();
 			assertTrue(streamingStarted);
 
 

@@ -1096,7 +1096,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		broadcast.setStreamUrl("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4");
 		dataStore.save(broadcast);
 
-		boolean startStreaming = spyAdapter.startStreaming(broadcast);
+		boolean startStreaming = spyAdapter.startStreaming(broadcast).isSuccess();
 		assertTrue(startStreaming);
 		assertTrue(spyAdapter.getStreamFetcherManager().isStreamRunning(broadcast.getStreamId()));
 		
@@ -1109,7 +1109,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		
 		
 		when(licenseService.isLicenceSuspended()).thenReturn(true);
-		startStreaming = spyAdapter.startStreaming(broadcast);
+		startStreaming = spyAdapter.startStreaming(broadcast).isSuccess();
 		assertFalse(startStreaming);
 		
 		
