@@ -1503,4 +1503,9 @@ public Result createInitializationProcess(String appName){
 		return null;
 	}
 
+	public void removeFrameListener(String streamId, IFrameListener listener) {
+		// TODO Auto-generated method stub
+		
+	}
+
 }
