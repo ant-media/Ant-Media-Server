@@ -19,8 +19,10 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.lang3.RandomUtils;
 import org.awaitility.Awaitility;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
@@ -1093,7 +1095,54 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		return appSettings;
 	}
 
+	@Test
+	public void testBroadcastStatusForStreamSource() throws InterruptedException {
+		try (AVFormatContext inputFormatContext = new AVFormatContext()) {
+			String existingStreamSource = "existingStreamSource"+RandomUtils.nextInt();
+			Broadcast existingBroadcast = new Broadcast(existingStreamSource, "10.2.40.63:8080", "admin", "admin", 
+					"rtsp://127.0.0.1:6554/test.flv",
+					AntMediaApplicationAdapter.STREAM_SOURCE);
+			
+			
+			existingBroadcast.setStreamId(existingStreamSource);
 
+			DataStore dataStore = app.getAppAdaptor().getDataStore();
+			dataStore.save(existingBroadcast);
+
+			StreamFetcher streamScheduler = new StreamFetcher(existingBroadcast.getStreamUrl(), existingBroadcast.getStreamId(), existingBroadcast.getType(), appScope, vertx);
+			streamScheduler.startStream();
+
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> 
+			{
+				return dataStore.get(existingStreamSource).getStatus() == AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING;
+			});
+			
+			
+			//non existing url
+			
+			String nonExistingStreamSource = "nonExistingStreamSource"+RandomUtils.nextInt();
+			Broadcast nonExistingBroadcast = new Broadcast(nonExistingStreamSource, "10.2.40.63:8080", "admin", "admin", 
+					"rtsp://127.0.0.1:6554/fakeurl.flv",
+					AntMediaApplicationAdapter.STREAM_SOURCE);
+
+			nonExistingBroadcast.setStreamId(nonExistingStreamSource);
+			dataStore.save(nonExistingBroadcast);
+
+			StreamFetcher streamSchedulerNonExisting = new StreamFetcher(nonExistingBroadcast.getStreamUrl(), nonExistingBroadcast.getStreamId(), nonExistingBroadcast.getType(), appScope, vertx);
+			streamSchedulerNonExisting.startStream();
+
+			Awaitility.await().pollDelay(5, TimeUnit.SECONDS).until(() -> 
+			{
+				return dataStore.get(nonExistingStreamSource).getStatus() != AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING;
+			});
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+
+
+	}
 
 }
 
