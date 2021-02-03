@@ -1,5 +1,6 @@
 package io.antmedia.servlet;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -61,7 +62,20 @@ public class ChunkedTransferServlet extends HttpServlet {
 			{
 				try {
 					ServletOutputStream oStream = asyncContext.getResponse().getOutputStream();
-					oStream.write(completeChunk);
+					
+					int offset = 0;
+					int batchSize = 2048;
+					int length = 0;
+					
+					while ((length = completeChunk.length - offset) > 0) 
+					{
+						if (length > batchSize) {
+							length = batchSize;
+						}
+						oStream.write(completeChunk, offset, length);
+						offset += length;
+					} 
+					
 					oStream.flush();
 				}
 				catch (ClientAbortException e) {
