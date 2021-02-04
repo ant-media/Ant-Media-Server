@@ -395,8 +395,8 @@ public class ChunkedTransferServlet extends HttpServlet {
 					}
 					oStream.write(chunk, offset, length);
 					offset += length;
-					oStream.flush();
 				} 
+				oStream.flush();
 
 				logger.info("writing chunk leaving for file: {}", filePath);
 
