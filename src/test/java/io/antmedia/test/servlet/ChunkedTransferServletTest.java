@@ -81,7 +81,7 @@ public class ChunkedTransferServletTest {
 			
 			Mockito.when(appContext.isRunning()).thenReturn(false);
 			Mockito.when(resp.getWriter()).thenReturn(Mockito.mock(PrintWriter.class));
-			servlet.handleStream(req, resp);
+			servlet.handleIncomingStream(req, resp);
 			Mockito.verify(resp).setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 
 			
@@ -89,17 +89,17 @@ public class ChunkedTransferServletTest {
 			Mockito.when(req.getInputStream()).thenReturn(Mockito.mock(ServletInputStream.class));
 			
 			Mockito.when(appContext.isRunning()).thenReturn(true);
-			servlet.handleStream(req, resp);
+			servlet.handleIncomingStream(req, resp);
 			Mockito.verify(asyncContext).start(Mockito.any());
 			
 			Mockito.when(req.getPathInfo()).thenReturn("/stream" + (int)(Math.random()*10000) + ".mpd");
-			servlet.handleStream(req, resp);
+			servlet.handleIncomingStream(req, resp);
 			Mockito.verify(asyncContext, Mockito.times(2)).start(Mockito.any());
 			
 			
 			//no slash
 			Mockito.when(req.getPathInfo()).thenReturn("stream" + (int)(Math.random()*10000));
-			servlet.handleStream(req, resp);
+			servlet.handleIncomingStream(req, resp);
 			//it should 2 again
 			Mockito.verify(asyncContext, Mockito.times(2)).start(Mockito.any());
 			
@@ -107,11 +107,11 @@ public class ChunkedTransferServletTest {
 			//
 			String streamId = "stream" + (int)(Math.random()*10000);
 			Mockito.when(req.getPathInfo()).thenReturn("/" + streamId +"/" + streamId + ".mpd");
-			servlet.handleStream(req, resp);
+			servlet.handleIncomingStream(req, resp);
 			//it should 3 
 			Mockito.verify(asyncContext, Mockito.times(3)).start(Mockito.any());
 			
-			servlet.handleStream(req, resp);
+			servlet.handleIncomingStream(req, resp);
 			//it should 4 
 			Mockito.verify(asyncContext, Mockito.times(4)).start(Mockito.any());
 			
@@ -323,7 +323,7 @@ public class ChunkedTransferServletTest {
 			ServletOutputStream outputStream = Mockito.mock(ServletOutputStream.class);
 			Mockito.when(response.getOutputStream()).thenReturn(outputStream);
 	
-			ChunkListener listener = new ChunkListener(asynContext, cacheManager, file.getAbsolutePath());
+			ChunkListener listener = new ChunkListener();
 			
 			byte[] data = new byte[1024];
 			listener.chunkCompleted(data);

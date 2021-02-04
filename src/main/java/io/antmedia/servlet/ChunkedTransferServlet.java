@@ -1,6 +1,5 @@
 package io.antmedia.servlet;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -10,10 +9,13 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.util.Queue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import javax.servlet.AsyncContext;
+import javax.servlet.AsyncEvent;
+import javax.servlet.AsyncListener;
 import javax.servlet.ServletException;
-import javax.servlet.ServletInputStream;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -27,10 +29,12 @@ import org.springframework.beans.BeansException;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
 import org.springframework.web.context.WebApplicationContext;
 
+import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.servlet.cmafutils.AtomParser;
 import io.antmedia.servlet.cmafutils.AtomParser.MockAtomParser;
 import io.antmedia.servlet.cmafutils.ICMAFChunkListener;
 import io.antmedia.servlet.cmafutils.IParser;
+import io.vertx.core.Vertx;
 
 
 public class ChunkedTransferServlet extends HttpServlet {
@@ -43,72 +47,42 @@ public class ChunkedTransferServlet extends HttpServlet {
 
 	public static class ChunkListener implements ICMAFChunkListener {
 
-		public final AsyncContext asyncContext;
-		public final IChunkedCacheManager cacheManager;
-		public final String filePath;
-
-
-
-		public ChunkListener(AsyncContext asyncContext, IChunkedCacheManager cacheManager, String filePath) {
-			this.asyncContext = asyncContext;
-			this.cacheManager = cacheManager;
-			this.filePath = filePath;
-		}
+		LinkedBlockingQueue<byte[]> chunksQueue = new LinkedBlockingQueue<>();
 
 		@Override
-		public void chunkCompleted(byte[] completeChunk) {
-
-			if (completeChunk != null) 
-			{
-				try {
-					ServletOutputStream oStream = asyncContext.getResponse().getOutputStream();
-					
-					int offset = 0;
-					int batchSize = 2048;
-					int length = 0;
-					
-					while ((length = completeChunk.length - offset) > 0) 
-					{
-						if (length > batchSize) {
-							length = batchSize;
-						}
-						oStream.write(completeChunk, offset, length);
-						offset += length;
-					} 
-					
-					oStream.flush();
-				}
-				catch (ClientAbortException e) {
-					logger.warn("Client aborted - Removing chunklistener this client for file: {}", filePath);
-					cacheManager.removeChunkListener(filePath, this);									
-				}
-				catch (Exception e) {
-					logger.error(ExceptionUtils.getStackTrace(e));
-
-				}
+		public void chunkCompleted(byte[] completeChunk) 
+		{
+			byte[] data;
+			if (completeChunk != null) {
+				data = new byte[completeChunk.length];
+				
+				System.arraycopy(completeChunk, 0, data, 0, data.length);
 			}
-			else 
-			{
-				logger.debug("context is completed for {}", filePath);
-				//if it's null, it means related cache is finished
-				asyncContext.complete();
-			}
+			else {
+				//EOF 
+				data = new byte[0];
+			}			
+			chunksQueue.add(data);
+		
+		}
 
+		public LinkedBlockingQueue<byte[]> getChunksQueue() {
+			return chunksQueue;
 		}
 
 	}
 
 	@Override
 	protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {		
-		handleStream(req, resp);
+		handleIncomingStream(req, resp);
 	}
 
 	@Override
 	protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-		handleStream(req, resp);
+		handleIncomingStream(req, resp);
 	}
 
-	public void handleStream(HttpServletRequest req, HttpServletResponse resp) {
+	public void handleIncomingStream(HttpServletRequest req, HttpServletResponse resp) {
 		ConfigurableWebApplicationContext appContext = (ConfigurableWebApplicationContext) req.getServletContext().getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
 
 		if (appContext != null && appContext.isRunning()) 
@@ -132,6 +106,7 @@ public class ChunkedTransferServlet extends HttpServlet {
 
 				try {
 					IChunkedCacheManager cacheManager = (IChunkedCacheManager) appContext.getBean(IChunkedCacheManager.BEAN_NAME);
+
 					logger.trace("doPut key:{}", finalFile.getAbsolutePath());
 
 					cacheManager.addCache(finalFile.getAbsolutePath());
@@ -148,11 +123,43 @@ public class ChunkedTransferServlet extends HttpServlet {
 								);
 					}
 
-					AsyncContext asyncContext = req.startAsync();
 
+					AsyncContext asyncContext = req.startAsync();
+					asyncContext.addListener(new AsyncListener() {
+
+						@Override
+						public void onTimeout(AsyncEvent event) throws IOException {
+							logger.info("handle incoming stream context Timeout: {}", filepath);
+						}
+
+						@Override
+						public void onStartAsync(AsyncEvent event) throws IOException {
+							logger.info("handle incoming stream context onStartAsync: {}", filepath);
+						}
+
+						@Override
+						public void onError(AsyncEvent event) throws IOException {
+							logger.info("handle incoming stream context onError: {}", filepath);
+						}
+
+						@Override
+						public void onComplete(AsyncEvent event) throws IOException {
+							logger.info("handle incoming stream context onComplete: {}", filepath);
+						}
+					});
+
+
+
+					Vertx vertx =(Vertx)appContext.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
 					InputStream inputStream = asyncContext.getRequest().getInputStream();
 					asyncContext.start(() -> 
-						readInputStream(finalFile, tmpFile, cacheManager, atomparser, asyncContext, inputStream)
+					vertx.executeBlocking(b -> {
+						readInputStream(finalFile, tmpFile, cacheManager, atomparser, asyncContext, inputStream);
+						b.complete();
+					}, r -> {
+
+					})
+
 							);
 				}
 				catch (BeansException | IllegalStateException | IOException e) 
@@ -189,8 +196,10 @@ public class ChunkedTransferServlet extends HttpServlet {
 	}
 
 	public void readInputStream(File finalFile, File tmpFile, IChunkedCacheManager cacheManager, IParser atomparser,
-			AsyncContext asyncContext, InputStream inputStream) {
-		try (FileOutputStream fos = new FileOutputStream(tmpFile)) {
+			AsyncContext asyncContext, InputStream inputStream) 
+	{
+		try (FileOutputStream fos = new FileOutputStream(tmpFile)) 
+		{
 			byte[] data = new byte[2048];
 			int length = 0;
 
@@ -203,7 +212,7 @@ public class ChunkedTransferServlet extends HttpServlet {
 			Files.move(tmpFile.toPath(), finalFile.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
 			asyncContext.complete();
 		}
-		catch (IOException e) 
+		catch (Exception e) 
 		{
 			logger.error(ExceptionUtils.getStackTrace(e));
 		}
@@ -307,8 +316,8 @@ public class ChunkedTransferServlet extends HttpServlet {
 	{
 		handleGetRequest(req, resp);
 	}
-	
-	
+
+
 	public void handleGetRequest(HttpServletRequest req, HttpServletResponse resp) {
 		ConfigurableWebApplicationContext appContext = (ConfigurableWebApplicationContext) req.getServletContext().getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
 		if (appContext != null && appContext.isRunning()) 
@@ -331,14 +340,58 @@ public class ChunkedTransferServlet extends HttpServlet {
 				{
 					IChunkedCacheManager cacheManager = (IChunkedCacheManager) appContext.getBean(IChunkedCacheManager.BEAN_NAME);
 
+					Vertx vertx =(Vertx)appContext.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
 					boolean cacheAvailable = cacheManager.hasCache(file.getAbsolutePath());
 
 					if (cacheAvailable ) 
 					{
-						
-						req.startAsync();
-						
-						cacheManager.registerChunkListener(file.getAbsolutePath(), new ChunkListener(req.getAsyncContext(), cacheManager, file.getAbsolutePath()));
+
+						AsyncContext asyncContext = req.startAsync();
+
+						asyncContext.start(() ->  {
+							ChunkListener chunkListener = new ChunkListener();
+							cacheManager.registerChunkListener(file.getAbsolutePath(), chunkListener);
+
+							String filePath = file.getAbsolutePath();
+							try {
+								ServletOutputStream oStream = asyncContext.getResponse().getOutputStream();
+								byte[] chunk;
+								while ((chunk = chunkListener.getChunksQueue().take()).length > 0) {
+									int offset = 0;
+									int batchSize = 2048;
+									int length = 0;
+									logger.info("start writing chunk leaving for file: {}", filePath);
+
+									while ((length = chunk.length - offset) > 0) 
+									{
+										if (length > batchSize) {
+											length = batchSize;
+										}
+										oStream.write(chunk, offset, length);
+										logger.info("writing chund offset: {} length:{} chunk length:{}", offset, length, chunk.length);
+										offset += length;
+										oStream.flush();
+									} 
+
+									logger.info("writing chunk leaving for file: {}", filePath);
+
+								}
+							}
+							catch (ClientAbortException e) {
+								logger.warn("Client aborted - Removing chunklistener this client for file: {}", filePath);
+								cacheManager.removeChunkListener(filePath, chunkListener);		
+							}
+							catch (Exception e) {
+								logger.error(ExceptionUtils.getStackTrace(e));
+
+							} 
+
+							logger.debug("context is completed for {}", filePath);
+							//if it's null, it means related cache is finished
+							asyncContext.complete();
+
+						});
+
 					}
 					else 
 					{
