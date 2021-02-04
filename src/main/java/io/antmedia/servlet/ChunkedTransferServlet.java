@@ -378,6 +378,7 @@ public class ChunkedTransferServlet extends HttpServlet {
 	public void writeChunks(File file, IChunkedCacheManager cacheManager, AsyncContext asyncContext,
 			ChunkListener chunkListener) {
 		String filePath = file.getAbsolutePath();
+		boolean exceptionOccured = false;
 		try {
 			ServletOutputStream oStream = asyncContext.getResponse().getOutputStream();
 			byte[] chunk;
@@ -393,7 +394,6 @@ public class ChunkedTransferServlet extends HttpServlet {
 						length = batchSize;
 					}
 					oStream.write(chunk, offset, length);
-					logger.info("writing chund offset: {} length:{} chunk length:{}", offset, length, chunk.length);
 					offset += length;
 					oStream.flush();
 				} 
@@ -404,16 +404,18 @@ public class ChunkedTransferServlet extends HttpServlet {
 		}
 		catch (ClientAbortException e) {
 			logger.warn("Client aborted - Removing chunklistener this client for file: {}", filePath);
+			exceptionOccured = true;
 		}
 		catch (Exception e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
+			exceptionOccured = true;
 		} 
-		
-		cacheManager.removeChunkListener(filePath, chunkListener);
 
+		cacheManager.removeChunkListener(filePath, chunkListener);
 		logger.debug("context is completed for {}", filePath);
-		//if it's null, it means related cache is finished
-		asyncContext.complete();
+		if (!exceptionOccured) {
+			asyncContext.complete();
+		}
 	}
 
 	private void writeInternalError(HttpServletResponse resp, int status, String message) {
