@@ -346,7 +346,7 @@ public class ChunkedTransferServletTest {
 			
 			
 			listener.chunkCompleted(null);
-			Mockito.verify(asynContext, Mockito.times(2)).complete();
+			Mockito.verify(asynContext, Mockito.times(1)).complete();
 			
 		}
 		catch (Exception e) {
