@@ -943,8 +943,9 @@ public class ConsoleAppRestServiceTest{
 
 
 			//it should be false, because publishing is not allowed and hls files are not created
-			Awaitility.await().pollDelay(5, TimeUnit.SECONDS).atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-				return ConsoleAppRestServiceTest.getStatusCode("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" + broadcast.getStreamId() + ".m3u8?token=" + accessToken.getTokenId(), true)==404;
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return !rtmpSendingProcess.isAlive();
+				//return ConsoleAppRestServiceTest.getStatusCode("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" + broadcast.getStreamId() + ".m3u8?token=" + accessToken.getTokenId(), true)==404;
 			});
 
 			rtmpSendingProcess.destroy();
@@ -1224,8 +1225,8 @@ public class ConsoleAppRestServiceTest{
 
 
 			//publishing is not allowed therefore hls files are not created
-			Awaitility.await().pollDelay(5, TimeUnit.SECONDS).atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-				return ConsoleAppRestServiceTest.getStatusCode("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + ".m3u8?token=hash" , true)==404;
+			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return !rtmpSendingProcess.isAlive();
 			});
 
 			rtmpSendingProcess.destroy();
@@ -1556,13 +1557,13 @@ public class ConsoleAppRestServiceTest{
 
 
 			//wait until stream is broadcasted
-			Awaitility.await().atMost(40, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + addStreamSourceResult.getDataId() + ".m3u8");
 			});
 
 			if (appEncoderSettings != null) 
 			{
-				Awaitility.await().atMost(40, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 					return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + addStreamSourceResult.getDataId() + "_adaptive.m3u8");
 				});
 			}
@@ -2094,14 +2095,13 @@ public class ConsoleAppRestServiceTest{
 			result = callSetAppSettings("LiveApp", appSettings);
 			assertTrue(result.isSuccess());
 
-			AppFunctionalV2Test.execute(ffmpegPath
+			Process process = AppFunctionalV2Test.execute(ffmpegPath
 					+ " -re -i src/test/resources/test.flv -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
 					+ streamId);
 
 
-			Awaitility.await().pollDelay(5, TimeUnit.SECONDS).atMost(7, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-				Broadcast broadcast = RestServiceV2Test.getBroadcast(streamId);
-				return broadcast == null;
+			Awaitility.await().atMost(7, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return !process.isAlive();
 			});
 
 

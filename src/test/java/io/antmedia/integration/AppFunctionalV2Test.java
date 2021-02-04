@@ -14,6 +14,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.lang.ProcessHandle.Info;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.file.Files;
@@ -528,9 +529,14 @@ public class AppFunctionalV2Test {
 					+ broadcast.getStreamId());
 
 			//wait for fetching stream
-			Thread.sleep(5000);
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+			.until(() -> MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" +  broadcast.getStreamId() + ".m3u8"));
+			
+			Info processInfo = rtmpSendingProcess.info();
 
+			// stop rtmp streaming
 			rtmpSendingProcess.destroy();
+			int duration = (int)(System.currentTimeMillis() - processInfo.startInstant().get().toEpochMilli());
 
 			//wait for creating  files
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
