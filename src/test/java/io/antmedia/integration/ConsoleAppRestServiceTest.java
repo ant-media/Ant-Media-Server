@@ -643,7 +643,12 @@ public class ConsoleAppRestServiceTest{
 
 			//get app settings
 			AppSettings appSettingsModel = callGetAppSettings("LiveApp");
-
+			
+			
+			appSettingsModel.setEncoderSettings(Arrays.asList(new EncoderSettings(240, 300000, 64000)));
+			
+			result = callSetAppSettings("LiveApp", appSettingsModel);
+			assertTrue(result.isSuccess());
 
 			//check that preview overwrite is false by default
 			assertFalse(appSettingsModel.isPreviewOverwrite());
