@@ -333,14 +333,11 @@ public class ChunkedTransferServlet extends HttpServlet {
 					AsyncContext asyncContext = req.startAsync();
 					ServletOutputStream outputStream = asyncContext.getResponse().getOutputStream();
 					asyncContext.start(() -> writeOutputStream(file, asyncContext, outputStream));
-
-
 				}
 				else 
 				{
 					IChunkedCacheManager cacheManager = (IChunkedCacheManager) appContext.getBean(IChunkedCacheManager.BEAN_NAME);
 
-					Vertx vertx =(Vertx)appContext.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
 					boolean cacheAvailable = cacheManager.hasCache(file.getAbsolutePath());
 
 					if (cacheAvailable ) 
@@ -348,49 +345,13 @@ public class ChunkedTransferServlet extends HttpServlet {
 
 						AsyncContext asyncContext = req.startAsync();
 
-						asyncContext.start(() ->  {
-							ChunkListener chunkListener = new ChunkListener();
-							cacheManager.registerChunkListener(file.getAbsolutePath(), chunkListener);
+						ChunkListener chunkListener = new ChunkListener();
+						cacheManager.registerChunkListener(file.getAbsolutePath(), chunkListener);
+						asyncContext.start(() ->  
 
-							String filePath = file.getAbsolutePath();
-							try {
-								ServletOutputStream oStream = asyncContext.getResponse().getOutputStream();
-								byte[] chunk;
-								while ((chunk = chunkListener.getChunksQueue().take()).length > 0) {
-									int offset = 0;
-									int batchSize = 2048;
-									int length = 0;
-									logger.info("start writing chunk leaving for file: {}", filePath);
+							writeChunks(file, cacheManager, asyncContext, chunkListener)
 
-									while ((length = chunk.length - offset) > 0) 
-									{
-										if (length > batchSize) {
-											length = batchSize;
-										}
-										oStream.write(chunk, offset, length);
-										logger.info("writing chund offset: {} length:{} chunk length:{}", offset, length, chunk.length);
-										offset += length;
-										oStream.flush();
-									} 
-
-									logger.info("writing chunk leaving for file: {}", filePath);
-
-								}
-							}
-							catch (ClientAbortException e) {
-								logger.warn("Client aborted - Removing chunklistener this client for file: {}", filePath);
-								cacheManager.removeChunkListener(filePath, chunkListener);		
-							}
-							catch (Exception e) {
-								logger.error(ExceptionUtils.getStackTrace(e));
-
-							} 
-
-							logger.debug("context is completed for {}", filePath);
-							//if it's null, it means related cache is finished
-							asyncContext.complete();
-
-						});
+						);
 
 					}
 					else 
@@ -412,6 +373,47 @@ public class ChunkedTransferServlet extends HttpServlet {
 			logger.info("AppContext is not running for get request {}", req.getRequestURI());
 			writeInternalError(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Server is not ready. It's likely starting. Please try a few seconds later. ");
 		}
+	}
+
+	public void writeChunks(File file, IChunkedCacheManager cacheManager, AsyncContext asyncContext,
+			ChunkListener chunkListener) {
+		String filePath = file.getAbsolutePath();
+		try {
+			ServletOutputStream oStream = asyncContext.getResponse().getOutputStream();
+			byte[] chunk;
+			while ((chunk = chunkListener.getChunksQueue().take()).length > 0) {
+				int offset = 0;
+				int batchSize = 2048;
+				int length = 0;
+				logger.info("start writing chunk leaving for file: {}", filePath);
+
+				while ((length = chunk.length - offset) > 0) 
+				{
+					if (length > batchSize) {
+						length = batchSize;
+					}
+					oStream.write(chunk, offset, length);
+					logger.info("writing chund offset: {} length:{} chunk length:{}", offset, length, chunk.length);
+					offset += length;
+					oStream.flush();
+				} 
+
+				logger.info("writing chunk leaving for file: {}", filePath);
+
+			}
+		}
+		catch (ClientAbortException e) {
+			logger.warn("Client aborted - Removing chunklistener this client for file: {}", filePath);
+		}
+		catch (Exception e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+		} 
+		
+		cacheManager.removeChunkListener(filePath, chunkListener);
+
+		logger.debug("context is completed for {}", filePath);
+		//if it's null, it means related cache is finished
+		asyncContext.complete();
 	}
 
 	private void writeInternalError(HttpServletResponse resp, int status, String message) {

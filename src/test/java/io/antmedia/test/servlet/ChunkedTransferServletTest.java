@@ -288,6 +288,7 @@ public class ChunkedTransferServletTest {
 			Mockito.when(cacheManager.hasCache(f.getAbsolutePath())).thenReturn(true);
 			servlet.handleGetRequest(req, resp);
 			Mockito.verify(cacheManager).registerChunkListener(Mockito.anyString(), Mockito.any());
+			Mockito.verify(asyncContext, Mockito.times(1)).start(Mockito.any());
 			
 			assertFalse(f.exists());
 			File realFile = new File("src/test/resources/chunked-samples/chunk-stream0-00001.m4s");
@@ -298,7 +299,7 @@ public class ChunkedTransferServletTest {
 			Mockito.when(resp.getOutputStream()).thenReturn(Mockito.mock(ServletOutputStream.class));
 			
 			servlet.handleGetRequest(req, resp);
-			Mockito.verify(asyncContext).start(Mockito.any());
+			Mockito.verify(asyncContext, Mockito.times(2)).start(Mockito.any());
 			
 			
 		}
@@ -312,6 +313,7 @@ public class ChunkedTransferServletTest {
 	public void testChunkListener() {
 		
 		try {
+			ChunkedTransferServlet chunkedTransferServlet = new ChunkedTransferServlet();
 			AsyncContext asynContext = Mockito.mock(AsyncContext.class);
 			IChunkedCacheManager cacheManager = Mockito.mock(IChunkedCacheManager.class);
 			File file = new File("src/test/resources/chunked-samples/chunk-stream0-00001.m4s");
@@ -327,16 +329,24 @@ public class ChunkedTransferServletTest {
 			
 			byte[] data = new byte[1024];
 			listener.chunkCompleted(data);
+			listener.chunkCompleted(new byte[0]);
 			
-			Mockito.verify(outputStream).write(data);
+			File f = new File("webapps/junit/streams");
+			f.getParentFile().mkdirs();
+			chunkedTransferServlet.writeChunks(f, cacheManager, asynContext, listener);
+			
+			Mockito.verify(outputStream).write(data, 0, 1024);
+			Mockito.verify(asynContext).complete();
 			
 			Mockito.doThrow(ClientAbortException.class).when(outputStream).flush();
 			listener.chunkCompleted(data);
-			Mockito.verify(cacheManager).removeChunkListener(file.getAbsolutePath(), listener);
+			chunkedTransferServlet.writeChunks(f, cacheManager, asynContext, listener);
+			
+			Mockito.verify(cacheManager, Mockito.times(2)).removeChunkListener(f.getAbsolutePath(), listener);
 			
 			
 			listener.chunkCompleted(null);
-			Mockito.verify(asynContext).complete();
+			Mockito.verify(asynContext, Mockito.times(2)).complete();
 			
 		}
 		catch (Exception e) {
