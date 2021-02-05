@@ -1,4 +1,4 @@
-package io.antmedia.logger;
+package io.antmedia.test.logger;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -7,6 +7,9 @@ import org.mockito.Mockito;
 
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.classic.spi.IThrowableProxy;
+import io.antmedia.logger.AntmediaAppender;
+import io.antmedia.logger.GoogleAnalyticsLogger;
+import io.antmedia.logger.LoggerEnvironment;
 
 public class AntmediaAppenderTest {
 

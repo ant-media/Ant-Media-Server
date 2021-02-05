@@ -169,7 +169,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		logger.info("starting testBugUpdateStreamFetcherStatus");
 
 		//create ip camera broadcast
-		DataStore dataStore = new MapDBStore("target/testbug.db"); //applicationContext.getBean(IDataStore.BEAN_NAME);
+		DataStore dataStore = new InMemoryDataStore("target/testbug.db"); //applicationContext.getBean(IDataStore.BEAN_NAME);
 
 		assertNotNull(dataStore);
 		DataStoreFactory dsf = Mockito.mock(DataStoreFactory.class);
@@ -204,36 +204,24 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		app.getStreamFetcherManager().startStreams(Arrays.asList(broadcast));
 
 		assertEquals(1, app.getStreamFetcherManager().getStreamFetcherList().size());
-
-		//wait 5seconds because connectivity time out is 4sec by default
-		try {
-			Thread.sleep(5000);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-
-
-		//check that it is not started
-		boolean flag3 = false;
-		for (StreamFetcher camScheduler : app.getStreamFetcherManager().getStreamFetcherList()) 
-		{
-			broadcast = dataStore.get(camScheduler.getStreamId());
-			if (broadcast.getIpAddr().equals(newCam.getIpAddr())) 
+		
+		Awaitility.waitAtMost(10, TimeUnit.SECONDS).pollDelay(3, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			//check that it is not started
+			boolean flag3 = false;
+			for (StreamFetcher camScheduler : app.getStreamFetcherManager().getStreamFetcherList()) 
 			{
-				// it should be false because emulator has not been started yet
-				assertFalse(camScheduler.isStreamAlive());
-				flag3 = true;
+				Broadcast broadcastTmp = dataStore.get(camScheduler.getStreamId());
+				if (broadcastTmp.getIpAddr().equals(newCam.getIpAddr())) 
+				{
+					// it should be false because emulator has not been started yet
+					assertFalse(camScheduler.isStreamAlive());
+					flag3 = true;
 
+				}
 			}
-		}
+			return flag3;
+		});
 
-		assertTrue(flag3);
-
-		try {
-			Thread.sleep(2000);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
 
 		//check that broadcast status in datastore in finished or not broadcasting
 		broadcast = dataStore.get(id);
@@ -243,13 +231,6 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		app.getStreamFetcherManager().stopStreaming(newCam.getStreamId());
 		assertEquals(0, app.getStreamFetcherManager().getStreamFetcherList().size());
-
-
-		try {
-			Thread.sleep(2000);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
 
 		app.stopStreaming(newCam);
 
@@ -288,11 +269,11 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			Mockito.doReturn(streamFetcher).when(fetcherManager).make(stream, appScope, vertx);
 
-			//set checker interval to 3 seconds
-			fetcherManager.setStreamCheckerInterval(4000);
+			//set checker interval to 2 seconds
+			fetcherManager.setStreamCheckerInterval(1000);
 
 			//set restart period to 5 seconds
-			appSettings.setRestartStreamFetcherPeriod(5);
+			appSettings.setRestartStreamFetcherPeriod(2);
 
 			//Start stream fetcher
 			boolean streamingStarted = fetcherManager.startStreaming(stream).isSuccess();
@@ -301,9 +282,9 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			//wait 10-12 seconds
 			//check that stream fetcher stop and start stream is called 2 times
-			verify(streamFetcher, timeout(13000).times(2)).stopStream();
+			verify(streamFetcher, timeout(5000).times(2)).stopStream();
 			//it is +1 because it is called at first start
-			verify(streamFetcher, times(3)).startStream(); 
+			verify(streamFetcher, timeout(500).times(3)).startStream(); 
 
 			//set restart period to 0 seconds
 			appSettings.setRestartStreamFetcherPeriod(0);
@@ -311,17 +292,18 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			//wait 10-12 seconds
 
 			//check that stream fetcher stop and start stream is not called
-			verify(streamFetcher, timeout(13000).times(2)).stopStream();
-			verify(streamFetcher, times(3)).startStream(); 
+			//wait 3 seconds
+			verify(streamFetcher, timeout(2000).times(2)).stopStream();
+			verify(streamFetcher, timeout(500).times(3)).startStream(); 
 
 			//set restart period to 5 seconds
-			appSettings.setRestartStreamFetcherPeriod(5);
+			appSettings.setRestartStreamFetcherPeriod(2);
 
 			//wait 10-12 seconds
 
 			//check that stream fetcher stop and start stream is not called
-			verify(streamFetcher, timeout(14000).atLeast(4)).stopStream();
-			verify(streamFetcher, atLeast(5)).startStream(); 
+			verify(streamFetcher, timeout(3000).atLeast(3)).stopStream();
+			verify(streamFetcher, timeout(500).atLeast(4)).startStream(); 
 
 			appSettings.setRestartStreamFetcherPeriod(0);
 
@@ -369,7 +351,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			// thread start 
 			fetcher.startStream();
 
-			Thread.sleep(6000);
+			Awaitility.waitAtMost(10, TimeUnit.SECONDS).until(() -> fetcher.isThreadActive());
+			Awaitility.waitAtMost(10, TimeUnit.SECONDS).until(() -> fetcher.isStreamAlive());
 
 			//check that thread is running
 			assertTrue(fetcher.isThreadActive());
@@ -379,10 +362,9 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			//stop thread
 			fetcher.stopStream();
 
-			Thread.sleep(5000);
+			Awaitility.waitAtMost(10, TimeUnit.SECONDS).until(() -> !fetcher.isThreadActive());
+			Awaitility.waitAtMost(10, TimeUnit.SECONDS).until(() -> !fetcher.isStreamAlive());
 
-			assertFalse(fetcher.isStreamAlive());
-			assertFalse(fetcher.isThreadActive());
 
 			//change the flag that shows thread is still running
 			fetcher.setThreadActive(true);
@@ -391,8 +373,9 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			//start thread
 			fetcher.startStream();
 
-			Thread.sleep(6000);
 			//check that thread is not started because thread active is true
+			Awaitility.waitAtMost(10, TimeUnit.SECONDS).pollDelay(2, TimeUnit.SECONDS).until(() -> !fetcher.isStreamAlive());
+			Awaitility.waitAtMost(10, TimeUnit.SECONDS).until(() -> fetcher.isThreadActive());
 			assertFalse(fetcher.isStreamAlive());
 			assertTrue(fetcher.isThreadActive());
 
@@ -401,22 +384,20 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			//change the flag that previous thread is stopped
 			fetcher.setThreadActive(false);
 
-			//wait a little
-			Thread.sleep(5000);
-
 			//check that thread is started
-			assertTrue(fetcher.isStreamAlive());
-			assertTrue(fetcher.isThreadActive());
+			Awaitility.waitAtMost(10, TimeUnit.SECONDS).pollDelay(2, TimeUnit.SECONDS).until(() -> fetcher.isStreamAlive());
+			Awaitility.waitAtMost(10, TimeUnit.SECONDS).until(() -> fetcher.isThreadActive());
+	
 
 			fetcher.stopStream();
 
-			Thread.sleep(6000);
+			Awaitility.waitAtMost(10, TimeUnit.SECONDS).pollDelay(2, TimeUnit.SECONDS).until(() -> !fetcher.isStreamAlive());
+			Awaitility.waitAtMost(10, TimeUnit.SECONDS).until(() -> !fetcher.isThreadActive());
+			
 			assertFalse(fetcher.isStreamAlive());
 			assertFalse(fetcher.isThreadActive());
 
 			stopCameraEmulator();
-
-			Thread.sleep(3000);
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -579,11 +560,13 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			fetcher.startStream();
 
 			//wait for fetching stream
-			try {
-				Thread.sleep(5000);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->  {
+				return fetcher.isThreadActive();
+			});
+			
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->  {
+				return MuxingTest.testFile("webapps/junit/streams/"+newCam.getStreamId() +".m3u8");
+			});
 
 			//wait for packaging files
 			fetcher.stopStream();
@@ -635,8 +618,6 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			startCameraEmulator();
 
-			Thread.sleep(2000);
-
 			// start stream fetcher
 
 			Broadcast newCam3 = new Broadcast("onvifCam4", "127.0.0.1:8080", "admin", "admin", "rtsp://127.0.0.1:6554/test.flv",
@@ -647,17 +628,15 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			newCam3.setStreamId("stream_id_" + (int)(Math.random() * 100000));
 
 
-			Thread.sleep(3000);
-
-
 			StreamFetcher fetcher3 = new StreamFetcher(newCam3.getStreamUrl(), newCam3.getStreamId(), newCam3.getType(), appScope, vertx);
 			fetcher3.setRestartStream(false);
 
 			// thread start 
 			fetcher3.startStream();
-
-			Thread.sleep(6000);
 			
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
+				return 1 == getInstance().getMuxAdaptors().size();
+			});
 			assertEquals(1, getInstance().getMuxAdaptors().size());
 
 			String str3=fetcher3.getCameraError().getMessage();
@@ -668,7 +647,9 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			fetcher3.stopStream();
 
-			Thread.sleep(2000);
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
+				return 0 == getInstance().getMuxAdaptors().size();
+			});
 			
 			assertEquals(0, getInstance().getMuxAdaptors().size());
 
@@ -775,10 +756,11 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 					AntMediaApplicationAdapter.STREAM_SOURCE);
 
 			assertNotNull(newCam.getStreamUrl());
-			DataStore dataStore = getInstance().getDataStore();
+			DataStore dataStore = new InMemoryDataStore("db"); //.getDataStore();
 
 			String id = dataStore.save(newCam);
 
+			
 			assertNotNull(newCam.getStreamId());
 
 			StreamFetcher fetcher = new StreamFetcher(newCam.getStreamUrl(), newCam.getStreamId(), newCam.getType(), appScope, vertx);
@@ -799,7 +781,9 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 				});
 			}
 	
-			Awaitility.await().pollDelay(5, TimeUnit.SECONDS).atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> fetcher.isStreamAlive());
+			
+			Awaitility.await().pollDelay(2, TimeUnit.SECONDS).atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
 				double speed = dataStore.get(newCam.getStreamId()).getSpeed();
 				//this value was so high over 9000. After using first packet time it's value is about 100-200
 				//it is still high and it is normal because it reads vod from disk it does not read live stream.
@@ -810,17 +794,17 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			});
 			
 
-			Thread.sleep(3000);
-
 			//wait for packaging files
 			fetcher.stopStream();
 			
 
 			String mp4File = "webapps/junit/streams/"+newCam.getStreamId() +".mp4";
 
+			
 			Awaitility.waitAtMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				return new File(mp4File).exists();
 			});
+			
 			
 			Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> !fetcher.isThreadActive());
 
@@ -845,6 +829,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			logger.info("after test mp4 file");
 
 			getInstance().getDataStore().delete(id);
+			
 		}
 		catch (Exception e) {
 			e.printStackTrace();
@@ -854,6 +839,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
 
 		Application.enableSourceHealthUpdate = false;
+		
 
 	}
 	
@@ -1084,6 +1070,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			camScheduler.stopStream();
 			assertTrue(MuxingTest.testFile("webapps/junit/streams/"+newCam.getStreamId() +".mp4"));
 			apps.setMp4MuxingEnabled(mp4Recording);
+			
+			stopCameraEmulator();
 		}
 		catch (Exception e) {
 			e.printStackTrace();

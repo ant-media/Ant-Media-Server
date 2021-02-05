@@ -350,6 +350,7 @@ public class BroadcastRestService extends RestServiceBase{
 			result = processRTMPEndpoint(result,  getDataStore().get(id), rtmpUrl, true);
 		}
 		else {
+			result.setMessage("Rtmp endpoint is not added to datastore");
 			if (logger.isErrorEnabled()) {
 				logger.error("Rtmp endpoint({}) was not added to the stream: {}", rtmpUrl != null ? rtmpUrl.replaceAll(REPLACE_CHARS, "_") : null , id.replaceAll(REPLACE_CHARS, "_"));
 			}
@@ -399,7 +400,7 @@ public class BroadcastRestService extends RestServiceBase{
 		Broadcast broadcast = getDataStore().get(id);
 		Result result;
 		
-		if(endpointServiceId != null && broadcast != null && !broadcast.getEndPointList().isEmpty() && broadcast.getEndPointList() != null) {
+		if(endpointServiceId != null && broadcast != null && broadcast.getEndPointList() != null && !broadcast.getEndPointList().isEmpty() ) {
 			for(Endpoint endpoint: broadcast.getEndPointList()) {
 				if(endpoint.getEndpointServiceId().equals(endpointServiceId)) {
 					rtmpUrl = endpoint.getRtmpUrl();

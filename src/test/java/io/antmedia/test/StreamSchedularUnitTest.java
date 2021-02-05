@@ -314,13 +314,6 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			return !streamFetcher.isThreadActive();
 		});
 
-		try {
-			Thread.sleep(10000);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
 		getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
 		Application.enableSourceHealthUpdate = false;
 
@@ -633,14 +626,6 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		});
 
 
-		//check that there is no job related left related with stream fetching
-		try {
-			Thread.sleep(10000);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
 		//convert to original settings
 		getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
 		Application.enableSourceHealthUpdate = false;
@@ -712,15 +697,6 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->  {
 			return !streamFetcher.isThreadActive();
 		});
-
-
-		//check that there is no job related left related with stream fetching
-		try {
-			Thread.sleep(10000);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 
 		//convert to original settings
 		getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
