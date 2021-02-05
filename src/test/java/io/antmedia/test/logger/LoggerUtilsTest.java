@@ -1,4 +1,4 @@
-package io.antmedia.logger;
+package io.antmedia.test.logger;
 
 import java.io.File;
 
@@ -8,6 +8,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.antmedia.logger.LoggerUtils;
 
 public class LoggerUtilsTest {
     private static final Logger logger = LoggerFactory.getLogger(LoggerUtilsTest.class);

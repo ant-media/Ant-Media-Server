@@ -81,7 +81,7 @@ public class ChunkedTransferServletTest {
 			
 			Mockito.when(appContext.isRunning()).thenReturn(false);
 			Mockito.when(resp.getWriter()).thenReturn(Mockito.mock(PrintWriter.class));
-			servlet.handleStream(req, resp);
+			servlet.handleIncomingStream(req, resp);
 			Mockito.verify(resp).setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 
 			
@@ -89,17 +89,17 @@ public class ChunkedTransferServletTest {
 			Mockito.when(req.getInputStream()).thenReturn(Mockito.mock(ServletInputStream.class));
 			
 			Mockito.when(appContext.isRunning()).thenReturn(true);
-			servlet.handleStream(req, resp);
+			servlet.handleIncomingStream(req, resp);
 			Mockito.verify(asyncContext).start(Mockito.any());
 			
 			Mockito.when(req.getPathInfo()).thenReturn("/stream" + (int)(Math.random()*10000) + ".mpd");
-			servlet.handleStream(req, resp);
+			servlet.handleIncomingStream(req, resp);
 			Mockito.verify(asyncContext, Mockito.times(2)).start(Mockito.any());
 			
 			
 			//no slash
 			Mockito.when(req.getPathInfo()).thenReturn("stream" + (int)(Math.random()*10000));
-			servlet.handleStream(req, resp);
+			servlet.handleIncomingStream(req, resp);
 			//it should 2 again
 			Mockito.verify(asyncContext, Mockito.times(2)).start(Mockito.any());
 			
@@ -107,11 +107,11 @@ public class ChunkedTransferServletTest {
 			//
 			String streamId = "stream" + (int)(Math.random()*10000);
 			Mockito.when(req.getPathInfo()).thenReturn("/" + streamId +"/" + streamId + ".mpd");
-			servlet.handleStream(req, resp);
+			servlet.handleIncomingStream(req, resp);
 			//it should 3 
 			Mockito.verify(asyncContext, Mockito.times(3)).start(Mockito.any());
 			
-			servlet.handleStream(req, resp);
+			servlet.handleIncomingStream(req, resp);
 			//it should 4 
 			Mockito.verify(asyncContext, Mockito.times(4)).start(Mockito.any());
 			
@@ -288,6 +288,7 @@ public class ChunkedTransferServletTest {
 			Mockito.when(cacheManager.hasCache(f.getAbsolutePath())).thenReturn(true);
 			servlet.handleGetRequest(req, resp);
 			Mockito.verify(cacheManager).registerChunkListener(Mockito.anyString(), Mockito.any());
+			Mockito.verify(asyncContext, Mockito.times(1)).start(Mockito.any());
 			
 			assertFalse(f.exists());
 			File realFile = new File("src/test/resources/chunked-samples/chunk-stream0-00001.m4s");
@@ -298,7 +299,7 @@ public class ChunkedTransferServletTest {
 			Mockito.when(resp.getOutputStream()).thenReturn(Mockito.mock(ServletOutputStream.class));
 			
 			servlet.handleGetRequest(req, resp);
-			Mockito.verify(asyncContext).start(Mockito.any());
+			Mockito.verify(asyncContext, Mockito.times(2)).start(Mockito.any());
 			
 			
 		}
@@ -312,6 +313,7 @@ public class ChunkedTransferServletTest {
 	public void testChunkListener() {
 		
 		try {
+			ChunkedTransferServlet chunkedTransferServlet = new ChunkedTransferServlet();
 			AsyncContext asynContext = Mockito.mock(AsyncContext.class);
 			IChunkedCacheManager cacheManager = Mockito.mock(IChunkedCacheManager.class);
 			File file = new File("src/test/resources/chunked-samples/chunk-stream0-00001.m4s");
@@ -323,20 +325,28 @@ public class ChunkedTransferServletTest {
 			ServletOutputStream outputStream = Mockito.mock(ServletOutputStream.class);
 			Mockito.when(response.getOutputStream()).thenReturn(outputStream);
 	
-			ChunkListener listener = new ChunkListener(asynContext, cacheManager, file.getAbsolutePath());
+			ChunkListener listener = new ChunkListener();
 			
 			byte[] data = new byte[1024];
 			listener.chunkCompleted(data);
+			listener.chunkCompleted(new byte[0]);
 			
-			Mockito.verify(outputStream).write(data);
+			File f = new File("webapps/junit/streams");
+			f.getParentFile().mkdirs();
+			chunkedTransferServlet.writeChunks(f, cacheManager, asynContext, listener);
+			
+			Mockito.verify(outputStream).write(data, 0, 1024);
+			Mockito.verify(asynContext).complete();
 			
 			Mockito.doThrow(ClientAbortException.class).when(outputStream).flush();
 			listener.chunkCompleted(data);
-			Mockito.verify(cacheManager).removeChunkListener(file.getAbsolutePath(), listener);
+			chunkedTransferServlet.writeChunks(f, cacheManager, asynContext, listener);
+			
+			Mockito.verify(cacheManager, Mockito.times(2)).removeChunkListener(f.getAbsolutePath(), listener);
 			
 			
 			listener.chunkCompleted(null);
-			Mockito.verify(asynContext).complete();
+			Mockito.verify(asynContext, Mockito.times(1)).complete();
 			
 		}
 		catch (Exception e) {
