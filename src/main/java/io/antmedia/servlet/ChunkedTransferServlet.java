@@ -158,9 +158,7 @@ public class ChunkedTransferServlet extends HttpServlet {
 						b.complete();
 					}, r -> {
 
-					})
-
-							);
+					}));
 				}
 				catch (BeansException | IllegalStateException | IOException e) 
 				{
