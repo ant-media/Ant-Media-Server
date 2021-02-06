@@ -207,7 +207,7 @@ public class ChunkedTransferServlet extends HttpServlet {
 				fos.write(data, 0, length);
 			}
 
-			Files.move(tmpFile.toPath(), finalFile.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+			
 			asyncContext.complete();
 		}
 		catch (Exception e) 
@@ -215,6 +215,11 @@ public class ChunkedTransferServlet extends HttpServlet {
 			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 		finally {
+			try {
+				Files.move(tmpFile.toPath(), finalFile.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+			} catch (IOException e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
 			cacheManager.removeCache(finalFile.getAbsolutePath());
 		}
 		logger.trace("doPut done key:{}", finalFile.getAbsolutePath());
