@@ -989,13 +989,12 @@ public abstract class RestServiceBase {
 		int connResult = onvif.connect(stream.getIpAddr(), stream.getUsername(), stream.getPassword());
 		if (connResult == 0) {
 			result.setSuccess(true);
-			//it means no connection or authentication error
-			//set RTMP URL
-			result.setMessage("connected to:"+onvif.getRTSPStreamURI());
+			//set RTSP URL. This message is directly used in saving stream url to the datastore
+			result.setMessage(onvif.getRTSPStreamURI());
 		}else {
 			//there is an error
 			//set error code and send it
-			result.setMessage("could not connected to:"+onvif.getRTSPStreamURI()+" result:"+String.valueOf(connResult));
+			result.setMessage("Could not connect to:" + onvif.getRTSPStreamURI()+" result:" + connResult);
 		}
 
 		return result;

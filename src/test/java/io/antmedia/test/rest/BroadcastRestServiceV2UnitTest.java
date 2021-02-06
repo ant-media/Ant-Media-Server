@@ -2216,6 +2216,7 @@ public class BroadcastRestServiceV2UnitTest {
 
 		//stream URL should be defined after ONVIF operations
 		//this assignment also ensures that, connection is successful to IP Camera via rest service using ONVIF operations
+		
 		assertEquals("rtsp://admin:admin@127.0.0.1:6554/test.flv", newCam.getStreamUrl());
 		
 		//stop request should trigger application adaptor stopStreaming

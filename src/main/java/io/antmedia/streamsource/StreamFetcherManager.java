@@ -125,7 +125,7 @@ public class StreamFetcherManager {
 		}
 		else {
 			logger.error("License is suspend and new stream scheduler is not started {}", streamScheduler.getStreamUrl());
-			result.setMessage("License is suspend");
+			result.setMessage("License is suspended");
 		}
 		return result;
 
@@ -151,10 +151,12 @@ public class StreamFetcherManager {
 				result = startStreamScheduler(streamScheduler);
 			}
 			catch (Exception e) {
-				streamScheduler = null;
 				logger.error(ExceptionUtils.getStackTrace(e));
 				result.setMessage("Problem occured while fetching the stream");
 			}
+		}
+		else {
+			result.setMessage("Stream is already active. It's already streaming or trying to connect");
 		}
 
 		return result;

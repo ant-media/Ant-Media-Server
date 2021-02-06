@@ -19,7 +19,6 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.RandomUtils;
@@ -964,10 +963,12 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		} catch (IOException e1) {
 			e1.printStackTrace();
 		}
-		try {
-			Thread.sleep(2000);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
+		while (!p.isAlive()) {
+			try {
+				Thread.sleep(100);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 
@@ -1004,6 +1005,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	@Test
 	public void testBroadcastStatusForStreamSource() 
 	{
+		startCameraEmulator();
 		try (AVFormatContext inputFormatContext = new AVFormatContext()) {
 			String existingStreamSource = "existingStreamSource"+RandomUtils.nextInt();
 			Broadcast existingBroadcast = new Broadcast(existingStreamSource, "10.2.40.63:8080", "admin", "admin", 
@@ -1015,14 +1017,39 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 			DataStore dataStore = app.getAppAdaptor().getDataStore();
 			dataStore.save(existingBroadcast);
-
-			StreamFetcher streamScheduler = new StreamFetcher(existingBroadcast.getStreamUrl(), existingBroadcast.getStreamId(), existingBroadcast.getType(), appScope, vertx);
-			streamScheduler.startStream();
+			
+			StreamFetcherManager fetcherManager = new StreamFetcherManager(vertx, dataStore, appScope);
+			
+			
+			Result startStreaming = fetcherManager.startStreaming(existingBroadcast);
+			assertTrue(startStreaming.isSuccess());
 
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> 
 			{
 				return dataStore.get(existingStreamSource).getStatus() == AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING;
 			});
+			
+			startStreaming = fetcherManager.startStreaming(existingBroadcast);
+			//it should be false because it's already fetching
+			assertFalse(startStreaming.isSuccess());
+			
+			Result stopStreaming = fetcherManager.stopStreaming(existingBroadcast.getStreamId());
+			assertTrue(stopStreaming.isSuccess());
+			stopStreaming = fetcherManager.stopStreaming(existingBroadcast.getStreamId());
+			assertFalse(stopStreaming.isSuccess());
+			
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
+				return fetcherManager.getStreamFetcherList().size() == 0;
+			});
+			
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> 
+			{
+				return dataStore.get(existingStreamSource).getStatus() == AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED;
+			});
+			
+			
+			
+			
 			
 			
 			//non existing url
@@ -1035,18 +1062,41 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			nonExistingBroadcast.setStreamId(nonExistingStreamSource);
 			dataStore.save(nonExistingBroadcast);
 
-			StreamFetcher streamSchedulerNonExisting = new StreamFetcher(nonExistingBroadcast.getStreamUrl(), nonExistingBroadcast.getStreamId(), nonExistingBroadcast.getType(), appScope, vertx);
-			streamSchedulerNonExisting.startStream();
+			Result startStreaming2 = fetcherManager.startStreaming(nonExistingBroadcast);
+			assertTrue(startStreaming2.isSuccess());
+			
+			startStreaming2 = fetcherManager.startStreaming(nonExistingBroadcast);
+			assertFalse(startStreaming2.isSuccess());
 
-			Awaitility.await().pollDelay(5, TimeUnit.SECONDS).until(() -> 
-			{
+			Awaitility.await().pollDelay(5, TimeUnit.SECONDS).until(() -> {
 				return dataStore.get(nonExistingStreamSource).getStatus() != AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING;
 			});
+			
+			StreamFetcher streamFetcher = fetcherManager.getStreamFetcher(nonExistingStreamSource);
+			
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
+				return streamFetcher.isThreadActive();
+			});
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
+				return !streamFetcher.isStreamAlive();
+			});
+			
+			
+			Result stopStreaming2 = fetcherManager.stopStreaming(nonExistingStreamSource);
+			assertTrue(stopStreaming2.isSuccess());
+			stopStreaming2 = fetcherManager.stopStreaming(nonExistingStreamSource);
+			assertFalse(stopStreaming2.isSuccess());
+			
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
+				return fetcherManager.getStreamFetcherList().size() == 0;
+			});
+			
 		}
 		catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+		stopCameraEmulator();
 
 
 	}
