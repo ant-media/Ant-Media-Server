@@ -997,7 +997,9 @@ public abstract class RestServiceBase {
 		}else {
 			//there is an error
 			//set error code and send it
-			result.setMessage("Could not connect to:" + onvif.getRTSPStreamURI()+" result:" + connResult);
+			result.setMessage("Could not connect to " + stream.getIpAddr() + " result:" + connResult);
+			result.setErrorId(connResult);
+			logger.info("Cannot connect to ip camera:{}", stream.getIpAddr());
 		}
 
 		return result;

@@ -2306,7 +2306,7 @@ public class BroadcastRestServiceV2UnitTest {
 		result = streamSourceRest.connectToCamera(newCam);
 
 		//message should be connection error code (-1) because IP is set
-		assertEquals(String.valueOf(-1), result.getMessage());
+		assertEquals(-1, result.getErrorId());
 
 
 		//stop camera emulator
