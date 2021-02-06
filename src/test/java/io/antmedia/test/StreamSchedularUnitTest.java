@@ -960,16 +960,17 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		Process p = null;
 		try {
 			p = pb.start();
+			while (!p.isAlive()) {
+				try {
+					Thread.sleep(100);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
 		} catch (IOException e1) {
 			e1.printStackTrace();
 		}
-		while (!p.isAlive()) {
-			try {
-				Thread.sleep(100);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-		}
+		
 	}
 
 
@@ -1007,6 +1008,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	{
 		startCameraEmulator();
 		try (AVFormatContext inputFormatContext = new AVFormatContext()) {
+			
 			String existingStreamSource = "existingStreamSource"+RandomUtils.nextInt();
 			Broadcast existingBroadcast = new Broadcast(existingStreamSource, "10.2.40.63:8080", "admin", "admin", 
 					"rtsp://127.0.0.1:6554/test.flv",
@@ -1020,7 +1022,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			
 			StreamFetcherManager fetcherManager = new StreamFetcherManager(vertx, dataStore, appScope);
 			
-			
+			/*
 			Result startStreaming = fetcherManager.startStreaming(existingBroadcast);
 			assertTrue(startStreaming.isSuccess());
 
@@ -1046,10 +1048,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			{
 				return dataStore.get(existingStreamSource).getStatus() == AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED;
 			});
-			
-			
-			
-			
+			*/
 			
 			
 			//non existing url
@@ -1069,14 +1068,11 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			assertFalse(startStreaming2.isSuccess());
 
 			Awaitility.await().pollDelay(5, TimeUnit.SECONDS).until(() -> {
-				return dataStore.get(nonExistingStreamSource).getStatus() != AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING;
+				return !AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(dataStore.get(nonExistingStreamSource).getStatus());
 			});
 			
 			StreamFetcher streamFetcher = fetcherManager.getStreamFetcher(nonExistingStreamSource);
 			
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
-				return streamFetcher.isThreadActive();
-			});
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
 				return !streamFetcher.isStreamAlive();
 			});
