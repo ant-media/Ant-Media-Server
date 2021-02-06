@@ -1611,7 +1611,7 @@ public abstract class RestServiceBase {
 
 		if (broadcast != null) 
 		{
-			if(broadcast.getStreamUrl() != null) 
+			if(broadcast.getStreamUrl() != null || AntMediaApplicationAdapter.PLAY_LIST.equals(broadcast.getType())) 
 			{
 				result = getApplication().startStreaming(broadcast);
 			}
