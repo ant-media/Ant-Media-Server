@@ -380,7 +380,23 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 			dataStore.save(playlist);
 
-			streamFetcherManager.startPlaylist(playlist);
+			Result startPlaylist = streamFetcherManager.startPlaylist(playlist);
+			assertTrue(startPlaylist.isSuccess());
+			
+			{
+				//it should return false because it's already streaming
+				startPlaylist = streamFetcherManager.startPlaylist(playlist);
+				assertFalse(startPlaylist.isSuccess());
+			}
+			
+			{
+				Broadcast playlist2Free = new Broadcast();
+				dataStore.save(playlist2Free);
+				//it should return false because it's no playlist item
+				startPlaylist = streamFetcherManager.startPlaylist(playlist2Free);
+				assertFalse(startPlaylist.isSuccess());
+			}
+			
 
 			assertNotNull(streamFetcherManager);		
 
@@ -474,6 +490,13 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 			assertEquals(false, checked.isSuccess());		
 
+			
+			{
+				 Result stopPlayList = streamFetcherManager.stopPlayList(null);
+				 assertFalse(stopPlayList.isSuccess());
+			}
+			
+			
 			//convert to original settings
 			getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
 			Application.enableSourceHealthUpdate = false;

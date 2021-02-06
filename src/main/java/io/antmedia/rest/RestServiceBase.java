@@ -1614,27 +1614,31 @@ public abstract class RestServiceBase {
 			if(broadcast.getStreamUrl() == null && broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA)) 
 			{
 				//if streamURL is not defined before for IP Camera, connect to it again and define streamURL
-				Result connResult = connectToCamera(broadcast);
+				result = connectToCamera(broadcast);
 
-				if (connResult.isSuccess()) 
+				if (result.isSuccess()) 
 				{
 					String authparam = broadcast.getUsername() + ":" + broadcast.getPassword() + "@";
-					String rtspURLWithAuth = RTSP + authparam + connResult.getMessage().substring(RTSP.length());
+					String rtspURLWithAuth = RTSP + authparam + result.getMessage().substring(RTSP.length());
 					logger.info("rtsp url with auth: {}", rtspURLWithAuth);
 					broadcast.setStreamUrl(rtspURLWithAuth);
+					
+					result = getApplication().startStreaming(broadcast);
 				}
-				else {
-					return connResult;
-				}
+				
+			}
+			else {
+				result = getApplication().startStreaming(broadcast);
 			}
 
-			result = getApplication().startStreaming(broadcast);
+			
 		}
 		else {
 			result.setMessage("No Stream Exists with id:"+id);
 		}
 		return result;
 	}
+	
 
 
 	public Result stopStreaming(String id) 

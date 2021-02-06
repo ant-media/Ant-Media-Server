@@ -2226,6 +2226,25 @@ public class BroadcastRestServiceV2UnitTest {
 		
 		//start again via rest service
 		assertTrue(streamSourceRest.startStreamSource(newCam.getStreamId()).isSuccess());
+		assertTrue(streamSourceRest.stopStreamingV2(newCam.getStreamId()).isSuccess());
+		
+		
+		{
+			//camera validity check
+			Broadcast cast = new Broadcast();
+			cast.setIpAddr("ht://124323");
+			assertFalse(streamSourceRest.addIPCamera(cast, null).isSuccess());
+		}
+		
+		{
+			Broadcast streamSource = new Broadcast("---start-stop", "", "", "",
+					null, AntMediaApplicationAdapter.STREAM_SOURCE);
+			//odd case let it throw null pointer exception
+			assertFalse(streamSourceRest.startStreamSource(newCam.getStreamId()).isSuccess());
+			
+		}
+		
+		
 
 		//stop camera emulator
 		StreamFetcherUnitTest.stopCameraEmulator();
