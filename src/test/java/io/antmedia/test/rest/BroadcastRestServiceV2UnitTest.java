@@ -2199,7 +2199,7 @@ public class BroadcastRestServiceV2UnitTest {
 		AntMediaApplicationAdapter adaptor = mock (AntMediaApplicationAdapter.class);
 		StreamFetcher fetcher = mock (StreamFetcher.class);
 		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
-		Mockito.doReturn(true).when(adaptor).startStreaming(newCam);
+		Mockito.doReturn(new Result(true)).when(adaptor).startStreaming(newCam);
 		Mockito.doReturn(new Result(true)).when(adaptor).stopStreaming(newCam);
 		Mockito.doReturn(new InMemoryDataStore("startStopStreamSource")).when(streamSourceRest).getDataStore();
 
