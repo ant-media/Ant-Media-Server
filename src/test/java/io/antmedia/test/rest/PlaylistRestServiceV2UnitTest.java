@@ -612,7 +612,9 @@ public class PlaylistRestServiceV2UnitTest {
 		assertEquals(false, result.isSuccess());
 		
 		Broadcast broadcast2 = dataStore.get(playlist.getStreamId());
-		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, broadcast2.getStatus());
+		
+		//it's created because it actually never starts - real status check is done in integration tests
+		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, broadcast2.getStatus());
 
 		
 		
