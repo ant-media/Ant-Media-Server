@@ -177,7 +177,7 @@ public class StreamFetcherManager {
 				break;
 			}
 		}
-		result.setMessage(result.isSuccess() ? "Stream stopped" : "No matching stream source:"+streamId);
+		result.setMessage(result.isSuccess() ? "Stream stopped" : "No matching stream source in this server:"+streamId);
 		result.setDataId(streamId);
 		return result;
 	}

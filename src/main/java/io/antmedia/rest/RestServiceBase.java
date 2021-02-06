@@ -951,6 +951,9 @@ public abstract class RestServiceBase {
 				}
 			}
 		}
+		else {
+			connResult.setMessage("IP camera addr is not valid: " + stream.getIpAddr());
+		}
 
 		return connResult;
 	}
