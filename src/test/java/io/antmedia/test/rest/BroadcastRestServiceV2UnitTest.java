@@ -2239,9 +2239,9 @@ public class BroadcastRestServiceV2UnitTest {
 		{
 			Broadcast streamSource = new Broadcast("---start-stop", "", "", "",
 					null, AntMediaApplicationAdapter.STREAM_SOURCE);
+			streamSourceRest.getDataStore().save(streamSource);
 			//odd case let it throw null pointer exception
-			assertFalse(streamSourceRest.startStreamSource(newCam.getStreamId()).isSuccess());
-			
+			assertFalse(streamSourceRest.startStreamSource(streamSource.getStreamId()).isSuccess());
 		}
 		
 		
