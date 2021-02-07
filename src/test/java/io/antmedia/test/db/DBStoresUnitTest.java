@@ -49,6 +49,7 @@ import io.antmedia.datastore.db.types.SubscriberStats;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.settings.ServerSettings;
 
@@ -123,6 +124,7 @@ public class DBStoresUnitTest {
 		testVodSearch(dataStore);
 		testConferenceRoomSorting(dataStore);
 		testConferenceRoomSearch(dataStore);
+		testUpdateEndpointStatus(dataStore);
 
 	}
 
@@ -167,6 +169,7 @@ public class DBStoresUnitTest {
 		testVodSearch(dataStore);
 		testConferenceRoomSorting(dataStore);
 		testConferenceRoomSearch(dataStore);
+		testUpdateEndpointStatus(dataStore);
 
 	}
 
@@ -228,6 +231,8 @@ public class DBStoresUnitTest {
 		testVodSearch(dataStore);
 		testConferenceRoomSorting(dataStore);
 		testConferenceRoomSearch(dataStore);
+		testUpdateEndpointStatus(dataStore);
+
 	}
 	
 	@Test
@@ -2372,6 +2377,79 @@ public class DBStoresUnitTest {
 		assertEquals(0, list2.size());
 
 		
+	}
+	private void testUpdateEndpointStatus(DataStore dataStore)
+	{
+		Broadcast broadcast = new Broadcast(null, null);
+		String name = "name 1";
+		String description = "description 2";
+		broadcast.setName(name);
+		broadcast.setDescription(description);
+		dataStore.save(broadcast);
+
+		assertNotNull(broadcast.getStreamId());
+
+		//add endpoint
+		String rtmpUrl = "rtmp://rtmp1";
+		Endpoint endPoint = new Endpoint("broacdast id",broadcast.getStreamId(), broadcast.getName(), rtmpUrl, "generic", null, null);
+		boolean result = dataStore.addEndpoint(broadcast.getStreamId().toString(), endPoint);
+		assertTrue(result);
+
+		//add endpoint
+		String rtmpUrl2 = "rtmp:(sdfsfsf(ksklasjflakjflaskjflsadfkjsal";
+		Endpoint endPoint2 = new Endpoint("broacdast id 2", broadcast.getStreamId(), broadcast.getName(), rtmpUrl2,
+				"generic", null, null);
+		result = dataStore.addEndpoint(broadcast.getStreamId().toString(), endPoint2);
+		assertTrue(result);
+
+		//add endpoint
+		String rtmpUrl3 = "rtmp:(sdfsfasafadgsgsf(ksklasjflakjflaskjflsadfkjsal";
+		Endpoint endPoint3 = new Endpoint("broacdast id 3", broadcast.getStreamId(), broadcast.getName(), rtmpUrl3,
+				"generic", null, null);
+
+
+
+		Broadcast tmpBroadcast = dataStore.get(broadcast.getStreamId());
+		List<Endpoint> endPointList = tmpBroadcast.getEndPointList();
+		for (Endpoint tmpEndpoint : endPointList) {
+			if (tmpEndpoint.getRtmpUrl().equals(rtmpUrl)) {
+				tmpEndpoint.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED);
+				break;
+			}
+		}
+		//update rtmpurl
+		result = dataStore.updateBroadcastFields(broadcast.getStreamId(), tmpBroadcast); 
+		assertTrue(result);
+		
+		
+		
+		tmpBroadcast = dataStore.get(broadcast.getStreamId());
+		endPointList = tmpBroadcast.getEndPointList();
+		for (Endpoint tmpEndpoint : endPointList) {
+			if (tmpEndpoint.getRtmpUrl().equals(rtmpUrl2)) {
+				tmpEndpoint.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+				break;
+			}
+		}
+		result = dataStore.updateBroadcastFields(broadcast.getStreamId(), tmpBroadcast); 
+		assertTrue(result);
+		
+		
+		
+		Broadcast updated = dataStore.get(broadcast.getStreamId());
+		List<Endpoint> endpList = updated.getEndPointList();
+		for(int i = 0; i < endpList.size(); i++){
+			Endpoint e = endpList.get(i);
+			if(e.getRtmpUrl().equals(rtmpUrl)){
+				assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED, e.getStatus());
+			}
+			else if(e.getRtmpUrl().equals(rtmpUrl2)){
+				assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING, e.getStatus());
+			}
+			else{
+				assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_CREATED, e.getStatus());
+			}
+		}
 	}
 	
 	private void testUpdateStatus(DataStore dataStore) {

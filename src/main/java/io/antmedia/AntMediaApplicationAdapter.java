@@ -82,10 +82,7 @@ import io.vertx.ext.dropwizard.MetricsService;
 public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShutdownListener {
 
 	public static final String BEAN_NAME = "web.handler";
-	public static final String BROADCAST_STATUS_CREATED = "created";
-	public static final String BROADCAST_STATUS_BROADCASTING = "broadcasting";
-	public static final String BROADCAST_STATUS_FINISHED = "finished";
-	public static final String BROADCAST_STATUS_PREPARING = "preparing";
+	
 	public static final int BROADCAST_STATS_RESET = 0;
 	public static final String HOOK_ACTION_END_LIVE_STREAM = "liveStreamEnded";
 	public static final String HOOK_ACTION_START_LIVE_STREAM = "liveStreamStarted";
