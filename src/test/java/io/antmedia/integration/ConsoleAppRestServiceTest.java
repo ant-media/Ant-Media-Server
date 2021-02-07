@@ -1158,7 +1158,7 @@ public class ConsoleAppRestServiceTest{
 			
 			
 			Broadcast broadcast = RestServiceV2Test.callCreateRegularBroadcast();
-			Token accessToken = callGetJWTToken( "http://localhost:5080/"+appName+"/rest/v2/broadcasts/"+broadcast.getStreamId()+"/jwtToken", Token.PLAY_TOKEN, validExpireDate);
+			Token accessToken = callGetJWTToken( "http://localhost:5080/"+appName+"/rest/v2/broadcasts/"+broadcast.getStreamId()+"/jwt-token", Token.PLAY_TOKEN, validExpireDate);
 			assertNotNull(accessToken);
 
 
@@ -1176,11 +1176,11 @@ public class ConsoleAppRestServiceTest{
 
 
 			//create token for publishing
-			Token publishToken = callGetJWTToken("http://localhost:5080/"+appName+"/rest/v2/broadcasts/"+broadcast.getStreamId()+"/jwtToken" , Token.PUBLISH_TOKEN, validExpireDate);
+			Token publishToken = callGetJWTToken("http://localhost:5080/"+appName+"/rest/v2/broadcasts/"+broadcast.getStreamId()+"/jwt-token" , Token.PUBLISH_TOKEN, validExpireDate);
 			assertNotNull(publishToken);
 
 			//create token for playing/accessing file
-			Token accessToken2 = callGetJWTToken("http://localhost:5080/"+appName+"/rest/v2/broadcasts/"+broadcast.getStreamId()+"/jwtToken", Token.PLAY_TOKEN, validExpireDate);
+			Token accessToken2 = callGetJWTToken("http://localhost:5080/"+appName+"/rest/v2/broadcasts/"+broadcast.getStreamId()+"/jwt-token", Token.PLAY_TOKEN, validExpireDate);
 			assertNotNull(accessToken2);
 
 			Process rtmpSendingProcessToken = execute(ffmpegPath
@@ -1212,14 +1212,14 @@ public class ConsoleAppRestServiceTest{
 			
 			
 			//Test invalid expire date and valid stream ID
-			Token invalidAccessToken = callGetJWTToken( "http://localhost:5080/"+appName+"/rest/v2/broadcasts/"+broadcast.getStreamId()+"/jwtToken", Token.PLAY_TOKEN, invalidExpireDate);
+			Token invalidAccessToken = callGetJWTToken( "http://localhost:5080/"+appName+"/rest/v2/broadcasts/"+broadcast.getStreamId()+"/jwt-token", Token.PLAY_TOKEN, invalidExpireDate);
 			assertNotNull(invalidAccessToken);
 			
 			assertEquals(403, ConsoleAppRestServiceTest.getStatusCode("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" 
 					+ broadcast.getStreamId() + ".mp4?token=" + invalidAccessToken.getTokenId(), false));
 			
 			//Test valid expire date and invalid stream ID
-			Token invalidAccessToken2 = callGetJWTToken( "http://localhost:5080/"+appName+"/rest/v2/broadcasts/invalidStreamID/jwtToken", Token.PLAY_TOKEN, validExpireDate);
+			Token invalidAccessToken2 = callGetJWTToken( "http://localhost:5080/"+appName+"/rest/v2/broadcasts/invalidStreamID/jwt-token", Token.PLAY_TOKEN, validExpireDate);
 			assertNotNull(invalidAccessToken2);
 			
 			assertEquals(403, ConsoleAppRestServiceTest.getStatusCode("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" 
