@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.lang3.RandomUtils;
 import org.awaitility.Awaitility;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
@@ -290,7 +291,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		dataStore.save(newCam);
 
 		//result=getInstance().startStreaming(newCam);
-		boolean streamingStarted = streamFetcherManager.startStreaming(newCam);
+		boolean streamingStarted = streamFetcherManager.startStreaming(newCam).isSuccess();
 
 		//check whether answer from StreamFetcherManager is true or not after new IPCamera is added
 		assertTrue(streamingStarted);
@@ -302,7 +303,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		});
 
 		//getInstance().stopStreaming(newCam);
-		boolean result = streamFetcherManager.stopStreaming(newCam.getStreamId());
+		boolean result = streamFetcherManager.stopStreaming(newCam.getStreamId()).isSuccess();
 		assertTrue(result);
 		stopCameraEmulator();
 
@@ -311,86 +312,9 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->  {
 			return !streamFetcher.isThreadActive();
 		});
-
-		try {
-			Thread.sleep(10000);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 
 		getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
 		Application.enableSourceHealthUpdate = false;
-
-	}
-
-	@Test
-	public void testPlaylistStartStreaming() {
-
-		startCameraEmulator();
-		
-		BroadcastRestService service = new BroadcastRestService();
-
-		service.setApplication(app.getAppAdaptor());
-
-		//create a broadcast
-		//use internal source 
-		Broadcast newCam = new Broadcast("test", "127.0.0.1:8080", "admin", "admin", "rtsp://127.0.0.1:6554/test.flv",
-				AntMediaApplicationAdapter.STREAM_SOURCE);
-	
-		//create a test db
-		DataStore dataStore = new InMemoryDataStore("target/testPlaylistStartStreaming.db"); 
-
-		service.setDataStore(dataStore);
-
-
-		//add stream to data store
-		dataStore.save(newCam);
-
-		StreamFetcher streamFetcher = new StreamFetcher(newCam.getStreamUrl(), newCam.getStreamId(), newCam.getType(), appScope, vertx); 
-
-		service.setApplication(app.getAppAdaptor());
-
-
-		//create a stream fetcher
-		StreamFetcherManager streamFetcherManager = new StreamFetcherManager(vertx, dataStore, appScope);
-
-		app.getAppAdaptor().setStreamFetcherManager(streamFetcherManager);
-
-		streamFetcher.setRestartStream(false);
-		streamFetcherManager.startStreamScheduler(streamFetcher);
-				
-
-
-		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() ->  
-			streamFetcher.isThreadActive()
-		);
-		
-		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() ->  
-			streamFetcher.isStreamAlive()
-		);
-		
-
-		streamFetcherManager.stopCheckerJob();
-		boolean result = streamFetcherManager.stopStreaming(newCam.getStreamId());
-
-		//check that fetcher is nor running
-		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->  {
-			return !streamFetcher.isThreadActive();
-		});
-
-		//check that there is no job related left related with stream fetching
-		try {
-			Thread.sleep(10000);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-		assertTrue(result);
-		
-		stopCameraEmulator();
-
 
 	}
 
@@ -456,7 +380,23 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 			dataStore.save(playlist);
 
-			streamFetcherManager.startPlaylist(playlist);
+			Result startPlaylist = streamFetcherManager.startPlaylist(playlist);
+			assertTrue(startPlaylist.isSuccess());
+			
+			{
+				//it should return false because it's already streaming
+				startPlaylist = streamFetcherManager.startPlaylist(playlist);
+				assertFalse(startPlaylist.isSuccess());
+			}
+			
+			{
+				Broadcast playlist2Free = new Broadcast();
+				dataStore.save(playlist2Free);
+				//it should return false because it's no playlist item
+				startPlaylist = streamFetcherManager.startPlaylist(playlist2Free);
+				assertFalse(startPlaylist.isSuccess());
+			}
+			
 
 			assertNotNull(streamFetcherManager);		
 
@@ -466,7 +406,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			.until(() ->dataStore.get("testId").getCurrentPlayIndex() == 2 && dataStore.get("testId").getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING));
 
 			
-			boolean result = streamFetcherManager.stopPlayList("testId");
+			boolean result = streamFetcherManager.stopPlayList("testId").isSuccess();
 			assertTrue(result);
 		
 			
@@ -512,7 +452,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			.until(() -> AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED.equals(dataStore.get("testId").getStatus()));
 			
 			
-			assertTrue(streamFetcherManager.startPlaylist(playlist));
+			assertTrue(streamFetcherManager.startPlaylist(playlist).isSuccess());
 
 			Awaitility.await().atMost(10, TimeUnit.SECONDS)
 			.until(() ->dataStore.get("testId").getCurrentPlayIndex() == 1);
@@ -550,6 +490,13 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 			assertEquals(false, checked.isSuccess());		
 
+			
+			{
+				 Result stopPlayList = streamFetcherManager.stopPlayList(null);
+				 assertFalse(stopPlayList.isSuccess());
+			}
+			
+			
 			//convert to original settings
 			getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
 			Application.enableSourceHealthUpdate = false;
@@ -603,7 +550,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		//add stream to data store
 		dataStore.save(newCam);
 
-		boolean streamingStarted = streamFetcherManager.startStreaming(newCam);
+		boolean streamingStarted = streamFetcherManager.startStreaming(newCam).isSuccess();
 		assertTrue(streamingStarted);
 		
 		//check whether answer from StreamFetcherManager is true or not after new IPCamera is added
@@ -630,14 +577,6 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			return !streamFetcher.isThreadActive();
 		});
 
-
-		//check that there is no job related left related with stream fetching
-		try {
-			Thread.sleep(10000);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 
 		//convert to original settings
 		getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
@@ -683,7 +622,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		
 		//result=getInstance().startStreaming(newCam);
-		boolean streamingStarted = streamFetcherManager.startStreaming(newCam);
+		boolean streamingStarted = streamFetcherManager.startStreaming(newCam).isSuccess();
 
 		//check whether answer from StreamFetcherManager is true or not after new IPCamera is added
 		assertTrue(streamingStarted);
@@ -710,15 +649,6 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->  {
 			return !streamFetcher.isThreadActive();
 		});
-
-
-		//check that there is no job related left related with stream fetching
-		try {
-			Thread.sleep(10000);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 
 		//convert to original settings
 		getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
@@ -1053,14 +983,17 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		Process p = null;
 		try {
 			p = pb.start();
+			while (!p.isAlive()) {
+				try {
+					Thread.sleep(100);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
 		} catch (IOException e1) {
 			e1.printStackTrace();
 		}
-		try {
-			Thread.sleep(2000);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
+		
 	}
 
 
@@ -1093,7 +1026,99 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		return appSettings;
 	}
 
+	@Test
+	public void testBroadcastStatusForStreamSource() 
+	{
+		startCameraEmulator();
+		try (AVFormatContext inputFormatContext = new AVFormatContext()) {
+			
+			String existingStreamSource = "existingStreamSource"+RandomUtils.nextInt();
+			Broadcast existingBroadcast = new Broadcast(existingStreamSource, "10.2.40.63:8080", "admin", "admin", 
+					"rtsp://127.0.0.1:6554/test.flv",
+					AntMediaApplicationAdapter.STREAM_SOURCE);
+			
+			
+			existingBroadcast.setStreamId(existingStreamSource);
 
+			DataStore dataStore = app.getAppAdaptor().getDataStore();
+			dataStore.save(existingBroadcast);
+			
+			StreamFetcherManager fetcherManager = new StreamFetcherManager(vertx, dataStore, appScope);
+			
+			/*
+			Result startStreaming = fetcherManager.startStreaming(existingBroadcast);
+			assertTrue(startStreaming.isSuccess());
+
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> 
+			{
+				return dataStore.get(existingStreamSource).getStatus() == AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING;
+			});
+			
+			startStreaming = fetcherManager.startStreaming(existingBroadcast);
+			//it should be false because it's already fetching
+			assertFalse(startStreaming.isSuccess());
+			
+			Result stopStreaming = fetcherManager.stopStreaming(existingBroadcast.getStreamId());
+			assertTrue(stopStreaming.isSuccess());
+			stopStreaming = fetcherManager.stopStreaming(existingBroadcast.getStreamId());
+			assertFalse(stopStreaming.isSuccess());
+			
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
+				return fetcherManager.getStreamFetcherList().size() == 0;
+			});
+			
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> 
+			{
+				return dataStore.get(existingStreamSource).getStatus() == AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED;
+			});
+			*/
+			
+			
+			//non existing url
+			
+			String nonExistingStreamSource = "nonExistingStreamSource"+RandomUtils.nextInt();
+			Broadcast nonExistingBroadcast = new Broadcast(nonExistingStreamSource, "10.2.40.63:8080", "admin", "admin", 
+					"rtsp://127.0.0.1:6554/fakeurl.flv",
+					AntMediaApplicationAdapter.STREAM_SOURCE);
+
+			nonExistingBroadcast.setStreamId(nonExistingStreamSource);
+			dataStore.save(nonExistingBroadcast);
+
+			Result startStreaming2 = fetcherManager.startStreaming(nonExistingBroadcast);
+			assertTrue(startStreaming2.isSuccess());
+			
+			startStreaming2 = fetcherManager.startStreaming(nonExistingBroadcast);
+			assertFalse(startStreaming2.isSuccess());
+
+			Awaitility.await().pollDelay(5, TimeUnit.SECONDS).until(() -> {
+				return !AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(dataStore.get(nonExistingStreamSource).getStatus());
+			});
+			
+			StreamFetcher streamFetcher = fetcherManager.getStreamFetcher(nonExistingStreamSource);
+			
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
+				return !streamFetcher.isStreamAlive();
+			});
+			
+			
+			Result stopStreaming2 = fetcherManager.stopStreaming(nonExistingStreamSource);
+			assertTrue(stopStreaming2.isSuccess());
+			stopStreaming2 = fetcherManager.stopStreaming(nonExistingStreamSource);
+			assertFalse(stopStreaming2.isSuccess());
+			
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
+				return fetcherManager.getStreamFetcherList().size() == 0;
+			});
+			
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		stopCameraEmulator();
+
+
+	}
 
 }
 

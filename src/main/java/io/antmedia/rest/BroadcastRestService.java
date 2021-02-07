@@ -350,6 +350,7 @@ public class BroadcastRestService extends RestServiceBase{
 			result = processRTMPEndpoint(result,  getDataStore().get(id), rtmpUrl, true);
 		}
 		else {
+			result.setMessage("Rtmp endpoint is not added to datastore");
 			if (logger.isErrorEnabled()) {
 				logger.error("Rtmp endpoint({}) was not added to the stream: {}", rtmpUrl != null ? rtmpUrl.replaceAll(REPLACE_CHARS, "_") : null , id.replaceAll(REPLACE_CHARS, "_"));
 			}
@@ -399,7 +400,7 @@ public class BroadcastRestService extends RestServiceBase{
 		Broadcast broadcast = getDataStore().get(id);
 		Result result;
 		
-		if(endpointServiceId != null && broadcast != null && !broadcast.getEndPointList().isEmpty() && broadcast.getEndPointList() != null) {
+		if(endpointServiceId != null && broadcast != null && broadcast.getEndPointList() != null && !broadcast.getEndPointList().isEmpty() ) {
 			for(Endpoint endpoint: broadcast.getEndPointList()) {
 				if(endpoint.getEndpointServiceId().equals(endpointServiceId)) {
 					rtmpUrl = endpoint.getRtmpUrl();
@@ -543,11 +544,11 @@ public class BroadcastRestService extends RestServiceBase{
 		}
 	}
 	
-	@ApiOperation(value = "Generates JWT token for specified stream")
+	@ApiOperation(value = "Generates JWT token for specified stream. It's not required to let the server generate JWT. Generally JWT tokens should be generated on the client side.")
 	@ApiResponses(value = { @ApiResponse(code = 200, message = "Returns token", response=Token.class), 
 			@ApiResponse(code = 400, message = "When there is an error in creating token", response=Result.class)})
 	@GET
-	@Path("/{id}/jwtToken")
+	@Path("/{id}/jwt-token")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response getJwtTokenV2 (@ApiParam(value = "The id of the stream", required = true) @PathParam("id")String streamId,
 			@ApiParam(value = "The expire time of the token. It's in unix timestamp seconds.", required = true) @QueryParam("expireDate") long expireDate,

@@ -239,8 +239,6 @@ public class MongoStore extends DataStore {
 		return false;
 	}
 
-
-
 	/*
 	 * (non-Javadoc)
 	 * 
@@ -860,6 +858,10 @@ public class MongoStore extends DataStore {
 				
 				if (broadcast.getPlayListStatus() != null) {
 					ops.set("playListStatus", broadcast.getPlayListStatus());
+				}
+				
+				if (broadcast.getEndPointList() != null) {
+					ops.set("endPointList", broadcast.getEndPointList());
 				}
 				
 				prepareFields(broadcast, ops);

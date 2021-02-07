@@ -2,6 +2,8 @@ package io.antmedia.shutdown;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
@@ -15,7 +17,7 @@ public class AMSShutdownManager {
 
 	private volatile boolean isShuttingDown = false;
 
-	private ArrayList<IShutdownListener> listeners = new ArrayList<>();
+	private Queue<IShutdownListener> listeners = new ConcurrentLinkedQueue<>();
 
 	public static AMSShutdownManager getInstance() {
 		return instance;
@@ -45,7 +47,7 @@ public class AMSShutdownManager {
 
 	}
 
-	public List<IShutdownListener> getListeners() {
+	public Queue<IShutdownListener> getListeners() {
 		return listeners;
 	}
 

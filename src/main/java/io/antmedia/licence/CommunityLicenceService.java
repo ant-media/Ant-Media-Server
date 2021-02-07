@@ -25,4 +25,9 @@ public class CommunityLicenceService implements ILicenceService{
 		return null;
 	}
 
+	@Override
+	public boolean isLicenceSuspended() {
+		return false;
+	}
+
 }

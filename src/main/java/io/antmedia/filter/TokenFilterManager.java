@@ -126,7 +126,7 @@ public class TokenFilterManager extends AbstractFilter   {
 				}
 			}
 			
-			else if (appSettings.isPlayJwtControlEnabled()) 
+			if (appSettings.isPlayJwtControlEnabled()) 
 			{
 				ITokenService tokenServiceTmp = getTokenService();
 				if (tokenServiceTmp != null) 

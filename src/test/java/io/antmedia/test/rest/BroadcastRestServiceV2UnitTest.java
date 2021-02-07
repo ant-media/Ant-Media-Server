@@ -56,14 +56,11 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.web.context.ConfigurableWebApplicationContext;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.IApplicationAdaptorFactory;
 import io.antmedia.RecordType;
-import io.antmedia.cluster.IClusterNotifier;
-import io.antmedia.cluster.IClusterStore;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.MongoStore;
@@ -103,7 +100,6 @@ import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
 import io.antmedia.statistic.HlsViewerStats;
 import io.antmedia.statistic.IStatsCollector;
-import io.antmedia.statistic.IStreamStats;
 import io.antmedia.statistic.StatsCollector;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
@@ -2205,7 +2201,7 @@ public class BroadcastRestServiceV2UnitTest {
 
 		Mockito.doReturn(connResult).when(streamSourceRest).connectToCamera(newCam);
 		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
-		Mockito.doReturn(true).when(adaptor).startStreaming(newCam);
+		Mockito.doReturn(new Result(true)).when(adaptor).startStreaming(newCam);
 		Mockito.doReturn(new InMemoryDataStore("testAddIPCamera")).when(streamSourceRest).getDataStore();
 
 		Mockito.doReturn(new ServerSettings()).when(streamSourceRest).getServerSettings();
@@ -2252,7 +2248,7 @@ public class BroadcastRestServiceV2UnitTest {
 		assertEquals(-3, result.getErrorId());
 		
 		Result cameraErrorV2 = streamSourceRest.getCameraErrorV2(newCam.getStreamId());
-		assertTrue(cameraErrorV2.isSuccess());
+		assertFalse(cameraErrorV2.isSuccess());
 
 		//define CPU load below limit
 		int cpuLoad2 = 70;
@@ -2285,7 +2281,7 @@ public class BroadcastRestServiceV2UnitTest {
 		AntMediaApplicationAdapter adaptor = mock (AntMediaApplicationAdapter.class);
 		StreamFetcher fetcher = mock (StreamFetcher.class);
 		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
-		Mockito.doReturn(true).when(adaptor).startStreaming(newCam);
+		Mockito.doReturn(new Result(true)).when(adaptor).startStreaming(newCam);
 		Mockito.doReturn(new Result(true)).when(adaptor).stopStreaming(newCam);
 		Mockito.doReturn(new InMemoryDataStore("startStopStreamSource")).when(streamSourceRest).getDataStore();
 
@@ -2302,6 +2298,7 @@ public class BroadcastRestServiceV2UnitTest {
 
 		//stream URL should be defined after ONVIF operations
 		//this assignment also ensures that, connection is successful to IP Camera via rest service using ONVIF operations
+		
 		assertEquals("rtsp://admin:admin@127.0.0.1:6554/test.flv", newCam.getStreamUrl());
 		
 		//stop request should trigger application adaptor stopStreaming
@@ -2315,6 +2312,25 @@ public class BroadcastRestServiceV2UnitTest {
 		
 		//start again via rest service
 		assertTrue(streamSourceRest.startStreamSource(newCam.getStreamId()).isSuccess());
+		assertTrue(streamSourceRest.stopStreamingV2(newCam.getStreamId()).isSuccess());
+		
+		
+		{
+			//camera validity check
+			Broadcast cast = new Broadcast();
+			cast.setIpAddr("ht://124323");
+			assertFalse(streamSourceRest.addIPCamera(cast, null).isSuccess());
+		}
+		
+		{
+			Broadcast streamSource = new Broadcast("---start-stop", "", "", "",
+					null, AntMediaApplicationAdapter.STREAM_SOURCE);
+			streamSourceRest.getDataStore().save(streamSource);
+			Result result = streamSourceRest.startStreamSource(streamSource.getStreamId());
+			assertFalse(result.isSuccess());
+		}
+		
+		
 
 		//stop camera emulator
 		StreamFetcherUnitTest.stopCameraEmulator();
@@ -2379,7 +2395,7 @@ public class BroadcastRestServiceV2UnitTest {
 		StreamFetcher fetcher = mock (StreamFetcher.class);
 
 		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
-		Mockito.doReturn(true).when(adaptor).startStreaming(newCam);
+		Mockito.doReturn(new Result(true)).when(adaptor).startStreaming(newCam);
 		Mockito.doReturn(new InMemoryDataStore("testConnectToCamera")).when(streamSourceRest).getDataStore();
 
 		//try to connect to camera
@@ -2395,7 +2411,7 @@ public class BroadcastRestServiceV2UnitTest {
 		result = streamSourceRest.connectToCamera(newCam);
 
 		//message should be connection error code (-1) because IP is set
-		assertEquals(String.valueOf(-1), result.getMessage());
+		assertEquals(-1, result.getErrorId());
 
 
 		//stop camera emulator
@@ -2479,7 +2495,7 @@ public class BroadcastRestServiceV2UnitTest {
 
 		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
 		Mockito.doReturn(new InMemoryDataStore("testAddStreamSource")).when(streamSourceRest).getDataStore();
-		Mockito.doReturn(true).when(adaptor).startStreaming(Mockito.any());
+		Mockito.doReturn(new Result(true)).when(adaptor).startStreaming(Mockito.any());
 		
 		Mockito.doReturn(new ServerSettings()).when(streamSourceRest).getServerSettings();
 		Mockito.doReturn(new AppSettings()).when(streamSourceRest).getAppSettings();
@@ -2570,7 +2586,7 @@ public class BroadcastRestServiceV2UnitTest {
 		InMemoryDataStore store = new InMemoryDataStore("test");
 
 		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
-		Mockito.doReturn(true).when(adaptor).startStreaming(streamSource);
+		Mockito.doReturn(new Result(true)).when(adaptor).startStreaming(streamSource);
 		Mockito.doReturn(store).when(streamSourceRest).getDataStore();
 
 		store.save(streamSource);
@@ -2640,7 +2656,7 @@ public class BroadcastRestServiceV2UnitTest {
 
 		Mockito.doReturn(connResult).when(streamSourceRest).connectToCamera(newCam);
 		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
-		Mockito.doReturn(true).when(adaptor).startStreaming(newCam);
+		Mockito.doReturn(new Result(true)).when(adaptor).startStreaming(newCam);
 		Mockito.doReturn(store).when(streamSourceRest).getDataStore();
 		StreamFetcherManager sfm = mock (StreamFetcherManager.class);
 		Mockito.doReturn(sfm).when(adaptor).getStreamFetcherManager();
@@ -2675,7 +2691,7 @@ public class BroadcastRestServiceV2UnitTest {
 		Mockito.doReturn(true).when(streamSourceRest).checkStreamUrl(any());
 		Mockito.doReturn(videoServiceEndpoints).when(adaptor).getVideoServiceEndpoints();
 		StreamFetcher fetcher = mock (StreamFetcher.class);
-		Mockito.doReturn(true).when(adaptor).startStreaming(source);
+		Mockito.when(adaptor.startStreaming(Mockito.any())).thenReturn(new Result(true));
 		StreamFetcherManager sfm = mock (StreamFetcherManager.class);
 		Mockito.doReturn(sfm).when(adaptor).getStreamFetcherManager();
 		Mockito.doReturn(false).when(sfm).isStreamRunning(any());

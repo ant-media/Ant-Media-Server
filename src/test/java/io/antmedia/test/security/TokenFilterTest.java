@@ -1,14 +1,14 @@
-package io.antmedia.security;
+package io.antmedia.test.security;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.never;
 
 import java.io.IOException;
 
@@ -41,6 +41,8 @@ import io.antmedia.datastore.db.types.Token;
 import io.antmedia.filter.TokenFilterManager;
 import io.antmedia.filter.TokenGenerator;
 import io.antmedia.muxer.MuxAdaptor;
+import io.antmedia.security.ITokenService;
+import io.antmedia.security.TOTPGenerator;
 
 
 public class TokenFilterTest {
@@ -135,6 +137,7 @@ public class TokenFilterTest {
 			fail(ExceptionUtils.getStackTrace(e));
 		}
 	}
+	
 	
 	@Test
 	public void testDoFilterJwtToken() {
@@ -366,8 +369,8 @@ public class TokenFilterTest {
 		
 		if (code.charAt(0) == '0') {
 			//first character can be zero.
-			assertTrue(intCode > 10000);
-			//if both first two characters are zero, meet the ice bear in the desert :)
+			assertTrue(intCode > 1000);
+			//if both first three characters are zero, meet the ice bear in the desert :)
 		}
 		else {
 			assertTrue(intCode > 100000);

@@ -236,7 +236,6 @@ public class MapDBStore extends DataStore {
 		return result;
 	}
 
-
 	@Override
 	public boolean addEndpoint(String id, Endpoint endpoint) {
 		boolean result = false;
