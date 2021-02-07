@@ -27,7 +27,6 @@ import javax.annotation.Nullable;
 import javax.servlet.ServletContext;
 import javax.ws.rs.core.Context;
 
-import io.antmedia.muxer.RecordMuxer;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -58,9 +57,11 @@ import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.ipcamera.onvifdiscovery.OnvifDiscovery;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.Mp4Muxer;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.Muxer;
+import io.antmedia.muxer.RecordMuxer;
 import io.antmedia.rest.model.Interaction;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.Version;
@@ -277,7 +278,7 @@ public abstract class RestServiceBase {
 	}
 
 	public Broadcast createBroadcastWithStreamID(Broadcast broadcast) {
-		return saveBroadcast(broadcast, AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, getScope().getName(),
+		return saveBroadcast(broadcast, IAntMediaStreamHandler.BROADCAST_STATUS_CREATED, getScope().getName(),
 				getDataStore(), getAppSettings().getListenerHookURL(), getServerSettings(), 0);
 	}
 
@@ -357,7 +358,7 @@ public abstract class RestServiceBase {
 		{
 			boolean isCluster = getAppContext().containsBean(IClusterNotifier.BEAN_NAME);
 
-			if (isCluster && !broadcast.getOriginAdress().equals(getServerSettings().getHostAddress()) && broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING))
+			if (isCluster && !broadcast.getOriginAdress().equals(getServerSettings().getHostAddress()) && broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING))
 			{
 				logger.error("Please send a Delete Broadcast request to the {} node or Delete Broadcast in a stopped broadcast.", broadcast.getOriginAdress());
 				result.setSuccess(false);
@@ -527,7 +528,7 @@ public abstract class RestServiceBase {
 	{
 		// If broadcast status is broadcasting, this will force stop the streaming.	
 
-		if(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus())) 
+		if(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus())) 
 		{
 			return getApplication().stopStreaming(broadcast).isSuccess();
 		}
@@ -675,7 +676,7 @@ public abstract class RestServiceBase {
 			boolean isCluster = getAppContext().containsBean(IClusterNotifier.BEAN_NAME);
 			boolean started;
 
-			if (broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) 
+			if (broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) 
 			{
 				if((broadcast.getOriginAdress().equals(getServerSettings().getHostAddress()) || !isCluster)) {
 					if(addEndpoint) {
@@ -937,7 +938,7 @@ public abstract class RestServiceBase {
 
 				stream.setDate(unixTime);
 
-				Broadcast savedBroadcast = saveBroadcast(stream, AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, getScope().getName(), getDataStore(), getAppSettings().getListenerHookURL(), getServerSettings(), 0);
+				Broadcast savedBroadcast = saveBroadcast(stream, IAntMediaStreamHandler.BROADCAST_STATUS_CREATED, getScope().getName(), getDataStore(), getAppSettings().getListenerHookURL(), getServerSettings(), 0);
 
 				if (socialEndpointIds != null && socialEndpointIds.length()>0) {
 					addSocialEndpoints(savedBroadcast, socialEndpointIds);
@@ -1115,7 +1116,7 @@ public abstract class RestServiceBase {
 			stream.setDate(unixTime);
 
 
-			Broadcast savedBroadcast = saveBroadcast(stream, AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, getScope().getName(), getDataStore(), getAppSettings().getListenerHookURL(), getServerSettings(), 0);
+			Broadcast savedBroadcast = saveBroadcast(stream, IAntMediaStreamHandler.BROADCAST_STATUS_CREATED, getScope().getName(), getDataStore(), getAppSettings().getListenerHookURL(), getServerSettings(), 0);
 
 			if (socialEndpointIds != null && socialEndpointIds.length()>0) {
 				addSocialEndpoints(savedBroadcast, socialEndpointIds);
@@ -1965,7 +1966,7 @@ public abstract class RestServiceBase {
 				for (String tmpStreamId : tempList)
 				{
 					Broadcast broadcast = store.get(tmpStreamId);
-					if (broadcast != null && broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING) && !tmpStreamId.equals(streamId))
+					if (broadcast != null && broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING) && !tmpStreamId.equals(streamId))
 					{
 						streamIdList.add(tmpStreamId);
 					}
@@ -1983,7 +1984,7 @@ public abstract class RestServiceBase {
 				roomStreamList = conferenceRoom.getRoomStreamList();
 				if(!roomStreamList.contains(streamId)){
 					Broadcast broadcast=store.get(streamId);
-					if(broadcast != null && broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
+					if(broadcast != null && broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) {
 						roomStreamList.add(streamId);
 						conferenceRoom.setRoomStreamList(roomStreamList);
 						store.editConferenceRoom(roomId, conferenceRoom);
