@@ -284,7 +284,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 			addCpuMeasurement(SystemUtils.getSystemCpuLoad());
 		
 			//log every 5 minute
-			if (3000/measurementPeriod == time2Log) {
+			if (300000/measurementPeriod == time2Log) {
 				if(logger != null) {
 					logger.info("System cpu load:{} process cpu load:{} available memory: {} KB used memory(RSS): {} KB", cpuLoad, SystemUtils.getProcessCpuLoad(), SystemUtils.convertByteSize(SystemUtils.osAvailableMemory(), "KB"), SystemUtils.convertByteSize(Pointer.physicalBytes(), "KB"));
 					
