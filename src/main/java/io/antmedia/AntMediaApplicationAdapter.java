@@ -1429,6 +1429,9 @@ public Result createInitializationProcess(String appName){
 		appSettings.setPublishTokenControlEnabled(newSettings.isPublishTokenControlEnabled());
 		appSettings.setPlayTokenControlEnabled(newSettings.isPlayTokenControlEnabled());
 		appSettings.setTimeTokenSubscriberOnly(newSettings.isTimeTokenSubscriberOnly());
+		appSettings.setJwtStreamSecretKey(newSettings.getJwtStreamSecretKey());
+		appSettings.setPlayJwtControlEnabled(newSettings.isPlayJwtControlEnabled());
+		appSettings.setPublishJwtControlEnabled(newSettings.isPublishJwtControlEnabled());
 		
 		appSettings.setWebRTCEnabled(newSettings.isWebRTCEnabled());
 		appSettings.setWebRTCFrameRate(newSettings.getWebRTCFrameRate());

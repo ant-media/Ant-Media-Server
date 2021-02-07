@@ -27,6 +27,11 @@ public class MockTokenService implements  IStreamPublishSecurity, ITokenService{
 	public Token createToken(String streamId, long exprireDate, String type, String roomId) {
 		return null;
 	}
+	
+	@Override
+	public Token createJwtToken(String streamId, long exprireDate, String type, String roomId) {
+		return null;
+	}
 
 	@Override
 	public Map<String, String> getAuthenticatedMap() {
@@ -39,9 +44,15 @@ public class MockTokenService implements  IStreamPublishSecurity, ITokenService{
 	}
 
 	@Override
+	public boolean checkJwtToken(String jwtTokenId, String streamId, String type) {
+		return true;
+	}
+	
+	@Override
 	public boolean checkHash(String hash, String streamId, String sessionId, String type) {
 		return true;
 	}
+
 
 	@Override
 	public boolean checkTimeBasedSubscriber(String subscriberId, String streamId, String sessionId,

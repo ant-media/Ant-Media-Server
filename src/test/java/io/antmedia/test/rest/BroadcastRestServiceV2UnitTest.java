@@ -580,7 +580,7 @@ public class BroadcastRestServiceV2UnitTest {
 			tokenReturn = restServiceReal.getTokenV2(streamId, 123432, Token.PLAY_TOKEN, "testRoom").getEntity();
 			assertTrue(tokenReturn instanceof Result);
 			result = (Result) tokenReturn;
-			//it should be false, becase token service returns null
+			//it should be false, becuase getTokenV2 service returns null
 			assertFalse(result.isSuccess());	
 		}
 
@@ -625,6 +625,92 @@ public class BroadcastRestServiceV2UnitTest {
 
 		Mockito.when(datastore.saveToken(Mockito.any())).thenReturn(true);
 		tokenReturn = (Object) restServiceReal.getTokenV2(streamId, 123432, Token.PLAY_TOKEN, "testRoom").getEntity();
+		assertTrue(tokenReturn instanceof Token);
+		assertEquals(((Token)tokenReturn).getTokenId(), token.getTokenId());
+
+	}
+	
+	@Test
+	public void testGetJwtToken() {
+
+		InMemoryDataStore datastore = mock(InMemoryDataStore.class);
+		restServiceReal.setDataStore(datastore);
+		String streamId = "stream " + (int)(Math.random() * 1000);
+
+		AppSettings settings = mock(AppSettings.class);
+		settings.setJwtStreamSecretKey("testtesttesttesttesttesttesttest");
+		restServiceReal.setAppSettings(settings);
+
+		ApplicationContext appContext = mock(ApplicationContext.class);
+
+		
+		when(appContext.containsBean(ITokenService.BeanName.TOKEN_SERVICE.toString())).thenReturn(false);
+		Object tokenReturn = restServiceReal.getJwtTokenV2(streamId, 123432, Token.PLAY_TOKEN, "testRoom").getEntity();
+		assertTrue(tokenReturn instanceof Result);
+		Result result = (Result) tokenReturn;
+		//it should false, because appContext is null
+		assertFalse(result.isSuccess());	 
+
+
+		restServiceReal.setAppCtx(appContext);
+		tokenReturn = restServiceReal.getJwtTokenV2(streamId, 123432, Token.PLAY_TOKEN, "testRoom").getEntity();
+		assertTrue(tokenReturn instanceof Result);
+		result = (Result) tokenReturn;
+		//it should be false, because there is no token service in the context
+		assertFalse(result.isSuccess());	
+
+		ITokenService tokenService = mock(ITokenService.class);
+		{
+			when(appContext.containsBean(ITokenService.BeanName.TOKEN_SERVICE.toString())).thenReturn(true);
+			when(tokenService.createJwtToken(streamId, 123432, Token.PLAY_TOKEN, "testRoom"))
+			.thenReturn(null);
+			when(appContext.getBean(ITokenService.BeanName.TOKEN_SERVICE.toString())).thenReturn(tokenService);
+
+			tokenReturn = restServiceReal.getJwtTokenV2(streamId, 123432, Token.PLAY_TOKEN, "testRoom").getEntity();
+			assertTrue(tokenReturn instanceof Result);
+			result = (Result) tokenReturn;
+			//it should be false, because token service returns null
+			assertFalse(result.isSuccess());	
+		}
+
+		Token token = new Token();
+		token.setStreamId(streamId);
+		token.setExpireDate(123432);
+		token.setTokenId(RandomStringUtils.randomAlphabetic(8));
+		token.setType(Token.PLAY_TOKEN);
+
+		{
+			when(tokenService.createJwtToken(streamId, 123432, Token.PLAY_TOKEN, "testRoom" ))
+			.thenReturn(token);
+			restServiceReal.setAppCtx(appContext);
+			
+			tokenReturn = (Object) restServiceReal.getJwtTokenV2(streamId, 123432, Token.PLAY_TOKEN, "testRoom").getEntity();
+			assertTrue(tokenReturn instanceof Token);
+			token = (Token) tokenReturn;
+			assertEquals(((Token)tokenReturn).getTokenId(), token.getTokenId());
+		}
+
+		//check create token is called
+		Mockito.verify(tokenService, Mockito.times(2)).createJwtToken(streamId, 123432, Token.PLAY_TOKEN, "testRoom");
+
+		{	
+			//set stream id null and it should return false
+			tokenReturn = restServiceReal.getJwtTokenV2(null, 0, Token.PLAY_TOKEN, "testRoom").getEntity();
+			assertTrue(tokenReturn instanceof Result);
+			result = (Result) tokenReturn;
+			assertFalse(result.isSuccess());	
+		}
+		
+		{	
+			//set token type null and it should return false
+			tokenReturn = restServiceReal.getJwtTokenV2(streamId, 123432, null, "testRoom").getEntity();
+			assertTrue(tokenReturn instanceof Result);
+			result = (Result) tokenReturn;
+			assertFalse(result.isSuccess());
+		}
+
+		Mockito.when(datastore.saveToken(Mockito.any())).thenReturn(true);
+		tokenReturn = (Object) restServiceReal.getJwtTokenV2(streamId, 123432, Token.PLAY_TOKEN, "testRoom").getEntity();
 		assertTrue(tokenReturn instanceof Token);
 		assertEquals(((Token)tokenReturn).getTokenId(), token.getTokenId());
 
