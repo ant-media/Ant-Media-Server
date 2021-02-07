@@ -1573,6 +1573,46 @@ public class RestServiceV2Test {
 				return IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(tmp2.getStatus());
 			});
 			
+			{
+			
+				//add dynamic endpoint test
+				String streamIdDynamic = "dynamic_stream" + (int)(Math.random() * 999999);
+				String dynamicRtmpURL = "rtmp://localhost/LiveApp/" + streamIdDynamic;
+				 
+				Endpoint dynamicEndpoint = new Endpoint();
+				dynamicEndpoint.setRtmpUrl(dynamicRtmpURL);
+				Awaitility.await().atMost(25, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+					 //if stream is being prepared, it may return false, so try again 
+					 Result tmpRes = addEndpointV2(finalBroadcastStreamId, dynamicEndpoint);
+					 return tmpRes.isSuccess();
+				});
+				
+				 Awaitility.await().atMost(25, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+				 .until(() -> { 
+						 Broadcast tmpBroadcast = callGetBroadcast(streamIdDynamic);
+						 if (tmpBroadcast != null) {
+							 return tmpBroadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING); 
+						 }
+						 return false;
+				 	});
+				 
+				 Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(3,  TimeUnit.SECONDS).until(()-> {
+						Broadcast tmp2 = getBroadcast(finalBroadcastStreamId);
+						
+						return IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(tmp2.getEndPointList().get(0).getStatus())
+								&& IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(tmp2.getEndPointList().get(1).getStatus());
+					});
+				 
+				 broadcast = getBroadcast(finalBroadcastStreamId);
+				 //remove dynamic endpoint
+				 result = removeEndpointV2(finalBroadcastStreamId, broadcast.getEndPointList().get(1).getEndpointServiceId());
+				 assertTrue(result.isSuccess());
+				 
+				 Awaitility.await().atMost(25, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+				 .until(() -> callGetBroadcast(streamIdDynamic) == null );
+			
+			}
+			
 			execute.destroy();
 			
 			
@@ -1596,7 +1636,7 @@ public class RestServiceV2Test {
 			assertTrue(result.isSuccess());
 
 			Awaitility.await().atMost(45, TimeUnit.SECONDS)
-			.pollInterval(2, TimeUnit.SECONDS).until(() -> 
+			.pollInterval(1, TimeUnit.SECONDS).until(() -> 
 			{
 				int broadcastListSize = callGetBroadcastList().size();
 				logger.info("broadcast list size: {} and it should be:{}", broadcastListSize, size);

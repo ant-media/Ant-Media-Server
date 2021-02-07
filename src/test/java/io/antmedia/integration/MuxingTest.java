@@ -294,59 +294,7 @@ public class MuxingTest {
 	@Test
 	public void testDynamicAddRemoveRTMPV2() 
 	{
-		String streamId = "live_test"  + (int)(Math.random() * 999999);
-		
-		// make sure that ffmpeg is installed and in path
-		Process rtmpSendingProcess = execute(
-				ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://"
-						+ SERVER_ADDR + "/LiveApp/" + streamId);
-		
-		 Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
-		 .until(() -> {
-			 Broadcast broadcast = RestServiceV2Test.callGetBroadcast(streamId);
-			 
-			 return broadcast != null && AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus());
-			 
-		 });
-		
-		 String streamIdDynamic = "dynamic_stream" + (int)(Math.random() * 999999);
-		 String dynamicRtmpURL = "rtmp://localhost/LiveApp/" + streamIdDynamic;
-		 
-		 Endpoint endpoint = new Endpoint();
-		 endpoint.setRtmpUrl(dynamicRtmpURL);
-		 
-		 try {
-			 Awaitility.await().atMost(25, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
-				 //if stream is being prepared, it may return false, so try again 
-				 Result result = RestServiceV2Test.addEndpointV2(streamId, endpoint);
-				 return result.isSuccess();
-			 });
-			
-			
-			 Awaitility.await().atMost(25, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
-			 .until(() -> { 
-					 Broadcast broadcast = RestServiceV2Test.callGetBroadcast(streamIdDynamic);
-					 if (broadcast != null) {
-						 return broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING); 
-					 }
-					 return false;
-			 	});
-			 
-			 Broadcast broadcast = RestServiceV2Test.callGetBroadcast(streamId);
-			 
-			 Result result = RestServiceV2Test.removeEndpointV2(streamId, broadcast.getEndPointList().get(0).getEndpointServiceId());
-			 assertTrue(result.isSuccess());
-			 
-			 Awaitility.await().atMost(25, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
-			 .until(() -> RestServiceV2Test.callGetBroadcast(streamIdDynamic) == null );
-			 
-			
-		} catch (Exception e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
-		 
-		 rtmpSendingProcess.destroy();
+		assertTrue("This test is merged with RestServiceV2Test#testAddEndpointCrossCheckV2", true);
 	}
 	
 
