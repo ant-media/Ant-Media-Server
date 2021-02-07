@@ -1,5 +1,7 @@
 package io.antmedia.logger;
 
+import org.red5.server.Launcher;
+
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.classic.spi.IThrowableProxy;
 import ch.qos.logback.core.AppenderBase;
@@ -11,7 +13,7 @@ public class AntmediaAppender extends AppenderBase<ILoggingEvent> {
     private final GoogleAnalyticsLogger googleAnalyticsLogger;
 
     public AntmediaAppender() {
-        googleAnalyticsLogger = new GoogleAnalyticsLoggerImp(System.getProperty("red5.root")+"/conf/instanceId");
+        googleAnalyticsLogger = new GoogleAnalyticsLoggerImp(Launcher.getInstanceId());
     }
 
     public AntmediaAppender(GoogleAnalyticsLogger googleAnalyticsLogger) {
@@ -19,7 +21,7 @@ public class AntmediaAppender extends AppenderBase<ILoggingEvent> {
     }
 
     @Override
-    protected void append(ILoggingEvent iLoggingEvent) {
+    public void append(ILoggingEvent iLoggingEvent) {
         if (LoggerEnvironment.isManagingThread()) {
             return;
         }

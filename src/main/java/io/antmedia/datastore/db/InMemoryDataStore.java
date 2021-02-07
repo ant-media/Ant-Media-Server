@@ -123,7 +123,6 @@ public class InMemoryDataStore extends DataStore {
 		return result;
 	}
 
-
 	@Override
 	public boolean addEndpoint(String id, Endpoint endpoint) {
 		Broadcast broadcast = broadcastMap.get(id);

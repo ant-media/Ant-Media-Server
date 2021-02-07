@@ -44,7 +44,6 @@ public class StreamFetcher {
 	private static final String STREAM_TYPE_VOD = "VoD";
 
 	protected static Logger logger = LoggerFactory.getLogger(StreamFetcher.class);
-	//private Broadcast stream;
 	private WorkerThread thread;
 	/**
 	 * Connection setup timeout value
@@ -272,23 +271,25 @@ public class StreamFetcher {
 
 					if(muxAdaptor.prepareFromInputFormatContext(inputFormatContext)) {
 						
-						long currentTime = System.currentTimeMillis();
-						muxAdaptor.setStartTime(currentTime);
-
-						getInstance().startPublish(streamId, 0);
-
-						if (bufferTime > 0) {
-							packetWriterJobName = vertx.setPeriodic(PACKET_WRITER_PERIOD_IN_MS, l-> 
-								vertx.executeBlocking(h-> {
-									writeBufferedPacket();
-									h.complete();
-								}, false, r-> {
-									//no care
-								})
-							);
-						}
-
 						while (av_read_frame(inputFormatContext, pkt) >= 0) {
+							
+							if(!streamPublished) {
+								long currentTime = System.currentTimeMillis();
+								muxAdaptor.setStartTime(currentTime);
+
+								getInstance().startPublish(streamId, 0);
+
+								if (bufferTime > 0) {
+									packetWriterJobName = vertx.setPeriodic(PACKET_WRITER_PERIOD_IN_MS, l-> 
+										vertx.executeBlocking(h-> {
+											writeBufferedPacket();
+											h.complete();
+										}, false, r-> {
+											//no care
+										})
+									);
+								}
+							}
 
 							streamPublished = true;
 							lastPacketReceivedTime = System.currentTimeMillis();
