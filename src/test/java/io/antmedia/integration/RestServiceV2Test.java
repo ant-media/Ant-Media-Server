@@ -69,6 +69,7 @@ import com.google.gson.reflect.TypeToken;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.VoD;
@@ -1505,38 +1506,15 @@ public class RestServiceV2Test {
 
 	@Test
 	public void testAddEndpointV2() {
-		try {
-
-			Broadcast broadcast = createBroadcast(null);
-
-			
-			String rtmpUrl = "rtmp://dfjdksafjlaskfjalkfj";
-			
-			Endpoint endpoint = new Endpoint();
-			endpoint.setRtmpUrl(rtmpUrl);
-
-			// add generic endpoint
-			Result result = addEndpointV2(broadcast.getStreamId().toString(), endpoint);
-
-			// check that it is successfull
-			assertTrue(result.isSuccess());
-
-			// get endpoint list
-			broadcast = getBroadcast(broadcast.getStreamId().toString());
-
-			// check that 1 element exist
-			assertNotNull(broadcast.getEndPointList());
-			assertEquals(1, broadcast.getEndPointList().size());
-
-		} catch (Exception e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
+		assertTrue("This test is moved to #testAddEndpointCrossCheckV2", true);
 	}
 
 	@Test
 	public void testAddEndpointCrossCheckV2() {
 		try {
+			////////////////////////////////////////////////////////////
+			//this test assumes that MP4 recording is enabled by default
+			////////////////////////////////////////////////////////////
 			
 			List<Broadcast> broadcastList = callGetBroadcastList();
 			int size = broadcastList.size();
@@ -1557,6 +1535,7 @@ public class RestServiceV2Test {
 
 			// get endpoint list
 			broadcast = getBroadcast(broadcast.getStreamId().toString());
+			String finalBroadcastStreamId = broadcast.getStreamId();
 
 			// check that 4 element exist
 			assertNotNull(broadcast.getEndPointList());
@@ -1564,6 +1543,13 @@ public class RestServiceV2Test {
 
 			broadcastList = callGetBroadcastList();
 			assertEquals(size+1, broadcastList.size());
+			
+			//check endpoint status
+			Broadcast tmp = getBroadcast(broadcast.getStreamId());
+			assertEquals(1, broadcast.getEndPointList().size());
+			assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_CREATED, broadcast.getEndPointList().get(0).getStatus());
+
+			
 
 			Process execute = execute(
 					ffmpegPath + " -re -i src/test/resources/test.flv -codec copy -f flv rtmp://localhost/LiveApp/"
@@ -1574,9 +1560,38 @@ public class RestServiceV2Test {
 				//size should +2 because we restream again into the server
 				return size+2 == callGetBroadcastList().size();
 			});
-
+			
+			
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(3,  TimeUnit.SECONDS).until(()-> {
+				Broadcast tmp2 = getBroadcast(finalBroadcastStreamId);
+				return IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(tmp2.getEndPointList().get(0).getStatus());
+			});
+			
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(3,  TimeUnit.SECONDS).until(()-> {
+				//this is the endpoint running 
+				Broadcast tmp2 = getBroadcast(streamId);
+				return IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(tmp2.getStatus());
+			});
+			
 			execute.destroy();
-
+			
+			
+			String endpointURL = "http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamId + ".mp4";
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+				return MuxingTest.testFile(endpointURL);
+			});
+			
+			String originMP4URL = "http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + finalBroadcastStreamId + ".mp4";
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+				return MuxingTest.testFile(originMP4URL);
+			});
+			
+			
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(3, TimeUnit.SECONDS).until(() -> {
+				Broadcast tmp2 = getBroadcast(finalBroadcastStreamId);
+				return IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED.equals(tmp2.getEndPointList().get(0).getStatus());
+			});
+			
 			result = callDeleteBroadcast(broadcast.getStreamId());
 			assertTrue(result.isSuccess());
 
