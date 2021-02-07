@@ -1827,6 +1827,35 @@ public abstract class RestServiceBase {
 
 		return new Result(false, message);
 	}
+	
+	protected Object getJwtToken (String streamId, long expireDate, String type, String roomId) 
+	{
+		Token token = null;
+		String message = "Define Stream ID, Token Type and Expire Date (unix time)";
+		
+		if(streamId != null && type != null && expireDate > 0) {
+
+			ApplicationContext appContext = getAppContext();
+
+			if(appContext != null && appContext.containsBean(ITokenService.BeanName.TOKEN_SERVICE.toString())) 
+			{
+				ITokenService tokenService = (ITokenService)appContext.getBean(ITokenService.BeanName.TOKEN_SERVICE.toString());
+				token = tokenService.createJwtToken(streamId, expireDate, type, roomId);
+				if(token != null)
+				{
+					return token;
+				}
+				else {
+					message = "Cannot create JWT token. It can be a mock token service. Also please check your JWT Stream key parameter";
+				}
+			}
+			else {
+				message = "No token service in this app";
+			}
+		}
+
+		return new Result(false, message);
+	}
 
 	protected Token validateToken (Token token) {
 		Token validatedToken = null;
