@@ -235,27 +235,6 @@ public class MapDBStore extends DataStore {
 		}
 		return result;
 	}
-	@Override
-	public boolean updateEndpointStatus(String url, String id, String status){
-		boolean result = false;
-		synchronized (this){
-			String jsonString = map.get(id);
-			if (jsonString != null) {
-				Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
-				List<Endpoint> endplist = broadcast.getEndPointList();
-				endplist = updateStatusInEndpointList(endplist, url, status);
-				if(endplist != null){
-					logger.info("Changing rtmp status to = {}", status);
-					broadcast.setEndPointList(endplist);
-					map.replace(id, gson.toJson(broadcast));
-					result = true;
-					db.commit();
-				}
-			}
-		}
-		return result;
-	}
-
 
 	@Override
 	public boolean addEndpoint(String id, Endpoint endpoint) {

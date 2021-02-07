@@ -49,6 +49,7 @@ import io.antmedia.datastore.db.types.SubscriberStats;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.settings.ServerSettings;
 
@@ -2377,7 +2378,8 @@ public class DBStoresUnitTest {
 
 		
 	}
-	private void testUpdateEndpointStatus(DataStore dataStore){
+	private void testUpdateEndpointStatus(DataStore dataStore)
+	{
 		Broadcast broadcast = new Broadcast(null, null);
 		String name = "name 1";
 		String description = "description 2";
@@ -2387,41 +2389,65 @@ public class DBStoresUnitTest {
 
 		assertNotNull(broadcast.getStreamId());
 
+		//add endpoint
 		String rtmpUrl = "rtmp://rtmp1";
 		Endpoint endPoint = new Endpoint("broacdast id",broadcast.getStreamId(), broadcast.getName(), rtmpUrl, "generic", null, null);
-
 		boolean result = dataStore.addEndpoint(broadcast.getStreamId().toString(), endPoint);
 		assertTrue(result);
 
+		//add endpoint
 		String rtmpUrl2 = "rtmp:(sdfsfsf(ksklasjflakjflaskjflsadfkjsal";
 		Endpoint endPoint2 = new Endpoint("broacdast id 2", broadcast.getStreamId(), broadcast.getName(), rtmpUrl2,
 				"generic", null, null);
-
 		result = dataStore.addEndpoint(broadcast.getStreamId().toString(), endPoint2);
 		assertTrue(result);
 
+		//add endpoint
 		String rtmpUrl3 = "rtmp:(sdfsfasafadgsgsf(ksklasjflakjflaskjflsadfkjsal";
 		Endpoint endPoint3 = new Endpoint("broacdast id 3", broadcast.getStreamId(), broadcast.getName(), rtmpUrl3,
 				"generic", null, null);
 
 
 
-		result = dataStore.updateEndpointStatus(rtmpUrl, broadcast.getStreamId(), "failed");
+		Broadcast tmpBroadcast = dataStore.get(broadcast.getStreamId());
+		List<Endpoint> endPointList = tmpBroadcast.getEndPointList();
+		for (Endpoint tmpEndpoint : endPointList) {
+			if (tmpEndpoint.getRtmpUrl().equals(rtmpUrl)) {
+				tmpEndpoint.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED);
+				break;
+			}
+		}
+		//update rtmpurl
+		result = dataStore.updateBroadcastFields(broadcast.getStreamId(), tmpBroadcast); 
 		assertTrue(result);
-		dataStore.updateEndpointStatus(rtmpUrl2, broadcast.getStreamId(), "running");
+		
+		
+		
+		tmpBroadcast = dataStore.get(broadcast.getStreamId());
+		endPointList = tmpBroadcast.getEndPointList();
+		for (Endpoint tmpEndpoint : endPointList) {
+			if (tmpEndpoint.getRtmpUrl().equals(rtmpUrl2)) {
+				tmpEndpoint.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+				break;
+			}
+		}
+		result = dataStore.updateBroadcastFields(broadcast.getStreamId(), tmpBroadcast); 
+		assertTrue(result);
+		
+		
+		
 		Broadcast updated = dataStore.get(broadcast.getStreamId());
 		List<Endpoint> endpList = updated.getEndPointList();
 		for(int i = 0; i < endpList.size(); i++){
 			Endpoint e = endpList.get(i);
-			System.out.println(e.getRtmpUrl() + " " + e.getMuxerStatus() + " " + e.getBroadcastId());
 			if(e.getRtmpUrl().equals(rtmpUrl)){
-				assertEquals("failed", e.getMuxerStatus());
+				assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED, e.getStatus());
 			}
 			else if(e.getRtmpUrl().equals(rtmpUrl2)){
-				assertEquals("running", e.getMuxerStatus());
+				assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING, e.getStatus());
 			}
 			else{
-				assertEquals("notInitialized", e.getMuxerStatus());
+				assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_CREATED, e.getStatus());
 			}
 		}
 	}
