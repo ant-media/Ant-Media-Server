@@ -8,6 +8,7 @@ import static org.junit.Assert.fail;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.RandomStringUtils;
@@ -175,15 +176,18 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 			assertEquals(name, returnedBroadcast.getName());
 			assertEquals(streamUrl2, returnedBroadcast.getStreamUrl());
 			
+			result = restService.callDeleteBroadcast(streamSource.getStreamId());
+			assertTrue(result.isSuccess());
+			
+			
 		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-		
-		
 	
 	
 	}
+	
 	
 	@Test
 	public void testSetupEndpointStreamFetcher() {

@@ -12,22 +12,15 @@ import ch.qos.logback.classic.spi.IThrowableProxy;
 import ch.qos.logback.classic.spi.ThrowableProxyUtil;
 import io.antmedia.statistic.StatsCollector;
 
-class GoogleAnalyticsLoggerImp implements GoogleAnalyticsLogger {
+public class GoogleAnalyticsLoggerImp implements GoogleAnalyticsLogger {
 
     @VisibleForTesting
     String instanceId;
     
     GoogleAnalytics googleAnalytics;
 
-    public GoogleAnalyticsLoggerImp(String path) {
-        File idFile = new File(path);
-        instanceId = null;
-        if (idFile.exists()) {
-            instanceId = LoggerUtils.getFileContent(idFile.getAbsolutePath());
-        } else {
-            instanceId = UUID.randomUUID().toString();
-            LoggerUtils.writeToFile(idFile.getAbsolutePath(), instanceId);
-        }
+    public GoogleAnalyticsLoggerImp(String instanceId) {
+       this.instanceId = instanceId;
     }
 
     @Override
@@ -36,12 +29,12 @@ class GoogleAnalyticsLoggerImp implements GoogleAnalyticsLogger {
         GoogleAnalytics googleAnalytic = getGoogleAnalytic();
         googleAnalytic.exception().
                 exceptionDescription(throwableStr).
-                clientId(instanceId).
+                clientId(getInstanceId()).
                 sendAsync();
     }
 
     @VisibleForTesting
-    GoogleAnalytics getGoogleAnalytic() 
+    public GoogleAnalytics getGoogleAnalytic() 
     {
     	if (googleAnalytics == null) {
           googleAnalytics =  StatsCollector.getGoogleAnalyticInstance(Launcher.getVersion(), Launcher.getVersionType());
@@ -49,4 +42,8 @@ class GoogleAnalyticsLoggerImp implements GoogleAnalyticsLogger {
     		
     	return googleAnalytics;
     }
+
+	public String getInstanceId() {
+		return instanceId;
+	}
 }

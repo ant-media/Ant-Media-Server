@@ -612,6 +612,7 @@ public class PlaylistRestServiceV2UnitTest {
 		assertEquals(false, result.isSuccess());
 		
 		Broadcast broadcast2 = dataStore.get(playlist.getStreamId());
+		
 		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, broadcast2.getStatus());
 
 		

@@ -113,20 +113,41 @@ public class ConsoleAppRestServiceTest{
 		if (AppFunctionalV2Test.getOS() == AppFunctionalV2Test.MAC_OS_X) {
 			ffmpegPath = "/usr/local/bin/ffmpeg";
 		}
+		try {
+			httpCookieStore = new BasicCookieStore();
+
+			Result firstLogin = callisFirstLogin();
+			if (firstLogin.isSuccess()) {
+				User user = new User();
+				user.setEmail(TEST_USER_EMAIL);
+				user.setPassword(TEST_USER_PASS);
+				Result createInitialUser = callCreateInitialUser(user);
+				assertTrue(createInitialUser.isSuccess());
+
+
+			}
+
+			//if it's not first login check that TEST_USER_EMAIL and TEST_USER_PASS is authenticated
+			User user = new User();
+			user.setEmail(TEST_USER_EMAIL);
+			user.setPassword(TEST_USER_PASS);
+			assertTrue(callAuthenticateUser(user).isSuccess());
+
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+
 	}
 
 	@Before
 	public void before() {
-		avformat_network_init();
-		av_register_all();
-		//initialize again
-		httpCookieStore = new BasicCookieStore();
+
 	}
 
 	@After
 	public void teardown() {
-		httpCookieStore = null;
-
 	}
 
 	@Rule
@@ -180,29 +201,21 @@ public class ConsoleAppRestServiceTest{
 			authenticatedUserResult = callAuthenticateUser(user);
 			assertFalse(authenticatedUserResult.isSuccess());
 
-			user.setEmail(TEST_USER_EMAIL);
-			user.setPassword(TEST_USER_PASS);
-			Result createInitialUser = callCreateInitialUser(user);
-			assertTrue(createInitialUser.isSuccess());
-
-			// authenticate the user
-			authenticatedUserResult = callAuthenticateUser(user);
-			assertTrue(authenticatedUserResult.isSuccess());
 
 			user.setEmail(TEST_USER_EMAIL);
 			user.setPassword( "any_pass");
 			authenticatedUserResult = callAuthenticateUser(user);
 			assertFalse(authenticatedUserResult.isSuccess());
 
+			// authenticate the user
+			authenticatedUserResult = callAuthenticateUser(user);
+			assertTrue(authenticatedUserResult.isSuccess());
+
 			// try to create user that is being used in first step
 			// but this time it should fail
 			firstLogin = callisFirstLogin();
 			assertFalse(firstLogin.isSuccess());
 
-			user.setEmail("any_email");
-			user.setPassword("any_pass");
-			createInitialUser = callCreateInitialUser(user);
-			assertFalse(createInitialUser.isSuccess());
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -216,11 +229,6 @@ public class ConsoleAppRestServiceTest{
 	@Test
 	public void testIsClusterMode() {
 		try {
-			User user = new User();
-			user.setEmail(TEST_USER_EMAIL);
-			user.setPassword(TEST_USER_PASS);
-			Result authenticatedUserResult = callAuthenticateUser(user);
-			assertTrue(authenticatedUserResult.isSuccess());
 
 			Result result = callIsClusterMode();
 		} catch (Exception e) {
@@ -239,9 +247,6 @@ public class ConsoleAppRestServiceTest{
 	@Test
 	public void testGetAppSettings() {
 		try {
-			Result authenticatedUserResult = authenticateDefaultUser();
-			assertTrue(authenticatedUserResult.isSuccess());
-
 			// get LiveApp default settings and check the default values
 			// get settings from the app
 			Result result = callIsEnterpriseEdition();
@@ -266,13 +271,13 @@ public class ConsoleAppRestServiceTest{
 			assertTrue(result.isSuccess());
 
 			// get app settings and assert settings has changed - check vod folder has changed
-			
+
 			//for some odd cases, it may be updated via cluster in second turn
 			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(5, TimeUnit.SECONDS).until(()-> {
 				AppSettings local = callGetAppSettings("LiveApp");
 				return new_vod_folder.equals(local.getVodFolder());
 			});
-			
+
 
 			// check the related file to make sure settings changed for restart
 			// return back to default values
@@ -292,8 +297,6 @@ public class ConsoleAppRestServiceTest{
 	@Test
 	public void testGetServerSettings() {
 		try {
-			Result authenticatedUserResult = authenticateDefaultUser();
-			assertTrue(authenticatedUserResult.isSuccess());
 
 			//get Server Settings
 			ServerSettings serverSettings = callGetServerSettings();
@@ -346,11 +349,6 @@ public class ConsoleAppRestServiceTest{
 
 		try {
 			// Get App Settings
-			User user = new User();
-			user.setEmail(TEST_USER_EMAIL);
-			user.setPassword(TEST_USER_PASS);
-			Result authenticatedUserResult = callAuthenticateUser(user);
-			assertTrue(authenticatedUserResult.isSuccess());
 
 			AppSettings appSettingsModel = callGetAppSettings("LiveApp");
 
@@ -421,9 +419,6 @@ public class ConsoleAppRestServiceTest{
 
 		try {	
 
-			Result authenticatedUserResult = authenticateDefaultUser();
-			assertTrue(authenticatedUserResult.isSuccess());
-
 			//get Log Level Check (Default Log Level INFO)
 
 			String logLevel = callGetLogLevel();
@@ -466,11 +461,6 @@ public class ConsoleAppRestServiceTest{
 	@Test
 	public void testZeroEncoderSettings() {
 		try {
-			User user = new User();
-			user.setEmail(TEST_USER_EMAIL);
-			user.setPassword(TEST_USER_PASS);
-			Result authenticatedUserResult = callAuthenticateUser(user);
-			assertTrue(authenticatedUserResult.isSuccess());
 
 			//get the applications from server
 			String applications = callGetApplications();
@@ -550,12 +540,6 @@ public class ConsoleAppRestServiceTest{
 	@Test
 	public void testIPFilter() {
 		try {
-
-			User user = new User();
-			user.setEmail(TEST_USER_EMAIL);
-			user.setPassword(TEST_USER_PASS);
-			Result authenticatedUserResult = callAuthenticateUser(user);
-			assertTrue(authenticatedUserResult.isSuccess());
 
 			//get the applications from server
 			String applications = callGetApplications();
@@ -651,15 +635,6 @@ public class ConsoleAppRestServiceTest{
 		Result result;
 		try {
 
-
-			// first authenticate user
-			User user = new User();
-			user.setEmail(TEST_USER_EMAIL);
-			user.setPassword(TEST_USER_PASS);
-			Result authenticatedUserResult = callAuthenticateUser(user);
-			assertTrue(authenticatedUserResult.isSuccess());
-
-
 			result = callIsEnterpriseEdition();
 			if (!result.isSuccess()) {
 				//if it is not enterprise return
@@ -668,7 +643,12 @@ public class ConsoleAppRestServiceTest{
 
 			//get app settings
 			AppSettings appSettingsModel = callGetAppSettings("LiveApp");
-
+			
+			
+			appSettingsModel.setEncoderSettings(Arrays.asList(new EncoderSettings(240, 300000, 64000)));
+			
+			result = callSetAppSettings("LiveApp", appSettingsModel);
+			assertTrue(result.isSuccess());
 
 			//check that preview overwrite is false by default
 			assertFalse(appSettingsModel.isPreviewOverwrite());
@@ -679,7 +659,11 @@ public class ConsoleAppRestServiceTest{
 					+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
 					+ streamId);
 
-			Thread.sleep(5000);
+			//check that preview is created
+
+			Awaitility.await()
+			.atMost(10, TimeUnit.SECONDS)
+			.pollInterval(1, TimeUnit.SECONDS).until(() -> checkURLExist("http://localhost:5080/LiveApp/previews/"+streamId+".png"));
 
 			//stop it
 			AppFunctionalV2Test.destroyProcess();
@@ -691,20 +675,27 @@ public class ConsoleAppRestServiceTest{
 			.pollInterval(1, TimeUnit.SECONDS).until(() -> checkURLExist("http://localhost:5080/LiveApp/previews/"+streamId+".png"));
 
 
-
 			//send a short stream with same name again
 			AppFunctionalV2Test.executeProcess(ffmpegPath
 					+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
 					+ streamId);
 
-			Thread.sleep(5000);
+			//wait until stream is broadcasted
+			Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamId + ".m3u8");
+			});
 
 			//stop it
 			AppFunctionalV2Test.destroyProcess();
 
 			//let the muxing finish
-			Thread.sleep(3000);
+			
 			//check that second preview is created
+			Awaitility.await()
+			.atMost(10, TimeUnit.SECONDS)
+			.pollInterval(1, TimeUnit.SECONDS).until(() -> checkURLExist("http://localhost:5080/LiveApp/previews/"+streamId+"_1.png"));
+
+
 			assertTrue(checkURLExist("http://localhost:5080/LiveApp/previews/"+streamId+"_1.png"));
 
 			//change settings and make preview overwrite true
@@ -721,7 +712,9 @@ public class ConsoleAppRestServiceTest{
 					+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
 					+ streamId2);
 
-			Thread.sleep(5000);
+			Awaitility.await()
+			.atMost(10, TimeUnit.SECONDS)
+			.pollInterval(1, TimeUnit.SECONDS).until(() -> checkURLExist("http://localhost:5080/LiveApp/previews/"+streamId2+".png"));
 
 			//stop it
 			AppFunctionalV2Test.destroyProcess();
@@ -738,12 +731,12 @@ public class ConsoleAppRestServiceTest{
 					+ streamId2);
 
 			//let the muxing finish
-			Thread.sleep(5000);
+			Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamId2 + ".m3u8");
+			});
 
 			//stop it
 			AppFunctionalV2Test.destroyProcess();
-
-			Thread.sleep(3000);
 
 			//check that second preview with the same created.
 
@@ -768,14 +761,6 @@ public class ConsoleAppRestServiceTest{
 	@Test
 	public void testAllowOnlyStreamsInDataStore() {
 		try {
-			// first authenticate user
-
-			User user = new User();
-			user.setEmail(TEST_USER_EMAIL);
-			user.setPassword(TEST_USER_PASS);
-			Result authenticatedUserResult = callAuthenticateUser(user);
-			assertTrue(authenticatedUserResult.isSuccess());
-
 			// get settings from the app
 			AppSettings appSettingsModel = callGetAppSettings("LiveApp");
 
@@ -791,17 +776,18 @@ public class ConsoleAppRestServiceTest{
 
 			// send anonymous stream
 			String streamId = "zombiStreamId" + (int)(Math.random()*10000);
-			AppFunctionalV2Test.executeProcess(ffmpegPath
+			Process rtmpSendingProcess = AppFunctionalV2Test.execute(ffmpegPath
 					+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
 					+ streamId);
 
-			Thread.sleep(5000);
-
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> { 
+				return !rtmpSendingProcess.isAlive();
+			});
 			// check that it is not accepted
 			Broadcast broadcast = RestServiceV2Test.callGetBroadcast(streamId);
 			assertNull(broadcast);
 
-			AppFunctionalV2Test.destroyProcess();
+			rtmpSendingProcess.destroy();
 
 			// create a stream through rest service
 			// check that it is accepted
@@ -891,43 +877,16 @@ public class ConsoleAppRestServiceTest{
 				AppFunctionalV2Test.executeProcess(ffmpegPath
 						+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
 						+ streamId);
-
-				Thread.sleep(5000);
+				
+				Awaitility.await().atMost(10, TimeUnit.SECONDS)
+				.until(() -> !AppFunctionalV2Test.isProcessAlive());
 
 				// check that it is not accepted
 				assertNull(RestServiceV2Test.callGetBroadcast(streamId));
-				
-				AppFunctionalV2Test.destroyProcess();
-			}
-
-			// create a stream through rest service
-			// check that it is accepted
-			{
-				Broadcast broadcastCreated = RestServiceV2Test.callCreateBroadcast(10000);
-				assertNotNull(broadcastCreated.getStreamId());
-				assertEquals(broadcastCreated.getStatus(), AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
-
-				AppFunctionalV2Test.executeProcess(ffmpegPath
-						+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
-						+ broadcastCreated.getStreamId());
-
-
-				Awaitility.await().atMost(10, TimeUnit.SECONDS)
-				.pollInterval(1, TimeUnit.SECONDS).until(AppFunctionalV2Test::isProcessAlive);
-
-
-				Awaitility.await().pollDelay(3, TimeUnit.SECONDS)
-				.atMost(10, TimeUnit.SECONDS)
-				.pollInterval(1, TimeUnit.SECONDS).until(() -> 
-				{
-					Broadcast broadcast2 = RestServiceV2Test.callGetBroadcast(broadcastCreated.getStreamId());
-					assertNotNull(broadcast2);
-					return broadcast2 != null && broadcast2.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
-				});
-
 
 				AppFunctionalV2Test.destroyProcess();
 			}
+
 
 			{
 				// change settings and accept only streams to false, because it
@@ -953,12 +912,6 @@ public class ConsoleAppRestServiceTest{
 		try {
 
 			String appName = "LiveApp";
-			// authenticate user
-			User user = new User();
-			user.setEmail(TEST_USER_EMAIL);
-			user.setPassword(TEST_USER_PASS);
-			Result authenticatedUserResult = callAuthenticateUser(user);
-			assertTrue(authenticatedUserResult.isSuccess());
 
 			enterpriseResult = callIsEnterpriseEdition();
 			if (!enterpriseResult.isSuccess()) {
@@ -980,7 +933,7 @@ public class ConsoleAppRestServiceTest{
 			appSettings = callGetAppSettings(appName);
 			assertTrue(appSettings.isPublishTokenControlEnabled());
 			assertTrue(appSettings.isPlayTokenControlEnabled());
-			
+
 			//define a valid expire date
 			long expireDate = Instant.now().getEpochSecond() + 1000;
 
@@ -995,8 +948,9 @@ public class ConsoleAppRestServiceTest{
 
 
 			//it should be false, because publishing is not allowed and hls files are not created
-			Awaitility.await().pollDelay(5, TimeUnit.SECONDS).atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-				return ConsoleAppRestServiceTest.getStatusCode("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" + broadcast.getStreamId() + ".m3u8?token=" + accessToken.getTokenId(), true)==404;
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return !rtmpSendingProcess.isAlive();
+				//return ConsoleAppRestServiceTest.getStatusCode("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" + broadcast.getStreamId() + ".m3u8?token=" + accessToken.getTokenId(), true)==404;
 			});
 
 			rtmpSendingProcess.destroy();
@@ -1014,9 +968,9 @@ public class ConsoleAppRestServiceTest{
 					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/"+ appName + "/"
 					+ broadcast.getStreamId()+ "?token=" + publishToken.getTokenId());
 
-			
+
 			Result clusterResult = callIsClusterMode();
-			
+
 			//it should be false because token control is enabled but no token provided
 			Awaitility.await()
 			.pollDelay(5, TimeUnit.SECONDS)
@@ -1044,7 +998,7 @@ public class ConsoleAppRestServiceTest{
 
 			appSettings.setPublishTokenControlEnabled(false);
 			appSettings.setPlayTokenControlEnabled(false);
-			
+
 			Result flag = callSetAppSettings(appName, appSettings);
 			assertTrue(flag.isSuccess());
 
@@ -1056,7 +1010,7 @@ public class ConsoleAppRestServiceTest{
 		}
 
 	}
-	
+
 	@Test
 	public void testTimeBasedSubscriberControl() {
 		Result enterpriseResult;
@@ -1064,12 +1018,6 @@ public class ConsoleAppRestServiceTest{
 
 			String appName = "LiveApp";
 			// authenticate user
-			User user = new User();
-			user.setEmail(TEST_USER_EMAIL);
-			user.setPassword(TEST_USER_PASS);
-			Result authenticatedUserResult = callAuthenticateUser(user);
-			assertTrue(authenticatedUserResult.isSuccess());
-
 			enterpriseResult = callIsEnterpriseEdition();
 			if (!enterpriseResult.isSuccess()) {
 				//if it is not enterprise return
@@ -1081,24 +1029,24 @@ public class ConsoleAppRestServiceTest{
 
 			appSettings.setTimeTokenSubscriberOnly(true);
 			appSettings.setMp4MuxingEnabled(true);
-			
+
 			Result result = callSetAppSettings(appName, appSettings);
 			assertTrue(result.isSuccess());
 
 			appSettings = callGetAppSettings(appName);
 			assertTrue(appSettings.isTimeTokenSubscriberOnly());
-			
+
 			Broadcast broadcast = RestServiceV2Test.callCreateRegularBroadcast();
-			
+
 			Subscriber subscriber = new Subscriber();
 			subscriber.setStreamId(broadcast.getStreamId());
 			subscriber.setSubscriberId("subscriber1");
 			subscriber.setB32Secret("6qsp6qhndryqs56zjmvs37i6gqtjsdvc");
 			subscriber.setType(Subscriber.PLAY_TYPE);
-			
+
 			boolean res = callAddSubscriber("http://localhost:5080/"+appName+"/rest/v2/broadcasts/"+broadcast.getStreamId()+"/subscribers", subscriber);
 			assertTrue(res);
-			
+
 			Process rtmpSendingProcess = execute(ffmpegPath
 					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/"+ appName + "/"
 					+ broadcast.getStreamId());
@@ -1111,25 +1059,25 @@ public class ConsoleAppRestServiceTest{
 			});
 
 			rtmpSendingProcess.destroy();
-			
+
 			//create subscriber for publishing 
 			Subscriber subscriberPub = new Subscriber();
 			subscriberPub.setStreamId(broadcast.getStreamId());
 			subscriberPub.setSubscriberId("subscriberPub");
 			subscriberPub.setB32Secret("6qsp6qhndryqs56zjmvs37i6gqtjsdvc");
 			subscriberPub.setType(Subscriber.PUBLISH_TYPE);
-			
+
 			res = callAddSubscriber("http://localhost:5080/"+appName+"/rest/v2/broadcasts/"+broadcast.getStreamId()+"/subscribers", subscriberPub);
 			assertTrue(res);
 			String tmpSubscriberCode = getTimeBasedSubscriberCode(subscriberPub.getB32Secret());
-			
+
 			Process rtmpSendingProcessToken = execute(ffmpegPath
 					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/"+ appName + "/"
 					+ broadcast.getStreamId()+ "?subscriberId=" + subscriberPub.getSubscriberId() + "&subscriberCode=" + tmpSubscriberCode);
-			
+
 
 			Result clusterResult = callIsClusterMode();
-			
+
 			//it should be false because subscriber control is enabled but no subscriber provided
 			Awaitility.await()
 			.pollDelay(5, TimeUnit.SECONDS)
@@ -1137,35 +1085,33 @@ public class ConsoleAppRestServiceTest{
 				return  !MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" 
 						+ broadcast.getStreamId() + ".m3u8") || clusterResult.isSuccess();
 			});
-			
-			Thread.sleep(5000);
 
 			rtmpSendingProcessToken.destroy();
-			
+
 			//this time, it should be true since valid token is provided
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				String tmpSubscriberCode2 = getTimeBasedSubscriberCode(subscriber.getB32Secret());
 				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" 
 						+ broadcast.getStreamId() + ".mp4?subscriberId=" + subscriber.getSubscriberId() + "&subscriberCode=" + tmpSubscriberCode2);
 			});			
-			
+
 			//it should fail because there is no subsccriber provided
 			assertEquals(403, ConsoleAppRestServiceTest.getStatusCode("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" 
 					+ broadcast.getStreamId() + ".mp4", false));
-			
+
 			// reset to old settings
 			appSettings.setTimeTokenSubscriberOnly(false);
-			
+
 			Result flag = callSetAppSettings(appName, appSettings);
 			assertTrue(flag.isSuccess());
-			
+
 		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
 	}
-	
-	
+
+
 	private String getTimeBasedSubscriberCode(String b32Secret) {
 		// convert secret from base32 to bytes
 		byte[] secretBytes = Base32.decode(b32Secret);
@@ -1180,12 +1126,6 @@ public class ConsoleAppRestServiceTest{
 		try {
 
 			// authenticate user
-			User user = new User();
-			user.setEmail(TEST_USER_EMAIL);
-			user.setPassword(TEST_USER_PASS);
-			Result authenticatedUserResult = callAuthenticateUser(user);
-			assertTrue(authenticatedUserResult.isSuccess());
-
 			enterpriseResult = callIsEnterpriseEdition();
 			if (!enterpriseResult.isSuccess()) {
 				//if it is not enterprise return
@@ -1223,8 +1163,11 @@ public class ConsoleAppRestServiceTest{
 
 			activeLicence = callGetLicenceStatus(serverSettings.getLicenceKey());
 
-			//it should be null because it is market build
-			assertNull(activeLicence);
+			//it should not be null because it is never null
+			assertNotNull(activeLicence);
+
+			//its status is null
+			assertNull(activeLicence.getStatus());
 
 
 
@@ -1249,14 +1192,7 @@ public class ConsoleAppRestServiceTest{
 	public void testHashControl() {
 		Result enterpiseResult;
 		try {
-
-
 			// authenticate user
-			User user = new User();
-			user.setEmail(TEST_USER_EMAIL);
-			user.setPassword(TEST_USER_PASS);
-			Result authenticatedUserResult = callAuthenticateUser(user);
-			assertTrue(authenticatedUserResult.isSuccess());
 
 			enterpiseResult = callIsEnterpriseEdition();
 			if (!enterpiseResult.isSuccess()) {
@@ -1294,8 +1230,8 @@ public class ConsoleAppRestServiceTest{
 
 
 			//publishing is not allowed therefore hls files are not created
-			Awaitility.await().pollDelay(5, TimeUnit.SECONDS).atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-				return ConsoleAppRestServiceTest.getStatusCode("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + ".m3u8?token=hash" , true)==404;
+			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return !rtmpSendingProcess.isAlive();
 			});
 
 			rtmpSendingProcess.destroy();
@@ -1344,13 +1280,6 @@ public class ConsoleAppRestServiceTest{
 	public void testGetSystemResourcesInfo() {
 		try {
 			// authenticate user
-			User user = new User();
-			user.setEmail(TEST_USER_EMAIL);
-			user.setPassword(TEST_USER_PASS);
-			Result authenticatedUserResult;
-			authenticatedUserResult = callAuthenticateUser(user);
-			assertTrue(authenticatedUserResult.isSuccess());
-
 			String systemResourcesInfo = callGetSystemResourcesInfo();
 
 			JSONParser parser = new JSONParser();		
@@ -1406,18 +1335,11 @@ public class ConsoleAppRestServiceTest{
 	public void testGetVersion() {
 		try {
 			// authenticate user
-			User user = new User();
-			user.setEmail(TEST_USER_EMAIL);
-			user.setPassword(TEST_USER_PASS);
-			Result authenticatedUserResult;
-			authenticatedUserResult = callAuthenticateUser(user);
-			assertTrue(authenticatedUserResult.isSuccess());
-
 			System.out.println("Get version console authenticated");
 			String version = callGetSoftwareVersion();
 
 			System.out.println("Version: " + version);
-			
+
 			Version versionObj = gson.fromJson(version, Version.class);
 
 			assertEquals(13 , versionObj.getBuildNumber().length());
@@ -1440,14 +1362,6 @@ public class ConsoleAppRestServiceTest{
 		 * This is testing stream-specific mp4 setting via rest service and results
 		 */
 		try {
-
-			// authenticate user
-			User user = new User();
-			user.setEmail(TEST_USER_EMAIL);
-			user.setPassword(TEST_USER_PASS);
-			Result authenticatedUserResult;
-			authenticatedUserResult = callAuthenticateUser(user);
-			assertTrue(authenticatedUserResult.isSuccess());
 
 			// get settings from the app
 			AppSettings appSettings = callGetAppSettings("LiveApp");
@@ -1585,13 +1499,10 @@ public class ConsoleAppRestServiceTest{
 			fail(e.getMessage());
 		}
 	}
-	
+
 	@Test
 	public void testRTSPSourceNoAdaptive() {
 		try {
-			Result authenticatedUserResult = authenticateDefaultUser();
-			assertTrue(authenticatedUserResult.isSuccess());
-			
 			rtspSource(null);
 		}
 		catch (Exception e) {
@@ -1599,83 +1510,80 @@ public class ConsoleAppRestServiceTest{
 			fail(e.getMessage());
 		}
 	}
-	
-	
+
+
 	@Test
 	public void testRTSPSourceWithAdaptiveBitrate() {
 		try {
-			Result authenticatedUserResult = authenticateDefaultUser();
-			assertTrue(authenticatedUserResult.isSuccess());
-			
 			Result result = callIsEnterpriseEdition();
-			
+
 			if (!result.isSuccess()) {
 				//if it's not the enterprise edition, just return
 				return;
 			}
-			
+
 			rtspSource(Arrays.asList(new EncoderSettings(144, 150000, 16000)));
-			
+
 		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-		
+
 	}
-	
-	
+
+
 
 	public void rtspSource(List<EncoderSettings> appEncoderSettings) {
 		try {
-			
+
 			// user should be authenticated before executing this method
-			
+
 			// get settings from the app
 			AppSettings appSettings = callGetAppSettings("LiveApp");
-			
+
 			boolean hlsMuxingEnabled = appSettings.isHlsMuxingEnabled();
-			
+
 			appSettings.setHlsMuxingEnabled(true);
-			
+
 			List<EncoderSettings> encoderSettings = appSettings.getEncoderSettings();
 			appSettings.setEncoderSettings(appEncoderSettings);
-			
+
 			Result result = callSetAppSettings("LiveApp", appSettings);
 			assertTrue(result.isSuccess());
-			
+
 			StreamFetcherUnitTest.startCameraEmulator();
-			
+
 			Broadcast broadcast = new Broadcast("rtsp_source", null, null, null, "rtsp://127.0.0.1:6554/test.flv",
 					AntMediaApplicationAdapter.STREAM_SOURCE);
-			
-			
+
+
 			String returnResponse = RestServiceV2Test.callAddStreamSource(broadcast, true);
 			Result addStreamSourceResult = gson.fromJson(returnResponse, Result.class);
-		
-			
+
+
 			//wait until stream is broadcasted
-			Awaitility.await().atMost(40, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + addStreamSourceResult.getDataId() + ".m3u8");
 			});
-			
+
 			if (appEncoderSettings != null) 
 			{
-				Awaitility.await().atMost(40, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 					return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + addStreamSourceResult.getDataId() + "_adaptive.m3u8");
 				});
 			}
-			
+
 			broadcast = RestServiceV2Test.callGetBroadcast(addStreamSourceResult.getDataId());
 			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, broadcast.getStatus());
-			
+
 			result = RestServiceV2Test.callDeleteBroadcast(addStreamSourceResult.getDataId());
 			assertTrue(result.isSuccess());
-			
+
 			appSettings.setHlsMuxingEnabled(hlsMuxingEnabled);
 			appSettings.setEncoderSettings(encoderSettings);
 			result = callSetAppSettings("LiveApp", appSettings);
 			assertTrue(result.isSuccess());
-			
+
 			StreamFetcherUnitTest.stopCameraEmulator();
 		}
 		catch (Exception e) {
@@ -1683,7 +1591,7 @@ public class ConsoleAppRestServiceTest{
 			fail(e.getMessage());
 		}
 	}
-	
+
 	//public static Token callGetToken(String streamId, String type, long expireDate) throws Exception {
 	//	return callGetToken(SERVICE_URL + "/broadcast/getToken", streamId, type, expireDate);
 	//}
@@ -1707,13 +1615,13 @@ public class ConsoleAppRestServiceTest{
 
 		return gson.fromJson(result.toString(), Token.class);
 	}
-	
+
 	public static boolean callAddSubscriber(String url, Subscriber subscriber) throws Exception {
 
 		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
-		
+
 		String jsonSubscriber = gson.toJson(subscriber);
-		
+
 		Gson gson = new Gson();
 		HttpUriRequest post = RequestBuilder.post().setUri(url)
 				.setHeader(HttpHeaders.CONTENT_TYPE, "application/json").setEntity(new StringEntity(jsonSubscriber))
@@ -1726,10 +1634,10 @@ public class ConsoleAppRestServiceTest{
 		if (response.getStatusLine().getStatusCode() != 200) {
 			throw new Exception(result.toString());
 		}
-		
+
 		System.out.println("result string: " + result.toString());
 		Result tmp = gson.fromJson(result.toString(), Result.class);
-		
+
 		return tmp.isSuccess();
 
 	}
@@ -1831,14 +1739,14 @@ public class ConsoleAppRestServiceTest{
 				.setDefaultCookieStore(httpCookieStore).build())
 		{
 			Gson gson = new Gson();
-	
+
 			HttpUriRequest post = RequestBuilder.post().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
 					.setEntity(new StringEntity(gson.toJson(appSettingsModel))).build();
-	
+
 			try (CloseableHttpResponse response = client.execute(post)) {
-	
+
 				StringBuffer result = RestServiceV2Test.readResponse(response);
-		
+
 				if (response.getStatusLine().getStatusCode() != 200) {
 					throw new Exception(result.toString());
 				}
@@ -2081,10 +1989,11 @@ public class ConsoleAppRestServiceTest{
 
 		while (tmpExec == null) {
 			log.info("Waiting for exec get initialized...");
-
-			Awaitility.await().pollDelay(2, TimeUnit.SECONDS).atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-				return tmpExec !=null;
-			});
+			try {
+				Thread.sleep(500);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
 		}
 
 		return tmpExec;
@@ -2146,11 +2055,11 @@ public class ConsoleAppRestServiceTest{
 
 		Result result;
 		try {
-			
+
 			Result authenticatedUserResult = authenticateDefaultUser();
 			assertTrue(authenticatedUserResult.isSuccess());
 
-			
+
 			result = callIsEnterpriseEdition();
 			if (!result.isSuccess()) {
 				log.info("This is not enterprise edition so skipping this test");
@@ -2165,7 +2074,7 @@ public class ConsoleAppRestServiceTest{
 					+ streamId);
 
 			Awaitility.await().atMost(15, TimeUnit.SECONDS)
-			.pollInterval(2, TimeUnit.SECONDS)
+			.pollInterval(1, TimeUnit.SECONDS)
 			.until(() -> {
 				Broadcast broadcast = RestServiceV2Test.getBroadcast(streamId);
 				return broadcast != null
@@ -2176,12 +2085,11 @@ public class ConsoleAppRestServiceTest{
 			AppFunctionalV2Test.destroyProcess();
 
 			Awaitility.await().atMost(60, TimeUnit.SECONDS)
-			.pollInterval(2, TimeUnit.SECONDS)
+			.pollInterval(1, TimeUnit.SECONDS)
 			.until(() -> {
 				Broadcast broadcast = RestServiceV2Test.getBroadcast(streamId);
 				return broadcast == null
-						|| broadcast.getStreamId() == null
-						|| !broadcast.getStreamId().contentEquals(streamId);
+						|| broadcast.getStreamId() == null;
 			});
 
 
@@ -2191,30 +2099,17 @@ public class ConsoleAppRestServiceTest{
 			appSettings.setAllowedPublisherCIDR("127.0.0.2");
 			result = callSetAppSettings("LiveApp", appSettings);
 			assertTrue(result.isSuccess());
-			
-			AppFunctionalV2Test.execute(ffmpegPath
+
+			Process process = AppFunctionalV2Test.execute(ffmpegPath
 					+ " -re -i src/test/resources/test.flv -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
 					+ streamId);
 
 
-			boolean available = false;
-			for (int i = 0; i < 5; i++) {
-				Broadcast broadcast = RestServiceV2Test.getBroadcast(streamId);
-				if(broadcast != null
-						&& broadcast.getStreamId() != null
-						&& broadcast.getStreamId().contentEquals(streamId)) {
-					available = true;
-					break;
-				}
-				try {
-					Thread.sleep(4000);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-			}
+			Awaitility.await().atMost(7, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return !process.isAlive();
+			});
 
-			assertFalse(available);
-			
+
 			AppFunctionalV2Test.destroyProcess();
 
 			appSettings = callGetAppSettings("LiveApp");

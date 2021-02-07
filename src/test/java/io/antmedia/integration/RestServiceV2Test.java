@@ -940,7 +940,7 @@ public class RestServiceV2Test {
 			Broadcast broadcast = callCreateBroadcast(1000);
 			System.out.println("broadcast stream id: " + broadcast.getStreamId());
 
-			Thread.sleep(5000);
+			Thread.sleep(1500);
 			Process execute = execute(ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy "
 					+ "	-vcodec copy -f flv rtmp://localhost/LiveApp/" + broadcast.getStreamId());
 
@@ -1279,29 +1279,6 @@ public class RestServiceV2Test {
 
 		return tmp;
 	}
-	
-	public static Result addEndpoint(String broadcastId, String rtmpUrl) throws Exception 
-	{
-		String url = ROOT_SERVICE_URL + "/v2/broadcasts/"+ broadcastId +"/endpoint?rtmpUrl=" + rtmpUrl;
-		
-		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
-
-		HttpUriRequest post = RequestBuilder.post().setUri(url)
-				.setHeader(HttpHeaders.CONTENT_TYPE, "application/json").build();
-
-		CloseableHttpResponse response = client.execute(post);
-
-		StringBuffer result = readResponse(response);
-
-		if (response.getStatusLine().getStatusCode() != 200) {
-			throw new Exception(result.toString());
-		}
-		Gson gson = new Gson();
-		System.out.println("result string: " + result.toString());
-		Result tmp = gson.fromJson(result.toString(), Result.class);
-
-		return tmp;
-	}
 
 	public static Result addEndpointV2(String broadcastId, Endpoint endpoint) throws Exception 
 	{		
@@ -1447,7 +1424,7 @@ public class RestServiceV2Test {
 		while (tmpExec == null) {
 			try {
 				System.out.println("Waiting for exec get initialized...");
-				Thread.sleep(1000);
+				Thread.sleep(500);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
@@ -1527,31 +1504,6 @@ public class RestServiceV2Test {
 	}
 
 	@Test
-	public void testAddEndpoint() {
-		try {
-
-			Broadcast broadcast = createBroadcast(null);
-
-			// add generic endpoint
-			Result result = addEndpoint(broadcast.getStreamId().toString(), "rtmp://dfjdksafjlaskfjalkfj");
-
-			// check that it is successfull
-			assertTrue(result.isSuccess());
-
-			// get endpoint list
-			broadcast = getBroadcast(broadcast.getStreamId().toString());
-
-			// check that 2 element exist
-			assertNotNull(broadcast.getEndPointList());
-			assertEquals(1, broadcast.getEndPointList().size());
-
-		} catch (Exception e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
-	}
-
-	@Test
 	public void testAddEndpointV2() {
 		try {
 
@@ -1575,62 +1527,6 @@ public class RestServiceV2Test {
 			// check that 1 element exist
 			assertNotNull(broadcast.getEndPointList());
 			assertEquals(1, broadcast.getEndPointList().size());
-
-		} catch (Exception e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
-	}
-	
-	@Test
-	public void testAddEndpointCrossCheck() {
-		try {
-			
-			List<Broadcast> broadcastList = callGetBroadcastList();
-			int size = broadcastList.size();
-			Broadcast broadcast = createBroadcast(null);
-
-			String streamId = RandomStringUtils.randomAlphabetic(6);
-			// add generic endpoint
-			Result result = addEndpoint(broadcast.getStreamId().toString(), "rtmp://localhost/LiveApp/" + streamId);
-
-			// check that it is successfull
-			assertTrue(result.isSuccess());
-
-			// get endpoint list
-			broadcast = getBroadcast(broadcast.getStreamId().toString());
-
-			// check that 4 element exist
-			assertNotNull(broadcast.getEndPointList());
-			assertEquals(1, broadcast.getEndPointList().size());
-
-			broadcastList = callGetBroadcastList();
-			assertEquals(size+1, broadcastList.size());
-
-			Process execute = execute(
-					ffmpegPath + " -re -i src/test/resources/test.flv -codec copy -f flv rtmp://localhost/LiveApp/"
-							+ broadcast.getStreamId());
-
-
-			Awaitility.await().atMost(60, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
-				//size should +2 because we restream again into the server
-				return size+2 == callGetBroadcastList().size();
-			});
-
-			execute.destroy();
-
-			result = callDeleteBroadcast(broadcast.getStreamId());
-			assertTrue(result.isSuccess());
-
-			Awaitility.await().atMost(60, TimeUnit.SECONDS)
-			.pollInterval(2, TimeUnit.SECONDS).until(() -> 
-			{
-				int broadcastListSize = callGetBroadcastList().size();
-				logger.info("broadcast list size: {} and it should be:{}", broadcastListSize, size);
-				return size == callGetBroadcastList().size();
-			});
-
-
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -1907,7 +1803,9 @@ public class RestServiceV2Test {
 			return rtmpSendingProcess.isAlive();
 		});
 
-		Thread.sleep(5000);
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamId + ".m3u8");
+		});
 
 		rtmpSendingProcess.destroy();
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> {

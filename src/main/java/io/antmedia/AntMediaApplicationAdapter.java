@@ -226,6 +226,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			webRTCAdaptor.setPacketLossDiffThresholdForSwitchback(appSettings.getPacketLossDiffThresholdForSwitchback());
 			webRTCAdaptor.setRttMeasurementDiffThresholdForSwitchback(appSettings.getRttMeasurementDiffThresholdForSwitchback());
 		}
+		logger.info("{} started", app.getName());
 
 		return true;
 	}
@@ -880,15 +881,15 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	}
 
 
-	public boolean startStreaming(Broadcast broadcast) 
+	public Result startStreaming(Broadcast broadcast) 
 	{
-		boolean result = false;
+		Result result = new Result(false);
 		if(broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA) ||
 				broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE))  {
-			result = streamFetcherManager.startStreaming(broadcast);
+			result = getStreamFetcherManager().startStreaming(broadcast);
 		}
 		else if (broadcast.getType().equals(AntMediaApplicationAdapter.PLAY_LIST)) {
-			result = streamFetcherManager.startPlaylist(broadcast);
+			result = getStreamFetcherManager().startPlaylist(broadcast);
 			
 		}
 		return result;
@@ -896,7 +897,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 	public Result stopStreaming(Broadcast broadcast) 
 	{
-		boolean result = false;
+		Result result = new Result(false);
 		
 		if (broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA) ||
 				broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE) ||
@@ -921,10 +922,10 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 				else {
 					logger.warn("Connection is null. It should not happen for stream: {}. Analyze the logs", broadcast.getStreamId());
 				}
-				result = true;
+				result.setSuccess(true);
 			}
 		}
-		return new Result(result);
+		return result;
 	}
 
 	public IBroadcastStream getBroadcastStream(IScope scope, String name) {
