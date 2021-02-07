@@ -547,6 +547,11 @@ public class ConsoleAppRestServiceTest{
 			JSONObject appsJSON = (JSONObject) new JSONParser().parse(applications);
 			JSONArray jsonArray = (JSONArray) appsJSON.get("applications");
 			//choose the one of them
+			
+			//It's necessary for Enterprise tests. 
+			if(jsonArray.contains("junit")) {
+				jsonArray.remove("junit");
+			}
 
 			int index = (int)(Math.random()*jsonArray.size());
 			String appName = (String) jsonArray.get(index);
@@ -1110,7 +1115,132 @@ public class ConsoleAppRestServiceTest{
 			fail(e.getMessage());
 		}
 	}
+	
+	@Test
+	public void testJWTStreamControl() {
+		Result enterpriseResult;
+		try {
 
+			String appName = "LiveApp";
+			// authenticate user
+			User user = new User();
+			user.setEmail(TEST_USER_EMAIL);
+			user.setPassword(TEST_USER_PASS);
+			Result authenticatedUserResult = callAuthenticateUser(user);
+			assertTrue(authenticatedUserResult.isSuccess());
+
+			enterpriseResult = callIsEnterpriseEdition();
+			if (!enterpriseResult.isSuccess()) {
+				//if it is not enterprise return
+				return ;
+			}
+
+			// get settings from the app
+			AppSettings appSettings = callGetAppSettings(appName);
+
+			appSettings.setPublishJwtControlEnabled(true);
+			appSettings.setPlayJwtControlEnabled(true);
+			appSettings.setJwtStreamSecretKey("testtesttesttesttesttesttesttest");
+			appSettings.setMp4MuxingEnabled(true);
+
+
+			Result result = callSetAppSettings(appName, appSettings);
+			assertTrue(result.isSuccess());
+
+			appSettings = callGetAppSettings(appName);
+			assertTrue(appSettings.isPublishJwtControlEnabled());
+			assertTrue(appSettings.isPlayJwtControlEnabled());
+			
+			//Test expire dates
+			
+			long validExpireDate = Instant.now().getEpochSecond() + 20; // add 20 seconds
+			long invalidExpireDate = Instant.now().getEpochSecond() - 20; // add 20 seconds
+			
+			
+			Broadcast broadcast = RestServiceV2Test.callCreateRegularBroadcast();
+			Token accessToken = callGetJWTToken( "http://localhost:5080/"+appName+"/rest/v2/broadcasts/"+broadcast.getStreamId()+"/jwt-token", Token.PLAY_TOKEN, validExpireDate);
+			assertNotNull(accessToken);
+
+
+			Process rtmpSendingProcess = execute(ffmpegPath
+					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/"+ appName + "/"
+					+ broadcast.getStreamId());
+
+
+			//it should be false, because publishing is not allowed and hls files are not created
+			Awaitility.await().pollDelay(5, TimeUnit.SECONDS).atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return ConsoleAppRestServiceTest.getStatusCode("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" + broadcast.getStreamId() + ".m3u8?token=" + accessToken.getTokenId(), true)==404;
+			});
+
+			rtmpSendingProcess.destroy();
+
+
+			//create token for publishing
+			Token publishToken = callGetJWTToken("http://localhost:5080/"+appName+"/rest/v2/broadcasts/"+broadcast.getStreamId()+"/jwt-token" , Token.PUBLISH_TOKEN, validExpireDate);
+			assertNotNull(publishToken);
+
+			//create token for playing/accessing file
+			Token accessToken2 = callGetJWTToken("http://localhost:5080/"+appName+"/rest/v2/broadcasts/"+broadcast.getStreamId()+"/jwt-token", Token.PLAY_TOKEN, validExpireDate);
+			assertNotNull(accessToken2);
+
+			Process rtmpSendingProcessToken = execute(ffmpegPath
+					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/"+ appName + "/"
+					+ broadcast.getStreamId()+ "?token=" + publishToken.getTokenId());
+			
+			Result clusterResult = callIsClusterMode();
+			
+			//it should be false because token control is enabled but no token provided
+			Awaitility.await()
+			.pollDelay(5, TimeUnit.SECONDS)
+			.atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
+				return  !MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" 
+						+ broadcast.getStreamId() + ".m3u8") || clusterResult.isSuccess();
+			});
+
+			rtmpSendingProcessToken.destroy();
+
+			//this time, it should be true since valid token is provided
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" 
+						+ broadcast.getStreamId() + ".mp4?token=" + accessToken2.getTokenId());
+			});
+
+			//it should fail because there is no access token
+
+			assertEquals(403, ConsoleAppRestServiceTest.getStatusCode("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" 
+					+ broadcast.getStreamId() + ".mp4", false));
+			
+			
+			//Test invalid expire date and valid stream ID
+			Token invalidAccessToken = callGetJWTToken( "http://localhost:5080/"+appName+"/rest/v2/broadcasts/"+broadcast.getStreamId()+"/jwt-token", Token.PLAY_TOKEN, invalidExpireDate);
+			assertNotNull(invalidAccessToken);
+			
+			assertEquals(403, ConsoleAppRestServiceTest.getStatusCode("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" 
+					+ broadcast.getStreamId() + ".mp4?token=" + invalidAccessToken.getTokenId(), false));
+			
+			//Test valid expire date and invalid stream ID
+			Token invalidAccessToken2 = callGetJWTToken( "http://localhost:5080/"+appName+"/rest/v2/broadcasts/invalidStreamID/jwt-token", Token.PLAY_TOKEN, validExpireDate);
+			assertNotNull(invalidAccessToken2);
+			
+			assertEquals(403, ConsoleAppRestServiceTest.getStatusCode("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" 
+					+ broadcast.getStreamId() + ".mp4?token=" + invalidAccessToken2.getTokenId(), false));
+
+
+			appSettings.setPlayJwtControlEnabled(false);
+			appSettings.setPublishJwtControlEnabled(false);
+			appSettings.setMp4MuxingEnabled(false);
+			
+			Result flag = callSetAppSettings(appName, appSettings);
+			assertTrue(flag.isSuccess());
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+
+	}
+	
+	
 
 	private String getTimeBasedSubscriberCode(String b32Secret) {
 		// convert secret from base32 to bytes
@@ -1615,6 +1745,27 @@ public class ConsoleAppRestServiceTest{
 
 		return gson.fromJson(result.toString(), Token.class);
 	}
+	
+	public static Token callGetJWTToken(String url, String type, long expireDate) throws Exception {
+
+		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+
+		HttpUriRequest get = RequestBuilder.get().setUri(url + "?expireDate=" + expireDate + "&type=" + type)
+				.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+				.build();
+
+		CloseableHttpResponse response = client.execute(get);
+
+		StringBuffer result = readResponse(response);
+
+		if (response.getStatusLine().getStatusCode() != 200) {
+			throw new Exception(result.toString());
+		}
+		System.out.println("result string: " + result.toString());
+
+		return gson.fromJson(result.toString(), Token.class);
+	}
+	
 
 	public static boolean callAddSubscriber(String url, Subscriber subscriber) throws Exception {
 

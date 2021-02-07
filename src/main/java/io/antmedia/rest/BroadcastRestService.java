@@ -543,6 +543,26 @@ public class BroadcastRestService extends RestServiceBase{
 			return Response.status(Status.BAD_REQUEST).entity(result).build();
 		}
 	}
+	
+	@ApiOperation(value = "Generates JWT token for specified stream. It's not required to let the server generate JWT. Generally JWT tokens should be generated on the client side.")
+	@ApiResponses(value = { @ApiResponse(code = 200, message = "Returns token", response=Token.class), 
+			@ApiResponse(code = 400, message = "When there is an error in creating token", response=Result.class)})
+	@GET
+	@Path("/{id}/jwt-token")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response getJwtTokenV2 (@ApiParam(value = "The id of the stream", required = true) @PathParam("id")String streamId,
+			@ApiParam(value = "The expire time of the token. It's in unix timestamp seconds.", required = true) @QueryParam("expireDate") long expireDate,
+			@ApiParam(value = "Type of the JWT token. It may be play or publish ", required = true) @QueryParam("type") String type,
+			@ApiParam(value = "Room Id that token belongs to. It's not mandatory ", required = false) @QueryParam("roomId") String roomId) 
+	{
+		Object result = super.getJwtToken(streamId, expireDate, type, roomId);
+		if (result instanceof Token) {
+			return Response.status(Status.OK).entity(result).build();
+		}
+		else {
+			return Response.status(Status.BAD_REQUEST).entity(result).build();
+		}
+	}
 
 	@ApiOperation(value = "Perform validation of token for requested stream. If validated, success field is true, "
 			+ "not validated success field false", response = Result.class)
