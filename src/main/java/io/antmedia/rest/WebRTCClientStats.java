@@ -34,9 +34,12 @@ public class WebRTCClientStats {
 	
 	@ApiModelProperty(value = "Audio sent low level stats")
 	private WebRTCAudioSendStats audioSentStats;
+	
+	@ApiModelProperty(value = "Free text information for the client")
+	private String clientInfo;
 
 	public WebRTCClientStats(int measuredBitrate, int sendBitrate, double videoFrameSendPeriod, double audioFrameSendPeriod, 
-			long videoPacketCount, long audioPacketCount, int clientId) {
+			long videoPacketCount, long audioPacketCount, int clientId, String clientInfo) {
 		this.measuredBitrate = measuredBitrate;
 		this.sendBitrate = sendBitrate;
 		this.videoFrameSendPeriod = videoFrameSendPeriod;
@@ -44,6 +47,7 @@ public class WebRTCClientStats {
 		this.videoPacketCount = videoPacketCount;
 		this.audioPacketCount = audioPacketCount;
 		this.clientId = clientId;
+		this.clientInfo = clientInfo;
 	}
 
 	public double getAudioFrameSendPeriod() {
@@ -116,6 +120,14 @@ public class WebRTCClientStats {
 
 	public void setVideoSentStats(WebRTCVideoSendStats videoSentStats) {
 		this.videoSentStats = videoSentStats;
+	}
+
+	public String getClientInfo() {
+		return clientInfo;
+	}
+
+	public void setClientInfo(String clientInfo) {
+		this.clientInfo = clientInfo;
 	}
 	
 }

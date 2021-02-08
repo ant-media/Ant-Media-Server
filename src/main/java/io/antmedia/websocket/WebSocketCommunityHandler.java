@@ -18,6 +18,7 @@ import io.antmedia.AppSettings;
 import io.antmedia.IApplicationAdaptorFactory;
 import io.antmedia.StreamIdValidator;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.webrtc.adaptor.RTMPAdaptor;
 
 public class WebSocketCommunityHandler {
@@ -92,7 +93,7 @@ public class WebSocketCommunityHandler {
 				Broadcast broadcast = appAdaptor.getDataStore().get(streamId);
 				if (broadcast != null) {
 					String status = broadcast.getStatus();
-					if (status.endsWith(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)
+					if (status.endsWith(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)
 							||
 							status.endsWith(AntMediaApplicationAdapter.BROADCAST_STATUS_PREPARING)) 
 					{

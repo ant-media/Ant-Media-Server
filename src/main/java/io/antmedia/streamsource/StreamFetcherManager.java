@@ -15,14 +15,13 @@ import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.api.services.youtube.model.Playlist;
-
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
 import io.antmedia.licence.ILicenceService;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.rest.model.Result;
 import io.antmedia.streamsource.StreamFetcher.IStreamFetcherListener;
 import io.vertx.core.Vertx;
@@ -288,7 +287,7 @@ public class StreamFetcherManager {
 				// Create Stream Fetcher with Playlist Broadcast Item
 				StreamFetcher streamScheduler = new StreamFetcher(playlistBroadcastItem.getStreamUrl(), playlist.getStreamId(), playlistBroadcastItem.getType(), scope, vertx);
 				// Update Playlist current playing status
-				playlist.setPlayListStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+				playlist.setPlayListStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
 				// Update Datastore current play broadcast
 				datastore.updateBroadcastFields(playlist.getStreamId(), playlist);
 
