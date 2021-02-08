@@ -547,7 +547,7 @@ public class ConsoleAppRestServiceTest{
 			JSONObject appsJSON = (JSONObject) new JSONParser().parse(applications);
 			JSONArray jsonArray = (JSONArray) appsJSON.get("applications");
 			//choose the one of them
-			
+
 			//It's necessary for Enterprise tests. 
 			if(jsonArray.contains("junit")) {
 				jsonArray.remove("junit");
@@ -648,10 +648,10 @@ public class ConsoleAppRestServiceTest{
 
 			//get app settings
 			AppSettings appSettingsModel = callGetAppSettings("LiveApp");
-			
-			
+
+
 			appSettingsModel.setEncoderSettings(Arrays.asList(new EncoderSettings(240, 300000, 64000)));
-			
+
 			result = callSetAppSettings("LiveApp", appSettingsModel);
 			assertTrue(result.isSuccess());
 
@@ -694,7 +694,7 @@ public class ConsoleAppRestServiceTest{
 			AppFunctionalV2Test.destroyProcess();
 
 			//let the muxing finish
-			
+
 			//check that second preview is created
 			Awaitility.await()
 			.atMost(10, TimeUnit.SECONDS)
@@ -882,7 +882,7 @@ public class ConsoleAppRestServiceTest{
 				AppFunctionalV2Test.executeProcess(ffmpegPath
 						+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
 						+ streamId);
-				
+
 				Awaitility.await().atMost(10, TimeUnit.SECONDS)
 				.until(() -> !AppFunctionalV2Test.isProcessAlive());
 
@@ -1115,7 +1115,7 @@ public class ConsoleAppRestServiceTest{
 			fail(e.getMessage());
 		}
 	}
-	
+
 	@Test
 	public void testJWTStreamControl() {
 		Result enterpriseResult;
@@ -1150,13 +1150,13 @@ public class ConsoleAppRestServiceTest{
 			appSettings = callGetAppSettings(appName);
 			assertTrue(appSettings.isPublishJwtControlEnabled());
 			assertTrue(appSettings.isPlayJwtControlEnabled());
-			
+
 			//Test expire dates
-			
+
 			long validExpireDate = Instant.now().getEpochSecond() + 20; // add 20 seconds
 			long invalidExpireDate = Instant.now().getEpochSecond() - 20; // add 20 seconds
-			
-			
+
+
 			Broadcast broadcast = RestServiceV2Test.callCreateRegularBroadcast();
 			Token accessToken = callGetJWTToken( "http://localhost:5080/"+appName+"/rest/v2/broadcasts/"+broadcast.getStreamId()+"/jwt-token", Token.PLAY_TOKEN, validExpireDate);
 			assertNotNull(accessToken);
@@ -1186,9 +1186,9 @@ public class ConsoleAppRestServiceTest{
 			Process rtmpSendingProcessToken = execute(ffmpegPath
 					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/"+ appName + "/"
 					+ broadcast.getStreamId()+ "?token=" + publishToken.getTokenId());
-			
+
 			Result clusterResult = callIsClusterMode();
-			
+
 			//it should be false because token control is enabled but no token provided
 			Awaitility.await()
 			.pollDelay(5, TimeUnit.SECONDS)
@@ -1209,19 +1209,19 @@ public class ConsoleAppRestServiceTest{
 
 			assertEquals(403, ConsoleAppRestServiceTest.getStatusCode("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" 
 					+ broadcast.getStreamId() + ".mp4", false));
-			
-			
+
+
 			//Test invalid expire date and valid stream ID
 			Token invalidAccessToken = callGetJWTToken( "http://localhost:5080/"+appName+"/rest/v2/broadcasts/"+broadcast.getStreamId()+"/jwt-token", Token.PLAY_TOKEN, invalidExpireDate);
 			assertNotNull(invalidAccessToken);
-			
+
 			assertEquals(403, ConsoleAppRestServiceTest.getStatusCode("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" 
 					+ broadcast.getStreamId() + ".mp4?token=" + invalidAccessToken.getTokenId(), false));
-			
+
 			//Test valid expire date and invalid stream ID
 			Token invalidAccessToken2 = callGetJWTToken( "http://localhost:5080/"+appName+"/rest/v2/broadcasts/invalidStreamID/jwt-token", Token.PLAY_TOKEN, validExpireDate);
 			assertNotNull(invalidAccessToken2);
-			
+
 			assertEquals(403, ConsoleAppRestServiceTest.getStatusCode("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" 
 					+ broadcast.getStreamId() + ".mp4?token=" + invalidAccessToken2.getTokenId(), false));
 
@@ -1229,7 +1229,7 @@ public class ConsoleAppRestServiceTest{
 			appSettings.setPlayJwtControlEnabled(false);
 			appSettings.setPublishJwtControlEnabled(false);
 			appSettings.setMp4MuxingEnabled(false);
-			
+
 			Result flag = callSetAppSettings(appName, appSettings);
 			assertTrue(flag.isSuccess());
 
@@ -1239,8 +1239,8 @@ public class ConsoleAppRestServiceTest{
 		}
 
 	}
-	
-	
+
+
 
 	private String getTimeBasedSubscriberCode(String b32Secret) {
 		// convert secret from base32 to bytes
@@ -1485,6 +1485,137 @@ public class ConsoleAppRestServiceTest{
 		}
 
 	}
+
+
+
+	@Test
+	public void testAudioOnlyStreaming() 
+	{
+		Process rtmpSendingProcess = null;
+		String streamName = "live_test"  + (int)(Math.random() * 999999);
+
+		try {
+
+			// get settings from the app
+			AppSettings appSettings = callGetAppSettings("LiveApp");
+
+			boolean mp4MuxingEnabled = appSettings.isMp4MuxingEnabled();
+			//disable mp4 muxing
+			appSettings.setMp4MuxingEnabled(false);
+			appSettings.setHlsMuxingEnabled(true);
+			Result result = callSetAppSettings("LiveApp", appSettings);
+			assertTrue(result.isSuccess());
+
+
+
+			rtmpSendingProcess = execute(
+					ffmpegPath + " -re -i src/test/resources/test.flv -c copy -vn -f flv rtmp://"
+							+ SERVER_ADDR + "/LiveApp/" + streamName);
+
+			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName+ ".m3u8");
+			});
+
+
+			{ //audio only recording	
+				int recordDuration = 5000;
+				result = RestServiceV2Test.callEnableMp4Muxing(streamName, 1);
+				assertTrue(result.isSuccess());
+				assertNotNull(result.getMessage());
+				Thread.sleep(recordDuration);
+
+				result = RestServiceV2Test.callEnableMp4Muxing(streamName, 0);
+				assertTrue(result.isSuccess());
+
+				//it should be true this time, because stream mp4 setting is 1 although general setting is disabled
+
+				Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+					return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName+ ".mp4", recordDuration);
+				});
+			}
+
+
+			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				Broadcast broadcast = RestServiceV2Test.callGetBroadcast(streamName);
+				return broadcast.getSpeed() != 0;
+			});
+
+			rtmpSendingProcess.destroy();
+
+
+			//restore mp4 muxing
+			appSettings.setMp4MuxingEnabled(mp4MuxingEnabled);
+			result = callSetAppSettings("LiveApp", appSettings);
+			assertTrue(result.isSuccess());
+
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+	}
+
+	@Test
+	public void testVideoOnlyStreaming() {
+		Process rtmpSendingProcess = null;
+		String streamName = "live_test"  + (int)(Math.random() * 999999);
+
+		try {
+			// get settings from the app
+			AppSettings appSettings = callGetAppSettings("LiveApp");
+
+			boolean mp4MuxingEnabled = appSettings.isMp4MuxingEnabled();
+			//disable mp4 muxing
+			appSettings.setMp4MuxingEnabled(false);
+			appSettings.setHlsMuxingEnabled(true);
+			Result result = callSetAppSettings("LiveApp", appSettings);
+			assertTrue(result.isSuccess());
+
+
+
+
+
+			rtmpSendingProcess = execute(
+					ffmpegPath + " -re -i src/test/resources/test.flv -c copy -an -f flv rtmp://"
+							+ SERVER_ADDR + "/LiveApp/" + streamName);
+
+
+			Awaitility.await().atMost(25, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				Broadcast broadcast = RestServiceV2Test.callGetBroadcast(streamName);
+				return broadcast.getSpeed() != 0;
+			});
+
+			{ //video only recording	
+				int recordDuration = 5000;
+				result = RestServiceV2Test.callEnableMp4Muxing(streamName, 1);
+				assertTrue(result.isSuccess());
+				assertNotNull(result.getMessage());
+				Thread.sleep(recordDuration);
+
+				result = RestServiceV2Test.callEnableMp4Muxing(streamName, 0);
+				assertTrue(result.isSuccess());
+
+				//it should be true this time, because stream mp4 setting is 1 although general setting is disabled
+
+				Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+					return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName+ ".mp4", recordDuration);
+				});
+			}
+
+			rtmpSendingProcess.destroy();
+
+			//restore mp4 muxing
+			appSettings.setMp4MuxingEnabled(mp4MuxingEnabled);
+			result = callSetAppSettings("LiveApp", appSettings);
+			assertTrue(result.isSuccess());
+
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+	}
+
 
 	@Test
 	public void testMp4Setting() {
@@ -1745,7 +1876,7 @@ public class ConsoleAppRestServiceTest{
 
 		return gson.fromJson(result.toString(), Token.class);
 	}
-	
+
 	public static Token callGetJWTToken(String url, String type, long expireDate) throws Exception {
 
 		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
@@ -1765,7 +1896,7 @@ public class ConsoleAppRestServiceTest{
 
 		return gson.fromJson(result.toString(), Token.class);
 	}
-	
+
 
 	public static boolean callAddSubscriber(String url, Subscriber subscriber) throws Exception {
 

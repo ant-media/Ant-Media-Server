@@ -863,7 +863,6 @@ public class BroadcastRestService extends RestServiceBase{
 			{
 				if (enableRecording) 
 				{
-					
 					if (broadcast.getMp4Enabled() != RECORD_ENABLE) 
 					{
 						result = getDataStore().setMp4Muxing(streamId, RECORD_ENABLE);
@@ -875,12 +874,14 @@ public class BroadcastRestService extends RestServiceBase{
 							result = startRecord(streamId, RecordType.MP4);
 							if (!result) 
 							{
+								//revert back to record
+								getDataStore().setMp4Muxing(streamId, RECORD_DISABLE);
 								logFailedOperation(enableRecording,streamId,RecordType.MP4);
 							}
 							else
 							{
 								message=Long.toString(System.currentTimeMillis());
-								logger.warn("Mp4 recording could not be started for stream: {}", streamId);
+								logger.warn("Mp4 recording is started for stream: {}", streamId);
 							}
 						}
 						else {
@@ -909,6 +910,7 @@ public class BroadcastRestService extends RestServiceBase{
 						}
 						else{
 							message=Long.toString(System.currentTimeMillis());
+							logger.warn("WebM recording is started for stream: {}", streamId);
 						}
 						
 					}
@@ -939,6 +941,7 @@ public class BroadcastRestService extends RestServiceBase{
 					
 					if (broadcast.getWebMEnabled() != RECORD_ENABLE) 
 					{
+						result = getDataStore().setWebMMuxing(streamId, RECORD_ENABLE);
 						
 						//if it's not enabled, start it
 						if (broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING))
@@ -946,11 +949,13 @@ public class BroadcastRestService extends RestServiceBase{
 							result = startRecord(streamId, RecordType.WEBM);
 							if (result) 
 							{
-								result = getDataStore().setWebMMuxing(streamId, RECORD_ENABLE);
+								
 								message=Long.toString(System.currentTimeMillis());
 							}
 							else
 							{
+								//revert back 
+								getDataStore().setWebMMuxing(streamId, RECORD_DISABLE);
 								logFailedOperation(enableRecording,streamId,RecordType.WEBM);
 							}
 						}	
