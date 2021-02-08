@@ -32,6 +32,7 @@ import io.antmedia.datastore.db.types.SubscriberStats;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.ipcamera.OnvifCamera;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.rest.model.BasicStreamInfo;
 import io.antmedia.rest.model.Interaction;
 import io.antmedia.rest.model.Result;
@@ -314,7 +315,7 @@ public class BroadcastRestService extends RestServiceBase{
 		if (result.isSuccess()) 
 		{
 			String status = getDataStore().get(id).getStatus();
-			if (status.equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) 
+			if (status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) 
 			{
 				boolean started = getMuxAdaptor(id).startRtmpStreaming(rtmpUrl);
 				result.setSuccess(started);
@@ -370,7 +371,7 @@ public class BroadcastRestService extends RestServiceBase{
 		if (result.isSuccess()) 
 		{
 			String status = getDataStore().get(id).getStatus();
-			if (status.equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) 
+			if (status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) 
 			{
 				boolean started = getMuxAdaptor(id).stopRtmpStreaming(rtmpUrl);
 				result.setSuccess(started);
@@ -869,7 +870,7 @@ public class BroadcastRestService extends RestServiceBase{
 						
 						streamId = streamId.replaceAll(REPLACE_CHARS, "_");
 						//if it's not enabled, start it
-						if (broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING))
+						if (broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING))
 						{
 							result = startRecord(streamId, RecordType.MP4);
 							if (!result) 
@@ -888,7 +889,7 @@ public class BroadcastRestService extends RestServiceBase{
 					}
 					else 
 					{
-						if (broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) 
+						if (broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) 
 						{
 							message = "Recording is already active. Please stop it first";
 						}
@@ -897,7 +898,7 @@ public class BroadcastRestService extends RestServiceBase{
 				else 
 				{
 					boolean stopAttempted = false;
-					if (broadcast.getMp4Enabled() == RECORD_ENABLE && broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) 
+					if (broadcast.getMp4Enabled() == RECORD_ENABLE && broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) 
 					{
 						stopAttempted = true;
 						//we can stop recording
@@ -940,7 +941,7 @@ public class BroadcastRestService extends RestServiceBase{
 					{
 						
 						//if it's not enabled, start it
-						if (broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING))
+						if (broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING))
 						{
 							result = startRecord(streamId, RecordType.WEBM);
 							if (result) 
@@ -956,7 +957,7 @@ public class BroadcastRestService extends RestServiceBase{
 					}
 					else 
 					{
-						if (broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) 
+						if (broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) 
 						{
 							message = "Recording is already active. Please stop it first";
 						}
@@ -964,7 +965,7 @@ public class BroadcastRestService extends RestServiceBase{
 				}
 				else 
 				{
-					if (broadcast.getWebMEnabled() == RECORD_ENABLE && broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) 
+					if (broadcast.getWebMEnabled() == RECORD_ENABLE && broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) 
 					{
 						//we can stop recording
 						result = stopRecord(streamId, RecordType.WEBM);

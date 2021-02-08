@@ -34,6 +34,7 @@ import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 
 
@@ -147,7 +148,7 @@ public class MapDBStore extends DataStore {
 					}
 					broadcast.setRtmpURL(rtmpURL);
 					if(broadcast.getStatus()==null) {
-						broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
+						broadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_CREATED);
 					}
 					map.put(streamId, gson.toJson(broadcast));
 					db.commit();
@@ -196,10 +197,10 @@ public class MapDBStore extends DataStore {
 				if (jsonString != null) {
 					Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
 					broadcast.setStatus(status);
-					if(status.equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
+					if(status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) {
 						broadcast.setStartTime(System.currentTimeMillis());
 					}
-					else if(status.equals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED)) {
+					else if(status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED)) {
 						broadcast.setRtmpViewerCount(0);
 						broadcast.setWebRTCViewerCount(0);
 						broadcast.setHlsViewerCount(0);
