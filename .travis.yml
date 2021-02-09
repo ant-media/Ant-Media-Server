@@ -72,7 +72,24 @@ before_install:
     fi)
   - cd red5-plugins/tomcat/
   - mvn clean install -Dmaven.javadoc.skip=true -Dmaven.test.skip=true -Dgpg.skip=true --quiet 
-  - cd ../..    
+  - cd ../.. 
+
+    # install Ant Media Server
+  - mvn clean install -Dmaven.javadoc.skip=true -Dmaven.test.skip=true -Dgpg.skip=true  
+
+   #get StreamApp project
+  - (if [ $(git ls-remote https://github.com/ant-media/StreamApp.git $TRAVIS_BRANCH  | wc -l) == "1" ];  
+     then 
+       echo " $TRAVIS_BRANCH branch found";  
+       git clone --depth=1 -b $TRAVIS_BRANCH https://github.com/ant-media/StreamApp.git; 
+       cd StreamApp; 
+       mvn clean install -DskipTests -Dmaven.javadoc.skip=true -Dgpg.skip=true -B -V --quiet;
+       cd ..;
+     else
+       echo "branch not found. Using version in sonatype"; 
+    fi)
+  
+    # package ant media server
   - mvn clean package -U -P assemble -Dmaven.javadoc.skip=true -Dmaven.test.skip=true -DskipTests=true --quiet
   
     #get install script
@@ -115,7 +132,7 @@ before_script:
 script:
   - export RELEASE_VERSION="$(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)"
   - echo $RELEASE_VERSION
-  - mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent package  org.jacoco:jacoco-maven-plugin:report sonar:sonar -Dmaven.javadoc.skip=true
+  - mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent package  org.jacoco:jacoco-maven-plugin:report sonar:sonar -Dmaven.javadoc.skip=true --quiet
 # option to add above (-Dtest="MuxerUnitTest")  for running custom tests
 
 
@@ -131,7 +148,7 @@ after_failure:
 
 deploy:
   - provider: script
-    script: "mvn deploy -P assemble -DskipTests --settings mvn-settings.xml"
+    script: "mvn deploy -P assemble -DskipTests --settings mvn-settings.xml --quiet"
     cleanup: true
     on:
       tags: false
@@ -140,7 +157,7 @@ deploy:
       condition:  $(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)  = *"SNAPSHOT"* 
   
   - provider: script
-    script: "mvn deploy -P assemble -DskipTests --settings mvn-settings.xml"
+    script: "mvn deploy -P assemble -DskipTests --settings mvn-settings.xml --quiet"
     cleanup: true
     on:
       #deploy to maven if it is a release tagged

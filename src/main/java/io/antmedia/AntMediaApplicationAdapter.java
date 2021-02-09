@@ -82,10 +82,7 @@ import io.vertx.ext.dropwizard.MetricsService;
 public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShutdownListener {
 
 	public static final String BEAN_NAME = "web.handler";
-	public static final String BROADCAST_STATUS_CREATED = "created";
-	public static final String BROADCAST_STATUS_BROADCASTING = "broadcasting";
-	public static final String BROADCAST_STATUS_FINISHED = "finished";
-	public static final String BROADCAST_STATUS_PREPARING = "preparing";
+	
 	public static final int BROADCAST_STATS_RESET = 0;
 	public static final String HOOK_ACTION_END_LIVE_STREAM = "liveStreamEnded";
 	public static final String HOOK_ACTION_START_LIVE_STREAM = "liveStreamStarted";
@@ -226,6 +223,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			webRTCAdaptor.setPacketLossDiffThresholdForSwitchback(appSettings.getPacketLossDiffThresholdForSwitchback());
 			webRTCAdaptor.setRttMeasurementDiffThresholdForSwitchback(appSettings.getRttMeasurementDiffThresholdForSwitchback());
 		}
+		logger.info("{} started", app.getName());
 
 		return true;
 	}
@@ -458,7 +456,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	
 						if (broadcast == null) {
 	
-							broadcast = saveUndefinedBroadcast(streamName, getScope().getName(), dataStoreLocal, appSettings,  AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, getServerSettings(), absoluteStartTimeMs);
+							broadcast = saveUndefinedBroadcast(streamName, getScope().getName(), dataStoreLocal, appSettings,  IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING, getServerSettings(), absoluteStartTimeMs);
 						} 
 						else {
 	
@@ -880,15 +878,15 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	}
 
 
-	public boolean startStreaming(Broadcast broadcast) 
+	public Result startStreaming(Broadcast broadcast) 
 	{
-		boolean result = false;
+		Result result = new Result(false);
 		if(broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA) ||
 				broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE))  {
-			result = streamFetcherManager.startStreaming(broadcast);
+			result = getStreamFetcherManager().startStreaming(broadcast);
 		}
 		else if (broadcast.getType().equals(AntMediaApplicationAdapter.PLAY_LIST)) {
-			result = streamFetcherManager.startPlaylist(broadcast);
+			result = getStreamFetcherManager().startPlaylist(broadcast);
 			
 		}
 		return result;
@@ -896,7 +894,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 	public Result stopStreaming(Broadcast broadcast) 
 	{
-		boolean result = false;
+		Result result = new Result(false);
 		
 		if (broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA) ||
 				broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE) ||
@@ -921,10 +919,10 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 				else {
 					logger.warn("Connection is null. It should not happen for stream: {}. Analyze the logs", broadcast.getStreamId());
 				}
-				result = true;
+				result.setSuccess(true);
 			}
 		}
-		return new Result(result);
+		return result;
 	}
 
 	public IBroadcastStream getBroadcastStream(IScope scope, String name) {
@@ -1431,6 +1429,9 @@ public Result createInitializationProcess(String appName){
 		appSettings.setPublishTokenControlEnabled(newSettings.isPublishTokenControlEnabled());
 		appSettings.setPlayTokenControlEnabled(newSettings.isPlayTokenControlEnabled());
 		appSettings.setTimeTokenSubscriberOnly(newSettings.isTimeTokenSubscriberOnly());
+		appSettings.setJwtStreamSecretKey(newSettings.getJwtStreamSecretKey());
+		appSettings.setPlayJwtControlEnabled(newSettings.isPlayJwtControlEnabled());
+		appSettings.setPublishJwtControlEnabled(newSettings.isPublishJwtControlEnabled());
 		
 		appSettings.setWebRTCEnabled(newSettings.isWebRTCEnabled());
 		appSettings.setWebRTCFrameRate(newSettings.getWebRTCFrameRate());

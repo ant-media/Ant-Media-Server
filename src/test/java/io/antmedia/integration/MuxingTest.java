@@ -129,44 +129,9 @@ public class MuxingTest {
 
 
 	@Test
-	public void testVODStreaming() {
+	public void testRtmpAndVODStreaming() {
 
-		// send rtmp stream with ffmpeg to red5
-		String streamName = "vod_test" + (int)(Math.random()*10000);
-
-		// make sure that ffmpeg is installed and in path
-		Process rtmpSendingProcess = execute(
-				ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://"
-						+ SERVER_ADDR + "/LiveApp/" + streamName);
-
-		try {
-			Thread.sleep(5000);
-			Info processInfo = rtmpSendingProcess.info();
-
-			// stop rtmp streaming
-			rtmpSendingProcess.destroy();
-			int duration = (int)(System.currentTimeMillis() - processInfo.startInstant().get().toEpochMilli());
-			
-			// check that stream can be watchable by hls
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> 
-				testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".m3u8", duration)
-			);
-			
-			// check that mp4 is created successfully and can be playable
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() ->
-				testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".mp4", duration)
-			);
-
-		} catch (Exception e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
-		Awaitility.await().atMost(55, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> { 
-			RestServiceV2Test restService = new RestServiceV2Test();
-
-			return 0 == restService.callGetLiveStatistics();
-		});
-		
+		assertTrue("duplicate test AppFunctionalV2Test#testSendRTMPStream", true);
 	}
 
 
@@ -215,8 +180,14 @@ public class MuxingTest {
 			Process rtmpSendingProcess2 = execute(
 					ffmpegPath + " -re -i src/test/resources/test.flv -acodec pcm_alaw -vcodec copy -f flv rtmp://"
 						+ SERVER_ADDR + "/LiveApp/" + streamName2);
-
-			Thread.sleep(5000);
+			
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() ->
+				!rtmpSendingProcess.isAlive()
+			);
+			
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() ->
+				!rtmpSendingProcess2.isAlive()
+			);
 			
 			assertFalse(testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName1 + ".mp4"));
 			assertFalse(testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName2 + ".mp4"));
@@ -279,51 +250,7 @@ public class MuxingTest {
 	}
 	
 
-	@Test
-	public void testRTMPSending() {
 
-		try {
-			// send rtmp stream with ffmpeg to red5
-			String streamName = "live_test"  + (int)(Math.random() * 999999);
-
-			// make sure that ffmpeg is installed and in path
-			Process rtmpSendingProcess = execute(
-					ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://"
-							+ SERVER_ADDR + "/LiveApp/" + streamName);
-
-			// check that stream can be watchable by rtsp
-			// use ipv4 address to play rtsp stream
-
-			//no support rtmp playback anymore
-			//Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
-			//.until(() -> testFile("rtmp://" + SERVER_ADDR + "/LiveApp/" + streamName));		
-			
-
-			// check that stream can be watchable by hls
-			Awaitility.await().atMost(45, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
-			.until(() -> testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".m3u8"));
-
-			// stop rtmp streaming
-			rtmpSendingProcess.destroy();
-
-			// check that mp4 is created successfully and can be playable
-			Awaitility.await().atMost(45, TimeUnit.SECONDS).pollInterval(4, TimeUnit.SECONDS).until(()->{
-				return testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".mp4");
-			});
-			
-		} catch (Exception e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
-		
-		
-		 Awaitility.await().atMost(80, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
-		 .until(() -> {
-				RestServiceV2Test restService = new RestServiceV2Test();
-				
-				return 0 == restService.callGetLiveStatistics();
-			});
-	}
 	
 	//	@Test
 	public void testAzureRTMPSending() {
@@ -363,143 +290,13 @@ public class MuxingTest {
 		
 	}
 	
-	@Test
-	public void testDynamicAddRemoveRTMP() 
-	{
-		String streamId = "live_test"  + (int)(Math.random() * 999999);
-		
-		// make sure that ffmpeg is installed and in path
-		Process rtmpSendingProcess = execute(
-				ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://"
-						+ SERVER_ADDR + "/LiveApp/" + streamId);
-		
-		 Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
-		 .until(() -> RestServiceV2Test.callGetBroadcast(streamId).getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING));
-		
-		 String streamIdDynamic = "dynamic_stream" + (int)(Math.random() * 999999);
-		 String dynamicRtmpURL = "rtmp://localhost/LiveApp/" + streamIdDynamic;
-		 try {
-			 Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
-				 //if stream is being prepared, it may return false, so try again 
-				 Result result = RestServiceV2Test.addEndpoint(streamId, dynamicRtmpURL);
-				 return result.isSuccess();
-			 });
-			
-			 Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
-			 .until(() -> { 
-					 Broadcast broadcast = RestServiceV2Test.callGetBroadcast(streamIdDynamic);
-					 if (broadcast != null) {
-						 return broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING); 
-					 }
-					 return false;
-			 	});
-			 
-			 Result result = RestServiceV2Test.removeEndpoint(streamId, dynamicRtmpURL);
-			 assertTrue(result.isSuccess());
-			 
-			 Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
-			 .until(() -> RestServiceV2Test.callGetBroadcast(streamIdDynamic) == null );
-			 
-			
-		} catch (Exception e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
-		 
-		 rtmpSendingProcess.destroy();
-	}
 	
 	@Test
 	public void testDynamicAddRemoveRTMPV2() 
 	{
-		String streamId = "live_test"  + (int)(Math.random() * 999999);
-		
-		// make sure that ffmpeg is installed and in path
-		Process rtmpSendingProcess = execute(
-				ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://"
-						+ SERVER_ADDR + "/LiveApp/" + streamId);
-		
-		 Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
-		 .until(() -> RestServiceV2Test.callGetBroadcast(streamId).getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING));
-		
-		 String streamIdDynamic = "dynamic_stream" + (int)(Math.random() * 999999);
-		 String dynamicRtmpURL = "rtmp://localhost/LiveApp/" + streamIdDynamic;
-		 
-		 Endpoint endpoint = new Endpoint();
-		 endpoint.setRtmpUrl(dynamicRtmpURL);
-		 
-		 try {
-			 Awaitility.await().atMost(25, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
-				 //if stream is being prepared, it may return false, so try again 
-				 Result result = RestServiceV2Test.addEndpointV2(streamId, endpoint);
-				 return result.isSuccess();
-			 });
-			
-			
-			 Awaitility.await().atMost(25, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
-			 .until(() -> { 
-					 Broadcast broadcast = RestServiceV2Test.callGetBroadcast(streamIdDynamic);
-					 if (broadcast != null) {
-						 return broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING); 
-					 }
-					 return false;
-			 	});
-			 
-			 Broadcast broadcast = RestServiceV2Test.callGetBroadcast(streamId);
-			 
-			 Result result = RestServiceV2Test.removeEndpointV2(streamId, broadcast.getEndPointList().get(0).getEndpointServiceId());
-			 assertTrue(result.isSuccess());
-			 
-			 Awaitility.await().atMost(25, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
-			 .until(() -> RestServiceV2Test.callGetBroadcast(streamIdDynamic) == null );
-			 
-			
-		} catch (Exception e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
-		 
-		 rtmpSendingProcess.destroy();
+		assertTrue("This test is merged with RestServiceV2Test#testAddEndpointCrossCheckV2", true);
 	}
 	
-	@Test
-	public void testVP8Muxing() {
-		try {
-			ConsoleAppRestServiceTest.resetCookieStore();
-			Result result = ConsoleAppRestServiceTest.callisFirstLogin();
-			if (result.isSuccess()) {
-				Result createInitialUser = ConsoleAppRestServiceTest.createDefaultInitialUser();
-				assertTrue(createInitialUser.isSuccess());
-			}
-
-			result = ConsoleAppRestServiceTest.authenticateDefaultUser();
-			assertTrue(result.isSuccess());
-			
-			// send rtmp stream with ffmpeg to red5
-			String streamName = "live_test"  + (int)(Math.random() * 999999);
-
-			// make sure that ffmpeg is installed and in path
-			Process rtmpSendingProcess = execute(
-					ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://"
-							+ SERVER_ADDR + "/LiveApp/" + streamName);
-
-            Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-                return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName+ ".m3u8");
-            });
-
-            result = RestServiceV2Test.callEnableRecording(streamName, 1, "webm");
-            //it should return false because WebM cannot be recorded with incoming RTMP stream.
-            //RTMP stream(H264, AAC)  codecs are not compatible with webm
-            
-            assertFalse(result.isSuccess());
-
-            rtmpSendingProcess.destroy();
-            
-		} catch (Exception e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
-	}
 
 	@Test
 	public void testMp4Muxing() {
@@ -536,6 +333,11 @@ public class MuxingTest {
             assertTrue(result.isSuccess());
 			assertNotNull(result.getMessage());
             Thread.sleep(5000);
+            
+            result = RestServiceV2Test.callEnableRecording(streamName, 1, "webm");
+            //it should return false because WebM cannot be recorded with incoming RTMP stream.
+            //RTMP stream(H264, AAC)  codecs are not compatible with webm
+            assertFalse(result.isSuccess());
 
 			result = RestServiceV2Test.callEnableMp4Muxing(streamName, 0);
 			assertTrue(result.isSuccess());
@@ -685,7 +487,7 @@ public class MuxingTest {
 		while (tmpExec == null) {
 			try {
 				System.out.println("Waiting for exec get initialized...");
-				Thread.sleep(3000);
+				Thread.sleep(500);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}

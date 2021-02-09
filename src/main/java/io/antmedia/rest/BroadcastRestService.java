@@ -32,6 +32,7 @@ import io.antmedia.datastore.db.types.SubscriberStats;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.ipcamera.OnvifCamera;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.rest.model.BasicStreamInfo;
 import io.antmedia.rest.model.Interaction;
 import io.antmedia.rest.model.Result;
@@ -314,7 +315,7 @@ public class BroadcastRestService extends RestServiceBase{
 		if (result.isSuccess()) 
 		{
 			String status = getDataStore().get(id).getStatus();
-			if (status.equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) 
+			if (status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) 
 			{
 				boolean started = getMuxAdaptor(id).startRtmpStreaming(rtmpUrl);
 				result.setSuccess(started);
@@ -350,6 +351,7 @@ public class BroadcastRestService extends RestServiceBase{
 			result = processRTMPEndpoint(result,  getDataStore().get(id), rtmpUrl, true);
 		}
 		else {
+			result.setMessage("Rtmp endpoint is not added to datastore");
 			if (logger.isErrorEnabled()) {
 				logger.error("Rtmp endpoint({}) was not added to the stream: {}", rtmpUrl != null ? rtmpUrl.replaceAll(REPLACE_CHARS, "_") : null , id.replaceAll(REPLACE_CHARS, "_"));
 			}
@@ -369,7 +371,7 @@ public class BroadcastRestService extends RestServiceBase{
 		if (result.isSuccess()) 
 		{
 			String status = getDataStore().get(id).getStatus();
-			if (status.equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) 
+			if (status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) 
 			{
 				boolean started = getMuxAdaptor(id).stopRtmpStreaming(rtmpUrl);
 				result.setSuccess(started);
@@ -399,7 +401,7 @@ public class BroadcastRestService extends RestServiceBase{
 		Broadcast broadcast = getDataStore().get(id);
 		Result result;
 		
-		if(endpointServiceId != null && broadcast != null && !broadcast.getEndPointList().isEmpty() && broadcast.getEndPointList() != null) {
+		if(endpointServiceId != null && broadcast != null && broadcast.getEndPointList() != null && !broadcast.getEndPointList().isEmpty() ) {
 			for(Endpoint endpoint: broadcast.getEndPointList()) {
 				if(endpoint.getEndpointServiceId().equals(endpointServiceId)) {
 					rtmpUrl = endpoint.getRtmpUrl();
@@ -535,6 +537,26 @@ public class BroadcastRestService extends RestServiceBase{
 			@ApiParam(value = "Room Id that token belongs to. It's not mandatory ", required = false) @QueryParam("roomId") String roomId) 
 	{
 		Object result = super.getToken(streamId, expireDate, type, roomId);
+		if (result instanceof Token) {
+			return Response.status(Status.OK).entity(result).build();
+		}
+		else {
+			return Response.status(Status.BAD_REQUEST).entity(result).build();
+		}
+	}
+	
+	@ApiOperation(value = "Generates JWT token for specified stream. It's not required to let the server generate JWT. Generally JWT tokens should be generated on the client side.")
+	@ApiResponses(value = { @ApiResponse(code = 200, message = "Returns token", response=Token.class), 
+			@ApiResponse(code = 400, message = "When there is an error in creating token", response=Result.class)})
+	@GET
+	@Path("/{id}/jwt-token")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response getJwtTokenV2 (@ApiParam(value = "The id of the stream", required = true) @PathParam("id")String streamId,
+			@ApiParam(value = "The expire time of the token. It's in unix timestamp seconds.", required = true) @QueryParam("expireDate") long expireDate,
+			@ApiParam(value = "Type of the JWT token. It may be play or publish ", required = true) @QueryParam("type") String type,
+			@ApiParam(value = "Room Id that token belongs to. It's not mandatory ", required = false) @QueryParam("roomId") String roomId) 
+	{
+		Object result = super.getJwtToken(streamId, expireDate, type, roomId);
 		if (result instanceof Token) {
 			return Response.status(Status.OK).entity(result).build();
 		}
@@ -848,7 +870,7 @@ public class BroadcastRestService extends RestServiceBase{
 						
 						streamId = streamId.replaceAll(REPLACE_CHARS, "_");
 						//if it's not enabled, start it
-						if (broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING))
+						if (broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING))
 						{
 							result = startRecord(streamId, RecordType.MP4);
 							if (!result) 
@@ -867,7 +889,7 @@ public class BroadcastRestService extends RestServiceBase{
 					}
 					else 
 					{
-						if (broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) 
+						if (broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) 
 						{
 							message = "Recording is already active. Please stop it first";
 						}
@@ -876,7 +898,7 @@ public class BroadcastRestService extends RestServiceBase{
 				else 
 				{
 					boolean stopAttempted = false;
-					if (broadcast.getMp4Enabled() == RECORD_ENABLE && broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) 
+					if (broadcast.getMp4Enabled() == RECORD_ENABLE && broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) 
 					{
 						stopAttempted = true;
 						//we can stop recording
@@ -919,7 +941,7 @@ public class BroadcastRestService extends RestServiceBase{
 					{
 						
 						//if it's not enabled, start it
-						if (broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING))
+						if (broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING))
 						{
 							result = startRecord(streamId, RecordType.WEBM);
 							if (result) 
@@ -935,7 +957,7 @@ public class BroadcastRestService extends RestServiceBase{
 					}
 					else 
 					{
-						if (broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) 
+						if (broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) 
 						{
 							message = "Recording is already active. Please stop it first";
 						}
@@ -943,7 +965,7 @@ public class BroadcastRestService extends RestServiceBase{
 				}
 				else 
 				{
-					if (broadcast.getWebMEnabled() == RECORD_ENABLE && broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) 
+					if (broadcast.getWebMEnabled() == RECORD_ENABLE && broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) 
 					{
 						//we can stop recording
 						result = stopRecord(streamId, RecordType.WEBM);

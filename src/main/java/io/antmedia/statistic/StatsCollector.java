@@ -153,6 +153,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 	private static final String WEBRTC_CLIENT_ID = "webrtcClientId";
 
+	private static final String WEBRTC_VIEWER_INFO = "webrtcViewerInfo";
+
 	private static Thread shutdownHook;
 
 	private Queue<IScope> scopes = new ConcurrentLinkedQueue<>();
@@ -392,6 +394,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 			jsonObject.addProperty(SEND_BITRATE, webRTCClientStat.getSendBitrate());
 			jsonObject.addProperty(TIME, dateTime);
 			jsonObject.addProperty(HOST_ADDRESS, hostAddress);
+			jsonObject.addProperty(WEBRTC_VIEWER_INFO, webRTCClientStat.getClientInfo());
+
 			//logstash cannot parse json array so that we send each info separately
 			send2Kafka(jsonObject, WEBRTC_STATS_TOPIC_NAME);
 		}

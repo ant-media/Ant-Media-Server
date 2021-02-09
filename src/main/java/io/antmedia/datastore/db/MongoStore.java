@@ -14,7 +14,6 @@ import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.api.services.youtube.model.Playlist;
 import com.mongodb.AggregationOptions;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
@@ -41,6 +40,7 @@ import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 
 public class MongoStore extends DataStore {
@@ -140,7 +140,7 @@ public class MongoStore extends DataStore {
 			}
 			broadcast.setRtmpURL(rtmpURL);
 			if(broadcast.getStatus()==null) {
-				broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
+				broadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_CREATED);
 			}
 
 			synchronized(this) {
@@ -196,10 +196,10 @@ public class MongoStore extends DataStore {
 
 				UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set(STATUS, status);
 
-				if(status.equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
+				if(status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) {
 					ops.set(START_TIME, System.currentTimeMillis());
 				}
-				else if(status.equals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED)) {
+				else if(status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED)) {
 					ops.set(WEBRTC_VIEWER_COUNT, 0);
 					ops.set(HLS_VIEWER_COUNT, 0);
 					ops.set(RTMP_VIEWER_COUNT, 0);
@@ -238,8 +238,6 @@ public class MongoStore extends DataStore {
 		}
 		return false;
 	}
-
-
 
 	/*
 	 * (non-Javadoc)
@@ -410,8 +408,8 @@ public class MongoStore extends DataStore {
 								query.criteria("type").equal(AntMediaApplicationAdapter.STREAM_SOURCE)
 								), 
 						query.and(
-								query.criteria(STATUS).notEqual(AntMediaApplicationAdapter.BROADCAST_STATUS_PREPARING),
-								query.criteria(STATUS).notEqual(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)
+								query.criteria(STATUS).notEqual(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING),
+								query.criteria(STATUS).notEqual(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)
 								)
 						);
 				
@@ -753,7 +751,7 @@ public class MongoStore extends DataStore {
 	@Override
 	public long getActiveBroadcastCount() {
 		synchronized(this) {
-			return datastore.find(Broadcast.class).filter(STATUS, AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING).count();
+			return datastore.find(Broadcast.class).filter(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING).count();
 		}
 	}
 
@@ -860,6 +858,10 @@ public class MongoStore extends DataStore {
 				
 				if (broadcast.getPlayListStatus() != null) {
 					ops.set("playListStatus", broadcast.getPlayListStatus());
+				}
+				
+				if (broadcast.getEndPointList() != null) {
+					ops.set("endPointList", broadcast.getEndPointList());
 				}
 				
 				prepareFields(broadcast, ops);
@@ -1323,7 +1325,7 @@ public class MongoStore extends DataStore {
 							query.criteria(ORIGIN_ADDRESS).doesNotExist(), //check for non cluster mode
 							query.criteria(ORIGIN_ADDRESS).equal(hostAddress)
 							),
-					query.criteria(STATUS).equal(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)
+					query.criteria(STATUS).equal(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)
 					);
 			return query.count();
 		}
@@ -1485,7 +1487,7 @@ public class MongoStore extends DataStore {
 			synchronized(this) {
 				int total = 0;
 				Query<Broadcast> query = datastore.createQuery(Broadcast.class);
-				query.field(STATUS).equal(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+				query.field(STATUS).equal(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
 
 				Iterator<Summation> result = datastore.createAggregation(Broadcast.class)
 						.match(query)
