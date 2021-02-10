@@ -560,7 +560,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			fetcher.startStream();
 
 			//wait for fetching stream
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->  {
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() ->  {
 				return fetcher.isThreadActive();
 			});
 			
