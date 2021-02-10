@@ -1647,8 +1647,10 @@ public class BroadcastRestServiceV2UnitTest {
 		Result result = restServiceReal.enableMp4Muxing(broadcast.getStreamId(), true);
 		assertFalse(result.isSuccess());
 		
+		//stop recording
 		result = restServiceReal.enableMp4Muxing(broadcast.getStreamId(), false);
-		assertFalse(result.isSuccess());
+		//it returns true because it's not started and it just changes the database
+		assertTrue(result.isSuccess());
 		
 		
 		Broadcast broadcast2 = new Broadcast(null, "name");
@@ -1656,8 +1658,10 @@ public class BroadcastRestServiceV2UnitTest {
 		result = restServiceReal.enableWebMMuxing(broadcast2.getStreamId(), false);
 		assertFalse(result.isSuccess());
 		
+		//stop webm recording
 		result = restServiceReal.enableWebMMuxing(broadcast2.getStreamId(), true);
-		assertFalse(result.isSuccess());
+		//it returns true because it's not started and it just changes the database
+		assertTrue(result.isSuccess());
 		
 		
 		result = restServiceReal.enableWebMMuxing(broadcast2.getStreamId(), false);
