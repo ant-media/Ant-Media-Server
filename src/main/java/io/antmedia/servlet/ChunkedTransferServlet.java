@@ -198,7 +198,6 @@ public class ChunkedTransferServlet extends HttpServlet {
 				atomparser.parse(data, 0, length);
 				fos.write(data, 0, length);
 			}
-
 			
 			asyncContext.complete();
 			Files.move(tmpFile.toPath(), finalFile.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
@@ -390,8 +389,9 @@ public class ChunkedTransferServlet extends HttpServlet {
 					}
 					oStream.write(chunk, offset, length);
 					offset += length;
+					oStream.flush();
 				} 
-				oStream.flush();
+				
 
 				logger.info("writing chunk leaving for file: {}", filePath);
 				asyncContext.complete();
