@@ -9,7 +9,6 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
-import java.util.Queue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import javax.servlet.AsyncContext;
@@ -29,12 +28,10 @@ import org.springframework.beans.BeansException;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
 import org.springframework.web.context.WebApplicationContext;
 
-import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.servlet.cmafutils.AtomParser;
 import io.antmedia.servlet.cmafutils.AtomParser.MockAtomParser;
 import io.antmedia.servlet.cmafutils.ICMAFChunkListener;
 import io.antmedia.servlet.cmafutils.IParser;
-import io.vertx.core.Vertx;
 
 
 public class ChunkedTransferServlet extends HttpServlet {
@@ -149,16 +146,11 @@ public class ChunkedTransferServlet extends HttpServlet {
 					});
 
 
-
-					Vertx vertx =(Vertx)appContext.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
 					InputStream inputStream = asyncContext.getRequest().getInputStream();
 					asyncContext.start(() -> 
-					vertx.executeBlocking(b -> {
-						readInputStream(finalFile, tmpFile, cacheManager, atomparser, asyncContext, inputStream);
-						b.complete();
-					}, r -> {
-
-					}));
+					
+						readInputStream(finalFile, tmpFile, cacheManager, atomparser, asyncContext, inputStream)
+					);
 				}
 				catch (BeansException | IllegalStateException | IOException e) 
 				{
