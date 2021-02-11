@@ -201,17 +201,17 @@ public class ChunkedTransferServlet extends HttpServlet {
 
 			
 			asyncContext.complete();
+			Files.move(tmpFile.toPath(), finalFile.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+			
+		}
+		catch (ClientAbortException e) {
+			logger.warn("Client aborted - Reading input stream for file: {}", finalFile.getAbsolutePath());
 		}
 		catch (Exception e) 
 		{
 			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 		finally {
-			try {
-				Files.move(tmpFile.toPath(), finalFile.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
-			} catch (IOException e) {
-				logger.error(ExceptionUtils.getStackTrace(e));
-			}
 			cacheManager.removeCache(finalFile.getAbsolutePath());
 		}
 		logger.trace("doPut done key:{}", finalFile.getAbsolutePath());
@@ -394,23 +394,19 @@ public class ChunkedTransferServlet extends HttpServlet {
 				oStream.flush();
 
 				logger.info("writing chunk leaving for file: {}", filePath);
+				asyncContext.complete();
 
 			}
 		}
 		catch (ClientAbortException e) {
-			logger.warn("Client aborted - Removing chunklistener this client for file: {}", filePath);
-			exceptionOccured = true;
+			logger.warn("Client aborted - writing chunks for file: {}", filePath);
 		}
 		catch (Exception e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
-			exceptionOccured = true;
 		} 
 
 		cacheManager.removeChunkListener(filePath, chunkListener);
-		logger.debug("context is completed for {}", filePath);
-		if (!exceptionOccured) {
-			asyncContext.complete();
-		}
+		
 	}
 
 	private void writeInternalError(HttpServletResponse resp, int status, String message) {
