@@ -236,9 +236,7 @@ public class StatsCollectorTest {
 			return true;
 		});
 		
-		Mockito.verify(resMonitor, Mockito.times(1)).startAnalytic(Launcher.getVersion(), Launcher.getVersionType());
-				
-		Mockito.verify(resMonitor, Mockito.times(1)).startHeartBeats(Launcher.getVersion(), Launcher.getVersionType(), 3000);
+		Mockito.verify(resMonitor, Mockito.times(1)).startAnalytic();
 		
 		resMonitor.cancelHeartBeat();
 		
@@ -247,9 +245,7 @@ public class StatsCollectorTest {
 		resMonitor.setHeartBeatEnabled(false);
 		resMonitor.start();
 		assertFalse(resMonitor.isHeartBeatEnabled());
-		Mockito.verify(resMonitor, Mockito.times(1)).startAnalytic(Launcher.getVersion(), Launcher.getVersionType());
-				
-		Mockito.verify(resMonitor, Mockito.times(1)).startHeartBeats(Launcher.getVersion(), Launcher.getVersionType(), 3000);
+		Mockito.verify(resMonitor, Mockito.times(1)).startAnalytic();
 		
 		resMonitor.cancelHeartBeat();
 		

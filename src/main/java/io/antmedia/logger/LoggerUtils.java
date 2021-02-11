@@ -24,7 +24,6 @@ public class LoggerUtils {
         } catch (Exception e) {
             logger.error(ExceptionUtils.getStackTrace(e));
         }
-
     }
 
     public static String getFileContent(String path) {
