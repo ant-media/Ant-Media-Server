@@ -856,9 +856,10 @@ public class BroadcastRestService extends RestServiceBase{
 		
 		boolean result = false;
 		String message = null;
-		streamId = streamId.replaceAll(REPLACE_CHARS, "_");
+		
 		if (streamId != null) 
 		{
+			streamId = streamId.replaceAll(REPLACE_CHARS, "_");
 			Broadcast broadcast = getDataStore().get(streamId);
 			if (broadcast != null) 
 			{
