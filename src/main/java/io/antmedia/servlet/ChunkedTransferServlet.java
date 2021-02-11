@@ -392,11 +392,10 @@ public class ChunkedTransferServlet extends HttpServlet {
 					oStream.flush();
 				} 
 				
-
 				logger.info("writing chunk leaving for file: {}", filePath);
-				asyncContext.complete();
 
 			}
+			asyncContext.complete();
 		}
 		catch (ClientAbortException e) {
 			logger.warn("Client aborted - writing chunks for file: {}", filePath);
