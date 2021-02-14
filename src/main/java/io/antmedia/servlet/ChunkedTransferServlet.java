@@ -126,22 +126,22 @@ public class ChunkedTransferServlet extends HttpServlet {
 
 						@Override
 						public void onTimeout(AsyncEvent event) throws IOException {
-							logger.info("handle incoming stream context Timeout: {}", filepath);
+							logger.warn("handle incoming stream context Timeout: {}", filepath);
 						}
 
 						@Override
 						public void onStartAsync(AsyncEvent event) throws IOException {
-							logger.info("handle incoming stream context onStartAsync: {}", filepath);
+							logger.debug("handle incoming stream context onStartAsync: {}", filepath);
 						}
 
 						@Override
 						public void onError(AsyncEvent event) throws IOException {
-							logger.info("handle incoming stream context onError: {}", filepath);
+							logger.warn("handle incoming stream context onError: {}", filepath);
 						}
 
 						@Override
 						public void onComplete(AsyncEvent event) throws IOException {
-							logger.info("handle incoming stream context onComplete: {}", filepath);
+							logger.debug("handle incoming stream context onComplete: {}", filepath);
 						}
 					});
 
@@ -160,13 +160,13 @@ public class ChunkedTransferServlet extends HttpServlet {
 
 			}
 			else {
-				logger.info("AppContext is not running for write request to {}", req.getRequestURI());
+				logger.warn("AppContext is not running for write request to {}", req.getRequestURI());
 			}
 
 		}
 		else 
 		{
-			logger.info("AppContext is not running for write request to {}", req.getRequestURI());
+			logger.warn("AppContext is not running for write request to {}", req.getRequestURI());
 			writeInternalError(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Server is not ready. It's likely starting. Please try a few seconds later. ");
 
 		}
@@ -357,7 +357,7 @@ public class ChunkedTransferServlet extends HttpServlet {
 					}
 					else 
 					{
-						logger.debug("Sending not found error(404) for {}", file.getAbsolutePath());
+						logger.info("Sending not found error(404) for {}", file.getAbsolutePath());
 						writeInternalError(resp, HttpServletResponse.SC_NOT_FOUND, null);
 					}
 
@@ -371,7 +371,7 @@ public class ChunkedTransferServlet extends HttpServlet {
 		}
 		else 
 		{
-			logger.info("AppContext is not running for get request {}", req.getRequestURI());
+			logger.warn("AppContext is not running for get request {}", req.getRequestURI());
 			writeInternalError(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Server is not ready. It's likely starting. Please try a few seconds later. ");
 		}
 	}
@@ -387,7 +387,7 @@ public class ChunkedTransferServlet extends HttpServlet {
 				int offset = 0;
 				int batchSize = 2048;
 				int length = 0;
-				logger.info("start writing chunk leaving for file: {}", filePath);
+				logger.debug("start writing chunk leaving for file: {}", filePath);
 
 				while ((length = chunk.length - offset) > 0) 
 				{
@@ -399,7 +399,7 @@ public class ChunkedTransferServlet extends HttpServlet {
 					oStream.flush();
 				} 
 				
-				logger.info("writing chunk leaving for file: {}", filePath);
+				logger.debug("writing chunk leaving for file: {}", filePath);
 
 			}
 			
