@@ -856,8 +856,10 @@ public class BroadcastRestService extends RestServiceBase{
 		
 		boolean result = false;
 		String message = null;
+		
 		if (streamId != null) 
 		{
+			streamId = streamId.replaceAll(REPLACE_CHARS, "_");
 			Broadcast broadcast = getDataStore().get(streamId);
 			if (broadcast != null) 
 			{
@@ -867,7 +869,6 @@ public class BroadcastRestService extends RestServiceBase{
 					{
 						result = getDataStore().setMp4Muxing(streamId, RECORD_ENABLE);
 						
-						streamId = streamId.replaceAll(REPLACE_CHARS, "_");
 						//if it's not enabled, start it
 						if (broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING))
 						{

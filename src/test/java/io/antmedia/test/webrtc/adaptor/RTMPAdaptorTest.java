@@ -524,9 +524,9 @@ public class RTMPAdaptorTest {
 		assertEquals(vframe, videoFrameContext.videoFrame);
 		assertEquals(900, videoFrameContext.timestampMS);
 		
-		byte[] data = new byte[100];
-		AudioFrameContext aframeContext = new AudioFrameContext(data, 10, 20, 30, 40);
-		assertEquals(data, aframeContext.data);
+		AVFrame frame = new AVFrame();
+		AudioFrameContext aframeContext = new AudioFrameContext(frame, 10, 20, 30, 40);
+		assertEquals(frame, aframeContext.frame);
 		assertEquals(10, aframeContext.timestampMs);
 		assertEquals(20, aframeContext.numberOfFrames);
 		assertEquals(30, aframeContext.channels);

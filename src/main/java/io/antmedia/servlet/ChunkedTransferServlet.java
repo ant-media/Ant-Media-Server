@@ -9,7 +9,6 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
-import java.util.Queue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import javax.servlet.AsyncContext;
@@ -29,12 +28,10 @@ import org.springframework.beans.BeansException;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
 import org.springframework.web.context.WebApplicationContext;
 
-import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.servlet.cmafutils.AtomParser;
 import io.antmedia.servlet.cmafutils.AtomParser.MockAtomParser;
 import io.antmedia.servlet.cmafutils.ICMAFChunkListener;
 import io.antmedia.servlet.cmafutils.IParser;
-import io.vertx.core.Vertx;
 
 
 public class ChunkedTransferServlet extends HttpServlet {
@@ -129,36 +126,31 @@ public class ChunkedTransferServlet extends HttpServlet {
 
 						@Override
 						public void onTimeout(AsyncEvent event) throws IOException {
-							logger.info("handle incoming stream context Timeout: {}", filepath);
+							logger.warn("handle incoming stream context Timeout: {}", filepath);
 						}
 
 						@Override
 						public void onStartAsync(AsyncEvent event) throws IOException {
-							logger.info("handle incoming stream context onStartAsync: {}", filepath);
+							logger.debug("handle incoming stream context onStartAsync: {}", filepath);
 						}
 
 						@Override
 						public void onError(AsyncEvent event) throws IOException {
-							logger.info("handle incoming stream context onError: {}", filepath);
+							logger.warn("handle incoming stream context onError: {}", filepath);
 						}
 
 						@Override
 						public void onComplete(AsyncEvent event) throws IOException {
-							logger.info("handle incoming stream context onComplete: {}", filepath);
+							logger.debug("handle incoming stream context onComplete: {}", filepath);
 						}
 					});
 
 
-
-					Vertx vertx =(Vertx)appContext.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
 					InputStream inputStream = asyncContext.getRequest().getInputStream();
 					asyncContext.start(() -> 
-					vertx.executeBlocking(b -> {
-						readInputStream(finalFile, tmpFile, cacheManager, atomparser, asyncContext, inputStream);
-						b.complete();
-					}, r -> {
-
-					}));
+					
+						readInputStream(finalFile, tmpFile, cacheManager, atomparser, asyncContext, inputStream)
+					);
 				}
 				catch (BeansException | IllegalStateException | IOException e) 
 				{
@@ -168,13 +160,13 @@ public class ChunkedTransferServlet extends HttpServlet {
 
 			}
 			else {
-				logger.info("AppContext is not running for write request to {}", req.getRequestURI());
+				logger.warn("AppContext is not running for write request to {}", req.getRequestURI());
 			}
 
 		}
 		else 
 		{
-			logger.info("AppContext is not running for write request to {}", req.getRequestURI());
+			logger.warn("AppContext is not running for write request to {}", req.getRequestURI());
 			writeInternalError(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Server is not ready. It's likely starting. Please try a few seconds later. ");
 
 		}
@@ -196,6 +188,7 @@ public class ChunkedTransferServlet extends HttpServlet {
 	public void readInputStream(File finalFile, File tmpFile, IChunkedCacheManager cacheManager, IParser atomparser,
 			AsyncContext asyncContext, InputStream inputStream) 
 	{
+		boolean exceptionOccured = false;
 		try (FileOutputStream fos = new FileOutputStream(tmpFile)) 
 		{
 			byte[] data = new byte[2048];
@@ -206,22 +199,27 @@ public class ChunkedTransferServlet extends HttpServlet {
 				atomparser.parse(data, 0, length);
 				fos.write(data, 0, length);
 			}
-
 			
-			asyncContext.complete();
+			
+			Files.move(tmpFile.toPath(), finalFile.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+			
+		}
+		catch (ClientAbortException e) {
+			logger.warn("Client aborted - Reading input stream for file: {}", finalFile.getAbsolutePath());
+			exceptionOccured = true;
 		}
 		catch (Exception e) 
 		{
 			logger.error(ExceptionUtils.getStackTrace(e));
+			exceptionOccured = true;
 		}
-		finally {
-			try {
-				Files.move(tmpFile.toPath(), finalFile.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
-			} catch (IOException e) {
-				logger.error(ExceptionUtils.getStackTrace(e));
-			}
-			cacheManager.removeCache(finalFile.getAbsolutePath());
+		
+		if (!exceptionOccured) {
+			asyncContext.complete();
 		}
+		
+		cacheManager.removeCache(finalFile.getAbsolutePath());
+		
 		logger.trace("doPut done key:{}", finalFile.getAbsolutePath());
 	}
 
@@ -359,7 +357,7 @@ public class ChunkedTransferServlet extends HttpServlet {
 					}
 					else 
 					{
-						logger.debug("Sending not found error(404) for {}", file.getAbsolutePath());
+						logger.info("Sending not found error(404) for {}", file.getAbsolutePath());
 						writeInternalError(resp, HttpServletResponse.SC_NOT_FOUND, null);
 					}
 
@@ -373,7 +371,7 @@ public class ChunkedTransferServlet extends HttpServlet {
 		}
 		else 
 		{
-			logger.info("AppContext is not running for get request {}", req.getRequestURI());
+			logger.warn("AppContext is not running for get request {}", req.getRequestURI());
 			writeInternalError(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Server is not ready. It's likely starting. Please try a few seconds later. ");
 		}
 	}
@@ -389,7 +387,7 @@ public class ChunkedTransferServlet extends HttpServlet {
 				int offset = 0;
 				int batchSize = 2048;
 				int length = 0;
-				logger.info("start writing chunk leaving for file: {}", filePath);
+				logger.debug("start writing chunk leaving for file: {}", filePath);
 
 				while ((length = chunk.length - offset) > 0) 
 				{
@@ -398,27 +396,29 @@ public class ChunkedTransferServlet extends HttpServlet {
 					}
 					oStream.write(chunk, offset, length);
 					offset += length;
+					oStream.flush();
 				} 
-				oStream.flush();
-
-				logger.info("writing chunk leaving for file: {}", filePath);
+				
+				logger.debug("writing chunk leaving for file: {}", filePath);
 
 			}
+			
 		}
 		catch (ClientAbortException e) {
-			logger.warn("Client aborted - Removing chunklistener this client for file: {}", filePath);
+			logger.warn("Client aborted - writing chunks for file: {}", filePath);
 			exceptionOccured = true;
 		}
 		catch (Exception e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
 			exceptionOccured = true;
 		} 
-
-		cacheManager.removeChunkListener(filePath, chunkListener);
-		logger.debug("context is completed for {}", filePath);
+		
 		if (!exceptionOccured) {
 			asyncContext.complete();
 		}
+
+		cacheManager.removeChunkListener(filePath, chunkListener);
+		
 	}
 
 	private void writeInternalError(HttpServletResponse resp, int status, String message) {

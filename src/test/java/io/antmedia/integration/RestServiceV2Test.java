@@ -1394,7 +1394,7 @@ public class RestServiceV2Test {
 		}
 	}
 
-	public static Process execute(final String command) {
+		public static Process execute(final String command) {
 		tmpExec = null;
 		new Thread() {
 			public void run() {
@@ -1434,75 +1434,7 @@ public class RestServiceV2Test {
 		return tmpExec;
 	}
 
-	//@Test
-	public void authenticateSocialEndpoints() {
-		Result result;
-		try {
-			// authenticate facebook
-			// get parameters
-			DeviceAuthParameters deviceAuthParameters = getDeviceAuthParameters("facebook");
-			System.out.println(" url: " + deviceAuthParameters.verification_url);
-			System.out.println(" user code: " + deviceAuthParameters.user_code);
-			assertNotNull(deviceAuthParameters.verification_url);
-			assertNotNull(deviceAuthParameters.user_code);
-
-			// ask if authenticated
-			do {
-				System.out.println("You should enter this code: " + deviceAuthParameters.user_code + " to this url: "
-						+ deviceAuthParameters.verification_url);
-				System.out.println("Waiting before asking auth status");
-
-				Thread.sleep(deviceAuthParameters.interval * 1000);
-				result = checkDeviceAuthStatus("facebook");
-				System.out.println("auth status is " + result.isSuccess());
-
-			} while (!result.isSuccess());
-
-			assertTrue(result.isSuccess());
-
-			// authenticate twitter
-			deviceAuthParameters = getDeviceAuthParameters("periscope");
-			System.out.println(" url: " + deviceAuthParameters.verification_url);
-			System.out.println(" user code: " + deviceAuthParameters.user_code);
-			assertNotNull(deviceAuthParameters.verification_url);
-			assertNotNull(deviceAuthParameters.user_code);
-
-			do {
-				System.out.println("You should enter this code: " + deviceAuthParameters.user_code + " to this url: "
-						+ deviceAuthParameters.verification_url);
-				System.out.println("Waiting " + deviceAuthParameters.interval + " seconds before asking auth status");
-
-				Thread.sleep(deviceAuthParameters.interval * 1000);
-				result = checkDeviceAuthStatus("periscope");
-				System.out.println("auth status is " + result.isSuccess());
-
-			} while (!result.isSuccess());
-
-			assertTrue(result.isSuccess());
-
-			// authenticate youtube
-			deviceAuthParameters = getDeviceAuthParameters("youtube");
-			System.out.println(" url: " + deviceAuthParameters.verification_url);
-			System.out.println(" user code: " + deviceAuthParameters.user_code);
-			assertNotNull(deviceAuthParameters.verification_url);
-			assertNotNull(deviceAuthParameters.user_code);
-
-			do {
-				System.out.println("You should enter this code: " + deviceAuthParameters.user_code + " to this url: "
-						+ deviceAuthParameters.verification_url);
-				System.out.println("Waiting " + deviceAuthParameters.interval + " seconds before asking auth status");
-
-				Thread.sleep(deviceAuthParameters.interval * 1000);
-				result = checkDeviceAuthStatus("youtube");
-				System.out.println("auth status is " + result.isSuccess());
-
-			} while (!result.isSuccess());
-
-		} catch (Exception e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
-	}
+	
 
 	@Test
 	public void testAddEndpointV2() {
