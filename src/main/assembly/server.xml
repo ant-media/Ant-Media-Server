@@ -150,8 +150,22 @@
 		 
 		<!-- NATIVE LIBRARIES -->
 		<fileSet>
-			<directory>${project.basedir}/src/main/server/lib/native</directory>
-			<outputDirectory>lib/native</outputDirectory>
+			<directory>${project.basedir}/src/main/server/lib/native-mac</directory>
+			<outputDirectory>lib/native-mac</outputDirectory>
+			<includes>
+				<include>*</include>
+			</includes>
+		</fileSet>
+		<fileSet>
+			<directory>${project.basedir}/src/main/server/lib/native-linux-x86</directory>
+			<outputDirectory>lib/native-linux-x86</outputDirectory>
+			<includes>
+				<include>*</include>
+			</includes>
+		</fileSet>
+		<fileSet>
+			<directory>${project.basedir}/src/main/server/lib/native-linux-arm64</directory>
+			<outputDirectory>lib/native-linux-arm64</outputDirectory>
 			<includes>
 				<include>*</include>
 			</includes>
