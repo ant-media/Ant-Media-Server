@@ -300,9 +300,9 @@ public class ChunkedTransferServlet extends HttpServlet {
 
 			while ((length = fis.read(data, 0, data.length)) > 0) {
 				ostream.write(data, 0, length);
-				ostream.flush();
 			}
-
+			
+			ostream.flush();
 			asyncContext.complete();
 
 		} 
@@ -396,8 +396,9 @@ public class ChunkedTransferServlet extends HttpServlet {
 					}
 					oStream.write(chunk, offset, length);
 					offset += length;
-					oStream.flush();
 				} 
+				
+				oStream.flush();
 				
 				logger.debug("writing chunk leaving for file: {}", filePath);
 
