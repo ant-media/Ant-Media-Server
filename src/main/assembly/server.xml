@@ -157,8 +157,8 @@
 			</includes>
 		</fileSet>
 		<fileSet>
-			<directory>${project.basedir}/src/main/server/lib/native-linux-x86</directory>
-			<outputDirectory>lib/native-linux-x86</outputDirectory>
+			<directory>${project.basedir}/src/main/server/lib/native-linux-x86_64</directory>
+			<outputDirectory>lib/native-linux-x86_64</outputDirectory>
 			<includes>
 				<include>*</include>
 			</includes>
