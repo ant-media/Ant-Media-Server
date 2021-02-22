@@ -55,6 +55,7 @@ public class ServerSettings implements ApplicationContextAware {
 	
 	private static final String SETTINGS_CPU_MEASUREMENT_WINDOW_SIZE = "server.cpu_measurement_window_size";
 
+	private static final String SETTINGS_SERVER_DEFAULT_HTTP_PORT = "http.port";
 
 	private String allowedDashboardCIDR;
 
@@ -120,6 +121,13 @@ public class ServerSettings implements ApplicationContextAware {
 	 */
 	@Value( "${"+SETTINGS_CPU_MEASUREMENT_WINDOW_SIZE+":5}" )
 	private int cpuMeasurementWindowSize;
+
+	/**
+	 * Server default HTTP port
+	 * It's 5080 by default
+	 */
+	@Value( "${"+SETTINGS_SERVER_DEFAULT_HTTP_PORT+":5080}" )
+	private int defaultHttpPort;
 
 	public boolean isBuildForMarket() {
 		return buildForMarket;
@@ -353,6 +361,14 @@ public class ServerSettings implements ApplicationContextAware {
 
 	public void setCpuMeasurementWindowSize(int cpuMeasurementWindowSize) {
 		this.cpuMeasurementWindowSize = cpuMeasurementWindowSize;
+	}
+	
+	public int getDefaultHttpPort() {
+		return defaultHttpPort;
+	}
+
+	public void setDefaultHttpPort(int defaultHttpPort) {
+		this.defaultHttpPort = defaultHttpPort;
 	}
 
 }
