@@ -26,8 +26,9 @@ ERROR_MESSAGE="There is a problem in installing SSL to Ant Media Server.\n Pleas
 usage() {
   echo "Usage:"
   echo "$0 -d {DOMAIN_NAME} [-i {INSTALL_DIRECTORY}]"
-  echo "$0 -f {FULL_CHAIN_FILE} -p {PRIVATE_KEY_FILE} -c {CHAIN_FILE} -d {DOMAIN_NAME} [-i {INSTALL_DIRECTORY}]"
+  echo "$0 -f {FULL_CHAIN_FILE} -p {PRIVATE_KEY_FILE} -d {DOMAIN_NAME} [-i {INSTALL_DIRECTORY}]"
   echo " "
+  echo -e "Please use the link below for ssl chain certificate\nhttps://github.com/ant-media/Ant-Media-Server/wiki/Frequently-Asked-Questions\n"
   echo "If you have any question, send e-mail to contact@antmedia.io"
 }
 
