@@ -182,7 +182,8 @@ public abstract class RestServiceBase {
 					success = addSocialEndpoint(broadcast, videoServiceEndpoint);
 				}
 				else {
-					logger.warn("{} endpoint does not exist in this app.", endpointId);
+					String id = endpointId != null ? endpointId.replaceAll(REPLACE_CHARS, "_") : null;
+					logger.warn("{} endpoint does not exist in this app.", id);
 				}
 			}
 		}

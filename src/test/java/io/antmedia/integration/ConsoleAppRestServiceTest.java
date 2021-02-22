@@ -566,14 +566,24 @@ public class ConsoleAppRestServiceTest{
 
 			AppSettings appSettings = callGetAppSettings(appName);
 
+			appSettings.setRemoteAllowedCIDR("127.0.0.1");
+
+			Result result = callSetAppSettings(appName, appSettings);
+			assertTrue(result.isSuccess());
+
+			appSettings = callGetAppSettings(appName);
+			
 			String remoteAllowedCIDR = appSettings.getRemoteAllowedCIDR();
 			assertEquals("127.0.0.1", remoteAllowedCIDR);
 
 			//change the settings and ip filter does not accept rest services
 			appSettings.setRemoteAllowedCIDR("");
 
-			Result result = callSetAppSettings(appName, appSettings);
+			result = callSetAppSettings(appName, appSettings);
 			assertTrue(result.isSuccess());
+			
+			appSettings = callGetAppSettings(appName);
+			assertEquals("", appSettings.getRemoteAllowedCIDR());
 
 			//call a rest service
 			broadcastList = callGetBroadcastList(appName);

@@ -20,6 +20,7 @@ import org.bytedeco.ffmpeg.global.avcodec;
 import org.bytedeco.ffmpeg.global.avutil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.webrtc.BuiltinAudioDecoderFactoryFactory;
 import org.webrtc.IceCandidate;
 import org.webrtc.MediaConstraints;
 import org.webrtc.MediaStream;
@@ -213,6 +214,7 @@ public class RTMPAdaptor extends Adaptor {
 		options.disableNetworkMonitor = true;
 		options.networkIgnoreMask = PeerConnectionFactory.Options.ADAPTER_TYPE_LOOPBACK;
 
+		BuiltinAudioDecoderFactoryFactory audioDecoderFactoryFactory = new BuiltinAudioDecoderFactoryFactory();
 
 		// in receiving stream only Audio Track should be enabled
 		// in sending stream only AudioRecord should be enabled 
@@ -242,6 +244,7 @@ public class RTMPAdaptor extends Adaptor {
 				.setAudioDeviceModule(adm)
 				.setVideoEncoderFactory(encoderFactory)
 				.setVideoDecoderFactory(decoderFactory)
+				.setAudioDecoderFactoryFactory(audioDecoderFactoryFactory)
 				.createPeerConnectionFactory();
 	}
 
